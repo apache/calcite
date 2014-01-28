@@ -32,7 +32,7 @@ public interface MongoRel extends RelNode {
   void implement(Implementor implementor);
 
   /** Calling convention for relational operations that occur in MongoDB. */
-  final Convention CONVENTION = new Convention.Impl("MONGO", MongoRel.class);
+  Convention CONVENTION = new Convention.Impl("MONGO", MongoRel.class);
 
   class Implementor {
     final List<Pair<String, String>> list =

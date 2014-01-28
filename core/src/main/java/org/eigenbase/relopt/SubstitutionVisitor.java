@@ -595,7 +595,7 @@ public class SubstitutionVisitor {
     }
   }
 
-  private static abstract
+  private abstract static
   class AbstractUnifyRule<Q extends RelNode, T extends RelNode>
       implements UnifyRule<Q, T> {
     private final Class<Q> queryClass;

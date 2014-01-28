@@ -27,7 +27,7 @@ public interface ClosableAllocation {
   /**
    * Closes this object.
    */
-  public void closeAllocation();
+  void closeAllocation();
 }
 
 // End ClosableAllocation.java

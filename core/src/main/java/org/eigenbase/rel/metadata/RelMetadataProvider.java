@@ -44,7 +44,7 @@ public interface RelMetadataProvider {
    * the provider cannot answer the given query/rel combination; it is better
    * to return null than to return a possibly incorrect answer
    */
-  public Object getRelMetadata(
+  Object getRelMetadata(
       RelNode rel,
       String metadataQueryName,
       Object[] args);

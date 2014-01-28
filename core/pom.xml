@@ -12,6 +12,10 @@
   <name>optiq-core</name>
   <description>Core Optiq APIs and engine.</description>
 
+  <properties>
+    <top.dir>${project.basedir}/..</top.dir>
+  </properties>
+
   <dependencies>
     <dependency>
       <groupId>net.hydromatic</groupId>

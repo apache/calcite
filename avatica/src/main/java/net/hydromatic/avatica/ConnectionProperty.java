@@ -69,7 +69,7 @@ public enum ConnectionProperty {
     this.defaultValue = defaultValue;
   }
 
-  private <T> T _get(Properties properties, Converter<T> converter,
+  private <T> T get_(Properties properties, Converter<T> converter,
       String defaultValue) {
     final Map<ConnectionProperty, String> map = parse(properties);
     final String s = map.get(this);
@@ -83,14 +83,14 @@ public enum ConnectionProperty {
    * no default. */
   public String getString(Properties properties) {
     assert type == Type.STRING;
-    return _get(properties, IDENTITY_CONVERTER, defaultValue);
+    return get_(properties, IDENTITY_CONVERTER, defaultValue);
   }
 
   /** Returns the boolean value of this property. Throws if not set and no
    * default. */
   public boolean getBoolean(Properties properties) {
     assert type == Type.BOOLEAN;
-    return _get(properties, BOOLEAN_CONVERTER, defaultValue);
+    return get_(properties, BOOLEAN_CONVERTER, defaultValue);
   }
 
   /** Returns the enum value of this property. Throws if not set and no
@@ -98,7 +98,7 @@ public enum ConnectionProperty {
   public <E extends Enum> E getEnum(Properties properties, Class<E> enumClass) {
     assert type == Type.ENUM;
     //noinspection unchecked
-    return _get(properties, enumConverter(enumClass), defaultValue);
+    return get_(properties, enumConverter(enumClass), defaultValue);
   }
 
   /** Converts a {@link java.util.Properties} object containing (name, value)
@@ -127,6 +127,7 @@ public enum ConnectionProperty {
     return map;
   }
 
+  /** Callback to parse a property from string to its native type. */
   interface Converter<T> {
     T apply(ConnectionProperty connectionProperty, String s);
   }
@@ -169,6 +170,7 @@ public enum ConnectionProperty {
     };
   }
 
+  /** Data type of property. */
   enum Type {
     BOOLEAN,
     STRING,

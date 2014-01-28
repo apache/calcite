@@ -40,7 +40,7 @@ public interface SqlTypeTransform {
    * @param typeToTransform type to be transformed, never null
    * @return transformed type, never null
    */
-  public RelDataType transformType(
+  RelDataType transformType(
       SqlOperatorBinding opBinding,
       RelDataType typeToTransform);
 }

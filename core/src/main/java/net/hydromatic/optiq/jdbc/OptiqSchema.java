@@ -161,7 +161,7 @@ public class OptiqSchema {
     return ((SchemaPlusImpl) plus).optiqSchema();
   }
 
-  public static abstract class Entry {
+  public abstract static class Entry {
     public final OptiqSchema schema;
     public final String name;
 
@@ -178,7 +178,7 @@ public class OptiqSchema {
     }
   }
 
-  public static abstract class TableEntry extends Entry {
+  public abstract static class TableEntry extends Entry {
     public TableEntry(OptiqSchema schema, String name) {
       super(schema, name);
     }
@@ -186,7 +186,7 @@ public class OptiqSchema {
     public abstract Table getTable();
   }
 
-  public static abstract class TableFunctionEntry extends Entry {
+  public abstract static class TableFunctionEntry extends Entry {
     public TableFunctionEntry(OptiqSchema schema, String name) {
       super(schema, name);
     }

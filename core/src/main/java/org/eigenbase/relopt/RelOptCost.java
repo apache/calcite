@@ -35,17 +35,17 @@ public interface RelOptCost {
    * row count produced by a relational expression ({@link
    * org.eigenbase.rel.RelNode#getRows})
    */
-  public double getRows();
+  double getRows();
 
   /**
    * @return usage of CPU resources
    */
-  public double getCpu();
+  double getCpu();
 
   /**
    * @return usage of I/O resources
    */
-  public double getIo();
+  double getIo();
 
   /**
    * @return true iff this cost represents an expression that hasn't actually
@@ -53,7 +53,7 @@ public interface RelOptCost {
    * actually be implemented, e.g. a transfer of data between two disconnected
    * sites
    */
-  public boolean isInfinite();
+  boolean isInfinite();
 
   // REVIEW jvs 3-Apr-2006:  we should standardize this
   // to Comparator/equals/hashCode
@@ -64,7 +64,7 @@ public interface RelOptCost {
    * @param cost another cost
    * @return true iff this is exactly equal to other cost
    */
-  public boolean equals(RelOptCost cost);
+  boolean equals(RelOptCost cost);
 
   /**
    * Compares this to another cost, allowing for slight roundoff errors.
@@ -73,7 +73,7 @@ public interface RelOptCost {
    * @return true iff this is the same as the other cost within a roundoff
    * margin of error
    */
-  public boolean isEqWithEpsilon(RelOptCost cost);
+  boolean isEqWithEpsilon(RelOptCost cost);
 
   /**
    * Compares this to another cost.
@@ -81,7 +81,7 @@ public interface RelOptCost {
    * @param cost another cost
    * @return true iff this is less than or equal to other cost
    */
-  public boolean isLe(RelOptCost cost);
+  boolean isLe(RelOptCost cost);
 
   /**
    * Compares this to another cost.
@@ -89,7 +89,7 @@ public interface RelOptCost {
    * @param cost another cost
    * @return true iff this is strictly less than other cost
    */
-  public boolean isLt(RelOptCost cost);
+  boolean isLt(RelOptCost cost);
 
   /**
    * Adds another cost to this.
@@ -97,7 +97,7 @@ public interface RelOptCost {
    * @param cost another cost
    * @return sum of this and other cost
    */
-  public RelOptCost plus(RelOptCost cost);
+  RelOptCost plus(RelOptCost cost);
 
   /**
    * Subtracts another cost from this.
@@ -105,7 +105,7 @@ public interface RelOptCost {
    * @param cost another cost
    * @return difference between this and other cost
    */
-  public RelOptCost minus(RelOptCost cost);
+  RelOptCost minus(RelOptCost cost);
 
   /**
    * Multiplies this cost by a scalar factor.
@@ -113,7 +113,7 @@ public interface RelOptCost {
    * @param factor scalar factor
    * @return scalar product of this and factor
    */
-  public RelOptCost multiplyBy(double factor);
+  RelOptCost multiplyBy(double factor);
 
   /**
    * Computes the ratio between this cost and another cost.
@@ -125,13 +125,13 @@ public interface RelOptCost {
    * @param cost Other cost
    * @return Ratio between costs
    */
-  public double divideBy(RelOptCost cost);
+  double divideBy(RelOptCost cost);
 
   /**
    * Forces implementations to override {@link Object#toString} and provide a
    * good cost rendering to use during tracing.
    */
-  public String toString();
+   String toString();
 }
 
 // End RelOptCost.java

@@ -259,7 +259,7 @@ public class OptionsList {
    * of the wrong format. If you do not provide a handler, the value is stored
    * inside the option, and can be retrieved via</p>
    */
-  public static abstract class Option {
+  public abstract static class Option {
     /**
      * Holds the runtime value of this option. Set by the default
      * implementation {@link #set}. If the user has supplied an {@link

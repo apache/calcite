@@ -1697,7 +1697,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
   /**
    * Where a RelNode came from.
    */
-  private static abstract class Provenance {
+  private abstract static class Provenance {
     public static final Provenance EMPTY = new UnknownProvenance();
   }
 

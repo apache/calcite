@@ -73,7 +73,7 @@ public interface RelNode extends RelOptNode, Cloneable {
    * implementations will return an immutable list. If there are no
    * child expressions, returns an empty list, not <code>null</code>.
    */
-  public List<RexNode> getChildExps();
+  List<RexNode> getChildExps();
 
   /**
    * Return the CallingConvention trait from this RelNode's {@link
@@ -81,7 +81,7 @@ public interface RelNode extends RelOptNode, Cloneable {
    *
    * @return this RelNode's CallingConvention
    */
-  public Convention getConvention();
+  Convention getConvention();
 
   /**
    * Sets the name of the variable which is to be implicitly set at runtime
@@ -89,7 +89,7 @@ public interface RelNode extends RelOptNode, Cloneable {
    *
    * @param correlVariable Name of correlating variable
    */
-  public void setCorrelVariable(String correlVariable);
+  void setCorrelVariable(String correlVariable);
 
   /**
    * Returns the name of the variable which is to be implicitly set at runtime
@@ -98,13 +98,13 @@ public interface RelNode extends RelOptNode, Cloneable {
    *
    * @return Name of correlating variable, or null
    */
-  public String getCorrelVariable();
+  String getCorrelVariable();
 
   /**
    * Returns whether the same value will not come out twice. Default value is
    * <code>false</code>, derived classes should override.
    */
-  public boolean isDistinct();
+  boolean isDistinct();
 
   /**
    * Returns the <code>i</code><sup>th</sup> input relational expression.
@@ -112,14 +112,14 @@ public interface RelNode extends RelOptNode, Cloneable {
    * @param i Ordinal of input
    * @return <code>i</code><sup>th</sup> input
    */
-  public RelNode getInput(int i);
+  RelNode getInput(int i);
 
   /**
    * Returns a variable with which to reference the current row of this
    * relational expression as a correlating variable. Creates a variable if
    * none exists.
    */
-  public String getOrCreateCorrelVariable();
+  String getOrCreateCorrelVariable();
 
   /**
    * Returns the sub-query this relational expression belongs to. A sub-query
@@ -128,12 +128,12 @@ public interface RelNode extends RelOptNode, Cloneable {
    *
    * @return Sub-query
    */
-  public RelOptQuery getQuery();
+  RelOptQuery getQuery();
 
   /**
    * Returns the type of the rows returned by this relational expression.
    */
-  public RelDataType getRowType();
+  RelDataType getRowType();
 
   /**
    * Returns the type of the rows expected for an input. Defaults to {@link
@@ -143,13 +143,13 @@ public interface RelNode extends RelOptNode, Cloneable {
    *                        parent rel
    * @return expected row type
    */
-  public RelDataType getExpectedInputRowType(int ordinalInParent);
+  RelDataType getExpectedInputRowType(int ordinalInParent);
 
   /**
    * Returns an array of this relational expression's inputs. If there are no
    * inputs, returns an empty array, not <code>null</code>.
    */
-  public List<RelNode> getInputs();
+  List<RelNode> getInputs();
 
   /**
    * Returns an estimate of the number of rows this relational expression will
@@ -159,7 +159,7 @@ public interface RelNode extends RelOptNode, Cloneable {
    * {@link RelMetadataQuery#getRowCount}, which gives plugins a chance to
    * override the rel's default ideas about row count.
    */
-  public double getRows();
+  double getRows();
 
   /**
    * Returns the names of variables which are set in this relational
@@ -169,7 +169,7 @@ public interface RelNode extends RelOptNode, Cloneable {
    * <p>By default, returns the empty set. Derived classes may override this
    * method.</p>
    */
-  public Set<String> getVariablesStopped();
+  Set<String> getVariablesStopped();
 
   /**
    * Collects variables known to be used by this expression or its
@@ -179,21 +179,21 @@ public interface RelNode extends RelOptNode, Cloneable {
    *
    * @param variableSet receives variables used
    */
-  public void collectVariablesUsed(Set<String> variableSet);
+  void collectVariablesUsed(Set<String> variableSet);
 
   /**
    * Collects variables set by this expression.
    *
    * @param variableSet receives variables known to be set by
    */
-  public void collectVariablesSet(Set<String> variableSet);
+  void collectVariablesSet(Set<String> variableSet);
 
   /**
    * Interacts with the {@link RelVisitor} in a {@link
    * org.eigenbase.util.Glossary#VisitorPattern visitor pattern} to traverse
    * the tree of relational expressions.
    */
-  public void childrenAccept(RelVisitor visitor);
+  void childrenAccept(RelVisitor visitor);
 
   /**
    * Returns the cost of this plan (not including children). The base
@@ -203,7 +203,7 @@ public interface RelNode extends RelOptNode, Cloneable {
    * {@link RelMetadataQuery#getNonCumulativeCost}, which gives plugins a
    * chance to override the rel's default ideas about cost.
    */
-  public RelOptCost computeSelfCost(RelOptPlanner planner);
+  RelOptCost computeSelfCost(RelOptPlanner planner);
 
   /**
    * Describes the inputs and attributes of this relational expression.
@@ -214,32 +214,32 @@ public interface RelNode extends RelOptNode, Cloneable {
    *
    * @param pw Plan writer
    */
-  public void explain(RelWriter pw);
+  void explain(RelWriter pw);
 
   /**
    * Receives notification that this expression is about to be registered. The
    * implementation of this method must at least register all child
    * expressions.
    */
-  public RelNode onRegister(RelOptPlanner planner);
+  RelNode onRegister(RelOptPlanner planner);
 
   /**
    * Computes the digest, assigns it, and returns it. For planner use only.
    */
-  public String recomputeDigest();
+  String recomputeDigest();
 
   /**
    * Registers a correlation variable.
    *
    * @see #getVariablesStopped
    */
-  public void registerCorrelVariable(String correlVariable);
+  void registerCorrelVariable(String correlVariable);
 
   /**
    * Replaces the <code>ordinalInParent</code><sup>th</sup> input. You must
    * override this method if you override {@link #getInputs}.
    */
-  public void replaceInput(
+  void replaceInput(
       int ordinalInParent,
       RelNode p);
 
@@ -247,7 +247,7 @@ public interface RelNode extends RelOptNode, Cloneable {
    * If this relational expression represents an access to a table, returns
    * that table, otherwise returns null.
    */
-  public RelOptTable getTable();
+  RelOptTable getTable();
 
   /**
    * Returns the name of this relational expression's class, sans package
@@ -255,7 +255,7 @@ public interface RelNode extends RelOptNode, Cloneable {
    * org.eigenbase.rel.ArrayRel.ArrayReader</code>, this method returns
    * "ArrayReader".
    */
-  public String getRelTypeName();
+  String getRelTypeName();
 
   /**
    * Returns whether this relational expression is valid.
@@ -275,7 +275,7 @@ public interface RelNode extends RelOptNode, Cloneable {
    * @throws AssertionError if this relational expression is invalid and
    *                        fail=true and assertions are enabled
    */
-  public boolean isValid(boolean fail);
+  boolean isValid(boolean fail);
 
   /**
    * Returns a description of the physical ordering (or orderings) of this
@@ -283,7 +283,7 @@ public interface RelNode extends RelOptNode, Cloneable {
    *
    * @post return != null
    */
-  public List<RelCollation> getCollationList();
+  List<RelCollation> getCollationList();
 
   /**
    * Creates a copy of this relational expression, perhaps changing traits and

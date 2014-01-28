@@ -90,7 +90,7 @@ class ArrayTable extends AbstractQueryableTable {
           }
 
           public boolean moveNext() {
-            return (++i < rowCount);
+            return ++i < rowCount;
           }
 
           public void reset() {
@@ -104,6 +104,7 @@ class ArrayTable extends AbstractQueryableTable {
     };
   }
 
+  /** How a column's values are represented. */
   enum RepresentationType {
     /** Constant. Contains only one value.
      *
@@ -231,7 +232,9 @@ class ArrayTable extends AbstractQueryableTable {
     }
   }
 
+  /** Representation of the values of a column. */
   public interface Representation {
+    /** Returns the representation type. */
     RepresentationType getType();
 
     /** Converts a value set into a compact representation. If
@@ -254,6 +257,7 @@ class ArrayTable extends AbstractQueryableTable {
     String toString(Object dataSet);
   }
 
+  /** Representation that stores the column values in an array. */
   public static class ObjectArray implements Representation {
     final int ordinal;
 
@@ -302,6 +306,8 @@ class ArrayTable extends AbstractQueryableTable {
     }
   }
 
+  /** Representation that stores the values of a column in an array of
+   * primitive values. */
   public static class PrimitiveArray implements Representation {
     final int ordinal;
     private final Primitive primitive;
@@ -347,10 +353,12 @@ class ArrayTable extends AbstractQueryableTable {
     }
 
     public String toString(Object dataSet) {
-        return p.arrayToString(dataSet);
+      return p.arrayToString(dataSet);
     }
   }
 
+  /** Representation that stores column values in a dictionary of
+   * primitive values, then uses a short code for each row. */
   public static class PrimitiveDictionary implements Representation {
     public PrimitiveDictionary() {
     }
@@ -388,6 +396,8 @@ class ArrayTable extends AbstractQueryableTable {
     }
   }
 
+  /** Representation that stores the values of a column as a
+   * dictionary of objects. */
   public static class ObjectDictionary implements Representation {
     final int ordinal;
     final Representation representation;
@@ -462,6 +472,7 @@ class ArrayTable extends AbstractQueryableTable {
     }
   }
 
+  /** Representation that stores string column values. */
   public static class StringDictionary implements Representation {
     public StringDictionary() {
     }
@@ -500,6 +511,7 @@ class ArrayTable extends AbstractQueryableTable {
     }
   }
 
+  /** Representation that stores byte-string column values. */
   public static class ByteStringDictionary implements Representation {
     public ByteStringDictionary() {
     }
@@ -537,6 +549,7 @@ class ArrayTable extends AbstractQueryableTable {
     }
   }
 
+  /** Representation of a column that has the same value for every row. */
   public static class Constant implements Representation {
     final int ordinal;
 
@@ -582,6 +595,11 @@ class ArrayTable extends AbstractQueryableTable {
     }
   }
 
+  /** Representation that stores numeric values in a bit-sliced
+   * array. Each value does not necessarily occupy 8, 16, 32 or 64
+   * bits (the number of bits used by the built-in types). This
+   * representation is often used to store the value codes for a
+   * dictionary-based representation. */
   public static class BitSlicedPrimitiveArray implements Representation {
     final int ordinal;
     final int bitCount;
@@ -628,14 +646,14 @@ class ArrayTable extends AbstractQueryableTable {
         for (i = 0; i < n; i++) {
           long v = 0;
           for (int j = 0; j < chunksPerWord; j++) {
-            v |= (booleans.get(k++) ? (1 << (bitCount * j)) : 0);
+            v |= booleans.get(k++) ? (1 << (bitCount * j)) : 0;
           }
           longs[i] = v;
         }
         if (remainingChunkCount > 0) {
           long v = 0;
           for (int j = 0; j < remainingChunkCount; j++) {
-            v |= (booleans.get(k++) ? (1 << (bitCount * j)) : 0);
+            v |= booleans.get(k++) ? (1 << (bitCount * j)) : 0;
           }
           longs[i] = v;
         }
@@ -645,14 +663,14 @@ class ArrayTable extends AbstractQueryableTable {
         for (i = 0; i < n; i++) {
           long v = 0;
           for (int j = 0; j < chunksPerWord; j++) {
-            v |= (numbers.get(k++).longValue() << (bitCount * j));
+            v |= numbers.get(k++).longValue() << (bitCount * j);
           }
           longs[i] = v;
         }
         if (remainingChunkCount > 0) {
           long v = 0;
           for (int j = 0; j < remainingChunkCount; j++) {
-            v |= (numbers.get(k++).longValue() << (bitCount * j));
+            v |= numbers.get(k++).longValue() << (bitCount * j);
           }
           longs[i] = v;
         }
@@ -781,6 +799,7 @@ class ArrayTable extends AbstractQueryableTable {
     };
   }
 
+  /** Contents of a table. */
   public static class Content {
     private final List<Column> columns;
     private final int size;

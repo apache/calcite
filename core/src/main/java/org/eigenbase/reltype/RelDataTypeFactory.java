@@ -56,7 +56,7 @@ public interface RelDataTypeFactory {
    * @pre types != null
    * @pre types.length >= 1
    */
-  public RelDataType createJoinType(RelDataType... types);
+  RelDataType createJoinType(RelDataType... types);
 
   /**
    * Creates a type which represents a structured collection of fields.
@@ -67,7 +67,7 @@ public interface RelDataTypeFactory {
    * @pre types.length == fieldNames.length
    * @post return != null
    */
-  public RelDataType createStructType(
+  RelDataType createStructType(
       RelDataType[] types,
       String[] fieldNames);
 
@@ -81,7 +81,7 @@ public interface RelDataTypeFactory {
    * @pre typeList.size() == fieldNameList.size()
    * @post return != null
    */
-  public RelDataType createStructType(
+  RelDataType createStructType(
       List<RelDataType> typeList,
       List<String> fieldNameList);
 
@@ -92,7 +92,7 @@ public interface RelDataTypeFactory {
    * @param fieldInfo callback for field information
    * @return canonical struct type descriptor
    */
-  public RelDataType createStructType(FieldInfo fieldInfo);
+  RelDataType createStructType(FieldInfo fieldInfo);
 
   /**
    * Creates a type which represents a structured collection of fieldList,
@@ -101,7 +101,7 @@ public interface RelDataTypeFactory {
    * @param fieldList List of (name, type) pairs
    * @return canonical struct type descriptor
    */
-  public RelDataType createStructType(
+  RelDataType createStructType(
       List<? extends Map.Entry<String, RelDataType>> fieldList);
 
   /**
@@ -111,7 +111,7 @@ public interface RelDataTypeFactory {
    * @param maxCardinality maximum array size, or -1 for unlimited
    * @return canonical array type descriptor
    */
-  public RelDataType createArrayType(
+  RelDataType createArrayType(
       RelDataType elementType,
       long maxCardinality);
 
@@ -122,7 +122,7 @@ public interface RelDataTypeFactory {
    * @param valueType type of the values of the map
    * @return canonical map type descriptor
    */
-  public RelDataType createMapType(
+  RelDataType createMapType(
       RelDataType keyType,
       RelDataType valueType);
 
@@ -133,7 +133,7 @@ public interface RelDataTypeFactory {
    * @param maxCardinality maximum collection size, or -1 for unlimited
    * @return canonical multiset type descriptor
    */
-  public RelDataType createMultisetType(
+  RelDataType createMultisetType(
       RelDataType elementType,
       long maxCardinality);
 
@@ -145,7 +145,7 @@ public interface RelDataTypeFactory {
    * @param type input type
    * @return output type, a new object equivalent to input type
    */
-  public RelDataType copyType(RelDataType type);
+  RelDataType copyType(RelDataType type);
 
   /**
    * Creates a type which is the same as another type but with possibly
@@ -159,7 +159,7 @@ public interface RelDataTypeFactory {
    * @return output type, same as input type except with specified nullability
    * @throws NullPointerException if type is null
    */
-  public RelDataType createTypeWithNullability(
+  RelDataType createTypeWithNullability(
       RelDataType type,
       boolean nullable);
 
@@ -175,7 +175,7 @@ public interface RelDataTypeFactory {
    * collation
    * @pre SqlTypeUtil.inCharFamily(type)
    */
-  public RelDataType createTypeWithCharsetAndCollation(
+  RelDataType createTypeWithCharsetAndCollation(
       RelDataType type,
       Charset charset,
       SqlCollation collation);
@@ -183,7 +183,7 @@ public interface RelDataTypeFactory {
   /**
    * @return the default {@link Charset} for string types
    */
-  public Charset getDefaultCharset();
+  Charset getDefaultCharset();
 
   /**
    * Returns the most general of a set of types (that is, one type to which
@@ -196,7 +196,7 @@ public interface RelDataTypeFactory {
    * @pre types != null
    * @pre types.length >= 1
    */
-  public RelDataType leastRestrictive(List<RelDataType> types);
+  RelDataType leastRestrictive(List<RelDataType> types);
 
   /**
    * Creates a SQL type with no precision or scale.
@@ -207,7 +207,7 @@ public interface RelDataTypeFactory {
    * @pre typeName != null
    * @post return != null
    */
-  public RelDataType createSqlType(SqlTypeName typeName);
+  RelDataType createSqlType(SqlTypeName typeName);
 
   /**
    * Creates a SQL type with length (precision) but no scale.
@@ -222,7 +222,7 @@ public interface RelDataTypeFactory {
    * @pre length >= 0
    * @post return != null
    */
-  public RelDataType createSqlType(
+  RelDataType createSqlType(
       SqlTypeName typeName,
       int precision);
 
@@ -241,7 +241,7 @@ public interface RelDataTypeFactory {
    * @pre length >= 0
    * @post return != null
    */
-  public RelDataType createSqlType(
+  RelDataType createSqlType(
       SqlTypeName typeName,
       int precision,
       int scale);
@@ -253,7 +253,7 @@ public interface RelDataTypeFactory {
    *                          day-time interval along with precision information
    * @return canonical type descriptor
    */
-  public RelDataType createSqlIntervalType(
+  RelDataType createSqlIntervalType(
       SqlIntervalQualifier intervalQualifier);
 
   /**
@@ -266,7 +266,7 @@ public interface RelDataTypeFactory {
    * @return the result type for a decimal multiplication, or null if decimal
    * multiplication should not be applied to the operands.
    */
-  public RelDataType createDecimalProduct(
+  RelDataType createDecimalProduct(
       RelDataType type1,
       RelDataType type2);
 
@@ -275,7 +275,7 @@ public interface RelDataTypeFactory {
    * arguments to double values.
    * @pre createDecimalProduct(type1, type2) != null
    */
-  public boolean useDoubleMultiplication(
+  boolean useDoubleMultiplication(
       RelDataType type1,
       RelDataType type2);
 
@@ -289,7 +289,7 @@ public interface RelDataTypeFactory {
    * @return the result type for a decimal division, or null if decimal
    * division should not be applied to the operands.
    */
-  public RelDataType createDecimalQuotient(
+  RelDataType createDecimalQuotient(
       RelDataType type1,
       RelDataType type2);
 
@@ -297,7 +297,7 @@ public interface RelDataTypeFactory {
    * Creates a
    * {@link org.eigenbase.reltype.RelDataTypeFactory.FieldInfoBuilder}.
    */
-  public FieldInfoBuilder builder();
+  FieldInfoBuilder builder();
 
   //~ Inner Interfaces -------------------------------------------------------
 
@@ -310,7 +310,7 @@ public interface RelDataTypeFactory {
      *
      * @return number of fields
      */
-    public int getFieldCount();
+    int getFieldCount();
 
     /**
      * Returns the name of a given field.
@@ -318,7 +318,7 @@ public interface RelDataTypeFactory {
      * @param index Ordinal of field
      * @return Name of given field
      */
-    public String getFieldName(int index);
+    String getFieldName(int index);
 
     /**
      * Returns the type of a given field.
@@ -326,7 +326,7 @@ public interface RelDataTypeFactory {
      * @param index Ordinal of field
      * @return Type of given field
      */
-    public RelDataType getFieldType(int index);
+    RelDataType getFieldType(int index);
   }
 
   /**

@@ -12,6 +12,10 @@
   <name>optiq-avatica</name>
   <description>JDBC driver framework.</description>
 
+  <properties>
+    <top.dir>${project.basedir}/..</top.dir>
+  </properties>
+
   <build>
     <plugins>
       <plugin>

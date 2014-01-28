@@ -25,17 +25,17 @@ public interface SqlOperandCountRange {
   /**
    * Returns whether {@code count} is a valid number of operands.
    */
-  public boolean isValidCount(int count);
+  boolean isValidCount(int count);
 
   /**
    * Returns an lower bound. -1 if there is no lower bound.
    */
-  public int getMin();
+  int getMin();
 
   /**
    * Returns an upper bound. -1 if there is no upper bound.
    */
-  public int getMax();
+  int getMax();
 
 }
 

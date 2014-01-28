@@ -38,7 +38,7 @@ public interface SqlOperatorTable {
    * @return mutable list of SqlOperator objects (or immutable empty list if
    * no matches)
    */
-  public List<SqlOperator> lookupOperatorOverloads(
+  List<SqlOperator> lookupOperatorOverloads(
       SqlIdentifier opName,
       SqlFunctionCategory category,
       SqlSyntax syntax);
@@ -49,7 +49,7 @@ public interface SqlOperatorTable {
    *
    * @return list of SqlOperator objects
    */
-  public List<SqlOperator> getOperatorList();
+  List<SqlOperator> getOperatorList();
 }
 
 // End SqlOperatorTable.java

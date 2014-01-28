@@ -713,7 +713,7 @@ public abstract class CalcRelSplitter {
 
   //~ Inner Classes ----------------------------------------------------------
 
-  public static abstract class RelType {
+  public abstract static class RelType {
     private final String name;
 
     public RelType(String name) {

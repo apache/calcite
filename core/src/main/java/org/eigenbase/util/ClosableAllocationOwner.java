@@ -30,7 +30,7 @@ public interface ClosableAllocationOwner extends ClosableAllocation {
    *
    * @param allocation the ClosableAllocation to take over
    */
-  public void addAllocation(ClosableAllocation allocation);
+  void addAllocation(ClosableAllocation allocation);
 }
 
 // End ClosableAllocationOwner.java

@@ -38,7 +38,7 @@ public interface SqlReturnTypeInference {
    * @param opBinding description of operator binding
    * @return inferred type; may be null
    */
-  public RelDataType inferReturnType(
+  RelDataType inferReturnType(
       SqlOperatorBinding opBinding);
 }
 

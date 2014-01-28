@@ -46,19 +46,19 @@ public interface BasicDatetime {
   /**
    * Gets the internal value of this datetime
    */
-  public long getTime();
+  long getTime();
 
   /**
    * Sets this datetime via a zoneless time value. See class comments for more
    * information.
    */
-  public void setZonelessTime(long value);
+  void setZonelessTime(long value);
 
   /**
    * Sets this datetime via a zoned time value. See class comments for more
    * information.
    */
-  public void setZonedTime(long value, TimeZone zone);
+  void setZonedTime(long value, TimeZone zone);
 }
 
 // End BasicDatetime.java

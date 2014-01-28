@@ -36,7 +36,7 @@ import org.eigenbase.util.*;
 public interface RelOptPlanner {
   //~ Static fields/initializers ---------------------------------------------
 
-  public static final Logger tracer = EigenbaseTrace.getPlannerTracer();
+  Logger tracer = EigenbaseTrace.getPlannerTracer();
 
   //~ Methods ----------------------------------------------------------------
 
@@ -45,14 +45,14 @@ public interface RelOptPlanner {
    *
    * @param rel Relational expression
    */
-  public void setRoot(RelNode rel);
+  void setRoot(RelNode rel);
 
   /**
    * Returns the root node of this query.
    *
    * @return Root node
    */
-  public RelNode getRoot();
+  RelNode getRoot();
 
   /**
    * Registers a rel trait definition. If the {@link RelTraitDef} has already
@@ -61,12 +61,12 @@ public interface RelOptPlanner {
    * @return whether the RelTraitDef was added, as per {@link
    * java.util.Collection#add}
    */
-  public boolean addRelTraitDef(RelTraitDef relTraitDef);
+  boolean addRelTraitDef(RelTraitDef relTraitDef);
 
   /**
    * Returns the list of active trait types.
    */
-  public List<RelTraitDef> getRelTraitDefs();
+  List<RelTraitDef> getRelTraitDefs();
 
   /**
    * Removes all rules.
@@ -83,7 +83,7 @@ public interface RelOptPlanner {
    * @return whether the rule was added, as per {@link
    * java.util.Collection#add}
    */
-  public boolean addRule(RelOptRule rule);
+  boolean addRule(RelOptRule rule);
 
   /**
    * Removes a rule.
@@ -101,7 +101,7 @@ public interface RelOptPlanner {
    * @param exclusionFilter pattern to match for exclusion; null to disable
    *                        filtering
    */
-  public void setRuleDescExclusionFilter(Pattern exclusionFilter);
+  void setRuleDescExclusionFilter(Pattern exclusionFilter);
 
   /**
    * Installs the cancellation-checking flag for this planner. The planner
@@ -110,7 +110,7 @@ public interface RelOptPlanner {
    *
    * @param cancelFlag flag which the planner should periodically check
    */
-  public void setCancelFlag(CancelFlag cancelFlag);
+  void setCancelFlag(CancelFlag cancelFlag);
 
   /**
    * Changes a relational expression to an equivalent one with a different set
@@ -123,14 +123,14 @@ public interface RelOptPlanner {
    * @pre !rel.getTraits().equals(toTraits)
    * @post return != null
    */
-  public RelNode changeTraits(RelNode rel, RelTraitSet toTraits);
+  RelNode changeTraits(RelNode rel, RelTraitSet toTraits);
 
   /**
    * Negotiates an appropriate planner to deal with distributed queries. The
    * idea is that the schemas decide among themselves which has the most
    * knowledge. Right now, the local planner retains control.
    */
-  public RelOptPlanner chooseDelegate();
+  RelOptPlanner chooseDelegate();
 
   /**
    * Defines a pair of relational expressions that are equivalent.
@@ -150,12 +150,12 @@ public interface RelOptPlanner {
    *
    * @throws CannotPlanException if cannot find a plan
    */
-  public RelNode findBestExp();
+  RelNode findBestExp();
 
   /**
    * Returns the factory that creates {@link org.eigenbase.relopt.RelOptCost}s.
    */
-  public RelOptCostFactory getCostFactory();
+  RelOptCostFactory getCostFactory();
 
   /**
    * Computes the cost of a RelNode. In most cases, this just dispatches to
@@ -164,7 +164,7 @@ public interface RelOptPlanner {
    * @param rel expression of interest
    * @return estimated cost
    */
-  public RelOptCost getCost(RelNode rel);
+  RelOptCost getCost(RelNode rel);
 
   /**
    * Registers a relational expression in the expression bank.
@@ -181,7 +181,7 @@ public interface RelOptPlanner {
    * @return the same expression, or an equivalent existing expression
    * @pre !isRegistered(rel)
    */
-  public RelNode register(
+  RelNode register(
       RelNode rel,
       RelNode equivRel);
 
@@ -200,20 +200,20 @@ public interface RelOptPlanner {
    * @param rel expression to test
    * @return whether rel has been registered
    */
-  public boolean isRegistered(RelNode rel);
+  boolean isRegistered(RelNode rel);
 
   /**
    * Tells this planner that a schema exists. This is the schema's chance to
    * tell the planner about all of the special transformation rules.
    */
-  public void registerSchema(RelOptSchema schema);
+  void registerSchema(RelOptSchema schema);
 
   /**
    * Adds a listener to this planner.
    *
    * @param newListener new listener to be notified of events
    */
-  public void addListener(RelOptListener newListener);
+  void addListener(RelOptListener newListener);
 
   /**
    * Gives this planner a chance to register one or more {@link
@@ -224,7 +224,7 @@ public interface RelOptPlanner {
    *
    * @param chain receives planner's custom providers, if any
    */
-  public void registerMetadataProviders(ChainedRelMetadataProvider chain);
+  void registerMetadataProviders(ChainedRelMetadataProvider chain);
 
   /**
    * Gets a timestamp for a given rel's metadata. This timestamp is used by
@@ -234,7 +234,7 @@ public interface RelOptPlanner {
    * @param rel rel of interest
    * @return timestamp of last change which might affect metadata derivation
    */
-  public long getRelMetadataTimestamp(RelNode rel);
+  long getRelMetadataTimestamp(RelNode rel);
 
   /**
    * Sets the importance of a relational expression.

@@ -176,8 +176,7 @@ public enum BuiltinMethod {
   TIMESTAMP_TO_LONG_OPTIONAL(SqlFunctions.class, "toLongOptional",
       Timestamp.class),
   TIMESTAMP_TO_LONG_OPTIONAL_OFFSET(SqlFunctions.class, "toLongOptional",
-      Timestamp.class, TimeZone.class),
-  ;
+      Timestamp.class, TimeZone.class);
 
   public final Method method;
   public final Constructor constructor;

@@ -30,7 +30,7 @@ import static org.junit.Assert.*;
  */
 public class PartiallyOrderedSetTest {
   private static final boolean debug = false;
-  private final int SCALE = 100; // 100, 250, 1000, 3000 are reasonable values
+  private static final int SCALE = 100; // 100, 250, 1000, 3000 are reasonable values
   final long seed = new Random().nextLong();
   final Random random = new Random(seed);
 

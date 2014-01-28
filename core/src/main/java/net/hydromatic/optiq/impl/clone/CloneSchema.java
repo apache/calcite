@@ -105,8 +105,7 @@ public class CloneSchema extends AbstractSchema {
                 return new ArrayTable.Content(loader.representationValues,
                     loader.size(), loader.sortField);
               }
-            }
-        ));
+            }));
   }
 
   /** Schema factory that creates a

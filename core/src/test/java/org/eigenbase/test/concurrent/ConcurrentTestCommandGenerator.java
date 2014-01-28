@@ -632,7 +632,7 @@ public class ConcurrentTestCommandGenerator {
   /**
    * abstract base to handle SQLExceptions
    */
-  protected static abstract class AbstractCommand
+  protected abstract static class AbstractCommand
       implements ConcurrentTestCommand {
     private boolean shouldFail = false;
     private String failComment = null; // describes an expected error
@@ -820,7 +820,7 @@ public class ConcurrentTestCommandGenerator {
     }
   }
 
-  private static abstract class CommandWithTimeout extends AbstractCommand {
+  private abstract static class CommandWithTimeout extends AbstractCommand {
     private int timeout;
 
     private CommandWithTimeout(int timeout) {

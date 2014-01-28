@@ -737,7 +737,7 @@ public class RexImpTable {
         NullAs nullAs);
   }
 
-  static abstract class AbstractCallImplementor implements CallImplementor {
+  abstract static class AbstractCallImplementor implements CallImplementor {
     /** Implements a call with "normal" {@link NullAs} semantics. */
     abstract Expression implement(
         RexToLixTranslator translator,

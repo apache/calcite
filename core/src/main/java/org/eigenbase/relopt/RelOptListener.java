@@ -37,7 +37,7 @@ public interface RelOptListener extends EventListener {
    *
    * @param event details about the event
    */
-  public void relEquivalenceFound(RelEquivalenceEvent event);
+  void relEquivalenceFound(RelEquivalenceEvent event);
 
   /**
    * Notifies this listener that an optimizer rule is being applied to a
@@ -47,7 +47,7 @@ public interface RelOptListener extends EventListener {
    *
    * @param event details about the event
    */
-  public void ruleAttempted(RuleAttemptedEvent event);
+  void ruleAttempted(RuleAttemptedEvent event);
 
   /**
    * Notifies this listener that an optimizer rule has been successfully
@@ -60,7 +60,7 @@ public interface RelOptListener extends EventListener {
    *
    * @param event details about the event
    */
-  public void ruleProductionSucceeded(RuleProductionEvent event);
+  void ruleProductionSucceeded(RuleProductionEvent event);
 
   /**
    * Notifies this listener that a relational expression is no longer of
@@ -68,7 +68,7 @@ public interface RelOptListener extends EventListener {
    *
    * @param event details about the event
    */
-  public void relDiscarded(RelDiscardedEvent event);
+  void relDiscarded(RelDiscardedEvent event);
 
   /**
    * Notifies this listener that a relational expression has been chosen as
@@ -77,7 +77,7 @@ public interface RelOptListener extends EventListener {
    *
    * @param event details about the event
    */
-  public void relChosen(RelChosenEvent event);
+  void relChosen(RelChosenEvent event);
 
   //~ Inner Classes ----------------------------------------------------------
 
@@ -85,7 +85,7 @@ public interface RelOptListener extends EventListener {
    * Event class for abstract event dealing with a relational expression. The
    * source of an event is typically the RelOptPlanner which initiated it.
    */
-  public static abstract class RelEvent extends EventObject {
+  public abstract static class RelEvent extends EventObject {
     private final RelNode rel;
 
     protected RelEvent(Object eventSource, RelNode rel) {
@@ -133,7 +133,7 @@ public interface RelOptListener extends EventListener {
     }
   }
 
-  public static abstract class RuleEvent extends RelEvent {
+  public abstract static class RuleEvent extends RelEvent {
     private final RelOptRuleCall ruleCall;
 
     protected RuleEvent(

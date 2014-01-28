@@ -26,7 +26,7 @@ public interface Typed {
   /**
    * Gets the type of the element(s) that are returned in this collection.
    */
-  public Type getElementType();
+  Type getElementType();
 }
 
 // End Typed.java

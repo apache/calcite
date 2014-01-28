@@ -56,7 +56,7 @@ public interface SqlSingleOperandTypeChecker extends SqlOperandTypeChecker {
    *                       (otherwise returns false in that case)
    * @return whether check succeeded
    */
-  public boolean checkSingleOperandType(
+  boolean checkSingleOperandType(
       SqlCallBinding callBinding,
       SqlNode operand,
       int iFormalOperand,

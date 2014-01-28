@@ -34,7 +34,7 @@ public interface RelStatColumnStatistics {
    * @return an estimated percentage from 0.0 to 1.0 or null if no reliable
    * estimate can be determined
    */
-  public Double getSelectivity();
+  Double getSelectivity();
 
   /**
    * Estimates the number of distinct values returned from a relational
@@ -43,7 +43,7 @@ public interface RelStatColumnStatistics {
    * @return an estimate of the distinct values of a predicate or null if no
    * reliable estimate can be determined
    */
-  public Double getCardinality();
+  Double getCardinality();
 
   /**
    * Determine how many blocks on disk will be read from physical storage

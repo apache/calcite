@@ -34,9 +34,9 @@ public class ByteString implements Comparable<ByteString>, Serializable {
   /** An empty byte string. */
   public static final ByteString EMPTY = new ByteString(new byte[0], false);
 
-  private static final char[] digits = {
-      '0', '1', '2', '3', '4', '5', '6', '7',
-      '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'
+  private static final char[] DIGITS = {
+    '0', '1', '2', '3', '4', '5', '6', '7',
+    '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'
   };
 
   /**
@@ -115,21 +115,21 @@ public class ByteString implements Comparable<ByteString>, Serializable {
     case 2:
       chars = new char[bytes.length * 8];
       for (byte b : bytes) {
-        chars[j++] = digits[(b & 0x80) >> 7];
-        chars[j++] = digits[(b & 0x40) >> 6];
-        chars[j++] = digits[(b & 0x20) >> 5];
-        chars[j++] = digits[(b & 0x10) >> 4];
-        chars[j++] = digits[(b & 0x08) >> 3];
-        chars[j++] = digits[(b & 0x04) >> 2];
-        chars[j++] = digits[(b & 0x02) >> 1];
-        chars[j++] = digits[b & 0x01];
+        chars[j++] = DIGITS[(b & 0x80) >> 7];
+        chars[j++] = DIGITS[(b & 0x40) >> 6];
+        chars[j++] = DIGITS[(b & 0x20) >> 5];
+        chars[j++] = DIGITS[(b & 0x10) >> 4];
+        chars[j++] = DIGITS[(b & 0x08) >> 3];
+        chars[j++] = DIGITS[(b & 0x04) >> 2];
+        chars[j++] = DIGITS[(b & 0x02) >> 1];
+        chars[j++] = DIGITS[b & 0x01];
       }
       break;
     case 16:
       chars = new char[bytes.length * 2];
       for (byte b : bytes) {
-        chars[j++] = digits[(b & 0xF0) >> 4];
-        chars[j++] = digits[b & 0x0F];
+        chars[j++] = DIGITS[(b & 0xF0) >> 4];
+        chars[j++] = DIGITS[b & 0x0F];
       }
       break;
     default:
@@ -219,7 +219,7 @@ public class ByteString implements Comparable<ByteString>, Serializable {
   /** Returns the position at which {@code seek} first occurs in this byte
    * string, or -1 if it does not occur. */
   public int indexOf(ByteString seek) {
-    iLoop:
+  iLoop:
     for (int i = 0; i < bytes.length - seek.bytes.length + 1; i++) {
       for (int j = 0;; j++) {
         if (j == seek.bytes.length) {

@@ -28,7 +28,7 @@ public interface SqlRexConvertletTable {
   /**
    * Returns the convertlet applicable to a given expression.
    */
-  public SqlRexConvertlet get(SqlCall call);
+  SqlRexConvertlet get(SqlCall call);
 }
 
 // End SqlRexConvertletTable.java

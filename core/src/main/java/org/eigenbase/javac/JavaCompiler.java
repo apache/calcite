@@ -25,13 +25,13 @@ package org.eigenbase.javac;
 public interface JavaCompiler {
   //~ Methods ----------------------------------------------------------------
 
-  public void compile();
+  void compile();
 
-  public JavaCompilerArgs getArgs();
+  JavaCompilerArgs getArgs();
 
-  public ClassLoader getClassLoader();
+  ClassLoader getClassLoader();
 
-  public int getTotalByteCodeSize();
+  int getTotalByteCodeSize();
 }
 
 // End JavaCompiler.java

@@ -313,7 +313,7 @@ public class SqlTypeAssignmentRules {
 
   //~ Methods ----------------------------------------------------------------
 
-  public synchronized static SqlTypeAssignmentRules instance() {
+  public static synchronized SqlTypeAssignmentRules instance() {
     if (instance == null) {
       instance = new SqlTypeAssignmentRules();
     }

@@ -406,7 +406,7 @@ public abstract class Prepare {
    * PreparedExplanation is a PreparedResult for an EXPLAIN PLAN statement.
    * It's always good to have an explanation prepared.
    */
-  public static abstract class PreparedExplain
+  public abstract static class PreparedExplain
       implements PreparedResult {
     private final RelDataType rowType;
     private final RelDataType parameterRowType;
@@ -503,7 +503,7 @@ public abstract class Prepare {
   /**
    * Abstract implementation of {@link PreparedResult}.
    */
-  public static abstract class PreparedResultImpl
+  public abstract static class PreparedResultImpl
       implements PreparedResult, Typed {
     protected final RelNode rootRel;
     protected final RelDataType parameterRowType;

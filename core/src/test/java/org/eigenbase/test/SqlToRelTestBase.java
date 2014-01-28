@@ -94,7 +94,7 @@ public abstract class SqlToRelTestBase {
    * Helper class which contains default implementations of methods used for
    * running sql-to-rel conversion tests.
    */
-  public static interface Tester {
+  public interface Tester {
     /**
      * Converts a SQL string to a {@link RelNode} tree.
      *

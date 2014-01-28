@@ -902,7 +902,7 @@ public class MetaImpl implements Meta {
     }
   }
 
-  static abstract class MetadataTable<E> extends AbstractQueryableTable {
+  abstract static class MetadataTable<E> extends AbstractQueryableTable {
     public MetadataTable(Class<E> clazz) {
       super(clazz);
     }

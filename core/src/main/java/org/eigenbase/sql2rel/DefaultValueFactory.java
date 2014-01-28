@@ -38,7 +38,7 @@ public interface DefaultValueFactory {
    * Whether a column is always generated. If a column is always generated,
    * then non-generated values cannot be inserted into the column.
    */
-  public boolean isGeneratedAlways(
+  boolean isGeneratedAlways(
       RelOptTable table,
       int iColumn);
 
@@ -50,7 +50,7 @@ public interface DefaultValueFactory {
    * @param iColumn the 0-based offset of the column in the table
    * @return default value expression
    */
-  public RexNode newColumnDefaultValue(
+  RexNode newColumnDefaultValue(
       RelOptTable table,
       int iColumn);
 
@@ -64,7 +64,7 @@ public interface DefaultValueFactory {
    * @param constructorArgs arguments passed to the constructor invocation
    * @return default value expression
    */
-  public RexNode newAttributeInitializer(
+  RexNode newAttributeInitializer(
       RelDataType type,
       SqlFunction constructor,
       int iAttribute,

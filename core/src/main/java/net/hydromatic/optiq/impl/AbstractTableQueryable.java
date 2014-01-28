@@ -22,7 +22,6 @@ import net.hydromatic.linq4j.expressions.Expression;
 
 import net.hydromatic.optiq.QueryableTable;
 import net.hydromatic.optiq.SchemaPlus;
-import net.hydromatic.optiq.Table;
 
 import java.lang.reflect.Type;
 import java.util.Iterator;
@@ -33,6 +32,8 @@ import java.util.Iterator;
  *
  * <p>Not to be confused with
  * {@link net.hydromatic.optiq.impl.java.AbstractQueryableTable}.</p>
+ *
+ * @param <T> element type
  */
 public abstract class AbstractTableQueryable<T> extends AbstractQueryable<T> {
   public final QueryProvider queryProvider;

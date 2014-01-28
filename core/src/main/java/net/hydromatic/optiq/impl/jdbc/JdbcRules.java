@@ -115,7 +115,7 @@ public class JdbcRules {
     return i == program.getInputRowType().getFieldCount();
   }
 
-  static abstract class JdbcConverterRule extends ConverterRule {
+  abstract static class JdbcConverterRule extends ConverterRule {
     protected final JdbcConvention out;
 
     public JdbcConverterRule(Class<? extends RelNode> clazz, RelTrait in,

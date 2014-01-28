@@ -346,7 +346,7 @@ public abstract class AbstractCursor implements Cursor {
    * Accessor of exact numeric values. The subclass must implement the
    * {@link #getLong()} method.
    */
-  private static abstract class ExactNumericAccessor extends AccessorImpl {
+  private abstract static class ExactNumericAccessor extends AccessorImpl {
     public ExactNumericAccessor(Getter getter) {
       super(getter);
     }
@@ -472,7 +472,7 @@ public abstract class AbstractCursor implements Cursor {
   /**
    * Accessor of values that are {@link Double} or null.
    */
-  private static abstract class ApproximateNumericAccessor
+  private abstract static class ApproximateNumericAccessor
       extends AccessorImpl {
     public ApproximateNumericAccessor(Getter getter) {
       super(getter);
@@ -539,7 +539,7 @@ public abstract class AbstractCursor implements Cursor {
    * Accessor of exact numeric values. The subclass must implement the
    * {@link #getLong()} method.
    */
-  private static abstract class BigNumberAccessor extends AccessorImpl {
+  private abstract static class BigNumberAccessor extends AccessorImpl {
     public BigNumberAccessor(Getter getter) {
       super(getter);
     }

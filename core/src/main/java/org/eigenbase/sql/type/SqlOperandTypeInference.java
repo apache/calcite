@@ -33,7 +33,7 @@ public interface SqlOperandTypeInference {
    * @param returnType   the type known or inferred for the result of the call
    * @param operandTypes receives the inferred types for all operands
    */
-  public void inferOperandTypes(
+  void inferOperandTypes(
       SqlCallBinding callBinding,
       RelDataType returnType,
       RelDataType[] operandTypes);

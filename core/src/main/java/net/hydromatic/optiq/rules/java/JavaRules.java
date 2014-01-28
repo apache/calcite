@@ -2477,7 +2477,7 @@ public class JavaRules {
     }
   }
 
-  public static interface AggCallContext {
+  public interface AggCallContext {
     BlockBuilder builder();
     Expression index();
     Expression current();

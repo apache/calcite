@@ -1519,7 +1519,7 @@ public class ConcurrentTestCommandScript
 
 
   // TODO: replace by super.CommmandWithTimeout
-  private static abstract class CommandWithTimeout extends AbstractCommand {
+  private abstract static class CommandWithTimeout extends AbstractCommand {
     private long timeout;
 
     private CommandWithTimeout(long timeout) {
@@ -1541,7 +1541,7 @@ public class ConcurrentTestCommandScript
     }
   }
 
-  private static abstract class CommandWithTimeoutAndRowLimit
+  private abstract static class CommandWithTimeoutAndRowLimit
       extends CommandWithTimeout {
     private int rowLimit;
 

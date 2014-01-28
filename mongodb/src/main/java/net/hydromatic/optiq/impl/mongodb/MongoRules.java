@@ -160,7 +160,7 @@ public class MongoRules {
   }
 
 
-  static abstract class MongoConverterRule extends ConverterRule {
+  abstract static class MongoConverterRule extends ConverterRule {
     protected final Convention out;
     public MongoConverterRule(
         Class<? extends RelNode> clazz,

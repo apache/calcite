@@ -461,7 +461,7 @@ public class ReflectiveSchemaTest {
         .returns(
             "empid=2; deptno=10; name=Ab; salary=0.0; commission=null\n"
             + "empid=4; deptno=10; name=Abd; salary=0.0; commission=null\n");
- }
+  }
 
   /** If a method returns a
    * {@link net.hydromatic.optiq.impl.ViewTable.ViewTableFunction}, then it

@@ -12,6 +12,10 @@
   <name>optiq-mongodb</name>
   <description>MongoDB adapter for Optiq.</description>
 
+  <properties>
+    <top.dir>${project.basedir}/..</top.dir>
+  </properties>
+
   <dependencies>
     <dependency>
       <groupId>net.hydromatic</groupId>

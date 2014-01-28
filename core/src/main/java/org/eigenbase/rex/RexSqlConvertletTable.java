@@ -26,7 +26,7 @@ public interface RexSqlConvertletTable {
   /**
    * Returns the convertlet applicable to a given expression.
    */
-  public RexSqlConvertlet get(RexCall call);
+  RexSqlConvertlet get(RexCall call);
 }
 
 // End RexSqlConvertletTable.java

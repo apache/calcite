@@ -25,8 +25,7 @@ import java.util.*;
  * for the Avatica engine.
  */
 public abstract class AvaticaStatement
-    implements Statement
-{
+    implements Statement {
   protected final AvaticaConnection connection;
   protected boolean closed;
 
@@ -262,12 +261,12 @@ public abstract class AvaticaStatement
   }
 
   public int executeUpdate(
-      String sql, int columnIndexes[]) throws SQLException {
+      String sql, int[] columnIndexes) throws SQLException {
     throw new UnsupportedOperationException();
   }
 
   public int executeUpdate(
-      String sql, String columnNames[]) throws SQLException {
+      String sql, String[] columnNames) throws SQLException {
     throw new UnsupportedOperationException();
   }
 
@@ -277,12 +276,12 @@ public abstract class AvaticaStatement
   }
 
   public boolean execute(
-      String sql, int columnIndexes[]) throws SQLException {
+      String sql, int[] columnIndexes) throws SQLException {
     throw new UnsupportedOperationException();
   }
 
   public boolean execute(
-      String sql, String columnNames[]) throws SQLException {
+      String sql, String[] columnNames) throws SQLException {
     throw new UnsupportedOperationException();
   }
 

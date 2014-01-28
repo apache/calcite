@@ -2077,7 +2077,7 @@ public class JdbcTest {
    * it, and that the query produces the same result with and without it. There
    * are more comprehensive tests in {@link MaterializationTest}. */
   @Ignore("until JdbcSchema can define materialized views")
-   @Test public void testModelWithMaterializedView() {
+  @Test public void testModelWithMaterializedView() {
     OptiqAssert.that()
         .withModel(FOODMART_MODEL)
         .enable(false)
@@ -2952,7 +2952,7 @@ public class JdbcTest {
     }
   }
 
-  public static abstract class AbstractModifiableTable
+  public abstract static class AbstractModifiableTable
       extends AbstractTable implements ModifiableTable {
     protected AbstractModifiableTable(String tableName) {
       super();
@@ -3097,7 +3097,7 @@ public class JdbcTest {
 
   /** Example of a UDF with a static {@code eval} method. Class is abstract,
    * but code-generator should not need to instantiate it. */
-  public static abstract class MyDoubleFunction {
+  public abstract static class MyDoubleFunction {
     private MyDoubleFunction() {
     }
 
@@ -3107,7 +3107,7 @@ public class JdbcTest {
   }
 
   /** Example of a UDF class that needs to be instantiated but cannot be. */
-  public static abstract class AwkwardFunction {
+  public abstract static class AwkwardFunction {
     private AwkwardFunction() {
     }
 

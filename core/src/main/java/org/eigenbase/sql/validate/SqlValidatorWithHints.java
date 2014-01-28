@@ -46,7 +46,7 @@ public interface SqlValidatorWithHints extends SqlValidator {
    * @return an array of {@link SqlMoniker} (sql identifiers) that can fill in
    * at the indicated position
    */
-  public List<SqlMoniker> lookupHints(SqlNode topNode, SqlParserPos pos);
+  List<SqlMoniker> lookupHints(SqlNode topNode, SqlParserPos pos);
 
   /**
    * Looks up the fully qualified name for a {@link SqlIdentifier} at a given
@@ -61,7 +61,7 @@ public interface SqlValidatorWithHints extends SqlValidator {
    * if the Parser position represents a valid {@link SqlIdentifier}. Else
    * return an empty string
    */
-  public SqlMoniker lookupQualifiedName(SqlNode topNode, SqlParserPos pos);
+  SqlMoniker lookupQualifiedName(SqlNode topNode, SqlParserPos pos);
 }
 
 // End SqlValidatorWithHints.java

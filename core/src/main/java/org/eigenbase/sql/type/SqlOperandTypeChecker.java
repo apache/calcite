@@ -37,14 +37,14 @@ public interface SqlOperandTypeChecker {
    *                       (otherwise returns false in that case)
    * @return whether check succeeded
    */
-  public boolean checkOperandTypes(
+  boolean checkOperandTypes(
       SqlCallBinding callBinding,
       boolean throwOnFailure);
 
   /**
    * @return range of operand counts allowed in a call
    */
-  public SqlOperandCountRange getOperandCountRange();
+  SqlOperandCountRange getOperandCountRange();
 
   /**
    * Returns a string describing the allowed formal signatures of a call, e.g.
@@ -54,7 +54,7 @@ public interface SqlOperandTypeChecker {
    * @param opName name to use for the operator in case of aliasing
    * @return generated string
    */
-  public String getAllowedSignatures(SqlOperator op, String opName);
+  String getAllowedSignatures(SqlOperator op, String opName);
 }
 
 // End SqlOperandTypeChecker.java

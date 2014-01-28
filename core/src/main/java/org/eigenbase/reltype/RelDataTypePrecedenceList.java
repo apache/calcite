@@ -32,7 +32,7 @@ public interface RelDataTypePrecedenceList {
    * @param type type to check
    * @return true iff this list contains type
    */
-  public boolean containsType(RelDataType type);
+  boolean containsType(RelDataType type);
 
   /**
    * Compares the precedence of two types.
@@ -43,7 +43,7 @@ public interface RelDataTypePrecedenceList {
    * higher precedence; 0 if types have equal precedence
    * @pre containsType(type1) && containsType(type2)
    */
-  public int compareTypePrecedence(RelDataType type1, RelDataType type2);
+  int compareTypePrecedence(RelDataType type1, RelDataType type2);
 }
 
 // End RelDataTypePrecedenceList.java

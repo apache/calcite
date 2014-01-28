@@ -30,7 +30,7 @@ public interface SubqueryConverter {
   /**
    * @return true if the subquery can be converted
    */
-  public boolean canConvertSubquery();
+  boolean canConvertSubquery();
 
   /**
    * Converts the subquery to an equivalent expression.
@@ -43,7 +43,7 @@ public interface SubqueryConverter {
    * @return the equivalent expression or null if the subquery couldn't be
    * converted
    */
-  public RexNode convertSubquery(
+  RexNode convertSubquery(
       SqlCall subquery,
       SqlToRelConverter parentConverter,
       boolean isExists,

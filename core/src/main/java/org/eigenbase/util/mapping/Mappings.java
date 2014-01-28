@@ -493,7 +493,7 @@ public abstract class Mappings {
   /**
    * Core interface of all mappings.
    */
-  public static interface CoreMapping extends Iterable<IntPair> {
+  public interface CoreMapping extends Iterable<IntPair> {
     /**
      * Returns the mapping type.
      *
@@ -515,7 +515,7 @@ public abstract class Mappings {
    * <li>May not be finite.
    * </ul>
    */
-  public static interface FunctionMapping extends CoreMapping {
+  public interface FunctionMapping extends CoreMapping {
     /**
      * Returns the target that a source maps to, or -1 if it is not mapped.
      */
@@ -548,7 +548,7 @@ public abstract class Mappings {
    *
    * <p>TODO: figure out which interfaces this should extend
    */
-  public static interface SourceMapping extends CoreMapping {
+  public interface SourceMapping extends CoreMapping {
     int getSourceCount();
 
     int getSource(int target);
@@ -579,7 +579,7 @@ public abstract class Mappings {
    *
    * <p>TODO: figure out which interfaces this should extend
    */
-  public static interface TargetMapping extends FunctionMapping {
+  public interface TargetMapping extends FunctionMapping {
     int getSourceCount();
 
     int getSourceOpt(int target);
@@ -597,7 +597,7 @@ public abstract class Mappings {
 
   //~ Inner Classes ----------------------------------------------------------
 
-  public static abstract class AbstractMapping implements Mapping {
+  public abstract static class AbstractMapping implements Mapping {
     public void set(int source, int target) {
       throw new UnsupportedOperationException();
     }
@@ -709,7 +709,7 @@ public abstract class Mappings {
     }
   }
 
-  public static abstract class FiniteAbstractMapping extends AbstractMapping {
+  public abstract static class FiniteAbstractMapping extends AbstractMapping {
     public Iterator<IntPair> iterator() {
       return new FunctionMappingIter(this);
     }

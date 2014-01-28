@@ -38,21 +38,21 @@ public interface RelDataTypeField extends Map.Entry<String, RelDataType> {
    *
    * @return field name
    */
-  public String getName();
+  String getName();
 
   /**
    * Gets the ordinal of this field within its containing type.
    *
    * @return 0-based ordinal
    */
-  public int getIndex();
+  int getIndex();
 
   /**
    * Gets the type of this field.
    *
    * @return field type
    */
-  public RelDataType getType();
+  RelDataType getType();
 }
 
 // End RelDataTypeField.java

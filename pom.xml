@@ -50,6 +50,7 @@
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <top.dir>${project.basedir}</top.dir>
   </properties>
 
   <!-- Environment settings. -->
@@ -271,6 +272,34 @@
       <modules>
         <module>spark</module>
       </modules>
+    </profile>
+    <profile>
+      <id>checkstyle</id>
+      <build>
+        <plugins>
+          <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-checkstyle-plugin</artifactId>
+        <version>2.11</version>
+        <configuration>
+          <configLocation>${top.dir}/src/main/config/checkstyle.xml</configLocation>
+          <consoleOutput>true</consoleOutput>
+          <enableRulesSummary>true</enableRulesSummary>
+          <headerLocation>${top.dir}/src/main/config/license-header.txt</headerLocation>
+          <failOnViolation>false</failOnViolation>
+          <includeTestSourceDirectory>true</includeTestSourceDirectory>
+        </configuration>
+        <executions>
+          <execution>
+            <phase>verify</phase>
+            <goals>
+              <goal>check</goal>
+            </goals>
+          </execution>
+        </executions>
+          </plugin>
+        </plugins>
+      </build>
     </profile>
   </profiles>
 </project>

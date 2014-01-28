@@ -116,7 +116,7 @@ public class FlatLists {
     }
   }
 
-  public static abstract class AbstractFlatList<T>
+  public abstract static class AbstractFlatList<T>
       implements List<T>, RandomAccess {
     protected final List<T> asArrayList() {
       //noinspection unchecked

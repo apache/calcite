@@ -30,19 +30,17 @@ public class HandlerImpl implements Handler {
     // nothing
   }
 
-  public void onConnectionClose(AvaticaConnection connection)
-      throws RuntimeException {
+  public void onConnectionClose(AvaticaConnection connection) {
     // nothing
   }
 
   public void onStatementExecute(
       AvaticaStatement statement,
-      ResultSink resultSink) throws RuntimeException {
+      ResultSink resultSink) {
     // nothing
   }
 
-  public void onStatementClose(AvaticaStatement statement)
-      throws RuntimeException {
+  public void onStatementClose(AvaticaStatement statement) {
     // nothing
   }
 }

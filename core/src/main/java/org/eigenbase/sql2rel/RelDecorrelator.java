@@ -1336,7 +1336,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
 
   private class DecorrelateRelVisitor extends RelVisitor {
     private final ReflectiveVisitDispatcher<RelDecorrelator, RelNode>
-        dispatcher =
+    dispatcher =
         ReflectUtil.createDispatcher(
             RelDecorrelator.class,
             RelNode.class);
@@ -1781,7 +1781,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
         FilterRel filterRel = (FilterRel) rightInputRel;
         rightInputRel = filterRel.getChild();
 
-        assert (rightInputRel instanceof HepRelVertex);
+        assert rightInputRel instanceof HepRelVertex;
         rightInputRel = ((HepRelVertex) rightInputRel).getCurrentRel();
 
         // check filter input contains no correlation
@@ -1808,7 +1808,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
         // an unique key of the filterInputRel
         List<RexInputRef> rightJoinKeys = new ArrayList<RexInputRef>();
         for (int i = 0; i < tmpRightJoinKeys.size(); i++) {
-          assert (tmpRightJoinKeys.get(i) instanceof RexInputRef);
+          assert tmpRightJoinKeys.get(i) instanceof RexInputRef;
           rightJoinKeys.add((RexInputRef) tmpRightJoinKeys.get(i));
         }
 

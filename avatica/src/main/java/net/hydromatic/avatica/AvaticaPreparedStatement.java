@@ -35,8 +35,7 @@ import java.util.List;
  */
 public abstract class AvaticaPreparedStatement
     extends AvaticaStatement
-    implements PreparedStatement, ParameterMetaData
-{
+    implements PreparedStatement, ParameterMetaData {
   private final AvaticaPrepareResult prepareResult;
   private final ResultSetMetaData resultSetMetaData;
 
@@ -126,7 +125,7 @@ public abstract class AvaticaPreparedStatement
     getParameter(parameterIndex).setString(x);
   }
 
-  public void setBytes(int parameterIndex, byte x[]) throws SQLException {
+  public void setBytes(int parameterIndex, byte[] x) throws SQLException {
     getParameter(parameterIndex).setBytes(x);
   }
 

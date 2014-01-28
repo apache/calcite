@@ -33,12 +33,12 @@ public interface SargExpr {
    * Overrides the default Object.toString. The result must be safe for use in
    * a RelNode digest.
    */
-  public String toString();
+  String toString();
 
   /**
    * @return datatype for coordinates of search domain
    */
-  public RelDataType getDataType();
+  RelDataType getDataType();
 
   /**
    * Resolves this expression into a fixed {@link SargIntervalSequence}.
@@ -48,7 +48,7 @@ public interface SargExpr {
    *
    * @return immutable ordered sequence of disjoint intervals
    */
-  public SargIntervalSequence evaluate();
+  SargIntervalSequence evaluate();
 
   /**
    * Resolves the complement of this expression into a fixed {@link
@@ -56,19 +56,19 @@ public interface SargExpr {
    *
    * @return immutable ordered sequence of disjoint intervals
    */
-  public SargIntervalSequence evaluateComplemented();
+  SargIntervalSequence evaluateComplemented();
 
   /**
    * @return the factory which produced this expression
    */
-  public SargFactory getFactory();
+  SargFactory getFactory();
 
   /**
    * Collects all dynamic parameters referenced by this expression.
    *
    * @param dynamicParams receives dynamic parameter references
    */
-  public void collectDynamicParams(Set<RexDynamicParam> dynamicParams);
+  void collectDynamicParams(Set<RexDynamicParam> dynamicParams);
 }
 
 // End SargExpr.java

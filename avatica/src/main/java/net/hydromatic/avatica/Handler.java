@@ -45,7 +45,7 @@ public interface Handler {
    *
    * @param connection Connection
    */
-  void onConnectionClose(AvaticaConnection connection) throws RuntimeException;
+  void onConnectionClose(AvaticaConnection connection);
 
   /** Called by container when a statement is being executed.
    *
@@ -62,7 +62,7 @@ public interface Handler {
    */
   void onStatementExecute(
       AvaticaStatement statement,
-      ResultSink resultSink) throws RuntimeException;
+      ResultSink resultSink);
 
   /** Called by container when a statement is being closed.
    *
@@ -76,8 +76,9 @@ public interface Handler {
    * @param statement Statement
    * @throws RuntimeException on error
    */
-  void onStatementClose(AvaticaStatement statement) throws RuntimeException;
+  void onStatementClose(AvaticaStatement statement);
 
+  /** Handler for temporary tables. */
   interface ResultSink {
     /** Registers a temporary table. */
     void toBeCompleted();

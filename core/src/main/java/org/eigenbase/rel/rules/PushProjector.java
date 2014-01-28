@@ -753,7 +753,7 @@ public class PushProjector {
     /**
      * Constant condition that replies {@code false} for all expressions.
      */
-    public static final ExprCondition FALSE =
+    ExprCondition FALSE =
         new ExprCondition() {
           public boolean test(RexNode expr) {
             return false;

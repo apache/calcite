@@ -64,7 +64,7 @@ public enum InternalProperty {
     this.defaultValue = defaultValue;
   }
 
-  private <T> T _get(Map<InternalProperty, Object> map, T defaultValue) {
+  private <T> T get_(Map<InternalProperty, Object> map, T defaultValue) {
     final Object s = map.get(this);
     if (s != null) {
       return (T) s;
@@ -80,14 +80,14 @@ public enum InternalProperty {
    * no default. */
   public String getString(Map<InternalProperty, Object> map) {
     assert type == Type.STRING;
-    return _get(map, (String) defaultValue);
+    return get_(map, (String) defaultValue);
   }
 
   /** Returns the boolean value of this property. Throws if not set and no
    * default. */
   public boolean getBoolean(Map<InternalProperty, Object> map) {
     assert type == Type.BOOLEAN;
-    return _get(map, (Boolean) defaultValue);
+    return get_(map, (Boolean) defaultValue);
   }
 
   /** Returns the enum value of this property. Throws if not set and no
@@ -96,9 +96,10 @@ public enum InternalProperty {
       Class<E> enumClass) {
     assert type == Type.ENUM;
     //noinspection unchecked
-    return _get(map, (E) defaultValue);
+    return get_(map, (E) defaultValue);
   }
 
+  /** Where nulls appear in a sorted relation. */
   enum NullSorting {
     START, END, LOW, HIGH,
   }

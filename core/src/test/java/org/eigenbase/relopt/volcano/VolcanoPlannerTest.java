@@ -408,7 +408,7 @@ public class VolcanoPlannerTest {
 
   //~ Inner Classes ----------------------------------------------------------
 
-  private static abstract class TestLeafRel extends AbstractRelNode {
+  private abstract static class TestLeafRel extends AbstractRelNode {
     private String label;
 
     protected TestLeafRel(
@@ -443,7 +443,7 @@ public class VolcanoPlannerTest {
     }
   }
 
-  private static abstract class TestSingleRel extends SingleRel {
+  private abstract static class TestSingleRel extends SingleRel {
     protected TestSingleRel(
         RelOptCluster cluster,
         RelTraitSet traits,

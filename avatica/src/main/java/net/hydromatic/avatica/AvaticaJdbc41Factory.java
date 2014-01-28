@@ -25,7 +25,8 @@ import java.util.Properties;
 import java.util.TimeZone;
 
 /**
- * Implementation of {@link AvaticaFactory} for JDBC 4.1 (corresponds to JDK 1.7).
+ * Implementation of {@link AvaticaFactory} for JDBC 4.1 (corresponds to JDK
+ * 1.7).
  */
 @SuppressWarnings("UnusedDeclaration")
 class AvaticaJdbc41Factory implements AvaticaFactory {
@@ -102,6 +103,7 @@ class AvaticaJdbc41Factory implements AvaticaFactory {
         statement, null, columnMetaDataList);
   }
 
+  /** Implementation of Connection for JDBC 4.1. */
   private static class AvaticaJdbc41Connection extends AvaticaConnection {
     AvaticaJdbc41Connection(UnregisteredDriver driver,
         AvaticaFactory factory,
@@ -111,6 +113,7 @@ class AvaticaJdbc41Factory implements AvaticaFactory {
     }
   }
 
+  /** Implementation of Statement for JDBC 4.1. */
   private static class AvaticaJdbc41Statement extends AvaticaStatement {
     public AvaticaJdbc41Statement(AvaticaConnection connection,
         int resultSetType,
@@ -122,6 +125,7 @@ class AvaticaJdbc41Factory implements AvaticaFactory {
     }
   }
 
+  /** Implementation of PreparedStatement for JDBC 4.1. */
   private static class AvaticaJdbc41PreparedStatement
       extends AvaticaPreparedStatement {
     AvaticaJdbc41PreparedStatement(
@@ -243,6 +247,7 @@ class AvaticaJdbc41Factory implements AvaticaFactory {
     }
   }
 
+  /** Implementation of DatabaseMetaData for JDBC 4.1. */
   private static class AvaticaJdbc41DatabaseMetaData
       extends AvaticaDatabaseMetaData {
     AvaticaJdbc41DatabaseMetaData(AvaticaConnection connection) {

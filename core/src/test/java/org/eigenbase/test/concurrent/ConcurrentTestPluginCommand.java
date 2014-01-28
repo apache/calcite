@@ -26,27 +26,27 @@ import java.sql.Statement;
  */
 public interface ConcurrentTestPluginCommand {
 
-  public static interface TestContext {
+  interface TestContext {
     /**
      * Store a message as output for mtsql script.
      *
      * @param message Message to be output
      */
-    public void storeMessage(String message);
+    void storeMessage(String message);
 
     /**
      * Get connection for thread.
      *
      * @return connection for thread
      */
-    public Connection getConnection();
+    Connection getConnection();
 
     /**
      * Get current statement for thread, or null if none.
      *
      * @return current statement for thread
      */
-    public Statement getCurrentStatement();
+    Statement getCurrentStatement();
   }
 
   /**

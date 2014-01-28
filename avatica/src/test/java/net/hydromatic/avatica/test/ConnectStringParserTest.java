@@ -241,6 +241,7 @@ public class ConnectStringParserTest {
     }
   }
 
+  /** Collection of values comprising a test. */
   static class Quad {
     private final String why;
     private final String key;

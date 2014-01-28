@@ -43,7 +43,7 @@ public interface RelDataType /*extends Type*/ {
    * @return whether this type has fields; examples include rows and
    * user-defined structured types in SQL, and classes in Java
    */
-  public boolean isStruct();
+  boolean isStruct();
 
   // NOTE jvs 17-Dec-2004:  once we move to Java generics, getFieldList()
   // will be declared to return a read-only List<RelDataTypeField>,
@@ -58,7 +58,7 @@ public interface RelDataType /*extends Type*/ {
    * @return read-only list of fields
    * @pre this.isStruct()
    */
-  public List<RelDataTypeField> getFieldList();
+  List<RelDataTypeField> getFieldList();
 
   /**
    * Returns the names of the fields in a struct type. The field count is
@@ -66,7 +66,7 @@ public interface RelDataType /*extends Type*/ {
    *
    * @return read-only list of field names
    */
-  public List<String> getFieldNames();
+  List<String> getFieldNames();
 
   /**
    * Returns the number of fields in a struct type.
@@ -74,7 +74,7 @@ public interface RelDataType /*extends Type*/ {
    * <p>This method is equivalent to <code>{@link #getFieldList}
    * ().size()</code>.
    */
-  public int getFieldCount();
+  int getFieldCount();
 
   /**
    * Looks up a field by name.
@@ -93,35 +93,35 @@ public interface RelDataType /*extends Type*/ {
    * @return named field, or null if not found
    * @pre this.isStruct()
    */
-  public RelDataTypeField getField(String fieldName, boolean caseSensitive);
+  RelDataTypeField getField(String fieldName, boolean caseSensitive);
 
   /**
    * Queries whether this type allows null values.
    *
    * @return whether type allows null values
    */
-  public boolean isNullable();
+  boolean isNullable();
 
   /**
    * Gets the component type if this type is a collection, otherwise null.
    *
    * @return canonical type descriptor for components
    */
-  public RelDataType getComponentType();
+  RelDataType getComponentType();
 
   /**
    * Gets the key type if this type is a map, otherwise null.
    *
    * @return canonical type descriptor for key
    */
-  public RelDataType getKeyType();
+  RelDataType getKeyType();
 
   /**
    * Gets the value type if this type is a map, otherwise null.
    *
    * @return canonical type descriptor for value
    */
-  public RelDataType getValueType();
+  RelDataType getValueType();
 
   /**
    * Gets this type's character set, or null if this type cannot carry a
@@ -129,7 +129,7 @@ public interface RelDataType /*extends Type*/ {
    *
    * @return charset of type
    */
-  public Charset getCharset();
+  Charset getCharset();
 
   /**
    * Gets this type's collation, or null if this type cannot carry a collation
@@ -137,7 +137,7 @@ public interface RelDataType /*extends Type*/ {
    *
    * @return collation of type
    */
-  public SqlCollation getCollation();
+  SqlCollation getCollation();
 
   /**
    * Gets this type's interval qualifier, or null if this is not an interval
@@ -145,7 +145,7 @@ public interface RelDataType /*extends Type*/ {
    *
    * @return interval qualifier
    */
-  public SqlIntervalQualifier getIntervalQualifier();
+  SqlIntervalQualifier getIntervalQualifier();
 
   /**
    * Gets the JDBC-defined precision for values of this type. Note that this
@@ -163,7 +163,7 @@ public interface RelDataType /*extends Type*/ {
    * in bits for bit types; 1 for BOOLEAN; -1 if precision is not valid for
    * this type
    */
-  public int getPrecision();
+  int getPrecision();
 
   /**
    * Gets the scale of this type. Returns {@link #SCALE_NOT_SPECIFIED} (-1) if
@@ -171,14 +171,14 @@ public interface RelDataType /*extends Type*/ {
    *
    * @return number of digits of scale
    */
-  public int getScale();
+  int getScale();
 
   /**
    * Gets the {@link SqlTypeName} of this type.
    *
    * @return SqlTypeName, or null if this is not an SQL predefined type
    */
-  public SqlTypeName getSqlTypeName();
+  SqlTypeName getSqlTypeName();
 
   /**
    * Gets the {@link SqlIdentifier} associated with this type. For a
@@ -188,7 +188,7 @@ public interface RelDataType /*extends Type*/ {
    *
    * @return SqlIdentifier, or null if this is not an SQL type
    */
-  public SqlIdentifier getSqlIdentifier();
+  SqlIdentifier getSqlIdentifier();
 
   /**
    * Gets a string representation of this type without detail such as
@@ -196,7 +196,7 @@ public interface RelDataType /*extends Type*/ {
    *
    * @return abbreviated type string
    */
-  public String toString();
+  String toString();
 
   /**
    * Gets a string representation of this type with full detail such as
@@ -206,7 +206,7 @@ public interface RelDataType /*extends Type*/ {
    *
    * @return full type string
    */
-  public String getFullTypeString();
+  String getFullTypeString();
 
   /**
    * Gets a canonical object representing the family of this type. Two values
@@ -214,18 +214,18 @@ public interface RelDataType /*extends Type*/ {
    *
    * @return canonical object representing type family
    */
-  public RelDataTypeFamily getFamily();
+  RelDataTypeFamily getFamily();
 
   /**
    * @return precedence list for this type
    */
-  public RelDataTypePrecedenceList getPrecedenceList();
+  RelDataTypePrecedenceList getPrecedenceList();
 
   /**
    * @return the category of comparison operators which make sense when
    * applied to values of this type
    */
-  public RelDataTypeComparability getComparability();
+  RelDataTypeComparability getComparability();
 }
 
 // End RelDataType.java
