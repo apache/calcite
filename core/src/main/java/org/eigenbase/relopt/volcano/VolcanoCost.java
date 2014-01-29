@@ -117,9 +117,9 @@ class VolcanoCost implements RelOptCost {
 
   @Override
   public int hashCode() {
-    return Double.hashCode(dRows)
-        + Double.hashCode(dCpu)
-        + Double.hashCode(dIo);
+    return Double.valueOf(dRows).hashCode()
+        + Double.valueOf(dCpu).hashCode()
+        + Double.valueOf(dIo).hashCode();
   }
 
   public boolean equals(RelOptCost other) {

@@ -70,7 +70,7 @@ public class RelOptCostImpl implements RelOptCost {
 
   @Override
   public int hashCode() {
-    return Double.hashCode(getRows());
+    return Double.valueOf(getRows()).hashCode();
   }
 
   // implement RelOptCost
