@@ -46,8 +46,8 @@ public class Frameworks {
   /**
    * Creates an instance of {@code Planner}.
    *
-   * @param lex The type of lexing the SqlParser should do.  Controls case rules 
-   * and quoted identifier syntax.
+   * @param lex The type of lexing the SqlParser should do.  Controls case rules
+   *     and quoted identifier syntax.
    * @param schemaFactory Schema factory. Given a root schema, it creates and
    *                      returns the schema that should be used to execute
    *                      queries.

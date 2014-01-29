@@ -66,7 +66,8 @@ public class PlannerImpl implements Planner {
   private SqlToRelConverter sqlToRelConverter;
   private RelNode rel;
 
-  public PlannerImpl(ConnectionConfig.Lex lex, Function1<SchemaPlus, Schema> schemaFactory,
+  public PlannerImpl(ConnectionConfig.Lex lex,
+      Function1<SchemaPlus, Schema> schemaFactory,
       SqlOperatorTable operatorTable, ImmutableList<RuleSet> ruleSets) {
     this.schemaFactory = schemaFactory;
     this.operatorTable = operatorTable;
@@ -135,7 +136,8 @@ public class PlannerImpl implements Planner {
       ready();
     }
     ensure(State.STATE_2_READY);
-    SqlParser parser = new SqlParser(sql, lex.quoting, lex.unquotedCasing, lex.quotedCasing);
+    SqlParser parser =
+        new SqlParser(sql, lex.quoting, lex.unquotedCasing, lex.quotedCasing);
     SqlNode sqlNode = parser.parseStmt();
     state = State.STATE_3_PARSED;
     return sqlNode;
