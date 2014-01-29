@@ -33,10 +33,8 @@ import org.eigenbase.util.*;
 public abstract class AbstractRelOptPlanner implements RelOptPlanner {
   //~ Static fields/initializers ---------------------------------------------
 
-  /**
-   * Regular expression for integer.
-   */
-  private static final Pattern IntegerPattern = Pattern.compile("[0-9]+");
+  /** Regular expression for integer. */
+  private static final Pattern INTEGER_PATTERN = Pattern.compile("[0-9]+");
 
   //~ Instance fields --------------------------------------------------------
 
@@ -108,7 +106,7 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
     assert description.indexOf("$") < 0
         : "Rule's description should not contain '$': "
         + description;
-    assert !IntegerPattern.matcher(description).matches()
+    assert !INTEGER_PATTERN.matcher(description).matches()
         : "Rule's description should not be an integer: "
         + rule.getClass().getName() + ", " + description;
 
@@ -240,8 +238,8 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
 
     assert ruleCall.getRule().matches(ruleCall);
     if (isRuleExcluded(ruleCall.getRule())) {
-      if (tracer.isLoggable(Level.FINE)) {
-        tracer.fine(
+      if (LOGGER.isLoggable(Level.FINE)) {
+        LOGGER.fine(
             "call#" + ruleCall.id
             + ": Rule [" + ruleCall.getRule() + "] not fired"
             + " due to exclusion filter");
@@ -249,8 +247,8 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
       return;
     }
 
-    if (tracer.isLoggable(Level.FINE)) {
-      tracer.fine(
+    if (LOGGER.isLoggable(Level.FINE)) {
+      LOGGER.fine(
           "call#" + ruleCall.id
           + ": Apply rule [" + ruleCall.getRule() + "] to "
           + Arrays.toString(ruleCall.rels));
@@ -291,8 +289,8 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
       RelOptRuleCall ruleCall,
       RelNode newRel,
       boolean before) {
-    if (before && tracer.isLoggable(Level.FINE)) {
-      tracer.fine(
+    if (before && LOGGER.isLoggable(Level.FINE)) {
+      LOGGER.fine(
           "call#" + ruleCall.id
           + ": Rule " + ruleCall.getRule() + " arguments "
           + Arrays.toString(ruleCall.rels) + " produced "
@@ -317,8 +315,8 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
    * @param rel chosen rel
    */
   protected void notifyChosen(RelNode rel) {
-    if (tracer.isLoggable(Level.FINE)) {
-      tracer.fine("For final plan, using " + rel);
+    if (LOGGER.isLoggable(Level.FINE)) {
+      LOGGER.fine("For final plan, using " + rel);
     }
 
     if (listener != null) {

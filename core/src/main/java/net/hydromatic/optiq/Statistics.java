@@ -25,6 +25,9 @@ import java.util.*;
  * Utility functions regarding {@link Statistic}.
  */
 public class Statistics {
+  private Statistics() {
+  }
+
   /** Returns a {@link Statistic} that knows nothing about a table. */
   public static final Statistic UNKNOWN =
       new Statistic() {

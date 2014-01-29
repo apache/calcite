@@ -72,7 +72,7 @@ public class SqlInOperator extends SqlBinaryOperator {
       SqlValidatorScope scope,
       SqlCall call) {
     final SqlNode[] operands = call.getOperands();
-    assert (operands.length == 2);
+    assert operands.length == 2;
 
     final RelDataTypeFactory typeFactory = validator.getTypeFactory();
     RelDataType leftType = validator.deriveType(scope, operands[0]);

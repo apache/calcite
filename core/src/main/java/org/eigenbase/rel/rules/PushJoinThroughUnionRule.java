@@ -29,18 +29,16 @@ import com.google.common.collect.ImmutableSet;
  * {@link JoinRel} past a non-distinct {@link UnionRel}.
  */
 public class PushJoinThroughUnionRule extends RelOptRule {
-  public static final PushJoinThroughUnionRule instanceUnionOnLeft =
+  public static final PushJoinThroughUnionRule LEFT_UNION =
       new PushJoinThroughUnionRule(
-          operand(
-              JoinRel.class,
+          operand(JoinRel.class,
               operand(UnionRel.class, any()),
               operand(RelNode.class, any())),
           "union on left");
 
-  public static final PushJoinThroughUnionRule instanceUnionOnRight =
+  public static final PushJoinThroughUnionRule RIGHT_UNION =
       new PushJoinThroughUnionRule(
-          operand(
-              JoinRel.class,
+          operand(JoinRel.class,
               operand(RelNode.class, any()),
               operand(UnionRel.class, any())),
           "union on right");
@@ -87,7 +85,8 @@ public class PushJoinThroughUnionRule extends RelOptRule {
     List<RelNode> newUnionInputs = new ArrayList<RelNode>();
     RelOptCluster cluster = unionRel.getCluster();
     for (RelNode input : unionRel.getInputs()) {
-      RelNode joinLeft, joinRight;
+      RelNode joinLeft;
+      RelNode joinRight;
       if (unionOnLeft) {
         joinLeft = input;
         joinRight = otherInput;

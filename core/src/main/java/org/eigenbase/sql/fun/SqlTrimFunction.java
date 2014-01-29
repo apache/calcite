@@ -116,9 +116,9 @@ public class SqlTrimFunction extends SqlFunction {
       // This variant occurs when someone writes TRIM(string)
       // as opposed to the sugared syntax TRIM(string FROM string).
       operands = new SqlNode[]{
-          SqlLiteral.createSymbol(Flag.BOTH, SqlParserPos.ZERO),
-          SqlLiteral.createCharString(" ", pos),
-          operands[0]
+        SqlLiteral.createSymbol(Flag.BOTH, SqlParserPos.ZERO),
+        SqlLiteral.createCharString(" ", pos),
+        operands[0]
       };
       break;
     case 3:

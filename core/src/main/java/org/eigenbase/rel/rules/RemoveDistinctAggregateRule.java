@@ -37,10 +37,8 @@ import com.google.common.collect.ImmutableSet;
 public final class RemoveDistinctAggregateRule extends RelOptRule {
   //~ Static fields/initializers ---------------------------------------------
 
-  /**
-   * The singleton.
-   */
-  public static final RemoveDistinctAggregateRule instance =
+  /** The singleton. */
+  public static final RemoveDistinctAggregateRule INSTANCE =
       new RemoveDistinctAggregateRule();
 
   //~ Constructors -----------------------------------------------------------

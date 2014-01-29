@@ -33,7 +33,7 @@ import org.eigenbase.rex.*;
 public class MergeFilterOntoCalcRule extends RelOptRule {
   //~ Static fields/initializers ---------------------------------------------
 
-  public static final MergeFilterOntoCalcRule instance =
+  public static final MergeFilterOntoCalcRule INSTANCE =
       new MergeFilterOntoCalcRule();
 
   //~ Constructors -----------------------------------------------------------

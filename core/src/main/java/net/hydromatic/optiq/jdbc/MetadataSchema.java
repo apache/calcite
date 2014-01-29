@@ -32,7 +32,7 @@ import static net.hydromatic.optiq.jdbc.MetaImpl.*;
 
 /** Schema that contains metadata tables such as "TABLES" and "COLUMNS". */
 class MetadataSchema extends AbstractSchema {
-  private static final Map<String, Table> tableMap =
+  private static final Map<String, Table> TABLE_MAP =
       ImmutableMap.<String, Table>of(
           "COLUMNS",
           new MetaImpl.MetadataTable<MetaColumn>(MetaColumn.class) {
@@ -50,8 +50,7 @@ class MetadataSchema extends AbstractSchema {
             public Enumerator<MetaTable> enumerator(final MetaImpl meta) {
               return meta.tables(meta.connection.getCatalog()).enumerator();
             }
-          }
-      );
+          });
 
   private MetadataSchema(SchemaPlus rootSchema) {
     super(rootSchema, "metadata");
@@ -59,7 +58,7 @@ class MetadataSchema extends AbstractSchema {
 
   @Override
   protected Map<String, Table> getTableMap() {
-    return tableMap;
+    return TABLE_MAP;
   }
 
   /** Creates the data dictionary, also called the information schema. It is a

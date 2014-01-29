@@ -139,9 +139,8 @@ public class SocketFactoryImpl extends SocketFactory {
   }
 
   @Override
-  public Socket createSocket(
-      String host, int port, InetAddress local, int localPort)
-      throws IOException {
+  public Socket createSocket(String host, int port, InetAddress local,
+      int localPort) throws IOException {
     Socket s  = createSocket();
     s.bind(new InetSocketAddress(local, localPort));
     s.connect(new InetSocketAddress(host, port), SO_CONNECT_TIMEOUT);
@@ -149,9 +148,8 @@ public class SocketFactoryImpl extends SocketFactory {
   }
 
   @Override
-  public Socket createSocket(
-      InetAddress host, int port, InetAddress local, int localPort)
-      throws IOException {
+  public Socket createSocket(InetAddress host, int port, InetAddress local,
+      int localPort) throws IOException {
     Socket s  = createSocket();
     s.bind(new InetSocketAddress(local, localPort));
     s.connect(new InetSocketAddress(host, port), SO_CONNECT_TIMEOUT);

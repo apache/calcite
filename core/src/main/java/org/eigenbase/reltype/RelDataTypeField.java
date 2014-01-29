@@ -19,8 +19,6 @@ package org.eigenbase.reltype;
 
 import java.util.Map;
 
-import net.hydromatic.linq4j.expressions.Types;
-
 /**
  * RelDataTypeField represents the definition of a field in a structured {@link
  * RelDataType}.

@@ -311,7 +311,7 @@ public class RexLiteral extends RexNode {
     case BINARY:
       assert value instanceof ByteString;
       pw.print("X'");
-      pw.print((((ByteString) value).toString(16)));
+      pw.print(((ByteString) value).toString(16));
       pw.print("'");
       break;
     case NULL:
@@ -352,7 +352,7 @@ public class RexLiteral extends RexNode {
       PrintWriter pw,
       ZonelessDatetime datetime,
       Comparable value) {
-    assert (value instanceof Calendar);
+    assert value instanceof Calendar;
     datetime.setZonelessTime(
         ((Calendar) value).getTimeInMillis());
     pw.print(datetime);

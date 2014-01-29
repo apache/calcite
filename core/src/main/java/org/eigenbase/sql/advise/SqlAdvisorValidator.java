@@ -73,7 +73,7 @@ public class SqlAdvisorValidator extends SqlValidatorImpl {
     try {
       super.validateIdentifier(id, scope);
     } catch (EigenbaseException e) {
-      Util.swallow(e, tracer);
+      Util.swallow(e, TRACER);
     }
   }
 
@@ -132,7 +132,7 @@ public class SqlAdvisorValidator extends SqlValidatorImpl {
     try {
       super.validateFrom(node, targetRowType, scope);
     } catch (EigenbaseException e) {
-      Util.swallow(e, tracer);
+      Util.swallow(e, TRACER);
     }
   }
 
@@ -143,7 +143,7 @@ public class SqlAdvisorValidator extends SqlValidatorImpl {
     try {
       super.validateWhereClause(select);
     } catch (EigenbaseException e) {
-      Util.swallow(e, tracer);
+      Util.swallow(e, TRACER);
     }
   }
 
@@ -154,7 +154,7 @@ public class SqlAdvisorValidator extends SqlValidatorImpl {
     try {
       super.validateHavingClause(select);
     } catch (EigenbaseException e) {
-      Util.swallow(e, tracer);
+      Util.swallow(e, TRACER);
     }
   }
 
@@ -170,7 +170,7 @@ public class SqlAdvisorValidator extends SqlValidatorImpl {
       }
       validateWindow(window, opScope, null);
     } catch (EigenbaseException e) {
-      Util.swallow(e, tracer);
+      Util.swallow(e, TRACER);
     }
   }
 

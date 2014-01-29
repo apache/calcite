@@ -36,7 +36,7 @@ public class SamplePlugin extends ConcurrentTestPlugin {
     if (name.equals(DESCRIBE_RESULT_SET_CMD)) {
       return new DescribeResultSet();
     }
-    assert (false);
+    assert false;
     return null;
   }
 

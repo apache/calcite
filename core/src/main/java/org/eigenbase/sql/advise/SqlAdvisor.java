@@ -17,8 +17,6 @@
 */
 package org.eigenbase.sql.advise;
 
-import java.io.*;
-
 import java.util.*;
 import java.util.logging.*;
 
@@ -35,7 +33,7 @@ import org.eigenbase.util.*;
 public class SqlAdvisor {
   //~ Static fields/initializers ---------------------------------------------
 
-  public static final Logger tracer = EigenbaseTrace.parserTracer;
+  public static final Logger LOGGER = EigenbaseTrace.parserTracer;
 
   //~ Instance fields --------------------------------------------------------
 
@@ -205,7 +203,7 @@ public class SqlAdvisor {
       // try to continue even if the sql is invalid. we are doing a best
       // effort here to try to come up with the requested completion
       // hints
-      Util.swallow(e, tracer);
+      Util.swallow(e, LOGGER);
     }
     final List<SqlMoniker> validatorHints =
         validator.lookupHints(sqlNode, pos);
@@ -394,8 +392,7 @@ public class SqlAdvisor {
    * @return parse tree
    * @throws SqlParseException if not syntactically valid
    */
-  protected SqlNode parseQuery(String sql)
-      throws SqlParseException {
+  protected SqlNode parseQuery(String sql) throws SqlParseException {
     SqlParser parser = new SqlParser(sql);
     return parser.parseStmt();
   }

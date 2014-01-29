@@ -41,7 +41,7 @@ public class EigenbaseLogger {
   //~ Constructors -----------------------------------------------------------
 
   public EigenbaseLogger(Logger logger) {
-    assert (logger != null);
+    assert logger != null;
     this.logger = logger;
   }
 

@@ -536,8 +536,8 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
 
       // Move offset to point to start of next input.
       offset += inputFieldCount;
-      newFieldCount
-          += inputMapping.getTargetCount() + inputExtraFields.size();
+      newFieldCount +=
+          inputMapping.getTargetCount() + inputExtraFields.size();
     }
 
     Mapping mapping =

@@ -30,7 +30,7 @@ import org.eigenbase.rex.*;
  * the join.
  */
 public class PushProjectPastJoinRule extends RelOptRule {
-  public static final PushProjectPastJoinRule instance =
+  public static final PushProjectPastJoinRule INSTANCE =
       new PushProjectPastJoinRule(PushProjector.ExprCondition.FALSE);
 
   //~ Instance fields --------------------------------------------------------

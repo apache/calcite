@@ -82,7 +82,7 @@ public class Driver extends UnregisteredDriver {
     return new HandlerImpl() {
       @Override
       public void onConnectionInit(AvaticaConnection connection_)
-          throws SQLException {
+        throws SQLException {
         final OptiqConnectionImpl connection =
             (OptiqConnectionImpl) connection_;
         super.onConnectionInit(connection);

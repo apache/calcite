@@ -135,7 +135,7 @@ public class RexOver extends RexCall {
   //~ Inner Classes ----------------------------------------------------------
 
   private static class OverFound extends RuntimeException {
-    public static final OverFound instance = new OverFound();
+    public static final OverFound INSTANCE = new OverFound();
   }
 
   /**
@@ -151,7 +151,7 @@ public class RexOver extends RexCall {
     }
 
     public Void visitOver(RexOver over) {
-      throw OverFound.instance;
+      throw OverFound.INSTANCE;
     }
   }
 }

@@ -92,7 +92,6 @@
     </module>
       <!-- Switch statements should be complete and with independent cases -->
     <module name="FallThrough"/>
-    <module name="MissingSwitchDefault" />
     <!-- For hadoop_yarn profile, some YARN exceptions aren't loading in checkstyle -->
     <module name="RedundantThrows">
         <property name="suppressLoadErrors" value="true" />
@@ -133,7 +132,9 @@
       <property name="checkFirstSentence" value="false"/>
     </module>
       <!-- Must have class / interface header comments -->
+<!-- todo: enable
     <module name="JavadocType"/>
+-->
 
     <!-- Miscellaneous other checks (tree walker).     -->
     <!-- See http://checkstyle.sf.net/config_misc.html -->
@@ -161,15 +162,25 @@
       <!-- Constant names should obey the traditional all uppercase 
 	   naming convention -->
     <module name="ConstantName"/>
-    <module name="LocalFinalVariableName"/>
-    <module name="LocalVariableName"/>
-    <module name="MemberName"/>
-    <module name="MethodName">
-      <!-- Allow trailing '_', signifying private methods. -->
+    <module name="LocalFinalVariableName">
+      <!-- Allow trailing '_'. -->
       <property name="format" value="^[a-z][a-zA-Z0-9]*_?$"/>
     </module>
+    <module name="LocalVariableName">
+      <!-- Allow trailing '_'. -->
+      <property name="format" value="^[a-z][a-zA-Z0-9]*_?$"/>
+    </module>
+    <module name="MemberName"/>
+    <module name="MethodName">
+      <!-- Allow trailing '_', signifying private methods.
+           Also allow '_test' prefix, indicating ignored junit tests. -->
+      <property name="format" value="^(_test|[a-z])[a-zA-Z0-9]*_?$"/>
+    </module>
     <module name="PackageName"/>
-    <module name="ParameterName"/>
+    <module name="ParameterName">
+      <!-- Allow trailing '_'. -->
+      <property name="format" value="^[a-z][a-zA-Z0-9]*_?$"/>
+    </module>
     <module name="StaticVariableName">
       <property name="format" value="^[A-Z0-9_]*$"/>
     </module>
@@ -195,11 +206,11 @@
       <!-- Lines cannot exceed 80 chars -->
     <module name="LineLength">
       <property name="max" value="80"/>
-      <property name="ignorePattern" value="^import|@|href"/>
+      <property name="ignorePattern" value="^import|@|href|&quot;"/>
     </module>
       <!-- Over time, we will revised this down -->
     <module name="MethodLength">
-      <property name="max" value="200"/>
+      <property name="max" value="390"/>
     </module>
 
     <!-- Checks for whitespace (tree walker)                 -->

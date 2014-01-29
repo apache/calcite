@@ -409,7 +409,7 @@ public class SqlWindowOperator extends SqlOperator {
     case OTHER:
     case FOLLOWING:
     case PRECEDING:
-      assert (bound instanceof SqlCall);
+      assert bound instanceof SqlCall;
       final SqlNode boundVal = ((SqlCall) bound).getOperands()[0];
 
       // Boundries must be a constant

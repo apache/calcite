@@ -23,8 +23,6 @@ import org.eigenbase.rel.*;
 import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.RelDataType;
 
-import net.hydromatic.optiq.prepare.Prepare;
-
 /**
  * TableAccessRule converts a TableAccessRel to the result of calling {@link
  * RelOptTable#toRel}.
@@ -32,7 +30,7 @@ import net.hydromatic.optiq.prepare.Prepare;
 public class TableAccessRule extends RelOptRule {
   //~ Static fields/initializers ---------------------------------------------
 
-  public static final TableAccessRule instance = new TableAccessRule();
+  public static final TableAccessRule INSTANCE = new TableAccessRule();
 
   //~ Constructors -----------------------------------------------------------
 

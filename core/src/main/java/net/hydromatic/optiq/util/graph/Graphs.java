@@ -27,6 +27,9 @@ import java.util.*;
  * Miscellaneous graph utilities.
  */
 public class Graphs {
+  private Graphs() {
+  }
+
   public static <V, E extends DefaultEdge> List<V>
   predecessorListOf(DirectedGraph<V, E> graph, V vertex) {
     final List<E> edges = graph.getInwardEdges(vertex);

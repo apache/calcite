@@ -70,7 +70,7 @@ public class RecordEnumeratorCursor<E> extends AbstractCursor {
       } catch (IllegalAccessException e) {
         throw new RuntimeException(e);
       }
-      wasNull[0] = (o == null);
+      wasNull[0] = o == null;
       return o;
     }
   }

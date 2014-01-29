@@ -30,7 +30,7 @@ import org.eigenbase.rex.*;
  * {@link FilterRel} past a {@link TableFunctionRel}.
  */
 public class PushFilterPastTableFunctionRule extends RelOptRule {
-  public static final PushFilterPastTableFunctionRule instance =
+  public static final PushFilterPastTableFunctionRule INSTANCE =
       new PushFilterPastTableFunctionRule();
 
   //~ Constructors -----------------------------------------------------------

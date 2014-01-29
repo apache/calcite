@@ -69,9 +69,9 @@ public class JdbcExample {
 
   public static class Hr {
     public final Employee[] emps = {
-        new Employee(100, "Bill"),
-        new Employee(200, "Eric"),
-        new Employee(150, "Sebastian"),
+      new Employee(100, "Bill"),
+      new Employee(200, "Eric"),
+      new Employee(150, "Sebastian"),
     };
   }
 
@@ -87,8 +87,8 @@ public class JdbcExample {
 
   public static class Foodmart {
     public final SalesFact[] sales_fact_1997 = {
-        new SalesFact(100, 10),
-        new SalesFact(150, 20),
+      new SalesFact(100, 10),
+      new SalesFact(150, 20),
     };
   }
 

@@ -168,12 +168,16 @@ public final class RelTraitSet extends AbstractList<RelTrait> {
    * @param obj another RelTraitSet
    * @return true if traits are equal and in the same order, false otherwise
    */
+  @Override
   public boolean equals(Object obj) {
-    if (obj instanceof RelTraitSet) {
-      RelTraitSet other = (RelTraitSet) obj;
-      return Arrays.equals(traits, other.traits);
-    }
-    return false;
+    return this == obj
+        || obj instanceof RelTraitSet
+        && Arrays.equals(traits, ((RelTraitSet) obj).traits);
+  }
+
+  @Override
+  public int hashCode() {
+    return Arrays.hashCode(traits);
   }
 
   /**

@@ -27,8 +27,7 @@ import org.eigenbase.rel.RelNode;
  * conventions.
  */
 public interface EnumerableRel
-    extends RelNode
-{
+    extends RelNode {
   //~ Methods ----------------------------------------------------------------
 
   /**
@@ -52,7 +51,7 @@ public interface EnumerableRel
      * accommodate records represented as arrays. */
     CUSTOM_NICE,
     /** Consumer has no preferred representation. */
-    ANY,;
+    ANY;
 
     public JavaRowFormat preferCustom() {
       return prefer(JavaRowFormat.CUSTOM);

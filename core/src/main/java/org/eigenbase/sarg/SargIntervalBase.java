@@ -86,7 +86,7 @@ public abstract class SargIntervalBase {
    * @return whether this represents a (non-empty, non-point) range interval
    */
   public boolean isRange() {
-    return (!isPoint() && !isEmpty());
+    return !isPoint() && !isEmpty();
   }
 
   /**

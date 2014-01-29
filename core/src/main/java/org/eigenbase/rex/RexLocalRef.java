@@ -39,7 +39,7 @@ public class RexLocalRef extends RexSlot {
 
   // array of common names, to reduce memory allocations
   @SuppressWarnings("MismatchedQueryAndUpdateOfCollection")
-  private static final List<String> names = new SelfPopulatingList("$t", 30);
+  private static final List<String> NAMES = new SelfPopulatingList("$t", 30);
 
   //~ Constructors -----------------------------------------------------------
 
@@ -51,13 +51,8 @@ public class RexLocalRef extends RexSlot {
    * @pre type != null
    * @pre index >= 0
    */
-  public RexLocalRef(
-      int index,
-      RelDataType type) {
-    super(
-        createName(index),
-        index,
-        type);
+  public RexLocalRef(int index, RelDataType type) {
+    super(createName(index), index, type);
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -86,7 +81,7 @@ public class RexLocalRef extends RexSlot {
   }
 
   private static String createName(int index) {
-    return names.get(index);
+    return NAMES.get(index);
   }
 }
 

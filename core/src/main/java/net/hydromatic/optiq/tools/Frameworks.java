@@ -40,6 +40,9 @@ import java.sql.DriverManager;
  * server first.
  */
 public class Frameworks {
+  private Frameworks() {
+  }
+
   /**
    * Creates an instance of {@code Planner}.
    *

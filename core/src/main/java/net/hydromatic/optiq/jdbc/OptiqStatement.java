@@ -29,8 +29,7 @@ import net.hydromatic.optiq.server.OptiqServerStatement;
  */
 public abstract class OptiqStatement
     extends AvaticaStatement
-    implements OptiqServerStatement
-{
+    implements OptiqServerStatement {
   OptiqStatement(
       OptiqConnectionImpl connection,
       int resultSetType,

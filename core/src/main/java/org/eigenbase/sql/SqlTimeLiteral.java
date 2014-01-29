@@ -76,7 +76,7 @@ public class SqlTimeLiteral extends SqlAbstractDateTimeLiteral {
     String result = getTime().toString(formatString);
     final Calendar cal = getCal();
     if (precision > 0) {
-      assert (precision <= 3);
+      assert precision <= 3;
 
       // get the millisecond count.  millisecond => at most 3 digits.
       String digits = Long.toString(cal.getTimeInMillis());
@@ -85,7 +85,7 @@ public class SqlTimeLiteral extends SqlAbstractDateTimeLiteral {
           + digits.substring(digits.length() - 3,
               digits.length() - 3 + precision);
     } else {
-      assert (0 == cal.get(Calendar.MILLISECOND));
+      assert 0 == cal.get(Calendar.MILLISECOND);
     }
     return result;
   }

@@ -89,7 +89,8 @@ public class SqlToRelConverter {
   private final Map<String, DeferredLookup> mapCorrelToDeferred =
       new HashMap<String, DeferredLookup>();
   private int nextCorrel = 0;
-  private final String correlPrefix = "$cor";
+
+  private static final String CORREL_PREFIX = "$cor";
 
   /**
    * Fields used in decorrelation.
@@ -98,15 +99,15 @@ public class SqlToRelConverter {
       new HashMap<String, RelNode>();
 
   private final SortedMap<CorrelatorRel.Correlation, CorrelatorRel>
-      mapCorVarToCorRel =
+  mapCorVarToCorRel =
       new TreeMap<CorrelatorRel.Correlation, CorrelatorRel>();
 
   private final Map<RelNode, SortedSet<CorrelatorRel.Correlation>>
-      mapRefRelToCorVar =
+  mapRefRelToCorVar =
       new HashMap<RelNode, SortedSet<CorrelatorRel.Correlation>>();
 
   private final Map<RexFieldAccess, CorrelatorRel.Correlation>
-      mapFieldAccessToCorVar =
+  mapFieldAccessToCorVar =
       new HashMap<RexFieldAccess, CorrelatorRel.Correlation>();
 
   /**
@@ -582,7 +583,7 @@ public class SqlToRelConverter {
               rel,
               Pair.left(newProjects),
               Pair.right(newProjects),
-              ProjectRel.Flags.Boxed);
+              ProjectRel.Flags.BOXED);
 
       bb.root = rel;
       distinctify(bb, false);
@@ -608,7 +609,7 @@ public class SqlToRelConverter {
               rel,
               Pair.left(undoProjects),
               Pair.right(undoProjects),
-              ProjectRel.Flags.Boxed);
+              ProjectRel.Flags.BOXED);
 
       bb.setRoot(
           rel,
@@ -696,7 +697,7 @@ public class SqlToRelConverter {
               exprs,
               cluster.getTypeFactory().createStructType(
                   rowType.getFieldList().subList(0, fieldCount)),
-              ProjectRelBase.Flags.Boxed),
+              ProjectRelBase.Flags.BOXED),
           false);
     }
   }
@@ -747,7 +748,7 @@ public class SqlToRelConverter {
           sqlCall.getOperator()
               == SqlStdOperatorTable.notOperator) {
         SqlNode childNode = sqlCall.getOperands()[0];
-        assert (childNode instanceof SqlCall);
+        assert childNode instanceof SqlCall;
         SqlCall childSqlCall = (SqlCall) childNode;
         if (childSqlCall.getOperator()
             == SqlStdOperatorTable.andOperator) {
@@ -792,7 +793,7 @@ public class SqlToRelConverter {
             childSqlCall.getOperator()
                 == SqlStdOperatorTable.notOperator) {
           SqlNode[] notOperands = childSqlCall.getOperands();
-          assert (notOperands.length == 1);
+          assert notOperands.length == 1;
           return pushdownNotForIn(notOperands[0]);
         } else if (
             childSqlCall.getOperator()
@@ -930,7 +931,7 @@ public class SqlToRelConverter {
         for (int i = 0; i < valueList.size(); i++) {
           SqlNode sqlNode = valueList.getList().get(i);
           if (sqlNode instanceof SqlLiteral) {
-            SqlLiteral lit = (SqlLiteral) (sqlNode);
+            SqlLiteral lit = (SqlLiteral) sqlNode;
             if (lit.getValue() == null) {
               seenNull = true;
             }
@@ -1135,10 +1136,10 @@ public class SqlToRelConverter {
                 leftKeys[0],
                 bb.convertExpression(rightVals));
       } else {
-        assert (rightVals instanceof SqlCall);
+        assert rightVals instanceof SqlCall;
         final SqlCall call = (SqlCall) rightVals;
-        assert ((call.getOperator() instanceof SqlRowOperator)
-            && (call.getOperands().length == leftKeys.length));
+        assert (call.getOperator() instanceof SqlRowOperator)
+            && call.getOperands().length == leftKeys.length;
         rexComparison =
             RexUtil.composeConjunction(
                 rexBuilder,
@@ -1241,7 +1242,7 @@ public class SqlToRelConverter {
       boolean isIn,
       boolean isExists,
       boolean needsOuterJoin) {
-    assert (!isIn || !isExists);
+    assert !isIn || !isExists;
     final SqlValidatorScope seekScope =
         (seek instanceof SqlSelect)
             ? validator.getSelectScope((SqlSelect) seek)
@@ -1775,7 +1776,7 @@ public class SqlToRelConverter {
       call = (SqlCall) from;
 
       // Dig out real call; TABLE() wrapper is just syntactic.
-      assert (call.getOperands().length == 1);
+      assert call.getOperands().length == 1;
       call = (SqlCall) call.getOperands()[0];
       convertCollectionTable(bb, call);
       return;
@@ -1864,20 +1865,20 @@ public class SqlToRelConverter {
                 ancestorScopes,
                 nsIndexes);
 
-        assert (foundNs != null);
-        assert (nsIndexes.length == 1);
+        assert foundNs != null;
+        assert nsIndexes.length == 1;
 
         int childNamespaceIndex = nsIndexes[0];
 
         SqlValidatorScope ancestorScope = ancestorScopes[0];
-        boolean correlInCurrentScope = (ancestorScope == bb.scope);
+        boolean correlInCurrentScope = ancestorScope == bb.scope;
 
         if (correlInCurrentScope) {
           int namespaceOffset = 0;
           if (childNamespaceIndex > 0) {
             // If not the first child, need to figure out the width
             // of output types from all the preceding namespaces
-            assert (ancestorScope instanceof ListScope);
+            assert ancestorScope instanceof ListScope;
             List<SqlValidatorNamespace> children =
                 ((ListScope) ancestorScope).getChildren();
 
@@ -1895,7 +1896,7 @@ public class SqlToRelConverter {
           assert field.getType()
               == lookup.getFieldAccess(correlName).getField().getType();
 
-          assert (pos != -1);
+          assert pos != -1;
 
           if (bb.mapRootRelToFieldProjection.containsKey(bb.root)) {
             // bb.root is an aggregate and only projects group by
@@ -2140,8 +2141,8 @@ public class SqlToRelConverter {
               ancestorScopes,
               nsIndexes);
 
-      assert (foundNs != null);
-      assert (nsIndexes.length == 1);
+      assert foundNs != null;
+      assert nsIndexes.length == 1;
 
       SqlValidatorScope ancestorScope = ancestorScopes[0];
 
@@ -2356,8 +2357,8 @@ public class SqlToRelConverter {
                 ancestorScopes,
                 nsIndexes);
 
-        assert (foundNs != null);
-        assert (nsIndexes.length == 1);
+        assert foundNs != null;
+        assert nsIndexes.length == 1;
         int childNamespaceIndex = nsIndexes[0];
 
         int namespaceOffset = 0;
@@ -2365,7 +2366,7 @@ public class SqlToRelConverter {
         if (childNamespaceIndex > 0) {
           // If not the first child, need to figure out the width of
           // output types from all the preceding namespaces
-          assert (ancestorScopes[0] instanceof ListScope);
+          assert ancestorScopes[0] instanceof ListScope;
           List<SqlValidatorNamespace> children =
               ((ListScope) ancestorScopes[0]).getChildren();
 
@@ -3208,7 +3209,7 @@ public class SqlToRelConverter {
   }
 
   private RelNode convertCursor(Blackboard bb, SqlCall cursorCall) {
-    assert (cursorCall.operands.length == 1);
+    assert cursorCall.operands.length == 1;
     SqlNode query = cursorCall.operands[0];
     RelNode converted = convertQuery(query, false, false);
     int iCursor = bb.cursors.size();
@@ -3557,12 +3558,12 @@ public class SqlToRelConverter {
 
   private String createCorrel() {
     int n = nextCorrel++;
-    return correlPrefix + n;
+    return CORREL_PREFIX + n;
   }
 
   private int getCorrelOrdinal(String correlName) {
-    assert (correlName.startsWith(correlPrefix));
-    return Integer.parseInt(correlName.substring(correlPrefix.length()));
+    assert correlName.startsWith(CORREL_PREFIX);
+    return Integer.parseInt(correlName.substring(CORREL_PREFIX.length()));
   }
 
   //~ Inner Classes ----------------------------------------------------------
@@ -3610,7 +3611,7 @@ public class SqlToRelConverter {
      * "right" to the subquery.
      */
     private final Map<RelNode, Map<Integer, Integer>>
-        mapRootRelToFieldProjection =
+    mapRootRelToFieldProjection =
         new HashMap<RelNode, Map<Integer, Integer>>();
 
     private final List<SqlMonotonicity> columnMonotonicities =
@@ -3663,7 +3664,7 @@ public class SqlToRelConverter {
         RexNode[] leftJoinKeysForIn) {
       assert joinType != null;
       if (root == null) {
-        assert (leftJoinKeysForIn == null);
+        assert leftJoinKeysForIn == null;
         setRoot(rel, false);
         return rexBuilder.makeRangeReference(
             root.getRowType(),
@@ -4476,7 +4477,7 @@ public class SqlToRelConverter {
             if (operand instanceof SqlIdentifier) {
               SqlIdentifier id = (SqlIdentifier) operand;
               if (id.isStar()) {
-                assert (call.operands.length == 1);
+                assert call.operands.length == 1;
                 assert args.isEmpty();
                 break;
               }

@@ -71,9 +71,9 @@ public class SargSetExpr implements SargExpr {
    * @param child child to add
    */
   public void addChild(SargExpr child) {
-    assert (child.getDataType() == dataType);
+    assert child.getDataType() == dataType;
     if (setOp == SargSetOperator.COMPLEMENT) {
-      assert (children.isEmpty());
+      assert children.isEmpty();
     }
     children.add(child);
   }
@@ -104,7 +104,7 @@ public class SargSetExpr implements SargExpr {
   // implement SargExpr
   public SargIntervalSequence evaluate() {
     if (setOp == SargSetOperator.COMPLEMENT) {
-      assert (children.size() == 1);
+      assert children.size() == 1;
       SargExpr child = children.get(0);
       return child.evaluateComplemented();
     }
@@ -170,7 +170,7 @@ public class SargSetExpr implements SargExpr {
     SargInterval accumulator = null;
     for (SargInterval interval : intervals) {
       // Empty intervals should have been previously filtered out.
-      assert (!interval.isEmpty());
+      assert !interval.isEmpty();
 
       if (accumulator == null) {
         // The very first interval:  start accumulating.
@@ -366,7 +366,7 @@ public class SargSetExpr implements SargExpr {
         source = sourceIter.next();
       } else {
         // Source ends after target ends, so advance target.
-        assert (c > 0);
+        assert c > 0;
         if (!targetIter.hasNext()) {
           return;
         }
@@ -430,7 +430,7 @@ public class SargSetExpr implements SargExpr {
     }
 
     public boolean equals(Object obj) {
-      return (obj instanceof IntervalComparator);
+      return obj instanceof IntervalComparator;
     }
   }
 }

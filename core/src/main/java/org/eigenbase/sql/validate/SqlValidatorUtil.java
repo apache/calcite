@@ -105,8 +105,8 @@ public class SqlValidatorUtil {
     if (SqlTypeUtil.inCharFamily(type)) {
       Charset strCharset = type.getCharset();
       Charset colCharset = type.getCollation().getCharset();
-      assert (null != strCharset);
-      assert (null != colCharset);
+      assert null != strCharset;
+      assert null != colCharset;
       if (!strCharset.equals(colCharset)) {
         if (false) {
           // todo: enable this checking when we have a charset to

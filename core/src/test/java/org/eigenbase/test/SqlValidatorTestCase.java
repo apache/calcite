@@ -389,8 +389,7 @@ public class SqlValidatorTestCase {
    * tables, which can run without having to start up Farrago.
    */
   public interface Tester {
-    SqlNode parseQuery(String sql)
-        throws SqlParseException;
+    SqlNode parseQuery(String sql) throws SqlParseException;
 
     SqlNode parseAndValidate(SqlValidator validator, String sql);
 

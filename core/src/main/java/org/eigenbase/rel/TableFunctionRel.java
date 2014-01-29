@@ -25,8 +25,6 @@ import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.*;
 import org.eigenbase.rex.*;
 
-import com.google.common.collect.ImmutableSet;
-
 /**
  * <code>TableFunctionRel</code> represents a call to a function which returns a
  * result set. Currently, it can only appear as a leaf in a query tree, but

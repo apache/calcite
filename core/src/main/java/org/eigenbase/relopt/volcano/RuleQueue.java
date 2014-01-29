@@ -27,6 +27,7 @@ import org.eigenbase.trace.*;
 import org.eigenbase.util.*;
 
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 
 /**
@@ -36,15 +37,14 @@ import com.google.common.collect.Multimap;
 class RuleQueue {
   //~ Static fields/initializers ---------------------------------------------
 
-  private static final Logger tracer = EigenbaseTrace.getPlannerTracer();
+  private static final Logger LOGGER = EigenbaseTrace.getPlannerTracer();
 
-  private static final Set<String> allRules =
-      Collections.singleton("<ALL RULES>");
+  private static final Set<String> ALL_RULES = ImmutableSet.of("<ALL RULES>");
 
   /**
    * Largest value which is less than one.
    */
-  private static final double OneMinusEpsilon = computeOneMinusEpsilon();
+  private static final double ONE_MINUS_EPSILON = computeOneMinusEpsilon();
 
   //~ Instance fields --------------------------------------------------------
 
@@ -110,7 +110,7 @@ class RuleQueue {
     for (VolcanoPlannerPhase phase : VolcanoPlannerPhase.values()) {
       // empty phases get converted to "all rules"
       if (phaseRuleMapping.get(phase).isEmpty()) {
-        phaseRuleMapping.put(phase, allRules);
+        phaseRuleMapping.put(phase, ALL_RULES);
       }
 
       // create a match list data structure for each phase
@@ -164,7 +164,7 @@ class RuleQueue {
     }
 
     double importance = computeImportance(subset);
-    if (previousImportance.doubleValue() == importance) {
+    if (previousImportance == importance) {
       return;
     }
 
@@ -196,7 +196,7 @@ class RuleQueue {
    *                importance by 25%)
    */
   public void boostImportance(Collection<RelSubset> subsets, double factor) {
-    tracer.finer("boostImportance(" + factor + ", " + subsets + ")");
+    LOGGER.finer("boostImportance(" + factor + ", " + subsets + ")");
     ArrayList<RelSubset> boostRemovals = new ArrayList<RelSubset>();
     Iterator<RelSubset> iter = boostedSubsets.iterator();
     while (iter.hasNext()) {
@@ -244,7 +244,7 @@ class RuleQueue {
 
       updateImportance(
           subset,
-          Math.min(OneMinusEpsilon, importance * factor));
+          Math.min(ONE_MINUS_EPSILON, importance * factor));
 
       subset.boosted = true;
       boostedSubsets.add(subset);
@@ -287,7 +287,7 @@ class RuleQueue {
       if (d == null) {
         continue;
       }
-      double subsetImportance = d.doubleValue();
+      double subsetImportance = d;
       if (subset2 != rel) {
         subsetImportance /= 2;
       }
@@ -314,14 +314,14 @@ class RuleQueue {
       String ruleClassName = match.getRule().getClass().getSimpleName();
 
       Set<String> phaseRuleSet = phaseRuleMapping.get(matchList.phase);
-      if (phaseRuleSet != allRules) {
+      if (phaseRuleSet != ALL_RULES) {
         if (!phaseRuleSet.contains(ruleClassName)) {
           continue;
         }
       }
 
-      if (tracer.isLoggable(Level.FINEST)) {
-        tracer.finest(
+      if (LOGGER.isLoggable(Level.FINEST)) {
+        LOGGER.finest(
             matchList.phase.toString() + " Rule-match queued: "
                 + matchName);
       }
@@ -375,17 +375,17 @@ class RuleQueue {
         importance = Math.max(importance, childImportance);
       }
     }
-    tracer.finest("Importance of [" + subset + "] is " + importance);
+    LOGGER.finest("Importance of [" + subset + "] is " + importance);
     return importance;
   }
 
   private void dump() {
-    if (tracer.isLoggable(Level.FINER)) {
+    if (LOGGER.isLoggable(Level.FINER)) {
       StringWriter sw = new StringWriter();
       PrintWriter pw = new PrintWriter(sw);
       dump(pw);
       pw.flush();
-      tracer.finer(sw.toString());
+      LOGGER.finer(sw.toString());
     }
   }
 
@@ -421,7 +421,7 @@ class RuleQueue {
     dump();
 
     PhaseMatchList phaseMatchList = matchListMap.get(phase);
-    if ((phaseMatchList == null)) {
+    if (phaseMatchList == null) {
       throw new AssertionError("Used match list for phase " + phase
           + " after phase complete");
     }
@@ -432,7 +432,7 @@ class RuleQueue {
       if (matchList.isEmpty()) {
         return null;
       }
-      if (tracer.isLoggable(Level.FINEST)) {
+      if (LOGGER.isLoggable(Level.FINEST)) {
         Collections.sort(matchList, ruleMatchImportanceComparator);
         match = matchList.remove(0);
 
@@ -446,7 +446,7 @@ class RuleQueue {
           b.append(importance);
         }
 
-        tracer.finest(b.toString());
+        LOGGER.finest(b.toString());
       } else {
         // If we're not tracing, it's not worth the effort of sorting the
         // list to find the minimum.
@@ -465,8 +465,8 @@ class RuleQueue {
       }
 
       if (skipMatch(match)) {
-        if (tracer.isLoggable(Level.FINE)) {
-          tracer.fine("Skip match: " + match);
+        if (LOGGER.isLoggable(Level.FINE)) {
+          LOGGER.fine("Skip match: " + match);
         }
       } else {
         break;
@@ -481,8 +481,8 @@ class RuleQueue {
     phaseMatchList.matchMap.remove(
         planner.getSubset(match.rels[0]), match);
 
-    if (tracer.isLoggable(Level.FINE)) {
-      tracer.fine("Pop match: " + match);
+    if (LOGGER.isLoggable(Level.FINE)) {
+      LOGGER.fine("Pop match: " + match);
     }
     return match;
   }
@@ -529,9 +529,11 @@ class RuleQueue {
    * </pre>
    *
    * <p>is a valid match.</p>
+   *
+   * @throws org.eigenbase.util.Util.FoundOne on match
    */
   private void checkDuplicateSubsets(List<RelSubset> subsets,
-      RelOptRuleOperand operand, RelNode[] rels) throws Util.FoundOne {
+      RelOptRuleOperand operand, RelNode[] rels) {
     final RelSubset subset = planner.getSubset(rels[operand.ordinalInRule]);
     if (subsets.contains(subset)) {
       throw Util.FoundOne.NULL;
@@ -558,14 +560,14 @@ class RuleQueue {
     final double parentImportance = getImportance(parent);
     final double childCost = toDouble(planner.getCost(child));
     final double parentCost = toDouble(planner.getCost(parent));
-    double alpha = (childCost / parentCost);
+    double alpha = childCost / parentCost;
     if (alpha >= 1.0) {
       // child is always less important than parent
       alpha = 0.99;
     }
     final double importance = parentImportance * alpha;
-    if (tracer.isLoggable(Level.FINEST)) {
-      tracer.finest(
+    if (LOGGER.isLoggable(Level.FINEST)) {
+      LOGGER.finest(
           "Importance of [" + child + "] to its parent ["
           + parent + "] is " + importance + " (parent importance="
           + parentImportance + ", child cost=" + childCost

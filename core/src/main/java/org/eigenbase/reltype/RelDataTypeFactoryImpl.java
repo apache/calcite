@@ -182,8 +182,8 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
 
   // implement RelDataTypeFactory
   public RelDataType leastRestrictive(List<RelDataType> types) {
-    assert (types != null);
-    assert (types.size() >= 1);
+    assert types != null;
+    assert types.size() >= 1;
     RelDataType type0 = types.get(0);
     if (type0.isStruct()) {
       return leastRestrictiveStructuredType(types);
@@ -498,7 +498,7 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
   public boolean useDoubleMultiplication(
       RelDataType type1,
       RelDataType type2) {
-    assert (createDecimalProduct(type1, type2) != null);
+    assert createDecimalProduct(type1, type2) != null;
     return false;
   }
 
@@ -543,8 +543,8 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
         scale = Math.min(scale, SqlTypeName.MAX_NUMERIC_SCALE);
 
         int precision = dout + scale;
-        assert (precision <= SqlTypeName.MAX_NUMERIC_PRECISION);
-        assert (precision > 0);
+        assert precision <= SqlTypeName.MAX_NUMERIC_PRECISION;
+        assert precision > 0;
 
         RelDataType ret;
         ret =
@@ -635,13 +635,11 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
       }
     }
 
-    public Charset getCharset()
-        throws RuntimeException {
+    public Charset getCharset() {
       return this.charset;
     }
 
-    public SqlCollation getCollation()
-        throws RuntimeException {
+    public SqlCollation getCollation() {
       return this.collation;
     }
 

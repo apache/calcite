@@ -94,19 +94,19 @@ public class Util {
    * classes are not prevented from being unloaded.
    */
   private static final Map<Class, Map<String, ? extends Enum>>
-      mapClazzToMapNameToEnum =
+  mapClazzToMapNameToEnum =
       new WeakHashMap<Class, Map<String, ? extends Enum>>();
 
   public static final String[] spaces = {
-      "",
-      " ",
-      "  ",
-      "   ",
-      "    ",
-      "     ",
-      "      ",
-      "       ",
-      "        ",
+    "",
+    " ",
+    "  ",
+    "   ",
+    "    ",
+    "     ",
+    "      ",
+    "       ",
+    "        ",
   };
 
   //~ Methods ----------------------------------------------------------------
@@ -527,8 +527,7 @@ public class Util {
   /**
    * Creates a file-protocol URL for the given file.
    */
-  public static URL toURL(File file)
-      throws MalformedURLException {
+  public static URL toURL(File file) throws MalformedURLException {
     String path = file.getAbsolutePath();
 
     // This is a bunch of weird code that is required to
@@ -562,8 +561,8 @@ public class Util {
    * <code>"foo\"bar"</code> becomes <code>foo"bar</code>.
    */
   public static String stripDoubleQuotes(String value) {
-    assert (value.charAt(0) == '"');
-    assert (value.charAt(value.length() - 1) == '"');
+    assert value.charAt(0) == '"';
+    assert value.charAt(value.length() - 1) == '"';
     String s5 = value.substring(1, value.length() - 1);
     String s4 = Util.replace(s5, "\\r", "\r");
     String s3 = Util.replace(s4, "\\n", "\n");
@@ -1019,8 +1018,7 @@ public class Util {
    * @param reader reader to read from
    * @return reader contents as string
    */
-  public static String readAllAsString(Reader reader)
-      throws IOException {
+  public static String readAllAsString(Reader reader) throws IOException {
     StringBuilder sb = new StringBuilder();
     char[] buf = new char[4096];
     for (;;) {
@@ -1453,7 +1451,7 @@ public class Util {
     }
     int hours = millis / 3600000;
     buf.append(hours);
-    millis -= (hours * 3600000);
+    millis -= hours * 3600000;
     if (millis == 0) {
       return;
     }
@@ -1463,7 +1461,7 @@ public class Util {
       buf.append('0');
     }
     buf.append(minutes);
-    millis -= (minutes * 60000);
+    millis -= minutes * 60000;
     if (millis == 0) {
       return;
     }
@@ -1514,8 +1512,7 @@ public class Util {
       String[] cmdarray,
       Logger logger,
       Reader appInput,
-      Writer appOutput)
-      throws IOException, InterruptedException {
+      Writer appOutput) throws IOException, InterruptedException {
     return runAppProcess(
         newAppProcess(cmdarray),
         logger,
@@ -1563,8 +1560,7 @@ public class Util {
       ProcessBuilder pb,
       Logger logger,
       Reader appInput,
-      Writer appOutput)
-      throws IOException, InterruptedException {
+      Writer appOutput) throws IOException, InterruptedException {
     pb.redirectErrorStream(true);
     if (logger != null) {
       logger.info("start process: " + pb.command());

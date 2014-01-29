@@ -51,8 +51,7 @@ public interface RelOptSchema {
    * Registers all of the rules supported by this schema. Only called by
    * {@link RelOptPlanner#registerSchema}.
    */
-  void registerRules(RelOptPlanner planner)
-      throws Exception;
+  void registerRules(RelOptPlanner planner) throws Exception;
 }
 
 // End RelOptSchema.java

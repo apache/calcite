@@ -310,13 +310,13 @@ public class SqlIntervalQualifier extends SqlNode {
       // qual1 is more precise, but if it has the default indicator
       // set, we need to return that indicator so result will also
       // use default
-      return (qual1.getStartPrecisionPreservingDefault());
+      return qual1.getStartPrecisionPreservingDefault();
     } else if (qual1.getStartPrecision()
         < qual2.getStartPrecision()) {
       // qual2 is more precise, but if it has the default indicator
       // set, we need to return that indicator so result will also
       // use default
-      return (qual2.getStartPrecisionPreservingDefault());
+      return qual2.getStartPrecisionPreservingDefault();
     } else {
       // they are equal.  return default if both are default,
       // otherwise return exact precision
@@ -349,14 +349,14 @@ public class SqlIntervalQualifier extends SqlNode {
       // qual1 is more precise, but if it has the default indicator
       // set, we need to return that indicator so result will also
       // use default
-      return (qual1.getFractionalSecondPrecisionPreservingDefault());
+      return qual1.getFractionalSecondPrecisionPreservingDefault();
     } else if (
         qual1.getFractionalSecondPrecision()
             < qual2.getFractionalSecondPrecision()) {
       // qual2 is more precise, but if it has the default indicator
       // set, we need to return that indicator so result will also
       // use default
-      return (qual2.getFractionalSecondPrecisionPreservingDefault());
+      return qual2.getFractionalSecondPrecisionPreservingDefault();
     } else {
       // they are equal.  return default if both are default,
       // otherwise return exact precision
@@ -462,7 +462,7 @@ public class SqlIntervalQualifier extends SqlNode {
       }
     }
 
-    return (sign);
+    return sign;
   }
 
   private String stripLeadingSign(String value) {
@@ -474,7 +474,7 @@ public class SqlIntervalQualifier extends SqlNode {
       }
     }
 
-    return (unsignedValue);
+    return unsignedValue;
   }
 
   private boolean isLeadFieldInRange(BigDecimal value, TimeUnit unit) {
@@ -496,16 +496,16 @@ public class SqlIntervalQualifier extends SqlNode {
   }
 
   private static final BigDecimal[] POWERS10 = {
-      ZERO,
-      BigDecimal.valueOf(10),
-      BigDecimal.valueOf(100),
-      BigDecimal.valueOf(1000),
-      BigDecimal.valueOf(10000),
-      BigDecimal.valueOf(100000),
-      BigDecimal.valueOf(1000000),
-      BigDecimal.valueOf(10000000),
-      BigDecimal.valueOf(100000000),
-      BigDecimal.valueOf(1000000000),
+    ZERO,
+    BigDecimal.valueOf(10),
+    BigDecimal.valueOf(100),
+    BigDecimal.valueOf(1000),
+    BigDecimal.valueOf(10000),
+    BigDecimal.valueOf(100000),
+    BigDecimal.valueOf(1000000),
+    BigDecimal.valueOf(10000000),
+    BigDecimal.valueOf(100000000),
+    BigDecimal.valueOf(1000000000),
   };
 
   private boolean isFractionalSecondFieldInRange(BigDecimal field) {
@@ -524,7 +524,7 @@ public class SqlIntervalQualifier extends SqlNode {
 
     // YEAR and DAY can never be secondary units,
     // nor can unit be null.
-    assert (unit != null);
+    assert unit != null;
     switch (unit) {
     case YEAR:
     case DAY:
@@ -556,7 +556,7 @@ public class SqlIntervalQualifier extends SqlNode {
     ret[1] = year.intValue();
     ret[2] = month.intValue();
 
-    return (ret);
+    return ret;
   }
 
   private int[] fillIntervalValueArray(
@@ -575,7 +575,7 @@ public class SqlIntervalQualifier extends SqlNode {
     ret[4] = second.intValue();
     ret[5] = secondFrac.intValue();
 
-    return (ret);
+    return ret;
   }
 
   /**
@@ -586,8 +586,7 @@ public class SqlIntervalQualifier extends SqlNode {
   private int[] evaluateIntervalLiteralAsYear(
       int sign,
       String value,
-      String originalValue)
-      throws SqlValidatorException {
+      String originalValue) throws SqlValidatorException {
     BigDecimal year;
 
     // validate as YEAR(startPrecision), e.g. 'YY'
@@ -620,8 +619,7 @@ public class SqlIntervalQualifier extends SqlNode {
   private int[] evaluateIntervalLiteralAsYearToMonth(
       int sign,
       String value,
-      String originalValue)
-      throws SqlValidatorException {
+      String originalValue) throws SqlValidatorException {
     BigDecimal year, month;
 
     // validate as YEAR(startPrecision) TO MONTH, e.g. 'YY-DD'
@@ -658,8 +656,7 @@ public class SqlIntervalQualifier extends SqlNode {
   private int[] evaluateIntervalLiteralAsMonth(
       int sign,
       String value,
-      String originalValue)
-      throws SqlValidatorException {
+      String originalValue) throws SqlValidatorException {
     BigDecimal month;
 
     // validate as MONTH(startPrecision), e.g. 'MM'
@@ -692,8 +689,7 @@ public class SqlIntervalQualifier extends SqlNode {
   private int[] evaluateIntervalLiteralAsDay(
       int sign,
       String value,
-      String originalValue)
-      throws SqlValidatorException {
+      String originalValue) throws SqlValidatorException {
     BigDecimal day;
 
     // validate as DAY(startPrecision), e.g. 'DD'
@@ -726,8 +722,7 @@ public class SqlIntervalQualifier extends SqlNode {
   private int[] evaluateIntervalLiteralAsDayToHour(
       int sign,
       String value,
-      String originalValue)
-      throws SqlValidatorException {
+      String originalValue) throws SqlValidatorException {
     BigDecimal day, hour;
 
     // validate as DAY(startPrecision) TO HOUR, e.g. 'DD HH'
@@ -764,8 +759,7 @@ public class SqlIntervalQualifier extends SqlNode {
   private int[] evaluateIntervalLiteralAsDayToMinute(
       int sign,
       String value,
-      String originalValue)
-      throws SqlValidatorException {
+      String originalValue) throws SqlValidatorException {
     BigDecimal day, hour, minute;
 
     // validate as DAY(startPrecision) TO MINUTE, e.g. 'DD HH:MM'
@@ -804,8 +798,7 @@ public class SqlIntervalQualifier extends SqlNode {
   private int[] evaluateIntervalLiteralAsDayToSecond(
       int sign,
       String value,
-      String originalValue)
-      throws SqlValidatorException {
+      String originalValue) throws SqlValidatorException {
     BigDecimal day, hour, minute, second, secondFrac;
     boolean hasFractionalSecond;
 
@@ -873,8 +866,7 @@ public class SqlIntervalQualifier extends SqlNode {
   private int[] evaluateIntervalLiteralAsHour(
       int sign,
       String value,
-      String originalValue)
-      throws SqlValidatorException {
+      String originalValue) throws SqlValidatorException {
     BigDecimal hour;
 
     // validate as HOUR(startPrecision), e.g. 'HH'
@@ -908,8 +900,7 @@ public class SqlIntervalQualifier extends SqlNode {
   private int[] evaluateIntervalLiteralAsHourToMinute(
       int sign,
       String value,
-      String originalValue)
-      throws SqlValidatorException {
+      String originalValue) throws SqlValidatorException {
     BigDecimal hour, minute;
 
     // validate as HOUR(startPrecision) TO MINUTE, e.g. 'HH:MM'
@@ -947,8 +938,7 @@ public class SqlIntervalQualifier extends SqlNode {
   private int[] evaluateIntervalLiteralAsHourToSecond(
       int sign,
       String value,
-      String originalValue)
-      throws SqlValidatorException {
+      String originalValue) throws SqlValidatorException {
     BigDecimal hour, minute, second, secondFrac;
     boolean hasFractionalSecond;
 
@@ -1014,8 +1004,7 @@ public class SqlIntervalQualifier extends SqlNode {
   private int[] evaluateIntervalLiteralAsMinute(
       int sign,
       String value,
-      String originalValue)
-      throws SqlValidatorException {
+      String originalValue) throws SqlValidatorException {
     BigDecimal minute;
 
     // validate as MINUTE(startPrecision), e.g. 'MM'
@@ -1049,8 +1038,7 @@ public class SqlIntervalQualifier extends SqlNode {
   private int[] evaluateIntervalLiteralAsMinuteToSecond(
       int sign,
       String value,
-      String originalValue)
-      throws SqlValidatorException {
+      String originalValue) throws SqlValidatorException {
     BigDecimal minute, second, secondFrac;
     boolean hasFractionalSecond;
 
@@ -1113,8 +1101,7 @@ public class SqlIntervalQualifier extends SqlNode {
   private int[] evaluateIntervalLiteralAsSecond(
       int sign,
       String value,
-      String originalValue)
-      throws SqlValidatorException {
+      String originalValue) throws SqlValidatorException {
     BigDecimal second, secondFrac;
     boolean hasFractionalSecond;
 
@@ -1172,8 +1159,7 @@ public class SqlIntervalQualifier extends SqlNode {
    * @throws SqlValidatorException if the interval value is illegal
    */
   public int[] evaluateIntervalLiteral(
-      String value)
-      throws SqlValidatorException {
+      String value) throws SqlValidatorException {
     // save original value for if we have to throw
     final String value0 = value;
 

@@ -240,7 +240,7 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
       SqlCase call) {
     SqlNodeList whenList = call.getWhenOperands();
     SqlNodeList thenList = call.getThenOperands();
-    assert (whenList.size() == thenList.size());
+    assert whenList.size() == thenList.size();
 
     final List<RexNode> exprList = new ArrayList<RexNode>();
     for (int i = 0; i < whenList.size(); i++) {
@@ -354,7 +354,7 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
         RexLiteral sourceInterval =
             (RexLiteral) cx.convertExpression(node);
         BigDecimal sourceValue =
-            ((BigDecimal) sourceInterval.getValue());
+            (BigDecimal) sourceInterval.getValue();
         RexLiteral castedInterval =
             cx.getRexBuilder().makeIntervalLiteral(
                 sourceValue.multiply(

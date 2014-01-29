@@ -33,7 +33,7 @@ public class RelOptQuery {
   /**
    * Prefix to the name of correlating variables.
    */
-  public static final String correlPrefix = "$cor";
+  public static final String CORREL_PREFIX = "$cor";
 
   //~ Instance fields --------------------------------------------------------
 
@@ -75,8 +75,8 @@ public class RelOptQuery {
    * @return Correlating variable ordinal
    */
   public static int getCorrelOrdinal(String correlName) {
-    assert (correlName.startsWith(correlPrefix));
-    return Integer.parseInt(correlName.substring(correlPrefix.length()));
+    assert correlName.startsWith(CORREL_PREFIX);
+    return Integer.parseInt(correlName.substring(CORREL_PREFIX.length()));
   }
 
   /**
@@ -108,7 +108,7 @@ public class RelOptQuery {
    */
   public String createCorrel() {
     int n = nextCorrel++;
-    return correlPrefix + n;
+    return CORREL_PREFIX + n;
   }
 
   /**
@@ -120,7 +120,7 @@ public class RelOptQuery {
    */
   public String createCorrelUnresolved(DeferredLookup deferredLookup) {
     int n = nextCorrel++;
-    String name = correlPrefix + n;
+    String name = CORREL_PREFIX + n;
     mapDeferredToCorrel.put(deferredLookup, name);
     return name;
   }

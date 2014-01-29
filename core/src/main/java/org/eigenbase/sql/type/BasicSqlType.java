@@ -191,14 +191,12 @@ public class BasicSqlType extends AbstractSqlType {
   }
 
   // implement RelDataType
-  public Charset getCharset()
-      throws RuntimeException {
+  public Charset getCharset() throws RuntimeException {
     return (wrappedCharset == null) ? null : wrappedCharset.getCharset();
   }
 
   // implement RelDataType
-  public SqlCollation getCollation()
-      throws RuntimeException {
+  public SqlCollation getCollation() throws RuntimeException {
     return collation;
   }
 
@@ -208,8 +206,8 @@ public class BasicSqlType extends AbstractSqlType {
     // so equivalent data types must produce identical type strings.
 
     sb.append(typeName.name());
-    boolean printPrecision = (precision != PRECISION_NOT_SPECIFIED);
-    boolean printScale = (scale != SCALE_NOT_SPECIFIED);
+    boolean printPrecision = precision != PRECISION_NOT_SPECIFIED;
+    boolean printScale = scale != SCALE_NOT_SPECIFIED;
 
     // for the digest, print the precision when defaulted,
     // since (for instance) TIME is equivalent to TIME(0).

@@ -277,13 +277,13 @@ public class SqlDataTypeSpec extends SqlNode {
     // to be assertions rather than user-level exceptions.
     RelDataType type;
     if ((precision >= 0) && (scale >= 0)) {
-      assert (sqlTypeName.allowsPrecScale(true, true));
+      assert sqlTypeName.allowsPrecScale(true, true);
       type = typeFactory.createSqlType(sqlTypeName, precision, scale);
     } else if (precision >= 0) {
-      assert (sqlTypeName.allowsPrecNoScale());
+      assert sqlTypeName.allowsPrecNoScale();
       type = typeFactory.createSqlType(sqlTypeName, precision);
     } else {
-      assert (sqlTypeName.allowsNoPrecNoScale());
+      assert sqlTypeName.allowsNoPrecNoScale();
       type = typeFactory.createSqlType(sqlTypeName);
     }
 

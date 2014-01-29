@@ -70,7 +70,7 @@ public class SqlOverlayFunction extends SqlFunction {
     case 4:
       return "{0}({1} PLACING {2} FROM {3} FOR {4})";
     }
-    assert (false);
+    assert false;
     return null;
   }
 }

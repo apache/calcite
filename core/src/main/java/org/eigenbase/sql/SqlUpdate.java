@@ -57,7 +57,7 @@ public class SqlUpdate extends SqlCall {
     operands[TARGET_COLUMN_LIST_OPERAND] = targetColumnList;
     operands[CONDITION_OPERAND] = condition;
     operands[ALIAS_OPERAND] = alias;
-    assert (sourceExpressionList.size() == targetColumnList.size());
+    assert sourceExpressionList.size() == targetColumnList.size();
   }
 
   //~ Methods ----------------------------------------------------------------

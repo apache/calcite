@@ -39,7 +39,7 @@ public class SqlFirstLastValueAggFunction extends SqlAggFunction {
 
   public SqlFirstLastValueAggFunction(boolean firstFlag) {
     super(
-        (firstFlag) ? "FIRST_VALUE" : "LAST_VALUE",
+        firstFlag ? "FIRST_VALUE" : "LAST_VALUE",
         SqlKind.OTHER_FUNCTION,
         SqlTypeStrategies.rtiFirstArgType,
         null,

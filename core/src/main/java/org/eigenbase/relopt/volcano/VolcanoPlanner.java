@@ -46,7 +46,7 @@ import static org.eigenbase.util.Stacks.*;
 public class VolcanoPlanner extends AbstractRelOptPlanner {
   //~ Static fields/initializers ---------------------------------------------
 
-  protected static final double CostImprovement = .5;
+  protected static final double COST_IMPROVEMENT = .5;
 
   //~ Instance fields --------------------------------------------------------
 
@@ -67,7 +67,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
    * <p>The number of iterations K is equal to the number of iterations
    * required to get the first finite plan. After the first finite plan, it
    * continues to fire rules to try to improve it. The planner sets a target
-   * cost of the current best cost multiplied by {@link #CostImprovement}. If
+   * cost of the current best cost multiplied by {@link #COST_IMPROVEMENT}. If
    * it does not meet that cost target within K steps, it quits, and uses the
    * current best plan. If it meets the cost, it sets a new, lower target, and
    * has another K iterations to meet it. And so forth.
@@ -468,7 +468,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
   }
 
   public boolean canConvert(RelTraitSet fromTraits, RelTraitSet toTraits) {
-    assert (fromTraits.size() >= toTraits.size());
+    assert fromTraits.size() >= toTraits.size();
 
     boolean canConvert = true;
     for (int i = 0; (i < toTraits.size()) && canConvert; i++) {
@@ -582,8 +582,8 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
           injectImportanceBoost();
         }
 
-        if (tracer.isLoggable(Level.FINE)) {
-          tracer.fine(
+        if (LOGGER.isLoggable(Level.FINE)) {
+          LOGGER.fine(
               "PLANNER = " + this
               + "; TICK = " + cumulativeTicks + "/" + tick
               + "; PHASE = " + phase.toString()
@@ -605,20 +605,20 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
 
       ruleQueue.phaseCompleted(phase);
     }
-    if (tracer.isLoggable(Level.FINER)) {
+    if (LOGGER.isLoggable(Level.FINER)) {
       StringWriter sw = new StringWriter();
       final PrintWriter pw = new PrintWriter(sw);
       dump(pw);
       pw.flush();
-      tracer.finer(sw.toString());
+      LOGGER.finer(sw.toString());
     }
     RelNode cheapest = root.buildCheapestPlan(this);
-    if (tracer.isLoggable(Level.FINE)) {
-      tracer.fine(
+    if (LOGGER.isLoggable(Level.FINE)) {
+      LOGGER.fine(
           "Cheapest plan:\n"
           + RelOptUtil.toString(cheapest, SqlExplainLevel.ALL_ATTRIBUTES));
 
-      tracer.fine("Provenance:\n"
+      LOGGER.fine("Provenance:\n"
           + provenance(cheapest));
     }
     return cheapest;
@@ -732,7 +732,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
   private void injectImportanceBoost() {
     HashSet<RelSubset> requireBoost = new HashSet<RelSubset>();
 
-    SUBSET_LOOP:
+  SUBSET_LOOP:
     for (RelSubset subset : ruleQueue.subsetImportances.keySet()) {
       for (RelNode rel : subset.getRels()) {
         if (rel.getConvention() != Convention.NONE) {
@@ -773,7 +773,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     }
     final RelSubset subset = registerImpl(rel, set);
 
-    if (tracer.isLoggable(Level.FINE)) {
+    if (LOGGER.isLoggable(Level.FINE)) {
       validate();
     }
 
@@ -829,12 +829,12 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
   }
 
   public void registerAbstractRelationalRules() {
-    addRule(AbstractConverter.ExpandConversionRule.instance);
-    addRule(SwapJoinRule.instance);
-    addRule(RemoveDistinctRule.instance);
-    addRule(UnionToDistinctRule.instance);
-    addRule(RemoveTrivialProjectRule.instance);
-    addRule(RemoveTrivialCalcRule.instance);
+    addRule(AbstractConverter.ExpandConversionRule.INSTANCE);
+    addRule(SwapJoinRule.INSTANCE);
+    addRule(RemoveDistinctRule.INSTANCE);
+    addRule(UnionToDistinctRule.INSTANCE);
+    addRule(RemoveTrivialProjectRule.INSTANCE);
+    addRule(RemoveTrivialCalcRule.INSTANCE);
     addRule(RemoveSortRule.INSTANCE);
 
     // todo: rule which makes Project({OrdinalRef}) disappear
@@ -916,7 +916,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
       boolean allowAbstractConverters) {
     final RelTraitSet fromTraits = rel.getTraitSet();
 
-    assert (fromTraits.size() >= toTraits.size());
+    assert fromTraits.size() >= toTraits.size();
 
     final boolean allowInfiniteCostConverters =
         SaffronProperties.instance().allowInfiniteCostConverters.get();
@@ -1094,7 +1094,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
             + ((subset.best == null) ? "null"
                 : ("rel#" + subset.best.getId())) + ", importance="
                 + ruleQueue.getImportance(subset));
-        assert (subset.set == set);
+        assert subset.set == set;
         for (int k = 0; k < j; k++) {
           assert !set.subsets.get(k).getTraitSet().equals(
               subset.getTraitSet());
@@ -1149,7 +1149,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
       final RelNode removed = mapDigestToRel.remove(oldKey);
       assert removed == rel;
       final String newDigest = rel.recomputeDigest();
-      tracer.finer(
+      LOGGER.finer(
           "Rename #" + rel.getId() + " from '" + oldDigest
           + "' to '" + newDigest + "'");
       Pair<String, RelDataType> key = Pair.of(newDigest, rel.getRowType());
@@ -1159,7 +1159,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
 
         // There's already an equivalent with the same name, and we
         // just knocked it out. Put it back, and forget about 'rel'.
-        tracer.finer(
+        LOGGER.finer(
             "After renaming rel#" + rel.getId()
             + ", it is now equivalent to rel#" + equivRel.getId());
         mapDigestToRel.put(key, equivRel);
@@ -1209,8 +1209,8 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     // found to be equivalent to another set.)
     RelNode equivRel = mapDigestToRel.get(rel.getDigest());
     if ((equivRel != null) && (equivRel != rel)) {
-      assert (equivRel.getClass() == rel.getClass());
-      assert (equivRel.getTraitSet().equals(rel.getTraitSet()));
+      assert equivRel.getClass() == rel.getClass();
+      assert equivRel.getTraitSet().equals(rel.getTraitSet());
 
       RelSubset equivRelSubset = getSubset(equivRel);
       ruleQueue.recompute(equivRelSubset, true);
@@ -1408,20 +1408,20 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     Pair<String, RelDataType> key = Pair.of(rel.getDigest(), rel.getRowType());
     RelNode equivExp = mapDigestToRel.get(key);
     if (equivExp == null) {
-      ;
+      // do nothing
     } else if (equivExp == rel) {
       return getSubset(rel);
     } else {
-      assert (equivExp.getTraitSet().equals(traits)
-          && (equivExp.getClass() == rel.getClass()));
+      assert equivExp.getTraitSet().equals(traits)
+          && (equivExp.getClass() == rel.getClass());
       assert RelOptUtil.equal(
           "left", equivExp.getRowType(),
           "right", rel.getRowType(),
           true);
       RelSet equivSet = getSet(equivExp);
       if (equivSet != null) {
-        if (tracer.isLoggable(Level.FINER)) {
-          tracer.finer(
+        if (LOGGER.isLoggable(Level.FINER)) {
+          LOGGER.finer(
               "Register: rel#" + rel.getId()
               + " is equivalent to " + equivExp.getDescription());
         }
@@ -1436,8 +1436,8 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
       if ((set != null)
           && (set != childSet)
           && (set.equivalentSet == null)) {
-        if (tracer.isLoggable(Level.FINER)) {
-          tracer.finer(
+        if (LOGGER.isLoggable(Level.FINER)) {
+          LOGGER.finer(
               "Register #" + rel.getId() + " " + rel.getDigest()
               + " (and merge sets, because it is a conversion)");
         }
@@ -1488,10 +1488,10 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     RelSubset subset = asd(rel, set);
 
     final RelNode xx = mapDigestToRel.put(key, rel);
-    assert ((xx == null) || (xx == rel)) : rel.getDigest();
+    assert xx == null || xx == rel : rel.getDigest();
 
-    if (tracer.isLoggable(Level.FINER)) {
-      tracer.finer(
+    if (LOGGER.isLoggable(Level.FINER)) {
+      LOGGER.finer(
           "Register " + rel.getDescription()
           + " in " + subset.getDescription());
     }
@@ -1559,7 +1559,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
         && (set != null)
         && (set.equivalentSet == null)
         && (subset.set.equivalentSet == null)) {
-      tracer.finer(
+      LOGGER.finer(
           "Register #" + subset.getId() + " " + subset
           + ", and merge sets");
       merge(set, subset.set);

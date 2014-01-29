@@ -49,13 +49,13 @@ import org.eigenbase.util.*;
 public class NestedLoopsJoinRule extends RelOptRule {
   //~ Static fields/initializers ---------------------------------------------
 
-  public static final NestedLoopsJoinRule instance =
+  public static final NestedLoopsJoinRule INSTANCE =
       new NestedLoopsJoinRule();
 
   //~ Constructors -----------------------------------------------------------
 
   /**
-   * Private constructor; use singleton {@link #instance}.
+   * Private constructor; use singleton {@link #INSTANCE}.
    */
   private NestedLoopsJoinRule() {
     super(operand(JoinRel.class, any()));
@@ -99,15 +99,13 @@ public class NestedLoopsJoinRule extends RelOptRule {
       final RexBuilder rexBuilder = cluster.getRexBuilder();
       RexNode condition = null;
       for (Pair<Integer, Integer> p : Pair.zip(leftKeys, rightKeys)) {
-        final String dyn_inIdStr = cluster.getQuery().createCorrel();
-        final int dyn_inId = RelOptQuery.getCorrelOrdinal(dyn_inIdStr);
+        final String dynInIdStr = cluster.getQuery().createCorrel();
+        final int dynInId = RelOptQuery.getCorrelOrdinal(dynInIdStr);
 
         // Create correlation to say 'each row, set variable #id
         // to the value of column #leftKey'.
         correlationList.add(
-            new CorrelatorRel.Correlation(
-                dyn_inId,
-                p.left));
+            new CorrelatorRel.Correlation(dynInId, p.left));
         condition =
             RelOptUtil.andJoinFilters(
                 rexBuilder,
@@ -115,13 +113,12 @@ public class NestedLoopsJoinRule extends RelOptRule {
                 rexBuilder.makeCall(
                     SqlStdOperatorTable.equalsOperator,
                     rexBuilder.makeInputRef(
-                        right.getRowType().getFieldList().get(
-                            p.right).getType(),
+                        right.getRowType().getFieldList().get(p.right)
+                            .getType(),
                         p.right),
                     rexBuilder.makeCorrel(
-                        left.getRowType().getFieldList().get(
-                            p.left).getType(),
-                        dyn_inIdStr)));
+                        left.getRowType().getFieldList().get(p.left).getType(),
+                        dynInIdStr)));
       }
       right =
           CalcRel.createFilter(

@@ -760,7 +760,7 @@ public class SqlLiteral extends SqlNode {
     if (unicodeEscapeChar == 0) {
       return this;
     }
-    assert (SqlTypeUtil.inCharFamily(getTypeName()));
+    assert SqlTypeUtil.inCharFamily(getTypeName());
     NlsString ns = (NlsString) value;
     String s = ns.getValue();
     StringBuilder sb = new StringBuilder();

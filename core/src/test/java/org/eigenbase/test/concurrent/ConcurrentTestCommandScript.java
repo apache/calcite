@@ -89,92 +89,92 @@ public class ConcurrentTestCommandScript
   private static final String EOF = null;
 
   private static final StateAction[] STATE_TABLE = {
-      new StateAction(
-          PRE_SETUP_STATE,
-          new StateDatum[]{
-              new StateDatum(VAR, PRE_SETUP_STATE),
-              new StateDatum(LOCKSTEP, PRE_SETUP_STATE),
-              new StateDatum(NOLOCKSTEP, PRE_SETUP_STATE),
-              new StateDatum(ENABLED, PRE_SETUP_STATE),
-              new StateDatum(DISABLED, PRE_SETUP_STATE),
-              new StateDatum(PLUGIN, PRE_SETUP_STATE),
-              new StateDatum(SETUP, SETUP_STATE),
-              new StateDatum(CLEANUP, CLEANUP_STATE),
-              new StateDatum(THREAD, THREAD_STATE)
-          }),
+    new StateAction(
+        PRE_SETUP_STATE,
+        new StateDatum[]{
+          new StateDatum(VAR, PRE_SETUP_STATE),
+          new StateDatum(LOCKSTEP, PRE_SETUP_STATE),
+          new StateDatum(NOLOCKSTEP, PRE_SETUP_STATE),
+          new StateDatum(ENABLED, PRE_SETUP_STATE),
+          new StateDatum(DISABLED, PRE_SETUP_STATE),
+          new StateDatum(PLUGIN, PRE_SETUP_STATE),
+          new StateDatum(SETUP, SETUP_STATE),
+          new StateDatum(CLEANUP, CLEANUP_STATE),
+          new StateDatum(THREAD, THREAD_STATE)
+        }),
 
-      new StateAction(
-          SETUP_STATE,
-          new StateDatum[]{
-              new StateDatum(END, POST_SETUP_STATE),
-              new StateDatum(SQL, SETUP_STATE),
-              new StateDatum(INCLUDE, SETUP_STATE),
-          }),
+    new StateAction(
+        SETUP_STATE,
+        new StateDatum[]{
+          new StateDatum(END, POST_SETUP_STATE),
+          new StateDatum(SQL, SETUP_STATE),
+          new StateDatum(INCLUDE, SETUP_STATE),
+        }),
 
-      new StateAction(
-          POST_SETUP_STATE,
-          new StateDatum[]{
-              new StateDatum(CLEANUP, CLEANUP_STATE),
-              new StateDatum(THREAD, THREAD_STATE)
-          }),
+    new StateAction(
+        POST_SETUP_STATE,
+        new StateDatum[]{
+          new StateDatum(CLEANUP, CLEANUP_STATE),
+          new StateDatum(THREAD, THREAD_STATE)
+        }),
 
-      new StateAction(
-          CLEANUP_STATE,
-          new StateDatum[]{
-              new StateDatum(END, POST_CLEANUP_STATE),
-              new StateDatum(SQL, CLEANUP_STATE),
-              new StateDatum(INCLUDE, CLEANUP_STATE),
-          }),
+    new StateAction(
+        CLEANUP_STATE,
+        new StateDatum[]{
+          new StateDatum(END, POST_CLEANUP_STATE),
+          new StateDatum(SQL, CLEANUP_STATE),
+          new StateDatum(INCLUDE, CLEANUP_STATE),
+        }),
 
-      new StateAction(
-          POST_CLEANUP_STATE,
-          new StateDatum[]{
-              new StateDatum(THREAD, THREAD_STATE)
-          }),
+    new StateAction(
+        POST_CLEANUP_STATE,
+        new StateDatum[]{
+          new StateDatum(THREAD, THREAD_STATE)
+        }),
 
-      new StateAction(
-          THREAD_STATE,
-          new StateDatum[]{
-              new StateDatum(REPEAT, REPEAT_STATE),
-              new StateDatum(SYNC, THREAD_STATE),
-              new StateDatum(TIMEOUT, THREAD_STATE),
-              new StateDatum(ROWLIMIT, THREAD_STATE),
-              new StateDatum(PREPARE, THREAD_STATE),
-              new StateDatum(PRINT, THREAD_STATE),
-              new StateDatum(FETCH, THREAD_STATE),
-              new StateDatum(CLOSE, THREAD_STATE),
-              new StateDatum(SLEEP, THREAD_STATE),
-              new StateDatum(SQL, THREAD_STATE),
-              new StateDatum(ECHO, THREAD_STATE),
-              new StateDatum(ERR, THREAD_STATE),
-              new StateDatum(SHELL, THREAD_STATE),
-              new StateDatum(END, POST_THREAD_STATE)
-          }),
+    new StateAction(
+        THREAD_STATE,
+        new StateDatum[]{
+          new StateDatum(REPEAT, REPEAT_STATE),
+          new StateDatum(SYNC, THREAD_STATE),
+          new StateDatum(TIMEOUT, THREAD_STATE),
+          new StateDatum(ROWLIMIT, THREAD_STATE),
+          new StateDatum(PREPARE, THREAD_STATE),
+          new StateDatum(PRINT, THREAD_STATE),
+          new StateDatum(FETCH, THREAD_STATE),
+          new StateDatum(CLOSE, THREAD_STATE),
+          new StateDatum(SLEEP, THREAD_STATE),
+          new StateDatum(SQL, THREAD_STATE),
+          new StateDatum(ECHO, THREAD_STATE),
+          new StateDatum(ERR, THREAD_STATE),
+          new StateDatum(SHELL, THREAD_STATE),
+          new StateDatum(END, POST_THREAD_STATE)
+        }),
 
-      new StateAction(
-          REPEAT_STATE,
-          new StateDatum[]{
-              new StateDatum(SYNC, REPEAT_STATE),
-              new StateDatum(TIMEOUT, REPEAT_STATE),
-              new StateDatum(ROWLIMIT, REPEAT_STATE),
-              new StateDatum(PREPARE, REPEAT_STATE),
-              new StateDatum(PRINT, REPEAT_STATE),
-              new StateDatum(FETCH, REPEAT_STATE),
-              new StateDatum(CLOSE, REPEAT_STATE),
-              new StateDatum(SLEEP, REPEAT_STATE),
-              new StateDatum(SQL, REPEAT_STATE),
-              new StateDatum(ECHO, REPEAT_STATE),
-              new StateDatum(ERR, REPEAT_STATE),
-              new StateDatum(SHELL, REPEAT_STATE),
-              new StateDatum(END, THREAD_STATE)
-          }),
+    new StateAction(
+        REPEAT_STATE,
+        new StateDatum[]{
+          new StateDatum(SYNC, REPEAT_STATE),
+          new StateDatum(TIMEOUT, REPEAT_STATE),
+          new StateDatum(ROWLIMIT, REPEAT_STATE),
+          new StateDatum(PREPARE, REPEAT_STATE),
+          new StateDatum(PRINT, REPEAT_STATE),
+          new StateDatum(FETCH, REPEAT_STATE),
+          new StateDatum(CLOSE, REPEAT_STATE),
+          new StateDatum(SLEEP, REPEAT_STATE),
+          new StateDatum(SQL, REPEAT_STATE),
+          new StateDatum(ECHO, REPEAT_STATE),
+          new StateDatum(ERR, REPEAT_STATE),
+          new StateDatum(SHELL, REPEAT_STATE),
+          new StateDatum(END, THREAD_STATE)
+        }),
 
-      new StateAction(
-          POST_THREAD_STATE,
-          new StateDatum[]{
-              new StateDatum(THREAD, THREAD_STATE),
-              new StateDatum(EOF, EOF_STATE)
-          })
+    new StateAction(
+        POST_THREAD_STATE,
+        new StateDatum[]{
+          new StateDatum(THREAD, THREAD_STATE),
+          new StateDatum(EOF, EOF_STATE)
+        })
   };
 
   private static final int FETCH_LEN = FETCH.length();
@@ -249,8 +249,7 @@ public class ConcurrentTestCommandScript
   /**
    * Constructs and prepares a new ConcurrentTestCommandScript.
    */
-  public ConcurrentTestCommandScript(String filename)
-      throws IOException {
+  public ConcurrentTestCommandScript(String filename) throws IOException {
     this();
     prepare(filename, null);
   }
@@ -262,7 +261,7 @@ public class ConcurrentTestCommandScript
    * BINDINGS
    */
   private void prepare(String filename, List<String> bindings)
-      throws IOException {
+    throws IOException {
     vars = new VariableTable();
     CommandParser parser = new CommandParser();
     parser.rememberVariableRebindings(bindings);
@@ -341,7 +340,7 @@ public class ConcurrentTestCommandScript
   }
 
   protected void executeCommands(int threadID, List<String> commands)
-      throws Exception {
+    throws Exception {
     if ((commands == null) || (commands.size() == 0)) {
       return;
     }
@@ -354,7 +353,7 @@ public class ConcurrentTestCommandScript
     boolean forced = false;         // flag, keep going after an error
     try {
       for (String command : commands) {
-        String sql = (command).trim();
+        String sql = command.trim();
         storeSql(threadID, sql);
 
         if (isComment(sql)) {
@@ -423,7 +422,7 @@ public class ConcurrentTestCommandScript
 
   // timeout < 0 means no timeout
   private void storeResults(Integer threadId, ResultSet rset, long timeout)
-      throws SQLException {
+    throws SQLException {
     ResultsReader r = threadResultsReaders.get(threadId);
     r.read(rset, timeout);
   }
@@ -465,12 +464,12 @@ public class ConcurrentTestCommandScript
         }
       }
     } catch (IOException e) {
-      assert (false) : "IOException via StringReader";
+      assert false : "IOException via StringReader";
     } finally {
       try {
         rdr.close();
       } catch (IOException e) {
-        assert (false) : "IOException via StringReader";
+        assert false : "IOException via StringReader";
       }
     }
 
@@ -500,7 +499,7 @@ public class ConcurrentTestCommandScript
           bout.flush();
         }
       } catch (IOException e) {
-        assert (false) : "IOException via StringWriter";
+        assert false : "IOException via StringWriter";
       }
       String threadName = getFormattedThreadName(threadId);
       StringWriter out = threadStringWriters.get(threadId);
@@ -542,7 +541,7 @@ public class ConcurrentTestCommandScript
   }
 
   private void printThreadResults(BufferedWriter out, String[] threadResult)
-      throws IOException {
+    throws IOException {
     if (threadResult == null) {
       return;
     }
@@ -593,7 +592,7 @@ public class ConcurrentTestCommandScript
    * @return a BufferedWriter on a StringWriter for the thread.
    */
   private BufferedWriter getThreadWriter(Integer threadId) {
-    assert (threadBufferedWriters.containsKey(threadId));
+    assert threadBufferedWriters.containsKey(threadId);
     return threadBufferedWriters.get(threadId);
   }
 
@@ -618,12 +617,12 @@ public class ConcurrentTestCommandScript
         message.append("> ").append(line);
       }
     } catch (IOException e) {
-      assert (false) : "IOException via StringReader";
+      assert false : "IOException via StringReader";
     } finally {
       try {
         rdr.close();
       } catch (IOException e) {
-        assert (false) : "IOException via StringReader";
+        assert false : "IOException via StringReader";
       }
     }
 
@@ -645,7 +644,7 @@ public class ConcurrentTestCommandScript
       out.write(message);
       out.newLine();
     } catch (IOException e) {
-      assert (false) : "IOException on StringWriter";
+      assert false : "IOException on StringWriter";
     }
   }
 
@@ -705,7 +704,7 @@ public class ConcurrentTestCommandScript
         throw new Excn("second declaration of variable " + sym);
       }
       // convert a null val to a null string
-      map.put(sym, (val == null ? "" : val));
+      map.put(sym, val == null ? "" : val);
     }
 
     // returns null is SYM is not defined
@@ -880,7 +879,7 @@ public class ConcurrentTestCommandScript
           }
           if (changeState) {
             String nextState = commandStateMap.get(command);
-            assert (nextState != null);
+            assert nextState != null;
             if (!nextState.equals(state)) {
               doEndOfState(state);
             }
@@ -920,14 +919,13 @@ public class ConcurrentTestCommandScript
         }
         order++;
       } else {
-        assert (false);
+        assert false;
       }
     }
 
     // returns TRUE when load-state should advance, FALSE when it must not.
     private boolean loadCommand(
-        String command, String line, BufferedReader in)
-        throws IOException {
+        String command, String line, BufferedReader in) throws IOException {
       if (VAR.equals(command)) {
         String args = line.substring(VAR_LEN).trim();
         scriptHasVars = true;
@@ -935,25 +933,25 @@ public class ConcurrentTestCommandScript
         defineVariables(args);
 
       } else if (LOCKSTEP.equals(command)) {
-        assert (lockstep == null)
+        assert lockstep == null
             : LOCKSTEP + " and " + NOLOCKSTEP + " may only appear once";
         lockstep = Boolean.TRUE;
         trace("lockstep");
 
       } else if (NOLOCKSTEP.equals(command)) {
-        assert (lockstep == null)
+        assert lockstep == null
             : LOCKSTEP + " and " + NOLOCKSTEP + " may only appear once";
         lockstep = Boolean.FALSE;
         trace("no lockstep");
 
       } else if (DISABLED.equals(command)) {
-        assert (disabled == null)
+        assert disabled == null
             : DISABLED + " and " + ENABLED + " may only appear once";
         disabled = Boolean.TRUE;
         trace("disabled");
 
       } else if (ENABLED.equals(command)) {
-        assert (disabled == null)
+        assert disabled == null
             : DISABLED + " and " + ENABLED + " may only appear once";
         disabled = Boolean.FALSE;
         trace("enabled");
@@ -986,7 +984,7 @@ public class ConcurrentTestCommandScript
         String arg = line.substring(REPEAT_LEN).trim();
         repeatCount = Integer.parseInt(vars.expand(arg));
         trace("start @repeat block", repeatCount);
-        assert (repeatCount > 0) : "Repeat count must be > 0";
+        assert repeatCount > 0 : "Repeat count must be > 0";
         in.mark(REPEAT_READ_AHEAD_LIMIT);
 
       } else if (END.equals(command)) {
@@ -1013,7 +1011,7 @@ public class ConcurrentTestCommandScript
             return false;   // don't change the state
           }
         } else {
-          assert (false);
+          assert false;
         }
 
       } else if (SYNC.equals(command)) {
@@ -1027,7 +1025,7 @@ public class ConcurrentTestCommandScript
         String args = line.substring(TIMEOUT_LEN).trim();
         String millisStr = vars.expand(firstWord(args));
         long millis = Long.parseLong(millisStr);
-        assert (millis >= 0L) : "Timeout must be >= 0";
+        assert millis >= 0L : "Timeout must be >= 0";
 
         String sql = readSql(skipFirstWord(args).trim(), in);
         trace("@timeout", sql);
@@ -1044,7 +1042,7 @@ public class ConcurrentTestCommandScript
         String args = line.substring(ROWLIMIT_LEN).trim();
         String limitStr = vars.expand(firstWord(args));
         int limit = Integer.parseInt(limitStr);
-        assert (limit >= 0) : "Rowlimit must be >= 0";
+        assert limit >= 0 : "Rowlimit must be >= 0";
 
         String sql = readSql(skipFirstWord(args).trim(), in);
         trace("@rowlimit ", sql);
@@ -1143,7 +1141,7 @@ public class ConcurrentTestCommandScript
         long millis = 0L;
         if (arg.length() > 0) {
           millis = Long.parseLong(arg);
-          assert (millis >= 0L) : "Fetch timeout must be >= 0";
+          assert millis >= 0L : "Fetch timeout must be >= 0";
         }
 
         for (int i = threadId; i < nextThreadId; i++) {
@@ -1165,7 +1163,7 @@ public class ConcurrentTestCommandScript
         String arg = vars.expand(line.substring(SLEEP_LEN).trim());
         trace("@sleep", arg);
         long millis = Long.parseLong(arg);
-        assert (millis >= 0L) : "Sleep timeout must be >= 0";
+        assert millis >= 0L : "Sleep timeout must be >= 0";
 
         for (int i = threadId; i < nextThreadId; i++) {
           addSleepCommand(i, order, millis);
@@ -1225,7 +1223,7 @@ public class ConcurrentTestCommandScript
     }
 
     private void addExtraCommands(Iterable<String> commands, String state) {
-      assert (state != null);
+      assert state != null;
 
       for (int i = 0, n = STATE_TABLE.length; i < n; i++) {
         if (state.equals(STATE_TABLE[i].state)) {
@@ -1249,7 +1247,7 @@ public class ConcurrentTestCommandScript
      * seeing the command.
      */
     private Map<String, String> lookupState(String state) {
-      assert (state != null);
+      assert state != null;
 
       for (int i = 0, n = STATE_TABLE.length; i < n; i++) {
         if (state.equals(STATE_TABLE[i].state)) {
@@ -1289,8 +1287,7 @@ public class ConcurrentTestCommandScript
      * character (\).  Scans the script until it finds an un-escaped
      * newline.
      */
-    private String readLine(String line, BufferedReader in)
-        throws IOException {
+    private String readLine(String line, BufferedReader in) throws IOException {
       line = line.trim();
       boolean more = line.endsWith("\\");
       if (more) {
@@ -1324,7 +1321,7 @@ public class ConcurrentTestCommandScript
      * <code>in</code> until a line ending with a semicolon is found.
      */
     private String readSql(String startOfSql, BufferedReader in)
-        throws IOException {
+      throws IOException {
       // REVIEW mb StringBuffer not always needed
       StringBuffer sql = new StringBuffer(startOfSql);
       sql.append('\n');
@@ -1403,7 +1400,7 @@ public class ConcurrentTestCommandScript
     }
 
     protected void doExecute(ConcurrentTestCommandExecutor executor)
-        throws SQLException {
+      throws SQLException {
       Integer threadId = executor.getThreadId();
       BufferedWriter out = threadBufferedWriters.get(threadId);
       threadResultsReaders.put(
@@ -1419,7 +1416,7 @@ public class ConcurrentTestCommandScript
     }
 
     protected void doExecute(ConcurrentTestCommandExecutor executor)
-        throws SQLException {
+      throws SQLException {
       storeMessage(executor.getThreadId(), msg);
     }
   }
@@ -1436,7 +1433,7 @@ public class ConcurrentTestCommandScript
     }
 
     protected void doExecute(final ConcurrentTestCommandExecutor exec)
-        throws Exception {
+      throws Exception {
       ConcurrentTestPluginCommand.TestContext context =
           new ConcurrentTestPluginCommand.TestContext() {
             public void storeMessage(String message) {
@@ -1527,12 +1524,11 @@ public class ConcurrentTestCommandScript
     }
 
     // returns the timeout as set (-1 means no timeout)
-    protected long setTimeout(Statement stmt)
-        throws SQLException {
-      assert (timeout >= 0);
+    protected long setTimeout(Statement stmt) throws SQLException {
+      assert timeout >= 0;
       if (timeout > 0) {
         // FIX: call setQueryTimeoutMillis() when available.
-        assert (timeout >= 1000) : "timeout too short";
+        assert timeout >= 1000 : "timeout too short";
         int t = (int) (timeout / 1000);
         stmt.setQueryTimeout(t);
         return t;
@@ -1554,9 +1550,8 @@ public class ConcurrentTestCommandScript
       this.rowLimit = rowLimit;
     }
 
-    protected void setRowLimit(Statement stmt)
-        throws SQLException {
-      assert (rowLimit >= 0);
+    protected void setRowLimit(Statement stmt) throws SQLException {
+      assert rowLimit >= 0;
       if (rowLimit > 0) {
         stmt.setMaxRows(rowLimit);
       }
@@ -1591,7 +1586,7 @@ public class ConcurrentTestCommandScript
     }
 
     protected void doExecute(ConcurrentTestCommandExecutor executor)
-        throws SQLException {
+      throws SQLException {
       // TODO: trim and chop in constructor; stash sql in base class;
       // execute() calls storeSql.
       String properSql = sql.trim();
@@ -1646,7 +1641,7 @@ public class ConcurrentTestCommandScript
     }
 
     protected void doExecute(ConcurrentTestCommandExecutor executor)
-        throws SQLException {
+      throws SQLException {
       String properSql = sql.trim();
 
       storeSql(
@@ -1668,7 +1663,7 @@ public class ConcurrentTestCommandScript
       PreparedStatement stmt =
           executor.getConnection().prepareStatement(properSql);
       long timeout = setTimeout(stmt);
-      boolean timeoutSet = (timeout >= 0);
+      boolean timeoutSet = timeout >= 0;
 
       try {
         boolean haveResults = stmt.execute();
@@ -1723,7 +1718,7 @@ public class ConcurrentTestCommandScript
     }
 
     protected void doExecute(ConcurrentTestCommandExecutor executor)
-        throws SQLException {
+      throws SQLException {
       String properSql = sql.trim();
 
       storeSql(
@@ -1752,7 +1747,7 @@ public class ConcurrentTestCommandScript
     }
 
     protected void doExecute(ConcurrentTestCommandExecutor executor)
-        throws SQLException {
+      throws SQLException {
       PreparedStatement stmt =
           (PreparedStatement) executor.getStatement();
       long timeout = setTimeout(stmt);
@@ -1822,9 +1817,10 @@ public class ConcurrentTestCommandScript
     }
 
     void read(ResultSet rset, long timeout) throws SQLException {
-      boolean withTimeout = (timeout >= 0);
+      boolean withTimeout = timeout >= 0;
       boolean timedOut = false;
-      long startTime = 0, endTime = 0;
+      long startTime = 0;
+      long endTime = 0;
       try {
         prepareFormat(rset);
         String[] values = new String[ncols];
@@ -1896,7 +1892,7 @@ public class ConcurrentTestCommandScript
           out.printf(
               "fetch started at %tc %d, %s at %tc %d%n",
               startTime, startTime,
-              (timedOut ? "timeout" : "eos"),
+              timedOut ? "timeout" : "eos",
               endTime, endTime);
         }
         if (totaled) {
@@ -1904,7 +1900,7 @@ public class ConcurrentTestCommandScript
           if (withTimeout) {
             dt -= timeout;
           }
-          assert (dt >= 0);
+          assert dt >= 0;
           out.printf(
               "fetched %d rows in %d msecs %s%n",
               rowCount, dt, timedOut ? "(timeout)" : "(end)");

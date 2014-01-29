@@ -28,7 +28,7 @@ import org.eigenbase.relopt.*;
  * <p>JoinRel(X, Y) -> JoinRel(SemiJoinRel(X, Y), Y)
  */
 public class AddRedundantSemiJoinRule extends RelOptRule {
-  public static final AddRedundantSemiJoinRule instance =
+  public static final AddRedundantSemiJoinRule INSTANCE =
       new AddRedundantSemiJoinRule();
 
   //~ Constructors -----------------------------------------------------------

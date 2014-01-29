@@ -149,59 +149,59 @@ public abstract class SqlOperatorBaseTest {
           "[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]");
 
   public static final String[] numericTypeNames = {
-      "TINYINT", "SMALLINT", "INTEGER", "BIGINT",
-      "DECIMAL(5, 2)", "REAL", "FLOAT", "DOUBLE"
+    "TINYINT", "SMALLINT", "INTEGER", "BIGINT",
+    "DECIMAL(5, 2)", "REAL", "FLOAT", "DOUBLE"
   };
 
   // REVIEW jvs 27-Apr-2006:  for Float and Double, MIN_VALUE
   // is the smallest positive value, not the smallest negative value
   public static final String[] minNumericStrings = {
-      Long.toString(Byte.MIN_VALUE),
-      Long.toString(Short.MIN_VALUE),
-      Long.toString(Integer.MIN_VALUE),
-      Long.toString(Long.MIN_VALUE),
-      "-999.99",
+    Long.toString(Byte.MIN_VALUE),
+    Long.toString(Short.MIN_VALUE),
+    Long.toString(Integer.MIN_VALUE),
+    Long.toString(Long.MIN_VALUE),
+    "-999.99",
 
-      // NOTE jvs 26-Apr-2006:  Win32 takes smaller values from win32_values.h
-      "1E-37", /*Float.toString(Float.MIN_VALUE)*/
-      "2E-307", /*Double.toString(Double.MIN_VALUE)*/
-      "2E-307" /*Double.toString(Double.MIN_VALUE)*/,
+    // NOTE jvs 26-Apr-2006:  Win32 takes smaller values from win32_values.h
+    "1E-37", /*Float.toString(Float.MIN_VALUE)*/
+    "2E-307", /*Double.toString(Double.MIN_VALUE)*/
+    "2E-307" /*Double.toString(Double.MIN_VALUE)*/,
   };
 
   public static final String[] minOverflowNumericStrings = {
-      Long.toString(Byte.MIN_VALUE - 1),
-      Long.toString(Short.MIN_VALUE - 1),
-      Long.toString((long) Integer.MIN_VALUE - 1),
-      new BigDecimal(Long.MIN_VALUE).subtract(BigDecimal.ONE).toString(),
-      "-1000.00",
-      "1e-46",
-      "1e-324",
-      "1e-324"
+    Long.toString(Byte.MIN_VALUE - 1),
+    Long.toString(Short.MIN_VALUE - 1),
+    Long.toString((long) Integer.MIN_VALUE - 1),
+    new BigDecimal(Long.MIN_VALUE).subtract(BigDecimal.ONE).toString(),
+    "-1000.00",
+    "1e-46",
+    "1e-324",
+    "1e-324"
   };
 
   public static final String[] maxNumericStrings = {
-      Long.toString(Byte.MAX_VALUE),
-      Long.toString(Short.MAX_VALUE),
-      Long.toString(Integer.MAX_VALUE),
-      Long.toString(Long.MAX_VALUE), "999.99",
+    Long.toString(Byte.MAX_VALUE),
+    Long.toString(Short.MAX_VALUE),
+    Long.toString(Integer.MAX_VALUE),
+    Long.toString(Long.MAX_VALUE), "999.99",
 
-      // NOTE jvs 26-Apr-2006:  use something slightly less than MAX_VALUE
-      // because roundtripping string to approx to string doesn't preserve
-      // MAX_VALUE on win32
-      "3.4028234E38", /*Float.toString(Float.MAX_VALUE)*/
-      "1.79769313486231E308", /*Double.toString(Double.MAX_VALUE)*/
-      "1.79769313486231E308" /*Double.toString(Double.MAX_VALUE)*/
+    // NOTE jvs 26-Apr-2006:  use something slightly less than MAX_VALUE
+    // because roundtripping string to approx to string doesn't preserve
+    // MAX_VALUE on win32
+    "3.4028234E38", /*Float.toString(Float.MAX_VALUE)*/
+    "1.79769313486231E308", /*Double.toString(Double.MAX_VALUE)*/
+    "1.79769313486231E308" /*Double.toString(Double.MAX_VALUE)*/
   };
 
   public static final String[] maxOverflowNumericStrings = {
-      Long.toString(Byte.MAX_VALUE + 1),
-      Long.toString(Short.MAX_VALUE + 1),
-      Long.toString((long) Integer.MAX_VALUE + 1),
-      (new BigDecimal(Long.MAX_VALUE)).add(BigDecimal.ONE).toString(),
-      "1000.00",
-      "1e39",
-      "-1e309",
-      "1e309"
+    Long.toString(Byte.MAX_VALUE + 1),
+    Long.toString(Short.MAX_VALUE + 1),
+    Long.toString((long) Integer.MAX_VALUE + 1),
+    (new BigDecimal(Long.MAX_VALUE)).add(BigDecimal.ONE).toString(),
+    "1000.00",
+    "1e39",
+    "-1e309",
+    "1e309"
   };
   private static final boolean[] FalseTrue = {false, true};
   private static final SqlTester.VmName VM_FENNEL = SqlTester.VmName.FENNEL;
@@ -1283,7 +1283,7 @@ public abstract class SqlOperatorBaseTest {
         case Calendar.HOUR_OF_DAY:
           // Within two minutes of the top of the hour. Wait in 10s
           // increments until calendar moves into the next next day.
-          if ((cal.get(Calendar.MINUTE) >= 58)) {
+          if (cal.get(Calendar.MINUTE) >= 58) {
             Thread.sleep(10 * 1000);
             continue;
           }
@@ -4314,7 +4314,7 @@ public abstract class SqlOperatorBaseTest {
 
     // string values -- note that empty string is not null
     final String[] stringValues = {
-        "'a'", "CAST(NULL AS VARCHAR(1))", "''"
+      "'a'", "CAST(NULL AS VARCHAR(1))", "''"
     };
     tester.checkAgg(
         "COUNT(*)",

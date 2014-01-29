@@ -17,7 +17,6 @@
 */
 package net.hydromatic.optiq.model;
 
-import java.lang.String;
 import java.util.ArrayList;
 import java.util.List;
 

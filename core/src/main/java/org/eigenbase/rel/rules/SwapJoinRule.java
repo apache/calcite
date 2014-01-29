@@ -34,10 +34,8 @@ import com.google.common.collect.ImmutableList;
 public class SwapJoinRule extends RelOptRule {
   //~ Static fields/initializers ---------------------------------------------
 
-  /**
-   * The singleton
-   */
-  public static final SwapJoinRule instance = new SwapJoinRule();
+  /** The singleton. */
+  public static final SwapJoinRule INSTANCE = new SwapJoinRule();
 
   //~ Constructors -----------------------------------------------------------
 

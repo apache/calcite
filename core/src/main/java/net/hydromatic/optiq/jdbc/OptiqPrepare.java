@@ -52,8 +52,7 @@ public interface OptiqPrepare {
           return new OptiqPrepareImpl();
         }
       };
-  ThreadLocal<ArrayList<Context>>
-      THREAD_CONTEXT_STACK =
+  ThreadLocal<ArrayList<Context>> THREAD_CONTEXT_STACK =
       new ThreadLocal<ArrayList<Context>>() {
         @Override
         protected ArrayList<Context> initialValue() {
@@ -106,12 +105,13 @@ public interface OptiqPrepare {
   }
 
   public static class Dummy {
-    private static SparkHandler handler;
+    private static SparkHandler SPARK_HANDLER;
+
     public static synchronized SparkHandler getSparkHandler() {
-      if (handler == null) {
-        handler = createHandler();
+      if (SPARK_HANDLER == null) {
+        SPARK_HANDLER = createHandler();
       }
-      return handler;
+      return SPARK_HANDLER;
     }
 
     private static SparkHandler createHandler() {

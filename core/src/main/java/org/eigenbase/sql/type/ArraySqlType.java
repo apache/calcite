@@ -19,7 +19,6 @@ package org.eigenbase.sql.type;
 
 import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.reltype.RelDataTypeFamily;
-import org.eigenbase.util.Util;
 
 /**
  * SQL array type.

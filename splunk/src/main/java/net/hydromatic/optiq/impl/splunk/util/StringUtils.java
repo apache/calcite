@@ -60,7 +60,7 @@ public class StringUtils {
             list.add(encoded.subSequence(start, end).toString());
           } else {
             StringBuilder sb = new StringBuilder(end - start);
-            char a='\0', b='\0';
+            char a = '\0', b = '\0';
             for (int j = start; j < end; ++j) {
               b = a;
               a = encoded.charAt(j);
@@ -83,7 +83,8 @@ public class StringUtils {
       list.add(encoded.subSequence(start, end).toString());
     } else {
       StringBuilder sb = new StringBuilder(end - start);
-      char a='\0', b='\0';
+      char a = '\0';
+      char b = '\0';
       for (int j = start; j < end; ++j) {
         b = a;
         a = encoded.charAt(j);

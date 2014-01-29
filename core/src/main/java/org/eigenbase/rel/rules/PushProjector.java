@@ -381,9 +381,9 @@ public class PushProjector {
     // referenced and there are no special preserve expressions; note
     // that we need to do this check after we've handled the 0-column
     // project cases
-    if (((projRefs.cardinality() == nChildFields)
-        && (childPreserveExprs.size() == 0)
-        && (rightPreserveExprs.size() == 0))) {
+    if (projRefs.cardinality() == nChildFields
+        && childPreserveExprs.size() == 0
+        && rightPreserveExprs.size() == 0) {
       return true;
     }
 
@@ -428,7 +428,7 @@ public class PushProjector {
     // add on the input references
     for (int i = 0; i < nInputRefs; i++) {
       refIdx = projRefs.nextSetBit(refIdx + 1);
-      assert (refIdx >= 0);
+      assert refIdx >= 0;
       final RelDataTypeField destField = destFields.get(refIdx - offset);
       newProjects.add(
           Pair.of(
@@ -608,7 +608,7 @@ public class PushProjector {
             addExpr(preserveLeft, call);
             return true;
           } else if (BitSets.contains(rightFields, exprArgs)) {
-            assert (preserveRight != null);
+            assert preserveRight != null;
             addExpr(preserveRight, call);
             return true;
           }

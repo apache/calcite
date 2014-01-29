@@ -143,7 +143,7 @@ public class HepProgramBuilder {
    * addRuleXXX methods may be called until the next addGroupEnd.
    */
   public HepProgramBuilder addGroupBegin() {
-    assert (group == null);
+    assert group == null;
     HepInstruction.BeginGroup instruction = new HepInstruction.BeginGroup();
     instructions.add(instruction);
     group = instruction;
@@ -157,7 +157,7 @@ public class HepProgramBuilder {
    * whole.
    */
   public HepProgramBuilder addGroupEnd() {
-    assert (group != null);
+    assert group != null;
     HepInstruction.EndGroup instruction = new HepInstruction.EndGroup();
     instructions.add(instruction);
     group.endGroup = instruction;
@@ -173,7 +173,7 @@ public class HepProgramBuilder {
    *                   only non-guaranteed converters
    */
   public HepProgramBuilder addConverters(boolean guaranteed) {
-    assert (group == null);
+    assert group == null;
     HepInstruction.ConverterRules instruction =
         new HepInstruction.ConverterRules();
     instruction.guaranteed = guaranteed;
@@ -187,7 +187,7 @@ public class HepProgramBuilder {
    * than one parent.
    */
   public HepProgramBuilder addCommonRelSubExprInstruction() {
-    assert (group == null);
+    assert group == null;
     HepInstruction.CommonRelSubExprRules instruction =
         new HepInstruction.CommonRelSubExprRules();
     instructions.add(instruction);
@@ -203,7 +203,7 @@ public class HepProgramBuilder {
    * @param order new match direction to set
    */
   public HepProgramBuilder addMatchOrder(HepMatchOrder order) {
-    assert (group == null);
+    assert group == null;
     HepInstruction.MatchOrder instruction = new HepInstruction.MatchOrder();
     instruction.order = order;
     instructions.add(instruction);
@@ -219,7 +219,7 @@ public class HepProgramBuilder {
    *              remove limit
    */
   public HepProgramBuilder addMatchLimit(int limit) {
-    assert (group == null);
+    assert group == null;
     HepInstruction.MatchLimit instruction = new HepInstruction.MatchLimit();
     instruction.limit = limit;
     instructions.add(instruction);
@@ -241,7 +241,7 @@ public class HepProgramBuilder {
    * @param program subprogram to execute
    */
   public HepProgramBuilder addSubprogram(HepProgram program) {
-    assert (group == null);
+    assert group == null;
     HepInstruction.Subprogram instruction = new HepInstruction.Subprogram();
     instruction.subprogram = program;
     instructions.add(instruction);
@@ -255,7 +255,7 @@ public class HepProgramBuilder {
    * @return immutable program
    */
   public HepProgram build() {
-    assert (group == null);
+    assert group == null;
     HepProgram program = new HepProgram(instructions);
     clear();
     return program;

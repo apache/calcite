@@ -34,7 +34,7 @@ import java.util.List;
     defaultImpl = JsonCustomTable.class)
 @JsonSubTypes({
     @JsonSubTypes.Type(value = JsonCustomTable.class, name = "custom"),
-    @JsonSubTypes.Type(value = JsonView.class, name = "view")})
+    @JsonSubTypes.Type(value = JsonView.class, name = "view") })
 public abstract class JsonTable {
   public String name;
   public final List<JsonColumn> columns = new ArrayList<JsonColumn>();

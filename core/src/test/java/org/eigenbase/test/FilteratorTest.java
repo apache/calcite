@@ -65,11 +65,11 @@ public class FilteratorTest {
     final HashSet hashSet = new HashSet();
     final LinkedList linkedList = new LinkedList();
     Collection[] collections = {
-        null,
-        arrayList,
-        hashSet,
-        linkedList,
-        null,
+      null,
+      arrayList,
+      hashSet,
+      linkedList,
+      null,
     };
     final Filterator<List> filterator =
         new Filterator<List>(

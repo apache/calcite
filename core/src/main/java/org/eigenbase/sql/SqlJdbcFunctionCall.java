@@ -362,39 +362,39 @@ public class SqlJdbcFunctionCall extends SqlFunction {
    * List of all numeric function names defined by JDBC.
    */
   private static final String[] allNumericFunctions = {
-      "ABS", "ACOS", "ASIN", "ATAN", "ATAN2", "CEILING", "COS", "COT",
-      "DEGREES", "EXP", "FLOOR", "LOG", "LOG10", "MOD", "PI",
-      "POWER", "RADIANS", "RAND", "ROUND", "SIGN", "SIN", "SQRT",
-      "TAN", "TRUNCATE"
+    "ABS", "ACOS", "ASIN", "ATAN", "ATAN2", "CEILING", "COS", "COT",
+    "DEGREES", "EXP", "FLOOR", "LOG", "LOG10", "MOD", "PI",
+    "POWER", "RADIANS", "RAND", "ROUND", "SIGN", "SIN", "SQRT",
+    "TAN", "TRUNCATE"
   };
 
   /**
    * List of all string function names defined by JDBC.
    */
   private static final String[] allStringFunctions = {
-      "ASCII", "CHAR", "CONCAT", "DIFFERENCE", "INSERT", "LCASE",
-      "LEFT", "LENGTH", "LOCATE", "LTRIM", "REPEAT", "REPLACE",
-      "RIGHT", "RTRIM", "SOUNDEX", "SPACE", "SUBSTRING", "UCASE"
-      // "ASCII", "CHAR", "DIFFERENCE", "LOWER",
-      // "LEFT", "TRIM", "REPEAT", "REPLACE",
-      // "RIGHT", "SPACE", "SUBSTRING", "UPPER", "INITCAP", "OVERLAY"
+    "ASCII", "CHAR", "CONCAT", "DIFFERENCE", "INSERT", "LCASE",
+    "LEFT", "LENGTH", "LOCATE", "LTRIM", "REPEAT", "REPLACE",
+    "RIGHT", "RTRIM", "SOUNDEX", "SPACE", "SUBSTRING", "UCASE"
+    // "ASCII", "CHAR", "DIFFERENCE", "LOWER",
+    // "LEFT", "TRIM", "REPEAT", "REPLACE",
+    // "RIGHT", "SPACE", "SUBSTRING", "UPPER", "INITCAP", "OVERLAY"
   };
 
   /**
    * List of all time/date function names defined by JDBC.
    */
   private static final String[] allTimeDateFunctions = {
-      "CURDATE", "CURTIME", "DAYNAME", "DAYOFMONTH", "DAYOFWEEK",
-      "DAYOFYEAR", "HOUR", "MINUTE", "MONTH", "MONTHNAME", "NOW",
-      "QUARTER", "SECOND", "TIMESTAMPADD", "TIMESTAMPDIFF",
-      "WEEK", "YEAR"
+    "CURDATE", "CURTIME", "DAYNAME", "DAYOFMONTH", "DAYOFWEEK",
+    "DAYOFYEAR", "HOUR", "MINUTE", "MONTH", "MONTHNAME", "NOW",
+    "QUARTER", "SECOND", "TIMESTAMPADD", "TIMESTAMPDIFF",
+    "WEEK", "YEAR"
   };
 
   /**
    * List of all system function names defined by JDBC.
    */
   private static final String[] allSystemFunctions = {
-      "DATABASE", "IFNULL", "USER"
+    "DATABASE", "IFNULL", "USER"
   };
 
   static {
@@ -423,7 +423,7 @@ public class SqlJdbcFunctionCall extends SqlFunction {
         SqlTypeStrategies.otcVariadic,
         null);
     jdbcName = name;
-    lookupMakeCallObj = JdbcToInternalLookupTable.instance.lookup(name);
+    lookupMakeCallObj = JdbcToInternalLookupTable.INSTANCE.lookup(name);
     lookupCall = null;
   }
 
@@ -433,7 +433,7 @@ public class SqlJdbcFunctionCall extends SqlFunction {
     StringBuilder sb = new StringBuilder();
     int n = 0;
     for (String funcName : functionNames) {
-      if (JdbcToInternalLookupTable.instance.lookup(funcName) == null) {
+      if (JdbcToInternalLookupTable.INSTANCE.lookup(funcName) == null) {
         continue;
       }
       if (n++ > 0) {
@@ -535,9 +535,9 @@ public class SqlJdbcFunctionCall extends SqlFunction {
     writer.print("{fn ");
     writer.print(jdbcName);
     final SqlWriter.Frame frame = writer.startList("(", ")");
-    for (int i = 0; i < operands.length; i++) {
+    for (SqlNode operand : operands) {
       writer.sep(",");
-      operands[i].unparse(writer, leftPrec, rightPrec);
+      operand.unparse(writer, leftPrec, rightPrec);
     }
     writer.endList(frame);
     writer.print("}");
@@ -608,12 +608,8 @@ public class SqlJdbcFunctionCall extends SqlFunction {
      * @pre order.length > 0
      * @pre argCounts == order.length
      */
-    MakeCall(
-        SqlOperator operator,
-        int argCount,
-        int[] order) {
-      Util.pre(null != order, "null!=order");
-      Util.pre(order.length > 0, "order.length > 0");
+    MakeCall(SqlOperator operator, int argCount, int[] order) {
+      assert order != null && order.length > 0;
 
       // Currently operation overloading when reordering is necessary is
       // NOT implemented
@@ -623,8 +619,8 @@ public class SqlJdbcFunctionCall extends SqlFunction {
       this.argCounts = new int[]{order.length};
 
       // sanity checking ...
-      for (int i = 0; i < order.length; i++) {
-        Util.pre(order[i] < order.length, "order[i] < order.length");
+      for (int anOrder : order) {
+        assert anOrder < order.length;
       }
     }
 
@@ -638,7 +634,7 @@ public class SqlJdbcFunctionCall extends SqlFunction {
      * @param operands Operands
      */
     protected SqlNode[] reorder(SqlNode[] operands) {
-      assert (operands.length == order.length);
+      assert operands.length == order.length;
       SqlNode[] newOrder = new SqlNode[operands.length];
       for (int i = 0; i < operands.length; i++) {
         assert operands[i] != null;
@@ -672,8 +668,8 @@ public class SqlJdbcFunctionCall extends SqlFunction {
      * of operands...else it would make much sense to have this methods
      */
     boolean checkNumberOfArg(int length) {
-      for (int i = 0; i < argCounts.length; i++) {
-        if (argCounts[i] == length) {
+      for (int argCount : argCounts) {
+        if (argCount == length) {
           return true;
         }
       }
@@ -689,10 +685,9 @@ public class SqlJdbcFunctionCall extends SqlFunction {
      * The {@link org.eigenbase.util.Glossary#SingletonPattern singleton}
      * instance.
      */
-    static final JdbcToInternalLookupTable instance =
+    static final JdbcToInternalLookupTable INSTANCE =
         new JdbcToInternalLookupTable();
-    private final Map<String, MakeCall> map =
-        new HashMap<String, MakeCall>();
+    private final Map<String, MakeCall> map = new HashMap<String, MakeCall>();
 
     private JdbcToInternalLookupTable() {
       // A table of all functions can be found at
@@ -745,11 +740,11 @@ public class SqlJdbcFunctionCall extends SqlFunction {
               assert 1 == operands.length;
               return super.createCall(
                   new SqlNode[]{
-                      SqlLiteral.createSymbol(
-                          SqlTrimFunction.Flag.LEADING,
-                          SqlParserPos.ZERO),
-                      SqlLiteral.createCharString(" ", null),
-                      operands[0]
+                    SqlLiteral.createSymbol(
+                        SqlTrimFunction.Flag.LEADING,
+                        SqlParserPos.ZERO),
+                    SqlLiteral.createCharString(" ", null),
+                    operands[0]
                   },
                   pos);
             }
@@ -763,11 +758,11 @@ public class SqlJdbcFunctionCall extends SqlFunction {
               assert 1 == operands.length;
               return super.createCall(
                   new SqlNode[]{
-                      SqlLiteral.createSymbol(
-                          SqlTrimFunction.Flag.TRAILING,
-                          SqlParserPos.ZERO),
-                      SqlLiteral.createCharString(" ", null),
-                      operands[0]
+                    SqlLiteral.createSymbol(
+                        SqlTrimFunction.Flag.TRAILING,
+                        SqlParserPos.ZERO),
+                    SqlLiteral.createCharString(" ", null),
+                    operands[0]
                   },
                   pos);
             }

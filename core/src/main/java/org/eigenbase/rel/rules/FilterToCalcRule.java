@@ -36,7 +36,7 @@ import com.google.common.collect.ImmutableList;
 public class FilterToCalcRule extends RelOptRule {
   //~ Static fields/initializers ---------------------------------------------
 
-  public static final FilterToCalcRule instance = new FilterToCalcRule();
+  public static final FilterToCalcRule INSTANCE = new FilterToCalcRule();
 
   //~ Constructors -----------------------------------------------------------
 

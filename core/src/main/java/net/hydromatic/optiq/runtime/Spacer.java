@@ -28,10 +28,10 @@ import java.util.concurrent.locks.ReentrantLock;
  * Efficiently writes strings of spaces.
  */
 public class Spacer {
-  private static final ReentrantLock lock = new ReentrantLock();
+  private static final ReentrantLock LOCK = new ReentrantLock();
 
   /** Array of spaces at least as long as any Spacer in existence. */
-  private static char[] spaces = {' '};
+  private static char[] SPACES = {' '};
 
   private int n;
 
@@ -69,44 +69,44 @@ public class Spacer {
 
   /** Returns a string of the current number of spaces. */
   public String toString() {
-    return new String(spaces, 0, n);
+    return new String(SPACES, 0, n);
   }
 
   /** Appends current number of spaces to a {@link StringBuilder}. */
   public StringBuilder spaces(StringBuilder buf) {
-    buf.append(spaces, 0, n);
+    buf.append(SPACES, 0, n);
     return buf;
   }
 
   /** Appends current number of spaces to a {@link Writer}. */
   public Writer spaces(Writer buf) throws IOException {
-    buf.write(spaces, 0, n);
+    buf.write(SPACES, 0, n);
     return buf;
   }
 
   /** Appends current number of spaces to a {@link StringWriter}. */
   public StringWriter spaces(StringWriter buf) {
-    buf.write(spaces, 0, n);
+    buf.write(SPACES, 0, n);
     return buf;
   }
 
   /** Appends current number of spaces to a {@link PrintWriter}. */
   public PrintWriter spaces(PrintWriter buf) {
-    buf.write(spaces, 0, n);
+    buf.write(SPACES, 0, n);
     return buf;
   }
 
   private static void ensureSpaces(int n) {
-    lock.lock();
+    LOCK.lock();
     try {
-      if (spaces.length < n) {
+      if (SPACES.length < n) {
         char[] newSpaces = new char[n];
         Arrays.fill(newSpaces, ' ');
         // atomic assignment; other Spacer instances may be using this
-        spaces = newSpaces;
+        SPACES = newSpaces;
       }
     } finally {
-      lock.unlock();
+      LOCK.unlock();
     }
   }
 
@@ -117,7 +117,9 @@ public class Spacer {
     if (x <= 0) {
       return string;
     }
-    return new StringBuilder(string).append(spaces, 0, x).toString();
+    // Replacing StringBuffer with String would hurt performance.
+    //noinspection StringBufferReplaceableByString
+    return new StringBuilder(string).append(SPACES, 0, x).toString();
   }
 }
 

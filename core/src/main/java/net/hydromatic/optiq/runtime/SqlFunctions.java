@@ -42,9 +42,11 @@ import java.util.regex.Pattern;
  */
 @SuppressWarnings("UnnecessaryUnboxing")
 public class SqlFunctions {
-
   private static final DecimalFormat DOUBLE_FORMAT =
       new DecimalFormat("0.0E0");
+
+  private SqlFunctions() {
+  }
 
   /** SQL SUBSTRING(string FROM ... FOR ...) function. */
   public static String substring(String s, int from, int for_) {
@@ -84,14 +86,14 @@ public class SqlFunctions {
           start = false;
         } else if (c > 96 && c < 123) {  // a-z
           start = false;
-          curCh = (char)(c - 32); // Uppercase this character
+          curCh = (char) (c - 32); // Uppercase this character
         }
         // else {} whitespace
       } else {  // Inside of a word or white space after end of word.
         if (c > 47 && c < 58) { // 0-9
           // noop
         } else if (c > 64 && c < 91) {  // A-Z
-          curCh = (char)(c + 32); // Lowercase this character
+          curCh = (char) (c + 32); // Lowercase this character
         } else if (c > 96 && c < 123) {  // a-z
           // noop
         } else { // whitespace
@@ -1152,11 +1154,11 @@ public class SqlFunctions {
     julianToString(buf, date + 2440588);
   }
 
-  private static void julianToString(StringBuilder buf, int J) {
+  private static void julianToString(StringBuilder buf, int julian) {
     // this shifts the epoch back to astronomical year -4800 instead of the
     // start of the Christian era in year AD 1 of the proleptic Gregorian
     // calendar.
-    int j = J + 32044;
+    int j = julian + 32044;
     int g = j / 146097;
     int dg = j % 146097;
     int c = (dg / 36524 + 1) * 3 / 4;
@@ -1172,14 +1174,14 @@ public class SqlFunctions {
     int m = (da * 5 + 308) / 153 - 2;
     // number of days elapsed since day 1 of the month
     int d = da - (m + 4) * 153 / 5 + 122;
-    int Y = y - 4800 + (m + 2) / 12;
-    int M = (m + 2) % 12 + 1;
-    int D = d + 1;
-    int4(buf, Y);
+    int year = y - 4800 + (m + 2) / 12;
+    int month = (m + 2) % 12 + 1;
+    int day = d + 1;
+    int4(buf, year);
     buf.append('-');
-    int2(buf, M);
+    int2(buf, month);
     buf.append('-');
-    int2(buf, D);
+    int2(buf, day);
   }
 
   public static int ymdToUnixDate(int year, int month, int day) {

@@ -26,7 +26,7 @@ import org.eigenbase.relopt.*;
  * semijoins. SemiJoinRel(FilterRel(X), Y) --> FilterRel(SemiJoinRel(X, Y))
  */
 public class PushSemiJoinPastFilterRule extends RelOptRule {
-  public static final PushSemiJoinPastFilterRule instance =
+  public static final PushSemiJoinPastFilterRule INSTANCE =
       new PushSemiJoinPastFilterRule();
 
   //~ Constructors -----------------------------------------------------------

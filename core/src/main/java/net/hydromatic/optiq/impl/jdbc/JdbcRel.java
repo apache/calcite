@@ -18,7 +18,6 @@
 package net.hydromatic.optiq.impl.jdbc;
 
 import org.eigenbase.rel.RelNode;
-import org.eigenbase.sql.SqlNode;
 
 /**
  * Relational expression that uses JDBC calling convention.

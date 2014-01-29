@@ -117,7 +117,7 @@ public class SqlNumericLiteral extends SqlLiteral {
   }
 
   public boolean isInteger() {
-    return (0 == scale.intValue());
+    return 0 == scale.intValue();
   }
 }
 

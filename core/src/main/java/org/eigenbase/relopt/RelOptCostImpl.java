@@ -68,6 +68,11 @@ public class RelOptCostImpl implements RelOptCost {
     return getRows() < other.getRows();
   }
 
+  @Override
+  public int hashCode() {
+    return Double.hashCode(getRows());
+  }
+
   // implement RelOptCost
   public boolean equals(RelOptCost other) {
     return getRows() == other.getRows();

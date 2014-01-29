@@ -141,6 +141,7 @@ public class SubstitutionVisitor {
           super.visit(node, ordinal, parent);
         }
       }.go(ancestor);
+      // CHECKSTYLE: IGNORE -1
       return false;
     } catch (FoundRel e) {
       return true;

@@ -20,14 +20,12 @@ package org.eigenbase.rex;
 import java.io.IOException;
 import java.io.StringReader;
 import java.lang.reflect.Modifier;
-import java.math.BigDecimal;
 import java.util.*;
 
 import org.eigenbase.relopt.RelOptPlanner;
 import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.reltype.RelDataTypeFactory;
 import org.eigenbase.util.Pair;
-import org.eigenbase.util14.DateTimeUtil;
 
 import net.hydromatic.linq4j.expressions.*;
 import net.hydromatic.linq4j.function.Function1;
@@ -74,13 +72,13 @@ public class RexExecutorImpl implements RelOptPlanner.Executor {
     }
     final JavaTypeFactoryImpl javaTypeFactory = new JavaTypeFactoryImpl();
     final BlockBuilder blockBuilder = new BlockBuilder();
-    final ParameterExpression _root0 =
+    final ParameterExpression root0_ =
         Expressions.parameter(Object.class, "root0");
-    final ParameterExpression _root = DataContext.ROOT;
+    final ParameterExpression root_ = DataContext.ROOT;
     blockBuilder.add(
         Expressions.declare(
-            Modifier.FINAL, _root,
-            Expressions.convert_(_root0, DataContext.class)));
+            Modifier.FINAL, root_,
+            Expressions.convert_(root0_, DataContext.class)));
     final List<Expression> expressions =
         RexToLixTranslator.translateProjects(programBuilder.getProgram(),
         javaTypeFactory, blockBuilder, BAD_GETTER);
@@ -90,7 +88,7 @@ public class RexExecutorImpl implements RelOptPlanner.Executor {
     final MethodDeclaration methodDecl =
         Expressions.methodDecl(Modifier.PUBLIC, Object[].class,
             BuiltinMethod.FUNCTION1_APPLY.method.getName(),
-            ImmutableList.of(_root0), blockBuilder.toBlock());
+            ImmutableList.of(root0_), blockBuilder.toBlock());
     String s = Expressions.toString(methodDecl);
     if (OptiqPrepareImpl.DEBUG) {
       System.out.println(s);

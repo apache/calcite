@@ -22,9 +22,6 @@ import java.util.List;
 import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.*;
 import org.eigenbase.sql.*;
-import org.eigenbase.util.Pair;
-
-import com.google.common.collect.ImmutableList;
 
 /**
  * A relational expression which unnests its input's sole column into a

@@ -15,11 +15,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 */
-package org.eigenbase.relopt.hep;
 
 /**
  * Provides a heuristic planner implementation for the interfaces in
  * {@link org.eigenbase.relopt}.
  */
+package org.eigenbase.relopt.hep;
 
 // End package-info.java

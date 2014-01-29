@@ -44,7 +44,7 @@ import com.google.common.collect.ImmutableList;
 public class SqlValidatorImpl implements SqlValidatorWithHints {
   //~ Static fields/initializers ---------------------------------------------
 
-  public static final Logger tracer = EigenbaseTrace.parserTracer;
+  public static final Logger TRACER = EigenbaseTrace.parserTracer;
 
   /**
    * Alias generated for the source table when rewriting UPDATE to MERGE.
@@ -698,17 +698,11 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       SqlValidatorScope scope) {
     SqlNode outermostNode = performUnconditionalRewrites(topNode, false);
     cursorSet.add(outermostNode);
-    if (tracer.isLoggable(Level.FINER)) {
-      tracer.finer("After unconditional rewrite: " + outermostNode.toString());
+    if (TRACER.isLoggable(Level.FINER)) {
+      TRACER.finer("After unconditional rewrite: " + outermostNode.toString());
     }
     if (outermostNode.isA(SqlKind.TOP_LEVEL)) {
-      registerQuery(
-          scope,
-          null,
-          outermostNode,
-          outermostNode,
-          null,
-          false);
+      registerQuery(scope, null, outermostNode, outermostNode, null, false);
     }
     outermostNode.validate(this, scope);
     if (!outermostNode.isA(SqlKind.TOP_LEVEL)) {
@@ -716,8 +710,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       // caller later without needing the scope
       deriveType(scope, outermostNode);
     }
-    if (tracer.isLoggable(Level.FINER)) {
-      tracer.finer("After validation: " + outermostNode.toString());
+    if (TRACER.isLoggable(Level.FINER)) {
+      TRACER.finer("After validation: " + outermostNode.toString());
     }
     return outermostNode;
   }
@@ -890,7 +884,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         SqlNode operand = operands[i];
         boolean childUnderFrom;
         if (kind == SqlKind.SELECT) {
-          childUnderFrom = (i == SqlSelect.FROM_OPERAND);
+          childUnderFrom = i == SqlSelect.FROM_OPERAND;
         } else if (kind == SqlKind.AS && (i == 0)) {
           // for an aliased expression, it is under FROM if
           // the AS expression is under FROM
@@ -1162,7 +1156,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         getSelfJoinExprForUpdate(
             updateCall.getTargetTable(),
             updateCall.getAlias().getSimple());
-    assert (selfJoinTgtExpr != null);
+    assert selfJoinTgtExpr != null;
 
     // Create join condition between source and target exprs,
     // creating a conjunction with the user-level WHERE
@@ -1341,7 +1335,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     List<RelDataType> rowTypes = new ArrayList<RelDataType>();
     for (int iRow = 0; iRow < values.getOperands().length; ++iRow) {
       final SqlNode operand = values.getOperands()[iRow];
-      assert (operand.getKind() == SqlKind.ROW);
+      assert operand.getKind() == SqlKind.ROW;
       SqlCall rowConstructor = (SqlCall) operand;
 
       // REVIEW jvs 10-Sept-2003: Once we support single-row queries as
@@ -1453,7 +1447,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       SqlFunction resolvedConstructor,
       List<RelDataType> argTypes) {
     SqlIdentifier sqlIdentifier = unresolvedConstructor.getSqlIdentifier();
-    assert (sqlIdentifier != null);
+    assert sqlIdentifier != null;
     RelDataType type = catalogReader.getNamedType(sqlIdentifier);
     if (type == null) {
       // TODO jvs 12-Feb-2005:  proper type name formatting
@@ -1479,7 +1473,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
               this,
               scope,
               testCall);
-      assert (type == returnType);
+      assert type == returnType;
     }
 
     if (shouldExpandIdentifiers()) {
@@ -2221,7 +2215,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
           forceNullable);
       operands = call.getOperands();
       for (int i = 0; i < operands.length; ++i) {
-        assert (operands[i].getKind() == SqlKind.ROW);
+        assert operands[i].getKind() == SqlKind.ROW;
 
         // FIXME jvs 9-Feb-2005:  Correlation should
         // be illegal in these subqueries.  Same goes for
@@ -2414,7 +2408,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   }
 
   public boolean isAggregate(SqlNode selectNode) {
-    return (aggFinder.findAgg(selectNode) != null);
+    return aggFinder.findAgg(selectNode) != null;
   }
 
   private void validateNodeFeature(SqlNode node) {
@@ -2593,7 +2587,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   }
 
   public void validateIntervalQualifier(SqlIntervalQualifier qualifier) {
-    assert (qualifier != null);
+    assert qualifier != null;
     boolean startPrecisionOutOfRange = false;
     boolean fractionalSecondPrecisionOutOfRange = false;
 
@@ -3374,8 +3368,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         if (query instanceof SqlUpdate) {
           int nUpdateColumns =
               ((SqlUpdate) query).getTargetColumnList().size();
-          assert (sourceFields.size() >= nUpdateColumns);
-          iAdjusted -= (sourceFields.size() - nUpdateColumns);
+          assert sourceFields.size() >= nUpdateColumns;
+          iAdjusted -= sourceFields.size() - nUpdateColumns;
         }
         SqlNode node = getNthExpr(query, iAdjusted, sourceCount);
         String targetTypeString;
@@ -3618,7 +3612,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
                     return rowCount;
                   }
                 }
-            );
+          );
 
         if (null == type) {
           throw newValidationError(
@@ -3801,7 +3795,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       SqlParserPos context) {
     // By default, do nothing except to verify that the resource
     // represents a real feature definition.
-    assert (feature.getProperties().get("FeatureDefinition") != null);
+    assert feature.getProperties().get("FeatureDefinition") != null;
   }
 
   public SqlNode expand(SqlNode expr, SqlValidatorScope scope) {

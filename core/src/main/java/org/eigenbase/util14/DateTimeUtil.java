@@ -119,7 +119,7 @@ public class DateTimeUtil {
       String pattern,
       TimeZone tz,
       ParsePosition pp) {
-    assert (pattern != null);
+    assert pattern != null;
     SimpleDateFormat df = new SimpleDateFormat(pattern);
     if (tz == null) {
       tz = defaultZone;
@@ -153,7 +153,7 @@ public class DateTimeUtil {
       String s,
       String pattern,
       TimeZone tz) {
-    assert (pattern != null);
+    assert pattern != null;
     ParsePosition pp = new ParsePosition(0);
     Calendar ret = parseDateFormat(s, pattern, tz, pp);
     if (pp.getIndex() != s.length()) {
@@ -230,7 +230,7 @@ public class DateTimeUtil {
       }
     }
 
-    assert (pp.getIndex() == s.length());
+    assert pp.getIndex() == s.length();
     PrecisionTime ret = new PrecisionTime(cal, p);
     return ret;
   }

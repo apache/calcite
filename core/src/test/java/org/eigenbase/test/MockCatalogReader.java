@@ -48,7 +48,7 @@ public class MockCatalogReader implements Prepare.CatalogReader {
   protected static final String defaultSchema = "SALES";
 
   public static final Ordering<Iterable<String>>
-      CASE_INSENSITIVE_LIST_COMPARATOR =
+  CASE_INSENSITIVE_LIST_COMPARATOR =
       Ordering.<String>from(String.CASE_INSENSITIVE_ORDER).lexicographical();
 
   //~ Instance fields --------------------------------------------------------
@@ -87,8 +87,8 @@ public class MockCatalogReader implements Prepare.CatalogReader {
     this.caseSensitive = caseSensitive;
     assert !dummy;
     if (caseSensitive) {
-    tables = new HashMap<List<String>, MockTable>();
-    schemas = new HashMap<String, MockSchema>();
+      tables = new HashMap<List<String>, MockTable>();
+      schemas = new HashMap<String, MockSchema>();
     } else {
       tables = new TreeMap<List<String>, MockTable>(
           CASE_INSENSITIVE_LIST_COMPARATOR);

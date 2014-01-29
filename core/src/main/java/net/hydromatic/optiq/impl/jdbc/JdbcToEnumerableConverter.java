@@ -48,13 +48,12 @@ import java.util.TimeZone;
  */
 public class JdbcToEnumerableConverter
     extends ConverterRelImpl
-    implements EnumerableRel
-{
+    implements EnumerableRel {
   protected JdbcToEnumerableConverter(
       RelOptCluster cluster,
       RelTraitSet traits,
       RelNode input) {
-    super(cluster, ConventionTraitDef.instance, traits, input);
+    super(cluster, ConventionTraitDef.INSTANCE, traits, input);
   }
 
   @Override
@@ -208,7 +207,7 @@ public class JdbcToEnumerableConverter
               .append(
                   Expressions.call(resultSet_,
                       getMethod2(sqlTypeName), dateTimeArgs))
-      .appendIf(offset, getTimeZoneExpression(implementor)));
+          .appendIf(offset, getTimeZoneExpression(implementor)));
       break;
     default:
       source = Expressions.call(

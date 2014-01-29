@@ -131,7 +131,7 @@ public abstract class SqlUtil {
     if (node instanceof SqlLiteral) {
       SqlLiteral literal = (SqlLiteral) node;
       if (literal.getTypeName() == SqlTypeName.NULL) {
-        assert (null == literal.getValue());
+        assert null == literal.getValue();
         return true;
       } else {
         // We don't regard UNKNOWN -- SqlLiteral(null,Boolean) -- as
@@ -778,13 +778,11 @@ public abstract class SqlUtil {
       this.identifierQuoteString = identifierQuoteString;
     }
 
-    public String getDatabaseProductName()
-        throws SQLException {
+    public String getDatabaseProductName() throws SQLException {
       return databaseProductName;
     }
 
-    public String getIdentifierQuoteString()
-        throws SQLException {
+    public String getIdentifierQuoteString() throws SQLException {
       return identifierQuoteString;
     }
   }

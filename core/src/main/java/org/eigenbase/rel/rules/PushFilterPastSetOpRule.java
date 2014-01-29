@@ -30,7 +30,7 @@ import org.eigenbase.rex.*;
  * past a {@link SetOpRel}.
  */
 public class PushFilterPastSetOpRule extends RelOptRule {
-  public static final PushFilterPastSetOpRule instance =
+  public static final PushFilterPastSetOpRule INSTANCE =
       new PushFilterPastSetOpRule();
 
   //~ Constructors -----------------------------------------------------------

@@ -73,7 +73,7 @@ public abstract class ValuesRelBase extends AbstractRelNode {
     super(cluster, traits);
     this.rowType = rowType;
     this.tuples = tuples;
-    assert (assertRowType());
+    assert assertRowType();
   }
 
   /**

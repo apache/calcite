@@ -33,7 +33,7 @@ import org.eigenbase.util.Pair;
  * <p>SemiJoinRel(ProjectRel(X), Y) --> ProjectRel(SemiJoinRel(X, Y))
  */
 public class PushSemiJoinPastProjectRule extends RelOptRule {
-  public static final PushSemiJoinPastProjectRule instance =
+  public static final PushSemiJoinPastProjectRule INSTANCE =
       new PushSemiJoinPastProjectRule();
 
   //~ Constructors -----------------------------------------------------------

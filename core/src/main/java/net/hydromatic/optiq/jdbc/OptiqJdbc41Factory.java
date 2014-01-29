@@ -104,6 +104,7 @@ public class OptiqJdbc41Factory extends OptiqFactory {
     }
   }
 
+  /** Implementation of statement for JDBC 4.1. */
   private static class OptiqJdbc41Statement extends OptiqStatement {
     public OptiqJdbc41Statement(
         OptiqConnectionImpl connection,
@@ -115,6 +116,7 @@ public class OptiqJdbc41Factory extends OptiqFactory {
     }
   }
 
+  /** Implementation of prepared statement for JDBC 4.1. */
   private static class OptiqJdbc41PreparedStatement
       extends OptiqPreparedStatement {
     OptiqJdbc41PreparedStatement(
@@ -236,6 +238,7 @@ public class OptiqJdbc41Factory extends OptiqFactory {
     }
   }
 
+  /** Implementation of database metadata for JDBC 4.1. */
   private static class OptiqJdbc41DatabaseMetaData
       extends AvaticaDatabaseMetaData {
     OptiqJdbc41DatabaseMetaData(OptiqConnectionImpl connection) {

@@ -15,10 +15,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 */
-package org.eigenbase.runtime;
 
 /**
  * Defines classes used by generated Eigenbase classes at runtime.
  */
+package org.eigenbase.runtime;
 
 // End package-info.java

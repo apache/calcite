@@ -108,7 +108,7 @@ public enum JavaRowFormat {
         Type javaRowClass, List<Expression> expressions) {
       switch (expressions.size()) {
       case 0:
-      return Expressions.field(
+        return Expressions.field(
           null,
           Collections.class,
           "EMPTY_LIST");

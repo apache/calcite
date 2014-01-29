@@ -45,36 +45,36 @@ public class RelOptUtilTest {
                 typeFactory.createSqlType(SqlTypeName.VARCHAR, 10),
             },
             new String[]{
-                "f0",
-                "f1"
+              "f0",
+              "f1"
             });
     TestUtil.assertEqualsVerbose(
         TestUtil.fold(
             new String[]{
-                "f0 DECIMAL(5, 2) NOT NULL,",
-                "f1 VARCHAR(10) CHARACTER SET \"ISO-8859-1\" COLLATE \"ISO-8859-1$en_US$primary\" NOT NULL"
+              "f0 DECIMAL(5, 2) NOT NULL,",
+              "f1 VARCHAR(10) CHARACTER SET \"ISO-8859-1\" COLLATE \"ISO-8859-1$en_US$primary\" NOT NULL"
             }),
         RelOptUtil.dumpType(t1));
 
     RelDataType t2 =
         typeFactory.createStructType(
             new RelDataType[]{
-                t1,
+              t1,
                 typeFactory.createMultisetType(t1, -1),
             },
             new String[]{
-                "f0",
-                "f1"
+              "f0",
+              "f1"
             });
     TestUtil.assertEqualsVerbose(
         TestUtil.fold(
             new String[]{
-                "f0 RECORD (",
-                "  f0 DECIMAL(5, 2) NOT NULL,",
-                "  f1 VARCHAR(10) CHARACTER SET \"ISO-8859-1\" COLLATE \"ISO-8859-1$en_US$primary\" NOT NULL) NOT NULL,",
-                "f1 RECORD (",
-                "  f0 DECIMAL(5, 2) NOT NULL,",
-                "  f1 VARCHAR(10) CHARACTER SET \"ISO-8859-1\" COLLATE \"ISO-8859-1$en_US$primary\" NOT NULL) NOT NULL MULTISET NOT NULL"
+              "f0 RECORD (",
+              "  f0 DECIMAL(5, 2) NOT NULL,",
+              "  f1 VARCHAR(10) CHARACTER SET \"ISO-8859-1\" COLLATE \"ISO-8859-1$en_US$primary\" NOT NULL) NOT NULL,",
+              "f1 RECORD (",
+              "  f0 DECIMAL(5, 2) NOT NULL,",
+              "  f1 VARCHAR(10) CHARACTER SET \"ISO-8859-1\" COLLATE \"ISO-8859-1$en_US$primary\" NOT NULL) NOT NULL MULTISET NOT NULL"
             }),
         RelOptUtil.dumpType(t2));
   }

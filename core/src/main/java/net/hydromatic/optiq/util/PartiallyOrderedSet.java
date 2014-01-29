@@ -49,8 +49,7 @@ import java.util.*;
  *
  * @param <E> Element type
  */
-public class PartiallyOrderedSet<E> extends AbstractSet<E>
-{
+public class PartiallyOrderedSet<E> extends AbstractSet<E> {
   private final Map<E, Node<E>> map;
   private final Ordering<E> ordering;
 
@@ -281,7 +280,7 @@ public class PartiallyOrderedSet<E> extends AbstractSet<E>
       // (e.g. "ab", "ac") examine those children. If there are no
       // such children, ancestor becomes a parent
       int found = 0;
-      for (Node<E> child : (up ? ancestor.childList : ancestor.parentList)) {
+      for (Node<E> child : up ? ancestor.childList : ancestor.parentList) {
         if (child.e == null) {
           continue; // child is the bottom node
         }
@@ -333,7 +332,7 @@ public class PartiallyOrderedSet<E> extends AbstractSet<E>
    * @param fail Whether to throw an assertion error
    * @return Whether valid
    */
-  @SuppressWarnings({"ConstantConditions"})
+  @SuppressWarnings({"ConstantConditions" })
   public boolean isValid(boolean fail) {
     // Top has no parents.
     // Bottom has no children.
@@ -786,7 +785,7 @@ public class PartiallyOrderedSet<E> extends AbstractSet<E>
       return v;
     }
 
-    @SuppressWarnings({"SuspiciousSystemArraycopy", "unchecked"})
+    @SuppressWarnings({"SuspiciousSystemArraycopy", "unchecked" })
     private void expand() {
       Object[] olds = es;
       es = (E[]) new Object[es.length * 2];

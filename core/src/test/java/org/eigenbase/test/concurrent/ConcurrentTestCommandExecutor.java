@@ -218,7 +218,7 @@ class ConcurrentTestCommandExecutor extends Thread {
    */
   public void setStatement(Statement stmt) {
     // assert that we don't already have a statement
-    assert (statement == null);
+    assert statement == null;
 
     statement = stmt;
   }
@@ -278,13 +278,12 @@ class ConcurrentTestCommandExecutor extends Thread {
     private int numWaiting;
 
     public Sync(int numThreads) {
-      assert (numThreads > 0);
+      assert numThreads > 0;
       this.numThreads = numThreads;
       this.numWaiting = 0;
     }
 
-    synchronized void waitForOthers()
-        throws InterruptedException {
+    synchronized void waitForOthers() throws InterruptedException {
       if (++numWaiting == numThreads) {
         numWaiting = 0;
         notifyAll();

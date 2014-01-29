@@ -36,7 +36,7 @@ import org.eigenbase.util.*;
 public interface RelOptPlanner {
   //~ Static fields/initializers ---------------------------------------------
 
-  Logger tracer = EigenbaseTrace.getPlannerTracer();
+  Logger LOGGER = EigenbaseTrace.getPlannerTracer();
 
   //~ Methods ----------------------------------------------------------------
 

@@ -26,7 +26,7 @@ import org.eigenbase.relopt.*;
  * input into the {@link ProjectRel}.
  */
 public class PushProjectIntoMultiJoinRule extends RelOptRule {
-  public static final PushProjectIntoMultiJoinRule instance =
+  public static final PushProjectIntoMultiJoinRule INSTANCE =
       new PushProjectIntoMultiJoinRule();
 
   //~ Constructors -----------------------------------------------------------

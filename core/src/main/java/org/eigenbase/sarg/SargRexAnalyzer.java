@@ -89,8 +89,8 @@ public class SargRexAnalyzer {
     this.simpleMode = simpleMode;
     this.lowerRexInputIdx = lowerRexInputRef;
     this.upperRexInputIdx = upperRexInputRef;
-    assert (((lowerRexInputIdx < 0) && (upperRexInputIdx < 0))
-        || ((lowerRexInputIdx >= 0) && (upperRexInputIdx >= 0)));
+    assert (lowerRexInputIdx < 0 && upperRexInputIdx < 0)
+        || (lowerRexInputIdx >= 0 && upperRexInputIdx >= 0);
 
     convertletMap = new HashMap<SqlOperator, CallConvertlet>();
 
@@ -449,7 +449,7 @@ public class SargRexAnalyzer {
     }
 
     // well-formedness assumption
-    assert (exprStack.size() == 1);
+    assert exprStack.size() == 1;
 
     SargExpr expr = exprStack.get(0);
 
@@ -557,7 +557,7 @@ public class SargRexAnalyzer {
       }
 
       int nOperands = call.getOperands().size();
-      assert (exprStack.size() >= nOperands);
+      assert exprStack.size() >= nOperands;
 
       SargSetExpr expr =
           factory.newSetExpr(

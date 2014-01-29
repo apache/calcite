@@ -15,11 +15,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 */
-package org.eigenbase.relopt;
 
 /**
  * Defines interfaces for constructing rule-based optimizers of
  * relational expressions.
  */
+package org.eigenbase.relopt;
 
 // End package-info.java

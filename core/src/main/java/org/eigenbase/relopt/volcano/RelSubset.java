@@ -39,7 +39,7 @@ import net.hydromatic.linq4j.function.Predicate1;
 public class RelSubset extends AbstractRelNode {
   //~ Static fields/initializers ---------------------------------------------
 
-  private static final Logger tracer = EigenbaseTrace.getPlannerTracer();
+  private static final Logger LOGGER = EigenbaseTrace.getPlannerTracer();
 
   //~ Instance fields --------------------------------------------------------
 
@@ -211,7 +211,7 @@ public class RelSubset extends AbstractRelNode {
    */
   public Collection<RelNode> getParentRels() {
     final Set<RelNode> list = new LinkedHashSet<RelNode>();
-    parentLoop:
+  parentLoop:
     for (RelNode parent : set.getParentRels()) {
       for (RelSubset rel : inputSubsets(parent)) {
         if (rel.set == set && rel.getTraitSet().equals(traitSet)) {
@@ -310,14 +310,14 @@ public class RelSubset extends AbstractRelNode {
       // This subset is already in the chain being propagated to. This
       // means that the graph is cyclic, and therefore the cost of this
       // relational expression - not this subset - must be infinite.
-      tracer.finer("cyclic: " + this);
+      LOGGER.finer("cyclic: " + this);
       return;
     }
     try {
       final RelOptCost cost = planner.getCost(rel);
       if (cost.isLt(bestCost)) {
-        if (tracer.isLoggable(Level.FINER)) {
-          tracer.finer(
+        if (LOGGER.isLoggable(Level.FINER)) {
+          LOGGER.finer(
               "Subset cost improved: subset [" + this
               + "] cost was " + bestCost + " now " + cost);
         }
@@ -428,10 +428,7 @@ public class RelSubset extends AbstractRelNode {
           final String dump = sw.toString();
           RuntimeException e =
               new RelOptPlanner.CannotPlanException(dump);
-          tracer.throwing(
-              getClass().getName(),
-              "visit",
-              e);
+          LOGGER.throwing(getClass().getName(), "visit", e);
           throw e;
         }
         p = cheapest;

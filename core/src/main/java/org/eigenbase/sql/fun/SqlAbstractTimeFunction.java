@@ -67,7 +67,7 @@ public class SqlAbstractTimeFunction extends SqlFunction {
         precision = opBinding.getIntLiteralOperand(0);
       }
     }
-    assert (precision >= 0);
+    assert precision >= 0;
     if (precision > SqlTypeName.MAX_DATETIME_PRECISION) {
       throw opBinding.newError(
           EigenbaseResource.instance().ArgumentMustBeValidPrecision.ex(

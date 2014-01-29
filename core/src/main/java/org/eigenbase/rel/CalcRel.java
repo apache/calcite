@@ -50,7 +50,7 @@ import org.eigenbase.util.mapping.*;
 public final class CalcRel extends CalcRelBase {
   //~ Static fields/initializers ---------------------------------------------
 
-  public static final boolean DeprecateProjectAndFilter = false;
+  public static final boolean DEPRECATE_PROJECT_AND_FILTER = false;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -176,7 +176,7 @@ public final class CalcRel extends CalcRelBase {
             cluster.getRexBuilder());
     final List<RelCollation> collationList =
         program.getCollations(child.getCollationList());
-    if (DeprecateProjectAndFilter) {
+    if (DEPRECATE_PROJECT_AND_FILTER) {
       return new CalcRel(
           cluster,
           child.getTraitSet(),
@@ -208,7 +208,7 @@ public final class CalcRel extends CalcRelBase {
               child,
               exprs,
               rowType,
-              ProjectRelBase.Flags.Boxed);
+              ProjectRelBase.Flags.BOXED);
     }
   }
 
@@ -223,7 +223,7 @@ public final class CalcRel extends CalcRelBase {
   public static RelNode createFilter(
       RelNode child,
       RexNode condition) {
-    if (DeprecateProjectAndFilter) {
+    if (DEPRECATE_PROJECT_AND_FILTER) {
       final RelOptCluster cluster = child.getCluster();
       RexProgramBuilder builder =
           new RexProgramBuilder(

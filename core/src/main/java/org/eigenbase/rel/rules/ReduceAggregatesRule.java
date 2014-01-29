@@ -38,7 +38,7 @@ public class ReduceAggregatesRule extends RelOptRule {
   /**
    * The singleton.
    */
-  public static final ReduceAggregatesRule instance =
+  public static final ReduceAggregatesRule INSTANCE =
       new ReduceAggregatesRule(operand(AggregateRel.class, any()));
 
   //~ Constructors -----------------------------------------------------------

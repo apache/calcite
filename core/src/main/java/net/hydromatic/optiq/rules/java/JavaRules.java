@@ -30,7 +30,6 @@ import net.hydromatic.linq4j.function.*;
 
 import org.eigenbase.rel.*;
 import org.eigenbase.rel.convert.ConverterRule;
-import org.eigenbase.rel.metadata.RelColumnMapping;
 import org.eigenbase.rel.metadata.RelMetadataQuery;
 import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.*;
@@ -52,8 +51,7 @@ import java.util.logging.Logger;
  * {@link EnumerableConvention enumerable calling convention}.
  */
 public class JavaRules {
-
-  protected static final Logger tracer = EigenbaseTrace.getPlannerTracer();
+  protected static final Logger LOGGER = EigenbaseTrace.getPlannerTracer();
 
   public static final boolean BRIDGE_METHODS = true;
 
@@ -67,6 +65,9 @@ public class JavaRules {
       new EnumerableJoinRule();
 
   public static final String[] LEFT_RIGHT = new String[]{"left", "right"};
+
+  private JavaRules() {
+  }
 
   private static class EnumerableJoinRule extends ConverterRule {
     private EnumerableJoinRule() {
@@ -101,7 +102,7 @@ public class JavaRules {
             join.getJoinType(),
             join.getVariablesStopped());
       } catch (InvalidRelException e) {
-        tracer.warning(e.toString());
+        LOGGER.warning(e.toString());
         return null;
       }
     }
@@ -123,7 +124,7 @@ public class JavaRules {
         RexNode condition,
         JoinRelType joinType,
         Set<String> variablesStopped)
-        throws InvalidRelException {
+      throws InvalidRelException {
       super(
           cluster,
           traits,
@@ -482,7 +483,7 @@ public class JavaRules {
                   .replace(EnumerableConvention.INSTANCE)),
           project.getProjects(),
           project.getRowType(),
-          ProjectRelBase.Flags.Boxed);
+          ProjectRelBase.Flags.BOXED);
     }
   }
 
@@ -820,7 +821,7 @@ public class JavaRules {
             agg.getGroupSet(),
             agg.getAggCallList());
       } catch (InvalidRelException e) {
-        tracer.warning(e.toString());
+        LOGGER.warning(e.toString());
         return null;
       }
     }
@@ -844,7 +845,7 @@ public class JavaRules {
         RelNode child,
         BitSet groupSet,
         List<AggregateCall> aggCalls)
-        throws InvalidRelException {
+      throws InvalidRelException {
       super(cluster, traitSet, child, groupSet, aggCalls);
       assert getConvention() instanceof EnumerableConvention;
 
@@ -1641,7 +1642,7 @@ public class JavaRules {
   }
 
   public static final EnumerableTableModificationRule
-      ENUMERABLE_TABLE_MODIFICATION_RULE =
+  ENUMERABLE_TABLE_MODIFICATION_RULE =
       new EnumerableTableModificationRule();
 
   public static class EnumerableTableModificationRule extends ConverterRule {
@@ -2409,7 +2410,7 @@ public class JavaRules {
   }
 
   public static final EnumerableFilterToCalcRule
-      ENUMERABLE_FILTER_TO_CALC_RULE =
+  ENUMERABLE_FILTER_TO_CALC_RULE =
       new EnumerableFilterToCalcRule();
 
   /** Variant of {@link org.eigenbase.rel.rules.FilterToCalcRule} for
@@ -2445,7 +2446,7 @@ public class JavaRules {
   }
 
   public static final EnumerableProjectToCalcRule
-      ENUMERABLE_PROJECT_TO_CALC_RULE =
+  ENUMERABLE_PROJECT_TO_CALC_RULE =
       new EnumerableProjectToCalcRule();
 
   /** Variant of {@link org.eigenbase.rel.rules.ProjectToCalcRule} for

@@ -36,7 +36,7 @@ import org.eigenbase.rex.*;
 public class RemoveTrivialProjectRule extends RelOptRule {
   //~ Static fields/initializers ---------------------------------------------
 
-  public static final RemoveTrivialProjectRule instance =
+  public static final RemoveTrivialProjectRule INSTANCE =
       new RemoveTrivialProjectRule();
 
   //~ Constructors -----------------------------------------------------------
@@ -45,13 +45,14 @@ public class RemoveTrivialProjectRule extends RelOptRule {
     // Create a specialized operand to detect non-matches early. This keeps
     // the rule queue short.
     super(
-        new RelOptRuleOperand(ProjectRel.class, null, any()) {
-          @Override
-          public boolean matches(RelNode rel) {
-            return super.matches(rel)
-                && isTrivial((ProjectRel) rel);
-          }
-        });
+      new RelOptRuleOperand(ProjectRel.class, null, any()) {
+        @Override
+        public boolean matches(RelNode rel) {
+          return super.matches(rel)
+              && isTrivial((ProjectRel) rel);
+        }
+      }
+    );
   }
 
   //~ Methods ----------------------------------------------------------------

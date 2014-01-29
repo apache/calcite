@@ -15,7 +15,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 */
-package org.eigenbase.sql.advise;
 
 /**
  * Provides hints and corrections for editing SQL statements.
@@ -26,5 +25,6 @@ package org.eigenbase.sql.advise;
  * <p>The advisor uses the validation and parser framework set up in
  * <code>org.eigenbase.sql.validate</code> package.
 */
+package org.eigenbase.sql.advise;
 
 // End package-info.java

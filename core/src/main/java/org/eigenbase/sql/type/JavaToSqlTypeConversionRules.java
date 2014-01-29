@@ -31,7 +31,7 @@ import com.google.common.collect.ImmutableMap;
 public class JavaToSqlTypeConversionRules {
   //~ Static fields/initializers ---------------------------------------------
 
-  private static final JavaToSqlTypeConversionRules instance =
+  private static final JavaToSqlTypeConversionRules INSTANCE =
       new JavaToSqlTypeConversionRules();
 
   //~ Instance fields --------------------------------------------------------
@@ -77,7 +77,7 @@ public class JavaToSqlTypeConversionRules {
    * singleton} instance.
    */
   public static JavaToSqlTypeConversionRules instance() {
-    return instance;
+    return INSTANCE;
   }
 
   /**

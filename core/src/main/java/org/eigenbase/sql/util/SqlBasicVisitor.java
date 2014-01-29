@@ -88,7 +88,7 @@ public class SqlBasicVisitor<R> implements SqlVisitor<R> {
     // REVIEW jvs 16-June-2006:  This doesn't actually work, because it
     // is type-erased, and if you try to add <R>, you get the error
     // "non-static class R cannot be referenced from a static context."
-    public static final ArgHandler instance = new ArgHandlerImpl();
+    public static final ArgHandler INSTANCE = new ArgHandlerImpl();
 
     public R result() {
       return null;

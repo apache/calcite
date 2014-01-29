@@ -23,8 +23,7 @@ import java.util.Comparator;
  * Comparator that uses the natural ordering of [@link Comparable} values.
  */
 public final class ComparableComparator<T extends Comparable>
-    implements Comparator<T>
-{
+    implements Comparator<T> {
   private static final ComparableComparator INSTANCE =
       new ComparableComparator();
 

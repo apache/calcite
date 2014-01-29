@@ -405,7 +405,8 @@ public class RexProgramBuilder {
   }
 
   private void generateMissingNames() {
-    int i = -1, j = 0;
+    int i = -1;
+    int j = 0;
     for (String projectName : projectNameList) {
       ++i;
       if (projectName == null) {

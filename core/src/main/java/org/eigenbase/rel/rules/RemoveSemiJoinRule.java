@@ -27,7 +27,7 @@ import org.eigenbase.relopt.*;
  * after attempts have been made to convert SemiJoinRels.
  */
 public class RemoveSemiJoinRule extends RelOptRule {
-  public static final RemoveSemiJoinRule instance =
+  public static final RemoveSemiJoinRule INSTANCE =
       new RemoveSemiJoinRule();
 
   //~ Constructors -----------------------------------------------------------

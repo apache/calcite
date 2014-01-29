@@ -15,10 +15,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 */
-package org.eigenbase.sql.test;
 
 /**
  * Regression tests for the SQL model.
  */
+package org.eigenbase.sql.test;
 
 // End package-info.java

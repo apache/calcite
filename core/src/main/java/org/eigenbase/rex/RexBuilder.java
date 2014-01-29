@@ -608,8 +608,8 @@ public class RexBuilder {
    * @return an integer representation of the decimal value
    */
   public RexNode decodeIntervalOrDecimal(RexNode node) {
-    assert (SqlTypeUtil.isDecimal(node.getType())
-        || SqlTypeUtil.isInterval(node.getType()));
+    assert SqlTypeUtil.isDecimal(node.getType())
+        || SqlTypeUtil.isInterval(node.getType());
     RelDataType bigintType = typeFactory.createSqlType(SqlTypeName.BIGINT);
     return makeReinterpretCast(
         matchNullability(bigintType, node), node, makeLiteral(false));
@@ -783,8 +783,8 @@ public class RexBuilder {
     RelDataType relType;
     int scale = bd.scale();
     long l = bd.unscaledValue().longValue();
-    assert ((scale >= 0) && (scale <= SqlTypeName.MAX_NUMERIC_SCALE));
-    assert (BigDecimal.valueOf(l, scale).equals(bd));
+    assert (scale >= 0) && (scale <= SqlTypeName.MAX_NUMERIC_SCALE);
+    assert BigDecimal.valueOf(l, scale).equals(bd);
     if (scale == 0) {
       if ((l >= Integer.MIN_VALUE) && (l <= Integer.MAX_VALUE)) {
         relType = typeFactory.createSqlType(SqlTypeName.INTEGER);

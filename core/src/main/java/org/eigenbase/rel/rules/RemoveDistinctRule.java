@@ -25,7 +25,7 @@ import org.eigenbase.relopt.*;
  * underlying relational expression is already distinct.
  */
 public class RemoveDistinctRule extends RelOptRule {
-  public static final RemoveDistinctRule instance =
+  public static final RemoveDistinctRule INSTANCE =
       new RemoveDistinctRule();
 
   //~ Constructors -----------------------------------------------------------

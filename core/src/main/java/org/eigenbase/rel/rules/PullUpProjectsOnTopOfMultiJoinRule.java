@@ -50,38 +50,28 @@ public class PullUpProjectsOnTopOfMultiJoinRule
     extends PullUpProjectsAboveJoinRule {
   //~ Static fields/initializers ---------------------------------------------
 
-  public static final PullUpProjectsOnTopOfMultiJoinRule
-      instanceTwoProjectChildren =
+  public static final PullUpProjectsOnTopOfMultiJoinRule MULTI_BOTH_PROJECT =
       new PullUpProjectsOnTopOfMultiJoinRule(
-          operand(
-              JoinRel.class,
-              operand(
-                  ProjectRel.class,
+          operand(JoinRel.class,
+              operand(ProjectRel.class,
                   operand(MultiJoinRel.class, any())),
-              operand(
-                  ProjectRel.class,
+              operand(ProjectRel.class,
                   operand(MultiJoinRel.class, any()))),
           "PullUpProjectsOnTopOfMultiJoinRule: with two ProjectRel children");
 
-  public static final PullUpProjectsOnTopOfMultiJoinRule
-      instanceLeftProjectChild =
+  public static final PullUpProjectsOnTopOfMultiJoinRule MULTI_LEFT_PROJECT =
       new PullUpProjectsOnTopOfMultiJoinRule(
-          operand(
-              JoinRel.class,
+          operand(JoinRel.class,
               some(
-                  operand(
-                      ProjectRel.class,
+                  operand(ProjectRel.class,
                       operand(MultiJoinRel.class, any())))),
           "PullUpProjectsOnTopOfMultiJoinRule: with ProjectRel on left");
 
-  public static final PullUpProjectsOnTopOfMultiJoinRule
-      instanceRightProjectChild =
+  public static final PullUpProjectsOnTopOfMultiJoinRule MULTI_RIGHT_PROJECT =
       new PullUpProjectsOnTopOfMultiJoinRule(
-          operand(
-              JoinRel.class,
+          operand(JoinRel.class,
               operand(RelNode.class, any()),
-              operand(
-                  ProjectRel.class,
+              operand(ProjectRel.class,
                   operand(MultiJoinRel.class, any()))),
           "PullUpProjectsOnTopOfMultiJoinRule: with ProjectRel on right");
 
@@ -97,7 +87,7 @@ public class PullUpProjectsOnTopOfMultiJoinRule
 
   // override PullUpProjectsAboveJoinRule
   protected boolean hasLeftChild(RelOptRuleCall call) {
-    return (call.rels.length != 4);
+    return call.rels.length != 4;
   }
 
   // override PullUpProjectsAboveJoinRule

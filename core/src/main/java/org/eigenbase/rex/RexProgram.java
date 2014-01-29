@@ -555,7 +555,7 @@ public class RexProgram {
         targets[source] = i;
       }
     }
-    loop:
+  loop:
     for (RelCollation collation : inputCollations) {
       final ArrayList<RelFieldCollation> fieldCollations =
           new ArrayList<RelFieldCollation>(0);

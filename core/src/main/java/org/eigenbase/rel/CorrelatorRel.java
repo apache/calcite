@@ -102,7 +102,7 @@ public final class CorrelatorRel extends JoinRelBase {
   public CorrelatorRel(RelInput input) {
     this(
         input.getCluster(), input.getInputs().get(0),
-        input.getInputs().get((1)), getCorrelations(input),
+        input.getInputs().get(1), getCorrelations(input),
         input.getEnum("joinType", JoinRelType.class));
   }
 
@@ -196,7 +196,7 @@ public final class CorrelatorRel extends JoinRelBase {
     }
 
     public int compareTo(Correlation other) {
-      return (id - other.id);
+      return id - other.id;
     }
   }
 }

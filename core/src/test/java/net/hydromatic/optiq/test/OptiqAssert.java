@@ -120,7 +120,7 @@ public class OptiqAssert {
 
         @Override
         public <T> AssertThat doWithConnection(Function1<OptiqConnection, T> fn)
-            throws Exception {
+          throws Exception {
           return this;
         }
 
@@ -279,7 +279,7 @@ public class OptiqAssert {
   }
 
   private static String typeString(ResultSetMetaData metaData)
-      throws SQLException {
+    throws SQLException {
     final List<String> list = new ArrayList<String>();
     for (int i = 0; i < metaData.getColumnCount(); i++) {
       list.add(
@@ -299,8 +299,7 @@ public class OptiqAssert {
       int limit,
       boolean materializationsEnabled,
       Function1<ResultSet, Void> resultChecker,
-      Function1<Throwable, Void> exceptionChecker)
-      throws Exception {
+      Function1<Throwable, Void> exceptionChecker) throws Exception {
     final String message =
         "With materializationsEnabled=" + materializationsEnabled
         + ", limit=" + limit;
@@ -392,7 +391,7 @@ public class OptiqAssert {
   }
 
   static ImmutableMultiset<String> toSet(ResultSet resultSet)
-      throws SQLException {
+    throws SQLException {
     return ImmutableMultiset.copyOf(
         toStringList(resultSet, new ArrayList<String>()));
   }
@@ -400,7 +399,7 @@ public class OptiqAssert {
   /** Calls a non-static method via reflection. Useful for testing methods that
    * don't exist in certain versions of the JDK. */
   static Object call(Object o, String methodName, Object... args)
-      throws NoSuchMethodException, InvocationTargetException,
+    throws NoSuchMethodException, InvocationTargetException,
       IllegalAccessException {
     return method(o, methodName, args).invoke(o, args);
   }
@@ -409,7 +408,7 @@ public class OptiqAssert {
    * Throws if not found. */
   static Method method(Object o, String methodName, Object[] args) {
     for (Class<?> aClass = o.getClass();;) {
-      loop:
+    loop:
       for (Method method1 : aClass.getMethods()) {
         if (method1.getName().equals(methodName)
             && method1.getParameterTypes().length == args.length
@@ -439,7 +438,7 @@ public class OptiqAssert {
   }
 
   static OptiqConnection getConnection(String... schema)
-      throws ClassNotFoundException, SQLException {
+    throws ClassNotFoundException, SQLException {
     final List<String> schemaList = Arrays.asList(schema);
     Class.forName("net.hydromatic.optiq.jdbc.Driver");
     String suffix = schemaList.contains("spark") ? "spark=true" : "";
@@ -482,7 +481,7 @@ public class OptiqAssert {
    * @throws java.sql.SQLException
    */
   static OptiqConnection getConnection(boolean withClone)
-      throws ClassNotFoundException, SQLException {
+    throws ClassNotFoundException, SQLException {
     Class.forName("net.hydromatic.optiq.jdbc.Driver");
     Connection connection = DriverManager.getConnection("jdbc:optiq:");
     OptiqConnection optiqConnection =
@@ -646,7 +645,7 @@ public class OptiqAssert {
 
     /** Creates a {@link OptiqConnection} and executes a callback. */
     public <T> AssertThat doWithConnection(Function1<OptiqConnection, T> fn)
-        throws Exception {
+      throws Exception {
       Connection connection = connectionFactory.createConnection();
       try {
         T t = fn.apply((OptiqConnection) connection);
@@ -659,7 +658,7 @@ public class OptiqAssert {
 
     /** Creates a {@link DataContext} and executes a callback. */
     public <T> AssertThat doWithDataContext(Function1<DataContext, T> fn)
-        throws Exception {
+      throws Exception {
       OptiqConnection connection = connectionFactory.createConnection();
       final DataContext dataContext = MetaImpl.createDataContext(connection);
       try {

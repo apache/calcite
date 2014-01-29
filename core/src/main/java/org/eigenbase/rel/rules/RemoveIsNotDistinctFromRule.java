@@ -29,10 +29,8 @@ import org.eigenbase.sql.fun.*;
 public final class RemoveIsNotDistinctFromRule extends RelOptRule {
   //~ Static fields/initializers ---------------------------------------------
 
-  /**
-   * The singleton.
-   */
-  public static final RemoveIsNotDistinctFromRule instance =
+  /** The singleton. */
+  public static final RemoveIsNotDistinctFromRule INSTANCE =
       new RemoveIsNotDistinctFromRule();
 
   //~ Constructors -----------------------------------------------------------

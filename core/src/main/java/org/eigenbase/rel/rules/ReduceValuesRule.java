@@ -43,7 +43,7 @@ import org.eigenbase.util.Util;
 public abstract class ReduceValuesRule extends RelOptRule {
   //~ Static fields/initializers ---------------------------------------------
 
-  private static final Logger tracer = EigenbaseTrace.getPlannerTracer();
+  private static final Logger LOGGER = EigenbaseTrace.getPlannerTracer();
 
   /**
    * Instance of this rule that applies to the pattern
@@ -104,7 +104,7 @@ public abstract class ReduceValuesRule extends RelOptRule {
    */
   private ReduceValuesRule(RelOptRuleOperand operand, String desc) {
     super(operand, desc);
-    Util.discard(tracer);
+    Util.discard(LOGGER);
   }
 
   //~ Methods ----------------------------------------------------------------

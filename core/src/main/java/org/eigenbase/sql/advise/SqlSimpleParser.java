@@ -190,7 +190,7 @@ public class SqlSimpleParser {
     boolean isQuery = false;
     int start = outList.size();
     List<Token> subqueryList = new ArrayList<Token>();
-    loop:
+  loop:
     while (iter.hasNext()) {
       Token token = iter.next();
       subqueryList.add(token);

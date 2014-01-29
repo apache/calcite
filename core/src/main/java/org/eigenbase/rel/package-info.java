@@ -15,7 +15,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 */
-package org.eigenbase.rel;
 
 /**
  * Defines relational expressions.
@@ -36,5 +35,6 @@ package org.eigenbase.rel;
  *     </li>
  * </ul>
  */
+package org.eigenbase.rel;
 
 // End package-info.java

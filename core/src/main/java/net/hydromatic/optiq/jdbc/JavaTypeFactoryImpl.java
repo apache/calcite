@@ -47,10 +47,9 @@ import java.util.*;
  */
 public class JavaTypeFactoryImpl
     extends SqlTypeFactoryImpl
-    implements JavaTypeFactory
-{
+    implements JavaTypeFactory {
   private final Map<List<Pair<Type, Boolean>>, SyntheticRecordType>
-      syntheticTypes =
+  syntheticTypes =
       new HashMap<List<Pair<Type, Boolean>>, SyntheticRecordType>();
 
   public RelDataType createStructType(Class type) {
@@ -111,7 +110,7 @@ public class JavaTypeFactoryImpl
       if (type instanceof JavaRecordType) {
         return ((JavaRecordType) type).clazz;
       } else {
-        return createSyntheticType((RelRecordType)type);
+        return createSyntheticType((RelRecordType) type);
       }
     case MAP:
       return Map.class;
@@ -248,6 +247,7 @@ public class JavaTypeFactoryImpl
     return register(syntheticType);
   }
 
+  /** Synthetic record type. */
   public static class SyntheticRecordType implements Types.RecordType {
     final List<Types.RecordField> fields =
         new ArrayList<Types.RecordField>();
@@ -275,6 +275,7 @@ public class JavaTypeFactoryImpl
     }
   }
 
+  /** Implementation of a field. */
   private static class RecordFieldImpl implements Types.RecordField {
     private final SyntheticRecordType syntheticType;
     private final String name;

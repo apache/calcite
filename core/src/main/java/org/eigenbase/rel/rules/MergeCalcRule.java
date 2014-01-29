@@ -29,7 +29,7 @@ import org.eigenbase.rex.*;
 public class MergeCalcRule extends RelOptRule {
   //~ Static fields/initializers ---------------------------------------------
 
-  public static final MergeCalcRule instance = new MergeCalcRule();
+  public static final MergeCalcRule INSTANCE = new MergeCalcRule();
 
   //~ Constructors -----------------------------------------------------------
 

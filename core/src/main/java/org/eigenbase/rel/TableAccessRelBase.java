@@ -147,7 +147,7 @@ public abstract class TableAccessRelBase extends AbstractRelNode {
         this,
         exprList,
         nameList,
-        ProjectRel.Flags.Boxed);
+        ProjectRel.Flags.BOXED);
   }
 
   @Override

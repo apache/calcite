@@ -17,14 +17,7 @@
 */
 package org.eigenbase.sql.fun;
 
-import java.util.List;
-
-import org.eigenbase.reltype.RelDataType;
-import org.eigenbase.reltype.RelDataTypeFactory;
-import org.eigenbase.resource.EigenbaseResource;
 import org.eigenbase.sql.*;
-import org.eigenbase.sql.type.SqlTypeStrategies;
-import org.eigenbase.sql.type.SqlTypeUtil;
 import org.eigenbase.sql.validate.*;
 
 /**

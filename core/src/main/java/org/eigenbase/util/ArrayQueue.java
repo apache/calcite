@@ -299,7 +299,7 @@ public class ArrayQueue<E>
    *                   #size()}.
    */
   private void copyQueueToArray(E[] otherQueue) {
-    assert (otherQueue.length >= size());
+    assert otherQueue.length >= size();
 
     if (end < start) {
       System.arraycopy(queue, start, otherQueue, 0, capacity - start);

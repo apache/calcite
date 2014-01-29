@@ -29,7 +29,7 @@ import org.eigenbase.rex.*;
  * only the {@link RexInputRef}s referenced in the original {@link ProjectRel}.
  */
 public class PushProjectPastSetOpRule extends RelOptRule {
-  public static final PushProjectPastSetOpRule instance =
+  public static final PushProjectPastSetOpRule INSTANCE =
       new PushProjectPastSetOpRule(PushProjector.ExprCondition.FALSE);
 
   //~ Instance fields --------------------------------------------------------

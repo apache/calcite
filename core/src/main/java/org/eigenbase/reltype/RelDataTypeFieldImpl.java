@@ -39,8 +39,8 @@ public class RelDataTypeFieldImpl implements RelDataTypeField, Serializable {
       String name,
       int index,
       RelDataType type) {
-    assert (name != null);
-    assert (type != null);
+    assert name != null;
+    assert type != null;
     this.name = name;
     this.index = index;
     this.type = type;

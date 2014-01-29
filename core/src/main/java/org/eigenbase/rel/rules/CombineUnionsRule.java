@@ -25,11 +25,11 @@ import org.eigenbase.relopt.*;
 import org.eigenbase.util.Util;
 
 /**
- * CombineUnionsRule implements the rule for combining two non-distinct {@link
- * UnionRel}s into a single {@link UnionRel}.
+ * CombineUnionsRule implements the rule for combining two non-distinct
+ * {@link UnionRel}s into a single {@link UnionRel}.
  */
 public class CombineUnionsRule extends RelOptRule {
-  public static final CombineUnionsRule instance =
+  public static final CombineUnionsRule INSTANCE =
       new CombineUnionsRule();
 
   //~ Constructors -----------------------------------------------------------

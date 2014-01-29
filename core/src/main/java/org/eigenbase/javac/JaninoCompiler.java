@@ -56,9 +56,9 @@ public class JaninoCompiler implements JavaCompiler {
     // class and its callers to specify all code to compile in one
     // go, we could probably just use a single AccountingClassLoader.
 
-    assert (args.destdir != null);
-    assert (args.fullClassName != null);
-    assert (args.source != null);
+    assert args.destdir != null;
+    assert args.fullClassName != null;
+    assert args.source != null;
 
     ClassLoader parentClassLoader = args.getClassLoader();
     if (classLoader != null) {
@@ -154,7 +154,7 @@ public class JaninoCompiler implements JavaCompiler {
 
     // override JavaSourceClassLoader
     public Map generateBytecodes(String name)
-        throws ClassNotFoundException {
+      throws ClassNotFoundException {
       Map<String, byte[]> map = super.generateBytecodes(name);
       if (map == null) {
         return map;

@@ -95,6 +95,7 @@ public class MaterializedViewTable extends ViewTable {
     return super.toRel(context, relOptTable);
   }
 
+  /** Table function that returns the table that materializes a view. */
   public static class MaterializedViewTableFunction
       extends ViewTableFunction {
     private final MaterializationKey key;

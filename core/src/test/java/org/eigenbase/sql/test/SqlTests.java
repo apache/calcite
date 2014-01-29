@@ -126,8 +126,7 @@ public abstract class SqlTests {
    */
   public static void compareResultSet(
       ResultSet resultSet,
-      Set<String> refSet)
-      throws Exception {
+      Set<String> refSet) throws Exception {
     Set<String> actualSet = new HashSet<String>();
     while (resultSet.next()) {
       String s = resultSet.getString(1);
@@ -146,8 +145,7 @@ public abstract class SqlTests {
    */
   public static void compareResultSetWithPattern(
       ResultSet resultSet,
-      Pattern pattern)
-      throws Exception {
+      Pattern pattern) throws Exception {
     if (!resultSet.next()) {
       Assert.fail("Query returned 0 rows, expected 1");
     }
@@ -173,8 +171,7 @@ public abstract class SqlTests {
   public static void compareResultSetWithDelta(
       ResultSet resultSet,
       double expected,
-      double delta)
-      throws Exception {
+      double delta) throws Exception {
     if (!resultSet.next()) {
       Assert.fail("Query returned 0 rows, expected 1");
     }
@@ -200,8 +197,7 @@ public abstract class SqlTests {
    */
   public static void compareResultList(
       ResultSet resultSet,
-      List<String> refList)
-      throws Exception {
+      List<String> refList) throws Exception {
     List<String> actualSet = new ArrayList<String>();
     while (resultSet.next()) {
       String s = resultSet.getString(1);
@@ -222,8 +218,7 @@ public abstract class SqlTests {
    */
   public static void compareResultLists(
       ResultSet resultSet,
-      List<String>... refLists)
-      throws Exception {
+      List<String>... refLists) throws Exception {
     int numExpectedColumns = refLists.length;
 
     Assert.assertTrue(numExpectedColumns > 0);

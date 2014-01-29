@@ -34,7 +34,7 @@ import com.google.common.collect.ImmutableList;
  * two inputs.
  */
 public class PullUpAggregateAboveUnionRule extends RelOptRule {
-  public static final PullUpAggregateAboveUnionRule instance =
+  public static final PullUpAggregateAboveUnionRule INSTANCE =
       new PullUpAggregateAboveUnionRule();
 
   //~ Constructors -----------------------------------------------------------

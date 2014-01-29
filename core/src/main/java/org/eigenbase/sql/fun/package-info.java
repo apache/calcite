@@ -15,7 +15,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 */
-package org.eigenbase.sql.fun;
 
 /**
  * Defines the set of standard SQL row-level functions and
@@ -29,5 +28,6 @@ package org.eigenbase.sql.fun;
  * which are not row-level (e.g. select and join) should be defined in package
  * {@link org.eigenbase.sql} instead.</p>
  */
+package org.eigenbase.sql.fun;
 
 // End package-info.java

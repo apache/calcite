@@ -295,7 +295,7 @@ public abstract class AvaticaConnection implements Connection {
   }
 
   public void setClientInfo(Properties properties)
-      throws SQLClientInfoException {
+    throws SQLClientInfoException {
     throw new UnsupportedOperationException();
   }
 

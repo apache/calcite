@@ -224,7 +224,7 @@ public class RexToLixTranslator {
     }
     // Going from anything to CHAR(n) or VARCHAR(n), make sure value is no
     // longer than n.
-    truncate:
+  truncate:
     switch (targetType.getSqlTypeName()) {
     case CHAR:
     case VARCHAR:
@@ -422,9 +422,9 @@ public class RexToLixTranslator {
               ((ByteString) value).getBytes(),
               byte[].class));
     case SYMBOL:
-        value2 = value;
-        javaClass = value.getClass();
-        break;
+      value2 = value;
+      javaClass = value.getClass();
+      break;
     default:
       final Primitive primitive = Primitive.ofBoxOr(javaClass);
       if (primitive != null && value instanceof Number) {

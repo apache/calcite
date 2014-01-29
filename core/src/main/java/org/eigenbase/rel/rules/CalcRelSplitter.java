@@ -51,7 +51,7 @@ import net.hydromatic.optiq.util.graph.*;
 public abstract class CalcRelSplitter {
   //~ Static fields/initializers ---------------------------------------------
 
-  private static final Logger ruleTracer = RelOptPlanner.tracer;
+  private static final Logger RULE_LOGGER = RelOptPlanner.LOGGER;
 
   //~ Instance fields --------------------------------------------------------
 
@@ -126,7 +126,7 @@ public abstract class CalcRelSplitter {
     }
 
     // Print out what we've got.
-    if (ruleTracer.isLoggable(Level.FINER)) {
+    if (RULE_LOGGER.isLoggable(Level.FINER)) {
       traceLevelExpressions(
           exprs,
           exprLevels,
@@ -293,8 +293,8 @@ public abstract class CalcRelSplitter {
 
       // Try to implement this expression at this level.
       // If that is not possible, try to implement it at higher levels.
-      levelLoop:
-      for (; ; ++level) {
+    levelLoop:
+      for (;; ++level) {
         if (level >= levelCount) {
           // This is a new level. We can use any reltype we like.
           for (
@@ -625,7 +625,7 @@ public abstract class CalcRelSplitter {
       traceWriter.println();
     }
     String msg = traceMsg.toString();
-    ruleTracer.finer(msg);
+    RULE_LOGGER.finer(msg);
   }
 
   /**
@@ -809,28 +809,28 @@ public abstract class CalcRelSplitter {
 
     public Void visitCall(RexCall call) {
       if (!relType.canImplement(call)) {
-        throw CannotImplement.instance;
+        throw CannotImplement.INSTANCE;
       }
       return null;
     }
 
     public Void visitDynamicParam(RexDynamicParam dynamicParam) {
       if (!relType.canImplement(dynamicParam)) {
-        throw CannotImplement.instance;
+        throw CannotImplement.INSTANCE;
       }
       return null;
     }
 
     public Void visitFieldAccess(RexFieldAccess fieldAccess) {
       if (!relType.canImplement(fieldAccess)) {
-        throw CannotImplement.instance;
+        throw CannotImplement.INSTANCE;
       }
       return null;
     }
 
     public Void visitLiteral(RexLiteral literal) {
       if (!relType.canImplement(literal)) {
-        throw CannotImplement.instance;
+        throw CannotImplement.INSTANCE;
       }
       return null;
     }
@@ -840,7 +840,7 @@ public abstract class CalcRelSplitter {
    * Control exception for {@link ImplementTester}.
    */
   private static class CannotImplement extends RuntimeException {
-    static final CannotImplement instance = new CannotImplement();
+    static final CannotImplement INSTANCE = new CannotImplement();
   }
 
   /**

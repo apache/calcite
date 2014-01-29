@@ -43,7 +43,7 @@ import net.hydromatic.optiq.util.graph.*;
 public class ConventionTraitDef extends RelTraitDef<Convention> {
   //~ Static fields/initializers ---------------------------------------------
 
-  public static final ConventionTraitDef instance =
+  public static final ConventionTraitDef INSTANCE =
       new ConventionTraitDef();
 
   //~ Instance fields --------------------------------------------------------
@@ -53,7 +53,8 @@ public class ConventionTraitDef extends RelTraitDef<Convention> {
    * the planner goes away, so does the map entry.
    */
   private final WeakHashMap<RelOptPlanner, ConversionData>
-      plannerConversionMap = new WeakHashMap<RelOptPlanner, ConversionData>();
+  plannerConversionMap =
+      new WeakHashMap<RelOptPlanner, ConversionData>();
 
   //~ Constructors -----------------------------------------------------------
 
@@ -128,7 +129,7 @@ public class ConventionTraitDef extends RelTraitDef<Convention> {
     List<List<Convention>> conversionPaths =
         conversionData.getPaths(fromConvention, toConvention);
 
-    loop:
+  loop:
     for (List<Convention> conversionPath : conversionPaths) {
       assert conversionPath.get(0) == fromConvention;
       assert conversionPath.get(conversionPath.size() - 1)
@@ -217,8 +218,9 @@ public class ConventionTraitDef extends RelTraitDef<Convention> {
      * collection of {@link ConverterRule} objects.
      */
     final Multimap<Pair<Convention, Convention>, ConverterRule>
-        mapArcToConverterRule =
+    mapArcToConverterRule =
         HashMultimap.create();
+
     private Graphs.FrozenGraph<Convention, DefaultEdge> pathMap;
 
     public List<List<Convention>> getPaths(

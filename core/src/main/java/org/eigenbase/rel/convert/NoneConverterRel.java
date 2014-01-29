@@ -35,7 +35,7 @@ public class NoneConverterRel extends ConverterRelImpl {
       RelNode child) {
     super(
         cluster,
-        ConventionTraitDef.instance,
+        ConventionTraitDef.INSTANCE,
         cluster.traitSetOf(Convention.NONE),
         child);
   }

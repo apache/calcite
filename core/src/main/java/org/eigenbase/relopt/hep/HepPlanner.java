@@ -157,7 +157,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
 
   // implement RelOptPlanner
   public RelNode findBestExp() {
-    assert (root != null);
+    assert root != null;
 
     executeProgram(mainProgram);
 
@@ -190,16 +190,16 @@ public class HepPlanner extends AbstractRelOptPlanner {
 
   void executeInstruction(
       HepInstruction.MatchLimit instruction) {
-    if (tracer.isLoggable(Level.FINEST)) {
-      tracer.finest("Setting match limit to " + instruction.limit);
+    if (LOGGER.isLoggable(Level.FINEST)) {
+      LOGGER.finest("Setting match limit to " + instruction.limit);
     }
     currentProgram.matchLimit = instruction.limit;
   }
 
   void executeInstruction(
       HepInstruction.MatchOrder instruction) {
-    if (tracer.isLoggable(Level.FINEST)) {
-      tracer.finest("Setting match limit to " + instruction.order);
+    if (LOGGER.isLoggable(Level.FINEST)) {
+      LOGGER.finest("Setting match limit to " + instruction.order);
     }
     currentProgram.matchOrder = instruction.order;
   }
@@ -210,11 +210,11 @@ public class HepPlanner extends AbstractRelOptPlanner {
       return;
     }
     if (instruction.rule == null) {
-      assert (instruction.ruleDescription != null);
+      assert instruction.ruleDescription != null;
       instruction.rule =
           getRuleByDescription(instruction.ruleDescription);
-      if (tracer.isLoggable(Level.FINEST)) {
-        tracer.finest(
+      if (LOGGER.isLoggable(Level.FINEST)) {
+        LOGGER.finest(
             "Looking up rule with description "
             + instruction.ruleDescription
             + ", found " + instruction.rule);
@@ -232,8 +232,8 @@ public class HepPlanner extends AbstractRelOptPlanner {
     if (skippingGroup()) {
       return;
     }
-    if (tracer.isLoggable(Level.FINEST)) {
-      tracer.finest("Applying rule class " + instruction.ruleClass);
+    if (LOGGER.isLoggable(Level.FINEST)) {
+      LOGGER.finest("Applying rule class " + instruction.ruleClass);
     }
     if (instruction.ruleSet == null) {
       instruction.ruleSet = new LinkedHashSet<RelOptRule>();
@@ -266,7 +266,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
 
   void executeInstruction(
       HepInstruction.ConverterRules instruction) {
-    assert (currentProgram.group == null);
+    assert currentProgram.group == null;
     if (instruction.ruleSet == null) {
       instruction.ruleSet = new LinkedHashSet<RelOptRule>();
       for (RelOptRule rule : allRules) {
@@ -290,7 +290,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
   }
 
   void executeInstruction(HepInstruction.CommonRelSubExprRules instruction) {
-    assert (currentProgram.group == null);
+    assert currentProgram.group == null;
     if (instruction.ruleSet == null) {
       instruction.ruleSet = new LinkedHashSet<RelOptRule>();
       for (RelOptRule rule : allRules) {
@@ -305,7 +305,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
 
   void executeInstruction(
       HepInstruction.Subprogram instruction) {
-    tracer.finest("Entering subprogram");
+    LOGGER.finest("Entering subprogram");
     for (;;) {
       int nTransformationsBefore = nTransformations;
       executeProgram(instruction.subprogram);
@@ -314,40 +314,40 @@ public class HepPlanner extends AbstractRelOptPlanner {
         break;
       }
     }
-    tracer.finest("Leaving subprogram");
+    LOGGER.finest("Leaving subprogram");
   }
 
   void executeInstruction(
       HepInstruction.BeginGroup instruction) {
-    assert (currentProgram.group == null);
+    assert currentProgram.group == null;
     currentProgram.group = instruction.endGroup;
-    tracer.finest("Entering group");
+    LOGGER.finest("Entering group");
   }
 
   void executeInstruction(
       HepInstruction.EndGroup instruction) {
-    assert (currentProgram.group == instruction);
+    assert currentProgram.group == instruction;
     currentProgram.group = null;
     instruction.collecting = false;
     applyRules(instruction.ruleSet, true);
-    tracer.finest("Leaving group");
+    LOGGER.finest("Leaving group");
   }
 
   private void applyRules(
       Collection<RelOptRule> rules,
       boolean forceConversions) {
     if (currentProgram.group != null) {
-      assert (currentProgram.group.collecting);
+      assert currentProgram.group.collecting;
       currentProgram.group.ruleSet.addAll(rules);
       return;
     }
 
-    if (tracer.isLoggable(Level.FINEST)) {
-      tracer.finest("Applying rule set " + rules);
+    if (LOGGER.isLoggable(Level.FINEST)) {
+      LOGGER.finest("Applying rule set " + rules);
     }
 
     boolean fullRestartAfterTransformation =
-        (currentProgram.matchOrder != HepMatchOrder.ARBITRARY);
+        currentProgram.matchOrder != HepMatchOrder.ARBITRARY;
 
     int nMatches = 0;
 
@@ -608,7 +608,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
     // global cost rather than the best local cost.  That requires
     // "tentative" graph edits.
 
-    assert (!call.getResults().isEmpty());
+    assert !call.getResults().isEmpty();
 
     RelNode bestRel = null;
 
@@ -620,8 +620,8 @@ public class HepPlanner extends AbstractRelOptPlanner {
       RelOptCost bestCost = null;
       for (RelNode rel : call.getResults()) {
         RelOptCost thisCost = getCost(rel);
-        if (tracer.isLoggable(Level.FINER)) {
-          tracer.finer(
+        if (LOGGER.isLoggable(Level.FINER)) {
+          LOGGER.finer(
               "considering " + rel + " with cumulative cost="
               + thisCost + " and rowcount="
               + RelMetadataQuery.getRowCount(rel));
@@ -856,7 +856,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
     }
     nTransformationsLastGC = nTransformations;
 
-    tracer.finest("collecting garbage");
+    LOGGER.finest("collecting garbage");
 
     // Yer basic mark-and-sweep.
     Set<HepRelVertex> rootSet = new HashSet<HepRelVertex>();
@@ -880,7 +880,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
         notifyDiscard(rel);
       }
     }
-    assert (!sweepSet.isEmpty());
+    assert !sweepSet.isEmpty();
     graph.removeAllVertices(sweepSet);
     graphSizeLastGC = graph.vertexSet().size();
 
@@ -910,7 +910,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
   }
 
   private void dumpGraph() {
-    if (!tracer.isLoggable(Level.FINER)) {
+    if (!LOGGER.isLoggable(Level.FINER)) {
       return;
     }
 
@@ -937,7 +937,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
       sb.append(Util.lineSeparator);
     }
     sb.append("}");
-    tracer.finer(sb.toString());
+    LOGGER.finer(sb.toString());
   }
 
   // implement RelOptPlanner

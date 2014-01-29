@@ -44,22 +44,22 @@ public class SargIntervalSequence {
    * @return true if this sequence represents a point range.
    */
   public boolean isPoint() {
-    return ((list.size() == 1) && list.get(0).isPoint());
+    return (list.size() == 1) && list.get(0).isPoint();
   }
 
   /**
    * @return true if this sequence represents an empty range.
    */
   public boolean isEmpty() {
-    return ((list.size() == 1) && list.get(0).isEmpty());
+    return (list.size() == 1) && list.get(0).isEmpty();
   }
 
   /**
    * @return true if this sequence represents a non-point, non-empty range.
    */
   public boolean isRange() {
-    return ((list.size() > 1)
-        || ((list.size() == 1) && list.get(0).isRange()));
+    return list.size() > 1
+        || (list.size() == 1 && list.get(0).isRange());
   }
 
   /**

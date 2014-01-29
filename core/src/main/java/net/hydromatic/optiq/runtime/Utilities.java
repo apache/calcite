@@ -24,6 +24,12 @@ import java.util.List;
  * Utility methods called by generated code.
  */
 public class Utilities {
+  // Even though this is a utility class (all methods are static), we cannot
+  // make the constructor private. Because Janino doesn't do static import,
+  // generated code is placed in sub-classes.
+  protected Utilities() {
+  }
+
   public static boolean equal(Object o0, Object o1) {
     return o0 == o1 || o0 != null && o0.equals(o1);
   }
@@ -53,7 +59,7 @@ public class Utilities {
   }
 
   public static int hash(int h, long v) {
-    return h * 37 + (int)(v ^ (v >>> 32));
+    return h * 37 + (int) (v ^ (v >>> 32));
   }
 
   public static int hash(int h, float v) {

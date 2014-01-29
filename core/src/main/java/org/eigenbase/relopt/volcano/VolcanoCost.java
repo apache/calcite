@@ -115,15 +115,19 @@ class VolcanoCost implements RelOptCost {
     return dRows;
   }
 
+  @Override
+  public int hashCode() {
+    return Double.hashCode(dRows)
+        + Double.hashCode(dCpu)
+        + Double.hashCode(dIo);
+  }
+
   public boolean equals(RelOptCost other) {
-    if (!(other instanceof VolcanoCost)) {
-      return false;
-    }
-    VolcanoCost that = (VolcanoCost) other;
-    return (this == that)
-        || ((this.dRows == that.dRows)
-        && (this.dCpu == that.dCpu)
-        && (this.dIo == that.dIo));
+    return this == other
+        || other instanceof VolcanoCost
+        && (this.dRows == ((VolcanoCost) other).dRows)
+        && (this.dCpu == ((VolcanoCost) other).dCpu)
+        && (this.dIo == ((VolcanoCost) other).dIo);
   }
 
   public boolean isEqWithEpsilon(RelOptCost other) {

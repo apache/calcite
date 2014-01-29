@@ -15,11 +15,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 */
-package org.eigenbase.rel.metadata;
 
 /**
  * Defines metadata interfaces and utilities for relational
  * expressions.
  */
+package org.eigenbase.rel.metadata;
 
 // End package-info.java

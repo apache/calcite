@@ -78,8 +78,8 @@ public class VolcanoRuleCall extends RelOptRuleCall {
 
   // implement RelOptRuleCall
   public void transformTo(RelNode rel, Map<RelNode, RelNode> equiv) {
-    if (tracer.isLoggable(Level.FINE)) {
-      tracer.fine(
+    if (LOGGER.isLoggable(Level.FINE)) {
+      LOGGER.fine(
           "Transform to: rel#" + rel.getId() + " via " + getRule()
           + (equiv.isEmpty() ? "" : " with equivalences " + equiv));
       if (generatedRelList != null) {
@@ -98,12 +98,12 @@ public class VolcanoRuleCall extends RelOptRuleCall {
           getPlanner(),
           rels0Traits).go(rel);
 
-      if (tracer.isLoggable(Level.FINEST)) {
+      if (LOGGER.isLoggable(Level.FINEST)) {
         // Cannot call RelNode.toString() yet, because rel has not
         // been registered. For now, let's make up something similar.
         String relDesc =
             "rel#" + rel.getId() + ":" + rel.getRelTypeName();
-        tracer.finest(
+        LOGGER.finest(
             "call#" + id
             + ": Rule " + getRule() + " arguments "
             + Arrays.toString(rels) + " created " + relDesc);
@@ -154,8 +154,8 @@ public class VolcanoRuleCall extends RelOptRuleCall {
     volcanoPlanner.checkCancel();
     try {
       if (volcanoPlanner.isRuleExcluded(getRule())) {
-        if (tracer.isLoggable(Level.FINE)) {
-          tracer.fine(
+        if (LOGGER.isLoggable(Level.FINE)) {
+          LOGGER.fine(
               "Rule [" + getRule() + "] not fired"
               + " due to exclusion filter");
         }
@@ -167,8 +167,8 @@ public class VolcanoRuleCall extends RelOptRuleCall {
         RelSubset subset = volcanoPlanner.getSubset(rel);
 
         if (subset == null) {
-          if (tracer.isLoggable(Level.FINE)) {
-            tracer.fine(
+          if (LOGGER.isLoggable(Level.FINE)) {
+            LOGGER.fine(
                 "Rule [" + getRule() + "] not fired because"
                 + " operand #" + i + " (" + rel
                 + ") has no subset");
@@ -177,8 +177,8 @@ public class VolcanoRuleCall extends RelOptRuleCall {
         }
 
         if (subset.set.equivalentSet != null) {
-          if (tracer.isLoggable(Level.FINE)) {
-            tracer.fine(
+          if (LOGGER.isLoggable(Level.FINE)) {
+            LOGGER.fine(
                 "Rule [" + getRule() + "] not fired because"
                 + " operand #" + i + " (" + rel
                 + ") belongs to obsolete set");
@@ -189,8 +189,8 @@ public class VolcanoRuleCall extends RelOptRuleCall {
         final Double importance =
             volcanoPlanner.relImportances.get(rel);
         if ((importance != null) && (importance == 0d)) {
-          if (tracer.isLoggable(Level.FINE)) {
-            tracer.fine(
+          if (LOGGER.isLoggable(Level.FINE)) {
+            LOGGER.fine(
                 "Rule [" + getRule() + "] not fired because"
                 + " operand #" + i + " (" + rel
                 + ") has importance=0");
@@ -199,8 +199,8 @@ public class VolcanoRuleCall extends RelOptRuleCall {
         }
       }
 
-      if (tracer.isLoggable(Level.FINE)) {
-        tracer.fine(
+      if (LOGGER.isLoggable(Level.FINE)) {
+        LOGGER.fine(
             "call#" + id
             + ": Apply rule [" + getRule() + "] to "
             + Arrays.toString(rels));
@@ -216,17 +216,17 @@ public class VolcanoRuleCall extends RelOptRuleCall {
         volcanoPlanner.listener.ruleAttempted(event);
       }
 
-      if (tracer.isLoggable(Level.FINE)) {
+      if (LOGGER.isLoggable(Level.FINE)) {
         this.generatedRelList = new ArrayList<RelNode>();
       }
 
       getRule().onMatch(this);
 
-      if (tracer.isLoggable(Level.FINE)) {
+      if (LOGGER.isLoggable(Level.FINE)) {
         if (generatedRelList.isEmpty()) {
-          tracer.fine("call#" + id + " generated 0 successors.");
+          LOGGER.fine("call#" + id + " generated 0 successors.");
         } else {
-          tracer.fine(
+          LOGGER.fine(
               "call#" + id + " generated " + generatedRelList.size()
               + " successors: " + generatedRelList);
         }
@@ -255,7 +255,7 @@ public class VolcanoRuleCall extends RelOptRuleCall {
    * @pre operand0.matches(rel)
    */
   void match(RelNode rel) {
-    assert (getOperand0().matches(rel));
+    assert getOperand0().matches(rel);
     final int solve = 0;
     int operandOrdinal = getOperand0().solveOrder[solve];
     this.rels[operandOrdinal] = rel;
@@ -287,7 +287,7 @@ public class VolcanoRuleCall extends RelOptRuleCall {
 
       Collection<RelNode> successors;
       if (ascending) {
-        assert (previousOperand.getParent() == operand);
+        assert previousOperand.getParent() == operand;
         final RelNode childRel = rels[previousOperandOrdinal];
         RelSubset subset = volcanoPlanner.getSubset(childRel);
         successors = subset.getParentRels();

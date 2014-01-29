@@ -27,8 +27,6 @@ import org.eigenbase.util.*;
 import org.eigenbase.xom.*;
 
 import org.junit.*;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
 
 import org.w3c.dom.*;
 

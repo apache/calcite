@@ -54,8 +54,7 @@ public abstract class DelegatingInvocationHandler implements InvocationHandler {
   public Object invoke(
       Object proxy,
       Method method,
-      Object[] args)
-      throws Throwable {
+      Object[] args) throws Throwable {
     Class clazz = getClass();
     Method matchingMethod;
     try {

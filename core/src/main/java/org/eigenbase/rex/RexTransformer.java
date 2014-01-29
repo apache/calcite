@@ -93,7 +93,7 @@ public class RexTransformer {
   }
 
   private RexNode transformNullSemantics(RexNode node) {
-    assert (isParentsCount >= 0) : "Cannot be negative";
+    assert isParentsCount >= 0 : "Cannot be negative";
     if (!isBoolean(node)) {
       return node;
     }
@@ -114,9 +114,9 @@ public class RexTransformer {
       assert isParentsCount > 0 : "Stack should not be empty";
       assert 1 == call.operands.size();
       RexNode operand = call.operands.get(0);
-      if (((operand instanceof RexLiteral)
-          || (operand instanceof RexInputRef)
-          || (operand instanceof RexDynamicParam))) {
+      if (operand instanceof RexLiteral
+          || operand instanceof RexInputRef
+          || operand instanceof RexDynamicParam) {
         if (isNullable(node)) {
           RexNode notNullNode =
               rexBuilder.makeCall(

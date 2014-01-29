@@ -116,8 +116,7 @@ public class SqlPrettyWriterTest {
   protected void checkSimple(
       SqlPrettyWriter prettyWriter,
       String expectedDesc,
-      String expected)
-      throws Exception {
+      String expected) throws Exception {
     final SqlNode node =
         parseQuery(
             "select x as a, b as b, c as c, d,"

@@ -518,17 +518,17 @@ public class AvaticaDatabaseMetaData implements DatabaseMetaData {
   }
 
   public boolean supportsTransactionIsolationLevel(int level)
-      throws SQLException {
+    throws SQLException {
     return level == Connection.TRANSACTION_NONE;
   }
 
   public boolean supportsDataDefinitionAndDataManipulationTransactions()
-      throws SQLException {
+    throws SQLException {
     return false;
   }
 
   public boolean supportsDataManipulationTransactionsOnly()
-      throws SQLException {
+    throws SQLException {
     return true;
   }
 
@@ -777,7 +777,7 @@ public class AvaticaDatabaseMetaData implements DatabaseMetaData {
   }
 
   public boolean supportsResultSetHoldability(int holdability)
-      throws SQLException {
+    throws SQLException {
     throw connection.helper.todo();
   }
 
@@ -818,7 +818,7 @@ public class AvaticaDatabaseMetaData implements DatabaseMetaData {
   }
 
   public boolean supportsStoredFunctionsUsingCallSyntax()
-      throws SQLException {
+    throws SQLException {
     return true;
   }
 

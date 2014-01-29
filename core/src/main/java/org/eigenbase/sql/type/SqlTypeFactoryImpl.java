@@ -78,7 +78,7 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
   public RelDataType createMultisetType(
       RelDataType type,
       long maxCardinality) {
-    assert (maxCardinality == -1);
+    assert maxCardinality == -1;
     RelDataType newType = new MultisetSqlType(type, false);
     return canonize(newType);
   }
@@ -86,7 +86,7 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
   public RelDataType createArrayType(
       RelDataType elementType,
       long maxCardinality) {
-    assert (maxCardinality == -1);
+    assert maxCardinality == -1;
     ArraySqlType newType = new ArraySqlType(elementType, false);
     return canonize(newType);
   }
@@ -198,7 +198,7 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
   }
 
   private void assertBasic(SqlTypeName typeName) {
-    assert (typeName != null);
+    assert typeName != null;
     assert typeName != SqlTypeName.MULTISET
         : "use createMultisetType() instead";
     assert typeName != SqlTypeName.INTERVAL_DAY_TIME
@@ -356,9 +356,8 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
                   Math.min(scale, SqlTypeName.MAX_NUMERIC_SCALE);
 
               int precision = dout + scale;
-              assert (precision
-                  <= SqlTypeName.MAX_NUMERIC_PRECISION);
-              assert (precision > 0);
+              assert precision <= SqlTypeName.MAX_NUMERIC_PRECISION;
+              assert precision > 0;
 
               resultType =
                   createSqlType(

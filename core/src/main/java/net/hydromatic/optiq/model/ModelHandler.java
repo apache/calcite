@@ -47,7 +47,7 @@ public class ModelHandler {
       new ArrayList<Pair<String, SchemaPlus>>();
 
   public ModelHandler(OptiqConnection connection, String uri)
-      throws IOException {
+    throws IOException {
     super();
     this.connection = connection;
     final ObjectMapper mapper = new ObjectMapper();
@@ -91,7 +91,7 @@ public class ModelHandler {
       // Inject by hand a Star Table. Later we'll add a JSON model element.
       final List<Table> tables = new ArrayList<Table>();
       final String[] tableNames = {
-          "sales_fact_1997", "time_by_day", "product", "product_class"
+        "sales_fact_1997", "time_by_day", "product", "product_class"
       };
       final SchemaPlus schema2 = parentSchema.getSubSchema("foodmart");
       for (String tableName : tableNames) {

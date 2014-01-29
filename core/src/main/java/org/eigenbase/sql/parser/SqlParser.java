@@ -81,8 +81,7 @@ public class SqlParser {
    *
    * @throws SqlParseException if there is a parse error
    */
-  public SqlNode parseExpression()
-      throws SqlParseException {
+  public SqlNode parseExpression() throws SqlParseException {
     try {
       return parser.SqlExpressionEof();
     } catch (Throwable ex) {
@@ -103,8 +102,7 @@ public class SqlParser {
    * for a <code>UNION</code>, <code>INTERSECT</code>, or <code>EXCEPT</code>.
    * @throws SqlParseException if there is a parse error
    */
-  public SqlNode parseQuery()
-      throws SqlParseException {
+  public SqlNode parseQuery() throws SqlParseException {
     try {
       return parser.SqlStmtEof();
     } catch (Throwable ex) {
@@ -123,8 +121,7 @@ public class SqlParser {
    * @return top-level SqlNode representing stmt
    * @throws SqlParseException if there is a parse error
    */
-  public SqlNode parseStmt()
-      throws SqlParseException {
+  public SqlNode parseStmt() throws SqlParseException {
     try {
       return parser.SqlStmtEof();
     } catch (Throwable ex) {

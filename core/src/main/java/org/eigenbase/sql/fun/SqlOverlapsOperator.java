@@ -81,10 +81,10 @@ public class SqlOverlapsOperator extends SqlSpecialOperator {
     final String d = "DATETIME";
     final String i = "INTERVAL";
     String[] typeNames = {
-        d, d,
-        d, i,
-        i, d,
-        i, i
+      d, d,
+      d, i,
+      i, d,
+      i, i
     };
 
     StringBuilder ret = new StringBuilder();

@@ -33,12 +33,12 @@ import com.google.common.collect.ImmutableMap;
 public abstract class RelOptRuleCall {
   //~ Static fields/initializers ---------------------------------------------
 
-  protected static final Logger tracer = EigenbaseTrace.getPlannerTracer();
+  protected static final Logger LOGGER = EigenbaseTrace.getPlannerTracer();
 
   /**
    * Generator for {@link #id} values.
    */
-  static int nextId = 0;
+  private static int NEXT_ID = 0;
 
   //~ Instance fields --------------------------------------------------------
 
@@ -72,7 +72,7 @@ public abstract class RelOptRuleCall {
       RelNode[] rels,
       Map<RelNode, List<RelNode>> nodeChildren,
       List<RelNode> parents) {
-    this.id = nextId++;
+    this.id = NEXT_ID++;
     this.planner = planner;
     this.operand0 = operand;
     this.nodeChildren = nodeChildren;

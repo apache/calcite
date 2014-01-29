@@ -273,7 +273,7 @@ public abstract class RelOptUtil {
       RexBuilder rexBuilder = cluster.getRexBuilder();
       RelDataTypeFactory typeFactory = rexBuilder.getTypeFactory();
 
-      assert (extraExpr == rexBuilder.makeLiteral(true));
+      assert extraExpr == rexBuilder.makeLiteral(true);
 
       // this should only be called for the exists case
       // first stick an Agg on top of the subquery
@@ -954,11 +954,11 @@ public abstract class RelOptUtil {
         addJoinKey(
             leftJoinKeys,
             leftKey,
-            ((rangeOp != null) && !rangeOp.isEmpty()));
+            (rangeOp != null) && !rangeOp.isEmpty());
         addJoinKey(
             rightJoinKeys,
             rightKey,
-            ((rangeOp != null) && !rangeOp.isEmpty()));
+            (rangeOp != null) && !rangeOp.isEmpty());
         if (filterNulls != null
             && kind == SqlKind.EQUALS) {
           // nulls are considered not matching for equality comparison
@@ -1172,7 +1172,8 @@ public abstract class RelOptUtil {
           RexInputRef op0 = (RexInputRef) operands.get(0);
           RexInputRef op1 = (RexInputRef) operands.get(1);
 
-          RexInputRef leftField, rightField;
+          RexInputRef leftField;
+          RexInputRef rightField;
           if ((op0.getIndex() < leftFieldCount)
               && (op1.getIndex() >= leftFieldCount)) {
             // Arguments were of form 'op0 = op1'
@@ -1366,7 +1367,7 @@ public abstract class RelOptUtil {
   }
 
   public static void registerAbstractRels(RelOptPlanner planner) {
-    planner.addRule(PullConstantsThroughAggregatesRule.instance);
+    planner.addRule(PullConstantsThroughAggregatesRule.INSTANCE);
     planner.addRule(RemoveEmptyRules.UNION_INSTANCE);
     planner.addRule(RemoveEmptyRules.PROJECT_INSTANCE);
     planner.addRule(RemoveEmptyRules.FILTER_INSTANCE);
@@ -1539,7 +1540,7 @@ public abstract class RelOptUtil {
       boolean neg) {
     RexNode ret = null;
     if (x.getType().isStruct()) {
-      assert (y.getType().isStruct());
+      assert y.getType().isStruct();
       List<RelDataTypeField> xFields = x.getType().getFieldList();
       List<RelDataTypeField> yFields = y.getType().getFieldList();
       assert xFields.size() == yFields.size();
@@ -2122,7 +2123,7 @@ public abstract class RelOptUtil {
 
     // inputs are the same; return value depends on the checkNames
     // parameter
-    return (!checkNames || namesDifferent);
+    return !checkNames || namesDifferent;
   }
 
   /**
@@ -2293,7 +2294,7 @@ public abstract class RelOptUtil {
       names.add(field.getName());
     }
     return new ProjectRel(
-        child.getCluster(), child, nodes, names, ProjectRel.Flags.Boxed);
+        child.getCluster(), child, nodes, names, ProjectRel.Flags.BOXED);
   }
 
   /** Returns whether relational expression {@code target} occurs within a
@@ -2312,6 +2313,7 @@ public abstract class RelOptUtil {
           super.visit(node, ordinal, parent);
         }
       }.go(ancestor);
+      // CHECKSTYLE: IGNORE -1
       return false;
     } catch (Util.FoundOne e) {
       return true;
@@ -2546,7 +2548,7 @@ public abstract class RelOptUtil {
       if (leftDestFields == null) {
         nLeftDestFields = 0;
       } else {
-        assert (destFields == null);
+        assert destFields == null;
         nLeftDestFields = leftDestFields.length;
       }
     }

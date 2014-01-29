@@ -23,8 +23,6 @@ import net.hydromatic.linq4j.Linq4j;
 import net.hydromatic.optiq.jdbc.JavaTypeFactoryImpl;
 
 import org.eigenbase.reltype.RelDataType;
-import org.eigenbase.reltype.RelDataTypeFactory;
-
 import org.eigenbase.reltype.RelDataTypeImpl;
 
 import org.junit.Test;
@@ -45,7 +43,7 @@ public class ArrayTableTest {
     assertEquals(0xF0F, values[0]);
 
     values = new long[]{
-        0x1213141516171819L, 0x232425262728292AL, 0x3435363738393A3BL};
+      0x1213141516171819L, 0x232425262728292AL, 0x3435363738393A3BL};
     assertEquals(
         0x324, ArrayTable.BitSlicedPrimitiveArray.getLong(12, values, 9));
     assertEquals(

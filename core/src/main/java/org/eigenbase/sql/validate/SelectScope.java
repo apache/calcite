@@ -153,7 +153,7 @@ public class SelectScope extends ListScope {
 
     // TODO: compare fully qualified names
     final SqlNodeList orderList = getOrderList();
-    if ((orderList.size() > 0)) {
+    if (orderList.size() > 0) {
       SqlNode order0 = orderList.get(0);
       monotonicity = SqlMonotonicity.Increasing;
       if ((order0 instanceof SqlCall)

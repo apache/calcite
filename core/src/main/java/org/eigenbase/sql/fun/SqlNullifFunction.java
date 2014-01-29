@@ -54,7 +54,7 @@ public class SqlNullifFunction extends SqlFunction {
         validator,
         getOperandTypeChecker(),
         call);
-    assert (operands.length == 2);
+    assert operands.length == 2;
 
     SqlNodeList whenList = new SqlNodeList(pos);
     SqlNodeList thenList = new SqlNodeList(pos);

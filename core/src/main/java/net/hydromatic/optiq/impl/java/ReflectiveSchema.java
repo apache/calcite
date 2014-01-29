@@ -163,6 +163,7 @@ public class ReflectiveSchema
         "Cannot convert " + o.getClass() + " into a Enumerable");
   }
 
+  /** Table that is implemented by reading from a Java object. */
   private static class ReflectiveTable
       extends AbstractQueryableTable
       implements Table {
@@ -261,6 +262,7 @@ public class ReflectiveSchema
     }
   }
 
+  /** Table function based on a Java method. */
   private static class MethodTableFunction implements TableFunction {
     private final ReflectiveSchema schema;
     private final Method method;
@@ -334,6 +336,7 @@ public class ReflectiveSchema
     }
   }
 
+  /** Table based on a Java field. */
   private static class FieldTable<T> extends ReflectiveTable {
     private final Field field;
 

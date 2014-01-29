@@ -64,19 +64,19 @@ public class RelOptRulesTest extends RelOptTestBase {
 
   @Test public void testUnionToDistinctRule() {
     checkPlanning(
-        UnionToDistinctRule.instance,
+        UnionToDistinctRule.INSTANCE,
         "select * from dept union select * from dept");
   }
 
   @Test public void testExtractJoinFilterRule() {
     checkPlanning(
-        ExtractJoinFilterRule.instance,
+        ExtractJoinFilterRule.INSTANCE,
         "select 1 from emp inner join dept on emp.deptno=dept.deptno");
   }
 
   @Test public void testAddRedundantSemiJoinRule() {
     checkPlanning(
-        AddRedundantSemiJoinRule.instance,
+        AddRedundantSemiJoinRule.INSTANCE,
         "select 1 from emp inner join dept on emp.deptno = dept.deptno");
   }
 
@@ -90,35 +90,35 @@ public class RelOptRulesTest extends RelOptTestBase {
 
   @Test public void testReduceAverage() {
     checkPlanning(
-        ReduceAggregatesRule.instance,
+        ReduceAggregatesRule.INSTANCE,
         "select name, max(name), avg(deptno), min(name)"
         + " from sales.dept group by name");
   }
 
   @Test public void testPushProjectPastFilter() {
     checkPlanning(
-        PushProjectPastFilterRule.instance,
+        PushProjectPastFilterRule.INSTANCE,
         "select empno + deptno from emp where sal = 10 * comm "
         + "and upper(ename) = 'FOO'");
   }
 
   @Test public void testPushProjectPastJoin() {
     checkPlanning(
-        PushProjectPastJoinRule.instance,
+        PushProjectPastJoinRule.INSTANCE,
         "select e.sal + b.comm from emp e inner join bonus b "
         + "on e.ename = b.ename and e.deptno = 10");
   }
 
   @Test public void testPushProjectPastSetOp() {
     checkPlanning(
-        PushProjectPastSetOpRule.instance,
+        PushProjectPastSetOpRule.INSTANCE,
         "select sal from "
         + "(select * from emp e1 union all select * from emp e2)");
   }
 
   @Test public void testPushJoinThroughUnionOnLeft() {
     checkPlanning(
-        PushJoinThroughUnionRule.instanceUnionOnLeft,
+        PushJoinThroughUnionRule.LEFT_UNION,
         "select r1.sal from "
         + "(select * from emp e1 union all select * from emp e2) r1, "
         + "emp r2");
@@ -126,7 +126,7 @@ public class RelOptRulesTest extends RelOptTestBase {
 
   @Test public void testPushJoinThroughUnionOnRight() {
     checkPlanning(
-        PushJoinThroughUnionRule.instanceUnionOnRight,
+        PushJoinThroughUnionRule.RIGHT_UNION,
         "select r1.sal from "
         + "emp r1, "
         + "(select * from emp e1 union all select * from emp e2) r2");
@@ -135,13 +135,13 @@ public class RelOptRulesTest extends RelOptTestBase {
   @Ignore // have not tried under optiq (it might work)
   @Test public void testMergeFilterWithJoinCondition() throws Exception {
     HepProgram program = new HepProgramBuilder()
-        .addRuleInstance(TableAccessRule.instance)
-        .addRuleInstance(ExtractJoinFilterRule.instance)
-        .addRuleInstance(FilterToCalcRule.instance)
-        .addRuleInstance(MergeCalcRule.instance)
+        .addRuleInstance(TableAccessRule.INSTANCE)
+        .addRuleInstance(ExtractJoinFilterRule.INSTANCE)
+        .addRuleInstance(FilterToCalcRule.INSTANCE)
+        .addRuleInstance(MergeCalcRule.INSTANCE)
             //.addRuleInstance(FennelCalcRule.instance);
             //.addRuleInstance(FennelCartesianJoinRule.instance);
-        .addRuleInstance(ProjectToCalcRule.instance)
+        .addRuleInstance(ProjectToCalcRule.INSTANCE)
         .build();
 
     checkPlanning(program,
@@ -164,8 +164,8 @@ public class RelOptRulesTest extends RelOptTestBase {
     // and verify that it only applies to one usage of the
     // table, not both (which would be incorrect).
     HepProgram program = new HepProgramBuilder()
-        .addRuleInstance(TableAccessRule.instance)
-        .addRuleInstance(ProjectToCalcRule.instance)
+        .addRuleInstance(TableAccessRule.INSTANCE)
+        .addRuleInstance(ProjectToCalcRule.INSTANCE)
 
             // Control the calc conversion.
         .addMatchLimit(1)
@@ -184,8 +184,8 @@ public class RelOptRulesTest extends RelOptTestBase {
     // tests the case where the semijoin is pushed to the left
     HepProgram program = new HepProgramBuilder()
         .addRuleInstance(PushFilterPastJoinRule.FILTER_ON_JOIN)
-        .addRuleInstance(AddRedundantSemiJoinRule.instance)
-        .addRuleInstance(PushSemiJoinPastJoinRule.instance)
+        .addRuleInstance(AddRedundantSemiJoinRule.INSTANCE)
+        .addRuleInstance(PushSemiJoinPastJoinRule.INSTANCE)
         .build();
     checkPlanning(program,
         "select e1.name from sales.emps e1, sales.depts d, sales.emps e2 "
@@ -197,8 +197,8 @@ public class RelOptRulesTest extends RelOptTestBase {
     // tests the case where the semijoin is pushed to the right
     HepProgram program = new HepProgramBuilder()
         .addRuleInstance(PushFilterPastJoinRule.FILTER_ON_JOIN)
-        .addRuleInstance(AddRedundantSemiJoinRule.instance)
-        .addRuleInstance(PushSemiJoinPastJoinRule.instance)
+        .addRuleInstance(AddRedundantSemiJoinRule.INSTANCE)
+        .addRuleInstance(PushSemiJoinPastJoinRule.INSTANCE)
         .build();
     checkPlanning(program,
         "select e1.name from sales.emps e1, sales.depts d, sales.emps e2 "
@@ -209,8 +209,8 @@ public class RelOptRulesTest extends RelOptTestBase {
   @Test public void testPushSemiJoinPastFilter() throws Exception {
     HepProgram program = new HepProgramBuilder()
         .addRuleInstance(PushFilterPastJoinRule.FILTER_ON_JOIN)
-        .addRuleInstance(AddRedundantSemiJoinRule.instance)
-        .addRuleInstance(PushSemiJoinPastFilterRule.instance)
+        .addRuleInstance(AddRedundantSemiJoinRule.INSTANCE)
+        .addRuleInstance(PushSemiJoinPastFilterRule.INSTANCE)
         .build();
     checkPlanning(program,
         "select e.name from sales.emps e, sales.depts d "
@@ -222,7 +222,7 @@ public class RelOptRulesTest extends RelOptTestBase {
     HepProgram program = new HepProgramBuilder()
         .addRuleInstance(PushFilterPastJoinRule.FILTER_ON_JOIN)
         .addMatchOrder(HepMatchOrder.BOTTOM_UP)
-        .addRuleInstance(ConvertMultiJoinRule.instance)
+        .addRuleInstance(ConvertMultiJoinRule.INSTANCE)
         .build();
     checkPlanning(program,
         "select e1.name from sales.emps e1, sales.depts d, sales.emps e2 "
@@ -290,17 +290,17 @@ public class RelOptRulesTest extends RelOptTestBase {
     // and reduce it to TRUE. Only in the Calc are projects and conditions
     // combined.
     HepProgram program = new HepProgramBuilder()
-        .addRuleInstance(PushFilterPastProjectRule.instance)
-        .addRuleInstance(PushFilterPastSetOpRule.instance)
-        .addRuleInstance(FilterToCalcRule.instance)
-        .addRuleInstance(ProjectToCalcRule.instance)
-        .addRuleInstance(MergeCalcRule.instance)
+        .addRuleInstance(PushFilterPastProjectRule.INSTANCE)
+        .addRuleInstance(PushFilterPastSetOpRule.INSTANCE)
+        .addRuleInstance(FilterToCalcRule.INSTANCE)
+        .addRuleInstance(ProjectToCalcRule.INSTANCE)
+        .addRuleInstance(MergeCalcRule.INSTANCE)
         .addRuleInstance(ReduceExpressionsRule.CALC_INSTANCE)
 
             // the hard part is done... a few more rule calls to clean up
         .addRuleInstance(RemoveEmptyRules.UNION_INSTANCE)
-        .addRuleInstance(ProjectToCalcRule.instance)
-        .addRuleInstance(MergeCalcRule.instance)
+        .addRuleInstance(ProjectToCalcRule.INSTANCE)
+        .addRuleInstance(MergeCalcRule.INSTANCE)
         .addRuleInstance(ReduceExpressionsRule.CALC_INSTANCE)
         .build();
 
@@ -324,8 +324,8 @@ public class RelOptRulesTest extends RelOptTestBase {
   @Test public void testRemoveSemiJoin() throws Exception {
     HepProgram program = new HepProgramBuilder()
         .addRuleInstance(PushFilterPastJoinRule.FILTER_ON_JOIN)
-        .addRuleInstance(AddRedundantSemiJoinRule.instance)
-        .addRuleInstance(RemoveSemiJoinRule.instance)
+        .addRuleInstance(AddRedundantSemiJoinRule.INSTANCE)
+        .addRuleInstance(RemoveSemiJoinRule.INSTANCE)
         .build();
     checkPlanning(program,
         "select e.name from sales.emps e, sales.depts d "
@@ -336,9 +336,9 @@ public class RelOptRulesTest extends RelOptTestBase {
   @Test public void testRemoveSemiJoinWithFilter() throws Exception {
     HepProgram program = new HepProgramBuilder()
         .addRuleInstance(PushFilterPastJoinRule.FILTER_ON_JOIN)
-        .addRuleInstance(AddRedundantSemiJoinRule.instance)
-        .addRuleInstance(PushSemiJoinPastFilterRule.instance)
-        .addRuleInstance(RemoveSemiJoinRule.instance)
+        .addRuleInstance(AddRedundantSemiJoinRule.INSTANCE)
+        .addRuleInstance(PushSemiJoinPastFilterRule.INSTANCE)
+        .addRuleInstance(RemoveSemiJoinRule.INSTANCE)
         .build();
     checkPlanning(program,
         "select e.name from sales.emps e, sales.depts d "
@@ -349,9 +349,9 @@ public class RelOptRulesTest extends RelOptTestBase {
   @Test public void testRemoveSemiJoinRight() throws Exception {
     HepProgram program = new HepProgramBuilder()
         .addRuleInstance(PushFilterPastJoinRule.FILTER_ON_JOIN)
-        .addRuleInstance(AddRedundantSemiJoinRule.instance)
-        .addRuleInstance(PushSemiJoinPastJoinRule.instance)
-        .addRuleInstance(RemoveSemiJoinRule.instance)
+        .addRuleInstance(AddRedundantSemiJoinRule.INSTANCE)
+        .addRuleInstance(PushSemiJoinPastJoinRule.INSTANCE)
+        .addRuleInstance(RemoveSemiJoinRule.INSTANCE)
         .build();
     checkPlanning(program,
         "select e1.name from sales.emps e1, sales.depts d, sales.emps e2 "
@@ -362,10 +362,10 @@ public class RelOptRulesTest extends RelOptTestBase {
   @Test public void testRemoveSemiJoinRightWithFilter() throws Exception {
     HepProgram program = new HepProgramBuilder()
         .addRuleInstance(PushFilterPastJoinRule.FILTER_ON_JOIN)
-        .addRuleInstance(AddRedundantSemiJoinRule.instance)
-        .addRuleInstance(PushSemiJoinPastJoinRule.instance)
-        .addRuleInstance(PushSemiJoinPastFilterRule.instance)
-        .addRuleInstance(RemoveSemiJoinRule.instance)
+        .addRuleInstance(AddRedundantSemiJoinRule.INSTANCE)
+        .addRuleInstance(PushSemiJoinPastJoinRule.INSTANCE)
+        .addRuleInstance(PushSemiJoinPastFilterRule.INSTANCE)
+        .addRuleInstance(RemoveSemiJoinRule.INSTANCE)
         .build();
     checkPlanning(program,
         "select e1.name from sales.emps e1, sales.depts d, sales.emps e2 "
@@ -402,8 +402,8 @@ public class RelOptRulesTest extends RelOptTestBase {
 
     HepProgram program = new HepProgramBuilder()
         .addMatchOrder(HepMatchOrder.BOTTOM_UP)
-        .addRuleInstance(RemoveTrivialProjectRule.instance)
-        .addRuleInstance(ConvertMultiJoinRule.instance)
+        .addRuleInstance(RemoveTrivialProjectRule.INSTANCE)
+        .addRuleInstance(ConvertMultiJoinRule.INSTANCE)
         .build();
     checkPlanning(program,
         "select * from "
@@ -429,8 +429,8 @@ public class RelOptRulesTest extends RelOptTestBase {
   @Test public void testPushSemiJoinPastProject() throws Exception {
     HepProgram program = new HepProgramBuilder()
         .addRuleInstance(PushFilterPastJoinRule.FILTER_ON_JOIN)
-        .addRuleInstance(AddRedundantSemiJoinRule.instance)
-        .addRuleInstance(PushSemiJoinPastProjectRule.instance)
+        .addRuleInstance(AddRedundantSemiJoinRule.INSTANCE)
+        .addRuleInstance(PushSemiJoinPastProjectRule.INSTANCE)
         .build();
     checkPlanning(program,
         "select e.* from "
@@ -441,7 +441,7 @@ public class RelOptRulesTest extends RelOptTestBase {
 
   @Test public void testReduceValuesUnderFilter() throws Exception {
     HepProgram program = new HepProgramBuilder()
-        .addRuleInstance(PushFilterPastProjectRule.instance)
+        .addRuleInstance(PushFilterPastProjectRule.INSTANCE)
         .addRuleInstance(ReduceValuesRule.FILTER_INSTANCE)
         .build();
 
@@ -453,7 +453,7 @@ public class RelOptRulesTest extends RelOptTestBase {
 
   @Test public void testReduceValuesUnderProject() throws Exception {
     HepProgram program = new HepProgramBuilder()
-        .addRuleInstance(MergeProjectRule.instance)
+        .addRuleInstance(MergeProjectRule.INSTANCE)
         .addRuleInstance(ReduceValuesRule.PROJECT_INSTANCE)
         .build();
 
@@ -465,8 +465,8 @@ public class RelOptRulesTest extends RelOptTestBase {
 
   @Test public void testReduceValuesUnderProjectFilter() throws Exception {
     HepProgram program = new HepProgramBuilder()
-        .addRuleInstance(PushFilterPastProjectRule.instance)
-        .addRuleInstance(MergeProjectRule.instance)
+        .addRuleInstance(PushFilterPastProjectRule.INSTANCE)
+        .addRuleInstance(MergeProjectRule.INSTANCE)
         .addRuleInstance(ReduceValuesRule.PROJECT_FILTER_INSTANCE)
         .build();
 
@@ -490,8 +490,8 @@ public class RelOptRulesTest extends RelOptTestBase {
 
   @Test public void testReduceValuesToEmpty() throws Exception {
     HepProgram program = new HepProgramBuilder()
-        .addRuleInstance(PushFilterPastProjectRule.instance)
-        .addRuleInstance(MergeProjectRule.instance)
+        .addRuleInstance(PushFilterPastProjectRule.INSTANCE)
+        .addRuleInstance(MergeProjectRule.INSTANCE)
         .addRuleInstance(ReduceValuesRule.PROJECT_FILTER_INSTANCE)
         .build();
 
@@ -504,9 +504,9 @@ public class RelOptRulesTest extends RelOptTestBase {
 
   @Test public void testEmptyFilterProjectUnion() throws Exception {
     HepProgram program = new HepProgramBuilder()
-        .addRuleInstance(PushFilterPastSetOpRule.instance)
-        .addRuleInstance(PushFilterPastProjectRule.instance)
-        .addRuleInstance(MergeProjectRule.instance)
+        .addRuleInstance(PushFilterPastSetOpRule.INSTANCE)
+        .addRuleInstance(PushFilterPastProjectRule.INSTANCE)
+        .addRuleInstance(MergeProjectRule.INSTANCE)
         .addRuleInstance(ReduceValuesRule.PROJECT_FILTER_INSTANCE)
         .addRuleInstance(RemoveEmptyRules.PROJECT_INSTANCE)
         .addRuleInstance(RemoveEmptyRules.UNION_INSTANCE)
@@ -625,8 +625,8 @@ public class RelOptRulesTest extends RelOptTestBase {
 
             // Convert projects to calcs, merge two calcs, and then
             // reduce redundant casts in merged calc.
-        .addRuleInstance(ProjectToCalcRule.instance)
-        .addRuleInstance(MergeCalcRule.instance)
+        .addRuleInstance(ProjectToCalcRule.INSTANCE)
+        .addRuleInstance(MergeCalcRule.INSTANCE)
         .addRuleInstance(ReduceExpressionsRule.CALC_INSTANCE)
         .build();
     checkPlanning(program,
@@ -637,8 +637,8 @@ public class RelOptRulesTest extends RelOptTestBase {
   @Ignore // assert failure
   @Test public void testPushAggThroughUnion() throws Exception {
     HepProgram program = new HepProgramBuilder()
-        .addRuleInstance(PushProjectPastSetOpRule.instance)
-        .addRuleInstance(PushAggregateThroughUnionRule.instance)
+        .addRuleInstance(PushProjectPastSetOpRule.INSTANCE)
+        .addRuleInstance(PushAggregateThroughUnionRule.INSTANCE)
         .build();
     checkPlanning(program,
         "select ename,sum(empno),count(*) from "

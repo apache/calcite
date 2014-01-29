@@ -62,13 +62,13 @@ public class SargInterval extends SargIntervalBase {
   //~ Methods ----------------------------------------------------------------
 
   void copyFrom(SargIntervalBase other) {
-    assert (getDataType() == other.getDataType());
+    assert getDataType() == other.getDataType();
     lowerBound.copyFrom(other.getLowerBound());
     upperBound.copyFrom(other.getUpperBound());
   }
 
   boolean contains(SargInterval other) {
-    assert (getDataType() == other.getDataType());
+    assert getDataType() == other.getDataType();
     if (getLowerBound().compareTo(other.getLowerBound()) > 0) {
       return false;
     }

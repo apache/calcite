@@ -218,7 +218,7 @@ public class ChunkList<E> extends AbstractSequentialList<E> {
           chunk = first;
         } else {
           chunk = ChunkList.next(chunk);
-          startIndex += (end - HEADER_SIZE);
+          startIndex += end - HEADER_SIZE;
         }
         if (chunk == null) {
           throw new NoSuchElementException();
@@ -294,7 +294,7 @@ public class ChunkList<E> extends AbstractSequentialList<E> {
       if (offset == end) {
         final Object[] next = ChunkList.next(chunk);
         if (next != null) {
-          startIndex += (end - HEADER_SIZE);
+          startIndex += end - HEADER_SIZE;
           chunk = next;
           offset = HEADER_SIZE - 1;
           end = HEADER_SIZE + occupied(next);

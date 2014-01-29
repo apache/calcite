@@ -46,8 +46,7 @@ import static org.junit.Assert.*;
  * Unit tests for {@link Planner}.
  */
 public class PlannerTest {
-  @Test public void testParseAndConvert()
-      throws SqlParseException, RelConversionException, ValidationException {
+  @Test public void testParseAndConvert() throws SqlParseException, RelConversionException, ValidationException {
     Planner planner = getPlanner();
     SqlNode parse =
         planner.parse("select * from \"emps\" where \"name\" like '%e%'");
@@ -70,8 +69,7 @@ public class PlannerTest {
         SqlExplainLevel.DIGEST_ATTRIBUTES);
   }
 
-  @Test public void testParseFails()
-      throws SqlParseException {
+  @Test public void testParseFails() throws SqlParseException {
     Planner planner = getPlanner();
     try {
       SqlNode parse =
@@ -83,8 +81,7 @@ public class PlannerTest {
     }
   }
 
-  @Test public void testValidateFails()
-      throws SqlParseException {
+  @Test public void testValidateFails() throws SqlParseException {
     Planner planner = getPlanner();
     SqlNode parse =
         planner.parse("select * from \"emps\" where \"Xname\" like '%e%'");
@@ -117,8 +114,7 @@ public class PlannerTest {
    * {@link Planner#convert(org.eigenbase.sql.SqlNode)}
    * a {@link org.eigenbase.sql.SqlNode} that has been parsed but not
    * validated. */
-  @Test public void testConvertWithoutValidateFails()
-      throws SqlParseException, RelConversionException {
+  @Test public void testConvertWithoutValidateFails() throws SqlParseException, RelConversionException {
     Planner planner = getPlanner();
     SqlNode parse = planner.parse("select * from \"emps\"");
     try {
@@ -131,11 +127,11 @@ public class PlannerTest {
   }
 
   /** Unit test that parses, validates, converts and plans. */
-  @Test public void testPlan()
-      throws SqlParseException, RelConversionException, ValidationException {
+  @Test public void testPlan() throws SqlParseException, RelConversionException,
+      ValidationException {
     RuleSet ruleSet =
         RuleSets.ofList(
-            MergeFilterRule.instance,
+            MergeFilterRule.INSTANCE,
             JavaRules.ENUMERABLE_FILTER_RULE,
             JavaRules.ENUMERABLE_PROJECT_RULE);
     Planner planner = getPlanner(ruleSet);

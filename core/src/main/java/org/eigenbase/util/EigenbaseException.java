@@ -39,7 +39,7 @@ public class EigenbaseException extends RuntimeException {
    */
   private static final long serialVersionUID = -1314522633397794178L;
 
-  private static Logger tracer =
+  private static final Logger LOGGER =
       Logger.getLogger(EigenbaseException.class.getName());
 
   //~ Constructors -----------------------------------------------------------
@@ -57,8 +57,8 @@ public class EigenbaseException extends RuntimeException {
 
     // TODO: Force the caller to pass in a Logger as a trace argument for
     // better context.  Need to extend ResGen for this.
-    tracer.throwing("EigenbaseException", "constructor", this);
-    tracer.severe(toString());
+    LOGGER.throwing("EigenbaseException", "constructor", this);
+    LOGGER.severe(toString());
   }
 }
 

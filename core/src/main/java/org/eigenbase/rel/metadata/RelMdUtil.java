@@ -39,9 +39,8 @@ import com.google.common.collect.ImmutableList;
 public class RelMdUtil {
   //~ Static fields/initializers ---------------------------------------------
 
-  public static final SqlFunction artificialSelectivityFunc =
-      new SqlFunction(
-          "ARTIFICIAL_SELECTIVITY",
+  public static final SqlFunction ARTIFICIAL_SELECTIVITY_FUNC =
+      new SqlFunction("ARTIFICIAL_SELECTIVITY",
           SqlKind.OTHER_FUNCTION,
           SqlTypeStrategies.rtiBoolean, // returns boolean since we'll AND it
           null,
@@ -49,6 +48,9 @@ public class RelMdUtil {
           SqlFunctionCategory.System);
 
   //~ Methods ----------------------------------------------------------------
+
+  private RelMdUtil() {
+  }
 
   /**
    * Creates a RexNode that stores a selectivity value corresponding to the
@@ -68,7 +70,7 @@ public class RelMdUtil {
             rel);
     RexNode selec =
         rexBuilder.makeApproxLiteral(new BigDecimal(selectivity));
-    return rexBuilder.makeCall(artificialSelectivityFunc, selec);
+    return rexBuilder.makeCall(ARTIFICIAL_SELECTIVITY_FUNC, selec);
   }
 
   /**
@@ -78,9 +80,9 @@ public class RelMdUtil {
    * @return selectivity value
    */
   public static double getSelectivityValue(RexNode artificialSelecFuncNode) {
-    assert (artificialSelecFuncNode instanceof RexCall);
+    assert artificialSelecFuncNode instanceof RexCall;
     RexCall call = (RexCall) artificialSelecFuncNode;
-    assert (call.getOperator() == artificialSelectivityFunc);
+    assert call.getOperator() == ARTIFICIAL_SELECTIVITY_FUNC;
     RexNode operand = call.getOperands().get(0);
     BigDecimal bd = (BigDecimal) ((RexLiteral) operand).getValue();
     return bd.doubleValue();
@@ -95,8 +97,7 @@ public class RelMdUtil {
    * @param rel semijoin rel
    * @return calculated selectivity
    */
-  public static double computeSemiJoinSelectivity(
-      SemiJoinRel rel) {
+  public static double computeSemiJoinSelectivity(SemiJoinRel rel) {
     return computeSemiJoinSelectivity(
         rel.getLeft(),
         rel.getRight(),
@@ -215,15 +216,14 @@ public class RelMdUtil {
       List<RexInputRef> columnRefs) {
     BitSet colMask = new BitSet();
 
-    for (int i = 0; i < columnRefs.size(); i++) {
-      colMask.set(columnRefs.get(i).getIndex());
+    for (RexInputRef columnRef : columnRefs) {
+      colMask.set(columnRef.getIndex());
     }
 
     return RelMetadataQuery.areColumnsUnique(rel, colMask);
   }
 
-  public static boolean areColumnsDefinitelyUnique(
-      RelNode rel,
+  public static boolean areColumnsDefinitelyUnique(RelNode rel,
       List<RexInputRef> columnRefs) {
     Boolean b = areColumnsUnique(rel, columnRefs);
     if (b == null) {
@@ -243,11 +243,9 @@ public class RelMdUtil {
    * @return true if bit mask represents a unique column set; false if not (or
    * if no metadata is available)
    */
-  public static boolean areColumnsDefinitelyUniqueWhenNullsFiltered(
-      RelNode rel,
+  public static boolean areColumnsDefinitelyUniqueWhenNullsFiltered(RelNode rel,
       BitSet colMask) {
-    Boolean b =
-        RelMetadataQuery.areColumnsUnique(rel, colMask, true);
+    Boolean b = RelMetadataQuery.areColumnsUnique(rel, colMask, true);
     if (b == null) {
       return false;
     }
@@ -259,8 +257,8 @@ public class RelMdUtil {
       List<RexInputRef> columnRefs) {
     BitSet colMask = new BitSet();
 
-    for (int i = 0; i < columnRefs.size(); i++) {
-      colMask.set(columnRefs.get(i).getIndex());
+    for (RexInputRef columnRef : columnRefs) {
+      colMask.set(columnRef.getIndex());
     }
 
     return RelMetadataQuery.areColumnsUnique(rel, colMask, true);
@@ -380,7 +378,7 @@ public class RelMdUtil {
    * @return the double value if it's not infinity; else Double.MAX_VALUE
    */
   public static double capInfinity(Double d) {
-    return (d.isInfinite() ? Double.MAX_VALUE : d.doubleValue());
+    return d.isInfinite() ? Double.MAX_VALUE : d;
   }
 
   /**
@@ -421,7 +419,7 @@ public class RelMdUtil {
       } else if (
           (pred instanceof RexCall)
               && (((RexCall) pred).getOperator()
-              == RelMdUtil.artificialSelectivityFunc)) {
+              == RelMdUtil.ARTIFICIAL_SELECTIVITY_FUNC)) {
         artificialSel *= RelMdUtil.getSelectivityValue(pred);
       } else if (pred.isA(SqlKind.EQUALS)) {
         sel *= .15;
@@ -681,7 +679,7 @@ public class RelMdUtil {
       RelOptUtil.classifyFilters(
           joinRel,
           predList,
-          (joinType == JoinRelType.INNER),
+          joinType == JoinRelType.INNER,
           !joinType.generatesNullsOnLeft(),
           !joinType.generatesNullsOnRight(),
           joinFilters,

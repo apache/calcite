@@ -93,7 +93,7 @@ public class ConnectStringParser {
    * @throws SQLException error parsing name-value pairs
    */
   public static Properties parse(String s)
-      throws SQLException {
+    throws SQLException {
     return new ConnectStringParser(s).parseInternal(null);
   }
 
@@ -110,7 +110,7 @@ public class ConnectStringParser {
    * @throws SQLException error parsing name-value pairs
    */
   public static Properties parse(String s, Properties props)
-      throws SQLException {
+    throws SQLException {
     return new ConnectStringParser(s).parseInternal(props);
   }
 
@@ -128,7 +128,7 @@ public class ConnectStringParser {
    * @throws SQLException error parsing name-value pairs
    */
   Properties parseInternal(Properties props)
-      throws SQLException {
+    throws SQLException {
     if (props == null) {
       props = new Properties();
     }
@@ -144,7 +144,7 @@ public class ConnectStringParser {
    * @throws SQLException error parsing value
    */
   void parsePair(Properties props)
-      throws SQLException {
+    throws SQLException {
     String name = parseName();
     String value;
     if (i >= n) {
@@ -200,7 +200,7 @@ public class ConnectStringParser {
    * @throws SQLException if find an unterminated quoted value
    */
   String parseValue()
-      throws SQLException {
+    throws SQLException {
     char c;
 
     // skip over leading white space
@@ -250,7 +250,7 @@ public class ConnectStringParser {
    * @throws SQLException if find an unterminated quoted value
    */
   String parseQuoted(char q)
-      throws SQLException {
+    throws SQLException {
     char c = s.charAt(i++);
     if (c != q) {
       throw new AssertionError("c != q: c=" + c + " q=" + q);

@@ -37,9 +37,9 @@ import java.util.*;
  */
 public class MongoRules {
   public static RelOptRule[] RULES = {
-      new PushProjectOntoMongoRule(),
-      new MongoSortRule(),
-      new MongoFilterRule(),
+    new PushProjectOntoMongoRule(),
+    new MongoSortRule(),
+    new MongoFilterRule(),
   };
 
   /** Rule that combines a {@link ProjectRel} with a {@link MongoTableScan},
@@ -83,7 +83,7 @@ public class MongoRules {
       final ProjectRel newProject =
           new ProjectRel(cluster, cluster.traitSetOf(RelCollationImpl.EMPTY),
               newTable, newProjects,
-              project.getRowType(), ProjectRel.Flags.Boxed);
+              project.getRowType(), ProjectRel.Flags.BOXED);
       call.transformTo(newProject);
     }
   }

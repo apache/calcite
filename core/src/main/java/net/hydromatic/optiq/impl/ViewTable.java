@@ -46,8 +46,7 @@ import static net.hydromatic.optiq.impl.MaterializedViewTable.MATERIALIZATION_CO
  */
 public class ViewTable
     extends AbstractQueryableTable
-    implements TranslatableTable
-{
+    implements TranslatableTable {
   private final String viewSql;
   private final List<String> schemaPath;
   private final RelProtoDataType protoRowType;
@@ -104,6 +103,8 @@ public class ViewTable
     }
   }
 
+  /** Table function that implements a view. It returns the operator
+   * tree of the view's SQL query. */
   static class ViewTableFunction implements TableFunction {
     protected final String viewSql;
     protected final OptiqSchema schema;

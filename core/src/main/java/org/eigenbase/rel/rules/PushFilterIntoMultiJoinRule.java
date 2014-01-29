@@ -25,7 +25,7 @@ import org.eigenbase.relopt.*;
  * FilterRel} into a {@link MultiJoinRel}.
  */
 public class PushFilterIntoMultiJoinRule extends RelOptRule {
-  public static final PushFilterIntoMultiJoinRule instance =
+  public static final PushFilterIntoMultiJoinRule INSTANCE =
       new PushFilterIntoMultiJoinRule();
 
   //~ Constructors -----------------------------------------------------------

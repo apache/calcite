@@ -283,6 +283,7 @@
         <version>2.11</version>
         <configuration>
           <configLocation>${top.dir}/src/main/config/checkstyle.xml</configLocation>
+          <suppressionsLocation>${top.dir}/src/main/config/checkstyle-suppressions.xml</suppressionsLocation>
           <consoleOutput>true</consoleOutput>
           <enableRulesSummary>true</enableRulesSummary>
           <headerLocation>${top.dir}/src/main/config/license-header.txt</headerLocation>

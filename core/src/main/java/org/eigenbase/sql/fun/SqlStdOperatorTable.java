@@ -34,7 +34,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   /**
    * The standard operator table.
    */
-  private static SqlStdOperatorTable instance;
+  private static SqlStdOperatorTable INSTANCE;
 
   //-------------------------------------------------------------
   //                   SET OPERATORS
@@ -1499,14 +1499,14 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    * Returns the standard operator table, creating it if necessary.
    */
   public static synchronized SqlStdOperatorTable instance() {
-    if (instance == null) {
+    if (INSTANCE == null) {
       // Creates and initializes the standard operator table.
       // Uses two-phase construction, because we can't intialize the
       // table until the constructor of the sub-class has completed.
-      instance = new SqlStdOperatorTable();
-      instance.init();
+      INSTANCE = new SqlStdOperatorTable();
+      INSTANCE.init();
     }
-    return instance;
+    return INSTANCE;
   }
 
 }

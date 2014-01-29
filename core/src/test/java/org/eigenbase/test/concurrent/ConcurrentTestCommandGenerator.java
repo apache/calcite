@@ -69,7 +69,7 @@ public class ConcurrentTestCommandGenerator {
    * execution order to a {@link ConcurrentTestCommand}.
    */
   private TreeMap<Integer, TreeMap<Integer, ConcurrentTestCommand>>
-      threadMap;
+  threadMap;
 
   /**
    * Maps Integer thread IDs to thread names.
@@ -168,7 +168,7 @@ public class ConcurrentTestCommandGenerator {
       int threadId,
       int order,
       String sql) {
-    assert (sql != null);
+    assert sql != null;
 
     ConcurrentTestCommand command = new ExplainCommand(sql);
 
@@ -190,7 +190,7 @@ public class ConcurrentTestCommandGenerator {
       int threadId,
       int order,
       String sql) {
-    assert (sql != null);
+    assert sql != null;
 
     ConcurrentTestCommand command = new PrepareCommand(sql);
 
@@ -334,8 +334,8 @@ public class ConcurrentTestCommandGenerator {
       int threadId,
       int order,
       ConcurrentTestCommand command) {
-    assert (threadId > 0);
-    assert (order > 0);
+    assert threadId > 0;
+    assert order > 0;
 
     TreeMap<Integer, ConcurrentTestCommand> commandMap =
         threadMap.get(threadId);
@@ -345,7 +345,7 @@ public class ConcurrentTestCommandGenerator {
     }
 
     // check for duplicate order numbers
-    assert (!commandMap.containsKey(order));
+    assert !commandMap.containsKey(order);
 
     commandMap.put(order, command);
     return command;
@@ -437,7 +437,7 @@ public class ConcurrentTestCommandGenerator {
   }
 
   protected void postExecute(ConcurrentTestCommandExecutor[] threads)
-      throws Exception {
+    throws Exception {
     // check for failures
     if (requiresCustomErrorHandling()) {
       for (ConcurrentTestCommandExecutor executor : threads) {
@@ -660,12 +660,10 @@ public class ConcurrentTestCommandGenerator {
 
     // subclasses define this to execute themselves
     protected abstract void doExecute(
-        ConcurrentTestCommandExecutor exec)
-        throws Exception;
+        ConcurrentTestCommandExecutor exec) throws Exception;
 
     // implement ConcurrentTestCommand
-    public void execute(ConcurrentTestCommandExecutor exec)
-        throws Exception {
+    public void execute(ConcurrentTestCommandExecutor exec) throws Exception {
       try {
         doExecute(exec);
         if (shouldFail) {
@@ -713,7 +711,7 @@ public class ConcurrentTestCommandGenerator {
     }
 
     protected void doExecute(ConcurrentTestCommandExecutor executor)
-        throws Exception {
+      throws Exception {
       executor.getSynchronizer().waitForOthers();
     }
   }
@@ -741,7 +739,7 @@ public class ConcurrentTestCommandGenerator {
     }
 
     protected void doExecute(ConcurrentTestCommandExecutor executor)
-        throws Exception {
+      throws Exception {
       Thread.sleep(millis);
     }
   }
@@ -759,7 +757,7 @@ public class ConcurrentTestCommandGenerator {
     }
 
     protected void doExecute(ConcurrentTestCommandExecutor executor)
-        throws SQLException {
+      throws SQLException {
       Statement stmt = executor.getConnection().createStatement();
 
       try {
@@ -773,7 +771,7 @@ public class ConcurrentTestCommandGenerator {
             rowCount++;
           }
 
-          assert (rowCount > 0);
+          assert rowCount > 0;
         } finally {
           rset.close();
         }
@@ -795,7 +793,7 @@ public class ConcurrentTestCommandGenerator {
     }
 
     protected void doExecute(ConcurrentTestCommandExecutor executor)
-        throws SQLException {
+      throws SQLException {
       PreparedStatement stmt =
           executor.getConnection().prepareStatement(sql);
 
@@ -809,7 +807,7 @@ public class ConcurrentTestCommandGenerator {
    */
   private static class CloseCommand extends AbstractCommand {
     protected void doExecute(ConcurrentTestCommandExecutor executor)
-        throws SQLException {
+      throws SQLException {
       Statement stmt = executor.getStatement();
 
       if (stmt != null) {
@@ -827,9 +825,8 @@ public class ConcurrentTestCommandGenerator {
       this.timeout = timeout;
     }
 
-    protected boolean setTimeout(Statement stmt)
-        throws SQLException {
-      assert (timeout >= 0);
+    protected boolean setTimeout(Statement stmt) throws SQLException {
+      assert timeout >= 0;
 
       if (timeout > 0) {
         stmt.setQueryTimeout(timeout);
@@ -858,7 +855,7 @@ public class ConcurrentTestCommandGenerator {
     }
 
     protected void doExecute(ConcurrentTestCommandExecutor executor)
-        throws SQLException {
+      throws SQLException {
       PreparedStatement stmt =
           (PreparedStatement) executor.getStatement();
 
@@ -921,8 +918,7 @@ public class ConcurrentTestCommandGenerator {
       for (int i = 0; i < expected.length(); i++) {
         char ch = expected.charAt(i);
         char nextCh =
-            (((i + 1) < expected.length()) ? expected.charAt(i + 1)
-                : 0);
+            ((i + 1) < expected.length()) ? expected.charAt(i + 1) : 0;
         switch (state) {
         case STATE_ROW_START: // find start of row
           if (ch == LEFT_BRACKET) {
@@ -1240,11 +1236,10 @@ public class ConcurrentTestCommandGenerator {
             ((expectedRowIter != null) && expectedRowIter.hasNext())
                 || ((resultRowIter != null) && resultRowIter.hasNext())) {
           Object expectedObject =
-              ((expectedRowIter != null) ? expectedRowIter.next()
-                  : "");
+              expectedRowIter != null ? expectedRowIter.next() : "";
 
           Object resultObject =
-              ((resultRowIter != null) ? resultRowIter.next() : "");
+              resultRowIter != null ? resultRowIter.next() : "";
 
           String expectedValue;
           if (expectedObject == null) {
@@ -1310,7 +1305,7 @@ public class ConcurrentTestCommandGenerator {
     }
 
     protected void doExecute(ConcurrentTestCommandExecutor executor)
-        throws SQLException {
+      throws SQLException {
       Statement stmt = executor.getConnection().createStatement();
 
       setTimeout(stmt);
@@ -1325,7 +1320,7 @@ public class ConcurrentTestCommandGenerator {
    */
   private static class CommitCommand extends AbstractCommand {
     protected void doExecute(ConcurrentTestCommandExecutor executor)
-        throws SQLException {
+      throws SQLException {
       executor.getConnection().commit();
     }
   }
@@ -1336,7 +1331,7 @@ public class ConcurrentTestCommandGenerator {
    */
   private static class RollbackCommand extends AbstractCommand {
     protected void doExecute(ConcurrentTestCommandExecutor executor)
-        throws SQLException {
+      throws SQLException {
       executor.getConnection().rollback();
     }
   }
@@ -1354,7 +1349,7 @@ public class ConcurrentTestCommandGenerator {
     }
 
     protected void doExecute(ConcurrentTestCommandExecutor executor)
-        throws SQLException {
+      throws SQLException {
       Statement stmt = executor.getConnection().createStatement();
 
       try {

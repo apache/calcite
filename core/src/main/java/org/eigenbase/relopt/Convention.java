@@ -68,7 +68,7 @@ public interface Convention extends RelTrait {
     }
 
     public RelTraitDef getTraitDef() {
-      return ConventionTraitDef.instance;
+      return ConventionTraitDef.INSTANCE;
     }
   }
 }

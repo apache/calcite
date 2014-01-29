@@ -24,8 +24,7 @@ import java.sql.SQLException;
  * retry the operation.
  */
 public class SqlTimeoutException
-    extends SQLException
-{
+    extends SQLException {
   SqlTimeoutException() {
     // SQLException(reason, SQLState, vendorCode)
     // REVIEW mb 19-Jul-05 Is there a standard SQLState?

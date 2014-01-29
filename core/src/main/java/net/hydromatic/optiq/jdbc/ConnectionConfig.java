@@ -35,6 +35,10 @@ public interface ConnectionConfig {
   boolean caseSensitive();
   boolean spark();
 
+  /** Named, built-in lexical policy. A lexical policy describes how
+   * identifiers are quoted, whether they are converted to upper- or
+   * lower-case when they are read, and whether they are matched
+   * case-sensitively. */
   enum Lex {
     ORACLE(Quoting.DOUBLE_QUOTE, Casing.TO_UPPER, Casing.UNCHANGED, true),
     MYSQL(Quoting.BACK_TICK, Casing.UNCHANGED, Casing.UNCHANGED, false),

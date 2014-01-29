@@ -208,10 +208,16 @@ public abstract class WindowRelBase extends SingleRel {
       return buf.toString();
     }
 
+    @Override
     public boolean equals(Object obj) {
       return this == obj
           || obj instanceof Window
           && this.digest.equals(((Window) obj).digest);
+    }
+
+    @Override
+    public int hashCode() {
+      return digest.hashCode();
     }
 
     public RelCollation collation() {

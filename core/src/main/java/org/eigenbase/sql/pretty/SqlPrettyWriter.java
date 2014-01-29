@@ -678,7 +678,7 @@ public class SqlPrettyWriter implements SqlWriter {
                 newlineBeforeSep
                     && !sep.equals(",");
             boolean newlineAfter =
-                (newlineAfterSep && sep.equals(","));
+                newlineAfterSep && sep.equals(",");
             if ((itemCount > 0) || printFirst) {
               if (newlineBefore && (itemCount > 0)) {
                 pw.println();
@@ -687,7 +687,7 @@ public class SqlPrettyWriter implements SqlWriter {
                 setNeedWhitespace(false);
               }
               keyword(sep);
-              nextWhitespace = (newlineAfter) ? NL : " ";
+              nextWhitespace = newlineAfter ? NL : " ";
             }
             ++itemCount;
           }
@@ -861,9 +861,9 @@ public class SqlPrettyWriter implements SqlWriter {
 
   protected boolean tooLong(String s) {
     boolean result =
-        ((lineLength > 0)
+        lineLength > 0
             && (charCount > currentIndent)
-            && ((charCount + s.length()) >= lineLength));
+            && ((charCount + s.length()) >= lineLength);
     if (result) {
       nextWhitespace = NL;
     }
@@ -1047,7 +1047,7 @@ public class SqlPrettyWriter implements SqlWriter {
       }
       if ((itemCount > 0) || printFirst) {
         keyword(sep);
-        nextWhitespace = (newlineAfterSep) ? NL : " ";
+        nextWhitespace = newlineAfterSep ? NL : " ";
       }
       ++itemCount;
     }

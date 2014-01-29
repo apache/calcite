@@ -38,13 +38,13 @@ public class OptionsListTest {
     checkIt(
         "flag=true\n",
         new OptionsList.Option[]{
-            new OptionsList.BooleanOption(
-                "flag",
-                null,
-                "xxx",
-                false,
-                false,
-                false)
+          new OptionsList.BooleanOption(
+            "flag",
+            null,
+            "xxx",
+            false,
+            false,
+            false)
         },
         new String[]{"-flag"});
   }
@@ -53,13 +53,13 @@ public class OptionsListTest {
     checkIt(
         "flag=false (default)\n",
         new OptionsList.Option[]{
-            new OptionsList.BooleanOption(
-                "flag",
-                null,
-                "xxx",
-                false,
-                false,
-                false)
+          new OptionsList.BooleanOption(
+            "flag",
+            null,
+            "xxx",
+            false,
+            false,
+            false)
         },
         new String[]{});
   }
@@ -69,13 +69,13 @@ public class OptionsListTest {
     checkIt(
         "?",
         new OptionsList.Option[]{
-            new OptionsList.BooleanOption(
-                "flag",
-                null,
-                "xxx",
-                false,
-                false,
-                false)
+          new OptionsList.BooleanOption(
+            "flag",
+            null,
+            "xxx",
+            false,
+            false,
+            false)
         },
         new String[]{"-unknown"});
   }
@@ -85,13 +85,13 @@ public class OptionsListTest {
     checkIt(
         "?",
         new OptionsList.Option[]{
-            new OptionsList.BooleanOption(
-                "flag",
-                null,
-                "xxx",
-                false,
-                false,
-                false)
+          new OptionsList.BooleanOption(
+            "flag",
+            null,
+            "xxx",
+            false,
+            false,
+            false)
         },
         new String[]{"unknown=foo"});
   }
@@ -101,13 +101,13 @@ public class OptionsListTest {
     checkIt(
         "foo=default",
         new OptionsList.Option[]{
-            new OptionsList.StringOption(
-                "foo",
-                "foo",
-                "xxx",
-                false,
-                false,
-                "default")
+          new OptionsList.StringOption(
+            "foo",
+            "foo",
+            "xxx",
+            false,
+            false,
+            "default")
         },
         new String[]{"foo=default"});
   }
@@ -117,13 +117,13 @@ public class OptionsListTest {
     checkIt(
         "foo=default (default)",
         new OptionsList.Option[]{
-            new OptionsList.StringOption(
-                "foo",
-                "foo",
-                "xxx",
-                false,
-                false,
-                "default")
+          new OptionsList.StringOption(
+            "foo",
+            "foo",
+            "xxx",
+            false,
+            false,
+            "default")
         },
         new String[]{""});
   }
@@ -133,14 +133,14 @@ public class OptionsListTest {
     checkIt(
         "color=GREEN",
         new OptionsList.Option[]{
-            new OptionsList.EnumeratedOption(
-                "c",
-                "color",
-                "",
-                false,
-                false,
-                Color.RED,
-                Color.class)
+          new OptionsList.EnumeratedOption(
+            "c",
+            "color",
+            "",
+            false,
+            false,
+            Color.RED,
+            Color.class)
         },
         new String[]{"-c GREEN"});
   }
@@ -150,14 +150,14 @@ public class OptionsListTest {
     checkIt(
         "color=BLUE",
         new OptionsList.Option[]{
-            new OptionsList.EnumeratedOption(
-                "c",
-                "color",
-                "",
-                false,
-                false,
-                Color.RED,
-                Color.class)
+          new OptionsList.EnumeratedOption(
+            "c",
+            "color",
+            "",
+            false,
+            false,
+            Color.RED,
+            Color.class)
         },
         new String[]{"color=BLUE"});
   }
@@ -184,21 +184,21 @@ public class OptionsListTest {
     checkIt(
         "color=RED (default)",
         new OptionsList.Option[]{
-            new OptionsList.EnumeratedOption(
-                "c",
-                "color",
-                "",
-                false,
-                false,
-                Color.RED,
-                Color.class),
-            new OptionsList.NumberOption(
-                "x",
-                "x",
-                "",
-                false,
-                false,
-                null)
+          new OptionsList.EnumeratedOption(
+            "c",
+            "color",
+            "",
+            false,
+            false,
+            Color.RED,
+            Color.class),
+          new OptionsList.NumberOption(
+            "x",
+            "x",
+            "",
+            false,
+            false,
+            null)
         },
         new String[]{"-c PURPLE"});
   }
@@ -208,13 +208,13 @@ public class OptionsListTest {
     checkIt(
         "missing x",
         new OptionsList.Option[]{
-            new OptionsList.NumberOption(
-                "x",
-                "x",
-                "",
-                true,
-                false,
-                null)
+          new OptionsList.NumberOption(
+            "x",
+            "x",
+            "",
+            true,
+            false,
+            null)
         },
         new String[]{});
   }
@@ -292,20 +292,20 @@ public class OptionsListTest {
     checkIt(
         "verbose=true" + NL + "file=file.txt",
         new OptionsList.Option[]{
-            new OptionsList.BooleanOption(
-                "flag",
-                "flag",
-                "",
-                false,
-                false,
-                false),
-            new OptionsList.StringOption(
-                "file",
-                "file",
-                "",
-                false,
-                true,
-                "foo.txt")
+          new OptionsList.BooleanOption(
+            "flag",
+            "flag",
+            "",
+            false,
+            false,
+            false),
+          new OptionsList.StringOption(
+            "file",
+            "file",
+            "",
+            false,
+            true,
+            "foo.txt")
         },
         new String[]{"-v", "bar.txt"});
   }
@@ -315,20 +315,20 @@ public class OptionsListTest {
     checkIt(
         "verbose=true" + NL + "file=foo.txt" + NL + "file=bar.txt",
         new OptionsList.Option[]{
-            new OptionsList.BooleanOption(
-                "flag",
-                "flag",
-                "",
-                false,
-                false,
-                false),
-            new OptionsList.StringOption(
-                "file",
-                "file",
-                "",
-                false,
-                true,
-                "foo.txt")
+          new OptionsList.BooleanOption(
+            "flag",
+            "flag",
+            "",
+            false,
+            false,
+            false),
+          new OptionsList.StringOption(
+            "file",
+            "file",
+            "",
+            false,
+            true,
+            "foo.txt")
         },
         new String[]{"-v", "-f", "foo.txt", "-f", "bar.txt"});
   }

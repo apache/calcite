@@ -159,8 +159,7 @@ public abstract class RelDataTypeImpl
   }
 
   // implement RelDataType
-  public SqlCollation getCollation()
-      throws RuntimeException {
+  public SqlCollation getCollation() {
     return null;
   }
 
@@ -245,8 +244,8 @@ public abstract class RelDataTypeImpl
       public int compareTypePrecedence(
           RelDataType type1,
           RelDataType type2) {
-        assert (containsType(type1));
-        assert (containsType(type2));
+        assert containsType(type1);
+        assert containsType(type2);
         return 0;
       }
     };

@@ -55,7 +55,7 @@ public class SqlConvertFunction extends SqlFunction {
     case 2:
       return "{0}({1} USING {2})";
     }
-    assert (false);
+    assert false;
     return null;
   }
 }

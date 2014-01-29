@@ -15,7 +15,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 */
-package org.eigenbase.rel.rules;
 
 /**
  * Defines relational expressions.<p>&nbsp;</p>
@@ -26,12 +25,13 @@ package org.eigenbase.rel.rules;
  *        org.eigenbase.sql</a></code>
  *        is an object model for SQL expressions</li>
  *    <li>Package<code> <a href="../sql/package-summary.html">
-          org.eigenbase.rex</a></code>
+ *        org.eigenbase.rex</a></code>
  *        is an object model for relational row expressions</li>
  *    <li>Package<code> <a href="../relopt/package-summary.html">
-          org.eigenbase.relopt</a></code>
+ *        org.eigenbase.relopt</a></code>
  *        provides an optimizer interface.</li>
  * </ul>
-*/
+ */
+package org.eigenbase.rel.rules;
 
 // End package-info.java

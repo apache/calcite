@@ -50,7 +50,7 @@ import com.google.common.collect.ImmutableList;
  * would like to push down decimal operations to an external database.
  */
 public class ReduceDecimalsRule extends RelOptRule {
-  public static final ReduceDecimalsRule instance = new ReduceDecimalsRule();
+  public static final ReduceDecimalsRule INSTANCE = new ReduceDecimalsRule();
 
   //~ Constructors -----------------------------------------------------------
 
@@ -347,7 +347,7 @@ public class ReduceDecimalsRule extends RelOptRule {
      * @return 10^scale as an approximate value
      */
     protected RexNode makeApproxScaleFactor(int scale) {
-      assert ((-100 < scale) && (scale < 100))
+      assert (-100 < scale) && (scale < 100)
           : "could not make approximate scale factor";
       if (scale >= 0) {
         return makeApproxLiteral(BigDecimal.TEN.pow(scale));
@@ -527,7 +527,7 @@ public class ReduceDecimalsRule extends RelOptRule {
      * @return an integer representation of the decimal value
      */
     protected RexNode decodeValue(RexNode decimalNode) {
-      assert (SqlTypeUtil.isDecimal(decimalNode.getType()));
+      assert SqlTypeUtil.isDecimal(decimalNode.getType());
       return builder.decodeIntervalOrDecimal(decimalNode);
     }
 
@@ -801,8 +801,10 @@ public class ReduceDecimalsRule extends RelOptRule {
    * Expands a decimal arithmetic expression
    */
   private class BinaryArithmeticExpander extends RexExpander {
-    RelDataType typeA, typeB;
-    int scaleA, scaleB;
+    RelDataType typeA;
+    RelDataType typeB;
+    int scaleA;
+    int scaleB;
 
     private BinaryArithmeticExpander(RexBuilder builder) {
       super(builder);
@@ -814,8 +816,8 @@ public class ReduceDecimalsRule extends RelOptRule {
       assert operands.size() == 2;
       RelDataType typeA = operands.get(0).getType();
       RelDataType typeB = operands.get(1).getType();
-      assert (SqlTypeUtil.isNumeric(typeA)
-          && SqlTypeUtil.isNumeric(typeB));
+      assert SqlTypeUtil.isNumeric(typeA)
+          && SqlTypeUtil.isNumeric(typeB);
 
       if (SqlTypeUtil.isApproximateNumeric(typeA)
           || SqlTypeUtil.isApproximateNumeric(typeB)) {
@@ -868,8 +870,8 @@ public class ReduceDecimalsRule extends RelOptRule {
       assert operands.size() == 2;
       typeA = operands.get(0).getType();
       typeB = operands.get(1).getType();
-      assert (SqlTypeUtil.isExactNumeric(typeA)
-          && SqlTypeUtil.isExactNumeric(typeB));
+      assert SqlTypeUtil.isExactNumeric(typeA)
+          && SqlTypeUtil.isExactNumeric(typeB);
 
       scaleA = typeA.getScale();
       scaleB = typeB.getScale();

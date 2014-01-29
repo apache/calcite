@@ -84,7 +84,7 @@ public class VolcanoPlannerTraitTest {
   @Test public void testDoubleConversion() {
     VolcanoPlanner planner = new VolcanoPlanner();
 
-    planner.addRelTraitDef(ConventionTraitDef.instance);
+    planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
     planner.addRelTraitDef(ALT_TRAIT_DEF);
 
     planner.addRule(new PhysToIteratorConverterRule());
@@ -118,7 +118,7 @@ public class VolcanoPlannerTraitTest {
     assertTrue(result instanceof IterSingleRel);
     assertEquals(
         EnumerableConvention.INSTANCE,
-        result.getTraitSet().getTrait(ConventionTraitDef.instance));
+        result.getTraitSet().getTrait(ConventionTraitDef.INSTANCE));
     assertEquals(
         ALT_TRAIT2,
         result.getTraitSet().getTrait(ALT_TRAIT_DEF));
@@ -141,7 +141,7 @@ public class VolcanoPlannerTraitTest {
   @Test public void testTraitPropagation() {
     VolcanoPlanner planner = new VolcanoPlanner();
 
-    planner.addRelTraitDef(ConventionTraitDef.instance);
+    planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
     planner.addRelTraitDef(ALT_TRAIT_DEF);
 
     planner.addRule(new PhysToIteratorConverterRule());
@@ -177,7 +177,7 @@ public class VolcanoPlannerTraitTest {
     assertTrue(result instanceof IterSingleRel);
     assertEquals(
         EnumerableConvention.INSTANCE,
-        result.getTraitSet().getTrait(ConventionTraitDef.instance));
+        result.getTraitSet().getTrait(ConventionTraitDef.INSTANCE));
     assertEquals(
         ALT_TRAIT2,
         result.getTraitSet().getTrait(ALT_TRAIT_DEF));
@@ -186,7 +186,7 @@ public class VolcanoPlannerTraitTest {
     assertTrue(child instanceof IterSingleRel);
     assertEquals(
         EnumerableConvention.INSTANCE,
-        child.getTraitSet().getTrait(ConventionTraitDef.instance));
+        child.getTraitSet().getTrait(ConventionTraitDef.INSTANCE));
     assertEquals(
         ALT_TRAIT2,
         child.getTraitSet().getTrait(ALT_TRAIT_DEF));
@@ -627,7 +627,7 @@ public class VolcanoPlannerTraitTest {
         RelNode child) {
       super(
           cluster,
-          ConventionTraitDef.instance,
+          ConventionTraitDef.INSTANCE,
           child.getTraitSet().replace(EnumerableConvention.INSTANCE),
           child);
     }

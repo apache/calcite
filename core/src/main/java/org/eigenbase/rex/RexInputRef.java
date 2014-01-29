@@ -52,7 +52,7 @@ public class RexInputRef extends RexSlot {
 
   // list of common names, to reduce memory allocations
   @SuppressWarnings("MismatchedQueryAndUpdateOfCollection")
-  private static final List<String> names = new SelfPopulatingList("$", 30);
+  private static final List<String> NAMES = new SelfPopulatingList("$", 30);
 
   //~ Constructors -----------------------------------------------------------
 
@@ -62,13 +62,8 @@ public class RexInputRef extends RexSlot {
    * @param index Index of the field in the underlying row-type
    * @param type  Type of the column
    */
-  public RexInputRef(
-      int index,
-      RelDataType type) {
-    super(
-        createName(index),
-        index,
-        type);
+  public RexInputRef(int index, RelDataType type) {
+    super(createName(index), index, type);
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -113,7 +108,7 @@ public class RexInputRef extends RexSlot {
    * is low, uses a cache of common names, to reduce gc.
    */
   public static String createName(int index) {
-    return names.get(index);
+    return NAMES.get(index);
   }
 }
 

@@ -30,9 +30,10 @@ import org.eigenbase.util.*;
 public class SqlTypeAssignmentRules {
   //~ Static fields/initializers ---------------------------------------------
 
-  private static SqlTypeAssignmentRules instance = null;
-  private static Map<SqlTypeName, Set<SqlTypeName>> rules = null;
-  private static Map<SqlTypeName, Set<SqlTypeName>> coerceRules = null;
+  private static SqlTypeAssignmentRules INSTANCE = null;
+
+  private final Map<SqlTypeName, Set<SqlTypeName>> rules;
+  private final Map<SqlTypeName, Set<SqlTypeName>> coerceRules;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -314,10 +315,10 @@ public class SqlTypeAssignmentRules {
   //~ Methods ----------------------------------------------------------------
 
   public static synchronized SqlTypeAssignmentRules instance() {
-    if (instance == null) {
-      instance = new SqlTypeAssignmentRules();
+    if (INSTANCE == null) {
+      INSTANCE = new SqlTypeAssignmentRules();
     }
-    return instance;
+    return INSTANCE;
   }
 
   public boolean canCastFrom(

@@ -15,12 +15,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 */
-package org.eigenbase.jdbc4;
 
 /**
  * Provides source compatibility gunk when building a JDBC 4.0 driver
  * implementation against JDK 1.5. For more information, see
  * <a href="http://pub.eigenbase.org/wiki/Jdbc4Transition">Eigenpedia</a>.
  */
+package org.eigenbase.jdbc4;
 
 // End package-info.java

@@ -15,10 +15,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 */
-package org.eigenbase.sql.pretty;
 
 /**
  * Provides a pretty-printer for SQL statements.
  */
+package org.eigenbase.sql.pretty;
 
 // End package-info.java

@@ -89,7 +89,7 @@ public abstract class ProjectRelBase extends SingleRel {
     this(
         input.getCluster(), input.getTraitSet(), input.getInput(),
         input.getExpressionList("exprs"),
-        input.getRowType("exprs", "fields"), Flags.Boxed);
+        input.getRowType("exprs", "fields"), Flags.BOXED);
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -99,7 +99,7 @@ public abstract class ProjectRelBase extends SingleRel {
   }
 
   public boolean isBoxed() {
-    return (flags & Flags.Boxed) == Flags.Boxed;
+    return (flags & Flags.BOXED) == Flags.BOXED;
   }
 
   @Override
@@ -222,10 +222,10 @@ public abstract class ProjectRelBase extends SingleRel {
     return pw;
   }
 
-  //~ Inner Interfaces -------------------------------------------------------
+  //~ Inner Classes ----------------------------------------------------------
 
-  public interface Flags {
-    int AnonFields = 2;
+  public static class Flags {
+    public static final int ANON_FIELDS = 2;
 
     /**
      * Whether the resulting row is to be a synthetic class whose fields are
@@ -233,8 +233,8 @@ public abstract class ProjectRelBase extends SingleRel {
      * there is only one field: <code>select {dept.deptno} from dept</code>
      * is boxed, <code>select dept.deptno from dept</code> is not.
      */
-    int Boxed = 1;
-    int None = 0;
+    public static final int BOXED = 1;
+    public static final int NONE = 0;
   }
 
   //~ Inner Classes ----------------------------------------------------------

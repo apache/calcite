@@ -15,11 +15,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 */
-package org.eigenbase.sql.parser.impl;
 
 /**
  * Contains generated code for the
  * {@link org.eigenbase.sql.parser Eigenbase SQL parser}.
  */
+package org.eigenbase.sql.parser.impl;
 
 // End package-info.java

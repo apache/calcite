@@ -57,9 +57,8 @@ public class TrustAllSslSocketFactory extends SocketFactoryImpl {
   }
 
   @Override
-  public Socket createSocket(
-      InetAddress address, int port, InetAddress localAddress, int localPort)
-      throws IOException {
+  public Socket createSocket(InetAddress address, int port,
+      InetAddress localAddress, int localPort) throws IOException {
     return applySettings(
         sslSocketFactory.createSocket(
             address, port, localAddress, localPort));
@@ -71,9 +70,8 @@ public class TrustAllSslSocketFactory extends SocketFactoryImpl {
   }
 
   @Override
-  public Socket createSocket(
-      String host, int port, InetAddress localHost, int localPort)
-      throws IOException {
+  public Socket createSocket(String host, int port, InetAddress localHost,
+      int localPort) throws IOException {
     return applySettings(
         sslSocketFactory.createSocket(host, port, localHost, localPort));
   }

@@ -44,7 +44,7 @@ public class RelJson {
       new HashMap<String, Constructor>();
   private final JsonBuilder jsonBuilder;
 
-  public static final List<String> packages =
+  public static final List<String> PACKAGES =
       ImmutableList.of(
           "org.eigenbase.rel.",
           "net.hydromatic.optiq.impl.jdbc.",
@@ -97,7 +97,7 @@ public class RelJson {
    */
   public Class typeNameToClass(String type) {
     if (!type.contains(".")) {
-      for (String package_ : packages) {
+      for (String package_ : PACKAGES) {
         try {
           return Class.forName(package_ + type);
         } catch (ClassNotFoundException e) {
@@ -117,7 +117,7 @@ public class RelJson {
    */
   public String classToTypeName(Class<? extends RelNode> class_) {
     final String canonicalName = class_.getName();
-    for (String package_ : packages) {
+    for (String package_ : PACKAGES) {
       if (canonicalName.startsWith(package_)) {
         String remaining = canonicalName.substring(package_.length());
         if (remaining.indexOf('.') < 0 && remaining.indexOf('$') < 0) {
@@ -210,7 +210,7 @@ public class RelJson {
       return toJson((CorrelatorRel.Correlation) value);
     } else if (value instanceof List) {
       final List<Object> list = jsonBuilder.list();
-      for (Object o : ((List) value)) {
+      for (Object o : (List) value) {
         list.add(toJson(o));
       }
       return list;

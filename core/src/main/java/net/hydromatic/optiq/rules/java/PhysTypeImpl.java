@@ -101,8 +101,7 @@ public class PhysTypeImpl implements PhysType {
               public int size() {
                 return integers.size();
               }
-            }
-        );
+            });
     return of(typeFactory, projectedRowType, format.optimize(projectedRowType));
   }
 

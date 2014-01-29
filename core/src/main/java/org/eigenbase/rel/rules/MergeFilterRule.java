@@ -25,7 +25,7 @@ import org.eigenbase.rex.*;
  * MergeFilterRule implements the rule for combining two {@link FilterRel}s
  */
 public class MergeFilterRule extends RelOptRule {
-  public static final MergeFilterRule instance = new MergeFilterRule();
+  public static final MergeFilterRule INSTANCE = new MergeFilterRule();
 
   //~ Constructors -----------------------------------------------------------
 

@@ -15,11 +15,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 */
-package org.eigenbase.rel.jdbc;
 
 /**
  * Contains query transformation rules relating to generating SQL for
  * foreign JDBC databases.
  */
+package org.eigenbase.rel.jdbc;
 
 // End package-info.java

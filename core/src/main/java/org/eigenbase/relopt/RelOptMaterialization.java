@@ -184,8 +184,8 @@ public class RelOptMaterialization {
    */
   public static RelNode toLeafJoinForm(RelNode rel) {
     HepProgram program = HepProgram.builder()
-        .addRuleInstance(PullUpProjectsAboveJoinRule.instanceRightProjectChild)
-        .addRuleInstance(PullUpProjectsAboveJoinRule.instanceLeftProjectChild)
+        .addRuleInstance(PullUpProjectsAboveJoinRule.RIGHT_PROJECT)
+        .addRuleInstance(PullUpProjectsAboveJoinRule.LEFT_PROJECT)
         .build();
     final HepPlanner planner =
         new HepPlanner(program);

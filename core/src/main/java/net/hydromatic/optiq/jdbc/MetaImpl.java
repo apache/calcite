@@ -619,10 +619,12 @@ public class MetaImpl implements Meta {
     return DRIVER.connect(schema, typeFactory);
   }
 
+  /** An object that has a name. */
   interface Named {
     String getName();
   }
 
+  /** Metadata describing a column. */
   public static class MetaColumn implements Named {
     public final String tableCat;
     public final String tableSchem;
@@ -682,6 +684,7 @@ public class MetaImpl implements Meta {
     }
   }
 
+  /** Metadata describing a table. */
   public static class MetaTable implements Named {
     private final Table optiqTable;
     public final String tableCat;
@@ -710,6 +713,7 @@ public class MetaImpl implements Meta {
     }
   }
 
+  /** Metadata describing a schema. */
   public static class MetaSchema implements Named {
     private final OptiqSchema optiqSchema;
     public final String tableCatalog;
@@ -729,6 +733,7 @@ public class MetaImpl implements Meta {
     }
   }
 
+  /** Metadata describing a catalog. */
   public static class MetaCatalog implements Named {
     public final String tableCatalog;
 
@@ -742,6 +747,7 @@ public class MetaImpl implements Meta {
     }
   }
 
+  /** Metadata describing a table type. */
   public static class MetaTableType {
     public final String tableType;
 
@@ -750,21 +756,27 @@ public class MetaImpl implements Meta {
     }
   }
 
+  /** Metadata describing a procedure. */
   public static class MetaProcedure {
   }
 
+  /** Metadata describing a procedure column. */
   public static class MetaProcedureColumn {
   }
 
+  /** Metadata describing a column privilege. */
   public static class MetaColumnPrivilege {
   }
 
+  /** Metadata describing a table privilege. */
   public static class MetaTablePrivilege {
   }
 
+  /** Metadata describing the best identifier for a row. */
   public static class MetaBestRowIdentifier {
   }
 
+  /** Metadata describing a version column. */
   public static class MetaVersionColumn {
     public final short scope;
     public final String columnName;
@@ -789,6 +801,7 @@ public class MetaImpl implements Meta {
     }
   }
 
+  /** Metadata describing a primary key. */
   public static class MetaPrimaryKey {
     public final String tableCat;
     public final String tableSchem;
@@ -808,45 +821,59 @@ public class MetaImpl implements Meta {
     }
   }
 
+  /** Metadata describing an imported key. */
   public static class MetaImportedKey {
   }
 
+  /** Metadata describing an exported key. */
   public static class MetaExportedKey {
   }
 
+  /** Metadata describing a cross reference. */
   public static class MetaCrossReference {
   }
 
+  /** Metadata describing type info. */
   public static class MetaTypeInfo {
   }
 
+  /** Metadata describing index info. */
   public static class MetaIndexInfo {
   }
 
+  /** Metadata describing a user-defined type. */
   public static class MetaUdt {
   }
 
+  /** Metadata describing a super-type. */
   public static class MetaSuperType {
   }
 
+  /** Metadata describing an attribute. */
   public static class MetaAttribute {
   }
 
+  /** Metadata describing a client info property. */
   public static class MetaClientInfoProperty {
   }
 
+  /** Metadata describing a function. */
   public static class MetaFunction {
   }
 
+  /** Metadata describing a function column. */
   public static class MetaFunctionColumn {
   }
 
+  /** Metadata describing a pseudo column. */
   public static class MetaPseudoColumn {
   }
 
+  /** Metadata describing a super-table. */
   public static class MetaSuperTable {
   }
 
+  /** Accesses fields by name. */
   private static class NamedFieldGetter {
     private final List<Field> fields = new ArrayList<Field>();
     private final List<ColumnMetaData> columnNames =
@@ -902,6 +929,7 @@ public class MetaImpl implements Meta {
     }
   }
 
+  /** Table whose contents are metadata. */
   abstract static class MetadataTable<E> extends AbstractQueryableTable {
     public MetadataTable(Class<E> clazz) {
       super(clazz);

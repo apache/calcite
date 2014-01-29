@@ -15,10 +15,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 */
-package org.eigenbase.trace;
 
 /**
  * Tracing services.
  */
+package org.eigenbase.trace;
 
 // End package-info.java

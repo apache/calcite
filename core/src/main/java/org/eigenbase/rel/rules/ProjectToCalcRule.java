@@ -36,7 +36,7 @@ import com.google.common.collect.ImmutableList;
 public class ProjectToCalcRule extends RelOptRule {
   //~ Static fields/initializers ---------------------------------------------
 
-  public static final ProjectToCalcRule instance = new ProjectToCalcRule();
+  public static final ProjectToCalcRule INSTANCE = new ProjectToCalcRule();
 
   //~ Constructors -----------------------------------------------------------
 

@@ -38,6 +38,7 @@ final class JdbcUtils {
     throw new AssertionError("no instances!");
   }
 
+  /** Pool of dialects. */
   public static class DialectPool {
     final Map<List, SqlDialect> map = new HashMap<List, SqlDialect>();
 
@@ -90,7 +91,7 @@ final class JdbcUtils {
 
     public ObjectArrayRowBuilder(
         ResultSet resultSet, Primitive[] primitives, int[] types)
-        throws SQLException {
+      throws SQLException {
       this.resultSet = resultSet;
       this.primitives = primitives;
       this.types = types;

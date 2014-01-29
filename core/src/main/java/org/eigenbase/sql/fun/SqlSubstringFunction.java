@@ -84,7 +84,7 @@ public class SqlSubstringFunction extends SqlFunction {
     SqlValidatorScope scope = callBinding.getScope();
 
     int n = call.operands.length;
-    assert ((3 == n) || (2 == n));
+    assert (3 == n) || (2 == n);
     if (!SqlTypeStrategies.otcString.checkSingleOperandType(
         callBinding,
         call.operands[0],

@@ -38,8 +38,7 @@ public interface ConcurrentTestCommand {
    * @see ConcurrentTestCommandExecutor#getStatement()
    * @see ConcurrentTestCommandExecutor#setStatement(java.sql.Statement)
    */
-  void execute(ConcurrentTestCommandExecutor exec)
-      throws Exception;
+  void execute(ConcurrentTestCommandExecutor exec) throws Exception;
 
   /**
    * Marks a command to show that it is expected to fail, and indicates how.

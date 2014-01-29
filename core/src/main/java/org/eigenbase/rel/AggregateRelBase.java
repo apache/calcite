@@ -143,7 +143,7 @@ public abstract class AggregateRelBase extends SingleRel {
       return 1;
     } else {
       double rowCount = super.getRows();
-      rowCount *= (1.0 - Math.pow(.5, groupCount));
+      rowCount *= 1.0 - Math.pow(.5, groupCount);
       return rowCount;
     }
   }
@@ -189,8 +189,7 @@ public abstract class AggregateRelBase extends SingleRel {
                 return new RelDataTypeFieldImpl(
                     name, index, aggCall.type);
               }
-            }
-        ));
+            }));
   }
 
   /**

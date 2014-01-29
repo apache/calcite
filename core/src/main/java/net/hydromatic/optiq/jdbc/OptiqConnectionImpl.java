@@ -259,6 +259,7 @@ abstract class OptiqConnectionImpl
     return factory;
   }
 
+  /** Implementation of Queryable. */
   static class OptiqQueryable<T>
       extends BaseQueryable<T> {
     public OptiqQueryable(
@@ -271,6 +272,7 @@ abstract class OptiqConnectionImpl
     }
   }
 
+  /** Implementation of Server. */
   private static class OptiqServerImpl implements OptiqServer {
     final List<OptiqServerStatement> statementList =
         new ArrayList<OptiqServerStatement>();
@@ -284,6 +286,7 @@ abstract class OptiqConnectionImpl
     }
   }
 
+  /** Schema that has no parents. */
   private static class RootSchema extends AbstractSchema {
     RootSchema() {
       super(null, "");
@@ -296,6 +299,7 @@ abstract class OptiqConnectionImpl
     }
   }
 
+  /** Implementation of DataContext. */
   static class DataContextImpl implements DataContext {
     private final ImmutableMap<Object, Object> map;
     private final OptiqSchema rootSchema;
@@ -352,6 +356,7 @@ abstract class OptiqConnectionImpl
     }
   }
 
+  /** Implementation of Context. */
   static class ContextImpl implements OptiqPrepare.Context {
     private final OptiqConnectionImpl connection;
 

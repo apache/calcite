@@ -48,10 +48,8 @@ import net.hydromatic.optiq.util.BitSets;
 public class PullConstantsThroughAggregatesRule extends RelOptRule {
   //~ Static fields/initializers ---------------------------------------------
 
-  /**
-   * The singleton.
-   */
-  public static final PullConstantsThroughAggregatesRule instance =
+  /** The singleton. */
+  public static final PullConstantsThroughAggregatesRule INSTANCE =
       new PullConstantsThroughAggregatesRule();
 
   //~ Constructors -----------------------------------------------------------

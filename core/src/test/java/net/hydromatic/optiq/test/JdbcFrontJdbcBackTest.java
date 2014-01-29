@@ -72,7 +72,7 @@ public class JdbcFrontJdbcBackTest {
                 return null;
               }
             }
-        );
+      );
   }
 
   @Test public void testTablesByType() throws Exception {
@@ -99,7 +99,7 @@ public class JdbcFrontJdbcBackTest {
                 return null;
               }
             }
-        );
+      );
   }
 
   @Test public void testColumns() throws Exception {
@@ -125,7 +125,7 @@ public class JdbcFrontJdbcBackTest {
                 return null;
               }
             }
-        );
+      );
   }
 
   /** Tests a JDBC method known to be not implemented (as it happens,
@@ -148,7 +148,7 @@ public class JdbcFrontJdbcBackTest {
                 return null;
               }
             }
-        );
+      );
   }
 
   @Test public void testCase() {

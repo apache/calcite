@@ -60,7 +60,7 @@ public abstract class EigenbaseTrace {
   public static final Logger parserTracer = getParserTracer();
 
   private static final ThreadLocal<Function2<Void, File, String>>
-      DYNAMIC_HANDLER =
+  DYNAMIC_HANDLER =
       new ThreadLocal<Function2<Void, File, String>>() {
         @Override
         protected Function2<Void, File, String> initialValue() {

@@ -90,70 +90,70 @@ public class SplunkAdapterTest {
     connection.close();
   }
 
-  static final String[] sqls = {
-      "select \"source\", \"sourcetype\"\n"
+  static final String[] SQL_STRINGS = {
+    "select \"source\", \"sourcetype\"\n"
       + "from \"splunk\".\"splunk\"",
 
-      "select \"sourcetype\"\n"
+    "select \"sourcetype\"\n"
       + "from \"splunk\".\"splunk\"",
 
-      "select distinct \"sourcetype\"\n"
+    "select distinct \"sourcetype\"\n"
       + "from \"splunk\".\"splunk\"",
 
-      "select count(\"sourcetype\")\n"
+    "select count(\"sourcetype\")\n"
       + "from \"splunk\".\"splunk\"",
 
-      // gives wrong answer, not error. currently returns same as count.
-      "select count(distinct \"sourcetype\")\n"
+    // gives wrong answer, not error. currently returns same as count.
+    "select count(distinct \"sourcetype\")\n"
       + "from \"splunk\".\"splunk\"",
 
-      "select \"sourcetype\", count(\"source\")\n"
+    "select \"sourcetype\", count(\"source\")\n"
       + "from \"splunk\".\"splunk\"\n"
       + "group by \"sourcetype\"",
 
-      "select \"sourcetype\", count(\"source\") as c\n"
+    "select \"sourcetype\", count(\"source\") as c\n"
       + "from \"splunk\".\"splunk\"\n"
       + "group by \"sourcetype\"\n"
       + "order by c desc\n",
 
-      // group + order
-      "select s.\"product_id\", count(\"source\") as c\n"
+    // group + order
+    "select s.\"product_id\", count(\"source\") as c\n"
       + "from \"splunk\".\"splunk\" as s\n"
       + "where s.\"sourcetype\" = 'access_combined_wcookie'\n"
       + "group by s.\"product_id\"\n"
       + "order by c desc\n",
 
-      // non-advertised field
-      "select s.\"sourcetype\", s.\"action\" from \"splunk\".\"splunk\" as s",
+    // non-advertised field
+    "select s.\"sourcetype\", s.\"action\" from \"splunk\".\"splunk\" as s",
 
-      "select s.\"source\", s.\"product_id\", s.\"product_name\", s.\"method\"\n"
+    "select s.\"source\", s.\"product_id\", s.\"product_name\", s.\"method\"\n"
       + "from \"splunk\".\"splunk\" as s\n"
       + "where s.\"sourcetype\" = 'access_combined_wcookie'\n",
 
-      "select p.\"product_name\", s.\"action\"\n"
+    "select p.\"product_name\", s.\"action\"\n"
       + "from \"splunk\".\"splunk\" as s\n"
       + "  join \"mysql\".\"products\" as p\n"
       + "on s.\"product_id\" = p.\"product_id\"",
 
-      "select s.\"source\", s.\"product_id\", p.\"product_name\", p.\"price\"\n"
+    "select s.\"source\", s.\"product_id\", p.\"product_name\", p.\"price\"\n"
       + "from \"splunk\".\"splunk\" as s\n"
       + "    join \"mysql\".\"products\" as p\n"
       + "    on s.\"product_id\" = p.\"product_id\"\n"
       + "where s.\"sourcetype\" = 'access_combined_wcookie'\n",
   };
 
-  String[] errSqls = {
-      // gives error in SplunkPushDownRule
-      "select count(*) from \"splunk\".\"splunk\"",
+  static final String[] ERROR_SQL_STRINGS = {
+    // gives error in SplunkPushDownRule
+    "select count(*) from \"splunk\".\"splunk\"",
 
-      // gives no rows; suspect off-by-one because no base fields are
-      // referenced
-      "select s.\"product_id\", s.\"product_name\", s.\"method\"\n"
+    // gives no rows; suspect off-by-one because no base fields are
+    // referenced
+    "select s.\"product_id\", s.\"product_name\", s.\"method\"\n"
       + "from \"splunk\".\"splunk\" as s\n"
       + "where s.\"sourcetype\" = 'access_combined_wcookie'\n",
 
-      // horrible error if you access a field that doesn't exist
-      "select s.\"sourcetype\", s.\"access\"\n"
+    // horrible error if you access a field that doesn't exist
+    "select s.\"sourcetype\", s.\"access\"\n"
       + "from \"splunk\".\"splunk\" as s\n",
   };
 

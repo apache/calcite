@@ -34,7 +34,7 @@ import org.eigenbase.util.Pair;
 public class PullUpProjectsAboveJoinRule extends RelOptRule {
   //~ Static fields/initializers ---------------------------------------------
 
-  public static final PullUpProjectsAboveJoinRule instanceTwoProjectChildren =
+  public static final PullUpProjectsAboveJoinRule BOTH_PROJECT =
       new PullUpProjectsAboveJoinRule(
           operand(
               JoinRel.class,
@@ -42,7 +42,7 @@ public class PullUpProjectsAboveJoinRule extends RelOptRule {
               operand(ProjectRel.class, any())),
           "PullUpProjectsAboveJoinRule: with two ProjectRel children");
 
-  public static final PullUpProjectsAboveJoinRule instanceLeftProjectChild =
+  public static final PullUpProjectsAboveJoinRule LEFT_PROJECT =
       new PullUpProjectsAboveJoinRule(
           operand(
               JoinRel.class,
@@ -50,7 +50,7 @@ public class PullUpProjectsAboveJoinRule extends RelOptRule {
                   operand(ProjectRel.class, any()))),
           "PullUpProjectsAboveJoinRule: with ProjectRel on left");
 
-  public static final PullUpProjectsAboveJoinRule instanceRightProjectChild =
+  public static final PullUpProjectsAboveJoinRule RIGHT_PROJECT =
       new PullUpProjectsAboveJoinRule(
           operand(
               JoinRel.class,
@@ -226,7 +226,7 @@ public class PullUpProjectsAboveJoinRule extends RelOptRule {
    * @return true if the rule was invoked with a left project child
    */
   protected boolean hasLeftChild(RelOptRuleCall call) {
-    return (call.rel(1) instanceof ProjectRel);
+    return call.rel(1) instanceof ProjectRel;
   }
 
   /**

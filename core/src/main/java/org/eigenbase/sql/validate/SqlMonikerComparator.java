@@ -32,7 +32,7 @@ public class SqlMonikerComparator implements Comparator<SqlMoniker> {
     } else if (m1.getType().ordinal() < m2.getType().ordinal()) {
       return -1;
     } else {
-      return (m1.toString().compareTo(m2.toString()));
+      return m1.toString().compareTo(m2.toString());
     }
   }
 }

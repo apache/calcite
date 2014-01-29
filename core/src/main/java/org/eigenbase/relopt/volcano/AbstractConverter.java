@@ -90,7 +90,7 @@ public class AbstractConverter extends ConverterRelImpl {
    * than infinite cost).</p>
    */
   public static class ExpandConversionRule extends RelOptRule {
-    public static final ExpandConversionRule instance =
+    public static final ExpandConversionRule INSTANCE =
         new ExpandConversionRule();
 
     /**

@@ -26,7 +26,7 @@ import org.eigenbase.relopt.*;
  * of a non-distinct {@link UnionRel} (<code>all</code> = <code>true</code>).
  */
 public class UnionToDistinctRule extends RelOptRule {
-  public static final UnionToDistinctRule instance =
+  public static final UnionToDistinctRule INSTANCE =
       new UnionToDistinctRule();
 
   //~ Constructors -----------------------------------------------------------

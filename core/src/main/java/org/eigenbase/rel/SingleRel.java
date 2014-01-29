@@ -78,7 +78,7 @@ public abstract class SingleRel extends AbstractRelNode {
   public void replaceInput(
       int ordinalInParent,
       RelNode rel) {
-    assert (ordinalInParent == 0);
+    assert ordinalInParent == 0;
     this.child = rel;
   }
 

@@ -15,7 +15,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 */
-package org.eigenbase.sql;
 
 /**
  * Provides an SQL parser and object model. This package, and the dependent
@@ -98,5 +97,6 @@ package org.eigenbase.sql;
  *     happens.</p>
  *
  */
+package org.eigenbase.sql;
 
 // End package-info.java

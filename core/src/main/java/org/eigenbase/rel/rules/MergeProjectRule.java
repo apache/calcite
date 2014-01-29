@@ -28,7 +28,7 @@ import org.eigenbase.rex.*;
  * provided the projects aren't projecting identical sets of input references.
  */
 public class MergeProjectRule extends RelOptRule {
-  public static final MergeProjectRule instance =
+  public static final MergeProjectRule INSTANCE =
       new MergeProjectRule();
 
   //~ Instance fields --------------------------------------------------------

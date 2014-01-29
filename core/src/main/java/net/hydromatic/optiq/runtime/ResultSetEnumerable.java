@@ -38,7 +38,7 @@ public class ResultSetEnumerable<T> extends AbstractEnumerable<T> {
   private final Function1<ResultSet, Function0<T>> rowBuilderFactory;
 
   private static final Function1<ResultSet, Function0<Object>>
-      AUTO_ROW_BUILDER_FACTORY =
+  AUTO_ROW_BUILDER_FACTORY =
       new Function1<ResultSet, Function0<Object>>() {
         public Function0<Object> apply(final ResultSet resultSet) {
           final ResultSetMetaData metaData;
@@ -67,14 +67,14 @@ public class ResultSetEnumerable<T> extends AbstractEnumerable<T> {
                   final List<Object> list = new ArrayList<Object>();
                   for (int i = 0; i < columnCount; i++) {
                     if (metaData.getColumnType(i + 1) == Types.TIMESTAMP) {
-                     long v = resultSet.getLong(i + 1);
+                      long v = resultSet.getLong(i + 1);
                       if (v == 0 && resultSet.wasNull()) {
                         list.add(null);
                       } else {
                         list.add(v);
                       }
                     } else {
-                    list.add(resultSet.getObject(i + 1));
+                      list.add(resultSet.getObject(i + 1));
                     }
                   }
                   return list.toArray();

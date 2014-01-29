@@ -30,7 +30,7 @@ import org.eigenbase.sql.fun.*;
  * {@link AggregateRel} past a non-distinct {@link UnionRel}.
  */
 public class PushAggregateThroughUnionRule extends RelOptRule {
-  public static final PushAggregateThroughUnionRule instance =
+  public static final PushAggregateThroughUnionRule INSTANCE =
       new PushAggregateThroughUnionRule();
 
   /**

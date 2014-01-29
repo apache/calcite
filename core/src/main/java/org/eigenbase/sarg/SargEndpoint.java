@@ -81,7 +81,7 @@ public class SargEndpoint implements Comparable<SargEndpoint> {
   //~ Methods ----------------------------------------------------------------
 
   void copyFrom(SargEndpoint other) {
-    assert (getDataType() == other.getDataType());
+    assert getDataType() == other.getDataType();
     if (other.isFinite()) {
       setFinite(
           other.getBoundType(),
@@ -100,7 +100,7 @@ public class SargEndpoint implements Comparable<SargEndpoint> {
    * @param infinitude either -1 or +1
    */
   void setInfinity(int infinitude) {
-    assert ((infinitude == -1) || (infinitude == 1));
+    assert (infinitude == -1) || (infinitude == 1);
 
     if (infinitude == -1) {
       boundType = SargBoundType.LOWER;
@@ -123,15 +123,15 @@ public class SargEndpoint implements Comparable<SargEndpoint> {
       SargStrictness strictness,
       RexNode coordinate) {
     // validate the input
-    assert (coordinate != null);
+    assert coordinate != null;
     if (!(coordinate instanceof RexDynamicParam)
         && !(coordinate instanceof RexInputRef)) {
-      assert (coordinate instanceof RexLiteral);
+      assert coordinate instanceof RexLiteral;
       RexLiteral literal = (RexLiteral) coordinate;
       if (!RexLiteral.isNullLiteral(literal)) {
-        assert (SqlTypeUtil.canAssignFrom(
+        assert SqlTypeUtil.canAssignFrom(
             dataType,
-            literal.getType()));
+            literal.getType());
       }
     }
 
@@ -389,7 +389,7 @@ public class SargEndpoint implements Comparable<SargEndpoint> {
    * @return true if touching; false if discontinuous
    */
   public boolean isTouching(SargEndpoint other) {
-    assert (getDataType() == other.getDataType());
+    assert getDataType() == other.getDataType();
 
     if (!isFinite() || !other.isFinite()) {
       return false;
@@ -432,8 +432,8 @@ public class SargEndpoint implements Comparable<SargEndpoint> {
   }
 
   static int compareCoordinates(RexNode coord1, RexNode coord2) {
-    assert (coord1 instanceof RexLiteral);
-    assert (coord2 instanceof RexLiteral);
+    assert coord1 instanceof RexLiteral;
+    assert coord2 instanceof RexLiteral;
 
     // null values always sort lowest
     boolean isNull1 = RexLiteral.isNullLiteral(coord1);

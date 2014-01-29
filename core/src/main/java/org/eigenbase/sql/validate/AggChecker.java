@@ -143,7 +143,7 @@ class AggChecker extends SqlBasicVisitor<Void> {
         this,
         call,
         true,
-        ArgHandlerImpl.instance);
+        ArgHandlerImpl.INSTANCE);
 
     // Restore scope.
     scopes.pop();

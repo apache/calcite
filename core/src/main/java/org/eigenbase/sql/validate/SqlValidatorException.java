@@ -36,7 +36,7 @@ public class SqlValidatorException extends Exception
     implements EigenbaseValidatorException {
   //~ Static fields/initializers ---------------------------------------------
 
-  private static Logger tracer =
+  private static final Logger LOGGER =
       Logger.getLogger("org.eigenbase.util.EigenbaseException");
 
   static final long serialVersionUID = -831683113957131387L;
@@ -55,8 +55,8 @@ public class SqlValidatorException extends Exception
     super(message, cause);
 
     // TODO: see note in EigenbaseException constructor
-    tracer.throwing("SqlValidatorException", "constructor", this);
-    tracer.severe(toString());
+    LOGGER.throwing("SqlValidatorException", "constructor", this);
+    LOGGER.severe(toString());
   }
 }
 

@@ -103,8 +103,7 @@ public abstract class SqlToRelTestBase {
      */
     RelNode convertSqlToRel(String sql);
 
-    SqlNode parseQuery(String sql)
-        throws Exception;
+    SqlNode parseQuery(String sql) throws Exception;
 
     /**
      * Factory method to create a {@link SqlValidator}.
@@ -267,8 +266,7 @@ public abstract class SqlToRelTestBase {
       return typeFactory;
     }
 
-    public void registerRules(RelOptPlanner planner)
-        throws Exception {
+    public void registerRules(RelOptPlanner planner) throws Exception {
     }
 
     protected class MockColumnSet implements RelOptTable {
@@ -458,8 +456,7 @@ public abstract class SqlToRelTestBase {
       return planner;
     }
 
-    public SqlNode parseQuery(String sql)
-        throws Exception {
+    public SqlNode parseQuery(String sql) throws Exception {
       SqlParser parser = new SqlParser(sql);
       SqlNode sqlNode = parser.parseQuery();
       return sqlNode;

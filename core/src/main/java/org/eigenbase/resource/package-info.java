@@ -15,10 +15,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 */
-package org.eigenbase.resource;
 
 /**
  * Defines resources used for Eigenbase internationalization.
  */
+package org.eigenbase.resource;
 
 // End package-info.java

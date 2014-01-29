@@ -34,7 +34,7 @@ import org.eigenbase.util.Pair;
 public class MergeProjectOntoCalcRule extends RelOptRule {
   //~ Static fields/initializers ---------------------------------------------
 
-  public static final MergeProjectOntoCalcRule instance =
+  public static final MergeProjectOntoCalcRule INSTANCE =
       new MergeProjectOntoCalcRule();
 
   //~ Constructors -----------------------------------------------------------

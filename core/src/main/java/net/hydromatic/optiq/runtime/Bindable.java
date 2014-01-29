@@ -18,7 +18,7 @@
 package net.hydromatic.optiq.runtime;
 
 import net.hydromatic.linq4j.Enumerable;
-import net.hydromatic.linq4j.RawEnumerable;
+
 import net.hydromatic.optiq.DataContext;
 
 /**

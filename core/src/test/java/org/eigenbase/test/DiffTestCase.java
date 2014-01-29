@@ -27,8 +27,6 @@ import org.eigenbase.util.*;
 import org.incava.util.diff.*;
 
 import org.junit.*;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
 
 import static org.junit.Assert.*;
 
@@ -126,8 +124,7 @@ public abstract class DiffTestCase {
    * @return Writer for log file, which caller should use as a destination for
    * test output to be diffed
    */
-  protected Writer openTestLog()
-      throws Exception {
+  protected Writer openTestLog() throws Exception {
     File testClassDir =
         new File(
             getTestlogRoot(),
@@ -143,8 +140,7 @@ public abstract class DiffTestCase {
   /**
    * @return the root under which testlogs should be written
    */
-  protected abstract File getTestlogRoot()
-      throws Exception;
+  protected abstract File getTestlogRoot() throws Exception;
 
   /**
    * Initializes a diff-based test, overriding the default log file naming
@@ -154,8 +150,8 @@ public abstract class DiffTestCase {
    *                        extension
    */
   protected OutputStream openTestLogOutputStream(File testFileSansExt)
-      throws IOException {
-    assert (logOutputStream == null);
+    throws IOException {
+    assert logOutputStream == null;
 
     logFile = new File(testFileSansExt.toString() + ".log");
     logFile.delete();
@@ -178,9 +174,8 @@ public abstract class DiffTestCase {
    *
    * @see #diffFile(File, File)
    */
-  protected void diffTestLog()
-      throws IOException {
-    assert (logOutputStream != null);
+  protected void diffTestLog() throws IOException {
+    assert logOutputStream != null;
     logOutputStream.close();
     logOutputStream = null;
 
@@ -201,8 +196,7 @@ public abstract class DiffTestCase {
    * @param logFile Log file
    * @param refFile Reference log
    */
-  protected void diffFile(File logFile, File refFile)
-      throws IOException {
+  protected void diffFile(File logFile, File refFile) throws IOException {
     int n = 0;
     FileReader logReader = null;
     FileReader refReader = null;

@@ -56,11 +56,13 @@ public class RelDecorrelator implements ReflectiveVisitor {
 
   // maps built during translation
   private final Map<RelNode, SortedSet<CorrelatorRel.Correlation>>
-      mapRefRelToCorVar;
+  mapRefRelToCorVar;
+
   private final SortedMap<CorrelatorRel.Correlation, CorrelatorRel>
-      mapCorVarToCorRel;
+  mapCorVarToCorRel;
+
   private final Map<RexFieldAccess, CorrelatorRel.Correlation>
-      mapFieldAccessToCorVar;
+  mapFieldAccessToCorVar;
 
   private final DecorrelateRelVisitor decorrelateVisitor;
 
@@ -74,12 +76,12 @@ public class RelDecorrelator implements ReflectiveVisitor {
 
   // map rel to all the newly created correlated variables in its output
   private final Map<RelNode, SortedMap<CorrelatorRel.Correlation, Integer>>
-      mapNewRelToMapCorVarToOutputPos;
+  mapNewRelToMapCorVarToOutputPos;
 
   // another map to map old input positions to new input positions
   // this is from the view point of the parent rel of a new rel.
   private final Map<RelNode, Map<Integer, Integer>>
-      mapNewRelToMapOldToNewOutputPos;
+  mapNewRelToMapOldToNewOutputPos;
 
   private final HashSet<CorrelatorRel> generatedCorRels =
       new HashSet<CorrelatorRel>();
@@ -260,7 +262,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
     //
 
     // SortRel itself should not reference cor vars.
-    assert (!mapRefRelToCorVar.containsKey(rel));
+    assert !mapRefRelToCorVar.containsKey(rel);
 
     // SortRel only references field positions in collations field.
     // The collations field in the newRel now need to refer to the
@@ -317,7 +319,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
     //
 
     // AggregaterRel itself should not reference cor vars.
-    assert (!mapRefRelToCorVar.containsKey(rel));
+    assert !mapRefRelToCorVar.containsKey(rel);
 
     RelNode oldChildRel = rel.getChild();
 
@@ -329,7 +331,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
 
     Map<Integer, Integer> childMapOldToNewOutputPos =
         mapNewRelToMapOldToNewOutputPos.get(newChildRel);
-    assert (childMapOldToNewOutputPos != null);
+    assert childMapOldToNewOutputPos != null;
 
     // map from newChildRel
     Map<Integer, Integer> mapNewChildToProjOutputPos =
@@ -509,7 +511,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
 
     Map<Integer, Integer> childMapOldToNewOutputPos =
         mapNewRelToMapOldToNewOutputPos.get(newChildRel);
-    assert (childMapOldToNewOutputPos != null);
+    assert childMapOldToNewOutputPos != null;
 
     Map<Integer, Integer> mapOldToNewOutputPos =
         new HashMap<Integer, Integer>();
@@ -612,9 +614,9 @@ public class RelDecorrelator implements ReflectiveVisitor {
       int oldCorVarOffset = corVar.getOffset();
 
       oldInputRel = mapCorVarToCorRel.get(corVar).getInput(0);
-      assert (oldInputRel != null);
+      assert oldInputRel != null;
       newInputRel = mapOldToNewRel.get(oldInputRel);
-      assert (newInputRel != null);
+      assert newInputRel != null;
 
       if (!mapNewInputRelToOutputPos.containsKey(newInputRel)) {
         newLocalOutputPosList = new ArrayList<Integer>();
@@ -625,7 +627,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
 
       Map<Integer, Integer> mapOldToNewOutputPos =
           mapNewRelToMapOldToNewOutputPos.get(newInputRel);
-      assert (mapOldToNewOutputPos != null);
+      assert mapOldToNewOutputPos != null;
 
       int newCorVarOffset = mapOldToNewOutputPos.get(oldCorVarOffset);
 
@@ -647,9 +649,9 @@ public class RelDecorrelator implements ReflectiveVisitor {
 
     for (CorrelatorRel.Correlation corVar : correlations) {
       oldInputRel = mapCorVarToCorRel.get(corVar).getInput(0);
-      assert (oldInputRel != null);
+      assert oldInputRel != null;
       newInputRel = mapOldToNewRel.get(oldInputRel);
-      assert (newInputRel != null);
+      assert newInputRel != null;
 
       if (!joinedInputRelSet.contains(newInputRel)) {
         RelNode projectRel =
@@ -692,7 +694,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
 
       Map<Integer, Integer> mapOldToNewOutputPos =
           mapNewRelToMapOldToNewOutputPos.get(newInputRel);
-      assert (mapOldToNewOutputPos != null);
+      assert mapOldToNewOutputPos != null;
 
       newLocalOutputPos = mapOldToNewOutputPos.get(corVar.getOffset());
 
@@ -705,7 +707,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
               + valueGenFieldOffset;
 
       if (mapCorVarToOutputPos.containsKey(corVar)) {
-        assert (mapCorVarToOutputPos.get(corVar) == newOutputPos);
+        assert mapCorVarToOutputPos.get(corVar) == newOutputPos;
       }
       mapCorVarToOutputPos.put(corVar, newOutputPos);
     }
@@ -716,13 +718,13 @@ public class RelDecorrelator implements ReflectiveVisitor {
   private void decorrelateInputWithValueGenerator(
       RelNode rel) {
     // currently only handles one child input
-    assert (rel.getInputs().size() == 1);
+    assert rel.getInputs().size() == 1;
     RelNode oldChildRel = rel.getInput(0);
     RelNode newChildRel = mapOldToNewRel.get(oldChildRel);
 
     Map<Integer, Integer> childMapOldToNewOutputPos =
         mapNewRelToMapOldToNewOutputPos.get(newChildRel);
-    assert (childMapOldToNewOutputPos != null);
+    assert childMapOldToNewOutputPos != null;
 
     SortedMap<CorrelatorRel.Correlation, Integer> mapCorVarToOutputPos =
         new TreeMap<CorrelatorRel.Correlation, Integer>();
@@ -798,7 +800,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
 
     Map<Integer, Integer> childMapOldToNewOutputPos =
         mapNewRelToMapOldToNewOutputPos.get(newChildRel);
-    assert (childMapOldToNewOutputPos != null);
+    assert childMapOldToNewOutputPos != null;
 
     boolean produceCorVar =
         mapNewRelToMapCorVarToOutputPos.containsKey(newChildRel);
@@ -874,18 +876,18 @@ public class RelDecorrelator implements ReflectiveVisitor {
 
     Map<Integer, Integer> leftChildMapOldToNewOutputPos =
         mapNewRelToMapOldToNewOutputPos.get(newLeftRel);
-    assert (leftChildMapOldToNewOutputPos != null);
+    assert leftChildMapOldToNewOutputPos != null;
 
     Map<Integer, Integer> rightChildMapOldToNewOutputPos =
         mapNewRelToMapOldToNewOutputPos.get(newRightRel);
 
-    assert (rightChildMapOldToNewOutputPos != null);
+    assert rightChildMapOldToNewOutputPos != null;
 
     SortedMap<CorrelatorRel.Correlation, Integer> mapCorVarToOutputPos =
         rightChildMapCorVarToOutputPos;
 
-    assert (rel.getCorrelations().size()
-        <= rightChildMapCorVarToOutputPos.keySet().size());
+    assert rel.getCorrelations().size()
+        <= rightChildMapCorVarToOutputPos.keySet().size();
 
     // Change correlator rel into a join.
     // Join all the correlated variables produced by this correlator rel
@@ -945,8 +947,8 @@ public class RelDecorrelator implements ReflectiveVisitor {
     int oldLeftFieldCount = oldLeftRel.getRowType().getFieldCount();
 
     int oldRightFieldCount = oldRightRel.getRowType().getFieldCount();
-    assert (rel.getRowType().getFieldCount()
-        == (oldLeftFieldCount + oldRightFieldCount));
+    assert rel.getRowType().getFieldCount()
+        == oldLeftFieldCount + oldRightFieldCount;
 
     // Left input positions are not changed.
     mapOldToNewOutputPos.putAll(leftChildMapOldToNewOutputPos);
@@ -1002,11 +1004,11 @@ public class RelDecorrelator implements ReflectiveVisitor {
 
     Map<Integer, Integer> leftChildMapOldToNewOutputPos =
         mapNewRelToMapOldToNewOutputPos.get(newLeftRel);
-    assert (leftChildMapOldToNewOutputPos != null);
+    assert leftChildMapOldToNewOutputPos != null;
 
     Map<Integer, Integer> rightChildMapOldToNewOutputPos =
         mapNewRelToMapOldToNewOutputPos.get(newRightRel);
-    assert (rightChildMapOldToNewOutputPos != null);
+    assert rightChildMapOldToNewOutputPos != null;
 
     SortedMap<CorrelatorRel.Correlation, Integer> mapCorVarToOutputPos =
         new TreeMap<CorrelatorRel.Correlation, Integer>();
@@ -1030,8 +1032,8 @@ public class RelDecorrelator implements ReflectiveVisitor {
     int newLeftFieldCount = newLeftRel.getRowType().getFieldCount();
 
     int oldRightFieldCount = oldRightRel.getRowType().getFieldCount();
-    assert (rel.getRowType().getFieldCount()
-        == (oldLeftFieldCount + oldRightFieldCount));
+    assert rel.getRowType().getFieldCount()
+        == oldLeftFieldCount + oldRightFieldCount;
 
     // Left input positions are not changed.
     mapOldToNewOutputPos.putAll(leftChildMapOldToNewOutputPos);
@@ -1072,7 +1074,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
   }
 
   private RexInputRef getNewForOldInputRef(RexInputRef oldInputRef) {
-    assert (currentRel != null);
+    assert currentRel != null;
 
     int oldOrdinal = oldInputRef.getIndex();
     int newOrdinal = 0;
@@ -1094,10 +1096,10 @@ public class RelDecorrelator implements ReflectiveVisitor {
       oldOrdinal -= n;
     }
 
-    assert (oldInputRel != null);
+    assert oldInputRel != null;
 
     RelNode newInputRel = mapOldToNewRel.get(oldInputRel);
-    assert (newInputRel != null);
+    assert newInputRel != null;
 
     // now oldOrdinal is relative to oldInputRel
     int oldLocalOrdinal = oldOrdinal;
@@ -1245,7 +1247,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
       FilterRel filterRel,
       List<RexFieldAccess> correlatedJoinKeys) {
     if (filterRel != null) {
-      assert (correlatedJoinKeys != null);
+      assert correlatedJoinKeys != null;
 
       // check that all correlated refs in the filter condition are
       // used in the join(as field access).
@@ -2004,7 +2006,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
         FilterRel filterRel = (FilterRel) rightInputRel;
         rightInputRel = filterRel.getChild();
 
-        assert (rightInputRel instanceof HepRelVertex);
+        assert rightInputRel instanceof HepRelVertex;
         rightInputRel = ((HepRelVertex) rightInputRel).getCurrentRel();
 
         // check filter input contains no correlation
@@ -2042,7 +2044,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
               removeCorrelationExpr(
                   joinKey,
                   false);
-          assert (correlatedInputRef instanceof RexInputRef);
+          assert correlatedInputRef instanceof RexInputRef;
           correlatedInputRefJoinKeys.add(
               (RexInputRef) correlatedInputRef);
         }

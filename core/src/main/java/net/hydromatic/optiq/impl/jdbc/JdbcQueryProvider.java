@@ -18,7 +18,6 @@
 package net.hydromatic.optiq.impl.jdbc;
 
 import net.hydromatic.linq4j.Enumerator;
-import net.hydromatic.linq4j.QueryProvider;
 import net.hydromatic.linq4j.QueryProviderImpl;
 import net.hydromatic.linq4j.Queryable;
 

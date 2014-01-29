@@ -144,7 +144,7 @@ public class RexUtil {
     if (node instanceof RexLiteral) {
       RexLiteral literal = (RexLiteral) node;
       if (literal.getTypeName() == SqlTypeName.NULL) {
-        assert (null == literal.getValue());
+        assert null == literal.getValue();
         return true;
       } else {
         // We don't regard UNKNOWN -- SqlLiteral(null,Boolean) -- as

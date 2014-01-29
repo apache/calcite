@@ -56,7 +56,7 @@ import java.util.logging.Level;
  */
 public class SqlParserImpl extends SqlAbstractParserImpl
 {
-    private static final Logger tracer = EigenbaseTrace.getParserTracer();
+    private static final Logger LOGGER = EigenbaseTrace.getParserTracer();
 
     // Can't use quoted literal because of a bug in how JavaCC translates
     // backslash-backslash.
@@ -113,7 +113,7 @@ PARSER_END(SqlParserImpl)
 JAVACODE
 void debug_message1()
 {
-    tracer.log(Level.INFO,  getToken( 0 ).image
+    LOGGER.log(Level.INFO,  getToken( 0 ).image
         + " , " + getToken( 1 ).image );
 }
 

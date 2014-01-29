@@ -51,7 +51,7 @@ public class SplunkConnection {
   final Map<String, String> requestHeaders = new HashMap<String, String>();
 
   public SplunkConnection(String url, String username, String password)
-      throws MalformedURLException {
+    throws MalformedURLException {
     this(new URL(url), username, password);
   }
 
@@ -176,7 +176,7 @@ public class SplunkConnection {
   }
 
   private static void parseResults(InputStream in, SearchResultListener srl)
-      throws IOException {
+    throws IOException {
     CSVReader csvr = new CSVReader(new InputStreamReader(in));
     try {
       String [] header = csvr.readNext();
@@ -248,20 +248,20 @@ public class SplunkConnection {
 
   public static void printUsage(String errorMsg) {
     String[] strings = {
-        "Usage: java Connection -<arg-name> <arg-value>",
-        "The following <arg-name> are valid",
-        "search        - required, search string to execute",
-        "field_list    - "
+      "Usage: java Connection -<arg-name> <arg-value>",
+      "The following <arg-name> are valid",
+      "search        - required, search string to execute",
+      "field_list    - "
         + "required, list of fields to request, comma delimited",
-        "uri           - "
+      "uri           - "
         + "uri to splunk's mgmt port, default: https://localhost:8089",
-        "username      - "
+      "username      - "
         + "username to use for authentication, default: admin",
-        "password      - "
+      "password      - "
         + "password to use for authentication, default: changeme",
-        "earliest_time - earliest time for the search, default: -24h",
-        "latest_time   - latest time for the search, default: now",
-        "-print        - whether to print results or just the summary"
+      "earliest_time - earliest time for the search, default: -24h",
+      "latest_time   - latest time for the search, default: now",
+      "-print        - whether to print results or just the summary"
     };
     System.err.println(errorMsg);
     for (String s : strings) {
@@ -317,7 +317,7 @@ public class SplunkConnection {
     System.out.printf(
         "received %d results in %dms\n",
         dummy.getResultCount(),
-        (System.currentTimeMillis() - start));
+        System.currentTimeMillis() - start);
   }
 
   private static class SplunkResultIterator implements Enumerator {

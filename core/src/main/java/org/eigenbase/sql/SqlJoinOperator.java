@@ -127,10 +127,10 @@ public class SqlJoinOperator extends SqlOperator {
       SqlParserPos pos,
       SqlNode... operands) {
     assert functionQualifier == null;
-    assert (operands[SqlJoin.IS_NATURAL_OPERAND] instanceof SqlLiteral);
+    assert operands[SqlJoin.IS_NATURAL_OPERAND] instanceof SqlLiteral;
     final SqlLiteral isNatural =
         (SqlLiteral) operands[SqlJoin.IS_NATURAL_OPERAND];
-    assert (isNatural.getTypeName() == SqlTypeName.BOOLEAN);
+    assert isNatural.getTypeName() == SqlTypeName.BOOLEAN;
     assert operands[SqlJoin.CONDITION_TYPE_OPERAND] != null
         : "precondition: operands[CONDITION_TYPE_OPERAND] != null";
     assert (operands[SqlJoin.CONDITION_TYPE_OPERAND] instanceof SqlLiteral)

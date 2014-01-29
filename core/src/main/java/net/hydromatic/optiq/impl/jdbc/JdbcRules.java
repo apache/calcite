@@ -48,7 +48,10 @@ import java.util.logging.Logger;
  * calling convention.
  */
 public class JdbcRules {
-  protected static final Logger tracer = EigenbaseTrace.getPlannerTracer();
+  private JdbcRules() {
+  }
+
+  protected static final Logger LOGGER = EigenbaseTrace.getPlannerTracer();
 
   private static final SqlParserPos POS = SqlParserPos.ZERO;
 
@@ -115,6 +118,7 @@ public class JdbcRules {
     return i == program.getInputRowType().getFieldCount();
   }
 
+  /** Abstract base class for rule that converts to JDBC. */
   abstract static class JdbcConverterRule extends ConverterRule {
     protected final JdbcConvention out;
 
@@ -125,6 +129,7 @@ public class JdbcRules {
     }
   }
 
+  /** Rule that converts a join to JDBC. */
   private static class JdbcJoinRule extends JdbcConverterRule {
     private JdbcJoinRule(JdbcConvention out) {
       super(JoinRel.class, Convention.NONE, out, "JdbcJoinRule");
@@ -153,12 +158,13 @@ public class JdbcRules {
             join.getJoinType(),
             join.getVariablesStopped());
       } catch (InvalidRelException e) {
-        tracer.warning(e.toString());
+        LOGGER.warning(e.toString());
         return null;
       }
     }
   }
 
+  /** Join operator implemented in JDBC convention. */
   public static class JdbcJoinRel
       extends JoinRelBase
       implements JdbcRel {
@@ -173,7 +179,7 @@ public class JdbcRules {
         RexNode condition,
         JoinRelType joinType,
         Set<String> variablesStopped)
-        throws InvalidRelException {
+      throws InvalidRelException {
       super(
           cluster, traits, left, right, condition, joinType,
           variablesStopped);
@@ -302,10 +308,11 @@ public class JdbcRules {
 
       return new JdbcCalcRel(rel.getCluster(), rel.getTraitSet().replace(out),
           convert(calc.getChild(), calc.getTraitSet().replace(out)),
-          calc.getProgram(), ProjectRelBase.Flags.Boxed);
+          calc.getProgram(), ProjectRelBase.Flags.BOXED);
     }
   }
 
+  /** Calc operator implemented in JDBC convention. */
   public static class JdbcCalcRel extends SingleRel implements JdbcRel {
     private final RexProgram program;
 
@@ -393,7 +400,7 @@ public class JdbcRules {
               project.getChild().getTraitSet().replace(getOutConvention())),
           project.getProjects(),
           project.getRowType(),
-          ProjectRelBase.Flags.Boxed);
+          ProjectRelBase.Flags.BOXED);
     }
   }
 
@@ -504,12 +511,13 @@ public class JdbcRules {
             convert(agg.getChild(), traitSet), agg.getGroupSet(),
             agg.getAggCallList());
       } catch (InvalidRelException e) {
-        tracer.warning(e.toString());
+        LOGGER.warning(e.toString());
         return null;
       }
     }
   }
 
+  /** Aggregate operator implemented in JDBC convention. */
   public static class JdbcAggregateRel extends AggregateRelBase
       implements JdbcRel {
     public JdbcAggregateRel(
@@ -518,7 +526,7 @@ public class JdbcRules {
         RelNode child,
         BitSet groupSet,
         List<AggregateCall> aggCalls)
-        throws InvalidRelException {
+      throws InvalidRelException {
       super(cluster, traitSet, child, groupSet, aggCalls);
       assert getConvention() instanceof JdbcConvention;
     }
@@ -581,6 +589,7 @@ public class JdbcRules {
     }
   }
 
+  /** Sort operator implemented in JDBC convention. */
   public static class JdbcSortRel
       extends SortRel
       implements JdbcRel {
@@ -648,6 +657,7 @@ public class JdbcRules {
     }
   }
 
+  /** Union operator implemented in JDBC convention. */
   public static class JdbcUnionRel
       extends UnionRelBase
       implements JdbcRel {
@@ -698,6 +708,7 @@ public class JdbcRules {
     }
   }
 
+  /** Intersect operator implemented in JDBC convention. */
   public static class JdbcIntersectRel
       extends IntersectRelBase
       implements JdbcRel {
@@ -746,6 +757,7 @@ public class JdbcRules {
     }
   }
 
+  /** Minus operator implemented in JDBC convention. */
   public static class JdbcMinusRel
       extends MinusRelBase
       implements JdbcRel {
@@ -772,6 +784,7 @@ public class JdbcRules {
     }
   }
 
+  /** Rule that converts a table-modification to JDBC. */
   public static class JdbcTableModificationRule extends JdbcConverterRule {
     private JdbcTableModificationRule(JdbcConvention out) {
       super(
@@ -804,6 +817,7 @@ public class JdbcRules {
     }
   }
 
+  /** Table-modification operator implemented in JDBC convention. */
   public static class JdbcTableModificationRel
       extends TableModificationRelBase
       implements JdbcRel {
@@ -847,6 +861,7 @@ public class JdbcRules {
     }
   }
 
+  /** Rule that converts a values operator to JDBC. */
   public static class JdbcValuesRule extends JdbcConverterRule {
     private JdbcValuesRule(JdbcConvention out) {
       super(
@@ -867,6 +882,7 @@ public class JdbcRules {
     }
   }
 
+  /** Values operator implemented in JDBC convention. */
   public static class JdbcValuesRel
       extends ValuesRelBase
       implements JdbcRel {

@@ -32,7 +32,7 @@ import org.eigenbase.rex.*;
 public class RemoveTrivialCalcRule extends RelOptRule {
   //~ Static fields/initializers ---------------------------------------------
 
-  public static final RemoveTrivialCalcRule instance =
+  public static final RemoveTrivialCalcRule INSTANCE =
       new RemoveTrivialCalcRule();
 
   //~ Constructors -----------------------------------------------------------

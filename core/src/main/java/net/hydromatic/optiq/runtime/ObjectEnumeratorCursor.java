@@ -55,7 +55,7 @@ public class ObjectEnumeratorCursor extends AbstractCursor {
 
     public Object getObject() {
       Object o = enumerator.current();
-      wasNull[0] = (o == null);
+      wasNull[0] = o == null;
       return o;
     }
   }

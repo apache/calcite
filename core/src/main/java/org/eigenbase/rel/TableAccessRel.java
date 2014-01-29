@@ -18,7 +18,6 @@
 package org.eigenbase.rel;
 
 import java.util.List;
-import java.util.Map;
 
 import org.eigenbase.relopt.*;
 

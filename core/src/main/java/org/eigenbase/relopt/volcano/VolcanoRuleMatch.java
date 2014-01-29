@@ -50,7 +50,7 @@ class VolcanoRuleMatch extends VolcanoRuleCall {
     super(volcanoPlanner, operand0, rels.clone());
     this.volcanoPlanner = volcanoPlanner;
     for (int i = 0; i < rels.length; i++) {
-      assert (rels[i] != null);
+      assert rels[i] != null;
     }
 
     // Try to deduce which subset the result will belong to. Assume --

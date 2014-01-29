@@ -15,10 +15,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 */
-package org.eigenbase.reltype;
 
 /**
  * Defines a type system for relational expressions.
  */
+package org.eigenbase.reltype;
 
 // End package-info.java

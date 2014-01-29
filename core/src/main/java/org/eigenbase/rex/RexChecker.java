@@ -36,6 +36,7 @@ import org.eigenbase.reltype.*;
  * assert new RexChecker(rowType, true).isValid(node);</code></blockquote>
  *
  * This mode requires that assertions are enabled.</li>
+ *
  * <li>Use <code>fail=false</code> to test for validity without throwing an
  * error.
  *
@@ -45,8 +46,9 @@ import org.eigenbase.reltype.*;
  * node.accept(checker);<br/>
  * if (!checker.valid) {<br/>
  * &nbsp;&nbsp;&nbsp;...<br/>
- * }</br></code></blockquote>
+ * }</code></blockquote>
  * </li>
+ * </ul>
  *
  * @see RexNode
  */

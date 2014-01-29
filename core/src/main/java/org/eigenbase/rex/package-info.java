@@ -15,7 +15,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 */
-package org.eigenbase.rex;
 
 /**
  * Provides a language for representing row-expressions.
@@ -85,5 +84,6 @@ package org.eigenbase.rex;
  *     </li>
  * </ul>
  */
+package org.eigenbase.rex;
 
 // End package-info.java

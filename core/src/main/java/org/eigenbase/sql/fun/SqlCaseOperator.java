@@ -171,7 +171,7 @@ public class SqlCaseOperator extends SqlOperator {
     SqlCase caseCall = (SqlCase) callBinding.getCall();
     SqlNodeList whenList = caseCall.getWhenOperands();
     SqlNodeList thenList = caseCall.getThenOperands();
-    assert (whenList.size() == thenList.size());
+    assert whenList.size() == thenList.size();
 
     // checking that search conditions are ok...
     for (SqlNode node : whenList) {

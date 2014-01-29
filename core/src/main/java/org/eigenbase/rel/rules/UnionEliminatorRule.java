@@ -26,7 +26,7 @@ import org.eigenbase.relopt.*;
  * consists of only one input.
  */
 public class UnionEliminatorRule extends RelOptRule {
-  public static final UnionEliminatorRule instance =
+  public static final UnionEliminatorRule INSTANCE =
       new UnionEliminatorRule();
 
   //~ Constructors -----------------------------------------------------------

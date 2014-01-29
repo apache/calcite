@@ -111,7 +111,7 @@ public abstract class PushFilterPastJoinRule extends RelOptRule {
     if (RelOptUtil.classifyFilters(
         join,
         aboveFilters,
-        (join.getJoinType() == JoinRelType.INNER),
+        join.getJoinType() == JoinRelType.INNER,
         !join.getJoinType().generatesNullsOnLeft(),
         !join.getJoinType().generatesNullsOnRight(),
         joinFilters,

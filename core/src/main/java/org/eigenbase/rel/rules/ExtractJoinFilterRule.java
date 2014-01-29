@@ -34,10 +34,8 @@ import org.eigenbase.reltype.RelDataTypeField;
 public final class ExtractJoinFilterRule extends RelOptRule {
   //~ Static fields/initializers ---------------------------------------------
 
-  /**
-   * The singleton.
-   */
-  public static final ExtractJoinFilterRule instance =
+  /** The singleton. */
+  public static final ExtractJoinFilterRule INSTANCE =
       new ExtractJoinFilterRule();
 
   //~ Constructors -----------------------------------------------------------

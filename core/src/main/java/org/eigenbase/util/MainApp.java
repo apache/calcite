@@ -55,8 +55,7 @@ public abstract class MainApp {
    * method; they can throw any exception they like, and {@link #run} will
    * clean up after them.
    */
-  public abstract void mainImpl()
-      throws Exception;
+  public abstract void mainImpl() throws Exception;
 
   /**
    * Does the work of the application, handles any errors, then calls {@link

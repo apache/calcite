@@ -153,7 +153,7 @@ public abstract class RelMetadataQuery {
             rel,
             "getPercentageOriginalRows",
             null);
-    assert (assertPercentage(result));
+    assert assertPercentage(result);
     return result;
   }
 
@@ -197,7 +197,7 @@ public abstract class RelMetadataQuery {
             rel,
             "getSelectivity",
             new Object[]{predicate});
-    assert (assertPercentage(result));
+    assert assertPercentage(result);
     return result;
   }
 
@@ -358,8 +358,8 @@ public abstract class RelMetadataQuery {
       return true;
     }
     double d = result.doubleValue();
-    assert (d >= 0.0);
-    assert (d <= 1.0);
+    assert d >= 0.0;
+    assert d <= 1.0;
     return true;
   }
 
@@ -368,7 +368,7 @@ public abstract class RelMetadataQuery {
       return true;
     }
     double d = result.doubleValue();
-    assert (d >= 0.0);
+    assert d >= 0.0;
     return true;
   }
 
@@ -384,7 +384,7 @@ public abstract class RelMetadataQuery {
     if (result.isInfinite()) {
       result = Double.MAX_VALUE;
     }
-    assert (assertNonNegative(result));
+    assert assertNonNegative(result);
     if (result < 1.0) {
       result = 1.0;
     }

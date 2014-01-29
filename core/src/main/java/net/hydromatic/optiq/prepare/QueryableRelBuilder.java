@@ -497,7 +497,7 @@ class QueryableRelBuilder<T> implements QueryableFactory<T> {
             child,
             nodes,
             null,
-            ProjectRelBase.Flags.Boxed));
+            ProjectRelBase.Flags.BOXED));
     return null;
   }
 

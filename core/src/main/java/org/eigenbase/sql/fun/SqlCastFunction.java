@@ -116,7 +116,7 @@ public class SqlCastFunction extends SqlFunction {
 
   public RelDataType inferReturnType(
       SqlOperatorBinding opBinding) {
-    assert (opBinding.getOperandCount() == 2);
+    assert opBinding.getOperandCount() == 2;
     RelDataType ret = opBinding.getOperandType(1);
     RelDataType firstType = opBinding.getOperandType(0);
     ret =

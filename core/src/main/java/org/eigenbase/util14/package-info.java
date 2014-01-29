@@ -15,11 +15,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 */
-package org.eigenbase.util14;
 
 /**
  * Provides utility classes for use from code which must remain
  * source-compatible with JDK 1.4.
  */
+package org.eigenbase.util14;
 
 // End package-info.java

@@ -57,7 +57,7 @@ public class NlsString implements Comparable<NlsString> {
       String value,
       String charsetName,
       SqlCollation collation)
-      throws IllegalCharsetNameException, UnsupportedCharsetException {
+    throws IllegalCharsetNameException, UnsupportedCharsetException {
     Util.pre(value != null, "theString != null");
     if (null != charsetName) {
       charsetName = charsetName.toUpperCase();

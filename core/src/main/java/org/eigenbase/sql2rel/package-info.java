@@ -15,10 +15,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 */
-package org.eigenbase.sql2rel;
 
 /**
  * Translates a SQL parse tree to relational expression.
  */
+package org.eigenbase.sql2rel;
 
 // End package-info.java

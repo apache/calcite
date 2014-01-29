@@ -33,7 +33,7 @@ import org.eigenbase.rex.*;
  * participate in the semijoin.
  */
 public class PushSemiJoinPastJoinRule extends RelOptRule {
-  public static final PushSemiJoinPastJoinRule instance =
+  public static final PushSemiJoinPastJoinRule INSTANCE =
       new PushSemiJoinPastJoinRule();
 
   //~ Constructors -----------------------------------------------------------
@@ -90,7 +90,7 @@ public class PushSemiJoinPastJoinRule extends RelOptRule {
 
     // the keys must all originate from either the left or right;
     // otherwise, a semijoin wouldn't have been created
-    assert ((nKeysFromX == 0) || (nKeysFromX == leftKeys.size()));
+    assert (nKeysFromX == 0) || (nKeysFromX == leftKeys.size());
 
     // need to convert the semijoin condition and possibly the keys
     RexNode newSemiJoinFilter;

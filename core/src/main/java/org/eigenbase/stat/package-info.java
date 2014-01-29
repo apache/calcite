@@ -15,11 +15,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 */
-package org.eigenbase.stat;
 
 /**
  * Defines interfaces related to statistics about data sets produced by
  * relational expressions.
  */
+package org.eigenbase.stat;
 
 // End package-info.java

@@ -110,7 +110,7 @@ public final class CollectRel extends SingleRel {
       SingleRel rel,
       String fieldName) {
     RelDataType childType = rel.getChild().getRowType();
-    assert (childType.isStruct());
+    assert childType.isStruct();
     RelDataType ret =
         SqlTypeUtil.createMultisetType(
             rel.getCluster().getTypeFactory(),

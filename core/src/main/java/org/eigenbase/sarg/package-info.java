@@ -15,12 +15,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 */
-package org.eigenbase.sarg;
 
 /**
  * Provides a class library for representing arguments to index searches,
  * also known as <em>sargs</em>. Unit tests for this package are in
  * {@code org.eigenbase.test.SargTest}.
  */
+package org.eigenbase.sarg;
 
 // End package-info.java

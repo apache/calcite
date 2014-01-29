@@ -15,7 +15,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 */
-package org.eigenbase.relopt.volcano;
 
 /**
  * Optimizes relational expressions.<p>&nbsp;</p>
@@ -271,5 +270,6 @@ package org.eigenbase.relopt.volcano;
  *     McKenna
  *     (1993)</a>.</p>
  */
+package org.eigenbase.relopt.volcano;
 
 // End package-info.java

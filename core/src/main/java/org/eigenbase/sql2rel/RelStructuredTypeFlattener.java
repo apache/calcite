@@ -113,7 +113,7 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
       CorrelatorRel oldRel = mapCorVarToCorRel.get(corVar);
       if (oldToNewRelMap.containsKey(oldRel)) {
         RelNode newRel = oldToNewRelMap.get(oldRel);
-        assert (newRel instanceof CorrelatorRel);
+        assert newRel instanceof CorrelatorRel;
         mapCorVarToCorRel.put(corVar, (CorrelatorRel) newRel);
       }
     }
@@ -225,7 +225,7 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
    * @return Post-flattening ordinal
    */
   protected int getNewForOldInput(int oldOrdinal) {
-    assert (currentRel != null);
+    assert currentRel != null;
     int newOrdinal = 0;
 
     // determine which input rel oldOrdinal references, and adjust
@@ -242,7 +242,7 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
       newOrdinal += newInput.getRowType().getFieldCount();
       oldOrdinal -= n;
     }
-    assert (oldInput != null);
+    assert oldInput != null;
 
     RelDataType oldInputType = oldInput.getRowType();
     newOrdinal += calculateFlattenedOffset(oldInputType, oldOrdinal);

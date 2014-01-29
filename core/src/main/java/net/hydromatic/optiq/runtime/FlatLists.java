@@ -23,6 +23,9 @@ import java.util.*;
  * Space-efficient, comparable, immutable lists.
  */
 public class FlatLists {
+  private FlatLists() {
+  }
+
   public static final ComparableEmptyList COMPARABLE_EMPTY_LIST =
       new ComparableEmptyList();
 
@@ -44,7 +47,7 @@ public class FlatLists {
    * @return List containing the given members
    */
   public static <T> List<T> of(T... t) {
-    return _flatList(t, false);
+    return flatList_(t, false);
   }
 
   /**
@@ -56,7 +59,7 @@ public class FlatLists {
    * @return List containing the given members
    */
   public static <T> List<T> copy(T... t) {
-    return _flatList(t, true);
+    return flatList_(t, true);
   }
 
   /**
@@ -67,7 +70,7 @@ public class FlatLists {
    * @param t Array of members of list
    * @return List containing the given members
    */
-  private static <T> List<T> _flatList(T[] t, boolean copy) {
+  private static <T> List<T> flatList_(T[] t, boolean copy) {
     switch (t.length) {
     case 0:
       return COMPARABLE_EMPTY_LIST;
@@ -302,7 +305,7 @@ public class FlatLists {
       return -1;
     }
 
-    @SuppressWarnings({"unchecked"})
+    @SuppressWarnings({"unchecked" })
     public <T2> T2[] toArray(T2[] a) {
       a[0] = (T2) t0;
       a[1] = (T2) t1;
@@ -447,7 +450,7 @@ public class FlatLists {
       return -1;
     }
 
-    @SuppressWarnings({"unchecked"})
+    @SuppressWarnings({"unchecked" })
     public <T2> T2[] toArray(T2[] a) {
       a[0] = (T2) t0;
       a[1] = (T2) t1;

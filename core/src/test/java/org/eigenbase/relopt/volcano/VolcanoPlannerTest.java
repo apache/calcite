@@ -70,7 +70,7 @@ public class VolcanoPlannerTest {
   @Test public void testTransformLeaf() {
     VolcanoPlanner planner = new VolcanoPlanner();
 
-    planner.addRelTraitDef(ConventionTraitDef.instance);
+    planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
 
     planner.addRule(new PhysLeafRule());
 
@@ -93,7 +93,7 @@ public class VolcanoPlannerTest {
    */
   @Test public void testTransformSingleGood() {
     VolcanoPlanner planner = new VolcanoPlanner();
-    planner.addRelTraitDef(ConventionTraitDef.instance);
+    planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
 
     planner.addRule(new PhysLeafRule());
     planner.addRule(new GoodSingleRule());
@@ -123,7 +123,7 @@ public class VolcanoPlannerTest {
   @Ignore // broken, because ReformedSingleRule matches child traits strictly
   @Test public void testTransformSingleReformed() {
     VolcanoPlanner planner = new VolcanoPlanner();
-    planner.addRelTraitDef(ConventionTraitDef.instance);
+    planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
 
     planner.addRule(new PhysLeafRule());
     planner.addRule(new ReformedSingleRule());
@@ -150,10 +150,10 @@ public class VolcanoPlannerTest {
     VolcanoPlanner planner = new VolcanoPlanner();
     planner.ambitious = true;
 
-    planner.addRelTraitDef(ConventionTraitDef.instance);
+    planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
 
     if (useRule) {
-      planner.addRule(RemoveTrivialProjectRule.instance);
+      planner.addRule(RemoveTrivialProjectRule.INSTANCE);
     }
 
     planner.addRule(new PhysLeafRule());
@@ -216,7 +216,7 @@ public class VolcanoPlannerTest {
   @Test public void testRemoveSingleReformed() {
     VolcanoPlanner planner = new VolcanoPlanner();
     planner.ambitious = true;
-    planner.addRelTraitDef(ConventionTraitDef.instance);
+    planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
 
     planner.addRule(new PhysLeafRule());
     planner.addRule(new ReformedRemoveSingleRule());
@@ -251,7 +251,7 @@ public class VolcanoPlannerTest {
   @Test public void testRemoveSingleGood() {
     VolcanoPlanner planner = new VolcanoPlanner();
     planner.ambitious = true;
-    planner.addRelTraitDef(ConventionTraitDef.instance);
+    planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
 
     planner.addRule(new PhysLeafRule());
     planner.addRule(new GoodSingleRule());
@@ -289,7 +289,7 @@ public class VolcanoPlannerTest {
     VolcanoPlanner planner = new VolcanoPlanner();
     planner.addListener(listener);
 
-    planner.addRelTraitDef(ConventionTraitDef.instance);
+    planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
 
     planner.addRule(new PhysLeafRule());
 
@@ -548,7 +548,7 @@ public class VolcanoPlannerTest {
         RelNode child) {
       super(
           cluster,
-          ConventionTraitDef.instance,
+          ConventionTraitDef.INSTANCE,
           cluster.traitSetOf(EnumerableConvention.INSTANCE),
           child);
     }

@@ -26,7 +26,7 @@ import org.eigenbase.rex.*;
  * filter.
  */
 public class PushProjectPastFilterRule extends RelOptRule {
-  public static final PushProjectPastFilterRule instance =
+  public static final PushProjectPastFilterRule INSTANCE =
       new PushProjectPastFilterRule(PushProjector.ExprCondition.FALSE);
 
   //~ Instance fields --------------------------------------------------------

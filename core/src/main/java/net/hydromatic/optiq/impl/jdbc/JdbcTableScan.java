@@ -55,8 +55,8 @@ public class JdbcTableScan extends TableAccessRelBase implements JdbcRel {
     for (RelOptRule rule : JdbcRules.rules(out)) {
       planner.addRule(rule);
     }
-    planner.addRule(PushFilterPastSetOpRule.instance);
-    planner.addRule(RemoveTrivialProjectRule.instance);
+    planner.addRule(PushFilterPastSetOpRule.INSTANCE);
+    planner.addRule(RemoveTrivialProjectRule.INSTANCE);
   }
 
   public JdbcImplementor.Result implement(JdbcImplementor implementor) {

@@ -33,8 +33,7 @@ import java.sql.*;
  */
 abstract class OptiqPreparedStatement
     extends AvaticaPreparedStatement
-    implements OptiqServerStatement
-{
+    implements OptiqServerStatement {
   /**
    * Creates an OptiqPreparedStatement.
    *
@@ -49,7 +48,7 @@ abstract class OptiqPreparedStatement
       int resultSetType,
       int resultSetConcurrency,
       int resultSetHoldability)
-      throws SQLException {
+    throws SQLException {
     super(
         connection, prepareResult, resultSetType, resultSetConcurrency,
         resultSetHoldability);

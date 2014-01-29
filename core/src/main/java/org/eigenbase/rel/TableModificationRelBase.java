@@ -125,7 +125,7 @@ public abstract class TableModificationRelBase extends SingleRel {
 
   // override RelNode
   public RelDataType getExpectedInputRowType(int ordinalInParent) {
-    assert (ordinalInParent == 0);
+    assert ordinalInParent == 0;
 
     if (inputRowType != null) {
       return inputRowType;

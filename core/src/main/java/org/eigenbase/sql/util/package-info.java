@@ -15,10 +15,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 */
-package org.eigenbase.sql.util;
 
 /**
  * Utility classes for the SQL object model, parsing, and validation.
  */
+package org.eigenbase.sql.util;
 
 // End package-info.java

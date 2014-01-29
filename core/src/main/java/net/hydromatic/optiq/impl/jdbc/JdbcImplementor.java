@@ -318,6 +318,7 @@ public class JdbcImplementor {
     }
   }
 
+  /** Result of implementing a node. */
   public class Result {
     final SqlNode node;
     private final String neededAlias;
@@ -445,6 +446,7 @@ public class JdbcImplementor {
     }
   }
 
+  /** Builder. */
   public class Builder {
     private final JdbcRel rel;
     private final List<Clause> clauses;

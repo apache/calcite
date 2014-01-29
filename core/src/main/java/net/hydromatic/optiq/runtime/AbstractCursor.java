@@ -558,7 +558,7 @@ public abstract class AbstractCursor implements Cursor {
 
     public long getLong() {
       Number number = getNumber();
-      return number == null ? 0l : number.longValue();
+      return number == null ? 0L : number.longValue();
     }
 
     public int getInt() {

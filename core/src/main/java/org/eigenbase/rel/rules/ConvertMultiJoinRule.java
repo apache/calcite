@@ -64,7 +64,7 @@ import org.eigenbase.util.Pair;
  * </pre>
  */
 public class ConvertMultiJoinRule extends RelOptRule {
-  public static final ConvertMultiJoinRule instance =
+  public static final ConvertMultiJoinRule INSTANCE =
       new ConvertMultiJoinRule();
 
   //~ Constructors -----------------------------------------------------------
@@ -140,7 +140,7 @@ public class ConvertMultiJoinRule extends RelOptRule {
             newInputs,
             newJoinFilter,
             origJoinRel.getRowType(),
-            (origJoinRel.getJoinType() == JoinRelType.FULL),
+            origJoinRel.getJoinType() == JoinRelType.FULL,
             newOuterJoinConds,
             joinTypes,
             projFieldsList,
@@ -415,9 +415,9 @@ public class ConvertMultiJoinRule extends RelOptRule {
    * @return true if the input can be combined into a parent MultiJoinRel
    */
   private boolean canCombine(RelNode input, boolean nullGenerating) {
-    return ((input instanceof MultiJoinRel)
+    return input instanceof MultiJoinRel
         && !((MultiJoinRel) input).isFullOuterJoin()
-        && !nullGenerating);
+        && !nullGenerating;
   }
 
   /**
@@ -498,7 +498,7 @@ public class ConvertMultiJoinRule extends RelOptRule {
       while (i >= (startField + nFields)) {
         startField += nFields;
         currInput++;
-        assert (currInput < nInputs);
+        assert currInput < nInputs;
         nFields =
             multiJoinInputs.get(currInput).getRowType().getFieldCount();
       }

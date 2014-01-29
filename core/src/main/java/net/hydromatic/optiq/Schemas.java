@@ -175,6 +175,7 @@ public final class Schemas {
         Expressions.call(schema.getExpression(),
             BuiltinMethod.SCHEMA_GET_SUB_SCHEMA.method,
             Expressions.constant(name));
+    //checkstyle: ignore 2
     //noinspection unchecked
     if (false && type != null && !type.isAssignableFrom(Schema.class)) {
       return unwrap(call, type);

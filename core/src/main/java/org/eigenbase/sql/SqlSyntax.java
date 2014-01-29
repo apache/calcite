@@ -71,7 +71,7 @@ public enum SqlSyntax {
         SqlNode[] operands,
         int leftPrec,
         int rightPrec) {
-      assert (operands.length == 1);
+      assert operands.length == 1;
       writer.keyword(operator.getName());
       operands[0].unparse(
           writer,
@@ -90,7 +90,7 @@ public enum SqlSyntax {
         SqlNode[] operands,
         int leftPrec,
         int rightPrec) {
-      assert (operands.length == 1);
+      assert operands.length == 1;
       operands[0].unparse(
           writer,
           operator.getLeftPrec(),

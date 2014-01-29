@@ -34,7 +34,7 @@ public class RexMultisetUtil {
   /**
    * A set defining all implementable multiset calls
    */
-  private static final Set<SqlOperator> multisetOperators =
+  private static final Set<SqlOperator> MULTISET_OPERATORS =
       ImmutableSet.of(
           SqlStdOperatorTable.cardinalityFunc,
           SqlStdOperatorTable.castFunc,
@@ -50,10 +50,10 @@ public class RexMultisetUtil {
           SqlStdOperatorTable.memberOfOperator,
           SqlStdOperatorTable.submultisetOfOperator);
 
-  public static final SqlStdOperatorTable opTab =
-      SqlStdOperatorTable.instance();
-
   //~ Methods ----------------------------------------------------------------
+
+  private RexMultisetUtil() {
+  }
 
   /**
    * Returns true if any expression in a program contains a mixing between
@@ -144,7 +144,7 @@ public class RexMultisetUtil {
     }
     final RexCall call = (RexCall) node;
     RexCall firstOne = null;
-    for (SqlOperator op : multisetOperators) {
+    for (SqlOperator op : MULTISET_OPERATORS) {
       firstOne = RexUtil.findOperatorCall(op, call);
       if (null != firstOne) {
         if (firstOne.getOperator().equals(SqlStdOperatorTable.castFunc)
@@ -186,7 +186,7 @@ public class RexMultisetUtil {
 
     public Void visitCall(RexCall call) {
       ++totalCount;
-      if (multisetOperators.contains(call.getOperator())) {
+      if (MULTISET_OPERATORS.contains(call.getOperator())) {
         if (!call.getOperator().equals(SqlStdOperatorTable.castFunc)
             || isMultisetCast(call)) {
           ++multisetCount;

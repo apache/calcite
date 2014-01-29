@@ -182,7 +182,7 @@ public class ChunkListTest {
         } else {
           assertTrue(list.size() == sizeBefore);
         }
-        removeCount += (sizeBefore - list.size());
+        removeCount += sizeBefore - list.size();
         break;
       case 4:
         // remove at random position
@@ -223,16 +223,18 @@ public class ChunkListTest {
                   public List<Integer> apply() {
                     return new ArrayList<Integer>();
                   }
-                }, new Function0<List<Integer>>() {
+                },
+                new Function0<List<Integer>>() {
                   public List<Integer> apply() {
                     return new LinkedList<Integer>();
                   }
-                }, new Function0<List<Integer>>() {
+                },
+                new Function0<List<Integer>>() {
                   public List<Integer> apply() {
                     return new ChunkList<Integer>();
                   }
-                }
-            ), Arrays.asList("ArrayList", "LinkedList", "ChunkList-64"));
+                }),
+            Arrays.asList("ArrayList", "LinkedList", "ChunkList-64"));
     final List<Pair<Function0<List<Integer>>, String>> factories1 =
         new ArrayList<Pair<Function0<List<Integer>>, String>>();
     for (Pair<Function0<List<Integer>>, String> pair : factories0) {

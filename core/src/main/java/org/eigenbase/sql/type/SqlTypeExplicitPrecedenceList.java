@@ -39,7 +39,7 @@ public class SqlTypeExplicitPrecedenceList
    * @sql.2003 Part 2 Section 9.5
    */
   private static final Map<SqlTypeName, SqlTypeExplicitPrecedenceList>
-      typeNameToPrecedenceList;
+  typeNameToPrecedenceList;
 
   static {
     // NOTE jvs 25-Jan-2005:  the null entries delimit equivalence
@@ -156,8 +156,8 @@ public class SqlTypeExplicitPrecedenceList
 
   // implement RelDataTypePrecedenceList
   public int compareTypePrecedence(RelDataType type1, RelDataType type2) {
-    assert (containsType(type1));
-    assert (containsType(type2));
+    assert containsType(type1);
+    assert containsType(type2);
 
     int p1 =
         getListPosition(
@@ -172,7 +172,7 @@ public class SqlTypeExplicitPrecedenceList
 
   private static int getListPosition(SqlTypeName type, List<SqlTypeName> list) {
     int i = list.indexOf(type);
-    assert (i != -1);
+    assert i != -1;
 
     // adjust for precedence equivalence classes
     for (int j = i - 1; j >= 0; --j) {

@@ -33,7 +33,7 @@ import org.eigenbase.util.Util;
  * Implementation of {@link RelImplementor}.
  */
 public class RelImplementorImpl implements RelImplementor {
-  protected static final Logger tracer =
+  protected static final Logger LOGGER =
       EigenbaseTrace.getRelImplementorTracer();
 
   /**

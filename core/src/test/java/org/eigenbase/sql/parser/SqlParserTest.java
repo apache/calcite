@@ -69,8 +69,7 @@ public class SqlParserTest {
     return new SqlParser(sql, quoting, unquotedCasing, quotedCasing);
   }
 
-  protected SqlNode parseStmt(String sql)
-      throws SqlParseException {
+  protected SqlNode parseStmt(String sql) throws SqlParseException {
     return getSqlParser(sql).parseStmt();
   }
 
@@ -80,8 +79,7 @@ public class SqlParserTest {
     getTester().checkExp(sql, expected);
   }
 
-  protected SqlNode parseExpression(String sql)
-      throws SqlParseException {
+  protected SqlNode parseExpression(String sql) throws SqlParseException {
     return getSqlParser(sql).parseExpression();
   }
 

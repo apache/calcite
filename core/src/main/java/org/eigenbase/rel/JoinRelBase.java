@@ -110,7 +110,7 @@ public abstract class JoinRelBase extends AbstractRelNode {
   }
 
   // TODO: enable
-  public boolean _isValid(boolean fail) {
+  public boolean isValid_(boolean fail) {
     if (!super.isValid(fail)) {
       return false;
     }
@@ -334,7 +334,7 @@ public abstract class JoinRelBase extends AbstractRelNode {
       // Ensure that name is unique from all previous field names
       if (uniqueNameList.contains(name)) {
         String nameBase = name;
-        for (int j = 0; ; j++) {
+        for (int j = 0;; j++) {
           name = nameBase + j;
           if (!uniqueNameList.contains(name)) {
             break;

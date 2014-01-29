@@ -550,8 +550,7 @@ public abstract class SqlAbstractParserImpl {
      */
     private Object virtualCall(
         SqlAbstractParserImpl parserImpl,
-        String name)
-        throws Throwable {
+        String name) throws Throwable {
       Class<?> clazz = parserImpl.getClass();
       try {
         final Method method = clazz.getMethod(name, (Class[]) null);

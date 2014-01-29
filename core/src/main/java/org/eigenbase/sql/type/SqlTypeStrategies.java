@@ -414,7 +414,7 @@ public abstract class SqlTypeStrategies {
             SqlNode node,
             int iFormalOperand,
             boolean throwOnFailure) {
-          assert (0 == iFormalOperand);
+          assert 0 == iFormalOperand;
           RelDataType type =
               callBinding.getValidator().deriveType(
                   callBinding.getScope(),
@@ -458,7 +458,7 @@ public abstract class SqlTypeStrategies {
       };
 
   public static final SqlSingleOperandTypeChecker
-      otcMultisetOrRecordTypeMultiset =
+  otcMultisetOrRecordTypeMultiset =
       SqlTypeStrategies.or(
           otcMultiset,
           otcRecordMultiset);
@@ -480,7 +480,7 @@ public abstract class SqlTypeStrategies {
             SqlNode node,
             int iFormalOperand,
             boolean throwOnFailure) {
-          assert (0 == iFormalOperand);
+          assert 0 == iFormalOperand;
           RelDataType type =
               callBinding.getValidator().deriveType(
                   callBinding.getScope(),
@@ -785,8 +785,8 @@ public abstract class SqlTypeStrategies {
   public static final SqlReturnTypeInference rtiFirstArgTypeOrExactNoScale =
       new SqlReturnTypeInferenceChain(
           new SqlReturnTypeInference[]{
-              rtiDecimalNoScale,
-              rtiFirstArgType
+            rtiDecimalNoScale,
+            rtiFirstArgType
           });
 
   /**
@@ -823,9 +823,9 @@ public abstract class SqlTypeStrategies {
   public static final SqlReturnTypeInference rtiNullableProduct =
       new SqlReturnTypeInferenceChain(
           new SqlReturnTypeInference[]{
-              rtiNullableDecimalProduct,
-              rtiNullableFirstInterval,
-              rtiLeastRestrictive
+            rtiNullableDecimalProduct,
+            rtiNullableFirstInterval,
+            rtiLeastRestrictive
           });
 
   /**
@@ -862,9 +862,9 @@ public abstract class SqlTypeStrategies {
   public static final SqlReturnTypeInference rtiNullableQuotient =
       new SqlReturnTypeInferenceChain(
           new SqlReturnTypeInference[]{
-              rtiNullableDecimalQuotient,
-              rtiNullableFirstInterval,
-              rtiLeastRestrictive
+            rtiNullableDecimalQuotient,
+            rtiNullableFirstInterval,
+            rtiLeastRestrictive
           });
 
   /**
@@ -875,8 +875,8 @@ public abstract class SqlTypeStrategies {
   public static final SqlReturnTypeInference rtiNullableIntegerQuotient =
       new SqlReturnTypeInferenceChain(
           new SqlReturnTypeInference[]{
-              rtiNullableFirstInterval,
-              rtiLeastRestrictive
+            rtiNullableFirstInterval,
+            rtiLeastRestrictive
           });
 
   /**
@@ -912,13 +912,13 @@ public abstract class SqlTypeStrategies {
               int s2 = type2.getScale();
 
               int scale = Math.max(s1, s2);
-              assert (scale <= SqlTypeName.MAX_NUMERIC_SCALE);
+              assert scale <= SqlTypeName.MAX_NUMERIC_SCALE;
               int precision = Math.max(p1 - s1, p2 - s2) + scale + 1;
               precision =
                   Math.min(
                       precision,
                       SqlTypeName.MAX_NUMERIC_PRECISION);
-              assert (precision > 0);
+              assert precision > 0;
 
               RelDataType ret;
               ret =
@@ -1000,7 +1000,7 @@ public abstract class SqlTypeStrategies {
             pickedCollation =
                 SqlCollation.getCoercibilityDyadicOperator(
                     argType0.getCollation(), argType1.getCollation());
-            assert (null != pickedCollation);
+            assert null != pickedCollation;
           }
 
           // Determine whether result is variable-length
@@ -1042,7 +1042,7 @@ public abstract class SqlTypeStrategies {
    * SqlTypeTransforms#toNullable}
    */
   public static final SqlReturnTypeInference
-      rtiNullableDyadicStringSumPrecision =
+  rtiNullableDyadicStringSumPrecision =
       new SqlTypeTransformCascade(
           rtiDyadicStringSumPrecision,
           SqlTypeTransforms.toNullable);
@@ -1052,7 +1052,7 @@ public abstract class SqlTypeStrategies {
    * SqlTypeTransforms#toNullable}, {@link SqlTypeTransforms#toVarying}.
    */
   public static final SqlReturnTypeInference
-      rtiNullableVaryingDyadicStringSumPrecision =
+  rtiNullableVaryingDyadicStringSumPrecision =
       new SqlTypeTransformCascade(
           rtiDyadicStringSumPrecision,
           SqlTypeTransforms.toNullable,
@@ -1190,14 +1190,14 @@ public abstract class SqlTypeStrategies {
       new SqlReturnTypeInference() {
         public RelDataType inferReturnType(
             SqlOperatorBinding opBinding) {
-          assert (opBinding.getOperandCount() == 1);
+          assert opBinding.getOperandCount() == 1;
 
           final RelDataType recordType = opBinding.getOperandType(0);
 
           boolean isStruct = recordType.isStruct();
           int fieldCount = recordType.getFieldCount();
 
-          assert (isStruct && (fieldCount == 1));
+          assert isStruct && (fieldCount == 1);
 
           RelDataTypeField fieldType = recordType.getFieldList().get(0);
           assert fieldType != null

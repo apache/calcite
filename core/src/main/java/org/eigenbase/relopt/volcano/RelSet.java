@@ -37,7 +37,7 @@ import com.google.common.collect.ImmutableList;
 class RelSet {
   //~ Static fields/initializers ---------------------------------------------
 
-  private static final Logger tracer = EigenbaseTrace.getPlannerTracer();
+  private static final Logger LOGGER = EigenbaseTrace.getPlannerTracer();
 
   //~ Instance fields --------------------------------------------------------
 
@@ -159,7 +159,7 @@ class RelSet {
         }
         final AbstractConverter converter =
             new AbstractConverter(
-                cluster, subset, ConventionTraitDef.instance,
+                cluster, subset, ConventionTraitDef.INSTANCE,
                 subset1.getTraitSet());
         planner.register(converter, subset1);
       }
@@ -173,7 +173,7 @@ class RelSet {
         }
         final AbstractConverter converter =
             new AbstractConverter(
-                cluster, subset1, ConventionTraitDef.instance,
+                cluster, subset1, ConventionTraitDef.INSTANCE,
                 traits);
         planner.register(converter, subset);
       }
@@ -215,7 +215,7 @@ class RelSet {
     if (this.rel == null) {
       this.rel = rel;
     } else {
-      assert (rel.getCorrelVariable() == null);
+      assert rel.getCorrelVariable() == null;
       String correl = this.rel.getCorrelVariable();
       if (correl != null) {
         rel.setCorrelVariable(correl);
@@ -246,15 +246,15 @@ class RelSet {
   void mergeWith(
       VolcanoPlanner planner,
       RelSet otherSet) {
-    assert (this != otherSet);
-    assert (this.equivalentSet == null);
-    assert (otherSet.equivalentSet == null);
-    tracer.finer("Merge set#" + otherSet.id + " into set#" + id);
+    assert this != otherSet;
+    assert this.equivalentSet == null;
+    assert otherSet.equivalentSet == null;
+    LOGGER.finer("Merge set#" + otherSet.id + " into set#" + id);
     otherSet.equivalentSet = this;
 
     // remove from table
     boolean existed = planner.allSets.remove(otherSet);
-    assert (existed) : "merging with a dead otherSet";
+    assert existed : "merging with a dead otherSet";
 
     // merge subsets
     for (RelSubset otherSubset : otherSet.subsets) {

@@ -42,11 +42,10 @@ public abstract class AbstractRelNode implements RelNode {
   // TODO jvs 10-Oct-2003:  Make this thread safe.  Either synchronize, or
   // keep this per-VolcanoPlanner.
 
-  /**
-   * generator for {@link #id} values
-   */
-  static int nextId = 0;
-  private static final Logger tracer = EigenbaseTrace.getPlannerTracer();
+  /** Generator for {@link #id} values. */
+  static int NEXT_ID = 0;
+
+  private static final Logger LOGGER = EigenbaseTrace.getPlannerTracer();
 
   //~ Instance fields --------------------------------------------------------
 
@@ -96,14 +95,14 @@ public abstract class AbstractRelNode implements RelNode {
    */
   public AbstractRelNode(RelOptCluster cluster, RelTraitSet traitSet) {
     super();
-    assert (cluster != null);
+    assert cluster != null;
     this.cluster = cluster;
     this.traitSet = traitSet;
-    this.id = nextId++;
+    this.id = NEXT_ID++;
     this.digest = getRelTypeName() + "#" + id;
     this.desc = digest;
-    if (tracer.isLoggable(Level.FINEST)) {
-      tracer.finest("new " + digest);
+    if (LOGGER.isLoggable(Level.FINEST)) {
+      LOGGER.finest("new " + digest);
     }
   }
 
@@ -137,7 +136,7 @@ public abstract class AbstractRelNode implements RelNode {
   }
 
   public final Convention getConvention() {
-    return traitSet.getTrait(ConventionTraitDef.instance);
+    return traitSet.getTrait(ConventionTraitDef.INSTANCE);
   }
 
   public RelTraitSet getTraitSet() {
@@ -321,7 +320,7 @@ public abstract class AbstractRelNode implements RelNode {
   }
 
   public void registerCorrelVariable(String correlVariable) {
-    assert (this.correlVariable == null);
+    assert this.correlVariable == null;
     this.correlVariable = correlVariable;
     getQuery().mapCorrel(correlVariable, this);
   }

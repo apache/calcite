@@ -26,7 +26,6 @@ import net.hydromatic.optiq.DataContext;
 import net.hydromatic.optiq.jdbc.JavaTypeFactoryImpl;
 import net.hydromatic.optiq.runtime.*;
 
-import org.eigenbase.relopt.RelImplementor;
 import org.eigenbase.rex.RexBuilder;
 
 import com.google.common.collect.ImmutableList;
@@ -38,9 +37,8 @@ import java.lang.reflect.Type;
 import java.util.*;
 
 /**
- * Subclass of {@link RelImplementor} for relational operators
- * of one of the {@link EnumerableConvention} calling
- * conventions.
+ * Subclass of {@link org.eigenbase.relopt.RelImplementor} for relational
+ * operators of {@link EnumerableConvention} calling convention.
  */
 public class EnumerableRelImplementor extends JavaRelImplementor {
   public final Map<String, Queryable> map =
@@ -73,13 +71,13 @@ public class EnumerableRelImplementor extends JavaRelImplementor {
     // http://jira.codehaus.org/browse/JANINO-169. Otherwise we'd remove the
     // member variable, rename the "root0" parameter as "root", and reference it
     // directly from inner classes.
-    final ParameterExpression _root0 =
+    final ParameterExpression root0_ =
         Expressions.parameter(Modifier.FINAL, DataContext.class, "root0");
     final BlockStatement block = Expressions.block(
         Iterables.concat(
             ImmutableList.of(
                 Expressions.statement(
-                    Expressions.assign(DataContext.ROOT, _root0))),
+                    Expressions.assign(DataContext.ROOT, root0_))),
             result.block.statements));
     memberDeclarations.add(
         Expressions.fieldDecl(0, DataContext.ROOT, null));
@@ -89,7 +87,7 @@ public class EnumerableRelImplementor extends JavaRelImplementor {
             Modifier.PUBLIC,
             Enumerable.class,
             BuiltinMethod.BINDABLE_BIND.method.getName(),
-            Expressions.list(_root0),
+            Expressions.list(root0_),
             block));
     memberDeclarations.add(
         Expressions.methodDecl(

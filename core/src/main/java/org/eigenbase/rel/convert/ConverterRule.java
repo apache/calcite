@@ -52,8 +52,8 @@ public abstract class ConverterRule extends RelOptRule {
         description == null
             ? "ConverterRule<in=" + in + ",out=" + out + ">"
             : description);
-    assert (in != null);
-    assert (out != null);
+    assert in != null;
+    assert out != null;
 
     // Source and target traits must have same type
     assert in.getTraitDef() == out.getTraitDef();

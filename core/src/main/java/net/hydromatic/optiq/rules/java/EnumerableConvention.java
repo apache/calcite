@@ -41,7 +41,7 @@ public enum EnumerableConvention implements Convention {
   }
 
   public RelTraitDef getTraitDef() {
-    return ConventionTraitDef.instance;
+    return ConventionTraitDef.INSTANCE;
   }
 
   public boolean subsumes(RelTrait trait) {

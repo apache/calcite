@@ -29,7 +29,7 @@ import java.util.logging.*;
 public abstract class StringChunker {
 
   private static final int DEFAULT_CHUNK_SIZE = 32000;
-  private static final Logger tracer =
+  private static final Logger LOGGER =
       Logger.getLogger("org.eigenbase.util.StringChunker");
 
   /**
@@ -118,8 +118,7 @@ public abstract class StringChunker {
   public static int writeChunks(
       String[] chunks,
       PreparedStatement ps,
-      int startIdx)
-      throws SQLException {
+      int startIdx) throws SQLException {
     int idx = startIdx;
     for (String chunk : chunks) {
       ps.setInt(1, idx);
@@ -127,7 +126,7 @@ public abstract class StringChunker {
       ps.executeUpdate();
       idx++;
     }
-    return (idx - startIdx);
+    return idx - startIdx;
   }
 
   /**
@@ -147,7 +146,7 @@ public abstract class StringChunker {
    *                      statement or if the statement execution fails
    */
   public static int writeChunks(String[] chunks, PreparedStatement ps)
-      throws SQLException {
+    throws SQLException {
     return writeChunks(chunks, ps, 0);
   }
 
@@ -166,7 +165,7 @@ public abstract class StringChunker {
    *                      designated column is not a string
    */
   public static String readChunks(ResultSet rs, int columnIndex)
-      throws SQLException {
+    throws SQLException {
     int chunkCount = 0;
     StringBuilder sb = new StringBuilder(DEFAULT_CHUNK_SIZE);
     String chunk = null;

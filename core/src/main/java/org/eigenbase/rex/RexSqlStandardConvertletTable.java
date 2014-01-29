@@ -232,7 +232,7 @@ public class RexSqlStandardConvertletTable
           public SqlNode convertCall(
               RexToSqlNodeConverter converter,
               RexCall call) {
-            assert (op instanceof SqlCaseOperator);
+            assert op instanceof SqlCaseOperator;
             SqlNode[] operands =
                 convertExpressionList(converter, call.operands);
             if (operands == null) {

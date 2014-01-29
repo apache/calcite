@@ -37,15 +37,16 @@ import java.util.List;
  * data set (as described in HOWTO.md)
  * and "foodmart" data set, as follows:</p>
  *
- * <blockquote><pre>
- * JAR=~/.m2/repository/pentaho/mondrian-data-foodmart-json/0.3/mondrian-data-foodmart-json-0.3.jar
- * mkdir /tmp/foodmart
- * cd /tmp/foodmart
- * jar xvf $JAR
- * for i in *.json; do
- *   mongoimport --db foodmart --collection ${i/.json/} --file $i
- * done
- * </pre></blockquote>
+ * <blockquote><code>
+ * JAR=~/.m2/repository/pentaho/mondrian-data-foodmart-json/
+ * 0.3/mondrian-data-foodmart-json-0.3.jar<br>
+ * mkdir /tmp/foodmart<br>
+ * cd /tmp/foodmart<br>
+ * jar xvf $JAR<br>
+ * for i in *.json; do<br>
+ * &nbsp;&nbsp;mongoimport --db foodmart --collection ${i/.json/} --file $i<br>
+ * done<br>
+ * </code></blockquote>
  */
 public class MongoAdapterTest {
   public static final String MONGO_FOODMART_SCHEMA =
@@ -123,37 +124,37 @@ public class MongoAdapterTest {
   }
 
   @Test public void testSort() {
-      OptiqAssert.that()
-          .enable(enabled())
-          .with(ZIPS)
-          .query("select * from zips order by state")
-          .returnsCount(29467)
-          .explainContains(
-              "PLAN=EnumerableCalcRel(expr#0..4=[{inputs}], expr#5=[0], expr#6=[ITEM($t1, $t5)], expr#7=[CAST($t6):FLOAT NOT NULL], expr#8=[1], expr#9=[ITEM($t1, $t8)], expr#10=[CAST($t9):FLOAT NOT NULL], CITY=[$t0], LONGITUDE=[$t7], LATITUDE=[$t10], POP=[$t2], STATE=[$t3], ID=[$t4])\n"
-              + "  MongoToEnumerableConverter\n"
-              + "    MongoSortRel(sort0=[$3], dir0=[Ascending])\n"
-              + "      MongoTableScan(table=[[mongo_raw, zips]], ops=[[<{city: 1, loc: 1, pop: 1, state: 1, _id: 1}, {$project: {city: 1, loc: 1, pop: 1, state: 1, _id: 1}}>]])");
+    OptiqAssert.that()
+        .enable(enabled())
+        .with(ZIPS)
+        .query("select * from zips order by state")
+        .returnsCount(29467)
+        .explainContains(
+            "PLAN=EnumerableCalcRel(expr#0..4=[{inputs}], expr#5=[0], expr#6=[ITEM($t1, $t5)], expr#7=[CAST($t6):FLOAT NOT NULL], expr#8=[1], expr#9=[ITEM($t1, $t8)], expr#10=[CAST($t9):FLOAT NOT NULL], CITY=[$t0], LONGITUDE=[$t7], LATITUDE=[$t10], POP=[$t2], STATE=[$t3], ID=[$t4])\n"
+            + "  MongoToEnumerableConverter\n"
+            + "    MongoSortRel(sort0=[$3], dir0=[Ascending])\n"
+            + "      MongoTableScan(table=[[mongo_raw, zips]], ops=[[<{city: 1, loc: 1, pop: 1, state: 1, _id: 1}, {$project: {city: 1, loc: 1, pop: 1, state: 1, _id: 1}}>]])");
   }
 
   @Test public void testFilterSort() {
-      OptiqAssert.that()
-          .enable(enabled())
-          .with(ZIPS)
-          .query(
-              "select * from zips\n"
-              + "where city = 'SPRINGFIELD' and id between '20000' and '30000'\n"
-              + "order by state")
-          .returns(
-              "CITY=SPRINGFIELD; LONGITUDE=-81.249855; LATITUDE=33.534264; POP=2184; STATE=SC; ID=29146\n"
-              + "CITY=SPRINGFIELD; LONGITUDE=-77.186584; LATITUDE=38.779716; POP=16811; STATE=VA; ID=22150\n"
-              + "CITY=SPRINGFIELD; LONGITUDE=-77.23702; LATITUDE=38.744858; POP=32161; STATE=VA; ID=22153\n"
-              + "CITY=SPRINGFIELD; LONGITUDE=-78.69502; LATITUDE=39.462997; POP=1321; STATE=WV; ID=26763\n")
-          .explainContains(
-              "PLAN=EnumerableCalcRel(expr#0..4=[{inputs}], expr#5=[0], expr#6=[ITEM($t1, $t5)], expr#7=[CAST($t6):FLOAT NOT NULL], expr#8=[1], expr#9=[ITEM($t1, $t8)], expr#10=[CAST($t9):FLOAT NOT NULL], CITY=[$t0], LONGITUDE=[$t7], LATITUDE=[$t10], POP=[$t2], STATE=[$t3], ID=[$t4])\n"
-              + "  MongoToEnumerableConverter\n"
-              + "    MongoSortRel(sort0=[$3], dir0=[Ascending])\n"
-              + "      MongoFilterRel(condition=[AND(=($0, 'SPRINGFIELD'), >=($4, '20000'), <=($4, '30000'))])\n"
-              + "        MongoTableScan(table=[[mongo_raw, zips]], ops=[[<{city: 1, loc: 1, pop: 1, state: 1, _id: 1}, {$project: {city: 1, loc: 1, pop: 1, state: 1, _id: 1}}>]])");
+    OptiqAssert.that()
+        .enable(enabled())
+        .with(ZIPS)
+        .query(
+            "select * from zips\n"
+            + "where city = 'SPRINGFIELD' and id between '20000' and '30000'\n"
+            + "order by state")
+        .returns(
+            "CITY=SPRINGFIELD; LONGITUDE=-81.249855; LATITUDE=33.534264; POP=2184; STATE=SC; ID=29146\n"
+            + "CITY=SPRINGFIELD; LONGITUDE=-77.186584; LATITUDE=38.779716; POP=16811; STATE=VA; ID=22150\n"
+            + "CITY=SPRINGFIELD; LONGITUDE=-77.23702; LATITUDE=38.744858; POP=32161; STATE=VA; ID=22153\n"
+            + "CITY=SPRINGFIELD; LONGITUDE=-78.69502; LATITUDE=39.462997; POP=1321; STATE=WV; ID=26763\n")
+        .explainContains(
+            "PLAN=EnumerableCalcRel(expr#0..4=[{inputs}], expr#5=[0], expr#6=[ITEM($t1, $t5)], expr#7=[CAST($t6):FLOAT NOT NULL], expr#8=[1], expr#9=[ITEM($t1, $t8)], expr#10=[CAST($t9):FLOAT NOT NULL], CITY=[$t0], LONGITUDE=[$t7], LATITUDE=[$t10], POP=[$t2], STATE=[$t3], ID=[$t4])\n"
+            + "  MongoToEnumerableConverter\n"
+            + "    MongoSortRel(sort0=[$3], dir0=[Ascending])\n"
+            + "      MongoFilterRel(condition=[AND(=($0, 'SPRINGFIELD'), >=($4, '20000'), <=($4, '30000'))])\n"
+            + "        MongoTableScan(table=[[mongo_raw, zips]], ops=[[<{city: 1, loc: 1, pop: 1, state: 1, _id: 1}, {$project: {city: 1, loc: 1, pop: 1, state: 1, _id: 1}}>]])");
   }
 
   @Test public void testUnionPlan() {

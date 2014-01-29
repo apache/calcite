@@ -94,7 +94,7 @@ public abstract class ReflectUtil {
    * @return corresponding method
    */
   public static Method getByteBufferReadMethod(Class clazz) {
-    assert (clazz.isPrimitive());
+    assert clazz.isPrimitive();
     return primitiveToByteBufferReadMethod.get(clazz);
   }
 
@@ -106,7 +106,7 @@ public abstract class ReflectUtil {
    * @return corresponding method
    */
   public static Method getByteBufferWriteMethod(Class clazz) {
-    assert (clazz.isPrimitive());
+    assert clazz.isPrimitive();
     return primitiveToByteBufferWriteMethod.get(clazz);
   }
 
@@ -118,7 +118,7 @@ public abstract class ReflectUtil {
    * @return corresponding boxing Class (e.g. java.lang.Integer)
    */
   public static Class getBoxingClass(Class primitiveClass) {
-    assert (primitiveClass.isPrimitive());
+    assert primitiveClass.isPrimitive();
     return primitiveToBoxingMap.get(primitiveClass);
   }
 

@@ -95,8 +95,8 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
             if (newConditionExp instanceof RexCall) {
               RexCall rexCall = (RexCall) newConditionExp;
               boolean reverse =
-                  (rexCall.getOperator()
-                      == SqlStdOperatorTable.notOperator);
+                  rexCall.getOperator()
+                      == SqlStdOperatorTable.notOperator;
               if (reverse) {
                 rexCall = (RexCall) rexCall.getOperands().get(0);
               }
@@ -162,7 +162,7 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
                     project.getChild(),
                     expList,
                     project.getRowType(),
-                    ProjectRel.Flags.Boxed));
+                    ProjectRel.Flags.BOXED));
 
             // New plan is absolutely better than old plan.
             call.getPlanner().setImportance(project, 0.0);

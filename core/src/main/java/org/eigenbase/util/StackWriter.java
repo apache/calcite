@@ -124,8 +124,7 @@ public class StackWriter extends FilterWriter {
 
   //~ Methods ----------------------------------------------------------------
 
-  private void indentIfNeeded()
-      throws IOException {
+  private void indentIfNeeded() throws IOException {
     if (needIndent) {
       for (int i = 0; i < indentationDepth; i++) {
         out.write(indentation);
@@ -134,8 +133,7 @@ public class StackWriter extends FilterWriter {
     }
   }
 
-  private void writeQuote(Character quoteChar)
-      throws IOException {
+  private void writeQuote(Character quoteChar) throws IOException {
     indentIfNeeded();
     int n = 1;
     for (int i = 0; i < quoteStack.size(); i++) {
@@ -148,14 +146,12 @@ public class StackWriter extends FilterWriter {
     }
   }
 
-  private void pushQuote(Character quoteChar)
-      throws IOException {
+  private void pushQuote(Character quoteChar) throws IOException {
     writeQuote(quoteChar);
     quoteStack.addLast(quoteChar);
   }
 
-  private void popQuote(Character quoteChar)
-      throws IOException {
+  private void popQuote(Character quoteChar) throws IOException {
     if (!(quoteStack.removeLast().equals(quoteChar))) {
       throw new Error("mismatched quotes");
     }
@@ -163,8 +159,7 @@ public class StackWriter extends FilterWriter {
   }
 
   // implement Writer
-  public void write(int c)
-      throws IOException {
+  public void write(int c) throws IOException {
     switch (c) {
     case INDENT:
       indentationDepth++;
@@ -208,8 +203,7 @@ public class StackWriter extends FilterWriter {
   }
 
   // implement Writer
-  public void write(char[] cbuf, int off, int len)
-      throws IOException {
+  public void write(char[] cbuf, int off, int len) throws IOException {
     // TODO: something more efficient using searches for
     // special characters
     for (int i = off; i < (off + len); i++) {
@@ -218,8 +212,7 @@ public class StackWriter extends FilterWriter {
   }
 
   // implement Writer
-  public void write(String str, int off, int len)
-      throws IOException {
+  public void write(String str, int off, int len) throws IOException {
     // TODO: something more efficient using searches for
     // special characters
     for (int i = off; i < (off + len); i++) {

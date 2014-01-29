@@ -15,10 +15,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 */
-package org.eigenbase.util.mapping;
 
 /**
  * Support for algebraic maps.
  */
+package org.eigenbase.util.mapping;
 
 // End package-info.java

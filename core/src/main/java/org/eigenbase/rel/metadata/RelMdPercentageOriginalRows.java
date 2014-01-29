@@ -57,7 +57,7 @@ public class RelMdPercentageOriginalRows extends ReflectiveRelMetadataProvider {
       double percentage =
           RelMetadataQuery.getPercentageOriginalRows(input);
       if (percentage != 0.0) {
-        denominator += (rowCount / percentage);
+        denominator += rowCount / percentage;
         numerator += rowCount;
       }
     }

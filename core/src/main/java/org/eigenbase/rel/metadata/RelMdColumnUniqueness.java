@@ -179,7 +179,7 @@ public class RelMdColumnUniqueness extends ReflectiveRelMetadataProvider {
       if ((leftUnique == null) || (rightUnique == null)) {
         return null;
       } else {
-        return (leftUnique && rightUnique);
+        return leftUnique && rightUnique;
       }
     }
 
@@ -210,7 +210,7 @@ public class RelMdColumnUniqueness extends ReflectiveRelMetadataProvider {
       if ((rightJoinColsUnique == null) || (leftUnique == null)) {
         return null;
       }
-      return (rightJoinColsUnique && leftUnique);
+      return rightJoinColsUnique && leftUnique;
     } else if (rightColumns.cardinality() > 0) {
       if (rel.getJoinType().generatesNullsOnRight()) {
         return false;
@@ -223,7 +223,7 @@ public class RelMdColumnUniqueness extends ReflectiveRelMetadataProvider {
       if ((leftJoinColsUnique == null) || (rightUnique == null)) {
         return null;
       }
-      return (leftJoinColsUnique && rightUnique);
+      return leftJoinColsUnique && rightUnique;
     }
 
     throw new AssertionError();

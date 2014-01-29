@@ -191,6 +191,7 @@ class ArrayTable extends AbstractQueryableTable {
     BYTE_STRING_DICTIONARY,
   }
 
+  /** Column definition and value set. */
   public static class Column {
     final Representation representation;
     final Object dataSet;

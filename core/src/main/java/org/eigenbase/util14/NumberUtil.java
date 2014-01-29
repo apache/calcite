@@ -138,7 +138,7 @@ public class NumberUtil {
   }
 
   public static NumberFormat getApproxFormatter(boolean isFloat) {
-    return (isFloat) ? floatFormatter : doubleFormatter;
+    return isFloat ? floatFormatter : doubleFormatter;
   }
 
   public static long round(double d) {

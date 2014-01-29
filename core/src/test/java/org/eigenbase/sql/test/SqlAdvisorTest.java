@@ -331,8 +331,7 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
 
   protected void assertHint(
       String sql,
-      List<String>... expectedLists)
-      throws Exception {
+      List<String>... expectedLists) throws Exception {
     List<String> expectedList = plus(expectedLists);
     Collections.sort(expectedList);
     assertHint(sql, toString(expectedList));
@@ -348,8 +347,7 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
    */
   protected void assertHint(
       String sql,
-      String expectedResults)
-      throws Exception {
+      String expectedResults) throws Exception {
     SqlValidatorWithHints validator =
         (SqlValidatorWithHints) tester.getValidator();
     SqlAdvisor advisor = tester.getFactory().createAdvisor(validator);
@@ -424,8 +422,7 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
 
   protected void assertEquals(
       String[] actualResults,
-      List<String>... expectedResults)
-      throws Exception {
+      List<String>... expectedResults) throws Exception {
     List<String> expectedList = plus(expectedResults);
     Map<String, String> uniqueResults = new HashMap<String, String>();
     for (String actualResult : actualResults) {

@@ -207,7 +207,7 @@ public class SargIntervalExpr extends SargIntervalBase implements SargExpr {
       return seq;
     }
 
-    assert (originalSeq.getList().size() == 1);
+    assert originalSeq.getList().size() == 1;
     SargInterval originalInterval = originalSeq.getList().get(0);
 
     // Complement of universal set is empty set.
@@ -264,7 +264,7 @@ public class SargIntervalExpr extends SargIntervalBase implements SargExpr {
       }
     } else {
       // Mirror image of previous case.
-      assert (originalInterval.getUpperBound().isFinite());
+      assert originalInterval.getUpperBound().isFinite();
       interval.setLower(
           originalInterval.getUpperBound().getCoordinate(),
           originalInterval.getUpperBound().getStrictnessComplement());
