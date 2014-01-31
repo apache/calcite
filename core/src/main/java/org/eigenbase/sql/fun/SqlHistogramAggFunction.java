@@ -43,9 +43,9 @@ public class SqlHistogramAggFunction extends SqlAggFunction {
     super(
         "$HISTOGRAM",
         SqlKind.OTHER_FUNCTION,
-        SqlTypeStrategies.rtiHistogram,
+        ReturnTypes.HISTOGRAM,
         null,
-        SqlTypeStrategies.otcNumericOrString,
+        OperandTypes.NUMERIC_OR_STRING,
         SqlFunctionCategory.NUMERIC);
     this.type = type;
   }

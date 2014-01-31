@@ -43,9 +43,9 @@ public class SqlMultisetQueryConstructor extends SqlSpecialOperator {
         name,
         kind, MDX_PRECEDENCE,
         false,
-        SqlTypeStrategies.rtiFirstArgType,
+        ReturnTypes.ARG0,
         null,
-        SqlTypeStrategies.otcVariadic);
+        OperandTypes.VARIADIC);
   }
 
   //~ Methods ----------------------------------------------------------------

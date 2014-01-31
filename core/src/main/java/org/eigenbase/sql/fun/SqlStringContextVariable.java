@@ -31,9 +31,9 @@ public class SqlStringContextVariable extends SqlFunction {
     super(
         name,
         SqlKind.OTHER_FUNCTION,
-        SqlTypeStrategies.rtiVarchar2000,
+        ReturnTypes.VARCHAR_2000,
         null,
-        SqlTypeStrategies.otcNiladic,
+        OperandTypes.NILADIC,
         SqlFunctionCategory.SYSTEM);
   }
 

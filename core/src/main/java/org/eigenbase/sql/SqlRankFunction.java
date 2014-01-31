@@ -41,9 +41,9 @@ public class SqlRankFunction extends SqlAggFunction {
     super(
         name,
         SqlKind.OTHER_FUNCTION,
-        SqlTypeStrategies.rtiInteger,
+        ReturnTypes.INTEGER,
         null,
-        SqlTypeStrategies.otcNiladic,
+        OperandTypes.NILADIC,
         SqlFunctionCategory.NUMERIC);
   }
 

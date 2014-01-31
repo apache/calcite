@@ -43,9 +43,9 @@ public class SqlThrowOperator extends SqlInternalOperator {
         SqlKind.OTHER,
         2,
         true,
-        SqlTypeStrategies.rtiBoolean,
+        ReturnTypes.BOOLEAN,
         null,
-        SqlTypeStrategies.otcCharString);
+        OperandTypes.CHARACTER);
   }
 
   //~ Methods ----------------------------------------------------------------

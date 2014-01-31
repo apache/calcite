@@ -118,7 +118,7 @@ public interface OptiqPrepare {
       try {
         final Class<?> clazz =
             Class.forName("net.hydromatic.optiq.impl.spark.SparkHandlerImpl");
-        Method method = clazz.getMethod("INSTANCE");
+        Method method = clazz.getMethod("instance");
         return (OptiqPrepare.SparkHandler) method.invoke(null);
       } catch (ClassNotFoundException e) {
         return new TrivialSparkHandler();

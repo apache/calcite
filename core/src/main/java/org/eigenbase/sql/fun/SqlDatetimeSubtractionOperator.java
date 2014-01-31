@@ -38,9 +38,9 @@ public class SqlDatetimeSubtractionOperator extends SqlSpecialOperator {
         SqlKind.MINUS,
         40,
         true,
-        SqlTypeStrategies.rtiNullableThirdArgType,
-        SqlTypeStrategies.otiFirstKnown,
-        SqlTypeStrategies.otcMinusDateOperator);
+        ReturnTypes.ARG2_NULLABLE,
+        InferTypes.FIRST_KNOWN,
+        OperandTypes.MINUS_DATE_OPERATOR);
   }
 
   //~ Methods ----------------------------------------------------------------

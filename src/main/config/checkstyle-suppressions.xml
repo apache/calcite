@@ -22,15 +22,16 @@
 */
 -->
 <suppressions>
+    <!-- Suppress checks on generated files. -->
     <suppress checks=".*" files="EigenbaseResource.java"/>
     <suppress checks=".*" files="EigenbaseResource_en_US.java"/>
     <suppress checks=".*" files="EigenbaseResource.properties"/>
     <suppress checks=".*" files="net-hydromatic-optiq-jdbc.properties"/>
 
-    <!-- Triggers https://github.com/checkstyle/checkstyle/issues/92 -->
+    <!-- This file triggers https://github.com/checkstyle/checkstyle/issues/92,
+         through no fault of its own. -->
     <suppress checks=".*" files="SqlSimpleParser.java"/>
+
     <!-- Don't complain about field names such as cust_id -->
     <suppress checks=".*Name" files="JdbcExample.java"/>
-    <!-- TODO -->
-    <suppress checks=".*Name" files="SqlTypeStrategies.java"/>
 </suppressions>

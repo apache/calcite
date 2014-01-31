@@ -66,9 +66,9 @@ public class SqlMinMaxAggFunction extends SqlAggFunction {
     super(
         isMin ? "MIN" : "MAX",
         SqlKind.OTHER_FUNCTION,
-        SqlTypeStrategies.rtiFirstArgType,
+        ReturnTypes.ARG0,
         null,
-        SqlTypeStrategies.otcComparableOrdered,
+        OperandTypes.COMPARABLE_ORDERED,
         SqlFunctionCategory.SYSTEM);
     this.argTypes = argTypes;
     this.isMin = isMin;

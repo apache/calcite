@@ -50,8 +50,8 @@ public class SqlInOperator extends SqlBinaryOperator {
         SqlKind.IN,
         30,
         true,
-        SqlTypeStrategies.rtiNullableBoolean,
-        SqlTypeStrategies.otiFirstKnown,
+        ReturnTypes.BOOLEAN_NULLABLE,
+        InferTypes.FIRST_KNOWN,
         null);
     this.isNotIn = isNotIn;
   }
@@ -125,7 +125,7 @@ public class SqlInOperator extends SqlBinaryOperator {
 
     final ComparableOperandTypeChecker checker =
         (ComparableOperandTypeChecker)
-            SqlTypeStrategies.otcComparableUnorderedX2;
+            OperandTypes.COMPARABLE_UNORDERED_COMPARABLE_UNORDERED;
     if (!checker.checkOperandTypes(
         new ExplicitOperatorBinding(
             new SqlCallBinding(

@@ -67,9 +67,9 @@ public class SqlLikeOperator extends SqlSpecialOperator {
         kind,
         30,
         false,
-        SqlTypeStrategies.rtiNullableBoolean,
-        SqlTypeStrategies.otiFirstKnown,
-        SqlTypeStrategies.otcStringSameX3);
+        ReturnTypes.BOOLEAN_NULLABLE,
+        InferTypes.FIRST_KNOWN,
+        OperandTypes.STRING_SAME_SAME_SAME);
     this.negated = negated;
   }
 
@@ -93,14 +93,14 @@ public class SqlLikeOperator extends SqlSpecialOperator {
       boolean throwOnFailure) {
     switch (callBinding.getOperandCount()) {
     case 2:
-      if (!SqlTypeStrategies.otcStringSameX2.checkOperandTypes(
+      if (!OperandTypes.STRING_SAME_SAME.checkOperandTypes(
           callBinding,
           throwOnFailure)) {
         return false;
       }
       break;
     case 3:
-      if (!SqlTypeStrategies.otcStringSameX3.checkOperandTypes(
+      if (!OperandTypes.STRING_SAME_SAME_SAME.checkOperandTypes(
           callBinding,
           throwOnFailure)) {
         return false;

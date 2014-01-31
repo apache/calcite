@@ -42,9 +42,9 @@ public class RelMdUtil {
   public static final SqlFunction ARTIFICIAL_SELECTIVITY_FUNC =
       new SqlFunction("ARTIFICIAL_SELECTIVITY",
           SqlKind.OTHER_FUNCTION,
-          SqlTypeStrategies.rtiBoolean, // returns boolean since we'll AND it
+          ReturnTypes.BOOLEAN, // returns boolean since we'll AND it
           null,
-          SqlTypeStrategies.otcNumeric, // takes a numeric param
+          OperandTypes.NUMERIC, // takes a numeric param
           SqlFunctionCategory.SYSTEM);
 
   //~ Methods ----------------------------------------------------------------

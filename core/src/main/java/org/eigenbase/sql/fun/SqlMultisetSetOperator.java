@@ -43,9 +43,9 @@ public class SqlMultisetSetOperator extends SqlBinaryOperator {
         SqlKind.OTHER,
         prec,
         true,
-        SqlTypeStrategies.rtiNullableMultiset,
-        SqlTypeStrategies.otiFirstKnown,
-        SqlTypeStrategies.otcMultisetX2);
+        ReturnTypes.MULTISET_NULLABLE,
+        InferTypes.FIRST_KNOWN,
+        OperandTypes.MULTISET_MULTISET);
     this.all = all;
   }
 }

@@ -31,9 +31,9 @@ public class SqlCeilFunction extends SqlFunction {
     super(
         "CEIL",
         SqlKind.OTHER_FUNCTION,
-        SqlTypeStrategies.rtiFirstArgType,
+        ReturnTypes.ARG0,
         null,
-        SqlTypeStrategies.otcNumeric,
+        OperandTypes.NUMERIC,
         SqlFunctionCategory.NUMERIC);
   }
 

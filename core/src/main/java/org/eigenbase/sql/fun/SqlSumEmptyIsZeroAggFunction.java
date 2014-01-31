@@ -42,9 +42,9 @@ public class SqlSumEmptyIsZeroAggFunction extends SqlAggFunction {
     super(
         "$SUM0",
         SqlKind.OTHER_FUNCTION,
-        SqlTypeStrategies.rtiFirstArgType,
+        ReturnTypes.ARG0,
         null,
-        SqlTypeStrategies.otcNumeric,
+        OperandTypes.NUMERIC,
         SqlFunctionCategory.NUMERIC);
     this.type = type;
   }

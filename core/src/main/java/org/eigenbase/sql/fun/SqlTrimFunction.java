@@ -61,16 +61,14 @@ public class SqlTrimFunction extends SqlFunction {
     super(
         "TRIM",
         SqlKind.TRIM,
-        new SqlTypeTransformCascade(
-            SqlTypeStrategies.rtiThirdArgType,
+        ReturnTypes.cascade(
+            ReturnTypes.ARG2,
             SqlTypeTransforms.TO_NULLABLE,
             SqlTypeTransforms.TO_VARYING),
         null,
-        SqlTypeStrategies.and(
-            SqlTypeStrategies.family(
-                SqlTypeFamily.ANY,
-                SqlTypeFamily.STRING,
-                SqlTypeFamily.STRING),
+        OperandTypes.and(
+            OperandTypes.family(
+                SqlTypeFamily.ANY, SqlTypeFamily.STRING, SqlTypeFamily.STRING),
             // Arguments 1 and 2 must have same type
             new SameOperandTypeChecker(3) {
               @Override

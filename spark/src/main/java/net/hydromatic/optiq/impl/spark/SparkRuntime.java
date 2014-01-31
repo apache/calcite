@@ -32,7 +32,9 @@ import java.util.*;
  * Runtime utilities for Optiq's Spark adapter. Generated code calls these
  * methods.
  */
-public class SparkRuntime {
+public abstract class SparkRuntime {
+  private SparkRuntime() {}
+
   /** Converts an array into an RDD. */
   public static <T> JavaRDD<T> createRdd(JavaSparkContext sc, T[] ts) {
     final List<T> list = Arrays.asList(ts);
@@ -56,12 +58,12 @@ public class SparkRuntime {
    * <p>Currently a global variable; maybe later held within {@code root}.</p>
    */
   public static JavaSparkContext getSparkContext(DataContext root) {
-    return (JavaSparkContext) SparkHandlerImpl.INSTANCE().sparkContext();
+    return (JavaSparkContext) SparkHandlerImpl.instance().sparkContext();
   }
 
   /** Combines linq4j {@link net.hydromatic.linq4j.function.Function}
    * and Spark {@link org.apache.spark.api.java.function.FlatMapFunction}. */
-  public static abstract class OptiqFlatMapFunction<T, R>
+  public abstract static class OptiqFlatMapFunction<T, R>
       extends FlatMapFunction<T, R>
       implements net.hydromatic.linq4j.function.Function {
   }

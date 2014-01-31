@@ -37,9 +37,9 @@ public class SqlCoalesceFunction extends SqlFunction {
     super(
         "COALESCE",
         SqlKind.OTHER_FUNCTION,
-        SqlTypeStrategies.rtiLeastRestrictive,
+        ReturnTypes.LEAST_RESTRICTIVE,
         null,
-        SqlTypeStrategies.otcSameVariadic,
+        OperandTypes.SAME_VARIADIC,
         SqlFunctionCategory.SYSTEM);
   }
 

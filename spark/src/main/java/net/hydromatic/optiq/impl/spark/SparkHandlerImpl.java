@@ -48,7 +48,7 @@ public class SparkHandlerImpl implements OptiqPrepare.SparkHandler {
   private final JavaSparkContext sparkContext =
       new JavaSparkContext("local[1]", "optiq");
 
-  private static SparkHandlerImpl INSTANCE;
+  private static SparkHandlerImpl instance;
   private static final File SRC_DIR = new File("/tmp");
   private static final File CLASS_DIR = new File("core/target/classes");
 
@@ -74,11 +74,11 @@ public class SparkHandlerImpl implements OptiqPrepare.SparkHandler {
   /** Creates a SparkHandlerImpl, initializing on first call. Optiq-core calls
    * this via reflection. */
   @SuppressWarnings("UnusedDeclaration")
-  public static final OptiqPrepare.SparkHandler INSTANCE() {
-    if (INSTANCE == null) {
-      INSTANCE = new SparkHandlerImpl();
+  public static final OptiqPrepare.SparkHandler instance() {
+    if (instance == null) {
+      instance = new SparkHandlerImpl();
     }
-    return INSTANCE;
+    return instance;
   }
 
   public RelNode flattenTypes(RelOptPlanner planner, RelNode rootRel,

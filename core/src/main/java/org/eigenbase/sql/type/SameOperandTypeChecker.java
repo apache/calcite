@@ -24,6 +24,8 @@ import org.eigenbase.resource.*;
 import org.eigenbase.sql.*;
 import org.eigenbase.util.Util;
 
+import com.google.common.collect.ImmutableList;
+
 /**
  * Parameter type-checking strategy where all operand types must be the same.
  */
@@ -122,11 +124,9 @@ public class SameOperandTypeChecker implements SqlSingleOperandTypeChecker {
 
   // implement SqlOperandTypeChecker
   public String getAllowedSignatures(SqlOperator op, String opName) {
-    return SqlUtil.getAliasedSignature(
-        op,
-        opName,
+    return SqlUtil.getAliasedSignature(op, opName,
         nOperands == -1
-            ? Arrays.asList("EQUIVALENT_TYPE", "EQUIVALENT_TYPE", "...")
+            ? ImmutableList.of("EQUIVALENT_TYPE", "EQUIVALENT_TYPE", "...")
             : Collections.nCopies(nOperands, "EQUIVALENT_TYPE"));
   }
 

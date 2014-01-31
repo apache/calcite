@@ -396,7 +396,7 @@ public class SqlJdbcFunctionCall extends SqlFunction {
         SqlKind.JDBC_FN,
         null,
         null,
-        SqlTypeStrategies.otcVariadic,
+        OperandTypes.VARIADIC,
         null);
     jdbcName = name;
     lookupMakeCallObj = JdbcToInternalLookupTable.INSTANCE.lookup(name);

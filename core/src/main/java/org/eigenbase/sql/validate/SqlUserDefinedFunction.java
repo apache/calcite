@@ -22,10 +22,7 @@ import java.util.List;
 import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.sql.SqlFunction;
 import org.eigenbase.sql.SqlKind;
-import org.eigenbase.sql.type.ExplicitOperandTypeInference;
-import org.eigenbase.sql.type.ExplicitReturnTypeInference;
-import org.eigenbase.sql.type.SqlTypeFamily;
-import org.eigenbase.sql.type.SqlTypeStrategies;
+import org.eigenbase.sql.type.*;
 
 import net.hydromatic.optiq.Table;
 import net.hydromatic.optiq.TableFunction;
@@ -44,9 +41,9 @@ public class SqlUserDefinedFunction extends SqlFunction {
       List<RelDataType> argTypes, List<SqlTypeFamily> typeFamilies,
       TableFunction tableFunction, Table table) {
     super(name, null, SqlKind.OTHER_FUNCTION,
-        ExplicitReturnTypeInference.of(returnType),
+        ReturnTypes.explicit(returnType),
         new ExplicitOperandTypeInference(argTypes),
-        SqlTypeStrategies.family(typeFamilies),
+        OperandTypes.family(typeFamilies),
         null, null);
     this.tableFunction = tableFunction;
     this.table = table;

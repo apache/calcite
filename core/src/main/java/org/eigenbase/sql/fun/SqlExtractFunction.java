@@ -36,9 +36,9 @@ public class SqlExtractFunction extends SqlFunction {
     super(
         "EXTRACT",
         SqlKind.OTHER_FUNCTION,
-        SqlTypeStrategies.rtiNullableBigint,
+        ReturnTypes.BIGINT_NULLABLE,
         null,
-        SqlTypeStrategies.otcIntervalSameX2,
+        OperandTypes.INTERVAL_SAME_SAME,
         SqlFunctionCategory.SYSTEM);
   }
 

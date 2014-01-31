@@ -37,7 +37,7 @@ public class MultisetOperandTypeChecker implements SqlOperandTypeChecker {
       boolean throwOnFailure) {
     SqlCall call = callBinding.getCall();
     SqlNode op0 = call.operands[0];
-    if (!SqlTypeStrategies.otcMultiset.checkSingleOperandType(
+    if (!OperandTypes.MULTISET.checkSingleOperandType(
         callBinding,
         op0,
         0,
@@ -46,7 +46,7 @@ public class MultisetOperandTypeChecker implements SqlOperandTypeChecker {
     }
 
     SqlNode op1 = call.operands[1];
-    if (!SqlTypeStrategies.otcMultiset.checkSingleOperandType(
+    if (!OperandTypes.MULTISET.checkSingleOperandType(
         callBinding,
         op1,
         0,

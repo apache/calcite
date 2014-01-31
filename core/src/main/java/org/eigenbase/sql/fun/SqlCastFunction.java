@@ -44,7 +44,7 @@ public class SqlCastFunction extends SqlFunction {
         "CAST",
         SqlKind.CAST,
         null,
-        SqlTypeStrategies.otiFirstKnown,
+        InferTypes.FIRST_KNOWN,
         null,
         SqlFunctionCategory.SYSTEM);
   }

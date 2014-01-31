@@ -32,10 +32,10 @@ import org.eigenbase.sql.type.*;
 class SqlItemOperator extends SqlSpecialOperator {
 
   private static final SqlSingleOperandTypeChecker ARRAY_OR_MAP =
-      SqlTypeStrategies.or(
-          SqlTypeStrategies.family(SqlTypeFamily.ARRAY),
-          SqlTypeStrategies.family(SqlTypeFamily.MAP),
-          SqlTypeStrategies.family(SqlTypeFamily.ANY));
+      OperandTypes.or(
+          OperandTypes.family(SqlTypeFamily.ARRAY),
+          OperandTypes.family(SqlTypeFamily.MAP),
+          OperandTypes.family(SqlTypeFamily.ANY));
 
   public SqlItemOperator() {
     super("ITEM", SqlKind.OTHER_FUNCTION, 100, true, null, null, null);
@@ -92,14 +92,14 @@ class SqlItemOperator extends SqlSpecialOperator {
   private SqlSingleOperandTypeChecker getChecker(RelDataType operandType) {
     switch (operandType.getSqlTypeName()) {
     case ARRAY:
-      return SqlTypeStrategies.family(SqlTypeFamily.INTEGER);
+      return OperandTypes.family(SqlTypeFamily.INTEGER);
     case MAP:
-      return SqlTypeStrategies.family(
+      return OperandTypes.family(
           operandType.getKeyType().getSqlTypeName().getFamily());
     case ANY:
-      return SqlTypeStrategies.or(
-          SqlTypeStrategies.family(SqlTypeFamily.INTEGER),
-          SqlTypeStrategies.family(SqlTypeFamily.CHARACTER));
+      return OperandTypes.or(
+          OperandTypes.family(SqlTypeFamily.INTEGER),
+          OperandTypes.family(SqlTypeFamily.CHARACTER));
     default:
       throw new AssertionError(operandType.getSqlTypeName());
     }

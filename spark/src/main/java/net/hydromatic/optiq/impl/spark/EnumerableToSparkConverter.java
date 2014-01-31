@@ -39,7 +39,7 @@ public class EnumerableToSparkConverter
     implements SparkRel {
   protected EnumerableToSparkConverter(RelOptCluster cluster,
       RelTraitSet traits, RelNode input) {
-    super(cluster, ConventionTraitDef.instance, traits, input);
+    super(cluster, ConventionTraitDef.INSTANCE, traits, input);
   }
 
   @Override

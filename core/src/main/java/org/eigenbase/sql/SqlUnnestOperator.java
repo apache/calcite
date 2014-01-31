@@ -34,7 +34,7 @@ public class SqlUnnestOperator extends SqlFunctionalOperator {
         true,
         null,
         null,
-        SqlTypeStrategies.otcMultisetOrRecordTypeMultiset);
+        OperandTypes.MULTISET_OR_RECORD_MULTISET);
   }
 
   //~ Methods ----------------------------------------------------------------

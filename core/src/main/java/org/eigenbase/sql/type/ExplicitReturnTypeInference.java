@@ -43,34 +43,9 @@ public class ExplicitReturnTypeInference implements SqlReturnTypeInference {
    *
    * @param protoType Type object
    */
-  public ExplicitReturnTypeInference(RelProtoDataType protoType) {
+  protected ExplicitReturnTypeInference(RelProtoDataType protoType) {
     assert protoType != null;
     this.protoType = protoType;
-  }
-
-  /**
-   * Creates an inference rule which returns a copy of a given data type.
-   */
-  public static ExplicitReturnTypeInference of(RelDataType type) {
-    return new ExplicitReturnTypeInference(RelDataTypeImpl.proto(type));
-  }
-
-  /**
-   * Creates an inference rule which returns a type with no precision or scale,
-   * such as {@code DATE}.
-   */
-  public static ExplicitReturnTypeInference of(SqlTypeName typeName) {
-    return new ExplicitReturnTypeInference(RelDataTypeImpl.proto(typeName));
-  }
-
-  /**
-   * Creates an inference rule which returns a type with precision but no scale,
-   * such as {@code VARCHAR(100)}.
-   */
-  public static ExplicitReturnTypeInference of(SqlTypeName typeName,
-      int precision) {
-    return new ExplicitReturnTypeInference(
-        RelDataTypeImpl.proto(typeName, precision));
   }
 
   //~ Methods ----------------------------------------------------------------

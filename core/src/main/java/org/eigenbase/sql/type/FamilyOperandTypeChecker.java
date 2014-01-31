@@ -37,7 +37,7 @@ public class FamilyOperandTypeChecker implements SqlSingleOperandTypeChecker {
   //~ Constructors -----------------------------------------------------------
 
   /**
-   * Package private. Create using {@link SqlTypeStrategies#family}.
+   * Package private. Create using {@link OperandTypes#family}.
    */
   FamilyOperandTypeChecker(List<SqlTypeFamily> families) {
     this.families = ImmutableList.copyOf(families);

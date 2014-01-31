@@ -129,7 +129,7 @@ public class SqlCaseOperator extends SqlOperator {
         SqlKind.CASE, MDX_PRECEDENCE,
         true,
         null,
-        SqlTypeStrategies.otiReturnType,
+        InferTypes.RETURN_TYPE,
         null);
   }
 

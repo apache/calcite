@@ -89,8 +89,8 @@ public class CompositeOperandTypeChecker
   //~ Constructors -----------------------------------------------------------
 
   /**
-   * Package private. Use {@link SqlTypeStrategies#and},
-   * {@link SqlTypeStrategies#or}.
+   * Package private. Use {@link OperandTypes#and},
+   * {@link OperandTypes#or}.
    */
   CompositeOperandTypeChecker(
       Composition composition,

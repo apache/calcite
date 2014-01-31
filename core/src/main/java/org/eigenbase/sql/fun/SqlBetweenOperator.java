@@ -134,7 +134,7 @@ public class SqlBetweenOperator extends SqlInfixOperator {
                 callBinding.getValidator(),
                 callBinding.getScope(),
                 callBinding.getCall()));
-    return SqlTypeStrategies.rtiNullableBoolean.inferReturnType(
+    return ReturnTypes.BOOLEAN_NULLABLE.inferReturnType(
         newOpBinding);
   }
 

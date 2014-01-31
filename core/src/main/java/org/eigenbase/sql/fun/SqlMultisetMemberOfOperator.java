@@ -38,7 +38,7 @@ public class SqlMultisetMemberOfOperator extends SqlBinaryOperator {
         SqlKind.OTHER,
         30,
         true,
-        SqlTypeStrategies.rtiNullableBoolean,
+        ReturnTypes.BOOLEAN_NULLABLE,
         null,
         null);
   }
@@ -48,7 +48,7 @@ public class SqlMultisetMemberOfOperator extends SqlBinaryOperator {
   public boolean checkOperandTypes(
       SqlCallBinding callBinding,
       boolean throwOnFailure) {
-    if (!SqlTypeStrategies.otcMultiset.checkSingleOperandType(
+    if (!OperandTypes.MULTISET.checkSingleOperandType(
         callBinding,
         callBinding.getCall().operands[1],
         0,

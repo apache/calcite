@@ -32,7 +32,7 @@ public interface SparkRel extends RelNode {
   Result implementSpark(Implementor implementor);
 
   /** Calling convention for relational operations that occur in Spark. */
-  final Convention CONVENTION = new Convention.Impl("SPARK", SparkRel.class);
+  Convention CONVENTION = new Convention.Impl("SPARK", SparkRel.class);
 
   public abstract class Implementor extends JavaRelImplementor {
     public Implementor(RexBuilder rexBuilder) {

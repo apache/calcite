@@ -34,9 +34,9 @@ public class SqlPositionFunction extends SqlFunction {
     super(
         "POSITION",
         SqlKind.OTHER_FUNCTION,
-        SqlTypeStrategies.rtiNullableInteger,
+        ReturnTypes.INTEGER_NULLABLE,
         null,
-        SqlTypeStrategies.otcStringSameX2,
+        OperandTypes.STRING_SAME_SAME,
         SqlFunctionCategory.NUMERIC);
   }
 
@@ -63,7 +63,7 @@ public class SqlPositionFunction extends SqlFunction {
       SqlCallBinding callBinding,
       boolean throwOnFailure) {
     // check that the two operands are of same type.
-    return SqlTypeStrategies.otcSameX2.checkOperandTypes(
+    return OperandTypes.SAME_SAME.checkOperandTypes(
         callBinding, throwOnFailure)
         && super.checkOperandTypes(callBinding, throwOnFailure);
   }

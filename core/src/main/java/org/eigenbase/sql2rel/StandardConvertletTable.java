@@ -641,7 +641,7 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
     final RexBuilder rexBuilder = cx.getRexBuilder();
     final List<RexNode> exprs = convertExpressionList(cx, operands);
     if (op.getOperandTypeChecker()
-        == SqlTypeStrategies.otcComparableUnorderedX2) {
+        == OperandTypes.COMPARABLE_UNORDERED_COMPARABLE_UNORDERED) {
       ensureSameType(cx, exprs);
     }
     return rexBuilder.makeFlatCall(op, exprs);

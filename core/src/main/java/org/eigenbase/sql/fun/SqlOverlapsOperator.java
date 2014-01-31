@@ -17,12 +17,12 @@
 */
 package org.eigenbase.sql.fun;
 
-import java.util.*;
-
 import org.eigenbase.reltype.*;
 import org.eigenbase.sql.*;
 import org.eigenbase.sql.type.*;
 import org.eigenbase.sql.validate.*;
+
+import com.google.common.collect.ImmutableList;
 
 /**
  * SqlOverlapsOperator represents the SQL:1999 standard OVERLAPS function
@@ -41,8 +41,8 @@ public class SqlOverlapsOperator extends SqlSpecialOperator {
         SqlKind.OVERLAPS,
         30,
         true,
-        SqlTypeStrategies.rtiNullableBoolean,
-        SqlTypeStrategies.otiFirstKnown,
+        ReturnTypes.BOOLEAN_NULLABLE,
+        InferTypes.FIRST_KNOWN,
         null);
   }
 
@@ -91,12 +91,9 @@ public class SqlOverlapsOperator extends SqlSpecialOperator {
       if (y > 0) {
         ret.append(NL);
       }
-      ArrayList<String> list = new ArrayList<String>();
-      list.add(d);
-      list.add(typeNames[y]);
-      list.add(d);
-      list.add(typeNames[y + 1]);
-      ret.append(SqlUtil.getAliasedSignature(this, opName, list));
+      ret.append(
+          SqlUtil.getAliasedSignature(this, opName,
+              ImmutableList.of(d, typeNames[y], d, typeNames[y + 1])));
     }
     return ret.toString();
   }
@@ -107,14 +104,14 @@ public class SqlOverlapsOperator extends SqlSpecialOperator {
     SqlCall call = callBinding.getCall();
     SqlValidator validator = callBinding.getValidator();
     SqlValidatorScope scope = callBinding.getScope();
-    if (!SqlTypeStrategies.otcDatetime.checkSingleOperandType(
+    if (!OperandTypes.DATETIME.checkSingleOperandType(
         callBinding,
         call.operands[0],
         0,
         throwOnFailure)) {
       return false;
     }
-    if (!SqlTypeStrategies.otcDatetime.checkSingleOperandType(
+    if (!OperandTypes.DATETIME.checkSingleOperandType(
         callBinding,
         call.operands[2],
         0,

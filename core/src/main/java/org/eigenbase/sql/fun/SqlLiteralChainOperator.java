@@ -48,9 +48,9 @@ public class SqlLiteralChainOperator extends SqlInternalOperator {
         true,
 
         // precedence tighter than the * and || operators
-        SqlTypeStrategies.rtiFirstArgType,
-        SqlTypeStrategies.otiFirstKnown,
-        SqlTypeStrategies.otcVariadic);
+        ReturnTypes.ARG0,
+        InferTypes.FIRST_KNOWN,
+        OperandTypes.VARIADIC);
   }
 
   //~ Methods ----------------------------------------------------------------

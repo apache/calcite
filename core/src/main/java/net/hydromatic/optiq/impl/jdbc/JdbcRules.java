@@ -34,7 +34,7 @@ import org.eigenbase.rex.*;
 import org.eigenbase.sql.*;
 import org.eigenbase.sql.fun.SqlStdOperatorTable;
 import org.eigenbase.sql.parser.SqlParserPos;
-import org.eigenbase.sql.type.SqlTypeStrategies;
+import org.eigenbase.sql.type.*;
 import org.eigenbase.sql.validate.SqlValidatorUtil;
 import org.eigenbase.trace.EigenbaseTrace;
 import org.eigenbase.util.*;
@@ -635,8 +635,8 @@ public class JdbcRules {
   /** MySQL specific function. */
   private static final SqlFunction ISNULL_FUNCTION =
       new SqlFunction("ISNULL", SqlKind.OTHER_FUNCTION,
-          SqlTypeStrategies.rtiBoolean, SqlTypeStrategies.otiFirstKnown,
-          SqlTypeStrategies.otcAny, SqlFunctionCategory.SYSTEM);
+          ReturnTypes.BOOLEAN, InferTypes.FIRST_KNOWN,
+          OperandTypes.ANY, SqlFunctionCategory.SYSTEM);
 
   /**
    * Rule to convert an {@link org.eigenbase.rel.UnionRel} to a

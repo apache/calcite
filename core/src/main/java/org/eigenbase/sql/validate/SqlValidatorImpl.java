@@ -1485,7 +1485,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         call.setOperator(
             new SqlFunction(
                 type.getSqlIdentifier(),
-                ExplicitReturnTypeInference.of(type),
+                ReturnTypes.explicit(type),
                 null,
                 null,
                 null,

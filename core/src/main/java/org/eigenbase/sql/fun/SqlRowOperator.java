@@ -40,8 +40,8 @@ public class SqlRowOperator extends SqlSpecialOperator {
         SqlKind.ROW, MDX_PRECEDENCE,
         false,
         null,
-        SqlTypeStrategies.otiReturnType,
-        SqlTypeStrategies.otcVariadic);
+        InferTypes.RETURN_TYPE,
+        OperandTypes.VARIADIC);
   }
 
   //~ Methods ----------------------------------------------------------------

@@ -105,9 +105,7 @@ public class ComparableOperandTypeChecker extends SameOperandTypeChecker {
 
   // implement SqlOperandTypeChecker
   public String getAllowedSignatures(SqlOperator op, String opName) {
-    return SqlUtil.getAliasedSignature(
-        op,
-        opName,
+    return SqlUtil.getAliasedSignature(op, opName,
         Collections.nCopies(nOperands, "COMPARABLE_TYPE"));
   }
 }

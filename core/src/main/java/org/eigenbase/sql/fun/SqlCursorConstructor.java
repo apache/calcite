@@ -34,9 +34,9 @@ public class SqlCursorConstructor extends SqlSpecialOperator {
         "CURSOR",
         SqlKind.CURSOR, MDX_PRECEDENCE,
         false,
-        SqlTypeStrategies.rtiCursor,
+        ReturnTypes.CURSOR,
         null,
-        SqlTypeStrategies.otcAny);
+        OperandTypes.ANY);
   }
 
   //~ Methods ----------------------------------------------------------------

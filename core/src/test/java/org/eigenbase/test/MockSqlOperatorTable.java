@@ -63,7 +63,7 @@ public class MockSqlOperatorTable extends ChainedSqlOperatorTable {
           SqlKind.OTHER_FUNCTION,
           null,
           null,
-          SqlTypeStrategies.otcNumeric,
+          OperandTypes.NUMERIC,
           SqlFunctionCategory.USER_DEFINED_FUNCTION);
     }
 
@@ -83,7 +83,7 @@ public class MockSqlOperatorTable extends ChainedSqlOperatorTable {
           SqlKind.OTHER_FUNCTION,
           null,
           null,
-          SqlTypeStrategies.otcVariadic,
+          OperandTypes.VARIADIC,
           SqlFunctionCategory.USER_DEFINED_FUNCTION);
     }
 

@@ -50,7 +50,7 @@ public class SqlSelectOperator extends SqlOperator {
         SqlKind.SELECT,
         2,
         true,
-        SqlTypeStrategies.rtiScope,
+        ReturnTypes.SCOPE,
         null,
         null);
   }

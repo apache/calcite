@@ -41,12 +41,11 @@ import java.util.List;
  */
 public class SparkToEnumerableConverter
     extends ConverterRelImpl
-    implements EnumerableRel
-{
+    implements EnumerableRel {
   protected SparkToEnumerableConverter(RelOptCluster cluster,
       RelTraitSet traits,
       RelNode input) {
-    super(cluster, ConventionTraitDef.instance, traits, input);
+    super(cluster, ConventionTraitDef.INSTANCE, traits, input);
   }
 
   @Override

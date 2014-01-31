@@ -46,9 +46,9 @@ public class SqlCollectionTableOperator extends SqlFunctionalOperator {
         SqlKind.COLLECTION_TABLE,
         200,
         true,
-        SqlTypeStrategies.rtiFirstArgType,
+        ReturnTypes.ARG0,
         null,
-        SqlTypeStrategies.otcAny);
+        OperandTypes.ANY);
 
     this.modality = modality;
   }

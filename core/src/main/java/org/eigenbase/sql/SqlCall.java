@@ -199,8 +199,7 @@ public class SqlCall extends SqlNode {
       SqlValidator validator,
       SqlValidatorScope scope) {
     List<String> signatureList = new ArrayList<String>();
-    for (int i = 0; i < operands.length; i++) {
-      final SqlNode operand = operands[i];
+    for (final SqlNode operand : operands) {
       final RelDataType argType = validator.deriveType(scope, operand);
       if (null == argType) {
         continue;

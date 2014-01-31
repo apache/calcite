@@ -111,9 +111,9 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           SqlKind.AND,
           28,
           true,
-          SqlTypeStrategies.rtiNullableBoolean,
-          SqlTypeStrategies.otiBoolean,
-          SqlTypeStrategies.otcBoolX2);
+          ReturnTypes.BOOLEAN_NULLABLE,
+          InferTypes.BOOLEAN,
+          OperandTypes.BOOLEAN_BOOLEAN);
 
   /**
    * <code>AS</code> operator associates an expression in the SELECT clause
@@ -130,9 +130,9 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           SqlKind.OTHER,
           60,
           true,
-          SqlTypeStrategies.rtiNullableDyadicStringSumPrecision,
+          ReturnTypes.DYADIC_STRING_SUM_PRECISION_NULLABLE,
           null,
-          SqlTypeStrategies.otcStringSameX2);
+          OperandTypes.STRING_SAME_SAME);
 
   /**
    * Arithmetic division operator, '<code>/</code>'.
@@ -143,9 +143,9 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           SqlKind.DIVIDE,
           60,
           true,
-          SqlTypeStrategies.rtiNullableQuotient,
-          SqlTypeStrategies.otiFirstKnown,
-          SqlTypeStrategies.otcDivisionOperator);
+          ReturnTypes.QUOTIENT_NULLABLE,
+          InferTypes.FIRST_KNOWN,
+          OperandTypes.DIVISION_OPERATOR);
 
   /**
    * Internal integer arithmetic division operator, '<code>/INT</code>'. This
@@ -160,9 +160,9 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           SqlKind.DIVIDE,
           60,
           true,
-          SqlTypeStrategies.rtiNullableIntegerQuotient,
-          SqlTypeStrategies.otiFirstKnown,
-          SqlTypeStrategies.otcDivisionOperator);
+          ReturnTypes.INTEGER_QUOTIENT_NULLABLE,
+          InferTypes.FIRST_KNOWN,
+          OperandTypes.DIVISION_OPERATOR);
 
   /**
    * Dot operator, '<code>.</code>', used for referencing fields of records.
@@ -175,7 +175,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           true,
           null,
           null,
-          SqlTypeStrategies.otcAnyX2);
+          OperandTypes.ANY_ANY);
 
   /**
    * Logical equals operator, '<code>=</code>'.
@@ -186,9 +186,9 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           SqlKind.EQUALS,
           30,
           true,
-          SqlTypeStrategies.rtiNullableBoolean,
-          SqlTypeStrategies.otiFirstKnown,
-          SqlTypeStrategies.otcComparableUnorderedX2);
+          ReturnTypes.BOOLEAN_NULLABLE,
+          InferTypes.FIRST_KNOWN,
+          OperandTypes.COMPARABLE_UNORDERED_COMPARABLE_UNORDERED);
 
   /**
    * Logical greater-than operator, '<code>&gt;</code>'.
@@ -199,9 +199,9 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           SqlKind.GREATER_THAN,
           30,
           true,
-          SqlTypeStrategies.rtiNullableBoolean,
-          SqlTypeStrategies.otiFirstKnown,
-          SqlTypeStrategies.otcComparableOrderedX2);
+          ReturnTypes.BOOLEAN_NULLABLE,
+          InferTypes.FIRST_KNOWN,
+          OperandTypes.COMPARABLE_ORDERED_COMPARABLE_ORDERED);
 
   /**
    * <code>IS DISTINCT FROM</code> operator.
@@ -212,9 +212,9 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           SqlKind.IS_DISTINCT_FROM,
           30,
           true,
-          SqlTypeStrategies.rtiBoolean,
-          SqlTypeStrategies.otiFirstKnown,
-          SqlTypeStrategies.otcComparableUnorderedX2);
+          ReturnTypes.BOOLEAN,
+          InferTypes.FIRST_KNOWN,
+          OperandTypes.COMPARABLE_UNORDERED_COMPARABLE_UNORDERED);
 
   /**
    * <code>IS NOT DISTINCT FROM</code> operator. Is equivalent to <code>NOT(x
@@ -226,9 +226,9 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           SqlKind.IS_NOT_DISTINCT_FROM,
           30,
           true,
-          SqlTypeStrategies.rtiBoolean,
-          SqlTypeStrategies.otiFirstKnown,
-          SqlTypeStrategies.otcComparableUnorderedX2);
+          ReturnTypes.BOOLEAN,
+          InferTypes.FIRST_KNOWN,
+          OperandTypes.COMPARABLE_UNORDERED_COMPARABLE_UNORDERED);
 
   /**
    * The internal <code>$IS_DIFFERENT_FROM</code> operator is the same as the
@@ -242,9 +242,9 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           SqlKind.OTHER,
           30,
           true,
-          SqlTypeStrategies.rtiBoolean,
-          SqlTypeStrategies.otiFirstKnown,
-          SqlTypeStrategies.otcComparableUnorderedX2);
+          ReturnTypes.BOOLEAN,
+          InferTypes.FIRST_KNOWN,
+          OperandTypes.COMPARABLE_UNORDERED_COMPARABLE_UNORDERED);
 
   /**
    * Logical greater-than-or-equal operator, '<code>&gt;=</code>'.
@@ -255,9 +255,9 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           SqlKind.GREATER_THAN_OR_EQUAL,
           30,
           true,
-          SqlTypeStrategies.rtiNullableBoolean,
-          SqlTypeStrategies.otiFirstKnown,
-          SqlTypeStrategies.otcComparableOrderedX2);
+          ReturnTypes.BOOLEAN_NULLABLE,
+          InferTypes.FIRST_KNOWN,
+          OperandTypes.COMPARABLE_ORDERED_COMPARABLE_ORDERED);
 
   /**
    * <code>IN</code> operator tests for a value's membership in a subquery or
@@ -281,9 +281,9 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           SqlKind.LESS_THAN,
           30,
           true,
-          SqlTypeStrategies.rtiNullableBoolean,
-          SqlTypeStrategies.otiFirstKnown,
-          SqlTypeStrategies.otcComparableOrderedX2);
+          ReturnTypes.BOOLEAN_NULLABLE,
+          InferTypes.FIRST_KNOWN,
+          OperandTypes.COMPARABLE_ORDERED_COMPARABLE_ORDERED);
 
   /**
    * Logical less-than-or-equal operator, '<code>&lt;=</code>'.
@@ -294,9 +294,9 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           SqlKind.LESS_THAN_OR_EQUAL,
           30,
           true,
-          SqlTypeStrategies.rtiNullableBoolean,
-          SqlTypeStrategies.otiFirstKnown,
-          SqlTypeStrategies.otcComparableOrderedX2);
+          ReturnTypes.BOOLEAN_NULLABLE,
+          InferTypes.FIRST_KNOWN,
+          OperandTypes.COMPARABLE_ORDERED_COMPARABLE_ORDERED);
 
   /**
    * Infix arithmetic minus operator, '<code>-</code>'.
@@ -312,9 +312,9 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           true,
 
           // Same type inference strategy as sum
-          SqlTypeStrategies.rtiNullableSum,
-          SqlTypeStrategies.otiFirstKnown,
-          SqlTypeStrategies.otcMinusOperator);
+          ReturnTypes.NULLABLE_SUM,
+          InferTypes.FIRST_KNOWN,
+          OperandTypes.MINUS_OPERATOR);
 
   /**
    * Arithmetic multiplication operator, '<code>*</code>'.
@@ -325,9 +325,9 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           SqlKind.TIMES,
           60,
           true,
-          SqlTypeStrategies.rtiNullableProduct,
-          SqlTypeStrategies.otiFirstKnown,
-          SqlTypeStrategies.otcMultiplyOperator);
+          ReturnTypes.PRODUCT_NULLABLE,
+          InferTypes.FIRST_KNOWN,
+          OperandTypes.MULTIPLY_OPERATOR);
 
   /**
    * Logical not-equals operator, '<code>&lt;&gt;</code>'.
@@ -338,9 +338,9 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           SqlKind.NOT_EQUALS,
           30,
           true,
-          SqlTypeStrategies.rtiNullableBoolean,
-          SqlTypeStrategies.otiFirstKnown,
-          SqlTypeStrategies.otcComparableUnorderedX2);
+          ReturnTypes.BOOLEAN_NULLABLE,
+          InferTypes.FIRST_KNOWN,
+          OperandTypes.COMPARABLE_UNORDERED_COMPARABLE_UNORDERED);
 
   /**
    * Logical <code>OR</code> operator.
@@ -351,9 +351,9 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           SqlKind.OR,
           26,
           true,
-          SqlTypeStrategies.rtiNullableBoolean,
-          SqlTypeStrategies.otiBoolean,
-          SqlTypeStrategies.otcBoolX2);
+          ReturnTypes.BOOLEAN_NULLABLE,
+          InferTypes.BOOLEAN,
+          OperandTypes.BOOLEAN_BOOLEAN);
 
   /**
    * Infix arithmetic plus operator, '<code>+</code>'.
@@ -364,9 +364,9 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           SqlKind.PLUS,
           40,
           true,
-          SqlTypeStrategies.rtiNullableSum,
-          SqlTypeStrategies.otiFirstKnown,
-          SqlTypeStrategies.otcPlusOperator);
+          ReturnTypes.NULLABLE_SUM,
+          InferTypes.FIRST_KNOWN,
+          OperandTypes.PLUS_OPERATOR);
 
   /**
    * Multiset MEMBER OF. Checks to see if a element belongs to a multiset.<br>
@@ -396,9 +396,9 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           SqlKind.OTHER,
           30,
           true,
-          SqlTypeStrategies.rtiNullableBoolean,
+          ReturnTypes.BOOLEAN_NULLABLE,
           null,
-          SqlTypeStrategies.otcMultisetX2);
+          OperandTypes.MULTISET_MULTISET);
 
   //-------------------------------------------------------------
   //                   POSTFIX OPERATORS
@@ -408,108 +408,108 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           "DESC",
           SqlKind.DESCENDING,
           20,
-          SqlTypeStrategies.rtiFirstArgType,
-          SqlTypeStrategies.otiReturnType,
-          SqlTypeStrategies.otcAny);
+          ReturnTypes.ARG0,
+          InferTypes.RETURN_TYPE,
+          OperandTypes.ANY);
 
   public static final SqlPostfixOperator NULLS_FIRST =
       new SqlPostfixOperator(
           "NULLS FIRST",
           SqlKind.NULLS_FIRST,
           18,
-          SqlTypeStrategies.rtiFirstArgType,
-          SqlTypeStrategies.otiReturnType,
-          SqlTypeStrategies.otcAny);
+          ReturnTypes.ARG0,
+          InferTypes.RETURN_TYPE,
+          OperandTypes.ANY);
 
   public static final SqlPostfixOperator NULLS_LAST =
       new SqlPostfixOperator(
           "NULLS LAST",
           SqlKind.NULLS_LAST,
           18,
-          SqlTypeStrategies.rtiFirstArgType,
-          SqlTypeStrategies.otiReturnType,
-          SqlTypeStrategies.otcAny);
+          ReturnTypes.ARG0,
+          InferTypes.RETURN_TYPE,
+          OperandTypes.ANY);
 
   public static final SqlPostfixOperator IS_NOT_NULL =
       new SqlPostfixOperator(
           "IS NOT NULL",
           SqlKind.OTHER,
           30,
-          SqlTypeStrategies.rtiBooleanNotNull,
-          SqlTypeStrategies.otiVarchar1024,
-          SqlTypeStrategies.otcAny);
+          ReturnTypes.BOOLEAN_NOT_NULL,
+          InferTypes.VARCHAR_1024,
+          OperandTypes.ANY);
 
   public static final SqlPostfixOperator IS_NULL =
       new SqlPostfixOperator(
           "IS NULL",
           SqlKind.IS_NULL,
           30,
-          SqlTypeStrategies.rtiBooleanNotNull,
-          SqlTypeStrategies.otiVarchar1024,
-          SqlTypeStrategies.otcAny);
+          ReturnTypes.BOOLEAN_NOT_NULL,
+          InferTypes.VARCHAR_1024,
+          OperandTypes.ANY);
 
   public static final SqlPostfixOperator IS_NOT_TRUE =
       new SqlPostfixOperator(
           "IS NOT TRUE",
           SqlKind.OTHER,
           30,
-          SqlTypeStrategies.rtiBooleanNotNull,
-          SqlTypeStrategies.otiBoolean,
-          SqlTypeStrategies.otcBool);
+          ReturnTypes.BOOLEAN_NOT_NULL,
+          InferTypes.BOOLEAN,
+          OperandTypes.BOOLEAN);
 
   public static final SqlPostfixOperator IS_TRUE =
       new SqlPostfixOperator(
           "IS TRUE",
           SqlKind.IS_TRUE,
           30,
-          SqlTypeStrategies.rtiBooleanNotNull,
-          SqlTypeStrategies.otiBoolean,
-          SqlTypeStrategies.otcBool);
+          ReturnTypes.BOOLEAN_NOT_NULL,
+          InferTypes.BOOLEAN,
+          OperandTypes.BOOLEAN);
 
   public static final SqlPostfixOperator IS_NOT_FALSE =
       new SqlPostfixOperator(
           "IS NOT FALSE",
           SqlKind.OTHER,
           30,
-          SqlTypeStrategies.rtiBooleanNotNull,
-          SqlTypeStrategies.otiBoolean,
-          SqlTypeStrategies.otcBool);
+          ReturnTypes.BOOLEAN_NOT_NULL,
+          InferTypes.BOOLEAN,
+          OperandTypes.BOOLEAN);
 
   public static final SqlPostfixOperator IS_FALSE =
       new SqlPostfixOperator(
           "IS FALSE",
           SqlKind.IS_FALSE,
           30,
-          SqlTypeStrategies.rtiBooleanNotNull,
-          SqlTypeStrategies.otiBoolean,
-          SqlTypeStrategies.otcBool);
+          ReturnTypes.BOOLEAN_NOT_NULL,
+          InferTypes.BOOLEAN,
+          OperandTypes.BOOLEAN);
 
   public static final SqlPostfixOperator IS_NOT_UNKNOWN =
       new SqlPostfixOperator(
           "IS NOT UNKNOWN",
           SqlKind.OTHER,
           30,
-          SqlTypeStrategies.rtiBooleanNotNull,
-          SqlTypeStrategies.otiBoolean,
-          SqlTypeStrategies.otcBool);
+          ReturnTypes.BOOLEAN_NOT_NULL,
+          InferTypes.BOOLEAN,
+          OperandTypes.BOOLEAN);
 
   public static final SqlPostfixOperator IS_UNKNOWN =
       new SqlPostfixOperator(
           "IS UNKNOWN",
           SqlKind.IS_NULL,
           30,
-          SqlTypeStrategies.rtiBooleanNotNull,
-          SqlTypeStrategies.otiBoolean,
-          SqlTypeStrategies.otcBool);
+          ReturnTypes.BOOLEAN_NOT_NULL,
+          InferTypes.BOOLEAN,
+          OperandTypes.BOOLEAN);
 
   public static final SqlPostfixOperator IS_A_SET =
       new SqlPostfixOperator(
           "IS A SET",
           SqlKind.OTHER,
           30,
-          SqlTypeStrategies.rtiBoolean,
+          ReturnTypes.BOOLEAN,
           null,
-          SqlTypeStrategies.otcMultiset);
+          OperandTypes.MULTISET);
 
   //-------------------------------------------------------------
   //                   PREFIX OPERATORS
@@ -519,9 +519,9 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           "EXISTS",
           SqlKind.EXISTS,
           40,
-          SqlTypeStrategies.rtiBoolean,
+          ReturnTypes.BOOLEAN,
           null,
-          SqlTypeStrategies.otcAny) {
+          OperandTypes.ANY) {
         public boolean argumentMustBeScalar(int ordinal) {
           return false;
         }
@@ -532,9 +532,9 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           "NOT",
           SqlKind.NOT,
           30,
-          SqlTypeStrategies.rtiNullableBoolean,
-          SqlTypeStrategies.otiBoolean,
-          SqlTypeStrategies.otcBool);
+          ReturnTypes.BOOLEAN_NULLABLE,
+          InferTypes.BOOLEAN,
+          OperandTypes.BOOLEAN);
 
   /**
    * Prefix arithmetic minus operator, '<code>-</code>'.
@@ -547,9 +547,9 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           "-",
           SqlKind.MINUS_PREFIX,
           80,
-          SqlTypeStrategies.rtiFirstArgType,
-          SqlTypeStrategies.otiReturnType,
-          SqlTypeStrategies.otcNumericOrInterval);
+          ReturnTypes.ARG0,
+          InferTypes.RETURN_TYPE,
+          OperandTypes.NUMERIC_OR_INTERVAL);
 
   /**
    * Prefix arithmetic plus operator, '<code>+</code>'.
@@ -562,9 +562,9 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           "+",
           SqlKind.PLUS_PREFIX,
           80,
-          SqlTypeStrategies.rtiFirstArgType,
-          SqlTypeStrategies.otiReturnType,
-          SqlTypeStrategies.otcNumericOrInterval);
+          ReturnTypes.ARG0,
+          InferTypes.RETURN_TYPE,
+          OperandTypes.NUMERIC_OR_INTERVAL);
 
   /**
    * Keyword which allows an identifier to be explicitly flagged as a table.
@@ -676,9 +676,9 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
       new SqlFunction(
           "$HISTOGRAM_MIN",
           SqlKind.OTHER_FUNCTION,
-          SqlTypeStrategies.rtiNullableFirstArgType,
+          ReturnTypes.ARG0_NULLABLE,
           null,
-          SqlTypeStrategies.otcNumericOrString,
+          OperandTypes.NUMERIC_OR_STRING,
           SqlFunctionCategory.NUMERIC);
 
   /**
@@ -688,9 +688,9 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
       new SqlFunction(
           "$HISTOGRAM_MAX",
           SqlKind.OTHER_FUNCTION,
-          SqlTypeStrategies.rtiNullableFirstArgType,
+          ReturnTypes.ARG0_NULLABLE,
           null,
-          SqlTypeStrategies.otcNumericOrString,
+          OperandTypes.NUMERIC_OR_STRING,
           SqlFunctionCategory.NUMERIC);
 
   /**
@@ -700,9 +700,9 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
       new SqlFunction(
           "$HISTOGRAM_FIRST_VALUE",
           SqlKind.OTHER_FUNCTION,
-          SqlTypeStrategies.rtiNullableFirstArgType,
+          ReturnTypes.ARG0_NULLABLE,
           null,
-          SqlTypeStrategies.otcNumericOrString,
+          OperandTypes.NUMERIC_OR_STRING,
           SqlFunctionCategory.NUMERIC);
 
   /**
@@ -712,9 +712,9 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
       new SqlFunction(
           "$HISTOGRAM_LAST_VALUE",
           SqlKind.OTHER_FUNCTION,
-          SqlTypeStrategies.rtiNullableFirstArgType,
+          ReturnTypes.ARG0_NULLABLE,
           null,
-          SqlTypeStrategies.otcNumericOrString,
+          OperandTypes.NUMERIC_OR_STRING,
           SqlFunctionCategory.NUMERIC);
 
   /**
@@ -826,9 +826,9 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           SqlKind.LATERAL,
           200,
           true,
-          SqlTypeStrategies.rtiFirstArgType,
+          ReturnTypes.ARG0,
           null,
-          SqlTypeStrategies.otcAny);
+          OperandTypes.ANY);
 
   /**
    * The "table function derived table" operator, which a table-valued
@@ -994,45 +994,45 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
       new SqlFunction(
           "CHAR_LENGTH",
           SqlKind.OTHER_FUNCTION,
-          SqlTypeStrategies.rtiNullableInteger,
+          ReturnTypes.INTEGER_NULLABLE,
           null,
-          SqlTypeStrategies.otcCharString,
+          OperandTypes.CHARACTER,
           SqlFunctionCategory.NUMERIC);
 
   public static final SqlFunction CHARACTER_LENGTH =
       new SqlFunction(
           "CHARACTER_LENGTH",
           SqlKind.OTHER_FUNCTION,
-          SqlTypeStrategies.rtiNullableInteger,
+          ReturnTypes.INTEGER_NULLABLE,
           null,
-          SqlTypeStrategies.otcCharString,
+          OperandTypes.CHARACTER,
           SqlFunctionCategory.NUMERIC);
 
   public static final SqlFunction UPPER =
       new SqlFunction(
           "UPPER",
           SqlKind.OTHER_FUNCTION,
-          SqlTypeStrategies.rtiNullableFirstArgType,
+          ReturnTypes.ARG0_NULLABLE,
           null,
-          SqlTypeStrategies.otcCharString,
+          OperandTypes.CHARACTER,
           SqlFunctionCategory.STRING);
 
   public static final SqlFunction LOWER =
       new SqlFunction(
           "LOWER",
           SqlKind.OTHER_FUNCTION,
-          SqlTypeStrategies.rtiNullableFirstArgType,
+          ReturnTypes.ARG0_NULLABLE,
           null,
-          SqlTypeStrategies.otcCharString,
+          OperandTypes.CHARACTER,
           SqlFunctionCategory.STRING);
 
   public static final SqlFunction INITCAP =
       new SqlFunction(
           "INITCAP",
           SqlKind.OTHER_FUNCTION,
-          SqlTypeStrategies.rtiNullableFirstArgType,
+          ReturnTypes.ARG0_NULLABLE,
           null,
-          SqlTypeStrategies.otcCharString,
+          OperandTypes.CHARACTER,
           SqlFunctionCategory.STRING);
 
   /**
@@ -1045,18 +1045,18 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
       new SqlFunction(
           "POWER",
           SqlKind.OTHER_FUNCTION,
-          SqlTypeStrategies.rtiNullableDouble,
+          ReturnTypes.DOUBLE_NULLABLE,
           null,
-          SqlTypeStrategies.otcNumericX2,
+          OperandTypes.NUMERIC_NUMERIC,
           SqlFunctionCategory.NUMERIC);
 
   public static final SqlFunction SQRT =
       new SqlFunction(
           "SQRT",
           SqlKind.OTHER_FUNCTION,
-          SqlTypeStrategies.rtiNullableDouble,
+          ReturnTypes.DOUBLE_NULLABLE,
           null,
-          SqlTypeStrategies.otcNumeric,
+          OperandTypes.NUMERIC,
           SqlFunctionCategory.NUMERIC);
 
   public static final SqlFunction MOD =
@@ -1066,45 +1066,45 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
       new SqlFunction(
           "MOD",
           SqlKind.OTHER_FUNCTION,
-          SqlTypeStrategies.rtiNullableSecondArgType,
+          ReturnTypes.ARG1_NULLABLE,
           null,
-          SqlTypeStrategies.otcExactNumericX2,
+          OperandTypes.EXACT_NUMERIC_EXACT_NUMERIC,
           SqlFunctionCategory.NUMERIC);
 
   public static final SqlFunction LN =
       new SqlFunction(
           "LN",
           SqlKind.OTHER_FUNCTION,
-          SqlTypeStrategies.rtiNullableDouble,
+          ReturnTypes.DOUBLE_NULLABLE,
           null,
-          SqlTypeStrategies.otcNumeric,
+          OperandTypes.NUMERIC,
           SqlFunctionCategory.NUMERIC);
 
   public static final SqlFunction LOG10 =
       new SqlFunction(
           "LOG10",
           SqlKind.OTHER_FUNCTION,
-          SqlTypeStrategies.rtiNullableDouble,
+          ReturnTypes.DOUBLE_NULLABLE,
           null,
-          SqlTypeStrategies.otcNumeric,
+          OperandTypes.NUMERIC,
           SqlFunctionCategory.NUMERIC);
 
   public static final SqlFunction ABS =
       new SqlFunction(
           "ABS",
           SqlKind.OTHER_FUNCTION,
-          SqlTypeStrategies.rtiFirstArgType,
+          ReturnTypes.ARG0,
           null,
-          SqlTypeStrategies.otcNumericOrInterval,
+          OperandTypes.NUMERIC_OR_INTERVAL,
           SqlFunctionCategory.NUMERIC);
 
   public static final SqlFunction EXP =
       new SqlFunction(
           "EXP",
           SqlKind.OTHER_FUNCTION,
-          SqlTypeStrategies.rtiNullableDouble,
+          ReturnTypes.DOUBLE_NULLABLE,
           null,
-          SqlTypeStrategies.otcNumeric,
+          OperandTypes.NUMERIC,
           SqlFunctionCategory.NUMERIC);
 
   public static final SqlFunction NULLIF = new SqlNullifFunction();
@@ -1121,9 +1121,9 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
       new SqlMonotonicUnaryFunction(
           "FLOOR",
           SqlKind.OTHER_FUNCTION,
-          SqlTypeStrategies.rtiFirstArgTypeOrExactNoScale,
+          ReturnTypes.ARG0_OR_EXACT_NO_SCALE,
           null,
-          SqlTypeStrategies.otcNumericOrInterval,
+          OperandTypes.NUMERIC_OR_INTERVAL,
           SqlFunctionCategory.NUMERIC);
 
   /**
@@ -1133,9 +1133,9 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
       new SqlMonotonicUnaryFunction(
           "CEIL",
           SqlKind.OTHER_FUNCTION,
-          SqlTypeStrategies.rtiFirstArgTypeOrExactNoScale,
+          ReturnTypes.ARG0_OR_EXACT_NO_SCALE,
           null,
-          SqlTypeStrategies.otcNumericOrInterval,
+          OperandTypes.NUMERIC_OR_INTERVAL,
           SqlFunctionCategory.NUMERIC);
 
   /**
@@ -1224,9 +1224,9 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
       new SqlMonotonicUnaryFunction(
           "IN_FENNEL",
           SqlKind.OTHER_FUNCTION,
-          SqlTypeStrategies.rtiFirstArgType,
+          ReturnTypes.ARG0,
           null,
-          SqlTypeStrategies.otcAny,
+          OperandTypes.ANY,
           SqlFunctionCategory.SYSTEM);
 
   /**
@@ -1270,9 +1270,9 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
       new SqlFunction(
           "ELEMENT",
           SqlKind.OTHER_FUNCTION,
-          SqlTypeStrategies.rtiNullableMultisetElementType,
+          ReturnTypes.MULTISET_ELEMENT_NULLABLE,
           null,
-          SqlTypeStrategies.otcMultiset,
+          OperandTypes.MULTISET,
           SqlFunctionCategory.SYSTEM);
 
   /**
@@ -1322,9 +1322,9 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           SqlKind.OTHER,
           0,
           false,
-          SqlTypeStrategies.rtiMultisetFirstColumnMultiset,
+          ReturnTypes.MULTISET_PROJECT0,
           null,
-          SqlTypeStrategies.otcRecordMultiset) {
+          OperandTypes.RECORD_MULTISET) {
       };
 
   /**
@@ -1347,9 +1347,9 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           SqlKind.OTHER,
           0,
           false,
-          SqlTypeStrategies.rtiMultisetRecordMultiset,
+          ReturnTypes.MULTISET_RECORD,
           null,
-          SqlTypeStrategies.otcMultiset) {
+          OperandTypes.MULTISET) {
         public void unparse(
             SqlWriter writer,
             SqlNode[] operands,
@@ -1375,9 +1375,9 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           SqlKind.SCALAR_QUERY,
           0,
           false,
-          SqlTypeStrategies.rtiRecordToScalarType,
+          ReturnTypes.RECORD_TO_SCALAR,
           null,
-          SqlTypeStrategies.otcRecordToScalarType) {
+          OperandTypes.RECORD_TO_SCALAR) {
         public void unparse(
             SqlWriter writer,
             SqlNode[] operands,
@@ -1402,9 +1402,9 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
       new SqlFunction(
           "CARDINALITY",
           SqlKind.OTHER_FUNCTION,
-          SqlTypeStrategies.rtiNullableInteger,
+          ReturnTypes.INTEGER_NULLABLE,
           null,
-          SqlTypeStrategies.otcCollection,
+          OperandTypes.COLLECTION,
           SqlFunctionCategory.SYSTEM);
 
   /**
@@ -1414,9 +1414,9 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
       new SqlFunction(
           "COLLECT",
           SqlKind.OTHER_FUNCTION,
-          SqlTypeStrategies.rtiFirstArgType,
+          ReturnTypes.ARG0,
           null,
-          SqlTypeStrategies.otcAny,
+          OperandTypes.ANY,
           SqlFunctionCategory.SYSTEM);
 
   /**
@@ -1426,9 +1426,9 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
       new SqlFunction(
           "FUSION",
           SqlKind.OTHER_FUNCTION,
-          SqlTypeStrategies.rtiFirstArgType,
+          ReturnTypes.ARG0,
           null,
-          SqlTypeStrategies.otcMultiset,
+          OperandTypes.MULTISET,
           SqlFunctionCategory.SYSTEM);
 
   /**
@@ -1438,9 +1438,9 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
       new SqlFunction(
           "NEXT_VALUE",
           SqlKind.OTHER_FUNCTION,
-          SqlTypeStrategies.rtiBigint,
+          ReturnTypes.BIGINT,
           null,
-          SqlTypeStrategies.otcCharString,
+          OperandTypes.CHARACTER,
           SqlFunctionCategory.SYSTEM) {
         public boolean isDeterministic() {
           return false;
@@ -1472,9 +1472,9 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           SqlKind.TABLESAMPLE,
           20,
           true,
-          SqlTypeStrategies.rtiFirstArgType,
+          ReturnTypes.ARG0,
           null,
-          SqlTypeStrategies.otcVariadic) {
+          OperandTypes.VARIADIC) {
         public void unparse(
             SqlWriter writer,
             SqlNode[] operands,

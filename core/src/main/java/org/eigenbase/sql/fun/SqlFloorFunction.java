@@ -31,9 +31,9 @@ public class SqlFloorFunction extends SqlFunction {
     super(
         "FLOOR",
         SqlKind.OTHER_FUNCTION,
-        SqlTypeStrategies.rtiFirstArgType,
+        ReturnTypes.ARG0,
         null,
-        SqlTypeStrategies.otcNumeric,
+        OperandTypes.NUMERIC,
         SqlFunctionCategory.NUMERIC);
   }
 

@@ -43,9 +43,9 @@ public class SqlSetOperator extends SqlBinaryOperator {
         kind,
         prec,
         true,
-        SqlTypeStrategies.rtiLeastRestrictive,
+        ReturnTypes.LEAST_RESTRICTIVE,
         null,
-        SqlTypeStrategies.otcSetop);
+        OperandTypes.SET_OP);
     this.all = all;
   }
 

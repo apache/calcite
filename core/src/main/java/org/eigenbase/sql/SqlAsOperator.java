@@ -38,9 +38,9 @@ public class SqlAsOperator extends SqlSpecialOperator {
         SqlKind.AS,
         20,
         true,
-        SqlTypeStrategies.rtiFirstArgType,
-        SqlTypeStrategies.otiReturnType,
-        SqlTypeStrategies.otcAnyX2);
+        ReturnTypes.ARG0,
+        InferTypes.RETURN_TYPE,
+        OperandTypes.ANY_ANY);
   }
 
   //~ Methods ----------------------------------------------------------------

@@ -31,9 +31,9 @@ public class SqlCurrentDateFunction extends SqlFunction {
     super(
         "CURRENT_DATE",
         SqlKind.OTHER_FUNCTION,
-        SqlTypeStrategies.rtiDate,
+        ReturnTypes.DATE,
         null,
-        SqlTypeStrategies.otcNiladic,
+        OperandTypes.NILADIC,
         SqlFunctionCategory.TIMEDATE);
   }
 

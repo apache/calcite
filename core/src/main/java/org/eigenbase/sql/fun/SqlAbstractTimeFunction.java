@@ -30,9 +30,8 @@ public class SqlAbstractTimeFunction extends SqlFunction {
   //~ Static fields/initializers ---------------------------------------------
 
   private static final SqlOperandTypeChecker OTC_CUSTOM =
-      SqlTypeStrategies.or(
-          SqlTypeStrategies.otcPositiveIntLit,
-          SqlTypeStrategies.otcNiladic);
+      OperandTypes.or(
+          OperandTypes.POSITIVE_INTEGER_LITERAL, OperandTypes.NILADIC);
 
   //~ Instance fields --------------------------------------------------------
 

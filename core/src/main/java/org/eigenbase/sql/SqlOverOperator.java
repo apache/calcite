@@ -44,9 +44,9 @@ public class SqlOverOperator extends SqlBinaryOperator {
         SqlKind.OVER,
         20,
         true,
-        SqlTypeStrategies.rtiFirstArgTypeForceNullable,
+        ReturnTypes.ARG0_FORCE_NULLABLE,
         null,
-        SqlTypeStrategies.otcAnyX2);
+        OperandTypes.ANY_ANY);
   }
 
   //~ Methods ----------------------------------------------------------------

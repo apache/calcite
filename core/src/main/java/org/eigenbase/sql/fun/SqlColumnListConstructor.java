@@ -32,9 +32,9 @@ public class SqlColumnListConstructor extends SqlSpecialOperator {
         "COLUMN_LIST",
         SqlKind.COLUMN_LIST, MDX_PRECEDENCE,
         false,
-        SqlTypeStrategies.rtiColumnList,
+        ReturnTypes.COLUMN_LIST,
         null,
-        SqlTypeStrategies.otcAny);
+        OperandTypes.ANY);
   }
 
   //~ Methods ----------------------------------------------------------------

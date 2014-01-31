@@ -40,9 +40,9 @@ public class SqlCountAggFunction extends SqlAggFunction {
     super(
         "COUNT",
         SqlKind.OTHER_FUNCTION,
-        SqlTypeStrategies.rtiBigint,
+        ReturnTypes.BIGINT,
         null,
-        SqlTypeStrategies.otcAny,
+        OperandTypes.ANY,
         SqlFunctionCategory.NUMERIC);
   }
 

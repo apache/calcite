@@ -37,9 +37,9 @@ public class SqlNullifFunction extends SqlFunction {
     super(
         "NULLIF",
         SqlKind.OTHER_FUNCTION,
-        SqlTypeStrategies.rtiFirstArgTypeForceNullable,
+        ReturnTypes.ARG0_FORCE_NULLABLE,
         null,
-        SqlTypeStrategies.otcComparableUnorderedX2,
+        OperandTypes.COMPARABLE_UNORDERED_COMPARABLE_UNORDERED,
         SqlFunctionCategory.SYSTEM);
   }
 
