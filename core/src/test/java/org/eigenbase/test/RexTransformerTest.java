@@ -23,6 +23,7 @@ import org.eigenbase.sql.fun.*;
 import org.eigenbase.sql.type.*;
 
 import net.hydromatic.optiq.jdbc.JavaTypeFactoryImpl;
+
 import org.junit.Before;
 import org.junit.Test;
 

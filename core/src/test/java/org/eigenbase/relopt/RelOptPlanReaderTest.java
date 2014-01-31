@@ -23,8 +23,8 @@ import net.hydromatic.optiq.impl.jdbc.JdbcRules;
 
 import org.junit.Test;
 
-import static org.junit.Assert.*;
 import static org.hamcrest.CoreMatchers.*;
+import static org.junit.Assert.*;
 
 /**
  * Unit test for {@link org.eigenbase.rel.RelJson}.

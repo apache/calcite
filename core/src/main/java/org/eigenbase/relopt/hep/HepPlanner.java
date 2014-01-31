@@ -26,10 +26,10 @@ import org.eigenbase.rel.metadata.*;
 import org.eigenbase.relopt.*;
 import org.eigenbase.util.*;
 
-import net.hydromatic.optiq.util.graph.*;
-
 import net.hydromatic.linq4j.function.Function2;
 import net.hydromatic.linq4j.function.Functions;
+
+import net.hydromatic.optiq.util.graph.*;
 
 import com.google.common.collect.ImmutableList;
 

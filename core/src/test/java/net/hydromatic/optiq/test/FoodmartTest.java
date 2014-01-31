@@ -17,8 +17,6 @@
 */
 package net.hydromatic.optiq.test;
 
-import mondrian.test.data.FoodMartQuery;
-
 import org.eigenbase.util.IntegerIntervalSet;
 
 import com.fasterxml.jackson.core.JsonParser;
@@ -31,6 +29,8 @@ import org.junit.runners.Parameterized;
 import java.io.*;
 import java.lang.ref.SoftReference;
 import java.util.*;
+
+import mondrian.test.data.FoodMartQuery;
 
 /**
  * Test case that runs the FoodMart reference queries.

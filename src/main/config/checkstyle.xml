@@ -125,6 +125,22 @@
     <module name="UnusedImports" />
     <module name="IllegalImport" />
 
+    <module name="ImportOrder">
+      <property name="id" value="eigenbaseImportOrder"/>
+      <property name="groups" value="/^javax?\./,org.eigenbase,net.hydromatic.avatica,net.hydromatic.linq4j,net.hydromatic.optiq,com.,org."/>
+      <property name="ordered" value="true"/>
+      <property name="separated" value="true"/>
+      <property name="option" value="bottom"/>
+    </module>
+
+    <module name="ImportOrder">
+      <property name="id" value="hydromaticImportOrder"/>
+      <property name="groups" value="net.hydromatic.avatica,net.hydromatic.linq4j,net.hydromatic.optiq,org.eigenbase,com.,org.,/^javax?\./"/>
+      <property name="ordered" value="true"/>
+      <property name="separated" value="true"/>
+      <property name="option" value="bottom"/>
+    </module>
+
     <!-- Checks for Javadoc comments (tree walker).       -->
     <!-- See http://checkstyle.sf.net/config_javadoc.html -->
       <!-- Javadoc must be formatted correctly -->

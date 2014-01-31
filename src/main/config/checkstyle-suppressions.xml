@@ -34,4 +34,7 @@
 
     <!-- Don't complain about field names such as cust_id -->
     <suppress checks=".*Name" files="JdbcExample.java"/>
+
+    <suppress id="eigenbaseImportOrder" files="net/hydromatic"/>
+    <suppress id="hydromaticImportOrder" files="org/eigenbase"/>
 </suppressions>

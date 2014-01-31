@@ -24,10 +24,10 @@ import org.eigenbase.rel.convert.*;
 import org.eigenbase.util.Pair;
 import org.eigenbase.util.Util;
 
+import net.hydromatic.optiq.util.graph.*;
+
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
-
-import net.hydromatic.optiq.util.graph.*;
 
 /**
  * Definition of the the convention trait.

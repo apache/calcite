@@ -28,8 +28,6 @@ import org.eigenbase.sql.SqlExplainLevel;
 import org.eigenbase.sql.fun.SqlStdOperatorTable;
 import org.eigenbase.sql.type.SqlTypeName;
 
-import org.junit.Test;
-
 import net.hydromatic.optiq.SchemaPlus;
 import net.hydromatic.optiq.impl.java.ReflectiveSchema;
 import net.hydromatic.optiq.test.JdbcTest;
@@ -37,6 +35,8 @@ import net.hydromatic.optiq.tools.Frameworks;
 import net.hydromatic.optiq.util.BitSets;
 
 import com.google.common.collect.ImmutableList;
+
+import org.junit.Test;
 
 import static org.hamcrest.CoreMatchers.*;
 import static org.junit.Assert.assertThat;

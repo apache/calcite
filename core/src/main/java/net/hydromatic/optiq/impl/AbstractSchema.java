@@ -18,6 +18,7 @@
 package net.hydromatic.optiq.impl;
 
 import net.hydromatic.linq4j.expressions.Expression;
+
 import net.hydromatic.optiq.*;
 import net.hydromatic.optiq.Table;
 

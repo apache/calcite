@@ -26,6 +26,7 @@ import org.junit.Test;
 import java.util.*;
 
 import static net.hydromatic.optiq.runtime.SqlFunctions.*;
+
 import static org.junit.Assert.*;
 
 /**

@@ -25,10 +25,10 @@ import org.eigenbase.sql.*;
 import org.eigenbase.sql.validate.SqlConformance;
 import org.eigenbase.test.SqlValidatorTestCase;
 
-import net.hydromatic.optiq.jdbc.ConnectionConfig;
-
 import net.hydromatic.avatica.Casing;
 import net.hydromatic.avatica.Quoting;
+
+import net.hydromatic.optiq.jdbc.ConnectionConfig;
 
 /**
  * SqlTester defines a callback for testing SQL queries and expressions.

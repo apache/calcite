@@ -54,11 +54,11 @@ import org.eigenbase.sql.validate.*;
 import org.eigenbase.sql2rel.SqlToRelConverter;
 import org.eigenbase.util.Util;
 
+import com.google.common.collect.*;
+
 import org.codehaus.commons.compiler.CompileException;
 import org.codehaus.janino.*;
 import org.codehaus.janino.Scanner;
-
-import com.google.common.collect.*;
 
 import java.io.IOException;
 import java.io.StringReader;

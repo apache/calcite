@@ -38,12 +38,12 @@ import org.eigenbase.util.*;
 import org.eigenbase.util.mapping.Mappings;
 import org.eigenbase.util14.*;
 
+import net.hydromatic.linq4j.Ord;
+import net.hydromatic.linq4j.function.Function1;
+
 import net.hydromatic.optiq.ModifiableTable;
 import net.hydromatic.optiq.prepare.Prepare;
 import net.hydromatic.optiq.util.BitSets;
-
-import net.hydromatic.linq4j.Ord;
-import net.hydromatic.linq4j.function.Function1;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;

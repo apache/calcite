@@ -18,6 +18,7 @@
 package net.hydromatic.optiq.test;
 
 import net.hydromatic.linq4j.function.Function1;
+
 import net.hydromatic.optiq.jdbc.OptiqConnection;
 
 import org.junit.Ignore;
@@ -26,8 +27,9 @@ import org.junit.Test;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
-import static org.junit.Assert.*;
 import static net.hydromatic.optiq.test.OptiqAssert.that;
+
+import static org.junit.Assert.*;
 
 /**
  * Tests for a JDBC front-end and JDBC back-end.

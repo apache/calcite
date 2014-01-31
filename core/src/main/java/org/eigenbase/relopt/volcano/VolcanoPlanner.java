@@ -31,9 +31,9 @@ import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.sql.SqlExplainLevel;
 import org.eigenbase.util.*;
 
-import net.hydromatic.optiq.util.graph.*;
-
 import net.hydromatic.linq4j.expressions.Expressions;
+
+import net.hydromatic.optiq.util.graph.*;
 
 import com.google.common.collect.ImmutableList;
 

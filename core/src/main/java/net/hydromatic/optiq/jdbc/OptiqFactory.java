@@ -18,6 +18,7 @@
 package net.hydromatic.optiq.jdbc;
 
 import net.hydromatic.avatica.*;
+
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 
 import java.util.Properties;

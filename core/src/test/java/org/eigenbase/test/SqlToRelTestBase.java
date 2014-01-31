@@ -31,9 +31,9 @@ import org.eigenbase.sql.validate.*;
 import org.eigenbase.sql2rel.*;
 import org.eigenbase.util.*;
 
-import net.hydromatic.optiq.prepare.Prepare;
-
 import net.hydromatic.linq4j.expressions.Expression;
+
+import net.hydromatic.optiq.prepare.Prepare;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;

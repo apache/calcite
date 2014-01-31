@@ -17,16 +17,16 @@
 */
 package net.hydromatic.optiq.rules.java;
 
+import net.hydromatic.linq4j.*;
+import net.hydromatic.linq4j.expressions.*;
+import net.hydromatic.linq4j.expressions.Expression;
+import net.hydromatic.linq4j.function.*;
+
 import net.hydromatic.optiq.*;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 import net.hydromatic.optiq.prepare.Prepare;
 import net.hydromatic.optiq.runtime.SortedMultiMap;
 import net.hydromatic.optiq.util.BitSets;
-
-import net.hydromatic.linq4j.*;
-import net.hydromatic.linq4j.expressions.*;
-import net.hydromatic.linq4j.expressions.Expression;
-import net.hydromatic.linq4j.function.*;
 
 import org.eigenbase.rel.*;
 import org.eigenbase.rel.convert.ConverterRule;

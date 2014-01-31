@@ -17,11 +17,11 @@
 */
 package net.hydromatic.optiq.prepare;
 
-import net.hydromatic.optiq.*;
-import net.hydromatic.optiq.impl.java.JavaTypeFactory;
-
 import net.hydromatic.linq4j.Queryable;
 import net.hydromatic.linq4j.expressions.*;
+
+import net.hydromatic.optiq.*;
+import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 
 import org.eigenbase.rel.*;
 import org.eigenbase.relopt.RelOptCluster;

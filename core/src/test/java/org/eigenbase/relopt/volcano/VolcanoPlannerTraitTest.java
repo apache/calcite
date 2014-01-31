@@ -25,13 +25,13 @@ import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.*;
 import org.eigenbase.util.*;
 
+import net.hydromatic.optiq.rules.java.EnumerableConvention;
+
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 
 import org.junit.Ignore;
 import org.junit.Test;
-
-import net.hydromatic.optiq.rules.java.EnumerableConvention;
 
 import static org.junit.Assert.*;
 

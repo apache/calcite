@@ -26,8 +26,9 @@ import org.eigenbase.sql.type.*;
 
 import org.junit.Assert;
 
-import static org.junit.Assert.*;
 import static org.eigenbase.sql.test.SqlTester.*;
+
+import static org.junit.Assert.*;
 
 /**
  * Utility methods.

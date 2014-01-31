@@ -32,9 +32,9 @@ import java.util.jar.*;
 import java.util.logging.*;
 import java.util.regex.*;
 
-import com.google.common.collect.ImmutableMap;
-
 import net.hydromatic.linq4j.Ord;
+
+import com.google.common.collect.ImmutableMap;
 
 /**
  * Miscellaneous utility functions.

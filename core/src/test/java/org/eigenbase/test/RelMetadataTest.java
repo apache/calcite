@@ -23,10 +23,10 @@ import org.eigenbase.rel.*;
 import org.eigenbase.rel.metadata.*;
 import org.eigenbase.relopt.*;
 
+import com.google.common.collect.Iterables;
+
 import org.junit.Ignore;
 import org.junit.Test;
-
-import com.google.common.collect.Iterables;
 
 import static org.junit.Assert.*;
 

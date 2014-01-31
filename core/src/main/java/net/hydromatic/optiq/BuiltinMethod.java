@@ -22,6 +22,7 @@ import net.hydromatic.linq4j.expressions.FunctionExpression;
 import net.hydromatic.linq4j.expressions.Primitive;
 import net.hydromatic.linq4j.expressions.Types;
 import net.hydromatic.linq4j.function.*;
+
 import net.hydromatic.optiq.impl.java.ReflectiveSchema;
 import net.hydromatic.optiq.impl.jdbc.JdbcSchema;
 import net.hydromatic.optiq.runtime.*;

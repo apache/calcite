@@ -18,6 +18,7 @@
 package net.hydromatic.optiq.rules.java;
 
 import net.hydromatic.linq4j.expressions.ParameterExpression;
+
 import net.hydromatic.optiq.DataContext;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 

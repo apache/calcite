@@ -17,10 +17,10 @@
 */
 package net.hydromatic.optiq.jdbc;
 
+import net.hydromatic.linq4j.QueryProvider;
+
 import net.hydromatic.optiq.SchemaPlus;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
-
-import net.hydromatic.linq4j.QueryProvider;
 
 import java.sql.Connection;
 import java.sql.SQLException;

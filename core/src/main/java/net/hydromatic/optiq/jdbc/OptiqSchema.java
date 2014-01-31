@@ -19,6 +19,7 @@ package net.hydromatic.optiq.jdbc;
 
 import net.hydromatic.linq4j.Linq4j;
 import net.hydromatic.linq4j.expressions.Expression;
+
 import net.hydromatic.optiq.*;
 import net.hydromatic.optiq.Table;
 import net.hydromatic.optiq.impl.MaterializedViewTable;

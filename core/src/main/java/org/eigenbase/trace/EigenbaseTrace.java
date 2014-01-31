@@ -24,10 +24,10 @@ import org.eigenbase.rel.RelImplementorImpl;
 import org.eigenbase.relopt.*;
 import org.eigenbase.util.property.*;
 
-import net.hydromatic.optiq.prepare.Prepare;
-
 import net.hydromatic.linq4j.function.Function2;
 import net.hydromatic.linq4j.function.Functions;
+
+import net.hydromatic.optiq.prepare.Prepare;
 
 /**
  * Contains all of the {@link java.util.logging.Logger tracers} used within

@@ -25,10 +25,10 @@ import org.eigenbase.reltype.*;
 import org.eigenbase.rex.*;
 import org.eigenbase.util.*;
 
-import com.google.common.collect.ImmutableList;
-
 import net.hydromatic.linq4j.function.Function1;
 import net.hydromatic.linq4j.function.Functions;
+
+import com.google.common.collect.ImmutableList;
 
 /**
  * Rule that slices the {@link CalcRel} into sections which contain windowed

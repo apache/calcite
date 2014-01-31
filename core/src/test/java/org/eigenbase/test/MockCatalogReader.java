@@ -30,9 +30,9 @@ import org.eigenbase.sql.validate.*;
 import org.eigenbase.util.Pair;
 import org.eigenbase.util.Util;
 
-import net.hydromatic.optiq.prepare.Prepare;
-
 import net.hydromatic.linq4j.expressions.Expression;
+
+import net.hydromatic.optiq.prepare.Prepare;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Ordering;

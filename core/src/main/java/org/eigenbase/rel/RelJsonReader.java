@@ -31,11 +31,11 @@ import org.eigenbase.util.Util;
 import net.hydromatic.optiq.Schema;
 import net.hydromatic.optiq.util.BitSets;
 
-import com.google.common.collect.ImmutableList;
-
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
+import com.google.common.collect.ImmutableList;
 
 /**
  * Reads a JSON plan and converts it back to a tree of relational expressions.

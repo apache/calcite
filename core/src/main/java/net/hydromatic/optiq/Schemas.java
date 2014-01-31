@@ -19,8 +19,8 @@ package net.hydromatic.optiq;
 
 import net.hydromatic.linq4j.QueryProvider;
 import net.hydromatic.linq4j.Queryable;
-
 import net.hydromatic.linq4j.expressions.*;
+
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 import net.hydromatic.optiq.jdbc.*;
 

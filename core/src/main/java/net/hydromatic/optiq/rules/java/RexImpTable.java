@@ -40,7 +40,9 @@ import java.math.BigInteger;
 import java.util.*;
 
 import static net.hydromatic.linq4j.expressions.ExpressionType.*;
+
 import static net.hydromatic.optiq.DataContext.ROOT;
+
 import static org.eigenbase.sql.fun.SqlStdOperatorTable.*;
 
 /**

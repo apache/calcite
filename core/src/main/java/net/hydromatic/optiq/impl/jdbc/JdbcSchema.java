@@ -22,8 +22,6 @@ import net.hydromatic.linq4j.expressions.Expression;
 import net.hydromatic.optiq.*;
 import net.hydromatic.optiq.Table;
 
-import org.apache.commons.dbcp.BasicDataSource;
-
 import org.eigenbase.reltype.*;
 import org.eigenbase.sql.SqlDialect;
 import org.eigenbase.sql.type.SqlTypeFactoryImpl;
@@ -33,6 +31,8 @@ import org.eigenbase.util.Util;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.*;
+
+import org.apache.commons.dbcp.BasicDataSource;
 
 import java.sql.*;
 import java.util.*;

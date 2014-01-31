@@ -25,9 +25,9 @@ import org.eigenbase.rex.*;
 import org.eigenbase.sql.*;
 import org.eigenbase.util.*;
 
-import net.hydromatic.optiq.runtime.Spacer;
-
 import net.hydromatic.linq4j.Ord;
+
+import net.hydromatic.optiq.runtime.Spacer;
 
 import com.google.common.collect.ImmutableList;
 

@@ -33,12 +33,12 @@ import org.eigenbase.trace.*;
 import org.eigenbase.util.*;
 import org.eigenbase.util.mapping.Mappings;
 
-import com.google.common.collect.ImmutableSet;
-
 import net.hydromatic.linq4j.Ord;
 import net.hydromatic.linq4j.function.Function2;
 
 import net.hydromatic.optiq.util.BitSets;
+
+import com.google.common.collect.ImmutableSet;
 
 /**
  * RelDecorrelator replaces all correlated expressions(corExp) in a relational

@@ -20,6 +20,7 @@ package net.hydromatic.optiq;
 import net.hydromatic.linq4j.QueryProvider;
 import net.hydromatic.linq4j.expressions.Expressions;
 import net.hydromatic.linq4j.expressions.ParameterExpression;
+
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 
 import org.eigenbase.util.Util;
