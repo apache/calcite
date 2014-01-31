@@ -29,7 +29,7 @@ import org.eigenbase.util.*;
 public class SqlJoinOperator extends SqlOperator {
   //~ Static fields/initializers ---------------------------------------------
 
-  private static final SqlWriter.FrameType UsingFrameType =
+  private static final SqlWriter.FrameType FRAME_TYPE =
       SqlWriter.FrameTypeEnum.create("USING");
 
   //~ Enums ------------------------------------------------------------------
@@ -41,19 +41,19 @@ public class SqlJoinOperator extends SqlOperator {
     /**
      * Join clause has no condition, for example "FROM EMP, DEPT"
      */
-    None,
+    NONE,
 
     /**
      * Join clause has an ON condition, for example "FROM EMP JOIN DEPT ON
      * EMP.DEPTNO = DEPT.DEPTNO"
      */
-    On,
+    ON,
 
     /**
      * Join clause has a USING condition, for example "FROM EMP JOIN DEPT
      * USING (DEPTNO)"
      */
-    Using;
+    USING;
 
     /**
      * Creates a parse-tree node representing an occurrence of this join
@@ -71,34 +71,34 @@ public class SqlJoinOperator extends SqlOperator {
     /**
      * Inner join.
      */
-    Inner,
+    INNER,
 
     /**
      * Full outer join.
      */
-    Full,
+    FULL,
 
     /**
      * Cross join (also known as Cartesian product).
      */
-    Cross,
+    CROSS,
 
     /**
      * Left outer join.
      */
-    Left,
+    LEFT,
 
     /**
      * Right outer join.
      */
-    Right,
+    RIGHT,
 
     /**
      * Comma join: the good old-fashioned SQL <code>FROM</code> clause,
      * where table expressions are specified with commas between them, and
      * join conditions are specified in the <code>WHERE</code> clause.
      */
-    Comma;
+    COMMA;
 
     /**
      * Creates a parse-tree node representing an occurrence of this
@@ -119,7 +119,7 @@ public class SqlJoinOperator extends SqlOperator {
   //~ Methods ----------------------------------------------------------------
 
   public SqlSyntax getSyntax() {
-    return SqlSyntax.Special;
+    return SqlSyntax.SPECIAL;
   }
 
   public SqlCall createCall(
@@ -180,22 +180,22 @@ public class SqlJoinOperator extends SqlOperator {
     final SqlJoinOperator.JoinType joinType =
         (JoinType) SqlLiteral.symbolValue(operands[SqlJoin.TYPE_OPERAND]);
     switch (joinType) {
-    case Comma:
+    case COMMA:
       writer.sep(",", true);
       break;
-    case Cross:
+    case CROSS:
       writer.sep(natural + "CROSS JOIN");
       break;
-    case Full:
+    case FULL:
       writer.sep(natural + "FULL JOIN");
       break;
-    case Inner:
+    case INNER:
       writer.sep(natural + "INNER JOIN");
       break;
-    case Left:
+    case LEFT:
       writer.sep(natural + "LEFT JOIN");
       break;
-    case Right:
+    case RIGHT:
       writer.sep(natural + "RIGHT JOIN");
       break;
     default:
@@ -212,18 +212,18 @@ public class SqlJoinOperator extends SqlOperator {
           (ConditionType) SqlLiteral.symbolValue(
               operands[SqlJoin.CONDITION_TYPE_OPERAND]);
       switch (conditionType) {
-      case Using:
+      case USING:
 
         // No need for an extra pair of parens -- the condition is a
         // list. The result is something like "USING (deptno, gender)".
         writer.keyword("USING");
         assert condition instanceof SqlNodeList;
         final SqlWriter.Frame frame =
-            writer.startList(UsingFrameType, "(", ")");
+            writer.startList(FRAME_TYPE, "(", ")");
         condition.unparse(writer, 0, 0);
         writer.endList(frame);
         break;
-      case On:
+      case ON:
         writer.keyword("ON");
         condition.unparse(writer, leftPrec, rightPrec);
         break;

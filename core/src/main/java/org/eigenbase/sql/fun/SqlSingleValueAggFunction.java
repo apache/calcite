@@ -44,7 +44,7 @@ public class SqlSingleValueAggFunction extends SqlAggFunction {
         SqlTypeStrategies.rtiFirstArgType,
         null,
         SqlTypeStrategies.otcAny,
-        SqlFunctionCategory.System);
+        SqlFunctionCategory.SYSTEM);
     this.type = type;
   }
 

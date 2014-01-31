@@ -78,7 +78,7 @@ public class FrameworksTest {
             // "WHERE i > 1"
             final RexBuilder rexBuilder = cluster.getRexBuilder();
             final RexNode condition =
-                rexBuilder.makeCall(SqlStdOperatorTable.greaterThanOperator,
+                rexBuilder.makeCall(SqlStdOperatorTable.GREATER_THAN,
                     rexBuilder.makeFieldAccess(
                         rexBuilder.makeRangeReference(
                             table.getRowType(typeFactory)), "i", true),

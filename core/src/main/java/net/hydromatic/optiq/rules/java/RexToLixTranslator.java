@@ -47,15 +47,14 @@ import static org.eigenbase.sql.fun.SqlStdOperatorTable.*;
 public class RexToLixTranslator {
   public static final Map<Method, SqlOperator> JAVA_TO_SQL_METHOD_MAP =
       Util.<Method, SqlOperator>mapOf(
-          findMethod(String.class, "toUpperCase"), upperFunc,
+          findMethod(String.class, "toUpperCase"), UPPER,
           findMethod(
               SqlFunctions.class, "substring", String.class, Integer.TYPE,
-              Integer.TYPE),
-          substringFunc,
+              Integer.TYPE), SUBSTRING,
           findMethod(SqlFunctions.class, "charLength", String.class),
-          characterLengthFunc,
+          CHARACTER_LENGTH,
           findMethod(SqlFunctions.class, "charLength", String.class),
-          charLengthFunc);
+          CHAR_LENGTH);
 
   private static final long MILLIS_IN_DAY = 24 * 60 * 60 * 1000;
 
@@ -481,7 +480,7 @@ public class RexToLixTranslator {
       Expression accessor) {
     final RexImpTable.AggregateImplementor implementor =
         RexImpTable.INSTANCE.aggMap.get(aggregation);
-    if (aggregation == countOperator) {
+    if (aggregation == COUNT) {
       // FIXME: count(x) and count(distinct x) don't work currently
       accessor = null;
     }

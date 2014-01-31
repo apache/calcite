@@ -96,7 +96,7 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
               RexCall rexCall = (RexCall) newConditionExp;
               boolean reverse =
                   rexCall.getOperator()
-                      == SqlStdOperatorTable.notOperator;
+                      == SqlStdOperatorTable.NOT;
               if (reverse) {
                 rexCall = (RexCall) rexCall.getOperands().get(0);
               }
@@ -119,10 +119,10 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
           // it with an EmptyRel.
           SqlOperator op = rexCall.getOperator();
           boolean alwaysTrue;
-          if (op == SqlStdOperatorTable.isNullOperator
-              || op == SqlStdOperatorTable.isUnknownOperator) {
+          if (op == SqlStdOperatorTable.IS_NULL
+              || op == SqlStdOperatorTable.IS_UNKNOWN) {
             alwaysTrue = false;
-          } else if (op == SqlStdOperatorTable.isNotNullOperator) {
+          } else if (op == SqlStdOperatorTable.IS_NOT_NULL) {
             alwaysTrue = true;
           } else {
             return;
@@ -584,7 +584,7 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
 
         // if this cast expression can't be reduced to a literal,
         // then see if we can remove the cast
-        if (call.getOperator() == SqlStdOperatorTable.castFunc) {
+        if (call.getOperator() == SqlStdOperatorTable.CAST) {
           reduceCasts(call);
         }
       }
@@ -620,7 +620,7 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
         return;
       }
       RexCall innerCast = (RexCall) operands.get(0);
-      if (innerCast.getOperator() != SqlStdOperatorTable.castFunc) {
+      if (innerCast.getOperator() != SqlStdOperatorTable.CAST) {
         return;
       }
       if (innerCast.getOperands().size() != 1) {

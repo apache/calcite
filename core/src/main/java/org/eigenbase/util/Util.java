@@ -19,7 +19,6 @@ package org.eigenbase.util;
 
 import java.awt.Toolkit;
 import java.io.*;
-import java.lang.Iterable;
 import java.lang.reflect.Array;
 import java.lang.reflect.Field;
 import java.math.*;
@@ -41,6 +40,8 @@ import net.hydromatic.linq4j.Ord;
  * Miscellaneous utility functions.
  */
 public class Util {
+  private Util() {}
+
   //~ Static fields/initializers ---------------------------------------------
 
   /**
@@ -51,29 +52,26 @@ public class Util {
    *
    * @see #loadLibrary(String)
    */
-  public static final String awtWorkaroundProperty =
+  public static final String AWT_WORKAROUND_PROPERTY =
       "org.eigenbase.util.AWT_WORKAROUND";
 
   /**
    * System-dependent newline character.
    */
-  public static final String lineSeparator =
+  public static final String LINE_SEPARATOR =
       System.getProperty("line.separator");
 
   /**
    * System-dependent file separator, for example, "/" or "\."
    */
-  public static final String fileSeparator =
+  public static final String FILE_SEPARATOR =
       System.getProperty("file.separator");
 
   /**
    * Datetime format string for generating a timestamp string to be used as
    * part of a filename. Conforms to SimpleDateFormat conventions.
    */
-  public static final String fileTimestampFormat = "yyyy-MM-dd_HH_mm_ss";
-
-  public static final Object[] emptyObjectArray = new Object[0];
-  public static final String[] emptyStringArray = new String[0];
+  public static final String FILE_TIMESTAMP_FORMAT = "yyyy-MM-dd_HH_mm_ss";
 
   private static boolean driversLoaded = false;
 
@@ -81,7 +79,7 @@ public class Util {
    * Regular expression for a valid java identifier which contains no
    * underscores and can therefore be returned intact by {@link #toJavaId}.
    */
-  private static final Pattern javaIdPattern =
+  private static final Pattern JAVA_ID_PATTERN =
       Pattern.compile("[a-zA-Z_$][a-zA-Z0-9$]*");
 
   /**
@@ -94,10 +92,10 @@ public class Util {
    * classes are not prevented from being unloaded.
    */
   private static final Map<Class, Map<String, ? extends Enum>>
-  mapClazzToMapNameToEnum =
+  MAP_CLASS_TO_MAP_NAME_TO_ENUM =
       new WeakHashMap<Class, Map<String, ? extends Enum>>();
 
-  public static final String[] spaces = {
+  public static final String[] SPACES = {
     "",
     " ",
     "  ",
@@ -116,7 +114,7 @@ public class Util {
    * you are not interested in, but you don't want the compiler to warn that
    * you are not using it.
    */
-  public static final void discard(Object o) {
+  public static void discard(Object o) {
     if (false) {
       discard(o);
     }
@@ -127,7 +125,7 @@ public class Util {
    * you are not interested in, but you don't want the compiler to warn that
    * you are not using it.
    */
-  public static final void discard(int i) {
+  public static void discard(int i) {
     if (false) {
       discard(i);
     }
@@ -138,10 +136,8 @@ public class Util {
    * you are not interested in, but you don't want the compiler to warn that
    * you are not using it.
    */
-  public static final void discard(boolean b) {
-    if (false) {
-      discard(b);
-    }
+  public static boolean discard(boolean b) {
+    return b;
   }
 
   /**
@@ -149,7 +145,7 @@ public class Util {
    * you are not interested in, but you don't want the compiler to warn that
    * you are not using it.
    */
-  public static final void discard(double d) {
+  public static void discard(double d) {
     if (false) {
       discard(d);
     }
@@ -162,7 +158,7 @@ public class Util {
    * @param e      Exception
    * @param logger If not null, logs exception to this logger
    */
-  public static final void swallow(
+  public static void swallow(
       Throwable e,
       Logger logger) {
     if (logger != null) {
@@ -173,7 +169,7 @@ public class Util {
   /**
    * Returns whether two objects are equal or are both null.
    */
-  public static final boolean equal(
+  public static boolean equal(
       Object s0,
       Object s1) {
     if (s0 == s1) {
@@ -377,8 +373,8 @@ public class Util {
       pw.print(" {");
       Field[] fields = clazz.getFields();
       int printed = 0;
-      for (int i = 0; i < fields.length; i++) {
-        if (isStatic(fields[i])) {
+      for (Field field : fields) {
+        if (isStatic(field)) {
           continue;
         }
         if (printed++ > 0) {
@@ -389,11 +385,11 @@ public class Util {
         for (int j = 0; j < indent; j++) {
           pw.print("\t");
         }
-        pw.print(fields[i].getName());
+        pw.print(field.getName());
         pw.print("=");
-        Object val = null;
+        Object val;
         try {
-          val = fields[i].get(o);
+          val = field.get(o);
         } catch (IllegalAccessException e) {
           throw newInternal(e);
         }
@@ -408,7 +404,7 @@ public class Util {
    * necessary. For examples, <code>printDoubleQuoted(w,"x\"y",false)</code>
    * prints <code>"x\"y"</code>.
    */
-  public static final void printJavaString(
+  public static void printJavaString(
       PrintWriter pw,
       String s,
       boolean nullMeansNull) {
@@ -444,9 +440,11 @@ public class Util {
    * <ul>
    * <li>A value of 0.00001234 would be formated as <code>1.234E-5</code></li>
    * <li>A value of 100000.00 would be formated as <code>1.00E5</code></li>
-   * <li>A value of 100 (scale zero) would be formated as <code>
-   * 1E2</code></li><br>
-   * If <code>bd</code> has a precision higher than 20, this method will
+   * <li>A value of 100 (scale zero) would be formated as
+   *     <code>1E2</code></li>
+   * </ul>
+   *
+   * <p>If <code>bd</code> has a precision higher than 20, this method will
    * truncate the output string to have a precision of 20 (no rounding will be
    * done, just a truncate).
    */
@@ -496,7 +494,7 @@ public class Util {
    * Replaces every occurrence of <code>find</code> in <code>s</code> with
    * <code>replace</code>.
    */
-  public static final String replace(
+  public static String replace(
       String s,
       String find,
       String replace) {
@@ -552,7 +550,7 @@ public class Util {
    * string reflects the current time.
    */
   public static String getFileTimestamp() {
-    SimpleDateFormat sdf = new SimpleDateFormat(fileTimestampFormat);
+    SimpleDateFormat sdf = new SimpleDateFormat(FILE_TIMESTAMP_FORMAT);
     return sdf.format(new java.util.Date());
   }
 
@@ -598,15 +596,13 @@ public class Util {
    * are illegal as a prefix)
    * <li><code>toJavaId("foo0bar")</code> returns <code>"foo0bar"</code>
    * </ul>
-   *
-   * @testcase
    */
   public static String toJavaId(
       String s,
       int ordinal) {
     // If it's already a valid Java id (and doesn't contain any
     // underscores), return it unchanged.
-    if (javaIdPattern.matcher(s).matches()) {
+    if (JAVA_ID_PATTERN.matcher(s).matches()) {
       // prepend "ID$" to string so it doesn't clash with java keywords
       return "ID$" + ordinal + "$" + s;
     }
@@ -859,9 +855,9 @@ public class Util {
    * feature has not been implemented, but should be.
    *
    * <p>If every 'hole' in our functionality uses this method, it will be
-   * easier for us to identity the holes. Throwing a {@link
-   * java.lang.UnsupportedOperationException} isn't as good, because sometimes
-   * we actually want to partially implement an API.
+   * easier for us to identity the holes. Throwing a
+   * {@link java.lang.UnsupportedOperationException} isn't as good, because
+   * sometimes we actually want to partially implement an API.
    *
    * <p>Example usage:
    *
@@ -872,7 +868,7 @@ public class Util {
    *         // this method
    *         throw Util.needToImplement(this);
    *     }
-   * }</pre>
+   * }</code></pre>
    * </blockquote>
    *
    * @param o The object which was the target of the call, or null. Passing
@@ -957,14 +953,14 @@ public class Util {
    * <p>This method also implements a work-around for applications that wish
    * to load AWT. AWT conflicts with some native libraries in a way that
    * requires AWT to be loaded first. This method checks the system property
-   * named {@link #awtWorkaroundProperty} and if it is set to "on" (default;
+   * named {@link #AWT_WORKAROUND_PROPERTY} and if it is set to "on" (default;
    * case-insensitive) it pre-loads AWT to avoid the conflict.
    *
    * @param libName the name of the library to load, as in {@link
    *                System#loadLibrary(String)}.
    */
   public static void loadLibrary(String libName) {
-    String awtSetting = System.getProperty(awtWorkaroundProperty, "on");
+    String awtSetting = System.getProperty(AWT_WORKAROUND_PROPERTY, "on");
     if ((awtToolkit == null) && awtSetting.equalsIgnoreCase("on")) {
       // REVIEW jvs 8-Sept-2006:  workaround upon workaround.  This
       // is required because in native code, we sometimes (see Farrago)
@@ -1233,22 +1229,27 @@ public class Util {
    *
    * <ul>
    * <li>'std' specifies the abbrev of the time zone.
-   * <li>'offset' is the offset from UTC, and takes the form <code>
-   * [+|-]hh[:mm[:ss]] {h=0-23, m/s=0-59}</code>
+   * <li>'offset' is the offset from UTC, and takes the form
+   *     <code>[+|-]hh[:mm[:ss]] {h=0-23, m/s=0-59}</code></li>
    * <li>'dst' specifies the abbrev of the time zone during daylight savings
    * time
    * <li>The second offset is how many hours changed during DST. Default=1
-   * <li>'start' & 'end' are the dates when DST goes into (and out of) effect.
-   * They can each be one of three forms:
+   * <li>'start' and 'end' are the dates when DST goes into (and out of)
+   *     effect.<br>
+   *     <br>
+   *     They can each be one of three forms:
    *
-   * <ol>
-   * <li>Mm.w.d {month=1-12, week=1-5 (5 is always last), day=0-6}
-   * <li>Jn {n=1-365 Feb29 is never counted}
-   * <li>n {n=0-365 Feb29 is counted in leap years}
-   * </ol>
-   * <li>'time' has the same format as 'offset', and defaults to 02:00:00
+   *     <ol>
+   *     <li>Mm.w.d {month=1-12, week=1-5 (5 is always last), day=0-6}
+   *     <li>Jn {n=1-365 Feb29 is never counted}
+   *     <li>n {n=0-365 Feb29 is counted in leap years}
+   *     </ol>
+   * </li>
    *
-   * <p>For example:
+   * <li>'time' has the same format as 'offset', and defaults to 02:00:00.</li>
+   * </ul>
+   *
+   * <p>For example:</p>
    *
    * <ul>
    * <li>"PST-8PDT01:00:00,M4.1.0/02:00:00,M10.1.0/02:00:00"; or more tersely
@@ -1858,15 +1859,15 @@ public class Util {
    * @param <T>   Enum class type
    * @return Enum constant or null
    */
-  @SuppressWarnings({"unchecked"})
+  @SuppressWarnings({"unchecked" })
   public static synchronized <T extends Enum<T>> T enumVal(
       Class<T> clazz,
       String name) {
     Map<String, T> mapNameToEnum =
-        (Map<String, T>) mapClazzToMapNameToEnum.get(clazz);
+        (Map<String, T>) MAP_CLASS_TO_MAP_NAME_TO_ENUM.get(clazz);
     if (mapNameToEnum == null) {
       mapNameToEnum = enumConstants(clazz);
-      mapClazzToMapNameToEnum.put(clazz, mapNameToEnum);
+      MAP_CLASS_TO_MAP_NAME_TO_ENUM.put(clazz, mapNameToEnum);
     }
     return mapNameToEnum.get(name);
   }

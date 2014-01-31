@@ -136,7 +136,7 @@ public class SqlInOperator extends SqlBinaryOperator {
       throw validator.newValidationError(
           call,
           EigenbaseResource.instance().IncompatibleValueType.ex(
-              SqlStdOperatorTable.inOperator.getName()));
+              SqlStdOperatorTable.IN.getName()));
     }
 
     // Result is a boolean, nullable if there are any nullable types

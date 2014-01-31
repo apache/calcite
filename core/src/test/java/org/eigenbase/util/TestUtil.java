@@ -27,9 +27,9 @@ import org.junit.ComparisonFailure;
 public abstract class TestUtil {
   //~ Static fields/initializers ---------------------------------------------
 
-  private static final Pattern LineBreakPattern =
+  private static final Pattern LINE_BREAK_PATTERN =
       Pattern.compile("\r\n|\r|\n");
-  private static final Pattern TabPattern = Pattern.compile("\t");
+  private static final Pattern TAB_PATTERN = Pattern.compile("\t");
 
   /**
    * System-dependent newline character.
@@ -40,13 +40,13 @@ public abstract class TestUtil {
    *
    * <p>Or you could use '\n' and let {@link #fold(String)} mask it.</p>
    */
-  public static final String NL = Util.lineSeparator;
+  public static final String NL = Util.LINE_SEPARATOR;
 
-  private static final String lineBreak = "\" + NL +" + NL + "\"";
+  private static final String LINE_BREAK = "\" + NL +" + NL + "\"";
 
-  private static final String lineBreak2 = "\\\\n\"" + NL + " + \"";
+  private static final String LINE_BREAK2 = "\\\\n\"" + NL + " + \"";
 
-  private static final String lineBreak3 = "\\n\"" + NL + " + \"";
+  private static final String LINE_BREAK3 = "\\n\"" + NL + " + \"";
 
   //~ Methods ----------------------------------------------------------------
 
@@ -91,8 +91,8 @@ public abstract class TestUtil {
   public static String quoteForJava(String s) {
     s = Util.replace(s, "\\", "\\\\");
     s = Util.replace(s, "\"", "\\\"");
-    s = LineBreakPattern.matcher(s).replaceAll(lineBreak);
-    s = TabPattern.matcher(s).replaceAll("\\\\t");
+    s = LINE_BREAK_PATTERN.matcher(s).replaceAll(LINE_BREAK);
+    s = TAB_PATTERN.matcher(s).replaceAll("\\\\t");
     s = "\"" + s + "\"";
     final String spurious = " + " + NL + "\"\"";
     if (s.endsWith(spurious)) {
@@ -122,14 +122,14 @@ public abstract class TestUtil {
     // + "across lines")]
     //
     s = Util.replace(s, "\"", "\\\"");
-    s = LineBreakPattern.matcher(s).replaceAll(lineBreak2);
-    s = TabPattern.matcher(s).replaceAll("\\\\t");
+    s = LINE_BREAK_PATTERN.matcher(s).replaceAll(LINE_BREAK2);
+    s = TAB_PATTERN.matcher(s).replaceAll("\\\\t");
     s = "\"" + s + "\"";
     String spurious = NL + " \\+ \"\"";
     if (s.endsWith(spurious)) {
       s = s.substring(0, s.length() - spurious.length());
     }
-    if (s.indexOf(lineBreak3) >= 0) {
+    if (s.indexOf(LINE_BREAK3) >= 0) {
       s = "TestUtil.fold(" + NL + s + ")";
     }
     return s;

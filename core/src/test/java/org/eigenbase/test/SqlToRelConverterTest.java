@@ -652,7 +652,7 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
   /**
    * Tests one of the custom conversions which is recognized by the identity
    * of the operator (in this case, {@link
-   * org.eigenbase.sql.fun.SqlStdOperatorTable#characterLengthFunc}).
+   * org.eigenbase.sql.fun.SqlStdOperatorTable#CHARACTER_LENGTH}).
    */
   @Test public void testCharLength() {
     // Note that CHARACTER_LENGTH becomes CHAR_LENGTH.
@@ -733,7 +733,7 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
 
   @Test public void testInterval() {
     // temporarily disabled per DTbug 1212
-    if (Bug.Dt785Fixed) {
+    if (Bug.DT785_FIXED) {
       check(
           "values(cast(interval '1' hour as interval hour to second))",
           "${plan}");

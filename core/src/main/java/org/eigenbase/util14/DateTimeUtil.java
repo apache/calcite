@@ -28,33 +28,25 @@ import java.util.*;
  * introduce a "formatter" with the required state.
  */
 public class DateTimeUtil {
+  private DateTimeUtil() {}
+
   //~ Static fields/initializers ---------------------------------------------
 
-  /**
-   * the SimpleDateFormat string for ISO dates, "yyyy-MM-dd"
-   */
-  public static final String DateFormatStr = "yyyy-MM-dd";
+  /** The SimpleDateFormat string for ISO dates, "yyyy-MM-dd". */
+  public static final String DATE_FORMAT_STRING = "yyyy-MM-dd";
 
-  /**
-   * the SimpleDateFormat string for ISO times, "HH:mm:ss"
-   */
-  public static final String TimeFormatStr = "HH:mm:ss";
+  /** The SimpleDateFormat string for ISO times, "HH:mm:ss". */
+  public static final String TIME_FORMAT_STRING = "HH:mm:ss";
 
-  /**
-   * the SimpleDateFormat string for ISO timestamps, "yyyy-MM-dd HH:mm:ss"
-   */
-  public static final String TimestampFormatStr =
-      DateFormatStr + " " + TimeFormatStr;
+  /** The SimpleDateFormat string for ISO timestamps, "yyyy-MM-dd HH:mm:ss". */
+  public static final String TIMESTAMP_FORMAT_STRING =
+      DATE_FORMAT_STRING + " " + TIME_FORMAT_STRING;
 
-  /**
-   * the GMT time zone
-   */
-  public static final TimeZone gmtZone = TimeZone.getTimeZone("GMT");
+  /** The GMT time zone. */
+  public static final TimeZone GMT_ZONE = TimeZone.getTimeZone("GMT");
 
-  /**
-   * the Java default time zone
-   */
-  public static final TimeZone defaultZone = TimeZone.getDefault();
+  /** The Java default time zone. */
+  public static final TimeZone DEFAULT_ZONE = TimeZone.getDefault();
 
   /**
    * The number of milliseconds in a second.
@@ -84,11 +76,11 @@ public class DateTimeUtil {
    * initializing other values. Calendars are not immutable, so be careful not
    * to screw up this object for everyone else.
    */
-  public static final Calendar zeroCalendar;
+  public static final Calendar ZERO_CALENDAR;
 
   static {
-    zeroCalendar = Calendar.getInstance(DateTimeUtil.gmtZone);
-    zeroCalendar.setTimeInMillis(0);
+    ZERO_CALENDAR = Calendar.getInstance(DateTimeUtil.GMT_ZONE);
+    ZERO_CALENDAR.setTimeInMillis(0);
   }
 
   /**
@@ -122,7 +114,7 @@ public class DateTimeUtil {
     assert pattern != null;
     SimpleDateFormat df = new SimpleDateFormat(pattern);
     if (tz == null) {
-      tz = defaultZone;
+      tz = DEFAULT_ZONE;
     }
     Calendar ret = Calendar.getInstance(tz);
     df.setCalendar(ret);
@@ -133,7 +125,7 @@ public class DateTimeUtil {
       return null;
     }
     ret.setTime(d);
-    ret.setTimeZone(gmtZone);
+    ret.setTimeZone(GMT_ZONE);
     return ret;
   }
 
@@ -240,7 +232,7 @@ public class DateTimeUtil {
    */
   public static TimeZone getTimeZone(Calendar cal) {
     if (cal == null) {
-      return defaultZone;
+      return DEFAULT_ZONE;
     }
     return cal.getTimeZone();
   }

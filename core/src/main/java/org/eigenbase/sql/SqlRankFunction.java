@@ -44,7 +44,7 @@ public class SqlRankFunction extends SqlAggFunction {
         SqlTypeStrategies.rtiInteger,
         null,
         SqlTypeStrategies.otcNiladic,
-        SqlFunctionCategory.Numeric);
+        SqlFunctionCategory.NUMERIC);
   }
 
   //~ Methods ----------------------------------------------------------------

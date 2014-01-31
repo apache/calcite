@@ -54,7 +54,7 @@ public class SqlAvgAggFunction extends SqlAggFunction {
         SqlTypeStrategies.rtiFirstArgType,
         null,
         SqlTypeStrategies.otcNumeric,
-        SqlFunctionCategory.Numeric);
+        SqlFunctionCategory.NUMERIC);
     this.type = type;
     this.subtype = subtype;
   }

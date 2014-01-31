@@ -279,7 +279,7 @@ public class SqlLiteral extends SqlNode {
       return literal.toValue();
     } else if (
         (node instanceof SqlCall)
-        && (((SqlCall) node).getOperator() == SqlStdOperatorTable.castFunc)) {
+        && (((SqlCall) node).getOperator() == SqlStdOperatorTable.CAST)) {
       return stringValue(((SqlCall) node).getOperands()[0]);
     } else {
       throw Util.newInternal("invalid string literal: " + node);

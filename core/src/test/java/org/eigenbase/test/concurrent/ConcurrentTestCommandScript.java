@@ -192,21 +192,11 @@ public class ConcurrentTestCommandScript
   private static final int INCLUDE_LEN = INCLUDE.length();
   private static final int VAR_LEN = VAR.length();
 
-  private static final char[] spaces;
-  private static final char[] dashes;
-
   private static final int BUF_SIZE = 1024;
   private static final int REPEAT_READ_AHEAD_LIMIT = 65536;
 
-  static {
-    spaces = new char[BUF_SIZE];
-    dashes = new char[BUF_SIZE];
-
-    for (int i = 0; i < BUF_SIZE; i++) {
-      spaces[i] = ' ';
-      dashes[i] = '-';
-    }
-  }
+  private static final char[] SPACES = fill(new char[BUF_SIZE], ' ');
+  private static final char[] DASHES = fill(new char[BUF_SIZE], '-');
 
   // Special "thread ids" for setup & cleanup sections; actually setup &
   // cleanup SQL is executed by the main thread, and neither are in the the
@@ -256,6 +246,11 @@ public class ConcurrentTestCommandScript
 
   //~ Methods ----------------------------------------------------------------
 
+  private static char[] fill(char[] chars, char c) {
+    Arrays.fill(chars, c);
+    return chars;
+  }
+
   /**
    * Gets ready to execute: loads script FILENAME applying external variable
    * BINDINGS
@@ -287,7 +282,7 @@ public class ConcurrentTestCommandScript
   public void execute() throws Exception {
     scriptStartTime = System.currentTimeMillis();
     executeSetup();
-    ConcurrentTestCommandExecutor threads[] = innerExecute();
+    ConcurrentTestCommandExecutor[] threads = innerExecute();
     executeCleanup();
     postExecute(threads);
   }
@@ -341,7 +336,7 @@ public class ConcurrentTestCommandScript
 
   protected void executeCommands(int threadID, List<String> commands)
     throws Exception {
-    if ((commands == null) || (commands.size() == 0)) {
+    if (commands == null || commands.size() == 0) {
       return;
     }
 
@@ -455,13 +450,9 @@ public class ConcurrentTestCommandScript
         if (isComment(line)) {
           continue;
         }
-        if (line.startsWith("select")
+        return line.startsWith("select")
             || line.startsWith("values")
-            || line.startsWith("explain")) {
-          return true;
-        } else {
-          return false;
-        }
+            || line.startsWith("explain");
       }
     } catch (IOException e) {
       assert false : "IOException via StringReader";
@@ -699,7 +690,7 @@ public class ConcurrentTestCommandScript
     }
 
     // a symbol must be explicitly defined before it can be set or read.
-    public void define(String sym, String val) throws Excn {
+    public void define(String sym, String val) {
       if (isDefined(sym)) {
         throw new Excn("second declaration of variable " + sym);
       }
@@ -716,7 +707,7 @@ public class ConcurrentTestCommandScript
       }
     }
 
-    public void set(String sym, String val) throws Excn {
+    public void set(String sym, String val) {
       if (isDefined(sym)) {
         map.put(sym, val);
         return;
@@ -1943,7 +1934,7 @@ public class ConcurrentTestCommandScript
         int numDashes = widths[i];
         while (numDashes > 0) {
           out.write(
-              dashes,
+              DASHES,
               0,
               Math.min(numDashes, BUF_SIZE));
           numDashes -= Math.min(numDashes, BUF_SIZE);
@@ -1971,7 +1962,7 @@ public class ConcurrentTestCommandScript
         int excess = widths[i] - value.length();
         while (excess > 0) {
           out.write(
-              spaces,
+              SPACES,
               0,
               Math.min(excess, BUF_SIZE));
           excess -= Math.min(excess, BUF_SIZE);

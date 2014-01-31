@@ -135,13 +135,14 @@ public class RexProgramTest {
 
   /**
    * Creates a program, depending on variant:
+   *
    * <ol>
    * <li><code>select (x + y) + (x + 1) as a, (x + x) as b from t(x, y)</code>
    * <li><code>select (x + y) + (x + 1) as a, (x + (x + 1)) as b
    * from t(x, y)</code>
    * <li><code>select (x + y) + (x + 1) as a, (x + x) as b from t(x, y)
    * where ((x + y) > 1) and ((x + y) > 1)</code>
-   * </ul>
+   * </ol>
    */
   private RexProgramBuilder createProg(int variant) {
     assert variant == 0 || variant == 1 || variant == 2;
@@ -163,7 +164,7 @@ public class RexProgramTest {
     RexLocalRef t2 =
         builder.addExpr(
             rexBuilder.makeCall(
-                SqlStdOperatorTable.plusOperator,
+                SqlStdOperatorTable.PLUS,
                 i0,
                 c1));
     // $t3 = 77 (not used)
@@ -180,7 +181,7 @@ public class RexProgramTest {
     RexLocalRef t4 =
         builder.addExpr(
             rexBuilder.makeCall(
-                SqlStdOperatorTable.plusOperator,
+                SqlStdOperatorTable.PLUS,
                 i0,
                 i1));
     RexLocalRef t5;
@@ -190,7 +191,7 @@ public class RexProgramTest {
       // $t5 = $t0 + $t0 (i.e. x + x)
       t5 = builder.addExpr(
           rexBuilder.makeCall(
-              SqlStdOperatorTable.plusOperator,
+              SqlStdOperatorTable.PLUS,
               i0,
               i0));
       break;
@@ -199,14 +200,14 @@ public class RexProgramTest {
       RexLocalRef tx =
           builder.addExpr(
               rexBuilder.makeCall(
-                  SqlStdOperatorTable.plusOperator,
+                  SqlStdOperatorTable.PLUS,
                   i0,
                   c1));
       // $t5 = $t0 + $tx (i.e. x + (x + 1))
       t5 =
           builder.addExpr(
               rexBuilder.makeCall(
-                  SqlStdOperatorTable.plusOperator,
+                  SqlStdOperatorTable.PLUS,
                   i0,
                   tx));
       break;
@@ -217,7 +218,7 @@ public class RexProgramTest {
     RexLocalRef t6 =
         builder.addExpr(
             rexBuilder.makeCall(
-                SqlStdOperatorTable.plusOperator,
+                SqlStdOperatorTable.PLUS,
                 t4,
                 t2));
     builder.addProject(t6.getIndex(), "a");
@@ -228,14 +229,14 @@ public class RexProgramTest {
       RexLocalRef t7 =
           builder.addExpr(
               rexBuilder.makeCall(
-                  SqlStdOperatorTable.greaterThanOperator,
+                  SqlStdOperatorTable.GREATER_THAN,
                   t4,
                   i0));
       // $t8 = $t7 AND $t7
       RexLocalRef t8 =
           builder.addExpr(
               rexBuilder.makeCall(
-                  SqlStdOperatorTable.andOperator,
+                  SqlStdOperatorTable.AND,
                   t7,
                   t7));
       builder.addCondition(t8);

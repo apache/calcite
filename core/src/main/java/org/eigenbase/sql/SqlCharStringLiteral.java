@@ -27,8 +27,7 @@ import org.eigenbase.util.*;
  * <p>Its {@link #value} field is an {@link NlsString} and {@link #typeName} is
  * {@link SqlTypeName#CHAR}.
  */
-public class SqlCharStringLiteral extends SqlAbstractStringLiteral
-{
+public class SqlCharStringLiteral extends SqlAbstractStringLiteral {
     //~ Constructors -----------------------------------------------------------
 
   protected SqlCharStringLiteral(NlsString val, SqlParserPos pos) {
@@ -60,7 +59,7 @@ public class SqlCharStringLiteral extends SqlAbstractStringLiteral
       int leftPrec,
       int rightPrec) {
     if (false) {
-      Util.discard(Bug.Frg78Fixed);
+      Util.discard(Bug.FRG78_FIXED);
       String stringValue = ((NlsString) value).getValue();
       writer.literal(
           writer.getDialect().quoteStringLiteral(stringValue));

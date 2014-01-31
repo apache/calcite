@@ -52,25 +52,15 @@ public class SqlWindowOperator extends SqlOperator {
   /**
    * The FOLLOWING operator used exclusively in a window specification.
    */
-  static final SqlPostfixOperator followingOperator =
-      new SqlPostfixOperator(
-          "FOLLOWING",
-          SqlKind.FOLLOWING,
-          20,
-          null,
-          null,
+  static final SqlPostfixOperator FOLLOWING_OPERATOR =
+      new SqlPostfixOperator("FOLLOWING", SqlKind.FOLLOWING, 20, null, null,
           null);
 
   /**
    * The PRECEDING operator used exclusively in a window specification.
    */
-  static final SqlPostfixOperator precedingOperator =
-      new SqlPostfixOperator(
-          "PRECEDING",
-          SqlKind.PRECEDING,
-          20,
-          null,
-          null,
+  static final SqlPostfixOperator PRECEDING_OPERATOR =
+      new SqlPostfixOperator("PRECEDING", SqlKind.PRECEDING, 20, null, null,
           null);
 
   //~ Enums ------------------------------------------------------------------
@@ -82,6 +72,7 @@ public class SqlWindowOperator extends SqlOperator {
   enum Bound implements SqlLiteral.SqlSymbol {
     CURRENT_ROW("CURRENT ROW"), UNBOUNDED_PRECEDING("UNBOUNDED PRECEDING"),
     UNBOUNDED_FOLLOWING("UNBOUNDED FOLLOWING");
+
     private final String sql;
 
     Bound(String sql) {
@@ -110,7 +101,7 @@ public class SqlWindowOperator extends SqlOperator {
   //~ Methods ----------------------------------------------------------------
 
   public SqlSyntax getSyntax() {
-    return SqlSyntax.Special;
+    return SqlSyntax.SPECIAL;
   }
 
   public SqlCall createCall(
@@ -166,7 +157,7 @@ public class SqlWindowOperator extends SqlOperator {
         if (operand == null) {
           continue;
         }
-        if ((i == SqlWindow.RefName_OPERAND)
+        if ((i == SqlWindow.Operand.REF_NAME.ordinal())
             && (operand instanceof SqlIdentifier)) {
           continue;
         }
@@ -185,12 +176,12 @@ public class SqlWindowOperator extends SqlOperator {
     final SqlWriter.Frame frame =
         writer.startList(SqlWriter.FrameTypeEnum.Window, "(", ")");
     SqlIdentifier refName =
-        (SqlIdentifier) operands[SqlWindow.RefName_OPERAND];
+        (SqlIdentifier) SqlWindow.Operand.REF_NAME.get(operands);
     if (refName != null) {
       refName.unparse(writer, 0, 0);
     }
     SqlNodeList partitionList =
-        (SqlNodeList) operands[SqlWindow.PartitionList_OPERAND];
+        (SqlNodeList) SqlWindow.Operand.PARTITION_LIST.get(operands);
     if (partitionList.size() > 0) {
       writer.sep("PARTITION BY");
       final SqlWriter.Frame partitionFrame = writer.startList("", "");
@@ -198,7 +189,7 @@ public class SqlWindowOperator extends SqlOperator {
       writer.endList(partitionFrame);
     }
     SqlNodeList orderList =
-        (SqlNodeList) operands[SqlWindow.OrderList_OPERAND];
+        (SqlNodeList) SqlWindow.Operand.ORDER_LIST.get(operands);
     if (orderList.size() > 0) {
       writer.sep("ORDER BY");
       final SqlWriter.Frame orderFrame = writer.startList("", "");
@@ -206,9 +197,9 @@ public class SqlWindowOperator extends SqlOperator {
       writer.endList(orderFrame);
     }
     boolean isRows =
-        SqlLiteral.booleanValue(operands[SqlWindow.IsRows_OPERAND]);
-    SqlNode lowerBound = operands[SqlWindow.LowerBound_OPERAND],
-        upperBound = operands[SqlWindow.UpperBound_OPERAND];
+        SqlLiteral.booleanValue(SqlWindow.Operand.IS_ROWS.get(operands));
+    SqlNode lowerBound = SqlWindow.Operand.LOWER_BOUND.get(operands);
+    SqlNode upperBound = SqlWindow.Operand.UPPER_BOUND.get(operands);
     if (lowerBound == null) {
       // No ROWS or RANGE clause
     } else if (upperBound == null) {
@@ -230,13 +221,12 @@ public class SqlWindowOperator extends SqlOperator {
     }
 
     // ALLOW PARTIAL/DISALLOW PARTIAL
-    SqlNode allowPartial = operands[SqlWindow.AllowPartial_OPERAND];
+    SqlNode allowPartial = SqlWindow.Operand.ALLOW_PARTIAL.get(operands);
     if (allowPartial == null) {
-      ;
+      // do nothing
     } else if (SqlLiteral.booleanValue(allowPartial)) {
       // We could output "ALLOW PARTIAL", but this syntax is
       // non-standard. Omitting the clause has the same effect.
-      ;
     } else {
       writer.keyword("DISALLOW PARTIAL");
     }
@@ -256,14 +246,14 @@ public class SqlWindowOperator extends SqlOperator {
 
     //        operandScope = validator.getScope(operands[0]);
     SqlIdentifier refName =
-        (SqlIdentifier) operands[SqlWindow.RefName_OPERAND];
+        (SqlIdentifier) SqlWindow.Operand.REF_NAME.get(operands);
     if (refName != null) {
       SqlWindow win = validator.resolveWindow(call, operandScope, false);
       operands = win.operands;
     }
 
     SqlNodeList partitionList =
-        (SqlNodeList) operands[SqlWindow.PartitionList_OPERAND];
+        (SqlNodeList) SqlWindow.Operand.PARTITION_LIST.get(operands);
     if (null != partitionList) {
       if (0 != partitionList.size()) {
         for (int i = 0; i < partitionList.size(); i++) {
@@ -276,7 +266,7 @@ public class SqlWindowOperator extends SqlOperator {
     }
 
     SqlNodeList orderList =
-        (SqlNodeList) operands[SqlWindow.OrderList_OPERAND];
+        (SqlNodeList) SqlWindow.Operand.ORDER_LIST.get(operands);
     if (orderList != null) {
       if (0 != orderList.size()) {
         for (int i = 0; i < orderList.size(); i++) {
@@ -299,9 +289,9 @@ public class SqlWindowOperator extends SqlOperator {
     }
 
     boolean isRows =
-        SqlLiteral.booleanValue(operands[SqlWindow.IsRows_OPERAND]);
-    SqlNode lowerBound = operands[SqlWindow.LowerBound_OPERAND],
-        upperBound = operands[SqlWindow.UpperBound_OPERAND];
+        SqlLiteral.booleanValue(SqlWindow.Operand.IS_ROWS.get(operands));
+    SqlNode lowerBound = SqlWindow.Operand.LOWER_BOUND.get(operands);
+    SqlNode upperBound = SqlWindow.Operand.UPPER_BOUND.get(operands);
 
     boolean triggerFunction = false;
     if (null != windowCall) {
@@ -318,11 +308,11 @@ public class SqlWindowOperator extends SqlOperator {
     }
 
     // Run framing checks if there are any
-    if ((null != upperBound) || (null != lowerBound)) {
+    if (upperBound != null || lowerBound != null) {
       // 6.10 Rule 6a
       if (triggerFunction) {
         throw validator.newValidationError(
-            operands[SqlWindow.IsRows_OPERAND],
+            SqlWindow.Operand.IS_ROWS.get(operands),
             EigenbaseResource.instance().RankWithFrame.ex());
       }
       SqlTypeFamily orderTypeFam = null;
@@ -332,9 +322,8 @@ public class SqlWindowOperator extends SqlOperator {
         // if order by is a conpound list then range not allowed
         if ((orderList.size() > 1) && !isRows) {
           throw validator.newValidationError(
-              operands[SqlWindow.IsRows_OPERAND],
-              EigenbaseResource.instance()
-                  .CompoundOrderByProhibitsRange.ex());
+              SqlWindow.Operand.IS_ROWS.get(operands),
+              EigenbaseResource.instance().CompoundOrderByProhibitsRange.ex());
         }
 
         // get the type family for the sort key for Frame Boundary Val.
@@ -376,7 +365,7 @@ public class SqlWindowOperator extends SqlOperator {
           EigenbaseResource.instance().OverMissingOrderBy.ex());
     }
 
-    SqlNode allowPartialOperand = operands[SqlWindow.AllowPartial_OPERAND];
+    SqlNode allowPartialOperand = SqlWindow.Operand.ALLOW_PARTIAL.get(operands);
     boolean allowPartial =
         (allowPartialOperand == null)
             || SqlLiteral.booleanValue(allowPartialOperand);
@@ -519,7 +508,7 @@ public class SqlWindowOperator extends SqlOperator {
 
     if (Bound.CURRENT_ROW == lowerLitType) {
       if (null != upperOp) {
-        if (upperOp == precedingOperator) {
+        if (upperOp == PRECEDING_OPERATOR) {
           throw validator.newValidationError(
               upperBound,
               EigenbaseResource.instance().CurrentRowPrecedingError
@@ -527,9 +516,9 @@ public class SqlWindowOperator extends SqlOperator {
         }
       }
     } else if (null != lowerOp) {
-      if (lowerOp == followingOperator) {
+      if (lowerOp == FOLLOWING_OPERATOR) {
         if (null != upperOp) {
-          if (upperOp == precedingOperator) {
+          if (upperOp == PRECEDING_OPERATOR) {
             throw validator.newValidationError(
                 upperBound,
                 EigenbaseResource.instance()
@@ -642,11 +631,11 @@ public class SqlWindowOperator extends SqlOperator {
   }
 
   public static SqlNode createFollowing(SqlLiteral literal, SqlParserPos pos) {
-    return followingOperator.createCall(pos, literal);
+    return FOLLOWING_OPERATOR.createCall(pos, literal);
   }
 
   public static SqlNode createPreceding(SqlLiteral literal, SqlParserPos pos) {
-    return precedingOperator.createCall(pos, literal);
+    return PRECEDING_OPERATOR.createCall(pos, literal);
   }
 
   public static SqlNode createBound(SqlLiteral range) {
@@ -694,8 +683,8 @@ public class SqlWindowOperator extends SqlOperator {
       final SqlNode lowerBound,
       final SqlNode upperBound,
       boolean physical) {
-    ValSign upper = getRangeOffset(upperBound, precedingOperator);
-    ValSign lower = getRangeOffset(lowerBound, followingOperator);
+    ValSign upper = getRangeOffset(upperBound, PRECEDING_OPERATOR);
+    ValSign lower = getRangeOffset(lowerBound, FOLLOWING_OPERATOR);
     long offset;
     long range;
     if (upper == null) {
@@ -718,12 +707,12 @@ public class SqlWindowOperator extends SqlOperator {
    * 'UNBOUNDED PRECEDING' or 'UNBOUNDED FOLLOWING' is null.
    *
    * @param node Node representing window bound
-   * @param op   Either {@link #precedingOperator} or {@link #followingOperator}
+   * @param op   Either {@link #PRECEDING_OPERATOR} or {@link #FOLLOWING_OPERATOR}
    * @return range
    */
   private static ValSign getRangeOffset(SqlNode node, SqlPostfixOperator op) {
-    assert (op == precedingOperator)
-        || (op == followingOperator);
+    assert (op == PRECEDING_OPERATOR)
+        || (op == FOLLOWING_OPERATOR);
     if (node == null) {
       return new ValSign(0, 1);
     } else if (node instanceof SqlLiteral) {
@@ -732,11 +721,11 @@ public class SqlWindowOperator extends SqlOperator {
         return new ValSign(0, 1);
       } else if (
           (literal.getValue() == Bound.UNBOUNDED_FOLLOWING)
-              && (op == precedingOperator)) {
+              && (op == PRECEDING_OPERATOR)) {
         return null;
       } else if (
           (literal.getValue() == Bound.UNBOUNDED_PRECEDING)
-              && (op == followingOperator)) {
+              && (op == FOLLOWING_OPERATOR)) {
         return null;
       } else {
         throw Util.newInternal("unexpected literal " + literal);

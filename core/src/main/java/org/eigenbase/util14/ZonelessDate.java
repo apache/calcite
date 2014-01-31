@@ -63,7 +63,7 @@ public class ZonelessDate extends ZonelessDatetime {
 
   // implement ZonelessDatetime
   public Object toJdbcObject() {
-    return new Date(getJdbcDate(DateTimeUtil.defaultZone));
+    return new Date(getJdbcDate(DateTimeUtil.DEFAULT_ZONE));
   }
 
   /**
@@ -73,7 +73,7 @@ public class ZonelessDate extends ZonelessDatetime {
    * @return the formatted date string
    */
   public String toString() {
-    Date jdbcDate = getTempDate(getJdbcDate(DateTimeUtil.defaultZone));
+    Date jdbcDate = getTempDate(getJdbcDate(DateTimeUtil.DEFAULT_ZONE));
     return jdbcDate.toString();
   }
 
@@ -97,7 +97,7 @@ public class ZonelessDate extends ZonelessDatetime {
    * @return the parsed date, or null if parsing failed
    */
   public static ZonelessDate parse(String s) {
-    return parse(s, DateTimeUtil.DateFormatStr);
+    return parse(s, DateTimeUtil.DATE_FORMAT_STRING);
   }
 
   /**
@@ -113,7 +113,7 @@ public class ZonelessDate extends ZonelessDatetime {
         DateTimeUtil.parseDateFormat(
             s,
             format,
-            DateTimeUtil.gmtZone);
+            DateTimeUtil.GMT_ZONE);
     if (cal == null) {
       return null;
     }

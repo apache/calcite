@@ -43,8 +43,7 @@ public class SqlMultisetValueConstructor extends SqlSpecialOperator {
   protected SqlMultisetValueConstructor(String name, SqlKind kind) {
     super(
         name,
-        kind,
-        MaxPrec,
+        kind, MDX_PRECEDENCE,
         false,
         SqlTypeStrategies.rtiFirstArgType,
         null,

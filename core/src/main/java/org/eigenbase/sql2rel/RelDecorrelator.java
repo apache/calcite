@@ -49,7 +49,7 @@ import net.hydromatic.optiq.util.BitSets;
 public class RelDecorrelator implements ReflectiveVisitor {
   //~ Static fields/initializers ---------------------------------------------
 
-  private static final Logger sqlToRelTracer =
+  private static final Logger SQL2REL_LOGGER =
       EigenbaseTrace.getSqlToRelTracer();
 
   //~ Instance fields --------------------------------------------------------
@@ -684,7 +684,8 @@ public class RelDecorrelator implements ReflectiveVisitor {
     // the join output, leaving room for valueGenFieldOffset because
     // valueGenerators are joined with the original left input of the rel
     // referencing correlated variables.
-    int newOutputPos, newLocalOutputPos;
+    int newOutputPos;
+    int newLocalOutputPos;
     for (CorrelatorRel.Correlation corVar : correlations) {
       // The first child of a correlatorRel is always the rel defining
       // the correlated variables.
@@ -900,13 +901,14 @@ public class RelDecorrelator implements ReflectiveVisitor {
     final List<RelDataTypeField> newRightOutput =
         newRightRel.getRowType().getFieldList();
 
-    int newLeftPos, newRightPos;
+    int newLeftPos;
+    int newRightPos;
     for (CorrelatorRel.Correlation corVar : rel.getCorrelations()) {
       newLeftPos = leftChildMapOldToNewOutputPos.get(corVar.getOffset());
       newRightPos = rightChildMapCorVarToOutputPos.get(corVar);
       RexNode equi =
           rexBuilder.makeCall(
-              SqlStdOperatorTable.equalsOperator,
+              SqlStdOperatorTable.EQUALS,
               RexInputRef.of(newLeftPos, newLeftOutput),
               new RexInputRef(
                   newLeftFieldCount + newRightPos,
@@ -916,7 +918,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
       } else {
         condition =
             rexBuilder.makeCall(
-                SqlStdOperatorTable.andOperator,
+                SqlStdOperatorTable.AND,
                 condition,
                 equi);
       }
@@ -1496,7 +1498,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
       // WHEN indicator IS NULL
       caseOperands[0] =
           rexBuilder.makeCall(
-              SqlStdOperatorTable.isNullOperator,
+              SqlStdOperatorTable.IS_NULL,
               new RexInputRef(
                   nullInputRef.getIndex(),
                   typeFactory.createTypeWithNullability(
@@ -1520,7 +1522,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
               rexNode);
 
       return rexBuilder.makeCall(
-          SqlStdOperatorTable.caseOperator,
+          SqlStdOperatorTable.CASE,
           caseOperands);
     }
 
@@ -1825,7 +1827,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
         if (!RelMdUtil.areColumnsDefinitelyUniqueWhenNullsFiltered(
             rightInputRel,
             rightJoinKeys)) {
-          sqlToRelTracer.fine(
+          SQL2REL_LOGGER.fine(
               rightJoinKeys.toString()
                   + "are not unique keys for "
                   + rightInputRel.toString());
@@ -2060,7 +2062,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
         if (!RelMdUtil.areColumnsDefinitelyUniqueWhenNullsFiltered(
             leftInputRel,
             correlatedInputRefJoinKeys)) {
-          sqlToRelTracer.fine(
+          SQL2REL_LOGGER.fine(
               correlatedJoinKeys.toString()
                   + "are not unique keys for "
                   + leftInputRel.toString());
@@ -2141,7 +2143,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
         if (!RelMdUtil.areColumnsDefinitelyUnique(
             leftInputRel,
             allCols)) {
-          sqlToRelTracer.fine("There are no unique keys for " + leftInputRel);
+          SQL2REL_LOGGER.fine("There are no unique keys for " + leftInputRel);
           return;
         }
         //

@@ -115,9 +115,10 @@ class VolcanoRuleMatch extends VolcanoRuleCall {
         // the importance of the rule. A converter is an easy way to
         // make the plan cheaper, so we'd hate to miss this opportunity.
         //
-        //
         // REVIEW: jhyde, 2007/12/21: This rule seems to make sense, but
         // is disabled until it has been proven.
+        //
+        // CHECKSTYLE: IGNORE 3
         if ((subset != null)
             && subset.bestCost.isLt(targetSubset.bestCost)
             && false) {

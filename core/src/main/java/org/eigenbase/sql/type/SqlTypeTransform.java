@@ -27,7 +27,7 @@ import org.eigenbase.sql.*;
  * object of type {@link SqlTypeTransformCascade}.
  *
  * <p>This class is an example of the {@link
- * org.eigenbase.util.Glossary#StrategyPattern strategy pattern}.</p>
+ * org.eigenbase.util.Glossary#STRATEGY_PATTERN strategy pattern}.</p>
  */
 public interface SqlTypeTransform {
   //~ Methods ----------------------------------------------------------------

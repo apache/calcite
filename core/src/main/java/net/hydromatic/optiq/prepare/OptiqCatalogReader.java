@@ -159,7 +159,7 @@ class OptiqCatalogReader implements Prepare.CatalogReader, SqlOperatorTable {
       SqlIdentifier opName,
       SqlFunctionCategory category,
       SqlSyntax syntax) {
-    if (syntax != SqlSyntax.Function) {
+    if (syntax != SqlSyntax.FUNCTION) {
       return ImmutableList.of();
     }
     final Collection<TableFunction> tableFunctions =

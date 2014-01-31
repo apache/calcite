@@ -137,7 +137,8 @@ class ConcurrentTestCommandExecutor extends Thread {
     int stepNumber = 0;
 
     for (ConcurrentTestCommand command : commands) {
-      if (!(command instanceof
+      if (!(command
+          instanceof
           ConcurrentTestCommandGenerator.AutoSynchronizationCommand)) {
         stepNumber++;
       }
@@ -151,9 +152,8 @@ class ConcurrentTestCommandExecutor extends Thread {
       //  }
 
       // synchronization commands are always executed, lest we deadlock
-      boolean isSync =
-          command instanceof
-              ConcurrentTestCommandGenerator.SynchronizationCommand;
+      boolean isSync = command
+          instanceof ConcurrentTestCommandGenerator.SynchronizationCommand;
 
       if (isSync
           || ((connection != null)

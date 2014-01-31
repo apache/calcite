@@ -948,9 +948,9 @@ public class OptiqPrepareImpl implements OptiqPrepare {
             true);
       case GreaterThan:
         return binary(
-            expression, SqlStdOperatorTable.greaterThanOperator);
+            expression, SqlStdOperatorTable.GREATER_THAN);
       case LessThan:
-        return binary(expression, SqlStdOperatorTable.lessThanOperator);
+        return binary(expression, SqlStdOperatorTable.LESS_THAN);
       case Parameter:
         return parameter((ParameterExpression) expression);
       case Call:

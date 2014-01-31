@@ -29,6 +29,8 @@ import org.eigenbase.resource.*;
  * Utility functions for converting from one type to another
  */
 public class ConversionUtil {
+  private ConversionUtil() {}
+
   //~ Static fields/initializers ---------------------------------------------
 
   public static final String NATIVE_UTF16_CHARSET_NAME =

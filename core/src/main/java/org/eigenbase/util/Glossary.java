@@ -23,27 +23,28 @@ package org.eigenbase.util;
  * <p>(This is not a real class. It is here so that terms which do not map to
  * classes can be referenced in Javadoc.)</p>
  */
-public class Glossary {
+public interface Glossary {
   //~ Static fields/initializers ---------------------------------------------
 
+  // CHECKSTYLE: OFF
   /**
    * <p>This table shows how and where the Gang of Four patterns are applied.
    * The table uses information from the GoF book and from a course on
    * advanced object design taught by Craig Larman.</p>
    *
-   * <p>The patterns are in three groups depicting frequency of use. The *
-   * patterns in <b> <font color="lime">light green</font></b> are used <i>
-   * frequently</i>. Those in <b><font color="#ffff00">yellow</font></b> have
-   * <i>moderate</i> use. Patterns in <b><font color="red">red</font></b> are
+   * <p>The patterns are in three groups depicting frequency of use. The
+   * patterns in light green are used
+   * <i>frequently</i>. Those in yellow have
+   * <i>moderate</i> use. Patterns in red are
    * <i>infrequently</i> used. The GoF column gives the original Gang Of Four
    * category for the pattern. The Problem and Pattern columns are from
    * Craig's refinement of the type of problems they apply to and a refinement
    * of the original three pattern categories.</p>
    *
    * <table cellSpacing="0" cols="6" cellPadding="3" border="1">
-   * <caption align="bottom"><a
-   * href="http://www.onr.com/user/loeffler/java/references.html#gof"><b>Gang
-   * of Four Patterns</b></a></caption>
+   * <caption align="bottom">
+   * <a href="http://www.onr.com/user/loeffler/java/references.html#gof">
+   * <b>Gang of Four Patterns</b></a></caption>
    * <tr>
    * <!-- Headers for each column -->
    *
@@ -54,6 +55,7 @@ public class Glossary {
    * <th align="middle">Often Uses</th>
    * <th align="middle">Related To</th>
    * </tr>
+   *
    * <!-- Frequently used patterns have a lime background -->
    * <tr>
    * <td bgColor="lime"><a href="#AbstractFactoryPattern">Abstract Factory</a>
@@ -69,6 +71,7 @@ public class Glossary {
    * <a href="#PrototypePattern">Prototype</a><br>
    * <a href="#SingletonPattern">Singleton</a></td>
    * </tr>
+   *
    * <tr>
    * <td bgColor="lime"><a href="#ObjectAdapterPattern">Object Adapter</a>
    * </td>
@@ -316,21 +319,22 @@ public class Glossary {
    * </tr>
    * </table>
    */
-  public static final Glossary Pattern = null;
+  // CHECKSTYLE: ON
+  Glossary PATTERN = null;
 
   /**
    * Provide an interface for creating families of related or dependent
    * objects without specifying their concrete classes. (See <a
    * href="http://c2.com/cgi/wiki?AbstractFactoryPattern">GoF</a>.)
    */
-  public static final Glossary AbstractFactoryPattern = null;
+  Glossary ABSTRACT_FACTORY_PATTERN = null;
 
   /**
    * Separate the construction of a complex object from its representation so
    * that the same construction process can create different representations.
    * (See <a href="http://c2.com/cgi/wiki?BuilderPattern">GoF</a>.)
    */
-  public static final Glossary BuilderPattern = null;
+  Glossary BUILDER_PATTERN = null;
 
   /**
    * Define an interface for creating an object, but let subclasses decide
@@ -338,14 +342,14 @@ public class Glossary {
    * subclasses. (See <a href="http://c2.com/cgi/wiki?FactoryMethodPattern">
    * GoF</a>.)
    */
-  public static final Glossary FactoryMethodPattern = null;
+  Glossary FACTORY_METHOD_PATTERN = null;
 
   /**
    * Specify the kinds of objects to create using a prototypical instance, and
    * create new objects by copying this prototype. (See <a
    * href="http://c2.com/cgi/wiki?PrototypePattern">GoF</a>.)
    */
-  public static final Glossary PrototypePattern = null;
+  Glossary PROTOTYPE_PATTERN = null;
 
   /**
    * Ensure a class only has one instance, and provide a global point of
@@ -357,7 +361,7 @@ public class Glossary {
    * double-checked locking pattern</a>, is fatally flawed in Java. Don't use
    * it!</p>
    */
-  public static final Glossary SingletonPattern = null;
+  Glossary SINGLETON_PATTERN = null;
 
   /**
    * Convert the interface of a class into another interface clients expect.
@@ -365,14 +369,14 @@ public class Glossary {
    * incompatible interfaces. (See <a
    * href="http://c2.com/cgi/wiki?AdapterPattern">GoF</a>.)
    */
-  public static final Glossary AdapterPattern = null;
+  Glossary ADAPTER_PATTERN = null;
 
   /**
    * Decouple an abstraction from its implementation so that the two can very
    * independently. (See <a href="http://c2.com/cgi/wiki?BridgePattern">
    * GoF</a>.)
    */
-  public static final Glossary BridgePattern = null;
+  Glossary BRIDGE_PATTERN = null;
 
   /**
    * Compose objects into tree structures to represent part-whole hierarchies.
@@ -380,33 +384,33 @@ public class Glossary {
    * uniformly. (See <a href="http://c2.com/cgi/wiki?CompositePattern">
    * GoF</a>.)
    */
-  public static final Glossary CompositePattern = null;
+  Glossary COMPOSITE_PATTERN = null;
 
   /**
    * Attach additional responsibilities to an object dynamically. Provides a
    * flexible alternative to subclassing for extending functionality. (See <a
    * href="http://c2.com/cgi/wiki?DecoratorPattern">GoF</a>.)
    */
-  public static final Glossary DecoratorPattern = null;
+  Glossary DECORATOR_PATTERN = null;
 
   /**
    * Provide a unified interface to a set of interfaces in a subsystem.
    * Defines a higher-level interface that makes the subsystem easier to use.
    * (See <a href="http://c2.com/cgi/wiki?FacadePattern">GoF</a>.)
    */
-  public static final Glossary FacadePattern = null;
+  Glossary FACADE_PATTERN = null;
 
   /**
    * Use sharing to support large numbers of fine-grained objects efficiently.
    * (See <a href="http://c2.com/cgi/wiki?FlyweightPattern">GoF</a>.)
    */
-  public static final Glossary FlyweightPattern = null;
+  Glossary FLYWEIGHT_PATTERN = null;
 
   /**
    * Provide a surrogate or placeholder for another object to control access
    * to it. (See <a href="http://c2.com/cgi/wiki?ProxyPattern">GoF</a>.)
    */
-  public static final Glossary ProxyPattern = null;
+  Glossary PROXY_PATTERN = null;
 
   /**
    * Avoid coupling the sender of a request to its receiver by giving more
@@ -415,7 +419,7 @@ public class Glossary {
    * (See <a href="http://c2.com/cgi/wiki?ChainOfResponsibilityPattern">
    * GoF</a>.)
    */
-  public static final Glossary ChainOfResponsibilityPattern = null;
+  Glossary CHAIN_OF_RESPONSIBILITY_PATTERN = null;
 
   /**
    * Encapsulate a request as an object, thereby letting you parameterize
@@ -423,7 +427,7 @@ public class Glossary {
    * undoable operations. (See <a
    * href="http://c2.com/cgi/wiki?CommandPattern">GoF</a>.)
    */
-  public static final Glossary CommandPattern = null;
+  Glossary COMMAND_PATTERN = null;
 
   /**
    * Given a language, define a representation for its grammar along with an
@@ -431,14 +435,14 @@ public class Glossary {
    * language. (See <a href="http://c2.com/cgi/wiki?InterpreterPattern">
    * GoF</a>.)
    */
-  public static final Glossary InterpreterPattern = null;
+  Glossary INTERPRETER_PATTERN = null;
 
   /**
    * Provide a way to access the elements of an aggregate object sequentially
    * without exposing its underlying representation. (See <a
    * href="http://c2.com/cgi/wiki?IteratorPattern">GoF</a>.)
    */
-  public static final Glossary IteratorPattern = null;
+  Glossary ITERATOR_PATTERN = null;
 
   /**
    * Define an object that encapsulates how a set of objects interact.
@@ -446,35 +450,35 @@ public class Glossary {
    * explicitly, and it lets you vary their interaction independently. (See <a
    * href="http://c2.com/cgi/wiki?MediatorPattern">GoF</a>.)
    */
-  public static final Glossary MediatorPattern = null;
+  Glossary MEDIATOR_PATTERN = null;
 
   /**
    * Without violating encapsulation, capture and externalize an objects's
    * internal state so that the object can be restored to this state later.
    * (See <a href="http://c2.com/cgi/wiki?MementoPattern">GoF</a>.)
    */
-  public static final Glossary MementoPattern = null;
+  Glossary MEMENTO_PATTERN = null;
 
   /**
    * Define a one-to-many dependency between objects so that when one object
    * changes state, all its dependents are notified and updated automatically.
    * (See <a href="http://c2.com/cgi/wiki?ObserverPattern">GoF</a>.)
    */
-  public static final Glossary ObserverPattern = null;
+  Glossary OBSERVER_PATTERN = null;
 
   /**
    * Allow an object to alter its behavior when its internal state changes.
    * The object will appear to change its class. (See <a
    * href="http://c2.com/cgi/wiki?StatePattern">GoF</a>.)
    */
-  public static final Glossary StatePattern = null;
+  Glossary STATE_PATTERN = null;
 
   /**
    * Define a family of algorithms, encapsulate each one, and make them
    * interchangeable. Lets the algorithm vary independently from clients that
    * use it. (See <a href="http://c2.com/cgi/wiki?StrategyPattern">GoF</a>.)
    */
-  public static final Glossary StrategyPattern = null;
+  Glossary STRATEGY_PATTERN = null;
 
   /**
    * Define the skeleton of an algorithm in an operation, deferring some steps
@@ -482,7 +486,7 @@ public class Glossary {
    * without changing the algorithm's structure. (See <a
    * href="http://c2.com/cgi/wiki?TemplateMethodPattern">GoF</a>.)
    */
-  public static final Glossary TemplateMethodPattern = null;
+  Glossary TEMPLATE_METHOD_PATTERN = null;
 
   /**
    * Represent an operation to be performed on the elments of an object
@@ -490,7 +494,7 @@ public class Glossary {
    * of the elements on which it operates. (See <a
    * href="http://c2.com/cgi/wiki?VisitorPattern">GoF</a>.)
    */
-  public static final Glossary VisitorPattern = null;
+  Glossary VISITOR_PATTERN = null;
 
   /**
    * The official SQL-92 standard (ISO/IEC 9075:1992). To reference this
@@ -517,7 +521,7 @@ public class Glossary {
    * <p>Note that this tag is a block tag (like &#64;see) and cannot be used
    * inline.
    */
-  public static final Glossary Sql92 = null;
+  Glossary SQL92 = null;
 
   /**
    * The official SQL:1999 standard (ISO/IEC 9075:1999), which is broken up
@@ -546,7 +550,7 @@ public class Glossary {
    * <p>Note that this tag is a block tag (like &#64;see) and cannot be used
    * inline.
    */
-  public static final Glossary Sql99 = null;
+  Glossary SQL99 = null;
 
   /**
    * The official SQL:2003 standard (ISO/IEC 9075:2003), which is broken up
@@ -575,7 +579,7 @@ public class Glossary {
    * <p>Note that this tag is a block tag (like &#64;see) and cannot be used
    * inline.
    */
-  public static final Glossary Sql2003 = null;
+  Glossary SQL2003 = null;
 }
 
 // End Glossary.java

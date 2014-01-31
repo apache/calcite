@@ -63,8 +63,8 @@ public class SqlTrimFunction extends SqlFunction {
         SqlKind.TRIM,
         new SqlTypeTransformCascade(
             SqlTypeStrategies.rtiThirdArgType,
-            SqlTypeTransforms.toNullable,
-            SqlTypeTransforms.toVarying),
+            SqlTypeTransforms.TO_NULLABLE,
+            SqlTypeTransforms.TO_VARYING),
         null,
         SqlTypeStrategies.and(
             SqlTypeStrategies.family(
@@ -78,7 +78,7 @@ public class SqlTrimFunction extends SqlFunction {
                 return ImmutableList.of(1, 2);
               }
             }),
-        SqlFunctionCategory.String);
+        SqlFunctionCategory.STRING);
   }
 
   //~ Methods ----------------------------------------------------------------

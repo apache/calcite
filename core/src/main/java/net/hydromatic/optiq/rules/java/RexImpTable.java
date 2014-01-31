@@ -87,129 +87,115 @@ public class RexImpTable {
       new HashMap<Aggregation, AggImplementor2>();
 
   RexImpTable() {
-    defineMethod(upperFunc, BuiltinMethod.UPPER.method, NullPolicy.STRICT);
-    defineMethod(lowerFunc, BuiltinMethod.LOWER.method, NullPolicy.STRICT);
-    defineMethod(
-        initcapFunc,  BuiltinMethod.INITCAP.method, NullPolicy.STRICT);
-    defineMethod(
-        substringFunc, BuiltinMethod.SUBSTRING.method, NullPolicy.STRICT);
-    defineMethod(
-        characterLengthFunc, BuiltinMethod.CHAR_LENGTH.method,
+    defineMethod(UPPER, BuiltinMethod.UPPER.method, NullPolicy.STRICT);
+    defineMethod(LOWER, BuiltinMethod.LOWER.method, NullPolicy.STRICT);
+    defineMethod(INITCAP,  BuiltinMethod.INITCAP.method, NullPolicy.STRICT);
+    defineMethod(SUBSTRING, BuiltinMethod.SUBSTRING.method, NullPolicy.STRICT);
+    defineMethod(CHARACTER_LENGTH, BuiltinMethod.CHAR_LENGTH.method,
         NullPolicy.STRICT);
-    defineMethod(
-        charLengthFunc, BuiltinMethod.CHAR_LENGTH.method,
+    defineMethod(CHAR_LENGTH, BuiltinMethod.CHAR_LENGTH.method,
         NullPolicy.STRICT);
-    defineMethod(
-        concatOperator, BuiltinMethod.STRING_CONCAT.method,
+    defineMethod(CONCAT, BuiltinMethod.STRING_CONCAT.method,
         NullPolicy.STRICT);
-    defineMethod(
-        overlayFunc, BuiltinMethod.OVERLAY.method, NullPolicy.STRICT);
-    defineMethod(
-        positionFunc, BuiltinMethod.POSITION.method, NullPolicy.STRICT);
+    defineMethod(OVERLAY, BuiltinMethod.OVERLAY.method, NullPolicy.STRICT);
+    defineMethod(POSITION, BuiltinMethod.POSITION.method, NullPolicy.STRICT);
 
     final TrimImplementor trimImplementor = new TrimImplementor();
-    defineImplementor(trimFunc, NullPolicy.STRICT, trimImplementor, false);
+    defineImplementor(TRIM, NullPolicy.STRICT, trimImplementor, false);
 
     // logical
-    defineBinary(andOperator, AndAlso, NullPolicy.AND, null);
-    defineBinary(orOperator, OrElse, NullPolicy.OR, null);
-    defineUnary(notOperator, Not, NullPolicy.NOT);
+    defineBinary(AND, AndAlso, NullPolicy.AND, null);
+    defineBinary(OR, OrElse, NullPolicy.OR, null);
+    defineUnary(NOT, Not, NullPolicy.NOT);
 
     // comparisons
-    defineBinary(lessThanOperator, LessThan, NullPolicy.STRICT, "lt");
-    defineBinary(
-        lessThanOrEqualOperator, LessThanOrEqual, NullPolicy.STRICT, "le");
-    defineBinary(
-        greaterThanOperator, GreaterThan, NullPolicy.STRICT, "gt");
-    defineBinary(
-        greaterThanOrEqualOperator, GreaterThanOrEqual, NullPolicy.STRICT,
+    defineBinary(LESS_THAN, LessThan, NullPolicy.STRICT, "lt");
+    defineBinary(LESS_THAN_OR_EQUAL, LessThanOrEqual, NullPolicy.STRICT, "le");
+    defineBinary(GREATER_THAN, GreaterThan, NullPolicy.STRICT, "gt");
+    defineBinary(GREATER_THAN_OR_EQUAL, GreaterThanOrEqual, NullPolicy.STRICT,
         "ge");
-    defineBinary(equalsOperator, Equal, NullPolicy.STRICT, "eq");
-    defineBinary(notEqualsOperator, NotEqual, NullPolicy.STRICT, "ne");
+    defineBinary(EQUALS, Equal, NullPolicy.STRICT, "eq");
+    defineBinary(NOT_EQUALS, NotEqual, NullPolicy.STRICT, "ne");
 
     // arithmetic
-    defineBinary(plusOperator, Add, NullPolicy.STRICT, "plus");
-    defineBinary(minusOperator, Subtract, NullPolicy.STRICT, "minus");
-    defineBinary(multiplyOperator, Multiply, NullPolicy.STRICT, "multiply");
-    defineBinary(divideOperator, Divide, NullPolicy.STRICT, "divide");
-    defineBinary(divideIntegerOperator, Divide, NullPolicy.STRICT, "divide");
-    defineUnary(prefixMinusOperator, Negate, NullPolicy.STRICT);
-    defineUnary(prefixPlusOperator, UnaryPlus, NullPolicy.STRICT);
+    defineBinary(PLUS, Add, NullPolicy.STRICT, "plus");
+    defineBinary(MINUS, Subtract, NullPolicy.STRICT, "minus");
+    defineBinary(MULTIPLY, Multiply, NullPolicy.STRICT, "multiply");
+    defineBinary(DIVIDE, Divide, NullPolicy.STRICT, "divide");
+    defineBinary(DIVIDE_INTEGER, Divide, NullPolicy.STRICT, "divide");
+    defineUnary(UNARY_MINUS, Negate, NullPolicy.STRICT);
+    defineUnary(UNARY_PLUS, UnaryPlus, NullPolicy.STRICT);
 
-    defineMethod(modFunc, "mod", NullPolicy.STRICT);
-    defineMethod(expFunc, "exp", NullPolicy.STRICT);
-    defineMethod(powerFunc, "power", NullPolicy.STRICT);
-    defineMethod(lnFunc, "ln", NullPolicy.STRICT);
-    defineMethod(log10Func, "log10", NullPolicy.STRICT);
-    defineMethod(absFunc, "abs", NullPolicy.STRICT);
-    defineMethod(ceilFunc, "ceil", NullPolicy.STRICT);
-    defineMethod(floorFunc, "floor", NullPolicy.STRICT);
+    defineMethod(MOD, "mod", NullPolicy.STRICT);
+    defineMethod(EXP, "exp", NullPolicy.STRICT);
+    defineMethod(POWER, "power", NullPolicy.STRICT);
+    defineMethod(LN, "ln", NullPolicy.STRICT);
+    defineMethod(LOG10, "log10", NullPolicy.STRICT);
+    defineMethod(ABS, "abs", NullPolicy.STRICT);
+    defineMethod(CEIL, "ceil", NullPolicy.STRICT);
+    defineMethod(FLOOR, "floor", NullPolicy.STRICT);
 
-    map.put(isNullOperator, new IsXxxImplementor(null, false));
-    map.put(isNotNullOperator, new IsXxxImplementor(null, true));
-    map.put(isTrueOperator, new IsXxxImplementor(true, false));
-    map.put(isNotTrueOperator, new IsXxxImplementor(true, true));
-    map.put(isFalseOperator, new IsXxxImplementor(false, false));
-    map.put(isNotFalseOperator, new IsXxxImplementor(false, true));
+    map.put(IS_NULL, new IsXxxImplementor(null, false));
+    map.put(IS_NOT_NULL, new IsXxxImplementor(null, true));
+    map.put(IS_TRUE, new IsXxxImplementor(true, false));
+    map.put(IS_NOT_TRUE, new IsXxxImplementor(true, true));
+    map.put(IS_FALSE, new IsXxxImplementor(false, false));
+    map.put(IS_NOT_FALSE, new IsXxxImplementor(false, true));
 
     // LIKE and SIMILAR
     final MethodImplementor likeImplementor =
         new MethodImplementor(BuiltinMethod.LIKE.method);
-    defineImplementor(
-        likeOperator, NullPolicy.STRICT, likeImplementor, false);
-    defineImplementor(
-        notLikeOperator, NullPolicy.STRICT,
+    defineImplementor(LIKE, NullPolicy.STRICT, likeImplementor, false);
+    defineImplementor(NOT_LIKE, NullPolicy.STRICT,
         NotImplementor.of(likeImplementor), false);
     final MethodImplementor similarImplementor =
         new MethodImplementor(BuiltinMethod.SIMILAR.method);
-    defineImplementor(
-        similarOperator, NullPolicy.STRICT, similarImplementor, false);
-    defineImplementor(
-        notSimilarOperator, NullPolicy.STRICT,
+    defineImplementor(SIMILAR_TO, NullPolicy.STRICT, similarImplementor, false);
+    defineImplementor(NOT_SIMILAR_TO, NullPolicy.STRICT,
         NotImplementor.of(similarImplementor), false);
 
-    map.put(caseOperator, new CaseImplementor());
+    map.put(CASE, new CaseImplementor());
 
-    defineImplementor(castFunc, NullPolicy.STRICT, new CastImplementor(),
+    defineImplementor(CAST, NullPolicy.STRICT, new CastImplementor(),
         false);
-    defineImplementor(reinterpretOperator, NullPolicy.STRICT,
+    defineImplementor(REINTERPRET, NullPolicy.STRICT,
         new ReinterpretImplementor(), false);
 
     final CallImplementor value = new ValueConstructorImplementor();
-    map.put(mapValueConstructor, value);
-    map.put(arrayValueConstructor, value);
-    map.put(itemOp, new ItemImplementor());
+    map.put(MAP_VALUE_CONSTRUCTOR, value);
+    map.put(ARRAY_VALUE_CONSTRUCTOR, value);
+    map.put(ITEM, new ItemImplementor());
 
     // System functions
     final SystemFunctionImplementor systemFunctionImplementor =
         new SystemFunctionImplementor();
-    map.put(userFunc, systemFunctionImplementor);
-    map.put(currentUserFunc, systemFunctionImplementor);
-    map.put(sessionUserFunc, systemFunctionImplementor);
-    map.put(systemUserFunc, systemFunctionImplementor);
-    map.put(currentPathFunc, systemFunctionImplementor);
-    map.put(currentRoleFunc, systemFunctionImplementor);
+    map.put(USER, systemFunctionImplementor);
+    map.put(CURRENT_USER, systemFunctionImplementor);
+    map.put(SESSION_USER, systemFunctionImplementor);
+    map.put(SYSTEM_USER, systemFunctionImplementor);
+    map.put(CURRENT_PATH, systemFunctionImplementor);
+    map.put(CURRENT_ROLE, systemFunctionImplementor);
 
     // Current time functions
-    map.put(currentTimeFunc, systemFunctionImplementor);
-    map.put(currentTimestampFunc, systemFunctionImplementor);
-    map.put(currentDateFunc, systemFunctionImplementor);
-    map.put(localTimeFunc, systemFunctionImplementor);
-    map.put(localTimestampFunc, systemFunctionImplementor);
+    map.put(CURRENT_TIME, systemFunctionImplementor);
+    map.put(CURRENT_TIMESTAMP, systemFunctionImplementor);
+    map.put(CURRENT_DATE, systemFunctionImplementor);
+    map.put(LOCALTIME, systemFunctionImplementor);
+    map.put(LOCALTIMESTAMP, systemFunctionImplementor);
 
-    aggMap.put(countOperator, new BuiltinAggregateImplementor("longCount"));
-    aggMap.put(sumOperator, new BuiltinAggregateImplementor("sum"));
-    aggMap.put(minOperator, new BuiltinAggregateImplementor("min"));
-    aggMap.put(maxOperator, new BuiltinAggregateImplementor("max"));
+    aggMap.put(COUNT, new BuiltinAggregateImplementor("longCount"));
+    aggMap.put(SUM, new BuiltinAggregateImplementor("sum"));
+    aggMap.put(MIN, new BuiltinAggregateImplementor("min"));
+    aggMap.put(MAX, new BuiltinAggregateImplementor("max"));
 
-    agg2Map.put(countOperator, new CountImplementor2());
-    agg2Map.put(sumOperator, new SumImplementor2());
-    agg2Map.put(sumEmptyIsZeroOperator, new SumImplementor2());
+    agg2Map.put(COUNT, new CountImplementor2());
+    agg2Map.put(SUM, new SumImplementor2());
+    agg2Map.put(SUM0, new SumImplementor2());
     final MinMaxImplementor2 minMax =
         new MinMaxImplementor2();
-    agg2Map.put(minOperator, minMax);
-    agg2Map.put(maxOperator, minMax);
-    agg2Map.put(rankFunc, new RankImplementor2());
+    agg2Map.put(MIN, minMax);
+    agg2Map.put(MAX, minMax);
+    agg2Map.put(RANK, new RankImplementor2());
   }
 
   private void defineImplementor(
@@ -898,7 +884,7 @@ public class RexImpTable {
               Expressions.convert_(
                   Expressions.call(
                       SqlFunctions.class,
-                      aggregation == minOperator ? "lesser" : "greater",
+                      aggregation == MIN ? "lesser" : "greater",
                       Expressions.unbox(accumulator),
                       Expressions.unbox(arg)),
                   arg.getType())));
@@ -1011,10 +997,10 @@ public class RexImpTable {
 
     private static final List<SqlBinaryOperator> COMPARISON_OPERATORS =
         Arrays.asList(
-            SqlStdOperatorTable.lessThanOperator,
-            SqlStdOperatorTable.lessThanOrEqualOperator,
-            SqlStdOperatorTable.greaterThanOperator,
-            SqlStdOperatorTable.greaterThanOrEqualOperator);
+            SqlStdOperatorTable.LESS_THAN,
+            SqlStdOperatorTable.LESS_THAN_OR_EQUAL,
+            SqlStdOperatorTable.GREATER_THAN,
+            SqlStdOperatorTable.GREATER_THAN_OR_EQUAL);
 
     private final ExpressionType expressionType;
     private final String backupMethodName;
@@ -1337,26 +1323,26 @@ public class RexImpTable {
         return Expressions.constant(true);
       }
       final SqlOperator op = call.getOperator();
-      if (op == currentUserFunc
-          || op == sessionUserFunc
-          || op == userFunc) {
+      if (op == CURRENT_USER
+          || op == SESSION_USER
+          || op == USER) {
         return Expressions.constant("sa");
-      } else if (op == systemUserFunc) {
+      } else if (op == SYSTEM_USER) {
         return Expressions.constant(System.getProperty("user.name"));
-      } else if (op == currentPathFunc
-          || op == currentRoleFunc) {
+      } else if (op == CURRENT_PATH
+          || op == CURRENT_ROLE) {
         // By default, the CURRENT_ROLE function returns
         // the empty string because a role has to be set explicitly.
         return Expressions.constant("");
-      } else if (op == currentTimestampFunc) {
+      } else if (op == CURRENT_TIMESTAMP) {
         return Expressions.call(BuiltinMethod.CURRENT_TIMESTAMP.method, ROOT);
-      } else if (op == currentTimeFunc) {
+      } else if (op == CURRENT_TIME) {
         return Expressions.call(BuiltinMethod.CURRENT_TIME.method, ROOT);
-      } else if (op == currentDateFunc) {
+      } else if (op == CURRENT_DATE) {
         return Expressions.call(BuiltinMethod.CURRENT_DATE.method, ROOT);
-      } else if (op == localTimestampFunc) {
+      } else if (op == LOCALTIMESTAMP) {
         return Expressions.call(BuiltinMethod.LOCAL_TIMESTAMP.method, ROOT);
-      } else if (op == localTimeFunc) {
+      } else if (op == LOCALTIME) {
         return Expressions.call(BuiltinMethod.LOCAL_TIME.method, ROOT);
       } else {
         throw new AssertionError("unknown function " + op);

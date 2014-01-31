@@ -782,7 +782,9 @@ public class SargTest {
 
   @Test public void testRexAnalyzer() {
     SargRexAnalyzer rexAnalyzer = sargFactory.newRexAnalyzer();
-    RexNode pred1, pred2, pred3;
+    RexNode pred1;
+    RexNode pred2;
+    RexNode pred3;
     SargBinding binding;
 
     RexNode inputRef8 = rexBuilder.makeInputRef(intType, 8);
@@ -791,7 +793,7 @@ public class SargTest {
     // test variable before literal
     pred1 =
         rexBuilder.makeCall(
-            SqlStdOperatorTable.lessThanOperator,
+            SqlStdOperatorTable.LESS_THAN,
             inputRef8,
             intLiteral7);
     binding = rexAnalyzer.analyze(pred1);
@@ -803,7 +805,7 @@ public class SargTest {
     // test literal before variable
     pred2 =
         rexBuilder.makeCall(
-            SqlStdOperatorTable.greaterThanOrEqualOperator,
+            SqlStdOperatorTable.GREATER_THAN_OR_EQUAL,
             intLiteral490,
             inputRef9);
     binding = rexAnalyzer.analyze(pred2);
@@ -815,7 +817,7 @@ public class SargTest {
     // test AND
     pred3 =
         rexBuilder.makeCall(
-            SqlStdOperatorTable.andOperator,
+            SqlStdOperatorTable.AND,
             pred1,
             pred2);
     binding = rexAnalyzer.analyze(pred3);
@@ -827,7 +829,7 @@ public class SargTest {
     // test OR
     pred3 =
         rexBuilder.makeCall(
-            SqlStdOperatorTable.orOperator,
+            SqlStdOperatorTable.OR,
             pred1,
             pred2);
     binding = rexAnalyzer.analyze(pred3);
@@ -839,7 +841,7 @@ public class SargTest {
     // test NOT
     pred3 =
         rexBuilder.makeCall(
-            SqlStdOperatorTable.notOperator,
+            SqlStdOperatorTable.NOT,
             pred1);
     binding = rexAnalyzer.analyze(pred3);
     assertNotNull(binding);
@@ -850,7 +852,7 @@ public class SargTest {
     // This one should fail:  two variables
     pred1 =
         rexBuilder.makeCall(
-            SqlStdOperatorTable.lessThanOperator,
+            SqlStdOperatorTable.LESS_THAN,
             inputRef8,
             inputRef9);
     binding = rexAnalyzer.analyze(pred1);
@@ -859,7 +861,7 @@ public class SargTest {
     // This one should fail:  two literals
     pred1 =
         rexBuilder.makeCall(
-            SqlStdOperatorTable.lessThanOperator,
+            SqlStdOperatorTable.LESS_THAN,
             intLiteral7,
             intLiteral490);
     binding = rexAnalyzer.analyze(pred1);

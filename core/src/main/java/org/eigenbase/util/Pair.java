@@ -148,7 +148,7 @@ public class Pair<T1, T2>
   /**
    * Converts two lists into a list of {@link org.eigenbase.util.Pair}s,
    * whose length is the lesser of the lengths of the
-   * source lists.</p>
+   * source lists.
    *
    * @param ks Left list
    * @param vs Right list

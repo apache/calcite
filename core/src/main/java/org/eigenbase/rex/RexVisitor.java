@@ -20,7 +20,7 @@ package org.eigenbase.rex;
 /**
  * Visitor pattern for traversing a tree of {@link RexNode} objects.
  *
- * @see org.eigenbase.util.Glossary#VisitorPattern
+ * @see org.eigenbase.util.Glossary#VISITOR_PATTERN
  * @see RexShuttle
  * @see RexVisitorImpl
  */

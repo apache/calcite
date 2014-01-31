@@ -23,6 +23,7 @@ import org.eigenbase.reltype.*;
 import org.eigenbase.util.Util;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 
 /**
  * SqlTypeExplicitPrecedenceList implements the
@@ -33,90 +34,54 @@ public class SqlTypeExplicitPrecedenceList
     implements RelDataTypePrecedenceList {
   //~ Static fields/initializers ---------------------------------------------
 
+  // NOTE jvs 25-Jan-2005:  the null entries delimit equivalence
+  // classes
+  private static final List<SqlTypeName> NUMERIC_TYPES =
+      Arrays.asList(
+          SqlTypeName.TINYINT,
+          null,
+          SqlTypeName.SMALLINT,
+          null,
+          SqlTypeName.INTEGER,
+          null,
+          SqlTypeName.BIGINT,
+          null,
+          SqlTypeName.DECIMAL,
+          null,
+          SqlTypeName.REAL,
+          null,
+          SqlTypeName.FLOAT,
+          SqlTypeName.DOUBLE);
+
   /**
    * Map from SqlTypeName to corresponding precedence list.
    *
    * @sql.2003 Part 2 Section 9.5
    */
   private static final Map<SqlTypeName, SqlTypeExplicitPrecedenceList>
-  typeNameToPrecedenceList;
-
-  static {
-    // NOTE jvs 25-Jan-2005:  the null entries delimit equivalence
-    // classes
-    List<SqlTypeName> numericList =
-        Arrays.asList(
-            SqlTypeName.TINYINT,
-            null,
-            SqlTypeName.SMALLINT,
-            null,
-            SqlTypeName.INTEGER,
-            null,
-            SqlTypeName.BIGINT,
-            null,
-            SqlTypeName.DECIMAL,
-            null,
-            SqlTypeName.REAL,
-            null,
-            SqlTypeName.FLOAT,
-            SqlTypeName.DOUBLE);
-    typeNameToPrecedenceList =
-        new HashMap<SqlTypeName, SqlTypeExplicitPrecedenceList>();
-    addList(
-        SqlTypeName.BOOLEAN,
-        ImmutableList.of(SqlTypeName.BOOLEAN));
-    addNumericList(
-        SqlTypeName.TINYINT,
-        numericList);
-    addNumericList(
-        SqlTypeName.SMALLINT,
-        numericList);
-    addNumericList(
-        SqlTypeName.INTEGER,
-        numericList);
-    addNumericList(
-        SqlTypeName.BIGINT,
-        numericList);
-    addNumericList(
-        SqlTypeName.DECIMAL,
-        numericList);
-    addNumericList(
-        SqlTypeName.REAL,
-        numericList);
-    addNumericList(
-        SqlTypeName.FLOAT,
-        numericList);
-    addNumericList(
-        SqlTypeName.DOUBLE,
-        numericList);
-    addList(
-        SqlTypeName.CHAR,
-        ImmutableList.of(SqlTypeName.CHAR, SqlTypeName.VARCHAR));
-    addList(
-        SqlTypeName.VARCHAR,
-        ImmutableList.of(SqlTypeName.VARCHAR));
-    addList(
-        SqlTypeName.BINARY,
-        ImmutableList.of(SqlTypeName.BINARY, SqlTypeName.VARBINARY));
-    addList(
-        SqlTypeName.VARBINARY,
-        ImmutableList.of(SqlTypeName.VARBINARY));
-    addList(
-        SqlTypeName.DATE,
-        ImmutableList.of(SqlTypeName.DATE));
-    addList(
-        SqlTypeName.TIME,
-        ImmutableList.of(SqlTypeName.TIME));
-    addList(
-        SqlTypeName.TIMESTAMP,
-        ImmutableList.of(SqlTypeName.TIMESTAMP));
-    addList(
-        SqlTypeName.INTERVAL_YEAR_MONTH,
-        ImmutableList.of(SqlTypeName.INTERVAL_YEAR_MONTH));
-    addList(
-        SqlTypeName.INTERVAL_DAY_TIME,
-        ImmutableList.of(SqlTypeName.INTERVAL_DAY_TIME));
-  }
+  TYPE_NAME_TO_PRECEDENCE_LIST =
+      ImmutableMap.<SqlTypeName, SqlTypeExplicitPrecedenceList>builder()
+          .put(SqlTypeName.BOOLEAN, list(SqlTypeName.BOOLEAN))
+          .put(SqlTypeName.TINYINT, numeric(SqlTypeName.TINYINT))
+          .put(SqlTypeName.INTEGER, numeric(SqlTypeName.INTEGER))
+          .put(SqlTypeName.BIGINT, numeric(SqlTypeName.BIGINT))
+          .put(SqlTypeName.DECIMAL, numeric(SqlTypeName.DECIMAL))
+          .put(SqlTypeName.REAL, numeric(SqlTypeName.REAL))
+          .put(SqlTypeName.FLOAT, numeric(SqlTypeName.FLOAT))
+          .put(SqlTypeName.DOUBLE, numeric(SqlTypeName.DOUBLE))
+          .put(SqlTypeName.CHAR, list(SqlTypeName.CHAR, SqlTypeName.VARCHAR))
+          .put(SqlTypeName.VARCHAR, list(SqlTypeName.VARCHAR))
+          .put(SqlTypeName.BINARY,
+              list(SqlTypeName.BINARY, SqlTypeName.VARBINARY))
+          .put(SqlTypeName.VARBINARY, list(SqlTypeName.VARBINARY))
+          .put(SqlTypeName.DATE, list(SqlTypeName.DATE))
+          .put(SqlTypeName.TIME, list(SqlTypeName.TIME))
+          .put(SqlTypeName.TIMESTAMP, list(SqlTypeName.TIMESTAMP))
+          .put(SqlTypeName.INTERVAL_YEAR_MONTH,
+              list(SqlTypeName.INTERVAL_YEAR_MONTH))
+          .put(SqlTypeName.INTERVAL_DAY_TIME,
+              list(SqlTypeName.INTERVAL_DAY_TIME))
+          .build();
 
   //~ Instance fields --------------------------------------------------------
 
@@ -130,28 +95,19 @@ public class SqlTypeExplicitPrecedenceList
 
   //~ Methods ----------------------------------------------------------------
 
-  private static void addList(
-      SqlTypeName typeName,
-      List<SqlTypeName> array) {
-    typeNameToPrecedenceList.put(
-        typeName,
-        new SqlTypeExplicitPrecedenceList(array));
+  private static SqlTypeExplicitPrecedenceList list(SqlTypeName... array) {
+    return new SqlTypeExplicitPrecedenceList(ImmutableList.copyOf(array));
   }
 
-  private static void addNumericList(
-      SqlTypeName typeName,
-      List<SqlTypeName> numericList) {
-    int i = getListPosition(typeName, numericList);
-    addList(typeName, Util.skip(numericList, i));
+  private static SqlTypeExplicitPrecedenceList numeric(SqlTypeName typeName) {
+    int i = getListPosition(typeName, NUMERIC_TYPES);
+    return new SqlTypeExplicitPrecedenceList(Util.skip(NUMERIC_TYPES, i));
   }
 
   // implement RelDataTypePrecedenceList
   public boolean containsType(RelDataType type) {
     SqlTypeName typeName = type.getSqlTypeName();
-    if (typeName == null) {
-      return false;
-    }
-    return typeNames.contains(typeName);
+    return typeName != null && typeNames.contains(typeName);
   }
 
   // implement RelDataTypePrecedenceList
@@ -188,7 +144,7 @@ public class SqlTypeExplicitPrecedenceList
     if (typeName == null) {
       return null;
     }
-    return typeNameToPrecedenceList.get(typeName);
+    return TYPE_NAME_TO_PRECEDENCE_LIST.get(typeName);
   }
 }
 

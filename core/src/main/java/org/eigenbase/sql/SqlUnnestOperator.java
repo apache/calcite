@@ -21,7 +21,7 @@ import org.eigenbase.reltype.*;
 import org.eigenbase.sql.type.*;
 
 /**
- * The <code>UNNEST<code>operator.
+ * The <code>UNNEST</code> operator.
  */
 public class SqlUnnestOperator extends SqlFunctionalOperator {
   //~ Constructors -----------------------------------------------------------

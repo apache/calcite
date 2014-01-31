@@ -116,7 +116,7 @@ public class RelMdSelectivity extends ReflectiveRelMetadataProvider {
     if (predicate != null) {
       newPred =
           rexBuilder.makeCall(
-              SqlStdOperatorTable.andOperator,
+              SqlStdOperatorTable.AND,
               newPred,
               predicate);
     }

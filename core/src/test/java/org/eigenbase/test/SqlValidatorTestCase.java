@@ -47,10 +47,10 @@ public class SqlValidatorTestCase {
 
   protected static final String NL = System.getProperty("line.separator");
 
-  private static final Pattern lineColPattern =
+  private static final Pattern LINE_COL_PATTERN =
       Pattern.compile("At line ([0-9]+), column ([0-9]+)");
 
-  private static final Pattern lineColTwicePattern =
+  private static final Pattern LINE_COL_TWICE_PATTERN =
       Pattern.compile(
           "(?s)From line ([0-9]+), column ([0-9]+) to line ([0-9]+), column ([0-9]+): (.*)");
 
@@ -273,7 +273,7 @@ public class SqlValidatorTestCase {
     } else {
       final String message = ex.getMessage();
       if (message != null) {
-        Matcher matcher = lineColTwicePattern.matcher(message);
+        Matcher matcher = LINE_COL_TWICE_PATTERN.matcher(message);
         if (matcher.matches()) {
           actualLine = Integer.parseInt(matcher.group(1));
           actualColumn = Integer.parseInt(matcher.group(2));
@@ -281,7 +281,7 @@ public class SqlValidatorTestCase {
           actualEndColumn = Integer.parseInt(matcher.group(4));
           actualMessage = matcher.group(5);
         } else {
-          matcher = lineColPattern.matcher(message);
+          matcher = LINE_COL_PATTERN.matcher(message);
           if (matcher.matches()) {
             actualLine = Integer.parseInt(matcher.group(1));
             actualColumn = Integer.parseInt(matcher.group(2));

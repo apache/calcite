@@ -105,13 +105,13 @@ public interface OptiqPrepare {
   }
 
   public static class Dummy {
-    private static SparkHandler SPARK_HANDLER;
+    private static SparkHandler sparkHandler;
 
     public static synchronized SparkHandler getSparkHandler() {
-      if (SPARK_HANDLER == null) {
-        SPARK_HANDLER = createHandler();
+      if (sparkHandler == null) {
+        sparkHandler = createHandler();
       }
-      return SPARK_HANDLER;
+      return sparkHandler;
     }
 
     private static SparkHandler createHandler() {

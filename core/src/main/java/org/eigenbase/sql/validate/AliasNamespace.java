@@ -51,7 +51,7 @@ public class AliasNamespace extends AbstractNamespace {
       SqlNode enclosingNode) {
     super(validator, enclosingNode);
     this.call = call;
-    assert call.getOperator() == SqlStdOperatorTable.asOperator;
+    assert call.getOperator() == SqlStdOperatorTable.AS;
   }
 
   //~ Methods ----------------------------------------------------------------

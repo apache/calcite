@@ -26,7 +26,7 @@ public enum SqlSyntax {
   /**
    * Function syntax, as in "Foo(x, y)".
    */
-  Function {
+  FUNCTION {
     public void unparse(
         SqlWriter writer,
         SqlOperator operator,
@@ -45,7 +45,7 @@ public enum SqlSyntax {
   /**
    * Binary operator syntax, as in "x + y".
    */
-  Binary {
+  BINARY {
     public void unparse(
         SqlWriter writer,
         SqlOperator operator,
@@ -64,7 +64,7 @@ public enum SqlSyntax {
   /**
    * Prefix unary operator syntax, as in "- x".
    */
-  Prefix {
+  PREFIX {
     public void unparse(
         SqlWriter writer,
         SqlOperator operator,
@@ -83,7 +83,7 @@ public enum SqlSyntax {
   /**
    * Postfix unary operator syntax, as in "x ++".
    */
-  Postfix {
+  POSTFIX {
     public void unparse(
         SqlWriter writer,
         SqlOperator operator,
@@ -103,7 +103,7 @@ public enum SqlSyntax {
    * Special syntax, such as that of the SQL CASE operator, "CASE x WHEN 1
    * THEN 2 ELSE 3 END".
    */
-  Special {
+  SPECIAL {
     public void unparse(
         SqlWriter writer,
         SqlOperator operator,
@@ -120,7 +120,7 @@ public enum SqlSyntax {
    * Function syntax which takes no parentheses if there are no arguments, for
    * example "CURRENTTIME".
    */
-  FunctionId {
+  FUNCTION_ID {
     public void unparse(
         SqlWriter writer,
         SqlOperator operator,
@@ -139,7 +139,7 @@ public enum SqlSyntax {
   /**
    * Syntax of an internal operator, which does not appear in the SQL.
    */
-  Internal {
+  INTERNAL {
     public void unparse(
         SqlWriter writer,
         SqlOperator operator,

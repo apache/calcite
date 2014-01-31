@@ -36,19 +36,19 @@ public class RexMultisetUtil {
    */
   private static final Set<SqlOperator> MULTISET_OPERATORS =
       ImmutableSet.of(
-          SqlStdOperatorTable.cardinalityFunc,
-          SqlStdOperatorTable.castFunc,
-          SqlStdOperatorTable.elementFunc,
-          SqlStdOperatorTable.elementSlicefunc,
-          SqlStdOperatorTable.multisetExceptAllOperator,
-          SqlStdOperatorTable.multisetExceptOperator,
-          SqlStdOperatorTable.multisetIntersectAllOperator,
-          SqlStdOperatorTable.multisetIntersectOperator,
-          SqlStdOperatorTable.multisetUnionAllOperator,
-          SqlStdOperatorTable.multisetUnionOperator,
-          SqlStdOperatorTable.isASetOperator,
-          SqlStdOperatorTable.memberOfOperator,
-          SqlStdOperatorTable.submultisetOfOperator);
+          SqlStdOperatorTable.CARDINALITY,
+          SqlStdOperatorTable.CAST,
+          SqlStdOperatorTable.ELEMENT,
+          SqlStdOperatorTable.ELEMENT_SLICE,
+          SqlStdOperatorTable.MULTISET_EXCEPT_ALL,
+          SqlStdOperatorTable.MULTISET_EXCEPT,
+          SqlStdOperatorTable.MULTISET_INTERSECT_ALL,
+          SqlStdOperatorTable.MULTISET_INTERSECT,
+          SqlStdOperatorTable.MULTISET_UNION_ALL,
+          SqlStdOperatorTable.MULTISET_UNION,
+          SqlStdOperatorTable.IS_A_SET,
+          SqlStdOperatorTable.MEMBER_OF,
+          SqlStdOperatorTable.SUBMULTISET_OF);
 
   //~ Methods ----------------------------------------------------------------
 
@@ -122,7 +122,7 @@ public class RexMultisetUtil {
    * types are of multiset types
    */
   public static boolean isMultisetCast(RexCall call) {
-    if (!call.getOperator().equals(SqlStdOperatorTable.castFunc)) {
+    if (!call.getOperator().equals(SqlStdOperatorTable.CAST)) {
       return false;
     }
     return call.getType().getSqlTypeName() == SqlTypeName.MULTISET;
@@ -147,7 +147,7 @@ public class RexMultisetUtil {
     for (SqlOperator op : MULTISET_OPERATORS) {
       firstOne = RexUtil.findOperatorCall(op, call);
       if (null != firstOne) {
-        if (firstOne.getOperator().equals(SqlStdOperatorTable.castFunc)
+        if (firstOne.getOperator().equals(SqlStdOperatorTable.CAST)
             && !isMultisetCast(firstOne)) {
           firstOne = null;
           continue;
@@ -187,7 +187,7 @@ public class RexMultisetUtil {
     public Void visitCall(RexCall call) {
       ++totalCount;
       if (MULTISET_OPERATORS.contains(call.getOperator())) {
-        if (!call.getOperator().equals(SqlStdOperatorTable.castFunc)
+        if (!call.getOperator().equals(SqlStdOperatorTable.CAST)
             || isMultisetCast(call)) {
           ++multisetCount;
         }

@@ -45,8 +45,7 @@ import static org.junit.Assert.*;
  * Unit tests for {@link Planner}.
  */
 public class PlannerTest {
-  @Test public void testParseAndConvert() throws SqlParseException,
-      RelConversionException, ValidationException {
+  @Test public void testParseAndConvert() throws Exception {
     Planner planner = getPlanner();
     SqlNode parse =
         planner.parse("select * from \"emps\" where \"name\" like '%e%'");
@@ -115,8 +114,7 @@ public class PlannerTest {
    * {@link Planner#convert(org.eigenbase.sql.SqlNode)}
    * a {@link org.eigenbase.sql.SqlNode} that has been parsed but not
    * validated. */
-  @Test public void testConvertWithoutValidateFails() throws SqlParseException,
-      RelConversionException {
+  @Test public void testConvertWithoutValidateFails() throws Exception {
     Planner planner = getPlanner();
     SqlNode parse = planner.parse("select * from \"emps\"");
     try {
@@ -129,8 +127,7 @@ public class PlannerTest {
   }
 
   /** Unit test that parses, validates, converts and plans. */
-  @Test public void testPlan() throws SqlParseException, RelConversionException,
-      ValidationException {
+  @Test public void testPlan() throws Exception {
     RuleSet ruleSet =
         RuleSets.ofList(
             MergeFilterRule.INSTANCE,

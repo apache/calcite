@@ -70,7 +70,7 @@ public class RexCall extends RexNode {
   protected String computeDigest(boolean withType) {
     StringBuilder sb = new StringBuilder(op.getName());
     if ((operands.size() == 0)
-        && (op.getSyntax() == SqlSyntax.FunctionId)) {
+        && (op.getSyntax() == SqlSyntax.FUNCTION_ID)) {
       // Don't print params for empty arg list. For example, we want
       // "SYSTEM_USER", not "SYSTEM_USER()".
     } else {

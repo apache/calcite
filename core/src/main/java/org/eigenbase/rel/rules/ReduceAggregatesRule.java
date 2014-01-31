@@ -228,7 +228,7 @@ public class ReduceAggregatesRule extends RelOptRule {
             oldCall.getArgList(),
             sumType,
             null);
-    SqlAggFunction countAgg = SqlStdOperatorTable.countOperator;
+    SqlAggFunction countAgg = SqlStdOperatorTable.COUNT;
     RelDataType countType = countAgg.getReturnType(typeFactory);
     AggregateCall countCall =
         new AggregateCall(
@@ -254,7 +254,7 @@ public class ReduceAggregatesRule extends RelOptRule {
             aggCallMapping);
     final RexNode divideRef =
         rexBuilder.makeCall(
-            SqlStdOperatorTable.divideOperator,
+            SqlStdOperatorTable.DIVIDE,
             numeratorRef,
             denominatorRef);
     return rexBuilder.makeCast(
@@ -295,7 +295,7 @@ public class ReduceAggregatesRule extends RelOptRule {
     final RexNode argRef = inputExprs.get(argOrdinal);
     final RexNode argSquared =
         rexBuilder.makeCall(
-            SqlStdOperatorTable.multiplyOperator, argRef, argRef);
+            SqlStdOperatorTable.MULTIPLY, argRef, argRef);
     final int argSquaredOrdinal = lookupOrAdd(inputExprs, argSquared);
 
     final RelDataType sumType =
@@ -332,9 +332,9 @@ public class ReduceAggregatesRule extends RelOptRule {
 
     final RexNode sumSquaredArg =
         rexBuilder.makeCall(
-            SqlStdOperatorTable.multiplyOperator, sumArg, sumArg);
+            SqlStdOperatorTable.MULTIPLY, sumArg, sumArg);
 
-    final SqlAggFunction countAgg = SqlStdOperatorTable.countOperator;
+    final SqlAggFunction countAgg = SqlStdOperatorTable.COUNT;
     final RelDataType countType = countAgg.getReturnType(typeFactory);
     final AggregateCall countArgAggCall =
         new AggregateCall(
@@ -352,12 +352,12 @@ public class ReduceAggregatesRule extends RelOptRule {
 
     final RexNode avgSumSquaredArg =
         rexBuilder.makeCall(
-            SqlStdOperatorTable.divideOperator,
+            SqlStdOperatorTable.DIVIDE,
             sumSquaredArg, countArg);
 
     final RexNode diff =
         rexBuilder.makeCall(
-            SqlStdOperatorTable.minusOperator,
+            SqlStdOperatorTable.MINUS,
             sumArgSquared, avgSumSquaredArg);
 
     final RexNode denominator;
@@ -370,19 +370,19 @@ public class ReduceAggregatesRule extends RelOptRule {
           rexBuilder.makeNullLiteral(countArg.getType().getSqlTypeName());
       final RexNode countMinusOne =
           rexBuilder.makeCall(
-              SqlStdOperatorTable.minusOperator, countArg, one);
+              SqlStdOperatorTable.MINUS, countArg, one);
       final RexNode countEqOne =
           rexBuilder.makeCall(
-              SqlStdOperatorTable.equalsOperator, countArg, one);
+              SqlStdOperatorTable.EQUALS, countArg, one);
       denominator =
           rexBuilder.makeCall(
-              SqlStdOperatorTable.caseOperator,
+              SqlStdOperatorTable.CASE,
               countEqOne, nul, countMinusOne);
     }
 
     final RexNode div =
         rexBuilder.makeCall(
-            SqlStdOperatorTable.divideOperator, diff, denominator);
+            SqlStdOperatorTable.DIVIDE, diff, denominator);
 
     RexNode result = div;
     if (sqrt) {
@@ -390,7 +390,7 @@ public class ReduceAggregatesRule extends RelOptRule {
           rexBuilder.makeExactLiteral(new BigDecimal("0.5"));
       result =
           rexBuilder.makeCall(
-              SqlStdOperatorTable.powerFunc, div, half);
+              SqlStdOperatorTable.POWER, div, half);
     }
 
     return rexBuilder.makeCast(

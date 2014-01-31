@@ -74,13 +74,13 @@ public class RexTransformerTest {
     } else if (encapsulateType.equals(Boolean.TRUE)) {
       root =
           rexBuilder.makeCall(
-              SqlStdOperatorTable.isTrueOperator,
+              SqlStdOperatorTable.IS_TRUE,
               node);
     } else {
       // encapsulateType.equals(Boolean.FALSE)
       root =
           rexBuilder.makeCall(
-              SqlStdOperatorTable.isFalseOperator,
+              SqlStdOperatorTable.IS_FALSE,
               node);
     }
 
@@ -117,7 +117,7 @@ public class RexTransformerTest {
   @Test public void testNonBooleans() {
     RexNode node =
         rexBuilder.makeCall(
-            SqlStdOperatorTable.plusOperator,
+            SqlStdOperatorTable.PLUS,
             x,
             y);
     String expected = node.toString();
@@ -135,7 +135,7 @@ public class RexTransformerTest {
   @Test public void testOrUnchanged() {
     RexNode node =
         rexBuilder.makeCall(
-            SqlStdOperatorTable.orOperator,
+            SqlStdOperatorTable.OR,
             x,
             y);
     String expected = node.toString();
@@ -147,7 +147,7 @@ public class RexTransformerTest {
   @Test public void testSimpleAnd() {
     RexNode node =
         rexBuilder.makeCall(
-            SqlStdOperatorTable.andOperator,
+            SqlStdOperatorTable.AND,
             x,
             y);
     check(
@@ -159,7 +159,7 @@ public class RexTransformerTest {
   @Test public void testSimpleEquals() {
     RexNode node =
         rexBuilder.makeCall(
-            SqlStdOperatorTable.equalsOperator,
+            SqlStdOperatorTable.EQUALS,
             x,
             y);
     check(
@@ -171,7 +171,7 @@ public class RexTransformerTest {
   @Test public void testSimpleNotEquals() {
     RexNode node =
         rexBuilder.makeCall(
-            SqlStdOperatorTable.notEqualsOperator,
+            SqlStdOperatorTable.NOT_EQUALS,
             x,
             y);
     check(
@@ -183,7 +183,7 @@ public class RexTransformerTest {
   @Test public void testSimpleGreaterThan() {
     RexNode node =
         rexBuilder.makeCall(
-            SqlStdOperatorTable.greaterThanOperator,
+            SqlStdOperatorTable.GREATER_THAN,
             x,
             y);
     check(
@@ -195,7 +195,7 @@ public class RexTransformerTest {
   @Test public void testSimpleGreaterEquals() {
     RexNode node =
         rexBuilder.makeCall(
-            SqlStdOperatorTable.greaterThanOrEqualOperator,
+            SqlStdOperatorTable.GREATER_THAN_OR_EQUAL,
             x,
             y);
     check(
@@ -207,7 +207,7 @@ public class RexTransformerTest {
   @Test public void testSimpleLessThan() {
     RexNode node =
         rexBuilder.makeCall(
-            SqlStdOperatorTable.lessThanOperator,
+            SqlStdOperatorTable.LESS_THAN,
             x,
             y);
     check(
@@ -219,7 +219,7 @@ public class RexTransformerTest {
   @Test public void testSimpleLessEqual() {
     RexNode node =
         rexBuilder.makeCall(
-            SqlStdOperatorTable.lessThanOrEqualOperator,
+            SqlStdOperatorTable.LESS_THAN_OR_EQUAL,
             x,
             y);
     check(
@@ -231,13 +231,13 @@ public class RexTransformerTest {
   @Test public void testOptimizeNonNullLiterals() {
     RexNode node =
         rexBuilder.makeCall(
-            SqlStdOperatorTable.lessThanOrEqualOperator,
+            SqlStdOperatorTable.LESS_THAN_OR_EQUAL,
             x,
             trueRex);
     check(Boolean.TRUE, node, "AND(IS NOT NULL($0), <=($0, true))");
     node =
         rexBuilder.makeCall(
-            SqlStdOperatorTable.lessThanOrEqualOperator,
+            SqlStdOperatorTable.LESS_THAN_OR_EQUAL,
             trueRex,
             x);
     check(Boolean.FALSE, node, "AND(IS NOT NULL($0), <=(true, $0))");
@@ -252,12 +252,12 @@ public class RexTransformerTest {
     // x=true AND y
     RexNode op1 =
         rexBuilder.makeCall(
-            SqlStdOperatorTable.equalsOperator,
+            SqlStdOperatorTable.EQUALS,
             x,
             trueRex);
     RexNode and =
         rexBuilder.makeCall(
-            SqlStdOperatorTable.andOperator,
+            SqlStdOperatorTable.AND,
             op1,
             y);
     check(
@@ -270,17 +270,17 @@ public class RexTransformerTest {
     // x!=true AND y>z
     RexNode op1 =
         rexBuilder.makeCall(
-            SqlStdOperatorTable.notEqualsOperator,
+            SqlStdOperatorTable.NOT_EQUALS,
             x,
             trueRex);
     RexNode op2 =
         rexBuilder.makeCall(
-            SqlStdOperatorTable.greaterThanOperator,
+            SqlStdOperatorTable.GREATER_THAN,
             y,
             z);
     RexNode and =
         rexBuilder.makeCall(
-            SqlStdOperatorTable.andOperator,
+            SqlStdOperatorTable.AND,
             op1,
             op2);
     check(
@@ -293,17 +293,17 @@ public class RexTransformerTest {
     // x=y AND false>z
     RexNode op1 =
         rexBuilder.makeCall(
-            SqlStdOperatorTable.equalsOperator,
+            SqlStdOperatorTable.EQUALS,
             x,
             y);
     RexNode op2 =
         rexBuilder.makeCall(
-            SqlStdOperatorTable.greaterThanOperator,
+            SqlStdOperatorTable.GREATER_THAN,
             falseRex,
             z);
     RexNode and =
         rexBuilder.makeCall(
-            SqlStdOperatorTable.andOperator,
+            SqlStdOperatorTable.AND,
             op1,
             op2);
     check(

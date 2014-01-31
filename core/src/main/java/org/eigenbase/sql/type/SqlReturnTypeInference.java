@@ -25,7 +25,7 @@ import org.eigenbase.sql.*;
  * operands.
  *
  * <p>This interface is an example of the {@link
- * org.eigenbase.util.Glossary#StrategyPattern strategy pattern}. This makes
+ * org.eigenbase.util.Glossary#STRATEGY_PATTERN strategy pattern}. This makes
  * sense because many operators have similar, straightforward strategies, such
  * as to take the type of the first operand.</p>
  */

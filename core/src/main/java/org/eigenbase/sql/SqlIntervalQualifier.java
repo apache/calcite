@@ -31,6 +31,8 @@ import org.eigenbase.util14.DateTimeUtil;
 
 import net.hydromatic.optiq.runtime.SqlFunctions;
 
+import com.google.common.collect.ImmutableMap;
+
 /**
  * Represents an INTERVAL qualifier.
  *
@@ -97,17 +99,15 @@ public class SqlIntervalQualifier extends SqlNode {
     MONTH(true, '-', 1 /* months */, BigDecimal.valueOf(12)),
     DAY(false, '-', DateTimeUtil.MILLIS_PER_DAY, null),
     HOUR(false, ' ', DateTimeUtil.MILLIS_PER_HOUR, BigDecimal.valueOf(24)),
-    MINUTE(
-        false, ':', DateTimeUtil.MILLIS_PER_MINUTE, BigDecimal.valueOf(60)),
-    SECOND(
-        false, ':', DateTimeUtil.MILLIS_PER_SECOND, BigDecimal.valueOf(60));
+    MINUTE(false, ':', DateTimeUtil.MILLIS_PER_MINUTE, BigDecimal.valueOf(60)),
+    SECOND(false, ':', DateTimeUtil.MILLIS_PER_SECOND, BigDecimal.valueOf(60));
 
     public final boolean yearMonth;
     public final char separator;
     public final long multiplier;
     private final BigDecimal limit;
 
-    private static final TimeUnit[] CachedValues = values();
+    private static final TimeUnit[] CACHED_VALUES = values();
 
     private TimeUnit(
         boolean yearMonth,
@@ -125,8 +125,9 @@ public class SqlIntervalQualifier extends SqlNode {
      * is null if the ordinal is not a member of the TimeUnit enumeration.
      */
     public static TimeUnit getValue(int ordinal) {
-      return ((ordinal < 0) || (ordinal >= CachedValues.length)) ? null
-          : CachedValues[ordinal];
+      return ordinal < 0 || ordinal >= CACHED_VALUES.length
+          ? null
+          : CACHED_VALUES[ordinal];
     }
 
     public static final String GET_VALUE_METHOD_NAME = "getValue";
@@ -161,13 +162,15 @@ public class SqlIntervalQualifier extends SqlNode {
 
     private final TimeUnit startUnit;
     private final TimeUnit endUnit;
-    private static final Map<Pair<TimeUnit, TimeUnit>, TimeUnitRange> map;
+    private static final Map<Pair<TimeUnit, TimeUnit>, TimeUnitRange> MAP;
 
     static {
-      map = new HashMap<Pair<TimeUnit, TimeUnit>, TimeUnitRange>();
+      ImmutableMap.Builder<Pair<TimeUnit, TimeUnit>, TimeUnitRange> builder =
+          ImmutableMap.builder();
       for (TimeUnitRange value : values()) {
-        map.put(Pair.of(value.startUnit, value.endUnit), value);
+        builder.put(Pair.of(value.startUnit, value.endUnit), value);
       }
+      MAP = builder.build();
     }
 
     /**
@@ -191,7 +194,7 @@ public class SqlIntervalQualifier extends SqlNode {
      */
     public static TimeUnitRange of(
         TimeUnit startUnit, TimeUnit endUnit) {
-      return map.get(new Pair<TimeUnit, TimeUnit>(startUnit, endUnit));
+      return MAP.get(new Pair<TimeUnit, TimeUnit>(startUnit, endUnit));
     }
   }
 
@@ -427,12 +430,6 @@ public class SqlIntervalQualifier extends SqlNode {
         } else {
           writer.keyword(end);
         }
-      } else if (
-          (TimeUnit.SECOND == timeUnitRange.startUnit)
-              && (!useDefaultFractionalSecondPrecision)) {
-        final SqlWriter.Frame frame = writer.startList("(", ")");
-        writer.print(fractionalSecondPrecision);
-        writer.endList(frame);
       }
     }
   }
@@ -620,7 +617,8 @@ public class SqlIntervalQualifier extends SqlNode {
       int sign,
       String value,
       String originalValue) throws SqlValidatorException {
-    BigDecimal year, month;
+    BigDecimal year;
+    BigDecimal month;
 
     // validate as YEAR(startPrecision) TO MONTH, e.g. 'YY-DD'
     String intervalPattern = "(\\d+)-(\\d{1,2})";
@@ -723,7 +721,8 @@ public class SqlIntervalQualifier extends SqlNode {
       int sign,
       String value,
       String originalValue) throws SqlValidatorException {
-    BigDecimal day, hour;
+    BigDecimal day;
+    BigDecimal hour;
 
     // validate as DAY(startPrecision) TO HOUR, e.g. 'DD HH'
     String intervalPattern = "(\\d+) (\\d{1,2})";
@@ -760,7 +759,9 @@ public class SqlIntervalQualifier extends SqlNode {
       int sign,
       String value,
       String originalValue) throws SqlValidatorException {
-    BigDecimal day, hour, minute;
+    BigDecimal day;
+    BigDecimal hour;
+    BigDecimal minute;
 
     // validate as DAY(startPrecision) TO MINUTE, e.g. 'DD HH:MM'
     String intervalPattern = "(\\d+) (\\d{1,2}):(\\d{1,2})";
@@ -799,7 +800,11 @@ public class SqlIntervalQualifier extends SqlNode {
       int sign,
       String value,
       String originalValue) throws SqlValidatorException {
-    BigDecimal day, hour, minute, second, secondFrac;
+    BigDecimal day;
+    BigDecimal hour;
+    BigDecimal minute;
+    BigDecimal second;
+    BigDecimal secondFrac;
     boolean hasFractionalSecond;
 
     // validate as DAY(startPrecision) TO MINUTE,
@@ -901,7 +906,8 @@ public class SqlIntervalQualifier extends SqlNode {
       int sign,
       String value,
       String originalValue) throws SqlValidatorException {
-    BigDecimal hour, minute;
+    BigDecimal hour;
+    BigDecimal minute;
 
     // validate as HOUR(startPrecision) TO MINUTE, e.g. 'HH:MM'
     String intervalPattern = "(\\d+):(\\d{1,2})";
@@ -939,7 +945,10 @@ public class SqlIntervalQualifier extends SqlNode {
       int sign,
       String value,
       String originalValue) throws SqlValidatorException {
-    BigDecimal hour, minute, second, secondFrac;
+    BigDecimal hour;
+    BigDecimal minute;
+    BigDecimal second;
+    BigDecimal secondFrac;
     boolean hasFractionalSecond;
 
     // validate as HOUR(startPrecision) TO SECOND,
@@ -1039,7 +1048,9 @@ public class SqlIntervalQualifier extends SqlNode {
       int sign,
       String value,
       String originalValue) throws SqlValidatorException {
-    BigDecimal minute, second, secondFrac;
+    BigDecimal minute;
+    BigDecimal second;
+    BigDecimal secondFrac;
     boolean hasFractionalSecond;
 
     // validate as MINUTE(startPrecision) TO SECOND,
@@ -1102,7 +1113,8 @@ public class SqlIntervalQualifier extends SqlNode {
       int sign,
       String value,
       String originalValue) throws SqlValidatorException {
-    BigDecimal second, secondFrac;
+    BigDecimal second;
+    BigDecimal secondFrac;
     boolean hasFractionalSecond;
 
     // validate as SECOND(startPrecision, fractionalSecondPrecision)

@@ -50,11 +50,11 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
    * @deprecated Deprecated so that usages of this constant will show up in
    * yellow in Intellij and maybe someone will fix them.
    */
-  protected static final boolean todo = false;
-  public static final boolean todoTypeInference = false;
+  protected static final boolean TODO = false;
+  public static final boolean TODO_TYPE_INFERENCE = false;
   private static final String ANY = "(?s).*";
 
-  protected static final Logger logger =
+  protected static final Logger LOGGER =
       Logger.getLogger(SqlValidatorTest.class.getName());
 
   private static final String ERR_IN_VALUES_INCOMPATIBLE =
@@ -62,6 +62,15 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
   private static final String ERR_IN_OPERANDS_INCOMPATIBLE =
       "Values passed to IN operator must have compatible types";
+
+  private static final String ERR_AGG_IN_GROUP_BY =
+      "Aggregate expression is illegal in GROUP BY clause";
+
+  private static final String ERR_AGG_IN_ORDER_BY =
+      "Aggregate expression is illegal in ORDER BY clause of non-aggregating SELECT";
+
+  private static final String ERR_NESTED_AGG =
+      "Aggregate expressions cannot be nested";
 
   //~ Constructors -----------------------------------------------------------
 
@@ -148,7 +157,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         "true OR 1.0e4",
         ANY);
 
-    if (todo) {
+    if (TODO) {
       checkWholeExpFails(
           "TRUE OR (TIME '12:00' AT LOCAL)",
           ANY);
@@ -677,7 +686,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         "trim('mustache' FROM cast(null as varchar(4)))",
         "VARCHAR(4)");
 
-    if (todo) {
+    if (TODO) {
       final SqlCollation.Coercibility expectedCoercibility = null;
       checkCollation(
           "trim('mustache' FROM 'beard')",
@@ -719,7 +728,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         "overlay('ABCdef' placing cast(null as char(5)) from 1)",
         "VARCHAR(11)");
 
-    if (todo) {
+    if (TODO) {
       checkCollation(
           "overlay('ABCdef' placing 'abc' collate latin1$sv from 1 for 3)",
           "ISO-8859-1$sv",
@@ -1135,7 +1144,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     checkFails(
         "^values ('1'),(2)^",
         "Values passed to VALUES operator must have compatible types");
-    if (todo) {
+    if (TODO) {
       checkColumnType("values (1),(2.0),(3)", "ROWTYPE(DOUBLE)");
     }
   }
@@ -1205,7 +1214,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         "^multiset[1, '2']^ multiset union multiset[1]",
         "Parameters must be of the same type");
     checkExp("multiset[ROW(1,2)] multiset intersect multiset[row(3,4)]");
-    if (todo) {
+    if (TODO) {
       checkWholeExpFails(
           "multiset[ROW(1,'2')] multiset union multiset[ROW(1,2)]",
           "Parameters must be of the same type");
@@ -3813,7 +3822,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   protected void checkWin(String sql, String expectedMsgPattern) {
-    logger.info(sql);
+    LOGGER.info(sql);
     checkFails(sql, expectedMsgPattern);
   }
 
@@ -3890,7 +3899,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
   @Ignore
   @Test public void testWindowFunctions2() {
-    if (Bug.Dt1446Fixed) {
+    if (Bug.DT1446_FIXED) {
       // row_number function
       checkWinFuncExpWithWinClause(
           "row_number() over (order by deptno)",
@@ -5439,7 +5448,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "having exists (select 1 from (values(true)) where emp.deptno = 10)");
 
     // Needs proper error message text and error markers in query
-    if (todo) {
+    if (TODO) {
       checkFails(
           "select deptno "
           + "from emp "
@@ -5564,7 +5573,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         "select case empno when 10 then 'foo bar' else null end from emp "
         + "group by case empno when 10 then 'foo bar' else null end");
 
-    if (Bug.Frg78Fixed) {
+    if (Bug.FRG78_FIXED) {
       check(
           "select case empno when 10 then _iso-8859-1'foo bar' collate latin1$en$1 else null end from emp "
           + "group by case empno when 10 then _iso-8859-1'foo bar' collate latin1$en$1 else null end");
@@ -5575,7 +5584,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "group by case empno when 10 then _UTF16'foo bar' else null end",
         "Expression 'EMPNO' is not being grouped");
 
-    if (Bug.Frg78Fixed) {
+    if (Bug.FRG78_FIXED) {
       checkFails(
           "select case ^empno^ when 10 then 'foo bar' collate latin1$en$1 else null end from emp "
           + "group by case empno when 10 then 'foo bar' collate latin1$fr$1 else null end",
@@ -5589,8 +5598,6 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   @Test public void testNestedAggFails() {
-    String ERR_NESTED_AGG = "Aggregate expressions cannot be nested";
-
     // simple case
     checkFails(
         "select ^sum(max(empno))^ from emp",
@@ -5630,18 +5637,12 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   @Test public void testAggregateInGroupByFails() {
-    String ERR_AGG_IN_GROUP_BY =
-        "Aggregate expression is illegal in GROUP BY clause";
-
     checkFails(
         "select count(*) from emp group by ^sum(empno)^",
         ERR_AGG_IN_GROUP_BY);
   }
 
   @Test public void testAggregateInOrderByFails() {
-    String ERR_AGG_IN_ORDER_BY =
-        "Aggregate expression is illegal in ORDER BY clause of non-aggregating SELECT";
-
     checkFails(
         "select empno from emp order by ^sum(empno)^",
         ERR_AGG_IN_ORDER_BY);
@@ -5786,14 +5787,14 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   @Test public void testBind() {
     check("select * from emp where deptno = ?");
     check("select * from emp where deptno = ? and sal < 100000");
-    if (todoTypeInference) {
+    if (TODO_TYPE_INFERENCE) {
       check("select case when deptno = ? then 1 else 2 end from emp");
     }
-    if (todoTypeInference) {
+    if (TODO_TYPE_INFERENCE) {
       check(
           "select deptno from emp group by substring(name from ? for ?)");
     }
-    if (todoTypeInference) {
+    if (TODO_TYPE_INFERENCE) {
       check(
           "select deptno from emp group by case when deptno = ? then 1 else 2 end");
     }
@@ -6058,7 +6059,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         "RecordType(INTEGER NOT NULL X, INTEGER NOT NULL Y) NOT NULL");
 
     // Qualifying with schema is OK.
-    if (Bug.Frg140Fixed) {
+    if (Bug.FRG140_FIXED) {
       checkResultType(
           "SELECT customer.contact.coord.x, customer.contact.email, contact.coord.y FROM customer.contact",
           "RecordType(INTEGER NOT NULL X, INTEGER NOT NULL Y) NOT NULL");

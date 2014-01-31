@@ -538,7 +538,7 @@ public abstract class SqlTypeStrategies {
   public static final SqlReturnTypeInference rtiFirstArgTypeForceNullable =
       new SqlTypeTransformCascade(
           rtiFirstArgType,
-          SqlTypeTransforms.forceNullable);
+          SqlTypeTransforms.FORCE_NULLABLE);
 
   /**
    * Type-inference strategy whereby the result type of a call is the type of
@@ -548,7 +548,7 @@ public abstract class SqlTypeStrategies {
   public static final SqlReturnTypeInference rtiNullableFirstArgType =
       new SqlTypeTransformCascade(
           rtiFirstArgType,
-          SqlTypeTransforms.toNullable);
+          SqlTypeTransforms.TO_NULLABLE);
 
   public static final SqlReturnTypeInference rtiFirstInterval =
       new MatchReturnTypeInference(
@@ -557,7 +557,7 @@ public abstract class SqlTypeStrategies {
   public static final SqlReturnTypeInference rtiNullableFirstInterval =
       new SqlTypeTransformCascade(
           rtiFirstInterval,
-          SqlTypeTransforms.toNullable);
+          SqlTypeTransforms.TO_NULLABLE);
 
   /**
    * Type-inference strategy whereby the result type of a call is VARYING the
@@ -568,8 +568,8 @@ public abstract class SqlTypeStrategies {
   public static final SqlReturnTypeInference rtiNullableVaryingFirstArgType =
       new SqlTypeTransformCascade(
           rtiFirstArgType,
-          SqlTypeTransforms.toNullable,
-          SqlTypeTransforms.toVarying);
+          SqlTypeTransforms.TO_NULLABLE,
+          SqlTypeTransforms.TO_VARYING);
 
   /**
    * Type-inference strategy whereby the result type of a call is the type of
@@ -586,7 +586,7 @@ public abstract class SqlTypeStrategies {
   public static final SqlReturnTypeInference rtiNullableSecondArgType =
       new SqlTypeTransformCascade(
           rtiSecondArgType,
-          SqlTypeTransforms.toNullable);
+          SqlTypeTransforms.TO_NULLABLE);
 
   /**
    * Type-inference strategy whereby the result type of a call is the type of
@@ -603,7 +603,7 @@ public abstract class SqlTypeStrategies {
   public static final SqlReturnTypeInference rtiNullableThirdArgType =
       new SqlTypeTransformCascade(
           rtiThirdArgType,
-          SqlTypeTransforms.toNullable);
+          SqlTypeTransforms.TO_NULLABLE);
 
   /**
    * Type-inference strategy whereby the result type of a call is Boolean.
@@ -618,7 +618,7 @@ public abstract class SqlTypeStrategies {
   public static final SqlReturnTypeInference rtiBooleanNotNull =
       new SqlTypeTransformCascade(
           rtiBoolean,
-          SqlTypeTransforms.toNotNullable);
+          SqlTypeTransforms.TO_NOT_NULLABLE);
 
   /**
    * Type-inference strategy whereby the result type of a call is Boolean,
@@ -627,7 +627,7 @@ public abstract class SqlTypeStrategies {
   public static final SqlReturnTypeInference rtiNullableBoolean =
       new SqlTypeTransformCascade(
           rtiBoolean,
-          SqlTypeTransforms.toNullable);
+          SqlTypeTransforms.TO_NULLABLE);
 
   /**
    * Type-inference strategy whereby the result type of a call is Date.
@@ -648,7 +648,7 @@ public abstract class SqlTypeStrategies {
   public static final SqlReturnTypeInference rtiNullableTime =
       new SqlTypeTransformCascade(
           rtiTime,
-          SqlTypeTransforms.toNullable);
+          SqlTypeTransforms.TO_NULLABLE);
 
   /**
    * Type-inference strategy whereby the result type of a call is Double.
@@ -663,7 +663,7 @@ public abstract class SqlTypeStrategies {
   public static final SqlReturnTypeInference rtiNullableDouble =
       new SqlTypeTransformCascade(
           rtiDouble,
-          SqlTypeTransforms.toNullable);
+          SqlTypeTransforms.TO_NULLABLE);
 
   /**
    * Type-inference strategy whereby the result type of a call is an Integer.
@@ -684,7 +684,7 @@ public abstract class SqlTypeStrategies {
   public static final SqlReturnTypeInference rtiNullableBigint =
       new SqlTypeTransformCascade(
           rtiBigint,
-          SqlTypeTransforms.toNullable);
+          SqlTypeTransforms.TO_NULLABLE);
 
   /**
    * Type-inference strategy whereby the result type of a call is a nullable
@@ -693,7 +693,7 @@ public abstract class SqlTypeStrategies {
   public static final SqlReturnTypeInference rtiAlwaysNullableBigint =
       new SqlTypeTransformCascade(
           rtiBigint,
-          SqlTypeTransforms.forceNullable);
+          SqlTypeTransforms.FORCE_NULLABLE);
 
   /**
    * Type-inference strategy whereby the result type of a call is an Integer
@@ -702,7 +702,7 @@ public abstract class SqlTypeStrategies {
   public static final SqlReturnTypeInference rtiNullableInteger =
       new SqlTypeTransformCascade(
           rtiInteger,
-          SqlTypeTransforms.toNullable);
+          SqlTypeTransforms.TO_NULLABLE);
 
   /**
    * Type-inference strategy which always returns "VARCHAR(2000)".
@@ -807,12 +807,12 @@ public abstract class SqlTypeStrategies {
 
   /**
    * Same as {@link #rtiDecimalProduct} but returns with nullablity if any of
-   * the operands is nullable by using {@link SqlTypeTransforms#toNullable}
+   * the operands is nullable by using {@link SqlTypeTransforms#TO_NULLABLE}
    */
   public static final SqlReturnTypeInference rtiNullableDecimalProduct =
       new SqlTypeTransformCascade(
           rtiDecimalProduct,
-          SqlTypeTransforms.toNullable);
+          SqlTypeTransforms.TO_NULLABLE);
 
   /**
    * Type-inference strategy whereby the result type of a call is {@link
@@ -846,12 +846,12 @@ public abstract class SqlTypeStrategies {
 
   /**
    * Same as {@link #rtiDecimalQuotient} but returns with nullablity if any of
-   * the operands is nullable by using {@link SqlTypeTransforms#toNullable}
+   * the operands is nullable by using {@link SqlTypeTransforms#TO_NULLABLE}
    */
   public static final SqlReturnTypeInference rtiNullableDecimalQuotient =
       new SqlTypeTransformCascade(
           rtiDecimalQuotient,
-          SqlTypeTransforms.toNullable);
+          SqlTypeTransforms.TO_NULLABLE);
 
   /**
    * Type-inference strategy whereby the result type of a call is {@link
@@ -937,12 +937,12 @@ public abstract class SqlTypeStrategies {
 
   /**
    * Same as {@link #rtiDecimalSum} but returns with nullablity if any
-   * of the operands is nullable by using {@link SqlTypeTransforms#toNullable}
+   * of the operands is nullable by using {@link SqlTypeTransforms#TO_NULLABLE}
    */
   public static final SqlReturnTypeInference rtiNullableDecimalSum =
       new SqlTypeTransformCascade(
           rtiDecimalSum,
-          SqlTypeTransforms.toNullable);
+          SqlTypeTransforms.TO_NULLABLE);
 
   /**
    * Type-inference strategy whereby the result type of a call is {@link
@@ -1039,24 +1039,24 @@ public abstract class SqlTypeStrategies {
 
   /**
    * Same as {@link #rtiDyadicStringSumPrecision} and using {@link
-   * SqlTypeTransforms#toNullable}
+   * SqlTypeTransforms#TO_NULLABLE}
    */
   public static final SqlReturnTypeInference
   rtiNullableDyadicStringSumPrecision =
       new SqlTypeTransformCascade(
           rtiDyadicStringSumPrecision,
-          SqlTypeTransforms.toNullable);
+          SqlTypeTransforms.TO_NULLABLE);
 
   /**
    * Same as {@link #rtiDyadicStringSumPrecision} and using {@link
-   * SqlTypeTransforms#toNullable}, {@link SqlTypeTransforms#toVarying}.
+   * SqlTypeTransforms#TO_NULLABLE}, {@link SqlTypeTransforms#TO_VARYING}.
    */
   public static final SqlReturnTypeInference
   rtiNullableVaryingDyadicStringSumPrecision =
       new SqlTypeTransformCascade(
           rtiDyadicStringSumPrecision,
-          SqlTypeTransforms.toNullable,
-          SqlTypeTransforms.toVarying);
+          SqlTypeTransforms.TO_NULLABLE,
+          SqlTypeTransforms.TO_VARYING);
 
   /**
    * Type-inference strategy where the expression is assumed to be registered
@@ -1096,6 +1096,7 @@ public abstract class SqlTypeStrategies {
                     public int size() {
                       return opBinding.getOperandCount();
                     }
+                    // CHECKSTYLE: IGNORE 1
                   });
           RelDataType biggestElementType =
               rtiLeastRestrictive.inferReturnType(newBinding);
@@ -1162,7 +1163,7 @@ public abstract class SqlTypeStrategies {
   public static final SqlReturnTypeInference rtiMultisetOnlyColumn =
       new SqlTypeTransformCascade(
           rtiMultiset,
-          SqlTypeTransforms.onlyColumn);
+          SqlTypeTransforms.ONLY_COLUMN);
 
   /**
    * Same as {@link #rtiMultiset} but returns with nullablity if any of the
@@ -1171,7 +1172,7 @@ public abstract class SqlTypeStrategies {
   public static final SqlReturnTypeInference rtiNullableMultiset =
       new SqlTypeTransformCascade(
           rtiMultiset,
-          SqlTypeTransforms.toNullable);
+          SqlTypeTransforms.TO_NULLABLE);
 
   /**
    * Returns the element type of a multiset
@@ -1179,7 +1180,7 @@ public abstract class SqlTypeStrategies {
   public static final SqlReturnTypeInference rtiNullableMultisetElementType =
       new SqlTypeTransformCascade(
           rtiMultiset,
-          SqlTypeTransforms.toMultisetElementType);
+          SqlTypeTransforms.TO_MULTISET_ELEMENT_TYPE);
 
   /**
    * Returns the field type of a structured type which has only one field. For

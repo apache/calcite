@@ -31,14 +31,13 @@ import org.eigenbase.sql.validate.*;
 public class SqlOverlapsOperator extends SqlSpecialOperator {
   //~ Static fields/initializers ---------------------------------------------
 
-  private static final SqlWriter.FrameType OverlapsFrameType =
+  private static final SqlWriter.FrameType FRAME_TYPE =
       SqlWriter.FrameTypeEnum.create("OVERLAPS");
 
   //~ Constructors -----------------------------------------------------------
 
   public SqlOverlapsOperator() {
-    super(
-        "OVERLAPS",
+    super("OVERLAPS",
         SqlKind.OVERLAPS,
         30,
         true,
@@ -55,7 +54,7 @@ public class SqlOverlapsOperator extends SqlSpecialOperator {
       int leftPrec,
       int rightPrec) {
     final SqlWriter.Frame frame =
-        writer.startList(OverlapsFrameType, "(", ")");
+        writer.startList(FRAME_TYPE, "(", ")");
     operands[0].unparse(writer, leftPrec, rightPrec);
     writer.sep(",", true);
     operands[1].unparse(writer, leftPrec, rightPrec);

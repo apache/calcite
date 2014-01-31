@@ -33,7 +33,7 @@ import org.eigenbase.util.*;
 public class SqlAdvisor {
   //~ Static fields/initializers ---------------------------------------------
 
-  public static final Logger LOGGER = EigenbaseTrace.parserTracer;
+  public static final Logger LOGGER = EigenbaseTrace.PARSER_LOGGER;
 
   //~ Instance fields --------------------------------------------------------
 

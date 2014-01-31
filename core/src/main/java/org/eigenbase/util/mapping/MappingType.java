@@ -143,14 +143,14 @@ public enum MappingType {
    * A mapping is a total function if every source has precisely one target.
    */
   public boolean isFunction() {
-    return (ordinal() & (OptionalTarget | MultipleTarget)) == 0;
+    return (ordinal() & (OPTIONAL_TARGET | MULTIPLE_TARGET)) == 0;
   }
 
   /**
    * A mapping is a partial function if every source has at most one target.
    */
   public boolean isPartialFunction() {
-    return (ordinal() & MultipleTarget) == 0;
+    return (ordinal() & MULTIPLE_TARGET) == 0;
   }
 
   /**
@@ -158,7 +158,7 @@ public enum MappingType {
    * least one source.
    */
   public boolean isSurjection() {
-    return (ordinal() & (OptionalTarget | MultipleTarget | OptionalSource))
+    return (ordinal() & (OPTIONAL_TARGET | MULTIPLE_TARGET | OPTIONAL_SOURCE))
         == 0;
   }
 
@@ -167,7 +167,7 @@ public enum MappingType {
    * one source. (In other words, every source has precisely one target.)
    */
   public boolean isInjection() {
-    return (ordinal() & (OptionalTarget | MultipleTarget | MultipleSource))
+    return (ordinal() & (OPTIONAL_TARGET | MULTIPLE_TARGET | MULTIPLE_SOURCE))
         == 0;
   }
 
@@ -177,57 +177,57 @@ public enum MappingType {
    */
   public boolean isBijection() {
     return (ordinal()
-        & (OptionalTarget | MultipleTarget | OptionalSource
-        | MultipleSource)) == 0;
+        & (OPTIONAL_TARGET | MULTIPLE_TARGET | OPTIONAL_SOURCE
+        | MULTIPLE_SOURCE)) == 0;
   }
 
   /**
    * Constraint that every source has at least one target.
    */
   public boolean isMandatoryTarget() {
-    return !((ordinal() & OptionalTarget) == OptionalTarget);
+    return !((ordinal() & OPTIONAL_TARGET) == OPTIONAL_TARGET);
   }
 
   /**
    * Constraint that every source has at most one target.
    */
   public boolean isSingleTarget() {
-    return !((ordinal() & MultipleTarget) == MultipleTarget);
+    return !((ordinal() & MULTIPLE_TARGET) == MULTIPLE_TARGET);
   }
 
   /**
    * Constraint that every target has at least one source.
    */
   public boolean isMandatorySource() {
-    return !((ordinal() & OptionalSource) == OptionalSource);
+    return !((ordinal() & OPTIONAL_SOURCE) == OPTIONAL_SOURCE);
   }
 
   /**
    * Constraint that every target has at most one source.
    */
   public boolean isSingleSource() {
-    return !((ordinal() & MultipleSource) == MultipleSource);
+    return !((ordinal() & MULTIPLE_SOURCE) == MULTIPLE_SOURCE);
   }
 
   /**
    * Allow less than one source for a given target.
    */
-  private static final int OptionalSource = 1;
+  private static final int OPTIONAL_SOURCE = 1;
 
   /**
    * Allow more than one source for a given target.
    */
-  private static final int MultipleSource = 2;
+  private static final int MULTIPLE_SOURCE = 2;
 
   /**
    * Allow less than one target for a given source.
    */
-  private static final int OptionalTarget = 4;
+  private static final int OPTIONAL_TARGET = 4;
 
   /**
    * Allow more than one target for a given source.
    */
-  private static final int MultipleTarget = 8;
+  private static final int MULTIPLE_TARGET = 8;
 }
 
 // End MappingType.java

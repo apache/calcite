@@ -73,7 +73,7 @@ public class JavaToSqlTypeConversionRules {
   //~ Methods ----------------------------------------------------------------
 
   /**
-   * Returns the {@link org.eigenbase.util.Glossary#SingletonPattern
+   * Returns the {@link org.eigenbase.util.Glossary#SINGLETON_PATTERN
    * singleton} instance.
    */
   public static JavaToSqlTypeConversionRules instance() {

@@ -167,14 +167,14 @@ public class OptionsListTest {
     checkIt(
         "PURPLE is not a valid value",
         new OptionsList.Option[]{
-            new OptionsList.EnumeratedOption(
-                "c",
-                "color",
-                "",
-                false,
-                false,
-                Color.RED,
-                Color.class)
+          new OptionsList.EnumeratedOption(
+              "c",
+              "color",
+              "",
+              false,
+              false,
+              Color.RED,
+              Color.class)
         },
         new String[]{"-c PURPLE"});
   }

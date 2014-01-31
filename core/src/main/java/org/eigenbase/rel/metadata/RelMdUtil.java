@@ -45,7 +45,7 @@ public class RelMdUtil {
           SqlTypeStrategies.rtiBoolean, // returns boolean since we'll AND it
           null,
           SqlTypeStrategies.otcNumeric, // takes a numeric param
-          SqlFunctionCategory.System);
+          SqlFunctionCategory.SYSTEM);
 
   //~ Methods ----------------------------------------------------------------
 
@@ -414,7 +414,7 @@ public class RelMdUtil {
     for (RexNode pred : RelOptUtil.conjunctions(predicate)) {
       if ((pred instanceof RexCall)
           && (((RexCall) pred).getOperator()
-          == SqlStdOperatorTable.isNotNullOperator)) {
+          == SqlStdOperatorTable.IS_NOT_NULL)) {
         sel *= .9;
       } else if (
           (pred instanceof RexCall)

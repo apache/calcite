@@ -353,56 +353,32 @@ import org.eigenbase.util.*;
 public class SqlJdbcFunctionCall extends SqlFunction {
   //~ Static fields/initializers ---------------------------------------------
 
-  private static final String numericFunctions;
-  private static final String stringFunctions;
-  private static final String timeDateFunctions;
-  private static final String systemFunctions;
+  /** List of all numeric function names defined by JDBC. */
+  private static final String NUMERIC_FUNCTIONS = constructFuncList(
+      "ABS", "ACOS", "ASIN", "ATAN", "ATAN2", "CEILING", "COS", "COT",
+      "DEGREES", "EXP", "FLOOR", "LOG", "LOG10", "MOD", "PI",
+      "POWER", "RADIANS", "RAND", "ROUND", "SIGN", "SIN", "SQRT",
+      "TAN", "TRUNCATE");
 
-  /**
-   * List of all numeric function names defined by JDBC.
-   */
-  private static final String[] allNumericFunctions = {
-    "ABS", "ACOS", "ASIN", "ATAN", "ATAN2", "CEILING", "COS", "COT",
-    "DEGREES", "EXP", "FLOOR", "LOG", "LOG10", "MOD", "PI",
-    "POWER", "RADIANS", "RAND", "ROUND", "SIGN", "SIN", "SQRT",
-    "TAN", "TRUNCATE"
-  };
+  /** List of all string function names defined by JDBC. */
+  private static final String STRING_FUNCTIONS = constructFuncList(
+      "ASCII", "CHAR", "CONCAT", "DIFFERENCE", "INSERT", "LCASE",
+      "LEFT", "LENGTH", "LOCATE", "LTRIM", "REPEAT", "REPLACE",
+      "RIGHT", "RTRIM", "SOUNDEX", "SPACE", "SUBSTRING", "UCASE");
+      // "ASCII", "CHAR", "DIFFERENCE", "LOWER",
+      // "LEFT", "TRIM", "REPEAT", "REPLACE",
+      // "RIGHT", "SPACE", "SUBSTRING", "UPPER", "INITCAP", "OVERLAY"
 
-  /**
-   * List of all string function names defined by JDBC.
-   */
-  private static final String[] allStringFunctions = {
-    "ASCII", "CHAR", "CONCAT", "DIFFERENCE", "INSERT", "LCASE",
-    "LEFT", "LENGTH", "LOCATE", "LTRIM", "REPEAT", "REPLACE",
-    "RIGHT", "RTRIM", "SOUNDEX", "SPACE", "SUBSTRING", "UCASE"
-    // "ASCII", "CHAR", "DIFFERENCE", "LOWER",
-    // "LEFT", "TRIM", "REPEAT", "REPLACE",
-    // "RIGHT", "SPACE", "SUBSTRING", "UPPER", "INITCAP", "OVERLAY"
-  };
+  /** List of all time/date function names defined by JDBC. */
+  private static final String TIME_DATE_FUNCTIONS = constructFuncList(
+      "CURDATE", "CURTIME", "DAYNAME", "DAYOFMONTH", "DAYOFWEEK",
+      "DAYOFYEAR", "HOUR", "MINUTE", "MONTH", "MONTHNAME", "NOW",
+      "QUARTER", "SECOND", "TIMESTAMPADD", "TIMESTAMPDIFF",
+      "WEEK", "YEAR");
 
-  /**
-   * List of all time/date function names defined by JDBC.
-   */
-  private static final String[] allTimeDateFunctions = {
-    "CURDATE", "CURTIME", "DAYNAME", "DAYOFMONTH", "DAYOFWEEK",
-    "DAYOFYEAR", "HOUR", "MINUTE", "MONTH", "MONTHNAME", "NOW",
-    "QUARTER", "SECOND", "TIMESTAMPADD", "TIMESTAMPDIFF",
-    "WEEK", "YEAR"
-  };
-
-  /**
-   * List of all system function names defined by JDBC.
-   */
-  private static final String[] allSystemFunctions = {
-    "DATABASE", "IFNULL", "USER"
-  };
-
-  static {
-    numericFunctions = constructFuncList(allNumericFunctions);
-    stringFunctions = constructFuncList(allStringFunctions);
-    timeDateFunctions = constructFuncList(allTimeDateFunctions);
-    systemFunctions = constructFuncList(allSystemFunctions);
-  }
+  /** List of all system function names defined by JDBC. */
+  private static final String SYSTEM_FUNCTIONS = constructFuncList(
+      "DATABASE", "IFNULL", "USER");
 
   //~ Instance fields --------------------------------------------------------
 
@@ -429,7 +405,7 @@ public class SqlJdbcFunctionCall extends SqlFunction {
 
   //~ Methods ----------------------------------------------------------------
 
-  private static String constructFuncList(String[] functionNames) {
+  private static String constructFuncList(String... functionNames) {
     StringBuilder sb = new StringBuilder();
     int n = 0;
     for (String funcName : functionNames) {
@@ -547,28 +523,28 @@ public class SqlJdbcFunctionCall extends SqlFunction {
    * @see java.sql.DatabaseMetaData#getNumericFunctions
    */
   public static String getNumericFunctions() {
-    return numericFunctions;
+    return NUMERIC_FUNCTIONS;
   }
 
   /**
    * @see java.sql.DatabaseMetaData#getStringFunctions
    */
   public static String getStringFunctions() {
-    return stringFunctions;
+    return STRING_FUNCTIONS;
   }
 
   /**
    * @see java.sql.DatabaseMetaData#getTimeDateFunctions
    */
   public static String getTimeDateFunctions() {
-    return timeDateFunctions;
+    return TIME_DATE_FUNCTIONS;
   }
 
   /**
    * @see java.sql.DatabaseMetaData#getSystemFunctions
    */
   public static String getSystemFunctions() {
-    return systemFunctions;
+    return SYSTEM_FUNCTIONS;
   }
 
   //~ Inner Classes ----------------------------------------------------------
@@ -682,7 +658,7 @@ public class SqlJdbcFunctionCall extends SqlFunction {
    */
   private static class JdbcToInternalLookupTable {
     /**
-     * The {@link org.eigenbase.util.Glossary#SingletonPattern singleton}
+     * The {@link org.eigenbase.util.Glossary#SINGLETON_PATTERN singleton}
      * instance.
      */
     static final JdbcToInternalLookupTable INSTANCE =
@@ -696,44 +672,44 @@ public class SqlJdbcFunctionCall extends SqlFunction {
       // See also SqlOperatorTests.testJdbcFn, which contains the list.
       map.put(
           "ABS",
-          new MakeCall(SqlStdOperatorTable.absFunc, 1));
+          new MakeCall(SqlStdOperatorTable.ABS, 1));
       map.put(
           "EXP",
-          new MakeCall(SqlStdOperatorTable.expFunc, 1));
+          new MakeCall(SqlStdOperatorTable.EXP, 1));
       map.put(
           "LOG",
-          new MakeCall(SqlStdOperatorTable.lnFunc, 1));
+          new MakeCall(SqlStdOperatorTable.LN, 1));
       map.put(
           "LOG10",
-          new MakeCall(SqlStdOperatorTable.log10Func, 1));
+          new MakeCall(SqlStdOperatorTable.LOG10, 1));
       map.put(
           "MOD",
-          new MakeCall(SqlStdOperatorTable.modFunc, 2));
+          new MakeCall(SqlStdOperatorTable.MOD, 2));
       map.put(
           "POWER",
-          new MakeCall(SqlStdOperatorTable.powerFunc, 2));
+          new MakeCall(SqlStdOperatorTable.POWER, 2));
 
       map.put(
           "CONCAT",
-          new MakeCall(SqlStdOperatorTable.concatOperator, 2));
+          new MakeCall(SqlStdOperatorTable.CONCAT, 2));
       map.put(
           "INSERT",
           new MakeCall(
-              SqlStdOperatorTable.overlayFunc,
+              SqlStdOperatorTable.OVERLAY,
               4,
               new int[]{0, 2, 3, 1}));
       map.put(
           "LCASE",
-          new MakeCall(SqlStdOperatorTable.lowerFunc, 1));
+          new MakeCall(SqlStdOperatorTable.LOWER, 1));
       map.put(
           "LENGTH",
-          new MakeCall(SqlStdOperatorTable.characterLengthFunc, 1));
+          new MakeCall(SqlStdOperatorTable.CHARACTER_LENGTH, 1));
       map.put(
           "LOCATE",
-          new MakeCall(SqlStdOperatorTable.positionFunc, 2));
+          new MakeCall(SqlStdOperatorTable.POSITION, 2));
       map.put(
           "LTRIM",
-          new MakeCall(SqlStdOperatorTable.trimFunc, 1) {
+          new MakeCall(SqlStdOperatorTable.TRIM, 1) {
             @Override
             SqlCall createCall(
                 SqlNode[] operands, SqlParserPos pos) {
@@ -751,7 +727,7 @@ public class SqlJdbcFunctionCall extends SqlFunction {
           });
       map.put(
           "RTRIM",
-          new MakeCall(SqlStdOperatorTable.trimFunc, 1) {
+          new MakeCall(SqlStdOperatorTable.TRIM, 1) {
             @Override
             SqlCall createCall(
                 SqlNode[] operands, SqlParserPos pos) {
@@ -769,20 +745,20 @@ public class SqlJdbcFunctionCall extends SqlFunction {
           });
       map.put(
           "SUBSTRING",
-          new MakeCall(SqlStdOperatorTable.substringFunc, 3));
+          new MakeCall(SqlStdOperatorTable.SUBSTRING, 3));
       map.put(
           "UCASE",
-          new MakeCall(SqlStdOperatorTable.upperFunc, 1));
+          new MakeCall(SqlStdOperatorTable.UPPER, 1));
 
       map.put(
           "CURDATE",
-          new MakeCall(SqlStdOperatorTable.currentDateFunc, 0));
+          new MakeCall(SqlStdOperatorTable.CURRENT_DATE, 0));
       map.put(
           "CURTIME",
-          new MakeCall(SqlStdOperatorTable.localTimeFunc, 0));
+          new MakeCall(SqlStdOperatorTable.LOCALTIME, 0));
       map.put(
           "NOW",
-          new MakeCall(SqlStdOperatorTable.currentTimestampFunc, 0));
+          new MakeCall(SqlStdOperatorTable.CURRENT_TIMESTAMP, 0));
     }
 
     /**

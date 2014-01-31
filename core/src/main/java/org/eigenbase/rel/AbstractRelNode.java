@@ -43,7 +43,7 @@ public abstract class AbstractRelNode implements RelNode {
   // keep this per-VolcanoPlanner.
 
   /** Generator for {@link #id} values. */
-  static int NEXT_ID = 0;
+  static int nextId = 0;
 
   private static final Logger LOGGER = EigenbaseTrace.getPlannerTracer();
 
@@ -98,7 +98,7 @@ public abstract class AbstractRelNode implements RelNode {
     assert cluster != null;
     this.cluster = cluster;
     this.traitSet = traitSet;
-    this.id = NEXT_ID++;
+    this.id = nextId++;
     this.digest = getRelTypeName() + "#" + id;
     this.desc = digest;
     if (LOGGER.isLoggable(Level.FINEST)) {

@@ -49,7 +49,6 @@ import org.junit.runners.Suite;
 @Suite.SuiteClasses({
     // very fast tests (under 0.1s)
     ArrayTableTest.class,
-    ArrayQueueTest.class,
     DirectedGraphTest.class,
     ReflectVisitorTest.class,
     RelOptUtilTest.class,

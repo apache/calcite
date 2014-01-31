@@ -46,7 +46,7 @@ public class SqlDatetimeSubtractionOperator extends SqlSpecialOperator {
   //~ Methods ----------------------------------------------------------------
 
   public SqlSyntax getSyntax() {
-    return SqlSyntax.Special;
+    return SqlSyntax.SPECIAL;
   }
 
   public void unparse(
@@ -65,7 +65,7 @@ public class SqlDatetimeSubtractionOperator extends SqlSpecialOperator {
   public SqlMonotonicity getMonotonicity(
       SqlCall call,
       SqlValidatorScope scope) {
-    return SqlStdOperatorTable.minusOperator.getMonotonicity(call, scope);
+    return SqlStdOperatorTable.MINUS.getMonotonicity(call, scope);
   }
 }
 

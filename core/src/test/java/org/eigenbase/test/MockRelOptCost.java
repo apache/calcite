@@ -26,6 +26,18 @@ import org.eigenbase.relopt.*;
 public class MockRelOptCost implements RelOptCost {
   //~ Methods ----------------------------------------------------------------
 
+  @Override
+  public boolean equals(Object obj) {
+    return this == obj
+        || obj instanceof MockRelOptCost
+        && equals((MockRelOptCost) obj);
+  }
+
+  @Override
+  public int hashCode() {
+    return 1;
+  }
+
   public double getCpu() {
     return 0;
   }

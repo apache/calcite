@@ -46,7 +46,8 @@ public class SplunkConnection {
           "<response>\\s*<sessionKey>([0-9a-f]+)</sessionKey>\\s*</response>");
 
   final URL url;
-  final String username, password;
+  final String username;
+  final String password;
   String sessionKey;
   final Map<String, String> requestHeaders = new HashMap<String, String>();
 
@@ -281,9 +282,8 @@ public class SplunkConnection {
 
     parseArgs(args, argsMap);
 
-
-    String search = argsMap.get("search"),
-        field_list = argsMap.get("field_list");
+    String search = argsMap.get("search");
+    String field_list = argsMap.get("field_list");
 
     if (search == null) {
       printUsage("Missing required argument: search");
@@ -345,6 +345,7 @@ public class SplunkConnection {
         if (fieldNames == null
             || fieldNames.length == 0
             || fieldNames.length == 1 && fieldNames[0].isEmpty()) {
+          // do nothing
         } else {
           final List<String> headerList = Arrays.asList(fieldNames);
           if (wantedFields.size() == 1) {
@@ -369,7 +370,6 @@ public class SplunkConnection {
         ignore.printStackTrace(new PrintWriter(sw));
         LOGGER.warning(ignore.getMessage() + "\n"
             + sw);
-      } finally {
       }
     }
 

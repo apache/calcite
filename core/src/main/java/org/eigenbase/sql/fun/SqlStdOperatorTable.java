@@ -34,7 +34,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   /**
    * The standard operator table.
    */
-  private static SqlStdOperatorTable INSTANCE;
+  private static SqlStdOperatorTable instance;
 
   //-------------------------------------------------------------
   //                   SET OPERATORS
@@ -44,58 +44,58 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   // EXCEPT -> -
   // INTERSECT -> *
   // which explains the different precedence values
-  public static final SqlSetOperator unionOperator =
+  public static final SqlSetOperator UNION =
       new SqlSetOperator("UNION", SqlKind.UNION, 14, false);
 
-  public static final SqlSetOperator unionAllOperator =
+  public static final SqlSetOperator UNION_ALL =
       new SqlSetOperator("UNION ALL", SqlKind.UNION, 14, true);
 
-  public static final SqlSetOperator exceptOperator =
+  public static final SqlSetOperator EXCEPT =
       new SqlSetOperator("EXCEPT", SqlKind.EXCEPT, 14, false);
 
-  public static final SqlSetOperator exceptAllOperator =
+  public static final SqlSetOperator EXCEPT_ALL =
       new SqlSetOperator("EXCEPT ALL", SqlKind.EXCEPT, 14, true);
 
-  public static final SqlSetOperator intersectOperator =
+  public static final SqlSetOperator INTERSECT =
       new SqlSetOperator("INTERSECT", SqlKind.INTERSECT, 18, false);
 
-  public static final SqlSetOperator intersectAllOperator =
+  public static final SqlSetOperator INTERSECT_ALL =
       new SqlSetOperator("INTERSECT ALL", SqlKind.INTERSECT, 18, true);
 
   /**
    * The "MULTISET UNION" operator.
    */
-  public static final SqlMultisetSetOperator multisetUnionOperator =
+  public static final SqlMultisetSetOperator MULTISET_UNION =
       new SqlMultisetSetOperator("MULTISET UNION", 14, false);
 
   /**
    * The "MULTISET UNION ALL" operator.
    */
-  public static final SqlMultisetSetOperator multisetUnionAllOperator =
+  public static final SqlMultisetSetOperator MULTISET_UNION_ALL =
       new SqlMultisetSetOperator("MULTISET UNION ALL", 14, true);
 
   /**
    * The "MULTISET EXCEPT" operator.
    */
-  public static final SqlMultisetSetOperator multisetExceptOperator =
+  public static final SqlMultisetSetOperator MULTISET_EXCEPT =
       new SqlMultisetSetOperator("MULTISET EXCEPT", 14, false);
 
   /**
    * The "MULTISET EXCEPT ALL" operator.
    */
-  public static final SqlMultisetSetOperator multisetExceptAllOperator =
+  public static final SqlMultisetSetOperator MULTISET_EXCEPT_ALL =
       new SqlMultisetSetOperator("MULTISET EXCEPT ALL", 14, true);
 
   /**
    * The "MULTISET INTERSECT" operator.
    */
-  public static final SqlMultisetSetOperator multisetIntersectOperator =
+  public static final SqlMultisetSetOperator MULTISET_INTERSECT =
       new SqlMultisetSetOperator("MULTISET INTERSECT", 18, false);
 
   /**
    * The "MULTISET INTERSECT ALL" operator.
    */
-  public static final SqlMultisetSetOperator multisetIntersectAllOperator =
+  public static final SqlMultisetSetOperator MULTISET_INTERSECT_ALL =
       new SqlMultisetSetOperator("MULTISET INTERSECT ALL", 18, true);
 
   //-------------------------------------------------------------
@@ -105,7 +105,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   /**
    * Logical <code>AND</code> operator.
    */
-  public static final SqlBinaryOperator andOperator =
+  public static final SqlBinaryOperator AND =
       new SqlBinaryOperator(
           "AND",
           SqlKind.AND,
@@ -119,12 +119,12 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    * <code>AS</code> operator associates an expression in the SELECT clause
    * with an alias.
    */
-  public static final SqlAsOperator asOperator = new SqlAsOperator();
+  public static final SqlAsOperator AS = new SqlAsOperator();
 
   /**
    * String concatenation operator, '<code>||</code>'.
    */
-  public static final SqlBinaryOperator concatOperator =
+  public static final SqlBinaryOperator CONCAT =
       new SqlBinaryOperator(
           "||",
           SqlKind.OTHER,
@@ -137,7 +137,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   /**
    * Arithmetic division operator, '<code>/</code>'.
    */
-  public static final SqlBinaryOperator divideOperator =
+  public static final SqlBinaryOperator DIVIDE =
       new SqlBinaryOperator(
           "/",
           SqlKind.DIVIDE,
@@ -154,7 +154,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    * computation, whereas for the internal scaling use of division, we always
    * want integer division.
    */
-  public static final SqlBinaryOperator divideIntegerOperator =
+  public static final SqlBinaryOperator DIVIDE_INTEGER =
       new SqlBinaryOperator(
           "/INT",
           SqlKind.DIVIDE,
@@ -167,7 +167,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   /**
    * Dot operator, '<code>.</code>', used for referencing fields of records.
    */
-  public static final SqlBinaryOperator dotOperator =
+  public static final SqlBinaryOperator DOT =
       new SqlBinaryOperator(
           ".",
           SqlKind.DOT,
@@ -180,7 +180,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   /**
    * Logical equals operator, '<code>=</code>'.
    */
-  public static final SqlBinaryOperator equalsOperator =
+  public static final SqlBinaryOperator EQUALS =
       new SqlBinaryOperator(
           "=",
           SqlKind.EQUALS,
@@ -193,7 +193,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   /**
    * Logical greater-than operator, '<code>&gt;</code>'.
    */
-  public static final SqlBinaryOperator greaterThanOperator =
+  public static final SqlBinaryOperator GREATER_THAN =
       new SqlBinaryOperator(
           ">",
           SqlKind.GREATER_THAN,
@@ -206,7 +206,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   /**
    * <code>IS DISTINCT FROM</code> operator.
    */
-  public static final SqlBinaryOperator isDistinctFromOperator =
+  public static final SqlBinaryOperator IS_DISTINCT_FROM =
       new SqlBinaryOperator(
           "IS DISTINCT FROM",
           SqlKind.IS_DISTINCT_FROM,
@@ -220,7 +220,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    * <code>IS NOT DISTINCT FROM</code> operator. Is equivalent to <code>NOT(x
    * IS DISTINCT FROM y)</code>
    */
-  public static final SqlBinaryOperator isNotDistinctFromOperator =
+  public static final SqlBinaryOperator IS_NOT_DISTINCT_FROM =
       new SqlBinaryOperator(
           "IS NOT DISTINCT FROM",
           SqlKind.IS_NOT_DISTINCT_FROM,
@@ -232,11 +232,11 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
 
   /**
    * The internal <code>$IS_DIFFERENT_FROM</code> operator is the same as the
-   * user-level {@link #isDistinctFromOperator} in all respects except that
+   * user-level {@link #IS_DISTINCT_FROM} in all respects except that
    * the test for equality on character datatypes treats trailing spaces as
    * significant.
    */
-  public static final SqlBinaryOperator isDifferentFromOperator =
+  public static final SqlBinaryOperator IS_DIFFERENT_FROM =
       new SqlBinaryOperator(
           "$IS_DIFFERENT_FROM",
           SqlKind.OTHER,
@@ -249,7 +249,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   /**
    * Logical greater-than-or-equal operator, '<code>&gt;=</code>'.
    */
-  public static final SqlBinaryOperator greaterThanOrEqualOperator =
+  public static final SqlBinaryOperator GREATER_THAN_OR_EQUAL =
       new SqlBinaryOperator(
           ">=",
           SqlKind.GREATER_THAN_OR_EQUAL,
@@ -263,19 +263,19 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    * <code>IN</code> operator tests for a value's membership in a subquery or
    * a list of values.
    */
-  public static final SqlBinaryOperator inOperator = new SqlInOperator(false);
+  public static final SqlBinaryOperator IN = new SqlInOperator(false);
 
   /**
    * <code>NOT IN</code> operator tests for a value's membership in a subquery
    * or a list of values.
    */
-  public static final SqlBinaryOperator notInOperator =
+  public static final SqlBinaryOperator NOT_IN =
       new SqlInOperator(true);
 
   /**
    * Logical less-than operator, '<code>&lt;</code>'.
    */
-  public static final SqlBinaryOperator lessThanOperator =
+  public static final SqlBinaryOperator LESS_THAN =
       new SqlBinaryOperator(
           "<",
           SqlKind.LESS_THAN,
@@ -288,7 +288,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   /**
    * Logical less-than-or-equal operator, '<code>&lt;=</code>'.
    */
-  public static final SqlBinaryOperator lessThanOrEqualOperator =
+  public static final SqlBinaryOperator LESS_THAN_OR_EQUAL =
       new SqlBinaryOperator(
           "<=",
           SqlKind.LESS_THAN_OR_EQUAL,
@@ -301,10 +301,10 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   /**
    * Infix arithmetic minus operator, '<code>-</code>'.
    *
-   * <p>Its precedence is less than the prefix {@link #prefixPlusOperator +}
-   * and {@link #prefixMinusOperator -} operators.
+   * <p>Its precedence is less than the prefix {@link #UNARY_PLUS +}
+   * and {@link #UNARY_MINUS -} operators.
    */
-  public static final SqlBinaryOperator minusOperator =
+  public static final SqlBinaryOperator MINUS =
       new SqlMonotonicBinaryOperator(
           "-",
           SqlKind.MINUS,
@@ -319,7 +319,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   /**
    * Arithmetic multiplication operator, '<code>*</code>'.
    */
-  public static final SqlBinaryOperator multiplyOperator =
+  public static final SqlBinaryOperator MULTIPLY =
       new SqlMonotonicBinaryOperator(
           "*",
           SqlKind.TIMES,
@@ -332,7 +332,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   /**
    * Logical not-equals operator, '<code>&lt;&gt;</code>'.
    */
-  public static final SqlBinaryOperator notEqualsOperator =
+  public static final SqlBinaryOperator NOT_EQUALS =
       new SqlBinaryOperator(
           "<>",
           SqlKind.NOT_EQUALS,
@@ -345,7 +345,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   /**
    * Logical <code>OR</code> operator.
    */
-  public static final SqlBinaryOperator orOperator =
+  public static final SqlBinaryOperator OR =
       new SqlBinaryOperator(
           "OR",
           SqlKind.OR,
@@ -358,7 +358,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   /**
    * Infix arithmetic plus operator, '<code>+</code>'.
    */
-  public static final SqlBinaryOperator plusOperator =
+  public static final SqlBinaryOperator PLUS =
       new SqlMonotonicBinaryOperator(
           "+",
           SqlKind.PLUS,
@@ -374,7 +374,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    * <code>'green' MEMBER OF MULTISET['red','almost green','blue']</code>
    * returns <code>false</code>.
    */
-  public static final SqlBinaryOperator memberOfOperator =
+  public static final SqlBinaryOperator MEMBER_OF =
       new SqlMultisetMemberOfOperator();
 
   /**
@@ -388,7 +388,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    * MULTISET['red','almost green','blue']</code> returns <code>true</code>
    * (<b>NB</b> multisets is order independant)
    */
-  public static final SqlBinaryOperator submultisetOfOperator =
+  public static final SqlBinaryOperator SUBMULTISET_OF =
 
       // TODO: check if precedence is correct
       new SqlBinaryOperator(
@@ -403,7 +403,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   //-------------------------------------------------------------
   //                   POSTFIX OPERATORS
   //-------------------------------------------------------------
-  public static final SqlPostfixOperator descendingOperator =
+  public static final SqlPostfixOperator DESC =
       new SqlPostfixOperator(
           "DESC",
           SqlKind.DESCENDING,
@@ -412,7 +412,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           SqlTypeStrategies.otiReturnType,
           SqlTypeStrategies.otcAny);
 
-  public static final SqlPostfixOperator nullsFirstOperator =
+  public static final SqlPostfixOperator NULLS_FIRST =
       new SqlPostfixOperator(
           "NULLS FIRST",
           SqlKind.NULLS_FIRST,
@@ -421,7 +421,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           SqlTypeStrategies.otiReturnType,
           SqlTypeStrategies.otcAny);
 
-  public static final SqlPostfixOperator nullsLastOperator =
+  public static final SqlPostfixOperator NULLS_LAST =
       new SqlPostfixOperator(
           "NULLS LAST",
           SqlKind.NULLS_LAST,
@@ -430,7 +430,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           SqlTypeStrategies.otiReturnType,
           SqlTypeStrategies.otcAny);
 
-  public static final SqlPostfixOperator isNotNullOperator =
+  public static final SqlPostfixOperator IS_NOT_NULL =
       new SqlPostfixOperator(
           "IS NOT NULL",
           SqlKind.OTHER,
@@ -439,7 +439,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           SqlTypeStrategies.otiVarchar1024,
           SqlTypeStrategies.otcAny);
 
-  public static final SqlPostfixOperator isNullOperator =
+  public static final SqlPostfixOperator IS_NULL =
       new SqlPostfixOperator(
           "IS NULL",
           SqlKind.IS_NULL,
@@ -448,7 +448,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           SqlTypeStrategies.otiVarchar1024,
           SqlTypeStrategies.otcAny);
 
-  public static final SqlPostfixOperator isNotTrueOperator =
+  public static final SqlPostfixOperator IS_NOT_TRUE =
       new SqlPostfixOperator(
           "IS NOT TRUE",
           SqlKind.OTHER,
@@ -457,7 +457,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           SqlTypeStrategies.otiBoolean,
           SqlTypeStrategies.otcBool);
 
-  public static final SqlPostfixOperator isTrueOperator =
+  public static final SqlPostfixOperator IS_TRUE =
       new SqlPostfixOperator(
           "IS TRUE",
           SqlKind.IS_TRUE,
@@ -466,7 +466,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           SqlTypeStrategies.otiBoolean,
           SqlTypeStrategies.otcBool);
 
-  public static final SqlPostfixOperator isNotFalseOperator =
+  public static final SqlPostfixOperator IS_NOT_FALSE =
       new SqlPostfixOperator(
           "IS NOT FALSE",
           SqlKind.OTHER,
@@ -475,7 +475,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           SqlTypeStrategies.otiBoolean,
           SqlTypeStrategies.otcBool);
 
-  public static final SqlPostfixOperator isFalseOperator =
+  public static final SqlPostfixOperator IS_FALSE =
       new SqlPostfixOperator(
           "IS FALSE",
           SqlKind.IS_FALSE,
@@ -484,7 +484,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           SqlTypeStrategies.otiBoolean,
           SqlTypeStrategies.otcBool);
 
-  public static final SqlPostfixOperator isNotUnknownOperator =
+  public static final SqlPostfixOperator IS_NOT_UNKNOWN =
       new SqlPostfixOperator(
           "IS NOT UNKNOWN",
           SqlKind.OTHER,
@@ -493,7 +493,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           SqlTypeStrategies.otiBoolean,
           SqlTypeStrategies.otcBool);
 
-  public static final SqlPostfixOperator isUnknownOperator =
+  public static final SqlPostfixOperator IS_UNKNOWN =
       new SqlPostfixOperator(
           "IS UNKNOWN",
           SqlKind.IS_NULL,
@@ -502,7 +502,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           SqlTypeStrategies.otiBoolean,
           SqlTypeStrategies.otcBool);
 
-  public static final SqlPostfixOperator isASetOperator =
+  public static final SqlPostfixOperator IS_A_SET =
       new SqlPostfixOperator(
           "IS A SET",
           SqlKind.OTHER,
@@ -514,7 +514,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   //-------------------------------------------------------------
   //                   PREFIX OPERATORS
   //-------------------------------------------------------------
-  public static final SqlPrefixOperator existsOperator =
+  public static final SqlPrefixOperator EXISTS =
       new SqlPrefixOperator(
           "EXISTS",
           SqlKind.EXISTS,
@@ -527,7 +527,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
         }
       };
 
-  public static final SqlPrefixOperator notOperator =
+  public static final SqlPrefixOperator NOT =
       new SqlPrefixOperator(
           "NOT",
           SqlKind.NOT,
@@ -539,10 +539,10 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   /**
    * Prefix arithmetic minus operator, '<code>-</code>'.
    *
-   * <p>Its precedence is greater than the infix '{@link #plusOperator +}' and
-   * '{@link #minusOperator -}' operators.
+   * <p>Its precedence is greater than the infix '{@link #PLUS +}' and
+   * '{@link #MINUS -}' operators.
    */
-  public static final SqlPrefixOperator prefixMinusOperator =
+  public static final SqlPrefixOperator UNARY_MINUS =
       new SqlPrefixOperator(
           "-",
           SqlKind.MINUS_PREFIX,
@@ -554,10 +554,10 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   /**
    * Prefix arithmetic plus operator, '<code>+</code>'.
    *
-   * <p>Its precedence is greater than the infix '{@link #plusOperator +}' and
-   * '{@link #minusOperator -}' operators.
+   * <p>Its precedence is greater than the infix '{@link #PLUS +}' and
+   * '{@link #MINUS -}' operators.
    */
-  public static final SqlPrefixOperator prefixPlusOperator =
+  public static final SqlPrefixOperator UNARY_PLUS =
       new SqlPrefixOperator(
           "+",
           SqlKind.PLUS_PREFIX,
@@ -569,9 +569,9 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   /**
    * Keyword which allows an identifier to be explicitly flagged as a table.
    * For example, <code>select * from (TABLE t)</code> or <code>TABLE
-   * t</code>. See also {@link #collectionTableOperator}.
+   * t</code>. See also {@link #COLLECTION_TABLE}.
    */
-  public static final SqlPrefixOperator explicitTableOperator =
+  public static final SqlPrefixOperator EXPLICIT_TABLE =
       new SqlPrefixOperator(
           "TABLE",
           SqlKind.EXPLICIT_TABLE,
@@ -586,19 +586,17 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   /**
    * <code>SUM</code> aggregate function.
    */
-  public static final SqlAggFunction sumOperator =
-      new SqlSumAggFunction(null);
+  public static final SqlAggFunction SUM = new SqlSumAggFunction(null);
 
   /**
    * <code>COUNT</code> aggregate function.
    */
-  public static final SqlAggFunction countOperator =
-      new SqlCountAggFunction();
+  public static final SqlAggFunction COUNT = new SqlCountAggFunction();
 
   /**
    * <code>MIN</code> aggregate function.
    */
-  public static final SqlAggFunction minOperator =
+  public static final SqlAggFunction MIN =
       new SqlMinMaxAggFunction(
           ImmutableList.<RelDataType>of(),
           true,
@@ -607,7 +605,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   /**
    * <code>MAX</code> aggregate function.
    */
-  public static final SqlAggFunction maxOperator =
+  public static final SqlAggFunction MAX =
       new SqlMinMaxAggFunction(
           ImmutableList.<RelDataType>of(),
           false,
@@ -616,49 +614,49 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   /**
    * <code>LAST_VALUE</code> aggregate function.
    */
-  public static final SqlAggFunction lastValueOperator =
+  public static final SqlAggFunction LAST_VALUE =
       new SqlFirstLastValueAggFunction(false);
 
   /**
    * <code>FIRST_VALUE</code> aggregate function.
    */
-  public static final SqlAggFunction firstValueOperator =
+  public static final SqlAggFunction FIRST_VALUE =
       new SqlFirstLastValueAggFunction(true);
 
   /**
    * <code>SINGLE_VALUE</code> aggregate function.
    */
-  public static final SqlAggFunction singleValueOperator =
+  public static final SqlAggFunction SINGLE_VALUE =
       new SqlSingleValueAggFunction(null);
 
   /**
    * <code>AVG</code> aggregate function.
    */
-  public static final SqlAggFunction avgOperator =
+  public static final SqlAggFunction AVG =
       new SqlAvgAggFunction(null, SqlAvgAggFunction.Subtype.AVG);
 
   /**
    * <code>STDDEV_POP</code> aggregate function.
    */
-  public static final SqlAggFunction stddevPopOperator =
+  public static final SqlAggFunction STDDEV_POP =
       new SqlAvgAggFunction(null, SqlAvgAggFunction.Subtype.STDDEV_POP);
 
   /**
    * <code>STDDEV_SAMP</code> aggregate function.
    */
-  public static final SqlAggFunction stddevSampOperator =
+  public static final SqlAggFunction STDDEV_SAMP =
       new SqlAvgAggFunction(null, SqlAvgAggFunction.Subtype.STDDEV_SAMP);
 
   /**
    * <code>VAR_POP</code> aggregate function.
    */
-  public static final SqlAggFunction varPopOperator =
+  public static final SqlAggFunction VAR_POP =
       new SqlAvgAggFunction(null, SqlAvgAggFunction.Subtype.VAR_POP);
 
   /**
    * <code>VAR_SAMP</code> aggregate function.
    */
-  public static final SqlAggFunction varSampOperator =
+  public static final SqlAggFunction VAR_SAMP =
       new SqlAvgAggFunction(null, SqlAvgAggFunction.Subtype.VAR_SAMP);
 
   //-------------------------------------------------------------
@@ -668,61 +666,61 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    * <code>HISTORAM</code> aggregate function support. Used by window
    * aggregate versions of MIN/MAX
    */
-  public static final SqlAggFunction histogramAggFunction =
+  public static final SqlAggFunction HISTOGRAM_AGG =
       new SqlHistogramAggFunction(null);
 
   /**
    * <code>HISTOGRAM_MIN</code> window aggregate function.
    */
-  public static final SqlFunction histogramMinFunction =
+  public static final SqlFunction HISTOGRAM_MIN =
       new SqlFunction(
           "$HISTOGRAM_MIN",
           SqlKind.OTHER_FUNCTION,
           SqlTypeStrategies.rtiNullableFirstArgType,
           null,
           SqlTypeStrategies.otcNumericOrString,
-          SqlFunctionCategory.Numeric);
+          SqlFunctionCategory.NUMERIC);
 
   /**
    * <code>HISTOGRAM_MAX</code> window aggregate function.
    */
-  public static final SqlFunction histogramMaxFunction =
+  public static final SqlFunction HISTOGRAM_MAX =
       new SqlFunction(
           "$HISTOGRAM_MAX",
           SqlKind.OTHER_FUNCTION,
           SqlTypeStrategies.rtiNullableFirstArgType,
           null,
           SqlTypeStrategies.otcNumericOrString,
-          SqlFunctionCategory.Numeric);
+          SqlFunctionCategory.NUMERIC);
 
   /**
    * <code>HISTOGRAM_FIRST_VALUE</code> window aggregate function.
    */
-  public static final SqlFunction histogramFirstValueFunction =
+  public static final SqlFunction HISTOGRAM_FIRST_VALUE =
       new SqlFunction(
           "$HISTOGRAM_FIRST_VALUE",
           SqlKind.OTHER_FUNCTION,
           SqlTypeStrategies.rtiNullableFirstArgType,
           null,
           SqlTypeStrategies.otcNumericOrString,
-          SqlFunctionCategory.Numeric);
+          SqlFunctionCategory.NUMERIC);
 
   /**
    * <code>HISTOGRAM_LAST_VALUE</code> window aggregate function.
    */
-  public static final SqlFunction histogramLastValueFunction =
+  public static final SqlFunction HISTOGRAM_LAST_VALUE =
       new SqlFunction(
           "$HISTOGRAM_LAST_VALUE",
           SqlKind.OTHER_FUNCTION,
           SqlTypeStrategies.rtiNullableFirstArgType,
           null,
           SqlTypeStrategies.otcNumericOrString,
-          SqlFunctionCategory.Numeric);
+          SqlFunctionCategory.NUMERIC);
 
   /**
    * <code>SUM0</code> aggregate function.
    */
-  public static final SqlAggFunction sumEmptyIsZeroOperator =
+  public static final SqlAggFunction SUM0 =
       new SqlSumEmptyIsZeroAggFunction(null);
 
   //-------------------------------------------------------------
@@ -731,36 +729,36 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   /**
    * <code>CUME_DIST</code> Window function.
    */
-  public static final SqlRankFunction cumeDistFunc =
+  public static final SqlRankFunction CUME_DIST =
       new SqlRankFunction("CUME_DIST");
 
   /**
    * <code>DENSE_RANK</code> Window function.
    */
-  public static final SqlRankFunction denseRankFunc =
+  public static final SqlRankFunction DENSE_RANK =
       new SqlRankFunction("DENSE_RANK");
 
   /**
    * <code>PERCENT_RANK</code> Window function.
    */
-  public static final SqlRankFunction percentRankFunc =
+  public static final SqlRankFunction PERCENT_RANK =
       new SqlRankFunction("PERCENT_RANK");
 
   /**
    * <code>RANK</code> Window function.
    */
-  public static final SqlRankFunction rankFunc = new SqlRankFunction("RANK");
+  public static final SqlRankFunction RANK = new SqlRankFunction("RANK");
 
   /**
    * <code>ROW_NUMBER</code> Window function.
    */
-  public static final SqlRankFunction rowNumberFunc =
+  public static final SqlRankFunction ROW_NUMBER =
       new SqlRankFunction("ROW_NUMBER");
 
   //-------------------------------------------------------------
   //                   SPECIAL OPERATORS
   //-------------------------------------------------------------
-  public static final SqlRowOperator rowConstructor = new SqlRowOperator();
+  public static final SqlRowOperator ROW = new SqlRowOperator();
 
   /**
    * A special operator for the subtraction of two DATETIMEs. The format of
@@ -769,60 +767,60 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    * qualifier></code>. This operator is special since it needs to hold the
    * additional interval qualifier specification.
    */
-  public static final SqlOperator minusDateOperator =
+  public static final SqlOperator MINUS_DATE =
       new SqlDatetimeSubtractionOperator();
 
   /**
    * The MULTISET Value Constructor. e.g. "<code>MULTISET[1,2,3]</code>".
    */
-  public static final SqlMultisetValueConstructor multisetValueConstructor =
+  public static final SqlMultisetValueConstructor MULTISET_VALUE =
       new SqlMultisetValueConstructor();
 
   /**
    * The MULTISET Query Constructor. e.g. "<code>SELECT dname, MULTISET(SELECT
    * FROM emp WHERE deptno = dept.deptno) FROM dept</code>".
    */
-  public static final SqlMultisetQueryConstructor multisetQueryConstructor =
+  public static final SqlMultisetQueryConstructor MULTISET_QUERY =
       new SqlMultisetQueryConstructor();
 
   /**
    * The ARRAY Query Constructor. e.g. "<code>SELECT dname, ARRAY(SELECT
    * FROM emp WHERE deptno = dept.deptno) FROM dept</code>".
    */
-  public static final SqlMultisetQueryConstructor arrayQueryConstructor =
+  public static final SqlMultisetQueryConstructor ARRAY_QUERY =
       new SqlArrayQueryConstructor();
 
   /**
    * The MAP Query Constructor. e.g. "<code>MAP(SELECT empno, deptno
    * FROM emp)</code>".
    */
-  public static final SqlMultisetQueryConstructor mapQueryConstructor =
+  public static final SqlMultisetQueryConstructor MAP_QUERY =
       new SqlMapQueryConstructor();
 
   /**
    * The CURSOR constructor. e.g. "<code>SELECT * FROM
    * TABLE(DEDUP(CURSOR(SELECT * FROM EMPS), 'name'))</code>".
    */
-  public static final SqlCursorConstructor cursorConstructor =
+  public static final SqlCursorConstructor CURSOR =
       new SqlCursorConstructor();
 
   /**
    * The COLUMN_LIST constructor. e.g. the ROW() call in "<code>SELECT * FROM
    * TABLE(DEDUP(CURSOR(SELECT * FROM EMPS), ROW(name, empno)))</code>".
    */
-  public static final SqlColumnListConstructor columnListConstructor =
+  public static final SqlColumnListConstructor COLUMN_LIST =
       new SqlColumnListConstructor();
 
   /**
-   * The <code>UNNEST<code>operator.
+   * The <code>UNNEST</code> operator.
    */
-  public static final SqlSpecialOperator unnestOperator =
+  public static final SqlSpecialOperator UNNEST =
       new SqlUnnestOperator();
 
   /**
-   * The <code>LATERAL<code>operator.
+   * The <code>LATERAL</code> operator.
    */
-  public static final SqlSpecialOperator lateralOperator =
+  public static final SqlSpecialOperator LATERAL =
       new SqlFunctionalOperator(
           "LATERAL",
           SqlKind.LATERAL,
@@ -838,103 +836,101 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    * TABLE(ramp(5))</code>".
    *
    * <p>This operator has function syntax (with one argument), whereas {@link
-   * #explicitTableOperator} is a prefix operator.
+   * #EXPLICIT_TABLE} is a prefix operator.
    */
-  public static final SqlSpecialOperator collectionTableOperator =
+  public static final SqlSpecialOperator COLLECTION_TABLE =
       new SqlCollectionTableOperator(
           "TABLE",
           SqlCollectionTableOperator.MODALITY_RELATIONAL);
 
-  public static final SqlOverlapsOperator overlapsOperator =
+  public static final SqlOverlapsOperator OVERLAPS =
       new SqlOverlapsOperator();
 
-  public static final SqlSpecialOperator valuesOperator =
+  public static final SqlSpecialOperator VALUES =
       new SqlValuesOperator();
 
-  public static final SqlLiteralChainOperator literalChainOperator =
+  public static final SqlLiteralChainOperator LITERAL_CHAIN =
       new SqlLiteralChainOperator();
 
-  public static final SqlInternalOperator throwOperator =
-      new SqlThrowOperator();
+  public static final SqlInternalOperator THROW = new SqlThrowOperator();
 
-  public static final SqlBetweenOperator betweenOperator =
+  public static final SqlBetweenOperator BETWEEN =
       new SqlBetweenOperator(
           SqlBetweenOperator.Flag.ASYMMETRIC,
           false);
 
-  public static final SqlBetweenOperator symmetricBetweenOperator =
+  public static final SqlBetweenOperator SYMMETRIC_BETWEEN =
       new SqlBetweenOperator(
           SqlBetweenOperator.Flag.SYMMETRIC,
           false);
 
-  public static final SqlBetweenOperator notBetweenOperator =
+  public static final SqlBetweenOperator NOT_BETWEEN =
       new SqlBetweenOperator(
           SqlBetweenOperator.Flag.ASYMMETRIC,
           true);
 
-  public static final SqlBetweenOperator symmetricNotBetweenOperator =
+  public static final SqlBetweenOperator SYMMETRIC_NOT_BETWEEN =
       new SqlBetweenOperator(
           SqlBetweenOperator.Flag.SYMMETRIC,
           true);
 
-  public static final SqlSpecialOperator notLikeOperator =
+  public static final SqlSpecialOperator NOT_LIKE =
       new SqlLikeOperator("NOT LIKE", SqlKind.LIKE, true);
 
-  public static final SqlSpecialOperator likeOperator =
+  public static final SqlSpecialOperator LIKE =
       new SqlLikeOperator("LIKE", SqlKind.LIKE, false);
 
-  public static final SqlSpecialOperator notSimilarOperator =
+  public static final SqlSpecialOperator NOT_SIMILAR_TO =
       new SqlLikeOperator("NOT SIMILAR TO", SqlKind.SIMILAR, true);
 
-  public static final SqlSpecialOperator similarOperator =
+  public static final SqlSpecialOperator SIMILAR_TO =
       new SqlLikeOperator("SIMILAR TO", SqlKind.SIMILAR, false);
 
   /**
    * Internal operator used to represent the ESCAPE clause of a LIKE or
    * SIMILAR TO expression.
    */
-  public static final SqlSpecialOperator escapeOperator =
+  public static final SqlSpecialOperator ESCAPE =
       new SqlSpecialOperator("Escape", SqlKind.ESCAPE, 30);
 
   /**
    * The standard SELECT operator.
    */
-  public static final SqlSelectOperator selectOperator =
-      new SqlSelectOperator();
+  public static final SqlSelectOperator SELECT = new SqlSelectOperator();
 
-  public static final SqlCaseOperator caseOperator = new SqlCaseOperator();
+  public static final SqlCaseOperator CASE = new SqlCaseOperator();
 
-  public static final SqlJoinOperator joinOperator = new SqlJoinOperator();
+  public static final SqlJoinOperator JOIN = new SqlJoinOperator();
 
-  public static final SqlSpecialOperator insertOperator =
+  public static final SqlSpecialOperator INSERT =
       new SqlSpecialOperator("INSERT", SqlKind.INSERT);
 
-  public static final SqlSpecialOperator deleteOperator =
+  public static final SqlSpecialOperator DELETE =
       new SqlSpecialOperator("DELETE", SqlKind.DELETE);
 
-  public static final SqlSpecialOperator updateOperator =
+  public static final SqlSpecialOperator UPDATE =
       new SqlSpecialOperator("UPDATE", SqlKind.UPDATE);
 
-  public static final SqlSpecialOperator mergeOperator =
+  public static final SqlSpecialOperator MERGE =
       new SqlSpecialOperator("MERGE", SqlKind.MERGE);
 
-  public static final SqlSpecialOperator explainOperator =
+  public static final SqlSpecialOperator EXPLAIN =
       new SqlSpecialOperator("EXPLAIN", SqlKind.EXPLAIN);
 
-  public static final SqlOrderByOperator orderByOperator =
+  public static final SqlOrderByOperator ORDER_BY =
       new SqlOrderByOperator();
 
-  public static final SqlOperator procedureCallOperator =
+  public static final SqlOperator PROCEDURE_CALL =
       new SqlProcedureCallOperator();
 
-  public static final SqlOperator newOperator = new SqlNewOperator();
+  public static final SqlOperator NEW = new SqlNewOperator();
 
   /**
    * The WINDOW clause of a SELECT statment.
    *
-   * @see #overOperator
+   * @see #OVER
    */
-  public static final SqlWindowOperator windowOperator =
+  public static final SqlWindowOperator WINDOW =
       new SqlWindowOperator();
 
   /**
@@ -947,12 +943,12 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    * <li>name of window function ({@link org.eigenbase.sql.SqlCall})</li>
    * <li>window name ({@link org.eigenbase.sql.SqlLiteral}) or window in-line
    * specification (@link SqlWindowOperator})</li>
-   * </ul>
+   * </ol>
    */
-  public static final SqlBinaryOperator overOperator = new SqlOverOperator();
+  public static final SqlBinaryOperator OVER = new SqlOverOperator();
 
   /**
-   * An <code>REINTERPRET<code>operator is internal to the planner. When the
+   * An <code>REINTERPRET</code> operator is internal to the planner. When the
    * physical storage of two types is the same, this operator may be used to
    * reinterpret values of one type as the other. This operator is similar to
    * a cast, except that it does not alter the data value. Like a regular cast
@@ -960,7 +956,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    * performs an overflow check if it has <i>any</i> second operand, whether
    * true or not.
    */
-  public static final SqlSpecialOperator reinterpretOperator =
+  public static final SqlSpecialOperator REINTERPRET =
       new SqlSpecialOperator("Reinterpret", SqlKind.REINTERPRET) {
         public SqlOperandCountRange getOperandCountRange() {
           return SqlOperandCountRanges.between(1, 2);
@@ -970,6 +966,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   //-------------------------------------------------------------
   //                   FUNCTIONS
   //-------------------------------------------------------------
+
   /**
    * The character substring function: <code>SUBSTRING(string FROM start [FOR
    * length])</code>.
@@ -977,70 +974,66 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    * <p>If the length parameter is a constant, the length of the result is the
    * minimum of the length of the input and that length. Otherwise it is the
    * length of the input.
-   *
-   *
    */
-  public static final SqlFunction substringFunc = new SqlSubstringFunction();
+  public static final SqlFunction SUBSTRING = new SqlSubstringFunction();
 
-  public static final SqlFunction convertFunc =
+  public static final SqlFunction CONVERT =
       new SqlConvertFunction("CONVERT");
 
-  public static final SqlFunction translateFunc =
+  public static final SqlFunction TRANSLATE =
       new SqlConvertFunction("TRANSLATE");
 
-  public static final SqlFunction overlayFunc = new SqlOverlayFunction();
+  public static final SqlFunction OVERLAY = new SqlOverlayFunction();
 
-  /**
-   * The "TRIM" function.
-   */
-  public static final SqlFunction trimFunc = new SqlTrimFunction();
+  /** The "TRIM" function. */
+  public static final SqlFunction TRIM = new SqlTrimFunction();
 
-  public static final SqlFunction positionFunc = new SqlPositionFunction();
+  public static final SqlFunction POSITION = new SqlPositionFunction();
 
-  public static final SqlFunction charLengthFunc =
+  public static final SqlFunction CHAR_LENGTH =
       new SqlFunction(
           "CHAR_LENGTH",
           SqlKind.OTHER_FUNCTION,
           SqlTypeStrategies.rtiNullableInteger,
           null,
           SqlTypeStrategies.otcCharString,
-          SqlFunctionCategory.Numeric);
+          SqlFunctionCategory.NUMERIC);
 
-  public static final SqlFunction characterLengthFunc =
+  public static final SqlFunction CHARACTER_LENGTH =
       new SqlFunction(
           "CHARACTER_LENGTH",
           SqlKind.OTHER_FUNCTION,
           SqlTypeStrategies.rtiNullableInteger,
           null,
           SqlTypeStrategies.otcCharString,
-          SqlFunctionCategory.Numeric);
+          SqlFunctionCategory.NUMERIC);
 
-  public static final SqlFunction upperFunc =
+  public static final SqlFunction UPPER =
       new SqlFunction(
           "UPPER",
           SqlKind.OTHER_FUNCTION,
           SqlTypeStrategies.rtiNullableFirstArgType,
           null,
           SqlTypeStrategies.otcCharString,
-          SqlFunctionCategory.String);
+          SqlFunctionCategory.STRING);
 
-  public static final SqlFunction lowerFunc =
+  public static final SqlFunction LOWER =
       new SqlFunction(
           "LOWER",
           SqlKind.OTHER_FUNCTION,
           SqlTypeStrategies.rtiNullableFirstArgType,
           null,
           SqlTypeStrategies.otcCharString,
-          SqlFunctionCategory.String);
+          SqlFunctionCategory.STRING);
 
-  public static final SqlFunction initcapFunc =
+  public static final SqlFunction INITCAP =
       new SqlFunction(
           "INITCAP",
           SqlKind.OTHER_FUNCTION,
           SqlTypeStrategies.rtiNullableFirstArgType,
           null,
           SqlTypeStrategies.otcCharString,
-          SqlFunctionCategory.String);
+          SqlFunctionCategory.STRING);
 
   /**
    * Uses SqlOperatorTable.useDouble for its return type since we don't know
@@ -1048,25 +1041,25 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    * example POW(int, int) can return a non integer if the second operand is
    * negative.
    */
-  public static final SqlFunction powerFunc =
+  public static final SqlFunction POWER =
       new SqlFunction(
           "POWER",
           SqlKind.OTHER_FUNCTION,
           SqlTypeStrategies.rtiNullableDouble,
           null,
           SqlTypeStrategies.otcNumericX2,
-          SqlFunctionCategory.Numeric);
+          SqlFunctionCategory.NUMERIC);
 
-  public static final SqlFunction sqrtFunc =
+  public static final SqlFunction SQRT =
       new SqlFunction(
           "SQRT",
           SqlKind.OTHER_FUNCTION,
           SqlTypeStrategies.rtiNullableDouble,
           null,
           SqlTypeStrategies.otcNumeric,
-          SqlFunctionCategory.Numeric);
+          SqlFunctionCategory.NUMERIC);
 
-  public static final SqlFunction modFunc =
+  public static final SqlFunction MOD =
 
       // Return type is same as divisor (2nd operand)
       // SQL2003 Part2 Section 6.27, Syntax Rules 9
@@ -1076,165 +1069,165 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           SqlTypeStrategies.rtiNullableSecondArgType,
           null,
           SqlTypeStrategies.otcExactNumericX2,
-          SqlFunctionCategory.Numeric);
+          SqlFunctionCategory.NUMERIC);
 
-  public static final SqlFunction lnFunc =
+  public static final SqlFunction LN =
       new SqlFunction(
           "LN",
           SqlKind.OTHER_FUNCTION,
           SqlTypeStrategies.rtiNullableDouble,
           null,
           SqlTypeStrategies.otcNumeric,
-          SqlFunctionCategory.Numeric);
+          SqlFunctionCategory.NUMERIC);
 
-  public static final SqlFunction log10Func =
+  public static final SqlFunction LOG10 =
       new SqlFunction(
           "LOG10",
           SqlKind.OTHER_FUNCTION,
           SqlTypeStrategies.rtiNullableDouble,
           null,
           SqlTypeStrategies.otcNumeric,
-          SqlFunctionCategory.Numeric);
+          SqlFunctionCategory.NUMERIC);
 
-  public static final SqlFunction absFunc =
+  public static final SqlFunction ABS =
       new SqlFunction(
           "ABS",
           SqlKind.OTHER_FUNCTION,
           SqlTypeStrategies.rtiFirstArgType,
           null,
           SqlTypeStrategies.otcNumericOrInterval,
-          SqlFunctionCategory.Numeric);
+          SqlFunctionCategory.NUMERIC);
 
-  public static final SqlFunction expFunc =
+  public static final SqlFunction EXP =
       new SqlFunction(
           "EXP",
           SqlKind.OTHER_FUNCTION,
           SqlTypeStrategies.rtiNullableDouble,
           null,
           SqlTypeStrategies.otcNumeric,
-          SqlFunctionCategory.Numeric);
+          SqlFunctionCategory.NUMERIC);
 
-  public static final SqlFunction nullIfFunc = new SqlNullifFunction();
+  public static final SqlFunction NULLIF = new SqlNullifFunction();
 
   /**
    * The COALESCE builtin function.
    */
-  public static final SqlFunction coalesceFunc = new SqlCoalesceFunction();
+  public static final SqlFunction COALESCE = new SqlCoalesceFunction();
 
   /**
    * The <code>FLOOR</code> function.
    */
-  public static final SqlFunction floorFunc =
+  public static final SqlFunction FLOOR =
       new SqlMonotonicUnaryFunction(
           "FLOOR",
           SqlKind.OTHER_FUNCTION,
           SqlTypeStrategies.rtiFirstArgTypeOrExactNoScale,
           null,
           SqlTypeStrategies.otcNumericOrInterval,
-          SqlFunctionCategory.Numeric);
+          SqlFunctionCategory.NUMERIC);
 
   /**
    * The <code>CEIL</code> function.
    */
-  public static final SqlFunction ceilFunc =
+  public static final SqlFunction CEIL =
       new SqlMonotonicUnaryFunction(
           "CEIL",
           SqlKind.OTHER_FUNCTION,
           SqlTypeStrategies.rtiFirstArgTypeOrExactNoScale,
           null,
           SqlTypeStrategies.otcNumericOrInterval,
-          SqlFunctionCategory.Numeric);
+          SqlFunctionCategory.NUMERIC);
 
   /**
    * The <code>USER</code> function.
    */
-  public static final SqlFunction userFunc =
+  public static final SqlFunction USER =
       new SqlStringContextVariable("USER");
 
   /**
    * The <code>CURRENT_USER</code> function.
    */
-  public static final SqlFunction currentUserFunc =
+  public static final SqlFunction CURRENT_USER =
       new SqlStringContextVariable("CURRENT_USER");
 
   /**
    * The <code>SESSION_USER</code> function.
    */
-  public static final SqlFunction sessionUserFunc =
+  public static final SqlFunction SESSION_USER =
       new SqlStringContextVariable("SESSION_USER");
 
   /**
    * The <code>SYSTEM_USER</code> function.
    */
-  public static final SqlFunction systemUserFunc =
+  public static final SqlFunction SYSTEM_USER =
       new SqlStringContextVariable("SYSTEM_USER");
 
   /**
    * The <code>CURRENT_PATH</code> function.
    */
-  public static final SqlFunction currentPathFunc =
+  public static final SqlFunction CURRENT_PATH =
       new SqlStringContextVariable("CURRENT_PATH");
 
   /**
    * The <code>CURRENT_ROLE</code> function.
    */
-  public static final SqlFunction currentRoleFunc =
+  public static final SqlFunction CURRENT_ROLE =
       new SqlStringContextVariable("CURRENT_ROLE");
 
   /**
    * The <code>CURRENT_CATALOG</code> function.
    */
-  public static final SqlFunction currentCatalogFunc =
+  public static final SqlFunction CURRENT_CATALOG =
       new SqlStringContextVariable("CURRENT_CATALOG");
 
   /**
    * The <code>CURRENT_SCHEMA</code> function.
    */
-  public static final SqlFunction currentSchemaFunc =
+  public static final SqlFunction CURRENT_SCHEMA =
       new SqlStringContextVariable("CURRENT_SCHEMA");
 
   /**
    * The <code>LOCALTIME [(<i>precision</i>)]</code> function.
    */
-  public static final SqlFunction localTimeFunc =
+  public static final SqlFunction LOCALTIME =
       new SqlAbstractTimeFunction("LOCALTIME", SqlTypeName.TIME);
 
   /**
    * The <code>LOCALTIMESTAMP [(<i>precision</i>)]</code> function.
    */
-  public static final SqlFunction localTimestampFunc =
+  public static final SqlFunction LOCALTIMESTAMP =
       new SqlAbstractTimeFunction("LOCALTIMESTAMP", SqlTypeName.TIMESTAMP);
 
   /**
    * The <code>CURRENT_TIME [(<i>precision</i>)]</code> function.
    */
-  public static final SqlFunction currentTimeFunc =
+  public static final SqlFunction CURRENT_TIME =
       new SqlAbstractTimeFunction("CURRENT_TIME", SqlTypeName.TIME);
 
   /**
    * The <code>CURRENT_TIMESTAMP [(<i>precision</i>)]</code> function.
    */
-  public static final SqlFunction currentTimestampFunc =
+  public static final SqlFunction CURRENT_TIMESTAMP =
       new SqlAbstractTimeFunction("CURRENT_TIMESTAMP", SqlTypeName.TIMESTAMP);
 
   /**
    * The <code>CURRENT_DATE</code> function.
    */
-  public static final SqlFunction currentDateFunc =
+  public static final SqlFunction CURRENT_DATE =
       new SqlCurrentDateFunction();
 
   /**
-   * Use of the <code>IN_FENNEL<code> forces argument to be evaluated in
-   * Fennel. Otherwise acts as identity function.
+   * Use of the <code>IN_FENNEL</code> operator forces the argument to be
+   * evaluated in Fennel. Otherwise acts as identity function.
    */
-  public static final SqlFunction inFennelFunc =
+  public static final SqlFunction IN_FENNEL =
       new SqlMonotonicUnaryFunction(
           "IN_FENNEL",
           SqlKind.OTHER_FUNCTION,
           SqlTypeStrategies.rtiFirstArgType,
           null,
           SqlTypeStrategies.otcAny,
-          SqlFunctionCategory.System);
+          SqlFunctionCategory.SYSTEM);
 
   /**
    * The SQL <code>CAST</code> operator.
@@ -1242,7 +1235,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    * <p>The SQL syntax is
    *
    * <blockquote><code>CAST(<i>expression</i> AS <i>type</i>)</code>
-   * </blockqoute>
+   * </blockquote>
    *
    * <p>When the CAST operator is applies as a {@link SqlCall}, it has two
    * arguments: the expression and the type. The type must not include a
@@ -1259,7 +1252,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    * <code>NOT NULL</code> constraint. When this expression is implemented, if
    * the value is NULL, an exception will be thrown.</p>
    */
-  public static final SqlFunction castFunc = new SqlCastFunction();
+  public static final SqlFunction CAST = new SqlCastFunction();
 
   /**
    * The SQL <code>EXTRACT</code> operator. Extracts a specified field value
@@ -1267,20 +1260,20 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    * <code>EXTRACT(HOUR FROM INTERVAL '364 23:59:59')</code> returns <code>
    * 23</code>
    */
-  public static final SqlFunction extractFunc = new SqlExtractFunction();
+  public static final SqlFunction EXTRACT = new SqlExtractFunction();
 
   /**
    * The ELEMENT operator, used to convert a multiset with only one item to a
    * "regular" type. Example ... log(ELEMENT(MULTISET[1])) ...
    */
-  public static final SqlFunction elementFunc =
+  public static final SqlFunction ELEMENT =
       new SqlFunction(
           "ELEMENT",
           SqlKind.OTHER_FUNCTION,
           SqlTypeStrategies.rtiNullableMultisetElementType,
           null,
           SqlTypeStrategies.otcMultiset,
-          SqlFunctionCategory.System);
+          SqlFunctionCategory.SYSTEM);
 
   /**
    * The item operator {@code [ ... ]}, used to access a given element of an
@@ -1293,19 +1286,19 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    *
    * <p>MAP is not standard SQL.</p>
    */
-  public static final SqlOperator itemOp = new SqlItemOperator();
+  public static final SqlOperator ITEM = new SqlItemOperator();
 
   /**
    * The ARRAY Value Constructor. e.g. "<code>ARRAY[1, 2, 3]</code>".
    */
-  public static final SqlArrayValueConstructor arrayValueConstructor =
+  public static final SqlArrayValueConstructor ARRAY_VALUE_CONSTRUCTOR =
       new SqlArrayValueConstructor();
 
   /**
    * The MAP Value Constructor,
    * e.g. "<code>MAP['washington', 1, 'obama', 44]</code>".
    */
-  public static final SqlMapValueConstructor mapValueConstructor =
+  public static final SqlMapValueConstructor MAP_VALUE_CONSTRUCTOR =
       new SqlMapValueConstructor();
 
   /**
@@ -1323,7 +1316,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    * <p><code>$SLICE</code> is often translated away when the multiset type is
    * converted back to scalar values.
    */
-  public static final SqlInternalOperator sliceOp =
+  public static final SqlInternalOperator SLICE =
       new SqlInternalOperator(
           "$SLICE",
           SqlKind.OTHER,
@@ -1348,7 +1341,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    * I'm not deleting the operator, because some multiset tests are disabled,
    * and we may need this operator to get them working!</p>
    */
-  public static final SqlInternalOperator elementSlicefunc =
+  public static final SqlInternalOperator ELEMENT_SLICE =
       new SqlInternalOperator(
           "$ELEMENT_SLICE",
           SqlKind.OTHER,
@@ -1376,7 +1369,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    * record type. It asusmes the record type only has one field, and returns
    * that field as the output.
    */
-  public static final SqlInternalOperator scalarQueryOperator =
+  public static final SqlInternalOperator SCALAR_QUERY =
       new SqlInternalOperator(
           "$SCALAR_QUERY",
           SqlKind.SCALAR_QUERY,
@@ -1405,50 +1398,50 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    * The CARDINALITY operator, used to retrieve the number of elements in a
    * MULTISET, ARRAY or MAP.
    */
-  public static final SqlFunction cardinalityFunc =
+  public static final SqlFunction CARDINALITY =
       new SqlFunction(
           "CARDINALITY",
           SqlKind.OTHER_FUNCTION,
           SqlTypeStrategies.rtiNullableInteger,
           null,
           SqlTypeStrategies.otcCollection,
-          SqlFunctionCategory.System);
+          SqlFunctionCategory.SYSTEM);
 
   /**
    * The COLLECT operator. Multiset aggregator function.
    */
-  public static final SqlFunction collectFunc =
+  public static final SqlFunction COLLECT =
       new SqlFunction(
           "COLLECT",
           SqlKind.OTHER_FUNCTION,
           SqlTypeStrategies.rtiFirstArgType,
           null,
           SqlTypeStrategies.otcAny,
-          SqlFunctionCategory.System);
+          SqlFunctionCategory.SYSTEM);
 
   /**
    * The FUSION operator. Multiset aggregator function.
    */
-  public static final SqlFunction fusionFunc =
+  public static final SqlFunction FUSION =
       new SqlFunction(
           "FUSION",
           SqlKind.OTHER_FUNCTION,
           SqlTypeStrategies.rtiFirstArgType,
           null,
           SqlTypeStrategies.otcMultiset,
-          SqlFunctionCategory.System);
+          SqlFunctionCategory.SYSTEM);
 
   /**
    * The sequence next value function: <code>NEXT VALUE FOR sequence</code>
    */
-  public static final SqlFunction nextValueFunc =
+  public static final SqlFunction NEXT_VALUE =
       new SqlFunction(
           "NEXT_VALUE",
           SqlKind.OTHER_FUNCTION,
           SqlTypeStrategies.rtiBigint,
           null,
           SqlTypeStrategies.otcCharString,
-          SqlFunctionCategory.System) {
+          SqlFunctionCategory.SYSTEM) {
         public boolean isDeterministic() {
           return false;
         }
@@ -1473,7 +1466,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    * <p>Operand #0 is a query or table; Operand #1 is a {@link SqlSampleSpec}
    * wrapped in a {@link SqlLiteral}.
    */
-  public static final SqlSpecialOperator sampleFunction =
+  public static final SqlSpecialOperator TABLESAMPLE =
       new SqlSpecialOperator(
           "TABLESAMPLE",
           SqlKind.TABLESAMPLE,
@@ -1499,16 +1492,15 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    * Returns the standard operator table, creating it if necessary.
    */
   public static synchronized SqlStdOperatorTable instance() {
-    if (INSTANCE == null) {
+    if (instance == null) {
       // Creates and initializes the standard operator table.
       // Uses two-phase construction, because we can't intialize the
       // table until the constructor of the sub-class has completed.
-      INSTANCE = new SqlStdOperatorTable();
-      INSTANCE.init();
+      instance = new SqlStdOperatorTable();
+      instance.init();
     }
-    return INSTANCE;
+    return instance;
   }
-
 }
 
 // End SqlStdOperatorTable.java

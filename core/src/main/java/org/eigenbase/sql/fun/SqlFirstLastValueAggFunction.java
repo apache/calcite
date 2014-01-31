@@ -31,10 +31,6 @@ import com.google.common.collect.ImmutableList;
  * function.
  */
 public class SqlFirstLastValueAggFunction extends SqlAggFunction {
-  //~ Static fields/initializers ---------------------------------------------
-
-  public static final RelDataType type = null; // TODO:
-
   //~ Constructors -----------------------------------------------------------
 
   public SqlFirstLastValueAggFunction(boolean firstFlag) {
@@ -44,17 +40,17 @@ public class SqlFirstLastValueAggFunction extends SqlAggFunction {
         SqlTypeStrategies.rtiFirstArgType,
         null,
         SqlTypeStrategies.otcAny,
-        SqlFunctionCategory.Numeric);
+        SqlFunctionCategory.NUMERIC);
   }
 
   //~ Methods ----------------------------------------------------------------
 
   public List<RelDataType> getParameterTypes(RelDataTypeFactory typeFactory) {
-    return ImmutableList.of(type);
+    return ImmutableList.of(typeFactory.createSqlType(SqlTypeName.ANY));
   }
 
   public RelDataType getReturnType(RelDataTypeFactory typeFactory) {
-    return type;
+    return typeFactory.createSqlType(SqlTypeName.ANY);
   }
 }
 

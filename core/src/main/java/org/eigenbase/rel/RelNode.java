@@ -190,7 +190,7 @@ public interface RelNode extends RelOptNode, Cloneable {
 
   /**
    * Interacts with the {@link RelVisitor} in a {@link
-   * org.eigenbase.util.Glossary#VisitorPattern visitor pattern} to traverse
+   * org.eigenbase.util.Glossary#VISITOR_PATTERN visitor pattern} to traverse
    * the tree of relational expressions.
    */
   void childrenAccept(RelVisitor visitor);

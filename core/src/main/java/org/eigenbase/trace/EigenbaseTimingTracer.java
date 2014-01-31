@@ -28,7 +28,7 @@ import java.util.logging.*;
 public class EigenbaseTimingTracer {
   //~ Static fields/initializers ---------------------------------------------
 
-  private static final DecimalFormat decimalFormat =
+  private static final DecimalFormat DECIMAL_FORMAT =
       new DecimalFormat("###,###,###,###,###");
 
   //~ Instance fields --------------------------------------------------------
@@ -75,7 +75,7 @@ public class EigenbaseTimingTracer {
     long elapsed = newNanoTime - lastNanoTime;
     lastNanoTime = newNanoTime;
     logger.fine(
-        event + ":  elapsed nanos=" + decimalFormat.format(elapsed));
+        event + ":  elapsed nanos=" + DECIMAL_FORMAT.format(elapsed));
   }
 }
 

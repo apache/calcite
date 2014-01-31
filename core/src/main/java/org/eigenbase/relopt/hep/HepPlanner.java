@@ -922,9 +922,9 @@ public class HepPlanner extends AbstractRelOptPlanner {
             root);
 
     StringBuilder sb = new StringBuilder();
-    sb.append(Util.lineSeparator);
+    sb.append(Util.LINE_SEPARATOR);
     sb.append("Breadth-first from root:  {");
-    sb.append(Util.lineSeparator);
+    sb.append(Util.LINE_SEPARATOR);
     while (bfsIter.hasNext()) {
       HepRelVertex vertex = bfsIter.next();
       sb.append("    ");
@@ -934,7 +934,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
       sb.append(rel);
       sb.append(", rowcount=" + RelMetadataQuery.getRowCount(rel));
       sb.append(", cumulative cost=" + getCost(rel));
-      sb.append(Util.lineSeparator);
+      sb.append(Util.LINE_SEPARATOR);
     }
     sb.append("}");
     LOGGER.finer(sb.toString());

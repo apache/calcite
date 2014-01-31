@@ -21,6 +21,7 @@ import java.util.*;
 
 import org.eigenbase.sql.parser.*;
 import org.eigenbase.sql.type.*;
+import org.eigenbase.util14.DateTimeUtil;
 
 /**
  * A SQL literal representing a TIMESTAMP value, for example <code>TIMESTAMP
@@ -40,8 +41,7 @@ public class SqlTimestampLiteral extends SqlAbstractDateTimeLiteral {
         cal,
         hasTimeZone,
         SqlTypeName.TIMESTAMP,
-        precision,
-        SqlParserUtil.TimestampFormatStr,
+        precision, DateTimeUtil.TIMESTAMP_FORMAT_STRING,
         pos);
   }
 

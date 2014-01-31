@@ -29,6 +29,8 @@ import javax.net.ssl.*;
  * Utilities for connecting to Splunk via HTTP.
  */
 public class HttpUtils {
+  private HttpUtils() {}
+
   private static final Logger LOGGER =
       StringUtils.getClassTracer(HttpUtils.class);
 

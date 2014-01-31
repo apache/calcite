@@ -112,7 +112,7 @@ public class SplunkPushDownRule
 
     int filterIdx = 2;
     if (call.rels[relLength - 2] instanceof ProjectRel) {
-      bottomProj = (ProjectRel)call.rels[relLength - 2];
+      bottomProj = (ProjectRel) call.rels[relLength - 2];
       filterIdx  = 3;
 
       // bottom projection will change the field count/order
@@ -128,7 +128,7 @@ public class SplunkPushDownRule
       int topProjIdx = filterIdx + 1;
       if (topProjIdx <= relLength
           && call.rels[relLength - topProjIdx] instanceof ProjectRel) {
-        topProj = (ProjectRel)call.rels[relLength - topProjIdx];
+        topProj = (ProjectRel) call.rels[relLength - topProjIdx];
       }
 
       RexCall filterCall = (RexCall) filter.getCondition();
@@ -223,7 +223,7 @@ public class SplunkPushDownRule
       newFields = new ArrayList<RelDataTypeField>();
       int i = 0;
       for (RexNode rn : topProj.getProjects()) {
-        RexInputRef rif = (RexInputRef)rn;
+        RexInputRef rif = (RexInputRef) rn;
         RelDataTypeField field = bottomFields.get(rif.getIndex());
         if (!bottomFields.get(rif.getIndex()).getName()
             .equals(topFields.get(i).getName())) {
@@ -293,7 +293,7 @@ public class SplunkPushDownRule
     }
 
     // NOT op pre-pended
-    if (op.equals(SqlStdOperatorTable.notOperator)) {
+    if (op.equals(SqlStdOperatorTable.NOT)) {
       s = s.concat(" NOT ");
     }
 
@@ -348,9 +348,9 @@ public class SplunkPushDownRule
   }
 
   private String toString(SqlOperator op) {
-    if (op.equals(SqlStdOperatorTable.likeOperator)) {
-      return SqlStdOperatorTable.equalsOperator.toString();
-    } else if (op.equals(SqlStdOperatorTable.notEqualsOperator)) {
+    if (op.equals(SqlStdOperatorTable.LIKE)) {
+      return SqlStdOperatorTable.EQUALS.toString();
+    } else if (op.equals(SqlStdOperatorTable.NOT_EQUALS)) {
       return "!=";
     }
     return op.toString();
@@ -384,11 +384,11 @@ public class SplunkPushDownRule
   private String toString(SqlOperator op, RexLiteral literal) {
     String value = null;
     SqlTypeName litSqlType = literal.getTypeName();
-    if (SqlTypeName.numericTypes.contains(litSqlType)) {
+    if (SqlTypeName.NUMERIC_TYPES.contains(litSqlType)) {
       value = literal.getValue().toString();
     } else if (litSqlType.equals(SqlTypeName.CHAR)) {
       value = ((NlsString) literal.getValue()).getValue();
-      if (op.equals(SqlStdOperatorTable.likeOperator)) {
+      if (op.equals(SqlStdOperatorTable.LIKE)) {
         value = value.replaceAll("%", "*");
       }
       value = searchEscape(value);

@@ -152,8 +152,7 @@ public class ReflectVisitorTest {
    */
   public abstract class NumberNegater implements ReflectiveVisitor {
     protected Number result;
-    private final ReflectiveVisitDispatcher<NumberNegater, Number>
-        dispatcher =
+    private final ReflectiveVisitDispatcher<NumberNegater, Number> dispatcher =
         ReflectUtil.createDispatcher(
             NumberNegater.class,
             Number.class);

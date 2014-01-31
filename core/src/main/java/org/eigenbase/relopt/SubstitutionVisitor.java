@@ -140,8 +140,8 @@ public class SubstitutionVisitor {
           }
           super.visit(node, ordinal, parent);
         }
+        // CHECKSTYLE: IGNORE 1
       }.go(ancestor);
-      // CHECKSTYLE: IGNORE -1
       return false;
     } catch (FoundRel e) {
       return true;
@@ -355,7 +355,7 @@ public class SubstitutionVisitor {
     for (RexNode notDisjunction : notDisjunctions) {
       disjunctions.add(
           rexBuilder.makeCall(
-              SqlStdOperatorTable.notOperator,
+              SqlStdOperatorTable.NOT,
               notDisjunction));
     }
     return RexUtil.composeConjunction(rexBuilder, disjunctions, false);
@@ -366,10 +366,10 @@ public class SubstitutionVisitor {
    */
   static RexNode andNot(RexBuilder rexBuilder, RexNode e1, RexNode e2) {
     return rexBuilder.makeCall(
-        SqlStdOperatorTable.andOperator,
+        SqlStdOperatorTable.AND,
         e1,
         rexBuilder.makeCall(
-            SqlStdOperatorTable.notOperator,
+            SqlStdOperatorTable.NOT,
             e2));
   }
 

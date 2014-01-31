@@ -34,7 +34,7 @@ public class SqlNodeList extends SqlNode implements Iterable<SqlNode> {
   /**
    * An immutable, empty SqlNodeList.
    */
-  public static final SqlNodeList Empty =
+  public static final SqlNodeList EMPTY =
       new SqlNodeList(SqlParserPos.ZERO) {
         public void add(SqlNode node) {
           throw new UnsupportedOperationException();
@@ -114,8 +114,7 @@ public class SqlNodeList extends SqlNode implements Iterable<SqlNode> {
     // The precedence of the comma operator if low but not zero. For
     // instance, this ensures parentheses in
     //    select x, (select * from foo order by z), y from t
-    for (int i = 0; i < list.size(); i++) {
-      SqlNode node = list.get(i);
+    for (SqlNode node : list) {
       writer.sep(",");
       node.unparse(writer, 2, 3);
     }
@@ -123,8 +122,9 @@ public class SqlNodeList extends SqlNode implements Iterable<SqlNode> {
 
   void andOrList(SqlWriter writer, SqlKind sepKind) {
     SqlBinaryOperator sepOp =
-        (sepKind == SqlKind.AND) ? SqlStdOperatorTable.andOperator
-            : SqlStdOperatorTable.orOperator;
+        sepKind == SqlKind.AND
+            ? SqlStdOperatorTable.AND
+            : SqlStdOperatorTable.OR;
     for (int i = 0; i < list.size(); i++) {
       SqlNode node = list.get(i);
       writer.sep(sepKind.name(), false);
@@ -135,19 +135,6 @@ public class SqlNodeList extends SqlNode implements Iterable<SqlNode> {
       // has left precedence 4 and right precedence 5, the precedences
       // in a 3-node list will look as follows:
       //   0 <- node1 -> 4  5 <- node2 -> 4  5 <- node3 -> 0
-      int lprec = (i == 0) ? 0 : sepOp.getRightPrec();
-      int rprec = (i == (list.size() - 1)) ? 0 : sepOp.getLeftPrec();
-      node.unparse(writer, lprec, rprec);
-    }
-  }
-
-  void _andOrList(SqlWriter writer, SqlKind sepKind) {
-    SqlBinaryOperator sepOp =
-        (sepKind == SqlKind.AND) ? SqlStdOperatorTable.andOperator
-            : SqlStdOperatorTable.orOperator;
-    for (int i = 0; i < list.size(); i++) {
-      SqlNode node = list.get(i);
-      writer.sep(sepKind.name(), false);
       int lprec = (i == 0) ? 0 : sepOp.getRightPrec();
       int rprec = (i == (list.size() - 1)) ? 0 : sepOp.getLeftPrec();
       node.unparse(writer, lprec, rprec);

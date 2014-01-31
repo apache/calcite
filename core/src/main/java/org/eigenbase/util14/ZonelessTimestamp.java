@@ -64,7 +64,7 @@ public class ZonelessTimestamp extends ZonelessDatetime {
 
   // implement ZonelessDatetime
   public Object toJdbcObject() {
-    return new Timestamp(getJdbcTimestamp(DateTimeUtil.defaultZone));
+    return new Timestamp(getJdbcTimestamp(DateTimeUtil.DEFAULT_ZONE));
   }
 
   /**
@@ -80,7 +80,7 @@ public class ZonelessTimestamp extends ZonelessDatetime {
    */
   public String toString() {
     Timestamp ts =
-        getTempTimestamp(getJdbcTimestamp(DateTimeUtil.defaultZone));
+        getTempTimestamp(getJdbcTimestamp(DateTimeUtil.DEFAULT_ZONE));
 
     // Remove trailing '.0' so that format is consistent with SQL spec for
     // CAST(TIMESTAMP(0) TO VARCHAR). E.g. "1969-12-31 16:00:00.0"
@@ -112,7 +112,7 @@ public class ZonelessTimestamp extends ZonelessDatetime {
    * @return the parsed time, or null if parsing failed
    */
   public static ZonelessTimestamp parse(String s) {
-    return parse(s, DateTimeUtil.TimestampFormatStr);
+    return parse(s, DateTimeUtil.TIMESTAMP_FORMAT_STRING);
   }
 
   /**
@@ -131,7 +131,7 @@ public class ZonelessTimestamp extends ZonelessDatetime {
         DateTimeUtil.parsePrecisionDateTimeLiteral(
             s,
             format,
-            DateTimeUtil.gmtZone);
+            DateTimeUtil.GMT_ZONE);
     if (pt == null) {
       return null;
     }

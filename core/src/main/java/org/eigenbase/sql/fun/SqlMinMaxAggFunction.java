@@ -31,16 +31,16 @@ import org.eigenbase.util.*;
  * <p>There are 3 forms:
  *
  * <dl>
- * <dt>sum(<em>primitive type</em>)</dt>
- * <dd>values are compared using &lt;</dd>
+ * <dt>sum(<em>primitive type</em>)
+ * <dd>values are compared using '&lt;'
  *
- * <dt>sum({@link java.lang.Comparable})</dt>
- * <dd>values are compared using {@link java.lang.Comparable#compareTo}</dd>
+ * <dt>sum({@link java.lang.Comparable})
+ * <dd>values are compared using {@link java.lang.Comparable#compareTo}
  *
- * <dt>sum({@link java.util.Comparator}, {@link java.lang.Object})</dt>
+ * <dt>sum({@link java.util.Comparator}, {@link java.lang.Object})
  * <dd>the {@link java.util.Comparator#compare} method of the comparator is used
  * to compare pairs of objects. The comparator is a startup argument, and must
- * therefore be constant for the duration of the aggregation.</dd>
+ * therefore be constant for the duration of the aggregation.
  * </dl>
  */
 public class SqlMinMaxAggFunction extends SqlAggFunction {
@@ -69,7 +69,7 @@ public class SqlMinMaxAggFunction extends SqlAggFunction {
         SqlTypeStrategies.rtiFirstArgType,
         null,
         SqlTypeStrategies.otcComparableOrdered,
-        SqlFunctionCategory.System);
+        SqlFunctionCategory.SYSTEM);
     this.argTypes = argTypes;
     this.isMin = isMin;
     this.kind = kind;

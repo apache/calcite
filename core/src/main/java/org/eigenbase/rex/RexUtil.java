@@ -55,6 +55,9 @@ public class RexUtil {
         }
       };
 
+  private RexUtil() {
+  }
+
   //~ Methods ----------------------------------------------------------------
 
   /**
@@ -596,7 +599,7 @@ public class RexUtil {
       return nodes2.get(0);
     default:
       return rexBuilder.makeCall(
-          SqlStdOperatorTable.andOperator, nodes2);
+          SqlStdOperatorTable.AND, nodes2);
     }
   }
 
@@ -619,7 +622,7 @@ public class RexUtil {
       return nodes2.get(0);
     default:
       return rexBuilder.makeCall(
-          SqlStdOperatorTable.orOperator, nodes2);
+          SqlStdOperatorTable.OR, nodes2);
     }
   }
 

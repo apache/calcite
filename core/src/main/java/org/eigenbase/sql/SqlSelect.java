@@ -116,7 +116,7 @@ public class SqlSelect extends SqlCall {
       fromClause = tableId;
     } else {
       fromClause =
-          SqlStdOperatorTable.joinOperator.createCall(
+          SqlStdOperatorTable.JOIN.createCall(
               null,
               fromClause,
               tableId);

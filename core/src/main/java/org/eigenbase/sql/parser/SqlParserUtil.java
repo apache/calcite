@@ -28,7 +28,6 @@ import org.eigenbase.sql.*;
 import org.eigenbase.sql.validate.SqlValidatorException;
 import org.eigenbase.trace.*;
 import org.eigenbase.util.*;
-import org.eigenbase.util14.*;
 
 import net.hydromatic.avatica.Casing;
 
@@ -39,15 +38,6 @@ public final class SqlParserUtil {
   //~ Static fields/initializers ---------------------------------------------
 
   static final Logger LOGGER = EigenbaseTrace.getParserTracer();
-  public static final String[] emptyStringArray = new String[0];
-  public static final List emptyList = Collections.EMPTY_LIST;
-  public static final String DateFormatStr = DateTimeUtil.DateFormatStr;
-  public static final String TimeFormatStr = DateTimeUtil.TimeFormatStr;
-  public static final String PrecisionTimeFormatStr = TimeFormatStr + ".S";
-  public static final String TimestampFormatStr =
-      DateTimeUtil.TimestampFormatStr;
-  public static final String PrecisionTimestampFormatStr =
-      TimestampFormatStr + ".S";
 
   //~ Constructors -----------------------------------------------------------
 
@@ -207,9 +197,9 @@ public final class SqlParserUtil {
    * Parses a positive int. All characters have to be digits.
    *
    * @see Integer#parseInt(String)
+   * @throws java.lang.NumberFormatException if invalid number or leading '-'
    */
-  public static int parsePositiveInt(String value)
-    throws NumberFormatException {
+  public static int parsePositiveInt(String value) {
     value = value.trim();
     if (value.charAt(0) == '-') {
       throw new NumberFormatException(value);
@@ -271,8 +261,8 @@ public final class SqlParserUtil {
   }
 
   /**
-   * Trims a string for given characters from left and right. E.g. <code>
-   * trim("aBaac123AabC","abBcC")</code> returns</code>"123A"</code>
+   * Trims a string for given characters from left and right. E.g.
+   * {@code trim("aBaac123AabC","abBcC")} returns {@code "123A"}.
    */
   public static String trim(
       String s,
@@ -401,8 +391,8 @@ public final class SqlParserUtil {
     --column;
     int i = 0;
     while (line-- > 0) {
-      i = sql.indexOf(Util.lineSeparator, i)
-          + Util.lineSeparator.length();
+      i = sql.indexOf(Util.LINE_SEPARATOR, i)
+          + Util.LINE_SEPARATOR.length();
     }
     return i + column;
   }

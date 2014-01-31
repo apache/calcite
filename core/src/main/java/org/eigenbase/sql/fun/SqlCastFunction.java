@@ -46,7 +46,7 @@ public class SqlCastFunction extends SqlFunction {
         null,
         SqlTypeStrategies.otiFirstKnown,
         null,
-        SqlFunctionCategory.System);
+        SqlFunctionCategory.SYSTEM);
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -194,7 +194,7 @@ public class SqlCastFunction extends SqlFunction {
   }
 
   public SqlSyntax getSyntax() {
-    return SqlSyntax.Special;
+    return SqlSyntax.SPECIAL;
   }
 
   public void unparse(

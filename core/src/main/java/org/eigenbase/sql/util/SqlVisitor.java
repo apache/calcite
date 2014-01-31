@@ -20,7 +20,7 @@ package org.eigenbase.sql.util;
 import org.eigenbase.sql.*;
 
 /**
- * Visitor class, follows the {@link org.eigenbase.util.Glossary#VisitorPattern
+ * Visitor class, follows the {@link org.eigenbase.util.Glossary#VISITOR_PATTERN
  * visitor pattern}.
  *
  * <p>The type parameter <code>R</code> is the return type of each <code>

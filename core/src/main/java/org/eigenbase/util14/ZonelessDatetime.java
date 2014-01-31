@@ -119,7 +119,7 @@ public abstract class ZonelessDatetime implements BasicDatetime, Serializable {
    * @param zone time zone in which to generate a time value for
    */
   public long getJdbcDate(TimeZone zone) {
-    Calendar cal = getCalendar(DateTimeUtil.gmtZone);
+    Calendar cal = getCalendar(DateTimeUtil.GMT_ZONE);
     cal.setTimeInMillis(getDateValue());
 
     int year = cal.get(Calendar.YEAR);
@@ -139,7 +139,7 @@ public abstract class ZonelessDatetime implements BasicDatetime, Serializable {
    * @param zone time zone in which to generate a time value for
    */
   public long getJdbcTimestamp(TimeZone zone) {
-    Calendar cal = getCalendar(DateTimeUtil.gmtZone);
+    Calendar cal = getCalendar(DateTimeUtil.GMT_ZONE);
     cal.setTimeInMillis(internalTime);
 
     int year = cal.get(Calendar.YEAR);
@@ -189,7 +189,7 @@ public abstract class ZonelessDatetime implements BasicDatetime, Serializable {
       return tempFormatter;
     }
     tempFormatter = DateTimeUtil.newDateFormat(format);
-    tempFormatter.setTimeZone(DateTimeUtil.gmtZone);
+    tempFormatter.setTimeZone(DateTimeUtil.GMT_ZONE);
     lastFormat = format;
     return tempFormatter;
   }

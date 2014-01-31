@@ -75,7 +75,7 @@ public class RexSqlReflectiveConvertletTable implements RexSqlConvertletTable {
    * Registers a convertlet for a given operator instance
    *
    * @param op         Operator instance, say {@link
-   *                   org.eigenbase.sql.fun.SqlStdOperatorTable#minusOperator}
+   *                   org.eigenbase.sql.fun.SqlStdOperatorTable#MINUS}
    * @param convertlet Convertlet
    */
   protected void registerOp(SqlOperator op, RexSqlConvertlet convertlet) {

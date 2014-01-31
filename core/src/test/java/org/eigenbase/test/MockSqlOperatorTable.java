@@ -64,7 +64,7 @@ public class MockSqlOperatorTable extends ChainedSqlOperatorTable {
           null,
           null,
           SqlTypeStrategies.otcNumeric,
-          SqlFunctionCategory.UserDefinedFunction);
+          SqlFunctionCategory.USER_DEFINED_FUNCTION);
     }
 
     public RelDataType inferReturnType(SqlOperatorBinding opBinding) {
@@ -84,7 +84,7 @@ public class MockSqlOperatorTable extends ChainedSqlOperatorTable {
           null,
           null,
           SqlTypeStrategies.otcVariadic,
-          SqlFunctionCategory.UserDefinedFunction);
+          SqlFunctionCategory.USER_DEFINED_FUNCTION);
     }
 
     public RelDataType inferReturnType(SqlOperatorBinding opBinding) {

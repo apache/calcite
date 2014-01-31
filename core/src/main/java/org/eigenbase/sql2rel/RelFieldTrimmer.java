@@ -196,7 +196,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
         : "target: " + mapping.getTargetCount()
         + " + " + extraFields.size()
         + " != " + newFieldCount;
-    if (Bug.TodoFixed) {
+    if (Bug.TODO_FIXED) {
       assert newFieldCount > 0 : "rel has no fields after trim: " + rel;
     }
     if (newRel.equals(rel)) {

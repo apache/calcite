@@ -18,7 +18,6 @@
 package org.eigenbase.sql.test;
 
 import java.util.*;
-import java.util.logging.*;
 
 import org.eigenbase.reltype.*;
 import org.eigenbase.sql.advise.*;
@@ -281,9 +280,9 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
           "Keyword(ORDER)",
           "Keyword(UNION)");
 
-  //~ Instance fields --------------------------------------------------------
-
-  public final Logger logger = Logger.getLogger(getClass().getName());
+  private static final String EMPNO_EMP =
+      "Column(EMPNO)\n"
+      + "Table(EMP)\n";
 
   //~ Constructors -----------------------------------------------------------
 
@@ -1100,8 +1099,6 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
 
     // longer completion
     sql = "select * from emp where em^";
-    final String EMPNO_EMP = "Column(EMPNO)\n"
-        + "Table(EMP)\n";
     assertComplete(sql, EMPNO_EMP, null);
 
     // word after punctuation

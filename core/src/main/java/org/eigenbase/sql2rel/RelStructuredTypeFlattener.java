@@ -192,7 +192,7 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
     // WHEN StructuredType.Indicator IS NULL
     caseOperands[0] =
         rexBuilder.makeCall(
-            SqlStdOperatorTable.isNullOperator,
+            SqlStdOperatorTable.IS_NULL,
             nullIndicator);
 
     // THEN CAST(NULL AS StructuredType)
@@ -205,7 +205,7 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
     caseOperands[2] = newInvocation;
 
     return rexBuilder.makeCall(
-        SqlStdOperatorTable.caseOperator,
+        SqlStdOperatorTable.CASE,
         caseOperands);
   }
 
@@ -806,7 +806,7 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
       boolean negate = false;
       if (op.getKind() == SqlKind.NOT_EQUALS) {
         negate = true;
-        op = SqlStdOperatorTable.equalsOperator;
+        op = SqlStdOperatorTable.EQUALS;
       }
       if ((n > 1) && op.getKind() != SqlKind.EQUALS) {
         throw Util.needToImplement(
@@ -824,14 +824,14 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
         } else {
           conjunction =
               rexBuilder.makeCall(
-                  SqlStdOperatorTable.andOperator,
+                  SqlStdOperatorTable.AND,
                   conjunction,
                   comparison);
         }
       }
       if (negate) {
         return rexBuilder.makeCall(
-            SqlStdOperatorTable.notOperator,
+            SqlStdOperatorTable.NOT,
             conjunction);
       } else {
         return conjunction;

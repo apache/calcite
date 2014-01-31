@@ -28,7 +28,7 @@ import java.security.cert.X509Certificate;
  * Socket factory that trusts all SSL connections.
  */
 public class TrustAllSslSocketFactory extends SocketFactoryImpl {
-  private static TrustAllSslSocketFactory DEFAULT =
+  private static final TrustAllSslSocketFactory DEFAULT =
       new TrustAllSslSocketFactory();
 
   private final SSLSocketFactory sslSocketFactory;

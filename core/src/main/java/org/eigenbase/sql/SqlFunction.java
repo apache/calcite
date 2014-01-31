@@ -65,7 +65,7 @@ public class SqlFunction extends SqlOperator {
     this(name, null, kind, returnTypeInference, operandTypeInference,
         operandTypeChecker, null, category);
 
-    assert !((category == SqlFunctionCategory.UserDefinedConstructor)
+    assert !((category == SqlFunctionCategory.USER_DEFINED_CONSTRUCTOR)
         && (returnTypeInference == null));
   }
 
@@ -117,7 +117,7 @@ public class SqlFunction extends SqlOperator {
   //~ Methods ----------------------------------------------------------------
 
   public SqlSyntax getSyntax() {
-    return SqlSyntax.Function;
+    return SqlSyntax.FUNCTION;
   }
 
   /**
@@ -275,7 +275,7 @@ public class SqlFunction extends SqlOperator {
         }
       }
 
-      if (getFunctionType() == SqlFunctionCategory.UserDefinedConstructor) {
+      if (getFunctionType() == SqlFunctionCategory.USER_DEFINED_CONSTRUCTOR) {
         return validator.deriveConstructorType(scope, call, this, function,
             argTypes);
       }

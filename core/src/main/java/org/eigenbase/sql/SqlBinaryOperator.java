@@ -66,7 +66,7 @@ public class SqlBinaryOperator extends SqlOperator {
   //~ Methods ----------------------------------------------------------------
 
   public SqlSyntax getSyntax() {
-    return SqlSyntax.Binary;
+    return SqlSyntax.BINARY;
   }
 
   public String getSignatureTemplate(final int operandsCount) {
@@ -225,8 +225,8 @@ public class SqlBinaryOperator extends SqlOperator {
   public boolean validRexOperands(int count, boolean fail) {
     if (count != 2) {
       // Special exception for AND and OR.
-      if ((this == SqlStdOperatorTable.andOperator
-          || this == SqlStdOperatorTable.orOperator)
+      if ((this == SqlStdOperatorTable.AND
+          || this == SqlStdOperatorTable.OR)
           && count > 2) {
         return true;
       }

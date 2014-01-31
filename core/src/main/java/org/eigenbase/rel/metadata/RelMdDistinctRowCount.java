@@ -135,7 +135,7 @@ public class RelMdDistinctRowCount extends ReflectiveRelMetadataProvider {
       RexBuilder rexBuilder = rel.getCluster().getRexBuilder();
       newPred =
           rexBuilder.makeCall(
-              SqlStdOperatorTable.andOperator,
+              SqlStdOperatorTable.AND,
               newPred,
               predicate);
     }

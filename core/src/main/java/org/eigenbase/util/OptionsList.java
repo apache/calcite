@@ -26,11 +26,11 @@ import java.util.*;
  *
  * <table>
  * <tr>
- * <th>Short name</td>
- * <th>Long name</td>
- * <th>Type</td>
- * <th>Default</td>
- * <th>Anonymous</td>
+ * <th>Short name</th>
+ * <th>Long name</th>
+ * <th>Type</th>
+ * <th>Default</th>
+ * <th>Anonymous</th>
  * </tr>
  * <tr>
  * <td>v</td>

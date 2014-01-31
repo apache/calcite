@@ -34,7 +34,7 @@ public class SqlFloorFunction extends SqlFunction {
         SqlTypeStrategies.rtiFirstArgType,
         null,
         SqlTypeStrategies.otcNumeric,
-        SqlFunctionCategory.Numeric);
+        SqlFunctionCategory.NUMERIC);
   }
 
   //~ Methods ----------------------------------------------------------------

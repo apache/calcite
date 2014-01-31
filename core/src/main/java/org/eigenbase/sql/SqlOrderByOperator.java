@@ -42,7 +42,7 @@ public class SqlOrderByOperator extends SqlSpecialOperator {
   //~ Methods ----------------------------------------------------------------
 
   public SqlSyntax getSyntax() {
-    return SqlSyntax.Postfix;
+    return SqlSyntax.POSTFIX;
   }
 
   public void unparse(
@@ -57,7 +57,7 @@ public class SqlOrderByOperator extends SqlSpecialOperator {
         writer,
         getLeftPrec(),
         getRightPrec());
-    if (operands[ORDER_OPERAND] != SqlNodeList.Empty) {
+    if (operands[ORDER_OPERAND] != SqlNodeList.EMPTY) {
       writer.sep(getName());
       final SqlWriter.Frame listFrame =
           writer.startList(SqlWriter.FrameTypeEnum.OrderByList);

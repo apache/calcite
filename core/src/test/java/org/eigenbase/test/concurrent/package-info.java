@@ -185,7 +185,9 @@
  *
  *     <li>Variable Declaration: Before being used, a script variable must be
  *         explicitly declared in the script (or an included script)
- *         by a &#64;var command.<br>
+ *         by a &#64;var command.</li>
+ * </ul>
+ *
  * <pre>
  * &#64;var VAR
  *     Declares a variable VAR

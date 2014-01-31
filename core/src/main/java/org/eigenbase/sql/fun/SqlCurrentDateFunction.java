@@ -34,13 +34,13 @@ public class SqlCurrentDateFunction extends SqlFunction {
         SqlTypeStrategies.rtiDate,
         null,
         SqlTypeStrategies.otcNiladic,
-        SqlFunctionCategory.TimeDate);
+        SqlFunctionCategory.TIMEDATE);
   }
 
   //~ Methods ----------------------------------------------------------------
 
   public SqlSyntax getSyntax() {
-    return SqlSyntax.FunctionId;
+    return SqlSyntax.FUNCTION_ID;
   }
 
   public SqlMonotonicity getMonotonicity(

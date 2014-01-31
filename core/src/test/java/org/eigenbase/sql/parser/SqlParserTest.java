@@ -987,7 +987,7 @@ public class SqlParserTest {
   }
 
   @Test public void testJoinOnParentheses() {
-    if (!Bug.TodoFixed) {
+    if (!Bug.TODO_FIXED) {
       return;
     }
     check(
@@ -1004,7 +1004,7 @@ public class SqlParserTest {
    * Same as {@link #testJoinOnParentheses()} but fancy aliases.
    */
   @Test public void testJoinOnParenthesesPlus() {
-    if (!Bug.TodoFixed) {
+    if (!Bug.TODO_FIXED) {
       return;
     }
     check(
@@ -1028,7 +1028,7 @@ public class SqlParserTest {
   }
 
   @Test public void testSubqueryInJoin() {
-    if (!Bug.TodoFixed) {
+    if (!Bug.TODO_FIXED) {
       return;
     }
     check(
@@ -1434,7 +1434,7 @@ public class SqlParserTest {
         "(VALUES (ROW(2)))");
 
     // end of multiline commment without start
-    if (Bug.Frg73Fixed) {
+    if (Bug.FRG73_FIXED) {
       checkFails("values (1 */ 2)", "xx");
     }
 
@@ -1447,7 +1447,7 @@ public class SqlParserTest {
     // comment inside a comment
     // Spec is unclear what should happen, but currently it crashes the
     // parser, and that's bad
-    if (Bug.Frg73Fixed) {
+    if (Bug.FRG73_FIXED) {
       check("values (1 + /* comment /* inner comment */ */ 2)", "xx");
     }
 
@@ -1458,7 +1458,7 @@ public class SqlParserTest {
     // <simple comment> contains the sequence of characeters "*/" without
     // a preceding "/*" in the same <simple comment>, it will prematurely
     // terminate the containing <bracketed comment>.
-    if (Bug.Frg73Fixed) {
+    if (Bug.FRG73_FIXED) {
       checkFails(
           "values /* multiline contains -- singline */ \n"
           + " (1)",
@@ -1466,7 +1466,7 @@ public class SqlParserTest {
     }
 
     // non-terminated multiline comment inside singleline comment
-    if (Bug.Frg73Fixed) {
+    if (Bug.FRG73_FIXED) {
       // Test should fail, and it does, but it should give "*/" as the
       // erroneous token.
       checkFails(
@@ -2127,7 +2127,7 @@ public class SqlParserTest {
   }
 
   @Test public void testLiteralCollate() {
-    if (!Bug.Frg78Fixed) {
+    if (!Bug.FRG78_FIXED) {
       return;
     }
 

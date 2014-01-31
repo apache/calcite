@@ -40,7 +40,7 @@ public class SqlCoalesceFunction extends SqlFunction {
         SqlTypeStrategies.rtiLeastRestrictive,
         null,
         SqlTypeStrategies.otcSameVariadic,
-        SqlFunctionCategory.System);
+        SqlFunctionCategory.SYSTEM);
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -65,7 +65,7 @@ public class SqlCoalesceFunction extends SqlFunction {
 
     for (int i = 0; (i + 1) < operands.length; ++i) {
       whenList.add(
-          SqlStdOperatorTable.isNotNullOperator.createCall(
+          SqlStdOperatorTable.IS_NOT_NULL.createCall(
               pos,
               operands[i]));
       thenList.add(operands[i].clone(operands[i].getParserPosition()));
@@ -73,7 +73,7 @@ public class SqlCoalesceFunction extends SqlFunction {
     SqlNode elseExpr = operands[operands.length - 1];
     assert call.getFunctionQuantifier() == null;
     final SqlCall newCall =
-        SqlStdOperatorTable.caseOperator.createSwitchedCall(
+        SqlStdOperatorTable.CASE.createSwitchedCall(
             pos,
             null,
             whenList,

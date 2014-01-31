@@ -252,7 +252,7 @@ public class RexProgramBuilder {
       final RexLocalRef andRef =
           registerInput(
               rexBuilder.makeCall(
-                  SqlStdOperatorTable.andOperator,
+                  SqlStdOperatorTable.AND,
                   conditionRef,
                   ref));
       conditionRef = andRef;
@@ -683,8 +683,9 @@ public class RexProgramBuilder {
    *             6: ($2 = 6)  // c = 6
    * </pre>
    *
-   * <p>Another example:</blockquote>
+   * <p>Another example:</p>
    *
+   * <blockquote>
    * <pre>SELECT *
    * FROM (
    *   SELECT a + b AS x, c AS y

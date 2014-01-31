@@ -73,7 +73,7 @@ public class MongoSortRel
           getRowType().getFieldList().get(i).getName();
 
       keys.add(name + ": " + direction(fieldCollation));
-      if (false)
+      if (false) {
         // TODO:
         switch (fieldCollation.nullDirection) {
         case FIRST:
@@ -81,6 +81,7 @@ public class MongoSortRel
         case LAST:
           break;
         }
+      }
     }
     implementor.add(null,
         "{$sort: " + Util.toString(keys, "{", ", ", "}") + "}");

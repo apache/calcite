@@ -895,6 +895,12 @@ public class ConcurrentTestCommandGenerator {
       testValues();
     }
 
+    private static final int STATE_ROW_START = 0;
+    private static final int STATE_VALUE_START = 1;
+    private static final int STATE_STRING_VALUE = 2;
+    private static final int STATE_OTHER_VALUE = 3;
+    private static final int STATE_VALUE_END = 4;
+
     /**
      * Parses expected values. See {@link
      * ConcurrentTestCommandGenerator#addFetchAndCompareCommand(int,
@@ -904,12 +910,6 @@ public class ConcurrentTestCommandGenerator {
      *                               <code>expected</code>
      */
     private void parseExpected(String expected) {
-      final int STATE_ROW_START = 0;
-      final int STATE_VALUE_START = 1;
-      final int STATE_STRING_VALUE = 2;
-      final int STATE_OTHER_VALUE = 3;
-      final int STATE_VALUE_END = 4;
-
       List<List<Object>> rows = new ArrayList<List<Object>>();
       int state = STATE_ROW_START;
       List<Object> row = null;
@@ -976,7 +976,7 @@ public class ConcurrentTestCommandGenerator {
 
           state = STATE_VALUE_END;
 
-          // FALL THROUGH
+          // fall through
         case STATE_VALUE_END: // find comma or end of row
           if (ch == COMMA) {
             state = STATE_VALUE_START;

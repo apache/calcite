@@ -19,7 +19,7 @@ package org.eigenbase.rel;
 
 /**
  * A <code>RelVisitor</code> is a Visitor role in the {@link
- * org.eigenbase.util.Glossary#VisitorPattern visitor pattern} and visits {@link
+ * org.eigenbase.util.Glossary#VISITOR_PATTERN visitor pattern} and visits {@link
  * RelNode} objects as the role of Element. Other components in the pattern:
  * {@link RelNode#childrenAccept(RelVisitor)}.
  */

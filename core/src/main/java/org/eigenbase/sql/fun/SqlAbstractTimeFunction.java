@@ -29,7 +29,7 @@ import org.eigenbase.sql.validate.*;
 public class SqlAbstractTimeFunction extends SqlFunction {
   //~ Static fields/initializers ---------------------------------------------
 
-  private static final SqlOperandTypeChecker otcCustom =
+  private static final SqlOperandTypeChecker OTC_CUSTOM =
       SqlTypeStrategies.or(
           SqlTypeStrategies.otcPositiveIntLit,
           SqlTypeStrategies.otcNiladic);
@@ -41,20 +41,15 @@ public class SqlAbstractTimeFunction extends SqlFunction {
   //~ Constructors -----------------------------------------------------------
 
   protected SqlAbstractTimeFunction(String name, SqlTypeName typeName) {
-    super(
-        name,
-        SqlKind.OTHER_FUNCTION,
-        null,
-        null,
-        otcCustom,
-        SqlFunctionCategory.TimeDate);
+    super(name, SqlKind.OTHER_FUNCTION, null, null, OTC_CUSTOM,
+        SqlFunctionCategory.TIMEDATE);
     this.typeName = typeName;
   }
 
   //~ Methods ----------------------------------------------------------------
 
   public SqlSyntax getSyntax() {
-    return SqlSyntax.FunctionId;
+    return SqlSyntax.FUNCTION_ID;
   }
 
   public RelDataType inferReturnType(

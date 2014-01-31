@@ -58,7 +58,7 @@ public class SqlSelectOperator extends SqlOperator {
   //~ Methods ----------------------------------------------------------------
 
   public SqlSyntax getSyntax() {
-    return SqlSyntax.Special;
+    return SqlSyntax.SPECIAL;
   }
 
   public SqlCall createCall(
@@ -171,8 +171,8 @@ public class SqlSelectOperator extends SqlOperator {
           writer.startList(SqlWriter.FrameTypeEnum.FromList);
       fromClause.unparse(
           writer,
-          SqlStdOperatorTable.joinOperator.getLeftPrec() - 1,
-          SqlStdOperatorTable.joinOperator.getRightPrec() - 1);
+          SqlStdOperatorTable.JOIN.getLeftPrec() - 1,
+          SqlStdOperatorTable.JOIN.getRightPrec() - 1);
       writer.endList(fromFrame);
     }
 

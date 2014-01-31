@@ -46,53 +46,53 @@ public class SocketFactoryImpl extends SocketFactory {
   /**
    * should keep alives be sent
    */
-  public boolean  SO_KEEPALIVE            = false;
+  public static final boolean SO_KEEPALIVE = false;
 
   /**
    * is out of band in-line enabled
    */
-  public boolean  OOBINLINE                       = false;
+  public static final boolean OOBINLINE = false;
 
   /**
    * should the address be reused
    */
-  public boolean  SO_REUSEADDR            = false;
+  public static final boolean SO_REUSEADDR = false;
 
   /**
    * do not buffer send(s) iff true
    */
-  public boolean  TCP_NODELAY                     = true;
+  public static final boolean TCP_NODELAY = true;
 
   /**
    * size of receiving buffer
    */
-  public int              SO_RCVBUF                       = 8192;
+  public static final int SO_RCVBUF = 8192;
 
   /**
    * size of sending buffer iff needed
    */
-  public int              SO_SNDBUF                       = 1024;
+  public static final int SO_SNDBUF = 1024;
 
   /**
    * read timeout in milliseconds
    */
-  public int              SO_TIMEOUT                      = 12000;
+  public static final int SO_TIMEOUT = 12000;
 
   /**
    * connect timeout in milliseconds
    */
-  public int              SO_CONNECT_TIMEOUT      = 5000;
+  public static final int SO_CONNECT_TIMEOUT = 5000;
 
   /**
    * enabling lingering with 0-timeout will cause the socket to be
    * closed forcefully upon execution of close()
    */
-  public boolean  SO_LINGER                       = true;
+  public static final boolean SO_LINGER = true;
 
   /**
    * amount of time to linger
    */
-  public int              LINGER                          = 0;
+  public static final int LINGER = 0;
 
   @Override
   public Socket createSocket() throws IOException {

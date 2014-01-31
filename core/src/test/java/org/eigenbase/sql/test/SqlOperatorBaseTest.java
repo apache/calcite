@@ -47,31 +47,32 @@ import static org.junit.Assert.*;
  * expressions on the operators. This is left to a {@link SqlTester} object
  *which the derived class must provde.
 *
- * <p>Different implementations of {@link SqlTester} are possible, suchas:
- * p/>
+ * <p>Different implementations of {@link SqlTester} are possible, such as:</p>
+ *
  * <ul>
  * <li>Execute against a real farrago database
  * <li>Execute in pure java (parsing and validation can be done, but expression
  * evaluation is not possible)
- *<li>Generate a SQL script.
+ * <li>Generate a SQL script.
  * <li>Analyze which operators are adequately tested.
- * <ul>
+ * </ul>
  *
  * <p>A typical method will be named after the operator it is testing (say
- * <code>testSubstringFunc</code>). It first calls {@link
- *SqlTester#setFor(org.eigenbase.sql.SqlOperator,
- * org.eigenbase.sql.test.SqlTester.VmName...)} to declare which operator it is
- * testing. <blockqote>
+ * <code>testSubstringFunc</code>). It first calls
+ * {@link SqlTester#setFor(org.eigenbase.sql.SqlOperator, org.eigenbase.sql.test.SqlTester.VmName...)}
+ * to declare which operator it is testing.
  *
+ * <blockquote>
  * <pre><code>
  * public void testSubstringFunc() {
  *     tester.setFor(SqlStdOperatorTable.substringFunc);
  *     tester.checkScalar("sin(0)", "0");
  *     tester.checkScalar("sin(1.5707)", "1");
  * }</code></pre>
+ * </blockquote>
  *
- * </blockqoute> The rest of the method contains calls to the various <code>
- * checkXxx</code> methods in the {@link SqlTester} interface. For an operator
+ * <p>The rest of the method contains calls to the various {@code checkXxx}
+ * methods in the {@link SqlTester} interface. For an operator
  * to be adequately tested, there need to be tests for:
  *
  * <ul>
@@ -98,45 +99,45 @@ public abstract class SqlOperatorBaseTest {
 
   // TODO: Change message when Fnl3Fixed to something like
   // "Invalid character for cast: PC=0 Code=22018"
-  public static final String invalidCharMessage =
-      Bug.Fnl3Fixed ? null : "(?s).*";
+  public static final String INVALID_CHAR_MESSAGE =
+      Bug.FNL3_FIXED ? null : "(?s).*";
 
   // TODO: Change message when Fnl3Fixed to something like
   // "Overflow during calculation or cast: PC=0 Code=22003"
-  public static final String outOfRangeMessage =
-      Bug.Fnl3Fixed ? null : "(?s).*";
+  public static final String OUT_OF_RANGE_MESSAGE =
+      Bug.FNL3_FIXED ? null : "(?s).*";
 
   // TODO: Change message when Fnl3Fixed to something like
   // "Division by zero: PC=0 Code=22012"
-  public static final String divisionByZeroMessage =
-      Bug.Fnl3Fixed ? null : "(?s).*";
+  public static final String DIVISION_BY_ZERO_MESSAGE =
+      Bug.FNL3_FIXED ? null : "(?s).*";
 
   // TODO: Change message when Fnl3Fixed to something like
   // "String right truncation: PC=0 Code=22001"
-  public static final String stringTruncMessage =
-      Bug.Fnl3Fixed ? null : "(?s).*";
+  public static final String STRING_TRUNC_MESSAGE =
+      Bug.FNL3_FIXED ? null : "(?s).*";
 
   // TODO: Change message when Fnl3Fixed to something like
   // "Invalid datetime format: PC=0 Code=22007"
-  public static final String badDatetimeMessage =
-      Bug.Fnl3Fixed ? null : "(?s).*";
+  public static final String BAD_DATETIME_MESSAGE =
+      Bug.FNL3_FIXED ? null : "(?s).*";
 
-  public static final String literalOutOfRangeMessage =
+  public static final String LITERAL_OUT_OF_RANGE_MESSAGE =
       "(?s).*Numeric literal.*out of range.*";
 
-  public static final boolean todo = false;
+  public static final boolean TODO = false;
 
   /**
    * Regular expression for a SQL TIME(0) value.
    */
-  public static final Pattern timePattern =
+  public static final Pattern TIME_PATTERN =
       Pattern.compile(
           "[0-9][0-9]:[0-9][0-9]:[0-9][0-9]");
 
   /**
    * Regular expression for a SQL TIMESTAMP(0) value.
    */
-  public static final Pattern timestampPattern =
+  public static final Pattern TIMESTAMP_PATTERN =
       Pattern.compile(
           "[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9] "
           + "[0-9][0-9]:[0-9][0-9]:[0-9][0-9]");
@@ -144,18 +145,18 @@ public abstract class SqlOperatorBaseTest {
   /**
    * Regular expression for a SQL DATE value.
    */
-  public static final Pattern datePattern =
+  public static final Pattern DATE_PATTERN =
       Pattern.compile(
           "[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]");
 
-  public static final String[] numericTypeNames = {
+  public static final String[] NUMERIC_TYPE_NAMES = {
     "TINYINT", "SMALLINT", "INTEGER", "BIGINT",
     "DECIMAL(5, 2)", "REAL", "FLOAT", "DOUBLE"
   };
 
   // REVIEW jvs 27-Apr-2006:  for Float and Double, MIN_VALUE
   // is the smallest positive value, not the smallest negative value
-  public static final String[] minNumericStrings = {
+  public static final String[] MIN_NUMERIC_STRINGS = {
     Long.toString(Byte.MIN_VALUE),
     Long.toString(Short.MIN_VALUE),
     Long.toString(Integer.MIN_VALUE),
@@ -168,7 +169,7 @@ public abstract class SqlOperatorBaseTest {
     "2E-307" /*Double.toString(Double.MIN_VALUE)*/,
   };
 
-  public static final String[] minOverflowNumericStrings = {
+  public static final String[] MIN_OVERFLOW_NUMERIC_STRINGS = {
     Long.toString(Byte.MIN_VALUE - 1),
     Long.toString(Short.MIN_VALUE - 1),
     Long.toString((long) Integer.MIN_VALUE - 1),
@@ -179,7 +180,7 @@ public abstract class SqlOperatorBaseTest {
     "1e-324"
   };
 
-  public static final String[] maxNumericStrings = {
+  public static final String[] MAX_NUMERIC_STRINGS = {
     Long.toString(Byte.MAX_VALUE),
     Long.toString(Short.MAX_VALUE),
     Long.toString(Integer.MAX_VALUE),
@@ -193,7 +194,7 @@ public abstract class SqlOperatorBaseTest {
     "1.79769313486231E308" /*Double.toString(Double.MAX_VALUE)*/
   };
 
-  public static final String[] maxOverflowNumericStrings = {
+  public static final String[] MAX_OVERFLOW_NUMERIC_STRINGS = {
     Long.toString(Byte.MAX_VALUE + 1),
     Long.toString(Short.MAX_VALUE + 1),
     Long.toString((long) Integer.MAX_VALUE + 1),
@@ -203,7 +204,7 @@ public abstract class SqlOperatorBaseTest {
     "-1e309",
     "1e309"
   };
-  private static final boolean[] FalseTrue = {false, true};
+  private static final boolean[] FALSE_TRUE = {false, true};
   private static final SqlTester.VmName VM_FENNEL = SqlTester.VmName.FENNEL;
   private static final SqlTester.VmName VM_JAVA = SqlTester.VmName.JAVA;
   private static final SqlTester.VmName VM_EXPAND = SqlTester.VmName.EXPAND;
@@ -213,10 +214,10 @@ public abstract class SqlOperatorBaseTest {
   // time zone for the CURRENT{DATE,TIME,TIMESTAMP} functions
   protected static final TimeZone CURRENT_TZ = LOCAL_TZ;
 
-  private static final Pattern invalidArgForPower = Pattern.compile(
+  private static final Pattern INVALID_ARG_FOR_POWER = Pattern.compile(
       "(?s).*Invalid argument\\(s\\) for 'POWER' function.*");
 
-  private static final Pattern code2201f = Pattern.compile(
+  private static final Pattern CODE_2201F = Pattern.compile(
       "(?s).*could not calculate results for the following row.*PC=5 Code=2201F.*");
 
   /**
@@ -264,7 +265,7 @@ public abstract class SqlOperatorBaseTest {
 
   @Test public void testBetween() {
     tester.setFor(
-        SqlStdOperatorTable.betweenOperator,
+        SqlStdOperatorTable.BETWEEN,
         SqlTester.VmName.EXPAND);
     tester.checkBoolean("2 between 1 and 3", Boolean.TRUE);
     tester.checkBoolean("2 between 3 and 2", Boolean.FALSE);
@@ -295,7 +296,7 @@ public abstract class SqlOperatorBaseTest {
   }
 
   @Test public void testNotBetween() {
-    tester.setFor(SqlStdOperatorTable.notBetweenOperator, VM_EXPAND);
+    tester.setFor(SqlStdOperatorTable.NOT_BETWEEN, VM_EXPAND);
     tester.checkBoolean("2 not between 1 and 3", Boolean.FALSE);
     tester.checkBoolean("3 not between 1 and 3", Boolean.FALSE);
     tester.checkBoolean("4 not between 1 and 3", Boolean.TRUE);
@@ -375,11 +376,10 @@ public abstract class SqlOperatorBaseTest {
     }
 
     // currently no exception thrown for truncation
-    if (Bug.Dt239Fixed) {
+    if (Bug.DT239_FIXED) {
       checkCastFails(
           value,
-          "VARCHAR(" + (len - 1) + ")",
-          stringTruncMessage,
+          "VARCHAR(" + (len - 1) + ")", STRING_TRUNC_MESSAGE,
           true);
     }
 
@@ -387,11 +387,10 @@ public abstract class SqlOperatorBaseTest {
     checkCastToStringOkay(value, "VARCHAR(" + (len + 5) + ")", expected);
 
     // currently no exception thrown for truncation
-    if (Bug.Dt239Fixed) {
+    if (Bug.DT239_FIXED) {
       checkCastFails(
           value,
-          "CHAR(" + (len - 1) + ")",
-          stringTruncMessage,
+          "CHAR(" + (len - 1) + ")", STRING_TRUNC_MESSAGE,
           true);
     }
 
@@ -406,7 +405,7 @@ public abstract class SqlOperatorBaseTest {
   }
 
   @Test public void testCastToString() {
-    tester.setFor(SqlStdOperatorTable.castFunc);
+    tester.setFor(SqlStdOperatorTable.CAST);
 
     // integer
     checkCastToString("123", "CHAR(3)", "123");
@@ -427,8 +426,7 @@ public abstract class SqlOperatorBaseTest {
         ".48",
         "VARCHAR(10) NOT NULL");
     tester.checkFails(
-        "cast(2.523 as char(2))",
-        stringTruncMessage,
+        "cast(2.523 as char(2))", STRING_TRUNC_MESSAGE,
         true);
 
     tester.checkString(
@@ -445,28 +443,26 @@ public abstract class SqlOperatorBaseTest {
     checkCastToString("CAST(0 AS DOUBLE)", "CHAR(3)", "0E0");
     checkCastToString("-1.20e-07", "CHAR(7)", "-1.2E-7");
     checkCastToString("cast(0e0 as varchar(5))", "CHAR(3)", "0E0");
-    if (todo) {
+    if (TODO) {
       checkCastToString(
           "cast(-45e-2 as varchar(17))", "CHAR(7)",
           "-4.5E-1");
     }
-    if (todo) {
+    if (TODO) {
       checkCastToString(
           "cast(4683442.3432498375e0 as varchar(20))",
           "CHAR(19)",
           "4.683442343249838E6");
     }
-    if (todo) {
+    if (TODO) {
       checkCastToString("cast(-0.1 as real)", "CHAR(5)", "-1E-1");
     }
 
     tester.checkFails(
-        "cast(1.3243232e0 as varchar(4))",
-        stringTruncMessage,
+        "cast(1.3243232e0 as varchar(4))", STRING_TRUNC_MESSAGE,
         true);
     tester.checkFails(
-        "cast(1.9e5 as char(4))",
-        stringTruncMessage,
+        "cast(1.9e5 as char(4))", STRING_TRUNC_MESSAGE,
         true);
 
     // string
@@ -507,29 +503,25 @@ public abstract class SqlOperatorBaseTest {
     checkCastToString("True", "CHAR(4)", "TRUE");
     checkCastToString("False", "CHAR(5)", "FALSE");
     tester.checkFails(
-        "cast(true as char(3))",
-        invalidCharMessage,
+        "cast(true as char(3))", INVALID_CHAR_MESSAGE,
         true);
     tester.checkFails(
-        "cast(false as char(4))",
-        invalidCharMessage,
+        "cast(false as char(4))", INVALID_CHAR_MESSAGE,
         true);
     tester.checkFails(
-        "cast(true as varchar(3))",
-        invalidCharMessage,
+        "cast(true as varchar(3))", INVALID_CHAR_MESSAGE,
         true);
     tester.checkFails(
-        "cast(false as varchar(4))",
-        invalidCharMessage,
+        "cast(false as varchar(4))", INVALID_CHAR_MESSAGE,
         true);
   }
 
   @Test public void testCastExactNumericLimits() {
-    tester.setFor(SqlStdOperatorTable.castFunc);
+    tester.setFor(SqlStdOperatorTable.CAST);
 
     // Test casting for min,max, out of range for exact numeric types
-    for (int i = 0; i < numericTypeNames.length; i++) {
-      String type = numericTypeNames[i];
+    for (int i = 0; i < NUMERIC_TYPE_NAMES.length; i++) {
+      String type = NUMERIC_TYPE_NAMES[i];
 
       if (type.equalsIgnoreCase("DOUBLE")
           || type.equalsIgnoreCase("FLOAT")
@@ -539,32 +531,28 @@ public abstract class SqlOperatorBaseTest {
       }
 
       // Convert from literal to type
-      checkCastToScalarOkay(maxNumericStrings[i], type);
-      checkCastToScalarOkay(minNumericStrings[i], type);
+      checkCastToScalarOkay(MAX_NUMERIC_STRINGS[i], type);
+      checkCastToScalarOkay(MIN_NUMERIC_STRINGS[i], type);
 
       // Overflow test
       if (type.equalsIgnoreCase("BIGINT")) {
         // Literal of range
         checkCastFails(
-            maxOverflowNumericStrings[i],
-            type,
-            literalOutOfRangeMessage,
+            MAX_OVERFLOW_NUMERIC_STRINGS[i],
+            type, LITERAL_OUT_OF_RANGE_MESSAGE,
             false);
         checkCastFails(
-            minOverflowNumericStrings[i],
-            type,
-            literalOutOfRangeMessage,
+            MIN_OVERFLOW_NUMERIC_STRINGS[i],
+            type, LITERAL_OUT_OF_RANGE_MESSAGE,
             false);
       } else {
         checkCastFails(
-            maxOverflowNumericStrings[i],
-            type,
-            outOfRangeMessage,
+            MAX_OVERFLOW_NUMERIC_STRINGS[i],
+            type, OUT_OF_RANGE_MESSAGE,
             true);
         checkCastFails(
-            minOverflowNumericStrings[i],
-            type,
-            outOfRangeMessage,
+            MIN_OVERFLOW_NUMERIC_STRINGS[i],
+            type, OUT_OF_RANGE_MESSAGE,
             true);
       }
 
@@ -573,38 +561,37 @@ public abstract class SqlOperatorBaseTest {
       }
       // Convert from string to type
       checkCastToScalarOkay(
-          "'" + maxNumericStrings[i] + "'",
+          "'" + MAX_NUMERIC_STRINGS[i] + "'",
           type,
-          maxNumericStrings[i]);
+          MAX_NUMERIC_STRINGS[i]);
       checkCastToScalarOkay(
-          "'" + minNumericStrings[i] + "'",
+          "'" + MIN_NUMERIC_STRINGS[i] + "'",
           type,
-          minNumericStrings[i]);
+          MIN_NUMERIC_STRINGS[i]);
 
       checkCastFails(
-          "'" + maxOverflowNumericStrings[i] + "'",
-          type,
-          outOfRangeMessage,
+          "'" + MAX_OVERFLOW_NUMERIC_STRINGS[i] + "'",
+          type, OUT_OF_RANGE_MESSAGE,
           true);
       checkCastFails(
-          "'" + minOverflowNumericStrings[i] + "'",
+          "'" + MIN_OVERFLOW_NUMERIC_STRINGS[i] + "'",
           type,
-          outOfRangeMessage,
+          OUT_OF_RANGE_MESSAGE,
           true);
 
       // Convert from type to string
-      checkCastToString(maxNumericStrings[i], null, null);
-      checkCastToString(maxNumericStrings[i], type, null);
+      checkCastToString(MAX_NUMERIC_STRINGS[i], null, null);
+      checkCastToString(MAX_NUMERIC_STRINGS[i], type, null);
 
-      checkCastToString(minNumericStrings[i], null, null);
-      checkCastToString(minNumericStrings[i], type, null);
+      checkCastToString(MIN_NUMERIC_STRINGS[i], null, null);
+      checkCastToString(MIN_NUMERIC_STRINGS[i], type, null);
 
-      checkCastFails("'notnumeric'", type, invalidCharMessage, true);
+      checkCastFails("'notnumeric'", type, INVALID_CHAR_MESSAGE, true);
     }
   }
 
   @Test public void testCastToExactNumeric() {
-    tester.setFor(SqlStdOperatorTable.castFunc);
+    tester.setFor(SqlStdOperatorTable.CAST);
 
     checkCastToScalarOkay("1", "BIGINT");
     checkCastToScalarOkay("1", "INTEGER");
@@ -634,7 +621,7 @@ public abstract class SqlOperatorBaseTest {
   }
 
   @Test public void testCastStringToDecimal() {
-    tester.setFor(SqlStdOperatorTable.castFunc);
+    tester.setFor(SqlStdOperatorTable.CAST);
     if (!DECIMAL) {
       return;
     }
@@ -664,13 +651,12 @@ public abstract class SqlOperatorBaseTest {
         "DECIMAL(2, 1) NOT NULL",
         "-1.2");
     tester.checkFails(
-        "cast(' -1.21e' as decimal(2,1))",
-        invalidCharMessage,
+        "cast(' -1.21e' as decimal(2,1))", INVALID_CHAR_MESSAGE,
         true);
   }
 
   @Test public void testCastIntervalToNumeric() {
-    tester.setFor(SqlStdOperatorTable.castFunc);
+    tester.setFor(SqlStdOperatorTable.CAST);
 
     // interval to decimal
     if (DECIMAL) {
@@ -754,7 +740,7 @@ public abstract class SqlOperatorBaseTest {
   }
 
   @Test public void testCastToInterval() {
-    tester.setFor(SqlStdOperatorTable.castFunc);
+    tester.setFor(SqlStdOperatorTable.CAST);
     if (!INTERVAL) {
       return;
     }
@@ -811,7 +797,7 @@ public abstract class SqlOperatorBaseTest {
   }
 
   @Test public void testCastWithRoundingToScalar() {
-    tester.setFor(SqlStdOperatorTable.castFunc);
+    tester.setFor(SqlStdOperatorTable.CAST);
 
     checkCastToScalarOkay("1.25", "INTEGER", "1");
     checkCastToScalarOkay("1.25E0", "INTEGER", "1");
@@ -846,13 +832,12 @@ public abstract class SqlOperatorBaseTest {
 
     // 9.99 round to 10.0, should give out of range error
     tester.checkFails(
-        "cast(9.99 as decimal(2,1))",
-        outOfRangeMessage,
+        "cast(9.99 as decimal(2,1))", OUT_OF_RANGE_MESSAGE,
         true);
   }
 
   @Test public void testCastDecimalToDoubleToInteger() {
-    tester.setFor(SqlStdOperatorTable.castFunc);
+    tester.setFor(SqlStdOperatorTable.CAST);
 
     tester.checkScalarExact(
         "cast( cast(1.25 as double) as integer)",
@@ -878,11 +863,11 @@ public abstract class SqlOperatorBaseTest {
   }
 
   @Test public void testCastApproxNumericLimits() {
-    tester.setFor(SqlStdOperatorTable.castFunc);
+    tester.setFor(SqlStdOperatorTable.CAST);
 
     // Test casting for min,max, out of range for approx numeric types
-    for (int i = 0; i < numericTypeNames.length; i++) {
-      String type = numericTypeNames[i];
+    for (int i = 0; i < NUMERIC_TYPE_NAMES.length; i++) {
+      String type = NUMERIC_TYPE_NAMES[i];
       boolean isFloat;
 
       if (type.equalsIgnoreCase("DOUBLE")
@@ -901,55 +886,53 @@ public abstract class SqlOperatorBaseTest {
 
       // Convert from literal to type
       checkCastToApproxOkay(
-          maxNumericStrings[i],
+          MAX_NUMERIC_STRINGS[i],
           type,
-          Double.parseDouble(maxNumericStrings[i]),
+          Double.parseDouble(MAX_NUMERIC_STRINGS[i]),
           isFloat ? 1E32 : 0);
       checkCastToApproxOkay(
-          minNumericStrings[i],
+          MIN_NUMERIC_STRINGS[i],
           type,
-          Double.parseDouble(minNumericStrings[i]),
+          Double.parseDouble(MIN_NUMERIC_STRINGS[i]),
           0);
 
       if (isFloat) {
         checkCastFails(
-            maxOverflowNumericStrings[i],
-            type,
-            outOfRangeMessage,
+            MAX_OVERFLOW_NUMERIC_STRINGS[i],
+            type, OUT_OF_RANGE_MESSAGE,
             true);
       } else {
         // Double: Literal out of range
         checkCastFails(
-            maxOverflowNumericStrings[i],
-            type,
-            literalOutOfRangeMessage,
+            MAX_OVERFLOW_NUMERIC_STRINGS[i],
+            type, LITERAL_OUT_OF_RANGE_MESSAGE,
             false);
       }
 
       // Underflow: goes to 0
-      checkCastToApproxOkay(minOverflowNumericStrings[i], type, 0, 0);
+      checkCastToApproxOkay(MIN_OVERFLOW_NUMERIC_STRINGS[i], type, 0, 0);
 
       // Convert from string to type
       checkCastToApproxOkay(
-          "'" + maxNumericStrings[i] + "'",
+          "'" + MAX_NUMERIC_STRINGS[i] + "'",
           type,
-          Double.parseDouble(maxNumericStrings[i]),
+          Double.parseDouble(MAX_NUMERIC_STRINGS[i]),
           isFloat ? 1E32 : 0);
       checkCastToApproxOkay(
-          "'" + minNumericStrings[i] + "'",
+          "'" + MIN_NUMERIC_STRINGS[i] + "'",
           type,
-          Double.parseDouble(minNumericStrings[i]),
+          Double.parseDouble(MIN_NUMERIC_STRINGS[i]),
           0);
 
       checkCastFails(
-          "'" + maxOverflowNumericStrings[i] + "'",
+          "'" + MAX_OVERFLOW_NUMERIC_STRINGS[i] + "'",
           type,
-          outOfRangeMessage,
+          OUT_OF_RANGE_MESSAGE,
           true);
 
       // Underflow: goes to 0
       checkCastToApproxOkay(
-          "'" + minOverflowNumericStrings[i] + "'",
+          "'" + MIN_OVERFLOW_NUMERIC_STRINGS[i] + "'",
           type,
           0,
           0);
@@ -958,8 +941,7 @@ public abstract class SqlOperatorBaseTest {
 
       // Treated as DOUBLE
       checkCastToString(
-          maxNumericStrings[i],
-          null,
+          MAX_NUMERIC_STRINGS[i], null,
           isFloat ? null : "1.79769313486231E308");
 
       // TODO: The following tests are slightly different depending on
@@ -967,42 +949,42 @@ public abstract class SqlOperatorBaseTest {
       // Try to make them the same
       if (false /* fennel calc*/) { // Treated as FLOAT or DOUBLE
         checkCastToString(
-            maxNumericStrings[i],
+            MAX_NUMERIC_STRINGS[i],
             type,
             // Treated as DOUBLE
             isFloat ? "3.402824E38" : "1.797693134862316E308");
         checkCastToString(
-            minNumericStrings[i],
+            MIN_NUMERIC_STRINGS[i],
             null,
             // Treated as FLOAT or DOUBLE
             isFloat ? null : "4.940656458412465E-324");
         checkCastToString(
-            minNumericStrings[i],
+            MIN_NUMERIC_STRINGS[i],
             type,
             isFloat ? "1.401299E-45" : "4.940656458412465E-324");
       } else if (false /* JavaCalc */) {
         // Treated as FLOAT or DOUBLE
         checkCastToString(
-            maxNumericStrings[i],
+            MAX_NUMERIC_STRINGS[i],
             type,
             // Treated as DOUBLE
             isFloat ? "3.402823E38" : "1.797693134862316E308");
         checkCastToString(
-            minNumericStrings[i],
+            MIN_NUMERIC_STRINGS[i],
             null,
             isFloat ? null : null); // Treated as FLOAT or DOUBLE
         checkCastToString(
-            minNumericStrings[i],
+            MIN_NUMERIC_STRINGS[i],
             type,
             isFloat ? "1.401298E-45" : null);
       }
 
-      checkCastFails("'notnumeric'", type, invalidCharMessage, true);
+      checkCastFails("'notnumeric'", type, INVALID_CHAR_MESSAGE, true);
     }
   }
 
   @Test public void testCastToApproxNumeric() {
-    tester.setFor(SqlStdOperatorTable.castFunc);
+    tester.setFor(SqlStdOperatorTable.CAST);
 
     checkCastToApproxOkay("1", "DOUBLE", 1, 0);
     checkCastToApproxOkay("1.0", "DOUBLE", 1, 0);
@@ -1014,7 +996,7 @@ public abstract class SqlOperatorBaseTest {
   }
 
   @Test public void testCastNull() {
-    tester.setFor(SqlStdOperatorTable.castFunc);
+    tester.setFor(SqlStdOperatorTable.CAST);
 
     // null
     tester.checkNull("cast(null as integer)");
@@ -1034,7 +1016,7 @@ public abstract class SqlOperatorBaseTest {
 
   @Test public void testCastDateTime() {
     // Test cast for date/time/timestamp
-    tester.setFor(SqlStdOperatorTable.castFunc);
+    tester.setFor(SqlStdOperatorTable.CAST);
 
     tester.checkScalar(
         "cast(TIMESTAMP '1945-02-24 12:42:25.34' as TIMESTAMP)",
@@ -1054,7 +1036,7 @@ public abstract class SqlOperatorBaseTest {
           "TIME(0) NOT NULL");
     }
 
-    if (Bug.Frg282Fixed) {
+    if (Bug.FRG282_FIXED) {
       // test precision
       tester.checkScalar(
           "cast(TIME '12:42:25.34' as TIME(2))",
@@ -1077,7 +1059,7 @@ public abstract class SqlOperatorBaseTest {
 
     // time <-> string
     checkCastToString("TIME '12:42:25'", null, "12:42:25");
-    if (todo) {
+    if (TODO) {
       checkCastToString("TIME '12:42:25.34'", null, "12:42:25.34");
     }
 
@@ -1145,7 +1127,7 @@ public abstract class SqlOperatorBaseTest {
         "12:42:25",
         "TIME(0) NOT NULL");
 
-    if (Bug.Frg282Fixed) {
+    if (Bug.FRG282_FIXED) {
       tester.checkScalar(
           "cast('12:42:25.34' as TIME(2))",
           "12:42:25.34",
@@ -1153,16 +1135,13 @@ public abstract class SqlOperatorBaseTest {
     }
 
     tester.checkFails(
-        "cast('nottime' as TIME)",
-        badDatetimeMessage,
+        "cast('nottime' as TIME)", BAD_DATETIME_MESSAGE,
         true);
     tester.checkFails(
-        "cast('1241241' as TIME)",
-        badDatetimeMessage,
+        "cast('1241241' as TIME)", BAD_DATETIME_MESSAGE,
         true);
     tester.checkFails(
-        "cast('12:54:78' as TIME)",
-        badDatetimeMessage,
+        "cast('12:54:78' as TIME)", BAD_DATETIME_MESSAGE,
         true);
 
     // timestamp <-> string
@@ -1171,7 +1150,7 @@ public abstract class SqlOperatorBaseTest {
         null,
         "1945-02-24 12:42:25");
 
-    if (todo) {
+    if (TODO) {
       // TODO: casting allows one to discard precision without error
       checkCastToString(
           "TIMESTAMP '1945-02-24 12:42:25.34'",
@@ -1196,27 +1175,23 @@ public abstract class SqlOperatorBaseTest {
         "1945-02-24 12:42:25",
         "TIMESTAMP(0) NOT NULL");
 
-    if (Bug.Frg282Fixed) {
+    if (Bug.FRG282_FIXED) {
       tester.checkScalar(
           "cast('1945-02-24 12:42:25.34' as TIMESTAMP(2))",
           "1945-02-24 12:42:25.34",
           "TIMESTAMP(2) NOT NULL");
     }
     tester.checkFails(
-        "cast('nottime' as TIMESTAMP)",
-        badDatetimeMessage,
+        "cast('nottime' as TIMESTAMP)", BAD_DATETIME_MESSAGE,
         true);
     tester.checkFails(
-        "cast('1241241' as TIMESTAMP)",
-        badDatetimeMessage,
+        "cast('1241241' as TIMESTAMP)", BAD_DATETIME_MESSAGE,
         true);
     tester.checkFails(
-        "cast('1945-20-24 12:42:25.34' as TIMESTAMP)",
-        badDatetimeMessage,
+        "cast('1945-20-24 12:42:25.34' as TIMESTAMP)", BAD_DATETIME_MESSAGE,
         true);
     tester.checkFails(
-        "cast('1945-01-24 25:42:25.34' as TIMESTAMP)",
-        badDatetimeMessage,
+        "cast('1945-01-24 25:42:25.34' as TIMESTAMP)", BAD_DATETIME_MESSAGE,
         true);
 
     // date <-> string
@@ -1232,16 +1207,13 @@ public abstract class SqlOperatorBaseTest {
         "1945-02-24",
         "DATE NOT NULL");
     tester.checkFails(
-        "cast('notdate' as DATE)",
-        badDatetimeMessage,
+        "cast('notdate' as DATE)", BAD_DATETIME_MESSAGE,
         true);
     tester.checkFails(
-        "cast('52534253' as DATE)",
-        badDatetimeMessage,
+        "cast('52534253' as DATE)", BAD_DATETIME_MESSAGE,
         true);
     tester.checkFails(
-        "cast('1945-30-24' as DATE)",
-        badDatetimeMessage,
+        "cast('1945-30-24' as DATE)", BAD_DATETIME_MESSAGE,
         true);
 
     // cast null
@@ -1299,7 +1271,7 @@ public abstract class SqlOperatorBaseTest {
   }
 
   @Test public void testCastToBoolean() {
-    tester.setFor(SqlStdOperatorTable.castFunc);
+    tester.setFor(SqlStdOperatorTable.CAST);
 
     // string to boolean
     tester.checkBoolean("cast('true' as boolean)", Boolean.TRUE);
@@ -1307,8 +1279,7 @@ public abstract class SqlOperatorBaseTest {
     tester.checkBoolean("cast('  trUe' as boolean)", Boolean.TRUE);
     tester.checkBoolean("cast('  fALse' as boolean)", Boolean.FALSE);
     tester.checkFails(
-        "cast('unknown' as boolean)",
-        invalidCharMessage,
+        "cast('unknown' as boolean)", INVALID_CHAR_MESSAGE,
         true);
 
     tester.checkBoolean(
@@ -1318,13 +1289,12 @@ public abstract class SqlOperatorBaseTest {
         "cast(cast('false' as varchar(10)) as boolean)",
         Boolean.FALSE);
     tester.checkFails(
-        "cast(cast('blah' as varchar(10)) as boolean)",
-        invalidCharMessage,
+        "cast(cast('blah' as varchar(10)) as boolean)", INVALID_CHAR_MESSAGE,
         true);
   }
 
   @Test public void testCase() {
-    tester.setFor(SqlStdOperatorTable.caseOperator);
+    tester.setFor(SqlStdOperatorTable.CASE);
     tester.checkScalarExact("case when 'a'='a' then 1 end", "1");
 
     tester.checkString(
@@ -1397,7 +1367,7 @@ public abstract class SqlOperatorBaseTest {
         "a",
         "CHAR(1)");
 
-    if (todo) {
+    if (TODO) {
       tester.checkScalar(
           "case 1 when 1 then row(1,2) when 2 then row(2,3) end",
           "ROW(INTEGER NOT NULL, INTEGER NOT NULL)",
@@ -1451,7 +1421,7 @@ public abstract class SqlOperatorBaseTest {
   }
 
   @Test public void testCaseType() {
-    tester.setFor(SqlStdOperatorTable.caseOperator);
+    tester.setFor(SqlStdOperatorTable.CASE);
     tester.checkType(
         "case 1 when 1 then current_timestamp else null end",
         "TIMESTAMP(0)");
@@ -1714,10 +1684,10 @@ public abstract class SqlOperatorBaseTest {
   }
 
   @Test public void testSelect() {
-    tester.setFor(SqlStdOperatorTable.selectOperator, VM_EXPAND);
+    tester.setFor(SqlStdOperatorTable.SELECT, VM_EXPAND);
     tester.check(
         "select * from (values(1))",
-        SqlTests.IntegerTypeChecker,
+        SqlTests.INTEGER_TYPE_CHECKER,
         "1",
         0);
 
@@ -1725,8 +1695,8 @@ public abstract class SqlOperatorBaseTest {
     // type is always nullable even if subquery select value is NOT NULL.
     // Bug FRG-189 causes this test to fail only in SqlOperatorTest; not
     // in subtypes.
-    if (Bug.Frg189Fixed
-        || (getClass() != SqlOperatorTest.class) && Bug.TodoFixed) {
+    if (Bug.FRG189_FIXED
+        || (getClass() != SqlOperatorTest.class) && Bug.TODO_FIXED) {
       tester.checkType(
           "SELECT *,(SELECT * FROM (VALUES(1))) FROM (VALUES(2))",
           "RecordType(INTEGER NOT NULL EXPR$0, INTEGER EXPR$1) NOT NULL");
@@ -1757,7 +1727,7 @@ public abstract class SqlOperatorBaseTest {
   }
 
   @Test public void testLiteralChain() {
-    tester.setFor(SqlStdOperatorTable.literalChainOperator, VM_EXPAND);
+    tester.setFor(SqlStdOperatorTable.LITERAL_CHAIN, VM_EXPAND);
     tester.checkString(
         "'buttered'\n' toast'",
         "buttered toast",
@@ -1776,11 +1746,11 @@ public abstract class SqlOperatorBaseTest {
   }
 
   @Test public void testRow() {
-    tester.setFor(SqlStdOperatorTable.rowConstructor, VM_FENNEL);
+    tester.setFor(SqlStdOperatorTable.ROW, VM_FENNEL);
   }
 
   @Test public void testAndOperator() {
-    tester.setFor(SqlStdOperatorTable.andOperator);
+    tester.setFor(SqlStdOperatorTable.AND);
     tester.checkBoolean("true and false", Boolean.FALSE);
     tester.checkBoolean("true and true", Boolean.TRUE);
     tester.checkBoolean(
@@ -1806,20 +1776,20 @@ public abstract class SqlOperatorBaseTest {
   }
 
   @Test public void testAndOperatorLazy() {
-    tester.setFor(SqlStdOperatorTable.andOperator);
+    tester.setFor(SqlStdOperatorTable.AND);
 
     // lazy eval returns FALSE;
     // eager eval executes RHS of AND and throws;
     // both are valid
     tester.check(
         "values 1 > 2 and sqrt(-4) = -2",
-        SqlTests.BooleanTypeChecker,
+        SqlTests.BOOLEAN_TYPE_CHECKER,
         new ValueOrExceptionResultChecker(
-            Boolean.FALSE, invalidArgForPower, code2201f));
+            Boolean.FALSE, INVALID_ARG_FOR_POWER, CODE_2201F));
   }
 
   @Test public void testConcatOperator() {
-    tester.setFor(SqlStdOperatorTable.concatOperator);
+    tester.setFor(SqlStdOperatorTable.CONCAT);
     tester.checkString(" 'a'||'b' ", "ab", "CHAR(2) NOT NULL");
     tester.checkNull(" 'a' || cast(null as char(2)) ");
     tester.checkNull(" cast(null as char(2)) || 'b' ");
@@ -1834,7 +1804,7 @@ public abstract class SqlOperatorBaseTest {
   }
 
   @Test public void testDivideOperator() {
-    tester.setFor(SqlStdOperatorTable.divideOperator);
+    tester.setFor(SqlStdOperatorTable.DIVIDE);
     tester.checkScalarExact("10 / 5", "2");
     tester.checkScalarExact("-10 / 5", "-2");
     tester.checkScalarExact("1 / 3", "0");
@@ -1874,8 +1844,7 @@ public abstract class SqlOperatorBaseTest {
     tester.checkNull("1e1 / cast(null as float)");
 
     tester.checkFails(
-        "100.1 / 0.00000000000000001",
-        outOfRangeMessage,
+        "100.1 / 0.00000000000000001", OUT_OF_RANGE_MESSAGE,
         true);
   }
 
@@ -1906,7 +1875,7 @@ public abstract class SqlOperatorBaseTest {
   }
 
   @Test public void testEqualsOperator() {
-    tester.setFor(SqlStdOperatorTable.equalsOperator);
+    tester.setFor(SqlStdOperatorTable.EQUALS);
     tester.checkBoolean("1=1", Boolean.TRUE);
     tester.checkBoolean("1=1.0", Boolean.TRUE);
     tester.checkBoolean("1.34=1.34", Boolean.TRUE);
@@ -1953,7 +1922,7 @@ public abstract class SqlOperatorBaseTest {
   }
 
   @Test public void testGreaterThanOperator() {
-    tester.setFor(SqlStdOperatorTable.greaterThanOperator);
+    tester.setFor(SqlStdOperatorTable.GREATER_THAN);
     tester.checkBoolean("1>2", Boolean.FALSE);
     tester.checkBoolean(
         "cast(-1 as TINYINT)>cast(1 as TINYINT)",
@@ -2018,7 +1987,7 @@ public abstract class SqlOperatorBaseTest {
 
   @Test public void testIsDistinctFromOperator() {
     tester.setFor(
-        SqlStdOperatorTable.isDistinctFromOperator,
+        SqlStdOperatorTable.IS_DISTINCT_FROM,
         VM_EXPAND);
     tester.checkBoolean("1 is distinct from 1", Boolean.FALSE);
     tester.checkBoolean("1 is distinct from 1.0", Boolean.FALSE);
@@ -2056,7 +2025,7 @@ public abstract class SqlOperatorBaseTest {
 
   @Test public void testIsNotDistinctFromOperator() {
     tester.setFor(
-        SqlStdOperatorTable.isNotDistinctFromOperator,
+        SqlStdOperatorTable.IS_NOT_DISTINCT_FROM,
         VM_EXPAND);
     tester.checkBoolean("1 is not distinct from 1", Boolean.TRUE);
     tester.checkBoolean("1 is not distinct from 1.0", Boolean.TRUE);
@@ -2097,7 +2066,7 @@ public abstract class SqlOperatorBaseTest {
   }
 
   @Test public void testGreaterThanOrEqualOperator() {
-    tester.setFor(SqlStdOperatorTable.greaterThanOrEqualOperator);
+    tester.setFor(SqlStdOperatorTable.GREATER_THAN_OR_EQUAL);
     tester.checkBoolean("1>=2", Boolean.FALSE);
     tester.checkBoolean("-1>=1", Boolean.FALSE);
     tester.checkBoolean("1>=1", Boolean.TRUE);
@@ -2149,14 +2118,14 @@ public abstract class SqlOperatorBaseTest {
   }
 
   @Test public void testInOperator() {
-    tester.setFor(SqlStdOperatorTable.inOperator, VM_EXPAND);
+    tester.setFor(SqlStdOperatorTable.IN, VM_EXPAND);
     tester.checkBoolean("1 in (0, 1, 2)", true);
     tester.checkBoolean("3 in (0, 1, 2)", false);
     tester.checkBoolean("cast(null as integer) in (0, 1, 2)", null);
     tester.checkBoolean(
         "cast(null as integer) in (0, cast(null as integer), 2)",
         null);
-    if (Bug.Frg327Fixed) {
+    if (Bug.FRG327_FIXED) {
       tester.checkBoolean(
           "cast(null as integer) in (0, null, 2)",
           null);
@@ -2169,7 +2138,7 @@ public abstract class SqlOperatorBaseTest {
     // AND has lower precedence than IN
     tester.checkBoolean("false and true in (false, false)", false);
 
-    if (!Bug.TodoFixed) {
+    if (!Bug.TODO_FIXED) {
       return;
     }
     tester.checkFails(
@@ -2179,7 +2148,7 @@ public abstract class SqlOperatorBaseTest {
   }
 
   @Test public void testNotInOperator() {
-    tester.setFor(SqlStdOperatorTable.notInOperator, VM_EXPAND);
+    tester.setFor(SqlStdOperatorTable.NOT_IN, VM_EXPAND);
     tester.checkBoolean("1 not in (0, 1, 2)", false);
     tester.checkBoolean("3 not in (0, 1, 2)", true);
     if (!enable) {
@@ -2191,7 +2160,7 @@ public abstract class SqlOperatorBaseTest {
     tester.checkBoolean(
         "cast(null as integer) not in (0, cast(null as integer), 2)",
         null);
-    if (Bug.Frg327Fixed) {
+    if (Bug.FRG327_FIXED) {
       tester.checkBoolean(
           "cast(null as integer) not in (0, null, 2)",
           null);
@@ -2201,7 +2170,7 @@ public abstract class SqlOperatorBaseTest {
     // AND has lower precedence than NOT IN
     tester.checkBoolean("true and false not in (true, true)", true);
 
-    if (!Bug.TodoFixed) {
+    if (!Bug.TODO_FIXED) {
       return;
     }
     tester.checkFails(
@@ -2211,8 +2180,8 @@ public abstract class SqlOperatorBaseTest {
   }
 
   @Test public void testOverlapsOperator() {
-    tester.setFor(SqlStdOperatorTable.overlapsOperator, VM_EXPAND);
-    if (Bug.Frg187Fixed) {
+    tester.setFor(SqlStdOperatorTable.OVERLAPS, VM_EXPAND);
+    if (Bug.FRG187_FIXED) {
       tester.checkBoolean(
           "(date '1-2-3', date '1-2-3') overlaps (date '1-2-3', interval '1' year)",
           Boolean.TRUE);
@@ -2255,7 +2224,7 @@ public abstract class SqlOperatorBaseTest {
   }
 
   @Test public void testLessThanOperator() {
-    tester.setFor(SqlStdOperatorTable.lessThanOperator);
+    tester.setFor(SqlStdOperatorTable.LESS_THAN);
     tester.checkBoolean("1<2", Boolean.TRUE);
     tester.checkBoolean("-1<1", Boolean.TRUE);
     tester.checkBoolean("1<1", Boolean.FALSE);
@@ -2316,7 +2285,7 @@ public abstract class SqlOperatorBaseTest {
   }
 
   @Test public void testLessThanOrEqualOperator() {
-    tester.setFor(SqlStdOperatorTable.lessThanOrEqualOperator);
+    tester.setFor(SqlStdOperatorTable.LESS_THAN_OR_EQUAL);
     tester.checkBoolean("1<=2", Boolean.TRUE);
     tester.checkBoolean("1<=1", Boolean.TRUE);
     tester.checkBoolean("-1<=1", Boolean.TRUE);
@@ -2371,7 +2340,7 @@ public abstract class SqlOperatorBaseTest {
   }
 
   @Test public void testMinusOperator() {
-    tester.setFor(SqlStdOperatorTable.minusOperator);
+    tester.setFor(SqlStdOperatorTable.MINUS);
     tester.checkScalarExact("-2-1", "-3");
     tester.checkScalarExact("-2-1-5", "-8");
     tester.checkScalarExact("2-1", "1");
@@ -2403,37 +2372,35 @@ public abstract class SqlOperatorBaseTest {
     tester.checkNull("cast(null as tinyint) - cast(null as smallint)");
 
     // TODO: Fix bug
-    if (Bug.Fnl25Fixed) {
+    if (Bug.FNL25_FIXED) {
       // Should throw out of range error
       tester.checkFails(
-          "cast(100 as tinyint) - cast(-100 as tinyint)",
-          outOfRangeMessage,
+          "cast(100 as tinyint) - cast(-100 as tinyint)", OUT_OF_RANGE_MESSAGE,
           true);
       tester.checkFails(
           "cast(-20000 as smallint) - cast(20000 as smallint)",
-          outOfRangeMessage,
+          OUT_OF_RANGE_MESSAGE,
           true);
       tester.checkFails(
           "cast(1.5e9 as integer) - cast(-1.5e9 as integer)",
-          outOfRangeMessage,
+          OUT_OF_RANGE_MESSAGE,
           true);
       tester.checkFails(
-          "cast(-5e18 as bigint) - cast(5e18 as bigint)",
-          outOfRangeMessage,
+          "cast(-5e18 as bigint) - cast(5e18 as bigint)", OUT_OF_RANGE_MESSAGE,
           true);
       tester.checkFails(
           "cast(5e18 as decimal(19,0)) - cast(-5e18 as decimal(19,0))",
-          outOfRangeMessage,
+          OUT_OF_RANGE_MESSAGE,
           true);
       tester.checkFails(
           "cast(-5e8 as decimal(19,10)) - cast(5e8 as decimal(19,10))",
-          outOfRangeMessage,
+          OUT_OF_RANGE_MESSAGE,
           true);
     }
   }
 
   @Test public void testMinusIntervalOperator() {
-    tester.setFor(SqlStdOperatorTable.minusOperator);
+    tester.setFor(SqlStdOperatorTable.MINUS);
     tester.checkScalar(
         "interval '2' day - interval '1' day",
         "+1",
@@ -2474,7 +2441,7 @@ public abstract class SqlOperatorBaseTest {
   }
 
   @Test public void testMinusDateOperator() {
-    tester.setFor(SqlStdOperatorTable.minusDateOperator);
+    tester.setFor(SqlStdOperatorTable.MINUS_DATE);
     if (!enable) {
       return;
     }
@@ -2527,7 +2494,7 @@ public abstract class SqlOperatorBaseTest {
         "08:25:52",
         "TIME(0) NOT NULL");
 
-    if (Bug.Dt1684Fixed) {
+    if (Bug.DT1684_FIXED) {
       tester.checkBoolean(
           "(date '1969-04-29' +"
           + " (CURRENT_DATE - "
@@ -2538,7 +2505,7 @@ public abstract class SqlOperatorBaseTest {
   }
 
   @Test public void testMultiplyOperator() {
-    tester.setFor(SqlStdOperatorTable.multiplyOperator);
+    tester.setFor(SqlStdOperatorTable.MULTIPLY);
     tester.checkScalarExact("2*3", "6");
     tester.checkScalarExact("2*-3", "-6");
     tester.checkScalarExact("+2*3", "6");
@@ -2570,31 +2537,27 @@ public abstract class SqlOperatorBaseTest {
     tester.checkNull("2e-3*cast(null as integer)");
     tester.checkNull("cast(null as tinyint) * cast(4 as smallint)");
 
-    if (Bug.Fnl25Fixed) {
+    if (Bug.FNL25_FIXED) {
       // Should throw out of range error
       tester.checkFails(
-          "cast(100 as tinyint) * cast(-2 as tinyint)",
-          outOfRangeMessage,
+          "cast(100 as tinyint) * cast(-2 as tinyint)", OUT_OF_RANGE_MESSAGE,
           true);
       tester.checkFails(
-          "cast(200 as smallint) * cast(200 as smallint)",
-          outOfRangeMessage,
+          "cast(200 as smallint) * cast(200 as smallint)", OUT_OF_RANGE_MESSAGE,
           true);
       tester.checkFails(
-          "cast(1.5e9 as integer) * cast(-2 as integer)",
-          outOfRangeMessage,
+          "cast(1.5e9 as integer) * cast(-2 as integer)", OUT_OF_RANGE_MESSAGE,
           true);
       tester.checkFails(
-          "cast(5e9 as bigint) * cast(2e9 as bigint)",
-          outOfRangeMessage,
+          "cast(5e9 as bigint) * cast(2e9 as bigint)", OUT_OF_RANGE_MESSAGE,
           true);
       tester.checkFails(
           "cast(2e9 as decimal(19,0)) * cast(-5e9 as decimal(19,0))",
-          outOfRangeMessage,
+          OUT_OF_RANGE_MESSAGE,
           true);
       tester.checkFails(
           "cast(5e4 as decimal(19,10)) * cast(2e4 as decimal(19,10))",
-          outOfRangeMessage,
+          OUT_OF_RANGE_MESSAGE,
           true);
     }
   }
@@ -2612,7 +2575,7 @@ public abstract class SqlOperatorBaseTest {
         "interval '2' day * cast(null as bigint)");
     tester.checkNull(
         "cast(null as interval month) * 2");
-    if (todo) {
+    if (TODO) {
       tester.checkScalar(
           "interval '3-2' year to month * 15e-1",
           "+04-09",
@@ -2625,7 +2588,7 @@ public abstract class SqlOperatorBaseTest {
   }
 
   @Test public void testNotEqualsOperator() {
-    tester.setFor(SqlStdOperatorTable.notEqualsOperator);
+    tester.setFor(SqlStdOperatorTable.NOT_EQUALS);
     tester.checkBoolean("1<>1", Boolean.FALSE);
     tester.checkBoolean("'a'<>'A'", Boolean.TRUE);
     tester.checkBoolean("1e0<>1e1", Boolean.TRUE);
@@ -2653,7 +2616,7 @@ public abstract class SqlOperatorBaseTest {
   }
 
   @Test public void testOrOperator() {
-    tester.setFor(SqlStdOperatorTable.orOperator);
+    tester.setFor(SqlStdOperatorTable.OR);
     tester.checkBoolean("true or false", Boolean.TRUE);
     tester.checkBoolean("false or false", Boolean.FALSE);
     tester.checkBoolean("true or cast(null as boolean)", Boolean.TRUE);
@@ -2661,15 +2624,15 @@ public abstract class SqlOperatorBaseTest {
   }
 
   @Test public void testOrOperatorLazy() {
-    tester.setFor(SqlStdOperatorTable.orOperator);
+    tester.setFor(SqlStdOperatorTable.OR);
 
     // need to evaluate 2nd argument if first evaluates to null, therefore
     // get error
     tester.check(
         "values 1 < cast(null as integer) or sqrt(-4) = -2",
-        SqlTests.BooleanTypeChecker,
+        SqlTests.BOOLEAN_TYPE_CHECKER,
         new ValueOrExceptionResultChecker(
-            null, invalidArgForPower, code2201f));
+            null, INVALID_ARG_FOR_POWER, CODE_2201F));
 
     // Do not need to evaluate 2nd argument if first evaluates to true.
     // In eager evaluation, get error;
@@ -2677,9 +2640,9 @@ public abstract class SqlOperatorBaseTest {
     // both are valid.
     tester.check(
         "values 1 < 2 or sqrt(-4) = -2",
-        SqlTests.BooleanTypeChecker,
+        SqlTests.BOOLEAN_TYPE_CHECKER,
         new ValueOrExceptionResultChecker(
-            Boolean.TRUE, invalidArgForPower, code2201f));
+            Boolean.TRUE, INVALID_ARG_FOR_POWER, CODE_2201F));
 
     // NULL OR FALSE --> NULL
     // In eager evaluation, get error;
@@ -2687,9 +2650,9 @@ public abstract class SqlOperatorBaseTest {
     // both are valid.
     tester.check(
         "values 1 < cast(null as integer) or sqrt(4) = -2",
-        SqlTests.BooleanTypeChecker,
+        SqlTests.BOOLEAN_TYPE_CHECKER,
         new ValueOrExceptionResultChecker(
-            null, invalidArgForPower, code2201f));
+            null, INVALID_ARG_FOR_POWER, CODE_2201F));
 
     // NULL OR TRUE --> TRUE
     tester.checkBoolean(
@@ -2697,7 +2660,7 @@ public abstract class SqlOperatorBaseTest {
   }
 
   @Test public void testPlusOperator() {
-    tester.setFor(SqlStdOperatorTable.plusOperator);
+    tester.setFor(SqlStdOperatorTable.PLUS);
     tester.checkScalarExact("1+2", "3");
     tester.checkScalarExact("-1+2", "1");
     tester.checkScalarExact("1+2+3", "6");
@@ -2731,42 +2694,40 @@ public abstract class SqlOperatorBaseTest {
     tester.checkNull("cast(null as tinyint)+1");
     tester.checkNull("1e-2+cast(null as double)");
 
-    if (Bug.Fnl25Fixed) {
+    if (Bug.FNL25_FIXED) {
       // Should throw out of range error
       tester.checkFails(
-          "cast(100 as tinyint) + cast(100 as tinyint)",
-          outOfRangeMessage,
+          "cast(100 as tinyint) + cast(100 as tinyint)", OUT_OF_RANGE_MESSAGE,
           true);
       tester.checkFails(
           "cast(-20000 as smallint) + cast(-20000 as smallint)",
-          outOfRangeMessage,
+          OUT_OF_RANGE_MESSAGE,
           true);
       tester.checkFails(
           "cast(1.5e9 as integer) + cast(1.5e9 as integer)",
-          outOfRangeMessage,
+          OUT_OF_RANGE_MESSAGE,
           true);
       tester.checkFails(
-          "cast(5e18 as bigint) + cast(5e18 as bigint)",
-          outOfRangeMessage,
+          "cast(5e18 as bigint) + cast(5e18 as bigint)", OUT_OF_RANGE_MESSAGE,
           true);
       tester.checkFails(
           "cast(-5e18 as decimal(19,0)) + cast(-5e18 as decimal(19,0))",
-          outOfRangeMessage,
+          OUT_OF_RANGE_MESSAGE,
           true);
       tester.checkFails(
           "cast(5e8 as decimal(19,10)) + cast(5e8 as decimal(19,10))",
-          outOfRangeMessage,
+          OUT_OF_RANGE_MESSAGE,
           true);
     }
   }
 
   @Test public void testPlusOperatorAny() {
-    tester.setFor(SqlStdOperatorTable.plusOperator);
+    tester.setFor(SqlStdOperatorTable.PLUS);
     tester.checkScalar("1+CAST(2 AS ANY)", "3", "ANY NOT NULL");
   }
 
   @Test public void testPlusIntervalOperator() {
-    tester.setFor(SqlStdOperatorTable.plusOperator);
+    tester.setFor(SqlStdOperatorTable.PLUS);
     tester.checkScalar(
         "interval '2' day + interval '1' day",
         "+3",
@@ -2807,11 +2768,11 @@ public abstract class SqlOperatorBaseTest {
   }
 
   @Test public void testDescendingOperator() {
-    tester.setFor(SqlStdOperatorTable.descendingOperator, VM_EXPAND);
+    tester.setFor(SqlStdOperatorTable.DESC, VM_EXPAND);
   }
 
   @Test public void testIsNotNullOperator() {
-    tester.setFor(SqlStdOperatorTable.isNotNullOperator);
+    tester.setFor(SqlStdOperatorTable.IS_NOT_NULL);
     tester.checkBoolean("true is not null", Boolean.TRUE);
     tester.checkBoolean(
         "cast(null as boolean) is not null",
@@ -2819,7 +2780,7 @@ public abstract class SqlOperatorBaseTest {
   }
 
   @Test public void testIsNullOperator() {
-    tester.setFor(SqlStdOperatorTable.isNullOperator);
+    tester.setFor(SqlStdOperatorTable.IS_NULL);
     tester.checkBoolean("true is null", Boolean.FALSE);
     tester.checkBoolean(
         "cast(null as boolean) is null",
@@ -2827,7 +2788,7 @@ public abstract class SqlOperatorBaseTest {
   }
 
   @Test public void testIsNotTrueOperator() {
-    tester.setFor(SqlStdOperatorTable.isNotTrueOperator);
+    tester.setFor(SqlStdOperatorTable.IS_NOT_TRUE);
     tester.checkBoolean("true is not true", Boolean.FALSE);
     tester.checkBoolean("false is not true", Boolean.TRUE);
     tester.checkBoolean(
@@ -2840,7 +2801,7 @@ public abstract class SqlOperatorBaseTest {
   }
 
   @Test public void testIsTrueOperator() {
-    tester.setFor(SqlStdOperatorTable.isTrueOperator);
+    tester.setFor(SqlStdOperatorTable.IS_TRUE);
     tester.checkBoolean("true is true", Boolean.TRUE);
     tester.checkBoolean("false is true", Boolean.FALSE);
     tester.checkBoolean(
@@ -2849,7 +2810,7 @@ public abstract class SqlOperatorBaseTest {
   }
 
   @Test public void testIsNotFalseOperator() {
-    tester.setFor(SqlStdOperatorTable.isNotFalseOperator);
+    tester.setFor(SqlStdOperatorTable.IS_NOT_FALSE);
     tester.checkBoolean("false is not false", Boolean.FALSE);
     tester.checkBoolean("true is not false", Boolean.TRUE);
     tester.checkBoolean(
@@ -2858,7 +2819,7 @@ public abstract class SqlOperatorBaseTest {
   }
 
   @Test public void testIsFalseOperator() {
-    tester.setFor(SqlStdOperatorTable.isFalseOperator);
+    tester.setFor(SqlStdOperatorTable.IS_FALSE);
     tester.checkBoolean("false is false", Boolean.TRUE);
     tester.checkBoolean("true is false", Boolean.FALSE);
     tester.checkBoolean(
@@ -2867,7 +2828,7 @@ public abstract class SqlOperatorBaseTest {
   }
 
   @Test public void testIsNotUnknownOperator() {
-    tester.setFor(SqlStdOperatorTable.isNotUnknownOperator, VM_EXPAND);
+    tester.setFor(SqlStdOperatorTable.IS_NOT_UNKNOWN, VM_EXPAND);
     tester.checkBoolean("false is not unknown", Boolean.TRUE);
     tester.checkBoolean("true is not unknown", Boolean.TRUE);
     tester.checkBoolean(
@@ -2881,7 +2842,7 @@ public abstract class SqlOperatorBaseTest {
   }
 
   @Test public void testIsUnknownOperator() {
-    tester.setFor(SqlStdOperatorTable.isUnknownOperator, VM_EXPAND);
+    tester.setFor(SqlStdOperatorTable.IS_UNKNOWN, VM_EXPAND);
     tester.checkBoolean("false is unknown", Boolean.FALSE);
     tester.checkBoolean("true is unknown", Boolean.FALSE);
     tester.checkBoolean(
@@ -2895,15 +2856,15 @@ public abstract class SqlOperatorBaseTest {
   }
 
   @Test public void testIsASetOperator() {
-    tester.setFor(SqlStdOperatorTable.isASetOperator, VM_EXPAND);
+    tester.setFor(SqlStdOperatorTable.IS_A_SET, VM_EXPAND);
   }
 
   @Test public void testExistsOperator() {
-    tester.setFor(SqlStdOperatorTable.existsOperator, VM_EXPAND);
+    tester.setFor(SqlStdOperatorTable.EXISTS, VM_EXPAND);
   }
 
   @Test public void testNotOperator() {
-    tester.setFor(SqlStdOperatorTable.notOperator);
+    tester.setFor(SqlStdOperatorTable.NOT);
     tester.checkBoolean("not true", Boolean.FALSE);
     tester.checkBoolean("not false", Boolean.TRUE);
     tester.checkBoolean("not unknown", null);
@@ -2911,7 +2872,7 @@ public abstract class SqlOperatorBaseTest {
   }
 
   @Test public void testPrefixMinusOperator() {
-    tester.setFor(SqlStdOperatorTable.prefixMinusOperator);
+    tester.setFor(SqlStdOperatorTable.UNARY_MINUS);
     tester.checkFails(
         "'a' + ^- 'b'^ + 'c'",
         "(?s)Cannot apply '-' to arguments of type '-<CHAR\\(1\\)>'.*",
@@ -2944,7 +2905,7 @@ public abstract class SqlOperatorBaseTest {
   }
 
   @Test public void testPrefixPlusOperator() {
-    tester.setFor(SqlStdOperatorTable.prefixPlusOperator, VM_EXPAND);
+    tester.setFor(SqlStdOperatorTable.UNARY_PLUS, VM_EXPAND);
     tester.checkScalarExact("+1", "1");
     tester.checkScalarExact("+1.23", "DECIMAL(3, 2) NOT NULL", "1.23");
     tester.checkScalarApprox("+1.0e0", "DOUBLE NOT NULL", 1, 0);
@@ -2961,7 +2922,7 @@ public abstract class SqlOperatorBaseTest {
         "++interval '-6:2:8' hour to second",
         "-6:02:08.000000",
         "INTERVAL HOUR TO SECOND NOT NULL");
-    if (Bug.Frg254Fixed) {
+    if (Bug.FRG254_FIXED) {
       tester.checkScalar(
           "+interval '6:2:8.234' hour to second",
           "+06:02:08.234",
@@ -2977,12 +2938,12 @@ public abstract class SqlOperatorBaseTest {
 
   @Test public void testExplicitTableOperator() {
     tester.setFor(
-        SqlStdOperatorTable.explicitTableOperator,
+        SqlStdOperatorTable.EXPLICIT_TABLE,
         VM_EXPAND);
   }
 
   @Test public void testValuesOperator() {
-    tester.setFor(SqlStdOperatorTable.valuesOperator, VM_EXPAND);
+    tester.setFor(SqlStdOperatorTable.VALUES, VM_EXPAND);
     tester.check(
         "select 'abc' from (values(true))",
         new SqlTests.StringTypeChecker("CHAR(3) NOT NULL"),
@@ -2991,12 +2952,12 @@ public abstract class SqlOperatorBaseTest {
   }
 
   @Test public void testNotLikeOperator() {
-    tester.setFor(SqlStdOperatorTable.notLikeOperator, VM_EXPAND);
+    tester.setFor(SqlStdOperatorTable.NOT_LIKE, VM_EXPAND);
     tester.checkBoolean("'abc' not like '_b_'", Boolean.FALSE);
   }
 
   @Test public void testLikeOperator() {
-    tester.setFor(SqlStdOperatorTable.likeOperator);
+    tester.setFor(SqlStdOperatorTable.LIKE);
     tester.checkBoolean("''  like ''", Boolean.TRUE);
     tester.checkBoolean("'a' like 'a'", Boolean.TRUE);
     tester.checkBoolean("'a' like 'b'", Boolean.FALSE);
@@ -3015,7 +2976,7 @@ public abstract class SqlOperatorBaseTest {
   }
 
   @Test public void testNotSimilarToOperator() {
-    tester.setFor(SqlStdOperatorTable.notSimilarOperator, VM_EXPAND);
+    tester.setFor(SqlStdOperatorTable.NOT_SIMILAR_TO, VM_EXPAND);
     tester.checkBoolean("'ab' not similar to 'a_'", false);
     tester.checkBoolean("'aabc' not similar to 'ab*c+d'", true);
     tester.checkBoolean("'ab' not similar to 'a' || '_'", false);
@@ -3029,7 +2990,7 @@ public abstract class SqlOperatorBaseTest {
   }
 
   @Test public void testSimilarToOperator() {
-    tester.setFor(SqlStdOperatorTable.similarOperator);
+    tester.setFor(SqlStdOperatorTable.SIMILAR_TO);
 
     // like LIKE
     tester.checkBoolean("''  similar to ''", Boolean.TRUE);
@@ -3222,14 +3183,14 @@ public abstract class SqlOperatorBaseTest {
     // all the following tests wrong results due to missing functionality
     // or defect (FRG-375, 377).
 
-    if (Bug.Frg375Fixed) {
+    if (Bug.FRG375_FIXED) {
       tester.checkBoolean(
           "'cd' similar to '[a-e^c]d' ", Boolean.FALSE); // FRG-375
     }
 
     // following tests use regular character set identifiers.
     // Not implemented yet. FRG-377.
-    if (Bug.Frg377Fixed) {
+    if (Bug.FRG377_FIXED) {
       tester.checkBoolean(
           "'y' similar to '[:ALPHA:]*'",
           Boolean.TRUE);
@@ -3296,25 +3257,25 @@ public abstract class SqlOperatorBaseTest {
   }
 
   @Test public void testEscapeOperator() {
-    tester.setFor(SqlStdOperatorTable.escapeOperator, VM_EXPAND);
+    tester.setFor(SqlStdOperatorTable.ESCAPE, VM_EXPAND);
   }
 
   @Test public void testConvertFunc() {
     tester.setFor(
-        SqlStdOperatorTable.convertFunc,
+        SqlStdOperatorTable.CONVERT,
         VM_FENNEL,
         VM_JAVA);
   }
 
   @Test public void testTranslateFunc() {
     tester.setFor(
-        SqlStdOperatorTable.translateFunc,
+        SqlStdOperatorTable.TRANSLATE,
         VM_FENNEL,
         VM_JAVA);
   }
 
   @Test public void testOverlayFunc() {
-    tester.setFor(SqlStdOperatorTable.overlayFunc);
+    tester.setFor(SqlStdOperatorTable.OVERLAY);
     tester.checkString(
         "overlay('ABCdef' placing 'abc' from 1)",
         "abcdef",
@@ -3374,7 +3335,7 @@ public abstract class SqlOperatorBaseTest {
   }
 
   @Test public void testPositionFunc() {
-    tester.setFor(SqlStdOperatorTable.positionFunc);
+    tester.setFor(SqlStdOperatorTable.POSITION);
     tester.checkScalarExact("position('b' in 'abc')", "2");
     tester.checkScalarExact("position('' in 'abc')", "1");
 
@@ -3391,19 +3352,19 @@ public abstract class SqlOperatorBaseTest {
   }
 
   @Test public void testCharLengthFunc() {
-    tester.setFor(SqlStdOperatorTable.charLengthFunc);
+    tester.setFor(SqlStdOperatorTable.CHAR_LENGTH);
     tester.checkScalarExact("char_length('abc')", "3");
     tester.checkNull("char_length(cast(null as varchar(1)))");
   }
 
   @Test public void testCharacterLengthFunc() {
-    tester.setFor(SqlStdOperatorTable.characterLengthFunc);
+    tester.setFor(SqlStdOperatorTable.CHARACTER_LENGTH);
     tester.checkScalarExact("CHARACTER_LENGTH('abc')", "3");
     tester.checkNull("CHARACTER_LENGTH(cast(null as varchar(1)))");
   }
 
   @Test public void testUpperFunc() {
-    tester.setFor(SqlStdOperatorTable.upperFunc);
+    tester.setFor(SqlStdOperatorTable.UPPER);
     tester.checkString("upper('a')", "A", "CHAR(1) NOT NULL");
     tester.checkString("upper('A')", "A", "CHAR(1) NOT NULL");
     tester.checkString("upper('1')", "1", "CHAR(1) NOT NULL");
@@ -3412,7 +3373,7 @@ public abstract class SqlOperatorBaseTest {
   }
 
   @Test public void testLowerFunc() {
-    tester.setFor(SqlStdOperatorTable.lowerFunc);
+    tester.setFor(SqlStdOperatorTable.LOWER);
 
     // SQL:2003 6.29.8 The type of lower is the type of its argument
     tester.checkString("lower('A')", "a", "CHAR(1) NOT NULL");
@@ -3426,7 +3387,7 @@ public abstract class SqlOperatorBaseTest {
     // Note: the initcap function is an Oracle defined function and is not
     // defined in the SQL:2003 standard
     // todo: implement in fennel
-    tester.setFor(SqlStdOperatorTable.initcapFunc, VM_FENNEL);
+    tester.setFor(SqlStdOperatorTable.INITCAP, VM_FENNEL);
 
     tester.checkString("initcap('aA')", "Aa", "CHAR(2) NOT NULL");
     tester.checkString("initcap('Aa')", "Aa", "CHAR(2) NOT NULL");
@@ -3445,7 +3406,7 @@ public abstract class SqlOperatorBaseTest {
   }
 
   @Test public void testPowerFunc() {
-    tester.setFor(SqlStdOperatorTable.powerFunc);
+    tester.setFor(SqlStdOperatorTable.POWER);
     tester.checkScalarApprox(
         "power(2,-2)",
         "DOUBLE NOT NULL",
@@ -3463,7 +3424,7 @@ public abstract class SqlOperatorBaseTest {
 
   @Test public void testSqrtFunc() {
     tester.setFor(
-        SqlStdOperatorTable.sqrtFunc, SqlTester.VmName.EXPAND);
+        SqlStdOperatorTable.SQRT, SqlTester.VmName.EXPAND);
     tester.checkType("sqrt(2)", "DOUBLE NOT NULL");
     tester.checkType("sqrt(cast(2 as float))", "DOUBLE NOT NULL");
     tester.checkType(
@@ -3482,7 +3443,7 @@ public abstract class SqlOperatorBaseTest {
   }
 
   @Test public void testExpFunc() {
-    tester.setFor(SqlStdOperatorTable.expFunc, VM_FENNEL);
+    tester.setFor(SqlStdOperatorTable.EXP, VM_FENNEL);
     tester.checkScalarApprox(
         "exp(2)", "DOUBLE NOT NULL", 7.389056, 0.000001);
     tester.checkScalarApprox(
@@ -3495,7 +3456,7 @@ public abstract class SqlOperatorBaseTest {
   }
 
   @Test public void testModFunc() {
-    tester.setFor(SqlStdOperatorTable.modFunc);
+    tester.setFor(SqlStdOperatorTable.MOD);
     tester.checkScalarExact("mod(4,2)", "0");
     tester.checkScalarExact("mod(8,5)", "3");
     tester.checkScalarExact("mod(-12,7)", "-5");
@@ -3531,11 +3492,11 @@ public abstract class SqlOperatorBaseTest {
     // submit as non-runtime because the janino exception does not have
     // error position information and the framework is unhappy with that.
     tester.checkFails(
-        "mod(3,case 'a' when 'a' then 0 end)", divisionByZeroMessage, true);
+        "mod(3,case 'a' when 'a' then 0 end)", DIVISION_BY_ZERO_MESSAGE, true);
   }
 
   @Test public void testLnFunc() {
-    tester.setFor(SqlStdOperatorTable.lnFunc);
+    tester.setFor(SqlStdOperatorTable.LN);
     tester.checkScalarApprox(
         "ln(2.71828)",
         "DOUBLE NOT NULL",
@@ -3550,7 +3511,7 @@ public abstract class SqlOperatorBaseTest {
   }
 
   @Test public void testLogFunc() {
-    tester.setFor(SqlStdOperatorTable.log10Func);
+    tester.setFor(SqlStdOperatorTable.LOG10);
     tester.checkScalarApprox(
         "log10(10)",
         "DOUBLE NOT NULL",
@@ -3580,7 +3541,7 @@ public abstract class SqlOperatorBaseTest {
   }
 
   @Test public void testAbsFunc() {
-    tester.setFor(SqlStdOperatorTable.absFunc);
+    tester.setFor(SqlStdOperatorTable.ABS);
     tester.checkScalarExact("abs(-1)", "1");
     tester.checkScalarExact(
         "abs(cast(10 as TINYINT))", "TINYINT NOT NULL", "10");
@@ -3635,7 +3596,7 @@ public abstract class SqlOperatorBaseTest {
   }
 
   @Test public void testNullifFunc() {
-    tester.setFor(SqlStdOperatorTable.nullIfFunc, VM_EXPAND);
+    tester.setFor(SqlStdOperatorTable.NULLIF, VM_EXPAND);
     tester.checkNull("nullif(1,1)");
     tester.checkScalarExact(
         "nullif(1.5, 13.56)",
@@ -3704,7 +3665,7 @@ public abstract class SqlOperatorBaseTest {
   }
 
   @Test public void testCoalesceFunc() {
-    tester.setFor(SqlStdOperatorTable.coalesceFunc, VM_EXPAND);
+    tester.setFor(SqlStdOperatorTable.COALESCE, VM_EXPAND);
     tester.checkString("coalesce('a','b')", "a", "CHAR(1) NOT NULL");
     tester.checkScalarExact("coalesce(null,null,3)", "3");
     tester.checkFails(
@@ -3714,48 +3675,47 @@ public abstract class SqlOperatorBaseTest {
   }
 
   @Test public void testUserFunc() {
-    tester.setFor(SqlStdOperatorTable.userFunc, VM_FENNEL);
+    tester.setFor(SqlStdOperatorTable.USER, VM_FENNEL);
     tester.checkString("USER", "sa", "VARCHAR(2000) NOT NULL");
   }
 
   @Test public void testCurrentUserFunc() {
-    tester.setFor(SqlStdOperatorTable.currentUserFunc, VM_FENNEL);
+    tester.setFor(SqlStdOperatorTable.CURRENT_USER, VM_FENNEL);
     tester.checkString("CURRENT_USER", "sa", "VARCHAR(2000) NOT NULL");
   }
 
   @Test public void testSessionUserFunc() {
-    tester.setFor(SqlStdOperatorTable.sessionUserFunc, VM_FENNEL);
+    tester.setFor(SqlStdOperatorTable.SESSION_USER, VM_FENNEL);
     tester.checkString("SESSION_USER", "sa", "VARCHAR(2000) NOT NULL");
   }
 
   @Test public void testSystemUserFunc() {
-    tester.setFor(SqlStdOperatorTable.systemUserFunc, VM_FENNEL);
+    tester.setFor(SqlStdOperatorTable.SYSTEM_USER, VM_FENNEL);
     String user = System.getProperty("user.name"); // e.g. "jhyde"
     tester.checkString("SYSTEM_USER", user, "VARCHAR(2000) NOT NULL");
   }
 
   @Test public void testCurrentPathFunc() {
-    tester.setFor(SqlStdOperatorTable.currentPathFunc, VM_FENNEL);
+    tester.setFor(SqlStdOperatorTable.CURRENT_PATH, VM_FENNEL);
     tester.checkString("CURRENT_PATH", "", "VARCHAR(2000) NOT NULL");
   }
 
   @Test public void testCurrentRoleFunc() {
-    tester.setFor(SqlStdOperatorTable.currentRoleFunc, VM_FENNEL);
+    tester.setFor(SqlStdOperatorTable.CURRENT_ROLE, VM_FENNEL);
     // By default, the CURRENT_ROLE function returns
     // the empty string because a role has to be set explicitly.
     tester.checkString("CURRENT_ROLE", "", "VARCHAR(2000) NOT NULL");
   }
 
   @Test public void testLocalTimeFunc() {
-    tester.setFor(SqlStdOperatorTable.localTimeFunc);
-    tester.checkScalar("LOCALTIME", timePattern, "TIME(0) NOT NULL");
+    tester.setFor(SqlStdOperatorTable.LOCALTIME);
+    tester.checkScalar("LOCALTIME", TIME_PATTERN, "TIME(0) NOT NULL");
     tester.checkFails(
         "^LOCALTIME()^",
         "No match found for function signature LOCALTIME\\(\\)",
         false);
     tester.checkScalar(
-        "LOCALTIME(1)",
-        timePattern,
+        "LOCALTIME(1)", TIME_PATTERN,
         "TIME(1) NOT NULL");
 
     tester.checkScalar(
@@ -3773,20 +3733,18 @@ public abstract class SqlOperatorBaseTest {
   }
 
   @Test public void testLocalTimestampFunc() {
-    tester.setFor(SqlStdOperatorTable.localTimestampFunc);
+    tester.setFor(SqlStdOperatorTable.LOCALTIMESTAMP);
     tester.checkScalar(
-        "LOCALTIMESTAMP",
-        timestampPattern,
+        "LOCALTIMESTAMP", TIMESTAMP_PATTERN,
         "TIMESTAMP(0) NOT NULL");
     tester.checkFails(
         "^LOCALTIMESTAMP()^",
         "No match found for function signature LOCALTIMESTAMP\\(\\)",
         false);
     tester.checkFails(
-        "LOCALTIMESTAMP(^4000000000^)", literalOutOfRangeMessage, false);
+        "LOCALTIMESTAMP(^4000000000^)", LITERAL_OUT_OF_RANGE_MESSAGE, false);
     tester.checkScalar(
-        "LOCALTIMESTAMP(1)",
-        timestampPattern,
+        "LOCALTIMESTAMP(1)", TIMESTAMP_PATTERN,
         "TIMESTAMP(1) NOT NULL");
 
     // Check that timestamp is being generated in the right timezone by
@@ -3806,17 +3764,16 @@ public abstract class SqlOperatorBaseTest {
   }
 
   @Test public void testCurrentTimeFunc() {
-    tester.setFor(SqlStdOperatorTable.currentTimeFunc);
+    tester.setFor(SqlStdOperatorTable.CURRENT_TIME);
     tester.checkScalar(
-        "CURRENT_TIME",
-        timePattern,
+        "CURRENT_TIME", TIME_PATTERN,
         "TIME(0) NOT NULL");
     tester.checkFails(
         "^CURRENT_TIME()^",
         "No match found for function signature CURRENT_TIME\\(\\)",
         false);
     tester.checkScalar(
-        "CURRENT_TIME(1)", timePattern, "TIME(1) NOT NULL");
+        "CURRENT_TIME(1)", TIME_PATTERN, "TIME(1) NOT NULL");
 
     tester.checkScalar(
         "CAST(CURRENT_TIME AS VARCHAR(30))",
@@ -3833,20 +3790,18 @@ public abstract class SqlOperatorBaseTest {
   }
 
   @Test public void testCurrentTimestampFunc() {
-    tester.setFor(SqlStdOperatorTable.currentTimestampFunc);
+    tester.setFor(SqlStdOperatorTable.CURRENT_TIMESTAMP);
     tester.checkScalar(
-        "CURRENT_TIMESTAMP",
-        timestampPattern,
+        "CURRENT_TIMESTAMP", TIMESTAMP_PATTERN,
         "TIMESTAMP(0) NOT NULL");
     tester.checkFails(
         "^CURRENT_TIMESTAMP()^",
         "No match found for function signature CURRENT_TIMESTAMP\\(\\)",
         false);
     tester.checkFails(
-        "CURRENT_TIMESTAMP(^4000000000^)", literalOutOfRangeMessage, false);
+        "CURRENT_TIMESTAMP(^4000000000^)", LITERAL_OUT_OF_RANGE_MESSAGE, false);
     tester.checkScalar(
-        "CURRENT_TIMESTAMP(1)",
-        timestampPattern,
+        "CURRENT_TIMESTAMP(1)", TIMESTAMP_PATTERN,
         "TIMESTAMP(1) NOT NULL");
 
     tester.checkScalar(
@@ -3882,8 +3837,8 @@ public abstract class SqlOperatorBaseTest {
   }
 
   @Test public void testCurrentDateFunc() {
-    tester.setFor(SqlStdOperatorTable.currentDateFunc, VM_FENNEL);
-    tester.checkScalar("CURRENT_DATE", datePattern, "DATE NOT NULL");
+    tester.setFor(SqlStdOperatorTable.CURRENT_DATE, VM_FENNEL);
+    tester.checkScalar("CURRENT_DATE", DATE_PATTERN, "DATE NOT NULL");
     tester.checkScalar(
         "(CURRENT_DATE - CURRENT_DATE) DAY",
         "+0",
@@ -3908,7 +3863,7 @@ public abstract class SqlOperatorBaseTest {
   }
 
   @Test public void testSubstringFunction() {
-    tester.setFor(SqlStdOperatorTable.substringFunc);
+    tester.setFor(SqlStdOperatorTable.SUBSTRING);
     tester.checkString(
         "substring('abc' from 1 for 2)",
         "ab",
@@ -3916,7 +3871,7 @@ public abstract class SqlOperatorBaseTest {
     tester.checkString(
         "substring('abc' from 2)", "bc", "VARCHAR(3) NOT NULL");
 
-    if (Bug.Frg296Fixed) {
+    if (Bug.FRG296_FIXED) {
       // substring regexp not supported yet
       tester.checkString(
           "substring('foobar' from '%#\"o_b#\"%' for'#')",
@@ -3927,7 +3882,7 @@ public abstract class SqlOperatorBaseTest {
   }
 
   @Test public void testTrimFunc() {
-    tester.setFor(SqlStdOperatorTable.trimFunc);
+    tester.setFor(SqlStdOperatorTable.TRIM);
 
     // SQL:2003 6.29.11 Trimming a CHAR yields a VARCHAR
     tester.checkString(
@@ -3947,7 +3902,7 @@ public abstract class SqlOperatorBaseTest {
     tester.checkNull("trim(cast(null as varchar(1)) from 'a')");
     tester.checkNull("trim('a' from cast(null as varchar(1)))");
 
-    if (Bug.Fnl3Fixed) {
+    if (Bug.FNL3_FIXED) {
       // SQL:2003 6.29.9: trim string must have length=1. Failure occurs
       // at runtime.
       //
@@ -3974,7 +3929,7 @@ public abstract class SqlOperatorBaseTest {
 
   @Test public void testWindow() {
     tester.setFor(
-        SqlStdOperatorTable.windowOperator,
+        SqlStdOperatorTable.WINDOW,
         VM_FENNEL,
         VM_JAVA);
     if (!enable) {
@@ -3989,10 +3944,10 @@ public abstract class SqlOperatorBaseTest {
 
   @Test public void testElementFunc() {
     tester.setFor(
-        SqlStdOperatorTable.elementFunc,
+        SqlStdOperatorTable.ELEMENT,
         VM_FENNEL,
         VM_JAVA);
-    if (todo) {
+    if (TODO) {
       tester.checkString(
           "element(multiset['abc']))",
           "abc",
@@ -4003,10 +3958,10 @@ public abstract class SqlOperatorBaseTest {
 
   @Test public void testCardinalityFunc() {
     tester.setFor(
-        SqlStdOperatorTable.cardinalityFunc,
+        SqlStdOperatorTable.CARDINALITY,
         VM_FENNEL,
         VM_JAVA);
-    if (todo) {
+    if (TODO) {
       tester.checkScalarExact(
           "cardinality(multiset[cast(null as integer),2]))", "2");
     }
@@ -4026,10 +3981,10 @@ public abstract class SqlOperatorBaseTest {
 
   @Test public void testMemberOfOperator() {
     tester.setFor(
-        SqlStdOperatorTable.memberOfOperator,
+        SqlStdOperatorTable.MEMBER_OF,
         VM_FENNEL,
         VM_JAVA);
-    if (todo) {
+    if (TODO) {
       tester.checkBoolean("1 member of multiset[1]", Boolean.TRUE);
       tester.checkBoolean(
           "'2' member of multiset['1']",
@@ -4047,18 +4002,18 @@ public abstract class SqlOperatorBaseTest {
 
   @Test public void testCollectFunc() {
     tester.setFor(
-        SqlStdOperatorTable.collectFunc,
+        SqlStdOperatorTable.COLLECT,
         VM_FENNEL,
         VM_JAVA);
   }
 
   @Test public void testFusionFunc() {
-    tester.setFor(SqlStdOperatorTable.fusionFunc, VM_FENNEL, VM_JAVA);
+    tester.setFor(SqlStdOperatorTable.FUSION, VM_FENNEL, VM_JAVA);
   }
 
   @Test public void testExtractFunc() {
     tester.setFor(
-        SqlStdOperatorTable.extractFunc,
+        SqlStdOperatorTable.EXTRACT,
         VM_FENNEL,
         VM_JAVA);
 
@@ -4096,7 +4051,7 @@ public abstract class SqlOperatorBaseTest {
   }
 
   @Test public void testArrayValueConstructor() {
-    tester.setFor(SqlStdOperatorTable.arrayValueConstructor);
+    tester.setFor(SqlStdOperatorTable.ARRAY_VALUE_CONSTRUCTOR);
     tester.checkScalar(
         "Array['foo', 'bar']",
         "[foo, bar]",
@@ -4109,7 +4064,7 @@ public abstract class SqlOperatorBaseTest {
   }
 
   @Test public void testItemOp() {
-    tester.setFor(SqlStdOperatorTable.itemOp);
+    tester.setFor(SqlStdOperatorTable.ITEM);
     tester.checkScalar("ARRAY ['foo', 'bar'][1]", "foo", "CHAR(3)");
     tester.checkScalar("ARRAY ['foo', 'bar'][0]", null, "CHAR(3)");
     tester.checkScalar("ARRAY ['foo', 'bar'][2]", "bar", "CHAR(3)");
@@ -4140,7 +4095,7 @@ public abstract class SqlOperatorBaseTest {
   }
 
   @Test public void testMapValueConstructor() {
-    tester.setFor(SqlStdOperatorTable.mapValueConstructor, VM_JAVA);
+    tester.setFor(SqlStdOperatorTable.MAP_VALUE_CONSTRUCTOR, VM_JAVA);
 
     tester.checkFails(
         "^Map[]^", "Map requires at least 2 arguments", false);
@@ -4160,7 +4115,7 @@ public abstract class SqlOperatorBaseTest {
   }
 
   @Test public void testCeilFunc() {
-    tester.setFor(SqlStdOperatorTable.ceilFunc, VM_FENNEL);
+    tester.setFor(SqlStdOperatorTable.CEIL, VM_FENNEL);
     if (!enable) {
       return;
     }
@@ -4204,7 +4159,7 @@ public abstract class SqlOperatorBaseTest {
   }
 
   @Test public void testFloorFunc() {
-    tester.setFor(SqlStdOperatorTable.floorFunc, VM_FENNEL);
+    tester.setFor(SqlStdOperatorTable.FLOOR, VM_FENNEL);
     if (!enable) {
       return;
     }
@@ -4249,36 +4204,36 @@ public abstract class SqlOperatorBaseTest {
 
   @Test public void testDenseRankFunc() {
     tester.setFor(
-        SqlStdOperatorTable.denseRankFunc, VM_FENNEL, VM_JAVA);
+        SqlStdOperatorTable.DENSE_RANK, VM_FENNEL, VM_JAVA);
   }
 
   @Test public void testPercentRankFunc() {
     tester.setFor(
-        SqlStdOperatorTable.percentRankFunc,
+        SqlStdOperatorTable.PERCENT_RANK,
         VM_FENNEL,
         VM_JAVA);
   }
 
   @Test public void testRankFunc() {
-    tester.setFor(SqlStdOperatorTable.rankFunc, VM_FENNEL, VM_JAVA);
+    tester.setFor(SqlStdOperatorTable.RANK, VM_FENNEL, VM_JAVA);
   }
 
   @Test public void testCumeDistFunc() {
     tester.setFor(
-        SqlStdOperatorTable.cumeDistFunc,
+        SqlStdOperatorTable.CUME_DIST,
         VM_FENNEL,
         VM_JAVA);
   }
 
   @Test public void testRowNumberFunc() {
     tester.setFor(
-        SqlStdOperatorTable.rowNumberFunc,
+        SqlStdOperatorTable.ROW_NUMBER,
         VM_FENNEL,
         VM_JAVA);
   }
 
   @Test public void testCountFunc() {
-    tester.setFor(SqlStdOperatorTable.countOperator, VM_EXPAND);
+    tester.setFor(SqlStdOperatorTable.COUNT, VM_EXPAND);
     tester.checkType("count(*)", "BIGINT NOT NULL");
     tester.checkType("count('name')", "BIGINT NOT NULL");
     tester.checkType("count(1)", "BIGINT NOT NULL");
@@ -4339,7 +4294,7 @@ public abstract class SqlOperatorBaseTest {
   }
 
   @Test public void testSumFunc() {
-    tester.setFor(SqlStdOperatorTable.sumOperator, VM_EXPAND);
+    tester.setFor(SqlStdOperatorTable.SUM, VM_EXPAND);
     tester.checkFails(
         "sum(^*^)", "Unknown identifier '\\*'", false);
     tester.checkFails(
@@ -4390,7 +4345,7 @@ public abstract class SqlOperatorBaseTest {
   }
 
   @Test public void testAvgFunc() {
-    tester.setFor(SqlStdOperatorTable.avgOperator, VM_EXPAND);
+    tester.setFor(SqlStdOperatorTable.AVG, VM_EXPAND);
     tester.checkFails(
         "avg(^*^)",
         "Unknown identifier '\\*'",
@@ -4418,7 +4373,7 @@ public abstract class SqlOperatorBaseTest {
   }
 
   @Test public void testStddevPopFunc() {
-    tester.setFor(SqlStdOperatorTable.stddevPopOperator, VM_EXPAND);
+    tester.setFor(SqlStdOperatorTable.STDDEV_POP, VM_EXPAND);
     tester.checkFails(
         "stddev_pop(^*^)",
         "Unknown identifier '\\*'",
@@ -4464,7 +4419,7 @@ public abstract class SqlOperatorBaseTest {
   }
 
   @Test public void testStddevSampFunc() {
-    tester.setFor(SqlStdOperatorTable.stddevSampOperator, VM_EXPAND);
+    tester.setFor(SqlStdOperatorTable.STDDEV_SAMP, VM_EXPAND);
     tester.checkFails(
         "stddev_samp(^*^)",
         "Unknown identifier '\\*'",
@@ -4510,7 +4465,7 @@ public abstract class SqlOperatorBaseTest {
   }
 
   @Test public void testVarPopFunc() {
-    tester.setFor(SqlStdOperatorTable.varPopOperator, VM_EXPAND);
+    tester.setFor(SqlStdOperatorTable.VAR_POP, VM_EXPAND);
     tester.checkFails(
         "var_pop(^*^)",
         "Unknown identifier '\\*'",
@@ -4556,7 +4511,7 @@ public abstract class SqlOperatorBaseTest {
   }
 
   @Test public void testVarSampFunc() {
-    tester.setFor(SqlStdOperatorTable.varSampOperator, VM_EXPAND);
+    tester.setFor(SqlStdOperatorTable.VAR_SAMP, VM_EXPAND);
     tester.checkFails(
         "var_samp(^*^)",
         "Unknown identifier '\\*'",
@@ -4600,7 +4555,7 @@ public abstract class SqlOperatorBaseTest {
   }
 
   @Test public void testMinFunc() {
-    tester.setFor(SqlStdOperatorTable.minOperator, VM_EXPAND);
+    tester.setFor(SqlStdOperatorTable.MIN, VM_EXPAND);
     tester.checkFails(
         "min(^*^)",
         "Unknown identifier '\\*'",
@@ -4643,7 +4598,7 @@ public abstract class SqlOperatorBaseTest {
   }
 
   @Test public void testMaxFunc() {
-    tester.setFor(SqlStdOperatorTable.maxOperator, VM_EXPAND);
+    tester.setFor(SqlStdOperatorTable.MAX, VM_EXPAND);
     tester.checkFails(
         "max(^*^)",
         "Unknown identifier '\\*'",
@@ -4683,7 +4638,7 @@ public abstract class SqlOperatorBaseTest {
   }
 
   @Test public void testLastValueFunc() {
-    tester.setFor(SqlStdOperatorTable.lastValueOperator, VM_EXPAND);
+    tester.setFor(SqlStdOperatorTable.LAST_VALUE, VM_EXPAND);
     final String[] values = {"0", "CAST(null AS INTEGER)", "3", "3"};
     if (!enable) {
       return;
@@ -4714,7 +4669,7 @@ public abstract class SqlOperatorBaseTest {
   }
 
   @Test public void testFirstValueFunc() {
-    tester.setFor(SqlStdOperatorTable.firstValueOperator, VM_EXPAND);
+    tester.setFor(SqlStdOperatorTable.FIRST_VALUE, VM_EXPAND);
     final String[] values = {"0", "CAST(null AS INTEGER)", "3", "3"};
     if (!enable) {
       return;
@@ -4756,7 +4711,7 @@ public abstract class SqlOperatorBaseTest {
    * </ul>
    */
   @Test public void testLiteralAtLimit() {
-    tester.setFor(SqlStdOperatorTable.castFunc);
+    tester.setFor(SqlStdOperatorTable.CAST);
     if (!enable) {
       return;
     }
@@ -4807,7 +4762,7 @@ public abstract class SqlOperatorBaseTest {
    * </ul>
    */
   @Test public void testLiteralBeyondLimit() {
-    tester.setFor(SqlStdOperatorTable.castFunc);
+    tester.setFor(SqlStdOperatorTable.CAST);
     for (BasicSqlType type : SqlLimitsTest.getTypes()) {
       for (Object o : getValues(type, false)) {
         SqlLiteral literal =
@@ -4847,7 +4802,7 @@ public abstract class SqlOperatorBaseTest {
   }
 
   @Test public void testCastTruncates() {
-    tester.setFor(SqlStdOperatorTable.castFunc);
+    tester.setFor(SqlStdOperatorTable.CAST);
     tester.checkScalar(
         "CAST('ABCD' AS CHAR(2))",
         "AB",
@@ -4878,7 +4833,7 @@ public abstract class SqlOperatorBaseTest {
 
   private List<Object> getValues(BasicSqlType type, boolean inBound) {
     List<Object> values = new ArrayList<Object>();
-    for (boolean sign : FalseTrue) {
+    for (boolean sign : FALSE_TRUE) {
       for (SqlTypeName.Limit limit : SqlTypeName.Limit.values()) {
         Object o = type.getLimit(sign, limit, !inBound);
         if (o == null) {

@@ -128,7 +128,7 @@ public class SqlCallBinding extends SqlOperatorBinding {
 
   public RelDataType getCursorOperand(int ordinal) {
     final SqlNode operand = call.operands[ordinal];
-    if (!SqlUtil.isCallTo(operand, SqlStdOperatorTable.cursorConstructor)) {
+    if (!SqlUtil.isCallTo(operand, SqlStdOperatorTable.CURSOR)) {
       return null;
     }
     final SqlCall cursorCall = (SqlCall) operand;
@@ -142,7 +142,7 @@ public class SqlCallBinding extends SqlOperatorBinding {
       String paramName,
       List<String> columnList) {
     final SqlNode operand = call.operands[ordinal];
-    if (!SqlUtil.isCallTo(operand, SqlStdOperatorTable.rowConstructor)) {
+    if (!SqlUtil.isCallTo(operand, SqlStdOperatorTable.ROW)) {
       return null;
     }
     SqlNode[] operands = ((SqlCall) operand).getOperands();

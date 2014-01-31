@@ -142,7 +142,8 @@ public class ModelTest {
 
   /** Tests that an immutable schema in a model cannot contain a
    * materialization. */
-  @Test public void testModelImmutableSchemaCannotContainMaterialization() throws Exception {
+  @Test public void testModelImmutableSchemaCannotContainMaterialization()
+    throws Exception {
     final OptiqAssert.AssertThat that =
         OptiqAssert.that().withModel(
             "{\n"

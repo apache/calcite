@@ -131,15 +131,15 @@ public class ChunkListTest {
    * operations.
    */
   @Test public void testRandom() {
-    final int ITERATION_COUNT = 10000;
-    checkRandom(new Random(1), new ChunkList<Integer>(), ITERATION_COUNT);
+    final int iterationCount = 10000;
+    checkRandom(new Random(1), new ChunkList<Integer>(), iterationCount);
     final Random random = new Random(2);
     for (int j = 0; j < 10; j++) {
-      checkRandom(random, new ChunkList<Integer>(), ITERATION_COUNT);
+      checkRandom(random, new ChunkList<Integer>(), iterationCount);
     }
     checkRandom(
         new Random(3), new ChunkList<Integer>(Collections.nCopies(1000, 5)),
-        ITERATION_COUNT);
+        iterationCount);
   }
 
   void checkRandom(

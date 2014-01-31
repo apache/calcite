@@ -24,10 +24,6 @@ import org.junit.Assert;
 import static org.junit.Assert.*;
 
 public abstract class EigenbaseTestCase {
-  //~ Static fields/initializers ---------------------------------------------
-
-  protected static final String nl = System.getProperty("line.separator");
-
   //~ Constructors -----------------------------------------------------------
 
   protected EigenbaseTestCase() {

@@ -44,13 +44,13 @@ class JoinNamespace extends AbstractNamespace {
         validator.getNamespace(join.getRight()).getRowType();
     final RelDataTypeFactory typeFactory = validator.getTypeFactory();
     switch (join.getJoinType()) {
-    case Left:
+    case LEFT:
       rightType = typeFactory.createTypeWithNullability(rightType, true);
       break;
-    case Right:
+    case RIGHT:
       leftType = typeFactory.createTypeWithNullability(leftType, true);
       break;
-    case Full:
+    case FULL:
       leftType = typeFactory.createTypeWithNullability(leftType, true);
       rightType = typeFactory.createTypeWithNullability(rightType, true);
       break;

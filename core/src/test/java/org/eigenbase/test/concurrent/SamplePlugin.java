@@ -51,8 +51,7 @@ public class SamplePlugin extends ConcurrentTestPlugin {
           (PreparedStatement) testContext.getCurrentStatement();
       if (stmt == null) {
         testContext.storeMessage("No current statement");
-      } else if (!(stmt instanceof PreparedStatement)) {
-      } else {
+      } else if (stmt instanceof PreparedStatement) {
         try {
           ResultSetMetaData metadata =
               ((PreparedStatement) stmt).getMetaData();

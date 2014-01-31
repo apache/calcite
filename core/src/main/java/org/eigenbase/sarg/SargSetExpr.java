@@ -145,7 +145,7 @@ public class SargSetExpr implements SargExpr {
     // Toss all entries from each sequence in the list into one big sorted
     // set.
     SortedSet<SargInterval> intervals =
-        new TreeSet<SargInterval>(new IntervalComparator());
+        new TreeSet<SargInterval>(IntervalComparator.INSTANCE);
     for (SargIntervalSequence childSeq : list) {
       intervals.addAll(childSeq.getList());
     }
@@ -416,7 +416,9 @@ public class SargSetExpr implements SargExpr {
    * {lowerBound, upperBound}.
    */
   private static class IntervalComparator implements Comparator<SargInterval> {
-    IntervalComparator() {
+    public static final IntervalComparator INSTANCE = new IntervalComparator();
+
+    private IntervalComparator() {
     }
 
     // implement Comparator
@@ -427,10 +429,6 @@ public class SargSetExpr implements SargExpr {
       }
 
       return i1.getUpperBound().compareTo(i2.getUpperBound());
-    }
-
-    public boolean equals(Object obj) {
-      return obj instanceof IntervalComparator;
     }
   }
 }

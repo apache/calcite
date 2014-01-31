@@ -352,6 +352,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
         }
         super.visit(node, ordinal, parent);
       }
+      // CHECKSTYLE: IGNORE 1
     }.go(rel);
     return usedTables;
   }
@@ -646,6 +647,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
         nodes.add(node);
         super.visit(node, ordinal, parent);
       }
+      // CHECKSTYLE: IGNORE 1
     }.go(root);
     final Set<RelNode> visited = new HashSet<RelNode>();
     for (RelNode node : nodes) {

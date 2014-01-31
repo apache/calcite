@@ -207,6 +207,29 @@
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-checkstyle-plugin</artifactId>
+        <version>2.10</version>
+        <executions>
+          <execution>
+            <id>validate</id>
+            <phase>validate</phase>
+            <configuration>
+              <configLocation>${top.dir}/src/main/config/checkstyle.xml</configLocation>
+              <suppressionsLocation>${top.dir}/src/main/config/checkstyle-suppressions.xml</suppressionsLocation>
+              <consoleOutput>true</consoleOutput>
+              <enableRulesSummary>true</enableRulesSummary>
+              <headerLocation>${top.dir}/src/main/config/license-header.txt</headerLocation>
+              <failOnViolation>true</failOnViolation>
+              <includeTestSourceDirectory>true</includeTestSourceDirectory>
+            </configuration>
+            <goals>
+              <goal>check</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-jar-plugin</artifactId>
         <version>2.2</version>
         <executions>
@@ -272,35 +295,6 @@
       <modules>
         <module>spark</module>
       </modules>
-    </profile>
-    <profile>
-      <id>checkstyle</id>
-      <build>
-        <plugins>
-          <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-checkstyle-plugin</artifactId>
-        <version>2.11</version>
-        <configuration>
-          <configLocation>${top.dir}/src/main/config/checkstyle.xml</configLocation>
-          <suppressionsLocation>${top.dir}/src/main/config/checkstyle-suppressions.xml</suppressionsLocation>
-          <consoleOutput>true</consoleOutput>
-          <enableRulesSummary>true</enableRulesSummary>
-          <headerLocation>${top.dir}/src/main/config/license-header.txt</headerLocation>
-          <failOnViolation>false</failOnViolation>
-          <includeTestSourceDirectory>true</includeTestSourceDirectory>
-        </configuration>
-        <executions>
-          <execution>
-            <phase>verify</phase>
-            <goals>
-              <goal>check</goal>
-            </goals>
-          </execution>
-        </executions>
-          </plugin>
-        </plugins>
-      </build>
     </profile>
   </profiles>
 </project>

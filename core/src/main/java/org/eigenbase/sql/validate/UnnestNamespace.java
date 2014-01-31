@@ -40,7 +40,7 @@ class UnnestNamespace extends AbstractNamespace {
       SqlNode enclosingNode) {
     super(validator, enclosingNode);
     assert scope != null;
-    assert unnest.getOperator() == SqlStdOperatorTable.unnestOperator;
+    assert unnest.getOperator() == SqlStdOperatorTable.UNNEST;
     this.unnest = unnest;
     this.scope = scope;
   }

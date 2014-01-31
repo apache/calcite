@@ -37,8 +37,7 @@ public class SqlRowOperator extends SqlSpecialOperator {
   public SqlRowOperator() {
     super(
         "ROW",
-        SqlKind.ROW,
-        MaxPrec,
+        SqlKind.ROW, MDX_PRECEDENCE,
         false,
         null,
         SqlTypeStrategies.otiReturnType,
@@ -50,7 +49,7 @@ public class SqlRowOperator extends SqlSpecialOperator {
   // implement SqlOperator
   public SqlSyntax getSyntax() {
     // Function syntax would work too.
-    return SqlSyntax.Special;
+    return SqlSyntax.SPECIAL;
   }
 
   public RelDataType inferReturnType(

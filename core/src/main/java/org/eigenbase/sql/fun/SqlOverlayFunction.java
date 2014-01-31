@@ -26,7 +26,7 @@ import org.eigenbase.sql.type.*;
 public class SqlOverlayFunction extends SqlFunction {
   //~ Static fields/initializers ---------------------------------------------
 
-  private static final SqlOperandTypeChecker otcCustom =
+  private static final SqlOperandTypeChecker OTC_CUSTOM =
       SqlTypeStrategies.or(
           SqlTypeStrategies.otcStringX2Int,
           SqlTypeStrategies.otcStringX2IntX2);
@@ -39,8 +39,8 @@ public class SqlOverlayFunction extends SqlFunction {
         SqlKind.OTHER_FUNCTION,
         SqlTypeStrategies.rtiNullableVaryingDyadicStringSumPrecision,
         null,
-        otcCustom,
-        SqlFunctionCategory.String);
+        OTC_CUSTOM,
+        SqlFunctionCategory.STRING);
   }
 
   //~ Methods ----------------------------------------------------------------

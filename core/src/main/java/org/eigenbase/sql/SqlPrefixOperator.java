@@ -48,7 +48,7 @@ public class SqlPrefixOperator extends SqlOperator {
   //~ Methods ----------------------------------------------------------------
 
   public SqlSyntax getSyntax() {
-    return SqlSyntax.Prefix;
+    return SqlSyntax.PREFIX;
   }
 
   public String getSignatureTemplate(final int operandsCount) {

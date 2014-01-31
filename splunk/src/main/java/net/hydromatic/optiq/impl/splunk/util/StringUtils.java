@@ -22,6 +22,8 @@ import java.util.List;
 import java.util.logging.Logger;
 
 public class StringUtils {
+  private StringUtils() {}
+
   public static StringBuilder encodeList(
       List<? extends CharSequence> list, char delim) {
     StringBuilder result = new StringBuilder();
@@ -46,9 +48,11 @@ public class StringUtils {
   public static List<String> decodeList(CharSequence encoded, char delim) {
     List<String> list = new LinkedList<String>();
     int len = encoded.length();
-    int start = 0, end = 0;
+    int start = 0;
+    int end = 0;
     boolean hasEscapedDelim = false;
-    char p = '\0', c = '\0';
+    char p = '\0';
+    char c = '\0';
     for (int i = 0; i < len; i++, ++end) {
       p = c;
       c = encoded.charAt(i);
@@ -60,7 +64,8 @@ public class StringUtils {
             list.add(encoded.subSequence(start, end).toString());
           } else {
             StringBuilder sb = new StringBuilder(end - start);
-            char a = '\0', b = '\0';
+            char a = '\0';
+            char b = '\0';
             for (int j = start; j < end; ++j) {
               b = a;
               a = encoded.charAt(j);

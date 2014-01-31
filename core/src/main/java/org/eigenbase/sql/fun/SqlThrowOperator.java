@@ -21,16 +21,18 @@ import org.eigenbase.sql.*;
 import org.eigenbase.sql.type.*;
 
 /**
- * An internal operator that throws an exception.<br>
- * The exception is thrown with a (localized) error message which is the only
- * input paramter to the operator.<br>
- * The return type is defined as a <code>BOOLEAN</code> to facilitate the use of
- * it in constructs like the following:
+ * An internal operator that throws an exception.
  *
- * <p><code>CASE<br>
+ * <p>The exception is thrown with a (localized) error message which is the only
+ * input paramter to the operator.</p>
+ *
+ * <p>The return type is defined as a <code>BOOLEAN</code> to facilitate the use
+ * of it in constructs such as the following:</p>
+ *
+ * <blockquote><code>CASE<br>
  * WHEN &lt;conditionn&gt; THEN true<br>
  * ELSE throw("what's wrong with you man?")<br>
- * END
+ * END</code></blockquote>
  */
 public class SqlThrowOperator extends SqlInternalOperator {
   //~ Constructors -----------------------------------------------------------

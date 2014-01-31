@@ -67,7 +67,7 @@ public interface ReflectiveVisitDispatcher<R extends ReflectiveVisitor, E> {
       String visitMethodName);
 
   /**
-   * Implements the {@link Glossary#VisitorPattern} via reflection. The basic
+   * Implements the {@link Glossary#VISITOR_PATTERN} via reflection. The basic
    * technique is taken from <a
    * href="http://www.javaworld.com/javaworld/javatips/jw-javatip98.html">a
    * Javaworld article</a>. For an example of how to use it, see

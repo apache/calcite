@@ -95,73 +95,73 @@ public class SargRexAnalyzer {
     convertletMap = new HashMap<SqlOperator, CallConvertlet>();
 
     registerConvertlet(
-        SqlStdOperatorTable.equalsOperator,
+        SqlStdOperatorTable.EQUALS,
         new ComparisonConvertlet(
             null,
             SargStrictness.CLOSED));
 
     registerConvertlet(
-        SqlStdOperatorTable.isNullOperator,
+        SqlStdOperatorTable.IS_NULL,
         new ComparisonConvertlet(
             null,
             SargStrictness.CLOSED));
 
     registerConvertlet(
-        SqlStdOperatorTable.isTrueOperator,
+        SqlStdOperatorTable.IS_TRUE,
         new ComparisonConvertlet(
             null,
             SargStrictness.CLOSED));
 
     registerConvertlet(
-        SqlStdOperatorTable.isFalseOperator,
+        SqlStdOperatorTable.IS_FALSE,
         new ComparisonConvertlet(
             null,
             SargStrictness.CLOSED));
 
     registerConvertlet(
-        SqlStdOperatorTable.isUnknownOperator,
+        SqlStdOperatorTable.IS_UNKNOWN,
         new ComparisonConvertlet(
             null,
             SargStrictness.CLOSED));
 
     registerConvertlet(
-        SqlStdOperatorTable.lessThanOperator,
+        SqlStdOperatorTable.LESS_THAN,
         new ComparisonConvertlet(
             SargBoundType.UPPER,
             SargStrictness.OPEN));
 
     registerConvertlet(
-        SqlStdOperatorTable.lessThanOrEqualOperator,
+        SqlStdOperatorTable.LESS_THAN_OR_EQUAL,
         new ComparisonConvertlet(
             SargBoundType.UPPER,
             SargStrictness.CLOSED));
 
     registerConvertlet(
-        SqlStdOperatorTable.greaterThanOperator,
+        SqlStdOperatorTable.GREATER_THAN,
         new ComparisonConvertlet(
             SargBoundType.LOWER,
             SargStrictness.OPEN));
 
     registerConvertlet(
-        SqlStdOperatorTable.greaterThanOrEqualOperator,
+        SqlStdOperatorTable.GREATER_THAN_OR_EQUAL,
         new ComparisonConvertlet(
             SargBoundType.LOWER,
             SargStrictness.CLOSED));
 
     registerConvertlet(
-        SqlStdOperatorTable.andOperator,
+        SqlStdOperatorTable.AND,
         new BooleanConvertlet(
             SargSetOperator.INTERSECTION));
 
     if (!simpleMode) {
       registerConvertlet(
-          SqlStdOperatorTable.orOperator,
+          SqlStdOperatorTable.OR,
           new BooleanConvertlet(
               SargSetOperator.UNION));
     }
 
     registerConvertlet(
-        SqlStdOperatorTable.notOperator,
+        SqlStdOperatorTable.NOT,
         new BooleanConvertlet(
             SargSetOperator.COMPLEMENT));
 
@@ -223,7 +223,7 @@ public class SargRexAnalyzer {
           // build new RexNode
           currAndNode =
               factory.getRexBuilder().makeCall(
-                  SqlStdOperatorTable.andOperator,
+                  SqlStdOperatorTable.AND,
                   currAndNode,
                   sarg2RexMap.get(nextSargExpr));
 
@@ -368,7 +368,7 @@ public class SargRexAnalyzer {
     for (int i = 1; i < nonSargFilterList.size(); i++) {
       newAndNode =
           factory.getRexBuilder().makeCall(
-              SqlStdOperatorTable.andOperator,
+              SqlStdOperatorTable.AND,
               newAndNode,
               nonSargFilterList.get(i));
     }
@@ -403,7 +403,7 @@ public class SargRexAnalyzer {
           sarg2RexMap.get(sargBindingList.get(i).getExpr());
       newAndNode =
           factory.getRexBuilder().makeCall(
-              SqlStdOperatorTable.andOperator,
+              SqlStdOperatorTable.AND,
               newAndNode,
               nextNode);
     }
@@ -492,12 +492,12 @@ public class SargRexAnalyzer {
       }
 
       SqlOperator op = call.getOperator();
-      if ((op == SqlStdOperatorTable.isNullOperator)
-          || (op == SqlStdOperatorTable.isUnknownOperator)) {
+      if ((op == SqlStdOperatorTable.IS_NULL)
+          || (op == SqlStdOperatorTable.IS_UNKNOWN)) {
         coordinate = factory.getRexBuilder().constantNull();
-      } else if (op == SqlStdOperatorTable.isTrueOperator) {
+      } else if (op == SqlStdOperatorTable.IS_TRUE) {
         coordinate = factory.getRexBuilder().makeLiteral(true);
-      } else if (op == SqlStdOperatorTable.isFalseOperator) {
+      } else if (op == SqlStdOperatorTable.IS_FALSE) {
         coordinate = factory.getRexBuilder().makeLiteral(false);
       } else if (coordinate == null) {
         failed = true;
@@ -604,15 +604,11 @@ public class SargRexAnalyzer {
     }
 
     private boolean isRealRexInputRef(RexInputRef inputRef) {
-      if ((lowerRexInputIdx < 0) && (upperRexInputIdx < 0)) {
+      if (lowerRexInputIdx < 0 && upperRexInputIdx < 0) {
         return true;
       }
       int idx = inputRef.getIndex();
-      if ((idx >= lowerRexInputIdx) && (idx < upperRexInputIdx)) {
-        return false;
-      } else {
-        return true;
-      }
+      return idx < lowerRexInputIdx || idx >= upperRexInputIdx;
     }
 
     public Void visitLiteral(RexLiteral literal) {

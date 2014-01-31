@@ -22,6 +22,7 @@ import java.util.*;
 import org.eigenbase.reltype.*;
 import org.eigenbase.sql.parser.*;
 import org.eigenbase.sql.type.*;
+import org.eigenbase.util14.DateTimeUtil;
 
 /**
  * A SQL literal representing a DATE value, such as <code>DATE
@@ -33,7 +34,7 @@ public class SqlDateLiteral extends SqlAbstractDateTimeLiteral {
   //~ Constructors -----------------------------------------------------------
 
   SqlDateLiteral(Calendar d, SqlParserPos pos) {
-    super(d, false, SqlTypeName.DATE, 0, SqlParserUtil.DateFormatStr, pos);
+    super(d, false, SqlTypeName.DATE, 0, DateTimeUtil.DATE_FORMAT_STRING, pos);
   }
 
   SqlDateLiteral(Calendar d, String format, SqlParserPos pos) {

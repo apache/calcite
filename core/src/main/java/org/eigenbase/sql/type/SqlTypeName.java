@@ -43,44 +43,46 @@ import com.google.common.collect.ImmutableMap;
  * </ul>
  */
 public enum SqlTypeName {
-  BOOLEAN(PrecScale.NoNo, false, Types.BOOLEAN, SqlTypeFamily.BOOLEAN),
-  TINYINT(PrecScale.NoNo, false, Types.TINYINT, SqlTypeFamily.NUMERIC),
-  SMALLINT(PrecScale.NoNo, false, Types.SMALLINT, SqlTypeFamily.NUMERIC),
-  INTEGER(PrecScale.NoNo, false, Types.INTEGER, SqlTypeFamily.NUMERIC),
-  BIGINT(PrecScale.NoNo, false, Types.BIGINT, SqlTypeFamily.NUMERIC),
-  DECIMAL(PrecScale.NoNo | PrecScale.YesNo | PrecScale.YesYes, false,
+  BOOLEAN(PrecScale.NO_NO, false, Types.BOOLEAN, SqlTypeFamily.BOOLEAN),
+  TINYINT(PrecScale.NO_NO, false, Types.TINYINT, SqlTypeFamily.NUMERIC),
+  SMALLINT(PrecScale.NO_NO, false, Types.SMALLINT, SqlTypeFamily.NUMERIC),
+  INTEGER(PrecScale.NO_NO, false, Types.INTEGER, SqlTypeFamily.NUMERIC),
+  BIGINT(PrecScale.NO_NO, false, Types.BIGINT, SqlTypeFamily.NUMERIC),
+  DECIMAL(PrecScale.NO_NO | PrecScale.YES_NO | PrecScale.YES_YES, false,
       Types.DECIMAL, SqlTypeFamily.NUMERIC),
-  FLOAT(PrecScale.NoNo, false, Types.FLOAT, SqlTypeFamily.NUMERIC),
-  REAL(PrecScale.NoNo, false, Types.REAL, SqlTypeFamily.NUMERIC),
-  DOUBLE(PrecScale.NoNo, false, Types.DOUBLE, SqlTypeFamily.NUMERIC),
-  DATE(PrecScale.NoNo, false, Types.DATE, SqlTypeFamily.DATE),
-  TIME(PrecScale.NoNo | PrecScale.YesNo, false, Types.TIME, SqlTypeFamily.TIME),
-  TIMESTAMP(PrecScale.NoNo | PrecScale.YesNo, false, Types.TIMESTAMP,
+  FLOAT(PrecScale.NO_NO, false, Types.FLOAT, SqlTypeFamily.NUMERIC),
+  REAL(PrecScale.NO_NO, false, Types.REAL, SqlTypeFamily.NUMERIC),
+  DOUBLE(PrecScale.NO_NO, false, Types.DOUBLE, SqlTypeFamily.NUMERIC),
+  DATE(PrecScale.NO_NO, false, Types.DATE, SqlTypeFamily.DATE),
+  TIME(PrecScale.NO_NO | PrecScale.YES_NO, false, Types.TIME,
+      SqlTypeFamily.TIME),
+  TIMESTAMP(PrecScale.NO_NO | PrecScale.YES_NO, false, Types.TIMESTAMP,
       SqlTypeFamily.TIMESTAMP),
-  INTERVAL_YEAR_MONTH(PrecScale.NoNo, false, Types.OTHER,
+  INTERVAL_YEAR_MONTH(PrecScale.NO_NO, false, Types.OTHER,
       SqlTypeFamily.INTERVAL_YEAR_MONTH),
-  INTERVAL_DAY_TIME(PrecScale.NoNo | PrecScale.YesNo | PrecScale.YesYes, false,
-      Types.OTHER, SqlTypeFamily.INTERVAL_DAY_TIME),
-  CHAR(PrecScale.NoNo | PrecScale.YesNo, false, Types.CHAR,
+  INTERVAL_DAY_TIME(PrecScale.NO_NO | PrecScale.YES_NO | PrecScale.YES_YES,
+      false, Types.OTHER, SqlTypeFamily.INTERVAL_DAY_TIME),
+  CHAR(PrecScale.NO_NO | PrecScale.YES_NO, false, Types.CHAR,
       SqlTypeFamily.CHARACTER),
-  VARCHAR(PrecScale.NoNo | PrecScale.YesNo, false, Types.VARCHAR,
+  VARCHAR(PrecScale.NO_NO | PrecScale.YES_NO, false, Types.VARCHAR,
       SqlTypeFamily.CHARACTER),
-  BINARY(PrecScale.NoNo | PrecScale.YesNo, false, Types.BINARY,
+  BINARY(PrecScale.NO_NO | PrecScale.YES_NO, false, Types.BINARY,
       SqlTypeFamily.BINARY),
-  VARBINARY(PrecScale.NoNo | PrecScale.YesNo, false, Types.VARBINARY,
+  VARBINARY(PrecScale.NO_NO | PrecScale.YES_NO, false, Types.VARBINARY,
       SqlTypeFamily.BINARY),
-  NULL(PrecScale.NoNo, true, Types.NULL, SqlTypeFamily.NULL),
-  ANY(PrecScale.NoNo, true, Types.JAVA_OBJECT, SqlTypeFamily.ANY),
-  SYMBOL(PrecScale.NoNo, true, Types.OTHER, null),
-  MULTISET(PrecScale.NoNo, false, Types.ARRAY, SqlTypeFamily.MULTISET),
-  ARRAY(PrecScale.NoNo, false, Types.ARRAY, SqlTypeFamily.ARRAY),
-  MAP(PrecScale.NoNo, false, Types.OTHER, SqlTypeFamily.MAP),
-  DISTINCT(PrecScale.NoNo, false, Types.DISTINCT, null),
-  STRUCTURED(PrecScale.NoNo, false, Types.STRUCT, null),
-  ROW(PrecScale.NoNo, false, Types.STRUCT, null),
-  OTHER(PrecScale.NoNo, false, Types.OTHER, null),
-  CURSOR(PrecScale.NoNo, false, ExtraSqlTypes.REF_CURSOR, SqlTypeFamily.CURSOR),
-  COLUMN_LIST(PrecScale.NoNo, false, Types.OTHER + 2,
+  NULL(PrecScale.NO_NO, true, Types.NULL, SqlTypeFamily.NULL),
+  ANY(PrecScale.NO_NO, true, Types.JAVA_OBJECT, SqlTypeFamily.ANY),
+  SYMBOL(PrecScale.NO_NO, true, Types.OTHER, null),
+  MULTISET(PrecScale.NO_NO, false, Types.ARRAY, SqlTypeFamily.MULTISET),
+  ARRAY(PrecScale.NO_NO, false, Types.ARRAY, SqlTypeFamily.ARRAY),
+  MAP(PrecScale.NO_NO, false, Types.OTHER, SqlTypeFamily.MAP),
+  DISTINCT(PrecScale.NO_NO, false, Types.DISTINCT, null),
+  STRUCTURED(PrecScale.NO_NO, false, Types.STRUCT, null),
+  ROW(PrecScale.NO_NO, false, Types.STRUCT, null),
+  OTHER(PrecScale.NO_NO, false, Types.OTHER, null),
+  CURSOR(PrecScale.NO_NO, false, ExtraSqlTypes.REF_CURSOR,
+      SqlTypeFamily.CURSOR),
+  COLUMN_LIST(PrecScale.NO_NO, false, Types.OTHER + 2,
       SqlTypeFamily.COLUMN_LIST);
 
   public static final int MAX_DATETIME_PRECISION = 3;
@@ -108,48 +110,47 @@ public enum SqlTypeName {
   // you probably want to use JDK 1.5 support for treating enumeration
   // as collection instead; this is only here to support
   // SqlTypeFamily.ANY
-  public static final List<SqlTypeName> allTypes =
+  public static final List<SqlTypeName> ALL_TYPES =
       ImmutableList.of(
           BOOLEAN, INTEGER, VARCHAR, DATE, TIME, TIMESTAMP, NULL, DECIMAL,
           ANY, CHAR, BINARY, VARBINARY, TINYINT, SMALLINT, BIGINT, REAL,
           DOUBLE, SYMBOL, INTERVAL_YEAR_MONTH, INTERVAL_DAY_TIME,
           FLOAT, MULTISET, DISTINCT, STRUCTURED, ROW, CURSOR, COLUMN_LIST);
 
-  public static final List<SqlTypeName> booleanTypes =
+  public static final List<SqlTypeName> BOOLEAN_TYPES =
       ImmutableList.of(BOOLEAN);
 
-  public static final List<SqlTypeName> binaryTypes =
+  public static final List<SqlTypeName> BINARY_TYPES =
       ImmutableList.of(BINARY, VARBINARY);
 
-  public static final List<SqlTypeName> intTypes =
+  public static final List<SqlTypeName> INT_TYPES =
       ImmutableList.of(TINYINT, SMALLINT, INTEGER, BIGINT);
 
-  public static final List<SqlTypeName> exactTypes =
-      combine(
-          intTypes, ImmutableList.of(DECIMAL));
+  public static final List<SqlTypeName> EXACT_TYPES =
+      combine(INT_TYPES, ImmutableList.of(DECIMAL));
 
-  public static final List<SqlTypeName> approxTypes =
+  public static final List<SqlTypeName> APPROX_TYPES =
       ImmutableList.of(FLOAT, REAL, DOUBLE);
 
-  public static final List<SqlTypeName> numericTypes =
-      combine(exactTypes, approxTypes);
+  public static final List<SqlTypeName> NUMERIC_TYPES =
+      combine(EXACT_TYPES, APPROX_TYPES);
 
-  public static final List<SqlTypeName> fractionalTypes =
-      combine(approxTypes, ImmutableList.of(DECIMAL));
+  public static final List<SqlTypeName> FRACTIONAL_TYPES =
+      combine(APPROX_TYPES, ImmutableList.of(DECIMAL));
 
-  public static final List<SqlTypeName> charTypes =
+  public static final List<SqlTypeName> CHAR_TYPES =
       ImmutableList.of(CHAR, VARCHAR);
 
-  public static final List<SqlTypeName> stringTypes =
-      combine(charTypes, binaryTypes);
+  public static final List<SqlTypeName> STRING_TYPES =
+      combine(CHAR_TYPES, BINARY_TYPES);
 
-  public static final List<SqlTypeName> datetimeTypes =
+  public static final List<SqlTypeName> DATETIME_TYPES =
       ImmutableList.of(DATE, TIME, TIMESTAMP);
 
-  public static final List<SqlTypeName> intervalTypes =
+  public static final List<SqlTypeName> INTERVAL_TYPES =
       ImmutableList.of(INTERVAL_DAY_TIME, INTERVAL_YEAR_MONTH);
 
-  private static final Map<Integer, SqlTypeName> jdbcTypeToName =
+  private static final Map<Integer, SqlTypeName> JDBC_TYPE_TO_NAME =
       ImmutableMap.<Integer, SqlTypeName>builder()
           .put(Types.TINYINT, TINYINT)
           .put(Types.SMALLINT, SMALLINT)
@@ -231,11 +232,11 @@ public enum SqlTypeName {
   }
 
   public boolean allowsNoPrecNoScale() {
-    return (signatures & PrecScale.NoNo) != 0;
+    return (signatures & PrecScale.NO_NO) != 0;
   }
 
   public boolean allowsPrecNoScale() {
-    return (signatures & PrecScale.YesNo) != 0;
+    return (signatures & PrecScale.YES_NO) != 0;
   }
 
   public boolean allowsPrec() {
@@ -271,8 +272,8 @@ public enum SqlTypeName {
       boolean precision,
       boolean scale) {
     int mask =
-        precision ? (scale ? PrecScale.YesYes : PrecScale.YesNo)
-            : (scale ? 0 : PrecScale.NoNo);
+        precision ? (scale ? PrecScale.YES_YES : PrecScale.YES_NO)
+            : (scale ? 0 : PrecScale.NO_NO);
     return (signatures & mask) != 0;
   }
 
@@ -289,11 +290,11 @@ public enum SqlTypeName {
   }
 
   private static List<SqlTypeName> combine(
-      List<SqlTypeName> array0,
-      List<SqlTypeName> array1) {
+      List<SqlTypeName> list0,
+      List<SqlTypeName> list1) {
     return ImmutableList.<SqlTypeName>builder()
-        .addAll(array0)
-        .addAll(array1)
+        .addAll(list0)
+        .addAll(list1)
         .build();
   }
 
@@ -357,7 +358,7 @@ public enum SqlTypeName {
    * @return corresponding SqlTypeName
    */
   public static SqlTypeName getNameForJdbcType(int jdbcType) {
-    return jdbcTypeToName.get(jdbcType);
+    return JDBC_TYPE_TO_NAME.get(jdbcType);
   }
 
   /**
@@ -374,7 +375,7 @@ public enum SqlTypeName {
    * <th>Returns</th>
    * </tr>
    * <tr>
-   * <td>Integer</th>
+   * <td>Integer</td>
    * <td>true</td>
    * <td>true</td>
    * <td>false</td>
@@ -383,7 +384,7 @@ public enum SqlTypeName {
    * <td>2147483647 (2 ^ 31 -1 = MAXINT)</td>
    * </tr>
    * <tr>
-   * <td>Integer</th>
+   * <td>Integer</td>
    * <td>true</td>
    * <td>true</td>
    * <td>true</td>
@@ -392,7 +393,7 @@ public enum SqlTypeName {
    * <td>2147483648 (2 ^ 31 = MAXINT + 1)</td>
    * </tr>
    * <tr>
-   * <td>Integer</th>
+   * <td>Integer</td>
    * <td>false</td>
    * <td>true</td>
    * <td>false</td>
@@ -401,7 +402,7 @@ public enum SqlTypeName {
    * <td>-2147483648 (-2 ^ 31 = MININT)</td>
    * </tr>
    * <tr>
-   * <td>Boolean</th>
+   * <td>Boolean</td>
    * <td>true</td>
    * <td>true</td>
    * <td>false</td>
@@ -410,7 +411,7 @@ public enum SqlTypeName {
    * <td>TRUE</td>
    * </tr>
    * <tr>
-   * <td>Varchar</th>
+   * <td>Varchar</td>
    * <td>true</td>
    * <td>true</td>
    * <td>false</td>
@@ -493,7 +494,7 @@ public enum SqlTypeName {
 
       // Apply scale.
       if (scale == 0) {
-        ;
+        // do nothing
       } else if (scale > 0) {
         decimal = decimal.divide(BigDecimal.TEN.pow(scale));
       } else {
@@ -862,9 +863,9 @@ public enum SqlTypeName {
    * </ul>
    */
   private interface PrecScale {
-    int NoNo = 1;
-    int YesNo = 2;
-    int YesYes = 4;
+    int NO_NO = 1;
+    int YES_NO = 2;
+    int YES_YES = 4;
   }
 }
 

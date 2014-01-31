@@ -38,7 +38,7 @@ public abstract class RelOptRuleCall {
   /**
    * Generator for {@link #id} values.
    */
-  private static int NEXT_ID = 0;
+  private static int nextId = 0;
 
   //~ Instance fields --------------------------------------------------------
 
@@ -72,7 +72,7 @@ public abstract class RelOptRuleCall {
       RelNode[] rels,
       Map<RelNode, List<RelNode>> nodeChildren,
       List<RelNode> parents) {
-    this.id = NEXT_ID++;
+    this.id = nextId++;
     this.planner = planner;
     this.operand0 = operand;
     this.nodeChildren = nodeChildren;

@@ -39,7 +39,7 @@ public class SqlExtractFunction extends SqlFunction {
         SqlTypeStrategies.rtiNullableBigint,
         null,
         SqlTypeStrategies.otcIntervalSameX2,
-        SqlFunctionCategory.System);
+        SqlFunctionCategory.SYSTEM);
   }
 
   //~ Methods ----------------------------------------------------------------

@@ -182,7 +182,7 @@ public abstract class ReflectUtil {
   }
 
   /**
-   * Implements the {@link Glossary#VisitorPattern} via reflection. The basic
+   * Implements the {@link Glossary#VISITOR_PATTERN} via reflection. The basic
    * technique is taken from <a
    * href="http://www.javaworld.com/javaworld/javatips/jw-javatip98.html">a
    * Javaworld article</a>. For an example of how to use it, see {@code
@@ -521,7 +521,7 @@ public abstract class ReflectUtil {
       final Class... otherArgClasses) {
     final List<Class> otherArgClassList =
         ImmutableList.copyOf(otherArgClasses);
-    @SuppressWarnings({"unchecked"})
+    @SuppressWarnings({"unchecked" })
     final ReflectiveVisitDispatcher<ReflectiveVisitor, E>
         dispatcher =
         createDispatcher(

@@ -191,12 +191,12 @@ public class BasicSqlType extends AbstractSqlType {
   }
 
   // implement RelDataType
-  public Charset getCharset() throws RuntimeException {
-    return (wrappedCharset == null) ? null : wrappedCharset.getCharset();
+  public Charset getCharset() {
+    return wrappedCharset == null ? null : wrappedCharset.getCharset();
   }
 
   // implement RelDataType
-  public SqlCollation getCollation() throws RuntimeException {
+  public SqlCollation getCollation() {
     return collation;
   }
 
@@ -261,7 +261,7 @@ public class BasicSqlType extends AbstractSqlType {
    * <th>Returns</th>
    * </tr>
    * <tr>
-   * <td>Integer</th>
+   * <td>Integer</td>
    * <td>true</td>
    * <td>true</td>
    * <td>false</td>
@@ -270,7 +270,7 @@ public class BasicSqlType extends AbstractSqlType {
    * <td>2147483647 (2 ^ 31 -1 = MAXINT)</td>
    * </tr>
    * <tr>
-   * <td>Integer</th>
+   * <td>Integer</td>
    * <td>true</td>
    * <td>true</td>
    * <td>true</td>
@@ -279,7 +279,7 @@ public class BasicSqlType extends AbstractSqlType {
    * <td>2147483648 (2 ^ 31 = MAXINT + 1)</td>
    * </tr>
    * <tr>
-   * <td>Integer</th>
+   * <td>Integer</td>
    * <td>false</td>
    * <td>true</td>
    * <td>false</td>
@@ -288,7 +288,7 @@ public class BasicSqlType extends AbstractSqlType {
    * <td>-2147483648 (-2 ^ 31 = MININT)</td>
    * </tr>
    * <tr>
-   * <td>Boolean</th>
+   * <td>Boolean</td>
    * <td>true</td>
    * <td>true</td>
    * <td>false</td>
@@ -297,7 +297,7 @@ public class BasicSqlType extends AbstractSqlType {
    * <td>TRUE</td>
    * </tr>
    * <tr>
-   * <td>Varchar</th>
+   * <td>Varchar</td>
    * <td>true</td>
    * <td>true</td>
    * <td>false</td>

@@ -124,7 +124,7 @@ public class RelWriterTest {
                 FilterRel filter =
                     new FilterRel(cluster, table,
                         rexBuilder.makeCall(
-                            SqlStdOperatorTable.equalsOperator,
+                            SqlStdOperatorTable.EQUALS,
                             rexBuilder.makeFieldAccess(
                                 rexBuilder.makeRangeReference(
                                     table.getRowType()),
@@ -136,9 +136,9 @@ public class RelWriterTest {
                 AggregateRel aggregate =
                     new AggregateRel(cluster, filter, BitSets.of(0),
                         ImmutableList.of(
-                            new AggregateCall(SqlStdOperatorTable.countOperator,
+                            new AggregateCall(SqlStdOperatorTable.COUNT,
                                 true, ImmutableList.of(1), intType, "c"),
-                            new AggregateCall(SqlStdOperatorTable.countOperator,
+                            new AggregateCall(SqlStdOperatorTable.COUNT,
                                 false, ImmutableList.<Integer>of(), intType,
                                 "d")));
                 aggregate.explain(writer);

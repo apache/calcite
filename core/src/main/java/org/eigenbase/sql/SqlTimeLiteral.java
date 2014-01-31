@@ -21,6 +21,7 @@ import java.util.*;
 
 import org.eigenbase.sql.parser.*;
 import org.eigenbase.sql.type.*;
+import org.eigenbase.util14.DateTimeUtil;
 
 /**
  * A SQL literal representing a TIME value, for example <code>TIME
@@ -40,8 +41,7 @@ public class SqlTimeLiteral extends SqlAbstractDateTimeLiteral {
         t,
         hasTZ,
         SqlTypeName.TIME,
-        precision,
-        SqlParserUtil.TimeFormatStr,
+        precision, DateTimeUtil.TIME_FORMAT_STRING,
         pos);
   }
 

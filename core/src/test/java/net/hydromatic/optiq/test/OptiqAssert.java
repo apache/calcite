@@ -48,6 +48,8 @@ import static org.junit.Assert.*;
  * Fluid DSL for testing Optiq connections and queries.
  */
 public class OptiqAssert {
+  private OptiqAssert() {}
+
   /** Which database to use for tests that require a JDBC data source. By
    * default the test suite runs against the embedded hsqldb database.
    *

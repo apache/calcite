@@ -180,7 +180,7 @@ public class RelOptRulesTest extends RelOptTestBase {
   }
 
   @Ignore
-  @Test public void testPushSemiJoinPastJoinRule_Left() throws Exception {
+  @Test public void testPushSemiJoinPastJoinRuleLeft() throws Exception {
     // tests the case where the semijoin is pushed to the left
     HepProgram program = new HepProgramBuilder()
         .addRuleInstance(PushFilterPastJoinRule.FILTER_ON_JOIN)
@@ -193,7 +193,7 @@ public class RelOptRulesTest extends RelOptTestBase {
   }
 
   @Ignore // have not tried under optiq (it might work)
-  @Test public void testPushSemiJoinPastJoinRule_Right() throws Exception {
+  @Test public void testPushSemiJoinPastJoinRuleRight() throws Exception {
     // tests the case where the semijoin is pushed to the right
     HepProgram program = new HepProgramBuilder()
         .addRuleInstance(PushFilterPastJoinRule.FILTER_ON_JOIN)

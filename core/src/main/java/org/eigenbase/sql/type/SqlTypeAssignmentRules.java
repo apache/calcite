@@ -30,7 +30,7 @@ import org.eigenbase.util.*;
 public class SqlTypeAssignmentRules {
   //~ Static fields/initializers ---------------------------------------------
 
-  private static SqlTypeAssignmentRules INSTANCE = null;
+  private static SqlTypeAssignmentRules instance = null;
 
   private final Map<SqlTypeName, Set<SqlTypeName>> rules;
   private final Map<SqlTypeName, Set<SqlTypeName>> coerceRules;
@@ -236,7 +236,7 @@ public class SqlTypeAssignmentRules {
         copy(rule));
 
     // Exact Numerics are castable from intervals
-    for (SqlTypeName exactType : SqlTypeName.exactTypes) {
+    for (SqlTypeName exactType : SqlTypeName.EXACT_TYPES) {
       rule = coerceRules.get(exactType);
       rule.add(SqlTypeName.INTERVAL_DAY_TIME);
       rule.add(SqlTypeName.INTERVAL_YEAR_MONTH);
@@ -315,18 +315,18 @@ public class SqlTypeAssignmentRules {
   //~ Methods ----------------------------------------------------------------
 
   public static synchronized SqlTypeAssignmentRules instance() {
-    if (INSTANCE == null) {
-      INSTANCE = new SqlTypeAssignmentRules();
+    if (instance == null) {
+      instance = new SqlTypeAssignmentRules();
     }
-    return INSTANCE;
+    return instance;
   }
 
   public boolean canCastFrom(
       SqlTypeName to,
       SqlTypeName from,
       boolean coerce) {
-    assert (null != to);
-    assert (null != from);
+    assert to != null;
+    assert from != null;
 
     Map<SqlTypeName, Set<SqlTypeName>> ruleset =
         coerce ? coerceRules : rules;

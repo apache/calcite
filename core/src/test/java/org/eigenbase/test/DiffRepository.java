@@ -32,18 +32,13 @@ import org.w3c.dom.*;
 
 import org.xml.sax.*;
 
-import static org.junit.Assert.*;
-
 /**
  * A collection of resources used by tests.
  *
  * <p>Loads files containing test input and output into memory. If there are
  * differences, writes out a log file containing the actual output.
  *
- * <p>Typical usage is as follows:
- *
- * <ol>
- * <li>A testcase class defines a method
+ * <p>Typical usage is as follows. A testcase class defines a method
  *
  * <blockquote><code>
  * <pre>
@@ -129,19 +124,19 @@ public class DiffRepository {
          </TestCase>
        </Root>
 */
-  private static final String RootTag = "Root";
-  private static final String TestCaseTag = "TestCase";
-  private static final String TestCaseNameAttr = "name";
-  private static final String TestCaseOverridesAttr = "overrides";
-  private static final String ResourceTag = "Resource";
-  private static final String ResourceNameAttr = "name";
+  private static final String ROOT_TAG = "Root";
+  private static final String TEST_CASE_TAG = "TestCase";
+  private static final String TEST_CASE_NAME_ATTR = "name";
+  private static final String TEST_CASE_OVERRIDES_ATTR = "overrides";
+  private static final String RESOURCE_TAG = "Resource";
+  private static final String RESOURCE_NAME_ATTR = "name";
 
   /**
    * Holds one diff-repository per class. It is necessary for all testcases in
    * the same class to share the same diff-repository: if the repos gets
    * loaded once per testcase, then only one diff is recorded.
    */
-  private static final Map<Class, DiffRepository> mapClassToRepos =
+  private static final Map<Class, DiffRepository> MAP_CLASS_TO_REPOS =
       new HashMap<Class, DiffRepository>();
 
   //~ Instance fields --------------------------------------------------------
@@ -191,13 +186,13 @@ public class DiffRepository {
         // There's no reference file. Create and write a log file.
         this.doc = docBuilder.newDocument();
         this.doc.appendChild(
-            doc.createElement(RootTag));
+            doc.createElement(ROOT_TAG));
         flushDoc();
       }
       this.root = doc.getDocumentElement();
-      if (!root.getNodeName().equals(RootTag)) {
+      if (!root.getNodeName().equals(ROOT_TAG)) {
         throw new RuntimeException(
-            "expected root element of type '" + RootTag
+            "expected root element of type '" + ROOT_TAG
             + "', but found '" + root.getNodeName() + "'");
       }
     } catch (ParserConfigurationException e) {
@@ -401,15 +396,15 @@ public class DiffRepository {
     final NodeList childNodes = root.getChildNodes();
     for (int i = 0; i < childNodes.getLength(); i++) {
       Node child = childNodes.item(i);
-      if (child.getNodeName().equals(TestCaseTag)) {
+      if (child.getNodeName().equals(TEST_CASE_TAG)) {
         Element testCase = (Element) child;
         if (testCaseName.equals(
-            testCase.getAttribute(TestCaseNameAttr))) {
+            testCase.getAttribute(TEST_CASE_NAME_ATTR))) {
           if (checkOverride
               && (baseRepos != null)
               && (baseRepos.getTestCaseElement(testCaseName, false) != null)
               && !"true".equals(
-                  testCase.getAttribute(TestCaseOverridesAttr))) {
+                  testCase.getAttribute(TEST_CASE_OVERRIDES_ATTR))) {
             throw new RuntimeException(
                 "TestCase  '" + testCaseName + "' overrides a "
                 + "testcase in the base repository, but does "
@@ -473,9 +468,9 @@ public class DiffRepository {
         // at which the first diff occurs, which is useful
         // for largish snippets
         String expected2Canonical =
-            expected2.replace(Util.lineSeparator, "\n");
+            expected2.replace(Util.LINE_SEPARATOR, "\n");
         String actualCanonical =
-            actual.replace(Util.lineSeparator, "\n");
+            actual.replace(Util.LINE_SEPARATOR, "\n");
         Assert.assertEquals(
             expected2Canonical,
             actualCanonical);
@@ -541,9 +536,9 @@ public class DiffRepository {
           // at which the first diff occurs, which is useful
           // for largish snippets
           String expected2Canonical =
-              expected2.replace(Util.lineSeparator, "\n");
+              expected2.replace(Util.LINE_SEPARATOR, "\n");
           String actualCanonical =
-              actual.replace(Util.lineSeparator, "\n");
+              actual.replace(Util.LINE_SEPARATOR, "\n");
           Assert.assertEquals(
               expected2Canonical,
               actualCanonical);
@@ -576,15 +571,15 @@ public class DiffRepository {
       String value) {
     Element testCaseElement = getTestCaseElement(testCaseName, true);
     if (testCaseElement == null) {
-      testCaseElement = doc.createElement(TestCaseTag);
-      testCaseElement.setAttribute(TestCaseNameAttr, testCaseName);
+      testCaseElement = doc.createElement(TEST_CASE_TAG);
+      testCaseElement.setAttribute(TEST_CASE_NAME_ATTR, testCaseName);
       root.appendChild(testCaseElement);
     }
     Element resourceElement =
         getResourceElement(testCaseElement, resourceName);
     if (resourceElement == null) {
-      resourceElement = doc.createElement(ResourceTag);
-      resourceElement.setAttribute(ResourceNameAttr, resourceName);
+      resourceElement = doc.createElement(RESOURCE_TAG);
+      resourceElement.setAttribute(RESOURCE_NAME_ATTR, resourceName);
       testCaseElement.appendChild(resourceElement);
     } else {
       removeAllChildren(resourceElement);
@@ -634,9 +629,9 @@ public class DiffRepository {
     final NodeList childNodes = testCaseElement.getChildNodes();
     for (int i = 0; i < childNodes.getLength(); i++) {
       Node child = childNodes.item(i);
-      if (child.getNodeName().equals(ResourceTag)
+      if (child.getNodeName().equals(RESOURCE_TAG)
           && resourceName.equals(
-              ((Element) child).getAttribute(ResourceNameAttr))) {
+              ((Element) child).getAttribute(RESOURCE_NAME_ATTR))) {
         return (Element) child;
       }
     }
@@ -807,14 +802,14 @@ public class DiffRepository {
       Class clazz,
       DiffRepository baseRepos,
       Filter filter) {
-    DiffRepository diffRepos = mapClassToRepos.get(clazz);
+    DiffRepository diffRepos = MAP_CLASS_TO_REPOS.get(clazz);
     if (diffRepos == null) {
       final File refFile = findFile(clazz, ".ref.xml");
       final File logFile = findFile(clazz, ".log.xml");
       diffRepos =
           new DiffRepository(
               refFile, logFile, baseRepos, filter);
-      mapClassToRepos.put(clazz, diffRepos);
+      MAP_CLASS_TO_REPOS.put(clazz, diffRepos);
     }
     return diffRepos;
   }

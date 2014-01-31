@@ -418,7 +418,7 @@ public class RexLiteral extends RexNode {
     case TIME:
     case TIMESTAMP:
       String format = getCalendarFormat(typeName);
-      TimeZone tz = DateTimeUtil.gmtZone;
+      TimeZone tz = DateTimeUtil.GMT_ZONE;
       Calendar cal = null;
       if (typeName == SqlTypeName.DATE) {
         cal =
@@ -454,11 +454,11 @@ public class RexLiteral extends RexNode {
   private static String getCalendarFormat(SqlTypeName typeName) {
     switch (typeName) {
     case DATE:
-      return SqlParserUtil.DateFormatStr;
+      return DateTimeUtil.DATE_FORMAT_STRING;
     case TIME:
-      return SqlParserUtil.TimeFormatStr;
+      return DateTimeUtil.TIME_FORMAT_STRING;
     case TIMESTAMP:
-      return SqlParserUtil.TimestampFormatStr;
+      return DateTimeUtil.TIMESTAMP_FORMAT_STRING;
     default:
       throw Util.newInternal("getCalendarFormat: unknown type");
     }
@@ -572,10 +572,10 @@ public class RexLiteral extends RexNode {
     if (node instanceof RexCall) {
       final RexCall call = (RexCall) node;
       final SqlOperator operator = call.getOperator();
-      if (operator == SqlStdOperatorTable.castFunc) {
+      if (operator == SqlStdOperatorTable.CAST) {
         return findValue(call.getOperands().get(0));
       }
-      if (operator == SqlStdOperatorTable.prefixMinusOperator) {
+      if (operator == SqlStdOperatorTable.UNARY_MINUS) {
         final BigDecimal value =
             (BigDecimal) findValue(call.getOperands().get(0));
         return value.negate();

@@ -79,7 +79,7 @@ public class SerializableCharset implements Serializable {
 
   /**
    * Returns a SerializableCharset wrapping the given Charset, or null if the
-   * <coded>charset</code> is null.
+   * {@code charset} is null.
    *
    * @param charset Character set to wrap, or null
    * @return Wrapped charset

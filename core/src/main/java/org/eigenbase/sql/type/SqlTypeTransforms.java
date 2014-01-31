@@ -42,7 +42,7 @@ public abstract class SqlTypeTransforms {
    * transformed into the same type but nullable if any of a calls operands is
    * nullable
    */
-  public static final SqlTypeTransform toNullable =
+  public static final SqlTypeTransform TO_NULLABLE =
       new SqlTypeTransform() {
         public RelDataType transformType(
             SqlOperatorBinding opBinding,
@@ -58,7 +58,7 @@ public abstract class SqlTypeTransforms {
    * Parameter type-inference transform strategy where a derived type is
    * transformed into the same type but not nullable.
    */
-  public static final SqlTypeTransform toNotNullable =
+  public static final SqlTypeTransform TO_NOT_NULLABLE =
       new SqlTypeTransform() {
         public RelDataType transformType(
             SqlOperatorBinding opBinding,
@@ -73,7 +73,7 @@ public abstract class SqlTypeTransforms {
    * Parameter type-inference transform strategy where a derived type is
    * transformed into the same type with nulls allowed.
    */
-  public static final SqlTypeTransform forceNullable =
+  public static final SqlTypeTransform FORCE_NULLABLE =
       new SqlTypeTransform() {
         public RelDataType transformType(
             SqlOperatorBinding opBinding,
@@ -87,10 +87,10 @@ public abstract class SqlTypeTransforms {
   /**
    * Type-inference strategy whereby the result type of a call is VARYING the
    * type given. The length returned is the same as length of the first
-   * argument. Return type will have same nullablilty as input type
-   * nullablility. First Arg must be of string type.
+   * argument. Return type will have same nullability as input type
+   * nullability. First Arg must be of string type.
    */
-  public static final SqlTypeTransform toVarying =
+  public static final SqlTypeTransform TO_VARYING =
       new SqlTypeTransform() {
         public RelDataType transformType(
             SqlOperatorBinding opBinding,
@@ -139,7 +139,7 @@ public abstract class SqlTypeTransforms {
    *
    * @see MultisetSqlType#getComponentType
    */
-  public static final SqlTypeTransform toMultisetElementType =
+  public static final SqlTypeTransform TO_MULTISET_ELEMENT_TYPE =
       new SqlTypeTransform() {
         public RelDataType transformType(
             SqlOperatorBinding opBinding,
@@ -153,7 +153,7 @@ public abstract class SqlTypeTransforms {
    * a struct type with precisely one field and the returned type is the type
    * of that field.
    */
-  public static final SqlTypeTransform onlyColumn =
+  public static final SqlTypeTransform ONLY_COLUMN =
       new SqlTypeTransform() {
         public RelDataType transformType(
             SqlOperatorBinding opBinding,

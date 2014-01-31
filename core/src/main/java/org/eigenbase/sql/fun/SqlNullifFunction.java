@@ -40,7 +40,7 @@ public class SqlNullifFunction extends SqlFunction {
         SqlTypeStrategies.rtiFirstArgTypeForceNullable,
         null,
         SqlTypeStrategies.otcComparableUnorderedX2,
-        SqlFunctionCategory.System);
+        SqlFunctionCategory.SYSTEM);
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -60,7 +60,7 @@ public class SqlNullifFunction extends SqlFunction {
     SqlNodeList thenList = new SqlNodeList(pos);
     whenList.add(operands[1]);
     thenList.add(SqlLiteral.createNull(SqlParserPos.ZERO));
-    return SqlStdOperatorTable.caseOperator.createSwitchedCall(
+    return SqlStdOperatorTable.CASE.createSwitchedCall(
         pos,
         operands[0],
         whenList,

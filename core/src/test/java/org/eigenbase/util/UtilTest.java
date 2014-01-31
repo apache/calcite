@@ -198,8 +198,8 @@ public class UtilTest {
     final BitString b256 = new BitString("100000000", 9);
 
     // other strings
-    final BitString b0_1 = new BitString("", 1);
-    final BitString b0_12 = new BitString("", 12);
+    final BitString b0x1 = new BitString("", 1);
+    final BitString b0x12 = new BitString("", 12);
 
     // conversion to hex strings
     assertEquals(
@@ -233,11 +233,9 @@ public class UtilTest {
         "100",
         b256.toHexString());
     assertEquals(
-        "0",
-        b0_1.toHexString());
+        "0", b0x1.toHexString());
     assertEquals(
-        "000",
-        b0_12.toHexString());
+        "000", b0x12.toHexString());
 
     // to byte array
     assertByteArray("01", "1", 1);
@@ -1154,7 +1152,7 @@ public class UtilTest {
     // Run a much quicker form of the test during regular testing.
     final int limit = Benchmark.enabled() ? 1000000 : 10;
     final int zMax = 100;
-    for (int i = 0; i < 30; i ++) {
+    for (int i = 0; i < 30; i++) {
       final int size = i;
       new Benchmark("isDistinct " + i + " (set)",
           new Function1<Benchmark.Statistician, Void>() {

@@ -36,7 +36,7 @@ import org.eigenbase.util.*;
  * <pre>SELECT name FROM (
  *     SELECT *
  *     FROM emp
- *     WHERE gender = 'F')</code></blockquote>
+ *     WHERE gender = 'F')</pre></blockquote>
  *
  * <p>we need to use the {@link SelectScope} as a
  * {@link SqlValidatorNamespace} when resolving 'name', and
@@ -158,7 +158,7 @@ public class SelectScope extends ListScope {
       monotonicity = SqlMonotonicity.Increasing;
       if ((order0 instanceof SqlCall)
           && (((SqlCall) order0).getOperator()
-          == SqlStdOperatorTable.descendingOperator)) {
+          == SqlStdOperatorTable.DESC)) {
         monotonicity = monotonicity.reverse();
         order0 = ((SqlCall) order0).getOperands()[0];
       }

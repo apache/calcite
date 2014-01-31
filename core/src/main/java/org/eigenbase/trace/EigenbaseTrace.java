@@ -57,7 +57,7 @@ public abstract class EigenbaseTrace {
    * org.eigenbase.sql.parser.SqlParser} and other classes (at level {@link
    * Level#FINE} or higher).
    */
-  public static final Logger parserTracer = getParserTracer();
+  public static final Logger PARSER_LOGGER = getParserTracer();
 
   private static final ThreadLocal<Function2<Void, File, String>>
   DYNAMIC_HANDLER =

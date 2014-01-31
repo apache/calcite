@@ -76,7 +76,7 @@ public class JdbcRules {
     String name = rowType.getFieldNames().get(selectList.size());
     String alias = SqlValidatorUtil.getAlias(node, -1);
     if (alias == null || !alias.equals(name)) {
-      node = SqlStdOperatorTable.asOperator.createCall(
+      node = SqlStdOperatorTable.AS.createCall(
           POS, node, new SqlIdentifier(name, POS));
     }
     selectList.add(node);
@@ -249,23 +249,23 @@ public class JdbcRules {
           rightResult.qualifiedContext();
       for (Pair<Integer, Integer> pair : Pair.zip(leftKeys, rightKeys)) {
         SqlNode x =
-            SqlStdOperatorTable.equalsOperator.createCall(POS,
+            SqlStdOperatorTable.EQUALS.createCall(POS,
                 leftContext.field(pair.left),
                 rightContext.field(pair.right));
         if (sqlCondition == null) {
           sqlCondition = x;
         } else {
           sqlCondition =
-              SqlStdOperatorTable.andOperator.createCall(POS, sqlCondition, x);
+              SqlStdOperatorTable.AND.createCall(POS, sqlCondition, x);
         }
       }
       SqlNode join =
-          SqlStdOperatorTable.joinOperator.createCall(
+          SqlStdOperatorTable.JOIN.createCall(
               leftResult.asFrom(),
               SqlLiteral.createBoolean(false, POS),
               joinType(joinType).symbol(POS),
               rightResult.asFrom(),
-              SqlJoinOperator.ConditionType.On.symbol(POS),
+              SqlJoinOperator.ConditionType.ON.symbol(POS),
               sqlCondition,
               POS);
       return implementor.result(join, leftResult, rightResult);
@@ -274,13 +274,13 @@ public class JdbcRules {
     private static SqlJoinOperator.JoinType joinType(JoinRelType joinType) {
       switch (joinType) {
       case LEFT:
-        return SqlJoinOperator.JoinType.Left;
+        return SqlJoinOperator.JoinType.LEFT;
       case RIGHT:
-        return SqlJoinOperator.JoinType.Right;
+        return SqlJoinOperator.JoinType.RIGHT;
       case INNER:
-        return SqlJoinOperator.JoinType.Inner;
+        return SqlJoinOperator.JoinType.INNER;
       case FULL:
-        return SqlJoinOperator.JoinType.Full;
+        return SqlJoinOperator.JoinType.FULL;
       default:
         throw new AssertionError(joinType);
       }
@@ -633,10 +633,10 @@ public class JdbcRules {
   }
 
   /** MySQL specific function. */
-  private static SqlFunction ISNULL_FUNCTION =
+  private static final SqlFunction ISNULL_FUNCTION =
       new SqlFunction("ISNULL", SqlKind.OTHER_FUNCTION,
           SqlTypeStrategies.rtiBoolean, SqlTypeStrategies.otiFirstKnown,
-          SqlTypeStrategies.otcAny, SqlFunctionCategory.System);
+          SqlTypeStrategies.otcAny, SqlFunctionCategory.SYSTEM);
 
   /**
    * Rule to convert an {@link org.eigenbase.rel.UnionRel} to a
@@ -681,8 +681,8 @@ public class JdbcRules {
 
     public JdbcImplementor.Result implement(JdbcImplementor implementor) {
       final SqlSetOperator operator = all
-          ? SqlStdOperatorTable.unionAllOperator
-          : SqlStdOperatorTable.unionOperator;
+          ? SqlStdOperatorTable.UNION_ALL
+          : SqlStdOperatorTable.UNION;
       return setOpToSql(implementor, operator, this);
     }
   }
@@ -729,8 +729,8 @@ public class JdbcRules {
     public JdbcImplementor.Result implement(JdbcImplementor implementor) {
       return setOpToSql(implementor,
           all
-              ? SqlStdOperatorTable.intersectAllOperator
-              : SqlStdOperatorTable.intersectOperator,
+              ? SqlStdOperatorTable.INTERSECT_ALL
+              : SqlStdOperatorTable.INTERSECT,
           this);
     }
   }
@@ -778,8 +778,8 @@ public class JdbcRules {
     public JdbcImplementor.Result implement(JdbcImplementor implementor) {
       return setOpToSql(implementor,
           all
-              ? SqlStdOperatorTable.exceptAllOperator
-              : SqlStdOperatorTable.exceptOperator,
+              ? SqlStdOperatorTable.EXCEPT_ALL
+              : SqlStdOperatorTable.EXCEPT,
           this);
     }
   }
@@ -914,13 +914,13 @@ public class JdbcRules {
         final List<SqlNode> selectList = new ArrayList<SqlNode>();
         for (Pair<RexLiteral, String> literal : Pair.zip(tuple, fields)) {
           selectList.add(
-              SqlStdOperatorTable.asOperator.createCall(
+              SqlStdOperatorTable.AS.createCall(
                   POS,
                   context.toSql(null, literal.left),
                   new SqlIdentifier(literal.right, POS)));
         }
         selects.add(
-            SqlStdOperatorTable.selectOperator.createCall(SqlNodeList.Empty,
+            SqlStdOperatorTable.SELECT.createCall(SqlNodeList.EMPTY,
                 new SqlNodeList(selectList, POS), null, null, null,
                 null, null, null, null, null, POS));
       }
@@ -929,7 +929,7 @@ public class JdbcRules {
         if (query == null) {
           query = select;
         } else {
-          query = SqlStdOperatorTable.unionAllOperator.createCall(POS, query,
+          query = SqlStdOperatorTable.UNION_ALL.createCall(POS, query,
               select);
         }
       }

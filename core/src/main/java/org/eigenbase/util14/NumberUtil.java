@@ -25,90 +25,73 @@ import java.text.*;
  * Utility functions for working with numbers This class is JDK 1.4 compatible.
  */
 public class NumberUtil {
+  private NumberUtil() {}
+
   //~ Static fields/initializers ---------------------------------------------
 
-  private static final DecimalFormat floatFormatter;
-  private static final DecimalFormat doubleFormatter;
-  private static final BigInteger[] bigIntTenPow;
-  private static final BigInteger[] bigIntMinUnscaled;
-  private static final BigInteger[] bigIntMaxUnscaled;
-
-  // For JDK 1.4 compatibility
-  private static final BigInteger bigIntTen = BigInteger.valueOf(10);
-
-  public static final Byte MIN_BYTE = new Byte(Byte.MIN_VALUE);
-  public static final Byte MAX_BYTE = new Byte(Byte.MAX_VALUE);
-  public static final Integer MIN_INTEGER = new Integer(Integer.MIN_VALUE);
-  public static final Integer MAX_INTEGER = new Integer(Integer.MAX_VALUE);
-  public static final Short MIN_SHORT = new Short(Short.MIN_VALUE);
-  public static final Short MAX_SHORT = new Short(Short.MAX_VALUE);
-  public static final Long MIN_LONG = new Long(Long.MIN_VALUE);
-  public static final Long MAX_LONG = new Long(Long.MAX_VALUE);
-  public static final Float MIN_FLOAT = new Float(-Float.MAX_VALUE);
-  public static final Float MAX_FLOAT = new Float(Float.MAX_VALUE);
-  public static final Double MIN_DOUBLE = new Double(-Double.MAX_VALUE);
-  public static final Double MAX_DOUBLE = new Double(Double.MAX_VALUE);
-
-  public static final Integer INTEGER_ZERO = new Integer(0);
-  public static final Integer INTEGER_ONE = new Integer(1);
+  private static final DecimalFormat FLOAT_FORMATTER;
+  private static final DecimalFormat DOUBLE_FORMATTER;
+  private static final BigInteger[] BIG_INT_TEN_POW;
+  private static final BigInteger[] BIG_INT_MIN_UNSCALED;
+  private static final BigInteger[] BIG_INT_MAX_UNSCALED;
 
   static {
     // TODO: DecimalFormat uses ROUND_HALF_EVEN, not ROUND_HALF_UP
     // Float: precision of 7 (6 digits after .)
-    floatFormatter = new DecimalFormat();
-    floatFormatter.applyPattern("0.######E0");
+    FLOAT_FORMATTER = new DecimalFormat();
+    FLOAT_FORMATTER.applyPattern("0.######E0");
 
     // Double: precision of 16 (15 digits after .)
-    doubleFormatter = new DecimalFormat();
-    doubleFormatter.applyPattern("0.###############E0");
+    DOUBLE_FORMATTER = new DecimalFormat();
+    DOUBLE_FORMATTER.applyPattern("0.###############E0");
 
-    bigIntTenPow = new BigInteger[20];
-    bigIntMinUnscaled = new BigInteger[20];
-    bigIntMaxUnscaled = new BigInteger[20];
+    BIG_INT_TEN_POW = new BigInteger[20];
+    BIG_INT_MIN_UNSCALED = new BigInteger[20];
+    BIG_INT_MAX_UNSCALED = new BigInteger[20];
 
-    for (int i = 0; i < bigIntTenPow.length; i++) {
-      bigIntTenPow[i] = bigIntTen.pow(i);
+    for (int i = 0; i < BIG_INT_TEN_POW.length; i++) {
+      BIG_INT_TEN_POW[i] = BigInteger.TEN.pow(i);
       if (i < 19) {
-        bigIntMaxUnscaled[i] = bigIntTenPow[i].subtract(BigInteger.ONE);
-        bigIntMinUnscaled[i] = bigIntMaxUnscaled[i].negate();
+        BIG_INT_MAX_UNSCALED[i] = BIG_INT_TEN_POW[i].subtract(BigInteger.ONE);
+        BIG_INT_MIN_UNSCALED[i] = BIG_INT_MAX_UNSCALED[i].negate();
       } else {
-        bigIntMaxUnscaled[i] = BigInteger.valueOf(Long.MAX_VALUE);
-        bigIntMinUnscaled[i] = BigInteger.valueOf(Long.MIN_VALUE);
+        BIG_INT_MAX_UNSCALED[i] = BigInteger.valueOf(Long.MAX_VALUE);
+        BIG_INT_MIN_UNSCALED[i] = BigInteger.valueOf(Long.MIN_VALUE);
       }
     }
   }
 
   //~ Methods ----------------------------------------------------------------
 
-  public static final BigInteger powTen(int exponent) {
-    if ((exponent >= 0) && (exponent < bigIntTenPow.length)) {
-      return bigIntTenPow[exponent];
+  public static BigInteger powTen(int exponent) {
+    if ((exponent >= 0) && (exponent < BIG_INT_TEN_POW.length)) {
+      return BIG_INT_TEN_POW[exponent];
     } else {
-      return bigIntTen.pow(exponent);
+      return BigInteger.TEN.pow(exponent);
     }
   }
 
-  public static final BigInteger getMaxUnscaled(int precision) {
-    return bigIntMaxUnscaled[precision];
+  public static BigInteger getMaxUnscaled(int precision) {
+    return BIG_INT_MAX_UNSCALED[precision];
   }
 
-  public static final BigInteger getMinUnscaled(int precision) {
-    return bigIntMinUnscaled[precision];
+  public static BigInteger getMinUnscaled(int precision) {
+    return BIG_INT_MIN_UNSCALED[precision];
   }
 
-  public static final BigDecimal rescaleBigDecimal(BigDecimal bd, int scale) {
+  public static BigDecimal rescaleBigDecimal(BigDecimal bd, int scale) {
     if (bd != null) {
       bd = bd.setScale(scale, BigDecimal.ROUND_HALF_UP);
     }
     return bd;
   }
 
-  public static final BigDecimal toBigDecimal(Number number, int scale) {
+  public static BigDecimal toBigDecimal(Number number, int scale) {
     BigDecimal bd = toBigDecimal(number);
     return rescaleBigDecimal(bd, scale);
   }
 
-  public static final BigDecimal toBigDecimal(Number number) {
+  public static BigDecimal toBigDecimal(Number number) {
     if (number == null) {
       return null;
     }
@@ -117,12 +100,12 @@ public class NumberUtil {
     } else if ((number instanceof Double)
         || (number instanceof Float)) {
       // For JDK 1.4 compatibility
-      return new BigDecimal(((Number) number).doubleValue());
+      return new BigDecimal(number.doubleValue());
       //return BigDecimal.valueOf(((Number) number).doubleValue());
     } else if (number instanceof BigInteger) {
       return new BigDecimal((BigInteger) number);
     } else {
-      return new BigDecimal(((Number) number).longValue());
+      return new BigDecimal(number.longValue());
     }
   }
 
@@ -138,7 +121,7 @@ public class NumberUtil {
   }
 
   public static NumberFormat getApproxFormatter(boolean isFloat) {
-    return isFloat ? floatFormatter : doubleFormatter;
+    return isFloat ? FLOAT_FORMATTER : DOUBLE_FORMATTER;
   }
 
   public static long round(double d) {
@@ -154,19 +137,15 @@ public class NumberUtil {
       return null;
     }
 
-    // For JDK 1.4 compatibility
-    return new Double(a.doubleValue() + b.doubleValue());
-    //return Double.valueOf(a.doubleValue() + b.doubleValue());
+    return a + b;
   }
 
   public static Double divide(Double a, Double b) {
-    if ((a == null) || (b == null) || (b.doubleValue() == 0.0)) {
+    if ((a == null) || (b == null) || (b == 0D)) {
       return null;
     }
 
-    // For JDK 1.4 compatibility
-    return new Double(a.doubleValue() / b.doubleValue());
-    // return Double.valueOf(a.doubleValue() / b.doubleValue());
+    return a / b;
   }
 
   public static Double multiply(Double a, Double b) {
@@ -174,9 +153,7 @@ public class NumberUtil {
       return null;
     }
 
-    // For JDK 1.4 compatibility
-    return new Double(a.doubleValue() * b.doubleValue());
-    //return Double.valueOf(a.doubleValue() * b.doubleValue());
+    return a * b;
   }
 }
 

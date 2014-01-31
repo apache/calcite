@@ -24,7 +24,7 @@ import org.eigenbase.rel.*;
 /**
  * ChainedRelMetadataProvider implements the {@link RelMetadataProvider}
  * interface via the {@link
- * org.eigenbase.util.Glossary#ChainOfResponsibilityPattern}.
+ * org.eigenbase.util.Glossary#CHAIN_OF_RESPONSIBILITY_PATTERN}.
  */
 public class ChainedRelMetadataProvider implements RelMetadataProvider {
   //~ Instance fields --------------------------------------------------------

@@ -36,7 +36,9 @@ import java.util.*;
  * calling convention.
  */
 public class MongoRules {
-  public static RelOptRule[] RULES = {
+  private MongoRules() {}
+
+  public static final RelOptRule[] RULES = {
     new PushProjectOntoMongoRule(),
     new MongoSortRule(),
     new MongoFilterRule(),
@@ -91,7 +93,7 @@ public class MongoRules {
   private static String parseFieldAccess(RexNode rex) {
     if (rex instanceof RexCall) {
       final RexCall call = (RexCall) rex;
-      if (call.getOperator() == SqlStdOperatorTable.itemOp
+      if (call.getOperator() == SqlStdOperatorTable.ITEM
           && call.getOperands().size() == 2
           && call.getOperands().get(0) instanceof RexInputRef
           && ((RexInputRef) call.getOperands().get(0)).getIndex() == 0
@@ -108,7 +110,7 @@ public class MongoRules {
   private static RelDataType parseCast(RexNode rex) {
     if (rex instanceof RexCall) {
       final RexCall call = (RexCall) rex;
-      if (call.getOperator() == SqlStdOperatorTable.castFunc) {
+      if (call.getOperator() == SqlStdOperatorTable.CAST) {
         assert call.getOperands().size() == 1;
         return call.getType();
       }

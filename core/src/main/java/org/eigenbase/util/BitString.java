@@ -37,21 +37,12 @@ import org.eigenbase.util14.*;
  *
  * <p>This class is immutable: once created, none of the methods modify the
  * value.
- *
- * @testcase
  */
 public class BitString {
-  //~ Static fields/initializers ---------------------------------------------
-
-  private static final char[] Hexits = {
-    '0', '1', '2', '3', '4', '5', '6', '7',
-    '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'
-  };
-
   //~ Instance fields --------------------------------------------------------
 
-  private String bits;
-  private int bitCount;
+  private final String bits;
+  private final int bitCount;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -142,8 +133,6 @@ public class BitString {
 
   /**
    * Converts a bit string to an array of bytes.
-   *
-   * @post return.length = (bitCount + 7) / 8
    */
   public static byte[] toByteArrayFromBitString(
       String bits,

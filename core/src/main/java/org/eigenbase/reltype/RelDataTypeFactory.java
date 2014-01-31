@@ -30,8 +30,8 @@ import org.eigenbase.sql.type.*;
  * also provides methods for return type inference for arithmetic in cases where
  * SQL 2003 is implementation defined or impractical.
  *
- * <p>This interface is an example of the {@link
- * org.eigenbase.util.Glossary#AbstractFactoryPattern abstract factory pattern}.
+ * <p>This interface is an example of the
+ * {@link org.eigenbase.util.Glossary#ABSTRACT_FACTORY_PATTERN abstract factory pattern}.
  * Any implementation of <code>RelDataTypeFactory</code> must ensure that type
  * objects are canonical: two types are equal if and only if they are
  * represented by the same Java object. This reduces memory consumption and

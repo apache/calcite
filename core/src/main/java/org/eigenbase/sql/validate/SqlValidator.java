@@ -33,7 +33,7 @@ import org.eigenbase.util.*;
  * <h2>Visitor pattern</h2>
  *
  * <p>The validator interface is an instance of the {@link
- * org.eigenbase.util.Glossary#VisitorPattern visitor pattern}. Implementations
+ * org.eigenbase.util.Glossary#VISITOR_PATTERN visitor pattern}. Implementations
  * of the {@link SqlNode#validate} method call the <code>validateXxx</code>
  * method appropriate to the kind of node: {@link
  * SqlLiteral#validate(SqlValidator, SqlValidatorScope)} calls {@link

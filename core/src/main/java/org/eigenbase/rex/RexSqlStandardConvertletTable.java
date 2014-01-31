@@ -36,83 +36,83 @@ public class RexSqlStandardConvertletTable
 
     // Register convertlets
 
-    registerEquivOp(SqlStdOperatorTable.greaterThanOrEqualOperator);
-    registerEquivOp(SqlStdOperatorTable.greaterThanOperator);
-    registerEquivOp(SqlStdOperatorTable.lessThanOrEqualOperator);
-    registerEquivOp(SqlStdOperatorTable.lessThanOperator);
-    registerEquivOp(SqlStdOperatorTable.equalsOperator);
-    registerEquivOp(SqlStdOperatorTable.notEqualsOperator);
-    registerEquivOp(SqlStdOperatorTable.andOperator);
-    registerEquivOp(SqlStdOperatorTable.orOperator);
-    registerEquivOp(SqlStdOperatorTable.notInOperator);
-    registerEquivOp(SqlStdOperatorTable.inOperator);
-    registerEquivOp(SqlStdOperatorTable.likeOperator);
-    registerEquivOp(SqlStdOperatorTable.notLikeOperator);
-    registerEquivOp(SqlStdOperatorTable.similarOperator);
-    registerEquivOp(SqlStdOperatorTable.notSimilarOperator);
-    registerEquivOp(SqlStdOperatorTable.plusOperator);
-    registerEquivOp(SqlStdOperatorTable.minusOperator);
-    registerEquivOp(SqlStdOperatorTable.multiplyOperator);
-    registerEquivOp(SqlStdOperatorTable.divideOperator);
+    registerEquivOp(SqlStdOperatorTable.GREATER_THAN_OR_EQUAL);
+    registerEquivOp(SqlStdOperatorTable.GREATER_THAN);
+    registerEquivOp(SqlStdOperatorTable.LESS_THAN_OR_EQUAL);
+    registerEquivOp(SqlStdOperatorTable.LESS_THAN);
+    registerEquivOp(SqlStdOperatorTable.EQUALS);
+    registerEquivOp(SqlStdOperatorTable.NOT_EQUALS);
+    registerEquivOp(SqlStdOperatorTable.AND);
+    registerEquivOp(SqlStdOperatorTable.OR);
+    registerEquivOp(SqlStdOperatorTable.NOT_IN);
+    registerEquivOp(SqlStdOperatorTable.IN);
+    registerEquivOp(SqlStdOperatorTable.LIKE);
+    registerEquivOp(SqlStdOperatorTable.NOT_LIKE);
+    registerEquivOp(SqlStdOperatorTable.SIMILAR_TO);
+    registerEquivOp(SqlStdOperatorTable.NOT_SIMILAR_TO);
+    registerEquivOp(SqlStdOperatorTable.PLUS);
+    registerEquivOp(SqlStdOperatorTable.MINUS);
+    registerEquivOp(SqlStdOperatorTable.MULTIPLY);
+    registerEquivOp(SqlStdOperatorTable.DIVIDE);
 
-    registerEquivOp(SqlStdOperatorTable.notOperator);
+    registerEquivOp(SqlStdOperatorTable.NOT);
 
-    registerEquivOp(SqlStdOperatorTable.isNotNullOperator);
-    registerEquivOp(SqlStdOperatorTable.isNullOperator);
+    registerEquivOp(SqlStdOperatorTable.IS_NOT_NULL);
+    registerEquivOp(SqlStdOperatorTable.IS_NULL);
 
-    registerEquivOp(SqlStdOperatorTable.isNotTrueOperator);
-    registerEquivOp(SqlStdOperatorTable.isTrueOperator);
+    registerEquivOp(SqlStdOperatorTable.IS_NOT_TRUE);
+    registerEquivOp(SqlStdOperatorTable.IS_TRUE);
 
-    registerEquivOp(SqlStdOperatorTable.isNotFalseOperator);
-    registerEquivOp(SqlStdOperatorTable.isFalseOperator);
+    registerEquivOp(SqlStdOperatorTable.IS_NOT_FALSE);
+    registerEquivOp(SqlStdOperatorTable.IS_FALSE);
 
-    registerEquivOp(SqlStdOperatorTable.isNotUnknownOperator);
-    registerEquivOp(SqlStdOperatorTable.isUnknownOperator);
+    registerEquivOp(SqlStdOperatorTable.IS_NOT_UNKNOWN);
+    registerEquivOp(SqlStdOperatorTable.IS_UNKNOWN);
 
-    registerEquivOp(SqlStdOperatorTable.prefixMinusOperator);
-    registerEquivOp(SqlStdOperatorTable.prefixPlusOperator);
+    registerEquivOp(SqlStdOperatorTable.UNARY_MINUS);
+    registerEquivOp(SqlStdOperatorTable.UNARY_PLUS);
 
-    registerCaseOp(SqlStdOperatorTable.caseOperator);
-    registerEquivOp(SqlStdOperatorTable.concatOperator);
+    registerCaseOp(SqlStdOperatorTable.CASE);
+    registerEquivOp(SqlStdOperatorTable.CONCAT);
 
-    registerEquivOp(SqlStdOperatorTable.betweenOperator);
-    registerEquivOp(SqlStdOperatorTable.symmetricBetweenOperator);
+    registerEquivOp(SqlStdOperatorTable.BETWEEN);
+    registerEquivOp(SqlStdOperatorTable.SYMMETRIC_BETWEEN);
 
-    registerEquivOp(SqlStdOperatorTable.notBetweenOperator);
-    registerEquivOp(SqlStdOperatorTable.symmetricNotBetweenOperator);
+    registerEquivOp(SqlStdOperatorTable.NOT_BETWEEN);
+    registerEquivOp(SqlStdOperatorTable.SYMMETRIC_NOT_BETWEEN);
 
-    registerEquivOp(SqlStdOperatorTable.isNotDistinctFromOperator);
-    registerEquivOp(SqlStdOperatorTable.isDistinctFromOperator);
+    registerEquivOp(SqlStdOperatorTable.IS_NOT_DISTINCT_FROM);
+    registerEquivOp(SqlStdOperatorTable.IS_DISTINCT_FROM);
 
-    registerEquivOp(SqlStdOperatorTable.minusDateOperator);
-    registerEquivOp(SqlStdOperatorTable.extractFunc);
+    registerEquivOp(SqlStdOperatorTable.MINUS_DATE);
+    registerEquivOp(SqlStdOperatorTable.EXTRACT);
 
-    registerEquivOp(SqlStdOperatorTable.substringFunc);
-    registerEquivOp(SqlStdOperatorTable.convertFunc);
-    registerEquivOp(SqlStdOperatorTable.translateFunc);
-    registerEquivOp(SqlStdOperatorTable.overlayFunc);
-    registerEquivOp(SqlStdOperatorTable.trimFunc);
-    registerEquivOp(SqlStdOperatorTable.positionFunc);
-    registerEquivOp(SqlStdOperatorTable.charLengthFunc);
-    registerEquivOp(SqlStdOperatorTable.characterLengthFunc);
-    registerEquivOp(SqlStdOperatorTable.upperFunc);
-    registerEquivOp(SqlStdOperatorTable.lowerFunc);
-    registerEquivOp(SqlStdOperatorTable.initcapFunc);
+    registerEquivOp(SqlStdOperatorTable.SUBSTRING);
+    registerEquivOp(SqlStdOperatorTable.CONVERT);
+    registerEquivOp(SqlStdOperatorTable.TRANSLATE);
+    registerEquivOp(SqlStdOperatorTable.OVERLAY);
+    registerEquivOp(SqlStdOperatorTable.TRIM);
+    registerEquivOp(SqlStdOperatorTable.POSITION);
+    registerEquivOp(SqlStdOperatorTable.CHAR_LENGTH);
+    registerEquivOp(SqlStdOperatorTable.CHARACTER_LENGTH);
+    registerEquivOp(SqlStdOperatorTable.UPPER);
+    registerEquivOp(SqlStdOperatorTable.LOWER);
+    registerEquivOp(SqlStdOperatorTable.INITCAP);
 
-    registerEquivOp(SqlStdOperatorTable.powerFunc);
-    registerEquivOp(SqlStdOperatorTable.sqrtFunc);
-    registerEquivOp(SqlStdOperatorTable.modFunc);
-    registerEquivOp(SqlStdOperatorTable.lnFunc);
-    registerEquivOp(SqlStdOperatorTable.log10Func);
-    registerEquivOp(SqlStdOperatorTable.absFunc);
-    registerEquivOp(SqlStdOperatorTable.expFunc);
-    registerEquivOp(SqlStdOperatorTable.floorFunc);
-    registerEquivOp(SqlStdOperatorTable.ceilFunc);
+    registerEquivOp(SqlStdOperatorTable.POWER);
+    registerEquivOp(SqlStdOperatorTable.SQRT);
+    registerEquivOp(SqlStdOperatorTable.MOD);
+    registerEquivOp(SqlStdOperatorTable.LN);
+    registerEquivOp(SqlStdOperatorTable.LOG10);
+    registerEquivOp(SqlStdOperatorTable.ABS);
+    registerEquivOp(SqlStdOperatorTable.EXP);
+    registerEquivOp(SqlStdOperatorTable.FLOOR);
+    registerEquivOp(SqlStdOperatorTable.CEIL);
 
-    registerEquivOp(SqlStdOperatorTable.nullIfFunc);
-    registerEquivOp(SqlStdOperatorTable.coalesceFunc);
+    registerEquivOp(SqlStdOperatorTable.NULLIF);
+    registerEquivOp(SqlStdOperatorTable.COALESCE);
 
-    registerTypeAppendOp(SqlStdOperatorTable.castFunc);
+    registerTypeAppendOp(SqlStdOperatorTable.CAST);
   }
 
   //~ Methods ----------------------------------------------------------------

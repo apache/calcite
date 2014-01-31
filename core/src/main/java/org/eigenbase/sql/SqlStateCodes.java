@@ -18,7 +18,7 @@
 package org.eigenbase.sql;
 
 /**
- * Contains {@link org.eigenbase.util.Glossary#Sql2003} SQL state codes. Sql
+ * Contains {@link org.eigenbase.util.Glossary#SQL2003} SQL state codes. Sql
  * Sate codes are defined in
  *
  * <pre><code> &#64;sql.2003 Part 2 Section 23.1</code></pre>

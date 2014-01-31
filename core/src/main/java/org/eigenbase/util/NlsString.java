@@ -47,17 +47,15 @@ public class NlsString implements Comparable<NlsString> {
    * @param collation   Collation, may be null
    * @throws IllegalCharsetNameException If the given charset name is illegal
    * @throws UnsupportedCharsetException If no support for the named charset
-   *                                     is available in this instance of the
-   *                                     Java virtual machine
-   * @throws RuntimeException            If the given value cannot be represented in the
-   *                                     given charset
+   *     is available in this instance of the Java virtual machine
+   * @throws RuntimeException If the given value cannot be represented in the
+   *     given charset
    * @pre theString != null
    */
   public NlsString(
       String value,
       String charsetName,
-      SqlCollation collation)
-    throws IllegalCharsetNameException, UnsupportedCharsetException {
+      SqlCollation collation) {
     Util.pre(value != null, "theString != null");
     if (null != charsetName) {
       charsetName = charsetName.toUpperCase();

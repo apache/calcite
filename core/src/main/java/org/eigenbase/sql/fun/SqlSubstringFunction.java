@@ -43,7 +43,7 @@ public class SqlSubstringFunction extends SqlFunction {
         SqlTypeStrategies.rtiNullableVaryingFirstArgType,
         null,
         null,
-        SqlFunctionCategory.String);
+        SqlFunctionCategory.STRING);
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -61,7 +61,7 @@ public class SqlSubstringFunction extends SqlFunction {
 
   public String getAllowedSignatures(String opName) {
     StringBuilder ret = new StringBuilder();
-    for (Ord<SqlTypeName> typeName : Ord.zip(SqlTypeName.stringTypes)) {
+    for (Ord<SqlTypeName> typeName : Ord.zip(SqlTypeName.STRING_TYPES)) {
       if (typeName.i > 0) {
         ret.append(NL);
       }

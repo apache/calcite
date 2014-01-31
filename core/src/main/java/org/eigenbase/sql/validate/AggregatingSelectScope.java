@@ -97,7 +97,7 @@ public class AggregatingSelectScope
           : ((SelectScope) parent).getExpandedSelectList()) {
         if (SqlUtil.isCallTo(
             selectItem,
-            SqlStdOperatorTable.asOperator)) {
+            SqlStdOperatorTable.AS)) {
           groupExprs.add(((SqlCall) selectItem).getOperands()[0]);
         } else {
           groupExprs.add(selectItem);

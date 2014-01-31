@@ -20,23 +20,21 @@ package org.eigenbase.sql;
 import org.eigenbase.util.*;
 
 /**
- * <code>SqlFunctionCategory</codde> is an enumeration of the categories of
+ * Enumeration of the categories of
  * SQL-invoked routines.
  */
 public enum SqlFunctionCategory {
-  String("STRING", "String function"), Numeric("NUMERIC", "Numeric function"),
-  TimeDate("TIMEDATE", "Time and date function"),
-  System("SYSTEM", "System function"),
-  UserDefinedFunction("UDF", "User-defined function"),
-  UserDefinedProcedure("UDP", "User-defined procedure"),
-  UserDefinedConstructor("UDC", "User-defined constructor"),
-  UserDefinedSpecificFunction(
-      "UDF_SPECIFIC",
+  STRING("STRING", "String function"),
+  NUMERIC("NUMERIC", "Numeric function"),
+  TIMEDATE("TIMEDATE", "Time and date function"),
+  SYSTEM("SYSTEM", "System function"),
+  USER_DEFINED_FUNCTION("UDF", "User-defined function"),
+  USER_DEFINED_PROCEDURE("UDP", "User-defined procedure"),
+  USER_DEFINED_CONSTRUCTOR("UDC", "User-defined constructor"),
+  USER_DEFINED_SPECIFIC_FUNCTION("UDF_SPECIFIC",
       "User-defined function with SPECIFIC name");
 
-  SqlFunctionCategory(
-      String abbrev,
-      String description) {
+  SqlFunctionCategory(String abbrev, String description) {
     Util.discard(abbrev);
     Util.discard(description);
   }

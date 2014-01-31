@@ -46,7 +46,7 @@ public class SqlHistogramAggFunction extends SqlAggFunction {
         SqlTypeStrategies.rtiHistogram,
         null,
         SqlTypeStrategies.otcNumericOrString,
-        SqlFunctionCategory.Numeric);
+        SqlFunctionCategory.NUMERIC);
     this.type = type;
   }
 

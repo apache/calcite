@@ -55,7 +55,7 @@ public class SqlInfixOperator extends SqlSpecialOperator {
   //~ Methods ----------------------------------------------------------------
 
   public SqlSyntax getSyntax() {
-    return SqlSyntax.Special;
+    return SqlSyntax.SPECIAL;
   }
 
   public void unparse(

@@ -58,7 +58,7 @@ public class MaterializationTest {
 
   @Test public void testFilterQueryOnProjectView() {
     try {
-      Prepare.TRIM = true;
+      Prepare.trim = true;
       MaterializationService.setThreadLocal();
       OptiqAssert.that()
           .with(OptiqAssert.Config.REGULAR)
@@ -73,7 +73,7 @@ public class MaterializationTest {
               "EnumerableTableAccessRel(table=[[hr, m0]])")
           .sameResultWithMaterializationsDisabled();
     } finally {
-      Prepare.TRIM = false;
+      Prepare.trim = false;
     }
   }
 
@@ -88,7 +88,7 @@ public class MaterializationTest {
   private void checkMaterialize(String materialize, String query,
       String model) {
     try {
-      Prepare.TRIM = true;
+      Prepare.trim = true;
       MaterializationService.setThreadLocal();
       OptiqAssert.that()
           .with(OptiqAssert.Config.REGULAR)
@@ -99,7 +99,7 @@ public class MaterializationTest {
               "EnumerableTableAccessRel(table=[[hr, m0]])")
           .sameResultWithMaterializationsDisabled();
     } finally {
-      Prepare.TRIM = false;
+      Prepare.trim = false;
     }
   }
 
@@ -108,7 +108,7 @@ public class MaterializationTest {
   private void checkNoMaterialize(String materialize, String query,
       String model) {
     try {
-      Prepare.TRIM = true;
+      Prepare.trim = true;
       MaterializationService.setThreadLocal();
       OptiqAssert.that()
           .with(OptiqAssert.Config.REGULAR)
@@ -118,7 +118,7 @@ public class MaterializationTest {
           .explainContains(
               "EnumerableTableAccessRel(table=[[hr, emps]])");
     } finally {
-      Prepare.TRIM = false;
+      Prepare.trim = false;
     }
   }
 
@@ -224,7 +224,7 @@ public class MaterializationTest {
     // The expression "$0 = 1".
     final RexNode i0_eq_0 =
         rexBuilder.makeCall(
-            SqlStdOperatorTable.equalsOperator,
+            SqlStdOperatorTable.EQUALS,
             rexBuilder.makeInputRef(
                 typeFactory.createType(int.class), 0),
             rexBuilder.makeExactLiteral(BigDecimal.ZERO));
@@ -235,7 +235,7 @@ public class MaterializationTest {
     // "$0 = 1 AND TRUE" may be satisfiable
     final RexNode e0 =
         rexBuilder.makeCall(
-            SqlStdOperatorTable.andOperator,
+            SqlStdOperatorTable.AND,
             i0_eq_0,
             rexBuilder.makeLiteral(true));
     checkSatisfiable(e0, "=($0, 0)");
@@ -243,7 +243,7 @@ public class MaterializationTest {
     // "$0 = 1 AND FALSE" is not satisfiable
     final RexNode e1 =
         rexBuilder.makeCall(
-            SqlStdOperatorTable.andOperator,
+            SqlStdOperatorTable.AND,
             i0_eq_0,
             rexBuilder.makeLiteral(false));
     checkNotSatisfiable(e1);
@@ -251,27 +251,27 @@ public class MaterializationTest {
     // "$0 = 0 AND NOT $0 = 0" is not satisfiable
     final RexNode e2 =
         rexBuilder.makeCall(
-            SqlStdOperatorTable.andOperator,
+            SqlStdOperatorTable.AND,
             i0_eq_0,
             rexBuilder.makeCall(
-                SqlStdOperatorTable.notOperator,
+                SqlStdOperatorTable.NOT,
                 i0_eq_0));
     checkNotSatisfiable(e2);
 
     // "TRUE AND NOT $0 = 0" may be satisfiable. Can simplify.
     final RexNode e3 =
         rexBuilder.makeCall(
-            SqlStdOperatorTable.andOperator,
+            SqlStdOperatorTable.AND,
             rexBuilder.makeLiteral(true),
             rexBuilder.makeCall(
-                SqlStdOperatorTable.notOperator,
+                SqlStdOperatorTable.NOT,
                 i0_eq_0));
     checkSatisfiable(e3, "NOT(=($0, 0))");
 
     // The expression "$1 = 1".
     final RexNode i1_eq_1 =
         rexBuilder.makeCall(
-            SqlStdOperatorTable.equalsOperator,
+            SqlStdOperatorTable.EQUALS,
             rexBuilder.makeInputRef(
                 typeFactory.createType(int.class), 1),
             rexBuilder.makeExactLiteral(BigDecimal.ONE));
@@ -279,34 +279,34 @@ public class MaterializationTest {
     // "$0 = 0 AND $1 = 1 AND NOT $0 = 0" is not satisfiable
     final RexNode e4 =
         rexBuilder.makeCall(
-            SqlStdOperatorTable.andOperator,
+            SqlStdOperatorTable.AND,
             i0_eq_0,
             rexBuilder.makeCall(
-                SqlStdOperatorTable.andOperator,
+                SqlStdOperatorTable.AND,
                 i1_eq_1,
                 rexBuilder.makeCall(
-                    SqlStdOperatorTable.notOperator, i0_eq_0)));
+                    SqlStdOperatorTable.NOT, i0_eq_0)));
     checkNotSatisfiable(e4);
 
     // "$0 = 0 AND NOT $1 = 1" may be satisfiable. Can't simplify.
     final RexNode e5 =
         rexBuilder.makeCall(
-            SqlStdOperatorTable.andOperator,
+            SqlStdOperatorTable.AND,
             i0_eq_0,
             rexBuilder.makeCall(
-                SqlStdOperatorTable.notOperator,
+                SqlStdOperatorTable.NOT,
                 i1_eq_1));
     checkSatisfiable(e5, "AND(=($0, 0), NOT(=($1, 1)))");
 
     // "$0 = 0 AND NOT ($0 = 0 AND $1 = 1)" may be satisfiable. Can simplify.
     final RexNode e6 =
         rexBuilder.makeCall(
-            SqlStdOperatorTable.andOperator,
+            SqlStdOperatorTable.AND,
             i0_eq_0,
             rexBuilder.makeCall(
-                SqlStdOperatorTable.notOperator,
+                SqlStdOperatorTable.NOT,
                 rexBuilder.makeCall(
-                    SqlStdOperatorTable.andOperator,
+                    SqlStdOperatorTable.AND,
                     i0_eq_0,
                     i1_eq_1)));
     checkSatisfiable(e6, "AND(=($0, 0), NOT(AND(=($0, 0), =($1, 1))))");
@@ -314,13 +314,13 @@ public class MaterializationTest {
     // "$0 = 0 AND ($1 = 1 AND NOT ($0 = 0))" is not satisfiable.
     final RexNode e7 =
         rexBuilder.makeCall(
-            SqlStdOperatorTable.andOperator,
+            SqlStdOperatorTable.AND,
             i0_eq_0,
             rexBuilder.makeCall(
-                SqlStdOperatorTable.andOperator,
+                SqlStdOperatorTable.AND,
                 i1_eq_1,
                 rexBuilder.makeCall(
-                    SqlStdOperatorTable.notOperator,
+                    SqlStdOperatorTable.NOT,
                     i0_eq_0)));
     checkNotSatisfiable(e7);
 
@@ -343,23 +343,23 @@ public class MaterializationTest {
     // be satisfiable. Can't simplify.
     final RexNode e8 =
         rexBuilder.makeCall(
-            SqlStdOperatorTable.andOperator,
+            SqlStdOperatorTable.AND,
             i0_eq_0,
             rexBuilder.makeCall(
-                SqlStdOperatorTable.andOperator,
+                SqlStdOperatorTable.AND,
                 i2,
                 rexBuilder.makeCall(
-                    SqlStdOperatorTable.andOperator,
+                    SqlStdOperatorTable.AND,
                     i3,
                     rexBuilder.makeCall(
-                        SqlStdOperatorTable.notOperator,
+                        SqlStdOperatorTable.NOT,
                         rexBuilder.makeCall(
-                            SqlStdOperatorTable.andOperator,
+                            SqlStdOperatorTable.AND,
                             i2,
                             i3,
                             i4)),
                     rexBuilder.makeCall(
-                        SqlStdOperatorTable.notOperator,
+                        SqlStdOperatorTable.NOT,
                         i4))));
     checkSatisfiable(e8,
         "AND(=($0, 0), $2, $3, NOT(AND($2, $3, $4)), NOT($4))");

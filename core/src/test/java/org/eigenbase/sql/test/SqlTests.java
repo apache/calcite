@@ -22,7 +22,6 @@ import java.util.*;
 import java.util.regex.Pattern;
 
 import org.eigenbase.reltype.*;
-import org.eigenbase.sql.*;
 import org.eigenbase.sql.type.*;
 
 import org.junit.Assert;
@@ -36,16 +35,16 @@ import static org.eigenbase.sql.test.SqlTester.*;
 public abstract class SqlTests {
   //~ Static fields/initializers ---------------------------------------------
 
-  public static final TypeChecker IntegerTypeChecker =
+  public static final TypeChecker INTEGER_TYPE_CHECKER =
       new SqlTypeChecker(SqlTypeName.INTEGER);
 
-  public static final TypeChecker BooleanTypeChecker =
+  public static final TypeChecker BOOLEAN_TYPE_CHECKER =
       new SqlTypeChecker(SqlTypeName.BOOLEAN);
 
   /**
    * Checker which allows any type.
    */
-  public static final TypeChecker AnyTypeChecker =
+  public static final TypeChecker ANY_TYPE_CHECKER =
       new TypeChecker() {
         public void checkType(RelDataType type) {
         }

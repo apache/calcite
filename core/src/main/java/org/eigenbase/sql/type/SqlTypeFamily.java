@@ -120,11 +120,11 @@ public enum SqlTypeFamily implements RelDataTypeFamily {
   public List<SqlTypeName> getTypeNames() {
     switch (this) {
     case CHARACTER:
-      return SqlTypeName.charTypes;
+      return SqlTypeName.CHAR_TYPES;
     case BINARY:
-      return SqlTypeName.binaryTypes;
+      return SqlTypeName.BINARY_TYPES;
     case NUMERIC:
-      return SqlTypeName.numericTypes;
+      return SqlTypeName.NUMERIC_TYPES;
     case DATE:
       return ImmutableList.of(SqlTypeName.DATE);
     case TIME:
@@ -132,23 +132,23 @@ public enum SqlTypeFamily implements RelDataTypeFamily {
     case TIMESTAMP:
       return ImmutableList.of(SqlTypeName.TIMESTAMP);
     case BOOLEAN:
-      return SqlTypeName.booleanTypes;
+      return SqlTypeName.BOOLEAN_TYPES;
     case INTERVAL_YEAR_MONTH:
       return ImmutableList.of(SqlTypeName.INTERVAL_YEAR_MONTH);
     case INTERVAL_DAY_TIME:
       return ImmutableList.of(SqlTypeName.INTERVAL_DAY_TIME);
     case STRING:
-      return SqlTypeName.stringTypes;
+      return SqlTypeName.STRING_TYPES;
     case APPROXIMATE_NUMERIC:
-      return SqlTypeName.approxTypes;
+      return SqlTypeName.APPROX_TYPES;
     case EXACT_NUMERIC:
-      return SqlTypeName.exactTypes;
+      return SqlTypeName.EXACT_TYPES;
     case INTEGER:
-      return SqlTypeName.intTypes;
+      return SqlTypeName.INT_TYPES;
     case DATETIME:
-      return SqlTypeName.datetimeTypes;
+      return SqlTypeName.DATETIME_TYPES;
     case DATETIME_INTERVAL:
-      return SqlTypeName.intervalTypes;
+      return SqlTypeName.INTERVAL_TYPES;
     case MULTISET:
       return ImmutableList.of(SqlTypeName.MULTISET);
     case ARRAY:
@@ -158,7 +158,7 @@ public enum SqlTypeFamily implements RelDataTypeFamily {
     case NULL:
       return ImmutableList.of(SqlTypeName.NULL);
     case ANY:
-      return SqlTypeName.allTypes;
+      return SqlTypeName.ALL_TYPES;
     case CURSOR:
       return ImmutableList.of(SqlTypeName.CURSOR);
     case COLUMN_LIST:

@@ -429,7 +429,9 @@ public class RexProgram {
         }
       }
     }
-    if (false && RexUtil.containCommonExprs(exprs, fail)) { // todo: enable
+    // todo: enable
+    // CHECKSTYLE: IGNORE 1
+    if (false && RexUtil.containCommonExprs(exprs, fail)) {
       assert !fail;
       return false;
     }
@@ -454,6 +456,7 @@ public class RexProgram {
               public int size() {
                 return exprs.size();
               }
+              // CHECKSTYLE: IGNORE 1
             });
     if (condition != null) {
       if (!SqlTypeUtil.inBooleanFamily(condition.getType())) {
@@ -698,7 +701,7 @@ public class RexProgram {
       RexNode expr = exprs.get(index);
       if (expr instanceof RexCall
           && ((RexCall) expr).getOperator()
-          == SqlStdOperatorTable.inFennelFunc) {
+          == SqlStdOperatorTable.IN_FENNEL) {
         // drill through identity function
         expr = ((RexCall) expr).getOperands().get(0);
       }

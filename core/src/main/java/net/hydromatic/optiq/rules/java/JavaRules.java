@@ -834,10 +834,10 @@ public class JavaRules {
       implements EnumerableRel {
     private static final List<Aggregation> SUPPORTED_AGGREGATIONS =
         Arrays.<Aggregation>asList(
-            SqlStdOperatorTable.countOperator,
-            SqlStdOperatorTable.minOperator,
-            SqlStdOperatorTable.maxOperator,
-            SqlStdOperatorTable.sumOperator);
+            SqlStdOperatorTable.COUNT,
+            SqlStdOperatorTable.MIN,
+            SqlStdOperatorTable.MAX,
+            SqlStdOperatorTable.SUM);
 
     public EnumerableAggregateRel(
         RelOptCluster cluster,

@@ -138,7 +138,7 @@ public class FoodmartTest {
   }
 
   public static class FoodMartQuerySet {
-    private static SoftReference<FoodMartQuerySet> REF;
+    private static SoftReference<FoodMartQuerySet> ref;
 
     final Map<Integer, FoodmartQuery> queries =
         new LinkedHashMap<Integer, FoodmartQuery>();
@@ -159,15 +159,15 @@ public class FoodmartTest {
      * soft reference, so it may be freed if memory is short and no one is
      * using it. */
     public static FoodMartQuerySet instance() throws IOException {
-      SoftReference<FoodMartQuerySet> ref = REF;
-      if (ref != null) {
-        FoodMartQuerySet set = ref.get();
+      final SoftReference<FoodMartQuerySet> refLocal = ref;
+      if (refLocal != null) {
+        final FoodMartQuerySet set = refLocal.get();
         if (set != null) {
           return set;
         }
       }
       final FoodMartQuerySet set = new FoodMartQuerySet();
-      REF = new SoftReference<FoodMartQuerySet>(set);
+      ref = new SoftReference<FoodMartQuerySet>(set);
       return set;
     }
   }

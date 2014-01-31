@@ -62,7 +62,7 @@ public abstract class Prepare {
   protected List<List<String>> fieldOrigins;
   protected RelDataType parameterRowType;
 
-  public static boolean TRIM = false; // temporary. for testing.
+  public static boolean trim = false; // temporary. for testing.
 
   public Prepare(OptiqPrepare.Context context, CatalogReader catalogReader,
       Convention resultConvention) {
@@ -342,7 +342,7 @@ public abstract class Prepare {
     // For now, don't trim if there are more than 3 joins. The projects
     // near the leaves created by trim migrate past joins and seem to
     // prevent join-reordering.
-    return TRIM || countJoins(rootRel) < 2;
+    return trim || countJoins(rootRel) < 2;
   }
 
   /** Returns the number of {@link JoinRelBase} nodes in a tree. */

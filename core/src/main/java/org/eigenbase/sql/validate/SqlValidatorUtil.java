@@ -34,6 +34,8 @@ import net.hydromatic.optiq.prepare.Prepare;
  * Utility methods related to validation.
  */
 public class SqlValidatorUtil {
+  private SqlValidatorUtil() {}
+
   //~ Methods ----------------------------------------------------------------
 
   /**
@@ -129,7 +131,7 @@ public class SqlValidatorUtil {
       String alias) {
     final SqlParserPos pos = expr.getParserPosition();
     final SqlIdentifier id = new SqlIdentifier(alias, pos);
-    return SqlStdOperatorTable.asOperator.createCall(pos, expr, id);
+    return SqlStdOperatorTable.AS.createCall(pos, expr, id);
   }
 
   /**
@@ -189,7 +191,7 @@ public class SqlValidatorUtil {
       }
     }
     final String originalName = name;
-    for (int j = 0; ; j++) {
+    for (int j = 0;; j++) {
       name = suggester.apply(originalName, j, nameList.size());
       if (nameList.add(name)) {
         return name;

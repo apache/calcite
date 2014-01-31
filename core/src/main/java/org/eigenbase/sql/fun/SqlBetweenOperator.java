@@ -44,10 +44,8 @@ import org.eigenbase.util.*;
 public class SqlBetweenOperator extends SqlInfixOperator {
   //~ Static fields/initializers ---------------------------------------------
 
-  private static final String[] betweenNames =
-      new String[]{"BETWEEN", "AND"};
-  private static final String[] notBetweenNames =
-      new String[]{"NOT BETWEEN", "AND"};
+  private static final String[] BETWEEN_NAMES = {"BETWEEN", "AND"};
+  private static final String[] NOT_BETWEEN_NAMES = {"NOT BETWEEN", "AND"};
 
   /**
    * Ordinal of the 'value' operand.
@@ -67,11 +65,11 @@ public class SqlBetweenOperator extends SqlInfixOperator {
   /**
    * Custom operand-type checking strategy.
    */
-  private static final SqlOperandTypeChecker otcCustom =
+  private static final SqlOperandTypeChecker OTC_CUSTOM =
       new ComparableOperandTypeChecker(
           3,
           RelDataTypeComparability.All);
-  private static final SqlWriter.FrameType BetweenFrameType =
+  private static final SqlWriter.FrameType FRAME_TYPE =
       SqlWriter.FrameTypeEnum.create("BETWEEN");
 
   //~ Enums ------------------------------------------------------------------
@@ -98,12 +96,11 @@ public class SqlBetweenOperator extends SqlInfixOperator {
       Flag flag,
       boolean negated) {
     super(
-        negated ? notBetweenNames : betweenNames,
+        negated ? NOT_BETWEEN_NAMES : BETWEEN_NAMES,
         SqlKind.BETWEEN,
         30,
         null,
-        null,
-        otcCustom);
+        null, OTC_CUSTOM);
     this.flag = flag;
     this.negated = negated;
   }
@@ -152,7 +149,7 @@ public class SqlBetweenOperator extends SqlInfixOperator {
       int leftPrec,
       int rightPrec) {
     final SqlWriter.Frame frame =
-        writer.startList(BetweenFrameType, "", "");
+        writer.startList(FRAME_TYPE, "", "");
     operands[VALUE_OPERAND].unparse(
         writer, getLeftPrec(), 0);
     writer.sep(getName());
@@ -270,7 +267,7 @@ public class SqlBetweenOperator extends SqlInfixOperator {
   private static class AndFinder extends SqlBasicVisitor<Void> {
     public Void visit(SqlCall call) {
       final SqlOperator operator = call.getOperator();
-      if (operator == SqlStdOperatorTable.andOperator) {
+      if (operator == SqlStdOperatorTable.AND) {
         throw new Found();
       }
       return super.visit(call);

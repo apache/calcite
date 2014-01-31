@@ -103,7 +103,7 @@ public abstract class ReflectiveSqlOperatorTable implements SqlOperatorTable {
     for (SqlOperator op : list) {
       if (op.getSyntax() == syntax) {
         overloads.add(op);
-      } else if (syntax == SqlSyntax.Function
+      } else if (syntax == SqlSyntax.FUNCTION
           && op instanceof SqlFunction) {
         // this special case is needed for operators like CAST,
         // which are treated as functions but have special syntax
@@ -114,9 +114,9 @@ public abstract class ReflectiveSqlOperatorTable implements SqlOperatorTable {
     // REVIEW jvs 1-Jan-2005:  why is this extra lookup required?
     // Shouldn't it be covered by search above?
     switch (syntax) {
-    case Binary:
-    case Prefix:
-    case Postfix:
+    case BINARY:
+    case PREFIX:
+    case POSTFIX:
       SqlOperator extra = mapNameToOp.get(Pair.of(simpleName, syntax));
       if ((extra != null) && !overloads.contains(extra)) {
         overloads.add(extra);
@@ -130,11 +130,11 @@ public abstract class ReflectiveSqlOperatorTable implements SqlOperatorTable {
   public void register(SqlOperator op) {
     operators.put(op.getName(), op);
     if (op instanceof SqlBinaryOperator) {
-      mapNameToOp.put(Pair.of(op.getName(), SqlSyntax.Binary), op);
+      mapNameToOp.put(Pair.of(op.getName(), SqlSyntax.BINARY), op);
     } else if (op instanceof SqlPrefixOperator) {
-      mapNameToOp.put(Pair.of(op.getName(), SqlSyntax.Prefix), op);
+      mapNameToOp.put(Pair.of(op.getName(), SqlSyntax.PREFIX), op);
     } else if (op instanceof SqlPostfixOperator) {
-      mapNameToOp.put(Pair.of(op.getName(), SqlSyntax.Postfix), op);
+      mapNameToOp.put(Pair.of(op.getName(), SqlSyntax.POSTFIX), op);
     }
   }
 

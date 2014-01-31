@@ -127,7 +127,8 @@ public class JdbcTest {
    * The function returns a {@link Queryable}.
    */
   @Ignore
-  @Test public void testTableFunction() throws SQLException, ClassNotFoundException {
+  @Test public void testTableFunction()
+    throws SQLException, ClassNotFoundException {
     Class.forName("net.hydromatic.optiq.jdbc.Driver");
     Connection connection =
         DriverManager.getConnection("jdbc:optiq:");
@@ -168,7 +169,7 @@ public class JdbcTest {
             new BaseQueryable<IntString>(null, IntString.class, null) {
               public Enumerator<IntString> enumerator() {
                 return new Enumerator<IntString>() {
-                  static final String z = "abcdefghijklm";
+                  static final String Z = "abcdefghijklm";
 
                   int i = -1;
                   IntString o;
@@ -179,7 +180,7 @@ public class JdbcTest {
 
                   public boolean moveNext() {
                     if (i < count - 1) {
-                      o = new IntString(i, z.substring(0, i % z.length()));
+                      o = new IntString(i, Z.substring(0, i % Z.length()));
                       ++i;
                       return true;
                     } else {
@@ -374,7 +375,8 @@ public class JdbcTest {
   }
 
   /** Tests driver's implementation of {@link DatabaseMetaData#getColumns}. */
-  @Test public void testMetaDataColumns() throws ClassNotFoundException, SQLException {
+  @Test public void testMetaDataColumns()
+    throws ClassNotFoundException, SQLException {
     Connection connection = OptiqAssert.getConnection("hr", "foodmart");
     DatabaseMetaData metaData = connection.getMetaData();
     ResultSet resultSet = metaData.getColumns(null, null, null, null);
@@ -393,7 +395,8 @@ public class JdbcTest {
 
   /** Tests driver's implementation of {@link DatabaseMetaData#getPrimaryKeys}.
    * It is empty but it should still have column definitions. */
-  @Test public void testMetaDataPrimaryKeys() throws ClassNotFoundException, SQLException {
+  @Test public void testMetaDataPrimaryKeys()
+    throws ClassNotFoundException, SQLException {
     Connection connection = OptiqAssert.getConnection("hr", "foodmart");
     DatabaseMetaData metaData = connection.getMetaData();
     ResultSet resultSet = metaData.getPrimaryKeys(null, null, null);
@@ -438,7 +441,8 @@ public class JdbcTest {
   }
 
   /** Tests driver's implementation of {@link DatabaseMetaData#getColumns}. */
-  @Test public void testResultSetMetaData() throws ClassNotFoundException, SQLException {
+  @Test public void testResultSetMetaData()
+    throws ClassNotFoundException, SQLException {
     Connection connection = OptiqAssert.getConnection("hr", "foodmart");
     Statement statement = connection.createStatement();
     ResultSet resultSet =
@@ -532,7 +536,8 @@ public class JdbcTest {
             });
   }
 
-  @Test public void testCloneSchema() throws ClassNotFoundException, SQLException {
+  @Test public void testCloneSchema()
+    throws ClassNotFoundException, SQLException {
     final OptiqConnection connection = OptiqAssert.getConnection(false);
     final SchemaPlus rootSchema = connection.getRootSchema();
     final SchemaPlus foodmart = rootSchema.getSubSchema("foodmart");
@@ -612,7 +617,7 @@ public class JdbcTest {
             + "c0=1998\n");
   }
 
-  private static final String[] queries = {
+  private static final String[] QUERIES = {
     "select count(*) from (select 1 as \"c0\" from \"salary\" as \"salary\") as \"init\"",
     "EXPR$0=21252\n",
     "select count(*) from (select 1 as \"c0\" from \"salary\" as \"salary2\") as \"init\"",
@@ -903,7 +908,7 @@ public class JdbcTest {
   };
 
   public static final List<Pair<String, String>> FOODMART_QUERIES =
-      querify(queries);
+      querify(QUERIES);
 
   /** Janino bug
    * <a href="https://jira.codehaus.org/browse/JANINO-169">JANINO-169</a>
@@ -1475,7 +1480,7 @@ public class JdbcTest {
 
   /** Query that uses parenthesized JOIN. */
   @Test public void testSql92JoinParenthesized() {
-    if (!Bug.TodoFixed) {
+    if (!Bug.TODO_FIXED) {
       return;
     }
     OptiqAssert.that()
@@ -2195,7 +2200,8 @@ public class JdbcTest {
   }
 
   /** Tests that an immutable schema in a model cannot contain a view. */
-  @Test public void testModelImmutableSchemaCannotContainView() throws Exception {
+  @Test public void testModelImmutableSchemaCannotContainView()
+    throws Exception {
     final OptiqAssert.AssertThat that =
         OptiqAssert.that().withModel(
             "{\n"
@@ -2553,15 +2559,15 @@ public class JdbcTest {
         + ")) AS t(ts0, /* tstz, */ ts, t, /* tz, */ d)");
     assertTrue(rs.next());
 
-    TimeZone UTC   = TimeZone.getTimeZone("UTC");    // +0000 always
-    TimeZone GMT03 = TimeZone.getTimeZone("GMT+03"); // +0300 always
-    TimeZone GMT05 = TimeZone.getTimeZone("GMT-05"); // -0500 always
-    TimeZone GMT13 = TimeZone.getTimeZone("GMT+13"); // +1000 always
+    TimeZone tzUtc   = TimeZone.getTimeZone("UTC");    // +0000 always
+    TimeZone tzGmt03 = TimeZone.getTimeZone("GMT+03"); // +0300 always
+    TimeZone tzGmt05 = TimeZone.getTimeZone("GMT-05"); // -0500 always
+    TimeZone tzGmt13 = TimeZone.getTimeZone("GMT+13"); // +1000 always
 
-    Calendar cUTC   = Calendar.getInstance(UTC);
-    Calendar cGMT03 = Calendar.getInstance(GMT03);
-    Calendar cGMT05 = Calendar.getInstance(GMT05);
-    Calendar cGMT13 = Calendar.getInstance(GMT13);
+    Calendar cUtc   = Calendar.getInstance(tzUtc);
+    Calendar cGmt03 = Calendar.getInstance(tzGmt03);
+    Calendar cGmt05 = Calendar.getInstance(tzGmt05);
+    Calendar cGmt13 = Calendar.getInstance(tzGmt13);
 
     Timestamp ts;
     String s;
@@ -2570,13 +2576,13 @@ public class JdbcTest {
     // timestamp: 1970-01-01 00:00:00
     ts = rs.getTimestamp(c);                     // Convert timestamp to +0100
     assertEquals(-3600000L,      ts.getTime());  // 1970-01-01 00:00:00 +0100
-    ts = rs.getTimestamp(c, cUTC);               // Convert timestamp to UTC
+    ts = rs.getTimestamp(c, cUtc);               // Convert timestamp to UTC
     assertEquals(0L,             ts.getTime());  // 1970-01-01 00:00:00 +0000
-    ts = rs.getTimestamp(c, cGMT03);             // Convert timestamp to +0300
+    ts = rs.getTimestamp(c, cGmt03);             // Convert timestamp to +0300
     assertEquals(-10800000L,     ts.getTime());  // 1970-01-01 00:00:00 +0300
-    ts = rs.getTimestamp(c, cGMT05);             // Convert timestamp to -0500
+    ts = rs.getTimestamp(c, cGmt05);             // Convert timestamp to -0500
     assertEquals(18000000L,      ts.getTime());  // 1970-01-01 00:00:00 -0500
-    ts = rs.getTimestamp(c, cGMT13);             // Convert timestamp to +1300
+    ts = rs.getTimestamp(c, cGmt13);             // Convert timestamp to +1300
     assertEquals(-46800000,      ts.getTime());  // 1970-01-01 00:00:00 +1300
     s = rs.getString(c);
     assertEquals("1970-01-01 00:00:00", s);
@@ -2587,13 +2593,13 @@ public class JdbcTest {
       ts = rs.getTimestamp(c);                      // Represents an instant in
                                                     // time, TZ is irrelevant.
       assertEquals(1104580800000L, ts.getTime());   // 2005-01-01 12:00:00 UTC
-      ts = rs.getTimestamp(c, cUTC);                // TZ irrelevant, as above
+      ts = rs.getTimestamp(c, cUtc);                // TZ irrelevant, as above
       assertEquals(1104580800000L, ts.getTime());   // 2005-01-01 12:00:00 UTC
-      ts = rs.getTimestamp(c, cGMT03);              // TZ irrelevant, as above
+      ts = rs.getTimestamp(c, cGmt03);              // TZ irrelevant, as above
       assertEquals(1104580800000L, ts.getTime());   // 2005-01-01 12:00:00 UTC
-      ts = rs.getTimestamp(c, cGMT05);              // TZ irrelevant, as above
+      ts = rs.getTimestamp(c, cGmt05);              // TZ irrelevant, as above
       assertEquals(1104580800000L, ts.getTime());   // 2005-01-01 12:00:00 UTC
-      ts = rs.getTimestamp(c, cGMT13);              // TZ irrelevant, as above
+      ts = rs.getTimestamp(c, cGmt13);              // TZ irrelevant, as above
       assertEquals(1104580800000L, ts.getTime());   // 2005-01-01 12:00:00 UTC
       ++c;
     }
@@ -2601,13 +2607,13 @@ public class JdbcTest {
     // timestamp: 2005-01-01 15:00:00
     ts = rs.getTimestamp(c);                     // Convert timestamp to +0100
     assertEquals(1104588000000L, ts.getTime());  // 2005-01-01 15:00:00 +0100
-    ts = rs.getTimestamp(c, cUTC);               // Convert timestamp to UTC
+    ts = rs.getTimestamp(c, cUtc);               // Convert timestamp to UTC
     assertEquals(1104591600000L, ts.getTime());  // 2005-01-01 15:00:00 +0000
-    ts = rs.getTimestamp(c, cGMT03);             // Convert timestamp to +0300
+    ts = rs.getTimestamp(c, cGmt03);             // Convert timestamp to +0300
     assertEquals(1104580800000L, ts.getTime());  // 2005-01-01 15:00:00 +0300
-    ts = rs.getTimestamp(c, cGMT05);             // Convert timestamp to -0500
+    ts = rs.getTimestamp(c, cGmt05);             // Convert timestamp to -0500
     assertEquals(1104609600000L, ts.getTime());  // 2005-01-01 15:00:00 -0500
-    ts = rs.getTimestamp(c, cGMT13);             // Convert timestamp to +1300
+    ts = rs.getTimestamp(c, cGmt13);             // Convert timestamp to +1300
     assertEquals(1104544800000L, ts.getTime());  // 2005-01-01 15:00:00 +1300
     s = rs.getString(c);
     assertEquals("2005-01-01 15:00:00", s);
@@ -2616,13 +2622,13 @@ public class JdbcTest {
     // time: 15:00:00
     ts = rs.getTimestamp(c);
     assertEquals(50400000L, ts.getTime());        // 1970-01-01 15:00:00 +0100
-    ts = rs.getTimestamp(c, cUTC);
+    ts = rs.getTimestamp(c, cUtc);
     assertEquals(54000000L, ts.getTime());        // 1970-01-01 15:00:00 +0000
-    ts = rs.getTimestamp(c, cGMT03);
+    ts = rs.getTimestamp(c, cGmt03);
     assertEquals(43200000L, ts.getTime());        // 1970-01-01 15:00:00 +0300
-    ts = rs.getTimestamp(c, cGMT05);
+    ts = rs.getTimestamp(c, cGmt05);
     assertEquals(72000000L, ts.getTime());        // 1970-01-01 15:00:00 -0500
-    ts = rs.getTimestamp(c, cGMT13);
+    ts = rs.getTimestamp(c, cGmt13);
     assertEquals(7200000L, ts.getTime());         // 1970-01-01 15:00:00 +1300
     s = rs.getString(c);
     assertEquals("15:00:00", s);
@@ -2633,16 +2639,16 @@ public class JdbcTest {
       ts = rs.getTimestamp(c);
       assertEquals(43200000L, ts.getTime());    // 1970-01-01 15:00:00 +0300 ->
                                                 // 1970-01-01 13:00:00 +0100
-      ts = rs.getTimestamp(c, cUTC);
+      ts = rs.getTimestamp(c, cUtc);
       assertEquals(43200000L, ts.getTime());    // 1970-01-01 15:00:00 +0300 ->
                                                 // 1970-01-01 12:00:00 +0000
-      ts = rs.getTimestamp(c, cGMT03);
+      ts = rs.getTimestamp(c, cGmt03);
       assertEquals(43200000L, ts.getTime());    // 1970-01-01 15:00:00 +0300 ->
                                                 // 1970-01-01 15:00:00 +0300
-      ts = rs.getTimestamp(c, cGMT05);
+      ts = rs.getTimestamp(c, cGmt05);
       assertEquals(43200000L, ts.getTime());    // 1970-01-01 15:00:00 +0300 ->
                                                 // 1970-01-01 07:00:00 -0500
-      ts = rs.getTimestamp(c, cGMT13);
+      ts = rs.getTimestamp(c, cGmt13);
       assertEquals(43200000L, ts.getTime());    // 1970-01-01 15:00:00 +0300 ->
                                                 // 1970-01-02 01:00:00 +1300
       ++c;
@@ -2651,13 +2657,13 @@ public class JdbcTest {
     // date: 2005-01-01
     ts = rs.getTimestamp(c);
     assertEquals(1104534000000L, ts.getTime()); // 2005-01-01 00:00:00 +0100
-    ts = rs.getTimestamp(c, cUTC);
+    ts = rs.getTimestamp(c, cUtc);
     assertEquals(1104537600000L, ts.getTime()); // 2005-01-01 00:00:00 +0000
-    ts = rs.getTimestamp(c, cGMT03);
+    ts = rs.getTimestamp(c, cGmt03);
     assertEquals(1104526800000L, ts.getTime()); // 2005-01-01 00:00:00 +0300
-    ts = rs.getTimestamp(c, cGMT05);
+    ts = rs.getTimestamp(c, cGmt05);
     assertEquals(1104555600000L, ts.getTime()); // 2005-01-01 00:00:00 -0500
-    ts = rs.getTimestamp(c, cGMT13);
+    ts = rs.getTimestamp(c, cGmt13);
     assertEquals(1104490800000L, ts.getTime()); // 2005-01-01 00:00:00 +1300
     s = rs.getString(c);
     assertEquals("2005-01-01", s);              // 2005-01-01 00:00:00 +0100
@@ -2803,6 +2809,9 @@ public class JdbcTest {
             });
   }
 
+  // Disable checkstyle, so it doesn't complain about fields like "customer_id".
+  //CHECKSTYLE: OFF
+
   public static class HrSchema {
     @Override
     public String toString() {
@@ -2931,6 +2940,8 @@ public class JdbcTest {
       this.prod_id = prod_id;
     }
   }
+
+  //CHECKSTYLE: ON
 
   public static class IntString {
     public final int n;

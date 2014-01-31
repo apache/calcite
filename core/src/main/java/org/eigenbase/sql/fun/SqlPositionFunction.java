@@ -17,10 +17,8 @@
 */
 package org.eigenbase.sql.fun;
 
-import org.eigenbase.reltype.*;
 import org.eigenbase.sql.*;
 import org.eigenbase.sql.type.*;
-import org.eigenbase.sql.validate.*;
 
 /**
  * The <code>POSITION</code> function.
@@ -39,7 +37,7 @@ public class SqlPositionFunction extends SqlFunction {
         SqlTypeStrategies.rtiNullableInteger,
         null,
         SqlTypeStrategies.otcStringSameX2,
-        SqlFunctionCategory.Numeric);
+        SqlFunctionCategory.NUMERIC);
   }
 
   //~ Methods ----------------------------------------------------------------

@@ -40,50 +40,43 @@ import org.eigenbase.util.*;
 public class SqlWindow extends SqlCall {
   //~ Static fields/initializers ---------------------------------------------
 
-  /**
-   * Ordinal of the operand which holds the name of the window being declared.
-   */
-  public static final int DeclName_OPERAND = 0;
+  /** Describes the operands that are passed to a window call. */
+  enum Operand {
+    /** The operand that holds the name of the window being declared. */
+    DECL_NAME,
 
-  /**
-   * Ordinal of operand which holds the name of the window being referenced,
-   * or null.
-   */
-  public static final int RefName_OPERAND = 1;
+    /** The operand that holds the name of the window being referenced, or
+     * null. */
+    REF_NAME,
 
-  /**
-   * Ordinal of the operand which holds the list of partitioning columns.
-   */
-  public static final int PartitionList_OPERAND = 2;
+    /** The operand that holds the list of partitioning columns. */
+    PARTITION_LIST,
 
-  /**
-   * Ordinal of the operand which holds the list of ordering columns.
-   */
-  public static final int OrderList_OPERAND = 3;
+    /** The operand that holds the list of ordering columns. */
+    ORDER_LIST,
 
-  /**
-   * Ordinal of the operand which declares whether it is a physical (rows) or
-   * logical (values) range.
-   */
-  public static final int IsRows_OPERAND = 4;
+    /** The operand that declares whether it is a physical (rows) or logical
+     * (values) range. */
+    IS_ROWS,
 
-  /**
-   * Ordinal of the operand which holds the lower bound of the window.
-   */
-  public static final int LowerBound_OPERAND = 5;
+    /** The operand that holds the lower bound of the window. */
+    LOWER_BOUND,
 
-  /**
-   * Ordinal of the operand which holds the upper bound of the window.
-   */
-  public static final int UpperBound_OPERAND = 6;
+    /** The operand that holds the upper bound of the window. */
+    UPPER_BOUND,
 
-  /**
-   * Ordinal of the operand which declares whether to allow partial results.
-   * It may be null.
-   */
-  public static final int AllowPartial_OPERAND = 7;
+    /** The operand that declares whether to allow partial results.
+     * It may be null. */
+    ALLOW_PARTIAL;
 
-  public static final int OperandCount = 8;
+    SqlNode get(SqlNode[] operands) {
+      return operands[ordinal()];
+    }
+
+    void set(SqlNode[] operands, SqlNode value) {
+      operands[ordinal()] = value;
+    }
+  }
 
   //~ Instance fields --------------------------------------------------------
 
@@ -104,17 +97,18 @@ public class SqlWindow extends SqlCall {
       SqlNode[] operands,
       SqlParserPos pos) {
     super(operator, operands, pos);
-    assert operands.length == OperandCount;
-    final SqlIdentifier declId = (SqlIdentifier) operands[DeclName_OPERAND];
-    assert (declId == null) || declId.isSimple() : declId;
-    assert operands[PartitionList_OPERAND] != null;
-    assert operands[OrderList_OPERAND] != null;
+    assert operands.length == Operand.values().length;
+    final SqlIdentifier declId =
+        (SqlIdentifier) Operand.DECL_NAME.get(operands);
+    assert declId == null || declId.isSimple() : declId;
+    assert Operand.PARTITION_LIST.get(operands) != null;
+    assert Operand.ORDER_LIST.get(operands) != null;
   }
 
   //~ Methods ----------------------------------------------------------------
 
   public void unparse(SqlWriter writer, int leftPrec, int rightPrec) {
-    SqlIdentifier declName = (SqlIdentifier) operands[DeclName_OPERAND];
+    SqlIdentifier declName = (SqlIdentifier) Operand.DECL_NAME.get(operands);
     if (null != declName) {
       declName.unparse(writer, 0, 0);
       writer.keyword("AS");
@@ -125,46 +119,46 @@ public class SqlWindow extends SqlCall {
   }
 
   public SqlIdentifier getDeclName() {
-    return (SqlIdentifier) operands[DeclName_OPERAND];
+    return (SqlIdentifier) Operand.DECL_NAME.get(operands);
   }
 
   public void setDeclName(SqlIdentifier name) {
     Util.pre(
         name.isSimple(),
         "name.isSimple()");
-    operands[DeclName_OPERAND] = name;
+    Operand.DECL_NAME.set(operands, name);
   }
 
   public SqlNode getLowerBound() {
-    return operands[LowerBound_OPERAND];
+    return Operand.LOWER_BOUND.get(operands);
   }
 
   public void setLowerBound(SqlNode bound) {
-    operands[LowerBound_OPERAND] = bound;
+    Operand.LOWER_BOUND.set(operands, bound);
   }
 
   public SqlNode getUpperBound() {
-    return operands[UpperBound_OPERAND];
+    return Operand.UPPER_BOUND.get(operands);
   }
 
   public void setUpperBound(SqlNode bound) {
-    operands[UpperBound_OPERAND] = bound;
+    Operand.UPPER_BOUND.set(operands, bound);
   }
 
   public boolean isRows() {
-    return SqlLiteral.booleanValue(operands[IsRows_OPERAND]);
+    return SqlLiteral.booleanValue(Operand.IS_ROWS.get(operands));
   }
 
   public SqlNodeList getOrderList() {
-    return (SqlNodeList) operands[OrderList_OPERAND];
+    return (SqlNodeList) Operand.ORDER_LIST.get(operands);
   }
 
   public SqlNodeList getPartitionList() {
-    return (SqlNodeList) operands[PartitionList_OPERAND];
+    return (SqlNodeList) Operand.PARTITION_LIST.get(operands);
   }
 
   public SqlIdentifier getRefName() {
-    return (SqlIdentifier) operands[RefName_OPERAND];
+    return (SqlIdentifier) Operand.REF_NAME.get(operands);
   }
 
   public void setWindowCall(SqlCall windowCall) {
@@ -211,29 +205,28 @@ public class SqlWindow extends SqlCall {
     }
 
     // 711 rule 10e
-    final SqlNode lowerBound = that.getLowerBound(),
-        upperBound = that.getUpperBound();
+    final SqlNode lowerBound = that.getLowerBound();
+    final SqlNode upperBound = that.getUpperBound();
     if ((null != lowerBound) || (null != upperBound)) {
-      throw validator.newValidationError(
-          that.operands[IsRows_OPERAND],
+      throw validator.newValidationError(Operand.IS_ROWS.get(that.operands),
           EigenbaseResource.instance().RefWindowWithFrame.ex());
     }
 
-    final SqlNode[] newOperands = (SqlNode[]) operands.clone();
+    final SqlNode[] newOperands = operands.clone();
 
     // Clear the reference window, because the reference is now resolved.
     // The overlaying window may have its own reference, of course.
-    newOperands[RefName_OPERAND] = null;
+    Operand.REF_NAME.set(newOperands, null);
 
     // Overlay other parameters.
     setOperand(
         newOperands,
         that.operands,
-        PartitionList_OPERAND,
+        Operand.PARTITION_LIST,
         validator);
-    setOperand(newOperands, that.operands, OrderList_OPERAND, validator);
-    setOperand(newOperands, that.operands, LowerBound_OPERAND, validator);
-    setOperand(newOperands, that.operands, UpperBound_OPERAND, validator);
+    setOperand(newOperands, that.operands, Operand.ORDER_LIST, validator);
+    setOperand(newOperands, that.operands, Operand.LOWER_BOUND, validator);
+    setOperand(newOperands, that.operands, Operand.UPPER_BOUND, validator);
     return new SqlWindow(
         (SqlWindowOperator) getOperator(),
         newOperands,
@@ -243,19 +236,18 @@ public class SqlWindow extends SqlCall {
   private static void setOperand(
       final SqlNode[] destOperands,
       SqlNode[] srcOperands,
-      int i,
+      Operand i,
       SqlValidator validator) {
-    final SqlNode thatOperand = srcOperands[i];
+    final SqlNode thatOperand = i.get(srcOperands);
     if ((thatOperand != null) && !SqlNodeList.isEmptyList(thatOperand)) {
-      final SqlNode clonedOperand = destOperands[i];
+      final SqlNode clonedOperand = i.get(destOperands);
       if ((clonedOperand == null)
           || SqlNodeList.isEmptyList(clonedOperand)) {
-        destOperands[i] = thatOperand;
+        i.set(destOperands, thatOperand);
       } else {
         throw validator.newValidationError(
             clonedOperand,
-            EigenbaseResource.instance().CannotOverrideWindowAttribute
-                .ex());
+            EigenbaseResource.instance().CannotOverrideWindowAttribute.ex());
       }
     }
   }
@@ -312,8 +304,8 @@ public class SqlWindow extends SqlCall {
    */
   public boolean isAllowPartial() {
     // Default (and standard behavior) is to allow partial windows.
-    return (operands[AllowPartial_OPERAND] == null)
-        || SqlLiteral.booleanValue(operands[AllowPartial_OPERAND]);
+    return Operand.ALLOW_PARTIAL.get(operands) == null
+        || SqlLiteral.booleanValue(Operand.ALLOW_PARTIAL.get(operands));
   }
 }
 

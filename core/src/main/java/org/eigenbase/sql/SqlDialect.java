@@ -307,10 +307,10 @@ public class SqlDialect {
       char c = val.charAt(i);
       if (c < 32 || c >= 128) {
         buf.append('\\');
-        buf.append(hex[(c >> 12) & 0xf]);
-        buf.append(hex[(c >> 8) & 0xf]);
-        buf.append(hex[(c >> 4) & 0xf]);
-        buf.append(hex[c & 0xf]);
+        buf.append(HEXITS[(c >> 12) & 0xf]);
+        buf.append(HEXITS[(c >> 8) & 0xf]);
+        buf.append(HEXITS[(c >> 4) & 0xf]);
+        buf.append(HEXITS[c & 0xf]);
       } else if (c == '\'' || c == '\\') {
         buf.append(c);
         buf.append(c);
@@ -321,7 +321,7 @@ public class SqlDialect {
     buf.append("'");
   }
 
-  private static final char[] hex = {
+  private static final char[] HEXITS = {
     '0', '1', '2', '3', '4', '5', '6', '7',
     '8', '9', 'a', 'b', 'c', 'd', 'e', 'f',
   };

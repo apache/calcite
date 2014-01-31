@@ -69,7 +69,7 @@ import java.util.zip.GZIPOutputStream;
  * @version 2.1
  */
 public class RhBase64 {
-    /* ********  P U B L I C   F I E L D S  ******** */
+  // ********  P U B L I C   F I E L D S  ********
 
   //~ Static fields/initializers ---------------------------------------------
 
@@ -98,7 +98,7 @@ public class RhBase64 {
    */
   public static final int DONT_BREAK_LINES = 8;
 
-    /* ********  P R I V A T E   F I E L D S  ******** */
+  // ********  P R I V A T E   F I E L D S  ********
 
   /**
    * Maximum line length (76) of Base64 output.
@@ -124,7 +124,7 @@ public class RhBase64 {
    * The 64 valid Base64 values.
    */
   private static final byte[] ALPHABET;
-  private static final byte[] _NATIVE_ALPHABET = {
+  private static final byte[] NATIVE_ALPHABET = {
     // May be something funny like EBCDIC
     (byte) 'A', (byte) 'B', (byte) 'C', (byte) 'D', (byte) 'E', (byte) 'F',
     (byte) 'G', (byte) 'H', (byte) 'I', (byte) 'J', (byte) 'K', (byte) 'L',
@@ -143,15 +143,15 @@ public class RhBase64 {
    * Determine which ALPHABET to use.
    */
   static {
-    byte[] __bytes;
+    byte[] bytes;
     try {
-      __bytes =
+      bytes =
           "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
               .getBytes(PREFERRED_ENCODING);
     } catch (UnsupportedEncodingException use) {
-      __bytes = _NATIVE_ALPHABET; // Fall back to native encoding
+      bytes = NATIVE_ALPHABET; // Fall back to native encoding
     }
-    ALPHABET = __bytes;
+    ALPHABET = bytes;
   }
 
   /**
@@ -215,15 +215,15 @@ public class RhBase64 {
 
   //~ Methods ----------------------------------------------------------------
 
-    /* ********  E N C O D I N G   M E T H O D S  ******** */
+  // ********  E N C O D I N G   M E T H O D S  ********
 
   /**
-   * Encodes up to the first three bytes of array <var>threeBytes</var> and
+   * Encodes up to the first three bytes of array {@code threeBytes} and
    * returns a four-byte array in Base64 notation. The actual number of
-   * significant bytes in your array is given by <var>numSigBytes</var>. The
-   * array <var>threeBytes</var> needs only be as big as <var>
-   * numSigBytes</var>. Code can reuse a byte array by passing a four-byte
-   * array as <var>b4</var>.
+   * significant bytes in your array is given by {@code numSigBytes}. The
+   * array {@code threeBytes} needs only be as big as {@code numSigBytes}.
+   * Code can reuse a byte array by passing a four-byte
+   * array as {@code b4}.
    *
    * @param b4          A reusable byte array to reduce array instantiation
    * @param threeBytes  the array to convert
@@ -240,22 +240,21 @@ public class RhBase64 {
   }
 
   /**
-   * Encodes up to three bytes of the array <var>source</var> and writes the
-   * resulting four Base64 bytes to <var>destination</var>. The source and
+   * Encodes up to three bytes of the array {@code source} and writes the
+   * resulting four Base64 bytes to {@code destination}. The source and
    * destination arrays can be manipulated anywhere along their length by
-   * specifying <var>srcOffset</var> and <var>destOffset</var>. This method
+   * specifying {@code srcOffset} and {@code destOffset}. This method
    * does not check to make sure your arrays are large enough to accomodate
-   * <var>srcOffset</var> + 3 for the <var>source</var> array or <var>
-   * destOffset</var> + 4 for the <var>destination</var> array. The actual
-   * number of significant bytes in your array is given by <var>
-   * numSigBytes</var>.
+   * {@code srcOffset} + 3 for the {@code source} array or
+   * {@code destOffset} + 4 for the {@code destination} array. The actual
+   * number of significant bytes in your array is given by {@code numSigBytes}.
    *
    * @param source      the array to convert
    * @param srcOffset   the index where conversion begins
    * @param numSigBytes the number of significant bytes in your array
    * @param destination the array to hold the conversion
    * @param destOffset  the index where output will be put
-   * @return the <var>destination</var> array
+   * @return the {@code destination} array
    * @since 1.3
    */
   private static byte[] encode3to4(
@@ -380,18 +379,22 @@ public class RhBase64 {
       try {
         oos.close();
       } catch (Exception e) {
+          // ignore
       }
       try {
         gzos.close();
       } catch (Exception e) {
+          // ignore
       }
       try {
         b64os.close();
       } catch (Exception e) {
+          // ignore
       }
       try {
         baos.close();
       } catch (Exception e) {
+          // ignore
       }
     }
 
@@ -508,14 +511,17 @@ public class RhBase64 {
         try {
           gzos.close();
         } catch (Exception e) {
+          // ignore
         }
         try {
           b64os.close();
         } catch (Exception e) {
+          // ignore
         }
         try {
           baos.close();
         } catch (Exception e) {
+          // ignore
         }
       }
 
@@ -569,16 +575,16 @@ public class RhBase64 {
     }
   }
 
-    /* ********  D E C O D I N G   M E T H O D S  ******** */
+  // ********  D E C O D I N G   M E T H O D S  ********
 
   /**
-   * Decodes four bytes from array <var>source</var> and writes the resulting
-   * bytes (up to three of them) to <var>destination</var>. The source and
+   * Decodes four bytes from array {@code source} and writes the resulting
+   * bytes (up to three of them) to {@code destination}. The source and
    * destination arrays can be manipulated anywhere along their length by
-   * specifying <var>srcOffset</var> and <var>destOffset</var>. This method
+   * specifying {@code srcOffset} and {@code destOffset}. This method
    * does not check to make sure your arrays are large enough to accomodate
-   * <var>srcOffset</var> + 4 for the <var>source</var> array or <var>
-   * destOffset</var> + 3 for the <var>destination</var> array. This method
+   * {@code srcOffset} + 4 for the {@code source} array or
+   * {@code destOffset} + 3 for the {@code destination} array. This method
    * returns the actual number of bytes that were converted from the Base64
    * encoding.
    *
@@ -760,14 +766,17 @@ public class RhBase64 {
           try {
             baos.close();
           } catch (Exception e) {
+            // ignore
           }
           try {
             gzis.close();
           } catch (Exception e) {
+            // ignore
           }
           try {
             bais.close();
           } catch (Exception e) {
+            // ignore
           }
         }
       }
@@ -807,10 +816,12 @@ public class RhBase64 {
       try {
         bais.close();
       } catch (Exception e) {
+          // ignore
       }
       try {
         ois.close();
       } catch (Exception e) {
+          // ignore
       }
     }
 
@@ -841,6 +852,7 @@ public class RhBase64 {
       try {
         bos.close();
       } catch (Exception e) {
+          // ignore
       }
     }
 
@@ -871,6 +883,7 @@ public class RhBase64 {
       try {
         bos.close();
       } catch (Exception e) {
+          // ignore
       }
     }
 
@@ -924,6 +937,7 @@ public class RhBase64 {
       try {
         bis.close();
       } catch (Exception e) {
+          // ignore
       }
     }
 
@@ -968,6 +982,7 @@ public class RhBase64 {
       try {
         bis.close();
       } catch (Exception e) {
+          // ignore
       }
     }
 
@@ -976,7 +991,7 @@ public class RhBase64 {
 
   //~ Inner Classes ----------------------------------------------------------
 
-    /* ********  I N N E R   C L A S S   I N P U T S T R E A M  ******** */
+  // ********  I N N E R   C L A S S   I N P U T S T R E A M  ********
 
   /**
    * A {@link RhBase64.InputStream} will read data from another <tt>
@@ -1142,7 +1157,7 @@ public class RhBase64 {
 
     /**
      * Calls {@link #read()} repeatedly until the end of stream is reached
-     * or <var>len</var> bytes are read. Returns number of bytes read into
+     * or {@code len} bytes are read. Returns number of bytes read into
      * array or -1 if end of stream is encountered.
      *
      * @param dest array to hold values
@@ -1169,7 +1184,7 @@ public class RhBase64 {
     }
   }
 
-    /* ********  I N N E R   C L A S S   O U T P U T S T R E A M  ******** */
+  // ********  I N N E R   C L A S S   O U T P U T S T R E A M  ********
 
   /**
    * A {@link RhBase64.OutputStream} will write data to another <tt>
@@ -1288,7 +1303,7 @@ public class RhBase64 {
     }
 
     /**
-     * Calls {@link #write(int)} repeatedly until <var>len</var> bytes are
+     * Calls {@link #write(int)} repeatedly until {@code len} bytes are
      * written.
      *
      * @param theBytes array from which to read bytes

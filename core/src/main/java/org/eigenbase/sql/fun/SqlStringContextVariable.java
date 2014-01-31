@@ -34,13 +34,13 @@ public class SqlStringContextVariable extends SqlFunction {
         SqlTypeStrategies.rtiVarchar2000,
         null,
         SqlTypeStrategies.otcNiladic,
-        SqlFunctionCategory.System);
+        SqlFunctionCategory.SYSTEM);
   }
 
   //~ Methods ----------------------------------------------------------------
 
   public SqlSyntax getSyntax() {
-    return SqlSyntax.FunctionId;
+    return SqlSyntax.FUNCTION_ID;
   }
 
   // All of the string constants are monotonic.

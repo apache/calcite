@@ -59,7 +59,7 @@ import com.google.common.collect.ImmutableSet;
 public class SqlToRelConverter {
   //~ Static fields/initializers ---------------------------------------------
 
-  protected static final Logger sqlToRelTracer =
+  protected static final Logger SQL2REL_LOGGER =
       EigenbaseTrace.getSqlToRelTracer();
 
   //~ Instance fields --------------------------------------------------------
@@ -384,9 +384,9 @@ public class SqlToRelConverter {
     if (isTrimUnusedFields()) {
       final RelFieldTrimmer trimmer = newFieldTrimmer();
       rootRel = trimmer.trim(rootRel);
-      boolean dumpPlan = sqlToRelTracer.isLoggable(Level.FINE);
+      boolean dumpPlan = SQL2REL_LOGGER.isLoggable(Level.FINE);
       if (dumpPlan) {
-        sqlToRelTracer.fine(
+        SQL2REL_LOGGER.fine(
             RelOptUtil.dumpPlan(
                 "Plan after trimming unused fields",
                 rootRel,
@@ -428,9 +428,9 @@ public class SqlToRelConverter {
     RelNode result = convertQueryRecursive(query, top, null);
     checkConvertedType(query, result);
 
-    boolean dumpPlan = sqlToRelTracer.isLoggable(Level.FINE);
+    boolean dumpPlan = SQL2REL_LOGGER.isLoggable(Level.FINE);
     if (dumpPlan) {
-      sqlToRelTracer.fine(
+      SQL2REL_LOGGER.fine(
           RelOptUtil.dumpPlan(
               "Plan after converting SqlNode to RelNode",
               result,
@@ -737,8 +737,8 @@ public class SqlToRelConverter {
       SqlNode sqlNode) {
     if ((sqlNode instanceof SqlCall) && containsInOperator(sqlNode)) {
       SqlCall sqlCall = (SqlCall) sqlNode;
-      if ((sqlCall.getOperator() == SqlStdOperatorTable.andOperator)
-          || (sqlCall.getOperator() == SqlStdOperatorTable.orOperator)) {
+      if ((sqlCall.getOperator() == SqlStdOperatorTable.AND)
+          || (sqlCall.getOperator() == SqlStdOperatorTable.OR)) {
         SqlNode[] sqlOperands = sqlCall.getOperands();
         for (int i = 0; i < sqlOperands.length; i++) {
           sqlOperands[i] = pushdownNotForIn(sqlOperands[i]);
@@ -746,17 +746,17 @@ public class SqlToRelConverter {
         return sqlNode;
       } else if (
           sqlCall.getOperator()
-              == SqlStdOperatorTable.notOperator) {
+              == SqlStdOperatorTable.NOT) {
         SqlNode childNode = sqlCall.getOperands()[0];
         assert childNode instanceof SqlCall;
         SqlCall childSqlCall = (SqlCall) childNode;
         if (childSqlCall.getOperator()
-            == SqlStdOperatorTable.andOperator) {
+            == SqlStdOperatorTable.AND) {
           SqlNode[] andOperands = childSqlCall.getOperands();
           SqlNode[] orOperands = new SqlNode[andOperands.length];
           for (int i = 0; i < orOperands.length; i++) {
             orOperands[i] =
-                SqlStdOperatorTable.notOperator.createCall(
+                SqlStdOperatorTable.NOT.createCall(
                     SqlParserPos.ZERO,
                     andOperands[i]);
           }
@@ -764,19 +764,19 @@ public class SqlToRelConverter {
             orOperands[i] = pushdownNotForIn(orOperands[i]);
           }
           SqlNode orNode =
-              SqlStdOperatorTable.orOperator.createCall(
+              SqlStdOperatorTable.OR.createCall(
                   SqlParserPos.ZERO,
                   orOperands[0],
                   orOperands[1]);
           return orNode;
         } else if (
             childSqlCall.getOperator()
-                == SqlStdOperatorTable.orOperator) {
+                == SqlStdOperatorTable.OR) {
           SqlNode[] orOperands = childSqlCall.getOperands();
           SqlNode[] andOperands = new SqlNode[orOperands.length];
           for (int i = 0; i < andOperands.length; i++) {
             andOperands[i] =
-                SqlStdOperatorTable.notOperator.createCall(
+                SqlStdOperatorTable.NOT.createCall(
                     SqlParserPos.ZERO,
                     orOperands[i]);
           }
@@ -784,14 +784,14 @@ public class SqlToRelConverter {
             andOperands[i] = pushdownNotForIn(andOperands[i]);
           }
           SqlNode andNode =
-              SqlStdOperatorTable.andOperator.createCall(
+              SqlStdOperatorTable.AND.createCall(
                   SqlParserPos.ZERO,
                   andOperands[0],
                   andOperands[1]);
           return andNode;
         } else if (
             childSqlCall.getOperator()
-                == SqlStdOperatorTable.notOperator) {
+                == SqlStdOperatorTable.NOT) {
           SqlNode[] notOperands = childSqlCall.getOperands();
           assert notOperands.length == 1;
           return pushdownNotForIn(notOperands[0]);
@@ -802,12 +802,12 @@ public class SqlToRelConverter {
           SqlInOperator inOp =
               (SqlInOperator) childSqlCall.getOperator();
           if (inOp.isNotIn()) {
-            return SqlStdOperatorTable.inOperator.createCall(
+            return SqlStdOperatorTable.IN.createCall(
                 SqlParserPos.ZERO,
                 inOperands[0],
                 inOperands[1]);
           } else {
-            return SqlStdOperatorTable.notInOperator.createCall(
+            return SqlStdOperatorTable.NOT_IN.createCall(
                 SqlParserPos.ZERO,
                 inOperands[0],
                 inOperands[1]);
@@ -1132,7 +1132,7 @@ public class SqlToRelConverter {
       if (leftKeys.length == 1) {
         rexComparison =
             rexBuilder.makeCall(
-                SqlStdOperatorTable.equalsOperator,
+                SqlStdOperatorTable.EQUALS,
                 leftKeys[0],
                 bb.convertExpression(rightVals));
       } else {
@@ -1148,7 +1148,7 @@ public class SqlToRelConverter {
                     new Function1<Integer, RexNode>() {
                       public RexNode apply(Integer i) {
                         return rexBuilder.makeCall(
-                            SqlStdOperatorTable.equalsOperator,
+                            SqlStdOperatorTable.EQUALS,
                             leftKeys[i],
                             bb.convertExpression(
                                 call.getOperands()[i]));
@@ -1166,7 +1166,7 @@ public class SqlToRelConverter {
     if (isNotIn) {
       result =
           rexBuilder.makeCall(
-              SqlStdOperatorTable.notOperator,
+              SqlStdOperatorTable.NOT,
               result);
     }
 
@@ -1210,7 +1210,7 @@ public class SqlToRelConverter {
     for (Ord<RexNode> key : Ord.zip(leftKeys)) {
       joinConditions.add(
           rexBuilder.makeCall(
-              SqlStdOperatorTable.equalsOperator,
+              SqlStdOperatorTable.EQUALS,
               key.e,
               rexBuilder.makeInputRef(
                   rightTypeFields.get(key.i).getType(),
@@ -1350,7 +1350,7 @@ public class SqlToRelConverter {
 
         // convert "1" to "row(1)"
         call =
-            SqlStdOperatorTable.rowConstructor.createCall(
+            SqlStdOperatorTable.ROW.createCall(
                 SqlParserPos.ZERO,
                 node);
       }
@@ -1789,7 +1789,7 @@ public class SqlToRelConverter {
   protected void convertCollectionTable(
       Blackboard bb,
       SqlCall call) {
-    if (call.getOperator() == SqlStdOperatorTable.sampleFunction) {
+    if (call.getOperator() == SqlStdOperatorTable.TABLESAMPLE) {
       final String sampleName = SqlLiteral.stringValue(call.operands[0]);
       datasetStack.push(sampleName);
       SqlCall cursorCall = (SqlCall) call.operands[1];
@@ -2184,10 +2184,10 @@ public class SqlToRelConverter {
     bb.setRoot(Arrays.asList(leftRel, rightRel));
     replaceSubqueries(bb, condition);
     switch (conditionType) {
-    case On:
+    case ON:
       bb.setRoot(Arrays.asList(leftRel, rightRel));
       return bb.convertExpression(condition);
-    case Using:
+    case USING:
       SqlNodeList list = (SqlNodeList) condition;
       List<String> nameList = new ArrayList<String>();
       for (SqlNode columnName : list) {
@@ -2233,7 +2233,7 @@ public class SqlToRelConverter {
               leftRowType.getFieldList().size() + rightField.getIndex());
       RexNode equalsCall =
           rexBuilder.makeCall(
-              SqlStdOperatorTable.equalsOperator,
+              SqlStdOperatorTable.EQUALS,
               left,
               right);
       if (conditionExp == null) {
@@ -2241,7 +2241,7 @@ public class SqlToRelConverter {
       } else {
         conditionExp =
             rexBuilder.makeCall(
-                SqlStdOperatorTable.andOperator,
+                SqlStdOperatorTable.AND,
                 conditionExp,
                 equalsCall);
       }
@@ -2252,15 +2252,15 @@ public class SqlToRelConverter {
   private static JoinRelType convertJoinType(
       SqlJoinOperator.JoinType joinType) {
     switch (joinType) {
-    case Comma:
-    case Inner:
-    case Cross:
+    case COMMA:
+    case INNER:
+    case CROSS:
       return JoinRelType.INNER;
-    case Full:
+    case FULL:
       return JoinRelType.FULL;
-    case Left:
+    case LEFT:
       return JoinRelType.LEFT;
-    case Right:
+    case RIGHT:
       return JoinRelType.RIGHT;
     default:
       throw Util.unexpected(joinType);
@@ -2319,7 +2319,7 @@ public class SqlToRelConverter {
 
     // If group-by clause is missing, pretend that it has zero elements.
     if (groupList == null) {
-      groupList = SqlNodeList.Empty;
+      groupList = SqlNodeList.EMPTY;
     }
 
     // register the group exprs
@@ -2702,12 +2702,12 @@ public class SqlToRelConverter {
             mapRefRelToCorVar,
             mapCorVarToCorRel,
             mapFieldAccessToCorVar);
-    boolean dumpPlan = sqlToRelTracer.isLoggable(Level.FINE);
+    boolean dumpPlan = SQL2REL_LOGGER.isLoggable(Level.FINE);
 
     RelNode newRootRel = decorrelator.removeCorrelationViaRule(rootRel);
 
     if (dumpPlan) {
-      sqlToRelTracer.fine(
+      SQL2REL_LOGGER.fine(
           RelOptUtil.dumpPlan(
               "Plan after removing CorrelatorRel",
               newRootRel,
@@ -3236,13 +3236,13 @@ public class SqlToRelConverter {
 
       final SqlCall call = (SqlCall) operand;
       final SqlOperator op = call.getOperator();
-      if ((op != SqlStdOperatorTable.multisetValueConstructor)
-          && (op != SqlStdOperatorTable.multisetQueryConstructor)) {
+      if ((op != SqlStdOperatorTable.MULTISET_VALUE)
+          && (op != SqlStdOperatorTable.MULTISET_QUERY)) {
         lastList.add(operand);
         continue;
       }
       final RelNode input;
-      if (op == SqlStdOperatorTable.multisetValueConstructor) {
+      if (op == SqlStdOperatorTable.MULTISET_VALUE) {
         final SqlNodeList list = SqlUtil.toNodeList(call.operands);
 //                assert bb.scope instanceof SelectScope : bb.scope;
         CollectNamespace nss =
@@ -3461,7 +3461,7 @@ public class SqlToRelConverter {
     String alias = validator.deriveAlias(node, ordinal);
     if ((alias == null) || aliases.contains(alias)) {
       String aliasBase = (alias == null) ? "EXPR$" : alias;
-      for (int j = 0; ; j++) {
+      for (int j = 0;; j++) {
         alias = aliasBase + j;
         if (!aliases.contains(alias)) {
           break;
@@ -4006,7 +4006,7 @@ public class SqlToRelConverter {
         if (needTruthTest) {
           fieldAccess =
               rexBuilder.makeCall(
-                  SqlStdOperatorTable.isTrueOperator,
+                  SqlStdOperatorTable.IS_TRUE,
                   fieldAccess);
         }
         return fieldAccess;
@@ -4038,14 +4038,14 @@ public class SqlToRelConverter {
           if (!isNotInFilter) {
             rexNode =
                 rexBuilder.makeCall(
-                    SqlStdOperatorTable.isTrueOperator,
+                    SqlStdOperatorTable.IS_TRUE,
                     rexNode);
           } else {
             rexNode =
                 rexBuilder.makeCall(
-                    SqlStdOperatorTable.notOperator,
+                    SqlStdOperatorTable.NOT,
                     rexBuilder.makeCall(
-                        SqlStdOperatorTable.isTrueOperator,
+                        SqlStdOperatorTable.IS_TRUE,
                         rexNode));
 
             // then append the IS NOT NULL(leftKeysForIn)
@@ -4059,10 +4059,10 @@ public class SqlToRelConverter {
                 i++) {
               rexNode =
                   rexBuilder.makeCall(
-                      SqlStdOperatorTable.andOperator,
+                      SqlStdOperatorTable.AND,
                       rexNode,
                       rexBuilder.makeCall(
-                          SqlStdOperatorTable.isNotNullOperator,
+                          SqlStdOperatorTable.IS_NOT_NULL,
                           rexBuilder.makeFieldAccess(rex, i)));
             }
           }
@@ -4116,7 +4116,7 @@ public class SqlToRelConverter {
       }
       if (rex instanceof RexCall) {
         RexCall call = (RexCall) rex;
-        if (call.getOperator() == SqlStdOperatorTable.castFunc) {
+        if (call.getOperator() == SqlStdOperatorTable.CAST) {
           RexNode operand = call.getOperands().get(0);
           if (operand instanceof RexLiteral) {
             return true;
@@ -4383,7 +4383,7 @@ public class SqlToRelConverter {
         String name = null;
         if (SqlUtil.isCallTo(
             selectItem,
-            SqlStdOperatorTable.asOperator)) {
+            SqlStdOperatorTable.AS)) {
           final SqlNode[] operands =
               ((SqlCall) selectItem).getOperands();
           selectItem = operands[0];
@@ -4719,14 +4719,14 @@ public class SqlToRelConverter {
         RexCallBinding bind =
             new RexCallBinding(
                 rexBuilder.getTypeFactory(),
-                SqlStdOperatorTable.histogramAggFunction,
+                SqlStdOperatorTable.HISTOGRAM_AGG,
                 exprs);
 
         RexNode over =
             rexBuilder.makeOver(
-                SqlStdOperatorTable.histogramAggFunction
+                SqlStdOperatorTable.HISTOGRAM_AGG
                     .inferReturnType(bind),
-                SqlStdOperatorTable.histogramAggFunction,
+                SqlStdOperatorTable.HISTOGRAM_AGG,
                 exprs,
                 partitionKeys,
                 orderKeys,
@@ -4759,9 +4759,9 @@ public class SqlToRelConverter {
 
         return histogramCall;
       } else {
-        boolean needSum0 = aggOp == SqlStdOperatorTable.sumOperator;
+        boolean needSum0 = aggOp == SqlStdOperatorTable.SUM;
         SqlAggFunction aggOpToUse =
-            needSum0 ? SqlStdOperatorTable.sumEmptyIsZeroOperator
+            needSum0 ? SqlStdOperatorTable.SUM0
                 : aggOp;
         return rexBuilder.makeOver(
             type,
@@ -4782,21 +4782,21 @@ public class SqlToRelConverter {
      * function.
      *
      * <p>For example, <code>getHistogramOp({@link
-     * SqlStdOperatorTable#minOperator}}</code> returns {@link
-     * SqlStdOperatorTable#histogramMinFunction}.
+     * SqlStdOperatorTable#MIN}}</code> returns {@link
+     * SqlStdOperatorTable#HISTOGRAM_MIN}.
      *
      * @param aggFunction An aggregate function
      * @return Its histogram function, or null
      */
     SqlFunction getHistogramOp(SqlAggFunction aggFunction) {
-      if (aggFunction == SqlStdOperatorTable.minOperator) {
-        return SqlStdOperatorTable.histogramMinFunction;
-      } else if (aggFunction == SqlStdOperatorTable.maxOperator) {
-        return SqlStdOperatorTable.histogramMaxFunction;
-      } else if (aggFunction == SqlStdOperatorTable.firstValueOperator) {
-        return SqlStdOperatorTable.histogramFirstValueFunction;
-      } else if (aggFunction == SqlStdOperatorTable.lastValueOperator) {
-        return SqlStdOperatorTable.histogramLastValueFunction;
+      if (aggFunction == SqlStdOperatorTable.MIN) {
+        return SqlStdOperatorTable.HISTOGRAM_MIN;
+      } else if (aggFunction == SqlStdOperatorTable.MAX) {
+        return SqlStdOperatorTable.HISTOGRAM_MAX;
+      } else if (aggFunction == SqlStdOperatorTable.FIRST_VALUE) {
+        return SqlStdOperatorTable.HISTOGRAM_FIRST_VALUE;
+      } else if (aggFunction == SqlStdOperatorTable.LAST_VALUE) {
+        return SqlStdOperatorTable.HISTOGRAM_LAST_VALUE;
       } else {
         return null;
       }

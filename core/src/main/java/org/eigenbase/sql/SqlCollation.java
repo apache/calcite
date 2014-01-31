@@ -104,9 +104,14 @@ public class SqlCollation implements Serializable {
   //~ Methods ----------------------------------------------------------------
 
   public boolean equals(Object o) {
-    return (o instanceof SqlCollation)
-        && ((SqlCollation) o).getCollationName().equals(
-            this.getCollationName());
+    return this == o
+        || o instanceof SqlCollation
+        && collationName.equals(((SqlCollation) o).collationName);
+  }
+
+  @Override
+  public int hashCode() {
+    return collationName.hashCode();
   }
 
   /**

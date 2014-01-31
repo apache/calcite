@@ -18,14 +18,14 @@
 package org.eigenbase.test;
 
 import java.io.*;
-
 import java.text.*;
-
 import java.util.*;
 
 import org.eigenbase.sql.*;
 import org.eigenbase.sql.parser.*;
 import org.eigenbase.sql.type.*;
+
+import com.google.common.collect.ImmutableList;
 
 import org.junit.Test;
 
@@ -35,40 +35,32 @@ import org.junit.Test;
 public class SqlLimitsTest {
   //~ Static fields/initializers ---------------------------------------------
 
-  private static final List<BasicSqlType> typeList =
-      new ArrayList<BasicSqlType>();
+  private static final List<BasicSqlType> TYPE_LIST =
+      ImmutableList.of(
+          new BasicSqlType(SqlTypeName.BOOLEAN),
+          new BasicSqlType(SqlTypeName.TINYINT),
+          new BasicSqlType(SqlTypeName.SMALLINT),
+          new BasicSqlType(SqlTypeName.INTEGER),
+          new BasicSqlType(SqlTypeName.BIGINT),
+          new BasicSqlType(SqlTypeName.DECIMAL),
+          new BasicSqlType(SqlTypeName.DECIMAL, 5),
+          new BasicSqlType(SqlTypeName.DECIMAL, 6, 2),
+          new BasicSqlType(SqlTypeName.DECIMAL,
+              SqlTypeName.DECIMAL.getMaxPrecision(), 0),
+          new BasicSqlType(SqlTypeName.DECIMAL,
+              SqlTypeName.DECIMAL.getMaxPrecision(), 5),
 
-  static {
-    typeList.add(new BasicSqlType(SqlTypeName.BOOLEAN));
-    typeList.add(new BasicSqlType(SqlTypeName.TINYINT));
-    typeList.add(new BasicSqlType(SqlTypeName.SMALLINT));
-    typeList.add(new BasicSqlType(SqlTypeName.INTEGER));
-    typeList.add(new BasicSqlType(SqlTypeName.BIGINT));
-    typeList.add(new BasicSqlType(SqlTypeName.DECIMAL));
-    typeList.add(new BasicSqlType(SqlTypeName.DECIMAL, 5));
-    typeList.add(new BasicSqlType(SqlTypeName.DECIMAL, 6, 2));
-    typeList.add(
-        new BasicSqlType(
-            SqlTypeName.DECIMAL,
-            SqlTypeName.DECIMAL.getMaxPrecision(),
-            0));
-    typeList.add(
-        new BasicSqlType(
-            SqlTypeName.DECIMAL,
-            SqlTypeName.DECIMAL.getMaxPrecision(),
-            5));
+          // todo: test IntervalDayTime and IntervalYearMonth
+          // todo: test Float, Real, Double
 
-    // todo: test Float, Real, Double
-    typeList.add(new BasicSqlType(SqlTypeName.CHAR, 5));
-    typeList.add(new BasicSqlType(SqlTypeName.VARCHAR, 1));
-    typeList.add(new BasicSqlType(SqlTypeName.VARCHAR, 20));
-    typeList.add(new BasicSqlType(SqlTypeName.BINARY, 3));
-    typeList.add(new BasicSqlType(SqlTypeName.VARBINARY, 4));
-    typeList.add(new BasicSqlType(SqlTypeName.DATE));
-    typeList.add(new BasicSqlType(SqlTypeName.TIME, 0));
-    typeList.add(new BasicSqlType(SqlTypeName.TIMESTAMP, 0));
-    // todo: test IntervalDayTime and IntervalYearMonth
-  }
+          new BasicSqlType(SqlTypeName.CHAR, 5),
+          new BasicSqlType(SqlTypeName.VARCHAR, 1),
+          new BasicSqlType(SqlTypeName.VARCHAR, 20),
+          new BasicSqlType(SqlTypeName.BINARY, 3),
+          new BasicSqlType(SqlTypeName.VARBINARY, 4),
+          new BasicSqlType(SqlTypeName.DATE),
+          new BasicSqlType(SqlTypeName.TIME, 0),
+          new BasicSqlType(SqlTypeName.TIMESTAMP, 0));
 
   //~ Constructors -----------------------------------------------------------
 
@@ -85,13 +77,13 @@ public class SqlLimitsTest {
    * Returns a list of typical types.
    */
   public static List<BasicSqlType> getTypes() {
-    return typeList;
+    return TYPE_LIST;
   }
 
   @Test public void testPrintLimits() {
     StringWriter sw = new StringWriter();
     PrintWriter pw = new PrintWriter(sw);
-    for (BasicSqlType type : typeList) {
+    for (BasicSqlType type : TYPE_LIST) {
       pw.println(type.toString());
       printLimit(
           pw,

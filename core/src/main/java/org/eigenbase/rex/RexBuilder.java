@@ -207,7 +207,7 @@ public class RexBuilder {
       List<? extends RexNode> exprs) {
     // TODO jvs 12-Jun-2010:  Find a better place for this;
     // it surely does not belong here.
-    if (op == SqlStdOperatorTable.andOperator
+    if (op == SqlStdOperatorTable.AND
         && exprs.size() == 2
         && exprs.get(0).equals(exprs.get(1))) {
       // Avoid generating 'AND(x, x)'; this can cause plan explosions if a
@@ -313,12 +313,12 @@ public class RexBuilder {
       final RelDataType bigintType = getTypeFactory().createSqlType(
           SqlTypeName.BIGINT);
       result = makeCall(
-          SqlStdOperatorTable.caseOperator,
+          SqlStdOperatorTable.CASE,
           makeCall(
-              SqlStdOperatorTable.greaterThanOperator,
+              SqlStdOperatorTable.GREATER_THAN,
               new RexOver(
                   bigintType,
-                  SqlStdOperatorTable.countOperator,
+                  SqlStdOperatorTable.COUNT,
                   exprs,
                   window),
               makeLiteral(
@@ -335,12 +335,12 @@ public class RexBuilder {
       // todo: read bound
       result =
           makeCall(
-              SqlStdOperatorTable.caseOperator,
+              SqlStdOperatorTable.CASE,
               makeCall(
-                  SqlStdOperatorTable.greaterThanOrEqualOperator,
+                  SqlStdOperatorTable.GREATER_THAN_OR_EQUAL,
                   new RexOver(
                       bigintType,
-                      SqlStdOperatorTable.countOperator,
+                      SqlStdOperatorTable.COUNT,
                       ImmutableList.<RexNode>of(),
                       window),
                   makeLiteral(
@@ -410,7 +410,7 @@ public class RexBuilder {
       List<RexNode> exprs) {
     return new RexCall(
         type,
-        SqlStdOperatorTable.newOperator,
+        SqlStdOperatorTable.NEW,
         exprs);
   }
 
@@ -491,7 +491,7 @@ public class RexBuilder {
   private RexNode makeCastExactToBoolean(RelDataType toType, RexNode exp) {
     return makeCall(
         toType,
-        SqlStdOperatorTable.notEqualsOperator,
+        SqlStdOperatorTable.NOT_EQUALS,
         ImmutableList.<RexNode>of(
             exp,
             makeZeroLiteral(exp.getType())));
@@ -499,7 +499,7 @@ public class RexBuilder {
 
   private RexNode makeCastBooleanToExact(RelDataType toType, RexNode exp) {
     final RexNode casted = makeCall(
-        SqlStdOperatorTable.caseOperator,
+        SqlStdOperatorTable.CASE,
         exp,
         makeExactLiteral(BigDecimal.ONE, toType),
         makeZeroLiteral(toType));
@@ -508,9 +508,9 @@ public class RexBuilder {
     }
     return makeCall(
         toType,
-        SqlStdOperatorTable.caseOperator,
+        SqlStdOperatorTable.CASE,
         ImmutableList.<RexNode>of(
-            makeCall(SqlStdOperatorTable.isNotNullOperator, exp),
+            makeCall(SqlStdOperatorTable.IS_NOT_NULL, exp),
             casted,
             makeNullLiteral(toType.getSqlTypeName())));
   }
@@ -532,7 +532,7 @@ public class RexBuilder {
     RexNode value = decodeIntervalOrDecimal(exp);
     if (multiplier.longValue() != 1) {
       value = makeCall(
-          SqlStdOperatorTable.divideIntegerOperator,
+          SqlStdOperatorTable.DIVIDE_INTEGER,
           value, makeBigintLiteral(multiplier));
     }
     if (scale > 0) {
@@ -568,7 +568,7 @@ public class RexBuilder {
     RexNode value = decodeIntervalOrDecimal(ensureType(decimalType, exp, true));
     if (multiplier.longValue() != 1) {
       value = makeCall(
-          SqlStdOperatorTable.multiplyOperator,
+          SqlStdOperatorTable.MULTIPLY,
           value, makeExactLiteral(multiplier));
     }
     return encodeIntervalOrDecimal(value, toType, false);
@@ -627,7 +627,7 @@ public class RexBuilder {
       RexNode exp) {
     return new RexCall(
         type,
-        SqlStdOperatorTable.castFunc,
+        SqlStdOperatorTable.CAST,
         ImmutableList.of(exp));
   }
 
@@ -651,7 +651,7 @@ public class RexBuilder {
     }
     return new RexCall(
         type,
-        SqlStdOperatorTable.reinterpretOperator,
+        SqlStdOperatorTable.REINTERPRET,
         args);
   }
 
@@ -669,7 +669,7 @@ public class RexBuilder {
         getTypeFactory().createTypeWithNullability(type, false);
     return new RexCall(
         typeNotNull,
-        SqlStdOperatorTable.castFunc,
+        SqlStdOperatorTable.CAST,
         ImmutableList.of(expr));
   }
 
@@ -1110,7 +1110,7 @@ public class RexBuilder {
     case TIME:
     case DATE:
     case TIMESTAMP:
-      return DateTimeUtil.zeroCalendar;
+      return DateTimeUtil.ZERO_CALENDAR;
     default:
       throw Util.unexpected(type.getSqlTypeName());
     }
@@ -1195,7 +1195,7 @@ public class RexBuilder {
         operands.add(
             makeLiteral(entry.getValue(), mapType.getValueType(), allowCast));
       }
-      return makeCall(SqlStdOperatorTable.mapValueConstructor, operands);
+      return makeCall(SqlStdOperatorTable.MAP_VALUE_CONSTRUCTOR, operands);
     case ARRAY:
       final ArraySqlType arrayType = (ArraySqlType) type;
       @SuppressWarnings("unchecked")
@@ -1205,7 +1205,7 @@ public class RexBuilder {
         operands.add(
             makeLiteral(entry, arrayType.getComponentType(), allowCast));
       }
-      return makeCall(SqlStdOperatorTable.arrayValueConstructor, operands);
+      return makeCall(SqlStdOperatorTable.ARRAY_VALUE_CONSTRUCTOR, operands);
     case ANY:
       return makeLiteral(value, guessType(value), allowCast);
     default:
@@ -1243,14 +1243,14 @@ public class RexBuilder {
       if (o instanceof Calendar) {
         return o;
       }
-      calendar = Calendar.getInstance(DateTimeUtil.gmtZone);
+      calendar = Calendar.getInstance(DateTimeUtil.GMT_ZONE);
       calendar.setTimeInMillis((Integer) o);
       return calendar;
     case DATE:
       if (o instanceof Calendar) {
         return o;
       }
-      calendar = Calendar.getInstance(DateTimeUtil.gmtZone);
+      calendar = Calendar.getInstance(DateTimeUtil.GMT_ZONE);
       calendar.setTimeInMillis(0);
       calendar.add(Calendar.DAY_OF_YEAR, (Integer) o);
       return calendar;
@@ -1258,7 +1258,7 @@ public class RexBuilder {
       if (o instanceof Calendar) {
         return o;
       }
-      calendar = Calendar.getInstance(DateTimeUtil.gmtZone);
+      calendar = Calendar.getInstance(DateTimeUtil.GMT_ZONE);
       calendar.setTimeInMillis((Long) o);
       return calendar;
     default:

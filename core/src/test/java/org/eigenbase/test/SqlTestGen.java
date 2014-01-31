@@ -31,6 +31,8 @@ import org.eigenbase.util.*;
  * Utility to generate a SQL script from validator test.
  */
 public class SqlTestGen {
+  private SqlTestGen() {}
+
   //~ Methods ----------------------------------------------------------------
 
   public static void main(String[] args) {

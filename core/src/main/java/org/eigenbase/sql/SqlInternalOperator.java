@@ -59,7 +59,7 @@ public abstract class SqlInternalOperator extends SqlSpecialOperator {
   //~ Methods ----------------------------------------------------------------
 
   public SqlSyntax getSyntax() {
-    return SqlSyntax.Internal;
+    return SqlSyntax.INTERNAL;
   }
 
   public void unparse(

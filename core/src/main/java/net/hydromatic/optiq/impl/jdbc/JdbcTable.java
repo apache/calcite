@@ -114,8 +114,8 @@ class JdbcTable extends AbstractQueryableTable implements TranslatableTable {
 
   SqlString generateSql() {
     SqlSelect node =
-        SqlStdOperatorTable.selectOperator.createCall(
-            SqlNodeList.Empty,
+        SqlStdOperatorTable.SELECT.createCall(
+            SqlNodeList.EMPTY,
             new SqlNodeList(
                 Collections.singletonList(
                     new SqlIdentifier("*", SqlParserPos.ZERO)),

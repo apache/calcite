@@ -326,7 +326,7 @@ public abstract class Mappings {
    * <tr><td>55</td><td>-1</td></tr>
    * <tr><td>...</td><td>-1</td></tr>
    * <tr><td>59</td><td>-1</td></tr>
-   * </table></p>
+   * </table>
    *
    * @param sourceCount Maximum value of {@code source}
    * @param ints        Collection of ranges, each

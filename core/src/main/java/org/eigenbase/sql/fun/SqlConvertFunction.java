@@ -33,7 +33,7 @@ public class SqlConvertFunction extends SqlFunction {
         null,
         null,
         null,
-        SqlFunctionCategory.String);
+        SqlFunctionCategory.STRING);
   }
 
   //~ Methods ----------------------------------------------------------------

@@ -168,6 +168,7 @@ public abstract class ProjectRelBase extends SingleRel {
       assert !fail : rowType;
       return false;
     }
+    //CHECKSTYLE: IGNORE 1
     if (false && !Util.isDistinct(
         Functions.adapt(
             exps,
@@ -214,6 +215,7 @@ public abstract class ProjectRelBase extends SingleRel {
     // differ in return type, we don't want to regard them as equivalent,
     // otherwise we will try to put rels of different types into the same
     // planner equivalence set.
+    //CHECKSTYLE: IGNORE 2
     if ((pw.getDetailLevel() == SqlExplainLevel.DIGEST_ATTRIBUTES)
         && false) {
       pw.item("type", rowType);

@@ -310,7 +310,7 @@ public class SqlTesterImpl implements SqlTester {
       double delta) {
     String query =
         SqlTests.generateAggQuery(expr, inputValues);
-    check(query, SqlTests.AnyTypeChecker, result, delta);
+    check(query, SqlTests.ANY_TYPE_CHECKER, result, delta);
   }
 
   public void checkWinAgg(
@@ -323,7 +323,7 @@ public class SqlTesterImpl implements SqlTester {
     String query =
         SqlTests.generateWinAggQuery(
             expr, windowSpec, inputValues);
-    check(query, SqlTests.AnyTypeChecker, result, delta);
+    check(query, SqlTests.ANY_TYPE_CHECKER, result, delta);
   }
 
   public void checkScalar(
@@ -332,7 +332,7 @@ public class SqlTesterImpl implements SqlTester {
       String resultType) {
     checkType(expression, resultType);
     for (String sql : buildQueries(expression)) {
-      check(sql, SqlTests.AnyTypeChecker, result, 0);
+      check(sql, SqlTests.ANY_TYPE_CHECKER, result, 0);
     }
   }
 
@@ -340,7 +340,7 @@ public class SqlTesterImpl implements SqlTester {
       String expression,
       String result) {
     for (String sql : buildQueries(expression)) {
-      check(sql, SqlTests.IntegerTypeChecker, result, 0);
+      check(sql, SqlTests.INTEGER_TYPE_CHECKER, result, 0);
     }
   }
 
@@ -380,7 +380,7 @@ public class SqlTesterImpl implements SqlTester {
       } else {
         check(
             sql,
-            SqlTests.BooleanTypeChecker,
+            SqlTests.BOOLEAN_TYPE_CHECKER,
             result.toString(),
             0);
       }
@@ -400,7 +400,7 @@ public class SqlTesterImpl implements SqlTester {
 
   public void checkNull(String expression) {
     for (String sql : buildQueries(expression)) {
-      check(sql, SqlTests.AnyTypeChecker, null, 0);
+      check(sql, SqlTests.ANY_TYPE_CHECKER, null, 0);
     }
   }
 
@@ -513,11 +513,11 @@ public class SqlTesterImpl implements SqlTester {
         new SqlShuttle() {
           private final List<SqlOperator> ops =
               ImmutableList.of(
-                  SqlStdOperatorTable.literalChainOperator,
-                  SqlStdOperatorTable.localTimeFunc,
-                  SqlStdOperatorTable.localTimestampFunc,
-                  SqlStdOperatorTable.currentTimeFunc,
-                  SqlStdOperatorTable.currentTimestampFunc);
+                  SqlStdOperatorTable.LITERAL_CHAIN,
+                  SqlStdOperatorTable.LOCALTIME,
+                  SqlStdOperatorTable.LOCALTIMESTAMP,
+                  SqlStdOperatorTable.CURRENT_TIME,
+                  SqlStdOperatorTable.CURRENT_TIMESTAMP);
 
           @Override
           public SqlNode visit(SqlLiteral literal) {
@@ -531,7 +531,7 @@ public class SqlTesterImpl implements SqlTester {
           @Override
           public SqlNode visit(SqlCall call) {
             final SqlOperator operator = call.getOperator();
-            if (operator == SqlStdOperatorTable.castFunc
+            if (operator == SqlStdOperatorTable.CAST
                 && isNull(call.getOperandList().get(0))) {
               literalSet.add(call);
               return call;

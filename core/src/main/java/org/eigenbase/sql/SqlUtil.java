@@ -56,7 +56,7 @@ public abstract class SqlUtil {
     } else {
       list.add(node2);
     }
-    return SqlStdOperatorTable.andOperator.createCall(
+    return SqlStdOperatorTable.AND.createCall(
         SqlParserPos.ZERO,
         list);
   }
@@ -216,7 +216,7 @@ public abstract class SqlUtil {
       SqlFunction function = (SqlFunction) operator;
 
       if (function.getFunctionType()
-          == SqlFunctionCategory.UserDefinedSpecificFunction) {
+          == SqlFunctionCategory.USER_DEFINED_SPECIFIC_FUNCTION) {
         writer.keyword("SPECIFIC");
       }
       SqlIdentifier id = function.getSqlIdentifier();
@@ -353,7 +353,7 @@ public abstract class SqlUtil {
 
     // NOTE: according to SQL99, procedures are NOT overloaded on type,
     // only on number of arguments.
-    if (category == SqlFunctionCategory.UserDefinedProcedure) {
+    if (category == SqlFunctionCategory.USER_DEFINED_PROCEDURE) {
       return routines;
     }
 
@@ -410,7 +410,7 @@ public abstract class SqlUtil {
         opTab.lookupOperatorOverloads(
             funcName,
             category,
-            SqlSyntax.Function);
+            SqlSyntax.FUNCTION);
     List<SqlFunction> routines = new ArrayList<SqlFunction>();
     for (SqlOperator operator : operators) {
       if (operator instanceof SqlFunction) {
@@ -569,16 +569,16 @@ public abstract class SqlUtil {
           opTab.lookupOperatorOverloads(
               id,
               null,
-              SqlSyntax.Function);
+              SqlSyntax.FUNCTION);
       for (SqlOperator operator : list) {
-        if (operator.getSyntax() == SqlSyntax.FunctionId) {
+        if (operator.getSyntax() == SqlSyntax.FUNCTION_ID) {
           // Even though this looks like an identifier, it is a
           // actually a call to a function. Construct a fake
           // call to this function, so we can use the regular
           // operator validation.
           return new SqlCall(
               operator,
-              SqlNode.emptyArray,
+              SqlNode.EMPTY_ARRAY,
               id.getParserPosition(),
               true,
               null);

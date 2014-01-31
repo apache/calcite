@@ -42,7 +42,7 @@ public class RexOver extends RexCall {
    *
    * <ul>
    * <li>type = Integer,
-   * <li>op = {@link org.eigenbase.sql.fun.SqlStdOperatorTable#sumOperator},
+   * <li>op = {@link org.eigenbase.sql.fun.SqlStdOperatorTable#SUM},
    * <li>operands = { {@link RexFieldAccess}("x") }
    * <li>window = {@link SqlWindow}(ROWS 3 PRECEDING)
    * </ul>
