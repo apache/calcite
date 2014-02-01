@@ -23,11 +23,6 @@ import net.hydromatic.optiq.BuiltinMethod;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 import net.hydromatic.optiq.rules.java.*;
 
-import org.apache.spark.api.java.JavaRDD;
-import org.apache.spark.api.java.JavaSparkContext;
-import org.apache.spark.api.java.function.FlatMapFunction;
-import org.apache.spark.api.java.function.Function;
-
 import org.eigenbase.rel.*;
 import org.eigenbase.rel.convert.ConverterRule;
 import org.eigenbase.rel.metadata.RelMetadataQuery;
@@ -39,12 +34,17 @@ import org.eigenbase.rex.RexMultisetUtil;
 import org.eigenbase.rex.RexProgram;
 import org.eigenbase.util.Pair;
 
-import scala.Tuple2;
-
 import com.google.common.collect.ImmutableList;
+
+import org.apache.spark.api.java.JavaRDD;
+import org.apache.spark.api.java.JavaSparkContext;
+import org.apache.spark.api.java.function.FlatMapFunction;
+import org.apache.spark.api.java.function.Function;
 
 import java.lang.reflect.Type;
 import java.util.*;
+
+import scala.Tuple2;
 
 /**
  * Rules for the {@link SparkRel#CONVENTION Spark calling convention}.

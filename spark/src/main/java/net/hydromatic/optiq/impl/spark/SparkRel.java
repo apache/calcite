@@ -18,6 +18,7 @@
 package net.hydromatic.optiq.impl.spark;
 
 import net.hydromatic.linq4j.expressions.BlockStatement;
+
 import net.hydromatic.optiq.rules.java.JavaRelImplementor;
 import net.hydromatic.optiq.rules.java.PhysType;
 

@@ -17,12 +17,11 @@
 */
 package net.hydromatic.optiq.impl.splunk.util;
 
-import javax.net.ssl.*;
-
 import java.io.*;
 import java.net.*;
 import java.security.SecureRandom;
 import java.security.cert.X509Certificate;
+import javax.net.ssl.*;
 
 /**
  * Socket factory that trusts all SSL connections.

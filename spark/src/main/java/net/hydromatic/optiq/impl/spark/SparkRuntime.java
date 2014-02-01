@@ -18,8 +18,8 @@
 package net.hydromatic.optiq.impl.spark;
 
 import net.hydromatic.linq4j.Enumerable;
-
 import net.hydromatic.linq4j.Linq4j;
+
 import net.hydromatic.optiq.DataContext;
 
 import org.apache.spark.api.java.JavaRDD;

@@ -24,12 +24,12 @@ import net.hydromatic.optiq.rules.java.JavaRules;
 import net.hydromatic.optiq.runtime.Bindable;
 import net.hydromatic.optiq.runtime.Typed;
 
-import org.apache.spark.api.java.JavaSparkContext;
-
 import org.eigenbase.javac.JaninoCompiler;
 import org.eigenbase.rel.RelNode;
 import org.eigenbase.relopt.*;
 import org.eigenbase.relopt.volcano.VolcanoPlanner;
+
+import org.apache.spark.api.java.JavaSparkContext;
 
 import java.io.File;
 import java.io.FileWriter;

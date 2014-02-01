@@ -18,6 +18,7 @@
 package net.hydromatic.optiq.impl.spark;
 
 import net.hydromatic.linq4j.expressions.*;
+
 import net.hydromatic.optiq.rules.java.*;
 
 import org.eigenbase.rel.RelNode;
