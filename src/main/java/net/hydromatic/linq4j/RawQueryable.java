@@ -28,7 +28,7 @@ import java.lang.reflect.Type;
  * {@link ExtendedQueryable}, can easily be implemented by calling the
  * corresponding static methods in {@link Extensions}.
  *
- * @author jhyde
+ * @param <T> Element type
  */
 public interface RawQueryable<T> extends Enumerable<T> {
   /**

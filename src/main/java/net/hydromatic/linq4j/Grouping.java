@@ -19,12 +19,15 @@ package net.hydromatic.linq4j;
 
 /**
  * Represents a collection of objects that have a common key.
+ *
+ * @param <K> Key type
+ * @param <V> Element type
  */
-public interface Grouping<TKey, T> extends Enumerable<T> {
+public interface Grouping<K, V> extends Enumerable<V> {
   /**
    * Gets the key of this Grouping.
    */
-  TKey getKey();
+  K getKey();
 }
 
 // End Grouping.java

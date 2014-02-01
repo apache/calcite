@@ -22,6 +22,8 @@ import java.util.List;
 
 /**
  * Enumerator over the cartesian product of enumerators.
+ *
+ * @param <T> Element type
  */
 class CartesianProductEnumerator<T> implements Enumerator<List<T>> {
   private final List<Enumerator<T>> enumerators;

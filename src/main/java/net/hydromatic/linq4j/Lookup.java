@@ -23,6 +23,9 @@ import java.util.Map;
 
 /**
  * Represents a collection of keys each mapped to one or more values.
+ *
+ * @param <K> Key type
+ * @param <V> Value type
  */
 public interface Lookup<K, V>
     extends Map<K, Enumerable<V>>, Enumerable<Grouping<K, V>> {
@@ -35,7 +38,7 @@ public interface Lookup<K, V>
    *
    * @return Enumerable over results
    */
-  public <TResult> Enumerable<TResult> applyResultSelector(
+  <TResult> Enumerable<TResult> applyResultSelector(
       Function2<K, Enumerable<V>, TResult> resultSelector);
 }
 

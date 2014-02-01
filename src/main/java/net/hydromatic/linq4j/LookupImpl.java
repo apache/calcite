@@ -23,6 +23,9 @@ import java.util.*;
 
 /**
  * Implementation of {@link Lookup} that uses an underlying map.
+ *
+ * @param <K> Key type
+ * @param <V> Value type
  */
 class LookupImpl<K, V> extends AbstractEnumerable<Grouping<K, V>>
     implements Lookup<K, V> {

@@ -18,6 +18,7 @@
 package net.hydromatic.lambda.streams;
 
 import net.hydromatic.lambda.functions.*;
+
 import net.hydromatic.linq4j.Enumerator;
 import net.hydromatic.linq4j.Linq4j;
 
@@ -88,7 +89,8 @@ public interface MapStream<K, V> extends Iterable<BiValue<K, V>> {
 
   MapStream<K, V> merge(MapStream<K, V> other);
 
-  class Impl {
+  abstract class Impl {
+    private Impl() {}
     public static <K, V> BiValue<K, V> getFirst(MapStream<K, V> s) {
       Iterator<? extends BiValue<K, V>> iterator = s.asIterable().iterator();
       return iterator.hasNext() ? iterator.next() : null;

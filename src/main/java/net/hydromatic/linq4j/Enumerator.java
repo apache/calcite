@@ -27,7 +27,7 @@ import java.io.Closeable;
  * implementation of the Enumerator interface detects it and throws a
  * {@link java.util.ConcurrentModificationException}.</p>
  *
- * @param <T> element type
+ * @param <T> Element type
  */
 public interface Enumerator<T> extends Closeable {
   /**

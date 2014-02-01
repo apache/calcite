@@ -24,6 +24,8 @@ package net.hydromatic.linq4j;
  * <p>It is helpful to derive from this class if you are implementing
  * {@code Queryable}, because {@code Queryable} has so many extension methods,
  * but it is not required.</p>
+ *
+ * @param <T> Element type
  */
 public abstract class AbstractQueryable<T> extends DefaultQueryable<T>
     implements Queryable<T> {

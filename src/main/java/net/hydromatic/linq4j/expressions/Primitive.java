@@ -325,50 +325,50 @@ public enum Primitive {
     switch (this) {
     case DOUBLE:
       double[] doubles = new double[collection.size()];
-      for (double _double : (Collection<Double>) collection) {
-        doubles[i++] = _double;
+      for (double v : (Collection<Double>) collection) {
+        doubles[i++] = v;
       }
       return doubles;
     case FLOAT:
       float[] floats = new float[collection.size()];
-      for (float _float : (Collection<Float>) collection) {
-        floats[i++] = _float;
+      for (float v : (Collection<Float>) collection) {
+        floats[i++] = v;
       }
       return floats;
     case INT:
       int[] ints = new int[collection.size()];
-      for (int _int : (Collection<Integer>) collection) {
-        ints[i++] = _int;
+      for (int v : (Collection<Integer>) collection) {
+        ints[i++] = v;
       }
       return ints;
     case LONG:
       long[] longs = new long[collection.size()];
-      for (long _long : (Collection<Long>) collection) {
-        longs[i++] = _long;
+      for (long v : (Collection<Long>) collection) {
+        longs[i++] = v;
       }
       return longs;
     case SHORT:
       short[] shorts = new short[collection.size()];
-      for (short _short : (Collection<Short>) collection) {
-        shorts[i++] = _short;
+      for (short v : (Collection<Short>) collection) {
+        shorts[i++] = v;
       }
       return shorts;
     case BOOLEAN:
       boolean[] booleans = new boolean[collection.size()];
-      for (boolean _boolean : (Collection<Boolean>) collection) {
-        booleans[i++] = _boolean;
+      for (boolean v : (Collection<Boolean>) collection) {
+        booleans[i++] = v;
       }
       return booleans;
     case BYTE:
       byte[] bytes = new byte[collection.size()];
-      for (byte _byte : (Collection<Byte>) collection) {
-        bytes[i++] = _byte;
+      for (byte v : (Collection<Byte>) collection) {
+        bytes[i++] = v;
       }
       return bytes;
     case CHAR:
       char[] chars = new char[collection.size()];
-      for (char _char : (Collection<Character>) collection) {
-        chars[i++] = _char;
+      for (char v : (Collection<Character>) collection) {
+        chars[i++] = v;
       }
       return chars;
     default:
@@ -636,7 +636,7 @@ public enum Primitive {
    * Sends a field value to a sink.
    */
   public void send(Field field, Object o, Sink sink)
-      throws IllegalAccessException {
+    throws IllegalAccessException {
     switch (this) {
     case BOOLEAN:
       sink.set(field.getBoolean(o));
@@ -977,9 +977,13 @@ public enum Primitive {
     Object getObject();
   }
 
+  /** What kind of type? */
   public enum Flavor {
+    /** A primitive type, e.g. {@code int}. */
     PRIMITIVE,
+    /** A type that boxes a primitive, e.g. {@link Integer}. */
     BOX,
+    /** Neither a primitive nor a boxing type. */
     OBJECT
   }
 }

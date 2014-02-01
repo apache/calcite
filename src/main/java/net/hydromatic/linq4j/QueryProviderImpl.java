@@ -25,8 +25,6 @@ import java.lang.reflect.Type;
  * Partial implementation of {@link QueryProvider}.
  *
  * <p>Derived class needs to implement {@link #executeQuery}.</p>
- *
- * @author jhyde
  */
 public abstract class QueryProviderImpl implements QueryProvider {
   /**

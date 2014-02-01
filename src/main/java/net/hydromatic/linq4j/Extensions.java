@@ -106,7 +106,8 @@ import java.util.*;
  *
  * </ul>
  */
-public class Extensions {
+public abstract class Extensions {
+  private Extensions() {}
 
   static final Function2<BigDecimal, BigDecimal, BigDecimal> BIG_DECIMAL_SUM =
       new Function2<BigDecimal, BigDecimal, BigDecimal>() {

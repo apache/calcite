@@ -22,6 +22,8 @@ import java.math.BigDecimal;
 /**
  * Function that takes one parameter and returns a {@link BigDecimal} value that
  * may be null.
+ *
+ * @param <T0> Type of argument #0
  */
 public interface NullableBigDecimalFunction1<T0>
     extends Function1<T0, BigDecimal> {

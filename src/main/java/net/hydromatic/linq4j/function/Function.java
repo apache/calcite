@@ -20,7 +20,7 @@ package net.hydromatic.linq4j.function;
 /**
  * Base interface for all functions.
  *
- * @param <R> result type
+ * @param <R> Result type
  */
 public interface Function<R> {
 }

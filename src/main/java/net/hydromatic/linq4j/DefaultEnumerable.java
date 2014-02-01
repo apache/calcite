@@ -31,6 +31,8 @@ import java.util.*;
  * {@link #enumerator()} and {@link #iterator()}.
  * The derived class can implement each separately, or implement one in terms of
  * the other.</p>
+ *
+ * @param <T> Element type
  */
 public abstract class DefaultEnumerable<T> implements OrderedEnumerable<T> {
 
@@ -414,7 +416,7 @@ public abstract class DefaultEnumerable<T> implements OrderedEnumerable<T> {
   }
 
   public T min() {
-    return (T) EnumerableDefaults.min(((Enumerable) getThis()));
+    return (T) EnumerableDefaults.min((Enumerable) getThis());
   }
 
   public BigDecimal min(BigDecimalFunction1<T> selector) {

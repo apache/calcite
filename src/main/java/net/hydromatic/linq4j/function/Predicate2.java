@@ -20,17 +20,17 @@ package net.hydromatic.linq4j.function;
 /**
  * Function with two parameters returning a native {@code boolean} value.
  *
- * @param <T1> type of parameter 1
- * @param <T2> type of parameter 2
+ * @param <T0> Type of argument #0
+ * @param <T1> Type of argument #1
  */
-public interface Predicate2<T1, T2> extends Function<Boolean> {
+public interface Predicate2<T0, T1> extends Function<Boolean> {
   /**
    * Predicate that always evaluates to {@code true}.
    *
    * @see net.hydromatic.linq4j.function.Functions#truePredicate1()
    */
   Predicate2<Object, Object> TRUE = new Predicate2<Object, Object>() {
-    public boolean apply(Object v1, Object v2) {
+    public boolean apply(Object v0, Object v1) {
       return true;
     }
   };
@@ -41,12 +41,12 @@ public interface Predicate2<T1, T2> extends Function<Boolean> {
    * @see net.hydromatic.linq4j.function.Functions#falsePredicate1()
    */
   Predicate2<Object, Object> FALSE = new Predicate2<Object, Object>() {
-    public boolean apply(Object v1, Object v2) {
+    public boolean apply(Object v0, Object v1) {
       return false;
     }
   };
 
-  boolean apply(T1 v1, T2 v2);
+  boolean apply(T0 v0, T1 v1);
 }
 
 // End Predicate2.java

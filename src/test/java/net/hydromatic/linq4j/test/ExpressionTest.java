@@ -663,7 +663,8 @@ public class ExpressionTest {
   }
 
   @Test public void testWriteWhile() {
-    DeclarationStatement xDecl, yDecl;
+    DeclarationStatement xDecl;
+    DeclarationStatement yDecl;
     Node node =
         Expressions.block(
             xDecl = Expressions.declare(
@@ -965,14 +966,14 @@ public class ExpressionTest {
   @Test public void testConstantExpression() {
     final Expression constant = Expressions.constant(
         new Object[] {
-            1,
-            new Object[] {
-                (byte) 1, (short) 2, (int) 3, (long) 4,
-                (float) 5, (double) 6, (char) 7, true, "string", null
-            },
-            new AllType(true, (byte) 100, (char) 101, (short) 102, 103,
-                (long) 104, (float) 105, (double) 106, new BigDecimal(107),
-                new BigInteger("108"), "109", null)
+          1,
+          new Object[] {
+            (byte) 1, (short) 2, (int) 3, (long) 4,
+            (float) 5, (double) 6, (char) 7, true, "string", null
+          },
+          new AllType(true, (byte) 100, (char) 101, (short) 102, 103,
+            (long) 104, (float) 105, (double) 106, new BigDecimal(107),
+            new BigInteger("108"), "109", null)
         });
     assertEquals(
         "new Object[] {\n"

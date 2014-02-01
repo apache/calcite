@@ -20,22 +20,22 @@ package net.hydromatic.linq4j.function;
 /**
  * Function with one parameter.
  *
- * @param <R> result type
- * @param <T1> type of parameter 1
+ * @param <R> Result type
+ * @param <T0> Type of parameter 0
  */
-public interface Function1<T1, R> extends Function<R> {
+public interface Function1<T0, R> extends Function<R> {
   /**
    * The identity function.
    *
    * @see Functions#identitySelector()
    */
   Function1<Object, Object> IDENTITY = new Function1<Object, Object>() {
-    public Object apply(Object v1) {
-      return v1;
+    public Object apply(Object v0) {
+      return v0;
     }
   };
 
-  R apply(T1 a0);
+  R apply(T0 a0);
 }
 
 // End Function1.java

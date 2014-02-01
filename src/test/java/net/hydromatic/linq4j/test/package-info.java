@@ -15,15 +15,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 */
-package net.hydromatic.linq4j.function;
 
 /**
- * Function with no parameters.
- *
- * @param <R> Result type
+ * Core linq4j tests.
  */
-public interface Function0<R> extends Function<R> {
-  R apply();
-}
+package net.hydromatic.linq4j.test;
 
-// End Function0.java
+// End package-info.java

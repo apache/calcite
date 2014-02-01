@@ -24,6 +24,8 @@ import java.util.*;
 
 /**
  * Extension methods in {@link Enumerable}.
+ *
+ * @param <TSource> Element type
  */
 public interface ExtendedEnumerable<TSource> {
 

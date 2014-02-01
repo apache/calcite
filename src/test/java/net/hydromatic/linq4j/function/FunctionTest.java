@@ -109,20 +109,20 @@ public class FunctionTest {
 
   /** Unit test for {@link Functions#generate}. */
   @Test public void testGenerate() {
-    final Function1<Integer, String> Xxx0 =
+    final Function1<Integer, String> xx =
         new Function1<Integer, String>() {
           public String apply(Integer a0) {
             return a0 == 0 ? "0" : "x" + apply(a0 - 1);
           }
         };
     Assert.assertEquals(
-        "[]", Functions.generate(0, Xxx0).toString());
+        "[]", Functions.generate(0, xx).toString());
     Assert.assertEquals(
-        "[0]", Functions.generate(1, Xxx0).toString());
+        "[0]", Functions.generate(1, xx).toString());
     Assert.assertEquals(
-        "[0, x0, xx0]", Functions.generate(3, Xxx0).toString());
+        "[0, x0, xx0]", Functions.generate(3, xx).toString());
     try {
-      final List<String> generate = Functions.generate(-2, Xxx0);
+      final List<String> generate = Functions.generate(-2, xx);
       Assert.fail("expected error, got " + generate);
     } catch (IllegalArgumentException e) {
       // ok

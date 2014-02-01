@@ -25,14 +25,14 @@ import java.util.List;
 public class TryStatement extends Statement {
   public final Statement body;
   public final List<CatchBlock> catchBlocks;
-  public final Statement finally_;
+  public final Statement fynally;
 
   public TryStatement(Statement body, List<CatchBlock> catchBlocks,
-      Statement finally_) {
+      Statement fynally) {
     super(ExpressionType.Try, body.getType());
     this.body = body;
     this.catchBlocks = catchBlocks;
-    this.finally_ = finally_;
+    this.fynally = fynally;
   }
 
   @Override
@@ -48,9 +48,9 @@ public class TryStatement extends Statement {
       writer.append(" catch (").append(catchBlock.parameter.declString())
           .append(") ").append(Blocks.toBlock(catchBlock.body));
     }
-    if (finally_ != null) {
+    if (fynally != null) {
       writer.backUp();
-      writer.append(" finally ").append(Blocks.toBlock(finally_));
+      writer.append(" finally ").append(Blocks.toBlock(fynally));
     }
   }
 }

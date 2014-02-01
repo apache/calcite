@@ -17,7 +17,6 @@
 */
 package net.hydromatic.linq4j.expressions;
 
-import java.lang.reflect.Member;
 import java.lang.reflect.Type;
 import java.util.List;
 

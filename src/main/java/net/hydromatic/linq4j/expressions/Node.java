@@ -21,7 +21,7 @@ package net.hydromatic.linq4j.expressions;
  * <p>Parse tree node.</p>
  */
 public interface Node {
-  public Node accept(Visitor visitor);
+  Node accept(Visitor visitor);
 
   void accept(ExpressionWriter expressionWriter);
 }

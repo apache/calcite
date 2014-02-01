@@ -19,6 +19,8 @@ package net.hydromatic.linq4j.function;
 
 /**
  * Compares values for equality.
+ *
+ * @param <T> Value type
  */
 public interface EqualityComparer<T> {
   boolean equal(T v1, T v2);

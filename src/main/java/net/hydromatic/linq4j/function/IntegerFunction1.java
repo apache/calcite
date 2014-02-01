@@ -19,9 +19,11 @@ package net.hydromatic.linq4j.function;
 
 /**
  * Function that takes one parameter and returns a native {@code int} value.
+ *
+ * @param <T0> Type of argument #0
  */
-public interface IntegerFunction1<T1> extends Function<Integer> {
-  int apply(T1 v1);
+public interface IntegerFunction1<T0> extends Function<Integer> {
+  int apply(T0 v0);
 }
 
 // End IntegerFunction1.java

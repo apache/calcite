@@ -27,6 +27,8 @@ import java.util.Comparator;
  * Implementation of the {@link Queryable} interface that
  * implements the extension methods by calling into the {@link Extensions}
  * class.
+ *
+ * @param <T> Element type
  */
 abstract class DefaultQueryable<T> extends DefaultEnumerable<T>
     implements Queryable<T>, OrderedQueryable<T> {
@@ -59,9 +61,9 @@ abstract class DefaultQueryable<T> extends DefaultEnumerable<T>
   @Override
   public Enumerable<T> asEnumerable() {
     return new AbstractEnumerable<T>() {
-        public Enumerator<T> enumerator() {
-            return DefaultQueryable.this.enumerator();
-        }
+      public Enumerator<T> enumerator() {
+        return DefaultQueryable.this.enumerator();
+      }
     };
   }
 

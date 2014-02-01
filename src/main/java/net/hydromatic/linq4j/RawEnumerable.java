@@ -27,6 +27,7 @@ package net.hydromatic.linq4j;
  * <p>Analogous to LINQ's System.Collections.IEnumerable (both generic
  * and non-generic variants), without the extension methods.</p>
  *
+ * @param <T> Element type
  * @see Enumerable
  */
 public interface RawEnumerable<T> {

@@ -148,7 +148,7 @@ public class Mappers {
     };
   }
 
-  public static abstract class AbstractMapper<T, R> implements Mapper<T, R> {
+  public abstract static class AbstractMapper<T, R> implements Mapper<T, R> {
     public <V> Mapper<T, V> compose(Mapper<? super R, ? extends V> after) {
       return chain(this, after);
     }

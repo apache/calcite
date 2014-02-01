@@ -22,6 +22,8 @@ package net.hydromatic.linq4j;
  * wherein the type of the data is known.
  *
  * <p>Analogous to LINQ's System.Linq.IQueryable.</p>
+ *
+ * @param <T> Element type
  */
 public interface Queryable<T> extends RawQueryable<T>, ExtendedQueryable<T> {
 }

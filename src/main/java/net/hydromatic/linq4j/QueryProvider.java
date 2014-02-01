@@ -26,8 +26,6 @@ import java.lang.reflect.Type;
  * {@link Queryable} object.
  *
  * <p>Analogous to LINQ's System.Linq.QueryProvider.</p>
- *
- * @author jhyde
  */
 public interface QueryProvider {
   /**

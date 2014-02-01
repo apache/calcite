@@ -28,7 +28,9 @@ import java.util.*;
 /**
  * Utility methods for expressions, including a lot of factory methods.
  */
-public class Expressions {
+public abstract class Expressions {
+  private Expressions() {}
+
   /**
    * Converts a list of expressions to Java source code, optionally emitting
    * extra type information in generics.
@@ -2195,7 +2197,7 @@ public class Expressions {
    * the expression followed by a subsequent increment by 1 of the
    * original expression.
    */
-  public static UnaryExpression PostIncrementAssign(Expression expression,
+  public static UnaryExpression postIncrementAssign(Expression expression,
       Method method) {
     return makeUnary(ExpressionType.PostIncrementAssign, expression,
         expression.getType(), method);

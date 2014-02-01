@@ -25,6 +25,8 @@ import java.util.*;
 /**
  * Represents a strongly typed lambda expression as a data structure in the form
  * of an expression tree. This class cannot be inherited.
+ *
+ * @param <F> Function type
  */
 public final class FunctionExpression<F extends Function<?>>
     extends LambdaExpression {
@@ -83,7 +85,7 @@ public final class FunctionExpression<F extends Function<?>>
           new Class[]{Types.toClass(type)},
           new InvocationHandler() {
             public Object invoke(Object proxy, Method method, Object[] args)
-                throws Throwable {
+              throws Throwable {
               return x.dynamicInvoke(args);
             }
           });
@@ -194,6 +196,7 @@ public final class FunctionExpression<F extends Function<?>>
     return "apply";
   }
 
+  /** Function that can be invoked with a variable number of arguments. */
   public interface Invokable {
     Object dynamicInvoke(Object... args);
   }

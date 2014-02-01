@@ -28,6 +28,8 @@ import java.util.Iterator;
 
 /**
  * Implementation of {@link Queryable} by a {@link Enumerable}.
+ *
+ * @param <T> Element type
  */
 class EnumerableQueryable<T> extends DefaultEnumerable<T>
     implements Queryable<T> {

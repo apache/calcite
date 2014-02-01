@@ -25,7 +25,7 @@ import java.util.Comparator;
 /**
  * Extension methods for {@link OrderedQueryable}.
  *
- * @author jhyde
+ * @param <T> Element type
  */
 public interface ExtendedOrderedQueryable<T> extends Queryable<T> {
   /**

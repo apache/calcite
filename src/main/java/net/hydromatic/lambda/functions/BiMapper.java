@@ -23,7 +23,7 @@ package net.hydromatic.lambda.functions;
 public interface BiMapper<T, U, V> {
   V map(T t, U u);
 
-  public <W> BiMapper<T, U, W> compose(Mapper<? super V, ? extends W> after);
+  <W> BiMapper<T, U, W> compose(Mapper<? super V, ? extends W> after);
   // default:
   // throw new UnsupportedOperationException("Not yet implemented.");
 }

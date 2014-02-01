@@ -25,7 +25,7 @@ package net.hydromatic.linq4j;
  *
  * <p>Also implements {@link Iterable}, to enable use in Java foreach loops.</p>
  *
- * @param <T> element type
+ * @param <T> Element type
  */
 public interface Enumerable<T>
     extends RawEnumerable<T>, Iterable<T>, ExtendedEnumerable<T> {

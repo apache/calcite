@@ -25,6 +25,8 @@ import java.util.Comparator;
 
 /**
  * Extension methods in Queryable.
+ *
+ * @param <TSource> Element type
  */
 interface ExtendedQueryable<TSource> extends ExtendedEnumerable<TSource> {
 

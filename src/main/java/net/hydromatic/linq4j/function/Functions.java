@@ -27,9 +27,11 @@ import java.util.*;
 /**
  * Utilities relating to functions.
  */
-public class Functions {
+public abstract class Functions {
+  private Functions() {}
+
   public static final Map<Class<? extends Function>, Class>
-      FUNCTION_RESULT_TYPES =
+  FUNCTION_RESULT_TYPES =
       Collections.<Class<? extends Function>, Class>unmodifiableMap(map(
           Function0.class, Object.class,
           Function1.class, Object.class,
@@ -331,8 +333,10 @@ public class Functions {
    * {@code predicate}. Avoids allocating a list if all elements match or no
    * elements match. */
   public static <E> List<E> filter(List<E> list, Predicate1<E> predicate) {
-    sniff: {
-      int hitCount = 0, missCount = 0;
+  sniff:
+    {
+      int hitCount = 0;
+      int missCount = 0;
       for (E e : list) {
         if (predicate.apply(e)) {
           if (missCount > 0) {

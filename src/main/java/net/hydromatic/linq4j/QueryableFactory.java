@@ -26,7 +26,7 @@ import java.util.Comparator;
 /**
  * Factory for building {@link Queryable} objects.
  *
- * @author jhyde
+ * @param <T> Element type
  */
 public interface QueryableFactory<T> {
 

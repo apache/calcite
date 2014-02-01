@@ -20,7 +20,7 @@ package net.hydromatic.linq4j;
 /**
  * Represents the result of applying a sorting operation to a {@link Queryable}.
  *
- * @author jhyde
+ * @param <T> Element type
  */
 public interface OrderedQueryable<T>
     extends Queryable<T>, ExtendedOrderedQueryable<T> {

@@ -24,7 +24,7 @@ import java.util.*;
  * Converts an expression to Java code.
  */
 class ExpressionWriter {
-  static Indent INDENT = new Indent(20);
+  static final Indent INDENT = new Indent(20);
 
   private final StringBuilder buf = new StringBuilder();
   private int level;
@@ -195,6 +195,7 @@ class ExpressionWriter {
     }
   }
 
+  /** Helps generate strings of spaces, to indent text. */
   private static class Indent extends ArrayList<String> {
     public Indent(int initialCapacity) {
       super(initialCapacity);

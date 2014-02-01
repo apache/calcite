@@ -18,7 +18,7 @@
 package net.hydromatic.linq4j;
 
 /**
- * @author jhyde
+ * Operator type.
  */
 public enum OpType {
   WHERE,

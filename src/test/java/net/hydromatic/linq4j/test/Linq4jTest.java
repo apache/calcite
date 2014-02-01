@@ -54,7 +54,7 @@ public class Linq4jTest {
       };
 
   public static final Function1<Department, Enumerable<Employee>>
-      DEPT_EMPLOYEES_SELECTOR =
+  DEPT_EMPLOYEES_SELECTOR =
       new Function1<Department, Enumerable<Employee>>() {
         public Enumerable<Employee> apply(Department a0) {
           return Linq4j.asEnumerable(a0.employees);
@@ -333,7 +333,7 @@ public class Linq4jTest {
                 return a0.deptno;
               }
             }
-        );
+      );
     assertTrue(comparer.equal(emps[0], emps[0]));
     assertEquals(comparer.hashCode(emps[0]), comparer.hashCode(emps[0]));
 
@@ -411,7 +411,7 @@ public class Linq4jTest {
                     return v1 + ": " + v2;
                   }
                 }
-            )
+        )
             .orderBy(Functions.<String>identitySelector())
             .toList()
             .toString();
@@ -434,7 +434,7 @@ public class Linq4jTest {
                   public String apply() {
                     return null;
                   }
-                }.apply(),
+                }.apply(), //CHECKSTYLE: IGNORE 0
                 new Function2<String, Employee, String>() {
                   public String apply(String v1, Employee e0) {
                     return v1 == null ? e0.name : (v1 + "+" + e0.name);
@@ -537,8 +537,8 @@ public class Linq4jTest {
 
   @Test public void testIntersect() {
     final Employee[] emps2 = {
-        new Employee(150, "Theodore", 10),
-        emps[3],
+      new Employee(150, "Theodore", 10),
+      emps[3],
     };
     assertEquals(
         1,
@@ -549,8 +549,8 @@ public class Linq4jTest {
 
   @Test public void testExcept() {
     final Employee[] emps2 = {
-        new Employee(150, "Theodore", 10),
-        emps[3],
+      new Employee(150, "Theodore", 10),
+      emps[3],
     };
     assertEquals(
         3,
@@ -561,10 +561,10 @@ public class Linq4jTest {
 
   @Test public void testDistinct() {
     final Employee[] emps2 = {
-        new Employee(150, "Theodore", 10),
-        emps[3],
-        emps[0],
-        emps[3],
+      new Employee(150, "Theodore", 10),
+      emps[3],
+      emps[0],
+      emps[3],
     };
     assertEquals(
         3,
@@ -575,10 +575,10 @@ public class Linq4jTest {
 
   @Test public void testDistinctWithEqualityComparer() {
     final Employee[] emps2 = {
-        new Employee(150, "Theodore", 10),
-        emps[3],
-        emps[1],
-        emps[3],
+      new Employee(150, "Theodore", 10),
+      emps[3],
+      emps[1],
+      emps[3],
     };
     assertEquals(
         2,
@@ -621,7 +621,7 @@ public class Linq4jTest {
                         .toString();
                   }
                 }
-            ).toList()
+        ).toList()
             .toString();
     assertEquals(
         "[[Fred, Eric, Janet] work(s) in Sales, "
@@ -746,7 +746,7 @@ public class Linq4jTest {
                         return v1.deptno == 10;
                       }
                     }
-                ));
+          ));
     assertEquals(3, nh2.count());
 
     // use lambda, this time call whereN
@@ -863,11 +863,12 @@ public class Linq4jTest {
         Linq4j.asEnumerable(depts);
     final List<Department> deptList =
         EnumerableDefaults.takeWhile(
-            enumerableDepts, new Predicate1<Department>() {
-          public boolean apply(Department v1) {
-            return v1.name.contains("e");
-          }
-        }).toList();
+            enumerableDepts,
+            new Predicate1<Department>() {
+              public boolean apply(Department v1) {
+                return v1.name.contains("e");
+              }
+            }).toList();
 
     // Only one department:
     // 0: Sales --> true
@@ -882,16 +883,17 @@ public class Linq4jTest {
         Linq4j.asEnumerable(depts);
     final List<Department> deptList =
         EnumerableDefaults.takeWhile(
-            enumerableDepts, new Predicate2<Department, Integer>() {
-          int index = 0;
+            enumerableDepts,
+            new Predicate2<Department, Integer>() {
+              int index = 0;
 
-          public boolean apply(Department v1, Integer v2) {
-            // Make sure we're passed the correct indices
-            assertEquals(
-                "Invalid index passed to function", index++, (int) v2);
-            return 20 != v1.deptno;
-          }
-        }).toList();
+              public boolean apply(Department v1, Integer v2) {
+                // Make sure we're passed the correct indices
+                assertEquals(
+                  "Invalid index passed to function", index++, (int) v2);
+                return 20 != v1.deptno;
+              }
+            }).toList();
 
     assertEquals(1, deptList.size());
     assertEquals(depts[0], deptList.get(0));
@@ -1002,7 +1004,8 @@ public class Linq4jTest {
               public boolean apply(Department v1, Integer v2) {
                 return v1.name.equals("Sales")
                     || v2 == 1;
-              }}).count());
+              }
+            }).count());
 
     assertEquals(
         2, Linq4j.asEnumerable(depts).asQueryable().skip(1).count());
@@ -1160,21 +1163,24 @@ public class Linq4jTest {
   }
 
   // Cedric works in a non-existent department.
+  //CHECKSTYLE: IGNORE 1
   public static final Employee[] badEmps = {
-      new Employee(140, "Cedric", 40),
+    new Employee(140, "Cedric", 40),
   };
 
+  //CHECKSTYLE: IGNORE 1
   public static final Employee[] emps = {
-      new Employee(100, "Fred", 10),
-      new Employee(110, "Bill", 30),
-      new Employee(120, "Eric", 10),
-      new Employee(130, "Janet", 10),
+    new Employee(100, "Fred", 10),
+    new Employee(110, "Bill", 30),
+    new Employee(120, "Eric", 10),
+    new Employee(130, "Janet", 10),
   };
 
+  //CHECKSTYLE: IGNORE 1
   public static final Department[] depts = {
-      new Department("Sales", 10, Arrays.asList(emps[0], emps[2], emps[3])),
-      new Department("HR", 20, Collections.<Employee>emptyList()),
-      new Department("Marketing", 30, Arrays.asList(emps[1])),
+    new Department("Sales", 10, Arrays.asList(emps[0], emps[2], emps[3])),
+    new Department("HR", 20, Collections.<Employee>emptyList()),
+    new Department("Marketing", 30, Arrays.asList(emps[1])),
   };
 }
 

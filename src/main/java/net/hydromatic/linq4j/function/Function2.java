@@ -20,12 +20,12 @@ package net.hydromatic.linq4j.function;
 /**
  * Function with two parameters.
  *
- * @param <R> result type
- * @param <T1> type of parameter 1
- * @param <T2> type of parameter 2
+ * @param <R> Result type
+ * @param <T0> Type of argument #0
+ * @param <T1> Type of argument #1
  */
-public interface Function2<T1, T2, R> extends Function<R> {
-  R apply(T1 v1, T2 v2);
+public interface Function2<T0, T1, R> extends Function<R> {
+  R apply(T0 v0, T1 v1);
 }
 
 // End Function2.java

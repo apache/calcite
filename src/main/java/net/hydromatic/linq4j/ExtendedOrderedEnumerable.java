@@ -24,7 +24,7 @@ import java.util.Comparator;
 /**
  * Extension methods for {@link OrderedEnumerable}.
  *
- * @author jhyde
+ * @param <T> Element type
  */
 public interface ExtendedOrderedEnumerable<T> extends Enumerable<T> {
   /**

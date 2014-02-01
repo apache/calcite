@@ -22,6 +22,9 @@ import java.util.Map;
 
 /**
  * Implementation of {@link Grouping}.
+ *
+ * @param <K> Key type
+ * @param <V> Value type
  */
 class GroupingImpl<K, V> extends AbstractEnumerable<V>
     implements Grouping<K, V>, Map.Entry<K, Enumerable<V>> {

@@ -78,10 +78,10 @@ public class BiPredicates {
   }
 
   public static <K, V> BiPredicate<K, V> negate(
-      final BiPredicate<? super K, ? super V> BiPredicate) {
+      final BiPredicate<? super K, ? super V> biPredicate) {
     return new AbstractBiPredicate<K, V>() {
       public boolean eval(K k, V v) {
-        return !BiPredicate.eval(k, v);
+        return !biPredicate.eval(k, v);
       }
     };
   }
@@ -229,7 +229,7 @@ public class BiPredicates {
     return xor(Arrays.asList(predicates));
   }
 
-  public static abstract class AbstractBiPredicate<K, V>
+  public abstract static class AbstractBiPredicate<K, V>
       implements BiPredicate<K, V> {
     public BiPredicate<K, V> and(BiPredicate<? super K, ? super V> p) {
       //noinspection unchecked

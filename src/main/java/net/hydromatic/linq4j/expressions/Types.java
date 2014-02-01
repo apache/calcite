@@ -28,7 +28,9 @@ import java.util.*;
  *
  * @see Primitive
  */
-public class Types {
+public abstract class Types {
+  private Types() {}
+
   /**
    * Creates a type with generic parameters.
    */
@@ -547,6 +549,7 @@ public class Types {
     }
   }
 
+  /** Implementation of {@link ParameterizedType}. */
   static class ParameterizedTypeImpl implements ParameterizedType {
     private final Type rawType;
     private final List<Type> typeArguments;

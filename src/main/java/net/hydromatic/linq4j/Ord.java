@@ -21,6 +21,8 @@ import java.util.*;
 
 /**
  * Pair of an element and an ordinal.
+ *
+ * @param <E> Element type
  */
 public class Ord<E> implements Map.Entry<Integer, E> {
   public final int i;

@@ -26,7 +26,9 @@ import java.util.*;
 /**
  * Utility and factory methods for Linq4j.
  */
-public class Linq4j {
+public abstract class Linq4j {
+  private Linq4j() {}
+
   private static final Object DUMMY = new Object();
 
   private static final Method AUTO_CLOSEABLE_CLOSE_METHOD =

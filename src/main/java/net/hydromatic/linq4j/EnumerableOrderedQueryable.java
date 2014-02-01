@@ -26,6 +26,8 @@ import java.util.Comparator;
 /**
  * Implementation of {@link OrderedQueryable} by an
  * {@link net.hydromatic.linq4j.Enumerable}.
+ *
+ * @param <T> Element type
  */
 class EnumerableOrderedQueryable<T> extends EnumerableQueryable<T>
     implements OrderedQueryable<T> {

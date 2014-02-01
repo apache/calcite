@@ -31,9 +31,9 @@ public interface SequentialStreamOps<T> {
 
   <R> Stream<R> flatMap(FlatMapper<? super T, R> mapper);
 
-  public T reduce(T base, BinaryOperator<T> op);
+  T reduce(T base, BinaryOperator<T> op);
 
-  public <U> U fold(Factory<U> seedFactory, Combiner<U, T, U> reducer,
+  <U> U fold(Factory<U> seedFactory, Combiner<U, T, U> reducer,
       BinaryOperator<U> combiner);
 
   boolean anyMatch(Predicate<? super T> predicate);

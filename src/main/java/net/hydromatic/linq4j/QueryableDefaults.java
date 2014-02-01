@@ -28,8 +28,6 @@ import java.util.*;
 
 /**
  * Default implementations for methods in the {@link Queryable} interface.
- *
- * @author jhyde
  */
 public abstract class QueryableDefaults {
 
@@ -1132,7 +1130,7 @@ public abstract class QueryableDefaults {
     void replay(QueryableFactory<T> factory);
   }
 
-  public static abstract class ReplayableQueryable<T>
+  public abstract static class ReplayableQueryable<T>
       extends DefaultQueryable<T> implements Replayable<T> {
     public void replay(QueryableFactory<T> factory) {
     }
@@ -1165,7 +1163,7 @@ public abstract class QueryableDefaults {
     }
   }
 
-  public static abstract class NonLeafReplayableQueryable<T>
+  public abstract static class NonLeafReplayableQueryable<T>
       extends ReplayableQueryable<T> {
     private final Queryable<T> original;
 
