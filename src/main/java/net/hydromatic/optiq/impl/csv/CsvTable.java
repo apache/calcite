@@ -17,14 +17,14 @@
 */
 package net.hydromatic.optiq.impl.csv;
 
-import net.hydromatic.linq4j.*;
-
 import net.hydromatic.optiq.*;
 import net.hydromatic.optiq.impl.AbstractTableQueryable;
 import net.hydromatic.optiq.impl.java.AbstractQueryableTable;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 import net.hydromatic.optiq.rules.java.EnumerableConvention;
 import net.hydromatic.optiq.rules.java.JavaRules;
+
+import net.hydromatic.linq4j.*;
 
 import org.eigenbase.rel.RelNode;
 import org.eigenbase.relopt.RelOptTable;

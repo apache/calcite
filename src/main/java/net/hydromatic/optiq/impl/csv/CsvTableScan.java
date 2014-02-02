@@ -17,7 +17,6 @@
 */
 package net.hydromatic.optiq.impl.csv;
 
-import net.hydromatic.linq4j.Queryable;
 import net.hydromatic.optiq.rules.java.*;
 
 import net.hydromatic.linq4j.expressions.*;

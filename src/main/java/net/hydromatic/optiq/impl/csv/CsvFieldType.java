@@ -17,8 +17,9 @@
 */
 package net.hydromatic.optiq.impl.csv;
 
-import net.hydromatic.linq4j.expressions.Primitive;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
+
+import net.hydromatic.linq4j.expressions.Primitive;
 
 import org.eigenbase.reltype.RelDataType;
 
