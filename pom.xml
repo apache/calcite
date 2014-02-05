@@ -214,11 +214,10 @@
             <id>validate</id>
             <phase>validate</phase>
             <configuration>
-              <configLocation>${top.dir}/src/main/config/checkstyle.xml</configLocation>
-              <suppressionsLocation>${top.dir}/src/main/config/checkstyle-suppressions.xml</suppressionsLocation>
+              <configLocation>${top.dir}/src/main/config/checkstyle/checker.xml</configLocation>
+              <suppressionsLocation>${top.dir}/src/main/config/checkstyle/suppressions.xml</suppressionsLocation>
               <consoleOutput>true</consoleOutput>
-              <enableRulesSummary>true</enableRulesSummary>
-              <headerLocation>${top.dir}/src/main/config/license-header.txt</headerLocation>
+              <headerLocation>${top.dir}/src/main/config/checkstyle/header.txt</headerLocation>
               <failOnViolation>true</failOnViolation>
               <includeTestSourceDirectory>true</includeTestSourceDirectory>
             </configuration>
