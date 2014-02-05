@@ -27,6 +27,7 @@
     <suppress checks=".*" files="EigenbaseResource_en_US.java"/>
     <suppress checks=".*" files="EigenbaseResource.properties"/>
     <suppress checks=".*" files="net-hydromatic-optiq-jdbc.properties"/>
+    <suppress checks=".*" files="Foo.java"/>
 
     <!-- This file triggers https://github.com/checkstyle/checkstyle/issues/92,
          through no fault of its own. -->

@@ -18,12 +18,13 @@
 package org.eigenbase.relopt.volcano;
 
 import org.eigenbase.relopt.*;
+import org.eigenbase.util.Util;
 
 /**
  * <code>VolcanoCost</code> represents the cost of a plan node.
  *
- * <p>This class is immutable: none of the methods (besides {@link #set})
- * modifies any member variables.</p>
+ * <p>This class is immutable: none of the methods modify any member
+ * variables.</p>
  */
 class VolcanoCost implements RelOptCost {
   //~ Static fields/initializers ---------------------------------------------
@@ -58,76 +59,75 @@ class VolcanoCost implements RelOptCost {
           return "{tiny}";
         }
       };
+
   public static final RelOptCostFactory FACTORY = new Factory();
 
   //~ Instance fields --------------------------------------------------------
 
-  double dCpu;
-  double dIo;
-  double dRows;
+  final double cpu;
+  final double io;
+  final double rowCount;
 
   //~ Constructors -----------------------------------------------------------
 
-  VolcanoCost(
-      double dRows,
-      double dCpu,
-      double dIo) {
-    set(dRows, dCpu, dIo);
+  VolcanoCost(double rowCount, double cpu, double io) {
+    this.rowCount = rowCount;
+    this.cpu = cpu;
+    this.io = io;
   }
 
   //~ Methods ----------------------------------------------------------------
 
   public double getCpu() {
-    return dCpu;
+    return cpu;
   }
 
   public boolean isInfinite() {
-    return (this == INFINITY) || (this.dRows == Double.POSITIVE_INFINITY)
-        || (this.dCpu == Double.POSITIVE_INFINITY)
-        || (this.dIo == Double.POSITIVE_INFINITY);
+    return (this == INFINITY)
+        || (this.rowCount == Double.POSITIVE_INFINITY)
+        || (this.cpu == Double.POSITIVE_INFINITY)
+        || (this.io == Double.POSITIVE_INFINITY);
   }
 
   public double getIo() {
-    return dIo;
+    return io;
   }
 
   public boolean isLe(RelOptCost other) {
     VolcanoCost that = (VolcanoCost) other;
     if (true) {
       return this == that
-          || this.dRows <= that.dRows;
+          || this.rowCount <= that.rowCount;
     }
     return (this == that)
-        || ((this.dRows <= that.dRows)
-        && (this.dCpu <= that.dCpu)
-        && (this.dIo <= that.dIo));
+        || ((this.rowCount <= that.rowCount)
+        && (this.cpu <= that.cpu)
+        && (this.io <= that.io));
   }
 
   public boolean isLt(RelOptCost other) {
     if (true) {
       VolcanoCost that = (VolcanoCost) other;
-      return this.dRows < that.dRows;
+      return this.rowCount < that.rowCount;
     }
     return isLe(other) && !equals(other);
   }
 
   public double getRows() {
-    return dRows;
+    return rowCount;
   }
 
   @Override
   public int hashCode() {
-    return Double.valueOf(dRows).hashCode()
-        + Double.valueOf(dCpu).hashCode()
-        + Double.valueOf(dIo).hashCode();
+    return Util.hashCode(rowCount) + Util.hashCode(cpu) + Util.hashCode(io);
   }
 
   public boolean equals(RelOptCost other) {
     return this == other
         || other instanceof VolcanoCost
-        && (this.dRows == ((VolcanoCost) other).dRows)
-        && (this.dCpu == ((VolcanoCost) other).dCpu)
-        && (this.dIo == ((VolcanoCost) other).dIo);
+        && (this.rowCount == ((VolcanoCost) other).rowCount)
+        && (this.cpu == ((VolcanoCost) other).cpu)
+        && (this.io == ((VolcanoCost) other).io);
   }
 
   public boolean isEqWithEpsilon(RelOptCost other) {
@@ -136,9 +136,9 @@ class VolcanoCost implements RelOptCost {
     }
     VolcanoCost that = (VolcanoCost) other;
     return (this == that)
-        || ((Math.abs(this.dRows - that.dRows) < RelOptUtil.EPSILON)
-        && (Math.abs(this.dCpu - that.dCpu) < RelOptUtil.EPSILON)
-        && (Math.abs(this.dIo - that.dIo) < RelOptUtil.EPSILON));
+        || ((Math.abs(this.rowCount - that.rowCount) < RelOptUtil.EPSILON)
+        && (Math.abs(this.cpu - that.cpu) < RelOptUtil.EPSILON)
+        && (Math.abs(this.io - that.io) < RelOptUtil.EPSILON));
   }
 
   public RelOptCost minus(RelOptCost other) {
@@ -147,16 +147,16 @@ class VolcanoCost implements RelOptCost {
     }
     VolcanoCost that = (VolcanoCost) other;
     return new VolcanoCost(
-        this.dRows - that.dRows,
-        this.dCpu - that.dCpu,
-        this.dIo - that.dIo);
+        this.rowCount - that.rowCount,
+        this.cpu - that.cpu,
+        this.io - that.io);
   }
 
   public RelOptCost multiplyBy(double factor) {
     if (this == INFINITY) {
       return this;
     }
-    return new VolcanoCost(dRows * factor, dCpu * factor, dIo * factor);
+    return new VolcanoCost(rowCount * factor, cpu * factor, io * factor);
   }
 
   public double divideBy(RelOptCost cost) {
@@ -165,25 +165,25 @@ class VolcanoCost implements RelOptCost {
     VolcanoCost that = (VolcanoCost) cost;
     double d = 1;
     double n = 0;
-    if ((this.dRows != 0)
-        && !Double.isInfinite(this.dRows)
-        && (that.dRows != 0)
-        && !Double.isInfinite(that.dRows)) {
-      d *= this.dRows / that.dRows;
+    if ((this.rowCount != 0)
+        && !Double.isInfinite(this.rowCount)
+        && (that.rowCount != 0)
+        && !Double.isInfinite(that.rowCount)) {
+      d *= this.rowCount / that.rowCount;
       ++n;
     }
-    if ((this.dCpu != 0)
-        && !Double.isInfinite(this.dCpu)
-        && (that.dCpu != 0)
-        && !Double.isInfinite(that.dCpu)) {
-      d *= this.dCpu / that.dCpu;
+    if ((this.cpu != 0)
+        && !Double.isInfinite(this.cpu)
+        && (that.cpu != 0)
+        && !Double.isInfinite(that.cpu)) {
+      d *= this.cpu / that.cpu;
       ++n;
     }
-    if ((this.dIo != 0)
-        && !Double.isInfinite(this.dIo)
-        && (that.dIo != 0)
-        && !Double.isInfinite(that.dIo)) {
-      d *= this.dIo / that.dIo;
+    if ((this.io != 0)
+        && !Double.isInfinite(this.io)
+        && (that.io != 0)
+        && !Double.isInfinite(that.io)) {
+      d *= this.io / that.io;
       ++n;
     }
     if (n == 0) {
@@ -198,22 +198,13 @@ class VolcanoCost implements RelOptCost {
       return INFINITY;
     }
     return new VolcanoCost(
-        this.dRows + that.dRows,
-        this.dCpu + that.dCpu,
-        this.dIo + that.dIo);
-  }
-
-  public void set(
-      double dRows,
-      double dCpu,
-      double dIo) {
-    this.dRows = dRows;
-    this.dCpu = dCpu;
-    this.dIo = dIo;
+        this.rowCount + that.rowCount,
+        this.cpu + that.cpu,
+        this.io + that.io);
   }
 
   public String toString() {
-    return "{" + dRows + " rows, " + dCpu + " cpu, " + dIo + " io}";
+    return "{" + rowCount + " rows, " + cpu + " cpu, " + io + " io}";
   }
 
   private static class Factory implements RelOptCostFactory {

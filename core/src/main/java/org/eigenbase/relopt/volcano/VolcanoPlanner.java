@@ -182,6 +182,10 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
   private final List<VolcanoRuleCall> ruleCallStack =
       new ArrayList<VolcanoRuleCall>();
 
+  /** Zero cost, according to {@link #costFactory}. Not necessarily a
+   * {@link org.eigenbase.relopt.volcano.VolcanoCost}. */
+  private final RelOptCost zeroCost;
+
   //~ Constructors -----------------------------------------------------------
 
   /**
@@ -190,7 +194,15 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
    * calling conventions.
    */
   public VolcanoPlanner() {
-    super(VolcanoCost.FACTORY);
+    this(VolcanoCost.FACTORY);
+  }
+
+  /**
+   * Creates a {@code VolcanoPlanner} with a given cost factory.
+   */
+  protected VolcanoPlanner(RelOptCostFactory costFactory) {
+    super(costFactory);
+    this.zeroCost = costFactory.makeZeroCost();
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -863,7 +875,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
       return costFactory.makeInfiniteCost();
     }
     RelOptCost cost = RelMetadataQuery.getNonCumulativeCost(rel);
-    if (!VolcanoCost.ZERO.isLt(cost)) {
+    if (!zeroCost.isLt(cost)) {
       // cost must be positive, so nudge it
       cost = costFactory.makeTinyCost();
     }
