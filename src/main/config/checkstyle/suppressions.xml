@@ -22,20 +22,161 @@
 */
 -->
 <suppressions>
-    <!-- Suppress checks on generated files. -->
-    <suppress checks=".*" files="EigenbaseResource.java"/>
-    <suppress checks=".*" files="EigenbaseResource_en_US.java"/>
-    <suppress checks=".*" files="EigenbaseResource.properties"/>
-    <suppress checks=".*" files="net-hydromatic-optiq-jdbc.properties"/>
-    <suppress checks=".*" files="Foo.java"/>
+  <!-- Suppress checks on generated files. -->
+  <suppress checks=".*" files="EigenbaseResource.java"/>
+  <suppress checks=".*" files="EigenbaseResource_en_US.java"/>
+  <suppress checks=".*" files="EigenbaseResource.properties"/>
+  <suppress checks=".*" files="net-hydromatic-optiq-jdbc.properties"/>
+  <suppress checks=".*" files="Foo.java"/>
 
-    <!-- This file triggers https://github.com/checkstyle/checkstyle/issues/92,
-         through no fault of its own. -->
-    <suppress checks=".*" files="SqlSimpleParser.java"/>
+  <!-- This file triggers https://github.com/checkstyle/checkstyle/issues/92,
+       through no fault of its own. -->
+  <suppress checks=".*" files="SqlSimpleParser.java"/>
 
-    <!-- Don't complain about field names such as cust_id -->
-    <suppress checks=".*Name" files="JdbcExample.java"/>
+  <!-- Don't complain about field names such as cust_id -->
+  <suppress checks=".*Name" files="JdbcExample.java"/>
 
-    <suppress id="eigenbaseImportOrder" files="net/hydromatic"/>
-    <suppress id="hydromaticImportOrder" files="org/eigenbase"/>
+  <suppress id="eigenbaseImportOrder" files="net/hydromatic"/>
+  <suppress id="hydromaticImportOrder" files="org/eigenbase"/>
+
+  <!-- Suppress checks on class-level javadoc in files known to have issues.
+       Hopefully we'll fix soon. At least we are now checking the other files.
+
+       Only OptiqPrepareImpl, JavaRules, RelOptListener, RelDecorrelator,
+       OptionsList, OptiqAssert, Mappings, JdbcTest, SubstitutionVisitor,
+       HepInstruction, VolcanoPlannerTest, ConcurrentTestCommandScript,
+       VolcanoPlannerTraitTest, RexImpTable
+       have more than 4 issues.
+    -->
+  <suppress checks="JavadocType" files="src/main/java/net/hydromatic/optiq/impl/clone/ColumnLoader.java"/>
+  <suppress checks="JavadocType" files="src/main/java/net/hydromatic/optiq/jdbc/OptiqJdbc41Factory.java"/>
+  <suppress checks="JavadocType" files="src/main/java/net/hydromatic/optiq/jdbc/OptiqPrepare.java"/>
+  <suppress checks="JavadocType" files="src/main/java/net/hydromatic/optiq/jdbc/OptiqSchema.java"/>
+  <suppress checks="JavadocType" files="src/main/java/net/hydromatic/optiq/materialize/MaterializationActor.java"/>
+  <suppress checks="JavadocType" files="src/main/java/net/hydromatic/optiq/prepare/OptiqPrepareImpl.java"/>
+  <suppress checks="JavadocType" files="src/main/java/net/hydromatic/optiq/prepare/PlannerImpl.java"/>
+  <suppress checks="JavadocType" files="src/main/java/net/hydromatic/optiq/prepare/Prepare.java"/>
+  <suppress checks="JavadocType" files="src/main/java/net/hydromatic/optiq/prepare/QueryableRelBuilder.java"/>
+  <suppress checks="JavadocType" files="src/main/java/net/hydromatic/optiq/rules/java/EnumerableRel.java"/>
+  <suppress checks="JavadocType" files="src/main/java/net/hydromatic/optiq/rules/java/EnumerableRelImplementor.java"/>
+  <suppress checks="JavadocType" files="src/main/java/net/hydromatic/optiq/rules/java/JavaRules.java"/>
+  <suppress checks="JavadocType" files="src/main/java/net/hydromatic/optiq/rules/java/RexImpTable.java"/>
+  <suppress checks="JavadocType" files="src/main/java/net/hydromatic/optiq/runtime/AbstractCursor.java"/>
+  <suppress checks="JavadocType" files="src/main/java/net/hydromatic/optiq/runtime/ArrayEnumeratorCursor.java"/>
+  <suppress checks="JavadocType" files="src/main/java/net/hydromatic/optiq/runtime/Bindable.java"/>
+  <suppress checks="JavadocType" files="src/main/java/net/hydromatic/optiq/runtime/ComparableComparator.java"/>
+  <suppress checks="JavadocType" files="src/main/java/net/hydromatic/optiq/runtime/FlatLists.java"/>
+  <suppress checks="JavadocType" files="src/main/java/net/hydromatic/optiq/runtime/ObjectEnumeratorCursor.java"/>
+  <suppress checks="JavadocType" files="src/main/java/net/hydromatic/optiq/runtime/RecordEnumeratorCursor.java"/>
+  <suppress checks="JavadocType" files="src/main/java/net/hydromatic/optiq/runtime/ResultSetEnumerable.java"/>
+  <suppress checks="JavadocType" files="src/main/java/net/hydromatic/optiq/runtime/SortedMultiMap.java"/>
+  <suppress checks="JavadocType" files="src/main/java/net/hydromatic/optiq/runtime/SqlFunctions.java"/>
+  <suppress checks="JavadocType" files="src/main/java/net/hydromatic/optiq/Schema.java"/>
+  <suppress checks="JavadocType" files="src/main/java/net/hydromatic/optiq/TableFactory.java"/>
+  <suppress checks="JavadocType" files="src/main/java/net/hydromatic/optiq/util/CompositeMap.java"/>
+  <suppress checks="JavadocType" files="src/main/java/net/hydromatic/optiq/util/graph/BreadthFirstIterator.java"/>
+  <suppress checks="JavadocType" files="src/main/java/net/hydromatic/optiq/util/graph/CycleDetector.java"/>
+  <suppress checks="JavadocType" files="src/main/java/net/hydromatic/optiq/util/graph/DefaultDirectedGraph.java"/>
+  <suppress checks="JavadocType" files="src/main/java/net/hydromatic/optiq/util/graph/DepthFirstIterator.java"/>
+  <suppress checks="JavadocType" files="src/main/java/net/hydromatic/optiq/util/graph/DirectedGraph.java"/>
+  <suppress checks="JavadocType" files="src/main/java/net/hydromatic/optiq/util/graph/Graphs.java"/>
+  <suppress checks="JavadocType" files="src/main/java/net/hydromatic/optiq/util/graph/TopologicalOrderIterator.java"/>
+  <suppress checks="JavadocType" files="src/main/java/net/hydromatic/optiq/util/PartiallyOrderedSet.java"/>
+  <suppress checks="JavadocType" files="src/main/java/org/eigenbase/javac/JaninoCompiler.java"/>
+  <suppress checks="JavadocType" files="src/main/java/org/eigenbase/rel/convert/ConverterRule.java"/>
+  <suppress checks="JavadocType" files="src/main/java/org/eigenbase/rel/metadata/CachingRelMetadataProvider.java"/>
+  <suppress checks="JavadocType" files="src/main/java/org/eigenbase/rel/metadata/RelMdUtil.java"/>
+  <suppress checks="JavadocType" files="src/main/java/org/eigenbase/rel/ProjectRelBase.java"/>
+  <suppress checks="JavadocType" files="src/main/java/org/eigenbase/rel/RelImplementorImpl.java"/>
+  <suppress checks="JavadocType" files="src/main/java/org/eigenbase/rel/rules/CalcRelSplitter.java"/>
+  <suppress checks="JavadocType" files="src/main/java/org/eigenbase/rel/rules/ReduceExpressionsRule.java"/>
+  <suppress checks="JavadocType" files="src/main/java/org/eigenbase/rel/rules/ReduceValuesRule.java"/>
+  <suppress checks="JavadocType" files="src/main/java/org/eigenbase/rel/rules/RemoveEmptyRule.java"/>
+  <suppress checks="JavadocType" files="src/main/java/org/eigenbase/rel/rules/RemoveEmptyRules.java"/>
+  <suppress checks="JavadocType" files="src/main/java/org/eigenbase/rel/rules/RemoveIsNotDistinctFromRule.java"/>
+  <suppress checks="JavadocType" files="src/main/java/org/eigenbase/rel/WindowRel.java"/>
+  <suppress checks="JavadocType" files="src/main/java/org/eigenbase/relopt/ConventionTraitDef.java"/>
+  <suppress checks="JavadocType" files="src/main/java/org/eigenbase/relopt/hep/HepInstruction.java"/>
+  <suppress checks="JavadocType" files="src/main/java/org/eigenbase/relopt/RelOptCostImpl.java"/>
+  <suppress checks="JavadocType" files="src/main/java/org/eigenbase/relopt/RelOptListener.java"/>
+  <suppress checks="JavadocType" files="src/main/java/org/eigenbase/relopt/RelOptPlanner.java"/>
+  <suppress checks="JavadocType" files="src/main/java/org/eigenbase/relopt/RelOptTable.java"/>
+  <suppress checks="JavadocType" files="src/main/java/org/eigenbase/relopt/RelOptUtil.java"/>
+  <suppress checks="JavadocType" files="src/main/java/org/eigenbase/relopt/RelTraitDef.java"/>
+  <suppress checks="JavadocType" files="src/main/java/org/eigenbase/relopt/RelTraitSet.java"/>
+  <suppress checks="JavadocType" files="src/main/java/org/eigenbase/relopt/SubstitutionVisitor.java"/>
+  <suppress checks="JavadocType" files="src/main/java/org/eigenbase/relopt/TableAccessMap.java"/>
+  <suppress checks="JavadocType" files="src/main/java/org/eigenbase/relopt/volcano/VolcanoCost.java"/>
+  <suppress checks="JavadocType" files="src/main/java/org/eigenbase/rex/RexOver.java"/>
+  <suppress checks="JavadocType" files="src/main/java/org/eigenbase/rex/RexProgramBuilder.java"/>
+  <suppress checks="JavadocType" files="src/main/java/org/eigenbase/rex/RexUtil.java"/>
+  <suppress checks="JavadocType" files="src/main/java/org/eigenbase/rex/RexVisitor.java"/>
+  <suppress checks="JavadocType" files="src/main/java/org/eigenbase/rex/RexVisitorImpl.java"/>
+  <suppress checks="JavadocType" files="src/main/java/org/eigenbase/sarg/SargRexAnalyzer.java"/>
+  <suppress checks="JavadocType" files="src/main/java/org/eigenbase/sql/fun/SqlAvgAggFunction.java"/>
+  <suppress checks="JavadocType" files="src/main/java/org/eigenbase/sql/fun/SqlBetweenOperator.java"/>
+  <suppress checks="JavadocType" files="src/main/java/org/eigenbase/sql/fun/SqlCastFunction.java"/>
+  <suppress checks="JavadocType" files="src/main/java/org/eigenbase/sql/parser/SqlParserUtil.java"/>
+  <suppress checks="JavadocType" files="src/main/java/org/eigenbase/sql/SqlIntervalQualifier.java"/>
+  <suppress checks="JavadocType" files="src/main/java/org/eigenbase/sql/SqlSampleSpec.java"/>
+  <suppress checks="JavadocType" files="src/main/java/org/eigenbase/sql/SqlWindowOperator.java"/>
+  <suppress checks="JavadocType" files="src/main/java/org/eigenbase/sql/SqlWriter.java"/>
+  <suppress checks="JavadocType" files="src/main/java/org/eigenbase/sql/type/CompositeOperandTypeChecker.java"/>
+  <suppress checks="JavadocType" files="src/main/java/org/eigenbase/sql/type/SqlOperandCountRanges.java"/>
+  <suppress checks="JavadocType" files="src/main/java/org/eigenbase/sql/type/SqlTypeName.java"/>
+  <suppress checks="JavadocType" files="src/main/java/org/eigenbase/sql/util/SqlBasicVisitor.java"/>
+  <suppress checks="JavadocType" files="src/main/java/org/eigenbase/sql/util/SqlVisitor.java"/>
+  <suppress checks="JavadocType" files="src/main/java/org/eigenbase/sql/validate/SqlValidatorImpl.java"/>
+  <suppress checks="JavadocType" files="src/main/java/org/eigenbase/sql/validate/SqlValidatorUtil.java"/>
+  <suppress checks="JavadocType" files="src/main/java/org/eigenbase/sql2rel/RelDecorrelator.java"/>
+  <suppress checks="JavadocType" files="src/main/java/org/eigenbase/sql2rel/RelStructuredTypeFlattener.java"/>
+  <suppress checks="JavadocType" files="src/main/java/org/eigenbase/sql2rel/SqlToRelConverter.java"/>
+  <suppress checks="JavadocType" files="src/main/java/org/eigenbase/sql2rel/StandardConvertletTable.java"/>
+  <suppress checks="JavadocType" files="src/main/java/org/eigenbase/util/CastingList.java"/>
+  <suppress checks="JavadocType" files="src/main/java/org/eigenbase/util/ChunkList.java"/>
+  <suppress checks="JavadocType" files="src/main/java/org/eigenbase/util/Filterator.java"/>
+  <suppress checks="JavadocType" files="src/main/java/org/eigenbase/util/IdentityHashSet.java"/>
+  <suppress checks="JavadocType" files="src/main/java/org/eigenbase/util/ImmutableIntList.java"/>
+  <suppress checks="JavadocType" files="src/main/java/org/eigenbase/util/IntegerIntervalSet.java"/>
+  <suppress checks="JavadocType" files="src/main/java/org/eigenbase/util/mapping/Mappings.java"/>
+  <suppress checks="JavadocType" files="src/main/java/org/eigenbase/util/OptionsList.java"/>
+  <suppress checks="JavadocType" files="src/main/java/org/eigenbase/util/Pair.java"/>
+  <suppress checks="JavadocType" files="src/main/java/org/eigenbase/util/ReflectiveVisitDispatcher.java"/>
+  <suppress checks="JavadocType" files="src/main/java/org/eigenbase/util/StringRepresentationComparator.java"/>
+  <suppress checks="JavadocType" files="src/main/java/org/eigenbase/util/Util.java"/>
+  <suppress checks="JavadocType" files="src/test/java/net/hydromatic/optiq/examples/foodmart/java/JdbcExample.java"/>
+  <suppress checks="JavadocType" files="src/test/java/net/hydromatic/optiq/test/FoodmartTest.java"/>
+  <suppress checks="JavadocType" files="src/test/java/net/hydromatic/optiq/test/JdbcTest.java"/>
+  <suppress checks="JavadocType" files="src/test/java/net/hydromatic/optiq/test/OptiqAssert.java"/>
+  <suppress checks="JavadocType" files="src/test/java/net/hydromatic/optiq/test/ReflectiveSchemaTest.java"/>
+  <suppress checks="JavadocType" files="src/test/java/net/hydromatic/optiq/test/TableInRootSchemaTest.java"/>
+  <suppress checks="JavadocType" files="src/test/java/org/eigenbase/relopt/RelOptPlanReaderTest.java"/>
+  <suppress checks="JavadocType" files="src/test/java/org/eigenbase/relopt/volcano/VolcanoPlannerTest.java"/>
+  <suppress checks="JavadocType" files="src/test/java/org/eigenbase/relopt/volcano/VolcanoPlannerTraitTest.java"/>
+  <suppress checks="JavadocType" files="src/test/java/org/eigenbase/sql/test/SqlAdvisorTest.java"/>
+  <suppress checks="JavadocType" files="src/test/java/org/eigenbase/sql/test/SqlTester.java"/>
+  <suppress checks="JavadocType" files="src/test/java/org/eigenbase/test/concurrent/ConcurrentTestCommandGenerator.java"/>
+  <suppress checks="JavadocType" files="src/test/java/org/eigenbase/test/concurrent/ConcurrentTestCommandScript.java"/>
+  <suppress checks="JavadocType" files="src/test/java/org/eigenbase/test/concurrent/ConcurrentTestPluginCommand.java"/>
+  <suppress checks="JavadocType" files="src/test/java/org/eigenbase/test/concurrent/SamplePlugin.java"/>
+  <suppress checks="JavadocType" files="src/test/java/org/eigenbase/test/DiffRepository.java"/>
+  <suppress checks="JavadocType" files="src/test/java/org/eigenbase/test/EigenbaseTestCase.java"/>
+  <suppress checks="JavadocType" files="src/test/java/org/eigenbase/test/MockCatalogReader.java"/>
+  <suppress checks="JavadocType" files="src/test/java/org/eigenbase/test/MockRelOptPlanner.java"/>
+  <suppress checks="JavadocType" files="src/test/java/org/eigenbase/test/MockSqlOperatorTable.java"/>
+  <suppress checks="JavadocType" files="src/test/java/org/eigenbase/test/SargTest.java"/>
+  <suppress checks="JavadocType" files="src/test/java/org/eigenbase/test/SqlToRelTestBase.java"/>
+  <suppress checks="JavadocType" files="src/test/java/org/eigenbase/test/SqlValidatorFeatureTest.java"/>
+  <suppress checks="JavadocType" files="src/test/java/org/eigenbase/util/OptionsListTest.java"/>
+  <suppress checks="JavadocType" files="src/test/java/org/eigenbase/util/ReflectVisitorTest.java"/>
+  <suppress checks="JavadocType" files="src/main/java/net/hydromatic/optiq/impl/mongodb/MongoFilterRel.java"/>
+  <suppress checks="JavadocType" files="src/main/java/net/hydromatic/optiq/impl/mongodb/MongoRel.java"/>
+  <suppress checks="JavadocType" files="src/main/java/net/hydromatic/optiq/impl/mongodb/MongoRel.java"/>
+  <suppress checks="JavadocType" files="src/main/java/net/hydromatic/optiq/impl/mongodb/MongoRules.java"/>
+  <suppress checks="JavadocType" files="src/main/java/net/hydromatic/optiq/impl/mongodb/MongoTable.java"/>
+  <suppress checks="JavadocType" files="src/main/java/net/hydromatic/optiq/impl/splunk/search/SplunkConnection.java"/>
+  <suppress checks="JavadocType" files="src/main/java/net/hydromatic/optiq/impl/splunk/SplunkQuery.java"/>
+  <suppress checks="JavadocType" files="src/main/java/net/hydromatic/optiq/impl/splunk/util/StringUtils.java"/>
+  <suppress checks="JavadocType" files="src/main/java/net/hydromatic/optiq/impl/splunk/util/TrustAllSslSocketFactory.java"/>
+
 </suppressions>

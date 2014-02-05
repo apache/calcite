@@ -148,9 +148,7 @@
       <property name="checkFirstSentence" value="false"/>
     </module>
       <!-- Must have class / interface header comments -->
-<!-- todo: enable
     <module name="JavadocType"/>
--->
 
     <!-- Miscellaneous other checks (tree walker).     -->
     <!-- See http://checkstyle.sf.net/config_misc.html -->
