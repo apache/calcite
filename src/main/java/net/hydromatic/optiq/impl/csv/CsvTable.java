@@ -85,9 +85,9 @@ public class CsvTable extends AbstractQueryableTable
   }
 
   /** Returns an enumerable over a given projection of the fields. */
-  public Enumerable<Object[]> project(final int[] fields) {
-    return new AbstractEnumerable<Object[]>() {
-      public Enumerator<Object[]> enumerator() {
+  public Enumerable<Object> project(final int[] fields) {
+    return new AbstractEnumerable<Object>() {
+      public Enumerator<Object> enumerator() {
         return new CsvEnumerator(file,
             fieldTypes.toArray(new CsvFieldType[fieldTypes.size()]), fields);
       }

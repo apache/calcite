@@ -24,19 +24,19 @@ import au.com.bytecode.opencsv.CSVReader;
 import java.io.*;
 
 /** Enumerator that reads from a CSV file. */
-class CsvEnumerator implements Enumerator<Object[]> {
+class CsvEnumerator implements Enumerator<Object> {
   private final CSVReader reader;
-  private final CsvFieldType[] fieldTypes;
-  private final int[] fields;
-  private Object[] current;
+  private final RowConverter rowConverter;
+  private Object current;
 
   public CsvEnumerator(File file, CsvFieldType[] fieldTypes) {
     this(file, fieldTypes, identityList(fieldTypes.length));
   }
 
   public CsvEnumerator(File file, CsvFieldType[] fieldTypes, int[] fields) {
-    this.fieldTypes = fieldTypes;
-    this.fields = fields;
+    this.rowConverter = fields.length == 1
+        ? new SingleColumnRowConverter(fieldTypes[fields[0]], fields[0])
+        : new ArrayRowConverter(fieldTypes, fields);
     try {
       this.reader = new CSVReader(new FileReader(file));
       this.reader.readNext(); // skip header row
@@ -45,7 +45,7 @@ class CsvEnumerator implements Enumerator<Object[]> {
     }
   }
 
-  public Object[] current() {
+  public Object current() {
     return current;
   }
 
@@ -57,65 +57,10 @@ class CsvEnumerator implements Enumerator<Object[]> {
         reader.close();
         return false;
       }
-      current = convertRow(strings);
+      current = rowConverter.convertRow(strings);
       return true;
     } catch (IOException e) {
       throw new RuntimeException(e);
-    }
-  }
-
-  private Object[] convertRow(String[] strings) {
-    final Object[] objects = new Object[fields.length];
-    for (int i = 0; i < fields.length; i++) {
-      int field = fields[i];
-      objects[i] = convert(fieldTypes[field], strings[field]);
-    }
-    return objects;
-  }
-
-  private Object convert(CsvFieldType fieldType, String string) {
-    if (fieldType == null) {
-      return string;
-    }
-    switch (fieldType) {
-    default:
-    case STRING:
-      return string;
-    case BOOLEAN:
-      if (string.length() == 0) {
-        return null;
-      }
-      return Boolean.parseBoolean(string);
-    case BYTE:
-      if (string.length() == 0) {
-        return null;
-      }
-      return Byte.parseByte(string);
-    case SHORT:
-      if (string.length() == 0) {
-        return null;
-      }
-      return Short.parseShort(string);
-    case INT:
-      if (string.length() == 0) {
-        return null;
-      }
-      return Integer.parseInt(string);
-    case LONG:
-      if (string.length() == 0) {
-        return null;
-      }
-      return Long.parseLong(string);
-    case FLOAT:
-      if (string.length() == 0) {
-        return null;
-      }
-      return Float.parseFloat(string);
-    case DOUBLE:
-      if (string.length() == 0) {
-        return null;
-      }
-      return Double.parseDouble(string);
     }
   }
 
@@ -139,6 +84,92 @@ class CsvEnumerator implements Enumerator<Object[]> {
     }
     return integers;
   }
+
+  private abstract static class RowConverter {
+    abstract Object convertRow(String[] rows);
+
+    protected Object convert(CsvFieldType fieldType, String string) {
+      if (fieldType == null) {
+        return string;
+      }
+      switch (fieldType) {
+      default:
+      case STRING:
+        return string;
+      case BOOLEAN:
+        if (string.length() == 0) {
+          return null;
+        }
+        return Boolean.parseBoolean(string);
+      case BYTE:
+        if (string.length() == 0) {
+          return null;
+        }
+        return Byte.parseByte(string);
+      case SHORT:
+        if (string.length() == 0) {
+          return null;
+        }
+        return Short.parseShort(string);
+      case INT:
+        if (string.length() == 0) {
+          return null;
+        }
+        return Integer.parseInt(string);
+      case LONG:
+        if (string.length() == 0) {
+          return null;
+        }
+        return Long.parseLong(string);
+      case FLOAT:
+        if (string.length() == 0) {
+          return null;
+        }
+        return Float.parseFloat(string);
+      case DOUBLE:
+        if (string.length() == 0) {
+          return null;
+        }
+        return Double.parseDouble(string);
+      }
+    }
+  }
+
+  private static class ArrayRowConverter extends RowConverter {
+
+    private final CsvFieldType[] fieldTypes;
+    private final int[] fields;
+
+    private ArrayRowConverter(CsvFieldType[] fieldTypes, int[] fields) {
+      this.fieldTypes = fieldTypes;
+      this.fields = fields;
+    }
+
+    public Object convertRow(String[] strings) {
+      final Object[] objects = new Object[fields.length];
+      for (int i = 0; i < fields.length; i++) {
+        int field = fields[i];
+        objects[i] = convert(fieldTypes[field], strings[field]);
+      }
+      return objects;
+    }
+  }
+
+  private static class SingleColumnRowConverter extends RowConverter {
+
+    private final CsvFieldType fieldType;
+    private final int fieldIndex;
+
+    private SingleColumnRowConverter(CsvFieldType fieldType, int fieldIndex) {
+      this.fieldType = fieldType;
+      this.fieldIndex = fieldIndex;
+    }
+
+    public Object convertRow(String[] strings) {
+      return convert(fieldType, strings[fieldIndex]);
+    }
+  }
+
 }
 
 // End CsvEnumerator.java
