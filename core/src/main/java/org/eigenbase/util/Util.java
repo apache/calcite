@@ -255,6 +255,18 @@ public class Util {
     return h;
   }
 
+  /** Computes the hash code of a {@code double} value. Equivalent to
+   * {@link Double}{@code .hashCode(double)}, but that method was only
+   * introduced in JDK 1.8.
+   *
+   * @param v Value
+   * @return Hash code
+   */
+  public static int hashCode(double v) {
+    long bits = Double.doubleToLongBits(v);
+    return (int) (bits ^ (bits >>> 32));
+  }
+
   /**
    * Returns a set of the elements which are in <code>set1</code> but not in
    * <code>set2</code>, without modifying either.

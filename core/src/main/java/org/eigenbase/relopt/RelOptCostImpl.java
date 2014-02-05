@@ -17,6 +17,8 @@
 */
 package org.eigenbase.relopt;
 
+import org.eigenbase.util.Util;
+
 /**
  * RelOptCostImpl provides a default implementation for the {@link RelOptCost}
  * interface. It it defined in terms of a single scalar quantity; somewhat
@@ -70,7 +72,7 @@ public class RelOptCostImpl implements RelOptCost {
 
   @Override
   public int hashCode() {
-    return Double.valueOf(getRows()).hashCode();
+    return Util.hashCode(getRows());
   }
 
   // implement RelOptCost

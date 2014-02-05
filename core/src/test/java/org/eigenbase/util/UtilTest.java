@@ -1179,6 +1179,22 @@ public class UtilTest {
           5).run();
     }
   }
+
+  /** Unit test for {@link Util#hashCode(double)}. */
+  @Test public void testHash() {
+    checkHash(0d);
+    checkHash(1d);
+    checkHash(-2.5d);
+    checkHash(10d / 3d);
+    checkHash(Double.NEGATIVE_INFINITY);
+    checkHash(Double.POSITIVE_INFINITY);
+    checkHash(Double.MAX_VALUE);
+    checkHash(Double.MIN_VALUE);
+  }
+
+  public void checkHash(double v) {
+    assertThat(new Double(v).hashCode(), equalTo(Util.hashCode(v)));
+  }
 }
 
 // End UtilTest.java
