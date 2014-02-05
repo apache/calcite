@@ -522,7 +522,7 @@ public abstract class EnumerableDefaults {
    * each group and its key.
    */
   public static <TSource, TKey, TResult> Enumerable<Grouping<TKey, TResult>>
-  groupBy(Enumerable<TSource> queryable, Function1<TSource, TKey> keySelector,
+  groupBy(Enumerable<TSource> enumerable, Function1<TSource, TKey> keySelector,
       Function2<TKey, Enumerable<TSource>, TResult> elementSelector) {
     throw Extensions.todo();
   }
@@ -662,6 +662,23 @@ public abstract class EnumerableDefaults {
         };
       }
     };
+  }
+
+  private static <TSource, TKey, TResult> Enumerable<TResult>
+  groupBy_(final Set<TKey> map, Enumerable<TSource> enumerable,
+      Function1<TSource, TKey> keySelector,
+      final Function1<TKey, TResult> resultSelector) {
+    final Enumerator<TSource> os = enumerable.enumerator();
+    try {
+      while (os.moveNext()) {
+        TSource o = os.current();
+        TKey key = keySelector.apply(o);
+        map.add(key);
+      }
+    } finally {
+      os.close();
+    }
+    return Linq4j.asEnumerable(map).select(resultSelector);
   }
 
   /**
@@ -1336,12 +1353,15 @@ public abstract class EnumerableDefaults {
   }
 
   /**
-   * Projects each element of a sequence into a new
-   * form.
+   * Projects each element of a sequence into a new form.
    */
   public static <TSource, TResult> Enumerable<TResult> select(
       final Enumerable<TSource> source,
       final Function1<TSource, TResult> selector) {
+    if (selector == Functions.identitySelector()) {
+      //noinspection unchecked
+      return (Enumerable<TResult>) source;
+    }
     return new AbstractEnumerable<TResult>() {
       public Enumerator<TResult> enumerator() {
         return new Enumerator<TResult>() {
