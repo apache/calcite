@@ -123,18 +123,15 @@ public final class CorrelatorRel extends JoinRelBase {
   //~ Methods ----------------------------------------------------------------
 
   @Override
-  public CorrelatorRel copy(
-      RelTraitSet traitSet,
-      RexNode conditionExpr,
-      RelNode left,
-      RelNode right) {
+  public CorrelatorRel copy(RelTraitSet traitSet, RexNode conditionExpr,
+      RelNode left, RelNode right, JoinRelType joinType) {
     assert traitSet.containsIfApplicable(Convention.NONE);
     return new CorrelatorRel(
         getCluster(),
         left,
         right,
         correlations,
-        joinType);
+        this.joinType);
   }
 
   public RelWriter explainTerms(RelWriter pw) {

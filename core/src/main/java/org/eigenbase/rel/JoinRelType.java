@@ -38,6 +38,20 @@ public enum JoinRelType {
   public boolean generatesNullsOnLeft() {
     return (this == RIGHT) || (this == FULL);
   }
+
+  /**
+   * Swaps left to right, and vice versa.
+   */
+  public JoinRelType swap() {
+    switch (this) {
+    case LEFT:
+      return RIGHT;
+    case RIGHT:
+      return LEFT;
+    default:
+      return this;
+    }
+  }
 }
 
 // End JoinRelType.java

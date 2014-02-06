@@ -154,8 +154,8 @@ public class PushJoinThroughJoinRule extends RelOptRule {
     RexNode newBottomCondition =
         RexUtil.composeConjunction(rexBuilder, newBottomList, false);
     final JoinRelBase newBottomJoin =
-        bottomJoin.copy(
-            bottomJoin.getTraitSet(), newBottomCondition, relA, relC);
+        bottomJoin.copy(bottomJoin.getTraitSet(), newBottomCondition, relA,
+            relC, bottomJoin.getJoinType());
 
     // target: | A       | C      | B |
     // source: | A       | B | C      |
@@ -174,8 +174,8 @@ public class PushJoinThroughJoinRule extends RelOptRule {
         RexUtil.composeConjunction(rexBuilder, newTopList, false);
     @SuppressWarnings("SuspiciousNameCombination")
     final JoinRelBase newTopJoin =
-        topJoin.copy(
-            topJoin.getTraitSet(), newTopCondition, newBottomJoin, relB);
+        topJoin.copy(topJoin.getTraitSet(), newTopCondition, newBottomJoin,
+            relB, topJoin.getJoinType());
 
     assert !Mappings.isIdentity(topMapping);
     final RelNode newProject =
@@ -262,8 +262,8 @@ public class PushJoinThroughJoinRule extends RelOptRule {
     RexNode newBottomCondition =
         RexUtil.composeConjunction(rexBuilder, newBottomList, false);
     final JoinRelBase newBottomJoin =
-        bottomJoin.copy(
-            bottomJoin.getTraitSet(), newBottomCondition, relC, relB);
+        bottomJoin.copy(bottomJoin.getTraitSet(), newBottomCondition, relC,
+            relB, bottomJoin.getJoinType());
 
     // target: | C      | B | A       |
     // source: | A       | B | C      |
@@ -282,8 +282,8 @@ public class PushJoinThroughJoinRule extends RelOptRule {
         RexUtil.composeConjunction(rexBuilder, newTopList, false);
     @SuppressWarnings("SuspiciousNameCombination")
     final JoinRelBase newTopJoin =
-        topJoin.copy(
-            topJoin.getTraitSet(), newTopCondition, newBottomJoin, relA);
+        topJoin.copy(topJoin.getTraitSet(), newTopCondition, newBottomJoin,
+            relA, topJoin.getJoinType());
 
     final RelNode newProject =
         CalcRel.createProject(newTopJoin, Mappings.asList(topMapping));

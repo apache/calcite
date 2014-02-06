@@ -350,11 +350,8 @@ public abstract class JoinRelBase extends AbstractRelNode {
   @Override
   public final JoinRelBase copy(RelTraitSet traitSet, List<RelNode> inputs) {
     assert inputs.size() == 2;
-    return copy(
-        traitSet,
-        getCondition(),
-        inputs.get(0),
-        inputs.get(1));
+    return copy(traitSet, getCondition(), inputs.get(0), inputs.get(1),
+        joinType);
   }
 
   /**
@@ -366,13 +363,11 @@ public abstract class JoinRelBase extends AbstractRelNode {
    * @param conditionExpr Condition
    * @param left          Left input
    * @param right         Right input
+   * @param joinType      Join type
    * @return Copy of this join
    */
-  public abstract JoinRelBase copy(
-      RelTraitSet traitSet,
-      RexNode conditionExpr,
-      RelNode left,
-      RelNode right);
+  public abstract JoinRelBase copy(RelTraitSet traitSet, RexNode conditionExpr,
+      RelNode left, RelNode right, JoinRelType joinType);
 }
 
 // End JoinRelBase.java

@@ -151,20 +151,11 @@ public class JavaRules {
     }
 
     @Override
-    public EnumerableJoinRel copy(
-        RelTraitSet traitSet,
-        RexNode conditionExpr,
-        RelNode left,
-        RelNode right) {
+    public EnumerableJoinRel copy(RelTraitSet traitSet, RexNode conditionExpr,
+        RelNode left, RelNode right, JoinRelType joinType) {
       try {
-        return new EnumerableJoinRel(
-            getCluster(),
-            traitSet,
-            left,
-            right,
-            conditionExpr,
-            joinType,
-            variablesStopped);
+        return new EnumerableJoinRel(getCluster(), traitSet, left, right,
+            conditionExpr, joinType, variablesStopped);
       } catch (InvalidRelException e) {
         // Semantic error not possible. Must be a bug. Convert to
         // internal error.

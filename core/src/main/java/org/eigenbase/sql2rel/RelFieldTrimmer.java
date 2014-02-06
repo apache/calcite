@@ -573,11 +573,8 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
         conditionExpr.accept(shuttle);
 
     final JoinRel newJoin =
-        join.copy(
-            join.getTraitSet(),
-            newConditionExpr,
-            newInputs.get(0),
-            newInputs.get(1));
+        join.copy(join.getTraitSet(), newConditionExpr, newInputs.get(0),
+            newInputs.get(1), join.getJoinType());
 
     return new TrimResult(newJoin, mapping);
   }

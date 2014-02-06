@@ -34,8 +34,13 @@ import com.google.common.collect.ImmutableList;
 public class SwapJoinRule extends RelOptRule {
   //~ Static fields/initializers ---------------------------------------------
 
+  public static final ProjectFactory DEFAULT_PROJECT_FACTORY =
+      new ProjectFactoryImpl();
+
   /** The singleton. */
   public static final SwapJoinRule INSTANCE = new SwapJoinRule();
+
+  private final ProjectFactory projectFactory;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -43,11 +48,13 @@ public class SwapJoinRule extends RelOptRule {
    * Creates a SwapJoinRule.
    */
   private SwapJoinRule() {
-    this(JoinRel.class);
+    this(JoinRel.class, DEFAULT_PROJECT_FACTORY);
   }
 
-  public SwapJoinRule(Class<? extends JoinRelBase> clazz) {
+  public SwapJoinRule(Class<? extends JoinRelBase> clazz,
+      ProjectFactory projectFactory) {
     super(operand(clazz, any()));
+    this.projectFactory = projectFactory;
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -67,20 +74,9 @@ public class SwapJoinRule extends RelOptRule {
    * @return swapped join if swapping possible; else null
    */
   public static RelNode swap(JoinRelBase join, boolean swapOuterJoins) {
-    JoinRelType joinType = join.getJoinType();
-    switch (joinType) {
-    case LEFT:
-      if (!swapOuterJoins) {
-        return null;
-      }
-      joinType = JoinRelType.RIGHT;
-      break;
-    case RIGHT:
-      if (!swapOuterJoins) {
-        return null;
-      }
-      joinType = JoinRelType.LEFT;
-      break;
+    final JoinRelType joinType = join.getJoinType();
+    if (!swapOuterJoins && joinType != JoinRelType.INNER) {
+      return null;
     }
     final RexBuilder rexBuilder = join.getCluster().getRexBuilder();
     final RelDataType leftRowType = join.getLeft().getRowType();
@@ -96,11 +92,8 @@ public class SwapJoinRule extends RelOptRule {
     // doesn't prevent us from seeing any new combinations assuming
     // that the planner tries the desired order (semijoins after swaps).
     JoinRelBase newJoin =
-        join.copy(
-            join.getTraitSet(),
-            condition,
-            join.getRight(),
-            join.getLeft());
+        join.copy(join.getTraitSet(), condition, join.getRight(),
+            join.getLeft(), joinType.swap());
     final List<RexNode> exps =
         RelOptUtil.createSwappedJoinExprs(newJoin, join, true);
     return CalcRel.createProject(
@@ -126,7 +119,8 @@ public class SwapJoinRule extends RelOptRule {
     // The result is either a Project or, if the project is trivial, a
     // raw Join.
     final JoinRelBase newJoin =
-        (swapped instanceof JoinRelBase) ? (JoinRelBase) swapped
+        swapped instanceof JoinRelBase
+            ? (JoinRelBase) swapped
             : (JoinRelBase) swapped.getInput(0);
 
     call.transformTo(swapped);
@@ -139,16 +133,8 @@ public class SwapJoinRule extends RelOptRule {
     final List<RexNode> exps =
         RelOptUtil.createSwappedJoinExprs(newJoin, join, false);
     RelNode project =
-        CalcRel.createProject(
-            swapped,
-            exps,
+        projectFactory.createProject(swapped, exps,
             newJoin.getRowType().getFieldNames());
-
-    // Make sure extra traits are carried over from the original rel
-    project =
-        RelOptRule.convert(
-            project,
-            swapped.getTraitSet());
 
     RelNode rel = call.getPlanner().ensureRegistered(project, newJoin);
     Util.discard(rel);
@@ -212,6 +198,29 @@ public class SwapJoinRule extends RelOptRule {
       } else {
         return rex;
       }
+    }
+  }
+
+  /** Can create a {@link org.eigenbase.rel.ProjectRel} of the appropriate
+   * type for this rule's calling convention. */
+  public interface ProjectFactory {
+    RelNode createProject(RelNode input, List<RexNode> exps,
+        List<String> fieldNames);
+  }
+
+  /** Implementation of {@link ProjectFactory} that returns vanilla
+   * {@link ProjectRel}. */
+  private static class ProjectFactoryImpl implements ProjectFactory {
+    public RelNode createProject(RelNode input, List<RexNode> exps,
+        List<String> fieldNames) {
+      RelNode project = CalcRel.createProject(input, exps, fieldNames);
+
+      // Make sure extra traits are carried over from the original rel
+      project =
+          RelOptRule.convert(
+              project,
+              input.getTraitSet());
+      return project;
     }
   }
 }
