@@ -585,6 +585,7 @@ public class RexUtil {
    * If there are zero expressions, returns TRUE.
    * If there is one expression, returns just that expression.
    * Removes expressions that always evaluate to TRUE.
+   * Returns null only if {@code nullOnEmpty} and expression is TRUE.
    */
   public static RexNode composeConjunction(
       RexBuilder rexBuilder, List<RexNode> nodes, boolean nullOnEmpty) {

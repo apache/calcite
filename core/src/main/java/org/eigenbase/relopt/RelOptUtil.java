@@ -654,7 +654,7 @@ public abstract class RelOptUtil {
   }
 
   /**
-   * Returns whether a join condition an "equi-join" condition.
+   * Returns whether a join condition is an "equi-join" condition.
    *
    * @param left      Left input of join
    * @param right     Right input of join
@@ -699,7 +699,7 @@ public abstract class RelOptUtil {
    *                      in this list; join keys associated with the non-equi
    *                      join predicate are at the end of the key lists
    *                      returned
-   * @return What's left
+   * @return What's left, never null
    */
   public static RexNode splitJoinCondition(
       List<RelDataTypeField> sysFieldList,
@@ -725,7 +725,7 @@ public abstract class RelOptUtil {
 
     // Convert the remainders into a list that are AND'ed together.
     return RexUtil.composeConjunction(
-        leftRel.getCluster().getRexBuilder(), nonEquiList, true);
+        leftRel.getCluster().getRexBuilder(), nonEquiList, false);
   }
 
   public static RexNode splitCorrelatedFilterCondition(
