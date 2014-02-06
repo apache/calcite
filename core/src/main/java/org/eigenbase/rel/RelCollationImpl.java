@@ -113,11 +113,9 @@ public class RelCollationImpl implements RelCollation {
   public static List<RelCollation> createSingleton(int fieldIndex) {
     return ImmutableList.of(
         of(
-            ImmutableList.of(
-                new RelFieldCollation(
-                    fieldIndex,
-                    RelFieldCollation.Direction.Ascending,
-                    RelFieldCollation.NullDirection.UNSPECIFIED))));
+            new RelFieldCollation(fieldIndex,
+                RelFieldCollation.Direction.Ascending,
+                RelFieldCollation.NullDirection.UNSPECIFIED)));
   }
 
   /**
@@ -134,11 +132,9 @@ public class RelCollationImpl implements RelCollation {
       boolean fail) {
     final int fieldCount = rowType.getFieldCount();
     for (RelCollation collation : collationList) {
-      for (
-          RelFieldCollation fieldCollation
-          : collation.getFieldCollations()) {
+      for (RelFieldCollation fieldCollation : collation.getFieldCollations()) {
         final int index = fieldCollation.getFieldIndex();
-        if ((index < 0) || (index >= fieldCount)) {
+        if (index < 0 || index >= fieldCount) {
           assert !fail;
           return false;
         }
