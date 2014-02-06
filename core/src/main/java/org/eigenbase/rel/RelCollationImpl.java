@@ -22,6 +22,7 @@ import java.util.*;
 import org.eigenbase.relopt.RelTrait;
 import org.eigenbase.relopt.RelTraitDef;
 import org.eigenbase.reltype.*;
+import org.eigenbase.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
@@ -98,14 +99,8 @@ public class RelCollationImpl implements RelCollation {
   public boolean subsumes(RelTrait trait) {
     return this == trait
         || trait instanceof RelCollationImpl
-        && isPrefix(fieldCollations,
+        && Util.startsWith(fieldCollations,
             ((RelCollationImpl) trait).fieldCollations);
-  }
-
-  private static <E> boolean isPrefix(List<E> list0, List<E> list1) {
-    return list0.equals(list1)
-        || list0.size() > list1.size()
-        && list0.subList(0, list1.size()).equals(list1);
   }
 
   public String toString() {

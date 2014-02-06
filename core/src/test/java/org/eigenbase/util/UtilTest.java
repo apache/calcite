@@ -40,6 +40,7 @@ import com.google.common.collect.ImmutableMultiset;
 import org.junit.Test;
 
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.*;
 
 /**
@@ -1194,6 +1195,21 @@ public class UtilTest {
 
   public void checkHash(double v) {
     assertThat(new Double(v).hashCode(), equalTo(Util.hashCode(v)));
+  }
+
+  /** Unit test for {@link Util#startsWith}. */
+  @Test public void testStartsWithList() {
+    assertThat(Util.startsWith(list("x"), list()), is(true));
+    assertThat(Util.startsWith(list("x"), list("x")), is(true));
+    assertThat(Util.startsWith(list("x"), list("y")), is(false));
+    assertThat(Util.startsWith(list("x"), list("x", "y")), is(false));
+    assertThat(Util.startsWith(list("x", "y"), list("x")), is(true));
+    assertThat(Util.startsWith(list(), list()), is(true));
+    assertThat(Util.startsWith(list(), list("x")), is(false));
+  }
+
+  public List<String> list(String... xs) {
+    return Arrays.asList(xs);
   }
 }
 

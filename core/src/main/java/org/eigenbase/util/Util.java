@@ -2076,6 +2076,13 @@ public class Util {
     return caseSensitive ? name0.equals(name1) : name0.equalsIgnoreCase(name1);
   }
 
+  /** Returns whether one list is a prefix of another. */
+  public static <E> boolean startsWith(List<E> list0, List<E> list1) {
+    return list0.equals(list1)
+        || list0.size() > list1.size()
+        && list0.subList(0, list1.size()).equals(list1);
+  }
+
   //~ Inner Classes ----------------------------------------------------------
 
   /**
