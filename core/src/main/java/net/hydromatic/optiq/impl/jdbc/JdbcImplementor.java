@@ -127,6 +127,14 @@ public class JdbcImplementor {
               literal.getValue().toString(), POS);
         case BOOLEAN:
           return SqlLiteral.createBoolean((Boolean) literal.getValue(), POS);
+        case DATE:
+          return SqlLiteral.createDate((Calendar) literal.getValue(), POS);
+        case TIME:
+          return SqlLiteral.createTime((Calendar) literal.getValue(),
+              literal.getType().getPrecision(), POS);
+        case TIMESTAMP:
+          return SqlLiteral.createTimestamp((Calendar) literal.getValue(),
+              literal.getType().getPrecision(), POS);
         case ANY:
           switch (literal.getTypeName()) {
           case NULL:
@@ -134,7 +142,7 @@ public class JdbcImplementor {
           // fall through
           }
         default:
-          throw new AssertionError(literal);
+          throw new AssertionError(literal + ": " + literal.getTypeName());
         }
       } else if (rex instanceof RexCall) {
         final RexCall call = (RexCall) rex;

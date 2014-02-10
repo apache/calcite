@@ -922,6 +922,51 @@ public class JdbcTest {
         .returnsCount(730);
   }
 
+  /** Tests 3-way AND.
+   *
+   * <p>With <a href="https://github.com/julianhyde/optiq/issues/127">optiq-127,
+   * "EnumerableCalcRel can't support 3+ AND conditions"</a>, the last condition
+   * is ignored and rows with deptno=10 are wrongly returned.</p>
+   */
+  @Ignore
+  @Test public void testAnd3() {
+    OptiqAssert.that()
+        .with(OptiqAssert.Config.REGULAR)
+        .query(
+            "select \"deptno\" from \"hr\".\"emps\"\n"
+            + "where \"emps\".\"empid\" < 240\n"
+                + "and \"salary\" > 7500.0"
+                + "and \"emps\".\"deptno\" > 10\n")
+        .returnsUnordered("deptno=10",
+            "deptno=20",
+            "deptno=10");
+  }
+
+  /** Tests a date literal against a JDBC data source. */
+  @Test public void testJdbcDate() {
+    OptiqAssert.that()
+        .with(OptiqAssert.Config.FOODMART_CLONE)
+        .query(
+            "select count(*) as c from (\n"
+            + "  select 1 from \"foodmart\".\"employee\" as e1\n"
+            + "  where \"position_title\" = 'VP Country Manager'\n"
+            + "  and \"birth_date\" < DATE '1950-01-01'\n"
+            + "  and \"gender\" = 'F')")
+        .returns("C=1\n");
+  }
+
+  /** Tests a timestamp literal against JDBC data source. */
+  @Test public void testJdbcTimestamp() {
+    OptiqAssert.that()
+        .with(OptiqAssert.Config.JDBC_FOODMART)
+        .query(
+            "select count(*) as c from (\n"
+                + "  select 1 from \"foodmart\".\"employee\" as e1\n"
+                + "  where \"hire_date\" < TIMESTAMP '1996-06-05 00:00:00'\n"
+                + "  and \"gender\" = 'F')")
+        .returns("C=287\n");
+  }
+
   /** Unit test for self-join. Left and right children of the join are the same
    * relational expression. */
   @Test public void testSelfJoin() {
