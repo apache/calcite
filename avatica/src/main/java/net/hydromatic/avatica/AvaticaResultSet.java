@@ -155,8 +155,10 @@ public class AvaticaResultSet implements ResultSet {
    * execute/cancel don't happen at the same time.</p>
    *
    * @see net.hydromatic.avatica.AvaticaConnection.Trojan#execute(AvaticaResultSet)
+   *
+   * @throws SQLException if execute fails for some reason.
    */
-  protected AvaticaResultSet execute() {
+  protected AvaticaResultSet execute() throws SQLException {
     this.cursor = statement.connection.meta.createCursor(this);
     this.accessorList =
         cursor.createAccessors(columnMetaDataList, localCalendar);

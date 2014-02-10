@@ -35,7 +35,7 @@ public class OptiqResultSet extends AvaticaResultSet {
     super(statement, prepareResult, resultSetMetaData, timeZone);
   }
 
-  @Override protected OptiqResultSet execute() {
+  @Override protected OptiqResultSet execute() throws SQLException {
     // Call driver's callback. It is permitted to throw a RuntimeException.
     OptiqConnectionImpl connection = getOptiqConnection();
     final boolean autoTemp = connection.config().autoTemp();

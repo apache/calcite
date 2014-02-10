@@ -44,7 +44,7 @@ public abstract class AvaticaPreparedStatement
    *
    * @param connection Connection
    * @param prepareResult Result of preparing statement
-   * @throws SQLException
+   * @throws SQLException If fails due to underlying implementation reasons.
    */
   protected AvaticaPreparedStatement(
       AvaticaConnection connection,
