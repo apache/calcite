@@ -46,7 +46,7 @@ public interface Cursor extends Closeable {
    *
    * @return Whether moved
    */
-  boolean next();
+  boolean next() throws SQLException;
 
   /**
    * Closes this cursor and releases resources.
@@ -55,74 +55,75 @@ public interface Cursor extends Closeable {
 
   /**
    * Returns whether the last value returned was null.
+   * @throws SQLException
    */
-  boolean wasNull();
+  boolean wasNull() throws SQLException;
 
   /**
    * Accessor of a column value.
    */
   public interface Accessor {
-    boolean wasNull();
+    boolean wasNull() throws SQLException;
 
-    String getString();
+    String getString() throws SQLException;
 
-    boolean getBoolean();
+    boolean getBoolean() throws SQLException;
 
-    byte getByte();
+    byte getByte() throws SQLException;
 
-    short getShort();
+    short getShort() throws SQLException;
 
-    int getInt();
+    int getInt() throws SQLException;
 
-    long getLong();
+    long getLong() throws SQLException;
 
-    float getFloat();
+    float getFloat() throws SQLException;
 
-    double getDouble();
+    double getDouble() throws SQLException;
 
-    BigDecimal getBigDecimal();
+    BigDecimal getBigDecimal() throws SQLException;
 
-    BigDecimal getBigDecimal(int scale);
+    BigDecimal getBigDecimal(int scale) throws SQLException;
 
-    byte[] getBytes();
+    byte[] getBytes() throws SQLException;
 
-    InputStream getAsciiStream();
+    InputStream getAsciiStream() throws SQLException;
 
-    InputStream getUnicodeStream();
+    InputStream getUnicodeStream() throws SQLException;
 
-    InputStream getBinaryStream();
+    InputStream getBinaryStream() throws SQLException;
 
-    Object getObject();
+    Object getObject() throws SQLException;
 
-    Reader getCharacterStream();
+    Reader getCharacterStream() throws SQLException;
 
-    Object getObject(Map<String, Class<?>> map);
+    Object getObject(Map<String, Class<?>> map) throws SQLException;
 
-    Ref getRef();
+    Ref getRef() throws SQLException;
 
-    Blob getBlob();
+    Blob getBlob() throws SQLException;
 
-    Clob getClob();
+    Clob getClob() throws SQLException;
 
-    Array getArray();
+    Array getArray() throws SQLException;
 
-    Date getDate(Calendar calendar);
+    Date getDate(Calendar calendar) throws SQLException;
 
-    Time getTime(Calendar calendar);
+    Time getTime(Calendar calendar) throws SQLException;
 
-    Timestamp getTimestamp(Calendar calendar);
+    Timestamp getTimestamp(Calendar calendar) throws SQLException;
 
-    URL getURL();
+    URL getURL() throws SQLException;
 
-    NClob getNClob();
+    NClob getNClob() throws SQLException;
 
-    SQLXML getSQLXML();
+    SQLXML getSQLXML() throws SQLException;
 
-    String getNString();
+    String getNString() throws SQLException;
 
-    Reader getNCharacterStream();
+    Reader getNCharacterStream() throws SQLException;
 
-    <T> T getObject(Class<T> type);
+    <T> T getObject(Class<T> type) throws SQLException;
   }
 }
 

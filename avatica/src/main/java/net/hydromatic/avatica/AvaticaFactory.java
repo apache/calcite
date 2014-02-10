@@ -37,13 +37,13 @@ public interface AvaticaFactory {
       UnregisteredDriver driver,
       AvaticaFactory factory,
       String url,
-      Properties info);
+      Properties info) throws SQLException;
 
   AvaticaStatement newStatement(
       AvaticaConnection connection,
       int resultSetType,
       int resultSetConcurrency,
-      int resultSetHoldability);
+      int resultSetHoldability) throws SQLException;
 
   AvaticaPreparedStatement newPreparedStatement(
       AvaticaConnection connection,
@@ -63,14 +63,14 @@ public interface AvaticaFactory {
   AvaticaResultSet newResultSet(
       AvaticaStatement statement,
       AvaticaPrepareResult prepareResult,
-      TimeZone timeZone);
+      TimeZone timeZone) throws SQLException;
 
   AvaticaDatabaseMetaData newDatabaseMetaData(
       AvaticaConnection connection);
 
   ResultSetMetaData newResultSetMetaData(
       AvaticaStatement statement,
-      List<ColumnMetaData> columnMetaDataList);
+      List<ColumnMetaData> columnMetaDataList) throws SQLException;
 }
 
 // End AvaticaFactory.java

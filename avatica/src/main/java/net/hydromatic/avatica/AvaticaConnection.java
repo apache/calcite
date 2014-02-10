@@ -410,8 +410,9 @@ public abstract class AvaticaConnection implements Connection {
     }
 
     /** A means for anyone who has a trojan to call the protected method
-     * {@link net.hydromatic.avatica.AvaticaResultSet#execute()}. */
-    public ResultSet execute(AvaticaResultSet resultSet) {
+     * {@link net.hydromatic.avatica.AvaticaResultSet#execute()}.
+     * @throws SQLException if execute fails for some reason. */
+    public ResultSet execute(AvaticaResultSet resultSet) throws SQLException {
       return resultSet.execute();
     }
 
