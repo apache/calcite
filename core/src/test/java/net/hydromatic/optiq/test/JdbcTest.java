@@ -928,7 +928,6 @@ public class JdbcTest {
    * "EnumerableCalcRel can't support 3+ AND conditions"</a>, the last condition
    * is ignored and rows with deptno=10 are wrongly returned.</p>
    */
-  @Ignore
   @Test public void testAnd3() {
     OptiqAssert.that()
         .with(OptiqAssert.Config.REGULAR)
@@ -937,9 +936,7 @@ public class JdbcTest {
             + "where \"emps\".\"empid\" < 240\n"
                 + "and \"salary\" > 7500.0"
                 + "and \"emps\".\"deptno\" > 10\n")
-        .returnsUnordered("deptno=10",
-            "deptno=20",
-            "deptno=10");
+        .returnsUnordered("deptno=20");
   }
 
   /** Tests a date literal against a JDBC data source. */

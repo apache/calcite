@@ -34,6 +34,9 @@ import org.eigenbase.sql.fun.SqlTrimFunction;
 import org.eigenbase.sql.type.SqlTypeName;
 import org.eigenbase.sql.validate.SqlUserDefinedFunction;
 
+import com.google.common.base.Function;
+import com.google.common.collect.Lists;
+
 import java.lang.reflect.*;
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -265,24 +268,12 @@ public class RexImpTable {
           case TRUE:
             return Expressions.foldAnd(expressions);
           }
-          final Expression t0 = expressions.get(0);
-          final Expression t1 = expressions.get(1);
-          if (!nullable(call2, 0) && !nullable(call2, 1)) {
-            return Expressions.andAlso(t0, t1);
-          }
-          return optimize(
-              Expressions.condition(
-                  Expressions.equal(t0, NULL_EXPR),
-                  Expressions.condition(
-                      Expressions.orElse(
-                          Expressions.equal(t1, NULL_EXPR),
-                          t1),
-                      NULL_EXPR,
-                      BOXED_FALSE_EXPR),
-                  Expressions.condition(
-                      Expressions.unbox(t0),
-                      Expressions.box(t1),
-                      BOXED_FALSE_EXPR)));
+          return Expressions.foldAnd(Lists.transform(expressions,
+              new Function<Expression, Expression>() {
+                public Expression apply(Expression e) {
+                  return nullAs2.handle(e);
+                }
+              }));
         }
       };
     case OR:
