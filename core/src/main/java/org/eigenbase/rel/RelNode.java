@@ -206,6 +206,17 @@ public interface RelNode extends RelOptNode, Cloneable {
   RelOptCost computeSelfCost(RelOptPlanner planner);
 
   /**
+   * Returns a metadata interface.
+   *
+   * @param metadataClass Metadata interface
+   * @param <M> Type of metadata being requested
+   * @return Metadata object that supplies the desired metadata (never null,
+   *     although if the information is not present the metadata object may
+   *     return null from all methods)
+   */
+  <M extends Metadata> M metadata(Class<M> metadataClass);
+
+  /**
    * Describes the inputs and attributes of this relational expression.
    * Each node should call {@code super.explain}, then call the
    * {@link RelWriterImpl#input(String, RelNode)}

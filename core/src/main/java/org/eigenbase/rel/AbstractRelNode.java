@@ -265,6 +265,15 @@ public abstract class AbstractRelNode implements RelNode {
     return planner.getCostFactory().makeCost(rowCount, rowCount, 0);
   }
 
+  public final <M extends Metadata> M metadata(Class<M> metadataClass) {
+    final M metadata = cluster.getMetadataFactory().query(this, metadataClass);
+    assert metadata != null
+        : "no provider found (rel=" + this + ", m=" + metadataClass
+        + "); a backstop provider is recommended";
+    assert metadata.rel() == this;
+    return metadata;
+  }
+
   public void explain(RelWriter pw) {
     explainTerms(pw).done(this);
   }

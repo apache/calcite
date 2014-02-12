@@ -206,7 +206,7 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
   }
 
   // implement RelOptPlanner
-  public void registerMetadataProviders(ChainedRelMetadataProvider chain) {
+  public void registerMetadataProviders(List<RelMetadataProvider> list) {
   }
 
   // implement RelOptPlanner

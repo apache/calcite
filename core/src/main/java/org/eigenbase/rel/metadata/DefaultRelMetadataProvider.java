@@ -17,6 +17,8 @@
 */
 package org.eigenbase.rel.metadata;
 
+import com.google.common.collect.ImmutableList;
+
 /**
  * DefaultRelMetadataProvider supplies a default implementation of the {@link
  * RelMetadataProvider} interface. It provides generic formulas and derivation
@@ -32,21 +34,17 @@ public class DefaultRelMetadataProvider extends ChainedRelMetadataProvider {
    * priority when chaining.
    */
   public DefaultRelMetadataProvider() {
-    addProvider(new RelMdPercentageOriginalRows());
-
-    addProvider(new RelMdColumnOrigins());
-
-    addProvider(new RelMdRowCount());
-
-    addProvider(new RelMdUniqueKeys());
-
-    addProvider(new RelMdColumnUniqueness());
-
-    addProvider(new RelMdPopulationSize());
-
-    addProvider(new RelMdDistinctRowCount());
-
-    addProvider(new RelMdSelectivity());
+    super(
+        ImmutableList.of(
+            RelMdPercentageOriginalRows.SOURCE,
+            RelMdColumnOrigins.SOURCE,
+            RelMdRowCount.SOURCE,
+            RelMdUniqueKeys.SOURCE,
+            RelMdColumnUniqueness.SOURCE,
+            RelMdPopulationSize.SOURCE,
+            RelMdDistinctRowCount.SOURCE,
+            RelMdSelectivity.SOURCE,
+            RelMdExplainVisibility.SOURCE));
   }
 }
 

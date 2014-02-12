@@ -941,8 +941,8 @@ public class HepPlanner extends AbstractRelOptPlanner {
   }
 
   // implement RelOptPlanner
-  public void registerMetadataProviders(ChainedRelMetadataProvider chain) {
-    chain.addProvider(new HepRelMetadataProvider());
+  public void registerMetadataProviders(List<RelMetadataProvider> list) {
+    list.add(0, new HepRelMetadataProvider());
   }
 
   // implement RelOptPlanner

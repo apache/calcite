@@ -1593,8 +1593,8 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
   }
 
   // implement RelOptPlanner
-  public void registerMetadataProviders(ChainedRelMetadataProvider chain) {
-    chain.addProvider(new VolcanoRelMetadataProvider());
+  public void registerMetadataProviders(List<RelMetadataProvider> list) {
+    list.add(0, new VolcanoRelMetadataProvider());
   }
 
   // implement RelOptPlanner

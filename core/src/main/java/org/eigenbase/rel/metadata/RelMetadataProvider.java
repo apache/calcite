@@ -19,6 +19,8 @@ package org.eigenbase.rel.metadata;
 
 import org.eigenbase.rel.*;
 
+import com.google.common.base.Function;
+
 /**
  * RelMetadataProvider defines an interface for obtaining metadata about
  * relational expressions. This interface is weakly-typed and is not intended to
@@ -32,22 +34,32 @@ public interface RelMetadataProvider {
   //~ Methods ----------------------------------------------------------------
 
   /**
-   * Retrieves metadata about a relational expression.
+   * Retrieves metadata of a particular type and for a particular sub-class
+   * of relational expression.
    *
-   * @param rel               relational expression of interest
-   * @param metadataQueryName name of metadata query to invoke
-   * @param args              arguments to metadata query (expected number and
-   *                          type depend on query name; must have well-defined
-   *                          hashCode/equals for use by caching); null can be
-   *                          used instead of empty array
-   * @return metadata result (actual type depends on query name), or null if
-   * the provider cannot answer the given query/rel combination; it is better
-   * to return null than to return a possibly incorrect answer
+   * <p>The object returned is a function. It can be applied to a relational
+   * expression of the given type to create a metadata object.</p>
+   *
+   * <p>For example, you might call</p>
+   *
+   * <blockquote><pre>
+   * RelMetadataProvider provider;
+   * FilterRel filter;
+   * RexNode predicate;
+   * Function&lt;RelNode, Metadata&gt; function =
+   *   provider.apply(FilterRel.class, Selectivity.class};
+   * Selectivity selectivity = function.apply(filter);
+   * Double d = selectivity.selectivity(predicate);
+   * </pre></blockquote>
+   *
+   * @param relClass Type of relational expression
+   * @param metadataClass Type of metadata
+   * @return Function that will field a metadata instance; or null if this
+   *     provider cannot supply metadata of this type
    */
-  Object getRelMetadata(
-      RelNode rel,
-      String metadataQueryName,
-      Object[] args);
+  Function<RelNode, Metadata> apply(
+      Class<? extends RelNode> relClass,
+      Class<? extends Metadata> metadataClass);
 }
 
 // End RelMetadataProvider.java

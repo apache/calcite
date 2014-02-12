@@ -23,26 +23,21 @@ import org.eigenbase.rel.*;
 import org.eigenbase.rel.rules.*;
 import org.eigenbase.rex.*;
 
+import net.hydromatic.optiq.BuiltinMethod;
 import net.hydromatic.optiq.util.BitSets;
 
 /**
  * RelMdUniqueKeys supplies a default implementation of {@link
  * RelMetadataQuery#getUniqueKeys} for the standard logical algebra.
  */
-public class RelMdUniqueKeys extends ReflectiveRelMetadataProvider {
+public class RelMdUniqueKeys {
+  public static final RelMetadataProvider SOURCE =
+      ReflectiveRelMetadataProvider.reflectiveSource(
+          BuiltinMethod.UNIQUE_KEYS.method, new RelMdUniqueKeys());
+
   //~ Constructors -----------------------------------------------------------
 
-  RelMdUniqueKeys() {
-    // Tell superclass reflection about parameter types expected
-    // for various metadata queries.
-
-    // This corresponds to getUniqueKeys(rel, boolean ignoreNulls);
-    // note that we don't specify the rel type because we always overload
-    // on that.
-    mapParameterTypes(
-        "getUniqueKeys",
-        Collections.singletonList((Class) Boolean.TYPE));
-  }
+  private RelMdUniqueKeys() {}
 
   //~ Methods ----------------------------------------------------------------
 
@@ -77,8 +72,6 @@ public class RelMdUniqueKeys extends ReflectiveRelMetadataProvider {
       RexNode projExpr = projExprs.get(i);
       if (projExpr instanceof RexInputRef) {
         mapInToOutPos.put(((RexInputRef) projExpr).getIndex(), i);
-      } else {
-        continue;
       }
     }
 
@@ -94,10 +87,7 @@ public class RelMdUniqueKeys extends ReflectiveRelMetadataProvider {
     if (childUniqueKeySet != null) {
       // Now add to the projUniqueKeySet the child keys that are fully
       // projected.
-      Iterator<BitSet> itChild = childUniqueKeySet.iterator();
-
-      while (itChild.hasNext()) {
-        BitSet colMask = itChild.next();
+      for (BitSet colMask : childUniqueKeySet) {
         BitSet tmpMask = new BitSet();
         boolean completeKeyProjected = true;
         for (int bit : BitSets.toIter(colMask)) {
@@ -142,9 +132,7 @@ public class RelMdUniqueKeys extends ReflectiveRelMetadataProvider {
 
     if (tmpRightSet != null) {
       rightSet = new HashSet<BitSet>();
-      Iterator<BitSet> itRight = tmpRightSet.iterator();
-      while (itRight.hasNext()) {
-        BitSet colMask = itRight.next();
+      for (BitSet colMask : tmpRightSet) {
         BitSet tmpMask = new BitSet();
         for (int bit : BitSets.toIter(colMask)) {
           tmpMask.set(bit + nFieldsOnLeft);
@@ -153,12 +141,8 @@ public class RelMdUniqueKeys extends ReflectiveRelMetadataProvider {
       }
 
       if (leftSet != null) {
-        itRight = rightSet.iterator();
-        while (itRight.hasNext()) {
-          BitSet colMaskRight = (BitSet) itRight.next();
-          Iterator<BitSet> itLeft = leftSet.iterator();
-          while (itLeft.hasNext()) {
-            BitSet colMaskLeft = itLeft.next();
+        for (BitSet colMaskRight : rightSet) {
+          for (BitSet colMaskLeft : leftSet) {
             BitSet colMaskConcat = new BitSet();
             colMaskConcat.or(colMaskLeft);
             colMaskConcat.or(colMaskRight);

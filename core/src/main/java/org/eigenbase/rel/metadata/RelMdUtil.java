@@ -195,7 +195,8 @@ public class RelMdUtil {
    * Returns true if the columns represented in a bit mask are definitely
    * known to form a unique column set.
    *
-   * @param rel     the relnode that the column mask correponds to
+   * @param rel     the relational expression that the column mask corresponds
+   *                to
    * @param colMask bit mask containing columns that will be tested for
    *                uniqueness
    * @return true if bit mask represents a unique column set; false if not (or
@@ -204,11 +205,8 @@ public class RelMdUtil {
   public static boolean areColumnsDefinitelyUnique(
       RelNode rel,
       BitSet colMask) {
-    Boolean b = RelMetadataQuery.areColumnsUnique(rel, colMask);
-    if (b == null) {
-      return false;
-    }
-    return b;
+    Boolean b = RelMetadataQuery.areColumnsUnique(rel, colMask, false);
+    return b != null && b;
   }
 
   public static Boolean areColumnsUnique(
@@ -226,10 +224,7 @@ public class RelMdUtil {
   public static boolean areColumnsDefinitelyUnique(RelNode rel,
       List<RexInputRef> columnRefs) {
     Boolean b = areColumnsUnique(rel, columnRefs);
-    if (b == null) {
-      return false;
-    }
-    return b;
+    return b != null && b;
   }
 
   /**
@@ -237,7 +232,8 @@ public class RelMdUtil {
    * known to form a unique column set, when nulls have been filtered from
    * the columns.
    *
-   * @param rel     the relnode that the column mask correponds to
+   * @param rel     the relational expression that the column mask corresponds
+   *                to
    * @param colMask bit mask containing columns that will be tested for
    *                uniqueness
    * @return true if bit mask represents a unique column set; false if not (or
@@ -275,26 +271,12 @@ public class RelMdUtil {
   }
 
   /**
-   * Sets a bitmap corresponding to a list of keys.
-   *
-   * @param keys list of keys
-   * @return the bitmap
-   */
-  public static BitSet setBitKeys(List<Integer> keys) {
-    BitSet bits = new BitSet();
-    for (Integer key : keys) {
-      bits.set(key);
-    }
-    return bits;
-  }
-
-  /**
-   * Separates a bitmask representing a join into masks representing the left
+   * Separates a bit-mask representing a join into masks representing the left
    * and right inputs into the join
    *
-   * @param groupKey      original bitmask
-   * @param leftMask      left bitmask to be set
-   * @param rightMask     right bitmask to be set
+   * @param groupKey      original bit-mask
+   * @param leftMask      left bit-mask to be set
+   * @param rightMask     right bit-mask to be set
    * @param nFieldsOnLeft number of fields in the left input
    */
   public static void setLeftRightBitmaps(

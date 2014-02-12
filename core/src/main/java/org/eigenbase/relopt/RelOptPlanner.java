@@ -216,15 +216,17 @@ public interface RelOptPlanner {
   void addListener(RelOptListener newListener);
 
   /**
-   * Gives this planner a chance to register one or more {@link
-   * RelMetadataProvider}s in the chain which will be used to answer metadata
-   * queries. Planners which use their own relational expressions internally
-   * to represent concepts such as equivalence classes will generally need to
-   * supply corresponding metadata providers.
+   * Gives this planner a chance to register one or more
+   * {@link RelMetadataProvider}s in the chain which will be used to answer
+   * metadata queries.
    *
-   * @param chain receives planner's custom providers, if any
+   * <p>Planners which use their own relational expressions internally
+   * to represent concepts such as equivalence classes will generally need to
+   * supply corresponding metadata providers.</p>
+   *
+   * @param list receives planner's custom providers, if any
    */
-  void registerMetadataProviders(ChainedRelMetadataProvider chain);
+  void registerMetadataProviders(List<RelMetadataProvider> list);
 
   /**
    * Gets a timestamp for a given rel's metadata. This timestamp is used by

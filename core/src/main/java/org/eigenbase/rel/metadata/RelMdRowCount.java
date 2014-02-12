@@ -24,11 +24,17 @@ import org.eigenbase.rel.rules.*;
 import org.eigenbase.rex.*;
 import org.eigenbase.util14.*;
 
+import net.hydromatic.optiq.BuiltinMethod;
+
 /**
  * RelMdRowCount supplies a default implementation of {@link
  * RelMetadataQuery#getRowCount} for the standard logical algebra.
  */
-public class RelMdRowCount extends ReflectiveRelMetadataProvider {
+public class RelMdRowCount {
+  public static final RelMetadataProvider SOURCE =
+      ReflectiveRelMetadataProvider.reflectiveSource(
+          BuiltinMethod.ROW_COUNT.method, new RelMdRowCount());
+
   //~ Methods ----------------------------------------------------------------
 
   public Double getRowCount(UnionRelBase rel) {

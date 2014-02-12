@@ -27,6 +27,10 @@ import net.hydromatic.optiq.impl.java.ReflectiveSchema;
 import net.hydromatic.optiq.impl.jdbc.JdbcSchema;
 import net.hydromatic.optiq.runtime.*;
 
+import org.eigenbase.rel.metadata.Metadata;
+import org.eigenbase.rex.RexNode;
+import org.eigenbase.sql.SqlExplainLevel;
+
 import com.google.common.collect.ImmutableMap;
 
 import java.lang.reflect.Constructor;
@@ -36,6 +40,8 @@ import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.*;
 import javax.sql.DataSource;
+
+import static org.eigenbase.rel.metadata.BuiltInMetadata.*;
 
 /**
  * Builtin methods.
@@ -177,7 +183,23 @@ public enum BuiltinMethod {
   TIMESTAMP_TO_LONG_OPTIONAL(SqlFunctions.class, "toLongOptional",
       Timestamp.class),
   TIMESTAMP_TO_LONG_OPTIONAL_OFFSET(SqlFunctions.class, "toLongOptional",
-      Timestamp.class, TimeZone.class);
+      Timestamp.class, TimeZone.class),
+  SELECTIVITY(Selectivity.class, "getSelectivity", RexNode.class),
+  UNIQUE_KEYS(UniqueKeys.class, "getUniqueKeys", boolean.class),
+  COLUMN_UNIQUENESS(ColumnUniqueness.class, "areColumnsUnique", BitSet.class,
+      boolean.class),
+  ROW_COUNT(RowCount.class, "getRowCount"),
+  DISTINCT_ROW_COUNT(DistinctRowCount.class, "getDistinctRowCount",
+      BitSet.class, RexNode.class),
+  PERCENTAGE_ORIGINAL_ROWS(PercentageOriginalRows.class,
+      "getPercentageOriginalRows"),
+  POPULATION_SIZE(PopulationSize.class, "getPopulationSize", BitSet.class),
+  COLUMN_ORIGIN(ColumnOrigin.class, "getColumnOrigins", int.class),
+  CUMULATIVE_COST(CumulativeCost.class, "getCumulativeCost"),
+  NON_CUMULATIVE_COST(NonCumulativeCost.class, "getNonCumulativeCost"),
+  EXPLAIN_VISIBILITY(ExplainVisibility.class, "isVisibleInExplain",
+      SqlExplainLevel.class),
+  METADATA_REL(Metadata.class, "rel");
 
   public final Method method;
   public final Constructor constructor;

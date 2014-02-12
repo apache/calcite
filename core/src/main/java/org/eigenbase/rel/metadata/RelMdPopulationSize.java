@@ -23,26 +23,21 @@ import org.eigenbase.rel.*;
 import org.eigenbase.rel.rules.*;
 import org.eigenbase.rex.*;
 
+import net.hydromatic.optiq.BuiltinMethod;
 import net.hydromatic.optiq.util.BitSets;
 
 /**
  * RelMdPopulationSize supplies a default implementation of {@link
  * RelMetadataQuery#getPopulationSize} for the standard logical algebra.
  */
-public class RelMdPopulationSize extends ReflectiveRelMetadataProvider {
+public class RelMdPopulationSize {
+  public static final RelMetadataProvider SOURCE =
+      ReflectiveRelMetadataProvider.reflectiveSource(
+          BuiltinMethod.POPULATION_SIZE.method, new RelMdPopulationSize());
+
   //~ Constructors -----------------------------------------------------------
 
-  public RelMdPopulationSize() {
-    // Tell superclass reflection about parameter types expected
-    // for various metadata queries.
-
-    // This corresponds to getPopulationSize(rel, BitSet groupKey);
-    // note that we don't specify the rel type because we always overload
-    // on that.
-    mapParameterTypes(
-        "getPopulationSize",
-        Collections.singletonList((Class) BitSet.class));
-  }
+  private RelMdPopulationSize() {}
 
   //~ Methods ----------------------------------------------------------------
 

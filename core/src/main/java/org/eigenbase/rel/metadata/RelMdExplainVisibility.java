@@ -17,34 +17,29 @@
 */
 package org.eigenbase.rel.metadata;
 
-import java.util.*;
-
 import org.eigenbase.rel.*;
-import org.eigenbase.sql.*;
+import org.eigenbase.sql.SqlExplainLevel;
+
+import net.hydromatic.optiq.BuiltinMethod;
 
 /**
- * RelMdExplainVisibility supplies a default implementation of {@link
- * RelMetadataQuery#isVisibleInExplain} for the standard logical algebra.
+ * RelMdExplainVisibility supplies a default implementation of
+ * {@link RelMetadataQuery#isVisibleInExplain} for the standard logical algebra.
  */
-public class RelMdExplainVisibility extends ReflectiveRelMetadataProvider {
+public class RelMdExplainVisibility {
+  public static final RelMetadataProvider SOURCE =
+      ReflectiveRelMetadataProvider.reflectiveSource(
+          BuiltinMethod.EXPLAIN_VISIBILITY.method,
+          new RelMdExplainVisibility());
+
   //~ Constructors -----------------------------------------------------------
 
-  public RelMdExplainVisibility() {
-    // Tell superclass reflection about parameter types expected
-    // for various metadata queries.
-
-    // This corresponds to isVisibileInExplain(RelNode, SqlExplainLevel);
-    // note that we don't specify the rel type because we always overload
-    // on that.
-    mapParameterTypes(
-        "isVisibleInExplain",
-        Collections.singletonList((Class) SqlExplainLevel.class));
-  }
+  private RelMdExplainVisibility() {}
 
   //~ Methods ----------------------------------------------------------------
 
   // Catch-all rule when none of the others apply.
-  public Boolean isVisibleInExplain(RelNode rel) {
+  public Boolean isVisibleInExplain(RelNode rel, SqlExplainLevel explainLevel) {
     // no information available
     return null;
   }

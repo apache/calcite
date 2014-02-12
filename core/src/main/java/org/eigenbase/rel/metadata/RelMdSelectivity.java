@@ -25,25 +25,21 @@ import org.eigenbase.relopt.*;
 import org.eigenbase.rex.*;
 import org.eigenbase.sql.fun.*;
 
+import net.hydromatic.optiq.BuiltinMethod;
 import net.hydromatic.optiq.util.BitSets;
 
 /**
  * RelMdSelectivity supplies a default implementation of {@link
  * RelMetadataQuery#getSelectivity} for the standard logical algebra.
  */
-public class RelMdSelectivity extends ReflectiveRelMetadataProvider {
+public class RelMdSelectivity {
+  public static final RelMetadataProvider SOURCE =
+      ReflectiveRelMetadataProvider.reflectiveSource(
+          BuiltinMethod.SELECTIVITY.method, new RelMdSelectivity());
+
   //~ Constructors -----------------------------------------------------------
 
-  public RelMdSelectivity() {
-    // Tell superclass reflection about parameter types expected
-    // for various metadata queries.
-
-    // This corresponds to getSelectivity(rel, RexNode predicate);
-    // note that we don't specify the rel type because we always overload
-    // on that.
-    mapParameterTypes(
-        "getSelectivity",
-        Collections.singletonList((Class) RexNode.class));
+  private RelMdSelectivity() {
   }
 
   //~ Methods ----------------------------------------------------------------

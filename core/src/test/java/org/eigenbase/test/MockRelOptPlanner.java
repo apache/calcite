@@ -39,6 +39,8 @@ public class MockRelOptPlanner extends AbstractRelOptPlanner {
 
   private RelNode transformationResult;
 
+  private long metadataTimestamp = 0L;
+
   //~ Methods ----------------------------------------------------------------
 
   /** Creates MockRelOptPlanner. */
@@ -185,6 +187,16 @@ public class MockRelOptPlanner extends AbstractRelOptPlanner {
   // implement RelOptPlanner
   public boolean isRegistered(RelNode rel) {
     return true;
+  }
+
+  @Override
+  public long getRelMetadataTimestamp(RelNode rel) {
+    return metadataTimestamp;
+  }
+
+  /** Allow tests to tweak the timestamp. */
+  public void setRelMetadataTimestamp(long metadataTimestamp) {
+    this.metadataTimestamp = metadataTimestamp;
   }
 
   //~ Inner Classes ----------------------------------------------------------

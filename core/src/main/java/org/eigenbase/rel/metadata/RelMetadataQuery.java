@@ -40,10 +40,10 @@ import org.eigenbase.stat.*;
  * <li>Write a new provider class <code>RelMdXyz</code> in this package. Follow
  * the pattern from an existing class such as {@link RelMdColumnOrigins},
  * overloading on all of the logical relational expressions to which the query
- * applies. If your new metadata query takes parameters, be sure to register
- * them in the constructor via a call to {@link
- * ReflectiveRelMetadataProvider#mapParameterTypes}.
- * <li>Register your provider class in {@link DefaultRelMetadataProvider}.
+ * applies.
+ * <li>Add a {@code SOURCE} static member, similar to
+ *     {@link RelMdColumnOrigins#SOURCE}.
+ * <li>Register the {@code SOURCE} object in {@link DefaultRelMetadataProvider}.
  * <li>Get unit tests working.
  * </ol>
  *
@@ -74,116 +74,93 @@ public abstract class RelMetadataQuery {
    * @return a statistics object, if statistics are available, or null
    * otherwise
    */
+  @Deprecated
   public static RelStatSource getStatistics(RelNode rel) {
-    RelStatSource result =
-        (RelStatSource) rel.getCluster().getMetadataProvider()
-            .getRelMetadata(rel, "getStatistics", null);
-    return result;
+    throw new UnsupportedOperationException();
   }
 
   /**
-   * Estimates the number of rows which will be returned by a relational
-   * expression. The default implementation for this query asks the rel itself
-   * via {@link RelNode#getRows}, but metadata providers can override this
-   * with their own cost models.
+   * Returns the
+   * {@link BuiltInMetadata.RowCount#getRowCount()}
+   * statistic.
    *
    * @param rel the relational expression
    * @return estimated row count, or null if no reliable estimate can be
    * determined
    */
   public static Double getRowCount(RelNode rel) {
-    Double result =
-        (Double) rel.getCluster().getMetadataProvider().getRelMetadata(
-            rel,
-            "getRowCount",
-            null);
+    final BuiltInMetadata.RowCount metadata =
+        rel.metadata(BuiltInMetadata.RowCount.class);
+    Double result = metadata.getRowCount();
     return validateResult(result);
   }
 
   /**
-   * Estimates the cost of executing a relational expression, including the
-   * cost of its inputs. The default implementation for this query adds {@link
-   * #getNonCumulativeCost} to the cumulative cost of each input, but metadata
-   * providers can override this with their own cost models, e.g. to take into
-   * account interactions between expressions.
+   * Returns the
+   * {@link BuiltInMetadata.CumulativeCost#getCumulativeCost()}
+   * statistic.
    *
    * @param rel the relational expression
    * @return estimated cost, or null if no reliable estimate can be determined
    */
   public static RelOptCost getCumulativeCost(RelNode rel) {
-    RelOptCost result =
-        (RelOptCost) rel.getCluster().getMetadataProvider().getRelMetadata(
-            rel,
-            "getCumulativeCost",
-            null);
-    return result;
+    final BuiltInMetadata.CumulativeCost metadata =
+        rel.metadata(BuiltInMetadata.CumulativeCost.class);
+    return metadata.getCumulativeCost();
   }
 
   /**
-   * Estimates the cost of executing a relational expression, not counting the
-   * cost of its inputs. (However, the non-cumulative cost is still usually
-   * dependent on the row counts of the inputs.) The default implementation
-   * for this query asks the rel itself via {@link RelNode#computeSelfCost},
-   * but metadata providers can override this with their own cost models.
+   * Returns the
+   * {@link BuiltInMetadata.NonCumulativeCost#getNonCumulativeCost()}
+   * statistic.
    *
    * @param rel the relational expression
    * @return estimated cost, or null if no reliable estimate can be determined
    */
   public static RelOptCost getNonCumulativeCost(RelNode rel) {
-    RelOptCost result =
-        (RelOptCost) rel.getCluster().getMetadataProvider().getRelMetadata(
-            rel,
-            "getNonCumulativeCost",
-            null);
-    return result;
+    final BuiltInMetadata.NonCumulativeCost metadata =
+        rel.metadata(BuiltInMetadata.NonCumulativeCost.class);
+    return metadata.getNonCumulativeCost();
   }
 
   /**
-   * Estimates the percentage of the number of rows actually produced by an
-   * expression out of the number of rows it would produce if all single-table
-   * filter conditions were removed.
+   * Returns the
+   * {@link BuiltInMetadata.PercentageOriginalRows#getPercentageOriginalRows()}
+   * statistic.
    *
    * @param rel the relational expression
    * @return estimated percentage (between 0.0 and 1.0), or null if no
    * reliable estimate can be determined
    */
   public static Double getPercentageOriginalRows(RelNode rel) {
-    Double result =
-        (Double) rel.getCluster().getMetadataProvider().getRelMetadata(
-            rel,
-            "getPercentageOriginalRows",
-            null);
-    assert assertPercentage(result);
+    final BuiltInMetadata.PercentageOriginalRows metadata =
+        rel.metadata(BuiltInMetadata.PercentageOriginalRows.class);
+    Double result = metadata.getPercentageOriginalRows();
+    assert isPercentage(result, true);
     return result;
   }
 
   /**
-   * For a given output column of an expression, determines all columns of
-   * underlying tables which contribute to result values. An output column may
-   * have more than one origin due to expressions such as UnionRel and
-   * ProjectRel. The optimizer may use this information for catalog access
-   * (e.g. index availability).
+   * Returns the
+   * {@link BuiltInMetadata.ColumnOrigin#getColumnOrigins(int)}
+   * statistic.
    *
    * @param rel           the relational expression
-   * @param iOutputColumn 0-based ordinal for output column of interest
+   * @param column 0-based ordinal for output column of interest
    * @return set of origin columns, or null if this information cannot be
    * determined (whereas empty set indicates definitely no origin columns at
    * all)
    */
-  public static Set<RelColumnOrigin> getColumnOrigins(
-      RelNode rel,
-      int iOutputColumn) {
-    return (Set<RelColumnOrigin>) rel.getCluster().getMetadataProvider()
-        .getRelMetadata(
-            rel,
-            "getColumnOrigins",
-            new Object[]{iOutputColumn});
+  public static Set<RelColumnOrigin> getColumnOrigins(RelNode rel, int column) {
+    final BuiltInMetadata.ColumnOrigin metadata =
+        rel.metadata(BuiltInMetadata.ColumnOrigin.class);
+    return metadata.getColumnOrigins(column);
   }
 
   /**
-   * Estimates the percentage of an expression's output rows which satisfy a
-   * given predicate. Returns null to indicate that no reliable estimate can
-   * be produced.
+   * Returns the
+   * {@link BuiltInMetadata.Selectivity#getSelectivity(RexNode)}
+   * statistic.
    *
    * @param rel       the relational expression
    * @param predicate predicate whose selectivity is to be estimated against
@@ -192,42 +169,32 @@ public abstract class RelMetadataQuery {
    * reliable estimate can be determined
    */
   public static Double getSelectivity(RelNode rel, RexNode predicate) {
-    Double result =
-        (Double) rel.getCluster().getMetadataProvider().getRelMetadata(
-            rel,
-            "getSelectivity",
-            new Object[]{predicate});
-    assert assertPercentage(result);
+    final BuiltInMetadata.Selectivity metadata =
+        rel.metadata(BuiltInMetadata.Selectivity.class);
+    Double result = metadata.getSelectivity(predicate);
+    assert isPercentage(result, true);
     return result;
   }
 
   /**
-   * Determines the set of unique minimal keys for this expression. A key is
-   * represented as a BitSet, where each bit position represents a 0-based
-   * output column ordinal. (Note that RelNode.isDistinct should return true
-   * if and only if at least one key is known.)
+   * Returns the
+   * {@link BuiltInMetadata.UniqueKeys#getUniqueKeys(boolean)}
+   * statistic.
    *
    * @param rel the relational expression
    * @return set of keys, or null if this information cannot be determined
    * (whereas empty set indicates definitely no keys at all)
    */
   public static Set<BitSet> getUniqueKeys(RelNode rel) {
-    return (Set<BitSet>) rel.getCluster().getMetadataProvider()
-        .getRelMetadata(
-            rel,
-            "getUniqueKeys",
-            new Object[]{false});
+    final BuiltInMetadata.UniqueKeys metadata =
+        rel.metadata(BuiltInMetadata.UniqueKeys.class);
+    return metadata.getUniqueKeys(false);
   }
 
   /**
-   * Determines the set of unique minimal keys for this expression,
-   * optionally ignoring nulls in the columns in the expression.  A key is
-   * represented as a BitSet, where each bit position represents a 0-based
-   * output column ordinal. (Note that RelNode.isDistinct should return true
-   * if and only if at least one key is known.)
-   *
-   * <p>Nulls can be ignored if the relational expression has filtered out
-   * null values.
+   * Returns the
+   * {@link BuiltInMetadata.UniqueKeys#getUniqueKeys(boolean)}
+   * statistic.
    *
    * @param rel         the relational expression
    * @param ignoreNulls if true, ignore null values when determining
@@ -236,16 +203,15 @@ public abstract class RelMetadataQuery {
    * (whereas empty set indicates definitely no keys at all)
    */
   public static Set<BitSet> getUniqueKeys(RelNode rel, boolean ignoreNulls) {
-    return (Set<BitSet>) rel.getCluster().getMetadataProvider()
-        .getRelMetadata(
-            rel,
-            "getUniqueKeys",
-            new Object[]{ignoreNulls});
+    final BuiltInMetadata.UniqueKeys metadata =
+        rel.metadata(BuiltInMetadata.UniqueKeys.class);
+    return metadata.getUniqueKeys(ignoreNulls);
   }
 
   /**
-   * Determines if a specified set of columns from a specified relational
-   * expression are unique.
+   * Returns the
+   * {@link BuiltInMetadata.ColumnUniqueness#areColumnsUnique(BitSet, boolean)}
+   * statistic.
    *
    * @param rel     the relational expression
    * @param columns column mask representing the subset of columns for which
@@ -254,17 +220,15 @@ public abstract class RelMetadataQuery {
    * null if not enough information is available to make that determination
    */
   public static Boolean areColumnsUnique(RelNode rel, BitSet columns) {
-    return (Boolean) rel.getCluster().getMetadataProvider().getRelMetadata(
-        rel,
-        "areColumnsUnique",
-        new Object[]{columns, false});
+    final BuiltInMetadata.ColumnUniqueness metadata =
+        rel.metadata(BuiltInMetadata.ColumnUniqueness.class);
+    return metadata.areColumnsUnique(columns, false);
   }
 
   /**
-   * Determines if a specified set of columns from a specified relational
-   * expression are unique, optionally ignoring null values in the columns.
-   * Nulls can be ignored if the relational expression has filtered out
-   * null values.
+   * Returns the
+   * {@link BuiltInMetadata.ColumnUniqueness#areColumnsUnique(BitSet, boolean)}
+   * statistic.
    *
    * @param rel         the relational expression
    * @param columns     column mask representing the subset of columns for which
@@ -274,21 +238,17 @@ public abstract class RelMetadataQuery {
    * @return true or false depending on whether the columns are unique, or
    * null if not enough information is available to make that determination
    */
-  public static Boolean areColumnsUnique(
-      RelNode rel,
-      BitSet columns,
+  public static Boolean areColumnsUnique(RelNode rel, BitSet columns,
       boolean ignoreNulls) {
-    return (Boolean) rel.getCluster().getMetadataProvider().getRelMetadata(
-        rel,
-        "areColumnsUnique",
-        new Object[]{columns, ignoreNulls});
+    final BuiltInMetadata.ColumnUniqueness metadata =
+        rel.metadata(BuiltInMetadata.ColumnUniqueness.class);
+    return metadata.areColumnsUnique(columns, ignoreNulls);
   }
 
   /**
-   * Estimates the distinct row count in the original source for the given
-   * groupKey, ignoring any filtering being applied by the expression.
-   * Typically, "original source" means base table, but for derived columns,
-   * the estimate may come from a non-leaf rel such as a ProjectRel.
+   * Returns the
+   * {@link BuiltInMetadata.PopulationSize#getPopulationSize(BitSet)}
+   * statistic.
    *
    * @param rel      the relational expression
    * @param groupKey column mask representing the subset of columns for which
@@ -297,20 +257,16 @@ public abstract class RelMetadataQuery {
    * estimate can be determined
    */
   public static Double getPopulationSize(RelNode rel, BitSet groupKey) {
-    Double result =
-        (Double) rel.getCluster().getMetadataProvider().getRelMetadata(
-            rel,
-            "getPopulationSize",
-            new Object[]{groupKey});
+    final BuiltInMetadata.PopulationSize metadata =
+        rel.metadata(BuiltInMetadata.PopulationSize.class);
+    Double result = metadata.getPopulationSize(groupKey);
     return validateResult(result);
   }
 
   /**
-   * Estimates the number of rows which would be produced by a GROUP BY on the
-   * set of columns indicated by groupKey, where the input to the GROUP BY has
-   * been pre-filtered by predicate. This quantity (leaving out predicate) is
-   * often referred to as cardinality (as in gender being a "low-cardinality
-   * column").
+   * Returns the
+   * {@link BuiltInMetadata.DistinctRowCount#getDistinctRowCount(BitSet, RexNode)}
+   * statistic.
    *
    * @param rel       the relational expression
    * @param groupKey  column mask representing group by columns
@@ -322,69 +278,69 @@ public abstract class RelMetadataQuery {
       RelNode rel,
       BitSet groupKey,
       RexNode predicate) {
-    Double result =
-        (Double) rel.getCluster().getMetadataProvider().getRelMetadata(
-            rel,
-            "getDistinctRowCount",
-            new Object[]{groupKey, predicate});
+    final BuiltInMetadata.DistinctRowCount metadata =
+        rel.metadata(BuiltInMetadata.DistinctRowCount.class);
+    Double result = metadata.getDistinctRowCount(groupKey, predicate);
     return validateResult(result);
   }
 
   /**
-   * Determines whether a relational expression should be visible in EXPLAIN
-   * PLAN output at a particular level of detail.
+   * Returns the
+   * {@link BuiltInMetadata.ExplainVisibility#isVisibleInExplain(SqlExplainLevel)}
+   * statistic.
    *
    * @param rel          the relational expression
    * @param explainLevel level of detail
-   * @return true for visible, false for invisible
+   * @return true for visible, false for invisible; if no metadata is available,
+   * defaults to true
    */
-  public static boolean isVisibleInExplain(
-      RelNode rel,
+  public static boolean isVisibleInExplain(RelNode rel,
       SqlExplainLevel explainLevel) {
-    Boolean b =
-        (Boolean) rel.getCluster().getMetadataProvider().getRelMetadata(
-            rel,
-            "isVisibleInExplain",
-            new Object[]{explainLevel});
-    if (b == null) {
-      return true;
-    } else {
-      return b;
-    }
+    final BuiltInMetadata.ExplainVisibility metadata =
+        rel.metadata(BuiltInMetadata.ExplainVisibility.class);
+    Boolean b = metadata.isVisibleInExplain(explainLevel);
+    return b == null || b;
   }
 
-  private static boolean assertPercentage(Double result) {
-    if (result == null) {
-      return true;
+  private static boolean isPercentage(Double result, boolean fail) {
+    if (result != null) {
+      final double d = result;
+      if (d < 0.0) {
+        assert !fail;
+        return false;
+      }
+      if (d > 1.0) {
+        assert !fail;
+        return false;
+      }
     }
-    double d = result.doubleValue();
-    assert d >= 0.0;
-    assert d <= 1.0;
     return true;
   }
 
-  private static boolean assertNonNegative(Double result) {
-    if (result == null) {
-      return true;
+  private static boolean isNonNegative(Double result, boolean fail) {
+    if (result != null) {
+      final double d = result;
+      if (d < 0.0) {
+        assert !fail;
+        return false;
+      }
     }
-    double d = result.doubleValue();
-    assert d >= 0.0;
     return true;
   }
 
   private static Double validateResult(Double result) {
     if (result == null) {
-      return result;
+      return null;
     }
 
     // Never let the result go below 1, as it will result in incorrect
-    // calculations if the rowcount is used as the denominator in a
+    // calculations if the row-count is used as the denominator in a
     // division expression.  Also, cap the value at the max double value
     // to avoid calculations using infinity.
     if (result.isInfinite()) {
       result = Double.MAX_VALUE;
     }
-    assert assertNonNegative(result);
+    assert isNonNegative(result, true);
     if (result < 1.0) {
       result = 1.0;
     }

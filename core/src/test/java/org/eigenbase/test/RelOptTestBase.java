@@ -17,10 +17,14 @@
 */
 package org.eigenbase.test;
 
+import java.util.List;
+
 import org.eigenbase.rel.*;
 import org.eigenbase.rel.metadata.*;
 import org.eigenbase.relopt.*;
 import org.eigenbase.relopt.hep.*;
+
+import com.google.common.collect.Lists;
 
 import static org.junit.Assert.*;
 
@@ -120,12 +124,13 @@ abstract class RelOptTestBase extends SqlToRelTestBase {
 
     assertTrue(relInitial != null);
 
-    ChainedRelMetadataProvider plannerChain =
-        new ChainedRelMetadataProvider();
+    List<RelMetadataProvider> list = Lists.newArrayList();
     DefaultRelMetadataProvider defaultProvider =
         new DefaultRelMetadataProvider();
-    plannerChain.addProvider(defaultProvider);
-    planner.registerMetadataProviders(plannerChain);
+    list.add(defaultProvider);
+    planner.registerMetadataProviders(list);
+    RelMetadataProvider plannerChain =
+        ChainedRelMetadataProvider.of(list);
     relInitial.getCluster().setMetadataProvider(plannerChain);
 
     RelNode relBefore;

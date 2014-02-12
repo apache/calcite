@@ -17,7 +17,6 @@
 */
 package org.eigenbase.stat;
 
-import org.eigenbase.rel.*;
 import org.eigenbase.sarg.*;
 
 /**

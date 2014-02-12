@@ -17,17 +17,20 @@
 */
 package org.eigenbase.test;
 
+import java.lang.reflect.Method;
 import java.util.*;
 
 import org.eigenbase.rel.*;
 import org.eigenbase.rel.metadata.*;
 import org.eigenbase.relopt.*;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 
 import org.junit.Ignore;
 import org.junit.Test;
 
+import static org.hamcrest.CoreMatchers.*;
 import static org.junit.Assert.*;
 
 /**
@@ -81,10 +84,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
     RelNode rel = convertSql(sql);
     Double result = RelMetadataQuery.getPercentageOriginalRows(rel);
     assertTrue(result != null);
-    assertEquals(
-        expected,
-        result.doubleValue(),
-        epsilon);
+    assertEquals(expected, result, epsilon);
   }
 
   @Test public void testPercentageOriginalRowsTableOnly() {
@@ -187,12 +187,12 @@ public class RelMetadataTest extends SqlToRelTestBase {
         Iterables.getLast(actualTableName),
         expectedTableName);
     assertEquals(
-        actualTable.getRowType().getFieldList()
-            .get(rco.getOriginColumnOrdinal()).getName(),
-        expectedColumnName);
+        actualTable.getRowType()
+            .getFieldList()
+            .get(rco.getOriginColumnOrdinal())
+            .getName(), expectedColumnName);
     assertEquals(
-        rco.isDerived(),
-        expectedDerived);
+        rco.isDerived(), expectedDerived);
   }
 
   private void checkSingleColumnOrigin(
@@ -207,10 +207,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
         result.size());
     RelColumnOrigin rco = result.iterator().next();
     checkColumnOrigin(
-        rco,
-        expectedTableName,
-        expectedColumnName,
-        expectedDerived);
+        rco, expectedTableName, expectedColumnName, expectedDerived);
   }
 
   // WARNING:  this requires the two table names to be different
@@ -369,10 +366,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
     RelNode rel = convertSql(sql);
     Double result = RelMetadataQuery.getRowCount(rel);
     assertTrue(result != null);
-    assertEquals(
-        expected,
-        result.doubleValue(),
-        0d);
+    assertEquals(expected, result, 0d);
   }
 
   @Ignore
@@ -430,10 +424,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
     RelNode rel = convertSql(sql);
     Double result = RelMetadataQuery.getSelectivity(rel, null);
     assertTrue(result != null);
-    assertEquals(
-        expected,
-        result.doubleValue(),
-        EPSILON);
+    assertEquals(expected, result, EPSILON);
   }
 
   @Test public void testSelectivityIsNotNullFilter() {
@@ -465,10 +456,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
       double expected) {
     Double result = RelMetadataQuery.getSelectivity(rel, null);
     assertTrue(result != null);
-    assertEquals(
-        expected,
-        result.doubleValue(),
-        EPSILON);
+    assertEquals(expected, result, EPSILON);
   }
 
   @Test public void testSelectivityRedundantFilter() {
@@ -508,10 +496,120 @@ public class RelMetadataTest extends SqlToRelTestBase {
     BitSet groupKey = new BitSet();
     Double result =
         RelMetadataQuery.getDistinctRowCount(
-            rel,
-            groupKey,
-            null);
+            rel, groupKey, null);
     assertTrue(result == null);
+  }
+
+  @Test public void testCustomProvider() {
+    final List<String> buf = new ArrayList<String>();
+    ColTypeImpl.THREAD_LIST.set(buf);
+
+    RelNode rel =
+        convertSql(
+            "select deptno, count(*) from emp where deptno > 10 "
+                + "group by deptno having count(*) = 0");
+    rel.getCluster().setMetadataProvider(
+        ChainedRelMetadataProvider.of(
+            ImmutableList.of(
+                ColTypeImpl.SOURCE, rel.getCluster().getMetadataProvider())));
+
+    // Top node is a filter. Its metadata uses getColType(RelNode, int).
+    assertThat(rel, instanceOf(FilterRel.class));
+    assertThat(rel.metadata(ColType.class).getColType(0),
+        equalTo("DEPTNO-rel"));
+    assertThat(rel.metadata(ColType.class).getColType(1),
+        equalTo("EXPR$1-rel"));
+
+    // Next node is an aggregate. Its metadata uses
+    // getColType(AggregateRel, int).
+    final RelNode input = rel.getInput(0);
+    assertThat(input, instanceOf(AggregateRel.class));
+    assertThat(input.metadata(ColType.class).getColType(0),
+        equalTo("DEPTNO-agg"));
+
+    // There is no caching. Another request causes another call to the provider.
+    assertThat(buf.toString(), equalTo("[DEPTNO-rel, EXPR$1-rel, DEPTNO-agg]"));
+    assertThat(buf.size(), equalTo(3));
+    assertThat(input.metadata(ColType.class).getColType(0),
+        equalTo("DEPTNO-agg"));
+    assertThat(buf.size(), equalTo(4));
+
+    // Now add a cache. Only the first request for each piece of metadata
+    // generates a new call to the provider.
+    final RelOptPlanner planner = rel.getCluster().getPlanner();
+    rel.getCluster().setMetadataProvider(
+        new CachingRelMetadataProvider(
+            rel.getCluster().getMetadataProvider(), planner));
+    assertThat(input.metadata(ColType.class).getColType(0),
+        equalTo("DEPTNO-agg"));
+    assertThat(buf.size(), equalTo(5));
+    assertThat(input.metadata(ColType.class).getColType(0),
+        equalTo("DEPTNO-agg"));
+    assertThat(buf.size(), equalTo(5));
+    assertThat(input.metadata(ColType.class).getColType(1),
+        equalTo("EXPR$1-agg"));
+    assertThat(buf.size(), equalTo(6));
+    assertThat(input.metadata(ColType.class).getColType(1),
+        equalTo("EXPR$1-agg"));
+    assertThat(buf.size(), equalTo(6));
+    assertThat(input.metadata(ColType.class).getColType(0),
+        equalTo("DEPTNO-agg"));
+    assertThat(buf.size(), equalTo(6));
+
+    // With a different timestamp, a metadata item is re-computed on first call.
+    long timestamp = planner.getRelMetadataTimestamp(rel);
+    assertThat(timestamp, equalTo(0L));
+    ((MockRelOptPlanner) planner).setRelMetadataTimestamp(timestamp + 1);
+    assertThat(input.metadata(ColType.class).getColType(0),
+        equalTo("DEPTNO-agg"));
+    assertThat(buf.size(), equalTo(7));
+    assertThat(input.metadata(ColType.class).getColType(0),
+        equalTo("DEPTNO-agg"));
+    assertThat(buf.size(), equalTo(7));
+  }
+
+  /** Custom metadata interface. */
+  public interface ColType extends Metadata {
+    String getColType(int column);
+  }
+
+  /** A provider for {@link org.eigenbase.test.RelMetadataTest.ColType} via
+   * reflection. */
+  public static class ColTypeImpl {
+    static final ThreadLocal<List<String>> THREAD_LIST =
+        new ThreadLocal<List<String>>();
+    static final Method METHOD;
+    static {
+      try {
+        METHOD = ColType.class.getMethod("getColType", int.class);
+      } catch (NoSuchMethodException e) {
+        throw new RuntimeException(e);
+      }
+    }
+
+    public static final RelMetadataProvider SOURCE =
+        ReflectiveRelMetadataProvider.reflectiveSource(
+            METHOD, new ColTypeImpl());
+
+    /** Implementation of {@link ColType#getColType(int)} for
+     * {@link AggregateRel}, called via reflection. */
+    @SuppressWarnings("UnusedDeclaration")
+    public String getColType(AggregateRelBase rel, int column) {
+      final String name =
+          rel.getRowType().getFieldList().get(column).getName() + "-agg";
+      THREAD_LIST.get().add(name);
+      return name;
+    }
+
+    /** Implementation of {@link ColType#getColType(int)} for
+     * {@link RelNode}, called via reflection. */
+    @SuppressWarnings("UnusedDeclaration")
+    public String getColType(RelNode rel, int column) {
+      final String name =
+          rel.getRowType().getFieldList().get(column).getName() + "-rel";
+      THREAD_LIST.get().add(name);
+      return name;
+    }
   }
 }
 

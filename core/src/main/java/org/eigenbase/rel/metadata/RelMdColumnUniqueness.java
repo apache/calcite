@@ -25,30 +25,21 @@ import org.eigenbase.reltype.*;
 import org.eigenbase.rex.*;
 import org.eigenbase.sql.fun.*;
 
+import net.hydromatic.optiq.BuiltinMethod;
 import net.hydromatic.optiq.util.BitSets;
 
 /**
  * RelMdColumnUniqueness supplies a default implementation of {@link
  * RelMetadataQuery#areColumnsUnique} for the standard logical algebra.
  */
-public class RelMdColumnUniqueness extends ReflectiveRelMetadataProvider {
+public class RelMdColumnUniqueness {
+  public static final RelMetadataProvider SOURCE =
+      ReflectiveRelMetadataProvider.reflectiveSource(
+          BuiltinMethod.COLUMN_UNIQUENESS.method, new RelMdColumnUniqueness());
+
   //~ Constructors -----------------------------------------------------------
 
-  public RelMdColumnUniqueness() {
-    // Tell superclass reflection about parameter types expected
-    // for various metadata queries.
-
-    // This corresponds to areColumnsUnique(rel, BitSet columns,
-    // boolean ignoreNulls);
-    // note that we don't specify the rel type because we always overload
-    // on that.
-    List<Class> args = new ArrayList<Class>();
-    args.add((Class) BitSet.class);
-    args.add((Class) Boolean.TYPE);
-    mapParameterTypes(
-        "areColumnsUnique",
-        args);
-  }
+  private RelMdColumnUniqueness() {}
 
   //~ Methods ----------------------------------------------------------------
 

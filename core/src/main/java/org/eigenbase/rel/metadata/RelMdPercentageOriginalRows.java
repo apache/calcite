@@ -22,12 +22,34 @@ import java.util.*;
 import org.eigenbase.rel.*;
 import org.eigenbase.relopt.*;
 
+import net.hydromatic.optiq.BuiltinMethod;
+
+import com.google.common.collect.ImmutableList;
+
 /**
- * RelMdPercentageOriginalRows supplies a default implementation of {@link
- * RelMetadataQuery#getPercentageOriginalRows} for the standard logical algebra.
+ * RelMdPercentageOriginalRows supplies a default implementation of
+ * {@link RelMetadataQuery#getPercentageOriginalRows} for the standard logical
+ * algebra.
  */
-public class RelMdPercentageOriginalRows extends ReflectiveRelMetadataProvider {
+public class RelMdPercentageOriginalRows {
+  private static final RelMdPercentageOriginalRows INSTANCE =
+      new RelMdPercentageOriginalRows();
+
+  public static final RelMetadataProvider SOURCE =
+      ChainedRelMetadataProvider.of(
+          ImmutableList.of(
+              ReflectiveRelMetadataProvider.reflectiveSource(
+                  BuiltinMethod.PERCENTAGE_ORIGINAL_ROWS.method, INSTANCE),
+
+              ReflectiveRelMetadataProvider.reflectiveSource(
+                  BuiltinMethod.CUMULATIVE_COST.method, INSTANCE),
+
+              ReflectiveRelMetadataProvider.reflectiveSource(
+                  BuiltinMethod.NON_CUMULATIVE_COST.method, INSTANCE)));
+
   //~ Methods ----------------------------------------------------------------
+
+  private RelMdPercentageOriginalRows() {}
 
   public Double getPercentageOriginalRows(AggregateRelBase rel) {
     // REVIEW jvs 28-Mar-2006: The assumption here seems to be that
@@ -126,8 +148,8 @@ public class RelMdPercentageOriginalRows extends ReflectiveRelMetadataProvider {
   public RelOptCost getCumulativeCost(RelNode rel) {
     RelOptCost cost = RelMetadataQuery.getNonCumulativeCost(rel);
     List<RelNode> inputs = rel.getInputs();
-    for (int i = 0, n = inputs.size(); i < n; i++) {
-      cost = cost.plus(RelMetadataQuery.getCumulativeCost(inputs.get(i)));
+    for (RelNode input : inputs) {
+      cost = cost.plus(RelMetadataQuery.getCumulativeCost(input));
     }
     return cost;
   }

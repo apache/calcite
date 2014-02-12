@@ -26,27 +26,21 @@ import org.eigenbase.rex.*;
 import org.eigenbase.sql.fun.*;
 import org.eigenbase.util14.*;
 
+import net.hydromatic.optiq.BuiltinMethod;
 import net.hydromatic.optiq.util.BitSets;
 
 /**
  * RelMdDistinctRowCount supplies a default implementation of {@link
  * RelMetadataQuery#getDistinctRowCount} for the standard logical algebra.
  */
-public class RelMdDistinctRowCount extends ReflectiveRelMetadataProvider {
+public class RelMdDistinctRowCount {
+  public static final RelMetadataProvider SOURCE =
+      ReflectiveRelMetadataProvider.reflectiveSource(
+          BuiltinMethod.DISTINCT_ROW_COUNT.method, new RelMdDistinctRowCount());
+
   //~ Constructors -----------------------------------------------------------
 
-  public RelMdDistinctRowCount() {
-    // Tell superclass reflection about parameter types expected
-    // for various metadata queries.
-
-    // This corresponds to getDistinctRowCount(rel, RexNode predicate);
-    // note that we don't specify the rel type because we always overload
-    // on that.
-    List<Class> args = new ArrayList<Class>();
-    args.add((Class) BitSet.class);
-    args.add((Class) RexNode.class);
-    mapParameterTypes("getDistinctRowCount", args);
-  }
+  private RelMdDistinctRowCount() {}
 
   //~ Methods ----------------------------------------------------------------
 

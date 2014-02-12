@@ -23,24 +23,20 @@ import org.eigenbase.rel.*;
 import org.eigenbase.relopt.*;
 import org.eigenbase.rex.*;
 
+import net.hydromatic.optiq.BuiltinMethod;
+
 /**
  * RelMdColumnOrigins supplies a default implementation of {@link
  * RelMetadataQuery#getColumnOrigins} for the standard logical algebra.
  */
-public class RelMdColumnOrigins extends ReflectiveRelMetadataProvider {
+public class RelMdColumnOrigins {
+  public static final RelMetadataProvider SOURCE =
+      ReflectiveRelMetadataProvider.reflectiveSource(
+          BuiltinMethod.COLUMN_ORIGIN.method, new RelMdColumnOrigins());
+
   //~ Constructors -----------------------------------------------------------
 
-  public RelMdColumnOrigins() {
-    // Tell superclass reflection about parameter types expected
-    // for various metadata queries.
-
-    // This corresponds to getColumnOrigins(rel, int iOutputColumn); note
-    // that we don't specify the rel type because we always overload on
-    // that.
-    mapParameterTypes(
-        "getColumnOrigins",
-        Collections.singletonList((Class) Integer.TYPE));
-  }
+  private RelMdColumnOrigins() {}
 
   //~ Methods ----------------------------------------------------------------
 
@@ -62,8 +58,7 @@ public class RelMdColumnOrigins extends ReflectiveRelMetadataProvider {
     for (Integer iInput : call.getArgList()) {
       Set<RelColumnOrigin> inputSet =
           invokeGetColumnOrigins(
-              rel.getChild(),
-              iInput);
+              rel.getChild(), iInput);
       inputSet = createDerivedColumnOrigins(inputSet);
       if (inputSet != null) {
         set.addAll(inputSet);
@@ -108,7 +103,7 @@ public class RelMdColumnOrigins extends ReflectiveRelMetadataProvider {
       int iOutputColumn) {
     Set<RelColumnOrigin> set = new HashSet<RelColumnOrigin>();
     for (RelNode input : rel.getInputs()) {
-      Set inputSet =
+      Set<RelColumnOrigin> inputSet =
           invokeGetColumnOrigins(
               input,
               iOutputColumn);

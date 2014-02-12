@@ -17,15 +17,18 @@
 */
 package org.eigenbase.rel.metadata;
 
+import java.lang.reflect.*;
 import java.util.*;
 
 import org.eigenbase.rel.*;
 import org.eigenbase.relopt.*;
-import org.eigenbase.util.*;
+
+import com.google.common.base.Function;
+import com.google.common.collect.ImmutableList;
 
 /**
- * CachingRelMetadataProvider implements the {@link RelMetadataProvider}
- * interface by caching results from an underlying provider.
+ * Implementation of the {@link RelMetadataProvider}
+ * interface that caches results from an underlying provider.
  */
 public class CachingRelMetadataProvider implements RelMetadataProvider {
   //~ Instance fields --------------------------------------------------------
@@ -49,50 +52,23 @@ public class CachingRelMetadataProvider implements RelMetadataProvider {
 
   //~ Methods ----------------------------------------------------------------
 
-  // implement RelMetadataProvider
-  public Object getRelMetadata(
-      RelNode rel,
-      String metadataQueryName,
-      Object[] args) {
+  public Function<RelNode, Metadata> apply(Class<? extends RelNode> relClass,
+      final Class<? extends Metadata> metadataClass) {
+    final Function<RelNode, Metadata> function =
+        underlyingProvider.apply(relClass, metadataClass);
+    if (function == null) {
+      return null;
+    }
+
     // TODO jvs 30-Mar-2006: Use meta-metadata to decide which metadata
     // query results can stay fresh until the next Ice Age.
-
-    // Compute hash key.
-    List<Object> hashKey;
-    if (args != null) {
-      hashKey = new ArrayList<Object>(args.length + 2);
-      hashKey.add(rel);
-      hashKey.add(metadataQueryName);
-      hashKey.addAll(Arrays.asList(args));
-    } else {
-      hashKey = Arrays.asList(rel, metadataQueryName);
-    }
-
-    long timestamp = planner.getRelMetadataTimestamp(rel);
-
-    // Perform cache lookup.
-    CacheEntry entry = cache.get(hashKey);
-    if (entry != null) {
-      if (timestamp == entry.timestamp) {
-        return entry.result;
-      } else {
-        // Cache results are stale.
+    return new Function<RelNode, Metadata>() {
+      public Metadata apply(RelNode input) {
+        final Metadata metadata = function.apply(input);
+        return (Metadata) Proxy.newProxyInstance(metadataClass.getClassLoader(),
+            new Class[]{metadataClass}, new CachingInvocationHandler(metadata));
       }
-    }
-
-    // Cache miss or stale.
-    Object result =
-        underlyingProvider.getRelMetadata(
-            rel,
-            metadataQueryName,
-            args);
-    if (result != null) {
-      entry = new CacheEntry();
-      entry.timestamp = timestamp;
-      entry.result = result;
-      cache.put(hashKey, entry);
-    }
-    return result;
+    };
   }
 
   //~ Inner Classes ----------------------------------------------------------
@@ -101,6 +77,46 @@ public class CachingRelMetadataProvider implements RelMetadataProvider {
     long timestamp;
 
     Object result;
+  }
+
+  private class CachingInvocationHandler implements InvocationHandler {
+    private final Metadata metadata;
+
+    public CachingInvocationHandler(Metadata metadata) {
+      this.metadata = metadata;
+    }
+
+    public Object invoke(Object proxy, Method method, Object[] args)
+      throws Throwable {
+      // Compute hash key.
+      final ImmutableList.Builder<Object> builder = ImmutableList.builder();
+      builder.add(method);
+      builder.add(metadata.rel());
+      if (args != null) {
+        builder.add(args);
+      }
+      List<Object> key = builder.build();
+
+      long timestamp = planner.getRelMetadataTimestamp(metadata.rel());
+
+      // Perform cache lookup.
+      CacheEntry entry = cache.get(key);
+      if (entry != null) {
+        if (timestamp == entry.timestamp) {
+          return entry.result;
+        }
+      }
+
+      // Cache miss or stale.
+      Object result = method.invoke(metadata, args);
+      if (result != null) {
+        entry = new CacheEntry();
+        entry.timestamp = timestamp;
+        entry.result = result;
+        cache.put(key, entry);
+      }
+      return result;
+    }
   }
 }
 

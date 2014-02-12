@@ -38,6 +38,7 @@ public class RelOptCluster {
   private RexNode originalExpression;
   private final RexBuilder rexBuilder;
   private RelMetadataProvider metadataProvider;
+  private MetadataFactory metadataFactory;
   private final RelTraitSet emptyTraitSet;
 
   //~ Constructors -----------------------------------------------------------
@@ -60,7 +61,7 @@ public class RelOptCluster {
 
     // set up a default rel metadata provider,
     // giving the planner first crack at everything
-    metadataProvider = new DefaultRelMetadataProvider();
+    setMetadataProvider(new DefaultRelMetadataProvider());
     this.emptyTraitSet = planner.emptyTraitSet();
   }
 
@@ -101,6 +102,11 @@ public class RelOptCluster {
    */
   public void setMetadataProvider(RelMetadataProvider metadataProvider) {
     this.metadataProvider = metadataProvider;
+    this.metadataFactory = new MetadataFactoryImpl(metadataProvider);
+  }
+
+  public MetadataFactory getMetadataFactory() {
+    return metadataFactory;
   }
 
   public RelTraitSet traitSetOf(RelTrait... traits) {
