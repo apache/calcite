@@ -92,7 +92,8 @@ public class ReflectiveRelMetadataProvider
     final Class<?> metadataClass0 = method.getDeclaringClass();
     assert Metadata.class.isAssignableFrom(metadataClass0);
     final Map<Class<RelNode>, Function<RelNode, Metadata>> treeMap =
-        Maps.newTreeMap(SUPERCLASS_COMPARATOR);
+        Maps.<Class<RelNode>, Class<RelNode>, Function<RelNode, Metadata>>
+            newTreeMap(SUPERCLASS_COMPARATOR);
     for (final Method method1 : target.getClass().getMethods()) {
       if (method1.getName().equals(method.getName())
           && (method1.getModifiers() & Modifier.STATIC) == 0
