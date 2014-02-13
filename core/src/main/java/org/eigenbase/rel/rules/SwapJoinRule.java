@@ -20,6 +20,7 @@ package org.eigenbase.rel.rules;
 import java.util.*;
 
 import org.eigenbase.rel.*;
+import org.eigenbase.rel.RelFactories.ProjectFactory;
 import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.*;
 import org.eigenbase.rex.*;
@@ -34,9 +35,6 @@ import com.google.common.collect.ImmutableList;
 public class SwapJoinRule extends RelOptRule {
   //~ Static fields/initializers ---------------------------------------------
 
-  public static final ProjectFactory DEFAULT_PROJECT_FACTORY =
-      new ProjectFactoryImpl();
-
   /** The singleton. */
   public static final SwapJoinRule INSTANCE = new SwapJoinRule();
 
@@ -48,7 +46,7 @@ public class SwapJoinRule extends RelOptRule {
    * Creates a SwapJoinRule.
    */
   private SwapJoinRule() {
-    this(JoinRel.class, DEFAULT_PROJECT_FACTORY);
+    this(JoinRel.class, RelFactories.DEFAULT_PROJECT_FACTORY);
   }
 
   public SwapJoinRule(Class<? extends JoinRelBase> clazz,
@@ -198,29 +196,6 @@ public class SwapJoinRule extends RelOptRule {
       } else {
         return rex;
       }
-    }
-  }
-
-  /** Can create a {@link org.eigenbase.rel.ProjectRel} of the appropriate
-   * type for this rule's calling convention. */
-  public interface ProjectFactory {
-    RelNode createProject(RelNode input, List<RexNode> exps,
-        List<String> fieldNames);
-  }
-
-  /** Implementation of {@link ProjectFactory} that returns vanilla
-   * {@link ProjectRel}. */
-  private static class ProjectFactoryImpl implements ProjectFactory {
-    public RelNode createProject(RelNode input, List<RexNode> exps,
-        List<String> fieldNames) {
-      RelNode project = CalcRel.createProject(input, exps, fieldNames);
-
-      // Make sure extra traits are carried over from the original rel
-      project =
-          RelOptRule.convert(
-              project,
-              input.getTraitSet());
-      return project;
     }
   }
 }

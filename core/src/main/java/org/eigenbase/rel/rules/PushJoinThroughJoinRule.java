@@ -20,6 +20,7 @@ package org.eigenbase.rel.rules;
 import java.util.*;
 
 import org.eigenbase.rel.*;
+import org.eigenbase.rel.RelFactories.ProjectFactory;
 import org.eigenbase.relopt.*;
 import org.eigenbase.rex.*;
 import org.eigenbase.util.mapping.Mappings;
@@ -50,6 +51,7 @@ import net.hydromatic.optiq.util.BitSets;
  * ({@code ON TRUE}). After the rule, each join has one condition.</p>
  */
 public class PushJoinThroughJoinRule extends RelOptRule {
+
   public static final RelOptRule RIGHT =
       new PushJoinThroughJoinRule(
           "PushJoinThroughJoinRule:right", true, JoinRel.class);
@@ -59,10 +61,20 @@ public class PushJoinThroughJoinRule extends RelOptRule {
 
   private final boolean right;
 
+  private final ProjectFactory projectFactory;
+
+  /**
+   * Creates a PushJoinThroughJoinRule.
+   */
+  private PushJoinThroughJoinRule(String description, boolean right,
+      Class<? extends JoinRelBase> clazz) {
+    this(description, right, clazz, RelFactories.DEFAULT_PROJECT_FACTORY);
+  }
+
   public PushJoinThroughJoinRule(
       String description,
       boolean right,
-      Class<? extends JoinRelBase> clazz) {
+      Class<? extends JoinRelBase> clazz, ProjectFactory pFactory) {
     super(
         operand(
             clazz,
@@ -70,6 +82,7 @@ public class PushJoinThroughJoinRule extends RelOptRule {
             operand(RelNode.class, any())),
         description);
     this.right = right;
+    projectFactory = pFactory;
   }
 
   @Override
@@ -178,8 +191,8 @@ public class PushJoinThroughJoinRule extends RelOptRule {
             relB, topJoin.getJoinType());
 
     assert !Mappings.isIdentity(topMapping);
-    final RelNode newProject =
-        CalcRel.createProject(newTopJoin, Mappings.asList(topMapping));
+    final RelNode newProject = RelFactories.createProject(projectFactory,
+        newTopJoin, Mappings.asList(topMapping));
 
     call.transformTo(newProject);
   }
@@ -285,8 +298,8 @@ public class PushJoinThroughJoinRule extends RelOptRule {
         topJoin.copy(topJoin.getTraitSet(), newTopCondition, newBottomJoin,
             relA, topJoin.getJoinType());
 
-    final RelNode newProject =
-        CalcRel.createProject(newTopJoin, Mappings.asList(topMapping));
+    final RelNode newProject = RelFactories.createProject(projectFactory,
+        newTopJoin, Mappings.asList(topMapping));
 
     call.transformTo(newProject);
   }

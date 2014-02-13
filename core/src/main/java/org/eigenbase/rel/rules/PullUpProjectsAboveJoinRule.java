@@ -20,6 +20,7 @@ package org.eigenbase.rel.rules;
 import java.util.*;
 
 import org.eigenbase.rel.*;
+import org.eigenbase.rel.RelFactories.ProjectFactory;
 import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.*;
 import org.eigenbase.rex.*;
@@ -58,12 +59,20 @@ public class PullUpProjectsAboveJoinRule extends RelOptRule {
               operand(ProjectRel.class, any())),
           "PullUpProjectsAboveJoinRule: with ProjectRel on right");
 
-  //~ Constructors -----------------------------------------------------------
+  private final ProjectFactory projectFactory;
 
+  //~ Constructors -----------------------------------------------------------
   public PullUpProjectsAboveJoinRule(
       RelOptRuleOperand operand,
       String description) {
+    this(operand, description, RelFactories.DEFAULT_PROJECT_FACTORY);
+  }
+
+  public PullUpProjectsAboveJoinRule(
+      RelOptRuleOperand operand,
+      String description, ProjectFactory pFactory) {
     super(operand, description);
+    projectFactory = pFactory;
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -73,8 +82,8 @@ public class PullUpProjectsAboveJoinRule extends RelOptRule {
     JoinRel joinRel = call.rel(0);
     JoinRelType joinType = joinRel.getJoinType();
 
-    ProjectRel leftProj;
-    ProjectRel rightProj;
+    ProjectRelBase leftProj;
+    ProjectRelBase rightProj;
     RelNode leftJoinChild;
     RelNode rightJoinChild;
 
@@ -212,11 +221,8 @@ public class PullUpProjectsAboveJoinRule extends RelOptRule {
     }
 
     // finally, create the projection on top of the join
-    RelNode newProjRel =
-        CalcRel.createProject(
-            newJoinRel,
-            newProjExprs,
-            joinRel.getRowType().getFieldNames());
+    RelNode newProjRel = projectFactory.createProject(newJoinRel, newProjExprs,
+        joinRel.getRowType().getFieldNames());
 
     call.transformTo(newProjRel);
   }
@@ -226,7 +232,7 @@ public class PullUpProjectsAboveJoinRule extends RelOptRule {
    * @return true if the rule was invoked with a left project child
    */
   protected boolean hasLeftChild(RelOptRuleCall call) {
-    return call.rel(1) instanceof ProjectRel;
+    return call.rel(1) instanceof ProjectRelBase;
   }
 
   /**
@@ -241,7 +247,7 @@ public class PullUpProjectsAboveJoinRule extends RelOptRule {
    * @param call RelOptRuleCall
    * @return ProjectRel corresponding to the right child
    */
-  protected ProjectRel getRightChild(RelOptRuleCall call) {
+  protected ProjectRelBase getRightChild(RelOptRuleCall call) {
     return call.rel(2);
   }
 
@@ -257,7 +263,7 @@ public class PullUpProjectsAboveJoinRule extends RelOptRule {
    */
   protected RelNode getProjectChild(
       RelOptRuleCall call,
-      ProjectRel project,
+      ProjectRelBase project,
       boolean leftChild) {
     return project.getChild();
   }
@@ -277,7 +283,7 @@ public class PullUpProjectsAboveJoinRule extends RelOptRule {
    * @param projects           Projection expressions &amp; names to be created
    */
   private void createProjectExprs(
-      ProjectRel projRel,
+      ProjectRelBase projRel,
       RelNode joinChild,
       int adjustmentAmount,
       RexBuilder rexBuilder,

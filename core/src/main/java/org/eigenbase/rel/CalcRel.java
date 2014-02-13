@@ -114,40 +114,10 @@ public final class CalcRel extends CalcRelBase {
    * @param posList Source of each projected field
    * @return Relational expression that projects given fields
    */
-  public static RelNode createProject(
-      final RelNode child,
+  public static RelNode createProject(final RelNode child,
       final List<Integer> posList) {
-    if (isIdentity(posList, child.getRowType().getFieldCount())) {
-      return child;
-    }
-    return CalcRel.createProject(
-        child,
-        new AbstractList<RexNode>() {
-          public int size() {
-            return posList.size();
-          }
-
-          public RexNode get(int index) {
-            final int pos = posList.get(index);
-            return child.getCluster().getRexBuilder().makeInputRef(
-                child.getRowType().getFieldList().get(pos).getType(),
-                pos);
-          }
-        },
-        null);
-  }
-
-  private static boolean isIdentity(List<Integer> list, int count) {
-    if (list.size() != count) {
-      return false;
-    }
-    for (int i = 0; i < count; i++) {
-      final Integer o = list.get(i);
-      if (o == null || o != i) {
-        return false;
-      }
-    }
-    return true;
+    return RelFactories.createProject(RelFactories.DEFAULT_PROJECT_FACTORY,
+        child, posList);
   }
 
   /**

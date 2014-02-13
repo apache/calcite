@@ -2088,7 +2088,7 @@ public abstract class RelOptUtil {
    * the input references are the same but the field names are different
    */
   public static boolean checkProjAndChildInputs(
-      ProjectRel project,
+      ProjectRelBase project,
       boolean checkNames) {
     if (!project.isBoxed()) {
       return false;

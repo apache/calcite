@@ -20,6 +20,7 @@ package org.eigenbase.rel.rules;
 import java.util.*;
 
 import org.eigenbase.rel.*;
+import org.eigenbase.rel.RelFactories.ProjectFactory;
 import org.eigenbase.relopt.*;
 import org.eigenbase.rex.*;
 
@@ -38,13 +39,15 @@ public class MergeProjectRule extends RelOptRule {
    */
   private final boolean force;
 
+  private final ProjectFactory projectFactory;
+
   //~ Constructors -----------------------------------------------------------
 
   /**
    * Creates a MergeProjectRule.
    */
   private MergeProjectRule() {
-    this(false);
+    this(false, RelFactories.DEFAULT_PROJECT_FACTORY);
   }
 
   /**
@@ -52,21 +55,22 @@ public class MergeProjectRule extends RelOptRule {
    *
    * @param force Whether to always merge projects
    */
-  public MergeProjectRule(boolean force) {
+  public MergeProjectRule(boolean force, ProjectFactory pFactory) {
     super(
         operand(
             ProjectRel.class,
             operand(ProjectRel.class, any())),
         "MergeProjectRule" + (force ? ": force mode" : ""));
     this.force = force;
+    projectFactory = pFactory;
   }
 
   //~ Methods ----------------------------------------------------------------
 
   // implement RelOptRule
   public void onMatch(RelOptRuleCall call) {
-    ProjectRel topProject = call.rel(0);
-    ProjectRel bottomProject = call.rel(1);
+    ProjectRelBase topProject = call.rel(0);
+    ProjectRelBase bottomProject = call.rel(1);
     RexBuilder rexBuilder = topProject.getCluster().getRexBuilder();
 
     // if we're not in force mode and the two projects reference identical
@@ -114,11 +118,9 @@ public class MergeProjectRule extends RelOptRule {
     }
 
     // replace the two projects with a combined projection
-    ProjectRel newProjectRel =
-        (ProjectRel) CalcRel.createProject(
-            bottomProject.getChild(),
-            newProjExprs,
-            topProject.getRowType().getFieldNames());
+    RelNode newProjectRel = projectFactory.createProject(
+        bottomProject.getChild(), newProjExprs,
+        topProject.getRowType().getFieldNames());
 
     call.transformTo(newProjectRel);
   }
