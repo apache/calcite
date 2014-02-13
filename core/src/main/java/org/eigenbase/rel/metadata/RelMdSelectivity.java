@@ -39,7 +39,7 @@ public class RelMdSelectivity {
 
   //~ Constructors -----------------------------------------------------------
 
-  private RelMdSelectivity() {
+  protected RelMdSelectivity() {
   }
 
   //~ Methods ----------------------------------------------------------------
