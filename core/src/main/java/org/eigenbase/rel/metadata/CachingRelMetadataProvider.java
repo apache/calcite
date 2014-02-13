@@ -39,6 +39,13 @@ public class CachingRelMetadataProvider implements RelMetadataProvider {
 
   private final RelOptPlanner planner;
 
+  private static final Object NULL_SENTINEL = new Object() {
+    @Override
+    public String toString() {
+      return "{null}";
+    }
+  };
+
   //~ Constructors -----------------------------------------------------------
 
   public CachingRelMetadataProvider(
@@ -93,7 +100,10 @@ public class CachingRelMetadataProvider implements RelMetadataProvider {
       builder.add(method);
       builder.add(metadata.rel());
       if (args != null) {
-        builder.add(args);
+        for (Object arg : args) {
+          // Replace null values because ImmutableList does not allow them.
+          builder.add(arg == null ? NULL_SENTINEL : arg);
+        }
       }
       List<Object> key = builder.build();
 

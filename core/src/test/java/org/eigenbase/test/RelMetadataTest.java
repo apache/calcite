@@ -27,6 +27,8 @@ import org.eigenbase.relopt.*;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 
+import org.hamcrest.CoreMatchers;
+import org.hamcrest.Matcher;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -61,6 +63,10 @@ public class RelMetadataTest extends SqlToRelTestBase {
   private static final double DEPT_SIZE = 100.0;
 
   //~ Methods ----------------------------------------------------------------
+
+  private static Matcher<? super Number> nearTo(Number v, Number epsilon) {
+    return CoreMatchers.equalTo(v); // TODO: use epsilon
+  }
 
   // ----------------------------------------------------------------------
   // Tests for getPercentageOriginalRows
@@ -476,7 +482,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
     RelNode rel =
         convertSql(
             "select * from (select * from emp union all select * from emp) "
-            + "where deptno = 10");
+                + "where deptno = 10");
     checkRelSelectivity(rel, DEFAULT_EQUAL_SELECTIVITY);
   }
 
@@ -488,6 +494,22 @@ public class RelMetadataTest extends SqlToRelTestBase {
     checkRelSelectivity(
         rel,
         DEFAULT_COMP_SELECTIVITY * DEFAULT_EQUAL_SELECTIVITY);
+  }
+
+  /** Checks that we can cache a metadata request that includes a null
+   * argument. */
+  @Test public void testSelectivityAggCached() {
+    RelNode rel =
+        convertSql(
+            "select deptno, count(*) from emp where deptno > 10 "
+            + "group by deptno having count(*) = 0");
+    rel.getCluster().setMetadataProvider(
+        new CachingRelMetadataProvider(
+            rel.getCluster().getMetadataProvider(),
+            rel.getCluster().getPlanner()));
+    Double result = RelMetadataQuery.getSelectivity(rel, null);
+    assertThat(result,
+        nearTo(DEFAULT_COMP_SELECTIVITY * DEFAULT_EQUAL_SELECTIVITY, EPSILON));
   }
 
   @Test public void testDistinctRowCountTable() {
