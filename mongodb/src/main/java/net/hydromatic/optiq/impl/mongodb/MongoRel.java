@@ -34,6 +34,8 @@ public interface MongoRel extends RelNode {
   /** Calling convention for relational operations that occur in MongoDB. */
   Convention CONVENTION = new Convention.Impl("MONGO", MongoRel.class);
 
+  /** Callback for the implementation process that converts a tree of
+   * {@link MongoRel} nodes into a MongoDB query. */
   class Implementor {
     final List<Pair<String, String>> list =
         new ArrayList<Pair<String, String>>();

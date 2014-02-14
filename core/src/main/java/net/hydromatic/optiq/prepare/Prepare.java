@@ -347,6 +347,7 @@ public abstract class Prepare {
 
   /** Returns the number of {@link JoinRelBase} nodes in a tree. */
   private static int countJoins(RelNode rootRel) {
+    /** Visitor that counts join nodes. */
     class JoinCounter extends RelVisitor {
       int joinCount;
 
@@ -386,6 +387,7 @@ public abstract class Prepare {
 
   protected abstract SqlValidator getSqlValidator();
 
+  /** Interface by which validator and planner can read table metadata. */
   public interface CatalogReader
       extends RelOptSchema, SqlValidatorCatalogReader {
     PreparingTable getTableForMember(List<String> names);
@@ -397,6 +399,7 @@ public abstract class Prepare {
     PreparingTable getTable(List<String> names);
   }
 
+  /** Definition of a table, for the purposes of the validator and planner. */
   public interface PreparingTable
       extends RelOptTable, SqlValidatorTable {
   }

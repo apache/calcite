@@ -48,6 +48,9 @@ public class ObjectEnumeratorCursor extends AbstractCursor {
     enumerator.close();
   }
 
+  /** Implementation of {@link Getter} for records that consist of a single
+   * field. Each record is represented as an object, and the value of the sole
+   * field is that object. */
   class ObjectEnumeratorGetter extends AbstractGetter {
     public ObjectEnumeratorGetter(int field) {
       assert field == 0;

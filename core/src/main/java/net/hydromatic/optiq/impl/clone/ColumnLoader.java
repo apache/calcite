@@ -40,6 +40,8 @@ import java.util.*;
 
 /**
  * Column loader.
+ *
+ * @param <T> Element type of source table
  */
 class ColumnLoader<T> {
   static final int[] INT_B = {0x2, 0xC, 0xF0, 0xFF00, 0xFFFF0000};

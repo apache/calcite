@@ -26,6 +26,8 @@ import java.lang.reflect.Field;
  * {@link net.hydromatic.linq4j.Enumerator} that
  * returns a record for each row. The record is a synthetic class whose fields
  * are all public.
+ *
+ * @param <E> Element type
  */
 public class RecordEnumeratorCursor<E> extends AbstractCursor {
   private final Enumerator<E> enumerator;
@@ -56,6 +58,7 @@ public class RecordEnumeratorCursor<E> extends AbstractCursor {
     enumerator.close();
   }
 
+  /** Implementation of {@link Getter} that reads fields via reflection. */
   class RecordEnumeratorGetter extends AbstractGetter {
     protected final Field field;
 

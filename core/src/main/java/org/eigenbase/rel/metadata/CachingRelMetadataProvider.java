@@ -80,12 +80,20 @@ public class CachingRelMetadataProvider implements RelMetadataProvider {
 
   //~ Inner Classes ----------------------------------------------------------
 
+  /** An entry in the cache. Consists of the cached object and the timestamp
+   * when the entry is valid. If read at a later timestamp, the entry will be
+   * invalid and will be re-computed as if it did not exist. The net effect is a
+   * lazy-flushing cache. */
   private static class CacheEntry {
     long timestamp;
 
     Object result;
   }
 
+  /** Implementation of {@link InvocationHandler} for calls to a
+   * {@link CachingRelMetadataProvider}. Each request first looks in the cache;
+   * if the cache entry is present and not expired, returns the cache entry,
+   * otherwise computes the value and stores in the cache. */
   private class CachingInvocationHandler implements InvocationHandler {
     private final Metadata metadata;
 

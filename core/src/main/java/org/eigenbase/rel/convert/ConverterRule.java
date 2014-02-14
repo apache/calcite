@@ -105,6 +105,9 @@ public abstract class ConverterRule extends RelOptRule {
 
   //~ Inner Classes ----------------------------------------------------------
 
+  /**
+   * Operand to an instance of the converter rule.
+   */
   private static class ConverterRelOptRuleOperand extends RelOptRuleOperand {
     public ConverterRelOptRuleOperand(
         Class<? extends RelNode> clazz, RelTrait in) {

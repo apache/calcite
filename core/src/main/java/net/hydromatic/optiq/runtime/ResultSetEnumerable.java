@@ -31,6 +31,8 @@ import javax.sql.DataSource;
 
 /**
  * Executes a SQL statement and returns the result as an {@link Enumerable}.
+ *
+ * @param <T> Element type
  */
 public class ResultSetEnumerable<T> extends AbstractEnumerable<T> {
   private final DataSource dataSource;
@@ -148,6 +150,8 @@ public class ResultSetEnumerable<T> extends AbstractEnumerable<T> {
     }
   }
 
+  /** Implementation of {@link Enumerator} that reads from a
+   * {@link ResultSet}. */
   private static class ResultSetEnumerator<T> implements Enumerator<T> {
     private final Function0<T> rowBuilder;
     private ResultSet resultSet;

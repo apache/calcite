@@ -72,6 +72,8 @@ import java.util.Map;
  *
  * <p>A class that implements TableFactory specified in a schema must have a
  * public default constructor.</p>
+ *
+ * @param <T> Sub-type of table created by this factory
  */
 public interface TableFactory<T extends Table> {
   /** Creates a Table.

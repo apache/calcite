@@ -352,6 +352,7 @@ public class EnumerableRelImplementor extends JavaRelImplementor {
         block, physType, ((PhysTypeImpl) physType).format);
   }
 
+  /** Visitor that finds types in an {@link Expression} tree. */
   private static class TypeFinder extends Visitor {
     private final LinkedHashSet<Type> types;
 

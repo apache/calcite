@@ -28,7 +28,7 @@ import java.util.Iterator;
 
 /**
  * Abstract implementation of {@link net.hydromatic.linq4j.Queryable} for
- * {@link Table}.
+ * {@link QueryableTable}.
  *
  * <p>Not to be confused with
  * {@link net.hydromatic.optiq.impl.java.AbstractQueryableTable}.</p>

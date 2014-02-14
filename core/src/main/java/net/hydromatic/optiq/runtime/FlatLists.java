@@ -119,6 +119,7 @@ public class FlatLists {
     }
   }
 
+  /** Base class for flat lists. */
   public abstract static class AbstractFlatList<T>
       implements List<T>, RandomAccess {
     protected final List<T> asArrayList() {
@@ -477,6 +478,7 @@ public class FlatLists {
     }
   }
 
+  /** Empty list that implements the {@link Comparable} interface. */
   private static class ComparableEmptyList
       extends AbstractList
       implements Comparable<List> {
@@ -519,6 +521,8 @@ public class FlatLists {
   public interface ComparableList<T> extends List<T>, Comparable<List> {
   }
 
+  /** Wrapper around a list that makes it implement the {@link Comparable}
+   * interface using lexical ordering. The elements must be comparable. */
   static class ComparableListImpl<T extends Comparable<T>>
       extends AbstractList<T>
       implements ComparableList<T> {

@@ -21,6 +21,9 @@ import java.util.*;
 
 /**
  * Iterates over the edges of a graph in topological order.
+ *
+ * @param <V> Vertex type
+ * @param <E> Edge type
  */
 public class TopologicalOrderIterator<V, E extends DefaultEdge>
     implements Iterator<V> {

@@ -728,6 +728,11 @@ public class PartiallyOrderedSet<E> extends AbstractSet<E> {
     boolean lessThan(E e1, E e2);
   }
 
+  /** List, backed by a list of {@link Node}s, that strips away the
+   * node and returns the element inside.
+   *
+   * @param <E> Element type
+   */
   private static class StripList<E> extends AbstractList<E> {
     private final List<Node<E>> list;
 

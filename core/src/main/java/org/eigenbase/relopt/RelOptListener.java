@@ -98,12 +98,15 @@ public interface RelOptListener extends EventListener {
     }
   }
 
+  /** Event indicating that a relational expression has been chosen. */
   public static class RelChosenEvent extends RelEvent {
     public RelChosenEvent(Object eventSource, RelNode rel) {
       super(eventSource, rel);
     }
   }
 
+  /** Event indicating that a relational expression has been found to
+   * be equivalent to an equivalence class. */
   public static class RelEquivalenceEvent extends RelEvent {
     private final Object equivalenceClass;
     private final boolean isPhysical;
@@ -127,12 +130,14 @@ public interface RelOptListener extends EventListener {
     }
   }
 
+  /** Event indicating that a relational expression has been discarded. */
   public static class RelDiscardedEvent extends RelEvent {
     public RelDiscardedEvent(Object eventSource, RelNode rel) {
       super(eventSource, rel);
     }
   }
 
+  /** Event indicating that a planner rule has fired. */
   public abstract static class RuleEvent extends RelEvent {
     private final RelOptRuleCall ruleCall;
 
@@ -149,6 +154,7 @@ public interface RelOptListener extends EventListener {
     }
   }
 
+  /** Event indicating that a planner rule has been attemptedd. */
   public static class RuleAttemptedEvent extends RuleEvent {
     private final boolean before;
 
@@ -166,6 +172,7 @@ public interface RelOptListener extends EventListener {
     }
   }
 
+  /** Event indicating that a planner rule has produced a result. */
   public static class RuleProductionEvent extends RuleAttemptedEvent {
     public RuleProductionEvent(
         Object eventSource,

@@ -96,6 +96,7 @@ public interface RelOptTable {
    */
   Expression getExpression(Class clazz);
 
+  /** Can expand a view into relational expressions. */
   interface ViewExpander {
     RelNode expandView(
         RelDataType rowType,
@@ -103,6 +104,8 @@ public interface RelOptTable {
         List<String> schemaPath);
   }
 
+  /** Contains the context needed to convert a a table into a relational
+   * expression. */
   interface ToRelContext extends ViewExpander {
     RelOptCluster getCluster();
   }

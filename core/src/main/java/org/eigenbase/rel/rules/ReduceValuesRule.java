@@ -231,6 +231,7 @@ public abstract class ReduceValuesRule extends RelOptRule {
 
   //~ Inner Classes ----------------------------------------------------------
 
+  /** Shuttle that converts inputs to literals. */
   private static class MyRexShuttle extends RexShuttle {
     private List<RexLiteral> literalList;
 

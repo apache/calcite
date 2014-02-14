@@ -57,12 +57,13 @@ public class MongoFilterRel
 
   public void implement(Implementor implementor) {
     implementor.visitChild(0, getChild());
-    Foo foo = new Foo(getRowType().getFieldNames());
-    String match = foo.translateMatch(condition);
+    Translator translator = new Translator(getRowType().getFieldNames());
+    String match = translator.translateMatch(condition);
     implementor.add(null, match);
   }
 
-  static class Foo {
+  /** Translates {@link RexNode} expressions into MongoDB expression strings. */
+  static class Translator {
     final JsonBuilder builder = new JsonBuilder();
     final Multimap<String, Pair<String, RexLiteral>> multimap =
         HashMultimap.create();
@@ -70,7 +71,7 @@ public class MongoFilterRel
         new LinkedHashMap<String, RexLiteral>();
     private final List<String> fieldNames;
 
-    Foo(List<String> fieldNames) {
+    Translator(List<String> fieldNames) {
       this.fieldNames = fieldNames;
     }
 
@@ -122,7 +123,6 @@ public class MongoFilterRel
     private static Object literalToString(RexLiteral literal) {
       return literal.getValue2();
     }
-
 
     private Void translateMatch2(RexNode node) {
       switch (node.getKind()) {

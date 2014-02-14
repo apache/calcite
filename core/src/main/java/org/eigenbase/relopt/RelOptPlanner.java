@@ -276,6 +276,7 @@ public interface RelOptPlanner {
 
   Executor getExecutor();
 
+  /** Can reduce expressions, writing a literal for each into a list. */
   interface Executor {
     /**
      * Reduces expressions, and writes their results into {@code reducedValues}.

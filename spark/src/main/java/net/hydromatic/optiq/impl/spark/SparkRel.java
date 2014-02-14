@@ -35,6 +35,8 @@ public interface SparkRel extends RelNode {
   /** Calling convention for relational operations that occur in Spark. */
   Convention CONVENTION = new Convention.Impl("SPARK", SparkRel.class);
 
+  /** Extension to {@link JavaRelImplementor} that can handle Spark relational
+   * expressions. */
   public abstract class Implementor extends JavaRelImplementor {
     public Implementor(RexBuilder rexBuilder) {
       super(rexBuilder);
@@ -45,6 +47,8 @@ public interface SparkRel extends RelNode {
     abstract Result visitInput(SparkRel parent, int ordinal, SparkRel input);
   }
 
+  /** Result of generating Java code to implement a Spark relational
+   * expression. */
   public class Result {
     public final BlockStatement block;
     public final PhysType physType;

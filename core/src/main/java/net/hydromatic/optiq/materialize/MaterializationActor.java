@@ -34,6 +34,8 @@ class MaterializationActor {
   final Map<MaterializationKey, Materialization> keyMap =
       new HashMap<MaterializationKey, Materialization>();
 
+  /** A query materialized in a table, so that reading from the table gives the
+   * same results as executing the query. */
   static class Materialization {
     final MaterializationKey key;
     final OptiqRootSchema rootSchema;

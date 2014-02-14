@@ -118,8 +118,9 @@ public class MongoRules {
     return null;
   }
 
-  // Not currently used. Keep it around for a while. It may evolve into
-  // something that can handle complex expressions.
+  /** Visitor that walks over an expression, represented as a tree of
+   * {@link RexNode}s, looking for calls to the ITEM operator and converting
+   * them to MongoDB field references. */
   private static class ItemFinder extends RexShuttle {
     private final Map<String, RexInputRef> map =
         new LinkedHashMap<String, RexInputRef>();
@@ -161,7 +162,8 @@ public class MongoRules {
     }
   }
 
-
+  /** Base class for planner rules that convert a relational expression to
+   * MongoDB calling convention. */
   abstract static class MongoConverterRule extends ConverterRule {
     protected final Convention out;
     public MongoConverterRule(

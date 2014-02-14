@@ -23,6 +23,8 @@ import net.hydromatic.optiq.DataContext;
 
 /**
  * Statement that can be bound to a {@link DataContext} and then executed.
+ *
+ * @param <T> Element type of the resulting enumerable
  */
 public interface Bindable<T> {
   /**

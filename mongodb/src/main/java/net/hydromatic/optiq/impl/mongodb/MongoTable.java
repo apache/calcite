@@ -137,6 +137,8 @@ public class MongoTable extends AbstractQueryableTable
     };
   }
 
+  /** Implementation of {@link net.hydromatic.linq4j.Queryable} based on
+   * a {@link net.hydromatic.optiq.impl.mongodb.MongoTable}. */
   public static class MongoQueryable<T> extends AbstractTableQueryable<T> {
     public MongoQueryable(QueryProvider queryProvider, SchemaPlus schema,
         MongoTable table, String tableName) {
@@ -158,11 +160,21 @@ public class MongoTable extends AbstractQueryableTable
       return (MongoTable) table;
     }
 
+    /** Called via code-generation.
+     *
+     * @see net.hydromatic.optiq.impl.mongodb.MongoMethod#MONGO_QUERYABLE_AGGREGATE
+     */
+    @SuppressWarnings("UnusedDeclaration")
     public Enumerable<Object> aggregate(final List<String> fields,
         List<String> operations) {
       return getTable().aggregate(getMongoDb(), fields, operations);
     }
 
+    /** Called via code-generation.
+     *
+     * @see net.hydromatic.optiq.impl.mongodb.MongoMethod#MONGO_QUERYABLE_FIND
+     */
+    @SuppressWarnings("UnusedDeclaration")
     public Enumerable<Object> find(String filterJson,
         String projectJson, final List<String> fields) {
       return getTable().find(getMongoDb(), filterJson, projectJson, fields);

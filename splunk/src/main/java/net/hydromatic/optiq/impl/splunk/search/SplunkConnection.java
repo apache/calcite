@@ -119,18 +119,18 @@ public class SplunkConnection {
       List<String> fieldList,
       SearchResultListener srl) {
     assert srl != null;
-    Enumerator x = getSearchResults_(search, otherArgs, fieldList, srl);
+    Enumerator<Object> x = getSearchResults_(search, otherArgs, fieldList, srl);
     assert x == null;
   }
 
-  public Enumerator getSearchResultIterator(
+  public Enumerator<Object> getSearchResultEnumerator(
       String search,
       Map<String, String> otherArgs,
       List<String> fieldList) {
     return getSearchResults_(search, otherArgs, fieldList, null);
   }
 
-  private Enumerator getSearchResults_(
+  private Enumerator<Object> getSearchResults_(
       String search,
       Map<String, String> otherArgs,
       List<String> wantedFields,
@@ -161,7 +161,7 @@ public class SplunkConnection {
       InputStream in =
           post(searchUrl, data, requestHeaders, 10000, 1800000);
       if (srl == null) {
-        return new SplunkResultIterator(in, wantedFields);
+        return new SplunkResultEnumerator(in, wantedFields);
       } else {
         parseResults(
             in,
@@ -201,16 +201,19 @@ public class SplunkConnection {
       LOGGER.warning(ignore.getMessage() + "\n"
           + sw);
     } finally {
-      HttpUtils.close(csvr); // CSVReader closes the inputstream too
+      HttpUtils.close(csvr); // CSVReader closes the input stream too
     }
   }
 
-  static class DummySearchResultListener implements SearchResultListener {
+  /** Implementation of
+   * {@link net.hydromatic.optiq.impl.splunk.search.SearchResultListener}
+   * interface that just counts the results. */
+  static class CountingSearchResultListener implements SearchResultListener {
     String[] fieldNames = null;
     int resultCount = 0;
-    boolean print = false;
+    final boolean print;
 
-    public DummySearchResultListener(boolean print) {
+    public CountingSearchResultListener(boolean print) {
       this.print = print;
     }
 
@@ -309,8 +312,8 @@ public class SplunkConnection {
         StringUtils.encodeList(fieldList, ',').toString());
 
 
-    DummySearchResultListener dummy =
-        new DummySearchResultListener(
+    CountingSearchResultListener dummy =
+        new CountingSearchResultListener(
             Boolean.valueOf(argsMap.get("-print")));
     long start = System.currentTimeMillis();
     c.getSearchResults(search, searchArgs, null, dummy);
@@ -321,7 +324,12 @@ public class SplunkConnection {
         System.currentTimeMillis() - start);
   }
 
-  private static class SplunkResultIterator implements Enumerator {
+  /** Implementation of {@link net.hydromatic.linq4j.Enumerator} that parses
+   * results from a Splunk REST call.
+   *
+   * <p>The element type is either {@code String} or {@code String[]}, depending
+   * on the value of {@code source}.</p> */
+  private static class SplunkResultEnumerator implements Enumerator<Object> {
     private final CSVReader csvReader;
     private String[] fieldNames;
     private int[] sources;
@@ -339,7 +347,7 @@ public class SplunkConnection {
      */
     private int source;
 
-    public SplunkResultIterator(InputStream in, List<String> wantedFields) {
+    public SplunkResultEnumerator(InputStream in, List<String> wantedFields) {
       csvReader = new CSVReader(new InputStreamReader(in));
       try {
         fieldNames = csvReader.readNext();

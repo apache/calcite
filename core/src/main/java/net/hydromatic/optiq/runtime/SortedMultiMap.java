@@ -22,6 +22,9 @@ import java.util.*;
 /**
  * Map that allows you to partition values into lists according to a common
  * key, and then convert those lists into an iterator of sorted arrays.
+ *
+ * @param <K> Key type
+ * @param <V> Value type
  */
 public class SortedMultiMap<K, V> extends HashMap<K, List<V>> {
   public void putMulti(K key, V value) {

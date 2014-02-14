@@ -353,6 +353,7 @@ public final class RelTraitSet extends AbstractList<RelTrait> {
     return plusAll(additionalTraits.traits);
   }
 
+  /** Cache of trait sets. */
   private static class Cache {
     final Map<RelTraitSet, RelTraitSet> map =
         new HashMap<RelTraitSet, RelTraitSet>();

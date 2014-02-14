@@ -21,6 +21,9 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.logging.Logger;
 
+/**
+ * Utility methods for encoding and decoding strings for Splunk REST calls.
+ */
 public class StringUtils {
   private StringUtils() {}
 

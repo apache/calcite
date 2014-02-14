@@ -107,6 +107,8 @@ public class TrustAllSslSocketFactory extends SocketFactoryImpl {
     return sslsocketfactory;
   }
 
+  /** Implementation of {@link X509TrustManager} that trusts all
+   * certificates. */
   private static class DummyTrustManager implements X509TrustManager {
     public X509Certificate[] getAcceptedIssuers() {
       return null;

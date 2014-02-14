@@ -26,6 +26,9 @@ import java.util.Set;
 
 /**
  * Iterates over the vertices in a directed graph in breadth-first order.
+ *
+ * @param <V> Vertex type
+ * @param <E> Edge type
  */
 public class BreadthFirstIterator<V, E extends DefaultEdge>
     implements Iterator<V> {

@@ -2356,6 +2356,7 @@ public abstract class RelOptUtil {
 
   //~ Inner Classes ----------------------------------------------------------
 
+  /** Visitor that finds all variables used but not stopped in an expression. */
   private static class VariableSetVisitor extends RelVisitor {
     final Set<String> variables = new HashSet<String>();
 
@@ -2373,6 +2374,7 @@ public abstract class RelOptUtil {
     }
   }
 
+  /** Visitor that finds all variables used in an expression. */
   public static class VariableUsedVisitor extends RexShuttle {
     public final Set<String> variables = new LinkedHashSet<String>();
 
@@ -2382,6 +2384,7 @@ public abstract class RelOptUtil {
     }
   }
 
+  /** Shuttle that finds the set of inputs that are used. */
   public static class InputReferencedVisitor extends RexShuttle {
     public final SortedSet<Integer> inputPosReferenced =
         new TreeSet<Integer>();
@@ -2392,6 +2395,7 @@ public abstract class RelOptUtil {
     }
   }
 
+  /** Converts types to descriptive strings. */
   public static class TypeDumper {
     private final String extraIndent = "  ";
     private String indent;

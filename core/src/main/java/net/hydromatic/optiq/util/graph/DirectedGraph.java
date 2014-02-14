@@ -58,6 +58,11 @@ public interface DirectedGraph<V, E> {
 
   Set<E> edgeSet();
 
+  /** Factory for edges.
+   *
+   * @param <V> Vertex type
+   * @param <E> Edge type
+   */
   interface EdgeFactory<V, E> {
     E createEdge(V v0, V v1);
   }

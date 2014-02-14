@@ -47,6 +47,8 @@ import com.google.common.cache.*;
  *
  * <p>Otherwise, a new instance of RelTraitDef must be constructed and
  * registered with each new planner instantiated.</p>
+ *
+ * @param <T> Trait that this trait definition is based upon
  */
 public abstract class RelTraitDef<T extends RelTrait> {
   //~ Instance fields --------------------------------------------------------

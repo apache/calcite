@@ -693,6 +693,8 @@ public class RelMdUtil {
 
   //~ Inner Classes ----------------------------------------------------------
 
+  /** Visitor that walks over a scalar expression and computes the
+   * cardinality of its result. */
   private static class CardOfProjExpr extends RexVisitorImpl<Double> {
     private ProjectRelBase rel;
 

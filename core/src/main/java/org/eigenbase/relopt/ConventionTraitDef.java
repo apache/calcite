@@ -208,6 +208,7 @@ public class ConventionTraitDef extends RelTraitDef<Convention> {
 
   //~ Inner Classes ----------------------------------------------------------
 
+  /** Workspace for converting from one convention to another. */
   private static final class ConversionData {
     final DirectedGraph<Convention, DefaultEdge> conversionGraph =
         DefaultDirectedGraph.create();

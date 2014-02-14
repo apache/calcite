@@ -101,6 +101,9 @@ public class JaninoCompiler implements JavaCompiler {
 
   //~ Inner Classes ----------------------------------------------------------
 
+  /**
+   * Arguments to an invocation of the Janino compiler.
+   */
   private static class JaninoCompilerArgs extends JavaCompilerArgs {
     String destdir;
     String fullClassName;

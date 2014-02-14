@@ -644,13 +644,31 @@ public class RexImpTable {
         Expression end, Expression rows, Expression current);
   }
 
+  /** Strategy what an operator should return if one of its
+   * arguments is null. */
   public enum NullAs {
+    /** The most common policy among the SQL built-in operators. If
+     * one of the arguments is null, returns null. */
     NULL,
+
+    /** If one of the arguments is null, the function returns
+     * false. Example: {@code IS NOT NULL}. */
     FALSE,
+
+    /** If one of the arguments is null, the function returns
+     * true. Example: {@code IS NULL}. */
     TRUE,
+
+    /** It is not possible for any of the arguments to be null.  If
+     * the argument type is nullable, the enclosing code will already
+     * have performed a not-null check. This may allow the operator
+     * implementor to generate a more efficient implementation, for
+     * example, by avoiding boxing or unboxing. */
     NOT_POSSIBLE,
+
     /** Return false if result is not null, true if result is null. */
     IS_NULL,
+
     /** Return true if result is not null, false if result is null. */
     IS_NOT_NULL;
 

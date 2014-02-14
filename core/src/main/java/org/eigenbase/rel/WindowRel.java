@@ -240,6 +240,9 @@ public final class WindowRel extends WindowRelBase {
     };
   }
 
+  /** Window specification. All windowed aggregates over the same window
+   * (regardless of how it is specified, in terms of a named window or specified
+   * attribute by attribute) will end up with the same window key. */
   private static class WindowKey {
     private final BitSet groupSet;
     private final RelCollation orderKeys;

@@ -713,6 +713,8 @@ public abstract class CalcRelSplitter {
 
   //~ Inner Classes ----------------------------------------------------------
 
+  /** Type of relational expression. Determines which kinds of
+   * expressions it can handle. */
   public abstract static class RelType {
     private final String name;
 

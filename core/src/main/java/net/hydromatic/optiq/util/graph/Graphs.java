@@ -89,10 +89,17 @@ public class Graphs {
     return new FrozenGraph<V, E>(graph1, shortestPaths);
   }
 
+  /**
+   * Immutable grap.
+   *
+   * @param <V> Vertex type
+   * @param <E> Edge type
+   */
   public static class FrozenGraph<V, E extends DefaultEdge> {
     private final DefaultDirectedGraph<V, E> graph;
     private final Map<Pair<V, V>, List<V>> shortestPaths;
 
+    /** Creates a frozen graph as a copy of another graph. */
     FrozenGraph(DefaultDirectedGraph<V, E> graph,
         Map<Pair<V, V>, List<V>> shortestPaths) {
       this.graph = graph;

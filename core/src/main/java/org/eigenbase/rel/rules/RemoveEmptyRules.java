@@ -224,6 +224,8 @@ public abstract class RemoveEmptyRules {
     return new EmptyRel(node.getCluster(), node.getRowType());
   }
 
+  /** Planner rule that converts a single-rel (e.g. project, sort, aggregate or
+   * filter) on top of the empty relational expression into empty. */
   private static class RemoveEmptySingleRule extends RelOptRule {
     public RemoveEmptySingleRule(Class<? extends SingleRel> clazz,
         String description) {

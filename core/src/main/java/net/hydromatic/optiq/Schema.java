@@ -117,6 +117,7 @@ public interface Schema {
    * stores the defined objects in a wrapper object. */
   boolean isMutable();
 
+  /** Table type. */
   enum TableType {
     /** A regular table. */
     TABLE,

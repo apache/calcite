@@ -26,6 +26,8 @@ import java.util.*;
 
 /**
  * Query against Splunk.
+ *
+ * @param <T> Element type
  */
 public class SplunkQuery<T> extends AbstractEnumerable<T> {
   private final SplunkConnection splunkConnection;
@@ -60,7 +62,7 @@ public class SplunkQuery<T> extends AbstractEnumerable<T> {
 
   public Enumerator<T> enumerator() {
     //noinspection unchecked
-    return (Enumerator<T>) splunkConnection.getSearchResultIterator(
+    return (Enumerator<T>) splunkConnection.getSearchResultEnumerator(
         search, getArgs(), fieldList);
   }
 

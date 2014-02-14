@@ -82,6 +82,8 @@ public interface EnumerableRel
     }
   }
 
+  /** Result of implementing an enumerable relational expression by generating
+   * Java code. */
   class Result {
     public final BlockStatement block;
 

@@ -70,6 +70,7 @@ public abstract class SparkRules {
   private static final List<Expression> NO_EXPRS =
       Collections.emptyList();
 
+  /** Planner rule that converts from enumerable to Spark convention. */
   static class EnumerableToSparkConverterRule extends ConverterRule {
     public static final EnumerableToSparkConverterRule INSTANCE =
         new EnumerableToSparkConverterRule();
@@ -87,6 +88,7 @@ public abstract class SparkRules {
     }
   }
 
+  /** Planner rule that converts from Spark to enumerable convention. */
   static class SparkToEnumerableConverterRule extends ConverterRule {
     public static final SparkToEnumerableConverterRule INSTANCE =
         new SparkToEnumerableConverterRule();
@@ -107,6 +109,7 @@ public abstract class SparkRules {
   public static final SparkValuesRule SPARK_VALUES_RULE =
       new SparkValuesRule();
 
+  /** Planner rule that implements VALUES operator in Spark convention. */
   public static class SparkValuesRule extends ConverterRule {
     private SparkValuesRule() {
       super(ValuesRel.class, Convention.NONE, SparkRel.CONVENTION,
@@ -225,6 +228,7 @@ public abstract class SparkRules {
     }
   }
 
+  /** Implementation of {@link CalcRel} in Spark convention. */
   public static class SparkCalcRel
       extends SingleRel
       implements SparkRel {

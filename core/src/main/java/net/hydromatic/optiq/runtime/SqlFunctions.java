@@ -1454,6 +1454,9 @@ public class SqlFunctions {
     return b == null || b;
   }
 
+  /** A range of time units. The first is more significant than the
+   * other (e.g. year-to-day) or the same as the other
+   * (e.g. month). */
   public enum TimeUnitRange {
     YEAR,
     YEAR_TO_MONTH,

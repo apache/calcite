@@ -21,6 +21,9 @@ import java.util.*;
 
 /**
  * Default implementation of {@link DirectedGraph}.
+ *
+ * @param <V> Vertex type
+ * @param <E> Edge type
  */
 public class DefaultDirectedGraph<V, E extends DefaultEdge>
     implements DirectedGraph<V, E> {
@@ -150,6 +153,12 @@ public class DefaultDirectedGraph<V, E extends DefaultEdge>
     return (V) edge.target;
   }
 
+  /**
+   * Information about an edge.
+   *
+   * @param <V> Vertex type
+   * @param <E> Edge type
+   */
   static class VertexInfo<V, E> {
     public List<E> outEdges = new ArrayList<E>();
   }

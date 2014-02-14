@@ -226,6 +226,7 @@ public abstract class ProjectRelBase extends SingleRel {
 
   //~ Inner Classes ----------------------------------------------------------
 
+  /** A collection of integer constants that describe the kind of project. */
   public static class Flags {
     public static final int ANON_FIELDS = 2;
 

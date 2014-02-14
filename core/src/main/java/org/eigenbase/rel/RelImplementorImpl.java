@@ -27,7 +27,6 @@ import org.eigenbase.relopt.RelImplementor;
 import org.eigenbase.reltype.RelDataTypeFactory;
 import org.eigenbase.rex.RexBuilder;
 import org.eigenbase.trace.EigenbaseTrace;
-import org.eigenbase.util.Util;
 
 /**
  * Implementation of {@link RelImplementor}.
@@ -77,10 +76,7 @@ public class RelImplementorImpl implements RelImplementor {
   }
 
   protected void createFrame(RelNode parent, int ordinal, RelNode child) {
-    Frame frame = new Frame();
-    frame.rel = child;
-    frame.parent = parent;
-    frame.ordinal = ordinal;
+    Frame frame = new Frame(child, parent, ordinal);
     mapRel2Frame.put(child, frame);
     String correl = child.getCorrelVariable();
     if (correl != null) {
@@ -113,8 +109,8 @@ public class RelImplementorImpl implements RelImplementor {
     if (rel instanceof JoinRel) {
       // no variable here -- go deeper
       List<RelNode> inputs = rel.getInputs();
-      for (int i = 0; i < inputs.size(); i++) {
-        RelNode result = findInputRel(inputs.get(i), offset, offsets);
+      for (RelNode input : inputs) {
+        RelNode result = findInputRel(input, offset, offsets);
         if (result != null) {
           return result;
         }
@@ -130,15 +126,11 @@ public class RelImplementorImpl implements RelImplementor {
   /**
    * Returns a list of the relational expressions which are ancestors of the
    * current one.
-   *
-   * @pre // rel must be on the implementation stack
    */
   public List<RelNode> getAncestorRels(RelNode rel) {
     final List<RelNode> ancestorList = new ArrayList<RelNode>();
     Frame frame = mapRel2Frame.get(rel);
-    Util.pre(
-        frame != null,
-        "rel must be on the current implementation stack");
+    assert frame != null : "rel must be on the current implementation stack";
     while (true) {
       ancestorList.add(frame.rel);
       final RelNode parentRel = frame.parent;
@@ -146,26 +138,28 @@ public class RelImplementorImpl implements RelImplementor {
         break;
       }
       frame = mapRel2Frame.get(parentRel);
-      Util.permAssert(frame != null, "ancestor rel must have frame");
+      assert frame != null : "ancestor rel must have frame";
     }
     return ancestorList;
   }
 
+  /** Information about a call from a parent relational expression
+   * to implement one of its input relational expressions. */
   protected static class Frame {
-    /**
-     * <code>rel</code>'s parent
-     */
-    public RelNode parent;
+    /** Parent relational expression. */
+    public final RelNode parent;
 
-    /**
-     * relation which is being implemented in this frame
-     */
-    public RelNode rel;
+    /** Relational expression that is being implemented in this frame. */
+    public final RelNode rel;
 
-    /**
-     * ordinal of <code>rel</code> within <code>parent</code>
-     */
-    public int ordinal;
+    /** Ordinal of {@code rel} within {@code parent}. */
+    public final int ordinal;
+
+    Frame(RelNode child, RelNode parent, int ordinal) {
+      this.rel = child;
+      this.parent = parent;
+      this.ordinal = ordinal;
+    }
   }
 }
 

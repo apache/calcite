@@ -24,7 +24,11 @@ import java.util.*;
 
 /** Unmodifiable view onto multiple backing maps. An element occurs in the map
  * if it occurs in any of the backing maps; the value is the value that occurs
- * in the first map that contains the key. */
+ * in the first map that contains the key.
+ *
+ * @param <K> Key type
+ * @param <V> Value type
+ */
 public class CompositeMap<K, V> implements Map<K, V> {
   private final ImmutableList<Map<K, V>> maps;
 

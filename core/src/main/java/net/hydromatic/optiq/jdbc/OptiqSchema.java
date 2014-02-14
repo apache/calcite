@@ -162,6 +162,16 @@ public class OptiqSchema {
     return ((SchemaPlusImpl) plus).optiqSchema();
   }
 
+  /**
+   * Entry in a schema, such as a table or sub-schema.
+   *
+   * <p>Each object's name is a property of its membership in a schema;
+   * therefore in principle it could belong to several schemas, or
+   * even the same schema several times, with different names. In this
+   * respect, it is like an inode in a Unix file system.</p>
+   *
+   * <p>The members of a schema must have unique names.
+   */
   public abstract static class Entry {
     public final OptiqSchema schema;
     public final String name;
@@ -179,6 +189,7 @@ public class OptiqSchema {
     }
   }
 
+  /** Membership of a table in a schema. */
   public abstract static class TableEntry extends Entry {
     public TableEntry(OptiqSchema schema, String name) {
       super(schema, name);
@@ -187,6 +198,7 @@ public class OptiqSchema {
     public abstract Table getTable();
   }
 
+  /** Membership of a table-function in a schema. */
   public abstract static class TableFunctionEntry extends Entry {
     public TableFunctionEntry(OptiqSchema schema, String name) {
       super(schema, name);
@@ -199,6 +211,7 @@ public class OptiqSchema {
     public abstract boolean isMaterialization();
   }
 
+  /** Implementation of {@link SchemaPlus} based on an {@code OptiqSchema}. */
   private class SchemaPlusImpl implements SchemaPlus {
     public OptiqSchema optiqSchema() {
       return OptiqSchema.this;

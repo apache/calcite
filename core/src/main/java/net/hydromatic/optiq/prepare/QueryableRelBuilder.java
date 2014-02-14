@@ -52,6 +52,8 @@ import java.util.List;
  *
  * <p>NOTE: Many methods currently throw {@link UnsupportedOperationException}.
  * These method need to be implemented.</p>
+ *
+ * @param <T> Element type
  */
 class QueryableRelBuilder<T> implements QueryableFactory<T> {
   private final LixToRelTranslator translator;

@@ -17,6 +17,8 @@
 */
 package net.hydromatic.optiq.runtime;
 
+import com.google.common.collect.Ordering;
+
 import java.util.Collections;
 import java.util.Comparator;
 
@@ -41,7 +43,7 @@ public class ArrayComparator implements Comparator<Object[]> {
       comparators[i] =
           descending
               ? Collections.reverseOrder()
-              : ComparableComparator.instance();
+              : Ordering.natural();
     }
     return comparators;
   }

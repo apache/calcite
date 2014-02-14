@@ -104,6 +104,8 @@ public interface OptiqPrepare {
     Object sparkContext();
   }
 
+  /** Namespace that allows us to define non-abstract methods inside an
+   * interface. */
   public static class Dummy {
     private static SparkHandler sparkHandler;
 
@@ -145,6 +147,8 @@ public interface OptiqPrepare {
       Stacks.pop(THREAD_CONTEXT_STACK.get(), context);
     }
 
+    /** Implementation of {@link SparkHandler} that either does nothing or
+     * throws for each method. Use this if Spark is not installed. */
     private static class TrivialSparkHandler implements SparkHandler {
       public RelNode flattenTypes(RelOptPlanner planner, RelNode rootRel,
           boolean restructure) {
@@ -168,6 +172,7 @@ public interface OptiqPrepare {
     }
   }
 
+  /** The result of parsing and validating a SQL query. */
   public static class ParseResult {
     public final OptiqPrepareImpl prepare;
     public final String sql; // for debug
@@ -187,6 +192,9 @@ public interface OptiqPrepare {
     }
   }
 
+  /** The result of preparing a query. It gives the Avatica driver framework
+   * the information it needs to create a prepared statement, or to execute a
+   * statement directly, without an explicit prepare step. */
   public static class PrepareResult<T> implements AvaticaPrepareResult {
     public final String sql; // for debug
     public final List<AvaticaParameter> parameterList;

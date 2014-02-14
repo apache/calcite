@@ -48,6 +48,8 @@ public class ArrayEnumeratorCursor extends AbstractCursor {
     enumerator.close();
   }
 
+  /** Implementation of {@link Getter} that reads from records that are
+   * arrays. */
   class ArrayEnumeratorGetter extends AbstractGetter {
     protected final int field;
 

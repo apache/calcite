@@ -432,6 +432,8 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
    * literals or contain redundant casts.
    */
   private static class ReducibleExprLocator extends RexVisitorImpl<Void> {
+    /** Whether an expression is constant, and if so, whether it can be
+     * reduced to a simpler constant. */
     enum Constancy {
       NON_CONSTANT, REDUCIBLE_CONSTANT, IRREDUCIBLE_CONSTANT
     }

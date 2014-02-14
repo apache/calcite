@@ -200,6 +200,7 @@ public class PlannerImpl implements Planner {
     return planner.findBestExp();
   }
 
+  /** Stage of a statement in the query-preparation lifecycle. */
   private enum State {
     STATE_0_CLOSED {
       @Override

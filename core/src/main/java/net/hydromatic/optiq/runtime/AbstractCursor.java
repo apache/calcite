@@ -204,6 +204,7 @@ public abstract class AbstractCursor implements Cursor {
     return new Timestamp(v);
   }
 
+  /** Implementation of {@link Accessor}. */
   static class AccessorImpl implements Accessor {
     protected final Getter getter;
 

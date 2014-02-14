@@ -96,6 +96,7 @@ public class OptiqJdbc41Factory extends OptiqFactory {
         statement, null, columnMetaDataList);
   }
 
+  /** Implementation of connection for JDBC 4.1. */
   private static class OptiqJdbc41Connection extends OptiqConnectionImpl {
     OptiqJdbc41Connection(Driver driver, AvaticaFactory factory, String url,
         Properties info, OptiqRootSchema rootSchema,

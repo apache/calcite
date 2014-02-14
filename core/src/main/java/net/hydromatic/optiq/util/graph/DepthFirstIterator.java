@@ -21,6 +21,9 @@ import java.util.*;
 
 /**
  * Iterates over the vertices in a directed graph in depth-first order.
+ *
+ * @param <V> Vertex type
+ * @param <E> Edge type
  */
 public class DepthFirstIterator<V, E extends DefaultEdge>
     implements Iterator<V> {

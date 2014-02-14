@@ -114,6 +114,8 @@ public class RelOptCostImpl implements RelOptCost {
     }
   }
 
+  /** Implementation of {@link RelOptCostFactory} that creates
+   * {@link RelOptCostImpl}s. */
   private static class Factory implements RelOptCostFactory {
     // implement RelOptPlanner
     public RelOptCost makeCost(
