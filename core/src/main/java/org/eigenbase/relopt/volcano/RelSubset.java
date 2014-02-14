@@ -77,22 +77,35 @@ public class RelSubset extends AbstractRelNode {
       RelTraitSet traits) {
     super(cluster, traits);
     this.set = set;
-    this.bestCost = computeBestCost(cluster.getPlanner());
     this.boosted = false;
+    computeBestCost(cluster.getPlanner());
     recomputeDigest();
   }
 
   //~ Methods ----------------------------------------------------------------
 
-  private RelOptCost computeBestCost(RelOptPlanner planner) {
-    RelOptCost bestCost = planner.getCostFactory().makeInfiniteCost();
+  /**
+   * Computes the best {@link RelNode} in this subset.
+   *
+   * <p>Only necessary when a subset is created in a set that has subsets that
+   * subsume it. Rationale:</p>
+   *
+   * <ol>
+   * <li>If the are no subsuming subsets, the subset is initially empty.</li>
+   * <li>After creation, {@code best} and {@code bestCost} are maintained
+   *    incrementally by {@link #propagateCostImprovements0} and
+   *    {@link RelSet#mergeWith(VolcanoPlanner, RelSet)}.</li>
+   * </ol>
+   */
+  private void computeBestCost(RelOptPlanner planner) {
+    bestCost = planner.getCostFactory().makeInfiniteCost();
     for (RelNode rel : getRels()) {
       final RelOptCost cost = planner.getCost(rel);
       if (cost.isLt(bestCost)) {
         bestCost = cost;
+        best = rel;
       }
     }
-    return bestCost;
   }
 
   public Set<String> getVariablesSet() {
