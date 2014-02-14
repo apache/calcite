@@ -99,7 +99,7 @@ public class SqlDataTypeSpec extends SqlNode {
   //~ Methods ----------------------------------------------------------------
 
   public SqlNode clone(SqlParserPos pos) {
-    return (collectionsTypeName == null)
+    return (collectionsTypeName != null)
         ? new SqlDataTypeSpec(collectionsTypeName, typeName, precision, scale,
             charSetName, pos)
         : new SqlDataTypeSpec(typeName, precision, scale, charSetName, timeZone,
