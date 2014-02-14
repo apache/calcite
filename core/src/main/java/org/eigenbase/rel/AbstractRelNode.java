@@ -270,7 +270,10 @@ public abstract class AbstractRelNode implements RelNode {
     assert metadata != null
         : "no provider found (rel=" + this + ", m=" + metadataClass
         + "); a backstop provider is recommended";
-    assert metadata.rel() == this;
+    // Usually the metadata belongs to the rel that created it. RelSubset and
+    // HepRelVertex are notable exceptions, so disable the assert. It's not
+    // worth the performance hit to override this method for them.
+    //   assert metadata.rel() == this : "someone else's metadata";
     return metadata;
   }
 

@@ -52,7 +52,12 @@ public class VolcanoRelMetadataProvider implements RelMetadataProvider {
           final Function<RelNode, Metadata> function =
               rel.getCluster().getMetadataProvider().apply(
                   subset.best.getClass(), metadataClass);
-          return function == null ? null : function.apply(subset.best);
+          if (function != null) {
+            Metadata metadata = function.apply(subset.best);
+            if (metadata != null) {
+              return metadata;
+            }
+          }
         }
 
         // Otherwise, try rels in same logical equivalence class to see if any
@@ -65,7 +70,7 @@ public class VolcanoRelMetadataProvider implements RelMetadataProvider {
         // fail on metadata queries which invoke other queries, e.g.
         // PercentageOriginalRows -> Selectivity.  If we implement caching at
         // this level, we could probably kill two birds with one stone (use
-        // presence of pending cache entry to detect reentrancy at the correct
+        // presence of pending cache entry to detect re-entrancy at the correct
         // granularity).
         if (subset.set.inMetadataQuery) {
           return null;
@@ -92,7 +97,6 @@ public class VolcanoRelMetadataProvider implements RelMetadataProvider {
         return null;
       }
     };
-
   }
 }
 
