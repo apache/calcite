@@ -34,6 +34,7 @@ import net.hydromatic.optiq.impl.jdbc.JdbcSchema;
 import net.hydromatic.optiq.jdbc.*;
 import net.hydromatic.optiq.jdbc.Driver;
 import net.hydromatic.optiq.prepare.Prepare;
+import net.hydromatic.optiq.runtime.Hook;
 import net.hydromatic.optiq.runtime.SqlFunctions;
 
 import org.eigenbase.rel.*;
@@ -41,7 +42,7 @@ import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.reltype.RelDataTypeFactory;
 import org.eigenbase.reltype.RelProtoDataType;
-import org.eigenbase.sql.SqlDialect;
+import org.eigenbase.sql.*;
 import org.eigenbase.sql.type.SqlTypeName;
 import org.eigenbase.util.Bug;
 import org.eigenbase.util.Pair;
@@ -2849,6 +2850,37 @@ public class JdbcTest {
                 }
               }
             });
+  }
+
+  /** Tests that {@link Hook#PARSE_TREE} works. */
+  @Test public void testHook() {
+    final int[] callCount = {0};
+    final Hook.Closeable hook = Hook.PARSE_TREE.addThread(
+        new Function1<Object, Object>() {
+          public Object apply(Object a0) {
+            Object[] args = (Object[]) a0;
+            assertThat(args.length, equalTo(2));
+            assertThat(args[0], instanceOf(String.class));
+            assertThat((String) args[0], equalTo(
+                "select \"deptno\", \"commission\", sum(\"salary\") s\n"
+                + "from \"hr\".\"emps\"\n"
+                + "group by \"deptno\", \"commission\""));
+            assertThat(args[1], instanceOf(SqlSelect.class));
+            ++callCount[0];
+            return null;
+          }
+        });
+    try {
+      // Simple query does not run the hook.
+      testSimple();
+      assertThat(callCount[0], equalTo(0));
+
+      // Non-trivial query runs hook once.
+      testGroupByNull();
+      assertThat(callCount[0], equalTo(1));
+    } finally {
+      hook.close();
+    }
   }
 
   // Disable checkstyle, so it doesn't complain about fields like "customer_id".

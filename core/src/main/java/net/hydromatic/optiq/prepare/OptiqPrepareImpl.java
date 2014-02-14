@@ -309,6 +309,9 @@ public class OptiqPrepareImpl implements OptiqPrepare {
       } catch (SqlParseException e) {
         throw new RuntimeException("parse failed", e);
       }
+
+      Hook.PARSE_TREE.run(new Object[] {sql, sqlNode});
+
       final OptiqSchema rootSchema = context.getRootSchema();
       final ChainedSqlOperatorTable opTab =
           new ChainedSqlOperatorTable(
