@@ -107,6 +107,10 @@ public class CsvTest {
     checkSql("model", "select * from EMPS");
   }
 
+  @Test public void testSelectSingleProject() throws SQLException {
+    checkSql("smart", "select name from EMPS");
+  }
+
   @Test public void testCustomTable() throws SQLException {
     checkSql("model-with-custom-table", "select * from CUSTOM_TABLE.EMPS");
   }
