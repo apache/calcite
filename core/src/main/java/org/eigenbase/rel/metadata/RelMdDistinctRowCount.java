@@ -115,7 +115,8 @@ public class RelMdDistinctRowCount {
         rel,
         rel.getJoinType(),
         groupKey,
-        predicate);
+        predicate,
+        false);
   }
 
   public Double getDistinctRowCount(

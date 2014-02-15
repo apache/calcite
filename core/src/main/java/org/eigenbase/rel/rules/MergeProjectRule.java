@@ -25,7 +25,7 @@ import org.eigenbase.relopt.*;
 import org.eigenbase.rex.*;
 
 /**
- * MergeProjectRule merges a {@link ProjectRel} into another {@link ProjectRel},
+ * MergeProjectRule merges a {@link ProjectRelBase} into another {@link ProjectRelBase},
  * provided the projects aren't projecting identical sets of input references.
  */
 public class MergeProjectRule extends RelOptRule {

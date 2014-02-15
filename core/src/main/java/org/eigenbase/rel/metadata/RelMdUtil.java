@@ -630,13 +630,16 @@ public class RelMdUtil {
    * @param joinType  type of join
    * @param groupKey  keys that the distinct row count will be computed for
    * @param predicate join predicate
+   * @param If true for NDV choose max(left NDV, right NDV) otherwise
+   *        use (left NDV * right NDV)
    * @return number of distinct rows
    */
   public static Double getJoinDistinctRowCount(
       RelNode joinRel,
       JoinRelType joinType,
       BitSet groupKey,
-      RexNode predicate) {
+      RexNode predicate,
+      boolean useMaxNDV) {
     Double distRowCount;
     BitSet leftMask = new BitSet();
     BitSet rightMask = new BitSet();
@@ -675,7 +678,17 @@ public class RelMdUtil {
           RexUtil.composeConjunction(rexBuilder, rightFilters, true);
     }
 
-    distRowCount =
+    if (useMaxNDV) {
+      distRowCount = Math.max(RelMetadataQuery.getDistinctRowCount(
+                left,
+                leftMask,
+                leftPred),
+            RelMetadataQuery.getDistinctRowCount(
+                right,
+                rightMask,
+                rightPred));
+    } else {
+      distRowCount =
         NumberUtil.multiply(
             RelMetadataQuery.getDistinctRowCount(
                 left,
@@ -685,6 +698,7 @@ public class RelMdUtil {
                 right,
                 rightMask,
                 rightPred));
+    }
 
     return RelMdUtil.numDistinctVals(
         distRowCount,

@@ -28,7 +28,7 @@ import org.eigenbase.util.Pair;
 
 /**
  * PullUpProjectsAboveJoinRule implements the rule for pulling {@link
- * ProjectRel}s beneath a {@link JoinRel} above the {@link JoinRel}. Projections
+ * ProjectRel}s beneath a {@link JoinRelBase} above the {@link JoinRelBase}. Projections
  * are pulled up if the {@link ProjectRel} doesn't originate from a null
  * generating input in an outer join.
  */
@@ -79,7 +79,7 @@ public class PullUpProjectsAboveJoinRule extends RelOptRule {
 
   // implement RelOptRule
   public void onMatch(RelOptRuleCall call) {
-    JoinRel joinRel = call.rel(0);
+    JoinRelBase joinRel = call.rel(0);
     JoinRelType joinType = joinRel.getJoinType();
 
     ProjectRelBase leftProj;
@@ -116,7 +116,7 @@ public class PullUpProjectsAboveJoinRule extends RelOptRule {
     // into the bottom RexProgram.  Note that the join type is an inner
     // join because the inputs haven't actually been joined yet.
     RelDataType joinChildrenRowType =
-        JoinRel.deriveJoinRowType(
+        JoinRelBase.deriveJoinRowType(
             leftJoinChild.getRowType(),
             rightJoinChild.getRowType(),
             JoinRelType.INNER,
@@ -189,14 +189,8 @@ public class PullUpProjectsAboveJoinRule extends RelOptRule {
     RexNode newCondition =
         mergedProgram.expandLocalRef(
             mergedProgram.getCondition());
-    JoinRel newJoinRel =
-        new JoinRel(
-            joinRel.getCluster(),
-            leftJoinChild,
-            rightJoinChild,
-            newCondition,
-            joinRel.getJoinType(),
-            joinRel.getVariablesStopped());
+    JoinRelBase newJoinRel = joinRel.copy(joinRel.getTraitSet(), newCondition,
+            leftJoinChild, rightJoinChild, joinRel.getJoinType());
 
     // expand out the new projection expressions; if the join is an
     // outer join, modify the expressions to reference the join output
