@@ -315,11 +315,11 @@ public class JdbcTest {
     Statement statement = optiqConnection.createStatement();
     ResultSet resultSet = statement.executeQuery(
         "select d.\"deptno\", min(e.\"empid\")\n"
-        + "from \"hr\".\"emps\" as e\n"
-        + "join \"hr\".\"depts\" as d\n"
-        + "  on e.\"deptno\" = d.\"deptno\"\n"
-        + "group by d.\"deptno\"\n"
-        + "having count(*) > 1");
+            + "from \"hr\".\"emps\" as e\n"
+            + "join \"hr\".\"depts\" as d\n"
+            + "  on e.\"deptno\" = d.\"deptno\"\n"
+            + "group by d.\"deptno\"\n"
+            + "having count(*) > 1");
     final String s = OptiqAssert.toString(resultSet);
     assertThat(s, notNullValue());
     resultSet.close();
@@ -2473,21 +2473,21 @@ public class JdbcTest {
     OptiqAssert.that()
         .withModel(
             "{\n"
-            + "  version: '1.0',\n"
-            + "   schemas: [\n"
-            + "     {\n"
-            + "       name: 'adhoc',\n"
-            + "       functions: [\n"
-            + "         {\n"
-            + "           name: 'AWKWARD',\n"
-            + "           className: '"
-            + AwkwardFunction.class.getName()
-            + "'\n"
-            + "         }\n"
-            + "       ]\n"
-            + "     }\n"
-            + "   ]\n"
-            + "}")
+                + "  version: '1.0',\n"
+                + "   schemas: [\n"
+                + "     {\n"
+                + "       name: 'adhoc',\n"
+                + "       functions: [\n"
+                + "         {\n"
+                + "           name: 'AWKWARD',\n"
+                + "           className: '"
+                + AwkwardFunction.class.getName()
+                + "'\n"
+                + "         }\n"
+                + "       ]\n"
+                + "     }\n"
+                + "   ]\n"
+                + "}")
         .connectThrows(
             "declaring class 'net.hydromatic.optiq.test.JdbcTest$AwkwardFunction' of non-static UDF must have a public constructor with zero parameters");
   }
@@ -2504,7 +2504,7 @@ public class JdbcTest {
     with.query("explain plan with type for values (1, 'ab')")
         .returns(
             "PLAN=EXPR$0 INTEGER NOT NULL,\n"
-            + "EXPR$1 CHAR(2) CHARACTER SET \"ISO-8859-1\" COLLATE \"ISO-8859-1$en_US$primary\" NOT NULL\n");
+                + "EXPR$1 CHAR(2) CHARACTER SET \"ISO-8859-1\" COLLATE \"ISO-8859-1$en_US$primary\" NOT NULL\n");
   }
 
   /** Test case for bug where if two tables have different element classes
@@ -2535,7 +2535,9 @@ public class JdbcTest {
             new Function1<OptiqConnection, Void>() {
               public Void apply(OptiqConnection connection) {
                 try {
-                  final PreparedStatement statement =
+                  final
+                  PreparedStatement
+                      statement =
                       connection.prepareStatement("VALUES CURRENT_TIMESTAMP");
                   ResultSet resultSet;
 
@@ -2556,9 +2558,7 @@ public class JdbcTest {
                   assertFalse(resultSet.next());
 
                   assertTrue(
-                      "\n"
-                      + "s0=" + s0 + "\n"
-                      + "s1=" + s1 + "\n",
+                      "\n" + "s0=" + s0 + "\n" + "s1=" + s1 + "\n",
                       s0.compareTo(s1) < 0);
                   return null;
                 } catch (SQLException e) {
@@ -2878,6 +2878,39 @@ public class JdbcTest {
       // Non-trivial query runs hook once.
       testGroupByNull();
       assertThat(callCount[0], equalTo(1));
+    } finally {
+      hook.close();
+    }
+  }
+
+  /** Tests {@link SqlDialect}. */
+  @Test public void testDialect() {
+    final String[] sqls = {null};
+    final Hook.Closeable hook = Hook.QUERY_PLAN.addThread(
+        new Function1<Object, Object>() {
+          public Object apply(Object a0) {
+            String sql = (String) a0;
+            sqls[0] = sql;
+            return null;
+          }
+        });
+    try {
+      OptiqAssert.that()
+          .with(OptiqAssert.Config.JDBC_FOODMART)
+          .query(
+              "select count(*) as c from \"foodmart\".\"employee\" as e1\n"
+              + "  where \"first_name\" = 'abcde'\n"
+              + "  and \"gender\" = 'F'")
+          .returns("C=0\n");
+      switch (OptiqAssert.CONNECTION_SPEC) {
+      case HSQLDB:
+        assertThat(sqls[0], equalTo(
+            "SELECT COUNT(*) AS \"C\"\n"
+            + "FROM (SELECT 0 AS \"DUMMY\"\n"
+            + "FROM \"foodmart\".\"employee\"\n"
+            + "WHERE \"first_name\" = 'abcde' AND \"gender\" = 'F') AS \"t0\""));
+        break;
+      }
     } finally {
       hook.close();
     }

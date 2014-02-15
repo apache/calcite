@@ -148,6 +148,8 @@ public class SqlDialect {
       return DatabaseProduct.DB2;
     } else if (upperProductName.indexOf("FIREBIRD") >= 0) {
       return DatabaseProduct.FIREBIRD;
+    } else if (productName.equals("Hive")) {
+      return DatabaseProduct.HIVE;
     } else if (productName.startsWith("Informix")) {
       return DatabaseProduct.INFORMIX;
     } else if (upperProductName.equals("INGRES")) {
@@ -346,7 +348,13 @@ public class SqlDialect {
   }
 
   protected boolean allowsAs() {
-    return !(databaseProduct == DatabaseProduct.ORACLE);
+    switch (databaseProduct) {
+    case ORACLE:
+    case HIVE:
+      return false;
+    default:
+      return true;
+    }
   }
 
   // -- behaviors --
@@ -465,6 +473,7 @@ public class SqlDialect {
     DERBY("Apache Derby", null),
     DB2("IBM DB2", null),
     FIREBIRD("Firebird", null),
+    HIVE("Apache Hive", null),
     INFORMIX("Informix", null),
     INGRES("Ingres", null),
     LUCIDDB("LucidDB", "\""),

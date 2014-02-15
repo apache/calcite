@@ -1013,29 +1013,24 @@ public class OptiqAssert {
 
   /** Information necessary to create a JDBC connection. Specify one to run
    * tests against a different database. (hsqldb is the default.) */
-  public static class ConnectionSpec {
+  public enum ConnectionSpec {
+    HSQLDB("jdbc:hsqldb:res:foodmart", "FOODMART", "FOODMART",
+        "org.hsqldb.jdbcDriver"),
+    MYSQL("jdbc:mysql://localhost/foodmart", "foodmart", "foodmart",
+        "com.mysql.jdbc.Driver");
+
     public final String url;
     public final String username;
     public final String password;
     public final String driver;
 
-    public ConnectionSpec(String url, String username, String password,
+    ConnectionSpec(String url, String username, String password,
         String driver) {
       this.url = url;
       this.username = username;
       this.password = password;
       this.driver = driver;
     }
-
-    public static final ConnectionSpec HSQLDB =
-        new ConnectionSpec(
-            "jdbc:hsqldb:res:foodmart", "FOODMART", "FOODMART",
-            "org.hsqldb.jdbcDriver");
-
-    public static final ConnectionSpec MYSQL =
-        new ConnectionSpec(
-            "jdbc:mysql://localhost/foodmart", "foodmart", "foodmart",
-            "com.mysql.jdbc.Driver");
   }
 }
 

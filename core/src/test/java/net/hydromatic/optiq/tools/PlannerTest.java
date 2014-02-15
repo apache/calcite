@@ -31,8 +31,7 @@ import org.eigenbase.rel.RelNode;
 import org.eigenbase.rel.rules.MergeFilterRule;
 import org.eigenbase.relopt.RelOptUtil;
 import org.eigenbase.relopt.RelTraitSet;
-import org.eigenbase.sql.SqlExplainLevel;
-import org.eigenbase.sql.SqlNode;
+import org.eigenbase.sql.*;
 import org.eigenbase.sql.fun.SqlStdOperatorTable;
 import org.eigenbase.sql.parser.SqlParseException;
 import org.eigenbase.util.Util;
@@ -144,6 +143,21 @@ public class PlannerTest {
     assertThat(toString(transform), equalTo(
         "EnumerableProjectRel(empid=[$0], deptno=[$1], name=[$2], salary=[$3], commission=[$4])\n"
         + "  EnumerableTableAccessRel(table=[[hr, emps]])\n"));
+  }
+
+  /** Tests that Hive dialect does not generate "AS". */
+  @Test public void testHiveDialect() throws SqlParseException {
+    Planner planner = getPlanner();
+    SqlNode parse = planner.parse(
+        "select * from (select * from \"emps\") as t\n"
+        + "where \"name\" like '%e%'");
+    final SqlDialect hiveDialect =
+        new SqlDialect(SqlDialect.DatabaseProduct.HIVE, "Hive", null);
+    assertThat(parse.toSqlString(hiveDialect).getSql(),
+        equalTo("SELECT *\n"
+            + "FROM (SELECT *\n"
+            + "FROM emps) T\n"
+            + "WHERE name LIKE '%e%'"));
   }
 }
 

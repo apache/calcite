@@ -60,8 +60,10 @@ public class SqlAsOperator extends SqlSpecialOperator {
         getLeftPrec());
     final boolean needsSpace = true;
     writer.setNeedWhitespace(needsSpace);
-    writer.sep("AS");
-    writer.setNeedWhitespace(needsSpace);
+    if (writer.getDialect().allowsAs()) {
+      writer.sep("AS");
+      writer.setNeedWhitespace(needsSpace);
+    }
     operands[1].unparse(
         writer,
         getRightPrec(),

@@ -57,6 +57,8 @@ Bug fixes and internal changes
   "Upgrade to janino-2.7".
 * Upgrade to guava-15.0 (guava-14.0.1 still allowed), sqlline-1.1.7,
   maven-surefire-plugin-2.16, linq4j-0.1.13.
+* Fix <a href="https://github.com/julianhyde/optiq/issues/136">#136</a>,
+  "Support Hive dialect".
 * Fix <a href="https://github.com/julianhyde/optiq/issues/138">#138</a>,
   "SqlDataTypeSpec.clone handles collection types wrong".
 * Fix <a href="https://github.com/julianhyde/optiq/issues/137">#137</a>,
