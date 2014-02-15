@@ -2,34 +2,94 @@
 
 For a full list of releases, see <a href="https://github.com/julianhyde/optiq/releases">github</a>.
 
-## HEAD
+## <a href="https://github.com/julianhyde/optiq/releases/tag/optiq-parent-0.4.18">0.4.18</a> / 2014-02-14
 
-* Fix <a href="https://github.com/julianhyde/optiq/issues/33">#33</a>,
-  "SQL parser should allow different identifier quoting".
-* Fix <a href="https://github.com/julianhyde/optiq/issues/34">#34</a>,
-  "Policy for case-sensitivity of identifiers should be configurable".
-  A new connect-string parameter, `lex`, with allowable values `ORACLE`,
-  `MYSQL`, `SQL_SERVER` and `JAVA`, sets policy to be like those databases,
-  in terms of quote string, whether quoted and unquoted identifiers are
-  converted to upper/lower case, and whether identifiers are matched
-  case-sensitively. Connections can have different settings.
+API and functionality changes
+* Configurable lexical policy
+    * Fix <a href="https://github.com/julianhyde/optiq/issues/33">#33</a>,
+      "SQL parser should allow different identifier quoting".
+    * Fix <a href="https://github.com/julianhyde/optiq/issues/34">#34</a>,
+      "Policy for case-sensitivity of identifiers should be configurable".
+    * New connect-string parameter "lex", with allowable values
+      "ORACLE", "MYSQL", "SQL_SERVER", "JAVA" sets policy to be like those
+      databases, in terms of quote string, whether quoted and unquoted
+      identifiers are converted to upper/lower case, and whether
+      identifiers are matched case-sensitively. "JAVA" is case-sensitive,
+      even for unquoted identifiers. It should be possible
+      for each connection to have its own settings for these. Objects
+      shared between sessions (views, materialized views) might
+      require more work.
+    * Added various internals to make it easy for developers to do the
+      right thing. When you need to look up a schema, table or
+      column/field name, you should use a catalog reader, and it will
+      apply the right case-sensitivity policy.
+    * Enable optiq consumer to utilize different lexical settings in
+      Frameworks/Planner. (Jacques Nadeau)
+* Fix <a href="https://github.com/julianhyde/optiq/issues/135">#115</a>,
+  "Add a PARSE_TREE hook point with SqlNode parameter".
+* Change planner rules to use `ProjectFactory` for creating
+  projects. (John Pullokkaran)
+* Fix <a href="https://github.com/julianhyde/optiq/issues/131">#131</a>,
+  "Add interfaces for metadata (statistics)". (**This is a breaking
+  change**.)
+* Update Avatica to allow `Cursor` & `Accessor` implementations to throw
+  `SQLException`. (Jacques Nadeau)
+* Separate cost model (`RelOptCostFactory`) from planner. Allow
+  `VolcanoPlanner` to be sub-classed with different cost factory.
+    * Remove references to VolcanoCost from RelSubset, so clients can
+      use a different `RelOptCost`. (Harish Butani)
+    * Make `VolcanoCost` immutable.
+* Break `SqlTypeStrategies` into `OperandTypes`, `ReturnTypes` and
+  `InferTypes`, and rename its static members to upper-case, per
+  checkstyle. (**This is a breaking change**.)
 * Add a mechanism for defining configuration parameters and have them
   appear in the responses to `AvaticaDatabaseMetaData` methods.
-* Work around <a href="http://jira.codehaus.org/browse/JANINO-169">JANINO-169</a>.
 * Fix <a href="https://github.com/julianhyde/optiq/issues/113">#113</a>,
   "User-defined scalar functions".
-* Add rules to short-cut a query if `LIMIT 0` is present. Also remove sort,
-  aggregation, join if their inputs are known to be empty, and propagate
-  the fact that the relational expressions are known to be empty up the
-  tree. (We already do this for union, filter, project.)
+* Add rules to short-cut a query if `LIMIT 0` is present. Also remove
+  sort, aggregation, join if their inputs are known to be empty, and
+  propagate the fact that the relational expressions are known to be
+  empty up the tree. (We already do this for union, filter, project.)
+* `RexNode` and its sub-classes are now immutable.
+
+Bug fixes and internal changes
+* Fix <a href="https://github.com/julianhyde/optiq/issues/61">#16</a>,
+  "Upgrade to janino-2.7".
+* Upgrade to guava-15.0 (guava-14.0.1 still allowed), sqlline-1.1.7,
+  maven-surefire-plugin-2.16, linq4j-0.1.13.
+* Fix <a href="https://github.com/julianhyde/optiq/issues/138">#138</a>,
+  "SqlDataTypeSpec.clone handles collection types wrong".
+* Fix <a href="https://github.com/julianhyde/optiq/issues/137">#137</a>,
+  "If a subset is created that is subsumed by an existing subset, its
+  "best" is not assigned".
+    * If best rel in a Volcano subset doesn't have metadata, see if
+      other rels have metadata.
+* Fix <a href="https://github.com/julianhyde/optiq/issues/127">#127</a>,
+ "EnumerableCalcRel can't support 3+ AND conditions". (Harish Butani)
+* Fix push-down of datetime literals to JDBC data sources.
+* Add `Util.startsWith(List, List)` and `Util.hashCode(double)`.
+* Add maven-checkstyle-plugin, enable in "verify" phase, and fix exceptions.
+* Fix `SqlValidator` to rely on `RelDataType` to do field name matching.  Fix
+  `RelDataTypeImpl` to correctly use the case sensitive flag rather than
+  ignoring it.
+* Fix <a href="https://github.com/julianhyde/optiq/issues/119">#119</a>,
+  "Comparing Java type long with SQL type INTEGER gives wrong answer".
+* Enable multi-threaded testing, and fix race conditions.
+    * Two of the race conditions involved involving trait caches. The
+      other was indeterminacy in type system when precision was not
+      specified but had a default; now we canonize TIME to TIME(0), for
+      instance.
+* Convert files to `us-ascii`.
+* Work around
+  <a href="http://jira.codehaus.org/browse/JANINO-169">JANINO-169</a>.
+* Refactor SQL validator testing infrastructure so SQL parser is
+  configurable.
+* Add `optiq-mat-plugin` to README.
 * Fix the check for duplicate subsets in a rule match.
 * Fix <a href="https://github.com/julianhyde/optiq/issues/112">#112</a>,
   "Java boolean column should be treated as SQL boolean".
-* RexNode and its sub-classes are now unmodifiable.
-* Fix escaped unicode characters above 0x8000. Add tests for unicode strings.
-* Enable multi-threaded testing.
-* Upgrade to sqlline-1.1.6.
-* Upgrade to linq4j-0.1.13.
+* Fix escaped unicode characters above 0x8000. Add tests for unicode
+  strings.
 
 ## <a href="https://github.com/julianhyde/optiq/releases/tag/optiq-parent-0.4.17">0.4.17</a> / 2014-01-13
 
