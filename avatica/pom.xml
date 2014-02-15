@@ -3,12 +3,12 @@
   <parent>
     <groupId>net.hydromatic</groupId>
     <artifactId>optiq-parent</artifactId>
-    <version>0.4.18</version>
+    <version>0.4.19-SNAPSHOT</version>
   </parent>
 
   <artifactId>optiq-avatica</artifactId>
   <packaging>jar</packaging>
-  <version>0.4.18</version>
+  <version>0.4.19-SNAPSHOT</version>
   <name>optiq-avatica</name>
   <description>JDBC driver framework.</description>
 
