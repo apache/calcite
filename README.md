@@ -45,6 +45,8 @@ sqlline> VALUES char_length('hello, ' || 'world!');
 sqlline> !quit
 ```
 
+(On Windows, the command is `sqlline.bat`.)
+
 As you can see, Optiq has a full SQL implementation that can efficiently
 query any data source.
 
