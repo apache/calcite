@@ -50,7 +50,7 @@ public class SparkHandlerImpl implements OptiqPrepare.SparkHandler {
 
   private static SparkHandlerImpl instance;
   private static final File SRC_DIR = new File("/tmp");
-  private static final File CLASS_DIR = new File("core/target/classes");
+  private static final File CLASS_DIR = new File("spark/target/classes");
 
   /** Creates a SparkHandlerImpl. */
   private SparkHandlerImpl() {
@@ -74,7 +74,7 @@ public class SparkHandlerImpl implements OptiqPrepare.SparkHandler {
   /** Creates a SparkHandlerImpl, initializing on first call. Optiq-core calls
    * this via reflection. */
   @SuppressWarnings("UnusedDeclaration")
-  public static final OptiqPrepare.SparkHandler instance() {
+  public static OptiqPrepare.SparkHandler instance() {
     if (instance == null) {
       instance = new SparkHandlerImpl();
     }

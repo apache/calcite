@@ -32,6 +32,7 @@ import net.hydromatic.optiq.server.OptiqServerStatement;
 
 import com.google.common.collect.*;
 
+import java.io.Serializable;
 import java.lang.reflect.*;
 import java.sql.*;
 import java.util.*;
@@ -246,6 +247,9 @@ abstract class OptiqConnectionImpl
   }
 
   public DataContext createDataContext(List<Object> parameterValues) {
+    if (config().spark()) {
+      return new SlimDataContext();
+    }
     return new DataContextImpl(this, parameterValues);
   }
 
@@ -389,6 +393,26 @@ abstract class OptiqConnectionImpl
 
     public OptiqPrepare.SparkHandler spark() {
       return OptiqPrepare.Dummy.getSparkHandler();
+    }
+  }
+
+  /** Implementation of {@link DataContext} that has few variables and is
+   * {@link Serializable}. For Spark. */
+  private static class SlimDataContext implements DataContext, Serializable {
+    public SchemaPlus getRootSchema() {
+      return null;
+    }
+
+    public JavaTypeFactory getTypeFactory() {
+      return null;
+    }
+
+    public QueryProvider getQueryProvider() {
+      return null;
+    }
+
+    public Object get(String name) {
+      return null;
     }
   }
 }

@@ -30,8 +30,8 @@
     </dependency>
     <dependency>
       <groupId>org.apache.spark</groupId>
-      <artifactId>spark-core</artifactId>
-      <version>0.8.0-SNAPSHOT</version>
+      <artifactId>spark-core_2.10</artifactId>
+      <version>0.9.0-incubating</version>
     </dependency>
     <!-- Use explicit xerces and xalan. Without them, Hadoop gives
       "Failed to set setXIncludeAware(true)" error. -->
@@ -144,4 +144,15 @@
     </resources>
   </build>
 
+  <repositories>
+    <repository>
+      <id>central</id>
+      <name>Maven Repository Switchboard</name>
+      <layout>default</layout>
+      <url>http://repo1.maven.org/maven2</url>
+      <snapshots>
+        <enabled>false</enabled>
+      </snapshots>
+    </repository>
+  </repositories>
 </project>

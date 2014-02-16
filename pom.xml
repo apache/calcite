@@ -84,6 +84,7 @@
     <module>avatica</module>
     <module>core</module>
     <module>mongodb</module>
+    <module>spark</module>
     <module>splunk</module>
   </modules>
 
@@ -288,12 +289,5 @@
   </repositories>
 
 
-  <profiles>
-    <profile>
-      <id>spark</id>
-      <modules>
-        <module>spark</module>
-      </modules>
-    </profile>
-  </profiles>
+  <profiles/>
 </project>

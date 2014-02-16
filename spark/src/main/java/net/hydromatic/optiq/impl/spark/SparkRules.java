@@ -26,6 +26,8 @@ import net.hydromatic.optiq.rules.java.*;
 import org.eigenbase.rel.*;
 import org.eigenbase.rel.convert.ConverterRule;
 import org.eigenbase.rel.metadata.RelMetadataQuery;
+import org.eigenbase.rel.rules.FilterToCalcRule;
+import org.eigenbase.rel.rules.ProjectToCalcRule;
 import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.reltype.RelDataTypeField;
@@ -55,20 +57,16 @@ public abstract class SparkRules {
   private SparkRules() {}
 
   public static List<RelOptRule> rules() {
-    return ImmutableList.<RelOptRule>of(
+    return ImmutableList.of(
+        // TODO: add SparkProjectRule, SparkFilterRule, SparkProjectToCalcRule,
+        // SparkFilterToCalcRule, and remove the following 2 rules.
+        ProjectToCalcRule.INSTANCE,
+        FilterToCalcRule.INSTANCE,
         EnumerableToSparkConverterRule.INSTANCE,
         SparkToEnumerableConverterRule.INSTANCE,
         SPARK_VALUES_RULE,
         SPARK_CALC_RULE);
   }
-
-  public static final boolean BRIDGE_METHODS = true;
-
-  private static final List<ParameterExpression> NO_PARAMS =
-      Collections.emptyList();
-
-  private static final List<Expression> NO_EXPRS =
-      Collections.emptyList();
 
   /** Planner rule that converts from enumerable to Spark convention. */
   static class EnumerableToSparkConverterRule extends ConverterRule {

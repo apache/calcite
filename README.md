@@ -19,11 +19,7 @@ $ cd optiq
 $ mvn install
 ```
 
-Use `-DskipTests` if you do not want to execute the tests.
-The `spark` module is excluded from the build by default. To enable it, activate the `spark` maven build profile:
-```bash
-mvn install -Pspark
-```
+Use `mvn -DskipTests` if you do not want to execute the tests.
 
 Example
 =======
