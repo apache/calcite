@@ -2091,6 +2091,17 @@ public class SqlParserTest {
         "case 1 when 2 then 3 else (select * from emp) end",
         "(CASE WHEN (1 = 2) THEN 3 ELSE (SELECT *\n"
         + "FROM `EMP`) END)");
+    checkExp(
+        "case x when 2, 4 then 3 else 4 end",
+        "(CASE WHEN (`X` IN (2, 4)) THEN 3 ELSE 4 END)");
+    // comma-list must not be empty
+    checkFails(
+        "case x when 2, 4 then 3 ^when^ then 5 else 4 end",
+        "(?s)Encountered \"when then\" at .*");
+    // commas not allowed in boolean case
+    checkFails(
+        "case when b1, b2 ^when^ 2, 4 then 3 else 4 end",
+        "(?s)Encountered \"when\" at .*");
   }
 
   @Test public void testCaseExpressionFails() {

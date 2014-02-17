@@ -310,12 +310,13 @@ public class SqlCaseOperator extends SqlOperator {
       List<SqlNode> list = whenList.getList();
       for (int i = 0; i < list.size(); i++) {
         SqlNode e = list.get(i);
-        list.set(
-            i,
-            SqlStdOperatorTable.EQUALS.createCall(
-                pos,
-                value,
-                e));
+        final SqlCall call;
+        if (e instanceof SqlNodeList) {
+          call = SqlStdOperatorTable.IN.createCall(pos, value, e);
+        } else {
+          call = SqlStdOperatorTable.EQUALS.createCall(pos, value, e);
+        }
+        list.set(i, call);
       }
     }
 

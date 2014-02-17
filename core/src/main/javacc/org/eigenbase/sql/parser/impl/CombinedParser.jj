@@ -2611,8 +2611,8 @@ SqlNode CaseExpression() :
     SqlNode e;
     SqlNode caseIdentifier = null;
     SqlNode elseClause = null;
-    List whenList = new ArrayList();
-    List thenList = new ArrayList();
+    List<SqlNode> whenList = new ArrayList<SqlNode>();
+    List<SqlNode> thenList = new ArrayList<SqlNode>();
 }
 {
     <CASE>
@@ -2623,8 +2623,15 @@ SqlNode CaseExpression() :
         caseIdentifier = Expression(ExprContext.ACCEPT_SUBQUERY)
     ]
     (
-        <WHEN> e = Expression(ExprContext.ACCEPT_SUBQUERY)
-        {  whenPos = getPos(); whenList.add(e); }
+        <WHEN>
+        { whenPos = getPos(); }
+        e = ExpressionCommaList(pos, ExprContext.ACCEPT_SUBQUERY)
+        {
+            if (((SqlNodeList) e).size() == 1) {
+                e = ((SqlNodeList) e).get(0);
+            }
+            whenList.add(e);
+        }
         <THEN> e = Expression(ExprContext.ACCEPT_SUBQUERY)
         {  thenPos = getPos(); thenList.add(e); }
     ) +

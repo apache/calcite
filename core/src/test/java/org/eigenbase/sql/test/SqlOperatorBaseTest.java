@@ -1376,46 +1376,45 @@ public abstract class SqlOperatorBaseTest {
           "case 1 when 1 then row('a','b') when 2 then row('ab','cd') end",
           "ROW(CHAR(2) NOT NULL, CHAR(2) NOT NULL)",
           "row('a ','b ')");
-
-      // multiple values in some cases (introduced in SQL:2011)
-      // https://github.com/julianhyde/optiq/issues/53
-      tester.checkString(
-          "case 1 "
-          + "when 1, 2 then '1 or 2' "
-          + "when 2 then 'not possible' end"
-          + "when 3, 2 then '3' "
-          + "else 'none of the above' "
-          + "end",
-          "a",
-          "VARCHAR(3)");
-      tester.checkString(
-          "case 2 "
-          + "when 1, 2 then '1 or 2' "
-          + "when 2 then 'not possible' end"
-          + "when 3, 2 then '3' "
-          + "else 'none of the above' "
-          + "end",
-          "1 or 2",
-          "VARCHAR(3)");
-      tester.checkString(
-          "case 3 "
-          + "when 1, 2 then '1 or 2' "
-          + "when 2 then 'not possible' end"
-          + "when 3, 2 then '3' "
-          + "else 'none of the above' "
-          + "end",
-          "3",
-          "VARCHAR(3)");
-      tester.checkString(
-          "case 4 "
-          + "when 1, 2 then '1 or 2' "
-          + "when 2 then 'not possible' end"
-          + "when 3, 2 then '3' "
-          + "else 'none of the above' "
-          + "end",
-          "none of the above",
-          "VARCHAR(3)");
     }
+
+    // multiple values in some cases (introduced in SQL:2011)
+    tester.checkString(
+        "case 1 "
+        + "when 1, 2 then '1 or 2' "
+        + "when 2 then 'not possible' "
+        + "when 3, 2 then '3' "
+        + "else 'none of the above' "
+        + "end",
+        "1 or 2           ",
+        "CHAR(17) NOT NULL");
+    tester.checkString(
+        "case 2 "
+        + "when 1, 2 then '1 or 2' "
+        + "when 2 then 'not possible' "
+        + "when 3, 2 then '3' "
+        + "else 'none of the above' "
+        + "end",
+        "1 or 2           ",
+        "CHAR(17) NOT NULL");
+    tester.checkString(
+        "case 3 "
+        + "when 1, 2 then '1 or 2' "
+        + "when 2 then 'not possible' "
+        + "when 3, 2 then '3' "
+        + "else 'none of the above' "
+        + "end",
+        "3                ",
+        "CHAR(17) NOT NULL");
+    tester.checkString(
+        "case 4 "
+            + "when 1, 2 then '1 or 2' "
+            + "when 2 then 'not possible' "
+            + "when 3, 2 then '3' "
+            + "else 'none of the above' "
+            + "end",
+        "none of the above",
+        "CHAR(17) NOT NULL");
 
     // TODO: Check case with multisets
   }
