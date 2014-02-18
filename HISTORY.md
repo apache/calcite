@@ -2,6 +2,14 @@
 
 For a full list of releases, see <a href="https://github.com/julianhyde/optiq-csv/releases">github</a>.
 
+## <a href="https://github.com/julianhyde/optiq-csv/releases/tag/optiq-csv-0.2">0.2</a> / 2014-02-18
+
+* Add test case for <a href="https://github.com/julianhyde/optiq/issues/112">optiq-112</a>.
+* Add `sqlline.bat`, Windows SQL shell. (Based on fix for <a href="https://issues.apache.org/jira/browse/DRILL-338">DRILL-338</a>.)
+* Upgrade to optiq-0.4.18, sqlline-1.1.7.
+* Return a single object for single-col enumerator (Gabriel Reid)
+* Enable maven-checkstyle-plugin; fix checkstyle exceptions.
+
 ## <a href="https://github.com/julianhyde/optiq-csv/releases/tag/optiq-csv-0.1">0.1</a> / 2014-01-13
 
 * Add release notes and history.
