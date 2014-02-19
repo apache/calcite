@@ -23,6 +23,7 @@ import net.hydromatic.linq4j.expressions.Expression;
 import net.hydromatic.optiq.*;
 import net.hydromatic.optiq.Table;
 import net.hydromatic.optiq.impl.MaterializedViewTable;
+import net.hydromatic.optiq.util.Compatible;
 import net.hydromatic.optiq.util.CompositeMap;
 
 import org.eigenbase.util.Util;
@@ -82,7 +83,7 @@ public class OptiqSchema {
                 return entry.getTableFunction().apply(ImmutableList.of());
               }
             }),
-        Maps.asMap(
+        Compatible.INSTANCE.asMap(
             schema.getTableNames(),
             new Function<String, Table>() {
               public Table apply(String input) {
@@ -100,7 +101,7 @@ public class OptiqSchema {
     this.compositeSubSchemaMap =
         CompositeMap.of(
             subSchemaMap,
-            Maps.<String, OptiqSchema>asMap(
+            Compatible.INSTANCE.<String, OptiqSchema>asMap(
                 schema.getSubSchemaNames(),
                 new Function<String, OptiqSchema>() {
                   public OptiqSchema apply(String input) {
