@@ -6330,6 +6330,41 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         "RecordType(INTEGER NOT NULL x[y] z ) NOT NULL");
   }
 
+  /** Test case for
+   * <a href="https://github.com/julianhyde/optiq/issues/145">optiq-145,
+   * "Unexpected upper-casing of keywords when using java lexer"</a>. */
+  @Test public void testLexJavaKeyword() {
+    final SqlTester tester1 = tester.withLex(ConnectionConfig.Lex.JAVA);
+    tester1.checkResultType(
+        "select path, x from (select 1 as path, 2 as x from (values (true)))",
+        "RecordType(INTEGER NOT NULL path, INTEGER NOT NULL x) NOT NULL");
+    tester1.checkResultType(
+        "select path, x from (select 1 as `path`, 2 as x from (values (true)))",
+        "RecordType(INTEGER NOT NULL path, INTEGER NOT NULL x) NOT NULL");
+    tester1.checkResultType(
+        "select `path`, x from (select 1 as path, 2 as x from (values (true)))",
+        "RecordType(INTEGER NOT NULL path, INTEGER NOT NULL x) NOT NULL");
+    tester1.checkFails(
+        "select ^PATH^ from (select 1 as path from (values (true)))",
+        "Column 'PATH' not found in any table",
+        false);
+    tester1.checkFails(
+        "select t.^PATH^ from (select 1 as path from (values (true))) as t",
+        "Column 'PATH' not found in table 't'",
+        false);
+    tester1.checkQueryFails(
+        "select t.x, t.^PATH^ from (values (true, 1)) as t(path, x)",
+        "Column 'PATH' not found in table 't'");
+
+    // Built-in functions now must be written in correct case.
+    tester1.checkQueryFails(
+        "values (^current_timestamp^)",
+        "Unknown identifier 'current_timestamp'");
+    tester1.checkResultType(
+        "values (CURRENT_TIMESTAMP)",
+        "RecordType(TIMESTAMP(0) NOT NULL CURRENT_TIMESTAMP) NOT NULL");
+  }
+
   /** Tests using case-insensitive matching of identifiers. */
   @Test public void testCaseInsensitive() {
     final SqlTester tester1 = tester

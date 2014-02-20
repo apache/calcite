@@ -117,6 +117,11 @@ void debug_message1()
         + " , " + getToken( 1 ).image );
 }
 
+JAVACODE String unquotedIdentifier() {
+    return SqlParserUtil.strip(getToken(0).image, null, null, null,
+        unquotedCasing);
+}
+
 String NonReservedKeyWord() :
 {
     String kw;
@@ -3187,8 +3192,7 @@ String Identifier() :
     (
         <IDENTIFIER>
         {
-            id = SqlParserUtil.strip(getToken(0).image, null, null, null,
-                unquotedCasing);
+            id = unquotedIdentifier();
         }
         | <QUOTED_IDENTIFIER>
         {
@@ -3998,7 +4002,7 @@ String NonReservedJdbcFunctionName() :
         <SUBSTRING>
     )
     {
-        return getToken(0).image.toUpperCase();
+        return unquotedIdentifier();
     }
 }
 
@@ -4025,7 +4029,6 @@ SqlIdentifier FunctionName() :
  */
 SqlIdentifier ReservedFunctionName() :
 {
-    SqlIdentifier name;
 }
 {
     (
@@ -4069,15 +4072,12 @@ SqlIdentifier ReservedFunctionName() :
         | <VAR_SAMP>
     )
     {
-        name = new SqlIdentifier(
-            getToken(0).image.toUpperCase(), getPos());
-        return name;
+        return new SqlIdentifier(unquotedIdentifier(), getPos());
     }
 }
 
 SqlIdentifier ContextVariable() :
 {
-    SqlIdentifier name;
 }
 {
     (
@@ -4097,9 +4097,7 @@ SqlIdentifier ContextVariable() :
         | <USER>
     )
     {
-        name = new SqlIdentifier(
-            getToken(0).image.toUpperCase(), getPos());
-        return name;
+        return new SqlIdentifier(unquotedIdentifier(), getPos());
     }
 }
 
@@ -4122,7 +4120,7 @@ SqlNode JdbcFunctionCall() :
         }
         (
             // INSERT is a reserved word, but we need to handle {fn insert}
-            <INSERT> { name = getToken(0).image.toUpperCase(); }
+            <INSERT> { name = unquotedIdentifier(); }
             |
             // For cases like {fn power(1,2)} and {fn lower('a')}
             id = ReservedFunctionName() { name = id.getSimple(); }
@@ -5079,7 +5077,7 @@ String CommonNonReservedKeyWord() :
         | <ZONE>
     )
     {
-        return getToken(0).image.toUpperCase();
+        return unquotedIdentifier();
     }
 }
 
