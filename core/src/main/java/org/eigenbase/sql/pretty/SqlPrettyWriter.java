@@ -208,6 +208,7 @@ public class SqlPrettyWriter implements SqlWriter {
   public boolean inQuery() {
     return (frame == null)
         || (frame.frameType == FrameTypeEnum.OrderBy)
+        || (frame.frameType == FrameTypeEnum.With)
         || (frame.frameType == FrameTypeEnum.Setop);
   }
 

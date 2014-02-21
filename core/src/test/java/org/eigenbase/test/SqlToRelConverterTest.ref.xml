@@ -1538,4 +1538,78 @@ ProjectRel(e=[$0])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testWith">
+        <Resource name="sql">
+            <![CDATA[with emp2 as (select * from emp)
+select * from emp2]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+    TableAccessRel(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testWithUnion">
+        <Resource name="sql">
+            <![CDATA[with emp2 as (select * from emp where deptno > 10)
+select empno from emp2 where deptno < 30 union all select deptno from emp]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+UnionRel(all=[true])
+  ProjectRel(EMPNO=[$0])
+    FilterRel(condition=[<($7, 30)])
+      ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+        FilterRel(condition=[>($7, 10)])
+          TableAccessRel(table=[[CATALOG, SALES, EMP]])
+  ProjectRel(DEPTNO=[$7])
+    TableAccessRel(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testWithInsideWhereExists">
+        <Resource name="sql">
+            <![CDATA[select * from emp
+where exists (
+  with dept2 as (select * from dept where dept.deptno >= emp.deptno)
+  select 1 from dept2 where deptno <= emp.deptno)]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  FilterRel(condition=[IS TRUE($9)])
+    CorrelatorRel(condition=[true], joinType=[left], correlations=[[var1=offset7, var0=offset7]])
+      TableAccessRel(table=[[CATALOG, SALES, EMP]])
+      AggregateRel(group=[{}], agg#0=[MIN($0)])
+        ProjectRel($f0=[true])
+          ProjectRel(EXPR$0=[1])
+            FilterRel(condition=[<=($0, $cor1.DEPTNO)])
+              ProjectRel(DEPTNO=[$0], NAME=[$1])
+                FilterRel(condition=[>=($0, $cor0.DEPTNO)])
+                  TableAccessRel(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testWithInsideScalarSubquery">
+        <Resource name="sql">
+            <![CDATA[select (
+ with dept2 as (select * from dept where deptno > 10) select count(*) from dept2) as c
+from emp]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+ProjectRel(C=[$9])
+  JoinRel(condition=[true], joinType=[left])
+    TableAccessRel(table=[[CATALOG, SALES, EMP]])
+    AggregateRel(group=[{}], agg#0=[SINGLE_VALUE($0)])
+      AggregateRel(group=[{}], EXPR$0=[COUNT()])
+        ProjectRel($f0=[0])
+          ProjectRel(DEPTNO=[$0], NAME=[$1])
+            FilterRel(condition=[>($0, 10)])
+              TableAccessRel(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+    </TestCase>
 </Root>

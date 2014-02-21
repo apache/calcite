@@ -62,6 +62,13 @@ class EmptyScope implements SqlValidatorScope {
     return null;
   }
 
+  public SqlValidatorNamespace getTableNamespace(List<String> names) {
+    SqlValidatorTable table = validator.catalogReader.getTable(names);
+    return table != null
+        ? new TableNamespace(validator, table)
+        : null;
+  }
+
   public void findAllColumnNames(List<SqlMoniker> result) {
   }
 

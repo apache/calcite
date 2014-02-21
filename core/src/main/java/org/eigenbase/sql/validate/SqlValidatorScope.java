@@ -40,9 +40,7 @@ public interface SqlValidatorScope {
   SqlValidator getValidator();
 
   /**
-   * Returns the root node of this scope.
-   *
-   * @post return != null
+   * Returns the root node of this scope. Never null.
    */
   SqlNode getNode();
 
@@ -153,6 +151,16 @@ public interface SqlValidatorScope {
    * expression has already been validated.
    */
   void validateExpr(SqlNode expr);
+
+  /**
+   * Looks up a table in this scope from its name. If found, returns the
+   * {@link TableNamespace} that wraps it. If the "table" is defined in a
+   * {@code WITH} clause it may be a query, not a table after all.
+   *
+   * @param names Name of table, may be qualified or fully-qualified
+   * @return Namespace of table
+   */
+  SqlValidatorNamespace getTableNamespace(List<String> names);
 }
 
 // End SqlValidatorScope.java

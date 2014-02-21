@@ -1857,6 +1857,18 @@ public class JdbcTest {
             + "    EnumerableTableAccessRel(table=[[foodmart2, time_by_day]])\n\n");
   }
 
+  @Test public void testWithInsideWhereExists() {
+    OptiqAssert.that()
+        .with(OptiqAssert.Config.REGULAR)
+        .query("select \"deptno\" from \"hr\".\"emps\"\n"
+        + "where exists (\n"
+        + "  with dept2 as (select * from \"hr\".\"depts\" where \"depts\".\"deptno\" >= \"emps\".\"deptno\")\n"
+        + "  select 1 from dept2 where \"deptno\" <= \"emps\".\"deptno\")")
+        .returnsUnordered("deptno=10",
+            "deptno=10",
+            "deptno=10");
+  }
+
   /** Tests windowed aggregation. */
   @Test public void testWinAgg() {
     OptiqAssert.that()

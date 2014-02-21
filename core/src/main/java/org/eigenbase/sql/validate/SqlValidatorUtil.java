@@ -55,10 +55,10 @@ public class SqlValidatorUtil {
       Prepare.CatalogReader catalogReader,
       String datasetName,
       boolean[] usedDataset) {
-    if (namespace.isWrapperFor(IdentifierNamespace.class)) {
-      IdentifierNamespace identifierNamespace =
-          namespace.unwrap(IdentifierNamespace.class);
-      final List<String> names = identifierNamespace.getId().names;
+    if (namespace.isWrapperFor(TableNamespace.class)) {
+      TableNamespace tableNamespace =
+          namespace.unwrap(TableNamespace.class);
+      final List<String> names = tableNamespace.getTable().getQualifiedName();
       if ((datasetName != null)
           && (catalogReader instanceof RelOptSchemaWithSampling)) {
         return ((RelOptSchemaWithSampling) catalogReader)

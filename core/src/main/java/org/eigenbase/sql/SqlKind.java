@@ -77,7 +77,6 @@ public enum SqlKind {
    */
   SELECT,
 
-
   /**
    * JOIN operator or compound FROM clause.
    *
@@ -137,6 +136,12 @@ public enum SqlKind {
    * @see #NULLS_LAST
    */
   ORDER_BY,
+
+  /** WITH clause. */
+  WITH,
+
+  /** Item in WITH clause. */
+  WITH_ITEM,
 
   /**
    * Union
@@ -567,7 +572,8 @@ public enum SqlKind {
           EnumSet.of(
               AS, DESCENDING, SELECT, JOIN, OTHER_FUNCTION, CAST, TRIM,
               LITERAL_CHAIN, JDBC_FN, PRECEDING, FOLLOWING, ORDER_BY,
-              NULLS_FIRST, NULLS_LAST, COLLECTION_TABLE, TABLESAMPLE));
+              NULLS_FIRST, NULLS_LAST, COLLECTION_TABLE, TABLESAMPLE,
+              WITH, WITH_ITEM));
 
   /**
    * Category consisting of all DML operators.
@@ -601,20 +607,15 @@ public enum SqlKind {
    * {@link #EXPLICIT_TABLE}.
    */
   public static final EnumSet<SqlKind> QUERY =
-      EnumSet.of(
-          SELECT, UNION, INTERSECT, EXCEPT, VALUES, ORDER_BY, EXPLICIT_TABLE);
+      EnumSet.of(SELECT, UNION, INTERSECT, EXCEPT, VALUES, WITH, ORDER_BY,
+          EXPLICIT_TABLE);
 
   /**
    * Category of all SQL statement types.
    *
    * <p>Consists of all types in {@link #QUERY} and {@link #DML}.
    */
-  public static final Set<SqlKind> TOP_LEVEL;
-
-  static {
-    TOP_LEVEL = EnumSet.copyOf(QUERY);
-    TOP_LEVEL.addAll(DML);
-  }
+  public static final Set<SqlKind> TOP_LEVEL = plus(QUERY, DML);
 
   /**
    * Category consisting of regular and special functions.
@@ -655,6 +656,13 @@ public enum SqlKind {
    */
   public final boolean belongsTo(Collection<SqlKind> category) {
     return category.contains(this);
+  }
+
+  private static <E extends Enum<E>> EnumSet<E> plus(EnumSet<E> set0,
+      EnumSet<E> set1) {
+    EnumSet<E> set = set0.clone();
+    set.addAll(set1);
+    return set;
   }
 }
 

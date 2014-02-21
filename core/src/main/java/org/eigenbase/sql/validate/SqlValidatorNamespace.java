@@ -68,8 +68,6 @@ public interface SqlValidatorNamespace {
    * Returns the row type of this namespace, which comprises a list of names
    * and types of the output columns. If the scope's type has not yet been
    * derived, derives it. Never returns null.
-   *
-   * @post return != null
    */
   RelDataType getRowType();
 
@@ -98,7 +96,7 @@ public interface SqlValidatorNamespace {
   /**
    * Returns the parse tree node at the root of this namespace.
    *
-   * @return parse tree node
+   * @return parse tree node; null for {@link TableNamespace}
    */
   SqlNode getNode();
 
@@ -171,6 +169,17 @@ public interface SqlValidatorNamespace {
    * @return Whether namespace implements given interface
    */
   boolean isWrapperFor(Class<?> clazz);
+
+  /** If this namespace resolves to another namespace, returns that namespace,
+   * following links to the end of the chain.
+   *
+   * <p>A {@code WITH}) clause defines table names that resolve to queries
+   * (the body of the with-item). An {@link IdentifierNamespace} typically
+   * resolves to a {@link TableNamespace}.</p>
+   *
+   * <p>You must not call this method before {@link #validate()} has
+   * completed.</p> */
+  SqlValidatorNamespace resolve();
 }
 
 // End SqlValidatorNamespace.java

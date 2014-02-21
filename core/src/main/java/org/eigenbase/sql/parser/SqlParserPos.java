@@ -178,7 +178,7 @@ public class SqlParserPos implements Serializable {
    * Combines the parser positions of a list of nodes to create a position
    * which spans from the beginning of the first to the end of the last.
    */
-  public static SqlParserPos sum(List<SqlNode> nodes) {
+  public static SqlParserPos sum(List<? extends SqlNode> nodes) {
     return sum(nodes.toArray(new SqlNode[nodes.size()]));
   }
 

@@ -880,7 +880,7 @@ public class SqlToRelConverter {
     boolean isNotIn;
     boolean subqueryNeedsOuterJoin = bb.subqueryNeedsOuterJoin;
     SqlCall call;
-    SqlSelect select;
+    SqlNode query;
 
     final RexNode expr = bb.mapSubqueryToExpr.get(node);
     if (expr != null) {
@@ -1001,28 +1001,28 @@ public class SqlToRelConverter {
       // If there is no correlation, the expression is replaced with a
       // boolean indicating whether the subquery returned 0 or >= 1 row.
       call = (SqlCall) node;
-      select = (SqlSelect) call.getOperands()[0];
-      converted = convertExists(select, false, true, true);
+      query = call.getOperands()[0];
+      converted = convertExists(query, false, true, true);
       if (convertNonCorrelatedSubq(call, bb, converted, true)) {
         return;
       }
       joinType = JoinRelType.LEFT;
       break;
-    case SCALAR_QUERY:
 
+    case SCALAR_QUERY:
       // Convert the subquery.  If it's non-correlated, convert it
       // to a constant expression.
       call = (SqlCall) node;
-      select = (SqlSelect) call.getOperands()[0];
-      converted = convertExists(select, false, false, true);
+      query = call.getOperands()[0];
+      converted = convertExists(query, false, false, true);
       if (convertNonCorrelatedSubq(call, bb, converted, false)) {
         return;
       }
-      converted = convertToSingleValueSubq(select, converted);
+      converted = convertToSingleValueSubq(query, converted);
       joinType = JoinRelType.LEFT;
       break;
-    case SELECT:
 
+    case SELECT:
       // This is used when converting multiset queries:
       //
       // select * from unnest(select multiset[deptno] from emps);
@@ -1084,25 +1084,28 @@ public class SqlToRelConverter {
    * Converts the RelNode tree for a select statement to a select that
    * produces a single value.
    *
-   * @param select the statement
+   * @param query the query
    * @param plan   the original RelNode tree corresponding to the statement
    * @return the converted RelNode tree
    */
   public RelNode convertToSingleValueSubq(
-      SqlSelect select,
+      SqlNode query,
       RelNode plan) {
-    SqlNodeList selectList = select.getSelectList();
-    SqlNodeList groupList = select.getGroup();
-
     // Check whether query is guaranteed to produce a single value.
-    if ((selectList.size() == 1)
-        && ((groupList == null) || (groupList.size() == 0))) {
-      SqlNode selectExpr = selectList.get(0);
-      if (selectExpr instanceof SqlCall) {
-        SqlCall selectExprCall = (SqlCall) selectExpr;
-        if (selectExprCall.getOperator()
-            instanceof SqlAggFunction) {
-          return plan;
+    if (query instanceof SqlSelect) {
+      SqlSelect select = (SqlSelect) query;
+      SqlNodeList selectList = select.getSelectList();
+      SqlNodeList groupList = select.getGroup();
+
+      if ((selectList.size() == 1)
+          && ((groupList == null) || (groupList.size() == 0))) {
+        SqlNode selectExpr = selectList.get(0);
+        if (selectExpr instanceof SqlCall) {
+          SqlCall selectExprCall = (SqlCall) selectExpr;
+          if (selectExprCall.getOperator()
+              instanceof SqlAggFunction) {
+            return plan;
+          }
         }
       }
     }
@@ -1680,7 +1683,11 @@ public class SqlToRelConverter {
 
     case IDENTIFIER:
       final SqlValidatorNamespace fromNamespace =
-          validator.getNamespace(from);
+          validator.getNamespace(from).resolve();
+      if (fromNamespace.getNode() != null) {
+        convertFrom(bb, fromNamespace.getNode());
+        return;
+      }
       final String datasetName =
           datasetStack.isEmpty() ? null : datasetStack.peek();
       boolean[] usedDataset = {false};
@@ -2768,6 +2775,8 @@ public class SqlToRelConverter {
     case INTERSECT:
     case EXCEPT:
       return convertSetOp((SqlCall) query);
+    case WITH:
+      return convertWith((SqlCall) query);
     case VALUES:
       return convertValues((SqlCall) query, targetRowType);
     default:
@@ -2879,11 +2888,8 @@ public class SqlToRelConverter {
   }
 
   protected RelOptTable getTargetTable(SqlNode call) {
-    SqlValidatorNamespace targetNs = validator.getNamespace(call);
-    RelOptTable targetTable =
-        SqlValidatorUtil.getRelOptTable(
-            targetNs, catalogReader, null, null);
-    return targetTable;
+    SqlValidatorNamespace targetNs = validator.getNamespace(call).resolve();
+    return SqlValidatorUtil.getRelOptTable(targetNs, catalogReader, null, null);
   }
 
   /**
@@ -3470,6 +3476,14 @@ public class SqlToRelConverter {
     }
     aliases.add(alias);
     return alias;
+  }
+
+  /**
+   * Converts a WITH sub-query into a relational expression.
+   */
+  public RelNode convertWith(SqlCall with) {
+    final SqlWithOperator.Call call = SqlWithOperator.Call.of(with);
+    return convertQuery(call.body, false, false);
   }
 
   /**

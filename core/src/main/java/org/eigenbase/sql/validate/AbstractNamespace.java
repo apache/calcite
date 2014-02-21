@@ -109,7 +109,6 @@ abstract class AbstractNamespace implements SqlValidatorNamespace {
    * #status} field to protect against cycles.
    *
    * @return record data type, never null
-   * @post return != null
    */
   protected abstract RelDataType validateImpl();
 
@@ -162,6 +161,10 @@ abstract class AbstractNamespace implements SqlValidatorNamespace {
 
   public String translate(String name) {
     return name;
+  }
+
+  public SqlValidatorNamespace resolve() {
+    return this;
   }
 
   public <T> T unwrap(Class<T> clazz) {

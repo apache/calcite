@@ -753,6 +753,77 @@ public class SqlParserTest {
         + "HAVING (COUNT(*) > 5)");
   }
 
+  @Test public void testWith() {
+    check(
+        "with femaleEmps as (select * from emps where gender = 'F')"
+        + "select deptno from femaleEmps",
+        "WITH `FEMALEEMPS` AS (SELECT *\n"
+        + "FROM `EMPS`\n"
+        + "WHERE (`GENDER` = 'F')) SELECT `DEPTNO`\n"
+        + "FROM `FEMALEEMPS`");
+  }
+
+  @Test public void testWith2() {
+    check(
+        "with femaleEmps as (select * from emps where gender = 'F'),\n"
+        + "marriedFemaleEmps(x, y) as (select * from femaleEmps where maritaStatus = 'M')\n"
+        + "select deptno from femaleEmps",
+        "WITH `FEMALEEMPS` AS (SELECT *\n"
+        + "FROM `EMPS`\n"
+        + "WHERE (`GENDER` = 'F')), `MARRIEDFEMALEEMPS` (`X`, `Y`) AS (SELECT *\n"
+        + "FROM `FEMALEEMPS`\n"
+        + "WHERE (`MARITASTATUS` = 'M')) SELECT `DEPTNO`\n"
+        + "FROM `FEMALEEMPS`");
+  }
+
+  @Test public void testWithFails() {
+    checkFails("with femaleEmps as ^select^ * from emps where gender = 'F'\n"
+        + "select deptno from femaleEmps",
+        "(?s)Encountered \"select\" at .*");
+  }
+
+  @Test public void testWithValues() {
+    check(
+        "with v(i,c) as (values (1, 'a'), (2, 'bb'))\n"
+        + "select c, i from v",
+        "WITH `V` (`I`, `C`) AS (VALUES (ROW(1, 'a')), (ROW(2, 'bb'))) SELECT `C`, `I`\n"
+        + "FROM `V`");
+  }
+
+  @Test public void testWithNestedFails() {
+    // SQL standard does not allow WITH to contain WITH
+    checkFails("with emp2 as (select * from emp)\n"
+        + "^with^ dept2 as (select * from dept)\n"
+        + "select 1 as one from emp, dept",
+        "(?s)Encountered \"with\" at .*");
+  }
+
+  @Test public void testWithNestedInSubquery() {
+    // SQL standard does not allow sub-query to contain WITH but we do
+    check("with emp2 as (select * from emp)\n"
+        + "(\n"
+        + "  with dept2 as (select * from dept)\n"
+        + "  select 1 as one from empDept)",
+        "WITH `EMP2` AS (SELECT *\n"
+        + "FROM `EMP`) WITH `DEPT2` AS (SELECT *\n"
+        + "FROM `DEPT`) SELECT 1 AS `ONE`\n"
+        + "FROM `EMPDEPT`");
+  }
+
+  @Test public void testWithUnion() {
+    // Per the standard WITH ... SELECT ... UNION is valid even without parens.
+    check("with emp2 as (select * from emp)\n"
+        + "select * from emp2\n"
+        + "union\n"
+        + "select * from emp2\n",
+        "WITH `EMP2` AS (SELECT *\n"
+        + "FROM `EMP`) (SELECT *\n"
+        + "FROM `EMP2`\n"
+        + "UNION\n"
+        + "SELECT *\n"
+        + "FROM `EMP2`)");
+  }
+
   @Test public void testIdentifier() {
     checkExp("ab", "`AB`");
     checkExp("     \"a  \"\" b!c\"", "`a  \" b!c`");

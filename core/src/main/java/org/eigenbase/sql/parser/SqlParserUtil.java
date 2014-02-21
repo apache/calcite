@@ -532,7 +532,7 @@ public final class SqlParserUtil {
    *
    * @pre list.size() % 2 == 1
    */
-  public static SqlNode toTree(List list) {
+  public static SqlNode toTree(List<Object> list) {
     if (LOGGER.isLoggable(Level.FINER)) {
       LOGGER.finer("Attempting to reduce " + list);
     }

@@ -54,7 +54,7 @@ public interface SqlWriter {
      * )
      * WHERE condition</pre>
      */
-    Black;
+    Black
   }
 
   /**
@@ -125,6 +125,12 @@ public interface SqlWriter {
      * <li>ORDER BY x, y DESC, z
      */
     OrderByList,
+
+    /**
+     * WITH clause of a SELECT statement. The "list" has only two items:
+     * the WITH clause and the query, with AS as the separator.
+     */
+    With,
 
     /**
      * OFFSET clause.

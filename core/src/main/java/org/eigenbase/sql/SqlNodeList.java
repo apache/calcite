@@ -60,7 +60,7 @@ public class SqlNodeList extends SqlNode implements Iterable<SqlNode> {
    * list</code>. The list is copied, but the nodes in it are not.
    */
   public SqlNodeList(
-      Collection collection,
+      Collection<? extends SqlNode> collection,
       SqlParserPos pos) {
     super(pos);
     list = new ArrayList<SqlNode>(collection);
@@ -81,10 +81,8 @@ public class SqlNodeList extends SqlNode implements Iterable<SqlNode> {
     list.add(node);
   }
 
-  public SqlNode clone(SqlParserPos pos) {
-    return new SqlNodeList(
-        list,
-        pos);
+  public SqlNodeList clone(SqlParserPos pos) {
+    return new SqlNodeList(list, pos);
   }
 
   public SqlNode get(int n) {

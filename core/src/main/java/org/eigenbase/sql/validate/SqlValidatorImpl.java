@@ -36,7 +36,9 @@ import org.eigenbase.util.*;
 import net.hydromatic.linq4j.Linq4j;
 import net.hydromatic.linq4j.Ord;
 
+import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 
 /**
  * Default implementation of {@link SqlValidator}.
@@ -327,7 +329,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         SqlParserPos starPosition = identifier.getParserPosition();
         for (Pair<String, SqlValidatorNamespace> p : scope.children) {
           final SqlNode from = p.right.getNode();
-          final SqlValidatorNamespace fromNs = getNamespace(from);
+          final SqlValidatorNamespace fromNs = getNamespace(from, scope);
           assert fromNs != null;
           final RelDataType rowType = fromNs.getRowType();
           for (RelDataTypeField field : rowType.getFieldList()) {
@@ -717,11 +719,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   }
 
   public void validateQuery(SqlNode node, SqlValidatorScope scope) {
-    final SqlValidatorNamespace ns = getNamespace(node);
-    if (ns == null) {
-      throw Util.newInternal("Not a query: " + node);
-    }
-
+    final SqlValidatorNamespace ns = getNamespace(node, scope);
     if (node.getKind() == SqlKind.TABLESAMPLE) {
       SqlNode[] operands = ((SqlCall) node).operands;
       SqlSampleSpec sampleSpec = SqlLiteral.sampleValue(operands[1]);
@@ -751,9 +749,9 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
    */
   protected void validateNamespace(final SqlValidatorNamespace namespace) {
     namespace.validate();
-    setValidatedNodeType(
-        namespace.getNode(),
-        namespace.getRowType());
+    if (namespace.getNode() != null) {
+      setValidatedNodeType(namespace.getNode(), namespace.getRowType());
+    }
   }
 
   public SqlValidatorScope getCursorScope(SqlSelect select) {
@@ -832,6 +830,23 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     default:
       throw Util.newInternal("Unexpected operandType " + operandType);
     }
+  }
+
+  private SqlValidatorNamespace getNamespace(SqlNode node,
+      SqlValidatorScope scope) {
+    if (node instanceof SqlIdentifier && scope instanceof DelegatingScope) {
+      final SqlIdentifier id = (SqlIdentifier) node;
+      final SqlValidatorScope parentScope =
+          ((DelegatingScope) scope).getParent();
+      if (id.isSimple()) {
+        SqlValidatorNamespace ns =
+            parentScope.resolve(id.getSimple(), null, null);
+        if (ns != null) {
+          return ns;
+        }
+      }
+    }
+    return getNamespace(node);
   }
 
   public SqlValidatorNamespace getNamespace(SqlNode node) {
@@ -1190,10 +1205,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     // target because downstream, the optimizer rules
     // don't want to see any projection on top of the target.
     IdentifierNamespace ns =
-        new IdentifierNamespace(
-            this,
-            target,
-            null);
+        new IdentifierNamespace(this, target, null, null);
     RelDataType rowType = ns.getRowType();
     SqlNode source = updateCall.getTargetTable().clone(SqlParserPos.ZERO);
     final SqlNodeList selectList = new SqlNodeList(SqlParserPos.ZERO);
@@ -1914,7 +1926,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
           new IdentifierNamespace(
               this,
               id,
-              enclosingNode);
+              enclosingNode,
+              parentScope);
       registerNamespace(usingScope, alias, newNs, forceNullable);
       return newNode;
 
@@ -1948,6 +1961,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     case INTERSECT:
     case EXCEPT:
     case VALUES:
+    case WITH:
     case UNNEST:
     case OTHER_FUNCTION:
       registerQuery(
@@ -2078,10 +2092,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       boolean checkUpdate) {
     assert node != null;
     assert enclosingNode != null;
-    Util.pre(
-        (usingScope == null)
-            || (alias != null),
-        "usingScope == null || alias != null");
+    assert usingScope == null || alias != null : usingScope;
 
     SqlCall call;
     SqlNode[] operands;
@@ -2200,6 +2211,11 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
           forceNullable);
       break;
 
+    case WITH:
+      registerWith(parentScope, usingScope, node, enclosingNode, alias,
+          forceNullable, checkUpdate);
+      break;
+
     case VALUES:
       call = (SqlCall) node;
       scopes.put(call, parentScope);
@@ -2231,7 +2247,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
           new InsertNamespace(
               this,
               insertCall,
-              enclosingNode);
+              enclosingNode,
+              parentScope);
       registerNamespace(usingScope, null, insertNs, forceNullable);
       registerQuery(
           parentScope,
@@ -2248,7 +2265,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
           new DeleteNamespace(
               this,
               deleteCall,
-              enclosingNode);
+              enclosingNode,
+              parentScope);
       registerNamespace(usingScope, null, deleteNs, forceNullable);
       registerQuery(
           parentScope,
@@ -2270,7 +2288,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
           new UpdateNamespace(
               this,
               updateCall,
-              enclosingNode);
+              enclosingNode,
+              parentScope);
       registerNamespace(usingScope, null, updateNs, forceNullable);
       registerQuery(
           parentScope,
@@ -2290,7 +2309,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
           new MergeNamespace(
               this,
               mergeCall,
-              enclosingNode);
+              enclosingNode,
+              parentScope);
       registerNamespace(usingScope, null, mergeNs, forceNullable);
       registerQuery(
           parentScope,
@@ -2401,6 +2421,39 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
           null,
           false);
     }
+  }
+
+  private void registerWith(
+      SqlValidatorScope parentScope,
+      SqlValidatorScope usingScope,
+      SqlNode node,
+      SqlNode enclosingNode,
+      String alias,
+      boolean forceNullable,
+      boolean checkUpdate) {
+    final SqlCall with = (SqlCall) node;
+    final SqlWithOperator.Call withCall = SqlWithOperator.Call.of(with);
+    final WithNamespace withNamespace =
+        new WithNamespace(this, with, parentScope, enclosingNode);
+    registerNamespace(usingScope, alias, withNamespace, forceNullable);
+
+    SqlValidatorScope scope = parentScope;
+    for (SqlNode withItem_ : withCall.withList) {
+      final SqlCall withItem = (SqlCall) withItem_;
+      final WithScope withScope = new WithScope(scope, withItem);
+      scopes.put(withItem, withScope);
+
+      final SqlWithItemOperator.Call withItemCall =
+          SqlWithItemOperator.Call.of(withItem);
+      registerQuery(scope, usingScope, withItemCall.query, with,
+          withItemCall.name.getSimple(), false);
+//      SqlValidatorNamespace ns = null; // TODO:
+//      registerNamespace(usingScope, withItemCall.name.getSimple(), ns, false);
+      scope = withScope;
+    }
+
+    registerQuery(scope, null, withCall.body, enclosingNode, alias,
+        forceNullable, checkUpdate);
   }
 
   public boolean isAggregate(SqlSelect select) {
@@ -2675,7 +2728,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
     // Validate the namespace representation of the node, just in case the
     // validation did not occur implicitly.
-    getNamespace(node).validate();
+    getNamespace(node, scope).validate();
   }
 
   protected void validateOver(SqlCall call, SqlValidatorScope scope) {
@@ -2960,6 +3013,54 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
     // Hand off to validate window spec components
     windowList.validate(this, windowScope);
+  }
+
+  public void validateWith(SqlCall call_, SqlValidatorScope scope) {
+    final SqlValidatorNamespace namespace = getNamespace(call_);
+    validateNamespace(namespace);
+  }
+
+  public void validateWithItem(SqlCall withItem) {
+    final SqlWithItemOperator.Call call = SqlWithItemOperator.Call.of(withItem);
+    if (call.columnList != null) {
+      final RelDataType rowType = getValidatedNodeType(call.query);
+      final int fieldCount = rowType.getFieldCount();
+      if (call.columnList.size() != fieldCount) {
+        throw todoError(call.columnList,
+            "Number of columns must match number of query columns");
+      }
+      final List<String> names = Lists.transform(call.columnList.getList(),
+          new Function<SqlNode, String>() {
+            public String apply(SqlNode o) {
+              return ((SqlIdentifier) o).getSimple();
+            }
+          });
+      final int i = Util.firstDuplicate(names);
+      if (i >= 0) {
+        throw todoError(call.columnList.get(i),
+            "Duplicate name '" + names.get(i) + "' in column list");
+      }
+    } else {
+      // Luckily, field names have not been uniquified yet.
+      final List<String> fieldNames =
+          getValidatedNodeType(call.query).getFieldNames();
+      final int i = Util.firstDuplicate(fieldNames);
+      if (i >= 0) {
+        throw todoError(call.query,
+            "Column has duplicate column name '" + fieldNames.get(i)
+            + "' and no column list specified");
+      }
+    }
+  }
+
+  // TODO: replace with resourced message
+  private EigenbaseException todoError(SqlNode node, String message) {
+    return newValidationError(node, new SqlValidatorException(message, null));
+  }
+
+  public SqlValidatorScope getWithScope(SqlNode withItem) {
+    assert withItem.getKind() == SqlKind.WITH_ITEM;
+    return scopes.get(withItem);
   }
 
   /**
@@ -3908,14 +4009,9 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
    * Common base class for DML statement namespaces.
    */
   public static class DmlNamespace extends IdentifierNamespace {
-    protected DmlNamespace(
-        SqlValidatorImpl validator,
-        SqlIdentifier id,
-        SqlNode enclosingNode) {
-      super(
-          validator,
-          id,
-          enclosingNode);
+    protected DmlNamespace(SqlValidatorImpl validator, SqlIdentifier id,
+        SqlNode enclosingNode, SqlValidatorScope parentScope) {
+      super(validator, id, enclosingNode, parentScope);
     }
   }
 
@@ -3925,14 +4021,9 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   private static class InsertNamespace extends DmlNamespace {
     private final SqlInsert node;
 
-    public InsertNamespace(
-        SqlValidatorImpl validator,
-        SqlInsert node,
-        SqlNode enclosingNode) {
-      super(
-          validator,
-          node.getTargetTable(),
-          enclosingNode);
+    public InsertNamespace(SqlValidatorImpl validator, SqlInsert node,
+        SqlNode enclosingNode, SqlValidatorScope parentScope) {
+      super(validator, node.getTargetTable(), enclosingNode, parentScope);
       this.node = node;
       assert node != null;
     }
@@ -3948,14 +4039,9 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   private static class UpdateNamespace extends DmlNamespace {
     private final SqlUpdate node;
 
-    public UpdateNamespace(
-        SqlValidatorImpl validator,
-        SqlUpdate node,
-        SqlNode enclosingNode) {
-      super(
-          validator,
-          node.getTargetTable(),
-          enclosingNode);
+    public UpdateNamespace(SqlValidatorImpl validator, SqlUpdate node,
+        SqlNode enclosingNode, SqlValidatorScope parentScope) {
+      super(validator, node.getTargetTable(), enclosingNode, parentScope);
       this.node = node;
       assert node != null;
     }
@@ -3971,14 +4057,9 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   private static class DeleteNamespace extends DmlNamespace {
     private final SqlDelete node;
 
-    public DeleteNamespace(
-        SqlValidatorImpl validator,
-        SqlDelete node,
-        SqlNode enclosingNode) {
-      super(
-          validator,
-          node.getTargetTable(),
-          enclosingNode);
+    public DeleteNamespace(SqlValidatorImpl validator, SqlDelete node,
+        SqlNode enclosingNode, SqlValidatorScope parentScope) {
+      super(validator, node.getTargetTable(), enclosingNode, parentScope);
       this.node = node;
       assert node != null;
     }
@@ -3994,14 +4075,9 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   private static class MergeNamespace extends DmlNamespace {
     private final SqlMerge node;
 
-    public MergeNamespace(
-        SqlValidatorImpl validator,
-        SqlMerge node,
-        SqlNode enclosingNode) {
-      super(
-          validator,
-          node.getTargetTable(),
-          enclosingNode);
+    public MergeNamespace(SqlValidatorImpl validator, SqlMerge node,
+        SqlNode enclosingNode, SqlValidatorScope parentScope) {
+      super(validator, node.getTargetTable(), enclosingNode, parentScope);
       this.node = node;
       assert node != null;
     }
@@ -4160,6 +4236,10 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
     // implement SqlScopedShuttle
     protected SqlNode visitScoped(SqlCall call) {
+      switch (call.getKind()) {
+      case SCALAR_QUERY:
+        return call;
+      }
       // Only visits arguments which are expressions. We don't want to
       // qualify non-expressions such as 'x' in 'empno * 5 AS x'.
       ArgHandler<SqlNode> argHandler =
@@ -4313,6 +4393,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       columnListParamToParentCursorMap = new HashMap<String, String>();
     }
   }
+
 }
 
 // End SqlValidatorImpl.java

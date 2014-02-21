@@ -920,6 +920,10 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   public static final SqlOrderByOperator ORDER_BY =
       new SqlOrderByOperator();
 
+  public static final SqlWithOperator WITH = new SqlWithOperator();
+
+  public static final SqlWithItemOperator WITH_ITEM = new SqlWithItemOperator();
+
   public static final SqlOperator PROCEDURE_CALL =
       new SqlProcedureCallOperator();
 

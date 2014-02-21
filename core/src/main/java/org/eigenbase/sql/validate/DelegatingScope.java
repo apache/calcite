@@ -107,6 +107,10 @@ public abstract class DelegatingScope implements SqlValidatorScope {
     return parent.resolveColumn(name, ctx);
   }
 
+  public SqlValidatorNamespace getTableNamespace(List<String> names) {
+    return parent.getTableNamespace(names);
+  }
+
   public SqlValidatorScope getOperandScope(SqlCall call) {
     if (call instanceof SqlSelect) {
       return validator.getSelectScope((SqlSelect) call);

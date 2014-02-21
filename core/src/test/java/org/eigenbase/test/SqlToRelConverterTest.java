@@ -408,6 +408,34 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
         "${plan}");
   }
 
+  @Test public void testWith() {
+    check("with emp2 as (select * from emp)\n"
+        + "select * from emp2",
+        "${plan}");
+  }
+
+  @Test public void testWithUnion() {
+    check("with emp2 as (select * from emp where deptno > 10)\n"
+      + "select empno from emp2 where deptno < 30 union all select deptno from emp",
+        "${plan}");
+  }
+
+  @Test public void testWithInsideWhereExists() {
+    check("select * from emp\n"
+        + "where exists (\n"
+        + "  with dept2 as (select * from dept where dept.deptno >= emp.deptno)\n"
+        + "  select 1 from dept2 where deptno <= emp.deptno)",
+      "${plan}");
+  }
+
+  @Test public void testWithInsideScalarSubquery() {
+    check("select (\n"
+        + " with dept2 as (select * from dept where deptno > 10)"
+        + " select count(*) from dept2) as c\n"
+        + "from emp",
+      "${plan}");
+  }
+
   @Test public void testExplicitTable() {
     check(
         "table emp",

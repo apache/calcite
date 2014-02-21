@@ -72,6 +72,17 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   private static final String ERR_NESTED_AGG =
       "Aggregate expressions cannot be nested";
 
+  private static final String EMP_RECORD_TYPE =
+      "RecordType(INTEGER NOT NULL EMPNO,"
+      + " VARCHAR(20) NOT NULL ENAME,"
+      + " VARCHAR(10) NOT NULL JOB,"
+      + " INTEGER NOT NULL MGR,"
+      + " TIMESTAMP(0) NOT NULL HIREDATE,"
+      + " INTEGER NOT NULL SAL,"
+      + " INTEGER NOT NULL COMM,"
+      + " INTEGER NOT NULL DEPTNO,"
+      + " BOOLEAN NOT NULL SLACKER) NOT NULL";
+
   //~ Constructors -----------------------------------------------------------
 
   public SqlValidatorTest() {
@@ -5018,6 +5029,14 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         "ambig");
   }
 
+  @Ignore("bug: should fail if subquery does not have alias")
+  @Test public void testJoinSubquery() {
+    // Sub-queries require alias
+    checkFails("select * from (select 1 as one from emp)\n"
+        + "join (values (1), (2)) on true",
+        "require alias");
+  }
+
   @Test public void testJoinUsingThreeWay() {
     check(
         "select *\n"
@@ -5066,6 +5085,127 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
     // this worked even before FRG-115 was fixed
     check("select deptno from emp group by deptno having deptno + 5 > 10");
+  }
+
+  /** Tests the {@code WITH} clause, also called common table expressions. */
+  @Test public void testWith() {
+    // simplest possible
+    checkResultType(
+        "with emp2 as (select * from emp)\n"
+        + "select * from emp2", EMP_RECORD_TYPE);
+
+    // degree of emp2 column list does not match its query
+    checkFails(
+        "with emp2 ^(x, y)^ as (select * from emp)\n"
+        + "select * from emp2",
+        "Number of columns must match number of query columns");
+
+    // duplicate names in column list
+    checkFails(
+        "with emp2 (x, y, ^y^, x) as (select sal, deptno, ename, empno from emp)\n"
+        + "select * from emp2",
+        "Duplicate name 'Y' in column list");
+
+    // column list required if aliases are not unique
+    checkFails(
+        "with emp2 as (^select empno as e, sal, deptno as e from emp^)\n"
+        + "select * from emp2",
+        "Column has duplicate column name 'E' and no column list specified");
+
+    // forward reference
+    checkFails(
+        "with emp3 as (select * from ^emp2^),\n"
+        + " emp2 as (select * from emp)\n"
+        + "select * from emp3",
+        "Table 'EMP2' not found");
+
+    // forward reference in with-item not used; should still fail
+    checkFails(
+        "with emp3 as (select * from ^emp2^),\n"
+        + " emp2 as (select * from emp)\n"
+        + "select * from emp2",
+        "Table 'EMP2' not found");
+
+    // table not used is ok
+    checkResultType(
+        "with emp2 as (select * from emp),\n"
+        + " emp3 as (select * from emp2)\n"
+        + "select * from emp2",
+        EMP_RECORD_TYPE);
+
+    // self-reference is not ok, even in table not used
+    checkFails("with emp2 as (select * from emp),\n"
+        + " emp3 as (select * from ^emp3^)\n" + "values (1)",
+        "Table 'EMP3' not found");
+
+    // self-reference not ok
+    checkFails("with emp2 as (select * from ^emp2^)\n"
+        + "select * from emp2 where false", "Table 'EMP2' not found");
+
+    // refer to 2 previous tables, not just immediately preceding
+    checkResultType("with emp2 as (select * from emp),\n"
+        + " dept2 as (select * from dept),\n"
+        + " empDept as (select emp2.empno, dept2.deptno from dept2 join emp2 using (deptno))\n"
+        + "select 1 as one from empDept",
+        "RecordType(INTEGER NOT NULL ONE) NOT NULL");
+  }
+
+  /** Tests the {@code WITH} clause with UNION. */
+  @Test public void testWithUnion() {
+    // nested WITH (parentheses required - and even with parentheses SQL
+    // standard doesn't allow sub-query to have WITH)
+    checkResultType("with emp2 as (select * from emp)\n"
+        + "select * from emp2 union all select * from emp",
+        EMP_RECORD_TYPE);
+  }
+
+  /** Tests the {@code WITH} clause in sub-queries. */
+  @Test public void testWithSubquery() {
+    // nested WITH (parentheses required - and even with parentheses SQL
+    // standard doesn't allow sub-query to have WITH)
+    checkResultType("with emp2 as (select * from emp)\n"
+        + "(\n"
+        + "  with dept2 as (select * from dept)\n"
+        + "  (\n"
+        + "    with empDept as (select emp2.empno, dept2.deptno from dept2 join emp2 using (deptno))\n"
+        + "    select 1 as one from empDept))",
+        "RecordType(INTEGER NOT NULL ONE) NOT NULL");
+
+    // WITH inside WHERE can see enclosing tables
+    checkResultType("select * from emp\n"
+        + "where exists (\n"
+        + "  with dept2 as (select * from dept where dept.deptno >= emp.deptno)\n"
+        + "  select 1 from dept2 where deptno <= emp.deptno)",
+        EMP_RECORD_TYPE);
+
+    // WITH inside FROM cannot see enclosing tables
+    checkFails("select * from emp\n"
+        + "join (\n"
+        + "  with dept2 as (select * from dept where dept.deptno >= ^emp^.deptno)\n"
+        + "  select * from dept2) as d on true",
+        "Table 'EMP' not found");
+
+    // as above, using USING
+    checkFails("select * from emp\n"
+        + "join (\n"
+        + "  with dept2 as (select * from dept where dept.deptno >= ^emp^.deptno)\n"
+        + "  select * from dept2) as d using (deptno)",
+        "Table 'EMP' not found");
+
+    // WITH inside FROM
+    checkResultType("select e.empno, d.* from emp as e\n"
+        + "join (\n"
+        + "  with dept2 as (select * from dept where dept.deptno > 10)\n"
+        + "  select deptno, 1 as one from dept2) as d using (deptno)",
+        "RecordType(INTEGER NOT NULL EMPNO,"
+        + " INTEGER NOT NULL DEPTNO,"
+        + " INTEGER NOT NULL ONE) NOT NULL");
+
+    checkFails("select ^e^.empno, d.* from emp\n"
+        + "join (\n"
+        + "  with dept2 as (select * from dept where dept.deptno > 10)\n"
+        + "  select deptno, 1 as one from dept2) as d using (deptno)",
+        "Table 'E' not found");
   }
 
   /**

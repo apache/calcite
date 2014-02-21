@@ -683,6 +683,11 @@ public interface SqlValidator {
    * @return Scope
    */
   SqlValidatorScope getOverScope(SqlNode node);
+
+  void validateWith(SqlCall with, SqlValidatorScope scope);
+  void validateWithItem(SqlCall withItem);
+
+  SqlValidatorScope getWithScope(SqlNode withItem);
 }
 
 // End SqlValidator.java

@@ -163,7 +163,7 @@ SqlNode TableOverOpt() :
 /*
  * Parses dialect-specific keywords immediately following the SELECT keyword.
  */
-void SqlSelectKeywords(List keywords) :
+void SqlSelectKeywords(List<SqlNode> keywords) :
 {}
 {
     E()
@@ -662,7 +662,7 @@ SqlNodeList ParenthesizedQueryOrCommaList(
     ExprContext exprContext) :
 {
     SqlNode e;
-    List list;
+    List<SqlNode> list;
     ExprContext firstExprContext = exprContext;
     SqlParserPos pos;
 }
@@ -828,8 +828,8 @@ SqlNode SqlStmtEof() :
  */
 SqlSelect SqlSelect() :
 {
-    List keywords = new ArrayList();
-    List selectList;
+    List<SqlNode> keywords = new ArrayList<SqlNode>();
+    List<SqlNode> selectList;
     SqlNode fromClause;
     SqlNode where;
     SqlNode groupBy;
@@ -1038,9 +1038,8 @@ SqlNode SqlInsert() :
     List keywords = new ArrayList();
     SqlIdentifier table;
     SqlNode source;
-    List columnList = null;
+    SqlNodeList columnList = null;
     SqlParserPos pos;
-    SqlParserPos columnListPos = null;
 }
 {
     <INSERT>
@@ -1051,12 +1050,7 @@ SqlNode SqlInsert() :
     }
     [
         LOOKAHEAD(2)
-        <LPAREN>
-        columnList = SimpleIdentifierCommaList()
-        {
-            columnListPos = getPos();
-        }
-        <RPAREN>
+        columnList = ParenthesizedSimpleIdentifierList()
     ]
     source = OrderedQueryOrExpr(ExprContext.ACCEPT_QUERY)
     {
@@ -1065,8 +1059,7 @@ SqlNode SqlInsert() :
             new SqlNodeList(keywords, pos),
             table,
             source,
-            (columnList != null)
-            ? new SqlNodeList(columnList, columnListPos) : null,
+            columnList,
             pos);
     }
 }
@@ -1255,9 +1248,9 @@ SqlNode WhenMatchedClause(SqlIdentifier table, SqlIdentifier alias) :
 
 SqlNode WhenNotMatchedClause(SqlIdentifier table) :
 {
-    SqlParserPos pos, insertPos, columnListPos = null;
+    SqlParserPos pos, insertPos;
     List keywords = new ArrayList();
-    List insertColumnList = null;
+    SqlNodeList insertColumnList = null;
     SqlNode rowConstructor;
     SqlNode insertValues;
 }
@@ -1270,12 +1263,7 @@ SqlNode WhenNotMatchedClause(SqlIdentifier table) :
     SqlInsertKeywords(keywords)
     [
         LOOKAHEAD(2)
-        <LPAREN>
-        insertColumnList = SimpleIdentifierCommaList()
-        {
-            columnListPos = getPos();
-        }
-        <RPAREN>
+        insertColumnList = ParenthesizedSimpleIdentifierList()
     ]
     [ <LPAREN> ]
     <VALUES> { pos = getPos(); }
@@ -1293,8 +1281,7 @@ SqlNode WhenNotMatchedClause(SqlIdentifier table) :
             new SqlNodeList(keywords, insertPos),
             table,
             insertValues,
-            (insertColumnList != null)
-                ? new SqlNodeList(insertColumnList, columnListPos) : null,
+            insertColumnList,
             insertPos);
     }
 }
@@ -1302,9 +1289,9 @@ SqlNode WhenNotMatchedClause(SqlIdentifier table) :
 /**
  * Parses the select list of a SELECT statement.
  */
-List SelectList() :
+List<SqlNode> SelectList() :
 {
-    List list = new ArrayList();
+    List<SqlNode> list = new ArrayList<SqlNode>();
     SqlNode item;
 }
 {
@@ -1411,7 +1398,7 @@ SqlNode JoinTable(SqlNode e) :
 {
     SqlNode e2, condition;
     SqlLiteral natural, joinType;
-    List list;
+    SqlNodeList list;
     SqlParserPos pos;
 }
 {
@@ -1433,7 +1420,7 @@ SqlNode JoinTable(SqlNode e) :
         }
     |
         <USING> { pos = getPos(); }
-        <LPAREN> list = SimpleIdentifierCommaList() <RPAREN> {
+        list = ParenthesizedSimpleIdentifierList() {
             SqlParserPos usingPos = pos.plus(getPos());
             return SqlStdOperatorTable.JOIN.createCall(
                 e,
@@ -1441,7 +1428,7 @@ SqlNode JoinTable(SqlNode e) :
                 joinType,
                 e2,
                 SqlJoinOperator.ConditionType.USING.symbol(usingPos),
-                new SqlNodeList(list, usingPos),
+                new SqlNodeList(list.getList(), usingPos),
                 joinType.getParserPosition());
         }
     |
@@ -1474,7 +1461,7 @@ SqlNode FromClause() :
 {
     SqlNode e, e2, condition;
     SqlLiteral natural, joinType;
-    List list;
+    SqlNodeList list;
     SqlParserPos pos;
 }
 {
@@ -1502,7 +1489,7 @@ SqlNode FromClause() :
             }
             |
             <USING> { pos = getPos(); }
-            <LPAREN> list = SimpleIdentifierCommaList() <RPAREN> {
+            list = ParenthesizedSimpleIdentifierList() {
                 SqlParserPos usingPos = pos.plus(getPos());
                 e = SqlStdOperatorTable.JOIN.createCall(
                     e,
@@ -1510,7 +1497,7 @@ SqlNode FromClause() :
                     joinType,
                     e2,
                     SqlJoinOperator.ConditionType.USING.symbol(usingPos),
-                    new SqlNodeList(list, usingPos),
+                    new SqlNodeList(list.getList(), usingPos),
                     joinType.getParserPosition());
             }
             |
@@ -1570,7 +1557,7 @@ SqlNode TableRef() :
     SqlNumericLiteral samplePercentage;
     boolean isRepeatable = false;
     int repeatableSeed = 0;
-    List<SqlNode> columnAliasList = null;
+    SqlNodeList columnAliasList = null;
 }
 {
     (
@@ -1619,7 +1606,7 @@ SqlNode TableRef() :
     )
     [
         [ <AS> ] alias = Identifier()
-        [ <LPAREN> columnAliasList = SimpleIdentifierCommaList() <RPAREN> ]
+        [ columnAliasList = ParenthesizedSimpleIdentifierList() ]
         {
             pos = getPos();
             if (columnAliasList == null) {
@@ -1629,9 +1616,8 @@ SqlNode TableRef() :
                 List<SqlNode> idList = new ArrayList<SqlNode>();
                 idList.add(tableRef);
                 idList.add(new SqlIdentifier(alias, pos));
-                idList.addAll(columnAliasList);
-                tableRef = SqlStdOperatorTable.AS.createCall(
-                    pos, idList);
+                idList.addAll(columnAliasList.getList());
+                tableRef = SqlStdOperatorTable.AS.createCall(pos, idList);
             }
         }
     ]
@@ -1778,7 +1764,7 @@ SqlNode TableConstructor() :
  */
 SqlNodeList RowConstructorList(SqlParserPos pos) :
 {
-    List list = new ArrayList();
+    List<SqlNode> list = new ArrayList<SqlNode>();
     SqlNode rowConstructor;
 }
 {
@@ -1893,7 +1879,7 @@ SqlNodeList ExpressionCommaList(
     SqlParserPos pos,
     ExprContext exprContext) :
 {
-    List list;
+    List<SqlNode> list;
     SqlNode e;
 }
 {
@@ -1945,7 +1931,7 @@ SqlNodeList WindowOpt() :
 {
     SqlIdentifier id;
     SqlWindow e;
-    List list;
+    List<SqlNode> list;
     SqlParserPos pos;
 }
 {
@@ -2094,7 +2080,7 @@ SqlNode WindowRange() :
  */
 SqlNodeList OrderBy(boolean accept) :
 {
-    List list;
+    List<SqlNode> list;
     SqlNode e;
     SqlParserPos pos;
 }
@@ -2184,12 +2170,17 @@ SqlNode SqlExpressionEof() :
  */
 SqlNode QueryOrExpr(ExprContext exprContext) :
 {
+    SqlNodeList withList = null;
     SqlNode e;
     SqlOperator op;
     SqlParserPos pos;
-    List list;
+    SqlParserPos withPos;
+    List<Object> list;
 }
 {
+    [
+        withList = WithList()
+    ]
     (
         e = LeafQueryOrExpr(exprContext)
     )
@@ -2220,7 +2211,45 @@ SqlNode QueryOrExpr(ExprContext exprContext) :
     ) *
     {
         e = SqlParserUtil.toTree(list);
+        if (withList != null) {
+            e = SqlStdOperatorTable.WITH.createCall(withList.getParserPosition(), withList, e);
+        }
         return e;
+    }
+}
+
+SqlNodeList WithList() :
+{
+    SqlCall with;
+    SqlParserPos pos;
+    SqlNodeList list;
+}
+{
+    <WITH> { list = new SqlNodeList(getPos()); }
+    with = With() {list.add(with);}
+    (
+        <COMMA> with = With() {list.add(with);}
+    )*
+    { return list; }
+}
+
+SqlCall With() :
+{
+    SqlIdentifier id;
+    SqlNodeList columnList = null;
+    SqlNode definition;
+}
+{
+    id = SimpleIdentifier()
+    [
+        LOOKAHEAD(2)
+        columnList = ParenthesizedSimpleIdentifierList()
+    ]
+    <AS>
+    definition = ParenthesizedExpression(ExprContext.ACCEPT_QUERY)
+    {
+        return SqlStdOperatorTable.WITH_ITEM.createCall(
+            id.getParserPosition(), id, columnList, definition);
     }
 }
 
@@ -2248,7 +2277,7 @@ SqlNode LeafQueryOrExpr(ExprContext exprContext) :
  */
 SqlNode Expression(ExprContext exprContext) :
 {
-    List list;
+    List<Object> list;
     SqlNode e;
 }
 {
@@ -2275,9 +2304,9 @@ SqlNode Expression(ExprContext exprContext) :
  * = b) like (c = d)' because (a = b) and (c = d) are parsed as separate
  * expressions.
  */
-List Expression2(ExprContext exprContext) :
+List<Object> Expression2(ExprContext exprContext) :
 {
-    List list, list2;
+    List<Object> list, list2;
     SqlNodeList nodeList;
     SqlNode e;
     SqlOperator op;
@@ -2440,7 +2469,7 @@ List Expression2(ExprContext exprContext) :
 SqlNode Expression3(ExprContext exprContext) :
 {
     SqlNode e;
-    List list;
+    SqlNodeList list;
     SqlNodeList list1;
     SqlNodeList list2;
     SqlPrefixOperator op;
@@ -2459,7 +2488,7 @@ SqlNode Expression3(ExprContext exprContext) :
     e = CursorExpression(exprContext) { return e; }
     |
     LOOKAHEAD(3)
-    <ROW> <LPAREN> list = SimpleIdentifierCommaList() <RPAREN>
+    <ROW> list = ParenthesizedSimpleIdentifierList()
     {
         pos = getPos();
         if (exprContext != ExprContext.ACCEPT_ALL
@@ -2469,8 +2498,7 @@ SqlNode Expression3(ExprContext exprContext) :
                 pos,
                 EigenbaseResource.instance().IllegalRowExpression.ex());
         }
-        return SqlStdOperatorTable.ROW.createCall(
-            pos, SqlParserUtil.toNodeArray(list));
+        return SqlStdOperatorTable.ROW.createCall(list);
     }
     |
     op = PrefixRowOperator()
@@ -2530,7 +2558,7 @@ SqlNode Expression3(ExprContext exprContext) :
                     if (call.getKind() == SqlKind.MINUS
                         && (call.operands.length == 2))
                     {
-                        List list3 = startList(call.operands[0]);
+                        List<SqlNode> list3 = startList(call.operands[0]);
                         list3.add(call.operands[1]);
                         list3.add(e);
                         return SqlStdOperatorTable.MINUS_DATE.createCall(
@@ -2762,7 +2790,7 @@ SqlNode StringLiteral() :
 {
     String p;
     int nfrags = 0;
-    List frags = null;
+    List<SqlLiteral> frags = null;
     char unicodeEscapeChar = 0;
 }
 {
@@ -2803,7 +2831,7 @@ SqlNode StringLiteral() :
     {
         assert (nfrags > 0);
         if (nfrags == 1) {
-            return (SqlLiteral) frags.get(0); // just the head fragment
+            return frags.get(0); // just the head fragment
         } else {
             SqlParserPos pos2 = SqlParserPos.sum(frags);
             return SqlStdOperatorTable.LITERAL_CHAIN.createCall(pos2, frags);
@@ -2870,7 +2898,7 @@ SqlNode StringLiteral() :
     {
     }
     {
-        assert (nfrags > 0);
+        assert nfrags > 0;
         if (nfrags == 1) {
             // just the head fragment
             SqlLiteral lit = (SqlLiteral) frags.get(0);
@@ -2943,7 +2971,7 @@ SqlLiteral DateTimeLiteral() :
 /** Parses a MULTISET constructor */
 SqlNode MultisetConstructor() :
 {
-    List args;
+    List<SqlNode> args;
     SqlNode e;
     SqlParserPos pos;
 }
@@ -3258,16 +3286,34 @@ SqlIdentifier SimpleIdentifier() :
 /**
  * Parses a comma-separated list of simple identifiers.
  */
-List SimpleIdentifierCommaList() :
+SqlNodeList SimpleIdentifierCommaList() :
 {
-    List list = new ArrayList();
+    List<SqlIdentifier> list = new ArrayList<SqlIdentifier>();
     SqlIdentifier id;
 }
 {
     id = SimpleIdentifier() {list.add(id);}
     (<COMMA> id = SimpleIdentifier() {list.add(id);}) *
     {
-        return list;
+        return new SqlNodeList(list, getPos());
+    }
+}
+
+/**
+  * List of simple identifiers in parentheses. The position extends from the
+  * open parenthesis to the close parenthesis.
+  */
+SqlNodeList ParenthesizedSimpleIdentifierList() :
+{
+    SqlParserPos pos;
+    SqlNodeList list;
+}
+{
+    <LPAREN> { pos = getPos(); }
+    list = SimpleIdentifierCommaList()
+    <RPAREN>
+    {
+        return list.clone(pos.plus(getPos()));
     }
 }
 
@@ -3589,7 +3635,7 @@ SqlNode CursorExpression(ExprContext exprContext) :
 SqlNode BuiltinFunctionCall() :
 {
     String name;
-    List args = null;
+    List<SqlNode> args = null;
     SqlNode e = null;
     SqlParserPos pos;
     SqlParserPos starPos;
@@ -3873,7 +3919,7 @@ SqlNode NamedFunctionCall() :
 {
     SqlIdentifier qualifiedName;
     SqlIdentifier id = null;
-    List args;
+    List<SqlNode> args;
     SqlParserPos pos;
     SqlParserPos starPos;
     SqlParserPos overPos = null;
