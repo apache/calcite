@@ -103,8 +103,28 @@ public class RelCollationImpl implements RelCollation {
             ((RelCollationImpl) trait).fieldCollations);
   }
 
+  /** Returns a string representation of this collation, suitably terse given
+   * that it will appear in plan traces. Examples:
+   * "[]", "[2]", "[0 DESC, 1]", "[0 DESC, 1 ASC NULLS LAST]". */
   public String toString() {
-    return fieldCollations.toString();
+    Iterator<RelFieldCollation> it = fieldCollations.iterator();
+    if (! it.hasNext()) {
+      return "[]";
+    }
+    StringBuilder sb = new StringBuilder();
+    sb.append('[');
+    for (;;) {
+      RelFieldCollation e = it.next();
+      sb.append(e.getFieldIndex());
+      if (e.direction != RelFieldCollation.Direction.ASCENDING
+          || e.nullDirection != RelFieldCollation.NullDirection.UNSPECIFIED) {
+        sb.append(' ').append(e.shortString());
+      }
+      if (!it.hasNext()) {
+        return sb.append(']').toString();
+      }
+      sb.append(',').append(' ');
+    }
   }
 
   /**

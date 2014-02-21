@@ -633,7 +633,7 @@ EmptyRel
         </Resource>
         <Resource name="planBefore">
             <![CDATA[
-SortRel(sort0=[$7], dir0=[Ascending])
+SortRel(sort0=[$7], dir0=[ASC])
   ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
     FilterRel(condition=[false])
       TableAccessRel(table=[[CATALOG, SALES, EMP]])
@@ -641,7 +641,7 @@ SortRel(sort0=[$7], dir0=[Ascending])
         </Resource>
         <Resource name="planAfter">
             <![CDATA[
-SortRel(sort0=[$7], dir0=[Ascending])
+SortRel(sort0=[$7], dir0=[ASC])
   ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
     EmptyRel
 ]]>
@@ -653,7 +653,7 @@ SortRel(sort0=[$7], dir0=[Ascending])
         </Resource>
         <Resource name="planBefore">
             <![CDATA[
-SortRel(sort0=[$7], dir0=[Ascending], fetch=[0])
+SortRel(sort0=[$7], dir0=[ASC], fetch=[0])
   ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
     TableAccessRel(table=[[CATALOG, SALES, EMP]])
 ]]>

@@ -1662,7 +1662,7 @@ public class JdbcTest {
             + "order by 1 fetch first 5 rows only")
         .explainContains(
             "PLAN=EnumerableLimitRel(fetch=[5])\n"
-            + "  EnumerableSortRel(sort0=[$0], dir0=[Ascending])\n"
+            + "  EnumerableSortRel(sort0=[$0], dir0=[ASC])\n"
             + "    EnumerableCalcRel(expr#0..23=[{inputs}], expr#24=[10], expr#25=[<($t0, $t24)], store_id=[$t0], grocery_sqft=[$t16], $condition=[$t25])\n"
             + "      EnumerableTableAccessRel(table=[[foodmart2, store]])\n")
         .returns(
@@ -1834,7 +1834,7 @@ public class JdbcTest {
             "select * from \"time_by_day\"\n"
             + "order by \"time_id\"")
         .explainContains(
-            "PLAN=EnumerableSortRel(sort0=[$0], dir0=[Ascending])\n"
+            "PLAN=EnumerableSortRel(sort0=[$0], dir0=[ASC])\n"
             + "  EnumerableTableAccessRel(table=[[foodmart2, time_by_day]])\n\n");
   }
 
@@ -1886,7 +1886,7 @@ public class JdbcTest {
             "[S REAL, FIVE INTEGER NOT NULL, M REAL, C BIGINT, deptno INTEGER NOT NULL, empid INTEGER NOT NULL]")
         .explainContains(
             "EnumerableCalcRel(expr#0..7=[{inputs}], expr#8=[0], expr#9=[>($t4, $t8)], expr#10=[null], expr#11=[CASE($t9, $t5, $t10)], expr#12=[CAST($t11):JavaType(class java.lang.Float)], expr#13=[5], expr#14=[CAST($t6):JavaType(class java.lang.Float)], expr#15=[CAST($t7):BIGINT], S=[$t12], FIVE=[$t13], M=[$t14], C=[$t15], deptno=[$t1], empid=[$t0])\n"
-            + "  EnumerableWindowRel(window#0=[window(partition {1} order by [0 Ascending] rows between 1 PRECEDING and CURRENT ROW aggs [COUNT($3), $SUM0($3), MIN($2), COUNT()])])\n"
+            + "  EnumerableWindowRel(window#0=[window(partition {1} order by [0] rows between 1 PRECEDING and CURRENT ROW aggs [COUNT($3), $SUM0($3), MIN($2), COUNT()])])\n"
             + "    EnumerableCalcRel(expr#0..4=[{inputs}], expr#5=[+($t3, $t0)], proj#0..1=[{exprs}], salary=[$t3], $3=[$t5])\n"
             + "      EnumerableTableAccessRel(table=[[hr, emps]])\n")
         .returns(

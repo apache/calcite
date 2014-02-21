@@ -21,6 +21,10 @@ import java.util.*;
 
 import org.eigenbase.util.Pair;
 
+import net.hydromatic.optiq.runtime.FlatLists;
+
+import com.google.common.collect.ImmutableList;
+
 /**
  * RelTraitSet represents an ordered set of {@link RelTrait}s.
  */
@@ -31,6 +35,7 @@ public final class RelTraitSet extends AbstractList<RelTrait> {
 
   private final Cache cache;
   private final RelTrait[] traits;
+  private final String string;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -47,6 +52,7 @@ public final class RelTraitSet extends AbstractList<RelTrait> {
     //   the caller has made a copy.
     this.cache = cache;
     this.traits = traits;
+    this.string = computeString();
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -279,11 +285,16 @@ public final class RelTraitSet extends AbstractList<RelTrait> {
     return Arrays.equals(traits, relTraits);
   }
 
+  @Override
+  public String toString() {
+    return string;
+  }
+
   /**
    * Outputs the traits of this set as a String. Traits are output in order,
    * separated by periods.
    */
-  public String toString() {
+  protected String computeString() {
     StringBuilder s = new StringBuilder();
     for (int i = 0; i < traits.length; i++) {
       final RelTrait trait = traits[i];
@@ -335,10 +346,28 @@ public final class RelTraitSet extends AbstractList<RelTrait> {
     if (i >= 0) {
       return replace(i, trait);
     }
+    // Optimize time & space to represent a trait set key.
+    //
+    // Don't build a trait set until we're sure there isn't an equivalent one.
+    // Then we can justify the cost of computing RelTraitSet.string in the
+    // constructor.
     final RelTrait canonizedTrait = canonize(trait);
-    RelTrait[] newTraits = Arrays.copyOf(traits, traits.length + 1);
-    newTraits[newTraits.length - 1] = canonizedTrait;
-    return cache.getOrAdd(new RelTraitSet(cache, newTraits));
+    List<RelTrait> newTraits;
+    switch (traits.length) {
+    case 0:
+      newTraits = ImmutableList.of(canonizedTrait);
+      break;
+    case 1:
+      newTraits = FlatLists.of(traits[0], canonizedTrait);
+      break;
+    case 2:
+      newTraits = FlatLists.of(traits[0], traits[1], canonizedTrait);
+      break;
+    default:
+      newTraits = ImmutableList.<RelTrait>builder().add(traits)
+          .add(canonizedTrait).build();
+    }
+    return cache.getOrAdd(newTraits);
   }
 
   public RelTraitSet plusAll(RelTrait[] traits) {
@@ -355,18 +384,20 @@ public final class RelTraitSet extends AbstractList<RelTrait> {
 
   /** Cache of trait sets. */
   private static class Cache {
-    final Map<RelTraitSet, RelTraitSet> map =
-        new HashMap<RelTraitSet, RelTraitSet>();
+    final Map<List<RelTrait>, RelTraitSet> map =
+        new HashMap<List<RelTrait>, RelTraitSet>();
 
     Cache() {
     }
 
-    RelTraitSet getOrAdd(RelTraitSet traitSet) {
-      RelTraitSet traitSet1 = map.get(traitSet);
+    RelTraitSet getOrAdd(List<RelTrait> traits) {
+      RelTraitSet traitSet1 = map.get(traits);
       if (traitSet1 != null) {
         return traitSet1;
       }
-      map.put(traitSet, traitSet);
+      final RelTraitSet traitSet =
+          new RelTraitSet(this, traits.toArray(new RelTrait[traits.size()]));
+      map.put(traits, traitSet);
       return traitSet;
     }
   }

@@ -17,10 +17,8 @@
 */
 package org.eigenbase.rel;
 
-import org.eigenbase.util.Util;
-
 /**
- * Definition of the ordering of one field of a RelNode whose
+ * Definition of the ordering of one field of a {@link RelNode} whose
  * output is to be sorted.
  *
  * @see RelCollation
@@ -36,25 +34,25 @@ public class RelFieldCollation {
      * Ascending direction: A value is always followed by a greater or equal
      * value.
      */
-    ASCENDING,
+    ASCENDING("ASC"),
 
     /**
      * Strictly ascending direction: A value is always followed by a greater
      * value.
      */
-    STRICTLY_ASCENDING,
+    STRICTLY_ASCENDING("SASC"),
 
     /**
      * Descending direction: A value is always followed by a lesser or equal
      * value.
      */
-    DESCENDING,
+    DESCENDING("DESC"),
 
     /**
      * Strictly descending direction: A value is always followed by a lesser
      * value.
      */
-    STRICTLY_DESCENDING,
+    STRICTLY_DESCENDING("SDESC"),
 
     /**
      * Clustered direction: Values occur in no particular order, and the
@@ -62,12 +60,12 @@ public class RelFieldCollation {
      * that. This sort order tends to occur when values are ordered
      * according to a hash-key.
      */
-    CLUSTERED;
+    CLUSTERED("CLU");
 
-    @Override
-    public String toString() {
-      // For backwards-compatibility, short-term.
-      return Util.toCamelCase("_" + name());
+    public final String shortString;
+
+    Direction(String shortString) {
+      this.shortString = shortString;
     }
   }
 
@@ -167,7 +165,7 @@ public class RelFieldCollation {
 
   public String toString() {
     return fieldIndex
-        + " " + direction
+        + " " + direction.shortString
         + (nullDirection == NullDirection.UNSPECIFIED
         ? ""
         : " " + nullDirection);
@@ -176,11 +174,11 @@ public class RelFieldCollation {
   public String shortString() {
     switch (nullDirection) {
     case FIRST:
-      return direction + "-nulls-first";
+      return direction.shortString + "-nulls-first";
     case LAST:
-      return direction + "-nulls-last";
+      return direction.shortString + "-nulls-last";
     default:
-      return direction.toString();
+      return direction.shortString;
     }
   }
 }
