@@ -278,7 +278,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
     if (fieldsUsed.cardinality() == 0) {
       final Mapping mapping =
           Mappings.create(
-              MappingType.InverseSurjection,
+              MappingType.INVERSE_SURJECTION,
               fieldCount,
               1);
       final RexLiteral expr =
@@ -306,7 +306,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
             inputMapping, newInput);
     final Mapping mapping =
         Mappings.create(
-            MappingType.InverseSurjection,
+            MappingType.INVERSE_SURJECTION,
             fieldCount,
             fieldsUsed.cardinality());
     for (Ord<RexNode> ord : Ord.zip(project.getProjects())) {
@@ -542,7 +542,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
 
     Mapping mapping =
         Mappings.create(
-            MappingType.InverseSurjection,
+            MappingType.INVERSE_SURJECTION,
             fieldCount,
             newFieldCount);
     for (int i = 0; i < newSystemFieldCount; ++i) {
@@ -711,7 +711,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
     // Offset due to the number of system fields having changed.
     Mapping mapping =
         Mappings.create(
-            MappingType.InverseSurjection,
+            MappingType.INVERSE_SURJECTION,
             rowType.getFieldCount(),
             groupCount
                 + usedAggCallCount);
@@ -892,7 +892,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
   private Mapping createMapping(BitSet fieldsUsed, int fieldCount) {
     final Mapping mapping =
         Mappings.create(
-            MappingType.InverseSurjection,
+            MappingType.INVERSE_SURJECTION,
             fieldCount,
             fieldsUsed.cardinality());
     int i = 0;

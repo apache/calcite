@@ -164,7 +164,7 @@ public class SqlIdentifier extends SqlNode {
       int leftPrec,
       int rightPrec) {
     final SqlWriter.Frame frame =
-        writer.startList(SqlWriter.FrameTypeEnum.Identifier);
+        writer.startList(SqlWriter.FrameTypeEnum.IDENTIFIER);
     for (String name : names) {
       writer.sep(".");
       if (name.equals("*")) {

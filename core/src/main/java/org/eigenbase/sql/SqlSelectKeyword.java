@@ -23,8 +23,8 @@ import org.eigenbase.sql.parser.SqlParserPos;
  * Defines the keywords which can occur immediately after the "SELECT" keyword.
  */
 public enum SqlSelectKeyword implements SqlLiteral.SqlSymbol {
-  Distinct,
-  All;
+  DISTINCT,
+  ALL;
 
   /**
    * Creates a parse-tree node representing an occurrence of this keyword

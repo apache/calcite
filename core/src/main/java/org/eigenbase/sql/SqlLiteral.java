@@ -349,7 +349,7 @@ public class SqlLiteral extends SqlNode {
   }
 
   public SqlMonotonicity getMonotonicity(SqlValidatorScope scope) {
-    return SqlMonotonicity.Constant;
+    return SqlMonotonicity.CONSTANT;
   }
 
   /**

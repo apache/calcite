@@ -139,7 +139,7 @@ public class SqlSelectOperator extends SqlOperator {
       int leftPrec,
       int rightPrec) {
     final SqlWriter.Frame selectFrame =
-        writer.startList(SqlWriter.FrameTypeEnum.Select);
+        writer.startList(SqlWriter.FrameTypeEnum.SELECT);
     writer.sep("SELECT");
     final SqlNodeList keywords =
         (SqlNodeList) operands[SqlSelect.KEYWORDS_OPERAND];
@@ -155,7 +155,7 @@ public class SqlSelectOperator extends SqlOperator {
               SqlParserPos.ZERO);
     }
     final SqlWriter.Frame selectListFrame =
-        writer.startList(SqlWriter.FrameTypeEnum.SelectList);
+        writer.startList(SqlWriter.FrameTypeEnum.SELECT_LIST);
     unparseListClause(writer, selectClause);
     writer.endList(selectListFrame);
 
@@ -168,7 +168,7 @@ public class SqlSelectOperator extends SqlOperator {
       // sure that an un-joined nested select will be properly
       // parenthesized
       final SqlWriter.Frame fromFrame =
-          writer.startList(SqlWriter.FrameTypeEnum.FromList);
+          writer.startList(SqlWriter.FrameTypeEnum.FROM_LIST);
       fromClause.unparse(
           writer,
           SqlStdOperatorTable.JOIN.getLeftPrec() - 1,
@@ -203,7 +203,7 @@ public class SqlSelectOperator extends SqlOperator {
 
         // unparse in a WhereList frame
         final SqlWriter.Frame whereFrame =
-            writer.startList(SqlWriter.FrameTypeEnum.WhereList);
+            writer.startList(SqlWriter.FrameTypeEnum.WHERE_LIST);
         unparseListClause(
             writer,
             new SqlNodeList(
@@ -220,10 +220,10 @@ public class SqlSelectOperator extends SqlOperator {
     if (groupClause != null) {
       writer.sep("GROUP BY");
       final SqlWriter.Frame groupFrame =
-          writer.startList(SqlWriter.FrameTypeEnum.GroupByList);
+          writer.startList(SqlWriter.FrameTypeEnum.GROUP_BY_LIST);
       if (groupClause.getList().isEmpty()) {
         final SqlWriter.Frame frame =
-            writer.startList(SqlWriter.FrameTypeEnum.Simple, "(", ")");
+            writer.startList(SqlWriter.FrameTypeEnum.SIMPLE, "(", ")");
         writer.endList(frame);
       } else {
         unparseListClause(writer, groupClause);
@@ -240,7 +240,7 @@ public class SqlSelectOperator extends SqlOperator {
     if (windowDecls.size() > 0) {
       writer.sep("WINDOW");
       final SqlWriter.Frame windowFrame =
-          writer.startList(SqlWriter.FrameTypeEnum.WindowDeclList);
+          writer.startList(SqlWriter.FrameTypeEnum.WINDOW_DECL_LIST);
       for (int i = 0; i < windowDecls.size(); i++) {
         SqlNode windowDecl = windowDecls.get(i);
         writer.sep(",");
@@ -252,7 +252,7 @@ public class SqlSelectOperator extends SqlOperator {
     if (orderClause != null) {
       writer.sep("ORDER BY");
       final SqlWriter.Frame orderFrame =
-          writer.startList(SqlWriter.FrameTypeEnum.OrderByList);
+          writer.startList(SqlWriter.FrameTypeEnum.ORDER_BY_LIST);
       unparseListClause(writer, orderClause);
       writer.endList(orderFrame);
     }

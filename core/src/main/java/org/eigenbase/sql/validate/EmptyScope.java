@@ -112,8 +112,8 @@ class EmptyScope implements SqlValidatorScope {
     return
         ((expr instanceof SqlLiteral)
             || (expr instanceof SqlDynamicParam)
-            || (expr instanceof SqlDataTypeSpec)) ? SqlMonotonicity.Constant
-            : SqlMonotonicity.NotMonotonic;
+            || (expr instanceof SqlDataTypeSpec)) ? SqlMonotonicity.CONSTANT
+            : SqlMonotonicity.NOT_MONOTONIC;
   }
 
   public SqlNodeList getOrderList() {

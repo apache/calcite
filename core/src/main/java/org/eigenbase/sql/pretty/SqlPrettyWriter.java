@@ -91,9 +91,9 @@ import org.eigenbase.util.*;
  * <tr>
  * <td>{@link #setSubqueryStyle SubqueryStyle}</td>
  * <td>Style for formatting sub-queries. Values are: {@link
- * org.eigenbase.sql.SqlWriter.SubqueryStyle#Hyde Hyde}, {@link
- * org.eigenbase.sql.SqlWriter.SubqueryStyle#Black Black}.</td>
- * <td>{@link org.eigenbase.sql.SqlWriter.SubqueryStyle#Hyde Hyde}</td>
+ * org.eigenbase.sql.SqlWriter.SubqueryStyle#HYDE Hyde}, {@link
+ * org.eigenbase.sql.SqlWriter.SubqueryStyle#BLACK Black}.</td>
+ * <td>{@link org.eigenbase.sql.SqlWriter.SubqueryStyle#HYDE Hyde}</td>
  * </tr>
  * <tr>
  * <td>{@link #setLineLength LineLength}</td>
@@ -183,7 +183,7 @@ public class SqlPrettyWriter implements SqlWriter {
 
   /**
    * Sets the subquery style. Default is {@link
-   * org.eigenbase.sql.SqlWriter.SubqueryStyle#Hyde}.
+   * org.eigenbase.sql.SqlWriter.SubqueryStyle#HYDE}.
    */
   public void setSubqueryStyle(SubqueryStyle subqueryStyle) {
     this.subqueryStyle = subqueryStyle;
@@ -207,9 +207,9 @@ public class SqlPrettyWriter implements SqlWriter {
 
   public boolean inQuery() {
     return (frame == null)
-        || (frame.frameType == FrameTypeEnum.OrderBy)
-        || (frame.frameType == FrameTypeEnum.With)
-        || (frame.frameType == FrameTypeEnum.Setop);
+        || (frame.frameType == FrameTypeEnum.ORDER_BY)
+        || (frame.frameType == FrameTypeEnum.WITH)
+        || (frame.frameType == FrameTypeEnum.SETOP);
   }
 
   public boolean isQuoteAllIdentifiers() {
@@ -251,7 +251,7 @@ public class SqlPrettyWriter implements SqlWriter {
     windowDeclListNewline = true;
     updateSetListNewline = true;
     windowNewline = false;
-    subqueryStyle = SubqueryStyle.Hyde;
+    subqueryStyle = SubqueryStyle.HYDE;
     alwaysUseParentheses = false;
     whereListItemsOnSeparateLines = false;
     lineLength = 0;
@@ -451,7 +451,7 @@ public class SqlPrettyWriter implements SqlWriter {
       FrameTypeEnum frameTypeEnum = (FrameTypeEnum) frameType;
 
       switch (frameTypeEnum) {
-      case WindowDeclList:
+      case WINDOW_DECL_LIST:
         return new FrameImpl(
             frameType,
             keyword,
@@ -465,7 +465,7 @@ public class SqlPrettyWriter implements SqlWriter {
             false,
             false);
 
-      case UpdateSetList:
+      case UPDATE_SET_LIST:
         return new FrameImpl(
             frameType,
             keyword,
@@ -479,7 +479,7 @@ public class SqlPrettyWriter implements SqlWriter {
             false,
             false);
 
-      case SelectList:
+      case SELECT_LIST:
         return new FrameImpl(
             frameType,
             keyword,
@@ -493,8 +493,8 @@ public class SqlPrettyWriter implements SqlWriter {
             false,
             false);
 
-      case OrderByList:
-      case GroupByList:
+      case ORDER_BY_LIST:
+      case GROUP_BY_LIST:
         return new FrameImpl(
             frameType,
             keyword,
@@ -508,9 +508,9 @@ public class SqlPrettyWriter implements SqlWriter {
             false,
             false);
 
-      case Subquery:
+      case SUB_QUERY:
         switch (subqueryStyle) {
-        case Black:
+        case BLACK:
 
           // Generate, e.g.:
           //
@@ -533,7 +533,7 @@ public class SqlPrettyWriter implements SqlWriter {
               newlineAndIndent();
             }
           };
-        case Hyde:
+        case HYDE:
 
           // Generate, e.g.:
           //
@@ -559,9 +559,9 @@ public class SqlPrettyWriter implements SqlWriter {
           throw Util.unexpected(subqueryStyle);
         }
 
-      case OrderBy:
-      case Offset:
-      case Fetch:
+      case ORDER_BY:
+      case OFFSET:
+      case FETCH:
         return new FrameImpl(
             frameType,
             keyword,
@@ -575,7 +575,7 @@ public class SqlPrettyWriter implements SqlWriter {
             false,
             false);
 
-      case Select:
+      case SELECT:
         return new FrameImpl(
             frameType,
             keyword,
@@ -589,7 +589,7 @@ public class SqlPrettyWriter implements SqlWriter {
             false,
             false);
 
-      case Setop:
+      case SETOP:
         return new FrameImpl(
             frameType,
             keyword,
@@ -603,7 +603,7 @@ public class SqlPrettyWriter implements SqlWriter {
             false,
             false);
 
-      case Window:
+      case WINDOW:
         return new FrameImpl(
             frameType,
             keyword,
@@ -617,7 +617,7 @@ public class SqlPrettyWriter implements SqlWriter {
             false,
             false);
 
-      case FunCall:
+      case FUN_CALL:
         setNeedWhitespace(false);
         return new FrameImpl(
             frameType,
@@ -632,8 +632,8 @@ public class SqlPrettyWriter implements SqlWriter {
             false,
             false);
 
-      case Identifier:
-      case Simple:
+      case IDENTIFIER:
+      case SIMPLE:
         return new FrameImpl(
             frameType,
             keyword,
@@ -647,7 +647,7 @@ public class SqlPrettyWriter implements SqlWriter {
             false,
             false);
 
-      case WhereList:
+      case WHERE_LIST:
         return new FrameImpl(
             frameType,
             keyword,
@@ -661,7 +661,7 @@ public class SqlPrettyWriter implements SqlWriter {
             false,
             false);
 
-      case FromList:
+      case FROM_LIST:
         return new FrameImpl(
             frameType,
             keyword,
@@ -905,7 +905,7 @@ public class SqlPrettyWriter implements SqlWriter {
   public Frame startFunCall(String funName) {
     keyword(funName);
     setNeedWhitespace(false);
-    return startList(FrameTypeEnum.FunCall, "(", ")");
+    return startList(FrameTypeEnum.FUN_CALL, "(", ")");
   }
 
   public void endFunCall(Frame frame) {
@@ -913,7 +913,7 @@ public class SqlPrettyWriter implements SqlWriter {
   }
 
   public Frame startList(String open, String close) {
-    return startList(FrameTypeEnum.Simple, null, open, close);
+    return startList(FrameTypeEnum.SIMPLE, null, open, close);
   }
 
   public Frame startList(FrameTypeEnum frameType) {

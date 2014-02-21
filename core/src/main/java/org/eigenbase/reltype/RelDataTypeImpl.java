@@ -253,7 +253,7 @@ public abstract class RelDataTypeImpl
 
   // implement RelDataType
   public RelDataTypeComparability getComparability() {
-    return RelDataTypeComparability.All;
+    return RelDataTypeComparability.ALL;
   }
 
   /**

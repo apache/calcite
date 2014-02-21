@@ -674,7 +674,7 @@ public abstract class SqlOperator {
   /**
    * Returns whether this operator is monotonic.
    *
-   * <p>Default implementation returns {@link SqlMonotonicity#NotMonotonic}.
+   * <p>Default implementation returns {@link SqlMonotonicity#NOT_MONOTONIC}.
    *
    * @param call  Call to this operator
    * @param scope Scope in which the call occurs
@@ -682,7 +682,7 @@ public abstract class SqlOperator {
   public SqlMonotonicity getMonotonicity(
       SqlCall call,
       SqlValidatorScope scope) {
-    return SqlMonotonicity.NotMonotonic;
+    return SqlMonotonicity.NOT_MONOTONIC;
   }
 
   /**

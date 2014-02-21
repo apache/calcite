@@ -94,7 +94,7 @@ public class SqlDelete extends SqlCall {
       int leftPrec,
       int rightPrec) {
     final SqlWriter.Frame frame =
-        writer.startList(SqlWriter.FrameTypeEnum.Select, "DELETE FROM", "");
+        writer.startList(SqlWriter.FrameTypeEnum.SELECT, "DELETE FROM", "");
     getTargetTable().unparse(
         writer,
         getOperator().getLeftPrec(),

@@ -39,7 +39,7 @@ public class SqlExplain extends SqlCall {
    * The level of abstraction with which to display the plan.
    */
   public static enum Depth implements SqlLiteral.SqlSymbol {
-    Type, Logical, Physical;
+    TYPE, LOGICAL, PHYSICAL;
 
     /**
      * Creates a parse-tree node representing an occurrence of this symbol
@@ -110,14 +110,14 @@ public class SqlExplain extends SqlCall {
    * @return whether physical plan implementation should be returned
    */
   public boolean withImplementation() {
-    return getDepth() == Depth.Physical;
+    return getDepth() == Depth.PHYSICAL;
   }
 
   /**
    * @return whether type should be returned
    */
   public boolean withType() {
-    return getDepth() == Depth.Type;
+    return getDepth() == Depth.TYPE;
   }
 
   /**
@@ -145,13 +145,13 @@ public class SqlExplain extends SqlCall {
       break;
     }
     switch (getDepth()) {
-    case Type:
+    case TYPE:
       writer.keyword("WITH TYPE");
       break;
-    case Logical:
+    case LOGICAL:
       writer.keyword("WITHOUT IMPLEMENTATION");
       break;
-    case Physical:
+    case PHYSICAL:
       writer.keyword("WITH IMPLEMENTATION");
       break;
     default:

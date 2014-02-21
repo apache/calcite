@@ -174,7 +174,7 @@ public class SqlWindowOperator extends SqlOperator {
       int leftPrec,
       int rightPrec) {
     final SqlWriter.Frame frame =
-        writer.startList(SqlWriter.FrameTypeEnum.Window, "(", ")");
+        writer.startList(SqlWriter.FrameTypeEnum.WINDOW, "(", ")");
     SqlIdentifier refName =
         (SqlIdentifier) SqlWindow.Operand.REF_NAME.get(operands);
     if (refName != null) {
@@ -568,7 +568,7 @@ public class SqlWindowOperator extends SqlOperator {
       SqlIdentifier columnId = columnName.toIdentifier();
       final SqlMonotonicity monotonicity =
           scope.getMonotonicity(columnId);
-      if (monotonicity != SqlMonotonicity.NotMonotonic) {
+      if (monotonicity != SqlMonotonicity.NOT_MONOTONIC) {
         return true;
       }
     }

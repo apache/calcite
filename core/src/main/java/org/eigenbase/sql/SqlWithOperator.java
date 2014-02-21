@@ -47,7 +47,7 @@ public class SqlWithOperator extends SqlSpecialOperator {
       int rightPrec) {
     final Call call = Call.of(ImmutableList.copyOf(operands));
     final SqlWriter.Frame frame =
-        writer.startList(SqlWriter.FrameTypeEnum.With, "WITH", "");
+        writer.startList(SqlWriter.FrameTypeEnum.WITH, "WITH", "");
     final SqlWriter.Frame frame1 = writer.startList("", "");
     for (SqlNode node : call.withList) {
       writer.sep(",");

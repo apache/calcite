@@ -2618,7 +2618,7 @@ public class SqlToRelConverter {
               select,
               orderItem,
               extraOrderExprs,
-              RelFieldCollation.Direction.Ascending,
+              RelFieldCollation.Direction.ASCENDING,
               RelFieldCollation.NullDirection.UNSPECIFIED));
     }
   }
@@ -2635,7 +2635,7 @@ public class SqlToRelConverter {
           select,
           ((SqlCall) orderItem).operands[0],
           extraExprs,
-          RelFieldCollation.Direction.Descending,
+          RelFieldCollation.Direction.DESCENDING,
           nullDirection);
     case NULLS_FIRST:
       return convertOrderItem(
@@ -4511,7 +4511,7 @@ public class SqlToRelConverter {
         boolean distinct = false;
         SqlLiteral quantifier = call.getFunctionQuantifier();
         if ((null != quantifier)
-            && (quantifier.getValue() == SqlSelectKeyword.Distinct)) {
+            && (quantifier.getValue() == SqlSelectKeyword.DISTINCT)) {
           distinct = true;
         }
         final AggregateCall aggCall =

@@ -28,8 +28,9 @@ import org.eigenbase.util.*;
  * changed.
  */
 public enum RelDataTypeComparability {
-  None("No comparisons allowed"), Unordered("Only equals/not-equals allowed"),
-  All("All comparisons allowed");
+  NONE("No comparisons allowed"),
+  UNORDERED("Only equals/not-equals allowed"),
+  ALL("All comparisons allowed");
 
   RelDataTypeComparability(String description) {
     Util.discard(description);

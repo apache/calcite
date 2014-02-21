@@ -21,7 +21,8 @@ package org.eigenbase.sql.validate;
  * Enumeration of valid SQL compatiblity modes.
  */
 public enum SqlConformance {
-  Default, Strict92, Strict99, Pragmatic99, Oracle10g, Sql2003, Pragmatic2003;
+  DEFAULT, STRICT_92, STRICT_99, PRAGMATIC_99, ORACLE_10, STRICT_2003,
+  PRAGMATIC_2003;
 
   /**
    * Whether 'order by 2' is interpreted to mean 'sort by the 2nd column in
@@ -29,11 +30,11 @@ public enum SqlConformance {
    */
   public boolean isSortByOrdinal() {
     switch (this) {
-    case Default:
-    case Oracle10g:
-    case Strict92:
-    case Pragmatic99:
-    case Pragmatic2003:
+    case DEFAULT:
+    case ORACLE_10:
+    case STRICT_92:
+    case PRAGMATIC_99:
+    case PRAGMATIC_2003:
       return true;
     default:
       return false;
@@ -46,9 +47,9 @@ public enum SqlConformance {
    */
   public boolean isSortByAlias() {
     switch (this) {
-    case Default:
-    case Oracle10g:
-    case Strict92:
+    case DEFAULT:
+    case ORACLE_10:
+    case STRICT_92:
       return true;
     default:
       return false;
@@ -60,7 +61,7 @@ public enum SqlConformance {
    * because the alias "x" obscures it.
    */
   public boolean isSortByAliasObscures() {
-    return this == SqlConformance.Strict92;
+    return this == SqlConformance.STRICT_92;
   }
 }
 

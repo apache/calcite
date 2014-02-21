@@ -234,7 +234,7 @@ public abstract class SqlUtil {
       return;
     }
     final SqlWriter.Frame frame =
-        writer.startList(SqlWriter.FrameTypeEnum.FunCall, "(", ")");
+        writer.startList(SqlWriter.FrameTypeEnum.FUN_CALL, "(", ")");
     if (null != quantifier) {
       quantifier.unparse(writer, 0, 0);
     }
@@ -260,8 +260,8 @@ public abstract class SqlUtil {
     final SqlWriter.Frame frame =
         writer.startList(
             (binop instanceof SqlSetOperator)
-                ? SqlWriter.FrameTypeEnum.Setop
-                : SqlWriter.FrameTypeEnum.Simple);
+                ? SqlWriter.FrameTypeEnum.SETOP
+                : SqlWriter.FrameTypeEnum.SIMPLE);
     operands[0].unparse(
         writer,
         leftPrec,

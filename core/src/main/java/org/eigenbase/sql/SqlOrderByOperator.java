@@ -52,7 +52,7 @@ public class SqlOrderByOperator extends SqlSpecialOperator {
       int rightPrec) {
     assert operands.length == 4;
     final SqlWriter.Frame frame =
-        writer.startList(SqlWriter.FrameTypeEnum.OrderBy);
+        writer.startList(SqlWriter.FrameTypeEnum.ORDER_BY);
     operands[QUERY_OPERAND].unparse(
         writer,
         getLeftPrec(),
@@ -60,13 +60,13 @@ public class SqlOrderByOperator extends SqlSpecialOperator {
     if (operands[ORDER_OPERAND] != SqlNodeList.EMPTY) {
       writer.sep(getName());
       final SqlWriter.Frame listFrame =
-          writer.startList(SqlWriter.FrameTypeEnum.OrderByList);
+          writer.startList(SqlWriter.FrameTypeEnum.ORDER_BY_LIST);
       unparseListClause(writer, operands[ORDER_OPERAND]);
       writer.endList(listFrame);
     }
     if (operands[OFFSET_OPERAND] != null) {
       final SqlWriter.Frame frame2 =
-          writer.startList(SqlWriter.FrameTypeEnum.Offset);
+          writer.startList(SqlWriter.FrameTypeEnum.OFFSET);
       writer.newlineAndIndent();
       writer.keyword("OFFSET");
       operands[OFFSET_OPERAND].unparse(writer, -1, -1);
@@ -75,7 +75,7 @@ public class SqlOrderByOperator extends SqlSpecialOperator {
     }
     if (operands[FETCH_OPERAND] != null) {
       final SqlWriter.Frame frame3 =
-          writer.startList(SqlWriter.FrameTypeEnum.Fetch);
+          writer.startList(SqlWriter.FrameTypeEnum.FETCH);
       writer.newlineAndIndent();
       writer.keyword("FETCH");
       writer.keyword("NEXT");

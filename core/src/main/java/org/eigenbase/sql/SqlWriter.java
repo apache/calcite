@@ -42,7 +42,7 @@ public interface SqlWriter {
      * )
      * WHERE condition</pre>
      */
-    Hyde,
+    HYDE,
 
     /**
      * Damian's style of subquery nesting. Like this:
@@ -54,7 +54,7 @@ public interface SqlWriter {
      * )
      * WHERE condition</pre>
      */
-    Black
+    BLACK
   }
 
   /**
@@ -65,32 +65,32 @@ public interface SqlWriter {
      * SELECT query (or UPDATE or DELETE). The items in the list are the
      * clauses: FROM, WHERE, etc.
      */
-    Select,
+    SELECT,
 
     /**
      * Simple list.
      */
-    Simple,
+    SIMPLE,
 
     /**
      * The SELECT clause of a SELECT statement.
      */
-    SelectList,
+    SELECT_LIST,
 
     /**
      * The WINDOW clause of a SELECT statement.
      */
-    WindowDeclList,
+    WINDOW_DECL_LIST,
 
     /**
      * The SET clause of an UPDATE statement.
      */
-    UpdateSetList,
+    UPDATE_SET_LIST,
 
     /**
      * Function declaration.
      */
-    FunDecl,
+    FUN_DECL,
 
     /**
      * Function call or datatype declaration.
@@ -99,7 +99,7 @@ public interface SqlWriter {
      * <li>SUBSTRING('foobar' FROM 1 + 2 TO 4)</li>
      * <li>DECIMAL(10, 5)</li>
      */
-    FunCall,
+    FUN_CALL,
 
     /**
      * Window specification.
@@ -110,13 +110,13 @@ public interface SqlWriter {
      * RANGE BETWEEN INTERVAL '1' YEAR PRECEDING AND '2' MONTH
      * PRECEDING)</li>
      */
-    Window,
+    WINDOW,
 
     /**
      * ORDER BY clause of a SELECT statement. The "list" has only two items:
      * the query and the order by clause, with ORDER BY as the separator.
      */
-    OrderBy,
+    ORDER_BY,
 
     /**
      * ORDER BY list.
@@ -124,13 +124,13 @@ public interface SqlWriter {
      * <p>Example:
      * <li>ORDER BY x, y DESC, z
      */
-    OrderByList,
+    ORDER_BY_LIST,
 
     /**
      * WITH clause of a SELECT statement. The "list" has only two items:
      * the WITH clause and the query, with AS as the separator.
      */
-    With,
+    WITH,
 
     /**
      * OFFSET clause.
@@ -138,7 +138,7 @@ public interface SqlWriter {
      * <p>Example:
      * <li>OFFSET 10 ROWS</li></p>
      */
-    Offset,
+    OFFSET,
 
     /**
      * FETCH clause.
@@ -146,7 +146,7 @@ public interface SqlWriter {
      * <p>Example:
      * <li>FETCH FIRST 3 ROWS ONLY</li></p>
      */
-    Fetch,
+    FETCH,
 
     /**
      * GROUP BY list.
@@ -154,7 +154,7 @@ public interface SqlWriter {
      * <p>Example:
      * <li>GROUP BY x, FLOOR(y)
      */
-    GroupByList,
+    GROUP_BY_LIST,
 
     /**
      * Sub-query list. Encloses a SELECT, UNION, EXCEPT, INTERSECT query
@@ -163,7 +163,7 @@ public interface SqlWriter {
      * <p>Example:
      * <li>GROUP BY x, FLOOR(y)
      */
-    Subquery,
+    SUB_QUERY,
 
     /**
      * Set operation.
@@ -171,17 +171,17 @@ public interface SqlWriter {
      * <p>Example:
      * <li>SELECT * FROM a UNION SELECT * FROM b
      */
-    Setop,
+    SETOP,
 
     /**
      * FROM clause (containing various kinds of JOIN).
      */
-    FromList,
+    FROM_LIST,
 
     /**
      * WHERE clause.
      */
-    WhereList,
+    WHERE_LIST,
 
     /**
      * Compound identifier.
@@ -189,7 +189,7 @@ public interface SqlWriter {
      * <p>Example:
      * <li>"A"."B"."C"
      */
-    Identifier(false);
+    IDENTIFIER(false);
 
     private final boolean needsIndent;
 

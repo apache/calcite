@@ -17,8 +17,6 @@
 */
 package org.eigenbase.sql.fun;
 
-import java.math.*;
-
 import org.eigenbase.sql.*;
 import org.eigenbase.sql.type.*;
 import org.eigenbase.sql.validate.*;
@@ -58,13 +56,13 @@ public class SqlMonotonicBinaryOperator extends SqlBinaryOperator {
     final SqlMonotonicity mono1 = scope.getMonotonicity(call.operands[1]);
 
     // constant <op> constant --> constant
-    if ((mono1 == SqlMonotonicity.Constant)
-        && (mono0 == SqlMonotonicity.Constant)) {
-      return SqlMonotonicity.Constant;
+    if ((mono1 == SqlMonotonicity.CONSTANT)
+        && (mono0 == SqlMonotonicity.CONSTANT)) {
+      return SqlMonotonicity.CONSTANT;
     }
 
     // monotonic <op> constant
-    if (mono1 == SqlMonotonicity.Constant) {
+    if (mono1 == SqlMonotonicity.CONSTANT) {
       // mono0 + constant --> mono0
       // mono0 - constant --> mono0
       if (getName().equals("-")
@@ -82,7 +80,7 @@ public class SqlMonotonicBinaryOperator extends SqlBinaryOperator {
         case 0:
 
           // mono0 * 0 --> constant (zero)
-          return SqlMonotonicity.Constant;
+          return SqlMonotonicity.CONSTANT;
         default:
 
           // mono0 * positiove constant --> mono0
@@ -93,7 +91,7 @@ public class SqlMonotonicBinaryOperator extends SqlBinaryOperator {
     }
 
     // constant <op> mono
-    if (mono0 == SqlMonotonicity.Constant) {
+    if (mono0 == SqlMonotonicity.CONSTANT) {
       if (getName().equals("-")) {
         // constant - mono1 --> reverse mono1
         return mono1.reverse();
@@ -113,7 +111,7 @@ public class SqlMonotonicBinaryOperator extends SqlBinaryOperator {
         case 0:
 
           // 0 * mono1 --> constant (zero)
-          return SqlMonotonicity.Constant;
+          return SqlMonotonicity.CONSTANT;
         default:
 
           // positive constant * mono1 --> mono1
@@ -137,7 +135,7 @@ public class SqlMonotonicBinaryOperator extends SqlBinaryOperator {
       } else if (mono0.unstrict() == mono1.unstrict()) {
         return mono0.unstrict();
       } else {
-        return SqlMonotonicity.NotMonotonic;
+        return SqlMonotonicity.NOT_MONOTONIC;
       }
     }
     if (getName().equals("-")) {
@@ -146,11 +144,11 @@ public class SqlMonotonicBinaryOperator extends SqlBinaryOperator {
       } else if (mono0.unstrict() == mono1.reverse().unstrict()) {
         return mono0.unstrict();
       } else {
-        return SqlMonotonicity.NotMonotonic;
+        return SqlMonotonicity.NOT_MONOTONIC;
       }
     }
     if (getName().equals("*")) {
-      return SqlMonotonicity.NotMonotonic;
+      return SqlMonotonicity.NOT_MONOTONIC;
     }
 
     return super.getMonotonicity(call, scope);

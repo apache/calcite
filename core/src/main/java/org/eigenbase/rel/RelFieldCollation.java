@@ -17,6 +17,8 @@
 */
 package org.eigenbase.rel;
 
+import org.eigenbase.util.Util;
+
 /**
  * Definition of the ordering of one field of a RelNode whose
  * output is to be sorted.
@@ -34,25 +36,25 @@ public class RelFieldCollation {
      * Ascending direction: A value is always followed by a greater or equal
      * value.
      */
-    Ascending,
+    ASCENDING,
 
     /**
      * Strictly ascending direction: A value is always followed by a greater
      * value.
      */
-    StrictlyAscending,
+    STRICTLY_ASCENDING,
 
     /**
      * Descending direction: A value is always followed by a lesser or equal
      * value.
      */
-    Descending,
+    DESCENDING,
 
     /**
      * Strictly descending direction: A value is always followed by a lesser
      * value.
      */
-    StrictlyDescending,
+    STRICTLY_DESCENDING,
 
     /**
      * Clustered direction: Values occur in no particular order, and the
@@ -60,7 +62,13 @@ public class RelFieldCollation {
      * that. This sort order tends to occur when values are ordered
      * according to a hash-key.
      */
-    Clustered,
+    CLUSTERED;
+
+    @Override
+    public String toString() {
+      // For backwards-compatibility, short-term.
+      return Util.toCamelCase("_" + name());
+    }
   }
 
   /**
@@ -95,7 +103,7 @@ public class RelFieldCollation {
    * Creates an ascending field collation.
    */
   public RelFieldCollation(int fieldIndex) {
-    this(fieldIndex, Direction.Ascending, NullDirection.UNSPECIFIED);
+    this(fieldIndex, Direction.ASCENDING, NullDirection.UNSPECIFIED);
   }
 
   /**

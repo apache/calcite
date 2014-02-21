@@ -127,7 +127,7 @@ public class SqlMerge extends SqlCall {
       int leftPrec,
       int rightPrec) {
     final SqlWriter.Frame frame =
-        writer.startList(SqlWriter.FrameTypeEnum.Select, "MERGE INTO", "");
+        writer.startList(SqlWriter.FrameTypeEnum.SELECT, "MERGE INTO", "");
     getTargetTable().unparse(
         writer,
         getOperator().getLeftPrec(),
@@ -160,7 +160,7 @@ public class SqlMerge extends SqlCall {
       writer.keyword("WHEN MATCHED THEN UPDATE");
       final SqlWriter.Frame setFrame =
           writer.startList(
-              SqlWriter.FrameTypeEnum.UpdateSetList,
+              SqlWriter.FrameTypeEnum.UPDATE_SET_LIST,
               "SET",
               "");
 

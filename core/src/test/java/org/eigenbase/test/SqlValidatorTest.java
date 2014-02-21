@@ -614,11 +614,11 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     checkCollation(
         "'s'",
         "ISO-8859-1$en_US$primary",
-        SqlCollation.Coercibility.Coercible);
+        SqlCollation.Coercibility.COERCIBLE);
     checkCollation(
         "'s' collate latin1$sv$3",
         "ISO-8859-1$sv$3",
-        SqlCollation.Coercibility.Explicit);
+        SqlCollation.Coercibility.EXPLICIT);
   }
 
   public void _testCharsetAndCollateMismatch() {
@@ -634,13 +634,11 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
   public void _testDyadicCompareCollateFails() {
     // two different explicit collations. difference in strength
-    checkExpFails(
-        "'s' collate latin1$en$1 <= 't' collate latin1$en$2",
+    checkExpFails("'s' collate latin1$en$1 <= 't' collate latin1$en$2",
         "(?s).*Two explicit different collations.*are illegal.*");
 
     // two different explicit collations. difference in language
-    checkExpFails(
-        "'s' collate latin1$sv$1 >= 't' collate latin1$en$1",
+    checkExpFails("'s' collate latin1$sv$1 >= 't' collate latin1$en$1",
         "(?s).*Two explicit different collations.*are illegal.*");
   }
 
@@ -648,15 +646,13 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     checkCollation(
         "'a' || 'b'",
         "ISO-8859-1$en_US$primary",
-        SqlCollation.Coercibility.Coercible);
-    checkCollation(
-        "'a' collate latin1$sv$3 || 'b'",
+        SqlCollation.Coercibility.COERCIBLE);
+    checkCollation("'a' collate latin1$sv$3 || 'b'",
         "ISO-8859-1$sv$3",
-        SqlCollation.Coercibility.Explicit);
-    checkCollation(
-        "'a' collate latin1$sv$3 || 'b' collate latin1$sv$3",
+        SqlCollation.Coercibility.EXPLICIT);
+    checkCollation("'a' collate latin1$sv$3 || 'b' collate latin1$sv$3",
         "ISO-8859-1$sv$3",
-        SqlCollation.Coercibility.Explicit);
+        SqlCollation.Coercibility.EXPLICIT);
   }
 
   @Test public void testCharLength() {
@@ -671,8 +667,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     checkExp("upper(_UTF16'sadf')");
     checkExp("lower(n'sadf')");
     checkExpType("lower('sadf')", "CHAR(4) NOT NULL");
-    checkWholeExpFails(
-        "upper(123)",
+    checkWholeExpFails("upper(123)",
         "(?s).*Cannot apply 'UPPER' to arguments of type 'UPPER.<INTEGER>.'.*");
   }
 
@@ -681,8 +676,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     checkExp("position(x'11' in x'100110')");
     checkExp("position(x'abcd' in x'')");
     checkExpType("position('mouse' in 'house')", "INTEGER NOT NULL");
-    checkWholeExpFails(
-        "position(x'1234' in '110')",
+    checkWholeExpFails("position(x'1234' in '110')",
         "Parameters must be of the same type");
   }
 
@@ -707,14 +701,11 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   @Test public void testTrimFails() {
-    checkWholeExpFails(
-        "trim(123 FROM 'beard')",
+    checkWholeExpFails("trim(123 FROM 'beard')",
         "(?s).*Cannot apply 'TRIM' to arguments of type.*");
-    checkWholeExpFails(
-        "trim('a' FROM 123)",
+    checkWholeExpFails("trim('a' FROM 123)",
         "(?s).*Cannot apply 'TRIM' to arguments of type.*");
-    checkWholeExpFails(
-        "trim('a' FROM _UTF16'b')",
+    checkWholeExpFails("trim('a' FROM _UTF16'b')",
         "(?s).*not comparable to each other.*");
   }
 
@@ -743,7 +734,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
       checkCollation(
           "overlay('ABCdef' placing 'abc' collate latin1$sv from 1 for 3)",
           "ISO-8859-1$sv",
-          SqlCollation.Coercibility.Explicit);
+          SqlCollation.Coercibility.EXPLICIT);
     }
   }
 
@@ -774,17 +765,13 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   @Test public void testSubstringFails() {
-    checkWholeExpFails(
-        "substring('a' from 1 for 'b')",
+    checkWholeExpFails("substring('a' from 1 for 'b')",
         "(?s).*Cannot apply 'SUBSTRING' to arguments of type.*");
-    checkWholeExpFails(
-        "substring(_UTF16'10' FROM '0' FOR '\\')",
+    checkWholeExpFails("substring(_UTF16'10' FROM '0' FOR '\\')",
         "(?s).* not comparable to each other.*");
-    checkWholeExpFails(
-        "substring('10' FROM _UTF16'0' FOR '\\')",
+    checkWholeExpFails("substring('10' FROM _UTF16'0' FOR '\\')",
         "(?s).* not comparable to each other.*");
-    checkWholeExpFails(
-        "substring('10' FROM '0' FOR _UTF16'\\')",
+    checkWholeExpFails("substring('10' FROM '0' FOR _UTF16'\\')",
         "(?s).* not comparable to each other.*");
   }
 
@@ -796,15 +783,12 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   public void _testLikeAndSimilarFails() {
-    checkExpFails(
-        "'a' like _UTF16'b'  escape 'c'",
+    checkExpFails("'a' like _UTF16'b'  escape 'c'",
         "(?s).*Operands _ISO-8859-1.a. COLLATE ISO-8859-1.en_US.primary, _SHIFT_JIS.b..*");
-    checkExpFails(
-        "'a' similar to _UTF16'b'  escape 'c'",
+    checkExpFails("'a' similar to _UTF16'b'  escape 'c'",
         "(?s).*Operands _ISO-8859-1.a. COLLATE ISO-8859-1.en_US.primary, _SHIFT_JIS.b..*");
 
-    checkExpFails(
-        "'a' similar to 'b' collate UTF16$jp  escape 'c'",
+    checkExpFails("'a' similar to 'b' collate UTF16$jp  escape 'c'",
         "(?s).*Operands _ISO-8859-1.a. COLLATE ISO-8859-1.en_US.primary, _ISO-8859-1.b. COLLATE SHIFT_JIS.jp.primary.*");
   }
 
@@ -818,8 +802,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     checkExp("1 in (cast(null as integer), null)");
 
     // Expression is illegal, but error message is not perfect.
-    checkWholeExpFails(
-        "1 in (null, null)",
+    checkWholeExpFails("1 in (null, null)",
         "Values passed to IN operator must have compatible types");
   }
 
@@ -917,8 +900,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   @Test public void testCastBinaryLiteral() {
-    checkExpFails(
-        "cast(^x'0dd'^ as binary(5))",
+    checkExpFails("cast(^x'0dd'^ as binary(5))",
         "Binary literal string must contain an even number of hexits");
   }
 
@@ -1071,11 +1053,8 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   @Test public void testInvalidFunction() {
-    checkWholeExpFails(
-        "foo()",
-        "No match found for function signature FOO..");
-    checkWholeExpFails(
-        "mod(123)",
+    checkWholeExpFails("foo()", "No match found for function signature FOO..");
+    checkWholeExpFails("mod(123)",
         "Invalid number of arguments to function 'MOD'. Was expecting 2 arguments");
   }
 
@@ -1162,10 +1141,8 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
   @Test public void testRow() {
     // double-nested rows can confuse validator namespace resolution
-    checkColumnType(
-        "select t.r.\"EXPR$1\".\"EXPR$2\" \n"
-        + "from (select ((1,2),(3,4,5)) r from dept) t",
-        "INTEGER NOT NULL");
+    checkColumnType("select t.r.\"EXPR$1\".\"EXPR$2\" \n"
+        + "from (select ((1,2),(3,4,5)) r from dept) t", "INTEGER NOT NULL");
   }
 
   @Test public void testMultiset() {
@@ -1194,17 +1171,12 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     checkExpType(
         "multiset[ROW(1,2),ROW(3.4,5.4)]",
         "RecordType(DECIMAL(11, 1) NOT NULL EXPR$0, DECIMAL(11, 1) NOT NULL EXPR$1) NOT NULL MULTISET NOT NULL");
-    checkExpType(
-        "multiset(select*from emp)",
-        "RecordType(INTEGER NOT NULL EMPNO,"
-        + " VARCHAR(20) NOT NULL ENAME,"
-        + " VARCHAR(10) NOT NULL JOB,"
-        + " INTEGER NOT NULL MGR,"
-        + " TIMESTAMP(0) NOT NULL HIREDATE,"
-        + " INTEGER NOT NULL SAL,"
-        + " INTEGER NOT NULL COMM,"
-        + " INTEGER NOT NULL DEPTNO,"
-        + " BOOLEAN NOT NULL SLACKER) NOT NULL MULTISET NOT NULL");
+    checkExpType("multiset(select*from emp)",
+        "RecordType(INTEGER NOT NULL EMPNO," + " VARCHAR(20) NOT NULL ENAME,"
+            + " VARCHAR(10) NOT NULL JOB," + " INTEGER NOT NULL MGR,"
+            + " TIMESTAMP(0) NOT NULL HIREDATE," + " INTEGER NOT NULL SAL,"
+            + " INTEGER NOT NULL COMM," + " INTEGER NOT NULL DEPTNO,"
+            + " BOOLEAN NOT NULL SLACKER) NOT NULL MULTISET NOT NULL");
   }
 
   @Test public void testMultisetSetOperators() {
@@ -1221,8 +1193,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     checkExp("multiset[1] multiset intersect multiset[1,2.3]");
     checkExp("multiset[1] multiset intersect all multiset[1,2.3]");
 
-    checkExpFails(
-        "^multiset[1, '2']^ multiset union multiset[1]",
+    checkExpFails("^multiset[1, '2']^ multiset union multiset[1]",
         "Parameters must be of the same type");
     checkExp("multiset[ROW(1,2)] multiset intersect multiset[row(3,4)]");
     if (TODO) {
@@ -1233,15 +1204,13 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   @Test public void testSubMultisetOf() {
-    checkExpType(
-        "multiset[1] submultiset of multiset[1,2.3]",
+    checkExpType("multiset[1] submultiset of multiset[1,2.3]",
         "BOOLEAN NOT NULL");
     checkExpType(
         "multiset[1] submultiset of multiset[1]",
         "BOOLEAN NOT NULL");
 
-    checkExpFails(
-        "^multiset[1, '2']^ submultiset of multiset[1]",
+    checkExpFails("^multiset[1, '2']^ submultiset of multiset[1]",
         "Parameters must be of the same type");
     checkExp("multiset[ROW(1,2)] submultiset of multiset[row(3,4)]");
   }
@@ -1251,15 +1220,13 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     checkExpType("1.0+element(multiset[1])", "DECIMAL(12, 1) NOT NULL");
     checkExpType("element(multiset['1'])", "CHAR(1) NOT NULL");
     checkExpType("element(multiset[1e-2])", "DOUBLE NOT NULL");
-    checkExpType(
-        "element(multiset[multiset[cast(null as tinyint)]])",
+    checkExpType("element(multiset[multiset[cast(null as tinyint)]])",
         "TINYINT MULTISET NOT NULL");
   }
 
   @Test public void testMemberOf() {
     checkExpType("1 member of multiset[1]", "BOOLEAN NOT NULL");
-    checkWholeExpFails(
-        "1 member of multiset['1']",
+    checkWholeExpFails("1 member of multiset['1']",
         "Cannot compare values of types 'INTEGER', 'CHAR\\(1\\)'");
   }
 
@@ -1352,20 +1319,12 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
    */
   public void subTestIntervalYearPositive() {
     // default precision
-    checkExpType(
-        "INTERVAL '1' YEAR",
-        "INTERVAL YEAR NOT NULL");
-    checkExpType(
-        "INTERVAL '99' YEAR",
-        "INTERVAL YEAR NOT NULL");
+    checkExpType("INTERVAL '1' YEAR", "INTERVAL YEAR NOT NULL");
+    checkExpType("INTERVAL '99' YEAR", "INTERVAL YEAR NOT NULL");
 
     // explicit precision equal to default
-    checkExpType(
-        "INTERVAL '1' YEAR(2)",
-        "INTERVAL YEAR(2) NOT NULL");
-    checkExpType(
-        "INTERVAL '99' YEAR(2)",
-        "INTERVAL YEAR(2) NOT NULL");
+    checkExpType("INTERVAL '1' YEAR(2)", "INTERVAL YEAR(2) NOT NULL");
+    checkExpType("INTERVAL '99' YEAR(2)", "INTERVAL YEAR(2) NOT NULL");
 
     // max precision
     checkExpType(
@@ -1383,30 +1342,14 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         "INTERVAL YEAR(4) NOT NULL");
 
     // sign
-    checkExpType(
-        "INTERVAL '+1' YEAR",
-        "INTERVAL YEAR NOT NULL");
-    checkExpType(
-        "INTERVAL '-1' YEAR",
-        "INTERVAL YEAR NOT NULL");
-    checkExpType(
-        "INTERVAL +'1' YEAR",
-        "INTERVAL YEAR NOT NULL");
-    checkExpType(
-        "INTERVAL +'+1' YEAR",
-        "INTERVAL YEAR NOT NULL");
-    checkExpType(
-        "INTERVAL +'-1' YEAR",
-        "INTERVAL YEAR NOT NULL");
-    checkExpType(
-        "INTERVAL -'1' YEAR",
-        "INTERVAL YEAR NOT NULL");
-    checkExpType(
-        "INTERVAL -'+1' YEAR",
-        "INTERVAL YEAR NOT NULL");
-    checkExpType(
-        "INTERVAL -'-1' YEAR",
-        "INTERVAL YEAR NOT NULL");
+    checkExpType("INTERVAL '+1' YEAR", "INTERVAL YEAR NOT NULL");
+    checkExpType("INTERVAL '-1' YEAR", "INTERVAL YEAR NOT NULL");
+    checkExpType("INTERVAL +'1' YEAR", "INTERVAL YEAR NOT NULL");
+    checkExpType("INTERVAL +'+1' YEAR", "INTERVAL YEAR NOT NULL");
+    checkExpType("INTERVAL +'-1' YEAR", "INTERVAL YEAR NOT NULL");
+    checkExpType("INTERVAL -'1' YEAR", "INTERVAL YEAR NOT NULL");
+    checkExpType("INTERVAL -'+1' YEAR", "INTERVAL YEAR NOT NULL");
+    checkExpType("INTERVAL -'-1' YEAR", "INTERVAL YEAR NOT NULL");
   }
 
   /**
@@ -1418,11 +1361,9 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
    */
   public void subTestIntervalYearToMonthPositive() {
     // default precision
-    checkExpType(
-        "INTERVAL '1-2' YEAR TO MONTH",
+    checkExpType("INTERVAL '1-2' YEAR TO MONTH",
         "INTERVAL YEAR TO MONTH NOT NULL");
-    checkExpType(
-        "INTERVAL '99-11' YEAR TO MONTH",
+    checkExpType("INTERVAL '99-11' YEAR TO MONTH",
         "INTERVAL YEAR TO MONTH NOT NULL");
     checkExpType(
         "INTERVAL '99-0' YEAR TO MONTH",
@@ -1432,11 +1373,9 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     checkExpType(
         "INTERVAL '1-2' YEAR(2) TO MONTH",
         "INTERVAL YEAR(2) TO MONTH NOT NULL");
-    checkExpType(
-        "INTERVAL '99-11' YEAR(2) TO MONTH",
+    checkExpType("INTERVAL '99-11' YEAR(2) TO MONTH",
         "INTERVAL YEAR(2) TO MONTH NOT NULL");
-    checkExpType(
-        "INTERVAL '99-0' YEAR(2) TO MONTH",
+    checkExpType("INTERVAL '99-0' YEAR(2) TO MONTH",
         "INTERVAL YEAR(2) TO MONTH NOT NULL");
 
     // max precision
@@ -1455,29 +1394,21 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         "INTERVAL YEAR(4) TO MONTH NOT NULL");
 
     // sign
-    checkExpType(
-        "INTERVAL '-1-2' YEAR TO MONTH",
+    checkExpType("INTERVAL '-1-2' YEAR TO MONTH",
         "INTERVAL YEAR TO MONTH NOT NULL");
-    checkExpType(
-        "INTERVAL '+1-2' YEAR TO MONTH",
+    checkExpType("INTERVAL '+1-2' YEAR TO MONTH",
         "INTERVAL YEAR TO MONTH NOT NULL");
-    checkExpType(
-        "INTERVAL +'1-2' YEAR TO MONTH",
+    checkExpType("INTERVAL +'1-2' YEAR TO MONTH",
         "INTERVAL YEAR TO MONTH NOT NULL");
-    checkExpType(
-        "INTERVAL +'-1-2' YEAR TO MONTH",
+    checkExpType("INTERVAL +'-1-2' YEAR TO MONTH",
         "INTERVAL YEAR TO MONTH NOT NULL");
-    checkExpType(
-        "INTERVAL +'+1-2' YEAR TO MONTH",
+    checkExpType("INTERVAL +'+1-2' YEAR TO MONTH",
         "INTERVAL YEAR TO MONTH NOT NULL");
-    checkExpType(
-        "INTERVAL -'1-2' YEAR TO MONTH",
+    checkExpType("INTERVAL -'1-2' YEAR TO MONTH",
         "INTERVAL YEAR TO MONTH NOT NULL");
-    checkExpType(
-        "INTERVAL -'-1-2' YEAR TO MONTH",
+    checkExpType("INTERVAL -'-1-2' YEAR TO MONTH",
         "INTERVAL YEAR TO MONTH NOT NULL");
-    checkExpType(
-        "INTERVAL -'+1-2' YEAR TO MONTH",
+    checkExpType("INTERVAL -'+1-2' YEAR TO MONTH",
         "INTERVAL YEAR TO MONTH NOT NULL");
   }
 
@@ -2323,23 +2254,18 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
    */
   public void subTestIntervalYearNegative() {
     // Qualifier - field mismatches
-    checkWholeExpFails(
-        "INTERVAL '-' YEAR",
+    checkWholeExpFails("INTERVAL '-' YEAR",
         "Illegal interval literal format '-' for INTERVAL YEAR.*");
-    checkWholeExpFails(
-        "INTERVAL '1-2' YEAR",
+    checkWholeExpFails("INTERVAL '1-2' YEAR",
         "Illegal interval literal format '1-2' for INTERVAL YEAR.*");
     checkWholeExpFails(
         "INTERVAL '1.2' YEAR",
         "Illegal interval literal format '1.2' for INTERVAL YEAR.*");
-    checkWholeExpFails(
-        "INTERVAL '1 2' YEAR",
+    checkWholeExpFails("INTERVAL '1 2' YEAR",
         "Illegal interval literal format '1 2' for INTERVAL YEAR.*");
-    checkWholeExpFails(
-        "INTERVAL '1-2' YEAR(2)",
+    checkWholeExpFails("INTERVAL '1-2' YEAR(2)",
         "Illegal interval literal format '1-2' for INTERVAL YEAR\\(2\\)");
-    checkWholeExpFails(
-        "INTERVAL 'bogus text' YEAR",
+    checkWholeExpFails("INTERVAL 'bogus text' YEAR",
         "Illegal interval literal format 'bogus text' for INTERVAL YEAR.*");
 
     // negative field values
@@ -2352,32 +2278,26 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     checkWholeExpFails(
         "INTERVAL '100' YEAR",
         "Interval field value 100 exceeds precision of YEAR\\(2\\) field.*");
-    checkWholeExpFails(
-        "INTERVAL '100' YEAR(2)",
+    checkWholeExpFails("INTERVAL '100' YEAR(2)",
         "Interval field value 100 exceeds precision of YEAR\\(2\\) field.*");
-    checkWholeExpFails(
-        "INTERVAL '1000' YEAR(3)",
+    checkWholeExpFails("INTERVAL '1000' YEAR(3)",
         "Interval field value 1,000 exceeds precision of YEAR\\(3\\) field.*");
     checkWholeExpFails(
         "INTERVAL '-1000' YEAR(3)",
         "Interval field value -1,000 exceeds precision of YEAR\\(3\\) field.*");
-    checkWholeExpFails(
-        "INTERVAL '2147483648' YEAR(10)",
+    checkWholeExpFails("INTERVAL '2147483648' YEAR(10)",
         "Interval field value 2,147,483,648 exceeds precision of YEAR\\(10\\) field.*");
-    checkWholeExpFails(
-        "INTERVAL '-2147483648' YEAR(10)",
+    checkWholeExpFails("INTERVAL '-2147483648' YEAR(10)",
         "Interval field value -2,147,483,648 exceeds precision of YEAR\\(10\\) field");
 
     // precision > maximum
-    checkExpFails(
-        "INTERVAL '1' YEAR(11^)^",
+    checkExpFails("INTERVAL '1' YEAR(11^)^",
         "Interval leading field precision '11' out of range for INTERVAL YEAR\\(11\\)");
 
     // precision < minimum allowed)
     // note: parser will catch negative values, here we
     // just need to check for 0
-    checkExpFails(
-        "INTERVAL '0' YEAR(0^)^",
+    checkExpFails("INTERVAL '0' YEAR(0^)^",
         "Interval leading field precision '0' out of range for INTERVAL YEAR\\(0\\)");
   }
 
@@ -2390,23 +2310,18 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
    */
   public void subTestIntervalYearToMonthNegative() {
     // Qualifier - field mismatches
-    checkWholeExpFails(
-        "INTERVAL '-' YEAR TO MONTH",
+    checkWholeExpFails("INTERVAL '-' YEAR TO MONTH",
         "Illegal interval literal format '-' for INTERVAL YEAR TO MONTH");
-    checkWholeExpFails(
-        "INTERVAL '1' YEAR TO MONTH",
+    checkWholeExpFails("INTERVAL '1' YEAR TO MONTH",
         "Illegal interval literal format '1' for INTERVAL YEAR TO MONTH");
     checkWholeExpFails(
         "INTERVAL '1:2' YEAR TO MONTH",
         "Illegal interval literal format '1:2' for INTERVAL YEAR TO MONTH");
-    checkWholeExpFails(
-        "INTERVAL '1.2' YEAR TO MONTH",
+    checkWholeExpFails("INTERVAL '1.2' YEAR TO MONTH",
         "Illegal interval literal format '1.2' for INTERVAL YEAR TO MONTH");
-    checkWholeExpFails(
-        "INTERVAL '1 2' YEAR TO MONTH",
+    checkWholeExpFails("INTERVAL '1 2' YEAR TO MONTH",
         "Illegal interval literal format '1 2' for INTERVAL YEAR TO MONTH");
-    checkWholeExpFails(
-        "INTERVAL '1:2' YEAR(2) TO MONTH",
+    checkWholeExpFails("INTERVAL '1:2' YEAR(2) TO MONTH",
         "Illegal interval literal format '1:2' for INTERVAL YEAR\\(2\\) TO MONTH");
     checkWholeExpFails(
         "INTERVAL 'bogus text' YEAR TO MONTH",
@@ -2429,32 +2344,26 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     checkWholeExpFails(
         "INTERVAL '100-0' YEAR(2) TO MONTH",
         "Interval field value 100 exceeds precision of YEAR\\(2\\) field.*");
-    checkWholeExpFails(
-        "INTERVAL '1000-0' YEAR(3) TO MONTH",
+    checkWholeExpFails("INTERVAL '1000-0' YEAR(3) TO MONTH",
         "Interval field value 1,000 exceeds precision of YEAR\\(3\\) field.*");
-    checkWholeExpFails(
-        "INTERVAL '-1000-0' YEAR(3) TO MONTH",
+    checkWholeExpFails("INTERVAL '-1000-0' YEAR(3) TO MONTH",
         "Interval field value -1,000 exceeds precision of YEAR\\(3\\) field.*");
     checkWholeExpFails(
         "INTERVAL '2147483648-0' YEAR(10) TO MONTH",
         "Interval field value 2,147,483,648 exceeds precision of YEAR\\(10\\) field.*");
-    checkWholeExpFails(
-        "INTERVAL '-2147483648-0' YEAR(10) TO MONTH",
+    checkWholeExpFails("INTERVAL '-2147483648-0' YEAR(10) TO MONTH",
         "Interval field value -2,147,483,648 exceeds precision of YEAR\\(10\\) field.*");
-    checkWholeExpFails(
-        "INTERVAL '1-12' YEAR TO MONTH",
+    checkWholeExpFails("INTERVAL '1-12' YEAR TO MONTH",
         "Illegal interval literal format '1-12' for INTERVAL YEAR TO MONTH.*");
 
     // precision > maximum
-    checkExpFails(
-        "INTERVAL '1-1' YEAR(11) TO ^MONTH^",
+    checkExpFails("INTERVAL '1-1' YEAR(11) TO ^MONTH^",
         "Interval leading field precision '11' out of range for INTERVAL YEAR\\(11\\) TO MONTH");
 
     // precision < minimum allowed)
     // note: parser will catch negative values, here we
     // just need to check for 0
-    checkExpFails(
-        "INTERVAL '0-0' YEAR(0) TO ^MONTH^",
+    checkExpFails("INTERVAL '0-0' YEAR(0) TO ^MONTH^",
         "Interval leading field precision '0' out of range for INTERVAL YEAR\\(0\\) TO MONTH");
   }
 
@@ -2866,8 +2775,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     checkWholeExpFails(
         "INTERVAL '-2147483648 1:1:0' DAY(10) TO SECOND",
         "Interval field value -2,147,483,648 exceeds precision of DAY\\(10\\) field.*");
-    checkWholeExpFails(
-        "INTERVAL '2147483648 0' DAY(10) TO SECOND",
+    checkWholeExpFails("INTERVAL '2147483648 0' DAY(10) TO SECOND",
         "Illegal interval literal format '2147483648 0' for INTERVAL DAY\\(10\\) TO SECOND.*");
     checkWholeExpFails(
         "INTERVAL '-2147483648 0' DAY(10) TO SECOND",
@@ -4026,8 +3934,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         "ORDER BY not allowed in both base and referenced windows");
 
     // 7.11 rule 10e
-    checkWin(
-        "select sum(sal) over (w) " + NL
+    checkWin("select sum(sal) over (w) " + NL
         + " from emp window w as (order by empno ^rows^ 2 preceding )",
         "Referenced window cannot have framing declarations");
   }
@@ -4363,8 +4270,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "( select sum(empno) over w, sum(deptno) over w, hiredate from emp) \n"
         + "window w as (order by hiredate range interval '1' minute preceding)");
 
-    checkFails(
-        "select * from \n"
+    checkFails("select * from \n"
         + "( select sum(empno) over w, sum(deptno) over w from emp) \n"
         + "window w as (order by ^hiredate^ range interval '1' minute preceding)",
         "Column 'HIREDATE' not found in any table");
@@ -4566,9 +4472,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   @Test public void testExpandStar() {
     // dtbug 282 -- "select r.* from sales.depts" gives NPE.
     // dtbug 318 -- error location should be ^r^ not ^r.*^.
-    checkFails(
-        "select ^r^.* from dept",
-        "Unknown identifier 'R'");
+    checkFails("select ^r^.* from dept", "Unknown identifier 'R'");
 
     check("select e.* from emp as e");
     check("select emp.* from emp");
@@ -4584,31 +4488,24 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     checkFails(
         "select d.^deptno^ from dept as d(a, b)",
         "(?s).*Column 'DEPTNO' not found in table 'D'.*");
-    checkFails(
-        "select 1 from dept as d(^a^, b, c)",
+    checkFails("select 1 from dept as d(^a^, b, c)",
         "(?s).*List of column aliases must have same degree as table; "
-        + "table has 2 columns \\('DEPTNO', 'NAME'\\), "
-        + "whereas alias list has 3 columns.*");
-    checkResultType(
-        "select * from dept as d(a, b)",
+            + "table has 2 columns \\('DEPTNO', 'NAME'\\), "
+            + "whereas alias list has 3 columns.*");
+    checkResultType("select * from dept as d(a, b)",
         "RecordType(INTEGER NOT NULL A, VARCHAR(10) NOT NULL B) NOT NULL");
-    checkResultType(
-        "select * from (values ('a', 1), ('bc', 2)) t (a, b)",
+    checkResultType("select * from (values ('a', 1), ('bc', 2)) t (a, b)",
         "RecordType(CHAR(2) NOT NULL A, INTEGER NOT NULL B) NOT NULL");
   }
 
   // todo: implement IN
   public void _testAmbiguousColumnInIn() {
     // ok: cyclic reference
-    check(
-        "select * from emp as e" + NL
-        + "where e.deptno in (" + NL
+    check("select * from emp as e" + NL + "where e.deptno in (" + NL
         + "  select 1 from (values(true)) where e.empno > 10)");
 
     // ok: cyclic reference
-    check(
-        "select * from emp as e" + NL
-        + "where e.deptno in (" + NL
+    check("select * from emp as e" + NL + "where e.deptno in (" + NL
         + "  select e.deptno from (values(true)))");
   }
 
@@ -4749,8 +4646,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   @Test public void testObscuredAliasFails() {
     // It is an error to refer to a table which has been given another
     // alias.
-    checkFails(
-        "select * from emp as e where exists (" + NL
+    checkFails("select * from emp as e where exists (" + NL
         + "  select 1 from dept where dept.deptno = ^emp^.deptno)",
         "Table 'EMP' not found");
   }
@@ -4758,8 +4654,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   @Test public void testFromReferenceFails() {
     // You cannot refer to a table ('e2') in the parent scope of a query in
     // the from clause.
-    checkFails(
-        "select * from emp as e1 where exists (" + NL
+    checkFails("select * from emp as e1 where exists (" + NL
         + "  select * from emp as e2, " + NL
         + "    (select * from dept where dept.deptno = ^e2^.deptno))",
         "Table 'E2' not found");
@@ -4770,8 +4665,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     // the from clause.
     //
     // Note: Oracle10g does not allow this query.
-    check(
-        "select * from emp as e1 where exists (" + NL
+    check("select * from emp as e1 where exists (" + NL
         + "  select * from emp as e2, " + NL
         + "    (select * from dept where dept.deptno = e1.deptno))");
   }
@@ -4785,18 +4679,14 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "   select deptno from emp as e3 where deptno = ^e2^.deptno))",
         "Table 'E2' not found");
 
-    checkFails(
-        "select * from emp" + NL
-        + "union" + NL
+    checkFails("select * from emp" + NL + "union" + NL
         + "select * from dept where ^empno^ < 10",
         "Column 'EMPNO' not found in any table");
   }
 
   @Test public void testUnionCountMismatchFails() {
     checkFails(
-        "select 1,2 from emp" + NL
-        + "union" + NL
-        + "select ^3^ from dept",
+        "select 1,2 from emp" + NL + "union" + NL + "select ^3^ from dept",
         "Column count mismatch in UNION");
   }
 
@@ -4936,8 +4826,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
     // make sal occur more than once on rhs, it is ignored and therefore
     // there is no error about incompatible types
-    check(
-        "select * from emp natural join\n"
+    check("select * from emp natural join\n"
         + " (select deptno, name as sal, 'foo' as sal from dept)");
   }
 
@@ -4949,8 +4838,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
   @Test public void testJoinUsingInvalidColsFails() {
     // todo: Improve error msg
-    checkFails(
-        "select * from emp left join dept using (^gender^)",
+    checkFails("select * from emp left join dept using (^gender^)",
         "Column 'GENDER' not found in any table");
   }
 
@@ -4991,24 +4879,17 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
     checkResultType(
         "select * from emp full join dept on emp.deptno = dept.deptno",
-        "RecordType(INTEGER EMPNO,"
-        + " VARCHAR(20) ENAME,"
-        + " VARCHAR(10) JOB,"
-        + " INTEGER MGR,"
-        + " TIMESTAMP(0) HIREDATE,"
-        + " INTEGER SAL,"
-        + " INTEGER COMM,"
-        + " INTEGER DEPTNO,"
-        + " BOOLEAN SLACKER,"
-        + " INTEGER DEPTNO0,"
-        + " VARCHAR(10) NAME) NOT NULL");
+        "RecordType(INTEGER EMPNO," + " VARCHAR(20) ENAME,"
+            + " VARCHAR(10) JOB," + " INTEGER MGR," + " TIMESTAMP(0) HIREDATE,"
+            + " INTEGER SAL," + " INTEGER COMM," + " INTEGER DEPTNO,"
+            + " BOOLEAN SLACKER," + " INTEGER DEPTNO0,"
+            + " VARCHAR(10) NAME) NOT NULL");
   }
 
   // todo: Cannot handle '(a join b)' yet -- we see the '(' and expect to
   // see 'select'.
   public void _testJoinUsing() {
-    check(
-        "select * from (emp join bonus using (job))" + NL
+    check("select * from (emp join bonus using (job))" + NL
         + "join dept using (deptno)");
 
     // cannot alias a JOIN (actually this is a parser error, but who's
@@ -5023,18 +4904,15 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         "dname not found in lhs");
 
     // Needs real Error Message and error marks in query
-    checkFails(
-        "select * from (emp join bonus using (job))" + NL
-        + "join (select 1 as job from (true)) using (job)",
-        "ambig");
+    checkFails("select * from (emp join bonus using (job))" + NL
+        + "join (select 1 as job from (true)) using (job)", "ambig");
   }
 
   @Ignore("bug: should fail if subquery does not have alias")
   @Test public void testJoinSubquery() {
     // Sub-queries require alias
     checkFails("select * from (select 1 as one from emp)\n"
-        + "join (values (1), (2)) on true",
-        "require alias");
+        + "join (values (1), (2)) on true", "require alias");
   }
 
   @Test public void testJoinUsingThreeWay() {

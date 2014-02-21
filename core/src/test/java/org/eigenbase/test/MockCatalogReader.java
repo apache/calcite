@@ -127,7 +127,7 @@ public class MockCatalogReader implements Prepare.CatalogReader {
                 new RelDataTypeFieldImpl("CITY", 1, varchar20Type),
                 new RelDataTypeFieldImpl("ZIP", 1, intType),
                 new RelDataTypeFieldImpl("STATE", 1, varchar20Type)),
-            RelDataTypeComparability.None);
+            RelDataTypeComparability.NONE);
 
     // Register "SALES" schema.
     MockSchema salesSchema = new MockSchema("SALES");
@@ -258,7 +258,7 @@ public class MockCatalogReader implements Prepare.CatalogReader {
       result = new ArrayList<SqlMoniker>();
       for (MockSchema schema : schemas.values()) {
         result.add(
-            new SqlMonikerImpl(schema.name, SqlMonikerType.Schema));
+            new SqlMonikerImpl(schema.name, SqlMonikerType.SCHEMA));
       }
       return result;
     case 1:
@@ -272,7 +272,7 @@ public class MockCatalogReader implements Prepare.CatalogReader {
         result.add(
             new SqlMonikerImpl(
                 tableName,
-                SqlMonikerType.Table));
+                SqlMonikerType.TABLE));
       }
       return result;
     default:
@@ -314,11 +314,11 @@ public class MockCatalogReader implements Prepare.CatalogReader {
       ++i;
       final SqlMonotonicity monotonicity =
           table.getMonotonicity(field.getName());
-      if (monotonicity != SqlMonotonicity.NotMonotonic) {
+      if (monotonicity != SqlMonotonicity.NOT_MONOTONIC) {
         final RelFieldCollation.Direction direction =
             monotonicity.isDecreasing()
-                ? RelFieldCollation.Direction.Descending
-                : RelFieldCollation.Direction.Ascending;
+                ? RelFieldCollation.Direction.DESCENDING
+                : RelFieldCollation.Direction.ASCENDING;
         collationList.add(
             RelCollationImpl.of(
                 new RelFieldCollation(
@@ -412,7 +412,7 @@ public class MockCatalogReader implements Prepare.CatalogReader {
     }
 
     public SqlMonotonicity getMonotonicity(String columnName) {
-      return SqlMonotonicity.NotMonotonic;
+      return SqlMonotonicity.NOT_MONOTONIC;
     }
 
     public SqlAccessType getAllowedAccess() {

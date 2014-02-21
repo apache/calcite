@@ -244,7 +244,7 @@ public abstract class OperandTypes {
    */
   public static final SqlOperandTypeChecker
   COMPARABLE_ORDERED_COMPARABLE_ORDERED =
-      new ComparableOperandTypeChecker(2, RelDataTypeComparability.All);
+      new ComparableOperandTypeChecker(2, RelDataTypeComparability.ALL);
 
   /**
    * Operand type-checking strategy where operand type must allow ordered
@@ -252,7 +252,7 @@ public abstract class OperandTypes {
    * functions
    */
   public static final SqlOperandTypeChecker COMPARABLE_ORDERED =
-      new ComparableOperandTypeChecker(1, RelDataTypeComparability.All);
+      new ComparableOperandTypeChecker(1, RelDataTypeComparability.ALL);
 
   /**
    * Operand type-checking strategy where operand types must allow unordered
@@ -260,7 +260,7 @@ public abstract class OperandTypes {
    */
   public static final SqlOperandTypeChecker
   COMPARABLE_UNORDERED_COMPARABLE_UNORDERED =
-      new ComparableOperandTypeChecker(2, RelDataTypeComparability.Unordered);
+      new ComparableOperandTypeChecker(2, RelDataTypeComparability.UNORDERED);
 
   /**
    * Operand type-checking strategy where two operands must both be in the

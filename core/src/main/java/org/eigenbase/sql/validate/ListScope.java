@@ -85,7 +85,7 @@ public abstract class ListScope extends DelegatingScope {
 
   public void findAliases(List<SqlMoniker> result) {
     for (Pair<String, SqlValidatorNamespace> pair : children) {
-      result.add(new SqlMonikerImpl(pair.left, SqlMonikerType.Table));
+      result.add(new SqlMonikerImpl(pair.left, SqlMonikerType.TABLE));
     }
     parent.findAliases(result);
   }

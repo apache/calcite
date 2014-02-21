@@ -159,7 +159,7 @@ public final class ProjectRel extends ProjectRelBase {
   public Mappings.TargetMapping getMapping() {
     Mappings.TargetMapping mapping =
         Mappings.create(
-            MappingType.InverseSurjection,
+            MappingType.INVERSE_SURJECTION,
             getChild().getRowType().getFieldCount(),
             exps.size());
     for (Ord<RexNode> exp : Ord.zip(exps)) {

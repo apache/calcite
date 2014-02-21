@@ -69,7 +69,7 @@ public class OverScope extends ListScope {
 
   public SqlMonotonicity getMonotonicity(SqlNode expr) {
     SqlMonotonicity monotonicity = expr.getMonotonicity(this);
-    if (monotonicity != SqlMonotonicity.NotMonotonic) {
+    if (monotonicity != SqlMonotonicity.NOT_MONOTONIC) {
       return monotonicity;
     }
 

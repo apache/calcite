@@ -147,7 +147,7 @@ public class SelectScope extends ListScope {
 
   public SqlMonotonicity getMonotonicity(SqlNode expr) {
     SqlMonotonicity monotonicity = expr.getMonotonicity(this);
-    if (monotonicity != SqlMonotonicity.NotMonotonic) {
+    if (monotonicity != SqlMonotonicity.NOT_MONOTONIC) {
       return monotonicity;
     }
 
@@ -155,7 +155,7 @@ public class SelectScope extends ListScope {
     final SqlNodeList orderList = getOrderList();
     if (orderList.size() > 0) {
       SqlNode order0 = orderList.get(0);
-      monotonicity = SqlMonotonicity.Increasing;
+      monotonicity = SqlMonotonicity.INCREASING;
       if ((order0 instanceof SqlCall)
           && (((SqlCall) order0).getOperator()
           == SqlStdOperatorTable.DESC)) {
@@ -167,7 +167,7 @@ public class SelectScope extends ListScope {
       }
     }
 
-    return SqlMonotonicity.NotMonotonic;
+    return SqlMonotonicity.NOT_MONOTONIC;
   }
 
   public SqlNodeList getOrderList() {

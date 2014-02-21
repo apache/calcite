@@ -98,7 +98,7 @@ public class SqlInsert extends SqlCall {
       SqlWriter writer,
       int leftPrec,
       int rightPrec) {
-    writer.startList(SqlWriter.FrameTypeEnum.Select);
+    writer.startList(SqlWriter.FrameTypeEnum.SELECT);
     writer.sep("INSERT INTO");
     getTargetTable().unparse(
         writer,

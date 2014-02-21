@@ -18,9 +18,9 @@
 package org.eigenbase.util.mapping;
 
 /**
- * Describes the type of a mapping, from the most general {@link #MultiFunction}
+ * Describes the type of a mapping, from the most general {@link #MULTI_FUNCTION}
  * (every element in the source and target domain can participate in many
- * mappings) to the most retricted {@link #Bijection} (every element in the
+ * mappings) to the most retricted {@link #BIJECTION} (every element in the
  * source and target domain must be paired with precisely one element in the
  * other domain).
  *
@@ -46,48 +46,48 @@ public enum MappingType {
   //            ======= ====== ====== ======== =================
 
   //                  0      1      1 true     0 Bijection
-  Bijection,
+  BIJECTION,
 
   //                  1   <= 1      1 true     4 InverseSurjection
-  Surjection,
+  SURJECTION,
 
   //                  2   >= 1      1 true     8 InverseInjection
-  Injection,
+  INJECTION,
 
   //                  3    any      1 true     12 InverseFunction
-  Function,
+  FUNCTION,
 
   /**
    * An inverse surjection has a source for every target, and no source has
    * more than one target.
    */
   //                  4      1   <= 1 partial  1 Surjection
-  InverseSurjection,
+  INVERSE_SURJECTION,
 
   /**
    * A partial surjection has no more than one source for any target, and no
    * more than one target for any source.
    */
   //                  5   <= 1   <= 1 partial  5 PartialSurjection
-  PartialSurjection,
+  PARTIAL_SURJECTION,
 
   //                  6   >= 1   <= 1 partial  9 InversePartialInjection
-  PartialInjection,
+  PARTIAL_INJECTION,
 
   //                  7    any   <= 1 partial  13 InversePartialFunction
-  PartialFunction,
+  PARTIAL_FUNCTION,
 
   //                  8      1   >= 1 multi    2 Injection
-  InverseInjection,
+  INVERSE_INJECTION,
 
   //                  9   <= 1   >= 1 multi    6 PartialInjection
-  InversePartialInjection,
+  INVERSE_PARTIAL_INJECTION,
 
   //                 10   >= 1   >= 1 multi    10
-  Ten,
+  TEN,
 
   //                 11    any   >= 1 multi    14
-  Eleven,
+  ELEVEN,
 
   /**
    * An inverse function has a source for every target, but a source might
@@ -99,23 +99,23 @@ public enum MappingType {
    * <p>Similar types:
    *
    * <ul>
-   * <li> {@link #InverseSurjection} is stronger (a source may not have
+   * <li> {@link #INVERSE_SURJECTION} is stronger (a source may not have
    * multiple targets);
-   * <li>{@link #InversePartialFunction} is weaker (a target may have 0 or 1
+   * <li>{@link #INVERSE_PARTIAL_FUNCTION} is weaker (a target may have 0 or 1
    * sources).
    * </ul>
    */
   //                 12      1    any multi    3 Function
-  InverseFunction,
+  INVERSE_FUNCTION,
 
   //                 13   <= 1    any multi    7 PartialFunction
-  InversePartialFunction,
+  INVERSE_PARTIAL_FUNCTION,
 
   //                 14   >= 1    any multi    11
-  Fourteen,
+  FOURTEEN,
 
   //                 15    any    any multi    15 MultiFunction
-  MultiFunction;
+  MULTI_FUNCTION;
 
   private final int inverseOrdinal;
 
@@ -132,8 +132,8 @@ public enum MappingType {
    * Returns whether this mapping type is (possibly a weaker form of) a given
    * mapping type.
    *
-   * <p>For example, a {@link #Bijection} is a {@link #Function}, but not
-   * every {link #Function} is a {@link #Bijection}.
+   * <p>For example, a {@link #BIJECTION} is a {@link #FUNCTION}, but not
+   * every {link #Function} is a {@link #BIJECTION}.
    */
   public boolean isA(MappingType mappingType) {
     return (ordinal() & mappingType.ordinal()) == ordinal();

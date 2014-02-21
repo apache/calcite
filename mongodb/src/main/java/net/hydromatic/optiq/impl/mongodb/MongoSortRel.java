@@ -93,11 +93,11 @@ public class MongoSortRel
 
   private int direction(RelFieldCollation fieldCollation) {
     switch (fieldCollation.getDirection()) {
-    case Descending:
-    case StrictlyDescending:
+    case DESCENDING:
+    case STRICTLY_DESCENDING:
       return -1;
-    case Ascending:
-    case StrictlyAscending:
+    case ASCENDING:
+    case STRICTLY_ASCENDING:
     default:
       return 1;
     }

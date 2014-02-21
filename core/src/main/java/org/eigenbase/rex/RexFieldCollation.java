@@ -56,8 +56,8 @@ public class RexFieldCollation extends Pair<RexNode, ImmutableSet<SqlKind>> {
 
   public RelFieldCollation.Direction getDirection() {
     return right.contains(SqlKind.DESCENDING)
-        ? RelFieldCollation.Direction.Descending
-        : RelFieldCollation.Direction.Ascending;
+        ? RelFieldCollation.Direction.DESCENDING
+        : RelFieldCollation.Direction.ASCENDING;
   }
 
   public RelFieldCollation.NullDirection getNullDirection() {

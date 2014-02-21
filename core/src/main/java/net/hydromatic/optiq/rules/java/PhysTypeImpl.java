@@ -192,7 +192,7 @@ public class PhysTypeImpl implements PhysType {
                       == RelFieldCollation.NullDirection.FIRST),
               Expressions.constant(
                   collation.getDirection()
-                      == RelFieldCollation.Direction.Descending)));
+                      == RelFieldCollation.Direction.DESCENDING)));
     }
     selector =
         Expressions.call(BuiltinMethod.IDENTITY_SELECTOR.method);
@@ -226,7 +226,7 @@ public class PhysTypeImpl implements PhysType {
               == RelFieldCollation.NullDirection.FIRST;
       final boolean descending =
           collation.getDirection()
-              == RelFieldCollation.Direction.Descending;
+              == RelFieldCollation.Direction.DESCENDING;
       body.add(
           Expressions.statement(
               Expressions.assign(
@@ -326,7 +326,7 @@ public class PhysTypeImpl implements PhysType {
               == RelFieldCollation.NullDirection.FIRST;
       final boolean descending =
           fieldCollation.getDirection()
-              == RelFieldCollation.Direction.Descending;
+              == RelFieldCollation.Direction.DESCENDING;
       body.add(
           Expressions.statement(
               Expressions.assign(

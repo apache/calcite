@@ -39,13 +39,13 @@ public class MappingTest {
     assertTrue(Mappings.isIdentity(Mappings.createIdentity(5)));
     assertFalse(
         Mappings.isIdentity(
-            Mappings.create(MappingType.PartialSurjection, 3, 4)));
+            Mappings.create(MappingType.PARTIAL_SURJECTION, 3, 4)));
     assertFalse(
         Mappings.isIdentity(
-            Mappings.create(MappingType.PartialSurjection, 3, 3)));
+            Mappings.create(MappingType.PARTIAL_SURJECTION, 3, 3)));
     assertFalse(
         Mappings.isIdentity(
-            Mappings.create(MappingType.PartialSurjection, 4, 4)));
+            Mappings.create(MappingType.PARTIAL_SURJECTION, 4, 4)));
   }
 
   /**
@@ -79,7 +79,7 @@ public class MappingTest {
             Mappings.append(
                 Mappings.createIdentity(3),
                 Mappings.createIdentity(2))));
-    Mapping mapping0 = Mappings.create(MappingType.PartialSurjection, 5, 3);
+    Mapping mapping0 = Mappings.create(MappingType.PARTIAL_SURJECTION, 5, 3);
     mapping0.set(0, 2);
     mapping0.set(3, 1);
     mapping0.set(4, 0);

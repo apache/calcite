@@ -76,7 +76,7 @@ public class SqlAbstractTimeFunction extends SqlFunction {
   public SqlMonotonicity getMonotonicity(
       SqlCall call,
       SqlValidatorScope scope) {
-    return SqlMonotonicity.Increasing;
+    return SqlMonotonicity.INCREASING;
   }
 
   // Plans referencing context variables should never be cached

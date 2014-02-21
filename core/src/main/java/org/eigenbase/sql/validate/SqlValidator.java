@@ -76,7 +76,7 @@ public interface SqlValidator {
 
   /**
    * Returns the dialect of SQL (SQL:2003, etc.) this validator recognizes.
-   * Default is {@link SqlConformance#Default}.
+   * Default is {@link SqlConformance#DEFAULT}.
    *
    * @return dialect of SQL this validator recognizes
    */

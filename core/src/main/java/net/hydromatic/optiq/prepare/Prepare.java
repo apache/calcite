@@ -226,10 +226,10 @@ public abstract class Prepare {
       boolean explainAsXml = sqlExplain.isXml();
       SqlExplainLevel detailLevel = sqlExplain.getDetailLevel();
       switch (explainDepth) {
-      case Type:
+      case TYPE:
         return createPreparedExplanation(
             resultType, parameterRowType, null, explainAsXml, detailLevel);
-      case Logical:
+      case LOGICAL:
         return createPreparedExplanation(
             null, parameterRowType, rootRel, explainAsXml, detailLevel);
       default:
@@ -252,7 +252,7 @@ public abstract class Prepare {
       boolean explainAsXml = sqlExplain.isXml();
       SqlExplainLevel detailLevel = sqlExplain.getDetailLevel();
       switch (explainDepth) {
-      case Physical:
+      case PHYSICAL:
       default:
         rootRel = optimize(rootRel.getRowType(), rootRel, materializations);
         return createPreparedExplanation(

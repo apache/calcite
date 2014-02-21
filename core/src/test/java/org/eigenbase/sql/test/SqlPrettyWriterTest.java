@@ -208,7 +208,7 @@ public class SqlPrettyWriterTest {
     // below it.
     final SqlPrettyWriter prettyWriter =
         new SqlPrettyWriter(SqlDialect.DUMMY);
-    prettyWriter.setSubqueryStyle(SqlWriter.SubqueryStyle.Black);
+    prettyWriter.setSubqueryStyle(SqlWriter.SubqueryStyle.BLACK);
     checkSimple(prettyWriter, "${desc}", "${formatted}");
   }
 

@@ -114,7 +114,7 @@ public class RelCollationImpl implements RelCollation {
     return ImmutableList.of(
         of(
             new RelFieldCollation(fieldIndex,
-                RelFieldCollation.Direction.Ascending,
+                RelFieldCollation.Direction.ASCENDING,
                 RelFieldCollation.NullDirection.UNSPECIFIED)));
   }
 

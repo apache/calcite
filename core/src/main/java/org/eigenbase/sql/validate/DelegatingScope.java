@@ -87,7 +87,7 @@ public abstract class DelegatingScope implements SqlValidatorScope {
       colNames.add(
           new SqlMonikerImpl(
               field.getName(),
-              SqlMonikerType.Column));
+              SqlMonikerType.COLUMN));
     }
   }
 

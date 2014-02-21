@@ -213,7 +213,7 @@ public abstract class RelOptUtil {
       RelDataType inputRowType) {
     final Mappings.TargetMapping mapping =
         Mappings.create(
-            MappingType.PartialFunction,
+            MappingType.PARTIAL_FUNCTION,
             nodes.size(),
             inputRowType.getFieldCount());
     for (Ord<RexNode> node : Ord.zip(nodes)) {

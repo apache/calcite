@@ -36,7 +36,7 @@ abstract class AbstractNamespace implements SqlValidatorNamespace {
    * cycles.
    */
   private SqlValidatorImpl.Status status =
-      SqlValidatorImpl.Status.Unvalidated;
+      SqlValidatorImpl.Status.UNVALIDATED;
 
   /**
    * Type of the output row, which comprises the name and type of each output
@@ -71,9 +71,9 @@ abstract class AbstractNamespace implements SqlValidatorNamespace {
 
   public final void validate() {
     switch (status) {
-    case Unvalidated:
+    case UNVALIDATED:
       try {
-        status = SqlValidatorImpl.Status.InProgress;
+        status = SqlValidatorImpl.Status.IN_PROGRESS;
         Util.permAssert(
             rowType == null,
             "Namespace.rowType must be null before validate has been called");
@@ -91,12 +91,12 @@ abstract class AbstractNamespace implements SqlValidatorNamespace {
                   true);
         }
       } finally {
-        status = SqlValidatorImpl.Status.Valid;
+        status = SqlValidatorImpl.Status.VALID;
       }
       break;
-    case InProgress:
+    case IN_PROGRESS:
       throw Util.newInternal("todo: Cycle detected during type-checking");
-    case Valid:
+    case VALID:
       break;
     default:
       throw Util.unexpected(status);
@@ -152,7 +152,7 @@ abstract class AbstractNamespace implements SqlValidatorNamespace {
   }
 
   public SqlMonotonicity getMonotonicity(String columnName) {
-    return SqlMonotonicity.NotMonotonic;
+    return SqlMonotonicity.NOT_MONOTONIC;
   }
 
   public void makeNullable() {

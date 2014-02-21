@@ -68,7 +68,7 @@ public class SqlDynamicParam extends SqlNode {
   }
 
   public SqlMonotonicity getMonotonicity(SqlValidatorScope scope) {
-    return SqlMonotonicity.Constant;
+    return SqlMonotonicity.CONSTANT;
   }
 
   public <R> R accept(SqlVisitor<R> visitor) {

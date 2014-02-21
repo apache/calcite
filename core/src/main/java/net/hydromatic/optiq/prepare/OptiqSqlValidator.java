@@ -31,7 +31,7 @@ class OptiqSqlValidator extends SqlValidatorImpl {
       SqlOperatorTable opTab,
       OptiqCatalogReader catalogReader,
       JavaTypeFactory typeFactory) {
-    super(opTab, catalogReader, typeFactory, SqlConformance.Default);
+    super(opTab, catalogReader, typeFactory, SqlConformance.DEFAULT);
   }
 
   @Override

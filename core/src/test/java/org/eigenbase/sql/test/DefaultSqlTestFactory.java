@@ -48,7 +48,7 @@ public class DefaultSqlTestFactory implements SqlTestFactory {
           "quotedCasing", Casing.UNCHANGED,
           "unquotedCasing", Casing.TO_UPPER,
           "caseSensitive", true,
-          "conformance", SqlConformance.Default);
+          "conformance", SqlConformance.DEFAULT);
 
   public static final DefaultSqlTestFactory INSTANCE =
       new DefaultSqlTestFactory();

@@ -733,12 +733,12 @@ List FunctionParameterList(
     }
     [ <DISTINCT>
         {
-            e = SqlSelectKeyword.Distinct.symbol(getPos());
+            e = SqlSelectKeyword.DISTINCT.symbol(getPos());
         }
         |
       <ALL>
         {
-            e = SqlSelectKeyword.All.symbol(getPos());
+            e = SqlSelectKeyword.ALL.symbol(getPos());
         }
     ]
     {
@@ -847,10 +847,10 @@ SqlSelect SqlSelect() :
     SqlSelectKeywords(keywords)
     (
         <DISTINCT> {
-            keywords.add(SqlSelectKeyword.Distinct.symbol(getPos()));
+            keywords.add(SqlSelectKeyword.DISTINCT.symbol(getPos()));
         }
         |   <ALL> {
-            keywords.add(SqlSelectKeyword.All.symbol(getPos()));
+            keywords.add(SqlSelectKeyword.ALL.symbol(getPos()));
         }
         |   E()
     )
@@ -934,21 +934,21 @@ SqlExplain.Depth ExplainDepth() :
         LOOKAHEAD(2)
         <WITH> <TYPE>
         {
-            return SqlExplain.Depth.Type;
+            return SqlExplain.Depth.TYPE;
         }
         |
         <WITH> <IMPLEMENTATION>
         {
-            return SqlExplain.Depth.Physical;
+            return SqlExplain.Depth.PHYSICAL;
         }
         |
         <WITHOUT> <IMPLEMENTATION>
         {
-            return SqlExplain.Depth.Logical;
+            return SqlExplain.Depth.LOGICAL;
         }
         |
         {
-            return SqlExplain.Depth.Physical;
+            return SqlExplain.Depth.PHYSICAL;
         }
 
     )
@@ -2593,7 +2593,7 @@ SqlCollation CollateClause() :
     <COLLATE> <COLLATION_ID>
     {
         return new SqlCollation(
-            getToken(0).image, SqlCollation.Coercibility.Explicit);
+            getToken(0).image, SqlCollation.Coercibility.EXPLICIT);
     }
 }
 

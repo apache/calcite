@@ -117,7 +117,7 @@ public class SqlUpdate extends SqlCall {
       int leftPrec,
       int rightPrec) {
     final SqlWriter.Frame frame =
-        writer.startList(SqlWriter.FrameTypeEnum.Select, "UPDATE", "");
+        writer.startList(SqlWriter.FrameTypeEnum.SELECT, "UPDATE", "");
     getTargetTable().unparse(
         writer,
         getOperator().getLeftPrec(),
@@ -136,7 +136,7 @@ public class SqlUpdate extends SqlCall {
           getOperator().getRightPrec());
     }
     final SqlWriter.Frame setFrame =
-        writer.startList(SqlWriter.FrameTypeEnum.UpdateSetList, "SET", "");
+        writer.startList(SqlWriter.FrameTypeEnum.UPDATE_SET_LIST, "SET", "");
     Iterator targetColumnIter = getTargetColumnList().getList().iterator();
     Iterator sourceExpressionIter =
         getSourceExpressionList().getList().iterator();

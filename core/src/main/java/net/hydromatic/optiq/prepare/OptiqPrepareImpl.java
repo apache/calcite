@@ -655,7 +655,7 @@ public class OptiqPrepareImpl implements OptiqPrepare {
     private SqlValidatorImpl createSqlValidator(CatalogReader catalogReader) {
       return new SqlValidatorImpl(
           SqlStdOperatorTable.instance(), catalogReader,
-          rexBuilder.getTypeFactory(), SqlConformance.Default) { };
+          rexBuilder.getTypeFactory(), SqlConformance.DEFAULT) { };
     }
 
     @Override
@@ -890,7 +890,7 @@ public class OptiqPrepareImpl implements OptiqPrepare {
     }
 
     public SqlMonotonicity getMonotonicity(String columnName) {
-      return SqlMonotonicity.NotMonotonic;
+      return SqlMonotonicity.NOT_MONOTONIC;
     }
 
     public SqlAccessType getAllowedAccess() {

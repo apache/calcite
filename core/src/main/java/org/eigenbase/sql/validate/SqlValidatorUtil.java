@@ -210,7 +210,7 @@ public class SqlValidatorUtil {
         opTab,
         catalogReader,
         typeFactory,
-        SqlConformance.Default);
+        SqlConformance.DEFAULT);
   }
 
   /**

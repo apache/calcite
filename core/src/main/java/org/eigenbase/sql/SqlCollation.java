@@ -33,9 +33,9 @@ import org.eigenbase.util.*;
  */
 public class SqlCollation implements Serializable {
   public static final SqlCollation COERCIBLE =
-      new SqlCollation(Coercibility.Coercible);
+      new SqlCollation(Coercibility.COERCIBLE);
   public static final SqlCollation IMPLICIT =
-      new SqlCollation(Coercibility.Implicit);
+      new SqlCollation(Coercibility.IMPLICIT);
 
   //~ Enums ------------------------------------------------------------------
 
@@ -53,7 +53,12 @@ public class SqlCollation implements Serializable {
    * @sql.99 Part 2 Section 4.2.3
    */
   public enum Coercibility {
-    Explicit, /* strongest */ Implicit, Coercible, None; /* weakest */
+    /** Strongest coercibility. */
+    EXPLICIT,
+    IMPLICIT,
+    COERCIBLE,
+    /** Weakest coercibility. */
+    NONE
   }
 
   //~ Instance fields --------------------------------------------------------
@@ -184,73 +189,73 @@ public class SqlCollation implements Serializable {
     final Coercibility coercibility1 = col1.getCoercibility();
     final Coercibility coercibility2 = col2.getCoercibility();
     switch (coercibility1) {
-    case Coercible:
+    case COERCIBLE:
       switch (coercibility2) {
-      case Coercible:
+      case COERCIBLE:
         return new SqlCollation(
             col2.collationName,
-            Coercibility.Coercible);
-      case Implicit:
+            Coercibility.COERCIBLE);
+      case IMPLICIT:
         return new SqlCollation(
             col2.collationName,
-            Coercibility.Implicit);
-      case None:
+            Coercibility.IMPLICIT);
+      case NONE:
         return null;
-      case Explicit:
+      case EXPLICIT:
         return new SqlCollation(
             col2.collationName,
-            Coercibility.Explicit);
+            Coercibility.EXPLICIT);
       default:
         throw Util.unexpected(coercibility2);
       }
-    case Implicit:
+    case IMPLICIT:
       switch (coercibility2) {
-      case Coercible:
+      case COERCIBLE:
         return new SqlCollation(
             col1.collationName,
-            Coercibility.Implicit);
-      case Implicit:
+            Coercibility.IMPLICIT);
+      case IMPLICIT:
         if (col1.collationName.equals(col2.collationName)) {
           return new SqlCollation(
               col2.collationName,
-              Coercibility.Implicit);
+              Coercibility.IMPLICIT);
         }
         return null;
-      case None:
+      case NONE:
         return null;
-      case Explicit:
+      case EXPLICIT:
         return new SqlCollation(
             col2.collationName,
-            Coercibility.Explicit);
+            Coercibility.EXPLICIT);
       default:
         throw Util.unexpected(coercibility2);
       }
-    case None:
+    case NONE:
       switch (coercibility2) {
-      case Coercible:
-      case Implicit:
-      case None:
+      case COERCIBLE:
+      case IMPLICIT:
+      case NONE:
         return null;
-      case Explicit:
+      case EXPLICIT:
         return new SqlCollation(
             col2.collationName,
-            Coercibility.Explicit);
+            Coercibility.EXPLICIT);
       default:
         throw Util.unexpected(coercibility2);
       }
-    case Explicit:
+    case EXPLICIT:
       switch (coercibility2) {
-      case Coercible:
-      case Implicit:
-      case None:
+      case COERCIBLE:
+      case IMPLICIT:
+      case NONE:
         return new SqlCollation(
             col1.collationName,
-            Coercibility.Explicit);
-      case Explicit:
+            Coercibility.EXPLICIT);
+      case EXPLICIT:
         if (col1.collationName.equals(col2.collationName)) {
           return new SqlCollation(
               col2.collationName,
-              Coercibility.Explicit);
+              Coercibility.EXPLICIT);
         }
         throw EigenbaseResource.instance().DifferentCollations.ex(
             col1.collationName,

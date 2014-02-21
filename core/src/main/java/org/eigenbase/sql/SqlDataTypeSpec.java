@@ -107,7 +107,7 @@ public class SqlDataTypeSpec extends SqlNode {
   }
 
   public SqlMonotonicity getMonotonicity(SqlValidatorScope scope) {
-    return SqlMonotonicity.Constant;
+    return SqlMonotonicity.CONSTANT;
   }
 
   public SqlIdentifier getCollectionsTypeName() {
@@ -167,7 +167,7 @@ public class SqlDataTypeSpec extends SqlNode {
 
       if (sqlTypeName.allowsPrec() && (precision >= 0)) {
         final SqlWriter.Frame frame =
-            writer.startList(SqlWriter.FrameTypeEnum.FunCall, "(", ")");
+            writer.startList(SqlWriter.FrameTypeEnum.FUN_CALL, "(", ")");
         writer.print(precision);
         if (sqlTypeName.allowsScale() && (scale >= 0)) {
           writer.sep(",", true);

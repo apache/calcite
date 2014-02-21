@@ -212,11 +212,11 @@ public abstract class SqlToRelTestBase {
         ++i;
         final SqlMonotonicity monotonicity =
             table.getMonotonicity(field.getName());
-        if (monotonicity != SqlMonotonicity.NotMonotonic) {
+        if (monotonicity != SqlMonotonicity.NOT_MONOTONIC) {
           final RelFieldCollation.Direction direction =
               monotonicity.isDecreasing()
-                  ? RelFieldCollation.Direction.Descending
-                  : RelFieldCollation.Direction.Ascending;
+                  ? RelFieldCollation.Direction.DESCENDING
+                  : RelFieldCollation.Direction.ASCENDING;
           collationList.add(
               RelCollationImpl.of(
                   new RelFieldCollation(
@@ -463,7 +463,7 @@ public abstract class SqlToRelTestBase {
     }
 
     public SqlConformance getConformance() {
-      return SqlConformance.Default;
+      return SqlConformance.DEFAULT;
     }
 
     public SqlValidator createValidator(

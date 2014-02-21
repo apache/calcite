@@ -44,7 +44,7 @@ public class SqlIdentifierMoniker implements SqlMoniker {
   //~ Methods ----------------------------------------------------------------
 
   public SqlMonikerType getType() {
-    return SqlMonikerType.Column;
+    return SqlMonikerType.COLUMN;
   }
 
   public List<String> getFullyQualifiedNames() {

@@ -184,14 +184,14 @@ public class SqlSubstringFunction extends SqlFunction {
     if (call.operands.length == 3) {
       final SqlMonotonicity mono0 =
           call.operands[0].getMonotonicity(scope);
-      if ((mono0 != SqlMonotonicity.NotMonotonic)
+      if ((mono0 != SqlMonotonicity.NOT_MONOTONIC)
           && (call.operands[1].getMonotonicity(scope)
-          == SqlMonotonicity.Constant)
+          == SqlMonotonicity.CONSTANT)
           && (call.operands[1] instanceof SqlLiteral)
           && ((SqlLiteral) call.operands[1]).bigDecimalValue().equals(
               BigDecimal.ZERO)
           && (call.operands[2].getMonotonicity(scope)
-          == SqlMonotonicity.Constant)) {
+          == SqlMonotonicity.CONSTANT)) {
         return mono0.unstrict();
       }
     }

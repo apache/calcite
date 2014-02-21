@@ -234,7 +234,7 @@ public class SqlAdvisor {
           hintList.add(
               new SqlMonikerImpl(
                   tokenName.substring(1, tokenName.length() - 1),
-                  SqlMonikerType.Keyword));
+                  SqlMonikerType.KEYWORD));
         }
       }
       return null;

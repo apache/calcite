@@ -277,7 +277,7 @@ public class SqlTesterImpl implements SqlTester {
 
   public SqlTesterImpl withConformance(SqlConformance conformance) {
     if (conformance == null) {
-      conformance = SqlConformance.Default;
+      conformance = SqlConformance.DEFAULT;
     }
     return with("conformance", conformance);
   }

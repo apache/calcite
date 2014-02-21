@@ -195,7 +195,7 @@ public class SqlBinaryOperator extends SqlOperator {
       final SqlNode operand1 = call.getOperands()[1];
       final SqlMonotonicity mono0 = operand0.getMonotonicity(scope);
       final SqlMonotonicity mono1 = operand1.getMonotonicity(scope);
-      if (mono1 == SqlMonotonicity.Constant) {
+      if (mono1 == SqlMonotonicity.CONSTANT) {
         if (operand1 instanceof SqlLiteral) {
           SqlLiteral literal = (SqlLiteral) operand1;
           switch (
@@ -208,7 +208,7 @@ public class SqlBinaryOperator extends SqlOperator {
           case 0:
 
             // mono / zero --> constant (infinity!)
-            return SqlMonotonicity.Constant;
+            return SqlMonotonicity.CONSTANT;
           default:
 
             // mono / +ve constant * mono1 --> mono, unstrict

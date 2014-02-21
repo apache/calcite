@@ -213,7 +213,7 @@ public class PullConstantsThroughAggregatesRule extends RelOptRule {
       RelNode child) {
     // Every target has precisely one source; every source has at most
     // one target.
-    assert mapping.getMappingType().isA(MappingType.InverseSurjection);
+    assert mapping.getMappingType().isA(MappingType.INVERSE_SURJECTION);
     final RelDataType childRowType = child.getRowType();
     assert mapping.getSourceCount() == childRowType.getFieldCount();
     List<Pair<RexNode, String>> projects =

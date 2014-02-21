@@ -48,28 +48,28 @@ public abstract class Mappings {
       int sourceCount,
       int targetCount) {
     switch (mappingType) {
-    case Bijection:
+    case BIJECTION:
       assert sourceCount == targetCount;
       return new Permutation(sourceCount);
-    case InverseSurjection:
+    case INVERSE_SURJECTION:
       assert sourceCount >= targetCount;
       return new SurjectionWithInverse(
           sourceCount,
           targetCount);
-    case PartialSurjection:
-    case Surjection:
+    case PARTIAL_SURJECTION:
+    case SURJECTION:
       return new Mappings.PartialMapping(
           sourceCount,
           targetCount,
           mappingType);
-    case PartialFunction:
-    case Function:
+    case PARTIAL_FUNCTION:
+    case FUNCTION:
       return new PartialFunctionImpl(
           sourceCount,
           targetCount,
           mappingType);
-    case InverseFunction:
-    case InversePartialFunction:
+    case INVERSE_FUNCTION:
+    case INVERSE_PARTIAL_FUNCTION:
       return new InverseMapping(
           create(mappingType.inverse(), targetCount, sourceCount));
     default:
@@ -107,7 +107,7 @@ public abstract class Mappings {
     }
     Mapping remaining =
         create(
-            MappingType.InverseSurjection,
+            MappingType.INVERSE_SURJECTION,
             mapping2.getTargetCount(),
             mapping1.getTargetCount());
     for (int target = 0; target < mapping1.getTargetCount(); ++target) {
@@ -136,7 +136,7 @@ public abstract class Mappings {
     }
     Mapping product =
         create(
-            MappingType.InverseSurjection,
+            MappingType.INVERSE_SURJECTION,
             mapping1.getSourceCount(),
             mapping2.getTargetCount());
     for (int source = 0; source < mapping1.getSourceCount(); ++source) {
@@ -261,7 +261,7 @@ public abstract class Mappings {
       int targetCount) {
     final PartialFunctionImpl mapping =
         new PartialFunctionImpl(
-            sourceCount, targetCount, MappingType.Function);
+            sourceCount, targetCount, MappingType.FUNCTION);
     for (Map.Entry<Integer, Integer> entry : map.entrySet()) {
       mapping.set(entry.getKey(), entry.getValue());
     }
@@ -274,7 +274,7 @@ public abstract class Mappings {
       int targetCount) {
     final PartialFunctionImpl mapping =
         new PartialFunctionImpl(
-            sourceCount, targetCount, MappingType.Function);
+            sourceCount, targetCount, MappingType.FUNCTION);
     for (int source = 0; source < sourceCount; source++) {
       Integer target = function.apply(source);
       if (target != null) {
@@ -345,7 +345,7 @@ public abstract class Mappings {
     }
     final TargetMapping mapping =
         create(
-            MappingType.InverseSurjection,
+            MappingType.INVERSE_SURJECTION,
             sourceCount, // aCount + bCount + cCount,
             targetCount); // cCount + bCount
 
@@ -373,7 +373,7 @@ public abstract class Mappings {
     final int t0 = mapping0.getTargetCount();
     final int t1 = mapping1.getTargetCount();
     final TargetMapping mapping =
-        create(MappingType.InverseSurjection, s0 + s1, t0 + t1);
+        create(MappingType.INVERSE_SURJECTION, s0 + s1, t0 + t1);
     for (int s = 0; s < s0; s++) {
       int t = mapping0.getTargetOpt(s);
       if (t >= 0) {
@@ -401,7 +401,7 @@ public abstract class Mappings {
     final int t0 = mapping0.getTargetCount();
     final int t1 = mapping1.getTargetCount();
     final TargetMapping mapping =
-        create(MappingType.InverseSurjection, s0, Math.max(t0, t1));
+        create(MappingType.INVERSE_SURJECTION, s0, Math.max(t0, t1));
     for (int s = 0; s < s0; s++) {
       int t = mapping0.getTargetOpt(s);
       if (t >= 0) {
@@ -865,7 +865,7 @@ public abstract class Mappings {
      * @param sourceList  List whose i'th element is the source of target #i
      * @param sourceCount Number of elements in the source domain
      * @param mappingType Mapping type, must be
-     *                    {@link org.eigenbase.util.mapping.MappingType#PartialSurjection}
+     *                    {@link org.eigenbase.util.mapping.MappingType#PARTIAL_SURJECTION}
      *                    or stronger.
      */
     public PartialMapping(
@@ -1028,7 +1028,7 @@ public abstract class Mappings {
    */
   static class SurjectionWithInverse extends PartialMapping {
     SurjectionWithInverse(int sourceCount, int targetCount) {
-      super(sourceCount, targetCount, MappingType.InverseSurjection);
+      super(sourceCount, targetCount, MappingType.INVERSE_SURJECTION);
     }
 
     /**
@@ -1094,7 +1094,7 @@ public abstract class Mappings {
     }
 
     public MappingType getMappingType() {
-      return MappingType.Bijection;
+      return MappingType.BIJECTION;
     }
 
     public int getSourceCount() {

@@ -58,7 +58,7 @@ public class SqlSelect extends SqlCall {
   //~ Methods ----------------------------------------------------------------
 
   public final boolean isDistinct() {
-    return getModifierNode(SqlSelectKeyword.Distinct) != null;
+    return getModifierNode(SqlSelectKeyword.DISTINCT) != null;
   }
 
   public final SqlNode getModifierNode(SqlSelectKeyword modifier) {
@@ -142,7 +142,7 @@ public class SqlSelect extends SqlCall {
       // frame. (The topmost item in the subquery might be a UNION or
       // ORDER. In this case, we don't need a wrapper frame.)
       final SqlWriter.Frame frame =
-          writer.startList(SqlWriter.FrameTypeEnum.Subquery, "(", ")");
+          writer.startList(SqlWriter.FrameTypeEnum.SUB_QUERY, "(", ")");
       getOperator().unparse(writer, operands, 0, 0);
       writer.endList(frame);
     } else {

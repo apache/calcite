@@ -24,11 +24,11 @@ package org.eigenbase.sql;
  * <pre><code> &#64;sql.2003 Part 2 Section 23.1</code></pre>
  */
 public enum SqlStateCodes {
-  CardinalityViolation("cardinality violation", "21", "000"),
+  CARDINALITY_VIOLATION("cardinality violation", "21", "000"),
 
-  NullValueNotAllowed("null value not allowed", "22", "004"),
+  NULL_VALUE_NOT_ALLOWED("null value not allowed", "22", "004"),
 
-  NumericValueOutOfRange("numeric value out of range", "22", "003");
+  NUMERIC_VALUE_OUT_OF_RANGE("numeric value out of range", "22", "003");
 
   private final String msg;
   private final String stateClass;

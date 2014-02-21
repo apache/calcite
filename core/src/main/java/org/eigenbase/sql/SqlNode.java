@@ -276,10 +276,10 @@ public abstract class SqlNode implements Cloneable {
    * streams of values.
    *
    * <p>The default implementation returns {@link
-   * SqlMonotonicity#NotMonotonic}.
+   * SqlMonotonicity#NOT_MONOTONIC}.
    */
   public SqlMonotonicity getMonotonicity(SqlValidatorScope scope) {
-    return SqlMonotonicity.NotMonotonic;
+    return SqlMonotonicity.NOT_MONOTONIC;
   }
 }
 

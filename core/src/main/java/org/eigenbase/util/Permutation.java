@@ -498,7 +498,7 @@ public class Permutation implements Mapping, Mappings.TargetMapping {
   }
 
   public MappingType getMappingType() {
-    return MappingType.Bijection;
+    return MappingType.BIJECTION;
   }
 
   public int getTargetOpt(int source) {

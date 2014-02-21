@@ -53,7 +53,7 @@ public class SqlAsOperator extends SqlSpecialOperator {
     assert operands.length >= 2;
     final SqlWriter.Frame frame =
         writer.startList(
-            SqlWriter.FrameTypeEnum.Simple);
+            SqlWriter.FrameTypeEnum.SIMPLE);
     operands[0].unparse(
         writer,
         leftPrec,
@@ -70,7 +70,7 @@ public class SqlAsOperator extends SqlSpecialOperator {
         rightPrec);
     if (operands.length > 2) {
       final SqlWriter.Frame frame1 =
-          writer.startList(SqlWriter.FrameTypeEnum.Simple, "(", ")");
+          writer.startList(SqlWriter.FrameTypeEnum.SIMPLE, "(", ")");
       for (int i = 2; i < operands.length; i++) {
         SqlNode operand = operands[i];
         writer.sep(",", false);

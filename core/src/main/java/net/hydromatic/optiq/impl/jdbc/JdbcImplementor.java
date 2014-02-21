@@ -263,7 +263,7 @@ public class JdbcImplementor {
         operands.add(field(arg));
       }
       return op.createCall(
-          aggCall.isDistinct() ? SqlSelectKeyword.Distinct.symbol(POS) : null,
+          aggCall.isDistinct() ? SqlSelectKeyword.DISTINCT.symbol(POS) : null,
           POS, operands.toArray(new SqlNode[operands.size()]));
     }
 
@@ -271,8 +271,8 @@ public class JdbcImplementor {
     public SqlNode toSql(RelFieldCollation collation) {
       SqlNode node = field(collation.getFieldIndex());
       switch (collation.getDirection()) {
-      case Descending:
-      case StrictlyDescending:
+      case DESCENDING:
+      case STRICTLY_DESCENDING:
         node = SqlStdOperatorTable.DESC.createCall(POS, node);
       }
       switch (collation.nullDirection) {

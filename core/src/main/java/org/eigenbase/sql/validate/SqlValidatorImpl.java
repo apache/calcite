@@ -73,17 +73,17 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     /**
      * Validation has not started for this scope.
      */
-    Unvalidated,
+    UNVALIDATED,
 
     /**
      * Validation is in progress for this scope.
      */
-    InProgress,
+    IN_PROGRESS,
 
     /**
      * Validation has completed (perhaps unsuccessfully).
      */
-    Valid
+    VALID
   }
 
   //~ Instance fields --------------------------------------------------------
@@ -513,7 +513,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
               id.names.subList(0, i + 1),
               objNames);
           for (SqlMoniker objName : objNames) {
-            if (objName.getType() != SqlMonikerType.Function) {
+            if (objName.getType() != SqlMonikerType.FUNCTION) {
               hintList.add(objName);
             }
           }
@@ -596,7 +596,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
           hintList.add(
               new SqlMonikerImpl(
                   field.getName(),
-                  SqlMonikerType.Column));
+                  SqlMonikerType.COLUMN));
         }
       }
 
@@ -619,7 +619,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
           hintList.add(
               new SqlMonikerImpl(
                   field.getName(),
-                  SqlMonikerType.Column));
+                  SqlMonikerType.COLUMN));
         }
       }
     }
@@ -637,7 +637,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         names,
         objNames);
     for (SqlMoniker objName : objNames) {
-      if (objName.getType() == SqlMonikerType.Function) {
+      if (objName.getType() == SqlMonikerType.FUNCTION) {
         result.add(objName);
       }
     }
@@ -666,7 +666,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         result.add(
             new SqlMonikerImpl(
                 op.getName(),
-                SqlMonikerType.Function));
+                SqlMonikerType.FUNCTION));
       } else {
         if ((op.getSyntax() == SqlSyntax.FUNCTION)
             || (op.getSyntax() == SqlSyntax.PREFIX)) {
@@ -676,13 +676,13 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
             result.add(
                 new SqlMonikerImpl(
                     sig,
-                    SqlMonikerType.Function));
+                    SqlMonikerType.FUNCTION));
             continue;
           }
           result.add(
               new SqlMonikerImpl(
                   op.getName(),
-                  SqlMonikerType.Function));
+                  SqlMonikerType.FUNCTION));
         }
       }
     }
@@ -2916,7 +2916,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       validateFeature(
           EigenbaseResource.instance().SQLFeature_E051_01,
           select.getModifierNode(
-              SqlSelectKeyword.Distinct).getParserPosition());
+              SqlSelectKeyword.DISTINCT).getParserPosition());
     }
 
     final SqlNodeList selectItems = select.getSelectList();

@@ -226,7 +226,7 @@ public class SqlCastFunction extends SqlFunction {
     if (isMonotonicPreservingCast(castFrom, castTo)) {
       return call.operands[0].getMonotonicity(scope);
     } else {
-      return SqlMonotonicity.NotMonotonic;
+      return SqlMonotonicity.NOT_MONOTONIC;
     }
   }
 
