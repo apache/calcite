@@ -36,6 +36,9 @@ $ ./sqlline
 sqlline> !connect jdbc:optiq:model=target/test-classes/model.json admin admin
 ```
 
+(If you are running Windows, the command is `sqlline.bat`. Everything
+else in this tutorial should be the same.)
+
 Execute a metadata query:
 
 ```bash
@@ -521,12 +524,12 @@ For example, this schema reads from a MySQL "foodmart" database:
     {
       name: 'FOODMART',
       type: 'custom',
-      factory: 'net.hydromatic.optiq.impl.jdbc.JdbcSchema.Factory',
+      factory: 'net.hydromatic.optiq.impl.jdbc.JdbcSchema$Factory',
       operand: {
-        driver: 'com.mysql.jdbc.Driver',
-        url: 'jdbc:mysql://localhost/foodmart',
-        user: 'foodmart',
-        password: 'foodmart'
+        jdbcDriver: 'com.mysql.jdbc.Driver',
+        jdbcUrl: 'jdbc:mysql://localhost/foodmart',
+        jdbcUser: 'foodmart',
+        jdbcPassword: 'foodmart'
       }
     }
   ]
@@ -567,12 +570,12 @@ For example, the following model reads tables from a MySQL
     {
       name: 'FOODMART_CLONE',
       type: 'custom',
-      factory: 'net.hydromatic.optiq.impl.clone.CloneSchema.Factory',
+      factory: 'net.hydromatic.optiq.impl.clone.CloneSchema$Factory',
       operand: {
-        driver: 'com.mysql.jdbc.Driver',
-        url: 'jdbc:mysql://localhost/foodmart',
-        user: 'foodmart',
-        password: 'foodmart'
+        jdbcDriver: 'com.mysql.jdbc.Driver',
+        jdbcUrl: 'jdbc:mysql://localhost/foodmart',
+        jdbcUser: 'foodmart',
+        jdbcPassword: 'foodmart'
       }
     }
   ]
@@ -591,18 +594,18 @@ defined earlier in the model, like this:
     {
       name: 'FOODMART',
       type: 'custom',
-      factory: 'net.hydromatic.optiq.impl.jdbc.JdbcSchema.Factory',
+      factory: 'net.hydromatic.optiq.impl.jdbc.JdbcSchema$Factory',
       operand: {
-        driver: 'com.mysql.jdbc.Driver',
-        url: 'jdbc:mysql://localhost/foodmart',
-        user: 'foodmart',
-        password: 'foodmart'
+        jdbcDriver: 'com.mysql.jdbc.Driver',
+        jdbcUrl: 'jdbc:mysql://localhost/foodmart',
+        jdbcUser: 'foodmart',
+        jdbcPassword: 'foodmart'
       }
     },
     {
       name: 'FOODMART_CLONE',
       type: 'custom',
-      factory: 'net.hydromatic.optiq.impl.clone.CloneSchema.Factory',
+      factory: 'net.hydromatic.optiq.impl.clone.CloneSchema$Factory',
       operand: {
         source: 'FOODMART'
       }
