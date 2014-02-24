@@ -18,6 +18,7 @@
 package org.eigenbase.sql.fun;
 
 import java.math.*;
+import java.util.List;
 
 import org.eigenbase.reltype.*;
 import org.eigenbase.sql.*;
@@ -85,11 +86,12 @@ public class SqlSubstringFunction extends SqlFunction {
     SqlValidator validator = callBinding.getValidator();
     SqlValidatorScope scope = callBinding.getScope();
 
-    int n = call.operands.length;
+    final List<SqlNode> operands = call.getOperandList();
+    int n = operands.size();
     assert (3 == n) || (2 == n);
     if (!OperandTypes.STRING.checkSingleOperandType(
         callBinding,
-        call.operands[0],
+        operands.get(0),
         0,
         throwOnFailure)) {
       return false;
@@ -97,48 +99,46 @@ public class SqlSubstringFunction extends SqlFunction {
     if (2 == n) {
       if (!OperandTypes.NUMERIC.checkSingleOperandType(
           callBinding,
-          call.operands[1],
+          operands.get(1),
           0,
           throwOnFailure)) {
         return false;
       }
     } else {
-      RelDataType t1 = validator.deriveType(scope, call.operands[1]);
-      RelDataType t2 = validator.deriveType(scope, call.operands[2]);
+      RelDataType t1 = validator.deriveType(scope, operands.get(1));
+      RelDataType t2 = validator.deriveType(scope, operands.get(2));
 
       if (SqlTypeUtil.inCharFamily(t1)) {
         if (!OperandTypes.STRING.checkSingleOperandType(
             callBinding,
-            call.operands[1],
+            operands.get(1),
             0,
             throwOnFailure)) {
           return false;
         }
         if (!OperandTypes.STRING.checkSingleOperandType(
             callBinding,
-            call.operands[2],
+            operands.get(2),
             0,
             throwOnFailure)) {
           return false;
         }
 
-        if (!SqlTypeUtil.isCharTypeComparable(
-            callBinding,
-            callBinding.getCall().getOperands(),
+        if (!SqlTypeUtil.isCharTypeComparable(callBinding, operands,
             throwOnFailure)) {
           return false;
         }
       } else {
         if (!OperandTypes.NUMERIC.checkSingleOperandType(
             callBinding,
-            call.operands[1],
+            operands.get(1),
             0,
             throwOnFailure)) {
           return false;
         }
         if (!OperandTypes.NUMERIC.checkSingleOperandType(
             callBinding,
-            call.operands[2],
+            operands.get(2),
             0,
             throwOnFailure)) {
           return false;
@@ -161,17 +161,17 @@ public class SqlSubstringFunction extends SqlFunction {
 
   public void unparse(
       SqlWriter writer,
-      SqlNode[] operands,
+      SqlCall call,
       int leftPrec,
       int rightPrec) {
     final SqlWriter.Frame frame = writer.startFunCall(getName());
-    operands[0].unparse(writer, leftPrec, rightPrec);
+    call.operand(0).unparse(writer, leftPrec, rightPrec);
     writer.sep("FROM");
-    operands[1].unparse(writer, leftPrec, rightPrec);
+    call.operand(1).unparse(writer, leftPrec, rightPrec);
 
-    if (3 == operands.length) {
+    if (3 == call.operandCount()) {
       writer.sep("FOR");
-      operands[2].unparse(writer, leftPrec, rightPrec);
+      call.operand(2).unparse(writer, leftPrec, rightPrec);
     }
 
     writer.endFunCall(frame);
@@ -181,17 +181,17 @@ public class SqlSubstringFunction extends SqlFunction {
       SqlCall call,
       SqlValidatorScope scope) {
     // SUBSTRING(x FROM 0 FOR constant) has same monotonicity as x
-    if (call.operands.length == 3) {
-      final SqlMonotonicity mono0 =
-          call.operands[0].getMonotonicity(scope);
+    final List<SqlNode> operands = call.getOperandList();
+    if (operands.size() == 3) {
+      final SqlNode op0 = operands.get(0);
+      final SqlNode op1 = operands.get(1);
+      final SqlNode op2 = operands.get(2);
+      final SqlMonotonicity mono0 = op0.getMonotonicity(scope);
       if ((mono0 != SqlMonotonicity.NOT_MONOTONIC)
-          && (call.operands[1].getMonotonicity(scope)
-          == SqlMonotonicity.CONSTANT)
-          && (call.operands[1] instanceof SqlLiteral)
-          && ((SqlLiteral) call.operands[1]).bigDecimalValue().equals(
-              BigDecimal.ZERO)
-          && (call.operands[2].getMonotonicity(scope)
-          == SqlMonotonicity.CONSTANT)) {
+          && op1.getMonotonicity(scope) == SqlMonotonicity.CONSTANT
+          && op1 instanceof SqlLiteral
+          && ((SqlLiteral) op1).bigDecimalValue().equals(BigDecimal.ZERO)
+          && op2.getMonotonicity(scope) == SqlMonotonicity.CONSTANT) {
         return mono0.unstrict();
       }
     }

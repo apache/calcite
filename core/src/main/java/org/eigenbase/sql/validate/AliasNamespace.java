@@ -23,6 +23,7 @@ import org.eigenbase.reltype.*;
 import org.eigenbase.resource.*;
 import org.eigenbase.sql.*;
 import org.eigenbase.sql.fun.*;
+import org.eigenbase.util.Util;
 
 /**
  * Namespace for an <code>AS t(c1, c2, ...)</code> clause.
@@ -58,24 +59,23 @@ public class AliasNamespace extends AbstractNamespace {
 
   protected RelDataType validateImpl() {
     final List<String> nameList = new ArrayList<String>();
+    final List<SqlNode> operands = call.getOperandList();
     final SqlValidatorNamespace childNs =
-        validator.getNamespace(call.getOperands()[0]);
+        validator.getNamespace(operands.get(0));
     final RelDataType rowType = childNs.getRowTypeSansSystemColumns();
-    for (int i = 2; i < call.getOperands().length; ++i) {
-      final SqlNode operand = call.getOperands()[i];
+    for (final SqlNode operand : Util.skip(operands, 2)) {
       String name = ((SqlIdentifier) operand).getSimple();
       if (nameList.contains(name)) {
         throw validator.newValidationError(
             operand,
-            EigenbaseResource.instance().AliasListDuplicate.ex(
-                name));
+            EigenbaseResource.instance().AliasListDuplicate.ex(name));
       }
       nameList.add(name);
     }
     if (nameList.size() != rowType.getFieldCount()) {
       // Position error at first name in list.
       throw validator.newValidationError(
-          call.getOperands()[2],
+          operands.get(2),
           EigenbaseResource.instance().AliasListDegree.ex(
               rowType.getFieldCount(), getString(rowType), nameList.size()));
     }
@@ -109,7 +109,7 @@ public class AliasNamespace extends AbstractNamespace {
 
   public String translate(String name) {
     final RelDataType underlyingRowType =
-        validator.getValidatedNodeType(call.getOperands()[0]);
+        validator.getValidatedNodeType(call.operand(0));
     int i = 0;
     for (RelDataTypeField field : rowType.getFieldList()) {
       if (field.getName().equals(name)) {

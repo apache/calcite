@@ -23,8 +23,8 @@ import org.eigenbase.sql.*;
 import org.eigenbase.sql.fun.*;
 
 /**
- * Scope for resolving identifers within a SELECT statement which has a GROUP BY
- * clause.
+ * Scope for resolving identifiers within a SELECT statement that has a
+ * GROUP BY clause.
  *
  * <p>The same set of identifiers are in scope, but it won't allow access to
  * identifiers or expressions which are not group-expressions.
@@ -98,7 +98,7 @@ public class AggregatingSelectScope
         if (SqlUtil.isCallTo(
             selectItem,
             SqlStdOperatorTable.AS)) {
-          groupExprs.add(((SqlCall) selectItem).getOperands()[0]);
+          groupExprs.add(((SqlCall) selectItem).operand(0));
         } else {
           groupExprs.add(selectItem);
         }
@@ -122,8 +122,6 @@ public class AggregatingSelectScope
       // the non-aggregating scope, where 'b' and 'c' are valid
       // column references.
       return parent;
-    } else if (call instanceof SqlWindow) {
-      return parent;
     } else {
       // Check whether expression is constant within the group.
       //
@@ -134,7 +132,7 @@ public class AggregatingSelectScope
       // clause, we validate its arguments in the non-aggregating
       // scope. Example, 'empno + 1' in
       //
-      //   SELET empno + 1 FROM emp GROUP BY empno + 1
+      //   SELECT empno + 1 FROM emp GROUP BY empno + 1
 
       final boolean matches = checkAggregateExpr(call, false);
       if (matches) {

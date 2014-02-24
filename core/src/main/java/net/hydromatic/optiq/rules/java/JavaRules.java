@@ -34,7 +34,7 @@ import org.eigenbase.rel.metadata.RelMetadataQuery;
 import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.*;
 import org.eigenbase.rex.*;
-import org.eigenbase.sql.SqlWindowOperator;
+import org.eigenbase.sql.SqlWindow;
 import org.eigenbase.sql.fun.SqlStdOperatorTable;
 import org.eigenbase.trace.EigenbaseTrace;
 import org.eigenbase.util.*;
@@ -2315,8 +2315,8 @@ public class JavaRules {
       final Expression max_ =
           Expressions.subtract(Expressions.field(rows_, "length"),
               Expressions.constant(1));
-      final SqlWindowOperator.OffsetRange offsetAndRange =
-          SqlWindowOperator.getOffsetAndRange(
+      final SqlWindow.OffsetRange offsetAndRange =
+          SqlWindow.getOffsetAndRange(
               window.lowerBound, window.upperBound, window.isRows);
       final Expression start_ =
           builder.append("start",

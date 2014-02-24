@@ -83,15 +83,15 @@ public class SqlTrimFunction extends SqlFunction {
 
   public void unparse(
       SqlWriter writer,
-      SqlNode[] operands,
+      SqlCall call,
       int leftPrec,
       int rightPrec) {
     final SqlWriter.Frame frame = writer.startFunCall(getName());
-    assert operands[0] instanceof SqlLiteral : operands[0];
-    operands[0].unparse(writer, leftPrec, rightPrec);
-    operands[1].unparse(writer, leftPrec, rightPrec);
+    assert call.operand(0) instanceof SqlLiteral : call.operand(0);
+    call.operand(0).unparse(writer, leftPrec, rightPrec);
+    call.operand(1).unparse(writer, leftPrec, rightPrec);
     writer.sep("FROM");
-    operands[2].unparse(writer, leftPrec, rightPrec);
+    call.operand(2).unparse(writer, leftPrec, rightPrec);
     writer.endFunCall(frame);
   }
 
@@ -139,11 +139,10 @@ public class SqlTrimFunction extends SqlFunction {
     if (!super.checkOperandTypes(callBinding, throwOnFailure)) {
       return false;
     }
-    final SqlNode[] operands = callBinding.getCall().getOperands();
+    final List<SqlNode> operands = callBinding.getCall().getOperandList();
     return SqlTypeUtil.isCharTypeComparable(
         callBinding,
-        new SqlNode[]{operands[1], operands[2]},
-        throwOnFailure);
+        ImmutableList.of(operands.get(1), operands.get(2)), throwOnFailure);
   }
 }
 

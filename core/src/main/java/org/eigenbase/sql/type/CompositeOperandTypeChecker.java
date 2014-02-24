@@ -285,7 +285,7 @@ public class CompositeOperandTypeChecker
         }
         if (!rule.checkSingleOperandType(
             callBinding,
-            callBinding.getCall().operands[ord.i],
+            callBinding.getCall().operand(ord.i),
             0,
             false)) {
           typeErrorCount++;

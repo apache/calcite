@@ -25,7 +25,7 @@ import org.eigenbase.util.*;
  * A <code>SqlInsert</code> is a node of a parse tree which represents an INSERT
  * statement.
  */
-public class SqlInsert extends SqlCall {
+public class SqlInsert extends SqlBasicCall {
   //~ Static fields/initializers ---------------------------------------------
 
   // constants representing operand positions
@@ -44,10 +44,7 @@ public class SqlInsert extends SqlCall {
       SqlNode source,
       SqlNodeList columnList,
       SqlParserPos pos) {
-    super(
-        operator,
-        new SqlNode[OPERAND_COUNT],
-        pos);
+    super(operator, new SqlNode[OPERAND_COUNT], pos);
 
     Util.pre(keywords != null, "keywords != null");
 

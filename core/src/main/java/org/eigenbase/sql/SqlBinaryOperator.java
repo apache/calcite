@@ -98,9 +98,9 @@ public class SqlBinaryOperator extends SqlOperator {
       final SqlCall call,
       RelDataType type) {
     RelDataType operandType1 =
-        validator.getValidatedNodeType(call.operands[0]);
+        validator.getValidatedNodeType(call.operand(0));
     RelDataType operandType2 =
-        validator.getValidatedNodeType(call.operands[1]);
+        validator.getValidatedNodeType(call.operand(1));
     if (SqlTypeUtil.inCharFamily(operandType1)
         && SqlTypeUtil.inCharFamily(operandType2)) {
       Charset cs1 = operandType1.getCharset();
@@ -146,9 +146,9 @@ public class SqlBinaryOperator extends SqlOperator {
     RelDataType type = super.deriveType(validator, scope, call);
 
     RelDataType operandType1 =
-        validator.getValidatedNodeType(call.operands[0]);
+        validator.getValidatedNodeType(call.operand(0));
     RelDataType operandType2 =
-        validator.getValidatedNodeType(call.operands[1]);
+        validator.getValidatedNodeType(call.operand(1));
     if (SqlTypeUtil.inCharFamily(operandType1)
         && SqlTypeUtil.inCharFamily(operandType2)) {
       Charset cs1 = operandType1.getCharset();
@@ -191,8 +191,8 @@ public class SqlBinaryOperator extends SqlOperator {
       SqlCall call,
       SqlValidatorScope scope) {
     if (getName().equals("/")) {
-      final SqlNode operand0 = call.getOperands()[0];
-      final SqlNode operand1 = call.getOperands()[1];
+      final SqlNode operand0 = call.operand(0);
+      final SqlNode operand1 = call.operand(1);
       final SqlMonotonicity mono0 = operand0.getMonotonicity(scope);
       final SqlMonotonicity mono1 = operand1.getMonotonicity(scope);
       if (mono1 == SqlMonotonicity.CONSTANT) {

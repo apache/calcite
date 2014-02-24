@@ -35,7 +35,6 @@ import org.eigenbase.reltype.RelDataTypeFactory;
 import org.eigenbase.reltype.RelDataTypeField;
 import org.eigenbase.reltype.RelProtoDataType;
 import org.eigenbase.sql.*;
-import org.eigenbase.sql.fun.SqlStdOperatorTable;
 import org.eigenbase.sql.parser.SqlParserPos;
 import org.eigenbase.sql.pretty.SqlPrettyWriter;
 import org.eigenbase.sql.util.SqlString;
@@ -113,15 +112,14 @@ class JdbcTable extends AbstractQueryableTable implements TranslatableTable {
   }
 
   SqlString generateSql() {
-    SqlSelect node =
-        SqlStdOperatorTable.SELECT.createCall(
-            SqlNodeList.EMPTY,
-            new SqlNodeList(
-                Collections.singletonList(
-                    new SqlIdentifier("*", SqlParserPos.ZERO)),
-                SqlParserPos.ZERO),
-            tableName(), null, null, null, null, null, null, null,
+    final SqlNodeList selectList =
+        new SqlNodeList(
+            Collections.singletonList(
+                new SqlIdentifier("*", SqlParserPos.ZERO)),
             SqlParserPos.ZERO);
+    SqlSelect node =
+        new SqlSelect(SqlParserPos.ZERO, SqlNodeList.EMPTY, selectList,
+            tableName(), null, null, null, null, null, null, null);
     final SqlPrettyWriter writer = new SqlPrettyWriter(jdbcSchema.dialect);
     node.unparse(writer, 0, 0);
     return writer.toSqlString();

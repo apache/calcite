@@ -49,8 +49,7 @@ public class SqlMonotonicUnaryFunction extends SqlFunction {
   public SqlMonotonicity getMonotonicity(
       SqlCall call,
       SqlValidatorScope scope) {
-    SqlNode node = (SqlNode) call.operands[0];
-    return scope.getMonotonicity(node).unstrict();
+    return scope.getMonotonicity(call.operand(0)).unstrict();
   }
 }
 

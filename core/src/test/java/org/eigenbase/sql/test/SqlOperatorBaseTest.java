@@ -1683,7 +1683,6 @@ public abstract class SqlOperatorBaseTest {
   }
 
   @Test public void testSelect() {
-    tester.setFor(SqlStdOperatorTable.SELECT, VM_EXPAND);
     tester.check(
         "select * from (values(1))",
         SqlTests.INTEGER_TYPE_CHECKER,
@@ -3927,10 +3926,6 @@ public abstract class SqlOperatorBaseTest {
   }
 
   @Test public void testWindow() {
-    tester.setFor(
-        SqlStdOperatorTable.WINDOW,
-        VM_FENNEL,
-        VM_JAVA);
     if (!enable) {
       return;
     }

@@ -47,39 +47,36 @@ public class SqlOrderByOperator extends SqlSpecialOperator {
 
   public void unparse(
       SqlWriter writer,
-      SqlNode[] operands,
+      SqlCall call,
       int leftPrec,
       int rightPrec) {
-    assert operands.length == 4;
+    assert call.operandCount() == 4;
     final SqlWriter.Frame frame =
         writer.startList(SqlWriter.FrameTypeEnum.ORDER_BY);
-    operands[QUERY_OPERAND].unparse(
-        writer,
-        getLeftPrec(),
-        getRightPrec());
-    if (operands[ORDER_OPERAND] != SqlNodeList.EMPTY) {
+    call.operand(QUERY_OPERAND).unparse(writer, getLeftPrec(), getRightPrec());
+    if (call.operand(ORDER_OPERAND) != SqlNodeList.EMPTY) {
       writer.sep(getName());
       final SqlWriter.Frame listFrame =
           writer.startList(SqlWriter.FrameTypeEnum.ORDER_BY_LIST);
-      unparseListClause(writer, operands[ORDER_OPERAND]);
+      unparseListClause(writer, call.operand(ORDER_OPERAND));
       writer.endList(listFrame);
     }
-    if (operands[OFFSET_OPERAND] != null) {
+    if (call.operand(OFFSET_OPERAND) != null) {
       final SqlWriter.Frame frame2 =
           writer.startList(SqlWriter.FrameTypeEnum.OFFSET);
       writer.newlineAndIndent();
       writer.keyword("OFFSET");
-      operands[OFFSET_OPERAND].unparse(writer, -1, -1);
+      call.operand(OFFSET_OPERAND).unparse(writer, -1, -1);
       writer.keyword("ROWS");
       writer.endList(frame2);
     }
-    if (operands[FETCH_OPERAND] != null) {
+    if (call.operand(FETCH_OPERAND) != null) {
       final SqlWriter.Frame frame3 =
           writer.startList(SqlWriter.FrameTypeEnum.FETCH);
       writer.newlineAndIndent();
       writer.keyword("FETCH");
       writer.keyword("NEXT");
-      operands[FETCH_OPERAND].unparse(writer, -1, -1);
+      call.operand(FETCH_OPERAND).unparse(writer, -1, -1);
       writer.keyword("ROWS");
       writer.keyword("ONLY");
       writer.endList(frame3);

@@ -80,7 +80,7 @@ public class SqlMultisetValueConstructor extends SqlSpecialOperator {
         SqlTypeUtil.deriveAndCollectTypes(
             callBinding.getValidator(),
             callBinding.getScope(),
-            callBinding.getCall().operands);
+            callBinding.getCall().getOperandList());
     if (argTypes.size() == 0) {
       throw callBinding.newValidationError(
           new SqlValidatorException(
@@ -102,12 +102,12 @@ public class SqlMultisetValueConstructor extends SqlSpecialOperator {
 
   public void unparse(
       SqlWriter writer,
-      SqlNode[] operands,
+      SqlCall call,
       int leftPrec,
       int rightPrec) {
     writer.keyword(getName()); // "MULTISET" or "ARRAY"
     final SqlWriter.Frame frame = writer.startList("[", "]");
-    for (SqlNode operand : operands) {
+    for (SqlNode operand : call.getOperandList()) {
       writer.sep(",");
       operand.unparse(writer, leftPrec, rightPrec);
     }

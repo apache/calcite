@@ -75,7 +75,7 @@ public class SameOperandTypeChecker implements SqlSingleOperandTypeChecker {
       if (operatorBinding.isOperandNull(i, false)) {
         if (throwOnFailure) {
           throw callBinding.getValidator().newValidationError(
-              callBinding.getCall().operands[i],
+              callBinding.getCall().operand(i),
               EigenbaseResource.instance().NullIllegal.ex());
         } else {
           return false;

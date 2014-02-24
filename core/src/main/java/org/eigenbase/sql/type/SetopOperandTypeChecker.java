@@ -60,15 +60,13 @@ public class SetopOperandTypeChecker implements SqlOperandTypeChecker {
 
       if (fields.size() != colCount) {
         if (throwOnFailure) {
-          SqlNode node = callBinding.getCall().getOperands()[i];
+          SqlNode node = callBinding.getCall().operand(i);
           if (node instanceof SqlSelect) {
             node = ((SqlSelect) node).getSelectList();
           }
-          throw validator.newValidationError(
-              node,
-              EigenbaseResource.instance().ColumnCountMismatchInSetop
-                  .ex(
-                      callBinding.getOperator().getName()));
+          throw validator.newValidationError(node,
+              EigenbaseResource.instance().ColumnCountMismatchInSetop.ex(
+                  callBinding.getOperator().getName()));
         } else {
           return false;
         }
@@ -96,7 +94,7 @@ public class SetopOperandTypeChecker implements SqlOperandTypeChecker {
         if (throwOnFailure) {
           SqlNode field =
               SqlUtil.getSelectListItem(
-                  callBinding.getCall().operands[0],
+                  callBinding.getCall().operand(0),
                   i);
           throw validator.newValidationError(
               field,

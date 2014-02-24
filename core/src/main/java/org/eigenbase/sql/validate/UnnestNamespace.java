@@ -65,7 +65,7 @@ class UnnestNamespace extends AbstractNamespace {
    * Returns the type of the argument to UNNEST.
    */
   private RelDataType inferReturnType() {
-    final SqlNode operand = unnest.getOperands()[0];
+    final SqlNode operand = unnest.operand(0);
     RelDataType type = validator.getValidatedNodeType(operand);
 
     // If sub-query, pick out first column.

@@ -25,10 +25,9 @@ import org.eigenbase.reltype.*;
 import org.eigenbase.rex.*;
 import org.eigenbase.util.*;
 
-import net.hydromatic.linq4j.function.Function1;
-import net.hydromatic.linq4j.function.Functions;
-
+import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 
 /**
  * Rule that slices the {@link CalcRel} into sections which contain windowed
@@ -121,12 +120,11 @@ public abstract class WindowedAggSplitterRule extends RelOptRule {
                 if (!program.projectsOnlyIdentity()) {
                   rel = CalcRel.createProject(
                       rel,
-                      Functions.apply(
+                      Lists.transform(
                           program.getProjectList(),
-                          new Function1<RexLocalRef, RexNode>() {
+                          new Function<RexLocalRef, RexNode>() {
                             public RexNode apply(RexLocalRef a0) {
-                              return program
-                                  .expandLocalRef(a0);
+                              return program.expandLocalRef(a0);
                             }
                           }),
                       calc.getRowType().getFieldNames());

@@ -277,10 +277,9 @@ public class SqlLiteral extends SqlNode {
           SqlLiteralChainOperator.concatenateOperands((SqlCall) node);
       assert SqlTypeUtil.inCharFamily(literal.getTypeName());
       return literal.toValue();
-    } else if (
-        (node instanceof SqlCall)
-        && (((SqlCall) node).getOperator() == SqlStdOperatorTable.CAST)) {
-      return stringValue(((SqlCall) node).getOperands()[0]);
+    } else if (node instanceof SqlCall
+        && ((SqlCall) node).getOperator() == SqlStdOperatorTable.CAST) {
+      return stringValue(((SqlCall) node).operand(0));
     } else {
       throw Util.newInternal("invalid string literal: " + node);
     }

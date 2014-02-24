@@ -47,12 +47,12 @@ public abstract class SqlUtil {
     }
     ArrayList<SqlNode> list = new ArrayList<SqlNode>();
     if (node1.getKind() == SqlKind.AND) {
-      list.addAll(Arrays.asList(((SqlCall) node1).operands));
+      list.addAll(((SqlCall) node1).getOperandList());
     } else {
       list.add(node1);
     }
     if (node2.getKind() == SqlKind.AND) {
-      list.addAll(Arrays.asList(((SqlCall) node2).operands));
+      list.addAll(((SqlCall) node2).getOperandList());
     } else {
       list.add(node2);
     }
@@ -92,7 +92,7 @@ public abstract class SqlUtil {
       return;
     case AS:
       SqlCall call = (SqlCall) node;
-      flatten(call.operands[0], list);
+      flatten(call.operand(0), list);
       return;
     default:
       list.add(node);
@@ -105,8 +105,7 @@ public abstract class SqlUtil {
    */
   public static SqlNodeList toNodeList(SqlNode[] operands) {
     SqlNodeList ret = new SqlNodeList(SqlParserPos.ZERO);
-    for (int i = 0; i < operands.length; i++) {
-      SqlNode node = operands[i];
+    for (SqlNode node : operands) {
       ret.add(node);
     }
     return ret;
@@ -142,7 +141,7 @@ public abstract class SqlUtil {
     if (allowCast) {
       if (node.getKind() == SqlKind.CAST) {
         SqlCall call = (SqlCall) node;
-        if (isNullLiteral(call.operands[0], false)) {
+        if (isNullLiteral(call.operand(0), false)) {
           // node is "CAST(NULL as type)"
           return true;
         }
@@ -160,7 +159,7 @@ public abstract class SqlUtil {
   public static boolean isNull(SqlNode node) {
     return isNullLiteral(node, false)
         || ((node.getKind() == SqlKind.CAST)
-        && isNull(((SqlCall) node).operands[0]));
+            && isNull(((SqlCall) node).operand(0)));
   }
 
   /**
@@ -202,14 +201,14 @@ public abstract class SqlUtil {
    *
    * @param operator    The operator
    * @param writer      Writer
-   * @param operands    List of 0 or more operands
+   * @param call    List of 0 or more operands
    * @param emptyParens Whether to print parentheses if there are 0 operands
    * @param quantifier  Quantifier
    */
   public static void unparseFunctionSyntax(
       SqlOperator operator,
       SqlWriter writer,
-      SqlNode[] operands,
+      SqlCall call,
       boolean emptyParens,
       SqlLiteral quantifier) {
     if (operator instanceof SqlFunction) {
@@ -228,7 +227,7 @@ public abstract class SqlUtil {
     } else {
       writer.print(operator.getName());
     }
-    if ((operands.length == 0) && !emptyParens) {
+    if (call.operandCount() == 0 && !emptyParens) {
       // For example, the "LOCALTIME" function appears as "LOCALTIME"
       // when it has 0 args, not "LOCALTIME()".
       return;
@@ -238,11 +237,10 @@ public abstract class SqlUtil {
     if (null != quantifier) {
       quantifier.unparse(writer, 0, 0);
     }
-    if (operands.length == 0 && operator instanceof SqlAggFunction) {
+    if (call.operandCount() == 0 && operator instanceof SqlAggFunction) {
       writer.sep("*");
     }
-    for (int i = 0; i < operands.length; i++) {
-      SqlNode operand = operands[i];
+    for (SqlNode operand : call.getOperandList()) {
       writer.sep(",");
       operand.unparse(writer, 0, 0);
     }
@@ -251,29 +249,23 @@ public abstract class SqlUtil {
 
   public static void unparseBinarySyntax(
       SqlOperator operator,
-      SqlNode[] operands,
+      SqlCall call,
       SqlWriter writer,
       int leftPrec,
       int rightPrec) {
     SqlBinaryOperator binop = (SqlBinaryOperator) operator;
-    assert operands.length == 2;
+    assert call.operandCount() == 2;
     final SqlWriter.Frame frame =
         writer.startList(
             (binop instanceof SqlSetOperator)
                 ? SqlWriter.FrameTypeEnum.SETOP
                 : SqlWriter.FrameTypeEnum.SIMPLE);
-    operands[0].unparse(
-        writer,
-        leftPrec,
-        binop.getLeftPrec());
+    call.operand(0).unparse(writer, leftPrec, binop.getLeftPrec());
     final boolean needsSpace = binop.needsSpace();
     writer.setNeedWhitespace(needsSpace);
     writer.sep(binop.getName());
     writer.setNeedWhitespace(needsSpace);
-    operands[1].unparse(
-        writer,
-        binop.getRightPrec(),
-        rightPrec);
+    call.operand(1).unparse(writer, binop.getRightPrec(), rightPrec);
     writer.endList(frame);
   }
 
@@ -290,11 +282,11 @@ public abstract class SqlUtil {
    * @throws ClassCastException             if the lits are not homogeneous.
    * @throws ArrayIndexOutOfBoundsException if lits is an empty array.
    */
-  public static SqlLiteral concatenateLiterals(SqlLiteral[] lits) {
-    if (lits.length == 1) {
-      return lits[0]; // nothing to do
+  public static SqlLiteral concatenateLiterals(List<SqlLiteral> lits) {
+    if (lits.size() == 1) {
+      return lits.get(0); // nothing to do
     }
-    return ((SqlAbstractStringLiteral) lits[0]).concat1(lits);
+    return ((SqlAbstractStringLiteral) lits.get(0)).concat1(lits);
   }
 
   /**
@@ -523,7 +515,7 @@ public abstract class SqlUtil {
       SqlNode from = select.getFrom();
       if (from.getKind() == SqlKind.AS) {
         SqlCall as = (SqlCall) from;
-        from = as.operands[0];
+        from = as.operand(0);
       }
       if (from.getKind() == SqlKind.VALUES) {
         // They wrote "VALUES (x, y)", but the validator has
@@ -542,13 +534,11 @@ public abstract class SqlUtil {
 
     case VALUES:
       SqlCall call = (SqlCall) query;
-      Util.permAssert(
-          call.operands.length > 0,
-          "VALUES must have at least one operand");
-      final SqlCall row = (SqlCall) call.operands[0];
-      Util.permAssert(
-          row.operands.length > i, "VALUES has too few columns");
-      return row.operands[i];
+      assert call.operandCount() > 0
+          : "VALUES must have at least one operand";
+      final SqlCall row = call.operand(0);
+      assert row.operandCount() > i : "VALUES has too few columns";
+      return row.operand(i);
 
     default:
       // Unexpected type of query.
@@ -576,7 +566,7 @@ public abstract class SqlUtil {
           // actually a call to a function. Construct a fake
           // call to this function, so we can use the regular
           // operator validation.
-          return new SqlCall(
+          return new SqlBasicCall(
               operator,
               SqlNode.EMPTY_ARRAY,
               id.getParserPosition(),
@@ -620,7 +610,7 @@ public abstract class SqlUtil {
   public static String getAliasedSignature(
       SqlOperator op,
       String opName,
-      List<? extends Object> typeList) {
+      List<?> typeList) {
     StringBuilder ret = new StringBuilder();
     String template = op.getSignatureTemplate(typeList.size());
     if (null == template) {

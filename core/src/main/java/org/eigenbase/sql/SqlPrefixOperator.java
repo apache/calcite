@@ -64,7 +64,7 @@ public class SqlPrefixOperator extends SqlOperator {
       // Determine coercibility and resulting collation name of
       // unary operator if needed.
       RelDataType operandType =
-          validator.getValidatedNodeType(call.operands[0]);
+          validator.getValidatedNodeType(call.operand(0));
       if (null == operandType) {
         throw Util.newInternal(
             "operand's type should have been derived");
@@ -90,7 +90,7 @@ public class SqlPrefixOperator extends SqlOperator {
       SqlCall call,
       SqlValidatorScope scope) {
     if (getName().equals("-")) {
-      return scope.getMonotonicity(call.getOperands()[0]).reverse();
+      return scope.getMonotonicity(call.operand(0)).reverse();
     }
 
     return super.getMonotonicity(call, scope);

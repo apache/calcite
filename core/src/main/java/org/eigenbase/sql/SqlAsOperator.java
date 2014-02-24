@@ -17,11 +17,14 @@
 */
 package org.eigenbase.sql;
 
+import java.util.List;
+
 import org.eigenbase.reltype.*;
 import org.eigenbase.resource.*;
 import org.eigenbase.sql.type.*;
 import org.eigenbase.sql.util.*;
 import org.eigenbase.sql.validate.*;
+import org.eigenbase.util.Util;
 
 /**
  * The <code>AS</code> operator associates an expression with an alias.
@@ -47,32 +50,25 @@ public class SqlAsOperator extends SqlSpecialOperator {
 
   public void unparse(
       SqlWriter writer,
-      SqlNode[] operands,
+      SqlCall call,
       int leftPrec,
       int rightPrec) {
-    assert operands.length >= 2;
+    assert call.operandCount() >= 2;
     final SqlWriter.Frame frame =
         writer.startList(
             SqlWriter.FrameTypeEnum.SIMPLE);
-    operands[0].unparse(
-        writer,
-        leftPrec,
-        getLeftPrec());
+    call.operand(0).unparse(writer, leftPrec, getLeftPrec());
     final boolean needsSpace = true;
     writer.setNeedWhitespace(needsSpace);
     if (writer.getDialect().allowsAs()) {
       writer.sep("AS");
       writer.setNeedWhitespace(needsSpace);
     }
-    operands[1].unparse(
-        writer,
-        getRightPrec(),
-        rightPrec);
-    if (operands.length > 2) {
+    call.operand(1).unparse(writer, getRightPrec(), rightPrec);
+    if (call.operandCount() > 2) {
       final SqlWriter.Frame frame1 =
           writer.startList(SqlWriter.FrameTypeEnum.SIMPLE, "(", ")");
-      for (int i = 2; i < operands.length; i++) {
-        SqlNode operand = operands[i];
+      for (SqlNode operand : Util.skip(call.getOperandList(), 2)) {
         writer.sep(",", false);
         operand.unparse(writer, 0, 0);
       }
@@ -88,11 +84,11 @@ public class SqlAsOperator extends SqlSpecialOperator {
       SqlValidatorScope operandScope) {
     // The base method validates all operands. We override because
     // we don't want to validate the identifier.
-    final SqlNode[] operands = call.operands;
-    assert operands.length == 2;
-    assert operands[1] instanceof SqlIdentifier;
-    operands[0].validateExpr(validator, scope);
-    SqlIdentifier id = (SqlIdentifier) operands[1];
+    final List<SqlNode> operands = call.getOperandList();
+    assert operands.size() == 2;
+    assert operands.get(1) instanceof SqlIdentifier;
+    operands.get(0).validateExpr(validator, scope);
+    SqlIdentifier id = (SqlIdentifier) operands.get(1);
     if (!id.isSimple()) {
       throw validator.newValidationError(
           id,
@@ -107,7 +103,7 @@ public class SqlAsOperator extends SqlSpecialOperator {
       SqlBasicVisitor.ArgHandler<R> argHandler) {
     if (onlyExpressions) {
       // Do not visit operands[1] -- it is not an expression.
-      argHandler.visitChild(visitor, call, 0, call.operands[0]);
+      argHandler.visitChild(visitor, call, 0, call.operand(0));
     } else {
       super.acceptCall(visitor, call, onlyExpressions, argHandler);
     }
@@ -118,7 +114,8 @@ public class SqlAsOperator extends SqlSpecialOperator {
       SqlValidatorScope scope,
       SqlCall call) {
     // special case for AS:  never try to derive type for alias
-    RelDataType nodeType = validator.deriveType(scope, call.operands[0]);
+    RelDataType nodeType =
+        validator.deriveType(scope, call.operand(0));
     assert nodeType != null;
     return validateOperands(validator, scope, call);
   }
@@ -126,7 +123,7 @@ public class SqlAsOperator extends SqlSpecialOperator {
   public SqlMonotonicity getMonotonicity(
       SqlCall call,
       SqlValidatorScope scope) {
-    return call.operands[0].getMonotonicity(scope);
+    return call.getOperandList().get(0).getMonotonicity(scope);
   }
 }
 

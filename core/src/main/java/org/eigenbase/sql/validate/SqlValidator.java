@@ -267,7 +267,7 @@ public interface SqlValidator {
   void validateColumnListParams(
       SqlFunction function,
       List<RelDataType> argTypes,
-      SqlNode[] operands);
+      List<SqlNode> operands);
 
   /**
    * Derives the type of a node in a given scope. If the type has already been
@@ -684,8 +684,9 @@ public interface SqlValidator {
    */
   SqlValidatorScope getOverScope(SqlNode node);
 
-  void validateWith(SqlCall with, SqlValidatorScope scope);
-  void validateWithItem(SqlCall withItem);
+  void validateWith(SqlWith with, SqlValidatorScope scope);
+
+  void validateWithItem(SqlWithItem withItem);
 
   SqlValidatorScope getWithScope(SqlNode withItem);
 }

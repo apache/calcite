@@ -26,7 +26,7 @@ import org.eigenbase.sql.util.*;
  * Refinement to {@link SqlShuttle} which maintains a stack of scopes.
  *
  * <p>Derived class should override {@link #visitScoped(SqlCall)} rather than
- * {@link #visit(SqlCall)}.
+ * {@link SqlVisitor#visit(SqlCall)}.
  */
 public abstract class SqlScopedShuttle extends SqlShuttle {
   //~ Instance fields --------------------------------------------------------

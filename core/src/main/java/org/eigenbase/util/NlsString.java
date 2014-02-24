@@ -19,6 +19,7 @@ package org.eigenbase.util;
 
 import java.nio.*;
 import java.nio.charset.*;
+import java.util.List;
 
 import org.eigenbase.resource.*;
 import org.eigenbase.sql.*;
@@ -189,30 +190,31 @@ public class NlsString implements Comparable<NlsString> {
    *
    * @param args array of {@link NlsString} to be concatenated
    */
-  public static NlsString concat(NlsString[] args) {
-    if (args.length < 2) {
-      return args[0];
+  public static NlsString concat(List<NlsString> args) {
+    if (args.size() < 2) {
+      return args.get(0);
     }
-    String charSetName = args[0].charsetName;
-    SqlCollation collation = args[0].collation;
-    int length = args[0].value.length();
+    String charSetName = args.get(0).charsetName;
+    SqlCollation collation = args.get(0).collation;
+    int length = args.get(0).value.length();
 
     // sum string lengths and validate
-    for (int i = 1; i < args.length; i++) {
-      length += args[i].value.length();
-      if (!((args[i].charsetName == null)
-          || args[i].charsetName.equals(charSetName))) {
+    for (int i = 1; i < args.size(); i++) {
+      final NlsString arg = args.get(i);
+      length += arg.value.length();
+      if (!((arg.charsetName == null)
+          || arg.charsetName.equals(charSetName))) {
         throw new IllegalArgumentException("mismatched charsets");
       }
-      if (!((args[i].collation == null)
-          || args[i].collation.equals(collation))) {
+      if (!((arg.collation == null)
+          || arg.collation.equals(collation))) {
         throw new IllegalArgumentException("mismatched collations");
       }
     }
 
     StringBuilder sb = new StringBuilder(length);
-    for (int i = 0; i < args.length; i++) {
-      sb.append(args[i].value);
+    for (NlsString arg : args) {
+      sb.append(arg.value);
     }
     return new NlsString(
         sb.toString(),

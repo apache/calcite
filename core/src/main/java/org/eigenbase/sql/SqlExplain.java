@@ -23,7 +23,7 @@ import org.eigenbase.sql.parser.*;
  * A <code>SqlExplain</code> is a node of a parse tree which represents an
  * EXPLAIN PLAN statement.
  */
-public class SqlExplain extends SqlCall {
+public class SqlExplain extends SqlBasicCall {
   //~ Static fields/initializers ---------------------------------------------
 
   // constants representing operand positions

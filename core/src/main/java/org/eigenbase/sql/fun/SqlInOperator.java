@@ -71,18 +71,20 @@ public class SqlInOperator extends SqlBinaryOperator {
       SqlValidator validator,
       SqlValidatorScope scope,
       SqlCall call) {
-    final SqlNode[] operands = call.getOperands();
-    assert operands.length == 2;
+    final List<SqlNode> operands = call.getOperandList();
+    assert operands.size() == 2;
+    final SqlNode left = operands.get(0);
+    final SqlNode right = operands.get(1);
 
     final RelDataTypeFactory typeFactory = validator.getTypeFactory();
-    RelDataType leftType = validator.deriveType(scope, operands[0]);
+    RelDataType leftType = validator.deriveType(scope, left);
     RelDataType rightType;
 
     // Derive type for RHS.
-    if (call.operands[1] instanceof SqlNodeList) {
+    if (right instanceof SqlNodeList) {
       // Handle the 'IN (expr, ...)' form.
       List<RelDataType> rightTypeList = new ArrayList<RelDataType>();
-      SqlNodeList nodeList = (SqlNodeList) call.operands[1];
+      SqlNodeList nodeList = (SqlNodeList) right;
       for (int i = 0; i < nodeList.size(); i++) {
         SqlNode node = nodeList.get(i);
         RelDataType nodeType = validator.deriveType(scope, node);
@@ -95,7 +97,7 @@ public class SqlInOperator extends SqlBinaryOperator {
       // SQL:2003 Part 2 Section 8.4, <in predicate>).
       if (null == rightType) {
         throw validator.newValidationError(
-            call.operands[1],
+            right,
             EigenbaseResource.instance().IncompatibleTypesInList.ex());
       }
 
@@ -105,7 +107,7 @@ public class SqlInOperator extends SqlBinaryOperator {
           rightType);
     } else {
       // Handle the 'IN (query)' form.
-      rightType = validator.deriveType(scope, operands[1]);
+      rightType = validator.deriveType(scope, right);
     }
 
     // Now check that the left expression is compatible with the

@@ -164,21 +164,21 @@ public class SqlJoinOperator extends SqlOperator {
 
   public void unparse(
       SqlWriter writer,
-      SqlNode[] operands,
+      SqlCall call,
       int leftPrec,
       int rightPrec) {
-    final SqlNode left = operands[SqlJoin.LEFT_OPERAND];
+    final SqlNode left = call.operand(SqlJoin.LEFT_OPERAND);
 
     left.unparse(
         writer,
         leftPrec,
         getLeftPrec());
     String natural = "";
-    if (SqlLiteral.booleanValue(operands[SqlJoin.IS_NATURAL_OPERAND])) {
+    if (SqlLiteral.booleanValue(call.operand(SqlJoin.IS_NATURAL_OPERAND))) {
       natural = "NATURAL ";
     }
     final SqlJoinOperator.JoinType joinType =
-        (JoinType) SqlLiteral.symbolValue(operands[SqlJoin.TYPE_OPERAND]);
+        (JoinType) SqlLiteral.symbolValue(call.operand(SqlJoin.TYPE_OPERAND));
     switch (joinType) {
     case COMMA:
       writer.sep(",", true);
@@ -201,16 +201,16 @@ public class SqlJoinOperator extends SqlOperator {
     default:
       throw Util.unexpected(joinType);
     }
-    final SqlNode right = operands[SqlJoin.RIGHT_OPERAND];
+    final SqlNode right = call.operand(SqlJoin.RIGHT_OPERAND);
     right.unparse(
         writer,
         getRightPrec(),
         rightPrec);
-    final SqlNode condition = operands[SqlJoin.CONDITION_OPERAND];
+    final SqlNode condition = call.operand(SqlJoin.CONDITION_OPERAND);
     if (condition != null) {
       final SqlJoinOperator.ConditionType conditionType =
           (ConditionType) SqlLiteral.symbolValue(
-              operands[SqlJoin.CONDITION_TYPE_OPERAND]);
+              call.operand(SqlJoin.CONDITION_TYPE_OPERAND));
       switch (conditionType) {
       case USING:
 

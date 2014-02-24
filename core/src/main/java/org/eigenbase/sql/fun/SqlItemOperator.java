@@ -62,10 +62,10 @@ class SqlItemOperator extends SqlSpecialOperator {
 
   @Override
   public void unparse(
-      SqlWriter writer, SqlNode[] operands, int leftPrec, int rightPrec) {
-    operands[0].unparse(writer, leftPrec, 0);
+      SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    call.operand(0).unparse(writer, leftPrec, 0);
     final SqlWriter.Frame frame = writer.startList("[", "]");
-    operands[1].unparse(writer, 0, 0);
+    call.operand(1).unparse(writer, 0, 0);
     writer.endList(frame);
   }
 
@@ -78,15 +78,16 @@ class SqlItemOperator extends SqlSpecialOperator {
   public boolean checkOperandTypes(
       SqlCallBinding callBinding,
       boolean throwOnFailure) {
-    if (!ARRAY_OR_MAP.checkSingleOperandType(
-        callBinding, callBinding.getCall().operands[0], 0,
+    final SqlNode left = callBinding.getCall().operand(0);
+    final SqlNode right = callBinding.getCall().operand(1);
+    if (!ARRAY_OR_MAP.checkSingleOperandType(callBinding, left, 0,
         throwOnFailure)) {
       return false;
     }
     final RelDataType operandType = callBinding.getOperandType(0);
     final SqlSingleOperandTypeChecker checker = getChecker(operandType);
-    return checker.checkSingleOperandType(
-        callBinding, callBinding.getCall().operands[1], 0, throwOnFailure);
+    return checker.checkSingleOperandType(callBinding, right, 0,
+        throwOnFailure);
   }
 
   private SqlSingleOperandTypeChecker getChecker(RelDataType operandType) {

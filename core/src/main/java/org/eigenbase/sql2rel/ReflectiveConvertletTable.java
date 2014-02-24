@@ -40,10 +40,7 @@ public class ReflectiveConvertletTable implements SqlRexConvertletTable {
   //~ Constructors -----------------------------------------------------------
 
   public ReflectiveConvertletTable() {
-    final Class<? extends Object> clazz = getClass();
-    final Method[] methods = clazz.getMethods();
-    for (int i = 0; i < methods.length; i++) {
-      final Method method = methods[i];
+    for (final Method method : getClass().getMethods()) {
       registerNodeTypeMethod(method);
       registerOpTypeMethod(method);
     }
@@ -222,7 +219,7 @@ public class ReflectiveConvertletTable implements SqlRexConvertletTable {
             final SqlCall newCall =
                 target.createCall(
                     SqlParserPos.ZERO,
-                    call.getOperands());
+                    call.getOperandList());
             return cx.convertExpression(newCall);
           }
         });

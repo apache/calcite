@@ -17,6 +17,8 @@
 */
 package org.eigenbase.sql.fun;
 
+import java.util.List;
+
 import org.eigenbase.sql.*;
 import org.eigenbase.sql.parser.*;
 import org.eigenbase.sql.type.*;
@@ -47,25 +49,25 @@ public class SqlNullifFunction extends SqlFunction {
 
   // override SqlOperator
   public SqlNode rewriteCall(SqlValidator validator, SqlCall call) {
-    SqlNode[] operands = call.getOperands();
+    List<SqlNode> operands = call.getOperandList();
     SqlParserPos pos = call.getParserPosition();
 
     checkOperandCount(
         validator,
         getOperandTypeChecker(),
         call);
-    assert operands.length == 2;
+    assert operands.size() == 2;
 
     SqlNodeList whenList = new SqlNodeList(pos);
     SqlNodeList thenList = new SqlNodeList(pos);
-    whenList.add(operands[1]);
+    whenList.add(operands.get(1));
     thenList.add(SqlLiteral.createNull(SqlParserPos.ZERO));
     return SqlStdOperatorTable.CASE.createSwitchedCall(
         pos,
-        operands[0],
+        operands.get(0),
         whenList,
         thenList,
-        operands[0].clone(operands[0].getParserPosition()));
+        operands.get(0).clone(operands.get(0).getParserPosition()));
   }
 }
 

@@ -17,9 +17,14 @@
 */
 package org.eigenbase.sql;
 
+import java.util.List;
+
 import org.eigenbase.sql.parser.*;
 import org.eigenbase.sql.type.*;
 import org.eigenbase.util.*;
+
+import com.google.common.base.Function;
+import com.google.common.collect.Lists;
 
 /**
  * A binary (or hexadecimal) string literal.
@@ -28,6 +33,13 @@ import org.eigenbase.util.*;
  * {@link SqlTypeName#BINARY}.
  */
 public class SqlBinaryStringLiteral extends SqlAbstractStringLiteral {
+  private static final Function<SqlLiteral, BitString> F =
+      new Function<SqlLiteral, BitString>() {
+        public BitString apply(SqlLiteral literal) {
+          return ((SqlBinaryStringLiteral) literal).getBitString();
+        }
+      };
+
   //~ Constructors -----------------------------------------------------------
 
   protected SqlBinaryStringLiteral(
@@ -57,14 +69,10 @@ public class SqlBinaryStringLiteral extends SqlAbstractStringLiteral {
     writer.literal("X'" + ((BitString) value).toHexString() + "'");
   }
 
-  protected SqlAbstractStringLiteral concat1(SqlLiteral[] lits) {
-    BitString[] args = new BitString[lits.length];
-    for (int i = 0; i < lits.length; i++) {
-      args[i] = ((SqlBinaryStringLiteral) lits[i]).getBitString();
-    }
+  protected SqlAbstractStringLiteral concat1(List<SqlLiteral> literals) {
     return new SqlBinaryStringLiteral(
-        BitString.concat(args),
-        lits[0].getParserPosition());
+        BitString.concat(Lists.transform(literals, F)),
+        literals.get(0).getParserPosition());
   }
 }
 

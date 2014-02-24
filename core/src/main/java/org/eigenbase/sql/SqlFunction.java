@@ -148,10 +148,10 @@ public class SqlFunction extends SqlOperator {
 
   public void unparse(
       SqlWriter writer,
-      SqlNode[] operands,
+      SqlCall call,
       int leftPrec,
       int rightPrec) {
-    getSyntax().unparse(writer, this, operands, leftPrec, rightPrec);
+    getSyntax().unparse(writer, this, call, leftPrec, rightPrec);
   }
 
   /**
@@ -212,7 +212,7 @@ public class SqlFunction extends SqlOperator {
       SqlValidatorScope scope,
       SqlCall call,
       boolean convertRowArgToColumnList) {
-    final SqlNode[] operands = call.operands;
+    final List<SqlNode> operands = call.getOperandList();
 
     // Scope for operands. Usually the same as 'scope'.
     final SqlValidatorScope operandScope = scope.getOperandScope(call);
@@ -258,7 +258,7 @@ public class SqlFunction extends SqlOperator {
       // scope to that of the source cursor referenced by that ColumnList
       // type
       if (containsRowArg) {
-        if ((function == null)
+        if (function == null
             && SqlUtil.matchRoutinesByParameterCount(
                 validator.getOperatorTable(), getNameAsId(), argTypes,
                 getFunctionType())) {
@@ -287,7 +287,7 @@ public class SqlFunction extends SqlOperator {
       // identifiers, but we ignore shouldExpandIdentifiers()
       // because otherwise later validation code will
       // choke on the unresolved function.
-      call.setOperator(function);
+      ((SqlBasicCall) call).setOperator(function);
       return function.validateOperands(
           validator,
           operandScope,

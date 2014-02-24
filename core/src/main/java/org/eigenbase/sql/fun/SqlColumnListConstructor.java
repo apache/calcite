@@ -41,14 +41,14 @@ public class SqlColumnListConstructor extends SqlSpecialOperator {
 
   public void unparse(
       SqlWriter writer,
-      SqlNode[] operands,
+      SqlCall call,
       int leftPrec,
       int rightPrec) {
     writer.keyword("ROW");
     final SqlWriter.Frame frame = writer.startList("(", ")");
-    for (int i = 0; i < operands.length; i++) {
+    for (SqlNode operand : call.getOperandList()) {
       writer.sep(",");
-      operands[0].unparse(writer, leftPrec, rightPrec);
+      operand.unparse(writer, leftPrec, rightPrec);
     }
     writer.endList(frame);
   }

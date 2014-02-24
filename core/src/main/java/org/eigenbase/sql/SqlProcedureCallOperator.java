@@ -41,12 +41,10 @@ public class SqlProcedureCallOperator extends SqlPrefixOperator {
     // for now, rewrite "CALL f(x)" to "SELECT f(x) FROM VALUES(0)"
     // TODO jvs 18-Jan-2005:  rewrite to SELECT * FROM TABLE f(x)
     // once we support function calls as tables
-    SqlStdOperatorTable opTab = SqlStdOperatorTable.instance();
-    return SqlStdOperatorTable.SELECT.createCall(
+    return new SqlSelect(SqlParserPos.ZERO,
         null,
         new SqlNodeList(
-            Collections.singletonList(
-                call.getOperands()[0]),
+            Collections.singletonList(call.operand(0)),
             SqlParserPos.ZERO),
         SqlStdOperatorTable.VALUES.createCall(
             SqlParserPos.ZERO,
@@ -59,8 +57,7 @@ public class SqlProcedureCallOperator extends SqlPrefixOperator {
         null,
         null,
         null,
-        null,
-        SqlParserPos.ZERO);
+        null);
   }
 }
 

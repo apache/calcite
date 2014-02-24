@@ -82,21 +82,21 @@ public class SqlCallBinding extends SqlOperatorBinding {
 
   // implement SqlOperatorBinding
   public String getStringLiteralOperand(int ordinal) {
-    SqlNode node = call.operands[ordinal];
+    SqlNode node = call.operand(ordinal);
     return SqlLiteral.stringValue(node);
   }
 
   // implement SqlOperatorBinding
   public int getIntLiteralOperand(int ordinal) {
     // todo: move this to SqlTypeUtil
-    SqlNode node = call.operands[ordinal];
+    SqlNode node = call.operand(ordinal);
     if (node instanceof SqlLiteral) {
       SqlLiteral sqlLiteral = (SqlLiteral) node;
       return sqlLiteral.intValue(true);
     } else if (node instanceof SqlCall) {
       final SqlCall c = (SqlCall) node;
       if (c.getKind() == SqlKind.MINUS_PREFIX) {
-        SqlNode child = c.operands[0];
+        SqlNode child = c.operand(0);
         if (child instanceof SqlLiteral) {
           return -((SqlLiteral) child).intValue(true);
         }
@@ -107,17 +107,17 @@ public class SqlCallBinding extends SqlOperatorBinding {
 
   // implement SqlOperatorBinding
   public boolean isOperandNull(int ordinal, boolean allowCast) {
-    return SqlUtil.isNullLiteral(call.operands[ordinal], allowCast);
+    return SqlUtil.isNullLiteral(call.operand(ordinal), allowCast);
   }
 
   // implement SqlOperatorBinding
   public int getOperandCount() {
-    return call.operands.length;
+    return call.getOperandList().size();
   }
 
   // implement SqlOperatorBinding
   public RelDataType getOperandType(int ordinal) {
-    final SqlNode operand = call.operands[ordinal];
+    final SqlNode operand = call.operand(ordinal);
     final RelDataType type = validator.deriveType(scope, operand);
     final SqlValidatorNamespace namespace = validator.getNamespace(operand);
     if (namespace != null) {
@@ -127,12 +127,12 @@ public class SqlCallBinding extends SqlOperatorBinding {
   }
 
   public RelDataType getCursorOperand(int ordinal) {
-    final SqlNode operand = call.operands[ordinal];
+    final SqlNode operand = call.operand(ordinal);
     if (!SqlUtil.isCallTo(operand, SqlStdOperatorTable.CURSOR)) {
       return null;
     }
     final SqlCall cursorCall = (SqlCall) operand;
-    final SqlNode query = cursorCall.operands[0];
+    final SqlNode query = cursorCall.operand(0);
     return validator.deriveType(scope, query);
   }
 
@@ -141,14 +141,12 @@ public class SqlCallBinding extends SqlOperatorBinding {
       int ordinal,
       String paramName,
       List<String> columnList) {
-    final SqlNode operand = call.operands[ordinal];
+    final SqlNode operand = call.operand(ordinal);
     if (!SqlUtil.isCallTo(operand, SqlStdOperatorTable.ROW)) {
       return null;
     }
-    SqlNode[] operands = ((SqlCall) operand).getOperands();
-    for (int i = 0; i < operands.length; i++) {
-      SqlIdentifier id = (SqlIdentifier) operands[i];
-      columnList.add(id.getSimple());
+    for (SqlNode id : ((SqlCall) operand).getOperandList()) {
+      columnList.add(((SqlIdentifier) id).getSimple());
     }
     return validator.getParentCursor(paramName);
   }

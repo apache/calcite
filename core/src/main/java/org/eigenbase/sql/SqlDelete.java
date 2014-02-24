@@ -24,7 +24,7 @@ import org.eigenbase.sql.validate.*;
  * A <code>SqlDelete</code> is a node of a parse tree which represents a DELETE
  * statement.
  */
-public class SqlDelete extends SqlCall {
+public class SqlDelete extends SqlBasicCall {
   //~ Static fields/initializers ---------------------------------------------
 
   // constants representing operand positions

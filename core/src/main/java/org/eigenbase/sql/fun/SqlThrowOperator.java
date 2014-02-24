@@ -24,7 +24,7 @@ import org.eigenbase.sql.type.*;
  * An internal operator that throws an exception.
  *
  * <p>The exception is thrown with a (localized) error message which is the only
- * input paramter to the operator.</p>
+ * input parameter to the operator.</p>
  *
  * <p>The return type is defined as a <code>BOOLEAN</code> to facilitate the use
  * of it in constructs such as the following:</p>
@@ -52,11 +52,11 @@ public class SqlThrowOperator extends SqlInternalOperator {
 
   public void unparse(
       SqlWriter writer,
-      SqlNode[] operands,
+      SqlCall call,
       int leftPrec,
       int rightPrec) {
     final SqlWriter.Frame frame = writer.startFunCall(getName());
-    operands[0].unparse(writer, 0, 0);
+    call.operand(0).unparse(writer, 0, 0);
     writer.endFunCall(frame);
   }
 }

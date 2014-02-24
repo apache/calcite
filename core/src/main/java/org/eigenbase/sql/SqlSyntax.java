@@ -30,15 +30,10 @@ public enum SqlSyntax {
     public void unparse(
         SqlWriter writer,
         SqlOperator operator,
-        SqlNode[] operands,
+        SqlCall call,
         int leftPrec,
         int rightPrec) {
-      SqlUtil.unparseFunctionSyntax(
-          operator,
-          writer,
-          operands,
-          true,
-          null);
+      SqlUtil.unparseFunctionSyntax(operator, writer, call, true, null);
     }
   },
 
@@ -49,15 +44,10 @@ public enum SqlSyntax {
     public void unparse(
         SqlWriter writer,
         SqlOperator operator,
-        SqlNode[] operands,
+        SqlCall call,
         int leftPrec,
         int rightPrec) {
-      SqlUtil.unparseBinarySyntax(
-          operator,
-          operands,
-          writer,
-          leftPrec,
-          rightPrec);
+      SqlUtil.unparseBinarySyntax(operator, call, writer, leftPrec, rightPrec);
     }
   },
 
@@ -68,14 +58,12 @@ public enum SqlSyntax {
     public void unparse(
         SqlWriter writer,
         SqlOperator operator,
-        SqlNode[] operands,
+        SqlCall call,
         int leftPrec,
         int rightPrec) {
-      assert operands.length == 1;
+      assert call.operandCount() == 1;
       writer.keyword(operator.getName());
-      operands[0].unparse(
-          writer,
-          operator.getLeftPrec(),
+      call.operand(0).unparse(writer, operator.getLeftPrec(),
           operator.getRightPrec());
     }
   },
@@ -87,13 +75,11 @@ public enum SqlSyntax {
     public void unparse(
         SqlWriter writer,
         SqlOperator operator,
-        SqlNode[] operands,
+        SqlCall call,
         int leftPrec,
         int rightPrec) {
-      assert operands.length == 1;
-      operands[0].unparse(
-          writer,
-          operator.getLeftPrec(),
+      assert call.operandCount() == 1;
+      call.operand(0).unparse(writer, operator.getLeftPrec(),
           operator.getRightPrec());
       writer.keyword(operator.getName());
     }
@@ -107,7 +93,7 @@ public enum SqlSyntax {
     public void unparse(
         SqlWriter writer,
         SqlOperator operator,
-        SqlNode[] operands,
+        SqlCall call,
         int leftPrec,
         int rightPrec) {
       // You probably need to override the operator's unparse
@@ -124,15 +110,10 @@ public enum SqlSyntax {
     public void unparse(
         SqlWriter writer,
         SqlOperator operator,
-        SqlNode[] operands,
+        SqlCall call,
         int leftPrec,
         int rightPrec) {
-      SqlUtil.unparseFunctionSyntax(
-          operator,
-          writer,
-          operands,
-          false,
-          null);
+      SqlUtil.unparseFunctionSyntax(operator, writer, call, false, null);
     }
   },
 
@@ -143,7 +124,7 @@ public enum SqlSyntax {
     public void unparse(
         SqlWriter writer,
         SqlOperator operator,
-        SqlNode[] operands,
+        SqlCall call,
         int leftPrec,
         int rightPrec) {
       throw Util.newInternal(
@@ -158,7 +139,7 @@ public enum SqlSyntax {
   public abstract void unparse(
       SqlWriter writer,
       SqlOperator operator,
-      SqlNode[] operands,
+      SqlCall call,
       int leftPrec,
       int rightPrec);
 }

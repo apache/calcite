@@ -91,22 +91,22 @@ public abstract class SqlTypeUtil {
    */
   public static boolean isCharTypeComparable(
       SqlCallBinding binding,
-      SqlNode[] operands,
+      List<SqlNode> operands,
       boolean throwOnFailure) {
     final SqlValidator validator = binding.getValidator();
     final SqlValidatorScope scope = binding.getScope();
     assert null != operands : "precondition failed";
-    assert 2 <= operands.length : "precondition failed";
+    assert 2 <= operands.size() : "precondition failed";
 
     if (!isCharTypeComparable(
         deriveAndCollectTypes(validator, scope, operands))) {
       if (throwOnFailure) {
         String msg = "";
-        for (int i = 0; i < operands.length; i++) {
+        for (int i = 0; i < operands.size(); i++) {
           if (i > 0) {
             msg += ", ";
           }
-          msg += operands[i].toString();
+          msg += operands.get(i).toString();
         }
         throw binding.newError(
             EigenbaseResource.instance().OperandNotComparable.ex(msg));
@@ -123,7 +123,7 @@ public abstract class SqlTypeUtil {
   public static List<RelDataType> deriveAndCollectTypes(
       SqlValidator validator,
       SqlValidatorScope scope,
-      SqlNode[] operands) {
+      List<SqlNode> operands) {
     // NOTE: Do not use an AbstractList. Don't want to be lazy. We want
     // errors.
     List<RelDataType> types = new ArrayList<RelDataType>();
@@ -166,7 +166,7 @@ public abstract class SqlTypeUtil {
       final SqlValidatorScope scope,
       final SqlCall call,
       RelDataType type) {
-    for (SqlNode operand : call.operands) {
+    for (SqlNode operand : call.getOperandList()) {
       RelDataType operandType = validator.deriveType(scope, operand);
 
       if (containsNullable(operandType)) {

@@ -36,7 +36,7 @@ public class MultisetOperandTypeChecker implements SqlOperandTypeChecker {
       SqlCallBinding callBinding,
       boolean throwOnFailure) {
     SqlCall call = callBinding.getCall();
-    SqlNode op0 = call.operands[0];
+    final SqlNode op0 = call.operand(0);
     if (!OperandTypes.MULTISET.checkSingleOperandType(
         callBinding,
         op0,
@@ -45,7 +45,7 @@ public class MultisetOperandTypeChecker implements SqlOperandTypeChecker {
       return false;
     }
 
-    SqlNode op1 = call.operands[1];
+    final SqlNode op1 = call.operand(1);
     if (!OperandTypes.MULTISET.checkSingleOperandType(
         callBinding,
         op1,
@@ -69,8 +69,8 @@ public class MultisetOperandTypeChecker implements SqlOperandTypeChecker {
       if (throwOnFailure) {
         throw callBinding.newError(
             EigenbaseResource.instance().TypeNotComparable.ex(
-                call.operands[0].getParserPosition().toString(),
-                call.operands[1].getParserPosition().toString()));
+                op0.getParserPosition().toString(),
+                op1.getParserPosition().toString()));
       }
 
       return false;

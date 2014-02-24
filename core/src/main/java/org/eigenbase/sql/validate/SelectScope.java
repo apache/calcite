@@ -160,7 +160,7 @@ public class SelectScope extends ListScope {
           && (((SqlCall) order0).getOperator()
           == SqlStdOperatorTable.DESC)) {
         monotonicity = monotonicity.reverse();
-        order0 = ((SqlCall) order0).getOperands()[0];
+        order0 = ((SqlCall) order0).operand(0);
       }
       if (expr.equalsDeep(order0, false)) {
         return monotonicity;
@@ -199,7 +199,7 @@ public class SelectScope extends ListScope {
 
     // if the name wasn't found then check the parent(s)
     SqlValidatorScope walker = parent;
-    while ((null != walker) && !(walker instanceof EmptyScope)) {
+    while (!(walker instanceof EmptyScope)) {
       if (walker instanceof SelectScope) {
         final SelectScope parentScope = (SelectScope) walker;
         return parentScope.existingWindowName(winName);

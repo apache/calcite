@@ -449,7 +449,7 @@ public class SqlJdbcFunctionCall extends SqlFunction {
     // REVIEW: jhyde, 2006/4/18: Should SqlJdbcFunctionCall even be a
     // subclass of SqlFunction?
 
-    for (SqlNode operand : call.operands) {
+    for (SqlNode operand : call.getOperandList()) {
       RelDataType nodeType = validator.deriveType(scope, operand);
       validator.setValidatedNodeType(operand, nodeType);
     }
@@ -505,13 +505,13 @@ public class SqlJdbcFunctionCall extends SqlFunction {
 
   public void unparse(
       SqlWriter writer,
-      SqlNode[] operands,
+      SqlCall call,
       int leftPrec,
       int rightPrec) {
     writer.print("{fn ");
     writer.print(jdbcName);
     final SqlWriter.Frame frame = writer.startList("(", ")");
-    for (SqlNode operand : operands) {
+    for (SqlNode operand : call.getOperandList()) {
       writer.sep(",");
       operand.unparse(writer, leftPrec, rightPrec);
     }

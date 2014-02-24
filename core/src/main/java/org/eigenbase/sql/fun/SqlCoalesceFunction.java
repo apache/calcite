@@ -17,10 +17,13 @@
 */
 package org.eigenbase.sql.fun;
 
+import java.util.List;
+
 import org.eigenbase.sql.*;
 import org.eigenbase.sql.parser.*;
 import org.eigenbase.sql.type.*;
 import org.eigenbase.sql.validate.*;
+import org.eigenbase.util.Util;
 
 /**
  * The <code>COALESCE</code> function.
@@ -49,11 +52,11 @@ public class SqlCoalesceFunction extends SqlFunction {
   public SqlNode rewriteCall(SqlValidator validator, SqlCall call) {
     validateQuantifier(validator, call); // check DISTINCT/ALL
 
-    SqlNode[] operands = call.getOperands();
+    List<SqlNode> operands = call.getOperandList();
 
-    if (operands.length == 1) {
+    if (operands.size() == 1) {
       // No CASE needed
-      return operands[0];
+      return operands.get(0);
     }
 
     SqlParserPos pos = call.getParserPosition();
@@ -63,23 +66,17 @@ public class SqlCoalesceFunction extends SqlFunction {
 
     // todo: optimize when know operand is not null.
 
-    for (int i = 0; (i + 1) < operands.length; ++i) {
+    for (int i = 0; (i + 1) < operands.size(); ++i) {
       whenList.add(
           SqlStdOperatorTable.IS_NOT_NULL.createCall(
               pos,
-              operands[i]));
-      thenList.add(operands[i].clone(operands[i].getParserPosition()));
+              operands.get(i)));
+      thenList.add(operands.get(i).clone(operands.get(i).getParserPosition()));
     }
-    SqlNode elseExpr = operands[operands.length - 1];
+    SqlNode elseExpr = Util.last(operands);
     assert call.getFunctionQuantifier() == null;
-    final SqlCall newCall =
-        SqlStdOperatorTable.CASE.createSwitchedCall(
-            pos,
-            null,
-            whenList,
-            thenList,
-            elseExpr);
-    return newCall;
+    return SqlStdOperatorTable.CASE.createSwitchedCall(pos, null, whenList,
+        thenList, elseExpr);
   }
 }
 

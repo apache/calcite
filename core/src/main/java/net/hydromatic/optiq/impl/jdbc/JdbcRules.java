@@ -917,9 +917,9 @@ public class JdbcRules {
                   new SqlIdentifier(literal.right, POS)));
         }
         selects.add(
-            SqlStdOperatorTable.SELECT.createCall(SqlNodeList.EMPTY,
+            new SqlSelect(POS, SqlNodeList.EMPTY,
                 new SqlNodeList(selectList, POS), null, null, null,
-                null, null, null, null, null, POS));
+                null, null, null, null, null));
       }
       SqlNode query = null;
       for (SqlSelect select : selects) {

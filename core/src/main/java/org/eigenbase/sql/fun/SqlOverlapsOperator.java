@@ -25,8 +25,8 @@ import org.eigenbase.sql.validate.*;
 import com.google.common.collect.ImmutableList;
 
 /**
- * SqlOverlapsOperator represents the SQL:1999 standard OVERLAPS function
- * Determins if two anchored time intervals overlaps.
+ * SqlOverlapsOperator represents the SQL:1999 standard {@code OVERLAPS}
+ * function. Determines whether two anchored time intervals overlap.
  */
 public class SqlOverlapsOperator extends SqlSpecialOperator {
   //~ Static fields/initializers ---------------------------------------------
@@ -50,20 +50,20 @@ public class SqlOverlapsOperator extends SqlSpecialOperator {
 
   public void unparse(
       SqlWriter writer,
-      SqlNode[] operands,
+      SqlCall call,
       int leftPrec,
       int rightPrec) {
     final SqlWriter.Frame frame =
         writer.startList(FRAME_TYPE, "(", ")");
-    operands[0].unparse(writer, leftPrec, rightPrec);
+    call.operand(0).unparse(writer, leftPrec, rightPrec);
     writer.sep(",", true);
-    operands[1].unparse(writer, leftPrec, rightPrec);
+    call.operand(1).unparse(writer, leftPrec, rightPrec);
     writer.sep(")", true);
     writer.sep(getName());
     writer.sep("(", true);
-    operands[2].unparse(writer, leftPrec, rightPrec);
+    call.operand(2).unparse(writer, leftPrec, rightPrec);
     writer.sep(",", true);
-    operands[3].unparse(writer, leftPrec, rightPrec);
+    call.operand(3).unparse(writer, leftPrec, rightPrec);
     writer.endList(frame);
   }
 
@@ -106,23 +106,23 @@ public class SqlOverlapsOperator extends SqlSpecialOperator {
     SqlValidatorScope scope = callBinding.getScope();
     if (!OperandTypes.DATETIME.checkSingleOperandType(
         callBinding,
-        call.operands[0],
+        call.operand(0),
         0,
         throwOnFailure)) {
       return false;
     }
     if (!OperandTypes.DATETIME.checkSingleOperandType(
         callBinding,
-        call.operands[2],
+        call.operand(2),
         0,
         throwOnFailure)) {
       return false;
     }
 
-    RelDataType t0 = validator.deriveType(scope, call.operands[0]);
-    RelDataType t1 = validator.deriveType(scope, call.operands[1]);
-    RelDataType t2 = validator.deriveType(scope, call.operands[2]);
-    RelDataType t3 = validator.deriveType(scope, call.operands[3]);
+    RelDataType t0 = validator.deriveType(scope, call.operand(0));
+    RelDataType t1 = validator.deriveType(scope, call.operand(1));
+    RelDataType t2 = validator.deriveType(scope, call.operand(2));
+    RelDataType t3 = validator.deriveType(scope, call.operand(3));
 
     // t0 must be comparable with t2
     if (!SqlTypeUtil.sameNamedType(t0, t2)) {

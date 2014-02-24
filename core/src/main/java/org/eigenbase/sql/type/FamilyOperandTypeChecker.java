@@ -23,6 +23,8 @@ import org.eigenbase.reltype.*;
 import org.eigenbase.resource.*;
 import org.eigenbase.sql.*;
 
+import net.hydromatic.linq4j.Ord;
+
 import com.google.common.collect.ImmutableList;
 
 /**
@@ -95,12 +97,11 @@ public class FamilyOperandTypeChecker implements SqlSingleOperandTypeChecker {
       return false;
     }
 
-    for (int i = 0; i < callBinding.getOperandCount(); i++) {
-      SqlNode operand = callBinding.getCall().operands[i];
+    for (Ord<SqlNode> op : Ord.zip(callBinding.getCall().getOperandList())) {
       if (!checkSingleOperandType(
           callBinding,
-          operand,
-          i,
+          op.e,
+          op.i,
           throwOnFailure)) {
         return false;
       }

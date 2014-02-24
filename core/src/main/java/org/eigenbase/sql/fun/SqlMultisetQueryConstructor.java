@@ -78,7 +78,7 @@ public class SqlMultisetQueryConstructor extends SqlSpecialOperator {
         SqlTypeUtil.deriveAndCollectTypes(
             callBinding.getValidator(),
             callBinding.getScope(),
-            callBinding.getCall().operands);
+            callBinding.getCall().getOperandList());
     final RelDataType componentType =
         getComponentType(
             callBinding.getTypeFactory(),
@@ -97,7 +97,7 @@ public class SqlMultisetQueryConstructor extends SqlSpecialOperator {
       SqlValidator validator,
       SqlValidatorScope scope,
       SqlCall call) {
-    SqlSelect subSelect = (SqlSelect) call.operands[0];
+    SqlSelect subSelect = call.operand(0);
     subSelect.validateExpr(validator, scope);
     SqlValidatorNamespace ns = validator.getNamespace(subSelect);
     assert null != ns.getRowType();
@@ -109,13 +109,13 @@ public class SqlMultisetQueryConstructor extends SqlSpecialOperator {
 
   public void unparse(
       SqlWriter writer,
-      SqlNode[] operands,
+      SqlCall call,
       int leftPrec,
       int rightPrec) {
     writer.keyword("MULTISET");
     final SqlWriter.Frame frame = writer.startList("(", ")");
-    assert operands.length == 1;
-    operands[0].unparse(writer, leftPrec, rightPrec);
+    assert call.operandCount() == 1;
+    call.operand(0).unparse(writer, leftPrec, rightPrec);
     writer.endList(frame);
   }
 

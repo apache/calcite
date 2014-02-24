@@ -18,6 +18,7 @@
 package org.eigenbase.util;
 
 import java.math.*;
+import java.util.List;
 
 import org.eigenbase.util14.*;
 
@@ -169,9 +170,9 @@ public class BitString {
    *
    * @param args BitString[]
    */
-  public static BitString concat(BitString[] args) {
-    if (args.length < 2) {
-      return args[0];
+  public static BitString concat(List<BitString> args) {
+    if (args.size() < 2) {
+      return args.get(0);
     }
     int length = 0;
     for (BitString arg : args) {

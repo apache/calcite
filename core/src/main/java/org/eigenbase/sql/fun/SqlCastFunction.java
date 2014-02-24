@@ -125,7 +125,7 @@ public class SqlCastFunction extends SqlFunction {
             firstType.isNullable());
     if (opBinding instanceof SqlCallBinding) {
       SqlCallBinding callBinding = (SqlCallBinding) opBinding;
-      SqlNode operand0 = callBinding.getCall().operands[0];
+      SqlNode operand0 = callBinding.getCall().operand(0);
 
       // dynamic parameters and null constants need their types assigned
       // to them using the type they are casted to.
@@ -157,17 +157,16 @@ public class SqlCastFunction extends SqlFunction {
   public boolean checkOperandTypes(
       SqlCallBinding callBinding,
       boolean throwOnFailure) {
-    if (SqlUtil.isNullLiteral(callBinding.getCall().operands[0], false)
-        || callBinding.getCall().operands[0] instanceof SqlDynamicParam) {
+    final SqlNode left = callBinding.getCall().operand(0);
+    final SqlNode right = callBinding.getCall().operand(1);
+    if (SqlUtil.isNullLiteral(left, false)
+        || left instanceof SqlDynamicParam) {
       return true;
     }
     RelDataType validatedNodeType =
-        callBinding.getValidator().getValidatedNodeType(
-            callBinding.getCall().operands[0]);
+        callBinding.getValidator().getValidatedNodeType(left);
     RelDataType returnType =
-        callBinding.getValidator().deriveType(
-            callBinding.getScope(),
-            callBinding.getCall().operands[1]);
+        callBinding.getValidator().deriveType(callBinding.getScope(), right);
     if (!SqlTypeUtil.canCastFrom(returnType, validatedNodeType, true)) {
       if (throwOnFailure) {
         throw callBinding.newError(
@@ -199,17 +198,17 @@ public class SqlCastFunction extends SqlFunction {
 
   public void unparse(
       SqlWriter writer,
-      SqlNode[] operands,
+      SqlCall call,
       int leftPrec,
       int rightPrec) {
-    assert operands.length == 2;
+    assert call.operandCount() == 2;
     final SqlWriter.Frame frame = writer.startFunCall(getName());
-    operands[0].unparse(writer, 0, 0);
+    call.operand(0).unparse(writer, 0, 0);
     writer.sep("AS");
-    if (operands[1] instanceof SqlIntervalQualifier) {
+    if (call.operand(1) instanceof SqlIntervalQualifier) {
       writer.sep("INTERVAL");
     }
-    operands[1].unparse(writer, 0, 0);
+    call.operand(1).unparse(writer, 0, 0);
     writer.endFunCall(frame);
   }
 
@@ -218,13 +217,11 @@ public class SqlCastFunction extends SqlFunction {
       SqlCall call,
       SqlValidatorScope scope) {
     RelDataTypeFamily castFrom =
-        scope.getValidator().deriveType(scope, call.operands[0])
-            .getFamily();
+        scope.getValidator().deriveType(scope, call.operand(0)).getFamily();
     RelDataTypeFamily castTo =
-        scope.getValidator().deriveType(scope, call.operands[1])
-            .getFamily();
+        scope.getValidator().deriveType(scope, call.operand(1)).getFamily();
     if (isMonotonicPreservingCast(castFrom, castTo)) {
-      return call.operands[0].getMonotonicity(scope);
+      return call.operand(0).getMonotonicity(scope);
     } else {
       return SqlMonotonicity.NOT_MONOTONIC;
     }

@@ -17,9 +17,14 @@
 */
 package org.eigenbase.sql;
 
+import java.util.List;
+
 import org.eigenbase.sql.parser.*;
 import org.eigenbase.sql.type.*;
 import org.eigenbase.util.*;
+
+import com.google.common.base.Function;
+import com.google.common.collect.Lists;
 
 /**
  * A character string literal.
@@ -28,7 +33,14 @@ import org.eigenbase.util.*;
  * {@link SqlTypeName#CHAR}.
  */
 public class SqlCharStringLiteral extends SqlAbstractStringLiteral {
-    //~ Constructors -----------------------------------------------------------
+  private static final Function<SqlLiteral, NlsString> F =
+      new Function<SqlLiteral, NlsString>() {
+        public NlsString apply(SqlLiteral literal) {
+          return ((SqlCharStringLiteral) literal).getNlsString();
+        }
+      };
+
+  //~ Constructors -----------------------------------------------------------
 
   protected SqlCharStringLiteral(NlsString val, SqlParserPos pos) {
     super(val, SqlTypeName.CHAR, pos);
@@ -68,14 +80,10 @@ public class SqlCharStringLiteral extends SqlAbstractStringLiteral {
     writer.literal(value.toString());
   }
 
-  protected SqlAbstractStringLiteral concat1(SqlLiteral[] lits) {
-    NlsString[] args = new NlsString[lits.length];
-    for (int i = 0; i < lits.length; i++) {
-      args[i] = ((SqlCharStringLiteral) lits[i]).getNlsString();
-    }
+  protected SqlAbstractStringLiteral concat1(List<SqlLiteral> literals) {
     return new SqlCharStringLiteral(
-        NlsString.concat(args),
-        lits[0].getParserPosition());
+        NlsString.concat(Lists.transform(literals, F)),
+        literals.get(0).getParserPosition());
   }
 }
 

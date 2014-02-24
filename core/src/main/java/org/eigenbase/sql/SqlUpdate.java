@@ -26,7 +26,7 @@ import org.eigenbase.sql.validate.*;
  * A <code>SqlUpdate</code> is a node of a parse tree which represents an UPDATE
  * statement.
  */
-public class SqlUpdate extends SqlCall {
+public class SqlUpdate extends SqlBasicCall {
   //~ Static fields/initializers ---------------------------------------------
 
   // constants representing operand positions

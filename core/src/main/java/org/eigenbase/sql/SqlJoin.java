@@ -22,7 +22,7 @@ import org.eigenbase.sql.parser.*;
 /**
  * Parse tree node representing a {@code JOIN} clause.
  */
-public class SqlJoin extends SqlCall {
+public class SqlJoin extends SqlBasicCall {
   //~ Static fields/initializers ---------------------------------------------
 
   public static final int LEFT_OPERAND = 0;

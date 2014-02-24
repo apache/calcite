@@ -75,7 +75,7 @@ public class LiteralOperandTypeChecker implements SqlSingleOperandTypeChecker {
       boolean throwOnFailure) {
     return checkSingleOperandType(
         callBinding,
-        callBinding.getCall().operands[0],
+        callBinding.getCall().operand(0),
         0,
         throwOnFailure);
   }

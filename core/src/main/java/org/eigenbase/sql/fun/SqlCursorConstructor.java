@@ -45,22 +45,21 @@ public class SqlCursorConstructor extends SqlSpecialOperator {
       SqlValidator validator,
       SqlValidatorScope scope,
       SqlCall call) {
-    SqlSelect subSelect = (SqlSelect) call.operands[0];
+    SqlSelect subSelect = call.operand(0);
     validator.declareCursor(subSelect, scope);
     subSelect.validateExpr(validator, scope);
-    RelDataType type = super.deriveType(validator, scope, call);
-    return type;
+    return super.deriveType(validator, scope, call);
   }
 
   public void unparse(
       SqlWriter writer,
-      SqlNode[] operands,
+      SqlCall call,
       int leftPrec,
       int rightPrec) {
     writer.keyword("CURSOR");
     final SqlWriter.Frame frame = writer.startList("(", ")");
-    assert operands.length == 1;
-    operands[0].unparse(writer, leftPrec, rightPrec);
+    assert call.operandCount() == 1;
+    call.operand(0).unparse(writer, leftPrec, rightPrec);
     writer.endList(frame);
   }
 

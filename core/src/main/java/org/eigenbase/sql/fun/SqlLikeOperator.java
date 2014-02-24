@@ -116,32 +116,23 @@ public class SqlLikeOperator extends SqlSpecialOperator {
 
     return SqlTypeUtil.isCharTypeComparable(
         callBinding,
-        callBinding.getCall().getOperands(),
+        callBinding.getCall().getOperandList(),
         throwOnFailure);
   }
 
   public void unparse(
       SqlWriter writer,
-      SqlNode[] operands,
+      SqlCall call,
       int leftPrec,
       int rightPrec) {
     final SqlWriter.Frame frame = writer.startList("", "");
-    operands[0].unparse(
-        writer,
-        getLeftPrec(),
-        getRightPrec());
+    call.operand(0).unparse(writer, getLeftPrec(), getRightPrec());
     writer.sep(getName());
 
-    operands[1].unparse(
-        writer,
-        getLeftPrec(),
-        getRightPrec());
-    if (operands.length == 3) {
+    call.operand(1).unparse(writer, getLeftPrec(), getRightPrec());
+    if (call.operandCount() == 3) {
       writer.sep("ESCAPE");
-      operands[2].unparse(
-          writer,
-          getLeftPrec(),
-          getRightPrec());
+      call.operand(2).unparse(writer, getLeftPrec(), getRightPrec());
     }
     writer.endList(frame);
   }

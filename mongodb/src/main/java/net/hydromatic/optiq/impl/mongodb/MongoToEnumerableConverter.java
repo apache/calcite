@@ -18,8 +18,6 @@
 package net.hydromatic.optiq.impl.mongodb;
 
 import net.hydromatic.linq4j.expressions.*;
-import net.hydromatic.linq4j.function.Function1;
-import net.hydromatic.linq4j.function.Functions;
 
 import net.hydromatic.optiq.BuiltinMethod;
 import net.hydromatic.optiq.prepare.OptiqPrepareImpl;
@@ -30,6 +28,9 @@ import org.eigenbase.rel.RelNode;
 import org.eigenbase.rel.convert.ConverterRelImpl;
 import org.eigenbase.relopt.*;
 import org.eigenbase.util.Pair;
+
+import com.google.common.base.Function;
+import com.google.common.collect.Lists;
 
 import java.util.List;
 
@@ -142,8 +143,8 @@ public class MongoToEnumerableConverter
   /** E.g. {@code constantList("x", "y")} returns
    * {@code {ConstantExpression("x"), ConstantExpression("y")}}. */
   private static <T> List<Expression> constantList(List<T> values) {
-    return Functions.apply(values,
-        new Function1<T, Expression>() {
+    return Lists.transform(values,
+        new Function<T, Expression>() {
           public Expression apply(T a0) {
             return Expressions.constant(a0);
           }

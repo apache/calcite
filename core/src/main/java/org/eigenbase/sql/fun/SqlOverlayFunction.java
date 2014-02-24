@@ -47,18 +47,18 @@ public class SqlOverlayFunction extends SqlFunction {
 
   public void unparse(
       SqlWriter writer,
-      SqlNode[] operands,
+      SqlCall call,
       int leftPrec,
       int rightPrec) {
     final SqlWriter.Frame frame = writer.startFunCall(getName());
-    operands[0].unparse(writer, leftPrec, rightPrec);
+    call.operand(0).unparse(writer, leftPrec, rightPrec);
     writer.sep("PLACING");
-    operands[1].unparse(writer, leftPrec, rightPrec);
+    call.operand(1).unparse(writer, leftPrec, rightPrec);
     writer.sep("FROM");
-    operands[2].unparse(writer, leftPrec, rightPrec);
-    if (4 == operands.length) {
+    call.operand(2).unparse(writer, leftPrec, rightPrec);
+    if (4 == call.operandCount()) {
       writer.sep("FOR");
-      operands[3].unparse(writer, leftPrec, rightPrec);
+      call.operand(3).unparse(writer, leftPrec, rightPrec);
     }
     writer.endFunCall(frame);
   }

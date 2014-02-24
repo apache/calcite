@@ -51,15 +51,15 @@ public class SqlDatetimeSubtractionOperator extends SqlSpecialOperator {
 
   public void unparse(
       SqlWriter writer,
-      SqlNode[] operands,
+      SqlCall call,
       int leftPrec,
       int rightPrec) {
     final SqlWriter.Frame frame = writer.startList("(", ")");
-    operands[0].unparse(writer, leftPrec, rightPrec);
+    call.operand(0).unparse(writer, leftPrec, rightPrec);
     writer.sep("-");
-    operands[1].unparse(writer, leftPrec, rightPrec);
+    call.operand(1).unparse(writer, leftPrec, rightPrec);
     writer.endList(frame);
-    operands[2].unparse(writer, leftPrec, rightPrec);
+    call.operand(2).unparse(writer, leftPrec, rightPrec);
   }
 
   public SqlMonotonicity getMonotonicity(

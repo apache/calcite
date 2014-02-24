@@ -19,6 +19,8 @@ package org.eigenbase.sql;
 
 import org.eigenbase.sql.type.*;
 
+import net.hydromatic.linq4j.Ord;
+
 /**
  * A generalization of a binary operator to involve several (two or more)
  * arguments, and keywords between each pair of arguments.
@@ -60,21 +62,18 @@ public class SqlInfixOperator extends SqlSpecialOperator {
 
   public void unparse(
       SqlWriter writer,
-      SqlNode[] operands,
+      SqlCall call,
       int leftPrec,
       int rightPrec) {
-    assert operands.length == (names.length + 1);
+    assert call.operandCount() == names.length + 1;
     final boolean needWhitespace = needsSpace();
-    for (int i = 0; i < operands.length; i++) {
-      if (i > 0) {
+    for (Ord<SqlNode> operand : Ord.zip(call.getOperandList())) {
+      if (operand.i > 0) {
         writer.setNeedWhitespace(needWhitespace);
-        writer.keyword(names[i - 1]);
+        writer.keyword(names[operand.i - 1]);
         writer.setNeedWhitespace(needWhitespace);
       }
-      operands[i].unparse(
-          writer,
-          leftPrec,
-          getLeftPrec());
+      operand.e.unparse(writer, leftPrec, getLeftPrec());
     }
   }
 

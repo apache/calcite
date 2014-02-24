@@ -93,8 +93,8 @@ public class SqlPrettyWriterTest {
       final String sql,
       String expected) {
     final SqlCall valuesCall = (SqlCall) parseQuery("VALUES (" + sql + ")");
-    final SqlCall rowCall = (SqlCall) valuesCall.getOperands()[0];
-    final SqlNode node = rowCall.getOperands()[0];
+    final SqlCall rowCall = valuesCall.operand(0);
+    final SqlNode node = rowCall.operand(0);
     final SqlPrettyWriter prettyWriter =
         new SqlPrettyWriter(SqlDialect.DUMMY);
     prettyWriter.setAlwaysUseParentheses(false);

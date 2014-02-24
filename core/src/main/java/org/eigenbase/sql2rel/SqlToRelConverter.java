@@ -728,30 +728,26 @@ public class SqlToRelConverter {
   }
 
   /**
-   * Pushdown allthe NOT logical operators into any IN/NOT IN operators.
+   * Push down all the NOT logical operators into any IN/NOT IN operators.
    *
    * @param sqlNode the root node from which to look for NOT operators
    * @return the transformed SqlNode representation with NOT pushed down.
    */
-  private static SqlNode pushdownNotForIn(
-      SqlNode sqlNode) {
+  private static SqlNode pushDownNotForIn(SqlNode sqlNode) {
     if ((sqlNode instanceof SqlCall) && containsInOperator(sqlNode)) {
       SqlCall sqlCall = (SqlCall) sqlNode;
       if ((sqlCall.getOperator() == SqlStdOperatorTable.AND)
           || (sqlCall.getOperator() == SqlStdOperatorTable.OR)) {
-        SqlNode[] sqlOperands = sqlCall.getOperands();
+        SqlNode[] sqlOperands = ((SqlBasicCall) sqlCall).operands;
         for (int i = 0; i < sqlOperands.length; i++) {
-          sqlOperands[i] = pushdownNotForIn(sqlOperands[i]);
+          sqlOperands[i] = pushDownNotForIn(sqlOperands[i]);
         }
         return sqlNode;
-      } else if (
-          sqlCall.getOperator()
-              == SqlStdOperatorTable.NOT) {
-        SqlNode childNode = sqlCall.getOperands()[0];
+      } else if (sqlCall.getOperator() == SqlStdOperatorTable.NOT) {
+        SqlNode childNode = sqlCall.operand(0);
         assert childNode instanceof SqlCall;
-        SqlCall childSqlCall = (SqlCall) childNode;
-        if (childSqlCall.getOperator()
-            == SqlStdOperatorTable.AND) {
+        SqlBasicCall childSqlCall = (SqlBasicCall) childNode;
+        if (childSqlCall.getOperator() == SqlStdOperatorTable.AND) {
           SqlNode[] andOperands = childSqlCall.getOperands();
           SqlNode[] orOperands = new SqlNode[andOperands.length];
           for (int i = 0; i < orOperands.length; i++) {
@@ -761,17 +757,11 @@ public class SqlToRelConverter {
                     andOperands[i]);
           }
           for (int i = 0; i < orOperands.length; i++) {
-            orOperands[i] = pushdownNotForIn(orOperands[i]);
+            orOperands[i] = pushDownNotForIn(orOperands[i]);
           }
-          SqlNode orNode =
-              SqlStdOperatorTable.OR.createCall(
-                  SqlParserPos.ZERO,
-                  orOperands[0],
-                  orOperands[1]);
-          return orNode;
-        } else if (
-            childSqlCall.getOperator()
-                == SqlStdOperatorTable.OR) {
+          return SqlStdOperatorTable.OR.createCall(SqlParserPos.ZERO,
+              orOperands[0], orOperands[1]);
+        } else if (childSqlCall.getOperator() == SqlStdOperatorTable.OR) {
           SqlNode[] orOperands = childSqlCall.getOperands();
           SqlNode[] andOperands = new SqlNode[orOperands.length];
           for (int i = 0; i < andOperands.length; i++) {
@@ -781,23 +771,15 @@ public class SqlToRelConverter {
                     orOperands[i]);
           }
           for (int i = 0; i < andOperands.length; i++) {
-            andOperands[i] = pushdownNotForIn(andOperands[i]);
+            andOperands[i] = pushDownNotForIn(andOperands[i]);
           }
-          SqlNode andNode =
-              SqlStdOperatorTable.AND.createCall(
-                  SqlParserPos.ZERO,
-                  andOperands[0],
-                  andOperands[1]);
-          return andNode;
-        } else if (
-            childSqlCall.getOperator()
-                == SqlStdOperatorTable.NOT) {
+          return SqlStdOperatorTable.AND.createCall(SqlParserPos.ZERO,
+              andOperands[0], andOperands[1]);
+        } else if (childSqlCall.getOperator() == SqlStdOperatorTable.NOT) {
           SqlNode[] notOperands = childSqlCall.getOperands();
           assert notOperands.length == 1;
-          return pushdownNotForIn(notOperands[0]);
-        } else if (
-            childSqlCall.getOperator()
-                instanceof SqlInOperator) {
+          return pushDownNotForIn(notOperands[0]);
+        } else if (childSqlCall.getOperator() instanceof SqlInOperator) {
           SqlNode[] inOperands = childSqlCall.getOperands();
           SqlInOperator inOp =
               (SqlInOperator) childSqlCall.getOperator();
@@ -840,7 +822,7 @@ public class SqlToRelConverter {
     if (where == null) {
       return;
     }
-    SqlNode newWhere = pushdownNotForIn(where);
+    SqlNode newWhere = pushDownNotForIn(where);
     replaceSubqueries(bb, newWhere);
     final RexNode convertedWhere = bb.convertExpression(newWhere);
 
@@ -879,7 +861,7 @@ public class SqlToRelConverter {
     RexNode[] leftJoinKeysForIn = null;
     boolean isNotIn;
     boolean subqueryNeedsOuterJoin = bb.subqueryNeedsOuterJoin;
-    SqlCall call;
+    SqlBasicCall call;
     SqlNode query;
 
     final RexNode expr = bb.mapSubqueryToExpr.get(node);
@@ -895,11 +877,11 @@ public class SqlToRelConverter {
     case MULTISET_QUERY_CONSTRUCTOR:
     case MULTISET_VALUE_CONSTRUCTOR:
       converted = convertMultisets(
-          new SqlNode[]{node},
+          ImmutableList.of(node),
           bb);
       break;
     case IN:
-      call = (SqlCall) node;
+      call = (SqlBasicCall) node;
       final SqlNode[] operands = call.getOperands();
 
       isNotIn = ((SqlInOperator) call.getOperator()).isNotIn();
@@ -909,7 +891,7 @@ public class SqlToRelConverter {
       if ((leftKeyNode instanceof SqlCall)
           && (((SqlCall) leftKeyNode).getOperator()
           instanceof SqlRowOperator)) {
-        SqlCall keyCall = (SqlCall) leftKeyNode;
+        SqlBasicCall keyCall = (SqlBasicCall) leftKeyNode;
         SqlNode[] keyCallOperands = keyCall.getOperands();
         int rowLength = keyCallOperands.length;
         leftJoinKeysForIn = new RexNode[rowLength];
@@ -1000,7 +982,7 @@ public class SqlToRelConverter {
       //
       // If there is no correlation, the expression is replaced with a
       // boolean indicating whether the subquery returned 0 or >= 1 row.
-      call = (SqlCall) node;
+      call = (SqlBasicCall) node;
       query = call.getOperands()[0];
       converted = convertExists(query, false, true, true);
       if (convertNonCorrelatedSubq(call, bb, converted, true)) {
@@ -1012,7 +994,7 @@ public class SqlToRelConverter {
     case SCALAR_QUERY:
       // Convert the subquery.  If it's non-correlated, convert it
       // to a constant expression.
-      call = (SqlCall) node;
+      call = (SqlBasicCall) node;
       query = call.getOperands()[0];
       converted = convertExists(query, false, false, true);
       if (convertNonCorrelatedSubq(call, bb, converted, false)) {
@@ -1140,7 +1122,7 @@ public class SqlToRelConverter {
                 bb.convertExpression(rightVals));
       } else {
         assert rightVals instanceof SqlCall;
-        final SqlCall call = (SqlCall) rightVals;
+        final SqlBasicCall call = (SqlBasicCall) rightVals;
         assert (call.getOperator() instanceof SqlRowOperator)
             && call.getOperands().length == leftKeys.length;
         rexComparison =
@@ -1309,9 +1291,9 @@ public class SqlToRelConverter {
 
     List<RelNode> unionInputs = new ArrayList<RelNode>();
     for (SqlNode node : rows) {
-      SqlCall call;
+      SqlBasicCall call;
       if (isRowConstructor(node)) {
-        call = (SqlCall) node;
+        call = (SqlBasicCall) node;
         List<RexLiteral> tuple = new ArrayList<RexLiteral>();
         for (SqlNode operand : call.operands) {
           RexLiteral rexLiteral =
@@ -1353,7 +1335,7 @@ public class SqlToRelConverter {
 
         // convert "1" to "row(1)"
         call =
-            SqlStdOperatorTable.ROW.createCall(
+            (SqlBasicCall) SqlStdOperatorTable.ROW.createCall(
                 SqlParserPos.ZERO,
                 node);
       }
@@ -1486,8 +1468,7 @@ public class SqlToRelConverter {
           // or NOT, outer join might be necessary.
           bb.subqueryNeedsOuterJoin = true;
         }
-        final SqlNode[] operands = ((SqlCall) node).getOperands();
-        for (SqlNode operand : operands) {
+        for (SqlNode operand : ((SqlCall) node).getOperandList()) {
           if (operand != null) {
             // In the case of an IN expression, locate scalar
             // subqueries so we can convert them to constants
@@ -1579,8 +1560,8 @@ public class SqlToRelConverter {
 
   private RexNode convertOver(Blackboard bb, SqlNode node) {
     SqlCall call = (SqlCall) node;
-    SqlCall aggCall = (SqlCall) call.operands[0];
-    SqlNode windowOrRef = call.operands[1];
+    SqlCall aggCall = call.operand(0);
+    SqlNode windowOrRef = call.operand(1);
     final SqlWindow window =
         validator.resolveWindow(windowOrRef, bb.scope, true);
     final SqlNodeList partitionList = window.getPartitionList();
@@ -1650,12 +1631,12 @@ public class SqlToRelConverter {
     final SqlNode[] operands;
     switch (from.getKind()) {
     case AS:
-      operands = ((SqlCall) from).getOperands();
+      operands = ((SqlBasicCall) from).getOperands();
       convertFrom(bb, operands[0]);
       return;
 
     case TABLESAMPLE:
-      operands = ((SqlCall) from).getOperands();
+      operands = ((SqlBasicCall) from).getOperands();
       SqlSampleSpec sampleSpec = SqlLiteral.sampleValue(operands[1]);
       if (sampleSpec instanceof SqlSampleSpec.SqlSubstitutionSampleSpec) {
         String sampleName =
@@ -1766,7 +1747,7 @@ public class SqlToRelConverter {
       return;
 
     case UNNEST:
-      call = (SqlCall) ((SqlCall) from).operands[0];
+      call = ((SqlCall) from).operand(0);
       replaceSubqueries(bb, call);
       final RelNode childRel =
           CalcRel.createProject(
@@ -1783,8 +1764,8 @@ public class SqlToRelConverter {
       call = (SqlCall) from;
 
       // Dig out real call; TABLE() wrapper is just syntactic.
-      assert call.getOperands().length == 1;
-      call = (SqlCall) call.getOperands()[0];
+      assert call.getOperandList().size() == 1;
+      call = call.operand(0);
       convertCollectionTable(bb, call);
       return;
 
@@ -1797,10 +1778,11 @@ public class SqlToRelConverter {
       Blackboard bb,
       SqlCall call) {
     if (call.getOperator() == SqlStdOperatorTable.TABLESAMPLE) {
-      final String sampleName = SqlLiteral.stringValue(call.operands[0]);
+      final String sampleName =
+          SqlLiteral.stringValue(call.operand(0));
       datasetStack.push(sampleName);
-      SqlCall cursorCall = (SqlCall) call.operands[1];
-      SqlNode query = cursorCall.operands[0];
+      SqlCall cursorCall = call.operand(1);
+      SqlNode query = cursorCall.operand(0);
       RelNode converted = convertQuery(query, false, false);
       bb.setRoot(converted, false);
       datasetStack.pop();
@@ -2471,7 +2453,7 @@ public class SqlToRelConverter {
       // Replace subqueries in having here and modify having to use
       // the replaced expressions
       if (having != null) {
-        SqlNode newHaving = pushdownNotForIn(having);
+        SqlNode newHaving = pushDownNotForIn(having);
         replaceSubqueries(bb, newHaving);
         havingExpr = bb.convertExpression(newHaving);
         if (havingExpr.isAlwaysTrue()) {
@@ -2633,21 +2615,21 @@ public class SqlToRelConverter {
     case DESCENDING:
       return convertOrderItem(
           select,
-          ((SqlCall) orderItem).operands[0],
+          ((SqlCall) orderItem).operand(0),
           extraExprs,
           RelFieldCollation.Direction.DESCENDING,
           nullDirection);
     case NULLS_FIRST:
       return convertOrderItem(
           select,
-          ((SqlCall) orderItem).operands[0],
+          ((SqlCall) orderItem).operand(0),
           extraExprs,
           direction,
           RelFieldCollation.NullDirection.FIRST);
     case NULLS_LAST:
       return convertOrderItem(
           select,
-          ((SqlCall) orderItem).operands[0],
+          ((SqlCall) orderItem).operand(0),
           extraExprs,
           direction,
           RelFieldCollation.NullDirection.LAST);
@@ -2662,7 +2644,7 @@ public class SqlToRelConverter {
       for (SqlNode selectItem : selectScope.getExpandedSelectList()) {
         ++ordinal;
         if (selectItem.getKind() == SqlKind.AS) {
-          selectItem = ((SqlCall) selectItem).operands[0];
+          selectItem = ((SqlCall) selectItem).operand(0);
         }
         if (converted.equalsDeep(selectItem, false)) {
           return new RelFieldCollation(
@@ -2776,7 +2758,7 @@ public class SqlToRelConverter {
     case EXCEPT:
       return convertSetOp((SqlCall) query);
     case WITH:
-      return convertWith((SqlCall) query);
+      return convertWith((SqlWith) query);
     case VALUES:
       return convertValues((SqlCall) query, targetRowType);
     default:
@@ -2792,9 +2774,8 @@ public class SqlToRelConverter {
    * @return Relational expression
    */
   protected RelNode convertSetOp(SqlCall call) {
-    final SqlNode[] operands = call.getOperands();
-    final RelNode left = convertQueryRecursive(operands[0], false, null);
-    final RelNode right = convertQueryRecursive(operands[1], false, null);
+    final RelNode left = convertQueryRecursive(call.operand(0), false, null);
+    final RelNode right = convertQueryRecursive(call.operand(1), false, null);
     boolean all = false;
     if (call.getOperator() instanceof SqlSetOperator) {
       all = ((SqlSetOperator) (call.getOperator())).isAll();
@@ -3210,13 +3191,13 @@ public class SqlToRelConverter {
       Blackboard bb,
       SqlCall rowConstructor) {
     assert isRowConstructor(rowConstructor) : rowConstructor;
-    final SqlNode[] operands = rowConstructor.getOperands();
+    final List<SqlNode> operands = rowConstructor.getOperandList();
     return convertMultisets(operands, bb);
   }
 
   private RelNode convertCursor(Blackboard bb, SqlCall cursorCall) {
-    assert cursorCall.operands.length == 1;
-    SqlNode query = cursorCall.operands[0];
+    assert cursorCall.operandCount() == 1;
+    SqlNode query = cursorCall.operand(0);
     RelNode converted = convertQuery(query, false, false);
     int iCursor = bb.cursors.size();
     bb.cursors.add(converted);
@@ -3228,13 +3209,14 @@ public class SqlToRelConverter {
     return converted;
   }
 
-  private RelNode convertMultisets(final SqlNode[] operands, Blackboard bb) {
+  private RelNode convertMultisets(final List<SqlNode> operands,
+      Blackboard bb) {
     // NOTE: Wael 2/04/05: this implementation is not the most efficent in
     // terms of planning since it generates XOs that can be reduced.
     List<Object> joinList = new ArrayList<Object>();
     List<SqlNode> lastList = new ArrayList<SqlNode>();
-    for (int i = 0; i < operands.length; i++) {
-      SqlNode operand = operands[i];
+    for (int i = 0; i < operands.size(); i++) {
+      SqlNode operand = operands.get(i);
       if (!(operand instanceof SqlCall)) {
         lastList.add(operand);
         continue;
@@ -3249,7 +3231,8 @@ public class SqlToRelConverter {
       }
       final RelNode input;
       if (op == SqlStdOperatorTable.MULTISET_VALUE) {
-        final SqlNodeList list = SqlUtil.toNodeList(call.operands);
+        final SqlNodeList list =
+            new SqlNodeList(call.getOperandList(), call.getParserPosition());
 //                assert bb.scope instanceof SelectScope : bb.scope;
         CollectNamespace nss =
             (CollectNamespace) validator.getNamespace(call);
@@ -3272,7 +3255,7 @@ public class SqlToRelConverter {
             multisetType.getComponentType());
         input = convertQueryOrInList(usedBb, list);
       } else {
-        input = convertQuery(call.operands[0], false, true);
+        input = convertQuery(call.operand(0), false, true);
       }
 
       if (lastList.size() > 0) {
@@ -3481,9 +3464,8 @@ public class SqlToRelConverter {
   /**
    * Converts a WITH sub-query into a relational expression.
    */
-  public RelNode convertWith(SqlCall with) {
-    final SqlWithOperator.Call call = SqlWithOperator.Call.of(with);
-    return convertQuery(call.body, false, false);
+  public RelNode convertWith(SqlWith with) {
+    return convertQuery(with.body, false, false);
   }
 
   /**
@@ -3517,7 +3499,7 @@ public class SqlToRelConverter {
         convertRowValues(
             bb,
             values,
-            Arrays.asList(values.getOperands()),
+            values.getOperandList(),
             true,
             targetRowType);
     if (valuesRel != null) {
@@ -3526,13 +3508,13 @@ public class SqlToRelConverter {
     }
 
     List<RelNode> unionRels = new ArrayList<RelNode>();
-    for (SqlNode rowConstructor1 : values.getOperands()) {
+    for (SqlNode rowConstructor1 : values.getOperandList()) {
       SqlCall rowConstructor = (SqlCall) rowConstructor1;
       Blackboard tmpBb = createBlackboard(bb.scope, null);
       replaceSubqueries(tmpBb, rowConstructor);
       List<Pair<RexNode, String>> exps =
           new ArrayList<Pair<RexNode, String>>();
-      for (Ord<SqlNode> operand : Ord.zip(rowConstructor.operands)) {
+      for (Ord<SqlNode> operand : Ord.zip(rowConstructor.getOperandList())) {
         exps.add(
             Pair.of(
                 tmpBb.convertExpression(operand.e),
@@ -4108,7 +4090,7 @@ public class SqlToRelConverter {
       case NULLS_LAST:
       case NULLS_FIRST:
         flags.add(expr.getKind());
-        final SqlNode operand = ((SqlCall) expr).operands[0];
+        final SqlNode operand = ((SqlCall) expr).operand(0);
         return convertSortExpression(operand, flags);
       default:
         return convertExpression(expr);
@@ -4398,10 +4380,9 @@ public class SqlToRelConverter {
         if (SqlUtil.isCallTo(
             selectItem,
             SqlStdOperatorTable.AS)) {
-          final SqlNode[] operands =
-              ((SqlCall) selectItem).getOperands();
-          selectItem = operands[0];
-          name = operands[1].toString();
+          final SqlCall call = (SqlCall) selectItem;
+          selectItem = call.operand(0);
+          name = call.operand(1).toString();
         }
         if (name == null) {
           name = validator.deriveAlias(selectItem, i);
@@ -4483,15 +4464,14 @@ public class SqlToRelConverter {
         try {
           // switch out of agg mode
           bb.agg = null;
-          for (int i = 0; i < call.operands.length; i++) {
-            SqlNode operand = call.operands[i];
+          for (SqlNode operand : call.getOperandList()) {
             RexNode convertedExpr;
 
             // special case for COUNT(*):  delete the *
             if (operand instanceof SqlIdentifier) {
               SqlIdentifier id = (SqlIdentifier) operand;
               if (id.isStar()) {
-                assert call.operands.length == 1;
+                assert call.operandCount() == 1;
                 assert args.isEmpty();
                 break;
               }
@@ -4533,7 +4513,7 @@ public class SqlToRelConverter {
         // for now do not detect aggregates in subqueries.
         return null;
       } else {
-        for (SqlNode operand : call.operands) {
+        for (SqlNode operand : call.getOperandList()) {
           // Operands are occasionally null, e.g. switched CASE arg 0.
           if (operand != null) {
             operand.accept(this);
@@ -4688,7 +4668,7 @@ public class SqlToRelConverter {
       List<RexNode> exprs = call.getOperands();
 
       boolean isUnboundedPreceding =
-          SqlWindowOperator.isUnboundedPreceding(window.getLowerBound());
+          SqlWindow.isUnboundedPreceding(window.getLowerBound());
 
       // The fennel support for windowed Agg MIN/MAX only
       // supports BIGINT and DOUBLE numeric types. If the
@@ -4704,8 +4684,8 @@ public class SqlToRelConverter {
       // (It could be logical too, but physical is simpler to implement.)
       boolean physical = window.isRows();
       if (!physical
-          && SqlWindowOperator.isCurrentRow(window.getLowerBound())
-          && SqlWindowOperator.isCurrentRow(window.getUpperBound())) {
+          && SqlWindow.isCurrentRow(window.getLowerBound())
+          && SqlWindow.isCurrentRow(window.getUpperBound())) {
         physical = true;
       }
 

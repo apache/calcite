@@ -39,11 +39,9 @@ public class SqlCeilFunction extends SqlFunction {
 
   //~ Methods ----------------------------------------------------------------
 
-  public SqlMonotonicity getMonotonicity(
-      SqlCall call,
+  public SqlMonotonicity getMonotonicity(SqlCall call,
       SqlValidatorScope scope) {
-    SqlNode node = (SqlNode) call.operands[0];
-    return scope.getMonotonicity(node);
+    return scope.getMonotonicity(call.operand(0));
   }
 }
 

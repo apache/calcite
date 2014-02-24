@@ -832,7 +832,7 @@ SqlSelect SqlSelect() :
     List<SqlNode> selectList;
     SqlNode fromClause;
     SqlNode where;
-    SqlNode groupBy;
+    SqlNodeList groupBy;
     SqlNode having;
     SqlNodeList windowDecls;
     SqlParserPos pos;
@@ -864,11 +864,10 @@ SqlSelect SqlSelect() :
     {
         selectItem = (SqlNode)selectList.get(0);
         selectListPos = selectItem.getParserPosition();
-        return SqlStdOperatorTable.SELECT.createCall(
+        return new SqlSelect(pos.plus(getPos()),
             new SqlNodeList(keywords, pos),
             new SqlNodeList(selectList, selectListPos.plusAll(selectList)),
-            fromClause, where, groupBy, having, windowDecls, null, null, null,
-            pos.plus(getPos()));
+            fromClause, where, groupBy, having, windowDecls, null, null, null);
     }
 }
 
@@ -1848,7 +1847,7 @@ SqlNode WhereOpt() :
 /**
  * Parses the optional GROUP BY clause for SELECT.
  */
-SqlNode GroupByOpt() :
+SqlNodeList GroupByOpt() :
 {
     SqlNodeList list;
     SqlNode e;
@@ -2021,7 +2020,7 @@ SqlWindow WindowSpecification() :
     <RPAREN>
     {
         endPos = getPos();
-        return SqlStdOperatorTable.WINDOW.createCall(
+        return SqlWindow.create(
             null, id, partitionList, orderList,
             isRows, lowerBound, upperBound, allowPartial,
             startPos.plus(endPos));
@@ -2038,7 +2037,7 @@ SqlNode WindowRange() :
     <CURRENT> {pos = getPos();} <ROW>
     {
         endPos = getPos();
-        return SqlStdOperatorTable.WINDOW.createCurrentRow(pos.plus(endPos));
+        return SqlWindow.createCurrentRow(pos.plus(endPos));
     }
     |
     <UNBOUNDED>
@@ -2047,15 +2046,13 @@ SqlNode WindowRange() :
         <PRECEDING>
         {
             endPos = getPos();
-            return SqlStdOperatorTable.WINDOW.createUnboundedPreceding(
-                pos.plus(endPos));
+            return SqlWindow.createUnboundedPreceding(pos.plus(endPos));
         }
         |
         <FOLLOWING>
         {
             endPos = getPos();
-            return SqlStdOperatorTable.WINDOW.createUnboundedFollowing(
-                pos.plus(endPos));
+            return SqlWindow.createUnboundedFollowing(pos.plus(endPos));
         }
     )
     |
@@ -2063,13 +2060,13 @@ SqlNode WindowRange() :
     (
         <PRECEDING>
         {
-            return SqlStdOperatorTable.WINDOW.createPreceding(
+            return SqlWindow.createPreceding(
                 SqlLiteral.unchain(literal), getPos());
         }
         |
         <FOLLOWING>
         {
-            return SqlStdOperatorTable.WINDOW.createFollowing(
+            return SqlWindow.createFollowing(
                 SqlLiteral.unchain(literal), getPos());
         }
     )
@@ -2212,7 +2209,7 @@ SqlNode QueryOrExpr(ExprContext exprContext) :
     {
         e = SqlParserUtil.toTree(list);
         if (withList != null) {
-            e = SqlStdOperatorTable.WITH.createCall(withList.getParserPosition(), withList, e);
+            e = new SqlWith(withList.getParserPosition(), withList, e);
         }
         return e;
     }
@@ -2220,20 +2217,20 @@ SqlNode QueryOrExpr(ExprContext exprContext) :
 
 SqlNodeList WithList() :
 {
-    SqlCall with;
+    SqlWithItem withItem;
     SqlParserPos pos;
     SqlNodeList list;
 }
 {
     <WITH> { list = new SqlNodeList(getPos()); }
-    with = With() {list.add(with);}
+    withItem = WithItem() {list.add(withItem);}
     (
-        <COMMA> with = With() {list.add(with);}
+        <COMMA> withItem = WithItem() {list.add(withItem);}
     )*
     { return list; }
 }
 
-SqlCall With() :
+SqlWithItem WithItem() :
 {
     SqlIdentifier id;
     SqlNodeList columnList = null;
@@ -2248,8 +2245,8 @@ SqlCall With() :
     <AS>
     definition = ParenthesizedExpression(ExprContext.ACCEPT_QUERY)
     {
-        return SqlStdOperatorTable.WITH_ITEM.createCall(
-            id.getParserPosition(), id, columnList, definition);
+        return new SqlWithItem(id.getParserPosition(), id, columnList,
+            definition);
     }
 }
 
@@ -2556,10 +2553,9 @@ SqlNode Expression3(ExprContext exprContext) :
                 {
                     final SqlCall call = (SqlCall) list1.get(0);
                     if (call.getKind() == SqlKind.MINUS
-                        && (call.operands.length == 2))
-                    {
-                        List<SqlNode> list3 = startList(call.operands[0]);
-                        list3.add(call.operands[1]);
+                            && call.operandCount() == 2) {
+                        List<SqlNode> list3 = startList(call.operand(0));
+                        list3.add(call.operand(1));
                         list3.add(e);
                         return SqlStdOperatorTable.MINUS_DATE.createCall(
                             list1.getParserPosition().plus(getPos()),

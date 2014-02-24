@@ -27,6 +27,8 @@ import org.eigenbase.sql.type.*;
 import org.eigenbase.sql.validate.*;
 import org.eigenbase.util.*;
 
+import net.hydromatic.linq4j.Ord;
+
 /**
  * Internal operator, by which the parser represents a continued string literal.
  *
@@ -56,24 +58,23 @@ public class SqlLiteralChainOperator extends SqlInternalOperator {
   //~ Methods ----------------------------------------------------------------
 
   // all operands must be the same type
-  private boolean argTypesValid(
-      SqlCallBinding callBinding) {
+  private boolean argTypesValid(SqlCallBinding callBinding) {
     if (callBinding.getOperandCount() < 2) {
       return true; // nothing to compare
     }
-    SqlNode operand = callBinding.getCall().operands[0];
-    RelDataType firstType =
-        callBinding.getValidator().deriveType(
-            callBinding.getScope(),
-            operand);
-    for (int i = 1; i < callBinding.getCall().operands.length; i++) {
-      operand = callBinding.getCall().operands[i];
-      RelDataType otherType =
+    final List<SqlNode> operandList = callBinding.getCall().getOperandList();
+    RelDataType firstType = null;
+    for (Ord<SqlNode> operand : Ord.zip(operandList)) {
+      RelDataType type =
           callBinding.getValidator().deriveType(
               callBinding.getScope(),
-              operand);
-      if (!SqlTypeUtil.sameNamedType(firstType, otherType)) {
-        return false;
+              operand.e);
+      if (operand.i == 0) {
+        firstType = type;
+      } else {
+        if (!SqlTypeUtil.sameNamedType(firstType, type)) {
+          return false;
+        }
       }
     }
     return true;
@@ -122,9 +123,10 @@ public class SqlLiteralChainOperator extends SqlInternalOperator {
       SqlValidatorScope scope,
       SqlValidatorScope operandScope) {
     // per the SQL std, each string fragment must be on a different line
-    for (int i = 1; i < call.operands.length; i++) {
-      SqlParserPos prevPos = call.operands[i - 1].getParserPosition();
-      final SqlNode operand = call.operands[i];
+    final List<SqlNode> operandList = call.getOperandList();
+    for (int i = 1; i < operandList.size(); i++) {
+      SqlParserPos prevPos = operandList.get(i - 1).getParserPosition();
+      final SqlNode operand = operandList.get(i);
       SqlParserPos pos = operand.getParserPosition();
       if (pos.getLineNum() <= prevPos.getLineNum()) {
         throw validator.newValidationError(
@@ -136,21 +138,22 @@ public class SqlLiteralChainOperator extends SqlInternalOperator {
 
   public void unparse(
       SqlWriter writer,
-      SqlNode[] rands,
+      SqlCall call,
       int leftPrec,
       int rightPrec) {
     final SqlWriter.Frame frame = writer.startList("", "");
     SqlCollation collation = null;
-    for (int i = 0; i < rands.length; i++) {
-      SqlLiteral rand = (SqlLiteral) rands[i];
-      if (i > 0) {
+    final List<SqlNode> rands = call.getOperandList();
+    for (Ord<SqlNode> operand : Ord.zip(rands)) {
+      SqlLiteral rand = (SqlLiteral) operand.e;
+      if (operand.i > 0) {
         // SQL:2003 says there must be a newline between string
         // fragments.
         writer.newlineAndIndent();
       }
       if (rand instanceof SqlCharStringLiteral) {
         NlsString nls = ((SqlCharStringLiteral) rand).getNlsString();
-        if (i == 0) {
+        if (operand.i == 0) {
           collation = nls.getCollation();
 
           // print with prefix
@@ -159,7 +162,7 @@ public class SqlLiteralChainOperator extends SqlInternalOperator {
           // print without prefix
           writer.literal(nls.asSql(false, false));
         }
-      } else if (i == 0) {
+      } else if (operand.i == 0) {
         // print with prefix
         rand.unparse(writer, leftPrec, rightPrec);
       } else {
@@ -182,13 +185,12 @@ public class SqlLiteralChainOperator extends SqlInternalOperator {
    * Concatenates the operands of a call to this operator.
    */
   public static SqlLiteral concatenateOperands(SqlCall call) {
-    assert call.operands.length > 0;
-    assert call.operands[0] instanceof SqlLiteral : call.operands[0]
-        .getClass();
-    final List<SqlNode> operandList = Arrays.asList(call.operands);
-    SqlLiteral[] fragments =
-        operandList.toArray(new SqlLiteral[operandList.size()]);
-    return SqlUtil.concatenateLiterals(fragments);
+    final List<SqlNode> operandList = call.getOperandList();
+    assert operandList.size() > 0;
+    assert operandList.get(0) instanceof SqlLiteral
+        : operandList.get(0).getClass();
+    return SqlUtil.concatenateLiterals(
+        Util.cast(operandList, SqlLiteral.class));
   }
 }
 

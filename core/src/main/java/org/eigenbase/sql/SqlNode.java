@@ -281,6 +281,21 @@ public abstract class SqlNode implements Cloneable {
   public SqlMonotonicity getMonotonicity(SqlValidatorScope scope) {
     return SqlMonotonicity.NOT_MONOTONIC;
   }
+
+  /** Returns whether two lists of operands are equal. */
+  public static boolean equalDeep(List<SqlNode> operands0,
+      List<SqlNode> operands1, boolean fail) {
+    if (operands0.size() != operands1.size()) {
+      assert !fail;
+      return false;
+    }
+    for (int i = 0; i < operands0.size(); i++) {
+      if (!SqlNode.equalDeep(operands0.get(i), operands1.get(i), fail)) {
+        return false;
+      }
+    }
+    return true;
+  }
 }
 
 // End SqlNode.java

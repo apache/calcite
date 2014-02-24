@@ -31,13 +31,12 @@ public class SqlValuesOperator extends SqlSpecialOperator {
 
   public void unparse(
       SqlWriter writer,
-      SqlNode[] operands,
+      SqlCall call,
       int leftPrec,
       int rightPrec) {
     final SqlWriter.Frame frame = writer.startList("VALUES", "");
-    for (int i = 0; i < operands.length; i++) {
+    for (SqlNode operand : call.getOperandList()) {
       writer.sep(",");
-      SqlNode operand = operands[i];
       operand.unparse(writer, 0, 0);
     }
     writer.endList(frame);

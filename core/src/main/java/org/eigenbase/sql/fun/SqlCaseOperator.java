@@ -334,14 +334,14 @@ public class SqlCaseOperator extends SqlOperator {
 
   public void unparse(
       SqlWriter writer,
-      SqlNode[] operands,
+      SqlCall call,
       int leftPrec,
       int rightPrec) {
     final SqlWriter.Frame frame =
         writer.startList(FRAME_TYPE, "CASE", "END");
-    SqlNode value = operands[SqlCase.VALUE_OPERAND];
-    SqlNodeList whenList = (SqlNodeList) operands[SqlCase.WHEN_OPERANDS];
-    SqlNodeList thenList = (SqlNodeList) operands[SqlCase.THEN_OPERANDS];
+    SqlNode value = call.operand(SqlCase.VALUE_OPERAND);
+    SqlNodeList whenList = call.operand(SqlCase.WHEN_OPERANDS);
+    SqlNodeList thenList = call.operand(SqlCase.THEN_OPERANDS);
     assert whenList.size() == thenList.size();
     if (value != null) {
       value.unparse(writer, 0, 0);
@@ -354,7 +354,7 @@ public class SqlCaseOperator extends SqlOperator {
     }
 
     writer.sep("ELSE");
-    final SqlNode elseOperand = operands[SqlCase.ELSE_OPERAND];
+    final SqlNode elseOperand = call.operand(SqlCase.ELSE_OPERAND);
     elseOperand.unparse(writer, 0, 0);
     writer.endList(frame);
   }

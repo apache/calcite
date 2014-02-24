@@ -17,6 +17,9 @@
 */
 package org.eigenbase.sql;
 
+import java.util.Arrays;
+import java.util.List;
+
 import org.eigenbase.sql.fun.*;
 import org.eigenbase.sql.parser.*;
 import org.eigenbase.sql.validate.*;
@@ -30,105 +33,195 @@ public class SqlSelect extends SqlCall {
   //~ Static fields/initializers ---------------------------------------------
 
   // constants representing operand positions
-  public static final int KEYWORDS_OPERAND = 0;
-  public static final int SELECT_OPERAND = 1;
   public static final int FROM_OPERAND = 2;
   public static final int WHERE_OPERAND = 3;
-  public static final int GROUP_OPERAND = 4;
   public static final int HAVING_OPERAND = 5;
-  public static final int WINDOW_OPERAND = 6;
-  public static final int ORDER_OPERAND = 7;
-  public static final int OFFSET_OPERAND = 8;
-  public static final int FETCH_OPERAND = 9;
-  public static final int OPERAND_COUNT = 10;
+
+  SqlNodeList keywordList;
+  SqlNodeList selectList;
+  SqlNode from;
+  SqlNode where;
+  SqlNodeList groupBy;
+  SqlNode having;
+  SqlNodeList windowDecls;
+  SqlNodeList orderBy;
+  SqlNode offset;
+  SqlNode fetch;
 
   //~ Constructors -----------------------------------------------------------
 
-  SqlSelect(
-      SqlSelectOperator operator,
-      SqlNode[] operands,
-      SqlParserPos pos) {
-    super(operator, operands, pos);
-    assert operands.length == OPERAND_COUNT;
-    assert operands[KEYWORDS_OPERAND] instanceof SqlNodeList;
-    assert operands[WINDOW_OPERAND] instanceof SqlNodeList;
-    assert pos != null;
+  public SqlSelect(SqlParserPos pos,
+      SqlNodeList keywordList,
+      SqlNodeList selectList,
+      SqlNode from,
+      SqlNode where,
+      SqlNodeList groupBy,
+      SqlNode having,
+      SqlNodeList windowDecls,
+      SqlNodeList orderBy,
+      SqlNode offset,
+      SqlNode fetch) {
+    super(pos);
+    this.keywordList = keywordList != null ? keywordList : new SqlNodeList(pos);
+    this.selectList = selectList;
+    this.from = from;
+    this.where = where;
+    this.groupBy = groupBy;
+    this.having = having;
+    this.windowDecls = windowDecls != null ? windowDecls : new SqlNodeList(pos);
+    this.orderBy = orderBy;
+    this.offset = offset;
+    this.fetch = fetch;
   }
 
   //~ Methods ----------------------------------------------------------------
+
+  public SqlOperator getOperator() {
+    return SqlSelectOperator.INSTANCE;
+  }
+
+  @Override public SqlKind getKind() {
+    return SqlKind.SELECT;
+  }
+
+  @Override
+  public List<SqlNode> getOperandList() {
+    return Arrays.asList(keywordList, selectList, from, where,
+        groupBy, having, windowDecls, orderBy, offset, fetch);
+  }
+
+  @Override
+  public void setOperand(int i, SqlNode operand) {
+    switch (i) {
+    case 0:
+      keywordList = (SqlNodeList) operand;
+      break;
+    case 1:
+      selectList = (SqlNodeList) operand;
+      break;
+    case 2:
+      from = operand;
+      break;
+    case 3:
+      where = operand;
+      break;
+    case 4:
+      groupBy = (SqlNodeList) operand;
+      break;
+    case 5:
+      having = operand;
+      break;
+    case 6:
+      windowDecls = (SqlNodeList) operand;
+      break;
+    case 7:
+      orderBy = (SqlNodeList) operand;
+      break;
+    case 8:
+      offset = operand;
+      break;
+    case 9:
+      fetch = operand;
+      break;
+    default:
+      throw new AssertionError(i);
+    }
+  }
 
   public final boolean isDistinct() {
     return getModifierNode(SqlSelectKeyword.DISTINCT) != null;
   }
 
   public final SqlNode getModifierNode(SqlSelectKeyword modifier) {
-    final SqlNodeList keywords =
-        (SqlNodeList) operands[SqlSelect.KEYWORDS_OPERAND];
-    for (int i = 0; i < keywords.size(); i++) {
-      SqlSelectKeyword keyword =
-          (SqlSelectKeyword) SqlLiteral.symbolValue(keywords.get(i));
-      if (keyword == modifier) {
-        return keywords.get(i);
+    for (SqlNode keyword : keywordList) {
+      SqlSelectKeyword keyword2 =
+          (SqlSelectKeyword) SqlLiteral.symbolValue(keyword);
+      if (keyword2 == modifier) {
+        return keyword;
       }
     }
     return null;
   }
 
   public final SqlNode getFrom() {
-    return operands[SqlSelect.FROM_OPERAND];
+    return from;
+  }
+
+  public void setFrom(SqlNode from) {
+    this.from = from;
   }
 
   public final SqlNodeList getGroup() {
-    return (SqlNodeList) operands[SqlSelect.GROUP_OPERAND];
+    return groupBy;
+  }
+
+  public void setGroupBy(SqlNodeList groupBy) {
+    this.groupBy = groupBy;
   }
 
   public final SqlNode getHaving() {
-    return operands[SqlSelect.HAVING_OPERAND];
+    return having;
   }
 
   public final SqlNodeList getSelectList() {
-    return (SqlNodeList) operands[SqlSelect.SELECT_OPERAND];
+    return selectList;
+  }
+
+  public void setSelectList(SqlNodeList selectList) {
+    this.selectList = selectList;
   }
 
   public final SqlNode getWhere() {
-    return operands[SqlSelect.WHERE_OPERAND];
+    return where;
+  }
+
+  public void setWhere(SqlNode whereClause) {
+    this.where = whereClause;
   }
 
   public final SqlNodeList getWindowList() {
-    return (SqlNodeList) operands[SqlSelect.WINDOW_OPERAND];
+    return windowDecls;
   }
 
   public final SqlNodeList getOrderList() {
-    return (SqlNodeList) operands[SqlSelect.ORDER_OPERAND];
+    return orderBy;
+  }
+
+  public void setOrderBy(SqlNodeList orderBy) {
+    this.orderBy = orderBy;
   }
 
   public final SqlNode getOffset() {
-    return operands[SqlSelect.OFFSET_OPERAND];
+    return offset;
+  }
+
+  public void setOffset(SqlNode offset) {
+    this.offset = offset;
   }
 
   public final SqlNode getFetch() {
-    return operands[SqlSelect.FETCH_OPERAND];
+    return fetch;
+  }
+
+  public void setFetch(SqlNode fetch) {
+    this.fetch = fetch;
   }
 
   public void addFrom(SqlIdentifier tableId) {
-    SqlNode fromClause = getFrom();
-    if (fromClause == null) {
-      fromClause = tableId;
+    if (from == null) {
+      from = tableId;
     } else {
-      fromClause =
+      from =
           SqlStdOperatorTable.JOIN.createCall(
-              null,
-              fromClause,
+              null, from,
               tableId);
     }
-    operands[FROM_OPERAND] = fromClause;
   }
 
   public void addWhere(SqlNode condition) {
-    assert operands[SELECT_OPERAND] == null
+    assert selectList == null
         : "cannot add a filter if there is already a select list";
-    operands[WHERE_OPERAND] =
-        SqlUtil.andExpressions(operands[WHERE_OPERAND], condition);
+    where = SqlUtil.andExpressions(where, condition);
   }
 
   public void validate(SqlValidator validator, SqlValidatorScope scope) {
@@ -136,40 +229,30 @@ public class SqlSelect extends SqlCall {
   }
 
   // Override SqlCall, to introduce a subquery frame.
-  public void unparse(SqlWriter writer, int leftPrec, int rightPrec) {
+  @Override public void unparse(SqlWriter writer, int leftPrec, int rightPrec) {
     if (!writer.inQuery()) {
       // If this SELECT is the topmost item in a subquery, introduce a new
       // frame. (The topmost item in the subquery might be a UNION or
       // ORDER. In this case, we don't need a wrapper frame.)
       final SqlWriter.Frame frame =
           writer.startList(SqlWriter.FrameTypeEnum.SUB_QUERY, "(", ")");
-      getOperator().unparse(writer, operands, 0, 0);
+      getOperator().unparse(writer, this, 0, 0);
       writer.endList(frame);
     } else {
-      getOperator().unparse(writer, operands, leftPrec, rightPrec);
+      getOperator().unparse(writer, this, leftPrec, rightPrec);
     }
   }
 
   public boolean hasOrderBy() {
-    SqlNodeList orderList = getOrderList();
-    return (null != orderList) && (0 != orderList.size());
+    return orderBy != null && orderBy.size() != 0;
   }
 
   public boolean hasWhere() {
-    return null != getWhere();
+    return where != null;
   }
 
   public boolean isKeywordPresent(SqlSelectKeyword targetKeyWord) {
-    final SqlNodeList keywordList =
-        (SqlNodeList) operands[SqlSelect.KEYWORDS_OPERAND];
-    for (int i = 0; i < keywordList.size(); i++) {
-      final SqlSelectKeyword keyWord =
-          (SqlSelectKeyword) SqlLiteral.symbolValue(keywordList.get(i));
-      if (keyWord == targetKeyWord) {
-        return true;
-      }
-    }
-    return false;
+    return getModifierNode(targetKeyWord) != null;
   }
 }
 

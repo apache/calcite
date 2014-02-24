@@ -64,7 +64,7 @@ public class SqlPostfixOperator extends SqlOperator {
       // Determine coercibility and resulting collation name of
       // unary operator if needed.
       RelDataType operandType =
-          validator.getValidatedNodeType(call.operands[0]);
+          validator.getValidatedNodeType(call.operand(0));
       if (null == operandType) {
         throw Util.newInternal(
             "operand's type should have been derived");

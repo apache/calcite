@@ -17,11 +17,13 @@
 */
 package org.eigenbase.sql;
 
+import java.util.List;
+
 import org.eigenbase.sql.parser.*;
 import org.eigenbase.sql.type.*;
 
 /**
- * Abstract base for chararacter and binary string literals.
+ * Abstract base for character and binary string literals.
  */
 abstract class SqlAbstractStringLiteral extends SqlLiteral {
   //~ Constructors -----------------------------------------------------------
@@ -38,12 +40,12 @@ abstract class SqlAbstractStringLiteral extends SqlLiteral {
   /**
    * Helper routine for {@link SqlUtil#concatenateLiterals}.
    *
-   * @param lits homogeneous StringLiteral[] args.
+   * @param literals homogeneous StringLiteral args
    * @return StringLiteral with concatenated value. this == lits[0], used only
    * for method dispatch.
    */
   protected abstract SqlAbstractStringLiteral concat1(
-      SqlLiteral[] lits);
+      List<SqlLiteral> literals);
 }
 
 // End SqlAbstractStringLiteral.java

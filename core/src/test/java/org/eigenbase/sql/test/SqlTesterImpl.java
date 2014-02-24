@@ -194,13 +194,13 @@ public class SqlTesterImpl implements SqlTester {
     final SqlCall n = (SqlCall) parseAndValidate(validator, sql);
 
     SqlNode node = null;
-    for (int i = 0; i < n.getOperands().length; i++) {
-      node = n.getOperands()[i];
+    for (int i = 0; i < n.operandCount(); i++) {
+      node = n.operand(i);
       if (node instanceof SqlCall) {
         if (node.getKind() == SqlKind.AS) {
-          node = ((SqlCall) node).operands[0];
+          node = ((SqlCall) node).operand(0);
         }
-        node = ((SqlCall) node).getOperands()[0];
+        node = ((SqlCall) node).operand(0);
         break;
       }
     }
@@ -532,7 +532,7 @@ public class SqlTesterImpl implements SqlTester {
           public SqlNode visit(SqlCall call) {
             final SqlOperator operator = call.getOperator();
             if (operator == SqlStdOperatorTable.CAST
-                && isNull(call.getOperandList().get(0))) {
+                && isNull(call.operand(0))) {
               literalSet.add(call);
               return call;
             } else if (ops.contains(operator)) {

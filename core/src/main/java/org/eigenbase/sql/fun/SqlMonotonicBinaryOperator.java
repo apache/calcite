@@ -52,8 +52,8 @@ public class SqlMonotonicBinaryOperator extends SqlBinaryOperator {
   public SqlMonotonicity getMonotonicity(
       SqlCall call,
       SqlValidatorScope scope) {
-    final SqlMonotonicity mono0 = scope.getMonotonicity(call.operands[0]);
-    final SqlMonotonicity mono1 = scope.getMonotonicity(call.operands[1]);
+    final SqlMonotonicity mono0 = scope.getMonotonicity(call.operand(0));
+    final SqlMonotonicity mono1 = scope.getMonotonicity(call.operand(1));
 
     // constant <op> constant --> constant
     if ((mono1 == SqlMonotonicity.CONSTANT)
@@ -70,8 +70,8 @@ public class SqlMonotonicBinaryOperator extends SqlBinaryOperator {
         return mono0;
       }
       assert getName().equals("*");
-      if (call.operands[1] instanceof SqlLiteral) {
-        SqlLiteral literal = (SqlLiteral) call.operands[1];
+      if (call.operand(1) instanceof SqlLiteral) {
+        SqlLiteral literal = call.operand(1);
         switch (literal.signum()) {
         case -1:
 
@@ -101,8 +101,8 @@ public class SqlMonotonicBinaryOperator extends SqlBinaryOperator {
         return mono1;
       }
       assert getName().equals("*");
-      if (call.operands[0] instanceof SqlLiteral) {
-        SqlLiteral literal = (SqlLiteral) call.operands[0];
+      if (call.operand(0) instanceof SqlLiteral) {
+        SqlLiteral literal = call.operand(0);
         switch (literal.signum()) {
         case -1:
 

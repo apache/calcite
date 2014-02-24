@@ -61,7 +61,7 @@ public class SqlMapValueConstructor extends SqlMultisetValueConstructor {
         SqlTypeUtil.deriveAndCollectTypes(
             callBinding.getValidator(),
             callBinding.getScope(),
-            callBinding.getCall().operands);
+            callBinding.getCall().getOperandList());
     if (argTypes.size() == 0) {
       throw callBinding.newValidationError(
           new SqlValidatorException(

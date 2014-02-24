@@ -230,7 +230,7 @@ public abstract class SqlOperator {
       SqlParserPos pos,
       SqlNode... operands) {
     pos = pos.plusAll(operands);
-    return new SqlCall(this, operands, pos, false, functionQualifier);
+    return new SqlBasicCall(this, operands, pos, false, functionQualifier);
   }
 
   /**
@@ -308,10 +308,10 @@ public abstract class SqlOperator {
    */
   public void unparse(
       SqlWriter writer,
-      SqlNode[] operands,
+      SqlCall call,
       int leftPrec,
       int rightPrec) {
-    getSyntax().unparse(writer, this, operands, leftPrec, rightPrec);
+    getSyntax().unparse(writer, this, call, leftPrec, rightPrec);
   }
 
   // REVIEW jvs 9-June-2006: See http://issues.eigenbase.org/browse/FRG-149
@@ -386,7 +386,7 @@ public abstract class SqlOperator {
       SqlValidatorScope scope,
       SqlValidatorScope operandScope) {
     assert call.getOperator() == this;
-    for (SqlNode operand : call.getOperands()) {
+    for (SqlNode operand : call.getOperandList()) {
       operand.validateExpr(validator, operandScope);
     }
   }
@@ -474,7 +474,7 @@ public abstract class SqlOperator {
       SqlValidator validator,
       SqlValidatorScope scope,
       SqlCall call) {
-    for (SqlNode operand : call.operands) {
+    for (SqlNode operand : call.getOperandList()) {
       RelDataType nodeType = validator.deriveType(scope, operand);
       assert nodeType != null;
     }
@@ -543,7 +543,7 @@ public abstract class SqlOperator {
       SqlOperandTypeChecker argType,
       SqlCall call) {
     SqlOperandCountRange od = call.getOperator().getOperandCountRange();
-    if (od.isValidCount(call.operands.length)) {
+    if (od.isValidCount(call.operandCount())) {
       return;
     }
     if (od.getMin() == od.getMax()) {
@@ -630,7 +630,7 @@ public abstract class SqlOperator {
    * @param call    Call to visit
    */
   public <R> R acceptCall(SqlVisitor<R> visitor, SqlCall call) {
-    for (SqlNode operand : call.operands) {
+    for (SqlNode operand : call.getOperandList()) {
       if (operand == null) {
         continue;
       }
@@ -657,9 +657,9 @@ public abstract class SqlOperator {
       SqlCall call,
       boolean onlyExpressions,
       SqlBasicVisitor.ArgHandler<R> argHandler) {
-    SqlNode[] operands = call.operands;
-    for (int i = 0; i < operands.length; i++) {
-      argHandler.visitChild(visitor, call, i, operands[i]);
+    List<SqlNode> operands = call.getOperandList();
+    for (int i = 0; i < operands.size(); i++) {
+      argHandler.visitChild(visitor, call, i, operands.get(i));
     }
   }
 

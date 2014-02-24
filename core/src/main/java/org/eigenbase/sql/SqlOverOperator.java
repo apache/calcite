@@ -23,6 +23,8 @@ import org.eigenbase.sql.type.*;
 import org.eigenbase.sql.util.*;
 import org.eigenbase.sql.validate.*;
 
+import net.hydromatic.linq4j.Ord;
+
 /**
  * An operator describing a window function specification.
  *
@@ -31,7 +33,7 @@ import org.eigenbase.sql.validate.*;
  * <ul>
  * <li>0: name of window function ({@link org.eigenbase.sql.SqlCall})</li>
  * <li>1: window name ({@link org.eigenbase.sql.SqlLiteral}) or window in-line
- * specification ({@link SqlWindowOperator})</li>
+ * specification ({@link SqlWindow})</li>
  * </ul>
  * </p>
  */
@@ -57,15 +59,14 @@ public class SqlOverOperator extends SqlBinaryOperator {
       SqlValidatorScope scope,
       SqlValidatorScope operandScope) {
     assert call.getOperator() == this;
-    final SqlNode[] operands = call.getOperands();
-    assert operands.length == 2;
-    SqlCall aggCall = (SqlCall) operands[0];
+    assert call.operandCount() == 2;
+    SqlCall aggCall = call.operand(0);
     if (!aggCall.getOperator().isAggregator()) {
       throw validator.newValidationError(
           aggCall,
           EigenbaseResource.instance().OverNonAggregate.ex());
     }
-    validator.validateWindow(operands[1], scope, aggCall);
+    validator.validateWindow(call.operand(1), scope, aggCall);
     validator.validateAggregateParams(aggCall, scope);
   }
 
@@ -89,19 +90,17 @@ public class SqlOverOperator extends SqlBinaryOperator {
       boolean onlyExpressions,
       SqlBasicVisitor.ArgHandler<R> argHandler) {
     if (onlyExpressions) {
-      for (int i = 0; i < call.operands.length; i++) {
-        SqlNode operand = call.operands[i];
-
-        // if the second parm is an Identifier then it's supposed to
+      for (Ord<SqlNode> operand : Ord.zip(call.getOperandList())) {
+        // if the second param is an Identifier then it's supposed to
         // be a name from a window clause and isn't part of the
         // group by check
         if (operand == null) {
           continue;
         }
-        if ((i == 1) && (operand instanceof SqlIdentifier)) {
+        if (operand.i == 1 && operand.e instanceof SqlIdentifier) {
           continue;
         }
-        argHandler.visitChild(visitor, call, i, operand);
+        argHandler.visitChild(visitor, call, operand.i, operand.e);
       }
     } else {
       super.acceptCall(visitor, call, onlyExpressions, argHandler);

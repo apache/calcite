@@ -895,8 +895,11 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
 
   /**
    * The standard SELECT operator.
+   *
+   * @deprecated Will be removed after 0.4.19.
+   * @see org.eigenbase.util.Bug#upgrade(String)
    */
-  public static final SqlSelectOperator SELECT = new SqlSelectOperator();
+  public static final SqlSelectOperator SELECT = SqlSelectOperator.INSTANCE;
 
   public static final SqlCaseOperator CASE = new SqlCaseOperator();
 
@@ -920,22 +923,10 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   public static final SqlOrderByOperator ORDER_BY =
       new SqlOrderByOperator();
 
-  public static final SqlWithOperator WITH = new SqlWithOperator();
-
-  public static final SqlWithItemOperator WITH_ITEM = new SqlWithItemOperator();
-
   public static final SqlOperator PROCEDURE_CALL =
       new SqlProcedureCallOperator();
 
   public static final SqlOperator NEW = new SqlNewOperator();
-
-  /**
-   * The WINDOW clause of a SELECT statment.
-   *
-   * @see #OVER
-   */
-  public static final SqlWindowOperator WINDOW =
-      new SqlWindowOperator();
 
   /**
    * The <code>OVER</code> operator, which applies an aggregate functions to a
@@ -1356,13 +1347,12 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           OperandTypes.MULTISET) {
         public void unparse(
             SqlWriter writer,
-            SqlNode[] operands,
+            SqlCall call,
             int leftPrec,
             int rightPrec) {
           SqlUtil.unparseFunctionSyntax(
               this,
-              writer,
-              operands,
+              writer, call,
               true,
               null);
         }
@@ -1384,11 +1374,11 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           OperandTypes.RECORD_TO_SCALAR) {
         public void unparse(
             SqlWriter writer,
-            SqlNode[] operands,
+            SqlCall call,
             int leftPrec,
             int rightPrec) {
           final SqlWriter.Frame frame = writer.startList("(", ")");
-          operands[0].unparse(writer, 0, 0);
+          call.operand(0).unparse(writer, 0, 0);
           writer.endList(frame);
         }
 
@@ -1481,12 +1471,12 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           OperandTypes.VARIADIC) {
         public void unparse(
             SqlWriter writer,
-            SqlNode[] operands,
+            SqlCall call,
             int leftPrec,
             int rightPrec) {
-          operands[0].unparse(writer, leftPrec, 0);
+          call.operand(0).unparse(writer, leftPrec, 0);
           writer.keyword("TABLESAMPLE");
-          operands[1].unparse(writer, 0, rightPrec);
+          call.operand(1).unparse(writer, 0, rightPrec);
         }
       };
 

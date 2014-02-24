@@ -117,7 +117,7 @@ public class SqlBetweenOperator extends SqlInfixOperator {
       SqlCall call) {
     List<RelDataType> argTypes =
         SqlTypeUtil.deriveAndCollectTypes(
-            validator, scope, call.operands);
+            validator, scope, call.getOperandList());
     return Arrays.asList(
         argTypes.get(VALUE_OPERAND),
         argTypes.get(LOWER_OPERAND),
@@ -145,13 +145,12 @@ public class SqlBetweenOperator extends SqlInfixOperator {
 
   public void unparse(
       SqlWriter writer,
-      SqlNode[] operands,
+      SqlCall call,
       int leftPrec,
       int rightPrec) {
     final SqlWriter.Frame frame =
         writer.startList(FRAME_TYPE, "", "");
-    operands[VALUE_OPERAND].unparse(
-        writer, getLeftPrec(), 0);
+    call.operand(VALUE_OPERAND).unparse(writer, getLeftPrec(), 0);
     writer.sep(getName());
     writer.sep(flag.name());
 
@@ -167,14 +166,12 @@ public class SqlBetweenOperator extends SqlInfixOperator {
     // then it would be interpreted as
     //    (a BETWEEN (b OR c) AND d) OR (e AND f)
     // which would be wrong.
-    int lowerPrec =
-        new AndFinder().containsAnd(operands[LOWER_OPERAND]) ? 100 : 0;
-    operands[LOWER_OPERAND].unparse(writer, lowerPrec, lowerPrec);
+    final SqlNode lower = call.operand(LOWER_OPERAND);
+    final SqlNode upper = call.operand(UPPER_OPERAND);
+    int lowerPrec = new AndFinder().containsAnd(lower) ? 100 : 0;
+    lower.unparse(writer, lowerPrec, lowerPrec);
     writer.sep("AND");
-    operands[UPPER_OPERAND].unparse(
-        writer,
-        0,
-        getRightPrec());
+    upper.unparse(writer, 0, getRightPrec());
     writer.endList(frame);
   }
 

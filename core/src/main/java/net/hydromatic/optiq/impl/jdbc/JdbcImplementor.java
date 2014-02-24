@@ -84,9 +84,8 @@ public class JdbcImplementor {
         && (((SqlCall) node).getOperator() instanceof SqlSetOperator
         || ((SqlCall) node).getOperator() == SqlStdOperatorTable.AS)
         : node;
-    return SqlStdOperatorTable.SELECT.createCall(
-        SqlNodeList.EMPTY, null, node, null, null, null,
-        SqlNodeList.EMPTY, null, null, null, POS);
+    return new SqlSelect(POS, SqlNodeList.EMPTY, null, node, null, null, null,
+        SqlNodeList.EMPTY, null, null, null);
   }
 
   public Result visitChild(int i, RelNode e) {
@@ -385,10 +384,9 @@ public class JdbcImplementor {
           @Override
           public SqlNode field(int ordinal) {
             final SqlNode selectItem = selectList.get(ordinal);
-            if (selectItem instanceof SqlCall
-                && ((SqlCall) selectItem).getOperator()
-                   == SqlStdOperatorTable.AS) {
-              return ((SqlCall) selectItem).operands[0];
+            switch (selectItem.getKind()) {
+            case AS:
+              return ((SqlCall) selectItem).operand(0);
             }
             return selectItem;
           }
@@ -470,22 +468,22 @@ public class JdbcImplementor {
     }
 
     public void setSelect(SqlNodeList nodeList) {
-      select.operands[SqlSelect.SELECT_OPERAND] = nodeList;
+      select.setSelectList(nodeList);
     }
 
     public void setWhere(SqlNode node) {
       assert clauses.contains(Clause.WHERE);
-      select.operands[SqlSelect.WHERE_OPERAND] = node;
+      select.setWhere(node);
     }
 
     public void setGroupBy(SqlNodeList nodeList) {
       assert clauses.contains(Clause.GROUP_BY);
-      select.operands[SqlSelect.GROUP_OPERAND] = nodeList;
+      select.setGroupBy(nodeList);
     }
 
     public void setOrderBy(SqlNodeList nodeList) {
       assert clauses.contains(Clause.ORDER_BY);
-      select.operands[SqlSelect.ORDER_OPERAND] = nodeList;
+      select.setOrderBy(nodeList);
     }
 
     public Result result() {

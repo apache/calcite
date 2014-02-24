@@ -67,7 +67,7 @@ public class SqlSpecialOperator extends SqlOperator {
 
   public void unparse(
       SqlWriter writer,
-      SqlNode[] operands,
+      SqlCall call,
       int leftPrec,
       int rightPrec) {
     throw new UnsupportedOperationException(

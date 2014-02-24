@@ -18,10 +18,7 @@
 package org.eigenbase.sql.validate;
 
 import org.eigenbase.reltype.RelDataType;
-import org.eigenbase.sql.SqlCall;
-import org.eigenbase.sql.SqlKind;
-import org.eigenbase.sql.SqlNode;
-import org.eigenbase.sql.SqlWithOperator;
+import org.eigenbase.sql.*;
 import org.eigenbase.util.Util;
 
 /**
@@ -30,7 +27,7 @@ import org.eigenbase.util.Util;
 public class WithNamespace extends AbstractNamespace {
   //~ Instance fields --------------------------------------------------------
 
-  private final SqlCall with;
+  private final SqlWith with;
   private final SqlValidatorScope scope;
 
   //~ Constructors -----------------------------------------------------------
@@ -44,26 +41,24 @@ public class WithNamespace extends AbstractNamespace {
    * @param enclosingNode Enclosing node
    */
   WithNamespace(SqlValidatorImpl validator,
-      SqlCall with,
+      SqlWith with,
       SqlValidatorScope scope,
       SqlNode enclosingNode) {
     super(validator, enclosingNode);
     this.with = with;
     this.scope = scope;
-    assert with.getKind() == SqlKind.WITH;
   }
 
   //~ Methods ----------------------------------------------------------------
 
   protected RelDataType validateImpl() {
-    final SqlWithOperator.Call call = SqlWithOperator.Call.of(with);
-    for (SqlNode with : call.withList) {
-      validator.validateWithItem((SqlCall) with);
+    for (SqlNode withItem : with.withList) {
+      validator.validateWithItem((SqlWithItem) withItem);
     }
     final SqlValidatorScope scope2 =
-        validator.getWithScope(Util.last(call.withList.getList()));
-    validator.validateQuery(call.body, scope2);
-    final RelDataType rowType = validator.getValidatedNodeType(call.body);
+        validator.getWithScope(Util.last(with.withList.getList()));
+    validator.validateQuery(with.body, scope2);
+    final RelDataType rowType = validator.getValidatedNodeType(with.body);
     validator.setValidatedNodeType(with, rowType);
     return rowType;
   }
@@ -82,4 +77,4 @@ public class WithNamespace extends AbstractNamespace {
   }
 }
 
-// End TableConstructorNamespace.java
+// End WithNamespace.java

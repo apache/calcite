@@ -141,7 +141,7 @@ public class RexSqlStandardConvertletTable
     if (exprs == null) {
       return null;
     }
-    return new SqlCall(
+    return new SqlBasicCall(
         op,
         exprs,
         SqlParserPos.ZERO);
@@ -179,7 +179,7 @@ public class RexSqlStandardConvertletTable
             if (operands == null) {
               return null;
             }
-            return new SqlCall(
+            return new SqlBasicCall(
                 op,
                 operands,
                 SqlParserPos.ZERO);
@@ -211,9 +211,9 @@ public class RexSqlStandardConvertletTable
             SqlDataTypeSpec typeSpec =
                 SqlTypeUtil.convertTypeToSpec(call.getType());
             operandList.add(typeSpec);
-            return new SqlCall(
+            return new SqlBasicCall(
                 op,
-                operandList.toArray(new SqlNode[0]),
+                operandList.toArray(new SqlNode[operandList.size()]),
                 SqlParserPos.ZERO);
           }
         });

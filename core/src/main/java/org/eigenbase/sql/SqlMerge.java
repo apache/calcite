@@ -26,7 +26,7 @@ import org.eigenbase.sql.validate.*;
  * A <code>SqlMerge</code> is a node of a parse tree which represents a MERGE
  * statement.
  */
-public class SqlMerge extends SqlCall {
+public class SqlMerge extends SqlBasicCall {
   //~ Static fields/initializers ---------------------------------------------
 
   // constants representing operand positions

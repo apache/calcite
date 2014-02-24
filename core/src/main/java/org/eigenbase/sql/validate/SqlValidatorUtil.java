@@ -153,11 +153,11 @@ public class SqlValidatorUtil {
     switch (node.getKind()) {
     case AS:
       // E.g. "1 + 2 as foo" --> "foo"
-      return ((SqlCall) node).getOperands()[1].toString();
+      return ((SqlCall) node).operand(1).toString();
 
     case OVER:
       // E.g. "bids over w" --> "bids"
-      return getAlias(((SqlCall) node).getOperands()[0], ordinal);
+      return getAlias(((SqlCall) node).operand(0), ordinal);
 
     case IDENTIFIER:
       // E.g. "foo.bar" --> "bar"

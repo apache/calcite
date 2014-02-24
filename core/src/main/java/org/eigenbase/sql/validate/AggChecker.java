@@ -107,7 +107,8 @@ class AggChecker extends SqlBasicVisitor<Void> {
   }
 
   public Void visit(SqlCall call) {
-    if (call.getOperator().isAggregator()) {
+    if (call instanceof SqlCall
+        && ((SqlCall) call).getOperator().isAggregator()) {
       if (distinct) {
         // Cannot use agg fun in ORDER BY clause if have SELECT
         // DISTINCT.
@@ -139,11 +140,8 @@ class AggChecker extends SqlBasicVisitor<Void> {
     scopes.push(newScope);
 
     // Visit the operands (only expressions).
-    call.getOperator().acceptCall(
-        this,
-        call,
-        true,
-        ArgHandlerImpl.INSTANCE);
+    call.getOperator()
+        .acceptCall(this, call, true, ArgHandlerImpl.<Void>instance());
 
     // Restore scope.
     scopes.pop();

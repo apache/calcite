@@ -25,7 +25,7 @@ import org.eigenbase.sql.parser.*;
  * statement. It warrants its own node type just because we have a lot of
  * methods to put somewhere.
  */
-public class SqlCase extends SqlCall {
+public class SqlCase extends SqlBasicCall {
   //~ Static fields/initializers ---------------------------------------------
 
   /**
@@ -65,8 +65,7 @@ public class SqlCase extends SqlCall {
    * <p>See {@link #VALUE_OPERAND}, {@link #WHEN_OPERANDS},
    * {@link #THEN_OPERANDS}, {@link #ELSE_OPERAND}.
    */
-  SqlCase(
-      SqlCaseOperator operator,
+  SqlCase(SqlCaseOperator operator,
       SqlNode[] operands,
       SqlParserPos pos) {
     super(operator, operands, pos);

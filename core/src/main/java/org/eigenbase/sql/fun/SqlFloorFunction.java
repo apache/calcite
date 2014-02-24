@@ -43,8 +43,7 @@ public class SqlFloorFunction extends SqlFunction {
       SqlCall call,
       SqlValidatorScope scope) {
     // Monotonic iff its first argument is, but not strict.
-    SqlNode node = (SqlNode) call.operands[0];
-    return scope.getMonotonicity(node).unstrict();
+    return scope.getMonotonicity(call.operand(0)).unstrict();
   }
 }
 

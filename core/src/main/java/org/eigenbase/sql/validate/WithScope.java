@@ -19,9 +19,8 @@ package org.eigenbase.sql.validate;
 
 import java.util.List;
 
-import org.eigenbase.sql.SqlCall;
-import org.eigenbase.sql.SqlNode;
-import org.eigenbase.sql.SqlWithItemOperator;
+import org.eigenbase.sql.*;
+import org.eigenbase.sql.SqlWithItem;
 
 /** Scope providing the objects that are available after evaluating an item
  * in a WITH clause.
@@ -36,14 +35,12 @@ import org.eigenbase.sql.SqlWithItemOperator;
  * (and therefore q3 may reference {@code t1} and {@code t2}).</p>
  */
 class WithScope extends ListScope {
-  private final SqlCall withItem;
-  private final SqlWithItemOperator.Call call;
+  private final SqlWithItem withItem;
 
   /** Creates a WithScope. */
-  WithScope(SqlValidatorScope parent, SqlCall withItem) {
+  WithScope(SqlValidatorScope parent, SqlWithItem withItem) {
     super(parent);
     this.withItem = withItem;
-    this.call = SqlWithItemOperator.Call.of(withItem);
   }
 
   public SqlNode getNode() {
@@ -52,8 +49,8 @@ class WithScope extends ListScope {
 
   @Override
   public SqlValidatorNamespace getTableNamespace(List<String> names) {
-    if (names.size() == 1 && names.get(0).equals(call.name.getSimple())) {
-      return getValidator().getNamespace(call.query);
+    if (names.size() == 1 && names.get(0).equals(withItem.name.getSimple())) {
+      return getValidator().getNamespace(withItem.query);
     }
     return super.getTableNamespace(names);
   }
@@ -62,8 +59,8 @@ class WithScope extends ListScope {
   public SqlValidatorNamespace resolve(String name,
       SqlValidatorScope[] ancestorOut,
       int[] offsetOut) {
-    if (name.equals(call.name.getSimple())) {
-      return getValidator().getNamespace(call.query);
+    if (name.equals(withItem.name.getSimple())) {
+      return getValidator().getNamespace(withItem.query);
     }
     return super.resolve(name, ancestorOut, offsetOut);
   }

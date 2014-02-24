@@ -73,10 +73,10 @@ public class SqlRowOperator extends SqlSpecialOperator {
 
   public void unparse(
       SqlWriter writer,
-      SqlNode[] operands,
+      SqlCall call,
       int leftPrec,
       int rightPrec) {
-    SqlUtil.unparseFunctionSyntax(this, writer, operands, true, null);
+    SqlUtil.unparseFunctionSyntax(this, writer, call, true, null);
   }
 
   // override SqlOperator
