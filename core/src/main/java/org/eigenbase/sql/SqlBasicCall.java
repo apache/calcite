@@ -21,7 +21,6 @@ import java.util.Arrays;
 import java.util.List;
 
 import org.eigenbase.sql.parser.SqlParserPos;
-import org.eigenbase.sql.util.*;
 
 /**
  * Implementation of {@link SqlCall} that keeps its operands in an array.
@@ -92,18 +91,6 @@ public class SqlBasicCall extends SqlCall {
 
   @Override public SqlLiteral getFunctionQuantifier() {
     return functionQuantifier;
-  }
-
-  public <R> R accept(SqlVisitor<R> visitor) {
-    return visitor.visit(this);
-  }
-
-  @Override public boolean equalsDeep(SqlNode node, boolean fail) {
-    return node == this
-        || node instanceof SqlBasicCall
-        && operator == ((SqlBasicCall) node).getOperator()
-        && SqlNode.equalDeep(
-            getOperandList(), ((SqlBasicCall) node).getOperandList(), fail);
   }
 }
 

@@ -977,14 +977,14 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     case DELETE: {
       SqlDelete call = (SqlDelete) node;
       SqlSelect select = createSourceSelectForDelete(call);
-      call.setOperand(SqlDelete.SOURCE_SELECT_OPERAND, select);
+      call.setSourceSelect(select);
       break;
     }
 
     case UPDATE: {
       SqlUpdate call = (SqlUpdate) node;
       SqlSelect select = createSourceSelectForUpdate(call);
-      call.setOperand(SqlUpdate.SOURCE_SELECT_OPERAND, select);
+      call.setSourceSelect(select);
 
       // See if we're supposed to rewrite UPDATE to MERGE
       // (unless this is the UPDATE clause of a MERGE,
@@ -1046,18 +1046,17 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
             : SqlJoinOperator.JoinType.LEFT;
     SqlNode leftJoinTerm = (SqlNode) sourceTableRef.clone();
     SqlNode outerJoin =
-        SqlStdOperatorTable.JOIN.createCall(
+        new SqlJoin(SqlParserPos.ZERO,
             leftJoinTerm,
             SqlLiteral.createBoolean(false, SqlParserPos.ZERO),
             joinType.symbol(SqlParserPos.ZERO),
             targetTable,
             SqlJoinOperator.ConditionType.ON.symbol(SqlParserPos.ZERO),
-            call.getCondition(),
-            SqlParserPos.ZERO);
+            call.getCondition());
     SqlSelect select =
         new SqlSelect(SqlParserPos.ZERO, null, selectList, outerJoin, null,
             null, null, null, null, null, null);
-    call.setOperand(SqlMerge.SOURCE_SELECT_OPERAND, select);
+    call.setSourceSelect(select);
 
     // Source for the insert call is a select of the source table
     // reference with the select list being the value expressions;
@@ -1076,7 +1075,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       select =
           new SqlSelect(SqlParserPos.ZERO, null, selectList, insertSource, null,
               null, null, null, null, null, null);
-      insertCall.setOperand(SqlInsert.SOURCE_OPERAND, select);
+      insertCall.setSource(select);
     }
   }
 
@@ -1085,8 +1084,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       SqlNode selfJoinSrcExpr) {
     // Make sure target has an alias.
     if (updateCall.getAlias() == null) {
-      updateCall.setOperand(
-          SqlUpdate.ALIAS_OPERAND,
+      updateCall.setAlias(
           new SqlIdentifier(UPDATE_TGT_ALIAS, SqlParserPos.ZERO));
     }
     SqlNode selfJoinTgtExpr =
@@ -1145,15 +1143,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
             null, null, null, null, null);
     source = SqlValidatorUtil.addAlias(source, UPDATE_SRC_ALIAS);
     SqlMerge mergeCall =
-        new SqlMerge(
-            SqlStdOperatorTable.MERGE,
-            target,
-            condition,
-            source,
-            updateCall,
-            null,
-            updateCall.getAlias(),
-            updateCall.getParserPosition());
+        new SqlMerge(updateCall.getParserPosition(), target, condition, source,
+            updateCall, null, null, updateCall.getAlias());
     rewriteMerge(mergeCall);
     return mergeCall;
   }
@@ -1786,7 +1777,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
               null,
               forceLeftNullable);
       if (newLeft != left) {
-        join.setOperand(SqlJoin.LEFT_OPERAND, newLeft);
+        join.setLeft(newLeft);
       }
       final SqlValidatorScope rightParentScope;
       if (rightIsLateral) {
@@ -1803,7 +1794,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
               null,
               forceRightNullable);
       if (newRight != right) {
-        join.setOperand(SqlJoin.RIGHT_OPERAND, newRight);
+        join.setRight(newRight);
       }
       final JoinNamespace joinNamespace = new JoinNamespace(this, join);
       registerNamespace(null, null, joinNamespace, forceNullable);
@@ -2714,16 +2705,12 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     case COMMA:
     case CROSS:
       if (condition != null) {
-        throw newValidationError(
-            join.operands[SqlJoin.CONDITION_TYPE_OPERAND],
-            EigenbaseResource.instance().CrossJoinDisallowsCondition
-                .ex());
+        throw newValidationError(join.getConditionTypeNode(),
+            EigenbaseResource.instance().CrossJoinDisallowsCondition.ex());
       }
       if (natural) {
-        throw newValidationError(
-            join.operands[SqlJoin.CONDITION_TYPE_OPERAND],
-            EigenbaseResource.instance().CrossJoinDisallowsCondition
-                .ex());
+        throw newValidationError(join.getConditionTypeNode(),
+            EigenbaseResource.instance().CrossJoinDisallowsCondition.ex());
       }
       break;
     default:

@@ -910,14 +910,12 @@ SqlNode SqlExplain() :
     )
     {
         pos = getPos();
-        return new SqlExplain(
-            SqlStdOperatorTable.EXPLAIN,
+        return new SqlExplain(pos,
             stmt,
             detailLevel.symbol(SqlParserPos.ZERO),
             depth.symbol(SqlParserPos.ZERO),
             SqlLiteral.createBoolean(asXml, SqlParserPos.ZERO),
-            nDynamicParams,
-            pos);
+            nDynamicParams);
     }
 }
 
@@ -1053,13 +1051,8 @@ SqlNode SqlInsert() :
     ]
     source = OrderedQueryOrExpr(ExprContext.ACCEPT_QUERY)
     {
-        return new SqlInsert(
-            SqlStdOperatorTable.INSERT,
-            new SqlNodeList(keywords, pos),
-            table,
-            source,
-            columnList,
-            pos);
+        return new SqlInsert(pos, new SqlNodeList(keywords, pos), table, source,
+            columnList);
     }
 }
 
@@ -1093,12 +1086,7 @@ SqlNode SqlDelete() :
     [ [ <AS> ] alias = SimpleIdentifier() ]
     condition = WhereOpt()
     {
-        return new SqlDelete(
-            SqlStdOperatorTable.DELETE,
-            table,
-            condition,
-            alias,
-            pos);
+        return new SqlDelete(pos, table, condition, null, alias);
     }
 }
 
@@ -1146,14 +1134,8 @@ SqlNode SqlUpdate() :
     ) *
     condition = WhereOpt()
     {
-        return new SqlUpdate(
-            SqlStdOperatorTable.UPDATE,
-            table,
-            targetColumnList,
-            sourceExpressionList,
-            condition,
-            alias,
-            pos);
+        return new SqlUpdate(pos, table, targetColumnList, sourceExpressionList,
+            condition, null, alias);
     }
 }
 
@@ -1166,8 +1148,8 @@ SqlNode SqlMerge() :
     SqlIdentifier alias = null;
     SqlNode sourceTableRef;
     SqlNode condition;
-    SqlNode updateCall = null;
-    SqlNode insertCall = null;
+    SqlUpdate updateCall = null;
+    SqlInsert insertCall = null;
     SqlParserPos mergePos;
 }
 {
@@ -1189,19 +1171,12 @@ SqlNode SqlMerge() :
     insertCall = WhenNotMatchedClause(table)
     )
     {
-        return new SqlMerge(
-            SqlStdOperatorTable.MERGE,
-            table,
-            condition,
-            sourceTableRef,
-            updateCall,
-            insertCall,
-            alias,
-            mergePos);
+        return new SqlMerge(mergePos, table, condition, sourceTableRef,
+            updateCall, insertCall, null, alias);
     }
 }
 
-SqlNode WhenMatchedClause(SqlIdentifier table, SqlIdentifier alias) :
+SqlUpdate WhenMatchedClause(SqlIdentifier table, SqlIdentifier alias) :
 {
     SqlIdentifier id;
     SqlParserPos pos;
@@ -1234,18 +1209,12 @@ SqlNode WhenMatchedClause(SqlIdentifier table, SqlIdentifier alias) :
         }
     ) *
     {
-        return new SqlUpdate(
-            SqlStdOperatorTable.UPDATE,
-            table,
-            updateColumnList,
-            updateExprList,
-            null,
-            alias,
-            pos);
+        return new SqlUpdate(pos, table, updateColumnList, updateExprList, null,
+            null, alias);
     }
 }
 
-SqlNode WhenNotMatchedClause(SqlIdentifier table) :
+SqlInsert WhenNotMatchedClause(SqlIdentifier table) :
 {
     SqlParserPos pos, insertPos;
     List keywords = new ArrayList();
@@ -1275,13 +1244,8 @@ SqlNode WhenNotMatchedClause(SqlIdentifier table) :
         insertValues = SqlStdOperatorTable.VALUES.createCall(
             pos.plus(rowConstructor.getParserPosition()),
             rowConstructor);
-        return new SqlInsert(
-            SqlStdOperatorTable.INSERT,
-            new SqlNodeList(keywords, insertPos),
-            table,
-            insertValues,
-            insertColumnList,
-            insertPos);
+        return new SqlInsert(insertPos, new SqlNodeList(keywords, insertPos),
+            table, insertValues, insertColumnList);
     }
 }
 
@@ -1408,39 +1372,36 @@ SqlNode JoinTable(SqlNode e) :
         <ON> { pos = getPos(); }
         condition = Expression(ExprContext.ACCEPT_SUBQUERY) {
             SqlParserPos onPos = pos.plus(getPos());
-            return SqlStdOperatorTable.JOIN.createCall(
+            return new SqlJoin(joinType.getParserPosition(),
                 e,
                 natural,
                 joinType,
                 e2,                
                 SqlJoinOperator.ConditionType.ON.symbol(onPos),
-                condition,
-                joinType.getParserPosition());
+                condition);
         }
     |
         <USING> { pos = getPos(); }
         list = ParenthesizedSimpleIdentifierList() {
             SqlParserPos usingPos = pos.plus(getPos());
-            return SqlStdOperatorTable.JOIN.createCall(
+            return new SqlJoin(joinType.getParserPosition(),
                 e,
                 natural,
                 joinType,
                 e2,
                 SqlJoinOperator.ConditionType.USING.symbol(usingPos),
-                new SqlNodeList(list.getList(), usingPos),
-                joinType.getParserPosition());
+                new SqlNodeList(list.getList(), usingPos));
         }
     |
         {
-            return SqlStdOperatorTable.JOIN.createCall(
+            return new SqlJoin(joinType.getParserPosition(),
                 e,
                 natural,
                 joinType,
                 e2,
                 SqlJoinOperator.ConditionType.NONE.symbol(
                     joinType.getParserPosition()),
-                null,
-                joinType.getParserPosition());
+                null);
         }
     )
 }
@@ -1477,39 +1438,36 @@ SqlNode FromClause() :
             <ON> { pos = getPos(); }
             condition = Expression(ExprContext.ACCEPT_SUBQUERY) {
                 SqlParserPos onPos = pos.plus(getPos());
-                e = SqlStdOperatorTable.JOIN.createCall(
+                e = new SqlJoin(joinType.getParserPosition(),
                     e,
                     natural,
                     joinType,
                     e2,
                     SqlJoinOperator.ConditionType.ON.symbol(onPos),
-                    condition,
-                    joinType.getParserPosition());
+                    condition);
             }
             |
             <USING> { pos = getPos(); }
             list = ParenthesizedSimpleIdentifierList() {
                 SqlParserPos usingPos = pos.plus(getPos());
-                e = SqlStdOperatorTable.JOIN.createCall(
+                e = new SqlJoin(joinType.getParserPosition(),
                     e,
                     natural,
                     joinType,
                     e2,
                     SqlJoinOperator.ConditionType.USING.symbol(usingPos),
-                    new SqlNodeList(list.getList(), usingPos),
-                    joinType.getParserPosition());
+                    new SqlNodeList(list.getList(), usingPos));
             }
             |
             {
-                e = SqlStdOperatorTable.JOIN.createCall(
+                e = new SqlJoin(joinType.getParserPosition(),
                     e,
                     natural,
                     joinType,
                     e2,
                     SqlJoinOperator.ConditionType.NONE.symbol(
                         joinType.getParserPosition()),
-                    null,
-                    joinType.getParserPosition());
+                    null);
             }
         )
         |
@@ -1520,14 +1478,13 @@ SqlNode FromClause() :
         //LOOKAHEAD({true})
         <COMMA> { pos = getPos(); }
         e2 = TableRef() {
-            e = SqlStdOperatorTable.JOIN.createCall(
+            e = new SqlJoin(pos,
                 e,
                 SqlLiteral.createBoolean(false, pos),
                 SqlJoinOperator.JoinType.COMMA.symbol(SqlParserPos.ZERO),
                 e2,
                 SqlJoinOperator.ConditionType.NONE.symbol(SqlParserPos.ZERO),
-                null,
-                pos);
+                null);
         }
     ) *
     {
@@ -2670,9 +2627,7 @@ SqlNode CaseExpression() :
     <END>
     {
         pos = pos.plus(getPos());
-        return SqlStdOperatorTable.CASE.createSwitchedCall(
-            pos,
-            caseIdentifier,
+        return SqlCase.createSwitched(pos, caseIdentifier,
             new SqlNodeList(whenList, whenPos),
             new SqlNodeList(thenList, thenPos),
             elseClause);

@@ -19,142 +19,169 @@ package org.eigenbase.sql;
 
 import java.util.*;
 
+import org.eigenbase.sql.fun.SqlStdOperatorTable;
 import org.eigenbase.sql.parser.*;
 import org.eigenbase.sql.validate.*;
+import org.eigenbase.util.Pair;
 
 /**
  * A <code>SqlMerge</code> is a node of a parse tree which represents a MERGE
  * statement.
  */
-public class SqlMerge extends SqlBasicCall {
-  //~ Static fields/initializers ---------------------------------------------
-
-  // constants representing operand positions
-  public static final int TARGET_TABLE_OPERAND = 0;
-  public static final int SOURCE_TABLEREF_OPERAND = 1;
-  public static final int CONDITION_OPERAND = 2;
-  public static final int UPDATE_OPERAND = 3;
-  public static final int INSERT_OPERAND = 4;
+public class SqlMerge extends SqlCall {
   public static final int SOURCE_SELECT_OPERAND = 5;
-  public static final int ALIAS_OPERAND = 6;
-  public static final int OPERAND_COUNT = 7;
+  SqlIdentifier targetTable;
+  SqlNode condition;
+  SqlNode source;
+  SqlUpdate updateCall;
+  SqlInsert insertCall;
+  SqlSelect sourceSelect;
+  SqlIdentifier alias;
 
   //~ Constructors -----------------------------------------------------------
 
-  public SqlMerge(
-      SqlSpecialOperator operator,
+  public SqlMerge(SqlParserPos pos,
       SqlIdentifier targetTable,
       SqlNode condition,
       SqlNode source,
-      SqlNode updateCall,
-      SqlNode insertCall,
-      SqlIdentifier alias,
-      SqlParserPos pos) {
-    super(
-        operator,
-        new SqlNode[OPERAND_COUNT],
-        pos);
-    operands[TARGET_TABLE_OPERAND] = targetTable;
-    operands[CONDITION_OPERAND] = condition;
-    operands[SOURCE_TABLEREF_OPERAND] = source;
-    operands[UPDATE_OPERAND] = updateCall;
-    operands[INSERT_OPERAND] = insertCall;
-    operands[ALIAS_OPERAND] = alias;
+      SqlUpdate updateCall,
+      SqlInsert insertCall,
+      SqlSelect sourceSelect,
+      SqlIdentifier alias) {
+    super(pos);
+    this.targetTable = targetTable;
+    this.condition = condition;
+    this.source = source;
+    this.updateCall = updateCall;
+    this.insertCall = insertCall;
+    this.sourceSelect = sourceSelect;
+    this.alias = alias;
   }
 
   //~ Methods ----------------------------------------------------------------
+
+  public SqlOperator getOperator() {
+    return SqlStdOperatorTable.MERGE;
+  }
+
+  @Override public SqlKind getKind() {
+    return SqlKind.MERGE;
+  }
+
+  public List<SqlNode> getOperandList() {
+    return Arrays.asList(targetTable, condition, source, updateCall, insertCall,
+        sourceSelect, alias);
+  }
+
+  @Override
+  public void setOperand(int i, SqlNode operand) {
+    switch (i) {
+    case 0:
+      targetTable = (SqlIdentifier) operand;
+      break;
+    case 1:
+      condition = operand;
+      break;
+    case 2:
+      source = operand;
+      break;
+    case 3:
+      updateCall = (SqlUpdate) operand;
+      break;
+    case 4:
+      insertCall = (SqlInsert) operand;
+      break;
+    case 5:
+      sourceSelect = (SqlSelect) operand;
+      break;
+    case 6:
+      alias = (SqlIdentifier) operand;
+      break;
+    default:
+      throw new AssertionError(i);
+    }
+  }
 
   /**
    * @return the identifier for the target table of the merge
    */
   public SqlIdentifier getTargetTable() {
-    return (SqlIdentifier) operands[TARGET_TABLE_OPERAND];
+    return targetTable;
   }
 
   /**
    * @return the alias for the target table of the merge
    */
   public SqlIdentifier getAlias() {
-    return (SqlIdentifier) operands[ALIAS_OPERAND];
+    return alias;
   }
 
   /**
    * @return the source for the merge
    */
   public SqlNode getSourceTableRef() {
-    return (SqlNode) operands[SOURCE_TABLEREF_OPERAND];
+    return source;
   }
 
   public void setSourceTableRef(SqlNode tableRef) {
-    operands[SOURCE_TABLEREF_OPERAND] = tableRef;
+    this.source = tableRef;
   }
 
   /**
    * @return the update statement for the merge
    */
   public SqlUpdate getUpdateCall() {
-    return (SqlUpdate) operands[UPDATE_OPERAND];
+    return updateCall;
   }
 
   /**
    * @return the insert statement for the merge
    */
   public SqlInsert getInsertCall() {
-    return (SqlInsert) operands[INSERT_OPERAND];
+    return insertCall;
   }
 
   /**
    * @return the condition expression to determine whether to update or insert
    */
   public SqlNode getCondition() {
-    return operands[CONDITION_OPERAND];
+    return condition;
   }
 
   /**
    * Gets the source SELECT expression for the data to be updated/inserted.
    * Returns null before the statement has been expanded by
-   * SqlValidator.performUnconditionalRewrites.
+   * {@link SqlValidatorImpl#performUnconditionalRewrites(SqlNode, boolean)}.
    *
    * @return the source SELECT for the data to be updated
    */
   public SqlSelect getSourceSelect() {
-    return (SqlSelect) operands[SOURCE_SELECT_OPERAND];
+    return sourceSelect;
   }
 
-  // implement SqlNode
-  public void unparse(
-      SqlWriter writer,
-      int leftPrec,
-      int rightPrec) {
+  public void setSourceSelect(SqlSelect sourceSelect) {
+    this.sourceSelect = sourceSelect;
+  }
+
+  @Override public void unparse(SqlWriter writer, int leftPrec, int rightPrec) {
     final SqlWriter.Frame frame =
         writer.startList(SqlWriter.FrameTypeEnum.SELECT, "MERGE INTO", "");
-    getTargetTable().unparse(
-        writer,
-        getOperator().getLeftPrec(),
-        getOperator().getRightPrec());
-    if (getAlias() != null) {
+    final int opLeft = getOperator().getLeftPrec();
+    final int opRight = getOperator().getRightPrec();
+    targetTable.unparse(writer, opLeft, opRight);
+    if (alias != null) {
       writer.keyword("AS");
-      getAlias().unparse(
-          writer,
-          getOperator().getLeftPrec(),
-          getOperator().getRightPrec());
+      alias.unparse(writer, opLeft, opRight);
     }
 
     writer.newlineAndIndent();
     writer.keyword("USING");
-    getSourceTableRef().unparse(
-        writer,
-        getOperator().getLeftPrec(),
-        getOperator().getRightPrec());
+    source.unparse(writer, opLeft, opRight);
 
     writer.newlineAndIndent();
     writer.keyword("ON");
-    getCondition().unparse(
-        writer,
-        getOperator().getLeftPrec(),
-        getOperator().getRightPrec());
+    condition.unparse(writer, opLeft, opRight);
 
-    SqlUpdate updateCall = (SqlUpdate) getUpdateCall();
     if (updateCall != null) {
       writer.newlineAndIndent();
       writer.keyword("WHEN MATCHED THEN UPDATE");
@@ -168,37 +195,26 @@ public class SqlMerge extends SqlBasicCall {
           updateCall.getTargetColumnList().getList().iterator();
       Iterator sourceExpressionIter =
           updateCall.getSourceExpressionList().getList().iterator();
-      while (targetColumnIter.hasNext()) {
+
+      for (Pair<SqlNode, SqlNode> pair : Pair.zip(
+          updateCall.targetColumnList, updateCall.sourceExpressionList)) {
         writer.sep(",");
-        SqlIdentifier id = (SqlIdentifier) targetColumnIter.next();
-        id.unparse(
-            writer,
-            getOperator().getLeftPrec(),
-            getOperator().getRightPrec());
+        SqlIdentifier id = (SqlIdentifier) pair.left;
+        id.unparse(writer, opLeft, opRight);
         writer.keyword("=");
-        SqlNode sourceExp = (SqlNode) sourceExpressionIter.next();
-        sourceExp.unparse(
-            writer,
-            getOperator().getLeftPrec(),
-            getOperator().getRightPrec());
+        SqlNode sourceExp = pair.right;
+        sourceExp.unparse(writer, opLeft, opRight);
       }
       writer.endList(setFrame);
     }
 
-    SqlInsert insertCall = (SqlInsert) getInsertCall();
     if (insertCall != null) {
       writer.newlineAndIndent();
       writer.keyword("WHEN NOT MATCHED THEN INSERT");
       if (insertCall.getTargetColumnList() != null) {
-        insertCall.getTargetColumnList().unparse(
-            writer,
-            getOperator().getLeftPrec(),
-            getOperator().getRightPrec());
+        insertCall.getTargetColumnList().unparse(writer, opLeft, opRight);
       }
-      insertCall.getSource().unparse(
-          writer,
-          getOperator().getLeftPrec(),
-          getOperator().getRightPrec());
+      insertCall.getSource().unparse(writer, opLeft, opRight);
 
       writer.endList(frame);
     }

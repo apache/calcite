@@ -20,7 +20,6 @@ package org.eigenbase.sql;
 import java.util.Arrays;
 import java.util.List;
 
-import org.eigenbase.sql.fun.*;
 import org.eigenbase.sql.parser.*;
 import org.eigenbase.sql.validate.*;
 
@@ -205,23 +204,6 @@ public class SqlSelect extends SqlCall {
 
   public void setFetch(SqlNode fetch) {
     this.fetch = fetch;
-  }
-
-  public void addFrom(SqlIdentifier tableId) {
-    if (from == null) {
-      from = tableId;
-    } else {
-      from =
-          SqlStdOperatorTable.JOIN.createCall(
-              null, from,
-              tableId);
-    }
-  }
-
-  public void addWhere(SqlNode condition) {
-    assert selectList == null
-        : "cannot add a filter if there is already a select list";
-    where = SqlUtil.andExpressions(where, condition);
   }
 
   public void validate(SqlValidator validator, SqlValidatorScope scope) {

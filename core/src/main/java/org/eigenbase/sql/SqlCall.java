@@ -134,6 +134,9 @@ public abstract class SqlCall extends SqlNode {
   }
 
   public boolean equalsDeep(SqlNode node, boolean fail) {
+    if (node == this) {
+      return true;
+    }
     if (!(node instanceof SqlCall)) {
       assert !fail : this + "!=" + node;
       return false;
@@ -146,7 +149,7 @@ public abstract class SqlCall extends SqlNode {
       assert !fail : this + "!=" + node;
       return false;
     }
-    return equalDeep(this.getOperandList(), that.getOperandList(), true);
+    return equalDeep(this.getOperandList(), that.getOperandList(), fail);
   }
 
   /**

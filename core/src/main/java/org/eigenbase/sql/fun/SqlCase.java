@@ -17,6 +17,9 @@
 */
 package org.eigenbase.sql.fun;
 
+import java.util.Arrays;
+import java.util.List;
+
 import org.eigenbase.sql.*;
 import org.eigenbase.sql.parser.*;
 
@@ -25,68 +28,112 @@ import org.eigenbase.sql.parser.*;
  * statement. It warrants its own node type just because we have a lot of
  * methods to put somewhere.
  */
-public class SqlCase extends SqlBasicCall {
-  //~ Static fields/initializers ---------------------------------------------
-
-  /**
-   * VALUE_OPERAND = 0
-   */
-  public static final int VALUE_OPERAND = 0;
-
-  /**
-   * WHEN_OPERANDS = 1
-   */
-  public static final int WHEN_OPERANDS = 1;
-
-  /**
-   * THEN_OPERANDS = 2
-   */
-  public static final int THEN_OPERANDS = 2;
-
-  /**
-   * ELSE_OPERAND = 3
-   */
-  public static final int ELSE_OPERAND = 3;
+public class SqlCase extends SqlCall {
+  SqlNode value;
+  SqlNodeList whenList;
+  SqlNodeList thenList;
+  SqlNode elseExpr;
 
   //~ Constructors -----------------------------------------------------------
 
   /**
    * Creates a SqlCase expression.
    *
-   * <p>The operands are an array of SqlNodes where
-   *
-   * <ul>
-   * <li>operands[0] is a SqlNodeList of all WHEN expressions
-   * <li>operands[1] is a SqlNodeList of all THEN expressions
-   * <li>operands[2] is a SqlNode representing the implicit or explicit ELSE
-   * expression
-   * </ul>
-   *
-   * <p>See {@link #VALUE_OPERAND}, {@link #WHEN_OPERANDS},
-   * {@link #THEN_OPERANDS}, {@link #ELSE_OPERAND}.
+   * @param pos Parser position
+   * @param value The value (null for boolean case)
+   * @param whenList List of all WHEN expressions
+   * @param thenList List of all THEN expressions
+   * @param elseExpr The implicit or explicit ELSE expression
    */
-  SqlCase(SqlCaseOperator operator,
-      SqlNode[] operands,
-      SqlParserPos pos) {
-    super(operator, operands, pos);
+  public SqlCase(SqlParserPos pos, SqlNode value, SqlNodeList whenList,
+      SqlNodeList thenList, SqlNode elseExpr) {
+    super(pos);
+    this.value = value;
+    this.whenList = whenList;
+    this.thenList = thenList;
+    this.elseExpr = elseExpr;
+  }
+
+  /**
+   * Creates a call to the switched form of the case operator, viz:
+   *
+   * <blockquote><code>CASE value<br/>
+   * WHEN whenList[0] THEN thenList[0]<br/>
+   * WHEN whenList[1] THEN thenList[1]<br/>
+   * ...<br/>
+   * ELSE elseClause<br/>
+   * END</code></blockquote>
+   */
+  public static SqlCase createSwitched(SqlParserPos pos, SqlNode value,
+      SqlNodeList whenList, SqlNodeList thenList, SqlNode elseClause) {
+    if (null != value) {
+      List<SqlNode> list = whenList.getList();
+      for (int i = 0; i < list.size(); i++) {
+        SqlNode e = list.get(i);
+        final SqlCall call;
+        if (e instanceof SqlNodeList) {
+          call = SqlStdOperatorTable.IN.createCall(pos, value, e);
+        } else {
+          call = SqlStdOperatorTable.EQUALS.createCall(pos, value, e);
+        }
+        list.set(i, call);
+      }
+    }
+
+    if (null == elseClause) {
+      elseClause = SqlLiteral.createNull(pos);
+    }
+
+    return new SqlCase(pos, null, whenList, thenList, elseClause);
   }
 
   //~ Methods ----------------------------------------------------------------
 
+  @Override public SqlKind getKind() {
+    return SqlKind.CASE;
+  }
+
+  public SqlOperator getOperator() {
+    return SqlStdOperatorTable.CASE;
+  }
+
+  public List<SqlNode> getOperandList() {
+    return Arrays.asList(value, whenList, thenList, elseExpr);
+  }
+
+  @Override public void setOperand(int i, SqlNode operand) {
+    switch (i) {
+    case 0:
+      value = operand;
+      break;
+    case 1:
+      whenList = (SqlNodeList) operand;
+      break;
+    case 2:
+      thenList = (SqlNodeList) operand;
+      break;
+    case 3:
+      elseExpr = operand;
+      break;
+    default:
+      throw new AssertionError(i);
+    }
+  }
+
   public SqlNode getValueOperand() {
-    return operands[VALUE_OPERAND];
+    return value;
   }
 
   public SqlNodeList getWhenOperands() {
-    return (SqlNodeList) operands[WHEN_OPERANDS];
+    return whenList;
   }
 
   public SqlNodeList getThenOperands() {
-    return (SqlNodeList) operands[THEN_OPERANDS];
+    return thenList;
   }
 
   public SqlNode getElseOperand() {
-    return operands[ELSE_OPERAND];
+    return elseExpr;
   }
 }
 

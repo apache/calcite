@@ -17,6 +17,10 @@
 */
 package org.eigenbase.sql;
 
+import java.util.Arrays;
+import java.util.List;
+
+import org.eigenbase.sql.fun.SqlStdOperatorTable;
 import org.eigenbase.sql.parser.*;
 import org.eigenbase.sql.validate.*;
 
@@ -24,47 +28,72 @@ import org.eigenbase.sql.validate.*;
  * A <code>SqlDelete</code> is a node of a parse tree which represents a DELETE
  * statement.
  */
-public class SqlDelete extends SqlBasicCall {
-  //~ Static fields/initializers ---------------------------------------------
-
-  // constants representing operand positions
-  public static final int TARGET_TABLE_OPERAND = 0;
-  public static final int CONDITION_OPERAND = 1;
-  public static final int SOURCE_SELECT_OPERAND = 2;
-  public static final int ALIAS_OPERAND = 3;
-  public static final int OPERAND_COUNT = 4;
+public class SqlDelete extends SqlCall {
+  SqlIdentifier targetTable;
+  SqlNode condition;
+  SqlSelect sourceSelect;
+  SqlIdentifier alias;
 
   //~ Constructors -----------------------------------------------------------
 
   public SqlDelete(
-      SqlSpecialOperator operator,
+      SqlParserPos pos,
       SqlIdentifier targetTable,
       SqlNode condition,
-      SqlIdentifier alias,
-      SqlParserPos pos) {
-    super(
-        operator,
-        new SqlNode[OPERAND_COUNT],
-        pos);
-    operands[TARGET_TABLE_OPERAND] = targetTable;
-    operands[CONDITION_OPERAND] = condition;
-    operands[ALIAS_OPERAND] = alias;
+      SqlSelect sourceSelect,
+      SqlIdentifier alias) {
+    super(pos);
+    this.targetTable = targetTable;
+    this.condition = condition;
+    this.sourceSelect = sourceSelect;
+    this.alias = alias;
   }
 
   //~ Methods ----------------------------------------------------------------
+
+  @Override public SqlKind getKind() {
+    return SqlKind.DELETE;
+  }
+
+  public SqlOperator getOperator() {
+    return SqlStdOperatorTable.DELETE;
+  }
+
+  public List<SqlNode> getOperandList() {
+    return Arrays.asList(targetTable, condition, alias);
+  }
+
+  @Override public void setOperand(int i, SqlNode operand) {
+    switch (i) {
+    case 0:
+      targetTable = (SqlIdentifier) operand;
+      break;
+    case 1:
+      condition = operand;
+      break;
+    case 2:
+      sourceSelect = (SqlSelect) operand;
+      break;
+    case 3:
+      alias = (SqlIdentifier) operand;
+      break;
+    default:
+      throw new AssertionError(i);
+    }
+  }
 
   /**
    * @return the identifier for the target table of the deletion
    */
   public SqlIdentifier getTargetTable() {
-    return (SqlIdentifier) operands[TARGET_TABLE_OPERAND];
+    return targetTable;
   }
 
   /**
    * @return the alias for the target table of the deletion
    */
   public SqlIdentifier getAlias() {
-    return (SqlIdentifier) operands[ALIAS_OPERAND];
+    return alias;
   }
 
   /**
@@ -74,50 +103,43 @@ public class SqlDelete extends SqlBasicCall {
    * all rows in the table
    */
   public SqlNode getCondition() {
-    return operands[CONDITION_OPERAND];
+    return condition;
   }
 
   /**
    * Gets the source SELECT expression for the data to be deleted. This
    * returns null before the condition has been expanded by
-   * SqlValidator.performUnconditionRewrites.
+   * {@link SqlValidatorImpl#performUnconditionalRewrites(SqlNode, boolean)}.
    *
    * @return the source SELECT for the data to be inserted
    */
   public SqlSelect getSourceSelect() {
-    return (SqlSelect) operands[SOURCE_SELECT_OPERAND];
+    return sourceSelect;
   }
 
-  // implement SqlNode
-  public void unparse(
-      SqlWriter writer,
-      int leftPrec,
-      int rightPrec) {
+  @Override public void unparse(SqlWriter writer, int leftPrec, int rightPrec) {
     final SqlWriter.Frame frame =
         writer.startList(SqlWriter.FrameTypeEnum.SELECT, "DELETE FROM", "");
-    getTargetTable().unparse(
-        writer,
-        getOperator().getLeftPrec(),
-        getOperator().getRightPrec());
-    if (getAlias() != null) {
+    final int opLeft = getOperator().getLeftPrec();
+    final int opRight = getOperator().getRightPrec();
+    targetTable.unparse(writer, opLeft, opRight);
+    if (alias != null) {
       writer.keyword("AS");
-      getAlias().unparse(
-          writer,
-          getOperator().getLeftPrec(),
-          getOperator().getRightPrec());
+      alias.unparse(writer, opLeft, opRight);
     }
-    if (getCondition() != null) {
+    if (condition != null) {
       writer.sep("WHERE");
-      getCondition().unparse(
-          writer,
-          getOperator().getLeftPrec(),
-          getOperator().getRightPrec());
+      condition.unparse(writer, opLeft, opRight);
     }
     writer.endList(frame);
   }
 
   public void validate(SqlValidator validator, SqlValidatorScope scope) {
     validator.validateDelete(this);
+  }
+
+  public void setSourceSelect(SqlSelect sourceSelect) {
+    this.sourceSelect = sourceSelect;
   }
 }
 

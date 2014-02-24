@@ -287,66 +287,21 @@ public class SqlCaseOperator extends SqlOperator {
       SqlParserPos pos,
       SqlNode... operands) {
     assert functionQualifier == null;
-    return new SqlCase(this, operands, pos);
+    assert operands.length == 4;
+    return new SqlCase(pos, operands[0], (SqlNodeList) operands[1],
+        (SqlNodeList) operands[2], operands[3]);
   }
 
-  /**
-   * Creates a call to the switched form of the case operator, viz:
-   *
-   * <blockquote><code>CASE value<br/>
-   * WHEN whenList[0] THEN thenList[0]<br/>
-   * WHEN whenList[1] THEN thenList[1]<br/>
-   * ...<br/>
-   * ELSE elseClause<br/>
-   * END</code></blockquote>
-   */
-  public SqlCase createSwitchedCall(
-      SqlParserPos pos,
-      SqlNode value,
-      SqlNodeList whenList,
-      SqlNodeList thenList,
-      SqlNode elseClause) {
-    if (null != value) {
-      List<SqlNode> list = whenList.getList();
-      for (int i = 0; i < list.size(); i++) {
-        SqlNode e = list.get(i);
-        final SqlCall call;
-        if (e instanceof SqlNodeList) {
-          call = SqlStdOperatorTable.IN.createCall(pos, value, e);
-        } else {
-          call = SqlStdOperatorTable.EQUALS.createCall(pos, value, e);
-        }
-        list.set(i, call);
-      }
-    }
-
-    if (null == elseClause) {
-      elseClause = SqlLiteral.createNull(pos);
-    }
-
-    return (SqlCase) createCall(
-        pos,
-        null,
-        whenList,
-        thenList,
-        elseClause);
-  }
-
-  public void unparse(
-      SqlWriter writer,
-      SqlCall call,
-      int leftPrec,
+  @Override public void unparse(SqlWriter writer, SqlCall call_, int leftPrec,
       int rightPrec) {
+    SqlCase kase = (SqlCase) call_;
     final SqlWriter.Frame frame =
         writer.startList(FRAME_TYPE, "CASE", "END");
-    SqlNode value = call.operand(SqlCase.VALUE_OPERAND);
-    SqlNodeList whenList = call.operand(SqlCase.WHEN_OPERANDS);
-    SqlNodeList thenList = call.operand(SqlCase.THEN_OPERANDS);
-    assert whenList.size() == thenList.size();
-    if (value != null) {
-      value.unparse(writer, 0, 0);
+    assert kase.whenList.size() == kase.thenList.size();
+    if (kase.value != null) {
+      kase.value.unparse(writer, 0, 0);
     }
-    for (Pair<SqlNode, SqlNode> pair : Pair.zip(whenList, thenList)) {
+    for (Pair<SqlNode, SqlNode> pair : Pair.zip(kase.whenList, kase.thenList)) {
       writer.sep("WHEN");
       pair.left.unparse(writer, 0, 0);
       writer.sep("THEN");
@@ -354,8 +309,7 @@ public class SqlCaseOperator extends SqlOperator {
     }
 
     writer.sep("ELSE");
-    final SqlNode elseOperand = call.operand(SqlCase.ELSE_OPERAND);
-    elseOperand.unparse(writer, 0, 0);
+    kase.elseExpr.unparse(writer, 0, 0);
     writer.endList(frame);
   }
 }

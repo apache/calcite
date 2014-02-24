@@ -18,7 +18,6 @@
 package org.eigenbase.sql;
 
 import org.eigenbase.sql.parser.*;
-import org.eigenbase.sql.type.*;
 import org.eigenbase.util.*;
 
 /**
@@ -127,21 +126,9 @@ public class SqlJoinOperator extends SqlOperator {
       SqlParserPos pos,
       SqlNode... operands) {
     assert functionQualifier == null;
-    assert operands[SqlJoin.IS_NATURAL_OPERAND] instanceof SqlLiteral;
-    final SqlLiteral isNatural =
-        (SqlLiteral) operands[SqlJoin.IS_NATURAL_OPERAND];
-    assert isNatural.getTypeName() == SqlTypeName.BOOLEAN;
-    assert operands[SqlJoin.CONDITION_TYPE_OPERAND] != null
-        : "precondition: operands[CONDITION_TYPE_OPERAND] != null";
-    assert (operands[SqlJoin.CONDITION_TYPE_OPERAND] instanceof SqlLiteral)
-        && (SqlLiteral.symbolValue(operands[SqlJoin.CONDITION_TYPE_OPERAND])
-        instanceof ConditionType);
-    assert operands[SqlJoin.TYPE_OPERAND] != null
-        : "precondition: operands[TYPE_OPERAND] != null";
-    assert (operands[SqlJoin.TYPE_OPERAND] instanceof SqlLiteral)
-        && (SqlLiteral.symbolValue(operands[SqlJoin.TYPE_OPERAND])
-        instanceof JoinType);
-    return new SqlJoin(this, operands, pos);
+    return new SqlJoin(pos, operands[0], (SqlLiteral) operands[1],
+        (SqlLiteral) operands[2], operands[3], (SqlLiteral) operands[4],
+        operands[5]);
   }
 
   public SqlCall createCall(
@@ -162,24 +149,22 @@ public class SqlJoinOperator extends SqlOperator {
         condition);
   }
 
-  public void unparse(
+  @Override public void unparse(
       SqlWriter writer,
       SqlCall call,
       int leftPrec,
       int rightPrec) {
-    final SqlNode left = call.operand(SqlJoin.LEFT_OPERAND);
+    final SqlJoin join = (SqlJoin) call;
 
-    left.unparse(
+    join.left.unparse(
         writer,
         leftPrec,
         getLeftPrec());
     String natural = "";
-    if (SqlLiteral.booleanValue(call.operand(SqlJoin.IS_NATURAL_OPERAND))) {
+    if (join.isNatural()) {
       natural = "NATURAL ";
     }
-    final SqlJoinOperator.JoinType joinType =
-        (JoinType) SqlLiteral.symbolValue(call.operand(SqlJoin.TYPE_OPERAND));
-    switch (joinType) {
+    switch (join.getJoinType()) {
     case COMMA:
       writer.sep(",", true);
       break;
@@ -199,36 +184,29 @@ public class SqlJoinOperator extends SqlOperator {
       writer.sep(natural + "RIGHT JOIN");
       break;
     default:
-      throw Util.unexpected(joinType);
+      throw Util.unexpected(join.getJoinType());
     }
-    final SqlNode right = call.operand(SqlJoin.RIGHT_OPERAND);
-    right.unparse(
-        writer,
-        getRightPrec(),
-        rightPrec);
-    final SqlNode condition = call.operand(SqlJoin.CONDITION_OPERAND);
-    if (condition != null) {
-      final SqlJoinOperator.ConditionType conditionType =
-          (ConditionType) SqlLiteral.symbolValue(
-              call.operand(SqlJoin.CONDITION_TYPE_OPERAND));
-      switch (conditionType) {
+    join.right.unparse(writer, getRightPrec(), rightPrec);
+    if (join.condition != null) {
+      switch (join.getConditionType()) {
       case USING:
-
         // No need for an extra pair of parens -- the condition is a
         // list. The result is something like "USING (deptno, gender)".
         writer.keyword("USING");
-        assert condition instanceof SqlNodeList;
+        assert join.condition instanceof SqlNodeList;
         final SqlWriter.Frame frame =
             writer.startList(FRAME_TYPE, "(", ")");
-        condition.unparse(writer, 0, 0);
+        join.condition.unparse(writer, 0, 0);
         writer.endList(frame);
         break;
+
       case ON:
         writer.keyword("ON");
-        condition.unparse(writer, leftPrec, rightPrec);
+        join.condition.unparse(writer, leftPrec, rightPrec);
         break;
+
       default:
-        throw Util.unexpected(conditionType);
+        throw Util.unexpected(join.getConditionType());
       }
     }
   }

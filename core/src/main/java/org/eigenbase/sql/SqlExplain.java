@@ -17,22 +17,17 @@
 */
 package org.eigenbase.sql;
 
+import java.util.Arrays;
+import java.util.List;
+
+import org.eigenbase.sql.fun.SqlStdOperatorTable;
 import org.eigenbase.sql.parser.*;
 
 /**
  * A <code>SqlExplain</code> is a node of a parse tree which represents an
  * EXPLAIN PLAN statement.
  */
-public class SqlExplain extends SqlBasicCall {
-  //~ Static fields/initializers ---------------------------------------------
-
-  // constants representing operand positions
-  public static final int EXPLICANDUM_OPERAND = 0;
-  public static final int DETAIL_LEVEL_OPERAND = 1;
-  public static final int DEPTH_OPERAND = 2;
-  public static final int AS_XML_OPERAND = 3;
-  public static final int OPERAND_COUNT = 4;
-
+public class SqlExplain extends SqlCall {
   //~ Enums ------------------------------------------------------------------
 
   /**
@@ -52,58 +47,87 @@ public class SqlExplain extends SqlBasicCall {
 
   //~ Instance fields --------------------------------------------------------
 
-  private final int nDynamicParams;
+  SqlNode explicandum;
+  SqlLiteral detailLevel;
+  SqlLiteral depth;
+  SqlLiteral asXml;
+  private final int dynamicParameterCount;
 
   //~ Constructors -----------------------------------------------------------
 
-  public SqlExplain(
-      SqlSpecialOperator operator,
+  public SqlExplain(SqlParserPos pos,
       SqlNode explicandum,
       SqlLiteral detailLevel,
       SqlLiteral depth,
       SqlLiteral asXml,
-      int nDynamicParams,
-      SqlParserPos pos) {
-    super(
-        operator,
-        new SqlNode[OPERAND_COUNT],
-        pos);
-    operands[EXPLICANDUM_OPERAND] = explicandum;
-    operands[DETAIL_LEVEL_OPERAND] = detailLevel;
-    operands[DEPTH_OPERAND] = depth;
-    operands[AS_XML_OPERAND] = asXml;
-    this.nDynamicParams = nDynamicParams;
+      int dynamicParameterCount) {
+    super(pos);
+    this.explicandum = explicandum;
+    this.detailLevel = detailLevel;
+    this.depth = depth;
+    this.asXml = asXml;
+    this.dynamicParameterCount = dynamicParameterCount;
   }
 
   //~ Methods ----------------------------------------------------------------
+
+  @Override public SqlKind getKind() {
+    return SqlKind.EXPLAIN;
+  }
+
+  public SqlOperator getOperator() {
+    return SqlStdOperatorTable.EXPLAIN;
+  }
+
+  public List<SqlNode> getOperandList() {
+    return Arrays.asList(explicandum, detailLevel, depth, asXml);
+  }
+
+  @Override public void setOperand(int i, SqlNode operand) {
+    switch (i) {
+    case 0:
+      explicandum = operand;
+      break;
+    case 1:
+      detailLevel = (SqlLiteral) operand;
+      break;
+    case 2:
+      depth = (SqlLiteral) operand;
+      break;
+    case 3:
+      asXml = (SqlLiteral) operand;
+      break;
+    default:
+      throw new AssertionError(i);
+    }
+  }
 
   /**
    * @return the underlying SQL statement to be explained
    */
   public SqlNode getExplicandum() {
-    return operands[EXPLICANDUM_OPERAND];
+    return explicandum;
   }
 
   /**
    * @return detail level to be generated
    */
   public SqlExplainLevel getDetailLevel() {
-    return (SqlExplainLevel) SqlLiteral.symbolValue(
-        operands[DETAIL_LEVEL_OPERAND]);
+    return (SqlExplainLevel) SqlLiteral.symbolValue(detailLevel);
   }
 
   /**
    * Returns the level of abstraction at which this plan should be displayed.
    */
   public Depth getDepth() {
-    return (Depth) SqlLiteral.symbolValue(operands[DEPTH_OPERAND]);
+    return (Depth) SqlLiteral.symbolValue(depth);
   }
 
   /**
    * @return the number of dynamic parameters in the statement
    */
   public int getDynamicParamCount() {
-    return nDynamicParams;
+    return dynamicParameterCount;
   }
 
   /**
@@ -124,14 +148,10 @@ public class SqlExplain extends SqlBasicCall {
    * Returns whether result is to be in XML format.
    */
   public boolean isXml() {
-    return SqlLiteral.booleanValue(operands[AS_XML_OPERAND]);
+    return SqlLiteral.booleanValue(asXml);
   }
 
-  // implement SqlNode
-  public void unparse(
-      SqlWriter writer,
-      int leftPrec,
-      int rightPrec) {
+  @Override public void unparse(SqlWriter writer, int leftPrec, int rightPrec) {
     writer.keyword("EXPLAIN PLAN");
     switch (getDetailLevel()) {
     case NO_ATTRIBUTES:
@@ -162,10 +182,8 @@ public class SqlExplain extends SqlBasicCall {
     }
     writer.keyword("FOR");
     writer.newlineAndIndent();
-    getExplicandum().unparse(
-        writer,
-        getOperator().getLeftPrec(),
-        getOperator().getRightPrec());
+    explicandum.unparse(
+        writer, getOperator().getLeftPrec(), getOperator().getRightPrec());
   }
 }
 

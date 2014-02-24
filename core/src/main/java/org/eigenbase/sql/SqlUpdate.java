@@ -17,77 +17,116 @@
 */
 package org.eigenbase.sql;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.List;
 
+import org.eigenbase.sql.fun.SqlStdOperatorTable;
 import org.eigenbase.sql.parser.*;
 import org.eigenbase.sql.validate.*;
+import org.eigenbase.util.Pair;
 
 /**
  * A <code>SqlUpdate</code> is a node of a parse tree which represents an UPDATE
  * statement.
  */
-public class SqlUpdate extends SqlBasicCall {
-  //~ Static fields/initializers ---------------------------------------------
-
-  // constants representing operand positions
-  public static final int TARGET_TABLE_OPERAND = 0;
-  public static final int SOURCE_EXPRESSION_LIST_OPERAND = 1;
-  public static final int TARGET_COLUMN_LIST_OPERAND = 2;
-  public static final int CONDITION_OPERAND = 3;
-  public static final int SOURCE_SELECT_OPERAND = 4;
-  public static final int ALIAS_OPERAND = 5;
-  public static final int OPERAND_COUNT = 6;
+public class SqlUpdate extends SqlCall {
+  SqlIdentifier targetTable;
+  SqlNodeList targetColumnList;
+  SqlNodeList sourceExpressionList;
+  SqlNode condition;
+  SqlSelect sourceSelect;
+  SqlIdentifier alias;
 
   //~ Constructors -----------------------------------------------------------
 
-  public SqlUpdate(
-      SqlSpecialOperator operator,
+  public SqlUpdate(SqlParserPos pos,
       SqlIdentifier targetTable,
       SqlNodeList targetColumnList,
       SqlNodeList sourceExpressionList,
       SqlNode condition,
-      SqlIdentifier alias,
-      SqlParserPos pos) {
-    super(
-        operator,
-        new SqlNode[OPERAND_COUNT],
-        pos);
-    operands[TARGET_TABLE_OPERAND] = targetTable;
-    operands[SOURCE_EXPRESSION_LIST_OPERAND] = sourceExpressionList;
-    operands[TARGET_COLUMN_LIST_OPERAND] = targetColumnList;
-    operands[CONDITION_OPERAND] = condition;
-    operands[ALIAS_OPERAND] = alias;
+      SqlSelect sourceSelect,
+      SqlIdentifier alias) {
+    super(pos);
+    this.targetTable = targetTable;
+    this.targetColumnList = targetColumnList;
+    this.sourceExpressionList = sourceExpressionList;
+    this.condition = condition;
+    this.sourceSelect = sourceSelect;
     assert sourceExpressionList.size() == targetColumnList.size();
+    this.alias = alias;
   }
 
   //~ Methods ----------------------------------------------------------------
+
+  @Override public SqlKind getKind() {
+    return SqlKind.UPDATE;
+  }
+
+  public SqlOperator getOperator() {
+    return SqlStdOperatorTable.UPDATE;
+  }
+
+  public List<SqlNode> getOperandList() {
+    return Arrays.asList(targetTable, targetColumnList, sourceExpressionList,
+        condition, sourceSelect, alias);
+  }
+
+  @Override
+  public void setOperand(int i, SqlNode operand) {
+    switch (i) {
+    case 0:
+      targetTable = (SqlIdentifier) operand;
+      break;
+    case 1:
+      targetColumnList = (SqlNodeList) operand;
+      break;
+    case 2:
+      sourceExpressionList = (SqlNodeList) operand;
+      break;
+    case 3:
+      condition = operand;
+      break;
+    case 4:
+      sourceExpressionList = (SqlNodeList) operand;
+      break;
+    case 5:
+      alias = (SqlIdentifier) operand;
+      break;
+    default:
+      throw new AssertionError(i);
+    }
+  }
 
   /**
    * @return the identifier for the target table of the update
    */
   public SqlIdentifier getTargetTable() {
-    return (SqlIdentifier) operands[TARGET_TABLE_OPERAND];
+    return targetTable;
   }
 
   /**
    * @return the alias for the target table of the update
    */
   public SqlIdentifier getAlias() {
-    return (SqlIdentifier) operands[ALIAS_OPERAND];
+    return alias;
+  }
+
+  public void setAlias(SqlIdentifier alias) {
+    this.alias = alias;
   }
 
   /**
    * @return the list of target column names
    */
   public SqlNodeList getTargetColumnList() {
-    return (SqlNodeList) operands[TARGET_COLUMN_LIST_OPERAND];
+    return targetColumnList;
   }
 
   /**
    * @return the list of source expressions
    */
   public SqlNodeList getSourceExpressionList() {
-    return (SqlNodeList) operands[SOURCE_EXPRESSION_LIST_OPERAND];
+    return sourceExpressionList;
   }
 
   /**
@@ -97,70 +136,52 @@ public class SqlUpdate extends SqlBasicCall {
    * all rows in the table
    */
   public SqlNode getCondition() {
-    return operands[CONDITION_OPERAND];
+    return condition;
   }
 
   /**
    * Gets the source SELECT expression for the data to be updated. Returns
    * null before the statement has been expanded by
-   * SqlValidator.performUnconditionalRewrites.
+   * {@link SqlValidatorImpl#performUnconditionalRewrites(SqlNode, boolean)}.
    *
    * @return the source SELECT for the data to be updated
    */
   public SqlSelect getSourceSelect() {
-    return (SqlSelect) operands[SOURCE_SELECT_OPERAND];
+    return sourceSelect;
   }
 
-  // implement SqlNode
-  public void unparse(
-      SqlWriter writer,
-      int leftPrec,
-      int rightPrec) {
+  public void setSourceSelect(SqlSelect sourceSelect) {
+    this.sourceSelect = sourceSelect;
+  }
+
+  @Override public void unparse(SqlWriter writer, int leftPrec, int rightPrec) {
     final SqlWriter.Frame frame =
         writer.startList(SqlWriter.FrameTypeEnum.SELECT, "UPDATE", "");
-    getTargetTable().unparse(
-        writer,
-        getOperator().getLeftPrec(),
-        getOperator().getRightPrec());
-    if (getTargetColumnList() != null) {
-      getTargetColumnList().unparse(
-          writer,
-          getOperator().getLeftPrec(),
-          getOperator().getRightPrec());
+    final int opLeft = getOperator().getLeftPrec();
+    final int opRight = getOperator().getRightPrec();
+    targetTable.unparse(writer, opLeft, opRight);
+    if (targetColumnList != null) {
+      targetColumnList.unparse(writer, opLeft, opRight);
     }
-    if (getAlias() != null) {
+    if (alias != null) {
       writer.keyword("AS");
-      getAlias().unparse(
-          writer,
-          getOperator().getLeftPrec(),
-          getOperator().getRightPrec());
+      alias.unparse(writer, opLeft, opRight);
     }
     final SqlWriter.Frame setFrame =
         writer.startList(SqlWriter.FrameTypeEnum.UPDATE_SET_LIST, "SET", "");
-    Iterator targetColumnIter = getTargetColumnList().getList().iterator();
-    Iterator sourceExpressionIter =
-        getSourceExpressionList().getList().iterator();
-    while (targetColumnIter.hasNext()) {
+    for (Pair<SqlNode, SqlNode> pair
+        : Pair.zip(getTargetColumnList(), getSourceExpressionList())) {
       writer.sep(",");
-      SqlIdentifier id = (SqlIdentifier) targetColumnIter.next();
-      id.unparse(
-          writer,
-          getOperator().getLeftPrec(),
-          getOperator().getRightPrec());
+      SqlIdentifier id = (SqlIdentifier) pair.left;
+      id.unparse(writer, opLeft, opRight);
       writer.keyword("=");
-      SqlNode sourceExp = (SqlNode) sourceExpressionIter.next();
-      sourceExp.unparse(
-          writer,
-          getOperator().getLeftPrec(),
-          getOperator().getRightPrec());
+      SqlNode sourceExp = pair.right;
+      sourceExp.unparse(writer, opLeft, opRight);
     }
     writer.endList(setFrame);
-    if (getCondition() != null) {
+    if (condition != null) {
       writer.sep("WHERE");
-      getCondition().unparse(
-          writer,
-          getOperator().getLeftPrec(),
-          getOperator().getRightPrec());
+      condition.unparse(writer, opLeft, opRight);
     }
     writer.endList(frame);
   }

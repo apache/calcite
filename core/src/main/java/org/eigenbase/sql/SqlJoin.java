@@ -17,81 +17,148 @@
 */
 package org.eigenbase.sql;
 
+import java.util.Arrays;
+import java.util.List;
+
+import org.eigenbase.sql.fun.SqlStdOperatorTable;
 import org.eigenbase.sql.parser.*;
+import org.eigenbase.sql.type.SqlTypeName;
 
 /**
  * Parse tree node representing a {@code JOIN} clause.
  */
-public class SqlJoin extends SqlBasicCall {
+public class SqlJoin extends SqlCall {
   //~ Static fields/initializers ---------------------------------------------
 
-  public static final int LEFT_OPERAND = 0;
+  SqlNode left;
 
   /**
    * Operand says whether this is a natural join. Must be constant TRUE or
    * FALSE.
    */
-  public static final int IS_NATURAL_OPERAND = 1;
+  SqlLiteral natural;
 
   /**
    * Value must be a {@link SqlLiteral}, one of the integer codes for {@link
    * SqlJoinOperator.JoinType}.
    */
-  public static final int TYPE_OPERAND = 2;
-  public static final int RIGHT_OPERAND = 3;
+  SqlLiteral joinType;
+  SqlNode right;
 
   /**
    * Value must be a {@link SqlLiteral}, one of the integer codes for {@link
    * SqlJoinOperator.ConditionType}.
    */
-  public static final int CONDITION_TYPE_OPERAND = 4;
-  public static final int CONDITION_OPERAND = 5;
+  SqlLiteral conditionType;
+  SqlNode condition;
 
   //~ Constructors -----------------------------------------------------------
 
-  public SqlJoin(
-      SqlJoinOperator operator,
-      SqlNode[] operands,
-      SqlParserPos pos) {
-    super(operator, operands, pos);
+  public SqlJoin(SqlParserPos pos, SqlNode left, SqlLiteral natural,
+      SqlLiteral joinType, SqlNode right, SqlLiteral conditionType,
+      SqlNode condition) {
+    super(pos);
+    this.left = left;
+    this.natural = natural;
+    this.joinType = joinType;
+    this.right = right;
+    this.conditionType = conditionType;
+    this.condition = condition;
+
+    assert natural.getTypeName() == SqlTypeName.BOOLEAN;
+    assert conditionType != null;
+    assert SqlLiteral.symbolValue(conditionType)
+        instanceof SqlJoinOperator.ConditionType;
+    assert joinType != null;
+    assert SqlLiteral.symbolValue(joinType) instanceof SqlJoinOperator.JoinType;
+
   }
 
   //~ Methods ----------------------------------------------------------------
 
+  public SqlOperator getOperator() {
+    return SqlStdOperatorTable.JOIN;
+  }
+
+  @Override public SqlKind getKind() {
+    return SqlKind.JOIN;
+  }
+
+  public List<SqlNode> getOperandList() {
+    return Arrays.asList(left, natural, joinType, right, conditionType,
+        condition);
+  }
+
+  @Override public void setOperand(int i, SqlNode operand) {
+    switch (i) {
+    case 0:
+      left = operand;
+      break;
+    case 1:
+      natural = (SqlLiteral) operand;
+      break;
+    case 2:
+      joinType = (SqlLiteral) operand;
+      break;
+    case 3:
+      right = operand;
+      break;
+    case 4:
+      conditionType = (SqlLiteral) operand;
+      break;
+    case 5:
+      condition = operand;
+      break;
+    default:
+      throw new AssertionError(i);
+    }
+  }
+
   public final SqlNode getCondition() {
-    return operands[CONDITION_OPERAND];
+    return condition;
   }
 
-  /**
-   * Returns a {@link SqlJoinOperator.ConditionType}
-   *
-   * @post return != null
-   */
+  /** Returns a {@link SqlJoinOperator.ConditionType}, never null. */
   public final SqlJoinOperator.ConditionType getConditionType() {
-    return (SqlJoinOperator.ConditionType) SqlLiteral.symbolValue(
-        operands[CONDITION_TYPE_OPERAND]);
+    return (SqlJoinOperator.ConditionType)
+        SqlLiteral.symbolValue(conditionType);
   }
 
-  /**
-   * Returns a {@link SqlJoinOperator.JoinType}
-   *
-   * @post return != null
-   */
+  public SqlLiteral getConditionTypeNode() {
+    return conditionType;
+  }
+
+  /** Returns a {@link SqlJoinOperator.JoinType}, never null. */
   public final SqlJoinOperator.JoinType getJoinType() {
-    return (SqlJoinOperator.JoinType) SqlLiteral.symbolValue(
-        operands[TYPE_OPERAND]);
+    return (SqlJoinOperator.JoinType) SqlLiteral.symbolValue(joinType);
+  }
+
+  public SqlLiteral getJoinTypeNode() {
+    return joinType;
   }
 
   public final SqlNode getLeft() {
-    return operands[LEFT_OPERAND];
+    return left;
+  }
+
+  public void setLeft(SqlNode left) {
+    this.left = left;
   }
 
   public final boolean isNatural() {
-    return SqlLiteral.booleanValue(operands[IS_NATURAL_OPERAND]);
+    return SqlLiteral.booleanValue(natural);
+  }
+
+  public final SqlLiteral isNaturalNode() {
+    return natural;
   }
 
   public final SqlNode getRight() {
-    return operands[RIGHT_OPERAND];
+    return right;
+  }
+
+  public void setRight(SqlNode right) {
+    this.right = right;
   }
 }
 

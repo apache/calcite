@@ -257,14 +257,13 @@ public class JdbcRules {
         }
       }
       SqlNode join =
-          SqlStdOperatorTable.JOIN.createCall(
+          new SqlJoin(POS,
               leftResult.asFrom(),
               SqlLiteral.createBoolean(false, POS),
               joinType(joinType).symbol(POS),
               rightResult.asFrom(),
               SqlJoinOperator.ConditionType.ON.symbol(POS),
-              sqlCondition,
-              POS);
+              sqlCondition);
       return implementor.result(join, leftResult, rightResult);
     }
 

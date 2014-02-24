@@ -17,57 +17,87 @@
 */
 package org.eigenbase.sql;
 
+import java.util.Arrays;
+import java.util.List;
+
+import org.eigenbase.sql.fun.SqlStdOperatorTable;
 import org.eigenbase.sql.parser.*;
 import org.eigenbase.sql.validate.*;
-import org.eigenbase.util.*;
 
 /**
  * A <code>SqlInsert</code> is a node of a parse tree which represents an INSERT
  * statement.
  */
-public class SqlInsert extends SqlBasicCall {
-  //~ Static fields/initializers ---------------------------------------------
-
-  // constants representing operand positions
-  public static final int KEYWORDS_OPERAND = 0;
-  public static final int TARGET_TABLE_OPERAND = 1;
-  public static final int SOURCE_OPERAND = 2;
-  public static final int TARGET_COLUMN_LIST_OPERAND = 3;
-  public static final int OPERAND_COUNT = 4;
+public class SqlInsert extends SqlCall {
+  SqlNodeList keywords;
+  SqlIdentifier targetTable;
+  SqlNode source;
+  SqlNodeList columnList;
 
   //~ Constructors -----------------------------------------------------------
 
-  public SqlInsert(
-      SqlSpecialOperator operator,
+  public SqlInsert(SqlParserPos pos,
       SqlNodeList keywords,
       SqlIdentifier targetTable,
       SqlNode source,
-      SqlNodeList columnList,
-      SqlParserPos pos) {
-    super(operator, new SqlNode[OPERAND_COUNT], pos);
-
-    Util.pre(keywords != null, "keywords != null");
-
-    operands[KEYWORDS_OPERAND] = keywords;
-    operands[TARGET_TABLE_OPERAND] = targetTable;
-    operands[SOURCE_OPERAND] = source;
-    operands[TARGET_COLUMN_LIST_OPERAND] = columnList;
+      SqlNodeList columnList) {
+    super(pos);
+    this.keywords = keywords;
+    this.targetTable = targetTable;
+    this.source = source;
+    this.columnList = columnList;
+    assert keywords != null;
   }
 
   //~ Methods ----------------------------------------------------------------
+
+  @Override public SqlKind getKind() {
+    return SqlKind.INSERT;
+  }
+
+  public SqlOperator getOperator() {
+    return SqlStdOperatorTable.INSERT;
+  }
+
+  public List<SqlNode> getOperandList() {
+    return Arrays.asList(keywords, targetTable, source, columnList);
+  }
+
+  @Override public void setOperand(int i, SqlNode operand) {
+    switch (i) {
+    case 0:
+      keywords = (SqlNodeList) operand;
+      break;
+    case 1:
+      targetTable = (SqlIdentifier) operand;
+      break;
+    case 2:
+      source = operand;
+      break;
+    case 3:
+      columnList = (SqlNodeList) operand;
+      break;
+    default:
+      throw new AssertionError(i);
+    }
+  }
 
   /**
    * @return the identifier for the target table of the insertion
    */
   public SqlIdentifier getTargetTable() {
-    return (SqlIdentifier) operands[TARGET_TABLE_OPERAND];
+    return targetTable;
   }
 
   /**
    * @return the source expression for the data to be inserted
    */
   public SqlNode getSource() {
-    return operands[SOURCE_OPERAND];
+    return source;
+  }
+
+  public void setSource(SqlSelect source) {
+    this.source = source;
   }
 
   /**
@@ -75,43 +105,31 @@ public class SqlInsert extends SqlBasicCall {
    * target table
    */
   public SqlNodeList getTargetColumnList() {
-    return (SqlNodeList) operands[TARGET_COLUMN_LIST_OPERAND];
+    return columnList;
   }
 
   public final SqlNode getModifierNode(SqlInsertKeyword modifier) {
-    final SqlNodeList keywords = (SqlNodeList) operands[KEYWORDS_OPERAND];
-    for (int i = 0; i < keywords.size(); i++) {
-      SqlInsertKeyword keyword =
-          (SqlInsertKeyword) SqlLiteral.symbolValue(keywords.get(i));
-      if (keyword == modifier) {
-        return keywords.get(i);
+    for (SqlNode keyword : keywords) {
+      SqlInsertKeyword keyword2 =
+          (SqlInsertKeyword) SqlLiteral.symbolValue(keyword);
+      if (keyword2 == modifier) {
+        return keyword;
       }
     }
     return null;
   }
 
-  // implement SqlNode
-  public void unparse(
-      SqlWriter writer,
-      int leftPrec,
-      int rightPrec) {
+  @Override public void unparse(SqlWriter writer, int leftPrec, int rightPrec) {
     writer.startList(SqlWriter.FrameTypeEnum.SELECT);
     writer.sep("INSERT INTO");
-    getTargetTable().unparse(
-        writer,
-        getOperator().getLeftPrec(),
-        getOperator().getRightPrec());
-    if (getTargetColumnList() != null) {
-      getTargetColumnList().unparse(
-          writer,
-          getOperator().getLeftPrec(),
-          getOperator().getRightPrec());
+    final int opLeft = getOperator().getLeftPrec();
+    final int opRight = getOperator().getRightPrec();
+    targetTable.unparse(writer, opLeft, opRight);
+    if (columnList != null) {
+      columnList.unparse(writer, opLeft, opRight);
     }
     writer.newlineAndIndent();
-    getSource().unparse(
-        writer,
-        getOperator().getLeftPrec(),
-        getOperator().getRightPrec());
+    source.unparse(writer, opLeft, opRight);
   }
 
   public void validate(SqlValidator validator, SqlValidatorScope scope) {
