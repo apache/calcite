@@ -361,6 +361,25 @@ Custom tables require more work for the author of the model (the author
 needs to specify each table and its file explicitly) but also give the author
 more control (say, providing different parameters for each table).
 
+## Comments in models
+
+Models can include comments using `/* ... */` and `//` syntax:
+
+```json
+{
+  version: '1.0',
+  /* Multi-line
+     comment. */
+  defaultSchema: 'CUSTOM_TABLE',
+  // Single-line comment.
+  schemas: [
+    ..
+  ]
+}
+```
+
+(Comments are not standard JSON, but are a harmless extension.)
+
 ## Optimizing queries using planner rules
 
 The table implementations we have seen so far are fine as long as the tables
