@@ -127,7 +127,7 @@ class RuleQueue {
    * phase.
    */
   public void phaseCompleted(VolcanoPlannerPhase phase) {
-    matchListMap.remove(phase);
+    matchListMap.get(phase).clear();
   }
 
   /**
@@ -281,7 +281,6 @@ class RuleQueue {
     double importance = 0;
     final RelSet set = planner.getSet(rel);
     assert set != null;
-    assert set.subsets != null;
     for (RelSubset subset2 : set.subsets) {
       final Double d = subsetImportances.get(subset2);
       if (d == null) {
@@ -694,6 +693,12 @@ class RuleQueue {
 
     PhaseMatchList(VolcanoPlannerPhase phase) {
       this.phase = phase;
+    }
+
+    void clear() {
+      list.clear();
+      names.clear();
+      matchMap.clear();
     }
   }
 }

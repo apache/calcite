@@ -145,6 +145,26 @@ public class PlannerTest {
         + "  EnumerableTableAccessRel(table=[[hr, emps]])\n"));
   }
 
+  /** Unit test that calls {@link Planner#transform} twice. */
+  @Test public void testPlanTransformTwice() throws Exception {
+    RuleSet ruleSet =
+        RuleSets.ofList(
+            MergeFilterRule.INSTANCE,
+            JavaRules.ENUMERABLE_FILTER_RULE,
+            JavaRules.ENUMERABLE_PROJECT_RULE);
+    Planner planner = getPlanner(ruleSet);
+    SqlNode parse = planner.parse("select * from \"emps\"");
+    SqlNode validate = planner.validate(parse);
+    RelNode convert = planner.convert(validate);
+    RelTraitSet traitSet = planner.getEmptyTraitSet()
+        .replace(EnumerableConvention.INSTANCE);
+    RelNode transform = planner.transform(0, traitSet, convert);
+    RelNode transform2 = planner.transform(0, traitSet, transform);
+    assertThat(toString(transform2), equalTo(
+        "EnumerableProjectRel(empid=[$0], deptno=[$1], name=[$2], salary=[$3], commission=[$4])\n"
+        + "  EnumerableTableAccessRel(table=[[hr, emps]])\n"));
+  }
+
   /** Tests that Hive dialect does not generate "AS". */
   @Test public void testHiveDialect() throws SqlParseException {
     Planner planner = getPlanner();
