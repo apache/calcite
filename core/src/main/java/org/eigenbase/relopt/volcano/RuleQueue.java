@@ -601,14 +601,13 @@ class RuleQueue {
   }
 
   private static double computeOneMinusEpsilon() {
-    if (true) {
-      return 1.0 - Double.MIN_VALUE;
+    for (double d = 0d;;) {
+      double d0 = d;
+      d = (d + 1d) / 2d;
+      if (d == 1.0) {
+        return d0;
+      }
     }
-    double d = .5;
-    while ((1.0 - d) < 1.0) {
-      d /= 2.0;
-    }
-    return 1.0 - (d * 2.0);
   }
 
   //~ Inner Classes ----------------------------------------------------------
