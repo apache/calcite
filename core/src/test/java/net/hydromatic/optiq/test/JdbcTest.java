@@ -2128,6 +2128,21 @@ public class JdbcTest {
         .returns("C=730\n");
   }
 
+  /** Tests a JSON model with a comment. Not standard JSON, but harmless to
+   * allow Jackson's comments extension.
+   *
+   * <p>Test case for <a href="https://github.com/julianhyde/optiq/issues/160">
+   *   optiq-160, "Allow comments in schema definitions"</a>.</p> */
+  @Test public void testModelWithComment() {
+    final String model =
+        FOODMART_MODEL.replace("schemas:", "/* comment */ schemas:");
+    assertThat(model, not(equalTo(FOODMART_MODEL)));
+    OptiqAssert.that()
+        .withModel(model)
+        .query("select count(*) as c from \"foodmart\".\"time_by_day\"")
+        .returns("C=730\n");
+  }
+
   /** Defines a materialized view and tests that the query is rewritten to use
    * it, and that the query produces the same result with and without it. There
    * are more comprehensive tests in {@link MaterializationTest}. */

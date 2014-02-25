@@ -53,6 +53,7 @@ public class ModelHandler {
     final ObjectMapper mapper = new ObjectMapper();
     mapper.configure(JsonParser.Feature.ALLOW_UNQUOTED_FIELD_NAMES, true);
     mapper.configure(JsonParser.Feature.ALLOW_SINGLE_QUOTES, true);
+    mapper.configure(JsonParser.Feature.ALLOW_COMMENTS, true);
     JsonRoot root;
     if (uri.startsWith("inline:")) {
       root = mapper.readValue(
