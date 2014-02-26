@@ -121,13 +121,16 @@ public interface Schema {
   enum TableType {
     /** A regular table. */
     TABLE,
+
     /** A relation whose contents are calculated by evaluating a SQL
      * expression. */
     VIEW,
+
     /** A table maintained by the system. Data dictionary tables, such as the
      * "TABLES" and "COLUMNS" table in the "metamodel" schema, examples of
      * system tables. */
     SYSTEM_TABLE,
+
     /** A table that is only visible to one connection. */
     LOCAL_TEMPORARY,
 
@@ -137,6 +140,12 @@ public interface Schema {
      * It is not available for queries, but is just used as an intermediate
      * structure during query planning. */
     STAR,
+
+    /** Index table. (Used by Apache Phoenix.) */
+    INDEX,
+
+    /** Join table. (Used by Apache Phoenix.) */
+    JOIN,
   }
 }
 

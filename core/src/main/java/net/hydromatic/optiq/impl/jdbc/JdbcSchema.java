@@ -196,8 +196,14 @@ public class JdbcSchema implements Schema {
         final String catalogName = resultSet.getString(1);
         final String schemaName = resultSet.getString(2);
         final String tableTypeName = resultSet.getString(4);
+        // Clean up table type. In particular, this ensures that 'SYSTEM TABLE',
+        // returned by Phoenix among others, maps to TableType.SYSTEM_TABLE.
+        // We know enum constants are upper-case without spaces, so we can't
+        // make things worse.
+        final String tableTypeName2 =
+            tableTypeName.toUpperCase().replace(' ', '_');
         final TableType tableType =
-            Util.enumVal(TableType.class, tableTypeName);
+            Util.enumVal(TableType.class, tableTypeName2);
         final JdbcTable table =
             new JdbcTable(this, catalogName, schemaName, tableName, tableType);
         builder.put(tableName, table);
