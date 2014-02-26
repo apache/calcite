@@ -74,6 +74,11 @@ public interface RelOptPlanner {
   void clearRules();
 
   /**
+   * Remove all internal status of planner.
+   */
+  void clear();
+
+  /**
    * Registers a rule. If the rule has already been registered, does nothing.
    * This method should determine if the given rule is a {@link
    * org.eigenbase.rel.convert.ConverterRule} and pass the ConverterRule to

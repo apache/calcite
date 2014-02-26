@@ -73,6 +73,8 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
 
   //~ Methods ----------------------------------------------------------------
 
+  public void clear() {}
+
   public RelOptCostFactory getCostFactory() {
     return costFactory;
   }

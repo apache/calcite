@@ -121,6 +121,13 @@ class RuleQueue {
   }
 
   //~ Methods ----------------------------------------------------------------
+  /**
+   * Clear internal data structure for this rule queue.
+   */
+  public void clear() {
+    this.subsetImportances.clear();
+    this.boostedSubsets.clear();
+  }
 
   /**
    * Removes the {@link PhaseMatchList rule-match list} for the given planner
