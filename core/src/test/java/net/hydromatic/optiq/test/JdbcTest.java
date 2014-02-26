@@ -1807,6 +1807,7 @@ public class JdbcTest {
             + "from \"hr\".\"emps\"\n")
         .returnsUnordered(
             "C=false; deptno=10",
+            "C=false; deptno=10",
             "C=true; deptno=10",
             "C=true; deptno=20")
         .planContains(".distinct(");

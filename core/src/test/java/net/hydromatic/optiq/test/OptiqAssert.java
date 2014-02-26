@@ -42,6 +42,7 @@ import java.text.SimpleDateFormat;
 import java.util.*;
 import javax.sql.DataSource;
 
+import static org.hamcrest.CoreMatchers.*;
 import static org.junit.Assert.*;
 
 /**
@@ -235,11 +236,15 @@ public class OptiqAssert {
     return new Function1<ResultSet, Void>() {
       public Void apply(ResultSet resultSet) {
         try {
-          final Collection<String> actualSet = new TreeSet<String>();
-          OptiqAssert.toStringList(resultSet, actualSet);
-          final TreeSet<String> expectedSet =
-              new TreeSet<String>(Arrays.asList(lines));
-          assertEquals(expectedSet, actualSet);
+          final List<String> expectedList = new ArrayList<String>();
+          Collections.addAll(expectedList, lines);
+          Collections.sort(expectedList);
+
+          final List<String> actualList = new ArrayList<String>();
+          OptiqAssert.toStringList(resultSet, actualList);
+          Collections.sort(actualList);
+
+          assertThat(actualList, equalTo(expectedList));
           return null;
         } catch (SQLException e) {
           throw new RuntimeException(e);
