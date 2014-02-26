@@ -941,28 +941,25 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       }
 
     case ORDER_BY: {
-      SqlCall orderBy = (SqlCall) node;
-      SqlNode query = orderBy.operand(SqlOrderByOperator.QUERY_OPERAND);
-      SqlNodeList orderList = orderBy.operand(SqlOrderByOperator.ORDER_OPERAND);
-      SqlNode offset = orderBy.operand(SqlOrderByOperator.OFFSET_OPERAND);
-      SqlNode fetch = orderBy.operand(SqlOrderByOperator.FETCH_OPERAND);
-      if (query instanceof SqlSelect) {
-        SqlSelect select = (SqlSelect) query;
+      SqlOrderBy orderBy = (SqlOrderBy) node;
+      if (orderBy.query instanceof SqlSelect) {
+        SqlSelect select = (SqlSelect) orderBy.query;
 
         // Don't clobber existing ORDER BY.  It may be needed for
         // an order-sensitive function like RANK.
         if (select.getOrderList() == null) {
           // push ORDER BY into existing select
-          select.setOrderBy(orderList);
-          select.setOffset(offset);
-          select.setFetch(fetch);
+          select.setOrderBy(orderBy.orderList);
+          select.setOffset(orderBy.offset);
+          select.setFetch(orderBy.fetch);
           return select;
         }
       }
       final SqlNodeList selectList = new SqlNodeList(SqlParserPos.ZERO);
       selectList.add(new SqlIdentifier("*", SqlParserPos.ZERO));
-      return new SqlSelect(SqlParserPos.ZERO, null, selectList, query, null,
-          null, null, null, orderList, offset, fetch);
+      return new SqlSelect(SqlParserPos.ZERO, null, selectList, orderBy.query,
+          null, null, null, null, orderBy.orderList, orderBy.offset,
+          orderBy.fetch);
     }
 
     case EXPLICIT_TABLE: {

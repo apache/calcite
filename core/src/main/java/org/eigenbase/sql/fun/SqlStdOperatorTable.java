@@ -920,8 +920,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   public static final SqlSpecialOperator EXPLAIN =
       new SqlSpecialOperator("EXPLAIN", SqlKind.EXPLAIN);
 
-  public static final SqlOrderByOperator ORDER_BY =
-      new SqlOrderByOperator();
+  public static final SqlSpecialOperator ORDER_BY = SqlOrderBy.OPERATOR;
 
   public static final SqlOperator PROCEDURE_CALL =
       new SqlProcedureCallOperator();

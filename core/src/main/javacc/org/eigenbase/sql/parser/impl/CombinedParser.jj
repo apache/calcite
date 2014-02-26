@@ -575,7 +575,7 @@ SqlNode OrderedQueryOrExpr(ExprContext exprContext) :
             if (orderBy == null) {
                 orderBy = SqlNodeList.EMPTY;
             }
-            e = SqlStdOperatorTable.ORDER_BY.createCall(pos, e, orderBy, start, count);
+            e = new SqlOrderBy(pos, e, orderBy, start, count);
 
         }
         return e;
