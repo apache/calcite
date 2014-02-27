@@ -3,7 +3,7 @@
 
 # Build classpath on first call. (To force rebuild, remove .classpath.txt.)
 cd $(dirname $0)
-if [ ! -f .classpath.txt ]; then
+if [ ! -f .fullclasspath.txt ]; then
     mvn dependency:build-classpath -Dmdep.outputFile=.classpath.txt
     awk -v RS=: -v ORS=: '{if(!m[$0]) {m[$0]=1; print}}' .classpath.txt */.classpath.txt > .fullclasspath.txt
 fi
@@ -14,6 +14,8 @@ for module in core mongodb spark splunk; do
   CP=${CP}${module}/target/test-classes:
 done
 
-exec java -cp "${CP}$(cat .fullclasspath.txt)" sqlline.SqlLine "$@"
+export JAVA_OPTS=-Djavax.xml.parsers.DocumentBuilderFactory=com.sun.org.apache.xerces.internal.jaxp.DocumentBuilderFactoryImpl
+
+exec java -cp "${CP}$(cat .fullclasspath.txt)" $JAVA_OPTS sqlline.SqlLine "$@"
 
 # End sqlline

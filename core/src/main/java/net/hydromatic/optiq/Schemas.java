@@ -307,7 +307,8 @@ public final class Schemas {
       }
 
       public OptiqPrepare.SparkHandler spark() {
-        return OptiqPrepare.Dummy.getSparkHandler();
+        final boolean enable = config().spark();
+        return OptiqPrepare.Dummy.getSparkHandler(enable);
       }
     };
   }

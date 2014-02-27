@@ -72,11 +72,10 @@ bye
 Connect using the <a href="src/test/resources/mongo-zips-model.json">mongo-zips-model.json</a> Optiq model:
 ```bash
 $ ./sqlline
-sqlline> !connect
-sqlline> !connect jdbc:optiq:model=target/test-classes/mongo-zips-model.json admin admin
-Connecting to jdbc:optiq:model=target/test-classes/mongo-zips-model.json
-Connected to: Optiq (version 0.4.2)
-Driver: Optiq JDBC Driver (version 0.4.2)
+sqlline> !connect jdbc:optiq:model=mongodb/target/test-classes/mongo-zips-model.json admin admin
+Connecting to jdbc:optiq:model=mongodb/target/test-classes/mongo-zips-model.json
+Connected to: Optiq (version 0.4.x)
+Driver: Optiq JDBC Driver (version 0.4.x)
 Autocommit status: true
 Transaction isolation: TRANSACTION_REPEATABLE_READ
 sqlline> !tables

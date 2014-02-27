@@ -189,7 +189,10 @@ public class OptiqPrepareImpl implements OptiqPrepare {
       planner.addRule(ReduceValuesRule.PROJECT_INSTANCE);
     }
 
-    context.spark().registerRules(planner);
+    final SparkHandler spark = context.spark();
+    if (spark.enabled()) {
+      spark.registerRules(planner);
+    }
     return planner;
   }
 

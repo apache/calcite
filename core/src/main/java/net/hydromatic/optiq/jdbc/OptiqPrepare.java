@@ -109,9 +109,13 @@ public interface OptiqPrepare {
   public static class Dummy {
     private static SparkHandler sparkHandler;
 
-    public static synchronized SparkHandler getSparkHandler() {
+    /** Returns a spark handler. Returns a trivial handler, for which
+     * {@link SparkHandler#enabled()} returns {@code false}, if {@code enable}
+     * is {@code false} or if Spark is not on the class path. Never returns
+     * null. */
+    public static synchronized SparkHandler getSparkHandler(boolean enable) {
       if (sparkHandler == null) {
-        sparkHandler = createHandler();
+        sparkHandler = enable ? createHandler() : new TrivialSparkHandler();
       }
       return sparkHandler;
     }
