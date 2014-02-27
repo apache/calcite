@@ -31,6 +31,9 @@ import org.eigenbase.reltype.RelDataTypeFactory;
 import org.eigenbase.reltype.RelDataTypeField;
 import org.eigenbase.util.Pair;
 
+import com.google.common.base.Function;
+import com.google.common.collect.Lists;
+
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
 import java.util.*;
@@ -89,20 +92,15 @@ public class PhysTypeImpl implements PhysType {
     return format;
   }
 
-  public PhysType project(
-      final List<Integer> integers,
-      JavaRowFormat format) {
+  public PhysType project(List<Integer> integers, JavaRowFormat format) {
     RelDataType projectedRowType =
         typeFactory.createStructType(
-            new AbstractList<Map.Entry<String, RelDataType>>() {
-              public Map.Entry<String, RelDataType> get(int index) {
-                return rowType.getFieldList().get(index);
-              }
-
-              public int size() {
-                return integers.size();
-              }
-            });
+            Lists.transform(integers,
+                new Function<Integer, RelDataTypeField>() {
+                  public RelDataTypeField apply(Integer index) {
+                    return rowType.getFieldList().get(index);
+                  }
+                }));
     return of(typeFactory, projectedRowType, format.optimize(projectedRowType));
   }
 
