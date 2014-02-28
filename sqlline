@@ -26,6 +26,16 @@ if [ ! -d target/dependencies ]; then
     mvn -B -DskipTests -Dcheckfile.skip=true package
 fi
 
-exec java -cp "target/classes:target/test-classes:target/dependencies/*" sqlline.SqlLine "$@"
+case $(uname -s) in
+(CYGWIN*) cygwin=true;;
+(*) cygwin=;;
+esac
+
+CP="target/classes:target/test-classes:target/dependencies/*"
+if [ "$cygwin" ]; then
+  CP=$(cygpath -wp "$CP")
+fi
+
+exec java -cp "${CP}" sqlline.SqlLine "$@"
 
 # End sqlline
