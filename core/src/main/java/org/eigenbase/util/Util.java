@@ -34,6 +34,9 @@ import java.util.regex.*;
 
 import net.hydromatic.linq4j.Ord;
 
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
 import com.google.common.collect.ImmutableMap;
 
 /**
@@ -91,9 +94,17 @@ public class Util {
    * Maps classes to the map of their enum values. Uses a weak map so that
    * classes are not prevented from being unloaded.
    */
-  private static final Map<Class, Map<String, ? extends Enum>>
-  MAP_CLASS_TO_MAP_NAME_TO_ENUM =
-      new WeakHashMap<Class, Map<String, ? extends Enum>>();
+  private static final LoadingCache<Class, Map<String, Enum>> ENUM_CONSTANTS =
+      CacheBuilder.<Class, Map<String, Enum>>newBuilder()
+          .weakKeys()
+          .build(
+              new CacheLoader<Class, Map<String, Enum>>() {
+                @Override
+                public Map<String, Enum> load(Class clazz) {
+                  //noinspection unchecked
+                  return enumConstants(clazz);
+                }
+              });
 
   public static final String[] SPACES = {
     "",
@@ -1875,13 +1886,7 @@ public class Util {
   public static synchronized <T extends Enum<T>> T enumVal(
       Class<T> clazz,
       String name) {
-    Map<String, T> mapNameToEnum =
-        (Map<String, T>) MAP_CLASS_TO_MAP_NAME_TO_ENUM.get(clazz);
-    if (mapNameToEnum == null) {
-      mapNameToEnum = enumConstants(clazz);
-      MAP_CLASS_TO_MAP_NAME_TO_ENUM.put(clazz, mapNameToEnum);
-    }
-    return mapNameToEnum.get(name);
+    return (T) ENUM_CONSTANTS.getUnchecked(clazz).get(name);
   }
 
   /**

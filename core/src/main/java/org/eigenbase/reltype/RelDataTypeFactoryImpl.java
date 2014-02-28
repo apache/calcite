@@ -21,8 +21,6 @@ import java.lang.reflect.*;
 import java.nio.charset.*;
 import java.sql.*;
 import java.util.*;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
 
 import org.eigenbase.sql.*;
 import org.eigenbase.sql.type.*;
@@ -330,17 +328,7 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
    * @throws NullPointerException if type is null
    */
   protected RelDataType canonize(final RelDataType type) {
-    try {
-      return CACHE.get(
-          type,
-          new Callable<RelDataType>() {
-            public RelDataType call() throws Exception {
-              return type;
-            }
-          });
-    } catch (ExecutionException e) {
-      throw new RuntimeException(e);
-    }
+    return CACHE.getUnchecked(type);
   }
 
   /**
@@ -358,14 +346,9 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
     if (type != null) {
       return type;
     }
-    try {
-      final ImmutableList<String> names2 = ImmutableList.copyOf(names);
-      final ImmutableList<RelDataType> types2 =
-          ImmutableList.copyOf(types);
-      return CACHE.get(Pair.of(names2, types2));
-    } catch (ExecutionException e) {
-      throw new RuntimeException(e);
-    }
+    final ImmutableList<String> names2 = ImmutableList.copyOf(names);
+    final ImmutableList<RelDataType> types2 = ImmutableList.copyOf(types);
+    return CACHE.getUnchecked(Pair.of(names2, types2));
   }
 
   /**

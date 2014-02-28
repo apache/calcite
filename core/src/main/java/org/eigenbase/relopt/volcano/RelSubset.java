@@ -261,9 +261,12 @@ public class RelSubset extends AbstractRelNode {
 
     // If this isn't the first rel in the set, it must have compatible
     // row type.
-    assert (set.rel == null)
-        || RelOptUtil.equal("rowtype of new rel", rel.getRowType(),
-            "rowtype of set", getRowType(), true);
+    if (set.rel != null) {
+      if (!RelOptUtil.equal("rowtype of new rel", rel.getRowType(),
+          "rowtype of set", getRowType(), true)) {
+        throw new AssertionError();
+      }
+    }
     set.addInternal(rel);
     Set<String> variablesSet = RelOptUtil.getVariablesSet(rel);
     Set<String> variablesStopped = rel.getVariablesStopped();

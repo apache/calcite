@@ -17,8 +17,6 @@
 */
 package org.eigenbase.relopt;
 
-import java.util.concurrent.ExecutionException;
-
 import org.eigenbase.rel.*;
 import org.eigenbase.rel.convert.*;
 
@@ -110,11 +108,7 @@ public abstract class RelTraitDef<T extends RelTrait> {
         + " cannot canonize a "
         + trait.getClass().getName();
 
-    try {
-      return canonicalMap.get(trait);
-    } catch (ExecutionException e) {
-      throw new RuntimeException(e);
-    }
+    return canonicalMap.getUnchecked(trait);
   }
 
   /**
