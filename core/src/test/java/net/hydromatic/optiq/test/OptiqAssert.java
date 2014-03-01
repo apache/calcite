@@ -826,11 +826,15 @@ public class OptiqAssert {
     }
 
     public AssertQuery explainContains(String expected) {
+      return explainMatches(checkResultContains(expected));
+    }
+
+    public AssertQuery explainMatches(Function1<ResultSet, Void> checker) {
       String explainSql = "explain plan for " + sql;
       try {
         assertQuery(
             createConnection(), explainSql, limit, materializationsEnabled,
-            checkResultContains(expected), null);
+            checker, null);
         return this;
       } catch (Exception e) {
         throw new RuntimeException(
@@ -1001,7 +1005,7 @@ public class OptiqAssert {
     }
 
     @Override
-    public AssertQuery explainContains(String expected) {
+    public AssertQuery explainMatches(Function1<ResultSet, Void> checker) {
       return this;
     }
 

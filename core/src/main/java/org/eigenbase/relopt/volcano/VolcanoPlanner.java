@@ -27,6 +27,7 @@ import org.eigenbase.rel.convert.*;
 import org.eigenbase.rel.metadata.*;
 import org.eigenbase.rel.rules.*;
 import org.eigenbase.relopt.*;
+import org.eigenbase.relopt.hep.*;
 import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.sql.SqlExplainLevel;
 import org.eigenbase.util.*;
@@ -293,7 +294,22 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
           root, materialization.starRelOptTable);
     }
 
-    return new SubstitutionVisitor(materialization.queryRel, root)
+    // Push filters to the bottom, and combine projects on top.
+    RelNode target = materialization.queryRel;
+    HepProgram program =
+        new HepProgramBuilder()
+            .addRuleInstance(PushFilterPastProjectRule.INSTANCE)
+            .addRuleInstance(MergeProjectRule.INSTANCE)
+            .build();
+
+    final HepPlanner hepPlanner = new HepPlanner(program);
+    hepPlanner.setRoot(target);
+    target = hepPlanner.findBestExp();
+
+    hepPlanner.setRoot(root);
+    root = hepPlanner.findBestExp();
+
+    return new SubstitutionVisitor(target, root)
         .go(materialization.tableRel);
   }
 

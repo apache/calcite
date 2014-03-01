@@ -17,6 +17,8 @@
 */
 package net.hydromatic.optiq.test;
 
+import net.hydromatic.linq4j.function.Function1;
+
 import net.hydromatic.optiq.jdbc.JavaTypeFactoryImpl;
 import net.hydromatic.optiq.materialize.MaterializationService;
 import net.hydromatic.optiq.prepare.Prepare;
@@ -29,6 +31,7 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 import java.math.BigDecimal;
+import java.sql.ResultSet;
 
 import static org.junit.Assert.*;
 
@@ -38,6 +41,10 @@ import static org.junit.Assert.*;
  * and checks that the materialization is used.
  */
 public class MaterializationTest {
+  private static final Function1<ResultSet, Void> CONTAINS_M0 =
+      OptiqAssert.checkResultContains(
+          "EnumerableTableAccessRel(table=[[hr, m0]])");
+
   final JavaTypeFactoryImpl typeFactory = new JavaTypeFactoryImpl();
   final RexBuilder rexBuilder = new RexBuilder(typeFactory);
 
@@ -80,13 +87,13 @@ public class MaterializationTest {
   /** Checks that a given query can use a materialized view with a given
    * definition. */
   private void checkMaterialize(String materialize, String query) {
-    checkMaterialize(materialize, query, JdbcTest.HR_MODEL);
+    checkMaterialize(materialize, query, JdbcTest.HR_MODEL, CONTAINS_M0);
   }
 
   /** Checks that a given query can use a materialized view with a given
    * definition. */
-  private void checkMaterialize(String materialize, String query,
-      String model) {
+  private void checkMaterialize(String materialize, String query, String model,
+      Function1<ResultSet, Void> checker) {
     try {
       Prepare.trim = true;
       MaterializationService.setThreadLocal();
@@ -95,8 +102,7 @@ public class MaterializationTest {
           .withMaterializations(model, "m0", materialize)
           .query(query)
           .enableMaterializations(true)
-          .explainContains(
-              "EnumerableTableAccessRel(table=[[hr, m0]])")
+          .explainMatches(checker)
           .sameResultWithMaterializationsDisabled();
     } finally {
       Prepare.trim = false;
@@ -123,7 +129,7 @@ public class MaterializationTest {
   }
 
   /** Runs the same test as {@link #testFilterQueryOnProjectView()} but more
-   * concisely.*/
+   * concisely. */
   @Test public void testFilterQueryOnProjectView0() {
     checkMaterialize(
         "select \"deptno\", \"empid\" from \"emps\"",
@@ -131,7 +137,7 @@ public class MaterializationTest {
   }
 
   /** As {@link #testFilterQueryOnProjectView()} but with extra column in
-   * materialized view.*/
+   * materialized view. */
   @Test public void testFilterQueryOnProjectView1() {
     checkMaterialize(
         "select \"deptno\", \"empid\", \"name\" from \"emps\"",
@@ -139,7 +145,7 @@ public class MaterializationTest {
   }
 
   /** As {@link #testFilterQueryOnProjectView()} but with extra column in both
-   * materialized view and query.*/
+   * materialized view and query. */
   @Test public void testFilterQueryOnProjectView2() {
     checkMaterialize(
         "select \"deptno\", \"empid\", \"name\" from \"emps\"",
@@ -147,8 +153,7 @@ public class MaterializationTest {
   }
 
   /** As {@link #testFilterQueryOnProjectView()} but materialized view contains
-   * an expression and query.*/
-  @Ignore
+   * an expression and query. */
   @Test public void testFilterQueryOnProjectView3() {
     checkMaterialize(
         "select \"deptno\" - 10 as \"x\", \"empid\" + 1, \"name\" from \"emps\"",
@@ -156,11 +161,30 @@ public class MaterializationTest {
   }
 
   /** As {@link #testFilterQueryOnProjectView3()} but materialized view cannot
-   * be used because it does not contain required expression.*/
+   * be used because it does not contain required expression. */
   @Test public void testFilterQueryOnProjectView4() {
     checkNoMaterialize(
         "select \"deptno\" - 10 as \"x\", \"empid\" + 1, \"name\" from \"emps\"",
         "select \"name\" from \"emps\" where \"deptno\" + 10 = 20",
+        JdbcTest.HR_MODEL);
+  }
+
+  /** As {@link #testFilterQueryOnProjectView3()} but also contains an
+   * expression column. */
+  @Ignore("fix project expr on filter")
+  @Test public void testFilterQueryOnProjectView5() {
+    checkMaterialize(
+        "select \"deptno\" - 10 as \"x\", \"empid\" + 1, \"name\" from \"emps\"",
+        "select \"name\", \"empid\" + 1 from \"emps\" where \"deptno\" - 10 = 0");
+  }
+
+  /** As {@link #testFilterQueryOnProjectView3()} but also contains an
+   * expression column. */
+  @Ignore("fix project expr on filter")
+  @Test public void testFilterQueryOnProjectView6() {
+    checkNoMaterialize(
+        "select \"deptno\" - 10 as \"x\", \"empid\" + 1, \"name\" from \"emps\"",
+        "select \"name\", \"empid\" + 2 from \"emps\" where \"deptno\" - 10 = 0",
         JdbcTest.HR_MODEL);
   }
 
@@ -181,11 +205,15 @@ public class MaterializationTest {
 
   /** As {@link #testFilterQueryOnFilterView()} but condition is weaker in
    * view. */
-  @Ignore
+  @Ignore("not implemented")
   @Test public void testFilterQueryOnFilterView3() {
     checkMaterialize(
-        "select \"deptno\", \"empid\", \"name\" from \"emps\" where \"deptno\" = 10 or \"empid\" < 150",
-        "select \"empid\" + 1 as x, \"name\" from \"emps\" where \"deptno\" = 10");
+        "select \"deptno\", \"empid\", \"name\" from \"emps\" where \"deptno\" = 10 or \"deptno\" = 20 or \"empid\" < 160",
+        "select \"empid\" + 1 as x, \"name\" from \"emps\" where \"deptno\" = 10",
+        JdbcTest.HR_MODEL,
+        OptiqAssert.checkResultContains(
+            "EnumerableCalcRel(expr#0..2=[{inputs}], expr#3=[1], expr#4=[+($t1, $t3)], X=[$t4], name=[$t2], condition=?)\n"
+            + "  EnumerableTableAccessRel(table=[[hr, m0]])"));
   }
 
   @Ignore
@@ -414,7 +442,8 @@ public class MaterializationTest {
         + "and t.\"time_id\" = f.\"time_id\"\n"
         + "group by t.\"the_year\",\n"
         + " t.\"the_month\"\n",
-        JdbcTest.FOODMART_MODEL);
+        JdbcTest.FOODMART_MODEL,
+        CONTAINS_M0);
   }
 
   /** Simpler than {@link #testFilterGroupQueryOnStar()}, tests a query on a
@@ -428,7 +457,8 @@ public class MaterializationTest {
         + "join \"foodmart\".\"product\" as p on f.\"product_id\" = p.\"product_id\"\n"
         + "join \"foodmart\".\"product_class\" as pc on p.\"product_class_id\" = pc.\"product_class_id\"\n";
     checkMaterialize(
-        q, q + "where t.\"month_of_year\" = 10", JdbcTest.FOODMART_MODEL);
+        q, q + "where t.\"month_of_year\" = 10", JdbcTest.FOODMART_MODEL,
+        CONTAINS_M0);
   }
 
   /** A materialization that is a join of a union cannot at present be converted

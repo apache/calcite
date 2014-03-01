@@ -843,6 +843,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
       }
       child = buildFinalPlan((HepRelVertex) child);
       rel.replaceInput(i, child);
+      rel.recomputeDigest();
     }
 
     return rel;

@@ -18,13 +18,19 @@
 package org.eigenbase.relopt;
 
 import java.util.*;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import org.eigenbase.rel.*;
 import org.eigenbase.rel.rules.RemoveTrivialProjectRule;
+import org.eigenbase.reltype.RelDataTypeField;
 import org.eigenbase.rex.*;
 import org.eigenbase.sql.SqlKind;
 import org.eigenbase.sql.fun.SqlStdOperatorTable;
+import org.eigenbase.trace.EigenbaseTrace;
 import org.eigenbase.util.Pair;
+
+import net.hydromatic.linq4j.Ord;
 
 import net.hydromatic.optiq.prepare.OptiqPrepareImpl;
 
@@ -33,8 +39,8 @@ import com.google.common.collect.ImmutableList;
 /**
  * Substitutes part of a tree of relational expressions with another tree.
  *
- * <p>The call {@code new SubstitutionVisitor(find, query).go(replacement))}
- * will return {@code query} with every occurrence of {@code find} replaced
+ * <p>The call {@code new SubstitutionVisitor(target, query).go(replacement))}
+ * will return {@code query} with every occurrence of {@code target} replaced
  * by {@code replacement}.</p>
  *
  * <p>The following example shows how {@code SubstitutionVisitor} can be used
@@ -42,7 +48,7 @@ import com.google.common.collect.ImmutableList;
  *
  * <ul>
  * <li>query = SELECT a, c FROM t WHERE x = 5 AND b = 4</li>
- * <li>find = SELECT a, b, c FROM t WHERE x = 5</li>
+ * <li>target = SELECT a, b, c FROM t WHERE x = 5</li>
  * <li>replacement = SELECT * FROM mv</li>
  * <li>result = SELECT a, c FROM mv WHERE b = 4</li>
  * </ul>
@@ -54,15 +60,17 @@ import com.google.common.collect.ImmutableList;
  * At each level, returns the residue.</p>
  *
  * <p>The inputs must only include the core relational operators:
- * {@link org.eigenbase.rel.TableAccessRel},
- * {@link org.eigenbase.rel.FilterRel},
- * {@link org.eigenbase.rel.ProjectRel},
- * {@link org.eigenbase.rel.JoinRel},
- * {@link org.eigenbase.rel.UnionRel},
- * {@link org.eigenbase.rel.AggregateRel}.</p>
+ * {@link TableAccessRel},
+ * {@link FilterRel},
+ * {@link ProjectRel},
+ * {@link JoinRel},
+ * {@link UnionRel},
+ * {@link AggregateRel}.</p>
  */
 public class SubstitutionVisitor {
   private static final boolean DEBUG = OptiqPrepareImpl.DEBUG;
+
+  private static final Logger LOGGER = EigenbaseTrace.getPlannerTracer();
 
   private static final List<UnifyRule> RULES =
       Arrays.<UnifyRule>asList(
@@ -76,19 +84,19 @@ public class SubstitutionVisitor {
       new HashMap<Pair<Class, Class>, List<UnifyRule>>();
 
   private final RelNode query;
-  private final RelNode find;
+  private final RelNode target;
 
   /**
    * Map from each node in the query and the materialization query
    * to its parent.
    */
-  final Map<RelNode, Pair<RelNode, Integer>> parentMap =
-      new IdentityHashMap<RelNode, Pair<RelNode, Integer>>();
+  final Map<RelNode, Parentage> parentMap =
+      new IdentityHashMap<RelNode, Parentage>();
 
   /**
-   * Nodes in {@link #find} that have no children.
+   * Nodes in {@link #target} that have no children.
    */
-  final List<RelNode> findLeaves;
+  final List<RelNode> targetLeaves;
 
   /**
    * Nodes in {@link #query} that have no children.
@@ -98,86 +106,32 @@ public class SubstitutionVisitor {
   final Map<RelNode, RelNode> replacementMap =
       new HashMap<RelNode, RelNode>();
 
-  public SubstitutionVisitor(RelNode find, RelNode query) {
+  public SubstitutionVisitor(RelNode target, RelNode query) {
     this.query = query;
-    this.find = find;
+    this.target = target;
     final Set<RelNode> parents = new HashSet<RelNode>();
     final List<RelNode> allNodes = new ArrayList<RelNode>();
     final RelVisitor visitor =
         new RelVisitor() {
           public void visit(RelNode node, int ordinal, RelNode parent) {
-            parentMap.put(node, Pair.of(parent, ordinal));
+            parentMap.put(node, new Parentage(parent, ordinal));
             parents.add(parent);
             allNodes.add(node);
             super.visit(node, ordinal, parent);
           }
         };
-    visitor.go(find);
+    visitor.go(target);
 
-    // Populate the list of leaves in the tree under "find".
+    // Populate the list of leaves in the tree under "target".
     // Leaves are all nodes that are not parents.
     // For determinism, it is important that the list is in scan order.
     allNodes.removeAll(parents);
-    findLeaves = ImmutableList.copyOf(allNodes);
+    targetLeaves = ImmutableList.copyOf(allNodes);
 
     allNodes.clear();
     visitor.go(query);
     allNodes.removeAll(parents);
     queryLeaves = ImmutableList.copyOf(allNodes);
-  }
-
-  // TODO: move to RelOptUtil
-  private static boolean contains(RelNode ancestor, final RelNode target) {
-    if (ancestor == target) {
-      // Short-cut common case.
-      return true;
-    }
-    try {
-      new RelVisitor() {
-        public void visit(RelNode node, int ordinal, RelNode parent) {
-          if (node == target) {
-            throw FoundRel.INSTANCE;
-          }
-          super.visit(node, ordinal, parent);
-        }
-        // CHECKSTYLE: IGNORE 1
-      }.go(ancestor);
-      return false;
-    } catch (FoundRel e) {
-      return true;
-    }
-  }
-
-  // TODO: move to RelOptUtil
-  private static RelNode replace(RelNode query, RelNode find, RelNode replace) {
-    if (find == replace) {
-      // Short-cut common case.
-      return query;
-    }
-    assert equalType("find", find, "replace", replace);
-    if (query == find) {
-      // Short-cut another common case.
-      return replace;
-    }
-    return replaceRecurse(query, find, replace);
-  }
-
-  private static RelNode replaceRecurse(
-      RelNode query, RelNode find, RelNode replace) {
-    if (query == find) {
-      return replace;
-    }
-    final List<RelNode> inputs = query.getInputs();
-    if (!inputs.isEmpty()) {
-      final List<RelNode> newInputs = new ArrayList<RelNode>();
-      for (RelNode input : inputs) {
-        newInputs.add(replaceRecurse(input, find, replace));
-      }
-      if (!newInputs.equals(inputs)) {
-        return query.copy(query.getTraitSet(), newInputs);
-      }
-    }
-    return query;
   }
 
   /**
@@ -282,19 +236,7 @@ public class SubstitutionVisitor {
     for (RexNode notDisjunction : notDisjunctions) {
       final List<RexNode> disjunctions2 =
           RelOptUtil.conjunctions(notDisjunction);
-      if (containsAll(disjunctions, disjunctions2)) {
-        return false;
-      }
-    }
-    return true;
-  }
-
-  /**
-   * Returns whether {@code list} contains every item in {@code list2}.
-   */
-  static boolean containsAll(List<RexNode> list, List<RexNode> list2) {
-    for (RexNode e2 : list2) {
-      if (!list.contains(e2)) {
+      if (disjunctions.containsAll(disjunctions2)) {
         return false;
       }
     }
@@ -347,7 +289,7 @@ public class SubstitutionVisitor {
     for (RexNode notDisjunction : notDisjunctions) {
       final List<RexNode> disjunctions2 =
           RelOptUtil.conjunctions(notDisjunction);
-      if (containsAll(disjunctions, disjunctions2)) {
+      if (disjunctions.containsAll(disjunctions2)) {
         return rexBuilder.makeLiteral(false);
       }
     }
@@ -374,12 +316,13 @@ public class SubstitutionVisitor {
   }
 
   public RelNode go(RelNode replacement) {
-    assert equalType("find", find, "replacement", replacement);
-    replacementMap.put(find, replacement);
-    final UnifyResult unifyResult = matchRecurse(find);
+    assert RelOptUtil.equalType("target", target, "replacement", replacement,
+        true);
+    replacementMap.put(target, replacement);
+    final UnifyResult unifyResult = matchRecurse(target);
     if (unifyResult != null) {
       final RelNode node =
-          replace(query, unifyResult.query, unifyResult.result);
+          RelOptUtil.replace(query, unifyResult.query, unifyResult.result);
       if (DEBUG) {
         System.out.println(
             "Convert: query=" + RelOptUtil.toString(query)
@@ -390,19 +333,19 @@ public class SubstitutionVisitor {
     return null;
   }
 
-  private UnifyResult matchRecurse(RelNode find) {
-    final List<RelNode> findInputs = find.getInputs();
+  private UnifyResult matchRecurse(RelNode target) {
+    final List<RelNode> targetInputs = target.getInputs();
     final List<RelNode> queryInputs = new ArrayList<RelNode>();
     RelNode queryParent = null;
 
-    for (RelNode findInput : findInputs) {
-      UnifyResult unifyResult = matchRecurse(findInput);
+    for (RelNode targetInput : targetInputs) {
+      UnifyResult unifyResult = matchRecurse(targetInput);
       if (unifyResult == null) {
         return null;
       }
       queryInputs.add(unifyResult.result);
-      Pair<RelNode, Integer> pair = parentMap.get(unifyResult.query);
-      queryParent = pair.left;
+      Parentage pair = parentMap.get(unifyResult.query);
+      queryParent = pair.parent;
 /*
             queryParent = RelOptUtil.replaceInput(
                 pair.left, pair.right, unifyResult.result);
@@ -410,10 +353,10 @@ public class SubstitutionVisitor {
 */
     }
 
-    if (findInputs.isEmpty()) {
+    if (targetInputs.isEmpty()) {
       for (RelNode queryLeaf : queryLeaves) {
-        for (UnifyRule rule : applicableRules(queryLeaf, find)) {
-          final UnifyResult x = apply(rule, queryLeaf, find);
+        for (UnifyRule rule : applicableRules(queryLeaf, target)) {
+          final UnifyResult x = apply(rule, queryLeaf, target);
           if (x != null) {
             if (DEBUG) {
               System.out.println(
@@ -424,8 +367,8 @@ public class SubstitutionVisitor {
                      ? "\nQuery (original):\n"
                      + RelOptUtil.toString(queryParent)
                      : "")
-                  + "\nFind:\n"
-                  + RelOptUtil.toString(find)
+                  + "\nTarget:\n"
+                  + RelOptUtil.toString(target)
                   + "\nResult:\n"
                   + RelOptUtil.toString(x.result)
                   + "\n");
@@ -435,8 +378,8 @@ public class SubstitutionVisitor {
         }
       }
     } else {
-      for (UnifyRule rule : applicableRules(queryParent, find)) {
-        final UnifyResult x = apply(rule, queryParent, find);
+      for (UnifyRule rule : applicableRules(queryParent, target)) {
+        final UnifyResult x = apply(rule, queryParent, target);
         if (x != null) {
           if (DEBUG) {
             System.out.println(
@@ -447,8 +390,8 @@ public class SubstitutionVisitor {
                    ? "\nQuery (original):\n"
                    + RelOptUtil.toString(queryParent)
                    : "")
-                + "\nFind:\n"
-                + RelOptUtil.toString(find)
+                + "\nTarget:\n"
+                + RelOptUtil.toString(target)
                 + "\nResult:\n"
                 + RelOptUtil.toString(x.result)
                 + "\n");
@@ -460,10 +403,11 @@ public class SubstitutionVisitor {
     return null;
   }
 
-  private static List<UnifyRule> applicableRules(RelNode query, RelNode find) {
+  private static List<UnifyRule> applicableRules(RelNode query,
+      RelNode target) {
     final Class queryClass = query.getClass();
-    final Class findClass = find.getClass();
-    final Pair<Class, Class> key = Pair.of(queryClass, findClass);
+    final Class targetClass = target.getClass();
+    final Pair<Class, Class> key = Pair.of(queryClass, targetClass);
     List<UnifyRule> list = RULE_MAP.get(key);
     if (list == null) {
       final ImmutableList.Builder<UnifyRule> builder =
@@ -471,7 +415,7 @@ public class SubstitutionVisitor {
       for (UnifyRule rule : RULES) {
         //noinspection unchecked
         if (rule.getQueryClass().isAssignableFrom(queryClass)
-            && rule.getTargetClass().isAssignableFrom(findClass)) {
+            && rule.getTargetClass().isAssignableFrom(targetClass)) {
           builder.add(rule);
         }
       }
@@ -482,27 +426,30 @@ public class SubstitutionVisitor {
   }
 
   private <Q extends RelNode, T extends RelNode> UnifyResult apply(
-      UnifyRule<Q, T> rule, Q query, T find) {
+      UnifyRule<Q, T> rule, Q query, T target) {
     final Class<Q> queryClass = rule.getQueryClass();
     final Class<T> targetClass = rule.getTargetClass();
     if (queryClass.isInstance(query)
-        && targetClass.isInstance(find)) {
+        && targetClass.isInstance(target)) {
       return rule.apply(
           new UnifyIn<Q, T>(
               queryClass.cast(query),
-              targetClass.cast(find)));
+              targetClass.cast(target)));
     }
     return null;
   }
 
+  /** Exception thrown to exit a matcher. Not really an error. */
   private static class MatchFailed extends RuntimeException {
     public static final MatchFailed INSTANCE = new MatchFailed();
   }
 
-  private static class FoundRel extends RuntimeException {
-    public static final FoundRel INSTANCE = new FoundRel();
-  }
-
+  /** Rule that attempts to match a query relational expression
+   * against a target relational expression.
+   *
+   * <p>The rule declares the query and target types; this allows the
+   * engine to fire only a few rules in a given context.</p>
+   */
   private interface UnifyRule<Q extends RelNode, T extends RelNode> {
     Class<Q> getQueryClass();
 
@@ -549,16 +496,18 @@ public class SubstitutionVisitor {
       this.target = target;
     }
 
-    public Pair<RelNode, Integer> parent(RelNode node) {
+    /** Returns the parent of a node, which child it is, and a bitmap of which
+     * columns are used by the parent. */
+    public Parentage parent(RelNode node) {
       return parentMap.get(node);
     }
 
     UnifyResult result(RelNode result) {
-      assert contains(result, target);
-      assert equalType("result", result, "query", query);
+      assert RelOptUtil.contains(result, target);
+      assert RelOptUtil.equalType("result", result, "query", query, true);
       RelNode replace = replacementMap.get(target);
       if (replace != null) {
-        result = replace(result, target, replace);
+        result = RelOptUtil.replace(result, target, replace);
       }
       return new UnifyResult(query, target, result);
     }
@@ -569,12 +518,6 @@ public class SubstitutionVisitor {
     public <Q2 extends RelNode> UnifyIn<Q2, T> create(Q2 query) {
       return new UnifyIn<Q2, T>(query, target);
     }
-  }
-
-  private static boolean equalType(
-      String desc0, RelNode rel0, String desc1, RelNode rel1) {
-    return RelOptUtil.equal(
-        desc0, rel0.getRowType(), desc1, rel1.getRowType(), true);
   }
 
   /**
@@ -596,6 +539,7 @@ public class SubstitutionVisitor {
     }
   }
 
+  /** Abstract base class for implementing {@link UnifyRule}. */
   private abstract static
   class AbstractUnifyRule<Q extends RelNode, T extends RelNode>
       implements UnifyRule<Q, T> {
@@ -616,6 +560,8 @@ public class SubstitutionVisitor {
     }
   }
 
+  /** Implementation of {@link UnifyRule} that matches a table scan
+   * ({@link TableAccessRelBase} or a sub-class). */
   private static class ScanUnifyRule
       extends AbstractUnifyRule<TableAccessRelBase, TableAccessRelBase> {
     public static final ScanUnifyRule INSTANCE = new ScanUnifyRule();
@@ -634,6 +580,7 @@ public class SubstitutionVisitor {
     }
   }
 
+  /** Implementation of {@link UnifyRule} that matches {@link ProjectRel}. */
   private static class ProjectToProjectUnifyRule
       extends AbstractUnifyRule<ProjectRel, ProjectRel> {
     public static final ProjectToProjectUnifyRule INSTANCE =
@@ -668,6 +615,8 @@ public class SubstitutionVisitor {
     }
   }
 
+  /** Implementation of {@link UnifyRule} that matches a {@link FilterRel}
+   * to a {@link ProjectRel}. */
   private static class FilterToProjectUnifyRule
       extends AbstractUnifyRule<FilterRel, ProjectRel> {
     public static final FilterToProjectUnifyRule INSTANCE =
@@ -680,10 +629,6 @@ public class SubstitutionVisitor {
     public UnifyResult apply(UnifyIn<FilterRel, ProjectRel> in) {
       // Child of projectTarget is equivalent to child of filterQuery.
       try {
-        // TODO: shuttle that recognizes more complex
-        // expressions e,g
-        //   materialized view as select x + y from t
-        //
         // TODO: make sure that constants are ok
         final RexShuttle shuttle = getRexShuttle(in.target);
         final RexNode newCondition;
@@ -697,13 +642,38 @@ public class SubstitutionVisitor {
                 in.query.getCluster(),
                 in.target,
                 newCondition);
-        return in.result(newFilter);
+        final RelNode inverse = invert(in.query, newFilter, in.target);
+        return in.result(inverse);
       } catch (MatchFailed e) {
         return null;
       }
     }
+
+    private RelNode invert(RelNode model, RelNode input, ProjectRel project) {
+      if (LOGGER.isLoggable(Level.FINER)) {
+        LOGGER.finer("SubstitutionVisitor: invert:\n"
+            + "model: " + model + "\n"
+            + "input: " + input + "\n"
+            + "project: " + project + "\n");
+      }
+      final List<RexNode> exprList = new ArrayList<RexNode>();
+      final RexBuilder rexBuilder = model.getCluster().getRexBuilder();
+      for (RelDataTypeField field : model.getRowType().getFieldList()) {
+        exprList.add(rexBuilder.makeZeroLiteral(field.getType()));
+      }
+      for (Ord<RexNode> expr : Ord.zip(project.getProjects())) {
+        if (expr.e instanceof RexInputRef) {
+          final int target = ((RexInputRef) expr.e).getIndex();
+          exprList.set(expr.i,
+              rexBuilder.makeInputRef(input, target));
+        }
+      }
+      return new ProjectRel(model.getCluster(), model.getTraitSet(), input,
+          exprList, model.getRowType(), ProjectRelBase.Flags.BOXED);
+    }
   }
 
+  /** Implementation of {@link UnifyRule} that matches a {@link FilterRel}. */
   private static class FilterToFilterUnifyRule
       extends AbstractUnifyRule<FilterRel, FilterRel> {
     public static final FilterToFilterUnifyRule INSTANCE =
@@ -744,6 +714,8 @@ public class SubstitutionVisitor {
     }
   }
 
+  /** Implementation of {@link UnifyRule} that matches a {@link ProjectRel} to
+   * a {@link FilterRel}. */
   private static class ProjectToFilterUnifyRule
       extends AbstractUnifyRule<ProjectRel, FilterRel> {
     public static final ProjectToFilterUnifyRule INSTANCE =
@@ -754,10 +726,10 @@ public class SubstitutionVisitor {
     }
 
     public UnifyResult apply(UnifyIn<ProjectRel, FilterRel> in) {
-      final Pair<RelNode, Integer> queryParent = in.parent(in.query);
-      if (queryParent.left instanceof FilterRel) {
+      final Parentage queryParent = in.parent(in.query);
+      if (queryParent.parent instanceof FilterRel) {
         final UnifyIn<FilterRel, FilterRel> in2 =
-            in.create((FilterRel) queryParent.left);
+            in.create((FilterRel) queryParent.parent);
         final FilterRel newFilter =
             FilterToFilterUnifyRule.INSTANCE.createFilter(
                 in2.query, in2.target);
@@ -779,15 +751,32 @@ public class SubstitutionVisitor {
       map.put(e.toString(), map.size());
     }
     return new RexShuttle() {
-      @Override
-      public RexNode visitInputRef(RexInputRef ref) {
+      @Override public RexNode visitInputRef(RexInputRef ref) {
         final Integer integer = map.get(ref.getName());
         if (integer != null) {
           return new RexInputRef(integer, ref.getType());
         }
         throw MatchFailed.INSTANCE;
       }
+
+      @Override public RexNode visitCall(RexCall call) {
+        final Integer integer = map.get(call.toString());
+        if (integer != null) {
+          return new RexInputRef(integer, call.getType());
+        }
+        return super.visitCall(call);
+      }
     };
+  }
+
+  private static class Parentage {
+    final RelNode parent;
+    final int ordinal;
+
+    private Parentage(RelNode parent, int ordinal) {
+      this.parent = parent;
+      this.ordinal = ordinal;
+    }
   }
 }
 
