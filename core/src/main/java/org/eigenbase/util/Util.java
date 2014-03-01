@@ -2111,10 +2111,6 @@ public class Util {
   private static class SpaceList extends CopyOnWriteArrayList<String> {
     private static final List<String> INSTANCE = new SpaceList();
 
-    public SpaceList() {
-      populate("               ");
-    }
-
     @Override
     public String get(int index) {
       for (;;) {
@@ -2124,7 +2120,7 @@ public class Util {
           if (index < 0) {
             throw e;
           }
-          String s = get(size() - 1);
+          String s = size() < 16 ? "                " : get(size() - 1);
           populate(s + s);
         }
       }
