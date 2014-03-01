@@ -136,7 +136,7 @@ class LixToRelTranslator implements RelOptTable.ToRelContext {
     RexBuilder rexBuilder = cluster.getRexBuilder();
     List<RexNode> list =
         Collections.singletonList(
-            rexBuilder.makeRangeReference(child.getRowType()));
+            rexBuilder.makeRangeReference(child));
     OptiqPrepareImpl.ScalarTranslator translator =
         OptiqPrepareImpl.EmptyScalarTranslator
             .empty(rexBuilder)
@@ -165,7 +165,7 @@ class LixToRelTranslator implements RelOptTable.ToRelContext {
     List<RexNode> list = new ArrayList<RexNode>();
     RexBuilder rexBuilder = cluster.getRexBuilder();
     for (RelNode input : inputs) {
-      list.add(rexBuilder.makeRangeReference(input.getRowType()));
+      list.add(rexBuilder.makeRangeReference(input));
     }
     return OptiqPrepareImpl.EmptyScalarTranslator.empty(rexBuilder)
         .bind(expression.parameterList, list)
@@ -178,7 +178,7 @@ class LixToRelTranslator implements RelOptTable.ToRelContext {
     List<RexNode> list = new ArrayList<RexNode>();
     RexBuilder rexBuilder = cluster.getRexBuilder();
     for (RelNode input : inputs) {
-      list.add(rexBuilder.makeRangeReference(input.getRowType()));
+      list.add(rexBuilder.makeRangeReference(input));
     }
     return OptiqPrepareImpl.EmptyScalarTranslator.empty(rexBuilder)
         .bind(expression.parameterList, list)

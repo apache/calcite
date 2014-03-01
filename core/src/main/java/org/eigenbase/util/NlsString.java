@@ -221,6 +221,12 @@ public class NlsString implements Comparable<NlsString> {
         charSetName,
         collation);
   }
+
+  /** Creates a copy of this {@code NlsString} with different content but same
+   * charset and collation. */
+  public NlsString copy(String value) {
+    return new NlsString(value, charsetName, collation);
+  }
 }
 
 // End NlsString.java

@@ -126,8 +126,7 @@ public class RelWriterTest {
                         rexBuilder.makeCall(
                             SqlStdOperatorTable.EQUALS,
                             rexBuilder.makeFieldAccess(
-                                rexBuilder.makeRangeReference(
-                                    table.getRowType()),
+                                rexBuilder.makeRangeReference(table),
                                 "deptno", true),
                             rexBuilder.makeExactLiteral(BigDecimal.TEN)));
                 final RelJsonWriter writer = new RelJsonWriter();

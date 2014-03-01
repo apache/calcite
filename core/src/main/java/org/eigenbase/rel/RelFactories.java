@@ -85,8 +85,7 @@ public class RelFactories {
 
       public RexNode get(int index) {
         final int pos = posList.get(index);
-        return child.getCluster().getRexBuilder().makeInputRef(
-            child.getRowType().getFieldList().get(pos).getType(), pos);
+        return child.getCluster().getRexBuilder().makeInputRef(child, pos);
       }
     }, null);
   }

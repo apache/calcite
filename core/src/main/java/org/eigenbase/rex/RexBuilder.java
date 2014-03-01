@@ -492,9 +492,7 @@ public class RexBuilder {
     return makeCall(
         toType,
         SqlStdOperatorTable.NOT_EQUALS,
-        ImmutableList.<RexNode>of(
-            exp,
-            makeZeroLiteral(exp.getType())));
+        ImmutableList.of(exp, makeZeroLiteral(exp.getType())));
   }
 
   private RexNode makeCastBooleanToExact(RelDataType toType, RexNode exp) {
@@ -677,10 +675,10 @@ public class RexBuilder {
    * Creates a reference to all the fields in the row. That is, the whole row
    * as a single record object.
    *
-   * @param rowType Type of the input row.
+   * @param input Input relational expression
    */
-  public RexNode makeRangeReference(RelDataType rowType) {
-    return new RexRangeRef(rowType, 0);
+  public RexNode makeRangeReference(RelNode input) {
+    return new RexRangeRef(input.getRowType(), 0);
   }
 
   /**
@@ -719,6 +717,17 @@ public class RexBuilder {
       int i) {
     type = SqlTypeUtil.addCharsetAndCollation(type, typeFactory);
     return new RexInputRef(i, type);
+  }
+
+  /**
+   * Creates a reference to a given field of the input relational expression.
+   *
+   * @param input Input relational expression
+   * @param i    Ordinal of field
+   * @return Reference to field
+   */
+  public RexInputRef makeInputRef(RelNode input, int i) {
+    return makeInputRef(input.getRowType().getFieldList().get(i).getType(), i);
   }
 
   /**
@@ -1142,11 +1151,9 @@ public class RexBuilder {
     final List<RexNode> operands;
     switch (type.getSqlTypeName()) {
     case CHAR:
-      return makeCharLiteral(
-          new NlsString(
-              padRight((String) value, type.getPrecision()), null, null));
+      return makeCharLiteral(padRight((NlsString) value, type.getPrecision()));
     case VARCHAR:
-      literal = makeCharLiteral(new NlsString((String) value, null, null));
+      literal = makeCharLiteral((NlsString) value);
       if (allowCast) {
         return makeCast(type, literal);
       } else {
@@ -1239,6 +1246,13 @@ public class RexBuilder {
         return o;
       }
       return new BigDecimal(((Number) o).doubleValue());
+    case CHAR:
+    case VARCHAR:
+      if (o instanceof NlsString) {
+        return o;
+      }
+      return new NlsString((String) o, type.getCharset().name(),
+          type.getCollation());
     case TIME:
       if (o instanceof Calendar) {
         return o;
@@ -1290,9 +1304,24 @@ public class RexBuilder {
     throw new AssertionError("unknown type " + value.getClass());
   }
 
+  /** Returns an {@link NlsString} with spaces to make it at least a given
+   * length. */
+  private static NlsString padRight(NlsString s, int length) {
+    if (s.getValue().length() >= length) {
+      return s;
+    }
+    return s.copy(padRight(s.getValue(), length));
+  }
+
   /** Returns a string padded with spaces to make it at least a given length. */
   private static String padRight(String s, int length) {
-    return s + Util.spaces(Math.max(length - s.length(), 0));
+    if (s.length() >= length) {
+      return s;
+    }
+    return new StringBuilder()
+        .append(s)
+        .append(SpaceString.MAX, s.length(), length)
+        .toString();
   }
 
   /** Returns a byte-string padded with zero bytes to make it at least a given

@@ -125,9 +125,7 @@ public abstract class TableAccessRelBase extends AbstractRelNode {
     // Project the subset of fields.
     for (int i : BitSets.toIter(fieldsUsed)) {
       RelDataTypeField field = fields.get(i);
-      exprList.add(
-          rexBuilder.makeInputRef(
-              field.getType(), i));
+      exprList.add(rexBuilder.makeInputRef(this, i));
       nameList.add(field.getName());
     }
 

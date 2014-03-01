@@ -112,10 +112,7 @@ public class NestedLoopsJoinRule extends RelOptRule {
                 condition,
                 rexBuilder.makeCall(
                     SqlStdOperatorTable.EQUALS,
-                    rexBuilder.makeInputRef(
-                        right.getRowType().getFieldList().get(p.right)
-                            .getType(),
-                        p.right),
+                    rexBuilder.makeInputRef(right, p.right),
                     rexBuilder.makeCorrel(
                         left.getRowType().getFieldList().get(p.left).getType(),
                         dynInIdStr)));

@@ -2244,10 +2244,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
       }
 
       joinOutputProjExprs.add(
-          rexBuilder.makeInputRef(
-              joinRel.getRowType().getFieldList().get(nullIndicatorPos)
-                  .getType(),
-              nullIndicatorPos));
+          rexBuilder.makeInputRef(joinRel, nullIndicatorPos));
 
       RelNode joinOutputProjRel =
           CalcRel.createProject(
@@ -2301,9 +2298,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
       List<RexNode> newAggOutputProjExprList = new ArrayList<RexNode>();
       for (int i : BitSets.toIter(groupSet)) {
         newAggOutputProjExprList.add(
-            rexBuilder.makeInputRef(
-                newAggRel.getRowType().getFieldList().get(i).getType(),
-                i));
+            rexBuilder.makeInputRef(newAggRel, i));
       }
 
       RexNode newAggOutputProjExpr =

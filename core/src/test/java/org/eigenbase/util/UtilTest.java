@@ -835,6 +835,21 @@ public class UtilTest {
     assertEquals(1000, Util.spaces(1000).length());
   }
 
+  @Test public void testSpaceString() {
+    assertThat(new SpaceString(0).toString(), equalTo(""));
+    assertThat(new SpaceString(1).toString(), equalTo(" "));
+    assertThat(new SpaceString(9).toString(), equalTo("         "));
+    assertThat(new SpaceString(5).toString(), equalTo("     "));
+    String s =
+        new StringBuilder().append("xx").append(SpaceString.MAX, 0, 100)
+            .toString();
+    assertThat(s.length(), equalTo(102));
+
+    // this would blow memory if the string were materialized... check that it
+    // is not
+    assertThat(new SpaceString(1000000000).length(), equalTo(1000000000));
+  }
+
   /**
    * Unit test for {@link Pair#zip(java.util.List, java.util.List)}.
    */

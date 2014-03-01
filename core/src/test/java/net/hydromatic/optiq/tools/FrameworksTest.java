@@ -80,8 +80,7 @@ public class FrameworksTest {
             final RexNode condition =
                 rexBuilder.makeCall(SqlStdOperatorTable.GREATER_THAN,
                     rexBuilder.makeFieldAccess(
-                        rexBuilder.makeRangeReference(
-                            table.getRowType(typeFactory)), "i", true),
+                        rexBuilder.makeRangeReference(tableRel), "i", true),
                     rexBuilder.makeExactLiteral(BigDecimal.ONE));
             final FilterRel filterRel =
                 new FilterRel(cluster, tableRel, condition);

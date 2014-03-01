@@ -687,7 +687,7 @@ public class SqlToRelConverter {
       final int fieldCount =
           rowType.getFieldCount() - orderExprList.size();
       for (int i = 0; i < fieldCount; i++) {
-        exprs.add(RelOptUtil.createInputRef(bb.root, i));
+        exprs.add(rexBuilder.makeInputRef(bb.root, i));
       }
       bb.setRoot(
           new ProjectRel(
@@ -3677,10 +3677,7 @@ public class SqlToRelConverter {
 
           for (int i = 0; i < origLeftInputCount; i++) {
             newLeftInputExpr.add(
-                rexBuilder.makeInputRef(
-                    root.getRowType().getFieldList().get(i)
-                        .getType(),
-                    i));
+                rexBuilder.makeInputRef(root, i));
           }
 
           newLeftInputExpr.addAll(

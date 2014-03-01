@@ -375,12 +375,9 @@ public final class CalcRel extends CalcRelBase {
     final List<RexNode> exprList = new ArrayList<RexNode>();
     final List<RexLocalRef> projectRefList = new ArrayList<RexLocalRef>();
     final List<RelDataTypeField> fields = rel.getRowType().getFieldList();
+    final RexBuilder rexBuilder = rel.getCluster().getRexBuilder();
     for (int i = 0; i < fields.size(); i++) {
-      final RelDataTypeField field = fields.get(i);
-      exprList.add(
-          rel.getCluster().getRexBuilder().makeInputRef(
-              field.getType(),
-              i));
+      exprList.add(rexBuilder.makeInputRef(rel, i));
     }
     for (int i = 0; i < mapping.getTargetCount(); i++) {
       int source = mapping.getSource(i);

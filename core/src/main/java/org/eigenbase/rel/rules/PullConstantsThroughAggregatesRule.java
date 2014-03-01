@@ -167,6 +167,8 @@ public class PullConstantsThroughAggregatesRule extends RelOptRule {
               newAggCalls);
     }
 
+    final RexBuilder rexBuilder = aggregate.getCluster().getRexBuilder();
+
     // Create a projection back again.
     List<Pair<RexNode, String>> projects =
         new ArrayList<Pair<RexNode, String>>();
@@ -176,17 +178,14 @@ public class PullConstantsThroughAggregatesRule extends RelOptRule {
       final int i = field.getIndex();
       if (i >= groupCount) {
         // Aggregate expressions' names and positions are unchanged.
-        expr =
-            RelOptUtil.createInputRef(
-                newAggregate,
-                i - constantList.size());
+        expr = rexBuilder.makeInputRef(newAggregate, i - constantList.size());
       } else if (constantList.contains(i)) {
         // Re-generate the constant expression in the project.
         expr = constants.get(i);
       } else {
         // Project the aggregation expression, in its original
         // position.
-        expr = RelOptUtil.createInputRef(newAggregate, source);
+        expr = rexBuilder.makeInputRef(newAggregate, source);
         ++source;
       }
       projects.add(Pair.of(expr, field.getName()));
@@ -220,9 +219,10 @@ public class PullConstantsThroughAggregatesRule extends RelOptRule {
         new ArrayList<Pair<RexNode, String>>();
     for (int target = 0; target < mapping.getTargetCount(); ++target) {
       int source = mapping.getSource(target);
+      final RexBuilder rexBuilder = child.getCluster().getRexBuilder();
       projects.add(
           Pair.of(
-              RelOptUtil.createInputRef(child, source),
+              (RexNode) rexBuilder.makeInputRef(child, source),
               childRowType.getFieldList().get(source).getName()));
     }
     return CalcRel.createProject(child, projects, false);

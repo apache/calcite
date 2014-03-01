@@ -327,16 +327,12 @@ public abstract class RelOptUtil {
       RexBuilder rexBuilder = cluster.getRexBuilder();
       RelDataTypeFactory typeFactory = rexBuilder.getTypeFactory();
 
-      RelDataType inputFieldType = ret.getRowType();
-
       List<RexNode> exprs = new ArrayList<RexNode>();
 
       // for IN/NOT IN , it needs to output the fields
       if (isIn) {
-        for (int i = 0; i < inputFieldType.getFieldCount(); i++) {
-          exprs.add(
-              rexBuilder.makeInputRef(
-                  inputFieldType.getFieldList().get(i).getType(), i));
+        for (int i = 0; i < ret.getRowType().getFieldCount(); i++) {
+          exprs.add(rexBuilder.makeInputRef(ret, i));
         }
       }
 
@@ -1443,25 +1439,6 @@ public abstract class RelOptUtil {
   }
 
   /**
-   * Creates a reference to an output field of a relational expression.
-   *
-   * @param rel Relational expression
-   * @param i   Field ordinal; if negative, counts from end, so -1 means the
-   *            last field
-   */
-  public static RexNode createInputRef(
-      RelNode rel,
-      int i) {
-    final List<RelDataTypeField> fields = rel.getRowType().getFieldList();
-    if (i < 0) {
-      i = fields.size() + i;
-    }
-    return rel.getCluster().getRexBuilder().makeInputRef(
-        fields.get(i).getType(),
-        i);
-  }
-
-  /**
    * Returns whether two types are equal using '='.
    *
    * @param desc1 Description of first type
@@ -2055,9 +2032,7 @@ public abstract class RelOptUtil {
       RexNode equi =
           rexBuilder.makeCall(
               SqlStdOperatorTable.EQUALS,
-              rexBuilder.makeInputRef(
-                  left.getRowType().getFieldList().get(leftKey).getType(),
-                  leftKey),
+              rexBuilder.makeInputRef(left, leftKey),
               rexBuilder.makeInputRef(
                   right.getRowType().getFieldList().get(rightKey)
                       .getType(),

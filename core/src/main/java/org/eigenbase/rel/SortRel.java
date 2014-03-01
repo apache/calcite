@@ -91,9 +91,7 @@ public class SortRel extends SingleRel {
     ImmutableList.Builder<RexNode> builder = ImmutableList.builder();
     for (RelFieldCollation field : collation.getFieldCollations()) {
       int index = field.getFieldIndex();
-      builder.add(
-          cluster.getRexBuilder().makeInputRef(
-              getRowType().getFieldList().get(index).getType(), index));
+      builder.add(cluster.getRexBuilder().makeInputRef(child, index));
     }
     fieldExps = builder.build();
   }
