@@ -95,7 +95,7 @@ public class Util {
    * classes are not prevented from being unloaded.
    */
   private static final LoadingCache<Class, Map<String, Enum>> ENUM_CONSTANTS =
-      CacheBuilder.<Class, Map<String, Enum>>newBuilder()
+      CacheBuilder.newBuilder()
           .weakKeys()
           .build(
               new CacheLoader<Class, Map<String, Enum>>() {
