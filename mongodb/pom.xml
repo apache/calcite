@@ -49,12 +49,14 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
-        <version>2.15</version>
+        <version>2.16</version>
         <configuration>
-          <excludes>
-            <exclude>net/hydromatic/**/*.java</exclude>
-            <exclude>org/eigenbase/**/*.java</exclude>
-          </excludes>
+          <includes>
+            <include>net/hydromatic/optiq/test/MongoAdapterTest.java</include>
+          </includes>
+          <threadCount>6</threadCount>
+          <parallel>both</parallel>
+          <argLine>-Xmx1024m</argLine>
         </configuration>
       </plugin>
       <plugin>

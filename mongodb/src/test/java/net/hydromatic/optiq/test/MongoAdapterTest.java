@@ -25,10 +25,14 @@ import org.eigenbase.util.Pair;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.*;
 
-import java.util.List;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.*;
+
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.junit.Assert.assertThat;
 
 /**
  * Tests for the {@code net.hydromatic.optiq.impl.mongodb} package.
@@ -97,17 +101,24 @@ public class MongoAdapterTest {
   /** Connection factory based on the "mongo-zips" model. */
   public static final ImmutableMap<String, String> ZIPS =
       ImmutableMap.of("model",
-          "mongodb/target/test-classes/mongo-zips-model.json");
+          MongoAdapterTest.class.getResource("/mongo-zips-model.json")
+              .getPath());
 
   /** Connection factory based on the "mongo-zips" model. */
   public static final ImmutableMap<String, String> FOODMART =
       ImmutableMap.of("model",
-          "mongodb/target/test-classes/mongo-foodmart-model.json");
+          MongoAdapterTest.class.getResource("/mongo-foodmart-model.json")
+              .getPath());
 
-  /** Disabled by default, because we do not expect Mongo to be installed and
-   * populated with the FoodMart data set. */
-  private boolean enabled() {
-    return true;
+  /** Whether to run Mongo tests. Disabled by default, because we do not expect
+   * Mongo to be installed and populated with the FoodMart data set. To enable,
+   * specify {@code -Doptiq.test.mongodb=true} on the Java command line. */
+  public static final boolean ENABLED =
+      Boolean.getBoolean("optiq.test.mongodb");
+
+  /** Whether to run this test. */
+  protected boolean enabled() {
+    return ENABLED;
   }
 
   /** Returns a function that checks that a particular MongoDB pipeline is
@@ -123,6 +134,33 @@ public class MongoAdapterTest {
     };
   }
 
+  static Function1<ResultSet, Void> checkResultUnordered(
+      final String... lines) {
+    return new Function1<ResultSet, Void>() {
+      public Void apply(ResultSet resultSet) {
+        try {
+          final List<String> expectedList = new ArrayList<String>();
+          Collections.addAll(expectedList, lines);
+          Collections.sort(expectedList);
+
+          final List<String> actualList = new ArrayList<String>();
+          OptiqAssert.toStringList(resultSet, actualList);
+          for (int i = 0; i < actualList.size(); i++) {
+            String s = actualList.get(i);
+            actualList.set(i,
+                s.replaceAll("\\.0;", ";").replaceAll("\\.0$", ""));
+          }
+          Collections.sort(actualList);
+
+          assertThat(actualList, equalTo(expectedList));
+          return null;
+        } catch (SQLException e) {
+          throw new RuntimeException(e);
+        }
+      }
+    };
+  }
+
   @Test public void testSort() {
     OptiqAssert.that()
         .enable(enabled())
@@ -132,7 +170,7 @@ public class MongoAdapterTest {
         .explainContains(
             "PLAN=EnumerableCalcRel(expr#0..4=[{inputs}], expr#5=[0], expr#6=[ITEM($t1, $t5)], expr#7=[CAST($t6):FLOAT NOT NULL], expr#8=[1], expr#9=[ITEM($t1, $t8)], expr#10=[CAST($t9):FLOAT NOT NULL], CITY=[$t0], LONGITUDE=[$t7], LATITUDE=[$t10], POP=[$t2], STATE=[$t3], ID=[$t4])\n"
             + "  MongoToEnumerableConverter\n"
-            + "    MongoSortRel(sort0=[$3], dir0=[Ascending])\n"
+            + "    MongoSortRel(sort0=[$3], dir0=[ASC])\n"
             + "      MongoTableScan(table=[[mongo_raw, zips]], ops=[[<{city: 1, loc: 1, pop: 1, state: 1, _id: 1}, {$project: {city: 1, loc: 1, pop: 1, state: 1, _id: 1}}>]])");
   }
 
@@ -152,7 +190,7 @@ public class MongoAdapterTest {
         .explainContains(
             "PLAN=EnumerableCalcRel(expr#0..4=[{inputs}], expr#5=[0], expr#6=[ITEM($t1, $t5)], expr#7=[CAST($t6):FLOAT NOT NULL], expr#8=[1], expr#9=[ITEM($t1, $t8)], expr#10=[CAST($t9):FLOAT NOT NULL], CITY=[$t0], LONGITUDE=[$t7], LATITUDE=[$t10], POP=[$t2], STATE=[$t3], ID=[$t4])\n"
             + "  MongoToEnumerableConverter\n"
-            + "    MongoSortRel(sort0=[$3], dir0=[Ascending])\n"
+            + "    MongoSortRel(sort0=[$3], dir0=[ASC])\n"
             + "      MongoFilterRel(condition=[AND(=($0, 'SPRINGFIELD'), >=($4, '20000'), <=($4, '30000'))])\n"
             + "        MongoTableScan(table=[[mongo_raw, zips]], ops=[[<{city: 1, loc: 1, pop: 1, state: 1, _id: 1}, {$project: {city: 1, loc: 1, pop: 1, state: 1, _id: 1}}>]])");
   }
@@ -173,8 +211,9 @@ public class MongoAdapterTest {
             + "    MongoTableScan(table=[[_foodmart, sales_fact_1998]], ops=[[<{product_id: 1}, {$project: {product_id: 1}}>]])")
         .limit(2)
         .returns(
-            "product_id=337\n"
-            + "product_id=1512\n");
+            checkResultUnordered(
+                "product_id=337",
+                "product_id=1512"));
   }
 
   @Test public void testFilterUnionPlan() {
@@ -218,21 +257,22 @@ public class MongoAdapterTest {
             "select * from \"warehouse\" where \"warehouse_state_province\" = 'CA'")
         .explainContains(
             "PLAN=MongoToEnumerableConverter\n"
-            + "  MongoFilterRel(condition=[=($1, 'CA')])\n"
-            + "    MongoTableScan(table=[[_foodmart, warehouse]], ops=[[<{warehouse_id: 1, warehouse_state_province: 1}, {$project: {warehouse_id: 1, warehouse_state_province: 1}}>]])")
+                + "  MongoFilterRel(condition=[=($1, 'CA')])\n"
+                + "    MongoTableScan(table=[[_foodmart, warehouse]], ops=[[<{warehouse_id: 1, warehouse_state_province: 1}, {$project: {warehouse_id: 1, warehouse_state_province: 1}}>]])")
         .returns(
-            "warehouse_id=6; warehouse_state_province=CA\n"
-            + "warehouse_id=7; warehouse_state_province=CA\n"
-            + "warehouse_id=14; warehouse_state_province=CA\n"
-            + "warehouse_id=24; warehouse_state_province=CA\n")
+            checkResultUnordered(
+                "warehouse_id=6; warehouse_state_province=CA",
+                "warehouse_id=7; warehouse_state_province=CA",
+                "warehouse_id=14; warehouse_state_province=CA",
+                "warehouse_id=24; warehouse_state_province=CA"))
         .queryContains(
             mongoChecker(
                 "{$project: {warehouse_id: 1, warehouse_state_province: 1}}",
                 "{\n"
-                + "  $match: {\n"
-                + "    warehouse_state_province: \"CA\"\n"
-                + "  }\n"
-                + "}"));
+                    + "  $match: {\n"
+                    + "    warehouse_state_province: \"CA\"\n"
+                    + "  }\n"
+                    + "}"));
   }
 
   @Test public void testInPlan() {
@@ -241,16 +281,17 @@ public class MongoAdapterTest {
         .withModel(MONGO_FOODMART_MODEL)
         .query(
             "select \"store_id\", \"store_name\" from \"store\"\n"
-            + "where \"store_name\" in ('Store 1', 'Store 10', 'Store 11', 'Store 15', 'Store 16', 'Store 24', 'Store 3', 'Store 7')")
+                + "where \"store_name\" in ('Store 1', 'Store 10', 'Store 11', 'Store 15', 'Store 16', 'Store 24', 'Store 3', 'Store 7')")
         .returns(
-            "store_id=1; store_name=Store 1\n"
-            + "store_id=3; store_name=Store 3\n"
-            + "store_id=7; store_name=Store 7\n"
-            + "store_id=10; store_name=Store 10\n"
-            + "store_id=11; store_name=Store 11\n"
-            + "store_id=15; store_name=Store 15\n"
-            + "store_id=16; store_name=Store 16\n"
-            + "store_id=24; store_name=Store 24\n")
+            checkResultUnordered(
+                "store_id=1; store_name=Store 1",
+                "store_id=3; store_name=Store 3",
+                "store_id=7; store_name=Store 7",
+                "store_id=10; store_name=Store 10",
+                "store_id=11; store_name=Store 11",
+                "store_id=15; store_name=Store 15",
+                "store_id=16; store_name=Store 16",
+                "store_id=24; store_name=Store 24"))
         .queryContains(
             mongoChecker(
                 "{$project: {store_id: 1, store_name: 1}}",
@@ -302,7 +343,8 @@ public class MongoAdapterTest {
             + "      MongoTableScan(table=[[mongo_raw, zips]], ops=[[<{city: 1, state: 1}, {$project: {city: 1, state: 1}}>]])");
   }
 
-  public void _testFoodmartQueries() {
+  @Ignore
+  @Test public void testFoodmartQueries() {
     final List<Pair<String, String>> queries = JdbcTest.getFoodmartQueries();
     for (Ord<Pair<String, String>> query : Ord.zip(queries)) {
 //      if (query.i != 29) continue;

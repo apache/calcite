@@ -1018,6 +1018,11 @@ public class OptiqAssert {
     public AssertQuery planHasSql(String expected) {
       return this;
     }
+
+    @Override
+    public AssertQuery queryContains(Function1<List, Void> predicate1) {
+      return this;
+    }
   }
 
   /** Information necessary to create a JDBC connection. Specify one to run
