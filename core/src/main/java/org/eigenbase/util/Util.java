@@ -654,6 +654,10 @@ public class Util {
     return buf.toString();
   }
 
+  public static String toLinux(String s) {
+    return s.replaceAll("\r\n", "\n");
+  }
+
   /**
    * Materializes the results of a {@link java.util.Iterator} as a {@link
    * java.util.List}.

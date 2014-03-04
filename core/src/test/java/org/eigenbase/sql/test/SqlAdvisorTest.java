@@ -323,7 +323,7 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
       if (token == null) {
         break;
       }
-      buf.append(token).append(TestUtil.NL);
+      buf.append(token).append("\n");
     }
     Assert.assertEquals(expected, buf.toString());
   }
@@ -456,7 +456,7 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
   private static <T> String toString(List<T> list) {
     StringBuilder buf = new StringBuilder();
     for (T t : list) {
-      buf.append(t).append(TestUtil.NL);
+      buf.append(t).append("\n");
     }
     return buf.toString();
   }

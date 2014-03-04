@@ -32,6 +32,7 @@ import org.eigenbase.rex.RexBuilder;
 import org.eigenbase.rex.RexNode;
 import org.eigenbase.sql.SqlExplainLevel;
 import org.eigenbase.sql.fun.SqlStdOperatorTable;
+import org.eigenbase.util.Util;
 
 import org.junit.Test;
 
@@ -100,7 +101,7 @@ public class FrameworksTest {
         });
     String s =
         RelOptUtil.dumpPlan("", x, false, SqlExplainLevel.DIGEST_ATTRIBUTES);
-    assertThat(s, equalTo(
+    assertThat(Util.toLinux(s), equalTo(
         "EnumerableFilterRel(condition=[>($1, 1)])\n"
         + "  EnumerableTableAccessRel(table=[[myTable]])\n"));
   }

@@ -339,6 +339,9 @@ public class SqlValidatorTestCase {
                 + sqlWithCarets);
           }
         }
+        if (actualMessage != null) {
+          actualMessage = Util.toLinux(actualMessage);
+        }
         if ((actualMessage == null)
             || !actualMessage.matches(expectedMsgPattern)) {
           actualException.printStackTrace();

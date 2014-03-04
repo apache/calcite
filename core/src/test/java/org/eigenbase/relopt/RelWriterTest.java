@@ -27,6 +27,7 @@ import org.eigenbase.rex.RexBuilder;
 import org.eigenbase.sql.SqlExplainLevel;
 import org.eigenbase.sql.fun.SqlStdOperatorTable;
 import org.eigenbase.sql.type.SqlTypeName;
+import org.eigenbase.util.Util;
 
 import net.hydromatic.optiq.SchemaPlus;
 import net.hydromatic.optiq.impl.java.ReflectiveSchema;
@@ -176,7 +177,7 @@ public class RelWriterTest {
               }
             });
 
-    assertThat(s, is(
+    assertThat(Util.toLinux(s), is(
         "AggregateRel(group=[{0}], agg#0=[COUNT(DISTINCT $1)], agg#1=[COUNT()])\n"
         + "  FilterRel(condition=[=($1, 10)])\n"
         + "    TableAccessRel(table=[[hr, emps]])\n"));

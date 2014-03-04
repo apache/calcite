@@ -42,6 +42,13 @@ public class SqlParserTest {
 
   private static final String ANY = "(?s).*";
 
+  private static final ThreadLocal<boolean[]> LINUXIFY =
+      new ThreadLocal<boolean[]>() {
+        @Override protected boolean[] initialValue() {
+          return new boolean[] {true};
+        }
+      };
+
   Quoting quoting = Quoting.DOUBLE_QUOTE;
   Casing unquotedCasing = Casing.TO_UPPER;
   Casing quotedCasing = Casing.UNCHANGED;
@@ -2089,7 +2096,15 @@ public class SqlParserTest {
     // newline in string literal
     checkExp("'foo\rbar'", "'foo\rbar'");
     checkExp("'foo\nbar'", "'foo\nbar'");
-    checkExp("'foo\r\nbar'", "'foo\r\nbar'");
+
+    // prevent test infrastructure from converting \r\n to \n
+    boolean[] linuxify = LINUXIFY.get();
+    try {
+      linuxify[0] = false;
+      checkExp("'foo\r\nbar'", "'foo\r\nbar'");
+    } finally {
+      linuxify[0] = true;
+    }
   }
 
   @Test public void testStringLiteralFails() {
@@ -5524,7 +5539,10 @@ public class SqlParserTest {
       final SqlNode sqlNode = parseStmtAndHandleEx(sql);
 
       // no dialect, always parenthesize
-      final String actual = sqlNode.toSqlString(null, true).getSql();
+      String actual = sqlNode.toSqlString(null, true).getSql();
+      if (LINUXIFY.get()[0]) {
+        actual = Util.toLinux(actual);
+      }
       TestUtil.assertEqualsVerbose(expected, actual);
     }
 
@@ -5547,7 +5565,10 @@ public class SqlParserTest {
         String sql,
         String expected) {
       final SqlNode sqlNode = parseExpressionAndHandleEx(sql);
-      final String actual = sqlNode.toSqlString(null, true).getSql();
+      String actual = sqlNode.toSqlString(null, true).getSql();
+      if (LINUXIFY.get()[0]) {
+        actual = Util.toLinux(actual);
+      }
       TestUtil.assertEqualsVerbose(expected, actual);
     }
 

@@ -166,7 +166,7 @@ public class OptiqAssert {
       public Void apply(ResultSet resultSet) {
         try {
           final String resultString = OptiqAssert.toString(resultSet);
-          assertEquals(expected, resultString);
+          assertEquals(expected, Util.toLinux(resultString));
           return null;
         } catch (SQLException e) {
           throw new RuntimeException(e);
@@ -258,7 +258,7 @@ public class OptiqAssert {
     return new Function1<ResultSet, Void>() {
       public Void apply(ResultSet s) {
         try {
-          final String actual = OptiqAssert.toString(s);
+          final String actual = Util.toLinux(OptiqAssert.toString(s));
           if (!actual.contains(expected)) {
             assertEquals("contains", expected, actual);
           }
@@ -846,7 +846,9 @@ public class OptiqAssert {
       ensurePlan();
       assertTrue(
           "Plan [" + plan + "] contains [" + expected + "]",
-          plan.contains(expected));
+          Util.toLinux(plan)
+              .replaceAll("\\\\r\\\\n", "\\\\n")
+              .contains(expected));
       return this;
     }
 

@@ -355,9 +355,8 @@ public class OptionsListTest {
       optionsList.add(option);
     }
     optionsList.parse(args);
-    assertEquals(
-        expected,
-        handler.toString());
+    assertEquals(expected,
+        Util.toLinux(handler.toString()));
   }
 
   //~ Inner Classes ----------------------------------------------------------

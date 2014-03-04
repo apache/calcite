@@ -49,7 +49,7 @@ public class PlannerTest {
     Planner planner = getPlanner();
     SqlNode parse =
         planner.parse("select * from \"emps\" where \"name\" like '%e%'");
-    assertThat(parse.toString(), equalTo(
+    assertThat(Util.toLinux(parse.toString()), equalTo(
         "SELECT *\n"
         + "FROM `emps`\n"
         + "WHERE `name` LIKE '%e%'"));
@@ -64,8 +64,9 @@ public class PlannerTest {
   }
 
   private String toString(RelNode rel) {
-    return RelOptUtil.dumpPlan("", rel, false,
-        SqlExplainLevel.DIGEST_ATTRIBUTES);
+    return Util.toLinux(
+        RelOptUtil.dumpPlan("", rel, false,
+            SqlExplainLevel.DIGEST_ATTRIBUTES));
   }
 
   @Test public void testParseFails() throws SqlParseException {
@@ -173,7 +174,7 @@ public class PlannerTest {
         + "where \"name\" like '%e%'");
     final SqlDialect hiveDialect =
         new SqlDialect(SqlDialect.DatabaseProduct.HIVE, "Hive", null);
-    assertThat(parse.toSqlString(hiveDialect).getSql(),
+    assertThat(Util.toLinux(parse.toSqlString(hiveDialect).getSql()),
         equalTo("SELECT *\n"
             + "FROM (SELECT *\n"
             + "FROM emps) T\n"
