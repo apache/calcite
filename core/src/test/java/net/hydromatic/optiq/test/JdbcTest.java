@@ -46,6 +46,7 @@ import org.eigenbase.sql.*;
 import org.eigenbase.sql.type.SqlTypeName;
 import org.eigenbase.util.Bug;
 import org.eigenbase.util.Pair;
+import org.eigenbase.util.Util;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -2932,7 +2933,7 @@ public class JdbcTest {
           .returns("C=0\n");
       switch (OptiqAssert.CONNECTION_SPEC) {
       case HSQLDB:
-        assertThat(sqls[0], equalTo(
+        assertThat(Util.toLinux(sqls[0]), equalTo(
             "SELECT COUNT(*) AS \"C\"\n"
             + "FROM (SELECT 0 AS \"DUMMY\"\n"
             + "FROM \"foodmart\".\"employee\"\n"

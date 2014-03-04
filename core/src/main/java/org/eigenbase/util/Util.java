@@ -2124,8 +2124,7 @@ public class Util {
           if (index < 0) {
             throw e;
           }
-          String s = size() < 16 ? "                " : get(size() - 1);
-          populate(s + s);
+          populate(Math.max(16, Math.max(index, size() * 2)));
         }
       }
     }
@@ -2134,22 +2133,12 @@ public class Util {
      * Populates this list with all prefix strings of a given string. All
      * of the prefix strings share the same backing array of chars.
      */
-    private void populate(final String s) {
-      // If another thread sees list as momentarily empty, it will throw
-      // and retry.
-      clear();
-      addAll(
-          new AbstractList<String>() {
-            @Override
-            public String get(int index) {
-              return s.substring(0, index);
-            }
-
-            @Override
-            public int size() {
-              return s.length();
-            }
-          });
+    private synchronized void populate(int newSize) {
+      char[] chars = new char[newSize];
+      Arrays.fill(chars, ' ');
+      while (size() < newSize) {
+        add(new String(chars, 0, size()));
+      }
     }
   }
 }

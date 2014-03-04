@@ -85,7 +85,7 @@ public class PlannerTest {
     Planner planner = getPlanner();
     SqlNode parse =
         planner.parse("select * from \"emps\" where \"Xname\" like '%e%'");
-    assertThat(parse.toString(), equalTo(
+    assertThat(Util.toLinux(parse.toString()), equalTo(
         "SELECT *\n"
         + "FROM `emps`\n"
         + "WHERE `Xname` LIKE '%e%'"));

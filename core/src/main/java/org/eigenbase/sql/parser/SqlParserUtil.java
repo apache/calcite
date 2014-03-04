@@ -353,30 +353,28 @@ public final class SqlParserUtil {
     int line = 0;
     int j = 0;
     while (true) {
-      String s;
-      int rn = sql.indexOf("\r\n", j);
-      int r = sql.indexOf("\r", j);
-      int n = sql.indexOf("\n", j);
       int prevj = j;
-      if ((r < 0) && (n < 0)) {
-        assert rn < 0;
-        s = null;
-        j = -1;
-      } else if ((rn >= 0) && (rn < n) && (rn <= r)) {
-        s = "\r\n";
-        j = rn;
-      } else if ((r >= 0) && (r < n)) {
-        s = "\r";
-        j = r;
-      } else {
-        s = "\n";
-        j = n;
-      }
+      j = nextLine(sql, j);
       if ((j < 0) || (j > i)) {
         return new int[]{line + 1, i - prevj + 1};
       }
-      j += s.length();
       ++line;
+    }
+  }
+
+  public static int nextLine(String sql, int j) {
+    int rn = sql.indexOf("\r\n", j);
+    int r = sql.indexOf("\r", j);
+    int n = sql.indexOf("\n", j);
+    if ((r < 0) && (n < 0)) {
+      assert rn < 0;
+      return -1;
+    } else if ((rn >= 0) && (rn < n) && (rn <= r)) {
+      return rn + 2; // looking at "\r\n"
+    } else if ((r >= 0) && (r < n)) {
+      return r + 1; // looking at "\r"
+    } else {
+      return n + 1; // looking at "\n"
     }
   }
 
@@ -391,8 +389,7 @@ public final class SqlParserUtil {
     --column;
     int i = 0;
     while (line-- > 0) {
-      i = sql.indexOf(Util.LINE_SEPARATOR, i)
-          + Util.LINE_SEPARATOR.length();
+      i = nextLine(sql, i);
     }
     return i + column;
   }
