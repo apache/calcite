@@ -2127,7 +2127,7 @@ public class Util {
           if (index < 0) {
             throw e;
           }
-          populate(Math.max(16, Math.max(index + 1, size() * 2)));
+          populate(Math.max(16, index + 1));
         }
       }
     }
@@ -2137,6 +2137,7 @@ public class Util {
      * of the prefix strings share the same backing array of chars.
      */
     private synchronized void populate(int newSize) {
+      newSize = Math.max(newSize, size() * 2);
       final char[] chars = new char[newSize];
       Arrays.fill(chars, ' ');
       final int length = newSize - size();
