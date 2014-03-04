@@ -2113,6 +2113,9 @@ public class Util {
   }
 
   private static class SpaceList extends CopyOnWriteArrayList<String> {
+    /** It doesn't look like this list is ever updated. But it is - when
+     * a call to {@link #get} causes an {@link IndexOutOfBoundsException}. */
+    @SuppressWarnings("MismatchedQueryAndUpdateOfCollection")
     private static final List<String> INSTANCE = new SpaceList();
 
     @Override
@@ -2124,7 +2127,7 @@ public class Util {
           if (index < 0) {
             throw e;
           }
-          populate(Math.max(16, Math.max(index, size() * 2)));
+          populate(Math.max(16, Math.max(index + 1, size() * 2)));
         }
       }
     }
@@ -2134,11 +2137,23 @@ public class Util {
      * of the prefix strings share the same backing array of chars.
      */
     private synchronized void populate(int newSize) {
-      char[] chars = new char[newSize];
+      final char[] chars = new char[newSize];
       Arrays.fill(chars, ' ');
-      while (size() < newSize) {
-        add(new String(chars, 0, size()));
-      }
+      final int length = newSize - size();
+      final int offset = size();
+
+      // addAll is much more efficient than repeated add for
+      // CopyOnWriteArrayList
+      addAll(
+          new AbstractList<String>() {
+            public String get(int index) {
+              return new String(chars, 0, offset + index);
+            }
+
+            public int size() {
+              return length;
+            }
+          });
     }
   }
 }
