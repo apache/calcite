@@ -27,6 +27,8 @@ import net.hydromatic.linq4j.function.Function1;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.sql.DataSource;
 
 /**
@@ -38,6 +40,8 @@ public class ResultSetEnumerable<T> extends AbstractEnumerable<T> {
   private final DataSource dataSource;
   private final String sql;
   private final Function1<ResultSet, Function0<T>> rowBuilderFactory;
+  private static final Logger LOGGER = Logger.getLogger(
+      ResultSetEnumerable.class.getName());
 
   private static final Function1<ResultSet, Function0<Object>>
   AUTO_ROW_BUILDER_FACTORY =
@@ -125,7 +129,13 @@ public class ResultSetEnumerable<T> extends AbstractEnumerable<T> {
     try {
       connection = dataSource.getConnection();
       statement = connection.createStatement();
-      statement.setQueryTimeout(10);
+      try {
+        statement.setQueryTimeout(10);
+      } catch (SQLFeatureNotSupportedException e) {
+        if (LOGGER.isLoggable(Level.FINE)) {
+          LOGGER.fine("Failed to set query timeout.");
+        }
+      }
       final ResultSet resultSet = statement.executeQuery(sql);
       statement = null;
       connection = null;
