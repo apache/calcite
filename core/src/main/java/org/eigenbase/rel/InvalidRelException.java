@@ -34,6 +34,10 @@ package org.eigenbase.rel;
  * not take the exception personally, and will fail to match. The burden of
  * checking is removed from the rule, which means less code for the author of
  * the rule to maintain.</p>
+ *
+ * <p>The caller that receives an {@code InvalidRelException} (typically a rule
+ * attempting to create a relational expression) should log it at
+ * {@link java.util.logging.Level#FINE} level.</p>
  */
 public class InvalidRelException extends Exception {
   /**

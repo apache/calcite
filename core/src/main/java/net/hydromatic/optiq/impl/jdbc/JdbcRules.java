@@ -158,7 +158,7 @@ public class JdbcRules {
             join.getJoinType(),
             join.getVariablesStopped());
       } catch (InvalidRelException e) {
-        LOGGER.warning(e.toString());
+        LOGGER.fine(e.toString());
         return null;
       }
     }
@@ -507,7 +507,7 @@ public class JdbcRules {
             convert(agg.getChild(), traitSet), agg.getGroupSet(),
             agg.getAggCallList());
       } catch (InvalidRelException e) {
-        LOGGER.warning(e.toString());
+        LOGGER.fine(e.toString());
         return null;
       }
     }

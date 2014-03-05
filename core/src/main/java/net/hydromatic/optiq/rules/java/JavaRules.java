@@ -102,7 +102,7 @@ public class JavaRules {
             join.getJoinType(),
             join.getVariablesStopped());
       } catch (InvalidRelException e) {
-        LOGGER.warning(e.toString());
+        LOGGER.fine(e.toString());
         return null;
       }
     }
@@ -812,7 +812,7 @@ public class JavaRules {
             agg.getGroupSet(),
             agg.getAggCallList());
       } catch (InvalidRelException e) {
-        LOGGER.warning(e.toString());
+        LOGGER.fine(e.toString());
         return null;
       }
     }
