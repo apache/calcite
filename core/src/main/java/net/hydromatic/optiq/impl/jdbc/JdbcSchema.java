@@ -310,8 +310,8 @@ public class JdbcSchema implements Schema {
   }
 
   /** Schema factory that creates a
-   * {@link net.hydromatic.optiq.impl.clone.CloneSchema}.
-   * This allows you to create a clone schema inside a model.json file.
+   * {@link net.hydromatic.optiq.impl.jdbc.JdbcSchema}.
+   * This allows you to create a jdbc schema inside a model.json file.
    *
    * <pre>{@code
    * {
@@ -321,12 +321,12 @@ public class JdbcSchema implements Schema {
    *     {
    *       name: 'FOODMART_CLONE',
    *       type: 'custom',
-   *       factory: 'net.hydromatic.optiq.impl.clone.CloneSchema.Factory',
+   *       factory: 'net.hydromatic.optiq.impl.clone.JdbcSchema$Factory',
    *       operand: {
-   *         driver: 'com.mysql.jdbc.Driver',
-   *         url: 'jdbc:mysql://localhost/foodmart',
-   *         user: 'foodmart',
-   *         password: 'foodmart'
+   *         jdbcDriver: 'com.mysql.jdbc.Driver',
+   *         jdbcUrl: 'jdbc:mysql://localhost/foodmart',
+   *         jdbcUser: 'foodmart',
+   *         jdbcPassword: 'foodmart'
    *       }
    *     }
    *   ]

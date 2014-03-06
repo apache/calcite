@@ -120,12 +120,12 @@ public class CloneSchema extends AbstractSchema {
    *     {
    *       name: 'FOODMART_CLONE',
    *       type: 'custom',
-   *       factory: 'net.hydromatic.optiq.impl.clone.CloneSchema.Factory',
+   *       factory: 'net.hydromatic.optiq.impl.clone.CloneSchema$Factory',
    *       operand: {
-   *         driver: 'com.mysql.jdbc.Driver',
-   *         url: 'jdbc:mysql://localhost/foodmart',
-   *         user: 'foodmart',
-   *         password: 'foodmart'
+   *         jdbcDriver: 'com.mysql.jdbc.Driver',
+   *         jdbcUrl: 'jdbc:mysql://localhost/foodmart',
+   *         jdbcUser: 'foodmart',
+   *         jdbcPassword: 'foodmart'
    *       }
    *     }
    *   ]

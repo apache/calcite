@@ -208,7 +208,7 @@ public class ReflectiveSchema
    *     {
    *       name: "foodmart",
    *       type: "custom",
-   *       factory: "net.hydromatic.optiq.impl.java.ReflectiveSchema.Factory",
+   *       factory: "net.hydromatic.optiq.impl.java.ReflectiveSchema$Factory",
    *       operand: {
    *         class: "com.acme.FoodMart",
    *         staticMethod: "instance"
