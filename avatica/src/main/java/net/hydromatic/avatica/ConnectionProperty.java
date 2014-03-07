@@ -35,8 +35,21 @@ public enum ConnectionProperty {
   /** Lexical policy. */
   LEX("lex", Type.ENUM, "ORACLE"),
 
-  /** How identifiers are quoted. */
-  QUOTING("quoting", Type.ENUM, "DOUBLE_QUOTE"),
+  /** How identifiers are quoted.
+   *  Default value is based on lex. */
+  QUOTING("quoting", Type.ENUM, null),
+
+  /** How identifiers are stored if they are quoted.
+   *  Default value is based on lex. */
+  QUOTED_CASING("quotedCasing", Type.ENUM, null),
+
+  /** How identifiers are stored if they are not quoted.
+   *  Default value is based on lex. */
+  UNQUOTED_CASING("unquotedCasing", Type.ENUM, null),
+
+  /** Whether identifiers are matched case-sensitively.
+   *  Default value is based on lex. */
+  CASE_SENSITIVE("caseSensitive", Type.BOOLEAN, null),
 
   /** Name of initial schema. */
   SCHEMA("schema", Type.STRING, null),
@@ -82,6 +95,12 @@ public enum ConnectionProperty {
   /** Returns the string value of this property, or null if not specified and
    * no default. */
   public String getString(Properties properties) {
+    return getString(properties, defaultValue);
+  }
+
+  /** Returns the string value of this property, or null if not specified and
+   * no default. */
+  public String getString(Properties properties, String defaultValue) {
     assert type == Type.STRING;
     return get_(properties, IDENTITY_CONVERTER, defaultValue);
   }
@@ -89,16 +108,33 @@ public enum ConnectionProperty {
   /** Returns the boolean value of this property. Throws if not set and no
    * default. */
   public boolean getBoolean(Properties properties) {
+    return getBoolean(properties, Boolean.valueOf(defaultValue));
+  }
+
+  /** Returns the boolean value of this property. Throws if not set and no
+   * default. */
+  public boolean getBoolean(Properties properties, boolean defaultValue) {
     assert type == Type.BOOLEAN;
-    return get_(properties, BOOLEAN_CONVERTER, defaultValue);
+    return get_(properties, BOOLEAN_CONVERTER, Boolean.toString(defaultValue));
   }
 
   /** Returns the enum value of this property. Throws if not set and no
    * default. */
-  public <E extends Enum> E getEnum(Properties properties, Class<E> enumClass) {
+  public <E extends Enum<E>> E getEnum(Properties properties
+      , Class<E> enumClass) {
+    return getEnum(properties
+        , enumClass
+        , Enum.valueOf(enumClass, defaultValue)
+    );
+  }
+
+  /** Returns the enum value of this property. Throws if not set and no
+   * default. */
+  public <E extends Enum<E>> E getEnum(Properties properties
+      , Class<E> enumClass, E defaultValue) {
     assert type == Type.ENUM;
     //noinspection unchecked
-    return get_(properties, enumConverter(enumClass), defaultValue);
+    return get_(properties, enumConverter(enumClass), defaultValue.name());
   }
 
   /** Converts a {@link java.util.Properties} object containing (name, value)
@@ -158,14 +194,12 @@ public enum ConnectionProperty {
           throw new RuntimeException("Required property '"
               + connectionProperty.camelName + "' not specified");
         }
-        for (Enum anEnum : enumClass.getEnumConstants()) {
-          if (anEnum.name().equals(s)) {
-            //noinspection unchecked
-            return (E) anEnum;
-          }
+        try {
+          return (E) Enum.valueOf(enumClass, s);
+        } catch (IllegalArgumentException e) {
+          throw new RuntimeException("Property '" + s + "' not valid for enum "
+              + enumClass.getName());
         }
-        throw new RuntimeException("Property '" + s + "' not valid for enum "
-            + enumClass.getName());
       }
     };
   }

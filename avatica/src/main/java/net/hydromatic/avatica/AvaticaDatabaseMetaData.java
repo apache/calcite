@@ -145,11 +145,11 @@ public class AvaticaDatabaseMetaData implements DatabaseMetaData {
   }
 
   public boolean storesMixedCaseQuotedIdentifiers() throws SQLException {
-    return caseSensitive() && quotedCasing() == Casing.UNCHANGED;
+    return !caseSensitive() && quotedCasing() == Casing.UNCHANGED;
   }
 
   public boolean supportsMixedCaseQuotedIdentifiers() throws SQLException {
-    return !caseSensitive() && quotedCasing() == Casing.UNCHANGED;
+    return caseSensitive() && quotedCasing() == Casing.UNCHANGED;
   }
 
   public boolean storesUpperCaseQuotedIdentifiers() throws SQLException {

@@ -2797,9 +2797,9 @@ public class JdbcTest {
                   assertThat(metaData.storesLowerCaseIdentifiers(),
                       equalTo(false));
                   assertThat(metaData.supportsMixedCaseQuotedIdentifiers(),
-                      equalTo(true));
-                  assertThat(metaData.storesMixedCaseQuotedIdentifiers(),
                       equalTo(false));
+                  assertThat(metaData.storesMixedCaseQuotedIdentifiers(),
+                      equalTo(true));
                   assertThat(metaData.storesUpperCaseIdentifiers(),
                       equalTo(false));
                   assertThat(metaData.storesLowerCaseQuotedIdentifiers(),
@@ -2831,9 +2831,9 @@ public class JdbcTest {
                   assertThat(metaData.storesLowerCaseIdentifiers(),
                       equalTo(false));
                   assertThat(metaData.supportsMixedCaseQuotedIdentifiers(),
-                      equalTo(true));
-                  assertThat(metaData.storesMixedCaseQuotedIdentifiers(),
                       equalTo(false));
+                  assertThat(metaData.storesMixedCaseQuotedIdentifiers(),
+                      equalTo(true));
                   assertThat(metaData.storesUpperCaseIdentifiers(),
                       equalTo(false));
                   assertThat(metaData.storesLowerCaseQuotedIdentifiers(),
@@ -2866,9 +2866,88 @@ public class JdbcTest {
                   assertThat(metaData.storesLowerCaseIdentifiers(),
                       equalTo(false));
                   assertThat(metaData.supportsMixedCaseQuotedIdentifiers(),
-                      equalTo(false));
-                  assertThat(metaData.storesMixedCaseQuotedIdentifiers(),
                       equalTo(true));
+                  // Oracle JDBC 12.1.0.1.0 returns true here, however it is
+                  // not clear if the bug is in JDBC specification or Oracle
+                  // driver
+                  assertThat(metaData.storesMixedCaseQuotedIdentifiers(),
+                      equalTo(false));
+                  assertThat(metaData.storesUpperCaseQuotedIdentifiers(),
+                      equalTo(false));
+                  assertThat(metaData.storesLowerCaseQuotedIdentifiers(),
+                      equalTo(false));
+                  return null;
+                } catch (SQLException e) {
+                  throw new RuntimeException(e);
+                }
+              }
+            });
+  }
+
+  /** Tests metadata for the JAVA lexical scheme. */
+  @Test public void testLexJava() throws Exception {
+    OptiqAssert.that()
+        .with(ImmutableMap.of("lex", "JAVA"))
+        .doWithConnection(
+            new Function1<OptiqConnection, Void>() {
+              public Void apply(OptiqConnection connection) {
+                try {
+                  DatabaseMetaData metaData = connection.getMetaData();
+                  assertThat(metaData.getIdentifierQuoteString(),
+                      equalTo("`"));
+                  assertThat(metaData.supportsMixedCaseIdentifiers(),
+                      equalTo(true));
+                  assertThat(metaData.storesMixedCaseIdentifiers(),
+                      equalTo(false));
+                  assertThat(metaData.storesUpperCaseIdentifiers(),
+                      equalTo(false));
+                  assertThat(metaData.storesLowerCaseIdentifiers(),
+                      equalTo(false));
+                  assertThat(metaData.supportsMixedCaseQuotedIdentifiers(),
+                      equalTo(true));
+                  assertThat(metaData.storesMixedCaseQuotedIdentifiers(),
+                      equalTo(false));
+                  assertThat(metaData.storesUpperCaseQuotedIdentifiers(),
+                      equalTo(false));
+                  assertThat(metaData.storesLowerCaseQuotedIdentifiers(),
+                      equalTo(false));
+                  return null;
+                } catch (SQLException e) {
+                  throw new RuntimeException(e);
+                }
+              }
+            });
+  }
+
+  /** Tests metadata for the ORACLE lexical scheme overriden like JAVA. */
+  @Test public void testLexOracleAsJava() throws Exception {
+    OptiqAssert.that()
+        .with(ImmutableMap.<String, String>builder()
+            .put("lex", "ORACLE")
+            .put("quoting", "BACK_TICK")
+            .put("unquotedCasing", "UNCHANGED")
+            .put("quotedCasing", "UNCHANGED")
+            .put("caseSensitive", "TRUE")
+            .build())
+        .doWithConnection(
+            new Function1<OptiqConnection, Void>() {
+              public Void apply(OptiqConnection connection) {
+                try {
+                  DatabaseMetaData metaData = connection.getMetaData();
+                  assertThat(metaData.getIdentifierQuoteString(),
+                      equalTo("`"));
+                  assertThat(metaData.supportsMixedCaseIdentifiers(),
+                      equalTo(true));
+                  assertThat(metaData.storesMixedCaseIdentifiers(),
+                      equalTo(false));
+                  assertThat(metaData.storesUpperCaseIdentifiers(),
+                      equalTo(false));
+                  assertThat(metaData.storesLowerCaseIdentifiers(),
+                      equalTo(false));
+                  assertThat(metaData.supportsMixedCaseQuotedIdentifiers(),
+                      equalTo(true));
+                  assertThat(metaData.storesMixedCaseQuotedIdentifiers(),
+                      equalTo(false));
                   assertThat(metaData.storesUpperCaseQuotedIdentifiers(),
                       equalTo(false));
                   assertThat(metaData.storesLowerCaseQuotedIdentifiers(),

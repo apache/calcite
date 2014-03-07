@@ -80,12 +80,12 @@ abstract class OptiqConnectionImpl
     }
     this.rootSchema = rootSchema;
 
-    final ConnectionConfig.Lex lex =
-        ConnectionProperty.LEX.getEnum(info, ConnectionConfig.Lex.class);
-    this.properties.put(InternalProperty.CASE_SENSITIVE, lex.caseSensitive);
-    this.properties.put(InternalProperty.UNQUOTED_CASING, lex.unquotedCasing);
-    this.properties.put(InternalProperty.QUOTED_CASING, lex.quotedCasing);
-    this.properties.put(InternalProperty.QUOTING, lex.quoting);
+    ConnectionConfig cfg = connectionConfig(info);
+
+    this.properties.put(InternalProperty.CASE_SENSITIVE, cfg.caseSensitive());
+    this.properties.put(InternalProperty.UNQUOTED_CASING, cfg.unquotedCasing());
+    this.properties.put(InternalProperty.QUOTED_CASING, cfg.quotedCasing());
+    this.properties.put(InternalProperty.QUOTING, cfg.quoting());
   }
 
   @Override protected Meta createMeta() {
@@ -124,19 +124,23 @@ abstract class OptiqConnectionImpl
       }
 
       public Quoting quoting() {
-        return lex().quoting;
+        return ConnectionProperty.QUOTING
+            .getEnum(properties, Quoting.class, lex().quoting);
       }
 
       public Casing unquotedCasing() {
-        return lex().unquotedCasing;
+        return ConnectionProperty.UNQUOTED_CASING
+            .getEnum(properties, Casing.class, lex().unquotedCasing);
       }
 
       public Casing quotedCasing() {
-        return lex().quotedCasing;
+        return ConnectionProperty.QUOTED_CASING
+            .getEnum(properties, Casing.class, lex().quotedCasing);
       }
 
       public boolean caseSensitive() {
-        return lex().caseSensitive;
+        return ConnectionProperty.CASE_SENSITIVE
+            .getBoolean(properties, lex().caseSensitive);
       }
 
       public boolean spark() {

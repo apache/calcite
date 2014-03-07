@@ -6391,6 +6391,18 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         "RecordType(TIMESTAMP(0) NOT NULL CURRENT_TIMESTAMP) NOT NULL");
   }
 
+  @Test public void testLexAndQuoting() {
+    final SqlTester tester1 = tester
+        .withLex(ConnectionConfig.Lex.JAVA)
+        .withQuoting(Quoting.DOUBLE_QUOTE);
+    // in Java mode, creating identifiers with spaces is not encouraged, but you
+    // can use double-quote if you really have to
+    tester1.checkResultType(
+        "select \"x[y] z \" from (\n"
+        + "  select e.EMPNO as \"x[y] z \" from EMP as e)",
+        "RecordType(INTEGER NOT NULL x[y] z ) NOT NULL");
+  }
+
   /** Tests using case-insensitive matching of identifiers. */
   @Test public void testCaseInsensitive() {
     final SqlTester tester1 = tester
