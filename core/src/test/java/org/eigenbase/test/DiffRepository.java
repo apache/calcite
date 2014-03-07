@@ -19,6 +19,7 @@ package org.eigenbase.test;
 
 import java.io.*;
 
+import java.net.URL;
 import java.util.*;
 
 import javax.xml.parsers.*;
@@ -50,18 +51,18 @@ import org.xml.sax.*;
  *         return DiffRepository.lookup(MyTest.class);
  *     }
  *
- *     @Test public void testToUpper() {
+ *     &#64;Test public void testToUpper() {
  *          getDiffRepos().assertEquals("${result}", "${string}");
  *     }
  *
- *     @Test public void testToLower() {
+ *     &#64;Test public void testToLower() {
  *          getDiffRepos().assertEquals("Multi-line\nstring", "${string}");
  *     }
  * }</pre>
  * </code></blockquote>
  *
- * There is an accompanying reference file named after the class, <code>
- * com/acme/test/MyTest.ref.xml</code>:
+ * <p>There is an accompanying reference file named after the class,
+ * <code>com/acme/test/MyTest.ref.xml</code>:</p>
  *
  * <blockquote><code>
  * <pre>
@@ -142,10 +143,8 @@ public class DiffRepository {
   //~ Instance fields --------------------------------------------------------
 
   private final DiffRepository baseRepos;
-  private final DocumentBuilder docBuilder;
   private Document doc;
   private final Element root;
-  private final File refFile;
   private final File logFile;
   private final Filter filter;
 
@@ -160,7 +159,7 @@ public class DiffRepository {
    * @param filter    Filter or null
    */
   private DiffRepository(
-      File refFile,
+      URL refFile,
       File logFile,
       DiffRepository baseRepos,
       Filter filter) {
@@ -169,20 +168,18 @@ public class DiffRepository {
     if (refFile == null) {
       throw new IllegalArgumentException("url must not be null");
     }
-    this.refFile = refFile;
-    Util.discard(this.refFile);
     this.logFile = logFile;
 
     // Load the document.
     DocumentBuilderFactory fac = DocumentBuilderFactory.newInstance();
     try {
-      this.docBuilder = fac.newDocumentBuilder();
-      if (refFile.exists()) {
+      DocumentBuilder docBuilder = fac.newDocumentBuilder();
+      try {
         // Parse the reference file.
-        this.doc = docBuilder.parse(new FileInputStream(refFile));
+        this.doc = docBuilder.parse(refFile.openStream());
         // Don't write a log file yet -- as far as we know, it's still
         // identical.
-      } else {
+      } catch (IOException e) {
         // There's no reference file. Create and write a log file.
         this.doc = docBuilder.newDocument();
         this.doc.appendChild(
@@ -197,8 +194,6 @@ public class DiffRepository {
       }
     } catch (ParserConfigurationException e) {
       throw Util.newInternal(e, "error while creating xml parser");
-    } catch (IOException e) {
-      throw Util.newInternal(e, "error while creating xml parser");
     } catch (SAXException e) {
       throw Util.newInternal(e, "error while creating xml parser");
     }
@@ -206,62 +201,11 @@ public class DiffRepository {
 
   //~ Methods ----------------------------------------------------------------
 
-  private static File findFile(Class clazz, final String suffix) {
-    // The reference file for class "com.foo.Bar" is "com/foo/Bar.ref.xml"
-    String rest = clazz.getName().replace('.', File.separatorChar) + suffix;
-    File fileBase = getFileBase(clazz);
-    return new File(fileBase, rest);
-  }
-
-  /**
-   * Returns the base directory relative to which test logs are stored. If
-   * environment variable EIGEN_HOME is set, attempts to use that; otherwise,
-   * attempts to use working directory and then its ancestors.
-   */
-  private static File getFileBase(Class clazz) {
-    File file =
-        getFileBaseGivenRoot(
-            clazz,
-            System.getenv("EIGEN_HOME"),
-            false);
-    if (file == null) {
-      file =
-          getFileBaseGivenRoot(
-              clazz,
-              System.getProperty("user.dir") + "/core",
-              true);
-    }
-    if (file == null) {
-      throw new RuntimeException("cannot find base dir");
-    }
-    return file;
-  }
-
-  private static File getFileBaseGivenRoot(
-      Class clazz,
-      String root,
-      boolean searchParent) {
-    if (root == null) {
-      return null;
-    }
-    String javaFileName =
-        clazz.getName().replace('.', File.separatorChar) + ".java";
-    File file = new File(root);
-    while (true) {
-      File file2 = new File(file, "src/test/java");
-      if (new File(file2, javaFileName).exists()) {
-        return file2;
-      }
-      file2 = new File(file, "src/main/java");
-      if (new File(file2, javaFileName).exists()) {
-        return file2;
-      }
-
-      file = file.getParentFile();
-      if ((file == null) || !searchParent) {
-        return null;
-      }
-    }
+  private static URL findFile(Class clazz, final String suffix) {
+    // The reference file for class "com.foo.Bar" is "com/foo/Bar.xml"
+    String rest = "/" + clazz.getName().replace('.', File.separatorChar)
+        + suffix;
+    return clazz.getResource(rest);
   }
 
   /**
@@ -297,10 +241,7 @@ public class DiffRepository {
       // what is in the Java. It helps to have a redundant copy in the
       // resource file.
       final String testCaseName = getCurrentTestCaseName(true);
-      if ((baseRepos != null)
-          && (baseRepos.get(testCaseName, tag) != null)) {
-        // set in base repos; don't override
-      } else {
+      if (baseRepos == null || baseRepos.get(testCaseName, tag) == null) {
         set(tag, text);
       }
       return text;
@@ -324,8 +265,6 @@ public class DiffRepository {
         && expected.endsWith("}")) {
       String token = expected.substring(2, expected.length() - 1);
       set(token, actual);
-    } else {
-      // do nothing
     }
   }
 
@@ -437,8 +376,7 @@ public class DiffRepository {
     Throwable runtimeException = new Throwable();
     runtimeException.fillInStackTrace();
     stackTrace = runtimeException.getStackTrace();
-    for (int i = 0; i < stackTrace.length; i++) {
-      StackTraceElement stackTraceElement = stackTrace[i];
+    for (StackTraceElement stackTraceElement : stackTrace) {
       final String methodName = stackTraceElement.getMethodName();
       if (methodName.startsWith("test")) {
         return methodName;
@@ -478,80 +416,6 @@ public class DiffRepository {
         amend(expected, actual);
         throw e;
       }
-    }
-  }
-
-  /**
-   * As {@link #assertEquals(String, String, String)}, but checks multiple
-   * values in parallel.
-   *
-   * <p>If any of the values do not match, throws an {@link AssertFailure},
-   * but still updates the other values. This is convenient, because if a unit
-   * test needs to check N values, you can correct the logfile in 1 pass
-   * through the test rather than N.
-   *
-   * @param tags        Array of tags
-   * @param expecteds   Array of expected values
-   * @param actuals     Array of actual values
-   * @param ignoreNulls Whether to ignore entries for which expected[i] ==
-   *                    null
-   */
-  public void assertEqualsMulti(
-      String[] tags,
-      String[] expecteds,
-      String[] actuals,
-      boolean ignoreNulls) {
-    final int count = tags.length;
-    assert expecteds.length == count;
-    assert actuals.length == count;
-
-    AssertionError e0 = null;
-    final String testCaseName = getCurrentTestCaseName(true);
-    for (int i = 0; i < count; i++) {
-      String tag = tags[i];
-      String expected = expecteds[i];
-      String actual = actuals[i];
-
-      if (ignoreNulls) {
-        if (expected == null) {
-          continue;
-        }
-      }
-      String expected2 = expand(tag, expected);
-      if (expected2 == null) {
-        update(testCaseName, expected, actual);
-        AssertionError e =
-            new AssertionError(
-                "reference file does not contain resource '" + expected
-                + "' for testcase '" + testCaseName
-                + "'");
-        if (e0 == null) {
-          e0 = e;
-        }
-      } else {
-        try {
-          // TODO jvs 25-Apr-2006:  reuse bulk of
-          // DiffTestCase.diffTestLog here; besides newline
-          // insensitivity, it can report on the line
-          // at which the first diff occurs, which is useful
-          // for largish snippets
-          String expected2Canonical =
-              expected2.replace(Util.LINE_SEPARATOR, "\n");
-          String actualCanonical =
-              actual.replace(Util.LINE_SEPARATOR, "\n");
-          Assert.assertEquals(
-              expected2Canonical,
-              actualCanonical);
-        } catch (ComparisonFailure e) {
-          amend(expected, actual);
-          if (e0 == null) {
-            e0 = e;
-          }
-        }
-      }
-    }
-    if (e0 != null) {
-      throw e0;
     }
   }
 
@@ -598,6 +462,8 @@ public class DiffRepository {
   private void flushDoc() {
     FileWriter w = null;
     try {
+      boolean b = logFile.getParentFile().mkdirs();
+      Util.discard(b);
       w = new FileWriter(logFile);
       write(doc, w);
     } catch (IOException e) {
@@ -804,11 +670,10 @@ public class DiffRepository {
       Filter filter) {
     DiffRepository diffRepos = MAP_CLASS_TO_REPOS.get(clazz);
     if (diffRepos == null) {
-      final File refFile = findFile(clazz, ".ref.xml");
-      final File logFile = findFile(clazz, ".log.xml");
-      diffRepos =
-          new DiffRepository(
-              refFile, logFile, baseRepos, filter);
+      final URL refFile = findFile(clazz, ".xml");
+      final File logFile =
+          new File(refFile.getFile().replace("test-classes", "surefire"));
+      diffRepos = new DiffRepository(refFile, logFile, baseRepos, filter);
       MAP_CLASS_TO_REPOS.put(clazz, diffRepos);
     }
     return diffRepos;
