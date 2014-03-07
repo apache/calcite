@@ -34,6 +34,7 @@ import org.eigenbase.util.*;
 
 import net.hydromatic.linq4j.expressions.Expressions;
 
+import net.hydromatic.optiq.runtime.Spaces;
 import net.hydromatic.optiq.util.graph.*;
 
 import com.google.common.collect.ImmutableList;
@@ -690,14 +691,14 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
    */
   private void provenanceRecurse(
       PrintWriter pw, RelNode node, int i, Set<RelNode> visited) {
-    pw.print(Util.spaces(i * 2));
+    Spaces.append(pw, i * 2);
     if (!visited.add(node)) {
       pw.println("rel#" + node.getId() + " (see above)");
       return;
     }
     pw.println(node);
     final Provenance o = provenanceMap.get(node);
-    pw.print(Util.spaces(i * 2 + 2));
+    Spaces.append(pw, i * 2 + 2);
     if (o == Provenance.EMPTY) {
       pw.println("no parent");
     } else if (o instanceof DirectProvenance) {

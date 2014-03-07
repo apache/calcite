@@ -22,7 +22,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import net.hydromatic.optiq.runtime.Spacer;
+import net.hydromatic.optiq.runtime.Spaces;
 
 /**
  * Builder for JSON documents (represented as {@link List}, {@link Map},
@@ -123,8 +123,7 @@ public class JsonBuilder {
   }
 
   private void newline(StringBuilder buf, int indent) {
-    buf.append('\n')
-        .append(new Spacer(indent * 2));
+    Spaces.append(buf.append('\n'), indent * 2);
   }
 
   private void appendList(

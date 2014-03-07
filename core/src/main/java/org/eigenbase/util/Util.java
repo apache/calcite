@@ -27,7 +27,6 @@ import java.nio.charset.*;
 import java.sql.*;
 import java.text.*;
 import java.util.*;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.jar.*;
 import java.util.logging.*;
 import java.util.regex.*;
@@ -105,18 +104,6 @@ public class Util {
                   return enumConstants(clazz);
                 }
               });
-
-  public static final String[] SPACES = {
-    "",
-    " ",
-    "  ",
-    "   ",
-    "    ",
-    "     ",
-    "      ",
-    "       ",
-    "        ",
-  };
 
   //~ Methods ----------------------------------------------------------------
 
@@ -1894,13 +1881,6 @@ public class Util {
   }
 
   /**
-   * Returns a string of N spaces.
-   */
-  public static String spaces(int i) {
-    return SpaceList.INSTANCE.get(i);
-  }
-
-  /**
    * Creates a list that returns every {@code n}th element of a list,
    * starting at element {@code k}.
    *
@@ -2109,52 +2089,6 @@ public class Util {
 
     public Object getNode() {
       return node;
-    }
-  }
-
-  private static class SpaceList extends CopyOnWriteArrayList<String> {
-    /** It doesn't look like this list is ever updated. But it is - when
-     * a call to {@link #get} causes an {@link IndexOutOfBoundsException}. */
-    @SuppressWarnings("MismatchedQueryAndUpdateOfCollection")
-    private static final List<String> INSTANCE = new SpaceList();
-
-    @Override
-    public String get(int index) {
-      for (;;) {
-        try {
-          return super.get(index);
-        } catch (IndexOutOfBoundsException e) {
-          if (index < 0) {
-            throw e;
-          }
-          populate(Math.max(16, index + 1));
-        }
-      }
-    }
-
-    /**
-     * Populates this list with all prefix strings of a given string. All
-     * of the prefix strings share the same backing array of chars.
-     */
-    private synchronized void populate(int newSize) {
-      newSize = Math.max(newSize, size() * 2);
-      final char[] chars = new char[newSize];
-      Arrays.fill(chars, ' ');
-      final int length = newSize - size();
-      final int offset = size();
-
-      // addAll is much more efficient than repeated add for
-      // CopyOnWriteArrayList
-      addAll(
-          new AbstractList<String>() {
-            public String get(int index) {
-              return new String(chars, 0, offset + index);
-            }
-
-            public int size() {
-              return length;
-            }
-          });
     }
   }
 }

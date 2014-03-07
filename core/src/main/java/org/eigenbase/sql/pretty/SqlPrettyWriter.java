@@ -18,9 +18,7 @@
 package org.eigenbase.sql.pretty;
 
 import java.io.*;
-
 import java.lang.reflect.*;
-
 import java.util.*;
 import java.util.logging.*;
 
@@ -28,6 +26,8 @@ import org.eigenbase.sql.*;
 import org.eigenbase.sql.util.*;
 import org.eigenbase.trace.*;
 import org.eigenbase.util.*;
+
+import net.hydromatic.optiq.runtime.Spaces;
 
 /**
  * Pretty printer for SQL statements.
@@ -402,19 +402,8 @@ public class SqlPrettyWriter implements SqlWriter {
   void indent(int indent) {
     if (indent < 0) {
       throw new IllegalArgumentException("negative indent " + indent);
-    } else if (indent <= 8) {
-      pw.print(Util.SPACES[indent]);
-    } else {
-      // Print space in chunks of 8 to amortize cost of calls to print.
-      final int rem = indent % 8;
-      final int div = indent / 8;
-      for (int i = 0; i < div; ++i) {
-        pw.print(Util.SPACES[8]);
-      }
-      if (rem > 0) {
-        pw.print(Util.SPACES[rem]);
-      }
     }
+    Spaces.append(pw, indent);
     charCount += indent;
   }
 
@@ -516,7 +505,7 @@ public class SqlPrettyWriter implements SqlWriter {
           //
           // WHERE foo = bar IN
           // (   SELECT ...
-          open = "(" + Util.spaces(indentation - 1);
+          open = Spaces.padRight("(", indentation);
           return new FrameImpl(
               frameType,
               keyword,

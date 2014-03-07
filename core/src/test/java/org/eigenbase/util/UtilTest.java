@@ -31,6 +31,7 @@ import org.eigenbase.test.*;
 import net.hydromatic.linq4j.function.Function1;
 
 import net.hydromatic.optiq.runtime.FlatLists;
+import net.hydromatic.optiq.runtime.Spaces;
 import net.hydromatic.optiq.util.BitSets;
 import net.hydromatic.optiq.util.CompositeMap;
 
@@ -827,27 +828,43 @@ public class UtilTest {
   }
 
   @Test public void testSpaces() {
-    assertEquals("", Util.spaces(0));
-    assertEquals(" ", Util.spaces(1));
-    assertEquals(" ", Util.spaces(1));
-    assertEquals("         ", Util.spaces(9));
-    assertEquals("     ", Util.spaces(5));
-    assertEquals(1000, Util.spaces(1000).length());
+    assertEquals("", Spaces.of(0));
+    assertEquals(" ", Spaces.of(1));
+    assertEquals(" ", Spaces.of(1));
+    assertEquals("         ", Spaces.of(9));
+    assertEquals("     ", Spaces.of(5));
+    assertEquals(1000, Spaces.of(1000).length());
   }
 
   @Test public void testSpaceString() {
-    assertThat(new SpaceString(0).toString(), equalTo(""));
-    assertThat(new SpaceString(1).toString(), equalTo(" "));
-    assertThat(new SpaceString(9).toString(), equalTo("         "));
-    assertThat(new SpaceString(5).toString(), equalTo("     "));
+    assertThat(Spaces.sequence(0).toString(), equalTo(""));
+    assertThat(Spaces.sequence(1).toString(), equalTo(" "));
+    assertThat(Spaces.sequence(9).toString(), equalTo("         "));
+    assertThat(Spaces.sequence(5).toString(), equalTo("     "));
     String s =
-        new StringBuilder().append("xx").append(SpaceString.MAX, 0, 100)
+        new StringBuilder().append("xx").append(Spaces.MAX, 0, 100)
             .toString();
     assertThat(s.length(), equalTo(102));
 
     // this would blow memory if the string were materialized... check that it
     // is not
-    assertThat(new SpaceString(1000000000).length(), equalTo(1000000000));
+    assertThat(Spaces.sequence(1000000000).length(), equalTo(1000000000));
+
+    final StringWriter sw = new StringWriter();
+    Spaces.append(sw, 4);
+    assertThat(sw.toString(), equalTo("    "));
+
+    final StringBuilder buf = new StringBuilder();
+    Spaces.append(buf, 4);
+    assertThat(buf.toString(), equalTo("    "));
+
+    assertThat(Spaces.padLeft("xy", 5), equalTo("   xy"));
+    assertThat(Spaces.padLeft("abcde", 5), equalTo("abcde"));
+    assertThat(Spaces.padLeft("abcdef", 5), equalTo("abcdef"));
+
+    assertThat(Spaces.padRight("xy", 5), equalTo("xy   "));
+    assertThat(Spaces.padRight("abcde", 5), equalTo("abcde"));
+    assertThat(Spaces.padRight("abcdef", 5), equalTo("abcdef"));
   }
 
   /**

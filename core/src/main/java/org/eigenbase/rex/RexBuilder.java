@@ -31,6 +31,7 @@ import org.eigenbase.util14.DateTimeUtil;
 
 import net.hydromatic.avatica.ByteString;
 
+import net.hydromatic.optiq.runtime.Spaces;
 import net.hydromatic.optiq.runtime.SqlFunctions;
 
 import com.google.common.collect.ImmutableList;
@@ -1098,7 +1099,7 @@ public class RexBuilder {
   private static Comparable zeroValue(RelDataType type) {
     switch (type.getSqlTypeName()) {
     case CHAR:
-      return new NlsString(Util.spaces(type.getPrecision()), null, null);
+      return new NlsString(Spaces.of(type.getPrecision()), null, null);
     case VARCHAR:
       return new NlsString("", null, null);
     case BINARY:
@@ -1320,7 +1321,7 @@ public class RexBuilder {
     }
     return new StringBuilder()
         .append(s)
-        .append(SpaceString.MAX, s.length(), length)
+        .append(Spaces.MAX, s.length(), length)
         .toString();
   }
 
