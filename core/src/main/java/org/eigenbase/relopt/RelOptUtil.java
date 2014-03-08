@@ -1781,6 +1781,8 @@ public abstract class RelOptUtil {
    * @param left       filter on the left that the right will be AND'd to
    * @param right      filter on the right
    * @return AND'd filter
+   *
+   * @see org.eigenbase.rex.RexUtil#composeConjunction
    */
   public static RexNode andJoinFilters(
       RexBuilder rexBuilder,
@@ -2248,6 +2250,9 @@ public abstract class RelOptUtil {
   public static RelNode replaceInput(
       RelNode parent, int ordinal, RelNode newInput) {
     final List<RelNode> inputs = new ArrayList<RelNode>(parent.getInputs());
+    if (inputs.get(ordinal) == newInput) {
+      return parent;
+    }
     inputs.set(ordinal, newInput);
     return parent.copy(parent.getTraitSet(), inputs);
   }

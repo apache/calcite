@@ -67,18 +67,13 @@ public final class AggregateRel extends AggregateRelBase {
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override
-  public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
+  @Override public AggregateRel copy(RelTraitSet traitSet, RelNode input,
+      BitSet groupSet, List<AggregateCall> aggCalls) {
     assert traitSet.containsIfApplicable(Convention.NONE);
-    return new AggregateRel(
-        getCluster(),
-        sole(inputs),
-        groupSet,
-        aggCalls);
+    return new AggregateRel(getCluster(), input, groupSet, aggCalls);
   }
 
-  @Override
-  public RelNode accept(RelShuttle shuttle) {
+  @Override public RelNode accept(RelShuttle shuttle) {
     return shuttle.visit(this);
   }
 }

@@ -853,16 +853,11 @@ public class JavaRules {
       }
     }
 
-    @Override
-    public EnumerableAggregateRel copy(
-        RelTraitSet traitSet, List<RelNode> inputs) {
+    @Override public EnumerableAggregateRel copy(RelTraitSet traitSet,
+        RelNode input, BitSet groupSet, List<AggregateCall> aggCalls) {
       try {
-        return new EnumerableAggregateRel(
-            getCluster(),
-            traitSet,
-            sole(inputs),
-            groupSet,
-            aggCalls);
+        return new EnumerableAggregateRel(getCluster(), traitSet, input,
+            groupSet, aggCalls);
       } catch (InvalidRelException e) {
         // Semantic error not possible. Must be a bug. Convert to
         // internal error.

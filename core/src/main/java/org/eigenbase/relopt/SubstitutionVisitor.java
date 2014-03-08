@@ -28,13 +28,20 @@ import org.eigenbase.rex.*;
 import org.eigenbase.sql.SqlKind;
 import org.eigenbase.sql.fun.SqlStdOperatorTable;
 import org.eigenbase.trace.EigenbaseTrace;
+import org.eigenbase.util.IntList;
 import org.eigenbase.util.Pair;
+import org.eigenbase.util.mapping.Mapping;
+import org.eigenbase.util.mapping.Mappings;
 
 import net.hydromatic.linq4j.Ord;
 
 import net.hydromatic.optiq.prepare.OptiqPrepareImpl;
+import net.hydromatic.optiq.util.BitSets;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 
 /**
  * Substitutes part of a tree of relational expressions with another tree.
@@ -74,14 +81,26 @@ public class SubstitutionVisitor {
 
   private static final List<UnifyRule> RULES =
       Arrays.<UnifyRule>asList(
-          ScanUnifyRule.INSTANCE,
+          TrivialRule.INSTANCE,
           ProjectToProjectUnifyRule.INSTANCE,
           FilterToProjectUnifyRule.INSTANCE,
           ProjectToFilterUnifyRule.INSTANCE,
-          FilterToFilterUnifyRule.INSTANCE);
+          FilterToFilterUnifyRule.INSTANCE,
+          AggregateToAggregateUnifyRule.INSTANCE,
+          AggregateOnProjectToAggregateUnifyRule.INSTANCE);
 
   private static final Map<Pair<Class, Class>, List<UnifyRule>> RULE_MAP =
       new HashMap<Pair<Class, Class>, List<UnifyRule>>();
+
+  private final RelVisitor registrar =
+      new RelVisitor() {
+        public void visit(RelNode node, int ordinal, RelNode parent) {
+          if (parent != null) {
+            parentMap.put(node, new Parentage(parent, ordinal));
+          }
+          super.visit(node, ordinal, parent);
+        }
+      };
 
   private final RelNode query;
   private final RelNode target;
@@ -134,6 +153,22 @@ public class SubstitutionVisitor {
     queryLeaves = ImmutableList.copyOf(allNodes);
   }
 
+  void register(RelNode result, RelNode query) {
+    equiv(result, query);
+    registrar.go(result);
+  }
+
+  /** Marks that {@code result} is equivalent to (existing node) {@code query},
+   * and inherits its parentage. */
+  void equiv(RelNode result, RelNode query) {
+    if (result != query && parentMap.get(result) == null) {
+      final Parentage parentage = parentMap.get(query);
+      if (parentage != null) {
+        parentMap.put(result, parentage);
+      }
+    }
+  }
+
   /**
    * Maps a condition onto a target.
    *
@@ -144,8 +179,10 @@ public class SubstitutionVisitor {
    *
    * <p>The terms satisfy the relation
    * <pre>
-   *     {@code residue = condition AND NOT target}
+   *     {@code condition = target AND residue}
    * </pre>
+   *
+   * and {@code residue} must be as weak as possible.</p>
    *
    * <p>Example #1: condition stronger than target</p>
    * <ul>
@@ -154,19 +191,23 @@ public class SubstitutionVisitor {
    * <li>residue: y = 2</li>
    * </ul>
    *
-   * <p>Example #2: target weaker than target (valid, but not currently
+   * <p>Note that residue {@code x &gt; 0 AND y = 2} would also satisfy the
+   * relation {@code condition = target AND residue} but is stronger than
+   * necessary, so we prefer {@code y = 2}.</p>
+   *
+   * <p>Example #2: target weaker than condition (valid, but not currently
    * implemented)</p>
    * <ul>
    * <li>condition: x = 1</li>
    * <li>target: x = 1 OR z = 3</li>
-   * <li>residue: z = 3</li>
+   * <li>residue: NOT (z = 3)</li>
    * </ul>
    *
    * <p>Example #3: condition and target are equivalent</p>
    * <ul>
-   * <li>condition: x = 1 and y = 2</li>
-   * <li>target: y = 2 and x = 1</li>
-   * <li>residue: true</li>
+   * <li>condition: x = 1 AND y = 2</li>
+   * <li>target: y = 2 AND x = 1</li>
+   * <li>residue: TRUE</li>
    * </ul>
    *
    * <p>Example #4: condition weaker than target</p>
@@ -182,14 +223,76 @@ public class SubstitutionVisitor {
    * <a href"http://en.wikipedia.org/wiki/Satisfiability">Satisfiability</a>
    * problem.</p>
    */
-  static RexNode splitFilter(
-      RexBuilder rexBuilder, RexNode condition, RexNode target) {
+  @VisibleForTesting
+  public static RexNode splitFilter(
+      final RexBuilder rexBuilder, RexNode condition, RexNode target) {
+    // First, try splitting into ORs.
+    // Given target    c1 OR c2 OR c3 OR c4
+    // and condition   c2 OR c4
+    // residue is      NOT c1 AND NOT c3
+    // Also deals with case target [x] condition [x] yields residue [true].
+    RexNode z = splitOr(rexBuilder, condition, target);
+    if (z != null) {
+      return z;
+    }
+
     RexNode x = andNot(rexBuilder, target, condition);
     if (mayBeSatisfiable(x)) {
       RexNode x2 = andNot(rexBuilder, condition, target);
       return simplify(rexBuilder, x2);
     }
     return null;
+  }
+
+  private static RexNode splitOr(
+      final RexBuilder rexBuilder, RexNode condition, RexNode target) {
+    List<RexNode> targets = RelOptUtil.disjunctions(target);
+    for (RexNode e : RelOptUtil.disjunctions(condition)) {
+      boolean found = removeAll(targets, e);
+      if (!found) {
+        return null;
+      }
+    }
+    return RexUtil.composeConjunction(rexBuilder,
+        Lists.transform(targets, not(rexBuilder)), false);
+  }
+
+  /** Returns a function that applies NOT to its argument. */
+  public static Function<RexNode, RexNode> not(final RexBuilder rexBuilder) {
+    return new Function<RexNode, RexNode>() {
+      public RexNode apply(RexNode input) {
+        return input.isAlwaysTrue()
+            ? rexBuilder.makeLiteral(false)
+            : input.isAlwaysFalse()
+            ? rexBuilder.makeLiteral(true)
+            : input.getKind() == SqlKind.NOT
+            ? ((RexCall) input).operands.get(0)
+            : rexBuilder.makeCall(SqlStdOperatorTable.NOT, input);
+      }
+    };
+  }
+
+  /** Removes all expressions from a list that are equivalent to a given
+   * expression. Returns whether any were removed. */
+  private static boolean removeAll(List<RexNode> targets, RexNode e) {
+    int count = 0;
+    Iterator<RexNode> iterator = targets.iterator();
+    while (iterator.hasNext()) {
+      RexNode next = iterator.next();
+      if (equivalent(next, e)) {
+        ++count;
+        iterator.remove();
+      }
+    }
+    return count > 0;
+  }
+
+  /** Returns whether two expressions are equivalent. */
+  private static boolean equivalent(RexNode e1, RexNode e2) {
+    // TODO: make broader;
+    // 1. 'x = y' should be equivalent to 'y = x'.
+    // 2. 'c2 and c1' should be equivalent to 'c1 and c2'.
+    return e1 == e2 || e1.toString().equals(e2.toString());
   }
 
   /**
@@ -320,22 +423,38 @@ public class SubstitutionVisitor {
         true);
     replacementMap.put(target, replacement);
     final UnifyResult unifyResult = matchRecurse(target);
-    if (unifyResult != null) {
-      final RelNode node =
-          RelOptUtil.replace(query, unifyResult.query, unifyResult.result);
-      if (DEBUG) {
-        System.out.println(
-            "Convert: query=" + RelOptUtil.toString(query)
-            + "\nnode=" + RelOptUtil.toString(node));
-      }
-      return node;
+    if (unifyResult == null) {
+      return null;
     }
-    return null;
+    final RelNode node0 =
+        true
+        ? unifyResult.result
+        : RelOptUtil.replace(query, unifyResult.query, unifyResult.result);
+    RelNode node = replaceAncestors(node0);
+    if (DEBUG) {
+      System.out.println(
+          "Convert: query:\n" + RelOptUtil.toString(query)
+          + "\nunify.query:\n" + RelOptUtil.toString(unifyResult.query)
+          + "\nunify.result:\n" + RelOptUtil.toString(unifyResult.result)
+          + "\nunify.target:\n" + RelOptUtil.toString(unifyResult.target)
+          + "\nnode0:\n" + RelOptUtil.toString(node0)
+          + "\nnode:\n" + RelOptUtil.toString(node));
+    }
+    return node;
+  }
+
+  private RelNode replaceAncestors(RelNode node) {
+    for (;;) {
+      Parentage parentage = parentMap.get(node);
+      if (parentage == null || parentage.parent == null) {
+        return node;
+      }
+      node = RelOptUtil.replaceInput(parentage.parent, parentage.ordinal, node);
+    }
   }
 
   private UnifyResult matchRecurse(RelNode target) {
     final List<RelNode> targetInputs = target.getInputs();
-    final List<RelNode> queryInputs = new ArrayList<RelNode>();
     RelNode queryParent = null;
 
     for (RelNode targetInput : targetInputs) {
@@ -343,14 +462,11 @@ public class SubstitutionVisitor {
       if (unifyResult == null) {
         return null;
       }
-      queryInputs.add(unifyResult.result);
-      Parentage pair = parentMap.get(unifyResult.query);
-      queryParent = pair.parent;
-/*
-            queryParent = RelOptUtil.replaceInput(
-                pair.left, pair.right, unifyResult.result);
-            parentMap.put(queryParent, pair);
-*/
+      Parentage parentage = parentMap.get(unifyResult.query);
+      parentMap.put(unifyResult.result, parentage);
+      queryParent = RelOptUtil.replaceInput(parentage.parent, parentage.ordinal,
+          unifyResult.result);
+      equiv(queryParent, parentage.parent);
     }
 
     if (targetInputs.isEmpty()) {
@@ -400,6 +516,15 @@ public class SubstitutionVisitor {
         }
       }
     }
+    if (DEBUG) {
+      System.out.println(
+          "Unify failed:"
+          + "\nQuery:\n"
+          + RelOptUtil.toString(queryParent)
+          + "\nTarget:\n"
+          + RelOptUtil.toString(target)
+          + "\n");
+    }
     return null;
   }
 
@@ -431,10 +556,11 @@ public class SubstitutionVisitor {
     final Class<T> targetClass = rule.getTargetClass();
     if (queryClass.isInstance(query)
         && targetClass.isInstance(target)) {
-      return rule.apply(
+      UnifyIn<Q, T> in =
           new UnifyIn<Q, T>(
               queryClass.cast(query),
-              targetClass.cast(target)));
+              targetClass.cast(target));
+      return rule.apply(in);
     }
     return null;
   }
@@ -505,10 +631,12 @@ public class SubstitutionVisitor {
     UnifyResult result(RelNode result) {
       assert RelOptUtil.contains(result, target);
       assert RelOptUtil.equalType("result", result, "query", query, true);
+      equiv(result, query);
       RelNode replace = replacementMap.get(target);
       if (replace != null) {
         result = RelOptUtil.replace(result, target, replace);
       }
+      register(result, query);
       return new UnifyResult(query, target, result);
     }
 
@@ -533,6 +661,7 @@ public class SubstitutionVisitor {
     private final RelNode result;
 
     UnifyResult(RelNode query, RelNode target, RelNode result) {
+      assert RelOptUtil.equalType("query", query, "result", result, true);
       this.query = query;
       this.target = target;
       this.result = result;
@@ -560,21 +689,22 @@ public class SubstitutionVisitor {
     }
   }
 
-  /** Implementation of {@link UnifyRule} that matches a table scan
-   * ({@link TableAccessRelBase} or a sub-class). */
-  private static class ScanUnifyRule
-      extends AbstractUnifyRule<TableAccessRelBase, TableAccessRelBase> {
-    public static final ScanUnifyRule INSTANCE = new ScanUnifyRule();
+  /** Implementation of {@link UnifyRule} that matches if the query is already
+   * equal to the target (using {@code ==}).
+   *
+   * <p>Matches scans to the same table, because these will be canonized to
+   * the same {@link org.eigenbase.rel.TableAccessRel} instance.</p>
+   */
+  private static class TrivialRule extends AbstractUnifyRule<RelNode, RelNode> {
+    private static final TrivialRule INSTANCE = new TrivialRule();
 
-    public ScanUnifyRule() {
-      super(TableAccessRelBase.class, TableAccessRelBase.class);
+    private TrivialRule() {
+      super(RelNode.class, RelNode.class);
     }
 
-    public UnifyResult apply(
-        UnifyIn<TableAccessRelBase, TableAccessRelBase> in) {
-      if (in.query.getTable().getQualifiedName().equals(
-          in.target.getTable().getQualifiedName())) {
-        return in.result(in.target);
+    public UnifyResult apply(UnifyIn<RelNode, RelNode> in) {
+      if (in.query == in.target) {
+        return in.result(in.query);
       }
       return null;
     }
@@ -745,6 +875,146 @@ public class SubstitutionVisitor {
     }
   }
 
+  /** Implementation of {@link UnifyRule} that matches a {@link AggregateRel} to
+   * a {@link AggregateRel}, provided that they have the same child. */
+  private static class AggregateToAggregateUnifyRule
+      extends AbstractUnifyRule<AggregateRel, AggregateRel> {
+    public static final AggregateToAggregateUnifyRule INSTANCE =
+        new AggregateToAggregateUnifyRule();
+
+    private AggregateToAggregateUnifyRule() {
+      super(AggregateRel.class, AggregateRel.class);
+    }
+
+    public UnifyResult apply(UnifyIn<AggregateRel, AggregateRel> in) {
+      assert in.query != in.target;
+      if (in.query.getChild() != in.target.getChild()) {
+        return null;
+      }
+      // in.query can be rewritten in terms of in.target if its groupSet is
+      // a subset, and its aggCalls are a superset. For example:
+      //   query: SELECT x, COUNT(b) FROM t GROUP BY x
+      //   target: SELECT x, y, SUM(a) AS s, COUNT(b) AS cb FROM t GROUP BY x, y
+      // transforms to
+      //   result: SELECT x, SUM(cb) FROM (target) GROUP BY x
+      if (!BitSets.contains(in.target.getGroupSet(), in.query.getGroupSet())) {
+        return null;
+      }
+      RelNode result = unifyAggregates(in.query, in.target);
+      if (result == null) {
+        return null;
+      }
+      return in.result(result);
+    }
+  }
+
+  public static AggregateRel permute(AggregateRel aggregate, RelNode input,
+      Mapping mapping) {
+    BitSet groupSet = Mappings.apply(mapping, aggregate.getGroupSet());
+    List<AggregateCall> aggregateCalls =
+        apply(mapping, aggregate.getAggCallList());
+    return aggregate.copy(aggregate.getTraitSet(), input, groupSet,
+        aggregateCalls);
+  }
+
+  private static List<AggregateCall> apply(final Mapping mapping,
+      List<AggregateCall> aggCallList) {
+    return Lists.transform(aggCallList,
+        new Function<AggregateCall, AggregateCall>() {
+          public AggregateCall apply(AggregateCall call) {
+            return new AggregateCall(call.getAggregation(), call.isDistinct(),
+                Mappings.apply2(mapping, call.getArgList()), call.getType(),
+                call.name);
+          }
+        });
+  }
+
+  public static RelNode unifyAggregates(
+      AggregateRel query, AggregateRel target) {
+    RelNode result;
+    if (query.getGroupSet().equals(target.getGroupSet())) {
+      // Same level of aggregation. Generate a project.
+      final List<Integer> projects = Lists.newArrayList();
+      final int groupCount = query.getGroupSet().cardinality();
+      for (int i = 0; i < groupCount; i++) {
+        projects.add(i);
+      }
+      for (AggregateCall aggregateCall : query.getAggCallList()) {
+        int i = target.getAggCallList().indexOf(aggregateCall);
+        if (i < 0) {
+          return null;
+        }
+        projects.add(groupCount + i);
+      }
+      result = CalcRel.createProject(target, projects);
+    } else {
+      // Target is coarser level of aggregation. Generate an aggregate.
+      final BitSet groupSet = new BitSet();
+      final IntList targetGroupList = BitSets.toList(target.getGroupSet());
+      for (int c : BitSets.toIter(query.getGroupSet())) {
+        int c2 = targetGroupList.indexOf(c);
+        if (c2 < 0) {
+          return null;
+        }
+        groupSet.set(c2);
+      }
+      final List<AggregateCall> aggregateCalls = Lists.newArrayList();
+      for (AggregateCall aggregateCall : query.getAggCallList()) {
+        if (aggregateCall.isDistinct()) {
+          return null;
+        }
+        int i = target.getAggCallList().indexOf(aggregateCall);
+        if (i < 0) {
+          return null;
+        }
+        aggregateCalls.add(
+            new AggregateCall(getRollup(aggregateCall.getAggregation()),
+                aggregateCall.isDistinct(),
+                ImmutableList.of(groupSet.cardinality() + i),
+                aggregateCall.type, aggregateCall.name));
+      }
+      result = new AggregateRel(target.getCluster(), target, groupSet,
+          aggregateCalls);
+    }
+    return RelOptUtil.createCastRel(result, query.getRowType(), true);
+  }
+
+  /** Implementation of {@link UnifyRule} that matches a {@link AggregateRel} on
+   * a {@link ProjectRel} to an {@link AggregateRel} target. */
+  private static class AggregateOnProjectToAggregateUnifyRule
+      extends AbstractUnifyRule<AggregateRel, AggregateRel> {
+    public static final AggregateOnProjectToAggregateUnifyRule INSTANCE =
+        new AggregateOnProjectToAggregateUnifyRule();
+
+    private AggregateOnProjectToAggregateUnifyRule() {
+      super(AggregateRel.class, AggregateRel.class);
+    }
+
+    public UnifyResult apply(UnifyIn<AggregateRel, AggregateRel> in) {
+      assert in.query != in.target;
+      if (!(in.query.getChild() instanceof ProjectRel)) {
+        return null;
+      }
+      final ProjectRel project = (ProjectRel) in.query.getChild();
+      if (project.getChild() != in.target.getChild()) {
+        return null;
+      }
+      final Mappings.TargetMapping mapping = project.getMapping();
+      if (mapping == null) {
+        return null;
+      }
+      final AggregateRel aggregate2 =
+          permute(in.query, project.getChild(), mapping.inverse());
+      final RelNode result = unifyAggregates(aggregate2, in.target);
+      return result == null ? null : in.result(result);
+    }
+  }
+
+  public static Aggregation getRollup(Aggregation aggregation) {
+    // TODO: count rolls up using sum; etc.
+    return aggregation;
+  }
+
   private static RexShuttle getRexShuttle(ProjectRel target) {
     final Map<String, Integer> map = new HashMap<String, Integer>();
     for (RexNode e : target.getProjects()) {
@@ -769,6 +1039,7 @@ public class SubstitutionVisitor {
     };
   }
 
+  /** Information about a node's parent and its position among its siblings. */
   private static class Parentage {
     final RelNode parent;
     final int ordinal;

@@ -80,6 +80,18 @@ public abstract class AggregateRelBase extends SingleRel {
 
   //~ Methods ----------------------------------------------------------------
 
+  @Override public final RelNode copy(RelTraitSet traitSet,
+      List<RelNode> inputs) {
+    return copy(traitSet, sole(inputs), groupSet, aggCalls);
+  }
+
+  /** Creates a copy of this aggregate.
+   *
+   * @see #copy(org.eigenbase.relopt.RelTraitSet, java.util.List)
+   */
+  public abstract AggregateRelBase copy(RelTraitSet traitSet, RelNode input,
+      BitSet groupSet, List<AggregateCall> aggCalls);
+
   // implement RelNode
   public boolean isDistinct() {
     // we never return duplicate rows

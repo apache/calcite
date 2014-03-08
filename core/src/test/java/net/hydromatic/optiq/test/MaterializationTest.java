@@ -24,6 +24,7 @@ import net.hydromatic.optiq.materialize.MaterializationService;
 import net.hydromatic.optiq.prepare.Prepare;
 
 import org.eigenbase.relopt.SubstitutionVisitor;
+import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.rex.*;
 import org.eigenbase.sql.fun.SqlStdOperatorTable;
 
@@ -33,6 +34,7 @@ import org.junit.Test;
 import java.math.BigDecimal;
 import java.sql.ResultSet;
 
+import static org.hamcrest.CoreMatchers.*;
 import static org.junit.Assert.*;
 
 /**
@@ -171,7 +173,7 @@ public class MaterializationTest {
 
   /** As {@link #testFilterQueryOnProjectView3()} but also contains an
    * expression column. */
-  @Ignore("fix project expr on filter")
+  @Ignore("fix project expr on filter - plans, but wrong results")
   @Test public void testFilterQueryOnProjectView5() {
     checkMaterialize(
         "select \"deptno\" - 10 as \"x\", \"empid\" + 1, \"name\" from \"emps\"",
@@ -214,6 +216,40 @@ public class MaterializationTest {
         OptiqAssert.checkResultContains(
             "EnumerableCalcRel(expr#0..2=[{inputs}], expr#3=[1], expr#4=[+($t1, $t3)], X=[$t4], name=[$t2], condition=?)\n"
             + "  EnumerableTableAccessRel(table=[[hr, m0]])"));
+  }
+
+  /** Aggregation query at same level of aggregation as aggregation
+   * materialization. */
+  @Test public void testAggregate() {
+    checkMaterialize(
+        "select \"deptno\", count(*) as c, sum(\"empid\") as s from \"emps\" group by \"deptno\"",
+        "select count(*) + 1 as c, \"deptno\" from \"emps\" group by \"deptno\"");
+  }
+
+  /** Aggregation query at coarser level of aggregation than aggregation
+   * materialization. Requires an additional AggregateRel to roll up. */
+  @Test public void testAggregateRollUp() {
+    checkMaterialize(
+        "select \"empid\", \"deptno\", count(*) as c, sum(\"empid\") as s from \"emps\" group by \"empid\", \"deptno\"",
+        "select count(*) + 1 as c, \"deptno\" from \"emps\" group by \"deptno\"",
+        JdbcTest.HR_MODEL,
+        OptiqAssert.checkResultContains(
+            "EnumerableCalcRel(expr#0..1=[{inputs}], expr#2=[1], expr#3=[+($t1, $t2)], C=[$t3], deptno=[$t0])\n"
+            + "  EnumerableAggregateRel(group=[{1}], agg#0=[COUNT($1)])\n"
+            + "    EnumerableTableAccessRel(table=[[hr, m0]])"));
+  }
+
+  /** Aggregation materialization with a project. */
+  @Ignore("work in progress")
+  @Test public void testAggregateProject() {
+    // Note that materialization does not start with the GROUP BY columns.
+    // Not a smart way to design a materialization, but people may do it.
+    checkMaterialize(
+        "select \"deptno\", count(*) as c, \"empid\" + 2, sum(\"empid\") as s from \"emps\" group by \"empid\", \"deptno\"",
+        "select count(*) + 1 as c, \"deptno\" from \"emps\" group by \"deptno\"",
+        JdbcTest.HR_MODEL,
+        OptiqAssert.checkResultContains(
+            "xxx"));
   }
 
   @Ignore
@@ -403,6 +439,96 @@ public class MaterializationTest {
     assertTrue(SubstitutionVisitor.mayBeSatisfiable(e));
     final RexNode simple = SubstitutionVisitor.simplify(rexBuilder, e);
     assertEquals(s, simple.toString());
+  }
+
+  @Test public void testSplitFilter() {
+    final RexLiteral i1 = rexBuilder.makeExactLiteral(BigDecimal.ONE);
+    final RexLiteral i2 = rexBuilder.makeExactLiteral(BigDecimal.valueOf(2));
+    final RexLiteral i3 = rexBuilder.makeExactLiteral(BigDecimal.valueOf(3));
+
+    final RelDataType intType = typeFactory.createType(int.class);
+    final RexInputRef x = rexBuilder.makeInputRef(intType, 0); // $0
+    final RexInputRef y = rexBuilder.makeInputRef(intType, 1); // $1
+    final RexInputRef z = rexBuilder.makeInputRef(intType, 2); // $2
+
+    final RexNode x_eq_1 =
+        rexBuilder.makeCall(SqlStdOperatorTable.EQUALS, x, i1); // $0 = 1
+    final RexNode x_eq_1_b =
+        rexBuilder.makeCall(SqlStdOperatorTable.EQUALS, x, i1); // $0 = 1 again
+    final RexNode y_eq_2 =
+        rexBuilder.makeCall(SqlStdOperatorTable.EQUALS, y, i2); // $1 = 2
+    final RexNode z_eq_3 =
+        rexBuilder.makeCall(SqlStdOperatorTable.EQUALS, z, i3); // $2 = 3
+
+    RexNode newFilter;
+
+    // Example 1.
+    // TODO:
+
+    // Example 2.
+    //   condition: x = 1,
+    //   target:    x = 1 or z = 3
+    // yields
+    //   residue:   not (z = 3)
+    newFilter = SubstitutionVisitor.splitFilter(rexBuilder,
+        x_eq_1,
+        rexBuilder.makeCall(SqlStdOperatorTable.OR, x_eq_1, z_eq_3));
+    assertThat(newFilter.toString(), equalTo("NOT(=($2, 3))"));
+
+    // 2b.
+    //   condition: x = 1 or y = 2
+    //   target:    x = 1 or y = 2 or z = 3
+    // yields
+    //   residue:   not (z = 3)
+    newFilter = SubstitutionVisitor.splitFilter(rexBuilder,
+        rexBuilder.makeCall(SqlStdOperatorTable.OR, x_eq_1, y_eq_2),
+        rexBuilder.makeCall(SqlStdOperatorTable.OR, x_eq_1, y_eq_2, z_eq_3));
+    assertThat(newFilter.toString(), equalTo("NOT(=($2, 3))"));
+
+    // 2c.
+    //   condition: x = 1
+    //   target:    x = 1 or y = 2 or z = 3
+    // yields
+    //   residue:   not (y = 2) and not (z = 3)
+    newFilter = SubstitutionVisitor.splitFilter(rexBuilder,
+        x_eq_1,
+        rexBuilder.makeCall(SqlStdOperatorTable.OR, x_eq_1, y_eq_2, z_eq_3));
+    assertThat(newFilter.toString(),
+        equalTo("AND(NOT(=($1, 2)), NOT(=($2, 3)))"));
+
+    // 2d.
+    //   condition: x = 1 or y = 2
+    //   target:    y = 2 or x = 1
+    // yields
+    //   residue:   true
+    newFilter = SubstitutionVisitor.splitFilter(rexBuilder,
+        rexBuilder.makeCall(SqlStdOperatorTable.OR, x_eq_1, y_eq_2),
+        rexBuilder.makeCall(SqlStdOperatorTable.OR, y_eq_2, x_eq_1));
+    assertThat(newFilter.isAlwaysTrue(), equalTo(true));
+
+    // 2e.
+    //   condition: x = 1
+    //   target:    x = 1 (different object)
+    // yields
+    //   residue:   true
+    newFilter = SubstitutionVisitor.splitFilter(rexBuilder, x_eq_1, x_eq_1_b);
+    assertThat(newFilter.isAlwaysTrue(), equalTo(true));
+
+    // 2f.
+    //   condition: x = 1 or y = 2
+    //   target:    x = 1
+    // yields
+    //   residue:   null
+    // TODO:
+
+    // Example 3.
+    // Condition [x = 1 and y = 2],
+    // target [y = 2 and x = 1] yields
+    // residue [true].
+    // TODO:
+
+    // Example 4.
+    // TODO:
   }
 
   /** Tests a complicated star-join query on a complicated materialized

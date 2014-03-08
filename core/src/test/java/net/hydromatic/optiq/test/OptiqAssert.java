@@ -211,7 +211,7 @@ public class OptiqAssert {
           } else {
             if (!expected.equals(result)) {
               // compare strings to get better error message
-              assertEquals(newlineList(expected), newlineList(result));
+              assertThat(newlineList(result), equalTo(newlineList(expected)));
               fail("oops");
             }
           }

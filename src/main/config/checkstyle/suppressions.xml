@@ -46,7 +46,7 @@
       Hopefully we'll fix soon. At least we are now checking the other files.
 
        Only OptiqPrepareImpl, JavaRules, RelOptListener, RelDecorrelator,
-       OptionsList, OptiqAssert, Mappings, JdbcTest, SubstitutionVisitor,
+       OptionsList, OptiqAssert, Mappings, JdbcTest,
        HepInstruction, VolcanoPlannerTest, ConcurrentTestCommandScript,
        VolcanoPlannerTraitTest, RexImpTable
        have more than 4 issues.
@@ -55,7 +55,6 @@
   <suppress checks="JavadocType" files="src[/\\]main[/\\]java[/\\]net[/\\]hydromatic[/\\]optiq[/\\]rules[/\\]java[/\\]JavaRules.java"/>
   <suppress checks="JavadocType" files="src[/\\]main[/\\]java[/\\]net[/\\]hydromatic[/\\]optiq[/\\]rules[/\\]java[/\\]RexImpTable.java"/>
   <suppress checks="JavadocType" files="src[/\\]main[/\\]java[/\\]org[/\\]eigenbase[/\\]relopt[/\\]hep[/\\]HepInstruction.java"/>
-  <suppress checks="JavadocType" files="src[/\\]main[/\\]java[/\\]org[/\\]eigenbase[/\\]relopt[/\\]SubstitutionVisitor.java"/>
 
   <suppress checks="JavadocType" files="src[/\\]main[/\\]java[/\\]org[/\\]eigenbase[/\\]relopt[/\\]TableAccessMap.java"/>
   <suppress checks="JavadocType" files="src[/\\]main[/\\]java[/\\]org[/\\]eigenbase[/\\]relopt[/\\]volcano[/\\]VolcanoCost.java"/>

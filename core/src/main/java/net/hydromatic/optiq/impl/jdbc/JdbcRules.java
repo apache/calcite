@@ -527,11 +527,11 @@ public class JdbcRules {
       assert getConvention() instanceof JdbcConvention;
     }
 
-    @Override
-    public JdbcAggregateRel copy(RelTraitSet traitSet, List<RelNode> inputs) {
+    @Override public JdbcAggregateRel copy(RelTraitSet traitSet, RelNode input,
+        BitSet groupSet, List<AggregateCall> aggCalls) {
       try {
-        return new JdbcAggregateRel(getCluster(), traitSet, sole(inputs),
-            groupSet, aggCalls);
+        return new JdbcAggregateRel(getCluster(), traitSet, input, groupSet,
+            aggCalls);
       } catch (InvalidRelException e) {
         // Semantic error not possible. Must be a bug. Convert to
         // internal error.
