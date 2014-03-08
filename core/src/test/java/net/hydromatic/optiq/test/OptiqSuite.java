@@ -27,6 +27,7 @@ import org.eigenbase.relopt.RelOptUtilTest;
 import org.eigenbase.relopt.RelWriterTest;
 import org.eigenbase.relopt.volcano.VolcanoPlannerTest;
 import org.eigenbase.relopt.volcano.VolcanoPlannerTraitTest;
+import org.eigenbase.rex.RexExecutorTest;
 import org.eigenbase.sql.parser.SqlParserTest;
 import org.eigenbase.sql.test.*;
 import org.eigenbase.test.*;
@@ -77,6 +78,7 @@ import org.junit.runners.Suite;
     RelMetadataTest.class,
     HepPlannerTest.class,
     RelOptRulesTest.class,
+    RexExecutorTest.class,
     MaterializationTest.class,
     SqlLimitsTest.class,
     LinqFrontJdbcBackTest.class,

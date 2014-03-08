@@ -39,6 +39,9 @@
   <suppress id="eigenbaseImportOrder" files="net[/\\]hydromatic"/>
   <suppress id="hydromaticImportOrder" files="org[/\\]eigenbase"/>
 
+  <!-- Suppress JavadocPackage in the test packages -->
+  <suppress checks="JavadocPackage" files="src[/\\]test[/\\]java[/\\]"/>
+
   <!-- Suppress checks on class-level javadoc in files known to have issues.
       Hopefully we'll fix soon. At least we are now checking the other files.
 

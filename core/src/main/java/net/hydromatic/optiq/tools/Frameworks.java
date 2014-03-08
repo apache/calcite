@@ -80,13 +80,40 @@ public class Frameworks {
         SchemaPlus rootSchema);
   }
 
+  /** Piece of code to be run in a context where a planner and statement are
+   * available. The planner is accessible from the {@code cluster} parameter, as
+   * are several other useful objects. The connection and
+   * {@link net.hydromatic.optiq.DataContext} are accessible from the
+   * statement. */
+  public interface PrepareAction<R> {
+    R apply(RelOptCluster cluster, RelOptSchema relOptSchema,
+        SchemaPlus rootSchema, OptiqServerStatement statement);
+  }
+
   /**
    * Initializes a container then calls user-specified code with a planner.
    *
    * @param action Callback containing user-specified code
-   * @return Result of optimization
+   * @return Return value from action
    */
-  public static <R> R withPlanner(PlannerAction<R> action) {
+  public static <R> R withPlanner(final PlannerAction<R> action) {
+    return withPrepare(
+        new Frameworks.PrepareAction<R>() {
+          public R apply(RelOptCluster cluster, RelOptSchema relOptSchema,
+              SchemaPlus rootSchema, OptiqServerStatement statement) {
+            return action.apply(cluster, relOptSchema, rootSchema);
+          }
+        });
+  }
+
+  /**
+   * Initializes a container then calls user-specified code with a planner
+   * and statement.
+   *
+   * @param action Callback containing user-specified code
+   * @return Return value from action
+   */
+  public static <R> R withPrepare(PrepareAction<R> action) {
     try {
       Class.forName("net.hydromatic.optiq.jdbc.Driver");
       Connection connection =
@@ -95,7 +122,8 @@ public class Frameworks {
           connection.unwrap(OptiqConnection.class);
       final OptiqServerStatement statement =
           optiqConnection.createStatement().unwrap(OptiqServerStatement.class);
-      return new OptiqPrepareImpl().withPlanner(statement, action);
+      //noinspection deprecation
+      return new OptiqPrepareImpl().perform(statement, action);
     } catch (Exception e) {
       throw new RuntimeException(e);
     }

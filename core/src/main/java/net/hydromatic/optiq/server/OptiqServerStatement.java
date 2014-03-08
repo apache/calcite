@@ -17,6 +17,7 @@
 */
 package net.hydromatic.optiq.server;
 
+import net.hydromatic.optiq.jdbc.OptiqConnection;
 import net.hydromatic.optiq.jdbc.OptiqPrepare;
 
 /**
@@ -25,6 +26,9 @@ import net.hydromatic.optiq.jdbc.OptiqPrepare;
 public interface OptiqServerStatement {
   /** Creates a context for preparing a statement for execution. */
   OptiqPrepare.Context createPrepareContext();
+
+  /** Returns the connection. */
+  OptiqConnection getConnection();
 }
 
 // End OptiqServerStatement.java

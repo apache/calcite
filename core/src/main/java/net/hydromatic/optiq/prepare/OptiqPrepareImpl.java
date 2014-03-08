@@ -52,6 +52,7 @@ import org.eigenbase.sql.type.*;
 import org.eigenbase.sql.util.ChainedSqlOperatorTable;
 import org.eigenbase.sql.validate.*;
 import org.eigenbase.sql2rel.SqlToRelConverter;
+import org.eigenbase.util.Bug;
 import org.eigenbase.util.Util;
 
 import com.google.common.collect.*;
@@ -496,9 +497,26 @@ public class OptiqPrepareImpl implements OptiqPrepare {
     return typeFactory.builder().add("$0", type).build();
   }
 
-  /** Executes an optimize action. */
+  /** Executes an optimize action.
+   *
+   * @deprecated Will be removed after optiq-0.5; use
+   * {@link Frameworks#withPlanner}
+   */
   public <R> R withPlanner(OptiqServerStatement statement,
-      Frameworks.PlannerAction<R> action) {
+      final Frameworks.PlannerAction<R> action) {
+    Bug.upgrade("remove after 0.5");
+    return perform(statement,
+        new Frameworks.PrepareAction<R>() {
+          public R apply(RelOptCluster cluster, RelOptSchema relOptSchema,
+              SchemaPlus rootSchema, OptiqServerStatement statement) {
+            return action.apply(cluster, relOptSchema, rootSchema);
+          }
+        });
+  }
+
+  /** Executes a prepare action. */
+  public <R> R perform(OptiqServerStatement statement,
+      Frameworks.PrepareAction<R> action) {
     final Context context = statement.createPrepareContext();
     final JavaTypeFactory typeFactory = context.getTypeFactory();
     OptiqCatalogReader catalogReader = new OptiqCatalogReader(
@@ -511,7 +529,8 @@ public class OptiqPrepareImpl implements OptiqPrepare {
     final RelOptQuery query = new RelOptQuery(planner);
     final RelOptCluster cluster =
         query.createCluster(rexBuilder.getTypeFactory(), rexBuilder);
-    return action.apply(cluster, catalogReader, context.getRootSchema().plus());
+    return action.apply(cluster, catalogReader, context.getRootSchema().plus(),
+        statement);
   }
 
   static class OptiqPreparingStmt extends Prepare
