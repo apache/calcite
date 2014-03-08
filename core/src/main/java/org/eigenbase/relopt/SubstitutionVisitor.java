@@ -80,11 +80,11 @@ public class SubstitutionVisitor {
   private static final Logger LOGGER = EigenbaseTrace.getPlannerTracer();
 
   private static final List<UnifyRule> RULES =
-      Arrays.<UnifyRule>asList(
+      ImmutableList.<UnifyRule>of(
           TrivialRule.INSTANCE,
           ProjectToProjectUnifyRule.INSTANCE,
           FilterToProjectUnifyRule.INSTANCE,
-          ProjectToFilterUnifyRule.INSTANCE,
+//          ProjectToFilterUnifyRule.INSTANCE,
           FilterToFilterUnifyRule.INSTANCE,
           AggregateToAggregateUnifyRule.INSTANCE,
           AggregateOnProjectToAggregateUnifyRule.INSTANCE);
@@ -426,17 +426,14 @@ public class SubstitutionVisitor {
     if (unifyResult == null) {
       return null;
     }
-    final RelNode node0 =
-        true
-        ? unifyResult.result
-        : RelOptUtil.replace(query, unifyResult.query, unifyResult.result);
+    final RelNode node0 = unifyResult.result;
     RelNode node = replaceAncestors(node0);
     if (DEBUG) {
       System.out.println(
           "Convert: query:\n" + RelOptUtil.toString(query)
-          + "\nunify.query:\n" + RelOptUtil.toString(unifyResult.query)
+          + "\nunify.query:\n" + RelOptUtil.toString(unifyResult.call.query)
           + "\nunify.result:\n" + RelOptUtil.toString(unifyResult.result)
-          + "\nunify.target:\n" + RelOptUtil.toString(unifyResult.target)
+          + "\nunify.target:\n" + RelOptUtil.toString(unifyResult.call.target)
           + "\nnode0:\n" + RelOptUtil.toString(node0)
           + "\nnode:\n" + RelOptUtil.toString(node));
     }
@@ -462,7 +459,7 @@ public class SubstitutionVisitor {
       if (unifyResult == null) {
         return null;
       }
-      Parentage parentage = parentMap.get(unifyResult.query);
+      Parentage parentage = parentMap.get(unifyResult.call.query);
       parentMap.put(unifyResult.result, parentage);
       queryParent = RelOptUtil.replaceInput(parentage.parent, parentage.ordinal,
           unifyResult.result);
@@ -479,7 +476,7 @@ public class SubstitutionVisitor {
                   "Rule: " + rule
                   + "\nQuery:\n"
                   + RelOptUtil.toString(queryParent)
-                  + (x.query != queryParent
+                  + (x.call.query != queryParent
                      ? "\nQuery (original):\n"
                      + RelOptUtil.toString(queryParent)
                      : "")
@@ -502,7 +499,7 @@ public class SubstitutionVisitor {
                 "Rule: " + rule
                 + "\nQuery:\n"
                 + RelOptUtil.toString(queryParent)
-                + (x.query != queryParent
+                + (x.call.query != queryParent
                    ? "\nQuery (original):\n"
                    + RelOptUtil.toString(queryParent)
                    : "")
@@ -528,6 +525,11 @@ public class SubstitutionVisitor {
     return null;
   }
 
+  private UnifyResult apply(UnifyRule rule, RelNode query, RelNode target) {
+    final UnifyRuleCall call = new UnifyRuleCall(rule, query, target);
+    return rule.apply(call);
+  }
+
   private static List<UnifyRule> applicableRules(RelNode query,
       RelNode target) {
     final Class queryClass = query.getClass();
@@ -539,8 +541,7 @@ public class SubstitutionVisitor {
           ImmutableList.builder();
       for (UnifyRule rule : RULES) {
         //noinspection unchecked
-        if (rule.getQueryClass().isAssignableFrom(queryClass)
-            && rule.getTargetClass().isAssignableFrom(targetClass)) {
+        if (rule.mightMatch(queryClass, targetClass)) {
           builder.add(rule);
         }
       }
@@ -548,21 +549,6 @@ public class SubstitutionVisitor {
       RULE_MAP.put(key, list);
     }
     return list;
-  }
-
-  private <Q extends RelNode, T extends RelNode> UnifyResult apply(
-      UnifyRule<Q, T> rule, Q query, T target) {
-    final Class<Q> queryClass = rule.getQueryClass();
-    final Class<T> targetClass = rule.getTargetClass();
-    if (queryClass.isInstance(query)
-        && targetClass.isInstance(target)) {
-      UnifyIn<Q, T> in =
-          new UnifyIn<Q, T>(
-              queryClass.cast(query),
-              targetClass.cast(target));
-      return rule.apply(in);
-    }
-    return null;
   }
 
   /** Exception thrown to exit a matcher. Not really an error. */
@@ -576,11 +562,7 @@ public class SubstitutionVisitor {
    * <p>The rule declares the query and target types; this allows the
    * engine to fire only a few rules in a given context.</p>
    */
-  private interface UnifyRule<Q extends RelNode, T extends RelNode> {
-    Class<Q> getQueryClass();
-
-    Class<T> getTargetClass();
-
+  private interface UnifyRule {
     /**
      * <p>Applies this rule to a particular node in a query. The goal is
      * to convert {@code query} into {@code target}. Before the rule is
@@ -605,19 +587,23 @@ public class SubstitutionVisitor {
      * <p>REVIEW: Is possible that we match query PLUS one or more of its
      * ancestors?</p>
      *
-     * @param in Input parameters
+     * @param call Input parameters
      */
-    UnifyResult apply(UnifyIn<Q, T> in);
+    UnifyResult apply(UnifyRuleCall call);
+
+    boolean mightMatch(Class queryClass, Class targetClass);
   }
 
   /**
    * Arguments to an application of a {@link UnifyRule}.
    */
-  private class UnifyIn<Q extends RelNode, T extends RelNode> {
-    final Q query;
-    final T target;
+  private class UnifyRuleCall {
+    final UnifyRule rule;
+    final RelNode query;
+    final RelNode target;
 
-    public UnifyIn(Q query, T target) {
+    public UnifyRuleCall(UnifyRule rule, RelNode query, RelNode target) {
+      this.rule = rule;
       this.query = query;
       this.target = target;
     }
@@ -637,14 +623,14 @@ public class SubstitutionVisitor {
         result = RelOptUtil.replace(result, target, replace);
       }
       register(result, query);
-      return new UnifyResult(query, target, result);
+      return new UnifyResult(this, result);
     }
 
     /**
-     * Creates a {@link UnifyIn} based on the parent of {@code query}.
+     * Creates a {@link UnifyRuleCall} based on the parent of {@code query}.
      */
-    public <Q2 extends RelNode> UnifyIn<Q2, T> create(Q2 query) {
-      return new UnifyIn<Q2, T>(query, target);
+    public UnifyRuleCall create(RelNode query) {
+      return new UnifyRuleCall(rule, query, target);
     }
   }
 
@@ -655,37 +641,31 @@ public class SubstitutionVisitor {
    * contains {@code target}.
    */
   private static class UnifyResult {
-    private final RelNode query;
-    private final RelNode target;
+    private final UnifyRuleCall call;
     // equivalent to "query", contains "result"
     private final RelNode result;
 
-    UnifyResult(RelNode query, RelNode target, RelNode result) {
-      assert RelOptUtil.equalType("query", query, "result", result, true);
-      this.query = query;
-      this.target = target;
+    UnifyResult(UnifyRuleCall call, RelNode result) {
+      this.call = call;
+      assert RelOptUtil.equalType("query", call.query, "result", result, true);
       this.result = result;
     }
   }
 
   /** Abstract base class for implementing {@link UnifyRule}. */
-  private abstract static
-  class AbstractUnifyRule<Q extends RelNode, T extends RelNode>
-      implements UnifyRule<Q, T> {
-    private final Class<Q> queryClass;
-    private final Class<T> targetClass;
+  private abstract static class AbstractUnifyRule implements UnifyRule {
+    private final Class<? extends RelNode> queryClass;
+    private final Class<? extends RelNode> targetClass;
 
-    public AbstractUnifyRule(Class<Q> queryClass, Class<T> targetClass) {
+    public AbstractUnifyRule(Class<? extends RelNode> queryClass,
+        Class<? extends RelNode> targetClass) {
       this.queryClass = queryClass;
       this.targetClass = targetClass;
     }
 
-    public Class<Q> getQueryClass() {
-      return queryClass;
-    }
-
-    public Class<T> getTargetClass() {
-      return targetClass;
+    public boolean mightMatch(Class queryClass, Class targetClass) {
+      return this.queryClass.isAssignableFrom(queryClass)
+          && this.targetClass.isAssignableFrom(targetClass);
     }
   }
 
@@ -695,24 +675,23 @@ public class SubstitutionVisitor {
    * <p>Matches scans to the same table, because these will be canonized to
    * the same {@link org.eigenbase.rel.TableAccessRel} instance.</p>
    */
-  private static class TrivialRule extends AbstractUnifyRule<RelNode, RelNode> {
+  private static class TrivialRule extends AbstractUnifyRule {
     private static final TrivialRule INSTANCE = new TrivialRule();
 
     private TrivialRule() {
       super(RelNode.class, RelNode.class);
     }
 
-    public UnifyResult apply(UnifyIn<RelNode, RelNode> in) {
-      if (in.query == in.target) {
-        return in.result(in.query);
+    public UnifyResult apply(UnifyRuleCall call) {
+      if (call.query == call.target) {
+        return call.result(call.query);
       }
       return null;
     }
   }
 
   /** Implementation of {@link UnifyRule} that matches {@link ProjectRel}. */
-  private static class ProjectToProjectUnifyRule
-      extends AbstractUnifyRule<ProjectRel, ProjectRel> {
+  private static class ProjectToProjectUnifyRule extends AbstractUnifyRule {
     public static final ProjectToProjectUnifyRule INSTANCE =
         new ProjectToProjectUnifyRule();
 
@@ -720,35 +699,36 @@ public class SubstitutionVisitor {
       super(ProjectRel.class, ProjectRel.class);
     }
 
-    public UnifyResult apply(UnifyIn<ProjectRel, ProjectRel> in) {
-      final RexShuttle shuttle = getRexShuttle(in.target);
+    public UnifyResult apply(UnifyRuleCall call) {
+      final ProjectRel target = (ProjectRel) call.target;
+      final ProjectRel query = (ProjectRel) call.query;
+      final RexShuttle shuttle = getRexShuttle(target);
       final List<RexNode> newProjects;
       try {
-        newProjects = shuttle.apply(in.query.getProjects());
+        newProjects = shuttle.apply(query.getProjects());
       } catch (MatchFailed e) {
         return null;
       }
       final ProjectRel newProject =
           new ProjectRel(
-              in.target.getCluster(),
-              in.target.getCluster().traitSetOf(
-                  in.query.getCollationList().isEmpty()
+              target.getCluster(),
+              target.getCluster().traitSetOf(
+                  query.getCollationList().isEmpty()
                       ? RelCollationImpl.EMPTY
-                      : in.query.getCollationList().get(0)),
-              in.target,
+                      : query.getCollationList().get(0)),
+              target,
               newProjects,
-              in.query.getRowType(),
-              in.query.getFlags());
+              query.getRowType(),
+              query.getFlags());
       final RelNode newProject2 =
           RemoveTrivialProjectRule.strip(newProject);
-      return in.result(newProject2);
+      return call.result(newProject2);
     }
   }
 
   /** Implementation of {@link UnifyRule} that matches a {@link FilterRel}
    * to a {@link ProjectRel}. */
-  private static class FilterToProjectUnifyRule
-      extends AbstractUnifyRule<FilterRel, ProjectRel> {
+  private static class FilterToProjectUnifyRule extends AbstractUnifyRule {
     public static final FilterToProjectUnifyRule INSTANCE =
         new FilterToProjectUnifyRule();
 
@@ -756,24 +736,26 @@ public class SubstitutionVisitor {
       super(FilterRel.class, ProjectRel.class);
     }
 
-    public UnifyResult apply(UnifyIn<FilterRel, ProjectRel> in) {
+    public UnifyResult apply(UnifyRuleCall call) {
       // Child of projectTarget is equivalent to child of filterQuery.
       try {
         // TODO: make sure that constants are ok
-        final RexShuttle shuttle = getRexShuttle(in.target);
+        final ProjectRel target = (ProjectRel) call.target;
+        final RexShuttle shuttle = getRexShuttle(target);
         final RexNode newCondition;
+        final FilterRel query = (FilterRel) call.query;
         try {
-          newCondition = in.query.getCondition().accept(shuttle);
+          newCondition = query.getCondition().accept(shuttle);
         } catch (MatchFailed e) {
           return null;
         }
         final FilterRel newFilter =
             new FilterRel(
-                in.query.getCluster(),
-                in.target,
+                query.getCluster(),
+                target,
                 newCondition);
-        final RelNode inverse = invert(in.query, newFilter, in.target);
-        return in.result(inverse);
+        final RelNode inverse = invert(query, newFilter, target);
+        return call.result(inverse);
       } catch (MatchFailed e) {
         return null;
       }
@@ -804,8 +786,7 @@ public class SubstitutionVisitor {
   }
 
   /** Implementation of {@link UnifyRule} that matches a {@link FilterRel}. */
-  private static class FilterToFilterUnifyRule
-      extends AbstractUnifyRule<FilterRel, FilterRel> {
+  private static class FilterToFilterUnifyRule extends AbstractUnifyRule {
     public static final FilterToFilterUnifyRule INSTANCE =
         new FilterToFilterUnifyRule();
 
@@ -813,18 +794,20 @@ public class SubstitutionVisitor {
       super(FilterRel.class, FilterRel.class);
     }
 
-    public UnifyResult apply(UnifyIn<FilterRel, FilterRel> in) {
+    public UnifyResult apply(UnifyRuleCall call) {
       // in.query can be rewritten in terms of in.target if its condition
       // is weaker. For example:
       //   query: SELECT * FROM t WHERE x = 1 AND y = 2
       //   target: SELECT * FROM t WHERE x = 1
       // transforms to
       //   result: SELECT * FROM (target) WHERE y = 2
-      final FilterRel newFilter = createFilter(in.query, in.target);
+      final FilterRel query = (FilterRel) call.query;
+      final FilterRel target = (FilterRel) call.target;
+      final FilterRel newFilter = createFilter(query, target);
       if (newFilter == null) {
         return null;
       }
-      return in.result(newFilter);
+      return call.result(newFilter);
     }
 
     FilterRel createFilter(FilterRel query, FilterRel target) {
@@ -846,8 +829,7 @@ public class SubstitutionVisitor {
 
   /** Implementation of {@link UnifyRule} that matches a {@link ProjectRel} to
    * a {@link FilterRel}. */
-  private static class ProjectToFilterUnifyRule
-      extends AbstractUnifyRule<ProjectRel, FilterRel> {
+  private static class ProjectToFilterUnifyRule extends AbstractUnifyRule {
     public static final ProjectToFilterUnifyRule INSTANCE =
         new ProjectToFilterUnifyRule();
 
@@ -855,20 +837,20 @@ public class SubstitutionVisitor {
       super(ProjectRel.class, FilterRel.class);
     }
 
-    public UnifyResult apply(UnifyIn<ProjectRel, FilterRel> in) {
-      final Parentage queryParent = in.parent(in.query);
+    public UnifyResult apply(UnifyRuleCall call) {
+      final Parentage queryParent = call.parent(call.query);
       if (queryParent.parent instanceof FilterRel) {
-        final UnifyIn<FilterRel, FilterRel> in2 =
-            in.create((FilterRel) queryParent.parent);
+        final UnifyRuleCall in2 = call.create(queryParent.parent);
+        final FilterRel query = (FilterRel) in2.query;
+        final FilterRel target = (FilterRel) in2.target;
         final FilterRel newFilter =
-            FilterToFilterUnifyRule.INSTANCE.createFilter(
-                in2.query, in2.target);
+            FilterToFilterUnifyRule.INSTANCE.createFilter(query, target);
         if (newFilter == null) {
           return null;
         }
         return in2.result(
-            in.query.copy(
-                in.query.getTraitSet(),
+            call.query.copy(
+                call.query.getTraitSet(),
                 ImmutableList.<RelNode>of(newFilter)));
       }
       return null;
@@ -877,8 +859,7 @@ public class SubstitutionVisitor {
 
   /** Implementation of {@link UnifyRule} that matches a {@link AggregateRel} to
    * a {@link AggregateRel}, provided that they have the same child. */
-  private static class AggregateToAggregateUnifyRule
-      extends AbstractUnifyRule<AggregateRel, AggregateRel> {
+  private static class AggregateToAggregateUnifyRule extends AbstractUnifyRule {
     public static final AggregateToAggregateUnifyRule INSTANCE =
         new AggregateToAggregateUnifyRule();
 
@@ -886,9 +867,11 @@ public class SubstitutionVisitor {
       super(AggregateRel.class, AggregateRel.class);
     }
 
-    public UnifyResult apply(UnifyIn<AggregateRel, AggregateRel> in) {
-      assert in.query != in.target;
-      if (in.query.getChild() != in.target.getChild()) {
+    public UnifyResult apply(UnifyRuleCall call) {
+      final AggregateRel query = (AggregateRel) call.query;
+      final AggregateRel target = (AggregateRel) call.target;
+      assert query != target;
+      if (query.getChild() != target.getChild()) {
         return null;
       }
       // in.query can be rewritten in terms of in.target if its groupSet is
@@ -897,14 +880,14 @@ public class SubstitutionVisitor {
       //   target: SELECT x, y, SUM(a) AS s, COUNT(b) AS cb FROM t GROUP BY x, y
       // transforms to
       //   result: SELECT x, SUM(cb) FROM (target) GROUP BY x
-      if (!BitSets.contains(in.target.getGroupSet(), in.query.getGroupSet())) {
+      if (!BitSets.contains(target.getGroupSet(), query.getGroupSet())) {
         return null;
       }
-      RelNode result = unifyAggregates(in.query, in.target);
+      RelNode result = unifyAggregates(query, target);
       if (result == null) {
         return null;
       }
-      return in.result(result);
+      return call.result(result);
     }
   }
 
@@ -982,7 +965,7 @@ public class SubstitutionVisitor {
   /** Implementation of {@link UnifyRule} that matches a {@link AggregateRel} on
    * a {@link ProjectRel} to an {@link AggregateRel} target. */
   private static class AggregateOnProjectToAggregateUnifyRule
-      extends AbstractUnifyRule<AggregateRel, AggregateRel> {
+      extends AbstractUnifyRule {
     public static final AggregateOnProjectToAggregateUnifyRule INSTANCE =
         new AggregateOnProjectToAggregateUnifyRule();
 
@@ -990,13 +973,14 @@ public class SubstitutionVisitor {
       super(AggregateRel.class, AggregateRel.class);
     }
 
-    public UnifyResult apply(UnifyIn<AggregateRel, AggregateRel> in) {
-      assert in.query != in.target;
-      if (!(in.query.getChild() instanceof ProjectRel)) {
+    public UnifyResult apply(UnifyRuleCall call) {
+      final AggregateRel query = (AggregateRel) call.query;
+      final AggregateRel target = (AggregateRel) call.target;
+      if (!(query.getChild() instanceof ProjectRel)) {
         return null;
       }
-      final ProjectRel project = (ProjectRel) in.query.getChild();
-      if (project.getChild() != in.target.getChild()) {
+      final ProjectRel project = (ProjectRel) query.getChild();
+      if (project.getChild() != target.getChild()) {
         return null;
       }
       final Mappings.TargetMapping mapping = project.getMapping();
@@ -1004,9 +988,9 @@ public class SubstitutionVisitor {
         return null;
       }
       final AggregateRel aggregate2 =
-          permute(in.query, project.getChild(), mapping.inverse());
-      final RelNode result = unifyAggregates(aggregate2, in.target);
-      return result == null ? null : in.result(result);
+          permute(query, project.getChild(), mapping.inverse());
+      final RelNode result = unifyAggregates(aggregate2, target);
+      return result == null ? null : call.result(result);
     }
   }
 
