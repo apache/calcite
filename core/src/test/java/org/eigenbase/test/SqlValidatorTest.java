@@ -18,6 +18,7 @@
 package org.eigenbase.test;
 
 import java.nio.charset.*;
+import java.util.Locale;
 import java.util.logging.*;
 
 import org.eigenbase.sql.*;
@@ -30,6 +31,7 @@ import net.hydromatic.avatica.Quoting;
 
 import net.hydromatic.optiq.jdbc.ConnectionConfig;
 
+import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -90,6 +92,12 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   //~ Methods ----------------------------------------------------------------
+
+  @BeforeClass public static void setUSLocale() {
+    // This ensures numbers in exceptions are printed as in asserts.
+    // For example, 1,000 vs 1 000
+    Locale.setDefault(Locale.US);
+  }
 
   @Test public void testMultipleSameAsPass() {
     check(

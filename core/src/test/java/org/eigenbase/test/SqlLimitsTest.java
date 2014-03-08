@@ -27,6 +27,7 @@ import org.eigenbase.sql.type.*;
 
 import com.google.common.collect.ImmutableList;
 
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 /**
@@ -78,6 +79,12 @@ public class SqlLimitsTest {
    */
   public static List<BasicSqlType> getTypes() {
     return TYPE_LIST;
+  }
+
+  @BeforeClass public static void setUSLocale() {
+    // This ensures numbers in exceptions are printed as in asserts.
+    // For example, 1,000 vs 1 000
+    Locale.setDefault(Locale.US);
   }
 
   @Test public void testPrintLimits() {

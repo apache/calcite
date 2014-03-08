@@ -38,6 +38,7 @@ import net.hydromatic.optiq.util.CompositeMap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMultiset;
 
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -54,6 +55,12 @@ public class UtilTest {
   }
 
   //~ Methods ----------------------------------------------------------------
+
+  @BeforeClass public static void setUSLocale() {
+    // This ensures numbers in exceptions are printed as in asserts.
+    // For example, 1,000 vs 1 000
+    Locale.setDefault(Locale.US);
+  }
 
   @Test public void testPrintEquals() {
     assertPrintEquals("\"x\"", "x", true);
