@@ -26,6 +26,7 @@ import java.util.*;
 import org.eigenbase.sql.*;
 import org.eigenbase.sql.parser.*;
 import org.eigenbase.util.*;
+import org.eigenbase.util14.DateTimeUtil;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -558,7 +559,7 @@ public enum SqlTypeName {
       return bytes;
 
     case DATE:
-      calendar = Calendar.getInstance();
+      calendar = Calendar.getInstance(DateTimeUtil.GMT_ZONE);
       switch (limit) {
       case ZERO:
 
@@ -606,7 +607,7 @@ public enum SqlTypeName {
       if (beyond) {
         return null; // invalid values are impossible to represent
       }
-      calendar = Calendar.getInstance(TimeZone.getTimeZone("GMT"));
+      calendar = Calendar.getInstance(DateTimeUtil.GMT_ZONE);
       switch (limit) {
       case ZERO:
 
@@ -631,7 +632,7 @@ public enum SqlTypeName {
       return calendar;
 
     case TIMESTAMP:
-      calendar = Calendar.getInstance(TimeZone.getTimeZone("GMT"));
+      calendar = Calendar.getInstance(DateTimeUtil.GMT_ZONE);
       switch (limit) {
       case ZERO:
 
