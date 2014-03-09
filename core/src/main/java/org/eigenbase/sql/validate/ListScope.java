@@ -67,10 +67,9 @@ public abstract class ListScope extends DelegatingScope {
       }
       return children.get(0).right;
     } else {
-      for (Pair<String, SqlValidatorNamespace> child : children) {
-        if (child.left.equals(alias)) {
-          return child.right;
-        }
+      final int i = validator.catalogReader.match(Pair.left(children), alias);
+      if (i >= 0) {
+        return children.get(i).right;
       }
       return null;
     }

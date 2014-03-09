@@ -2533,7 +2533,7 @@ public class JdbcTest {
     with.query("explain plan with type for values (1, 'ab')")
         .returns(
             "PLAN=EXPR$0 INTEGER NOT NULL,\n"
-                + "EXPR$1 CHAR(2) CHARACTER SET \"ISO-8859-1\" COLLATE \"ISO-8859-1$en_US$primary\" NOT NULL\n");
+            + "EXPR$1 CHAR(2) CHARACTER SET \"ISO-8859-1\" COLLATE \"ISO-8859-1$en_US$primary\" NOT NULL\n");
   }
 
   /** Test case for bug where if two tables have different element classes
@@ -2564,9 +2564,7 @@ public class JdbcTest {
             new Function1<OptiqConnection, Void>() {
               public Void apply(OptiqConnection connection) {
                 try {
-                  final
-                  PreparedStatement
-                      statement =
+                  final PreparedStatement statement =
                       connection.prepareStatement("VALUES CURRENT_TIMESTAMP");
                   ResultSet resultSet;
 
@@ -2958,6 +2956,22 @@ public class JdbcTest {
                 }
               }
             });
+  }
+
+  /** Tests case-insensitive resolution of schema and table names. */
+  @Test public void testLexCaseInsensitive() {
+    final OptiqAssert.AssertThat with =
+        OptiqAssert.that().with(ImmutableMap.of("lex", "MYSQL"));
+    with.query("select COUNT(*) as c from metaData.tAbles")
+        .returns("c=3\n");
+    with.query("select COUNT(*) as c from `metaData`.`tAbles`")
+        .returns("c=3\n");
+
+    // case-sensitive gives error
+    final OptiqAssert.AssertThat with2 =
+        OptiqAssert.that().with(ImmutableMap.of("lex", "JAVA"));
+    with2.query("select COUNT(*) as c from `metaData`.`tAbles`")
+        .throws_("Table 'metaData.tAbles' not found");
   }
 
   /** Tests that {@link Hook#PARSE_TREE} works. */

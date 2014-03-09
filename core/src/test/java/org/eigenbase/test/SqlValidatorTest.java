@@ -6456,6 +6456,18 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     sensitive.checkQuery(sql1);
   }
 
+  /** Tests using case-insensitive matching of table names. */
+  @Test public void testCaseInsensitiveTables() {
+    final SqlTester tester1 = tester.withLex(ConnectionConfig.Lex.SQL_SERVER);
+    tester1.checkQuery("select eMp.* from (select * from emp) as EmP");
+    tester1.checkQueryFails("select ^eMp^.* from (select * from emp as EmP)",
+        "Unknown identifier 'eMp'");
+    tester1.checkQuery("select eMp.* from (select * from emP) as EmP");
+    tester1.checkQuery("select eMp.empNo from (select * from emP) as EmP");
+    tester1.checkQuery("select empNo from (select Empno from emP) as EmP");
+    tester1.checkQuery("select empNo from (select Empno from emP)");
+  }
+
   @Test public void testNew() {
     // (To debug individual statements, paste them into this method.)
     //            1         2         3         4         5         6

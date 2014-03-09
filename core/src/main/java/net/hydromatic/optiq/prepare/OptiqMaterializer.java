@@ -115,7 +115,7 @@ class OptiqMaterializer extends OptiqPrepareImpl.OptiqPreparingStmt {
     // TODO: Assumes that star tables are all defined in a schema called
     // "mat". Instead, we should look for star tables that use a given set of
     // tables, regardless of schema.
-    final OptiqSchema matSchema = schema.root().getSubSchema("mat");
+    final OptiqSchema matSchema = schema.root().getSubSchema("mat", true);
     if (matSchema != null) {
       for (OptiqSchema.TableEntry tis : matSchema.tableMap.values()) {
         if (tis.getTable().getJdbcTableType() == Schema.TableType.STAR) {

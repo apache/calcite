@@ -46,10 +46,17 @@ public class OptiqSchema {
    *  {@link #schema}. */
   public final Map<String, TableEntry> tableMap =
       new HashMap<String, TableEntry>();
+  public final Map<String, TableEntry> tableMapInsensitive =
+      new TreeMap<String, TableEntry>(String.CASE_INSENSITIVE_ORDER);
   private final Multimap<String, TableFunctionEntry> tableFunctionMap =
       LinkedListMultimap.create();
+  private final Map<String, TableFunctionEntry>
+  nullaryTableFunctionMapInsensitive =
+      new TreeMap<String, TableFunctionEntry>(String.CASE_INSENSITIVE_ORDER);
   private final Map<String, OptiqSchema> subSchemaMap =
       new HashMap<String, OptiqSchema>();
+  private final Map<String, OptiqSchema> subSchemaMapInsensitive =
+      new TreeMap<String, OptiqSchema>(String.CASE_INSENSITIVE_ORDER);
   public final Map<String, Table> compositeTableMap;
   public final Multimap<String, TableFunction> compositeTableFunctionMap;
   public final Map<String, OptiqSchema> compositeSubSchemaMap;
@@ -58,6 +65,7 @@ public class OptiqSchema {
     this.parent = parent;
     this.schema = schema;
     assert (parent == null) == (this instanceof OptiqRootSchema);
+    //noinspection unchecked
     this.compositeTableMap = CompositeMap.of(
         Maps.transformValues(
             tableMap,
@@ -98,10 +106,11 @@ public class OptiqSchema {
                 return input.getTableFunction();
               }
             });
+    //noinspection unchecked
     this.compositeSubSchemaMap =
         CompositeMap.of(
             subSchemaMap,
-            Compatible.INSTANCE.<String, OptiqSchema>asMap(
+            Compatible.INSTANCE.asMap(
                 schema.getSubSchemaNames(),
                 new Function<String, OptiqSchema>() {
                   public OptiqSchema apply(String input) {
@@ -115,6 +124,7 @@ public class OptiqSchema {
     final TableEntryImpl entry =
         new TableEntryImpl(this, tableName, table);
     tableMap.put(tableName, entry);
+    tableMapInsensitive.put(tableName, entry);
     return entry;
   }
 
@@ -123,6 +133,9 @@ public class OptiqSchema {
     final TableFunctionEntryImpl entry =
         new TableFunctionEntryImpl(this, name, tableFunction);
     tableFunctionMap.put(name, entry);
+    if (tableFunction.getParameters().isEmpty()) {
+      nullaryTableFunctionMapInsensitive.put(name, entry);
+    }
     return entry;
   }
 
@@ -135,15 +148,40 @@ public class OptiqSchema {
     }
   }
 
-  public final OptiqSchema getSubSchema(String schemaName) {
-    return subSchemaMap.get(schemaName);
+  public final OptiqSchema getSubSchema(String schemaName,
+      boolean caseSensitive) {
+    return (caseSensitive ? subSchemaMap : subSchemaMapInsensitive)
+        .get(schemaName);
   }
 
   /** Adds a child schema of this schema. */
   public OptiqSchema addSchema(Schema schema) {
     final OptiqSchema optiqSchema = new OptiqSchema(this, schema);
     subSchemaMap.put(schema.getName(), optiqSchema);
+    subSchemaMapInsensitive.put(schema.getName(), optiqSchema);
     return optiqSchema;
+  }
+
+  public final Table getTable(String tableName, boolean caseSensitive) {
+    if (caseSensitive) {
+      return compositeTableMap.get(tableName);
+    } else {
+      final TableEntry tableEntry = tableMapInsensitive.get(tableName);
+      if (tableEntry != null) {
+        return tableEntry.getTable();
+      }
+      final TableFunctionEntry entry =
+          nullaryTableFunctionMapInsensitive.get(tableName);
+      if (entry != null) {
+        return entry.getTableFunction().apply(ImmutableList.of());
+      }
+      for (String name : schema.getTableNames()) {
+        if (name.equalsIgnoreCase(tableName)) {
+          return schema.getTable(name);
+        }
+      }
+      return null;
+    }
   }
 
   public String getName() {
@@ -251,7 +289,7 @@ public class OptiqSchema {
     }
 
     public SchemaPlus getSubSchema(String name) {
-      final OptiqSchema subSchema = OptiqSchema.this.getSubSchema(name);
+      final OptiqSchema subSchema = OptiqSchema.this.getSubSchema(name, true);
       return subSchema == null ? null : subSchema.plus();
     }
 

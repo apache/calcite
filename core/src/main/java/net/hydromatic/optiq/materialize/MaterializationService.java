@@ -68,7 +68,7 @@ public class MaterializationService {
     RelDataType rowType = null;
     OptiqSchema.TableEntry tableEntry;
     if (tableName != null) {
-      materializedTable = schema.compositeTableMap.get(tableName);
+      materializedTable = schema.getTable(tableName, true);
       if (materializedTable == null) {
         final OptiqPrepare.PrepareResult<Object> prepareResult =
             Schemas.prepare(connection, schema, viewSchemaPath, viewSql);

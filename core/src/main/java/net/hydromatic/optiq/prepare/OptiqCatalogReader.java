@@ -86,7 +86,7 @@ class OptiqCatalogReader implements Prepare.CatalogReader, SqlOperatorTable {
       return null;
     }
     final String name = Util.last(names);
-    final Table table = schema.compositeTableMap.get(name);
+    final Table table = schema.getTable(name, caseSensitive);
     if (table != null) {
       return new OptiqPrepareImpl.RelOptTableImpl(
           this,
@@ -111,7 +111,7 @@ class OptiqCatalogReader implements Prepare.CatalogReader, SqlOperatorTable {
   private OptiqSchema getSchema(Iterable<String> schemaNames) {
     OptiqSchema schema = rootSchema;
     for (String schemaName : schemaNames) {
-      schema = schema.getSubSchema(schemaName);
+      schema = schema.getSubSchema(schemaName, caseSensitive);
       if (schema == null) {
         return null;
       }
