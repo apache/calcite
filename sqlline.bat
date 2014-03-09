@@ -1,4 +1,4 @@
-:: echo off
+@echo off
 :: sqlline.bat - Windows script to launch SQL shell
 ::
 :: Licensed to Julian Hyde under one or more contributor license
