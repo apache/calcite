@@ -40,9 +40,29 @@ public interface ConnectionConfig {
    * lower-case when they are read, and whether they are matched
    * case-sensitively. */
   enum Lex {
+    /** Lexical policy similar to Oracle. The case of identifiers enclosed in
+     * double-quotes is preserved; unquoted identifiers are converted to
+     * upper-case; after which, identifiers are matched case-sensitively. */
     ORACLE(Quoting.DOUBLE_QUOTE, Casing.TO_UPPER, Casing.UNCHANGED, true),
+
+    /** Lexical policy similar to MySQL. (To be precise: MySQL on Windows;
+     * MySQL on Linux uses case-sensitive matching, like the Linux file system.)
+     * The case of identifiers is preserved whether or not they quoted;
+     * after which, identifiers are matched case-insensitively.
+     * Back-ticks allow identifiers to contain non-alphanumeric characters. */
     MYSQL(Quoting.BACK_TICK, Casing.UNCHANGED, Casing.UNCHANGED, false),
+
+    /** Lexical policy similar to Microsoft SQL Server.
+     * The case of identifiers is preserved whether or not they are quoted;
+     * after which, identifiers are matched case-insensitively.
+     * Brackets allow identifiers to contain non-alphanumeric characters. */
     SQL_SERVER(Quoting.BRACKET, Casing.UNCHANGED, Casing.UNCHANGED, false),
+
+    /** Lexical policy similar to Java.
+     * The case of identifiers is preserved whether or not they are quoted;
+     * after which, identifiers are matched case-sensitively.
+     * Unlike Java, back-ticks allow identifiers to contain non-alphanumeric
+     * characters. */
     JAVA(Quoting.BACK_TICK, Casing.UNCHANGED, Casing.UNCHANGED, true);
 
     public final Quoting quoting;

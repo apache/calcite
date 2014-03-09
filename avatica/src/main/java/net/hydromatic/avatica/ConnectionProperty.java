@@ -36,19 +36,19 @@ public enum ConnectionProperty {
   LEX("lex", Type.ENUM, "ORACLE"),
 
   /** How identifiers are quoted.
-   *  Default value is based on lex. */
+   *  If not specified, value from {@link #LEX} is used. */
   QUOTING("quoting", Type.ENUM, null),
 
   /** How identifiers are stored if they are quoted.
-   *  Default value is based on lex. */
+   *  If not specified, value from {@link #LEX} is used. */
   QUOTED_CASING("quotedCasing", Type.ENUM, null),
 
   /** How identifiers are stored if they are not quoted.
-   *  Default value is based on lex. */
+   *  If not specified, value from {@link #LEX} is used. */
   UNQUOTED_CASING("unquotedCasing", Type.ENUM, null),
 
   /** Whether identifiers are matched case-sensitively.
-   *  Default value is based on lex. */
+   *  If not specified, value from {@link #LEX} is used. */
   CASE_SENSITIVE("caseSensitive", Type.BOOLEAN, null),
 
   /** Name of initial schema. */
@@ -120,18 +120,16 @@ public enum ConnectionProperty {
 
   /** Returns the enum value of this property. Throws if not set and no
    * default. */
-  public <E extends Enum<E>> E getEnum(Properties properties
-      , Class<E> enumClass) {
-    return getEnum(properties
-        , enumClass
-        , Enum.valueOf(enumClass, defaultValue)
-    );
+  public <E extends Enum<E>> E getEnum(Properties properties,
+      Class<E> enumClass) {
+    return getEnum(properties, enumClass,
+        Enum.valueOf(enumClass, defaultValue));
   }
 
   /** Returns the enum value of this property. Throws if not set and no
    * default. */
-  public <E extends Enum<E>> E getEnum(Properties properties
-      , Class<E> enumClass, E defaultValue) {
+  public <E extends Enum<E>> E getEnum(Properties properties,
+      Class<E> enumClass, E defaultValue) {
     assert type == Type.ENUM;
     //noinspection unchecked
     return get_(properties, enumConverter(enumClass), defaultValue.name());
@@ -157,6 +155,7 @@ public enum ConnectionProperty {
       if (connectionProperty == null) {
         // For now, don't throw. It messes up sub-projects.
         //throw new RuntimeException("Unknown property '" + name + "'");
+        continue;
       }
       map.put(connectionProperty, properties.getProperty(name));
     }
