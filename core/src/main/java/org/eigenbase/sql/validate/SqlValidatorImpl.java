@@ -23,7 +23,6 @@ import java.util.*;
 import java.util.logging.*;
 
 import org.eigenbase.reltype.*;
-import org.eigenbase.resgen.*;
 import org.eigenbase.resource.*;
 import org.eigenbase.sql.*;
 import org.eigenbase.sql.fun.*;

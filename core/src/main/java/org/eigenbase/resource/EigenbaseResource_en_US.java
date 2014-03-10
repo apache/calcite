@@ -5,8 +5,6 @@ package org.eigenbase.resource;
 
 import java.io.IOException;
 
-import org.eigenbase.resgen.*;
-
 /**
  * This class was generated
  * by class org.eigenbase.resgen.ResourceGen

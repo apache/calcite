@@ -7,11 +7,9 @@ import java.io.IOException;
 import java.util.Locale;
 import java.util.ResourceBundle;
 
-import org.eigenbase.resgen.*;
-
 /**
  * This class was generated
- * by class org.eigenbase.resgen.ResourceGen
+ * by class ResourceGen
  * from /Users/jhyde/open1/dynamodb/eigenbase/src/org/eigenbase/resource/EigenbaseResource.xml
  * on Fri Mar 23 14:27:41 PDT 2012.
  * It contains a list of messages, and methods to
@@ -19,7 +17,7 @@ import org.eigenbase.resgen.*;
  */
 
 public class EigenbaseResource
-    extends org.eigenbase.resgen.ShadowResourceBundle {
+    extends ShadowResourceBundle {
   public EigenbaseResource() throws IOException {
   }
 
@@ -1139,7 +1137,7 @@ public class EigenbaseResource
    * Definition for resources which
    * take arguments 'Number p0, Number p1'.
    */
-  public final class _Def0 extends org.eigenbase.resgen.ResourceDefinition {
+  public final class _Def0 extends ResourceDefinition {
     _Def0(String key, String baseMessage, String[] props) {
       super(key, baseMessage, props);
     }
@@ -1155,7 +1153,7 @@ public class EigenbaseResource
    * return a {@link org.eigenbase.util.EigenbaseException} exception and
    * take arguments 'String p0, String p1, String p2'.
    */
-  public final class _Def1 extends org.eigenbase.resgen.ResourceDefinition {
+  public final class _Def1 extends ResourceDefinition {
     _Def1(String key, String baseMessage, String[] props) {
       super(key, baseMessage, props);
     }
@@ -1185,7 +1183,7 @@ public class EigenbaseResource
    * return a {@link org.eigenbase.util.EigenbaseException} exception and
    * take arguments 'String p0, Number p1'.
    */
-  public final class _Def2 extends org.eigenbase.resgen.ResourceDefinition {
+  public final class _Def2 extends ResourceDefinition {
     _Def2(String key, String baseMessage, String[] props) {
       super(key, baseMessage, props);
     }
@@ -1213,7 +1211,7 @@ public class EigenbaseResource
    * Definition for resources which
    * take arguments 'String p0'.
    */
-  public final class _Def3 extends org.eigenbase.resgen.ResourceDefinition {
+  public final class _Def3 extends ResourceDefinition {
     _Def3(String key, String baseMessage, String[] props) {
       super(key, baseMessage, props);
     }
@@ -1228,25 +1226,25 @@ public class EigenbaseResource
    * return a {@link org.eigenbase.sql.validate.SqlValidatorException} exception and
    * take arguments ''.
    */
-  public final class _Def4 extends org.eigenbase.resgen.ResourceDefinition {
+  public final class _Def4 extends ResourceDefinition {
     _Def4(String key, String baseMessage, String[] props) {
       super(key, baseMessage, props);
     }
 
     public String str() {
-      return instantiate(EigenbaseResource.this, emptyObjectArray).toString();
+      return instantiate(EigenbaseResource.this, EMPTY_OBJECT_ARRAY).toString();
     }
 
     public org.eigenbase.sql.validate.SqlValidatorException ex() {
       return new org.eigenbase.sql.validate.SqlValidatorException(instantiate(
           EigenbaseResource.this,
-          emptyObjectArray).toString(), null);
+          EMPTY_OBJECT_ARRAY).toString(), null);
     }
 
     public org.eigenbase.sql.validate.SqlValidatorException ex(Throwable err) {
       return new org.eigenbase.sql.validate.SqlValidatorException(instantiate(
           EigenbaseResource.this,
-          emptyObjectArray).toString(), err);
+          EMPTY_OBJECT_ARRAY).toString(), err);
     }
   }
 
@@ -1255,7 +1253,7 @@ public class EigenbaseResource
    * return a {@link org.eigenbase.util.EigenbaseException} exception and
    * take arguments 'String p0, String p1'.
    */
-  public final class _Def5 extends org.eigenbase.resgen.ResourceDefinition {
+  public final class _Def5 extends ResourceDefinition {
     _Def5(String key, String baseMessage, String[] props) {
       super(key, baseMessage, props);
     }
@@ -1284,25 +1282,25 @@ public class EigenbaseResource
    * return a {@link org.eigenbase.util.EigenbaseException} exception and
    * take arguments ''.
    */
-  public final class _Def6 extends org.eigenbase.resgen.ResourceDefinition {
+  public final class _Def6 extends ResourceDefinition {
     _Def6(String key, String baseMessage, String[] props) {
       super(key, baseMessage, props);
     }
 
     public String str() {
-      return instantiate(EigenbaseResource.this, emptyObjectArray).toString();
+      return instantiate(EigenbaseResource.this, EMPTY_OBJECT_ARRAY).toString();
     }
 
     public org.eigenbase.util.EigenbaseException ex() {
       return new org.eigenbase.util.EigenbaseException(instantiate(
           EigenbaseResource.this,
-          emptyObjectArray).toString(), null);
+          EMPTY_OBJECT_ARRAY).toString(), null);
     }
 
     public org.eigenbase.util.EigenbaseException ex(Throwable err) {
       return new org.eigenbase.util.EigenbaseException(instantiate(
           EigenbaseResource.this,
-          emptyObjectArray).toString(), err);
+          EMPTY_OBJECT_ARRAY).toString(), err);
     }
   }
 
@@ -1311,7 +1309,7 @@ public class EigenbaseResource
    * return a {@link org.eigenbase.util.EigenbaseException} exception and
    * take arguments 'String p0'.
    */
-  public final class _Def7 extends org.eigenbase.resgen.ResourceDefinition {
+  public final class _Def7 extends ResourceDefinition {
     _Def7(String key, String baseMessage, String[] props) {
       super(key, baseMessage, props);
     }
@@ -1338,7 +1336,7 @@ public class EigenbaseResource
    * return a {@link org.eigenbase.util.EigenbaseException} exception and
    * take arguments 'Number p0'.
    */
-  public final class _Def8 extends org.eigenbase.resgen.ResourceDefinition {
+  public final class _Def8 extends ResourceDefinition {
     _Def8(String key, String baseMessage, String[] props) {
       super(key, baseMessage, props);
     }
@@ -1365,7 +1363,7 @@ public class EigenbaseResource
    * return a {@link org.eigenbase.sql.validate.SqlValidatorException} exception and
    * take arguments 'String p0'.
    */
-  public final class _Def9 extends org.eigenbase.resgen.ResourceDefinition {
+  public final class _Def9 extends ResourceDefinition {
     _Def9(String key, String baseMessage, String[] props) {
       super(key, baseMessage, props);
     }
@@ -1393,7 +1391,7 @@ public class EigenbaseResource
    * return a {@link org.eigenbase.sql.validate.SqlValidatorException} exception and
    * take arguments 'String p0, Number p1'.
    */
-  public final class _Def10 extends org.eigenbase.resgen.ResourceDefinition {
+  public final class _Def10 extends ResourceDefinition {
     _Def10(String key, String baseMessage, String[] props) {
       super(key, baseMessage, props);
     }
@@ -1423,7 +1421,7 @@ public class EigenbaseResource
    * return a {@link org.eigenbase.util.EigenbaseContextException} exception and
    * take arguments 'Number p0, Number p1'.
    */
-  public final class _Def11 extends org.eigenbase.resgen.ResourceDefinition {
+  public final class _Def11 extends ResourceDefinition {
     _Def11(String key, String baseMessage, String[] props) {
       super(key, baseMessage, props);
     }
@@ -1453,7 +1451,7 @@ public class EigenbaseResource
    * return a {@link org.eigenbase.util.EigenbaseContextException} exception and
    * take arguments 'Number p0, Number p1, Number p2, Number p3'.
    */
-  public final class _Def12 extends org.eigenbase.resgen.ResourceDefinition {
+  public final class _Def12 extends ResourceDefinition {
     _Def12(String key, String baseMessage, String[] props) {
       super(key, baseMessage, props);
     }
@@ -1483,7 +1481,7 @@ public class EigenbaseResource
    * return a {@link org.eigenbase.sql.validate.SqlValidatorException} exception and
    * take arguments 'String p0, String p1'.
    */
-  public final class _Def13 extends org.eigenbase.resgen.ResourceDefinition {
+  public final class _Def13 extends ResourceDefinition {
     _Def13(String key, String baseMessage, String[] props) {
       super(key, baseMessage, props);
     }
@@ -1513,7 +1511,7 @@ public class EigenbaseResource
    * return a {@link org.eigenbase.sql.validate.SqlValidatorException} exception and
    * take arguments 'String p0, String p1, String p2'.
    */
-  public final class _Def14 extends org.eigenbase.resgen.ResourceDefinition {
+  public final class _Def14 extends ResourceDefinition {
     _Def14(String key, String baseMessage, String[] props) {
       super(key, baseMessage, props);
     }
@@ -1543,7 +1541,7 @@ public class EigenbaseResource
    * return a {@link org.eigenbase.sql.validate.SqlValidatorException} exception and
    * take arguments 'Number p0, Number p1'.
    */
-  public final class _Def15 extends org.eigenbase.resgen.ResourceDefinition {
+  public final class _Def15 extends ResourceDefinition {
     _Def15(String key, String baseMessage, String[] props) {
       super(key, baseMessage, props);
     }
@@ -1573,7 +1571,7 @@ public class EigenbaseResource
    * return a {@link org.eigenbase.sql.validate.SqlValidatorException} exception and
    * take arguments 'String p0, String p1, String p2, String p3'.
    */
-  public final class _Def16 extends org.eigenbase.resgen.ResourceDefinition {
+  public final class _Def16 extends ResourceDefinition {
     _Def16(String key, String baseMessage, String[] props) {
       super(key, baseMessage, props);
     }
@@ -1603,7 +1601,7 @@ public class EigenbaseResource
    * return a {@link org.eigenbase.sql.validate.SqlValidatorException} exception and
    * take arguments 'String p0, Number p1, String p2'.
    */
-  public final class _Def17 extends org.eigenbase.resgen.ResourceDefinition {
+  public final class _Def17 extends ResourceDefinition {
     _Def17(String key, String baseMessage, String[] props) {
       super(key, baseMessage, props);
     }
@@ -1633,7 +1631,7 @@ public class EigenbaseResource
    * return a {@link org.eigenbase.util.EigenbaseException} exception and
    * take arguments 'String p0, String p1, String p2, String p3'.
    */
-  public final class _Def18 extends org.eigenbase.resgen.ResourceDefinition {
+  public final class _Def18 extends ResourceDefinition {
     _Def18(String key, String baseMessage, String[] props) {
       super(key, baseMessage, props);
     }
@@ -1663,7 +1661,7 @@ public class EigenbaseResource
    * return a {@link org.eigenbase.sql.validate.SqlValidatorException} exception and
    * take arguments 'Number p0, String p1, Number p2'.
    */
-  public final class _Def19 extends org.eigenbase.resgen.ResourceDefinition {
+  public final class _Def19 extends ResourceDefinition {
     _Def19(String key, String baseMessage, String[] props) {
       super(key, baseMessage, props);
     }
@@ -1693,7 +1691,7 @@ public class EigenbaseResource
    * return a {@link org.eigenbase.sql.validate.SqlValidatorException} exception and
    * take arguments 'Number p0, String p1'.
    */
-  public final class _Def20 extends org.eigenbase.resgen.ResourceDefinition {
+  public final class _Def20 extends ResourceDefinition {
     _Def20(String key, String baseMessage, String[] props) {
       super(key, baseMessage, props);
     }
