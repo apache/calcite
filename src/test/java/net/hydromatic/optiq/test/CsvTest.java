@@ -25,6 +25,9 @@ import org.junit.Test;
 
 import java.io.PrintStream;
 import java.sql.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Properties;
 
 /**
@@ -118,31 +121,32 @@ public class CsvTest {
   @Test public void testPushDownProjectDumb() throws SQLException {
     // rule does not fire, because we're using 'dumb' tables in simple model
     checkSql("model", "explain plan for select * from EMPS",
-        "PLAN=EnumerableTableAccessRel(table=[[SALES, EMPS]])\n"
-        + "\n");
+        "PLAN=EnumerableTableAccessRel(table=[[SALES, EMPS]])\n");
   }
 
   @Test public void testPushDownProject() throws SQLException {
     checkSql("smart", "explain plan for select * from EMPS",
-        "PLAN=CsvTableScan(table=[[SALES, EMPS]], fields=[[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]])\n"
-        + "\n");
+        "PLAN=CsvTableScan(table=[[SALES, EMPS]], fields=[[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]])\n");
   }
 
   @Test public void testPushDownProject2() throws SQLException {
     checkSql("smart", "explain plan for select name, empno from EMPS",
-        "PLAN=CsvTableScan(table=[[SALES, EMPS]], fields=[[1, 0]])\n"
-        + "\n");
+        "PLAN=CsvTableScan(table=[[SALES, EMPS]], fields=[[1, 0]])\n");
     // make sure that it works...
     checkSql("smart", "select name, empno from EMPS",
-        "NAME=Fred; EMPNO=100\n"
-        + "NAME=Eric; EMPNO=110\n"
-        + "NAME=John; EMPNO=110\n"
-        + "NAME=Wilma; EMPNO=120\n"
-        + "NAME=Alice; EMPNO=130\n");
+        "NAME=Fred; EMPNO=100",
+        "NAME=Eric; EMPNO=110",
+        "NAME=John; EMPNO=110",
+        "NAME=Wilma; EMPNO=120",
+        "NAME=Alice; EMPNO=130");
   }
 
   private void checkSql(String model, String sql) throws SQLException {
-    checkSql(sql, model, new Function1<ResultSet, Void>() {
+    checkSql(sql, model, output());
+  }
+
+  private Function1<ResultSet, Void> output() {
+    return new Function1<ResultSet, Void>() {
       public Void apply(ResultSet resultSet) {
         try {
           output(resultSet, System.out);
@@ -151,22 +155,29 @@ public class CsvTest {
         }
         return null;
       }
-    });
+    };
   }
 
-  private void checkSql(String model, String sql, final String expected)
+  private void checkSql(String model, String sql, final String... expected)
     throws SQLException {
-    checkSql(sql, model, new Function1<ResultSet, Void>() {
+    checkSql(sql, model, expect(expected));
+  }
+
+  /** Returns a function that checks the contents of a result set against an
+   * expected string. */
+  private static Function1<ResultSet, Void> expect(final String... expected) {
+    return new Function1<ResultSet, Void>() {
       public Void apply(ResultSet resultSet) {
         try {
-          String actual = CsvTest.toString(resultSet);
-          Assert.assertEquals(expected, actual);
+          final List<String> lines = new ArrayList<String>();
+          CsvTest.collect(lines, resultSet);
+          Assert.assertEquals(Arrays.asList(expected), lines);
         } catch (SQLException e) {
           throw new RuntimeException(e);
         }
         return null;
       }
-    });
+    };
   }
 
   private void checkSql(String sql, String model, Function1<ResultSet, Void> fn)
@@ -187,9 +198,11 @@ public class CsvTest {
     }
   }
 
-  private static String toString(ResultSet resultSet) throws SQLException {
-    StringBuilder buf = new StringBuilder();
+  private static void collect(List<String> result, ResultSet resultSet)
+    throws SQLException {
+    final StringBuilder buf = new StringBuilder();
     while (resultSet.next()) {
+      buf.setLength(0);
       int n = resultSet.getMetaData().getColumnCount();
       String sep = "";
       for (int i = 1; i <= n; i++) {
@@ -199,9 +212,8 @@ public class CsvTest {
             .append(resultSet.getObject(i));
         sep = "; ";
       }
-      buf.append("\n");
+      result.add(buf.toString());
     }
-    return buf.toString();
   }
 
   private void output(ResultSet resultSet, PrintStream out)
@@ -223,14 +235,24 @@ public class CsvTest {
 
   @Test public void testJoinOnString() throws SQLException {
     checkSql("smart",
-        "select * from emps join depts on emps.name = depts.name",
-        "");
+        "select * from emps join depts on emps.name = depts.name");
+  }
+
+  @Test public void testWackyColumns() throws SQLException {
+    checkSql("select * from wacky_column_names where false", "bug",
+        expect());
+    checkSql(
+        "select \"joined at\", \"naME\" from wacky_column_names where \"2gender\" = 'F'",
+        "bug",
+        expect(
+            "joined at=2005-09-07; naME=Wilma",
+            "joined at=2007-01-01; naME=Alice"));
   }
 
   @Test public void testBoolean() throws SQLException {
     checkSql("smart",
         "select empno, slacker from emps where slacker",
-        "EMPNO=100; SLACKER=true\n");
+        "EMPNO=100; SLACKER=true");
   }
 }
 

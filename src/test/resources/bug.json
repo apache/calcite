@@ -1,0 +1,14 @@
+{
+  version: '1.0',
+  defaultSchema: 'BUG',
+  schemas: [
+    {
+      name: 'BUG',
+      type: 'custom',
+      factory: 'net.hydromatic.optiq.impl.csv.CsvSchemaFactory',
+      operand: {
+        directory: 'target/test-classes/bug'
+      }
+    }
+  ]
+}
