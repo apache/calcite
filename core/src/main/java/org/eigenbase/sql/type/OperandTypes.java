@@ -20,10 +20,11 @@ package org.eigenbase.sql.type;
 import java.util.*;
 
 import org.eigenbase.reltype.*;
-import org.eigenbase.resource.*;
 import org.eigenbase.sql.*;
 
 import com.google.common.collect.ImmutableList;
+
+import static org.eigenbase.util.Static.RESOURCE;
 
 /**
  * Strategies for checking operand types.
@@ -208,7 +209,7 @@ public abstract class OperandTypes {
           if (value < 0) {
             if (throwOnFailure) {
               throw callBinding.newError(
-                  EigenbaseResource.instance().ArgumentMustBePositiveInteger.ex(
+                  RESOURCE.argumentMustBePositiveInteger(
                       callBinding.getOperator().getName()));
             }
             return false;

@@ -21,10 +21,11 @@ import java.nio.*;
 import java.nio.charset.*;
 import java.util.List;
 
-import org.eigenbase.resource.*;
 import org.eigenbase.sql.*;
 
 import net.hydromatic.optiq.runtime.SqlFunctions;
+
+import static org.eigenbase.util.Static.RESOURCE;
 
 /**
  * A string, optionally with {@link Charset character set} and {@link
@@ -73,9 +74,7 @@ public class NlsString implements Comparable<NlsString> {
       try {
         encoder.encode(CharBuffer.wrap(value));
       } catch (CharacterCodingException ex) {
-        throw EigenbaseResource.instance().CharsetEncoding.ex(
-            value,
-            javaCharsetName);
+        throw RESOURCE.charsetEncoding(value, javaCharsetName).ex();
       }
     } else {
       this.charsetName = null;

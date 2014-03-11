@@ -20,6 +20,7 @@ package org.eigenbase.sql.validate;
 import java.util.*;
 
 import org.eigenbase.reltype.*;
+import org.eigenbase.resource.Resources;
 import org.eigenbase.sql.*;
 import org.eigenbase.util.*;
 
@@ -289,15 +290,15 @@ public interface SqlValidator {
    * RuntimeException}). This is intentional -- it should remind code authors
    * to provide context for their validation errors.
    *
-   * @param e    The validation error
    * @param node The place where the exception occurred
+   * @param e    The validation error
    * @return Exception containing positional information
    * @pre node != null
    * @post return != null
    */
-  EigenbaseException newValidationError(
+  EigenbaseContextException newValidationError(
       SqlNode node,
-      SqlValidatorException e);
+      Resources.ExInst<SqlValidatorException> e);
 
   /**
    * Returns whether a SELECT statement is an aggregation. Criteria are: (1)

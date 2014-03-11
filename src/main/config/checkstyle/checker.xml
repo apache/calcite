@@ -238,7 +238,7 @@
          or strings (possibly preceded by '+' and followed by say '),'. -->
     <module name="LineLength">
       <property name="max" value="80"/>
-      <property name="ignorePattern" value="^import|@see|@link|href|^[ +]*&quot;.*&quot;[);,]*$"/>
+      <property name="ignorePattern" value="^import|@see|@link|@BaseMessage|href|^[ +]*&quot;.*&quot;[);,]*$"/>
     </module>
       <!-- Over time, we will revise this down -->
     <module name="MethodLength">

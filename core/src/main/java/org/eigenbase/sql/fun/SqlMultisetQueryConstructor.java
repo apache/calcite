@@ -20,10 +20,11 @@ package org.eigenbase.sql.fun;
 import java.util.List;
 
 import org.eigenbase.reltype.*;
-import org.eigenbase.resource.*;
 import org.eigenbase.sql.*;
 import org.eigenbase.sql.type.*;
 import org.eigenbase.sql.validate.*;
+
+import static org.eigenbase.util.Static.RESOURCE;
 
 /**
  * Definition of the SQL:2003 standard MULTISET query constructor, <code>
@@ -85,8 +86,7 @@ public class SqlMultisetQueryConstructor extends SqlSpecialOperator {
             argTypes);
     if (null == componentType) {
       if (throwOnFailure) {
-        throw callBinding.newValidationError(
-            EigenbaseResource.instance().NeedSameTypeParameter.ex());
+        throw callBinding.newValidationError(RESOURCE.needSameTypeParameter());
       }
       return false;
     }

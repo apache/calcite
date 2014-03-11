@@ -22,12 +22,13 @@ import java.nio.charset.*;
 import java.util.*;
 
 import org.eigenbase.reltype.*;
-import org.eigenbase.resource.*;
 import org.eigenbase.sql.parser.*;
 import org.eigenbase.sql.type.*;
 import org.eigenbase.sql.util.*;
 import org.eigenbase.sql.validate.*;
 import org.eigenbase.util.*;
+
+import static org.eigenbase.util.Static.RESOURCE;
 
 /**
  * Represents a SQL data type specification in a parse tree.
@@ -245,18 +246,15 @@ public class SqlDataTypeSpec extends SqlNode {
 
     // for now we only support builtin datatypes
     if (SqlTypeName.get(name) == null) {
-      throw validator.newValidationError(
-          this,
-          EigenbaseResource.instance().UnknownDatatypeName.ex(name));
+      throw validator.newValidationError(this,
+          RESOURCE.unknownDatatypeName(name));
     }
 
     if (null != collectionsTypeName) {
       final String collectionName = collectionsTypeName.getSimple();
-      if (!(SqlTypeName.get(collectionName) != null)) {
-        throw validator.newValidationError(
-            this,
-            EigenbaseResource.instance().UnknownDatatypeName.ex(
-                collectionName));
+      if (SqlTypeName.get(collectionName) == null) {
+        throw validator.newValidationError(this,
+            RESOURCE.unknownDatatypeName(collectionName));
       }
     }
 

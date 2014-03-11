@@ -20,6 +20,7 @@ package org.eigenbase.sql;
 import java.util.List;
 
 import org.eigenbase.reltype.*;
+import org.eigenbase.resource.Resources;
 import org.eigenbase.sql.parser.*;
 import org.eigenbase.sql.validate.*;
 import org.eigenbase.util.*;
@@ -76,7 +77,7 @@ public class ExplicitOperatorBinding extends SqlOperatorBinding {
   }
 
   public EigenbaseException newError(
-      SqlValidatorException e) {
+      Resources.ExInst<SqlValidatorException> e) {
     if (delegate != null) {
       return delegate.newError(e);
     } else {

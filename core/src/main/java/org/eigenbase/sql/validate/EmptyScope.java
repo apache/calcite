@@ -20,8 +20,9 @@ package org.eigenbase.sql.validate;
 import java.util.*;
 
 import org.eigenbase.reltype.*;
-import org.eigenbase.resource.*;
 import org.eigenbase.sql.*;
+
+import static org.eigenbase.util.Static.RESOURCE;
 
 /**
  * Deviant implementation of {@link SqlValidatorScope} for the top of the scope
@@ -90,12 +91,9 @@ class EmptyScope implements SqlValidatorScope {
     // valid
   }
 
-  public String findQualifyingTableName(
-      String columnName,
-      SqlNode ctx) {
-    throw validator.newValidationError(
-        ctx,
-        EigenbaseResource.instance().ColumnNotFound.ex(columnName));
+  public String findQualifyingTableName(String columnName, SqlNode ctx) {
+    throw validator.newValidationError(ctx,
+        RESOURCE.columnNotFound(columnName));
   }
 
   public void addChild(SqlValidatorNamespace ns, String alias) {

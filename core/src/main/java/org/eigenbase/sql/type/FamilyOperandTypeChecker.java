@@ -20,12 +20,13 @@ package org.eigenbase.sql.type;
 import java.util.*;
 
 import org.eigenbase.reltype.*;
-import org.eigenbase.resource.*;
 import org.eigenbase.sql.*;
 
 import net.hydromatic.linq4j.Ord;
 
 import com.google.common.collect.ImmutableList;
+
+import static org.eigenbase.util.Static.RESOURCE;
 
 /**
  * Operand type-checking strategy which checks operands for inclusion in type
@@ -60,9 +61,8 @@ public class FamilyOperandTypeChecker implements SqlSingleOperandTypeChecker {
     }
     if (SqlUtil.isNullLiteral(node, false)) {
       if (throwOnFailure) {
-        throw callBinding.getValidator().newValidationError(
-            node,
-            EigenbaseResource.instance().NullIllegal.ex());
+        throw callBinding.getValidator().newValidationError(node,
+            RESOURCE.nullIllegal());
       } else {
         return false;
       }

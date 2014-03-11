@@ -20,7 +20,6 @@ package org.eigenbase.sql.fun;
 import java.util.*;
 
 import org.eigenbase.reltype.*;
-import org.eigenbase.resource.*;
 import org.eigenbase.sql.*;
 import org.eigenbase.sql.parser.*;
 import org.eigenbase.sql.type.*;
@@ -28,6 +27,8 @@ import org.eigenbase.sql.validate.*;
 import org.eigenbase.util.*;
 
 import net.hydromatic.linq4j.Ord;
+
+import static org.eigenbase.util.Static.RESOURCE;
 
 /**
  * Internal operator, by which the parser represents a continued string literal.
@@ -129,9 +130,8 @@ public class SqlLiteralChainOperator extends SqlInternalOperator {
       final SqlNode operand = operandList.get(i);
       SqlParserPos pos = operand.getParserPosition();
       if (pos.getLineNum() <= prevPos.getLineNum()) {
-        throw validator.newValidationError(
-            operand,
-            EigenbaseResource.instance().StringFragsOnSameLine.ex());
+        throw validator.newValidationError(operand,
+            RESOURCE.stringFragsOnSameLine());
       }
     }
   }

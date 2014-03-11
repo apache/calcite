@@ -20,6 +20,7 @@ package org.eigenbase.rex;
 import java.util.List;
 
 import org.eigenbase.reltype.*;
+import org.eigenbase.resource.Resources;
 import org.eigenbase.sql.*;
 import org.eigenbase.sql.parser.*;
 import org.eigenbase.sql.validate.*;
@@ -74,7 +75,7 @@ public class RexCallBinding extends SqlOperatorBinding {
   }
 
   public EigenbaseException newError(
-      SqlValidatorException e) {
+      Resources.ExInst<SqlValidatorException> e) {
     return SqlUtil.newContextException(SqlParserPos.ZERO, e);
   }
 }

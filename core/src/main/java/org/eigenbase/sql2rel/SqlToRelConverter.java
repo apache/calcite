@@ -25,7 +25,6 @@ import org.eigenbase.rel.*;
 import org.eigenbase.rel.metadata.*;
 import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.*;
-import org.eigenbase.resource.*;
 import org.eigenbase.rex.*;
 import org.eigenbase.sql.*;
 import org.eigenbase.sql.fun.*;
@@ -47,6 +46,8 @@ import net.hydromatic.optiq.util.BitSets;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+
+import static org.eigenbase.util.Static.RESOURCE;
 
 /**
  * Converts a SQL parse tree (consisting of {@link org.eigenbase.sql.SqlNode}
@@ -2927,8 +2928,7 @@ public class SqlToRelConverter {
       fieldNames.set(i, fieldName);
       if (sourceExps.get(i) != null) {
         if (defaultValueFactory.isGeneratedAlways(targetTable, i)) {
-          throw EigenbaseResource.instance().InsertIntoAlwaysGenerated
-              .ex(fieldName);
+          throw RESOURCE.insertIntoAlwaysGenerated(fieldName).ex();
         }
         continue;
       }

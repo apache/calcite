@@ -21,8 +21,9 @@ import java.util.*;
 
 import org.eigenbase.rel.metadata.*;
 import org.eigenbase.reltype.*;
-import org.eigenbase.resource.*;
 import org.eigenbase.sql.*;
+
+import static org.eigenbase.util.Static.RESOURCE;
 
 /**
  * TableFunctionReturnTypeInference implements rules for deriving table function
@@ -192,8 +193,7 @@ public class TableFunctionReturnTypeInference
     for (String fieldName : expandedFieldNames) {
       if (fieldName.equals(cursorField.getName())) {
         throw opBinding.newError(
-            EigenbaseResource.instance().DuplicateColumnName.ex(
-                cursorField.getName()));
+            RESOURCE.duplicateColumnName(cursorField.getName()));
       }
     }
     expandedOutputTypes.add(nullableType);

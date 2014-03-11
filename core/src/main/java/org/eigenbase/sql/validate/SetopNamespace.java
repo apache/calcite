@@ -18,9 +18,10 @@
 package org.eigenbase.sql.validate;
 
 import org.eigenbase.reltype.*;
-import org.eigenbase.resource.*;
 import org.eigenbase.sql.*;
 import org.eigenbase.util.*;
+
+import static org.eigenbase.util.Static.RESOURCE;
 
 /**
  * Namespace based upon a set operation (UNION, INTERSECT, EXCEPT).
@@ -61,10 +62,8 @@ public class SetopNamespace extends AbstractNamespace {
       final SqlValidatorScope scope = validator.scopes.get(call);
       for (SqlNode operand : call.getOperandList()) {
         if (!(operand.isA(SqlKind.QUERY))) {
-          throw validator.newValidationError(
-              operand,
-              EigenbaseResource.instance().NeedQueryOp.ex(
-                  operand.toString()));
+          throw validator.newValidationError(operand,
+              RESOURCE.needQueryOp(operand.toString()));
         }
         validator.validateQuery(operand, scope);
       }

@@ -20,12 +20,13 @@ package org.eigenbase.sql.validate;
 import java.util.*;
 
 import org.eigenbase.reltype.*;
-import org.eigenbase.resource.*;
 import org.eigenbase.sql.*;
 import org.eigenbase.sql.parser.*;
 import org.eigenbase.util.*;
 
 import com.google.common.collect.ImmutableList;
+
+import static org.eigenbase.util.Static.RESOURCE;
 
 /**
  * Namespace whose contents are defined by the type of an {@link
@@ -73,10 +74,8 @@ public class IdentifierNamespace extends AbstractNamespace {
   public RelDataType validateImpl() {
     resolvedNamespace = parentScope.getTableNamespace(id.names);
     if (resolvedNamespace == null) {
-      throw validator.newValidationError(
-          id,
-          EigenbaseResource.instance().TableNameNotFound.ex(
-              id.toString()));
+      throw validator.newValidationError(id,
+          RESOURCE.tableNameNotFound(id.toString()));
     }
 
     if (resolvedNamespace instanceof TableNamespace) {

@@ -45,9 +45,10 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.List;
-import java.util.Iterator;
 import java.util.logging.Logger;
 import java.util.logging.Level;
+
+import static org.eigenbase.util.Static.RESOURCE;
 
 /**
  * SQL parser, generated from Parser.jj and CommonParser.jj by JavaCC.
@@ -295,9 +296,8 @@ JAVACODE void checkQueryExpression(ExprContext exprContext)
     case ACCEPT_NONQUERY:
     case ACCEPT_SUBQUERY:
     case ACCEPT_CURSOR:
-        throw SqlUtil.newContextException(
-            getPos(),
-            EigenbaseResource.instance().IllegalQueryExpression.ex());
+        throw SqlUtil.newContextException(getPos(),
+            RESOURCE.illegalQueryExpression());
     }
 }
 
@@ -305,9 +305,8 @@ JAVACODE void checkNonQueryExpression(ExprContext exprContext)
 {
     switch (exprContext) {
     case ACCEPT_QUERY:
-        throw SqlUtil.newContextException(
-            getPos(),
-            EigenbaseResource.instance().IllegalNonQueryExpression.ex());
+        throw SqlUtil.newContextException(getPos(),
+            RESOURCE.illegalNonQueryExpression());
     }
 }
 
@@ -320,10 +319,9 @@ JAVACODE SqlDateLiteral parseDateLiteral(String s, SqlParserPos pos) {
     Calendar cal = DateTimeUtil.parseDateFormat(
         dateStr, DateTimeUtil.DATE_FORMAT_STRING, DateTimeUtil.GMT_ZONE);
     if (null == cal) {
-        EigenbaseResource res = EigenbaseResource.instance();
         throw SqlUtil.newContextException(pos,
-            res.IllegalLiteral.ex("DATE", s,
-                res.BadFormat.str(DateTimeUtil.DATE_FORMAT_STRING)));
+            RESOURCE.illegalLiteral("DATE", s,
+                RESOURCE.badFormat(DateTimeUtil.DATE_FORMAT_STRING).str()));
     }
     return SqlLiteral.createDate(cal, pos);
 }
@@ -334,10 +332,9 @@ JAVACODE SqlTimeLiteral parseTimeLiteral(String s, SqlParserPos pos) {
     DateTimeUtil.parsePrecisionDateTimeLiteral(
         dateStr, DateTimeUtil.TIME_FORMAT_STRING, DateTimeUtil.GMT_ZONE);
     if (null == pt) {
-        EigenbaseResource res = EigenbaseResource.instance();
         throw SqlUtil.newContextException(pos,
-            res.IllegalLiteral.ex("TIME", s,
-                res.BadFormat.str(DateTimeUtil.TIME_FORMAT_STRING)));
+            RESOURCE.illegalLiteral("TIME", s,
+                RESOURCE.badFormat(DateTimeUtil.TIME_FORMAT_STRING).str()));
     }
     return SqlLiteral.createTime(pt.getCalendar(), pt.getPrecision(), pos);
 }
@@ -348,10 +345,9 @@ JAVACODE SqlTimestampLiteral parseTimestampLiteral(String s, SqlParserPos pos) {
     DateTimeUtil.parsePrecisionDateTimeLiteral(
         dateStr, DateTimeUtil.TIMESTAMP_FORMAT_STRING, DateTimeUtil.GMT_ZONE);
     if (null == pt) {
-        EigenbaseResource res = EigenbaseResource.instance();
         throw SqlUtil.newContextException(pos,
-            res.IllegalLiteral.ex("TIMESTAMP", s,
-                res.BadFormat.str(DateTimeUtil.TIMESTAMP_FORMAT_STRING)));
+            RESOURCE.illegalLiteral("TIMESTAMP", s,
+                RESOURCE.badFormat(DateTimeUtil.TIMESTAMP_FORMAT_STRING).str()));
     }
     return SqlLiteral.createTimestamp(pt.getCalendar(), pt.getPrecision(), pos);
 }
@@ -364,10 +360,9 @@ JAVACODE SqlIntervalLiteral parseIntervalLiteral(
 {
     String intervalStr = SqlParserUtil.parseString(s);
     if ("".equals(intervalStr)) {
-        EigenbaseResource res = EigenbaseResource.instance();
-        String msg = res.IllegalIntervalLiteral.str(
-            s + " " + intervalQualifier.toString(), pos.toString());
-        throw new ParseException(msg);
+        throw new ParseException(
+            RESOURCE.illegalIntervalLiteral(s + " "
+                + intervalQualifier.toString(), pos.toString()).str());
     }
     return SqlLiteral.createInterval(sign, intervalStr, intervalQualifier, pos);
 }
@@ -1613,8 +1608,7 @@ SqlNode TableRef() :
                 if (rate.compareTo(BigDecimal.ZERO) < 0
                     || rate.compareTo(ONE_HUNDRED) > 0)
                 {
-                    throw new ParseException(
-                        EigenbaseResource.instance().InvalidSampleSize.str());
+                    throw new ParseException(RESOURCE.invalidSampleSize().str());
                 }
 
                 // Treat TABLESAMPLE(0) and TABLESAMPLE(100) as no table
@@ -2045,9 +2039,8 @@ SqlNodeList OrderBy(boolean accept) :
             // Someone told us ORDER BY wasn't allowed here.  So why
             // did they bother calling us?  To get the correct
             // parser position for error reporting.
-            throw SqlUtil.newContextException(
-                getPos(),
-                EigenbaseResource.instance().IllegalOrderBy.ex());
+            throw SqlUtil.newContextException(getPos(),
+                RESOURCE.illegalOrderBy());
         }
     }
     <BY> e = OrderItem()
@@ -2448,9 +2441,8 @@ SqlNode Expression3(ExprContext exprContext) :
         if (exprContext != ExprContext.ACCEPT_ALL
             && exprContext != ExprContext.ACCEPT_CURSOR)
         {
-            throw SqlUtil.newContextException(
-                pos,
-                EigenbaseResource.instance().IllegalRowExpression.ex());
+            throw SqlUtil.newContextException(pos,
+                RESOURCE.illegalRowExpression());
         }
         return SqlStdOperatorTable.ROW.createCall(list);
     }
@@ -2491,7 +2483,7 @@ SqlNode Expression3(ExprContext exprContext) :
                     throw SqlUtil.newContextException(
                         list1.getParserPosition().plus(
                             list2.getParserPosition()),
-                        EigenbaseResource.instance().IllegalOverlaps.ex());
+                        RESOURCE.illegalOverlaps());
                 }
                 for (SqlNode node : list2) {
                     list1.add(node);
@@ -2521,7 +2513,7 @@ SqlNode Expression3(ExprContext exprContext) :
                 }
                 throw SqlUtil.newContextException(
                     list1.getParserPosition().plus(getPos()),
-                    EigenbaseResource.instance().IllegalMinusDate.ex());
+                    RESOURCE.illegalMinusDate());
             }
         )
     ]
@@ -2758,10 +2750,8 @@ SqlNode StringLiteral() :
             frags = startList(SqlLiteral.createBinaryString(p, getPos()));
             nfrags++;
         } catch (NumberFormatException ex) {
-            throw SqlUtil.newContextException(
-                getPos(),
-                EigenbaseResource.instance().IllegalBinaryString.ex(
-                    token.image));
+            throw SqlUtil.newContextException(getPos(),
+                RESOURCE.illegalBinaryString(token.image));
         }
     }
     (
@@ -2772,10 +2762,8 @@ SqlNode StringLiteral() :
                 frags.add(SqlLiteral.createBinaryString(p, getPos()));
                 nfrags++;
             } catch (NumberFormatException ex) {
-                throw SqlUtil.newContextException(
-                    getPos(),
-                    EigenbaseResource.instance().IllegalBinaryString.ex(
-                        token.image));
+                throw SqlUtil.newContextException(getPos(),
+                    RESOURCE.illegalBinaryString(token.image));
             }
         }
     ) *
@@ -2810,9 +2798,8 @@ SqlNode StringLiteral() :
         try {
             literal = SqlLiteral.createCharString(p, charSet, getPos());
         } catch (java.nio.charset.UnsupportedCharsetException e) {
-            throw SqlUtil.newContextException(
-                getPos(),
-                EigenbaseResource.instance().UnknownCharacterSet.ex(charSet));
+            throw SqlUtil.newContextException(getPos(),
+                RESOURCE.unknownCharacterSet(charSet));
         }
         frags = startList(literal);
         nfrags++;
@@ -2824,9 +2811,8 @@ SqlNode StringLiteral() :
             try {
                 literal = SqlLiteral.createCharString(p, charSet, getPos());
             } catch (java.nio.charset.UnsupportedCharsetException e) {
-                throw SqlUtil.newContextException(
-                    getPos(),
-                    EigenbaseResource.instance().UnknownCharacterSet.ex(charSet));
+                throw SqlUtil.newContextException(getPos(),
+                    RESOURCE.unknownCharacterSet(charSet));
             }
             frags.add(literal);
             nfrags++;
@@ -2838,9 +2824,8 @@ SqlNode StringLiteral() :
         <UESCAPE> <QUOTED_STRING>
         {
             if (unicodeEscapeChar == 0) {
-                throw SqlUtil.newContextException(
-                    getPos(),
-                    EigenbaseResource.instance().UnicodeEscapeUnexpected.ex());
+                throw SqlUtil.newContextException(getPos(),
+                    RESOURCE.unicodeEscapeUnexpected());
             }
             String s = SqlParserUtil.parseString(token.image);
             unicodeEscapeChar = SqlParserUtil.checkUnicodeEscapeChar(s);
@@ -3211,9 +3196,8 @@ String Identifier() :
     )
     {
         if (id.length() > 128) {
-            throw SqlUtil.newContextException(
-                getPos(),
-                EigenbaseResource.instance().IdentifierTooLong.ex(id, 128));
+            throw SqlUtil.newContextException(getPos(),
+                RESOURCE.identifierTooLong(id, 128));
         }
         return id;
     }
@@ -3569,9 +3553,8 @@ SqlNode CursorExpression(ExprContext exprContext) :
         if (exprContext != ExprContext.ACCEPT_ALL
             && exprContext != ExprContext.ACCEPT_CURSOR)
         {
-            throw SqlUtil.newContextException(
-                pos,
-                EigenbaseResource.instance().IllegalCursorExpression.ex());
+            throw SqlUtil.newContextException(pos,
+                RESOURCE.illegalCursorExpression());
         }
     }
     e = Expression(ExprContext.ACCEPT_QUERY)
@@ -3800,9 +3783,8 @@ SqlNode BuiltinFunctionCall() :
                 <FROM>
                 {
                     if (null == flag && null == trimChars) {
-                        throw SqlUtil.newContextException(
-                            getPos(),
-                            EigenbaseResource.instance().IllegalFromEmpty.ex());
+                        throw SqlUtil.newContextException(getPos(),
+                            RESOURCE.illegalFromEmpty());
                     }
                 }
                 | <RPAREN>

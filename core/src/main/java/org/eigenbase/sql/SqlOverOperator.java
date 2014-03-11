@@ -18,12 +18,13 @@
 package org.eigenbase.sql;
 
 import org.eigenbase.reltype.*;
-import org.eigenbase.resource.*;
 import org.eigenbase.sql.type.*;
 import org.eigenbase.sql.util.*;
 import org.eigenbase.sql.validate.*;
 
 import net.hydromatic.linq4j.Ord;
+
+import static org.eigenbase.util.Static.RESOURCE;
 
 /**
  * An operator describing a window function specification.
@@ -62,9 +63,7 @@ public class SqlOverOperator extends SqlBinaryOperator {
     assert call.operandCount() == 2;
     SqlCall aggCall = call.operand(0);
     if (!aggCall.getOperator().isAggregator()) {
-      throw validator.newValidationError(
-          aggCall,
-          EigenbaseResource.instance().OverNonAggregate.ex());
+      throw validator.newValidationError(aggCall, RESOURCE.overNonAggregate());
     }
     validator.validateWindow(call.operand(1), scope, aggCall);
     validator.validateAggregateParams(aggCall, scope);

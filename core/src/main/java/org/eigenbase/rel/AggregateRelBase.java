@@ -22,6 +22,7 @@ import java.util.*;
 import org.eigenbase.rel.metadata.*;
 import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.*;
+import org.eigenbase.resource.Resources;
 import org.eigenbase.sql.*;
 import org.eigenbase.sql.parser.*;
 import org.eigenbase.sql.validate.*;
@@ -279,7 +280,7 @@ public abstract class AggregateRelBase extends SingleRel {
     }
 
     public EigenbaseException newError(
-        SqlValidatorException e) {
+        Resources.ExInst<SqlValidatorException> e) {
       return SqlUtil.newContextException(SqlParserPos.ZERO, e);
     }
   }

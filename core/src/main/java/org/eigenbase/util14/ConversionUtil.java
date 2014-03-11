@@ -18,12 +18,9 @@
 package org.eigenbase.util14;
 
 import java.nio.*;
-
-import java.sql.*;
-
 import java.text.*;
 
-import org.eigenbase.resource.*;
+import static org.eigenbase.util.Static.RESOURCE;
 
 /**
  * Utility functions for converting from one type to another
@@ -135,7 +132,7 @@ public class ConversionUtil {
     } else if (str.equalsIgnoreCase("UNKNOWN")) {
       return null;
     } else {
-      throw EigenbaseResource.instance().InvalidBoolean.ex(str);
+      throw RESOURCE.invalidBoolean(str).ex();
     }
   }
 }

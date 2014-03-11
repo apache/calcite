@@ -23,13 +23,13 @@ import java.text.*;
 import java.util.*;
 import java.util.logging.*;
 
-import org.eigenbase.resource.*;
 import org.eigenbase.sql.*;
-import org.eigenbase.sql.validate.SqlValidatorException;
 import org.eigenbase.trace.*;
 import org.eigenbase.util.*;
 
 import net.hydromatic.avatica.Casing;
+
+import static org.eigenbase.util.Static.RESOURCE;
 
 /**
  * Utility methods relating to parsing SQL.
@@ -135,9 +135,10 @@ public final class SqlParserUtil {
         "interval must be day time");
     int[] ret;
     try {
-      ret = intervalQualifier.evaluateIntervalLiteral(literal);
+      ret = intervalQualifier.evaluateIntervalLiteral(literal,
+          intervalQualifier.getParserPosition());
       assert ret != null;
-    } catch (SqlValidatorException e) {
+    } catch (EigenbaseContextException e) {
       throw Util.newInternal(
           e, "while parsing day-to-second interval " + literal);
     }
@@ -176,9 +177,10 @@ public final class SqlParserUtil {
         "interval must be year month");
     int[] ret;
     try {
-      ret = intervalQualifier.evaluateIntervalLiteral(literal);
+      ret = intervalQualifier.evaluateIntervalLiteral(literal,
+          intervalQualifier.getParserPosition());
       assert ret != null;
-    } catch (SqlValidatorException e) {
+    } catch (EigenbaseContextException e) {
       throw Util.newInternal(
           e, "error parsing year-to-month interval " + literal);
     }
@@ -446,7 +448,7 @@ public final class SqlParserUtil {
    * <p>Collation names are on the form <i>charset$locale$strength</i>.
    *
    * @param in The collation name
-   * @return A link {@link ParsedCollation}
+   * @return A {@link ParsedCollation}
    */
   public static ParsedCollation parseCollation(String in) {
     StringTokenizer st = new StringTokenizer(in, "$");
@@ -470,10 +472,7 @@ public final class SqlParserUtil {
     } else if (3 == localeParts.length) {
       locale = new Locale(localeParts[0], localeParts[1], localeParts[2]);
     } else {
-      // FIXME jvs 28-Aug-2004:  i18n
-      throw EigenbaseResource.instance().ParserError.ex(
-          "Locale '"
-          + localeStr + "' in an illegal format");
+      throw RESOURCE.illegalLocaleFormat(localeStr).ex();
     }
     return new ParsedCollation(charset, locale, strength);
   }
@@ -749,7 +748,7 @@ public final class SqlParserUtil {
    */
   public static char checkUnicodeEscapeChar(String s) {
     if (s.length() != 1) {
-      throw EigenbaseResource.instance().UnicodeEscapeCharLength.ex(s);
+      throw RESOURCE.unicodeEscapeCharLength(s).ex();
     }
     char c = s.charAt(0);
     if (Character.isDigit(c)
@@ -758,7 +757,7 @@ public final class SqlParserUtil {
         || (c == '"')
         || ((c >= 'a') && (c <= 'f'))
         || ((c >= 'A') && (c <= 'F'))) {
-      throw EigenbaseResource.instance().UnicodeEscapeCharIllegal.ex(s);
+      throw RESOURCE.unicodeEscapeCharIllegal(s).ex();
     }
     return c;
   }

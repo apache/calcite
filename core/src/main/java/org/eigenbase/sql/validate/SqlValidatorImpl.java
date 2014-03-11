@@ -39,6 +39,8 @@ import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
+import static org.eigenbase.util.Static.RESOURCE;
+
 /**
  * Default implementation of {@link SqlValidator}.
  */
@@ -356,10 +358,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         final SqlValidatorNamespace childNs = scope.getChild(tableName);
         if (childNs == null) {
           // e.g. "select r.* from e"
-          throw newValidationError(
-              identifier.getComponent(0),
-              EigenbaseResource.instance().UnknownIdentifier.ex(
-                  tableName));
+          throw newValidationError(identifier.getComponent(0),
+              RESOURCE.unknownIdentifier(tableName));
         }
         final SqlNode from = childNs.getNode();
         final SqlValidatorNamespace fromNs = getNamespace(from);
@@ -723,15 +723,10 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       List<SqlNode> operands = ((SqlCall) node).getOperandList();
       SqlSampleSpec sampleSpec = SqlLiteral.sampleValue(operands.get(1));
       if (sampleSpec instanceof SqlSampleSpec.SqlTableSampleSpec) {
-        validateFeature(
-            EigenbaseResource.instance().SQLFeature_T613,
-            node.getParserPosition());
-      } else if (
-          sampleSpec
-              instanceof SqlSampleSpec.SqlSubstitutionSampleSpec) {
-        validateFeature(
-            EigenbaseResource.instance()
-                .SQLFeatureExt_T613_Substitution,
+        validateFeature(RESOURCE.sQLFeature_T613(), node.getParserPosition());
+      } else if (sampleSpec
+          instanceof SqlSampleSpec.SqlSubstitutionSampleSpec) {
+        validateFeature(RESOURCE.sQLFeatureExt_T613_Substitution(),
             node.getParserPosition());
       }
     }
@@ -1341,10 +1336,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     RelDataType type = catalogReader.getNamedType(sqlIdentifier);
     if (type == null) {
       // TODO jvs 12-Feb-2005:  proper type name formatting
-      throw newValidationError(
-          sqlIdentifier,
-          EigenbaseResource.instance().UnknownDatatypeName.ex(
-              sqlIdentifier.toString()));
+      throw newValidationError(sqlIdentifier,
+          RESOURCE.unknownDatatypeName(sqlIdentifier.toString()));
     }
 
     if (resolvedConstructor == null) {
@@ -1400,10 +1393,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
           && (fun.getSyntax() != SqlSyntax.FUNCTION_ID)) {
         final int expectedArgCount =
             fun.getOperandCountRange().getMin();
-        throw newValidationError(
-            call,
-            EigenbaseResource.instance().InvalidArgCount.ex(
-                call.getOperator().getName(),
+        throw newValidationError(call,
+            RESOURCE.invalidArgCount(call.getOperator().getName(),
                 expectedArgCount));
       }
     }
@@ -1414,9 +1405,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         typeChecking.getAllowedSignatures(
             unresolvedFunction,
             unresolvedFunction.getName());
-    throw newValidationError(
-        call,
-        EigenbaseResource.instance().ValidatorUnknownFunction.ex(signature));
+    throw newValidationError(call,
+        RESOURCE.validatorUnknownFunction(signature));
   }
 
   protected void inferUnknownTypes(
@@ -1431,13 +1421,9 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     if ((node instanceof SqlDynamicParam) || isNullLiteral) {
       if (inferredType.equals(unknownType)) {
         if (isNullLiteral) {
-          throw newValidationError(
-              node,
-              EigenbaseResource.instance().NullIllegal.ex());
+          throw newValidationError(node, RESOURCE.nullIllegal());
         } else {
-          throw newValidationError(
-              node,
-              EigenbaseResource.instance().DynamicParamIllegal.ex());
+          throw newValidationError(node, RESOURCE.dynamicParamIllegal());
         }
       }
 
@@ -2042,19 +2028,14 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
           // there cannot be any aggregates in the ORDER BY clause.
           SqlNode agg = aggFinder.findAgg(orderList);
           if (agg != null) {
-            throw newValidationError(
-                agg,
-                EigenbaseResource.instance()
-                    .AggregateIllegalInOrderBy.ex());
+            throw newValidationError(agg, RESOURCE.aggregateIllegalInOrderBy());
           }
         }
       }
       break;
 
     case INTERSECT:
-      validateFeature(
-          EigenbaseResource.instance().SQLFeature_F302,
-          node.getParserPosition());
+      validateFeature(RESOURCE.sQLFeature_F302(), node.getParserPosition());
       registerSetop(
           parentScope,
           usingScope,
@@ -2065,9 +2046,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       break;
 
     case EXCEPT:
-      validateFeature(
-          EigenbaseResource.instance().SQLFeature_E071_03,
-          node.getParserPosition());
+      validateFeature(RESOURCE.sQLFeature_E071_03(), node.getParserPosition());
       registerSetop(
           parentScope,
           usingScope,
@@ -2155,8 +2134,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
     case UPDATE:
       if (checkUpdate) {
-        validateFeature(
-            EigenbaseResource.instance().SQLFeature_E101_03,
+        validateFeature(RESOURCE.sQLFeature_E101_03(),
             node.getParserPosition());
       }
       SqlUpdate updateCall = (SqlUpdate) node;
@@ -2177,9 +2155,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       break;
 
     case MERGE:
-      validateFeature(
-          EigenbaseResource.instance().SQLFeature_F312,
-          node.getParserPosition());
+      validateFeature(RESOURCE.sQLFeature_F312(), node.getParserPosition());
       SqlMerge mergeCall = (SqlMerge) node;
       MergeNamespace mergeNs =
           new MergeNamespace(
@@ -2250,9 +2226,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       break;
 
     case MULTISET_QUERY_CONSTRUCTOR:
-      validateFeature(
-          EigenbaseResource.instance().SQLFeature_S271,
-          node.getParserPosition());
+      validateFeature(RESOURCE.sQLFeature_S271(), node.getParserPosition());
       call = (SqlCall) node;
       CollectScope cs = new CollectScope(parentScope, usingScope, call);
       final CollectNamespace ttableConstructorNs =
@@ -2340,9 +2314,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   private void validateNodeFeature(SqlNode node) {
     switch (node.getKind()) {
     case MULTISET_VALUE_CONSTRUCTOR:
-      validateFeature(
-          EigenbaseResource.instance().SQLFeature_S271,
-          node.getParserPosition());
+      validateFeature(RESOURCE.sQLFeature_S271(), node.getParserPosition());
       break;
     }
   }
@@ -2436,10 +2408,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       long longValue = unscaled.longValue();
       if (!BigInteger.valueOf(longValue).equals(unscaled)) {
         // overflow
-        throw newValidationError(
-            literal,
-            EigenbaseResource.instance().NumberLiteralOutOfRange.ex(
-                bd.toString()));
+        throw newValidationError(literal,
+            RESOURCE.numberLiteralOutOfRange(bd.toString()));
       }
       break;
 
@@ -2450,9 +2420,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     case BINARY:
       final BitString bitString = (BitString) literal.getValue();
       if ((bitString.getBitCount() % 8) != 0) {
-        throw newValidationError(
-            literal,
-            EigenbaseResource.instance().BinaryLiteralOdd.ex());
+        throw newValidationError(literal, RESOURCE.binaryLiteralOdd());
       }
       break;
 
@@ -2462,11 +2430,9 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       Calendar calendar = (Calendar) literal.getValue();
       final int year = calendar.get(Calendar.YEAR);
       final int era = calendar.get(Calendar.ERA);
-      if ((year < 1) || (era == GregorianCalendar.BC) || (year > 9999)) {
-        throw newValidationError(
-            literal,
-            EigenbaseResource.instance().DateLiteralOutOfRange.ex(
-                literal.toString()));
+      if (year < 1 || era == GregorianCalendar.BC || year > 9999) {
+        throw newValidationError(literal,
+            RESOURCE.dateLiteralOutOfRange(literal.toString()));
       }
       break;
 
@@ -2479,17 +2445,13 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         SqlIntervalQualifier intervalQualifier =
             interval.getIntervalQualifier();
 
-        // ensure qualifier is good before attempting to validate
-        // literal
+        // ensure qualifier is good before attempting to validate literal
         validateIntervalQualifier(intervalQualifier);
         String intervalStr = interval.getIntervalLiteral();
-        try {
-          int[] values =
-              intervalQualifier.evaluateIntervalLiteral(intervalStr);
-          Util.discard(values);
-        } catch (SqlValidatorException e) {
-          throw newValidationError(literal, e);
-        }
+        // throws EigenbaseContextException if string is invalid
+        int[] values = intervalQualifier.evaluateIntervalLiteral(intervalStr,
+            literal.getParserPosition());
+        Util.discard(values);
       }
       break;
     default:
@@ -2502,10 +2464,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     double d = bd.doubleValue();
     if (Double.isInfinite(d) || Double.isNaN(d)) {
       // overflow
-      throw newValidationError(
-          literal,
-          EigenbaseResource.instance().NumberLiteralOutOfRange.ex(
-              Util.toScientificNotation(bd)));
+      throw newValidationError(literal,
+          RESOURCE.numberLiteralOutOfRange(Util.toScientificNotation(bd)));
     }
 
     // REVIEW jvs 4-Aug-2004:  what about underflow?
@@ -2545,19 +2505,14 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     }
 
     if (startPrecisionOutOfRange) {
-      throw newValidationError(
-          qualifier,
-          EigenbaseResource.instance().IntervalStartPrecisionOutOfRange
-              .ex(
-                  Integer.toString(qualifier.getStartPrecision()),
-                  "INTERVAL " + qualifier.toString()));
+      throw newValidationError(qualifier,
+          RESOURCE.intervalStartPrecisionOutOfRange(
+              qualifier.getStartPrecision(), "INTERVAL " + qualifier));
     } else if (fractionalSecondPrecisionOutOfRange) {
-      throw newValidationError(
-          qualifier,
-          EigenbaseResource.instance()
-              .IntervalFractionalSecondPrecisionOutOfRange.ex(
-                  Integer.toString(qualifier.getFractionalSecondPrecision()),
-                  "INTERVAL " + qualifier.toString()));
+      throw newValidationError(qualifier,
+          RESOURCE.intervalFractionalSecondPrecisionOutOfRange(
+              qualifier.getFractionalSecondPrecision(),
+              "INTERVAL " + qualifier));
     }
   }
 
@@ -2636,12 +2591,9 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         final RelDataType leftColType = validateUsingCol(id, left);
         final RelDataType rightColType = validateUsingCol(id, right);
         if (!SqlTypeUtil.isComparable(leftColType, rightColType)) {
-          throw newValidationError(
-              id,
-              EigenbaseResource.instance()
-                  .NaturalOrUsingColumnNotCompatible.ex(id.getSimple(),
-                      leftColType.toString(),
-                      rightColType.toString()));
+          throw newValidationError(id,
+              RESOURCE.naturalOrUsingColumnNotCompatible(id.getSimple(),
+                  leftColType.toString(), rightColType.toString()));
         }
       }
       break;
@@ -2652,10 +2604,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     // Validate NATURAL.
     if (natural) {
       if (condition != null) {
-        throw newValidationError(
-            condition,
-            EigenbaseResource.instance().NaturalDisallowsOnOrUsing
-                .ex());
+        throw newValidationError(condition,
+            RESOURCE.naturalDisallowsOnOrUsing());
       }
 
       // Join on fields that occur exactly once on each side. Ignore
@@ -2674,13 +2624,9 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         final RelDataType rightColType =
             catalogReader.field(rightRowType, name).getType();
         if (!SqlTypeUtil.isComparable(leftColType, rightColType)) {
-          throw newValidationError(
-              join,
-              EigenbaseResource.instance()
-                  .NaturalOrUsingColumnNotCompatible.ex(
-                      name,
-                      leftColType.toString(),
-                      rightColType.toString()));
+          throw newValidationError(join,
+              RESOURCE.naturalOrUsingColumnNotCompatible(name,
+                  leftColType.toString(), rightColType.toString()));
         }
       }
     }
@@ -2693,20 +2639,18 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     case RIGHT:
     case FULL:
       if ((condition == null) && !natural) {
-        throw newValidationError(
-            join,
-            EigenbaseResource.instance().JoinRequiresCondition.ex());
+        throw newValidationError(join, RESOURCE.joinRequiresCondition());
       }
       break;
     case COMMA:
     case CROSS:
       if (condition != null) {
         throw newValidationError(join.getConditionTypeNode(),
-            EigenbaseResource.instance().CrossJoinDisallowsCondition.ex());
+            RESOURCE.crossJoinDisallowsCondition());
       }
       if (natural) {
         throw newValidationError(join.getConditionTypeNode(),
-            EigenbaseResource.instance().CrossJoinDisallowsCondition.ex());
+            RESOURCE.crossJoinDisallowsCondition());
       }
       break;
     default:
@@ -2725,15 +2669,11 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     final SqlNode agg = aggOrOverFinder.findAgg(condition);
     if (agg != null) {
       if (SqlUtil.isCallTo(agg, SqlStdOperatorTable.OVER)) {
-        throw newValidationError(
-            agg,
-            EigenbaseResource.instance()
-                .WindowedAggregateIllegalInClause.ex(clause));
+        throw newValidationError(agg,
+            RESOURCE.windowedAggregateIllegalInClause(clause));
       } else {
-        throw newValidationError(
-            agg,
-            EigenbaseResource.instance().AggregateIllegalInClause.ex(
-                clause));
+        throw newValidationError(agg,
+            RESOURCE.aggregateIllegalInClause(clause));
       }
     }
   }
@@ -2747,14 +2687,12 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       if (field != null) {
         if (Collections.frequency(rowType.getFieldNames(), name) > 1) {
           throw newValidationError(id,
-              EigenbaseResource.instance().ColumnInUsingNotUnique.ex(
-                  id.toString()));
+              RESOURCE.columnInUsingNotUnique(id.toString()));
         }
         return field.getType();
       }
     }
-    throw newValidationError(id,
-        EigenbaseResource.instance().ColumnNotFound.ex(id.toString()));
+    throw newValidationError(id, RESOURCE.columnNotFound(id.toString()));
   }
 
   /**
@@ -2780,10 +2718,9 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     assert ns.rowType == null;
 
     if (select.isDistinct()) {
-      validateFeature(
-          EigenbaseResource.instance().SQLFeature_E051_01,
-          select.getModifierNode(
-              SqlSelectKeyword.DISTINCT).getParserPosition());
+      validateFeature(RESOURCE.sQLFeature_E051_01(),
+          select.getModifierNode(SqlSelectKeyword.DISTINCT)
+              .getParserPosition());
     }
 
     final SqlNodeList selectItems = select.getSelectList();
@@ -2811,9 +2748,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     if (duplicateAliasOrdinal >= 0) {
       final Pair<String, SqlValidatorNamespace> child =
           children.get(duplicateAliasOrdinal);
-      throw newValidationError(
-          child.right.getEnclosingNode(),
-          EigenbaseResource.instance().FromAliasDuplicate.ex(child.left));
+      throw newValidationError(child.right.getEnclosingNode(),
+          RESOURCE.fromAliasDuplicate(child.left));
     }
 
     validateFrom(select.getFrom(), fromType, fromScope);
@@ -2842,7 +2778,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     }
 
     final SelectScope windowScope = (SelectScope) getFromScope(select);
-    Util.permAssert(windowScope != null, "windowScope != null");
+    assert windowScope != null;
 
     // 1. ensure window names are simple
     // 2. ensure they are unique within this scope
@@ -2850,15 +2786,11 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       final SqlWindow child = (SqlWindow) node;
       SqlIdentifier declName = child.getDeclName();
       if (!declName.isSimple()) {
-        throw newValidationError(
-            declName,
-            EigenbaseResource.instance().WindowNameMustBeSimple.ex());
+        throw newValidationError(declName, RESOURCE.windowNameMustBeSimple());
       }
 
       if (windowScope.existingWindowName(declName.toString())) {
-        throw newValidationError(
-            declName,
-            EigenbaseResource.instance().DuplicateWindowName.ex());
+        throw newValidationError(declName, RESOURCE.duplicateWindowName());
       } else {
         windowScope.addWindowName(declName.toString());
       }
@@ -2871,9 +2803,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       for (int j = i + 1; j < windowList.size(); j++) {
         SqlNode window2 = windowList.get(j);
         if (window1.equalsDeep(window2, false)) {
-          throw newValidationError(
-              window2,
-              EigenbaseResource.instance().DupWindowSpec.ex());
+          throw newValidationError(window2, RESOURCE.dupWindowSpec());
         }
       }
     }
@@ -2892,8 +2822,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       final RelDataType rowType = getValidatedNodeType(withItem.query);
       final int fieldCount = rowType.getFieldCount();
       if (withItem.columnList.size() != fieldCount) {
-        throw todoError(withItem.columnList,
-            "Number of columns must match number of query columns");
+        throw newValidationError(withItem.columnList,
+            RESOURCE.columnCountMismatch());
       }
       final List<String> names = Lists.transform(withItem.columnList.getList(),
           new Function<SqlNode, String>() {
@@ -2903,25 +2833,19 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
           });
       final int i = Util.firstDuplicate(names);
       if (i >= 0) {
-        throw todoError(withItem.columnList.get(i),
-            "Duplicate name '" + names.get(i) + "' in column list");
+        throw newValidationError(withItem.columnList.get(i),
+            RESOURCE.duplicateNameInColumnList(names.get(i)));
       }
     } else {
-      // Luckily, field names have not been uniquified yet.
+      // Luckily, field names have not been make unique yet.
       final List<String> fieldNames =
           getValidatedNodeType(withItem.query).getFieldNames();
       final int i = Util.firstDuplicate(fieldNames);
       if (i >= 0) {
-        throw todoError(withItem.query,
-            "Column has duplicate column name '" + fieldNames.get(i)
-            + "' and no column list specified");
+        throw newValidationError(withItem.query,
+            RESOURCE.duplicateColumnAndNoColumnList(fieldNames.get(i)));
       }
     }
-  }
-
-  // TODO: replace with resourced message
-  private EigenbaseException todoError(SqlNode node, String message) {
-    return newValidationError(node, new SqlValidatorException(message, null));
   }
 
   public SqlValidatorScope getWithScope(SqlNode withItem) {
@@ -2944,9 +2868,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     }
     if (!shouldAllowIntermediateOrderBy()) {
       if (!cursorSet.contains(select)) {
-        throw newValidationError(
-            select,
-            EigenbaseResource.instance().InvalidOrderByPos.ex());
+        throw newValidationError(select, RESOURCE.invalidOrderByPos());
       }
     }
     final SqlValidatorScope orderScope = getOrderScope(select);
@@ -2961,11 +2883,9 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     if (SqlUtil.isCallTo(
         orderItem,
         SqlStdOperatorTable.DESC)) {
-      validateFeature(
-          EigenbaseResource.instance().SQLConformance_OrderByDesc,
+      validateFeature(RESOURCE.sQLConformance_OrderByDesc(),
           orderItem.getParserPosition());
-      validateOrderItem(
-          select,
+      validateOrderItem(select,
           ((SqlCall) orderItem).operand(0));
       return;
     }
@@ -3011,9 +2931,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
     SqlNode agg = aggFinder.findAgg(groupList);
     if (agg != null) {
-      throw newValidationError(
-          agg,
-          EigenbaseResource.instance().AggregateIllegalInGroupBy.ex());
+      throw newValidationError(agg, RESOURCE.aggregateIllegalInGroupBy());
     }
   }
 
@@ -3039,9 +2957,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     condition.validate(this, scope);
     final RelDataType type = deriveType(scope, condition);
     if (!SqlTypeUtil.inBooleanFamily(type)) {
-      throw newValidationError(
-          condition,
-          EigenbaseResource.instance().CondMustBeBoolean.ex(keyword));
+      throw newValidationError(condition, RESOURCE.condMustBeBoolean(keyword));
     }
   }
 
@@ -3064,9 +2980,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     having.validate(this, havingScope);
     final RelDataType type = deriveType(havingScope, having);
     if (!SqlTypeUtil.inBooleanFamily(type)) {
-      throw newValidationError(
-          having,
-          EigenbaseResource.instance().HavingMustBeBoolean.ex());
+      throw newValidationError(having, RESOURCE.havingMustBeBoolean());
     }
   }
 
@@ -3171,9 +3085,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       List<Map.Entry<String, RelDataType>> fieldList) {
     // A scalar subquery only has one output column.
     if (1 != selectItem.getSelectList().size()) {
-      throw newValidationError(
-          selectItem,
-          EigenbaseResource.instance().OnlyScalarSubqueryAllowed.ex());
+      throw newValidationError(selectItem,
+          RESOURCE.onlyScalarSubqueryAllowed());
     }
 
     // No expansion in this routine just append to list.
@@ -3234,13 +3147,11 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       String name = id.getSimple();
       RelDataTypeField targetField = catalogReader.field(baseRowType, name);
       if (targetField == null) {
-        throw newValidationError(id,
-            EigenbaseResource.instance().UnknownTargetColumn.ex(name));
+        throw newValidationError(id, RESOURCE.unknownTargetColumn(name));
       }
       if (!assignedFields.add(targetField.getIndex())) {
         throw newValidationError(id,
-            EigenbaseResource.instance().DuplicateTargetColumn.ex(
-                targetField.getName()));
+            RESOURCE.duplicateTargetColumn(targetField.getName()));
       }
       types.add(targetField);
     }
@@ -3296,11 +3207,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     final int sourceFieldCount = logicalSourceRowType.getFieldCount();
     final int targetFieldCount = logicalTargetRowType.getFieldCount();
     if (sourceFieldCount != targetFieldCount) {
-      throw newValidationError(
-          node,
-          EigenbaseResource.instance().UnmatchInsertColumn.ex(
-              targetFieldCount,
-              sourceFieldCount));
+      throw newValidationError(node,
+          RESOURCE.unmatchInsertColumn(targetFieldCount, sourceFieldCount));
     }
   }
 
@@ -3351,13 +3259,10 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
           sourceTypeString = sourceType.toString();
           targetTypeString = targetType.toString();
         }
-        throw newValidationError(
-            node,
-            EigenbaseResource.instance().TypeNotAssignable.ex(
-                targetFields.get(i).getName(),
-                targetTypeString,
-                sourceFields.get(i).getName(),
-                sourceTypeString));
+        throw newValidationError(node,
+            RESOURCE.typeNotAssignable(
+                targetFields.get(i).getName(), targetTypeString,
+                sourceFields.get(i).getName(), sourceTypeString));
       }
     }
   }
@@ -3499,10 +3404,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     if (table != null) {
       SqlAccessType access = table.getAllowedAccess();
       if (!access.allowsAccess(requiredAccess)) {
-        throw newValidationError(
-            node,
-            EigenbaseResource.instance().AccessNotAllowed.ex(
-                requiredAccess.name(),
+        throw newValidationError(node,
+            RESOURCE.accessNotAllowed(requiredAccess.name(),
                 table.getQualifiedName().toString()));
       }
     }
@@ -3557,9 +3460,9 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       for (SqlNode operand : operands) {
         SqlCall thisRow = (SqlCall) operand;
         if (columnCount != thisRow.operandCount()) {
-          throw newValidationError(
-              node, EigenbaseResource.instance().IncompatibleValueType.ex(
-              SqlStdOperatorTable.VALUES.getName()));
+          throw newValidationError(node,
+              RESOURCE.incompatibleValueType(
+                  SqlStdOperatorTable.VALUES.getName()));
         }
       }
 
@@ -3581,9 +3484,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
           );
 
         if (null == type) {
-          throw newValidationError(
-              node,
-              EigenbaseResource.instance().IncompatibleValueType.ex(
+          throw newValidationError(node,
+              RESOURCE.incompatibleValueType(
                   SqlStdOperatorTable.VALUES.getName()));
         }
       }
@@ -3596,9 +3498,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   public void validateDynamicParam(SqlDynamicParam dynamicParam) {
   }
 
-  public EigenbaseException newValidationError(
-      SqlNode node,
-      SqlValidatorException e) {
+  public EigenbaseContextException newValidationError(SqlNode node,
+      Resources.ExInst<SqlValidatorException> e) {
     assert node != null;
     final SqlParserPos pos = node.getParserPosition();
     return SqlUtil.newContextException(pos, e);
@@ -3613,10 +3514,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       window = scope.lookupWindow(name);
     }
     if (window == null) {
-      throw newValidationError(
-          id,
-          EigenbaseResource.instance().WindowNotFound.ex(
-              id.toString()));
+      throw newValidationError(id, RESOURCE.windowNotFound(id.toString()));
     }
     return window;
   }
@@ -3639,9 +3537,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       final String refName = refId.getSimple();
       SqlWindow refWindow = scope.lookupWindow(refName);
       if (refWindow == null) {
-        throw newValidationError(
-            refId,
-            EigenbaseResource.instance().WindowNotFound.ex(refName));
+        throw newValidationError(refId, RESOURCE.windowNotFound(refName));
       }
       window = window.overlay(refWindow, this);
     }
@@ -3715,9 +3611,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     for (SqlNode param : aggFunction.getOperandList()) {
       final SqlNode agg = aggOrOverFinder.findAgg(param);
       if (aggOrOverFinder.findAgg(param) != null) {
-        throw newValidationError(
-            aggFunction,
-            EigenbaseResource.instance().NestedAggIllegal.ex());
+        throw newValidationError(aggFunction, RESOURCE.nestedAggIllegal());
       }
     }
   }
@@ -3749,13 +3643,11 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
    * are enabled; subclasses may override this method to be more
    * discriminating.
    *
-   * @param feature feature being used, represented as a resource definition
-   *                from {@link EigenbaseResource}
+   * @param feature feature being used, represented as a resource instance
    * @param context parser position context for error reporting, or null if
-   *                none available
    */
   protected void validateFeature(
-      ResourceDefinition feature,
+      Resources.Feature feature,
       SqlParserPos context) {
     // By default, do nothing except to verify that the resource
     // represents a real feature definition.
@@ -4032,13 +3924,13 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
           if (type == null) {
             throw newValidationError(id.getComponent(ord.i),
-                EigenbaseResource.instance().UnknownIdentifier.ex(name));
+                RESOURCE.unknownIdentifier(name));
           }
         } else {
           final RelDataTypeField field = catalogReader.field(type, name);
           if (field == null) {
             throw newValidationError(id.getComponent(ord.i),
-                EigenbaseResource.instance().UnknownField.ex(name));
+                RESOURCE.unknownField(name));
           }
           type = field.getType();
         }
@@ -4137,25 +4029,22 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       // Ordinal markers, e.g. 'select a, b from t order by 2'.
       // Only recognize them if they are the whole expression,
       // and if the dialect permits.
-      if ((literal == root)
-          && getConformance().isSortByOrdinal()) {
-        if ((literal.getTypeName() == SqlTypeName.DECIMAL)
-            || (literal.getTypeName() == SqlTypeName.DOUBLE)) {
+      if (literal == root && getConformance().isSortByOrdinal()) {
+        switch (literal.getTypeName()) {
+        case DECIMAL:
+        case DOUBLE:
           final int intValue = literal.intValue(false);
           if (intValue >= 0) {
-            if ((intValue < 1) || (intValue > aliasList.size())) {
+            if (intValue < 1 || intValue > aliasList.size()) {
               throw newValidationError(
-                  literal,
-                  EigenbaseResource.instance()
-                      .OrderByOrdinalOutOfRange.ex());
+                  literal, RESOURCE.orderByOrdinalOutOfRange());
             }
 
             // SQL ordinals are 1-based, but SortRel's are 0-based
             int ordinal = intValue - 1;
-            return nthSelectItem(
-                ordinal,
-                literal.getParserPosition());
+            return nthSelectItem(ordinal, literal.getParserPosition());
           }
+          break;
         }
       }
 

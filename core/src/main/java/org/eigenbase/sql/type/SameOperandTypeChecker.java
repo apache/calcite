@@ -20,11 +20,12 @@ package org.eigenbase.sql.type;
 import java.util.*;
 
 import org.eigenbase.reltype.*;
-import org.eigenbase.resource.*;
 import org.eigenbase.sql.*;
 import org.eigenbase.util.Util;
 
 import com.google.common.collect.ImmutableList;
+
+import static org.eigenbase.util.Static.RESOURCE;
 
 /**
  * Parameter type-checking strategy where all operand types must be the same.
@@ -75,8 +76,7 @@ public class SameOperandTypeChecker implements SqlSingleOperandTypeChecker {
       if (operatorBinding.isOperandNull(i, false)) {
         if (throwOnFailure) {
           throw callBinding.getValidator().newValidationError(
-              callBinding.getCall().operand(i),
-              EigenbaseResource.instance().NullIllegal.ex());
+              callBinding.getCall().operand(i), RESOURCE.nullIllegal());
         } else {
           return false;
         }
@@ -95,8 +95,7 @@ public class SameOperandTypeChecker implements SqlSingleOperandTypeChecker {
           // newValidationSignatureError() here?  It gives more
           // specific diagnostics.
           throw callBinding.newValidationError(
-              EigenbaseResource.instance().NeedSameTypeParameter
-                  .ex());
+              RESOURCE.needSameTypeParameter());
         }
       }
       prev = i;

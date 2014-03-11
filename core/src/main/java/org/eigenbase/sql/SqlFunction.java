@@ -20,13 +20,14 @@ package org.eigenbase.sql;
 import java.util.List;
 
 import org.eigenbase.reltype.*;
-import org.eigenbase.resource.*;
 import org.eigenbase.sql.parser.*;
 import org.eigenbase.sql.type.*;
 import org.eigenbase.sql.validate.*;
 import org.eigenbase.util.Util;
 
 import com.google.common.collect.ImmutableList;
+
+import static org.eigenbase.util.Static.RESOURCE;
 
 /**
  * A <code>SqlFunction</code> is a type of operator which has conventional
@@ -193,10 +194,8 @@ public class SqlFunction extends SqlOperator {
    */
   protected void validateQuantifier(SqlValidator validator, SqlCall call) {
     if ((null != call.getFunctionQuantifier()) && !isQuantifierAllowed()) {
-      throw validator.newValidationError(
-          call.getFunctionQuantifier(),
-          EigenbaseResource.instance().FunctionQuantifierNotAllowed.ex(
-              call.getOperator().getName()));
+      throw validator.newValidationError(call.getFunctionQuantifier(),
+          RESOURCE.functionQuantifierNotAllowed(call.getOperator().getName()));
     }
   }
 

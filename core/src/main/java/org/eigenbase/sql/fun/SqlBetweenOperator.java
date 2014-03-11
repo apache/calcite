@@ -20,13 +20,14 @@ package org.eigenbase.sql.fun;
 import java.util.*;
 
 import org.eigenbase.reltype.*;
-import org.eigenbase.resource.*;
 import org.eigenbase.sql.*;
 import org.eigenbase.sql.parser.*;
 import org.eigenbase.sql.type.*;
 import org.eigenbase.sql.util.*;
 import org.eigenbase.sql.validate.*;
 import org.eigenbase.util.*;
+
+import static org.eigenbase.util.Static.RESOURCE;
 
 /**
  * Defines the BETWEEN operator.
@@ -202,23 +203,17 @@ public class SqlBetweenOperator extends SqlInfixOperator {
       final int line = lastPos.getEndLineNum();
       final int col = lastPos.getEndColumnNum() + 1;
       SqlParserPos errPos = new SqlParserPos(line, col, line, col);
-      throw SqlUtil.newContextException(
-          errPos,
-          EigenbaseResource.instance().BetweenWithoutAnd.ex());
+      throw SqlUtil.newContextException(errPos, RESOURCE.betweenWithoutAnd());
     }
     final Object o = list.get(opOrdinal + 2);
     if (!(o instanceof SqlParserUtil.ToTreeListItem)) {
       SqlParserPos errPos = ((SqlNode) o).getParserPosition();
-      throw SqlUtil.newContextException(
-          errPos,
-          EigenbaseResource.instance().BetweenWithoutAnd.ex());
+      throw SqlUtil.newContextException(errPos, RESOURCE.betweenWithoutAnd());
     }
     if (((SqlParserUtil.ToTreeListItem) o).getOperator().getKind()
         != SqlKind.AND) {
       SqlParserPos errPos = ((SqlParserUtil.ToTreeListItem) o).getPos();
-      throw SqlUtil.newContextException(
-          errPos,
-          EigenbaseResource.instance().BetweenWithoutAnd.ex());
+      throw SqlUtil.newContextException(errPos, RESOURCE.betweenWithoutAnd());
     }
 
     // Create the expression after 'AND', but stopping if we encounter an

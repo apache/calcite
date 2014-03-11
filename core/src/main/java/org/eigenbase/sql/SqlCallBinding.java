@@ -20,10 +20,12 @@ package org.eigenbase.sql;
 import java.util.*;
 
 import org.eigenbase.reltype.*;
-import org.eigenbase.resource.*;
+import org.eigenbase.resource.Resources;
 import org.eigenbase.sql.fun.*;
 import org.eigenbase.sql.validate.*;
 import org.eigenbase.util.*;
+
+import static org.eigenbase.util.Static.RESOURCE;
 
 /**
  * <code>SqlCallBinding</code> implements {@link SqlOperatorBinding} by
@@ -152,7 +154,7 @@ public class SqlCallBinding extends SqlOperatorBinding {
   }
 
   public EigenbaseException newError(
-      SqlValidatorException e) {
+      Resources.ExInst<SqlValidatorException> e) {
     return validator.newValidationError(call, e);
   }
 
@@ -162,10 +164,8 @@ public class SqlCallBinding extends SqlOperatorBinding {
    * @return signature exception
    */
   public EigenbaseException newValidationSignatureError() {
-    return validator.newValidationError(
-        call,
-        EigenbaseResource.instance().CanNotApplyOp2Type.ex(
-            getOperator().getName(),
+    return validator.newValidationError(call,
+        RESOURCE.canNotApplyOp2Type(getOperator().getName(),
             call.getCallSignature(validator, scope),
             getOperator().getAllowedSignatures()));
   }
@@ -178,7 +178,7 @@ public class SqlCallBinding extends SqlOperatorBinding {
    * @return wrapped exception
    */
   public EigenbaseException newValidationError(
-      SqlValidatorException ex) {
+      Resources.ExInst<SqlValidatorException> ex) {
     return validator.newValidationError(call, ex);
   }
 }

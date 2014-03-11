@@ -20,12 +20,13 @@ package org.eigenbase.sql;
 import java.util.List;
 
 import org.eigenbase.reltype.*;
-import org.eigenbase.resource.*;
 import org.eigenbase.sql.parser.*;
 import org.eigenbase.sql.type.*;
 import org.eigenbase.sql.validate.*;
 
 import com.google.common.collect.ImmutableList;
+
+import static org.eigenbase.util.Static.RESOURCE;
 
 /**
  * Operator which aggregates sets of values into a result.
@@ -67,10 +68,8 @@ public class SqlRankFunction extends SqlAggFunction {
       SqlValidatorScope scope,
       SqlValidatorScope operandScope) {
     final SqlParserPos pos = call.getParserPosition();
-    throw SqlUtil.newContextException(
-        pos,
-        EigenbaseResource.instance().FunctionUndefined.ex(
-            call.toString()));
+    throw SqlUtil.newContextException(pos,
+        RESOURCE.functionUndefined(call.toString()));
   }
 }
 

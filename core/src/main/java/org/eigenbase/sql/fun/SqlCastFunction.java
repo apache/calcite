@@ -20,10 +20,11 @@ package org.eigenbase.sql.fun;
 import java.util.*;
 
 import org.eigenbase.reltype.*;
-import org.eigenbase.resource.*;
 import org.eigenbase.sql.*;
 import org.eigenbase.sql.type.*;
 import org.eigenbase.sql.validate.*;
+
+import static org.eigenbase.util.Static.RESOURCE;
 
 /**
  * SqlCastFunction. Note that the std functions are really singleton objects,
@@ -170,8 +171,7 @@ public class SqlCastFunction extends SqlFunction {
     if (!SqlTypeUtil.canCastFrom(returnType, validatedNodeType, true)) {
       if (throwOnFailure) {
         throw callBinding.newError(
-            EigenbaseResource.instance().CannotCastValue.ex(
-                validatedNodeType.toString(),
+            RESOURCE.cannotCastValue(validatedNodeType.toString(),
                 returnType.toString()));
       }
       return false;
@@ -183,8 +183,7 @@ public class SqlCastFunction extends SqlFunction {
         // Include full type string to indicate character
         // set mismatch.
         throw callBinding.newError(
-            EigenbaseResource.instance().CannotCastValue.ex(
-                validatedNodeType.getFullTypeString(),
+            RESOURCE.cannotCastValue(validatedNodeType.getFullTypeString(),
                 returnType.getFullTypeString()));
       }
       return false;

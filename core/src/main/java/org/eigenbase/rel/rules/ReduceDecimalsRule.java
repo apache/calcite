@@ -24,7 +24,6 @@ import java.util.*;
 import org.eigenbase.rel.*;
 import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.*;
-import org.eigenbase.resource.*;
 import org.eigenbase.rex.*;
 import org.eigenbase.sql.*;
 import org.eigenbase.sql.fun.*;
@@ -34,6 +33,8 @@ import org.eigenbase.util.*;
 import net.hydromatic.linq4j.Ord;
 
 import com.google.common.collect.ImmutableList;
+
+import static org.eigenbase.util.Static.RESOURCE;
 
 /**
  * ReduceDecimalsRule is a rule which reduces decimal operations (such as casts
@@ -963,9 +964,9 @@ public class ReduceDecimalsRule extends RelOptRule {
     private RexNode expandMod(RexCall call, List<RexNode> operands) {
       assert SqlTypeUtil.isExactNumeric(typeA);
       assert SqlTypeUtil.isExactNumeric(typeB);
-      if ((scaleA != 0) || (scaleB != 0)) {
-        throw EigenbaseResource.instance().ArgumentMustHaveScaleZero.ex(
-            call.getOperator().getName());
+      if (scaleA != 0 || scaleB != 0) {
+        throw RESOURCE.argumentMustHaveScaleZero(call.getOperator().getName())
+            .ex();
       }
       RexNode result =
           builder.makeCall(

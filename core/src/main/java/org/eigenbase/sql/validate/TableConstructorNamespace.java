@@ -20,6 +20,8 @@ package org.eigenbase.sql.validate;
 import org.eigenbase.reltype.*;
 import org.eigenbase.sql.*;
 
+import static org.eigenbase.util.Static.RESOURCE;
+
 /**
  * Namespace for a table constructor <code>VALUES (expr, expr, ...)</code>.
  */
@@ -65,9 +67,7 @@ public class TableConstructorNamespace extends AbstractNamespace {
     final RelDataType tableConstructorRowType =
         validator.getTableConstructorRowType(values, scope);
     if (tableConstructorRowType == null) {
-      throw validator.newValidationError(
-          values,
-          new SqlValidatorException("Incompatible types", null));
+      throw validator.newValidationError(values, RESOURCE.incompatibleTypes());
     }
     return tableConstructorRowType;
   }

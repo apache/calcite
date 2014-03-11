@@ -23,12 +23,12 @@ import java.util.regex.*;
 
 import org.eigenbase.rel.*;
 import org.eigenbase.rel.metadata.*;
-import org.eigenbase.resource.*;
 import org.eigenbase.util.*;
 
+import static org.eigenbase.util.Static.RESOURCE;
+
 /**
- * AbstractRelOptPlanner is an abstract base for implementations of the {@link
- * RelOptPlanner} interface.
+ * Abstract base for implementations of the {@link RelOptPlanner} interface.
  */
 public abstract class AbstractRelOptPlanner implements RelOptPlanner {
   //~ Static fields/initializers ---------------------------------------------
@@ -88,7 +88,7 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
    */
   public void checkCancel() {
     if (cancelFlag.isCancelRequested()) {
-      throw EigenbaseResource.instance().PreparationAborted.ex();
+      throw RESOURCE.preparationAborted().ex();
     }
   }
 
@@ -103,7 +103,7 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
 
     final String description = rule.toString();
     assert description != null;
-    assert description.indexOf("$") < 0
+    assert !description.contains("$")
         : "Rule's description should not contain '$': "
         + description;
     assert !INTEGER_PATTERN.matcher(description).matches()
@@ -158,10 +158,8 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
    * @return true iff rule should be excluded
    */
   public boolean isRuleExcluded(RelOptRule rule) {
-    if (ruleDescExclusionFilter == null) {
-      return false;
-    }
-    return ruleDescExclusionFilter.matcher(rule.toString()).matches();
+    return ruleDescExclusionFilter != null
+        && ruleDescExclusionFilter.matcher(rule.toString()).matches();
   }
 
   // implement RelOptPlanner

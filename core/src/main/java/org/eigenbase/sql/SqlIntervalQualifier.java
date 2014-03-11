@@ -21,7 +21,6 @@ import java.math.BigDecimal;
 import java.util.*;
 import java.util.regex.*;
 
-import org.eigenbase.resource.EigenbaseResource;
 import org.eigenbase.sql.parser.*;
 import org.eigenbase.sql.type.*;
 import org.eigenbase.sql.util.*;
@@ -32,6 +31,8 @@ import org.eigenbase.util14.DateTimeUtil;
 import net.hydromatic.optiq.runtime.SqlFunctions;
 
 import com.google.common.collect.ImmutableMap;
+
+import static org.eigenbase.util.Static.RESOURCE;
 
 /**
  * Represents an INTERVAL qualifier.
@@ -485,10 +486,10 @@ public class SqlIntervalQualifier extends SqlNode {
   }
 
   private void checkLeadFieldInRange(
-      int sign, BigDecimal value, TimeUnit unit) throws SqlValidatorException {
+      int sign, BigDecimal value, TimeUnit unit, SqlParserPos pos) {
     if (!isLeadFieldInRange(value, unit)) {
       throw fieldExceedsPrecisionException(
-          sign, value, unit, startPrecision);
+          pos, sign, value, unit, startPrecision);
     }
   }
 
@@ -578,12 +579,13 @@ public class SqlIntervalQualifier extends SqlNode {
   /**
    * Validates an INTERVAL literal against a YEAR interval qualifier.
    *
-   * @throws SqlValidatorException if the interval value is illegal.
+   * @throws EigenbaseContextException if the interval value is illegal.
    */
   private int[] evaluateIntervalLiteralAsYear(
       int sign,
       String value,
-      String originalValue) throws SqlValidatorException {
+      String originalValue,
+      SqlParserPos pos) {
     BigDecimal year;
 
     // validate as YEAR(startPrecision), e.g. 'YY'
@@ -595,28 +597,29 @@ public class SqlIntervalQualifier extends SqlNode {
       try {
         year = parseField(m, 1);
       } catch (NumberFormatException e) {
-        throw intervalidValueException(originalValue);
+        throw invalidValueException(pos, originalValue);
       }
 
       // Validate individual fields
-      checkLeadFieldInRange(sign, year, TimeUnit.YEAR);
+      checkLeadFieldInRange(sign, year, TimeUnit.YEAR, pos);
 
       // package values up for return
       return fillIntervalValueArray(sign, year, ZERO);
     } else {
-      throw intervalidValueException(originalValue);
+      throw invalidValueException(pos, originalValue);
     }
   }
 
   /**
    * Validates an INTERVAL literal against a YEAR TO MONTH interval qualifier.
    *
-   * @throws SqlValidatorException if the interval value is illegal.
+   * @throws EigenbaseContextException if the interval value is illegal.
    */
   private int[] evaluateIntervalLiteralAsYearToMonth(
       int sign,
       String value,
-      String originalValue) throws SqlValidatorException {
+      String originalValue,
+      SqlParserPos pos) {
     BigDecimal year;
     BigDecimal month;
 
@@ -630,31 +633,32 @@ public class SqlIntervalQualifier extends SqlNode {
         year = parseField(m, 1);
         month = parseField(m, 2);
       } catch (NumberFormatException e) {
-        throw intervalidValueException(originalValue);
+        throw invalidValueException(pos, originalValue);
       }
 
       // Validate individual fields
-      checkLeadFieldInRange(sign, year, TimeUnit.YEAR);
+      checkLeadFieldInRange(sign, year, TimeUnit.YEAR, pos);
       if (!(isSecondaryFieldInRange(month, TimeUnit.MONTH))) {
-        throw intervalidValueException(originalValue);
+        throw invalidValueException(pos, originalValue);
       }
 
       // package values up for return
       return fillIntervalValueArray(sign, year, month);
     } else {
-      throw intervalidValueException(originalValue);
+      throw invalidValueException(pos, originalValue);
     }
   }
 
   /**
    * Validates an INTERVAL literal against a MONTH interval qualifier.
    *
-   * @throws SqlValidatorException if the interval value is illegal.
+   * @throws EigenbaseContextException if the interval value is illegal.
    */
   private int[] evaluateIntervalLiteralAsMonth(
       int sign,
       String value,
-      String originalValue) throws SqlValidatorException {
+      String originalValue,
+      SqlParserPos pos) {
     BigDecimal month;
 
     // validate as MONTH(startPrecision), e.g. 'MM'
@@ -666,28 +670,29 @@ public class SqlIntervalQualifier extends SqlNode {
       try {
         month = parseField(m, 1);
       } catch (NumberFormatException e) {
-        throw intervalidValueException(originalValue);
+        throw invalidValueException(pos, originalValue);
       }
 
       // Validate individual fields
-      checkLeadFieldInRange(sign, month, TimeUnit.MONTH);
+      checkLeadFieldInRange(sign, month, TimeUnit.MONTH, pos);
 
       // package values up for return
       return fillIntervalValueArray(sign, ZERO, month);
     } else {
-      throw intervalidValueException(originalValue);
+      throw invalidValueException(pos, originalValue);
     }
   }
 
   /**
    * Validates an INTERVAL literal against a DAY interval qualifier.
    *
-   * @throws SqlValidatorException if the interval value is illegal.
+   * @throws EigenbaseContextException if the interval value is illegal.
    */
   private int[] evaluateIntervalLiteralAsDay(
       int sign,
       String value,
-      String originalValue) throws SqlValidatorException {
+      String originalValue,
+      SqlParserPos pos) {
     BigDecimal day;
 
     // validate as DAY(startPrecision), e.g. 'DD'
@@ -699,28 +704,29 @@ public class SqlIntervalQualifier extends SqlNode {
       try {
         day = parseField(m, 1);
       } catch (NumberFormatException e) {
-        throw intervalidValueException(originalValue);
+        throw invalidValueException(pos, originalValue);
       }
 
       // Validate individual fields
-      checkLeadFieldInRange(sign, day, TimeUnit.DAY);
+      checkLeadFieldInRange(sign, day, TimeUnit.DAY, pos);
 
       // package values up for return
       return fillIntervalValueArray(sign, day, ZERO, ZERO, ZERO, ZERO);
     } else {
-      throw intervalidValueException(originalValue);
+      throw invalidValueException(pos, originalValue);
     }
   }
 
   /**
    * Validates an INTERVAL literal against a DAY TO HOUR interval qualifier.
    *
-   * @throws SqlValidatorException if the interval value is illegal.
+   * @throws EigenbaseContextException if the interval value is illegal.
    */
   private int[] evaluateIntervalLiteralAsDayToHour(
       int sign,
       String value,
-      String originalValue) throws SqlValidatorException {
+      String originalValue,
+      SqlParserPos pos) {
     BigDecimal day;
     BigDecimal hour;
 
@@ -734,31 +740,32 @@ public class SqlIntervalQualifier extends SqlNode {
         day = parseField(m, 1);
         hour = parseField(m, 2);
       } catch (NumberFormatException e) {
-        throw intervalidValueException(originalValue);
+        throw invalidValueException(pos, originalValue);
       }
 
       // Validate individual fields
-      checkLeadFieldInRange(sign, day, TimeUnit.DAY);
+      checkLeadFieldInRange(sign, day, TimeUnit.DAY, pos);
       if (!(isSecondaryFieldInRange(hour, TimeUnit.HOUR))) {
-        throw intervalidValueException(originalValue);
+        throw invalidValueException(pos, originalValue);
       }
 
       // package values up for return
       return fillIntervalValueArray(sign, day, hour, ZERO, ZERO, ZERO);
     } else {
-      throw intervalidValueException(originalValue);
+      throw invalidValueException(pos, originalValue);
     }
   }
 
   /**
    * Validates an INTERVAL literal against a DAY TO MINUTE interval qualifier.
    *
-   * @throws SqlValidatorException if the interval value is illegal.
+   * @throws EigenbaseContextException if the interval value is illegal.
    */
   private int[] evaluateIntervalLiteralAsDayToMinute(
       int sign,
       String value,
-      String originalValue) throws SqlValidatorException {
+      String originalValue,
+      SqlParserPos pos) {
     BigDecimal day;
     BigDecimal hour;
     BigDecimal minute;
@@ -774,32 +781,33 @@ public class SqlIntervalQualifier extends SqlNode {
         hour = parseField(m, 2);
         minute = parseField(m, 3);
       } catch (NumberFormatException e) {
-        throw intervalidValueException(originalValue);
+        throw invalidValueException(pos, originalValue);
       }
 
       // Validate individual fields
-      checkLeadFieldInRange(sign, day, TimeUnit.DAY);
+      checkLeadFieldInRange(sign, day, TimeUnit.DAY, pos);
       if (!(isSecondaryFieldInRange(hour, TimeUnit.HOUR))
           || !(isSecondaryFieldInRange(minute, TimeUnit.MINUTE))) {
-        throw intervalidValueException(originalValue);
+        throw invalidValueException(pos, originalValue);
       }
 
       // package values up for return
       return fillIntervalValueArray(sign, day, hour, minute, ZERO, ZERO);
     } else {
-      throw intervalidValueException(originalValue);
+      throw invalidValueException(pos, originalValue);
     }
   }
 
   /**
    * Validates an INTERVAL literal against a DAY TO SECOND interval qualifier.
    *
-   * @throws SqlValidatorException if the interval value is illegal.
+   * @throws EigenbaseContextException if the interval value is illegal.
    */
   private int[] evaluateIntervalLiteralAsDayToSecond(
       int sign,
       String value,
-      String originalValue) throws SqlValidatorException {
+      String originalValue,
+      SqlParserPos pos) {
     BigDecimal day;
     BigDecimal hour;
     BigDecimal minute;
@@ -832,7 +840,7 @@ public class SqlIntervalQualifier extends SqlNode {
         minute = parseField(m, 3);
         second = parseField(m, 4);
       } catch (NumberFormatException e) {
-        throw intervalidValueException(originalValue);
+        throw invalidValueException(pos, originalValue);
       }
 
       if (hasFractionalSecond) {
@@ -842,12 +850,12 @@ public class SqlIntervalQualifier extends SqlNode {
       }
 
       // Validate individual fields
-      checkLeadFieldInRange(sign, day, TimeUnit.DAY);
+      checkLeadFieldInRange(sign, day, TimeUnit.DAY, pos);
       if (!(isSecondaryFieldInRange(hour, TimeUnit.HOUR))
           || !(isSecondaryFieldInRange(minute, TimeUnit.MINUTE))
           || !(isSecondaryFieldInRange(second, TimeUnit.SECOND))
           || !(isFractionalSecondFieldInRange(secondFrac))) {
-        throw intervalidValueException(originalValue);
+        throw invalidValueException(pos, originalValue);
       }
 
       // package values up for return
@@ -859,19 +867,20 @@ public class SqlIntervalQualifier extends SqlNode {
           second,
           secondFrac);
     } else {
-      throw intervalidValueException(originalValue);
+      throw invalidValueException(pos, originalValue);
     }
   }
 
   /**
    * Validates an INTERVAL literal against an HOUR interval qualifier.
    *
-   * @throws SqlValidatorException if the interval value is illegal.
+   * @throws EigenbaseContextException if the interval value is illegal.
    */
   private int[] evaluateIntervalLiteralAsHour(
       int sign,
       String value,
-      String originalValue) throws SqlValidatorException {
+      String originalValue,
+      SqlParserPos pos) {
     BigDecimal hour;
 
     // validate as HOUR(startPrecision), e.g. 'HH'
@@ -883,16 +892,16 @@ public class SqlIntervalQualifier extends SqlNode {
       try {
         hour = parseField(m, 1);
       } catch (NumberFormatException e) {
-        throw intervalidValueException(originalValue);
+        throw invalidValueException(pos, originalValue);
       }
 
       // Validate individual fields
-      checkLeadFieldInRange(sign, hour, TimeUnit.HOUR);
+      checkLeadFieldInRange(sign, hour, TimeUnit.HOUR, pos);
 
       // package values up for return
       return fillIntervalValueArray(sign, ZERO, hour, ZERO, ZERO, ZERO);
     } else {
-      throw intervalidValueException(originalValue);
+      throw invalidValueException(pos, originalValue);
     }
   }
 
@@ -900,12 +909,13 @@ public class SqlIntervalQualifier extends SqlNode {
    * Validates an INTERVAL literal against an HOUR TO MINUTE interval
    * qualifier.
    *
-   * @throws SqlValidatorException if the interval value is illegal.
+   * @throws EigenbaseContextException if the interval value is illegal.
    */
   private int[] evaluateIntervalLiteralAsHourToMinute(
       int sign,
       String value,
-      String originalValue) throws SqlValidatorException {
+      String originalValue,
+      SqlParserPos pos) {
     BigDecimal hour;
     BigDecimal minute;
 
@@ -919,19 +929,19 @@ public class SqlIntervalQualifier extends SqlNode {
         hour = parseField(m, 1);
         minute = parseField(m, 2);
       } catch (NumberFormatException e) {
-        throw intervalidValueException(originalValue);
+        throw invalidValueException(pos, originalValue);
       }
 
       // Validate individual fields
-      checkLeadFieldInRange(sign, hour, TimeUnit.HOUR);
+      checkLeadFieldInRange(sign, hour, TimeUnit.HOUR, pos);
       if (!(isSecondaryFieldInRange(minute, TimeUnit.MINUTE))) {
-        throw intervalidValueException(originalValue);
+        throw invalidValueException(pos, originalValue);
       }
 
       // package values up for return
       return fillIntervalValueArray(sign, ZERO, hour, minute, ZERO, ZERO);
     } else {
-      throw intervalidValueException(originalValue);
+      throw invalidValueException(pos, originalValue);
     }
   }
 
@@ -939,12 +949,13 @@ public class SqlIntervalQualifier extends SqlNode {
    * Validates an INTERVAL literal against an HOUR TO SECOND interval
    * qualifier.
    *
-   * @throws SqlValidatorException if the interval value is illegal.
+   * @throws EigenbaseContextException if the interval value is illegal.
    */
   private int[] evaluateIntervalLiteralAsHourToSecond(
       int sign,
       String value,
-      String originalValue) throws SqlValidatorException {
+      String originalValue,
+      SqlParserPos pos) {
     BigDecimal hour;
     BigDecimal minute;
     BigDecimal second;
@@ -975,7 +986,7 @@ public class SqlIntervalQualifier extends SqlNode {
         minute = parseField(m, 2);
         second = parseField(m, 3);
       } catch (NumberFormatException e) {
-        throw intervalidValueException(originalValue);
+        throw invalidValueException(pos, originalValue);
       }
 
       if (hasFractionalSecond) {
@@ -985,11 +996,11 @@ public class SqlIntervalQualifier extends SqlNode {
       }
 
       // Validate individual fields
-      checkLeadFieldInRange(sign, hour, TimeUnit.HOUR);
+      checkLeadFieldInRange(sign, hour, TimeUnit.HOUR, pos);
       if (!(isSecondaryFieldInRange(minute, TimeUnit.MINUTE))
           || !(isSecondaryFieldInRange(second, TimeUnit.SECOND))
           || !(isFractionalSecondFieldInRange(secondFrac))) {
-        throw intervalidValueException(originalValue);
+        throw invalidValueException(pos, originalValue);
       }
 
       // package values up for return
@@ -1001,19 +1012,20 @@ public class SqlIntervalQualifier extends SqlNode {
           second,
           secondFrac);
     } else {
-      throw intervalidValueException(originalValue);
+      throw invalidValueException(pos, originalValue);
     }
   }
 
   /**
    * Validates an INTERVAL literal against an MINUTE interval qualifier.
    *
-   * @throws SqlValidatorException if the interval value is illegal.
+   * @throws EigenbaseContextException if the interval value is illegal.
    */
   private int[] evaluateIntervalLiteralAsMinute(
       int sign,
       String value,
-      String originalValue) throws SqlValidatorException {
+      String originalValue,
+      SqlParserPos pos) {
     BigDecimal minute;
 
     // validate as MINUTE(startPrecision), e.g. 'MM'
@@ -1025,16 +1037,16 @@ public class SqlIntervalQualifier extends SqlNode {
       try {
         minute = parseField(m, 1);
       } catch (NumberFormatException e) {
-        throw intervalidValueException(originalValue);
+        throw invalidValueException(pos, originalValue);
       }
 
       // Validate individual fields
-      checkLeadFieldInRange(sign, minute, TimeUnit.MINUTE);
+      checkLeadFieldInRange(sign, minute, TimeUnit.MINUTE, pos);
 
       // package values up for return
       return fillIntervalValueArray(sign, ZERO, ZERO, minute, ZERO, ZERO);
     } else {
-      throw intervalidValueException(originalValue);
+      throw invalidValueException(pos, originalValue);
     }
   }
 
@@ -1042,12 +1054,13 @@ public class SqlIntervalQualifier extends SqlNode {
    * Validates an INTERVAL literal against an MINUTE TO SECOND interval
    * qualifier.
    *
-   * @throws SqlValidatorException if the interval value is illegal.
+   * @throws EigenbaseContextException if the interval value is illegal.
    */
   private int[] evaluateIntervalLiteralAsMinuteToSecond(
       int sign,
       String value,
-      String originalValue) throws SqlValidatorException {
+      String originalValue,
+      SqlParserPos pos) {
     BigDecimal minute;
     BigDecimal second;
     BigDecimal secondFrac;
@@ -1075,7 +1088,7 @@ public class SqlIntervalQualifier extends SqlNode {
         minute = parseField(m, 1);
         second = parseField(m, 2);
       } catch (NumberFormatException e) {
-        throw intervalidValueException(originalValue);
+        throw invalidValueException(pos, originalValue);
       }
 
       if (hasFractionalSecond) {
@@ -1085,10 +1098,10 @@ public class SqlIntervalQualifier extends SqlNode {
       }
 
       // Validate individual fields
-      checkLeadFieldInRange(sign, minute, TimeUnit.MINUTE);
+      checkLeadFieldInRange(sign, minute, TimeUnit.MINUTE, pos);
       if (!(isSecondaryFieldInRange(second, TimeUnit.SECOND))
           || !(isFractionalSecondFieldInRange(secondFrac))) {
-        throw intervalidValueException(originalValue);
+        throw invalidValueException(pos, originalValue);
       }
 
       // package values up for return
@@ -1100,19 +1113,20 @@ public class SqlIntervalQualifier extends SqlNode {
           second,
           secondFrac);
     } else {
-      throw intervalidValueException(originalValue);
+      throw invalidValueException(pos, originalValue);
     }
   }
 
   /**
    * Validates an INTERVAL literal against an SECOND interval qualifier.
    *
-   * @throws SqlValidatorException if the interval value is illegal.
+   * @throws EigenbaseContextException if the interval value is illegal.
    */
   private int[] evaluateIntervalLiteralAsSecond(
       int sign,
       String value,
-      String originalValue) throws SqlValidatorException {
+      String originalValue,
+      SqlParserPos pos) {
     BigDecimal second;
     BigDecimal secondFrac;
     boolean hasFractionalSecond;
@@ -1138,7 +1152,7 @@ public class SqlIntervalQualifier extends SqlNode {
       try {
         second = parseField(m, 1);
       } catch (NumberFormatException e) {
-        throw intervalidValueException(originalValue);
+        throw invalidValueException(pos, originalValue);
       }
 
       if (hasFractionalSecond) {
@@ -1148,30 +1162,29 @@ public class SqlIntervalQualifier extends SqlNode {
       }
 
       // Validate individual fields
-      checkLeadFieldInRange(sign, second, TimeUnit.SECOND);
+      checkLeadFieldInRange(sign, second, TimeUnit.SECOND, pos);
       if (!(isFractionalSecondFieldInRange(secondFrac))) {
-        throw intervalidValueException(originalValue);
+        throw invalidValueException(pos, originalValue);
       }
 
       // package values up for return
       return fillIntervalValueArray(
           sign, ZERO, ZERO, ZERO, second, secondFrac);
     } else {
-      throw intervalidValueException(originalValue);
+      throw invalidValueException(pos, originalValue);
     }
   }
 
   /**
    * Validates an INTERVAL literal according to the rules specified by the
-   * interval qualifier. The assumption is made that the interval qualfier has
+   * interval qualifier. The assumption is made that the interval qualifier has
    * been validated prior to calling this method. Evaluating against an
    * invalid qualifier could lead to strange results.
    *
    * @return field values, never null
-   * @throws SqlValidatorException if the interval value is illegal
+   * @throws EigenbaseContextException if the interval value is illegal
    */
-  public int[] evaluateIntervalLiteral(
-      String value) throws SqlValidatorException {
+  public int[] evaluateIntervalLiteral(String value, SqlParserPos pos) {
     // save original value for if we have to throw
     final String value0 = value;
 
@@ -1187,7 +1200,7 @@ public class SqlIntervalQualifier extends SqlNode {
     // If we have an empty or null literal at this point,
     // it's illegal.  Complain and bail out.
     if (Util.isNullOrEmpty(value)) {
-      throw intervalidValueException(value0);
+      throw invalidValueException(pos, value0);
     }
 
     // Validate remaining string according to the pattern
@@ -1195,33 +1208,33 @@ public class SqlIntervalQualifier extends SqlNode {
     // well as explicit or implicit precision and range.
     switch (timeUnitRange) {
     case YEAR:
-      return evaluateIntervalLiteralAsYear(sign, value, value0);
+      return evaluateIntervalLiteralAsYear(sign, value, value0, pos);
     case YEAR_TO_MONTH:
-      return evaluateIntervalLiteralAsYearToMonth(sign, value, value0);
+      return evaluateIntervalLiteralAsYearToMonth(sign, value, value0, pos);
     case MONTH:
-      return evaluateIntervalLiteralAsMonth(sign, value, value0);
+      return evaluateIntervalLiteralAsMonth(sign, value, value0, pos);
     case DAY:
-      return evaluateIntervalLiteralAsDay(sign, value, value0);
+      return evaluateIntervalLiteralAsDay(sign, value, value0, pos);
     case DAY_TO_HOUR:
-      return evaluateIntervalLiteralAsDayToHour(sign, value, value0);
+      return evaluateIntervalLiteralAsDayToHour(sign, value, value0, pos);
     case DAY_TO_MINUTE:
-      return evaluateIntervalLiteralAsDayToMinute(sign, value, value0);
+      return evaluateIntervalLiteralAsDayToMinute(sign, value, value0, pos);
     case DAY_TO_SECOND:
-      return evaluateIntervalLiteralAsDayToSecond(sign, value, value0);
+      return evaluateIntervalLiteralAsDayToSecond(sign, value, value0, pos);
     case HOUR:
-      return evaluateIntervalLiteralAsHour(sign, value, value0);
+      return evaluateIntervalLiteralAsHour(sign, value, value0, pos);
     case HOUR_TO_MINUTE:
-      return evaluateIntervalLiteralAsHourToMinute(sign, value, value0);
+      return evaluateIntervalLiteralAsHourToMinute(sign, value, value0, pos);
     case HOUR_TO_SECOND:
-      return evaluateIntervalLiteralAsHourToSecond(sign, value, value0);
+      return evaluateIntervalLiteralAsHourToSecond(sign, value, value0, pos);
     case MINUTE:
-      return evaluateIntervalLiteralAsMinute(sign, value, value0);
+      return evaluateIntervalLiteralAsMinute(sign, value, value0, pos);
     case MINUTE_TO_SECOND:
-      return evaluateIntervalLiteralAsMinuteToSecond(sign, value, value0);
+      return evaluateIntervalLiteralAsMinuteToSecond(sign, value, value0, pos);
     case SECOND:
-      return evaluateIntervalLiteralAsSecond(sign, value, value0);
+      return evaluateIntervalLiteralAsSecond(sign, value, value0, pos);
     default:
-      throw intervalidValueException(value0);
+      throw invalidValueException(pos, value0);
     }
   }
 
@@ -1229,20 +1242,22 @@ public class SqlIntervalQualifier extends SqlNode {
     return new BigDecimal(m.group(i));
   }
 
-  private SqlValidatorException intervalidValueException(String value) {
-    return EigenbaseResource.instance().UnsupportedIntervalLiteral.ex(
-        "'" + value + "'",
-        "INTERVAL " + toString());
+  private EigenbaseContextException invalidValueException(SqlParserPos pos,
+      String value) {
+    return SqlUtil.newContextException(pos,
+        RESOURCE.unsupportedIntervalLiteral(
+            "'" + value + "'", "INTERVAL " + toString()));
   }
 
-  private SqlValidatorException fieldExceedsPrecisionException(
-      int sign, BigDecimal value, TimeUnit type, int precision) {
+  private EigenbaseContextException fieldExceedsPrecisionException(
+      SqlParserPos pos, int sign, BigDecimal value, TimeUnit type,
+      int precision) {
     if (sign == -1) {
       value = value.negate();
     }
-    return EigenbaseResource.instance().IntervalFieldExceedsPrecision.ex(
-        value,
-        type.name() + "(" + precision + ")");
+    return SqlUtil.newContextException(pos,
+        RESOURCE.intervalFieldExceedsPrecision(
+            value, type.name() + "(" + precision + ")"));
   }
 }
 

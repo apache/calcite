@@ -18,20 +18,19 @@
 package org.eigenbase.sql;
 
 import java.nio.charset.*;
-
 import java.sql.*;
-
 import java.text.*;
-
 import java.util.*;
 
 import org.eigenbase.reltype.*;
-import org.eigenbase.resource.*;
+import org.eigenbase.resource.Resources;
 import org.eigenbase.sql.fun.*;
 import org.eigenbase.sql.parser.*;
 import org.eigenbase.sql.type.*;
 import org.eigenbase.util.*;
 import org.eigenbase.util14.*;
+
+import static org.eigenbase.util.Static.RESOURCE;
 
 /**
  * Contains utility functions related to SQL parsing, all static.
@@ -645,10 +644,9 @@ public abstract class SqlUtil {
    */
   public static EigenbaseException newContextException(
       final SqlParserPos pos,
-      Throwable e,
+      Resources.ExInst<?> e,
       String inputText) {
-    EigenbaseContextException ex =
-        (EigenbaseContextException) newContextException(pos, e);
+    EigenbaseContextException ex = newContextException(pos, e);
     ex.setOriginalStatement(inputText);
     return ex;
   }
@@ -656,9 +654,9 @@ public abstract class SqlUtil {
   /**
    * Wraps an exception with context.
    */
-  public static EigenbaseException newContextException(
+  public static EigenbaseContextException newContextException(
       final SqlParserPos pos,
-      Throwable e) {
+      Resources.ExInst<?> e) {
     int line = pos.getLineNum();
     int col = pos.getColumnNum();
     int endLine = pos.getEndLineNum();
@@ -669,18 +667,16 @@ public abstract class SqlUtil {
   /**
    * Wraps an exception with context.
    */
-  public static EigenbaseException newContextException(
+  public static EigenbaseContextException newContextException(
       int line,
       int col,
       int endLine,
       int endCol,
-      Throwable e) {
+      Resources.ExInst<?> e) {
     EigenbaseContextException contextExcn =
-        ((line == endLine) && (col == endCol))
-            ? EigenbaseResource.instance().ValidatorContextPoint.ex(
-                line, col, e)
-            : EigenbaseResource.instance().ValidatorContext.ex(
-                line, col, endLine, endCol, e);
+        (line == endLine && col == endCol
+            ? RESOURCE.validatorContextPoint(line, col)
+            : RESOURCE.validatorContext(line, col, endLine, endCol)).ex(e.ex());
     contextExcn.setPosition(line, col, endLine, endCol);
     return contextExcn;
   }

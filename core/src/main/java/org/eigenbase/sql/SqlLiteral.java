@@ -18,19 +18,18 @@
 package org.eigenbase.sql;
 
 import java.math.*;
-
 import java.nio.charset.*;
-
 import java.util.*;
 
 import org.eigenbase.reltype.*;
-import org.eigenbase.resource.*;
 import org.eigenbase.sql.fun.*;
 import org.eigenbase.sql.parser.*;
 import org.eigenbase.sql.type.*;
 import org.eigenbase.sql.util.*;
 import org.eigenbase.sql.validate.*;
 import org.eigenbase.util.*;
+
+import static org.eigenbase.util.Static.RESOURCE;
 
 /**
  * A <code>SqlLiteral</code> is a constant. It is, appropriately, immutable.
@@ -427,10 +426,8 @@ public class SqlLiteral extends SqlNode {
         try {
           return bd.intValueExact();
         } catch (ArithmeticException e) {
-          throw SqlUtil.newContextException(
-              getParserPosition(),
-              EigenbaseResource.instance().NumberLiteralOutOfRange.ex(
-                  bd.toString()));
+          throw SqlUtil.newContextException(getParserPosition(),
+              RESOURCE.numberLiteralOutOfRange(bd.toString()));
         }
       } else {
         return bd.intValue();
@@ -457,10 +454,8 @@ public class SqlLiteral extends SqlNode {
         try {
           return bd.longValueExact();
         } catch (ArithmeticException e) {
-          throw SqlUtil.newContextException(
-              getParserPosition(),
-              EigenbaseResource.instance().NumberLiteralOutOfRange.ex(
-                  bd.toString()));
+          throw SqlUtil.newContextException(getParserPosition(),
+              RESOURCE.numberLiteralOutOfRange(bd.toString()));
         }
       } else {
         return bd.longValue();
@@ -686,9 +681,8 @@ public class SqlLiteral extends SqlNode {
     try {
       bits = BitString.createFromHexString(s);
     } catch (NumberFormatException e) {
-      throw SqlUtil.newContextException(
-          pos,
-          EigenbaseResource.instance().BinaryLiteralInvalid.ex());
+      throw SqlUtil.newContextException(pos,
+          RESOURCE.binaryLiteralInvalid());
     }
     return new SqlBinaryStringLiteral(bits, pos);
   }
@@ -707,9 +701,7 @@ public class SqlLiteral extends SqlNode {
     try {
       bits = BitString.createFromBytes(bytes);
     } catch (NumberFormatException e) {
-      throw SqlUtil.newContextException(
-          pos,
-          EigenbaseResource.instance().BinaryLiteralInvalid.ex());
+      throw SqlUtil.newContextException(pos, RESOURCE.binaryLiteralInvalid());
     }
     return new SqlBinaryStringLiteral(bits, pos);
   }
@@ -775,20 +767,16 @@ public class SqlLiteral extends SqlNode {
           }
         }
         if ((i + 5) > n) {
-          throw SqlUtil.newContextException(
-              getParserPosition(),
-              EigenbaseResource.instance().UnicodeEscapeMalformed.ex(
-                  i));
+          throw SqlUtil.newContextException(getParserPosition(),
+              RESOURCE.unicodeEscapeMalformed(i));
         }
         final String u = s.substring(i + 1, i + 5);
         final int v;
         try {
           v = Integer.parseInt(u, 16);
         } catch (NumberFormatException ex) {
-          throw SqlUtil.newContextException(
-              getParserPosition(),
-              EigenbaseResource.instance().UnicodeEscapeMalformed.ex(
-                  i));
+          throw SqlUtil.newContextException(getParserPosition(),
+              RESOURCE.unicodeEscapeMalformed(i));
         }
         sb.append((char) (v & 0xFFFF));
 

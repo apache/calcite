@@ -28,6 +28,8 @@ import org.eigenbase.util.*;
 
 import org.junit.Test;
 
+import static org.eigenbase.util.Static.RESOURCE;
+
 /**
  * SqlValidatorFeatureTest verifies that features can be independently enabled
  * or disabled.
@@ -39,7 +41,7 @@ public class SqlValidatorFeatureTest extends SqlValidatorTestCase {
 
   //~ Instance fields --------------------------------------------------------
 
-  private ResourceDefinition disabledFeature;
+  private Resources.Feature disabledFeature;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -57,13 +59,13 @@ public class SqlValidatorFeatureTest extends SqlValidatorTestCase {
   @Test public void testDistinct() {
     checkFeature(
         "select ^distinct^ name from dept",
-        EigenbaseResource.instance().SQLFeature_E051_01);
+        RESOURCE.sQLFeature_E051_01());
   }
 
   @Test public void testOrderByDesc() {
     checkFeature(
         "select name from dept order by ^name desc^",
-        EigenbaseResource.instance().SQLConformance_OrderByDesc);
+        RESOURCE.sQLConformance_OrderByDesc());
   }
 
   // NOTE jvs 6-Mar-2006:  carets don't come out properly placed
@@ -72,36 +74,36 @@ public class SqlValidatorFeatureTest extends SqlValidatorTestCase {
   @Test public void testIntersect() {
     checkFeature(
         "^select name from dept intersect select name from dept^",
-        EigenbaseResource.instance().SQLFeature_F302);
+        RESOURCE.sQLFeature_F302());
   }
 
   @Test public void testExcept() {
     checkFeature(
         "^select name from dept except select name from dept^",
-        EigenbaseResource.instance().SQLFeature_E071_03);
+        RESOURCE.sQLFeature_E071_03());
   }
 
   @Test public void testMultiset() {
     checkFeature(
         "values ^multiset[1]^",
-        EigenbaseResource.instance().SQLFeature_S271);
+        RESOURCE.sQLFeature_S271());
 
     checkFeature(
         "values ^multiset(select * from dept)^",
-        EigenbaseResource.instance().SQLFeature_S271);
+        RESOURCE.sQLFeature_S271());
   }
 
   @Test public void testTablesample() {
     checkFeature(
         "select name from ^dept tablesample bernoulli(50)^",
-        EigenbaseResource.instance().SQLFeature_T613);
+        RESOURCE.sQLFeature_T613());
 
     checkFeature(
         "select name from ^dept tablesample substitute('sample_dept')^",
-        EigenbaseResource.instance().SQLFeatureExt_T613_Substitution);
+        RESOURCE.sQLFeatureExt_T613_Substitution());
   }
 
-  private void checkFeature(String sql, ResourceDefinition feature) {
+  private void checkFeature(String sql, Resources.Feature feature) {
     // Test once with feature enabled:  should pass
     check(sql);
 
@@ -144,9 +146,9 @@ public class SqlValidatorFeatureTest extends SqlValidatorTestCase {
     }
 
     protected void validateFeature(
-        ResourceDefinition feature,
+        Resources.Feature feature,
         SqlParserPos context) {
-      if (feature == disabledFeature) {
+      if (feature.equals(disabledFeature)) {
         EigenbaseException ex =
             new EigenbaseException(
                 FEATURE_DISABLED,

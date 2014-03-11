@@ -19,9 +19,10 @@ package org.eigenbase.sql.validate;
 
 import java.util.*;
 
-import org.eigenbase.resource.*;
 import org.eigenbase.sql.*;
 import org.eigenbase.sql.util.*;
+
+import static org.eigenbase.util.Static.RESOURCE;
 
 /**
  * Visitor which throws an exception if any component of the expression is not a
@@ -89,7 +90,7 @@ class AggChecker extends SqlBasicVisitor<Void> {
       return call.accept(this);
     }
 
-    // Didn't find the identifer in the group-by list as is, now find
+    // Didn't find the identifier in the group-by list as is, now find
     // it fully-qualified.
     // TODO: It would be better if we always compared fully-qualified
     // to fully-qualified.
@@ -99,25 +100,20 @@ class AggChecker extends SqlBasicVisitor<Void> {
     }
     SqlNode originalExpr = validator.getOriginal(id);
     final String exprString = originalExpr.toString();
-    throw validator.newValidationError(
-        originalExpr,
+    throw validator.newValidationError(originalExpr,
         distinct
-            ? EigenbaseResource.instance().NotSelectDistinctExpr.ex(exprString)
-            : EigenbaseResource.instance().NotGroupExpr.ex(exprString));
+            ? RESOURCE.notSelectDistinctExpr(exprString)
+            : RESOURCE.notGroupExpr(exprString));
   }
 
   public Void visit(SqlCall call) {
-    if (call instanceof SqlCall
-        && ((SqlCall) call).getOperator().isAggregator()) {
+    if (call.getOperator().isAggregator()) {
       if (distinct) {
-        // Cannot use agg fun in ORDER BY clause if have SELECT
-        // DISTINCT.
+        // Cannot use agg fun in ORDER BY clause if have SELECT DISTINCT.
         SqlNode originalExpr = validator.getOriginal(call);
         final String exprString = originalExpr.toString();
-        throw validator.newValidationError(
-            call,
-            EigenbaseResource.instance().NotSelectDistinctExpr.ex(
-                exprString));
+        throw validator.newValidationError(call,
+            RESOURCE.notSelectDistinctExpr(exprString));
       }
 
       // For example, 'sum(sal)' in 'SELECT sum(sal) FROM emp GROUP

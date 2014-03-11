@@ -17,9 +17,10 @@
 */
 package org.eigenbase.sql.type;
 
-import org.eigenbase.resource.*;
 import org.eigenbase.sql.*;
 import org.eigenbase.util.*;
+
+import static org.eigenbase.util.Static.RESOURCE;
 
 /**
  * Parameter type-checking strategy type must be a literal (whether null is
@@ -53,7 +54,7 @@ public class LiteralOperandTypeChecker implements SqlSingleOperandTypeChecker {
       }
       if (throwOnFailure) {
         throw callBinding.newError(
-            EigenbaseResource.instance().ArgumentMustNotBeNull.ex(
+            RESOURCE.argumentMustNotBeNull(
                 callBinding.getOperator().getName()));
       }
       return false;
@@ -61,7 +62,7 @@ public class LiteralOperandTypeChecker implements SqlSingleOperandTypeChecker {
     if (!SqlUtil.isLiteral(node) && !SqlUtil.isLiteralChain(node)) {
       if (throwOnFailure) {
         throw callBinding.newError(
-            EigenbaseResource.instance().ArgumentMustBeLiteral.ex(
+            RESOURCE.argumentMustBeLiteral(
                 callBinding.getOperator().getName()));
       }
       return false;

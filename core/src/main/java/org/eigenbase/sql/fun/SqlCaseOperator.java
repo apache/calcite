@@ -20,7 +20,6 @@ package org.eigenbase.sql.fun;
 import java.util.*;
 
 import org.eigenbase.reltype.*;
-import org.eigenbase.resource.*;
 import org.eigenbase.sql.*;
 import org.eigenbase.sql.parser.*;
 import org.eigenbase.sql.type.*;
@@ -28,6 +27,8 @@ import org.eigenbase.sql.validate.*;
 import org.eigenbase.util.Pair;
 
 import com.google.common.collect.Iterables;
+
+import static org.eigenbase.util.Static.RESOURCE;
 
 /**
  * An operator describing a <code>CASE</code>, <code>NULLIF</code> or <code>
@@ -181,8 +182,7 @@ public class SqlCaseOperator extends SqlOperator {
               node);
       if (!SqlTypeUtil.inBooleanFamily(type)) {
         if (throwOnFailure) {
-          throw callBinding.newError(
-              EigenbaseResource.instance().ExpectedBoolean.ex());
+          throw callBinding.newError(RESOURCE.expectedBoolean());
         }
         return false;
       }
@@ -205,8 +205,7 @@ public class SqlCaseOperator extends SqlOperator {
       // according to the sql standard we can not have all of the THEN
       // statements and the ELSE returning null
       if (throwOnFailure) {
-        throw callBinding.newError(
-            EigenbaseResource.instance().MustNotNullInElse.ex());
+        throw callBinding.newError(RESOURCE.mustNotNullInElse());
       }
       return false;
     }
@@ -250,8 +249,7 @@ public class SqlCaseOperator extends SqlOperator {
         callBinding.getTypeFactory().leastRestrictive(
             argTypes);
     if (null == ret) {
-      throw callBinding.newValidationError(
-          EigenbaseResource.instance().IllegalMixingOfTypes.ex());
+      throw callBinding.newValidationError(RESOURCE.illegalMixingOfTypes());
     }
     for (SqlNode node : nullList) {
       callBinding.getValidator().setValidatedNodeType(node, ret);

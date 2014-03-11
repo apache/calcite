@@ -20,12 +20,13 @@ package org.eigenbase.sql;
 import java.util.*;
 
 import org.eigenbase.reltype.*;
-import org.eigenbase.resource.*;
 import org.eigenbase.sql.fun.*;
 import org.eigenbase.sql.parser.*;
 import org.eigenbase.sql.type.*;
 import org.eigenbase.sql.validate.*;
 import org.eigenbase.util.*;
+
+import static org.eigenbase.util.Static.RESOURCE;
 
 /**
  * A <code>SqlJdbcFunctionCall</code> is a node of a parse tree which represents
@@ -463,16 +464,12 @@ public class SqlJdbcFunctionCall extends SqlFunction {
 
     if (null == lookupMakeCallObj) {
       throw callBinding.newValidationError(
-          EigenbaseResource.instance().FunctionUndefined.ex(
-              getName()));
+          RESOURCE.functionUndefined(getName()));
     }
 
-    if (!lookupMakeCallObj.checkNumberOfArg(
-        opBinding.getOperandCount())) {
+    if (!lookupMakeCallObj.checkNumberOfArg(opBinding.getOperandCount())) {
       throw callBinding.newValidationError(
-          EigenbaseResource.instance().WrongNumberOfParam.ex(
-              getName(),
-              thisOperands.length,
+          RESOURCE.wrongNumberOfParam(getName(), thisOperands.length,
               getArgCountMismatchMsg()));
     }
 

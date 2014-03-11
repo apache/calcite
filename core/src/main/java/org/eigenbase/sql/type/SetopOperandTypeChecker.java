@@ -20,10 +20,11 @@ package org.eigenbase.sql.type;
 import java.util.*;
 
 import org.eigenbase.reltype.*;
-import org.eigenbase.resource.*;
 import org.eigenbase.sql.*;
 import org.eigenbase.sql.validate.*;
 import org.eigenbase.util.*;
+
+import static org.eigenbase.util.Static.RESOURCE;
 
 /**
  * Parameter type-checking strategy for a set operator (UNION, INTERSECT,
@@ -65,7 +66,7 @@ public class SetopOperandTypeChecker implements SqlOperandTypeChecker {
             node = ((SqlSelect) node).getSelectList();
           }
           throw validator.newValidationError(node,
-              EigenbaseResource.instance().ColumnCountMismatchInSetop.ex(
+              RESOURCE.columnCountMismatchInSetop(
                   callBinding.getOperator().getName()));
         } else {
           return false;
@@ -96,12 +97,9 @@ public class SetopOperandTypeChecker implements SqlOperandTypeChecker {
               SqlUtil.getSelectListItem(
                   callBinding.getCall().operand(0),
                   i);
-          throw validator.newValidationError(
-              field,
-              EigenbaseResource.instance().ColumnTypeMismatchInSetop
-                  .ex(
-                      i + 1, // 1-based
-                      callBinding.getOperator().getName()));
+          throw validator.newValidationError(field,
+              RESOURCE.columnTypeMismatchInSetop(i + 1, // 1-based
+                  callBinding.getOperator().getName()));
         } else {
           return false;
         }

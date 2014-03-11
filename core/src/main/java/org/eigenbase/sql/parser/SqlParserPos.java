@@ -18,11 +18,11 @@
 package org.eigenbase.sql.parser;
 
 import java.io.*;
-
 import java.util.*;
 
-import org.eigenbase.resource.*;
 import org.eigenbase.sql.*;
+
+import static org.eigenbase.util.Static.RESOURCE;
 
 /**
  * SqlParserPos represents the position of a parsed token within SQL statement
@@ -127,9 +127,7 @@ public class SqlParserPos implements Serializable {
 
   // implements Object
   public String toString() {
-    return EigenbaseResource.instance().ParserContext.str(
-        lineNumber,
-        columnNumber);
+    return RESOURCE.parserContext(lineNumber, columnNumber).str();
   }
 
   /**
@@ -202,8 +200,7 @@ public class SqlParserPos implements Serializable {
       int endColumn) {
     int testLine;
     int testColumn;
-    for (int i = 0; i < nodes.length; i++) {
-      SqlNode node = nodes[i];
+    for (SqlNode node : nodes) {
       if (node == null) {
         continue;
       }
@@ -213,16 +210,14 @@ public class SqlParserPos implements Serializable {
       }
       testLine = pos.getLineNum();
       testColumn = pos.getColumnNum();
-      if ((testLine < line)
-          || ((testLine == line) && (testColumn < column))) {
+      if (testLine < line || testLine == line && testColumn < column) {
         line = testLine;
         column = testColumn;
       }
 
       testLine = pos.getEndLineNum();
       testColumn = pos.getEndColumnNum();
-      if ((testLine > endLine)
-          || ((testLine == endLine) && (testColumn > endColumn))) {
+      if (testLine > endLine || testLine == endLine && testColumn > endColumn) {
         endLine = testLine;
         endColumn = testColumn;
       }
@@ -259,23 +254,20 @@ public class SqlParserPos implements Serializable {
       int endColumn) {
     int testLine;
     int testColumn;
-    for (int i = 0; i < poses.length; i++) {
-      SqlParserPos pos = poses[i];
+    for (SqlParserPos pos : poses) {
       if (pos == null) {
         continue;
       }
       testLine = pos.getLineNum();
       testColumn = pos.getColumnNum();
-      if ((testLine < line)
-          || ((testLine == line) && (testColumn < column))) {
+      if (testLine < line || testLine == line && testColumn < column) {
         line = testLine;
         column = testColumn;
       }
 
       testLine = pos.getEndLineNum();
       testColumn = pos.getEndColumnNum();
-      if ((testLine > endLine)
-          || ((testLine == endLine) && (testColumn > endColumn))) {
+      if (testLine > endLine || testLine == endLine && testColumn > endColumn) {
         endLine = testLine;
         endColumn = testColumn;
       }

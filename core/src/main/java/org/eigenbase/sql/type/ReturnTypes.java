@@ -21,9 +21,10 @@ import java.util.AbstractList;
 import java.util.List;
 
 import org.eigenbase.reltype.*;
-import org.eigenbase.resource.EigenbaseResource;
 import org.eigenbase.sql.*;
 import org.eigenbase.util.Util;
+
+import static org.eigenbase.util.Static.RESOURCE;
 
 /**
  * A collection of return-type inference strategies.
@@ -524,7 +525,7 @@ public abstract class ReturnTypes {
             if (!SqlTypeUtil.isCharTypeComparable(
                 opBinding.collectOperandTypes().subList(0, 2))) {
               throw opBinding.newError(
-                  EigenbaseResource.instance().TypeNotComparable.ex(
+                  RESOURCE.typeNotComparable(
                       argType0.getFullTypeString(),
                       argType1.getFullTypeString()));
             }

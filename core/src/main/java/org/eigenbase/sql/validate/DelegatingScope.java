@@ -20,11 +20,12 @@ package org.eigenbase.sql.validate;
 import java.util.*;
 
 import org.eigenbase.reltype.*;
-import org.eigenbase.resource.*;
 import org.eigenbase.sql.*;
 import org.eigenbase.sql.parser.*;
 
 import com.google.common.collect.ImmutableList;
+
+import static org.eigenbase.util.Static.RESOURCE;
 
 /**
  * A scope which delegates all requests to its parent scope. Use this as a base
@@ -158,10 +159,8 @@ public abstract class DelegatingScope implements SqlValidatorScope {
       tableName = identifier.names.get(0);
       final SqlValidatorNamespace fromNs = resolve(tableName, null, null);
       if (fromNs == null) {
-        throw validator.newValidationError(
-            identifier.getComponent(0),
-            EigenbaseResource.instance().TableNameNotFound.ex(
-                tableName));
+        throw validator.newValidationError(identifier.getComponent(0),
+            RESOURCE.tableNameNotFound(tableName));
       }
       columnName = identifier.names.get(1);
       final RelDataType fromRowType = fromNs.getRowType();
@@ -170,11 +169,8 @@ public abstract class DelegatingScope implements SqlValidatorScope {
       if (field != null) {
         return identifier; // it was fine already
       } else {
-        throw validator.newValidationError(
-            identifier.getComponent(1),
-            EigenbaseResource.instance().ColumnNotFoundInTable.ex(
-                columnName,
-                tableName));
+        throw validator.newValidationError(identifier.getComponent(1),
+            RESOURCE.columnNotFoundInTable(columnName, tableName));
       }
 
     default:

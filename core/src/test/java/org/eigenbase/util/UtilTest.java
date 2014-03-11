@@ -24,6 +24,7 @@ import java.sql.Timestamp;
 import java.text.MessageFormat;
 import java.util.*;
 
+import org.eigenbase.resource.Resources;
 import org.eigenbase.sql.*;
 import org.eigenbase.sql.util.*;
 import org.eigenbase.test.*;
@@ -1249,6 +1250,10 @@ public class UtilTest {
 
   public List<String> list(String... xs) {
     return Arrays.asList(xs);
+  }
+
+  @Test public void testResources() {
+    Resources.validate(Static.RESOURCE);
   }
 }
 

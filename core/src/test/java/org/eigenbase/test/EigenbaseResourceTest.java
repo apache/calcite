@@ -19,9 +19,10 @@ package org.eigenbase.test;
 
 import java.util.*;
 
-import org.eigenbase.resource.*;
-
+import org.hamcrest.CoreMatchers;
 import org.junit.Test;
+
+import static org.eigenbase.util.Static.RESOURCE;
 
 import static org.junit.Assert.*;
 
@@ -42,11 +43,9 @@ public class EigenbaseResourceTest {
    * runtime.
    */
   @Test public void testSqlstateProperty() {
-    Properties props =
-        EigenbaseResource.instance().IllegalIntervalLiteral.getProperties();
-    assertEquals(
-        "42000",
-        props.get("SQLSTATE"));
+    Map<String, String> props =
+        RESOURCE.illegalIntervalLiteral("", "").getProperties();
+    assertThat(props.get("SQLSTATE"), CoreMatchers.equalTo("42000"));
   }
 }
 

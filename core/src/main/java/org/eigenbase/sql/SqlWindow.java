@@ -21,7 +21,6 @@ import java.math.BigDecimal;
 import java.util.*;
 
 import org.eigenbase.reltype.RelDataType;
-import org.eigenbase.resource.*;
 import org.eigenbase.sql.parser.*;
 import org.eigenbase.sql.type.SqlTypeFamily;
 import org.eigenbase.sql.util.SqlBasicVisitor;
@@ -32,6 +31,8 @@ import org.eigenbase.util.*;
 import net.hydromatic.linq4j.Ord;
 
 import com.google.common.collect.ImmutableList;
+
+import static org.eigenbase.util.Static.RESOURCE;
 
 /**
  * SQL window specification.
@@ -249,9 +250,8 @@ public class SqlWindow extends SqlCall {
       if (lowerBound.getKind() == SqlKind.LITERAL) {
         lowerLitType = ((SqlLiteral) lowerBound).getValue();
         if (Bound.UNBOUNDED_FOLLOWING == lowerLitType) {
-          throw validator.newValidationError(
-              lowerBound,
-              EigenbaseResource.instance().BadLowerBoundary.ex());
+          throw validator.newValidationError(lowerBound,
+              RESOURCE.badLowerBoundary());
         }
       } else if (lowerBound instanceof SqlCall) {
         lowerOp = ((SqlCall) lowerBound).getOperator();
@@ -261,9 +261,8 @@ public class SqlWindow extends SqlCall {
       if (upperBound.getKind() == SqlKind.LITERAL) {
         upperLitType = ((SqlLiteral) upperBound).getValue();
         if (Bound.UNBOUNDED_PRECEDING == upperLitType) {
-          throw validator.newValidationError(
-              upperBound,
-              EigenbaseResource.instance().BadUpperBoundary.ex());
+          throw validator.newValidationError(upperBound,
+              RESOURCE.badUpperBoundary());
         }
       } else if (upperBound instanceof SqlCall) {
         upperOp = ((SqlCall) upperBound).getOperator();
@@ -273,27 +272,21 @@ public class SqlWindow extends SqlCall {
     if (Bound.CURRENT_ROW == lowerLitType) {
       if (null != upperOp) {
         if (upperOp == PRECEDING_OPERATOR) {
-          throw validator.newValidationError(
-              upperBound,
-              EigenbaseResource.instance().CurrentRowPrecedingError
-                  .ex());
+          throw validator.newValidationError(upperBound,
+              RESOURCE.currentRowPrecedingError());
         }
       }
     } else if (null != lowerOp) {
       if (lowerOp == FOLLOWING_OPERATOR) {
         if (null != upperOp) {
           if (upperOp == PRECEDING_OPERATOR) {
-            throw validator.newValidationError(
-                upperBound,
-                EigenbaseResource.instance()
-                    .FollowingBeforePrecedingError.ex());
+            throw validator.newValidationError(upperBound,
+                RESOURCE.followingBeforePrecedingError());
           }
         } else if (null != upperLitType) {
           if (Bound.CURRENT_ROW == upperLitType) {
-            throw validator.newValidationError(
-                upperBound,
-                EigenbaseResource.instance()
-                    .CurrentRowFollowingError.ex());
+            throw validator.newValidationError(upperBound,
+                RESOURCE.currentRowFollowingError());
           }
         }
       }
@@ -305,15 +298,12 @@ public class SqlWindow extends SqlCall {
     final OffsetRange offsetAndRange =
         getOffsetAndRange(lowerBound, upperBound, false);
     if (offsetAndRange == null) {
-      throw validator.newValidationError(
-          window,
-          EigenbaseResource.instance()
-              .UnboundedFollowingWindowNotSupported.ex());
+      throw validator.newValidationError(window,
+          RESOURCE.unboundedFollowingWindowNotSupported());
     }
     if (offsetAndRange.range < 0) {
-      throw validator.newValidationError(
-          window,
-          EigenbaseResource.instance().WindowHasNegativeSize.ex());
+      throw validator.newValidationError(window,
+          RESOURCE.windowHasNegativeSize());
     }
   }
 
@@ -491,18 +481,16 @@ public class SqlWindow extends SqlCall {
     // check 7.11 rule 10c
     final SqlNodeList partitions = getPartitionList();
     if (0 != partitions.size()) {
-      throw validator.newValidationError(
-          partitions.get(0),
-          EigenbaseResource.instance().PartitionNotAllowed.ex());
+      throw validator.newValidationError(partitions.get(0),
+          RESOURCE.partitionNotAllowed());
     }
 
     // 7.11 rule 10d
     final SqlNodeList baseOrder = getOrderList();
     final SqlNodeList refOrder = that.getOrderList();
     if ((0 != baseOrder.size()) && (0 != refOrder.size())) {
-      throw validator.newValidationError(
-          baseOrder.get(0),
-          EigenbaseResource.instance().OrderByOverlap.ex());
+      throw validator.newValidationError(baseOrder.get(0),
+          RESOURCE.orderByOverlap());
     }
 
     // 711 rule 10e
@@ -510,7 +498,7 @@ public class SqlWindow extends SqlCall {
     final SqlNode upperBound = that.getUpperBound();
     if ((null != lowerBound) || (null != upperBound)) {
       throw validator.newValidationError(that.isRows,
-          EigenbaseResource.instance().RefWindowWithFrame.ex());
+          RESOURCE.refWindowWithFrame());
     }
 
     SqlIdentifier declNameNew = declName;
@@ -558,9 +546,8 @@ public class SqlWindow extends SqlCall {
           || SqlNodeList.isEmptyList(clonedOperand)) {
         return true;
       } else {
-        throw validator.newValidationError(
-            clonedOperand,
-            EigenbaseResource.instance().CannotOverrideWindowAttribute.ex());
+        throw validator.newValidationError(clonedOperand,
+            RESOURCE.cannotOverrideWindowAttribute());
       }
     }
     return false;
@@ -652,16 +639,14 @@ public class SqlWindow extends SqlCall {
     if (orderList.size() == 0
         && triggerFunction
         && !SqlWindow.isTableSorted(scope)) {
-      throw validator.newValidationError(this,
-          EigenbaseResource.instance().FuncNeedsOrderBy.ex());
+      throw validator.newValidationError(this, RESOURCE.funcNeedsOrderBy());
     }
 
     // Run framing checks if there are any
     if (upperBound != null || lowerBound != null) {
       // 6.10 Rule 6a
       if (triggerFunction) {
-        throw validator.newValidationError(isRows,
-            EigenbaseResource.instance().RankWithFrame.ex());
+        throw validator.newValidationError(isRows, RESOURCE.rankWithFrame());
       }
       SqlTypeFamily orderTypeFam = null;
 
@@ -670,7 +655,7 @@ public class SqlWindow extends SqlCall {
         // if order by is a compound list then range not allowed
         if (orderList.size() > 1 && !isRows()) {
           throw validator.newValidationError(isRows,
-              EigenbaseResource.instance().CompoundOrderByProhibitsRange.ex());
+              RESOURCE.compoundOrderByProhibitsRange());
         }
 
         // get the type family for the sort key for Frame Boundary Val.
@@ -685,7 +670,7 @@ public class SqlWindow extends SqlCall {
         // sorted already
         if (!isRows() && !SqlWindow.isTableSorted(scope)) {
           throw validator.newValidationError(this,
-              EigenbaseResource.instance().OverMissingOrderBy.ex());
+              RESOURCE.overMissingOrderBy());
         }
       }
 
@@ -706,15 +691,12 @@ public class SqlWindow extends SqlCall {
       // Validate across boundaries. 7.10 Rule 8 a-d
       checkSpecialLiterals(this, validator);
     } else if (orderList.size() == 0 && !SqlWindow.isTableSorted(scope)) {
-      throw validator.newValidationError(this,
-          EigenbaseResource.instance().OverMissingOrderBy.ex());
+      throw validator.newValidationError(this, RESOURCE.overMissingOrderBy());
     }
 
     if (!isRows() && !isAllowPartial()) {
-      throw validator.newValidationError(
-          allowPartial,
-          EigenbaseResource.instance().CannotUseDisallowPartialWithRange
-              .ex());
+      throw validator.newValidationError(allowPartial,
+          RESOURCE.cannotUseDisallowPartialWithRange());
     }
   }
 
@@ -742,9 +724,8 @@ public class SqlWindow extends SqlCall {
 
       // Boundaries must be a constant
       if (!(boundVal instanceof SqlLiteral)) {
-        throw validator.newValidationError(
-            boundVal,
-            EigenbaseResource.instance().RangeOrRowMustBeConstant.ex());
+        throw validator.newValidationError(boundVal,
+            RESOURCE.rangeOrRowMustBeConstant());
       }
 
       // SQL03 7.10 rule 11b Physical ROWS must be a numeric constant. JR:
@@ -760,16 +741,12 @@ public class SqlWindow extends SqlCall {
               || (boundLiteral.getScale() != 0)
               || (0 > boundLiteral.longValue(true))) {
             // true == throw if not exact (we just tested that - right?)
-            throw validator.newValidationError(
-                boundVal,
-                EigenbaseResource.instance()
-                    .RowMustBeNonNegativeIntegral.ex());
+            throw validator.newValidationError(boundVal,
+                RESOURCE.rowMustBeNonNegativeIntegral());
           }
         } else {
-          throw validator.newValidationError(
-              boundVal,
-              EigenbaseResource.instance()
-                  .RowMustBeNonNegativeIntegral.ex());
+          throw validator.newValidationError(boundVal,
+              RESOURCE.rowMustBeNonNegativeIntegral());
         }
       }
 
@@ -781,10 +758,8 @@ public class SqlWindow extends SqlCall {
         switch (orderTypeFam) {
         case NUMERIC:
           if (SqlTypeFamily.NUMERIC != bndTypeFam) {
-            throw validator.newValidationError(
-                boundVal,
-                EigenbaseResource.instance().OrderByRangeMismatch
-                    .ex());
+            throw validator.newValidationError(boundVal,
+                RESOURCE.orderByRangeMismatch());
           }
           break;
         case DATE:
@@ -792,17 +767,13 @@ public class SqlWindow extends SqlCall {
         case TIMESTAMP:
           if (SqlTypeFamily.INTERVAL_DAY_TIME != bndTypeFam
               && SqlTypeFamily.INTERVAL_YEAR_MONTH != bndTypeFam) {
-            throw validator.newValidationError(
-                boundVal,
-                EigenbaseResource.instance().OrderByRangeMismatch
-                    .ex());
+            throw validator.newValidationError(boundVal,
+                RESOURCE.orderByRangeMismatch());
           }
           break;
         default:
-          throw validator.newValidationError(
-              boundVal,
-              EigenbaseResource.instance()
-                  .OrderByDataTypeProhibitsRange.ex());
+          throw validator.newValidationError(boundVal,
+              RESOURCE.orderByDataTypeProhibitsRange());
         }
       }
       break;

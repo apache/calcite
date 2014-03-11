@@ -20,10 +20,10 @@ package org.eigenbase.sql.fun;
 import java.util.List;
 
 import org.eigenbase.reltype.*;
-import org.eigenbase.resource.*;
 import org.eigenbase.sql.*;
 import org.eigenbase.sql.type.*;
-import org.eigenbase.sql.validate.SqlValidatorException;
+
+import static org.eigenbase.util.Static.RESOURCE;
 
 /**
  * Definition of the SQL:2003 standard MULTISET constructor, <code>MULTISET
@@ -82,9 +82,7 @@ public class SqlMultisetValueConstructor extends SqlSpecialOperator {
             callBinding.getScope(),
             callBinding.getCall().getOperandList());
     if (argTypes.size() == 0) {
-      throw callBinding.newValidationError(
-          new SqlValidatorException(
-              "Require at least 1 argument", null));
+      throw callBinding.newValidationError(RESOURCE.requireAtLeastOneArg());
     }
     final RelDataType componentType =
         getComponentType(
@@ -92,8 +90,7 @@ public class SqlMultisetValueConstructor extends SqlSpecialOperator {
             argTypes);
     if (null == componentType) {
       if (throwOnFailure) {
-        throw callBinding.newValidationError(
-            EigenbaseResource.instance().NeedSameTypeParameter.ex());
+        throw callBinding.newValidationError(RESOURCE.needSameTypeParameter());
       }
       return false;
     }

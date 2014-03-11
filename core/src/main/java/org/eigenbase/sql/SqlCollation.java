@@ -27,6 +27,8 @@ import org.eigenbase.resource.*;
 import org.eigenbase.sql.parser.*;
 import org.eigenbase.util.*;
 
+import static org.eigenbase.util.Static.RESOURCE;
+
 /**
  * A <code>SqlCollation</code> is an object representing a <code>Collate</code>
  * statement. It is immutable.
@@ -142,9 +144,9 @@ public class SqlCollation implements Serializable {
    * @param col1 first operand for the dyadic operation
    * @param col2 second operand for the dyadic operation
    * @return the resulting collation sequence
-   * @throws EigenbaseException {@link EigenbaseResource#InvalidCompare} or
-   *                            {@link EigenbaseResource#DifferentCollations} if no collating sequence
-   *                            can be deduced
+   * @throws EigenbaseException {@link EigenbaseNewResource#invalidCompare} or
+   *                            {@link EigenbaseNewResource#differentCollations}
+   *                            if no collating sequence can be deduced
    * @sql.99 Part 2 Section 4.2.3 Table 2
    */
   public static SqlCollation getCoercibilityDyadicOperatorThrows(
@@ -152,11 +154,11 @@ public class SqlCollation implements Serializable {
       SqlCollation col2) {
     SqlCollation ret = getCoercibilityDyadic(col1, col2);
     if (null == ret) {
-      throw EigenbaseResource.instance().InvalidCompare.ex(
+      throw RESOURCE.invalidCompare(
           col1.collationName,
           "" + col1.coercibility,
           col2.collationName,
-          "" + col2.coercibility);
+          "" + col2.coercibility).ex();
     }
     return ret;
   }
@@ -168,7 +170,7 @@ public class SqlCollation implements Serializable {
    * @param col1 first operand for the dyadic operation
    * @param col2 second operand for the dyadic operation
    * @return the resulting collation sequence. If no collating sequence could
-   * be deduced a {@link EigenbaseResource#InvalidCompare} is thrown
+   * be deduced a {@link EigenbaseNewResource#invalidCompare} is thrown
    * @sql.99 Part 2 Section 4.2.3 Table 3
    */
   public static String getCoercibilityDyadicComparison(
@@ -257,9 +259,9 @@ public class SqlCollation implements Serializable {
               col2.collationName,
               Coercibility.EXPLICIT);
         }
-        throw EigenbaseResource.instance().DifferentCollations.ex(
+        throw RESOURCE.differentCollations(
             col1.collationName,
-            col2.collationName);
+            col2.collationName).ex();
       default:
         throw Util.unexpected(coercibility2);
       }

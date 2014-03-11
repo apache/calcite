@@ -20,8 +20,9 @@ package org.eigenbase.sql.type;
 import java.util.Arrays;
 
 import org.eigenbase.reltype.*;
-import org.eigenbase.resource.*;
 import org.eigenbase.sql.*;
+
+import static org.eigenbase.util.Static.RESOURCE;
 
 /**
  * Parameter type-checking strategy types must be [nullable] Multiset,
@@ -68,7 +69,7 @@ public class MultisetOperandTypeChecker implements SqlOperandTypeChecker {
     if (null == biggest) {
       if (throwOnFailure) {
         throw callBinding.newError(
-            EigenbaseResource.instance().TypeNotComparable.ex(
+            RESOURCE.typeNotComparable(
                 op0.getParserPosition().toString(),
                 op1.getParserPosition().toString()));
       }

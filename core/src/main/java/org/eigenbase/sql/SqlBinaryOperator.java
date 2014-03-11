@@ -22,11 +22,12 @@ import java.math.*;
 import java.nio.charset.*;
 
 import org.eigenbase.reltype.*;
-import org.eigenbase.resource.*;
 import org.eigenbase.sql.fun.SqlStdOperatorTable;
 import org.eigenbase.sql.type.*;
 import org.eigenbase.sql.validate.*;
 import org.eigenbase.util.*;
+
+import static org.eigenbase.util.Static.RESOURCE;
 
 /**
  * <code>SqlBinaryOperator</code> is a binary operator.
@@ -108,12 +109,8 @@ public class SqlBinaryOperator extends SqlOperator {
       assert (null != cs1) && (null != cs2)
           : "An implicit or explicit charset should have been set";
       if (!cs1.equals(cs2)) {
-        throw validator.newValidationError(
-            call,
-            EigenbaseResource.instance().IncompatibleCharset.ex(
-                getName(),
-                cs1.name(),
-                cs2.name()));
+        throw validator.newValidationError(call,
+            RESOURCE.incompatibleCharset(getName(), cs1.name(), cs2.name()));
       }
 
       SqlCollation col1 = operandType1.getCollation();
@@ -156,12 +153,8 @@ public class SqlBinaryOperator extends SqlOperator {
       assert (null != cs1) && (null != cs2)
           : "An implicit or explicit charset should have been set";
       if (!cs1.equals(cs2)) {
-        throw validator.newValidationError(
-            call,
-            EigenbaseResource.instance().IncompatibleCharset.ex(
-                getName(),
-                cs1.name(),
-                cs2.name()));
+        throw validator.newValidationError(call,
+            RESOURCE.incompatibleCharset(getName(), cs1.name(), cs2.name()));
       }
 
       SqlCollation col1 = operandType1.getCollation();

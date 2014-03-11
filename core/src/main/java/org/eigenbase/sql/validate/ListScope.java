@@ -20,9 +20,10 @@ package org.eigenbase.sql.validate;
 import java.util.*;
 
 import org.eigenbase.reltype.*;
-import org.eigenbase.resource.*;
 import org.eigenbase.sql.*;
 import org.eigenbase.util.*;
+
+import static org.eigenbase.util.Static.RESOURCE;
 
 /**
  * Abstract base for a scope which is defined by a list of child namespaces and
@@ -107,9 +108,8 @@ public abstract class ListScope extends DelegatingScope {
     case 1:
       return tableName;
     default:
-      throw validator.newValidationError(
-          ctx,
-          EigenbaseResource.instance().ColumnAmbiguous.ex(columnName));
+      throw validator.newValidationError(ctx,
+          RESOURCE.columnAmbiguous(columnName));
     }
   }
 
@@ -153,9 +153,8 @@ public abstract class ListScope extends DelegatingScope {
     case 1:
       return type;
     default:
-      throw validator.newValidationError(
-          ctx,
-          EigenbaseResource.instance().ColumnAmbiguous.ex(columnName));
+      throw validator.newValidationError(ctx,
+          RESOURCE.columnAmbiguous(columnName));
     }
   }
 }

@@ -18,9 +18,10 @@
 package org.eigenbase.sql.fun;
 
 import org.eigenbase.reltype.*;
-import org.eigenbase.resource.*;
 import org.eigenbase.sql.*;
 import org.eigenbase.sql.type.*;
+
+import static org.eigenbase.util.Static.RESOURCE;
 
 /**
  * Multiset MEMBER OF. Checks to see if a element belongs to a multiset.<br>
@@ -70,9 +71,7 @@ public class SqlMultisetMemberOfOperator extends SqlBinaryOperator {
     if (t0.getFamily() != t1.getFamily()) {
       if (throwOnFailure) {
         throw callBinding.newValidationError(
-            EigenbaseResource.instance().TypeNotComparableNear.ex(
-                t0.toString(),
-                t1.toString()));
+            RESOURCE.typeNotComparableNear(t0.toString(), t1.toString()));
       }
       return false;
     }

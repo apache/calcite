@@ -18,10 +18,11 @@
 package org.eigenbase.sql.fun;
 
 import org.eigenbase.reltype.*;
-import org.eigenbase.resource.*;
 import org.eigenbase.sql.*;
 import org.eigenbase.sql.type.*;
 import org.eigenbase.sql.validate.*;
+
+import static org.eigenbase.util.Static.RESOURCE;
 
 /**
  * Base class for time functions such as "LOCALTIME", "LOCALTIME(n)".
@@ -64,10 +65,9 @@ public class SqlAbstractTimeFunction extends SqlFunction {
     assert precision >= 0;
     if (precision > SqlTypeName.MAX_DATETIME_PRECISION) {
       throw opBinding.newError(
-          EigenbaseResource.instance().ArgumentMustBeValidPrecision.ex(
-              opBinding.getOperator().getName(),
-              "0",
-              String.valueOf(SqlTypeName.MAX_DATETIME_PRECISION)));
+          RESOURCE.argumentMustBeValidPrecision(
+              opBinding.getOperator().getName(), 0,
+              SqlTypeName.MAX_DATETIME_PRECISION));
     }
     return opBinding.getTypeFactory().createSqlType(typeName, precision);
   }

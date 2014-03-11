@@ -20,10 +20,11 @@ package org.eigenbase.sql.fun;
 import java.util.*;
 
 import org.eigenbase.reltype.*;
-import org.eigenbase.resource.*;
 import org.eigenbase.sql.*;
 import org.eigenbase.sql.type.*;
 import org.eigenbase.sql.validate.*;
+
+import static org.eigenbase.util.Static.RESOURCE;
 
 /**
  * Definition of the SQL <code>IN</code> operator, which tests for a value's
@@ -96,9 +97,8 @@ public class SqlInOperator extends SqlBinaryOperator {
       // with each other. Same rules as the VALUES operator (per
       // SQL:2003 Part 2 Section 8.4, <in predicate>).
       if (null == rightType) {
-        throw validator.newValidationError(
-            right,
-            EigenbaseResource.instance().IncompatibleTypesInList.ex());
+        throw validator.newValidationError(right,
+            RESOURCE.incompatibleTypesInList());
       }
 
       // Record the RHS type for use by SqlToRelConverter.
@@ -135,10 +135,8 @@ public class SqlInOperator extends SqlBinaryOperator {
                 scope,
                 call),
             Arrays.asList(leftRowType, rightRowType)))) {
-      throw validator.newValidationError(
-          call,
-          EigenbaseResource.instance().IncompatibleValueType.ex(
-              SqlStdOperatorTable.IN.getName()));
+      throw validator.newValidationError(call,
+          RESOURCE.incompatibleValueType(SqlStdOperatorTable.IN.getName()));
     }
 
     // Result is a boolean, nullable if there are any nullable types

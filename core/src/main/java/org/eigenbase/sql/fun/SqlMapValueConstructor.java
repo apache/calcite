@@ -21,12 +21,12 @@ import java.util.List;
 
 import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.reltype.RelDataTypeFactory;
-import org.eigenbase.resource.EigenbaseResource;
 import org.eigenbase.sql.*;
 import org.eigenbase.sql.type.SqlTypeUtil;
-import org.eigenbase.sql.validate.SqlValidatorException;
 import org.eigenbase.util.Pair;
 import org.eigenbase.util.Util;
+
+import static org.eigenbase.util.Static.RESOURCE;
 
 /**
  * Definition of the MAP constructor,
@@ -63,22 +63,17 @@ public class SqlMapValueConstructor extends SqlMultisetValueConstructor {
             callBinding.getScope(),
             callBinding.getCall().getOperandList());
     if (argTypes.size() == 0) {
-      throw callBinding.newValidationError(
-          new SqlValidatorException(
-              "Map requires at least 2 arguments", null));
+      throw callBinding.newValidationError(RESOURCE.mapRequiresTwoOrMoreArgs());
     }
     if (argTypes.size() % 2 > 0) {
-      throw callBinding.newValidationError(
-          new SqlValidatorException(
-              "Map requires an even number of arguments", null));
+      throw callBinding.newValidationError(RESOURCE.mapRequiresEvenArgCount());
     }
     final Pair<RelDataType, RelDataType> componentType =
         getComponentTypes(
             callBinding.getTypeFactory(), argTypes);
     if (null == componentType.left || null == componentType.right) {
       if (throwOnFailure) {
-        throw callBinding.newValidationError(
-            EigenbaseResource.instance().NeedSameTypeParameter.ex());
+        throw callBinding.newValidationError(RESOURCE.needSameTypeParameter());
       }
       return false;
     }

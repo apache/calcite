@@ -20,6 +20,7 @@ package org.eigenbase.sql;
 import java.util.*;
 
 import org.eigenbase.reltype.*;
+import org.eigenbase.resource.Resources;
 import org.eigenbase.sql.validate.*;
 import org.eigenbase.util.*;
 
@@ -168,7 +169,7 @@ public abstract class SqlOperatorBinding {
    * @post return != null
    */
   public abstract EigenbaseException newError(
-      SqlValidatorException e);
+      Resources.ExInst<SqlValidatorException> e);
 }
 
 // End SqlOperatorBinding.java

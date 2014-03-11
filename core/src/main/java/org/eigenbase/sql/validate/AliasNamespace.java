@@ -20,10 +20,11 @@ package org.eigenbase.sql.validate;
 import java.util.*;
 
 import org.eigenbase.reltype.*;
-import org.eigenbase.resource.*;
 import org.eigenbase.sql.*;
 import org.eigenbase.sql.fun.*;
 import org.eigenbase.util.Util;
+
+import static org.eigenbase.util.Static.RESOURCE;
 
 /**
  * Namespace for an <code>AS t(c1, c2, ...)</code> clause.
@@ -66,18 +67,16 @@ public class AliasNamespace extends AbstractNamespace {
     for (final SqlNode operand : Util.skip(operands, 2)) {
       String name = ((SqlIdentifier) operand).getSimple();
       if (nameList.contains(name)) {
-        throw validator.newValidationError(
-            operand,
-            EigenbaseResource.instance().AliasListDuplicate.ex(name));
+        throw validator.newValidationError(operand,
+            RESOURCE.aliasListDuplicate(name));
       }
       nameList.add(name);
     }
     if (nameList.size() != rowType.getFieldCount()) {
       // Position error at first name in list.
-      throw validator.newValidationError(
-          operands.get(2),
-          EigenbaseResource.instance().AliasListDegree.ex(
-              rowType.getFieldCount(), getString(rowType), nameList.size()));
+      throw validator.newValidationError(operands.get(2),
+          RESOURCE.aliasListDegree(rowType.getFieldCount(), getString(rowType),
+              nameList.size()));
     }
     final List<RelDataType> typeList = new ArrayList<RelDataType>();
     for (RelDataTypeField field : rowType.getFieldList()) {

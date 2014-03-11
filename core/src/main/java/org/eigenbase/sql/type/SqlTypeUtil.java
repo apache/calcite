@@ -21,7 +21,6 @@ import java.nio.charset.*;
 import java.util.*;
 
 import org.eigenbase.reltype.*;
-import org.eigenbase.resource.*;
 import org.eigenbase.sql.*;
 import org.eigenbase.sql.parser.*;
 import org.eigenbase.sql.validate.*;
@@ -29,6 +28,8 @@ import org.eigenbase.util.*;
 import org.eigenbase.util14.*;
 
 import com.google.common.base.Preconditions;
+
+import static org.eigenbase.util.Static.RESOURCE;
 
 /**
  * Contains utility methods used during SQL validation or type derivation.
@@ -108,8 +109,7 @@ public abstract class SqlTypeUtil {
           }
           msg += operands.get(i).toString();
         }
-        throw binding.newError(
-            EigenbaseResource.instance().OperandNotComparable.ex(msg));
+        throw binding.newError(RESOURCE.operandNotComparable(msg));
       }
       return false;
     }

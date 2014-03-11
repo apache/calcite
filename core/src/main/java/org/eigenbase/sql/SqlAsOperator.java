@@ -20,11 +20,12 @@ package org.eigenbase.sql;
 import java.util.List;
 
 import org.eigenbase.reltype.*;
-import org.eigenbase.resource.*;
 import org.eigenbase.sql.type.*;
 import org.eigenbase.sql.util.*;
 import org.eigenbase.sql.validate.*;
 import org.eigenbase.util.Util;
+
+import static org.eigenbase.util.Static.RESOURCE;
 
 /**
  * The <code>AS</code> operator associates an expression with an alias.
@@ -90,9 +91,8 @@ public class SqlAsOperator extends SqlSpecialOperator {
     operands.get(0).validateExpr(validator, scope);
     SqlIdentifier id = (SqlIdentifier) operands.get(1);
     if (!id.isSimple()) {
-      throw validator.newValidationError(
-          id,
-          EigenbaseResource.instance().AliasMustBeSimpleIdentifier.ex());
+      throw validator.newValidationError(id,
+          RESOURCE.aliasMustBeSimpleIdentifier());
     }
   }
 
