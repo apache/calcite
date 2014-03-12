@@ -416,9 +416,10 @@ public class JdbcRules {
       assert getConvention() instanceof JdbcConvention;
     }
 
-    @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
-      return new JdbcProjectRel(getCluster(), traitSet, sole(inputs),
-          exps, rowType, flags);
+    @Override public JdbcProjectRel copy(RelTraitSet traitSet, RelNode input,
+        List<RexNode> exps, RelDataType rowType) {
+      return new JdbcProjectRel(getCluster(), traitSet, input, exps, rowType,
+          flags);
     }
 
     public JdbcImplementor.Result implement(JdbcImplementor implementor) {

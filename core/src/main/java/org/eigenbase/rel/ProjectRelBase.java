@@ -94,6 +94,17 @@ public abstract class ProjectRelBase extends SingleRel {
 
   //~ Methods ----------------------------------------------------------------
 
+  @Override public final RelNode copy(RelTraitSet traitSet,
+      List<RelNode> inputs) {
+    return copy(traitSet, sole(inputs), exps, rowType);
+  }
+
+  /** Copies a project.
+   *
+   * @see #copy(RelTraitSet, List) */
+  public abstract ProjectRelBase copy(RelTraitSet traitSet, RelNode input,
+      List<RexNode> exps, RelDataType rowType);
+
   public List<RelCollation> getCollationList() {
     return collationList;
   }

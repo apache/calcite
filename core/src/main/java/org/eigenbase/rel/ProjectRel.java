@@ -84,6 +84,7 @@ public final class ProjectRel extends ProjectRelBase {
       RelDataType rowType,
       int flags) {
     super(cluster, traitSet, child, exps, rowType, flags);
+    assert traitSet.containsIfApplicable(Convention.NONE);
   }
 
   /**
@@ -95,16 +96,9 @@ public final class ProjectRel extends ProjectRelBase {
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override
-  public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
-    assert traitSet.containsIfApplicable(Convention.NONE);
-    return new ProjectRel(
-        getCluster(),
-        traitSet,
-        sole(inputs),
-        getProjects(),
-        rowType,
-        getFlags());
+  @Override public ProjectRel copy(RelTraitSet traitSet, RelNode input,
+      List<RexNode> exps, RelDataType rowType) {
+    return new ProjectRel(getCluster(), traitSet, input, exps, rowType, flags);
   }
 
   @Override

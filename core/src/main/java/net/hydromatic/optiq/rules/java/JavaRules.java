@@ -494,8 +494,9 @@ public class JavaRules {
       assert getConvention() instanceof EnumerableConvention;
     }
 
-    @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
-      return new EnumerableProjectRel(getCluster(), traitSet, sole(inputs),
+    public EnumerableProjectRel copy(RelTraitSet traitSet, RelNode input,
+        List<RexNode> exps, RelDataType rowType) {
+      return new EnumerableProjectRel(getCluster(), traitSet, input,
           exps, rowType, flags);
     }
 

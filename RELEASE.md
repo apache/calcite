@@ -10,34 +10,38 @@ New features
 * Recognize more kinds of materializations, including filter-on-project (where
   project contains expressions) and some kinds of aggregation.
 * Fix <a href="https://github.com/julianhyde/optiq/issues/128">#128</a>,
-  "Support WITH queries (common table expressions)".
+  "Support `WITH` queries (common table expressions)".
 * Fix <a href="https://github.com/julianhyde/optiq/issues/53">#53</a>,
-  "Allow WHEN clause in simple CASE expression to have multiple values".
+  "Allow `WHEN` clause in simple `CASE` expression to have multiple values".
 * Fix <a href="https://github.com/julianhyde/optiq/issues/156">#156</a>,
   "Optiq should recognize 'SYSTEM TABLE', 'JOIN', 'INDEX' as table types".
 
 API changes
+* Add `ProjectRelBase.copy(RelTraitSet, RelNode, List&lt;RexNode&gt;,
+  RelDataType)` and make `ProjectRelBase.copy(RelTraitSet, RelNode)`
+  final.
+  (**This is a breaking change** for sub-classes of `ProjectRelBase`.)
 * Change `RexBuilder.makeRangeReference` parameter type.
 * `RexBuilder.makeInputRef` replaces `RelOptUtil.createInputRef`.
 * Fix <a href="https://github.com/julianhyde/optiq/issues/160">#160</a>,
  "Allow comments in schema definitions".
 * Fix <a href="https://github.com/julianhyde/optiq/issues/147">#147</a>,
-  "Create a new kind of SqlCall that keeps operands in fields, not an operands
+  "Create a new kind of `SqlCall` that keeps operands in fields, not an operands
   array". Very widely used parse tree nodes with complex operands, including
   `SqlSelect`, `SqlJoin`, `SqlInsert`, and a new node type `SqlOrderBy`, are now
   sub-classes of `SqlCall` but not `SqlBasicCall`.
   (**This is a breaking change** to code that assumes that, say,
  `SqlSelect` has an `operands` field.)
-* Code formatting: Convert all enum constants to upper-case.
+* Convert all enum constants to upper-case.
   (**This is a breaking change**.)
 
 Bug-fixes and internal changes
 * Fix <a href="https://github.com/julianhyde/optiq/issues/143">#143</a>,
   "Remove dependency on eigenbase-resgen".
 * Fix <a href="https://github.com/julianhyde/optiq/issues/173">#173</a>,
- "Case-insensitive table names are not supported for Casing.UNCHANGED".
+ "Case-insensitive table names are not supported for `Casing.UNCHANGED`".
 * `DATE.getLimit` now returns `Calendar` in GMT time zone (Vladimir Sitnikov)
-* Set en_US locale in tests that match against error numbers, dates
+* Set `en_US` locale in tests that match against error numbers, dates
   (Vladimir Sitnikov)
 * Use 1 test thread per CPU to avoid thread starvation on dual core CPUs
   (Vladimir Sitnikov)
@@ -45,14 +49,15 @@ Bug-fixes and internal changes
   "Move hsqldb to test scope".
 * Add unit tests for `RexExecutorImpl`.
 * Correct JSON model examples in Javadoc comments. (Karel Vervaeke)
-* Move test reference logs from src/test/java to src/test/resources
+* Move test reference logs from `src/test/java` to `src/test/resources`
   (reduces the number of 'untracked files' reported by git)
 * Tune `Util.SpaceList`, fix race condition, and move into new utility class
   `Spaces`.
 * Fix <a href="https://github.com/julianhyde/optiq/issues/163">#163</a>,
   "Equi-join warning".
 * Fix <a href="https://github.com/julianhyde/optiq/issues/157">#157</a>,
-  "Handle SQLFeatureNotSupported when calling setQueryTimeout". (Karel Vervaeke)
+  "Handle `SQLFeatureNotSupported` when calling `setQueryTimeout`".
+  (Karel Vervaeke)
 * Fix Optiq on Windows. (All tests and checkstyle checks pass.)
 * In checkstyle, support Windows-style file separator, otherwise build fails in
   Windows due to suppressions not used. (Vladimir Sitnikov)
@@ -62,19 +67,19 @@ Bug-fixes and internal changes
   "Error using MongoDB adapter: Failed to set setXIncludeAware(true)".
 * Disable spark engine unless Spark libraries are on the class path and
   `spark=true` is specified in the connect string.
-* Fix path to mongo-zips-model.json in HOWTO.
+* Fix path to `mongo-zips-model.json` in HOWTO.
 * Fix bug deriving the type of a join-key.
 * Fix the value of `ONE_MINUS_EPSILON`.
 * Fix <a href="https://github.com/julianhyde/optiq/issues/158">#158</a>,
-  "Optiq fails when call Planner.transform() multiple times, each with different
-  ruleset".
+  "Optiq fails when call `Planner.transform()` multiple times, each with
+  different ruleset".
 * Fix <a href="https://github.com/julianhyde/optiq/issues/148">#148</a>,
- "Less verbose description of collation". Also, optimize RelTraitSet creation
- and amortize RelTraitSet.toString().
+ "Less verbose description of collation". Also, optimize `RelTraitSet` creation
+ and amortize `RelTraitSet.toString()`.
 * Add generics to SQL parser.
 * Fix <a href="https://github.com/julianhyde/optiq/issues/145">#145</a>,
   "Unexpected upper-casing of keywords when using java lexer".
-* Remove duplicate maven-source-plugin.
+* Remove duplicate `maven-source-plugin`.
 * Fix <a href="https://github.com/julianhyde/optiq/issues/141">#141</a>,
   "Downgrade to guava-11.0.2". This is necessary for Hadoop compatibility.
   Later versions of Guava can also be used.
