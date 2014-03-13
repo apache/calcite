@@ -156,6 +156,15 @@ public class JdbcImplementor {
             nodeList.add(
                 new SqlDataTypeSpec(new SqlIdentifier("CHAR", POS),
                     type.getPrecision(), -1, null, null, POS));
+          } else if (type.getSqlTypeName() == SqlTypeName.VARCHAR
+              && call.getOperands().get(0).getType().getSqlTypeName()
+              == SqlTypeName.VARCHAR) {
+            // Don't perform casting from varchar to varchar
+            // This produced things like
+            // CAST("mycolumn" AS VARCHAR(10) CHARACTER SET "ISO-8859-1")
+            //   = 'this value'
+            // which is not always supported, besides being unnecessary
+            return nodeList.get(0);
           } else {
             nodeList.add(toSql(type));
           }

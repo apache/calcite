@@ -1987,6 +1987,25 @@ public class JdbcTest {
             + "deptno=40; E=Employee [empid: 200, deptno: 20, name: Eric]\n");
   }
 
+  @Test
+  public void testVarcharEquals() {
+    OptiqAssert.that()
+        .withModel(FOODMART_MODEL)
+        .query("select \"lname\" from \"customer\" where \"lname\" = 'Nowmer'")
+        .returns("lname=Nowmer\n");
+
+    // lname is declared as VARCHAR(30), comparing it with a string longer
+    // than 30 characters would introduce a cast to the least restrictive
+    // type, thus lname would be cast to a varchar(40) in this case.
+    // These sorts of casts are removed though when constructing the jdbc
+    // sql, since e.g. HSQLDB does not support them.
+    OptiqAssert.that()
+        .withModel(FOODMART_MODEL)
+        .query("select count(*) as c from \"customer\" "
+            + "where \"lname\" = 'this string is longer than 30 characters'")
+        .returns("C=0\n");
+  }
+
   /** Tests the NOT IN operator. Problems arose in code-generation because
    * the column allows nulls. */
   @Test public void testNotIn() {
