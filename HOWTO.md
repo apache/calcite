@@ -69,7 +69,7 @@ connecting to: test
 bye
 ```
 
-Connect using the <a href="src/test/resources/mongo-zips-model.json">mongo-zips-model.json</a> Optiq model:
+Connect using the <a href="https://github.com/julianhyde/optiq/blob/master/mongodb/src/test/resources/mongo-zips-model.json">mongo-zips-model.json</a> Optiq model:
 ```bash
 $ ./sqlline
 sqlline> !connect jdbc:optiq:model=mongodb/target/test-classes/mongo-zips-model.json admin admin
