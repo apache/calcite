@@ -52,6 +52,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
 
+import org.hsqldb.jdbcDriver;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -1143,6 +1144,51 @@ public class JdbcTest {
     }
   }
 
+  @Test public void testArray() throws Exception {
+
+    String hsqldbMemUrl = "jdbc:hsqldb:mem:.";
+    Connection baseConnection = DriverManager.getConnection(hsqldbMemUrl);
+    Statement baseStmt = baseConnection.createStatement();
+    baseStmt.execute("CREATE TABLE ARR_TABLE (\n"
+      + "ID INTEGER,\n"
+      + "VALS INTEGER ARRAY)");
+    baseStmt.execute("INSERT INTO ARR_TABLE VALUES (1, ARRAY[1,2,3])");
+    baseStmt.close();
+    baseConnection.commit();
+
+    Properties info = new Properties();
+    info.put("model",
+      "inline:"
+        + "{\n"
+        + "  version: '1.0',\n"
+        + "  defaultSchema: 'BASEJDBC',\n"
+        + "  schemas: [\n"
+        + "     {\n"
+        + "       type: 'jdbc',\n"
+        + "       name: 'BASEJDBC',\n"
+        + "       jdbcDriver: '" + jdbcDriver.class.getName() + "',\n"
+        + "       jdbcUrl: '" + hsqldbMemUrl + "',\n"
+        + "       jdbcCatalog: null,\n"
+        + "       jdbcSchema: null\n"
+        + "     }\n"
+        + "  ]\n"
+        + "}");
+
+    Connection optiqConnection = DriverManager.getConnection(
+      "jdbc:optiq:", info);
+
+    Statement optiqStatement = optiqConnection.createStatement();
+    ResultSet rs = optiqStatement.executeQuery(
+      "SELECT ID, VALS FROM ARR_TABLE");
+    assertTrue(rs.next());
+    assertEquals(1, rs.getInt(1));
+    Array array = rs.getArray(2);
+    assertNotNull(array);
+    assertArrayEquals(new Object[]{1, 2, 3}, (Object[]) array.getArray());
+    rs.close();
+    optiqConnection.close();
+  }
+
   private OptiqAssert.AssertQuery withFoodMartQuery(int id) throws IOException {
     final FoodmartTest.FoodMartQuerySet set =
         FoodmartTest.FoodMartQuerySet.instance();
@@ -1976,7 +2022,7 @@ public class JdbcTest {
   }
 
   /** Tests array index. */
-  @Test public void testArray() {
+  @Test public void testArrayIndexing() {
     OptiqAssert.that()
         .with(OptiqAssert.Config.REGULAR)
         .query(

@@ -191,6 +191,7 @@ public enum SqlTypeName {
           .put(Types.BOOLEAN, BOOLEAN)
           .put(Types.DISTINCT, DISTINCT)
           .put(Types.STRUCT, STRUCTURED)
+          .put(Types.ARRAY, ARRAY)
           .build();
 
   /**

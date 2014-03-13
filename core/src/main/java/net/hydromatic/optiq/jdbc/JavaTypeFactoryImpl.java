@@ -37,6 +37,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
+import java.sql.Array;
 import java.util.*;
 
 /**
@@ -104,19 +105,6 @@ public class JavaTypeFactoryImpl
   }
 
   public Type getJavaClass(RelDataType type) {
-    switch (type.getSqlTypeName()) {
-    case ROW:
-      assert type instanceof RelRecordType;
-      if (type instanceof JavaRecordType) {
-        return ((JavaRecordType) type).clazz;
-      } else {
-        return createSyntheticType((RelRecordType) type);
-      }
-    case MAP:
-      return Map.class;
-    case ARRAY:
-      return List.class;
-    }
     if (type instanceof JavaType) {
       JavaType javaType = (JavaType) type;
       return javaType.getJavaClass();
@@ -154,9 +142,24 @@ public class JavaTypeFactoryImpl
       case BINARY:
       case VARBINARY:
         return ByteString.class;
+      case ARRAY:
+        return Array.class;
       case ANY:
         return Object.class;
       }
+    }
+    switch (type.getSqlTypeName()) {
+    case ROW:
+      assert type instanceof RelRecordType;
+      if (type instanceof JavaRecordType) {
+        return ((JavaRecordType) type).clazz;
+      } else {
+        return createSyntheticType((RelRecordType) type);
+      }
+    case MAP:
+      return Map.class;
+    case ARRAY:
+      return List.class;
     }
     return null;
   }

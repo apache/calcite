@@ -131,8 +131,9 @@ public abstract class AbstractCursor implements Cursor {
       default:
         throw new AssertionError("bad " + type.representation);
       }
-    case Types.JAVA_OBJECT:
     case Types.ARRAY:
+      return new ArrayAccessor(getter);
+    case Types.JAVA_OBJECT:
     case Types.STRUCT:
     case Types.OTHER: // e.g. map
       if (type.typeName.startsWith("INTERVAL_")) {
@@ -1024,6 +1025,21 @@ public abstract class AbstractCursor implements Cursor {
         return null;
       }
       return SqlFunctions.intervalDayTimeToString(v, range, scale);
+    }
+  }
+
+  /**
+   * Accessor that assumes that the underlying value is an ARRAY;
+   * corresponds to {@link java.sql.Types#ARRAY}.
+   */
+  private static class ArrayAccessor extends AccessorImpl {
+    public ArrayAccessor(Getter getter) {
+      super(getter);
+    }
+
+    @Override
+    public Array getArray() {
+      return (Array) getObject();
     }
   }
 

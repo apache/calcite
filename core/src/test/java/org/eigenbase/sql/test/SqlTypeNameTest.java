@@ -249,8 +249,8 @@ public class SqlTypeNameTest {
     SqlTypeName tn =
         SqlTypeName.getNameForJdbcType(Types.ARRAY);
     assertEquals(
-        "ARRAY did not map to null",
-        null,
+        "ARRAY did not map to ARRAY",
+        SqlTypeName.ARRAY,
         tn);
   }
 
