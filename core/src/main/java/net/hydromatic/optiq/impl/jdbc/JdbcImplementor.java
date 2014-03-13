@@ -29,7 +29,6 @@ import org.eigenbase.sql.*;
 import org.eigenbase.sql.fun.SqlStdOperatorTable;
 import org.eigenbase.sql.parser.SqlParserPos;
 import org.eigenbase.sql.type.BasicSqlType;
-import org.eigenbase.sql.type.SqlTypeName;
 import org.eigenbase.sql.validate.SqlValidatorUtil;
 import org.eigenbase.util.Pair;
 import org.eigenbase.util.Util;
@@ -148,26 +147,7 @@ public class JdbcImplementor {
         final SqlOperator op = call.getOperator();
         final List<SqlNode> nodeList = toSql(program, call.getOperands());
         if (op == SqlStdOperatorTable.CAST) {
-          RelDataType type = call.getType();
-          if (type.getSqlTypeName() == SqlTypeName.VARCHAR
-              && dialect.getDatabaseProduct()
-                 == SqlDialect.DatabaseProduct.MYSQL) {
-            // MySQL doesn't have a VARCHAR type, only CHAR.
-            nodeList.add(
-                new SqlDataTypeSpec(new SqlIdentifier("CHAR", POS),
-                    type.getPrecision(), -1, null, null, POS));
-          } else if (type.getSqlTypeName() == SqlTypeName.VARCHAR
-              && call.getOperands().get(0).getType().getSqlTypeName()
-              == SqlTypeName.VARCHAR) {
-            // Don't perform casting from varchar to varchar
-            // This produced things like
-            // CAST("mycolumn" AS VARCHAR(10) CHARACTER SET "ISO-8859-1")
-            //   = 'this value'
-            // which is not always supported, besides being unnecessary
-            return nodeList.get(0);
-          } else {
-            nodeList.add(toSql(type));
-          }
+          nodeList.add(toSql(call.getType()));
         }
         if (op == SqlStdOperatorTable.CASE) {
           final SqlNode valueNode;
@@ -216,9 +196,9 @@ public class JdbcImplementor {
     }
 
     private SqlNode toSql(RelDataType type) {
-      if (dialect.getDatabaseProduct() == SqlDialect.DatabaseProduct.MYSQL) {
-        final SqlTypeName sqlTypeName = type.getSqlTypeName();
-        switch (sqlTypeName) {
+      switch (dialect.getDatabaseProduct()) {
+      case MYSQL:
+        switch (type.getSqlTypeName()) {
         case VARCHAR:
           // MySQL doesn't have a VARCHAR type, only CHAR.
           return new SqlDataTypeSpec(new SqlIdentifier("CHAR", POS),
@@ -227,6 +207,7 @@ public class JdbcImplementor {
           return new SqlDataTypeSpec(new SqlIdentifier("_UNSIGNED", POS),
               type.getPrecision(), -1, null, null, POS);
         }
+        break;
       }
       if (type instanceof BasicSqlType) {
         return new SqlDataTypeSpec(

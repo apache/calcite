@@ -1987,8 +1987,7 @@ public class JdbcTest {
             + "deptno=40; E=Employee [empid: 200, deptno: 20, name: Eric]\n");
   }
 
-  @Test
-  public void testVarcharEquals() {
+  @Test public void testVarcharEquals() {
     OptiqAssert.that()
         .withModel(FOODMART_MODEL)
         .query("select \"lname\" from \"customer\" where \"lname\" = 'Nowmer'")
@@ -2003,6 +2002,12 @@ public class JdbcTest {
         .withModel(FOODMART_MODEL)
         .query("select count(*) as c from \"customer\" "
             + "where \"lname\" = 'this string is longer than 30 characters'")
+        .returns("C=0\n");
+
+    OptiqAssert.that()
+        .withModel(FOODMART_MODEL)
+        .query("select count(*) as c from \"customer\" "
+            + "where cast(\"customer_id\" as char(20)) = 'this string is longer than 30 characters'")
         .returns("C=0\n");
   }
 

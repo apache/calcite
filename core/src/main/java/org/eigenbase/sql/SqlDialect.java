@@ -51,7 +51,6 @@ public class SqlDialect {
 
   //~ Instance fields --------------------------------------------------------
 
-  private final String databaseProductName;
   private final String identifierQuoteString;
   private final String identifierEndQuoteString;
   private final String identifierEscapedQuote;
@@ -104,7 +103,6 @@ public class SqlDialect {
     assert databaseProduct != null;
     assert databaseProductName != null;
     this.databaseProduct = databaseProduct;
-    this.databaseProductName = databaseProductName;
     if (identifierQuoteString != null) {
       identifierQuoteString = identifierQuoteString.trim();
       if (identifierQuoteString.equals("")) {
@@ -146,7 +144,7 @@ public class SqlDialect {
       return DatabaseProduct.DERBY;
     } else if (productName.startsWith("DB2")) {
       return DatabaseProduct.DB2;
-    } else if (upperProductName.indexOf("FIREBIRD") >= 0) {
+    } else if (upperProductName.contains("FIREBIRD")) {
       return DatabaseProduct.FIREBIRD;
     } else if (productName.equals("Hive")) {
       return DatabaseProduct.HIVE;
@@ -158,15 +156,15 @@ public class SqlDialect {
       return DatabaseProduct.INTERBASE;
     } else if (upperProductName.equals("LUCIDDB")) {
       return DatabaseProduct.LUCIDDB;
-    } else if (upperProductName.indexOf("SQL SERVER") >= 0) {
+    } else if (upperProductName.contains("SQL SERVER")) {
       return DatabaseProduct.MSSQL;
-    } else if (upperProductName.indexOf("PARACCEL") >= 0) {
+    } else if (upperProductName.contains("PARACCEL")) {
       return DatabaseProduct.PARACCEL;
     } else if (productName.equals("Oracle")) {
       return DatabaseProduct.ORACLE;
-    } else if (upperProductName.indexOf("POSTGRE") >= 0) {
+    } else if (upperProductName.contains("POSTGRE")) {
       return DatabaseProduct.POSTGRESQL;
-    } else if (upperProductName.indexOf("NETEZZA") >= 0) {
+    } else if (upperProductName.contains("NETEZZA")) {
       return DatabaseProduct.NETEZZA;
     } else if (upperProductName.equals("MYSQL (INFOBRIGHT)")) {
       return DatabaseProduct.INFOBRIGHT;
@@ -174,13 +172,13 @@ public class SqlDialect {
       return DatabaseProduct.MYSQL;
     } else if (productName.startsWith("HP Neoview")) {
       return DatabaseProduct.NEOVIEW;
-    } else if (upperProductName.indexOf("SYBASE") >= 0) {
+    } else if (upperProductName.contains("SYBASE")) {
       return DatabaseProduct.SYBASE;
-    } else if (upperProductName.indexOf("TERADATA") >= 0) {
+    } else if (upperProductName.contains("TERADATA")) {
       return DatabaseProduct.TERADATA;
-    } else if (upperProductName.indexOf("HSQL") >= 0) {
+    } else if (upperProductName.contains("HSQL")) {
       return DatabaseProduct.HSQLDB;
-    } else if (upperProductName.indexOf("VERTICA") >= 0) {
+    } else if (upperProductName.contains("VERTICA")) {
       return DatabaseProduct.VERTICA;
     } else {
       return DatabaseProduct.UNKNOWN;
@@ -404,7 +402,13 @@ public class SqlDialect {
    * data type, for instance {@code VARCHAR(30) CHARACTER SET `ISO-8859-1`}.
    */
   public boolean supportsCharSet() {
-    return databaseProduct != DatabaseProduct.MYSQL;
+    switch (databaseProduct) {
+    case MYSQL:
+    case HSQLDB:
+      return false;
+    default:
+      return true;
+    }
   }
 
   /**
@@ -424,7 +428,7 @@ public class SqlDialect {
      * Replaces every occurrence of <code>find</code> in <code>s</code> with
      * <code>replace</code>.
      */
-    public static final String replace(
+    public static String replace(
         String s,
         String find,
         String replace) {
