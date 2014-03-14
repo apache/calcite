@@ -2,7 +2,7 @@
 
 For a full list of releases, see <a href="https://github.com/julianhyde/optiq/releases">github</a>.
 
-## <a href="https://github.com/julianhyde/optiq/releases/tag/optiq-parent-0.5">0.5</a> / 2014-03-14
+## <a href="https://github.com/julianhyde/optiq/releases/tag/optiq-parent-0.5">0.5</a> / 2014-03-13
 
 New features
 * Allow `quoting`, `quotedCasing`, `unquotedCasing`, and `caseSensitive`
@@ -15,11 +15,11 @@ New features
   "Allow `WHEN` clause in simple `CASE` expression to have multiple values".
 * Fix <a href="https://github.com/julianhyde/optiq/issues/156">#156</a>,
   "Optiq should recognize 'SYSTEM TABLE', 'JOIN', 'INDEX' as table types".
+* Support querying ARRAY columns from JDBC source. (Gabriel Reid)
 
 API changes
 * Add `ProjectRelBase.copy(RelTraitSet, RelNode, List&lt;RexNode&gt;,
-  RelDataType)` and make `ProjectRelBase.copy(RelTraitSet, RelNode)`
-  final.
+  RelDataType)` and make `ProjectRelBase.copy(RelTraitSet, RelNode)` final.
   (**This is a breaking change** for sub-classes of `ProjectRelBase`.)
 * Change `RexBuilder.makeRangeReference` parameter type.
 * `RexBuilder.makeInputRef` replaces `RelOptUtil.createInputRef`.
@@ -36,6 +36,9 @@ API changes
   (**This is a breaking change**.)
 
 Bug-fixes and internal changes
+* Fix <a href="https://github.com/julianhyde/optiq/issues/176">#176</a>,
+  "ORDER BY expression doesn't work with SELECT \*".
+* Fix VARCHAR casts sent to hsqldb source (Bruno Dumon)
 * Fix <a href="https://github.com/julianhyde/optiq/issues/143">#143</a>,
   "Remove dependency on eigenbase-resgen".
 * Fix <a href="https://github.com/julianhyde/optiq/issues/173">#173</a>,
@@ -67,7 +70,7 @@ Bug-fixes and internal changes
   "Error using MongoDB adapter: Failed to set setXIncludeAware(true)".
 * Disable spark engine unless Spark libraries are on the class path and
   `spark=true` is specified in the connect string.
-* Fix path to `mongo-zips-model.json` in HOWTO.
+* Fix path to `mongo-zips-model.json` in HOWTO. (Mariano Luna)
 * Fix bug deriving the type of a join-key.
 * Fix the value of `ONE_MINUS_EPSILON`.
 * Fix <a href="https://github.com/julianhyde/optiq/issues/158">#158</a>,
