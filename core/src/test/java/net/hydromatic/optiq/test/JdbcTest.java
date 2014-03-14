@@ -344,7 +344,7 @@ public class JdbcTest {
     final int driverMajorVersion = metaData.getDriverMajorVersion();
     final int driverMinorVersion = metaData.getDriverMinorVersion();
     assertEquals(0, driverMajorVersion);
-    assertEquals(4, driverMinorVersion);
+    assertEquals(5, driverMinorVersion);
 
     assertEquals("Optiq", metaData.getDatabaseProductName());
     final String databaseProductVersion =
@@ -361,17 +361,18 @@ public class JdbcTest {
       assertTrue(driverVersion.startsWith("0."));
       String[] split = driverVersion.split("\\.");
       assertTrue(split.length >= 2);
-      assertTrue(
-          driverVersion.startsWith(
-              driverMajorVersion + "." + driverMinorVersion + "."));
+      final String majorMinor = driverMajorVersion + "." + driverMinorVersion;
+      assertTrue(driverVersion.equals(majorMinor)
+          || driverVersion.startsWith(majorMinor + "."));
     }
     if (!databaseProductVersion.endsWith("-SNAPSHOT")) {
       assertTrue(databaseProductVersion.startsWith("0."));
       String[] split = databaseProductVersion.split("\\.");
       assertTrue(split.length >= 2);
-      assertTrue(
-          databaseProductVersion.startsWith(
-              databaseMajorVersion + "." + databaseMinorVersion + "."));
+      final String majorMinor =
+          databaseMajorVersion + "." + databaseMinorVersion;
+      assertTrue(databaseProductVersion.equals(majorMinor)
+          || databaseProductVersion.startsWith(majorMinor + "."));
     }
 
     connection.close();
