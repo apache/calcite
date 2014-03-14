@@ -456,6 +456,10 @@ public class OptiqPrepareImpl implements OptiqPrepare {
 
   private static String getTypeName(RelDataType type) {
     SqlTypeName sqlTypeName = type.getSqlTypeName();
+    if (type instanceof RelDataTypeFactoryImpl.JavaType) {
+      // We'd rather print "INTEGER" than "JavaType(int)".
+      return sqlTypeName.getName();
+    }
     switch (sqlTypeName) {
     case INTERVAL_YEAR_MONTH:
     case INTERVAL_DAY_TIME:
@@ -463,7 +467,7 @@ public class OptiqPrepareImpl implements OptiqPrepare {
       return "INTERVAL_"
           + type.getIntervalQualifier().toString().replace(' ', '_');
     default:
-      return sqlTypeName.getName();
+      return type.toString(); // e.g. "VARCHAR(10)", "INTEGER ARRAY"
     }
   }
 

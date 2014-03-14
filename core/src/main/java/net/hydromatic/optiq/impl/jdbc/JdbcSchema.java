@@ -246,9 +246,11 @@ public class JdbcSchema implements Schema {
     while (resultSet.next()) {
       final String columnName = resultSet.getString(4);
       final int dataType = resultSet.getInt(5);
+      final String typeString = resultSet.getString(6);
       final int size = resultSet.getInt(7);
       final int scale = resultSet.getInt(9);
-      RelDataType sqlType = sqlType(typeFactory, dataType, size, scale);
+      RelDataType sqlType =
+          sqlType(typeFactory, dataType, size, scale, typeString);
       boolean nullable = resultSet.getBoolean(11);
       fieldInfo.add(columnName, sqlType).nullable(nullable);
     }
@@ -257,8 +259,23 @@ public class JdbcSchema implements Schema {
   }
 
   private RelDataType sqlType(RelDataTypeFactory typeFactory, int dataType,
-      int precision, int scale) {
+      int precision, int scale, String typeString) {
     SqlTypeName sqlTypeName = SqlTypeName.getNameForJdbcType(dataType);
+    switch (sqlTypeName) {
+    case ARRAY:
+      RelDataType component = null;
+      if (typeString != null && typeString.endsWith(" ARRAY")) {
+        // E.g. hsqldb gives "INTEGER ARRAY", so we deduce the component type
+        // "INTEGER".
+        final String remaining = typeString.substring(0,
+            typeString.length() - " ARRAY".length());
+        component = parseTypeString(typeFactory, remaining);
+      }
+      if (component == null) {
+        component = typeFactory.createSqlType(SqlTypeName.ANY);
+      }
+      return typeFactory.createArrayType(component, -1);
+    }
     if (precision >= 0
         && scale >= 0
         && sqlTypeName.allowsPrecScale(true, true)) {
@@ -268,6 +285,40 @@ public class JdbcSchema implements Schema {
     } else {
       assert sqlTypeName.allowsNoPrecNoScale();
       return typeFactory.createSqlType(sqlTypeName);
+    }
+  }
+
+  /** Given "INTEGER", returns BasicSqlType(INTEGER).
+   * Given "VARCHAR(10)", returns BasicSqlType(VARCHAR, 10).
+   * Given "NUMERIC(10, 2)", returns BasicSqlType(NUMERIC, 10, 2). */
+  private RelDataType parseTypeString(RelDataTypeFactory typeFactory,
+      String typeString) {
+    int precision = -1;
+    int scale = -1;
+    int open = typeString.indexOf("(");
+    if (open >= 0) {
+      int close = typeString.indexOf(")", open);
+      if (close >= 0) {
+        String rest = typeString.substring(open + 1, close);
+        typeString = typeString.substring(0, open);
+        int comma = rest.indexOf(",");
+        if (comma >= 0) {
+          precision = Integer.parseInt(rest.substring(0, comma));
+          scale = Integer.parseInt(rest.substring(comma));
+        } else {
+          precision = Integer.parseInt(rest);
+        }
+      }
+    }
+    try {
+      final SqlTypeName typeName = SqlTypeName.valueOf(typeString);
+      return typeName.allowsPrecScale(true, true)
+          ? typeFactory.createSqlType(typeName, precision, scale)
+          : typeName.allowsPrecScale(true, false)
+          ? typeFactory.createSqlType(typeName, precision)
+          : typeFactory.createSqlType(typeName);
+    } catch (IllegalArgumentException e) {
+      return typeFactory.createSqlType(SqlTypeName.ANY);
     }
   }
 

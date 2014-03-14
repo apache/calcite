@@ -1144,8 +1144,8 @@ public class JdbcTest {
     }
   }
 
+  /** Tests accessing a column in a JDBC source whose type is ARRAY. */
   @Test public void testArray() throws Exception {
-
     String hsqldbMemUrl = "jdbc:hsqldb:mem:.";
     Connection baseConnection = DriverManager.getConnection(hsqldbMemUrl);
     Statement baseStmt = baseConnection.createStatement();
@@ -1153,6 +1153,12 @@ public class JdbcTest {
       + "ID INTEGER,\n"
       + "VALS INTEGER ARRAY)");
     baseStmt.execute("INSERT INTO ARR_TABLE VALUES (1, ARRAY[1,2,3])");
+    baseStmt.execute("CREATE TABLE ARR_TABLE2 (\n"
+        + "ID INTEGER,\n"
+        + "VALS INTEGER ARRAY,\n"
+        + "VALVALS VARCHAR(10) ARRAY)");
+    baseStmt.execute(
+        "INSERT INTO ARR_TABLE2 VALUES (1, ARRAY[1,2,3], ARRAY['x','y'])");
     baseStmt.close();
     baseConnection.commit();
 
@@ -1185,7 +1191,30 @@ public class JdbcTest {
     Array array = rs.getArray(2);
     assertNotNull(array);
     assertArrayEquals(new Object[]{1, 2, 3}, (Object[]) array.getArray());
+    assertFalse(rs.next());
     rs.close();
+
+    rs = optiqStatement.executeQuery(
+        "SELECT ID, CARDINALITY(VALS), VALS[2] FROM ARR_TABLE");
+    assertTrue(rs.next());
+    assertEquals(1, rs.getInt(1));
+    assertEquals(3, rs.getInt(2));
+    assertEquals(2, rs.getInt(3));
+    assertFalse(rs.next());
+    rs.close();
+
+    rs = optiqStatement.executeQuery(
+        "SELECT * FROM ARR_TABLE2");
+    final ResultSetMetaData metaData = rs.getMetaData();
+    assertThat(metaData.getColumnTypeName(1), equalTo("INTEGER"));
+    assertThat(metaData.getColumnTypeName(2), equalTo("INTEGER ARRAY"));
+    assertThat(metaData.getColumnTypeName(3), equalTo("VARCHAR(10) ARRAY"));
+    assertTrue(rs.next());
+    assertEquals(1, rs.getInt(1));
+    assertThat(rs.getArray(2), notNullValue());
+    assertThat(rs.getArray(3), notNullValue());
+    assertFalse(rs.next());
+
     optiqConnection.close();
   }
 
