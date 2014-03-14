@@ -21,6 +21,7 @@
       <groupId>net.hydromatic</groupId>
       <artifactId>optiq-core</artifactId>
       <version>0.4.19-SNAPSHOT</version>
+      <type>jar</type>
     </dependency>
     <dependency>
       <groupId>net.hydromatic</groupId>

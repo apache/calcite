@@ -2,7 +2,7 @@
 
 For a full list of releases, see <a href="https://github.com/julianhyde/optiq/releases">github</a>.
 
-## <a href="https://github.com/julianhyde/optiq/releases/tag/optiq-parent-0.5">0.5</a> / 2014-03-13
+## <a href="https://github.com/julianhyde/optiq/releases/tag/optiq-parent-0.5">0.5</a> / 2014-03-14
 
 New features
 * Allow `quoting`, `quotedCasing`, `unquotedCasing`, and `caseSensitive`
@@ -36,6 +36,7 @@ API changes
   (**This is a breaking change**.)
 
 Bug-fixes and internal changes
+* Generate optiq-core-VERSION-tests.jar not parent-VERSION-tests.jar.
 * Fix <a href="https://github.com/julianhyde/optiq/issues/176">#176</a>,
   "ORDER BY expression doesn't work with SELECT \*".
 * Fix VARCHAR casts sent to hsqldb source (Bruno Dumon)
