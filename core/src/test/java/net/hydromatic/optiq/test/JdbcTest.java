@@ -1676,6 +1676,67 @@ public class JdbcTest {
             + "store_id=0; grocery_sqft=null\n");
   }
 
+  /** Tests sorting by an expression not in the select clause. */
+  @Test public void testOrderByExpr() {
+    OptiqAssert.that().with(OptiqAssert.Config.REGULAR)
+        .query(
+            "select \"name\", \"empid\" from \"hr\".\"emps\"\n"
+            + "order by - \"empid\"")
+        .returns(
+            "name=Eric; empid=200\n"
+            + "name=Sebastian; empid=150\n"
+            + "name=Theodore; empid=110\n"
+            + "name=Bill; empid=100\n");
+  }
+
+  /** Tests sorting by an expression not in the '*' select clause. Test case for
+   * <a href="https://github.com/julianhyde/optiq/issues/176">issue #176</a>. */
+  @Test public void testOrderStarByExpr() {
+    OptiqAssert.that().with(OptiqAssert.Config.REGULAR)
+        .query(
+            "select * from \"hr\".\"emps\"\n"
+            + "order by - \"empid\"")
+        .explainContains(
+            "EnumerableCalcRel(expr#0..5=[{inputs}], proj#0..4=[{exprs}])\n"
+            + "  EnumerableSortRel(sort0=[$5], dir0=[ASC])\n"
+            + "    EnumerableCalcRel(expr#0..4=[{inputs}], expr#5=[-($t0)], proj#0..5=[{exprs}])\n"
+            + "      EnumerableTableAccessRel(table=[[hr, emps]])")
+        .returns(
+            "empid=200; deptno=20; name=Eric; salary=8000.0; commission=500\n"
+            + "empid=150; deptno=10; name=Sebastian; salary=7000.0; commission=null\n"
+            + "empid=110; deptno=10; name=Theodore; salary=11500.0; commission=250\n"
+            + "empid=100; deptno=10; name=Bill; salary=10000.0; commission=1000\n");
+  }
+
+  @Test public void testOrderUnionStarByExpr() {
+    OptiqAssert.that().with(OptiqAssert.Config.REGULAR)
+        .query(
+            "select * from \"hr\".\"emps\" where \"empid\" < 150\n"
+            + "union all\n"
+            + "select * from \"hr\".\"emps\" where \"empid\" > 150\n"
+            + "order by - \"empid\"")
+        .returns(
+            "empid=200; deptno=20; name=Eric; salary=8000.0; commission=500\n"
+            + "empid=110; deptno=10; name=Theodore; salary=11500.0; commission=250\n"
+            + "empid=100; deptno=10; name=Bill; salary=10000.0; commission=1000\n");
+  }
+
+  /** Tests sorting by a CAST expression not in the select clause. */
+  @Test public void testOrderByCast() {
+    OptiqAssert.that()
+        .with(OptiqAssert.Config.FOODMART_CLONE)
+        .query(
+            "select \"customer_id\", \"postal_code\" from \"customer\"\n"
+            + "where \"customer_id\" < 5\n"
+            + "order by cast(substring(\"postal_code\" from 3) as integer) desc")
+        // ordered by last 3 digits (980, 674, 172, 057)
+        .returns(
+            "customer_id=3; postal_code=73980\n"
+            + "customer_id=4; postal_code=74674\n"
+            + "customer_id=2; postal_code=17172\n"
+            + "customer_id=1; postal_code=15057\n");
+  }
+
   /** Tests ORDER BY ... DESC NULLS FIRST. */
   @Test public void testOrderByDescNullsFirst() {
     OptiqAssert.that()

@@ -2575,7 +2575,8 @@ public class SqlToRelConverter {
    * expressions which are not in the select clause.
    *
    * @param bb              Scope within which to resolve identifiers
-   * @param select          Select clause, null if order by is applied to set
+   * @param select          Select clause. Never null, because we invent a
+   *                        dummy SELECT if ORDER BY is applied to a set
    *                        operation (UNION etc.)
    * @param orderList       Order by clause, may be null
    * @param extraOrderExprs Sort expressions which are not in the select
@@ -2591,6 +2592,7 @@ public class SqlToRelConverter {
       List<RelFieldCollation> collationList) {
     // TODO:  add validation rules to SqlValidator also
     assert bb.root != null : "precondition: child != null";
+    assert select != null;
     if (orderList == null) {
       return;
     }
@@ -2610,6 +2612,7 @@ public class SqlToRelConverter {
       SqlNode orderItem, List<SqlNode> extraExprs,
       RelFieldCollation.Direction direction,
       RelFieldCollation.NullDirection nullDirection) {
+    assert select != null;
     // Handle DESC keyword, e.g. 'select a, b from t order by a desc'.
     switch (orderItem.getKind()) {
     case DESCENDING:
@@ -2638,35 +2641,32 @@ public class SqlToRelConverter {
     SqlNode converted = validator.expandOrderExpr(select, orderItem);
 
     // Scan the select list and order exprs for an identical expression.
-    if (select != null) {
-      SelectScope selectScope = validator.getRawSelectScope(select);
-      int ordinal = -1;
-      for (SqlNode selectItem : selectScope.getExpandedSelectList()) {
-        ++ordinal;
-        if (selectItem.getKind() == SqlKind.AS) {
-          selectItem = ((SqlCall) selectItem).operand(0);
-        }
-        if (converted.equalsDeep(selectItem, false)) {
-          return new RelFieldCollation(
-              ordinal, direction, nullDirection);
-        }
+    final SelectScope selectScope = validator.getRawSelectScope(select);
+    int ordinal = -1;
+    for (SqlNode selectItem : selectScope.getExpandedSelectList()) {
+      ++ordinal;
+      if (selectItem.getKind() == SqlKind.AS) {
+        selectItem = ((SqlCall) selectItem).operand(0);
       }
+      if (converted.equalsDeep(selectItem, false)) {
+        return new RelFieldCollation(
+            ordinal, direction, nullDirection);
+      }
+    }
 
-      for (SqlNode extraExpr : extraExprs) {
-        ++ordinal;
-        if (converted.equalsDeep(extraExpr, false)) {
-          return new RelFieldCollation(
-              ordinal, direction, nullDirection);
-        }
+    for (SqlNode extraExpr : extraExprs) {
+      ++ordinal;
+      if (converted.equalsDeep(extraExpr, false)) {
+        return new RelFieldCollation(
+            ordinal, direction, nullDirection);
       }
     }
 
     // TODO:  handle collation sequence
     // TODO: flag expressions as non-standard
 
-    int ordinal = select.getSelectList().size() + extraExprs.size();
     extraExprs.add(converted);
-    return new RelFieldCollation(ordinal, direction, nullDirection);
+    return new RelFieldCollation(ordinal + 1, direction, nullDirection);
   }
 
   protected boolean enableDecorrelation() {
