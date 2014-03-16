@@ -111,9 +111,10 @@ public class ResourceTest {
     }
   }
 
-  @Test public void testValidateMessageMatch() {
+  @Test public void testValidateMessageMatchDifferentMessageInPropertiesFile() {
     try {
-      Resources.validate(fooResource, EnumSet.of(Validation.MESSAGE_MATCH));
+      fooResource.differentMessageInPropertiesFile().validate(
+          EnumSet.of(Validation.MESSAGE_MATCH));
       fail("should have thrown");
     } catch (AssertionError e) {
       assertThat(e.getMessage(),

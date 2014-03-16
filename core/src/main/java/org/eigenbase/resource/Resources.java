@@ -348,8 +348,9 @@ public class Resources {
         throw new IllegalStateException("Unable to find superclass"
             + " ExInstWithCause for " + type);
       }
-      // Update this if  ExInstWithCause gets more type parameters
-      // For instance  ExInstWithCause<A, B, C>
+      // Update this if ExInstWithCause gets more type parameters
+      // For instance if B and C are added ExInstWithCause<A, B, C>,
+      // code below should be updated
       if (args.length != 1) {
         throw new IllegalStateException("ExInstWithCause should have"
             + " exactly one type parameter");
@@ -370,6 +371,10 @@ public class Resources {
       } catch (RuntimeException e) {
         cause = e;
       } catch (Exception e) {
+        // This can never happen since exSupplier should be just a ex() call.
+        // catch(Exception) is required since Callable#call throws Exception.
+        // Just in case we get exception somehow, we will rethrow it as a part
+        // of AssertionError below.
         cause = e;
       }
       if (cause != null) {
