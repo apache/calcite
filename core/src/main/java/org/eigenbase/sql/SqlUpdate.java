@@ -20,7 +20,6 @@ package org.eigenbase.sql;
 import java.util.Arrays;
 import java.util.List;
 
-import org.eigenbase.sql.fun.SqlStdOperatorTable;
 import org.eigenbase.sql.parser.*;
 import org.eigenbase.sql.validate.*;
 import org.eigenbase.util.Pair;
@@ -30,6 +29,9 @@ import org.eigenbase.util.Pair;
  * statement.
  */
 public class SqlUpdate extends SqlCall {
+  public static final SqlSpecialOperator OPERATOR =
+      new SqlSpecialOperator("UPDATE", SqlKind.UPDATE);
+
   SqlIdentifier targetTable;
   SqlNodeList targetColumnList;
   SqlNodeList sourceExpressionList;
@@ -63,7 +65,7 @@ public class SqlUpdate extends SqlCall {
   }
 
   public SqlOperator getOperator() {
-    return SqlStdOperatorTable.UPDATE;
+    return OPERATOR;
   }
 
   public List<SqlNode> getOperandList() {

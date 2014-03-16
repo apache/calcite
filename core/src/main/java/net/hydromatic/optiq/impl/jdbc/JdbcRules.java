@@ -262,21 +262,21 @@ public class JdbcRules {
               SqlLiteral.createBoolean(false, POS),
               joinType(joinType).symbol(POS),
               rightResult.asFrom(),
-              SqlJoinOperator.ConditionType.ON.symbol(POS),
+              JoinConditionType.ON.symbol(POS),
               sqlCondition);
       return implementor.result(join, leftResult, rightResult);
     }
 
-    private static SqlJoinOperator.JoinType joinType(JoinRelType joinType) {
+    private static JoinType joinType(JoinRelType joinType) {
       switch (joinType) {
       case LEFT:
-        return SqlJoinOperator.JoinType.LEFT;
+        return JoinType.LEFT;
       case RIGHT:
-        return SqlJoinOperator.JoinType.RIGHT;
+        return JoinType.RIGHT;
       case INNER:
-        return SqlJoinOperator.JoinType.INNER;
+        return JoinType.INNER;
       case FULL:
-        return SqlJoinOperator.JoinType.FULL;
+        return JoinType.FULL;
       default:
         throw new AssertionError(joinType);
       }

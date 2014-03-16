@@ -893,34 +893,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   public static final SqlSpecialOperator ESCAPE =
       new SqlSpecialOperator("Escape", SqlKind.ESCAPE, 30);
 
-  /**
-   * The standard SELECT operator.
-   *
-   * @deprecated Will be removed after 0.4.19.
-   * @see org.eigenbase.util.Bug#upgrade(String)
-   */
-  public static final SqlSelectOperator SELECT = SqlSelectOperator.INSTANCE;
-
-  public static final SqlCaseOperator CASE = new SqlCaseOperator();
-
-  public static final SqlJoinOperator JOIN = new SqlJoinOperator();
-
-  public static final SqlSpecialOperator INSERT =
-      new SqlSpecialOperator("INSERT", SqlKind.INSERT);
-
-  public static final SqlSpecialOperator DELETE =
-      new SqlSpecialOperator("DELETE", SqlKind.DELETE);
-
-  public static final SqlSpecialOperator UPDATE =
-      new SqlSpecialOperator("UPDATE", SqlKind.UPDATE);
-
-  public static final SqlSpecialOperator MERGE =
-      new SqlSpecialOperator("MERGE", SqlKind.MERGE);
-
-  public static final SqlSpecialOperator EXPLAIN =
-      new SqlSpecialOperator("EXPLAIN", SqlKind.EXPLAIN);
-
-  public static final SqlSpecialOperator ORDER_BY = SqlOrderBy.OPERATOR;
+  public static final SqlCaseOperator CASE = SqlCaseOperator.INSTANCE;
 
   public static final SqlOperator PROCEDURE_CALL =
       new SqlProcedureCallOperator();

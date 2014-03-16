@@ -20,15 +20,15 @@ package org.eigenbase.sql;
 import java.util.Arrays;
 import java.util.List;
 
-import org.eigenbase.sql.fun.SqlStdOperatorTable;
 import org.eigenbase.sql.parser.*;
 import org.eigenbase.sql.type.SqlTypeName;
+import org.eigenbase.util.Util;
 
 /**
  * Parse tree node representing a {@code JOIN} clause.
  */
 public class SqlJoin extends SqlCall {
-  //~ Static fields/initializers ---------------------------------------------
+  public static final SqlJoinOperator OPERATOR = new SqlJoinOperator();
 
   SqlNode left;
 
@@ -39,15 +39,15 @@ public class SqlJoin extends SqlCall {
   SqlLiteral natural;
 
   /**
-   * Value must be a {@link SqlLiteral}, one of the integer codes for {@link
-   * SqlJoinOperator.JoinType}.
+   * Value must be a {@link SqlLiteral}, one of the integer codes for
+   * {@link JoinType}.
    */
   SqlLiteral joinType;
   SqlNode right;
 
   /**
-   * Value must be a {@link SqlLiteral}, one of the integer codes for {@link
-   * SqlJoinOperator.ConditionType}.
+   * Value must be a {@link SqlLiteral}, one of the integer codes for
+   * {@link JoinConditionType}.
    */
   SqlLiteral conditionType;
   SqlNode condition;
@@ -67,17 +67,16 @@ public class SqlJoin extends SqlCall {
 
     assert natural.getTypeName() == SqlTypeName.BOOLEAN;
     assert conditionType != null;
-    assert SqlLiteral.symbolValue(conditionType)
-        instanceof SqlJoinOperator.ConditionType;
+    assert SqlLiteral.symbolValue(conditionType) instanceof JoinConditionType;
     assert joinType != null;
-    assert SqlLiteral.symbolValue(joinType) instanceof SqlJoinOperator.JoinType;
+    assert SqlLiteral.symbolValue(joinType) instanceof JoinType;
 
   }
 
   //~ Methods ----------------------------------------------------------------
 
   public SqlOperator getOperator() {
-    return SqlStdOperatorTable.JOIN;
+    return OPERATOR;
   }
 
   @Override public SqlKind getKind() {
@@ -118,19 +117,18 @@ public class SqlJoin extends SqlCall {
     return condition;
   }
 
-  /** Returns a {@link SqlJoinOperator.ConditionType}, never null. */
-  public final SqlJoinOperator.ConditionType getConditionType() {
-    return (SqlJoinOperator.ConditionType)
-        SqlLiteral.symbolValue(conditionType);
+  /** Returns a {@link JoinConditionType}, never null. */
+  public final JoinConditionType getConditionType() {
+    return (JoinConditionType) SqlLiteral.symbolValue(conditionType);
   }
 
   public SqlLiteral getConditionTypeNode() {
     return conditionType;
   }
 
-  /** Returns a {@link SqlJoinOperator.JoinType}, never null. */
-  public final SqlJoinOperator.JoinType getJoinType() {
-    return (SqlJoinOperator.JoinType) SqlLiteral.symbolValue(joinType);
+  /** Returns a {@link JoinType}, never null. */
+  public final JoinType getJoinType() {
+    return (JoinType) SqlLiteral.symbolValue(joinType);
   }
 
   public SqlLiteral getJoinTypeNode() {
@@ -159,6 +157,100 @@ public class SqlJoin extends SqlCall {
 
   public void setRight(SqlNode right) {
     this.right = right;
+  }
+
+  /**
+   * <code>SqlJoinOperator</code> describes the syntax of the SQL <code>
+   * JOIN</code> operator. Since there is only one such operator, this class is
+   * almost certainly a singleton.
+   */
+  public static class SqlJoinOperator extends SqlOperator {
+    private static final SqlWriter.FrameType FRAME_TYPE =
+        SqlWriter.FrameTypeEnum.create("USING");
+
+    //~ Constructors -----------------------------------------------------------
+
+    private SqlJoinOperator() {
+      super("JOIN", SqlKind.JOIN, 16, true, null, null, null);
+    }
+
+    //~ Methods ----------------------------------------------------------------
+
+    public SqlSyntax getSyntax() {
+      return SqlSyntax.SPECIAL;
+    }
+
+    public SqlCall createCall(
+        SqlLiteral functionQualifier,
+        SqlParserPos pos,
+        SqlNode... operands) {
+      assert functionQualifier == null;
+      return new SqlJoin(pos, operands[0], (SqlLiteral) operands[1],
+          (SqlLiteral) operands[2], operands[3], (SqlLiteral) operands[4],
+          operands[5]);
+    }
+
+    @Override public void unparse(
+        SqlWriter writer,
+        SqlCall call,
+        int leftPrec,
+        int rightPrec) {
+      final SqlJoin join = (SqlJoin) call;
+
+      join.left.unparse(
+          writer,
+          leftPrec,
+          getLeftPrec());
+      String natural = "";
+      if (join.isNatural()) {
+        natural = "NATURAL ";
+      }
+      switch (join.getJoinType()) {
+      case COMMA:
+        writer.sep(",", true);
+        break;
+      case CROSS:
+        writer.sep(natural + "CROSS JOIN");
+        break;
+      case FULL:
+        writer.sep(natural + "FULL JOIN");
+        break;
+      case INNER:
+        writer.sep(natural + "INNER JOIN");
+        break;
+      case LEFT:
+        writer.sep(natural + "LEFT JOIN");
+        break;
+      case RIGHT:
+        writer.sep(natural + "RIGHT JOIN");
+        break;
+      default:
+        throw Util.unexpected(join.getJoinType());
+      }
+      join.right.unparse(writer, getRightPrec(), rightPrec);
+      if (join.condition != null) {
+        switch (join.getConditionType()) {
+        case USING:
+          // No need for an extra pair of parens -- the condition is a
+          // list. The result is something like "USING (deptno, gender)".
+          writer.keyword("USING");
+          assert join.condition instanceof SqlNodeList;
+          final SqlWriter.Frame frame =
+              writer.startList(FRAME_TYPE, "(", ")");
+          join.condition.unparse(writer, 0, 0);
+          writer.endList(frame);
+          break;
+
+        case ON:
+          writer.keyword("ON");
+          join.condition.unparse(writer, leftPrec, rightPrec);
+          break;
+
+        default:
+          throw Util.unexpected(join.getConditionType());
+        }
+      }
+    }
   }
 }
 

@@ -26,6 +26,7 @@ import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.reltype.RelDataTypeField;
 import org.eigenbase.rex.*;
 import org.eigenbase.sql.*;
+import org.eigenbase.sql.fun.SqlCase;
 import org.eigenbase.sql.fun.SqlStdOperatorTable;
 import org.eigenbase.sql.parser.SqlParserPos;
 import org.eigenbase.sql.type.BasicSqlType;
@@ -106,12 +107,15 @@ public class JdbcImplementor {
     /** Converts an expression from {@link RexNode} to {@link SqlNode}
      * format. */
     SqlNode toSql(RexProgram program, RexNode rex) {
-      if (rex instanceof RexLocalRef) {
+      switch (rex.getKind()) {
+      case LOCAL_REF:
         final int index = ((RexLocalRef) rex).getIndex();
         return toSql(program, program.getExprList().get(index));
-      } else if (rex instanceof RexInputRef) {
+
+      case INPUT_REF:
         return field(((RexInputRef) rex).getIndex());
-      } else if (rex instanceof RexLiteral) {
+
+      case LITERAL:
         final RexLiteral literal = (RexLiteral) rex;
         switch (literal.getTypeName().getFamily()) {
         case CHARACTER:
@@ -142,37 +146,41 @@ public class JdbcImplementor {
         default:
           throw new AssertionError(literal + ": " + literal.getTypeName());
         }
-      } else if (rex instanceof RexCall) {
+      case CASE:
+        final RexCall caseCall = (RexCall) rex;
+        final List<SqlNode> caseNodeList =
+            toSql(program, caseCall.getOperands());
+        final SqlNode valueNode;
+        final List<SqlNode> whenList = Expressions.list();
+        final List<SqlNode> thenList = Expressions.list();
+        final SqlNode elseNode;
+        if (caseNodeList.size() % 2 == 0) {
+          // switched:
+          //   "case x when v1 then t1 when v2 then t2 ... else e end"
+          valueNode = caseNodeList.get(0);
+          for (int i = 1; i < caseNodeList.size() - 1; i += 2) {
+            whenList.add(caseNodeList.get(i));
+            thenList.add(caseNodeList.get(i + 1));
+          }
+        } else {
+          // other: "case when w1 then t1 when w2 then t2 ... else e end"
+          valueNode = null;
+          for (int i = 0; i < caseNodeList.size() - 1; i += 2) {
+            whenList.add(caseNodeList.get(i));
+            thenList.add(caseNodeList.get(i + 1));
+          }
+        }
+        elseNode = caseNodeList.get(caseNodeList.size() - 1);
+        return new SqlCase(POS, valueNode, new SqlNodeList(whenList, POS),
+            new SqlNodeList(thenList, POS), elseNode);
+
+      default:
         final RexCall call = (RexCall) rex;
         final SqlOperator op = call.getOperator();
         final List<SqlNode> nodeList = toSql(program, call.getOperands());
-        if (op == SqlStdOperatorTable.CAST) {
+        switch (rex.getKind()) {
+        case CAST:
           nodeList.add(toSql(call.getType()));
-        }
-        if (op == SqlStdOperatorTable.CASE) {
-          final SqlNode valueNode;
-          final List<SqlNode> whenList = Expressions.list();
-          final List<SqlNode> thenList = Expressions.list();
-          final SqlNode elseNode;
-          if (nodeList.size() % 2 == 0) {
-            // switched:
-            //   "case x when v1 then t1 when v2 then t2 ... else e end"
-            valueNode = nodeList.get(0);
-            for (int i = 1; i < nodeList.size() - 1; i += 2) {
-              whenList.add(nodeList.get(i));
-              thenList.add(nodeList.get(i + 1));
-            }
-          } else {
-            // other: "case when w1 then t1 when w2 then t2 ... else e end"
-            valueNode = null;
-            for (int i = 0; i < nodeList.size() - 1; i += 2) {
-              whenList.add(nodeList.get(i));
-              thenList.add(nodeList.get(i + 1));
-            }
-          }
-          elseNode = nodeList.get(nodeList.size() - 1);
-          return op.createCall(POS, valueNode, new SqlNodeList(whenList, POS),
-              new SqlNodeList(thenList, POS), elseNode);
         }
         if (op instanceof SqlBinaryOperator && nodeList.size() > 2) {
           // In RexNode trees, OR and AND have any number of children;
@@ -180,8 +188,6 @@ public class JdbcImplementor {
           return createLeftCall(op, nodeList);
         }
         return op.createCall(new SqlNodeList(nodeList, POS));
-      } else {
-        throw new AssertionError(rex);
       }
     }
 

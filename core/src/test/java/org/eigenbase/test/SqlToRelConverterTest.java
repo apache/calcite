@@ -668,8 +668,7 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
 
   /**
    * Test one of the custom conversions which is recognized by the class of
-   * the operator (in this case, {@link
-   * org.eigenbase.sql.fun.SqlCaseOperator}).
+   * the operator (in this case, {@link org.eigenbase.sql.fun.SqlCaseOperator}).
    */
   @Test public void testCase() {
     check(

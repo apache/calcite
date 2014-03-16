@@ -117,21 +117,16 @@ import static org.eigenbase.util.Static.RESOURCE;
  * </p>
  */
 public class SqlCaseOperator extends SqlOperator {
-  //~ Static fields/initializers ---------------------------------------------
+  public static final SqlCaseOperator INSTANCE = new SqlCaseOperator();
 
   private static final SqlWriter.FrameType FRAME_TYPE =
       SqlWriter.FrameTypeEnum.create("CASE");
 
   //~ Constructors -----------------------------------------------------------
 
-  public SqlCaseOperator() {
-    super(
-        "CASE",
-        SqlKind.CASE, MDX_PRECEDENCE,
-        true,
-        null,
-        InferTypes.RETURN_TYPE,
-        null);
+  private SqlCaseOperator() {
+    super("CASE", SqlKind.CASE, MDX_PRECEDENCE, true, null,
+        InferTypes.RETURN_TYPE, null);
   }
 
   //~ Methods ----------------------------------------------------------------

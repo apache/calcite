@@ -1697,8 +1697,8 @@ public class SqlToRelConverter {
           createBlackboard(validator.getJoinScope(from), null);
       SqlNode left = join.getLeft();
       SqlNode right = join.getRight();
-      boolean isNatural = join.isNatural();
-      SqlJoinOperator.JoinType joinType = join.getJoinType();
+      final boolean isNatural = join.isNatural();
+      final JoinType joinType = join.getJoinType();
       final Blackboard leftBlackboard =
           createBlackboard(validator.getJoinScope(left), null);
       final Blackboard rightBlackboard =
@@ -2165,7 +2165,7 @@ public class SqlToRelConverter {
   private RexNode convertJoinCondition(
       Blackboard bb,
       SqlNode condition,
-      SqlJoinOperator.ConditionType conditionType,
+      JoinConditionType conditionType,
       RelNode leftRel,
       RelNode rightRel) {
     if (condition == null) {
@@ -2239,8 +2239,7 @@ public class SqlToRelConverter {
     return conditionExp;
   }
 
-  private static JoinRelType convertJoinType(
-      SqlJoinOperator.JoinType joinType) {
+  private static JoinRelType convertJoinType(JoinType joinType) {
     switch (joinType) {
     case COMMA:
     case INNER:

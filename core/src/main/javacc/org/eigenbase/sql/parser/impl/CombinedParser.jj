@@ -1330,21 +1330,21 @@ SqlLiteral Natural() :
 
 SqlLiteral JoinType() :
 {
-    SqlJoinOperator.JoinType joinType;
+    JoinType joinType;
 }
 {
     (
-        <JOIN> { joinType = SqlJoinOperator.JoinType.INNER; }
+        <JOIN> { joinType = JoinType.INNER; }
     |
-        <INNER> <JOIN> { joinType = SqlJoinOperator.JoinType.INNER; }
+        <INNER> <JOIN> { joinType = JoinType.INNER; }
     |
-        <LEFT> [ <OUTER> ] <JOIN> { joinType = SqlJoinOperator.JoinType.LEFT; }
+        <LEFT> [ <OUTER> ] <JOIN> { joinType = JoinType.LEFT; }
     |
-        <RIGHT> [ <OUTER> ] <JOIN> { joinType = SqlJoinOperator.JoinType.RIGHT; }
+        <RIGHT> [ <OUTER> ] <JOIN> { joinType = JoinType.RIGHT; }
     |
-        <FULL> [ <OUTER> ] <JOIN> { joinType = SqlJoinOperator.JoinType.FULL; }
+        <FULL> [ <OUTER> ] <JOIN> { joinType = JoinType.FULL; }
     |
-        <CROSS> <JOIN> { joinType = SqlJoinOperator.JoinType.CROSS; }
+        <CROSS> <JOIN> { joinType = JoinType.CROSS; }
     )
     {
         return joinType.symbol(getPos());
@@ -1372,7 +1372,7 @@ SqlNode JoinTable(SqlNode e) :
                 natural,
                 joinType,
                 e2,                
-                SqlJoinOperator.ConditionType.ON.symbol(onPos),
+                JoinConditionType.ON.symbol(onPos),
                 condition);
         }
     |
@@ -1384,7 +1384,7 @@ SqlNode JoinTable(SqlNode e) :
                 natural,
                 joinType,
                 e2,
-                SqlJoinOperator.ConditionType.USING.symbol(usingPos),
+                JoinConditionType.USING.symbol(usingPos),
                 new SqlNodeList(list.getList(), usingPos));
         }
     |
@@ -1394,8 +1394,7 @@ SqlNode JoinTable(SqlNode e) :
                 natural,
                 joinType,
                 e2,
-                SqlJoinOperator.ConditionType.NONE.symbol(
-                    joinType.getParserPosition()),
+                JoinConditionType.NONE.symbol(joinType.getParserPosition()),
                 null);
         }
     )
@@ -1438,7 +1437,7 @@ SqlNode FromClause() :
                     natural,
                     joinType,
                     e2,
-                    SqlJoinOperator.ConditionType.ON.symbol(onPos),
+                    JoinConditionType.ON.symbol(onPos),
                     condition);
             }
             |
@@ -1450,7 +1449,7 @@ SqlNode FromClause() :
                     natural,
                     joinType,
                     e2,
-                    SqlJoinOperator.ConditionType.USING.symbol(usingPos),
+                    JoinConditionType.USING.symbol(usingPos),
                     new SqlNodeList(list.getList(), usingPos));
             }
             |
@@ -1460,8 +1459,7 @@ SqlNode FromClause() :
                     natural,
                     joinType,
                     e2,
-                    SqlJoinOperator.ConditionType.NONE.symbol(
-                        joinType.getParserPosition()),
+                    JoinConditionType.NONE.symbol(joinType.getParserPosition()),
                     null);
             }
         )
@@ -1476,9 +1474,9 @@ SqlNode FromClause() :
             e = new SqlJoin(pos,
                 e,
                 SqlLiteral.createBoolean(false, pos),
-                SqlJoinOperator.JoinType.COMMA.symbol(SqlParserPos.ZERO),
+                JoinType.COMMA.symbol(SqlParserPos.ZERO),
                 e2,
-                SqlJoinOperator.ConditionType.NONE.symbol(SqlParserPos.ZERO),
+                JoinConditionType.NONE.symbol(SqlParserPos.ZERO),
                 null);
         }
     ) *

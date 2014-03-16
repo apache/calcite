@@ -546,7 +546,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     if (hintList.size() > 0) {
       return;
     }
-    SqlJoinOperator.ConditionType conditionType = join.getConditionType();
+    final JoinConditionType conditionType = join.getConditionType();
     final SqlValidatorScope joinScope = scopes.get(join);
     switch (conditionType) {
     case ON:
@@ -1032,9 +1032,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     // for validation to work
     SqlNode sourceTableRef = call.getSourceTableRef();
     SqlInsert insertCall = call.getInsertCall();
-    SqlJoinOperator.JoinType joinType =
-        (insertCall == null) ? SqlJoinOperator.JoinType.INNER
-            : SqlJoinOperator.JoinType.LEFT;
+    JoinType joinType = (insertCall == null) ? JoinType.INNER : JoinType.LEFT;
     SqlNode leftJoinTerm = (SqlNode) sourceTableRef.clone();
     SqlNode outerJoin =
         new SqlJoin(SqlParserPos.ZERO,
@@ -1042,7 +1040,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
             SqlLiteral.createBoolean(false, SqlParserPos.ZERO),
             joinType.symbol(SqlParserPos.ZERO),
             targetTable,
-            SqlJoinOperator.ConditionType.ON.symbol(SqlParserPos.ZERO),
+            JoinConditionType.ON.symbol(SqlParserPos.ZERO),
             call.getCondition());
     SqlSelect select =
         new SqlSelect(SqlParserPos.ZERO, null, selectList, outerJoin, null,
@@ -1740,15 +1738,17 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
       boolean forceLeftNullable = forceNullable;
       boolean forceRightNullable = forceNullable;
-      if (join.getJoinType() == SqlJoinOperator.JoinType.LEFT) {
+      switch (join.getJoinType()) {
+      case LEFT:
         forceRightNullable = true;
-      }
-      if (join.getJoinType() == SqlJoinOperator.JoinType.RIGHT) {
+        break;
+      case RIGHT:
         forceLeftNullable = true;
-      }
-      if (join.getJoinType() == SqlJoinOperator.JoinType.FULL) {
+        break;
+      case FULL:
         forceLeftNullable = true;
         forceRightNullable = true;
+        break;
       }
       final SqlNode newLeft =
           registerFrom(
@@ -2566,8 +2566,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     SqlNode right = join.getRight();
     SqlNode condition = join.getCondition();
     boolean natural = join.isNatural();
-    SqlJoinOperator.JoinType joinType = join.getJoinType();
-    SqlJoinOperator.ConditionType conditionType = join.getConditionType();
+    final JoinType joinType = join.getJoinType();
+    final JoinConditionType conditionType = join.getConditionType();
     final SqlValidatorScope joinScope = scopes.get(join);
     validateFrom(left, unknownType, joinScope);
     validateFrom(right, unknownType, joinScope);

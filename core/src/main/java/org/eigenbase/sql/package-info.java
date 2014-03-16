@@ -69,7 +69,7 @@
  *     And there are singleton classes for special syntactic constructs
  *     {@link org.eigenbase.sql.SqlSelectOperator}
 
- *     and {@link org.eigenbase.sql.SqlJoinOperator}. (These special operators
+ *     and {@link org.eigenbase.sql.SqlJoin.SqlJoinOperator}. (These special operators
  *     even have their own sub-types of {@link org.eigenbase.sql.SqlCall}:
  *     {@link org.eigenbase.sql.SqlSelect}
  *     and {@link org.eigenbase.sql.SqlJoin}.)</p>

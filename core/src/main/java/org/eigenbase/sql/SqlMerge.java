@@ -19,7 +19,6 @@ package org.eigenbase.sql;
 
 import java.util.*;
 
-import org.eigenbase.sql.fun.SqlStdOperatorTable;
 import org.eigenbase.sql.parser.*;
 import org.eigenbase.sql.validate.*;
 import org.eigenbase.util.Pair;
@@ -29,7 +28,9 @@ import org.eigenbase.util.Pair;
  * statement.
  */
 public class SqlMerge extends SqlCall {
-  public static final int SOURCE_SELECT_OPERAND = 5;
+  public static final SqlSpecialOperator OPERATOR =
+      new SqlSpecialOperator("MERGE", SqlKind.MERGE);
+
   SqlIdentifier targetTable;
   SqlNode condition;
   SqlNode source;
@@ -61,7 +62,7 @@ public class SqlMerge extends SqlCall {
   //~ Methods ----------------------------------------------------------------
 
   public SqlOperator getOperator() {
-    return SqlStdOperatorTable.MERGE;
+    return OPERATOR;
   }
 
   @Override public SqlKind getKind() {

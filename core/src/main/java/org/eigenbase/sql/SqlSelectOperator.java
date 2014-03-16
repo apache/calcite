@@ -19,7 +19,6 @@ package org.eigenbase.sql;
 
 import java.util.*;
 
-import org.eigenbase.sql.fun.*;
 import org.eigenbase.sql.parser.*;
 import org.eigenbase.sql.type.*;
 import org.eigenbase.sql.util.*;
@@ -167,8 +166,8 @@ public class SqlSelectOperator extends SqlOperator {
           writer.startList(SqlWriter.FrameTypeEnum.FROM_LIST);
       select.from.unparse(
           writer,
-          SqlStdOperatorTable.JOIN.getLeftPrec() - 1,
-          SqlStdOperatorTable.JOIN.getRightPrec() - 1);
+          SqlJoin.OPERATOR.getLeftPrec() - 1,
+          SqlJoin.OPERATOR.getRightPrec() - 1);
       writer.endList(fromFrame);
     }
 
