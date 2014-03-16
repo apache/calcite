@@ -38,11 +38,19 @@ import org.eigenbase.sql2rel.SqlToRelConverter;
 
 import com.google.common.collect.ImmutableList;
 
+import java.util.List;
+
 /** Implementation of {@link net.hydromatic.optiq.tools.Planner}. */
 public class PlannerImpl implements Planner {
   private final Function1<SchemaPlus, Schema> schemaFactory;
   private final SqlOperatorTable operatorTable;
   private final ImmutableList<RuleSet> ruleSets;
+
+  /**
+   * Holds the RelTraitDefs to be registered with planner.
+   */
+  private final List<RelTraitDef> traitDefs;
+
   private final Lex lex;
 
   // Options. TODO: allow client to set these. Maybe use a ConnectionConfig.
@@ -70,11 +78,19 @@ public class PlannerImpl implements Planner {
   public PlannerImpl(Lex lex,
       Function1<SchemaPlus, Schema> schemaFactory,
       SqlOperatorTable operatorTable, ImmutableList<RuleSet> ruleSets) {
+    this(lex, schemaFactory, operatorTable, ruleSets, null);
+  }
+
+  public PlannerImpl(Lex lex,
+      Function1<SchemaPlus, Schema> schemaFactory,
+      SqlOperatorTable operatorTable, ImmutableList<RuleSet> ruleSets,
+      List<RelTraitDef> traitDefs) {
     this.schemaFactory = schemaFactory;
     this.operatorTable = operatorTable;
     this.ruleSets = ruleSets;
     this.lex = lex;
     this.state = State.STATE_0_CLOSED;
+    this.traitDefs = traitDefs;
     reset();
   }
 
@@ -128,6 +144,16 @@ public class PlannerImpl implements Planner {
           }
         });
     state = State.STATE_2_READY;
+
+    // If user specify own traitDef, in stead of default default trait,
+    // First, clear the default trait def registered with planer
+    // then, register the trait def specified in traitDefs.
+    if (this.traitDefs != null) {
+      planner.clearRelTraitDefs();
+      for (RelTraitDef def : this.traitDefs) {
+        planner.addRelTraitDef(def);
+      }
+    }
   }
 
   public SqlNode parse(final String sql) throws SqlParseException {

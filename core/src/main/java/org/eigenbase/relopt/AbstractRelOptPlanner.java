@@ -214,6 +214,9 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
     return false;
   }
 
+  // implement RelOptPlanner
+  public void clearRelTraitDefs() {}
+
   public List<RelTraitDef> getRelTraitDefs() {
     return Collections.emptyList();
   }

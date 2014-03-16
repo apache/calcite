@@ -64,6 +64,11 @@ public interface RelOptPlanner {
   boolean addRelTraitDef(RelTraitDef relTraitDef);
 
   /**
+   * Clear all the registered RelTraitDef.
+   */
+  void clearRelTraitDefs();
+
+  /**
    * Returns the list of active trait types.
    */
   List<RelTraitDef> getRelTraitDefs();

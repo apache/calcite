@@ -411,6 +411,11 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
   }
 
   @Override
+  public void clearRelTraitDefs() {
+    traitDefs.clear();
+  }
+
+  @Override
   public List<RelTraitDef> getRelTraitDefs() {
     return traitDefs;
   }

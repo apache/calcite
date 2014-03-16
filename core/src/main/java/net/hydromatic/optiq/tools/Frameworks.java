@@ -29,12 +29,14 @@ import net.hydromatic.optiq.server.OptiqServerStatement;
 
 import org.eigenbase.relopt.RelOptCluster;
 import org.eigenbase.relopt.RelOptSchema;
+import org.eigenbase.relopt.RelTraitDef;
 import org.eigenbase.sql.fun.SqlStdOperatorTable;
 
 import com.google.common.collect.ImmutableList;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.util.List;
 
 /**
  * Tools for invoking Optiq functionality without initializing a container /
@@ -70,6 +72,45 @@ public class Frameworks {
       SqlStdOperatorTable operatorTable, RuleSet... ruleSets) {
     return new PlannerImpl(lex, schemaFactory, operatorTable,
         ImmutableList.copyOf(ruleSets));
+  }
+
+  /**
+   * Creates an instance of {@code Planner}.
+   *
+   * @param lex The type of lexing the SqlParser should do.  Controls case rules
+   *     and quoted identifier syntax.
+   * @param schemaFactory Schema factory. Given a root schema, it creates and
+   *                      returns the schema that should be used to execute
+   *                      queries.
+   * @param operatorTable The instance of SqlOperatorTable that be should to
+   *     resolve Optiq operators.
+   * @param ruleSets An array of one or more rule sets used during the course of
+   *     query evaluation. The common use case is when there is a single rule
+   *     set and {@link net.hydromatic.optiq.tools.Planner#transform}
+   *     will only be called once. However, consumers may also register multiple
+   *     {@link net.hydromatic.optiq.tools.RuleSet}s and do multiple repetitions
+   *     of {@link Planner#transform} planning cycles using different indices.
+   *     The order of rule sets provided here determines the zero-based indices
+   *     of rule sets elsewhere in this class.
+   *  @param  traitDefs The list of RelTraitDef that would be registered with
+   *                    planner. The planner would first de-register any
+   *                    existing RelTraitDef, before register the RelTraitDef
+   *                    in this list.
+   *                    Also, the order of RelTraitDef matters, if planner is
+   *                    VolcanoPlanner, which will call RelTraitDef.convert()
+   *                    in the order of this list. The most important
+   *                    RelTraitDef comes first in the list, followed by
+   *                    the second most important one, etc.
+   * @return The Planner object.
+   */
+  public static Planner getPlanner(
+      Lex lex,
+      Function1<SchemaPlus, Schema> schemaFactory,
+      SqlStdOperatorTable operatorTable,
+      List<RelTraitDef> traitDefs,
+      RuleSet... ruleSets) {
+    return new PlannerImpl(lex, schemaFactory, operatorTable,
+        ImmutableList.copyOf(ruleSets), traitDefs);
   }
 
   /** Piece of code to be run in a context where a planner is available. The
