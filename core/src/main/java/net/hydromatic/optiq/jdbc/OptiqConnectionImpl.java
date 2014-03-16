@@ -25,6 +25,9 @@ import net.hydromatic.linq4j.expressions.Expressions;
 import net.hydromatic.linq4j.function.Function0;
 
 import net.hydromatic.optiq.*;
+import net.hydromatic.optiq.config.Lex;
+import net.hydromatic.optiq.config.OptiqConnectionConfig;
+import net.hydromatic.optiq.config.OptiqConnectionProperty;
 import net.hydromatic.optiq.impl.AbstractSchema;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 import net.hydromatic.optiq.server.OptiqServer;
@@ -80,7 +83,7 @@ abstract class OptiqConnectionImpl
     }
     this.rootSchema = rootSchema;
 
-    ConnectionConfig cfg = connectionConfig(info);
+    OptiqConnectionConfig cfg = new OptiqConnectionConfigImpl(info);
 
     this.properties.put(InternalProperty.CASE_SENSITIVE, cfg.caseSensitive());
     this.properties.put(InternalProperty.UNQUOTED_CASING, cfg.unquotedCasing());
@@ -96,57 +99,8 @@ abstract class OptiqConnectionImpl
     return (MetaImpl) meta;
   }
 
-  public ConnectionConfig config() {
-    return connectionConfig(info);
-  }
-
-  public static ConnectionConfig connectionConfig(final Properties properties) {
-    return new ConnectionConfig() {
-      public boolean autoTemp() {
-        return ConnectionProperty.AUTO_TEMP.getBoolean(properties);
-      }
-
-      public boolean materializationsEnabled() {
-        return ConnectionProperty.MATERIALIZATIONS_ENABLED
-            .getBoolean(properties);
-      }
-
-      public String model() {
-        return ConnectionProperty.MODEL.getString(properties);
-      }
-
-      public String schema() {
-        return ConnectionProperty.SCHEMA.getString(properties);
-      }
-
-      public Lex lex() {
-        return ConnectionProperty.LEX.getEnum(properties, Lex.class);
-      }
-
-      public Quoting quoting() {
-        return ConnectionProperty.QUOTING
-            .getEnum(properties, Quoting.class, lex().quoting);
-      }
-
-      public Casing unquotedCasing() {
-        return ConnectionProperty.UNQUOTED_CASING
-            .getEnum(properties, Casing.class, lex().unquotedCasing);
-      }
-
-      public Casing quotedCasing() {
-        return ConnectionProperty.QUOTED_CASING
-            .getEnum(properties, Casing.class, lex().quotedCasing);
-      }
-
-      public boolean caseSensitive() {
-        return ConnectionProperty.CASE_SENSITIVE
-            .getBoolean(properties, lex().caseSensitive);
-      }
-
-      public boolean spark() {
-        return ConnectionProperty.SPARK.getBoolean(properties);
-      }
-    };
+  public OptiqConnectionConfig config() {
+    return new OptiqConnectionConfigImpl(info);
   }
 
   @Override public AvaticaStatement createStatement(int resultSetType,
@@ -240,14 +194,6 @@ abstract class OptiqConnectionImpl
     } catch (SQLException e) {
       throw new RuntimeException(e);
     }
-  }
-  @Override
-  public TimeZone getTimeZone() {
-    final String timeZoneName =
-        ConnectionProperty.TIMEZONE.getString(info);
-    return timeZoneName == null
-        ? TimeZone.getDefault()
-        : TimeZone.getTimeZone(timeZoneName);
   }
 
   public DataContext createDataContext(List<Object> parameterValues) {
@@ -387,7 +333,7 @@ abstract class OptiqConnectionImpl
           : Collections.singletonList(schemaName);
     }
 
-    public ConnectionConfig config() {
+    public OptiqConnectionConfig config() {
       return connection.config();
     }
 
@@ -418,6 +364,55 @@ abstract class OptiqConnectionImpl
 
     public Object get(String name) {
       return null;
+    }
+  }
+
+  /** Implementation of {@link OptiqConnectionConfig}. */
+  private static class OptiqConnectionConfigImpl extends ConnectionConfigImpl
+      implements OptiqConnectionConfig {
+    public OptiqConnectionConfigImpl(Properties properties) {
+      super(properties);
+    }
+
+    public boolean autoTemp() {
+      return OptiqConnectionProperty.AUTO_TEMP.wrap(properties).getBoolean();
+    }
+
+    public boolean materializationsEnabled() {
+      return OptiqConnectionProperty.MATERIALIZATIONS_ENABLED.wrap(properties)
+          .getBoolean();
+    }
+
+    public String model() {
+      return OptiqConnectionProperty.MODEL.wrap(properties).getString();
+    }
+
+    public Lex lex() {
+      return OptiqConnectionProperty.LEX.wrap(properties).getEnum(Lex.class);
+    }
+
+    public Quoting quoting() {
+      return OptiqConnectionProperty.QUOTING.wrap(properties)
+          .getEnum(Quoting.class, lex().quoting);
+    }
+
+    public Casing unquotedCasing() {
+      return OptiqConnectionProperty.UNQUOTED_CASING.wrap(properties)
+          .getEnum(Casing.class, lex().unquotedCasing);
+    }
+
+    public Casing quotedCasing() {
+      return OptiqConnectionProperty.QUOTED_CASING.wrap(properties)
+          .getEnum(Casing.class, lex().quotedCasing);
+    }
+
+    public boolean caseSensitive() {
+      return OptiqConnectionProperty.CASE_SENSITIVE.wrap(properties)
+          .getBoolean(lex().caseSensitive);
+    }
+
+    public boolean spark() {
+      return OptiqConnectionProperty.SPARK.wrap(properties).getBoolean();
     }
   }
 }

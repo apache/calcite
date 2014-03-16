@@ -20,6 +20,7 @@ package net.hydromatic.optiq.jdbc;
 import net.hydromatic.linq4j.QueryProvider;
 
 import net.hydromatic.optiq.SchemaPlus;
+import net.hydromatic.optiq.config.OptiqConnectionConfig;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 
 import java.sql.Connection;
@@ -76,10 +77,7 @@ public interface OptiqConnection extends Connection, QueryProvider {
   // in java.sql.Connection from JDK 1.7, but declare here to allow other JDKs
   String getSchema() throws SQLException;
 
-  /** Returns a view onto this connection's configuration properties. Code
-   * within Optiq should use this view rather than calling
-   * {@link java.util.Properties#getProperty(String)}. */
-  ConnectionConfig config();
+  OptiqConnectionConfig config();
 }
 
 // End OptiqConnection.java

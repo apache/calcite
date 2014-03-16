@@ -22,8 +22,8 @@ import net.hydromatic.linq4j.function.Function1;
 import net.hydromatic.optiq.Schema;
 import net.hydromatic.optiq.SchemaPlus;
 import net.hydromatic.optiq.Schemas;
+import net.hydromatic.optiq.config.Lex;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
-import net.hydromatic.optiq.jdbc.ConnectionConfig;
 import net.hydromatic.optiq.jdbc.OptiqSchema;
 import net.hydromatic.optiq.tools.*;
 
@@ -43,7 +43,7 @@ public class PlannerImpl implements Planner {
   private final Function1<SchemaPlus, Schema> schemaFactory;
   private final SqlOperatorTable operatorTable;
   private final ImmutableList<RuleSet> ruleSets;
-  private final ConnectionConfig.Lex lex;
+  private final Lex lex;
 
   // Options. TODO: allow client to set these. Maybe use a ConnectionConfig.
   private boolean caseSensitive = true;
@@ -67,7 +67,7 @@ public class PlannerImpl implements Planner {
   private SqlToRelConverter sqlToRelConverter;
   private RelNode rel;
 
-  public PlannerImpl(ConnectionConfig.Lex lex,
+  public PlannerImpl(Lex lex,
       Function1<SchemaPlus, Schema> schemaFactory,
       SqlOperatorTable operatorTable, ImmutableList<RuleSet> ruleSets) {
     this.schemaFactory = schemaFactory;

@@ -29,7 +29,7 @@ import org.eigenbase.util.*;
 
 import net.hydromatic.avatica.Quoting;
 
-import net.hydromatic.optiq.jdbc.ConnectionConfig;
+import net.hydromatic.optiq.config.Lex;
 
 import org.junit.BeforeClass;
 import org.junit.Ignore;
@@ -6325,7 +6325,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   @Test public void testLexJava() {
-    final SqlTester tester1 = tester.withLex(ConnectionConfig.Lex.JAVA);
+    final SqlTester tester1 = tester.withLex(Lex.JAVA);
     tester1.checkResultType(
         "select e.EMPNO from EMP as e",
         "RecordType(INTEGER NOT NULL EMPNO) NOT NULL");
@@ -6360,7 +6360,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
    * <a href="https://github.com/julianhyde/optiq/issues/145">optiq-145,
    * "Unexpected upper-casing of keywords when using java lexer"</a>. */
   @Test public void testLexJavaKeyword() {
-    final SqlTester tester1 = tester.withLex(ConnectionConfig.Lex.JAVA);
+    final SqlTester tester1 = tester.withLex(Lex.JAVA);
     tester1.checkResultType(
         "select path, x from (select 1 as path, 2 as x from (values (true)))",
         "RecordType(INTEGER NOT NULL path, INTEGER NOT NULL x) NOT NULL");
@@ -6393,7 +6393,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
   @Test public void testLexAndQuoting() {
     final SqlTester tester1 = tester
-        .withLex(ConnectionConfig.Lex.JAVA)
+        .withLex(Lex.JAVA)
         .withQuoting(Quoting.DOUBLE_QUOTE);
     // in Java mode, creating identifiers with spaces is not encouraged, but you
     // can use double-quote if you really have to
@@ -6458,7 +6458,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
   /** Tests using case-insensitive matching of table names. */
   @Test public void testCaseInsensitiveTables() {
-    final SqlTester tester1 = tester.withLex(ConnectionConfig.Lex.SQL_SERVER);
+    final SqlTester tester1 = tester.withLex(Lex.SQL_SERVER);
     tester1.checkQuery("select eMp.* from (select * from emp) as EmP");
     tester1.checkQueryFails("select ^eMp^.* from (select * from emp as EmP)",
         "Unknown identifier 'eMp'");

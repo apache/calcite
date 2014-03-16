@@ -24,6 +24,7 @@ import net.hydromatic.linq4j.expressions.ClassDeclaration;
 import net.hydromatic.linq4j.function.Function0;
 
 import net.hydromatic.optiq.*;
+import net.hydromatic.optiq.config.OptiqConnectionConfig;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 import net.hydromatic.optiq.prepare.OptiqPrepareImpl;
 import net.hydromatic.optiq.runtime.*;
@@ -82,7 +83,7 @@ public interface OptiqPrepare {
 
     List<String> getDefaultSchemaPath();
 
-    ConnectionConfig config();
+    OptiqConnectionConfig config();
 
     /** Returns the spark handler. Never null. */
     SparkHandler spark();

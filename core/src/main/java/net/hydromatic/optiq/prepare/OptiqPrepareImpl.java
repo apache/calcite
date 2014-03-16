@@ -27,8 +27,8 @@ import net.hydromatic.linq4j.function.Function1;
 
 import net.hydromatic.optiq.*;
 import net.hydromatic.optiq.Table;
+import net.hydromatic.optiq.config.OptiqConnectionConfig;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
-import net.hydromatic.optiq.jdbc.ConnectionConfig;
 import net.hydromatic.optiq.jdbc.OptiqPrepare;
 import net.hydromatic.optiq.jdbc.OptiqSchema;
 import net.hydromatic.optiq.materialize.MaterializationService;
@@ -304,7 +304,7 @@ public class OptiqPrepareImpl implements OptiqPrepare {
     final Prepare.PreparedResult preparedResult;
     if (sql != null) {
       assert queryable == null;
-      final ConnectionConfig config = context.config();
+      final OptiqConnectionConfig config = context.config();
       SqlParser parser = new SqlParser(sql, config.quoting(),
           config.unquotedCasing(), config.quotedCasing());
       SqlNode sqlNode;

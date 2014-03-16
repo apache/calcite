@@ -18,10 +18,7 @@
 package net.hydromatic.avatica;
 
 import java.sql.*;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
+import java.util.*;
 import java.util.logging.Logger;
 
 /**
@@ -96,6 +93,14 @@ public abstract class UnregisteredDriver implements java.sql.Driver {
    */
   protected abstract DriverVersion createDriverVersion();
 
+  /**
+   * Returns the connection properties supported by this driver.
+   */
+  protected Collection<ConnectionProperty> getConnectionProperties() {
+    return Arrays.<ConnectionProperty>asList(
+        BuiltInConnectionProperty.values());
+  }
+
   /** Helper method for creating factories. */
   protected static AvaticaFactory instantiateFactory(String factoryClassName) {
     try {
@@ -144,14 +149,11 @@ public abstract class UnregisteredDriver implements java.sql.Driver {
               (String) entry.getValue()));
     }
     // Next, add property definitions not mentioned in info
-    for (ConnectionProperty p : ConnectionProperty.values()) {
+    for (ConnectionProperty p : getConnectionProperties()) {
       if (info.containsKey(p.name())) {
         continue;
       }
-      list.add(
-          new DriverPropertyInfo(
-              p.name(),
-              null));
+      list.add(new DriverPropertyInfo(p.name(), null));
     }
     return list.toArray(new DriverPropertyInfo[list.size()]);
   }

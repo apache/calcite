@@ -329,6 +329,22 @@ public class JdbcTest {
     connection.close();
   }
 
+  /** Test for {@link Driver#getPropertyInfo(String, Properties)}. */
+  @Test public void testConnectionProperties() throws ClassNotFoundException,
+      SQLException {
+    Class.forName("net.hydromatic.optiq.jdbc.Driver");
+    java.sql.Driver driver = DriverManager.getDriver("jdbc:optiq:");
+    final DriverPropertyInfo[] propertyInfo =
+        driver.getPropertyInfo("jdbc:optiq:", new Properties());
+    final HashSet<String> names = new HashSet<String>();
+    for (DriverPropertyInfo info : propertyInfo) {
+      names.add(info.name);
+    }
+    assertTrue(names.contains("SCHEMA"));
+    assertTrue(names.contains("TIMEZONE"));
+    assertTrue(names.contains("MATERIALIZATIONS_ENABLED"));
+  }
+
   /**
    * Make sure that the properties look sane.
    */

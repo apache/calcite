@@ -21,6 +21,7 @@ import net.hydromatic.linq4j.QueryProvider;
 import net.hydromatic.linq4j.Queryable;
 import net.hydromatic.linq4j.expressions.*;
 
+import net.hydromatic.optiq.config.OptiqConnectionConfig;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 import net.hydromatic.optiq.jdbc.*;
 
@@ -275,7 +276,7 @@ public final class Schemas {
   }
 
   private static OptiqPrepare.Context makeContext(
-      final ConnectionConfig connectionConfig,
+      final OptiqConnectionConfig connectionConfig,
       final JavaTypeFactory typeFactory,
       final DataContext dataContext,
       final OptiqSchema schema,
@@ -298,7 +299,7 @@ public final class Schemas {
         return schemaPath;
       }
 
-      public ConnectionConfig config() {
+      public OptiqConnectionConfig config() {
         return connectionConfig;
       }
 

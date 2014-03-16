@@ -28,7 +28,7 @@ import org.eigenbase.test.SqlValidatorTestCase;
 import net.hydromatic.avatica.Casing;
 import net.hydromatic.avatica.Quoting;
 
-import net.hydromatic.optiq.jdbc.ConnectionConfig;
+import net.hydromatic.optiq.config.Lex;
 
 /**
  * SqlTester defines a callback for testing SQL queries and expressions.
@@ -73,7 +73,7 @@ public interface SqlTester extends Closeable, SqlValidatorTestCase.Tester {
   SqlTester withCaseSensitive(boolean sensitive);
 
   /** Returns a tester that follows a lex policy. */
-  SqlTester withLex(ConnectionConfig.Lex lex);
+  SqlTester withLex(Lex lex);
 
   /** Returns a tester that tests conformance to a particular SQL language
    * version. */

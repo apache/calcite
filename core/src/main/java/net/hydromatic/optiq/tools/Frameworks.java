@@ -21,7 +21,7 @@ import net.hydromatic.linq4j.function.Function1;
 
 import net.hydromatic.optiq.Schema;
 import net.hydromatic.optiq.SchemaPlus;
-import net.hydromatic.optiq.jdbc.ConnectionConfig;
+import net.hydromatic.optiq.config.Lex;
 import net.hydromatic.optiq.jdbc.OptiqConnection;
 import net.hydromatic.optiq.prepare.OptiqPrepareImpl;
 import net.hydromatic.optiq.prepare.PlannerImpl;
@@ -65,7 +65,7 @@ public class Frameworks {
    * @return The Planner object.
    */
   public static Planner getPlanner(
-      ConnectionConfig.Lex lex,
+      Lex lex,
       Function1<SchemaPlus, Schema> schemaFactory,
       SqlStdOperatorTable operatorTable, RuleSet... ruleSets) {
     return new PlannerImpl(lex, schemaFactory, operatorTable,

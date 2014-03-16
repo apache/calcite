@@ -75,6 +75,15 @@ public abstract class AvaticaConnection implements Connection {
     throw new UnsupportedOperationException();
   }
 
+  /** Returns a view onto this connection's configuration properties. Code
+   * in Avatica and derived projects should use this view rather than calling
+   * {@link java.util.Properties#getProperty(String)}. Derived projects will
+   * almost certainly subclass {@link ConnectionConfig} with their own
+   * properties. */
+  public ConnectionConfig config() {
+    return new ConnectionConfigImpl(info);
+  }
+
   // Connection methods
 
   public AvaticaStatement createStatement() throws SQLException {
@@ -354,7 +363,10 @@ public abstract class AvaticaConnection implements Connection {
    * when converting datetime values from the database into
    * {@link java.sql.Timestamp} values. */
   public TimeZone getTimeZone() {
-    return TimeZone.getDefault();
+    final String timeZoneName = config().timeZone();
+    return timeZoneName == null
+        ? TimeZone.getDefault()
+        : TimeZone.getTimeZone(timeZoneName);
   }
 
   /**
@@ -422,6 +434,7 @@ public abstract class AvaticaConnection implements Connection {
       return statement.getParameterValues();
     }
   }
+
 }
 
 // End AvaticaConnection.java

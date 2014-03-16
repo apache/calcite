@@ -21,12 +21,13 @@ import net.hydromatic.avatica.*;
 
 import net.hydromatic.linq4j.function.Function0;
 
+import net.hydromatic.optiq.config.OptiqConnectionProperty;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 import net.hydromatic.optiq.model.ModelHandler;
 
 import java.io.IOException;
 import java.sql.SQLException;
-import java.util.Properties;
+import java.util.*;
 
 /**
  * Optiq JDBC driver.
@@ -96,6 +97,14 @@ public class Driver extends UnregisteredDriver {
         }
       }
     };
+  }
+
+  @Override
+  protected Collection<ConnectionProperty> getConnectionProperties() {
+    final List<ConnectionProperty> list = new ArrayList<ConnectionProperty>();
+    Collections.addAll(list, BuiltInConnectionProperty.values());
+    Collections.addAll(list, OptiqConnectionProperty.values());
+    return list;
   }
 
   /** Creates an internal connection. */
