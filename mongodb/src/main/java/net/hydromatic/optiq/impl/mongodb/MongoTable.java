@@ -119,7 +119,7 @@ public class MongoTable extends AbstractQueryableTable
    * @return Enumerator of results
    */
   public Enumerable<Object> aggregate(final DB mongoDb,
-      final List<String> fields, List<String> operations) {
+      final List<String> fields, final List<String> operations) {
     List<DBObject> list = new ArrayList<DBObject>();
     for (String operation : operations) {
       list.add((DBObject) JSON.parse(operation));
@@ -129,9 +129,14 @@ public class MongoTable extends AbstractQueryableTable
     final Function1<DBObject, Object> getter = MongoEnumerator.getter(fields);
     return new AbstractEnumerable<Object>() {
       public Enumerator<Object> enumerator() {
-        final AggregationOutput result =
-            mongoDb.getCollection(collectionName)
-                .aggregate(first, rest.toArray(new DBObject[rest.size()]));
+        final AggregationOutput result;
+        try {
+          result = mongoDb.getCollection(collectionName)
+              .aggregate(first, rest.toArray(new DBObject[rest.size()]));
+        } catch (Exception e) {
+          throw new RuntimeException("While running MongoDB query "
+              + operations, e);
+        }
         return new MongoEnumerator(result.results().iterator(), getter);
       }
     };

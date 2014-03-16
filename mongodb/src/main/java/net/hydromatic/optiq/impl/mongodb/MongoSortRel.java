@@ -25,6 +25,7 @@ import org.eigenbase.relopt.RelOptCluster;
 import org.eigenbase.relopt.RelOptCost;
 import org.eigenbase.relopt.RelOptPlanner;
 import org.eigenbase.relopt.RelTraitSet;
+import org.eigenbase.reltype.RelDataTypeField;
 import org.eigenbase.util.Util;
 
 import java.util.ArrayList;
@@ -66,15 +67,12 @@ public class MongoSortRel
   public void implement(Implementor implementor) {
     implementor.visitChild(0, getChild());
     final List<String> keys = new ArrayList<String>();
-    for (int i = 0; i < collation.getFieldCollations().size(); i++) {
-      final RelFieldCollation fieldCollation =
-          collation.getFieldCollations().get(i);
-      final String name =
-          getRowType().getFieldList().get(i).getName();
-
+    final List<RelDataTypeField> fields = getRowType().getFieldList();
+    for (RelFieldCollation fieldCollation : collation.getFieldCollations()) {
+      final String name = fields.get(fieldCollation.getFieldIndex()).getName();
       keys.add(name + ": " + direction(fieldCollation));
       if (false) {
-        // TODO:
+        // TODO: NULLS FIRST and NULLS LAST
         switch (fieldCollation.nullDirection) {
         case FIRST:
           break;
@@ -87,6 +85,7 @@ public class MongoSortRel
         "{$sort: " + Util.toString(keys, "{", ", ", "}") + "}");
     if (fetch != null || offset != null) {
       // TODO: generate calls to DBCursor.skip() and limit(int).
+      // https://github.com/julianhyde/optiq/issues/193
       throw new UnsupportedOperationException();
     }
   }

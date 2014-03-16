@@ -22,8 +22,6 @@ import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.util.Pair;
 
-import com.google.common.collect.ImmutableList;
-
 import java.util.*;
 
 /**
@@ -34,7 +32,6 @@ import java.util.*;
  */
 public class MongoTableScan extends TableAccessRelBase implements MongoRel {
   final MongoTable mongoTable;
-  final List<Pair<String, String>> ops;
   final RelDataType projectRowType;
 
   /**
@@ -53,7 +50,6 @@ public class MongoTableScan extends TableAccessRelBase implements MongoRel {
     super(cluster, traitSet, table);
     this.mongoTable = mongoTable;
     this.projectRowType = projectRowType;
-    this.ops = ImmutableList.copyOf(ops);
 
     assert mongoTable != null;
     assert getConvention() == MongoRel.CONVENTION;
@@ -68,12 +64,6 @@ public class MongoTableScan extends TableAccessRelBase implements MongoRel {
   @Override
   public RelDataType deriveRowType() {
     return projectRowType != null ? projectRowType : super.deriveRowType();
-  }
-
-  @Override
-  public RelWriter explainTerms(RelWriter pw) {
-    return super.explainTerms(pw)
-        .item("ops", ops);
   }
 
   @Override
@@ -95,9 +85,6 @@ public class MongoTableScan extends TableAccessRelBase implements MongoRel {
   public void implement(Implementor implementor) {
     implementor.mongoTable = mongoTable;
     implementor.table = table;
-    for (Pair<String, String> op : ops) {
-      implementor.add(op.left, op.right);
-    }
   }
 }
 

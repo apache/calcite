@@ -204,6 +204,13 @@ public abstract class Bug {
   public static final boolean FRG378_FIXED = true;
 
   /**
+   * Whether
+   * <a href="https://github.com/julianhyde/optiq/issues/194">OPTIQ-194</a>,
+   * "Array items in MongoDB adapter" is fixed.
+   */
+  public static final boolean OPTIQ194_FIXED = false;
+
+  /**
    * Use this to flag temporary code.
    */
   public static final boolean TODO_FIXED = false;

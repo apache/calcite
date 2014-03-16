@@ -95,33 +95,18 @@ public class MongoToEnumerableConverter
         list.append("table",
             mongoImplementor.table.getExpression(
                 MongoTable.MongoQueryable.class));
-    Expression enumerable;
-    if (aggCount == 0 && findCount <= 2) {
-      enumerable =
-          list.append("enumerable",
-              Expressions.call(
-                  table,
-                  MongoMethod.MONGO_QUERYABLE_FIND.method,
-                  Expressions.constant(filter, String.class),
-                  Expressions.constant(project, String.class),
-                  rowType.getFieldCount() == 1
-                  && rowType.getFieldList().get(0).getName().equals("_MAP")
-                      ? Expressions.constant(null, List.class)
-                      : fields));
-    } else {
-      List<String> opList = Pair.right(mongoImplementor.list);
-      final Expression ops =
-          list.append("ops",
-              constantArrayList(opList));
-      enumerable =
-          list.append("enumerable",
-              Expressions.call(table,
-                  MongoMethod.MONGO_QUERYABLE_AGGREGATE.method, fields, ops));
-      if (OptiqPrepareImpl.DEBUG) {
-        System.out.println("Mongo: " + opList);
-      }
-      Hook.QUERY_PLAN.run(opList);
+    List<String> opList = Pair.right(mongoImplementor.list);
+    final Expression ops =
+        list.append("ops",
+            constantArrayList(opList));
+    Expression enumerable =
+        list.append("enumerable",
+            Expressions.call(table,
+                MongoMethod.MONGO_QUERYABLE_AGGREGATE.method, fields, ops));
+    if (OptiqPrepareImpl.DEBUG) {
+      System.out.println("Mongo: " + opList);
     }
+    Hook.QUERY_PLAN.run(opList);
     list.add(
         Expressions.return_(null, enumerable));
     final PhysType physType =

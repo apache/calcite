@@ -127,38 +127,68 @@ public class MongoFilterRel
     private Void translateMatch2(RexNode node) {
       switch (node.getKind()) {
       case EQUALS:
-        return translateOp(null, ((RexCall) node).getOperands());
+        return translateBinary(null, null, (RexCall) node);
       case LESS_THAN:
-        return translateOp("$lt", ((RexCall) node).getOperands());
+        return translateBinary("$lt", "$gt", (RexCall) node);
       case LESS_THAN_OR_EQUAL:
-        return translateOp("$lte", ((RexCall) node).getOperands());
+        return translateBinary("$lte", "$gte", (RexCall) node);
       case NOT_EQUALS:
-        return translateOp("$ne", ((RexCall) node).getOperands());
+        return translateBinary("$ne", "$ne", (RexCall) node);
       case GREATER_THAN:
-        return translateOp("$gt", ((RexCall) node).getOperands());
+        return translateBinary("$gt", "$lt", (RexCall) node);
       case GREATER_THAN_OR_EQUAL:
-        return translateOp("$gte", ((RexCall) node).getOperands());
+        return translateBinary("$gte", "$lte", (RexCall) node);
       default:
         throw new AssertionError("cannot translate " + node);
       }
     }
 
-    private Void translateOp(String op, List<RexNode> operands) {
-      RexNode left = operands.get(0);
-      RexNode right = operands.get(1);
-      if (left instanceof RexInputRef && right instanceof RexLiteral) {
-        translateOp2(op, (RexInputRef) left, (RexLiteral) right);
-      } else if (right instanceof RexInputRef && left instanceof RexLiteral) {
-        translateOp2(op, (RexInputRef) right, (RexLiteral) left);
-      } else {
-        throw new AssertionError("cannot translate op " + op + " operands "
-            + operands);
+    /** Translates a call to a binary operator, reversing arguments if
+     * necessary. */
+    private Void translateBinary(String op, String rop, RexCall call) {
+      final RexNode left = call.operands.get(0);
+      final RexNode right = call.operands.get(1);
+      boolean b = translateBinary2(op, left, right);
+      if (b) {
+        return null;
       }
-      return null;
+      b = translateBinary2(rop, right, left);
+      if (b) {
+        return null;
+      }
+      throw new AssertionError("cannot translate op " + op + " call " + call);
     }
 
-    private void translateOp2(String op, RexInputRef left, RexLiteral right) {
-      String name = fieldNames.get(left.getIndex());
+    /** Translates a call to a binary operator. Returns whether successful. */
+    private boolean translateBinary2(String op, RexNode left, RexNode right) {
+      switch (right.getKind()) {
+      case LITERAL:
+        break;
+      default:
+        return false;
+      }
+      final RexLiteral rightLiteral = (RexLiteral) right;
+      switch (left.getKind()) {
+      case INPUT_REF:
+        final RexInputRef left1 = (RexInputRef) left;
+        String name = fieldNames.get(left1.getIndex());
+        translateOp2(op, name, rightLiteral);
+        return true;
+      case CAST:
+        return translateBinary2(op, ((RexCall) left).operands.get(0), right);
+      case OTHER_FUNCTION:
+        String itemName = MongoRules.isItem((RexCall) left);
+        if (itemName != null) {
+          translateOp2(op, itemName, rightLiteral);
+          return true;
+        }
+        // fall through
+      default:
+        return false;
+      }
+    }
+
+    private void translateOp2(String op, String name, RexLiteral right) {
       if (op == null) {
         // E.g.: {deptno: 100}
         eqMap.put(name, right);

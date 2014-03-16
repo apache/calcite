@@ -17,16 +17,19 @@
 */
 package net.hydromatic.optiq.impl.mongodb;
 
+import net.hydromatic.optiq.impl.java.JavaTypeFactory;
+import net.hydromatic.optiq.rules.java.RexImpTable;
+import net.hydromatic.optiq.rules.java.RexToLixTranslator;
+
 import org.eigenbase.rel.*;
 import org.eigenbase.rel.convert.ConverterRule;
 import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.RelDataType;
-import org.eigenbase.reltype.RelDataTypeFactory;
 import org.eigenbase.rex.*;
+import org.eigenbase.sql.SqlKind;
 import org.eigenbase.sql.fun.SqlStdOperatorTable;
 import org.eigenbase.sql.type.SqlTypeName;
-import org.eigenbase.util.Pair;
-import org.eigenbase.util.Util;
+import org.eigenbase.util.Bug;
 
 import java.util.*;
 
@@ -39,56 +42,10 @@ public class MongoRules {
   private MongoRules() {}
 
   public static final RelOptRule[] RULES = {
-    new PushProjectOntoMongoRule(),
-    new MongoSortRule(),
-    new MongoFilterRule(),
+    MongoSortRule.INSTANCE,
+    MongoFilterRule.INSTANCE,
+    MongoProjectRule.INSTANCE,
   };
-
-  /** Rule that combines a {@link ProjectRel} with a {@link MongoTableScan},
-   * creating a new table scan with a list of columns to be projected. */
-  private static class PushProjectOntoMongoRule extends RelOptRule {
-    private PushProjectOntoMongoRule() {
-      super(
-          operand(
-              ProjectRel.class,
-              operand(MongoTableScan.class, none())));
-    }
-
-    @Override
-    public void onMatch(RelOptRuleCall call) {
-      final ProjectRel project = call.rel(0);
-      final MongoTableScan table = call.rel(1);
-      if (!table.ops.isEmpty()) {
-        return;
-      }
-      final RelOptCluster cluster = table.getCluster();
-      final RelDataTypeFactory typeFactory = cluster.getTypeFactory();
-      final ItemFinder itemFinder = new ItemFinder(typeFactory);
-      final List<RexNode> newProjects = new ArrayList<RexNode>();
-      for (RexNode rex : project.getProjects()) {
-        final RexNode rex2 = rex.accept(itemFinder);
-        final RexNode rex3 =
-            cluster.getRexBuilder().ensureType(rex.getType(), rex2, true);
-        newProjects.add(rex3);
-      }
-
-      final List<Pair<String, String>> ops =
-          new ArrayList<Pair<String, String>>(table.ops);
-      final String findString =
-          Util.toString(itemFinder.items, "{", ", ", "}");
-      final String aggregateString = "{$project: " + findString + "}";
-      ops.add(Pair.of(findString, aggregateString));
-      final RelDataType rowType = itemFinder.builder.build();
-      final MongoTableScan newTable =
-          new MongoTableScan(cluster, table.getTraitSet(), table.getTable(),
-              table.mongoTable, rowType, ops);
-      final ProjectRel newProject =
-          new ProjectRel(cluster, cluster.traitSetOf(RelCollationImpl.EMPTY),
-              newTable, newProjects,
-              project.getRowType(), ProjectRel.Flags.BOXED);
-      call.transformTo(newProject);
-    }
-  }
 
   private static String parseFieldAccess(RexNode rex) {
     if (rex instanceof RexCall) {
@@ -118,47 +75,74 @@ public class MongoRules {
     return null;
   }
 
-  /** Visitor that walks over an expression, represented as a tree of
-   * {@link RexNode}s, looking for calls to the ITEM operator and converting
-   * them to MongoDB field references. */
-  private static class ItemFinder extends RexShuttle {
-    private final Map<String, RexInputRef> map =
-        new LinkedHashMap<String, RexInputRef>();
-    private final RelDataTypeFactory.FieldInfoBuilder builder;
-    public List<String> items = new ArrayList<String>();
+  /** Returns 'string' if it is a call to item['string'], null otherwise. */
+  static String isItem(RexCall call) {
+    if (call.getOperator() != SqlStdOperatorTable.ITEM) {
+      return null;
+    }
+    final RexNode op0 = call.operands.get(0);
+    final RexNode op1 = call.operands.get(1);
+    if (op0 instanceof RexInputRef
+        && ((RexInputRef) op0).getIndex() == 0
+        && op1 instanceof RexLiteral
+        && ((RexLiteral) op1).getValue2() instanceof String) {
+      return (String) ((RexLiteral) op1).getValue2();
+    }
+    return null;
+  }
 
-    ItemFinder(RelDataTypeFactory typeFactory) {
-      builder = typeFactory.builder();
+  /** Translator from {@link RexNode} to strings in MongoDB's expression
+   * language. */
+  static class RexToMongoTranslator extends RexVisitorImpl<String> {
+    private final JavaTypeFactory typeFactory;
+
+    protected RexToMongoTranslator(JavaTypeFactory typeFactory) {
+      super(true);
+      this.typeFactory = typeFactory;
     }
 
-    @Override
-    public RexNode visitCall(RexCall call) {
-      String fieldName = parseFieldAccess(call);
-      if (fieldName != null) {
-        return registerField(fieldName, call.getType());
+    @Override public String visitLiteral(RexLiteral literal) {
+      return "{$ifNull: [null, "
+          + RexToLixTranslator.translateLiteral(literal, literal.getType(),
+              typeFactory, RexImpTable.NullAs.NOT_POSSIBLE)
+          + "]}";
+    }
+
+    @Override public String visitCall(RexCall call) {
+      String name = isItem(call);
+      if (name != null) {
+        return "'$" + name + "'";
       }
-      RelDataType type = parseCast(call);
-      if (type != null) {
-        final RexNode operand = call.getOperands().get(0);
-        fieldName = parseFieldAccess(operand);
-        if (fieldName != null) {
-          return registerField(fieldName, call.getType());
+      final List<String> strings = visitList(call.operands);
+      if (call.getKind() == SqlKind.CAST) {
+        return strings.get(0);
+      }
+      if (call.getOperator() == SqlStdOperatorTable.ITEM) {
+        final RexNode op1 = call.operands.get(1);
+        if (op1 instanceof RexLiteral
+            && op1.getType().getSqlTypeName() == SqlTypeName.INTEGER) {
+          if (!Bug.OPTIQ194_FIXED) {
+            return "'" + stripQuotes(strings.get(0)) + "["
+                + ((RexLiteral) op1).getValue2() + "]'";
+          }
+          return strings.get(0) + "[" + strings.get(1) + "]";
         }
-        // just ignore the cast
-        return operand.accept(this);
       }
       return super.visitCall(call);
     }
 
-    private RexNode registerField(String fieldName, RelDataType type) {
-      RexInputRef x = map.get(fieldName);
-      if (x == null) {
-        x = new RexInputRef(map.size(), type);
-        map.put(fieldName, x);
-        builder.add(fieldName, type);
-        items.add(fieldName + ": 1");
+    private String stripQuotes(String s) {
+      return s.startsWith("'") && s.endsWith("'")
+          ? s.substring(1, s.length() - 1)
+          : s;
+    }
+
+    public List<String> visitList(List<RexNode> list) {
+      final List<String> strings = new ArrayList<String>();
+      for (RexNode node : list) {
+        strings.add(node.accept(this));
       }
-      return x;
+      return strings;
     }
   }
 
@@ -180,13 +164,11 @@ public class MongoRules {
    * Rule to convert a {@link org.eigenbase.rel.SortRel} to a
    * {@link MongoSortRel}.
    */
-  private static class MongoSortRule
-      extends MongoConverterRule {
+  private static class MongoSortRule extends MongoConverterRule {
+    public static final MongoSortRule INSTANCE = new MongoSortRule();
+
     private MongoSortRule() {
-      super(
-          SortRel.class,
-          Convention.NONE,
-          MongoRel.CONVENTION,
+      super(SortRel.class, Convention.NONE, MongoRel.CONVENTION,
           "MongoSortRule");
     }
 
@@ -208,11 +190,10 @@ public class MongoRules {
    * {@link MongoFilterRel}.
    */
   private static class MongoFilterRule extends MongoConverterRule {
+    private static final MongoFilterRule INSTANCE = new MongoFilterRule();
+
     private MongoFilterRule() {
-      super(
-          FilterRel.class,
-          Convention.NONE,
-          MongoRel.CONVENTION,
+      super(FilterRel.class, Convention.NONE, MongoRel.CONVENTION,
           "MongoFilterRule");
     }
 
@@ -224,6 +205,27 @@ public class MongoRules {
           traitSet,
           convert(filter.getChild(), traitSet),
           filter.getCondition());
+    }
+  }
+
+  /**
+   * Rule to convert a {@link org.eigenbase.rel.ProjectRel} to a
+   * {@link MongoProjectRel}.
+   */
+  private static class MongoProjectRule extends MongoConverterRule {
+    private static final MongoProjectRule INSTANCE = new MongoProjectRule();
+
+    private MongoProjectRule() {
+      super(ProjectRel.class, Convention.NONE, MongoRel.CONVENTION,
+          "MongoProjectRule");
+    }
+
+    public RelNode convert(RelNode rel) {
+      final ProjectRel project = (ProjectRel) rel;
+      final RelTraitSet traitSet = project.getTraitSet().replace(out);
+      return new MongoProjectRel(project.getCluster(), traitSet,
+          convert(project.getChild(), traitSet), project.getProjects(),
+          project.getRowType(), ProjectRel.Flags.BOXED);
     }
   }
 
