@@ -17,7 +17,9 @@
 */
 package org.eigenbase.test;
 
+import java.lang.reflect.Method;
 import java.util.EnumSet;
+import java.util.Locale;
 
 import org.eigenbase.resource.Resources;
 
@@ -64,6 +66,14 @@ public class ResourceTest {
     assertThat(fooResource.illArg("").ex(npe).getCause(), equalTo(npe));
   }
 
+  @SuppressWarnings("ThrowableResultOfMethodCallIgnored")
+  @Test public void testSuperChainException() {
+    assertThat(fooResource.exceptionSuperChain().ex().getMessage(),
+        equalTo("super chain exception"));
+    assertThat(fooResource.exceptionSuperChain().ex().getClass().getName(),
+        equalTo(IllegalStateException.class.getName()));
+  }
+
   /** Tests that get validation error if bundle does not contain resource. */
   @Test public void testValidateBundleHasResource() {
     try {
@@ -91,17 +101,6 @@ public class ResourceTest {
     }
   }
 
-  @Test public void testValidateReturnType() {
-    try {
-      Resources.validate(fooResource, EnumSet.of(Validation.RETURN_TYPE));
-      fail("should have thrown");
-    } catch (AssertionError e) {
-      assertThat(e.getMessage(),
-          equalTo(
-              "resource 'shouldReturnExInst' has ExceptionClass, so return should be ExInst<class java.lang.IllegalArgumentException>"));
-    }
-  }
-
   @Test public void testValidateMessageSpecified() {
     try {
       Resources.validate(fooResource, EnumSet.of(Validation.MESSAGE_SPECIFIED));
@@ -123,21 +122,20 @@ public class ResourceTest {
     }
   }
 
-  @Test public void testValidateExceptionClassSpecified() {
+  @Test public void testValidateOddQuotes() {
     try {
-      Resources.validate(fooResource,
-          EnumSet.of(Validation.EXCEPTION_CLASS_SPECIFIED));
+      fooResource.oddQuotes().validate(EnumSet.of(Validation.EVEN_QUOTES));
       fail("should have thrown");
     } catch (AssertionError e) {
       assertThat(e.getMessage(),
-          equalTo(
-              "resource 'exceptionClassNotSpecified' returns ExInst so must specify ExceptionClass"));
+          equalTo("resource 'oddQuotes' should have even number of quotes"));
     }
   }
 
   @Test public void testValidateCreateException() {
     try {
-      Resources.validate(fooResource, EnumSet.of(Validation.CREATE_EXCEPTION));
+      fooResource.myException().validate(EnumSet.of(Validation.CREATE_EXCEPTION)
+      );
       fail("should have thrown");
     } catch (AssertionError e) {
       assertThat(e.getMessage(),
@@ -146,6 +144,28 @@ public class ResourceTest {
           equalTo(
               "java.lang.NoSuchMethodException: org.eigenbase.test.ResourceTest$MyException.<init>(java.lang.String, java.lang.Throwable)"));
     }
+  }
+
+  @Test public void testValidateCauselessFail() {
+    try {
+      fooResource.causelessFail().validate(
+          EnumSet.of(Validation.CREATE_EXCEPTION)
+      );
+      fail("should have thrown");
+    } catch (AssertionError e) {
+      assertThat(e.getMessage(),
+          equalTo("error instantiating exception for resource "
+              + "'causelessFail'"));
+      assertThat(e.getCause().getMessage(),
+          equalTo(
+              "Cause is required, message = can't be used causeless"));
+    }
+  }
+
+  @Test public void testValidateExceptionWithCause() {
+    fooResource.exceptionWithCause().validate(
+        EnumSet.of(Validation.CREATE_EXCEPTION)
+    );
   }
 
   @Test public void testValidateMatchArguments() {
@@ -163,10 +183,41 @@ public class ResourceTest {
   //  one method
 
   /** Exception that cannot be thrown by {@link ExInst} because it does not have
-   * a (String, Throwable) constructor. */
+   * a (String, Throwable) constructor, nor does it have a (String)
+   * constructor. */
   public static class MyException extends RuntimeException {
     public MyException() {
       super();
+    }
+  }
+
+  /** Abstract class used to test identification of exception classes via
+   * superclass chains */
+  public abstract static class MyExInst<W extends Exception> extends
+      ExInst<W> {
+    public MyExInst(String base, Locale locale, Method method, Object... args) {
+      super(base, locale, method, args);
+    }
+  }
+
+  /** Subtype of ExInst, however exception type is not directly
+   * passed to ExInst. The test must still detect the correct class. */
+  public static class MyExInstImpl extends MyExInst<IllegalStateException> {
+    public MyExInstImpl(String base, Locale locale, Method method,
+                        Object... args) {
+      super(base, locale, method, args);
+    }
+  }
+
+  /** Exception that always requires cause
+   */
+  public static class MyExceptionRequiresCause extends RuntimeException {
+    public MyExceptionRequiresCause(String message, Throwable cause) {
+      super(message, cause);
+      if (cause == null) {
+        throw new IllegalArgumentException("Cause is required, "
+            + "message = " + message);
+      }
     }
   }
 
@@ -188,24 +239,27 @@ public class ResourceTest {
     Inst withProperty(int x);
 
     @BaseMessage("bad arg {0}")
-    @ExceptionClass(IllegalArgumentException.class)
     ExInst<IllegalArgumentException> illArg(String s);
-
-    @BaseMessage("has ExceptionClass so should return exinst")
-    @ExceptionClass(IllegalArgumentException.class)
-    Inst shouldReturnExInst();
 
     @BaseMessage("should return inst")
     String shouldReturnInst();
 
-    @BaseMessage("exception class not specified")
-    ExInst<MyException> exceptionClassNotSpecified();
-
-    @BaseMessage("exception isn't throwable")
-    @ExceptionClass(MyException.class)
+    @BaseMessage("exception isn''t throwable")
     ExInst<MyException> myException();
+
+    @BaseMessage("Can't use odd quotes")
+    Inst oddQuotes();
+
+    @BaseMessage("can''t be used causeless")
+    ExInst<MyExceptionRequiresCause> causelessFail();
+
+    @BaseMessage("should work since cause is provided")
+    ExInstWithCause<MyExceptionRequiresCause> exceptionWithCause();
 
     @BaseMessage("argument {0} does not match {1,number,#}")
     Inst mismatchedArguments(String s, int i, String s2);
+
+    @BaseMessage("super chain exception")
+    MyExInstImpl exceptionSuperChain();
   }
 }

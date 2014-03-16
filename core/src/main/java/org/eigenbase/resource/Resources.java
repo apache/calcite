@@ -22,12 +22,16 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.reflect.*;
 import java.text.*;
 import java.util.*;
+import java.util.concurrent.Callable;
 
 import org.eigenbase.util.EigenbaseContextException;
 import org.eigenbase.util.Util;
 
 import net.hydromatic.optiq.BuiltinMethod;
 
+import com.fasterxml.jackson.databind.JavaType;
+import com.fasterxml.jackson.databind.type.TypeFactory;
+import com.google.common.base.CharMatcher;
 import com.google.common.collect.ImmutableMap;
 
 /**
@@ -160,22 +164,20 @@ public class Resources {
                 + "' in bundle '" + bundle + "'");
           }
           break;
-        case RETURN_TYPE:
-          final ExceptionClass annotation =
-              method.getAnnotation(ExceptionClass.class);
-          if (annotation != null
-              && !ExInst.class.isAssignableFrom(getClass())) {
-            throw new AssertionError("resource '" + method.getName()
-                + "' has ExceptionClass, so return should be ExInst<"
-                + annotation.value() + ">");
-          }
-          break;
         case MESSAGE_SPECIFIED:
           final BaseMessage annotation1 =
               method.getAnnotation(BaseMessage.class);
           if (annotation1 == null) {
             throw new AssertionError("resource '" + method.getName()
                 + "' must specify BaseMessage");
+          }
+          break;
+        case EVEN_QUOTES:
+          String message = method.getAnnotation(BaseMessage.class).value();
+          int numOfQuotes = CharMatcher.is('\'').countIn(message);
+          if (numOfQuotes % 2 == 1) {
+            throw new AssertionError("resource '" + method.getName()
+                            + "' should have even number of quotes");
           }
           break;
         case MESSAGE_MATCH:
@@ -190,56 +192,6 @@ public class Resources {
               throw new AssertionError("message for resource '"
                   + method.getName()
                   + "' is different between class and resource file");
-            }
-          }
-          break;
-        case EXCEPTION_CLASS_SPECIFIED:
-          if (this instanceof ExInst) {
-            final ExceptionClass annotation5 =
-                method.getAnnotation(ExceptionClass.class);
-            if (annotation5 == null) {
-              throw new AssertionError("resource '" + method.getName()
-                  + "' returns ExInst so must specify ExceptionClass");
-            }
-          }
-          break;
-        case CREATE_EXCEPTION:
-          if (this instanceof ExInst) {
-            final ExceptionClass annotation4 =
-                method.getAnnotation(ExceptionClass.class);
-            if (annotation4 == null) {
-              break;
-            }
-            Throwable cause = null;
-            try {
-              if (!annotation4.causeRequired()) {
-                //noinspection ThrowableResultOfMethodCallIgnored
-                final Exception ex = ((ExInst) this).ex();
-                if (ex == null) {
-                  cause = new NullPointerException();
-                }
-              }
-              if (!annotation4.causeAllowed()) {
-                //noinspection ThrowableResultOfMethodCallIgnored
-                final Exception ex2 = ((ExInst) this).ex(null);
-                if (ex2 == null) {
-                  cause = new NullPointerException();
-                }
-              }
-              if (!annotation4.causeAllowed() && annotation4.causeRequired()) {
-                throw new AssertionError("cause required and not allowed?!");
-              }
-            } catch (AssertionError e) {
-              cause = e;
-            } catch (RuntimeException e) {
-              cause = e;
-            }
-            if (cause != null) {
-              AssertionError assertionError = new AssertionError(
-                  "error instantiating exception for resource '"
-                  + method.getName() + "'");
-              assertionError.initCause(cause);
-              throw assertionError;
             }
           }
           break;
@@ -320,29 +272,51 @@ public class Resources {
     }
   }
 
-  /** Sub-class of {@link Inst} that can throw an exception. */
-  public static class ExInst<T extends Exception> extends Inst {
-    public ExInst(String base, Locale locale, Method method, Object... args) {
+  /** Sub-class of {@link Inst} that can throw an exception. Requires caused
+   * by exception.*/
+  public static class ExInstWithCause<T extends Exception> extends Inst {
+    public ExInstWithCause(String base, Locale locale, Method method,
+                           Object... args) {
       super(base, locale, method, args);
     }
 
     @Override public Inst localize(Locale locale) {
-      return new ExInst<T>(base, locale, method, args);
-    }
-
-    public T ex() {
-      return ex(null);
+      return new ExInstWithCause<T>(base, locale, method, args);
     }
 
     public T ex(Throwable cause) {
       try {
         //noinspection unchecked
-        final Class<? extends Exception> exceptionClass = getExceptionClass();
-        final Constructor<? extends Exception> constructor =
-            exceptionClass.getConstructor(String.class, Throwable.class);
+        final Class<T> exceptionClass = getExceptionClass();
+        Constructor<T> constructor;
         final String str = str();
-        //noinspection unchecked,ThrowableResultOfMethodCallIgnored
-        return (T) constructor.newInstance(str, cause);
+        boolean causeInConstructor = false;
+        try {
+          constructor = exceptionClass.getConstructor(String.class,
+              Throwable.class
+          );
+          causeInConstructor = true;
+        } catch (NoSuchMethodException nsmStringThrowable) {
+          try {
+            constructor = exceptionClass.getConstructor(String.class);
+          } catch (NoSuchMethodException nsmString) {
+            // Ignore nsmString to encourage users to have (String,
+            // Throwable) constructors.
+            throw nsmStringThrowable;
+          }
+        }
+        if (causeInConstructor) {
+          return constructor.newInstance(str, cause);
+        }
+        T ex = constructor.newInstance(str);
+        if (cause != null) {
+          try {
+            ex.initCause(cause);
+          } catch (IllegalStateException iae) {
+            // Sorry, unable to add cause via constructor and via initCause
+          }
+        }
+        return ex;
       } catch (InstantiationException e) {
         throw new RuntimeException(e);
       } catch (IllegalAccessException e) {
@@ -360,16 +334,92 @@ public class Resources {
       }
     }
 
-    private Class<? extends Exception> getExceptionClass() {
-      final ExceptionClass exceptionClass =
-          method.getAnnotation(ExceptionClass.class);
-      return exceptionClass.value();
+    private Class<T> getExceptionClass() {
+      // Get exception type from ExInstWithCause<MyException> type parameter
+      // ExInstWithCause might be one of super classes.
+      // That is why we need findTypeParameters to find ExInstWithCause in
+      // superclass chain
+
+      Type type = method.getGenericReturnType();
+      TypeFactory typeFactory = TypeFactory.defaultInstance();
+      JavaType[] args = typeFactory.findTypeParameters(
+          typeFactory.constructType(type), ExInstWithCause.class);
+      if (args == null) {
+        throw new IllegalStateException("Unable to find superclass"
+            + " ExInstWithCause for " + type);
+      }
+      // Update this if  ExInstWithCause gets more type parameters
+      // For instance  ExInstWithCause<A, B, C>
+      if (args.length != 1) {
+        throw new IllegalStateException("ExInstWithCause should have"
+            + " exactly one type parameter");
+      }
+      return (Class<T>) args[0].getRawClass();
+    }
+
+    protected void validateException(Callable<Exception> exSupplier) {
+      Throwable cause = null;
+      try {
+        //noinspection ThrowableResultOfMethodCallIgnored
+        final Exception ex = exSupplier.call();
+        if (ex == null) {
+          cause = new NullPointerException();
+        }
+      } catch (AssertionError e) {
+        cause = e;
+      } catch (RuntimeException e) {
+        cause = e;
+      } catch (Exception e) {
+        cause = e;
+      }
+      if (cause != null) {
+        AssertionError assertionError = new AssertionError(
+            "error instantiating exception for resource '"
+            + method.getName() + "'");
+        assertionError.initCause(cause);
+        throw assertionError;
+      }
+    }
+    @Override
+    public void validate(EnumSet<Validation> validations) {
+      super.validate(validations);
+      if (validations.contains(Validation.CREATE_EXCEPTION)) {
+        validateException(new Callable<Exception>() {
+          public Exception call() throws Exception {
+            return ex(new NullPointerException("test"));
+          }
+        });
+      }
+    }
+  }
+
+  /** Sub-class of {@link Inst} that can throw an exception without caused by.*/
+  public static class ExInst<T extends Exception> extends ExInstWithCause<T> {
+    public ExInst(String base, Locale locale, Method method, Object... args) {
+      super(base, locale, method, args);
+    }
+
+    public T ex() {
+      return ex(null);
+    }
+
+    @Override
+    public void validate(EnumSet<Validation> validations) {
+      super.validate(validations);
+      if (validations.contains(Validation.CREATE_EXCEPTION)) {
+        validateException(new Callable<Exception>() {
+          public Exception call() throws Exception {
+            return ex();
+          }
+        });
+      }
     }
   }
 
   /** SQL language feature. Expressed as the exception that would be
    * thrown if it were used while disabled. */
-  public static class Feature extends ExInst<EigenbaseContextException> {
+  public static class Feature extends
+      ExInstWithCause<EigenbaseContextException> {
     public Feature(String base, Locale locale, Method method, Object... args) {
       super(base, locale, method, args);
     }
@@ -384,21 +434,14 @@ public class Resources {
     /** Checks that there is at least one resource in the bundle. */
     AT_LEAST_ONE,
 
-    /** Checks that the value returned from the method is correct.
-     * Every resource method should return an {@link Inst} or subtype.
-     * If {@link ExceptionClass} is specified, it should return {@link ExInst}.
-     */
-    RETURN_TYPE,
-
     /** Checks that the base message annotation is on every resource. */
     MESSAGE_SPECIFIED,
 
+    /** Checks that every message contains even number of quotes. */
+    EVEN_QUOTES,
+
     /** Checks that the base message matches the message in the bundle. */
     MESSAGE_MATCH,
-
-    /** Checks that if a resource returns ExInst the {@link ExceptionClass}
-     * must be specified. */
-    EXCEPTION_CLASS_SPECIFIED,
 
     /** Checks that it is possible to create an exception. */
     CREATE_EXCEPTION,
@@ -418,14 +461,6 @@ public class Resources {
   @Retention(RetentionPolicy.RUNTIME)
   public @interface Resource {
     String value();
-  }
-
-  /** The name of the class of exception to throw. */
-  @Retention(RetentionPolicy.RUNTIME)
-  public @interface ExceptionClass {
-    Class<? extends Exception> value();
-    boolean causeAllowed() default true;
-    boolean causeRequired() default false;
   }
 
   /** Property of a resource. */
