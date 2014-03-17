@@ -192,10 +192,10 @@ public class PlannerTest {
    *
    * <p>{@link net.hydromatic.optiq.impl.jdbc.JdbcConvention} is different
    * from the typical convention in that it is not a singleton. Switching to
-   * a different instance causes problems unless the planner's state is wiped
-   * clean between calls to {@link Planner#transform}. */
+   * a different instance causes problems unless planner state is wiped clean
+   * between calls to {@link Planner#transform}. */
   @Test public void testPlanTransformWithDiffRuleSetAndConvention()
-      throws Exception {
+    throws Exception {
     RuleSet ruleSet0 =
         RuleSets.ofList(
             MergeFilterRule.INSTANCE,

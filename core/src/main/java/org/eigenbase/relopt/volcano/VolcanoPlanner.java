@@ -428,10 +428,17 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     return traitSet;
   }
 
-  public void clearRules() {
+  @Override public void clear() {
+    super.clear();
     for (RelOptRule rule : ImmutableList.copyOf(ruleSet)) {
       removeRule(rule);
     }
+    this.allOperands.clear();
+    this.allSets.clear();
+    this.mapDigestToRel.clear();
+    this.mapRel2Subset.clear();
+    this.relImportances.clear();
+    this.ruleQueue.clear();
   }
 
   public boolean addRule(RelOptRule rule) {
@@ -1695,15 +1702,6 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     push(ruleCallStack, ruleCall);
     ensureRegistered(rel, equivRel);
     pop(ruleCallStack, ruleCall);
-  }
-
-  public void clear() {
-    this.allOperands.clear();
-    this.allSets.clear();
-    this.mapDigestToRel.clear();
-    this.mapRel2Subset.clear();
-    this.relImportances.clear();
-    this.ruleQueue.clear();
   }
 
   //~ Inner Classes ----------------------------------------------------------

@@ -69,12 +69,7 @@ public interface RelOptPlanner {
   List<RelTraitDef> getRelTraitDefs();
 
   /**
-   * Removes all rules.
-   */
-  void clearRules();
-
-  /**
-   * Remove all internal status of planner.
+   * Removes all internal state, including all rules.
    */
   void clear();
 

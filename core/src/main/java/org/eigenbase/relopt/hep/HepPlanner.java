@@ -50,7 +50,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
 
   private Map<String, HepRelVertex> mapDigestToVertex;
 
-  private Set<RelOptRule> allRules;
+  private final Set<RelOptRule> allRules;
 
   private int nTransformations;
 
@@ -134,7 +134,8 @@ public class HepPlanner extends AbstractRelOptPlanner {
     return added;
   }
 
-  public void clearRules() {
+  @Override public void clear() {
+    super.clear();
     for (RelOptRule rule : ImmutableList.copyOf(allRules)) {
       removeRule(rule);
     }

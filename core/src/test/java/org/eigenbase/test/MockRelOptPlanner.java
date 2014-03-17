@@ -63,7 +63,8 @@ public class MockRelOptPlanner extends AbstractRelOptPlanner {
     // ignore - this planner does not support materializations
   }
 
-  public void clearRules() {
+  @Override public void clear() {
+    super.clear();
     this.rule = null;
   }
 

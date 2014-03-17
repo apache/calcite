@@ -189,7 +189,6 @@ public class PlannerImpl implements Planner {
       RelNode rel) throws RelConversionException {
     ensure(State.STATE_5_CONVERTED);
     RuleSet ruleSet = ruleSets.get(ruleSetIndex);
-    planner.clearRules();
     planner.clear();
     for (RelOptRule rule : ruleSet) {
       planner.addRule(rule);
