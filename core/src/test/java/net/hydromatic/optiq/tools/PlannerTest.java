@@ -188,18 +188,23 @@ public class PlannerTest {
   }
 
   /** Unit test that calls {@link Planner#transform} twice,
-   * with different rule sets, with different conventions */
-  @Test public void testPlanTransformWithDiffRulesetAndConvention()
-    throws Exception {
+   * with different rule sets, with different conventions.
+   *
+   * <p>{@link net.hydromatic.optiq.impl.jdbc.JdbcConvention} is different
+   * from the typical convention in that it is not a singleton. Switching to
+   * a different instance causes problems unless the planner's state is wiped
+   * clean between calls to {@link Planner#transform}. */
+  @Test public void testPlanTransformWithDiffRuleSetAndConvention()
+      throws Exception {
     RuleSet ruleSet0 =
-      RuleSets.ofList(
+        RuleSets.ofList(
             MergeFilterRule.INSTANCE,
             JavaRules.ENUMERABLE_FILTER_RULE,
             JavaRules.ENUMERABLE_PROJECT_RULE);
 
     JdbcConvention out = new JdbcConvention(null, "myjdbc");
     RuleSet ruleSet1 = RuleSets.ofList(new MockJdbcProjectRule(out),
-                                       new MockJdbcTableRule(out));
+        new MockJdbcTableRule(out));
 
     Planner planner = getPlanner(ruleSet0, ruleSet1);
     SqlNode parse = planner.parse("select T1.\"name\" from \"emps\" as T1 ");
@@ -216,80 +221,71 @@ public class PlannerTest {
     RelNode transform = planner.transform(0, traitSet0, convert);
     RelNode transform2 = planner.transform(1, traitSet1, transform);
     assertThat(toString(transform2), equalTo(
-        "JdbcProjectRel(name=[$2])\n  MockJdbcTableScan(table=[[hr, emps]])\n"));
-
+        "JdbcProjectRel(name=[$2])\n"
+        + "  MockJdbcTableScan(table=[[hr, emps]])\n"));
   }
-
 
   /**
    * Rule to convert a {@link EnumerableProjectRel} to an
    * {@link JdbcProjectRel}.
    */
-  private class MockJdbcProjectRule
-          extends ConverterRule {
+  private class MockJdbcProjectRule extends ConverterRule {
     private MockJdbcProjectRule(JdbcConvention out) {
-        super(EnumerableProjectRel.class, EnumerableConvention.INSTANCE,
-              out, "MockJdbcProjectRule");
+      super(EnumerableProjectRel.class, EnumerableConvention.INSTANCE, out,
+          "MockJdbcProjectRule");
     }
 
     public RelNode convert(RelNode rel) {
       final EnumerableProjectRel project = (EnumerableProjectRel) rel;
 
       return new JdbcProjectRel(
-                    rel.getCluster(),
-                    rel.getTraitSet().replace(getOutConvention()),
-                    convert(
-                            project.getChild(),
-                            project.getChild().getTraitSet().
-                                replace(getOutConvention())),
-                    project.getProjects(),
-                    project.getRowType(),
-                    ProjectRelBase.Flags.BOXED);
+          rel.getCluster(),
+          rel.getTraitSet().replace(getOutConvention()),
+          convert(project.getChild(),
+              project.getChild().getTraitSet().replace(getOutConvention())),
+          project.getProjects(),
+          project.getRowType(),
+          ProjectRelBase.Flags.BOXED);
     }
   }
 
-    /**
-     * Rule to convert a {@link JavaRules.EnumerableTableAccessRel} to an
-     * {@link MockJdbcTableScan}.
-     */
-  private class MockJdbcTableRule
-            extends ConverterRule {
+  /**
+   * Rule to convert a {@link JavaRules.EnumerableTableAccessRel} to an
+   * {@link MockJdbcTableScan}.
+   */
+  private class MockJdbcTableRule extends ConverterRule {
     private MockJdbcTableRule(JdbcConvention out) {
       super(JavaRules.EnumerableTableAccessRel.class,
-                  EnumerableConvention.INSTANCE, out, "MockJdbcTableRule");
+          EnumerableConvention.INSTANCE, out, "MockJdbcTableRule");
     }
 
     public RelNode convert(RelNode rel) {
-      final JavaRules.EnumerableTableAccessRel tbl =
-                (JavaRules.EnumerableTableAccessRel) rel;
-      return new MockJdbcTableScan(tbl.getCluster(),
-                                   tbl.getTable(),
-                                   (JdbcConvention) getOutConvention());
+      final JavaRules.EnumerableTableAccessRel scan =
+          (JavaRules.EnumerableTableAccessRel) rel;
+      return new MockJdbcTableScan(scan.getCluster(),
+          scan.getTable(),
+          (JdbcConvention) getOutConvention());
     }
   }
 
-    /**
-     * Relational expression representing a "mock" scan of a table in a
-     * JDBC data source.
-     */
+  /**
+   * Relational expression representing a "mock" scan of a table in a
+   * JDBC data source.
+   */
   private class MockJdbcTableScan extends TableAccessRelBase
-    implements JdbcRel {
+      implements JdbcRel {
 
-    public MockJdbcTableScan(
-              RelOptCluster cluster,
-              RelOptTable table,
-              JdbcConvention jdbcConvention) {
+    public MockJdbcTableScan(RelOptCluster cluster, RelOptTable table,
+        JdbcConvention jdbcConvention) {
       super(cluster, cluster.traitSetOf(jdbcConvention), table);
     }
 
-    @Override
-    public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
-      return new MockJdbcTableScan(
-                    getCluster(), table, (JdbcConvention) getConvention());
+    @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
+      return new MockJdbcTableScan(getCluster(), table,
+          (JdbcConvention) getConvention());
     }
 
-    @Override
-    public void register(RelOptPlanner planner) {
+    @Override public void register(RelOptPlanner planner) {
       final JdbcConvention out = (JdbcConvention) getConvention();
       for (RelOptRule rule : JdbcRules.rules(out)) {
         planner.addRule(rule);
@@ -300,7 +296,6 @@ public class PlannerTest {
       return null;
     }
   }
-
 }
 
 // End PlannerTest.java
