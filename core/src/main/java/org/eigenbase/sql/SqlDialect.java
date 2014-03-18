@@ -162,6 +162,8 @@ public class SqlDialect {
       return DatabaseProduct.PARACCEL;
     } else if (productName.equals("Oracle")) {
       return DatabaseProduct.ORACLE;
+    } else if (productName.equals("Phoenix")) {
+      return DatabaseProduct.PHOENIX;
     } else if (upperProductName.contains("POSTGRE")) {
       return DatabaseProduct.POSTGRESQL;
     } else if (upperProductName.contains("NETEZZA")) {
@@ -405,6 +407,7 @@ public class SqlDialect {
     switch (databaseProduct) {
     case MYSQL:
     case HSQLDB:
+    case PHOENIX:
       return false;
     default:
       return true;
@@ -482,6 +485,7 @@ public class SqlDialect {
     INGRES("Ingres", null),
     LUCIDDB("LucidDB", "\""),
     INTERBASE("Interbase", null),
+    PHOENIX("Phoenix", "\""),
     POSTGRESQL("PostgreSQL", "\""),
     NETEZZA("Netezza", "\""),
     INFOBRIGHT("Infobright", "`"),
