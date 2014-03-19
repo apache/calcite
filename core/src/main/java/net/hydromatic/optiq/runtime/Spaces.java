@@ -154,11 +154,14 @@ public class Spaces {
      * of the prefix strings share the same backing array of chars.
      */
     private synchronized void populate(int newSize) {
-      newSize = Math.max(newSize, size() * 2);
+      final int size = size();
+      if (newSize <= size) {
+        return;
+      }
       final char[] chars = new char[newSize];
       Arrays.fill(chars, ' ');
-      final int length = newSize - size();
-      final int offset = size();
+      final int length = newSize - size;
+      final int offset = size;
 
       // addAll is much more efficient than repeated add for
       // CopyOnWriteArrayList
