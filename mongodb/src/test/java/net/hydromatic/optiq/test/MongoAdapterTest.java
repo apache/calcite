@@ -174,6 +174,50 @@ public class MongoAdapterTest {
             + "      MongoTableScan(table=[[mongo_raw, zips]])");
   }
 
+  @Test public void testSortLimit() {
+    OptiqAssert.that()
+        .enable(enabled())
+        .with(ZIPS)
+        .query("select state, id from zips\n"
+            + "order by state, id offset 2 rows fetch next 3 rows only")
+        .returns("STATE=AK; ID=99502\n"
+            + "STATE=AK; ID=99503\n"
+            + "STATE=AK; ID=99504\n")
+        .queryContains(
+            mongoChecker(
+                "{$project: {STATE: '$state', ID: '$_id'}}",
+                "{$sort: {STATE: 1, ID: 1}}",
+                "{$skip: 2}",
+                "{$limit: 3}"));
+  }
+
+  @Test public void testOffsetLimit() {
+    OptiqAssert.that()
+        .enable(enabled())
+        .with(ZIPS)
+        .query("select state, id from zips\n"
+            + "offset 2 fetch next 3 rows only")
+        .runs()
+        .queryContains(
+            mongoChecker(
+                "{$skip: 2}",
+                "{$limit: 3}",
+                "{$project: {STATE: '$state', ID: '$_id'}}"));
+  }
+
+  @Test public void testLimit() {
+    OptiqAssert.that()
+        .enable(enabled())
+        .with(ZIPS)
+        .query("select state, id from zips\n"
+            + "fetch next 3 rows only")
+        .runs()
+        .queryContains(
+            mongoChecker(
+                "{$limit: 3}",
+                "{$project: {STATE: '$state', ID: '$_id'}}"));
+  }
+
   @Test public void testFilterSort() {
     // LONGITUDE and LATITUDE are null because of OPTIQ-194.
     Util.discard(Bug.OPTIQ194_FIXED);

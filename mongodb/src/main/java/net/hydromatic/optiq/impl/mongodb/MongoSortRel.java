@@ -26,6 +26,8 @@ import org.eigenbase.relopt.RelOptCost;
 import org.eigenbase.relopt.RelOptPlanner;
 import org.eigenbase.relopt.RelTraitSet;
 import org.eigenbase.reltype.RelDataTypeField;
+import org.eigenbase.rex.RexLiteral;
+import org.eigenbase.rex.RexNode;
 import org.eigenbase.util.Util;
 
 import java.util.ArrayList;
@@ -37,56 +39,53 @@ import java.util.List;
 public class MongoSortRel
     extends SortRel
     implements MongoRel {
-  public MongoSortRel(
-      RelOptCluster cluster,
-      RelTraitSet traitSet,
-      RelNode child,
-      RelCollation collation) {
-    super(cluster, traitSet, child, collation);
+  public MongoSortRel(RelOptCluster cluster, RelTraitSet traitSet,
+      RelNode child, RelCollation collation, RexNode offset, RexNode fetch) {
+    super(cluster, traitSet, child, collation, offset, fetch);
     assert getConvention() == MongoRel.CONVENTION;
     assert getConvention() == child.getConvention();
   }
 
   @Override
   public RelOptCost computeSelfCost(RelOptPlanner planner) {
-    return super.computeSelfCost(planner).multiplyBy(0.1);
+    return super.computeSelfCost(planner).multiplyBy(0.05);
   }
 
-  @Override
-  public MongoSortRel copy(
-      RelTraitSet traitSet,
-      RelNode newInput,
-      RelCollation collation) {
-    return new MongoSortRel(
-        getCluster(),
-        traitSet,
-        newInput,
-        collation);
+  @Override public SortRel copy(RelTraitSet traitSet, RelNode input,
+      RelCollation newCollation, RexNode offset, RexNode fetch) {
+    return new MongoSortRel(getCluster(), traitSet, input, collation, offset,
+        fetch);
   }
 
   public void implement(Implementor implementor) {
     implementor.visitChild(0, getChild());
-    final List<String> keys = new ArrayList<String>();
-    final List<RelDataTypeField> fields = getRowType().getFieldList();
-    for (RelFieldCollation fieldCollation : collation.getFieldCollations()) {
-      final String name = fields.get(fieldCollation.getFieldIndex()).getName();
-      keys.add(name + ": " + direction(fieldCollation));
-      if (false) {
-        // TODO: NULLS FIRST and NULLS LAST
-        switch (fieldCollation.nullDirection) {
-        case FIRST:
-          break;
-        case LAST:
-          break;
+    if (!collation.getFieldCollations().isEmpty()) {
+      final List<String> keys = new ArrayList<String>();
+      final List<RelDataTypeField> fields = getRowType().getFieldList();
+      for (RelFieldCollation fieldCollation : collation.getFieldCollations()) {
+        final String name =
+            fields.get(fieldCollation.getFieldIndex()).getName();
+        keys.add(name + ": " + direction(fieldCollation));
+        if (false) {
+          // TODO: NULLS FIRST and NULLS LAST
+          switch (fieldCollation.nullDirection) {
+          case FIRST:
+            break;
+          case LAST:
+            break;
+          }
         }
       }
+      implementor.add(null,
+          "{$sort: " + Util.toString(keys, "{", ", ", "}") + "}");
     }
-    implementor.add(null,
-        "{$sort: " + Util.toString(keys, "{", ", ", "}") + "}");
-    if (fetch != null || offset != null) {
-      // TODO: generate calls to DBCursor.skip() and limit(int).
-      // https://github.com/julianhyde/optiq/issues/193
-      throw new UnsupportedOperationException();
+    if (offset != null) {
+      implementor.add(null,
+          "{$skip: " + ((RexLiteral) offset).getValue() + "}");
+    }
+    if (fetch != null) {
+      implementor.add(null,
+          "{$limit: " + ((RexLiteral) fetch).getValue() + "}");
     }
   }
 

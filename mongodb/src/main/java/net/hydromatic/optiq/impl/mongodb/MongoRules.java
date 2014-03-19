@@ -24,7 +24,6 @@ import net.hydromatic.optiq.rules.java.RexToLixTranslator;
 import org.eigenbase.rel.*;
 import org.eigenbase.rel.convert.ConverterRule;
 import org.eigenbase.relopt.*;
-import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.rex.*;
 import org.eigenbase.sql.SqlKind;
 import org.eigenbase.sql.fun.SqlStdOperatorTable;
@@ -46,34 +45,6 @@ public class MongoRules {
     MongoFilterRule.INSTANCE,
     MongoProjectRule.INSTANCE,
   };
-
-  private static String parseFieldAccess(RexNode rex) {
-    if (rex instanceof RexCall) {
-      final RexCall call = (RexCall) rex;
-      if (call.getOperator() == SqlStdOperatorTable.ITEM
-          && call.getOperands().size() == 2
-          && call.getOperands().get(0) instanceof RexInputRef
-          && ((RexInputRef) call.getOperands().get(0)).getIndex() == 0
-          && call.getOperands().get(1) instanceof RexLiteral) {
-        RexLiteral arg = (RexLiteral) call.getOperands().get(1);
-        if (arg.getTypeName() == SqlTypeName.CHAR) {
-          return (String) arg.getValue2();
-        }
-      }
-    }
-    return null;
-  }
-
-  private static RelDataType parseCast(RexNode rex) {
-    if (rex instanceof RexCall) {
-      final RexCall call = (RexCall) rex;
-      if (call.getOperator() == SqlStdOperatorTable.CAST) {
-        assert call.getOperands().size() == 1;
-        return call.getType();
-      }
-    }
-    return null;
-  }
 
   /** Returns 'string' if it is a call to item['string'], null otherwise. */
   static String isItem(RexCall call) {
@@ -177,11 +148,9 @@ public class MongoRules {
       final RelTraitSet traitSet =
           sort.getTraitSet().replace(out)
               .replace(sort.getCollation());
-      return new MongoSortRel(
-          rel.getCluster(),
-          traitSet,
+      return new MongoSortRel(rel.getCluster(), traitSet,
           convert(sort.getChild(), traitSet.replace(RelCollationImpl.EMPTY)),
-          sort.getCollation());
+          sort.getCollation(), sort.offset, sort.fetch);
     }
   }
 
