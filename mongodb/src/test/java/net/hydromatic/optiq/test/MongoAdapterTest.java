@@ -406,18 +406,123 @@ public class MongoAdapterTest {
                 "{$project: {store_id: 1, store_name: 1}}"));
   }
 
-  /** Query based on the "mongo-zips" model. */
+  /** Simple query based on the "mongo-zips" model. */
   @Test public void testZips() {
+    OptiqAssert.that()
+        .enable(enabled())
+        .with(ZIPS)
+        .query("select state, city from zips")
+        .returnsCount(29467);
+  }
+
+  @Test public void testCountGroupByEmpty() {
     OptiqAssert.that()
         .enable(enabled())
         .with(ZIPS)
         .query("select count(*) from zips")
         .returns("EXPR$0=29467\n")
         .explainContains(
-            "PLAN=EnumerableAggregateRel(group=[{}], EXPR$0=[COUNT()])\n"
-                + "  MongoToEnumerableConverter\n"
-                + "    MongoProjectRel(DUMMY=[0])\n"
-                + "      MongoTableScan(table=[[mongo_raw, zips]])");
+            "PLAN=MongoToEnumerableConverter\n"
+            + "  MongoAggregateRel(group=[{}], EXPR$0=[COUNT()])\n"
+            + "    MongoProjectRel(DUMMY=[0])\n"
+            + "      MongoTableScan(table=[[mongo_raw, zips]])")
+        .queryContains(
+            mongoChecker(
+                "{$project: {DUMMY: {$ifNull: [null, 0]}}}",
+                "{$group: {_id: {}, 'EXPR$0': {$sum: 1}}}"));
+  }
+
+  @Test public void testGroupByOneColumnNotProjected() {
+    OptiqAssert.that()
+        .enable(enabled())
+        .with(ZIPS)
+        .query("select count(*) from zips group by state")
+        .limit(2)
+        .returns("EXPR$0=659\n"
+            + "EXPR$0=484\n")
+        .queryContains(
+            mongoChecker(
+                "{$project: {STATE: '$state'}}",
+                "{$group: {_id: '$STATE', 'EXPR$0': {$sum: 1}}}",
+                "{$project: {STATE: '$_id', 'EXPR$0': '$EXPR$0'}}",
+                "{$project: {'EXPR$0': 1}}"));
+  }
+
+  @Test public void testGroupByOneColumn() {
+    OptiqAssert.that()
+        .enable(enabled())
+        .with(ZIPS)
+        .query("select count(*) as c, state from zips group by state")
+        .limit(2)
+        .returns("C=659; STATE=WV\n"
+            + "C=484; STATE=WA\n")
+        .queryContains(
+            mongoChecker(
+                "{$project: {STATE: '$state'}}",
+                "{$group: {_id: '$STATE', C: {$sum: 1}}}",
+                "{$project: {STATE: '$_id', C: '$C'}}",
+                "{$project: {C: 1, STATE: 1}}"));
+  }
+
+  @Test public void testGroupByMinMaxSum() {
+    OptiqAssert.that()
+        .enable(enabled())
+        .with(ZIPS)
+        .query("select count(*) as c, state,\n"
+            + " min(pop) as min_pop, max(pop) as max_pop, sum(pop) as sum_pop\n"
+            + "from zips group by state")
+        .limit(2)
+        .returns("C=659; STATE=WV; MIN_POP=0; MAX_POP=70185; SUM_POP=1793477\n"
+            + "C=484; STATE=WA; MIN_POP=2; MAX_POP=50515; SUM_POP=4866692\n");
+  }
+
+  @Test public void testGroupComposite() {
+    OptiqAssert.that()
+        .enable(enabled())
+        .with(ZIPS)
+        .query(
+            "select count(*) as c, state, city from zips\n"
+            + "group by state, city order by c desc limit 2")
+        .returns("C=93; STATE=TX; CITY=HOUSTON\n"
+            + "C=56; STATE=CA; CITY=LOS ANGELES\n")
+        .queryContains(
+            mongoChecker(
+                "{$project: {STATE: '$state', CITY: '$city'}}",
+                "{$group: {_id: {STATE: '$STATE', CITY: '$CITY'}, C: {$sum: 1}}}",
+                "{$project: {_id: 0, STATE: '$_id.STATE', CITY: '$_id.CITY', C: '$C'}}",
+                "{$project: {C: 1, STATE: 1, CITY: 1}}",
+                "{$sort: {C: -1}}",
+                "{$limit: 2}"));
+  }
+
+  @Test public void testDistinctCount() {
+    OptiqAssert.that()
+        .enable(enabled())
+        .with(ZIPS)
+        .query(
+            "select state, count(distinct city) as cdc from zips\n"
+            + "where state in ('CA', 'TX') group by state")
+        .returns("STATE=CA; CDC=1079\n"
+            + "STATE=TX; CDC=1238\n")
+        .queryContains(
+            mongoChecker(
+                "{\n"
+                + "  $match: {\n"
+                + "    $or: [\n"
+                + "      {\n"
+                + "        state: \"CA\"\n"
+                + "      },\n"
+                + "      {\n"
+                + "        state: \"TX\"\n"
+                + "      }\n"
+                + "    ]\n"
+                + "  }\n"
+                + "}",
+                "{$project: {STATE: '$state', CITY: '$city'}}",
+                "{$group: {_id: {STATE: '$STATE', CITY: '$CITY'}}}",
+                "{$project: {_id: 0, STATE: '$_id.STATE', CITY: '$_id.CITY'}}",
+                "{$group: {_id: '$STATE', CDC: {$sum: {$cond: [ {$eq: ['CITY', null]}, 0, 1]}}}}",
+                "{$project: {STATE: '$_id', CDC: '$CDC'}}"));
   }
 
   @Test public void testProject() {

@@ -55,14 +55,15 @@ public class MongoProjectRel extends ProjectRelBase implements MongoRel {
 
     final MongoRules.RexToMongoTranslator translator =
         new MongoRules.RexToMongoTranslator(
-            (JavaTypeFactory) getCluster().getTypeFactory());
+            (JavaTypeFactory) getCluster().getTypeFactory(),
+            getChild().getRowType().getFieldNames());
     final List<String> items = new ArrayList<String>();
     for (Pair<RexNode, String> pair : getNamedProjects()) {
       final String name = pair.right;
       final String expr = pair.left.accept(translator);
       items.add(expr.equals("'$" + name + "'")
-          ? name + ": 1"
-          : name + ": " + expr);
+          ? MongoRules.maybeQuote(name) + ": 1"
+          : MongoRules.maybeQuote(name) + ": " + expr);
     }
     final String findString = Util.toString(items, "{", ", ", "}");
     final String aggregateString = "{$project: " + findString + "}";

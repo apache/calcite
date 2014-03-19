@@ -28,9 +28,11 @@ import org.eigenbase.rex.*;
 import org.eigenbase.sql.SqlKind;
 import org.eigenbase.sql.fun.SqlStdOperatorTable;
 import org.eigenbase.sql.type.SqlTypeName;
+import org.eigenbase.trace.EigenbaseTrace;
 import org.eigenbase.util.Bug;
 
 import java.util.*;
+import java.util.logging.Logger;
 
 /**
  * Rules and relational operators for
@@ -40,10 +42,13 @@ import java.util.*;
 public class MongoRules {
   private MongoRules() {}
 
+  protected static final Logger LOGGER = EigenbaseTrace.getPlannerTracer();
+
   public static final RelOptRule[] RULES = {
     MongoSortRule.INSTANCE,
     MongoFilterRule.INSTANCE,
     MongoProjectRule.INSTANCE,
+    MongoAggregateRule.INSTANCE,
   };
 
   /** Returns 'string' if it is a call to item['string'], null otherwise. */
@@ -62,14 +67,39 @@ public class MongoRules {
     return null;
   }
 
+  static String maybeQuote(String s) {
+    if (!needsQuote(s)) {
+      return s;
+    }
+    return quote(s);
+  }
+
+  static String quote(String s) {
+    return "'" + s + "'"; // TODO: handle embedded quotes
+  }
+
+  private static boolean needsQuote(String s) {
+    for (int i = 0, n = s.length(); i < n; i++) {
+      char c = s.charAt(i);
+      if (!Character.isJavaIdentifierPart(c)
+          || c == '$') {
+        return true;
+      }
+    }
+    return false;
+  }
+
   /** Translator from {@link RexNode} to strings in MongoDB's expression
    * language. */
   static class RexToMongoTranslator extends RexVisitorImpl<String> {
     private final JavaTypeFactory typeFactory;
+    private final List<String> inFields;
 
-    protected RexToMongoTranslator(JavaTypeFactory typeFactory) {
+    protected RexToMongoTranslator(JavaTypeFactory typeFactory,
+        List<String> inFields) {
       super(true);
       this.typeFactory = typeFactory;
+      this.inFields = inFields;
     }
 
     @Override public String visitLiteral(RexLiteral literal) {
@@ -77,6 +107,11 @@ public class MongoRules {
           + RexToLixTranslator.translateLiteral(literal, literal.getType(),
               typeFactory, RexImpTable.NullAs.NOT_POSSIBLE)
           + "]}";
+    }
+
+    @Override public String visitInputRef(RexInputRef inputRef) {
+      return maybeQuote(
+          "$" + inFields.get(inputRef.getIndex()));
     }
 
     @Override public String visitCall(RexCall call) {
@@ -365,16 +400,17 @@ public class MongoRules {
     }
   }
 
+*/
+
   /**
    * Rule to convert an {@link org.eigenbase.rel.AggregateRel} to an
    * {@link MongoAggregateRel}.
-   o/
+   */
   private static class MongoAggregateRule extends MongoConverterRule {
-    private MongoAggregateRule(MongoConvention out) {
-      super(
-          AggregateRel.class,
-          Convention.NONE,
-          out,
+    public static final RelOptRule INSTANCE = new MongoAggregateRule();
+
+    private MongoAggregateRule() {
+      super(AggregateRel.class, Convention.NONE, MongoRel.CONVENTION,
           "MongoAggregateRule");
     }
 
@@ -390,99 +426,13 @@ public class MongoRules {
             agg.getGroupSet(),
             agg.getAggCallList());
       } catch (InvalidRelException e) {
-        tracer.warning(e.toString());
+        LOGGER.warning(e.toString());
         return null;
       }
     }
   }
 
-  public static class MongoAggregateRel
-      extends AggregateRelBase
-      implements MongoRel {
-    public MongoAggregateRel(
-        RelOptCluster cluster,
-        RelTraitSet traitSet,
-        RelNode child,
-        BitSet groupSet,
-        List<AggregateCall> aggCalls)
-        throws InvalidRelException {
-      super(cluster, traitSet, child, groupSet, aggCalls);
-      assert getConvention() instanceof MongoConvention;
-
-      for (AggregateCall aggCall : aggCalls) {
-        if (aggCall.isDistinct()) {
-          throw new InvalidRelException(
-              "distinct aggregation not supported");
-        }
-      }
-    }
-
-    @Override
-    public MongoAggregateRel copy(
-        RelTraitSet traitSet, List<RelNode> inputs) {
-      try {
-        return new MongoAggregateRel(
-            getCluster(),
-            traitSet,
-            sole(inputs),
-            groupSet,
-            aggCalls);
-      } catch (InvalidRelException e) {
-        // Semantic error not possible. Must be a bug. Convert to
-        // internal error.
-        throw new AssertionError(e);
-      }
-    }
-
-    public SqlString implement(MongoImplementor implementor) {
-      // "select a, b, sum(x) from ( ... ) group by a, b"
-      final SqlBuilder buf = new SqlBuilder(implementor.dialect);
-      final List<String> inFields =
-          getChild().getRowType().getFieldNames();
-      final List<String> fields = getRowType().getFieldNames();
-      buf.append("SELECT ");
-      int i = 0;
-      for (int group : Util.toIter(groupSet)) {
-        buf.append(i > 0 ? ", " : "");
-        final String inField = inFields.get(group);
-        buf.identifier(inField);
-        alias(buf, inField, fields.get(i));
-        i++;
-      }
-      for (AggregateCall aggCall : aggCalls) {
-        buf.append(i > 0 ? ", " : "");
-        buf.append(aggCall.getAggregation().getName());
-        buf.append("(");
-        if (aggCall.getArgList().isEmpty()) {
-          buf.append("*");
-        } else {
-          for (Ord<Integer> call : Ord.zip(aggCall.getArgList())) {
-            buf.append(call.i > 0 ? ", " : "");
-            buf.append(inFields.get(call.e));
-          }
-        }
-        buf.append(")");
-        alias(buf, null, fields.get(i));
-        i++;
-      }
-      implementor.newline(buf)
-          .append(" FROM ");
-      implementor.subquery(buf, 0, getChild(), "t");
-      if (!groupSet.isEmpty()) {
-        implementor.newline(buf)
-            .append("GROUP BY ");
-        i = 0;
-        for (int group : Util.toIter(groupSet)) {
-          buf.append(i > 0 ? ", " : "");
-          final String inField = inFields.get(group);
-          buf.identifier(inField);
-          i++;
-        }
-      }
-      return buf.toSqlString();
-    }
-  }
-
+/*
   /**
    * Rule to convert an {@link org.eigenbase.rel.UnionRel} to a
    * {@link MongoUnionRel}.
