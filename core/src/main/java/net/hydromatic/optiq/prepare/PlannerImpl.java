@@ -38,18 +38,14 @@ import org.eigenbase.sql2rel.SqlToRelConverter;
 
 import com.google.common.collect.ImmutableList;
 
-import java.util.List;
-
 /** Implementation of {@link net.hydromatic.optiq.tools.Planner}. */
 public class PlannerImpl implements Planner {
   private final Function1<SchemaPlus, Schema> schemaFactory;
   private final SqlOperatorTable operatorTable;
   private final ImmutableList<RuleSet> ruleSets;
 
-  /**
-   * Holds the RelTraitDefs to be registered with planner.
-   */
-  private final List<RelTraitDef> traitDefs;
+  /** Holds the trait definitions to be registered with planner. May be null. */
+  private final ImmutableList<RelTraitDef> traitDefs;
 
   private final Lex lex;
 
@@ -75,16 +71,12 @@ public class PlannerImpl implements Planner {
   private SqlToRelConverter sqlToRelConverter;
   private RelNode rel;
 
-  public PlannerImpl(Lex lex,
-      Function1<SchemaPlus, Schema> schemaFactory,
-      SqlOperatorTable operatorTable, ImmutableList<RuleSet> ruleSets) {
-    this(lex, schemaFactory, operatorTable, ruleSets, null);
-  }
-
+  /** Creates a planner. Not a public API; call
+   * {@link net.hydromatic.optiq.tools.Frameworks#getPlanner} instead. */
   public PlannerImpl(Lex lex,
       Function1<SchemaPlus, Schema> schemaFactory,
       SqlOperatorTable operatorTable, ImmutableList<RuleSet> ruleSets,
-      List<RelTraitDef> traitDefs) {
+      ImmutableList<RelTraitDef> traitDefs) {
     this.schemaFactory = schemaFactory;
     this.operatorTable = operatorTable;
     this.ruleSets = ruleSets;
@@ -145,8 +137,8 @@ public class PlannerImpl implements Planner {
         });
     state = State.STATE_2_READY;
 
-    // If user specify own traitDef, in stead of default default trait,
-    // First, clear the default trait def registered with planer
+    // If user specify own traitDef, instead of default default trait,
+    // first, clear the default trait def registered with planner
     // then, register the trait def specified in traitDefs.
     if (this.traitDefs != null) {
       planner.clearRelTraitDefs();

@@ -70,12 +70,20 @@ public class Frameworks {
       Lex lex,
       Function1<SchemaPlus, Schema> schemaFactory,
       SqlStdOperatorTable operatorTable, RuleSet... ruleSets) {
-    return new PlannerImpl(lex, schemaFactory, operatorTable,
-        ImmutableList.copyOf(ruleSets));
+    return getPlanner(lex, schemaFactory, operatorTable, null, ruleSets);
   }
 
   /**
    * Creates an instance of {@code Planner}.
+   *
+   * <p>If {@code traitDefs} is specified, the planner first de-registers any
+   * existing {@link RelTraitDef}s, then registers the {@code RelTraitDef}s in
+   * this list.</p>
+   *
+   * <p>The order of {@code RelTraitDef}s in {@code traitDefs} matters if the
+   * planner is VolcanoPlanner. The planner calls {@link RelTraitDef#convert} in
+   * the order of this list. The most important trait comes first in the list,
+   * followed by the second most important one, etc.</p>
    *
    * @param lex The type of lexing the SqlParser should do.  Controls case rules
    *     and quoted identifier syntax.
@@ -93,14 +101,7 @@ public class Frameworks {
    *     The order of rule sets provided here determines the zero-based indices
    *     of rule sets elsewhere in this class.
    *  @param  traitDefs The list of RelTraitDef that would be registered with
-   *                    planner. The planner would first de-register any
-   *                    existing RelTraitDef, before register the RelTraitDef
-   *                    in this list.
-   *                    Also, the order of RelTraitDef matters, if planner is
-   *                    VolcanoPlanner, which will call RelTraitDef.convert()
-   *                    in the order of this list. The most important
-   *                    RelTraitDef comes first in the list, followed by
-   *                    the second most important one, etc.
+   *     planner, or null.
    * @return The Planner object.
    */
   public static Planner getPlanner(
@@ -110,7 +111,8 @@ public class Frameworks {
       List<RelTraitDef> traitDefs,
       RuleSet... ruleSets) {
     return new PlannerImpl(lex, schemaFactory, operatorTable,
-        ImmutableList.copyOf(ruleSets), traitDefs);
+        ImmutableList.copyOf(ruleSets),
+        traitDefs == null ? null : ImmutableList.copyOf(traitDefs));
   }
 
   /** Piece of code to be run in a context where a planner is available. The

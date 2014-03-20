@@ -52,7 +52,7 @@ import static org.junit.Assert.*;
  */
 public class PlannerTest {
   @Test public void testParseAndConvert() throws Exception {
-    Planner planner = getPlanner();
+    Planner planner = getPlanner(null);
     SqlNode parse =
         planner.parse("select * from \"emps\" where \"name\" like '%e%'");
     assertThat(Util.toLinux(parse.toString()), equalTo(
@@ -76,7 +76,7 @@ public class PlannerTest {
   }
 
   @Test public void testParseFails() throws SqlParseException {
-    Planner planner = getPlanner();
+    Planner planner = getPlanner(null);
     try {
       SqlNode parse =
           planner.parse("select * * from \"emps\"");
@@ -88,7 +88,7 @@ public class PlannerTest {
   }
 
   @Test public void testValidateFails() throws SqlParseException {
-    Planner planner = getPlanner();
+    Planner planner = getPlanner(null);
     SqlNode parse =
         planner.parse("select * from \"emps\" where \"Xname\" like '%e%'");
     assertThat(Util.toLinux(parse.toString()), equalTo(
@@ -106,19 +106,7 @@ public class PlannerTest {
     }
   }
 
-  private Planner getPlanner(RuleSet... ruleSets) {
-    return Frameworks.getPlanner(
-        Lex.ORACLE,
-        new Function1<SchemaPlus, Schema>() {
-          public Schema apply(SchemaPlus parentSchema) {
-            return new ReflectiveSchema(parentSchema, "hr",
-                new JdbcTest.HrSchema());
-          }
-        }, SqlStdOperatorTable.instance(), ruleSets);
-  }
-
-  private Planner getPlanner(List<RelTraitDef> traitDefs,
-                             RuleSet... ruleSets) {
+  private Planner getPlanner(List<RelTraitDef> traitDefs, RuleSet... ruleSets) {
     return Frameworks.getPlanner(
         Lex.ORACLE,
         new Function1<SchemaPlus, Schema>() {
@@ -134,7 +122,7 @@ public class PlannerTest {
    * a {@link org.eigenbase.sql.SqlNode} that has been parsed but not
    * validated. */
   @Test public void testConvertWithoutValidateFails() throws Exception {
-    Planner planner = getPlanner();
+    Planner planner = getPlanner(null);
     SqlNode parse = planner.parse("select * from \"emps\"");
     try {
       RelNode rel = planner.convert(parse);
@@ -152,7 +140,7 @@ public class PlannerTest {
             MergeFilterRule.INSTANCE,
             JavaRules.ENUMERABLE_FILTER_RULE,
             JavaRules.ENUMERABLE_PROJECT_RULE);
-    Planner planner = getPlanner(ruleSet);
+    Planner planner = getPlanner(null, ruleSet);
     SqlNode parse = planner.parse("select * from \"emps\"");
     SqlNode validate = planner.validate(parse);
     RelNode convert = planner.convert(validate);
@@ -196,7 +184,7 @@ public class PlannerTest {
             MergeFilterRule.INSTANCE,
             JavaRules.ENUMERABLE_FILTER_RULE,
             JavaRules.ENUMERABLE_PROJECT_RULE);
-    Planner planner = getPlanner(ruleSet);
+    Planner planner = getPlanner(null, ruleSet);
     SqlNode parse = planner.parse("select * from \"emps\"");
     SqlNode validate = planner.validate(parse);
     RelNode convert = planner.convert(validate);
@@ -211,7 +199,7 @@ public class PlannerTest {
 
   /** Tests that Hive dialect does not generate "AS". */
   @Test public void testHiveDialect() throws SqlParseException {
-    Planner planner = getPlanner();
+    Planner planner = getPlanner(null);
     SqlNode parse = planner.parse(
         "select * from (select * from \"emps\") as t\n"
         + "where \"name\" like '%e%'");
@@ -243,7 +231,7 @@ public class PlannerTest {
     RuleSet ruleSet1 = RuleSets.ofList(new MockJdbcProjectRule(out),
         new MockJdbcTableRule(out));
 
-    Planner planner = getPlanner(ruleSet0, ruleSet1);
+    Planner planner = getPlanner(null, ruleSet0, ruleSet1);
     SqlNode parse = planner.parse("select T1.\"name\" from \"emps\" as T1 ");
 
     SqlNode validate = planner.validate(parse);
