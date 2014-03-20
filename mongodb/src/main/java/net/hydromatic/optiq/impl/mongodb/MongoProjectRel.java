@@ -56,7 +56,7 @@ public class MongoProjectRel extends ProjectRelBase implements MongoRel {
     final MongoRules.RexToMongoTranslator translator =
         new MongoRules.RexToMongoTranslator(
             (JavaTypeFactory) getCluster().getTypeFactory(),
-            getChild().getRowType().getFieldNames());
+            MongoRules.mongoFieldNames(getChild().getRowType()));
     final List<String> items = new ArrayList<String>();
     for (Pair<RexNode, String> pair : getNamedProjects()) {
       final String name = pair.right;

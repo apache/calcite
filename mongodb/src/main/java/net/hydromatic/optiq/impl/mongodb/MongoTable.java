@@ -135,7 +135,7 @@ public class MongoTable extends AbstractQueryableTable
               .aggregate(first, rest.toArray(new DBObject[rest.size()]));
         } catch (Exception e) {
           throw new RuntimeException("While running MongoDB query "
-              + operations, e);
+              + Util.toString(operations, "[", ",\n", "]"), e);
         }
         return new MongoEnumerator(result.results().iterator(), getter);
       }

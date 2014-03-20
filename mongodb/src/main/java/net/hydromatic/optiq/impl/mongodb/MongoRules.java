@@ -24,10 +24,12 @@ import net.hydromatic.optiq.rules.java.RexToLixTranslator;
 import org.eigenbase.rel.*;
 import org.eigenbase.rel.convert.ConverterRule;
 import org.eigenbase.relopt.*;
+import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.rex.*;
 import org.eigenbase.sql.SqlKind;
 import org.eigenbase.sql.fun.SqlStdOperatorTable;
 import org.eigenbase.sql.type.SqlTypeName;
+import org.eigenbase.sql.validate.SqlValidatorUtil;
 import org.eigenbase.trace.EigenbaseTrace;
 import org.eigenbase.util.Bug;
 
@@ -65,6 +67,20 @@ public class MongoRules {
       return (String) ((RexLiteral) op1).getValue2();
     }
     return null;
+  }
+
+  static List<String> mongoFieldNames(final RelDataType rowType) {
+    return SqlValidatorUtil.uniquify(
+        new AbstractList<String>() {
+          @Override public String get(int index) {
+            final String name = rowType.getFieldList().get(index).getName();
+            return name.startsWith("$") ? "_" + name.substring(2) : name;
+          }
+
+          @Override public int size() {
+            return rowType.getFieldCount();
+          }
+        });
   }
 
   static String maybeQuote(String s) {

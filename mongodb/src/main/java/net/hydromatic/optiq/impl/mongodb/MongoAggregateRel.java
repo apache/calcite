@@ -67,8 +67,9 @@ public class MongoAggregateRel
   public void implement(Implementor implementor) {
     implementor.visitChild(0, getChild());
     List<String> list = new ArrayList<String>();
-    final List<String> inNames = getChild().getRowType().getFieldNames();
-    final List<String> outNames = getRowType().getFieldNames();
+    final List<String> inNames =
+        MongoRules.mongoFieldNames(getChild().getRowType());
+    final List<String> outNames = MongoRules.mongoFieldNames(getRowType());
     int i = 0;
     if (groupSet.cardinality() == 1) {
       final String inName = inNames.get(BitSets.toList(groupSet).get(0));

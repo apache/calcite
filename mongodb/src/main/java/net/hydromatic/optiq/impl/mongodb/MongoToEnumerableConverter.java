@@ -90,7 +90,8 @@ public class MongoToEnumerableConverter
       }
     }
     final Expression fields =
-        list.append("fields", constantArrayList(getRowType().getFieldNames()));
+        list.append("fields",
+            constantArrayList(MongoRules.mongoFieldNames(getRowType())));
     final Expression table =
         list.append("table",
             mongoImplementor.table.getExpression(

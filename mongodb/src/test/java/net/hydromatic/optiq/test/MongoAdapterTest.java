@@ -452,6 +452,22 @@ public class MongoAdapterTest {
     OptiqAssert.that()
         .enable(enabled())
         .with(ZIPS)
+        .query("select state, count(*) as c from zips group by state")
+        .limit(2)
+        .returns("STATE=WV; C=659\n"
+            + "STATE=WA; C=484\n")
+        .queryContains(
+            mongoChecker(
+                "{$project: {STATE: '$state'}}",
+                "{$group: {_id: '$STATE', C: {$sum: 1}}}",
+                "{$project: {STATE: '$_id', C: '$C'}}"));
+  }
+
+  @Test public void testGroupByOneColumnReversed() {
+    // Note extra $project compared to testGroupByOneColumn.
+    OptiqAssert.that()
+        .enable(enabled())
+        .with(ZIPS)
         .query("select count(*) as c, state from zips group by state")
         .limit(2)
         .returns("C=659; STATE=WV\n"
@@ -462,6 +478,54 @@ public class MongoAdapterTest {
                 "{$group: {_id: '$STATE', C: {$sum: 1}}}",
                 "{$project: {STATE: '$_id', C: '$C'}}",
                 "{$project: {C: 1, STATE: 1}}"));
+  }
+
+  @Test public void testGroupByHaving() {
+    OptiqAssert.that()
+        .enable(enabled())
+        .with(ZIPS)
+        .query("select state, count(*) as c from zips\n"
+            + "group by state having count(*) > 1500")
+        .returns("STATE=NY; C=1596\n"
+            + "STATE=TX; C=1676\n"
+            + "STATE=CA; C=1523\n")
+        .queryContains(
+            mongoChecker(
+                "{$project: {STATE: '$state'}}",
+                "{$group: {_id: '$STATE', C: {$sum: 1}}}",
+                "{$project: {STATE: '$_id', C: '$C'}}",
+                "{\n"
+                + "  $match: {\n"
+                + "    C: {\n"
+                + "      $gt: 1500\n"
+                + "    }\n"
+                + "  }\n"
+                + "}"));
+  }
+
+  @Test public void testGroupByHaving2() {
+    OptiqAssert.that()
+        .enable(enabled())
+        .with(ZIPS)
+        .query("select state, count(*) as c from zips\n"
+            + "group by state having sum(pop) > 12000000")
+        .returns("STATE=NY; C=1596\n"
+            + "STATE=TX; C=1676\n"
+            + "STATE=FL; C=826\n"
+            + "STATE=CA; C=1523\n")
+        .queryContains(
+            mongoChecker(
+                "{$project: {STATE: '$state', POP: '$pop'}}",
+                "{$group: {_id: '$STATE', C: {$sum: 1}, _2: {$sum: '$POP'}}}",
+                "{$project: {STATE: '$_id', C: '$C', _2: '$_2'}}",
+                "{\n"
+                + "  $match: {\n"
+                + "    _2: {\n"
+                + "      $gt: 12000000\n"
+                + "    }\n"
+                + "  }\n"
+                + "}",
+                "{$project: {STATE: 1, C: 1}}"));
   }
 
   @Test public void testGroupByMinMaxSum() {
@@ -523,6 +587,31 @@ public class MongoAdapterTest {
                 "{$project: {_id: 0, STATE: '$_id.STATE', CITY: '$_id.CITY'}}",
                 "{$group: {_id: '$STATE', CDC: {$sum: {$cond: [ {$eq: ['CITY', null]}, 0, 1]}}}}",
                 "{$project: {STATE: '$_id', CDC: '$CDC'}}"));
+  }
+
+  @Test public void testDistinctCountOrderBy() {
+    OptiqAssert.that()
+        .enable(enabled())
+        .with(ZIPS)
+        .query(
+            "select state, count(distinct city) as cdc\n"
+            + "from zips\n"
+            + "group by state\n"
+            + "order by cdc desc limit 5")
+        .returns("STATE=NY; CDC=1371\n"
+            + "STATE=PA; CDC=1369\n"
+            + "STATE=TX; CDC=1238\n"
+            + "STATE=IL; CDC=1151\n"
+            + "STATE=CA; CDC=1079\n")
+        .queryContains(
+            mongoChecker(
+                "{$project: {STATE: '$state', CITY: '$city'}}",
+                "{$group: {_id: {STATE: '$STATE', CITY: '$CITY'}}}",
+                "{$project: {_id: 0, STATE: '$_id.STATE', CITY: '$_id.CITY'}}",
+                "{$group: {_id: '$STATE', CDC: {$sum: {$cond: [ {$eq: ['CITY', null]}, 0, 1]}}}}",
+                "{$project: {STATE: '$_id', CDC: '$CDC'}}",
+                "{$sort: {CDC: -1}}",
+                "{$limit: 5}"));
   }
 
   @Test public void testProject() {

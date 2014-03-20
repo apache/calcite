@@ -57,7 +57,8 @@ public class MongoFilterRel
 
   public void implement(Implementor implementor) {
     implementor.visitChild(0, getChild());
-    Translator translator = new Translator(getRowType().getFieldNames());
+    Translator translator =
+        new Translator(MongoRules.mongoFieldNames(getRowType()));
     String match = translator.translateMatch(condition);
     implementor.add(null, match);
   }
