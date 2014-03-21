@@ -21,25 +21,27 @@
 # $ ./sqlline
 # sqlline> !connect jdbc:optiq:model=target/test-classes/model.json admin admin
 
-# Build classpath on first call. (To force rebuild, remove target/dependencies.)
-if [ ! -d target/dependencies ]; then
-    mvn -B -DskipTests -Dcheckfile.skip=true package
-fi
-
+# Deduce whether we are running cygwin
 case $(uname -s) in
 (CYGWIN*) cygwin=true;;
 (*) cygwin=;;
 esac
 
-CP="target/classes:target/test-classes:target/dependencies/*"
-OPTS=
+# Build classpath on first call. (To force rebuild, remove .classpath.txt.)
+cd $(dirname $0)
+if [ ! -f target/classpath.txt ]; then
+    mvn dependency:build-classpath -Dmdep.outputFile=target/classpath.txt
+fi
+
+CP="target/classes:target/test-classes:$(cat target/classpath.txt)"
+VM_OPTS=
 if [ "$cygwin" ]; then
   CP=$(cygpath -wp "$CP")
 
   # Work around https://github.com/jline/jline2/issues/62
-  OPTS=-Djline.terminal=jline.UnixTerminal
+  VM_OPTS=-Djline.terminal=jline.UnixTerminal
 fi
 
-exec java $OPTS -cp "${CP}" sqlline.SqlLine "$@"
+exec java $VM_OPTS -cp "${CP}" sqlline.SqlLine "$@"
 
 # End sqlline
