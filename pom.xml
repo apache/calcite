@@ -4,7 +4,7 @@
   <!-- The basics. -->
   <groupId>net.hydromatic</groupId>
   <artifactId>optiq-csv</artifactId>
-  <version>0.3</version>
+  <version>0.4-SNAPSHOT</version>
   <packaging>jar</packaging>
 
   <!-- More project information. -->
@@ -69,7 +69,7 @@
     <connection>scm:git:git://github.com/julianhyde/optiq-csv.git</connection>
     <developerConnection>scm:git:git@github.com:julianhyde/optiq-csv.git</developerConnection>
     <url>http://github.com/julianhyde/optiq-csv/tree/master</url>
-    <tag>optiq-csv-0.3</tag>
+    <tag>HEAD</tag>
   </scm>
 
   <!-- Dependencies. -->
