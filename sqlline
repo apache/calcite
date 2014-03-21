@@ -32,10 +32,14 @@ case $(uname -s) in
 esac
 
 CP="target/classes:target/test-classes:target/dependencies/*"
+OPTS=
 if [ "$cygwin" ]; then
   CP=$(cygpath -wp "$CP")
+
+  # Work around https://github.com/jline/jline2/issues/62
+  OPTS=-Djline.terminal=jline.UnixTerminal
 fi
 
-exec java -cp "${CP}" sqlline.SqlLine "$@"
+exec java $OPTS -cp "${CP}" sqlline.SqlLine "$@"
 
 # End sqlline
