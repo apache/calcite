@@ -51,6 +51,10 @@ public class CsvTest {
     }
   }
 
+  public static String toLinux(String s) {
+    return s.replaceAll("\r\n", "\n");
+  }
+
   /**
    * Tests the vanity driver.
    */
@@ -212,7 +216,7 @@ public class CsvTest {
             .append(resultSet.getObject(i));
         sep = "; ";
       }
-      result.add(buf.toString());
+      result.add(toLinux(buf.toString()));
     }
   }
 
