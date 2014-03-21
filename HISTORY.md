@@ -2,6 +2,18 @@
 
 For a full list of releases, see <a href="https://github.com/julianhyde/optiq-csv/releases">github</a>.
 
+## <a href="https://github.com/julianhyde/optiq-csv/releases/tag/optiq-csv-0.3">0.3</a> / 2014-03-21
+
+* Upgrade to optiq-0.5.
+* Add workaround to
+  <a href="https://github.com/jline/jline2/issues/62">jline2 #62</a>
+  to `sqlline.bat` (windows) and `sqlline` (windows using cygwin).
+* Fix classpath construction: `sqlline.bat` copies dependencies to `target/dependencies`; `sqlline` constructs `target/classpath.txt`.
+* Build, checkstyle and tests now succeed on windows (both native and cygwin).
+* Models can now contain comments.
+* Fix <a href="https://github.com/julianhyde/optiq-csv/issues/2">#2</a>,
+  "Update tutorial to reflect changes to Optiq's JDBC adapter".
+
 ## <a href="https://github.com/julianhyde/optiq-csv/releases/tag/optiq-csv-0.2">0.2</a> / 2014-02-18
 
 * Add test case for <a href="https://github.com/julianhyde/optiq/issues/112">optiq-112</a>.
