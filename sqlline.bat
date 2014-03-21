@@ -22,7 +22,7 @@
 :: sqlline> !connect jdbc:optiq:model=target/test-classes/model.json admin admin 
 
 :: Copy dependency jars on first call. (To force jar refresh, remove target\dependencies)
-if not exist target\dependencies (call mvn -B -DskipTests -Dcheckstyle.skip=true package)
+if not exist target\dependencies (call mvn -B dependency:copy-dependencies -DoverWriteReleases=false -DoverWriteSnapshots=false -DoverWriteIfNewer=true -DoutputDirectory=target\dependencies)
 
 java -Xmx1G -cp ".\target\dependencies\*" sqlline.SqlLine --verbose=true %*
 
