@@ -30,6 +30,7 @@ import org.eigenbase.sql.fun.SqlCase;
 import org.eigenbase.sql.fun.SqlStdOperatorTable;
 import org.eigenbase.sql.parser.SqlParserPos;
 import org.eigenbase.sql.type.BasicSqlType;
+import org.eigenbase.sql.type.SqlTypeName;
 import org.eigenbase.sql.validate.SqlValidatorUtil;
 import org.eigenbase.util.Pair;
 import org.eigenbase.util.Util;
@@ -117,6 +118,10 @@ public class JdbcImplementor {
 
       case LITERAL:
         final RexLiteral literal = (RexLiteral) rex;
+        if (literal.getTypeName().equals(SqlTypeName.SYMBOL)) {
+          return SqlLiteral
+              .createSymbol((SqlLiteral.SqlSymbol) literal.getValue(), POS);
+        }
         switch (literal.getTypeName().getFamily()) {
         case CHARACTER:
           return SqlLiteral.createCharString((String) literal.getValue2(), POS);

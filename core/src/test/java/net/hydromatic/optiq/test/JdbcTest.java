@@ -2183,6 +2183,20 @@ public class JdbcTest {
     predicate("\"name\" not in ('a', 'b', null) and \"name\" is not null");
   }
 
+  @Test public void testTrim() {
+    OptiqAssert.that()
+        .withModel(FOODMART_MODEL)
+        .query("select trim(\"lname\") as \"lname\" "
+            + "from \"customer\" where \"lname\" = 'Nowmer'")
+        .returns("lname=Nowmer\n");
+
+    OptiqAssert.that()
+        .withModel(FOODMART_MODEL)
+        .query("select trim(leading 'N' from \"lname\") as \"lname\" "
+            + "from \"customer\" where \"lname\" = 'Nowmer'")
+        .returns("lname=owmer\n");
+  }
+
   private OptiqAssert.AssertQuery predicate(String foo) {
     return OptiqAssert.that()
         .with(OptiqAssert.Config.REGULAR)
