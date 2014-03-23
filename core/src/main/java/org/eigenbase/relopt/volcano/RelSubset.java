@@ -416,7 +416,7 @@ public class RelSubset extends AbstractRelNode {
    * Visitor which walks over a tree of {@link RelSet}s, replacing each node
    * with the cheapest implementation of the expression.
    */
-  class CheapestPlanReplacer {
+  static class CheapestPlanReplacer {
     VolcanoPlanner planner;
 
     CheapestPlanReplacer(VolcanoPlanner planner) {

@@ -70,7 +70,8 @@ class RuleQueue {
    * work.
    */
   final Map<VolcanoPlannerPhase, PhaseMatchList> matchListMap =
-      new HashMap<VolcanoPlannerPhase, PhaseMatchList>();
+      new EnumMap<VolcanoPlannerPhase, PhaseMatchList>(
+          VolcanoPlannerPhase.class);
 
   /**
    * Sorts rule-matches into decreasing order of importance.
@@ -97,7 +98,8 @@ class RuleQueue {
   RuleQueue(VolcanoPlanner planner) {
     this.planner = planner;
 
-    phaseRuleMapping = new HashMap<VolcanoPlannerPhase, Set<String>>();
+    phaseRuleMapping = new EnumMap<VolcanoPlannerPhase, Set<String>>(
+        VolcanoPlannerPhase.class);
 
     // init empty sets for all phases
     for (VolcanoPlannerPhase phase : VolcanoPlannerPhase.values()) {
@@ -203,7 +205,9 @@ class RuleQueue {
    *                importance by 25%)
    */
   public void boostImportance(Collection<RelSubset> subsets, double factor) {
-    LOGGER.finer("boostImportance(" + factor + ", " + subsets + ")");
+    if (LOGGER.isLoggable(Level.FINER)) {
+      LOGGER.finer("boostImportance(" + factor + ", " + subsets + ")");
+    }
     ArrayList<RelSubset> boostRemovals = new ArrayList<RelSubset>();
     Iterator<RelSubset> iter = boostedSubsets.iterator();
     while (iter.hasNext()) {
@@ -381,7 +385,9 @@ class RuleQueue {
         importance = Math.max(importance, childImportance);
       }
     }
-    LOGGER.finest("Importance of [" + subset + "] is " + importance);
+    if (LOGGER.isLoggable(Level.FINEST)) {
+      LOGGER.finest("Importance of [" + subset + "] is " + importance);
+    }
     return importance;
   }
 
