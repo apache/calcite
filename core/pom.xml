@@ -61,6 +61,21 @@
         </executions>
       </plugin>
       <plugin>
+        <groupId>net.hydromatic</groupId>
+        <artifactId>hydromatic-resource-maven-plugin</artifactId>
+        <version>0.2</version>
+        <executions>
+          <execution>
+            <goals>
+              <goal>generate-sources</goal>
+            </goals>
+            <configuration>
+              <packageName>org.eigenbase.resource</packageName>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-jar-plugin</artifactId>
         <version>2.2</version>

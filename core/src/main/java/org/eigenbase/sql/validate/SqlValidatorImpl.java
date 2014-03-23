@@ -3647,7 +3647,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
    * @param context parser position context for error reporting, or null if
    */
   protected void validateFeature(
-      Resources.Feature feature,
+      Feature feature,
       SqlParserPos context) {
     // By default, do nothing except to verify that the resource
     // represents a real feature definition.

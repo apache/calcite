@@ -17,13 +17,18 @@
 */
 package org.eigenbase.resource;
 
-/**
- * A <code>ResourceInstance</code> is an occurrence of a {@link
- * ResourceDefinition} with a set of arguments. It can later be formatted to a
- * specific locale.
- */
-public interface ResourceInstance {
-  String toString();
+import java.lang.reflect.Method;
+import java.util.Locale;
+
+import org.eigenbase.util.EigenbaseContextException;
+
+/** SQL language feature. Expressed as the exception that would be thrown if it
+ * were used while disabled. */
+public class Feature
+    extends Resources.ExInstWithCause<EigenbaseContextException> {
+  public Feature(String base, Locale locale, Method method, Object... args) {
+    super(base, locale, method, args);
+  }
 }
 
-// End ResourceInstance.java
+// End Feature.java

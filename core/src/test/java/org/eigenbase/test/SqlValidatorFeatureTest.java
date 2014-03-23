@@ -41,7 +41,7 @@ public class SqlValidatorFeatureTest extends SqlValidatorTestCase {
 
   //~ Instance fields --------------------------------------------------------
 
-  private Resources.Feature disabledFeature;
+  private Feature disabledFeature;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -103,7 +103,7 @@ public class SqlValidatorFeatureTest extends SqlValidatorTestCase {
         RESOURCE.sQLFeatureExt_T613_Substitution());
   }
 
-  private void checkFeature(String sql, Resources.Feature feature) {
+  private void checkFeature(String sql, Feature feature) {
     // Test once with feature enabled:  should pass
     check(sql);
 
@@ -146,7 +146,7 @@ public class SqlValidatorFeatureTest extends SqlValidatorTestCase {
     }
 
     protected void validateFeature(
-        Resources.Feature feature,
+        Feature feature,
         SqlParserPos context) {
       if (feature.equals(disabledFeature)) {
         EigenbaseException ex =
