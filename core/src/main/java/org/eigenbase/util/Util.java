@@ -2090,6 +2090,11 @@ public class Util {
     public Object getNode() {
       return node;
     }
+
+    @Override
+    public synchronized Throwable fillInStackTrace() {
+      return this;
+    }
   }
 }
 
