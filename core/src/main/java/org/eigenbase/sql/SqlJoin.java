@@ -67,9 +67,9 @@ public class SqlJoin extends SqlCall {
 
     assert natural.getTypeName() == SqlTypeName.BOOLEAN;
     assert conditionType != null;
-    assert SqlLiteral.symbolValue(conditionType) instanceof JoinConditionType;
+    assert conditionType.symbolValue() instanceof JoinConditionType;
     assert joinType != null;
-    assert SqlLiteral.symbolValue(joinType) instanceof JoinType;
+    assert joinType.symbolValue() instanceof JoinType;
 
   }
 
@@ -119,7 +119,7 @@ public class SqlJoin extends SqlCall {
 
   /** Returns a {@link JoinConditionType}, never null. */
   public final JoinConditionType getConditionType() {
-    return (JoinConditionType) SqlLiteral.symbolValue(conditionType);
+    return conditionType.symbolValue();
   }
 
   public SqlLiteral getConditionTypeNode() {
@@ -128,7 +128,7 @@ public class SqlJoin extends SqlCall {
 
   /** Returns a {@link JoinType}, never null. */
   public final JoinType getJoinType() {
-    return (JoinType) SqlLiteral.symbolValue(joinType);
+    return joinType.symbolValue();
   }
 
   public SqlLiteral getJoinTypeNode() {
@@ -144,7 +144,7 @@ public class SqlJoin extends SqlCall {
   }
 
   public final boolean isNatural() {
-    return SqlLiteral.booleanValue(natural);
+    return natural.booleanValue();
   }
 
   public final SqlLiteral isNaturalNode() {

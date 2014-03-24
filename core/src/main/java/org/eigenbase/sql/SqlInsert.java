@@ -112,8 +112,7 @@ public class SqlInsert extends SqlCall {
 
   public final SqlNode getModifierNode(SqlInsertKeyword modifier) {
     for (SqlNode keyword : keywords) {
-      SqlInsertKeyword keyword2 =
-          (SqlInsertKeyword) SqlLiteral.symbolValue(keyword);
+      SqlInsertKeyword keyword2 = ((SqlLiteral) keyword).symbolValue();
       if (keyword2 == modifier) {
         return keyword;
       }

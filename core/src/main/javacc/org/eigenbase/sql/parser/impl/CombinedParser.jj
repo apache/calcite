@@ -3758,22 +3758,19 @@ SqlNode BuiltinFunctionCall() :
                 <BOTH>
                 {
                     pos = getPos();
-                    flag = SqlLiteral.createSymbol(
-                        SqlTrimFunction.Flag.BOTH, pos);
+                    flag = SqlTrimFunction.Flag.BOTH.symbol(pos);
                 }
                 |
                 <TRAILING>
                 {
                     pos = getPos();
-                    flag = SqlLiteral.createSymbol(
-                        SqlTrimFunction.Flag.TRAILING, pos);
+                    flag = SqlTrimFunction.Flag.TRAILING.symbol(pos);
                 }
                 |
                 <LEADING>
                 {
                     pos = getPos();
-                    flag = SqlLiteral.createSymbol(
-                        SqlTrimFunction.Flag.LEADING, pos);
+                    flag = SqlTrimFunction.Flag.LEADING.symbol(pos);
                 }
             ]
             [ trimChars = Expression(ExprContext.ACCEPT_SUBQUERY) ]
@@ -3790,8 +3787,7 @@ SqlNode BuiltinFunctionCall() :
                     // This is to handle the case of TRIM(x)
                     // (FRG-191).
                     if (flag == null) {
-                        flag = SqlLiteral.createSymbol(
-                            SqlTrimFunction.Flag.BOTH, SqlParserPos.ZERO);
+                        flag = SqlTrimFunction.Flag.BOTH.symbol(SqlParserPos.ZERO);
                     }
                     args = startList(flag);
                     args.add(null); // no trim chars
@@ -3804,8 +3800,7 @@ SqlNode BuiltinFunctionCall() :
         e = Expression(ExprContext.ACCEPT_SUBQUERY)
         {
             if (flag == null) {
-                flag = SqlLiteral.createSymbol(
-                    SqlTrimFunction.Flag.BOTH, SqlParserPos.ZERO);
+                flag = SqlTrimFunction.Flag.BOTH.symbol(SqlParserPos.ZERO);
             }
             args = startList(flag);
             args.add(trimChars);

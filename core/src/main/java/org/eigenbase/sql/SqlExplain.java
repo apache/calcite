@@ -114,14 +114,14 @@ public class SqlExplain extends SqlCall {
    * @return detail level to be generated
    */
   public SqlExplainLevel getDetailLevel() {
-    return (SqlExplainLevel) SqlLiteral.symbolValue(detailLevel);
+    return detailLevel.symbolValue();
   }
 
   /**
    * Returns the level of abstraction at which this plan should be displayed.
    */
   public Depth getDepth() {
-    return (Depth) SqlLiteral.symbolValue(depth);
+    return depth.symbolValue();
   }
 
   /**
@@ -149,7 +149,7 @@ public class SqlExplain extends SqlCall {
    * Returns whether result is to be in XML format.
    */
   public boolean isXml() {
-    return SqlLiteral.booleanValue(asXml);
+    return asXml.booleanValue();
   }
 
   @Override public void unparse(SqlWriter writer, int leftPrec, int rightPrec) {

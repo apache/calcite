@@ -226,19 +226,33 @@ public class SqlLiteral extends SqlNode {
    * values, it's better to to let SqlLiteral do whatever it is you want to
    * do.
    *
-   * @see #booleanValue(SqlNode)
-   * @see #symbolValue(SqlNode)
+   * @see #booleanValue()
+   * @see #symbolValue()
    */
   public Object getValue() {
     return value;
+  }
+
+  /** Returns the value as a symbol. */
+  public <E extends SqlSymbol> E symbolValue() {
+    //noinspection unchecked
+    return (E) value;
+  }
+
+  /** Returns the value as a boolean. */
+  public boolean booleanValue() {
+    return (Boolean) value;
   }
 
   /**
    * Converts extracts the value from a boolean literal.
    *
    * @throws ClassCastException if the value is not a boolean literal
+   *
+   * @deprecated Use {@link #booleanValue()}
    */
   public static boolean booleanValue(SqlNode node) {
+    Bug.upgrade("remove after 0.6");
     return (Boolean) ((SqlLiteral) node).value;
   }
 
@@ -247,8 +261,11 @@ public class SqlLiteral extends SqlNode {
    *
    * @throws ClassCastException if the value is not a symbol literal
    * @see #createSymbol(SqlSymbol, SqlParserPos)
+   *
+   * @deprecated Use {@link #symbolValue()}
    */
   public static SqlSymbol symbolValue(SqlNode node) {
+    Bug.upgrade("remove after 0.6");
     return (SqlSymbol) ((SqlLiteral) node).value;
   }
 
@@ -380,7 +397,7 @@ public class SqlLiteral extends SqlNode {
    * <code>TRAILING</code> keyword in the call <code>Trim(TRAILING 'x' FROM
    * 'Hello world!')</code>.
    *
-   * @see #symbolValue(SqlNode)
+   * @see #symbolValue()
    */
   public static SqlLiteral createSymbol(
       SqlLiteral.SqlSymbol o,

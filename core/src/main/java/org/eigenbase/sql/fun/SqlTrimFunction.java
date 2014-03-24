@@ -53,6 +53,14 @@ public class SqlTrimFunction extends SqlFunction {
     public int getRight() {
       return right;
     }
+
+    /**
+     * Creates a parse-tree node representing an occurrence of this flag
+     * at a particular position in the parsed text.
+     */
+    public SqlLiteral symbol(SqlParserPos pos) {
+      return SqlLiteral.createSymbol(this, pos);
+    }
   }
 
   //~ Constructors -----------------------------------------------------------
@@ -114,7 +122,7 @@ public class SqlTrimFunction extends SqlFunction {
       // This variant occurs when someone writes TRIM(string)
       // as opposed to the sugared syntax TRIM(string FROM string).
       operands = new SqlNode[]{
-        SqlLiteral.createSymbol(Flag.BOTH, SqlParserPos.ZERO),
+        Flag.BOTH.symbol(SqlParserPos.ZERO),
         SqlLiteral.createCharString(" ", pos),
         operands[0]
       };

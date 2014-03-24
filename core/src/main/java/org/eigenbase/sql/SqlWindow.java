@@ -213,7 +213,7 @@ public class SqlWindow extends SqlCall {
   }
 
   public boolean isRows() {
-    return SqlLiteral.booleanValue(isRows);
+    return isRows.booleanValue();
   }
 
   public SqlNodeList getOrderList() {
@@ -358,7 +358,7 @@ public class SqlWindow extends SqlCall {
    */
   public static boolean isCurrentRow(SqlNode node) {
     return (node instanceof SqlLiteral)
-        && (SqlLiteral.symbolValue(node) == Bound.CURRENT_ROW);
+        && ((SqlLiteral) node).symbolValue() == Bound.CURRENT_ROW;
   }
 
   /**
@@ -366,7 +366,7 @@ public class SqlWindow extends SqlCall {
    */
   public static boolean isUnboundedPreceding(SqlNode node) {
     return (node instanceof SqlLiteral)
-        && (SqlLiteral.symbolValue(node) == Bound.UNBOUNDED_PRECEDING);
+        && ((SqlLiteral) node).symbolValue() == Bound.UNBOUNDED_PRECEDING;
   }
 
   /**
@@ -374,7 +374,7 @@ public class SqlWindow extends SqlCall {
    */
   public static boolean isUnboundedFollowing(SqlNode node) {
     return (node instanceof SqlLiteral)
-        && (SqlLiteral.symbolValue(node) == Bound.UNBOUNDED_FOLLOWING);
+        && ((SqlLiteral) node).symbolValue() == Bound.UNBOUNDED_FOLLOWING;
   }
 
   /**
@@ -585,7 +585,7 @@ public class SqlWindow extends SqlCall {
   public boolean isAllowPartial() {
     // Default (and standard behavior) is to allow partial windows.
     return allowPartial == null
-        || SqlLiteral.booleanValue(allowPartial);
+        || allowPartial.booleanValue();
   }
 
   @Override

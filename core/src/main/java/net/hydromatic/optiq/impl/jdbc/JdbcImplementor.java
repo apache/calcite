@@ -118,9 +118,10 @@ public class JdbcImplementor {
 
       case LITERAL:
         final RexLiteral literal = (RexLiteral) rex;
-        if (literal.getTypeName().equals(SqlTypeName.SYMBOL)) {
-          return SqlLiteral
-              .createSymbol((SqlLiteral.SqlSymbol) literal.getValue(), POS);
+        if (literal.getTypeName() == SqlTypeName.SYMBOL) {
+          final SqlLiteral.SqlSymbol symbol =
+              (SqlLiteral.SqlSymbol) literal.getValue();
+          return SqlLiteral.createSymbol(symbol, POS);
         }
         switch (literal.getTypeName().getFamily()) {
         case CHARACTER:

@@ -133,8 +133,7 @@ public class SqlSelect extends SqlCall {
 
   public final SqlNode getModifierNode(SqlSelectKeyword modifier) {
     for (SqlNode keyword : keywordList) {
-      SqlSelectKeyword keyword2 =
-          (SqlSelectKeyword) SqlLiteral.symbolValue(keyword);
+      SqlSelectKeyword keyword2 = ((SqlLiteral) keyword).symbolValue();
       if (keyword2 == modifier) {
         return keyword;
       }

@@ -713,9 +713,7 @@ public class SqlJdbcFunctionCall extends SqlFunction {
               assert 1 == operands.length;
               return super.createCall(
                   new SqlNode[]{
-                    SqlLiteral.createSymbol(
-                        SqlTrimFunction.Flag.LEADING,
-                        SqlParserPos.ZERO),
+                    SqlTrimFunction.Flag.LEADING.symbol(SqlParserPos.ZERO),
                     SqlLiteral.createCharString(" ", null),
                     operands[0]
                   },
@@ -730,10 +728,8 @@ public class SqlJdbcFunctionCall extends SqlFunction {
                 SqlNode[] operands, SqlParserPos pos) {
               assert 1 == operands.length;
               return super.createCall(
-                  new SqlNode[]{
-                    SqlLiteral.createSymbol(
-                        SqlTrimFunction.Flag.TRAILING,
-                        SqlParserPos.ZERO),
+                  new SqlNode[] {
+                    SqlTrimFunction.Flag.TRAILING.symbol(SqlParserPos.ZERO),
                     SqlLiteral.createCharString(" ", null),
                     operands[0]
                   },
