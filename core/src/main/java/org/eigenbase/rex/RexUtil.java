@@ -537,11 +537,8 @@ public class RexUtil {
    * representation. For example, "10" integer and "10" bigint result in
    * different keys.
    */
-  public static String makeKey(RexNode expr) {
-    String type = expr.getType().getFullTypeString();
-    String separator = ";";
-    String node = expr.toString();
-    return type + separator + node;
+  public static Pair<String, String> makeKey(RexNode expr) {
+    return Pair.of(expr.toString(), expr.getType().getFullTypeString());
   }
 
   /**

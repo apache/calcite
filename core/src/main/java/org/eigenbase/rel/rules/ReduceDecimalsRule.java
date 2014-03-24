@@ -112,13 +112,13 @@ public class ReduceDecimalsRule extends RelOptRule {
    * longs.
    */
   public class DecimalShuttle extends RexShuttle {
-    private final Map<String, RexNode> irreducible;
-    private final Map<String, RexNode> results;
+    private final Map<Pair<String, String>, RexNode> irreducible;
+    private final Map<Pair<String, String>, RexNode> results;
     private final ExpanderMap expanderMap;
 
     public DecimalShuttle(RexBuilder rexBuilder) {
-      irreducible = new HashMap<String, RexNode>();
-      results = new HashMap<String, RexNode>();
+      irreducible = new HashMap<Pair<String, String>, RexNode>();
+      results = new HashMap<Pair<String, String>, RexNode>();
       expanderMap = new ExpanderMap(rexBuilder);
     }
 
@@ -163,7 +163,7 @@ public class ReduceDecimalsRule extends RelOptRule {
      * Registers node so it will not be computed again
      */
     private void register(RexNode node, RexNode reducedNode) {
-      String key = RexUtil.makeKey(node);
+      Pair<String, String> key = RexUtil.makeKey(node);
       if (node == reducedNode) {
         irreducible.put(key, reducedNode);
       } else {
@@ -175,7 +175,7 @@ public class ReduceDecimalsRule extends RelOptRule {
      * Lookup registered node
      */
     private RexNode lookup(RexNode node) {
-      String key = RexUtil.makeKey(node);
+      Pair<String, String> key = RexUtil.makeKey(node);
       if (irreducible.get(key) != null) {
         return node;
       }

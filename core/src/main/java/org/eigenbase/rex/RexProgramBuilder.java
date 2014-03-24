@@ -37,8 +37,8 @@ public class RexProgramBuilder {
   private final RexBuilder rexBuilder;
   private final RelDataType inputRowType;
   private final List<RexNode> exprList = new ArrayList<RexNode>();
-  private final Map<String, RexLocalRef> exprMap =
-      new HashMap<String, RexLocalRef>();
+  private final Map<Pair<String, String>, RexLocalRef> exprMap =
+      new HashMap<Pair<String, String>, RexLocalRef>();
   private final List<RexLocalRef> localRefList = new ArrayList<RexLocalRef>();
   private final List<RexLocalRef> projectRefList =
       new ArrayList<RexLocalRef>();
@@ -298,10 +298,13 @@ public class RexProgramBuilder {
    *              sub-expression exists.
    */
   private RexLocalRef registerInternal(RexNode expr, boolean force) {
-    String key = RexUtil.makeKey(expr);
-    RexLocalRef ref = exprMap.get(key);
-    if ((ref == null) && (expr instanceof RexLocalRef)) {
+    RexLocalRef ref;
+    Pair<String, String> key = null;
+    if (expr instanceof RexLocalRef) {
       ref = (RexLocalRef) expr;
+    } else {
+      key = RexUtil.makeKey(expr);
+      ref = exprMap.get(key);
     }
     if (ref == null) {
       if (validating) {
