@@ -457,7 +457,7 @@ public abstract class SqlToRelTestBase {
     }
 
     public SqlNode parseQuery(String sql) throws Exception {
-      SqlParser parser = new SqlParser(sql);
+      SqlParser parser = SqlParser.create(sql);
       SqlNode sqlNode = parser.parseQuery();
       return sqlNode;
     }

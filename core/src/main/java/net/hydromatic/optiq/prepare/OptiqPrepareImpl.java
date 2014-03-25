@@ -48,6 +48,7 @@ import org.eigenbase.sql.*;
 import org.eigenbase.sql.fun.SqlStdOperatorTable;
 import org.eigenbase.sql.parser.SqlParseException;
 import org.eigenbase.sql.parser.SqlParser;
+import org.eigenbase.sql.parser.impl.SqlParserImpl;
 import org.eigenbase.sql.type.*;
 import org.eigenbase.sql.util.ChainedSqlOperatorTable;
 import org.eigenbase.sql.validate.*;
@@ -105,7 +106,7 @@ public class OptiqPrepareImpl implements OptiqPrepare {
             context.config().caseSensitive(),
             context.getDefaultSchemaPath(),
             typeFactory);
-    SqlParser parser = new SqlParser(sql);
+    SqlParser parser = SqlParser.create(sql);
     SqlNode sqlNode;
     try {
       sqlNode = parser.parseStmt();
@@ -304,8 +305,8 @@ public class OptiqPrepareImpl implements OptiqPrepare {
     if (sql != null) {
       assert queryable == null;
       final OptiqConnectionConfig config = context.config();
-      SqlParser parser = new SqlParser(sql, config.quoting(),
-          config.unquotedCasing(), config.quotedCasing());
+      SqlParser parser = SqlParser.create(SqlParserImpl.FACTORY, sql,
+          config.quoting(), config.unquotedCasing(), config.quotedCasing());
       SqlNode sqlNode;
       try {
         sqlNode = parser.parseStmt();
@@ -638,7 +639,7 @@ public class OptiqPrepareImpl implements OptiqPrepare {
         List<String> schemaPath) {
       expansionDepth++;
 
-      SqlParser parser = new SqlParser(queryString);
+      SqlParser parser = SqlParser.create(queryString);
       SqlNode sqlNode;
       try {
         sqlNode = parser.parseQuery();

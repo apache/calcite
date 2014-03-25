@@ -25,6 +25,8 @@ import org.eigenbase.sql.*;
 import org.eigenbase.sql.fun.*;
 import org.eigenbase.util.*;
 
+import net.hydromatic.avatica.Casing;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
@@ -388,11 +390,48 @@ public abstract class SqlAbstractParserImpl {
   public abstract void ReInit(Reader reader);
 
   /**
+   * Parses a SQL expression ending with EOF and constructs a
+   * parse tree.
+   *
+   * @return constructed parse tree.
+   */
+  public abstract SqlNode parseSqlExpressionEof() throws Exception;
+
+  /**
+   * Parses a SQL statement ending with EOF and constructs a
+   * parse tree.
+   *
+   * @return constructed parse tree.
+   */
+  public abstract SqlNode parseSqlStmtEof() throws Exception;
+
+  /**
    * Sets the tab stop size.
    *
    * @param tabSize Tab stop size
    */
   public abstract void setTabSize(int tabSize);
+
+  /**
+   * Sets the casing policy for quoted identifiers.
+   *
+   * @param quotedCasing Casing to set.
+   */
+  public abstract void setQuotedCasing(Casing quotedCasing);
+
+  /**
+   * Sets the casing policy for unquoted identifiers.
+   *
+   * @param unquotedCasing Casing to set.
+   */
+  public abstract void setUnquotedCasing(Casing unquotedCasing);
+
+  /**
+   * Change parser state.
+   *
+   * @param stateName new state.
+   */
+  public abstract void switchTo(String stateName);
 
   //~ Inner Interfaces -------------------------------------------------------
 

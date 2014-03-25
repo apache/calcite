@@ -363,7 +363,7 @@ public class SqlAdvisor {
     Collection<String> c = SqlAbstractParserImpl.getSql92ReservedWords();
     List<String> l =
         Arrays.asList(
-            getParserImpl().getMetadata().getJdbcKeywords().split(","));
+            getParserMetadata().getJdbcKeywords().split(","));
     List<String> al = new ArrayList<String>();
     al.addAll(c);
     al.addAll(l);
@@ -371,16 +371,16 @@ public class SqlAdvisor {
   }
 
   /**
-   * Returns the underlying Parser implementation class.
+   * Returns the underlying Parser metadata.
    *
    * <p>To use a different parser (recognizing a different dialect of SQL),
    * derived class should override.
    *
-   * @return a {@link SqlAbstractParserImpl} instance
+   * @return a {@link SqlAbstractParserImpl.Metadata} instance.
    */
-  protected SqlAbstractParserImpl getParserImpl() {
-    SqlParser parser = new SqlParser("");
-    return parser.getParserImpl();
+  protected SqlAbstractParserImpl.Metadata getParserMetadata() {
+    SqlParser parser = SqlParser.create("");
+    return parser.getMetadata();
   }
 
   /**
@@ -393,7 +393,7 @@ public class SqlAdvisor {
    * @throws SqlParseException if not syntactically valid
    */
   protected SqlNode parseQuery(String sql) throws SqlParseException {
-    SqlParser parser = new SqlParser(sql);
+    SqlParser parser = SqlParser.create(sql);
     return parser.parseStmt();
   }
 

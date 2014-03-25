@@ -73,7 +73,8 @@ public class SqlParserTest {
   }
 
   private SqlParser getSqlParser(String sql) {
-    return new SqlParser(sql, quoting, unquotedCasing, quotedCasing);
+    return SqlParser.create(SqlParserImpl.FACTORY, sql, quoting,
+        unquotedCasing, quotedCasing);
   }
 
   protected SqlNode parseStmt(String sql) throws SqlParseException {
@@ -90,8 +91,8 @@ public class SqlParserTest {
     return getSqlParser(sql).parseExpression();
   }
 
-  protected SqlParserImpl getParserImpl() {
-    return getSqlParser("").getParserImpl();
+  protected SqlAbstractParserImpl.Metadata getParserMetadata() {
+    return getSqlParser("").getMetadata();
   }
 
   protected void checkExpSame(String sql) {
@@ -5330,7 +5331,7 @@ public class SqlParserTest {
   }
 
   @Test public void testMetadata() {
-    SqlAbstractParserImpl.Metadata metadata = getParserImpl().getMetadata();
+    SqlAbstractParserImpl.Metadata metadata = getParserMetadata();
     assertTrue(metadata.isReservedFunctionName("ABS"));
     assertFalse(metadata.isReservedFunctionName("FOO"));
 

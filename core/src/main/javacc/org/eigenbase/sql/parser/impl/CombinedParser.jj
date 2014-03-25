@@ -40,8 +40,10 @@ import net.hydromatic.avatica.Casing;
 
 import com.google.common.collect.ImmutableList;
 
+import java.io.Reader;
 import java.math.*;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.List;
@@ -68,8 +70,18 @@ public class SqlParserImpl extends SqlAbstractParserImpl
 
     private static Metadata metadata;
 
-    public Casing unquotedCasing;
-    public Casing quotedCasing;
+    private Casing unquotedCasing;
+    private Casing quotedCasing;
+
+    /**
+     * {@link SqlParserImplFactory} implementation for creating
+     * Optiq's SQL parser.
+     */
+    public static final SqlParserImplFactory FACTORY = new SqlParserImplFactory() {
+        public SqlAbstractParserImpl getParser(Reader stream) {
+            return new SqlParserImpl(stream);
+        }
+    };
 
     // implement SqlAbstractParserImpl
     public SqlParseException normalizeException(Throwable ex)
@@ -100,6 +112,38 @@ public class SqlParserImpl extends SqlAbstractParserImpl
     public void setTabSize(int tabSize)
     {
         jj_input_stream.setTabSize(tabSize);
+    }
+
+    // implement SqlAbstractParserImpl
+    public void switchTo(String stateName)
+    {
+        int state = Arrays.asList(SqlParserImplTokenManager.lexStateNames)
+            .indexOf(stateName);
+        token_source.SwitchTo(state);
+    }
+
+    // implement SqlAbstractParserImpl
+    public void setQuotedCasing(Casing quotedCasing)
+    {
+        this.quotedCasing = quotedCasing;
+    }
+
+    // implement SqlAbstractParserImpl
+    public void setUnquotedCasing(Casing unquotedCasing)
+    {
+        this.unquotedCasing = unquotedCasing;
+    }
+
+    // implement SqlAbstractParserImpl
+    public SqlNode parseSqlExpressionEof() throws Exception
+    {
+        return SqlExpressionEof();
+    }
+
+    // implement SqlAbstractParserImpl
+    public SqlNode parseSqlStmtEof() throws Exception
+    {
+        return SqlStmtEof();
     }
 }
 

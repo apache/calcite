@@ -57,7 +57,7 @@ public class SqlPrettyWriterTest {
   protected SqlNode parseQuery(String sql) {
     SqlNode node;
     try {
-      node = new SqlParser(sql).parseQuery();
+      node = SqlParser.create(sql).parseQuery();
     } catch (SqlParseException e) {
       String message =
           "Received error while parsing SQL '" + sql

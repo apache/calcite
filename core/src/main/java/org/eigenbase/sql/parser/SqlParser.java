@@ -18,7 +18,6 @@
 package org.eigenbase.sql.parser;
 
 import java.io.*;
-import java.util.Arrays;
 
 import org.eigenbase.sql.*;
 import org.eigenbase.sql.parser.impl.*;
@@ -33,48 +32,66 @@ import net.hydromatic.avatica.Quoting;
 public class SqlParser {
   //~ Instance fields --------------------------------------------------------
 
-  private final SqlParserImpl parser;
+  private final SqlAbstractParserImpl parser;
   private String originalInput;
 
   //~ Constructors -----------------------------------------------------------
-
-  /**
-   * Creates a <code>SqlParser</code> that reads input from a string.
-   */
-  public SqlParser(String s) {
-    this(s, Quoting.DOUBLE_QUOTE, Casing.TO_UPPER, Casing.UNCHANGED);
-  }
-
-  /**
-   * Creates a <code>SqlParser</code> that reads input from a string.
-   */
-  public SqlParser(String s, Quoting quoting, Casing unquotedCasing,
-      Casing quotedCasing) {
-    parser = new SqlParserImpl(new StringReader(s));
-    parser.setTabSize(1);
-    parser.quotedCasing = quotedCasing;
-    parser.unquotedCasing = unquotedCasing;
+  private SqlParser(String s, SqlAbstractParserImpl parser,
+      Quoting quoting, Casing unquotedCasing, Casing quotedCasing) {
     this.originalInput = s;
+    this.parser = parser;
+    parser.setTabSize(1);
+    parser.setQuotedCasing(quotedCasing);
+    parser.setUnquotedCasing(unquotedCasing);
     switch (quoting) {
     case DOUBLE_QUOTE:
-      switchTo("DQID");
+      parser.switchTo("DQID");
       break;
     case BACK_TICK:
-      switchTo("BTID");
+      parser.switchTo("BTID");
       break;
     case BRACKET:
-      switchTo("DEFAULT");
+      parser.switchTo("DEFAULT");
       break;
     }
   }
 
-  public void switchTo(String stateName) {
-    int state = Arrays.asList(SqlParserImplTokenManager.lexStateNames)
-        .indexOf(stateName);
-    parser.token_source.SwitchTo(state);
+  //~ Methods ----------------------------------------------------------------
+
+  /**
+   * Creates a <code>SqlParser</code> to parse the given string using
+   * Optiq's parser implementation.
+   *
+   * @param s An SQL statement or expression to parse.
+   * @return A <code>SqlParser</code> object.
+   */
+  public static SqlParser create(String s) {
+    return create(SqlParserImpl.FACTORY, s, Quoting.DOUBLE_QUOTE,
+        Casing.TO_UPPER, Casing.UNCHANGED);
   }
 
-  //~ Methods ----------------------------------------------------------------
+  /**
+   * Creates a <code>SqlParser</code> to parse the given string using the
+   * parser implementation created from given {@link SqlParserImplFactory}
+   * with given quoting syntax and casing policies for identifiers.
+   *
+   * @param parserFactory {@link SqlParserImplFactory} to get the parser
+   *     implementation.
+   * @param s An SQL statement or expression to parse.
+   * @param quoting Syntax for quoting identifiers in SQL statements.
+   * @param unquotedCasing Policy for converting case of <i>unquoted</i>
+   *     identifiers.
+   * @param quotedCasing Policy for converting case of <i>quoted</i>
+   *     identifiers.
+   * @return A <code>SqlParser</code> object.
+   */
+  public static SqlParser create(SqlParserImplFactory parserFactory, String s,
+      Quoting quoting, Casing unquotedCasing, Casing quotedCasing) {
+    SqlAbstractParserImpl parser = parserFactory.getParser(
+        new StringReader(s));
+
+    return new SqlParser(s, parser, quoting, unquotedCasing, quotedCasing);
+  }
 
   /**
    * Parses a SQL expression.
@@ -83,7 +100,7 @@ public class SqlParser {
    */
   public SqlNode parseExpression() throws SqlParseException {
     try {
-      return parser.SqlExpressionEof();
+      return parser.parseSqlExpressionEof();
     } catch (Throwable ex) {
       if ((ex instanceof EigenbaseContextException)
           && (originalInput != null)) {
@@ -104,7 +121,7 @@ public class SqlParser {
    */
   public SqlNode parseQuery() throws SqlParseException {
     try {
-      return parser.SqlStmtEof();
+      return parser.parseSqlStmtEof();
     } catch (Throwable ex) {
       if ((ex instanceof EigenbaseContextException)
           && (originalInput != null)) {
@@ -123,7 +140,7 @@ public class SqlParser {
    */
   public SqlNode parseStmt() throws SqlParseException {
     try {
-      return parser.SqlStmtEof();
+      return parser.parseSqlStmtEof();
     } catch (Throwable ex) {
       if ((ex instanceof EigenbaseContextException)
           && (originalInput != null)) {
@@ -135,10 +152,13 @@ public class SqlParser {
   }
 
   /**
-   * Returns the underlying generated parser.
+   * Get the parser metadata.
+   *
+   * @return {@link SqlAbstractParserImpl.Metadata} implementation of
+   *     underlying parser.
    */
-  public SqlParserImpl getParserImpl() {
-    return parser;
+  public SqlAbstractParserImpl.Metadata getMetadata() {
+    return parser.getMetadata();
   }
 }
 

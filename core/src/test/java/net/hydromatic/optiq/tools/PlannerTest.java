@@ -37,6 +37,7 @@ import org.eigenbase.relopt.*;
 import org.eigenbase.sql.*;
 import org.eigenbase.sql.fun.SqlStdOperatorTable;
 import org.eigenbase.sql.parser.SqlParseException;
+import org.eigenbase.sql.parser.impl.SqlParserImpl;
 import org.eigenbase.util.Util;
 
 import org.junit.Test;
@@ -109,6 +110,7 @@ public class PlannerTest {
   private Planner getPlanner(List<RelTraitDef> traitDefs, RuleSet... ruleSets) {
     return Frameworks.getPlanner(
         Lex.ORACLE,
+        SqlParserImpl.FACTORY,
         new Function1<SchemaPlus, Schema>() {
           public Schema apply(SchemaPlus parentSchema) {
             return new ReflectiveSchema(parentSchema, "hr",

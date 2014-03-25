@@ -48,7 +48,7 @@ class OptiqMaterializer extends OptiqPrepareImpl.OptiqPreparingStmt {
    * (essentially a list of strings, like ["hr", "sales"]) into a table object
    * that can be used in the planning process. */
   void populate(Materialization materialization) {
-    SqlParser parser = new SqlParser(materialization.sql);
+    SqlParser parser = SqlParser.create(materialization.sql);
     SqlNode node;
     try {
       node = parser.parseStmt();

@@ -22,6 +22,7 @@ import org.eigenbase.sql.SqlOperatorTable;
 import org.eigenbase.sql.advise.SqlAdvisor;
 import org.eigenbase.sql.fun.SqlStdOperatorTable;
 import org.eigenbase.sql.parser.SqlParser;
+import org.eigenbase.sql.parser.impl.SqlParserImpl;
 import org.eigenbase.sql.type.SqlTypeFactoryImpl;
 import org.eigenbase.sql.validate.*;
 import org.eigenbase.test.MockCatalogReader;
@@ -67,7 +68,8 @@ public class DefaultSqlTestFactory implements SqlTestFactory {
     Quoting quoting = (Quoting) factory.get("quoting");
     Casing quotedCasing = (Casing) factory.get("quotedCasing");
     Casing unquotedCasing = (Casing) factory.get("unquotedCasing");
-    return new SqlParser(sql, quoting, unquotedCasing, quotedCasing);
+    return SqlParser.create(SqlParserImpl.FACTORY, sql, quoting,
+        unquotedCasing, quotedCasing);
   }
 
   public SqlValidator getValidator(SqlTestFactory factory) {

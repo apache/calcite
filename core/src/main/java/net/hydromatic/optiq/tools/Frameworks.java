@@ -31,6 +31,8 @@ import org.eigenbase.relopt.RelOptCluster;
 import org.eigenbase.relopt.RelOptSchema;
 import org.eigenbase.relopt.RelTraitDef;
 import org.eigenbase.sql.fun.SqlStdOperatorTable;
+import org.eigenbase.sql.parser.SqlParserImplFactory;
+import org.eigenbase.sql.parser.impl.SqlParserImpl;
 
 import com.google.common.collect.ImmutableList;
 
@@ -70,7 +72,8 @@ public class Frameworks {
       Lex lex,
       Function1<SchemaPlus, Schema> schemaFactory,
       SqlStdOperatorTable operatorTable, RuleSet... ruleSets) {
-    return getPlanner(lex, schemaFactory, operatorTable, null, ruleSets);
+    return getPlanner(lex, SqlParserImpl.FACTORY, schemaFactory,
+        operatorTable, null, ruleSets);
   }
 
   /**
@@ -87,6 +90,7 @@ public class Frameworks {
    *
    * @param lex The type of lexing the SqlParser should do.  Controls case rules
    *     and quoted identifier syntax.
+   * @param parserFactory Parser factory creates and returns the SQL parser.
    * @param schemaFactory Schema factory. Given a root schema, it creates and
    *                      returns the schema that should be used to execute
    *                      queries.
@@ -106,11 +110,12 @@ public class Frameworks {
    */
   public static Planner getPlanner(
       Lex lex,
+      SqlParserImplFactory parserFactory,
       Function1<SchemaPlus, Schema> schemaFactory,
       SqlStdOperatorTable operatorTable,
       List<RelTraitDef> traitDefs,
       RuleSet... ruleSets) {
-    return new PlannerImpl(lex, schemaFactory, operatorTable,
+    return new PlannerImpl(lex, parserFactory, schemaFactory, operatorTable,
         ImmutableList.copyOf(ruleSets),
         traitDefs == null ? null : ImmutableList.copyOf(traitDefs));
   }

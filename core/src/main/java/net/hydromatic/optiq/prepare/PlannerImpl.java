@@ -34,6 +34,7 @@ import org.eigenbase.sql.SqlNode;
 import org.eigenbase.sql.SqlOperatorTable;
 import org.eigenbase.sql.parser.SqlParseException;
 import org.eigenbase.sql.parser.SqlParser;
+import org.eigenbase.sql.parser.SqlParserImplFactory;
 import org.eigenbase.sql2rel.SqlToRelConverter;
 
 import com.google.common.collect.ImmutableList;
@@ -48,6 +49,7 @@ public class PlannerImpl implements Planner {
   private final ImmutableList<RelTraitDef> traitDefs;
 
   private final Lex lex;
+  private final SqlParserImplFactory parserFactory;
 
   // Options. TODO: allow client to set these. Maybe use a ConnectionConfig.
   private boolean caseSensitive = true;
@@ -73,7 +75,7 @@ public class PlannerImpl implements Planner {
 
   /** Creates a planner. Not a public API; call
    * {@link net.hydromatic.optiq.tools.Frameworks#getPlanner} instead. */
-  public PlannerImpl(Lex lex,
+  public PlannerImpl(Lex lex, SqlParserImplFactory parserFactory,
       Function1<SchemaPlus, Schema> schemaFactory,
       SqlOperatorTable operatorTable, ImmutableList<RuleSet> ruleSets,
       ImmutableList<RelTraitDef> traitDefs) {
@@ -81,6 +83,7 @@ public class PlannerImpl implements Planner {
     this.operatorTable = operatorTable;
     this.ruleSets = ruleSets;
     this.lex = lex;
+    this.parserFactory = parserFactory;
     this.state = State.STATE_0_CLOSED;
     this.traitDefs = traitDefs;
     reset();
@@ -155,8 +158,8 @@ public class PlannerImpl implements Planner {
       ready();
     }
     ensure(State.STATE_2_READY);
-    SqlParser parser =
-        new SqlParser(sql, lex.quoting, lex.unquotedCasing, lex.quotedCasing);
+    SqlParser parser = SqlParser.create(parserFactory, sql,
+        lex.quoting, lex.unquotedCasing, lex.quotedCasing);
     SqlNode sqlNode = parser.parseStmt();
     state = State.STATE_3_PARSED;
     return sqlNode;
