@@ -18,14 +18,11 @@
 package org.eigenbase.test;
 
 import java.io.*;
-
 import java.net.URL;
 import java.util.*;
-
 import javax.xml.parsers.*;
 
 import org.eigenbase.util.*;
-import org.eigenbase.xom.*;
 
 import org.junit.*;
 
@@ -518,13 +515,13 @@ public class DiffRepository {
    * can find it. -- jhyde, 2006/2/9.
    */
   private static void write(Document doc, Writer w) {
-    final XMLOutput out = new XMLOutput(w);
+    final XmlOutput out = new XmlOutput(w);
     out.setGlob(true);
     out.setIndentString("    ");
     writeNode(doc, out);
   }
 
-  private static void writeNode(Node node, XMLOutput out) {
+  private static void writeNode(Node node, XmlOutput out) {
     final NodeList childNodes;
     switch (node.getNodeType()) {
     case Node.DOCUMENT_NODE:

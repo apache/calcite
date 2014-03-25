@@ -22,7 +22,7 @@ import java.util.*;
 
 import org.eigenbase.sql.*;
 import org.eigenbase.util.Pair;
-import org.eigenbase.xom.*;
+import org.eigenbase.util.XmlOutput;
 
 /**
  * Callback for a relational expression to dump in XML format.
@@ -30,7 +30,7 @@ import org.eigenbase.xom.*;
 public class RelXmlWriter extends RelWriterImpl {
   //~ Instance fields --------------------------------------------------------
 
-  private final XMLOutput xmlOutput;
+  private final XmlOutput xmlOutput;
   boolean generic = true;
 
   //~ Constructors -----------------------------------------------------------
@@ -41,7 +41,7 @@ public class RelXmlWriter extends RelWriterImpl {
 
   public RelXmlWriter(PrintWriter pw, SqlExplainLevel detailLevel) {
     super(pw, detailLevel, true);
-    xmlOutput = new XMLOutput(pw);
+    xmlOutput = new XmlOutput(pw);
     xmlOutput.setGlob(true);
     xmlOutput.setCompact(false);
   }
