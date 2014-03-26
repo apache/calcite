@@ -95,8 +95,6 @@ import static org.junit.Assert.*;
 public abstract class SqlOperatorBaseTest {
   //~ Static fields/initializers ---------------------------------------------
 
-  public static final String NL = TestUtil.NL;
-
   // TODO: Change message when Fnl3Fixed to something like
   // "Invalid character for cast: PC=0 Code=22018"
   public static final String INVALID_CHAR_MESSAGE =
@@ -3910,16 +3908,16 @@ public abstract class SqlOperatorBaseTest {
       // have the SQL error code 22027.
       tester.checkFails(
           "trim('xy' from 'abcde')",
-          "could not calculate results for the following row:" + NL
-          + "\\[ 0 \\]" + NL
-          + "Messages:" + NL
+          "could not calculate results for the following row:\n"
+          + "\\[ 0 \\]\n"
+          + "Messages:\n"
           + "\\[0\\]:PC=0 Code=22027 ",
           true);
       tester.checkFails(
           "trim('' from 'abcde')",
-          "could not calculate results for the following row:" + NL
-          + "\\[ 0 \\]" + NL
-          + "Messages:" + NL
+          "could not calculate results for the following row:\n"
+          + "\\[ 0 \\]\n"
+          + "Messages:\n"
           + "\\[0\\]:PC=0 Code=22027 ",
           true);
     }

@@ -57,12 +57,7 @@ public abstract class OneRowRelBase extends AbstractRelNode {
   }
 
   public static RelDataType deriveOneRowType(RelDataTypeFactory typeFactory) {
-    return typeFactory.createStructType(
-        new RelDataType[]{
-            typeFactory.createSqlType(
-                SqlTypeName.INTEGER)
-        },
-        new String[]{"ZERO"});
+    return typeFactory.builder().add("ZERO", SqlTypeName.INTEGER).build();
   }
 }
 

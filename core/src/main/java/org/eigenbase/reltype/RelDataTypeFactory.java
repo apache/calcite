@@ -66,6 +66,10 @@ public interface RelDataTypeFactory {
    * @return canonical struct type descriptor
    * @pre types.length == fieldNames.length
    * @post return != null
+   *
+   * @deprecated Use {@link #createStructType(List, List)} or
+   *   {@link #builder()}; will be removed after 0.6.
+   * @see org.eigenbase.util.Bug#upgrade(String) remove after 0.6
    */
   RelDataType createStructType(
       RelDataType[] types,

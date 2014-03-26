@@ -163,11 +163,13 @@ public class SqlParserTest {
   }
 
   // jdbc syntax
-  public void _testEmbeddedCall() {
+  @Ignore
+  @Test public void testEmbeddedCall() {
     checkExp("{call foo(?, ?)}", "foo");
   }
 
-  public void _testEmbeddedFunction() {
+  @Ignore
+  @Test public void testEmbeddedFunction() {
     checkExp("{? = call bar (?, ?)}", "foo");
   }
 
@@ -1161,7 +1163,8 @@ public class SqlParserTest {
         "(?s).*Encountered \"inner outer\" at line 1, column 17.*");
   }
 
-  public void _testJoinAssociativity() {
+  @Ignore
+  @Test public void testJoinAssociativity() {
     // joins are left-associative
     // 1. no parens needed
     check(
@@ -5359,8 +5362,8 @@ public class SqlParserTest {
     assertFalse(metadata.isReservedWord("KEY"));
 
     String jdbcKeywords = metadata.getJdbcKeywords();
-    assertTrue(jdbcKeywords.indexOf(",COLLECT,") >= 0);
-    assertTrue(jdbcKeywords.indexOf(",SELECT,") < 0);
+    assertTrue(jdbcKeywords.contains(",COLLECT,"));
+    assertTrue(!jdbcKeywords.contains(",SELECT,"));
   }
 
   @Test public void testTabStop() {

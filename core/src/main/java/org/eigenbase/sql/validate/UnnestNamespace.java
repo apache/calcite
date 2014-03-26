@@ -56,9 +56,9 @@ class UnnestNamespace extends AbstractNamespace {
     if (type.isStruct()) {
       return type;
     }
-    return validator.getTypeFactory().createStructType(
-        new RelDataType[]{type},
-        new String[]{validator.deriveAlias(unnest, 0)});
+    return validator.getTypeFactory().builder()
+        .add(validator.deriveAlias(unnest, 0), type)
+        .build();
   }
 
   /**

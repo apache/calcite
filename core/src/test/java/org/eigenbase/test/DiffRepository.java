@@ -525,7 +525,7 @@ public class DiffRepository {
     final NodeList childNodes;
     switch (node.getNodeType()) {
     case Node.DOCUMENT_NODE:
-      out.print("<?xml version=\"1.0\" ?>" + TestUtil.NL);
+      out.print("<?xml version=\"1.0\" ?>\n");
       childNodes = node.getChildNodes();
       for (int i = 0; i < childNodes.getLength(); i++) {
         Node child = childNodes.item(i);
@@ -586,7 +586,7 @@ public class DiffRepository {
 
     case Node.COMMENT_NODE:
       Comment comment = (Comment) node;
-      out.print("<!--" + comment.getNodeValue() + "-->" + TestUtil.NL);
+      out.print("<!--" + comment.getNodeValue() + "-->\n");
       break;
 
     default:

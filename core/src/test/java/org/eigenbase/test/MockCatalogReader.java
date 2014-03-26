@@ -111,9 +111,7 @@ public class MockCatalogReader implements Prepare.CatalogReader {
     final RelDataType booleanType =
         typeFactory.createSqlType(SqlTypeName.BOOLEAN);
     final RelDataType rectilinearCoordType =
-        typeFactory.createStructType(
-            new RelDataType[]{intType, intType},
-            new String[]{"X", "Y"});
+        typeFactory.builder().add("X", intType).add("Y", intType).build();
 
     // TODO jvs 12-Feb-2005: register this canonical instance with type
     // factory

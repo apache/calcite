@@ -347,8 +347,7 @@ public abstract class DiffTestCase {
             fileContents(logFile));
       } else {
         String s = diff(refFile, logFile);
-        Assert.fail(
-            message + TestUtil.NL + s + TestUtil.NL);
+        Assert.fail(message + '\n' + s + '\n');
       }
     }
     Assert.fail(message);
@@ -415,11 +414,9 @@ public abstract class DiffTestCase {
           if (de > ds) {
             sw.append(",").append(String.valueOf(de));
           }
-          sw.append("d").append(String.valueOf(as - 1)).append(
-              TestUtil.NL);
+          sw.append("d").append(String.valueOf(as - 1)).append('\n');
           for (int i = ds - 1; i < de; ++i) {
-            sw.append("< ").append(lines1.get(i)).append(
-                TestUtil.NL);
+            sw.append("< ").append(lines1.get(i)).append('\n');
           }
         }
       } else {
@@ -430,10 +427,9 @@ public abstract class DiffTestCase {
           if (ae > as) {
             sw.append(",").append(String.valueOf(ae));
           }
-          sw.append(TestUtil.NL);
+          sw.append('\n');
           for (int i = as - 1; i < ae; ++i) {
-            sw.append("> ").append(lines2.get(i)).append(
-                TestUtil.NL);
+            sw.append("> ").append(lines2.get(i)).append('\n');
           }
         } else {
           // a change: "<ds>,<de>c<as>,<ae>
@@ -445,15 +441,13 @@ public abstract class DiffTestCase {
           if (ae > as) {
             sw.append(",").append(String.valueOf(ae));
           }
-          sw.append(TestUtil.NL);
+          sw.append('\n');
           for (int i = ds - 1; i < de; ++i) {
-            sw.append("< ").append(lines1.get(i)).append(
-                TestUtil.NL);
+            sw.append("< ").append(lines1.get(i)).append('\n');
           }
-          sw.append("---").append(TestUtil.NL);
+          sw.append("---\n");
           for (int i = as - 1; i < ae; ++i) {
-            sw.append("> ").append(lines2.get(i)).append(
-                TestUtil.NL);
+            sw.append("> ").append(lines2.get(i)).append('\n');
           }
           offset = offset + (ae - as) - (de - ds);
         }

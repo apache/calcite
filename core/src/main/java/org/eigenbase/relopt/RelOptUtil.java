@@ -191,14 +191,13 @@ public abstract class RelOptUtil {
     }
 
     String s =
-        "Cannot add expression of different type to set: "
-        + Util.LINE_SEPARATOR + "set type is "
+        "Cannot add expression of different type to set:\n"
+        + "set type is "
         + expectedRowType.getFullTypeString()
-        + Util.LINE_SEPARATOR + "expression type is "
+        + "\nexpression type is "
         + actualRowType.getFullTypeString()
-        + Util.LINE_SEPARATOR + "set is " + equivalenceClass.toString()
-        + Util.LINE_SEPARATOR
-        + "expression is " + newRel.toString();
+        + "\nset is " + equivalenceClass.toString()
+        + "\nexpression is " + newRel.toString();
     throw Util.newInternal(s);
   }
 

@@ -924,19 +924,19 @@ public class HepPlanner extends AbstractRelOptPlanner {
             root);
 
     StringBuilder sb = new StringBuilder();
-    sb.append(Util.LINE_SEPARATOR);
-    sb.append("Breadth-first from root:  {");
-    sb.append(Util.LINE_SEPARATOR);
+    sb.append("\nBreadth-first from root:  {\n");
     while (bfsIter.hasNext()) {
       HepRelVertex vertex = bfsIter.next();
-      sb.append("    ");
-      sb.append(vertex);
-      sb.append(" = ");
+      sb.append("    ")
+          .append(vertex)
+          .append(" = ");
       RelNode rel = vertex.getCurrentRel();
-      sb.append(rel);
-      sb.append(", rowcount=" + RelMetadataQuery.getRowCount(rel));
-      sb.append(", cumulative cost=" + getCost(rel));
-      sb.append(Util.LINE_SEPARATOR);
+      sb.append(rel)
+          .append(", rowcount=")
+          .append(RelMetadataQuery.getRowCount(rel))
+          .append(", cumulative cost=")
+          .append(getCost(rel))
+          .append('\n');
     }
     sb.append("}");
     LOGGER.finer(sb.toString());

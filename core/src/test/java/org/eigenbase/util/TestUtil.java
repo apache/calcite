@@ -29,24 +29,11 @@ public abstract class TestUtil {
 
   private static final Pattern LINE_BREAK_PATTERN =
       Pattern.compile("\r\n|\r|\n");
+
   private static final Pattern TAB_PATTERN = Pattern.compile("\t");
 
-  /**
-   * System-dependent newline character.
-   *
-   * <p>Do not use '\n' in strings which are samples for test results.
-   * {@link java.io.PrintWriter#println()} produces '\n' on Unix and '\r\n' on
-   * Windows, but '\n' is always '\n', so your tests will fail on Windows.</p>
-   *
-   * <p>Or you could use '\n' and let {@link #fold(String)} mask it.</p>
-   */
-  public static final String NL = Util.LINE_SEPARATOR;
-
-  private static final String LINE_BREAK = "\" + NL +" + NL + "\"";
-
-  private static final String LINE_BREAK2 = "\\\\n\"" + NL + " + \"";
-
-  private static final String LINE_BREAK3 = "\\n\"" + NL + " + \"";
+  private static final String LINE_BREAK =
+      "\\\\n\"" + Util.LINE_SEPARATOR + " + \"";
 
   //~ Methods ----------------------------------------------------------------
 
@@ -58,10 +45,10 @@ public abstract class TestUtil {
         return;
       } else {
         String message =
-            "Expected:" + NL
-            + expected + NL
-            + "Actual: null";
-        throw new ComparisonFailure(message, expected, actual);
+            "Expected:\n"
+            + expected
+            + "\nActual: null";
+        throw new ComparisonFailure(message, expected, null);
       }
     }
     if ((expected != null) && expected.equals(actual)) {
@@ -70,9 +57,9 @@ public abstract class TestUtil {
     String s = toJavaString(actual);
 
     String message =
-        "Expected:" + NL + expected + NL
-        + "Actual: " + NL + actual + NL
-        + "Actual java: " + NL + s + NL;
+        "Expected:\n" + expected
+        + "\nActual:\n " + actual
+        + "\nActual java:\n" + s + '\n';
     throw new ComparisonFailure(message, expected, actual);
   }
 
@@ -94,7 +81,7 @@ public abstract class TestUtil {
     s = LINE_BREAK_PATTERN.matcher(s).replaceAll(LINE_BREAK);
     s = TAB_PATTERN.matcher(s).replaceAll("\\\\t");
     s = "\"" + s + "\"";
-    final String spurious = " + " + NL + "\"\"";
+    final String spurious = " + \n\"\"";
     if (s.endsWith(spurious)) {
       s = s.substring(0, s.length() - spurious.length());
     }
@@ -122,15 +109,12 @@ public abstract class TestUtil {
     // + "across lines")]
     //
     s = Util.replace(s, "\"", "\\\"");
-    s = LINE_BREAK_PATTERN.matcher(s).replaceAll(LINE_BREAK2);
+    s = LINE_BREAK_PATTERN.matcher(s).replaceAll(LINE_BREAK);
     s = TAB_PATTERN.matcher(s).replaceAll("\\\\t");
     s = "\"" + s + "\"";
-    String spurious = NL + " \\+ \"\"";
+    String spurious = "\n \\+ \"\"";
     if (s.endsWith(spurious)) {
       s = s.substring(0, s.length() - spurious.length());
-    }
-    if (s.indexOf(LINE_BREAK3) >= 0) {
-      s = "TestUtil.fold(" + NL + s + ")";
     }
     return s;
   }
@@ -139,27 +123,13 @@ public abstract class TestUtil {
    * Combines an array of strings, each representing a line, into a single
    * string containing line separators.
    */
-  public static String fold(String[] strings) {
+  public static String fold(String... strings) {
     StringBuilder buf = new StringBuilder();
-    for (int i = 0; i < strings.length; i++) {
-      if (i > 0) {
-        buf.append(NL);
-      }
-      String string = strings[i];
+    for (String string : strings) {
       buf.append(string);
+      buf.append('\n');
     }
     return buf.toString();
-  }
-
-  /**
-   * Converts a string containing newlines (\n) into a string containing
-   * os-dependent line endings.
-   */
-  public static String fold(String string) {
-    if (!"\n".equals(NL)) {
-      string = string.replaceAll("\n", NL);
-    }
-    return string;
   }
 
   /**

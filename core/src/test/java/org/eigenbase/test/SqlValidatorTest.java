@@ -6169,7 +6169,8 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     tester.checkRewrite(
         validator,
         "select * from dept",
-        "SELECT *" + NL + "FROM `DEPT`");
+        "SELECT *\n"
+        + "FROM `DEPT`");
   }
 
   @Test public void testRewriteWithIdentifierExpansion() {
@@ -6178,8 +6179,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     tester.checkRewrite(
         validator,
         "select * from dept",
-        "SELECT `DEPT`.`DEPTNO`, `DEPT`.`NAME`"
-        + NL
+        "SELECT `DEPT`.`DEPTNO`, `DEPT`.`NAME`\n"
         + "FROM `CATALOG`.`SALES`.`DEPT` AS `DEPT`");
   }
 
@@ -6195,13 +6195,12 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         validator,
         "select name from dept where name = 'Moonracer' group by name"
         + " having sum(deptno) > 3 order by name",
-        TestUtil.fold(
-            "SELECT `DEPT`.`NAME`\n"
-            + "FROM `CATALOG`.`SALES`.`DEPT` AS `DEPT`\n"
-            + "WHERE `DEPT`.`NAME` = 'Moonracer'\n"
-            + "GROUP BY `DEPT`.`NAME`\n"
-            + "HAVING SUM(`DEPT`.`DEPTNO`) > 3\n"
-            + "ORDER BY `NAME`"));
+        "SELECT `DEPT`.`NAME`\n"
+        + "FROM `CATALOG`.`SALES`.`DEPT` AS `DEPT`\n"
+        + "WHERE `DEPT`.`NAME` = 'Moonracer'\n"
+        + "GROUP BY `DEPT`.`NAME`\n"
+        + "HAVING SUM(`DEPT`.`DEPTNO`) > 3\n"
+        + "ORDER BY `NAME`");
   }
 
   @Test public void testRewriteWithColumnReferenceExpansionAndFromAlias() {
@@ -6217,14 +6216,13 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         "select name from (select * from dept)"
         + " where name = 'Moonracer' group by name"
         + " having sum(deptno) > 3 order by name",
-        TestUtil.fold(
-            "SELECT `EXPR$0`.`NAME`\n"
-            + "FROM (SELECT `DEPT`.`DEPTNO`, `DEPT`.`NAME`\n"
-            + "FROM `CATALOG`.`SALES`.`DEPT` AS `DEPT`) AS `EXPR$0`\n"
-            + "WHERE `EXPR$0`.`NAME` = 'Moonracer'\n"
-            + "GROUP BY `EXPR$0`.`NAME`\n"
-            + "HAVING SUM(`EXPR$0`.`DEPTNO`) > 3\n"
-            + "ORDER BY `NAME`"));
+        "SELECT `EXPR$0`.`NAME`\n"
+        + "FROM (SELECT `DEPT`.`DEPTNO`, `DEPT`.`NAME`\n"
+        + "FROM `CATALOG`.`SALES`.`DEPT` AS `DEPT`) AS `EXPR$0`\n"
+        + "WHERE `EXPR$0`.`NAME` = 'Moonracer'\n"
+        + "GROUP BY `EXPR$0`.`NAME`\n"
+        + "HAVING SUM(`EXPR$0`.`DEPTNO`) > 3\n"
+        + "ORDER BY `NAME`");
   }
 
   @Test public void testCoalesceWithoutRewrite() {
@@ -6234,15 +6232,13 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
       tester.checkRewrite(
           validator,
           "select coalesce(deptno, empno) from emp",
-          TestUtil.fold(
-              "SELECT COALESCE(`EMP`.`DEPTNO`, `EMP`.`EMPNO`)\n"
-              + "FROM `CATALOG`.`SALES`.`EMP` AS `EMP`"));
+          "SELECT COALESCE(`EMP`.`DEPTNO`, `EMP`.`EMPNO`)\n"
+          + "FROM `CATALOG`.`SALES`.`EMP` AS `EMP`");
     } else {
       tester.checkRewrite(
           validator,
           "select coalesce(deptno, empno) from emp",
-          "SELECT COALESCE(`DEPTNO`, `EMPNO`)"
-          + NL
+          "SELECT COALESCE(`DEPTNO`, `EMPNO`)\n"
           + "FROM `EMP`");
     }
   }
@@ -6254,16 +6250,13 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
       tester.checkRewrite(
           validator,
           "select coalesce(deptno, empno) from emp",
-          TestUtil.fold(
-              "SELECT CASE WHEN `EMP`.`DEPTNO` IS NOT NULL THEN `EMP`.`DEPTNO` ELSE `EMP`.`EMPNO` END\n"
-              + "FROM `CATALOG`.`SALES`.`EMP` AS `EMP`"));
+          "SELECT CASE WHEN `EMP`.`DEPTNO` IS NOT NULL THEN `EMP`.`DEPTNO` ELSE `EMP`.`EMPNO` END\n"
+          + "FROM `CATALOG`.`SALES`.`EMP` AS `EMP`");
     } else {
       tester.checkRewrite(
           validator,
           "select coalesce(deptno, empno) from emp",
-          "SELECT CASE WHEN `DEPTNO` IS NOT NULL THEN `DEPTNO` "
-          + "ELSE `EMPNO` END"
-          + NL
+          "SELECT CASE WHEN `DEPTNO` IS NOT NULL THEN `DEPTNO` ELSE `EMPNO` END\n"
           + "FROM `EMP`");
     }
   }

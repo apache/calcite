@@ -437,7 +437,7 @@ public class SqlTesterImpl implements SqlTester {
     SqlNode rewrittenNode = parseAndValidate(validator, query);
     String actualRewrite =
         rewrittenNode.toSqlString(SqlDialect.DUMMY, false).getSql();
-    TestUtil.assertEqualsVerbose(expectedRewrite, actualRewrite);
+    TestUtil.assertEqualsVerbose(expectedRewrite, Util.toLinux(actualRewrite));
   }
 
   public void checkFails(

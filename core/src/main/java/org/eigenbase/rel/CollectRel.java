@@ -111,18 +111,14 @@ public final class CollectRel extends SingleRel {
       String fieldName) {
     RelDataType childType = rel.getChild().getRowType();
     assert childType.isStruct();
+    final RelDataTypeFactory typeFactory = rel.getCluster().getTypeFactory();
     RelDataType ret =
         SqlTypeUtil.createMultisetType(
-            rel.getCluster().getTypeFactory(),
+            typeFactory,
             childType,
             false);
-    ret =
-        rel.getCluster().getTypeFactory().createStructType(
-            new RelDataType[]{ret},
-            new String[]{fieldName});
-    return rel.getCluster().getTypeFactory().createTypeWithNullability(
-        ret,
-        false);
+    ret = typeFactory.builder().add(fieldName, ret).build();
+    return typeFactory.createTypeWithNullability(ret, false);
   }
 }
 

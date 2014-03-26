@@ -82,9 +82,9 @@ public class CollectNamespace extends AbstractNamespace {
         return type;
       } else {
         final RelDataType structType =
-            typeFactory.createStructType(
-                new RelDataType[]{type},
-                new String[]{validator.deriveAlias(child, 0)});
+            typeFactory.builder()
+                .add(validator.deriveAlias(child, 0), type)
+                .build();
         final RelDataType multisetType =
             typeFactory.createMultisetType(structType, -1);
         return typeFactory.createTypeWithNullability(

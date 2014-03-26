@@ -59,6 +59,11 @@ public class Util {
 
   /**
    * System-dependent newline character.
+   *
+   * <p>In general, you should not use this in expected results of tests.
+   * Expected results should be the expected result on Linux (or Mac OS) using
+   * '\n'. Apply {@link Util#toLinux(String)} to Windows actual results, if
+   * necessary, to make them look like Linux actual.</p>
    */
   public static final String LINE_SEPARATOR =
       System.getProperty("line.separator");

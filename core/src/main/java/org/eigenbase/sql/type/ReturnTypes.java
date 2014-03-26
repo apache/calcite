@@ -641,11 +641,10 @@ public abstract class ReturnTypes {
           RelDataType componentType = multisetType.getComponentType();
           assert componentType != null : "expected a multiset type: "
               + multisetType;
-          return opBinding.getTypeFactory().createMultisetType(
-              opBinding.getTypeFactory().createStructType(
-                  new RelDataType[]{componentType},
-                  new String[]{SqlUtil.deriveAliasFromOrdinal(0)}),
-              -1);
+          final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
+          final RelDataType type = typeFactory.builder()
+              .add(SqlUtil.deriveAliasFromOrdinal(0), componentType).build();
+          return typeFactory.createMultisetType(type, -1);
         }
       };
   /**

@@ -191,39 +191,39 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
 
   protected RelDataType leastRestrictiveStructuredType(
       final List<RelDataType> types) {
-    RelDataType type0 = types.get(0);
-    int nFields = type0.getFieldList().size();
+    final RelDataType type0 = types.get(0);
+    final int fieldCount = type0.getFieldCount();
 
     // precheck that all types are structs with same number of fields
     for (RelDataType type : types) {
       if (!type.isStruct()) {
         return null;
       }
-      if (type.getFieldList().size() != nFields) {
+      if (type.getFieldList().size() != fieldCount) {
         return null;
       }
     }
 
     // recursively compute column-wise least restrictive
-    RelDataType[] outputTypes = new RelDataType[nFields];
-    String[] fieldNames = new String[nFields];
-    for (int j = 0; j < nFields; ++j) {
+    final FieldInfoBuilder builder = builder();
+    for (int j = 0; j < fieldCount; ++j) {
       // REVIEW jvs 22-Jan-2004:  Always use the field name from the
       // first type?
-      fieldNames[j] = type0.getFieldList().get(j).getName();
       final int k = j;
-      outputTypes[j] = leastRestrictive(
-          new AbstractList<RelDataType>() {
-            public RelDataType get(int index) {
-              return types.get(index).getFieldList().get(k).getType();
-            }
+      builder.add(
+          type0.getFieldList().get(j).getName(),
+          leastRestrictive(
+              new AbstractList<RelDataType>() {
+                public RelDataType get(int index) {
+                  return types.get(index).getFieldList().get(k).getType();
+                }
 
-            public int size() {
-              return types.size();
-            }
-          });
+                public int size() {
+                  return types.size();
+                }
+              }));
     }
-    return createStructType(outputTypes, fieldNames);
+    return builder.build();
   }
 
   // copy a non-record type, setting nullability

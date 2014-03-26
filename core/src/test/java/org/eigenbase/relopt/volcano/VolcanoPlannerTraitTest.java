@@ -342,11 +342,10 @@ public class VolcanoPlannerTraitTest {
 
     // implement RelNode
     protected RelDataType deriveRowType() {
-      return getCluster().getTypeFactory().createStructType(
-          new RelDataType[]{
-              getCluster().getTypeFactory().createJavaType(Void.TYPE)
-          },
-          new String[]{"this"});
+      final RelDataTypeFactory typeFactory = getCluster().getTypeFactory();
+      return typeFactory.builder()
+          .add("this", typeFactory.createJavaType(Void.TYPE))
+          .build();
     }
 
     public RelWriter explainTerms(RelWriter pw) {

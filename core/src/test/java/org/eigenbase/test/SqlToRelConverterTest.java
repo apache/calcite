@@ -777,22 +777,20 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     rel.explain(planWriter);
     pw.flush();
     TestUtil.assertEqualsVerbose(
-        TestUtil.fold(
-            "<RelNode type=\"ProjectRel\">\n"
-            + "\t<Property name=\"EXPR$0\">\n"
-            + "\t\t+(1, 2)\t</Property>\n"
-            + "\t<Property name=\"EXPR$1\">\n"
-            + "\t\t3\t</Property>\n"
-            + "\t<Inputs>\n"
-            + "\t\t<RelNode type=\"ValuesRel\">\n"
-            + "\t\t\t<Property name=\"tuples\">\n"
-            + "\t\t\t\t[{ true }]\t\t\t</Property>\n"
-            + "\t\t\t<Inputs/>\n"
-            + "\t\t</RelNode>\n"
-            + "\t</Inputs>\n"
-            + "</RelNode>\n"
-            + ""),
-        sw.toString());
+        "<RelNode type=\"ProjectRel\">\n"
+        + "\t<Property name=\"EXPR$0\">\n"
+        + "\t\t+(1, 2)\t</Property>\n"
+        + "\t<Property name=\"EXPR$1\">\n"
+        + "\t\t3\t</Property>\n"
+        + "\t<Inputs>\n"
+        + "\t\t<RelNode type=\"ValuesRel\">\n"
+        + "\t\t\t<Property name=\"tuples\">\n"
+        + "\t\t\t\t[{ true }]\t\t\t</Property>\n"
+        + "\t\t\t<Inputs/>\n"
+        + "\t\t</RelNode>\n"
+        + "\t</Inputs>\n"
+        + "</RelNode>\n",
+        Util.toLinux(sw.toString()));
   }
 
   /**

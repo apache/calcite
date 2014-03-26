@@ -395,9 +395,8 @@ public class UtilTest {
         DiffTestCase.diffLines(
             Arrays.asList(before),
             Arrays.asList(after));
-    assertEquals(
-        diff,
-        TestUtil.fold(
+    assertThat(Util.toLinux(diff),
+        equalTo(
             "1a2\n"
             + "> (they call her \"Polythene Pam\")\n"
             + "3c4,5\n"

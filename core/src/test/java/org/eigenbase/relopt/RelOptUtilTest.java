@@ -39,44 +39,30 @@ public class RelOptUtilTest {
   @Test public void testTypeDump() {
     RelDataTypeFactory typeFactory = new SqlTypeFactoryImpl();
     RelDataType t1 =
-        typeFactory.createStructType(
-            new RelDataType[]{
-                typeFactory.createSqlType(SqlTypeName.DECIMAL, 5, 2),
-                typeFactory.createSqlType(SqlTypeName.VARCHAR, 10),
-            },
-            new String[]{
-              "f0",
-              "f1"
-            });
+        typeFactory.builder()
+            .add("f0", SqlTypeName.DECIMAL, 5, 2)
+            .add("f1", SqlTypeName.VARCHAR, 10)
+            .build();
     TestUtil.assertEqualsVerbose(
         TestUtil.fold(
-            new String[]{
-              "f0 DECIMAL(5, 2) NOT NULL,",
-              "f1 VARCHAR(10) CHARACTER SET \"ISO-8859-1\" COLLATE \"ISO-8859-1$en_US$primary\" NOT NULL"
-            }),
-        RelOptUtil.dumpType(t1));
+            "f0 DECIMAL(5, 2) NOT NULL,",
+            "f1 VARCHAR(10) CHARACTER SET \"ISO-8859-1\" COLLATE \"ISO-8859-1$en_US$primary\" NOT NULL"),
+        Util.toLinux(RelOptUtil.dumpType(t1) + "\n"));
 
     RelDataType t2 =
-        typeFactory.createStructType(
-            new RelDataType[]{
-              t1,
-                typeFactory.createMultisetType(t1, -1),
-            },
-            new String[]{
-              "f0",
-              "f1"
-            });
+        typeFactory.builder()
+            .add("f0", t1)
+            .add("f1", typeFactory.createMultisetType(t1, -1))
+            .build();
     TestUtil.assertEqualsVerbose(
         TestUtil.fold(
-            new String[]{
-              "f0 RECORD (",
-              "  f0 DECIMAL(5, 2) NOT NULL,",
-              "  f1 VARCHAR(10) CHARACTER SET \"ISO-8859-1\" COLLATE \"ISO-8859-1$en_US$primary\" NOT NULL) NOT NULL,",
-              "f1 RECORD (",
-              "  f0 DECIMAL(5, 2) NOT NULL,",
-              "  f1 VARCHAR(10) CHARACTER SET \"ISO-8859-1\" COLLATE \"ISO-8859-1$en_US$primary\" NOT NULL) NOT NULL MULTISET NOT NULL"
-            }),
-        RelOptUtil.dumpType(t2));
+            "f0 RECORD (",
+            "  f0 DECIMAL(5, 2) NOT NULL,",
+            "  f1 VARCHAR(10) CHARACTER SET \"ISO-8859-1\" COLLATE \"ISO-8859-1$en_US$primary\" NOT NULL) NOT NULL,",
+            "f1 RECORD (",
+            "  f0 DECIMAL(5, 2) NOT NULL,",
+            "  f1 VARCHAR(10) CHARACTER SET \"ISO-8859-1\" COLLATE \"ISO-8859-1$en_US$primary\" NOT NULL) NOT NULL MULTISET NOT NULL"),
+        Util.toLinux(RelOptUtil.dumpType(t2) + "\n"));
   }
 
   /**

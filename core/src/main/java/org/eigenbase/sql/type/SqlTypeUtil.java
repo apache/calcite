@@ -28,6 +28,7 @@ import org.eigenbase.util.*;
 import org.eigenbase.util14.*;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 
 import static org.eigenbase.util.Static.RESOURCE;
 
@@ -149,10 +150,7 @@ public abstract class SqlTypeUtil {
       if (fieldName == null) {
         fieldName = "ROW_VALUE";
       }
-      type =
-          typeFactory.createStructType(
-              new RelDataType[]{type},
-              new String[]{fieldName});
+      type = typeFactory.builder().add(fieldName, type).build();
     }
     return type;
   }
@@ -1094,8 +1092,8 @@ public abstract class SqlTypeUtil {
   public static RelDataType createEmptyStructType(
       RelDataTypeFactory typeFactory) {
     return typeFactory.createStructType(
-        new RelDataType[0],
-        new String[0]);
+        ImmutableList.<RelDataType>of(),
+        ImmutableList.<String>of());
   }
 
   /**
