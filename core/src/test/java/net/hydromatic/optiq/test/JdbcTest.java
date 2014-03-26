@@ -62,6 +62,7 @@ import java.io.IOException;
 import java.lang.reflect.Method;
 import java.math.BigDecimal;
 import java.sql.*;
+import java.sql.Date;
 import java.sql.Statement;
 import java.util.*;
 import javax.sql.DataSource;
@@ -3254,6 +3255,62 @@ public class JdbcTest {
     ++c;
 
     assertTrue(!rs.next());
+  }
+
+  /** Tests accessing a column in a JDBC source whose type is DATE. */
+  @Test
+  public void testGetDate() throws Exception {
+    OptiqAssert.that()
+      .with(OptiqAssert.Config.JDBC_FOODMART)
+      .doWithConnection(new Function1<OptiqConnection, Object>() {
+        public Object apply(OptiqConnection conn) {
+          try {
+            Statement stmt = conn.createStatement();
+            ResultSet rs = stmt.executeQuery(
+              "select min(\"date\") mindate from \"foodmart\".\"currency\"");
+            assertTrue(rs.next());
+            assertEquals(
+              Date.valueOf("1997-01-01"),
+              rs.getDate(1));
+            assertFalse(rs.next());
+            return null;
+          } catch (SQLException e) {
+            throw new RuntimeException(e);
+          }
+        }
+      });
+  }
+
+  /** Tests accessing a date as a string in a JDBC source whose type is DATE. */
+  @Test
+  public void testGetDateAsString() throws Exception {
+    OptiqAssert.that()
+      .with(OptiqAssert.Config.JDBC_FOODMART)
+      .query("select min(\"date\") mindate from \"foodmart\".\"currency\"")
+      .returns("MINDATE=1997-01-01\n");
+  }
+
+  @Test
+  public void testGetTimestampObject() throws Exception {
+    OptiqAssert.that()
+      .with(OptiqAssert.Config.JDBC_FOODMART)
+      .doWithConnection(new Function1<OptiqConnection, Object>() {
+        public Object apply(OptiqConnection conn) {
+          try {
+            Statement stmt = conn.createStatement();
+            ResultSet rs = stmt.executeQuery(
+              "select \"hire_date\" from \"foodmart\".\"employee\" where \"employee_id\" = 1");
+            assertTrue(rs.next());
+            assertEquals(
+              Timestamp.valueOf("1994-12-01 00:00:00"),
+              rs.getTimestamp(1));
+            assertFalse(rs.next());
+            return null;
+          } catch (SQLException e) {
+            throw new RuntimeException(e);
+          }
+        }
+      });
   }
 
   @Test public void testUnicode() throws Exception {

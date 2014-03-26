@@ -182,7 +182,8 @@ public class JdbcToEnumerableConverter
       dateTimeArgs.add(calendar_);
       break;
     case NULL:
-      dateTimeArgs.add(Expressions.constant(null));
+      // We don't specify a calendar at all, so we don't add an argument and
+      // instead use the version of the getXXX that doesn't take a Calendar
       break;
     case DIRECT:
       sqlTypeName = SqlTypeName.ANY;

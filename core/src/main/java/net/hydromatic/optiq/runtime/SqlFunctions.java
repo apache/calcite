@@ -48,6 +48,8 @@ public class SqlFunctions {
   /** The julian date of the epoch, 1970-01-01. */
   public static final int EPOCH_JULIAN = 2440588;
 
+  private static final TimeZone LOCAL_TZ = TimeZone.getDefault();
+
   private SqlFunctions() {
   }
 
@@ -868,7 +870,7 @@ public class SqlFunctions {
   }
 
   public static int toInt(java.util.Date v) {
-    return (int) (v.getTime() / DateTimeUtil.MILLIS_PER_DAY);
+    return toInt(v, LOCAL_TZ);
   }
 
   public static int toInt(java.util.Date v, TimeZone timeZone) {
@@ -876,21 +878,21 @@ public class SqlFunctions {
   }
 
   public static Integer toIntOptional(java.util.Date v) {
-    return v == null ? null : (int) (v.getTime() / DateTimeUtil.MILLIS_PER_DAY);
+    return v == null ? null : toInt(v);
   }
 
   public static Integer toIntOptional(java.util.Date v, TimeZone timeZone) {
     return v == null
         ? null
-        : (int) (toLong(v, timeZone) / DateTimeUtil.MILLIS_PER_DAY);
+        : toInt(v, timeZone);
   }
 
   public static int toInt(java.sql.Time v) {
-    return (int) (v.getTime() % DateTimeUtil.MILLIS_PER_DAY);
+    return (int) (toLong(v) % DateTimeUtil.MILLIS_PER_DAY);
   }
 
   public static Integer toIntOptional(java.sql.Time v) {
-    return v == null ? null : (int) (v.getTime() % DateTimeUtil.MILLIS_PER_DAY);
+    return v == null ? null : toInt(v);
   }
 
   public static int toInt(String s) {
@@ -909,7 +911,7 @@ public class SqlFunctions {
   }
 
   public static long toLong(Timestamp v) {
-    return v.getTime();
+    return toLong(v, LOCAL_TZ);
   }
 
   // mainly intended for java.sql.Timestamp but works for other dates also
@@ -920,15 +922,14 @@ public class SqlFunctions {
 
   // mainly intended for java.sql.Timestamp but works for other dates also
   public static Long toLongOptional(java.util.Date v) {
-    return v == null ? null : v.getTime();
+    return v == null ? null : toLong(v, LOCAL_TZ);
   }
 
   public static Long toLongOptional(Timestamp v, TimeZone timeZone) {
     if (v == null) {
       return null;
     }
-    final long time = v.getTime();
-    return time + timeZone.getOffset(time);
+    return toLong(v, LOCAL_TZ);
   }
 
   public static long toLong(String s) {
