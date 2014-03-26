@@ -2,6 +2,38 @@
 
 For a full list of releases, see <a href="https://github.com/julianhyde/optiq/releases">github</a>.
 
+## HEAD
+
+* Add class `XmlOutput` (based on `org.eigenbase.xom.XMLOutput`) and remove
+  dependency on eigenbase-xom.
+* Performance: Don't create stack-trace for exceptions used for control-flow.
+  (Vladimir Sitnikov)
+* Performance: Tune `RexProgramBuilder` by using `Pair` rather than `String` as
+  expression key. (Vladimir Sitnikov)
+* Add methods for dealing with symbols; deprecate
+  `SqlLiteral.booleanValue(SqlNode)`, `SqlLiteral.symbolValue(SqlNode)`.
+* Fix NPE using TRIM function with JDBC. (Bruno Dumon)
+* Add dependency on
+  <a href="https://github.com/julianhyde/hydromatic-resource">hydromatic-resource-maven-plugin</a>
+  and obsolete our copy of the resource framework.
+* Fix <a href="https://github.com/julianhyde/optiq/issues/179">#179</a>,
+  "Optiq on Windows". Add `sqlline.bat` and fix issues running `sqlline` under
+  Cygwin.
+* In `Frameworks`, add a way to specify list of `TraitDef`s that will be used
+  by planner. (Jinfeng Ni)
+* Fix <a href="https://github.com/julianhyde/optiq/issues/195">#195</a>,
+  "Push aggregation into MongoDB adapter".
+* Fix <a href="https://github.com/julianhyde/optiq/issues/193">#193</a>,
+  "Implement OFFSET and LIMIT in MongoDB adapter".
+* Fix race condition in `SpaceList`.
+* Fix <a href="https://github.com/julianhyde/optiq/issues/164">#164</a>,
+  "Improve query performance of optiq over MongoDB".
+* Add Phoenix (HBase) SQL dialect (Bruno Dumon)
+* Add `RelOptPlanner.clear()`; now it is safe to call `transform` twice. (Jinfeng Ni)
+* In planner, use `RelTrait.subsumes` rather than `equals` in an assert. (Jinfeng Ni)
+* Remove APIs deprecated for 0.5.
+* Move around some operator classes and singletons.
+
 ## <a href="https://github.com/julianhyde/optiq/releases/tag/optiq-parent-0.5">0.5</a> / 2014-03-14
 
 New features
