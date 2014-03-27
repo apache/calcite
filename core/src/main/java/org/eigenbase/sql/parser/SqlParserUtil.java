@@ -527,7 +527,6 @@ public final class SqlParserUtil {
    * taking operator precedence and associativity into account.
    */
   public static SqlNode toTree(List<Object> list) {
-    assert list.size() % 2 == 1;
     if (LOGGER.isLoggable(Level.FINER)) {
       LOGGER.finer("Attempting to reduce " + list);
     }
