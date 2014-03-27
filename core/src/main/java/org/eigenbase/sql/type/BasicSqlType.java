@@ -43,13 +43,11 @@ public class BasicSqlType extends AbstractSqlType {
    * factory method.
    *
    * @param typeName Type name
-   * @pre typeName.allowsNoPrecNoScale(false, false)
    */
   public BasicSqlType(SqlTypeName typeName) {
     super(typeName, false, null);
-    Util.pre(
-        typeName.allowsPrecScale(false, false),
-        "typeName.allowsPrecScale(false,false), typeName=" + typeName.name());
+    assert typeName.allowsPrecScale(false, false)
+        : "typeName.allowsPrecScale(false,false), typeName=" + typeName.name();
     this.precision = PRECISION_NOT_SPECIFIED;
     this.scale = SCALE_NOT_SPECIFIED;
     computeDigest();
@@ -59,15 +57,13 @@ public class BasicSqlType extends AbstractSqlType {
    * Constructs a type with precision/length but no scale.
    *
    * @param typeName Type name
-   * @pre typeName.allowsPrecNoScale(true, false)
    */
   public BasicSqlType(
       SqlTypeName typeName,
       int precision) {
     super(typeName, false, null);
-    Util.pre(
-        typeName.allowsPrecScale(true, false),
-        "typeName.allowsPrecScale(true,false)");
+    assert typeName.allowsPrecScale(true, false)
+        : "typeName.allowsPrecScale(true, false)";
     this.precision = precision;
     this.scale = SCALE_NOT_SPECIFIED;
     computeDigest();
@@ -77,16 +73,13 @@ public class BasicSqlType extends AbstractSqlType {
    * Constructs a type with precision/length and scale.
    *
    * @param typeName Type name
-   * @pre typeName.allowsPrecScale(true, true)
    */
   public BasicSqlType(
       SqlTypeName typeName,
       int precision,
       int scale) {
     super(typeName, false, null);
-    Util.pre(
-        typeName.allowsPrecScale(true, true),
-        "typeName.allowsPrecScale(true,true)");
+    assert typeName.allowsPrecScale(true, true);
     this.precision = precision;
     this.scale = scale;
     computeDigest();
@@ -251,6 +244,7 @@ public class BasicSqlType extends AbstractSqlType {
    * <p>For example,
    *
    * <table border="1">
+   * <caption>Limits</caption>
    * <tr>
    * <th>Datatype</th>
    * <th>sign</th>

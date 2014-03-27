@@ -41,32 +41,32 @@ import static org.eigenbase.util.Static.RESOURCE;
  *
  * <blockquote><code>
  *
- * &lt;interval qualifier&gt; ::=<br/>
- * &nbsp;&nbsp; &lt;start field&gt; TO &lt;end field&gt;<br/>
- * &nbsp;&nbsp;| &lt;single datetime field&gt;<br/>
- * &lt;start field&gt; ::=<br/>
- * &nbsp;&nbsp; &lt;non-second primary datetime field&gt;<br/>
+ * &lt;interval qualifier&gt; ::=<br>
+ * &nbsp;&nbsp; &lt;start field&gt; TO &lt;end field&gt;<br>
+ * &nbsp;&nbsp;| &lt;single datetime field&gt;<br>
+ * &lt;start field&gt; ::=<br>
+ * &nbsp;&nbsp; &lt;non-second primary datetime field&gt;<br>
  * &nbsp;&nbsp; [ &lt;left paren&gt; &lt;interval leading field precision&gt;
- * &lt;right paren&gt; ]<br/>
- * &lt;end field&gt; ::=<br/>
- * &nbsp;&nbsp; &lt;non-second primary datetime field&gt;<br/>
+ * &lt;right paren&gt; ]<br>
+ * &lt;end field&gt; ::=<br>
+ * &nbsp;&nbsp; &lt;non-second primary datetime field&gt;<br>
  * &nbsp;&nbsp;| SECOND [ &lt;left paren&gt;
- * &lt;interval fractional seconds precision&gt; &lt;right paren&gt; ]<br/>
- * &lt;single datetime field&gt; ::=<br/>
- * &nbsp;&nbsp;&lt;non-second primary datetime field&gt;<br/>
+ * &lt;interval fractional seconds precision&gt; &lt;right paren&gt; ]<br>
+ * &lt;single datetime field&gt; ::=<br>
+ * &nbsp;&nbsp;&lt;non-second primary datetime field&gt;<br>
  * &nbsp;&nbsp;[ &lt;left paren&gt; &lt;interval leading field precision&gt;
- * &lt;right paren&gt; ]<br/>
+ * &lt;right paren&gt; ]<br>
  * &nbsp;&nbsp;| SECOND [ &lt;left paren&gt;
- * &lt;interval leading field precision&gt;<br/>
+ * &lt;interval leading field precision&gt;<br>
  * &nbsp;&nbsp;[ &lt;comma&gt; &lt;interval fractional seconds precision&gt; ]
- * &lt;right paren&gt; ]<br/>
- * &lt;primary datetime field&gt; ::=<br/>
- * &nbsp;&nbsp;&lt;non-second primary datetime field&gt;<br/>
- * &nbsp;&nbsp;| SECOND<br/>
+ * &lt;right paren&gt; ]<br>
+ * &lt;primary datetime field&gt; ::=<br>
+ * &nbsp;&nbsp;&lt;non-second primary datetime field&gt;<br>
+ * &nbsp;&nbsp;| SECOND<br>
  * &lt;non-second primary datetime field&gt; ::= YEAR | MONTH | DAY | HOUR
- * | MINUTE<br/>
+ * | MINUTE<br>
  * &lt;interval fractional seconds precision&gt; ::=
- * &lt;unsigned integer&gt;<br/>
+ * &lt;unsigned integer&gt;<br>
  * &lt;interval leading field precision&gt; ::= &lt;unsigned integer&gt;
  *
  * </code></blockquote>

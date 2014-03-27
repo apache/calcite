@@ -41,7 +41,7 @@ import java.util.*;
  * <p>Splunk does not have tables, but it's easiest to imagine that a Splunk
  * instance is one large table. This "table" does not have a fixed set of
  * columns (Splunk calls them "fields") but each query specifies the fields that
- * it wants. It also specifies a search expression, and optionally earliest &
+ * it wants. It also specifies a search expression, and optionally earliest and
  * latest dates.</p>
  */
 public class SplunkTableAccessRel

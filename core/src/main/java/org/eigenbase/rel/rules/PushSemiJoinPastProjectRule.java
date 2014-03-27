@@ -30,7 +30,7 @@ import org.eigenbase.util.Pair;
  * a tree past a project in order to trigger other rules that will convert
  * semijoins.
  *
- * <p>SemiJoinRel(ProjectRel(X), Y) --> ProjectRel(SemiJoinRel(X, Y))
+ * <p>SemiJoinRel(ProjectRel(X), Y) &rarr; ProjectRel(SemiJoinRel(X, Y))
  */
 public class PushSemiJoinPastProjectRule extends RelOptRule {
   public static final PushSemiJoinPastProjectRule INSTANCE =

@@ -43,12 +43,10 @@ public abstract class SqlTypeUtil {
    *
    * @return Returns true if all operands are of char type and if they are
    * comparable, i.e. of the same charset and collation of same charset
-   * @pre argTypes != null
-   * @pre argTypes.length >= 2
    */
   public static boolean isCharTypeComparable(List<RelDataType> argTypes) {
-    assert null != argTypes : "precondition failed";
-    assert 2 <= argTypes.size() : "precondition failed";
+    assert argTypes != null;
+    assert argTypes.size() >= 2;
 
     for (int j = 0; j < (argTypes.size() - 1); j++) {
       RelDataType t0 = argTypes.get(j);
@@ -88,8 +86,6 @@ public abstract class SqlTypeUtil {
    *                       operands of the bound call, but not always
    * @param throwOnFailure Whether to throw an exception on failure
    * @return whether operands are valid
-   * @pre null != operands
-   * @pre 2 <= operands.length
    */
   public static boolean isCharTypeComparable(
       SqlCallBinding binding,
@@ -97,8 +93,8 @@ public abstract class SqlTypeUtil {
       boolean throwOnFailure) {
     final SqlValidator validator = binding.getValidator();
     final SqlValidatorScope scope = binding.getScope();
-    assert null != operands : "precondition failed";
-    assert 2 <= operands.size() : "precondition failed";
+    assert operands != null;
+    assert operands.size() >= 2;
 
     if (!isCharTypeComparable(
         deriveAndCollectTypes(validator, scope, operands))) {

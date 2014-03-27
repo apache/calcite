@@ -41,7 +41,7 @@ public class MongoTableScan extends TableAccessRelBase implements MongoRel {
    * @param traitSet       Traits
    * @param table          Table
    * @param mongoTable     MongoDB table
-   * @param projectRowType Fields & types to project; null to project raw row
+   * @param projectRowType Fields and types to project; null to project raw row
    * @param ops            List of operators to apply
    */
   protected MongoTableScan(RelOptCluster cluster, RelTraitSet traitSet,

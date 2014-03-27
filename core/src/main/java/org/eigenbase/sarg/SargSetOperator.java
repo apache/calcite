@@ -23,13 +23,13 @@ package org.eigenbase.sarg;
  */
 public enum SargSetOperator {
   /**
-   * Set intersection over any number of children (no children => universal
+   * Set intersection over any number of children (no children &rarr; universal
    * set).
    */
   INTERSECTION,
 
   /**
-   * Set union over any number of children (no children => empty set).
+   * Set union over any number of children (no children &rarr; empty set).
    */
   UNION,
 

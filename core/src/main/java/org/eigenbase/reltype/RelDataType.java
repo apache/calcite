@@ -56,7 +56,6 @@ public interface RelDataType /*extends Type*/ {
    * the returned list.
    *
    * @return read-only list of fields
-   * @pre this.isStruct()
    */
   List<RelDataTypeField> getFieldList();
 
@@ -91,7 +90,6 @@ public interface RelDataType /*extends Type*/ {
    * @param fieldName name of field to find
    * @param caseSensitive Whether case-sensitive
    * @return named field, or null if not found
-   * @pre this.isStruct()
    */
   RelDataTypeField getField(String fieldName, boolean caseSensitive);
 

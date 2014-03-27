@@ -25,7 +25,7 @@ import org.eigenbase.relopt.*;
 /**
  * Rule to add a semijoin into a joinrel. Transformation is as follows:
  *
- * <p>JoinRel(X, Y) -> JoinRel(SemiJoinRel(X, Y), Y)
+ * <p>JoinRel(X, Y) &rarr; JoinRel(SemiJoinRel(X, Y), Y)
  */
 public class AddRedundantSemiJoinRule extends RelOptRule {
   public static final AddRedundantSemiJoinRule INSTANCE =

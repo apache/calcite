@@ -169,9 +169,9 @@ public class RexUtil {
 
   /**
    * Returns whether a node represents the NULL value or a series of nested
-   * CAST(NULL as <TYPE>) calls<br>
-   * For Example:<br>
-   * isNull(CAST(CAST(NULL as INTEGER) AS VARCHAR(1))) returns true
+   * {@code CAST(NULL AS type)} calls. For example:
+   * <code>isNull(CAST(CAST(NULL as INTEGER) AS VARCHAR(1)))</code>
+   * returns {@code true}.
    */
   public static boolean isNull(RexNode expr) {
     switch (expr.getKind()) {

@@ -1623,7 +1623,6 @@ public class SqlToRelConverter {
    *             <li>a query ("(SELECT * FROM EMP WHERE GENDER = 'F')"),
    *             <li>or any combination of the above.
    *             </ul>
-   * @post return != null
    */
   protected void convertFrom(
       Blackboard bb,
@@ -2582,7 +2581,6 @@ public class SqlToRelConverter {
    * @param extraOrderExprs Sort expressions which are not in the select
    *                        clause (output)
    * @param collationList   List of collations (output)
-   * @pre bb.root != null
    */
   protected void gatherOrderExprs(
       Blackboard bb,

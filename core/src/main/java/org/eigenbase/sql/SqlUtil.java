@@ -151,14 +151,14 @@ public abstract class SqlUtil {
 
   /**
    * Returns whether a node represents the NULL value or a series of nested
-   * CAST(NULL as <TYPE>) calls<br>
-   * For Example:<br>
-   * isNull(CAST(CAST(NULL as INTEGER) AS VARCHAR(1))) returns true
+   * <code>CAST(NULL AS type)</code> calls. For example:
+   * <code>isNull(CAST(CAST(NULL as INTEGER) AS VARCHAR(1)))</code>
+   * returns {@code true}.
    */
   public static boolean isNull(SqlNode node) {
     return isNullLiteral(node, false)
-        || ((node.getKind() == SqlKind.CAST)
-            && isNull(((SqlCall) node).operand(0)));
+        || node.getKind() == SqlKind.CAST
+            && isNull(((SqlCall) node).operand(0));
   }
 
   /**
@@ -170,10 +170,9 @@ public abstract class SqlUtil {
    *
    * @param node The node, never null.
    * @return Whether the node is a literal
-   * @pre node != null
    */
   public static boolean isLiteral(SqlNode node) {
-    Util.pre(node != null, "node != null");
+    assert node != null;
     return node instanceof SqlLiteral;
   }
 
@@ -183,10 +182,9 @@ public abstract class SqlUtil {
    *
    * @param node The node, never null.
    * @return Whether the node is a literal chain
-   * @pre node != null
    */
   public static boolean isLiteralChain(SqlNode node) {
-    Util.pre(node != null, "node != null");
+    assert node != null;
     if (node instanceof SqlCall) {
       SqlCall call = (SqlCall) node;
       return call.getKind() == SqlKind.LITERAL_CHAIN;

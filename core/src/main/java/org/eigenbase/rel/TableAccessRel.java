@@ -30,20 +30,20 @@ import org.eigenbase.relopt.*;
  * possible to read all of the rows unless some narrowing constraint is applied.
  *
  * <p>In the example of the <code>net.sf.saffron.ext.ReflectSchema</code>
- * schema,
+ * schema,</p>
  *
  * <blockquote>
  * <pre>select from fields</pre>
  * </blockquote>
  *
- * cannot be implemented, but
+ * <p>cannot be implemented, but</p>
  *
  * <blockquote>
  * <pre>select from fields as f
  * where f.getClass().getName().equals("java.lang.String")</pre>
  * </blockquote>
  *
- * can. It is the optimizer's responsibility to find these ways, by applying
+ * <p>can. It is the optimizer's responsibility to find these ways, by applying
  * transformation rules.</p>
  */
 public final class TableAccessRel extends TableAccessRelBase {

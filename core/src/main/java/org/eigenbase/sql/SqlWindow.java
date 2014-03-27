@@ -37,7 +37,7 @@ import static org.eigenbase.util.Static.RESOURCE;
 /**
  * SQL window specification.
  *
- * <p>For example, the query
+ * <p>For example, the query</p>
  *
  * <blockquote>
  * <pre>SELECT sum(a) OVER (w ROWS 3 PRECEDING)
@@ -46,7 +46,7 @@ import static org.eigenbase.util.Static.RESOURCE;
  *     w1 AS (w ROWS 5 PRECEDING UNBOUNDED FOLLOWING)</pre>
  * </blockquote>
  *
- * declares windows w and w1, and uses a window in an OVER clause. It thus
+ * <p>declares windows w and w1, and uses a window in an OVER clause. It thus
  * contains 3 {@link SqlWindow} objects.</p>
  */
 public class SqlWindow extends SqlCall {

@@ -37,7 +37,7 @@ import java.util.*;
  *    pw.write(StackWriter.OPEN_SQL_STRING_LITERAL);
  *    pw.println();
  *    pw.write(StackWriter.INDENT);
- *    pw.println("select * from t where c > 'alabama'");
+ *    pw.println("select * from t where c &gt; 'alabama'");
  *    pw.write(StackWriter.OUTDENT);
  *    pw.write(StackWriter.CLOSE_SQL_STRING_LITERAL);
  *    pw.println(");");
@@ -50,7 +50,7 @@ import java.util.*;
  *
  * <pre><code>
  *      execute remote(link_name,'
- *          select * from t where c > ''alabama''
+ *          select * from t where c &gt; ''alabama''
  *      ');
  * </code></pre>
  */

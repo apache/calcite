@@ -147,7 +147,7 @@ public class SqlValidatorUtil {
    * </ul>
    *
    * @return An alias, if one can be derived; or a synthetic alias
-   * "expr$<i>ordinal</i>" if ordinal >= 0; otherwise null
+   * "expr$<i>ordinal</i>" if ordinal &lt; 0; otherwise null
    */
   public static String getAlias(SqlNode node, int ordinal) {
     switch (node.getKind()) {
@@ -244,16 +244,13 @@ public class SqlValidatorUtil {
 
   /**
    * Resolves a multi-part identifier such as "SCHEMA.EMP.EMPNO" to a
-   * namespace. The returned namespace may represent a schema, table, column,
-   * etc.
-   *
-   * @pre names.size() > 0
-   * @post return != null
+   * namespace. The returned namespace, never null, may represent a
+   * schema, table, column, etc.
    */
   public static SqlValidatorNamespace lookup(
       SqlValidatorScope scope,
       List<String> names) {
-    Util.pre(names.size() > 0, "names.size() > 0");
+    assert names.size() > 0;
     SqlValidatorNamespace namespace = null;
     for (int i = 0; i < names.size(); i++) {
       String name = names.get(i);
@@ -263,7 +260,7 @@ public class SqlValidatorUtil {
         namespace = namespace.lookupChild(name);
       }
     }
-    Util.permAssert(namespace != null, "post: namespace != null");
+    assert namespace != null;
     return namespace;
   }
 

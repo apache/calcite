@@ -37,12 +37,13 @@ import static org.eigenbase.util.Static.RESOURCE;
  * documentation for writers of JDBC drivers</a>.*
  *
  * <table>
+ * <caption>Supported JDBC functions</caption>
  * <tr>
  * <th>Function Name</th>
  * <th>Function Returns</th>
  * </tr>
  * <tr>
- * <td colspan="2"><br/>
+ * <td colspan="2"><br>
  *
  * <h3>NUMERIC FUNCTIONS</h3>
  * </td>
@@ -145,7 +146,7 @@ import static org.eigenbase.util.Static.RESOURCE;
  * <td>number truncated to places places</td>
  * </tr>
  * <tr>
- * <td colspan="2"><br/>
+ * <td colspan="2"><br>
  *
  * <h3>STRING FUNCTIONS</h3>
  * </td>
@@ -234,7 +235,7 @@ import static org.eigenbase.util.Static.RESOURCE;
  * <td>Converts all lowercase characters in string to uppercase</td>
  * </tr>
  * <tr>
- * <td colspan="2"><br/>
+ * <td colspan="2"><br>
  *
  * <h3>TIME and DATE FUNCTIONS</h3>
  * </td>
@@ -319,7 +320,7 @@ import static org.eigenbase.util.Static.RESOURCE;
  * <td>An integer representing the year component of date</td>
  * </tr>
  * <tr>
- * <td colspan="2"><br/>
+ * <td colspan="2"><br>
  *
  * <h3>SYSTEM FUNCTIONS</h3>
  * </td>
@@ -337,7 +338,7 @@ import static org.eigenbase.util.Static.RESOURCE;
  * <td>User name in the DBMS
  *
  * <tr>
- * <td colspan="2"><br/>
+ * <td colspan="2"><br>
  *
  * <h3>CONVERSION FUNCTIONS</h3>
  * </td>

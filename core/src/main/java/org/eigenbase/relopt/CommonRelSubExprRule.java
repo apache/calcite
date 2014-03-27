@@ -30,14 +30,10 @@ public abstract class CommonRelSubExprRule extends RelOptRule {
    * Creates a <code>CommonRelSubExprRule</code>.
    *
    * @param operand root operand, must not be null
-   * @pre operand != null
    */
   public CommonRelSubExprRule(RelOptRuleOperand operand) {
     super(operand);
   }
-
-  //~ Methods ----------------------------------------------------------------
-
 }
 
 // End CommonRelSubExprRule.java

@@ -27,14 +27,14 @@ import org.eigenbase.util.Pair;
  * Variable which references a field of an input relational expression.
  *
  * <p>Fields of the input are 0-based. If there is more than one input, they are
- * numbered consecutively. For example, if the inputs to a join are
+ * numbered consecutively. For example, if the inputs to a join are</p>
  *
  * <ul>
  * <li>Input #0: EMP(EMPNO, ENAME, DEPTNO) and</li>
  * <li>Input #1: DEPT(DEPTNO AS DEPTNO2, DNAME)</li>
  * </ul>
  *
- * then the fields are:
+ * <p>then the fields are:</p>
  *
  * <ul>
  * <li>Field #0: EMPNO</li>
@@ -44,8 +44,8 @@ import org.eigenbase.util.Pair;
  * <li>Field #4: DNAME</li>
  * </ul>
  *
- * So <code>RexInputRef(3,Integer)</code> is the correct reference for the field
- * DEPTNO2.</p>
+ * <p>So <code>RexInputRef(3, Integer)</code> is the correct reference for the
+ * field DEPTNO2.</p>
  */
 public class RexInputRef extends RexSlot {
   //~ Static fields/initializers ---------------------------------------------

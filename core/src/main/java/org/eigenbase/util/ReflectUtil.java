@@ -494,7 +494,7 @@ public abstract class ReflectUtil {
    *
    * could be used to call the methods
    *
-   * <blockquote>String foo(Car, int, List)<br/>
+   * <blockquote>String foo(Car, int, List)<br>
    * String foo(Bus, int, List)</blockquote>
    *
    * (because Car and Bus are subclasses of Vehicle, and they occur in the

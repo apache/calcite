@@ -33,12 +33,10 @@ public class MultisetSqlType extends AbstractSqlType {
   /**
    * Constructs a new MultisetSqlType. This constructor should only be called
    * from a factory method.
-   *
-   * @pre null!=elementType
    */
   public MultisetSqlType(RelDataType elementType, boolean isNullable) {
     super(SqlTypeName.MULTISET, isNullable, null);
-    Util.pre(null != elementType, "null!=elementType");
+    assert elementType != null;
     this.elementType = elementType;
     computeDigest();
   }

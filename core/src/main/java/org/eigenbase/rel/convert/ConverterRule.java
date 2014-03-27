@@ -39,8 +39,6 @@ public abstract class ConverterRule extends RelOptRule {
    * @param in          Trait of relational expression to consider converting
    * @param out         Trait which is converted to
    * @param description Description of rule
-   * @pre in != null
-   * @pre out != null
    */
   public ConverterRule(
       Class<? extends RelNode> clazz,

@@ -129,6 +129,7 @@ public class SqlCollation implements Serializable {
    * @param col2 second operand for the dyadic operation
    * @return the resulting collation sequence. The "no collating sequence"
    * result is returned as null.
+   *
    * @sql.99 Part 2 Section 4.2.3 Table 2
    */
   public static SqlCollation getCoercibilityDyadicOperator(
@@ -147,6 +148,7 @@ public class SqlCollation implements Serializable {
    * @throws EigenbaseException {@link EigenbaseNewResource#invalidCompare} or
    *                            {@link EigenbaseNewResource#differentCollations}
    *                            if no collating sequence can be deduced
+   *
    * @sql.99 Part 2 Section 4.2.3 Table 2
    */
   public static SqlCollation getCoercibilityDyadicOperatorThrows(
@@ -171,6 +173,7 @@ public class SqlCollation implements Serializable {
    * @param col2 second operand for the dyadic operation
    * @return the resulting collation sequence. If no collating sequence could
    * be deduced a {@link EigenbaseNewResource#invalidCompare} is thrown
+   *
    * @sql.99 Part 2 Section 4.2.3 Table 3
    */
   public static String getCoercibilityDyadicComparison(

@@ -28,7 +28,7 @@ import java.lang.reflect.*;
  * <p>It is useful in creating a wrapper class around an interface which may
  * change over time.</p>
  *
- * <p>Example:
+ * <p>Example:</p>
  *
  * <blockquote>
  * <pre>import java.sql.Connection;
@@ -46,7 +46,6 @@ import java.lang.reflect.*;
  *         }
  *     });</pre>
  * </blockquote>
- * </p>
  */
 public abstract class DelegatingInvocationHandler implements InvocationHandler {
   //~ Methods ----------------------------------------------------------------

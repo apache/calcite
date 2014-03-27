@@ -32,8 +32,7 @@ public class RelDataTypeFieldImpl implements RelDataTypeField, Serializable {
   //~ Constructors -----------------------------------------------------------
 
   /**
-   * @pre name != null
-   * @pre type != null
+   * Creates a RelDataTypeFieldImpl.
    */
   public RelDataTypeFieldImpl(
       String name,

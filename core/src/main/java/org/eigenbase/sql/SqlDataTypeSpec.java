@@ -139,13 +139,9 @@ public class SqlDataTypeSpec extends SqlNode {
    * Returns a new SqlDataTypeSpec corresponding to the component type if the
    * type spec is a collections type spec.<br>
    * Collection types are <code>ARRAY</code> and <code>MULTISET</code>.
-   *
-   * @pre null != getCollectionsTypeName()
    */
   public SqlDataTypeSpec getComponentTypeSpec() {
-    Util.pre(
-        null != getCollectionsTypeName(),
-        "null != getCollectionsTypeName()");
+    assert getCollectionsTypeName() != null;
     return new SqlDataTypeSpec(
         typeName,
         precision,

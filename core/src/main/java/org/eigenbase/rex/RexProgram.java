@@ -78,15 +78,15 @@ public class RexProgram {
   /**
    * Creates a program.
    *
+   * <p>The expressions must be valid: they must not contain common expressions,
+   * forward references, or non-trivial aggregates.</p>
+   *
    * @param inputRowType  Input row type
    * @param exprs         Common expressions
    * @param projects      Projection expressions
    * @param condition     Condition expression. If null, calculator does not
    *                      filter rows
    * @param outputRowType Description of the row produced by the program
-   * @pre !containCommonExprs(exprs)
-   * @pre !containForwardRefs(exprs)
-   * @pre !containNonTrivialAggs(exprs)
    */
   public RexProgram(
       RelDataType inputRowType,
@@ -115,9 +115,6 @@ public class RexProgram {
    * <p>The list is never null but may be empty; each the expression in the
    * list is not null; and no further reduction into smaller common
    * sub-expressions is possible.
-   *
-   * @post return != null
-   * @post !containCommonExprs(exprs)
    */
   public List<RexNode> getExprList() {
     return exprs;

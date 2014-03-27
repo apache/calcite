@@ -117,6 +117,7 @@ public class Permutation implements Mapping, Mappings.TargetMapping {
    * <p>For example, the mapping
    *
    * <table>
+   * <caption>Example mapping</caption>
    * <tr>
    * <th>source</th>
    * <th>target</th>
@@ -261,6 +262,7 @@ public class Permutation implements Mapping, Mappings.TargetMapping {
    * <p>For example, consider the permutation</p>
    *
    * <table border="1">
+   * <caption>Example permutation</caption>
    * <tr>
    * <td>source</td>
    * <td>0</td>
@@ -283,6 +285,7 @@ public class Permutation implements Mapping, Mappings.TargetMapping {
    * shifted up one.</p>
    *
    * <table border="1">
+   * <caption>Mapping after applying insertTarget(2)</caption>
    * <tr>
    * <td>source</td>
    * <td>0</td>

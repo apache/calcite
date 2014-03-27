@@ -27,10 +27,15 @@ import org.eigenbase.rex.*;
 /**
  * PushSemiJoinPastJoinRule implements the rule for pushing semijoins down in a
  * tree past a join in order to trigger other rules that will convert semijoins.
- * SemiJoinRel(JoinRel(X, Y), Z) --> JoinRel(SemiJoinRel(X, Z), Y) or
- * SemiJoinRel(JoinRel(X, Y), Z) --> JoinRel(X, SemiJoinRel(Y, Z)) Whether this
+ *
+ * <ul>
+ * <li>SemiJoinRel(JoinRel(X, Y), Z) &rarr; JoinRel(SemiJoinRel(X, Z), Y)
+ * <li>SemiJoinRel(JoinRel(X, Y), Z) &rarr; JoinRel(X, SemiJoinRel(Y, Z))
+ * </ul>
+ *
+ * <p>Whether this
  * first or second conversion is applied depends on which operands actually
- * participate in the semijoin.
+ * participate in the semijoin.</p>
  */
 public class PushSemiJoinPastJoinRule extends RelOptRule {
   public static final PushSemiJoinPastJoinRule INSTANCE =

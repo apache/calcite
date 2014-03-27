@@ -312,6 +312,7 @@ public abstract class Mappings {
    * <p>creates</p>
    *
    * <table>
+   * <caption>Example mapping</caption>
    * <tr><th>Source</th><th>Target</th></tr>
    * <tr><td>0</td><td>100</td></tr>
    * <tr><td>1</td><td>101</td></tr>
@@ -656,6 +657,7 @@ public abstract class Mappings {
      * <p>For example, the mapping
      *
      * <table border="1">
+     * <caption>Example</caption>
      * <tr>
      * <th>source</th>
      * <td>0</td>
@@ -671,6 +673,7 @@ public abstract class Mappings {
      * </table>
      *
      * <table border="1">
+     * <caption>Example</caption>
      * <tr>
      * <th>target</th>
      * <td>0</td>
@@ -788,6 +791,7 @@ public abstract class Mappings {
      * <p>Initially, no element is mapped to any other:
      *
      * <table border="1">
+     * <caption>Example</caption>
      * <tr>
      * <th>source</th>
      * <td>0</td>
@@ -803,6 +807,7 @@ public abstract class Mappings {
      * </table>
      *
      * <table border="1">
+     * <caption>Example</caption>
      * <tr>
      * <th>target</th>
      * <td>0</td>
@@ -842,6 +847,7 @@ public abstract class Mappings {
      * PartialMapping({1, 2, 4}, 6)</code> creates the mapping
      *
      * <table border="1">
+     * <caption>Example</caption>
      * <tr>
      * <th>source</th>
      * <td>0</td>

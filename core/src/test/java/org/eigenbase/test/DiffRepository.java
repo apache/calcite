@@ -38,8 +38,7 @@ import org.xml.sax.*;
  *
  * <p>Typical usage is as follows. A testcase class defines a method
  *
- * <blockquote><code>
- * <pre>
+ * <blockquote><pre><code>
  *
  * package com.acme.test;
  *
@@ -55,14 +54,14 @@ import org.xml.sax.*;
  *     &#64;Test public void testToLower() {
  *          getDiffRepos().assertEquals("Multi-line\nstring", "${string}");
  *     }
- * }</pre>
- * </code></blockquote>
+ * }
+ * </code></pre></blockquote>
  *
  * <p>There is an accompanying reference file named after the class,
  * <code>com/acme/test/MyTest.ref.xml</code>:</p>
  *
- * <blockquote><code>
- * <pre>
+ * <blockquote><pre><code>
+ *
  * &lt;Root&gt;
  *     &lt;TestCase name="testToUpper"&gt;
  *         &lt;Resource name="string"&gt;
@@ -79,8 +78,8 @@ import org.xml.sax.*;
  *         &lt;/Resource&gt;
  *     &lt;/TestCase&gt;
  * &lt;/Root&gt;
- * </pre>
- * </code></blockquote>
+ *
+ * </code></pre></blockquote>
  *
  * <p>If any of the testcases fails, a log file is generated, called <code>
  * com/acme/test/MyTest.log.xml</code> containing the actual output. The log

@@ -31,8 +31,8 @@ import org.eigenbase.reltype.*;
  * <li>Use<code>fail=true</code> to throw an {@link AssertionError} as soon as
  * an invalid node is detected:
  *
- * <blockquote><code>RexNode node;<br/>
- * RelDataType rowType;<br/>
+ * <blockquote><code>RexNode node;<br>
+ * RelDataType rowType;<br>
  * assert new RexChecker(rowType, true).isValid(node);</code></blockquote>
  *
  * This mode requires that assertions are enabled.</li>
@@ -40,12 +40,12 @@ import org.eigenbase.reltype.*;
  * <li>Use <code>fail=false</code> to test for validity without throwing an
  * error.
  *
- * <blockquote><code>RexNode node;<br/>
- * RelDataType rowType;<br/>
- * RexChecker checker = new RexChecker(rowType, false);<br/>
- * node.accept(checker);<br/>
- * if (!checker.valid) {<br/>
- * &nbsp;&nbsp;&nbsp;...<br/>
+ * <blockquote><code>RexNode node;<br>
+ * RelDataType rowType;<br>
+ * RexChecker checker = new RexChecker(rowType, false);<br>
+ * node.accept(checker);<br>
+ * if (!checker.valid) {<br>
+ * &nbsp;&nbsp;&nbsp;...<br>
  * }</code></blockquote>
  * </li>
  * </ul>

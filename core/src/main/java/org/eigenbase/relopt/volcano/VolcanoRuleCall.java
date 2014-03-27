@@ -146,8 +146,6 @@ public class VolcanoRuleCall extends RelOptRuleCall {
 
   /**
    * Called when all operands have matched.
-   *
-   * @pre getRule().matches(this)
    */
   protected void onMatch() {
     assert getRule().matches(this);

@@ -1444,12 +1444,12 @@ public class SqlFunctions {
     return null;
   }
 
-  /** NULL -> FALSE, FALSE -> FALSE, TRUE -> TRUE. */
+  /** NULL &rarr; FALSE, FALSE &rarr; FALSE, TRUE &rarr; TRUE. */
   public static boolean isTrue(Boolean b) {
     return b != null && b;
   }
 
-  /** NULL -> TRUE, FALSE -> FALSE, TRUE -> TRUE. */
+  /** NULL &rarr; TRUE, FALSE &rarr; FALSE, TRUE &rarr; TRUE. */
   public static boolean isNotFalse(Boolean b) {
     return b == null || b;
   }

@@ -26,15 +26,14 @@ import org.eigenbase.sql.type.*;
 /**
  * A relational expression that collapses multiple rows into one.
  *
- * <p>Rules:
+ * <p>Rules:</p>
  *
  * <ul>
  * <li>{@code net.sf.farrago.fennel.rel.FarragoMultisetSplitterRule}
- * creates a CollectRel from a call to {@link
- * org.eigenbase.sql.fun.SqlMultisetValueConstructor} or to {@link
- * org.eigenbase.sql.fun.SqlMultisetQueryConstructor}.</li>
+ * creates a CollectRel from a call to
+ * {@link org.eigenbase.sql.fun.SqlMultisetValueConstructor} or to
+ * {@link org.eigenbase.sql.fun.SqlMultisetQueryConstructor}.</li>
  * </ul>
- * </p>
  */
 public final class CollectRel extends SingleRel {
   //~ Instance fields --------------------------------------------------------

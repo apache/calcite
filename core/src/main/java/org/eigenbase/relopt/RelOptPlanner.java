@@ -121,12 +121,11 @@ public interface RelOptPlanner {
    * Changes a relational expression to an equivalent one with a different set
    * of traits.
    *
-   * @param rel      Relational expression, may or may not have been registered
-   * @param toTraits Trait set to convert relational expression to
+   * @param rel Relational expression (may or may not have been registered; must
+   *   not have the desired traits)
+   * @param toTraits Trait set to convert the relational expression to
    * @return Relational expression with desired traits. Never null, but may be
-   * abstract
-   * @pre !rel.getTraits().equals(toTraits)
-   * @post return != null
+   *   abstract
    */
   RelNode changeTraits(RelNode rel, RelTraitSet toTraits);
 
@@ -177,14 +176,13 @@ public interface RelOptPlanner {
    * <p>After it has been registered, you may not modify it.
    *
    * <p>The expression must not already have been registered. If you are not
-   * sure whether it has been registered, call {@link
-   * #ensureRegistered(RelNode, RelNode)}.
+   * sure whether it has been registered, call
+   * {@link #ensureRegistered(RelNode, RelNode)}.
    *
    * @param rel      Relational expression to register (must not already be
    *                 registered)
    * @param equivRel Relational expression it is equivalent to (may be null)
    * @return the same expression, or an equivalent existing expression
-   * @pre !isRegistered(rel)
    */
   RelNode register(
       RelNode rel,

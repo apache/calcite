@@ -38,14 +38,6 @@ public class RelOptQuery {
   //~ Instance fields --------------------------------------------------------
 
   /**
-   * Maps a from-list expression to the name of the correlating variable which
-   * references it. This is for forward-references, caused when from items
-   * have correlating variables. We will later resolve to a {@link RelNode}.
-   */
-  private final Map<DeferredLookup, String> mapDeferredToCorrel =
-      new HashMap<DeferredLookup, String>();
-
-  /**
    * Maps name of correlating variable (e.g. "$cor3") to the {@link RelNode}
    * which implements it.
    */
@@ -80,16 +72,6 @@ public class RelOptQuery {
   }
 
   /**
-   * Returns the map which identifies which correlating variable each {@link
-   * org.eigenbase.relopt.RelOptQuery.DeferredLookup} will set.
-   *
-   * @return Map of deferred lookups
-   */
-  public Map<DeferredLookup, String> getMapDeferredToCorrel() {
-    return mapDeferredToCorrel;
-  }
-
-  /**
    * Creates a cluster.
    *
    * @param typeFactory Type factory
@@ -112,20 +94,6 @@ public class RelOptQuery {
   }
 
   /**
-   * Creates a name for a correlating variable for which no {@link RelNode}
-   * has been created yet.
-   *
-   * @param deferredLookup contains the information required to resolve the
-   *                       variable later
-   */
-  public String createCorrelUnresolved(DeferredLookup deferredLookup) {
-    int n = nextCorrel++;
-    String name = CORREL_PREFIX + n;
-    mapDeferredToCorrel.put(deferredLookup, name);
-    return name;
-  }
-
-  /**
    * Returns the relational expression which populates a correlating variable.
    */
   public RelNode lookupCorrel(String name) {
@@ -139,40 +107,6 @@ public class RelOptQuery {
       String name,
       RelNode rel) {
     mapCorrelToRel.put(name, rel);
-  }
-
-  //~ Inner Interfaces -------------------------------------------------------
-
-  /**
-   * Contains the information necessary to repeat a call to {@link
-   * org.eigenbase.sql2rel.SqlToRelConverter.Blackboard#lookup}.
-   */
-  public interface DeferredLookup {
-    /**
-     * Creates an expression which accesses a particular field of this
-     * lookup.
-     *
-     * <p>For example, when resolving
-     *
-     * <pre>
-     * select *
-     * from dept
-     * where exists (
-     *   select *
-     *   from emp
-     *   where deptno = dept.deptno
-     *   and specialty = 'Karate')</pre>
-     *
-     * the expression <code>dept.deptno</code> would be handled using a
-     * deferred lookup for <code>dept</code> (because the sub-query is
-     * validated before the outer query) and the translator would call
-     * <code>getFieldAccess("DEPTNO")</code> on that lookup.
-     *
-     * @param name Name of field
-     * @return Expression which retrieves the given field of this lookup's
-     * correlating variable
-     */
-    RexFieldAccess getFieldAccess(String name);
   }
 }
 

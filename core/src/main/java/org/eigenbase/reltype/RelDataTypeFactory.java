@@ -52,9 +52,7 @@ public interface RelDataTypeFactory {
    * Creates a cartesian product type.
    *
    * @return canonical join type descriptor
-   * @pre types array of types to be joined
-   * @pre types != null
-   * @pre types.length >= 1
+   * @param types array of types to be joined
    */
   RelDataType createJoinType(RelDataType... types);
 
@@ -64,8 +62,6 @@ public interface RelDataTypeFactory {
    * @param types      types of the fields
    * @param fieldNames names of the fields
    * @return canonical struct type descriptor
-   * @pre types.length == fieldNames.length
-   * @post return != null
    *
    * @deprecated Use {@link #createStructType(List, List)} or
    *   {@link #builder()}; will be removed after 0.6.
@@ -82,8 +78,6 @@ public interface RelDataTypeFactory {
    * @param typeList      types of the fields
    * @param fieldNameList names of the fields
    * @return canonical struct type descriptor
-   * @pre typeList.size() == fieldNameList.size()
-   * @post return != null
    */
   RelDataType createStructType(
       List<RelDataType> typeList,
@@ -168,7 +162,7 @@ public interface RelDataTypeFactory {
       boolean nullable);
 
   /**
-   * Creates a Type which is the same as another type but with possibily
+   * Creates a Type which is the same as another type but with possibly
    * different charset or collation. For types without a concept of charset or
    * collation this function must throw an error.
    *
@@ -177,7 +171,6 @@ public interface RelDataTypeFactory {
    * @param collation collation to assign
    * @return output type, same as input type except with specified charset and
    * collation
-   * @pre SqlTypeUtil.inCharFamily(type)
    */
   RelDataType createTypeWithCharsetAndCollation(
       RelDataType type,
@@ -193,38 +186,33 @@ public interface RelDataTypeFactory {
    * Returns the most general of a set of types (that is, one type to which
    * they can all be cast), or null if conversion is not possible. The result
    * may be a new type which is less restrictive than any of the input types,
-   * e.g. leastRestrictive(INT, NUMERIC(3,2)) could be NUMERIC(12,2).
+   * e.g. <code>leastRestrictive(INT, NUMERIC(3, 2))</code> could be
+   * {@code NUMERIC(12, 2)}.
    *
-   * @param types input types to be combined using union
+   * @param types input types to be combined using union (not null, not empty)
    * @return canonical union type descriptor
-   * @pre types != null
-   * @pre types.length >= 1
    */
   RelDataType leastRestrictive(List<RelDataType> types);
 
   /**
    * Creates a SQL type with no precision or scale.
    *
-   * @param typeName Name of the type, for example {@link
-   *                 SqlTypeName#BOOLEAN}.
+   * @param typeName Name of the type, for example {@link SqlTypeName#BOOLEAN},
+   *   never null
    * @return canonical type descriptor
-   * @pre typeName != null
-   * @post return != null
    */
   RelDataType createSqlType(SqlTypeName typeName);
 
   /**
    * Creates a SQL type with length (precision) but no scale.
    *
-   * @param typeName  Name of the type, for example {@link
-   *                  org.eigenbase.sql.type.SqlTypeName#VARCHAR}.
-   * @param precision maximum length of the value (non-numeric types) or the
-   *                  precision of the value (numeric/datetime types) requires
-   *                  both operands to have exact numeric types.
+   * @param typeName  Name of the type, for example {@link SqlTypeName#VARCHAR}.
+   *                  Never null.
+   * @param precision Maximum length of the value (non-numeric types) or the
+   *                  precision of the value (numeric/datetime types).
+   *                  Must be non-negative or
+   *                  {@link RelDataType#PRECISION_NOT_SPECIFIED}.
    * @return canonical type descriptor
-   * @pre typeName != null
-   * @pre length >= 0
-   * @post return != null
    */
   RelDataType createSqlType(
       SqlTypeName typeName,
@@ -233,17 +221,16 @@ public interface RelDataTypeFactory {
   /**
    * Creates a SQL type with precision and scale.
    *
-   * @param typeName  Name of the type, for example {@link
-   *                  org.eigenbase.sql.type.SqlTypeName#DECIMAL}.
-   * @param precision precision of the value
+   * @param typeName  Name of the type, for example {@link SqlTypeName#DECIMAL}.
+   *                  Never null.
+   * @param precision Precision of the value.
+   *                  Must be non-negative or
+   *                  {@link RelDataType#PRECISION_NOT_SPECIFIED}.
    * @param scale     scale of the values, i.e. the number of decimal places to
    *                  shift the value. For example, a NUMBER(10,3) value of
    *                  "123.45" is represented "123450" (that is, multiplied by
    *                  10^3). A negative scale <em>is</em> valid.
    * @return canonical type descriptor
-   * @pre typeName != null
-   * @pre length >= 0
-   * @post return != null
    */
   RelDataType createSqlType(
       SqlTypeName typeName,
@@ -275,9 +262,10 @@ public interface RelDataTypeFactory {
       RelDataType type2);
 
   /**
-   * @return whether a decimal multiplication should be implemented by casting
+   * Returns whether a decimal multiplication should be implemented by casting
    * arguments to double values.
-   * @pre createDecimalProduct(type1, type2) != null
+   *
+   * <p>Pre-condition: <code>createDecimalProduct(type1, type2) != null</code>
    */
   boolean useDoubleMultiplication(
       RelDataType type1,

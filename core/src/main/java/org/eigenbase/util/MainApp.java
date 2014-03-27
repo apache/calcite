@@ -20,7 +20,7 @@ package org.eigenbase.util;
 /**
  * Abstract base class for a Java application invoked from the command-line.
  *
- * <p>Example usage:
+ * <p>Example usage:</p>
  *
  * <blockquote>
  * <pre>public class MyClass extends MainApp {
@@ -32,7 +32,6 @@ package org.eigenbase.util;
  *     }
  * }</pre>
  * </blockquote>
- * </p>
  */
 public abstract class MainApp {
   //~ Instance fields --------------------------------------------------------

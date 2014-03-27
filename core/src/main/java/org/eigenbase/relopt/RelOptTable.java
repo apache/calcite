@@ -70,7 +70,6 @@ public interface RelOptTable {
    * Returns a description of the physical ordering (or orderings) of the rows
    * returned from this table.
    *
-   * @post return != null
    * @see RelNode#getCollationList()
    */
   List<RelCollation> getCollationList();

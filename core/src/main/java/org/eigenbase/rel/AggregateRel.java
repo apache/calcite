@@ -41,9 +41,8 @@ public final class AggregateRel extends AggregateRelBase {
    *
    * @param cluster  Cluster that this relational expression belongs to
    * @param child    input relational expression
-   * @param groupSet Bitset of grouping fields
-   * @param aggCalls Array of aggregates to compute
-   * @pre aggCalls != null
+   * @param groupSet Bit set of grouping fields
+   * @param aggCalls Array of aggregates to compute, not null
    */
   public AggregateRel(
       RelOptCluster cluster,

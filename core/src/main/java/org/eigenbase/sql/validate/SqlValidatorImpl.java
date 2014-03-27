@@ -2701,7 +2701,6 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
    * @param select        Select statement
    * @param targetRowType Desired row type, must not be null, may be the data
    *                      type 'unknown'.
-   * @pre targetRowType != null
    */
   protected void validateSelect(
       SqlSelect select,

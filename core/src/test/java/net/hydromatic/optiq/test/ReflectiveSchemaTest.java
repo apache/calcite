@@ -464,7 +464,7 @@ public class ReflectiveSchemaTest {
   }
 
   /** If a method returns a
-   * {@link net.hydromatic.optiq.impl.ViewTable.ViewTableFunction}, then it
+   * {@link ViewTable}.{@code ViewTableFunction}, then it
    * should be expanded. */
   @Ignore
   @Test public void testTableFunctionIsView() throws Exception {

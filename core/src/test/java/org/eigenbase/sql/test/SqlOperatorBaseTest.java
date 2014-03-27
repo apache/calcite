@@ -41,12 +41,12 @@ import static org.junit.Assert.*;
 /**
  * Contains unit tests for all operators. Each of the methods is named after an
  * operator.
- * p/>
+ *
  * <p>The class is abstract. It contains a test for every operator, but does not
- *provide a mechanism to execute the tests: parse, validate, and execute
+ * provide a mechanism to execute the tests: parse, validate, and execute
  * expressions on the operators. This is left to a {@link SqlTester} object
- *which the derived class must provde.
-*
+ * which the derived class must provide.</p>
+ *
  * <p>Different implementations of {@link SqlTester} are possible, such as:</p>
  *
  * <ul>

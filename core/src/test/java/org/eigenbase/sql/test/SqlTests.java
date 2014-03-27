@@ -212,9 +212,9 @@ public abstract class SqlTests {
    * reference lists, taking order into account.
    *
    * @param resultSet Result set
-   * @param refLists  vararg of List<String>. The first list is compared to the
-   *                  first column, the second list to the second column and so
-   *                  on
+   * @param refLists  vararg of List&lt;String&gt;. The first list is compared
+   *                  to the first column, the second list to the second column
+   *                  and so on
    */
   public static void compareResultLists(
       ResultSet resultSet,

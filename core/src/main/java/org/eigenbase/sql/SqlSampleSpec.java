@@ -20,14 +20,14 @@ package org.eigenbase.sql;
 /**
  * Specification of a SQL sample.
  *
- * <p>For example, the query
+ * <p>For example, the query</p>
  *
  * <blockquote>
  * <pre>SELECT *
  * FROM emp TABLESAMPLE SUBSTITUTE('medium')</pre>
  * </blockquote>
  *
- * declares a sample which is created using {@link #createNamed}.</p>
+ * <p>declares a sample which is created using {@link #createNamed}.</p>
  *
  * <p>A sample is not a {@link SqlNode}. To include it in a parse tree, wrap it
  * as a literal, viz: {@link SqlLiteral#createSample(SqlSampleSpec,

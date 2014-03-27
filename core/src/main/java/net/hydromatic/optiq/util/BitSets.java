@@ -54,10 +54,10 @@ public final class BitSets {
    * For instance:
    *
    * <blockquote><code>
-   * BitSet bitSet;<br/>
-   * for (int i : Util.toIter(bitSet)) {<br/>
-   * &nbsp;&nbsp;print(i);<br/>
-   * }<br/></code></blockquote>
+   * BitSet bitSet;<br>
+   * for (int i : Util.toIter(bitSet)) {<br>
+   * &nbsp;&nbsp;print(i);<br>
+   * }</code></blockquote>
    *
    * @param bitSet Bit set
    * @return Iterable

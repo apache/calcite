@@ -67,13 +67,14 @@ public abstract class TestUtil {
    * Converts a string (which may contain quotes and newlines) into a java
    * literal.
    *
-   * <p>For example, <code>
-   * <pre>string with "quotes" split
-   * across lines</pre>
-   * </code> becomes <code>
-   * <pre>"string with \"quotes\" split" + NL +
-   *  "across lines"</pre>
-   * </code>
+   * <p>For example,
+   * <pre><code>string with "quotes" split
+   * across lines</code></pre>
+   *
+   * becomes
+   *
+   * <pre><code>"string with \"quotes\" split" + NL +
+   *  "across lines"</code></pre>
    */
   public static String quoteForJava(String s) {
     s = Util.replace(s, "\\", "\\\\");
@@ -92,14 +93,16 @@ public abstract class TestUtil {
    * Converts a string (which may contain quotes and newlines) into a java
    * literal.
    *
-   * <p>For example, <code>
-   * <pre>string with "quotes" split
-   * across lines</pre>
-   * </code> becomes <code>
-   * <pre>TestUtil.fold(
+   * <p>For example,</p>
+   *
+   * <pre><code>string with "quotes" split
+   * across lines</code></pre>
+   *
+   * <p>becomes</p>
+   *
+   * <pre><code>TestUtil.fold(
    *  "string with \"quotes\" split\n",
-   *  + "across lines")</pre>
-   * </code>
+   *  + "across lines")</code></pre>
    */
   public static String toJavaString(String s) {
     // Convert [string with "quotes" split

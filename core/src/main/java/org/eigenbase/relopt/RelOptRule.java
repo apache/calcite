@@ -160,20 +160,20 @@ public abstract class RelOptRule {
    *
    * <p>This is useful when matching a relational expression which
    * can have a variable number of children. For example, the rule to
-   * eliminate empty children of a Union would have operands
+   * eliminate empty children of a Union would have operands</p>
    *
    * <blockquote>Operand(UnionRel, true, Operand(EmptyRel))</blockquote>
    *
-   * and given the relational expressions
+   * <p>and given the relational expressions</p>
    *
    * <blockquote>UnionRel(FilterRel, EmptyRel, ProjectRel)</blockquote>
    *
-   * would fire the rule with arguments
+   * <p>would fire the rule with arguments</p>
    *
    * <blockquote>{Union, Empty}</blockquote>
    *
-   * It is up to the rule to deduce the other children, or indeed the position
-   * of the matched child.</p>
+   * <p>It is up to the rule to deduce the other children, or indeed the
+   * position of the matched child.</p>
    *
    * @param first First child operand
    * @param rest  Remaining child operands (may be empty)

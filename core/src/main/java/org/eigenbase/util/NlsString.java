@@ -52,13 +52,12 @@ public class NlsString implements Comparable<NlsString> {
    *     is available in this instance of the Java virtual machine
    * @throws RuntimeException If the given value cannot be represented in the
    *     given charset
-   * @pre theString != null
    */
   public NlsString(
       String value,
       String charsetName,
       SqlCollation collation) {
-    Util.pre(value != null, "theString != null");
+    assert value != null;
     if (null != charsetName) {
       charsetName = charsetName.toUpperCase();
       this.charsetName = charsetName;

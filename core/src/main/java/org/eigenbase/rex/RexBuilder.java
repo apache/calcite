@@ -864,10 +864,9 @@ public class RexBuilder {
 
   /**
    * Creates a character string literal.
-   *
-   * @pre s != null
    */
   public RexLiteral makeLiteral(String s) {
+    assert s != null;
     return makePreciseStringLiteral(s);
   }
 
@@ -939,35 +938,29 @@ public class RexBuilder {
    *
    * <p>If the string's charset and collation are not set, uses the system
    * defaults.
-   *
-   * @pre str != null
    */
   public RexLiteral makeCharLiteral(NlsString str) {
-    Util.pre(str != null, "str != null");
+    assert str != null;
     RelDataType type = SqlUtil.createNlsStringType(typeFactory, str);
     return makeLiteral(str, type, SqlTypeName.CHAR);
   }
 
   /**
    * Creates a Date literal.
-   *
-   * @pre date != null
    */
   public RexLiteral makeDateLiteral(Calendar date) {
-    Util.pre(date != null, "date != null");
+    assert date != null;
     return makeLiteral(
         date, typeFactory.createSqlType(SqlTypeName.DATE), SqlTypeName.DATE);
   }
 
   /**
    * Creates a Time literal.
-   *
-   * @pre time != null
    */
   public RexLiteral makeTimeLiteral(
       Calendar time,
       int precision) {
-    Util.pre(time != null, "time != null");
+    assert time != null;
     return makeLiteral(
         time,
         typeFactory.createSqlType(SqlTypeName.TIME, precision),
@@ -976,13 +969,11 @@ public class RexBuilder {
 
   /**
    * Creates a Timestamp literal.
-   *
-   * @pre timestamp != null
    */
   public RexLiteral makeTimestampLiteral(
       Calendar timestamp,
       int precision) {
-    Util.pre(timestamp != null, "timestamp != null");
+    assert timestamp != null;
     return makeLiteral(
         timestamp,
         typeFactory.createSqlType(SqlTypeName.TIMESTAMP, precision),

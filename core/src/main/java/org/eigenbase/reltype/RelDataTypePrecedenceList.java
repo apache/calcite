@@ -37,11 +37,12 @@ public interface RelDataTypePrecedenceList {
   /**
    * Compares the precedence of two types.
    *
+   * <p>The list must contain both types.</p>
+   *
    * @param type1 first type to compare
    * @param type2 second type to compare
    * @return positive if type1 has higher precedence; negative if type2 has
    * higher precedence; 0 if types have equal precedence
-   * @pre containsType(type1) && containsType(type2)
    */
   int compareTypePrecedence(RelDataType type1, RelDataType type2);
 }

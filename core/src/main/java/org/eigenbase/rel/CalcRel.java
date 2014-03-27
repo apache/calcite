@@ -35,7 +35,7 @@ import org.eigenbase.util.mapping.*;
  * of optimization, by merging consecutive {@link ProjectRel} and {@link
  * FilterRel} nodes together.
  *
- * <p>The following rules relate to <code>CalcRel</code>:
+ * <p>The following rules relate to <code>CalcRel</code>:</p>
  *
  * <ul>
  * <li>{@link FilterToCalcRule} creates this from a {@link FilterRel}</li>
@@ -45,7 +45,6 @@ import org.eigenbase.util.mapping.*;
  * ProjectRel}</li>
  * <li>{@link MergeCalcRule} merges two CalcRels</li>
  * </ul>
- * </p>
  */
 public final class CalcRel extends CalcRelBase {
   //~ Static fields/initializers ---------------------------------------------
@@ -256,7 +255,7 @@ public final class CalcRel extends CalcRelBase {
    * Creates a relational expression which permutes the output fields of a
    * relational expression according to a permutation.
    *
-   * <p>Optimizations:
+   * <p>Optimizations:</p>
    *
    * <ul>
    * <li>If the relational expression is a {@link CalcRel} or {@link
@@ -265,7 +264,6 @@ public final class CalcRel extends CalcRelBase {
    * <li>If the permutation is the identity, returns the original relational
    * expression.</li>
    * </ul>
-   * </p>
    *
    * <p>If a permutation is combined with its inverse, these optimizations
    * would combine to remove them both.

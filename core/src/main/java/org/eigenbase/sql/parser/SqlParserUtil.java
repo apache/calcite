@@ -525,10 +525,9 @@ public final class SqlParserUtil {
   /**
    * Converts a list of {expression, operator, expression, ...} into a tree,
    * taking operator precedence and associativity into account.
-   *
-   * @pre list.size() % 2 == 1
    */
   public static SqlNode toTree(List<Object> list) {
+    assert list.size() % 2 == 1;
     if (LOGGER.isLoggable(Level.FINER)) {
       LOGGER.finer("Attempting to reduce " + list);
     }

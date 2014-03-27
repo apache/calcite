@@ -163,10 +163,8 @@ public abstract class SqlOperatorBinding {
   /**
    * Wraps a validation error with context appropriate to this operator call.
    *
-   * @param e Validation error
+   * @param e Validation error, not null
    * @return Error wrapped, if possible, with positional information
-   * @pre node != null
-   * @post return != null
    */
   public abstract EigenbaseException newError(
       Resources.ExInst<SqlValidatorException> e);

@@ -17,9 +17,7 @@
 */
 package net.hydromatic.optiq.impl.jdbc;
 
-import net.hydromatic.linq4j.Enumerator;
-import net.hydromatic.linq4j.QueryProviderImpl;
-import net.hydromatic.linq4j.Queryable;
+import net.hydromatic.linq4j.*;
 
 /**
  * Implementation of {@link QueryProvider} that talks to JDBC databases.

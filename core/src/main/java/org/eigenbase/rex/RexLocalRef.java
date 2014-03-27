@@ -46,13 +46,13 @@ public class RexLocalRef extends RexSlot {
   /**
    * Creates a local variable.
    *
-   * @param index Index of the field in the underlying rowtype
+   * @param index Index of the field in the underlying row type
    * @param type  Type of the column
-   * @pre type != null
-   * @pre index >= 0
    */
   public RexLocalRef(int index, RelDataType type) {
     super(createName(index), index, type);
+    assert type != null;
+    assert index >= 0;
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -63,11 +63,10 @@ public class RexLocalRef extends RexSlot {
   }
 
   public boolean equals(Object obj) {
-    if (obj instanceof RexLocalRef) {
-      RexLocalRef that = (RexLocalRef) obj;
-      return (this.type == that.type) && (this.index == that.index);
-    }
-    return false;
+    return this == obj
+        || obj instanceof RexLocalRef
+        && this.type == ((RexLocalRef) obj).type
+        && this.index == ((RexLocalRef) obj).index;
   }
 
   public int hashCode() {

@@ -27,10 +27,14 @@ import java.util.*;
  * the {@link MappingType} of a particular mapping, some of the operations may
  * not be applicable. If you call the method, you will receive a runtime error.
  * For instance:
- * <li>If a target has more than one source, then the method {@link
- * #getSource(int)} will throw {@link Mappings.TooManyElementsException}.
+ *
+ * <ul>
+ * <li>If a target has more than one source, then the method
+ *     {@link #getSource(int)} will throw
+ *     {@link Mappings.TooManyElementsException}.
  * <li>If a source has no targets, then the method {@link #getTarget} will throw
- * {@link Mappings.NoElementException}.
+ *     {@link Mappings.NoElementException}.
+ * </ul>
  */
 public interface Mapping
     extends Mappings.FunctionMapping,

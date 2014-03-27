@@ -22,23 +22,10 @@ package org.eigenbase.relopt;
  *
  * <p>A connection contains a {@link RelOptSchema}, via which the query planner
  * can access {@link RelOptTable} objects.</p>
- *
- * <p>If used in saffron, and if saffron is being used as a Java preprocessor,
- * then every class which implements <code>RelOptConnection</code> must
- * implement the method
- *
- * <blockquote>
- * <pre>public static RelOptSchema getRelOptSchema()</pre>
- * </blockquote>
- * </p>
  */
 public interface RelOptConnection {
-  //~ Methods ----------------------------------------------------------------
-
   /**
-   * Returns the schema underlying this connection. Non-abstract classes
-   * implementing this interface must also provide <code>public static Schema
-   * getRelOptSchemaStatic()</code>.
+   * Returns the schema underlying this connection.
    */
   RelOptSchema getRelOptSchema();
 }

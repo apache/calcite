@@ -288,7 +288,7 @@ public class Util {
 
   /**
    * Computes <code>nlogn(n)</code> using the natural logarithm (or <code>
-   * n</code> if <code>n<{@link Math#E}</code>, so the result is never
+   * n</code> if <code>n &lt; {@link Math#E}</code>, so the result is never
    * negative.
    */
   public static double nLogN(double d) {
@@ -1709,9 +1709,9 @@ public class Util {
    * which makes it ideal for use with the 'foreach' construct. For example,
    *
    * <blockquote><code>List&lt;Number&gt; numbers = Arrays.asList(1, 2, 3.14,
-   * 4, null, 6E23);<br/>
-   * for (int myInt : filter(numbers, Integer.class)) {<br/>
-   * &nbsp;&nbsp;&nbsp;&nbsp;print(i);<br/>
+   * 4, null, 6E23);<br>
+   * for (int myInt : filter(numbers, Integer.class)) {<br>
+   * &nbsp;&nbsp;&nbsp;&nbsp;print(i);<br>
    * }</code></blockquote>
    *
    * will print 1, 2, 4.
@@ -1792,10 +1792,10 @@ public class Util {
    *
    * <blockquote>
    * <code>
-   * Properties properties;<br/>
+   * Properties properties;<br>
    * for (Map.Entry&lt;String, String&gt; entry =
-   * Util.toMap(properties).entrySet()) {<br/>
-   * println("key=" + entry.getKey() + ", value=" + entry.getValue());<br/>
+   * Util.toMap(properties).entrySet()) {<br>
+   * println("key=" + entry.getKey() + ", value=" + entry.getValue());<br>
    * }
    * </code>
    * </blockquote>
@@ -1811,9 +1811,9 @@ public class Util {
    * <p>Use this method in initializers. Type parameters are inferred from
    * context, and the contents are initialized declaratively. For example,
    *
-   * <blockquote><code>Map&lt;String, Integer&gt; population =<br/>
-   * &nbsp;&nbsp;Olap4jUtil.mapOf(<br/>
-   * &nbsp;&nbsp;&nbsp;&nbsp;"UK", 65000000,<br/>
+   * <blockquote><code>Map&lt;String, Integer&gt; population =<br>
+   * &nbsp;&nbsp;Olap4jUtil.mapOf(<br>
+   * &nbsp;&nbsp;&nbsp;&nbsp;"UK", 65000000,<br>
    * &nbsp;&nbsp;&nbsp;&nbsp;"USA", 300000000);</code></blockquote>
    *
    * @param key       First key

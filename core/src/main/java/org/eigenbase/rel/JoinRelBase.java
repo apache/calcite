@@ -287,9 +287,6 @@ public abstract class JoinRelBase extends AbstractRelNode {
    *                        output row type; typically empty but must not be
    *                        null
    * @return type of row which results when two relations are joined
-   * @pre fieldNameList == null
-   * || fieldNameList.size() == systemFieldList.size()
-   * + leftType.getFieldCount() + rightType.getFieldCount()
    */
   public static RelDataType createJoinType(
       RelDataTypeFactory typeFactory,

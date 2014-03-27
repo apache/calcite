@@ -793,8 +793,6 @@ public class RexProgramBuilder {
    * Adds a project item for every input field.
    *
    * <p>You cannot call this method if there are other project items.
-   *
-   * @pre projectRefList.isEmpty()
    */
   public void addIdentity() {
     assert projectRefList.isEmpty();

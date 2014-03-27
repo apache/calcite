@@ -35,6 +35,7 @@ import net.hydromatic.optiq.runtime.Spaces;
  * <p>There are several options to control the format.
  *
  * <table>
+ * <caption>Formatting options</caption>
  * <tr>
  * <th>Option</th>
  * <th>Description</th>

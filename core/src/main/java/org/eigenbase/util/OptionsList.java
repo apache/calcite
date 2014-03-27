@@ -25,6 +25,7 @@ import java.util.*;
  * <p>For example, given the options</p>
  *
  * <table>
+ * <caption>Options</caption>
  * <tr>
  * <th>Short name</th>
  * <th>Long name</th>
@@ -55,12 +56,12 @@ import java.util.*;
  * </tr>
  * </table>
  *
- * <p>and the command line
+ * <p>and the command line</p>
  *
  * <pre>-v count=5 Foo.txt</pre>
  *
- * the parser will set <tt>verbose = true</tt>, <tt>count = 5</tt>, and <tt>file
- * = Foo.txt</tt>.</p>
+ * <p>the parser will set <tt>verbose = true</tt>, <tt>count = 5</tt>, and
+ * <tt>file = Foo.txt</tt>.</p>
  *
  * <p>Options can generally be specified using <dfn>flag syntax</dfn> (for
  * example <tt>-v</tt> or <tt>-count 5</tt>) or <dfn>property synax</dfn> (for
@@ -125,10 +126,9 @@ public class OptionsList {
    * maxCount = 1. To create a set of mutually inclusive options, specify
    * minCount = 1, maxCount = -1.</p>
    *
-   * @param options  List of mutually exclusive options
+   * @param options  List of mutually exclusive options, all optional
    * @param minCount Minimum number of these options which must be specified.
    * @param maxCount Maximum number of these options which must be specified.
-   * @pre None of the options must be mandatory.
    */
   public void constrain(
       Option[] options,

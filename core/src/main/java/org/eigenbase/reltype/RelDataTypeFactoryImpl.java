@@ -108,6 +108,8 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
 
   // implement RelDataTypeFactory
   public RelDataType createJoinType(RelDataType... types) {
+    assert types != null;
+    assert types.length >= 1;
     final List<RelDataType> flattenedTypes =
         getTypeArray(ImmutableList.copyOf(types));
     return canonize(
@@ -127,6 +129,7 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
   public RelDataType createStructType(
       final List<RelDataType> typeList,
       final List<String> fieldNameList) {
+    assert typeList.size() == fieldNameList.size();
     return canonize(fieldNameList, typeList);
   }
 
@@ -486,18 +489,22 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
   }
 
   /**
-   * implement RelDataTypeFactory Let p1, s1 be the precision and scale of the
-   * first operand Let p2, s2 be the precision and scale of the second operand
-   * Let p, s be the precision and scale of the result, Let d be the number of
-   * whole digits in the result Then the result type is a decimal with:
+   * Rules:
    *
    * <ul>
-   * <li>d = p1 - s1 + s2</li>
-   * <li>s <= max(6, s1 + p2 + 1)</li>
-   * <li>p = d + s</li>
+   * <li>Let p1, s1 be the precision and scale of the first operand
+   * <li>Let p2, s2 be the precision and scale of the second operand
+   * <li>Let p, s be the precision and scale of the result
+   * <li>Let d be the number of whole digits in the result
+   * <li>Then the result type is a decimal with:
+   *   <ul>
+   *   <li>d = p1 - s1 + s2</li>
+   *   <li>s &lt; max(6, s1 + p2 + 1)</li>
+   *   <li>p = d + s</li>
+   *   </ul>
+   * </li>
+   * <li>p and s are capped at their maximum values</li>
    * </ul>
-   *
-   * p and s are capped at their maximum values
    *
    * @sql.2003 Part 2 Section 6.26
    */

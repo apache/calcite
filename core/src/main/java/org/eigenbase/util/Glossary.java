@@ -41,10 +41,11 @@ public interface Glossary {
    * Craig's refinement of the type of problems they apply to and a refinement
    * of the original three pattern categories.</p>
    *
-   * <table cellSpacing="0" cols="6" cellPadding="3" border="1">
-   * <caption align="bottom">
-   * <a href="http://www.onr.com/user/loeffler/java/references.html#gof">
-   * <b>Gang of Four Patterns</b></a></caption>
+   * <table cellSpacing="0" cellPadding="3" border="1">
+   * <caption>
+   *   <a href="http://www.onr.com/user/loeffler/java/references.html#gof">
+   *   <b>Gang of Four Patterns</b></a>
+   * </caption>
    * <tr>
    * <!-- Headers for each column -->
    *
@@ -118,7 +119,7 @@ public interface Glossary {
    * <td bgColor="lime"><a href="#FacadePattern">Facade</a></td>
    * <td bgColor="silver">Structural</td>
    * <td>Access Control<br>
-   * &*nbsp;
+   * &nbsp;
    * <hr>
    * <p>Structural Decomposition of Objects or Subsystems</td>
    * <td>Wrap Many</td>
@@ -142,7 +143,7 @@ public interface Glossary {
    * <td bgColor="lime"><a href="#IteratorPattern">Iterator</a></td>
    * <td bgColor="maroon"><font color="white">Behavioral</font></td>
    * <td>Traversal Algorithm<br>
-   * &*nbsp;
+   * &nbsp;
    * <hr>
    * <p>Access Control</td>
    * <td>Low Coupling</td>
@@ -155,7 +156,7 @@ public interface Glossary {
    * <td bgColor="lime"><a href="#ObserverPattern">Observer</a></td>
    * <td bgColor="maroon"><font color="white">Behavioral</font></td>
    * <td>Event Response<br>
-   * &*nbsp;
+   * &nbsp;
    * <hr>
    * <p>Organization or Communication of Work</td>
    * <td>Low Coupling</td>
@@ -245,7 +246,7 @@ public interface Glossary {
    * Responsibility</a></td>
    * <td bgColor="maroon"><font color="white">Behavioral</font></td>
    * <td>Single Algorithm<br>
-   * &*nbsp;
+   * &nbsp;
    * <hr>
    * <p>Organization or Communication of Work</td>
    * <td>Low Coupling</td>
@@ -267,7 +268,7 @@ public interface Glossary {
    * <td bgColor="yellow"><a href="#MediatorPattern">Mediator</a></td>
    * <td bgColor="maroon"><font color="white">Behavioral</font></td>
    * <td>Interaction between Objects<br>
-   * &*nbsp;
+   * &nbsp;
    * <hr>
    * <p>Organization or Communication of Work</td>
    * <td>Low Coupling</td>

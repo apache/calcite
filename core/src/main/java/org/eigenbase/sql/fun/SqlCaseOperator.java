@@ -35,59 +35,49 @@ import static org.eigenbase.util.Static.RESOURCE;
  * COALESCE</code> expression. All of these forms are normalized at parse time
  * to a to a simple <code>CASE</code> statement like this:
  *
- * <blockquote><code>
- * <pre>CASE
+ * <blockquote><pre><code>CASE
  *   WHEN &lt;when expression_0&gt; THEN &lt;then expression_0&gt;
  *   WHEN &lt;when expression_1&gt; THEN &lt;then expression_1&gt;
  *   ...
- *   WHEN &lt;when expression_N&gt; THEN &ltthen expression_N&gt;
+ *   WHEN &lt;when expression_N&gt; THEN &lt;then expression_N&gt;
  *   ELSE &lt;else expression&gt;
- * END</pre>
- * </code></blockquote>
+ * END</code></pre></blockquote>
  *
- * The switched form of the <code>CASE</code> statement is normalized to the
- * simple form by inserting calls to the <code>=</code> operator. For example,
- * <blockquote><code>
- * <pre>CASE x + y
+ * <p>The switched form of the <code>CASE</code> statement is normalized to the
+ * simple form by inserting calls to the <code>=</code> operator. For
+ * example,</p>
+ *
+ * <blockquote><pre><code>CASE x + y
  *   WHEN 1 THEN 'fee'
  *   WHEN 2 THEN 'fie'
  *   ELSE 'foe'
- * END</pre>
- * </code></blockquote>
+ * END</code></pre></blockquote>
  *
- * becomes
+ * <p>becomes</p>
  *
- * <blockquote><code>
- * <pre>CASE
+ * <blockquote><pre><code>CASE
  * WHEN Equals(x + y, 1) THEN 'fee'
  * WHEN Equals(x + y, 2) THEN 'fie'
  * ELSE 'foe'
- * END</pre>
- * </code></blockquote>
+ * END</code></pre></blockquote>
  *
  * <p>REVIEW jhyde 2004/3/19 Does <code>Equals</code> handle NULL semantics
  * correctly?</p>
  *
- * <p><code>COALESCE(x, y, z)</code> becomes
+ * <p><code>COALESCE(x, y, z)</code> becomes</p>
  *
- * <blockquote><code>
- * <pre>CASE
+ * <blockquote><pre><code>CASE
  * WHEN x IS NOT NULL THEN x
  * WHEN y IS NOT NULL THEN y
  * ELSE z
- * END</pre>
- * </code></blockquote>
- * </p>
+ * END</code></pre></blockquote>
  *
- * <p><code>NULLIF(x, -1)</code> becomes
+ * <p><code>NULLIF(x, -1)</code> becomes</p>
  *
- * <blockquote><code>
- * <pre>CASE
+ * <blockquote><pre><code>CASE
  * WHEN x = -1 THEN NULL
  * ELSE x
- * END</pre>
- * </code></blockquote>
- * </p>
+ * END</code></pre></blockquote>
  *
  * <p>Note that some of these normalizations cause expressions to be duplicated.
  * This may make it more difficult to write optimizer rules (because the rules
@@ -105,7 +95,7 @@ import static org.eigenbase.util.Static.RESOURCE;
  * and switched forms of CASE, then translate to simple CASE when building the
  * {@link org.eigenbase.rex.RexNode} tree.</p>
  *
- * <p>The arguments are physically represented as follows:
+ * <p>The arguments are physically represented as follows:</p>
  *
  * <ul>
  * <li>The <i>when</i> expressions are stored in a {@link SqlNodeList}
@@ -114,7 +104,6 @@ import static org.eigenbase.util.Static.RESOURCE;
  * thenList.</li>
  * <li>The <i>else</i> expression is stored as a regular {@link SqlNode}.</li>
  * </ul>
- * </p>
  */
 public class SqlCaseOperator extends SqlOperator {
   public static final SqlCaseOperator INSTANCE = new SqlCaseOperator();

@@ -108,8 +108,6 @@ public abstract class SqlOperator {
 
   /**
    * Creates an operator.
-   *
-   * @pre kind != null
    */
   protected SqlOperator(
       String name,
@@ -119,7 +117,7 @@ public abstract class SqlOperator {
       SqlReturnTypeInference returnTypeInference,
       SqlOperandTypeInference operandTypeInference,
       SqlOperandTypeChecker operandTypeChecker) {
-    Util.pre(kind != null, "kind != null");
+    assert kind != null;
     this.name = name;
     this.kind = kind;
     this.leftPrec = leftPrecedence;
@@ -211,9 +209,7 @@ public abstract class SqlOperator {
   }
 
   /**
-   * Returns the syntactic type of this operator.
-   *
-   * @post return != null
+   * Returns the syntactic type of this operator, never null.
    */
   public abstract SqlSyntax getSyntax();
 

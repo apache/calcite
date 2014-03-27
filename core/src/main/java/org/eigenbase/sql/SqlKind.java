@@ -46,7 +46,7 @@ import java.util.Set;
  * <pre>exp.{@link org.eigenbase.sql.SqlNode#isA isA}({@link #COMPARISON SqlKind.Comparison})</pre>
  * </blockquote>
  *
- * To quickly choose between a number of options, use a switch statement:
+ * <p>To quickly choose between a number of options, use a switch statement:</p>
  *
  * <blockquote>
  * <pre>switch (exp.getKind()) {
@@ -58,7 +58,6 @@ import java.util.Set;
  *     throw {@link org.eigenbase.util.Util#unexpected Util.unexpected}(exp.getKind());
  * }</pre>
  * </blockquote>
- * </p>
  */
 public enum SqlKind {
   //~ Static fields/initializers ---------------------------------------------

@@ -26,13 +26,13 @@ import org.eigenbase.sql.*;
  * Represents the name-resolution context for expressions in an ORDER BY clause.
  *
  * <p>In some dialects of SQL, the ORDER BY clause can reference column aliases
- * in the SELECT clause. For example, the query
+ * in the SELECT clause. For example, the query</p>
  *
- * <blockquote><code>SELECT empno AS x<br/>
- * FROM emp<br/>
+ * <blockquote><code>SELECT empno AS x<br>
+ * FROM emp<br>
  * ORDER BY x</code></blockquote>
  *
- * is valid.
+ * <p>is valid.</p>
  */
 public class OrderByScope extends DelegatingScope {
   //~ Instance fields --------------------------------------------------------

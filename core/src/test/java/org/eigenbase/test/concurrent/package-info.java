@@ -114,7 +114,7 @@
  * <h4>Basic Commands (allowed in any section):</h4>
  *
  * <p><pre>
- * &lt;SQL statement&gt;&semi;
+ * &lt;SQL statement&gt;:
  *     An SQL statement terminated by a semicolon. The statement can span lines.
  * </pre>
  * <p><pre>

@@ -47,17 +47,17 @@ import org.eigenbase.util.Pair;
  * has been applied on following join trees.
  *
  * <pre>
- * A JOIN B -> MJ(A, B)
- * A JOIN B JOIN C -> MJ(A, B, C)
- * A LEFTOUTER B -> MJ(A, B), left outer join on input#1
- * A RIGHTOUTER B -> MJ(A, B), right outer join on input#0
- * A FULLOUTER B -> MJ[full](A, B)
- * A LEFTOUTER (B JOIN C) -> MJ(A, MJ(B, C))), left outer join on input#1 in
+ * A JOIN B &rarr; MJ(A, B)
+ * A JOIN B JOIN C &rarr; MJ(A, B, C)
+ * A LEFTOUTER B &rarr; MJ(A, B), left outer join on input#1
+ * A RIGHTOUTER B &rarr; MJ(A, B), right outer join on input#0
+ * A FULLOUTER B &rarr; MJ[full](A, B)
+ * A LEFTOUTER (B JOIN C) &rarr; MJ(A, MJ(B, C))), left outer join on input#1 in
  * the outermost MultiJoinRel
- * (A JOIN B) LEFTOUTER C -> MJ(A, B, C), left outer join on input#2
- * A LEFTOUTER (B FULLOUTER C) -> MJ(A, MJ[full](B, C)), left outer join on
+ * (A JOIN B) LEFTOUTER C &rarr; MJ(A, B, C), left outer join on input#2
+ * A LEFTOUTER (B FULLOUTER C) &rarr; MJ(A, MJ[full](B, C)), left outer join on
  *      input#1 in the outermost MultiJoinRel
- * (A LEFTOUTER B) FULLOUTER (C RIGHTOUTER D) ->
+ * (A LEFTOUTER B) FULLOUTER (C RIGHTOUTER D) &rarr;
  *      MJ[full](MJ(A, B), MJ(C, D)), left outer join on input #1 in the first
  *      inner MultiJoinRel and right outer join on input#0 in the second inner
  *      MultiJoinRel

@@ -290,9 +290,7 @@ public interface RelNode extends RelOptNode, Cloneable {
 
   /**
    * Returns a description of the physical ordering (or orderings) of this
-   * relational expression.
-   *
-   * @post return != null
+   * relational expression. Never null.
    */
   List<RelCollation> getCollationList();
 

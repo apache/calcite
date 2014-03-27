@@ -233,7 +233,6 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
    * Fires a rule, taking care of tracing and listener notification.
    *
    * @param ruleCall description of rule call
-   * @pre ruleCall.getRule().matches(ruleCall)
    */
   protected void fireRule(
       RelOptRuleCall ruleCall) {

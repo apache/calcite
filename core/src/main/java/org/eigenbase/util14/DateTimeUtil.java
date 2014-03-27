@@ -139,7 +139,6 @@ public class DateTimeUtil {
    *                default time zone
    * @return a Calendar initialized with the parsed value, or null if parsing
    * failed. If returned, the Calendar is configured to the GMT time zone.
-   * @pre pattern != null
    */
   public static Calendar parseDateFormat(
       String s,
@@ -169,12 +168,12 @@ public class DateTimeUtil {
    * @return a {@link DateTimeUtil.PrecisionTime PrecisionTime} initialized
    * with the parsed value, or null if parsing failed. The PrecisionTime
    * contains a GMT Calendar and a precision.
-   * @pre pattern != null
    */
   public static PrecisionTime parsePrecisionDateTimeLiteral(
       String s,
       String pattern,
       TimeZone tz) {
+    assert pattern != null;
     ParsePosition pp = new ParsePosition(0);
     Calendar cal = parseDateFormat(s, pattern, tz, pp);
     if (cal == null) {

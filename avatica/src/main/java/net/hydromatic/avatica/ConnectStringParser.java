@@ -370,10 +370,10 @@ public class ConnectStringParser {
    *
    * <blockquote>
    * <code>
-   * Properties properties;<br/>
+   * Properties properties;<br>
    * for (Map.Entry&lt;String, String&gt; entry =
-   * Util.toMap(properties).entrySet()) {<br/>
-   *   println("key=" + entry.getKey() + ", value=" + entry.getValue());<br/>
+   * Util.toMap(properties).entrySet()) {<br>
+   *   println("key=" + entry.getKey() + ", value=" + entry.getValue());<br>
    * }
    * </code>
    * </blockquote>

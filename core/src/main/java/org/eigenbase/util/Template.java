@@ -32,33 +32,33 @@ import com.google.common.collect.ImmutableList;
  * Ringo!":
  *
  * <blockquote>MessageFormat f =
- * new MessageFormat("Happy {0,number}th birthday, {1}!");<br/>
- * Object[] args = {64, "Ringo"};<br/>
+ * new MessageFormat("Happy {0,number}th birthday, {1}!");<br>
+ * Object[] args = {64, "Ringo"};<br>
  * System.out.println(f.format(args);</blockquote>
  *
  * <p>Here is the same example using a Template and named parameters:
  *
  * <blockquote>Template f =
- * new Template("Happy {age,number}th birthday, {name}!");<br/>
- * Map&lt;Object, Object&gt; args = new HashMap&lt;Object, Object&gt;();<br/>
- * args.put("age", 64);<br/>
- * args.put("name", "Ringo");<br/>
+ * new Template("Happy {age,number}th birthday, {name}!");<br>
+ * Map&lt;Object, Object&gt; args = new HashMap&lt;Object, Object&gt;();<br>
+ * args.put("age", 64);<br>
+ * args.put("name", "Ringo");<br>
  * System.out.println(f.format(args);</blockquote>
  *
  * <p>Using a Template you can also use positional parameters:
  *
  * <blockquote>Template f =
- * new Template("Happy {age,number}th birthday, {name}!");<br/>
- * Object[] args = {64, "Ringo"};<br/>
+ * new Template("Happy {age,number}th birthday, {name}!");<br>
+ * Object[] args = {64, "Ringo"};<br>
  * System.out.println(f.format(args);</blockquote>
  *
  * <p>Or a hybrid; here, one argument is specified by name, another by position:
  *
  * <blockquote>Template f =
- * new Template("Happy {age,number}th birthday, {name}!");<br/>
- * Map&lt;Object, Object&gt; args = new HashMap&lt;Object, Object&gt;();<br/>
- * args.put(0, 64);<br/>
- * args.put("name", "Ringo");<br/>
+ * new Template("Happy {age,number}th birthday, {name}!");<br>
+ * Map&lt;Object, Object&gt; args = new HashMap&lt;Object, Object&gt;();<br>
+ * args.put(0, 64);<br>
+ * args.put("name", "Ringo");<br>
  * System.out.println(f.format(args);</blockquote>
  */
 public class Template extends MessageFormat {

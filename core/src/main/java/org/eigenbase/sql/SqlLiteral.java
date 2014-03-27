@@ -38,8 +38,8 @@ import static org.eigenbase.util.Static.RESOURCE;
  * box. There is a {@link #getValue} method which returns the value as an
  * object, but the type of that value is implementation detail, and it is best
  * that your code does not depend upon that knowledge. It is better to use
- * task-oriented methods such as {@link #toSqlString(SqlDialect)} and {@link
- * #toValue}.</p>
+ * task-oriented methods such as {@link #toSqlString(SqlDialect)} and
+ * {@link #toValue}.</p>
  *
  * <p>If you really need to access the value directly, you should switch on the
  * value of the {@link #typeName} field, rather than making assumptions about
@@ -48,6 +48,7 @@ import static org.eigenbase.util.Static.RESOURCE;
  * <p>The allowable types and combinations are:
  *
  * <table>
+ * <caption>Allowable types for SqlLiteral</caption>
  * <tr>
  * <th>TypeName</th>
  * <th>Meaing</th>
@@ -118,7 +119,7 @@ import static org.eigenbase.util.Static.RESOURCE;
  * <tr>
  * <td>{@link SqlTypeName#INTERVAL_DAY_TIME}</td>
  * <td>Interval, for example <code>INTERVAL '1:34' HOUR</code>.</td>
- * <td><{@link SqlIntervalLiteral.IntervalValue}.</td>
+ * <td>{@link SqlIntervalLiteral.IntervalValue}.</td>
  * </tr>
  * </table>
  */
@@ -128,9 +129,9 @@ public class SqlLiteral extends SqlNode {
   /**
    * The type with which this literal was declared. This type is very
    * approximate: the literal may have a different type once validated. For
-   * example, all numeric literals have a type name of {@link
-   * SqlTypeName#DECIMAL}, but on validation may become {@link
-   * SqlTypeName#INTEGER}.
+   * example, all numeric literals have a type name of
+   * {@link SqlTypeName#DECIMAL}, but on validation may become
+   * {@link SqlTypeName#INTEGER}.
    */
   private final SqlTypeName typeName;
 
@@ -144,9 +145,6 @@ public class SqlLiteral extends SqlNode {
 
   /**
    * Creates a <code>SqlLiteral</code>.
-   *
-   * @pre typeName != null
-   * @pre valueMatchesType(value, typeName)
    */
   protected SqlLiteral(
       Object value,
@@ -155,10 +153,8 @@ public class SqlLiteral extends SqlNode {
     super(pos);
     this.value = value;
     this.typeName = typeName;
-    Util.pre(typeName != null, "typeName != null");
-    Util.pre(
-        valueMatchesType(value, typeName),
-        "valueMatchesType(value,typeName)");
+    assert typeName != null;
+    assert valueMatchesType(value, typeName);
   }
 
   //~ Methods ----------------------------------------------------------------

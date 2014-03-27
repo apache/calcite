@@ -236,8 +236,27 @@
         <version>2.8.1</version>
         <configuration>
           <links>
-            <link>http://docs.oracle.com/javase/7/docs/api/</link>
+            <link>http://docs.oracle.com/javase/8/docs/api/</link>
           </links>
+          <excludePackageNames>org.eigenbase.sql.parser.impl</excludePackageNames>
+          <tags>
+            <tag>
+              <name>sql.92</name>
+              <placement>a</placement>
+              <head>SQL 92 spec:</head>
+            </tag>
+            <tag>
+              <name>sql.99</name>
+              <placement>a</placement>
+              <head>SQL 99 spec:</head>
+            </tag>
+            <tag>
+              <name>sql.2003</name>
+              <placement>a</placement>
+              <head>SQL 2003 spec:</head>
+            </tag>
+          </tags>
+          <additionalparam>-tag sql.2003:a:xxx</additionalparam>
         </configuration>
       </plugin>
     </plugins>

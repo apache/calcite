@@ -240,8 +240,6 @@ public abstract class RelOptUtil {
    * net.sf.farrago.fennel.rel. The last two arguments do not apply to
    * those invocations and can be removed from the method.
    *
-   *
-   *
    * @param cluster    Cluster
    * @param seekRel    A query rel, for example the resulting rel from 'select *
    *                   from emp' or 'values (1,2,3)' or '('Foo', 34)'.
@@ -250,7 +248,6 @@ public abstract class RelOptUtil {
    * @param extraName  Name of expression to add.
    * @return relational expression which outer joins a boolean condition
    * column
-   * @pre extraExpr == null || extraName != null
    */
   public static RelNode createExistsPlan(
       RelOptCluster cluster,
@@ -258,6 +255,7 @@ public abstract class RelOptUtil {
       List<RexNode> conditions,
       RexLiteral extraExpr,
       String extraName) {
+    assert extraExpr == null || extraName != null;
     RelNode ret = seekRel;
 
     if ((conditions != null) && (conditions.size() > 0)) {

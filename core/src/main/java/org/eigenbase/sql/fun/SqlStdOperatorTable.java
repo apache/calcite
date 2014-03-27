@@ -762,10 +762,13 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
 
   /**
    * A special operator for the subtraction of two DATETIMEs. The format of
-   * DATETIME substraction is:<br>
-   * <code>"(" &lt;datetime&gt; "-" &lt;datetime&gt; ")" <interval
-   * qualifier></code>. This operator is special since it needs to hold the
-   * additional interval qualifier specification.
+   * DATETIME substraction is:
+   *
+   * <blockquote><code>"(" &lt;datetime&gt; "-" &lt;datetime&gt; ")"
+   * &lt;interval qualifier&gt;</code></blockquote>
+   *
+   * <p>This operator is special since it needs to hold the
+   * additional interval qualifier specification.</p>
    */
   public static final SqlOperator MINUS_DATE =
       new SqlDatetimeSubtractionOperator();

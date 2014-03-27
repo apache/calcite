@@ -393,7 +393,6 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
    * @param rel Relational expression
    * @return Equivalence set that expression belongs to, or null if it is not
    * registered
-   * @pre rel != null
    */
   public RelSet getSet(RelNode rel) {
     assert rel != null : "pre: rel != null";
@@ -919,7 +918,6 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
    *
    * @param rel Relational expression
    * @return Subset it belongs to, or null if it is not registered
-   * @pre rel != null
    */
   public RelSubset getSubset(RelNode rel) {
     assert rel != null : "pre: rel != null";
@@ -1648,12 +1646,12 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
    *
    * <blockquote>
    * FennelAggRel.FENNEL_EXEC(child=Subset#17.FENNEL_EXEC,groupCount=1,
-   * EXPR$1=COUNT())<br/>
+   * EXPR$1=COUNT())<br>
    * &nbsp;&nbsp;FennelSortRel.FENNEL_EXEC(child=Subset#2.FENNEL_EXEC,
-   * key=[0], discardDuplicates=false)<br/>
+   * key=[0], discardDuplicates=false)<br>
    * &nbsp;&nbsp;&nbsp;&nbsp;FennelCalcRel.FENNEL_EXEC(
    * child=Subset#4.FENNEL_EXEC, expr#0..8={inputs}, expr#9=3456,
-   * DEPTNO=$t7, $f0=$t9)<br/>
+   * DEPTNO=$t7, $f0=$t9)<br>
    * &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MockTableImplRel.FENNEL_EXEC(
    * table=[CATALOG, SALES, EMP])</blockquote>
    *
@@ -1661,12 +1659,12 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
    *
    * <blockquote>
    * FennelAggRel.FENNEL_EXEC(child=Subset#{0}.FENNEL_EXEC, groupCount=1,
-   * EXPR$1=COUNT())<br/>
+   * EXPR$1=COUNT())<br>
    * &nbsp;&nbsp;FennelSortRel.FENNEL_EXEC(child=Subset#{1}.FENNEL_EXEC,
-   * key=[0], discardDuplicates=false)<br/>
+   * key=[0], discardDuplicates=false)<br>
    * &nbsp;&nbsp;&nbsp;&nbsp;FennelCalcRel.FENNEL_EXEC(
    * child=Subset#{2}.FENNEL_EXEC,expr#0..8={inputs},expr#9=3456,DEPTNO=$t7,
-   * $f0=$t9)<br/>
+   * $f0=$t9)<br>
    * &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MockTableImplRel.FENNEL_EXEC(
    * table=[CATALOG, SALES, EMP])</blockquote>
    *

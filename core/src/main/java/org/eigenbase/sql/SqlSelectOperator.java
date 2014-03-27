@@ -26,7 +26,7 @@ import org.eigenbase.sql.util.*;
 /**
  * An operator describing a query. (Not a query itself.)
  *
- * <p>Operands are:
+ * <p>Operands are:</p>
  *
  * <ul>
  * <li>0: distinct ({@link SqlLiteral})</li>
@@ -38,7 +38,6 @@ import org.eigenbase.sql.util.*;
  * <li>6: windowClause ({@link SqlNodeList})</li>
  * <li>7: orderClause ({@link SqlNode})</li>
  * </ul>
- * </p>
  */
 public class SqlSelectOperator extends SqlOperator {
   public static final SqlSelectOperator INSTANCE =

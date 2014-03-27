@@ -50,10 +50,6 @@ public class SqlAdvisorValidator extends SqlValidatorImpl {
    * @param catalogReader Catalog reader
    * @param typeFactory   Type factory
    * @param conformance   Compatibility mode
-   * @pre opTab != null
-   * @pre // node is a "query expression" (per SQL standard)
-   * @pre catalogReader != null
-   * @pre typeFactory != null
    */
   public SqlAdvisorValidator(
       SqlOperatorTable opTab,
@@ -61,6 +57,9 @@ public class SqlAdvisorValidator extends SqlValidatorImpl {
       RelDataTypeFactory typeFactory,
       SqlConformance conformance) {
     super(opTab, catalogReader, typeFactory, conformance);
+    assert opTab != null;
+    assert catalogReader != null;
+    assert typeFactory != null;
   }
 
   //~ Methods ----------------------------------------------------------------

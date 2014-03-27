@@ -52,7 +52,7 @@ public abstract class AggregateRelBase extends SingleRel {
    * @param cluster  Cluster
    * @param traits   Traits
    * @param child    Child
-   * @param groupSet Bitset of grouping fields
+   * @param groupSet Bit set of grouping fields
    * @param aggCalls Collection of calls to aggregate functions
    */
   protected AggregateRelBase(
@@ -62,7 +62,7 @@ public abstract class AggregateRelBase extends SingleRel {
       BitSet groupSet,
       List<AggregateCall> aggCalls) {
     super(cluster, traits, child);
-    Util.pre(aggCalls != null, "aggCalls != null");
+    assert aggCalls != null;
     this.aggCalls = ImmutableList.copyOf(aggCalls);
     this.groupSet = groupSet;
     assert groupSet != null;

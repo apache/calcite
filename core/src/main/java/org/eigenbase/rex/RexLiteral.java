@@ -43,12 +43,13 @@ import net.hydromatic.avatica.ByteString;
  * box. There is a {@link #getValue} method which returns the value as an
  * object, but the type of that value is implementation detail, and it is best
  * that your code does not depend upon that knowledge. It is better to use
- * task-oriented methods such as {@link #getValue2} and {@link
- * #toJavaString}.</p>
+ * task-oriented methods such as {@link #getValue2} and
+ * {@link #toJavaString}.</p>
  *
- * <p>The allowable types and combinations are:
+ * <p>The allowable types and combinations are:</p>
  *
  * <table>
+ * <caption>Allowable types for RexLiteral instances</caption>
  * <tr>
  * <th>TypeName</th>
  * <th>Meaing</th>

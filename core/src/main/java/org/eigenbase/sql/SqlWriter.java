@@ -95,20 +95,24 @@ public interface SqlWriter {
     /**
      * Function call or datatype declaration.
      *
-     * <p>Examples:
-     * <li>SUBSTRING('foobar' FROM 1 + 2 TO 4)</li>
-     * <li>DECIMAL(10, 5)</li>
+     * <p>Examples:</p>
+     * <ul>
+     * <li><code>SUBSTRING('foobar' FROM 1 + 2 TO 4)</code></li>
+     * <li><code>DECIMAL(10, 5)</code></li>
+     * </ul>
      */
     FUN_CALL,
 
     /**
      * Window specification.
      *
-     * <p>Examples:
-     * <li>SUM(x) OVER (ORDER BY hireDate ROWS 3 PRECEDING)</li>
-     * <li>WINDOW w1 AS (ORDER BY hireDate), w2 AS (w1 PARTITION BY gender
+     * <p>Examples:</p>
+     * <ul>
+     * <li><code>SUM(x) OVER (ORDER BY hireDate ROWS 3 PRECEDING)</code></li>
+     * <li><code>WINDOW w1 AS (ORDER BY hireDate), w2 AS (w1 PARTITION BY gender
      * RANGE BETWEEN INTERVAL '1' YEAR PRECEDING AND '2' MONTH
-     * PRECEDING)</li>
+     * PRECEDING)</code></li>
+     * </ul>
      */
     WINDOW,
 
@@ -121,8 +125,10 @@ public interface SqlWriter {
     /**
      * ORDER BY list.
      *
-     * <p>Example:
-     * <li>ORDER BY x, y DESC, z
+     * <p>Example:</p>
+     * <ul>
+     * <li><code>ORDER BY x, y DESC, z</code></li>
+     * </ul>
      */
     ORDER_BY_LIST,
 
@@ -135,24 +141,30 @@ public interface SqlWriter {
     /**
      * OFFSET clause.
      *
-     * <p>Example:
-     * <li>OFFSET 10 ROWS</li></p>
+     * <p>Example:</p>
+     * <ul>
+     * <li><code>OFFSET 10 ROWS</code></li>
+     * </ul>
      */
     OFFSET,
 
     /**
      * FETCH clause.
      *
-     * <p>Example:
-     * <li>FETCH FIRST 3 ROWS ONLY</li></p>
+     * <p>Example:</p>
+     * <ul>
+     * <li><code>FETCH FIRST 3 ROWS ONLY</code></li>
+     * </ul>
      */
     FETCH,
 
     /**
      * GROUP BY list.
      *
-     * <p>Example:
-     * <li>GROUP BY x, FLOOR(y)
+     * <p>Example:</p>
+     * <ul>
+     * <li><code>GROUP BY x, FLOOR(y)</code></li>
+     * </ul>
      */
     GROUP_BY_LIST,
 
@@ -160,16 +172,20 @@ public interface SqlWriter {
      * Sub-query list. Encloses a SELECT, UNION, EXCEPT, INTERSECT query
      * with optional ORDER BY.
      *
-     * <p>Example:
-     * <li>GROUP BY x, FLOOR(y)
+     * <p>Example:</p>
+     * <ul>
+     * <li><code>GROUP BY x, FLOOR(y)</code></li>
+     * </ul>
      */
     SUB_QUERY,
 
     /**
      * Set operation.
      *
-     * <p>Example:
-     * <li>SELECT * FROM a UNION SELECT * FROM b
+     * <p>Example:</p>
+     * <ul>
+     * <li><code>SELECT * FROM a UNION SELECT * FROM b</code></li>
+     * </ul>
      */
     SETOP,
 
@@ -186,8 +202,10 @@ public interface SqlWriter {
     /**
      * Compound identifier.
      *
-     * <p>Example:
-     * <li>"A"."B"."C"
+     * <p>Example:</p>
+     * <ul>
+     * <li><code>"A"."B"."C"</code></li>
+     * </ul>
      */
     IDENTIFIER(false);
 

@@ -177,12 +177,13 @@ public class SubstitutionVisitor {
    * the constant {@code true}. If it is weaker than target, returns
    * {@code null}.</p>
    *
-   * <p>The terms satisfy the relation
+   * <p>The terms satisfy the relation</p>
+   *
    * <pre>
    *     {@code condition = target AND residue}
    * </pre>
    *
-   * and {@code residue} must be as weak as possible.</p>
+   * <p>and {@code residue} must be as weak as possible.</p>
    *
    * <p>Example #1: condition stronger than target</p>
    * <ul>
@@ -220,7 +221,7 @@ public class SubstitutionVisitor {
    * <p>There are many other possible examples. It amounts to solving
    * whether {@code condition AND NOT target} can ever evaluate to
    * true, and therefore is a form of the NP-complete
-   * <a href"http://en.wikipedia.org/wiki/Satisfiability">Satisfiability</a>
+   * <a href="http://en.wikipedia.org/wiki/Satisfiability">Satisfiability</a>
    * problem.</p>
    */
   @VisibleForTesting

@@ -367,6 +367,7 @@ public enum SqlTypeName {
    * Returns the limit of this datatype. For example,
    *
    * <table border="1">
+   * <caption>Datatype limits</caption>
    * <tr>
    * <th>Datatype</th>
    * <th>sign</th>

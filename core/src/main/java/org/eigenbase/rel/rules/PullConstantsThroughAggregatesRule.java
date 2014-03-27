@@ -32,7 +32,7 @@ import net.hydromatic.optiq.util.BitSets;
  * PullConstantsThroughAggregatesRule removes constant expressions from the
  * group list of an {@link AggregateRel}.
  *
- * <h4>Effect of the rule</h4>
+ * <p><b>Effect of the rule</b></p>
  *
  * <p>Since the transformed relational expression has to match the original
  * relational expression, the constants are placed in a projection above the

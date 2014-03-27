@@ -97,7 +97,7 @@ public class SqlParseException extends Exception
    * {"IN"}
    * {"BETWEEN"}
    * {"LIKE"}
-   * {"=", "&lt;IDENTIFIER>"}
+   * {"=", "&lt;IDENTIFIER&gt;"}
    * {"=", "USER"}
    * </pre>
    * </blockquote>
@@ -106,7 +106,7 @@ public class SqlParseException extends Exception
    *
    * <blockquote>
    * <pre>
-   * "&lt;IDENTIFIER>"
+   * "&lt;IDENTIFIER&gt;"
    * "USER"
    * </pre>
    * </blockquote>

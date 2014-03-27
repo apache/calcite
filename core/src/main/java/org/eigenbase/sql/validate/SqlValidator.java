@@ -103,7 +103,6 @@ public interface SqlValidator {
    *
    * @param topNode top of expression tree to be validated
    * @return validated tree (possibly rewritten)
-   * @pre outermostNode == null
    */
   SqlNode validate(SqlNode topNode);
 
@@ -115,7 +114,6 @@ public interface SqlValidator {
    * @param nameToTypeMap map of simple name to {@link RelDataType}; used to
    *                      resolve {@link SqlIdentifier} references
    * @return validated tree (possibly rewritten)
-   * @pre outermostNode == null
    */
   SqlNode validateParameterizedExpression(
       SqlNode topNode,
@@ -285,16 +283,14 @@ public interface SqlValidator {
   /**
    * Adds "line x, column y" context to a validator exception.
    *
-   * <p>Note that the input exception is checked (it derives from {@link
-   * Exception}) and the output exception is unchecked (it derives from {@link
-   * RuntimeException}). This is intentional -- it should remind code authors
-   * to provide context for their validation errors.
+   * <p>Note that the input exception is checked (it derives from
+   * {@link Exception}) and the output exception is unchecked (it derives from
+   * {@link RuntimeException}). This is intentional -- it should remind code
+   * authors to provide context for their validation errors.</p>
    *
-   * @param node The place where the exception occurred
+   * @param node The place where the exception occurred, not null
    * @param e    The validation error
-   * @return Exception containing positional information
-   * @pre node != null
-   * @post return != null
+   * @return Exception containing positional information, never null
    */
   EigenbaseContextException newValidationError(
       SqlNode node,
@@ -401,10 +397,8 @@ public interface SqlValidator {
   /**
    * Saves the type of a {@link SqlNode}, now that it has been validated.
    *
-   * @param node A SQL parse tree node
+   * @param node A SQL parse tree node, never null
    * @param type Its type; must not be null
-   * @pre type != null
-   * @pre node != null
    * @deprecated This method should not be in the {@link SqlValidator}
    * interface. The validator should drive the type-derivation process, and
    * store nodes' types when they have been derived.
@@ -431,10 +425,9 @@ public interface SqlValidator {
    * Returns the appropriate scope for validating a particular clause of a
    * SELECT statement.
    *
-   * <p>Consider
+   * <p>Consider</p>
    *
-   * <blockquote><code>
-   * <pre>SELECT *
+   * <blockquote><pre><code>SELECT *
    * FROM foo
    * WHERE EXISTS (
    *    SELECT deptno AS x
@@ -442,10 +435,9 @@ public interface SqlValidator {
    *       JOIN dept ON emp.deptno = dept.deptno
    *    WHERE emp.deptno = 5
    *    GROUP BY deptno
-   *    ORDER BY x)</pre>
-   * </code></blockquote>
+   *    ORDER BY x)</code></pre></blockquote>
    *
-   * What objects can be seen in each part of the sub-query?
+   * <p>What objects can be seen in each part of the sub-query?</p>
    *
    * <ul>
    * <li>In FROM ({@link #getFromScope} , you can only see 'foo'.
