@@ -182,7 +182,7 @@ public class ModelHandler {
       final SchemaPlus schema = currentMutableSchema("view");
       final List<String> path = Util.first(jsonView.path, currentSchemaPath());
       schema.add(jsonView.name,
-          ViewTable.viewFunction(schema, jsonView.sql, path));
+          ViewTable.viewMacro(schema, jsonView.sql, path));
     } catch (Exception e) {
       throw new RuntimeException("Error instantiating " + jsonView, e);
     }

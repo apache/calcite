@@ -18,7 +18,6 @@
 package net.hydromatic.optiq.impl;
 
 import net.hydromatic.optiq.*;
-import net.hydromatic.optiq.Parameter;
 
 import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.reltype.RelDataTypeFactory;
@@ -84,11 +83,11 @@ public class ScalarFunctionImpl implements ScalarFunction {
     return null;
   }
 
-  public List<Parameter> getParameters() {
+  public List<FunctionParameter> getParameters() {
     final Class<?>[] parameterTypes = method.getParameterTypes();
-    return new AbstractList<Parameter>() {
-      public Parameter get(final int index) {
-        return new Parameter() {
+    return new AbstractList<FunctionParameter>() {
+      public FunctionParameter get(final int index) {
+        return new FunctionParameter() {
           public int getOrdinal() {
             return index;
           }
@@ -111,14 +110,6 @@ public class ScalarFunctionImpl implements ScalarFunction {
 
   public RelDataType getReturnType(RelDataTypeFactory typeFactory) {
     return typeFactory.createJavaType(method.getReturnType());
-  }
-
-  public RelDataType getRowType(RelDataTypeFactory typeFactory) {
-    throw new UnsupportedOperationException(); // TODO: remove method
-  }
-
-  public Table apply(List<Object> arguments) {
-    throw new UnsupportedOperationException(); // TODO: remove method
   }
 }
 

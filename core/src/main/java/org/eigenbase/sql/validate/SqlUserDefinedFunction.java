@@ -24,28 +24,27 @@ import org.eigenbase.sql.SqlFunction;
 import org.eigenbase.sql.SqlKind;
 import org.eigenbase.sql.type.*;
 
-import net.hydromatic.optiq.Table;
-import net.hydromatic.optiq.TableFunction;
+import net.hydromatic.optiq.*;
 
 /**
 * User-defined function.
  *
  * <p>Created by the validator, after resolving a function call to a function
- * (perhaps a table function) defined in an Optiq schema.</p>
+ * defined in an Optiq schema.</p>
 */
 public class SqlUserDefinedFunction extends SqlFunction {
-  public final TableFunction tableFunction;
+  public final Function function;
   public final Table table;
 
   public SqlUserDefinedFunction(String name, RelDataType returnType,
       List<RelDataType> argTypes, List<SqlTypeFamily> typeFamilies,
-      TableFunction tableFunction, Table table) {
+      Function function, Table table) {
     super(name, null, SqlKind.OTHER_FUNCTION,
         ReturnTypes.explicit(returnType),
         new ExplicitOperandTypeInference(argTypes),
         OperandTypes.family(typeFamilies),
         null, null);
-    this.tableFunction = tableFunction;
+    this.function = function;
     this.table = table;
   }
 }

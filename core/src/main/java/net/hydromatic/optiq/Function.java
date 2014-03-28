@@ -17,20 +17,29 @@
 */
 package net.hydromatic.optiq;
 
-import org.eigenbase.reltype.RelDataType;
-import org.eigenbase.reltype.RelDataTypeFactory;
+import java.util.List;
 
 /**
- * Function that returns a scalar result.
+ * Named expression that accepts parameters and returns a result.
+ *
+ * <p>The application may occur at compile time (for a macro) or at run time
+ * (for a regular function). The result may be a relation, and so might any of
+ * the parameters.</p>
+ *
+ * <p>Functions are registered in a {@link Schema}, and may be queried by name
+ * ({@link Schema#getFunctions(String)}) then overloads resolved based on
+ * parameter types.</p>
+ *
+ * @see TableMacro
+ * @see ScalarFunction
  */
-public interface ScalarFunction extends Function {
+public interface Function {
   /**
-   * Returns the return type of this function, constructed using the given
-   * type factory.
+   * Returns the parameters of this function.
    *
-   * @param typeFactory Type factory
+   * @return Parameters; never null
    */
-  RelDataType getReturnType(RelDataTypeFactory typeFactory);
+  List<FunctionParameter> getParameters();
 }
 
-// End ScalarFunction.java
+// End Function.java

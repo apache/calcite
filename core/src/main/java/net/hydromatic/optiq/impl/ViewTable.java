@@ -59,11 +59,10 @@ public class ViewTable
     this.protoRowType = rowType;
   }
 
-  /** Table function that returns a view. */
-  public static ViewTableFunction viewFunction(SchemaPlus schema,
-      final String viewSql,
-      final List<String> schemaPath) {
-    return new ViewTableFunction(OptiqSchema.from(schema), viewSql, schemaPath);
+  /** Table macro that returns a view. */
+  public static ViewTableMacro viewMacro(SchemaPlus schema,
+      final String viewSql, final List<String> schemaPath) {
+    return new ViewTableMacro(OptiqSchema.from(schema), viewSql, schemaPath);
   }
 
   @Override public Schema.TableType getJdbcTableType() {
@@ -105,14 +104,14 @@ public class ViewTable
 
   /** Table function that implements a view. It returns the operator
    * tree of the view's SQL query. */
-  static class ViewTableFunction implements TableFunction {
+  static class ViewTableMacro implements TableMacro {
     protected final String viewSql;
     protected final OptiqSchema schema;
     /** Typically null. If specified, overrides the path of the schema as the
      * context for validating {@code viewSql}. */
     protected final List<String> schemaPath;
 
-    ViewTableFunction(OptiqSchema schema, String viewSql,
+    ViewTableMacro(OptiqSchema schema, String viewSql,
         List<String> schemaPath) {
       this.viewSql = viewSql;
       this.schema = schema;
@@ -120,7 +119,7 @@ public class ViewTable
           schemaPath == null ? null : ImmutableList.copyOf(schemaPath);
     }
 
-    public List<Parameter> getParameters() {
+    public List<FunctionParameter> getParameters() {
       return Collections.emptyList();
     }
 

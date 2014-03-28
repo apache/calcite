@@ -69,12 +69,12 @@ public class DelegatingSchema implements Schema {
     return schema.getTableNames();
   }
 
-  public Collection<TableFunction> getTableFunctions(String name) {
-    return schema.getTableFunctions(name);
+  public Collection<Function> getFunctions(String name) {
+    return schema.getFunctions(name);
   }
 
-  public Set<String> getTableFunctionNames() {
-    return schema.getTableFunctionNames();
+  public Set<String> getFunctionNames() {
+    return schema.getFunctionNames();
   }
 
   public Schema getSubSchema(String name) {

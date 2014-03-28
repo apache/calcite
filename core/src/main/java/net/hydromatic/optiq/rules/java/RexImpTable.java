@@ -21,7 +21,7 @@ import net.hydromatic.linq4j.Ord;
 import net.hydromatic.linq4j.expressions.*;
 
 import net.hydromatic.optiq.BuiltinMethod;
-import net.hydromatic.optiq.TableFunction;
+import net.hydromatic.optiq.Function;
 import net.hydromatic.optiq.impl.ScalarFunctionImpl;
 import net.hydromatic.optiq.runtime.SqlFunctions;
 
@@ -34,7 +34,6 @@ import org.eigenbase.sql.fun.SqlTrimFunction;
 import org.eigenbase.sql.type.SqlTypeName;
 import org.eigenbase.sql.validate.SqlUserDefinedFunction;
 
-import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 
 import java.lang.reflect.*;
@@ -68,8 +67,8 @@ public class RexImpTable {
           new NotNullImplementor() {
             public Expression implement(RexToLixTranslator translator,
                 RexCall call, List<Expression> translatedOperands) {
-              TableFunction x =
-                  ((SqlUserDefinedFunction) call.getOperator()).tableFunction;
+              Function x =
+                  ((SqlUserDefinedFunction) call.getOperator()).function;
               final Method method = ((ScalarFunctionImpl) x).method;
               if ((method.getModifiers() & Modifier.STATIC) != 0) {
                 return Expressions.call(method, translatedOperands);
@@ -269,7 +268,7 @@ public class RexImpTable {
             return Expressions.foldAnd(expressions);
           }
           return Expressions.foldAnd(Lists.transform(expressions,
-              new Function<Expression, Expression>() {
+              new com.google.common.base.Function<Expression, Expression>() {
                 public Expression apply(Expression e) {
                   return nullAs2.handle(e);
                 }

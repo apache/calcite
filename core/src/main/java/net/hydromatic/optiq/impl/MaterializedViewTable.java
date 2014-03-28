@@ -71,12 +71,12 @@ public class MaterializedViewTable extends ViewTable {
     this.key = key;
   }
 
-  /** Table function that returns a materialized view. */
-  public static MaterializedViewTableFunction create(final OptiqSchema schema,
+  /** Table macro that returns a materialized view. */
+  public static MaterializedViewTableMacro create(final OptiqSchema schema,
       final String viewSql,
       final List<String> viewSchemaPath,
       final String tableName) {
-    return new MaterializedViewTableFunction(schema, viewSql, viewSchemaPath,
+    return new MaterializedViewTableMacro(schema, viewSql, viewSchemaPath,
         tableName);
   }
 
@@ -96,11 +96,11 @@ public class MaterializedViewTable extends ViewTable {
   }
 
   /** Table function that returns the table that materializes a view. */
-  public static class MaterializedViewTableFunction
-      extends ViewTableFunction {
+  public static class MaterializedViewTableMacro
+      extends ViewTableMacro {
     private final MaterializationKey key;
 
-    private MaterializedViewTableFunction(OptiqSchema schema, String viewSql,
+    private MaterializedViewTableMacro(OptiqSchema schema, String viewSql,
         List<String> viewSchemaPath, String tableName) {
       super(schema, viewSql, viewSchemaPath);
       this.key =

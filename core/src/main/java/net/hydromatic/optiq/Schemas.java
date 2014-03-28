@@ -48,16 +48,16 @@ public final class Schemas {
     throw new AssertionError("no instances!");
   }
 
-  public static OptiqSchema.TableFunctionEntry resolve(
+  public static OptiqSchema.FunctionEntry resolve(
       RelDataTypeFactory typeFactory,
       String name,
-      Collection<OptiqSchema.TableFunctionEntry> tableFunctions,
+      Collection<OptiqSchema.FunctionEntry> functionEntries,
       List<RelDataType> argumentTypes) {
-    final List<OptiqSchema.TableFunctionEntry> matches =
-        new ArrayList<OptiqSchema.TableFunctionEntry>();
-    for (OptiqSchema.TableFunctionEntry member : tableFunctions) {
-      if (matches(typeFactory, member.getTableFunction(), argumentTypes)) {
-        matches.add(member);
+    final List<OptiqSchema.FunctionEntry> matches =
+        new ArrayList<OptiqSchema.FunctionEntry>();
+    for (OptiqSchema.FunctionEntry entry : functionEntries) {
+      if (matches(typeFactory, entry.getFunction(), argumentTypes)) {
+        matches.add(entry);
       }
     }
     switch (matches.size()) {
@@ -73,14 +73,14 @@ public final class Schemas {
   }
 
   private static boolean matches(RelDataTypeFactory typeFactory,
-      TableFunction member, List<RelDataType> argumentTypes) {
-    List<Parameter> parameters = member.getParameters();
+      Function member, List<RelDataType> argumentTypes) {
+    List<FunctionParameter> parameters = member.getParameters();
     if (parameters.size() != argumentTypes.size()) {
       return false;
     }
     for (int i = 0; i < argumentTypes.size(); i++) {
       RelDataType argumentType = argumentTypes.get(i);
-      Parameter parameter = parameters.get(i);
+      FunctionParameter parameter = parameters.get(i);
       if (!canConvert(argumentType, parameter.getType(typeFactory))) {
         return false;
       }
@@ -92,13 +92,14 @@ public final class Schemas {
     return SqlTypeUtil.canAssignFrom(toType, fromType);
   }
 
-  public static TableFunction methodMember(
+  public static TableMacro methodMember(
       final Method method,
       final JavaTypeFactory typeFactory) {
-    final List<Parameter> parameters = new ArrayList<Parameter>();
+    final List<FunctionParameter> parameters =
+        new ArrayList<FunctionParameter>();
     for (final Class<?> parameterType : method.getParameterTypes()) {
       parameters.add(
-          new Parameter() {
+          new FunctionParameter() {
             final int ordinal = parameters.size();
             final RelDataType type =
                 typeFactory.createType(parameterType);
@@ -117,8 +118,8 @@ public final class Schemas {
           }
       );
     }
-    return new TableFunction() {
-      public List<Parameter> getParameters() {
+    return new TableMacro() {
+      public List<FunctionParameter> getParameters() {
         return parameters;
       }
 

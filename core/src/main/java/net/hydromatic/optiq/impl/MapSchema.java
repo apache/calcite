@@ -29,7 +29,7 @@ import java.util.*;
  */
 public class MapSchema extends AbstractSchema {
   protected final Map<String, Table> tableMap;
-  protected final Multimap<String, TableFunction> membersMap;
+  protected final Multimap<String, Function> membersMap;
   protected final Map<String, Schema> subSchemaMap;
 
   /**
@@ -39,11 +39,8 @@ public class MapSchema extends AbstractSchema {
    * @param name Name of schema
    */
   public MapSchema(SchemaPlus parentSchema, String name) {
-    this(
-        parentSchema,
-        name,
-        new HashMap<String, Table>(),
-        LinkedListMultimap.<String, TableFunction>create(),
+    this(parentSchema, name, new HashMap<String, Table>(),
+        LinkedListMultimap.<String, Function>create(),
         new HashMap<String, Schema>());
   }
 
@@ -59,7 +56,7 @@ public class MapSchema extends AbstractSchema {
    */
   public MapSchema(SchemaPlus parentSchema, String name,
       Map<String, Table> tableMap,
-      ListMultimap<String, TableFunction> membersMap,
+      ListMultimap<String, Function> membersMap,
       Map<String, Schema> subSchemaMap) {
     super(parentSchema, name);
     this.tableMap = tableMap;
@@ -86,7 +83,7 @@ public class MapSchema extends AbstractSchema {
   }
 
   @Override
-  protected Multimap<String, TableFunction> getTableFunctionMultimap() {
+  protected Multimap<String, Function> getFunctionMultimap() {
     return membersMap;
   }
 

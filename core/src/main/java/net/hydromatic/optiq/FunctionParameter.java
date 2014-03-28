@@ -20,35 +20,36 @@ package net.hydromatic.optiq;
 import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.reltype.RelDataTypeFactory;
 
-import java.util.List;
-
 /**
- * Function that returns a {@link Table}.
+ * Parameter to a {@link Function}.
+ *
+ * <p>NOTE: We'd have called it {@code Parameter} but the overlap with
+ * {@link java.lang.reflect.Parameter} was too confusing.</p>
  */
-public interface TableFunction {
+public interface FunctionParameter {
   /**
-   * Returns the parameters of this table function.
+   * Zero-based ordinal of this parameter within the member's parameter
+   * list.
    *
-   * @return Parameters; never null
+   * @return Parameter ordinal
    */
-  List<net.hydromatic.optiq.Parameter> getParameters();
+  int getOrdinal();
 
   /**
-   * Returns the record type of the table yielded by this function when
-   * applied to parameters of given types.
+   * Name of the parameter.
    *
-   * @param typeFactory Type factory
+   * @return Parameter name
    */
-  RelDataType getRowType(RelDataTypeFactory typeFactory);
+  String getName();
 
   /**
-   * Applies arguments to yield a table.
+   * Returns the type of this parameter.
    *
-   * @param arguments Arguments
-   * @return Table
+   * @param typeFactory Type factory to be used to create the type
+   *
+   * @return Parameter type.
    */
-  Table apply(List<Object> arguments);
-
+  RelDataType getType(RelDataTypeFactory typeFactory);
 }
 
-// End TableFunction.java
+// End FunctionParameter.java

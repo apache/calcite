@@ -20,33 +20,31 @@ package net.hydromatic.optiq;
 import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.reltype.RelDataTypeFactory;
 
+import java.util.List;
+
 /**
- * Parameter to a {@link TableFunction}.
+ * Function that returns a {@link Table}.
+ *
+ * <p>As the name "macro" implies, this is invoked at "compile time", that is,
+ * during query preparation. Compile-time expansion of table expressions allows
+ * for some very powerful query-optimizations.</p>
  */
-public interface Parameter {
+public interface TableMacro extends Function {
   /**
-   * Zero-based ordinal of this parameter within the member's parameter
-   * list.
+   * Returns the record type of the table yielded by this function when
+   * applied to parameters of given types.
    *
-   * @return Parameter ordinal
+   * @param typeFactory Type factory
    */
-  int getOrdinal();
+  RelDataType getRowType(RelDataTypeFactory typeFactory);
 
   /**
-   * Name of the parameter.
+   * Applies arguments to yield a table.
    *
-   * @return Parameter name
+   * @param arguments Arguments
+   * @return Table
    */
-  String getName();
-
-  /**
-   * Returns the type of this parameter.
-   *
-   * @param typeFactory Type factory to be used to create the type
-   *
-   * @return Parameter type.
-   */
-  RelDataType getType(RelDataTypeFactory typeFactory);
+  Table apply(List<Object> arguments);
 }
 
-// End Parameter.java
+// End TableMacro.java

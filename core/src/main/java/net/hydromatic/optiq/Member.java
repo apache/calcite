@@ -59,7 +59,7 @@ public interface Member {
    *
    * @return Parameters; never null
    */
-  List<Parameter> getParameters();
+  List<FunctionParameter> getParameters();
 
   /**
    * Returns the type of this function's result.

@@ -40,8 +40,8 @@ public interface SchemaPlus extends Schema {
   /** Adds a table to this schema. */
   void add(String name, Table table);
 
-  /** Adds a table function to this schema. */
-  void add(String name, TableFunction table);
+  /** Adds a function to this schema. */
+  void add(String name, Function function);
 
   boolean isMutable();
 

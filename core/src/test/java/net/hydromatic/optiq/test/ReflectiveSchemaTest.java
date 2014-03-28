@@ -174,7 +174,7 @@ public class ReflectiveSchemaTest {
     SchemaPlus rootSchema = optiqConnection.getRootSchema();
     SchemaPlus schema = rootSchema.add(new AbstractSchema(rootSchema, "s"));
     schema.add("emps_view",
-        ViewTable.viewFunction(schema,
+        ViewTable.viewMacro(schema,
             "select * from \"hr\".\"emps\" where \"deptno\" = 10",
             null));
     rootSchema.add(
@@ -202,19 +202,19 @@ public class ReflectiveSchemaTest {
     SchemaPlus schema = rootSchema.add(new AbstractSchema(rootSchema, "s"));
     // create a view s.emps based on hr.emps. uses explicit schema path "hr".
     schema.add("emps",
-        ViewTable.viewFunction(schema,
+        ViewTable.viewMacro(schema,
             "select * from \"emps\" where \"deptno\" = 10",
             Collections.singletonList("hr")));
     schema.add("hr_emps",
-        ViewTable.viewFunction(schema,
+        ViewTable.viewMacro(schema,
             "select * from \"emps\"",
             Collections.singletonList("hr")));
     schema.add("s_emps",
-        ViewTable.viewFunction(schema,
+        ViewTable.viewMacro(schema,
             "select * from \"emps\"",
             Collections.singletonList("s")));
     schema.add("null_emps",
-        ViewTable.viewFunction(schema, "select * from \"emps\"", null));
+        ViewTable.viewMacro(schema, "select * from \"emps\"", null));
     rootSchema.add(
         new ReflectiveSchema(rootSchema, "hr", new JdbcTest.HrSchema()));
     final Statement statement = connection.createStatement();
@@ -464,10 +464,10 @@ public class ReflectiveSchemaTest {
   }
 
   /** If a method returns a
-   * {@link ViewTable}.{@code ViewTableFunction}, then it
+   * {@link ViewTable}.{@code ViewTableMacro}, then it
    * should be expanded. */
   @Ignore
-  @Test public void testTableFunctionIsView() throws Exception {
+  @Test public void testTableMacroIsView() throws Exception {
     OptiqAssert.that()
         .with("s", new JdbcTest.HrSchema())
         .query(
@@ -477,9 +477,9 @@ public class ReflectiveSchemaTest {
             + "empid=4; deptno=10; name=Abd; salary=0.0; commission=null\n");
   }
 
-  /** Finds a table-function using reflection. */
+  /** Finds a table-macro using reflection. */
   @Ignore
-  @Test public void testTableFunction() throws Exception {
+  @Test public void testTableMacro() throws Exception {
     OptiqAssert.that()
         .with("s", new JdbcTest.HrSchema())
         .query(

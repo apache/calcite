@@ -33,8 +33,8 @@ import java.util.*;
  * <ul>
  *   <li>The schema has no tables unless you override
  *       {@link #getTableMap()}.</li>
- *   <li>The schema has no table-functions unless you override
- *       {@link #getTableFunctionMultimap()}.</li>
+ *   <li>The schema has no functions unless you override
+ *       {@link #getFunctionMultimap()}.</li>
  *   <li>The schema has no sub-schemas unless you override
  *       {@link #getSubSchemaMap()}.</li>
  *   <li>The schema is mutable unless you override
@@ -93,26 +93,26 @@ public class AbstractSchema implements Schema {
   }
 
   /**
-   * Returns a multi-map of table-functions in this schema by name.
+   * Returns a multi-map of functions in this schema by name.
    * It is a multi-map because functions are overloaded; there may be more than
    * one function in a schema with a given name (as long as they have different
    * parameter lists).
    *
-   * <p>The implementations of {@link #getTableFunctionNames()}
-   * and {@link #getTableFunctions(String)} depend on this map.
+   * <p>The implementations of {@link #getFunctionNames()}
+   * and {@link Schema#getFunctions(String)} depend on this map.
    * The default implementation of this method returns the empty multi-map.
    * Override this method to change their behavior.</p>
    */
-  protected Multimap<String, TableFunction> getTableFunctionMultimap() {
+  protected Multimap<String, Function> getFunctionMultimap() {
     return ImmutableMultimap.of();
   }
 
-  public final Collection<TableFunction> getTableFunctions(String name) {
-    return getTableFunctionMultimap().get(name);
+  public final Collection<Function> getFunctions(String name) {
+    return getFunctionMultimap().get(name);
   }
 
-  public final Set<String> getTableFunctionNames() {
-    return getTableFunctionMultimap().keySet();
+  public final Set<String> getFunctionNames() {
+    return getFunctionMultimap().keySet();
   }
 
   /**

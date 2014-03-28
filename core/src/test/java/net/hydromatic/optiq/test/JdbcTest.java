@@ -130,7 +130,7 @@ public class JdbcTest {
    * The function returns a {@link Queryable}.
    */
   @Ignore
-  @Test public void testTableFunction()
+  @Test public void testTableMacro()
     throws SQLException, ClassNotFoundException {
     Class.forName("net.hydromatic.optiq.jdbc.Driver");
     Connection connection =
@@ -140,9 +140,9 @@ public class JdbcTest {
     JavaTypeFactory typeFactory = optiqConnection.getTypeFactory();
     SchemaPlus rootSchema = optiqConnection.getRootSchema();
     SchemaPlus schema = rootSchema.add(new AbstractSchema(rootSchema, "s"));
-    final TableFunction tableFunction =
+    final TableMacro tableMacro =
         Schemas.methodMember(GENERATE_STRINGS_METHOD, typeFactory);
-    schema.add("GenerateStrings", tableFunction);
+    schema.add("GenerateStrings", tableMacro);
     ResultSet resultSet = connection.createStatement().executeQuery(
         "select *\n"
         + "from table(\"s\".\"GenerateStrings\"(5)) as t(n, c)\n"

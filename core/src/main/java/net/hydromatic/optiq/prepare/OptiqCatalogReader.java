@@ -96,8 +96,7 @@ class OptiqCatalogReader implements Prepare.CatalogReader, SqlOperatorTable {
     return null;
   }
 
-  private Collection<TableFunction> getTableFunctionsFrom(
-      List<String> names,
+  private Collection<Function> getFunctionsFrom(List<String> names,
       List<String> schemaNames) {
     OptiqSchema schema =
         getSchema(Iterables.concat(schemaNames, Util.skipLast(names)));
@@ -105,7 +104,7 @@ class OptiqCatalogReader implements Prepare.CatalogReader, SqlOperatorTable {
       return ImmutableList.of();
     }
     final String name = Util.last(names);
-    return schema.compositeTableFunctionMap.get(name);
+    return schema.compositeFunctionMap.get(name);
   }
 
   private OptiqSchema getSchema(Iterable<String> schemaNames) {
@@ -162,34 +161,34 @@ class OptiqCatalogReader implements Prepare.CatalogReader, SqlOperatorTable {
     if (syntax != SqlSyntax.FUNCTION) {
       return ImmutableList.of();
     }
-    final Collection<TableFunction> tableFunctions =
-        getTableFunctionsFrom(opName.names, ImmutableList.<String>of());
-    if (tableFunctions.isEmpty()) {
+    final Collection<Function> functions =
+        getFunctionsFrom(opName.names, ImmutableList.<String>of());
+    if (functions.isEmpty()) {
       return ImmutableList.of();
     }
     final String name = Util.last(opName.names);
-    return toOps(name, ImmutableList.copyOf(tableFunctions));
+    return toOps(name, ImmutableList.copyOf(functions));
   }
 
   private List<SqlOperator> toOps(
       final String name,
-      final ImmutableList<TableFunction> tableFunctions) {
+      final ImmutableList<Function> functions) {
     return new AbstractList<SqlOperator>() {
       public SqlOperator get(int index) {
-        return toOp(name, tableFunctions.get(index));
+        return toOp(name, functions.get(index));
       }
 
       public int size() {
-        return tableFunctions.size();
+        return functions.size();
       }
     };
   }
 
-  private SqlOperator toOp(String name, TableFunction tableFunction) {
+  private SqlOperator toOp(String name, Function function) {
     List<RelDataType> argTypes = new ArrayList<RelDataType>();
     List<SqlTypeFamily> typeFamilies = new ArrayList<SqlTypeFamily>();
     List<Object> dummyArguments = new ArrayList<Object>();
-    for (net.hydromatic.optiq.Parameter o : tableFunction.getParameters()) {
+    for (FunctionParameter o : function.getParameters()) {
       final RelDataType type = o.getType(typeFactory);
       argTypes.add(type);
       typeFamilies.add(SqlTypeFamily.ANY);
@@ -197,17 +196,19 @@ class OptiqCatalogReader implements Prepare.CatalogReader, SqlOperatorTable {
     }
     final Table table;
     final RelDataType returnType;
-    if (tableFunction instanceof ScalarFunction) {
-      returnType = ((ScalarFunction) tableFunction).getReturnType(typeFactory);
+    if (function instanceof ScalarFunction) {
+      returnType = ((ScalarFunction) function).getReturnType(typeFactory);
       table = null;
-    } else {
+    } else if (function instanceof TableMacro) {
       // Make a call with dummy arguments, to get the table, so get its row
       // type.
-      table = tableFunction.apply(dummyArguments);
+      table = ((TableMacro) function).apply(dummyArguments);
       returnType = typeFactory.createSqlType(SqlTypeName.CURSOR);
+    } else {
+      throw new AssertionError("unknown function type " + function);
     }
     return new SqlUserDefinedFunction(name, returnType, argTypes, typeFamilies,
-        tableFunction, table);
+        function, table);
   }
 
   private Object zero(RelDataType type) {

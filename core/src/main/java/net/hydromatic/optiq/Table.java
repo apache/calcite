@@ -35,7 +35,7 @@ import org.eigenbase.reltype.RelDataTypeFactory;
  * <a href="http://en.wikipedia.org/wiki/Inode">i-node</a> concept in the UNIX
  * filesystem.)</p>
  *
- * @see TableFunction
+ * @see TableMacro
  */
 public interface Table {
   /** Returns this table's row type.

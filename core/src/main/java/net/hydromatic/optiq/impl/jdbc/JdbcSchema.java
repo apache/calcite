@@ -165,17 +165,17 @@ public class JdbcSchema implements Schema {
     return Schemas.subSchemaExpression(parentSchema, name, JdbcSchema.class);
   }
 
-  protected Multimap<String, TableFunction> getTableFunctions() {
+  protected Multimap<String, Function> getFunctions() {
     // TODO: populate map from JDBC metadata
     return ImmutableMultimap.of();
   }
 
-  public final Collection<TableFunction> getTableFunctions(String name) {
-    return getTableFunctions().get(name);
+  public final Collection<Function> getFunctions(String name) {
+    return getFunctions().get(name);
   }
 
-  public final Set<String> getTableFunctionNames() {
-    return getTableFunctions().keySet();
+  public final Set<String> getFunctionNames() {
+    return getFunctions().keySet();
   }
 
   private ImmutableMap<String, JdbcTable> computeTables() {

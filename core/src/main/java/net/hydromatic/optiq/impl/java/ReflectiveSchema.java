@@ -21,7 +21,6 @@ import net.hydromatic.linq4j.*;
 import net.hydromatic.linq4j.expressions.*;
 
 import net.hydromatic.optiq.*;
-import net.hydromatic.optiq.Parameter;
 import net.hydromatic.optiq.Table;
 import net.hydromatic.optiq.impl.*;
 
@@ -83,9 +82,8 @@ public class ReflectiveSchema
     return builder.build();
   }
 
-  @Override
-  protected Multimap<String, TableFunction> getTableFunctionMultimap() {
-    final ImmutableMultimap.Builder<String, TableFunction> builder =
+  @Override protected Multimap<String, Function> getFunctionMultimap() {
+    final ImmutableMultimap.Builder<String, Function> builder =
         ImmutableMultimap.builder();
     for (Method method : clazz.getMethods()) {
       final String methodName = method.getName();
@@ -93,16 +91,16 @@ public class ReflectiveSchema
           || methodName.equals("toString")) {
         continue;
       }
-      final TableFunction tableFunction = methodMember(method);
-      builder.put(methodName, tableFunction);
+      final TableMacro tableMacro = methodMember(method);
+      builder.put(methodName, tableMacro);
     }
     return builder.build();
   }
 
-  private TableFunction methodMember(final Method method) {
+  private TableMacro methodMember(final Method method) {
     final Type elementType = getElementType(method.getReturnType());
     final Class<?>[] parameterTypes = method.getParameterTypes();
-    return new MethodTableFunction(this, method, elementType, parameterTypes);
+    return new MethodTableMacro(this, method, elementType, parameterTypes);
   }
 
   /** Returns an expression for the object wrapped by this schema (not the
@@ -262,14 +260,14 @@ public class ReflectiveSchema
     }
   }
 
-  /** Table function based on a Java method. */
-  private static class MethodTableFunction implements TableFunction {
+  /** Table macro based on a Java method. */
+  private static class MethodTableMacro implements TableMacro {
     private final ReflectiveSchema schema;
     private final Method method;
     private final Type elementType;
     private final Class<?>[] parameterTypes;
 
-    public MethodTableFunction(ReflectiveSchema schema, Method method,
+    public MethodTableMacro(ReflectiveSchema schema, Method method,
         Type elementType, Class<?>[] parameterTypes) {
       this.schema = schema;
       this.method = method;
@@ -285,10 +283,10 @@ public class ReflectiveSchema
       return ((JavaTypeFactory) typeFactory).createType(elementType);
     }
 
-    public List<Parameter> getParameters() {
-      return new AbstractList<Parameter>() {
-        public Parameter get(final int index) {
-          return new Parameter() {
+    public List<FunctionParameter> getParameters() {
+      return new AbstractList<FunctionParameter>() {
+        public FunctionParameter get(final int index) {
+          return new FunctionParameter() {
             public int getOrdinal() {
               return index;
             }

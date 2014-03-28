@@ -22,16 +22,16 @@ import net.hydromatic.linq4j.expressions.Expression;
 import java.util.*;
 
 /**
- * A namespace for tables and table functions.
+ * A namespace for tables and functions.
  *
  * <p>A schema can also contain sub-schemas, to any level of nesting. Most
  * providers have a limited number of levels; for example, most JDBC databases
  * have either one level ("schemas") or two levels ("database" and
  * "catalog").</p>
  *
- * <p>There may be multiple overloaded table functions with the same name but
+ * <p>There may be multiple overloaded functions with the same name but
  * different numbers or types of parameters.
- * For this reason, {@link #getTableFunctions} returns a list of all
+ * For this reason, {@link #getFunctions} returns a list of all
  * members with the same name. Optiq will call
  * {@link Schemas#resolve(org.eigenbase.reltype.RelDataTypeFactory, String, java.util.Collection, java.util.List)}
  * to choose the appropriate one.</p>
@@ -80,18 +80,18 @@ public interface Schema {
   Set<String> getTableNames();
 
   /**
-   * Returns a list of table functions in this schema with the given name, or
-   * an empty list if there is no such table function.
+   * Returns a list of functions in this schema with the given name, or
+   * an empty list if there is no such function.
    *
-   * @param name Name of table function
-   * @return List of table functions with given name, or empty list
+   * @param name Name of function
+   * @return List of functions with given name, or empty list
    */
-  Collection<TableFunction> getTableFunctions(String name);
+  Collection<Function> getFunctions(String name);
 
   /**
-   * Returns the names of the table functions in this schema.
+   * Returns the names of the functions in this schema.
    */
-  Set<String> getTableFunctionNames();
+  Set<String> getFunctionNames();
 
   /**
    * Returns a sub-schema with a given name, or null.
@@ -109,7 +109,7 @@ public interface Schema {
    */
   Expression getExpression();
 
-  /** Returns whether the user is allowed to create new tables, table functions
+  /** Returns whether the user is allowed to create new tables, functions
    * and sub-schemas in this schema, in addition to those returned automatically
    * by methods such as {@link #getTable(String)}.
    *

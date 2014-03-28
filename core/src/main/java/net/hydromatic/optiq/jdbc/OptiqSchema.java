@@ -26,9 +26,6 @@ import net.hydromatic.optiq.impl.MaterializedViewTable;
 import net.hydromatic.optiq.util.Compatible;
 import net.hydromatic.optiq.util.CompositeMap;
 
-import org.eigenbase.util.Util;
-
-import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.collect.*;
 
@@ -48,17 +45,16 @@ public class OptiqSchema {
       new HashMap<String, TableEntry>();
   public final Map<String, TableEntry> tableMapInsensitive =
       new TreeMap<String, TableEntry>(String.CASE_INSENSITIVE_ORDER);
-  private final Multimap<String, TableFunctionEntry> tableFunctionMap =
+  private final Multimap<String, FunctionEntry> functionMap =
       LinkedListMultimap.create();
-  private final Map<String, TableFunctionEntry>
-  nullaryTableFunctionMapInsensitive =
-      new TreeMap<String, TableFunctionEntry>(String.CASE_INSENSITIVE_ORDER);
+  private final Map<String, FunctionEntry> nullaryFunctionMapInsensitive =
+      new TreeMap<String, FunctionEntry>(String.CASE_INSENSITIVE_ORDER);
   private final Map<String, OptiqSchema> subSchemaMap =
       new HashMap<String, OptiqSchema>();
   private final Map<String, OptiqSchema> subSchemaMapInsensitive =
       new TreeMap<String, OptiqSchema>(String.CASE_INSENSITIVE_ORDER);
   public final Map<String, Table> compositeTableMap;
-  public final Multimap<String, TableFunction> compositeTableFunctionMap;
+  public final Multimap<String, Function> compositeFunctionMap;
   public final Map<String, OptiqSchema> compositeSubSchemaMap;
 
   public OptiqSchema(OptiqSchema parent, final Schema schema) {
@@ -69,41 +65,44 @@ public class OptiqSchema {
     this.compositeTableMap = CompositeMap.of(
         Maps.transformValues(
             tableMap,
-            new Function<TableEntry, Table>() {
+            new com.google.common.base.Function<TableEntry, Table>() {
               public Table apply(TableEntry input) {
                 return input.getTable();
               }
             }),
         Maps.transformValues(
             Multimaps.filterEntries(
-                tableFunctionMap,
-                new Predicate<Map.Entry<String, TableFunctionEntry>>() {
-                  public boolean apply(
-                      Map.Entry<String, TableFunctionEntry> input) {
-                    return input.getValue().getTableFunction().getParameters()
-                        .isEmpty();
+                functionMap,
+                new Predicate<Map.Entry<String, FunctionEntry>>() {
+                  public boolean apply(Map.Entry<String, FunctionEntry> entry) {
+                    final Function function = entry.getValue().getFunction();
+                    return function instanceof TableMacro
+                        && function.getParameters().isEmpty();
                   }
                 }).asMap(),
-            new Function<Collection<TableFunctionEntry>, Table>() {
-              public Table apply(Collection<TableFunctionEntry> input) {
+            new com.google.common.base.Function<Collection<FunctionEntry>,
+                Table>() {
+              public Table apply(Collection<FunctionEntry> input) {
                 // At most one function with zero parameters.
-                TableFunctionEntry entry = input.iterator().next();
-                return entry.getTableFunction().apply(ImmutableList.of());
+                final TableMacro tableMacro =
+                    (TableMacro) input.iterator().next().getFunction();
+                return tableMacro.apply(ImmutableList.of());
               }
             }),
         Compatible.INSTANCE.asMap(
             schema.getTableNames(),
-            new Function<String, Table>() {
+            new com.google.common.base.Function<String, Table>() {
               public Table apply(String input) {
                 return schema.getTable(input);
               }
             }));
-    // TODO: include schema's table functions in this map.
-    this.compositeTableFunctionMap =
-        Multimaps.transformValues(tableFunctionMap,
-            new Function<TableFunctionEntry, TableFunction>() {
-              public TableFunction apply(TableFunctionEntry input) {
-                return input.getTableFunction();
+    // TODO: include schema's functions in this map.
+    this.compositeFunctionMap =
+        Multimaps.transformValues(
+            functionMap,
+            new com.google.common.base.Function<FunctionEntry, Function>() {
+              public Function apply(FunctionEntry input) {
+                return input.getFunction();
               }
             });
     //noinspection unchecked
@@ -112,7 +111,7 @@ public class OptiqSchema {
             subSchemaMap,
             Compatible.INSTANCE.asMap(
                 schema.getSubSchemaNames(),
-                new Function<String, OptiqSchema>() {
+                new com.google.common.base.Function<String, OptiqSchema>() {
                   public OptiqSchema apply(String input) {
                     return addSchema(schema.getSubSchema(input));
                   }
@@ -128,13 +127,12 @@ public class OptiqSchema {
     return entry;
   }
 
-  private TableFunctionEntry add(String name,
-      TableFunction tableFunction) {
-    final TableFunctionEntryImpl entry =
-        new TableFunctionEntryImpl(this, name, tableFunction);
-    tableFunctionMap.put(name, entry);
-    if (tableFunction.getParameters().isEmpty()) {
-      nullaryTableFunctionMapInsensitive.put(name, entry);
+  private FunctionEntry add(String name, Function function) {
+    final FunctionEntryImpl entry =
+        new FunctionEntryImpl(this, name, function);
+    functionMap.put(name, entry);
+    if (function.getParameters().isEmpty()) {
+      nullaryFunctionMapInsensitive.put(name, entry);
     }
     return entry;
   }
@@ -170,10 +168,10 @@ public class OptiqSchema {
       if (tableEntry != null) {
         return tableEntry.getTable();
       }
-      final TableFunctionEntry entry =
-          nullaryTableFunctionMapInsensitive.get(tableName);
+      final FunctionEntry entry =
+          nullaryFunctionMapInsensitive.get(tableName);
       if (entry != null) {
-        return entry.getTableFunction().apply(ImmutableList.of());
+        return ((TableMacro) entry.getFunction()).apply(ImmutableList.of());
       }
       for (String name : schema.getTableNames()) {
         if (name.equalsIgnoreCase(tableName)) {
@@ -186,11 +184,6 @@ public class OptiqSchema {
 
   public String getName() {
     return schema.getName();
-  }
-
-  public void addTableFunction(
-      TableFunctionEntry tableFunctionEntry) {
-    throw Util.needToImplement(tableFunctionEntry);
   }
 
   public SchemaPlus plus() {
@@ -237,13 +230,13 @@ public class OptiqSchema {
     public abstract Table getTable();
   }
 
-  /** Membership of a table-function in a schema. */
-  public abstract static class TableFunctionEntry extends Entry {
-    public TableFunctionEntry(OptiqSchema schema, String name) {
+  /** Membership of a function in a schema. */
+  public abstract static class FunctionEntry extends Entry {
+    public FunctionEntry(OptiqSchema schema, String name) {
       super(schema, name);
     }
 
-    public abstract TableFunction getTableFunction();
+    public abstract Function getFunction();
 
     /** Whether this represents a materialized view. (At a given point in time,
      * it may or may not be materialized as a table.) */
@@ -280,12 +273,12 @@ public class OptiqSchema {
       return compositeTableMap.keySet();
     }
 
-    public Collection<TableFunction> getTableFunctions(String name) {
-      return compositeTableFunctionMap.get(name);
+    public Collection<Function> getFunctions(String name) {
+      return compositeFunctionMap.get(name);
     }
 
-    public Set<String> getTableFunctionNames() {
-      return compositeTableFunctionMap.keySet();
+    public Set<String> getFunctionNames() {
+      return compositeFunctionMap.keySet();
     }
 
     public SchemaPlus getSubSchema(String name) {
@@ -323,8 +316,8 @@ public class OptiqSchema {
       OptiqSchema.this.add(name, table);
     }
 
-    public void add(String name, TableFunction tableFunction) {
-      OptiqSchema.this.add(name, tableFunction);
+    public void add(String name, net.hydromatic.optiq.Function function) {
+      OptiqSchema.this.add(name, function);
     }
   }
 
@@ -348,26 +341,26 @@ public class OptiqSchema {
   }
 
   /**
-   * Implementation of {@link net.hydromatic.optiq.jdbc.OptiqSchema.TableFunctionEntry}
+   * Implementation of {@link FunctionEntry}
    * where all properties are held in fields.
    */
-  public static class TableFunctionEntryImpl extends TableFunctionEntry {
-    private final TableFunction tableFunction;
+  public static class FunctionEntryImpl extends FunctionEntry {
+    private final Function function;
 
-    /** Creates a TableFunctionEntryImpl. */
-    public TableFunctionEntryImpl(OptiqSchema schema, String name,
-        TableFunction tableFunction) {
+    /** Creates a FunctionEntryImpl. */
+    public FunctionEntryImpl(OptiqSchema schema, String name,
+        Function function) {
       super(schema, name);
-      this.tableFunction = tableFunction;
+      this.function = function;
     }
 
-    public TableFunction getTableFunction() {
-      return tableFunction;
+    public Function getFunction() {
+      return function;
     }
 
     public boolean isMaterialization() {
-      return tableFunction
-          instanceof MaterializedViewTable.MaterializedViewTableFunction;
+      return function
+          instanceof MaterializedViewTable.MaterializedViewTableMacro;
     }
   }
 }
