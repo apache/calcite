@@ -30,9 +30,7 @@ import org.eigenbase.reltype.RelDataTypeFactory;
 import org.eigenbase.reltype.RelProtoDataType;
 import org.eigenbase.sql.type.SqlTypeUtil;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Lists;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -141,40 +139,19 @@ public final class Schemas {
     };
   }
 
-  /** Returns the path of a schema, appending the name of a table if not
-   * null. */
-  public static List<String> path(Schema schema, String name) {
-    final List<String> list = new ArrayList<String>();
-    if (name != null) {
-      list.add(name);
-    }
-    for (Schema s = schema; s != null; s = s.getParentSchema()) {
-      if (s.getParentSchema() != null || !s.getName().equals("")) {
-        // Omit the root schema's name from the path if it's the empty string,
-        // which it usually is.
-        list.add(s.getName());
-      }
-    }
-    return ImmutableList.copyOf(Lists.reverse(list));
-  }
-
-  /** Returns the root schema. */
-  public static Schema root(Schema schema) {
-    for (Schema s = schema;;) {
-      Schema previous = s;
-      s = s.getParentSchema();
-      if (s == null) {
-        return previous;
-      }
-    }
+  /** Returns the expression for a schema. */
+  public static Expression expression(SchemaPlus schema) {
+    return schema.getExpression(schema.getParentSchema(), schema.getName());
   }
 
   /** Returns the expression for a sub-schema. */
-  public static Expression subSchemaExpression(Schema schema,
-      String name, Class type) {
+  public static Expression subSchemaExpression(SchemaPlus schema, String name,
+      Class type) {
     // (Type) schemaExpression.getSubSchema("name")
+    final Expression schemaExpression = expression(schema);
     Expression call =
-        Expressions.call(schema.getExpression(),
+        Expressions.call(
+            schemaExpression,
             BuiltinMethod.SCHEMA_GET_SUB_SCHEMA.method,
             Expressions.constant(name));
     //CHECKSTYLE: IGNORE 2
@@ -195,19 +172,19 @@ public final class Schemas {
   }
 
   /** Returns the expression to access a table within a schema. */
-  public static Expression tableExpression(Schema schema, Type elementType,
+  public static Expression tableExpression(SchemaPlus schema, Type elementType,
       String tableName, Class clazz) {
     final MethodCallExpression expression;
     if (Table.class.isAssignableFrom(clazz)) {
       expression = Expressions.call(
-          schema.getExpression(),
+          expression(schema),
           BuiltinMethod.SCHEMA_GET_TABLE.method,
           Expressions.constant(tableName));
     } else {
       expression = Expressions.call(
           BuiltinMethod.SCHEMAS_QUERYABLE.method,
           DataContext.ROOT,
-          schema.getExpression(),
+          expression(schema),
           Expressions.constant(elementType),
           Expressions.constant(tableName));
     }
@@ -295,7 +272,7 @@ public final class Schemas {
         // schemaPath is usually null. If specified, it overrides schema
         // as the context within which the SQL is validated.
         if (schemaPath == null) {
-          return path(schema.schema, null);
+          return schema.path(null);
         }
         return schemaPath;
       }

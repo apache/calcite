@@ -67,7 +67,7 @@ public class JdbcToSparkConverter
             JavaRowFormat.CUSTOM);
     final JdbcConvention jdbcConvention =
         (JdbcConvention) child.getConvention();
-    String sql = generateSql(jdbcConvention.jdbcSchema.dialect);
+    String sql = generateSql(jdbcConvention.dialect);
     if (OptiqPrepareImpl.DEBUG) {
       System.out.println("[" + sql + "]");
     }
@@ -89,7 +89,7 @@ public class JdbcToSparkConverter
                 BuiltinMethod.RESULT_SET_ENUMERABLE_OF.method,
                 Expressions.call(
                     Expressions.convert_(
-                        jdbcConvention.jdbcSchema.getExpression(),
+                        jdbcConvention.expression,
                         JdbcSchema.class),
                     BuiltinMethod.JDBC_SCHEMA_DATA_SOURCE.method),
                 sqlLiteral,

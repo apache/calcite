@@ -46,8 +46,6 @@ import javax.sql.DataSource;
  * as much as possible of the query logic to SQL.</p>
  */
 public class JdbcSchema implements Schema {
-  private final SchemaPlus parentSchema;
-  private final String name;
   final DataSource dataSource;
   final String catalog;
   final String schema;
@@ -64,29 +62,36 @@ public class JdbcSchema implements Schema {
   /**
    * Creates a JDBC schema.
    *
-   * @param name Schema name
    * @param dataSource Data source
    * @param dialect SQL dialect
+   * @param convention Calling convention
    * @param catalog Catalog name, or null
    * @param schema Schema name pattern
    */
-  public JdbcSchema(
+  public JdbcSchema(DataSource dataSource, SqlDialect dialect,
+      JdbcConvention convention, String catalog, String schema) {
+    super();
+    this.dataSource = dataSource;
+    this.dialect = dialect;
+    this.convention = convention;
+    this.catalog = catalog;
+    this.schema = schema;
+    assert dialect != null;
+    assert dataSource != null;
+  }
+
+  public static JdbcSchema create(
       SchemaPlus parentSchema,
       String name,
       DataSource dataSource,
-      SqlDialect dialect,
       String catalog,
       String schema) {
-    super();
-    this.parentSchema = parentSchema;
-    this.name = name;
-    this.dataSource = dataSource;
-    this.dialect = dialect;
-    this.catalog = catalog;
-    this.schema = schema;
-    this.convention = JdbcConvention.of(this, name);
-    assert dialect != null;
-    assert dataSource != null;
+    final Expression expression =
+        Schemas.subSchemaExpression(parentSchema, name, JdbcSchema.class);
+    final SqlDialect dialect = createDialect(dataSource);
+    final JdbcConvention convention =
+        JdbcConvention.of(dialect, expression, name);
+    return new JdbcSchema(dataSource, dialect, convention, catalog, schema);
   }
 
   /**
@@ -119,8 +124,7 @@ public class JdbcSchema implements Schema {
     }
     String jdbcCatalog = (String) operand.get("jdbcCatalog");
     String jdbcSchema = (String) operand.get("jdbcSchema");
-    final SqlDialect dialect = JdbcSchema.createDialect(dataSource);
-    return new JdbcSchema(parentSchema, name, dataSource, dialect, jdbcCatalog,
+    return JdbcSchema.create(parentSchema, name, dataSource, jdbcCatalog,
         jdbcSchema);
   }
 
@@ -144,14 +148,6 @@ public class JdbcSchema implements Schema {
     return dataSource;
   }
 
-  public SchemaPlus getParentSchema() {
-    return parentSchema;
-  }
-
-  public String getName() {
-    return name;
-  }
-
   public boolean isMutable() {
     return false;
   }
@@ -161,7 +157,7 @@ public class JdbcSchema implements Schema {
     return dataSource;
   }
 
-  public Expression getExpression() {
+  public Expression getExpression(SchemaPlus parentSchema, String name) {
     return Schemas.subSchemaExpression(parentSchema, name, JdbcSchema.class);
   }
 

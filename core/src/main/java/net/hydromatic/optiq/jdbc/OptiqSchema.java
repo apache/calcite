@@ -39,6 +39,7 @@ import java.util.*;
 public class OptiqSchema {
   private final OptiqSchema parent;
   public final Schema schema;
+  public final String name;
   /** Tables explicitly defined in this schema. Does not include tables in
    *  {@link #schema}. */
   public final Map<String, TableEntry> tableMap =
@@ -57,9 +58,10 @@ public class OptiqSchema {
   public final Multimap<String, Function> compositeFunctionMap;
   public final Map<String, OptiqSchema> compositeSubSchemaMap;
 
-  public OptiqSchema(OptiqSchema parent, final Schema schema) {
+  public OptiqSchema(OptiqSchema parent, final Schema schema, String name) {
     this.parent = parent;
     this.schema = schema;
+    this.name = name;
     assert (parent == null) == (this instanceof OptiqRootSchema);
     //noinspection unchecked
     this.compositeTableMap = CompositeMap.of(
@@ -112,8 +114,8 @@ public class OptiqSchema {
             Compatible.INSTANCE.asMap(
                 schema.getSubSchemaNames(),
                 new com.google.common.base.Function<String, OptiqSchema>() {
-                  public OptiqSchema apply(String input) {
-                    return addSchema(schema.getSubSchema(input));
+                  public OptiqSchema apply(String name) {
+                    return add(name, schema.getSubSchema(name));
                   }
                 }));
   }
@@ -146,6 +148,22 @@ public class OptiqSchema {
     }
   }
 
+  /** Returns the path of an object in this schema. */
+  public List<String> path(String name) {
+    final List<String> list = new ArrayList<String>();
+    if (name != null) {
+      list.add(name);
+    }
+    for (OptiqSchema s = this; s != null; s = s.parent) {
+      if (s.parent != null || !s.name.equals("")) {
+        // Omit the root schema's name from the path if it's the empty string,
+        // which it usually is.
+        list.add(s.name);
+      }
+    }
+    return ImmutableList.copyOf(Lists.reverse(list));
+  }
+
   public final OptiqSchema getSubSchema(String schemaName,
       boolean caseSensitive) {
     return (caseSensitive ? subSchemaMap : subSchemaMapInsensitive)
@@ -153,10 +171,10 @@ public class OptiqSchema {
   }
 
   /** Adds a child schema of this schema. */
-  public OptiqSchema addSchema(Schema schema) {
-    final OptiqSchema optiqSchema = new OptiqSchema(this, schema);
-    subSchemaMap.put(schema.getName(), optiqSchema);
-    subSchemaMapInsensitive.put(schema.getName(), optiqSchema);
+  public OptiqSchema add(String name, Schema schema) {
+    final OptiqSchema optiqSchema = new OptiqSchema(this, schema, name);
+    subSchemaMap.put(name, optiqSchema);
+    subSchemaMapInsensitive.put(name, optiqSchema);
     return optiqSchema;
   }
 
@@ -183,10 +201,11 @@ public class OptiqSchema {
   }
 
   public String getName() {
-    return schema.getName();
+    return name;
   }
 
   public SchemaPlus plus() {
+//    System.out.println("plus: " + n++);
     return new SchemaPlusImpl();
   }
 
@@ -217,7 +236,7 @@ public class OptiqSchema {
 
     /** Returns this object's path. For example ["hr", "emps"]. */
     public final List<String> path() {
-      return Schemas.path(schema.schema, name);
+      return schema.path(name);
     }
   }
 
@@ -261,8 +280,8 @@ public class OptiqSchema {
       return schema.isMutable();
     }
 
-    public Expression getExpression() {
-      return schema.getExpression();
+    public Expression getExpression(SchemaPlus parentSchema, String name) {
+      return schema.getExpression(parentSchema, name);
     }
 
     public Table getTable(String name) {
@@ -290,13 +309,9 @@ public class OptiqSchema {
       return subSchemaMap.keySet();
     }
 
-    public SchemaPlus add(Schema schema) {
-      final OptiqSchema optiqSchema = OptiqSchema.this.addSchema(schema);
+    public SchemaPlus add(String name, Schema schema) {
+      final OptiqSchema optiqSchema = OptiqSchema.this.add(name, schema);
       return optiqSchema.plus();
-    }
-
-    public SchemaPlus addRecursive(Schema schema) {
-      return schema.getParentSchema().add(schema);
     }
 
     public <T> T unwrap(Class<T> clazz) {

@@ -113,8 +113,7 @@ public class PlannerTest {
         SqlParserImpl.FACTORY,
         new Function1<SchemaPlus, Schema>() {
           public Schema apply(SchemaPlus parentSchema) {
-            return new ReflectiveSchema(parentSchema, "hr",
-                new JdbcTest.HrSchema());
+            return new ReflectiveSchema("hr", new JdbcTest.HrSchema());
           }
         }, SqlStdOperatorTable.instance(), traitDefs, ruleSets);
   }
@@ -229,7 +228,7 @@ public class PlannerTest {
             JavaRules.ENUMERABLE_FILTER_RULE,
             JavaRules.ENUMERABLE_PROJECT_RULE);
 
-    JdbcConvention out = new JdbcConvention(null, "myjdbc");
+    JdbcConvention out = new JdbcConvention(null, null, "myjdbc");
     RuleSet ruleSet1 = RuleSets.ofList(new MockJdbcProjectRule(out),
         new MockJdbcTableRule(out));
 

@@ -79,7 +79,7 @@ abstract class OptiqConnectionImpl
         typeFactory != null ? typeFactory : new JavaTypeFactoryImpl();
     if (rootSchema == null) {
       rootSchema = new OptiqRootSchema(new RootSchema());
-      rootSchema.addSchema(MetadataSchema.create(rootSchema.plus()));
+      rootSchema.add("metadata", MetadataSchema.INSTANCE);
     }
     this.rootSchema = rootSchema;
 
@@ -243,10 +243,11 @@ abstract class OptiqConnectionImpl
   /** Schema that has no parents. */
   private static class RootSchema extends AbstractSchema {
     RootSchema() {
-      super(null, "");
+      super();
     }
 
-    @Override public Expression getExpression() {
+    @Override public Expression getExpression(SchemaPlus parentSchema,
+        String name) {
       return Expressions.call(
           DataContext.ROOT,
           BuiltinMethod.DATA_CONTEXT_GET_ROOT_SCHEMA.method);

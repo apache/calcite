@@ -114,9 +114,8 @@ public class RelWriterTest {
             new Frameworks.PlannerAction<String>() {
               public String apply(RelOptCluster cluster,
                   RelOptSchema relOptSchema, SchemaPlus rootSchema) {
-                rootSchema.add(
-                    new ReflectiveSchema(rootSchema, "hr",
-                        new JdbcTest.HrSchema()));
+                rootSchema.add("hr",
+                    new ReflectiveSchema("hr", new JdbcTest.HrSchema()));
                 TableAccessRel table =
                     new TableAccessRel(cluster,
                         relOptSchema.getTableForMember(
@@ -158,9 +157,8 @@ public class RelWriterTest {
               public String apply(RelOptCluster cluster,
                   RelOptSchema relOptSchema, SchemaPlus rootSchema) {
                 SchemaPlus schema =
-                    rootSchema.add(new ReflectiveSchema(rootSchema,
-                        "hr",
-                        new JdbcTest.HrSchema()));
+                    rootSchema.add("hr",
+                        new ReflectiveSchema("hr", new JdbcTest.HrSchema()));
                 final RelJsonReader reader =
                     new RelJsonReader(cluster, relOptSchema, schema);
                 RelNode node;

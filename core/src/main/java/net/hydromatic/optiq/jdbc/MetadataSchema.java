@@ -52,19 +52,15 @@ class MetadataSchema extends AbstractSchema {
             }
           });
 
-  private MetadataSchema(SchemaPlus rootSchema) {
-    super(rootSchema, "metadata");
-  }
+  public static final Schema INSTANCE = new MetadataSchema();
+
+  /** Creates the data dictionary, also called the information schema. It is a
+   * schema called "metadata" that contains tables "TABLES", "COLUMNS" etc. */
+  private MetadataSchema() {}
 
   @Override
   protected Map<String, Table> getTableMap() {
     return TABLE_MAP;
-  }
-
-  /** Creates the data dictionary, also called the information schema. It is a
-   * schema called "metadata" that contains tables "TABLES", "COLUMNS" etc. */
-  static Schema create(SchemaPlus rootSchema) {
-    return new MetadataSchema(rootSchema);
   }
 }
 

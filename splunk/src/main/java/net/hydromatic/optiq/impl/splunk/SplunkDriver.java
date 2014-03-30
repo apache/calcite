@@ -25,8 +25,6 @@ import net.hydromatic.optiq.impl.jdbc.JdbcSchema;
 import net.hydromatic.optiq.impl.splunk.search.SplunkConnection;
 import net.hydromatic.optiq.jdbc.*;
 
-import org.eigenbase.sql.SqlDialect;
-
 import java.net.URL;
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -82,7 +80,7 @@ public class SplunkDriver extends UnregisteredDriver {
       throw new SQLException("Cannot connect", e);
     }
     final SchemaPlus rootSchema = optiqConnection.getRootSchema();
-    rootSchema.add(new SplunkSchema(rootSchema, "splunk", splunkConnection));
+    rootSchema.add("splunk", new SplunkSchema(splunkConnection));
 
     // Include a schema called "mysql" in every splunk connection.
     // This is a hack for demo purposes. TODO: Add a config file mechanism.
@@ -96,10 +94,9 @@ public class SplunkDriver extends UnregisteredDriver {
       final DataSource dataSource =
           JdbcSchema.dataSource("jdbc:mysql://localhost", null, "foodmart",
               "foodmart");
-      final SqlDialect dialect = JdbcSchema.createDialect(dataSource);
-      rootSchema.add(
-          new JdbcSchema(optiqConnection.getRootSchema(), "foodmart",
-              dataSource, dialect, "", mysqlSchemaName));
+      rootSchema.add("foodmart",
+          JdbcSchema.create(optiqConnection.getRootSchema(), "foodmart",
+              dataSource, "", mysqlSchemaName));
     }
 
     return connection;

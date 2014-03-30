@@ -256,7 +256,7 @@ public class JdbcFrontLinqBackTest {
                 SchemaPlus rootSchema =
                     optiqConnection.getRootSchema();
                 SchemaPlus mapSchema =
-                    rootSchema.add(new AbstractSchema(rootSchema, "foo"));
+                    rootSchema.add("foo", new AbstractSchema());
                 final String tableName = "bar";
                 final JdbcTest.AbstractModifiableTable table =
                     new JdbcTest.AbstractModifiableTable(tableName) {

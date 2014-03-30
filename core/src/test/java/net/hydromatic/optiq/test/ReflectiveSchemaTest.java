@@ -145,14 +145,12 @@ public class ReflectiveSchemaTest {
         connection.unwrap(OptiqConnection.class);
     JavaTypeFactory typeFactory = optiqConnection.getTypeFactory();
     SchemaPlus rootSchema = optiqConnection.getRootSchema();
-    SchemaPlus schema =
-        rootSchema.add(new AbstractSchema(rootSchema, "s"));
+    SchemaPlus schema = rootSchema.add("s", new AbstractSchema());
     schema.add("GenerateStrings",
         Schemas.methodMember(JdbcTest.GENERATE_STRINGS_METHOD, typeFactory));
     schema.add("StringUnion",
         Schemas.methodMember(JdbcTest.STRING_UNION_METHOD, typeFactory));
-    rootSchema.add(
-        new ReflectiveSchema(rootSchema, "hr", new JdbcTest.HrSchema()));
+    rootSchema.add("hr", new ReflectiveSchema("hr", new JdbcTest.HrSchema()));
     ResultSet resultSet = connection.createStatement().executeQuery(
         "select *\n"
         + "from table(s.StringUnion(\n"
@@ -172,13 +170,12 @@ public class ReflectiveSchemaTest {
     OptiqConnection optiqConnection =
         connection.unwrap(OptiqConnection.class);
     SchemaPlus rootSchema = optiqConnection.getRootSchema();
-    SchemaPlus schema = rootSchema.add(new AbstractSchema(rootSchema, "s"));
+    SchemaPlus schema = rootSchema.add("s", new AbstractSchema());
     schema.add("emps_view",
         ViewTable.viewMacro(schema,
             "select * from \"hr\".\"emps\" where \"deptno\" = 10",
             null));
-    rootSchema.add(
-        new ReflectiveSchema(rootSchema, "hr", new JdbcTest.HrSchema()));
+    rootSchema.add("hr", new ReflectiveSchema("hr", new JdbcTest.HrSchema()));
     ResultSet resultSet = connection.createStatement().executeQuery(
         "select *\n"
         + "from \"s\".\"emps_view\"\n"
@@ -199,7 +196,7 @@ public class ReflectiveSchemaTest {
     OptiqConnection optiqConnection =
         connection.unwrap(OptiqConnection.class);
     SchemaPlus rootSchema = optiqConnection.getRootSchema();
-    SchemaPlus schema = rootSchema.add(new AbstractSchema(rootSchema, "s"));
+    SchemaPlus schema = rootSchema.add("s", new AbstractSchema());
     // create a view s.emps based on hr.emps. uses explicit schema path "hr".
     schema.add("emps",
         ViewTable.viewMacro(schema,
@@ -215,8 +212,7 @@ public class ReflectiveSchemaTest {
             Collections.singletonList("s")));
     schema.add("null_emps",
         ViewTable.viewMacro(schema, "select * from \"emps\"", null));
-    rootSchema.add(
-        new ReflectiveSchema(rootSchema, "hr", new JdbcTest.HrSchema()));
+    rootSchema.add("hr", new ReflectiveSchema("hr", new JdbcTest.HrSchema()));
     final Statement statement = connection.createStatement();
     ResultSet resultSet;
     resultSet = statement.executeQuery(

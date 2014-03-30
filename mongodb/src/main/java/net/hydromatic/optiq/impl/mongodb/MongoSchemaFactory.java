@@ -37,7 +37,7 @@ public class MongoSchemaFactory implements SchemaFactory {
     Map map = (Map) operand;
     String host = (String) map.get("host");
     String database = (String) map.get("database");
-    return new MongoSchema(parentSchema, name, host, database);
+    return new MongoSchema(host, database);
   }
 }
 

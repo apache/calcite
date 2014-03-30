@@ -23,7 +23,6 @@ import net.hydromatic.optiq.impl.jdbc.JdbcSchema;
 import net.hydromatic.optiq.jdbc.OptiqConnection;
 import net.hydromatic.optiq.jdbc.OptiqSchema;
 
-import org.eigenbase.sql.SqlDialect;
 import org.eigenbase.util.Pair;
 import org.eigenbase.util.Util;
 
@@ -83,10 +82,8 @@ public class ModelHandler {
 
   public void visit(JsonMapSchema jsonSchema) {
     final SchemaPlus parentSchema = currentMutableSchema("schema");
-    final AbstractSchema mapSchema =
-        new AbstractSchema(parentSchema, jsonSchema.name);
     final SchemaPlus schema =
-        parentSchema.add(mapSchema);
+        parentSchema.add(jsonSchema.name, new AbstractSchema());
     populateSchema(jsonSchema, schema);
     if (schema.getName().equals("mat")) {
       // Inject by hand a Star Table. Later we'll add a JSON model element.
@@ -118,7 +115,7 @@ public class ModelHandler {
       final Schema schema =
           schemaFactory.create(
               parentSchema, jsonSchema.name, jsonSchema.operand);
-      final SchemaPlus optiqSchema = parentSchema.add(schema);
+      final SchemaPlus optiqSchema = parentSchema.add(jsonSchema.name, schema);
       populateSchema(jsonSchema, optiqSchema);
     } catch (Exception e) {
       throw new RuntimeException("Error instantiating " + jsonSchema, e);
@@ -132,15 +129,10 @@ public class ModelHandler {
             jsonSchema.jdbcDriver,
             jsonSchema.jdbcUser,
             jsonSchema.jdbcPassword);
-    final SqlDialect dialect = JdbcSchema.createDialect(dataSource);
     JdbcSchema schema =
-        new JdbcSchema(parentSchema,
-            jsonSchema.name,
-            dataSource,
-            dialect,
-            jsonSchema.jdbcCatalog,
-            jsonSchema.jdbcSchema);
-    final SchemaPlus optiqSchema = parentSchema.add(schema);
+        JdbcSchema.create(parentSchema, jsonSchema.name, dataSource,
+            jsonSchema.jdbcCatalog, jsonSchema.jdbcSchema);
+    final SchemaPlus optiqSchema = parentSchema.add(jsonSchema.name, schema);
     populateSchema(jsonSchema, optiqSchema);
   }
 

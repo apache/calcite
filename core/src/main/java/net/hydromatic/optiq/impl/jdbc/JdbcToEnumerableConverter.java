@@ -78,7 +78,7 @@ public class JdbcToEnumerableConverter
             pref.prefer(JavaRowFormat.CUSTOM));
     final JdbcConvention jdbcConvention =
         (JdbcConvention) child.getConvention();
-    String sql = generateSql(jdbcConvention.jdbcSchema.dialect);
+    String sql = generateSql(jdbcConvention.dialect);
     if (OptiqPrepareImpl.DEBUG) {
       System.out.println("[" + sql + "]");
     }
@@ -90,8 +90,7 @@ public class JdbcToEnumerableConverter
     final ParameterExpression resultSet_ =
         Expressions.parameter(Modifier.FINAL, ResultSet.class,
             builder.newName("resultSet"));
-    CalendarPolicy calendarPolicy =
-        CalendarPolicy.of(jdbcConvention.jdbcSchema.dialect);
+    CalendarPolicy calendarPolicy = CalendarPolicy.of(jdbcConvention.dialect);
     final Expression calendar_;
     switch (calendarPolicy) {
     case LOCAL:
@@ -147,7 +146,7 @@ public class JdbcToEnumerableConverter
             Expressions.call(
                 BuiltinMethod.RESULT_SET_ENUMERABLE_OF.method,
                 Expressions.call(
-                    Schemas.unwrap(jdbcConvention.jdbcSchema.getExpression(),
+                    Schemas.unwrap(jdbcConvention.expression,
                         JdbcSchema.class),
                     BuiltinMethod.JDBC_SCHEMA_DATA_SOURCE.method),
                 sql_,

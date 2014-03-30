@@ -30,6 +30,7 @@ import net.hydromatic.optiq.impl.generate.RangeTable;
 import net.hydromatic.optiq.impl.java.AbstractQueryableTable;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 import net.hydromatic.optiq.impl.java.ReflectiveSchema;
+import net.hydromatic.optiq.impl.jdbc.JdbcConvention;
 import net.hydromatic.optiq.impl.jdbc.JdbcSchema;
 import net.hydromatic.optiq.jdbc.*;
 import net.hydromatic.optiq.jdbc.Driver;
@@ -139,7 +140,7 @@ public class JdbcTest {
         connection.unwrap(OptiqConnection.class);
     JavaTypeFactory typeFactory = optiqConnection.getTypeFactory();
     SchemaPlus rootSchema = optiqConnection.getRootSchema();
-    SchemaPlus schema = rootSchema.add(new AbstractSchema(rootSchema, "s"));
+    SchemaPlus schema = rootSchema.add("s", new AbstractSchema());
     final TableMacro tableMacro =
         Schemas.methodMember(GENERATE_STRINGS_METHOD, typeFactory);
     schema.add("GenerateStrings", tableMacro);
@@ -229,7 +230,7 @@ public class JdbcTest {
     OptiqConnection connection = (OptiqConnection)
         driver.connect("jdbc:optiq:", new Properties());
     SchemaPlus rootSchema = connection.getRootSchema();
-    rootSchema.add(new ReflectiveSchema(rootSchema, "hr", new HrSchema()));
+    rootSchema.add("hr", new ReflectiveSchema("hr", new HrSchema()));
     connection.setSchema("hr");
     final Statement statement = connection.createStatement();
     final ResultSet resultSet =
@@ -279,7 +280,7 @@ public class JdbcTest {
     OptiqConnection connection = (OptiqConnection)
         driver.connect("jdbc:optiq:", new Properties());
     SchemaPlus rootSchema = connection.getRootSchema();
-    rootSchema.add(new ReflectiveSchema(rootSchema, "hr", new HrSchema()));
+    rootSchema.add("hr", new ReflectiveSchema("hr", new HrSchema()));
     connection.setSchema("hr");
     final Statement statement = connection.createStatement();
     assertFalse((Boolean) OptiqAssert.call(statement, "isCloseOnCompletion"));
@@ -313,7 +314,7 @@ public class JdbcTest {
     OptiqConnection optiqConnection =
         connection.unwrap(OptiqConnection.class);
     final SchemaPlus rootSchema = optiqConnection.getRootSchema();
-    rootSchema.add(new ReflectiveSchema(rootSchema, "hr", new HrSchema()));
+    rootSchema.add("hr", new ReflectiveSchema("hr", new HrSchema()));
     Statement statement = optiqConnection.createStatement();
     ResultSet resultSet = statement.executeQuery(
         "select d.\"deptno\", min(e.\"empid\")\n"
@@ -561,7 +562,7 @@ public class JdbcTest {
     final OptiqConnection connection = OptiqAssert.getConnection(false);
     final SchemaPlus rootSchema = connection.getRootSchema();
     final SchemaPlus foodmart = rootSchema.getSubSchema("foodmart");
-    rootSchema.add(new CloneSchema(rootSchema, "foodmart2", foodmart));
+    rootSchema.add("foodmart2", new CloneSchema(foodmart));
     Statement statement = connection.createStatement();
     ResultSet resultSet =
         statement.executeQuery(
@@ -2611,9 +2612,8 @@ public class JdbcTest {
                     new AutoTempDriver(objects)
                         .connect("jdbc:optiq:", new Properties());
                 final SchemaPlus rootSchema = connection.getRootSchema();
-                rootSchema.add(new ReflectiveSchema(rootSchema,
-                    "hr",
-                    new HrSchema()));
+                rootSchema.add("hr",
+                    new ReflectiveSchema("hr", new HrSchema()));
                 connection.setSchema("hr");
                 return connection;
               }
@@ -2736,7 +2736,7 @@ public class JdbcTest {
     OptiqConnection optiqConnection =
         connection.unwrap(OptiqConnection.class);
     final SchemaPlus rootSchema = optiqConnection.getRootSchema();
-    rootSchema.add(new ReflectiveSchema(rootSchema, "TEST", new MySchema()));
+    rootSchema.add("TEST", new ReflectiveSchema("TEST", new MySchema()));
     Statement statement = optiqConnection.createStatement();
     ResultSet resultSet =
         statement.executeQuery("SELECT \"myvalue\" from TEST.\"mytable2\"");
@@ -3331,13 +3331,9 @@ public class JdbcTest {
   }
 
   public static class FoodmartJdbcSchema extends JdbcSchema {
-    public FoodmartJdbcSchema(
-        SchemaPlus parentSchema,
-        DataSource dataSource,
-        SqlDialect dialect,
-        String catalog,
-        String schema) {
-      super(parentSchema, "FoodMart", dataSource, dialect, catalog, schema);
+    public FoodmartJdbcSchema(DataSource dataSource, SqlDialect dialect,
+        JdbcConvention convention, String catalog, String schema) {
+      super(dataSource, dialect, convention, catalog, schema);
     }
 
     public final Table customer = getTable("customer");
@@ -3439,7 +3435,7 @@ public class JdbcTest {
         final Map<String, Object> operand) {
       final boolean mutable =
           SqlFunctions.isNotFalse((Boolean) operand.get("mutable"));
-      return new ReflectiveSchema(parentSchema, name, new HrSchema()) {
+      return new ReflectiveSchema(name, new HrSchema()) {
         @Override
         protected Map<String, Table> getTableMap() {
           // Mine the EMPS table and add it under another name e.g. ELVIS

@@ -115,7 +115,7 @@ public class MaterializedViewTable extends ViewTable {
           Schemas.parse(MATERIALIZATION_CONNECTION, schema, schemaPath,
               viewSql);
       final List<String> schemaPath1 =
-          schemaPath != null ? schemaPath : Schemas.path(schema.schema, null);
+          schemaPath != null ? schemaPath : schema.path(null);
       final JavaTypeFactory typeFactory =
           MATERIALIZATION_CONNECTION.getTypeFactory();
       return new MaterializedViewTable(typeFactory.getJavaClass(parsed.rowType),

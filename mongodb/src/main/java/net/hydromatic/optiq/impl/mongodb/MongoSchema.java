@@ -35,19 +35,13 @@ public class MongoSchema extends AbstractSchema {
   final DB mongoDb;
 
   /**
-   * Creates a MONGO schema.
+   * Creates a MongoDB schema.
    *
-   * @param parentSchema Parent schema
-   * @param name Name of schema
    * @param host Mongo host, e.g. "localhost"
    * @param database Mongo database name, e.g. "foodmart"
    */
-  public MongoSchema(
-      SchemaPlus parentSchema,
-      String name,
-      String host,
-      String database) {
-    super(parentSchema, name);
+  public MongoSchema(String host, String database) {
+    super();
     try {
       MongoClient mongo = new MongoClient(host);
       this.mongoDb = mongo.getDB(database);

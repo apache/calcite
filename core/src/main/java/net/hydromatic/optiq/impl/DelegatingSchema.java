@@ -45,20 +45,12 @@ public class DelegatingSchema implements Schema {
     return "DelegatingSchema(delegate=" + schema + ")";
   }
 
-  public SchemaPlus getParentSchema() {
-    return schema.getParentSchema();
-  }
-
-  public String getName() {
-    return schema.getName();
-  }
-
   public boolean isMutable() {
     return schema.isMutable();
   }
 
-  public Expression getExpression() {
-    return schema.getExpression();
+  public Expression getExpression(SchemaPlus parentSchema, String name) {
+    return schema.getExpression(parentSchema, name);
   }
 
   public Table getTable(String name) {

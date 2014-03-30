@@ -52,15 +52,10 @@ public class CloneSchema extends AbstractSchema {
   /**
    * Creates a CloneSchema.
    *
-   * @param parentSchema Parent schema
-   * @param name Name of schema
    * @param sourceSchema JDBC data source
    */
-  public CloneSchema(
-      SchemaPlus parentSchema,
-      String name,
-      SchemaPlus sourceSchema) {
-    super(parentSchema, name);
+  public CloneSchema(SchemaPlus sourceSchema) {
+    super();
     this.sourceSchema = sourceSchema;
   }
 
@@ -138,9 +133,9 @@ public class CloneSchema extends AbstractSchema {
         String name,
         Map<String, Object> operand) {
       SchemaPlus schema =
-          parentSchema.add(
+          parentSchema.add(name,
               JdbcSchema.create(parentSchema, name + "$source", operand));
-      return new CloneSchema(parentSchema, name, schema);
+      return new CloneSchema(schema);
     }
   }
 }

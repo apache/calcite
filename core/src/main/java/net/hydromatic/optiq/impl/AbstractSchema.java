@@ -48,27 +48,14 @@ import java.util.*;
  * {@link com.google.common.collect.Maps}.</p>
  */
 public class AbstractSchema implements Schema {
-  protected final SchemaPlus parentSchema;
-  protected final String name;
-
-  public AbstractSchema(SchemaPlus parentSchema, String name) {
-    this.parentSchema = parentSchema;
-    this.name = name;
-  }
-
-  public SchemaPlus getParentSchema() {
-    return parentSchema;
-  }
-
-  public String getName() {
-    return name;
+  public AbstractSchema() {
   }
 
   public boolean isMutable() {
     return true;
   }
 
-  public Expression getExpression() {
+  public Expression getExpression(SchemaPlus parentSchema, String name) {
     return Schemas.subSchemaExpression(parentSchema, name, getClass());
   }
 

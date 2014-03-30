@@ -19,6 +19,8 @@ package net.hydromatic.optiq.impl.splunk;
 
 import net.hydromatic.linq4j.expressions.*;
 
+import net.hydromatic.optiq.SchemaPlus;
+import net.hydromatic.optiq.Schemas;
 import net.hydromatic.optiq.impl.splunk.search.SplunkConnection;
 import net.hydromatic.optiq.prepare.OptiqPrepareImpl;
 import net.hydromatic.optiq.rules.java.*;
@@ -48,6 +50,7 @@ public class SplunkTableAccessRel
     extends TableAccessRelBase
     implements EnumerableRel {
   final SplunkTable splunkTable;
+  final SchemaPlus schema;
   final String search;
   final String earliest;
   final String latest;
@@ -66,6 +69,7 @@ public class SplunkTableAccessRel
         cluster.traitSetOf(EnumerableConvention.INSTANCE),
         table);
     this.splunkTable = splunkTable;
+    this.schema = null; // TODO:
     this.search = search;
     this.earliest = earliest;
     this.latest = latest;
@@ -137,7 +141,8 @@ public class SplunkTableAccessRel
                 CONSTRUCTOR,
                 Expressions.field(
                     Types.castIfNecessary(
-                        SplunkSchema.class, splunkTable.schema.getExpression()),
+                        SplunkSchema.class,
+                        Schemas.expression(schema)),
                     "splunkConnection"),
                 Expressions.constant(search),
                 Expressions.constant(earliest),

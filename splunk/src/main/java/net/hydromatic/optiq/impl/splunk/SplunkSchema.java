@@ -17,7 +17,6 @@
 */
 package net.hydromatic.optiq.impl.splunk;
 
-import net.hydromatic.optiq.*;
 import net.hydromatic.optiq.Table;
 import net.hydromatic.optiq.impl.AbstractSchema;
 import net.hydromatic.optiq.impl.splunk.search.SplunkConnection;
@@ -33,18 +32,19 @@ public class SplunkSchema extends AbstractSchema {
   /** The name of the one and only table. */
   public static final String SPLUNK_TABLE_NAME = "splunk";
 
+  public static final ImmutableMap<String, Table> TABLE_MAP =
+      ImmutableMap.of(SPLUNK_TABLE_NAME, (Table) SplunkTable.INSTANCE);
+
   public final SplunkConnection splunkConnection;
 
   /** Creates a SplunkSchema. */
-  public SplunkSchema(SchemaPlus parentSchema, String name,
-      SplunkConnection splunkConnection) {
-    super(parentSchema, name);
+  public SplunkSchema(SplunkConnection splunkConnection) {
+    super();
     this.splunkConnection = splunkConnection;
   }
 
   @Override protected Map<String, Table> getTableMap() {
-    return ImmutableMap.of(
-        SPLUNK_TABLE_NAME, (Table) new SplunkTable(this));
+    return TABLE_MAP;
   }
 }
 

@@ -26,6 +26,7 @@ import net.hydromatic.optiq.impl.*;
 
 import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.reltype.RelDataTypeFactory;
+import org.eigenbase.util.Bug;
 
 import com.google.common.collect.*;
 
@@ -39,22 +40,27 @@ import java.util.*;
 public class ReflectiveSchema
     extends AbstractSchema {
   final Class clazz;
+  private final String name;
   private Object target;
 
   /**
    * Creates a ReflectiveSchema.
    *
-   * @param parentSchema Parent schema
    * @param name Name
    * @param target Object whose fields will be sub-objects of the schema
    */
-  public ReflectiveSchema(
-      SchemaPlus parentSchema,
-      String name,
-      Object target) {
-    super(parentSchema, name);
+  public ReflectiveSchema(String name, Object target) {
+    super();
+    this.name = name;
     this.clazz = target.getClass();
     this.target = target;
+  }
+
+  public String getName() {
+    Bug.upgrade(
+        "remove name field and this method when "
+        + "https://github.com/julianhyde/optiq/issues/214 is fixed");
+    return name;
   }
 
   @Override
@@ -105,12 +111,12 @@ public class ReflectiveSchema
 
   /** Returns an expression for the object wrapped by this schema (not the
    * schema itself). */
-  Expression getTargetExpression() {
+  Expression getTargetExpression(SchemaPlus parentSchema, String name) {
     return Types.castIfNecessary(
         target.getClass(),
         Expressions.call(
             Schemas.unwrap(
-                getExpression(),
+                getExpression(parentSchema, name),
                 ReflectiveSchema.class),
             BuiltinMethod.REFLECTIVE_SCHEMA_GET_TARGET.method));
   }
@@ -256,7 +262,7 @@ public class ReflectiveSchema
               e);
         }
       }
-      return new ReflectiveSchema(parentSchema, name, target);
+      return new ReflectiveSchema(name, target);
     }
   }
 
@@ -322,8 +328,8 @@ public class ReflectiveSchema
           public Expression getExpression(SchemaPlus schema, String tableName,
               Class clazz) {
             return Expressions.call(
-                ((ReflectiveSchema) schema).getTargetExpression(), method,
-                list);
+                schema.unwrap(ReflectiveSchema.class).getTargetExpression(
+                    schema.getParentSchema(), schema.getName()), method, list);
           }
         };
       } catch (IllegalAccessException e) {
@@ -351,7 +357,8 @@ public class ReflectiveSchema
     public Expression getExpression(SchemaPlus schema, String tableName,
         Class clazz) {
       return Expressions.field(
-          schema.unwrap(ReflectiveSchema.class).getTargetExpression(), field);
+          schema.unwrap(ReflectiveSchema.class).getTargetExpression(
+              schema.getParentSchema(), schema.getName()), field);
     }
   }
 }

@@ -128,7 +128,7 @@ public class ViewTable
           Schemas.parse(MATERIALIZATION_CONNECTION, schema, schemaPath,
               viewSql);
       final List<String> schemaPath1 =
-          schemaPath != null ? schemaPath : Schemas.path(schema.schema, null);
+          schemaPath != null ? schemaPath : schema.path(null);
       final JavaTypeFactory typeFactory = (JavaTypeFactory) parsed.typeFactory;
       return new ViewTable(typeFactory.getJavaClass(parsed.rowType),
           RelDataTypeImpl.proto(parsed.rowType), viewSql, schemaPath1);

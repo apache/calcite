@@ -33,12 +33,10 @@ import org.eigenbase.reltype.RelDataTypeFactory;
  * Table based on Splunk.
  */
 class SplunkTable extends AbstractQueryableTable implements TranslatableTable {
-  final SplunkSchema schema;
+  public static final SplunkTable INSTANCE = new SplunkTable();
 
-  public SplunkTable(SplunkSchema schema) {
+  private SplunkTable() {
     super(Object[].class);
-    this.schema = schema;
-    assert schema != null;
   }
 
   public String toString() {
@@ -60,15 +58,15 @@ class SplunkTable extends AbstractQueryableTable implements TranslatableTable {
     return new AbstractTableQueryable<T>(queryProvider, schema, this,
         tableName) {
       public Enumerator<T> enumerator() {
-        final SplunkQuery<T> query = createQuery();
+        final SplunkQuery<T> query = createQuery(schema);
         return query.enumerator();
       }
     };
   }
 
-  private <T> SplunkQuery<T> createQuery() {
+  private <T> SplunkQuery<T> createQuery(SchemaPlus schema) {
     return new SplunkQuery<T>(
-        schema.splunkConnection,
+        schema.unwrap(SplunkSchema.class).splunkConnection,
         "search",
         null,
         null,

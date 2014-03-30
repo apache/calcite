@@ -17,7 +17,10 @@
 */
 package net.hydromatic.optiq.impl.jdbc;
 
+import net.hydromatic.linq4j.expressions.Expression;
+
 import org.eigenbase.relopt.Convention;
+import org.eigenbase.sql.SqlDialect;
 
 /**
  * Calling convention for relational operations that occur in a JDBC
@@ -38,15 +41,19 @@ import org.eigenbase.relopt.Convention;
  * instantiated, at the start of planning, for each JDBC database in play.</p>
  */
 public class JdbcConvention extends Convention.Impl {
-  public final JdbcSchema jdbcSchema;
+  public final SqlDialect dialect;
+  public final Expression expression;
 
-  public JdbcConvention(JdbcSchema jdbcSchema, String name) {
+  public JdbcConvention(SqlDialect dialect, Expression expression,
+      String name) {
     super("JDBC." + name, JdbcRel.class);
-    this.jdbcSchema = jdbcSchema;
+    this.dialect = dialect;
+    this.expression = expression;
   }
 
-  public static JdbcConvention of(JdbcSchema jdbcSchema, String name) {
-    return new JdbcConvention(jdbcSchema, name);
+  public static JdbcConvention of(SqlDialect dialect, Expression expression,
+      String name) {
+    return new JdbcConvention(dialect, expression, name);
   }
 }
 

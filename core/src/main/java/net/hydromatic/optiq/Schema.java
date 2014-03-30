@@ -54,19 +54,6 @@ import java.util.*;
  */
 public interface Schema {
   /**
-   * Returns the parent schema, or null if this schema has no parent.
-   */
-  SchemaPlus getParentSchema();
-
-  /**
-   * Returns the name of this schema.
-   *
-   * <p>The name must not be null, and must be unique within its parent.
-   * The root schema is typically named "".
-   */
-  String getName();
-
-  /**
    * Returns a table with a given name, or null if not found.
    *
    * @param name Table name
@@ -106,8 +93,11 @@ public interface Schema {
   /**
    * Returns the expression by which this schema can be referenced in generated
    * code.
+   *
+   * @param parentSchema
+   * @param name
    */
-  Expression getExpression();
+  Expression getExpression(SchemaPlus parentSchema, String name);
 
   /** Returns whether the user is allowed to create new tables, functions
    * and sub-schemas in this schema, in addition to those returned automatically

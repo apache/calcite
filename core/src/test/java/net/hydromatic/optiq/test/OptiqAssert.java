@@ -19,8 +19,7 @@ package net.hydromatic.optiq.test;
 
 import net.hydromatic.linq4j.function.Function1;
 
-import net.hydromatic.optiq.DataContext;
-import net.hydromatic.optiq.SchemaPlus;
+import net.hydromatic.optiq.*;
 import net.hydromatic.optiq.impl.clone.CloneSchema;
 import net.hydromatic.optiq.impl.java.ReflectiveSchema;
 import net.hydromatic.optiq.impl.jdbc.JdbcSchema;
@@ -28,7 +27,6 @@ import net.hydromatic.optiq.jdbc.MetaImpl;
 import net.hydromatic.optiq.jdbc.OptiqConnection;
 import net.hydromatic.optiq.runtime.Hook;
 
-import org.eigenbase.sql.SqlDialect;
 import org.eigenbase.util.*;
 
 import com.google.common.collect.ImmutableMultiset;
@@ -455,19 +453,16 @@ public class OptiqAssert {
         connection.unwrap(OptiqConnection.class);
     SchemaPlus rootSchema = optiqConnection.getRootSchema();
     if (schemaList.contains("hr")) {
-      rootSchema.add(new ReflectiveSchema(rootSchema,
-          "hr",
-          new JdbcTest.HrSchema()));
+      rootSchema.add("hr",
+          new ReflectiveSchema("hr", new JdbcTest.HrSchema()));
     }
     if (schemaList.contains("foodmart")) {
-      rootSchema.add(new ReflectiveSchema(rootSchema,
-          "foodmart",
-          new JdbcTest.FoodmartSchema()));
+      rootSchema.add("foodmart",
+          new ReflectiveSchema("foodmart", new JdbcTest.FoodmartSchema()));
     }
     if (schemaList.contains("lingual")) {
-      rootSchema.add(new ReflectiveSchema(rootSchema,
-          "SALES",
-          new JdbcTest.LingualSchema()));
+      rootSchema.add("SALES",
+          new ReflectiveSchema("SALES", new JdbcTest.LingualSchema()));
     }
     if (schemaList.contains("metadata")) {
       // always present
@@ -495,19 +490,17 @@ public class OptiqAssert {
         connection.unwrap(OptiqConnection.class);
     final SchemaPlus rootSchema = optiqConnection.getRootSchema();
     final DataSource dataSource =
-        JdbcSchema.dataSource(CONNECTION_SPEC.url,
+        JdbcSchema.dataSource(
+            CONNECTION_SPEC.url,
             CONNECTION_SPEC.driver,
             CONNECTION_SPEC.username,
             CONNECTION_SPEC.password);
-    final SqlDialect dialect = JdbcSchema.createDialect(dataSource);
     final SchemaPlus foodmart =
-        rootSchema.add(
-            new JdbcSchema(rootSchema, "foodmart", dataSource, dialect, null,
+        rootSchema.add("foodmart",
+            JdbcSchema.create(rootSchema, "foodmart", dataSource, null,
                 "foodmart"));
     if (withClone) {
-      CloneSchema schema =
-          new CloneSchema(rootSchema, "foodmart2", foodmart);
-      rootSchema.add(schema);
+      rootSchema.add("foodmart2", new CloneSchema(foodmart));
     }
     optiqConnection.setSchema("foodmart2");
     return optiqConnection;
@@ -564,8 +557,7 @@ public class OptiqAssert {
                   connection.unwrap(OptiqConnection.class);
               SchemaPlus rootSchema =
                   optiqConnection.getRootSchema();
-              rootSchema.add(
-                  new ReflectiveSchema(rootSchema, name, schema));
+              rootSchema.add(name, new ReflectiveSchema(name, schema));
               optiqConnection.setSchema(name);
               return optiqConnection;
             }

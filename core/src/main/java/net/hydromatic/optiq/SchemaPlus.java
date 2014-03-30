@@ -30,12 +30,25 @@ package net.hydromatic.optiq;
  * user-defined table, it will have been wrapped in this interface.</p>
  */
 public interface SchemaPlus extends Schema {
+  /**
+   * Returns the parent schema, or null if this schema has no parent.
+   */
+  SchemaPlus getParentSchema();
+
+  /**
+   * Returns the name of this schema.
+   *
+   * <p>The name must not be null, and must be unique within its parent.
+   * The root schema is typically named "".
+   */
+  String getName();
+
   // override with stricter return
   SchemaPlus getSubSchema(String name);
 
   /** Adds a schema as a sub-schema of this schema, and returns the wrapped
    * object. */
-  SchemaPlus add(Schema schema);
+  SchemaPlus add(String name, Schema schema);
 
   /** Adds a table to this schema. */
   void add(String name, Table table);
@@ -47,8 +60,6 @@ public interface SchemaPlus extends Schema {
 
   /** Returns an underlying object. */
   <T> T unwrap(Class<T> clazz);
-
-  SchemaPlus addRecursive(Schema schema);
 }
 
 // End SchemaPlus.java

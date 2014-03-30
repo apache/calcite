@@ -21,7 +21,6 @@ import net.hydromatic.linq4j.function.Function1;
 
 import net.hydromatic.optiq.Schema;
 import net.hydromatic.optiq.SchemaPlus;
-import net.hydromatic.optiq.Schemas;
 import net.hydromatic.optiq.config.Lex;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 import net.hydromatic.optiq.jdbc.OptiqSchema;
@@ -38,6 +37,9 @@ import org.eigenbase.sql.parser.SqlParserImplFactory;
 import org.eigenbase.sql2rel.SqlToRelConverter;
 
 import com.google.common.collect.ImmutableList;
+
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 
 /** Implementation of {@link net.hydromatic.optiq.tools.Planner}. */
 public class PlannerImpl implements Planner {
@@ -61,7 +63,7 @@ public class PlannerImpl implements Planner {
 
   // set in STATE_2_READY
   private SchemaPlus rootSchema;
-  private Schema defaultSchema;
+  private SchemaPlus defaultSchema;
   private JavaTypeFactory typeFactory;
   private RelOptPlanner planner;
 
@@ -130,12 +132,29 @@ public class PlannerImpl implements Planner {
           public Void apply(RelOptCluster cluster, RelOptSchema relOptSchema,
               SchemaPlus rootSchema) {
             PlannerImpl.this.rootSchema = rootSchema;
-            defaultSchema =
-                rootSchema.addRecursive(
-                    schemaFactory.apply(PlannerImpl.this.rootSchema));
+            final Schema schema =
+                schemaFactory.apply(PlannerImpl.this.rootSchema);
+            defaultSchema = rootSchema.add(getName(schema), schema);
             typeFactory = (JavaTypeFactory) cluster.getTypeFactory();
             planner = cluster.getPlanner();
             return null;
+          }
+
+          /** Temporary method while we are phasing out schema names. Once
+           * <a href="https://github.com/julianhyde/optiq/issues/214">optiq-214</a>
+           * is fixed, the client will pass us a {@link SchemaPlus}, and that
+           * has a name. */
+          private String getName(Schema schema) {
+            try {
+              final Method method = schema.getClass().getMethod("getName");
+              return (String) method.invoke(schema);
+            } catch (NoSuchMethodException e) {
+              return "DUMMY";
+            } catch (InvocationTargetException e) {
+              return "DUMMY";
+            } catch (IllegalAccessException e) {
+              return "DUMMY";
+            }
           }
         });
     state = State.STATE_2_READY;
@@ -197,7 +216,7 @@ public class PlannerImpl implements Planner {
     return new OptiqCatalogReader(
         OptiqSchema.from(rootSchema),
         caseSensitive,
-        Schemas.path(defaultSchema, null),
+        OptiqSchema.from(defaultSchema).path(null),
         typeFactory);
   }
 
