@@ -45,7 +45,6 @@ import org.eigenbase.sql.util.ChainedSqlOperatorTable;
 import org.eigenbase.sql.util.ListSqlOperatorTable;
 import org.eigenbase.sql.validate.SqlValidator;
 import org.eigenbase.sql.validate.SqlValidatorScope;
-import org.eigenbase.util.Bug;
 import org.eigenbase.util.Util;
 
 import com.google.common.collect.ImmutableList;
@@ -146,18 +145,18 @@ public class PlannerTest {
     SqlNode validate = planner.validate(parse);
     assertThat(validate, notNullValue());
 
-    if (true) {
-      Bug.upgrade("fix https://github.com/julianhyde/optiq/issues/217");
-      return; // TODO: fix issue
-    }
-
     // The presence of an aggregate function in the SELECT clause causes it
     // to become an aggregate query. Non-aggregate expressions become illegal.
     planner.close();
     planner.reset();
     parse = planner.parse("select \"deptno\", count(1) from \"emps\"");
-    validate = planner.validate(parse);
-    assertThat(validate, notNullValue());
+    try {
+      validate = planner.validate(parse);
+      fail("expected exception, got " + validate);
+    } catch (ValidationException e) {
+      assertThat(e.getCause().getCause().getMessage(),
+          containsString("Expression 'deptno' is not being grouped"));
+    }
   }
 
   private Planner getPlanner(List<RelTraitDef> traitDefs, RuleSet... ruleSets) {

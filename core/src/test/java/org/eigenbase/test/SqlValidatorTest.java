@@ -5668,10 +5668,9 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         ERR_AGG_IN_GROUP_BY);
   }
 
-  @Ignore("https://github.com/julianhyde/optiq/issues/217")
   @Test public void testAggregateInNonGroupBy() {
-    checkFails("select count(1), empno from emp",
-        "xxx");
+    checkFails("select count(1), ^empno^ from emp",
+        "Expression 'EMPNO' is not being grouped");
   }
 
   @Test public void testAggregateInOrderByFails() {
