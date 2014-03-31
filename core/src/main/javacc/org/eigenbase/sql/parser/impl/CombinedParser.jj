@@ -829,6 +829,8 @@ SqlNode SqlStmt() :
 }
 {
     (
+        stmt = OptionSetter()
+        |
         stmt = OrderedQueryOrExpr(ExprContext.ACCEPT_QUERY)
         |
         stmt = SqlExplain()
@@ -2666,6 +2668,57 @@ SqlNode CaseExpression() :
             new SqlNodeList(thenList, thenPos),
             elseClause);
     }
+}
+
+/**
+ * Parses an expression for setting a option in SQL, such as QUOTED_IDENTIFIERS,
+ * or explain plan level (physical/logical).
+ */
+SqlOptionSetter OptionSetter() :
+{
+  SqlParserPos pos;
+  SqlOptionSetter valOpt;
+  String name;
+  String rawVal;
+  SqlNode[] operands;
+  SqlNode val;
+}
+{
+  <ALTER>
+  (
+      <SESSION> <SET> name = Identifier() <EQ>
+      {
+          valOpt = new SqlOptionSetter(getPos());
+          valOpt.setName(name);
+          valOpt.setScope("session");
+      }
+      |
+      <SYSTEM> <SET> name = Identifier() <EQ>
+      {
+          valOpt = new SqlOptionSetter(getPos());
+          valOpt.setName(name);
+          valOpt.setScope("system");
+      }
+  )
+  (
+    val = Literal()
+    {
+        valOpt.setVal(val);
+        return valOpt;
+    }
+    |
+    rawVal = Identifier()
+    {
+        valOpt.setRawVal(rawVal);
+        return valOpt;
+    }
+    |
+    <ON> | <TRUE> | <FALSE>
+    {
+        valOpt.setRawVal(token.image);
+        return valOpt;
+    }
+  )
 }
 
 /**
