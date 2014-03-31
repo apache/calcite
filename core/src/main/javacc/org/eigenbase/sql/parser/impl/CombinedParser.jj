@@ -829,7 +829,7 @@ SqlNode SqlStmt() :
 }
 {
     (
-        stmt = OptionSetter()
+        stmt = SqlSetOption()
         |
         stmt = OrderedQueryOrExpr(ExprContext.ACCEPT_QUERY)
         |
@@ -2674,51 +2674,40 @@ SqlNode CaseExpression() :
  * Parses an expression for setting a option in SQL, such as QUOTED_IDENTIFIERS,
  * or explain plan level (physical/logical).
  */
-SqlOptionSetter OptionSetter() :
+SqlSetOption SqlSetOption() :
 {
-  SqlParserPos pos;
-  SqlOptionSetter valOpt;
-  String name;
-  String rawVal;
-  SqlNode[] operands;
-  SqlNode val;
+    SqlParserPos pos;
+    String scope;
+    String name;
+    SqlNode val = null;
+    String keyword;
 }
 {
-  <ALTER>
-  (
-      <SESSION> <SET> name = Identifier() <EQ>
-      {
-          valOpt = new SqlOptionSetter(getPos());
-          valOpt.setName(name);
-          valOpt.setScope("session");
-      }
-      |
-      <SYSTEM> <SET> name = Identifier() <EQ>
-      {
-          valOpt = new SqlOptionSetter(getPos());
-          valOpt.setName(name);
-          valOpt.setScope("system");
-      }
-  )
-  (
-    val = Literal()
-    {
-        valOpt.setVal(val);
-        return valOpt;
-    }
+    <ALTER> { pos = getPos(); }
+    scope = Scope()
+    <SET>
+    name = Identifier()
+    <EQ>
+    (
+        val = Literal()
     |
-    rawVal = Identifier()
-    {
-        valOpt.setRawVal(rawVal);
-        return valOpt;
-    }
+        val = SimpleIdentifier()
     |
-    <ON> | <TRUE> | <FALSE>
+        <ON> {
+            // OFF is handled by SimpleIdentifier, ON handled here.
+            val = new SqlIdentifier(token.image.toUpperCase(), getPos());
+        }
+    )
     {
-        valOpt.setRawVal(token.image);
-        return valOpt;
+        return new SqlSetOption(pos.plus(getPos()), scope, name, val);
     }
-  )
+}
+
+String Scope() :
+{
+}
+{
+    ( <SYSTEM> | <SESSION> ) { return token.image.toUpperCase(); }
 }
 
 /**

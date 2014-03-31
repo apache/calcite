@@ -123,6 +123,11 @@ public enum SqlKind {
   UPDATE,
 
   /**
+   * "ALTER scope SET option = value" statement.
+   */
+  SET_OPTION,
+
+  /**
    * A dynamic parameter.
    */
   DYNAMIC_PARAM,

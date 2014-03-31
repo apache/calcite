@@ -32,6 +32,7 @@ import net.hydromatic.avatica.Quoting;
 import org.junit.Ignore;
 import org.junit.Test;
 
+import static org.hamcrest.CoreMatchers.*;
 import static org.junit.Assert.*;
 
 /**
@@ -5518,17 +5519,37 @@ public class SqlParserTest {
   }
 
   @Test public void testSqlOptions() throws SqlParseException {
-    SqlNode node = SqlParser.create("alter system set schema = true")
-      .parseStmt();
-    SqlOptionSetter opt = (SqlOptionSetter) node;
-    assert opt.getScope().equalsIgnoreCase("system")
-      : "scope parsed incorrectly in option set statement.";
-    assert opt.getName().equalsIgnoreCase("schema")
-      : "option name parsed incorrectly in option set statement.";
+    SqlNode node =
+        SqlParser.create("alter system set schema = true").parseStmt();
+    SqlSetOption opt = (SqlSetOption) node;
+    assertThat(opt.getScope(), equalTo("SYSTEM"));
+    assertThat(opt.getName(), equalTo("SCHEMA"));
     SqlPrettyWriter writer = new SqlPrettyWriter(SqlDialect.EIGENBASE);
-    assert writer.format(opt.getVal()).equalsIgnoreCase("true");
+    assertThat(writer.format(opt.getValue()), equalTo("TRUE"));
     writer = new SqlPrettyWriter(SqlDialect.EIGENBASE);
-    System.out.println(writer.format(opt));
+    assertThat(writer.format(opt),
+        equalTo("ALTER SYSTEM SET \"SCHEMA\" = TRUE"));
+
+    check("alter system set \"a number\" = 1",
+        "ALTER SYSTEM SET `a number` = 1");
+    check("alter system set flag = false",
+        "ALTER SYSTEM SET `FLAG` = FALSE");
+    check("alter system set approx = -12.3450",
+        "ALTER SYSTEM SET `APPROX` = -12.3450");
+    check("alter system set onOff = on",
+        "ALTER SYSTEM SET `ONOFF` = `ON`");
+    check("alter system set onOff = off",
+        "ALTER SYSTEM SET `ONOFF` = `OFF`");
+    check("alter system set baz = foo",
+        "ALTER SYSTEM SET `BAZ` = `FOO`");
+
+    // expressions not allowed
+    checkFails("alter system set aString = 'abc' ^||^ 'def' ",
+        "(?s)Encountered \"\\|\\|\" at line 1, column 34\\..*");
+
+    // multiple assignments not allowed
+    checkFails("alter system set x = 1^,^ y = 2",
+        "(?s)Encountered \",\" at line 1, column 23\\..*");
   }
 
   //~ Inner Interfaces -------------------------------------------------------
