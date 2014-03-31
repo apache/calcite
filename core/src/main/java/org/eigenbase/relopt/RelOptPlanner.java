@@ -284,7 +284,7 @@ public interface RelOptPlanner {
     /**
      * Reduces expressions, and writes their results into {@code reducedValues}.
      */
-    void execute(RexBuilder rexBuilder, List<RexNode> constExps,
+    void reduce(RexBuilder rexBuilder, List<RexNode> constExps,
         List<RexNode> reducedValues);
   }
 

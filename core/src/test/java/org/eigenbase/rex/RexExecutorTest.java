@@ -17,27 +17,36 @@
 */
 package org.eigenbase.rex;
 
+
 import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 import org.eigenbase.relopt.RelOptCluster;
 import org.eigenbase.relopt.RelOptSchema;
+import org.eigenbase.reltype.RelDataType;
+import org.eigenbase.reltype.RelDataTypeFactory;
 import org.eigenbase.sql.fun.SqlStdOperatorTable;
+import org.eigenbase.sql.type.SqlTypeName;
 import org.eigenbase.util.NlsString;
+
+import net.hydromatic.linq4j.QueryProvider;
 
 import net.hydromatic.optiq.DataContext;
 import net.hydromatic.optiq.SchemaPlus;
 import net.hydromatic.optiq.Schemas;
+import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 import net.hydromatic.optiq.server.OptiqServerStatement;
 import net.hydromatic.optiq.tools.Frameworks;
 
 import com.google.common.collect.ImmutableList;
 
+import org.junit.Assert;
 import org.junit.Test;
 
-import static org.hamcrest.CoreMatchers.*;
-import static org.junit.Assert.*;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 
 /**
  * Unit test for {@link org.eigenbase.rex.RexExecutorImpl}.
@@ -61,12 +70,52 @@ public class RexExecutorTest {
         });
   }
 
+
+  @Test public void testVariableExecution() throws Exception {
+    check(new Action() {
+      public void check(RexBuilder rexBuilder, RexExecutorImpl executor) {
+        Object[] values = new Object[1];
+        final DataContext testContext = new TestDataContext(values);
+        final RelDataType varchar = rexBuilder.getTypeFactory().createSqlType(
+            SqlTypeName.VARCHAR);
+        final RelDataType integer = rexBuilder.getTypeFactory().createSqlType(
+            SqlTypeName.INTEGER);
+        // optiq is internally creating the creating the input ref via a
+        // RexRangeRef
+        // which eventually leads to a RexInputRef. So we are good.
+        final RexInputRef input = rexBuilder.makeInputRef(varchar, 0);
+        final RexNode lengthArg = rexBuilder.makeLiteral(3, integer, true);
+        final RexNode substr = rexBuilder
+            .makeCall(SqlStdOperatorTable.SUBSTRING, (RexNode) input,
+                (RexNode) lengthArg);
+        ImmutableList<RexNode> constExps = ImmutableList.<RexNode>of(substr);
+
+        final RelDataTypeFactory typeFactory = rexBuilder.getTypeFactory();
+        final RelDataType rowType = typeFactory.builder()
+            .add("someStr", varchar)
+            .build();
+
+        final RexExecutable exec = executor.getExecutable(rexBuilder,
+            constExps, rowType);
+        exec.setDataContext(testContext);
+        values[0] = "Hello World";
+        Object[] result = exec.execute();
+        assertTrue(result[0] instanceof String);
+        assertThat((String) result[0], equalTo("llo World"));
+        values[0] = "Optiq";
+        result = exec.execute();
+        assertTrue(result[0] instanceof String);
+        assertThat((String) result[0], equalTo("tiq"));
+      }
+    });
+  }
+
   @Test public void testConstant() throws Exception {
     check(new Action() {
       public void check(RexBuilder rexBuilder, RexExecutorImpl executor) {
         final List<RexNode> reducedValues = new ArrayList<RexNode>();
         final RexLiteral ten = rexBuilder.makeExactLiteral(BigDecimal.TEN);
-        executor.execute(rexBuilder, ImmutableList.<RexNode>of(ten),
+        executor.reduce(rexBuilder, ImmutableList.<RexNode>of(ten),
             reducedValues);
         assertThat(reducedValues.size(), equalTo(1));
         assertThat(reducedValues.get(0), instanceOf(RexLiteral.class));
@@ -91,7 +140,7 @@ public class RexExecutorTest {
         final RexNode substring =
             rexBuilder.makeCall(SqlStdOperatorTable.SUBSTRING,
                 hello, plus, four);
-        executor.execute(rexBuilder, ImmutableList.of(substring, plus),
+        executor.reduce(rexBuilder, ImmutableList.of(substring, plus),
             reducedValues);
         assertThat(reducedValues.size(), equalTo(2));
         assertThat(reducedValues.get(0), instanceOf(RexLiteral.class));
@@ -110,6 +159,38 @@ public class RexExecutorTest {
    * a list, then check that the results are as expected. */
   interface Action {
     void check(RexBuilder rexBuilder, RexExecutorImpl executor);
+  }
+
+  /**
+   * ArrayList-based DataContext to check Rex execution.
+   */
+  public static class TestDataContext implements DataContext {
+    private final Object[] values;
+
+    public TestDataContext(Object[] values) {
+      this.values = values;
+    }
+
+    public SchemaPlus getRootSchema() {
+      throw new RuntimeException("Unsupported");
+    }
+
+    public JavaTypeFactory getTypeFactory() {
+      throw new RuntimeException("Unsupported");
+    }
+
+    public QueryProvider getQueryProvider() {
+      throw new RuntimeException("Unsupported");
+    }
+
+    public Object get(String name) {
+      if (name.equals("inputRecord")) {
+        return values;
+      } else {
+        Assert.fail("Wrong DataContext access");
+        return null;
+      }
+    }
   }
 }
 
