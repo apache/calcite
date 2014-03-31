@@ -22,15 +22,18 @@ import java.util.Locale;
 import java.util.logging.*;
 
 import org.eigenbase.sql.*;
+import org.eigenbase.sql.fun.SqlStdOperatorTable;
 import org.eigenbase.sql.test.SqlTester;
 import org.eigenbase.sql.type.*;
 import org.eigenbase.sql.validate.*;
 import org.eigenbase.util.*;
 
+import net.hydromatic.avatica.Casing;
 import net.hydromatic.avatica.Quoting;
 
 import net.hydromatic.optiq.config.Lex;
 
+import org.hamcrest.CoreMatchers;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -6380,13 +6383,13 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         "select t.x, t.^PATH^ from (values (true, 1)) as t(path, x)",
         "Column 'PATH' not found in table 't'");
 
-    // Built-in functions now must be written in correct case.
-    tester1.checkQueryFails(
-        "values (^current_timestamp^)",
-        "Unknown identifier 'current_timestamp'");
+    // Built-in functions can be written in any case, even those with no args,
+    // and regardless of spaces between function name and open parenthesis.
+    tester1.checkQuery("values (current_timestamp, floor(2.5), ceil (3.5))");
+    tester1.checkQuery("values (CURRENT_TIMESTAMP, FLOOR(2.5), CEIL (3.5))");
     tester1.checkResultType(
-        "values (CURRENT_TIMESTAMP)",
-        "RecordType(TIMESTAMP(0) NOT NULL CURRENT_TIMESTAMP) NOT NULL");
+        "values (CURRENT_TIMESTAMP, CEIL (3.5))",
+        "RecordType(TIMESTAMP(0) NOT NULL CURRENT_TIMESTAMP, DECIMAL(2, 0) NOT NULL EXPR$1) NOT NULL");
   }
 
   @Test public void testLexAndQuoting() {
@@ -6406,6 +6409,8 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     final SqlTester tester1 = tester
         .withCaseSensitive(false)
         .withQuoting(Quoting.BRACKET);
+    final SqlTester tester2 = tester.withQuoting(Quoting.BRACKET);
+
     tester1.checkQuery("select EMPNO from EMP");
     tester1.checkQuery("select empno from emp");
     tester1.checkQuery("select [empno] from [emp]");
@@ -6417,10 +6422,91 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     tester1.checkQuery(
         "select * from emp as [e] where exists (\n"
         + "select 1 from dept where dept.deptno = [E].deptno)");
-    tester.withQuoting(Quoting.BRACKET).checkQueryFails(
+    tester2.checkQueryFails(
         "select * from emp as [e] where exists (\n"
         + "select 1 from dept where dept.deptno = ^[E]^.deptno)",
         "(?s).*Table 'E' not found");
+
+    checkFails("select count(1), ^empno^ from emp",
+        "Expression 'EMPNO' is not being grouped");
+
+    // Table aliases should follow case-sensitivity preference.
+    //
+    // In MySQL, table aliases are case-insensitive:
+    // mysql> select `D`.day from DAYS as `d`, DAYS as `D`;
+    // ERROR 1066 (42000): Not unique table/alias: 'D'
+    tester2.checkQuery("select count(*) from dept as [D], dept as [d]");
+    if (!Bug.upgrade("fix case sensitivity bug")) {
+      return;
+    }
+    tester1.checkQueryFails("select count(*) from dept as [D], dept as [d]",
+        "xxx");
+  }
+
+  /** Tests matching of built-in operator names. */
+  @Test public void testUnquotedBuiltInFunctionNames() {
+    final SqlTester mysql = tester
+        .withUnquotedCasing(Casing.UNCHANGED)
+        .withQuoting(Quoting.BACK_TICK)
+        .withCaseSensitive(false);
+    final SqlTester oracle = tester
+        .withUnquotedCasing(Casing.TO_UPPER)
+        .withCaseSensitive(true);
+
+    // Built-in functions are always case-insensitive.
+    oracle.checkQuery("select count(*), sum(deptno), floor(2.5) from dept");
+    oracle.checkQuery("select COUNT(*), FLOOR(2.5) from dept");
+    oracle.checkQuery("select cOuNt(*), FlOOr(2.5) from dept");
+    oracle.checkQuery("select cOuNt (*), FlOOr (2.5) from dept");
+    oracle.checkQuery("select current_time from dept");
+    oracle.checkQuery("select Current_Time from dept");
+    oracle.checkQuery("select CURRENT_TIME from dept");
+
+    mysql.checkQuery("select sum(deptno), floor(2.5) from dept");
+    mysql.checkQuery("select count(*), sum(deptno), floor(2.5) from dept");
+    mysql.checkQuery("select COUNT(*), FLOOR(2.5) from dept");
+    mysql.checkQuery("select cOuNt(*), FlOOr(2.5) from dept");
+    mysql.checkQuery("select cOuNt (*), FlOOr (2.5) from dept");
+    mysql.checkQuery("select current_time from dept");
+    mysql.checkQuery("select Current_Time from dept");
+    mysql.checkQuery("select CURRENT_TIME from dept");
+
+    // MySQL assumes that a quoted function name is not a built-in.
+    //
+    // mysql> select `sum`(`day`) from days;
+    // ERROR 1630 (42000): FUNCTION foodmart.sum does not exist. Check the
+    //   'Function Name Parsing and Resolution' section in the Reference Manual
+    // mysql> select `SUM`(`day`) from days;
+    // ERROR 1630 (42000): FUNCTION foodmart.SUM does not exist. Check the
+    //   'Function Name Parsing and Resolution' section in the Reference Manual
+    // mysql> select SUM(`day`) from days;
+    // +------------+
+    // | SUM(`day`) |
+    // +------------+
+    // |         28 |
+    // +------------+
+    // 1 row in set (0.00 sec)
+    //
+    // We do not follow MySQL in this regard. `count` is preserved in
+    // lower-case, and is matched case-insensitively because it is a built-in.
+    // So, the query succeeds.
+    oracle.checkQuery("select \"count\"(*) from dept");
+    mysql.checkQuery("select `count`(*) from dept");
+  }
+
+  /** Sanity check: All built-ins are upper-case. We rely on this. */
+  @Test public void testStandardOperatorNamesAreUpperCase() {
+    for (SqlOperator op : SqlStdOperatorTable.instance().getOperatorList()) {
+      final String name = op.getName();
+      switch (op.getSyntax()) {
+      case SPECIAL:
+      case INTERNAL:
+        break;
+      default:
+        assertThat(name.toUpperCase(), CoreMatchers.equalTo(name));
+        break;
+      }
+    }
   }
 
   /** Tests that it is an error to insert into the same column twice, even using

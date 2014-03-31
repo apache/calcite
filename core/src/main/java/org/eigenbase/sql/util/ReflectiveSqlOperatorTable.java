@@ -95,7 +95,11 @@ public abstract class ReflectiveSqlOperatorTable implements SqlOperatorTable {
     } else {
       simpleName = opName.getSimple();
     }
-    final Collection<SqlOperator> list = operators.get(simpleName);
+
+    // Always look up built-in operators case-insensitively. Even in sessions
+    // with unquotedCasing=UNCHANGED and caseSensitive=true.
+    final Collection<SqlOperator> list =
+        operators.get(simpleName.toUpperCase());
     if (list.isEmpty()) {
       return ImmutableList.of();
     }
