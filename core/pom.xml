@@ -52,6 +52,7 @@
               <goal>javacc</goal>
             </goals>
             <configuration>
+              <sourceDirectory>${project.build.directory}/generated-sources/fmpp</sourceDirectory>
               <includes>
                 <include>**/CombinedParser.jj</include>
               </includes>
@@ -108,6 +109,24 @@
           </execution>
         </executions>
       </plugin>
+      <plugin>
+        <groupId>com.googlecode.fmpp-maven-plugin</groupId>
+        <artifactId>fmpp-maven-plugin</artifactId>
+        <version>1.0</version>
+        <configuration>
+          <cfgFile>src/main/codegen/config.fmpp</cfgFile>
+          <templateDirectory>src/main/codegen/templates</templateDirectory>
+        </configuration>
+        <executions>
+          <execution>
+            <id>generate-fmpp-sources</id>
+            <phase>validate</phase>
+            <goals>
+              <goal>generate</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
     </plugins>
 
     <resources>
@@ -128,6 +147,12 @@
       <resource>
         <directory>src/main/resources/version</directory>
         <filtering>true</filtering>
+      </resource>
+      <resource>
+        <!-- Copy freemarker template and fmpp configuration files of
+             Optiq's SQL parser to allow clients to extend parser. -->
+        <directory>${basedir}/src/main/codegen</directory>
+        <targetPath>codegen</targetPath>
       </resource>
     </resources>
   </build>

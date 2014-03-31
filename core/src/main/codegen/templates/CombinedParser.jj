@@ -15,6 +15,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 */
+<@pp.dropOutputFile />
+
+<@pp.changeOutputFile name="javacc/CombinedParser.jj" />
+
 options {
     STATIC = false;
     IGNORE_CASE = true;
@@ -22,9 +26,13 @@ options {
 }
 
 
-PARSER_BEGIN(SqlParserImpl)
+PARSER_BEGIN(${parser.class})
 
-package org.eigenbase.sql.parser.impl;
+package ${parser.package};
+
+<#list parser.imports as importStr>
+import ${importStr};
+</#list>
 
 import org.eigenbase.sql.*;
 import org.eigenbase.sql.parser.*;
@@ -57,7 +65,7 @@ import static org.eigenbase.util.Static.RESOURCE;
  *
  * <p>The public wrapper for this parser is {@link SqlParser}.
  */
-public class SqlParserImpl extends SqlAbstractParserImpl
+public class ${parser.class} extends SqlAbstractParserImpl
 {
     private static final Logger LOGGER = EigenbaseTrace.getParserTracer();
 
@@ -74,12 +82,11 @@ public class SqlParserImpl extends SqlAbstractParserImpl
     private Casing quotedCasing;
 
     /**
-     * {@link SqlParserImplFactory} implementation for creating
-     * Optiq's SQL parser.
+     * {@link SqlParserImplFactory} implementation for creating parser.
      */
     public static final SqlParserImplFactory FACTORY = new SqlParserImplFactory() {
         public SqlAbstractParserImpl getParser(Reader stream) {
-            return new SqlParserImpl(stream);
+            return new ${parser.class}(stream);
         }
     };
 
@@ -99,10 +106,10 @@ public class SqlParserImpl extends SqlAbstractParserImpl
     // implement SqlAbstractParserImpl
     public Metadata getMetadata()
     {
-        synchronized (SqlParserImpl.class) {
+        synchronized (${parser.class}.class) {
             if (metadata == null) {
                 metadata = new MetadataImpl(
-                    new SqlParserImpl(new java.io.StringReader("")));
+                    new ${parser.class}(new java.io.StringReader("")));
             }
             return metadata;
         }
@@ -117,7 +124,7 @@ public class SqlParserImpl extends SqlAbstractParserImpl
     // implement SqlAbstractParserImpl
     public void switchTo(String stateName)
     {
-        int state = Arrays.asList(SqlParserImplTokenManager.lexStateNames)
+        int state = Arrays.asList(${parser.class}TokenManager.lexStateNames)
             .indexOf(stateName);
         token_source.SwitchTo(state);
     }
@@ -147,7 +154,7 @@ public class SqlParserImpl extends SqlAbstractParserImpl
     }
 }
 
-PARSER_END(SqlParserImpl)
+PARSER_END(${parser.class})
 
 
 /*****************************************
@@ -844,6 +851,12 @@ SqlNode SqlStmt() :
         stmt = SqlMerge()
         |
         stmt = SqlProcedureCall()
+
+      <#-- Add methods to parse additional statements here -->
+      <#list parser.statementParserMethods as method>
+        |
+        stmt = ${method}
+      </#list>
     )
     {
         return stmt;
@@ -863,6 +876,11 @@ SqlNode SqlStmtEof() :
         return stmt;
     }
 }
+
+<#-- Add implementations of additional parser statement calls here -->
+<#list parser.implementationFiles as file>
+    <#include "/@includes/"+file />
+</#list>
 
 /**
  * Parses a leaf SELECT expression without ORDER BY.
@@ -2721,28 +2739,28 @@ SqlNode Literal() :
     SqlNode e;
 }
 {
-    e = NumericLiteral()
+    (
+        e = NumericLiteral()
+        |
+        e = StringLiteral()
+        |
+        e = SpecialLiteral()
+        |
+        e = DateTimeLiteral()
+        |
+        e = IntervalLiteral()
+      <#-- additional literal parser methods are included here -->
+      <#list parser.literalParserMethods as method>
+        |
+        e = ${method}
+      </#list>
+    )
     {
         return e;
     }
-    | e = StringLiteral()
-    {
-        return e;
-    }
-    | e = SpecialLiteral()
-    {
-        return e;
-    }
-    | e = DateTimeLiteral()
-    {
-        return e;
-    }
-    | e = IntervalLiteral()
-    {
-        return e;
-    }
-}
 
+
+}
 
 /** Parses a unsigned numeric literal */
 SqlNumericLiteral UnsignedNumericLiteral() :
@@ -3598,6 +3616,10 @@ SqlIdentifier TypeName() :
             typeName = new SqlIdentifier(
                 SqlTypeName.ANY.name(),pos);
         }
+      <#-- additional types are included here -->
+      <#list parser.dataTypeParserMethods as method>
+        | typeName = ${method}
+      </#list>
         |   typeName = CollectionsTypeName()
         |   typeName = CompoundIdentifier()
     )
@@ -4883,6 +4905,10 @@ SqlPostfixOperator PostfixRowOperator() :
     | < XML: "XML" >
     | < YEAR: "YEAR" >
     | < ZONE: "ZONE" >
+  <#-- additional parser keywords are included here -->
+  <#list parser.keywords as keyword>
+    | < ${keyword}: "${keyword}" >
+  </#list>
 }
 
 /*
