@@ -45,8 +45,6 @@ import static org.junit.Assert.*;
 public class SqlValidatorTestCase {
   //~ Static fields/initializers ---------------------------------------------
 
-  protected static final String NL = System.getProperty("line.separator");
-
   private static final Pattern LINE_COL_PATTERN =
       Pattern.compile("At line ([0-9]+), column ([0-9]+)");
 
@@ -352,11 +350,11 @@ public class SqlValidatorTestCase {
           fail(
               "Validator threw different "
               + "exception than expected; query [" + sap.sql
-              + "];" + NL
+              + "];\n"
               + " expected pattern [" + expectedMsgPattern
-              + "];" + NL
+              + "];\n"
               + " actual [" + actualMessage
-              + "];" + NL
+              + "];\n"
               + " actual as java regexp [" + actualJavaRegexp
               + "]; pos [" + actualLine
               + " col " + actualColumn

@@ -45,7 +45,6 @@ import com.google.common.collect.ImmutableList;
 public abstract class RelOptUtil {
   //~ Static fields/initializers ---------------------------------------------
 
-  public static final String NL = System.getProperty("line.separator");
   public static final double EPSILON = 1.0e-5;
 
   //~ Methods ----------------------------------------------------------------
@@ -1452,10 +1451,10 @@ public abstract class RelOptUtil {
       RelDataType type2,
       boolean fail) {
     if (type1 != type2) {
-      assert !fail : "type mismatch:" + NL
-          + desc1 + ":" + NL
-          + type1.getFullTypeString() + NL
-          + desc2 + ":" + NL
+      assert !fail : "type mismatch:\n"
+          + desc1 + ":\n"
+          + type1.getFullTypeString() + "\n"
+          + desc2 + ":\n"
           + type2.getFullTypeString();
       return false;
     }

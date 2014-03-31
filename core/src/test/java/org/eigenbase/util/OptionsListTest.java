@@ -30,8 +30,6 @@ import static org.junit.Assert.*;
 public class OptionsListTest {
   //~ Static fields/initializers ---------------------------------------------
 
-  private static final String NL = System.getProperty("line.separator");
-
   //~ Methods ----------------------------------------------------------------
 
   @Test public void testBooleanArg() {
@@ -290,7 +288,8 @@ public class OptionsListTest {
   @Ignore
   @Test public void testAnonymousOption() {
     checkIt(
-        "verbose=true" + NL + "file=file.txt",
+        "verbose=true\n"
+        + "file=file.txt",
         new OptionsList.Option[]{
           new OptionsList.BooleanOption(
             "flag",
@@ -313,7 +312,9 @@ public class OptionsListTest {
   @Ignore
   @Test public void testRepeatingOption() {
     checkIt(
-        "verbose=true" + NL + "file=foo.txt" + NL + "file=bar.txt",
+        "verbose=true"
+        + "file=foo.txt"
+        + "file=bar.txt",
         new OptionsList.Option[]{
           new OptionsList.BooleanOption(
             "flag",
@@ -379,13 +380,13 @@ public class OptionsListTest {
         boolean isExplicit) {
       buf.write(
           option.getName() + "=" + value
-              + (isExplicit ? "" : " (default)") + NL);
+              + (isExplicit ? "" : " (default)") + "\n");
     }
 
     public void invalidValue(
         OptionsList.Option option,
         String value) {
-      buf.write(value + " is not valid for " + option.getName() + NL);
+      buf.write(value + " is not valid for " + option.getName() + "\n");
     }
 
     public String toString() {
