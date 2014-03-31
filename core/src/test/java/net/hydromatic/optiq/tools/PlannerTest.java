@@ -34,11 +34,21 @@ import org.eigenbase.rel.*;
 import org.eigenbase.rel.convert.ConverterRule;
 import org.eigenbase.rel.rules.MergeFilterRule;
 import org.eigenbase.relopt.*;
+import org.eigenbase.reltype.RelDataType;
+import org.eigenbase.reltype.RelDataTypeFactory;
 import org.eigenbase.sql.*;
 import org.eigenbase.sql.fun.SqlStdOperatorTable;
 import org.eigenbase.sql.parser.SqlParseException;
 import org.eigenbase.sql.parser.impl.SqlParserImpl;
+import org.eigenbase.sql.type.*;
+import org.eigenbase.sql.util.ChainedSqlOperatorTable;
+import org.eigenbase.sql.util.ListSqlOperatorTable;
+import org.eigenbase.sql.validate.SqlValidator;
+import org.eigenbase.sql.validate.SqlValidatorScope;
+import org.eigenbase.util.Bug;
 import org.eigenbase.util.Util;
+
+import com.google.common.collect.ImmutableList;
 
 import org.junit.Test;
 
@@ -52,6 +62,13 @@ import static org.junit.Assert.*;
  * Unit tests for {@link Planner}.
  */
 public class PlannerTest {
+  public static final Function1<SchemaPlus, Schema> HR_FACTORY =
+      new Function1<SchemaPlus, Schema>() {
+        public Schema apply(SchemaPlus parentSchema) {
+          return new ReflectiveSchema("hr", new JdbcTest.HrSchema());
+        }
+      };
+
   @Test public void testParseAndConvert() throws Exception {
     Planner planner = getPlanner(null);
     SqlNode parse =
@@ -107,15 +124,45 @@ public class PlannerTest {
     }
   }
 
+  @Test public void testValidateUserDefinedAggregate() throws Exception {
+    final SqlStdOperatorTable stdOpTab = SqlStdOperatorTable.instance();
+    SqlOperatorTable opTab = new ChainedSqlOperatorTable(
+        ImmutableList.of(stdOpTab,
+            new ListSqlOperatorTable(
+                ImmutableList.<SqlOperator>of(new MyCountAggFunction()))));
+    Planner planner = Frameworks.getPlanner(Lex.ORACLE, SqlParserImpl.FACTORY,
+        HR_FACTORY, opTab, null);
+    SqlNode parse =
+        planner.parse("select \"deptno\", my_count(\"empid\") from \"emps\"\n"
+            + "group by \"deptno\"");
+    assertThat(Util.toLinux(parse.toString()),
+        equalTo(
+            "SELECT `deptno`, `MY_COUNT`(`empid`)\n"
+            + "FROM `emps`\n"
+            + "GROUP BY `deptno`"));
+
+    // MY_COUNT is recognized as an aggregate function, and therefore it is OK
+    // that its argument empid is not in the GROUP BY clause.
+    SqlNode validate = planner.validate(parse);
+    assertThat(validate, notNullValue());
+
+    if (true) {
+      Bug.upgrade("fix https://github.com/julianhyde/optiq/issues/217");
+      return; // TODO: fix issue
+    }
+
+    // The presence of an aggregate function in the SELECT clause causes it
+    // to become an aggregate query. Non-aggregate expressions become illegal.
+    planner.close();
+    planner.reset();
+    parse = planner.parse("select \"deptno\", count(1) from \"emps\"");
+    validate = planner.validate(parse);
+    assertThat(validate, notNullValue());
+  }
+
   private Planner getPlanner(List<RelTraitDef> traitDefs, RuleSet... ruleSets) {
-    return Frameworks.getPlanner(
-        Lex.ORACLE,
-        SqlParserImpl.FACTORY,
-        new Function1<SchemaPlus, Schema>() {
-          public Schema apply(SchemaPlus parentSchema) {
-            return new ReflectiveSchema("hr", new JdbcTest.HrSchema());
-          }
-        }, SqlStdOperatorTable.instance(), traitDefs, ruleSets);
+    return Frameworks.getPlanner(Lex.ORACLE, SqlParserImpl.FACTORY,
+        HR_FACTORY, SqlStdOperatorTable.instance(), traitDefs, ruleSets);
   }
 
   /** Tests that planner throws an error if you pass to
@@ -229,8 +276,8 @@ public class PlannerTest {
             JavaRules.ENUMERABLE_PROJECT_RULE);
 
     JdbcConvention out = new JdbcConvention(null, null, "myjdbc");
-    RuleSet ruleSet1 = RuleSets.ofList(new MockJdbcProjectRule(out),
-        new MockJdbcTableRule(out));
+    RuleSet ruleSet1 = RuleSets.ofList(
+        new MockJdbcProjectRule(out), new MockJdbcTableRule(out));
 
     Planner planner = getPlanner(null, ruleSet0, ruleSet1);
     SqlNode parse = planner.parse("select T1.\"name\" from \"emps\" as T1 ");
@@ -320,6 +367,32 @@ public class PlannerTest {
 
     public JdbcImplementor.Result implement(JdbcImplementor implementor) {
       return null;
+    }
+  }
+
+  /** User-defined aggregate function. */
+  public static class MyCountAggFunction extends SqlAggFunction {
+    public MyCountAggFunction() {
+      super("MY_COUNT", SqlKind.OTHER_FUNCTION, ReturnTypes.BIGINT, null,
+          OperandTypes.ANY, SqlFunctionCategory.NUMERIC);
+    }
+
+    public List<RelDataType> getParameterTypes(RelDataTypeFactory typeFactory) {
+      return ImmutableList.of(typeFactory.createSqlType(SqlTypeName.ANY));
+    }
+
+    public RelDataType getReturnType(RelDataTypeFactory typeFactory) {
+      return typeFactory.createSqlType(SqlTypeName.BIGINT);
+    }
+
+    public RelDataType deriveType(SqlValidator validator,
+        SqlValidatorScope scope, SqlCall call) {
+      // Check for COUNT(*) function.  If it is we don't
+      // want to try and derive the "*"
+      if (call.isCountStar()) {
+        return validator.getTypeFactory().createSqlType(SqlTypeName.BIGINT);
+      }
+      return super.deriveType(validator, scope, call);
     }
   }
 }

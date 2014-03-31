@@ -205,7 +205,6 @@ public class OptiqSchema {
   }
 
   public SchemaPlus plus() {
-//    System.out.println("plus: " + n++);
     return new SchemaPlusImpl();
   }
 

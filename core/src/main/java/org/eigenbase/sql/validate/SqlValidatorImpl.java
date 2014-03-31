@@ -413,8 +413,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     selectItems.add(expanded);
     aliases.add(alias);
 
-    final RelDataType type = deriveType(scope, selectItem);
-    setValidatedNodeTypeImpl(selectItem, type);
+    final RelDataType type = deriveType(scope, expanded);
+    setValidatedNodeTypeImpl(expanded, type);
     types.add(Pair.of(alias, type));
     return false;
   }

@@ -30,7 +30,7 @@ import net.hydromatic.optiq.server.OptiqServerStatement;
 import org.eigenbase.relopt.RelOptCluster;
 import org.eigenbase.relopt.RelOptSchema;
 import org.eigenbase.relopt.RelTraitDef;
-import org.eigenbase.sql.fun.SqlStdOperatorTable;
+import org.eigenbase.sql.SqlOperatorTable;
 import org.eigenbase.sql.parser.SqlParserImplFactory;
 import org.eigenbase.sql.parser.impl.SqlParserImpl;
 
@@ -68,10 +68,9 @@ public class Frameworks {
    *     of rule sets elsewhere in this class.
    * @return The Planner object.
    */
-  public static Planner getPlanner(
-      Lex lex,
+  public static Planner getPlanner(Lex lex,
       Function1<SchemaPlus, Schema> schemaFactory,
-      SqlStdOperatorTable operatorTable, RuleSet... ruleSets) {
+      SqlOperatorTable operatorTable, RuleSet... ruleSets) {
     return getPlanner(lex, SqlParserImpl.FACTORY, schemaFactory,
         operatorTable, null, ruleSets);
   }
@@ -108,11 +107,10 @@ public class Frameworks {
    *     planner, or null.
    * @return The Planner object.
    */
-  public static Planner getPlanner(
-      Lex lex,
+  public static Planner getPlanner(Lex lex,
       SqlParserImplFactory parserFactory,
       Function1<SchemaPlus, Schema> schemaFactory,
-      SqlStdOperatorTable operatorTable,
+      SqlOperatorTable operatorTable,
       List<RelTraitDef> traitDefs,
       RuleSet... ruleSets) {
     return new PlannerImpl(lex, parserFactory, schemaFactory, operatorTable,
