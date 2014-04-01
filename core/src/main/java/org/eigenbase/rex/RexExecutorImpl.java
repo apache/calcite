@@ -17,32 +17,25 @@
 */
 package org.eigenbase.rex;
 
-import java.io.IOException;
-import java.io.StringReader;
 import java.lang.reflect.Modifier;
+import java.lang.reflect.Type;
 import java.util.*;
 
 import org.eigenbase.relopt.RelOptPlanner;
 import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.reltype.RelDataTypeFactory;
-import org.eigenbase.util.Pair;
 
 import net.hydromatic.linq4j.expressions.*;
-import net.hydromatic.linq4j.function.Function1;
 
 import net.hydromatic.optiq.BuiltinMethod;
 import net.hydromatic.optiq.DataContext;
+import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 import net.hydromatic.optiq.jdbc.JavaTypeFactoryImpl;
 import net.hydromatic.optiq.prepare.OptiqPrepareImpl;
 import net.hydromatic.optiq.rules.java.RexToLixTranslator;
 import net.hydromatic.optiq.rules.java.RexToLixTranslator.InputGetter;
-import net.hydromatic.optiq.runtime.*;
 
 import com.google.common.collect.ImmutableList;
-
-import org.codehaus.commons.compiler.CompileException;
-import org.codehaus.janino.ClassBodyEvaluator;
-import org.codehaus.janino.Scanner;
 
 /**
 * Evaluates a {@link RexNode} expression.
@@ -96,36 +89,23 @@ public class RexExecutorImpl implements RelOptPlanner.Executor {
   }
 
   /**
-   * creates an {@link RexExecutable} that allows to apply the
+   * Creates an {@link RexExecutable} that allows to apply the
    * generated code during query processing (filter, projection).
    *
+   * @param rexBuilder Rex builder
+   * @param exps Expressions
    * @param rowType describes the structure of the input row.
    */
-  public RexExecutable getExecutable(final RexBuilder rexBuilder,
-      List<RexNode> constExps, final RelDataType rowType) {
-    InputGetter getter =  new RexToLixTranslator.InputGetter() {
-      final JavaTypeFactoryImpl typeFactory = new JavaTypeFactoryImpl();
-      public Expression field(BlockBuilder list, int index) {
-        MethodCallExpression recFromCtx = Expressions.call(
-            DataContext.ROOT,
-            BuiltinMethod.DATA_CONTEXT_GET.method,
-            Expressions.constant("inputRecord"));
-        Expression recFromCtxCasted =
-            RexToLixTranslator.convert(recFromCtx, Object[].class);
-        IndexExpression recordAccess = Expressions.arrayIndex(recFromCtxCasted,
-            Expressions.constant(index));
-        return RexToLixTranslator.convert(recordAccess,
-            typeFactory.getJavaClass(rowType.getFieldList().get(index)
-                .getType()));
-      }
-    };
-
-    final String code = compile(rexBuilder, constExps, getter, rowType);
-    return new RexExecutable(code, rexBuilder);
+  public RexExecutable getExecutable(RexBuilder rexBuilder, List<RexNode> exps,
+      RelDataType rowType) {
+    final InputGetter getter =
+        new DataContextInputGetter(rowType, rexBuilder.getTypeFactory());
+    final String code = compile(rexBuilder, exps, getter, rowType);
+    return new RexExecutable(code, "generated Rex code");
   }
 
   /**
-   * Do constant reduction using generated code
+   * Do constant reduction using generated code.
    */
   public void reduce(RexBuilder rexBuilder, List<RexNode> constExps,
       List<RexNode> reducedValues) {
@@ -136,27 +116,39 @@ public class RexExecutorImpl implements RelOptPlanner.Executor {
           }
         });
 
-    try {
-      //noinspection unchecked
-      Function1<DataContext, Object[]> function =
-          (Function1) ClassBodyEvaluator.createFastClassBodyEvaluator(
-              new Scanner(null, new StringReader(code)),
-              "Reducer",
-              Utilities.class,
-              new Class[]{Function1.class},
-              getClass().getClassLoader());
-      Object[] values = function.apply(dataContext);
-      assert values.length == constExps.size();
-      final List<Object> valueList = Arrays.asList(values);
-      for (Pair<RexNode, Object> value : Pair.zip(constExps, valueList)) {
-        reducedValues.add(
-            rexBuilder.makeLiteral(value.right, value.left.getType(), true));
-      }
-      Hook.EXPRESSION_REDUCER.run(Pair.of(code, values));
-    } catch (CompileException e) {
-      throw new RuntimeException("While evaluating " + constExps, e);
-    } catch (IOException e) {
-      throw new RuntimeException("While evaluating " + constExps, e);
+    final RexExecutable executable = new RexExecutable(code, constExps);
+    executable.setDataContext(dataContext);
+    executable.reduce(rexBuilder, constExps, reducedValues);
+  }
+
+  /**
+   * Implementation of
+   * {@link net.hydromatic.optiq.rules.java.RexToLixTranslator.InputGetter}
+   * that reads the values of input fields by calling
+   * <code>{@link net.hydromatic.optiq.DataContext#get}("inputRecord")</code>.
+   */
+  private static class DataContextInputGetter implements InputGetter {
+    private final RelDataTypeFactory typeFactory;
+    private final RelDataType rowType;
+
+    public DataContextInputGetter(RelDataType rowType,
+        RelDataTypeFactory typeFactory) {
+      this.rowType = rowType;
+      this.typeFactory = typeFactory;
+    }
+
+    public Expression field(BlockBuilder list, int index) {
+      MethodCallExpression recFromCtx = Expressions.call(
+          DataContext.ROOT,
+          BuiltinMethod.DATA_CONTEXT_GET.method,
+          Expressions.constant("inputRecord"));
+      Expression recFromCtxCasted =
+          RexToLixTranslator.convert(recFromCtx, Object[].class);
+      IndexExpression recordAccess = Expressions.arrayIndex(recFromCtxCasted,
+          Expressions.constant(index));
+      final RelDataType fieldType = rowType.getFieldList().get(index).getType();
+      final Type type = ((JavaTypeFactory) typeFactory).getJavaClass(fieldType);
+      return RexToLixTranslator.convert(recordAccess, type);
     }
   }
 }

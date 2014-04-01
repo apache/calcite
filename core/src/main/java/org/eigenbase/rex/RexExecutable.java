@@ -35,49 +35,48 @@ import org.codehaus.commons.compiler.CompileException;
 import org.codehaus.janino.ClassBodyEvaluator;
 import org.codehaus.janino.Scanner;
 
-
-
 /**
- * Contains executable code from {@link RexNode} expression.
+ * Result of compiling code generated from a {@link RexNode} expression.
  */
 public class RexExecutable {
   public static final String GENERATED_CLASS_NAME = "Reducer";
 
-  Function1<DataContext, Object[]> compiledFunction;
-  private final String generatedCode;
+  private final Function1<DataContext, Object[]> compiledFunction;
+  private final String code;
   private DataContext dataContext;
-  private final RexBuilder rexBuilder;
 
-  public RexExecutable(String genCode, RexBuilder rexBuilder) {
+  public RexExecutable(String code, Object reason) {
     try {
-      compiledFunction = (Function1) ClassBodyEvaluator
-          .createFastClassBodyEvaluator(new Scanner(null, new StringReader(
-              genCode)), GENERATED_CLASS_NAME, Utilities.class, new Class[] {
-                Function1.class, Serializable.class
-              }, getClass()
-              .getClassLoader());
+      //noinspection unchecked
+      compiledFunction =
+          (Function1) ClassBodyEvaluator.createFastClassBodyEvaluator(
+              new Scanner(null, new StringReader(code)),
+              GENERATED_CLASS_NAME,
+              Utilities.class,
+              new Class[] {Function1.class, Serializable.class},
+              getClass().getClassLoader());
     } catch (CompileException e) {
-      throw new RuntimeException("While compiling generated Rex code", e);
+      throw new RuntimeException("While compiling " + reason, e);
     } catch (IOException e) {
-      throw new RuntimeException("While compiling generated Rex code", e);
+      throw new RuntimeException("While compiling " + reason, e);
     }
-    this.rexBuilder = rexBuilder;
-    this.generatedCode = genCode;
+    this.code = code;
   }
 
   public void setDataContext(DataContext dataContext) {
     this.dataContext = dataContext;
   }
 
-  public void reduce(List<RexNode> constExps, List<RexNode> reducedValues) {
+  public void reduce(RexBuilder rexBuilder, List<RexNode> constExps,
+      List<RexNode> reducedValues) {
     Object[] values = compiledFunction.apply(dataContext);
     assert values.length == constExps.size();
     final List<Object> valueList = Arrays.asList(values);
     for (Pair<RexNode, Object> value : Pair.zip(constExps, valueList)) {
-      reducedValues.add(rexBuilder.makeLiteral(value.right,
-          value.left.getType(), true));
+      reducedValues.add(
+          rexBuilder.makeLiteral(value.right, value.left.getType(), true));
     }
-    Hook.EXPRESSION_REDUCER.run(Pair.of(generatedCode, values));
+    Hook.EXPRESSION_REDUCER.run(Pair.of(code, values));
   }
 
   public Function1<DataContext, Object[]> getFunction() {
@@ -89,6 +88,8 @@ public class RexExecutable {
   }
 
   public String getSource() {
-    return generatedCode;
+    return code;
   }
 }
+
+// End RexExecutable.java

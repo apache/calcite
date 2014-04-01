@@ -70,7 +70,8 @@ public class RexExecutorTest {
         });
   }
 
-
+  /** Tests an executor that uses variables stored in a {@link DataContext}.
+   * Can change the value of the variable and execute again. */
   @Test public void testVariableExecution() throws Exception {
     check(new Action() {
       public void check(RexBuilder rexBuilder, RexExecutorImpl executor) {
@@ -85,10 +86,10 @@ public class RexExecutorTest {
         // which eventually leads to a RexInputRef. So we are good.
         final RexInputRef input = rexBuilder.makeInputRef(varchar, 0);
         final RexNode lengthArg = rexBuilder.makeLiteral(3, integer, true);
-        final RexNode substr = rexBuilder
-            .makeCall(SqlStdOperatorTable.SUBSTRING, (RexNode) input,
-                (RexNode) lengthArg);
-        ImmutableList<RexNode> constExps = ImmutableList.<RexNode>of(substr);
+        final RexNode substr =
+            rexBuilder.makeCall(SqlStdOperatorTable.SUBSTRING, input,
+                lengthArg);
+        ImmutableList<RexNode> constExps = ImmutableList.of(substr);
 
         final RelDataTypeFactory typeFactory = rexBuilder.getTypeFactory();
         final RelDataType rowType = typeFactory.builder()
@@ -155,7 +156,7 @@ public class RexExecutorTest {
 
   /** Callback for {@link #check}. Test code will typically use {@code builder}
    * to create some expressions, call
-   * {@link org.eigenbase.rex.RexExecutorImpl#execute} to evaluate them into
+   * {@link org.eigenbase.rex.RexExecutorImpl#reduce} to evaluate them into
    * a list, then check that the results are as expected. */
   interface Action {
     void check(RexBuilder rexBuilder, RexExecutorImpl executor);
