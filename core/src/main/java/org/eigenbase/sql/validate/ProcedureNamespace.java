@@ -19,6 +19,9 @@ package org.eigenbase.sql.validate;
 
 import org.eigenbase.reltype.*;
 import org.eigenbase.sql.*;
+import org.eigenbase.sql.type.SqlTypeName;
+
+import net.hydromatic.optiq.Table;
 
 /**
  * Namespace whose contents are defined by the result of a call to a
@@ -47,7 +50,18 @@ public class ProcedureNamespace extends AbstractNamespace {
 
   public RelDataType validateImpl() {
     validator.inferUnknownTypes(validator.unknownType, scope, call);
-    return validator.deriveTypeImpl(scope, call);
+    final RelDataType type = validator.deriveTypeImpl(scope, call);
+    if (call.getOperator() instanceof SqlUserDefinedFunction) {
+      assert type.getSqlTypeName() == SqlTypeName.CURSOR : type;
+      final SqlUserDefinedFunction udf =
+          (SqlUserDefinedFunction) call.getOperator();
+      final Table table =
+          udf.getTable(validator.typeFactory, call.getOperandList());
+      if (table != null) {
+        return table.getRowType(validator.typeFactory);
+      }
+    }
+    return type;
   }
 
   public SqlNode getNode() {

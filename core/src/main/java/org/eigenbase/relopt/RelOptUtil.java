@@ -2331,6 +2331,23 @@ public abstract class RelOptUtil {
     return query;
   }
 
+  /** Returns a simple {@link org.eigenbase.relopt.RelOptTable.ToRelContext}. */
+  public static RelOptTable.ToRelContext getContext(
+      final RelOptCluster cluster) {
+    return new RelOptTable.ToRelContext() {
+      public RelOptCluster getCluster() {
+        return cluster;
+      }
+
+      public RelNode expandView(
+          RelDataType rowType,
+          String queryString,
+          List<String> schemaPath) {
+        throw new UnsupportedOperationException();
+      }
+    };
+  }
+
   //~ Inner Classes ----------------------------------------------------------
 
   /** Visitor that finds all variables used but not stopped in an expression. */

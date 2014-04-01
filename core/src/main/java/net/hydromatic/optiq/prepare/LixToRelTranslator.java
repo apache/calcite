@@ -101,24 +101,21 @@ class LixToRelTranslator implements RelOptTable.ToRelContext {
       case AS_QUERYABLE:
         return new TableAccessRel(
             cluster,
-            new OptiqPrepareImpl.RelOptTableImpl(
+            RelOptTableImpl.create(
                 null,
                 typeFactory.createJavaType(
                     Types.toClass(
-                        Types.getElementType(
-                            call.targetExpression.getType()))),
+                        Types.getElementType(call.targetExpression.getType()))),
                 ImmutableList.<String>of(),
                 call.targetExpression));
 
       case SCHEMA_GET_TABLE:
         return new TableAccessRel(
             cluster,
-            new OptiqPrepareImpl.RelOptTableImpl(
+            RelOptTableImpl.create(
                 null,
-                typeFactory.createJavaType(
-                    (Class)
-                        ((ConstantExpression) call.expressions.get(1))
-                            .value),
+                typeFactory.createJavaType((Class)
+                    ((ConstantExpression) call.expressions.get(1)).value),
                 ImmutableList.<String>of(),
                 call.targetExpression));
 

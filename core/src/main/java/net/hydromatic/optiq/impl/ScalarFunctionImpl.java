@@ -42,7 +42,7 @@ public class ScalarFunctionImpl implements ScalarFunction {
   }
 
   /** Creates and validates a ScalarFunctionImpl. */
-  public static ScalarFunctionImpl create(List<String> path, String className) {
+  public static Function create(List<String> path, String className) {
     final Class<?> clazz;
     try {
       clazz = Class.forName(className);
@@ -52,7 +52,8 @@ public class ScalarFunctionImpl implements ScalarFunction {
     }
     final Method method = findEvalMethod(clazz);
     if (method == null) {
-      throw new RuntimeException("method not found");
+      throw new RuntimeException("No 'eval' method not found in class "
+          + clazz);
     }
     if ((method.getModifiers() & Modifier.STATIC) == 0) {
       if (!classHasPublicZeroArgsConstructor(clazz)) {
@@ -60,6 +61,10 @@ public class ScalarFunctionImpl implements ScalarFunction {
             + "' of non-static UDF must have a public constructor with zero "
             + "parameters");
       }
+    }
+    final Class<?> returnType = method.getReturnType();
+    if (Table.class.isAssignableFrom(returnType)) {
+      return Schemas.methodMember(method);
     }
     return new ScalarFunctionImpl(path, method);
   }

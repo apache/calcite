@@ -76,16 +76,13 @@ class QueryableRelBuilder<T> implements QueryableFactory<T> {
       final OptiqSchema.TableEntry tableEntry =
           OptiqSchema.from(tableQueryable.schema)
               .add(tableQueryable.tableName, tableQueryable.table);
-      final OptiqPrepareImpl.RelOptTableImpl relOptTable =
-          new OptiqPrepareImpl.RelOptTableImpl(
-              null,
-              table.getRowType(translator.typeFactory),
+      final RelOptTableImpl relOptTable =
+          RelOptTableImpl.create(null, table.getRowType(translator.typeFactory),
               tableEntry);
       if (table instanceof TranslatableTable) {
         return ((TranslatableTable) table).toRel(translator, relOptTable);
       } else {
-        return new TableAccessRel(
-            translator.cluster, relOptTable);
+        return new TableAccessRel(translator.cluster, relOptTable);
       }
     }
     return translator.translate(queryable.getExpression());

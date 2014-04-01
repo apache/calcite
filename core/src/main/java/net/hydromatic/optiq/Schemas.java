@@ -32,9 +32,7 @@ import org.eigenbase.sql.type.SqlTypeUtil;
 
 import com.google.common.collect.ImmutableMap;
 
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.lang.reflect.Type;
+import java.lang.reflect.*;
 import java.sql.Connection;
 import java.util.*;
 
@@ -90,17 +88,13 @@ public final class Schemas {
     return SqlTypeUtil.canAssignFrom(toType, fromType);
   }
 
-  public static TableMacro methodMember(
-      final Method method,
-      final JavaTypeFactory typeFactory) {
+  public static TableMacro methodMember(final Method method) {
     final List<FunctionParameter> parameters =
         new ArrayList<FunctionParameter>();
     for (final Class<?> parameterType : method.getParameterTypes()) {
       parameters.add(
           new FunctionParameter() {
             final int ordinal = parameters.size();
-            final RelDataType type =
-                typeFactory.createType(parameterType);
 
             public int getOrdinal() {
               return ordinal;
@@ -111,7 +105,7 @@ public final class Schemas {
             }
 
             public RelDataType getType(RelDataTypeFactory typeFactory) {
-              return type;
+              return ((JavaTypeFactory) typeFactory).createType(parameterType);
             }
           }
       );
@@ -123,11 +117,22 @@ public final class Schemas {
 
       public Table apply(List<Object> arguments) {
         try {
+          Object o = null;
+          if (!Modifier.isStatic(method.getModifiers())) {
+            o = method.getDeclaringClass().newInstance();
+          }
           //noinspection unchecked
-          return (Table) method.invoke(null, arguments.toArray());
+          return (Table) method.invoke(o, arguments.toArray());
+        } catch (IllegalArgumentException e) {
+          throw new RuntimeException("Expected "
+              + Arrays.asList(method.getParameterTypes()) + " actual "
+              + arguments,
+              e);
         } catch (IllegalAccessException e) {
           throw new RuntimeException(e);
         } catch (InvocationTargetException e) {
+          throw new RuntimeException(e);
+        } catch (InstantiationException e) {
           throw new RuntimeException(e);
         }
       }

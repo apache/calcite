@@ -64,11 +64,10 @@ class OptiqCatalogReader implements Prepare.CatalogReader, SqlOperatorTable {
         typeFactory);
   }
 
-  public OptiqPrepareImpl.RelOptTableImpl getTable(final List<String> names) {
+  public RelOptTableImpl getTable(final List<String> names) {
     // First look in the default schema, if any.
     if (defaultSchema != null) {
-      OptiqPrepareImpl.RelOptTableImpl table =
-          getTableFrom(names, defaultSchema);
+      RelOptTableImpl table = getTableFrom(names, defaultSchema);
       if (table != null) {
         return table;
       }
@@ -77,8 +76,7 @@ class OptiqCatalogReader implements Prepare.CatalogReader, SqlOperatorTable {
     return getTableFrom(names, ImmutableList.<String>of());
   }
 
-  private OptiqPrepareImpl.RelOptTableImpl getTableFrom(
-      List<String> names,
+  private RelOptTableImpl getTableFrom(List<String> names,
       List<String> schemaNames) {
     OptiqSchema schema =
         getSchema(Iterables.concat(schemaNames, Util.skipLast(names)));
@@ -88,9 +86,7 @@ class OptiqCatalogReader implements Prepare.CatalogReader, SqlOperatorTable {
     final String name = Util.last(names);
     final Table table = schema.getTable(name, caseSensitive);
     if (table != null) {
-      return new OptiqPrepareImpl.RelOptTableImpl(
-          this,
-          table.getRowType(typeFactory),
+      return RelOptTableImpl.create(this, table.getRowType(typeFactory),
           schema.add(name, table));
     }
     return null;
@@ -130,8 +126,7 @@ class OptiqCatalogReader implements Prepare.CatalogReader, SqlOperatorTable {
     return null;
   }
 
-  public OptiqPrepareImpl.RelOptTableImpl getTableForMember(
-      List<String> names) {
+  public RelOptTableImpl getTableForMember(List<String> names) {
     return getTable(names);
   }
 
@@ -187,28 +182,21 @@ class OptiqCatalogReader implements Prepare.CatalogReader, SqlOperatorTable {
   private SqlOperator toOp(String name, Function function) {
     List<RelDataType> argTypes = new ArrayList<RelDataType>();
     List<SqlTypeFamily> typeFamilies = new ArrayList<SqlTypeFamily>();
-    List<Object> dummyArguments = new ArrayList<Object>();
     for (FunctionParameter o : function.getParameters()) {
       final RelDataType type = o.getType(typeFactory);
       argTypes.add(type);
       typeFamilies.add(SqlTypeFamily.ANY);
-      dummyArguments.add(zero(type));
     }
-    final Table table;
     final RelDataType returnType;
     if (function instanceof ScalarFunction) {
       returnType = ((ScalarFunction) function).getReturnType(typeFactory);
-      table = null;
     } else if (function instanceof TableMacro) {
-      // Make a call with dummy arguments, to get the table, so get its row
-      // type.
-      table = ((TableMacro) function).apply(dummyArguments);
       returnType = typeFactory.createSqlType(SqlTypeName.CURSOR);
     } else {
       throw new AssertionError("unknown function type " + function);
     }
     return new SqlUserDefinedFunction(name, returnType, argTypes, typeFamilies,
-        function, table);
+        function);
   }
 
   private Object zero(RelDataType type) {

@@ -41,7 +41,10 @@ import net.hydromatic.linq4j.Ord;
 import net.hydromatic.linq4j.function.Function1;
 
 import net.hydromatic.optiq.ModifiableTable;
+import net.hydromatic.optiq.Table;
+import net.hydromatic.optiq.TranslatableTable;
 import net.hydromatic.optiq.prepare.Prepare;
+import net.hydromatic.optiq.prepare.RelOptTableImpl;
 import net.hydromatic.optiq.util.BitSets;
 
 import com.google.common.collect.ImmutableList;
@@ -1789,6 +1792,23 @@ public class SqlToRelConverter {
       return;
     }
     replaceSubqueries(bb, call);
+
+    // Expand table macro if possible. It's more efficient than
+    // TableFunctionRel.
+    if (call.getOperator() instanceof SqlUserDefinedFunction) {
+      final SqlUserDefinedFunction udf =
+          (SqlUserDefinedFunction) call.getOperator();
+      final Table table = udf.getTable(typeFactory, call.getOperandList());
+      if (table instanceof TranslatableTable) {
+        final RelDataType rowType = table.getRowType(typeFactory);
+        RelOptTable relOptTable =
+            RelOptTableImpl.create(null, rowType, (TranslatableTable) table);
+        RelNode converted = toRel(relOptTable);
+        bb.setRoot(converted, true);
+        return;
+      }
+    }
+
     RexNode rexCall = bb.convertExpression(call);
     final List<RelNode> inputs = bb.retrieveCursors();
     Set<RelColumnMapping> columnMappings =

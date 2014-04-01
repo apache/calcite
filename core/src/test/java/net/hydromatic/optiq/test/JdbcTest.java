@@ -73,8 +73,10 @@ import static org.junit.Assert.*;
  */
 public class JdbcTest {
   public static final Method GENERATE_STRINGS_METHOD =
-      Types.lookupMethod(
-          JdbcTest.class, "generateStrings", Integer.TYPE);
+      Types.lookupMethod(JdbcTest.class, "generateStrings", Integer.TYPE);
+
+  public static final Method VIEW_METHOD =
+      Types.lookupMethod(JdbcTest.class, "view", String.class);
 
   public static final Method STRING_UNION_METHOD =
       Types.lookupMethod(
@@ -128,9 +130,39 @@ public class JdbcTest {
 
   /**
    * Tests a relation that is accessed via method syntax.
-   * The function returns a {@link Queryable}.
+   *
+   * <p>The function ({@link #generateStrings(int)} has a return type
+   * {@link Table} and the actual returned value implements
+   * {@link net.hydromatic.optiq.QueryableTable} but not
+   * {@link net.hydromatic.optiq.TranslatableTable}.
    */
   @Ignore
+  @Test public void testTableFunction()
+    throws SQLException, ClassNotFoundException {
+    Class.forName("net.hydromatic.optiq.jdbc.Driver");
+    Connection connection =
+        DriverManager.getConnection("jdbc:optiq:");
+    OptiqConnection optiqConnection =
+        connection.unwrap(OptiqConnection.class);
+    SchemaPlus rootSchema = optiqConnection.getRootSchema();
+    SchemaPlus schema = rootSchema.add("s", new AbstractSchema());
+    final TableMacro tableMacro =
+        Schemas.methodMember(GENERATE_STRINGS_METHOD);
+    schema.add("GenerateStrings", tableMacro);
+    ResultSet resultSet = connection.createStatement().executeQuery(
+        "select *\n"
+        + "from table(\"s\".\"GenerateStrings\"(5)) as t(n, c)\n"
+        + "where char_length(c) > 3");
+    assertTrue(resultSet.next());
+  }
+
+  /**
+   * Tests a relation that is accessed via method syntax.
+   *
+   * <p>The function ({@link #view(String)} has a return type
+   * {@link Table} and the actual returned value implements
+   * {@link net.hydromatic.optiq.TranslatableTable}.
+   */
   @Test public void testTableMacro()
     throws SQLException, ClassNotFoundException {
     Class.forName("net.hydromatic.optiq.jdbc.Driver");
@@ -138,17 +170,50 @@ public class JdbcTest {
         DriverManager.getConnection("jdbc:optiq:");
     OptiqConnection optiqConnection =
         connection.unwrap(OptiqConnection.class);
-    JavaTypeFactory typeFactory = optiqConnection.getTypeFactory();
     SchemaPlus rootSchema = optiqConnection.getRootSchema();
     SchemaPlus schema = rootSchema.add("s", new AbstractSchema());
-    final TableMacro tableMacro =
-        Schemas.methodMember(GENERATE_STRINGS_METHOD, typeFactory);
-    schema.add("GenerateStrings", tableMacro);
+    final TableMacro tableMacro = Schemas.methodMember(VIEW_METHOD);
+    schema.add("View", tableMacro);
     ResultSet resultSet = connection.createStatement().executeQuery(
         "select *\n"
-        + "from table(\"s\".\"GenerateStrings\"(5)) as t(n, c)\n"
-        + "where char_length(c) > 3");
-    assertTrue(resultSet.next());
+        + "from table(\"s\".\"View\"('(10), (20)')) as t(n)\n"
+        + "where n < 15");
+    // The call to "View('(10), (2)')" expands to 'values (1), (3), (10), (20)'.
+    assertThat(OptiqAssert.toString(resultSet),
+        equalTo("N=1\n"
+            + "N=3\n"
+            + "N=10\n")
+    );
+  }
+
+  /** Tests a JDBC connection that provides a model that contains a table
+   *  macro. */
+  @Test public void testTableMacroInModel() throws Exception {
+    checkTableMacroInModel(TableMacroFunction.class);
+    checkTableMacroInModel(StaticTableMacroFunction.class);
+  }
+
+  private void checkTableMacroInModel(Class clazz) {
+    OptiqAssert.that()
+        .withModel(
+            "{\n"
+            + "  version: '1.0',\n"
+            + "   schemas: [\n"
+            + "     {\n"
+            + "       name: 'adhoc',\n"
+            + "       functions: [\n"
+            + "         {\n"
+            + "           name: 'View',\n"
+            + "           className: '" + clazz.getName() + "'\n"
+            + "         }\n"
+            + "       ]\n"
+            + "     }\n"
+            + "   ]\n"
+            + "}").query("select * from table(\"adhoc\".\"View\"('(30)'))")
+        .returns(
+            "c=1\n"
+            + "c=3\n"
+            + "c=30\n");
   }
 
   public static <T> Queryable<T> stringUnion(
@@ -3255,14 +3320,18 @@ public class JdbcTest {
     }
 
     public Table view(String s) {
-      return new ViewTable(Object.class,
-          new RelProtoDataType() {
-            public RelDataType apply(RelDataTypeFactory typeFactory) {
-              return typeFactory.builder().add("c", SqlTypeName.INTEGER)
-                  .build();
-            }
-          }, "values (1), (3)", ImmutableList.<String>of());
+      return JdbcTest.view(s);
     }
+  }
+
+  public static Table view(String s) {
+    return new ViewTable(Object.class,
+        new RelProtoDataType() {
+          public RelDataType apply(RelDataTypeFactory typeFactory) {
+            return typeFactory.builder().add("c", SqlTypeName.INTEGER)
+                .build();
+          }
+        }, "values (1), (3), " + s, ImmutableList.<String>of());
   }
 
   public static class Employee {
@@ -3534,6 +3603,18 @@ public class JdbcTest {
 
     public int eval(int x) {
       return 0;
+    }
+  }
+
+  public static class TableMacroFunction {
+    public Table eval(String s) {
+      return view(s);
+    }
+  }
+
+  public static class StaticTableMacroFunction {
+    public static Table eval(String s) {
+      return view(s);
     }
   }
 }

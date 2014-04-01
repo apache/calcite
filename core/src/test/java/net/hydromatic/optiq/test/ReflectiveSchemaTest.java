@@ -143,13 +143,12 @@ public class ReflectiveSchemaTest {
         DriverManager.getConnection("jdbc:optiq:");
     OptiqConnection optiqConnection =
         connection.unwrap(OptiqConnection.class);
-    JavaTypeFactory typeFactory = optiqConnection.getTypeFactory();
     SchemaPlus rootSchema = optiqConnection.getRootSchema();
     SchemaPlus schema = rootSchema.add("s", new AbstractSchema());
     schema.add("GenerateStrings",
-        Schemas.methodMember(JdbcTest.GENERATE_STRINGS_METHOD, typeFactory));
+        Schemas.methodMember(JdbcTest.GENERATE_STRINGS_METHOD));
     schema.add("StringUnion",
-        Schemas.methodMember(JdbcTest.STRING_UNION_METHOD, typeFactory));
+        Schemas.methodMember(JdbcTest.STRING_UNION_METHOD));
     rootSchema.add("hr", new ReflectiveSchema("hr", new JdbcTest.HrSchema()));
     ResultSet resultSet = connection.createStatement().executeQuery(
         "select *\n"

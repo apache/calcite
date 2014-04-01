@@ -17,15 +17,12 @@
 */
 package org.eigenbase.rel.rules;
 
-import java.util.List;
-
 import org.eigenbase.rel.*;
 import org.eigenbase.relopt.*;
-import org.eigenbase.reltype.RelDataType;
 
 /**
- * TableAccessRule converts a TableAccessRel to the result of calling {@link
- * RelOptTable#toRel}.
+ * Planner rule that converts a {@link TableAccessRel} to the result of calling
+ * {@link RelOptTable#toRel}.
  */
 public class TableAccessRule extends RelOptRule {
   //~ Static fields/initializers ---------------------------------------------
@@ -44,18 +41,7 @@ public class TableAccessRule extends RelOptRule {
     final TableAccessRel oldRel = call.rel(0);
     RelNode newRel =
         oldRel.getTable().toRel(
-            new RelOptTable.ToRelContext() {
-              public RelOptCluster getCluster() {
-                return oldRel.getCluster();
-              }
-
-              public RelNode expandView(
-                  RelDataType rowType,
-                  String queryString,
-                  List<String> schemaPath) {
-                throw new UnsupportedOperationException();
-              }
-            });
+            RelOptUtil.getContext(oldRel.getCluster()));
     call.transformTo(newRel);
   }
 }
