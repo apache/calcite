@@ -132,16 +132,6 @@
         </executions>
       </plugin>
     </plugins>
-
-    <resources>
-      <resource>
-        <directory>src/main/resources</directory>
-      </resource>
-      <resource>
-        <directory>src/main/resources/version</directory>
-        <filtering>true</filtering>
-      </resource>
-    </resources>
   </build>
 
   <repositories>

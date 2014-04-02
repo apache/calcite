@@ -14,7 +14,8 @@
 
   <properties>
     <top.dir>${project.basedir}/..</top.dir>
-  </properties>
+    <build.timestamp>${maven.build.timestamp}</build.timestamp>
+   </properties>
 
   <dependencies>
     <dependency>
@@ -111,7 +112,18 @@
 
     <resources>
       <resource>
+        <directory>${top.dir}</directory>
+        <targetPath>META-INF</targetPath>
+        <includes>
+          <include>LICENSE</include>
+          <include>NOTICE</include>
+        </includes>
+      </resource>
+      <resource>
         <directory>src/main/resources</directory>
+        <excludes>
+          <exclude>version/*.properties</exclude>
+        </excludes>
       </resource>
       <resource>
         <directory>src/main/resources/version</directory>
