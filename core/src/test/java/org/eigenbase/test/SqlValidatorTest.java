@@ -5800,6 +5800,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         "extract(year from interval '1-2' year to month)",
         "BIGINT NOT NULL");
     checkExp("extract(minute from interval '1.1' second)");
+    checkExp("extract(year from DATE '2008-2-2')");
 
     checkWholeExpFails(
         "extract(minute from interval '11' month)",

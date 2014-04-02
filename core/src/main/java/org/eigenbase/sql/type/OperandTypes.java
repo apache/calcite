@@ -310,6 +310,10 @@ public abstract class OperandTypes {
   public static final SqlSingleOperandTypeChecker INTERVAL_DATETIME =
       family(SqlTypeFamily.DATETIME_INTERVAL, SqlTypeFamily.DATETIME);
 
+  public static final SqlSingleOperandTypeChecker
+  INTERVALINTERVAL_INTERVALDATETIME =
+      OperandTypes.or(INTERVAL_SAME_SAME, INTERVAL_DATETIME);
+
   // TODO: datetime+interval checking missing
   // TODO: interval+datetime checking missing
   public static final SqlSingleOperandTypeChecker PLUS_OPERATOR =

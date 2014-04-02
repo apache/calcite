@@ -38,7 +38,7 @@ public class SqlExtractFunction extends SqlFunction {
         SqlKind.OTHER_FUNCTION,
         ReturnTypes.BIGINT_NULLABLE,
         null,
-        OperandTypes.INTERVAL_SAME_SAME,
+        OperandTypes.INTERVALINTERVAL_INTERVALDATETIME,
         SqlFunctionCategory.SYSTEM);
   }
 
