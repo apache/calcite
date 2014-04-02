@@ -52,6 +52,7 @@ import org.eigenbase.sql.type.*;
 import org.eigenbase.sql.util.ChainedSqlOperatorTable;
 import org.eigenbase.sql.validate.*;
 import org.eigenbase.sql2rel.SqlToRelConverter;
+import org.eigenbase.sql2rel.StandardConvertletTable;
 import org.eigenbase.util.Util;
 
 import com.google.common.collect.*;
@@ -600,7 +601,8 @@ public class OptiqPrepareImpl implements OptiqPrepare {
         CatalogReader catalogReader) {
       SqlToRelConverter sqlToRelConverter =
           new SqlToRelConverter(
-              this, validator, catalogReader, planner, rexBuilder);
+              this, validator, catalogReader, planner, rexBuilder,
+              StandardConvertletTable.INSTANCE);
       sqlToRelConverter.setTrimUnusedFields(false);
       return sqlToRelConverter;
     }

@@ -33,6 +33,8 @@ import org.eigenbase.relopt.RelTraitDef;
 import org.eigenbase.sql.SqlOperatorTable;
 import org.eigenbase.sql.parser.SqlParserImplFactory;
 import org.eigenbase.sql.parser.impl.SqlParserImpl;
+import org.eigenbase.sql2rel.SqlRexConvertletTable;
+import org.eigenbase.sql2rel.StandardConvertletTable;
 
 import com.google.common.collect.ImmutableList;
 
@@ -72,7 +74,7 @@ public class Frameworks {
       Function1<SchemaPlus, Schema> schemaFactory,
       SqlOperatorTable operatorTable, RuleSet... ruleSets) {
     return getPlanner(lex, SqlParserImpl.FACTORY, schemaFactory,
-        operatorTable, null, ruleSets);
+        operatorTable, null, StandardConvertletTable.INSTANCE, ruleSets);
   }
 
   /**
@@ -112,11 +114,16 @@ public class Frameworks {
       Function1<SchemaPlus, Schema> schemaFactory,
       SqlOperatorTable operatorTable,
       List<RelTraitDef> traitDefs,
+      SqlRexConvertletTable convertletTable,
       RuleSet... ruleSets) {
+
     return new PlannerImpl(lex, parserFactory, schemaFactory, operatorTable,
         ImmutableList.copyOf(ruleSets),
-        traitDefs == null ? null : ImmutableList.copyOf(traitDefs));
+        traitDefs == null ? null : ImmutableList.copyOf(traitDefs),
+        convertletTable);
   }
+
+
 
   /** Piece of code to be run in a context where a planner is available. The
    * planner is accessible from the {@code cluster} parameter, as are several

@@ -435,7 +435,8 @@ public abstract class SqlToRelTestBase {
               validator,
               catalogReader,
               getPlanner(),
-              new RexBuilder(typeFactory));
+              new RexBuilder(typeFactory),
+              StandardConvertletTable.INSTANCE);
     }
 
     protected final RelDataTypeFactory getTypeFactory() {

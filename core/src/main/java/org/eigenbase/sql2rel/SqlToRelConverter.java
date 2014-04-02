@@ -131,22 +131,23 @@ public class SqlToRelConverter {
   public final RelOptTable.ViewExpander viewExpander;
 
   //~ Constructors -----------------------------------------------------------
-
   /**
    * Creates a converter.
    *
-   * @param viewExpander  Preparing statement
-   * @param validator     Validator
-   * @param catalogReader Schema
-   * @param planner       Planner
-   * @param rexBuilder    Rex builder
+   * @param viewExpander    Preparing statement
+   * @param validator       Validator
+   * @param catalogReader   Schema
+   * @param planner         Planner
+   * @param rexBuilder      Rex builder
+   * @param convertletTable Expression converter
    */
   public SqlToRelConverter(
       RelOptTable.ViewExpander viewExpander,
       SqlValidator validator,
       Prepare.CatalogReader catalogReader,
       RelOptPlanner planner,
-      RexBuilder rexBuilder) {
+      RexBuilder rexBuilder,
+      SqlRexConvertletTable convertletTable) {
     this.viewExpander = viewExpander;
     this.opTab =
         (validator
@@ -162,7 +163,7 @@ public class SqlToRelConverter {
     this.cluster = query.createCluster(typeFactory, rexBuilder);
     this.shouldConvertTableAccess = true;
     this.exprConverter =
-        new SqlNodeToRexConverterImpl(new StandardConvertletTable());
+        new SqlNodeToRexConverterImpl(convertletTable);
     decorrelationEnabled = true;
     trimUnusedFields = false;
     shouldCreateValuesRel = true;

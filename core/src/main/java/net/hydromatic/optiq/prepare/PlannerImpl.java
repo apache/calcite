@@ -34,6 +34,7 @@ import org.eigenbase.sql.SqlOperatorTable;
 import org.eigenbase.sql.parser.SqlParseException;
 import org.eigenbase.sql.parser.SqlParser;
 import org.eigenbase.sql.parser.SqlParserImplFactory;
+import org.eigenbase.sql2rel.SqlRexConvertletTable;
 import org.eigenbase.sql2rel.SqlToRelConverter;
 
 import com.google.common.collect.ImmutableList;
@@ -73,6 +74,7 @@ public class PlannerImpl implements Planner {
 
   // set in STATE_5_CONVERT
   private SqlToRelConverter sqlToRelConverter;
+  private SqlRexConvertletTable convertletTable;
   private RelNode rel;
 
   /** Creates a planner. Not a public API; call
@@ -80,7 +82,8 @@ public class PlannerImpl implements Planner {
   public PlannerImpl(Lex lex, SqlParserImplFactory parserFactory,
       Function1<SchemaPlus, Schema> schemaFactory,
       SqlOperatorTable operatorTable, ImmutableList<RuleSet> ruleSets,
-      ImmutableList<RelTraitDef> traitDefs) {
+      ImmutableList<RelTraitDef> traitDefs,
+      SqlRexConvertletTable convertletTable) {
     this.schemaFactory = schemaFactory;
     this.operatorTable = operatorTable;
     this.ruleSets = ruleSets;
@@ -88,6 +91,7 @@ public class PlannerImpl implements Planner {
     this.parserFactory = parserFactory;
     this.state = State.STATE_0_CLOSED;
     this.traitDefs = traitDefs;
+    this.convertletTable = convertletTable;
     reset();
   }
 
@@ -204,7 +208,7 @@ public class PlannerImpl implements Planner {
     this.sqlToRelConverter =
         new SqlToRelConverter(
             null, validator, createCatalogReader(), planner,
-            createRexBuilder());
+            createRexBuilder(), convertletTable);
     sqlToRelConverter.setTrimUnusedFields(false);
     rel = sqlToRelConverter.convertQuery(validatedSqlNode, false, true);
     state = State.STATE_5_CONVERTED;

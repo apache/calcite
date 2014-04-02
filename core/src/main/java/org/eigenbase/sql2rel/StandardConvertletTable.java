@@ -35,6 +35,11 @@ import com.google.common.collect.ImmutableList;
  * Standard implementation of {@link SqlRexConvertletTable}.
  */
 public class StandardConvertletTable extends ReflectiveConvertletTable {
+
+  // Singleton instance of StandardConvertletTable
+  public static final StandardConvertletTable INSTANCE =
+    new StandardConvertletTable();
+
   //~ Constructors -----------------------------------------------------------
 
   public StandardConvertletTable() {
@@ -470,6 +475,15 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
             exprs.get(1).getType().isNullable());
     RexNode cast = rexBuilder.makeReinterpretCast(
         resType, exprs.get(1), rexBuilder.makeLiteral(false));
+
+    /* TODO: Handle DateTime types.
+     * Raise exception for now, that we don't extract from DATETIME types
+     */
+    SqlTypeName extractFrom = exprs.get(1).getType().getSqlTypeName();
+    if (SqlTypeFamily.DATETIME.getTypeNames().contains(extractFrom)) {
+      throw new UnsupportedOperationException(
+        "Extract function does not support DATETIME data types");
+    }
 
     SqlIntervalQualifier.TimeUnit unit =
         ((SqlIntervalQualifier) operands.get(0)).getStartUnit();

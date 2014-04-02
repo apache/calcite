@@ -34,6 +34,7 @@ import org.eigenbase.test.*;
 import org.eigenbase.util.*;
 
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.junit.Assert.*;
@@ -4040,6 +4041,28 @@ public abstract class SqlOperatorBaseTest {
         "BIGINT NOT NULL");
     tester.checkNull(
         "extract(month from cast(null as interval year))");
+  }
+
+  @Ignore public void testExtractFuncFromDateTime() {
+    /* StandardConvertletTable.convertExtract() will throw an
+     * exception when the second input to extract function is of
+     * DATETIME type. Once the capability to handle DATETIME type
+     * is added to convertExtract() we can add this test
+     */
+    tester.setFor(
+        SqlStdOperatorTable.EXTRACT,
+        VM_FENNEL,
+        VM_JAVA);
+
+    tester.checkScalar(
+        "extract(year from date '2008-2-23')",
+        "2008",
+        "BIGINT NOT NULL");
+
+    tester.checkScalar(
+        "extract(minute from time '12:23:34')",
+        "23",
+        "BIGINT NOT NULL");
   }
 
   @Test public void testArrayValueConstructor() {

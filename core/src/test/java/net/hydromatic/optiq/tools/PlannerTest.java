@@ -45,6 +45,7 @@ import org.eigenbase.sql.util.ChainedSqlOperatorTable;
 import org.eigenbase.sql.util.ListSqlOperatorTable;
 import org.eigenbase.sql.validate.SqlValidator;
 import org.eigenbase.sql.validate.SqlValidatorScope;
+import org.eigenbase.sql2rel.StandardConvertletTable;
 import org.eigenbase.util.Util;
 
 import com.google.common.collect.ImmutableList;
@@ -130,7 +131,7 @@ public class PlannerTest {
             new ListSqlOperatorTable(
                 ImmutableList.<SqlOperator>of(new MyCountAggFunction()))));
     Planner planner = Frameworks.getPlanner(Lex.ORACLE, SqlParserImpl.FACTORY,
-        HR_FACTORY, opTab, null);
+        HR_FACTORY, opTab, null, StandardConvertletTable.INSTANCE);
     SqlNode parse =
         planner.parse("select \"deptno\", my_count(\"empid\") from \"emps\"\n"
             + "group by \"deptno\"");
@@ -161,7 +162,8 @@ public class PlannerTest {
 
   private Planner getPlanner(List<RelTraitDef> traitDefs, RuleSet... ruleSets) {
     return Frameworks.getPlanner(Lex.ORACLE, SqlParserImpl.FACTORY,
-        HR_FACTORY, SqlStdOperatorTable.instance(), traitDefs, ruleSets);
+        HR_FACTORY, SqlStdOperatorTable.instance(), traitDefs,
+        StandardConvertletTable.INSTANCE, ruleSets);
   }
 
   /** Tests that planner throws an error if you pass to
