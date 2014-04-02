@@ -202,6 +202,17 @@
         <version>2.4.1</version>
       </plugin>
     </plugins>
+
+    <resources>
+      <resource>
+        <directory>${top.dir}</directory>
+        <targetPath>META-INF</targetPath>
+        <includes>
+          <include>LICENSE</include>
+          <include>NOTICE</include>
+        </includes>
+      </resource>
+    </resources>
   </build>
 
 </project>
