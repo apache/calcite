@@ -2564,32 +2564,36 @@ public class JdbcTest {
         "Cannot define view; parent schema 'adhoc' is not mutable");
   }
 
+  private OptiqAssert.AssertThat modelWithView(String view) {
+    final Class<EmpDeptTableFactory> clazz = EmpDeptTableFactory.class;
+    return OptiqAssert.that().withModel(
+        "{\n"
+        + "  version: '1.0',\n"
+        + "   schemas: [\n"
+        + "     {\n"
+        + "       name: 'adhoc',\n"
+        + "       tables: [\n"
+        + "         {\n"
+        + "           name: 'EMPLOYEES',\n"
+        + "           type: 'custom',\n"
+        + "           factory: '" + clazz.getName() + "',\n"
+        + "           operand: {'foo': true, 'bar': 345}\n"
+        + "         },\n"
+        + "         {\n"
+        + "           name: 'V',\n"
+        + "           type: 'view',\n"
+        + "           sql: '" + view + "'\n"
+        + "         }\n"
+        + "       ]\n"
+        + "     }\n"
+        + "   ]\n"
+        + "}");
+  }
+
   /** Tests a JDBC connection that provides a model that contains a view. */
   @Test public void testModelView() throws Exception {
-    final OptiqAssert.AssertThat with = OptiqAssert.that()
-        .withModel(
-            "{\n"
-            + "  version: '1.0',\n"
-            + "   schemas: [\n"
-            + "     {\n"
-            + "       name: 'adhoc',\n"
-            + "       tables: [\n"
-            + "         {\n"
-            + "           name: 'EMPLOYEES',\n"
-            + "           type: 'custom',\n"
-            + "           factory: '"
-            + EmpDeptTableFactory.class.getName() + "',\n"
-            + "           operand: {'foo': true, 'bar': 345}\n"
-            + "         },\n"
-            + "         {\n"
-            + "           name: 'V',\n"
-            + "           type: 'view',\n"
-            + "           sql: 'select * from \"EMPLOYEES\" where \"deptno\" = 10'\n"
-            + "         }\n"
-            + "       ]\n"
-            + "     }\n"
-            + "   ]\n"
-            + "}");
+    final OptiqAssert.AssertThat with =
+        modelWithView("select * from \"EMPLOYEES\" where \"deptno\" = 10");
 
     with.query("select * from \"adhoc\".V order by \"name\" desc")
         .returns(
@@ -2663,6 +2667,28 @@ public class JdbcTest {
             }
           }
         });
+  }
+
+  /** Tests a view with ORDER BY and LIMIT clauses. */
+  @Test public void testOrderByView() throws Exception {
+    final OptiqAssert.AssertThat with =
+        modelWithView(
+            "select * from \"EMPLOYEES\" where \"deptno\" = 10 "
+            + "order by \"empid\" limit 2");
+    with
+        .query("select \"name\" from \"adhoc\".V order by \"name\"")
+        .returns("name=Bill\n"
+            + "name=Theodore\n");
+
+    // Now a sub-query with ORDER BY and LIMIT clauses. (Same net effect, but
+    // ORDER BY and LIMIT in sub-query were not standard SQL until SQL:2008.)
+    with
+        .query("select \"name\" from (\n"
+            + "select * from \"adhoc\".\"EMPLOYEES\" where \"deptno\" = 10\n"
+            + "order by \"empid\" limit 2)\n"
+            + "order by \"name\"")
+        .returns("name=Bill\n"
+            + "name=Theodore\n");
   }
 
   /** Tests saving query results into temporary tables, per
