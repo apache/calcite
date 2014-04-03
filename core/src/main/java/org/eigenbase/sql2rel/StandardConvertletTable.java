@@ -28,6 +28,7 @@ import org.eigenbase.sql.fun.*;
 import org.eigenbase.sql.parser.*;
 import org.eigenbase.sql.type.*;
 import org.eigenbase.util.*;
+import org.eigenbase.util14.DateTimeUtil;
 
 import com.google.common.collect.ImmutableList;
 
@@ -36,13 +37,13 @@ import com.google.common.collect.ImmutableList;
  */
 public class StandardConvertletTable extends ReflectiveConvertletTable {
 
-  // Singleton instance of StandardConvertletTable
+  /** Singleton instance. */
   public static final StandardConvertletTable INSTANCE =
-    new StandardConvertletTable();
+      new StandardConvertletTable();
 
   //~ Constructors -----------------------------------------------------------
 
-  public StandardConvertletTable() {
+  private StandardConvertletTable() {
     super();
 
     // Register aliases (operators which have a different name but
@@ -473,62 +474,70 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
         cx.getTypeFactory().createTypeWithNullability(
             resType,
             exprs.get(1).getType().isNullable());
-    RexNode cast = rexBuilder.makeReinterpretCast(
+    RexNode res = rexBuilder.makeReinterpretCast(
         resType, exprs.get(1), rexBuilder.makeLiteral(false));
 
-    /* TODO: Handle DateTime types.
-     * Raise exception for now, that we don't extract from DATETIME types
-     */
-    SqlTypeName extractFrom = exprs.get(1).getType().getSqlTypeName();
-    if (SqlTypeFamily.DATETIME.getTypeNames().contains(extractFrom)) {
-      throw new UnsupportedOperationException(
-        "Extract function does not support DATETIME data types");
+    final SqlIntervalQualifier.TimeUnit unit =
+        ((SqlIntervalQualifier) operands.get(0)).getStartUnit();
+    final SqlTypeName sqlTypeName = exprs.get(1).getType().getSqlTypeName();
+    switch (unit) {
+    case YEAR:
+    case MONTH:
+    case DAY:
+      switch (sqlTypeName) {
+      case INTERVAL_YEAR_MONTH:
+      case INTERVAL_DAY_TIME:
+        break;
+      case TIMESTAMP:
+        res = divide(rexBuilder, res, DateTimeUtil.MILLIS_PER_DAY);
+        // fall through
+      case DATE:
+        return rexBuilder.makeCall(resType, SqlStdOperatorTable.EXTRACT_DATE,
+            ImmutableList.of(exprs.get(0), res));
+      default:
+        throw new AssertionError("unexpected " + sqlTypeName);
+      }
     }
 
-    SqlIntervalQualifier.TimeUnit unit =
-        ((SqlIntervalQualifier) operands.get(0)).getStartUnit();
-    long val = unit.multiplier;
-    RexNode factor = rexBuilder.makeExactLiteral(BigDecimal.valueOf(val));
+    res = mod(rexBuilder, resType, res, getFactor(unit));
+    res = divide(rexBuilder, res, unit.multiplier);
+    return res;
+  }
+
+  private static long getFactor(SqlIntervalQualifier.TimeUnit unit) {
     switch (unit) {
     case DAY:
-      val = 0;
-      break;
+      return 1;
     case HOUR:
-      val = SqlIntervalQualifier.TimeUnit.DAY.multiplier;
-      break;
+      return SqlIntervalQualifier.TimeUnit.DAY.multiplier;
     case MINUTE:
-      val = SqlIntervalQualifier.TimeUnit.HOUR.multiplier;
-      break;
+      return SqlIntervalQualifier.TimeUnit.HOUR.multiplier;
     case SECOND:
-      val = SqlIntervalQualifier.TimeUnit.MINUTE.multiplier;
-      break;
+      return SqlIntervalQualifier.TimeUnit.MINUTE.multiplier;
     case YEAR:
-      val = 0;
-      break;
+      return 1;
     case MONTH:
-      val = SqlIntervalQualifier.TimeUnit.YEAR.multiplier;
-      break;
+      return SqlIntervalQualifier.TimeUnit.YEAR.multiplier;
     default:
       throw Util.unexpected(unit);
     }
+  }
 
-    RexNode res = cast;
-    if (val != 0) {
-      RexNode modVal =
-          rexBuilder.makeExactLiteral(BigDecimal.valueOf(val), resType);
-      res =
-          rexBuilder.makeCall(
-              SqlStdOperatorTable.MOD,
-              res,
-              modVal);
+  private RexNode mod(RexBuilder rexBuilder, RelDataType resType, RexNode res,
+      long val) {
+    if (val == 1L) {
+      return res;
     }
+    return rexBuilder.makeCall(SqlStdOperatorTable.MOD, res,
+        rexBuilder.makeExactLiteral(BigDecimal.valueOf(val), resType));
+  }
 
-    res =
-        rexBuilder.makeCall(
-            SqlStdOperatorTable.DIVIDE_INTEGER,
-            res,
-            factor);
-    return res;
+  private RexNode divide(RexBuilder rexBuilder, RexNode res, long val) {
+    if (val == 1L) {
+      return res;
+    }
+    return rexBuilder.makeCall(SqlStdOperatorTable.DIVIDE_INTEGER, res,
+        rexBuilder.makeExactLiteral(BigDecimal.valueOf(val)));
   }
 
   public RexNode convertDatetimeMinus(

@@ -27,6 +27,7 @@ import java.util.*;
 
 import static net.hydromatic.optiq.runtime.SqlFunctions.*;
 
+import static org.hamcrest.CoreMatchers.*;
 import static org.junit.Assert.*;
 
 /**
@@ -208,6 +209,43 @@ public class SqlFunctionsTest {
         intervalDayTimeToString(0, TimeUnitRange.MINUTE_TO_SECOND, 0));
     assertEquals("+0",
         intervalDayTimeToString(0, TimeUnitRange.SECOND, 0));
+  }
+
+  @Test public void testExtract() {
+    assertThat(unixDateExtract(TimeUnitRange.YEAR, 0), equalTo(1970));
+    assertThat(unixDateExtract(TimeUnitRange.YEAR, -1), equalTo(1969));
+    assertThat(unixDateExtract(TimeUnitRange.YEAR, 364), equalTo(1970));
+    assertThat(unixDateExtract(TimeUnitRange.YEAR, 365), equalTo(1971));
+
+    assertThat(unixDateExtract(TimeUnitRange.MONTH, 0), equalTo(1));
+    assertThat(unixDateExtract(TimeUnitRange.MONTH, -1), equalTo(12));
+    assertThat(unixDateExtract(TimeUnitRange.MONTH, 364), equalTo(12));
+    assertThat(unixDateExtract(TimeUnitRange.MONTH, 365), equalTo(1));
+
+    thereAndBack(2000, 1, 1);
+    thereAndBack(2000, 2, 28);
+    thereAndBack(2000, 2, 29); // does day
+    thereAndBack(2000, 3, 1);
+    thereAndBack(1964, 1, 1);
+    thereAndBack(1964, 2, 28);
+    thereAndBack(1964, 2, 29); // leap day
+    thereAndBack(1964, 3, 1);
+    if (false) {
+      thereAndBack(1900, 1, 1);
+      thereAndBack(1900, 2, 28);
+      thereAndBack(1900, 2, 29); // does not exist - 1900 was not a leap year
+    }
+    thereAndBack(1900, 3, 1);
+    thereAndBack(2004, 2, 28);
+    thereAndBack(2004, 2, 29); // leap day
+    thereAndBack(2004, 3, 1);
+  }
+
+  private void thereAndBack(int year, int month, int day) {
+    final int unixDate = ymdToUnixDate(year, month, day);
+    assertThat(unixDateExtract(TimeUnitRange.YEAR, unixDate), equalTo(year));
+    assertThat(unixDateExtract(TimeUnitRange.MONTH, unixDate), equalTo(month));
+    assertThat(unixDateExtract(TimeUnitRange.DAY, unixDate), equalTo(day));
   }
 
   /** Unit test for

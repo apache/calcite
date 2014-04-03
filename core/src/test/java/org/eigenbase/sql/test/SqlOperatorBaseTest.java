@@ -33,9 +33,7 @@ import org.eigenbase.sql.util.SqlString;
 import org.eigenbase.test.*;
 import org.eigenbase.util.*;
 
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.*;
 
 import static org.junit.Assert.*;
 
@@ -4015,6 +4013,10 @@ public abstract class SqlOperatorBaseTest {
         "2",
         "BIGINT NOT NULL");
     tester.checkScalar(
+        "extract(day from interval '23456 3:4:5.678' day(5) to second)",
+        "23456",
+        "BIGINT NOT NULL");
+    tester.checkScalar(
         "extract(hour from interval '2 3:4:5.678' day to second)",
         "3",
         "BIGINT NOT NULL");
@@ -4043,12 +4045,7 @@ public abstract class SqlOperatorBaseTest {
         "extract(month from cast(null as interval year))");
   }
 
-  @Ignore public void testExtractFuncFromDateTime() {
-    /* StandardConvertletTable.convertExtract() will throw an
-     * exception when the second input to extract function is of
-     * DATETIME type. Once the capability to handle DATETIME type
-     * is added to convertExtract() we can add this test
-     */
+  @Test public void testExtractFuncFromDateTime() {
     tester.setFor(
         SqlStdOperatorTable.EXTRACT,
         VM_FENNEL,
@@ -4060,9 +4057,33 @@ public abstract class SqlOperatorBaseTest {
         "BIGINT NOT NULL");
 
     tester.checkScalar(
+        "extract(month from date '2008-2-23')",
+        "2",
+        "BIGINT NOT NULL");
+
+    tester.checkScalar(
+        "extract(month from timestamp '2008-2-23 12:34:56')",
+        "2",
+        "BIGINT NOT NULL");
+
+    tester.checkScalar(
+        "extract(minute from timestamp '2008-2-23 12:34:56')",
+        "34",
+        "BIGINT NOT NULL");
+
+    tester.checkScalar(
         "extract(minute from time '12:23:34')",
         "23",
         "BIGINT NOT NULL");
+
+    tester.checkNull(
+        "extract(month from cast(null as timestamp))");
+
+    tester.checkNull(
+        "extract(month from cast(null as date))");
+
+    tester.checkNull(
+        "extract(second from cast(null as time))");
   }
 
   @Test public void testArrayValueConstructor() {

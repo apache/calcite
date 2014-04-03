@@ -985,12 +985,8 @@ public class RexBuilder {
    */
   public RexLiteral makeIntervalLiteral(
       SqlIntervalQualifier intervalQualifier) {
-    Util.pre(intervalQualifier != null, "intervalQualifier != null");
-    return makeLiteral(
-        null,
-        typeFactory.createSqlIntervalType(intervalQualifier),
-        intervalQualifier.isYearMonth() ? SqlTypeName.INTERVAL_YEAR_MONTH
-            : SqlTypeName.INTERVAL_DAY_TIME);
+    assert intervalQualifier != null;
+    return makeFlag(intervalQualifier.foo());
   }
 
   /**

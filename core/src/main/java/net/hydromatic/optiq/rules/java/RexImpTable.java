@@ -139,6 +139,10 @@ public class RexImpTable {
     defineMethod(CEIL, "ceil", NullPolicy.STRICT);
     defineMethod(FLOOR, "floor", NullPolicy.STRICT);
 
+    // datetime
+    defineMethod(EXTRACT_DATE, BuiltinMethod.UNIX_DATE_EXTRACT.method,
+        NullPolicy.STRICT);
+
     map.put(IS_NULL, new IsXxxImplementor(null, false));
     map.put(IS_NOT_NULL, new IsXxxImplementor(null, true));
     map.put(IS_TRUE, new IsXxxImplementor(true, false));

@@ -1184,6 +1184,45 @@ public class SqlFunctions {
     int2(buf, day);
   }
 
+  public static int unixDateExtract(TimeUnitRange range, long date) {
+    return julianExtract(range, (int) date + 2440588);
+  }
+
+  private static int julianExtract(TimeUnitRange range, int julian) {
+    // this shifts the epoch back to astronomical year -4800 instead of the
+    // start of the Christian era in year AD 1 of the proleptic Gregorian
+    // calendar.
+    int j = julian + 32044;
+    int g = j / 146097;
+    int dg = j % 146097;
+    int c = (dg / 36524 + 1) * 3 / 4;
+    int dc = dg - c * 36524;
+    int b = dc / 1461;
+    int db = dc % 1461;
+    int a = (db / 365 + 1) * 3 / 4;
+    int da = db - a * 365;
+
+    // integer number of full years elapsed since March 1, 4801 BC
+    int y = g * 400 + c * 100 + b * 4 + a;
+    // integer number of full months elapsed since the last March 1
+    int m = (da * 5 + 308) / 153 - 2;
+    // number of days elapsed since day 1 of the month
+    int d = da - (m + 4) * 153 / 5 + 122;
+    int year = y - 4800 + (m + 2) / 12;
+    int month = (m + 2) % 12 + 1;
+    int day = d + 1;
+    switch (range) {
+    case YEAR:
+      return year;
+    case MONTH:
+      return month;
+    case DAY:
+      return day;
+    default:
+      throw new AssertionError(range);
+    }
+  }
+
   public static int ymdToUnixDate(int year, int month, int day) {
     return ymdToJulian(year, month, day) - 2440588 - 13;
   }

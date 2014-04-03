@@ -164,6 +164,8 @@ public enum BuiltinMethod {
       int.class, SqlFunctions.TimeUnitRange.class),
   INTERVAL_DAY_TIME_TO_STRING(SqlFunctions.class, "intervalDayTimeToString",
       long.class, SqlFunctions.TimeUnitRange.class, int.class),
+  UNIX_DATE_EXTRACT(SqlFunctions.class, "unixDateExtract",
+      SqlFunctions.TimeUnitRange.class, long.class),
   CURRENT_TIMESTAMP(SqlFunctions.class, "currentTimestamp", DataContext.class),
   CURRENT_TIME(SqlFunctions.class, "currentTime", DataContext.class),
   CURRENT_DATE(SqlFunctions.class, "currentDate", DataContext.class),

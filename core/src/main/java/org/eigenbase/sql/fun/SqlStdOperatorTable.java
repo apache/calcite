@@ -933,6 +933,11 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
         }
       };
 
+  /** Internal operator that extracts time periods (year, month, date) from a
+   * date in internal format (number of days since epoch). */
+  public static final SqlSpecialOperator EXTRACT_DATE =
+      new SqlSpecialOperator("EXTRACT_DATE", SqlKind.OTHER);
+
   //-------------------------------------------------------------
   //                   FUNCTIONS
   //-------------------------------------------------------------
