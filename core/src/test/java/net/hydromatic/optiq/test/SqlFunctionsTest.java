@@ -211,6 +211,22 @@ public class SqlFunctionsTest {
         intervalDayTimeToString(0, TimeUnitRange.SECOND, 0));
   }
 
+  @Test public void testYmdToJulian() {
+    // All checked using http://aa.usno.navy.mil/data/docs/JulianDate.php.
+    // We round up - if JulianDate.php gives 2451544.5, we use 2451545.
+    assertThat(ymdToJulian(2014, 4, 3), equalTo(2456751));
+    assertThat(ymdToJulian(2000, 1, 1), equalTo(2451545));
+    assertThat(ymdToJulian(1970, 1, 1), equalTo(2440588));
+    assertThat(ymdToJulian(1970, 1, 1), equalTo(EPOCH_JULIAN));
+    assertThat(ymdToJulian(1901, 1, 1), equalTo(2415386));
+    assertThat(ymdToJulian(1900, 10, 17), equalTo(2415310));
+    assertThat(ymdToJulian(1900, 3, 1), equalTo(2415080));
+    assertThat(ymdToJulian(1900, 2, 28), equalTo(2415079));
+    assertThat(ymdToJulian(1900, 2, 1), equalTo(2415052));
+    assertThat(ymdToJulian(1900, 1, 1), equalTo(2415021));
+    assertThat(ymdToJulian(1777, 7, 4), equalTo(2370281));
+  }
+
   @Test public void testExtract() {
     assertThat(unixDateExtract(TimeUnitRange.YEAR, 0), equalTo(1970));
     assertThat(unixDateExtract(TimeUnitRange.YEAR, -1), equalTo(1969));
@@ -230,11 +246,12 @@ public class SqlFunctionsTest {
     thereAndBack(1964, 2, 28);
     thereAndBack(1964, 2, 29); // leap day
     thereAndBack(1964, 3, 1);
-    if (false) {
-      thereAndBack(1900, 1, 1);
-      thereAndBack(1900, 2, 28);
-      thereAndBack(1900, 2, 29); // does not exist - 1900 was not a leap year
-    }
+    thereAndBack(1864, 1, 1);
+    thereAndBack(1864, 2, 28);
+    thereAndBack(1864, 2, 29); // leap day
+    thereAndBack(1864, 3, 1);
+    thereAndBack(1900, 1, 1);
+    thereAndBack(1900, 2, 28);
     thereAndBack(1900, 3, 1);
     thereAndBack(2004, 2, 28);
     thereAndBack(2004, 2, 29); // leap day

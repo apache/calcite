@@ -45,6 +45,9 @@ public class SqlFunctions {
   private static final DecimalFormat DOUBLE_FORMAT =
       new DecimalFormat("0.0E0");
 
+  /** The julian date of the epoch, 1970-01-01. */
+  public static final int EPOCH_JULIAN = 2440588;
+
   private SqlFunctions() {
   }
 
@@ -1151,7 +1154,7 @@ public class SqlFunctions {
   }
 
   private static void unixDateToString(StringBuilder buf, int date) {
-    julianToString(buf, date + 2440588);
+    julianToString(buf, date + EPOCH_JULIAN);
   }
 
   private static void julianToString(StringBuilder buf, int julian) {
@@ -1185,7 +1188,7 @@ public class SqlFunctions {
   }
 
   public static int unixDateExtract(TimeUnitRange range, long date) {
-    return julianExtract(range, (int) date + 2440588);
+    return julianExtract(range, (int) date + EPOCH_JULIAN);
   }
 
   private static int julianExtract(TimeUnitRange range, int julian) {
@@ -1224,14 +1227,24 @@ public class SqlFunctions {
   }
 
   public static int ymdToUnixDate(int year, int month, int day) {
-    return ymdToJulian(year, month, day) - 2440588 - 13;
+    final int julian = ymdToJulian(year, month, day);
+    return julian - EPOCH_JULIAN;
   }
 
   public static int ymdToJulian(int year, int month, int day) {
     int a = (14 - month) / 12;
     int y = year + 4800 - a;
     int m = month + 12 * a - 3;
-    return day + (153 * m + 2) / 5 + 365 * y + y / 4 - 32083;
+    int j = day + (153 * m + 2) / 5
+        + 365 * y
+        + y / 4
+        - y / 100
+        + y / 400
+        - 32045;
+    if (j < 2299161) {
+      j = day + (153 * m + 2) / 5 + 365 * y + y / 4 - 32083;
+    }
+    return j;
   }
 
   public static String intervalYearMonthToString(int v, TimeUnitRange range) {
