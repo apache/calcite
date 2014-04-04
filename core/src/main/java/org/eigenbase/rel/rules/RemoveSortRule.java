@@ -46,8 +46,13 @@ public class RemoveSortRule extends RelOptRule {
       return;
     }
     final RelCollation collation = sort.getCollation();
-    final RelTraitSet traits = sort.getTraitSet().replace(collation);
-    call.transformTo(convert(sort.getChild(), traits));
+    final RelCollation childCollation =
+        sort.getChild().getTraitSet().getTrait(RelCollationTraitDef.INSTANCE);
+    if (childCollation.subsumes(collation)) {
+      call.transformTo(sort.getChild());
+    } else {
+      return;
+    }
   }
 }
 

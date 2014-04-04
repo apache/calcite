@@ -33,6 +33,7 @@ import net.hydromatic.optiq.test.JdbcTest;
 import org.eigenbase.rel.*;
 import org.eigenbase.rel.convert.ConverterRule;
 import org.eigenbase.rel.rules.MergeFilterRule;
+import org.eigenbase.rel.rules.RemoveSortRule;
 import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.reltype.RelDataTypeFactory;
@@ -199,6 +200,86 @@ public class PlannerTest {
     assertThat(toString(transform), equalTo(
         "EnumerableProjectRel(empid=[$0], deptno=[$1], name=[$2], salary=[$3], commission=[$4])\n"
         + "  EnumerableTableAccessRel(table=[[hr, emps]])\n"));
+  }
+
+  /** Unit test that parses, validates, converts and
+   * plans for query using order by */
+  @Test public void testSortPlan() throws Exception {
+    RuleSet ruleSet =
+        RuleSets.ofList(
+            RemoveSortRule.INSTANCE,
+            JavaRules.ENUMERABLE_PROJECT_RULE,
+            JavaRules.ENUMERABLE_SORT_RULE);
+    Planner planner = getPlanner(null, ruleSet);
+    SqlNode parse = planner.parse(
+        "select * from \"emps\" "
+            + "order by \"emps\".\"deptno\"");
+    SqlNode validate = planner.validate(parse);
+    RelNode convert = planner.convert(validate);
+    RelTraitSet traitSet = planner.getEmptyTraitSet()
+        .replace(EnumerableConvention.INSTANCE);
+    RelNode transform = planner.transform(0, traitSet, convert);
+    assertThat(toString(transform), equalTo(
+        "EnumerableSortRel(sort0=[$1], dir0=[ASC])\n"
+        + "  EnumerableProjectRel(empid=[$0], deptno=[$1], name=[$2], salary=[$3], commission=[$4])\n"
+        + "    EnumerableTableAccessRel(table=[[hr, emps]])\n"));
+  }
+
+  /** Unit test that parses, validates, converts and
+   * plans for query using two duplicate order by.
+   * The duplicate order by should be removed by RemoveSortRule*/
+  @Test public void testDuplicateSortPlan() throws Exception {
+    RuleSet ruleSet =
+        RuleSets.ofList(
+            RemoveSortRule.INSTANCE,
+            JavaRules.ENUMERABLE_PROJECT_RULE,
+            JavaRules.ENUMERABLE_SORT_RULE);
+    Planner planner = getPlanner(null, ruleSet);
+    SqlNode parse = planner.parse(
+        "select \"empid\" from ( "
+         + "select * "
+         + "from \"emps\" "
+         + "order by \"emps\".\"deptno\") "
+         + "order by \"deptno\"");
+    SqlNode validate = planner.validate(parse);
+    RelNode convert = planner.convert(validate);
+    RelTraitSet traitSet = planner.getEmptyTraitSet()
+        .replace(EnumerableConvention.INSTANCE);
+    RelNode transform = planner.transform(0, traitSet, convert);
+    assertThat(toString(transform), equalTo(
+        "EnumerableProjectRel(empid=[$0])\n"
+        + "  EnumerableProjectRel(empid=[$0], deptno=[$1])\n"
+        + "    EnumerableSortRel(sort0=[$1], dir0=[ASC])\n"
+        + "      EnumerableProjectRel(empid=[$0], deptno=[$1], name=[$2], salary=[$3], commission=[$4])\n"
+        + "        EnumerableTableAccessRel(table=[[hr, emps]])\n"));
+  }
+
+  /** Unit test that parses, validates, converts and
+   * plans for query using two duplicate order by.*/
+  @Test public void testDuplicateSortPlanWORemoveSortRule() throws Exception {
+    RuleSet ruleSet =
+        RuleSets.ofList(
+            JavaRules.ENUMERABLE_PROJECT_RULE,
+            JavaRules.ENUMERABLE_SORT_RULE);
+    Planner planner = getPlanner(null, ruleSet);
+    SqlNode parse = planner.parse(
+        "select \"empid\" from ( "
+            + "select * "
+            + "from \"emps\" "
+            + "order by \"emps\".\"deptno\") "
+            + "order by \"deptno\"");
+    SqlNode validate = planner.validate(parse);
+    RelNode convert = planner.convert(validate);
+    RelTraitSet traitSet = planner.getEmptyTraitSet()
+        .replace(EnumerableConvention.INSTANCE);
+    RelNode transform = planner.transform(0, traitSet, convert);
+    assertThat(toString(transform), equalTo(
+        "EnumerableProjectRel(empid=[$0])\n"
+        +    "  EnumerableSortRel(sort0=[$1], dir0=[ASC])\n"
+        +    "    EnumerableProjectRel(empid=[$0], deptno=[$1])\n"
+        +    "      EnumerableSortRel(sort0=[$1], dir0=[ASC])\n"
+        +    "        EnumerableProjectRel(empid=[$0], deptno=[$1], name=[$2], salary=[$3], commission=[$4])\n"
+        +    "          EnumerableTableAccessRel(table=[[hr, emps]])\n"));
   }
 
   /** Unit test that parses, validates, converts and plans. Planner is
