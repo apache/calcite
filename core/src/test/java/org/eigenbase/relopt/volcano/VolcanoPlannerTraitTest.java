@@ -218,6 +218,8 @@ public class VolcanoPlannerTraitTest {
       this.ordinal = altTraitOrdinal++;
     }
 
+    public void register(RelOptPlanner planner) {}
+
     public RelTraitDef getTraitDef() {
       return traitDef;
     }
@@ -238,7 +240,7 @@ public class VolcanoPlannerTraitTest {
     }
 
     public boolean subsumes(RelTrait trait) {
-      return equals(true);
+      return equals(trait);
     }
 
     public String toString() {

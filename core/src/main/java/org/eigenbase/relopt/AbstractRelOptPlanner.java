@@ -55,6 +55,8 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
   private final Set<Class<? extends RelNode>> classes =
       new HashSet<Class<? extends RelNode>>();
 
+  private final Set<RelTrait> traits = new HashSet<RelTrait>();
+
   private Executor executor;
 
   //~ Constructors -----------------------------------------------------------
@@ -185,6 +187,11 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
     final Class<? extends RelNode> clazz = node.getClass();
     if (classes.add(clazz)) {
       node.register(this);
+    }
+    for (RelTrait trait : node.getTraitSet()) {
+      if (traits.add(trait)) {
+        trait.register(this);
+      }
     }
   }
 

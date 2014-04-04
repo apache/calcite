@@ -50,10 +50,11 @@ public interface Convention extends RelTrait {
       this.relClass = relClass;
     }
 
-    @Override
-    public String toString() {
+    @Override public String toString() {
       return getName();
     }
+
+    public void register(RelOptPlanner planner) {}
 
     public boolean subsumes(RelTrait trait) {
       return this == trait;

@@ -19,7 +19,11 @@ package net.hydromatic.optiq.impl.jdbc;
 
 import net.hydromatic.linq4j.expressions.Expression;
 
+import org.eigenbase.rel.rules.PushFilterPastSetOpRule;
+import org.eigenbase.rel.rules.RemoveTrivialProjectRule;
 import org.eigenbase.relopt.Convention;
+import org.eigenbase.relopt.RelOptPlanner;
+import org.eigenbase.relopt.RelOptRule;
 import org.eigenbase.sql.SqlDialect;
 
 /**
@@ -54,6 +58,15 @@ public class JdbcConvention extends Convention.Impl {
   public static JdbcConvention of(SqlDialect dialect, Expression expression,
       String name) {
     return new JdbcConvention(dialect, expression, name);
+  }
+
+  @Override
+  public void register(RelOptPlanner planner) {
+    for (RelOptRule rule : JdbcRules.rules(this)) {
+      planner.addRule(rule);
+    }
+    planner.addRule(PushFilterPastSetOpRule.INSTANCE);
+    planner.addRule(RemoveTrivialProjectRule.INSTANCE);
   }
 }
 

@@ -61,7 +61,7 @@ public interface RelTrait {
    * and transitive (if t1 subsumes t2 and t2 subsumes t3, then t1 subsumes
    * t3)</p>
    *
-   * <p>May traits cannot be substituted, in which case, this method should
+   * <p>Many traits cannot be substituted, in which case, this method should
    * return {@code equals(trait)}.</p>
    */
   boolean subsumes(RelTrait trait);
@@ -71,6 +71,16 @@ public interface RelTrait {
    * to describe the trait.
    */
   String toString();
+
+  /**
+   * Registers a trait instance with the planner.
+   *
+   * <p>This is an opportunity to add rules that relate to that trait. However,
+   * typical implementations will do nothing.</p>
+   *
+   * @param planner Planner
+   */
+  void register(RelOptPlanner planner);
 }
 
 // End RelTrait.java

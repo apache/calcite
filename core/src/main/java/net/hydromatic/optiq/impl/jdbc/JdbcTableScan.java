@@ -19,8 +19,6 @@ package net.hydromatic.optiq.impl.jdbc;
 
 import org.eigenbase.rel.RelNode;
 import org.eigenbase.rel.TableAccessRelBase;
-import org.eigenbase.rel.rules.PushFilterPastSetOpRule;
-import org.eigenbase.rel.rules.RemoveTrivialProjectRule;
 import org.eigenbase.relopt.*;
 
 import java.util.Collections;
@@ -47,16 +45,6 @@ public class JdbcTableScan extends TableAccessRelBase implements JdbcRel {
     assert inputs.isEmpty();
     return new JdbcTableScan(
         getCluster(), table, jdbcTable, (JdbcConvention) getConvention());
-  }
-
-  @Override
-  public void register(RelOptPlanner planner) {
-    final JdbcConvention out = (JdbcConvention) getConvention();
-    for (RelOptRule rule : JdbcRules.rules(out)) {
-      planner.addRule(rule);
-    }
-    planner.addRule(PushFilterPastSetOpRule.INSTANCE);
-    planner.addRule(RemoveTrivialProjectRule.INSTANCE);
   }
 
   public JdbcImplementor.Result implement(JdbcImplementor implementor) {

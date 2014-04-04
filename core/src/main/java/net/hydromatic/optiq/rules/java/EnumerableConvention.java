@@ -31,7 +31,6 @@ public enum EnumerableConvention implements Convention {
     return getName();
   }
 
-
   public Class getInterface() {
     return EnumerableRel.class;
   }
@@ -47,6 +46,8 @@ public enum EnumerableConvention implements Convention {
   public boolean subsumes(RelTrait trait) {
     return this == trait;
   }
+
+  public void register(RelOptPlanner planner) {}
 }
 
 // End EnumerableConvention.java

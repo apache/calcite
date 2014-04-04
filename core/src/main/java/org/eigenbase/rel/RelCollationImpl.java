@@ -19,6 +19,7 @@ package org.eigenbase.rel;
 
 import java.util.*;
 
+import org.eigenbase.relopt.RelOptPlanner;
 import org.eigenbase.relopt.RelTrait;
 import org.eigenbase.relopt.RelTraitDef;
 import org.eigenbase.reltype.*;
@@ -47,7 +48,7 @@ public class RelCollationImpl implements RelCollation {
   public static final RelCollation PRESERVE =
       RelCollationTraitDef.INSTANCE.canonize(
           new RelCollationImpl(
-              ImmutableList.<RelFieldCollation>of(new RelFieldCollation(-1))) {
+              ImmutableList.of(new RelFieldCollation(-1))) {
             public String toString() {
               return "PRESERVE";
             }
@@ -95,6 +96,8 @@ public class RelCollationImpl implements RelCollation {
     }
     return false;
   }
+
+  public void register(RelOptPlanner planner) {}
 
   public boolean subsumes(RelTrait trait) {
     return this == trait
