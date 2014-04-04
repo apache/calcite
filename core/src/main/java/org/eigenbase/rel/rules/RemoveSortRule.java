@@ -45,14 +45,14 @@ public class RemoveSortRule extends RelOptRule {
       // Don't remove sort if would also remove OFFSET or LIMIT.
       return;
     }
+    // Express the "sortedness" requirement in terms of a collation trait and
+    // we can get rid of the sort. This allows us to use rels that just happen
+    // to be sorted but get the same effect.
     final RelCollation collation = sort.getCollation();
-    final RelCollation childCollation =
-        sort.getChild().getTraitSet().getTrait(RelCollationTraitDef.INSTANCE);
-    if (childCollation.subsumes(collation)) {
-      call.transformTo(sort.getChild());
-    } else {
-      return;
-    }
+    assert collation == sort.getTraitSet()
+        .getTrait(RelCollationTraitDef.INSTANCE);
+    final RelTraitSet traits = sort.getChild().getTraitSet().replace(collation);
+    call.transformTo(convert(sort.getChild(), traits));
   }
 }
 

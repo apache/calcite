@@ -216,7 +216,7 @@ public class PlannerTest {
             + "order by \"emps\".\"deptno\"");
     SqlNode validate = planner.validate(parse);
     RelNode convert = planner.convert(validate);
-    RelTraitSet traitSet = planner.getEmptyTraitSet()
+    RelTraitSet traitSet = convert.getTraitSet()
         .replace(EnumerableConvention.INSTANCE);
     RelNode transform = planner.transform(0, traitSet, convert);
     assertThat(toString(transform), equalTo(
@@ -304,7 +304,7 @@ public class PlannerTest {
     RelNode transform = planner.transform(0, traitSet, convert);
     assertThat(toString(transform), equalTo(
         "EnumerableProjectRel(empid=[$0], deptno=[$1], name=[$2], salary=[$3], commission=[$4])\n"
-            + "  EnumerableTableAccessRel(table=[[hr, emps]])\n"));
+        + "  EnumerableTableAccessRel(table=[[hr, emps]])\n"));
   }
 
   /** Unit test that calls {@link Planner#transform} twice. */
