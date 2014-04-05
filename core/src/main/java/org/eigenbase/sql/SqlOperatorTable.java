@@ -35,13 +35,12 @@ public interface SqlOperatorTable {
    * @param category function category to look up, or null for any matching
    *                 operator
    * @param syntax   syntax type of operator
-   * @return mutable list of SqlOperator objects (or immutable empty list if
-   * no matches)
+   * @param operatorList mutable list to which to append matches
    */
-  List<SqlOperator> lookupOperatorOverloads(
-      SqlIdentifier opName,
+  void lookupOperatorOverloads(SqlIdentifier opName,
       SqlFunctionCategory category,
-      SqlSyntax syntax);
+      SqlSyntax syntax,
+      List<SqlOperator> operatorList);
 
   /**
    * Retrieves a list of all functions and operators in this table. Used for

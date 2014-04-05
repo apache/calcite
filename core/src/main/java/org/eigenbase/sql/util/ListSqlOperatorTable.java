@@ -46,12 +46,11 @@ public class ListSqlOperatorTable implements SqlOperatorTable {
     operatorList.add(op);
   }
 
-  public List<SqlOperator> lookupOperatorOverloads(
-      SqlIdentifier opName,
+  public void lookupOperatorOverloads(SqlIdentifier opName,
       SqlFunctionCategory category,
-      SqlSyntax syntax) {
-    final ArrayList<SqlOperator> list = new ArrayList<SqlOperator>();
-    for (SqlOperator operator : operatorList) {
+      SqlSyntax syntax,
+      List<SqlOperator> operatorList) {
+    for (SqlOperator operator : this.operatorList) {
       if (operator.getSyntax() != syntax) {
         continue;
       }
@@ -69,9 +68,8 @@ public class ListSqlOperatorTable implements SqlOperatorTable {
           && category != SqlFunctionCategory.USER_DEFINED_FUNCTION) {
         continue;
       }
-      list.add(operator);
+      operatorList.add(operator);
     }
-    return list;
   }
 
   public List<SqlOperator> getOperatorList() {

@@ -30,6 +30,8 @@ import org.eigenbase.sql.type.*;
 import org.eigenbase.util.*;
 import org.eigenbase.util14.*;
 
+import com.google.common.collect.Lists;
+
 import static org.eigenbase.util.Static.RESOURCE;
 
 /**
@@ -395,11 +397,9 @@ public abstract class SqlUtil {
       SqlOperatorTable opTab,
       SqlIdentifier funcName,
       SqlFunctionCategory category) {
-    List<SqlOperator> operators =
-        opTab.lookupOperatorOverloads(
-            funcName,
-            category,
-            SqlSyntax.FUNCTION);
+    final List<SqlOperator> operators = Lists.newArrayList();
+    opTab.lookupOperatorOverloads(funcName, category, SqlSyntax.FUNCTION,
+        operators);
     List<SqlFunction> routines = new ArrayList<SqlFunction>();
     for (SqlOperator operator : operators) {
       if (operator instanceof SqlFunction) {
@@ -552,11 +552,8 @@ public abstract class SqlUtil {
       SqlOperatorTable opTab,
       SqlIdentifier id) {
     if (id.names.size() == 1) {
-      List<SqlOperator> list =
-          opTab.lookupOperatorOverloads(
-              id,
-              null,
-              SqlSyntax.FUNCTION);
+      final List<SqlOperator> list = Lists.newArrayList();
+      opTab.lookupOperatorOverloads(id, null, SqlSyntax.FUNCTION, list);
       for (SqlOperator operator : list) {
         if (operator.getSyntax() == SqlSyntax.FUNCTION_ID) {
           // Even though this looks like an identifier, it is a

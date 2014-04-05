@@ -2803,6 +2803,71 @@ public class JdbcTest {
             "declaring class 'net.hydromatic.optiq.test.JdbcTest$AwkwardFunction' of non-static UDF must have a public constructor with zero parameters");
   }
 
+  /** Tests user-defined function. */
+  @Test public void testPath() throws Exception {
+    final String name = MyPlusFunction.class.getName();
+    final OptiqAssert.AssertThat with = OptiqAssert.that()
+        .withModel(
+            "{\n"
+                + "  version: '1.0',\n"
+                + "   schemas: [\n"
+                + "     {\n"
+                + "       name: 'adhoc',\n"
+                + "       functions: [\n"
+                + "         {\n"
+                + "           name: 'MY_PLUS',\n"
+                + "           className: '" + name + "'\n"
+                + "         }\n"
+                + "       ]\n"
+                + "     },\n"
+                + "     {\n"
+                + "       name: 'adhoc2',\n"
+                + "       functions: [\n"
+                + "         {\n"
+                + "           name: 'MY_PLUS2',\n"
+                + "           className: '" + name + "'\n"
+                + "         }\n"
+                + "       ]\n"
+                + "     },\n"
+                + "     {\n"
+                + "       name: 'adhoc3',\n"
+                + "       path: ['adhoc2','adhoc3'],\n"
+                + "       functions: [\n"
+                + "         {\n"
+                + "           name: 'MY_PLUS3',\n"
+                + "           className: '" + name + "'\n"
+                + "         }\n"
+                + "       ]\n"
+                + "     }\n"
+                + "   ]\n"
+                + "}");
+
+    final String err = "No match found for function signature";
+    final String res = "EXPR$0=2\n";
+
+    // adhoc can see own function MY_PLUS but not adhoc2.MY_PLUS2 unless
+    // qualified
+    final OptiqAssert.AssertThat adhoc = with.withSchema("adhoc");
+    adhoc.query("values MY_PLUS(1, 1)").returns(res);
+    adhoc.query("values MY_PLUS2(1, 1)").throws_(err);
+    adhoc.query("values \"adhoc2\".MY_PLUS(1, 1)").throws_(err);
+    adhoc.query("values \"adhoc2\".MY_PLUS2(1, 1)").returns(res);
+
+    // adhoc2 can see own function MY_PLUS2 but not adhoc2.MY_PLUS unless
+    // qualified
+    final OptiqAssert.AssertThat adhoc2 = with.withSchema("adhoc2");
+    adhoc2.query("values MY_PLUS2(1, 1)").returns(res);
+    adhoc2.query("values MY_PLUS(1, 1)").throws_(err);
+    adhoc2.query("values \"adhoc\".MY_PLUS(1, 1)").returns(res);
+
+    // adhoc3 can see own adhoc2.MY_PLUS2 because in path, with or without
+    // qualification, but can only see adhoc.MY_PLUS with qualification
+    final OptiqAssert.AssertThat adhoc3 = with.withSchema("adhoc3");
+    adhoc3.query("values MY_PLUS2(1, 1)").returns(res);
+    adhoc3.query("values MY_PLUS(1, 1)").throws_(err);
+    adhoc3.query("values \"adhoc\".MY_PLUS(1, 1)").returns(res);
+  }
+
   @Test public void testExplain() {
     final OptiqAssert.AssertThat with =
         OptiqAssert.that().with(OptiqAssert.Config.FOODMART_CLONE);

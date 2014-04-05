@@ -889,11 +889,9 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
           // builtin function requiring special casing.  If it's
           // not, we'll handle it later during overload
           // resolution.
-          List<SqlOperator> overloads =
-              opTab.lookupOperatorOverloads(
-                  function.getNameAsId(),
-                  null,
-                  SqlSyntax.FUNCTION);
+          final List<SqlOperator> overloads = Lists.newArrayList();
+          opTab.lookupOperatorOverloads(function.getNameAsId(), null,
+              SqlSyntax.FUNCTION, overloads);
           if (overloads.size() == 1) {
             ((SqlBasicCall) call).setOperator(overloads.get(0));
           }
@@ -1380,11 +1378,9 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       SqlFunction unresolvedFunction,
       List<RelDataType> argTypes) {
     // For builtins, we can give a better error message
-    List<SqlOperator> overloads =
-        opTab.lookupOperatorOverloads(
-            unresolvedFunction.getNameAsId(),
-            null,
-            SqlSyntax.FUNCTION);
+    final List<SqlOperator> overloads = Lists.newArrayList();
+    opTab.lookupOperatorOverloads(unresolvedFunction.getNameAsId(), null,
+        SqlSyntax.FUNCTION, overloads);
     if (overloads.size() == 1) {
       SqlFunction fun = (SqlFunction) overloads.get(0);
       if ((fun.getSqlIdentifier() == null)

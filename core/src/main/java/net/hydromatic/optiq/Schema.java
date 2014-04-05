@@ -94,8 +94,8 @@ public interface Schema {
    * Returns the expression by which this schema can be referenced in generated
    * code.
    *
-   * @param parentSchema
-   * @param name
+   * @param parentSchema Parent schema
+   * @param name Name of this schema
    */
   Expression getExpression(SchemaPlus parentSchema, String name);
 

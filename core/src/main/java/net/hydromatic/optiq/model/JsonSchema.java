@@ -39,6 +39,10 @@ import java.util.List;
 public abstract class JsonSchema {
   public String name;
 
+  /** SQL-path. May be null, or a list, each element of which is a string or a
+   * string-list. */
+  public List<Object> path;
+
   public List<JsonMaterialization> materializations =
       new ArrayList<JsonMaterialization>();
 

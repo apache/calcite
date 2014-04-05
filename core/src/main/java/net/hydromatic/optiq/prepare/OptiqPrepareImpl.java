@@ -319,8 +319,7 @@ public class OptiqPrepareImpl implements OptiqPrepare {
       final OptiqSchema rootSchema = context.getRootSchema();
       final ChainedSqlOperatorTable opTab =
           new ChainedSqlOperatorTable(
-              ImmutableList.<SqlOperatorTable>of(
-                  SqlStdOperatorTable.instance(), catalogReader));
+              ImmutableList.of(SqlStdOperatorTable.instance(), catalogReader));
       final SqlValidator validator =
           new OptiqSqlValidator(opTab, catalogReader, typeFactory);
 

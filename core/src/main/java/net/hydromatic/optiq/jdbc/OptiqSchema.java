@@ -57,6 +57,7 @@ public class OptiqSchema {
   public final Map<String, Table> compositeTableMap;
   public final Multimap<String, Function> compositeFunctionMap;
   public final Map<String, OptiqSchema> compositeSubSchemaMap;
+  private ImmutableList<ImmutableList<String>> path;
 
   public OptiqSchema(OptiqSchema parent, final Schema schema, String name) {
     this.parent = parent;
@@ -212,6 +213,23 @@ public class OptiqSchema {
     return ((SchemaPlusImpl) plus).optiqSchema();
   }
 
+  /** Returns the default path resolving functions from this schema.
+   *
+   * <p>The path consists is a list of lists of strings.
+   * Each list of strings represents the path of a schema from the root schema.
+   * For example, [[], [foo], [foo, bar, baz]] represents three schemas: the
+   * root schema "/" (level 0), "/foo" (level 1) and "/foo/bar/baz" (level 3).
+   *
+   * @return Path of this schema; never null, may be empty
+   */
+  public List<? extends List<String>> getPath() {
+    if (path != null) {
+      return path;
+    }
+    // Return a path consisting of just this schema.
+    return ImmutableList.of(path(null));
+  }
+
   /**
    * Entry in a schema, such as a table or sub-schema.
    *
@@ -326,6 +344,10 @@ public class OptiqSchema {
       throw new ClassCastException("not a " + clazz);
     }
 
+    public void setPath(ImmutableList<ImmutableList<String>> path) {
+      OptiqSchema.this.path = path;
+    }
+
     public void add(String name, Table table) {
       OptiqSchema.this.add(name, table);
     }
@@ -333,6 +355,7 @@ public class OptiqSchema {
     public void add(String name, net.hydromatic.optiq.Function function) {
       OptiqSchema.this.add(name, function);
     }
+
   }
 
   /**

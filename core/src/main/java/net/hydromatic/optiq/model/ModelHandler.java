@@ -29,6 +29,8 @@ import org.eigenbase.util.Util;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import com.google.common.collect.ImmutableList;
+
 import java.io.File;
 import java.io.IOException;
 import java.sql.SQLException;
@@ -84,6 +86,9 @@ public class ModelHandler {
     final SchemaPlus parentSchema = currentMutableSchema("schema");
     final SchemaPlus schema =
         parentSchema.add(jsonSchema.name, new AbstractSchema());
+    if (jsonSchema.path != null) {
+      schema.setPath(stringListList(jsonSchema.path));
+    }
     populateSchema(jsonSchema, schema);
     if (schema.getName().equals("mat")) {
       // Inject by hand a Star Table. Later we'll add a JSON model element.
@@ -97,6 +102,37 @@ public class ModelHandler {
       }
       final String tableName = "star";
       schema.add(tableName, StarTable.of(tables));
+    }
+  }
+
+  private static ImmutableList<ImmutableList<String>> stringListList(
+      List path) {
+    final ImmutableList.Builder<ImmutableList<String>> builder =
+        ImmutableList.builder();
+    for (Object s : path) {
+      builder.add(stringList(s));
+    }
+    return builder.build();
+  }
+
+  private static ImmutableList<String> stringList(Object s) {
+    if (s instanceof String) {
+      return ImmutableList.of((String) s);
+    } else if (s instanceof List) {
+      final ImmutableList.Builder<String> builder2 =
+          ImmutableList.builder();
+      for (Object o : (List) s) {
+        if (o instanceof String) {
+          builder2.add((String) o);
+        } else {
+          throw new RuntimeException("Invalid path element " + o
+              + "; was expecting string");
+        }
+      }
+      return builder2.build();
+    } else {
+      throw new RuntimeException("Invalid path element " + s
+          + "; was expecting string or list of string");
     }
   }
 

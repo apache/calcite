@@ -17,6 +17,8 @@
 */
 package net.hydromatic.optiq;
 
+import com.google.common.collect.ImmutableList;
+
 /**
  * Extension to the {@link Schema} interface.
  *
@@ -60,6 +62,8 @@ public interface SchemaPlus extends Schema {
 
   /** Returns an underlying object. */
   <T> T unwrap(Class<T> clazz);
+
+  void setPath(ImmutableList<ImmutableList<String>> path);
 }
 
 // End SchemaPlus.java

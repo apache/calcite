@@ -17,8 +17,6 @@
 */
 package net.hydromatic.optiq.prepare;
 
-import net.hydromatic.linq4j.expressions.Primitive;
-
 import net.hydromatic.optiq.*;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 import net.hydromatic.optiq.jdbc.OptiqSchema;
@@ -32,6 +30,7 @@ import org.eigenbase.util.Util;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 
 import java.util.*;
 
@@ -92,15 +91,33 @@ class OptiqCatalogReader implements Prepare.CatalogReader, SqlOperatorTable {
     return null;
   }
 
-  private Collection<Function> getFunctionsFrom(List<String> names,
-      List<String> schemaNames) {
-    OptiqSchema schema =
-        getSchema(Iterables.concat(schemaNames, Util.skipLast(names)));
-    if (schema == null) {
-      return ImmutableList.of();
+  private Collection<Function> getFunctionsFrom(List<String> names) {
+    final List<Function> functions2 = Lists.newArrayList();
+    final List<? extends List<String>> schemaNameList;
+    if (names.size() > 1) {
+      // If name is qualified, ignore path.
+      schemaNameList = ImmutableList.of(ImmutableList.<String>of());
+    } else {
+      OptiqSchema schema = getSchema(defaultSchema);
+      if (schema == null) {
+        schemaNameList = ImmutableList.of();
+      } else {
+        schemaNameList = schema.getPath();
+      }
     }
-    final String name = Util.last(names);
-    return schema.compositeFunctionMap.get(name);
+    for (List<String> schemaNames : schemaNameList) {
+      OptiqSchema schema =
+          getSchema(Iterables.concat(schemaNames, Util.skipLast(names)));
+      if (schema != null) {
+        final String name = Util.last(names);
+        final Collection<Function> functions =
+            schema.compositeFunctionMap.get(name);
+        if (functions != null) {
+          functions2.addAll(functions);
+        }
+      }
+    }
+    return functions2;
   }
 
   private OptiqSchema getSchema(Iterable<String> schemaNames) {
@@ -149,20 +166,19 @@ class OptiqCatalogReader implements Prepare.CatalogReader, SqlOperatorTable {
         typeFactory, caseSensitive);
   }
 
-  public List<SqlOperator> lookupOperatorOverloads(
-      SqlIdentifier opName,
+  public void lookupOperatorOverloads(SqlIdentifier opName,
       SqlFunctionCategory category,
-      SqlSyntax syntax) {
+      SqlSyntax syntax,
+      List<SqlOperator> operatorList) {
     if (syntax != SqlSyntax.FUNCTION) {
-      return ImmutableList.of();
+      return;
     }
-    final Collection<Function> functions =
-        getFunctionsFrom(opName.names, ImmutableList.<String>of());
+    final Collection<Function> functions = getFunctionsFrom(opName.names);
     if (functions.isEmpty()) {
-      return ImmutableList.of();
+      return;
     }
     final String name = Util.last(opName.names);
-    return toOps(name, ImmutableList.copyOf(functions));
+    operatorList.addAll(toOps(name, ImmutableList.copyOf(functions)));
   }
 
   private List<SqlOperator> toOps(
@@ -197,18 +213,6 @@ class OptiqCatalogReader implements Prepare.CatalogReader, SqlOperatorTable {
     }
     return new SqlUserDefinedFunction(name, returnType, argTypes, typeFamilies,
         function);
-  }
-
-  private Object zero(RelDataType type) {
-    if (type instanceof RelDataTypeFactoryImpl.JavaType) {
-      RelDataTypeFactoryImpl.JavaType javaType =
-          (RelDataTypeFactoryImpl.JavaType) type;
-      Primitive primitive = Primitive.of(javaType.getJavaClass());
-      if (primitive != null) {
-        return primitive.defaultValue;
-      }
-    }
-    return null;
   }
 
   public List<SqlOperator> getOperatorList() {

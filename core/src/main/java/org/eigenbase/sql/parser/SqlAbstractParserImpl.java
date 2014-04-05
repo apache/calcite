@@ -29,6 +29,7 @@ import net.hydromatic.avatica.Casing;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Lists;
 
 /**
  * Abstract base for parsers generated from CommonParser.jj.
@@ -348,11 +349,8 @@ public abstract class SqlAbstractParserImpl {
     // preserve the correct syntax (i.e. don't quote builtin function
     /// name when regenerating SQL).
     if (funName.isSimple()) {
-      List<SqlOperator> list =
-          opTab.lookupOperatorOverloads(
-              funName,
-              null,
-              SqlSyntax.FUNCTION);
+      final List<SqlOperator> list = Lists.newArrayList();
+      opTab.lookupOperatorOverloads(funName, null, SqlSyntax.FUNCTION, list);
       if (list.size() == 1) {
         fun = list.get(0);
       }

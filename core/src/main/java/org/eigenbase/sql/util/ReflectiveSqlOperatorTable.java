@@ -78,10 +78,10 @@ public abstract class ReflectiveSqlOperatorTable implements SqlOperatorTable {
   }
 
   // implement SqlOperatorTable
-  public List<SqlOperator> lookupOperatorOverloads(
-      SqlIdentifier opName,
+  public void lookupOperatorOverloads(SqlIdentifier opName,
       SqlFunctionCategory category,
-      SqlSyntax syntax) {
+      SqlSyntax syntax,
+      List<SqlOperator> operatorList) {
     // NOTE jvs 3-Mar-2005:  ignore category until someone cares
 
     String simpleName;
@@ -90,7 +90,7 @@ public abstract class ReflectiveSqlOperatorTable implements SqlOperatorTable {
         // per SQL99 Part 2 Section 10.4 Syntax Rule 7.b.ii.1
         simpleName = Util.last(opName.names);
       } else {
-        return ImmutableList.of();
+        return;
       }
     } else {
       simpleName = opName.getSimple();
@@ -101,17 +101,16 @@ public abstract class ReflectiveSqlOperatorTable implements SqlOperatorTable {
     final Collection<SqlOperator> list =
         operators.get(simpleName.toUpperCase());
     if (list.isEmpty()) {
-      return ImmutableList.of();
+      return;
     }
-    final List<SqlOperator> overloads = new ArrayList<SqlOperator>();
     for (SqlOperator op : list) {
       if (op.getSyntax() == syntax) {
-        overloads.add(op);
+        operatorList.add(op);
       } else if (syntax == SqlSyntax.FUNCTION
           && op instanceof SqlFunction) {
         // this special case is needed for operators like CAST,
         // which are treated as functions but have special syntax
-        overloads.add(op);
+        operatorList.add(op);
       }
     }
 
@@ -122,13 +121,12 @@ public abstract class ReflectiveSqlOperatorTable implements SqlOperatorTable {
     case PREFIX:
     case POSTFIX:
       SqlOperator extra = mapNameToOp.get(Pair.of(simpleName, syntax));
-      if ((extra != null) && !overloads.contains(extra)) {
-        overloads.add(extra);
+      // REVIEW: should only search operators added during this method?
+      if (extra != null && !operatorList.contains(extra)) {
+        operatorList.add(extra);
       }
       break;
     }
-
-    return overloads;
   }
 
   public void register(SqlOperator op) {
