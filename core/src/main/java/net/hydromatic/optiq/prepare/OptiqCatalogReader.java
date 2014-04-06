@@ -196,12 +196,13 @@ class OptiqCatalogReader implements Prepare.CatalogReader, SqlOperatorTable {
   }
 
   private SqlOperator toOp(String name, Function function) {
-    List<RelDataType> argTypes = new ArrayList<RelDataType>();
-    List<SqlTypeFamily> typeFamilies = new ArrayList<SqlTypeFamily>();
+    final List<RelDataType> argTypes = new ArrayList<RelDataType>();
+    final List<SqlTypeFamily> typeFamilies = new ArrayList<SqlTypeFamily>();
     for (FunctionParameter o : function.getParameters()) {
       final RelDataType type = o.getType(typeFactory);
       argTypes.add(type);
-      typeFamilies.add(type.getSqlTypeName().getFamily());
+      typeFamilies.add(
+          Util.first(type.getSqlTypeName().getFamily(), SqlTypeFamily.ANY));
     }
     final RelDataType returnType;
     if (function instanceof ScalarFunction) {

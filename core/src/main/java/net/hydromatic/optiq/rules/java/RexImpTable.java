@@ -610,7 +610,9 @@ public class RexImpTable {
         }
       }
     }
-    return implementor.implement(translator, call, translatedOperands);
+    Expression result;
+    result = implementor.implement(translator, call, translatedOperands);
+    return nullAs.handle(result);
   }
 
   /** Strategy what an operator should return if one of its
