@@ -85,9 +85,7 @@ public class RexImpTable {
 
   private final Map<SqlOperator, CallImplementor> map =
       new HashMap<SqlOperator, CallImplementor>();
-  final Map<Aggregation, AggregateImplementor> aggMap =
-      new HashMap<Aggregation, AggregateImplementor>();
-  private final Map<Aggregation, AggImplementor2> agg2Map =
+  private final Map<Aggregation, AggImplementor2> aggMap =
       new HashMap<Aggregation, AggImplementor2>();
 
   RexImpTable() {
@@ -191,19 +189,14 @@ public class RexImpTable {
     map.put(LOCALTIME, systemFunctionImplementor);
     map.put(LOCALTIMESTAMP, systemFunctionImplementor);
 
-    aggMap.put(COUNT, new BuiltinAggregateImplementor("longCount"));
-    aggMap.put(SUM, new BuiltinAggregateImplementor("sum"));
-    aggMap.put(MIN, new BuiltinAggregateImplementor("min"));
-    aggMap.put(MAX, new BuiltinAggregateImplementor("max"));
-
-    agg2Map.put(COUNT, new CountImplementor2());
-    agg2Map.put(SUM, new SumImplementor2());
-    agg2Map.put(SUM0, new SumImplementor2());
+    aggMap.put(COUNT, new CountImplementor2());
+    aggMap.put(SUM, new SumImplementor2());
+    aggMap.put(SUM0, new SumImplementor2());
     final MinMaxImplementor2 minMax =
         new MinMaxImplementor2();
-    agg2Map.put(MIN, minMax);
-    agg2Map.put(MAX, minMax);
-    agg2Map.put(RANK, new RankImplementor2());
+    aggMap.put(MIN, minMax);
+    aggMap.put(MAX, minMax);
+    aggMap.put(RANK, new RankImplementor2());
   }
 
   private void defineImplementor(
@@ -400,12 +393,8 @@ public class RexImpTable {
     return map.get(operator);
   }
 
-  public AggregateImplementor get(final Aggregation aggregation) {
-    return aggMap.get(aggregation);
-  }
-
   public AggImplementor2 get2(final Aggregation aggregation) {
-    return agg2Map.get(aggregation);
+    return aggMap.get(aggregation);
   }
 
   static Expression maybeNegate(boolean negate, Expression expression) {
@@ -613,13 +602,6 @@ public class RexImpTable {
     return implementor.implement(translator, call, translatedOperands);
   }
 
-  /** Implements an aggregate function by generating a call to a method that
-   * takes an enumeration and an accessor function. */
-  interface AggregateImplementor {
-    Expression implementAggregate(
-        Expression grouping, Expression accessor);
-  }
-
   /** Implements an aggregate function by generating expressions to
    * initialize, add to, and get a result from, an accumulator. */
   interface AggImplementor2 {
@@ -759,22 +741,6 @@ public class RexImpTable {
         List<Expression> translatedOperands);
   }
 
-  static class BuiltinAggregateImplementor
-      implements AggregateImplementor {
-    private final String methodName;
-
-    public BuiltinAggregateImplementor(String methodName) {
-      this.methodName = methodName;
-    }
-
-    public Expression implementAggregate(
-        Expression grouping, Expression accessor) {
-      return accessor == null
-          ?  Expressions.call(grouping, methodName)
-          :  Expressions.call(grouping, methodName, accessor);
-    }
-  }
-
   static class CountImplementor2 implements AggImplementor2 {
     public boolean callOnNull() {
       return false;
@@ -793,8 +759,8 @@ public class RexImpTable {
         List<Expression> arguments) {
       // We don't need to check whether the argument is NULL. callOnNull()
       // returned false, so that container has checked for us.
-      return Expressions.add(
-          accumulator, Expressions.constant(1, accumulator.type));
+      return Expressions.add(accumulator,
+          Expressions.constant(1, accumulator.type));
     }
 
     public Expression implementResult(
@@ -843,11 +809,10 @@ public class RexImpTable {
             "add",
             arguments.get(0));
       }
-      return Types.castIfNecessary(
-          accumulator.type,
-          Expressions.add(
-              accumulator,
-              Types.castIfNecessary(accumulator.type, arguments.get(0))));
+      return Types.castIfNecessary(accumulator.type,
+          Expressions.add(accumulator,
+              Types.castIfNecessary(accumulator.type, arguments.get(0)))
+      );
     }
 
     public Expression implementResult(
@@ -1271,8 +1236,9 @@ public class RexImpTable {
               && !Primitive.is(translatedOperands.get(0).getType());
       final RelDataType targetType =
           translator.nullifyType(call.getType(), nullable);
-      return translator.translateCast(
-          sourceType, targetType, translatedOperands.get(0));
+      return translator.translateCast(sourceType,
+          targetType,
+          translatedOperands.get(0));
     }
   }
 

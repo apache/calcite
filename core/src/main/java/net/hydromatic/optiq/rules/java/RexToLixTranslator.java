@@ -26,7 +26,6 @@ import net.hydromatic.optiq.DataContext;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 import net.hydromatic.optiq.runtime.SqlFunctions;
 
-import org.eigenbase.rel.Aggregation;
 import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.reltype.RelDataTypeFactoryImpl;
 import org.eigenbase.rex.*;
@@ -472,22 +471,6 @@ public class RexToLixTranslator {
     return translator.translate(
         program.getCondition(),
         RexImpTable.NullAs.FALSE);
-  }
-
-  public static Expression translateAggregate(
-      Expression grouping,
-      Aggregation aggregation,
-      Expression accessor) {
-    final RexImpTable.AggregateImplementor implementor =
-        RexImpTable.INSTANCE.aggMap.get(aggregation);
-    if (aggregation == COUNT) {
-      // FIXME: count(x) and count(distinct x) don't work currently
-      accessor = null;
-    }
-    if (implementor != null) {
-      return implementor.implementAggregate(grouping, accessor);
-    }
-    throw new AssertionError("unknown agg " + aggregation);
   }
 
   public static Expression convert(Expression operand, Type toType) {
