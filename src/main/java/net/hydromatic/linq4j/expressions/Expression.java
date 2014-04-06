@@ -42,13 +42,6 @@ public abstract class Expression extends AbstractNode {
   }
 
   @Override
-  public String toString() {
-    ExpressionWriter writer = new ExpressionWriter(true);
-    accept(writer, 0, 0);
-    return writer.toString();
-  }
-
-  @Override
   // More specific return type.
   public abstract Expression accept(Visitor visitor);
 
