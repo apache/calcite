@@ -30,6 +30,9 @@ public class TernaryExpression extends Expression {
   TernaryExpression(ExpressionType nodeType, Type type, Expression expression0,
       Expression expression1, Expression expression2) {
     super(nodeType, type);
+    assert expression0 != null : "expression0 should not be null";
+    assert expression1 != null : "expression1 should not be null";
+    assert expression2 != null : "expression2 should not be null";
     this.expression0 = expression0;
     this.expression1 = expression1;
     this.expression2 = expression2;
@@ -52,6 +55,42 @@ public class TernaryExpression extends Expression {
     expression1.accept(writer, nodeType.rprec, nodeType.lprec);
     writer.append(nodeType.op2);
     expression2.accept(writer, nodeType.rprec, rprec);
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    if (!super.equals(o)) {
+      return false;
+    }
+
+    TernaryExpression that = (TernaryExpression) o;
+
+    if (!expression0.equals(that.expression0)) {
+      return false;
+    }
+    if (!expression1.equals(that.expression1)) {
+      return false;
+    }
+    if (!expression2.equals(that.expression2)) {
+      return false;
+    }
+
+    return true;
+  }
+
+  @Override
+  public int hashCode() {
+    int result = super.hashCode();
+    result = 31 * result + expression0.hashCode();
+    result = 31 * result + expression1.hashCode();
+    result = 31 * result + expression2.hashCode();
+    return result;
   }
 }
 

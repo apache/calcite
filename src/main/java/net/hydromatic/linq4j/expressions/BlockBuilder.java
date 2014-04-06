@@ -85,7 +85,7 @@ public class BlockBuilder {
     }
     Expression result = null;
     final Map<ParameterExpression, Expression> replacements =
-        new HashMap<ParameterExpression, Expression>();
+        new IdentityHashMap<ParameterExpression, Expression>();
     final Visitor visitor = new SubstituteVariableVisitor(replacements);
     for (int i = 0; i < block.statements.size(); i++) {
       Statement statement = block.statements.get(i);
@@ -101,7 +101,11 @@ public class BlockBuilder {
               declaration.initializer);
           statement = null;
           result = x;
-          replacements.put(declaration.parameter, x);
+          if (declaration.parameter != x) {
+            // declaration.parameter can be equal to x if exactly the same
+            // declaration was present in BlockBuilder
+            replacements.put(declaration.parameter, x);
+          }
         } else {
           add(statement);
         }
@@ -240,7 +244,7 @@ public class BlockBuilder {
       statement.accept(useCounter);
     }
     final Map<ParameterExpression, Expression> subMap =
-        new HashMap<ParameterExpression, Expression>();
+        new IdentityHashMap<ParameterExpression, Expression>();
     final SubstituteVariableVisitor visitor = new SubstituteVariableVisitor(
         subMap);
     final ArrayList<Statement> oldStatements = new ArrayList<Statement>(
@@ -376,7 +380,7 @@ public class BlockBuilder {
 
   private static class UseCounter extends Visitor {
     private final Map<ParameterExpression, Slot> map =
-        new HashMap<ParameterExpression, Slot>();
+        new IdentityHashMap<ParameterExpression, Slot>();
 
     public Expression visit(ParameterExpression parameter) {
       final Slot slot = map.get(parameter);

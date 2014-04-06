@@ -17,17 +17,38 @@
 */
 package net.hydromatic.linq4j.expressions;
 
-/**
- * Represents a catch statement in a try block.
- */
-public class CatchBlock {
-  public final ParameterExpression parameter;
-  public final Statement body;
+import java.lang.reflect.Field;
+import java.lang.reflect.Type;
 
-  public CatchBlock(ParameterExpression parameter,
-      Statement body) {
-    this.parameter = parameter;
-    this.body = body;
+/**
+ * Represents a PseudoField that is implemented via java reflection Field
+ */
+public class ReflectedPseudoField implements PseudoField {
+  private final Field field;
+
+  public ReflectedPseudoField(Field field) {
+    assert field != null : "field should not be null";
+    this.field = field;
+  }
+
+  public String getName() {
+    return field.getName();
+  }
+
+  public Type getType() {
+    return field.getType();
+  }
+
+  public int getModifiers() {
+    return field.getModifiers();
+  }
+
+  public Object get(Object o) throws IllegalAccessException {
+    return field.get(o);
+  }
+
+  public Class<?> getDeclaringClass() {
+    return field.getDeclaringClass();
   }
 
   @Override
@@ -39,13 +60,9 @@ public class CatchBlock {
       return false;
     }
 
-    CatchBlock that = (CatchBlock) o;
+    ReflectedPseudoField that = (ReflectedPseudoField) o;
 
-    if (body != null ? !body.equals(that.body) : that.body != null) {
-      return false;
-    }
-    if (parameter != null ? !parameter.equals(that.parameter) : that
-        .parameter != null) {
+    if (!field.equals(that.field)) {
       return false;
     }
 
@@ -54,10 +71,6 @@ public class CatchBlock {
 
   @Override
   public int hashCode() {
-    int result = parameter != null ? parameter.hashCode() : 0;
-    result = 31 * result + (body != null ? body.hashCode() : 0);
-    return result;
+    return field.hashCode();
   }
 }
-
-// End CatchBlock.java

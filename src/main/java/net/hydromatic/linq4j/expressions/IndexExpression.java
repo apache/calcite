@@ -28,28 +28,11 @@ public class IndexExpression extends Expression {
 
   public IndexExpression(Expression array, List<Expression> indexExpressions) {
     super(ExpressionType.ArrayIndex, Types.getComponentType(array.getType()));
+    assert array != null : "array should not be null";
+    assert indexExpressions != null : "indexExpressions should not be null";
+    assert !indexExpressions.isEmpty() : "indexExpressions should not be empty";
     this.array = array;
     this.indexExpressions = indexExpressions;
-    assert indexExpressions.size() >= 1;
-  }
-
-  @Override
-  public int hashCode() {
-    return nodeType.hashCode() ^ array.hashCode() ^ indexExpressions.hashCode();
-  }
-
-  @Override
-  public boolean equals(Object obj) {
-    if (this == obj) {
-      return true;
-    }
-    if (obj instanceof IndexExpression) {
-      final IndexExpression indexExpression = (IndexExpression) obj;
-      return nodeType == indexExpression.nodeType
-          && array.equals(indexExpression.array)
-          && indexExpressions.equals(indexExpression.indexExpressions);
-    }
-    return false;
   }
 
   @Override
@@ -65,6 +48,38 @@ public class IndexExpression extends Expression {
   void accept(ExpressionWriter writer, int lprec, int rprec) {
     array.accept(writer, lprec, nodeType.lprec);
     writer.list("[", ", ", "]", indexExpressions);
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    if (!super.equals(o)) {
+      return false;
+    }
+
+    IndexExpression that = (IndexExpression) o;
+
+    if (!array.equals(that.array)) {
+      return false;
+    }
+    if (!indexExpressions.equals(that.indexExpressions)) {
+      return false;
+    }
+
+    return true;
+  }
+
+  @Override
+  public int hashCode() {
+    int result = super.hashCode();
+    result = 31 * result + array.hashCode();
+    result = 31 * result + indexExpressions.hashCode();
+    return result;
   }
 }
 

@@ -36,6 +36,7 @@ public class ConditionalStatement extends Statement {
 
   public ConditionalStatement(List<Node> expressionList) {
     super(ExpressionType.Conditional, Void.TYPE);
+    assert expressionList != null : "expressionList should not be null";
     this.expressionList = expressionList;
   }
 
@@ -60,6 +61,34 @@ public class ConditionalStatement extends Statement {
       writer.append(" else ").append(Blocks.toBlock(expressionList.get(
           expressionList.size() - 1)));
     }
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    if (!super.equals(o)) {
+      return false;
+    }
+
+    ConditionalStatement that = (ConditionalStatement) o;
+
+    if (!expressionList.equals(that.expressionList)) {
+      return false;
+    }
+
+    return true;
+  }
+
+  @Override
+  public int hashCode() {
+    int result = super.hashCode();
+    result = 31 * result + expressionList.hashCode();
+    return result;
   }
 }
 

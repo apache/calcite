@@ -36,6 +36,35 @@ public class LabelStatement extends Statement {
   public LabelStatement accept(Visitor visitor) {
     return visitor.visit(this);
   }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    if (!super.equals(o)) {
+      return false;
+    }
+
+    LabelStatement that = (LabelStatement) o;
+
+    if (defaultValue != null ? !defaultValue.equals(that.defaultValue) : that
+        .defaultValue != null) {
+      return false;
+    }
+
+    return true;
+  }
+
+  @Override
+  public int hashCode() {
+    int result = super.hashCode();
+    result = 31 * result + (defaultValue != null ? defaultValue.hashCode() : 0);
+    return result;
+  }
 }
 
 // End LabelStatement.java

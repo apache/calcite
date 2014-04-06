@@ -17,8 +17,6 @@
 */
 package net.hydromatic.linq4j.expressions;
 
-import net.hydromatic.linq4j.Linq4j;
-
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -32,46 +30,27 @@ public class MethodCallExpression extends Expression {
   public final Method method;
   public final Expression targetExpression; // null for call to static method
   public final List<Expression> expressions;
+  /**
+   * Cache the hash code for the expression
+   */
+  private int hash;
 
   MethodCallExpression(Type returnType, Method method,
       Expression targetExpression, List<Expression> expressions) {
     super(ExpressionType.Call, returnType);
-    this.method = method;
-    this.targetExpression = targetExpression;
-    this.expressions = expressions;
-    assert expressions != null;
-    assert returnType != null;
+    assert expressions != null : "expressions should not be null";
+    assert method != null : "method should not be null";
     assert (targetExpression == null) == Modifier.isStatic(
         method.getModifiers());
     assert Types.toClass(returnType) == method.getReturnType();
+    this.method = method;
+    this.targetExpression = targetExpression;
+    this.expressions = expressions;
   }
 
   MethodCallExpression(Method method, Expression targetExpression,
       List<Expression> expressions) {
     this(method.getGenericReturnType(), method, targetExpression, expressions);
-  }
-
-  @Override
-  public int hashCode() {
-    return nodeType.hashCode()
-           ^ method.hashCode()
-           ^ targetExpression.hashCode()
-           ^ expressions.hashCode();
-  }
-
-  @Override
-  public boolean equals(Object obj) {
-    if (this == obj) {
-      return true;
-    }
-    if (obj instanceof MethodCallExpression) {
-      final MethodCallExpression call = (MethodCallExpression) obj;
-      return nodeType == call.nodeType
-          && method == call.method
-          && Linq4j.equals(targetExpression, call.targetExpression)
-          && expressions.equals(call.expressions);
-    }
-    return false;
   }
 
   @Override
@@ -126,6 +105,51 @@ public class MethodCallExpression extends Expression {
       expression.accept(writer, 0, 0);
     }
     writer.append(')');
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    if (!super.equals(o)) {
+      return false;
+    }
+
+    MethodCallExpression that = (MethodCallExpression) o;
+
+    if (!expressions.equals(that.expressions)) {
+      return false;
+    }
+    if (!method.equals(that.method)) {
+      return false;
+    }
+    if (targetExpression != null ? !targetExpression.equals(that
+        .targetExpression) : that.targetExpression != null) {
+      return false;
+    }
+
+    return true;
+  }
+
+  @Override
+  public int hashCode() {
+    int result = hash;
+    if (result == 0) {
+      result = super.hashCode();
+      result = 31 * result + method.hashCode();
+      result = 31 * result + (targetExpression != null ? targetExpression
+          .hashCode() : 0);
+      result = 31 * result + expressions.hashCode();
+      if (result == 0) {
+        result = 1;
+      }
+      hash = result;
+    }
+    return result;
   }
 }
 

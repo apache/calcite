@@ -30,31 +30,11 @@ public class BinaryExpression extends Expression {
   BinaryExpression(ExpressionType nodeType, Type type, Expression expression0,
       Expression expression1) {
     super(nodeType, type);
+    assert expression0 != null : "expression0 should not be null";
+    assert expression1 != null : "expression1 should not be null";
     this.expression0 = expression0;
     this.expression1 = expression1;
     this.primitive = Primitive.of(expression0.getType());
-  }
-
-  @Override
-  public boolean equals(Object obj) {
-    if (obj == this) {
-      return true;
-    }
-    if (obj instanceof BinaryExpression) {
-      final BinaryExpression binary = (BinaryExpression) obj;
-      return nodeType == binary.nodeType
-             && type.equals(binary.type)
-             && expression0.equals(binary.expression0)
-             && expression1.equals(binary.expression1);
-    }
-    return false;
-  }
-
-  @Override
-  public int hashCode() {
-    return nodeType.hashCode()
-           ^ expression0.hashCode()
-           ^ expression1.hashCode();
   }
 
   @Override
@@ -187,6 +167,42 @@ public class BinaryExpression extends Expression {
                                 + nodeType
                                 + ", primitive="
                                 + primitive);
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    if (!super.equals(o)) {
+      return false;
+    }
+
+    BinaryExpression that = (BinaryExpression) o;
+
+    if (!expression0.equals(that.expression0)) {
+      return false;
+    }
+    if (!expression1.equals(that.expression1)) {
+      return false;
+    }
+    if (primitive != that.primitive) {
+      return false;
+    }
+
+    return true;
+  }
+
+  @Override
+  public int hashCode() {
+    int result = super.hashCode();
+    result = 31 * result + expression0.hashCode();
+    result = 31 * result + expression1.hashCode();
+    result = 31 * result + (primitive != null ? primitive.hashCode() : 0);
+    return result;
   }
 }
 

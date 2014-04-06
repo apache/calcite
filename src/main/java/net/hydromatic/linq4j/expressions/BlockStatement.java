@@ -28,9 +28,14 @@ import java.util.Set;
  */
 public class BlockStatement extends Statement {
   public final List<Statement> statements;
+  /**
+   * Cache the hash code for the expression
+   */
+  private int hash;
 
   BlockStatement(List<Statement> statements, Type type) {
     super(ExpressionType.Block, type);
+    assert statements != null : "statements should not be null";
     this.statements = statements;
     assert distinctVariables(true);
   }
@@ -76,6 +81,41 @@ public class BlockStatement extends Statement {
       o = statement.evaluate(evaluator);
     }
     return o;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    if (!super.equals(o)) {
+      return false;
+    }
+
+    BlockStatement that = (BlockStatement) o;
+
+    if (!statements.equals(that.statements)) {
+      return false;
+    }
+
+    return true;
+  }
+
+  @Override
+  public int hashCode() {
+    int result = hash;
+    if (result == 0) {
+      result = super.hashCode();
+      result = 31 * result + statements.hashCode();
+      if (result == 0) {
+        result = 1;
+      }
+      hash = result;
+    }
+    return result;
   }
 }
 

@@ -37,6 +37,35 @@ public class ThrowStatement extends Statement {
   void accept0(ExpressionWriter writer) {
     writer.append("throw ").append(expression).append(';').newlineAndIndent();
   }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    if (!super.equals(o)) {
+      return false;
+    }
+
+    ThrowStatement that = (ThrowStatement) o;
+
+    if (expression != null ? !expression.equals(that.expression) : that
+        .expression != null) {
+      return false;
+    }
+
+    return true;
+  }
+
+  @Override
+  public int hashCode() {
+    int result = super.hashCode();
+    result = 31 * result + (expression != null ? expression.hashCode() : 0);
+    return result;
+  }
 }
 
 // End ThrowStatement.java

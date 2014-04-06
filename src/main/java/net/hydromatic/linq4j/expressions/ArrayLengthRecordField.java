@@ -17,32 +17,45 @@
 */
 package net.hydromatic.linq4j.expressions;
 
+import java.lang.reflect.Array;
+import java.lang.reflect.Type;
+
 /**
- * Represents a "while" statement.
+ * Represents a length field of a RecordType
  */
-public class WhileStatement extends Statement {
-  public final Expression condition;
-  public final Statement body;
+public class ArrayLengthRecordField implements Types.RecordField {
+  private final String fieldName;
+  private final Class clazz;
 
-  public WhileStatement(Expression condition, Statement body) {
-    super(ExpressionType.While, Void.TYPE);
-    assert condition != null : "condition should not be null";
-    assert body != null : "body should not be null";
-    this.condition = condition;
-    this.body = body;
+  public ArrayLengthRecordField(String fieldName, Class clazz) {
+    assert fieldName != null : "fieldName should not be null";
+    assert clazz != null : "clazz should not be null";
+    this.fieldName = fieldName;
+    this.clazz = clazz;
   }
 
-  @Override
-  public Statement accept(Visitor visitor) {
-    final Expression condition1 = condition.accept(visitor);
-    final Statement body1 = body.accept(visitor);
-    return visitor.visit(this, condition1, body1);
+  public boolean nullable() {
+    return false;
   }
 
-  @Override
-  void accept0(ExpressionWriter writer) {
-    writer.append("while (").append(condition).append(") ").append(
-        Blocks.toBlock(body));
+  public String getName() {
+    return fieldName;
+  }
+
+  public Type getType() {
+    return int.class;
+  }
+
+  public int getModifiers() {
+    return 0;
+  }
+
+  public Object get(Object o) throws IllegalAccessException {
+    return Array.getLength(o);
+  }
+
+  public Type getDeclaringClass() {
+    return clazz;
   }
 
   @Override
@@ -53,16 +66,13 @@ public class WhileStatement extends Statement {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    if (!super.equals(o)) {
+
+    ArrayLengthRecordField that = (ArrayLengthRecordField) o;
+
+    if (!clazz.equals(that.clazz)) {
       return false;
     }
-
-    WhileStatement that = (WhileStatement) o;
-
-    if (!body.equals(that.body)) {
-      return false;
-    }
-    if (!condition.equals(that.condition)) {
+    if (!fieldName.equals(that.fieldName)) {
       return false;
     }
 
@@ -71,11 +81,8 @@ public class WhileStatement extends Statement {
 
   @Override
   public int hashCode() {
-    int result = super.hashCode();
-    result = 31 * result + condition.hashCode();
-    result = 31 * result + body.hashCode();
+    int result = fieldName.hashCode();
+    result = 31 * result + clazz.hashCode();
     return result;
   }
 }
-
-// End WhileStatement.java

@@ -30,6 +30,10 @@ public class NewExpression extends Expression {
   public final Type type;
   public final List<Expression> arguments;
   public final List<MemberDeclaration> memberDeclarations;
+  /**
+   * Cache the hash code for the expression
+   */
+  private int hash;
 
   public NewExpression(Type type, List<Expression> arguments,
       List<MemberDeclaration> memberDeclarations) {
@@ -54,6 +58,53 @@ public class NewExpression extends Expression {
     if (memberDeclarations != null) {
       writer.list("{\n", "", "}", memberDeclarations);
     }
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    if (!super.equals(o)) {
+      return false;
+    }
+
+    NewExpression that = (NewExpression) o;
+
+    if (arguments != null ? !arguments.equals(that.arguments)
+        : that.arguments != null) {
+      return false;
+    }
+    if (memberDeclarations
+        != null ? !memberDeclarations.equals(that.memberDeclarations)
+        : that.memberDeclarations != null) {
+      return false;
+    }
+    if (!type.equals(that.type)) {
+      return false;
+    }
+
+    return true;
+  }
+
+  @Override
+  public int hashCode() {
+    int result = hash;
+    if (result == 0) {
+      result = super.hashCode();
+      result = 31 * result + type.hashCode();
+      result = 31 * result + (arguments != null ? arguments.hashCode() : 0);
+      result = 31 * result + (
+          memberDeclarations != null ? memberDeclarations.hashCode() : 0);
+      if (result == 0) {
+        result = 1;
+      }
+      hash = result;
+    }
+    return result;
   }
 }
 

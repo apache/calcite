@@ -32,9 +32,16 @@ public class ConstructorDeclaration extends MemberDeclaration {
   public final Type resultType;
   public final List<ParameterExpression> parameters;
   public final BlockStatement body;
+  /**
+   * Cache the hash code for the expression
+   */
+  private int hash;
 
   public ConstructorDeclaration(int modifier, Type declaredAgainst,
       List<ParameterExpression> parameters, BlockStatement body) {
+    assert parameters != null : "parameters should not be null";
+    assert body != null : "body should not be null";
+    assert declaredAgainst != null : "declaredAgainst should not be null";
     this.modifier = modifier;
     this.resultType = declaredAgainst;
     this.parameters = parameters;
@@ -69,6 +76,49 @@ public class ConstructorDeclaration extends MemberDeclaration {
                 }))
         .append(' ').append(body);
     writer.newlineAndIndent();
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+
+    ConstructorDeclaration that = (ConstructorDeclaration) o;
+
+    if (modifier != that.modifier) {
+      return false;
+    }
+    if (!body.equals(that.body)) {
+      return false;
+    }
+    if (!parameters.equals(that.parameters)) {
+      return false;
+    }
+    if (!resultType.equals(that.resultType)) {
+      return false;
+    }
+
+    return true;
+  }
+
+  @Override
+  public int hashCode() {
+    int result = hash;
+    if (result == 0) {
+      result = modifier;
+      result = 31 * result + resultType.hashCode();
+      result = 31 * result + parameters.hashCode();
+      result = 31 * result + body.hashCode();
+      if (result == 0) {
+        result = 1;
+      }
+      hash = result;
+    }
+    return result;
   }
 }
 

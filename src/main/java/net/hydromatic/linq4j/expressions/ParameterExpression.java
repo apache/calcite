@@ -36,6 +36,7 @@ public class ParameterExpression extends Expression {
 
   public ParameterExpression(int modifier, Type type, String name) {
     super(ExpressionType.Parameter, type);
+    assert name != null : "name should not be null";
     this.modifier = modifier;
     this.name = name;
   }
@@ -65,6 +66,16 @@ public class ParameterExpression extends Expression {
         + Types.className(type)
         + " "
         + name;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    return this == o;
+  }
+
+  @Override
+  public int hashCode() {
+    return System.identityHashCode(this);
   }
 }
 

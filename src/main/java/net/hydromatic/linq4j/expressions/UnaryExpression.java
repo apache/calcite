@@ -27,6 +27,7 @@ public class UnaryExpression extends Expression {
 
   UnaryExpression(ExpressionType nodeType, Type type, Expression expression) {
     super(nodeType, type);
+    assert expression != null : "expression should not be null";
     this.expression = expression;
   }
 
@@ -34,25 +35,6 @@ public class UnaryExpression extends Expression {
   public Expression accept(Visitor visitor) {
     Expression expression = this.expression.accept(visitor);
     return visitor.visit(this, expression);
-  }
-
-  @Override
-  public boolean equals(Object obj) {
-    if (obj == this) {
-      return true;
-    }
-    if (obj instanceof UnaryExpression) {
-      final UnaryExpression unaryExpression = (UnaryExpression) obj;
-      return nodeType == unaryExpression.nodeType
-          && type.equals(unaryExpression.type)
-          && expression.equals(unaryExpression.expression);
-    }
-    return false;
-  }
-
-  @Override
-  public int hashCode() {
-    return nodeType.hashCode() ^ expression.hashCode();
   }
 
   void accept(ExpressionWriter writer, int lprec, int rprec) {
@@ -71,6 +53,34 @@ public class UnaryExpression extends Expression {
       writer.append(nodeType.op);
       expression.accept(writer, nodeType.lprec, rprec);
     }
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    if (!super.equals(o)) {
+      return false;
+    }
+
+    UnaryExpression that = (UnaryExpression) o;
+
+    if (!expression.equals(that.expression)) {
+      return false;
+    }
+
+    return true;
+  }
+
+  @Override
+  public int hashCode() {
+    int result = super.hashCode();
+    result = 31 * result + expression.hashCode();
+    return result;
   }
 }
 

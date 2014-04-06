@@ -29,6 +29,10 @@ public class ForStatement extends Statement {
   public final Expression condition;
   public final Expression post;
   public final Statement body;
+  /**
+   * Cache the hash code for the expression
+   */
+  private int hash;
 
   public ForStatement(List<DeclarationStatement> declarations,
       Expression condition, Expression post, Statement body) {
@@ -67,6 +71,54 @@ public class ForStatement extends Statement {
       writer.append(post);
     }
     writer.append(") ").append(Blocks.toBlock(body));
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    if (!super.equals(o)) {
+      return false;
+    }
+
+    ForStatement that = (ForStatement) o;
+
+    if (!body.equals(that.body)) {
+      return false;
+    }
+    if (condition != null ? !condition.equals(that.condition) : that
+        .condition != null) {
+      return false;
+    }
+    if (!declarations.equals(that.declarations)) {
+      return false;
+    }
+    if (post != null ? !post.equals(that.post) : that.post != null) {
+      return false;
+    }
+
+    return true;
+  }
+
+  @Override
+  public int hashCode() {
+    int result = hash;
+    if (result == 0) {
+      result = super.hashCode();
+      result = 31 * result + declarations.hashCode();
+      result = 31 * result + (condition != null ? condition.hashCode() : 0);
+      result = 31 * result + (post != null ? post.hashCode() : 0);
+      result = 31 * result + body.hashCode();
+      if (result == 0) {
+        result = 1;
+      }
+      hash = result;
+    }
+    return result;
   }
 }
 

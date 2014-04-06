@@ -28,6 +28,10 @@ public class NewArrayExpression extends Expression {
   public final int dimension;
   public final Expression bound;
   public final List<Expression> expressions;
+  /**
+   * Cache the hash code for the expression
+   */
+  private int hash;
 
   public NewArrayExpression(Type type, int dimension, Expression bound,
       List<Expression> expressions) {
@@ -60,6 +64,50 @@ public class NewArrayExpression extends Expression {
     if (expressions != null) {
       writer.list(" {\n", ",\n", "}", expressions);
     }
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    if (!super.equals(o)) {
+      return false;
+    }
+
+    NewArrayExpression that = (NewArrayExpression) o;
+
+    if (dimension != that.dimension) {
+      return false;
+    }
+    if (bound != null ? !bound.equals(that.bound) : that.bound != null) {
+      return false;
+    }
+    if (expressions != null ? !expressions.equals(that.expressions) : that
+        .expressions != null) {
+      return false;
+    }
+
+    return true;
+  }
+
+  @Override
+  public int hashCode() {
+    int result = hash;
+    if (result == 0) {
+      result = super.hashCode();
+      result = 31 * result + dimension;
+      result = 31 * result + (bound != null ? bound.hashCode() : 0);
+      result = 31 * result + (expressions != null ? expressions.hashCode() : 0);
+      if (result == 0) {
+        result = 1;
+      }
+      hash = result;
+    }
+    return result;
   }
 }
 

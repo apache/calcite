@@ -75,6 +75,34 @@ public abstract class AbstractNode implements Node {
     throw new RuntimeException(
         "evaluation not supported: " + getClass() + ":" + nodeType);
   }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+
+    AbstractNode that = (AbstractNode) o;
+
+    if (nodeType != that.nodeType) {
+      return false;
+    }
+    if (type != null ? !type.equals(that.type) : that.type != null) {
+      return false;
+    }
+
+    return true;
+  }
+
+  @Override
+  public int hashCode() {
+    int result = nodeType != null ? nodeType.hashCode() : 0;
+    result = 31 * result + (type != null ? type.hashCode() : 0);
+    return result;
+  }
 }
 
 // End AbstractNode.java

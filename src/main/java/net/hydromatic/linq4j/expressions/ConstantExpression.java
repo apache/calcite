@@ -17,7 +17,6 @@
 */
 package net.hydromatic.linq4j.expressions;
 
-import net.hydromatic.linq4j.Linq4j;
 import net.hydromatic.linq4j.function.Function1;
 import net.hydromatic.linq4j.function.Functions;
 
@@ -50,20 +49,6 @@ public class ConstantExpression extends Expression {
         }
       }
     }
-  }
-
-  @Override
-  public int hashCode() {
-    return value == null ? 1 : value.hashCode();
-  }
-
-  @Override
-  public boolean equals(Object obj) {
-    // REVIEW: Should constants with the same value and different type
-    // (e.g. 3L and 3) be considered equal.
-    return obj == this
-           || obj instanceof ConstantExpression
-              && Linq4j.equals(value, ((ConstantExpression) obj).value);
   }
 
   public Object evaluate(Evaluator evaluator) {
@@ -244,6 +229,36 @@ public class ConstantExpression extends Expression {
       lastChar = c;
     }
     buf.append('"');
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    // REVIEW: Should constants with the same value and different type
+    // (e.g. 3L and 3) be considered equal.
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    if (!super.equals(o)) {
+      return false;
+    }
+
+    ConstantExpression that = (ConstantExpression) o;
+
+    if (value != null ? !value.equals(that.value) : that.value != null) {
+      return false;
+    }
+
+    return true;
+  }
+
+  @Override
+  public int hashCode() {
+    int result = super.hashCode();
+    result = 31 * result + (value != null ? value.hashCode() : 0);
+    return result;
   }
 }
 

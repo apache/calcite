@@ -34,6 +34,7 @@ public class ClassDeclaration extends MemberDeclaration {
 
   public ClassDeclaration(int modifier, String name, Type extended,
       List<Type> implemented, List<MemberDeclaration> memberDeclarations) {
+    assert name != null : "name should not be null";
     this.modifier = modifier;
     this.name = name;
     this.memberDeclarations = memberDeclarations;
@@ -62,6 +63,54 @@ public class ClassDeclaration extends MemberDeclaration {
     final List<MemberDeclaration> members1 =
         Expressions.acceptMemberDeclarations(memberDeclarations, visitor);
     return visitor.visit(this, members1);
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+
+    ClassDeclaration that = (ClassDeclaration) o;
+
+    if (modifier != that.modifier) {
+      return false;
+    }
+    if (!classClass.equals(that.classClass)) {
+      return false;
+    }
+    if (extended != null ? !extended.equals(that.extended) : that.extended
+        != null) {
+      return false;
+    }
+    if (implemented != null ? !implemented.equals(that.implemented) : that
+        .implemented != null) {
+      return false;
+    }
+    if (memberDeclarations != null ? !memberDeclarations.equals(that
+        .memberDeclarations) : that.memberDeclarations != null) {
+      return false;
+    }
+    if (!name.equals(that.name)) {
+      return false;
+    }
+
+    return true;
+  }
+
+  @Override
+  public int hashCode() {
+    int result = modifier;
+    result = 31 * result + classClass.hashCode();
+    result = 31 * result + name.hashCode();
+    result = 31 * result + (memberDeclarations != null ? memberDeclarations
+        .hashCode() : 0);
+    result = 31 * result + (extended != null ? extended.hashCode() : 0);
+    result = 31 * result + (implemented != null ? implemented.hashCode() : 0);
+    return result;
   }
 }
 

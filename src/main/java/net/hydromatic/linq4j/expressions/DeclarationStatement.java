@@ -30,6 +30,7 @@ public class DeclarationStatement extends Statement {
   public DeclarationStatement(int modifiers, ParameterExpression parameter,
       Expression initializer) {
     super(ExpressionType.Declaration, Void.TYPE);
+    assert parameter != null : "parameter should not be null";
     this.modifiers = modifiers;
     this.parameter = parameter;
     this.initializer = initializer;
@@ -72,6 +73,43 @@ public class DeclarationStatement extends Statement {
     if (initializer != null) {
       writer.append(" = ").append(initializer);
     }
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    if (!super.equals(o)) {
+      return false;
+    }
+
+    DeclarationStatement that = (DeclarationStatement) o;
+
+    if (modifiers != that.modifiers) {
+      return false;
+    }
+    if (initializer != null ? !initializer.equals(that.initializer) : that
+        .initializer != null) {
+      return false;
+    }
+    if (!parameter.equals(that.parameter)) {
+      return false;
+    }
+
+    return true;
+  }
+
+  @Override
+  public int hashCode() {
+    int result = super.hashCode();
+    result = 31 * result + modifiers;
+    result = 31 * result + parameter.hashCode();
+    result = 31 * result + (initializer != null ? initializer.hashCode() : 0);
+    return result;
   }
 }
 

@@ -37,6 +37,7 @@ public class ConditionalExpression extends AbstractNode {
 
   public ConditionalExpression(List<Node> expressionList, Type type) {
     super(ExpressionType.Conditional, type);
+    assert expressionList != null : "expressionList should not be null";
     this.expressionList = expressionList;
   }
 
@@ -52,6 +53,34 @@ public class ConditionalExpression extends AbstractNode {
       writer.append(" else ").append(Blocks.toBlock(expressionList.get(
           expressionList.size() - 1)));
     }
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    if (!super.equals(o)) {
+      return false;
+    }
+
+    ConditionalExpression that = (ConditionalExpression) o;
+
+    if (!expressionList.equals(that.expressionList)) {
+      return false;
+    }
+
+    return true;
+  }
+
+  @Override
+  public int hashCode() {
+    int result = super.hashCode();
+    result = 31 * result + expressionList.hashCode();
+    return result;
   }
 }
 

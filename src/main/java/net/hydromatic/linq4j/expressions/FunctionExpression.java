@@ -34,12 +34,18 @@ public final class FunctionExpression<F extends Function<?>>
   public final BlockStatement body;
   public final List<ParameterExpression> parameterList;
   private F dynamicFunction;
+  /**
+   * Cache the hash code for the expression
+   */
+  private int hash;
 
   private FunctionExpression(Class<F> type, F function, BlockStatement body,
       List<ParameterExpression> parameterList) {
     super(ExpressionType.Lambda, type);
-    assert type != null;
-    assert function != null || body != null;
+    assert type != null : "type should not be null";
+    assert function != null || body != null : "both function and body should "
+        + "not be null";
+    assert parameterList != null : "parameterList should not be null";
     this.function = function;
     this.body = body;
     this.parameterList = parameterList;
@@ -194,6 +200,50 @@ public final class FunctionExpression<F extends Function<?>>
       return "call"; // FIXME
     }
     return "apply";
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    if (!super.equals(o)) {
+      return false;
+    }
+
+    FunctionExpression that = (FunctionExpression) o;
+
+    if (body != null ? !body.equals(that.body) : that.body != null) {
+      return false;
+    }
+    if (function != null ? !function.equals(that.function) : that.function
+        != null) {
+      return false;
+    }
+    if (!parameterList.equals(that.parameterList)) {
+      return false;
+    }
+
+    return true;
+  }
+
+  @Override
+  public int hashCode() {
+    int result = hash;
+    if (result == 0) {
+      result = super.hashCode();
+      result = 31 * result + (function != null ? function.hashCode() : 0);
+      result = 31 * result + (body != null ? body.hashCode() : 0);
+      result = 31 * result + parameterList.hashCode();
+      if (result == 0) {
+        result = 1;
+      }
+      hash = result;
+    }
+    return result;
   }
 
   /** Function that can be invoked with a variable number of arguments. */

@@ -29,6 +29,7 @@ public class TypeBinaryExpression extends Expression {
   public TypeBinaryExpression(ExpressionType nodeType, Expression expression,
       Type type) {
     super(nodeType, Boolean.TYPE);
+    assert expression != null : "expression should not be null";
     this.expression = expression;
     this.type = type;
   }
@@ -46,6 +47,38 @@ public class TypeBinaryExpression extends Expression {
     expression.accept(writer, lprec, nodeType.lprec);
     writer.append(nodeType.op);
     writer.append(type);
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    if (!super.equals(o)) {
+      return false;
+    }
+
+    TypeBinaryExpression that = (TypeBinaryExpression) o;
+
+    if (!expression.equals(that.expression)) {
+      return false;
+    }
+    if (type != null ? !type.equals(that.type) : that.type != null) {
+      return false;
+    }
+
+    return true;
+  }
+
+  @Override
+  public int hashCode() {
+    int result = super.hashCode();
+    result = 31 * result + expression.hashCode();
+    result = 31 * result + (type != null ? type.hashCode() : 0);
+    return result;
   }
 }
 

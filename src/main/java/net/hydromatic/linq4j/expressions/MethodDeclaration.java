@@ -36,6 +36,10 @@ public class MethodDeclaration extends MemberDeclaration {
 
   public MethodDeclaration(int modifier, String name, Type resultType,
       List<ParameterExpression> parameters, BlockStatement body) {
+    assert name != null : "name should not be null";
+    assert resultType != null : "resultType should not be null";
+    assert parameters != null : "parameters should not be null";
+    assert body != null : "body should not be null";
     this.modifier = modifier;
     this.name = name;
     this.resultType = resultType;
@@ -65,6 +69,46 @@ public class MethodDeclaration extends MemberDeclaration {
         })
     ).append(' ').append(body);
     writer.newlineAndIndent();
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+
+    MethodDeclaration that = (MethodDeclaration) o;
+
+    if (modifier != that.modifier) {
+      return false;
+    }
+    if (!body.equals(that.body)) {
+      return false;
+    }
+    if (!name.equals(that.name)) {
+      return false;
+    }
+    if (!parameters.equals(that.parameters)) {
+      return false;
+    }
+    if (!resultType.equals(that.resultType)) {
+      return false;
+    }
+
+    return true;
+  }
+
+  @Override
+  public int hashCode() {
+    int result = modifier;
+    result = 31 * result + name.hashCode();
+    result = 31 * result + resultType.hashCode();
+    result = 31 * result + parameters.hashCode();
+    result = 31 * result + body.hashCode();
+    return result;
   }
 }
 

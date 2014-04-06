@@ -120,31 +120,7 @@ public abstract class Types {
   private static RecordField getSystemField(final String fieldName,
       final Class clazz) {
     // The "length" field of an array does not appear in Class.getFields().
-    return new RecordField() {
-      public boolean nullable() {
-        return false;
-      }
-
-      public String getName() {
-        return fieldName;
-      }
-
-      public Type getType() {
-        return int.class;
-      }
-
-      public int getModifiers() {
-        return 0;
-      }
-
-      public Object get(Object o) throws IllegalAccessException {
-        return Array.getLength(o);
-      }
-
-      public Type getDeclaringClass() {
-        return clazz;
-      }
-    };
+    return new ArrayLengthRecordField(fieldName, clazz);
   }
 
   public static Class toClass(Type type) {
@@ -490,27 +466,7 @@ public abstract class Types {
   }
 
   public static PseudoField field(final Field field) {
-    return new PseudoField() {
-      public String getName() {
-        return field.getName();
-      }
-
-      public Type getType() {
-        return field.getType();
-      }
-
-      public int getModifiers() {
-        return field.getModifiers();
-      }
-
-      public Object get(Object o) throws IllegalAccessException {
-        return field.get(o);
-      }
-
-      public Class<?> getDeclaringClass() {
-        return field.getDeclaringClass();
-      }
-    };
+    return new ReflectedPseudoField(field);
   }
 
   static Class arrayClass(Type type) {
