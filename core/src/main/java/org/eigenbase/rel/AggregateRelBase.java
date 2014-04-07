@@ -169,7 +169,6 @@ public abstract class AggregateRelBase extends SingleRel {
   }
 
   protected RelDataType deriveRowType() {
-    //noinspection unchecked
     return getCluster().getTypeFactory().createStructType(
         CompositeList.of(
             // fields derived from grouping columns

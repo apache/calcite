@@ -608,7 +608,8 @@ public class UtilTest {
    */
   @Test public void testCompositeList() {
     // Made up of zero lists
-    CompositeList<String> list = new CompositeList<String>();
+    //noinspection unchecked
+    List<String> list = CompositeList.of(new List[0]);
     assertEquals(0, list.size());
     assertTrue(list.isEmpty());
     try {
@@ -623,8 +624,8 @@ public class UtilTest {
     List<String> listAbc = Arrays.asList("a", "b", "c");
     List<String> listEmpty2 = new ArrayList<String>();
 
-    // Made up of two lists, two of which are empty
-    list = new CompositeList<String>(listEmpty, listAbc, listEmpty2);
+    // Made up of three lists, two of which are empty
+    list = CompositeList.of(listEmpty, listAbc, listEmpty2);
     assertEquals(3, list.size());
     assertFalse(list.isEmpty());
     assertEquals("a", list.get(0));

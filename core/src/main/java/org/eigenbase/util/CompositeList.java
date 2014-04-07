@@ -19,6 +19,8 @@ package org.eigenbase.util;
 
 import java.util.*;
 
+import com.google.common.collect.ImmutableList;
+
 /**
  * Read-only list that is the concatenation of sub-lists.
  *
@@ -34,35 +36,79 @@ import java.util.*;
  * @param <T> Element type
  */
 public class CompositeList<T> extends AbstractList<T> {
-  private final List<T>[] lists;
+  private final ImmutableList<List<? extends T>> lists;
 
   /**
-   * Creates a CompoundList.
+   * Creates a CompositeList.
    *
    * @param lists Constituent lists
    */
-  public CompositeList(List<T>... lists) {
+  private CompositeList(ImmutableList<List<? extends T>> lists) {
     this.lists = lists;
   }
 
   /**
-   * Creates a CompoundList.
-   *
-   * <p>More convenient than {@link #CompositeList(java.util.List[])},
-   * because element type is inferred. Use this method as you would
-   * {@link java.util.Arrays#asList(Object[])} or
-   * {@link java.util.EnumSet#of(Enum, Enum[])}.
+   * Creates a CompositeList.
    *
    * @param lists Constituent lists
    * @param <T>   Element type
    * @return List consisting of all lists
    */
-  public static <T> CompositeList<T> of(List<T>... lists) {
-    return new CompositeList<T>(lists);
+  public static <T> CompositeList<T> of(List<? extends T>... lists) {
+    return new CompositeList<T>(ImmutableList.copyOf(lists));
+  }
+
+  /**
+   * Creates a CompositeList of zero lists.
+   *
+   * @param <T>   Element type
+   * @return List consisting of all lists
+   */
+  public static <T> List<T> of() {
+    return ImmutableList.of();
+  }
+
+  /**
+   * Creates a CompositeList of one list.
+   *
+   * @param list0 List
+   * @param <T>   Element type
+   * @return List consisting of all lists
+   */
+  public static <T> List<T> of(List<T> list0) {
+    return list0;
+  }
+
+  /**
+   * Creates a CompositeList of two lists.
+   *
+   * @param list0 First list
+   * @param list1 Second list
+   * @param <T>   Element type
+   * @return List consisting of all lists
+   */
+  public static <T> CompositeList<T> of(List<? extends T> list0,
+      List<? extends T> list1) {
+    return new CompositeList<T>(ImmutableList.of(list0, list1));
+  }
+
+  /**
+   * Creates a CompositeList of three lists.
+   *
+   * @param list0 First list
+   * @param list1 Second list
+   * @param list2 Third list
+   * @param <T>   Element type
+   * @return List consisting of all lists
+   */
+  public static <T> CompositeList<T> of(List<? extends T> list0,
+      List<? extends T> list1,
+      List<? extends T> list2) {
+    return new CompositeList<T>(ImmutableList.of(list0, list1, list2));
   }
 
   public T get(int index) {
-    for (List<T> list : lists) {
+    for (List<? extends T> list : lists) {
       int nextIndex = index - list.size();
       if (nextIndex < 0) {
         return list.get(index);
@@ -74,7 +120,7 @@ public class CompositeList<T> extends AbstractList<T> {
 
   public int size() {
     int n = 0;
-    for (List<T> list : lists) {
+    for (List<? extends T> list : lists) {
       n += list.size();
     }
     return n;
