@@ -359,7 +359,8 @@ public abstract class SqlAbstractParserImpl {
     // Otherwise, just create a placeholder function.  Later, during
     // validation, it will be resolved into a real function reference.
     if (fun == null) {
-      fun = new SqlFunction(funName, null, null, null, null, funcType);
+      fun = new SqlUnresolvedFunction(funName, null, null, null, null,
+          funcType);
     }
 
     return fun.createCall(functionQualifier, pos, operands);

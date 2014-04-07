@@ -2833,6 +2833,20 @@ public class JdbcTest {
             "");
   }
 
+  /** Tests derived return type of user-defined function. */
+  @Test public void testUdfDerivedReturnType() {
+    final OptiqAssert.AssertThat with = withUdf();
+    with.query(
+        "select max(\"adhoc\".my_double(\"deptno\")) as p from \"adhoc\".EMPLOYEES")
+        .returns(
+            "P=40\n");
+    with.query(
+        "select max(\"adhoc\".my_str(\"name\")) as p from \"adhoc\".EMPLOYEES\n"
+        + "where \"adhoc\".my_str(\"name\") is null")
+        .returns(
+            "P=null\n");
+  }
+
   /** Test for {@link EigenbaseNewResource#requireDefaultConstructor(String)}. */
   @Test public void testUserDefinedFunction2() throws Exception {
     withBadUdf(AwkwardFunction.class)

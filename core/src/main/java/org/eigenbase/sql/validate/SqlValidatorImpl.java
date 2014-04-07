@@ -883,20 +883,19 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         }
       }
 
-      if (call.getOperator() instanceof SqlFunction) {
-        SqlFunction function = (SqlFunction) call.getOperator();
-        if (function.getFunctionType() == null) {
-          // This function hasn't been resolved yet.  Perform
-          // a half-hearted resolution now in case it's a
-          // builtin function requiring special casing.  If it's
-          // not, we'll handle it later during overload
-          // resolution.
-          final List<SqlOperator> overloads = Lists.newArrayList();
-          opTab.lookupOperatorOverloads(function.getNameAsId(), null,
-              SqlSyntax.FUNCTION, overloads);
-          if (overloads.size() == 1) {
-            ((SqlBasicCall) call).setOperator(overloads.get(0));
-          }
+      if (call.getOperator() instanceof SqlUnresolvedFunction) {
+        assert call instanceof SqlBasicCall;
+        final SqlUnresolvedFunction function =
+            (SqlUnresolvedFunction) call.getOperator();
+        // This function hasn't been resolved yet.  Perform
+        // a half-hearted resolution now in case it's a
+        // builtin function requiring special casing.  If it's
+        // not, we'll handle it later during overload resolution.
+        final List<SqlOperator> overloads = Lists.newArrayList();
+        opTab.lookupOperatorOverloads(function.getNameAsId(),
+            function.getFunctionType(), SqlSyntax.FUNCTION, overloads);
+        if (overloads.size() == 1) {
+          ((SqlBasicCall) call).setOperator(overloads.get(0));
         }
       }
       if (rewriteCalls) {

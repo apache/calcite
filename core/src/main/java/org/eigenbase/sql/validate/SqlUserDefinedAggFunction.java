@@ -23,6 +23,7 @@ import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.reltype.RelDataTypeFactory;
 import org.eigenbase.sql.*;
 import org.eigenbase.sql.type.*;
+import org.eigenbase.util.Util;
 
 import net.hydromatic.optiq.*;
 
@@ -38,13 +39,12 @@ import com.google.common.collect.Lists;
 public class SqlUserDefinedAggFunction extends SqlAggFunction {
   public final AggregateFunction function;
 
-  public SqlUserDefinedAggFunction(String name,
+  public SqlUserDefinedAggFunction(SqlIdentifier opName,
       SqlReturnTypeInference returnTypeInference,
       SqlOperandTypeInference operandTypeInference,
-      List<SqlTypeFamily> typeFamilies,
-      AggregateFunction function) {
-    super(name, SqlKind.OTHER_FUNCTION, returnTypeInference,
-        operandTypeInference, OperandTypes.family(typeFamilies), null);
+      SqlOperandTypeChecker operandTypeChecker, AggregateFunction function) {
+    super(Util.last(opName.names), SqlKind.OTHER_FUNCTION, returnTypeInference,
+        operandTypeInference, operandTypeChecker, null);
     this.function = function;
   }
 

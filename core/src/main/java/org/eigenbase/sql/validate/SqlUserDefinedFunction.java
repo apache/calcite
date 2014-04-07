@@ -23,14 +23,11 @@ import java.util.List;
 import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.reltype.RelDataTypeFactory;
 import org.eigenbase.reltype.RelDataTypeFactoryImpl;
-import org.eigenbase.sql.SqlFunction;
-import org.eigenbase.sql.SqlKind;
-import org.eigenbase.sql.SqlLiteral;
-import org.eigenbase.sql.SqlNode;
-import org.eigenbase.sql.SqlUtil;
+import org.eigenbase.sql.*;
 import org.eigenbase.sql.type.*;
 import org.eigenbase.util.NlsString;
 import org.eigenbase.util.Pair;
+import org.eigenbase.util.Util;
 
 import net.hydromatic.optiq.*;
 
@@ -43,13 +40,14 @@ import net.hydromatic.optiq.*;
 public class SqlUserDefinedFunction extends SqlFunction {
   public final Function function;
 
-  public SqlUserDefinedFunction(String name,
+  public SqlUserDefinedFunction(SqlIdentifier opName,
       SqlReturnTypeInference returnTypeInference,
       SqlOperandTypeInference operandTypeInference,
-      List<SqlTypeFamily> typeFamilies,
+      SqlOperandTypeChecker operandTypeChecker,
       Function function) {
-    super(name, null, SqlKind.OTHER_FUNCTION, returnTypeInference,
-        operandTypeInference, OperandTypes.family(typeFamilies), null, null);
+    super(Util.last(opName.names), opName, SqlKind.OTHER_FUNCTION,
+        returnTypeInference, operandTypeInference, operandTypeChecker,
+        null, null);
     this.function = function;
   }
 
