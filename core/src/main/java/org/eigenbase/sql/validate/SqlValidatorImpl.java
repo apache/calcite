@@ -167,8 +167,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
    */
   private final Map<SqlNode, RelDataType> nodeToTypeMap =
       new IdentityHashMap<SqlNode, RelDataType>();
-  private final AggFinder aggFinder = new AggFinder(false);
-  private final AggFinder aggOrOverFinder = new AggFinder(true);
+  private final AggFinder aggFinder;
+  private final AggFinder aggOrOverFinder;
   private final SqlConformance conformance;
   private final Map<SqlNode, SqlNode> originalExprs =
       new HashMap<SqlNode, SqlNode>();
@@ -218,6 +218,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
     rewriteCalls = true;
     expandColumnReferences = true;
+    aggFinder = new AggFinder(opTab, false);
+    aggOrOverFinder = new AggFinder(opTab, true);
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -2299,8 +2301,20 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   }
 
   public boolean isAggregate(SqlSelect select) {
-    return (select.getGroup() != null) || (select.getHaving() != null)
-        || (aggFinder.findAgg(select.getSelectList()) != null);
+    return select.getGroup() != null
+        || select.getHaving() != null
+        || getAgg(select) != null;
+  }
+
+  private SqlNode getAgg(SqlSelect select) {
+    final SelectScope selectScope = getRawSelectScope(select);
+    if (selectScope != null) {
+      final List<SqlNode> selectList = selectScope.getExpandedSelectList();
+      if (selectList != null) {
+        return aggFinder.findAgg(selectList);
+      }
+    }
+    return aggFinder.findAgg(select.getSelectList());
   }
 
   public boolean isAggregate(SqlNode selectNode) {

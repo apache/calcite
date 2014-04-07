@@ -4671,6 +4671,24 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         "Expression 'EMPNO' is not being grouped");
   }
 
+  @Test public void testSumInvalidArgs() {
+    checkFails(
+        "select ^sum(ename)^, deptno from emp group by deptno",
+        "(?s)Cannot apply 'SUM' to arguments of type 'SUM\\(<VARCHAR\\(20\\)>\\)'\\. .*");
+  }
+
+  @Test public void testSumTooManyArgs() {
+    checkFails(
+        "select ^sum(empno, deptno)^, deptno from emp group by deptno",
+        "Invalid number of arguments to function 'SUM'. Was expecting 1 arguments");
+  }
+
+  @Test public void testSumTooFewArgs() {
+    checkFails(
+        "select ^sum()^, deptno from emp group by deptno",
+        "Invalid number of arguments to function 'SUM'. Was expecting 1 arguments");
+  }
+
   @Test public void testSingleNoAlias() {
     check("select * from emp");
   }

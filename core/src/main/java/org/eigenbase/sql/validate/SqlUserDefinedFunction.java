@@ -43,14 +43,13 @@ import net.hydromatic.optiq.*;
 public class SqlUserDefinedFunction extends SqlFunction {
   public final Function function;
 
-  public SqlUserDefinedFunction(String name, RelDataType returnType,
-      List<RelDataType> argTypes, List<SqlTypeFamily> typeFamilies,
+  public SqlUserDefinedFunction(String name,
+      SqlReturnTypeInference returnTypeInference,
+      SqlOperandTypeInference operandTypeInference,
+      List<SqlTypeFamily> typeFamilies,
       Function function) {
-    super(name, null, SqlKind.OTHER_FUNCTION,
-        ReturnTypes.explicit(returnType),
-        new ExplicitOperandTypeInference(argTypes),
-        OperandTypes.family(typeFamilies),
-        null, null);
+    super(name, null, SqlKind.OTHER_FUNCTION, returnTypeInference,
+        operandTypeInference, OperandTypes.family(typeFamilies), null, null);
     this.function = function;
   }
 

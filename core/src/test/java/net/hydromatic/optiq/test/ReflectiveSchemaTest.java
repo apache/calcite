@@ -23,7 +23,6 @@ import net.hydromatic.linq4j.expressions.Types;
 import net.hydromatic.linq4j.function.*;
 
 import net.hydromatic.optiq.SchemaPlus;
-import net.hydromatic.optiq.Schemas;
 import net.hydromatic.optiq.impl.*;
 import net.hydromatic.optiq.impl.java.*;
 import net.hydromatic.optiq.jdbc.OptiqConnection;
@@ -146,9 +145,9 @@ public class ReflectiveSchemaTest {
     SchemaPlus rootSchema = optiqConnection.getRootSchema();
     SchemaPlus schema = rootSchema.add("s", new AbstractSchema());
     schema.add("GenerateStrings",
-        Schemas.methodMember(JdbcTest.GENERATE_STRINGS_METHOD));
+        TableMacroImpl.create(JdbcTest.GENERATE_STRINGS_METHOD));
     schema.add("StringUnion",
-        Schemas.methodMember(JdbcTest.STRING_UNION_METHOD));
+        TableMacroImpl.create(JdbcTest.STRING_UNION_METHOD));
     rootSchema.add("hr", new ReflectiveSchema("hr", new JdbcTest.HrSchema()));
     ResultSet resultSet = connection.createStatement().executeQuery(
         "select *\n"

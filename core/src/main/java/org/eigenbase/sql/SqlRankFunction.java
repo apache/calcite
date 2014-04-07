@@ -58,10 +58,6 @@ public class SqlRankFunction extends SqlAggFunction {
     return ImmutableList.of(type);
   }
 
-  public boolean isAggregator() {
-    return true;
-  }
-
   public void validateCall(
       SqlCall call,
       SqlValidator validator,

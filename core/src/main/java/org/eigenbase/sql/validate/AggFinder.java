@@ -17,9 +17,13 @@
 */
 package org.eigenbase.sql.validate;
 
+import java.util.List;
+
 import org.eigenbase.sql.*;
 import org.eigenbase.sql.util.*;
 import org.eigenbase.util.*;
+
+import com.google.common.collect.Lists;
 
 /**
  * Visitor which looks for an aggregate function inside a tree of {@link
@@ -28,6 +32,7 @@ import org.eigenbase.util.*;
 class AggFinder extends SqlBasicVisitor<Void> {
   //~ Instance fields --------------------------------------------------------
 
+  private final SqlOperatorTable opTab;
   private final boolean over;
 
   //~ Constructors -----------------------------------------------------------
@@ -35,10 +40,12 @@ class AggFinder extends SqlBasicVisitor<Void> {
   /**
    * Creates an AggFinder.
    *
+   * @param opTab Operator table
    * @param over Whether to find windowed function calls {@code Agg(x) OVER
    *             windowSpec}
    */
-  AggFinder(boolean over) {
+  AggFinder(SqlOperatorTable opTab, boolean over) {
+    this.opTab = opTab;
     this.over = over;
   }
 
@@ -60,9 +67,35 @@ class AggFinder extends SqlBasicVisitor<Void> {
     }
   }
 
+  public SqlNode findAgg(List<SqlNode> nodes) {
+    try {
+      for (SqlNode node : nodes) {
+        node.accept(this);
+      }
+      return null;
+    } catch (Util.FoundOne e) {
+      Util.swallow(e, null);
+      return (SqlNode) e.getNode();
+    }
+  }
+
   public Void visit(SqlCall call) {
-    if (call.getOperator().isAggregator()) {
+    final SqlOperator operator = call.getOperator();
+    if (operator.isAggregator()) {
       throw new Util.FoundOne(call);
+    }
+    // User-defined function may not be resolved yet.
+    if (operator instanceof SqlFunction
+        && ((SqlFunction) operator).getFunctionType()
+        == SqlFunctionCategory.USER_DEFINED_FUNCTION) {
+      final List<SqlOperator> list = Lists.newArrayList();
+      opTab.lookupOperatorOverloads(((SqlFunction) operator).getSqlIdentifier(),
+          SqlFunctionCategory.USER_DEFINED_FUNCTION, SqlSyntax.FUNCTION, list);
+      for (SqlOperator sqlOperator : list) {
+        if (sqlOperator.isAggregator()) {
+          throw new Util.FoundOne(call);
+        }
+      }
     }
     if (call.isA(SqlKind.QUERY)) {
       // don't traverse into queries

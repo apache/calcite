@@ -88,62 +88,6 @@ public final class Schemas {
     return SqlTypeUtil.canAssignFrom(toType, fromType);
   }
 
-  public static TableMacro methodMember(final Method method) {
-    final List<FunctionParameter> parameters =
-        new ArrayList<FunctionParameter>();
-    for (final Class<?> parameterType : method.getParameterTypes()) {
-      parameters.add(
-          new FunctionParameter() {
-            final int ordinal = parameters.size();
-
-            public int getOrdinal() {
-              return ordinal;
-            }
-
-            public String getName() {
-              return "a" + ordinal;
-            }
-
-            public RelDataType getType(RelDataTypeFactory typeFactory) {
-              return ((JavaTypeFactory) typeFactory).createType(parameterType);
-            }
-          }
-      );
-    }
-    return new TableMacro() {
-      public List<FunctionParameter> getParameters() {
-        return parameters;
-      }
-
-      public Table apply(List<Object> arguments) {
-        try {
-          Object o = null;
-          if (!Modifier.isStatic(method.getModifiers())) {
-            o = method.getDeclaringClass().newInstance();
-          }
-          //noinspection unchecked
-          return (Table) method.invoke(o, arguments.toArray());
-        } catch (IllegalArgumentException e) {
-          throw new RuntimeException("Expected "
-              + Arrays.asList(method.getParameterTypes()) + " actual "
-              + arguments,
-              e);
-        } catch (IllegalAccessException e) {
-          throw new RuntimeException(e);
-        } catch (InvocationTargetException e) {
-          throw new RuntimeException(e);
-        } catch (InstantiationException e) {
-          throw new RuntimeException(e);
-        }
-      }
-
-      public RelDataType getRowType(RelDataTypeFactory typeFactory) {
-        final Class<?> returnType = method.getReturnType();
-        return ((JavaTypeFactory) typeFactory).createType(returnType);
-      }
-    };
-  }
-
   /** Returns the expression for a schema. */
   public static Expression expression(SchemaPlus schema) {
     return schema.getExpression(schema.getParentSchema(), schema.getName());
@@ -304,6 +248,17 @@ public final class Schemas {
     return new RelProtoDataType() {
       public RelDataType apply(RelDataTypeFactory typeFactory) {
         return table.getRowType(typeFactory);
+      }
+    };
+  }
+
+  /** Returns an implementation of {@link RelProtoDataType}
+   * that asks a given scalar function for its return type with a given type
+   * factory. */
+  public static RelProtoDataType proto(final ScalarFunction function) {
+    return new RelProtoDataType() {
+      public RelDataType apply(RelDataTypeFactory typeFactory) {
+        return function.getReturnType(typeFactory);
       }
     };
   }

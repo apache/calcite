@@ -22,54 +22,43 @@ import net.hydromatic.optiq.*;
 import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.reltype.RelDataTypeFactory;
 
-import com.google.common.collect.ImmutableList;
-
 import java.lang.reflect.*;
 import java.util.AbstractList;
 import java.util.List;
+
+import static org.eigenbase.util.Static.*;
 
 /**
 * Implementation of {@link net.hydromatic.optiq.ScalarFunction}.
 */
 public class ScalarFunctionImpl implements ScalarFunction {
   public final Method method;
-  private final List<String> path;
 
   /** Private constructor. */
-  private ScalarFunctionImpl(List<String> path, Method method) {
-    this.path = path == null ? null : ImmutableList.copyOf(path);
+  private ScalarFunctionImpl(Method method) {
     this.method = method;
   }
 
-  /** Creates and validates a ScalarFunctionImpl. */
-  public static Function create(List<String> path, String className) {
-    final Class<?> clazz;
-    try {
-      clazz = Class.forName(className);
-    } catch (ClassNotFoundException e) {
-      throw new RuntimeException("UDF class '"
-          + className + "' not found");
-    }
-    final Method method = findEvalMethod(clazz);
-    if (method == null) {
-      throw new RuntimeException("No 'eval' method not found in class "
-          + clazz);
-    }
-    if ((method.getModifiers() & Modifier.STATIC) == 0) {
-      if (!classHasPublicZeroArgsConstructor(clazz)) {
-        throw new RuntimeException("declaring class '" + clazz.getName()
-            + "' of non-static UDF must have a public constructor with zero "
-            + "parameters");
+  /** Creates a scalar function.
+   *
+   * @see TableMacroImpl#create(Class)
+   */
+  public static ScalarFunction create(Class<?> clazz) {
+    final Method method = findMethod(clazz, "eval");
+    if (method != null) {
+      if ((method.getModifiers() & Modifier.STATIC) == 0) {
+        if (!classHasPublicZeroArgsConstructor(clazz)) {
+          throw RESOURCE.requireDefaultConstructor(clazz.getName()).ex();
+        }
       }
+      // NOTE: scalar functions and table macros look similar. It is important
+      // to check for table macros FIRST.
+      return new ScalarFunctionImpl(method);
     }
-    final Class<?> returnType = method.getReturnType();
-    if (Table.class.isAssignableFrom(returnType)) {
-      return Schemas.methodMember(method);
-    }
-    return new ScalarFunctionImpl(path, method);
+    return null;
   }
 
-  private static boolean classHasPublicZeroArgsConstructor(Class<?> clazz) {
+  static boolean classHasPublicZeroArgsConstructor(Class<?> clazz) {
     for (Constructor<?> constructor : clazz.getConstructors()) {
       if (constructor.getParameterTypes().length == 0
           && (constructor.getModifiers() & Modifier.PUBLIC) != 0) {
@@ -79,9 +68,9 @@ public class ScalarFunctionImpl implements ScalarFunction {
     return false;
   }
 
-  private static Method findEvalMethod(Class<?> clazz) {
+  static Method findMethod(Class<?> clazz, String name) {
     for (Method method : clazz.getMethods()) {
-      if (method.getName().equals("eval")) {
+      if (method.getName().equals(name)) {
         return method;
       }
     }

@@ -118,6 +118,11 @@ public class RexToLixTranslator {
         .translateList(program.getProjectList());
   }
 
+  /** Creates a translator for translating aggregate functions. */
+  public static RexToLixTranslator forAggregation(JavaTypeFactory typeFactory) {
+    return new RexToLixTranslator(null, typeFactory, null, null);
+  }
+
   Expression translate(RexNode expr) {
     final RexImpTable.NullAs nullAs =
         RexImpTable.NullAs.of(isNullable(expr));

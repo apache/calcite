@@ -17,10 +17,14 @@
 */
 package org.eigenbase.sql.type;
 
+import java.util.List;
+
 import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.reltype.RelDataTypeFactory;
 import org.eigenbase.sql.SqlCallBinding;
 import org.eigenbase.sql.SqlNode;
+
+import com.google.common.collect.ImmutableList;
 
 /**
  * Strategies for inferring operand types.
@@ -62,6 +66,7 @@ public abstract class InferTypes {
           }
         }
       };
+
   /**
    * Operand type-inference strategy where an unknown operand type is derived
    * from the call's return type. If the return type is a record, it must have
@@ -81,6 +86,7 @@ public abstract class InferTypes {
           }
         }
       };
+
   /**
    * Operand type-inference strategy where an unknown operand type is assumed
    * to be boolean.
@@ -98,6 +104,7 @@ public abstract class InferTypes {
           }
         }
       };
+
   /**
    * Operand type-inference strategy where an unknown operand type is assumed
    * to be VARCHAR(1024).  This is not something which should be used in most
@@ -118,6 +125,12 @@ public abstract class InferTypes {
           }
         }
       };
+
+  /** Returns an {@link SqlOperandTypeInference} that returns a given list of
+   * types. */
+  public static SqlOperandTypeInference explicit(List<RelDataType> types) {
+    return new ExplicitOperandTypeInference(ImmutableList.copyOf(types));
+  }
 }
 
 // End InferTypes.java

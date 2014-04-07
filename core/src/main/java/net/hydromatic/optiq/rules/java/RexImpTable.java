@@ -22,6 +22,7 @@ import net.hydromatic.linq4j.expressions.*;
 
 import net.hydromatic.optiq.BuiltinMethod;
 import net.hydromatic.optiq.Function;
+import net.hydromatic.optiq.impl.AggregateFunctionImpl;
 import net.hydromatic.optiq.impl.ScalarFunctionImpl;
 import net.hydromatic.optiq.runtime.SqlFunctions;
 
@@ -32,8 +33,10 @@ import org.eigenbase.sql.*;
 import org.eigenbase.sql.fun.SqlStdOperatorTable;
 import org.eigenbase.sql.fun.SqlTrimFunction;
 import org.eigenbase.sql.type.SqlTypeName;
+import org.eigenbase.sql.validate.SqlUserDefinedAggFunction;
 import org.eigenbase.sql.validate.SqlUserDefinedFunction;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
 import java.lang.reflect.*;
@@ -85,8 +88,8 @@ public class RexImpTable {
 
   private final Map<SqlOperator, CallImplementor> map =
       new HashMap<SqlOperator, CallImplementor>();
-  private final Map<Aggregation, AggImplementor2> aggMap =
-      new HashMap<Aggregation, AggImplementor2>();
+  private final Map<Aggregation, AggImplementor> aggMap =
+      new HashMap<Aggregation, AggImplementor>();
 
   RexImpTable() {
     defineMethod(UPPER, BuiltinMethod.UPPER.method, NullPolicy.STRICT);
@@ -189,14 +192,14 @@ public class RexImpTable {
     map.put(LOCALTIME, systemFunctionImplementor);
     map.put(LOCALTIMESTAMP, systemFunctionImplementor);
 
-    aggMap.put(COUNT, new CountImplementor2());
-    aggMap.put(SUM, new SumImplementor2());
-    aggMap.put(SUM0, new SumImplementor2());
-    final MinMaxImplementor2 minMax =
-        new MinMaxImplementor2();
+    aggMap.put(COUNT, new CountImplementor());
+    aggMap.put(SUM, new SumImplementor());
+    aggMap.put(SUM0, new SumImplementor());
+    final MinMaxImplementor minMax =
+        new MinMaxImplementor();
     aggMap.put(MIN, minMax);
     aggMap.put(MAX, minMax);
-    aggMap.put(RANK, new RankImplementor2());
+    aggMap.put(RANK, new RankImplementor());
   }
 
   private void defineImplementor(
@@ -393,7 +396,15 @@ public class RexImpTable {
     return map.get(operator);
   }
 
-  public AggImplementor2 get2(final Aggregation aggregation) {
+  public AggImplementor get(final Aggregation aggregation) {
+    if (aggregation instanceof SqlUserDefinedAggFunction) {
+      final SqlUserDefinedAggFunction udaf =
+          (SqlUserDefinedAggFunction) aggregation;
+      if (udaf.function instanceof AggregateFunctionImpl) {
+        return UserDefinedAggImplementor.INSTANCE;
+      }
+    }
+
     return aggMap.get(aggregation);
   }
 
@@ -602,33 +613,6 @@ public class RexImpTable {
     return implementor.implement(translator, call, translatedOperands);
   }
 
-  /** Implements an aggregate function by generating expressions to
-   * initialize, add to, and get a result from, an accumulator. */
-  interface AggImplementor2 {
-    /** Whether "add" code is called if any of the arguments are null. If
-     * false, the container will ensure that the "add" arguments are always
-     * not-null. If true, the container code must handle null values
-     * appropriately. */
-    boolean callOnNull();
-    Expression implementInit(
-        Aggregation aggregation,
-        Type returnType,
-        List<Type> parameterTypes);
-    Expression implementAdd(
-        Aggregation aggregation,
-        Expression accumulator,
-        List<Expression> arguments);
-    Expression implementResult(
-        Aggregation aggregation, Expression accumulator);
-  }
-
-  /** Implements a windowed aggregate function. */
-  interface WinAggImplementor extends AggImplementor2 {
-    Expression implementResultPlus(
-        Aggregation aggregation, Expression accumulator, Expression start,
-        Expression end, Expression rows, Expression current);
-  }
-
   /** Strategy what an operator should return if one of its
    * arguments is null. */
   public enum NullAs {
@@ -741,21 +725,14 @@ public class RexImpTable {
         List<Expression> translatedOperands);
   }
 
-  static class CountImplementor2 implements AggImplementor2 {
-    public boolean callOnNull() {
-      return false;
-    }
-
-    public Expression implementInit(
-        Aggregation aggregation,
-        Type returnType,
-        List<Type> parameterTypes) {
+  static class CountImplementor implements AggImplementor {
+    public Expression implementInit(RexToLixTranslator translator,
+        Aggregation aggregation, Type returnType, List<Type> parameterTypes) {
       return Expressions.constant(0, returnType);
     }
 
-    public Expression implementAdd(
-        Aggregation aggregation,
-        Expression accumulator,
+    public Expression implementAdd(RexToLixTranslator translator,
+        Aggregation aggregation, Expression accumulator,
         List<Expression> arguments) {
       // We don't need to check whether the argument is NULL. callOnNull()
       // returned false, so that container has checked for us.
@@ -763,21 +740,21 @@ public class RexImpTable {
           Expressions.constant(1, accumulator.type));
     }
 
-    public Expression implementResult(
+    public Expression implementInitAdd(RexToLixTranslator translator,
+        Aggregation aggregation, Type returnType, List<Type> parameterTypes,
+        List<Expression> arguments) {
+      return Expressions.constant(1, returnType);
+    }
+
+    public Expression implementResult(RexToLixTranslator translator,
         Aggregation aggregation, Expression accumulator) {
       return accumulator;
     }
   }
 
-  static class SumImplementor2 implements AggImplementor2 {
-    public boolean callOnNull() {
-      return false;
-    }
-
-    public Expression implementInit(
-        Aggregation aggregation,
-        Type returnType,
-        List<Type> parameterTypes) {
+  static class SumImplementor implements AggImplementor {
+    public Expression implementInit(RexToLixTranslator translator,
+        Aggregation aggregation, Type returnType, List<Type> parameterTypes) {
       final Primitive primitive = choosePrimitive(returnType);
       assert primitive != null;
       return Expressions.constant(primitive.number(0), returnType);
@@ -797,39 +774,36 @@ public class RexImpTable {
       }
     }
 
-    public Expression implementAdd(
-        Aggregation aggregation,
-        Expression accumulator,
+    public Expression implementAdd(RexToLixTranslator translator,
+        Aggregation aggregation, Expression accumulator,
         List<Expression> arguments) {
       assert arguments.size() == 1;
       if (accumulator.type == BigDecimal.class
           || accumulator.type == BigInteger.class) {
-        return Expressions.call(
-            accumulator,
-            "add",
-            arguments.get(0));
+        return Expressions.call(accumulator, "add", arguments.get(0));
       }
       return Types.castIfNecessary(accumulator.type,
           Expressions.add(accumulator,
-              Types.castIfNecessary(accumulator.type, arguments.get(0)))
-      );
+              Types.castIfNecessary(accumulator.type, arguments.get(0))));
     }
 
-    public Expression implementResult(
+    public Expression implementInitAdd(RexToLixTranslator translator,
+        Aggregation aggregation,
+        Type returnType,
+        List<Type> parameterTypes,
+        List<Expression> arguments) {
+      return Types.castIfNecessary(returnType, arguments.get(0));
+    }
+
+    public Expression implementResult(RexToLixTranslator translator,
         Aggregation aggregation, Expression accumulator) {
       return accumulator;
     }
   }
 
-  static class MinMaxImplementor2 implements AggImplementor2 {
-    public boolean callOnNull() {
-      return false;
-    }
-
-    public Expression implementInit(
-        Aggregation aggregation,
-        Type returnType,
-        List<Type> parameterTypes) {
+  static class MinMaxImplementor implements AggImplementor {
+    public Expression implementInit(RexToLixTranslator translator,
+        Aggregation aggregation, Type returnType, List<Type> parameterTypes) {
       final Primitive primitive = Primitive.of(returnType);
       if (primitive != null) {
         // allow nulls even if input does not
@@ -838,9 +812,8 @@ public class RexImpTable {
       return Types.castIfNecessary(returnType, NULL_EXPR);
     }
 
-    public Expression implementAdd(
-        Aggregation aggregation,
-        Expression accumulator,
+    public Expression implementAdd(RexToLixTranslator translator,
+        Aggregation aggregation, Expression accumulator,
         List<Expression> arguments) {
       // Need to check for null accumulator (e.g. first call to "add"
       // after "init") but because callWithNull() returned false, the
@@ -869,39 +842,48 @@ public class RexImpTable {
                   arg.getType())));
     }
 
-    public Expression implementResult(
+    public Expression implementInitAdd(RexToLixTranslator translator,
+        Aggregation aggregation, Type returnType, List<Type> parameterTypes,
+        List<Expression> arguments) {
+      return arguments.get(0);
+    }
+
+    public Expression implementResult(RexToLixTranslator translator,
         Aggregation aggregation, Expression accumulator) {
       return accumulator;
     }
   }
 
-  static class RankImplementor2 implements WinAggImplementor {
-    public boolean callOnNull() {
-      return false;
-    }
-
-    public Expression implementInit(
-        Aggregation aggregation,
-        Type returnType,
-        List<Type> parameterTypes) {
+  static class RankImplementor implements WinAggImplementor {
+    public Expression implementInit(RexToLixTranslator translator,
+        Aggregation aggregation, Type returnType, List<Type> parameterTypes) {
       return Expressions.constant(0, returnType);
     }
 
-    public Expression implementAdd(
-        Aggregation aggregation,
-        Expression accumulator,
+    public Expression implementAdd(RexToLixTranslator translator,
+        Aggregation aggregation, Expression accumulator,
         List<Expression> arguments) {
       return accumulator;
     }
 
-    public Expression implementResult(
+    public Expression implementInitAdd(RexToLixTranslator translator,
+        Aggregation aggregation, Type returnType, List<Type> parameterTypes,
+        List<Expression> arguments) {
+      return Expressions.constant(0, returnType);
+    }
+
+    public Expression implementResult(RexToLixTranslator translator,
         Aggregation aggregation, Expression accumulator) {
       return accumulator;
     }
 
-    public Expression implementResultPlus(Aggregation aggregation,
-        Expression accumulator, Expression start, Expression end,
-        Expression rows, Expression current) {
+    public Expression implementResultPlus(RexToLixTranslator translator,
+        Aggregation aggregation,
+        Expression accumulator,
+        Expression start,
+        Expression end,
+        Expression rows,
+        Expression current) {
       // Rank is 1-based
       return Expressions.add(current, Expressions.constant(1));
     }
@@ -1258,8 +1240,7 @@ public class RexImpTable {
         RexToLixTranslator translator,
         RexCall call,
         NullAs nullAs) {
-      return translator.translateConstructor(
-          call.getOperands(),
+      return translator.translateConstructor(call.getOperands(),
           call.getOperator().getKind());
     }
   }
@@ -1353,8 +1334,7 @@ public class RexImpTable {
       List<RexNode> operands = call.getOperands();
       assert operands.size() == 1;
       if (seek == null) {
-        return translator.translate(
-            operands.get(0),
+        return translator.translate(operands.get(0),
             negate ? NullAs.IS_NOT_NULL : NullAs.IS_NULL);
       } else {
         return maybeNegate(
@@ -1384,6 +1364,78 @@ public class RexImpTable {
       final Expression expression =
           implementor.implement(translator, call, translatedOperands);
       return Expressions.not(expression);
+    }
+  }
+
+  /** Implementor for user-defined aggregate functions. */
+  static class UserDefinedAggImplementor implements AggImplementor {
+    public static final UserDefinedAggImplementor INSTANCE =
+        new UserDefinedAggImplementor();
+
+    private UserDefinedAggImplementor() {}
+
+    private static AggregateFunctionImpl afi(Aggregation aggregation) {
+      final SqlUserDefinedAggFunction udf =
+          (SqlUserDefinedAggFunction) aggregation;
+      return (AggregateFunctionImpl) udf.function;
+    }
+
+    private static boolean isStatic(Method method) {
+      return (method.getModifiers() & Modifier.STATIC) == Modifier.STATIC;
+    }
+
+    private Expression object(AggregateFunctionImpl afi,
+        RexToLixTranslator translator) {
+      // TODO: use translator to cache instance
+      return Expressions.new_(afi.declaringClass);
+    }
+
+    private Expression call(RexToLixTranslator translator,
+        AggregateFunctionImpl afi, Method method, List<Expression> arguments) {
+      if (isStatic(method)) {
+        return Expressions.call(method, arguments);
+      } else {
+        return Expressions.call(object(afi, translator), method, arguments);
+      }
+    }
+    public Expression implementInit(RexToLixTranslator translator,
+        Aggregation aggregation, Type returnType, List<Type> parameterTypes) {
+      final AggregateFunctionImpl afi = afi(aggregation);
+      final ImmutableList<Expression> args = ImmutableList.of();
+      return call(translator, afi, afi.initMethod, args);
+    }
+
+    public Expression implementAdd(RexToLixTranslator translator,
+        Aggregation aggregation, Expression accumulator,
+        List<Expression> arguments) {
+      final AggregateFunctionImpl afi = afi(aggregation);
+      final ImmutableList<Expression> args =
+          ImmutableList.<Expression>builder().add(accumulator).addAll(arguments)
+              .build();
+      return call(translator, afi, afi.addMethod, args);
+    }
+
+    public Expression implementInitAdd(RexToLixTranslator translator,
+        Aggregation aggregation, Type returnType, List<Type> parameterTypes,
+        List<Expression> arguments) {
+      final AggregateFunctionImpl afi = afi(aggregation);
+      if (afi.initAddMethod != null) {
+        return call(translator, afi, afi.initAddMethod, arguments);
+      } else {
+        final Expression accumulator =
+            implementInit(translator, aggregation, returnType, parameterTypes);
+        return implementAdd(translator, aggregation, accumulator, arguments);
+      }
+    }
+
+    public Expression implementResult(RexToLixTranslator translator,
+        Aggregation aggregation, Expression accumulator) {
+      final AggregateFunctionImpl afi = afi(aggregation);
+      if (afi.resultMethod == null) {
+        return accumulator;
+      }
+      final ImmutableList<Expression> args = ImmutableList.of(accumulator);
+      return call(translator, afi, afi.resultMethod, args);
     }
   }
 }

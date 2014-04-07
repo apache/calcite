@@ -17,8 +17,6 @@
 */
 package org.eigenbase.sql.type;
 
-import java.util.List;
-
 import org.eigenbase.reltype.*;
 import org.eigenbase.sql.*;
 
@@ -35,8 +33,9 @@ public class ExplicitOperandTypeInference implements SqlOperandTypeInference {
 
   //~ Constructors -----------------------------------------------------------
 
-  public ExplicitOperandTypeInference(List<RelDataType> paramTypes) {
-    this.paramTypes = ImmutableList.copyOf(paramTypes);
+  /** Use {@link org.eigenbase.sql.type.InferTypes#explicit(List)}. */
+  ExplicitOperandTypeInference(ImmutableList<RelDataType> paramTypes) {
+    this.paramTypes = paramTypes;
   }
 
   //~ Methods ----------------------------------------------------------------

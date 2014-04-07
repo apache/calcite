@@ -65,6 +65,35 @@ public class ModelHandler {
     visit(root);
   }
 
+  /** Creates and validates a ScalarFunctionImpl. */
+  public static Function create(List<String> path, String className) {
+    final Class<?> clazz;
+    try {
+      clazz = Class.forName(className);
+    } catch (ClassNotFoundException e) {
+      throw new RuntimeException("UDF class '"
+          + className + "' not found");
+    }
+    // Must look for TableMacro before ScalarFunction. Both have an "eval"
+    // method.
+    final TableMacro macro = TableMacroImpl.create(clazz);
+    if (macro != null) {
+      return macro;
+    }
+    final ScalarFunction function = ScalarFunctionImpl.create(clazz);
+    if (function != null) {
+      return function;
+    }
+    final AggregateFunction aggFunction = AggregateFunctionImpl.create(clazz);
+    if (aggFunction != null) {
+      return aggFunction;
+    }
+    throw new RuntimeException("Not a valid function class: " + clazz
+        + ". Scalar functions and table macros have an 'eval' method; "
+        + "aggregate functions have 'init' and 'add' methods, and optionally "
+        + "'initAdd', 'merge' and 'result' methods.");
+  }
+
   public void visit(JsonRoot root) {
     final Pair<String, SchemaPlus> pair =
         Pair.of(null, connection.getRootSchema());
@@ -244,7 +273,7 @@ public class ModelHandler {
       final List<String> path =
           Util.first(jsonFunction.path, currentSchemaPath());
       schema.add(jsonFunction.name,
-          ScalarFunctionImpl.create(path, jsonFunction.className));
+          create(path, jsonFunction.className));
     } catch (Exception e) {
       throw new RuntimeException("Error instantiating " + jsonFunction, e);
     }

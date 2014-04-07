@@ -526,4 +526,15 @@ public interface EigenbaseNewResource {
 
   @BaseMessage("Column has duplicate column name ''{0}'' and no column list specified")
   ExInst<SqlValidatorException> duplicateColumnAndNoColumnList(String s);
+
+  @BaseMessage("Declaring class ''{0}'' of non-static user-defined function must have a public constructor with zero parameters")
+  ExInst<RuntimeException> requireDefaultConstructor(String className);
+
+  @BaseMessage("In user-defined aggregate class ''{0}'', first parameter to ''add'' method must be the accumulator (the return type of the ''init'' method)")
+  ExInst<RuntimeException> firstParameterOfAdd(String className);
+
+  @BaseMessage("In user-defined aggregate class ''{0}'', parameter types of ''initAdd'' method must be same as value type(s)")
+  ExInst<RuntimeException> initAddWrongParamTypes(String className);
 }
+
+// End EigenbaseNewResource.java

@@ -322,6 +322,7 @@ public class OptiqPrepareImpl implements OptiqPrepare {
               ImmutableList.of(SqlStdOperatorTable.instance(), catalogReader));
       final SqlValidator validator =
           new OptiqSqlValidator(opTab, catalogReader, typeFactory);
+      validator.setIdentifierExpansion(true);
 
       final List<Prepare.Materialization> materializations =
           config.materializationsEnabled()

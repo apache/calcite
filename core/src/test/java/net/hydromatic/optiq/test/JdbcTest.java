@@ -43,6 +43,7 @@ import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.reltype.RelDataTypeFactory;
 import org.eigenbase.reltype.RelProtoDataType;
+import org.eigenbase.resource.EigenbaseNewResource;
 import org.eigenbase.sql.*;
 import org.eigenbase.sql.type.SqlTypeName;
 import org.eigenbase.util.Bug;
@@ -147,7 +148,7 @@ public class JdbcTest {
     SchemaPlus rootSchema = optiqConnection.getRootSchema();
     SchemaPlus schema = rootSchema.add("s", new AbstractSchema());
     final TableMacro tableMacro =
-        Schemas.methodMember(GENERATE_STRINGS_METHOD);
+        TableMacroImpl.create(GENERATE_STRINGS_METHOD);
     schema.add("GenerateStrings", tableMacro);
     ResultSet resultSet = connection.createStatement().executeQuery(
         "select *\n"
@@ -172,7 +173,7 @@ public class JdbcTest {
         connection.unwrap(OptiqConnection.class);
     SchemaPlus rootSchema = optiqConnection.getRootSchema();
     SchemaPlus schema = rootSchema.add("s", new AbstractSchema());
-    final TableMacro tableMacro = Schemas.methodMember(VIEW_METHOD);
+    final TableMacro tableMacro = TableMacroImpl.create(VIEW_METHOD);
     schema.add("View", tableMacro);
     ResultSet resultSet = connection.createStatement().executeQuery(
         "select *\n"
@@ -2779,31 +2780,116 @@ public class JdbcTest {
             + "P=20\n");
   }
 
-  /** Tests user-defined function. */
+  /** Test for {@link EigenbaseNewResource#requireDefaultConstructor(String)}. */
   @Test public void testUserDefinedFunction2() throws Exception {
-    OptiqAssert.that()
-        .withModel(
-            "{\n"
-                + "  version: '1.0',\n"
-                + "   schemas: [\n"
-                + "     {\n"
-                + "       name: 'adhoc',\n"
-                + "       functions: [\n"
-                + "         {\n"
-                + "           name: 'AWKWARD',\n"
-                + "           className: '"
-                + AwkwardFunction.class.getName()
-                + "'\n"
-                + "         }\n"
-                + "       ]\n"
-                + "     }\n"
-                + "   ]\n"
-                + "}")
+    withBadUdf(AwkwardFunction.class)
         .connectThrows(
-            "declaring class 'net.hydromatic.optiq.test.JdbcTest$AwkwardFunction' of non-static UDF must have a public constructor with zero parameters");
+            "Declaring class 'net.hydromatic.optiq.test.JdbcTest$AwkwardFunction' of non-static user-defined function must have a public constructor with zero parameters");
   }
 
-  /** Tests user-defined function. */
+  /** Tests user-defined aggregate function. */
+  @Test public void testUserDefinedAggregateFunction() throws Exception {
+    final String empDept = EmpDeptTableFactory.class.getName();
+    final String sum = MyStaticSumFunction.class.getName();
+    final String sum2 = MySumFunction.class.getName();
+    final OptiqAssert.AssertThat with = OptiqAssert.that()
+        .withModel(
+            "{\n"
+            + "  version: '1.0',\n"
+            + "   schemas: [\n"
+            + "     {\n"
+            + "       name: 'adhoc',\n"
+            + "       tables: [\n"
+            + "         {\n"
+            + "           name: 'EMPLOYEES',\n"
+            + "           type: 'custom',\n"
+            + "           factory: '" + empDept + "',\n"
+            + "           operand: {'foo': true, 'bar': 345}\n"
+            + "         }\n"
+            + "       ],\n"
+            + "       functions: [\n"
+            + "         {\n"
+            + "           name: 'MY_SUM',\n"
+            + "           className: '" + sum + "'\n"
+            + "         },\n"
+            + "         {\n"
+            + "           name: 'MY_SUM2',\n"
+            + "           className: '" + sum2 + "'\n"
+            + "         }\n"
+            + "       ]\n"
+            + "     }\n"
+            + "   ]\n"
+            + "}")
+        .withSchema("adhoc");
+    with.query("select my_sum(\"empid\"), \"deptno\" as p from EMPLOYEES\n")
+        .throws_(
+            "Expression 'deptno' is not being grouped");
+    with.query("select my_sum(\"deptno\") as p from EMPLOYEES\n")
+        .returns("P=50\n");
+    with.query("select my_sum(\"name\") as p from EMPLOYEES\n")
+        .throws_(
+            "Cannot apply 'MY_SUM' to arguments of type 'MY_SUM(<JAVATYPE(CLASS JAVA.LANG.STRING)>)'. Supported form(s): 'MY_SUM(<NUMERIC>)");
+    with.query("select my_sum(\"deptno\", 1) as p from EMPLOYEES\n")
+        .throws_(
+            "Invalid number of arguments to function 'MY_SUM'. Was expecting 1 arguments");
+    with.query("select my_sum() as p from EMPLOYEES\n")
+        .throws_(
+            "Invalid number of arguments to function 'MY_SUM'. Was expecting 1 arguments");
+    with.query(
+        "select \"deptno\", my_sum(\"deptno\") as p from EMPLOYEES\n"
+        + "group by \"deptno\"")
+        .returnsUnordered(
+            "deptno=20; P=20",
+            "deptno=10; P=30");
+    with.query("select \"deptno\", my_sum2(\"deptno\") as p from EMPLOYEES\n"
+        + "group by \"deptno\"")
+        .returnsUnordered("deptno=20; P=20", "deptno=10; P=30");
+  }
+
+  /** Test for {@link EigenbaseNewResource#initAddWrongParamTypes(String)}. */
+  @Test public void testUserDefinedAggregateFunction2() throws Exception {
+    Util.discard(EigenbaseNewResource.class);
+    withBadUdf(SumFunctionBadInitAdd.class).connectThrows(
+        "In user-defined aggregate class 'net.hydromatic.optiq.test.JdbcTest$SumFunctionBadInitAdd', parameter types of 'initAdd' method must be same as value type(s)");
+  }
+
+  /** Test for {@link EigenbaseNewResource#firstParameterOfAdd(String)}. */
+  @Test public void testUserDefinedAggregateFunction3() throws Exception {
+    withBadUdf(SumFunctionBadIAdd.class).connectThrows(
+        "Caused by: java.lang.RuntimeException: In user-defined aggregate class 'net.hydromatic.optiq.test.JdbcTest$SumFunctionBadIAdd', first parameter to 'add' method must be the accumulator (the return type of the 'init' method)");
+  }
+
+  private static OptiqAssert.AssertThat withBadUdf(Class clazz) {
+    final String empDept = EmpDeptTableFactory.class.getName();
+    final String className = clazz.getName();
+    return OptiqAssert.that()
+        .withModel(
+            "{\n"
+            + "  version: '1.0',\n"
+            + "   schemas: [\n"
+            + "     {\n"
+            + "       name: 'adhoc',\n"
+            + "       tables: [\n"
+            + "         {\n"
+            + "           name: 'EMPLOYEES',\n"
+            + "           type: 'custom',\n"
+            + "           factory: '" + empDept + "',\n"
+            + "           operand: {'foo': true, 'bar': 345}\n"
+            + "         }\n"
+            + "       ],\n"
+            + "       functions: [\n"
+            + "         {\n"
+            + "           name: 'AWKWARD',\n"
+            + "           className: '" + className + "'\n"
+            + "         }\n"
+            + "       ]\n"
+            + "     }\n"
+            + "   ]\n"
+            + "}")
+        .withSchema("adhoc");
+  }
+
+  /** Tests resolution of functions using schema paths. */
   @Test public void testPath() throws Exception {
     final String name = MyPlusFunction.class.getName();
     final OptiqAssert.AssertThat with = OptiqAssert.that()
@@ -3669,7 +3755,7 @@ public class JdbcTest {
     public MyTable2[] mytable2 = { new MyTable2() };
   }
 
-  /** Example of a UDF with a nontatic {@code eval} method. */
+  /** Example of a UDF with a non-static {@code eval} method. */
   public static class MyPlusFunction {
     public int eval(int x, int y) {
       return x + y;
@@ -3694,6 +3780,68 @@ public class JdbcTest {
 
     public int eval(int x) {
       return 0;
+    }
+  }
+
+  /** Example of a user-defined aggregate function (UDAF). */
+  public static class MySumFunction {
+    public MySumFunction() {
+    }
+    public long init() {
+      return 0L;
+    }
+    public long initAdd(int v) {
+      return v;
+    }
+    public long add(long accumulator, int v) {
+      return accumulator + v;
+    }
+    public long merge(long accumulator0, long accumulator1) {
+      return accumulator0 + accumulator1;
+    }
+    public long result(long accumulator) {
+      return accumulator;
+    }
+  }
+
+  /** Example of a user-defined aggregate function (UDAF), whose methods are
+   * static. */
+  public static class MyStaticSumFunction {
+    public static long init() {
+      return 0L;
+    }
+    public static long initAdd(int v) {
+      return v;
+    }
+    public static long add(long accumulator, int v) {
+      return accumulator + v;
+    }
+    public static long merge(long accumulator0, long accumulator1) {
+      return accumulator0 + accumulator1;
+    }
+    public static long result(long accumulator) {
+      return accumulator;
+    }
+  }
+
+  public static class SumFunctionBadInitAdd {
+    public long init() {
+      return 0L;
+    }
+    public long initAdd(int v) {
+      return v;
+    }
+    public long add(long accumulator, long v) {
+      return accumulator + v;
+    }
+  }
+
+  public static class SumFunctionBadIAdd {
+    public long init() {
+      return 0L;
+    }
+    public long add(short accumulator, int v) {
+      return accumulator + v;
     }
   }
 

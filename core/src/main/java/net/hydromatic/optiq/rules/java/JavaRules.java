@@ -347,14 +347,11 @@ public class JavaRules {
       };
     }
 
-    static List<RexImpTable.AggImplementor2> getImplementors(
-        List<AggregateCall> aggCalls) {
-      final List<RexImpTable.AggImplementor2> implementors =
-          new ArrayList<RexImpTable.AggImplementor2>();
+    static List<AggImplementor> getImplementors(List<AggregateCall> aggCalls) {
+      final List<AggImplementor> implementors = new ArrayList<AggImplementor>();
       for (AggregateCall aggCall : aggCalls) {
-        RexImpTable.AggImplementor2 implementor2 =
-            RexImpTable.INSTANCE.get2(
-                aggCall.getAggregation());
+        AggImplementor implementor2 =
+            RexImpTable.INSTANCE.get(aggCall.getAggregation());
         if (implementor2 == null) {
           throw new RuntimeException(
               "cannot implement aggregate " + aggCall);
@@ -846,10 +843,11 @@ public class JavaRules {
           throw new InvalidRelException(
               "distinct aggregation not supported");
         }
-        final Aggregation aggregation = aggCall.getAggregation();
-        if (!SUPPORTED_AGGREGATIONS.contains(aggregation)) {
+        AggImplementor implementor2 =
+            RexImpTable.INSTANCE.get(aggCall.getAggregation());
+        if (implementor2 == null) {
           throw new InvalidRelException(
-              "aggregation " + aggregation + " not supported");
+              "aggregation " + aggCall.getAggregation() + " not supported");
         }
       }
     }
@@ -869,6 +867,8 @@ public class JavaRules {
     public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
       final JavaTypeFactory typeFactory = implementor.getTypeFactory();
       final BlockBuilder builder = new BlockBuilder();
+      final RexToLixTranslator translator =
+          RexToLixTranslator.forAggregation(typeFactory);
       final EnumerableRel child = (EnumerableRel) getChild();
       final Result result = implementor.visitChild(this, 0, child, pref);
       Expression childExp =
@@ -962,7 +962,7 @@ public class JavaRules {
                   BitSets.toList(groupSet),
                   keyPhysType.getFormat()));
 
-      final List<RexImpTable.AggImplementor2> implementors =
+      final List<AggImplementor> implementors =
           EnumUtil.getImplementors(aggCalls);
 
       // Function0<Object[]> accumulatorInitializer =
@@ -973,11 +973,10 @@ public class JavaRules {
       //     };
       final List<Expression> initExpressions =
           new ArrayList<Expression>();
-      for (Ord<Pair<AggregateCall, RexImpTable.AggImplementor2>> ord
+      for (Ord<Pair<AggregateCall, AggImplementor>> ord
           : Ord.zip(Pair.zip(aggCalls, implementors))) {
         initExpressions.add(
-            ord.e.right.implementInit(
-                ord.e.left.getAggregation(),
+            ord.e.right.implementInit(translator, ord.e.left.getAggregation(),
                 physType.fieldClass(keyArity + ord.i),
                 EnumUtil.fieldTypes(typeFactory,
                     inputRowType,
@@ -1018,7 +1017,7 @@ public class JavaRules {
           Expressions.parameter(inputPhysType.getJavaRowType(), "in");
       final ParameterExpression acc_ =
           Expressions.parameter(accPhysType.getJavaRowType(), "acc");
-      for (Ord<Pair<AggregateCall, RexImpTable.AggImplementor2>> ord
+      for (Ord<Pair<AggregateCall, AggImplementor>> ord
           : Ord.zip(Pair.zip(aggCalls, implementors))) {
         final Type type = initExpressions.get(ord.i).type;
         final Expression accumulator =
@@ -1034,9 +1033,8 @@ public class JavaRules {
         }
         final Statement assign =
             Expressions.statement(
-                Expressions.assign(
-                    accumulator,
-                    ord.e.right.implementAdd(
+                Expressions.assign(accumulator,
+                    ord.e.right.implementAdd(translator,
                         ord.e.left.getAggregation(),
                         Types.castIfNecessary(type, accumulator),
                         inputPhysType.accessors(
@@ -1077,11 +1075,10 @@ public class JavaRules {
               keyPhysType.fieldReference(key_, j));
         }
       }
-      for (Ord<Pair<AggregateCall, RexImpTable.AggImplementor2>> ord
+      for (Ord<Pair<AggregateCall, AggImplementor>> ord
           : Ord.zip(Pair.zip(aggCalls, implementors))) {
         results.add(
-            ord.e.right.implementResult(
-                ord.e.left.getAggregation(),
+            ord.e.right.implementResult(translator, ord.e.left.getAggregation(),
                 accPhysType.fieldReference(
                     acc_, ord.i)));
       }
@@ -1987,7 +1984,8 @@ public class JavaRules {
     public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
       final JavaTypeFactory typeFactory = implementor.getTypeFactory();
       final EnumerableRel child = (EnumerableRel) getChild();
-
+      final RexToLixTranslator translator =
+          RexToLixTranslator.forAggregation(typeFactory);
       final BlockBuilder builder = new BlockBuilder();
       final Result result = implementor.visitChild(this, 0, child, pref);
       Expression source_ = builder.append("source", result.block);
@@ -2169,17 +2167,17 @@ public class JavaRules {
                     Expressions.arrayIndex(rows_, i_),
                     inputPhysType.getJavaRowType()));
 
-        final List<RexImpTable.AggImplementor2> implementors =
+        final List<AggImplementor> implementors =
             EnumUtil.getImplementors(aggregateCalls);
         final List<ParameterExpression> variables =
             new ArrayList<ParameterExpression>();
-        for (Ord<Pair<AggregateCall, RexImpTable.AggImplementor2>> ord
+        for (Ord<Pair<AggregateCall, AggImplementor>> ord
             : Ord.zip(Pair.zip(aggregateCalls, implementors))) {
           final ParameterExpression parameter =
               Expressions.parameter(outputPhysType.fieldClass(offset + ord.i),
                   builder4.newName(ord.e.left.name));
           final Expression initExpression =
-              ord.e.right.implementInit(ord.e.left.getAggregation(),
+              ord.e.right.implementInit(translator, ord.e.left.getAggregation(),
                   parameter.type,
                   EnumUtil.fieldTypes(typeFactory,
                       inputPhysType.getRowType(),
@@ -2197,18 +2195,11 @@ public class JavaRules {
         }
 
         final PhysType finalInputPhysType = inputPhysType;
-        generateWindowLoop(builder4,
-            window,
-            aggregateCalls,
-            implementors,
-            variables,
-            rows_,
-            i_,
-            row_,
-            expressions,
+        generateWindowLoop(translator, builder4, window, aggregateCalls,
+            implementors, variables, rows_, i_, row_, expressions,
             new Function1<AggCallContext, Void>() {
               public Void apply(AggCallContext a0) {
-                for (Ord<Pair<AggregateCall, RexImpTable.AggImplementor2>> ord
+                for (Ord<Pair<AggregateCall, AggImplementor>> ord
                     : Ord.zip(Pair.zip(aggregateCalls, implementors))) {
                   final Expression accumulator = variables.get(ord.i);
                   final List<Expression> conditions =
@@ -2223,9 +2214,8 @@ public class JavaRules {
                   }
                   final Statement assign =
                       Expressions.statement(
-                          Expressions.assign(
-                              accumulator,
-                              ord.e.right.implementAdd(
+                          Expressions.assign(accumulator,
+                              ord.e.right.implementAdd(translator,
                                   ord.e.left.getAggregation(),
                                   accumulator,
                                   finalInputPhysType.accessors(
@@ -2289,15 +2279,11 @@ public class JavaRules {
 
     /** Generates the loop that computes aggregate functions over the window.
      * Calls a callback to increment each aggregate function's accumulator. */
-    private void generateWindowLoop(BlockBuilder builder, Window window,
-        List<AggregateCall> aggregateCalls,
-        List<RexImpTable.AggImplementor2> implementors,
-        List<ParameterExpression> variables,
-        Expression rows_,
-        ParameterExpression i_,
-        Expression row_,
-        List<Expression> expressions,
-        Function1<AggCallContext, Void> f3) {
+    private void generateWindowLoop(RexToLixTranslator translator,
+        BlockBuilder builder, Window window, List<AggregateCall> aggregateCalls,
+        List<AggImplementor> implementors, List<ParameterExpression> variables,
+        Expression rows_, ParameterExpression i_, Expression row_,
+        List<Expression> expressions, Function1<AggCallContext, Void> f3) {
       //       int j = Math.max(0, i - 1);
       //       while (j <= i) {
       //         // <builder5>
@@ -2362,16 +2348,16 @@ public class JavaRules {
               Expressions.preIncrementAssign(j_),
               builder5.toBlock()));
 
-      for (Ord<Pair<AggregateCall, RexImpTable.AggImplementor2>> ord
+      for (Ord<Pair<AggregateCall, AggImplementor>> ord
           : Ord.zip(Pair.zip(aggregateCalls, implementors))) {
-        final RexImpTable.AggImplementor2 implementor2 = ord.e.right;
+        final AggImplementor implementor2 = ord.e.right;
         expressions.add(
-            implementor2 instanceof RexImpTable.WinAggImplementor
-                ? ((RexImpTable.WinAggImplementor) implementor2)
-                .implementResultPlus(
+            implementor2 instanceof WinAggImplementor
+                ? ((WinAggImplementor) implementor2)
+                .implementResultPlus(translator,
                     ord.e.left.getAggregation(), variables.get(ord.i),
                     start_, end_, rows_, i_)
-                : implementor2.implementResult(
+                : implementor2.implementResult(translator,
                     ord.e.left.getAggregation(), variables.get(ord.i)));
       }
     }

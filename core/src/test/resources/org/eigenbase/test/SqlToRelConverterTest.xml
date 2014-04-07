@@ -1612,4 +1612,16 @@ ProjectRel(C=[$9])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testAggregateNoGroup">
+        <Resource name="sql">
+            <![CDATA[select sum(deptno) from emp]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+AggregateRel(group=[{}], EXPR$0=[SUM($0)])
+  ProjectRel(DEPTNO=[$7])
+    TableAccessRel(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
 </Root>

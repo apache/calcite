@@ -47,6 +47,10 @@ public abstract class SqlAggFunction extends SqlFunction
 
   //~ Methods ----------------------------------------------------------------
 
+  @Override public boolean isAggregator() {
+    return true;
+  }
+
   public boolean isQuantifierAllowed() {
     return true;
   }

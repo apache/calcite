@@ -172,6 +172,12 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
         "${plan}");
   }
 
+  @Test public void testAggregateNoGroup() {
+    check(
+        "select sum(deptno) from emp",
+        "${plan}");
+  }
+
   @Test public void testHaving() {
     // empty group-by clause, having
     check(

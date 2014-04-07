@@ -201,18 +201,25 @@ class OptiqCatalogReader implements Prepare.CatalogReader, SqlOperatorTable {
     for (FunctionParameter o : function.getParameters()) {
       final RelDataType type = o.getType(typeFactory);
       argTypes.add(type);
-      typeFamilies.add(SqlTypeFamily.ANY);
+      typeFamilies.add(type.getSqlTypeName().getFamily());
     }
     final RelDataType returnType;
     if (function instanceof ScalarFunction) {
-      returnType = ((ScalarFunction) function).getReturnType(typeFactory);
+      return new SqlUserDefinedFunction(name,
+          ReturnTypes.explicit(Schemas.proto((ScalarFunction) function)),
+          InferTypes.explicit(argTypes), typeFamilies, function);
+    } else if (function instanceof AggregateFunction) {
+      returnType = ((AggregateFunction) function).getReturnType(typeFactory);
+      return new SqlUserDefinedAggFunction(name,
+          ReturnTypes.explicit(returnType), InferTypes.explicit(argTypes),
+          typeFamilies, (AggregateFunction) function);
     } else if (function instanceof TableMacro) {
-      returnType = typeFactory.createSqlType(SqlTypeName.CURSOR);
+      return new SqlUserDefinedFunction(name,
+          ReturnTypes.explicit(SqlTypeName.CURSOR),
+          InferTypes.explicit(argTypes), typeFamilies, function);
     } else {
       throw new AssertionError("unknown function type " + function);
     }
-    return new SqlUserDefinedFunction(name, returnType, argTypes, typeFamilies,
-        function);
   }
 
   public List<SqlOperator> getOperatorList() {

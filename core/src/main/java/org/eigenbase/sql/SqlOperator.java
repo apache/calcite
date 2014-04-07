@@ -612,7 +612,7 @@ public abstract class SqlOperator {
    * @return whether this operator is an aggregator
    */
   public boolean isAggregator() {
-    return this instanceof SqlAggFunction;
+    return false;
   }
 
   /**
