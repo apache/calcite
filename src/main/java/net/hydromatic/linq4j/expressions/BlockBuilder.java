@@ -28,6 +28,12 @@ import java.util.*;
 public class BlockBuilder {
   final List<Statement> statements = new ArrayList<Statement>();
   final Set<String> variables = new HashSet<String>();
+  /** Contains final-fine-to-reuse-declarations.
+   * An entry to this map is added when adding final declaration of a
+   * statement with optimize=true parameter. */
+  final Map<Expression, DeclarationStatement> expressionForReuse
+    = new HashMap<Expression, DeclarationStatement>();
+
   private final boolean optimizing;
 
   /**
@@ -52,6 +58,7 @@ public class BlockBuilder {
   public void clear() {
     statements.clear();
     variables.clear();
+    expressionForReuse.clear();
   }
 
   /**
@@ -184,16 +191,10 @@ public class BlockBuilder {
       // even to evaluate the expression
       return expression;
     }
-    if (optimizing) {
-      for (Statement statement : statements) {
-        if (statement instanceof DeclarationStatement) {
-          DeclarationStatement decl = (DeclarationStatement) statement;
-          if ((decl.modifiers & Modifier.FINAL) != 0
-              && decl.initializer != null
-              && decl.initializer.equals(expression)) {
-            return decl.parameter;
-          }
-        }
+    if (optimizing && optimize) {
+      DeclarationStatement decl = expressionForReuse.get(expression);
+      if (decl != null) {
+        return decl.parameter;
       }
     }
     DeclarationStatement declare = Expressions.declare(Modifier.FINAL, newName(
@@ -202,13 +203,26 @@ public class BlockBuilder {
     return declare.parameter;
   }
 
+  protected boolean isSafeForReuse(DeclarationStatement decl) {
+    return (decl.modifiers & Modifier.FINAL) != 0
+           && decl.initializer != null;
+  }
+
+  protected void addExpresisonForReuse(DeclarationStatement decl) {
+    if (isSafeForReuse(decl)) {
+      expressionForReuse.put(decl.initializer, decl);
+    }
+  }
+
   public void add(Statement statement) {
     statements.add(statement);
     if (statement instanceof DeclarationStatement) {
-      String name = ((DeclarationStatement) statement).parameter.name;
+      DeclarationStatement decl = (DeclarationStatement) statement;
+      String name = decl.parameter.name;
       if (!variables.add(name)) {
         throw new AssertionError("duplicate variable " + name);
       }
+      addExpresisonForReuse(decl);
     }
   }
 
@@ -295,8 +309,13 @@ public class BlockBuilder {
       oldStatements.clear();
       oldStatements.addAll(statements);
       statements.clear();
+      expressionForReuse.clear();
       for (Statement oldStatement : oldStatements) {
-        statements.add(oldStatement.accept(visitor));
+        Statement remappedStatement = oldStatement.accept(visitor);
+        statements.add(remappedStatement);
+        if (remappedStatement instanceof DeclarationStatement) {
+          addExpresisonForReuse((DeclarationStatement) remappedStatement);
+        }
       }
     }
   }
