@@ -1052,6 +1052,49 @@ public class ExpressionTest {
                 Expressions.return_(null))));
   }
 
+  @Test public void assignInCondition() {
+    final BlockBuilder builder = new BlockBuilder(true);
+    final ParameterExpression t = Expressions.parameter(int.class, "t");
+
+    builder.add(Expressions.declare(0, t, null));
+
+    Expression v = builder.append("v",
+        Expressions.makeTernary(ExpressionType.Conditional,
+            Expressions.makeBinary(ExpressionType.NotEqual,
+                Expressions.assign(t, Expressions.constant(1)),
+                Expressions.constant(2)),
+            t,
+            Expressions.constant(3)));
+    builder.add(Expressions.return_(null, v));
+    assertEquals(
+        "{\n"
+        + "  int t;\n"
+        + "  return (t = 1) != 2 ? t : 3;\n"
+        + "}\n",
+        Expressions.toString(builder.toBlock()));
+  }
+
+  @Test public void assignInConditionOptimizedOut() {
+    final BlockBuilder builder = new BlockBuilder(true);
+    final ParameterExpression t = Expressions.parameter(int.class, "t");
+
+    builder.add(Expressions.declare(0, t, null));
+
+    Expression v = builder.append("v",
+        Expressions.makeTernary(ExpressionType.Conditional,
+            Expressions.makeBinary(ExpressionType.NotEqual,
+                Expressions.assign(t, Expressions.constant(1)),
+                Expressions.constant(2)),
+            Expressions.constant(4),
+            Expressions.constant(3)));
+    builder.add(Expressions.return_(null, v));
+    assertEquals(
+        "{\n"
+        + "  return 1 != 2 ? 4 : 3;\n"
+        + "}\n",
+        Expressions.toString(builder.toBlock()));
+  }
+
   /** Test for common sub-expression elimination. */
   @Test public void testSubExpressionElimination() {
     final BlockBuilder builder = new BlockBuilder(true);
