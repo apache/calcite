@@ -419,8 +419,7 @@ public abstract class CalcRelSplitter {
               }
               return null;
             }
-          }
-      );
+          });
     }
     TopologicalOrderIterator<Integer, DefaultEdge> iter =
         new TopologicalOrderIterator<Integer, DefaultEdge>(graph);

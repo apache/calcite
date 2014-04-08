@@ -183,8 +183,7 @@ public class JdbcTest {
     assertThat(OptiqAssert.toString(resultSet),
         equalTo("N=1\n"
             + "N=3\n"
-            + "N=10\n")
-    );
+            + "N=10\n"));
   }
 
   /** Tests a JDBC connection that provides a model that contains a table

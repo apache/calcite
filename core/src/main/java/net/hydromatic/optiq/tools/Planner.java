@@ -19,6 +19,7 @@ package net.hydromatic.optiq.tools;
 
 import org.eigenbase.rel.RelNode;
 import org.eigenbase.relopt.RelTraitSet;
+import org.eigenbase.reltype.RelDataTypeFactory;
 import org.eigenbase.sql.SqlNode;
 import org.eigenbase.sql.parser.SqlParseException;
 
@@ -62,6 +63,9 @@ public interface Planner {
    * cannot be converted or has not been validated
    */
   RelNode convert(SqlNode sql) throws RelConversionException;
+
+  /** Returns the type factory. */
+  RelDataTypeFactory getTypeFactory();
 
   /**
    * Converts one relational expression tree into another relational expression

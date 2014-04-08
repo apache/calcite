@@ -46,13 +46,11 @@ public class RemoveTrivialProjectRule extends RelOptRule {
     // the rule queue short.
     super(
       new RelOptRuleOperand(ProjectRel.class, null, any()) {
-        @Override
-        public boolean matches(RelNode rel) {
+        @Override public boolean matches(RelNode rel) {
           return super.matches(rel)
               && isTrivial((ProjectRel) rel);
         }
-      }
-    );
+      });
   }
 
   //~ Methods ----------------------------------------------------------------

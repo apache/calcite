@@ -22,7 +22,9 @@ import java.util.*;
 import java.util.logging.*;
 
 import org.eigenbase.rel.*;
+import org.eigenbase.rel.CorrelatorRel.Correlation;
 import org.eigenbase.rel.metadata.*;
+import org.eigenbase.rel.rules.PushFilterPastJoinRule;
 import org.eigenbase.relopt.*;
 import org.eigenbase.relopt.hep.*;
 import org.eigenbase.reltype.*;
@@ -137,26 +139,38 @@ public class RelDecorrelator implements ReflectiveVisitor {
     }
   }
 
+  private Function2<RelNode, RelNode, Void> createCopyHook() {
+    return new Function2<RelNode, RelNode, Void>() {
+      public Void apply(RelNode oldNode, RelNode newNode) {
+        if (mapRefRelToCorVar.containsKey(oldNode)) {
+          mapRefRelToCorVar.put(
+              newNode, mapRefRelToCorVar.get(oldNode));
+        }
+        if (oldNode instanceof CorrelatorRel
+            && newNode instanceof CorrelatorRel) {
+          CorrelatorRel oldCor = (CorrelatorRel) oldNode;
+          for (Correlation c : oldCor.getCorrelations()) {
+            if (mapCorVarToCorRel.get(c) == oldNode) {
+              mapCorVarToCorRel.put(c, (CorrelatorRel) newNode);
+            }
+          }
+
+          if (generatedCorRels.contains(oldNode)) {
+            generatedCorRels.add((CorrelatorRel) newNode);
+          }
+        }
+        return null;
+      }
+    };
+  }
+
   private HepPlanner createPlanner(HepProgram program) {
     // Create a planner with a hook to update the mapping tables when a
     // node is copied when it is registered.
     return new HepPlanner(
         program,
         true,
-        new Function2<RelNode, RelNode, Void>() {
-          public Void apply(RelNode oldNode, RelNode newNode) {
-            if (mapRefRelToCorVar.containsKey(oldNode)) {
-              mapRefRelToCorVar.put(
-                  newNode, mapRefRelToCorVar.get(oldNode));
-            }
-            if (oldNode instanceof CorrelatorRel
-                && newNode instanceof CorrelatorRel
-                && generatedCorRels.contains(oldNode)) {
-              generatedCorRels.add((CorrelatorRel) newNode);
-            }
-            return null;
-          }
-        },
+        createCopyHook(),
         RelOptCostImpl.FACTORY);
   }
 
@@ -165,6 +179,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
         .addRuleInstance(new RemoveSingleAggregateRule())
         .addRuleInstance(new RemoveCorrelationForScalarProjectRule())
         .addRuleInstance(new RemoveCorrelationForScalarAggregateRule())
+        .addRuleInstance(PushFilterPastJoinRule.FILTER_ON_JOIN)
         .build();
 
     HepPlanner planner = createPlanner(program);
@@ -293,7 +308,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
     SortRel newRel =
         new SortRel(
             rel.getCluster(),
-            rel.getCluster().traitSetOf(Convention.NONE),
+            rel.getCluster().traitSetOf(Convention.NONE).plus(newCollation),
             newChildRel,
             newCollation);
 

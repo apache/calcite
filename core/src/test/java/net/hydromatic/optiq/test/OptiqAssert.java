@@ -540,8 +540,7 @@ public class OptiqAssert {
               return (OptiqConnection) DriverManager.getConnection(
                   "jdbc:optiq:", info);
             }
-          }
-      );
+          });
     }
 
     /** Sets the default schema to a reflective schema based on a given

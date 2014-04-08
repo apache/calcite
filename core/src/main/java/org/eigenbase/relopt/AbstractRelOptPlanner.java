@@ -236,6 +236,10 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
     return executor;
   }
 
+  public void onCopy(RelNode rel, RelNode newRel) {
+    // do nothing
+  }
+
   /**
    * Fires a rule, taking care of tracing and listener notification.
    *

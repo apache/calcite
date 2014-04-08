@@ -158,8 +158,7 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
           public int size() {
             return fieldInfo.getFieldCount();
           }
-        }
-    );
+        });
   }
 
   // implement RelDataTypeFactory

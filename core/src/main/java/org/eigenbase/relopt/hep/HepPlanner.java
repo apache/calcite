@@ -94,11 +94,8 @@ public class HepPlanner extends AbstractRelOptPlanner {
       RelOptCostFactory costFactory) {
     super(costFactory);
     this.mainProgram = program;
-    if (onCopyHook == null) {
-      this.onCopyHook = Functions.ignore2();
-    } else {
-      this.onCopyHook = onCopyHook;
-    }
+    this.onCopyHook =
+        Util.first(onCopyHook, Functions.<RelNode, RelNode, Void>ignore2());
     mapDigestToVertex = new HashMap<String, HepRelVertex>();
     graph = DefaultDirectedGraph.create();
 
@@ -229,7 +226,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
   }
 
   void executeInstruction(
-      HepInstruction.RuleClass instruction) {
+      HepInstruction.RuleClass<?> instruction) {
     if (skippingGroup()) {
       return;
     }
@@ -704,6 +701,10 @@ public class HepPlanner extends AbstractRelOptPlanner {
     return rel;
   }
 
+  @Override public void onCopy(RelNode rel, RelNode newRel) {
+    onCopyHook.apply(rel, newRel);
+  }
+
   // implement RelOptPlanner
   public RelNode ensureRegistered(RelNode rel, RelNode equivRel) {
     return rel;
@@ -734,7 +735,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
     if (!Util.equalShallow(inputs, newInputs)) {
       RelNode oldRel = rel;
       rel = rel.copy(rel.getTraitSet(), newInputs);
-      onCopyHook.apply(oldRel, rel);
+      onCopy(oldRel, rel);
     }
 
     // try to find equivalent rel only if DAG is allowed

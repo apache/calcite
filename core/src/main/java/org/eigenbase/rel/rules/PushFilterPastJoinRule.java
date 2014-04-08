@@ -68,7 +68,8 @@ public abstract class PushFilterPastJoinRule extends RelOptRule {
 
   //~ Methods ----------------------------------------------------------------
 
-  protected void perform(RelOptRuleCall call, FilterRel filter, JoinRel join) {
+  protected void perform(RelOptRuleCall call, FilterRel filter,
+      JoinRelBase join) {
     final List<RexNode> joinFilters =
         RelOptUtil.conjunctions(join.getCondition());
 
@@ -168,16 +169,13 @@ public abstract class PushFilterPastJoinRule extends RelOptRule {
       joinFilter =
           RexUtil.composeConjunction(rexBuilder, joinFilters, true);
     }
-    RelNode newJoinRel =
-        new JoinRel(
-            join.getCluster(),
-            leftRel,
-            rightRel,
-            joinFilter,
-            join.getJoinType(),
-            Collections.<String>emptySet(),
-            join.isSemiJoinDone(),
-            join.getSystemFieldList());
+    RelNode newJoinRel = join.copy(
+      join.getCluster().traitSetOf(Convention.NONE),
+      joinFilter,
+      leftRel,
+      rightRel,
+      join.getJoinType());
+    call.getPlanner().onCopy(join, newJoinRel);
 
     // create a FilterRel on top of the join if needed
     RelNode newRel =

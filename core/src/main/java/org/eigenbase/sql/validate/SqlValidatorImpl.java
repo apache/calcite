@@ -3488,8 +3488,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
                   public int size() {
                     return rowCount;
                   }
-                }
-          );
+                });
 
         if (null == type) {
           throw newValidationError(node,

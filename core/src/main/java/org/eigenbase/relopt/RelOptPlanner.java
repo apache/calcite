@@ -279,6 +279,9 @@ public interface RelOptPlanner {
 
   Executor getExecutor();
 
+  /** Called when a relational expression is copied to a similar expression. */
+  void onCopy(RelNode rel, RelNode newRel);
+
   /** Can reduce expressions, writing a literal for each into a list. */
   interface Executor {
     /**

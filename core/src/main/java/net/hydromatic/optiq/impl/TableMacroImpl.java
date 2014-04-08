@@ -86,8 +86,7 @@ public class TableMacroImpl implements TableMacro {
             public RelDataType getType(RelDataTypeFactory typeFactory) {
               return ((JavaTypeFactory) typeFactory).createType(parameterType);
             }
-          }
-      );
+          });
     }
     return new TableMacroImpl(parameters, method);
   }

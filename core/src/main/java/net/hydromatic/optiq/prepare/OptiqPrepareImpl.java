@@ -140,8 +140,7 @@ public class OptiqPrepareImpl implements OptiqPrepare {
           public RelOptPlanner apply(Context context) {
             return createPlanner(context);
           }
-        }
-    );
+        });
   }
 
   /** Creates a query planner and initializes it with a default set of

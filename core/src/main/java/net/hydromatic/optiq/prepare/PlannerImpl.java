@@ -210,7 +210,10 @@ public class PlannerImpl implements Planner {
             null, validator, createCatalogReader(), planner,
             createRexBuilder(), convertletTable);
     sqlToRelConverter.setTrimUnusedFields(false);
+    sqlToRelConverter.enableTableAccessConversion(false);
     rel = sqlToRelConverter.convertQuery(validatedSqlNode, false, true);
+    rel = sqlToRelConverter.flattenTypes(rel, true);
+    rel = sqlToRelConverter.decorrelate(validatedSqlNode, rel);
     state = State.STATE_5_CONVERTED;
     return rel;
   }
@@ -227,6 +230,10 @@ public class PlannerImpl implements Planner {
   // RexBuilder is stateless; no need to store one
   private RexBuilder createRexBuilder() {
     return new RexBuilder(typeFactory);
+  }
+
+  public JavaTypeFactory getTypeFactory() {
+    return typeFactory;
   }
 
   public RelNode transform(int ruleSetIndex, RelTraitSet requiredOutputTraits,
