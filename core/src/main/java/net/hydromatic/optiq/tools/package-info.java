@@ -19,6 +19,6 @@
 /**
  * Provides utility classes.
  */
-package org.eigenbase.util;
+package net.hydromatic.optiq.tools;
 
 // End package-info.java
