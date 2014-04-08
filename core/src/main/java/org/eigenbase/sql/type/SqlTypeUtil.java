@@ -29,6 +29,7 @@ import org.eigenbase.util14.*;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 
 import static org.eigenbase.util.Static.RESOURCE;
 
@@ -44,9 +45,22 @@ public abstract class SqlTypeUtil {
    * @return Returns true if all operands are of char type and if they are
    * comparable, i.e. of the same charset and collation of same charset
    */
-  public static boolean isCharTypeComparable(List<RelDataType> argTypes) {
-    assert argTypes != null;
-    assert argTypes.size() >= 2;
+  public static boolean isCharTypeComparable(
+      List<RelDataType> argTypesWithAny
+  ) {
+    assert argTypesWithAny != null;
+    assert argTypesWithAny.size() >= 2;
+
+    List<RelDataType> argTypes = Lists.newArrayList();
+    for (RelDataType t : argTypesWithAny) {
+      if (t.getFamily() != SqlTypeFamily.ANY) {
+        argTypes.add(t);
+      }
+    }
+    if (argTypes.size() < 2) {
+      return true;
+    }
+
 
     for (int j = 0; j < (argTypes.size() - 1); j++) {
       RelDataType t0 = argTypes.get(j);
@@ -644,6 +658,10 @@ public abstract class SqlTypeUtil {
     }
   }
 
+  private static boolean isAny(RelDataType t) {
+    return t.getFamily() == SqlTypeFamily.ANY;
+  }
+
   /**
    * Tests assignability of a value to a site.
    *
@@ -654,6 +672,11 @@ public abstract class SqlTypeUtil {
   public static boolean canAssignFrom(
       RelDataType toType,
       RelDataType fromType) {
+
+    if (isAny(toType) || isAny(fromType)) {
+      return true;
+    }
+
     // TODO jvs 2-Jan-2005:  handle all the other cases like
     // rows, collections, UDT's
     if (fromType.getSqlTypeName() == SqlTypeName.NULL) {
@@ -670,8 +693,7 @@ public abstract class SqlTypeUtil {
       return false;
     }
 
-    return toType.getFamily() == SqlTypeFamily.ANY
-        || toType.getFamily() == fromType.getFamily();
+    return toType.getFamily() == fromType.getFamily();
   }
 
   /**
@@ -686,6 +708,11 @@ public abstract class SqlTypeUtil {
   public static boolean areCharacterSetsMismatched(
       RelDataType t1,
       RelDataType t2) {
+
+    if (isAny(t1) || isAny(t2)) {
+      return false;
+    }
+
     Charset cs1 = t1.getCharset();
     Charset cs2 = t2.getCharset();
     if ((cs1 != null) && (cs2 != null)) {
@@ -720,9 +747,11 @@ public abstract class SqlTypeUtil {
       return true;
     }
     final SqlTypeName fromTypeName = fromType.getSqlTypeName();
-    if (fromTypeName == SqlTypeName.ANY) {
+
+    if (isAny(toType) || isAny(fromType)) {
       return true;
     }
+
     final SqlTypeName toTypeName = toType.getSqlTypeName();
     if (toType.isStruct() || fromType.isStruct()) {
       if (toTypeName == SqlTypeName.DISTINCT) {
@@ -1051,6 +1080,11 @@ public abstract class SqlTypeUtil {
     if (type1.equals(type2)) {
       return true;
     }
+
+    if (isAny(type1) || isAny(type2)) {
+      return true;
+    }
+
     if (type1.isNullable() == type2.isNullable()) {
       // If types have the same nullability and they weren't equal above,
       // they must be different.

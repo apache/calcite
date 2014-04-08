@@ -127,6 +127,8 @@ public abstract class SqlTypeTransforms {
             return SqlTypeName.VARCHAR;
           case BINARY:
             return SqlTypeName.VARBINARY;
+          case ANY:
+            return SqlTypeName.ANY;
           default:
             throw Util.unexpected(sqlTypeName);
           }
