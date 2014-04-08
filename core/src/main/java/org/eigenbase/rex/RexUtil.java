@@ -370,6 +370,7 @@ public class RexUtil {
       } catch (ExpressionNormalizer.SubExprExistsException e) {
         Util.swallow(e, null);
         assert !fail;
+        return true;
       }
     }
     return false;
@@ -1001,7 +1002,7 @@ public class RexUtil {
     /**
      * Thrown if there is a sub-expression.
      */
-    private static class SubExprExistsException extends RuntimeException {
+    private static class SubExprExistsException extends ControlFlowException {
       SubExprExistsException(RexNode expr) {
         Util.discard(expr);
       }
@@ -1043,7 +1044,7 @@ public class RexUtil {
       this.limit = limit;
     }
 
-    static class IllegalForwardRefException extends RuntimeException {
+    static class IllegalForwardRefException extends ControlFlowException {
     }
   }
 

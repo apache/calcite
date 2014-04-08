@@ -362,7 +362,7 @@ public class RexToLixTranslator {
       case IS_NOT_NULL:
         return RexImpTable.FALSE_EXPR;
       case NOT_POSSIBLE:
-        throw new AlwaysNull();
+        throw AlwaysNull.INSTANCE;
       case NULL:
         return RexImpTable.NULL_EXPR;
       }
@@ -745,9 +745,10 @@ public class RexToLixTranslator {
    * we are translating is the null literal but we have already checked that
    * it is not null. It is easier to throw (and caller will always handle)
    * than to check exhaustively beforehand. */
-  static class AlwaysNull extends RuntimeException {
-    AlwaysNull() {
-    }
+  static class AlwaysNull extends ControlFlowException {
+    public static final AlwaysNull INSTANCE = new AlwaysNull();
+
+    private AlwaysNull() {}
   }
 }
 

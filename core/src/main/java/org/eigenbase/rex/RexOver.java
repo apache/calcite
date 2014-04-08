@@ -134,7 +134,7 @@ public class RexOver extends RexCall {
 
   //~ Inner Classes ----------------------------------------------------------
 
-  private static class OverFound extends RuntimeException {
+  private static class OverFound extends ControlFlowException {
     public static final OverFound INSTANCE = new OverFound();
   }
 

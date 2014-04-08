@@ -2082,7 +2082,7 @@ public class Util {
   /**
    * Exception used to interrupt a tree walk of any kind.
    */
-  public static class FoundOne extends RuntimeException {
+  public static class FoundOne extends ControlFlowException {
     private final Object node;
 
     /** Singleton instance. Can be used if you don't care about node. */
@@ -2094,11 +2094,6 @@ public class Util {
 
     public Object getNode() {
       return node;
-    }
-
-    @Override
-    public synchronized Throwable fillInStackTrace() {
-      return this;
     }
   }
 }

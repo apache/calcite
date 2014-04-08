@@ -28,6 +28,7 @@ import org.eigenbase.rex.*;
 import org.eigenbase.sql.SqlKind;
 import org.eigenbase.sql.fun.SqlStdOperatorTable;
 import org.eigenbase.trace.EigenbaseTrace;
+import org.eigenbase.util.ControlFlowException;
 import org.eigenbase.util.IntList;
 import org.eigenbase.util.Pair;
 import org.eigenbase.util.mapping.Mapping;
@@ -553,8 +554,8 @@ public class SubstitutionVisitor {
   }
 
   /** Exception thrown to exit a matcher. Not really an error. */
-  private static class MatchFailed extends RuntimeException {
-    public static final MatchFailed INSTANCE = new MatchFailed();
+  private static class MatchFailed extends ControlFlowException {
+    static final MatchFailed INSTANCE = new MatchFailed();
   }
 
   /** Rule that attempts to match a query relational expression

@@ -260,7 +260,7 @@ public class SqlBetweenOperator extends SqlInfixOperator {
     public Void visit(SqlCall call) {
       final SqlOperator operator = call.getOperator();
       if (operator == SqlStdOperatorTable.AND) {
-        throw new Found();
+        throw Util.FoundOne.NULL;
       }
       return super.visit(call);
     }
@@ -269,12 +269,9 @@ public class SqlBetweenOperator extends SqlInfixOperator {
       try {
         node.accept(this);
         return false;
-      } catch (AndFinder.Found e) {
+      } catch (Util.FoundOne e) {
         return true;
       }
-    }
-
-    private static class Found extends RuntimeException {
     }
   }
 }
