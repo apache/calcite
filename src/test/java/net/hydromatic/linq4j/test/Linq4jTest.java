@@ -21,6 +21,8 @@ import net.hydromatic.linq4j.*;
 import net.hydromatic.linq4j.expressions.*;
 import net.hydromatic.linq4j.function.*;
 
+import com.example.Linq4jExample;
+
 import org.junit.Test;
 
 import java.util.*;
@@ -1125,6 +1127,10 @@ public class Linq4jTest {
             })
         .into(result);
     assertNotNull(result.toString());
+  }
+
+  @Test public void testExample() {
+    Linq4jExample.main(new String[0]);
   }
 
   public static class Employee {
