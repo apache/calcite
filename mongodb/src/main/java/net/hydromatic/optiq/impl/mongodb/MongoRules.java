@@ -119,6 +119,9 @@ public class MongoRules {
     }
 
     @Override public String visitLiteral(RexLiteral literal) {
+      if (literal.getValue() == null) {
+        return "null";
+      }
       return "{$ifNull: [null, "
           + RexToLixTranslator.translateLiteral(literal, literal.getType(),
               typeFactory, RexImpTable.NullAs.NOT_POSSIBLE)

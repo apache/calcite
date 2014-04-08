@@ -23,6 +23,8 @@ import org.eigenbase.rel.*;
 import org.eigenbase.relopt.RelOptCluster;
 import org.eigenbase.relopt.RelTraitSet;
 import org.eigenbase.sql.fun.SqlStdOperatorTable;
+import org.eigenbase.sql.fun.SqlSumAggFunction;
+import org.eigenbase.sql.fun.SqlSumEmptyIsZeroAggFunction;
 import org.eigenbase.util.Util;
 
 import java.util.*;
@@ -141,7 +143,8 @@ public class MongoAggregateRel
             + MongoRules.quote(inName)
             + ", null]}, 0, 1]}}";
       }
-    } else if (aggregation == SqlStdOperatorTable.SUM) {
+    } else if (aggregation instanceof SqlSumAggFunction
+        || aggregation instanceof SqlSumEmptyIsZeroAggFunction) {
       assert args.size() == 1;
       final String inName = inNames.get(args.get(0));
       return "{$sum: " + MongoRules.maybeQuote("$" + inName) + "}";
