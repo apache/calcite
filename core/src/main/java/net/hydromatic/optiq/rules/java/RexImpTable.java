@@ -193,7 +193,6 @@ public class RexImpTable {
     map.put(LOCALTIMESTAMP, systemFunctionImplementor);
 
     aggMap.put(COUNT, new CountImplementor());
-    aggMap.put(SUM, new SumImplementor());
     aggMap.put(SUM0, new SumImplementor());
     final MinMaxImplementor minMax =
         new MinMaxImplementor();

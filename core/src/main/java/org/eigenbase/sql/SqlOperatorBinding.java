@@ -53,6 +53,20 @@ public abstract class SqlOperatorBinding {
   //~ Methods ----------------------------------------------------------------
 
   /**
+   * If the operator call occurs in an aggregate query, returns the number of
+   * columns in the GROUP BY clause. For example, for "SELECT count(*) FROM emp
+   * GROUP BY deptno, gender", returns 2.
+   *
+   * <p>Returns 0 if the query is implicitly "GROUP BY ()" because of an
+   * aggregate expression. For example, "SELECT sum(sal) FROM emp".</p>
+   *
+   * <p>Returns -1 if the query is not an aggregate query.</p>
+   */
+  public int getGroupCount() {
+    return -1;
+  }
+
+  /**
    * @return bound operator
    */
   public SqlOperator getOperator() {

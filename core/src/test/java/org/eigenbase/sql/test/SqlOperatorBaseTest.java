@@ -4337,9 +4337,9 @@ public abstract class SqlOperatorBaseTest {
         "^sum('name')^",
         "(?s)Cannot apply 'SUM' to arguments of type 'SUM\\(<CHAR\\(4\\)>\\)'\\. Supported form\\(s\\): 'SUM\\(<NUMERIC>\\)'.*",
         false);
-    tester.checkType("sum(1)", "INTEGER NOT NULL");
-    tester.checkType("sum(1.2)", "DECIMAL(2, 1) NOT NULL");
-    tester.checkType("sum(DISTINCT 1.5)", "DECIMAL(2, 1) NOT NULL");
+    checkAggType(tester, "sum(1)", "INTEGER NOT NULL");
+    checkAggType(tester, "sum(1.2)", "DECIMAL(2, 1) NOT NULL");
+    checkAggType(tester, "sum(DISTINCT 1.5)", "DECIMAL(2, 1) NOT NULL");
     tester.checkFails(
         "^sum()^",
         "Invalid number of arguments to function 'SUM'. Was expecting 1 arguments",
@@ -4380,6 +4380,17 @@ public abstract class SqlOperatorBaseTest {
         (double) 0);
   }
 
+  /** Very similar to {@code tester.checkType}, but generates inside a SELECT
+   * with a non-empty GROUP BY. Aggregate functions may be nullable if executed
+   * in a SELECT with an empty GROUP BY.
+   *
+   * <p>Viz: {@code SELECT sum(1) FROM emp} has type "INTEGER",
+   * {@code SELECT sum(1) FROM emp GROUP BY deptno} has type "INTEGER NOT NULL",
+   */
+  protected void checkAggType(SqlTester tester, String expr, String type) {
+    tester.checkColumnType(SqlTesterImpl.buildQueryAgg(expr), type);
+  }
+
   @Test public void testAvgFunc() {
     tester.setFor(SqlStdOperatorTable.AVG, VM_EXPAND);
     tester.checkFails(
@@ -4391,7 +4402,10 @@ public abstract class SqlOperatorBaseTest {
         "(?s)Cannot apply 'AVG' to arguments of type 'AVG\\(<VARCHAR\\(2\\)>\\)'\\. Supported form\\(s\\): 'AVG\\(<NUMERIC>\\)'.*",
         false);
     tester.checkType("AVG(CAST(NULL AS INTEGER))", "INTEGER");
-    tester.checkType("AVG(DISTINCT 1.5)", "DECIMAL(2, 1) NOT NULL");
+    checkAggType(tester, "AVG(DISTINCT 1.5)", "DECIMAL(2, 1) NOT NULL");
+    checkAggType(tester, "avg(1)", "INTEGER NOT NULL");
+    checkAggType(tester, "avg(1.2)", "DECIMAL(2, 1) NOT NULL");
+    checkAggType(tester, "avg(DISTINCT 1.5)", "DECIMAL(2, 1) NOT NULL");
     if (!enable) {
       return;
     }
@@ -4419,8 +4433,7 @@ public abstract class SqlOperatorBaseTest {
         "(?s)Cannot apply 'STDDEV_POP' to arguments of type 'STDDEV_POP\\(<VARCHAR\\(2\\)>\\)'\\. Supported form\\(s\\): 'STDDEV_POP\\(<NUMERIC>\\)'.*",
         false);
     tester.checkType("stddev_pop(CAST(NULL AS INTEGER))", "INTEGER");
-    tester.checkType(
-        "stddev_pop(DISTINCT 1.5)", "DECIMAL(2, 1) NOT NULL");
+    checkAggType(tester, "stddev_pop(DISTINCT 1.5)", "DECIMAL(2, 1) NOT NULL");
     final String[] values = {"0", "CAST(null AS FLOAT)", "3", "3"};
     if (!enable) {
       return;
@@ -4465,8 +4478,7 @@ public abstract class SqlOperatorBaseTest {
         "(?s)Cannot apply 'STDDEV_SAMP' to arguments of type 'STDDEV_SAMP\\(<VARCHAR\\(2\\)>\\)'\\. Supported form\\(s\\): 'STDDEV_SAMP\\(<NUMERIC>\\)'.*",
         false);
     tester.checkType("stddev_samp(CAST(NULL AS INTEGER))", "INTEGER");
-    tester.checkType(
-        "stddev_samp(DISTINCT 1.5)", "DECIMAL(2, 1) NOT NULL");
+    checkAggType(tester, "stddev_samp(DISTINCT 1.5)", "DECIMAL(2, 1) NOT NULL");
     final String[] values = {"0", "CAST(null AS FLOAT)", "3", "3"};
     if (!enable) {
       return;
@@ -4511,8 +4523,7 @@ public abstract class SqlOperatorBaseTest {
         "(?s)Cannot apply 'VAR_POP' to arguments of type 'VAR_POP\\(<VARCHAR\\(2\\)>\\)'\\. Supported form\\(s\\): 'VAR_POP\\(<NUMERIC>\\)'.*",
         false);
     tester.checkType("var_pop(CAST(NULL AS INTEGER))", "INTEGER");
-    tester.checkType(
-        "var_pop(DISTINCT 1.5)", "DECIMAL(2, 1) NOT NULL");
+    checkAggType(tester, "var_pop(DISTINCT 1.5)", "DECIMAL(2, 1) NOT NULL");
     final String[] values = {"0", "CAST(null AS FLOAT)", "3", "3"};
     if (!enable) {
       return;
@@ -4557,8 +4568,7 @@ public abstract class SqlOperatorBaseTest {
         "(?s)Cannot apply 'VAR_SAMP' to arguments of type 'VAR_SAMP\\(<VARCHAR\\(2\\)>\\)'\\. Supported form\\(s\\): 'VAR_SAMP\\(<NUMERIC>\\)'.*",
         false);
     tester.checkType("var_samp(CAST(NULL AS INTEGER))", "INTEGER");
-    tester.checkType(
-        "var_samp(DISTINCT 1.5)", "DECIMAL(2, 1) NOT NULL");
+    checkAggType(tester, "var_samp(DISTINCT 1.5)", "DECIMAL(2, 1) NOT NULL");
     final String[] values = {"0", "CAST(null AS FLOAT)", "3", "3"};
     if (!enable) {
       return;

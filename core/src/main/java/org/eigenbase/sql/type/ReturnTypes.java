@@ -110,6 +110,27 @@ public abstract class ReturnTypes {
 
   public static final SqlReturnTypeInference ARG0_INTERVAL_NULLABLE =
       cascade(ARG0_INTERVAL, SqlTypeTransforms.TO_NULLABLE);
+
+  /**
+   * Type-inference strategy whereby the result type of a call is the type of
+   * the operand #0 (0-based), and nullable if the call occurs within a
+   * "GROUP BY ()" query. E.g. in "select sum(1) as s from empty", s may be
+   * null.
+   */
+  public static final SqlReturnTypeInference ARG0_NULLABLE_IF_EMPTY =
+      new OrdinalReturnTypeInference(0) {
+        @Override
+        public RelDataType inferReturnType(SqlOperatorBinding opBinding) {
+          final RelDataType type = super.inferReturnType(opBinding);
+          if (opBinding.getGroupCount() == 0) {
+            return opBinding.getTypeFactory()
+                .createTypeWithNullability(type, true);
+          } else {
+            return type;
+          }
+        }
+      };
+
   /**
    * Type-inference strategy whereby the result type of a call is the type of
    * the operand #1 (0-based).

@@ -268,6 +268,10 @@ public abstract class AggregateRelBase extends SingleRel {
       this.operands = operands;
     }
 
+    @Override public int getGroupCount() {
+      return aggregateRel.getGroupCount();
+    }
+
     public int getOperandCount() {
       return operands.size();
     }

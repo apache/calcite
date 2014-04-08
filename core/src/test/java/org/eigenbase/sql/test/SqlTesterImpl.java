@@ -477,6 +477,10 @@ public class SqlTesterImpl implements SqlTester {
     return "values (" + expression + ")";
   }
 
+  public static String buildQueryAgg(String expression) {
+    return "select " + expression + " from (values (1)) as t(x) group by x";
+  }
+
   /**
    * Builds a query that extracts all literals as columns in an underlying
    * select.

@@ -5723,6 +5723,14 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   @Test public void testAggregateInNonGroupBy() {
     checkFails("select count(1), ^empno^ from emp",
         "Expression 'EMPNO' is not being grouped");
+    checkColumnType("select count(*) from emp", "BIGINT NOT NULL");
+    checkColumnType("select count(deptno) from emp", "BIGINT NOT NULL");
+
+    // Even though deptno is not null, its sum may be, because emp may be empty.
+    checkColumnType("select sum(deptno) from emp", "INTEGER");
+    checkColumnType("select sum(deptno) from emp group by ()", "INTEGER");
+    checkColumnType("select sum(deptno) from emp group by empno",
+        "INTEGER NOT NULL");
   }
 
   @Test public void testAggregateInOrderByFails() {

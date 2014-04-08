@@ -61,6 +61,20 @@ public class SqlCallBinding extends SqlOperatorBinding {
 
   //~ Methods ----------------------------------------------------------------
 
+  @Override public int getGroupCount() {
+    final SelectScope selectScope =
+        SqlValidatorUtil.getEnclosingSelectScope(scope);
+    if (selectScope == null) {
+      // Probably "VALUES expr". Treat same as "SELECT expr GROUP BY ()"
+      return 0;
+    }
+    final SqlSelect select = selectScope.getNode();
+    if (select.getGroup() != null) {
+      return select.getGroup().size();
+    }
+    return validator.isAggregate(select) ? 0 : -1;
+  }
+
   /**
    * Returns the validator.
    */

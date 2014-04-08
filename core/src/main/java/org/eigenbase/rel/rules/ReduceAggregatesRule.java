@@ -63,7 +63,8 @@ public class ReduceAggregatesRule extends RelOptRule {
    */
   private boolean containsAvgStddevVarCall(List<AggregateCall> aggCallList) {
     for (AggregateCall call : aggCallList) {
-      if (call.getAggregation() instanceof SqlAvgAggFunction) {
+      if (call.getAggregation() instanceof SqlAvgAggFunction
+          || call.getAggregation() instanceof SqlSumAggFunction) {
         return true;
       }
     }
@@ -149,6 +150,11 @@ public class ReduceAggregatesRule extends RelOptRule {
       List<AggregateCall> newCalls,
       Map<AggregateCall, RexNode> aggCallMapping,
       List<RexNode> inputExprs) {
+    if (oldCall.getAggregation() instanceof SqlSumAggFunction) {
+      // replace original SUM(x) with
+      // case COUNT(x) when 0 then null else SUM0(x) end
+      return reduceSum(oldAggRel, oldCall, newCalls, aggCallMapping);
+    }
     if (oldCall.getAggregation() instanceof SqlAvgAggFunction) {
       final SqlAvgAggFunction.Subtype subtype =
           ((SqlAvgAggFunction) oldCall.getAggregation()).getSubtype();
@@ -219,7 +225,7 @@ public class ReduceAggregatesRule extends RelOptRule {
     RelDataType sumType =
         typeFactory.createTypeWithNullability(
             avgInputType,
-            avgInputType.isNullable());
+            avgInputType.isNullable() || nGroups == 0);
     SqlAggFunction sumAgg = new SqlSumAggFunction(sumType);
     AggregateCall sumCall =
         new AggregateCall(
@@ -259,6 +265,68 @@ public class ReduceAggregatesRule extends RelOptRule {
             denominatorRef);
     return rexBuilder.makeCast(
         oldCall.getType(), divideRef);
+  }
+
+  private RexNode reduceSum(
+      AggregateRelBase oldAggRel,
+      AggregateCall oldCall,
+      List<AggregateCall> newCalls,
+      Map<AggregateCall, RexNode> aggCallMapping) {
+    final int nGroups = oldAggRel.getGroupCount();
+    RelDataTypeFactory typeFactory =
+        oldAggRel.getCluster().getTypeFactory();
+    RexBuilder rexBuilder = oldAggRel.getCluster().getRexBuilder();
+    int arg = oldCall.getArgList().get(0);
+    RelDataType argType =
+        getFieldType(
+            oldAggRel.getChild(),
+            arg);
+    RelDataType sumType =
+        typeFactory.createTypeWithNullability(
+            argType, argType.isNullable());
+    SqlAggFunction sumZeroAgg = new SqlSumEmptyIsZeroAggFunction(sumType);
+    AggregateCall sumZeroCall =
+        new AggregateCall(
+            sumZeroAgg,
+            oldCall.isDistinct(),
+            oldCall.getArgList(),
+            sumType,
+            null);
+    SqlAggFunction countAgg = SqlStdOperatorTable.COUNT;
+    RelDataType countType = countAgg.getReturnType(typeFactory);
+    AggregateCall countCall =
+        new AggregateCall(
+            countAgg,
+            oldCall.isDistinct(),
+            oldCall.getArgList(),
+            countType,
+            null);
+
+    // NOTE:  these references are with respect to the output
+    // of newAggRel
+    RexNode sumZeroRef =
+        rexBuilder.addAggCall(
+            sumZeroCall,
+            nGroups,
+            newCalls,
+            aggCallMapping);
+    if (!oldCall.getType().isNullable()) {
+      // If SUM(x) is not nullable, the validator must have determined that
+      // nulls are impossible (because the group is never empty and x is never
+      // null). Therefore we translate to SUM0(x).
+      return sumZeroRef;
+    }
+    RexNode countRef =
+        rexBuilder.addAggCall(
+            countCall,
+            nGroups,
+            newCalls,
+            aggCallMapping);
+    return rexBuilder.makeCall(SqlStdOperatorTable.CASE,
+        rexBuilder.makeCall(SqlStdOperatorTable.EQUALS,
+            countRef, rexBuilder.makeExactLiteral(BigDecimal.ZERO)),
+        rexBuilder.constantNull(),
+        sumZeroRef);
   }
 
   private RexNode reduceStddev(

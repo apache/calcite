@@ -2048,6 +2048,21 @@ public class JdbcTest {
         .planContains(".distinct(");
   }
 
+  /** Tests that SUM and AVG over empty set return null. COUNT returns 0. */
+  @Test public void testAggregateEmpty() {
+    OptiqAssert.that()
+        .with(OptiqAssert.Config.REGULAR)
+        .query(
+            "select\n"
+            + " count(*) as cs,\n"
+            + " count(\"deptno\") as c,\n"
+            + " sum(\"deptno\") as s,\n"
+            + " avg(\"deptno\") as a\n"
+            + "from \"hr\".\"emps\"\n"
+            + "where \"deptno\" < 0")
+        .returns("CS=0; C=0; S=null; A=null\n");
+  }
+
   /** Tests sorting by a column that is already sorted. */
   @Test public void testOrderByOnSortedTable() {
     OptiqAssert.that()
