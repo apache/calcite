@@ -17,9 +17,6 @@
 */
 package net.hydromatic.optiq.prepare;
 
-import net.hydromatic.linq4j.function.Function1;
-
-import net.hydromatic.optiq.Schema;
 import net.hydromatic.optiq.SchemaPlus;
 import net.hydromatic.optiq.config.Lex;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
@@ -36,15 +33,12 @@ import org.eigenbase.sql.parser.SqlParser;
 import org.eigenbase.sql.parser.SqlParserImplFactory;
 import org.eigenbase.sql2rel.SqlRexConvertletTable;
 import org.eigenbase.sql2rel.SqlToRelConverter;
+import org.eigenbase.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-
 /** Implementation of {@link net.hydromatic.optiq.tools.Planner}. */
 public class PlannerImpl implements Planner {
-  private final Function1<SchemaPlus, Schema> schemaFactory;
   private final SqlOperatorTable operatorTable;
   private final ImmutableList<RuleSet> ruleSets;
 
@@ -63,7 +57,6 @@ public class PlannerImpl implements Planner {
   private boolean open;
 
   // set in STATE_2_READY
-  private SchemaPlus rootSchema;
   private SchemaPlus defaultSchema;
   private JavaTypeFactory typeFactory;
   private RelOptPlanner planner;
@@ -80,11 +73,12 @@ public class PlannerImpl implements Planner {
   /** Creates a planner. Not a public API; call
    * {@link net.hydromatic.optiq.tools.Frameworks#getPlanner} instead. */
   public PlannerImpl(Lex lex, SqlParserImplFactory parserFactory,
-      Function1<SchemaPlus, Schema> schemaFactory,
+      SchemaPlus defaultSchema,
       SqlOperatorTable operatorTable, ImmutableList<RuleSet> ruleSets,
       ImmutableList<RelTraitDef> traitDefs,
       SqlRexConvertletTable convertletTable) {
-    this.schemaFactory = schemaFactory;
+    assert defaultSchema != null;
+    this.defaultSchema = defaultSchema;
     this.operatorTable = operatorTable;
     this.ruleSets = ruleSets;
     this.lex = lex;
@@ -113,8 +107,6 @@ public class PlannerImpl implements Planner {
 
   public void close() {
     open = false;
-    rootSchema = null;
-    defaultSchema = null;
     typeFactory = null;
     state = State.STATE_0_CLOSED;
   }
@@ -135,32 +127,13 @@ public class PlannerImpl implements Planner {
         new Frameworks.PlannerAction<Void>() {
           public Void apply(RelOptCluster cluster, RelOptSchema relOptSchema,
               SchemaPlus rootSchema) {
-            PlannerImpl.this.rootSchema = rootSchema;
-            final Schema schema =
-                schemaFactory.apply(PlannerImpl.this.rootSchema);
-            defaultSchema = rootSchema.add(getName(schema), schema);
+            Util.discard(rootSchema); // use our own defaultSchema
             typeFactory = (JavaTypeFactory) cluster.getTypeFactory();
             planner = cluster.getPlanner();
             return null;
           }
-
-          /** Temporary method while we are phasing out schema names. Once
-           * <a href="https://github.com/julianhyde/optiq/issues/214">optiq-214</a>
-           * is fixed, the client will pass us a {@link SchemaPlus}, and that
-           * has a name. */
-          private String getName(Schema schema) {
-            try {
-              final Method method = schema.getClass().getMethod("getName");
-              return (String) method.invoke(schema);
-            } catch (NoSuchMethodException e) {
-              return "DUMMY";
-            } catch (InvocationTargetException e) {
-              return "DUMMY";
-            } catch (IllegalAccessException e) {
-              return "DUMMY";
-            }
-          }
         });
+
     state = State.STATE_2_READY;
 
     // If user specify own traitDef, instead of default default trait,
@@ -220,11 +193,21 @@ public class PlannerImpl implements Planner {
 
   // OptiqCatalogReader is stateless; no need to store one
   private OptiqCatalogReader createCatalogReader() {
+    SchemaPlus rootSchema = rootSchema(defaultSchema);
     return new OptiqCatalogReader(
         OptiqSchema.from(rootSchema),
         caseSensitive,
         OptiqSchema.from(defaultSchema).path(null),
         typeFactory);
+  }
+
+  private static SchemaPlus rootSchema(SchemaPlus schema) {
+    for (;;) {
+      if (schema.getParentSchema() == null) {
+        return schema;
+      }
+      schema = schema.getParentSchema();
+    }
   }
 
   // RexBuilder is stateless; no need to store one

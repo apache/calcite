@@ -121,6 +121,15 @@ public class OptiqSchema {
                 }));
   }
 
+  /** Creates a root schema. It contains a "metadata" schema containing
+   * definitions of tables, columns etc. */
+  public static OptiqRootSchema createRootSchema() {
+    OptiqRootSchema rootSchema =
+        new OptiqRootSchema(new OptiqConnectionImpl.RootSchema());
+    rootSchema.add("metadata", MetadataSchema.INSTANCE);
+    return rootSchema;
+  }
+
   /** Defines a table within this schema. */
   public TableEntry add(String tableName, Table table) {
     final TableEntryImpl entry =

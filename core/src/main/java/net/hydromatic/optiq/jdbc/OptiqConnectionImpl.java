@@ -77,14 +77,10 @@ abstract class OptiqConnectionImpl
     this.prepareFactory = driver.prepareFactory;
     this.typeFactory =
         typeFactory != null ? typeFactory : new JavaTypeFactoryImpl();
-    if (rootSchema == null) {
-      rootSchema = new OptiqRootSchema(new RootSchema());
-      rootSchema.add("metadata", MetadataSchema.INSTANCE);
-    }
-    this.rootSchema = rootSchema;
+    this.rootSchema =
+        rootSchema != null ? rootSchema : OptiqSchema.createRootSchema();
 
     OptiqConnectionConfig cfg = new OptiqConnectionConfigImpl(info);
-
     this.properties.put(InternalProperty.CASE_SENSITIVE, cfg.caseSensitive());
     this.properties.put(InternalProperty.UNQUOTED_CASING, cfg.unquotedCasing());
     this.properties.put(InternalProperty.QUOTED_CASING, cfg.quotedCasing());
@@ -241,7 +237,7 @@ abstract class OptiqConnectionImpl
   }
 
   /** Schema that has no parents. */
-  private static class RootSchema extends AbstractSchema {
+  static class RootSchema extends AbstractSchema {
     RootSchema() {
       super();
     }
@@ -268,7 +264,7 @@ abstract class OptiqConnectionImpl
       this.rootSchema = connection.rootSchema;
 
       // Store the time at which the query started executing. The SQL
-      // standard says that functions such as CURRENTTIMESTAMP return the
+      // standard says that functions such as CURRENT_TIMESTAMP return the
       // same value throughout the query.
       final long time = System.currentTimeMillis();
       final TimeZone timeZone = connection.getTimeZone();
