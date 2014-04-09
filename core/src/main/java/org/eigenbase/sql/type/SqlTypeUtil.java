@@ -45,32 +45,27 @@ public abstract class SqlTypeUtil {
    * @return Returns true if all operands are of char type and if they are
    * comparable, i.e. of the same charset and collation of same charset
    */
-  public static boolean isCharTypeComparable(
-      List<RelDataType> argTypesWithAny
-  ) {
-    assert argTypesWithAny != null;
-    assert argTypesWithAny.size() >= 2;
+  public static boolean isCharTypeComparable(List<RelDataType> argTypes) {
+    assert argTypes != null;
+    assert argTypes.size() >= 2;
 
-    List<RelDataType> argTypes = Lists.newArrayList();
-    for (RelDataType t : argTypesWithAny) {
-      if (t.getFamily() != SqlTypeFamily.ANY) {
-        argTypes.add(t);
+    // Filter out ANY elements.
+    List<RelDataType> argTypes2 = Lists.newArrayList();
+    for (RelDataType t : argTypes) {
+      if (!isAny(t)) {
+        argTypes2.add(t);
       }
     }
-    if (argTypes.size() < 2) {
-      return true;
-    }
 
-
-    for (int j = 0; j < (argTypes.size() - 1); j++) {
-      RelDataType t0 = argTypes.get(j);
-      RelDataType t1 = argTypes.get(j + 1);
+    for (Pair<RelDataType, RelDataType> pair : Pair.adjacents(argTypes2)) {
+      RelDataType t0 = pair.left;
+      RelDataType t1 = pair.right;
 
       if (!inCharFamily(t0) || !inCharFamily(t1)) {
         return false;
       }
 
-      if (null == t0.getCharset()) {
+      if (t0.getCharset() == null) {
         throw Util.newInternal(
             "RelDataType object should have been assigned a "
             + "(default) charset when calling deriveType");
@@ -78,13 +73,12 @@ public abstract class SqlTypeUtil {
         return false;
       }
 
-      if (null == t0.getCollation()) {
+      if (t0.getCollation() == null) {
         throw Util.newInternal(
             "RelDataType object should have been assigned a "
             + "(default) collation when calling deriveType");
-      } else if (
-          !t0.getCollation().getCharset().equals(
-              t1.getCollation().getCharset())) {
+      } else if (!t0.getCollation().getCharset().equals(
+          t1.getCollation().getCharset())) {
         return false;
       }
     }
@@ -663,7 +657,7 @@ public abstract class SqlTypeUtil {
   }
 
   /**
-   * Tests assignability of a value to a site.
+   * Tests whether a value can be assigned to a site.
    *
    * @param toType   type of the target site
    * @param fromType type of the source value
@@ -672,7 +666,6 @@ public abstract class SqlTypeUtil {
   public static boolean canAssignFrom(
       RelDataType toType,
       RelDataType fromType) {
-
     if (isAny(toType) || isAny(fromType)) {
       return true;
     }
@@ -708,7 +701,6 @@ public abstract class SqlTypeUtil {
   public static boolean areCharacterSetsMismatched(
       RelDataType t1,
       RelDataType t2) {
-
     if (isAny(t1) || isAny(t2)) {
       return false;
     }
@@ -746,12 +738,11 @@ public abstract class SqlTypeUtil {
     if (toType == fromType) {
       return true;
     }
-    final SqlTypeName fromTypeName = fromType.getSqlTypeName();
-
     if (isAny(toType) || isAny(fromType)) {
       return true;
     }
 
+    final SqlTypeName fromTypeName = fromType.getSqlTypeName();
     final SqlTypeName toTypeName = toType.getSqlTypeName();
     if (toType.isStruct() || fromType.isStruct()) {
       if (toTypeName == SqlTypeName.DISTINCT) {
@@ -818,9 +809,7 @@ public abstract class SqlTypeUtil {
         return false;
       }
     }
-    SqlTypeName tn1 = toTypeName;
-    SqlTypeName tn2 = fromTypeName;
-    if ((tn1 == null) || (tn2 == null)) {
+    if (toTypeName == null || fromTypeName == null) {
       return false;
     }
 
@@ -831,7 +820,7 @@ public abstract class SqlTypeUtil {
     // probably clean that up.
 
     SqlTypeAssignmentRules rules = SqlTypeAssignmentRules.instance();
-    return rules.canCastFrom(tn1, tn2, coerce);
+    return rules.canCastFrom(toTypeName, fromTypeName, coerce);
   }
 
   /**

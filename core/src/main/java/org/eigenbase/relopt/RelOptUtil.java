@@ -155,21 +155,20 @@ public abstract class RelOptUtil {
       // the types must be different
       return false;
     }
-    int n = rowType1.getFieldCount();
-    if (rowType2.getFieldCount() != n) {
+    if (rowType2.getFieldCount() != rowType1.getFieldCount()) {
       return false;
     }
-    List<RelDataTypeField> f1 = rowType1.getFieldList();
-    List<RelDataTypeField> f2 = rowType2.getFieldList();
-    for (int i = 0; i < n; ++i) {
-
+    final List<RelDataTypeField> f1 = rowType1.getFieldList();
+    final List<RelDataTypeField> f2 = rowType2.getFieldList();
+    for (Pair<RelDataTypeField, RelDataTypeField> pair : Pair.zip(f1, f2)) {
+      final RelDataType type1 = pair.left.getType();
+      final RelDataType type2 = pair.right.getType();
       // If one of the types is ANY comparison should succeed
-      if (f1.get(i).getType().getSqlTypeName() == SqlTypeName.ANY
-        || f2.get(i).getType().getSqlTypeName() == SqlTypeName.ANY) {
+      if (type1.getSqlTypeName() == SqlTypeName.ANY
+        || type2.getSqlTypeName() == SqlTypeName.ANY) {
         continue;
       }
-
-      if (!f1.get(i).getType().equals(f2.get(i).getType())) {
+      if (!type1.equals(type2)) {
         return false;
       }
     }

@@ -38,6 +38,7 @@ import net.hydromatic.optiq.util.CompositeMap;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMultiset;
+import com.google.common.collect.Iterables;
 
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -890,6 +891,56 @@ public class UtilTest {
       x += pair.right;
     }
     assertEquals(5825, x);
+  }
+
+  /**
+   * Unit test for {@link Pair#adjacents(Iterable)}.
+   */
+  @Test public void testPairAdjacents() {
+    List<String> strings = Arrays.asList("a", "b", "c");
+    List<String> result = new ArrayList<String>();
+    for (Pair<String, String> pair : Pair.adjacents(strings)) {
+      result.add(pair.toString());
+    }
+    assertThat(result.toString(), equalTo("[<a, b>, <b, c>]"));
+
+    // empty source yields empty result
+    assertThat(Pair.adjacents(ImmutableList.of()).iterator().hasNext(),
+        is(false));
+
+    // source with 1 element yields empty result
+    assertThat(Pair.adjacents(ImmutableList.of("a")).iterator().hasNext(),
+        is(false));
+
+    // source with 100 elements yields result with 99 elements;
+    // null elements are ok
+    assertThat(Iterables.size(Pair.adjacents(Collections.nCopies(100, null))),
+        equalTo(99));
+  }
+
+  /**
+   * Unit test for {@link Pair#firstAnd(Iterable)}.
+   */
+  @Test public void testPairFirstAnd() {
+    List<String> strings = Arrays.asList("a", "b", "c");
+    List<String> result = new ArrayList<String>();
+    for (Pair<String, String> pair : Pair.firstAnd(strings)) {
+      result.add(pair.toString());
+    }
+    assertThat(result.toString(), equalTo("[<a, b>, <a, c>]"));
+
+    // empty source yields empty result
+    assertThat(Pair.firstAnd(ImmutableList.of()).iterator().hasNext(),
+        is(false));
+
+    // source with 1 element yields empty result
+    assertThat(Pair.firstAnd(ImmutableList.of("a")).iterator().hasNext(),
+        is(false));
+
+    // source with 100 elements yields result with 99 elements;
+    // null elements are ok
+    assertThat(Iterables.size(Pair.firstAnd(Collections.nCopies(100, null))),
+        equalTo(99));
   }
 
   /**

@@ -20,6 +20,8 @@ package org.eigenbase.util;
 import java.io.Serializable;
 import java.util.*;
 
+import com.google.common.collect.Iterators;
+
 /**
  * Pair of objects.
  *
@@ -340,6 +342,72 @@ public class Pair<T1, T2>
 
       public int size() {
         return pairs.size();
+      }
+    };
+  }
+
+  /**
+   * Returns an iterator that iterates over (i, i + 1) pairs in an iterable.
+   *
+   * <p>For example, {@code adjacents([3, 5, 7])} returns [(3, 5), (5, 7)].</p>
+   *
+   * @param iterable Source collection
+   * @param <T> Element type
+   * @return Iterable over adjacent element pairs
+   */
+  public static <T> Iterable<Pair<T, T>> adjacents(final Iterable<T> iterable) {
+    return new Iterable<Pair<T, T>>() {
+      public Iterator<Pair<T, T>> iterator() {
+        final Iterator<T> iterator = iterable.iterator();
+        if (!iterator.hasNext()) {
+          return Iterators.emptyIterator();
+        }
+        final T first = iterator.next();
+        return new Iterator<Pair<T, T>>() {
+          T previous = first;
+
+          public boolean hasNext() {
+            return iterator.hasNext();
+          }
+
+          public Pair<T, T> next() {
+            final T current = iterator.next();
+            final Pair<T, T> pair = of(previous, current);
+            previous = current;
+            return pair;
+          }
+        };
+      }
+    };
+  }
+
+  /**
+   * Returns an iterator that iterates over (0, i) pairs in an iterable for
+   * i &gt; 0.
+   *
+   * <p>For example, {@code firstAnd([3, 5, 7])} returns [(3, 5), (3, 7)].</p>
+   *
+   * @param iterable Source collection
+   * @param <T> Element type
+   * @return Iterable over pairs of the first element and all other elements
+   */
+  public static <T> Iterable<Pair<T, T>> firstAnd(final Iterable<T> iterable) {
+    return new Iterable<Pair<T, T>>() {
+      public Iterator<Pair<T, T>> iterator() {
+        final Iterator<T> iterator = iterable.iterator();
+        if (!iterator.hasNext()) {
+          return Iterators.emptyIterator();
+        }
+        final T first = iterator.next();
+        return new Iterator<Pair<T, T>>() {
+          public boolean hasNext() {
+            return iterator.hasNext();
+          }
+
+          public Pair<T, T> next() {
+            return of(first, iterator.next());
+          }
+        };
       }
     };
   }
