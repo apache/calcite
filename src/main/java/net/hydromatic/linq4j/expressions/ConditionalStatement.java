@@ -51,16 +51,25 @@ public class ConditionalStatement extends Statement {
 
   @Override
   void accept0(ExpressionWriter writer) {
-    for (int i = 0; i < expressionList.size(); i += 2) {
-      writer.append(i > 0 ? " else if (" : "if (")
+    for (int i = 0; i < expressionList.size() - 1; i += 2) {
+      if (i > 0) {
+        writer.backUp();
+        writer.append(" else ");
+      }
+      writer.append("if (")
           .append(expressionList.get(i))
           .append(") ")
           .append(Blocks.toBlock(expressionList.get(i + 1)));
     }
     if (expressionList.size() % 2 == 1) {
-      writer.append(" else ").append(Blocks.toBlock(expressionList.get(
-          expressionList.size() - 1)));
+      writer.backUp();
+      writer.append(" else ")
+          .append(Blocks.toBlock(last(expressionList)));
     }
+  }
+
+  private static <E> E last(List<E> collection) {
+    return collection.get(collection.size() - 1);
   }
 
   @Override

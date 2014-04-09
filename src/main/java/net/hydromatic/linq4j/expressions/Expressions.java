@@ -958,6 +958,17 @@ public abstract class Expressions {
   }
 
   /**
+   * Creates a ConditionalExpression that represents a conditional
+   * block with if and else statements:
+   * <code>if (test) stmt1 [ else if (test2) stmt2 ]... [ else stmtN ]</code>.
+   */
+  public static ConditionalStatement ifThenElse(Expression test,
+      Node... nodes) {
+    return new ConditionalStatement(
+        new FluentArrayList<Node>().append(test).appendAll(nodes));
+  }
+
+  /**
    * Creates a UnaryExpression that represents the incrementing of
    * the expression value by 1.
    */

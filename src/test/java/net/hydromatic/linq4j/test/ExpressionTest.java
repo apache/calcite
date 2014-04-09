@@ -1045,11 +1045,32 @@ public class ExpressionTest {
     assertEquals(
         "if (true) {\n"
         + "  return;\n"
+        + "} else {\n"
+        + "  return 1;\n"
         + "}\n",
         Expressions.toString(
-            Expressions.ifThen(
+            Expressions.ifThenElse(
                 Expressions.constant(true),
-                Expressions.return_(null))));
+                Expressions.return_(null),
+                Expressions.return_(null, Expressions.constant(1)))));
+  }
+
+  @Test public void testIfElseIfElse() {
+    assertEquals(
+        "if (true) {\n"
+        + "  return;\n"
+        + "} else if (false) {\n"
+        + "  return;\n"
+        + "} else {\n"
+        + "  return 1;\n"
+        + "}\n",
+        Expressions.toString(
+            Expressions.ifThenElse(
+                Expressions.constant(true),
+                Expressions.return_(null),
+                Expressions.constant(false),
+                Expressions.return_(null),
+                Expressions.return_(null, Expressions.constant(1)))));
   }
 
   @Test public void assignInCondition() {
