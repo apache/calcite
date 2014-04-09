@@ -376,6 +376,10 @@ public class Pair<T1, T2>
             previous = current;
             return pair;
           }
+
+          public void remove() {
+            throw new UnsupportedOperationException("remove");
+          }
         };
       }
     };
@@ -406,6 +410,10 @@ public class Pair<T1, T2>
 
           public Pair<T, T> next() {
             return of(first, iterator.next());
+          }
+
+          public void remove() {
+            throw new UnsupportedOperationException("remove");
           }
         };
       }
