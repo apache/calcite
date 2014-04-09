@@ -84,16 +84,24 @@ public class RelOptTableImpl implements Prepare.PreparingTable {
       RelOptSchema schema,
       RelDataType rowType,
       final OptiqSchema.TableEntry tableEntry) {
-    final QueryableTable table = (QueryableTable) tableEntry.getTable();
-    final Function<Class, Expression> expressionFunction =
-        new Function<Class, Expression>() {
-          public Expression apply(Class clazz) {
-            return table.getExpression(tableEntry.schema.plus(),
-                tableEntry.name, clazz);
-          }
-        };
-    return new RelOptTableImpl(schema, rowType, tableEntry.path(), table,
-        expressionFunction);
+    Function<Class, Expression> expressionFunction;
+    if (tableEntry.getTable() instanceof QueryableTable) {
+      final QueryableTable table = (QueryableTable) tableEntry.getTable();
+      expressionFunction = new Function<Class, Expression>() {
+        public Expression apply(Class clazz) {
+          return table.getExpression(tableEntry.schema.plus(),
+              tableEntry.name, clazz);
+        }
+      };
+    } else {
+      expressionFunction = new Function<Class, Expression>() {
+        public Expression apply(Class input) {
+          throw new UnsupportedOperationException();
+        }
+      };
+    }
+    return new RelOptTableImpl(schema, rowType, tableEntry.path(),
+      tableEntry.getTable(), expressionFunction);
   }
 
   public static RelOptTableImpl create(
