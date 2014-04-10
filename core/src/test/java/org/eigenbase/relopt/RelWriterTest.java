@@ -115,7 +115,7 @@ public class RelWriterTest {
               public String apply(RelOptCluster cluster,
                   RelOptSchema relOptSchema, SchemaPlus rootSchema) {
                 rootSchema.add("hr",
-                    new ReflectiveSchema("hr", new JdbcTest.HrSchema()));
+                    new ReflectiveSchema(new JdbcTest.HrSchema()));
                 TableAccessRel table =
                     new TableAccessRel(cluster,
                         relOptSchema.getTableForMember(
@@ -158,7 +158,7 @@ public class RelWriterTest {
                   RelOptSchema relOptSchema, SchemaPlus rootSchema) {
                 SchemaPlus schema =
                     rootSchema.add("hr",
-                        new ReflectiveSchema("hr", new JdbcTest.HrSchema()));
+                        new ReflectiveSchema(new JdbcTest.HrSchema()));
                 final RelJsonReader reader =
                     new RelJsonReader(cluster, relOptSchema, schema);
                 RelNode node;

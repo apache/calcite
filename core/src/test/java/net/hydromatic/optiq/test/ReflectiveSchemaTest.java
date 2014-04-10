@@ -148,7 +148,7 @@ public class ReflectiveSchemaTest {
         TableMacroImpl.create(JdbcTest.GENERATE_STRINGS_METHOD));
     schema.add("StringUnion",
         TableMacroImpl.create(JdbcTest.STRING_UNION_METHOD));
-    rootSchema.add("hr", new ReflectiveSchema("hr", new JdbcTest.HrSchema()));
+    rootSchema.add("hr", new ReflectiveSchema(new JdbcTest.HrSchema()));
     ResultSet resultSet = connection.createStatement().executeQuery(
         "select *\n"
         + "from table(s.StringUnion(\n"
@@ -173,7 +173,7 @@ public class ReflectiveSchemaTest {
         ViewTable.viewMacro(schema,
             "select * from \"hr\".\"emps\" where \"deptno\" = 10",
             null));
-    rootSchema.add("hr", new ReflectiveSchema("hr", new JdbcTest.HrSchema()));
+    rootSchema.add("hr", new ReflectiveSchema(new JdbcTest.HrSchema()));
     ResultSet resultSet = connection.createStatement().executeQuery(
         "select *\n"
         + "from \"s\".\"emps_view\"\n"
@@ -210,7 +210,7 @@ public class ReflectiveSchemaTest {
             Collections.singletonList("s")));
     schema.add("null_emps",
         ViewTable.viewMacro(schema, "select * from \"emps\"", null));
-    rootSchema.add("hr", new ReflectiveSchema("hr", new JdbcTest.HrSchema()));
+    rootSchema.add("hr", new ReflectiveSchema(new JdbcTest.HrSchema()));
     final Statement statement = connection.createStatement();
     ResultSet resultSet;
     resultSet = statement.executeQuery(

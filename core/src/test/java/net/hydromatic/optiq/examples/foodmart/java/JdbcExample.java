@@ -40,9 +40,8 @@ public class JdbcExample {
     OptiqConnection optiqConnection =
         connection.unwrap(OptiqConnection.class);
     SchemaPlus rootSchema = optiqConnection.getRootSchema();
-    rootSchema.add("hr", new ReflectiveSchema("hr", new Hr()));
-    rootSchema.add("foodmart",
-        new ReflectiveSchema("foodmart", new Foodmart()));
+    rootSchema.add("hr", new ReflectiveSchema(new Hr()));
+    rootSchema.add("foodmart", new ReflectiveSchema(new Foodmart()));
     Statement statement = connection.createStatement();
     ResultSet resultSet =
         statement.executeQuery(

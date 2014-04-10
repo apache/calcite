@@ -296,7 +296,7 @@ public class JdbcTest {
     OptiqConnection connection = (OptiqConnection)
         driver.connect("jdbc:optiq:", new Properties());
     SchemaPlus rootSchema = connection.getRootSchema();
-    rootSchema.add("hr", new ReflectiveSchema("hr", new HrSchema()));
+    rootSchema.add("hr", new ReflectiveSchema(new HrSchema()));
     connection.setSchema("hr");
     final Statement statement = connection.createStatement();
     final ResultSet resultSet =
@@ -346,7 +346,7 @@ public class JdbcTest {
     OptiqConnection connection = (OptiqConnection)
         driver.connect("jdbc:optiq:", new Properties());
     SchemaPlus rootSchema = connection.getRootSchema();
-    rootSchema.add("hr", new ReflectiveSchema("hr", new HrSchema()));
+    rootSchema.add("hr", new ReflectiveSchema(new HrSchema()));
     connection.setSchema("hr");
     final Statement statement = connection.createStatement();
     assertFalse((Boolean) OptiqAssert.call(statement, "isCloseOnCompletion"));
@@ -380,7 +380,7 @@ public class JdbcTest {
     OptiqConnection optiqConnection =
         connection.unwrap(OptiqConnection.class);
     final SchemaPlus rootSchema = optiqConnection.getRootSchema();
-    rootSchema.add("hr", new ReflectiveSchema("hr", new HrSchema()));
+    rootSchema.add("hr", new ReflectiveSchema(new HrSchema()));
     Statement statement = optiqConnection.createStatement();
     ResultSet resultSet = statement.executeQuery(
         "select d.\"deptno\", min(e.\"empid\")\n"
@@ -2720,7 +2720,7 @@ public class JdbcTest {
                         .connect("jdbc:optiq:", new Properties());
                 final SchemaPlus rootSchema = connection.getRootSchema();
                 rootSchema.add("hr",
-                    new ReflectiveSchema("hr", new HrSchema()));
+                    new ReflectiveSchema(new HrSchema()));
                 connection.setSchema("hr");
                 return connection;
               }
@@ -3060,7 +3060,7 @@ public class JdbcTest {
     OptiqConnection optiqConnection =
         connection.unwrap(OptiqConnection.class);
     final SchemaPlus rootSchema = optiqConnection.getRootSchema();
-    rootSchema.add("TEST", new ReflectiveSchema("TEST", new MySchema()));
+    rootSchema.add("TEST", new ReflectiveSchema(new MySchema()));
     Statement statement = optiqConnection.createStatement();
     ResultSet resultSet =
         statement.executeQuery("SELECT \"myvalue\" from TEST.\"mytable2\"");
@@ -3819,7 +3819,7 @@ public class JdbcTest {
         final Map<String, Object> operand) {
       final boolean mutable =
           SqlFunctions.isNotFalse((Boolean) operand.get("mutable"));
-      return new ReflectiveSchema(name, new HrSchema()) {
+      return new ReflectiveSchema(new HrSchema()) {
         @Override
         protected Map<String, Table> getTableMap() {
           // Mine the EMPS table and add it under another name e.g. ELVIS

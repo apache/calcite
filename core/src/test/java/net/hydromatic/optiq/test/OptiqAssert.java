@@ -453,16 +453,15 @@ public class OptiqAssert {
         connection.unwrap(OptiqConnection.class);
     SchemaPlus rootSchema = optiqConnection.getRootSchema();
     if (schemaList.contains("hr")) {
-      rootSchema.add("hr",
-          new ReflectiveSchema("hr", new JdbcTest.HrSchema()));
+      rootSchema.add("hr", new ReflectiveSchema(new JdbcTest.HrSchema()));
     }
     if (schemaList.contains("foodmart")) {
       rootSchema.add("foodmart",
-          new ReflectiveSchema("foodmart", new JdbcTest.FoodmartSchema()));
+          new ReflectiveSchema(new JdbcTest.FoodmartSchema()));
     }
     if (schemaList.contains("lingual")) {
       rootSchema.add("SALES",
-          new ReflectiveSchema("SALES", new JdbcTest.LingualSchema()));
+          new ReflectiveSchema(new JdbcTest.LingualSchema()));
     }
     if (schemaList.contains("metadata")) {
       // always present
@@ -556,7 +555,7 @@ public class OptiqAssert {
                   connection.unwrap(OptiqConnection.class);
               SchemaPlus rootSchema =
                   optiqConnection.getRootSchema();
-              rootSchema.add(name, new ReflectiveSchema(name, schema));
+              rootSchema.add(name, new ReflectiveSchema(schema));
               optiqConnection.setSchema(name);
               return optiqConnection;
             }

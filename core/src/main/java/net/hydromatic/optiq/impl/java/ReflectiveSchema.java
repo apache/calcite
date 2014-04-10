@@ -26,7 +26,6 @@ import net.hydromatic.optiq.impl.*;
 
 import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.reltype.RelDataTypeFactory;
-import org.eigenbase.util.Bug;
 
 import com.google.common.collect.*;
 
@@ -40,27 +39,17 @@ import java.util.*;
 public class ReflectiveSchema
     extends AbstractSchema {
   final Class clazz;
-  private final String name;
   private Object target;
 
   /**
    * Creates a ReflectiveSchema.
    *
-   * @param name Name
    * @param target Object whose fields will be sub-objects of the schema
    */
-  public ReflectiveSchema(String name, Object target) {
+  public ReflectiveSchema(Object target) {
     super();
-    this.name = name;
     this.clazz = target.getClass();
     this.target = target;
-  }
-
-  public String getName() {
-    Bug.upgrade(
-        "remove name field and this method when "
-        + "https://github.com/julianhyde/optiq/issues/214 is fixed");
-    return name;
   }
 
   @Override
@@ -262,7 +251,7 @@ public class ReflectiveSchema
               e);
         }
       }
-      return new ReflectiveSchema(name, target);
+      return new ReflectiveSchema(target);
     }
   }
 

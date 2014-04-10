@@ -151,8 +151,8 @@ public class PlannerTest {
   }
 
   private SchemaPlus createHrSchema() {
-    return Frameworks.createRootSchema()
-        .add("hr", new ReflectiveSchema("hr", new JdbcTest.HrSchema()));
+    return Frameworks.createRootSchema().add("hr",
+        new ReflectiveSchema(new JdbcTest.HrSchema()));
   }
 
   private Planner getPlanner(List<RelTraitDef> traitDefs, RuleSet... ruleSets) {
@@ -506,7 +506,7 @@ public class PlannerTest {
   public String checkTpchQuery(String tpchTestQuery) throws Exception {
     final SchemaPlus schema =
         Frameworks.createRootSchema().add("tpch",
-        new ReflectiveSchema("tpch", new TpchSchema()));
+            new ReflectiveSchema(new TpchSchema()));
 
     Planner p = Frameworks.getPlanner(Lex.MYSQL, schema,
         SqlStdOperatorTable.instance(), RULE_SETS);
