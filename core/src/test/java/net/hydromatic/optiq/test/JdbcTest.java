@@ -2903,6 +2903,10 @@ public class JdbcTest {
             + "   ]\n"
             + "}")
         .withSchema("adhoc");
+    with.withSchema(null)
+        .query(
+            "select \"adhoc\".my_sum(\"deptno\") as p from \"adhoc\".EMPLOYEES\n")
+        .returns("P=50\n");
     with.query("select my_sum(\"empid\"), \"deptno\" as p from EMPLOYEES\n")
         .throws_(
             "Expression 'deptno' is not being grouped");
@@ -2913,10 +2917,10 @@ public class JdbcTest {
             "Cannot apply 'MY_SUM' to arguments of type 'MY_SUM(<JAVATYPE(CLASS JAVA.LANG.STRING)>)'. Supported form(s): 'MY_SUM(<NUMERIC>)");
     with.query("select my_sum(\"deptno\", 1) as p from EMPLOYEES\n")
         .throws_(
-            "Invalid number of arguments to function 'MY_SUM'. Was expecting 1 arguments");
+            "No match found for function signature MY_SUM(<NUMERIC>, <NUMERIC>)");
     with.query("select my_sum() as p from EMPLOYEES\n")
         .throws_(
-            "Invalid number of arguments to function 'MY_SUM'. Was expecting 1 arguments");
+            "No match found for function signature MY_SUM()");
     with.query(
         "select \"deptno\", my_sum(\"deptno\") as p from EMPLOYEES\n"
         + "group by \"deptno\"")

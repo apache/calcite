@@ -29,20 +29,30 @@ public abstract class SqlAggFunction extends SqlFunction
     implements Aggregation {
   //~ Constructors -----------------------------------------------------------
 
-  public SqlAggFunction(
+  /** Creates a built-in SqlAggFunction. */
+  protected SqlAggFunction(
       String name,
       SqlKind kind,
       SqlReturnTypeInference returnTypeInference,
       SqlOperandTypeInference operandTypeInference,
       SqlOperandTypeChecker operandTypeChecker,
       SqlFunctionCategory funcType) {
-    super(
-        name,
-        kind,
-        returnTypeInference,
-        operandTypeInference,
-        operandTypeChecker,
-        funcType);
+    // We leave sqlIdentifier as null to indicate that this is a builtin.
+    this(name, null, kind, returnTypeInference, operandTypeInference,
+        operandTypeChecker, funcType);
+  }
+
+  /** Creates a user-defined SqlAggFunction. */
+  protected SqlAggFunction(
+      String name,
+      SqlIdentifier sqlIdentifier,
+      SqlKind kind,
+      SqlReturnTypeInference returnTypeInference,
+      SqlOperandTypeInference operandTypeInference,
+      SqlOperandTypeChecker operandTypeChecker,
+      SqlFunctionCategory funcType) {
+    super(name, sqlIdentifier, kind, returnTypeInference, operandTypeInference,
+        operandTypeChecker, null, funcType);
   }
 
   //~ Methods ----------------------------------------------------------------

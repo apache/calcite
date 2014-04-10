@@ -31,7 +31,7 @@ import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 
 /**
- * User-defined function.
+ * User-defined aggregate function.
  *
  * <p>Created by the validator, after resolving a function call to a function
  * defined in an Optiq schema.</p>
@@ -43,8 +43,8 @@ public class SqlUserDefinedAggFunction extends SqlAggFunction {
       SqlReturnTypeInference returnTypeInference,
       SqlOperandTypeInference operandTypeInference,
       SqlOperandTypeChecker operandTypeChecker, AggregateFunction function) {
-    super(Util.last(opName.names), SqlKind.OTHER_FUNCTION, returnTypeInference,
-        operandTypeInference, operandTypeChecker, null);
+    super(Util.last(opName.names), opName, SqlKind.OTHER_FUNCTION,
+        returnTypeInference, operandTypeInference, operandTypeChecker, null);
     this.function = function;
   }
 
