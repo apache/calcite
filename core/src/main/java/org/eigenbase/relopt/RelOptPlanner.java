@@ -99,6 +99,12 @@ public interface RelOptPlanner {
   boolean removeRule(RelOptRule rule);
 
   /**
+   * Provides the Context created when this planner was constructed.
+   * @return Either null or an externally defined context.
+   */
+  Context getContext();
+
+  /**
    * Sets the exclusion filter to use for this planner. Rules which match the
    * given pattern will not be fired regardless of whether or when they are
    * added to the planner.

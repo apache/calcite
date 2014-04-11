@@ -86,7 +86,7 @@ public class Programs {
       public RelNode run(RelOptPlanner planner, RelNode rel,
           RelTraitSet requiredOutputTraits) {
         final HepPlanner hepPlanner = new HepPlanner(hepProgram,
-            noDag, null, RelOptCostImpl.FACTORY);
+            null, noDag, null, RelOptCostImpl.FACTORY);
 
         if (metadataProvider != null) {
           List<RelMetadataProvider> list = Lists.newArrayList();

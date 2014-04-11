@@ -188,7 +188,8 @@ public class RelOptMaterialization {
         .addRuleInstance(PullUpProjectsAboveJoinRule.LEFT_PROJECT)
         .build();
     final HepPlanner planner =
-        new HepPlanner(program);
+        new HepPlanner(program, //
+            rel.getCluster().getPlanner().getContext());
     planner.setRoot(rel);
     System.out.println(
         RelOptUtil.dumpPlan(

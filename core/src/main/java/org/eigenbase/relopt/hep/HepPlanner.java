@@ -77,7 +77,17 @@ public class HepPlanner extends AbstractRelOptPlanner {
    * @param program program controlling rule application
    */
   public HepPlanner(HepProgram program) {
-    this(program, false, null, RelOptCostImpl.FACTORY);
+    this(program, null, false, null, RelOptCostImpl.FACTORY);
+  }
+
+  /**
+   * Creates a new HepPlanner that allows DAG.
+   *
+   * @param program program controlling rule application
+   * @param context to carry while planning
+   */
+  public HepPlanner(HepProgram program, Context context) {
+    this(program, context, false, null, RelOptCostImpl.FACTORY);
   }
 
   /**
@@ -89,10 +99,11 @@ public class HepPlanner extends AbstractRelOptPlanner {
    */
   public HepPlanner(
       HepProgram program,
+      Context context,
       boolean noDAG,
       Function2<RelNode, RelNode, Void> onCopyHook,
       RelOptCostFactory costFactory) {
-    super(costFactory);
+    super(costFactory, context);
     this.mainProgram = program;
     this.onCopyHook =
         Util.first(onCopyHook, Functions.<RelNode, RelNode, Void>ignore2());

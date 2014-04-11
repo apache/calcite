@@ -73,6 +73,8 @@ public class RelDecorrelator implements ReflectiveVisitor {
   // The rel which is being visited
   private RelNode currentRel;
 
+  private final Context context;
+
   // maps built during decorrelation
   private final Map<RelNode, RelNode> mapOldToNewRel;
 
@@ -94,11 +96,13 @@ public class RelDecorrelator implements ReflectiveVisitor {
       RexBuilder rexBuilder,
       Map<RelNode, SortedSet<CorrelatorRel.Correlation>> mapRefRelToCorVar,
       SortedMap<CorrelatorRel.Correlation, CorrelatorRel> mapCorVarToCorRel,
-      Map<RexFieldAccess, CorrelatorRel.Correlation> mapFieldAccessToCorVar) {
+      Map<RexFieldAccess, CorrelatorRel.Correlation> mapFieldAccessToCorVar,
+      Context context) {
     this.rexBuilder = rexBuilder;
     this.mapRefRelToCorVar = mapRefRelToCorVar;
     this.mapCorVarToCorRel = mapCorVarToCorRel;
     this.mapFieldAccessToCorVar = mapFieldAccessToCorVar;
+    this.context = context;
 
     decorrelateVisitor = new DecorrelateRelVisitor();
     mapOldToNewRel = new HashMap<RelNode, RelNode>();
@@ -169,6 +173,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
     // node is copied when it is registered.
     return new HepPlanner(
         program,
+        context,
         true,
         createCopyHook(),
         RelOptCostImpl.FACTORY);

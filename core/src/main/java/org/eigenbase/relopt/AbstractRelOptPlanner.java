@@ -26,10 +26,11 @@ import org.eigenbase.rel.metadata.*;
 import org.eigenbase.relopt.volcano.RelSubset;
 import org.eigenbase.util.*;
 
+import static org.eigenbase.util.Static.RESOURCE;
+
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 
-import static org.eigenbase.util.Static.RESOURCE;
 
 /**
  * Abstract base for implementations of the {@link RelOptPlanner} interface.
@@ -63,6 +64,8 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
 
   private final Set<RelTrait> traits = new HashSet<RelTrait>();
 
+  private final Context context;
+
   private Executor executor;
 
   //~ Constructors -----------------------------------------------------------
@@ -70,8 +73,11 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
   /**
    * Creates an AbstractRelOptPlanner.
    */
-  protected AbstractRelOptPlanner(RelOptCostFactory costFactory) {
+  protected AbstractRelOptPlanner(RelOptCostFactory costFactory, //
+      Context context) {
+    assert costFactory != null;
     this.costFactory = costFactory;
+    this.context = context;
 
     // In case no one calls setCancelFlag, set up a
     // dummy here.
@@ -86,6 +92,10 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
   //~ Methods ----------------------------------------------------------------
 
   public void clear() {}
+
+  public Context getContext() {
+    return context;
+  }
 
   public RelOptCostFactory getCostFactory() {
     return costFactory;

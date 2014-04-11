@@ -41,6 +41,7 @@ import com.google.common.collect.ImmutableList;
 public class PlannerImpl implements Planner {
   private final SqlOperatorTable operatorTable;
   private final ImmutableList<Program> programs;
+  private final FrameworkConfig config;
 
   /** Holds the trait definitions to be registered with planner. May be null. */
   private final ImmutableList<RelTraitDef> traitDefs;
@@ -70,22 +71,20 @@ public class PlannerImpl implements Planner {
   private SqlRexConvertletTable convertletTable;
   private RelNode rel;
 
+
+
   /** Creates a planner. Not a public API; call
    * {@link net.hydromatic.optiq.tools.Frameworks#getPlanner} instead. */
-  public PlannerImpl(Lex lex, SqlParserImplFactory parserFactory,
-      SchemaPlus defaultSchema,
-      SqlOperatorTable operatorTable, ImmutableList<Program> programs,
-      ImmutableList<RelTraitDef> traitDefs,
-      SqlRexConvertletTable convertletTable) {
-    assert defaultSchema != null;
-    this.defaultSchema = defaultSchema;
-    this.operatorTable = operatorTable;
-    this.programs = programs;
-    this.lex = lex;
-    this.parserFactory = parserFactory;
+  public PlannerImpl(FrameworkConfig config) {
+    this.config = config;
+    this.defaultSchema = config.getDefaultSchema();
+    this.operatorTable = config.getOperatorTable();
+    this.programs = config.getPrograms();
+    this.lex = config.getLex();
+    this.parserFactory = config.getParserFactory();
     this.state = State.STATE_0_CLOSED;
-    this.traitDefs = traitDefs;
-    this.convertletTable = convertletTable;
+    this.traitDefs = config.getTraitDefs();
+    this.convertletTable = config.getConvertletTable();
     reset();
   }
 
@@ -132,7 +131,8 @@ public class PlannerImpl implements Planner {
             planner = cluster.getPlanner();
             return null;
           }
-        });
+        },
+        config);
 
     state = State.STATE_2_READY;
 

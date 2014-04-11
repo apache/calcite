@@ -22,6 +22,7 @@ import net.hydromatic.avatica.ColumnMetaData;
 import net.hydromatic.avatica.Helper;
 
 import net.hydromatic.linq4j.*;
+
 import net.hydromatic.linq4j.expressions.*;
 import net.hydromatic.linq4j.function.Function1;
 
@@ -182,15 +183,24 @@ public class OptiqPrepareImpl implements OptiqPrepare {
     return Collections.<Function1<Context, RelOptPlanner>>singletonList(
         new Function1<Context, RelOptPlanner>() {
           public RelOptPlanner apply(Context context) {
-            return createPlanner(context);
+            return createPlanner(context, null, null);
           }
         });
   }
 
   /** Creates a query planner and initializes it with a default set of
    * rules. */
-  protected RelOptPlanner createPlanner(Context context) {
-    final VolcanoPlanner planner = new VolcanoPlanner();
+  protected RelOptPlanner createPlanner(OptiqPrepare.Context prepareContext) {
+    return createPlanner(prepareContext, null, null);
+  }
+
+  /** Creates a query planner and initializes it with a default set of
+   * rules. */
+  protected RelOptPlanner createPlanner(OptiqPrepare.Context prepareContext, //
+      org.eigenbase.relopt.Context externalContext, //
+      RelOptCostFactory costFactory) {
+    final VolcanoPlanner planner = //
+        new VolcanoPlanner(costFactory, externalContext);
     planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
     if (ENABLE_COLLATION_TRAIT) {
       planner.addRelTraitDef(RelCollationTraitDef.INSTANCE);
@@ -208,7 +218,7 @@ public class OptiqPrepareImpl implements OptiqPrepare {
       }
     }
 
-    final SparkHandler spark = context.spark();
+    final SparkHandler spark = prepareContext.spark();
     if (spark.enabled()) {
       spark.registerRules(
           new SparkHandler.RuleSetBuilder() {
@@ -545,19 +555,23 @@ public class OptiqPrepareImpl implements OptiqPrepare {
   /** Executes a prepare action. */
   public <R> R perform(OptiqServerStatement statement,
       Frameworks.PrepareAction<R> action) {
-    final Context context = statement.createPrepareContext();
-    final JavaTypeFactory typeFactory = context.getTypeFactory();
+    final OptiqPrepare.Context prepareContext = statement
+        .createPrepareContext();
+    final JavaTypeFactory typeFactory = prepareContext.getTypeFactory();
     OptiqCatalogReader catalogReader = new OptiqCatalogReader(
-        context.getRootSchema(),
-        context.config().caseSensitive(),
-        context.getDefaultSchemaPath(),
+        prepareContext.getRootSchema(),
+        prepareContext.config().caseSensitive(),
+        prepareContext.getDefaultSchemaPath(),
         typeFactory);
     final RexBuilder rexBuilder = new RexBuilder(typeFactory);
-    final RelOptPlanner planner = createPlanner(context);
+    final RelOptPlanner planner = createPlanner(prepareContext, //
+        action.getConfig().getContext(), //
+        action.getConfig().getCostFactory());
     final RelOptQuery query = new RelOptQuery(planner);
     final RelOptCluster cluster =
         query.createCluster(rexBuilder.getTypeFactory(), rexBuilder);
-    return action.apply(cluster, catalogReader, context.getRootSchema().plus(),
+    return action.apply(cluster, catalogReader,
+        prepareContext.getRootSchema().plus(),
         statement);
   }
 
