@@ -166,7 +166,7 @@ public interface QueryableFactory<T> {
 
   /**
    * Determines whether a sequence contains a specified
-   * element by using a specified EqualityComparer<T>.
+   * element by using a specified {@code EqualityComparer<T>}.
    */
   boolean contains(Queryable<T> source, T element,
       EqualityComparer<T> comparer);
@@ -205,7 +205,7 @@ public interface QueryableFactory<T> {
 
   /**
    * Returns distinct elements from a sequence by using
-   * a specified EqualityComparer<T> to compare values.
+   * a specified {@code EqualityComparer<T>} to compare values.
    */
   Queryable<T> distinct(Queryable<T> source, EqualityComparer<T> comparer);
 
@@ -231,7 +231,7 @@ public interface QueryableFactory<T> {
 
   /**
    * Produces the set difference of two sequences by
-   * using the specified EqualityComparer<T> to compare
+   * using the specified {@code EqualityComparer<T>} to compare
    * values.
    */
   Queryable<T> except(Queryable<T> source, Enumerable<T> enumerable,
@@ -450,13 +450,13 @@ public interface QueryableFactory<T> {
 
   /**
    * Returns the maximum value in a generic
-   * IQueryable<T>.
+   * {@code IQueryable<T>}.
    */
   T max(Queryable<T> source);
 
   /**
    * Invokes a projection function on each element of a
-   * generic IQueryable<T> and returns the maximum resulting
+   * generic {@code IQueryable<T>} and returns the maximum resulting
    * value.
    */
   <TResult extends Comparable<TResult>> TResult max(Queryable<T> source,
@@ -464,13 +464,13 @@ public interface QueryableFactory<T> {
 
   /**
    * Returns the minimum value in a generic
-   * IQueryable<T>.
+   * {@code IQueryable<T>}.
    */
   T min(Queryable<T> source);
 
   /**
    * Invokes a projection function on each element of a
-   * generic IQueryable<T> and returns the minimum resulting
+   * generic {@code IQueryable<T>} and returns the minimum resulting
    * value.
    */
   <TResult extends Comparable<TResult>> TResult min(Queryable<T> source,
@@ -536,7 +536,7 @@ public interface QueryableFactory<T> {
 
   /**
    * Projects each element of a sequence to an
-   * Enumerable<T> and combines the resulting sequences into one
+   * {@code Enumerable<T>} and combines the resulting sequences into one
    * sequence.
    */
   <TResult> Queryable<TResult> selectMany(Queryable<T> source,
@@ -544,7 +544,7 @@ public interface QueryableFactory<T> {
 
   /**
    * Projects each element of a sequence to an
-   * Enumerable<T> and combines the resulting sequences into one
+   * {@code Enumerable<T>} and combines the resulting sequences into one
    * sequence. The index of each source element is used in the
    * projected form of that element.
    */
@@ -553,7 +553,7 @@ public interface QueryableFactory<T> {
 
   /**
    * Projects each element of a sequence to an
-   * Enumerable<T> that incorporates the index of the source
+   * {@code Enumerable<T>} that incorporates the index of the source
    * element that produced it. A result selector function is invoked
    * on each element of each intermediate sequence, and the
    * resulting values are combined into a single, one-dimensional
@@ -566,7 +566,7 @@ public interface QueryableFactory<T> {
 
   /**
    * Projects each element of a sequence to an
-   * Enumerable<T> and invokes a result selector function on each
+   * {@code Enumerable<T>} and invokes a result selector function on each
    * element therein. The resulting values from each intermediate
    * sequence are combined into a single, one-dimensional sequence
    * and returned.
@@ -770,7 +770,7 @@ public interface QueryableFactory<T> {
 
   /**
    * Produces the set union of two sequences by using a
-   * specified EqualityComparer<T>.
+   * specified {@code EqualityComparer<T>}.
    */
   Queryable<T> union(Queryable<T> source, Enumerable<T> source1,
       EqualityComparer<T> comparer);

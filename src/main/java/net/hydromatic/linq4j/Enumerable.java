@@ -32,7 +32,7 @@ public interface Enumerable<T>
   /**
    * Converts this Enumerable to a Queryable.
    *
-   * @see EnumerableDefaults#asQueryable(Enumerable
+   * @see EnumerableDefaults#asQueryable(Enumerable)
    */
   Queryable<T> asQueryable();
 

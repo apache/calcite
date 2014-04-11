@@ -83,24 +83,27 @@ public interface ExtendedEnumerable<TSource> {
   boolean any(Predicate1<TSource> predicate);
 
   /**
-   * Returns the input typed as Enumerable<TSource>.
+   * Returns the input typed as {@code Enumerable<TSource>}.
    *
-   * <p>The AsEnumerable<TSource>(Enumerable<TSource>) method has no effect
+   * <p>This method has no effect
    * other than to change the compile-time type of source from a type that
-   * implements Enumerable<TSource> to Enumerable<TSource> itself.
+   * implements {@code Enumerable<TSource>} to {@code Enumerable<TSource>}
+   * itself.
    *
-   * <p>AsEnumerable<TSource>(Enumerable<TSource>) can be used to choose
+   * <p>{@code asEnumerable<TSource>(Enumerable<TSource>)} can be used to choose
    * between query implementations when a sequence implements
-   * Enumerable<TSource> but also has a different set of public query methods
-   * available. For example, given a generic class Table that implements
-   * Enumerable<TSource> and has its own methods such as Where, Select, and
-   * SelectMany, a call to Where would invoke the public Where method of
-   * Table. A Table type that represents a database table could have a Where
-   * method that takes the predicate argument as an expression tree and
-   * converts the tree to SQL for remote execution. If remote execution is not
-   * desired, for example because the predicate invokes a local method, the
-   * AsEnumerable<TSource> method can be used to hide the custom methods and
-   * instead make the standard query operators available.
+
+   * {@code Enumerable<TSource>} but also has a different set of public query
+   * methods available. For example, given a generic class Table that implements
+   * {@code Enumerable<TSource>} and has its own methods such as {@code where},
+   * {@code select}, and {@code selectMany}, a call to {@code where} would
+   * invoke the public {@code where} method of {@code Table}. A {@code Table}
+   * type that represents a database table could have a {@code where} method
+   * that takes the predicate argument as an expression tree and converts the
+   * tree to SQL for remote execution. If remote execution is not desired, for
+   * example because the predicate invokes a local method, the
+   * {@code asEnumerable<TSource>} method can be used to hide the custom methods
+   * and instead make the standard query operators available.
    */
   Enumerable<TSource> asEnumerable();
 
@@ -222,7 +225,7 @@ public interface ExtendedEnumerable<TSource> {
 
   /**
    * Determines whether a sequence contains a specified
-   * element by using a specified EqualityComparer<TSource>.
+   * element by using a specified {@code EqualityComparer<TSource>}.
    */
   boolean contains(TSource element, EqualityComparer comparer);
 
@@ -260,7 +263,7 @@ public interface ExtendedEnumerable<TSource> {
 
   /**
    * Returns distinct elements from a sequence by using
-   * a specified EqualityComparer<TSource> to compare values.
+   * a specified {@code EqualityComparer<TSource>} to compare values.
    */
   Enumerable<TSource> distinct(EqualityComparer<TSource> comparer);
 
@@ -286,7 +289,7 @@ public interface ExtendedEnumerable<TSource> {
 
   /**
    * Produces the set difference of two sequences by
-   * using the specified EqualityComparer<TSource> to compare
+   * using the specified {@code EqualityComparer<TSource>} to compare
    * values.
    */
   Enumerable<TSource> except(Enumerable<TSource> enumerable1,
@@ -436,7 +439,7 @@ public interface ExtendedEnumerable<TSource> {
   /**
    * Correlates the elements of two sequences based on
    * key equality and groups the results. A specified
-   * EqualityComparer<TSource> is used to compare keys.
+   * {@code EqualityComparer<TSource>} is used to compare keys.
    */
   <TInner, TKey, TResult> Enumerable<TResult> groupJoin(
       Enumerable<TInner> inner, Function1<TSource, TKey> outerKeySelector,
@@ -453,7 +456,7 @@ public interface ExtendedEnumerable<TSource> {
 
   /**
    * Produces the set intersection of two sequences by
-   * using the specified EqualityComparer<TSource> to compare
+   * using the specified {@code EqualityComparer<TSource>} to compare
    * values.
    */
   Enumerable<TSource> intersect(Enumerable<TSource> enumerable1,
@@ -476,7 +479,7 @@ public interface ExtendedEnumerable<TSource> {
 
   /**
    * Correlates the elements of two sequences based on
-   * matching keys. A specified EqualityComparer<TSource> is used to
+   * matching keys. A specified {@code EqualityComparer<TSource>} is used to
    * compare keys.
    */
   <TInner, TKey, TResult> Enumerable<TResult> join(Enumerable<TInner> inner,
@@ -742,7 +745,7 @@ public interface ExtendedEnumerable<TSource> {
 
   /**
    * Projects each element of a sequence to an
-   * Enumerable<TSource> and flattens the resulting sequences into one
+   * {@code Enumerable<TSource>} and flattens the resulting sequences into one
    * sequence.
    */
   <TResult> Enumerable<TResult> selectMany(
@@ -750,7 +753,7 @@ public interface ExtendedEnumerable<TSource> {
 
   /**
    * Projects each element of a sequence to an
-   * Enumerable<TSource>, and flattens the resulting sequences into one
+   * {@code Enumerable<TSource>}, and flattens the resulting sequences into one
    * sequence. The index of each source element is used in the
    * projected form of that element.
    */
@@ -759,7 +762,7 @@ public interface ExtendedEnumerable<TSource> {
 
   /**
    * Projects each element of a sequence to an
-   * Enumerable<TSource>, flattens the resulting sequences into one
+   * {@code Enumerable<TSource>}, flattens the resulting sequences into one
    * sequence, and invokes a result selector function on each
    * element therein. The index of each source element is used in
    * the intermediate projected form of that element.
@@ -770,7 +773,7 @@ public interface ExtendedEnumerable<TSource> {
 
   /**
    * Projects each element of a sequence to an
-   * Enumerable<TSource>, flattens the resulting sequences into one
+   * {@code Enumerable<TSource>}, flattens the resulting sequences into one
    * sequence, and invokes a result selector function on each
    * element therein.
    */
@@ -788,7 +791,7 @@ public interface ExtendedEnumerable<TSource> {
   /**
    * Determines whether two sequences are equal by
    * comparing their elements by using a specified
-   * EqualityComparer<TSource>.
+   * {@code EqualityComparer<TSource>}.
    */
   boolean sequenceEqual(Enumerable<TSource> enumerable1,
       EqualityComparer<TSource> comparer);
@@ -934,8 +937,8 @@ public interface ExtendedEnumerable<TSource> {
   Enumerable<TSource> takeWhile(Predicate2<TSource, Integer> predicate);
 
   /**
-   * Creates a Dictionary<TKey, TValue> from an
-   * Enumerable<TSource> according to a specified key selector
+   * Creates a {@code Map<TKey, TValue>} from an
+   * {@code Enumerable<TSource>} according to a specified key selector
    * function.
    *
    * <p>NOTE: Called {@code toDictionary} in LINQ.NET.</p>
@@ -943,16 +946,16 @@ public interface ExtendedEnumerable<TSource> {
   <TKey> Map<TKey, TSource> toMap(Function1<TSource, TKey> keySelector);
 
   /**
-   * Creates a Dictionary<TKey, TValue> from an
-   * Enumerable<TSource> according to a specified key selector function
+   * Creates a {@code Map<TKey, TValue>} from an
+   * {@code Enumerable<TSource>} according to a specified key selector function
    * and key comparer.
    */
   <TKey> Map<TKey, TSource> toMap(Function1<TSource, TKey> keySelector,
       EqualityComparer<TKey> comparer);
 
   /**
-   * Creates a Dictionary<TKey, TValue> from an
-   * Enumerable<TSource> according to specified key selector and element
+   * Creates a {@code Map<TKey, TValue>} from an
+   * {@code Enumerable<TSource>} according to specified key selector and element
    * selector functions.
    */
   <TKey, TElement> Map<TKey, TElement> toMap(
@@ -960,8 +963,8 @@ public interface ExtendedEnumerable<TSource> {
       Function1<TSource, TElement> elementSelector);
 
   /**
-   * Creates a Dictionary<TKey, TValue> from an
-   * Enumerable<TSource> according to a specified key selector function,
+   * Creates a {@code Map<TKey, TValue>} from an
+   * {@code Enumerable<TSource>} according to a specified key selector function,
    * a comparer, and an element selector function.
    */
   <TKey, TElement> Map<TKey, TElement> toMap(
@@ -970,28 +973,28 @@ public interface ExtendedEnumerable<TSource> {
       EqualityComparer<TKey> comparer);
 
   /**
-   * Creates a List<TSource> from an Enumerable<TSource>.
+   * Creates a {@code List<TSource>} from an {@code Enumerable<TSource>}.
    */
   List<TSource> toList();
 
   /**
-   * Creates a Lookup<TKey, TElement> from an
-   * Enumerable<TSource> according to a specified key selector
+   * Creates a {@code Lookup<TKey, TElement>} from an
+   * {@code Enumerable<TSource>} according to a specified key selector
    * function.
    */
   <TKey> Lookup<TKey, TSource> toLookup(Function1<TSource, TKey> keySelector);
 
   /**
-   * Creates a Lookup<TKey, TElement> from an
-   * Enumerable<TSource> according to a specified key selector function
+   * Creates a {@code Lookup<TKey, TElement>} from an
+   * {@code Enumerable<TSource>} according to a specified key selector function
    * and key comparer.
    */
   <TKey> Lookup<TKey, TSource> toLookup(Function1<TSource, TKey> keySelector,
       EqualityComparer<TKey> comparer);
 
   /**
-   * Creates a Lookup<TKey, TElement> from an
-   * Enumerable<TSource> according to specified key selector and element
+   * Creates a {@code Lookup<TKey, TElement>} from an
+   * {@code Enumerable<TSource>} according to specified key selector and element
    * selector functions.
    */
   <TKey, TElement> Lookup<TKey, TElement> toLookup(
@@ -999,8 +1002,8 @@ public interface ExtendedEnumerable<TSource> {
       Function1<TSource, TElement> elementSelector);
 
   /**
-   * Creates a Lookup<TKey, TElement> from an
-   * Enumerable<TSource> according to a specified key selector function,
+   * Creates a {@code Lookup<TKey, TElement>} from an
+   * {@code Enumerable<TSource>} according to a specified key selector function,
    * a comparer and an element selector function.
    */
   <TKey, TElement> Lookup<TKey, TElement> toLookup(
@@ -1016,7 +1019,7 @@ public interface ExtendedEnumerable<TSource> {
 
   /**
    * Produces the set union of two sequences by using a
-   * specified EqualityComparer<TSource>.
+   * specified {@code EqualityComparer<TSource>}.
    */
   Enumerable<TSource> union(Enumerable<TSource> source1,
       EqualityComparer<TSource> comparer);

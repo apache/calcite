@@ -710,8 +710,8 @@ public abstract class Expressions {
   }
 
   /**
-   * Creates a DynamicExpression that represents a dynamic
-   * operation bound by the provided CallSiteBinder, using varargs.
+   * Creates a {@code DynamicExpression} that represents a dynamic
+   * operation bound by the provided {@code CallSiteBinder}, using varargs.
    */
   public static DynamicExpression dynamic(CallSiteBinder binder, Type type,
       Expression... expression) {
@@ -719,7 +719,7 @@ public abstract class Expressions {
   }
 
   /**
-   * Creates an ElementInit, given an Iterable<T> as the second
+   * Creates an {@code ElementInit}, given an {@code Iterable<T>} as the second
    * argument.
    */
   public static ElementInit elementInit(Method method,

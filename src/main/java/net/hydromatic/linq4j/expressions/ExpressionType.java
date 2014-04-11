@@ -74,15 +74,14 @@ public enum ExpressionType {
   AddChecked(" + ", false, 4, false),
 
   /**
-   * A bitwise or logical AND operation, such as (a &amp; b) in C# and
-   * (a And b) in Visual Basic.
+   * A bitwise or logical AND operation, such as {@code a &amp; b} in Java.
    */
   And(" & ", false, 8, false),
 
   /**
    * A conditional AND operation that evaluates the second operand
    * only if the first operand evaluates to true. It corresponds to
-   * (a && b) in C# and (a AndAlso b) in Visual Basic.
+   * {@code a && b} in Java.
    */
   AndAlso(" && ", false, 11, false),
 
@@ -94,12 +93,12 @@ public enum ExpressionType {
 
   /**
    * An indexing operation in a one-dimensional array, such as
-   * array[index] in C# or array(index) in Visual Basic.
+   * {@code array[index]} in Java.
    */
   ArrayIndex,
 
   /**
-   * A method call, such as in the obj.sampleMethod()
+   * A method call, such as in the {@code obj.sampleMethod()}
    * expression.
    */
   Call(".", false, 1, false),
@@ -111,8 +110,7 @@ public enum ExpressionType {
   Coalesce,
 
   /**
-   * A conditional operation, such as a > b ? a : b in C# or
-   * If(a > b, a, b) in Visual Basic.
+   * A conditional operation, such as {@code a > b ? a : b} in Java.
    */
   Conditional(" ? ", " : ", false, 13, true),
 
@@ -122,16 +120,16 @@ public enum ExpressionType {
   Constant,
 
   /**
-   * A cast or conversion operation, such as (SampleType)obj in
-   * C#or CType(obj, SampleType) in Visual Basic. For a numeric
+   * A cast or conversion operation, such as {@code (SampleType) obj} in
+   * Java. For a numeric
    * conversion, if the converted value is too large for the
    * destination type, no exception is thrown.
    */
   Convert(null, false, 2, true),
 
   /**
-   * A cast or conversion operation, such as (SampleType)obj in
-   * C#or CType(obj, SampleType) in Visual Basic. For a numeric
+   * A cast or conversion operation, such as {@code (SampleType) obj} in
+   * Java. For a numeric
    * conversion, if the converted value does not fit the
    * destination type, an exception is thrown.
    */
@@ -144,14 +142,13 @@ public enum ExpressionType {
   Divide(" / ", false, 3, false),
 
   /**
-   * A node that represents an equality comparison, such as (a
-   * == b) in C# or (a = b) in Visual Basic.
+   * A node that represents an equality comparison, such as {@code a == b} in
+   * Java.
    */
   Equal(" == ", false, 7, false),
 
   /**
-   * A bitwise or logical XOR operation, such as (a ^ b) in C#
-   * or (a Xor b) in Visual Basic.
+   * A bitwise or logical XOR operation, such as {@code a ^ b} in Java.
    */
   ExclusiveOr(" ^ ", false, 9, false),
 
@@ -173,13 +170,12 @@ public enum ExpressionType {
   Invoke,
 
   /**
-   * A lambda expression, such as a =&gt; a + a in C# or
-   * Function(a) a + a in Visual Basic.
+   * A lambda expression, such as {@code a -&gt; a + a} in Java.
    */
   Lambda,
 
   /**
-   * A bitwise left-shift operation, such as (a &lt;&lt; b).
+   * A bitwise left-shift operation, such as {@code a << b} in Java.
    */
   LeftShift(" << ", false, 5, false),
 

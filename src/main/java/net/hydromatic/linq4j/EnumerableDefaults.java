@@ -118,24 +118,26 @@ public abstract class EnumerableDefaults {
   }
 
   /**
-   * Returns the input typed as Enumerable<TSource>.
+   * Returns the input typed as {@code Enumerable<TSource>}.
    *
-   * <p>The AsEnumerable<TSource>(Enumerable<TSource>) method has no effect
-   * other than to change the compile-time type of source from a type that
-   * implements Enumerable<TSource> to Enumerable<TSource> itself.
+   * <p>This method has no effect other than to change the compile-time type of
+   * source from a type that implements {@code Enumerable<TSource>} to
+   * {@code Enumerable<TSource>} itself.
    *
-   * <p>AsEnumerable<TSource>(Enumerable<TSource>) can be used to choose
+   * <p>{@code AsEnumerable<TSource>(Enumerable<TSource>)} can be used to choose
    * between query implementations when a sequence implements
-   * Enumerable<TSource> but also has a different set of public query methods
-   * available. For example, given a generic class Table that implements
-   * Enumerable<TSource> and has its own methods such as Where, Select, and
-   * SelectMany, a call to Where would invoke the public Where method of
-   * Table. A Table type that represents a database table could have a Where
-   * method that takes the predicate argument as an expression tree and
-   * converts the tree to SQL for remote execution. If remote execution is not
-   * desired, for example because the predicate invokes a local method, the
-   * AsEnumerable<TSource> method can be used to hide the custom methods and
-   * instead make the standard query operators available.
+   * {@code Enumerable<TSource>} but also has a different set of public query
+   * methods available. For example, given a generic class {@code Table} that
+   * implements {@code Enumerable<TSource>} and has its own methods such as
+   * {@code where}, {@code select}, and {@code selectMany}, a call to
+   * {@code where} would invoke the public {@code where} method of
+   * {@code Table}. A {@code Table} type that represents a database table could
+   * have a {@code where} method that takes the predicate argument as an
+   * expression tree and converts the tree to SQL for remote execution. If
+   * remote execution is not desired, for example because the predicate invokes
+   * a local method, the {@code asEnumerable<TSource>} method can be used to
+   * hide the custom methods and instead make the standard query operators
+   * available.
    */
   public static <TSource> Enumerable<TSource> asEnumerable(
       Enumerable<TSource> enumerable) {
@@ -308,7 +310,7 @@ public abstract class EnumerableDefaults {
 
   /**
    * Determines whether a sequence contains a specified
-   * element by using a specified EqualityComparer<TSource>.
+   * element by using a specified {@code EqualityComparer<TSource>}.
    */
   public static <TSource> boolean contains(Enumerable<TSource> enumerable,
       TSource element, EqualityComparer comparer) {
@@ -425,7 +427,7 @@ public abstract class EnumerableDefaults {
 
   /**
    * Produces the set difference of two sequences by
-   * using the specified EqualityComparer<TSource> to compare
+   * using the specified {@code EqualityComparer<TSource>} to compare
    * values.
    */
   public static <TSource> Enumerable<TSource> except(
@@ -724,7 +726,7 @@ public abstract class EnumerableDefaults {
   /**
    * Correlates the elements of two sequences based on
    * key equality and groups the results. A specified
-   * EqualityComparer<TSource> is used to compare keys.
+   * {@code EqualityComparer<TSource>} is used to compare keys.
    */
   public static <TSource, TInner, TKey, TResult> Enumerable<TResult> groupJoin(
       Enumerable<TSource> outer, Enumerable<TInner> inner,
@@ -761,7 +763,7 @@ public abstract class EnumerableDefaults {
 
   /**
    * Produces the set intersection of two sequences by
-   * using the specified EqualityComparer<TSource> to compare
+   * using the specified {@code EqualityComparer<TSource>} to compare
    * values.
    */
   public static <TSource> Enumerable<TSource> intersect(
@@ -803,7 +805,7 @@ public abstract class EnumerableDefaults {
 
   /**
    * Correlates the elements of two sequences based on
-   * matching keys. A specified EqualityComparer<TSource> is used to
+   * matching keys. A specified {@code EqualityComparer<TSource>} is used to
    * compare keys.
    */
   public static <TSource, TInner, TKey, TResult> Enumerable<TResult> join(
@@ -1427,7 +1429,7 @@ public abstract class EnumerableDefaults {
 
   /**
    * Projects each element of a sequence to an
-   * Enumerable<TSource> and flattens the resulting sequences into one
+   * {@code Enumerable<TSource>} and flattens the resulting sequences into one
    * sequence.
    */
   public static <TSource, TResult> Enumerable<TResult> selectMany(
@@ -1472,7 +1474,7 @@ public abstract class EnumerableDefaults {
 
   /**
    * Projects each element of a sequence to an
-   * Enumerable<TSource>, and flattens the resulting sequences into one
+   * {@code Enumerable<TSource>}, and flattens the resulting sequences into one
    * sequence. The index of each source element is used in the
    * projected form of that element.
    */
@@ -1484,7 +1486,7 @@ public abstract class EnumerableDefaults {
 
   /**
    * Projects each element of a sequence to an
-   * Enumerable<TSource>, flattens the resulting sequences into one
+   * {@code Enumerable<TSource>}, flattens the resulting sequences into one
    * sequence, and invokes a result selector function on each
    * element therein. The index of each source element is used in
    * the intermediate projected form of that element.
@@ -1498,7 +1500,7 @@ public abstract class EnumerableDefaults {
 
   /**
    * Projects each element of a sequence to an
-   * Enumerable<TSource>, flattens the resulting sequences into one
+   * {@code Enumerable<TSource>}, flattens the resulting sequences into one
    * sequence, and invokes a result selector function on each
    * element therein.
    */
@@ -1522,7 +1524,7 @@ public abstract class EnumerableDefaults {
   /**
    * Determines whether two sequences are equal by
    * comparing their elements by using a specified
-   * EqualityComparer<TSource>.
+   * {@code EqualityComparer<TSource>}.
    */
   public static <TSource> boolean sequenceEqual(Enumerable<TSource> enumerable0,
       Enumerable<TSource> enumerable1, EqualityComparer<TSource> comparer) {
@@ -1817,8 +1819,8 @@ public abstract class EnumerableDefaults {
   }
 
   /**
-   * Creates a Dictionary<TKey, TValue> from an
-   * Enumerable<TSource> according to a specified key selector function
+   * Creates a {@code Map<TKey, TValue>} from an
+   * {@code Enumerable<TSource>} according to a specified key selector function
    * and key comparer.
    */
   public static <TSource, TKey> Map<TKey, TSource> toMap(
@@ -1828,8 +1830,8 @@ public abstract class EnumerableDefaults {
   }
 
   /**
-   * Creates a Dictionary<TKey, TValue> from an
-   * Enumerable<TSource> according to specified key selector and element
+   * Creates a {@code Map<TKey, TValue>} from an
+   * {@code Enumerable<TSource>} according to specified key selector and element
    * selector functions.
    */
   public static <TSource, TKey, TElement> Map<TKey, TElement> toMap(
@@ -1851,8 +1853,8 @@ public abstract class EnumerableDefaults {
   }
 
   /**
-   * Creates a Dictionary<TKey, TValue> from an
-   * Enumerable<TSource> according to a specified key selector function,
+   * Creates a {@code Map<TKey, TValue>} from an
+   * {@code Enumerable<TSource>} according to a specified key selector function,
    * a comparer, and an element selector function.
    */
   public static <TSource, TKey, TElement> Map<TKey, TElement> toMap(
@@ -1863,7 +1865,7 @@ public abstract class EnumerableDefaults {
   }
 
   /**
-   * Creates a List<TSource> from an Enumerable<TSource>.
+   * Creates a {@code List<TSource>} from an {@code Enumerable<TSource>}.
    */
   @SuppressWarnings("unchecked")
   public static <TSource> List<TSource> toList(Enumerable<TSource> source) {
@@ -1888,8 +1890,8 @@ public abstract class EnumerableDefaults {
   }
 
   /**
-   * Creates a Lookup<TKey, TElement> from an
-   * Enumerable<TSource> according to a specified key selector function
+   * Creates a {@code Lookup<TKey, TElement>} from an
+   * {@code Enumerable<TSource>} according to a specified key selector function
    * and key comparer.
    */
   public static <TSource, TKey> Lookup<TKey, TSource> toLookup(
@@ -1900,8 +1902,8 @@ public abstract class EnumerableDefaults {
   }
 
   /**
-   * Creates a Lookup<TKey, TElement> from an
-   * Enumerable<TSource> according to specified key selector and element
+   * Creates a {@code Lookup<TKey, TElement>} from an
+   * {@code Enumerable<TSource>} according to specified key selector and element
    * selector functions.
    */
   public static <TSource, TKey, TElement> Lookup<TKey, TElement> toLookup(
@@ -1942,8 +1944,8 @@ public abstract class EnumerableDefaults {
   }
 
   /**
-   * Creates a Lookup<TKey, TElement> from an
-   * Enumerable<TSource> according to a specified key selector function,
+   * Creates a {@code Lookup<TKey, TElement>} from an
+   * {@code Enumerable<TSource>} according to a specified key selector function,
    * a comparer and an element selector function.
    */
   public static <TSource, TKey, TElement> Lookup<TKey, TElement> toLookup(

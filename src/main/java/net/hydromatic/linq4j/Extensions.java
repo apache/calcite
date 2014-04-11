@@ -92,11 +92,11 @@ import java.util.*;
  * overloaded based on the number of type parameters.</li>
  *
  * <li>Types map as follows:
- * {@code Int32} => {@code int} or {@link Integer},
- * {@code Int64} => {@code long} or {@link Long},
- * {@code bool} => {@code boolean} or {@link Boolean},
- * {@code Dictionary} => {@link Map},
- * {@code Lookup} => {@link Map} whose value type is an {@link Iterable},
+ * {@code Int32} &rarr; {@code int} or {@link Integer},
+ * {@code Int64} &rarr; {@code long} or {@link Long},
+ * {@code bool} &rarr; {@code boolean} or {@link Boolean},
+ * {@code Dictionary} &rarr; {@link Map},
+ * {@code Lookup} &rarr; {@link Map} whose value type is an {@link Iterable},
  * </li>
  *
  * <li>Function types that accept primitive types in LINQ.NET have become

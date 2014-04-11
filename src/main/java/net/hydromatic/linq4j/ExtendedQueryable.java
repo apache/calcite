@@ -182,7 +182,7 @@ interface ExtendedQueryable<TSource> extends ExtendedEnumerable<TSource> {
 
   /**
    * Produces the set difference of two sequences by
-   * using the specified EqualityComparer<TSource> to compare
+   * using the specified {@code EqualityComparer<TSource>} to compare
    * values.
    */
   Queryable<TSource> except(Enumerable<TSource> enumerable,
@@ -302,7 +302,7 @@ interface ExtendedQueryable<TSource> extends ExtendedEnumerable<TSource> {
   /**
    * Correlates the elements of two sequences based on
    * key equality and groups the results. A specified
-   * EqualityComparer<TSource> is used to compare keys.
+   * {@code EqualityComparer<TSource>} is used to compare keys.
    */
   <TInner, TKey, TResult> Queryable<TResult> groupJoin(Enumerable<TInner> inner,
       FunctionExpression<Function1<TSource, TKey>> outerKeySelector,
@@ -320,7 +320,7 @@ interface ExtendedQueryable<TSource> extends ExtendedEnumerable<TSource> {
 
   /**
    * Produces the set intersection of two sequences by
-   * using the specified EqualityComparer<TSource> to compare
+   * using the specified {@code EqualityComparer<TSource>} to compare
    * values.
    */
   Queryable<TSource> intersect(Enumerable<TSource> enumerable,
@@ -338,7 +338,7 @@ interface ExtendedQueryable<TSource> extends ExtendedEnumerable<TSource> {
 
   /**
    * Correlates the elements of two sequences based on
-   * matching keys. A specified EqualityComparer<TSource> is used to
+   * matching keys. A specified {@code EqualityComparer<TSource>} is used to
    * compare keys.
    */
   <TInner, TKey, TResult> Queryable<TResult> join(Enumerable<TInner> inner,
@@ -368,7 +368,7 @@ interface ExtendedQueryable<TSource> extends ExtendedEnumerable<TSource> {
 
   /**
    * Invokes a projection function on each element of a
-   * generic IQueryable<TSource> and returns the maximum resulting
+   * generic {@code IQueryable<TSource>} and returns the maximum resulting
    * value.
    */
   <TResult extends Comparable<TResult>> TResult max(
@@ -376,7 +376,7 @@ interface ExtendedQueryable<TSource> extends ExtendedEnumerable<TSource> {
 
   /**
    * Invokes a projection function on each element of a
-   * generic IQueryable<TSource> and returns the minimum resulting
+   * generic {@code IQueryable<TSource>} and returns the minimum resulting
    * value.
    */
   <TResult extends Comparable<TResult>> TResult min(
@@ -460,7 +460,7 @@ interface ExtendedQueryable<TSource> extends ExtendedEnumerable<TSource> {
 
   /**
    * Projects each element of a sequence to an
-   * Enumerable<TSource> and combines the resulting sequences into one
+   * {@code Enumerable<TSource>} and combines the resulting sequences into one
    * sequence.
    */
   <TResult> Queryable<TResult> selectMany(
@@ -468,7 +468,7 @@ interface ExtendedQueryable<TSource> extends ExtendedEnumerable<TSource> {
 
   /**
    * Projects each element of a sequence to an
-   * Enumerable<TSource> and combines the resulting sequences into one
+   * {@code Enumerable<TSource>} and combines the resulting sequences into one
    * sequence. The index of each source element is used in the
    * projected form of that element.
    *
@@ -481,7 +481,7 @@ interface ExtendedQueryable<TSource> extends ExtendedEnumerable<TSource> {
 
   /**
    * Projects each element of a sequence to an
-   * Enumerable<TSource> that incorporates the index of the source
+   * {@code Enumerable<TSource>} that incorporates the index of the source
    * element that produced it. A result selector function is invoked
    * on each element of each intermediate sequence, and the
    * resulting values are combined into a single, one-dimensional
@@ -495,7 +495,7 @@ interface ExtendedQueryable<TSource> extends ExtendedEnumerable<TSource> {
 
   /**
    * Projects each element of a sequence to an
-   * Enumerable<TSource> and invokes a result selector function on each
+   * {@code Enumerable<TSource>} and invokes a result selector function on each
    * element therein. The resulting values from each intermediate
    * sequence are combined into a single, one-dimensional sequence
    * and returned.
@@ -660,7 +660,7 @@ interface ExtendedQueryable<TSource> extends ExtendedEnumerable<TSource> {
 
   /**
    * Produces the set union of two sequences by using a
-   * specified EqualityComparer<TSource>.
+   * specified {@code EqualityComparer<TSource>}.
    */
   Queryable<TSource> union(Enumerable<TSource> source1,
       EqualityComparer<TSource> comparer);

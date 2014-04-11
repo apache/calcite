@@ -91,8 +91,8 @@ public abstract class QueryableDefaults {
   }
 
   /**
-   * Converts a generic Enumerable<T> to a generic
-   * IQueryable<T>.
+   * Converts a generic {@code Enumerable<T>} to a generic
+   * {@code IQueryable<T>}.
    */
   public static <T> Queryable<T> asQueryable(Queryable<T> queryable) {
     throw Extensions.todo();
@@ -235,7 +235,7 @@ public abstract class QueryableDefaults {
 
   /**
    * Determines whether a sequence contains a specified
-   * element by using a specified EqualityComparer<T>.
+   * element by using a specified {@code EqualityComparer<T>}.
    */
   public static <T> boolean contains(Queryable<T> queryable, T element,
       EqualityComparer comparer) {
@@ -287,7 +287,7 @@ public abstract class QueryableDefaults {
 
   /**
    * Returns distinct elements from a sequence by using
-   * a specified EqualityComparer<T> to compare values.
+   * a specified {@code EqualityComparer<T>} to compare values.
    */
   public static <T> Queryable<T> distinct(Queryable<T> queryable,
       EqualityComparer comparer) {
@@ -323,7 +323,7 @@ public abstract class QueryableDefaults {
 
   /**
    * Produces the set difference of two sequences by
-   * using the specified EqualityComparer<T> to compare
+   * using the specified {@code EqualityComparer<T>} to compare
    * values.
    */
   public static <T> Queryable<T> except(Queryable<T> queryable,
@@ -498,7 +498,7 @@ public abstract class QueryableDefaults {
   /**
    * Correlates the elements of two sequences based on
    * key equality and groups the results. A specified
-   * EqualityComparer<T> is used to compare keys.
+   * {@code EqualityComparer<T>} is used to compare keys.
    */
   public static <TOuter, TInner, TKey, TResult> Enumerable<TResult> groupJoin(
       Queryable<TOuter> outer, Enumerable<TInner> inner,
@@ -522,7 +522,7 @@ public abstract class QueryableDefaults {
 
   /**
    * Produces the set intersection of two sequences by
-   * using the specified EqualityComparer<T> to compare
+   * using the specified {@code EqualityComparer<T>} to compare
    * values.
    */
   public static <T> Queryable<T> intersect(Queryable<T> queryable,
@@ -545,7 +545,7 @@ public abstract class QueryableDefaults {
 
   /**
    * Correlates the elements of two sequences based on
-   * matching keys. A specified EqualityComparer<T> is used to
+   * matching keys. A specified {@code EqualityComparer<T>} is used to
    * compare keys.
    */
   public static <TOuter, TInner, TKey, TResult> Queryable<TResult> join(
@@ -611,7 +611,7 @@ public abstract class QueryableDefaults {
 
   /**
    * Returns the maximum value in a generic
-   * IQueryable<T>.
+   * {@code IQueryable<T>}.
    */
   public static <T> T max(Queryable<T> queryable) {
     throw Extensions.todo();
@@ -619,7 +619,7 @@ public abstract class QueryableDefaults {
 
   /**
    * Invokes a projection function on each element of a
-   * generic IQueryable<T> and returns the maximum resulting
+   * generic {@code IQueryable<T>} and returns the maximum resulting
    * value.
    */
   public static <T, TResult> TResult max(Queryable<T> queryable,
@@ -629,7 +629,7 @@ public abstract class QueryableDefaults {
 
   /**
    * Returns the minimum value in a generic
-   * IQueryable<T>.
+   * {@code IQueryable<T>}.
    */
   public static <T> T min(Queryable<T> queryable) {
     throw Extensions.todo();
@@ -637,7 +637,7 @@ public abstract class QueryableDefaults {
 
   /**
    * Invokes a projection function on each element of a
-   * generic IQueryable<T> and returns the minimum resulting
+   * generic {@code IQueryable<T>} and returns the minimum resulting
    * value.
    */
   public static <T, TResult> TResult min(Queryable<T> queryable,
@@ -748,7 +748,7 @@ public abstract class QueryableDefaults {
 
   /**
    * Projects each element of a sequence to an
-   * Enumerable<T> and combines the resulting sequences into one
+   * {@code Enumerable<T>} and combines the resulting sequences into one
    * sequence.
    */
   public static <T, TResult> Queryable<TResult> selectMany(Queryable<T> source,
@@ -758,7 +758,7 @@ public abstract class QueryableDefaults {
 
   /**
    * Projects each element of a sequence to an
-   * Enumerable<T> and combines the resulting sequences into one
+   * {@code Enumerable<T>} and combines the resulting sequences into one
    * sequence. The index of each source element is used in the
    * projected form of that element.
    *
@@ -772,7 +772,7 @@ public abstract class QueryableDefaults {
 
   /**
    * Projects each element of a sequence to an
-   * Enumerable<T> that incorporates the index of the source
+   * {@code Enumerable<T>} that incorporates the index of the source
    * element that produced it. A result selector function is invoked
    * on each element of each intermediate sequence, and the
    * resulting values are combined into a single, one-dimensional
@@ -788,7 +788,7 @@ public abstract class QueryableDefaults {
 
   /**
    * Projects each element of a sequence to an
-   * Enumerable<T> and invokes a result selector function on each
+   * {@code Enumerable<T>} and invokes a result selector function on each
    * element therein. The resulting values from each intermediate
    * sequence are combined into a single, one-dimensional sequence
    * and returned.
@@ -816,7 +816,7 @@ public abstract class QueryableDefaults {
 
   /**
    * Determines whether two sequences are equal by
-   * using a specified EqualityComparer<T> to compare
+   * using a specified {@code EqualityComparer<T>} to compare
    * elements.
    */
   public static <T> boolean sequenceEqual(Queryable<T> queryable,
@@ -1086,7 +1086,7 @@ public abstract class QueryableDefaults {
 
   /**
    * Produces the set union of two sequences by using a
-   * specified EqualityComparer<T>.
+   * specified {@code EqualityComparer<T>}.
    */
   public static <T> Queryable<T> union(Queryable<T> source0,
       Enumerable<T> source1, EqualityComparer<T> comparer) {

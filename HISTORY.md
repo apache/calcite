@@ -4,6 +4,8 @@ For a full list of releases, see <a href="https://github.com/julianhyde/linq4j/r
 
 ## <a href="https://github.com/julianhyde/linq4j/releases/tag/linq4j-0.2">0.2</a> / 2014-04-11
 
+* Fix <a href="https://github.com/julianhyde/linq4j/issues/8">#8</a>,
+  "Javadoc generation fails under JDK 1.8".
 * Fix <a href="https://github.com/julianhyde/linq4j/issues/15">#15</a>,
   "`Expressions.ifThenElse` does not work".
 * Use `HashMap` for searching of declarations to reuse; consider both
