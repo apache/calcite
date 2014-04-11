@@ -18,16 +18,17 @@
 package net.hydromatic.optiq.test;
 
 import net.hydromatic.optiq.SchemaPlus;
+import net.hydromatic.optiq.impl.java.ReflectiveSchema;
 import net.hydromatic.optiq.impl.jdbc.JdbcSchema;
 import net.hydromatic.optiq.jdbc.OptiqConnection;
+import net.hydromatic.optiq.prepare.OptiqPrepareImpl;
+
+import com.google.common.collect.Sets;
 
 import org.junit.Test;
 
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.*;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import javax.sql.DataSource;
 
@@ -81,6 +82,88 @@ public class MultiJdbcSchemaJoinTest {
    * Effectively a test for {@link TempDb}. */
   @Test public void test2() throws SQLException, ClassNotFoundException {
     test();
+  }
+
+  private Connection setup() throws SQLException {
+    // Create a jdbc database & table
+    final String db = TempDb.INSTANCE.getUrl();
+    Connection c1 = DriverManager.getConnection(db, "", "");
+    Statement stmt1 = c1.createStatement();
+    // This is a table we can join with the emps from the hr schema
+    stmt1.execute("create table table1(id integer not null primary key, "
+            + "field1 varchar(10))");
+    stmt1.execute("insert into table1 values(100, 'foo')");
+    stmt1.execute("insert into table1 values(200, 'bar')");
+    c1.close();
+
+    // Make an optiq schema with both a jdbc schema and a non-jdbc schema
+    Connection optiqConn = DriverManager.getConnection("jdbc:optiq:");
+    OptiqConnection optiqConnection =
+        optiqConn.unwrap(OptiqConnection.class);
+    SchemaPlus rootSchema = optiqConnection.getRootSchema();
+    rootSchema.add("DB",
+        JdbcSchema.create(rootSchema, "DB",
+            JdbcSchema.dataSource(db, "org.hsqldb.jdbcDriver", "", ""),
+            null, null));
+    rootSchema.add("hr", new ReflectiveSchema(new JdbcTest.HrSchema()));
+    return optiqConn;
+  }
+
+  @Test public void testJdbcWithEnumerableJoin() throws SQLException {
+    // This query works correctly
+    String query = "select t.id, t.field1 "
+        + "from db.table1 t join \"hr\".\"emps\" e on e.\"empid\" = t.id";
+    final Set<Integer> expected = Sets.newHashSet(100, 200);
+    assertThat(runQuery(setup(), query), equalTo(expected));
+  }
+
+  @Test public void testEnumerableWithJdbcJoin() throws SQLException {
+    //  * compared to testJdbcWithEnumerableJoin, the join order is reversed
+    //  * the query fails with a CannotPlanException
+    String query = "select t.id, t.field1 "
+        + "from \"hr\".\"emps\" e join db.table1 t on e.\"empid\" = t.id";
+    final Set<Integer> expected = Sets.newHashSet(100, 200);
+    assertThat(runQuery(setup(), query), equalTo(expected));
+  }
+
+  @Test public void testEnumerableWithJdbcJoinWithWhereClause()
+    throws SQLException {
+    // Same query as above but with a where condition added:
+    //  * the good: this query does not give a CannotPlanException
+    //  * the bad: the result is wrong: there is only one emp called Bill.
+    //             The query plan shows the join condition is always true,
+    //             afaics, the join condition is pushed down to the non-jdbc
+    //             table. It might have something to do with the cast that
+    //             is introduced in the join condition.
+    String query = "select t.id, t.field1 "
+        + "from \"hr\".\"emps\" e join db.table1 t on e.\"empid\" = t.id"
+        + " where e.\"name\" = 'Bill'";
+    final Set<Integer> expected = Sets.newHashSet(100);
+    assertThat(runQuery(setup(), query), equalTo(expected));
+  }
+
+  private Set<Integer> runQuery(Connection optiqConn, String query)
+    throws SQLException {
+    // Print out the plan
+    Statement stmt = optiqConn.createStatement();
+    try {
+      ResultSet rs;
+      if (OptiqPrepareImpl.DEBUG) {
+        rs = stmt.executeQuery("explain plan for " + query);
+        rs.next();
+        System.out.println(rs.getString(1));
+      }
+
+      // Run the actual query
+      rs = stmt.executeQuery(query);
+      Set<Integer> ids = Sets.newHashSet();
+      while (rs.next()) {
+        ids.add(rs.getInt(1));
+      }
+      return ids;
+    } finally {
+      stmt.close();
+    }
   }
 
   /** Pool of temporary databases. */

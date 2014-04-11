@@ -87,6 +87,24 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
         "${plan}");
   }
 
+  /**
+   * Test case for <a href="https://github.com/julianhyde/optiq/issues/245">
+   * Off-by-one translation of ON clause of JOIN</a>.
+   */
+  @Test public void testConditionOffByOne() {
+    // Bug causes the plan to contain
+    //   JoinRel(condition=[=($9, $9)], joinType=[inner])
+    check(
+        "SELECT * FROM emp JOIN dept on emp.deptno + 0 = dept.deptno",
+        "${plan}");
+  }
+
+  @Test public void testConditionOffByOneReversed() {
+    check(
+        "SELECT * FROM emp JOIN dept on dept.deptno = emp.deptno + 0",
+        "${plan}");
+  }
+
   @Test public void testJoinOnExpression() {
     check(
         "SELECT * FROM emp JOIN dept on emp.deptno + 1 = dept.deptno - 2",

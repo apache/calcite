@@ -28,6 +28,7 @@ import net.hydromatic.optiq.runtime.Bindable;
 import net.hydromatic.optiq.runtime.Typed;
 
 import org.eigenbase.rel.*;
+import org.eigenbase.rel.metadata.*;
 import org.eigenbase.rel.rules.*;
 import org.eigenbase.relopt.*;
 import org.eigenbase.relopt.hep.*;
@@ -39,6 +40,8 @@ import org.eigenbase.sql.validate.*;
 import org.eigenbase.sql2rel.SqlToRelConverter;
 import org.eigenbase.trace.EigenbaseTimingTracer;
 import org.eigenbase.trace.EigenbaseTrace;
+
+import com.google.common.collect.Lists;
 
 import java.lang.reflect.Type;
 import java.util.*;
@@ -146,7 +149,16 @@ public abstract class Prepare {
         new HepPlanner(program, true,
             Functions.<RelNode, RelNode, Void>ignore2(),
             RelOptCostImpl.FACTORY);
+    List<RelMetadataProvider> list = Lists.newArrayList();
+    DefaultRelMetadataProvider defaultProvider =
+        new DefaultRelMetadataProvider();
+    list.add(defaultProvider);
+    planner3.registerMetadataProviders(list);
+    RelMetadataProvider plannerChain =
+        ChainedRelMetadataProvider.of(list);
+    rootRel3.getCluster().setMetadataProvider(plannerChain);
     planner3.setRoot(rootRel3);
+
     final RelNode rootRel4 = planner3.findBestExp();
 
     return rootRel4;

@@ -47,18 +47,17 @@ import net.hydromatic.optiq.prepare.Prepare;
 import net.hydromatic.optiq.prepare.RelOptTableImpl;
 import net.hydromatic.optiq.util.BitSets;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.*;
 
 import static org.eigenbase.util.Static.RESOURCE;
 
 /**
  * Converts a SQL parse tree (consisting of {@link org.eigenbase.sql.SqlNode}
- * objects) into a relational algebra expression (consisting of {@link
- * org.eigenbase.rel.RelNode} objects).
+ * objects) into a relational algebra expression (consisting of
+ * {@link org.eigenbase.rel.RelNode} objects).
  *
- * <p>The public entry points are: {@link #convertQuery}, {@link
- * #convertExpression(SqlNode)}.
+ * <p>The public entry points are: {@link #convertQuery},
+ * {@link #convertExpression(SqlNode)}.
  */
 public class SqlToRelConverter {
   //~ Static fields/initializers ---------------------------------------------
@@ -2004,6 +2003,7 @@ public class SqlToRelConverter {
     if (!extraRightExprs.isEmpty()) {
       final List<RelDataTypeField> fields =
           rightRel.getRowType().getFieldList();
+      final int newLeftCount = leftCount + extraLeftExprs.size();
       rightRel = CalcRel.createProject(
           rightRel,
           new AbstractList<Pair<RexNode, String>>() {
@@ -2023,7 +2023,7 @@ public class SqlToRelConverter {
                 return Pair.of(
                     RexUtil.shift(
                         extraRightExprs.get(index - rightCount),
-                        -leftCount),
+                        -newLeftCount),
                     null);
               }
             }
@@ -2067,14 +2067,26 @@ public class SqlToRelConverter {
     case EQUALS:
       RexCall call = (RexCall) node;
       List<RexNode> list = new ArrayList<RexNode>();
-      for (RexNode operand : call.getOperands()) {
-        list.add(
+      List<RexNode> operands = Lists.newArrayList(call.getOperands());
+      for (int i = 0; i < operands.size(); i++) {
+        RexNode operand = operands.get(i);
+        final int left2 = leftCount + extraLeftExprs.size();
+        final int right2 = rightCount + extraRightExprs.size();
+        final RexNode e =
             pushDownJoinConditions(
                 operand,
                 leftCount,
                 rightCount,
                 extraLeftExprs,
-                extraRightExprs));
+                extraRightExprs);
+        final List<RexNode> remainingOperands = Util.skip(operands, i + 1);
+        final int left3 = leftCount + extraLeftExprs.size();
+        final int right3 = rightCount + extraRightExprs.size();
+        fix(remainingOperands, left2, left3);
+        fix(remainingOperands, left3 + right2, left3 + right3);
+        fix(list, left2, left3);
+        fix(list, left3 + right2, left3 + right3);
+        list.add(e);
       }
       if (!list.equals(call.getOperands())) {
         return call.clone(call.getType(), list);
@@ -2085,15 +2097,13 @@ public class SqlToRelConverter {
       return node;
     default:
       BitSet bits = RelOptUtil.InputFinder.bits(node);
-      switch (Side.of(bits, leftCount)) {
+      final int mid = leftCount + extraLeftExprs.size();
+      switch (Side.of(bits, mid)) {
       case LEFT:
-        final int index = leftCount + extraLeftExprs.size();
         extraLeftExprs.add(node);
-        return new RexInputRef(index, node.getType());
+        return new RexInputRef(mid, node.getType());
       case RIGHT:
-        final int index2 =
-            leftCount + extraLeftExprs.size()
-                + rightCount + extraRightExprs.size();
+        final int index2 = mid + rightCount + extraRightExprs.size();
         extraRightExprs.add(node);
         return new RexInputRef(index2, node.getType());
       case BOTH:
@@ -2101,6 +2111,16 @@ public class SqlToRelConverter {
       default:
         return node;
       }
+    }
+  }
+
+  private void fix(List<RexNode> operands, int before, int after) {
+    if (before == after) {
+      return;
+    }
+    for (int i = 0; i < operands.size(); i++) {
+      RexNode node = operands.get(i);
+      operands.set(i, RexUtil.shift(node, before, after - before));
     }
   }
 

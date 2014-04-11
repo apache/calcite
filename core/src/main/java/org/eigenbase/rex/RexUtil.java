@@ -912,8 +912,25 @@ public class RexUtil {
         new RexShuttle() {
           @Override
           public RexNode visitInputRef(RexInputRef input) {
-            return new RexInputRef(
-                input.getIndex() + offset, input.getType());
+            return new RexInputRef(input.getIndex() + offset, input.getType());
+          }
+        });
+  }
+
+  /**
+   * Shifts every {@link RexInputRef} in an expression higher than {@code start}
+   * by {@code offset}.
+   */
+  public static RexNode shift(RexNode node, final int start, final int offset) {
+    return node.accept(
+        new RexShuttle() {
+          @Override
+          public RexNode visitInputRef(RexInputRef input) {
+            final int index = input.getIndex();
+            if (index < start) {
+              return input;
+            }
+            return new RexInputRef(index + offset, input.getType());
           }
         });
   }
