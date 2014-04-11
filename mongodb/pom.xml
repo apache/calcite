@@ -3,12 +3,12 @@
   <parent>
     <groupId>net.hydromatic</groupId>
     <artifactId>optiq-parent</artifactId>
-    <version>0.6</version>
+    <version>0.7-SNAPSHOT</version>
   </parent>
 
   <artifactId>optiq-mongodb</artifactId>
   <packaging>jar</packaging>
-  <version>0.6</version>
+  <version>0.7-SNAPSHOT</version>
   <name>optiq-mongodb</name>
   <description>MongoDB adapter for Optiq.</description>
 
@@ -20,13 +20,13 @@
     <dependency>
       <groupId>net.hydromatic</groupId>
       <artifactId>optiq-core</artifactId>
-      <version>0.6</version>
+      <version>0.7-SNAPSHOT</version>
       <type>jar</type>
     </dependency>
     <dependency>
       <groupId>net.hydromatic</groupId>
       <artifactId>optiq-core</artifactId>
-      <version>0.6</version>
+      <version>0.7-SNAPSHOT</version>
       <type>test-jar</type>
       <scope>test</scope>
     </dependency>

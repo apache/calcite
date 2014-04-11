@@ -5,7 +5,7 @@
   <groupId>net.hydromatic</groupId>
   <artifactId>optiq-parent</artifactId>
   <packaging>pom</packaging>
-  <version>0.6</version>
+  <version>0.7-SNAPSHOT</version>
 
   <!-- More project information. -->
   <name>optiq-parent</name>
@@ -79,7 +79,7 @@
     <connection>scm:git:git://github.com/julianhyde/optiq.git</connection>
     <developerConnection>scm:git:git@github.com:julianhyde/optiq.git</developerConnection>
     <url>http://github.com/julianhyde/optiq/tree/master</url>
-    <tag>optiq-parent-0.6</tag>
+    <tag>HEAD</tag>
   </scm>
 
   <modules>
