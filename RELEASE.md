@@ -2,37 +2,116 @@
 
 For a full list of releases, see <a href="https://github.com/julianhyde/optiq/releases">github</a>.
 
-## HEAD
+## <a href="https://github.com/julianhyde/optiq/releases/tag/optiq-parent-0.6">0.6</a> / 2014-04-11
 
+New features
+* Fix <a href="https://github.com/julianhyde/optiq/issues/214">#214</a>,
+  "Modify Frameworks to allow Schema to be re-used".
+  Obsoletes `name` field of `ReflectiveSchema`.
+* Fix <a href="https://github.com/julianhyde/optiq/issues/237">#237</a>,
+  "Allow user-defined aggregate functions (UDAs) to be defined in a model".
+* Fix <a href="https://github.com/julianhyde/optiq/pull/227">#227</a>,
+  "Extend `EXTRACT` function to support `DATE`, `TIME` and `TIMESTAMP` values".
+* Fix <a href="https://github.com/julianhyde/optiq/issues/222">#222</a>,
+  "User-defined table macros".
+* Fix <a href="https://github.com/julianhyde/optiq/issues/179">#179</a>,
+  "Optiq on Windows". Add `sqlline.bat` and fix issues running `sqlline` under
+  Cygwin.
+* Fix <a href="https://github.com/julianhyde/optiq/issues/195">#195</a>,
+  "Push aggregation into MongoDB adapter".
+* Fix <a href="https://github.com/julianhyde/optiq/issues/193">#193</a>,
+  "Implement OFFSET and LIMIT in MongoDB adapter".
+* Fix <a href="https://github.com/julianhyde/optiq/issues/164">#164</a>,
+  "Improve query performance of optiq over MongoDB".
+* Add Phoenix (HBase) SQL dialect (Bruno Dumon)
+
+API changes
+* Obsolete `RexImpTable.AggregateImplementor` and rename `AggImplementor2`.
+  (**This is a breaking change**.)
+* Convert `CombinedParser.jj` into freemarker template to allow
+  custom parser implementations. (Venki Korukanti)
+* Extend `Planner` to pass a custom `ConvertletTable` and custom SQL parser.
+* In `Frameworks`, add a way to specify list of `TraitDef`s that will be used
+  by planner. (Jinfeng Ni)
+* Fix <a href="https://github.com/julianhyde/optiq/pull/198">#198</a>,
+  "Use `RexExecutor` to evaluate projections and filters".
+* Fix <a href="https://github.com/julianhyde/optiq/issues/219">#219</a>,
+  "Parse `ALTER scope SET option = value` statement".
+* Fix <a href="https://github.com/julianhyde/optiq/issues/215">#215</a>,
+  "A Schema should not have to remember its name and parent".
+  (**This is a breaking change**.)
+* Fix <a href="https://github.com/julianhyde/optiq/issues/180">#180</a>,
+  "Common base class for TableFunction, ScalarFunction".
+  (**This is a breaking change**.)
+* Add methods for dealing with symbols; deprecate
+  `SqlLiteral.booleanValue(SqlNode)`, `SqlLiteral.symbolValue(SqlNode)`.
+* Add `RelOptPlanner.clear()`; now it is safe to call `transform` twice.
+  (Jinfeng Ni)
+* Remove APIs deprecated for 0.5.
+* Move around some operator classes and singletons.
+
+Bug fixes and internal changes
+* `FETCH` and `LIMIT` are ignored during SQL-to-RelNode translation.
+  (Venki Korukanti)
+* Fix <a href="https://github.com/julianhyde/optiq/issues/245">#245</a>,
+  "Off-by-one translation of ON clause of JOIN".
+* Fix <a href="https://github.com/julianhyde/optiq/pull/191">#191</a>,
+  "Rotate time/date/timestamp vals to local timezone".
+* Fix <a href="https://github.com/julianhyde/optiq/pull/244">#244</a>,
+  "`RelOptTableImpl.create` always expects `QueryableTable` type in
+  `OptiqSchema.TableEntry`".
+* Fix <a href="https://github.com/julianhyde/optiq/issues/225">#225</a>,
+  "Optiq doesn't correctly decorrelate queries".
+* Clean up package-info.  Remove duplicates in test packages so they
+  don't conflict with those in non-test packages.
+* Add `Pair.adjacents(Iterable)`.
+* Fix <a href="https://github.com/julianhyde/optiq/issues/199">#199</a>,
+  "Various `ANY` type conditions aren't correctly being considered".
+  (Jacques Nadeau)
+* Add files to `.gitignore` that shouldn't be checked in when using
+  Eclipse. (Jacques Nadeau)
+* Add class `ControlFlowException`, and make it base class of
+  existing control-flow exception classes.
+* Fix <a href="https://github.com/julianhyde/optiq/issues/232">#232</a>,
+  "Sum and avg of empty set should be null as per SQL specification".
+* Add `SqlUnresolvedFunction`, to improve how return type of
+  user-defined functions is resolved. (Vladimir Sitnikov)
+* Fix <a href="https://github.com/julianhyde/optiq/issues/228">#228</a>,
+  "Error while compiling generated Java code when using UDF in expression"
+* Fix <a href="https://github.com/julianhyde/optiq/issues/226">#226</a>,
+  "User-defined functions should work without explicit schema prefix".
+* Fix <a href="https://github.com/julianhyde/optiq/issues/229">#229</a>,
+  "Join between different JDBC schemas not implementable".
+* Fix <a href="https://github.com/julianhyde/optiq/pull/230">#230</a>,
+  "RemoveSortRule derives trait set from sort, should derive it from sort's child".
+* Test view and sub-query with `ORDER BY` and `LIMIT`.
+* Fix <a href="https://github.com/julianhyde/optiq/issues/223">#223</a>,
+  "Add `NOTICE` and `LICENSE` files in all generated JAR files".
+* Fix <a href="https://github.com/julianhyde/optiq/issues/209">#209</a>,
+  "Consistent strategy for line-endings in tests".
+  Convert uses of `NL` in tests to Linux newline "\n".
+  This makes string constants simpler.
+* Fix <a href="https://github.com/julianhyde/optiq/issues/218">#218</a>,
+  "Functions case sensitive when using `Lex.MYSQL`".
+* Add tests that a query with aggregate expressions in the `SELECT`
+  clause is considered an aggregate query, even if there is no `GROUP BY`.
+* Fix <a href="https://github.com/julianhyde/optiq/issues/216">#216</a>,
+  "Inconsistent use of provided operator table causes inability to
+  add aggregate functions".
+* Fix <a href="https://github.com/julianhyde/optiq/issues/200">#200</a>,
+  "Javadoc generation fails under JDK 1.8".
 * Add class `XmlOutput` (based on `org.eigenbase.xom.XMLOutput`) and remove
   dependency on eigenbase-xom.
 * Performance: Don't create stack-trace for exceptions used for control-flow.
   (Vladimir Sitnikov)
 * Performance: Tune `RexProgramBuilder` by using `Pair` rather than `String` as
   expression key. (Vladimir Sitnikov)
-* Add methods for dealing with symbols; deprecate
-  `SqlLiteral.booleanValue(SqlNode)`, `SqlLiteral.symbolValue(SqlNode)`.
 * Fix NPE using TRIM function with JDBC. (Bruno Dumon)
 * Add dependency on
   <a href="https://github.com/julianhyde/hydromatic-resource">hydromatic-resource-maven-plugin</a>
   and obsolete our copy of the resource framework.
-* Fix <a href="https://github.com/julianhyde/optiq/issues/179">#179</a>,
-  "Optiq on Windows". Add `sqlline.bat` and fix issues running `sqlline` under
-  Cygwin.
-* In `Frameworks`, add a way to specify list of `TraitDef`s that will be used
-  by planner. (Jinfeng Ni)
-* Fix <a href="https://github.com/julianhyde/optiq/issues/195">#195</a>,
-  "Push aggregation into MongoDB adapter".
-* Fix <a href="https://github.com/julianhyde/optiq/issues/193">#193</a>,
-  "Implement OFFSET and LIMIT in MongoDB adapter".
 * Fix race condition in `SpaceList`.
-* Fix <a href="https://github.com/julianhyde/optiq/issues/164">#164</a>,
-  "Improve query performance of optiq over MongoDB".
-* Add Phoenix (HBase) SQL dialect (Bruno Dumon)
-* Add `RelOptPlanner.clear()`; now it is safe to call `transform` twice. (Jinfeng Ni)
 * In planner, use `RelTrait.subsumes` rather than `equals` in an assert. (Jinfeng Ni)
-* Remove APIs deprecated for 0.5.
-* Move around some operator classes and singletons.
 
 ## <a href="https://github.com/julianhyde/optiq/releases/tag/optiq-parent-0.5">0.5</a> / 2014-03-14
 
