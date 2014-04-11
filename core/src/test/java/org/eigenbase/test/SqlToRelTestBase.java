@@ -66,7 +66,7 @@ public abstract class SqlToRelTestBase {
   }
 
   protected Tester createTester() {
-    return new TesterImpl(getDiffRepos());
+    return new TesterImpl(getDiffRepos(), true);
   }
 
   /**
@@ -166,6 +166,9 @@ public abstract class SqlToRelTestBase {
      * @return Validator
      */
     SqlValidator getValidator();
+
+    /** Returns a tester that optionally decorrelates queries. */
+    Tester withDecorrelation(boolean enable);
   }
 
   //~ Inner Classes ----------------------------------------------------------
@@ -387,15 +390,18 @@ public abstract class SqlToRelTestBase {
     private RelOptPlanner planner;
     private SqlOperatorTable opTab;
     private final DiffRepository diffRepos;
+    private final boolean enableDecorrelate;
     private RelDataTypeFactory typeFactory;
 
     /**
      * Creates a TesterImpl.
      *
      * @param diffRepos Diff repository
+     * @param enableDecorrelate Whether to decorrelate
      */
-    protected TesterImpl(DiffRepository diffRepos) {
+    protected TesterImpl(DiffRepository diffRepos, boolean enableDecorrelate) {
       this.diffRepos = diffRepos;
+      this.enableDecorrelate = enableDecorrelate;
     }
 
     public RelNode convertSqlToRel(String sql) {
@@ -419,9 +425,13 @@ public abstract class SqlToRelTestBase {
               typeFactory);
       converter.setTrimUnusedFields(true);
       final SqlNode validatedQuery = validator.validate(sqlQuery);
-      final RelNode rel =
+      RelNode rel =
           converter.convertQuery(validatedQuery, false, true);
-      Util.post(rel != null, "return != null");
+      assert rel != null;
+      if (enableDecorrelate) {
+        rel = converter.flattenTypes(rel, true);
+        rel = converter.decorrelate(sqlQuery, rel);
+      }
       return rel;
     }
 
@@ -570,6 +580,11 @@ public abstract class SqlToRelTestBase {
           createValidator(
               catalogReader,
               typeFactory);
+    }
+
+    public TesterImpl withDecorrelation(boolean enable) {
+      return this.enableDecorrelate == enable ? this
+          : new TesterImpl(diffRepos, enable);
     }
   }
 

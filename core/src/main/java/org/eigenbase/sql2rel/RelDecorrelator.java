@@ -310,7 +310,9 @@ public class RelDecorrelator implements ReflectiveVisitor {
             rel.getCluster(),
             rel.getCluster().traitSetOf(Convention.NONE).plus(newCollation),
             newChildRel,
-            newCollation);
+            newCollation,
+            rel.offset,
+            rel.fetch);
 
     mapOldToNewRel.put(rel, newRel);
 

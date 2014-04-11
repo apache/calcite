@@ -49,7 +49,7 @@ public final class OneRowRel extends OneRowRelBase {
 
   @Override
   public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
-    assert traitSet.comprises(Convention.NONE);
+    assert traitSet.containsIfApplicable(Convention.NONE);
     assert inputs.isEmpty();
     return this;
   }

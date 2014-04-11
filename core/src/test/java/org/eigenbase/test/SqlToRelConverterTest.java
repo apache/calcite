@@ -47,8 +47,7 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
 
   @Test public void testIntegerLiteral() {
     check(
-        "select 1 from emp",
-        "${plan}");
+        "select 1 from emp", "${plan}");
   }
 
   @Test public void testAliasList() {
@@ -263,8 +262,7 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
 
   @Test public void testOrder() {
     check(
-        "select empno from emp order by empno",
-        "${plan}");
+        "select empno from emp order by empno", "${plan}");
   }
 
   @Test public void testOrderDescNullsLast() {
@@ -445,7 +443,15 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
   }
 
   @Test public void testWithInsideWhereExists() {
-    check("select * from emp\n"
+    tester.withDecorrelation(false).assertConvertsTo("select * from emp\n"
+        + "where exists (\n"
+        + "  with dept2 as (select * from dept where dept.deptno >= emp.deptno)\n"
+        + "  select 1 from dept2 where deptno <= emp.deptno)",
+      "${plan}");
+  }
+
+  @Test public void testWithInsideWhereExistsDecorrelate() {
+    tester.withDecorrelation(true).assertConvertsTo("select * from emp\n"
         + "where exists (\n"
         + "  with dept2 as (select * from dept where dept.deptno >= emp.deptno)\n"
         + "  select 1 from dept2 where deptno <= emp.deptno)",
@@ -521,7 +527,7 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
   }
 
   @Test public void testCollectionTableWithCursorParam() {
-    check(
+    tester.withDecorrelation(false).assertConvertsTo(
         "select * from table(dedup("
         + "cursor(select ename from emp),"
         + " cursor(select name from dept), 'NAME'))",
@@ -574,8 +580,28 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
   }
 
   @Test public void testExistsCorrelated() {
-    check(
+    tester.withDecorrelation(false).assertConvertsTo(
         "select*from emp where exists (select 1 from dept where emp.deptno=dept.deptno)",
+        "${plan}");
+  }
+
+  @Test public void testExistsCorrelatedDecorrelate() {
+    tester.withDecorrelation(true).assertConvertsTo(
+        "select*from emp where exists (select 1 from dept where emp.deptno=dept.deptno)",
+        "${plan}");
+  }
+
+  @Test public void testExistsCorrelatedLimit() {
+    tester.withDecorrelation(false).assertConvertsTo(
+        "select*from emp where exists (\n"
+        + "  select 1 from dept where emp.deptno=dept.deptno limit 1)",
+        "${plan}");
+  }
+
+  @Test public void testExistsCorrelatedLimitDecorrelate() {
+    tester.withDecorrelation(true).assertConvertsTo(
+        "select*from emp where exists (\n"
+        + "  select 1 from dept where emp.deptno=dept.deptno limit 1)",
         "${plan}");
   }
 
@@ -607,7 +633,13 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
   }
 
   @Test public void testLateral() {
-    check(
+    tester.withDecorrelation(false).assertConvertsTo(
+        "select * from emp, LATERAL (select * from dept where emp.deptno=dept.deptno)",
+        "${plan}");
+  }
+
+  @Test public void testLateralDecorrelate() {
+    tester.withDecorrelation(true).assertConvertsTo(
         "select * from emp, LATERAL (select * from dept where emp.deptno=dept.deptno)",
         "${plan}");
   }

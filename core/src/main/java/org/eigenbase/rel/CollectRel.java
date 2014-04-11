@@ -71,7 +71,7 @@ public final class CollectRel extends SingleRel {
 
   @Override
   public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
-    assert traitSet.comprises(Convention.NONE);
+    assert traitSet.containsIfApplicable(Convention.NONE);
     return new CollectRel(
         getCluster(),
         sole(inputs),

@@ -348,7 +348,9 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
             rel.getCluster(),
             rel.getCluster().traitSetOf(Convention.NONE).plus(newCollation),
             newChild,
-            newCollation);
+            newCollation,
+            rel.offset,
+            rel.fetch);
     setNewForOldRel(rel, newRel);
   }
 

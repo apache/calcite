@@ -68,7 +68,7 @@ public class TableFunctionRel extends TableFunctionRelBase {
 
   @Override
   public TableFunctionRel copy(RelTraitSet traitSet, List<RelNode> inputs) {
-    assert traitSet.comprises(Convention.NONE);
+    assert traitSet.containsIfApplicable(Convention.NONE);
     return new TableFunctionRel(
         getCluster(),
         inputs,

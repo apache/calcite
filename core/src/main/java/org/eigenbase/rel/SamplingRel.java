@@ -65,7 +65,7 @@ public class SamplingRel extends SingleRel {
   }
 
   public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
-    assert traitSet.comprises(Convention.NONE);
+    assert traitSet.containsIfApplicable(Convention.NONE);
     return new SamplingRel(
         getCluster(),
         sole(inputs),
