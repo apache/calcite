@@ -427,7 +427,7 @@ public class JdbcTest {
     final int driverMajorVersion = metaData.getDriverMajorVersion();
     final int driverMinorVersion = metaData.getDriverMinorVersion();
     assertEquals(0, driverMajorVersion);
-    assertEquals(5, driverMinorVersion);
+    assertTrue(driverMinorVersion >= 5); // will work for the next few releases
 
     assertEquals("Optiq", metaData.getDatabaseProductName());
     final String databaseProductVersion =
@@ -439,7 +439,8 @@ public class JdbcTest {
 
     // Check how version is composed of major and minor version. Note that
     // version is stored in pom.xml; major and minor version are
-    // stored in net-hydromatic-optiq-jdbc.properties.
+    // stored in net-hydromatic-optiq-jdbc.properties, but derived from
+    // version.major and version.minor in pom.xml.
     if (!driverVersion.endsWith("-SNAPSHOT")) {
       assertTrue(driverVersion.startsWith("0."));
       String[] split = driverVersion.split("\\.");

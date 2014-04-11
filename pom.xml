@@ -51,6 +51,8 @@
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <top.dir>${project.basedir}</top.dir>
+    <version.major>0</version.major>
+    <version.minor>6</version.minor>
   </properties>
 
   <!-- Environment settings. -->
