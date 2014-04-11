@@ -290,10 +290,34 @@ public class RexToLixTranslator {
     case INPUT_REF:
       final int index = ((RexInputRef) expr).getIndex();
       Expression x = inputGetter.field(list, index);
-      return list.append(
-          "v",
-          nullAs.handle(
-              list.append("v", x)));
+
+      Expression input = list.append("inp" + index + "_", x); // safe to share
+      Expression nullHandled = nullAs.handle(input);
+
+      // If we get ConstantExpression, just return it (i.e. primitive false)
+      if (nullHandled instanceof ConstantExpression) {
+        return nullHandled;
+      }
+
+      // if nullHandled expression is the same as "input",
+      // then we can just reuse it
+      if (nullHandled == input) {
+        return input;
+      }
+
+      // If nullHandled is different, then it might be unsafe to compute
+      // early (i.e. unbox of null value should not happen _before_ ternary).
+      // Thus we wrap it into brand-new ParameterExpression,
+      // and we are guaranteed that ParameterExpression will not be shared
+      String unboxVarName = "v_unboxed";
+      if (input instanceof ParameterExpression) {
+        unboxVarName = ((ParameterExpression) input).name + "_unboxed";
+      }
+      ParameterExpression unboxed = Expressions.parameter(nullHandled.getType(),
+          list.newName(unboxVarName));
+      list.add(Expressions.declare(0, unboxed, nullHandled));
+
+      return unboxed;
     case LOCAL_REF:
       return translate(
           program.getExprList().get(((RexLocalRef) expr).getIndex()),
@@ -638,7 +662,8 @@ public class RexToLixTranslator {
       Expression map =
           list.append(
               "map",
-              Expressions.new_(LinkedHashMap.class));
+              Expressions.new_(LinkedHashMap.class),
+              false);
       for (int i = 0; i < operandList.size(); i++) {
         RexNode key = operandList.get(i++);
         RexNode value = operandList.get(i);
@@ -655,7 +680,8 @@ public class RexToLixTranslator {
       Expression lyst =
           list.append(
               "list",
-              Expressions.new_(ArrayList.class));
+              Expressions.new_(ArrayList.class),
+              false);
       for (RexNode value : operandList) {
         list.add(
             Expressions.statement(
@@ -736,7 +762,7 @@ public class RexToLixTranslator {
     public Expression field(BlockBuilder list, int index) {
       final Pair<Expression, PhysType> input = inputs.get(0);
       final PhysType physType = input.right;
-      final Expression left = list.append("current" + index, input.left);
+      final Expression left = list.append("current", input.left);
       return physType.fieldReference(left, index);
     }
   }

@@ -51,6 +51,7 @@ API changes
 * Move around some operator classes and singletons.
 
 Bug fixes and internal changes
+* Upgrade to linq4j-0.2.
 * `FETCH` and `LIMIT` are ignored during SQL-to-RelNode translation.
   (Venki Korukanti)
 * Fix <a href="https://github.com/julianhyde/optiq/issues/245">#245</a>,
