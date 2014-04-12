@@ -36,18 +36,12 @@ public class CsvSchema extends AbstractSchema {
   /**
    * Creates a CSV schema.
    *
-   * @param parentSchema Parent schema
-   * @param name Schema name
-   * @param directoryFile Directory that holds .csv files
+   * @param directoryFile Directory that holds {@code .csv} files
    * @param smart      Whether to instantiate smart tables that undergo
    *                   query optimization
    */
-  public CsvSchema(
-      SchemaPlus parentSchema,
-      String name,
-      File directoryFile,
-      boolean smart) {
-    super(parentSchema, name);
+  public CsvSchema(File directoryFile, boolean smart) {
+    super();
     this.directoryFile = directoryFile;
     this.smart = smart;
   }

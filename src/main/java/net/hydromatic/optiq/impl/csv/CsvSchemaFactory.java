@@ -25,7 +25,8 @@ import java.util.Map;
 /**
  * Factory that creates a {@link CsvSchema}.
  *
- * <p>Allows a custom schema to be included in a model.json file.</p>
+ * <p>Allows a custom schema to be included in a <code><i>model</i>.json</code>
+ * file.</p>
  */
 @SuppressWarnings("UnusedDeclaration")
 public class CsvSchemaFactory implements SchemaFactory {
@@ -38,8 +39,6 @@ public class CsvSchemaFactory implements SchemaFactory {
     String directory = (String) operand.get("directory");
     Boolean smart = (Boolean) operand.get("smart");
     return new CsvSchema(
-        parentSchema,
-        name,
         new File(directory),
         smart != null && smart);
   }
