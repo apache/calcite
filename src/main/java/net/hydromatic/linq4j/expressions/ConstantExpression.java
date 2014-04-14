@@ -62,6 +62,12 @@ public class ConstantExpression extends Expression {
 
   @Override
   void accept(ExpressionWriter writer, int lprec, int rprec) {
+    if (value == null) {
+      if (!writer.requireParentheses(this, lprec, rprec)) {
+        writer.append("(").append(type).append(") null");
+      }
+      return;
+    }
     write(writer, value, type);
   }
 

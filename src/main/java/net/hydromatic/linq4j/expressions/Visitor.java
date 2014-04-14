@@ -33,6 +33,13 @@ public class Visitor {
         : Expressions.while_(condition, body);
   }
 
+  public Statement visit(ConditionalStatement conditionalStatement,
+                   List<Node> list) {
+    return list.equals(conditionalStatement.expressionList)
+        ? conditionalStatement
+        : Expressions.ifThenElse(list);
+  }
+
   public BlockStatement visit(BlockStatement blockStatement,
       List<Statement> statements) {
     return statements.equals(blockStatement.statements)
@@ -55,11 +62,18 @@ public class Visitor {
   public ForStatement visit(ForStatement forStatement,
       List<DeclarationStatement> declarations, Expression condition,
       Expression post, Statement body) {
-    return forStatement;
+    return declarations.equals(forStatement.declarations)
+        && condition == forStatement.condition
+        && post == forStatement.post
+        && body == forStatement.body
+        ? forStatement
+        : Expressions.for_(declarations, condition, post, body);
   }
 
-  public Statement visit(ThrowStatement throwStatement) {
-    return throwStatement;
+  public Statement visit(ThrowStatement throwStatement, Expression expression) {
+    return expression == throwStatement.expression
+        ? throwStatement
+        : Expressions.throw_(expression);
   }
 
   public DeclarationStatement visit(DeclarationStatement declarationStatement,

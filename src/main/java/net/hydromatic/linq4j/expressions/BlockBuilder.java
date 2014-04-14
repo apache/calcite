@@ -18,6 +18,7 @@
 package net.hydromatic.linq4j.expressions;
 
 import java.lang.reflect.Modifier;
+import java.lang.reflect.Type;
 import java.util.*;
 
 /**
@@ -35,6 +36,7 @@ public class BlockBuilder {
     = new HashMap<Expression, DeclarationStatement>();
 
   private final boolean optimizing;
+  private final BlockBuilder parent;
 
   /**
    * Creates a non-optimizing BlockBuilder.
@@ -49,7 +51,17 @@ public class BlockBuilder {
    * @param optimizing Whether to eliminate common sub-expressions
    */
   public BlockBuilder(boolean optimizing) {
+    this(optimizing, null);
+  }
+
+  /**
+   * Creates a BlockBuilder.
+   *
+   * @param optimizing Whether to eliminate common sub-expressions
+   */
+  public BlockBuilder(boolean optimizing, BlockBuilder parent) {
     this.optimizing = optimizing;
+    this.parent = parent;
   }
 
   /**
@@ -126,8 +138,7 @@ public class BlockBuilder {
           statements.remove(statements.size() - 1);
           result = append_(name, ((GotoStatement) statement).expression,
               optimize);
-          if (result instanceof ParameterExpression
-              || result instanceof ConstantExpression) {
+          if (isSimpleExpression(result)) {
             // already simple; no need to declare a variable or
             // even to evaluate the expression
           } else {
@@ -182,17 +193,13 @@ public class BlockBuilder {
 
   private Expression append_(String name, Expression expression,
       boolean optimize) {
-    // We treat "1" and "null" as atoms, but not "(Comparator) null".
-    if (expression instanceof ParameterExpression
-        || (expression instanceof ConstantExpression
-            && (((ConstantExpression) expression).value != null
-                || expression.type == Object.class))) {
+    if (isSimpleExpression(expression)) {
       // already simple; no need to declare a variable or
       // even to evaluate the expression
       return expression;
     }
     if (optimizing && optimize) {
-      DeclarationStatement decl = expressionForReuse.get(expression);
+      DeclarationStatement decl = getComputedExpression(expression);
       if (decl != null) {
         return decl.parameter;
       }
@@ -203,6 +210,24 @@ public class BlockBuilder {
     return declare.parameter;
   }
 
+  /**
+   * Checks if experssion is simple enough for always inline
+   * @param expr expression to test
+   * @return true when given expression is safe to always inline
+   */
+  protected boolean isSimpleExpression(Expression expr) {
+    if (expr instanceof ParameterExpression
+        || expr instanceof ConstantExpression) {
+      return true;
+    }
+    if (expr instanceof UnaryExpression) {
+      UnaryExpression una = (UnaryExpression) expr;
+      return una.getNodeType() == ExpressionType.Convert
+          && isSimpleExpression(una.expression);
+    }
+    return false;
+  }
+
   protected boolean isSafeForReuse(DeclarationStatement decl) {
     return (decl.modifiers & Modifier.FINAL) != 0
            && decl.initializer != null;
@@ -210,8 +235,41 @@ public class BlockBuilder {
 
   protected void addExpresisonForReuse(DeclarationStatement decl) {
     if (isSafeForReuse(decl)) {
-      expressionForReuse.put(decl.initializer, decl);
+      Expression expr = normalizeDeclaration(decl);
+      expressionForReuse.put(expr, decl);
     }
+  }
+
+  /**
+   * Prepares declaration for inlining: adds cast
+   * @param decl inlining candidate
+   * @return normalized expression
+   */
+  private Expression normalizeDeclaration(DeclarationStatement decl) {
+    Expression expr = decl.initializer;
+    Type declType = decl.parameter.getType();
+    if (expr == null) {
+      expr = Expressions.constant(null, declType);
+    } else if (expr.getType() != declType) {
+      expr = Expressions.convert_(expr, declType);
+    }
+    return expr;
+  }
+
+  /**
+   * Returns the reference to ParameterExpression if given expression was
+   * already computed and stored to local variable
+   * @param expr expression to test
+   * @return existing ParameterExpression or null
+   */
+  public DeclarationStatement getComputedExpression(Expression expr) {
+    if (parent != null) {
+      DeclarationStatement decl = parent.getComputedExpression(expr);
+      if (decl != null) {
+        return decl;
+      }
+    }
+    return optimizing ? expressionForReuse.get(expr) : null;
   }
 
   public void add(Statement statement) {
@@ -261,18 +319,20 @@ public class BlockBuilder {
         new IdentityHashMap<ParameterExpression, Expression>();
     final SubstituteVariableVisitor visitor = new SubstituteVariableVisitor(
         subMap);
+    final OptimizeVisitor optimizer = new OptimizeVisitor();
     final ArrayList<Statement> oldStatements = new ArrayList<Statement>(
         statements);
     statements.clear();
+
     for (Statement oldStatement : oldStatements) {
       if (oldStatement instanceof DeclarationStatement) {
         DeclarationStatement statement = (DeclarationStatement) oldStatement;
         final Slot slot = useCounter.map.get(statement.parameter);
         int count = slot.count;
-        if (Expressions.isConstantNull(slot.expression)) {
-          // Don't allow 'final Type t = null' to be inlined. There
-          // is an implicit cast.
-          count = 100;
+        if (count > 1 && isSafeForReuse(statement)
+            && isSimpleExpression(statement.initializer)) {
+          // Inline simple final constants
+          count = 1;
         }
         if (statement.parameter.name.startsWith("_")) {
           // Don't inline variables whose name begins with "_". This
@@ -289,32 +349,36 @@ public class BlockBuilder {
           // anonymous classes.
           count = 100;
         }
+        Expression normalized = normalizeDeclaration(statement);
+        expressionForReuse.remove(normalized);
         switch (count) {
         case 0:
           // Only declared, never used. Throw away declaration.
           break;
         case 1:
           // declared, used once. inline it.
-          subMap.put(slot.parameter, slot.expression);
+          subMap.put(slot.parameter, normalized);
           break;
         default:
-          statements.add(statement);
+          if (!subMap.isEmpty()) {
+            oldStatement = oldStatement.accept(visitor); // remap
+          }
+          oldStatement = oldStatement.accept(optimizer);
+          if (oldStatement != OptimizeVisitor.EMPTY_STATEMENT) {
+            if (oldStatement instanceof DeclarationStatement) {
+              addExpresisonForReuse((DeclarationStatement) oldStatement);
+            }
+            statements.add(oldStatement);
+          }
           break;
         }
       } else {
-        statements.add(oldStatement.accept(visitor));
-      }
-    }
-    if (!subMap.isEmpty()) {
-      oldStatements.clear();
-      oldStatements.addAll(statements);
-      statements.clear();
-      expressionForReuse.clear();
-      for (Statement oldStatement : oldStatements) {
-        Statement remappedStatement = oldStatement.accept(visitor);
-        statements.add(remappedStatement);
-        if (remappedStatement instanceof DeclarationStatement) {
-          addExpresisonForReuse((DeclarationStatement) remappedStatement);
+        if (!subMap.isEmpty()) {
+          oldStatement = oldStatement.accept(visitor); // remap
+        }
+        oldStatement = oldStatement.accept(optimizer);
+        if (oldStatement != OptimizeVisitor.EMPTY_STATEMENT) {
+          statements.add(oldStatement);
         }
       }
     }
@@ -338,12 +402,15 @@ public class BlockBuilder {
   public String newName(String suggestion) {
     int i = 0;
     String candidate = suggestion;
-    for (;;) {
-      if (!variables.contains(candidate)) {
-        return candidate;
-      }
+    while (hasVariable(candidate)) {
       candidate = suggestion + (i++);
     }
+    return candidate;
+  }
+
+  public boolean hasVariable(String name) {
+    return variables.contains(name)
+        || (parent != null && parent.hasVariable(name));
   }
 
   public BlockBuilder append(Expression expression) {
@@ -380,17 +447,32 @@ public class BlockBuilder {
       return super.visit(parameterExpression);
     }
 
+    @Override
+    public Expression visit(UnaryExpression unaryExpression, Expression
+        expression) {
+      if (unaryExpression.getNodeType().modifiesLvalue) {
+        expression = unaryExpression.expression; // avoid substitution
+        if (expression instanceof ParameterExpression) {
+          // avoid "optimization of" int t=1; t++; to 1++
+          return unaryExpression;
+        }
+      }
+      return super.visit(unaryExpression, expression);
+    }
+
     @Override public Expression visit(BinaryExpression binaryExpression,
         Expression expression0, Expression expression1) {
-      if (binaryExpression.getNodeType() == ExpressionType.Assign
-          && expression0 instanceof ParameterExpression) {
-        // If t is a declaration used only once, replace
-        //   int t;
-        //   int v = (t = 1) != a ? c : d;
-        // with
-        //   int v = 1 != a ? c : d;
-        if (map.containsKey(expression0)) {
-          return expression1.accept(this);
+      if (binaryExpression.getNodeType().modifiesLvalue) {
+        expression0 = binaryExpression.expression0; // avoid substitution
+        if (expression0 instanceof ParameterExpression) {
+          // If t is a declaration used only once, replace
+          //   int t;
+          //   int v = (t = 1) != a ? c : d;
+          // with
+          //   int v = 1 != a ? c : d;
+          if (map.containsKey(expression0)) {
+            return expression1.accept(this);
+          }
         }
       }
       return super.visit(binaryExpression, expression0, expression1);
@@ -401,6 +483,7 @@ public class BlockBuilder {
     private final Map<ParameterExpression, Slot> map =
         new IdentityHashMap<ParameterExpression, Slot>();
 
+    @Override
     public Expression visit(ParameterExpression parameter) {
       final Slot slot = map.get(parameter);
       if (slot != null) {

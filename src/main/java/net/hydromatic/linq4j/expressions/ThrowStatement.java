@@ -30,7 +30,8 @@ public class ThrowStatement extends Statement {
 
   @Override
   public Statement accept(Visitor visitor) {
-    return visitor.visit(this);
+    Expression expression = this.expression.accept(visitor);
+    return visitor.visit(this, expression);
   }
 
   @Override

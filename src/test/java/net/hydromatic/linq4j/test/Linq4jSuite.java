@@ -32,6 +32,9 @@ import org.junit.runners.Suite;
     PrimitiveTest.class,
     Linq4jTest.class,
     ExpressionTest.class,
+    OptimizerTest.class,
+    InlinerTest.class,
+    BlockBuilderTest.class,
     FunctionTest.class,
     TypeTest.class
 })

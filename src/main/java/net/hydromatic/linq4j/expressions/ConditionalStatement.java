@@ -32,7 +32,7 @@ import java.util.List;
  * </p>
  */
 public class ConditionalStatement extends Statement {
-  private final List<Node> expressionList;
+  public final List<Node> expressionList;
 
   public ConditionalStatement(List<Node> expressionList) {
     super(ExpressionType.Conditional, Void.TYPE);
@@ -41,12 +41,9 @@ public class ConditionalStatement extends Statement {
   }
 
   @Override
-  public ConditionalStatement accept(Visitor visitor) {
+  public Statement accept(Visitor visitor) {
     List<Node> list = Expressions.acceptNodes(expressionList, visitor);
-    if (!list.equals(expressionList)) {
-      return new ConditionalStatement(list);
-    }
-    return this;
+    return visitor.visit(this, list);
   }
 
   @Override
