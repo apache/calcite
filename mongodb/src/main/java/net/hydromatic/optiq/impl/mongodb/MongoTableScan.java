@@ -20,7 +20,6 @@ package net.hydromatic.optiq.impl.mongodb;
 import org.eigenbase.rel.*;
 import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.RelDataType;
-import org.eigenbase.util.Pair;
 
 import java.util.*;
 
@@ -42,11 +41,9 @@ public class MongoTableScan extends TableAccessRelBase implements MongoRel {
    * @param table          Table
    * @param mongoTable     MongoDB table
    * @param projectRowType Fields and types to project; null to project raw row
-   * @param ops            List of operators to apply
    */
   protected MongoTableScan(RelOptCluster cluster, RelTraitSet traitSet,
-      RelOptTable table, MongoTable mongoTable, RelDataType projectRowType,
-      List<Pair<String, String>> ops) {
+      RelOptTable table, MongoTable mongoTable, RelDataType projectRowType) {
     super(cluster, traitSet, table);
     this.mongoTable = mongoTable;
     this.projectRowType = projectRowType;

@@ -25,14 +25,12 @@ import net.hydromatic.optiq.impl.AbstractTableQueryable;
 import net.hydromatic.optiq.impl.java.AbstractQueryableTable;
 
 import org.eigenbase.rel.RelNode;
+import org.eigenbase.relopt.RelOptCluster;
 import org.eigenbase.relopt.RelOptTable;
 import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.reltype.RelDataTypeFactory;
 import org.eigenbase.sql.type.SqlTypeName;
-import org.eigenbase.util.Pair;
 import org.eigenbase.util.Util;
-
-import com.google.common.collect.ImmutableList;
 
 import com.mongodb.*;
 import com.mongodb.util.JSON;
@@ -72,9 +70,9 @@ public class MongoTable extends AbstractQueryableTable
   public RelNode toRel(
       RelOptTable.ToRelContext context,
       RelOptTable relOptTable) {
-    return new MongoTableScan(context.getCluster(),
-        context.getCluster().traitSetOf(MongoRel.CONVENTION), relOptTable,
-        this, null, ImmutableList.<Pair<String, String>>of());
+    final RelOptCluster cluster = context.getCluster();
+    return new MongoTableScan(cluster, cluster.traitSetOf(MongoRel.CONVENTION),
+        relOptTable, this, null);
   }
 
   /** Executes a "find" operation on the underlying collection.
