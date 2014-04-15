@@ -86,6 +86,7 @@
     <module>avatica</module>
     <module>core</module>
     <module>mongodb</module>
+    <module>plus</module>
     <module>spark</module>
     <module>splunk</module>
   </modules>

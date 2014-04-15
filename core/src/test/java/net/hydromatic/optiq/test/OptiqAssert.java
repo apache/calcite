@@ -63,6 +63,10 @@ public class OptiqAssert {
           ? ConnectionSpec.MYSQL
           : ConnectionSpec.HSQLDB;
 
+  /** Whether to enable slow tests. Default is false. */
+  public static final boolean ENABLE_SLOW =
+      Util.first(Boolean.getBoolean("optiq.test.slow"), false);
+
   private static final DateFormat UTC_DATE_FORMAT;
   private static final DateFormat UTC_TIME_FORMAT;
   private static final DateFormat UTC_TIMESTAMP_FORMAT;
