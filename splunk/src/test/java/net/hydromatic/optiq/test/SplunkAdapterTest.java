@@ -211,7 +211,8 @@ public class SplunkAdapterTest {
     return new Function<ResultSet, Void>() {
       public Void apply(ResultSet a0) {
         try {
-          Collection<String> actual = toStringList(a0, new HashSet<String>());
+          Collection<String> actual =
+              OptiqAssert.toStringList(a0, new HashSet<String>());
           assertThat(actual, equalTo(expected));
           return null;
         } catch (SQLException e) {
@@ -219,28 +220,6 @@ public class SplunkAdapterTest {
         }
       }
     };
-  }
-
-  static Collection<String> toStringList(ResultSet resultSet,
-      Collection<String> list) throws SQLException {
-    final StringBuilder buf = new StringBuilder();
-    while (resultSet.next()) {
-      int n = resultSet.getMetaData().getColumnCount();
-      if (n > 0) {
-        for (int i = 1;; i++) {
-          buf.append(resultSet.getMetaData().getColumnLabel(i))
-              .append("=")
-              .append(resultSet.getString(i));
-          if (i == n) {
-            break;
-          }
-          buf.append("; ");
-        }
-      }
-      list.add(buf.toString());
-      buf.setLength(0);
-    }
-    return list;
   }
 
   /** "status" is not a built-in column but we know it has some values in the
@@ -299,6 +278,7 @@ public class SplunkAdapterTest {
       info.put("url", SPLUNK_URL);
       info.put("user", SPLUNK_USER);
       info.put("password", SPLUNK_PASSWORD);
+      info.put("model", "inline:" + JdbcTest.FOODMART_MODEL);
       connection = DriverManager.getConnection("jdbc:splunk:", info);
       statement = connection.createStatement();
       if (!enabled()) {

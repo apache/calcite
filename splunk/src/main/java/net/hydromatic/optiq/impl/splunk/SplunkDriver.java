@@ -19,16 +19,16 @@ package net.hydromatic.optiq.impl.splunk;
 
 import net.hydromatic.avatica.DriverVersion;
 
+import net.hydromatic.linq4j.Enumerator;
+
 import net.hydromatic.optiq.SchemaPlus;
-import net.hydromatic.optiq.impl.jdbc.JdbcSchema;
-import net.hydromatic.optiq.impl.splunk.search.SplunkConnection;
+import net.hydromatic.optiq.impl.splunk.search.*;
 import net.hydromatic.optiq.jdbc.*;
 
 import java.net.URL;
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.util.Properties;
-import javax.sql.DataSource;
+import java.util.*;
 
 /**
  * JDBC driver for Splunk.
@@ -63,44 +63,63 @@ public class SplunkDriver extends net.hydromatic.optiq.jdbc.Driver {
         throw new IllegalArgumentException(
             "Must specify 'url' property");
       }
-      URL url2 = new URL(url1);
-      String user = info.getProperty("user");
-      if (user == null) {
-        throw new IllegalArgumentException(
-            "Must specify 'user' property");
+      if (url1.equals("mock")) {
+        splunkConnection = new MockSplunkConnection();
+      } else {
+        String user = info.getProperty("user");
+        if (user == null) {
+          throw new IllegalArgumentException(
+              "Must specify 'user' property");
+        }
+        String password = info.getProperty("password");
+        if (password == null) {
+          throw new IllegalArgumentException(
+              "Must specify 'password' property");
+        }
+        URL url2 = new URL(url1);
+        splunkConnection = new SplunkConnectionImpl(url2, user, password);
       }
-      String password = info.getProperty("password");
-      if (password == null) {
-        throw new IllegalArgumentException(
-            "Must specify 'password' property");
-      }
-      splunkConnection = new SplunkConnection(url2, user, password);
     } catch (Exception e) {
       throw new SQLException("Cannot connect", e);
     }
     final SchemaPlus rootSchema = optiqConnection.getRootSchema();
     rootSchema.add("splunk", new SplunkSchema(splunkConnection));
 
-    // Include a schema called "mysql" in every splunk connection.
-    // This is a hack for demo purposes. TODO: Add a config file mechanism.
-    if (true) {
-      final String username = "foodmart";
-      final String password = "foodmart";
-      final String mysqlSchemaName = "foodmart";
-      try {
-        Class.forName("com.mysql.jdbc.Driver");
-      } catch (ClassNotFoundException e) {
-        throw new SQLException(e);
-      }
-      final DataSource dataSource =
-          JdbcSchema.dataSource("jdbc:mysql://localhost/foodmart", null,
-              username, password);
-      rootSchema.add(mysqlSchemaName,
-          JdbcSchema.create(optiqConnection.getRootSchema(), mysqlSchemaName,
-              dataSource, null, mysqlSchemaName));
+    return connection;
+  }
+
+  /** Connection that looks up responses from a static map. */
+  private static class MockSplunkConnection implements SplunkConnection {
+    public Enumerator<Object> getSearchResultEnumerator(String search,
+        Map<String, String> otherArgs, List<String> fieldList) {
+      throw null;
     }
 
-    return connection;
+    public void getSearchResults(String search, Map<String, String> otherArgs,
+        List<String> fieldList, SearchResultListener srl) {
+      throw new UnsupportedOperationException();
+    }
+  }
+
+  /** Connection that records requests and responses. */
+  private static class WrappingSplunkConnection implements SplunkConnection {
+    private final SplunkConnection connection;
+
+    public WrappingSplunkConnection(SplunkConnection connection) {
+      this.connection = connection;
+    }
+
+    public void getSearchResults(String search, Map<String, String> otherArgs,
+        List<String> fieldList, SearchResultListener srl) {
+      System.out.println("search='" + search
+          + "', otherArgs=" + otherArgs
+          + ", fieldList='" + fieldList);
+    }
+
+    public Enumerator<Object> getSearchResultEnumerator(String search,
+        Map<String, String> otherArgs, List<String> fieldList) {
+      throw new UnsupportedOperationException();
+    }
   }
 }
 

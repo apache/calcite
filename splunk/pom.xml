@@ -23,6 +23,13 @@
       <version>0.7-SNAPSHOT</version>
     </dependency>
     <dependency>
+      <groupId>net.hydromatic</groupId>
+      <artifactId>optiq-core</artifactId>
+      <version>0.7-SNAPSHOT</version>
+      <type>test-jar</type>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
       <groupId>net.sf.opencsv</groupId>
       <artifactId>opencsv</artifactId>
       <version>2.3</version>
