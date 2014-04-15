@@ -1968,12 +1968,10 @@ public class SqlToRelConverter {
     final List<RexNode> extraRightExprs = new ArrayList<RexNode>();
     final int leftCount = leftRel.getRowType().getFieldCount();
     final int rightCount = rightRel.getRowType().getFieldCount();
-    joinCond = pushDownJoinConditions(
-        joinCond,
-        leftCount,
-        rightCount,
-        extraLeftExprs,
-        extraRightExprs);
+    if (!containsGet(joinCond)) {
+      joinCond = pushDownJoinConditions(
+          joinCond, leftCount, rightCount, extraLeftExprs, extraRightExprs);
+    }
     if (!extraLeftExprs.isEmpty()) {
       final List<RelDataTypeField> fields =
           leftRel.getRowType().getFieldList();
@@ -2046,6 +2044,23 @@ public class SqlToRelConverter {
       return RelOptUtil.project(join, mapping);
     }
     return join;
+  }
+
+  private static boolean containsGet(RexNode node) {
+    try {
+      node.accept(
+          new RexVisitorImpl<Void>(true) {
+            @Override public Void visitCall(RexCall call) {
+              if (call.getOperator() == RexBuilder.GET_OPERATOR) {
+                throw Util.FoundOne.NULL;
+              }
+              return super.visitCall(call);
+            }
+          });
+      return false;
+    } catch (Util.FoundOne e) {
+      return true;
+    }
   }
 
   /**
@@ -3180,8 +3195,8 @@ public class SqlToRelConverter {
         name = namespace.translate(name);
         namespace = null;
       }
-      final int fieldOrdinal = catalogReader.fieldOrdinal(e.getType(), name);
-      e = rexBuilder.makeFieldAccess(e, fieldOrdinal);
+      final boolean caseSensitive = true; // name already fully-qualified
+      e = rexBuilder.makeFieldAccess(e, name, caseSensitive);
     }
     if (e instanceof RexInputRef) {
       // adjust the type to account for nulls introduced by outer joins

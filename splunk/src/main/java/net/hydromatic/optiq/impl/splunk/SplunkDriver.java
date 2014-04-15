@@ -18,7 +18,6 @@
 package net.hydromatic.optiq.impl.splunk;
 
 import net.hydromatic.avatica.DriverVersion;
-import net.hydromatic.avatica.UnregisteredDriver;
 
 import net.hydromatic.optiq.SchemaPlus;
 import net.hydromatic.optiq.impl.jdbc.JdbcSchema;
@@ -36,7 +35,7 @@ import javax.sql.DataSource;
  *
  * <p>It accepts connect strings that start with "jdbc:splunk:".</p>
  */
-public class SplunkDriver extends UnregisteredDriver {
+public class SplunkDriver extends net.hydromatic.optiq.jdbc.Driver {
   protected SplunkDriver() {
     super();
   }
@@ -85,18 +84,20 @@ public class SplunkDriver extends UnregisteredDriver {
     // Include a schema called "mysql" in every splunk connection.
     // This is a hack for demo purposes. TODO: Add a config file mechanism.
     if (true) {
-      final String mysqlSchemaName = "mysql";
+      final String username = "foodmart";
+      final String password = "foodmart";
+      final String mysqlSchemaName = "foodmart";
       try {
         Class.forName("com.mysql.jdbc.Driver");
       } catch (ClassNotFoundException e) {
         throw new SQLException(e);
       }
       final DataSource dataSource =
-          JdbcSchema.dataSource("jdbc:mysql://localhost", null, "foodmart",
-              "foodmart");
-      rootSchema.add("foodmart",
-          JdbcSchema.create(optiqConnection.getRootSchema(), "foodmart",
-              dataSource, "", mysqlSchemaName));
+          JdbcSchema.dataSource("jdbc:mysql://localhost/foodmart", null,
+              username, password);
+      rootSchema.add(mysqlSchemaName,
+          JdbcSchema.create(optiqConnection.getRootSchema(), mysqlSchemaName,
+              dataSource, null, mysqlSchemaName));
     }
 
     return connection;

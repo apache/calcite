@@ -100,6 +100,16 @@ Closing: net.hydromatic.optiq.jdbc.FactoryJdbc41$OptiqConnectionJdbc41
 $
 ```
 
+# Splunk adapter
+
+To run the test suite and sample queries against Splunk,
+load Splunk's `tutorialdata.zip` data set as described in
+<a href="http://docs.splunk.com/Documentation/Splunk/6.0.2/PivotTutorial/GetthetutorialdataintoSplunk">the Splunk tutorial</a>.
+
+(This step is optional, but it provides some interesting data for the sample
+queries. It is also necessary if you intend to run the test suite, using
+`-Doptiq.test.splunk=true`.)
+
 # Implementing adapters
 
 New adapters can be created by implementing `OptiqPrepare.Context`:

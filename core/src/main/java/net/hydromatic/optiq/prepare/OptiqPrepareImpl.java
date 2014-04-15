@@ -602,7 +602,7 @@ public class OptiqPrepareImpl implements OptiqPrepare {
           new SqlToRelConverter(
               this, validator, catalogReader, planner, rexBuilder,
               StandardConvertletTable.INSTANCE);
-      sqlToRelConverter.setTrimUnusedFields(false);
+      sqlToRelConverter.setTrimUnusedFields(true);
       return sqlToRelConverter;
     }
 

@@ -19,9 +19,6 @@ package net.hydromatic.optiq.impl.splunk;
 
 import net.hydromatic.linq4j.expressions.*;
 
-import net.hydromatic.optiq.SchemaPlus;
-import net.hydromatic.optiq.Schemas;
-import net.hydromatic.optiq.impl.splunk.search.SplunkConnection;
 import net.hydromatic.optiq.prepare.OptiqPrepareImpl;
 import net.hydromatic.optiq.rules.java.*;
 import net.hydromatic.optiq.runtime.Hook;
@@ -31,10 +28,11 @@ import org.eigenbase.rel.TableAccessRelBase;
 import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.reltype.RelDataTypeFactory;
+import org.eigenbase.util.Util;
 
 import com.google.common.collect.ImmutableMap;
 
-import java.lang.reflect.Constructor;
+import java.lang.reflect.Method;
 import java.util.*;
 
 /**
@@ -50,7 +48,6 @@ public class SplunkTableAccessRel
     extends TableAccessRelBase
     implements EnumerableRel {
   final SplunkTable splunkTable;
-  final SchemaPlus schema;
   final String search;
   final String earliest;
   final String latest;
@@ -69,7 +66,6 @@ public class SplunkTableAccessRel
         cluster.traitSetOf(EnumerableConvention.INSTANCE),
         table);
     this.splunkTable = splunkTable;
-    this.schema = null; // TODO:
     this.search = search;
     this.earliest = earliest;
     this.latest = latest;
@@ -107,10 +103,10 @@ public class SplunkTableAccessRel
     return builder.build();
   }
 
-  private static final Constructor CONSTRUCTOR =
-      Types.lookupConstructor(
-          SplunkQuery.class,
-          SplunkConnection.class,
+  private static final Method METHOD =
+      Types.lookupMethod(
+          SplunkTable.SplunkTableQueryable.class,
+          "createQuery",
           String.class,
           String.class,
           String.class,
@@ -119,8 +115,8 @@ public class SplunkTableAccessRel
   public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
     Map map = ImmutableMap.builder()
         .put("search", search)
-        .put("earliest", earliest)
-        .put("latest", latest)
+        .put("earliest", Util.first(earliest, ""))
+        .put("latest", Util.first(latest, ""))
         .put("fieldList", fieldList)
         .build();
     if (OptiqPrepareImpl.DEBUG) {
@@ -137,13 +133,9 @@ public class SplunkTableAccessRel
     return implementor.result(
         physType,
         builder.append(
-            Expressions.new_(
-                CONSTRUCTOR,
-                Expressions.field(
-                    Types.castIfNecessary(
-                        SplunkSchema.class,
-                        Schemas.expression(schema)),
-                    "splunkConnection"),
+            Expressions.call(
+                table.getExpression(SplunkTable.SplunkTableQueryable.class),
+                METHOD,
                 Expressions.constant(search),
                 Expressions.constant(earliest),
                 Expressions.constant(latest),

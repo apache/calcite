@@ -23,12 +23,13 @@ import org.eigenbase.rel.*;
 import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.*;
 import org.eigenbase.rex.*;
-import org.eigenbase.sql.SqlKind;
-import org.eigenbase.sql.SqlOperator;
+import org.eigenbase.sql.*;
 import org.eigenbase.sql.fun.SqlStdOperatorTable;
 import org.eigenbase.sql.type.SqlTypeName;
 import org.eigenbase.util.NlsString;
 import org.eigenbase.util.Pair;
+
+import com.google.common.collect.ImmutableSet;
 
 import java.util.*;
 import java.util.logging.Logger;
@@ -42,18 +43,18 @@ public class SplunkPushDownRule
       StringUtils.getClassTracer(SplunkPushDownRule.class);
 
   private static final Set<SqlKind> SUPPORTED_OPS =
-      new HashSet<SqlKind>(
-          Arrays.asList(
-              SqlKind.EQUALS,
-              SqlKind.LESS_THAN,
-              SqlKind.LESS_THAN_OR_EQUAL,
-              SqlKind.GREATER_THAN,
-              SqlKind.GREATER_THAN_OR_EQUAL,
-              SqlKind.NOT_EQUALS,
-              SqlKind.LIKE,
-              SqlKind.AND,
-              SqlKind.OR,
-              SqlKind.NOT));
+      ImmutableSet.of(
+          SqlKind.CAST,
+          SqlKind.EQUALS,
+          SqlKind.LESS_THAN,
+          SqlKind.LESS_THAN_OR_EQUAL,
+          SqlKind.GREATER_THAN,
+          SqlKind.GREATER_THAN_OR_EQUAL,
+          SqlKind.NOT_EQUALS,
+          SqlKind.LIKE,
+          SqlKind.AND,
+          SqlKind.OR,
+          SqlKind.NOT);
 
   public static final SplunkPushDownRule PROJECT_ON_FILTER =
       new SplunkPushDownRule(
@@ -137,17 +138,11 @@ public class SplunkPushDownRule
 
       LOGGER.fine("fieldNames: " + getFieldsString(topRow));
 
-      filterString = getFilter(op, operands, "", topRow.getFieldNames());
-
-      if (filterString == null) {
-        // can't handle - exit and stop optimizer from calling
-        // any SplunkUdxRel related optimizations
-        transformToFarragoUdxRel(
-            call, splunkRel,
-            filter,
-            topProj,
-            bottomProj);
-        return;
+      final StringBuilder buf = new StringBuilder();
+      if (getFilter(op, operands, buf, topRow.getFieldNames())) {
+        filterString = buf.toString();
+      } else {
+        return; // can't handle
       }
     } else {
       filterString = "";
@@ -283,64 +278,69 @@ public class SplunkPushDownRule
   // TODO: refactor this to use more tree like parsing, need to also
   //      make sure we use parens properly - currently precedence
   //      rules are simply left to right
-  private String getFilter(
-      SqlOperator op,
-      List<RexNode> operands,
-      String s,
-      List<String> fieldNames) {
+  private boolean getFilter(SqlOperator op, List<RexNode> operands,
+      StringBuilder s, List<String> fieldNames) {
     if (!valid(op.getKind())) {
-      return null;
+      return false;
     }
 
-    // NOT op pre-pended
-    if (op.equals(SqlStdOperatorTable.NOT)) {
-      s = s.concat(" NOT ");
+    boolean like = false;
+    switch (op.getKind()) {
+    case NOT:
+      // NOT op pre-pended
+      s = s.append(" NOT ");
+      break;
+    case CAST:
+      return asd(false, operands, s, fieldNames, 0);
+    case LIKE:
+      like = true;
+      break;
     }
 
     for (int i = 0; i < operands.size(); i++) {
-      final RexNode operand = operands.get(i);
-      if (operand instanceof RexCall) {
-        s = s.concat("(");
-        final RexCall call = (RexCall) operand;
-        s = getFilter(
-            call.getOperator(),
-            call.getOperands(),
-            s,
-            fieldNames);
-        if (s == null) {
-          return null;
-        }
-        s = s.concat(")");
-        if (i != (operands.size() - 1)) {
-          s = s.concat(" " + op.toString() + " ");
-        }
-      } else {
-        if (operands.size() != 2) {
-          return null;
-        }
-        if (operand instanceof RexInputRef) {
-          if (i != 0) {
-            return null; // must be of form field=value
-          }
-
-          int fieldIndex = ((RexInputRef) operand).getIndex();
-          String name = fieldNames.get(fieldIndex);
-          s = s.concat(name);
-        } else { // RexLiteral
-          RexLiteral lit = (RexLiteral) operand;
-
-          String tmp = toString(op, lit);
-          if (tmp == null) {
-            return null;
-          }
-          s = s.concat(tmp);
-        }
-        if (i == 0) {
-          s = s.concat(toString(op));
-        }
+      if (!asd(like, operands, s, fieldNames, i)) {
+        return false;
+      }
+      if (op instanceof SqlBinaryOperator && i == 0) {
+        s.append(" ").append(op).append(" ");
       }
     }
-    return s;
+    return true;
+  }
+
+  private boolean asd(boolean like, List<RexNode> operands, StringBuilder s,
+      List<String> fieldNames, int i) {
+    RexNode operand = operands.get(i);
+    if (operand instanceof RexCall) {
+      s.append("(");
+      final RexCall call = (RexCall) operand;
+      boolean b =
+          getFilter(
+              call.getOperator(),
+              call.getOperands(),
+              s,
+              fieldNames);
+      if (!b) {
+        return false;
+      }
+      s.append(")");
+    } else {
+      if (operand instanceof RexInputRef) {
+        if (i != 0) {
+          return false;
+        }
+        int fieldIndex = ((RexInputRef) operand).getIndex();
+        String name = fieldNames.get(fieldIndex);
+        s.append(name);
+      } else { // RexLiteral
+        String tmp = toString(like, (RexLiteral) operand);
+        if (tmp == null) {
+          return false;
+        }
+        s.append(tmp);
+      }
+    }
+    return true;
   }
 
   private boolean valid(SqlKind kind) {
@@ -381,14 +381,14 @@ public class SplunkPushDownRule
     return str;
   }
 
-  private String toString(SqlOperator op, RexLiteral literal) {
+  private String toString(boolean like, RexLiteral literal) {
     String value = null;
     SqlTypeName litSqlType = literal.getTypeName();
     if (SqlTypeName.NUMERIC_TYPES.contains(litSqlType)) {
       value = literal.getValue().toString();
     } else if (litSqlType.equals(SqlTypeName.CHAR)) {
       value = ((NlsString) literal.getValue()).getValue();
-      if (op.equals(SqlStdOperatorTable.LIKE)) {
+      if (like) {
         value = value.replaceAll("%", "*");
       }
       value = searchEscape(value);

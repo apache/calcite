@@ -29,6 +29,8 @@ import org.eigenbase.relopt.RelOptTable;
 import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.reltype.RelDataTypeFactory;
 
+import java.util.List;
+
 /**
  * Table based on Splunk.
  */
@@ -55,22 +57,7 @@ class SplunkTable extends AbstractQueryableTable implements TranslatableTable {
 
   public <T> Queryable<T> asQueryable(QueryProvider queryProvider,
       SchemaPlus schema, String tableName) {
-    return new AbstractTableQueryable<T>(queryProvider, schema, this,
-        tableName) {
-      public Enumerator<T> enumerator() {
-        final SplunkQuery<T> query = createQuery(schema);
-        return query.enumerator();
-      }
-    };
-  }
-
-  private <T> SplunkQuery<T> createQuery(SchemaPlus schema) {
-    return new SplunkQuery<T>(
-        schema.unwrap(SplunkSchema.class).splunkConnection,
-        "search",
-        null,
-        null,
-        null);
+    return new SplunkTableQueryable<T>(queryProvider, schema, this, tableName);
   }
 
   public RelNode toRel(
@@ -84,6 +71,29 @@ class SplunkTable extends AbstractQueryableTable implements TranslatableTable {
         null,
         null,
         relOptTable.getRowType().getFieldNames());
+  }
+
+  /** Implementation of {@link Queryable} backed by a {@link SplunkTable}.
+   * Generated code uses this get a Splunk connection for executing arbitrary
+   * Splunk queries. */
+  public static class SplunkTableQueryable<T>
+      extends AbstractTableQueryable<T> {
+    public SplunkTableQueryable(QueryProvider queryProvider, SchemaPlus schema,
+        SplunkTable table, String tableName) {
+      super(queryProvider, schema, table, tableName);
+    }
+
+    public Enumerator<T> enumerator() {
+      final SplunkQuery<T> query = createQuery("search", null, null, null);
+      return query.enumerator();
+    }
+
+    public SplunkQuery<T> createQuery(String search, String earliest,
+        String latest, List<String> fieldList) {
+      final SplunkSchema splunkSchema = schema.unwrap(SplunkSchema.class);
+      return new SplunkQuery<T>(splunkSchema.splunkConnection, search,
+          earliest, latest, fieldList);
+    }
   }
 }
 

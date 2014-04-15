@@ -193,6 +193,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
         : "source: " + mapping.getSourceCount() + " != " + fieldCount;
     final int newFieldCount = newRel.getRowType().getFieldCount();
     assert mapping.getTargetCount() + extraFields.size() == newFieldCount
+        || Bug.TODO_FIXED
         : "target: " + mapping.getTargetCount()
         + " + " + extraFields.size()
         + " != " + newFieldCount;
@@ -520,7 +521,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
       // individually. For now, we assume that just one input has
       // on-demand fields.
       Set<RelDataTypeField> inputExtraFields =
-          RelDataTypeImpl.extra(rowType) == null
+          RelDataTypeImpl.extra(inputRowType) == null
               ? Collections.<RelDataTypeField>emptySet()
               : combinedInputExtraFields;
       inputExtraFieldCounts.add(inputExtraFields.size());

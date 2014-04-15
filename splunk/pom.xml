@@ -36,9 +36,9 @@
         <artifactId>maven-surefire-plugin</artifactId>
         <version>2.15</version>
         <configuration>
-          <excludes>
-            <exclude>net/hydromatic/**/SplunkAdapterTest.java</exclude>
-          </excludes>
+          <includes>
+            <include>net/hydromatic/optiq/test/SplunkAdapterTest.java</include>
+          </includes>
         </configuration>
       </plugin>
 
