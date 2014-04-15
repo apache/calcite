@@ -33,6 +33,7 @@ import org.eigenbase.reltype.RelDataTypeFactory;
 
 import com.google.common.collect.ImmutableMap;
 
+import java.sql.Date;
 import java.util.List;
 import java.util.Map;
 
@@ -112,10 +113,13 @@ public class TpchSchema extends AbstractSchema {
             }
 
             private Object value(TpchColumn<E> tpchColumn, E current) {
-              if (tpchColumn.getType() == String.class) {
+              final Class<?> type = realType(tpchColumn);
+              if (type == String.class) {
                 return tpchColumn.getString(current);
-              } else if (tpchColumn.getType() == Double.class) {
+              } else if (type == Double.class) {
                 return tpchColumn.getDouble(current);
+              } else if (type == Date.class) {
+                return Date.valueOf(tpchColumn.getString(current));
               } else {
                 return tpchColumn.getLong(current);
               }
@@ -145,9 +149,16 @@ public class TpchSchema extends AbstractSchema {
       }
       for (TpchColumn<E> column : tpchTable.getColumns()) {
         builder.add((prefix + column.getColumnName()).toUpperCase(),
-            typeFactory.createJavaType(column.getType()));
+            typeFactory.createJavaType(realType(column)));
       }
       return builder.build();
+    }
+
+    private Class<?> realType(TpchColumn<E> column) {
+      if (column.getColumnName().endsWith("date")) {
+        return java.sql.Date.class;
+      }
+      return column.getType();
     }
   }
 }

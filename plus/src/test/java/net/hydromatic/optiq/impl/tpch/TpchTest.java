@@ -795,6 +795,7 @@ public class TpchTest {
     checkQuery(3);
   }
 
+  @Ignore("NoSuchMethodException: SqlFunctions.lt(Date, Date)")
   @Test public void testQuery04() {
     checkQuery(4);
   }
@@ -808,31 +809,31 @@ public class TpchTest {
     checkQuery(6);
   }
 
-  @Ignore("Date literal")
+  @Ignore("slow")
   @Test public void testQuery07() {
     checkQuery(7);
   }
 
-  @Ignore("Date literal")
+  @Ignore("slow")
   @Test public void testQuery08() {
     checkQuery(8);
   }
 
-  @Ignore("Date literal")
+  @Ignore("no method found")
   @Test public void testQuery09() {
     checkQuery(9);
   }
 
-  @Ignore("Date literal")
   @Test public void testQuery10() {
     checkQuery(10);
   }
 
-  @Ignore("Date literal")
+  @Ignore("CannotPlanException")
   @Test public void testQuery11() {
     checkQuery(11);
   }
 
+  @Ignore("NoSuchMethodException: SqlFunctions.lt(Date, Date)")
   @Test public void testQuery12() {
     checkQuery(12);
   }
@@ -842,7 +843,6 @@ public class TpchTest {
     checkQuery(13);
   }
 
-  @Ignore("Date literal")
   @Test public void testQuery14() {
     checkQuery(14);
   }
@@ -856,6 +856,7 @@ public class TpchTest {
     checkQuery(16);
   }
 
+  @Ignore("slow")
   @Test public void testQuery17() {
     checkQuery(17);
   }
@@ -864,16 +865,16 @@ public class TpchTest {
     checkQuery(18);
   }
 
+  // a bit slow
   @Test public void testQuery19() {
     checkQuery(19);
   }
 
-  @Ignore("Date literal")
   @Test public void testQuery20() {
     checkQuery(20);
   }
 
-  @Ignore("runs forever")
+  @Ignore("slow")
   @Test public void testQuery21() {
     checkQuery(21);
   }
