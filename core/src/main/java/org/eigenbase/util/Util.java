@@ -711,32 +711,6 @@ public class Util {
   }
 
   /**
-   * Returns the connect string with which to connect to the 'Sales' test
-   * database. In the process, it loads the necessary drivers.
-   */
-  public static String getSalesConnectString() {
-    loadDrivers();
-    return SaffronProperties.instance().testJdbcUrl.get();
-  }
-
-  private static synchronized void loadDrivers() {
-    if (driversLoaded) {
-      return;
-    }
-    String jdbcDrivers = SaffronProperties.instance().testJdbcDrivers.get();
-    StringTokenizer tok = new StringTokenizer(jdbcDrivers, ",");
-    while (tok.hasMoreTokens()) {
-      String jdbcDriver = tok.nextToken();
-      try {
-        Class.forName(jdbcDriver);
-      } catch (ClassNotFoundException e) {
-        System.out.println("Warning: could not find driver " + jdbcDriver);
-      }
-    }
-    driversLoaded = true;
-  }
-
-  /**
    * Returns the {@link Charset} object representing the value of {@link
    * SaffronProperties#defaultCharset}
    *

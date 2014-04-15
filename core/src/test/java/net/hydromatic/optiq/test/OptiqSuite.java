@@ -57,7 +57,6 @@ import org.junit.runners.Suite;
     MappingTest.class,
     EigenbaseResourceTest.class,
     FilteratorTest.class,
-    OptionsListTest.class,
     PermutationTestCase.class,
     SqlFunctionsTest.class,
     SqlTypeNameTest.class,

@@ -57,117 +57,6 @@ public class SaffronProperties extends Properties {
   //~ Instance fields --------------------------------------------------------
 
   /**
-   * The string property "saffron.class.dir" is the path of the directory to
-   * compile classes to.
-   */
-  public final StringProperty classDir =
-      new StringProperty(this, "saffron.class.dir", null);
-
-  /**
-   * The string property "saffron.java.compiler.class" is the name of the Java
-   * compiler to use. It must implement {@link
-   * org.eigenbase.javac.JavaCompiler}. The default value is
-   * "JP.ac.tsukuba.openjava.SunJavaCompiler".
-   */
-  public final StringProperty javaCompilerClass =
-      new StringProperty(
-          this,
-          "saffron.java.compiler.class",
-          "JP.ac.tsukuba.openjava.SunJavaCompiler");
-
-  /**
-   * The string property "saffron.package.name" is the package in which to
-   * include temporary classes. The default is "saffron.runtime".
-   */
-  public final StringProperty packageName =
-      new StringProperty(this, "saffron.package.name", "saffron.runtime");
-
-  /**
-   * The string property "saffron.java.dir" is the directory to generate
-   * temporary java files to. The default is {@link #classDir the class root}.
-   */
-  public final StringProperty javaDir =
-      new StringProperty(this, "saffron.java.dir", null) {
-        public String getDefaultValue() {
-          return classDir.get();
-        }
-      };
-
-  /**
-   * The string property "saffron.java.compiler.args" is the argument string
-   * for the {@link #javaCompilerClass java compiler}. {@link
-   * org.eigenbase.javac.JavaCompilerArgs#setString} describes how these
-   * arguments are interpreted.
-   */
-  public final StringProperty javaCompilerArgs =
-      new StringProperty(this, "saffron.java.compiler.args", null);
-
-  /**
-   * The boolean property "saffron.stupid" determines whether to optimize
-   * variable assignments. If it is true, records are assigned to a variable
-   * even if they are never used. Default is false.
-   */
-  public final BooleanProperty stupid =
-      new BooleanProperty(this, "saffron.stupid", false);
-
-  /**
-   * The integer property "saffron.debug.level" determines how much debugging
-   * information is printed. The default, 0, means no debugging.
-   */
-  public final IntegerProperty debugLevel =
-      new IntegerProperty(this, "saffron.debug.level", 0);
-
-  /**
-   * The string property "saffron.debug.out" is the name of the file to send
-   * debugging information to. <code>"out"</code> (the default), means send to
-   * {@link System#out}; <code>"err"</code> means send to {@link System#err}.
-   */
-  public final StringProperty debugOut =
-      new StringProperty(this, "saffron.debug.out", "out");
-
-  /**
-   * The string property "saffron.test.Name" is used by
-   * {@code FarragoTestCase} to filter tests.
-   */
-  public final StringProperty testName =
-      new StringProperty(this, "saffron.test.Name", null);
-
-  /**
-   * The string property "saffron.test.Class" is used by
-   * {@code FarragoTestCase} to filter tests.
-   */
-  public final StringProperty testClass =
-      new StringProperty(this, "saffron.test.Class", null);
-
-  /**
-   * The string property "saffron.test.Suite" is used by
-   * {@code FarragoTestCase} to filter tests.
-   */
-  public final StringProperty testSuite =
-      new StringProperty(this, "saffron.test.Suite", null);
-
-  /**
-   * The string property "saffron.test.everything" is used by
-   * {@code FarragoTestCase} to filter tests.
-   */
-  public final BooleanProperty testEverything =
-      new BooleanProperty(this, "saffron.test.everything", false);
-
-  /**
-   * The string property "saffron.test.jdbc.url" is the URL of the JDBC
-   * database which contains the EMP and DEPT tables used for testing.
-   */
-  public final StringProperty testJdbcUrl =
-      new StringProperty(this, "saffron.test.jdbc.url", null);
-
-  /**
-   * The string property "saffron.test.jdbc.drivers" is a comma-separated list
-   * of class names to be used as JDBC drivers.
-   */
-  public final StringProperty testJdbcDrivers =
-      new StringProperty(this, "saffron.test.jdbc.drivers", null);
-
-  /**
    * The boolean property "saffron.opt.allowInfiniteCostConverters" determines
    * whether the optimizer will consider adding converters of infinite cost in
    * order to convert a relational expression from one calling convention to
@@ -224,15 +113,6 @@ public class SaffronProperties extends Properties {
           "saffron.default.collation.strength",
           "primary");
 
-  /**
-   * The boolean property "saffron.calc.comments.generate" determines if to
-   * generate comments in calculator programs in order to make debugging
-   * easier. The default is "true". Used in {@link
-   * org.eigenbase.sql.SqlCollation} and {@link
-   * org.eigenbase.sql.SqlLiteral#SqlLiteral}
-   */
-  public final BooleanProperty generateCalcProgramComments =
-      new BooleanProperty(this, "saffron.calc.comments.generate", true);
 
   //~ Constructors -----------------------------------------------------------
 
