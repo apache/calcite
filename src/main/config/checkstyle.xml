@@ -51,7 +51,9 @@
   <!-- Miscellaneous other checks (checker).         -->
   <!-- See http://checkstyle.sf.net/config_misc.html -->
     <!-- Require files to end with newline characters -->
-  <module name="NewlineAtEndOfFile"/>
+  <module name="NewlineAtEndOfFile">
+    <property name="lineSeparator" value="lf"/>
+  </module>
 
   <!-- Checks for whitespace (tree walker)                 -->
   <!-- See http://checkstyle.sf.net/config_whitespace.html -->
