@@ -27,8 +27,8 @@ import org.junit.Test;
 
 import java.util.*;
 
+import static org.hamcrest.CoreMatchers.*;
 import static org.junit.Assert.*;
-
 
 /**
  * Tests for LINQ4J.
@@ -453,6 +453,38 @@ public class Linq4jTest {
         s);
   }
 
+  @Test public void testEmptyEnumerable() {
+    final Enumerable<Object> enumerable = Linq4j.emptyEnumerable();
+    assertThat(enumerable.any(), is(false));
+    assertThat(enumerable.longCount(), equalTo(0L));
+    final Enumerator<Object> enumerator = enumerable.enumerator();
+    assertThat(enumerator.moveNext(), is(false));
+  }
+
+  @Test public void testSingletonEnumerable() {
+    final Enumerable<String> enumerable = Linq4j.singletonEnumerable("foo");
+    assertThat(enumerable.any(), is(true));
+    assertThat(enumerable.longCount(), equalTo(1L));
+    final Enumerator<String> enumerator = enumerable.enumerator();
+    assertThat(enumerator.moveNext(), is(true));
+    assertThat(enumerator.current(), equalTo("foo"));
+    assertThat(enumerator.moveNext(), is(false));
+  }
+
+  @Test public void testSingletonEnumerator() {
+    final Enumerator<String> enumerator = Linq4j.singletonEnumerator("foo");
+    assertThat(enumerator.moveNext(), is(true));
+    assertThat(enumerator.current(), equalTo("foo"));
+    assertThat(enumerator.moveNext(), is(false));
+  }
+
+  @Test public void testSingletonNullEnumerator() {
+    final Enumerator<String> enumerator = Linq4j.singletonNullEnumerator();
+    assertThat(enumerator.moveNext(), is(true));
+    assertThat(enumerator.current(), nullValue());
+    assertThat(enumerator.moveNext(), is(false));
+  }
+
   @Test public void testCast() {
     final List<Number> numbers = Arrays.asList((Number) 2, null, 3.14, 5);
     final Enumerator<Integer> enumerator =
@@ -656,6 +688,97 @@ public class Linq4jTest {
         + "Eric works in Sales, "
         + "Fred works in Sales, "
         + "Janet works in Sales]",
+        s);
+  }
+
+  @Test public void testLeftJoin() {
+    // Note #1: Left join means emit nulls on RHS but not LHS.
+    //   Employees with bad departments are not eliminated;
+    //   departments with no employees are eliminated.
+    // Note #2: Order of employees is preserved.
+    String s =
+        Linq4j.asEnumerable(emps)
+            .concat(Linq4j.asEnumerable(badEmps))
+            .join(
+                Linq4j.asEnumerable(depts),
+                EMP_DEPTNO_SELECTOR,
+                DEPT_DEPTNO_SELECTOR,
+                new Function2<Employee, Department, String>() {
+                  public String apply(Employee v1, Department v2) {
+                    return v1.name + " works in "
+                        + (v2 == null ? null : v2.name);
+                  }
+                }, null, false, true)
+            .orderBy(Functions.<String>identitySelector())
+            .toList()
+            .toString();
+    assertEquals(
+        "[Bill works in Marketing, "
+        + "Cedric works in null, "
+        + "Eric works in Sales, "
+        + "Fred works in Sales, "
+        + "Janet works in Sales]",
+        s);
+  }
+
+  @Test public void testRightJoin() {
+    // Note #1: Left join means emit nulls on LHS but not RHS.
+    //   Employees with bad departments are eliminated;
+    //   departments with no employees are not eliminated.
+    // Note #2: Order of employees is preserved.
+    String s =
+        Linq4j.asEnumerable(emps)
+            .concat(Linq4j.asEnumerable(badEmps))
+            .join(
+                Linq4j.asEnumerable(depts),
+                EMP_DEPTNO_SELECTOR,
+                DEPT_DEPTNO_SELECTOR,
+                new Function2<Employee, Department, String>() {
+                  public String apply(Employee v1, Department v2) {
+                    return (v1 == null ? null : v1.name)
+                        + " works in " + (v2 == null ? null : v2.name);
+                  }
+                }, null, true, false)
+            .orderBy(Functions.<String>identitySelector())
+            .toList()
+            .toString();
+    assertEquals(
+        "[Bill works in Marketing, "
+        + "Eric works in Sales, "
+        + "Fred works in Sales, "
+        + "Janet works in Sales, "
+        + "null works in HR]",
+        s);
+  }
+
+  @Test public void testFullJoin() {
+    // Note #1: Full join means emit nulls both LHS and RHS.
+    //   Employees with bad departments are not eliminated;
+    //   departments with no employees are not eliminated.
+    // Note #2: Order of employees is preserved.
+    String s =
+        Linq4j.asEnumerable(emps)
+            .concat(Linq4j.asEnumerable(badEmps))
+            .join(
+                Linq4j.asEnumerable(depts),
+                EMP_DEPTNO_SELECTOR,
+                DEPT_DEPTNO_SELECTOR,
+                new Function2<Employee, Department, String>() {
+                  public String apply(Employee v1, Department v2) {
+                    return (v1 == null ? null : v1.name)
+                        + " works in " + (v2 == null ? null : v2.name);
+                  }
+                }, null, true, true)
+            .orderBy(Functions.<String>identitySelector())
+            .toList()
+            .toString();
+    assertEquals(
+        "[Bill works in Marketing, "
+        + "Cedric works in null, "
+        + "Eric works in Sales, "
+        + "Fred works in Sales, "
+        + "Janet works in Sales, "
+        + "null works in HR]",
         s);
   }
 

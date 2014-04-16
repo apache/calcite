@@ -277,8 +277,34 @@ public abstract class Linq4j {
    *
    * @return Singleton enumerable
    */
-  public static <T> Enumerable<T> singletonEnumerable(T element) {
-    return asEnumerable(Collections.singletonList(element));
+  public static <T> Enumerable<T> singletonEnumerable(final T element) {
+    return new AbstractEnumerable<T>() {
+      public Enumerator<T> enumerator() {
+        return singletonEnumerator(element);
+      }
+    };
+  }
+
+  /**
+   * Returns an {@link Enumerator} that has one element.
+   *
+   * @param <T> Element type
+   *
+   * @return Singleton enumerator
+   */
+  public static <T> Enumerator<T> singletonEnumerator(T element) {
+    return new SingletonEnumerator<T>(element);
+  }
+
+  /**
+   * Returns an {@link Enumerator} that has one null element.
+   *
+   * @param <T> Element type
+   *
+   * @return Singleton enumerator
+   */
+  public static <T> Enumerator<T> singletonNullEnumerator() {
+    return new SingletonNullEnumerator<T>();
   }
 
   /**
@@ -562,6 +588,51 @@ public abstract class Linq4j {
     @Override
     public T elementAt(int index) {
       return toList().get(index);
+    }
+  }
+
+  /** Enumerator that returns one element. */
+  private static class SingletonEnumerator<E> implements Enumerator<E> {
+    final E e;
+    int i = 0;
+
+    SingletonEnumerator(E e) {
+      this.e = e;
+    }
+
+    public E current() {
+      return e;
+    }
+
+    public boolean moveNext() {
+      return i++ == 0;
+    }
+
+    public void reset() {
+      i = 0;
+    }
+
+    public void close() {
+    }
+  }
+
+  /** Enumerator that returns one null element. */
+  private static class SingletonNullEnumerator<E> implements Enumerator<E> {
+    int i = 0;
+
+    public E current() {
+      return null;
+    }
+
+    public boolean moveNext() {
+      return i++ == 0;
+    }
+
+    public void reset() {
+      i = 0;
+    }
+
+    public void close() {
     }
   }
 }

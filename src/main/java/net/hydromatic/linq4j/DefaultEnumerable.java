@@ -342,6 +342,17 @@ public abstract class DefaultEnumerable<T> implements OrderedEnumerable<T> {
         innerKeySelector, resultSelector, comparer);
   }
 
+  public <TInner, TKey, TResult> Enumerable<TResult> join(
+      Enumerable<TInner> inner, Function1<T, TKey> outerKeySelector,
+      Function1<TInner, TKey> innerKeySelector,
+      Function2<T, TInner, TResult> resultSelector,
+      EqualityComparer<TKey> comparer,
+      boolean generateNullsOnLeft, boolean generateNullsOnRight) {
+    return EnumerableDefaults.join(getThis(), inner, outerKeySelector,
+        innerKeySelector, resultSelector, comparer, generateNullsOnLeft,
+        generateNullsOnRight);
+  }
+
   public T last() {
     return EnumerableDefaults.last(getThis());
   }

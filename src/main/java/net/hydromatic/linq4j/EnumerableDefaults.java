@@ -799,8 +799,8 @@ public abstract class EnumerableDefaults {
       final Function1<TSource, TKey> outerKeySelector,
       final Function1<TInner, TKey> innerKeySelector,
       final Function2<TSource, TInner, TResult> resultSelector) {
-    return join_(
-        outer, inner, outerKeySelector, innerKeySelector, resultSelector, null);
+    return join(outer, inner, outerKeySelector, innerKeySelector,
+        resultSelector, null, false, false);
   }
 
   /**
@@ -814,82 +814,24 @@ public abstract class EnumerableDefaults {
       Function1<TInner, TKey> innerKeySelector,
       Function2<TSource, TInner, TResult> resultSelector,
       EqualityComparer<TKey> comparer) {
-    return join_(outer, inner, outerKeySelector, innerKeySelector,
-        resultSelector, comparer);
+    return join(outer, inner, outerKeySelector, innerKeySelector,
+        resultSelector, comparer, false, false);
   }
 
-  /** Symmetric join algorithm that builds both sides into a look. Powerful
-   * enough to evaluate full outer join but less efficient than {@link #join_}.
-   * Not currently used. */
-  private static <TSource, TInner, TKey, TResult> Enumerable<TResult>
-  joinSymmetric_(
-      final Enumerable<TSource> outer,
-      final Enumerable<TInner> inner,
-      final Function1<TSource, TKey> outerKeySelector,
-      final Function1<TInner, TKey> innerKeySelector,
-      final Function2<TSource, TInner, TResult> resultSelector,
-      final EqualityComparer<TKey> comparer) {
-    return new AbstractEnumerable<TResult>() {
-      public Enumerator<TResult> enumerator() {
-        final Lookup<TKey, TSource> outerMap =
-            comparer == null
-                ? outer.toLookup(outerKeySelector)
-                : outer.toLookup(outerKeySelector, comparer);
-        final Lookup<TKey, TInner> innerLookup =
-            comparer == null
-                ? inner.toLookup(innerKeySelector)
-                : inner.toLookup(innerKeySelector, comparer);
-        final Enumerator<Map.Entry<TKey, Enumerable<TSource>>> entries =
-            Linq4j.enumerator(outerMap.entrySet());
-
-        return new Enumerator<TResult>() {
-          Enumerator<List<Object>> productEnumerator = Linq4j.emptyEnumerator();
-
-          public TResult current() {
-            final List<Object> objects = productEnumerator.current();
-            return resultSelector.apply(
-                (TSource) objects.get(0),
-                (TInner) objects.get(1));
-          }
-
-          public boolean moveNext() {
-            for (;;) {
-              if (productEnumerator.moveNext()) {
-                return true;
-              }
-              if (!entries.moveNext()) {
-                return false;
-              }
-              final Map.Entry<TKey, Enumerable<TSource>> outer =
-                  entries.current();
-              final Enumerable<TSource> outerEnumerable = outer.getValue();
-              final Enumerable<TInner> innerEnumerable = innerLookup.get(
-                  outer.getKey());
-              if (innerEnumerable == null
-                  || !innerEnumerable.any()
-                  || !outerEnumerable.any()) {
-                productEnumerator = Linq4j.emptyEnumerator();
-              } else {
-                //noinspection unchecked
-                productEnumerator = Linq4j.product(
-                    Arrays.asList(
-                        (Enumerator<Object>) (Enumerator)
-                            outerEnumerable.enumerator(),
-                        (Enumerator<Object>) (Enumerator)
-                            innerEnumerable.enumerator()));
-              }
-            }
-          }
-
-          public void reset() {
-            entries.reset();
-          }
-
-          public void close() {
-          }
-        };
-      }
-    };
+  /**
+   * Correlates the elements of two sequences based on
+   * matching keys. A specified {@code EqualityComparer<TSource>} is used to
+   * compare keys.
+   */
+  public static <TSource, TInner, TKey, TResult> Enumerable<TResult> join(
+      Enumerable<TSource> outer, Enumerable<TInner> inner,
+      Function1<TSource, TKey> outerKeySelector,
+      Function1<TInner, TKey> innerKeySelector,
+      Function2<TSource, TInner, TResult> resultSelector,
+      EqualityComparer<TKey> comparer, boolean generateNullsOnLeft,
+      boolean generateNullsOnRight) {
+    return join_(outer, inner, outerKeySelector, innerKeySelector,
+        resultSelector, comparer, generateNullsOnLeft, generateNullsOnRight);
   }
 
   /** Implementation of join that builds the right input and probes with the
@@ -899,17 +841,22 @@ public abstract class EnumerableDefaults {
       final Function1<TSource, TKey> outerKeySelector,
       final Function1<TInner, TKey> innerKeySelector,
       final Function2<TSource, TInner, TResult> resultSelector,
-      final EqualityComparer<TKey> comparer) {
+      final EqualityComparer<TKey> comparer, final boolean generateNullsOnLeft,
+      final boolean generateNullsOnRight) {
     return new AbstractEnumerable<TResult>() {
       public Enumerator<TResult> enumerator() {
         final Lookup<TKey, TInner> innerLookup =
             comparer == null
                 ? inner.toLookup(innerKeySelector)
                 : inner.toLookup(innerKeySelector, comparer);
-        final Enumerator<TSource> outers = outer.enumerator();
 
         return new Enumerator<TResult>() {
+          Enumerator<TSource> outers = outer.enumerator();
           Enumerator<TInner> inners = Linq4j.emptyEnumerator();
+          Set<TKey> unmatchedKeys =
+              generateNullsOnLeft
+                  ? new HashSet<TKey>(innerLookup.keySet())
+                  : null;
 
           public TResult current() {
             return resultSelector.apply(outers.current(), inners.current());
@@ -921,15 +868,46 @@ public abstract class EnumerableDefaults {
                 return true;
               }
               if (!outers.moveNext()) {
+                if (unmatchedKeys != null) {
+                  // We've seen everything else. If we are doing a RIGHT or FULL
+                  // join (leftNull = true) there are any keys which right but
+                  // not the left.
+                  List<TInner> list = new ArrayList<TInner>();
+                  for (TKey key : unmatchedKeys) {
+                    for (TInner tInner : innerLookup.get(key)) {
+                      list.add(tInner);
+                    }
+                  }
+                  list = new ArrayList<TInner>();
+                  for (TKey key : unmatchedKeys) {
+                    for (TInner inner : innerLookup.get(key)) {
+                      list.add(inner);
+                    }
+                  }
+                  inners = Linq4j.enumerator(list);
+                  outers = Linq4j.singletonNullEnumerator();
+                  unmatchedKeys = null; // don't do the 'leftovers' again
+                  continue;
+                }
                 return false;
               }
               final TSource outer = outers.current();
+              if (outer == null) {
+                continue;
+              }
               final TKey outerKey = outerKeySelector.apply(outer);
+              if (unmatchedKeys != null) {
+                unmatchedKeys.remove(outerKey);
+              }
               final Enumerable<TInner> innerEnumerable =
                   innerLookup.get(outerKey);
               if (innerEnumerable == null
                   || !innerEnumerable.any()) {
-                inners = Linq4j.emptyEnumerator();
+                if (generateNullsOnRight) {
+                  inners = Linq4j.singletonNullEnumerator();
+                } else {
+                  inners = Linq4j.emptyEnumerator();
+                }
               } else {
                 inners = innerEnumerable.enumerator();
               }
