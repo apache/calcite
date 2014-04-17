@@ -198,6 +198,7 @@ public class RexImpTable {
         new MinMaxImplementor();
     aggMap.put(MIN, minMax);
     aggMap.put(MAX, minMax);
+    aggMap.put(SINGLE_VALUE, new SingleValueImplementor());
     aggMap.put(RANK, new RankImplementor());
   }
 
@@ -841,6 +842,46 @@ public class RexImpTable {
                       Expressions.unbox(accumulator),
                       Expressions.unbox(arg)),
                   arg.getType())));
+    }
+
+    public Expression implementInitAdd(RexToLixTranslator translator,
+        Aggregation aggregation, Type returnType, List<Type> parameterTypes,
+        List<Expression> arguments) {
+      return arguments.get(0);
+    }
+
+    public Expression implementResult(RexToLixTranslator translator,
+        Aggregation aggregation, Expression accumulator) {
+      return accumulator;
+    }
+  }
+
+  static class SingleValueImplementor implements AggImplementor {
+    public Expression implementInit(RexToLixTranslator translator,
+        Aggregation aggregation, Type returnType, List<Type> parameterTypes) {
+      return Types.castIfNecessary(Primitive.box(returnType), NULL_EXPR);
+    }
+
+    public Expression implementAdd(RexToLixTranslator translator,
+        Aggregation aggregation, Expression accumulator,
+        List<Expression> arguments) {
+      // Need to check for null accumulator (e.g. first call to "add"
+      // after "init") but because callWithNull() returned false, the
+      // container has ensured that argument is not null.
+      //
+      // acc = throwIf(acc, arg)
+      //
+      // Object throwIf(Object acc, Object arg) {
+      //   if (acc != null) {
+      //     throw new RuntimeException("move than one value");
+      //   }
+      //   return arg;
+      // }
+
+      assert arguments.size() == 1;
+      final Expression arg = arguments.get(0);
+      return Types.castIfNecessary(accumulator.type,
+          Expressions.call(BuiltinMethod.THROW_IF.method, accumulator, arg));
     }
 
     public Expression implementInitAdd(RexToLixTranslator translator,

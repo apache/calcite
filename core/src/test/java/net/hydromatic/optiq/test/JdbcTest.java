@@ -2302,6 +2302,76 @@ public class JdbcTest {
             "empid=110; deptno=10; name=Theodore; salary=11500.0; commission=250");
   }
 
+  /** Tests a correlated scalar sub-query in the SELECT clause.
+   *
+   * <p>Note that there should be an extra row "empid=200; deptno=20;
+   * DNAME=null" but left join doesn't work.</p> */
+  @Test public void testScalarSubQuery() {
+    OptiqAssert.that()
+        .with(OptiqAssert.Config.REGULAR)
+        .query(
+            "select \"empid\", \"deptno\",\n"
+            + " (select \"name\" from \"hr\".\"depts\"\n"
+            + "  where \"deptno\" = e.\"deptno\") as dname\n"
+            + "from \"hr\".\"emps\" as e")
+        .returnsUnordered("empid=100; deptno=10; DNAME=Sales",
+            "empid=110; deptno=10; DNAME=Sales",
+            "empid=150; deptno=10; DNAME=Sales");
+  }
+
+  @Test public void testLeftJoin() {
+    OptiqAssert.that()
+        .with(OptiqAssert.Config.REGULAR)
+        .query(
+            "select e.\"deptno\", d.\"deptno\"\n"
+            + "from \"hr\".\"emps\" as e\n"
+            + "  left join \"hr\".\"depts\" as d using (\"deptno\")")
+        .returnsUnordered(
+            "deptno=10; deptno=10",
+            "deptno=10; deptno=10",
+            "deptno=10; deptno=10");
+  }
+
+  @Test public void testFullJoin() {
+    OptiqAssert.that()
+        .with(OptiqAssert.Config.REGULAR)
+        .query(
+            "select e.\"deptno\", d.\"deptno\"\n"
+            + "from \"hr\".\"emps\" as e\n"
+            + "  full join \"hr\".\"depts\" as d using (\"deptno\")")
+        .returnsUnordered(
+            "deptno=10; deptno=10",
+            "deptno=10; deptno=10",
+            "deptno=10; deptno=10");
+  }
+
+  @Test public void testRightJoin() {
+    OptiqAssert.that()
+        .with(OptiqAssert.Config.REGULAR)
+        .query(
+            "select e.\"deptno\", d.\"deptno\"\n"
+            + "from \"hr\".\"emps\" as e\n"
+            + "  right join \"hr\".\"depts\" as d using (\"deptno\")")
+        .returnsUnordered(
+            "deptno=10; deptno=10",
+            "deptno=10; deptno=10",
+            "deptno=10; deptno=10");
+  }
+
+  @Test public void testScalarSubQueryUncorrelated() {
+    OptiqAssert.that()
+        .with(OptiqAssert.Config.REGULAR)
+        .query(
+            "select \"empid\", \"deptno\",\n"
+            + " (select \"name\" from \"hr\".\"depts\"\n"
+            + "  where \"deptno\" = 30) as dname\n"
+            + "from \"hr\".\"emps\" as e")
+        .returnsUnordered("empid=100; deptno=10; DNAME=Marketing",
+            "empid=110; deptno=10; DNAME=Marketing",
+            "empid=150; deptno=10; DNAME=Marketing",
+            "empid=200; deptno=20; DNAME=Marketing");
+  }
+
   /** Tests the TABLES table in the information schema. */
   @Test public void testMetaTables() {
     OptiqAssert.that()

@@ -187,6 +187,7 @@ public enum BuiltinMethod {
       Timestamp.class),
   TIMESTAMP_TO_LONG_OPTIONAL_OFFSET(SqlFunctions.class, "toLongOptional",
       Timestamp.class, TimeZone.class),
+  THROW_IF(SqlFunctions.class, "throwIf", Object.class, Object.class),
   SELECTIVITY(Selectivity.class, "getSelectivity", RexNode.class),
   UNIQUE_KEYS(UniqueKeys.class, "getUniqueKeys", boolean.class),
   COLUMN_UNIQUENESS(ColumnUniqueness.class, "areColumnsUnique", BitSet.class,
