@@ -52,6 +52,18 @@ public enum JoinRelType {
       return this;
     }
   }
+
+  /** Returns whether this join type generates nulls on side #{@code i}. */
+  public boolean generatesNullsOn(int i) {
+    switch (i) {
+    case 0:
+      return generatesNullsOnLeft();
+    case 1:
+      return generatesNullsOnRight();
+    default:
+      throw new IllegalArgumentException("invalid: " + i);
+    }
+  }
 }
 
 // End JoinRelType.java

@@ -264,7 +264,13 @@ public class JavaRules {
                           physType,
                           ImmutableList.of(
                               leftResult.physType, rightResult.physType)))
-                      .appendIfNotNull(keyPhysType.comparer()))).toBlock());
+                      .append(
+                          Util.first(keyPhysType.comparer(),
+                              Expressions.constant(null)))
+                      .append(Expressions.constant(
+                          joinType.generatesNullsOnLeft()))
+                      .append(Expressions.constant(
+                          joinType.generatesNullsOnRight())))).toBlock());
     }
 
     Expression generateSelector(PhysType physType,
@@ -276,18 +282,26 @@ public class JavaRules {
       // Generate all fields.
       final List<Expression> expressions =
           new ArrayList<Expression>();
-      for (Ord<PhysType> inputPhysType : Ord.zip(inputPhysTypes)) {
+      for (Ord<PhysType> ord : Ord.zip(inputPhysTypes)) {
+        final PhysType inputPhysType =
+            ord.e.makeNullable(joinType.generatesNullsOn(ord.i));
         final ParameterExpression parameter =
-            Expressions.parameter(
-                inputPhysType.e.getJavaRowType(),
-                LEFT_RIGHT[inputPhysType.i]);
+            Expressions.parameter(inputPhysType.getJavaRowType(),
+                LEFT_RIGHT[ord.i]);
         parameters.add(parameter);
-        int fieldCount = inputPhysType.e.getRowType().getFieldCount();
+        final int fieldCount = inputPhysType.getRowType().getFieldCount();
         for (int i = 0; i < fieldCount; i++) {
-          expressions.add(
-              Types.castIfNecessary(
-                  inputPhysType.e.fieldClass(i),
-                  inputPhysType.e.fieldReference(parameter, i)));
+          Expression expression =
+              inputPhysType.fieldReference(parameter, i);
+          if (joinType.generatesNullsOn(ord.i)) {
+            expression =
+                Expressions.condition(
+                    Expressions.equal(parameter, Expressions.constant(null)),
+                    Expressions.constant(null),
+                    expression);
+          }
+          expressions.add(Types.castIfNecessary(inputPhysType.fieldClass(i),
+              expression));
         }
       }
       return Expressions.lambda(

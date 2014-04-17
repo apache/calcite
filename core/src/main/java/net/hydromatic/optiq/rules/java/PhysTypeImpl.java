@@ -169,6 +169,15 @@ public class PhysTypeImpl implements PhysType {
     return expressions;
   }
 
+  public PhysType makeNullable(boolean nullable) {
+    if (!nullable) {
+      return this;
+    }
+    return new PhysTypeImpl(typeFactory,
+        typeFactory.createTypeWithNullability(rowType, true),
+        Primitive.box(javaRowClass), format);
+  }
+
   public Pair<Expression, Expression> generateCollationKey(
       final List<RelFieldCollation> collations) {
     final Expression selector;

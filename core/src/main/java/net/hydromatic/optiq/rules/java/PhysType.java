@@ -133,6 +133,10 @@ public interface PhysType {
   JavaRowFormat getFormat();
 
   List<Expression> accessors(Expression parameter, List<Integer> argList);
+
+  /** Returns a copy of this type that allows nulls if {@code nullable} is
+   * true. */
+  PhysType makeNullable(boolean nullable);
 }
 
 // End PhysType.java
