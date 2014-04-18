@@ -397,4 +397,6 @@ Other
 
 ## <a href="https://github.com/julianhyde/optiq/releases/tag/optiq-parent-0.4.15">0.4.15</a> / 2013-10-14
 
-* Lots of good stuff that this margin is too small to contain. See a <a href="REFERENCE.md">SQL language reference</a>.
+* Lots of good stuff that this margin is too small to contain. See
+  <a href="REFERENCE.md">SQL language reference</a> and
+  <a href="MODEL.md">JSON model reference</a>.

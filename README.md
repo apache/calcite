@@ -187,6 +187,7 @@ For more details, see the <a href="REFERENCE.md">Reference guide</a>.
 * Source code: http://github.com/julianhyde/optiq
 * Developers list: http://groups.google.com/group/optiq-dev
 * <a href="HOWTO.md">HOWTO</a>
+* <a href="MODEL.md">JSON model</a>
 * <a href="REFERENCE.md">Reference guide</a>
 * <a href="RELEASE.md">Release notes</a>
 
