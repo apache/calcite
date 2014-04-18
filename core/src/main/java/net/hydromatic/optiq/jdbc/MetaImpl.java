@@ -333,7 +333,7 @@ public class MetaImpl implements Meta {
 
   Enumerable<MetaSchema> schemas(String catalog) {
     return Linq4j.asEnumerable(
-        connection.rootSchema.compositeSubSchemaMap.values())
+        connection.rootSchema.getSubSchemaMap().values())
         .select(
             new Function1<OptiqSchema, MetaSchema>() {
               public MetaSchema apply(OptiqSchema optiqSchema) {
@@ -364,16 +364,32 @@ public class MetaImpl implements Meta {
   }
 
   Enumerable<MetaTable> tables(final MetaSchema schema) {
-    return Linq4j.asEnumerable(schema.optiqSchema.compositeTableMap.entrySet())
+    return Linq4j.asEnumerable(schema.optiqSchema.getTableNames())
         .select(
-            new Function1<Map.Entry<String, Table>, MetaTable>() {
-              public MetaTable apply(Map.Entry<String, Table> entry) {
-                return new MetaTable(entry.getValue(),
+            new Function1<String, MetaTable>() {
+              public MetaTable apply(String name) {
+                final Table table =
+                    schema.optiqSchema.getTable(name, true).getValue();
+                return new MetaTable(table,
                     schema.tableCatalog,
                     schema.tableSchem,
-                    entry.getKey());
+                    name);
               }
-            });
+            })
+        .concat(
+            Linq4j.asEnumerable(
+                schema.optiqSchema.getTablesBasedOnNullaryFunctions()
+                    .entrySet())
+                .select(
+                    new Function1<Map.Entry<String, Table>, MetaTable>() {
+                      public MetaTable apply(Map.Entry<String, Table> pair) {
+                        final Table table = pair.getValue();
+                        return new MetaTable(table,
+                            schema.tableCatalog,
+                            schema.tableSchem,
+                            pair.getKey());
+                      }
+                    }));
   }
 
   Enumerable<MetaTable> tables(

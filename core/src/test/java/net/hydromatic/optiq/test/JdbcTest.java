@@ -3609,9 +3609,9 @@ public class JdbcTest {
     final OptiqAssert.AssertThat with =
         OptiqAssert.that().with(ImmutableMap.of("lex", "MYSQL"));
     with.query("select COUNT(*) as c from metaData.tAbles")
-        .returns("c=3\n");
+        .returns("c=2\n");
     with.query("select COUNT(*) as c from `metaData`.`tAbles`")
-        .returns("c=3\n");
+        .returns("c=2\n");
 
     // case-sensitive gives error
     final OptiqAssert.AssertThat with2 =
@@ -3682,6 +3682,96 @@ public class JdbcTest {
     } finally {
       hook.close();
     }
+  }
+
+  @Test public void testSchemaCaching() throws Exception {
+    final OptiqConnection connection = OptiqAssert.getConnection(false);
+    final SchemaPlus rootSchema = connection.getRootSchema();
+
+    // create schema "/a"
+    final Map<String, Schema> aSubSchemaMap = new HashMap<String, Schema>();
+    final SchemaPlus aSchema = rootSchema.add("a", new AbstractSchema() {
+      @Override protected Map<String, Schema> getSubSchemaMap() {
+        return aSubSchemaMap;
+      }
+    });
+    aSchema.setCacheEnabled(true);
+    assertThat(aSchema.getSubSchemaNames().size(), is(0));
+
+    // AbstractSchema never thinks its contents have changed; subsequent tests
+    // assume this
+    assertThat(aSchema.contentsHaveChangedSince(-1, 1), equalTo(false));
+    assertThat(aSchema.contentsHaveChangedSince(1, 1), equalTo(false));
+
+    // first call, to populate the cache
+    assertThat(aSchema.getSubSchemaNames().size(), is(0));
+
+    // create schema "/a/b1". Appears only when we disable caching.
+    aSubSchemaMap.put("b1", new AbstractSchema());
+    assertThat(aSchema.getSubSchemaNames().size(), is(0));
+    aSchema.setCacheEnabled(false);
+    assertThat(aSchema.getSubSchemaNames().size(), is(1));
+
+    // create schema "/a/b2". Appears immediately, because caching is disabled.
+    aSubSchemaMap.put("b2", new AbstractSchema());
+    assertThat(aSchema.getSubSchemaNames().size(), is(2));
+
+    // an explicit sub-schema appears immediately, even if caching is enabled
+    aSchema.setCacheEnabled(true);
+    assertThat(aSchema.getSubSchemaNames().size(), is(2));
+    aSchema.add("b3", new AbstractSchema()); // explicit
+    aSubSchemaMap.put("b4", new AbstractSchema()); // implicit
+    assertThat(aSchema.getSubSchemaNames().size(), is(3));
+    aSchema.setCacheEnabled(false);
+    assertThat(aSchema.getSubSchemaNames().size(), is(4));
+
+    // create schema "/a2"
+    final Map<String, Schema> a2SubSchemaMap = new HashMap<String, Schema>();
+    final boolean[] changed = {false};
+    final SchemaPlus a2Schema = rootSchema.add("a", new AbstractSchema() {
+      @Override protected Map<String, Schema> getSubSchemaMap() {
+        return a2SubSchemaMap;
+      }
+      @Override
+      public boolean contentsHaveChangedSince(long lastCheck, long now) {
+        return changed[0];
+      }
+    });
+    a2Schema.setCacheEnabled(true);
+    assertThat(a2Schema.getSubSchemaNames().size(), is(0));
+
+    // create schema "/a2/b3". Appears only when we mark the schema changed.
+    a2SubSchemaMap.put("b3", new AbstractSchema());
+    assertThat(a2Schema.getSubSchemaNames().size(), is(0));
+    Thread.sleep(1);
+    assertThat(a2Schema.getSubSchemaNames().size(), is(0));
+    changed[0] = true;
+    assertThat(a2Schema.getSubSchemaNames().size(), is(1));
+    changed[0] = false;
+
+    // or if we disable caching
+    a2SubSchemaMap.put("b4", new AbstractSchema());
+    assertThat(a2Schema.getSubSchemaNames().size(), is(1));
+    a2Schema.setCacheEnabled(false);
+    a2Schema.setCacheEnabled(true);
+    assertThat(a2Schema.getSubSchemaNames().size(), is(2));
+
+    // add tables and retrieve with various case sensitivities
+    final TableInRootSchemaTest.SimpleTable table =
+        new TableInRootSchemaTest.SimpleTable();
+    a2Schema.add("table1", table);
+    a2Schema.add("TABLE1", table);
+    a2Schema.add("tabLe1", table);
+    a2Schema.add("tabLe2", table);
+    assertThat(a2Schema.getTableNames().size(), equalTo(4));
+    final OptiqSchema a2OptiqSchema = OptiqSchema.from(a2Schema);
+    assertThat(a2OptiqSchema.getTable("table1", true), notNullValue());
+    assertThat(a2OptiqSchema.getTable("table1", false), notNullValue());
+    assertThat(a2OptiqSchema.getTable("taBle1", true), nullValue());
+    assertThat(a2OptiqSchema.getTable("taBle1", false), notNullValue());
+    final TableMacro function = ViewTable.viewMacro(a2Schema, "values 1", null);
+
+    connection.close();
   }
 
   // Disable checkstyle, so it doesn't complain about fields like "customer_id".

@@ -38,6 +38,7 @@ import net.hydromatic.optiq.util.CompositeMap;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMultiset;
+import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Iterables;
 
 import org.junit.BeforeClass;
@@ -1231,6 +1232,50 @@ public class UtilTest {
 
   @Test public void testResources() {
     Resources.validate(Static.RESOURCE);
+  }
+
+  /** Tests that sorted sets behave the way we expect. */
+  @Test public void testSortedSet() {
+    final TreeSet<String> treeSet = new TreeSet<String>();
+    Collections.addAll(treeSet, "foo", "bar", "fOo", "FOO", "pug");
+    assertThat(treeSet.size(), equalTo(5));
+
+    final TreeSet<String> treeSet2 =
+        new TreeSet<String>(String.CASE_INSENSITIVE_ORDER);
+    treeSet2.addAll(treeSet);
+    assertThat(treeSet2.size(), equalTo(3));
+
+    final Comparator<String> comparator = new Comparator<String>() {
+      public int compare(String o1, String o2) {
+        String u1 = o1.toUpperCase();
+        String u2 = o2.toUpperCase();
+        int c = u1.compareTo(u2);
+        if (c == 0) {
+          c = o1.compareTo(o2);
+        }
+        return c;
+      }
+    };
+    final TreeSet<String> treeSet3 = new TreeSet<String>(comparator);
+    treeSet3.addAll(treeSet);
+    assertThat(treeSet3.size(), equalTo(5));
+
+    assertThat(asdasda(treeSet3, "foo").size(), equalTo(3));
+    assertThat(asdasda(treeSet3, "FOO").size(), equalTo(3));
+    assertThat(asdasda(treeSet3, "FoO").size(), equalTo(3));
+    assertThat(asdasda(treeSet3, "BAR").size(), equalTo(1));
+
+    final ImmutableSortedSet<String> treeSet4 =
+        ImmutableSortedSet.copyOf(comparator, treeSet);
+    assertThat(treeSet4.size(), equalTo(5));
+    assertThat(asdasda(treeSet4, "foo").size(), equalTo(3));
+    assertThat(asdasda(treeSet4, "FOO").size(), equalTo(3));
+    assertThat(asdasda(treeSet4, "FoO").size(), equalTo(3));
+    assertThat(asdasda(treeSet4, "BAR").size(), equalTo(1));
+  }
+
+  private NavigableSet<String> asdasda(NavigableSet<String> set, String s) {
+    return set.subSet(s.toUpperCase(), true, s.toLowerCase(), true);
   }
 }
 

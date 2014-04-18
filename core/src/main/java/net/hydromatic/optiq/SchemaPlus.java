@@ -64,6 +64,10 @@ public interface SchemaPlus extends Schema {
   <T> T unwrap(Class<T> clazz);
 
   void setPath(ImmutableList<ImmutableList<String>> path);
+
+  void setCacheEnabled(boolean cache);
+
+  boolean isCacheEnabled();
 }
 
 // End SchemaPlus.java

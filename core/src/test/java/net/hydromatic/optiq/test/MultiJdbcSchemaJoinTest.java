@@ -166,6 +166,58 @@ public class MultiJdbcSchemaJoinTest {
     }
   }
 
+  @Test public void testSchemaCache() throws Exception {
+    // Create a database
+    final String db = TempDb.INSTANCE.getUrl();
+    Connection c1 = DriverManager.getConnection(db, "", "");
+    Statement stmt1 = c1.createStatement();
+    stmt1.execute(
+        "create table table1(id varchar(10) not null primary key, "
+            + "field1 varchar(10))");
+
+    // Connect via optiq to these databases
+    Connection connection = DriverManager.getConnection("jdbc:optiq:");
+    OptiqConnection optiqConnection = connection.unwrap(OptiqConnection.class);
+    SchemaPlus rootSchema = optiqConnection.getRootSchema();
+    final DataSource ds =
+        JdbcSchema.dataSource(db, "org.hsqldb.jdbcDriver", "", "");
+    final SchemaPlus s =
+        rootSchema.add("DB",
+            JdbcSchema.create(rootSchema, "DB", ds, null, null));
+
+    Statement stmt3 = connection.createStatement();
+    ResultSet rs;
+
+    // fails, table does not exist
+    try {
+      rs = stmt3.executeQuery("select * from db.table2");
+      fail("expected error, got " + rs);
+    } catch (SQLException e) {
+      assertThat(e.getCause().getCause().getMessage(),
+          equalTo("Table 'DB.TABLE2' not found"));
+    }
+
+    stmt1.execute(
+        "create table table2(id varchar(10) not null primary key, "
+            + "field1 varchar(10))");
+    stmt1.execute("insert into table2 values('a', 'aaaa')");
+
+    // fails, table not visible due to caching
+    try {
+      rs = stmt3.executeQuery("select * from db.table2");
+      fail("expected error, got " + rs);
+    } catch (SQLException e) {
+      assertThat(e.getCause().getCause().getMessage(),
+          equalTo("Table 'DB.TABLE2' not found"));
+    }
+
+    // disable caching and table becomes visible
+    s.setCacheEnabled(false);
+    rs = stmt3.executeQuery("select * from db.table2");
+    assertThat(OptiqAssert.toString(rs), equalTo("ID=a; FIELD1=aaaa\n"));
+    c1.close();
+  }
+
   /** Pool of temporary databases. */
   static class TempDb {
     public static final TempDb INSTANCE = new TempDb();

@@ -23,10 +23,9 @@ import net.hydromatic.linq4j.expressions.Expression;
 import net.hydromatic.optiq.*;
 import net.hydromatic.optiq.Table;
 import net.hydromatic.optiq.impl.MaterializedViewTable;
-import net.hydromatic.optiq.util.Compatible;
-import net.hydromatic.optiq.util.CompositeMap;
 
-import com.google.common.base.Predicate;
+import org.eigenbase.util.Pair;
+
 import com.google.common.collect.*;
 
 import java.util.*;
@@ -37,88 +36,69 @@ import java.util.*;
  * <p>Wrapper around user-defined schema used internally.</p>
  */
 public class OptiqSchema {
+  /** Comparator that compares all strings differently, but if two strings are
+   * equal in case-insensitive match they are right next to each other. In a
+   * collection sorted on this comparator, we can find case-insensitive matches
+   * for a given string using a range scan between the upper-case string and
+   * the lower-case string. */
+  private static final Comparator<String> COMPARATOR =
+      new Comparator<String>() {
+        public int compare(String o1, String o2) {
+          int c = o1.compareToIgnoreCase(o2);
+          if (c == 0) {
+            c = o1.compareTo(o2);
+          }
+          return c;
+        }
+      };
+
   private final OptiqSchema parent;
   public final Schema schema;
   public final String name;
   /** Tables explicitly defined in this schema. Does not include tables in
    *  {@link #schema}. */
-  public final Map<String, TableEntry> tableMap =
-      new HashMap<String, TableEntry>();
-  public final Map<String, TableEntry> tableMapInsensitive =
-      new TreeMap<String, TableEntry>(String.CASE_INSENSITIVE_ORDER);
+  public final NavigableMap<String, TableEntry> tableMap =
+      new TreeMap<String, TableEntry>(COMPARATOR);
   private final Multimap<String, FunctionEntry> functionMap =
       LinkedListMultimap.create();
-  private final Map<String, FunctionEntry> nullaryFunctionMapInsensitive =
-      new TreeMap<String, FunctionEntry>(String.CASE_INSENSITIVE_ORDER);
-  private final Map<String, OptiqSchema> subSchemaMap =
-      new HashMap<String, OptiqSchema>();
-  private final Map<String, OptiqSchema> subSchemaMapInsensitive =
-      new TreeMap<String, OptiqSchema>(String.CASE_INSENSITIVE_ORDER);
-  public final Map<String, Table> compositeTableMap;
-  public final Multimap<String, Function> compositeFunctionMap;
-  public final Map<String, OptiqSchema> compositeSubSchemaMap;
+  private final NavigableSet<String> functionNames =
+      new TreeSet<String>(COMPARATOR);
+  private final NavigableMap<String, FunctionEntry> nullaryFunctionMap =
+      new TreeMap<String, FunctionEntry>(COMPARATOR);
+  private final NavigableMap<String, OptiqSchema> subSchemaMap =
+      new TreeMap<String, OptiqSchema>(COMPARATOR);
   private ImmutableList<ImmutableList<String>> path;
+  private boolean cache = true;
+  private final Cached<ImmutableSortedSet<String>> implicitSubSchemaCache;
+  private final Cached<ImmutableSortedSet<String>> implicitTableCache;
+  private final Cached<ImmutableSortedSet<String>> implicitFunctionCache;
 
   public OptiqSchema(OptiqSchema parent, final Schema schema, String name) {
     this.parent = parent;
     this.schema = schema;
     this.name = name;
     assert (parent == null) == (this instanceof OptiqRootSchema);
-    //noinspection unchecked
-    this.compositeTableMap = CompositeMap.of(
-        Maps.transformValues(
-            tableMap,
-            new com.google.common.base.Function<TableEntry, Table>() {
-              public Table apply(TableEntry input) {
-                return input.getTable();
-              }
-            }),
-        Maps.transformValues(
-            Multimaps.filterEntries(
-                functionMap,
-                new Predicate<Map.Entry<String, FunctionEntry>>() {
-                  public boolean apply(Map.Entry<String, FunctionEntry> entry) {
-                    final Function function = entry.getValue().getFunction();
-                    return function instanceof TableMacro
-                        && function.getParameters().isEmpty();
-                  }
-                }).asMap(),
-            new com.google.common.base.Function<Collection<FunctionEntry>,
-                Table>() {
-              public Table apply(Collection<FunctionEntry> input) {
-                // At most one function with zero parameters.
-                final TableMacro tableMacro =
-                    (TableMacro) input.iterator().next().getFunction();
-                return tableMacro.apply(ImmutableList.of());
-              }
-            }),
-        Compatible.INSTANCE.asMap(
-            schema.getTableNames(),
-            new com.google.common.base.Function<String, Table>() {
-              public Table apply(String input) {
-                return schema.getTable(input);
-              }
-            }));
-    // TODO: include schema's functions in this map.
-    this.compositeFunctionMap =
-        Multimaps.transformValues(
-            functionMap,
-            new com.google.common.base.Function<FunctionEntry, Function>() {
-              public Function apply(FunctionEntry input) {
-                return input.getFunction();
-              }
-            });
-    //noinspection unchecked
-    this.compositeSubSchemaMap =
-        CompositeMap.of(
-            subSchemaMap,
-            Compatible.INSTANCE.asMap(
-                schema.getSubSchemaNames(),
-                new com.google.common.base.Function<String, OptiqSchema>() {
-                  public OptiqSchema apply(String name) {
-                    return add(name, schema.getSubSchema(name));
-                  }
-                }));
+    this.implicitSubSchemaCache =
+        new AbstractCached<ImmutableSortedSet<String>>() {
+          public ImmutableSortedSet<String> build() {
+            return ImmutableSortedSet.copyOf(COMPARATOR,
+                schema.getSubSchemaNames());
+          }
+        };
+    this.implicitTableCache =
+        new AbstractCached<ImmutableSortedSet<String>>() {
+          public ImmutableSortedSet<String> build() {
+            return ImmutableSortedSet.copyOf(COMPARATOR,
+                schema.getTableNames());
+          }
+        };
+    this.implicitFunctionCache =
+        new AbstractCached<ImmutableSortedSet<String>>() {
+          public ImmutableSortedSet<String> build() {
+            return ImmutableSortedSet.copyOf(COMPARATOR,
+                schema.getFunctionNames());
+          }
+        };
   }
 
   /** Creates a root schema. It contains a "metadata" schema containing
@@ -135,7 +115,6 @@ public class OptiqSchema {
     final TableEntryImpl entry =
         new TableEntryImpl(this, tableName, table);
     tableMap.put(tableName, entry);
-    tableMapInsensitive.put(tableName, entry);
     return entry;
   }
 
@@ -143,8 +122,9 @@ public class OptiqSchema {
     final FunctionEntryImpl entry =
         new FunctionEntryImpl(this, name, function);
     functionMap.put(name, entry);
+    functionNames.add(name);
     if (function.getParameters().isEmpty()) {
-      nullaryFunctionMapInsensitive.put(name, entry);
+      nullaryFunctionMap.put(name, entry);
     }
     return entry;
   }
@@ -174,36 +154,67 @@ public class OptiqSchema {
     return ImmutableList.copyOf(Lists.reverse(list));
   }
 
+  private void setCache(boolean cache) {
+    if (cache == this.cache) {
+      return;
+    }
+    final long now = System.currentTimeMillis();
+    implicitSubSchemaCache.enable(now, cache);
+    implicitTableCache.enable(now, cache);
+    implicitFunctionCache.enable(now, cache);
+    this.cache = cache;
+  }
+
   public final OptiqSchema getSubSchema(String schemaName,
       boolean caseSensitive) {
-    return (caseSensitive ? subSchemaMap : subSchemaMapInsensitive)
-        .get(schemaName);
+    if (caseSensitive) {
+      return subSchemaMap.get(schemaName);
+    } else {
+      return Iterables.getFirst(find(subSchemaMap, schemaName).values(), null);
+    }
   }
 
   /** Adds a child schema of this schema. */
   public OptiqSchema add(String name, Schema schema) {
     final OptiqSchema optiqSchema = new OptiqSchema(this, schema, name);
     subSchemaMap.put(name, optiqSchema);
-    subSchemaMapInsensitive.put(name, optiqSchema);
     return optiqSchema;
   }
 
-  public final Table getTable(String tableName, boolean caseSensitive) {
+  /** Returns a table with the given name. Does not look for views. */
+  public final Pair<String, Table> getTable(String tableName,
+      boolean caseSensitive) {
     if (caseSensitive) {
-      return compositeTableMap.get(tableName);
-    } else {
-      final TableEntry tableEntry = tableMapInsensitive.get(tableName);
-      if (tableEntry != null) {
-        return tableEntry.getTable();
-      }
-      final FunctionEntry entry =
-          nullaryFunctionMapInsensitive.get(tableName);
+      // Check explicit tables, case-sensitive.
+      final TableEntry entry = tableMap.get(tableName);
       if (entry != null) {
-        return ((TableMacro) entry.getFunction()).apply(ImmutableList.of());
+        return Pair.of(tableName, entry.getTable());
       }
-      for (String name : schema.getTableNames()) {
-        if (name.equalsIgnoreCase(tableName)) {
-          return schema.getTable(name);
+      // Check implicit tables, case-sensitive.
+      final long now = System.currentTimeMillis();
+      if (implicitTableCache.get(now).contains(tableName)) {
+        final Table table = schema.getTable(tableName);
+        if (table != null) {
+          return Pair.of(tableName, table);
+        }
+      }
+      return null;
+    } else {
+      // Check explicit tables, case-insensitive.
+      //noinspection LoopStatementThatDoesntLoop
+      for (Map.Entry<String, TableEntry> entry
+          : find(tableMap, tableName).entrySet()) {
+        return Pair.of(entry.getKey(), entry.getValue().getTable());
+      }
+      // Check implicit tables, case-insensitive.
+      final long now = System.currentTimeMillis();
+      final NavigableSet<String> implicitTableNames =
+          implicitTableCache.get(now);
+      final String tableName2 = implicitTableNames.floor(tableName);
+      if (tableName2 != null) {
+        final Table table = schema.getTable(tableName2);
+        if (table != null) {
+          return Pair.of(tableName2, table);
         }
       }
       return null;
@@ -237,6 +248,178 @@ public class OptiqSchema {
     }
     // Return a path consisting of just this schema.
     return ImmutableList.of(path(null));
+  }
+
+  /** Returns a collection of sub-schemas, both explicit (defined using
+   * {@link #add(String, net.hydromatic.optiq.Schema)}) and implicit
+   * (defined using {@link net.hydromatic.optiq.Schema#getSubSchemaNames()}
+   * and {@link Schema#getSubSchema(String)}). */
+  public NavigableMap<String, OptiqSchema> getSubSchemaMap() {
+    // Build a map of implicit sub-schemas first, then explicit sub-schemas.
+    // If there are implicit and explicit with the same name, explicit wins.
+    final ImmutableSortedMap.Builder<String, OptiqSchema> builder =
+        new ImmutableSortedMap.Builder<String, OptiqSchema>(COMPARATOR);
+    final long now = System.currentTimeMillis();
+    for (String name : implicitSubSchemaCache.get(now)) {
+      final Schema subSchema = schema.getSubSchema(name);
+      if (subSchema != null) {
+        builder.put(name, new OptiqSchema(this, subSchema, name));
+      }
+    }
+    builder.putAll(subSchemaMap);
+    return builder.build();
+  }
+
+  /** Returns the set of all table names. Includes implicit and explicit tables
+   * and functions with zero parameters. */
+  public NavigableSet<String> getTableNames() {
+    final ImmutableSortedSet.Builder<String> builder =
+        new ImmutableSortedSet.Builder<String>(COMPARATOR);
+    // Add explicit tables, case-sensitive.
+    builder.addAll(tableMap.keySet());
+    // Add implicit tables, case-sensitive.
+    builder.addAll(implicitTableCache.get(System.currentTimeMillis()));
+    return builder.build();
+  }
+
+  /** Returns a collection of all functions, explicit and implicit, with a given
+   * name. Never null. */
+  public Collection<Function> getFunctions(String name, boolean caseSensitive) {
+    final ImmutableList.Builder<Function> builder = ImmutableList.builder();
+
+    if (caseSensitive) {
+      // Add explicit functions, case-sensitive.
+      final Collection<FunctionEntry> functionEntries = functionMap.get(name);
+      if (functionEntries != null) {
+        for (FunctionEntry functionEntry : functionEntries) {
+          builder.add(functionEntry.getFunction());
+        }
+      }
+      // Add implicit functions, case-sensitive.
+      final Collection<Function> functions = schema.getFunctions(name);
+      if (functions != null) {
+        builder.addAll(functions);
+      }
+    } else {
+      // Add explicit functions, case-insensitive.
+      for (String name2 : find(functionNames, name)) {
+        final Collection<FunctionEntry> functionEntries =
+            functionMap.get(name2);
+        if (functionEntries != null) {
+          for (FunctionEntry functionEntry : functionEntries) {
+            builder.add(functionEntry.getFunction());
+          }
+        }
+      }
+      // Add implicit functions, case-insensitive.
+      for (String name2
+          : find(implicitFunctionCache.get(System.currentTimeMillis()), name)) {
+        final Collection<Function> functions = schema.getFunctions(name2);
+        if (functions != null) {
+          builder.addAll(functions);
+        }
+      }
+    }
+    return builder.build();
+  }
+
+  /** Returns the list of function names in this schema, both implicit and
+   * explicit, never null. */
+  public NavigableSet<String> getFunctionNames() {
+    final ImmutableSortedSet.Builder<String> builder =
+        new ImmutableSortedSet.Builder<String>(COMPARATOR);
+    // Add explicit functions, case-sensitive.
+    builder.addAll(functionMap.keySet());
+    // Add implicit functions, case-sensitive.
+    builder.addAll(implicitFunctionCache.get(System.currentTimeMillis()));
+    return builder.build();
+  }
+
+  /** Returns tables derived from explicit and implicit functions
+   * that take zero parameters. */
+  public NavigableMap<String, Table> getTablesBasedOnNullaryFunctions() {
+    ImmutableSortedMap.Builder<String, Table> builder =
+        new ImmutableSortedMap.Builder<String, Table>(COMPARATOR);
+    for (Map.Entry<String, FunctionEntry> s : nullaryFunctionMap.entrySet()) {
+      final Function function = s.getValue().getFunction();
+      if (function instanceof TableMacro) {
+        assert function.getParameters().isEmpty();
+        final Table table = ((TableMacro) function).apply(ImmutableList.of());
+        builder.put(s.getKey(), table);
+      }
+    }
+    for (String s : implicitFunctionCache.get(System.currentTimeMillis())) {
+      for (Function function : schema.getFunctions(s)) {
+        if (function instanceof TableMacro
+            && function.getParameters().isEmpty()) {
+          final Table table = ((TableMacro) function).apply(ImmutableList.of());
+          builder.put(s, table);
+        }
+      }
+    }
+    return builder.build();
+  }
+
+  /** Returns a tables derived from explicit and implicit functions
+   * that take zero parameters. */
+  public Pair<String, Table> getTableBasedOnNullaryFunction(String tableName,
+      boolean caseSensitive) {
+    if (caseSensitive) {
+      final FunctionEntry functionEntry = nullaryFunctionMap.get(tableName);
+      if (functionEntry != null) {
+        final Function function = functionEntry.getFunction();
+        if (function instanceof TableMacro) {
+          assert function.getParameters().isEmpty();
+          final Table table = ((TableMacro) function).apply(ImmutableList.of());
+          return Pair.of(tableName, table);
+        }
+      }
+      for (Function function : schema.getFunctions(tableName)) {
+        if (function instanceof TableMacro
+            && function.getParameters().isEmpty()) {
+          final Table table = ((TableMacro) function).apply(ImmutableList.of());
+          return Pair.of(tableName, table);
+        }
+      }
+    } else {
+      for (Map.Entry<String, FunctionEntry> entry
+          : find(nullaryFunctionMap, tableName).entrySet()) {
+        final Function function = entry.getValue().getFunction();
+        if (function instanceof TableMacro) {
+          assert function.getParameters().isEmpty();
+          final Table table = ((TableMacro) function).apply(ImmutableList.of());
+          return Pair.of(entry.getKey(), table);
+        }
+      }
+      final NavigableSet<String> set =
+          implicitFunctionCache.get(System.currentTimeMillis());
+      for (String s : find(set, tableName)) {
+        for (Function function : schema.getFunctions(s)) {
+          if (function instanceof TableMacro
+              && function.getParameters().isEmpty()) {
+            final Table table =
+                ((TableMacro) function).apply(ImmutableList.of());
+            return Pair.of(s, table);
+          }
+        }
+      }
+    }
+    return null;
+  }
+
+  /** Returns a subset of a map whose keys match the given string
+   * case-insensitively. */
+  private static <V> NavigableMap<String, V> find(NavigableMap<String, V> map,
+      String s) {
+    assert map.comparator() == COMPARATOR;
+    return map.subMap(s.toUpperCase(), true, s.toLowerCase(), true);
+  }
+
+  /** Returns a subset of a set whose values match the given string
+   * case-insensitively. */
+  private static Iterable<String> find(NavigableSet<String> set, String name) {
+    assert set.comparator() == COMPARATOR;
+    return set.subSet(name.toUpperCase(), true, name.toLowerCase(), true);
   }
 
   /**
@@ -306,24 +489,37 @@ public class OptiqSchema {
       return schema.isMutable();
     }
 
+    public void setCacheEnabled(boolean cache) {
+      OptiqSchema.this.setCache(cache);
+    }
+
+    public boolean isCacheEnabled() {
+      return OptiqSchema.this.cache;
+    }
+
+    public boolean contentsHaveChangedSince(long lastCheck, long now) {
+      return schema.contentsHaveChangedSince(lastCheck, now);
+    }
+
     public Expression getExpression(SchemaPlus parentSchema, String name) {
       return schema.getExpression(parentSchema, name);
     }
 
     public Table getTable(String name) {
-      return compositeTableMap.get(name);
+      final Pair<String, Table> pair = OptiqSchema.this.getTable(name, true);
+      return pair == null ? null : pair.getValue();
     }
 
-    public Set<String> getTableNames() {
-      return compositeTableMap.keySet();
+    public NavigableSet<String> getTableNames() {
+      return OptiqSchema.this.getTableNames();
     }
 
     public Collection<Function> getFunctions(String name) {
-      return compositeFunctionMap.get(name);
+      return OptiqSchema.this.getFunctions(name, true);
     }
 
-    public Set<String> getFunctionNames() {
-      return compositeFunctionMap.keySet();
+    public NavigableSet<String> getFunctionNames() {
+      return OptiqSchema.this.getFunctionNames();
     }
 
     public SchemaPlus getSubSchema(String name) {
@@ -332,7 +528,7 @@ public class OptiqSchema {
     }
 
     public Set<String> getSubSchemaNames() {
-      return subSchemaMap.keySet();
+      return OptiqSchema.this.getSubSchemaMap().keySet();
     }
 
     public SchemaPlus add(String name, Schema schema) {
@@ -364,12 +560,11 @@ public class OptiqSchema {
     public void add(String name, net.hydromatic.optiq.Function function) {
       OptiqSchema.this.add(name, function);
     }
-
   }
 
   /**
-   * Implementation of {@link net.hydromatic.optiq.jdbc.OptiqSchema.TableEntry} where all properties are
-   * held in fields.
+   * Implementation of {@link net.hydromatic.optiq.jdbc.OptiqSchema.TableEntry}
+   * where all properties are held in fields.
    */
   public static class TableEntryImpl extends TableEntry {
     private final Table table;
@@ -407,6 +602,48 @@ public class OptiqSchema {
     public boolean isMaterialization() {
       return function
           instanceof MaterializedViewTable.MaterializedViewTableMacro;
+    }
+  }
+
+  /** Strategy for caching the value of an object and re-creating it if its
+   * value is out of date as of a given timestamp.
+   *
+   * @param <T> Type of cached object
+   */
+  private interface Cached<T> {
+    /** Returns the value; uses cached value if valid. */
+    T get(long now);
+
+    /** Creates a new value. */
+    T build();
+
+    /** Called when OptiqSchema caching is enabled or disabled. */
+    void enable(long now, boolean enabled);
+  }
+
+  /** Implementation of {@link net.hydromatic.optiq.jdbc.OptiqSchema.Cached}
+   * that drives from {@link net.hydromatic.optiq.jdbc.OptiqSchema#cache}. */
+  private abstract class AbstractCached<T> implements Cached<T> {
+    T t;
+    long checked = Long.MIN_VALUE;
+
+    public T get(long now) {
+      if (!OptiqSchema.this.cache) {
+        return build();
+      }
+      if (checked == Long.MIN_VALUE
+          || schema.contentsHaveChangedSince(checked, now)) {
+        t = build();
+      }
+      checked = now;
+      return t;
+    }
+
+    public void enable(long now, boolean enabled) {
+      if (!enabled) {
+        t = null;
+      }
+      checked = Long.MIN_VALUE;
     }
   }
 }

@@ -28,8 +28,6 @@ import org.eigenbase.sql.type.SqlTypeFactoryImpl;
 import org.eigenbase.sql.type.SqlTypeName;
 import org.eigenbase.util.Util;
 
-import com.google.common.base.Supplier;
-import com.google.common.base.Suppliers;
 import com.google.common.collect.*;
 
 import org.apache.commons.dbcp.BasicDataSource;
@@ -51,13 +49,7 @@ public class JdbcSchema implements Schema {
   final String schema;
   public final SqlDialect dialect;
   final JdbcConvention convention;
-  private Supplier<Map<String, JdbcTable>> tableMapSupplier =
-      Suppliers.memoize(
-          new Supplier<Map<String, JdbcTable>>() {
-            public Map<String, JdbcTable> get() {
-              return computeTables();
-            }
-          });
+  private ImmutableMap<String, JdbcTable> tableMap;
 
   /**
    * Creates a JDBC schema.
@@ -152,6 +144,10 @@ public class JdbcSchema implements Schema {
     return false;
   }
 
+  public boolean contentsHaveChangedSince(long lastCheck, long now) {
+    return false;
+  }
+
   // Used by generated code.
   public DataSource getDataSource() {
     return dataSource;
@@ -167,7 +163,7 @@ public class JdbcSchema implements Schema {
   }
 
   public final Collection<Function> getFunctions(String name) {
-    return getFunctions().get(name);
+    return getFunctions().get(name); // never null
   }
 
   public final Set<String> getFunctionNames() {
@@ -214,7 +210,15 @@ public class JdbcSchema implements Schema {
   }
 
   public Table getTable(String name) {
-    return tableMapSupplier.get().get(name);
+    return getTableMap(false).get(name);
+  }
+
+  private synchronized ImmutableMap<String, JdbcTable> getTableMap(
+      boolean force) {
+    if (force || tableMap == null) {
+      tableMap = computeTables();
+    }
+    return tableMap;
   }
 
   RelProtoDataType getRelDataType(String catalogName, String schemaName,
@@ -319,7 +323,9 @@ public class JdbcSchema implements Schema {
   }
 
   public Set<String> getTableNames() {
-    return tableMapSupplier.get().keySet();
+    // This method is called during a cache refresh. We can take it as a signal
+    // that we need to re-build our own cache.
+    return getTableMap(true).keySet();
   }
 
   public Schema getSubSchema(String name) {

@@ -28,6 +28,7 @@ import org.eigenbase.reltype.*;
 import org.eigenbase.sql.*;
 import org.eigenbase.sql.type.*;
 import org.eigenbase.sql.validate.*;
+import org.eigenbase.util.Pair;
 import org.eigenbase.util.Util;
 
 import com.google.common.collect.*;
@@ -83,10 +84,15 @@ class OptiqCatalogReader implements Prepare.CatalogReader, SqlOperatorTable {
       return null;
     }
     final String name = Util.last(names);
-    final Table table = schema.getTable(name, caseSensitive);
-    if (table != null) {
+    Pair<String, Table> pair = schema.getTable(name, caseSensitive);
+    if (pair == null) {
+      pair = schema.getTableBasedOnNullaryFunction(name, caseSensitive);
+    }
+    if (pair != null) {
+      final Table table = pair.getValue();
+      final String name2 = pair.getKey();
       return RelOptTableImpl.create(this, table.getRowType(typeFactory),
-          schema.add(name, table));
+          schema.add(name2, table));
     }
     return null;
   }
@@ -110,11 +116,7 @@ class OptiqCatalogReader implements Prepare.CatalogReader, SqlOperatorTable {
           getSchema(Iterables.concat(schemaNames, Util.skipLast(names)));
       if (schema != null) {
         final String name = Util.last(names);
-        final Collection<Function> functions =
-            schema.compositeFunctionMap.get(name);
-        if (functions != null) {
-          functions2.addAll(functions);
-        }
+        functions2.addAll(schema.getFunctions(name, true));
       }
     }
     return functions2;

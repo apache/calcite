@@ -55,6 +55,10 @@ public class AbstractSchema implements Schema {
     return true;
   }
 
+  public boolean contentsHaveChangedSince(long lastCheck, long now) {
+    return false;
+  }
+
   public Expression getExpression(SchemaPlus parentSchema, String name) {
     return Schemas.subSchemaExpression(parentSchema, name, getClass());
   }
@@ -95,7 +99,7 @@ public class AbstractSchema implements Schema {
   }
 
   public final Collection<Function> getFunctions(String name) {
-    return getFunctionMultimap().get(name);
+    return getFunctionMultimap().get(name); // never null
   }
 
   public final Set<String> getFunctionNames() {

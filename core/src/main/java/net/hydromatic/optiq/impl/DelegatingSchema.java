@@ -49,6 +49,10 @@ public class DelegatingSchema implements Schema {
     return schema.isMutable();
   }
 
+  public boolean contentsHaveChangedSince(long lastCheck, long now) {
+    return schema.contentsHaveChangedSince(lastCheck, now);
+  }
+
   public Expression getExpression(SchemaPlus parentSchema, String name) {
     return schema.getExpression(parentSchema, name);
   }

@@ -36,6 +36,7 @@ import net.hydromatic.linq4j.Ord;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
 /**
@@ -1890,6 +1891,10 @@ public class Util {
 
   public static <T> T first(T t0, T t1) {
     return t0 != null ? t0 : t1;
+  }
+
+  public static <T> Iterable<T> orEmpty(Iterable<T> t0) {
+    return t0 != null ? t0 : ImmutableList.<T>of();
   }
 
   /** Returns the last element of a list.

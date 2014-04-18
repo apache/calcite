@@ -32,6 +32,7 @@ import net.hydromatic.optiq.prepare.Prepare;
 
 import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.reltype.RelDataTypeImpl;
+import org.eigenbase.util.Pair;
 
 import java.lang.reflect.Type;
 import java.util.*;
@@ -68,7 +69,8 @@ public class MaterializationService {
     RelDataType rowType = null;
     OptiqSchema.TableEntry tableEntry;
     if (tableName != null) {
-      materializedTable = schema.getTable(tableName, true);
+      final Pair<String, Table> pair = schema.getTable(tableName, true);
+      materializedTable = pair == null ? null : pair.right;
       if (materializedTable == null) {
         final OptiqPrepare.PrepareResult<Object> prepareResult =
             Schemas.prepare(connection, schema, viewSchemaPath, viewSql);

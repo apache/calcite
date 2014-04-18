@@ -107,6 +107,27 @@ public interface Schema {
    * stores the defined objects in a wrapper object. */
   boolean isMutable();
 
+  /** Returns whether the contents of this schema have changed since a given
+   * time. The time is a millisecond value, as returned by
+   * {@link System#currentTimeMillis()}. If this method returns true, and
+   * caching is enabled, Optiq will re-build caches.
+   *
+   * <p>The default implementation in
+   * {@link net.hydromatic.optiq.impl.AbstractSchema} always returns
+   * {@code false}.</p>
+   *
+   * <p>To control whether Optiq caches the contents of a schema, use the
+   * "cache" JSON attribute. The default value is "true".</p>
+   *
+   * @param lastCheck The last time that Optiq called this method, or
+   *   {@link Long#MIN_VALUE} if this is the first call
+   * @param now The current time in millis, as returned by
+   *   {@link System#currentTimeMillis()}
+   *
+   * @return Whether contents changed after {@code lastCheckMillis}.
+   */
+  boolean contentsHaveChangedSince(long lastCheck, long now);
+
   /** Table type. */
   enum TableType {
     /** A regular table. */
