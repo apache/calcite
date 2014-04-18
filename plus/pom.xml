@@ -56,9 +56,10 @@
           <includes>
             <include>net/hydromatic/optiq/test/PlusSuite.java</include>
           </includes>
-          <threadCount>6</threadCount>
+          <threadCount>1</threadCount>
+          <perCoreThreadCount>true</perCoreThreadCount>
           <parallel>both</parallel>
-          <argLine>-Xmx2024m</argLine>
+          <argLine>-Xmx2g</argLine>
         </configuration>
       </plugin>
       <plugin>
