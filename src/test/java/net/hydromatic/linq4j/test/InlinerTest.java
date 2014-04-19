@@ -149,4 +149,24 @@ public class InlinerTest extends BlockBuilderBase {
         + "}\n",
         Expressions.toString(builder.toBlock()));
   }
+
+  @Test public void multipassOptimization() {
+    // int t = u + v;
+    // boolean b = t > 1 ? true : true; -- optimized out, thus t can be inlined
+    // return b ? t : 2
+    final BlockBuilder builder = new BlockBuilder(true);
+    final ParameterExpression u = Expressions.parameter(int.class, "u");
+    final ParameterExpression v = Expressions.parameter(int.class, "v");
+
+    Expression t = builder.append("t", Expressions.add(u, v));
+    Expression b = builder.append("b", Expressions.condition(Expressions
+        .greaterThan(t, ONE), TRUE, TRUE));
+
+    builder.add(Expressions.return_(null, Expressions.condition(b, t, TWO)));
+    assertEquals(
+        "{\n"
+        + "  return u + v;\n"
+        + "}\n",
+        Expressions.toString(builder.toBlock()));
+  }
 }

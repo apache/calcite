@@ -293,7 +293,14 @@ public class BlockBuilder {
    */
   public BlockStatement toBlock() {
     if (optimizing) {
-      optimize();
+      /* We put an artificial limit of 10 iterations just to prevent
+      endless loop. Optimize should not loop forever, however it is hard to
+      prove if it always finishes in reasonable time. */
+      for (int i = 0; i < 10; i++) {
+        if (!optimize()) {
+          break;
+        }
+      }
     }
     return Expressions.block(statements);
   }
@@ -301,22 +308,25 @@ public class BlockBuilder {
   /**
    * Optimizes the list of statements. If an expression is used only once,
    * it is inlined.
+   *
+   * @return if any optimizations were made or not
    */
-  private void optimize() {
-    List<Slot> slots = new ArrayList<Slot>();
+  private boolean optimize() {
+    boolean optimized = false;
     final UseCounter useCounter = new UseCounter();
     for (Statement statement : statements) {
       if (statement instanceof DeclarationStatement) {
-        final Slot slot = new Slot((DeclarationStatement) statement);
-        useCounter.map.put(slot.parameter, slot);
-        slots.add(slot);
+        DeclarationStatement decl = (DeclarationStatement) statement;
+        useCounter.map.put(decl.parameter, new Slot());
       }
-    }
-    for (Statement statement : statements) {
+      // We are added only counters up to current statement.
+      // It is fine to count usages as the latter declarations cannot be used
+      // in more recent statements.
       statement.accept(useCounter);
     }
     final Map<ParameterExpression, Expression> subMap =
-        new IdentityHashMap<ParameterExpression, Expression>();
+        new IdentityHashMap<ParameterExpression, Expression>(useCounter.map
+            .size());
     final SubstituteVariableVisitor visitor = new SubstituteVariableVisitor(
         subMap);
     final OptimizeVisitor optimizer = new OptimizeVisitor();
@@ -342,8 +352,9 @@ public class BlockBuilder {
           //   return collection.size() - _count;
           count = 100;
         }
-        if (slot.expression instanceof NewExpression
-            && ((NewExpression) slot.expression).memberDeclarations != null) {
+        if (statement.initializer instanceof NewExpression
+            && ((NewExpression) statement.initializer).memberDeclarations
+                != null) {
           // Don't inline anonymous inner classes. Janino gets
           // confused referencing variables from deeply nested
           // anonymous classes.
@@ -357,13 +368,15 @@ public class BlockBuilder {
           break;
         case 1:
           // declared, used once. inline it.
-          subMap.put(slot.parameter, normalized);
+          subMap.put(statement.parameter, normalized);
           break;
         default:
+          Statement beforeOptimize = oldStatement;
           if (!subMap.isEmpty()) {
             oldStatement = oldStatement.accept(visitor); // remap
           }
           oldStatement = oldStatement.accept(optimizer);
+          optimized |= beforeOptimize != oldStatement;
           if (oldStatement != OptimizeVisitor.EMPTY_STATEMENT) {
             if (oldStatement instanceof DeclarationStatement) {
               addExpresisonForReuse((DeclarationStatement) oldStatement);
@@ -373,15 +386,18 @@ public class BlockBuilder {
           break;
         }
       } else {
+        Statement beforeOptimize = oldStatement;
         if (!subMap.isEmpty()) {
           oldStatement = oldStatement.accept(visitor); // remap
         }
         oldStatement = oldStatement.accept(optimizer);
+        optimized |= beforeOptimize != oldStatement;
         if (oldStatement != OptimizeVisitor.EMPTY_STATEMENT) {
           statements.add(oldStatement);
         }
       }
     }
+    return optimized;
   }
 
   /**
@@ -497,17 +513,10 @@ public class BlockBuilder {
   }
 
   /**
-   * Workspace for optimization.
+   * Holds the number of times a declaration was used.
    */
   private static class Slot {
-    private final ParameterExpression parameter;
-    private final Expression expression;
     private int count;
-
-    public Slot(DeclarationStatement declarationStatement) {
-      this.parameter = declarationStatement.parameter;
-      this.expression = declarationStatement.initializer;
-    }
   }
 }
 
