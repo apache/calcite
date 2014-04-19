@@ -36,6 +36,11 @@ public abstract class BlockBuilderBase {
   public static final Expression TRUE = Expressions.constant(true);
   public static final Expression FALSE = Expressions.constant(false);
 
+  public static final Expression TRUE_B =
+      Expressions.field(null, Boolean.class, "TRUE");
+  public static final Expression FALSE_B =
+      Expressions.field(null, Boolean.class, "FALSE");
+
   public static String optimize(Expression expr) {
     return optimize(Expressions.return_(null, expr));
   }

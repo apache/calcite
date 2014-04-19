@@ -83,6 +83,61 @@ public class OptimizerTest extends BlockBuilderBase {
   }
 
   @Test
+  public void optimizeTernaryAtrueB() {
+    // a ? true : b  === a || b
+    assertEquals("{\n  return a || b;\n}\n",
+        optimize(Expressions.condition(
+            Expressions.parameter(boolean.class, "a"),
+            TRUE, Expressions.parameter(boolean.class, "b"))));
+  }
+
+  @Test
+  public void optimizeTernaryAtrueNull() {
+    // a ? Boolean.TRUE : null  === a ? Boolean.TRUE : (Boolean) null
+    assertEquals("{\n  return a ? Boolean.TRUE : (Boolean) null;\n}\n",
+        optimize(Expressions.condition(
+            Expressions.parameter(boolean.class, "a"),
+            TRUE_B, Expressions.constant(null, Boolean.class))));
+  }
+
+  @Test
+  public void optimizeTernaryAtrueBoxed() {
+    // a ? Boolean.TRUE : Boolean.valueOf(b)  === a || b
+    assertEquals("{\n  return a || Boolean.valueOf(b);\n}\n",
+        optimize(Expressions.condition(
+            Expressions.parameter(boolean.class, "a"),
+            TRUE_B, Expressions.call(Boolean.class, "valueOf",
+            Expressions.parameter(boolean.class, "b")))));
+  }
+
+  @Test
+  public void optimizeTernaryABtrue() {
+    // a ? b : true  === !a || b
+    assertEquals("{\n  return !a || b;\n}\n",
+        optimize(Expressions.condition(
+            Expressions.parameter(boolean.class, "a"),
+            Expressions.parameter(boolean.class, "b"), TRUE)));
+  }
+
+  @Test
+  public void optimizeTernaryAfalseB() {
+    // a ? false : b === !a && b
+    assertEquals("{\n  return !a && b;\n}\n",
+        optimize(Expressions.condition(
+            Expressions.parameter(boolean.class, "a"),
+            FALSE, Expressions.parameter(boolean.class, "b"))));
+  }
+
+  @Test
+  public void optimizeTernaryABfalse() {
+    // a ? b : false === a && b
+    assertEquals("{\n  return a && b;\n}\n",
+        optimize(Expressions.condition(
+            Expressions.parameter(boolean.class, "a"),
+            Expressions.parameter(boolean.class, "b"), FALSE)));
+  }
+
+  @Test
   public void optimizeTernaryInEqualABCeqB() {
     // (v ? (Integer) null : inp0_) == null
     assertEquals("{\n  return v || inp0_ == null;\n}\n",
@@ -115,7 +170,7 @@ public class OptimizerTest extends BlockBuilderBase {
 
   @Test
   public void optimizeTernaryAeqBAB() {
-    // a == b ? b : a
+    // a == b ? a : b
     ParameterExpression a = Expressions.parameter(boolean.class, "a");
     ParameterExpression b = Expressions.parameter(boolean.class, "b");
     assertEquals("{\n  return b;\n}\n",

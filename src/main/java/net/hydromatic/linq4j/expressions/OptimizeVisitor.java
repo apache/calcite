@@ -17,8 +17,9 @@
 */
 package net.hydromatic.linq4j.expressions;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
+import java.util.*;
 
 import static net.hydromatic.linq4j.expressions.ExpressionType.Equal;
 import static net.hydromatic.linq4j.expressions.ExpressionType.NotEqual;
@@ -41,6 +42,21 @@ public class OptimizeVisitor extends Visitor {
   public static final MemberExpression BOXED_TRUE_EXPR =
       Expressions.field(null, Boolean.class, "TRUE");
   public static final Statement EMPTY_STATEMENT = Expressions.statement(null);
+
+  private static final Set<Method> KNOWN_NON_NULL_METHODS
+    = new HashSet<Method>();
+
+  static {
+    for (Class aClass : new Class[]{Boolean.class, Byte.class, Short.class,
+      Integer.class, Long.class, String.class}) {
+      for (Method method : aClass.getMethods()) {
+        if ("valueOf".equals(method.getName())
+            && Modifier.isStatic(method.getModifiers())) {
+          KNOWN_NON_NULL_METHODS.add(method);
+        }
+      }
+    }
+  }
 
   @Override
   public Expression visit(
@@ -69,6 +85,26 @@ public class OptimizeVisitor extends Visitor {
           return Expressions.makeTernary(ternary.getNodeType(),
               una.expression, expression2, expression1);
         }
+      }
+
+      // a ? true : b  === a || b
+      // a ? false : b === !a && b
+      always = always(expression1);
+      if (always != null && isKnownNotNull(expression2)) {
+        return (always
+                 ? Expressions.orElse(expression0, expression2)
+                 : Expressions.andAlso(Expressions.not(expression0),
+            expression2)).accept(this);
+      }
+
+      // a ? b : true  === !a || b
+      // a ? b : false === a && b
+      always = always(expression2);
+      if (always != null && isKnownNotNull(expression1)) {
+        return (always
+                 ? Expressions.orElse(Expressions.not(expression0),
+                    expression1)
+                 : Expressions.andAlso(expression0, expression1)).accept(this);
       }
 
       if (expression0 instanceof BinaryExpression
@@ -305,6 +341,21 @@ public class OptimizeVisitor extends Visitor {
       return Boolean.TRUE;
     }
     return null;
+  }
+
+  /**
+   * Verifies if the expression always returns non-null result.
+   * For instance, primitive types cannot contain null values.
+   *
+   * @param expression expression to test
+   * @return true when the expression is known to be not-null
+   */
+  protected boolean isKnownNotNull(Expression expression) {
+    return Primitive.is(expression.getType())
+        || always(expression) != null
+        || (expression instanceof MethodCallExpression
+            && KNOWN_NON_NULL_METHODS.contains(((MethodCallExpression)
+              expression).method));
   }
 
   /**
