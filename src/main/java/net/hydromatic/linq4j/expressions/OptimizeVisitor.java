@@ -58,6 +58,21 @@ public class OptimizeVisitor extends Visitor {
     }
   }
 
+  private static final Map<ExpressionType, ExpressionType> NOT_BINARY_COMPLEMENT
+    = new EnumMap<ExpressionType, ExpressionType>(ExpressionType.class);
+
+  static {
+    addComplement(ExpressionType.Equal, ExpressionType.NotEqual);
+    addComplement(ExpressionType.GreaterThanOrEqual, ExpressionType.LessThan);
+    addComplement(ExpressionType.GreaterThan, ExpressionType.LessThanOrEqual);
+  }
+
+  private static void addComplement(ExpressionType eq,
+                                    ExpressionType ne) {
+    NOT_BINARY_COMPLEMENT.put(eq, ne);
+    NOT_BINARY_COMPLEMENT.put(ne, eq);
+  }
+
   @Override
   public Expression visit(
       TernaryExpression ternary,
@@ -252,13 +267,33 @@ public class OptimizeVisitor extends Visitor {
   @Override
   public Expression visit(UnaryExpression unaryExpression, Expression
       expression) {
-    if (unaryExpression.getNodeType() == ExpressionType.Convert) {
+    switch(unaryExpression.getNodeType()) {
+    case Convert:
       if (expression.getType() == unaryExpression.getType()) {
         return expression;
       }
       if (expression instanceof ConstantExpression) {
         return Expressions.constant(((ConstantExpression) expression).value,
             unaryExpression.getType());
+      }
+      break;
+    case Not:
+      Boolean always = always(expression);
+      if (always != null) {
+        return always ? FALSE_EXPR : TRUE_EXPR;
+      }
+      if (expression instanceof UnaryExpression) {
+        UnaryExpression arg = (UnaryExpression) expression;
+        if (arg.getNodeType() == ExpressionType.Not) {
+          return arg.expression;
+        }
+      }
+      if (expression instanceof BinaryExpression) {
+        BinaryExpression bin = (BinaryExpression) expression;
+        ExpressionType comp = NOT_BINARY_COMPLEMENT.get(bin.getNodeType());
+        if (comp != null) {
+          return Expressions.makeBinary(comp, bin.expression0, bin.expression1);
+        }
       }
     }
     return super.visit(unaryExpression, expression);

@@ -17,10 +17,7 @@
 */
 package net.hydromatic.linq4j.test;
 
-import net.hydromatic.linq4j.expressions.BlockBuilder;
-import net.hydromatic.linq4j.expressions.Expression;
-import net.hydromatic.linq4j.expressions.Expressions;
-import net.hydromatic.linq4j.expressions.Statement;
+import net.hydromatic.linq4j.expressions.*;
 
 /**
  * Base methods and constant for simplified Expression testing
@@ -49,5 +46,17 @@ public abstract class BlockBuilderBase {
     BlockBuilder b = new BlockBuilder(true);
     b.add(statement);
     return b.toBlock().toString();
+  }
+
+  public static ParameterExpression bool(String name) {
+    return Expressions.parameter(boolean.class, name);
+  }
+
+  public static ParameterExpression int_(String name) {
+    return Expressions.parameter(int.class, name);
+  }
+
+  public static ParameterExpression integer(String name) {
+    return Expressions.parameter(Integer.class, name);
   }
 }

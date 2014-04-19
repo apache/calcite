@@ -612,4 +612,65 @@ public class OptimizerTest extends BlockBuilderBase {
     assertEquals("{\n  return 1L;\n}\n", optimize(Expressions.convert_(ONE,
         long.class)));
   }
+
+  @Test
+  public void notTrue() {
+    // !true -> false
+    assertEquals("{\n  return false;\n}\n", optimize(Expressions.not(TRUE)));
+  }
+
+  @Test
+  public void notFalse() {
+    // !false -> true
+    assertEquals("{\n  return true;\n}\n", optimize(Expressions.not(FALSE)));
+  }
+
+  @Test
+  public void notNotA() {
+    // !!a -> a
+    assertEquals("{\n  return a;\n}\n", optimize(Expressions.not(
+        Expressions.not(bool("a")))));
+  }
+
+  @Test
+  public void notEq() {
+    // !(a == b) -> a != b
+    assertEquals("{\n  return a != b;\n}\n", optimize(Expressions.not(
+        Expressions.equal(bool("a"), bool("b")))));
+  }
+
+  @Test
+  public void notNeq() {
+    // !(a != b) -> a == b
+    assertEquals("{\n  return a == b;\n}\n", optimize(Expressions.not(
+        Expressions.notEqual(bool("a"), bool("b")))));
+  }
+
+  @Test
+  public void notGt() {
+    // !(a > b) -> a <= b
+    assertEquals("{\n  return a <= b;\n}\n", optimize(Expressions.not(
+        Expressions.greaterThan(bool("a"), bool("b")))));
+  }
+
+  @Test
+  public void notGte() {
+    // !(a >= b) -> a < b
+    assertEquals("{\n  return a < b;\n}\n", optimize(Expressions.not(
+        Expressions.greaterThanOrEqual(bool("a"), bool("b")))));
+  }
+
+  @Test
+  public void notLt() {
+    // !(a < b) -> a >= b
+    assertEquals("{\n  return a >= b;\n}\n", optimize(Expressions.not(
+        Expressions.lessThan(bool("a"), bool("b")))));
+  }
+
+  @Test
+  public void notLte() {
+    // !(a <= b) -> a > b
+    assertEquals("{\n  return a > b;\n}\n", optimize(Expressions.not(
+        Expressions.lessThanOrEqual(bool("a"), bool("b")))));
+  }
 }
