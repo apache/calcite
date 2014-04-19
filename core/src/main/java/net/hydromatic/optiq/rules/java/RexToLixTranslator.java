@@ -62,7 +62,8 @@ public class RexToLixTranslator {
   private final RexProgram program;
   private final RexToLixTranslator.InputGetter inputGetter;
   private final BlockBuilder list;
-  private final Map<RexNode, Boolean> exprNullableMap;
+  private final Map<? extends RexNode, Boolean> exprNullableMap;
+  private final RexToLixTranslator parent;
 
   private static Method findMethod(
       Class<?> clazz, String name, Class... parameterTypes) {
@@ -91,12 +92,25 @@ public class RexToLixTranslator {
       BlockBuilder list,
       Map<RexNode, Boolean> exprNullableMap,
       RexBuilder builder) {
+    this(program, typeFactory, inputGetter, list, exprNullableMap, builder,
+        null);
+  }
+
+  private RexToLixTranslator(
+      RexProgram program,
+      JavaTypeFactory typeFactory,
+      InputGetter inputGetter,
+      BlockBuilder list,
+      Map<? extends RexNode, Boolean> exprNullableMap,
+      RexBuilder builder,
+      RexToLixTranslator parent) {
     this.program = program;
     this.typeFactory = typeFactory;
     this.inputGetter = inputGetter;
     this.list = list;
     this.exprNullableMap = exprNullableMap;
     this.builder = builder;
+    this.parent = parent;
   }
 
   /**
@@ -708,23 +722,41 @@ public class RexToLixTranslator {
    * @return Whether expression is nullable in the current translation context
    */
   public boolean isNullable(RexNode e) {
-    final Boolean b = exprNullableMap.get(e);
-    if (b != null) {
-      return b;
+    if (!e.getType().isNullable()) {
+      return false;
     }
-    return e.getType().isNullable();
+    final Boolean b = isKnownNullable(e);
+    return b == null || b;
+  }
+
+  /**
+   * Walks parent translator chain and verifies if the expression is nullable.
+   *
+   * @param node RexNode to check if it is nullable or not
+   * @return null when nullability is not known, true or false otherwise
+   */
+  protected Boolean isKnownNullable(RexNode node) {
+    if (!exprNullableMap.isEmpty()) {
+      Boolean nullable = exprNullableMap.get(node);
+      if (nullable != null) {
+        return nullable;
+      }
+    }
+    return parent == null ? null : parent.isKnownNullable(node);
   }
 
   /** Creates a read-only copy of this translator that records that a given
    * expression is nullable. */
   public RexToLixTranslator setNullable(RexNode e, boolean nullable) {
-    // TODO: use linked-list, to avoid copying whole map & translator
-    // each time
-    final Map<RexNode, Boolean> map =
-        new HashMap<RexNode, Boolean>(exprNullableMap);
-    map.put(e, nullable);
+    return setNullable(Collections.singletonMap(e, nullable));
+  }
+
+  /** Creates a read-only copy of this translator that records that a given
+   * expression is nullable. */
+  public RexToLixTranslator setNullable(Map<? extends RexNode,
+                                        Boolean> nullable) {
     return new RexToLixTranslator(
-        program, typeFactory, inputGetter, list, map, builder);
+        program, typeFactory, inputGetter, list, nullable, builder, this);
   }
 
   public RelDataType nullifyType(RelDataType type, boolean nullable) {

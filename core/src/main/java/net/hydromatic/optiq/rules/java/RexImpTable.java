@@ -35,6 +35,7 @@ import org.eigenbase.sql.fun.SqlTrimFunction;
 import org.eigenbase.sql.type.SqlTypeName;
 import org.eigenbase.sql.validate.SqlUserDefinedAggFunction;
 import org.eigenbase.sql.validate.SqlUserDefinedFunction;
+import org.eigenbase.util.Util;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
@@ -165,8 +166,8 @@ public class RexImpTable {
 
     map.put(CASE, new CaseImplementor());
 
-    defineImplementor(CAST, NullPolicy.STRICT, new CastImplementor(),
-        false);
+    map.put(CAST, new CastOptimizedImplementor());
+
     defineImplementor(REINTERPRET, NullPolicy.STRICT,
         new ReinterpretImplementor(), false);
 
@@ -531,7 +532,7 @@ public class RexImpTable {
     final RexCall call2 = call2(harmonize, translator, call);
     try {
       return implementNullSemantics(
-          translator, call2, nullAs, implementor);
+          translator, call2, nullAs, nullPolicy, implementor);
     } catch (RexToLixTranslator.AlwaysNull e) {
       switch (nullAs) {
       case NOT_POSSIBLE:
@@ -550,7 +551,7 @@ public class RexImpTable {
       RexToLixTranslator translator,
       RexCall call,
       NullAs nullAs,
-      NotNullImplementor implementor) {
+      NullPolicy nullPolicy, NotNullImplementor implementor) {
     final List<Expression> list = new ArrayList<Expression>();
     switch (nullAs) {
     case NULL:
@@ -587,7 +588,21 @@ public class RexImpTable {
       // Need to transmit to the implementor the fact that call cannot
       // return null. In particular, it should return a primitive (e.g.
       // int) rather than a box type (Integer).
-      translator = translator.setNullable(call, false);
+      // The cases with setNullable above might not help since the same
+      // RexNode can be referred via multiple ways: RexNode itself, RexLocalRef,
+      // and may be others.
+      Map<RexNode, Boolean> nullable = new HashMap<RexNode, Boolean>();
+      if (nullPolicy == NullPolicy.STRICT) {
+        // The arguments should be not nullable if STRICT operator is computed
+        // in nulls NOT_POSSIBLE mode
+        for (RexNode arg : call.getOperands()) {
+          if (translator.isNullable(arg) && !nullable.containsKey(arg)) {
+            nullable.put(arg, false);
+          }
+        }
+      }
+      nullable.put(call, false);
+      translator = translator.setNullable(nullable);
       // fall through
     default:
       return implementCall(translator, call, implementor, nullAs);
@@ -1090,156 +1105,67 @@ public class RexImpTable {
     NONE
   }
 
-  /** Visitor that optimizes expressions.
-   *
-   * <p>The optimizations are essential, not mere tweaks. Without
-   * optimization, expressions such as {@code false == null} will be left in,
-   * which are invalid to Janino (because it does not automatically box
-   * primitives).</p>
-   */
-  static class OptimizeVisitor extends Visitor {
-    @Override
-    public Expression visit(
-        TernaryExpression ternaryExpression,
-        Expression expression0,
-        Expression expression1,
-        Expression expression2) {
-      final TernaryExpression ternary = (TernaryExpression) super.visit(
-          ternaryExpression, expression0, expression1, expression2);
-      switch (ternary.getNodeType()) {
-      case Conditional:
-        Boolean always = always(ternary.expression0);
-        if (always != null) {
-          // true ? y : z  ===  y
-          // false ? y : z  === z
-          return always
-              ? ternary.expression1
-              : ternary.expression2;
-        }
-        if (ternary.expression1.equals(ternary.expression2)) {
-          // a ? b : b   ===   b
-          return ternary.expression1;
-        }
-      }
-      return ternary;
-    }
-
-    @Override
-    public Expression visit(
-        BinaryExpression binaryExpression,
-        Expression expression0,
-        Expression expression1) {
-      final BinaryExpression binary = (BinaryExpression) super.visit(
-          binaryExpression, expression0, expression1);
-      Boolean always;
-      switch (binary.getNodeType()) {
-      case AndAlso:
-        always = always(binary.expression0);
-        if (always != null) {
-          return always
-              ? binary.expression1
-              : FALSE_EXPR;
-        }
-        always = always(binary.expression1);
-        if (always != null) {
-          return always
-              ? binary.expression0
-              : FALSE_EXPR;
-        }
-        break;
-      case OrElse:
-        always = always(binary.expression0);
-        if (always != null) {
-          // true or x  --> true
-          // null or x  --> x
-          // false or x --> x
-          return !always
-              ? binary.expression1
-              : TRUE_EXPR;
-        }
-        always = always(binary.expression1);
-        if (always != null) {
-          return !always
-              ? binary.expression0
-              : TRUE_EXPR;
-        }
-        break;
-      case Equal:
-        if (binary.expression0 instanceof ConstantExpression
-            && binary.expression1 instanceof ConstantExpression) {
-          return binary.expression0.equals(binary.expression1)
-              ? TRUE_EXPR : FALSE_EXPR;
-        }
-        if (isConstantNull(binary.expression1)
-            && Primitive.is(binary.expression0.getType())) {
-          return FALSE_EXPR;
-        }
-        if (isConstantNull(binary.expression0)
-            && Primitive.is(binary.expression1.getType())) {
-          return FALSE_EXPR;
-        }
-        break;
-      case NotEqual:
-        if (binary.expression0 instanceof ConstantExpression
-            && binary.expression1 instanceof ConstantExpression) {
-          return !binary.expression0.equals(binary.expression1)
-              ? TRUE_EXPR : FALSE_EXPR;
-        }
-        if (isConstantNull(binary.expression1)
-            && Primitive.is(binary.expression0.getType())) {
-          return TRUE_EXPR;
-        }
-        if (isConstantNull(binary.expression0)
-            && Primitive.is(binary.expression1.getType())) {
-          return TRUE_EXPR;
-        }
-        break;
-      }
-      return binary;
-    }
-
-    private boolean isConstantNull(Expression expression) {
-      return expression instanceof ConstantExpression
-          && ((ConstantExpression) expression).value == null;
-    }
-
-    /** Returns whether an expression always evaluates to true or false.
-     * Assumes that expression has already been optimized. */
-    private static Boolean always(Expression x) {
-      if (x.equals(FALSE_EXPR) || x.equals(BOXED_FALSE_EXPR)) {
-        return Boolean.FALSE;
-      }
-      if (x.equals(TRUE_EXPR) || x.equals(BOXED_TRUE_EXPR)) {
-        return Boolean.TRUE;
-      }
-      return null;
-    }
-  }
-
-  private static class CaseImplementor extends AbstractCallImplementor {
-    public Expression implement(
-        RexToLixTranslator translator,
-        RexCall call) {
-      return implementRecurse(translator, call, 0);
+  private static class CaseImplementor implements CallImplementor {
+    public Expression implement(RexToLixTranslator translator, RexCall call,
+                                NullAs nullAs) {
+      return implementRecurse(translator, call, nullAs, 0);
     }
 
     private Expression implementRecurse(
-        RexToLixTranslator translator, RexCall call, int i) {
+        RexToLixTranslator translator, RexCall call, NullAs nullAs, int i) {
       List<RexNode> operands = call.getOperands();
       if (i == operands.size() - 1) {
         // the "else" clause
         return translator.translate(
             translator.builder.ensureType(
-                call.getType(), operands.get(i), false));
+                call.getType(), operands.get(i), false), nullAs);
       } else {
-        return Expressions.condition(
-            translator.translate(operands.get(i), NullAs.FALSE),
-            translator.translate(
-                translator.builder.ensureType(call.getType(),
-                    operands.get(i + 1),
-                    false)),
-            implementRecurse(translator, call, i + 2));
+        Expression ifTrue;
+        try {
+          ifTrue = translator.translate(
+              translator.builder.ensureType(call.getType(),
+                  operands.get(i + 1),
+                  false), nullAs);
+        } catch (RexToLixTranslator.AlwaysNull e) {
+          ifTrue = null;
+        }
+
+        Expression ifFalse;
+        try {
+          ifFalse = implementRecurse(translator, call, nullAs, i + 2);
+        } catch (RexToLixTranslator.AlwaysNull e) {
+          if (ifTrue == null) {
+            throw RexToLixTranslator.AlwaysNull.INSTANCE;
+          }
+          ifFalse = null;
+        }
+
+        Expression test = translator.translate(operands.get(i), NullAs.FALSE);
+
+        return ifTrue == null || ifFalse == null
+            ? Util.first(ifTrue, ifFalse)
+            : Expressions.condition(test, ifTrue, ifFalse);
       }
+    }
+  }
+
+  private static class CastOptimizedImplementor implements CallImplementor {
+    private final CallImplementor accurate;
+
+    private CastOptimizedImplementor() {
+      accurate = createImplementor(new CastImplementor(),
+          NullPolicy.STRICT, false);
+    }
+
+    public Expression implement(RexToLixTranslator translator, RexCall call,
+                                NullAs nullAs) {
+      // Short-circuit if no cast is required
+      RexNode arg = call.getOperands().get(0);
+      if (call.getType().equals(arg.getType())) {
+        // No cast required, omit cast
+        return translator.translate(arg, nullAs);
+      }
+      return accurate.implement(translator, call, nullAs);
     }
   }
 

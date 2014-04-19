@@ -1466,6 +1466,117 @@ public class JdbcTest {
             "hire_date=1994-12-01 00:00:00; end_date=null; birth_date=1961-08-26\n");
   }
 
+  @Test public void testReuseExpressionWhenNullChecking() {
+    OptiqAssert.that()
+        .with(OptiqAssert.Config.REGULAR)
+        .query(
+            "select upper((case when \"empid\">\"deptno\"*10 then 'y' else null end)) T from \"hr\".\"emps\"")
+        .planContains(
+            "return current.empid <= current.deptno * 10 " +
+            "? (String) null " +
+            ": net.hydromatic.optiq.runtime.SqlFunctions.upper(\"y\");")
+        .returns("T=null\n"
+                 + "T=null\n"
+                 + "T=Y\n"
+                 + "T=Y\n");
+  }
+
+  @Test public void testReuseExpressionWhenNullChecking2() {
+    OptiqAssert.that()
+        .with(OptiqAssert.Config.REGULAR)
+        .query(
+            "select upper((case when \"empid\">\"deptno\"*10 then \"name\" end)) T from \"hr\".\"emps\"")
+        .planContains(
+            "final String inp2_ = current.name;")
+        .planContains(
+            "return current.empid <= current.deptno * 10 "
+            + "|| inp2_ == null "
+            + "? (String) null "
+            + ": net.hydromatic.optiq.runtime.SqlFunctions.upper(inp2_);")
+        .returns("T=null\n"
+                 + "T=null\n"
+                 + "T=SEBASTIAN\n"
+                 + "T=THEODORE\n");
+  }
+
+  @Test public void testReuseExpressionWhenNullChecking3() {
+    OptiqAssert.that()
+        .with(OptiqAssert.Config.REGULAR)
+        .query(
+            "select substring(\"name\", \"deptno\"+case when user <> 'sa' then 1 end) from \"hr\".\"emps\"")
+        .planContains(
+            "final String inp2_ = current.name;")
+        .planContains(
+            "return inp2_ == null || !net.hydromatic.optiq.runtime"
+            + ".SqlFunctions.ne(\"sa\", \"sa\") ? (String) null"
+            + ": net.hydromatic.optiq.runtime.SqlFunctions.substring(inp2_, "
+            + "current.deptno + 1);");
+  }
+
+  @Test public void testReuseExpressionWhenNullChecking4() {
+    OptiqAssert.that()
+        .with(OptiqAssert.Config.REGULAR)
+        .query(
+            "select substring(trim(\n"
+            + "substring(\"name\",\n"
+            + "  \"deptno\"*0+case when user = 'sa' then 1 end)\n"
+            + "), case when \"empid\">\"deptno\" then 4\n" /* diff from 5 */
+            + "   else\n"
+            + "     case when \"deptno\"*8>8 then 5 end\n"
+            + "   end-2) T\n"
+            + "from\n"
+            + "\"hr\".\"emps\"")
+        .planContains(
+            "final String inp2_ = current.name;")
+        .planContains(
+            "final int inp1_ = current.deptno;")
+        .planContains(
+            "return inp2_ == null "
+            + "|| !net.hydromatic.optiq.runtime.SqlFunctions.eq(\"sa\", \"sa\") "
+            + "|| !v5 && inp1_ * 8 <= 8 "
+            + "? (String) null "
+            + ": net.hydromatic.optiq.runtime.SqlFunctions.substring("
+            + "net.hydromatic.optiq.runtime.SqlFunctions.trim(true, true, \" \", "
+            + "net.hydromatic.optiq.runtime.SqlFunctions.substring(inp2_, "
+            + "inp1_ * 0 + 1)), (v5 ? 4 : 5) - 2);")
+        .returns("T=ill\n"
+                 + "T=ric\n"
+                 + "T=ebastian\n"
+                 + "T=heodore\n");
+  }
+
+  @Test public void testReuseExpressionWhenNullChecking5() {
+    OptiqAssert.that()
+        .with(OptiqAssert.Config.REGULAR)
+        .query(
+            "select substring(trim(\n"
+            + "substring(\"name\",\n"
+            + "  \"deptno\"*0+case when user = 'sa' then 1 end)\n"
+            + "), case when \"empid\">\"deptno\" then 5\n" /* diff from 4 */
+            + "   else\n"
+            + "     case when \"deptno\"*8>8 then 5 end\n"
+            + "   end-2) T\n"
+            + "from\n"
+            + "\"hr\".\"emps\"")
+        .planContains(
+            "final String inp2_ = current.name;")
+        .planContains(
+            "final int inp1_ = current.deptno;")
+        .planContains(
+            "return inp2_ == null "
+            + "|| !net.hydromatic.optiq.runtime.SqlFunctions.eq(\"sa\", \"sa\") "
+            + "|| current.empid <= inp1_ && inp1_ * 8 <= 8 "
+            + "? (String) null "
+            + ": net.hydromatic.optiq.runtime.SqlFunctions.substring("
+            + "net.hydromatic.optiq.runtime.SqlFunctions.trim(true, true, \" \", "
+            + "net.hydromatic.optiq.runtime.SqlFunctions.substring(inp2_, "
+            + "inp1_ * 0 + 1)), 5 - 2);")
+        .returns("T=ll\n"
+                 + "T=ic\n"
+                 + "T=bastian\n"
+                 + "T=eodore\n");
+  }
+
   @Test public void testValues() {
     OptiqAssert.that()
         .query("values (1), (2)")

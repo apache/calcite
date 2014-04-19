@@ -342,7 +342,7 @@ public class ReflectiveSchemaTest {
         .returns("P=2; W=1; SP=2; SW=1; IP=2; IW=1; LP=2; LW=1\n");
   }
 
-  @Test public void testDivide() throws Exception {
+  @Test public void testDivideWraperPrimitive() throws Exception {
     final OptiqAssert.AssertThat with =
         OptiqAssert.that().with("s", new CatchallSchema());
     with.query(
@@ -353,6 +353,11 @@ public class ReflectiveSchemaTest {
         .planContains(
             "return inp13_ == null ? (Long) null : Long.valueOf(inp13_.longValue() / current.primitiveLong);")
         .returns("C=null\n");
+  }
+
+  @Test public void testDivideWraperWrapper() throws Exception {
+    final OptiqAssert.AssertThat with =
+        OptiqAssert.that().with("s", new CatchallSchema());
     with.query(
         "select \"wrapperLong\" / \"wrapperLong\" as c\n"
         + " from \"s\".\"everyTypes\" where \"primitiveLong\" <> 0")
@@ -360,6 +365,20 @@ public class ReflectiveSchemaTest {
             "final Long inp13_ = ((net.hydromatic.optiq.test.ReflectiveSchemaTest.EveryType) inputEnumerator.current()).wrapperLong;")
         .planContains(
             "return inp13_ == null ? (Long) null : Long.valueOf(inp13_.longValue() / inp13_.longValue());")
+        .returns("C=null\n");
+  }
+
+  @Test public void testDivideWraperWrapperMultipleTimes() throws Exception {
+    final OptiqAssert.AssertThat with =
+        OptiqAssert.that().with("s", new CatchallSchema());
+    with.query(
+        "select \"wrapperLong\" / \"wrapperLong\"\n"
+        + "+ \"wrapperLong\" / \"wrapperLong\" as c\n"
+        + " from \"s\".\"everyTypes\" where \"primitiveLong\" <> 0")
+        .planContains(
+            "final Long inp13_ = ((net.hydromatic.optiq.test.ReflectiveSchemaTest.EveryType) inputEnumerator.current()).wrapperLong;")
+        .planContains(
+            "return inp13_ == null ? (Long) null : Long.valueOf(inp13_.longValue() / inp13_.longValue() + inp13_.longValue() / inp13_.longValue());")
         .returns("C=null\n");
   }
 
