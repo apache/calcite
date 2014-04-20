@@ -3709,8 +3709,10 @@ public class JdbcTest {
     // create schema "/a/b1". Appears only when we disable caching.
     aSubSchemaMap.put("b1", new AbstractSchema());
     assertThat(aSchema.getSubSchemaNames().size(), is(0));
+    assertThat(aSchema.getSubSchema("b1"), nullValue());
     aSchema.setCacheEnabled(false);
     assertThat(aSchema.getSubSchemaNames().size(), is(1));
+    assertThat(aSchema.getSubSchema("b1"), notNullValue());
 
     // create schema "/a/b2". Appears immediately, because caching is disabled.
     aSubSchemaMap.put("b2", new AbstractSchema());
@@ -3724,6 +3726,9 @@ public class JdbcTest {
     assertThat(aSchema.getSubSchemaNames().size(), is(3));
     aSchema.setCacheEnabled(false);
     assertThat(aSchema.getSubSchemaNames().size(), is(4));
+    for (String name : aSchema.getSubSchemaNames()) {
+      assertThat(aSchema.getSubSchema(name), notNullValue());
+    }
 
     // create schema "/a2"
     final Map<String, Schema> a2SubSchemaMap = new HashMap<String, Schema>();
@@ -3755,6 +3760,9 @@ public class JdbcTest {
     a2Schema.setCacheEnabled(false);
     a2Schema.setCacheEnabled(true);
     assertThat(a2Schema.getSubSchemaNames().size(), is(2));
+    for (String name : aSchema.getSubSchemaNames()) {
+      assertThat(aSchema.getSubSchema(name), notNullValue());
+    }
 
     // add tables and retrieve with various case sensitivities
     final TableInRootSchemaTest.SimpleTable table =

@@ -26,6 +26,7 @@ import net.hydromatic.optiq.impl.MaterializedViewTable;
 
 import org.eigenbase.util.Pair;
 
+import com.google.common.cache.*;
 import com.google.common.collect.*;
 
 import java.util.*;
@@ -69,7 +70,7 @@ public class OptiqSchema {
       new TreeMap<String, OptiqSchema>(COMPARATOR);
   private ImmutableList<ImmutableList<String>> path;
   private boolean cache = true;
-  private final Cached<ImmutableSortedSet<String>> implicitSubSchemaCache;
+  private final Cached<SubSchemaCache> implicitSubSchemaCache;
   private final Cached<ImmutableSortedSet<String>> implicitTableCache;
   private final Cached<ImmutableSortedSet<String>> implicitFunctionCache;
 
@@ -79,10 +80,11 @@ public class OptiqSchema {
     this.name = name;
     assert (parent == null) == (this instanceof OptiqRootSchema);
     this.implicitSubSchemaCache =
-        new AbstractCached<ImmutableSortedSet<String>>() {
-          public ImmutableSortedSet<String> build() {
-            return ImmutableSortedSet.copyOf(COMPARATOR,
-                schema.getSubSchemaNames());
+        new AbstractCached<SubSchemaCache>() {
+          public SubSchemaCache build() {
+            return new SubSchemaCache(OptiqSchema.this,
+                ImmutableSortedSet.copyOf(COMPARATOR,
+                    schema.getSubSchemaNames()));
           }
         };
     this.implicitTableCache =
@@ -168,9 +170,34 @@ public class OptiqSchema {
   public final OptiqSchema getSubSchema(String schemaName,
       boolean caseSensitive) {
     if (caseSensitive) {
-      return subSchemaMap.get(schemaName);
+      // Check explicit schemas, case-sensitive.
+      final OptiqSchema entry = subSchemaMap.get(schemaName);
+      if (entry != null) {
+        return entry;
+      }
+      // Check implicit schemas, case-sensitive.
+      final long now = System.currentTimeMillis();
+      final SubSchemaCache subSchemaCache = implicitSubSchemaCache.get(now);
+      if (subSchemaCache.names.contains(schemaName)) {
+        return subSchemaCache.cache.getUnchecked(schemaName);
+      }
+      return null;
     } else {
-      return Iterables.getFirst(find(subSchemaMap, schemaName).values(), null);
+      // Check explicit schemas, case-insensitive.
+      //noinspection LoopStatementThatDoesntLoop
+      for (Map.Entry<String, OptiqSchema> entry
+          : find(subSchemaMap, schemaName).entrySet()) {
+        return entry.getValue();
+      }
+      // Check implicit schemas, case-insensitive.
+      final long now = System.currentTimeMillis();
+      final SubSchemaCache subSchemaCache =
+          implicitSubSchemaCache.get(now);
+      final String schemaName2 = subSchemaCache.names.floor(schemaName);
+      if (schemaName2 != null) {
+        return subSchemaCache.cache.getUnchecked(schemaName2);
+      }
+      return null;
     }
   }
 
@@ -260,11 +287,9 @@ public class OptiqSchema {
     final ImmutableSortedMap.Builder<String, OptiqSchema> builder =
         new ImmutableSortedMap.Builder<String, OptiqSchema>(COMPARATOR);
     final long now = System.currentTimeMillis();
-    for (String name : implicitSubSchemaCache.get(now)) {
-      final Schema subSchema = schema.getSubSchema(name);
-      if (subSchema != null) {
-        builder.put(name, new OptiqSchema(this, subSchema, name));
-      }
+    final SubSchemaCache subSchemaCache = implicitSubSchemaCache.get(now);
+    for (String name : subSchemaCache.names) {
+      builder.put(name, subSchemaCache.cache.getUnchecked(name));
     }
     builder.putAll(subSchemaMap);
     return builder.build();
@@ -644,6 +669,33 @@ public class OptiqSchema {
         t = null;
       }
       checked = Long.MIN_VALUE;
+    }
+  }
+
+  /** Information about the implicit sub-schemas of an {@link OptiqSchema}. */
+  private static class SubSchemaCache {
+    /** The names of sub-schemas returned from the {@link Schema} SPI. */
+    final ImmutableSortedSet<String> names;
+    /** Cached {@link net.hydromatic.optiq.jdbc.OptiqSchema} wrappers. It is
+     * worth caching them because they contain maps of their own sub-objects. */
+    final LoadingCache<String, OptiqSchema> cache;
+
+    private SubSchemaCache(final OptiqSchema optiqSchema,
+        ImmutableSortedSet<String> names) {
+      this.names = names;
+      this.cache = CacheBuilder.<String, OptiqSchema>newBuilder().build(
+          new CacheLoader<String, OptiqSchema>() {
+            @SuppressWarnings("NullableProblems")
+            @Override public OptiqSchema load(String schemaName) {
+              final Schema subSchema =
+                  optiqSchema.schema.getSubSchema(schemaName);
+              if (subSchema == null) {
+                throw new RuntimeException("sub-schema " + schemaName
+                    + " not found");
+              }
+              return new OptiqSchema(optiqSchema, subSchema, schemaName);
+            }
+          });
     }
   }
 }
