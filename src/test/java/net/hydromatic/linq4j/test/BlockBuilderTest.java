@@ -22,12 +22,14 @@ import net.hydromatic.linq4j.expressions.*;
 import org.junit.Before;
 import org.junit.Test;
 
+import static net.hydromatic.linq4j.test.BlockBuilderBase.*;
+
 import static org.junit.Assert.assertEquals;
 
 /**
- * Tests BlockBuilder
+ * Tests BlockBuilder.
  */
-public class BlockBuilderTest extends BlockBuilderBase {
+public class BlockBuilderTest {
   BlockBuilder b;
 
   @Before
@@ -35,31 +37,28 @@ public class BlockBuilderTest extends BlockBuilderBase {
     b = new BlockBuilder(true);
   }
 
-  @Test
-  public void reuseExpressionsFromUpperLevel() {
+  @Test public void testReuseExpressionsFromUpperLevel() {
     Expression x = b.append("x", Expressions.add(ONE, TWO));
     BlockBuilder nested = new BlockBuilder(true, b);
     Expression y = nested.append("y", Expressions.add(ONE, TWO));
     nested.add(Expressions.return_(null, Expressions.add(y, y)));
     b.add(nested.toBlock());
-    assertEquals("{\n"
-                 + "  final int x = 1 + 2;\n"
-                 + "  {\n"
-                 + "    return x + x;\n"
-                 + "  }\n"
-                 + "}\n", b.toBlock().toString());
+    assertEquals(
+        "{\n"
+        + "  final int x = 1 + 2;\n"
+        + "  {\n"
+        + "    return x + x;\n"
+        + "  }\n"
+        + "}\n",
+        b.toBlock().toString());
   }
 
-  @Test
-  public void testCustomOptimizer() {
+  @Test public void testTestCustomOptimizer() {
     BlockBuilder b = new BlockBuilder() {
-      @Override
-      protected Visitor createOptimizeVisitor() {
+      @Override protected Visitor createOptimizeVisitor() {
         return new OptimizeVisitor() {
-          @Override
-          public Expression visit(BinaryExpression binary,
-              Expression expression0,
-              Expression expression1) {
+          @Override public Expression visit(BinaryExpression binary,
+              Expression expression0, Expression expression1) {
             if (binary.getNodeType() == ExpressionType.Add
                 && ONE.equals(expression0) && TWO.equals(expression1)) {
               return FOUR;
@@ -73,3 +72,5 @@ public class BlockBuilderTest extends BlockBuilderBase {
     assertEquals("{\n  return 4;\n}\n", b.toBlock().toString());
   }
 }
+
+// End BlockBuilderTest.java

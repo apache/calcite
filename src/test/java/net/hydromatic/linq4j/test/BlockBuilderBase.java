@@ -22,10 +22,12 @@ import net.hydromatic.linq4j.expressions.*;
 /**
  * Base methods and constant for simplified Expression testing
  */
-public abstract class BlockBuilderBase {
+public final class BlockBuilderBase {
+  private BlockBuilderBase() {}
+
   public static final Expression NULL = Expressions.constant(null);
-  public static final Expression NULL_INTEGER = Expressions.constant(null,
-      Integer.class);
+  public static final Expression NULL_INTEGER =
+      Expressions.constant(null, Integer.class);
   public static final Expression ONE = Expressions.constant(1);
   public static final Expression TWO = Expressions.constant(2);
   public static final Expression THREE = Expressions.constant(3);
@@ -60,3 +62,5 @@ public abstract class BlockBuilderBase {
     return Expressions.parameter(Integer.class, name);
   }
 }
+
+// End BlockBuilderBase.java

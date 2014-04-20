@@ -26,7 +26,7 @@ import static net.hydromatic.linq4j.expressions.ExpressionType.NotEqual;
 
 /**
  * Visitor that optimizes expressions.
- * <p/>
+ *
  * <p>The optimizations are essential, not mere tweaks. Without
  * optimization, expressions such as {@code false == null} will be left in,
  * which are invalid to Janino (because it does not automatically box
@@ -43,8 +43,8 @@ public class OptimizeVisitor extends Visitor {
       Expressions.field(null, Boolean.class, "TRUE");
   public static final Statement EMPTY_STATEMENT = Expressions.statement(null);
 
-  private static final Set<Method> KNOWN_NON_NULL_METHODS
-    = new HashSet<Method>();
+  private static final Set<Method> KNOWN_NON_NULL_METHODS =
+      new HashSet<Method>();
 
   static {
     for (Class aClass : new Class[]{Boolean.class, Byte.class, Short.class,
@@ -58,8 +58,9 @@ public class OptimizeVisitor extends Visitor {
     }
   }
 
-  private static final Map<ExpressionType, ExpressionType> NOT_BINARY_COMPLEMENT
-    = new EnumMap<ExpressionType, ExpressionType>(ExpressionType.class);
+  private static final Map<ExpressionType, ExpressionType>
+  NOT_BINARY_COMPLEMENT =
+      new EnumMap<ExpressionType, ExpressionType>(ExpressionType.class);
 
   static {
     addComplement(ExpressionType.Equal, ExpressionType.NotEqual);
@@ -67,14 +68,13 @@ public class OptimizeVisitor extends Visitor {
     addComplement(ExpressionType.GreaterThan, ExpressionType.LessThanOrEqual);
   }
 
-  private static void addComplement(ExpressionType eq,
-                                    ExpressionType ne) {
+  private static void addComplement(ExpressionType eq, ExpressionType ne) {
     NOT_BINARY_COMPLEMENT.put(eq, ne);
     NOT_BINARY_COMPLEMENT.put(ne, eq);
   }
 
-  private static final Method BOOLEAN_VALUEOF_BOOL
-    = Types.lookupMethod(Boolean.class, "valueOf", boolean.class);
+  private static final Method BOOLEAN_VALUEOF_BOOL =
+      Types.lookupMethod(Boolean.class, "valueOf", boolean.class);
 
   @Override
   public Expression visit(
@@ -268,9 +268,9 @@ public class OptimizeVisitor extends Visitor {
   }
 
   @Override
-  public Expression visit(UnaryExpression unaryExpression, Expression
-      expression) {
-    switch(unaryExpression.getNodeType()) {
+  public Expression visit(UnaryExpression unaryExpression,
+      Expression expression) {
+    switch (unaryExpression.getNodeType()) {
     case Convert:
       if (expression.getType() == unaryExpression.getType()) {
         return expression;
@@ -304,7 +304,7 @@ public class OptimizeVisitor extends Visitor {
 
   @Override
   public Statement visit(ConditionalStatement conditionalStatement,
-                         List<Node> list) {
+      List<Node> list) {
     // if (false) { <-- remove branch
     // } if (true) { <-- stop here
     // } else if (...)
@@ -395,7 +395,7 @@ public class OptimizeVisitor extends Visitor {
   }
 
   /**
-   * Verifies if the expression always returns non-null result.
+   * Returns whether an expression always returns a non-null result.
    * For instance, primitive types cannot contain null values.
    *
    * @param expression expression to test
@@ -405,8 +405,8 @@ public class OptimizeVisitor extends Visitor {
     return Primitive.is(expression.getType())
         || always(expression) != null
         || (expression instanceof MethodCallExpression
-            && KNOWN_NON_NULL_METHODS.contains(((MethodCallExpression)
-              expression).method));
+            && KNOWN_NON_NULL_METHODS.contains(
+                ((MethodCallExpression) expression).method));
   }
 
   /**
@@ -416,7 +416,9 @@ public class OptimizeVisitor extends Visitor {
     return a.equals(b)
         || (a instanceof ConstantExpression
             && b instanceof ConstantExpression
-            && ((ConstantExpression) a).value == ((ConstantExpression) b).value
-        );
+            && ((ConstantExpression) a).value
+                == ((ConstantExpression) b).value);
   }
 }
+
+// End OptimizeVisitor.java

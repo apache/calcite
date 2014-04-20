@@ -61,14 +61,19 @@ public class MethodDeclaration extends MemberDeclaration {
     if (!modifiers.isEmpty()) {
       writer.append(' ');
     }
-    writer.append(resultType).append(' ').append(name).list("(", ", ", ")",
-        Functions.adapt(parameters, new Function1<ParameterExpression,
-            String>() {
-          public String apply(ParameterExpression a0) {
-            return a0.declString();
-          }
-        })
-    ).append(' ').append(body);
+    writer
+        .append(resultType)
+        .append(' ')
+        .append(name)
+        .list("(", ", ", ")",
+            Functions.adapt(parameters,
+                new Function1<ParameterExpression, String>() {
+                  public String apply(ParameterExpression a0) {
+                    return a0.declString();
+                  }
+                }))
+        .append(' ')
+        .append(body);
     writer.newlineAndIndent();
   }
 

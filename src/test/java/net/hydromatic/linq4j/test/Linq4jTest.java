@@ -334,8 +334,7 @@ public class Linq4jTest {
               public Object apply(Employee a0) {
                 return a0.deptno;
               }
-            }
-      );
+            });
     assertTrue(comparer.equal(emps[0], emps[0]));
     assertEquals(comparer.hashCode(emps[0]), comparer.hashCode(emps[0]));
 
@@ -412,8 +411,7 @@ public class Linq4jTest {
                   public String apply(Integer v1, String v2) {
                     return v1 + ": " + v2;
                   }
-                }
-        )
+                })
             .orderBy(Functions.<String>identitySelector())
             .toList()
             .toString();
@@ -654,8 +652,8 @@ public class Linq4jTest {
                     return buf.append("] work(s) in ").append(v1.name)
                         .toString();
                   }
-                }
-        ).toList()
+                })
+            .toList()
             .toString();
     assertEquals(
         "[[Fred, Eric, Janet] work(s) in Sales, "
@@ -870,8 +868,7 @@ public class Linq4jTest {
                       public boolean apply(Employee v1) {
                         return v1.deptno == 10;
                       }
-                    }
-          ));
+                    }));
     assertEquals(3, nh2.count());
 
     // use lambda, this time call whereN

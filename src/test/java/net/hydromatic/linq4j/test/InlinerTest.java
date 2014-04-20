@@ -22,12 +22,14 @@ import net.hydromatic.linq4j.expressions.*;
 import org.junit.Before;
 import org.junit.Test;
 
+import static net.hydromatic.linq4j.test.BlockBuilderBase.*;
+
 import static org.junit.Assert.assertEquals;
 
 /**
- * Tests expression inlining in BlockBuilder
+ * Tests expression inlining in BlockBuilder.
  */
-public class InlinerTest extends BlockBuilderBase {
+public class InlinerTest {
   BlockBuilder b;
 
   @Before
@@ -35,8 +37,7 @@ public class InlinerTest extends BlockBuilderBase {
     b = new BlockBuilder(true);
   }
 
-  @Test
-  public void inlineSingleUsage() {
+  @Test public void testInlineSingleUsage() {
     DeclarationStatement decl = Expressions.declare(16, "x",
         Expressions.add(ONE, TWO));
     b.add(decl);
@@ -44,42 +45,43 @@ public class InlinerTest extends BlockBuilderBase {
     assertEquals("{\n  return 1 + 2;\n}\n", b.toBlock().toString());
   }
 
-  @Test
-  public void inlineConstant() {
+  @Test public void testInlineConstant() {
     DeclarationStatement decl = Expressions.declare(16, "x", ONE);
     b.add(decl);
-    b.add(Expressions.return_(null, Expressions.add(decl.parameter,
-        decl.parameter)));
+    b.add(
+        Expressions.return_(null,
+            Expressions.add(decl.parameter, decl.parameter)));
     assertEquals("{\n  return 1 + 1;\n}\n", b.toBlock().toString());
   }
 
-  @Test
-  public void inlineParameter() {
+  @Test public void testInlineParameter() {
     ParameterExpression pe = Expressions.parameter(int.class, "p");
     DeclarationStatement decl = Expressions.declare(16, "x", pe);
     b.add(decl);
-    b.add(Expressions.return_(null, Expressions.add(decl.parameter,
-        decl.parameter)));
+    b.add(
+        Expressions.return_(null,
+            Expressions.add(decl.parameter, decl.parameter)));
     assertEquals("{\n  return p + p;\n}\n", b.toBlock().toString());
   }
 
-  @Test
-  public void noInlineMultipleUsage() {
+  @Test public void testNoInlineMultipleUsage() {
     ParameterExpression p1 = Expressions.parameter(int.class, "p1");
     ParameterExpression p2 = Expressions.parameter(int.class, "p2");
     DeclarationStatement decl = Expressions.declare(16, "x",
         Expressions.subtract(p1, p2));
     b.add(decl);
-    b.add(Expressions.return_(null, Expressions.add(decl.parameter,
-        decl.parameter)));
-    assertEquals("{\n"
-                 + "  final int x = p1 - p2;\n"
-                 + "  return x + x;\n"
-                 + "}\n",
+    b.add(
+        Expressions.return_(null,
+            Expressions.add(decl.parameter, decl.parameter)));
+    assertEquals(
+        "{\n"
+        + "  final int x = p1 - p2;\n"
+        + "  return x + x;\n"
+        + "}\n",
         b.toBlock().toString());
   }
 
-  @Test public void assignInConditionMultipleUsage() {
+  @Test public void testAssignInConditionMultipleUsage() {
     // int t;
     // return (t = 1) != a ? t : c
     final BlockBuilder builder = new BlockBuilder(true);
@@ -103,7 +105,7 @@ public class InlinerTest extends BlockBuilderBase {
         Expressions.toString(builder.toBlock()));
   }
 
-  @Test public void assignInConditionOptimizedOut() {
+  @Test public void testAssignInConditionOptimizedOut() {
     // int t;
     // return (t = 1) != a ? b : c
     final BlockBuilder builder = new BlockBuilder(true);
@@ -126,7 +128,7 @@ public class InlinerTest extends BlockBuilderBase {
         Expressions.toString(builder.toBlock()));
   }
 
-  @Test public void assignInConditionMultipleUsageNonOptimized() {
+  @Test public void testAssignInConditionMultipleUsageNonOptimized() {
     // int t = 2;
     // return (t = 1) != a ? 1 : c
     final BlockBuilder builder = new BlockBuilder(true);
@@ -150,7 +152,7 @@ public class InlinerTest extends BlockBuilderBase {
         Expressions.toString(builder.toBlock()));
   }
 
-  @Test public void multipassOptimization() {
+  @Test public void testMultiPassOptimization() {
     // int t = u + v;
     // boolean b = t > 1 ? true : true; -- optimized out, thus t can be inlined
     // return b ? t : 2
@@ -159,8 +161,8 @@ public class InlinerTest extends BlockBuilderBase {
     final ParameterExpression v = Expressions.parameter(int.class, "v");
 
     Expression t = builder.append("t", Expressions.add(u, v));
-    Expression b = builder.append("b", Expressions.condition(Expressions
-        .greaterThan(t, ONE), TRUE, TRUE));
+    Expression b = builder.append("b",
+        Expressions.condition(Expressions.greaterThan(t, ONE), TRUE, TRUE));
 
     builder.add(Expressions.return_(null, Expressions.condition(b, t, TWO)));
     assertEquals(
@@ -170,3 +172,5 @@ public class InlinerTest extends BlockBuilderBase {
         Expressions.toString(builder.toBlock()));
   }
 }
+
+// End InlinerTest.java

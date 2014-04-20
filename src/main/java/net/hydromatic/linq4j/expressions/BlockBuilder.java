@@ -32,8 +32,8 @@ public class BlockBuilder {
   /** Contains final-fine-to-reuse-declarations.
    * An entry to this map is added when adding final declaration of a
    * statement with optimize=true parameter. */
-  final Map<Expression, DeclarationStatement> expressionForReuse
-    = new HashMap<Expression, DeclarationStatement>();
+  final Map<Expression, DeclarationStatement> expressionForReuse =
+      new HashMap<Expression, DeclarationStatement>();
 
   private final boolean optimizing;
   private final BlockBuilder parent;
@@ -295,9 +295,9 @@ public class BlockBuilder {
    */
   public BlockStatement toBlock() {
     if (optimizing) {
-      /* We put an artificial limit of 10 iterations just to prevent
-      endless loop. Optimize should not loop forever, however it is hard to
-      prove if it always finishes in reasonable time. */
+      // We put an artificial limit of 10 iterations just to prevent an endless
+      // loop. Optimize should not loop forever, however it is hard to prove if
+      // it always finishes in reasonable time.
       for (int i = 0; i < 10; i++) {
         if (!optimize(createOptimizeVisitor(), true)) {
           break;
@@ -312,10 +312,10 @@ public class BlockBuilder {
    * Optimizes the list of statements. If an expression is used only once,
    * it is inlined.
    *
-   * @return if any optimizations were made or not
+   * @return whether any optimizations were made
    */
   private boolean optimize(Visitor optimizer, boolean performInline) {
-    boolean optimized = false;
+    int optimizeCount = 0;
     final UseCounter useCounter = new UseCounter();
     for (Statement statement : statements) {
       if (statement instanceof DeclarationStatement && performInline) {
@@ -380,7 +380,9 @@ public class BlockBuilder {
             oldStatement = oldStatement.accept(visitor); // remap
           }
           oldStatement = oldStatement.accept(optimizer);
-          optimized |= beforeOptimize != oldStatement;
+          if (beforeOptimize != oldStatement) {
+            ++optimizeCount;
+          }
           if (oldStatement != OptimizeVisitor.EMPTY_STATEMENT) {
             if (oldStatement instanceof DeclarationStatement) {
               addExpresisonForReuse((DeclarationStatement) oldStatement);
@@ -395,13 +397,15 @@ public class BlockBuilder {
           oldStatement = oldStatement.accept(visitor); // remap
         }
         oldStatement = oldStatement.accept(optimizer);
-        optimized |= beforeOptimize != oldStatement;
+        if (beforeOptimize != oldStatement) {
+          ++optimizeCount;
+        }
         if (oldStatement != OptimizeVisitor.EMPTY_STATEMENT) {
           statements.add(oldStatement);
         }
       }
     }
-    return optimized;
+    return optimizeCount > 0;
   }
 
   /**
