@@ -670,7 +670,24 @@ public class OptimizerTest extends BlockBuilderBase {
   @Test
   public void notLte() {
     // !(a <= b) -> a > b
-    assertEquals("{\n  return a > b;\n}\n", optimize(Expressions.not(
-        Expressions.lessThanOrEqual(bool("a"), bool("b")))));
+    assertEquals("{\n  return a > b;\n}\n",
+        optimize(
+            Expressions.not(
+                Expressions.lessThanOrEqual(bool("a"), bool("b")))));
+  }
+
+  @Test public void booleanValueOfTrue() {
+    // Boolean.valueOf(true) -> true
+    assertEquals("{\n  return true;\n}\n", optimize(Expressions.call(
+        Boolean.class, "valueOf", TRUE)));
+  }
+
+  @Test
+  public void booleanValueOfFalse() {
+    // Boolean.valueOf(false) -> false
+    assertEquals("{\n  return false;\n}\n", optimize(Expressions.call(
+        Boolean.class, "valueOf", FALSE)));
   }
 }
+
+// End OptimizerTest.java

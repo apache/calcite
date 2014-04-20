@@ -73,6 +73,9 @@ public class OptimizeVisitor extends Visitor {
     NOT_BINARY_COMPLEMENT.put(ne, eq);
   }
 
+  private static final Method BOOLEAN_VALUEOF_BOOL
+    = Types.lookupMethod(Boolean.class, "valueOf", boolean.class);
+
   @Override
   public Expression visit(
       TernaryExpression ternary,
@@ -357,6 +360,19 @@ public class OptimizeVisitor extends Visitor {
       return EMPTY_STATEMENT;
     }
     return super.visit(conditionalStatement, newList);
+  }
+
+  @Override
+  public Expression visit(MethodCallExpression methodCallExpression,
+      Expression targetExpression,
+      List<Expression> expressions) {
+    if (BOOLEAN_VALUEOF_BOOL.equals(methodCallExpression.method)) {
+      Boolean always = always(expressions.get(0));
+      if (always != null) {
+        return always ? TRUE_EXPR : FALSE_EXPR;
+      }
+    }
+    return super.visit(methodCallExpression, targetExpression, expressions);
   }
 
   private boolean isConstantNull(Expression expression) {
