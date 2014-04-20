@@ -173,9 +173,12 @@ public class Frameworks {
 
   /**
    * Creates a root schema.
+   *
+   * @param addMetadataSchema Whether to add "metadata" schema containing
+   *    definitions of tables, columns etc.
    */
-  public static SchemaPlus createRootSchema() {
-    return OptiqSchema.createRootSchema().plus();
+  public static SchemaPlus createRootSchema(boolean addMetadataSchema) {
+    return OptiqSchema.createRootSchema(addMetadataSchema).plus();
   }
 }
 

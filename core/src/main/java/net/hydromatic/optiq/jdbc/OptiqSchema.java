@@ -103,12 +103,15 @@ public class OptiqSchema {
         };
   }
 
-  /** Creates a root schema. It contains a "metadata" schema containing
-   * definitions of tables, columns etc. */
-  public static OptiqRootSchema createRootSchema() {
+  /** Creates a root schema. When <code>addMetadataSchema</code> argument is
+   * true a "metadata" schema containing definitions of tables, columns etc. is
+   * added to root schema. */
+  public static OptiqRootSchema createRootSchema(boolean addMetadataSchema) {
     OptiqRootSchema rootSchema =
         new OptiqRootSchema(new OptiqConnectionImpl.RootSchema());
-    rootSchema.add("metadata", MetadataSchema.INSTANCE);
+    if (addMetadataSchema) {
+      rootSchema.add("metadata", MetadataSchema.INSTANCE);
+    }
     return rootSchema;
   }
 

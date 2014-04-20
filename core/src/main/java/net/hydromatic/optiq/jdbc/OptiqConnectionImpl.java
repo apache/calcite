@@ -78,7 +78,7 @@ abstract class OptiqConnectionImpl
     this.typeFactory =
         typeFactory != null ? typeFactory : new JavaTypeFactoryImpl();
     this.rootSchema =
-        rootSchema != null ? rootSchema : OptiqSchema.createRootSchema();
+        rootSchema != null ? rootSchema : OptiqSchema.createRootSchema(true);
 
     OptiqConnectionConfig cfg = new OptiqConnectionConfigImpl(info);
     this.properties.put(InternalProperty.CASE_SENSITIVE, cfg.caseSensitive());

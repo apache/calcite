@@ -105,6 +105,12 @@ public class FrameworksTest {
         "EnumerableFilterRel(condition=[>($1, 1)])\n"
         + "  EnumerableTableAccessRel(table=[[myTable]])\n"));
   }
+
+  /** Unit test to test create root schema which has no "metadata" schema. */
+  @Test public void testCreateRootSchemaWithNoMetadataSchema() {
+    SchemaPlus rootSchema = Frameworks.createRootSchema(false);
+    assertThat(rootSchema.getSubSchemaNames().size(), equalTo(0));
+  }
 }
 
 // End FrameworksTest.java
