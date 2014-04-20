@@ -47,6 +47,7 @@ public class ForStatement extends Statement {
 
   @Override
   public ForStatement accept(Visitor visitor) {
+    visitor = visitor.preVisit(this);
     List<DeclarationStatement> decls1 =
         Expressions.acceptDeclarations(declarations, visitor);
     final Expression condition1 =

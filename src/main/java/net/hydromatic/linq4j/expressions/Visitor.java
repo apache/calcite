@@ -25,12 +25,20 @@ import java.util.List;
  * Node visitor.
  */
 public class Visitor {
+  public Visitor preVisit(WhileStatement whileStatement) {
+    return this;
+  }
+
   public Statement visit(WhileStatement whileStatement, Expression condition,
       Statement body) {
     return condition == whileStatement.condition
            && body == whileStatement.body
         ? whileStatement
         : Expressions.while_(condition, body);
+  }
+
+  public Visitor preVisit(ConditionalStatement conditionalStatement) {
+    return this;
   }
 
   public Statement visit(ConditionalStatement conditionalStatement,
@@ -40,11 +48,19 @@ public class Visitor {
         : Expressions.ifThenElse(list);
   }
 
+  public Visitor preVisit(BlockStatement blockStatement) {
+    return this;
+  }
+
   public BlockStatement visit(BlockStatement blockStatement,
       List<Statement> statements) {
     return statements.equals(blockStatement.statements)
         ? blockStatement
         : Expressions.block(statements);
+  }
+
+  public Visitor preVisit(GotoStatement gotoStatement) {
+    return this;
   }
 
   public Statement visit(GotoStatement gotoStatement, Expression expression) {
@@ -59,6 +75,10 @@ public class Visitor {
     return labelStatement;
   }
 
+  public Visitor preVisit(ForStatement forStatement) {
+    return this;
+  }
+
   public ForStatement visit(ForStatement forStatement,
       List<DeclarationStatement> declarations, Expression condition,
       Expression post, Statement body) {
@@ -70,19 +90,26 @@ public class Visitor {
         : Expressions.for_(declarations, condition, post, body);
   }
 
+  public Visitor preVisit(ThrowStatement throwStatement) {
+    return this;
+  }
+
   public Statement visit(ThrowStatement throwStatement, Expression expression) {
     return expression == throwStatement.expression
         ? throwStatement
         : Expressions.throw_(expression);
   }
 
+  public Visitor preVisit(DeclarationStatement declarationStatement) {
+    return this;
+  }
+
   public DeclarationStatement visit(DeclarationStatement declarationStatement,
-      ParameterExpression parameter, Expression initializer) {
-    return declarationStatement.parameter == parameter
-           && declarationStatement.initializer == initializer
+      Expression initializer) {
+    return declarationStatement.initializer == initializer
         ? declarationStatement
         : Expressions.declare(
-            declarationStatement.modifiers, parameter,
+            declarationStatement.modifiers, declarationStatement.parameter,
             initializer);
   }
 
@@ -90,12 +117,19 @@ public class Visitor {
     return lambdaExpression;
   }
 
+  public Visitor preVisit(FunctionExpression functionExpression) {
+    return this;
+  }
+
   public Expression visit(FunctionExpression functionExpression,
-      BlockStatement body, List<ParameterExpression> parameterList) {
+      BlockStatement body) {
     return functionExpression.body.equals(body)
-           && functionExpression.parameterList.equals(parameterList)
         ? functionExpression
-        : Expressions.lambda(body, parameterList);
+        : Expressions.lambda(body, functionExpression.parameterList);
+  }
+
+  public Visitor preVisit(BinaryExpression binaryExpression) {
+    return this;
   }
 
   public Expression visit(BinaryExpression binaryExpression,
@@ -105,6 +139,10 @@ public class Visitor {
         ? binaryExpression
         : Expressions.makeBinary(binaryExpression.nodeType, expression0,
             expression1);
+  }
+
+  public Visitor preVisit(TernaryExpression ternaryExpression) {
+    return this;
   }
 
   public Expression visit(TernaryExpression ternaryExpression,
@@ -117,6 +155,10 @@ public class Visitor {
             expression1, expression2);
   }
 
+  public Visitor preVisit(IndexExpression indexExpression) {
+    return this;
+  }
+
   public Expression visit(IndexExpression indexExpression, Expression array,
       List<Expression> indexExpressions) {
     return indexExpression.array == array
@@ -125,12 +167,20 @@ public class Visitor {
         : new IndexExpression(array, indexExpressions);
   }
 
+  public Visitor preVisit(UnaryExpression unaryExpression) {
+    return this;
+  }
+
   public Expression visit(UnaryExpression unaryExpression,
       Expression expression) {
     return unaryExpression.expression == expression
         ? unaryExpression
         : Expressions.makeUnary(unaryExpression.nodeType, expression,
             unaryExpression.type, null);
+  }
+
+  public Visitor preVisit(MethodCallExpression methodCallExpression) {
+    return this;
   }
 
   public Expression visit(MethodCallExpression methodCallExpression,
@@ -150,6 +200,10 @@ public class Visitor {
     return dynamicExpression;
   }
 
+  public Visitor preVisit(MemberExpression memberExpression) {
+    return this;
+  }
+
   public Expression visit(MemberExpression memberExpression,
       Expression expression) {
     return memberExpression.expression == expression
@@ -163,6 +217,10 @@ public class Visitor {
 
   static <T> boolean eq(T t0, T t1) {
     return t0 == t1 || t0 != null && t1 != null && t0.equals(t1);
+  }
+
+  public Visitor preVisit(NewArrayExpression newArrayExpression) {
+    return this;
   }
 
   public Expression visit(NewArrayExpression newArrayExpression, int dimension,
@@ -180,6 +238,10 @@ public class Visitor {
 
   public Expression visit(ListInitExpression listInitExpression) {
     return listInitExpression;
+  }
+
+  public Visitor preVisit(NewExpression newExpression) {
+    return this;
   }
 
   public Expression visit(NewExpression newExpression,
@@ -202,28 +264,41 @@ public class Visitor {
     return memberInitExpression;
   }
 
+  public Visitor preVisit(TypeBinaryExpression typeBinaryExpression) {
+    return this;
+  }
+
   public Expression visit(TypeBinaryExpression typeBinaryExpression,
       Expression expression) {
-    return typeBinaryExpression;
+    return typeBinaryExpression.expression == expression
+        ? typeBinaryExpression
+        : new TypeBinaryExpression(expression.getNodeType(), expression,
+            expression.type);
+  }
+
+  public Visitor preVisit(MethodDeclaration methodDeclaration) {
+    return this;
   }
 
   public MemberDeclaration visit(MethodDeclaration methodDeclaration,
-      List<ParameterExpression> parameters, BlockStatement body) {
-    return parameters.equals(methodDeclaration.parameters)
-        && body.equals(methodDeclaration.body)
+      BlockStatement body) {
+    return body.equals(methodDeclaration.body)
         ? methodDeclaration
         : Expressions.methodDecl(methodDeclaration.modifier,
-             methodDeclaration.resultType, methodDeclaration.name, parameters,
-             body);
+            methodDeclaration.resultType, methodDeclaration.name,
+            methodDeclaration.parameters, body);
+  }
+
+  public Visitor preVisit(FieldDeclaration fieldDeclaration) {
+    return this;
   }
 
   public MemberDeclaration visit(FieldDeclaration fieldDeclaration,
-      ParameterExpression parameter, Expression initializer) {
-    return parameter.equals(fieldDeclaration.parameter)
-        && eq(initializer, fieldDeclaration.initializer)
+      Expression initializer) {
+    return eq(initializer, fieldDeclaration.initializer)
         ? fieldDeclaration
-        : Expressions.fieldDecl(fieldDeclaration.modifier, parameter,
-            initializer);
+        : Expressions.fieldDecl(fieldDeclaration.modifier,
+            fieldDeclaration.parameter, initializer);
   }
 
   public Expression visit(ParameterExpression parameterExpression) {
@@ -234,14 +309,32 @@ public class Visitor {
     return constantExpression;
   }
 
+  public Visitor preVisit(ClassDeclaration classDeclaration) {
+    return this;
+  }
+
   public ClassDeclaration visit(ClassDeclaration classDeclaration,
       List<MemberDeclaration> memberDeclarations) {
-    return classDeclaration;
+    return Linq4j.equals(memberDeclarations,
+      classDeclaration.memberDeclarations)
+        ? classDeclaration
+        : Expressions.classDecl(classDeclaration.modifier,
+            classDeclaration.name, classDeclaration.extended,
+            classDeclaration.implemented, memberDeclarations);
+  }
+
+  public Visitor preVisit(ConstructorDeclaration constructorDeclaration) {
+    return this;
   }
 
   public MemberDeclaration visit(ConstructorDeclaration constructorDeclaration,
-      List<ParameterExpression> parameters, BlockStatement body) {
-    return constructorDeclaration;
+      BlockStatement body) {
+    return body.equals(constructorDeclaration.body)
+        ? constructorDeclaration
+        : Expressions.constructorDecl(constructorDeclaration.modifier,
+            constructorDeclaration.resultType,
+            constructorDeclaration.parameters,
+            body);
   }
 }
 

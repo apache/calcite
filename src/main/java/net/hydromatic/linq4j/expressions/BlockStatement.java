@@ -56,6 +56,7 @@ public class BlockStatement extends Statement {
 
   @Override
   public BlockStatement accept(Visitor visitor) {
+    visitor = visitor.preVisit(this);
     List<Statement> newStatements = Expressions.acceptStatements(statements,
         visitor);
     return visitor.visit(this, newStatements);

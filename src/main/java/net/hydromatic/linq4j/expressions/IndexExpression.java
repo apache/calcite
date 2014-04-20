@@ -37,6 +37,7 @@ public class IndexExpression extends Expression {
 
   @Override
   public Expression accept(Visitor visitor) {
+    visitor = visitor.preVisit(this);
     Expression array = this.array.accept(visitor);
     List<Expression> indexExpressions = Expressions.acceptExpressions(
         this.indexExpressions, visitor);

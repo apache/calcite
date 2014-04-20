@@ -38,11 +38,12 @@ public class DeclarationStatement extends Statement {
 
   @Override
   public DeclarationStatement accept(Visitor visitor) {
+    visitor = visitor.preVisit(this);
     // do not visit parameter - visit may not return a ParameterExpression
     Expression initializer = this.initializer != null
         ? this.initializer.accept(visitor)
         : null;
-    return visitor.visit(this, parameter, initializer);
+    return visitor.visit(this, initializer);
   }
 
   @Override

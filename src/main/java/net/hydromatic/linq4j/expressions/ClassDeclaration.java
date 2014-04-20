@@ -29,8 +29,8 @@ public class ClassDeclaration extends MemberDeclaration {
   public final String classClass = "class";
   public final String name;
   public final List<MemberDeclaration> memberDeclarations;
-  private final Type extended;
-  private final List<Type> implemented;
+  public final Type extended;
+  public final List<Type> implemented;
 
   public ClassDeclaration(int modifier, String name, Type extended,
       List<Type> implemented, List<MemberDeclaration> memberDeclarations) {
@@ -60,6 +60,7 @@ public class ClassDeclaration extends MemberDeclaration {
   }
 
   public ClassDeclaration accept(Visitor visitor) {
+    visitor = visitor.preVisit(this);
     final List<MemberDeclaration> members1 =
         Expressions.acceptMemberDeclarations(memberDeclarations, visitor);
     return visitor.visit(this, members1);

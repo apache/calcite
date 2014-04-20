@@ -55,6 +55,7 @@ public class MethodCallExpression extends Expression {
 
   @Override
   public Expression accept(Visitor visitor) {
+    visitor = visitor.preVisit(this);
     Expression targetExpression = Expressions.accept(this.targetExpression,
         visitor);
     List<Expression> expressions = Expressions.acceptExpressions(

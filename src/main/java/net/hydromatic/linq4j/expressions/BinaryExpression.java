@@ -39,6 +39,7 @@ public class BinaryExpression extends Expression {
 
   @Override
   public Expression accept(Visitor visitor) {
+    visitor = visitor.preVisit(this);
     Expression expression0 = this.expression0.accept(visitor);
     Expression expression1 = this.expression1.accept(visitor);
     return visitor.visit(this, expression0, expression1);

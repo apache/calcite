@@ -34,6 +34,7 @@ import org.junit.runners.Suite;
     ExpressionTest.class,
     OptimizerTest.class,
     InlinerTest.class,
+    DeterministicTest.class,
     BlockBuilderTest.class,
     FunctionTest.class,
     TypeTest.class

@@ -49,9 +49,10 @@ public class MethodDeclaration extends MemberDeclaration {
 
   @Override
   public MemberDeclaration accept(Visitor visitor) {
+    visitor = visitor.preVisit(this);
     // do not visit parameters
     final BlockStatement body = this.body.accept(visitor);
-    return visitor.visit(this, parameters, body);
+    return visitor.visit(this, body);
   }
 
   public void accept(ExpressionWriter writer) {

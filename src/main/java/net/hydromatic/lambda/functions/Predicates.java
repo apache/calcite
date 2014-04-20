@@ -218,7 +218,7 @@ public class Predicates {
     return xor(Arrays.asList(predicates));
   }
 
-  abstract static class AbstractPredicate<T> implements Predicate<T> {
+  public abstract static class AbstractPredicate<T> implements Predicate<T> {
     public Predicate<T> and(Predicate<? super T> p) {
       //noinspection unchecked
       return Predicates.and((Predicate) this, p);

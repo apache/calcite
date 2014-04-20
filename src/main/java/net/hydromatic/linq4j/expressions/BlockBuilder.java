@@ -38,6 +38,8 @@ public class BlockBuilder {
   private final boolean optimizing;
   private final BlockBuilder parent;
 
+  private static final Visitor OPTIMIZE_VISITOR = new OptimizeVisitor();
+
   /**
    * Creates a non-optimizing BlockBuilder.
    */
@@ -297,10 +299,11 @@ public class BlockBuilder {
       endless loop. Optimize should not loop forever, however it is hard to
       prove if it always finishes in reasonable time. */
       for (int i = 0; i < 10; i++) {
-        if (!optimize()) {
+        if (!optimize(createOptimizeVisitor(), true)) {
           break;
         }
       }
+      optimize(createFinishingOptimizeVisitor(), false);
     }
     return Expressions.block(statements);
   }
@@ -311,25 +314,26 @@ public class BlockBuilder {
    *
    * @return if any optimizations were made or not
    */
-  private boolean optimize() {
+  private boolean optimize(Visitor optimizer, boolean performInline) {
     boolean optimized = false;
     final UseCounter useCounter = new UseCounter();
     for (Statement statement : statements) {
-      if (statement instanceof DeclarationStatement) {
+      if (statement instanceof DeclarationStatement && performInline) {
         DeclarationStatement decl = (DeclarationStatement) statement;
         useCounter.map.put(decl.parameter, new Slot());
       }
       // We are added only counters up to current statement.
       // It is fine to count usages as the latter declarations cannot be used
       // in more recent statements.
-      statement.accept(useCounter);
+      if (!useCounter.map.isEmpty()) {
+        statement.accept(useCounter);
+      }
     }
     final Map<ParameterExpression, Expression> subMap =
-        new IdentityHashMap<ParameterExpression, Expression>(useCounter.map
-            .size());
+        new IdentityHashMap<ParameterExpression, Expression>(
+            useCounter.map.size());
     final SubstituteVariableVisitor visitor = new SubstituteVariableVisitor(
         subMap);
-    final OptimizeVisitor optimizer = new OptimizeVisitor();
     final ArrayList<Statement> oldStatements = new ArrayList<Statement>(
         statements);
     statements.clear();
@@ -338,7 +342,7 @@ public class BlockBuilder {
       if (oldStatement instanceof DeclarationStatement) {
         DeclarationStatement statement = (DeclarationStatement) oldStatement;
         final Slot slot = useCounter.map.get(statement.parameter);
-        int count = slot.count;
+        int count = slot == null ? 100 : slot.count;
         if (count > 1 && isSafeForReuse(statement)
             && isSimpleExpression(statement.initializer)) {
           // Inline simple final constants
@@ -398,6 +402,27 @@ public class BlockBuilder {
       }
     }
     return optimized;
+  }
+
+  /**
+   * Creates a visitor that will be used during block optimization.
+   * Subclasses might provide more specific optimizations (e.g. partial
+   * evaluation).
+   *
+   * @return visitor used to optimize the statements when converting to block
+   */
+  protected Visitor createOptimizeVisitor() {
+    return OPTIMIZE_VISITOR;
+  }
+
+  /**
+   * Creates a final optimization visitor.
+   * Typically, the visitor will factor out constant expressions.
+   *
+   * @return visitor that is used to finalize the optimization
+   */
+  protected Visitor createFinishingOptimizeVisitor() {
+    return new DeterministicCodeOptimizer();
   }
 
   /**

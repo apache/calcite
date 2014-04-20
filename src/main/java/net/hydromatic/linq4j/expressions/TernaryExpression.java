@@ -40,6 +40,7 @@ public class TernaryExpression extends Expression {
 
   @Override
   public Expression accept(Visitor visitor) {
+    visitor = visitor.preVisit(this);
     Expression expression0 = this.expression0.accept(visitor);
     Expression expression1 = this.expression1.accept(visitor);
     Expression expression2 = this.expression2.accept(visitor);

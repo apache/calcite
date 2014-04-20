@@ -55,6 +55,7 @@ public class GotoStatement extends Statement {
 
   @Override
   public Statement accept(Visitor visitor) {
+    visitor = visitor.preVisit(this);
     Expression expression1 =
         expression == null ? null : expression.accept(visitor);
     return visitor.visit(this, expression1);

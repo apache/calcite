@@ -45,6 +45,7 @@ public class NewExpression extends Expression {
 
   @Override
   public Expression accept(Visitor visitor) {
+    visitor = visitor.preVisit(this);
     final List<Expression> arguments = Expressions.acceptExpressions(
         this.arguments, visitor);
     final List<MemberDeclaration> memberDeclarations =

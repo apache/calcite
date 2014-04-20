@@ -42,6 +42,7 @@ public class MemberExpression extends Expression {
 
   @Override
   public Expression accept(Visitor visitor) {
+    visitor = visitor.preVisit(this);
     Expression expression1 = expression == null
         ? null
         : expression.accept(visitor);

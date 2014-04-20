@@ -42,6 +42,7 @@ public class ConditionalStatement extends Statement {
 
   @Override
   public Statement accept(Visitor visitor) {
+    visitor = visitor.preVisit(this);
     List<Node> list = Expressions.acceptNodes(expressionList, visitor);
     return visitor.visit(this, list);
   }

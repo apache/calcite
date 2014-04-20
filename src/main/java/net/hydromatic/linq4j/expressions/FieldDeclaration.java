@@ -37,10 +37,11 @@ public class FieldDeclaration extends MemberDeclaration {
 
   @Override
   public MemberDeclaration accept(Visitor visitor) {
+    visitor = visitor.preVisit(this);
     // do not visit parameter - visit may not return a ParameterExpression
     final Expression initializer =
         this.initializer == null ? null : this.initializer.accept(visitor);
-    return visitor.visit(this, parameter, initializer);
+    return visitor.visit(this, initializer);
   }
 
   public void accept(ExpressionWriter writer) {

@@ -17,9 +17,7 @@
 */
 package net.hydromatic.linq4j.test;
 
-import net.hydromatic.linq4j.expressions.BlockBuilder;
-import net.hydromatic.linq4j.expressions.Expression;
-import net.hydromatic.linq4j.expressions.Expressions;
+import net.hydromatic.linq4j.expressions.*;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -52,4 +50,26 @@ public class BlockBuilderTest extends BlockBuilderBase {
                  + "}\n", b.toBlock().toString());
   }
 
+  @Test
+  public void testCustomOptimizer() {
+    BlockBuilder b = new BlockBuilder() {
+      @Override
+      protected Visitor createOptimizeVisitor() {
+        return new OptimizeVisitor() {
+          @Override
+          public Expression visit(BinaryExpression binary,
+              Expression expression0,
+              Expression expression1) {
+            if (binary.getNodeType() == ExpressionType.Add
+                && ONE.equals(expression0) && TWO.equals(expression1)) {
+              return FOUR;
+            }
+            return super.visit(binary, expression0, expression1);
+          }
+        };
+      }
+    };
+    b.add(Expressions.return_(null, Expressions.add(ONE, TWO)));
+    assertEquals("{\n  return 4;\n}\n", b.toBlock().toString());
+  }
 }

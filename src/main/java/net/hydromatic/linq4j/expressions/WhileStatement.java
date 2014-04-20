@@ -34,6 +34,7 @@ public class WhileStatement extends Statement {
 
   @Override
   public Statement accept(Visitor visitor) {
+    visitor = visitor.preVisit(this);
     final Expression condition1 = condition.accept(visitor);
     final Statement body1 = body.accept(visitor);
     return visitor.visit(this, condition1, body1);

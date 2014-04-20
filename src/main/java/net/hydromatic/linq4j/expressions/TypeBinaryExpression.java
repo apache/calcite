@@ -23,8 +23,8 @@ import java.lang.reflect.Type;
  * Represents an operation between an expression and a type.
  */
 public class TypeBinaryExpression extends Expression {
-  private final Expression expression;
-  private final Type type;
+  public final Expression expression;
+  public final Type type;
 
   public TypeBinaryExpression(ExpressionType nodeType, Expression expression,
       Type type) {
@@ -36,6 +36,7 @@ public class TypeBinaryExpression extends Expression {
 
   @Override
   public Expression accept(Visitor visitor) {
+    visitor = visitor.preVisit(this);
     Expression expression = this.expression.accept(visitor);
     return visitor.visit(this, expression);
   }

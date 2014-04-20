@@ -43,6 +43,7 @@ public class NewArrayExpression extends Expression {
 
   @Override
   public Expression accept(Visitor visitor) {
+    visitor = visitor.preVisit(this);
     List<Expression> expressions =
         this.expressions == null
             ? null

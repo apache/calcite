@@ -63,8 +63,9 @@ public final class FunctionExpression<F extends Function<?>>
 
   @Override
   public Expression accept(Visitor visitor) {
+    visitor = visitor.preVisit(this);
     BlockStatement body = this.body.accept(visitor);
-    return visitor.visit(this, body, parameterList);
+    return visitor.visit(this, body);
   }
 
   public Invokable compile() {
