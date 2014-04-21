@@ -496,6 +496,7 @@ public interface ExtendedEnumerable<TSource> {
    * <p>A left join generates nulls on right, and vice versa:</p>
    *
    * <table>
+   *   <caption>Join types</caption>
    *   <tr>
    *     <td>Join type</td>
    *     <td>generateNullsOnLeft</td>
