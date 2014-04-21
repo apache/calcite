@@ -2,7 +2,7 @@
 
 For a full list of releases, see <a href="https://github.com/julianhyde/linq4j/releases">github</a>.
 
-## HEAD
+## <a href="https://github.com/julianhyde/linq4j/releases/tag/linq4j-0.3">0.3</a> / 2014-04-21
 
 * Move optimizer visitor from optiq to linq4j; add
   `ExpressionType.modifiesLvalue` to avoid invalid inlining.
