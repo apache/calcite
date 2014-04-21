@@ -2,6 +2,24 @@
 
 For a full list of releases, see <a href="https://github.com/julianhyde/linq4j/releases">github</a>.
 
+## HEAD
+
+* Move optimizer visitor from optiq to linq4j; add
+  `ExpressionType.modifiesLvalue` to avoid invalid inlining.
+* Fix <a href="https://github.com/julianhyde/linq4j/issues/17">#17</a>,
+  "Assign constant expressions to 'static final' members";
+  add `@Deterministic` annotation to help deduce which expressions are
+  constant.
+* Multi-pass optimization: some of the variables might be avoided and
+  inlined after the first pass.
+* Various other peephole optimizations: `Boolean.valueOf(const)`,
+  'not' expressions (`!const`, `!!a`, `!(a==b)`, `!(a!=b)`, `!(a>b)`,
+  etc.),
+  '?' expressions coming from `CASE` (`a ? booleanConstant : b` and `a
+  ? b : booleanConstant`).
+* Implement left, right and full outer join.
+* Clean build on cygwin/Windows.
+
 ## <a href="https://github.com/julianhyde/linq4j/releases/tag/linq4j-0.2">0.2</a> / 2014-04-11
 
 * Fix <a href="https://github.com/julianhyde/linq4j/issues/8">#8</a>,
