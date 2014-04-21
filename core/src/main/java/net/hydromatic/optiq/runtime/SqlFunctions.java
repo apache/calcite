@@ -19,6 +19,9 @@ package net.hydromatic.optiq.runtime;
 
 import net.hydromatic.avatica.ByteString;
 
+import net.hydromatic.linq4j.function.Deterministic;
+import net.hydromatic.linq4j.function.NonDeterministic;
+
 import net.hydromatic.optiq.DataContext;
 
 import org.eigenbase.util14.DateTimeUtil;
@@ -41,6 +44,7 @@ import java.util.regex.Pattern;
  * nulls before calling the functions.</p>
  */
 @SuppressWarnings("UnnecessaryUnboxing")
+@Deterministic
 public class SqlFunctions {
   private static final DecimalFormat DOUBLE_FORMAT =
       new DecimalFormat("0.0E0");
@@ -807,6 +811,7 @@ public class SqlFunctions {
     return x ? "TRUE" : "FALSE";
   }
 
+  @NonDeterministic
   private static Object cannotConvert(Object o, Class toType) {
     throw new RuntimeException("Cannot convert " + o + " to " + toType);
   }
@@ -1099,12 +1104,14 @@ public class SqlFunctions {
   }
 
   /** SQL {@code CURRENT_TIMESTAMP} function. */
+  @NonDeterministic
   public static long currentTimestamp(DataContext root) {
     // Cast required for JDK 1.6.
     return (Long) DataContext.Variable.CURRENT_TIMESTAMP.get(root);
   }
 
   /** SQL {@code CURRENT_TIME} function. */
+  @NonDeterministic
   public static int currentTime(DataContext root) {
     int time = (int) (currentTimestamp(root) % DateTimeUtil.MILLIS_PER_DAY);
     if (time < 0) {
@@ -1114,6 +1121,7 @@ public class SqlFunctions {
   }
 
   /** SQL {@code CURRENT_DATE} function. */
+  @NonDeterministic
   public static int currentDate(DataContext root) {
     final long timestamp = currentTimestamp(root);
     int date = (int) (timestamp / DateTimeUtil.MILLIS_PER_DAY);
@@ -1125,12 +1133,14 @@ public class SqlFunctions {
   }
 
   /** SQL {@code LOCAL_TIMESTAMP} function. */
+  @NonDeterministic
   public static long localTimestamp(DataContext root) {
     // Cast required for JDK 1.6.
     return (Long) DataContext.Variable.LOCAL_TIMESTAMP.get(root);
   }
 
   /** SQL {@code LOCAL_TIME} function. */
+  @NonDeterministic
   public static int localTime(DataContext root) {
     return (int) (localTimestamp(root) % DateTimeUtil.MILLIS_PER_DAY);
   }

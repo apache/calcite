@@ -1472,9 +1472,12 @@ public class JdbcTest {
         .query(
             "select upper((case when \"empid\">\"deptno\"*10 then 'y' else null end)) T from \"hr\".\"emps\"")
         .planContains(
-            "return current.empid <= current.deptno * 10 " +
-            "? (String) null " +
-            ": net.hydromatic.optiq.runtime.SqlFunctions.upper(\"y\");")
+            "static final String $L4J$C$net_hydromatic_optiq_runtime_SqlFunctions_upper_y_ = "
+            + "net.hydromatic.optiq.runtime.SqlFunctions.upper(\"y\");")
+        .planContains(
+            "return current.empid <= current.deptno * 10 "
+            + "? (String) null "
+            + ": $L4J$C$net_hydromatic_optiq_runtime_SqlFunctions_upper_y_;")
         .returns("T=null\n"
                  + "T=null\n"
                  + "T=Y\n"
@@ -1507,9 +1510,14 @@ public class JdbcTest {
         .planContains(
             "final String inp2_ = current.name;")
         .planContains(
-            "return inp2_ == null || !net.hydromatic.optiq.runtime"
-            + ".SqlFunctions.ne(\"sa\", \"sa\") ? (String) null"
-            + ": net.hydromatic.optiq.runtime.SqlFunctions.substring(inp2_, "
+            "static final boolean $L4J$C$net_hydromatic_optiq_runtime_SqlFunctions_ne_sa_sa_ = "
+            + "net.hydromatic.optiq.runtime.SqlFunctions.ne(\"sa\", \"sa\");")
+        .planContains(
+            "static final boolean $L4J$C$_net_hydromatic_optiq_runtime_SqlFunctions_ne_sa_sa_ = "
+            + "!$L4J$C$net_hydromatic_optiq_runtime_SqlFunctions_ne_sa_sa_;")
+        .planContains(
+            "return inp2_ == null || $L4J$C$_net_hydromatic_optiq_runtime_SqlFunctions_ne_sa_sa_ ? (String) null"
+            + " : net.hydromatic.optiq.runtime.SqlFunctions.substring(inp2_, "
             + "current.deptno + 1);");
   }
 
@@ -1531,8 +1539,14 @@ public class JdbcTest {
         .planContains(
             "final int inp1_ = current.deptno;")
         .planContains(
+            "static final boolean $L4J$C$net_hydromatic_optiq_runtime_SqlFunctions_eq_sa_sa_ = "
+            + "net.hydromatic.optiq.runtime.SqlFunctions.eq(\"sa\", \"sa\");")
+        .planContains(
+            "static final boolean $L4J$C$_net_hydromatic_optiq_runtime_SqlFunctions_eq_sa_sa_ = "
+            + "!$L4J$C$net_hydromatic_optiq_runtime_SqlFunctions_eq_sa_sa_;")
+        .planContains(
             "return inp2_ == null "
-            + "|| !net.hydromatic.optiq.runtime.SqlFunctions.eq(\"sa\", \"sa\") "
+            + "|| $L4J$C$_net_hydromatic_optiq_runtime_SqlFunctions_eq_sa_sa_ "
             + "|| !v5 && inp1_ * 8 <= 8 "
             + "? (String) null "
             + ": net.hydromatic.optiq.runtime.SqlFunctions.substring("
@@ -1563,14 +1577,22 @@ public class JdbcTest {
         .planContains(
             "final int inp1_ = current.deptno;")
         .planContains(
+            "static final int $L4J$C$5_2 = 5 - 2;")
+        .planContains(
+            "static final boolean $L4J$C$net_hydromatic_optiq_runtime_SqlFunctions_eq_sa_sa_ = "
+            + "net.hydromatic.optiq.runtime.SqlFunctions.eq(\"sa\", \"sa\");")
+        .planContains(
+            "static final boolean $L4J$C$_net_hydromatic_optiq_runtime_SqlFunctions_eq_sa_sa_ = "
+            + "!$L4J$C$net_hydromatic_optiq_runtime_SqlFunctions_eq_sa_sa_;")
+        .planContains(
             "return inp2_ == null "
-            + "|| !net.hydromatic.optiq.runtime.SqlFunctions.eq(\"sa\", \"sa\") "
+            + "|| $L4J$C$_net_hydromatic_optiq_runtime_SqlFunctions_eq_sa_sa_ "
             + "|| current.empid <= inp1_ && inp1_ * 8 <= 8 "
             + "? (String) null "
             + ": net.hydromatic.optiq.runtime.SqlFunctions.substring("
             + "net.hydromatic.optiq.runtime.SqlFunctions.trim(true, true, \" \", "
             + "net.hydromatic.optiq.runtime.SqlFunctions.substring(inp2_, "
-            + "inp1_ * 0 + 1)), 5 - 2);")
+            + "inp1_ * 0 + 1)), $L4J$C$5_2);")
         .returns("T=ll\n"
                  + "T=ic\n"
                  + "T=bastian\n"
@@ -3026,6 +3048,12 @@ public class JdbcTest {
     with.query(
         "select \"name\" as p from \"adhoc\".EMPLOYEES\n"
         + "where \"adhoc\".my_str(\"name\") is null")
+        .returns(
+            "");
+    with.query(
+        "select \"name\" as p from \"adhoc\".EMPLOYEES\n"
+        + "where \"adhoc\".my_str(upper(\"adhoc\".my_str(\"name\")"
+        + ")) ='8'")
         .returns(
             "");
   }
