@@ -342,7 +342,7 @@ public class BlockBuilder {
       if (oldStatement instanceof DeclarationStatement) {
         DeclarationStatement statement = (DeclarationStatement) oldStatement;
         final Slot slot = useCounter.map.get(statement.parameter);
-        int count = slot == null ? 100 : slot.count;
+        int count = slot == null ? Integer.MAX_VALUE - 10 : slot.count;
         if (count > 1 && isSafeForReuse(statement)
             && isSimpleExpression(statement.initializer)) {
           // Inline simple final constants
@@ -354,7 +354,7 @@ public class BlockBuilder {
           //   final int _count = collection.size();
           //   foo(collection);
           //   return collection.size() - _count;
-          count = 100;
+          count = Integer.MAX_VALUE;
         }
         if (statement.initializer instanceof NewExpression
             && ((NewExpression) statement.initializer).memberDeclarations
@@ -362,7 +362,7 @@ public class BlockBuilder {
           // Don't inline anonymous inner classes. Janino gets
           // confused referencing variables from deeply nested
           // anonymous classes.
-          count = 100;
+          count = Integer.MAX_VALUE;
         }
         Expression normalized = normalizeDeclaration(statement);
         expressionForReuse.remove(normalized);
@@ -382,6 +382,18 @@ public class BlockBuilder {
           oldStatement = oldStatement.accept(optimizer);
           if (beforeOptimize != oldStatement) {
             ++optimizeCount;
+            if (count != Integer.MAX_VALUE
+                && oldStatement instanceof DeclarationStatement
+                && isSafeForReuse((DeclarationStatement) oldStatement)
+                && isSimpleExpression(
+                  ((DeclarationStatement) oldStatement).initializer)) {
+              // Allow to inline the expression that became simple after
+              // optimizations.
+              DeclarationStatement newDecl =
+                  (DeclarationStatement) oldStatement;
+              subMap.put(newDecl.parameter, normalizeDeclaration(newDecl));
+              oldStatement = OptimizeVisitor.EMPTY_STATEMENT;
+            }
           }
           if (oldStatement != OptimizeVisitor.EMPTY_STATEMENT) {
             if (oldStatement instanceof DeclarationStatement) {
@@ -426,7 +438,7 @@ public class BlockBuilder {
    * @return visitor that is used to finalize the optimization
    */
   protected Visitor createFinishingOptimizeVisitor() {
-    return new DeterministicCodeOptimizer();
+    return ClassDeclarationFinder.create();
   }
 
   /**

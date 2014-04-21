@@ -19,6 +19,9 @@ package net.hydromatic.linq4j.test;
 
 import net.hydromatic.linq4j.expressions.*;
 
+import net.hydromatic.linq4j.function.Deterministic;
+import net.hydromatic.linq4j.function.NonDeterministic;
+
 import org.junit.Test;
 
 import java.math.BigInteger;
@@ -34,6 +37,35 @@ import static org.junit.Assert.assertThat;
  * Tests factoring out deterministic expressions.
  */
 public class DeterministicTest {
+  /**
+   * Class to test @Deterministic annotation
+   */
+  public static class TestClass {
+    @Deterministic
+    public static int deterministic(int a) {
+      return a + 1;
+    }
+
+    public static int nonDeterministic(int a) {
+      return a + 2;
+    }
+  }
+
+  /**
+   * Class to test @NonDeterministic annotation
+   */
+  @Deterministic
+  public static class TestDeterministicClass {
+    public static int deterministic(int a) {
+      return a + 1;
+    }
+
+    @NonDeterministic
+    public static int nonDeterministic(int a) {
+      return a + 2;
+    }
+  }
+
   @Test public void testFactorOutBinaryAdd() {
     assertThat(
         optimize(
@@ -50,10 +82,38 @@ public class DeterministicTest {
             "{\n"
             + "  return new Runnable(){\n"
             + "      int test() {\n"
-            + "        return 1_2_$L4J$C$;\n"
+            + "        return $L4J$C$1_2;\n"
             + "      }\n"
             + "\n"
-            + "      static final int 1_2_$L4J$C$ = 1 + 2;\n"
+            + "      static final int $L4J$C$1_2 = 1 + 2;\n"
+            + "    };\n"
+            + "}\n"));
+  }
+
+  @Test public void testFactorOutBinaryAddNameCollision() {
+    assertThat(
+        optimize(
+            Expressions.new_(
+                Runnable.class,
+                Collections.<Expression>emptyList(),
+                Expressions.methodDecl(
+                    0,
+                    int.class,
+                    "test",
+                    Collections.<ParameterExpression>emptyList(),
+                    Blocks.toFunctionBlock(Expressions.multiply(
+                        Expressions.add(ONE, TWO),
+                        Expressions.subtract(ONE, TWO)))))),
+        equalTo(
+            "{\n"
+            + "  return new Runnable(){\n"
+            + "      int test() {\n"
+            + "        return $L4J$C$1_2_1_20;\n"
+            + "      }\n"
+            + "\n"
+            + "      static final int $L4J$C$1_2 = 1 + 2;\n"
+            + "      static final int $L4J$C$1_20 = 1 - 2;\n"
+            + "      static final int $L4J$C$1_2_1_20 = $L4J$C$1_2 * $L4J$C$1_20;\n"
             + "    };\n"
             + "}\n"));
   }
@@ -75,11 +135,11 @@ public class DeterministicTest {
       equalTo("{\n"
           + "  return new Runnable(){\n"
           + "      int test() {\n"
-          + "        return 1_2_3_$L4J$C$;\n"
+          + "        return $L4J$C$1_2_3;\n"
           + "      }\n"
           + "\n"
-          + "      static final int 1_2_$L4J$C$ = 1 + 2;\n"
-          + "      static final int 1_2_3_$L4J$C$ = 1_2_$L4J$C$ * 3;\n"
+          + "      static final int $L4J$C$1_2 = 1 + 2;\n"
+          + "      static final int $L4J$C$1_2_3 = $L4J$C$1_2 * 3;\n"
           + "    };\n"
           + "}\n"));
   }
@@ -118,17 +178,17 @@ public class DeterministicTest {
             "{\n"
             + "  return new Runnable(){\n"
             + "      int test() {\n"
-            + "        return 1_4_$L4J$C$ + new java.util.concurrent.Callable(){\n"
+            + "        return $L4J$C$1_4 + new java.util.concurrent.Callable(){\n"
             + "            Object call() {\n"
-            + "              return 1_2_3_$L4J$C$;\n"
+            + "              return $L4J$C$1_2_3;\n"
             + "            }\n"
             + "\n"
-            + "            static final int 1_2_$L4J$C$ = 1 + 2;\n"
-            + "            static final int 1_2_3_$L4J$C$ = 1_2_$L4J$C$ * 3;\n"
+            + "            static final int $L4J$C$1_2 = 1 + 2;\n"
+            + "            static final int $L4J$C$1_2_3 = $L4J$C$1_2 * 3;\n"
             + "          }.call();\n"
             + "      }\n"
             + "\n"
-            + "      static final int 1_4_$L4J$C$ = 1 + 4;\n"
+            + "      static final int $L4J$C$1_4 = 1 + 4;\n"
             + "    };\n"
             + "}\n"));
   }
@@ -148,11 +208,11 @@ public class DeterministicTest {
         equalTo("{\n"
             + "  return new Runnable(){\n"
             + "      int test() {\n"
-            + "        return new_java_math_BigInteger_42__$L4J$C$;\n"
+            + "        return $L4J$C$new_java_math_BigInteger_42_;\n"
             + "      }\n"
             + "\n"
             + "      static final java.math.BigInteger "
-            + "new_java_math_BigInteger_42__$L4J$C$ = new java.math.BigInteger(\n"
+            + "$L4J$C$new_java_math_BigInteger_42_ = new java.math.BigInteger(\n"
             + "        \"42\");\n"
             + "    };\n"
             + "}\n"));
@@ -196,11 +256,11 @@ public class DeterministicTest {
         equalTo("{\n"
             + "  return new Runnable(){\n"
             + "      int test() {\n"
-            + "        return 1_instanceof_Boolean_2_instanceof_Integer_$L4J$C$;\n"
+            + "        return $L4J$C$1_instanceof_Boolean_2_instanceof_Integer;\n"
             + "      }\n"
             + "\n"
             + "      static final boolean "
-            + "1_instanceof_Boolean_2_instanceof_Integer_$L4J$C$ = 1 instanceof "
+            + "$L4J$C$1_instanceof_Boolean_2_instanceof_Integer = 1 instanceof "
             + "Boolean || 2 instanceof Integer;\n"
             + "    };\n"
             + "}\n"));
@@ -227,14 +287,14 @@ public class DeterministicTest {
             + "  return new Runnable(){\n"
             + "      int test() {\n"
             + "        return "
-            + "java_math_BigInteger_ONE_add_java_math_BigInteger_valueOf_42L__$L4J$C$;\n"
+            + "$L4J$C$java_math_BigInteger_ONE_add_java_math_BigInteger_valueOf_42L_;\n"
             + "      }\n"
             + "\n"
             + "      static final java.math.BigInteger "
-            + "java_math_BigInteger_valueOf_42L__$L4J$C$ = java.math.BigInteger"
+            + "$L4J$C$java_math_BigInteger_valueOf_42L_ = java.math.BigInteger"
             + ".valueOf(42L);\n"
             + "      static final java.math.BigInteger "
-            + "java_math_BigInteger_ONE_add_java_math_BigInteger_valueOf_42L__$L4J$C$ = java.math.BigInteger.ONE.add(java_math_BigInteger_valueOf_42L__$L4J$C$);\n"
+            + "$L4J$C$java_math_BigInteger_ONE_add_java_math_BigInteger_valueOf_42L_ = java.math.BigInteger.ONE.add($L4J$C$java_math_BigInteger_valueOf_42L_);\n"
             + "    };\n"
             + "}\n"));
   }
@@ -262,14 +322,116 @@ public class DeterministicTest {
             + "  return new Runnable(){\n"
             + "      int test() {\n"
             + "        return "
-            + "java_math_BigInteger_valueOf_42L_add_java_math_BigInteger_valueOf_42L__$L4J$C$;\n"
+            + "$L4J$C$java_math_BigInteger_valueOf_42L_add_java_math_BigInteger_valued8d57d69;\n"
             + "      }\n"
             + "\n"
             + "      static final java.math.BigInteger "
-            + "java_math_BigInteger_valueOf_42L__$L4J$C$ = java.math.BigInteger"
+            + "$L4J$C$java_math_BigInteger_valueOf_42L_ = java.math.BigInteger"
             + ".valueOf(42L);\n"
             + "      static final java.math.BigInteger "
-            + "java_math_BigInteger_valueOf_42L_add_java_math_BigInteger_valueOf_42L__$L4J$C$ = java_math_BigInteger_valueOf_42L__$L4J$C$.add(java_math_BigInteger_valueOf_42L__$L4J$C$);\n"
+            + "$L4J$C$java_math_BigInteger_valueOf_42L_add_java_math_BigInteger_valued8d57d69 = $L4J$C$java_math_BigInteger_valueOf_42L_.add($L4J$C$java_math_BigInteger_valueOf_42L_);\n"
+            + "    };\n"
+            + "}\n"));
+  }
+
+  @Test public void testDeterministicMethodCall() {
+    assertThat(
+        optimize(
+            Expressions.new_(
+                Runnable.class,
+                Collections.<Expression>emptyList(),
+                Expressions.methodDecl(
+                    0,
+                    int.class,
+                    "test",
+                    Collections.<ParameterExpression>emptyList(),
+                    Blocks.toFunctionBlock(Expressions.call(null,
+                        Types.lookupMethod(TestClass.class,
+                            "deterministic", int.class), ONE))))),
+        equalTo(
+            "{\n"
+            + "  return new Runnable(){\n"
+            + "      int test() {\n"
+            + "        return $L4J$C$net_hydromatic_linq4j_test_DeterministicTest_TestClass_determin1da033bf;\n"
+            + "      }\n"
+            + "\n"
+            + "      static final int $L4J$C$net_hydromatic_linq4j_test_DeterministicTest_TestClass_determin1da033bf = net.hydromatic.linq4j.test.DeterministicTest.TestClass.deterministic(1);\n"
+            + "    };\n"
+            + "}\n"));
+  }
+
+  @Test public void testNonDeterministicMethodCall() {
+    assertThat(
+        optimize(
+            Expressions.new_(
+                Runnable.class,
+                Collections.<Expression>emptyList(),
+                Expressions.methodDecl(
+                    0,
+                    int.class,
+                    "test",
+                    Collections.<ParameterExpression>emptyList(),
+                    Blocks.toFunctionBlock(Expressions.call(null,
+                        Types.lookupMethod(TestClass.class,
+                            "nonDeterministic", int.class), ONE))))),
+        equalTo(
+            "{\n"
+            + "  return new Runnable(){\n"
+            + "      int test() {\n"
+            + "        return net.hydromatic.linq4j.test.DeterministicTest.TestClass.nonDeterministic(1);\n"
+            + "      }\n"
+            + "\n"
+            + "    };\n"
+            + "}\n"));
+  }
+
+  @Test public void testDeterministicClassDefaultMethod() {
+    assertThat(
+        optimize(
+            Expressions.new_(
+                Runnable.class,
+                Collections.<Expression>emptyList(),
+                Expressions.methodDecl(
+                    0,
+                    int.class,
+                    "test",
+                    Collections.<ParameterExpression>emptyList(),
+                    Blocks.toFunctionBlock(Expressions.call(null,
+                        Types.lookupMethod(TestDeterministicClass.class,
+                            "deterministic", int.class), ONE))))),
+        equalTo(
+            "{\n"
+            + "  return new Runnable(){\n"
+            + "      int test() {\n"
+            + "        return $L4J$C$net_hydromatic_linq4j_test_DeterministicTest_TestDeterministicCa1bc6d17;\n"
+            + "      }\n"
+            + "\n"
+            + "      static final int $L4J$C$net_hydromatic_linq4j_test_DeterministicTest_TestDeterministicCa1bc6d17 = net.hydromatic.linq4j.test.DeterministicTest.TestDeterministicClass.deterministic(1);\n"
+            + "    };\n"
+            + "}\n"));
+  }
+
+  @Test public void testDeterministicClassNonDeterministicMethod() {
+    assertThat(
+        optimize(
+            Expressions.new_(
+                Runnable.class,
+                Collections.<Expression>emptyList(),
+                Expressions.methodDecl(
+                    0,
+                    int.class,
+                    "test",
+                    Collections.<ParameterExpression>emptyList(),
+                    Blocks.toFunctionBlock(Expressions.call(null,
+                        Types.lookupMethod(TestDeterministicClass.class,
+                            "nonDeterministic", int.class), ONE))))),
+        equalTo(
+            "{\n"
+            + "  return new Runnable(){\n"
+            + "      int test() {\n"
+            + "        return net.hydromatic.linq4j.test.DeterministicTest.TestDeterministicClass.nonDeterministic(1);\n"
+            + "      }\n"
+            + "\n"
             + "    };\n"
             + "}\n"));
   }

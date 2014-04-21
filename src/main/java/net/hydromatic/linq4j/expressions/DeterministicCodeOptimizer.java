@@ -17,6 +17,9 @@
 */
 package net.hydromatic.linq4j.expressions;
 
+import net.hydromatic.linq4j.function.Deterministic;
+import net.hydromatic.linq4j.function.NonDeterministic;
+
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.math.BigDecimal;
@@ -29,13 +32,11 @@ import java.util.regex.Pattern;
  * Instances of this class should not be reused, so new visitor should be
  * created for optimizing a new expression tree.
  */
-public class DeterministicCodeOptimizer extends Visitor {
-  protected final DeterministicCodeOptimizer parent;
-
+public class DeterministicCodeOptimizer extends ClassDeclarationFinder {
   /**
    * The map contains known to be effectively-final expression.
    * The map uses identity equality.
-   * Typically the key is ParameterExpression, however there might be
+   * Typically the key is {@code ParameterExpression}, however there might be
    * non-factored to final field expression that is known to be constant.
    * For instance, cast expression will not be factored to a field,
    * but we still need to track its constant status.
@@ -57,16 +58,11 @@ public class DeterministicCodeOptimizer extends Visitor {
   protected final Map<String, ParameterExpression> fieldsByName =
       new HashMap<String, ParameterExpression>();
 
-  /**
-   * The list of new final static fields to be added to the current class.
-   */
-  protected final List<MemberDeclaration> addedDeclarations =
-      new ArrayList<MemberDeclaration>();
-
   // Pre-compiled patterns for generation names for the final static fields
   private static final Pattern NON_ASCII = Pattern.compile("[^0-9a-zA-Z$]+");
-  private static final Pattern PATTERN_L4JC =
-      Pattern.compile(Pattern.quote("_$L4J$C$"));
+  private static final String FIELD_PREFIX = "$L4J$C$";
+  private static final Pattern PREFIX_PATTERN =
+      Pattern.compile(Pattern.quote(FIELD_PREFIX));
 
   private static final Set<Class> DETERMINISTIC_CLASSES =
       new HashSet<Class>(
@@ -75,80 +71,27 @@ public class DeterministicCodeOptimizer extends Visitor {
               String.class, Math.class));
 
   /**
-   * Creates optimizer with no parent.
-   */
-  public DeterministicCodeOptimizer() {
-    this(null);
-  }
-
-  /**
    * Creates a child optimizer.
    * Typically a child is created for each class declaration,
    * so each optimizer collects fields for exactly one class.
    *
    * @param parent parent optimizer
    */
-  public DeterministicCodeOptimizer(DeterministicCodeOptimizer parent) {
-    this.parent = parent;
+  public DeterministicCodeOptimizer(ClassDeclarationFinder parent) {
+    super(parent);
   }
 
   /**
-   * Creates optimizer local to the newly generated anonymous class.
-   *
-   * @param newExpression expression to optimize
-   * @return nested visitor if anonymous class is given
-   */
-  @Override
-  public Visitor preVisit(NewExpression newExpression) {
-    if (newExpression.memberDeclarations == null) {
-      return this;
-    }
-    DeterministicCodeOptimizer visitor = goDeeper();
-    visitor.learnFinalStaticDeclarations(newExpression.memberDeclarations);
-    return visitor;
-  }
-
-  /**
-   * Creates optimizer local to the newly generated class.
-   *
-   * @param classDeclaration expression to optimize
-   * @return nested visitor
-   */
-  @Override
-  public Visitor preVisit(ClassDeclaration classDeclaration) {
-    DeterministicCodeOptimizer visitor = goDeeper();
-    visitor.learnFinalStaticDeclarations(classDeclaration.memberDeclarations);
-    return visitor;
-  }
-
-  @Override
-  public Expression visit(NewExpression newExpression,
-      List<Expression> arguments, List<MemberDeclaration> memberDeclarations) {
-    Expression result =
-        super.visit(newExpression, arguments, memberDeclarations);
-
-    if (parent == null) {
-      return result;
-    }
-
-    if (memberDeclarations == null) {
-      return tryOptimizeNewInstance((NewExpression) result);
-    }
-
-    memberDeclarations = optimizeDeclarations(memberDeclarations);
-    return super.visit((NewExpression) result, arguments, memberDeclarations);
-  }
-
-  /**
-   * Optimizes new Type(); constructs,
+   * Optimizes {@code new Type()} constructs,
    *
    * @param newExpression expression to optimize
    * @return optimized expression
    */
+  @Override
   protected Expression tryOptimizeNewInstance(NewExpression newExpression) {
     if (newExpression.type instanceof Class
         && isConstant(newExpression.arguments)
-        && isConstructorDeterministic((Class) newExpression.type)) {
+        && isConstructorDeterministic(newExpression)) {
       // Reuse instance creation when class is immutable: new BigInteger(3)
       return createField(newExpression);
     }
@@ -156,23 +99,9 @@ public class DeterministicCodeOptimizer extends Visitor {
   }
 
   @Override
-  public ClassDeclaration visit(ClassDeclaration classDeclaration,
-      List<MemberDeclaration> memberDeclarations) {
-    if (parent == null) {
-      return super.visit(classDeclaration, memberDeclarations);
-    }
-    memberDeclarations = optimizeDeclarations(memberDeclarations);
-    return super.visit(classDeclaration, memberDeclarations);
-  }
-
-  @Override
   public Expression visit(BinaryExpression binaryExpression,
       Expression expression0, Expression expression1) {
     Expression result = super.visit(binaryExpression, expression0, expression1);
-    if (parent == null) {
-      return result;
-    }
-
     if (binaryExpression.getNodeType().modifiesLvalue) {
       return result;
     }
@@ -189,10 +118,6 @@ public class DeterministicCodeOptimizer extends Visitor {
     Expression result =
         super.visit(ternaryExpression, expression0, expression1, expression2);
 
-    if (parent == null) {
-      return result;
-    }
-
     if (isConstant(expression0)
         && isConstant(expression1)
         && isConstant(expression2)) {
@@ -205,9 +130,6 @@ public class DeterministicCodeOptimizer extends Visitor {
   public Expression visit(UnaryExpression unaryExpression,
       Expression expression) {
     Expression result = super.visit(unaryExpression, expression);
-    if (parent == null) {
-      return result;
-    }
 
     if (isConstant(expression)) {
       constants.put(result, true);
@@ -222,9 +144,6 @@ public class DeterministicCodeOptimizer extends Visitor {
   public Expression visit(TypeBinaryExpression typeBinaryExpression,
       Expression expression) {
     Expression result = super.visit(typeBinaryExpression, expression);
-    if (parent == null) {
-      return result;
-    }
 
     if (isConstant(expression)) {
       constants.put(result, true);
@@ -253,9 +172,6 @@ public class DeterministicCodeOptimizer extends Visitor {
       Expression targetExpression, List<Expression> expressions) {
     Expression result =
         super.visit(methodCallExpression, targetExpression, expressions);
-    if (parent == null) {
-      return result;
-    }
 
     result = tryOptimizeMethodCall((MethodCallExpression) result);
     return result;
@@ -265,9 +181,6 @@ public class DeterministicCodeOptimizer extends Visitor {
   public Expression visit(MemberExpression memberExpression,
       Expression expression) {
     Expression result = super.visit(memberExpression, expression);
-    if (parent == null) {
-      return result;
-    }
 
     if (isConstant(expression)
         && Modifier.isFinal(memberExpression.field.getModifiers())) {
@@ -282,6 +195,7 @@ public class DeterministicCodeOptimizer extends Visitor {
    *
    * @param memberDeclarations list of declarations to search finals from
    */
+  @Override
   protected void learnFinalStaticDeclarations(
       List<MemberDeclaration> memberDeclarations) {
     for (MemberDeclaration decl : memberDeclarations) {
@@ -354,14 +268,15 @@ public class DeterministicCodeOptimizer extends Visitor {
     dedup.put(expression, pe);
     addedDeclarations.add(decl);
     constants.put(pe, true);
+    fieldsByName.put(name, pe);
     return pe;
   }
 
   /**
    * Generates field name to store given expression.
    * The expression is converted to string and all the non-ascii/numeric
-   * characters are replaced with underscores and "_$L4J$C$" suffix is added
-   * to avoid conflicts with other variables.
+   * characters are replaced with underscores and {@code "_$L4J$C$"} suffix is
+   * added to avoid conflicts with other variables.
    * When multiple variables are mangled to the same name,
    * counter is used to avoid conflicts.
    *
@@ -370,8 +285,12 @@ public class DeterministicCodeOptimizer extends Visitor {
    */
   protected String inventFieldName(Expression expression) {
     String exprText = expression.toString();
-    exprText = PATTERN_L4JC.matcher(exprText).replaceAll("");
-    exprText = NON_ASCII.matcher(exprText).replaceAll("_") + "_$L4J$C$";
+    exprText = PREFIX_PATTERN.matcher(exprText).replaceAll("");
+    exprText = FIELD_PREFIX + NON_ASCII.matcher(exprText).replaceAll("_");
+    if (exprText.length() > 70) {
+      exprText = exprText.substring(0, 70)
+          + Integer.toHexString(exprText.hashCode());
+    }
     String fieldName = exprText;
     for (int i = 0; hasField(fieldName); i++) {
       fieldName = exprText + i;
@@ -381,34 +300,20 @@ public class DeterministicCodeOptimizer extends Visitor {
 
   /**
    * Verifies if the expression is effectively constant.
-   * It is assumed the expression is simple (e.g. ConstantExpression or
-   * ParameterExpression).
+   * It is assumed the expression is simple (e.g. {@code ConstantExpression} or
+   * {@code ParameterExpression}).
    * The method verifies parent chain since the expression might be defined
    * in enclosing class.
    *
    * @param expression expression to test
    * @return true when the expression is known to be constant
    */
+  @Override
   protected boolean isConstant(Expression expression) {
     return expression == null
         || expression instanceof ConstantExpression
         || !constants.isEmpty() && constants.containsKey(expression)
         || parent != null && parent.isConstant(expression);
-  }
-
-  /**
-   * Verifies if all the expressions in given list are  effectively constant.
-   *
-   * @param list list of expressions to test
-   * @return true when all the expressions are known to be constant
-   */
-  protected boolean isConstant(Iterable<? extends Expression> list) {
-    for (Expression expression : list) {
-      if (!isConstant(expression)) {
-        return false;
-      }
-    }
-    return true;
   }
 
   /**
@@ -419,18 +324,21 @@ public class DeterministicCodeOptimizer extends Visitor {
    * @return true when the method is deterministic
    */
   protected boolean isMethodDeterministic(Method method) {
-    return allMethodsDeterministic(method.getDeclaringClass());
+    return (allMethodsDeterministic(method.getDeclaringClass())
+            && !method.isAnnotationPresent(NonDeterministic.class))
+           || method.isAnnotationPresent(Deterministic.class);
   }
 
   /**
-   * Checks if new instance creation can be reused. For instance new
-   * BigInteger("42") is effectively final and can be reused.
+   * Checks if new instance creation can be reused. For instance {@code new
+   * BigInteger("42")} is effectively final and can be reused.
    *
-   * @param klass method to test
+   *
+   * @param newExpression method to test
    * @return true when the method is deterministic
    */
-  protected boolean isConstructorDeterministic(Class klass) {
-    return allMethodsDeterministic(klass);
+  protected boolean isConstructorDeterministic(NewExpression newExpression) {
+    return allMethodsDeterministic((Class) newExpression.type);
   }
 
   /**
@@ -441,17 +349,19 @@ public class DeterministicCodeOptimizer extends Visitor {
    * @return true when all the methods including constructors are deterministic
    */
   protected boolean allMethodsDeterministic(Class klass) {
-    return DETERMINISTIC_CLASSES.contains(klass);
+    return DETERMINISTIC_CLASSES.contains(klass)
+           || klass.isAnnotationPresent(Deterministic.class);
   }
 
   /**
    * Verifies if the variable name is already in use.
-   * Only the variables that are explicitly added to fieldsByName are verified.
-   * The method verifies parent chain.
+   * Only the variables that are explicitly added to {@code fieldsByName} are
+   * verified. The method verifies parent chain.
    *
    * @param name name of the variable to test
    * @return true if the name is used by one of static final fields
    */
+  @Override
   protected boolean hasField(String name) {
     return !fieldsByName.isEmpty() && fieldsByName.containsKey(name)
         || parent != null && parent.hasField(name);
