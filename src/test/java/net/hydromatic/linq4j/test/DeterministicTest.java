@@ -90,6 +90,30 @@ public class DeterministicTest {
             + "}\n"));
   }
 
+  @Test public void testFactorOutBinaryAddSurviesMultipleOptimizations() {
+    assertThat(
+        optimize(optimizeExpression(
+            Expressions.new_(
+                Runnable.class,
+                Collections.<Expression>emptyList(),
+                Expressions.methodDecl(
+                    0,
+                    int.class,
+                    "test",
+                    Collections.<ParameterExpression>emptyList(),
+                    Blocks.toFunctionBlock(Expressions.add(ONE, TWO)))))),
+        equalTo(
+            "{\n"
+            + "  return new Runnable(){\n"
+            + "      int test() {\n"
+            + "        return $L4J$C$1_2;\n"
+            + "      }\n"
+            + "\n"
+            + "      static final int $L4J$C$1_2 = 1 + 2;\n"
+            + "    };\n"
+            + "}\n"));
+  }
+
   @Test public void testFactorOutBinaryAddNameCollision() {
     assertThat(
         optimize(

@@ -189,6 +189,17 @@ public class DeterministicCodeOptimizer extends ClassDeclarationFinder {
     return result;
   }
 
+  @Override
+  public MemberDeclaration visit(FieldDeclaration fieldDeclaration,
+      Expression initializer) {
+    if (Modifier.isStatic(fieldDeclaration.modifier)) {
+      // Avoid optimization of static fields, since we'll have to track order
+      // of static declarations.
+      return fieldDeclaration;
+    }
+    return super.visit(fieldDeclaration, initializer);
+  }
+
   /**
    * Processes the list of declarations and learns final static ones as
    * effectively constant.
@@ -210,26 +221,6 @@ public class DeterministicCodeOptimizer extends ClassDeclarationFinder {
         }
       }
     }
-  }
-
-  /**
-   * Adds new declarations (e.g. final static fields) to the list of existing
-   * ones.
-   *
-   * @param memberDeclarations existing list of declarations
-   * @return new list of declarations or the same if no modifications required
-   */
-  protected List<MemberDeclaration> optimizeDeclarations(
-      List<MemberDeclaration> memberDeclarations) {
-    if (addedDeclarations.isEmpty()) {
-      return memberDeclarations;
-    }
-    List<MemberDeclaration> newDecls =
-        new ArrayList<MemberDeclaration>(memberDeclarations.size()
-            + addedDeclarations.size());
-    newDecls.addAll(memberDeclarations);
-    newDecls.addAll(addedDeclarations);
-    return newDecls;
   }
 
   /**

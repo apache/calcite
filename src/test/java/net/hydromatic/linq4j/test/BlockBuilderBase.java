@@ -44,10 +44,26 @@ public final class BlockBuilderBase {
     return optimize(Expressions.return_(null, expr));
   }
 
+  public static BlockStatement optimizeExpression(Expression expr) {
+    return optimizeStatement(Expressions.return_(null, expr));
+  }
+
   public static String optimize(Statement statement) {
+    return optimizeStatement(statement).toString();
+  }
+
+  public static BlockStatement optimizeStatement(Statement statement) {
     BlockBuilder b = new BlockBuilder(true);
-    b.add(statement);
-    return b.toBlock().toString();
+    if (!(statement instanceof BlockStatement)) {
+      b.add(statement);
+    } else {
+      BlockStatement bs = (BlockStatement) statement;
+      for (Statement stmt : bs.statements) {
+        b.add(stmt);
+      }
+    }
+    BlockStatement bs = b.toBlock();
+    return bs;
   }
 
   public static ParameterExpression bool(String name) {
