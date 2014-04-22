@@ -23,7 +23,6 @@ import com.google.common.collect.ImmutableSet;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import java.io.PrintStream;
 import java.sql.*;
 import java.util.*;
 
@@ -81,6 +80,9 @@ public class SplunkAdapterTest {
    */
   @Test public void testVanityDriver() throws SQLException {
     loadDriverClass();
+    if (!enabled()) {
+      return;
+    }
     Properties info = new Properties();
     info.setProperty("url", SPLUNK_URL);
     info.put("user", SPLUNK_USER);
@@ -95,6 +97,9 @@ public class SplunkAdapterTest {
    */
   @Test public void testVanityDriverArgsInUrl() throws SQLException {
     loadDriverClass();
+    if (!enabled()) {
+      return;
+    }
     Connection connection =
         DriverManager.getConnection(
             "jdbc:splunk:"
@@ -270,6 +275,9 @@ public class SplunkAdapterTest {
 
   private void checkSql(String sql, Function<ResultSet, Void> f)
     throws SQLException {
+    if (!enabled()) {
+      return;
+    }
     loadDriverClass();
     Connection connection = null;
     Statement statement = null;
@@ -281,31 +289,11 @@ public class SplunkAdapterTest {
       info.put("model", "inline:" + JdbcTest.FOODMART_MODEL);
       connection = DriverManager.getConnection("jdbc:splunk:", info);
       statement = connection.createStatement();
-      if (!enabled()) {
-        return;
-      }
       final ResultSet resultSet = statement.executeQuery(sql);
       f.apply(resultSet);
       resultSet.close();
     } finally {
       close(connection, statement);
-    }
-  }
-
-  private void output(ResultSet resultSet, PrintStream out)
-    throws SQLException {
-    final ResultSetMetaData metaData = resultSet.getMetaData();
-    final int columnCount = metaData.getColumnCount();
-    while (resultSet.next()) {
-      for (int i = 1;; i++) {
-        out.print(resultSet.getString(i));
-        if (i < columnCount) {
-          out.print(", ");
-        } else {
-          out.println();
-          break;
-        }
-      }
     }
   }
 }
