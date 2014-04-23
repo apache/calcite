@@ -20,6 +20,7 @@ package net.hydromatic.linq4j.test;
 import net.hydromatic.linq4j.*;
 import net.hydromatic.linq4j.expressions.*;
 import net.hydromatic.linq4j.function.*;
+import net.hydromatic.linq4j.test.Linq4jTest.Department;
 
 import com.example.Linq4jExample;
 
@@ -180,6 +181,46 @@ public class Linq4jTest {
               }
             });
     assertEquals(2, count);
+  }
+
+  @Test public void testAllPredicate() {
+    Predicate1<Employee> allEmpnoGE100 = new Predicate1<Employee>() {
+      public boolean apply(Employee emp) {
+        return emp.empno >= 100;
+      }
+    };
+
+    Predicate1<Employee> allEmpnoGT100 = new Predicate1<Employee>() {
+      public boolean apply(Employee emp) {
+        return emp.empno > 100;
+      }
+    };
+
+    assertTrue(Linq4j.asEnumerable(emps).all(allEmpnoGE100));
+    assertFalse(Linq4j.asEnumerable(emps).all(allEmpnoGT100));
+  }
+
+  @Test public void testAny() {
+    List<Employee> emptyList = Collections.<Employee>emptyList();
+    assertFalse(Linq4j.asEnumerable(emptyList).any());
+    assertTrue(Linq4j.asEnumerable(emps).any());
+  }
+
+  @Test public void testAnyPredicate() {
+    Predicate1<Department> deptoNameIT = new Predicate1<Department>() {
+      public boolean apply(Department v1) {
+        return v1.name != null && v1.name.equals("IT");
+      }
+    };
+
+    Predicate1<Department> deptoNameSales = new Predicate1<Department>() {
+      public boolean apply(Department v1) {
+        return v1.name != null && v1.name.equals("Sales");
+      }
+    };
+
+    assertFalse(Linq4j.asEnumerable(depts).any(deptoNameIT));
+    assertTrue(Linq4j.asEnumerable(depts).any(deptoNameSales));
   }
 
   @Test public void testAverageSelector() {
