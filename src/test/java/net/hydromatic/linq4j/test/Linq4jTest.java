@@ -20,7 +20,6 @@ package net.hydromatic.linq4j.test;
 import net.hydromatic.linq4j.*;
 import net.hydromatic.linq4j.expressions.*;
 import net.hydromatic.linq4j.function.*;
-import net.hydromatic.linq4j.test.Linq4jTest.Department;
 
 import com.example.Linq4jExample;
 
@@ -355,6 +354,80 @@ public class Linq4jTest {
             })
             .orderBy(Functions.<String>identitySelector())
             .toList().toString());
+  }
+
+  @Test public void testContains() {
+    Employee e = emps[1];
+    Employee employeeClone = new Employee(e.empno, e.name, e.deptno);
+    Employee employeeOther = badEmps[0];
+
+    assertEquals(e, employeeClone);
+    assertTrue(Linq4j.asEnumerable(emps).contains(e));
+    assertTrue(Linq4j.asEnumerable(emps).contains(employeeClone));
+    assertFalse(Linq4j.asEnumerable(emps).contains(employeeOther));
+
+  }
+
+  @Test public void testContainsWithEqualityComparer() {
+    EqualityComparer<Employee> compareByEmpno =
+            new EqualityComparer<Employee>() {
+        public boolean equal(Employee e1, Employee e2) {
+          return e1 != null && e2 != null
+                  && e1.empno == e2.empno;
+        }
+
+        public int hashCode(Employee t) {
+          return t == null ? 0x789d : t.hashCode();
+        }
+      };
+
+    Employee e = emps[1];
+    Employee employeeClone = new Employee(e.empno, e.name, e.deptno);
+    Employee employeeOther = badEmps[0];
+
+    assertEquals(e, employeeClone);
+    assertTrue(Linq4j.asEnumerable(emps)
+            .contains(e, compareByEmpno));
+    assertTrue(Linq4j.asEnumerable(emps)
+            .contains(employeeClone, compareByEmpno));
+    assertFalse(Linq4j.asEnumerable(emps)
+            .contains(employeeOther, compareByEmpno));
+
+  }
+
+  @Test public void testFirst() {
+    Employee e = emps[0];
+    assertEquals(e, emps[0]);
+    assertEquals(e, Linq4j.asEnumerable(emps).first());
+
+    Department d = depts[0];
+    assertEquals(d, depts[0]);
+    assertEquals(d, Linq4j.asEnumerable(depts).first());
+  }
+
+  @Test public void testFirstPredicate1() {
+    Predicate1<String> startWithS = new Predicate1<String>() {
+      public boolean apply(String s) {
+        return s != null && Character.toString(s.charAt(0)).equals("S");
+      }
+    };
+
+    Predicate1<Integer> numberGT15 = new Predicate1<Integer>() {
+      public boolean apply(Integer i) {
+        return i > 15;
+      }
+    };
+
+    String[] people = {"Brill", "Smith", "Simpsom"};
+    String[] peopleWithoutCharS = {"Brill", "Andrew", "Alice"};
+    Integer[] numbers = {5, 10, 15, 20, 25};
+
+    assertEquals(people[1], Linq4j.asEnumerable(people).first(startWithS));
+    assertEquals(numbers[3], Linq4j.asEnumerable(numbers).first(numberGT15));
+
+    // FIXME: What we need return if no one element is satisfied?
+    assertNull(Linq4j.asEnumerable(peopleWithoutCharS).first(startWithS));
+
   }
 
   @SuppressWarnings("UnnecessaryBoxing")
@@ -1307,6 +1380,44 @@ public class Linq4jTest {
 
     public String toString() {
       return "Employee(name: " + name + ", deptno:" + deptno + ")";
+    }
+
+    @Override
+    public int hashCode() {
+      final int prime = 31;
+      int result = 1;
+      result = prime * result + deptno;
+      result = prime * result + empno;
+      result = prime * result + ((name == null) ? 0 : name.hashCode());
+      return result;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      if (this == obj) {
+        return true;
+      }
+      if (obj == null) {
+        return false;
+      }
+      if (getClass() != obj.getClass()) {
+        return false;
+      }
+      Employee other = (Employee) obj;
+      if (deptno != other.deptno) {
+        return false;
+      }
+      if (empno != other.empno) {
+        return false;
+      }
+      if (name == null) {
+        if (other.name != null) {
+          return false;
+        }
+      } else if (!name.equals(other.name)) {
+        return false;
+      }
+      return true;
     }
   }
 
