@@ -341,6 +341,7 @@ public abstract class SparkRules {
               program,
               typeFactory,
               builder2,
+              null,
               new RexToLixTranslator.InputGetterImpl(
                   Collections.singletonList(
                       Pair.of((Expression) e_, result.physType))));

@@ -292,7 +292,8 @@ public class JavaRules {
         final int fieldCount = inputPhysType.getRowType().getFieldCount();
         for (int i = 0; i < fieldCount; i++) {
           Expression expression =
-              inputPhysType.fieldReference(parameter, i);
+              inputPhysType.fieldReference(parameter, i,
+                  physType.getJavaFieldType(i));
           if (joinType.generatesNullsOn(ord.i)) {
             expression =
                 Expressions.condition(
@@ -300,8 +301,7 @@ public class JavaRules {
                     Expressions.constant(null),
                     expression);
           }
-          expressions.add(Types.castIfNecessary(inputPhysType.fieldClass(i),
-              expression));
+          expressions.add(expression);
         }
       }
       return Expressions.lambda(
@@ -722,6 +722,7 @@ public class JavaRules {
               program,
               typeFactory,
               builder3,
+              physType,
               new RexToLixTranslator.InputGetterImpl(
                   Collections.singletonList(
                       Pair.of(input, result.physType))));
@@ -1762,7 +1763,8 @@ public class JavaRules {
         final int fieldCount =
             childPhysType.getRowType().getFieldCount();
         for (int i = 0; i < fieldCount; i++) {
-          expressionList.add(childPhysType.fieldReference(o_, i));
+          expressionList.add(childPhysType.fieldReference(o_, i,
+              physType.getJavaFieldType(i)));
         }
         convertedChildExp =
             builder.append(
@@ -2203,9 +2205,8 @@ public class JavaRules {
         final List<Expression> expressions = new ArrayList<Expression>();
         for (int i = 0; i < offset; i++) {
           expressions.add(
-              Types.castIfNecessary(
-                  inputPhysType.fieldClass(i),
-                  inputPhysType.fieldReference(row_, i)));
+              inputPhysType.fieldReference(row_, i,
+                  outputPhysType.getJavaFieldType(i)));
         }
 
         final PhysType finalInputPhysType = inputPhysType;

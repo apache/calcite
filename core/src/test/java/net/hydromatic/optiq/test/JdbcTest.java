@@ -2264,7 +2264,25 @@ public class JdbcTest {
             "S=8200.0; FIVE=5; M=8000.0; C=1; deptno=20; empid=200\n"
             + "S=10100.0; FIVE=5; M=10000.0; C=1; deptno=10; empid=100\n"
             + "S=23220.0; FIVE=5; M=11500.0; C=2; deptno=10; empid=110\n"
-            + "S=14300.0; FIVE=5; M=7000.0; C=2; deptno=10; empid=150\n");
+            + "S=14300.0; FIVE=5; M=7000.0; C=2; deptno=10; empid=150\n")
+        .planContains(
+            "_list.add(new Object[] {\n"
+            + "        row[0],\n" // box-unbox is optimized
+            + "        row[1],\n"
+            + "        row[2],\n"
+            + "        row[3],\n"
+            + "        w0$o0,\n"
+            + "        w0$o1,\n"
+            + "        w0$o2,\n"
+            + "        w0$o3});")
+        .planContains(
+            "return new Object[] {\n"
+            + "                  net.hydromatic.optiq.runtime.SqlFunctions.toLong(current[4]) > 0L ? (Float) current[5] : (Float) null,\n"
+            + "                  5,\n"
+            + "                  (Float) current[6],\n"
+            + "                  (Long) current[7],\n" // box-unbox eliminated
+            + "                  current[1],\n"
+            + "                  current[0]};");
   }
 
   /** Tests windowed aggregation with multiple windows.

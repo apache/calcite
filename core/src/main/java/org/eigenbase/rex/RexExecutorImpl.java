@@ -73,7 +73,7 @@ public class RexExecutorImpl implements RelOptPlanner.Executor {
             Expressions.convert_(root0_, DataContext.class)));
     final List<Expression> expressions =
         RexToLixTranslator.translateProjects(programBuilder.getProgram(),
-        javaTypeFactory, blockBuilder, getter);
+        javaTypeFactory, blockBuilder, null, getter);
     blockBuilder.add(
         Expressions.return_(null,
             Expressions.newArrayInit(Object[].class, expressions)));
@@ -111,7 +111,8 @@ public class RexExecutorImpl implements RelOptPlanner.Executor {
       List<RexNode> reducedValues) {
     final String code = compile(rexBuilder, constExps,
         new RexToLixTranslator.InputGetter() {
-          public Expression field(BlockBuilder list, int index) {
+          public Expression field(BlockBuilder list, int index,
+              Type storageType) {
             throw new UnsupportedOperationException();
           }
         });
@@ -137,7 +138,7 @@ public class RexExecutorImpl implements RelOptPlanner.Executor {
       this.typeFactory = typeFactory;
     }
 
-    public Expression field(BlockBuilder list, int index) {
+    public Expression field(BlockBuilder list, int index, Type storageType) {
       MethodCallExpression recFromCtx = Expressions.call(
           DataContext.ROOT,
           BuiltinMethod.DATA_CONTEXT_GET.method,
@@ -146,9 +147,12 @@ public class RexExecutorImpl implements RelOptPlanner.Executor {
           RexToLixTranslator.convert(recFromCtx, Object[].class);
       IndexExpression recordAccess = Expressions.arrayIndex(recFromCtxCasted,
           Expressions.constant(index));
-      final RelDataType fieldType = rowType.getFieldList().get(index).getType();
-      final Type type = ((JavaTypeFactory) typeFactory).getJavaClass(fieldType);
-      return RexToLixTranslator.convert(recordAccess, type);
+      if (storageType == null) {
+        final RelDataType fieldType =
+            rowType.getFieldList().get(index).getType();
+        storageType = ((JavaTypeFactory) typeFactory).getJavaClass(fieldType);
+      }
+      return RexToLixTranslator.convert(recordAccess, storageType);
     }
   }
 }

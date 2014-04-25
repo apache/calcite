@@ -120,6 +120,7 @@ public class RexToLixTranslator {
    * @param program Program to be translated
    * @param typeFactory Type factory
    * @param list List of statements, populated with declarations
+   * @param outputPhysType Output type, or null
    * @param inputGetter Generates expressions for inputs
    * @return Sequence of expressions, optional condition
    */
@@ -127,9 +128,18 @@ public class RexToLixTranslator {
       RexProgram program,
       JavaTypeFactory typeFactory,
       BlockBuilder list,
+      PhysType outputPhysType,
       InputGetter inputGetter) {
+    List<Type> storageTypes = null;
+    if (outputPhysType != null) {
+      final RelDataType rowType = outputPhysType.getRowType();
+      storageTypes = new ArrayList<Type>(rowType.getFieldCount());
+      for (int i = 0; i < rowType.getFieldCount(); i++) {
+        storageTypes.add(outputPhysType.getJavaFieldType(i));
+      }
+    }
     return new RexToLixTranslator(program, typeFactory, inputGetter, list)
-        .translateList(program.getProjectList());
+        .translateList(program.getProjectList(), storageTypes);
   }
 
   /** Creates a translator for translating aggregate functions. */
@@ -144,7 +154,18 @@ public class RexToLixTranslator {
   }
 
   Expression translate(RexNode expr, RexImpTable.NullAs nullAs) {
-    Expression expression = translate0(expr, nullAs);
+    return translate(expr, nullAs, null);
+  }
+
+  Expression translate(RexNode expr, Type storageType) {
+    final RexImpTable.NullAs nullAs =
+        RexImpTable.NullAs.of(isNullable(expr));
+    return translate(expr, nullAs, storageType);
+  }
+
+  Expression translate(RexNode expr, RexImpTable.NullAs nullAs,
+      Type storageType) {
+    Expression expression = translate0(expr, nullAs, storageType);
     assert expression != null;
     return list.append("v", expression);
   }
@@ -296,14 +317,15 @@ public class RexToLixTranslator {
    *   using x.intValue().
    * @return Translated expression
    */
-  private Expression translate0(RexNode expr, RexImpTable.NullAs nullAs) {
+  private Expression translate0(RexNode expr, RexImpTable.NullAs nullAs,
+      Type storageType) {
     if (nullAs == RexImpTable.NullAs.NULL && !expr.getType().isNullable()) {
       nullAs = RexImpTable.NullAs.NOT_POSSIBLE;
     }
     switch (expr.getKind()) {
     case INPUT_REF:
       final int index = ((RexInputRef) expr).getIndex();
-      Expression x = inputGetter.field(list, index);
+      Expression x = inputGetter.field(list, index, storageType);
 
       Expression input = list.append("inp" + index + "_", x); // safe to share
       Expression nullHandled = nullAs.handle(input);
@@ -335,7 +357,8 @@ public class RexToLixTranslator {
     case LOCAL_REF:
       return translate(
           program.getExprList().get(((RexLocalRef) expr).getIndex()),
-          nullAs);
+          nullAs,
+          storageType);
     case LITERAL:
       return translateLiteral(
           expr,
@@ -346,7 +369,7 @@ public class RexToLixTranslator {
           typeFactory,
           nullAs);
     case DYNAMIC_PARAM:
-      return translateParameter((RexDynamicParam) expr, nullAs);
+      return translateParameter((RexDynamicParam) expr, nullAs, storageType);
     default:
       if (expr instanceof RexCall) {
         return translateCall((RexCall) expr, nullAs);
@@ -369,14 +392,17 @@ public class RexToLixTranslator {
 
   /** Translates a parameter. */
   private Expression translateParameter(RexDynamicParam expr,
-      RexImpTable.NullAs nullAs) {
+      RexImpTable.NullAs nullAs, Type storageType) {
+    if (storageType == null) {
+      storageType = typeFactory.getJavaClass(expr.getType());
+    }
     return nullAs.handle(
         convert(
             Expressions.call(
                 DataContext.ROOT,
                 BuiltinMethod.DATA_CONTEXT_GET.method,
                 Expressions.constant("?" + expr.getIndex())),
-            typeFactory.getJavaClass(expr.getType())));
+            storageType));
   }
 
   /** Translates a literal.
@@ -487,12 +513,52 @@ public class RexToLixTranslator {
     return list;
   }
 
+  /**
+   * Translates the list of {@code RexNode}, using the default output types.
+   * This might be suboptimal in terms of additional box-unbox when you use
+   * the translation later.
+   * If you know the java class that will be used to store the results,
+   * use {@link net.hydromatic.optiq.rules.java.RexToLixTranslator#translateList(java.util.List, java.util.List)}
+   * version.
+   *
+   * @param operandList list of RexNodes to translate
+   *
+   * @return translated expressions
+   */
   List<Expression> translateList(List<? extends RexNode> operandList) {
-    final List<Expression> list = new ArrayList<Expression>();
-    for (RexNode rex : operandList) {
-      final Expression translate = translate(rex);
+    return translateList(operandList, null);
+  }
+
+  /**
+   * Translates the list of {@code RexNode}, while optimizing for output
+   * storage.
+   * For instance, if the result of translation is going to be stored in
+   * {@code Object[]}, and the input is {@code Object[]} as well,
+   * then translator will avoid casting, boxing, etc.
+   *
+   * @param operandList list of RexNodes to translate
+   * @param storageTypes hints of the java classes that will be used
+   *                     to store translation results. Use null to use
+   *                     default storage type
+   *
+   * @return translated expressions
+   */
+  List<Expression> translateList(List<? extends RexNode> operandList,
+      List<? extends Type> storageTypes) {
+    final List<Expression> list = new ArrayList<Expression>(operandList.size());
+
+    for (int i = 0; i < operandList.size(); i++) {
+      RexNode rex = operandList.get(i);
+      Type desiredType = null;
+      if (storageTypes != null) {
+        desiredType = storageTypes.get(i);
+      }
+      final Expression translate = translate(rex, desiredType);
       list.add(translate);
-      if (!isNullable(rex)) {
+      // desiredType is still a hint, thus we might get any kind of output
+      // (boxed or not) when hint was provided.
+      // It is favourable to get the type matching desired type
+      if (desiredType == null && !isNullable(rex)) {
         assert !Primitive.isBox(translate.getType())
             : "Not-null boxed primitive should come back as primitive: "
             + rex + ", " + translate.getType();
@@ -779,7 +845,7 @@ public class RexToLixTranslator {
 
   /** Translates a field of an input to an expression. */
   public interface InputGetter {
-    Expression field(BlockBuilder list, int index);
+    Expression field(BlockBuilder list, int index, Type storageType);
   }
 
   /** Implementation of {@link InputGetter} that calls
@@ -791,11 +857,11 @@ public class RexToLixTranslator {
       this.inputs = inputs;
     }
 
-    public Expression field(BlockBuilder list, int index) {
+    public Expression field(BlockBuilder list, int index, Type storageType) {
       final Pair<Expression, PhysType> input = inputs.get(0);
       final PhysType physType = input.right;
       final Expression left = list.append("current", input.left);
-      return physType.fieldReference(left, index);
+      return physType.fieldReference(left, index, storageType);
     }
   }
 

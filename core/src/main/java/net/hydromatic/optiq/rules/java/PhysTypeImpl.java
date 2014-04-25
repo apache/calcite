@@ -413,6 +413,10 @@ public class PhysTypeImpl implements PhysType {
     return javaRowClass;
   }
 
+  public Type getJavaFieldType(int index) {
+    return format.javaFieldClass(typeFactory, rowType, index);
+  }
+
   public Expression comparer() {
     return format.comparer();
   }
@@ -515,7 +519,15 @@ public class PhysTypeImpl implements PhysType {
 
   public Expression fieldReference(
       Expression expression, int field) {
-    return format.field(expression, field, fieldClass(field));
+    return fieldReference(expression, field, null);
+  }
+
+  public Expression fieldReference(
+      Expression expression, int field, Type storageType) {
+    if (storageType == null) {
+      storageType = fieldClass(field);
+    }
+    return format.field(expression, field, storageType);
   }
 }
 

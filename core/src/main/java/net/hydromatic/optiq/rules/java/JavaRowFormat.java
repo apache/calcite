@@ -43,6 +43,12 @@ public enum JavaRowFormat {
       return typeFactory.getJavaClass(type);
     }
 
+    @Override
+    Type javaFieldClass(JavaTypeFactory typeFactory, RelDataType type,
+        int index) {
+      return typeFactory.getJavaClass(type.getFieldList().get(index).getType());
+    }
+
     public Expression record(
         Type javaRowClass, List<Expression> expressions) {
       switch (expressions.size()) {
@@ -54,8 +60,9 @@ public enum JavaRowFormat {
       }
     }
 
-    public MemberExpression field(
-        Expression expression, int field, Class fieldType) {
+    @Override
+    public MemberExpression field(Expression expression, int field,
+        Type fieldType) {
       final Type type = expression.getType();
       if (type instanceof Types.RecordType) {
         Types.RecordType recordType = (Types.RecordType) type;
@@ -66,8 +73,7 @@ public enum JavaRowFormat {
             recordField.getDeclaringClass(),
             recordField.getName());
       } else {
-        return Expressions.field(
-            expression, Types.nthField(field, type));
+        return Expressions.field(expression, Types.nthField(field, type));
       }
     }
   },
@@ -81,14 +87,20 @@ public enum JavaRowFormat {
           type.getFieldList().get(0).getType());
     }
 
+    @Override
+    Type javaFieldClass(JavaTypeFactory typeFactory, RelDataType type,
+        int index) {
+      return javaRowClass(typeFactory, type);
+    }
+
     public Expression record(
         Type javaRowClass, List<Expression> expressions) {
       assert expressions.size() == 1;
       return expressions.get(0);
     }
 
-    public Expression field(
-        Expression expression, int field, Class fieldType) {
+    @Override
+    public Expression field(Expression expression, int field, Type fieldType) {
       assert field == 0;
       return expression;
     }
@@ -102,6 +114,12 @@ public enum JavaRowFormat {
         JavaTypeFactory typeFactory,
         RelDataType type) {
       return FlatLists.ComparableList.class;
+    }
+
+    @Override
+    Type javaFieldClass(JavaTypeFactory typeFactory, RelDataType type,
+        int index) {
+      return Object.class;
     }
 
     public Expression record(
@@ -142,8 +160,7 @@ public enum JavaRowFormat {
     }
 
     @Override
-    public Expression field(
-        Expression expression, int field, Class fieldType) {
+    public Expression field(Expression expression, int field, Type fieldType) {
       return RexToLixTranslator.convert(
           Expressions.call(expression,
               BuiltinMethod.LIST_GET.method,
@@ -160,6 +177,12 @@ public enum JavaRowFormat {
       return Object[].class;
     }
 
+    @Override
+    Type javaFieldClass(JavaTypeFactory typeFactory, RelDataType type,
+        int index) {
+      return Object.class;
+    }
+
     public Expression record(
         Type javaRowClass, List<Expression> expressions) {
       return Expressions.newArrayInit(
@@ -173,7 +196,7 @@ public enum JavaRowFormat {
     }
 
     @Override
-    public Expression field(Expression expression, int field, Class fieldType) {
+    public Expression field(Expression expression, int field, Type fieldType) {
       return RexToLixTranslator.convert(
           Expressions.arrayIndex(expression, Expressions.constant(field)),
           fieldType);
@@ -195,6 +218,19 @@ public enum JavaRowFormat {
   }
 
   abstract Type javaRowClass(JavaTypeFactory typeFactory, RelDataType type);
+
+  /**
+   * Returns the java class that is used to physically store the given field.
+   * For instance, a non-null int field can still be stored in a field of type
+   * {@code Object.class} in {@link JavaRowFormat#ARRAY} case.
+   *
+   * @param typeFactory type factory to resolve java types
+   * @param type row type
+   * @param index field index
+   * @return java type used to store the field
+   */
+  abstract Type javaFieldClass(JavaTypeFactory typeFactory, RelDataType type,
+      int index);
 
   public abstract Expression record(
       Type javaRowClass, List<Expression> expressions);
@@ -220,8 +256,8 @@ public enum JavaRowFormat {
     return null;
   }
 
-  public abstract Expression field(
-      Expression expression, int field, Class fieldType);
+  public abstract Expression field(Expression expression, int field,
+      Type fieldType);
 }
 
 // End JavaRowFormat.java
