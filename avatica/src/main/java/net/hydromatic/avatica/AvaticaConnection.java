@@ -404,7 +404,7 @@ public abstract class AvaticaConnection implements Connection {
       statement.openResultSet.execute();
     } catch (Exception e) {
       throw helper.createException(
-          "exception while executing query", e);
+          "exception while executing query: " + e.getMessage(), e);
     }
     return statement.openResultSet;
   }

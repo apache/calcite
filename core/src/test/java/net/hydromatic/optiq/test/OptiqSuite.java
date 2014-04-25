@@ -89,6 +89,7 @@ import org.junit.runners.Suite;
     ChunkListTest.class,
     FrameworksTest.class,
     PlannerTest.class,
+    ExceptionMessageTest.class,
 
     // slow tests (above 1s)
     JdbcAdapterTest.class,

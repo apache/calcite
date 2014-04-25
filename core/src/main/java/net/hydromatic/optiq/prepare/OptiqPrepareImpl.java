@@ -310,7 +310,8 @@ public class OptiqPrepareImpl implements OptiqPrepare {
       try {
         sqlNode = parser.parseStmt();
       } catch (SqlParseException e) {
-        throw new RuntimeException("parse failed", e);
+        throw new RuntimeException(
+            "parse failed: " + e.getMessage(), e);
       }
 
       Hook.PARSE_TREE.run(new Object[] {sql, sqlNode});

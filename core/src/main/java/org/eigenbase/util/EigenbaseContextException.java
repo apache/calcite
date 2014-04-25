@@ -174,6 +174,13 @@ public class EigenbaseContextException extends EigenbaseException {
   public void setOriginalStatement(String originalStatement) {
     this.originalStatement = originalStatement;
   }
+
+  @Override
+  public String getMessage() {
+    // The superclass' message is the textual context information
+    // for this exception, so we add in the underlying cause to the message
+    return super.getMessage() + ": " + getCause().getMessage();
+  }
 }
 
 // End EigenbaseContextException.java

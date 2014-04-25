@@ -77,7 +77,8 @@ public abstract class AvaticaStatement
       AvaticaPrepareResult x = connection.meta.prepare(this, sql);
       return executeQueryInternal(x);
     } catch (RuntimeException e) {
-      throw connection.helper.createException("while executing SQL: " + sql, e);
+      throw connection.helper.createException(
+        "error while executing SQL \"" + sql + "\": " + e.getMessage(), e);
     }
   }
 
