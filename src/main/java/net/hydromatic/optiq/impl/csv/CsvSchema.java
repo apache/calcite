@@ -52,7 +52,7 @@ public class CsvSchema extends AbstractSchema {
     File[] files = directoryFile.listFiles(
         new FilenameFilter() {
           public boolean accept(File dir, String name) {
-            return name.endsWith(".csv");
+            return name.endsWith(".csv") || name.endsWith(".json");
           }
         });
     if (files == null) {
@@ -61,6 +61,13 @@ public class CsvSchema extends AbstractSchema {
     }
     for (File file : files) {
       String tableName = file.getName();
+      if (tableName.endsWith(".json")) {
+        tableName = tableName.substring(
+            0, tableName.length() - ".json".length());
+        JsonTable table = new JsonTable(file);
+        builder.put(tableName, table);
+        continue;
+      }
       if (tableName.endsWith(".csv")) {
         tableName = tableName.substring(
             0, tableName.length() - ".csv".length());

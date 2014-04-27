@@ -145,6 +145,15 @@ public class CsvTest {
         "NAME=Alice; EMPNO=130");
   }
 
+  @Test public void testJson() throws SQLException {
+    checkSql("model", "select _MAP['id'] as id,\n"
+        + " _MAP['title'] as title,\n"
+        + " CHAR_LENGTH(CAST(_MAP['title'] AS VARCHAR(30))) as len\n"
+        + " from \"archers\"",
+        "ID=19990101; TITLE=Washday blues.; LEN=14",
+        "ID=19990103; TITLE=Daniel creates a drama.; LEN=23");
+  }
+
   private void checkSql(String model, String sql) throws SQLException {
     checkSql(sql, model, output());
   }
