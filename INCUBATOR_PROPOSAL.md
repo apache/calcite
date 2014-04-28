@@ -292,8 +292,12 @@ and Salesforce.com.
 
 ### Nominated Mentors
 
-* Alan Gates (gates at apache dot org) - Architect at Hortonworks; Pig & Hive committer
-* Steven Noels (stevenn at apache dot org) - SVP Products at NGData; Committer for Coccoon, Forrest and Phoenix.
+* Ted Dunning (tdunning at apache dot org) – Chief Application Architect at
+  MapR Technologies; committer for Lucene, Mahout and ZooKeeper.
+* Alan Gates (gates at apache dot org) - Architect at Hortonworks;
+  committer for Pig, Hive and others.
+* Steven Noels (stevenn at apache dot org) - SVP Products at NGData;
+  committer for Coccoon, Forrest and Phoenix.
 
 ### Sponsoring Entity
 
