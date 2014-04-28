@@ -159,7 +159,7 @@ source projects for over ten years.
 ### Homogenous Developers
 
 The initial committers are employed by a number of companies,
-including Hortonworks, MapR Technologies and Concurrent. We are
+including Concurrent, Hortonworks, MapR Technologies and Salesforce.com. We are
 committed to recruiting additional committers from outside these
 companies.
 
@@ -271,14 +271,17 @@ http://issues.apache.org/jira/browse/OPTIQ.
 
 Julian Hyde (jhyde at apache dot org)
 Jacques Nadeau (jacques at apache dot org)
+James R. Taylor (jamestaylor at apache dot org)
 Chris Wensel (cwensel at apache dot org)
 
 ## Affiliations
 
-The initial committers are employees of Hortonworks, MapR and Concurrent.
+The initial committers are employees of Concurrent, Hortonworks, MapR
+and Salesforce.com.
 
 * Julian Hyde (Hortonworks)
 * Jacques Nadeau (MapR Technologies)
+* James R. Taylor (Salesforce.com)
 * Chris Wensel (Concurrent)
 
 ## Sponsors
@@ -290,7 +293,7 @@ The initial committers are employees of Hortonworks, MapR and Concurrent.
 ### Nominated Mentors
 
 * Alan Gates (gates at apache dot org) - Architect at Hortonworks; Pig & Hive committer
-* Steven Noels (stevenn at apache dot org) - SVP Products at NGData, Committer for Coccoon, Forrest and Phoenix.
+* Steven Noels (stevenn at apache dot org) - SVP Products at NGData; Committer for Coccoon, Forrest and Phoenix.
 
 ### Sponsoring Entity
 
