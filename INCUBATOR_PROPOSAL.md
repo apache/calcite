@@ -271,7 +271,7 @@ http://issues.apache.org/jira/browse/OPTIQ.
 
 Julian Hyde (jhyde at apache dot org)
 Jacques Nadeau (jacques at apache dot org)
-Chris Wensel (chris at concurrentinc dot com)
+Chris Wensel (cwensel at apache dot org)
 
 ## Affiliations
 
