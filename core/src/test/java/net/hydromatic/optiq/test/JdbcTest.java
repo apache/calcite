@@ -2194,6 +2194,61 @@ public class JdbcTest {
         .planContains(".distinct(");
   }
 
+  /** Same result (and plan) as {@link #testSelectDistinct}. */
+  @Test public void testGroupByMax1IsNull() {
+    OptiqAssert.that()
+        .with(OptiqAssert.Config.REGULAR)
+        .query(
+            "select * from (\n"
+            + "select max(1) max_id\n"
+            + "from \"hr\".\"emps\" where 1=2\n"
+            + ") where max_id is null")
+        .returnsUnordered(
+            "MAX_ID=null");
+  }
+
+  /** Same result (and plan) as {@link #testSelectDistinct}. */
+  @Ignore("Analytic functions over constants are not supported :(")
+  @Test public void testGroupByMax1OverIsNull() {
+    OptiqAssert.that()
+        .with(OptiqAssert.Config.REGULAR)
+        .query(
+            "select * from (\n"
+            + "select max(1) over (partition by 2 order by 3) max_id\n"
+            + "from \"hr\".\"emps\" where 1=2\n"
+            + ") where max_id is null")
+        .returnsUnordered(
+            "MAX_ID=null");
+  }
+
+  /** Same result (and plan) as {@link #testSelectDistinct}. */
+  @Test public void testGroupBy1Max1() {
+    OptiqAssert.that()
+        .with(OptiqAssert.Config.REGULAR)
+        .query(
+            "select * from (\n"
+            + "select max(u) max_id\n"
+            + "from (select \"empid\"+\"deptno\" u, 1 cnst\n"
+            + "from \"hr\".\"emps\" a) where 1=2\n"
+            + "group by cnst\n"
+            + ") where max_id is null")
+        .returnsCount(0);
+  }
+
+  /** Same result (and plan) as {@link #testSelectDistinct}. */
+  @Test public void testCountUnionAll() {
+    OptiqAssert.that()
+        .with(OptiqAssert.Config.REGULAR)
+        .query(
+            "select count(*) c from (\n"
+            + "select * from \"hr\".\"emps\" where 1=2\n"
+            + "union all\n"
+            + "select * from \"hr\".\"emps\" where 3=4\n"
+            + ")")
+        .returnsUnordered(
+            "C=0");
+  }
+
   /** Tests that SUM and AVG over empty set return null. COUNT returns 0. */
   @Test public void testAggregateEmpty() {
     OptiqAssert.that()

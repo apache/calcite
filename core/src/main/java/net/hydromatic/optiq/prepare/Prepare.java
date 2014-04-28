@@ -45,6 +45,7 @@ import com.google.common.collect.Lists;
 
 import java.lang.reflect.Type;
 import java.util.*;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
@@ -160,6 +161,11 @@ public abstract class Prepare {
     planner3.setRoot(rootRel3);
 
     final RelNode rootRel4 = planner3.findBestExp();
+    if (LOGGER.isLoggable(Level.FINE)) {
+      LOGGER.fine(
+          "Plan after physical tweaks: "
+          + RelOptUtil.toString(rootRel4, SqlExplainLevel.ALL_ATTRIBUTES));
+    }
 
     return rootRel4;
   }

@@ -296,7 +296,8 @@ public abstract class RelOptUtil {
               SqlMinMaxAggFunction.MINMAX_COMPARABLE);
 
       RelDataType returnType =
-          minFunction.inferReturnType(typeFactory, argTypes);
+          minFunction.inferReturnType(new AggregateRelBase.AggCallBinding(
+              typeFactory, minFunction, argTypes, 0));
 
       final AggregateCall aggCall =
           new AggregateCall(
@@ -357,10 +358,11 @@ public abstract class RelOptUtil {
                 true,
                 SqlMinMaxAggFunction.MINMAX_COMPARABLE);
 
-        RelDataType returnType =
-            minFunction.inferReturnType(typeFactory, argTypes);
-
         int newProjFieldCount = ret.getRowType().getFieldCount();
+
+        RelDataType returnType =
+            minFunction.inferReturnType(new AggregateRelBase.AggCallBinding(
+                typeFactory, minFunction, argTypes, newProjFieldCount - 1));
 
         final AggregateCall aggCall =
             new AggregateCall(

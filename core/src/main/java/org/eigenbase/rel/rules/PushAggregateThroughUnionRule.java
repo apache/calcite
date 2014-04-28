@@ -23,6 +23,7 @@ import org.eigenbase.rel.*;
 import org.eigenbase.rel.metadata.*;
 import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.*;
+import org.eigenbase.sql.SqlAggFunction;
 import org.eigenbase.sql.fun.*;
 
 /**
@@ -32,6 +33,16 @@ import org.eigenbase.sql.fun.*;
 public class PushAggregateThroughUnionRule extends RelOptRule {
   public static final PushAggregateThroughUnionRule INSTANCE =
       new PushAggregateThroughUnionRule();
+
+  private static final Map<Class, Boolean> SUPPORTED_AGGREGATES =
+      new IdentityHashMap<Class, Boolean>();
+
+  static {
+    SUPPORTED_AGGREGATES.put(SqlMinMaxAggFunction.class, true);
+    SUPPORTED_AGGREGATES.put(SqlCountAggFunction.class, true);
+    SUPPORTED_AGGREGATES.put(SqlSumAggFunction.class, true);
+    SUPPORTED_AGGREGATES.put(SqlSumEmptyIsZeroAggFunction.class, true);
+  }
 
   /**
    * Private constructor.
@@ -61,11 +72,6 @@ public class PushAggregateThroughUnionRule extends RelOptRule {
     }
 
     RelOptCluster cluster = unionRel.getCluster();
-
-    BitSet groupByKeyMask = new BitSet();
-    for (int i = 0; i < aggRel.getGroupCount(); i++) {
-      groupByKeyMask.set(i);
-    }
 
     List<AggregateCall> transformedAggCalls =
         transformAggCalls(
@@ -134,20 +140,25 @@ public class PushAggregateThroughUnionRule extends RelOptRule {
     List<AggregateCall> newCalls = new ArrayList<AggregateCall>();
     int iInput = nGroupCols;
     for (AggregateCall origCall : origCalls) {
-      if (origCall.isDistinct()) {
+      if (origCall.isDistinct()
+          || !SUPPORTED_AGGREGATES.containsKey(origCall.getAggregation()
+              .getClass())) {
         return null;
       }
-      if (origCall.getAggregation().getName().equals("AVG")) {
-        return null;
-      }
-      // TODO jvs 13-May-2009: don't assume we know how to handle
-      // everything else.
       Aggregation aggFun;
       RelDataType aggType;
       if (origCall.getAggregation().getName().equals("COUNT")) {
-        aggType = typeFactory.createTypeWithNullability(
-            origCall.getType(), true);
-        aggFun = new SqlSumAggFunction(aggType);
+        aggFun = new SqlSumEmptyIsZeroAggFunction(origCall.getType());
+        SqlAggFunction af = (SqlAggFunction) aggFun;
+        final AggregateRelBase.AggCallBinding binding =
+            new AggregateRelBase.AggCallBinding(typeFactory, af,
+            Collections.singletonList(origCall.getType()),
+                nGroupCols);
+        // count(any) is always not null, however nullability of sum might
+        // depend on the number of columns in GROUP BY.
+        // Here we use SUM0 since we are sure we will not face nullable
+        // inputs nor we'll face empty set.
+        aggType = af.inferReturnType(binding);
       } else {
         aggFun = origCall.getAggregation();
         aggType = origCall.getType();

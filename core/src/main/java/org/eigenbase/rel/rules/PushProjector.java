@@ -556,7 +556,8 @@ public class PushProjector {
     return (ProjectRel) CalcRel.createProject(
         projChild,
         Pair.left(projects),
-        Pair.right(projects));
+        Pair.right(projects),
+        true /* optimize to avoid trivial projections, as per javadoc */);
   }
 
   //~ Inner Classes ----------------------------------------------------------

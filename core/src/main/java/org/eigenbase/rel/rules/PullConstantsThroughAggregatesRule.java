@@ -61,7 +61,7 @@ public class PullConstantsThroughAggregatesRule extends RelOptRule {
     super(
         operand(
             AggregateRel.class,
-            operand(CalcRel.class, any())));
+            operand(ProjectRel.class, any())));
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -69,11 +69,21 @@ public class PullConstantsThroughAggregatesRule extends RelOptRule {
   // implement RelOptRule
   public void onMatch(RelOptRuleCall call) {
     AggregateRel aggregate = call.rel(0);
-    CalcRel child = call.rel(1);
-    final RexProgram program = child.getProgram();
+    ProjectRel child = call.rel(1);
+
+    final int groupCount = aggregate.getGroupCount();
+    if (groupCount == 1) {
+      // No room for optimization since we cannot convert from non-empty
+      // GROUP BY list to the empty one.
+      return;
+    }
+
+    final RexProgram program =
+      RexProgram.create(child.getChild().getRowType(),
+        child.getProjects(), null, child.getRowType(),
+        child.getCluster().getRexBuilder());
 
     final RelDataType childRowType = child.getRowType();
-    final int groupCount = aggregate.getGroupSet().cardinality();
     IntList constantList = new IntList();
     Map<Integer, RexNode> constants = new HashMap<Integer, RexNode>();
     for (int i : BitSets.toIter(aggregate.getGroupSet())) {
@@ -90,6 +100,16 @@ public class PullConstantsThroughAggregatesRule extends RelOptRule {
     if (constantList.size() == 0) {
       return;
     }
+
+    if (groupCount == constantList.size()) {
+      // At least a single item in group by is required.
+      // Otherwise group by 1,2 might be altered to group by ()
+      // Removing of the first element is not optimal here,
+      // however it will allow us to use fast path below (just trim
+      // groupCount)
+      constantList.remove(0);
+    }
+
     final int newGroupCount = groupCount - constantList.size();
     final RelNode newAggregate;
 
@@ -101,12 +121,8 @@ public class PullConstantsThroughAggregatesRule extends RelOptRule {
           new ArrayList<AggregateCall>();
       for (AggregateCall aggCall : aggregate.getAggCallList()) {
         newAggCalls.add(
-            new AggregateCall(
-                aggCall.getAggregation(),
-                aggCall.isDistinct(),
-                aggCall.getArgList(),
-                aggCall.getType(),
-                aggCall.getName()));
+            aggCall.adaptTo(child, aggCall.getArgList(), groupCount,
+                newGroupCount));
       }
       newAggregate =
           new AggregateRel(
@@ -150,12 +166,7 @@ public class PullConstantsThroughAggregatesRule extends RelOptRule {
           args.add(mapping.getTarget(arg));
         }
         newAggCalls.add(
-            new AggregateCall(
-                aggCall.getAggregation(),
-                aggCall.isDistinct(),
-                args,
-                aggCall.getType(),
-                aggCall.getName()));
+            aggCall.adaptTo(project, args, groupCount, newGroupCount));
       }
 
       // Aggregate on projection.

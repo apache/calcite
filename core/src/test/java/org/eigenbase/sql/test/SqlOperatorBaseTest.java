@@ -4606,9 +4606,9 @@ public abstract class SqlOperatorBaseTest {
         "min(^*^)",
         "Unknown identifier '\\*'",
         false);
-    tester.checkType("min(1)", "INTEGER NOT NULL");
-    tester.checkType("min(1.2)", "DECIMAL(2, 1) NOT NULL");
-    tester.checkType("min(DISTINCT 1.5)", "DECIMAL(2, 1) NOT NULL");
+    tester.checkType("min(1)", "INTEGER");
+    tester.checkType("min(1.2)", "DECIMAL(2, 1)");
+    tester.checkType("min(DISTINCT 1.5)", "DECIMAL(2, 1)");
     tester.checkFails(
         "^min()^",
         "Invalid number of arguments to function 'MIN'. Was expecting 1 arguments",
@@ -4649,9 +4649,9 @@ public abstract class SqlOperatorBaseTest {
         "max(^*^)",
         "Unknown identifier '\\*'",
         false);
-    tester.checkType("max(1)", "INTEGER NOT NULL");
-    tester.checkType("max(1.2)", "DECIMAL(2, 1) NOT NULL");
-    tester.checkType("max(DISTINCT 1.5)", "DECIMAL(2, 1) NOT NULL");
+    tester.checkType("max(1)", "INTEGER");
+    tester.checkType("max(1.2)", "DECIMAL(2, 1)");
+    tester.checkType("max(DISTINCT 1.5)", "DECIMAL(2, 1)");
     tester.checkFails(
         "^max()^",
         "Invalid number of arguments to function 'MAX'. Was expecting 1 arguments",

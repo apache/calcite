@@ -406,6 +406,7 @@ public class DiffRepository {
         String actualCanonical =
             actual.replace(Util.LINE_SEPARATOR, "\n");
         Assert.assertEquals(
+            tag,
             expected2Canonical,
             actualCanonical);
       } catch (ComparisonFailure e) {

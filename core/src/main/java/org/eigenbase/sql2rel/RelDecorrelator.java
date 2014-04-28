@@ -469,13 +469,8 @@ public class RelDecorrelator implements ReflectiveVisitor {
         aggArgs.add(combinedMap.get(oldPos));
       }
 
-      newAggCalls.add(
-          new AggregateCall(
-              oldAggCall.getAggregation(),
-              oldAggCall.isDistinct(),
-              aggArgs,
-              oldAggCall.getType(),
-              oldAggCall.getName()));
+      newAggCalls.add(oldAggCall.adaptTo(newProjectRel, aggArgs,
+          oldGroupKeyCount, newGroupKeyCount));
 
       // The old to new output position mapping will be the same as that
       // of newProjectRel, plus any aggregates that the oldAgg produces.
@@ -2294,13 +2289,8 @@ public class RelDecorrelator implements ReflectiveVisitor {
           }
         }
 
-        newAggCalls.add(
-            new AggregateCall(
-                aggCall.getAggregation(),
-                aggCall.isDistinct(),
-                newAggArgs,
-                aggCall.getType(),
-                aggCall.getName()));
+        newAggCalls.add(aggCall.adaptTo(joinOutputProjRel, newAggArgs,
+                aggRel.getGroupCount(), groupCount));
       }
 
       BitSet groupSet =

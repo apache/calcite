@@ -1103,6 +1103,33 @@ public abstract class SqlTypeUtil {
   }
 
   /**
+   * Selects data types of the specified fields from an input row type.
+   * This is useful when identifying data types of a function that is going
+   * to operate on inputs that are specified as field ordinals (e.g.
+   * aggregate calls).
+   *
+   * @param rowType input row type
+   * @param requiredFields ordinals of the projected fields
+   * @return list of data types that are requested by requiredFields
+   */
+  public static List<RelDataType> projectTypes(final RelDataType rowType,
+      final List<? extends Number> requiredFields) {
+    final List<RelDataTypeField> fields = rowType.getFieldList();
+
+    return new AbstractList<RelDataType>() {
+      @Override
+      public RelDataType get(int index) {
+        return fields.get(requiredFields.get(index).intValue()).getType();
+      }
+
+      @Override
+      public int size() {
+        return requiredFields.size();
+      }
+    };
+  }
+
+  /**
    * Records a struct type with no fields.
    *
    * @param typeFactory Type factory

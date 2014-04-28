@@ -21,6 +21,7 @@ import java.util.*;
 
 import org.eigenbase.reltype.*;
 import org.eigenbase.sql.*;
+import org.eigenbase.sql.type.SqlTypeUtil;
 
 import com.google.common.collect.ImmutableList;
 
@@ -168,11 +169,48 @@ public class AggregateCall {
    */
   public AggregateRelBase.AggCallBinding createBinding(
       AggregateRelBase aggregateRelBase) {
+    final RelDataType rowType = aggregateRelBase.getChild().getRowType();
+
     return new AggregateRelBase.AggCallBinding(
         aggregateRelBase.getCluster().getTypeFactory(),
         (SqlAggFunction) aggregation,
-        aggregateRelBase,
-        argList);
+        SqlTypeUtil.projectTypes(rowType, argList),
+        aggregateRelBase.getGroupCount());
+  }
+
+  /**
+   * Creates equivalent AggregateCall that is adapted to a new input types
+   * and/or number of columns in GROUP BY.
+   *
+   * @param input relation that will be used as a child of AggregateRel
+   * @param aggArgs argument indices of the new call in the input
+   * @param oldGroupKeyCount number of columns in GROUP BY of old AggregateRel
+   * @param newGroupKeyCount number of columns in GROUP BY of new AggregateRel
+   * @return AggregateCall that suits new inputs and GROUP BY columns
+   */
+  public AggregateCall adaptTo(RelNode input, List<Integer> aggArgs,
+      int oldGroupKeyCount, int newGroupKeyCount) {
+    final SqlAggFunction sqlAgg = (SqlAggFunction) aggregation;
+    // The return type of aggregate call need to be recomputed.
+    // Since it might depend on the number of columns in GROUP BY.
+    RelDataType newReturnType;
+    if (oldGroupKeyCount == newGroupKeyCount) {
+      newReturnType = getType();
+    } else {
+      newReturnType = sqlAgg.inferReturnType(
+            new AggregateRelBase.AggCallBinding(
+                input.getCluster().getTypeFactory(),
+                sqlAgg,
+                SqlTypeUtil.projectTypes(input.getRowType(), aggArgs),
+                newGroupKeyCount));
+    }
+
+    return new AggregateCall(
+            aggregation,
+            isDistinct(),
+            aggArgs,
+            newReturnType,
+            getName());
   }
 }
 

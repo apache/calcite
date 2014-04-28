@@ -102,6 +102,8 @@ public class MockCatalogReader implements Prepare.CatalogReader {
   protected void init() {
     final RelDataType intType =
         typeFactory.createSqlType(SqlTypeName.INTEGER);
+    final RelDataType intTypeNull =
+        typeFactory.createTypeWithNullability(intType, true);
     final RelDataType varchar10Type =
         typeFactory.createSqlType(SqlTypeName.VARCHAR, 10);
     final RelDataType varchar20Type =
@@ -136,7 +138,7 @@ public class MockCatalogReader implements Prepare.CatalogReader {
     empTable.addColumn("EMPNO", intType);
     empTable.addColumn("ENAME", varchar20Type);
     empTable.addColumn("JOB", varchar10Type);
-    empTable.addColumn("MGR", intType);
+    empTable.addColumn("MGR", intTypeNull);
     empTable.addColumn("HIREDATE", timestampType);
     empTable.addColumn("SAL", intType);
     empTable.addColumn("COMM", intType);

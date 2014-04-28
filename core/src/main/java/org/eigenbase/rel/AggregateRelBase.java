@@ -247,29 +247,34 @@ public abstract class AggregateRelBase extends SingleRel {
    * of a {@link AggregateRel}.
    */
   public static class AggCallBinding extends SqlOperatorBinding {
-    private final AggregateRelBase aggregateRel;
-    private final ImmutableList<Integer> operands;
+    private final List<RelDataType> operands;
+    private final int groupCount;
 
     /**
      * Creates an AggCallBinding
      *
      * @param typeFactory  Type factory
      * @param aggFunction  Aggregation function
-     * @param aggregateRel Relational expression which is context
-     * @param operands     Operand ordinals
+     * @param operands     Data types of operands
+     * @param groupCount   Number of columns in the GROUP BY clause
      */
-    AggCallBinding(
+    public AggCallBinding(
         RelDataTypeFactory typeFactory,
         SqlAggFunction aggFunction,
-        AggregateRelBase aggregateRel,
-        ImmutableList<Integer> operands) {
+        List<RelDataType> operands,
+        int groupCount) {
       super(typeFactory, aggFunction);
-      this.aggregateRel = aggregateRel;
       this.operands = operands;
+      this.groupCount = groupCount;
+      assert operands != null
+          : "operands of aggregate call should not be null";
+      assert groupCount >= 0
+          : "number of group by columns should be greater than zero in "
+            + "aggregate call. Got " + groupCount;
     }
 
     @Override public int getGroupCount() {
-      return aggregateRel.getGroupCount();
+      return groupCount;
     }
 
     public int getOperandCount() {
@@ -277,9 +282,7 @@ public abstract class AggregateRelBase extends SingleRel {
     }
 
     public RelDataType getOperandType(int ordinal) {
-      final RelDataType childType = aggregateRel.getChild().getRowType();
-      int operand = operands.get(ordinal);
-      return childType.getFieldList().get(operand).getType();
+      return operands.get(ordinal);
     }
 
     public EigenbaseException newError(
