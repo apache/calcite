@@ -159,8 +159,8 @@ source projects for over ten years.
 ### Homogenous Developers
 
 The initial committers are employed by a number of companies,
-including Concurrent, Hortonworks, MapR Technologies and Salesforce.com. We are
-committed to recruiting additional committers from outside these
+including Concurrent, Hortonworks, MapR Technologies and Salesforce.com.
+We are committed to recruiting additional committers from outside these
 companies.
 
 ### Reliance on Salaried Developers
@@ -296,8 +296,8 @@ and Salesforce.com.
   MapR Technologies; committer for Lucene, Mahout and ZooKeeper.
 * Alan Gates (gates at apache dot org) - Architect at Hortonworks;
   committer for Pig, Hive and others.
-* Steven Noels (stevenn at apache dot org) - SVP Products at NGData;
-  committer for Coccoon, Forrest and Phoenix.
+* Steven Noels (stevenn at apache dot org) - Chief Technical Officer at NGDATA;
+  committer for Cocoon and Forrest, mentor for Phoenix.
 
 ### Sponsoring Entity
 
