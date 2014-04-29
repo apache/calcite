@@ -1275,7 +1275,7 @@ public class JdbcTest {
     assertEquals(1, rs.getInt(1));
     Array array = rs.getArray(2);
     assertNotNull(array);
-    assertArrayEquals(new Object[]{1, 2, 3}, (Object[]) array.getArray());
+    assertArrayEquals(new int[] {1, 2, 3}, (int[]) array.getArray());
     assertFalse(rs.next());
     rs.close();
 
@@ -1301,6 +1301,18 @@ public class JdbcTest {
     assertFalse(rs.next());
 
     optiqConnection.close();
+  }
+
+  /** Tests the {@code CARDINALITY} function applied to an array column. */
+  @Test public void testArray2() {
+    OptiqAssert.that()
+        .with(OptiqAssert.Config.REGULAR)
+        .query(
+            "select \"deptno\", cardinality(\"employees\") as c\n"
+            + "from \"hr\".\"depts\"")
+        .returnsUnordered("deptno=10; C=2",
+            "deptno=30; C=0",
+            "deptno=40; C=1");
   }
 
   private OptiqAssert.AssertQuery withFoodMartQuery(int id) throws IOException {

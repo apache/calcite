@@ -19,6 +19,7 @@ package net.hydromatic.optiq.runtime;
 
 import net.hydromatic.avatica.ByteString;
 
+import net.hydromatic.linq4j.expressions.Primitive;
 import net.hydromatic.linq4j.function.Deterministic;
 import net.hydromatic.linq4j.function.NonDeterministic;
 
@@ -27,6 +28,7 @@ import net.hydromatic.optiq.DataContext;
 import org.eigenbase.util14.DateTimeUtil;
 
 import java.math.*;
+import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.text.DecimalFormat;
 import java.util.*;
@@ -1522,6 +1524,18 @@ public class SqlFunctions {
       throw new RuntimeException("more than one value");
     }
     return v;
+  }
+
+  /** Converts a JDBC array to a list. */
+  public static List arrayToList(final java.sql.Array a) {
+    if (a == null) {
+      return null;
+    }
+    try {
+      return Primitive.asList(a.getArray());
+    } catch (SQLException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   /** A range of time units. The first is more significant than the

@@ -66,6 +66,8 @@ public class JavaRules {
 
   public static final String[] LEFT_RIGHT = new String[]{"left", "right"};
 
+  private static final boolean B = false;
+
   private JavaRules() {
   }
 
@@ -471,7 +473,7 @@ public class JavaRules {
     public RelNode convert(RelNode rel) {
       final ProjectRel project = (ProjectRel) rel;
 
-      if (RexMultisetUtil.containsMultiset(project.getProjects(), true)
+      if (B && RexMultisetUtil.containsMultiset(project.getProjects(), true)
           || RexOver.containsOver(project.getProjects(), null)) {
         return null;
       }
@@ -537,7 +539,7 @@ public class JavaRules {
     public RelNode convert(RelNode rel) {
       final FilterRel filter = (FilterRel) rel;
 
-      if (RexMultisetUtil.containsMultiset(filter.getCondition(), true)
+      if (B && RexMultisetUtil.containsMultiset(filter.getCondition(), true)
           || RexOver.containsOver(filter.getCondition())) {
         return null;
       }
@@ -601,7 +603,7 @@ public class JavaRules {
       // If there's a multiset, let FarragoMultisetSplitter work on it
       // first.
       final RexProgram program = calc.getProgram();
-      if (RexMultisetUtil.containsMultiset(program)
+      if (B && RexMultisetUtil.containsMultiset(program)
           || program.containsAggs()) {
         return null;
       }

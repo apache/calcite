@@ -209,6 +209,13 @@ public class JdbcToEnumerableConverter
                       getMethod2(sqlTypeName), dateTimeArgs))
           .appendIf(offset, getTimeZoneExpression(implementor)));
       break;
+    case ARRAY:
+      final Expression x = Expressions.convert_(
+          Expressions.call(resultSet_, jdbcGetMethod(primitive),
+              Expressions.constant(i + 1)),
+          java.sql.Array.class);
+      source = Expressions.call(BuiltinMethod.JDBC_ARRAY_TO_LIST.method, x);
+      break;
     default:
       source = Expressions.call(
           resultSet_, jdbcGetMethod(primitive), Expressions.constant(i + 1));

@@ -164,6 +164,10 @@ public class RexImpTable {
     defineImplementor(NOT_SIMILAR_TO, NullPolicy.STRICT,
         NotImplementor.of(similarImplementor), false);
 
+    // Multisets & arrays
+    defineMethod(CARDINALITY, BuiltinMethod.COLLECTION_SIZE.method,
+        NullPolicy.STRICT);
+
     map.put(CASE, new CaseImplementor());
 
     map.put(CAST, new CastOptimizedImplementor());
@@ -976,9 +980,12 @@ public class RexImpTable {
         RexToLixTranslator translator,
         RexCall call,
         List<Expression> translatedOperands) {
-      return Expressions.call(
-          method,
-          translatedOperands);
+      if (Modifier.isStatic(method.getModifiers())) {
+        return Expressions.call(method, translatedOperands);
+      } else {
+        return Expressions.call(translatedOperands.get(0), method,
+            Util.skip(translatedOperands, 1));
+      }
     }
   }
 
