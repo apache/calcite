@@ -134,6 +134,16 @@ public class ViewTable
           RelDataTypeImpl.proto(parsed.rowType), viewSql, schemaPath1);
     }
   }
+
+  /** Get the view's SQL definition. */
+  public String getViewSql() {
+    return viewSql;
+  }
+
+  /** Get the schemapath of the view */
+  public List<String> getSchemaPath() {
+    return schemaPath;
+  }
 }
 
 // End ViewTable.java
