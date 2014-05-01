@@ -159,6 +159,8 @@ public class OptiqPrepareImpl implements OptiqPrepare {
     planner.addRule(JavaRules.ENUMERABLE_AGGREGATE_RULE);
     planner.addRule(JavaRules.ENUMERABLE_SORT_RULE);
     planner.addRule(JavaRules.ENUMERABLE_LIMIT_RULE);
+    planner.addRule(JavaRules.ENUMERABLE_COLLECT_RULE);
+    planner.addRule(JavaRules.ENUMERABLE_UNCOLLECT_RULE);
     planner.addRule(JavaRules.ENUMERABLE_UNION_RULE);
     planner.addRule(JavaRules.ENUMERABLE_INTERSECT_RULE);
     planner.addRule(JavaRules.ENUMERABLE_MINUS_RULE);

@@ -2197,13 +2197,13 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     case UNNEST:
       call = (SqlCall) node;
       final UnnestNamespace unnestNs =
-          new UnnestNamespace(this, call, usingScope, enclosingNode);
+          new UnnestNamespace(this, call, parentScope, enclosingNode);
       registerNamespace(
           usingScope,
           alias,
           unnestNs,
           forceNullable);
-      registerOperandSubqueries(usingScope, call, 0);
+      registerOperandSubqueries(parentScope, call, 0);
       break;
 
     case OTHER_FUNCTION:
@@ -2226,13 +2226,13 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       validateFeature(RESOURCE.sQLFeature_S271(), node.getParserPosition());
       call = (SqlCall) node;
       CollectScope cs = new CollectScope(parentScope, usingScope, call);
-      final CollectNamespace ttableConstructorNs =
+      final CollectNamespace tableConstructorNs =
           new CollectNamespace(call, cs, enclosingNode);
       final String alias2 = deriveAlias(node, nextGeneratedId++);
       registerNamespace(
           usingScope,
           alias2,
-          ttableConstructorNs,
+          tableConstructorNs,
           forceNullable);
       operands = call.getOperandList();
       for (int i = 0; i < operands.size(); i++) {

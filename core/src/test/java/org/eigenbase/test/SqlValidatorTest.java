@@ -5920,6 +5920,12 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         "select*from ^unnest(1)^",
         "(?s).*Cannot apply 'UNNEST' to arguments of type 'UNNEST.<INTEGER>.'.*");
     check("select*from unnest(multiset(select*from dept))");
+    check("select c from unnest(multiset(select deptno from dept)) as t(c)");
+    checkFails("select c from unnest(multiset(select * from dept)) as t(^c^)",
+        "List of column aliases must have same degree as table; table has 2 columns \\('DEPTNO', 'NAME'\\), whereas alias list has 1 columns");
+    checkFails(
+        "select ^c1^ from unnest(multiset(select name from dept)) as t(c)",
+        "Column 'C1' not found in any table");
   }
 
   @Test public void testCorrelationJoin() {

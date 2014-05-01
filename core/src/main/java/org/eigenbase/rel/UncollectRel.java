@@ -30,7 +30,7 @@ import org.eigenbase.sql.*;
  * <p>Like its inverse operation {@link CollectRel}, UncollectRel is generally
  * invoked in a nested loop, driven by {@link CorrelatorRel} or similar.
  */
-public final class UncollectRel extends SingleRel {
+public class UncollectRel extends SingleRel {
   //~ Constructors -----------------------------------------------------------
 
   /**
@@ -40,15 +40,12 @@ public final class UncollectRel extends SingleRel {
    * one column, that column must be a multiset of records.
    *
    * @param cluster Cluster the relational expression belongs to
+   * @param traitSet Traits
    * @param child   Child relational expression
    */
-  public UncollectRel(
-      RelOptCluster cluster,
+  public UncollectRel(RelOptCluster cluster, RelTraitSet traitSet,
       RelNode child) {
-    super(
-        cluster,
-        cluster.traitSetOf(Convention.NONE),
-        child);
+    super(cluster, traitSet, child);
     assert deriveRowType() != null : "invalid child rowtype";
   }
 
@@ -56,16 +53,19 @@ public final class UncollectRel extends SingleRel {
    * Creates an UncollectRel by parsing serialized output.
    */
   public UncollectRel(RelInput input) {
-    this(input.getCluster(), input.getInput());
+    this(input.getCluster(), input.getTraitSet(), input.getInput());
   }
 
   //~ Methods ----------------------------------------------------------------
 
-  public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
+  @Override public final RelNode copy(RelTraitSet traitSet,
+      List<RelNode> inputs) {
+    return copy(traitSet, sole(inputs));
+  }
+
+  public RelNode copy(RelTraitSet traitSet, RelNode input) {
     assert traitSet.containsIfApplicable(Convention.NONE);
-    return new UncollectRel(
-        getCluster(),
-        sole(inputs));
+    return new UncollectRel(getCluster(), traitSet, input);
   }
 
   protected RelDataType deriveRowType() {

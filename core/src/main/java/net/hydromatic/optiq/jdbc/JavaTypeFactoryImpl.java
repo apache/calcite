@@ -159,6 +159,7 @@ public class JavaTypeFactoryImpl
     case MAP:
       return Map.class;
     case ARRAY:
+    case MULTISET:
       return List.class;
     }
     return null;

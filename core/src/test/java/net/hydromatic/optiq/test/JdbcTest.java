@@ -1315,6 +1315,74 @@ public class JdbcTest {
             "deptno=40; C=1");
   }
 
+  @Test public void testArrayConstructor() {
+    OptiqAssert.that()
+        .with(OptiqAssert.Config.REGULAR)
+        .query("select array[1,2] as a from (values (1))")
+        .returnsUnordered("A=[1, 2]");
+  }
+
+  @Test public void testMultisetConstructor() {
+    OptiqAssert.that()
+        .with(OptiqAssert.Config.REGULAR)
+        .query("select multiset[1,2] as a from (values (1))")
+        .returnsUnordered("A=[1, 2]");
+  }
+
+  @Test public void testMultisetQuery() {
+    OptiqAssert.that()
+        .with(OptiqAssert.Config.REGULAR)
+        .query("select multiset(\n"
+            + "  select \"deptno\", \"empid\" from \"hr\".\"emps\") as a\n"
+            + "from (values (1))")
+        .returnsUnordered("A=[[10, 100], [20, 200], [10, 150], [10, 110]]");
+  }
+
+  @Test public void testMultisetQueryWithSingleColumn() {
+    OptiqAssert.that()
+        .with(OptiqAssert.Config.REGULAR)
+        .query("select multiset(\n"
+            + "  select \"deptno\" from \"hr\".\"emps\") as a\n"
+            + "from (values (1))")
+        .returnsUnordered("A=[10, 20, 10, 10]");
+  }
+
+  @Ignore("unnest does not apply to array. should it?")
+  @Test public void testUnnestArray() {
+    OptiqAssert.that()
+        .with(OptiqAssert.Config.REGULAR)
+        .query("select*from unnest(array[1,2])")
+        .returnsUnordered("xx");
+  }
+
+  @Test public void testUnnestMultiset() {
+    OptiqAssert.that()
+        .with(OptiqAssert.Config.REGULAR)
+        .query("select*from unnest(multiset[1,2]) as t(c)")
+        .returnsUnordered("C=1", "C=2");
+  }
+
+  @Test public void testUnnestMultiset2() {
+    OptiqAssert.that()
+        .with(OptiqAssert.Config.REGULAR)
+        .query("select*from unnest(\n"
+            + " select \"employees\" from \"hr\".\"depts\"\n"
+            + " where \"deptno\" = 10)")
+        .returnsUnordered(
+            "EXPR$0=Employee [empid: 100, deptno: 10, name: Bill]",
+            "EXPR$0=Employee [empid: 150, deptno: 10, name: Sebastian]");
+  }
+
+  @Test public void testArrayElement() {
+    OptiqAssert.that()
+        .with(OptiqAssert.Config.REGULAR)
+        .query("select element(\"employees\") from \"hr\".\"depts\"\n"
+            + "where cardinality(\"employees\") < 2")
+        .returnsUnordered(
+            "EXPR$0=Employee [empid: 200, deptno: 20, name: Eric]",
+            "EXPR$0=null");
+  }
+
   private OptiqAssert.AssertQuery withFoodMartQuery(int id) throws IOException {
     final FoodmartTest.FoodMartQuerySet set =
         FoodmartTest.FoodMartQuerySet.instance();

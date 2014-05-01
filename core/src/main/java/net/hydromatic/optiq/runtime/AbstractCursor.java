@@ -1044,11 +1044,41 @@ public abstract class AbstractCursor implements Cursor {
 
     @Override
     public Array getArray() {
-      final Object o = getObject();
+      final List list = (List) getObject();
+      if (list == null) {
+        return null;
+      }
+      return new ArrayImpl(list, sqlType);
+    }
+
+    @Override
+    public String getString() {
+      final List o = (List) getObject();
       if (o == null) {
         return null;
       }
-      return new ArrayImpl((List) o, sqlType);
+      final Iterator iterator = o.iterator();
+      if (!iterator.hasNext()) {
+        return "[]";
+      }
+      final StringBuilder buf = new StringBuilder("[");
+      for (;;) {
+        append(buf, iterator.next());
+        if (!iterator.hasNext()) {
+          return buf.append("]").toString();
+        }
+        buf.append(", ");
+      }
+    }
+
+    private void append(StringBuilder buf, Object o) {
+      if (o == null) {
+        buf.append("null");
+      } else if (o.getClass().isArray()) {
+        append(buf, Primitive.asList(o));
+      } else {
+        buf.append(o);
+      }
     }
   }
 

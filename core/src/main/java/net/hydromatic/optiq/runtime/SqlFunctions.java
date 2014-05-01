@@ -19,8 +19,11 @@ package net.hydromatic.optiq.runtime;
 
 import net.hydromatic.avatica.ByteString;
 
+import net.hydromatic.linq4j.Enumerable;
+import net.hydromatic.linq4j.Linq4j;
 import net.hydromatic.linq4j.expressions.Primitive;
 import net.hydromatic.linq4j.function.Deterministic;
+import net.hydromatic.linq4j.function.Function1;
 import net.hydromatic.linq4j.function.NonDeterministic;
 
 import net.hydromatic.optiq.DataContext;
@@ -55,6 +58,14 @@ public class SqlFunctions {
   public static final int EPOCH_JULIAN = 2440588;
 
   private static final TimeZone LOCAL_TZ = TimeZone.getDefault();
+
+  private static final Function1<List<Object>, Enumerable<Object>>
+  LIST_AS_ENUMERABLE =
+      new Function1<List<Object>, Enumerable<Object>>() {
+        public Enumerable<Object> apply(List<Object> list) {
+          return Linq4j.asEnumerable(list);
+        }
+      };
 
   private SqlFunctions() {
   }
@@ -1536,6 +1547,29 @@ public class SqlFunctions {
     } catch (SQLException e) {
       throw new RuntimeException(e);
     }
+  }
+
+  /** Support the SLICE function. */
+  public static List slice(List list) {
+    return list;
+  }
+
+  /** Support the ELEMENT function. */
+  public static Object element(List list) {
+    switch (list.size()) {
+    case 0:
+      return null;
+    case 1:
+      return list.get(0);
+    default:
+      throw new RuntimeException("more than one value");
+    }
+  }
+
+  /** Returns a lambda that converts a list to an enumerable. */
+  public static <E> Function1<List<E>, Enumerable<E>> listToEnumerable() {
+    //noinspection unchecked
+    return (Function1<List<E>, Enumerable<E>>) (Function1) LIST_AS_ENUMERABLE;
   }
 
   /** A range of time units. The first is more significant than the

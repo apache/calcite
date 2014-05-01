@@ -34,7 +34,7 @@ public class SqlUnnestOperator extends SqlFunctionalOperator {
         true,
         null,
         null,
-        OperandTypes.MULTISET_OR_RECORD_MULTISET);
+        OperandTypes.SCALAR_OR_RECORD_COLLECTION);
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -45,8 +45,8 @@ public class SqlUnnestOperator extends SqlFunctionalOperator {
     if (type.isStruct()) {
       type = type.getFieldList().get(0).getType();
     }
-    MultisetSqlType t = (MultisetSqlType) type;
-    return t.getComponentType();
+    assert type instanceof ArraySqlType || type instanceof MultisetSqlType;
+    return type.getComponentType();
   }
 
   public boolean argumentMustBeScalar(int ordinal) {

@@ -1759,7 +1759,9 @@ public class SqlToRelConverter {
               Collections.singletonList(validator.deriveAlias(call, 0)),
               true);
 
-      UncollectRel uncollectRel = new UncollectRel(cluster, childRel);
+      UncollectRel uncollectRel =
+          new UncollectRel(cluster, cluster.traitSetOf(Convention.NONE),
+              childRel);
       bb.setRoot(uncollectRel, true);
       return;
 
@@ -3320,6 +3322,7 @@ public class SqlToRelConverter {
       CollectRel collectRel =
           new CollectRel(
               cluster,
+              cluster.traitSetOf(Convention.NONE),
               input,
               validator.deriveAlias(call, i));
       joinList.add(collectRel);

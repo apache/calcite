@@ -160,7 +160,16 @@ public abstract class OperandTypes {
   public static final SqlSingleOperandTypeChecker MULTISET =
       family(SqlTypeFamily.MULTISET);
 
+  public static final SqlSingleOperandTypeChecker ARRAY =
+      family(SqlTypeFamily.ARRAY);
+
+  /** Checks that returns whether a value is a multiset or an array.
+   * Cf Java, where list and set are collections but a map is not. */
   public static final SqlSingleOperandTypeChecker COLLECTION =
+      or(family(SqlTypeFamily.MULTISET),
+          family(SqlTypeFamily.ARRAY));
+
+  public static final SqlSingleOperandTypeChecker COLLECTION_OR_MAP =
       or(family(SqlTypeFamily.MULTISET),
           family(SqlTypeFamily.ARRAY),
           family(SqlTypeFamily.MAP));
@@ -356,7 +365,11 @@ public abstract class OperandTypes {
   public static final SqlSingleOperandTypeChecker NUMERIC_OR_STRING =
       OperandTypes.or(NUMERIC, STRING);
 
-  public static final SqlSingleOperandTypeChecker RECORD_MULTISET =
+  /** Checker that returns whether a value is a multiset of records or an
+   * array of records.
+   *
+   * @see #COLLECTION */
+  public static final SqlSingleOperandTypeChecker RECORD_COLLECTION =
       new SqlSingleOperandTypeChecker() {
         public boolean checkSingleOperandType(
             SqlCallBinding callBinding,
@@ -376,7 +389,8 @@ public abstract class OperandTypes {
           } else {
             SqlTypeName typeName =
                 type.getFieldList().get(0).getType().getSqlTypeName();
-            if (typeName != SqlTypeName.MULTISET) {
+            if (typeName != SqlTypeName.MULTISET
+                && typeName != SqlTypeName.ARRAY) {
               validationError = true;
             }
           }
@@ -406,8 +420,10 @@ public abstract class OperandTypes {
         }
       };
 
-  public static final SqlSingleOperandTypeChecker MULTISET_OR_RECORD_MULTISET =
-      OperandTypes.or(MULTISET, RECORD_MULTISET);
+  /** Checker that returns whether a value is a collection (multiset or array)
+   * of scalar or record values. */
+  public static final SqlSingleOperandTypeChecker SCALAR_OR_RECORD_COLLECTION =
+      OperandTypes.or(COLLECTION, RECORD_COLLECTION);
 
   public static final SqlOperandTypeChecker MULTISET_MULTISET =
       new MultisetOperandTypeChecker();

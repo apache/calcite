@@ -167,6 +167,8 @@ public class RexImpTable {
     // Multisets & arrays
     defineMethod(CARDINALITY, BuiltinMethod.COLLECTION_SIZE.method,
         NullPolicy.STRICT);
+    defineMethod(SLICE, BuiltinMethod.SLICE.method, NullPolicy.NONE);
+    defineMethod(ELEMENT, BuiltinMethod.ELEMENT.method, NullPolicy.STRICT);
 
     map.put(CASE, new CaseImplementor());
 

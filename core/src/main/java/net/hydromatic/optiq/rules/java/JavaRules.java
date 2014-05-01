@@ -2399,6 +2399,157 @@ public class JavaRules {
     }
   }
 
+  public static final EnumerableCollectRule ENUMERABLE_COLLECT_RULE =
+      new EnumerableCollectRule();
+
+  /**
+   * Rule to convert an {@link org.eigenbase.rel.CollectRel} to an
+   * {@link net.hydromatic.optiq.rules.java.JavaRules.EnumerableCollectRel}.
+   */
+  private static class EnumerableCollectRule
+      extends ConverterRule {
+    private EnumerableCollectRule() {
+      super(
+          CollectRel.class,
+          Convention.NONE,
+          EnumerableConvention.INSTANCE,
+          "EnumerableCollectRule");
+    }
+
+    public RelNode convert(RelNode rel) {
+      final CollectRel collect = (CollectRel) rel;
+      final RelTraitSet traitSet =
+          collect.getTraitSet().replace(EnumerableConvention.INSTANCE);
+      final RelNode input = collect.getChild();
+      return new EnumerableCollectRel(
+          rel.getCluster(),
+          traitSet,
+          convert(input,
+              input.getTraitSet().replace(EnumerableConvention.INSTANCE)),
+          collect.getFieldName());
+    }
+  }
+
+  /** Implementation of {@link org.eigenbase.rel.CollectRel} in
+   * {@link EnumerableConvention enumerable calling convention}. */
+  public static class EnumerableCollectRel
+      extends CollectRel
+      implements EnumerableRel {
+    public EnumerableCollectRel(RelOptCluster cluster, RelTraitSet traitSet,
+        RelNode child, String fieldName) {
+      super(cluster, traitSet, child, fieldName);
+      assert getConvention() instanceof EnumerableConvention;
+      assert getConvention() == child.getConvention();
+    }
+
+    @Override public EnumerableCollectRel copy(RelTraitSet traitSet,
+        RelNode newInput) {
+      return new EnumerableCollectRel(getCluster(), traitSet, newInput,
+          fieldName);
+    }
+
+    public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
+      final BlockBuilder builder = new BlockBuilder();
+      final EnumerableRel child = (EnumerableRel) getChild();
+      final Result result = implementor.visitChild(this, 0, child, pref);
+      final PhysType physType =
+          PhysTypeImpl.of(
+              implementor.getTypeFactory(),
+              getRowType(),
+              result.format);
+
+      // final Enumerable<Employee> child = <<child impl>>;
+      // final List<Employee> list = child.toList();
+      Expression child_ =
+          builder.append(
+              "child", result.block);
+      Expression list_ =
+          builder.append("list",
+              Expressions.call(child_,
+                  BuiltinMethod.ENUMERABLE_TO_LIST.method));
+
+      builder.add(
+          Expressions.return_(null,
+              Expressions.call(
+                  BuiltinMethod.SINGLETON_ENUMERABLE.method, list_)));
+      return implementor.result(physType, builder.toBlock());
+    }
+  }
+
+  public static final EnumerableUncollectRule ENUMERABLE_UNCOLLECT_RULE =
+      new EnumerableUncollectRule();
+
+  /**
+   * Rule to convert an {@link org.eigenbase.rel.UncollectRel} to an
+   * {@link net.hydromatic.optiq.rules.java.JavaRules.EnumerableUncollectRel}.
+   */
+  private static class EnumerableUncollectRule
+      extends ConverterRule {
+    private EnumerableUncollectRule() {
+      super(
+          UncollectRel.class,
+          Convention.NONE,
+          EnumerableConvention.INSTANCE,
+          "EnumerableUncollectRule");
+    }
+
+    public RelNode convert(RelNode rel) {
+      final UncollectRel uncollect = (UncollectRel) rel;
+      final RelTraitSet traitSet =
+          uncollect.getTraitSet().replace(EnumerableConvention.INSTANCE);
+      final RelNode input = uncollect.getChild();
+      return new EnumerableUncollectRel(
+          rel.getCluster(),
+          traitSet,
+          convert(input,
+              input.getTraitSet().replace(EnumerableConvention.INSTANCE)));
+    }
+  }
+
+  /** Implementation of {@link org.eigenbase.rel.UncollectRel} in
+   * {@link EnumerableConvention enumerable calling convention}. */
+  public static class EnumerableUncollectRel
+      extends UncollectRel
+      implements EnumerableRel {
+    public EnumerableUncollectRel(RelOptCluster cluster, RelTraitSet traitSet,
+        RelNode child) {
+      super(cluster, traitSet, child);
+      assert getConvention() instanceof EnumerableConvention;
+      assert getConvention() == child.getConvention();
+    }
+
+    @Override public EnumerableUncollectRel copy(RelTraitSet traitSet,
+        RelNode newInput) {
+      return new EnumerableUncollectRel(getCluster(), traitSet, newInput);
+    }
+
+    public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
+      final BlockBuilder builder = new BlockBuilder();
+      final EnumerableRel child = (EnumerableRel) getChild();
+      final Result result = implementor.visitChild(this, 0, child, pref);
+      final PhysType physType =
+          PhysTypeImpl.of(
+              implementor.getTypeFactory(),
+              getRowType(),
+              result.format);
+
+      final JavaTypeFactory typeFactory = implementor.getTypeFactory();
+      RelDataType inputRowType = child.getRowType();
+
+      // final Enumerable<List<Employee>> child = <<child impl>>;
+      // return child.selectMany(LIST_TO_ENUMERABLE);
+      final Expression child_ =
+          builder.append(
+              "child", result.block);
+      builder.add(
+          Expressions.return_(null,
+              Expressions.call(child_,
+                  BuiltinMethod.SELECT_MANY.method,
+                  Expressions.call(BuiltinMethod.LIST_TO_ENUMERABLE.method))));
+      return implementor.result(physType, builder.toBlock());
+    }
+  }
+
   public static final EnumerableFilterToCalcRule
   ENUMERABLE_FILTER_TO_CALC_RULE =
       new EnumerableFilterToCalcRule();

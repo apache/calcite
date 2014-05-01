@@ -46,6 +46,7 @@ tablePrimary:
       [ TABLE ] [ [ catalogName . ] schemaName . ] tableName
   |   ( query )
   |   VALUES expression [, expression ]*
+  |   UNNEST ( expression )
   |   ( TABLE expression )
 
 windowRef:
@@ -121,7 +122,8 @@ name will have been converted to upper case also.
 | VARBINARY(n), BINARY VARYING(n) | Variable-length binary string | As BINARY(n)
 | DATE      | Date                      | Example: DATE '1969-07-20'
 | TIME      | Time of day               | Example: TIME '20:17:40'
-| TIMESTAMP | Date and time             | Example: TIMESTAMP '1969-07-20 20:17:40'
+| TIMESTAMP [ WITHOUT TIME ZONE ] | Date and time | Example: TIMESTAMP '1969-07-20 20:17:40'
+| TIMESTAMP WITH TIME ZONE | Date and time with time zone | Example: TIMESTAMP '1969-07-20 20:17:40 America/Los Angeles'
 | INTERVAL timeUnit [ TO timeUnit ] | Date time interval | Examples: INTERVAL '1:5' YEAR TO MONTH, INTERVAL '45' DAY
 | Anchored interval | Date time interval  | Example: (DATE '1969-07-20', DATE '1972-08-29')
 
@@ -211,21 +213,21 @@ Note:
 | CEIL(numeric)
 | FLOOR(numeric)
 
-### String operators and functions
+### Character string operators and functions
 
 | Operator syntax | Description
 | --------------- | -----------
-| string &#124;&#124; string
-| CHAR_LENGTH(string)
-| CHARACTER_LENGTH(string)
-| UPPER(string)
-| LOWER(string)
+| string &#124;&#124; string | Concatenates two character strings.
+| CHAR_LENGTH(string)        | Returns the number of characters in a character string.
+| CHARACTER_LENGTH(string)   | As CHAR_LENGTH(string)
+| UPPER(string)              | Returns a character string converted to upper-case.
+| LOWER(string)              | Returns a character string converted to lower-case.
 | POSITION(string IN string)
 | TRIM( { BOTH ;&#124; LEADING ;&#124; TRAILING } string FROM string)
 | OVERLAY(string PLACING string FROM string)
 | OVERLAY(string PLACING string FROM integer)
-| SUBSTRING(string FROM integer)
-| SUBSTRING(string FROM integer FOR integer)
+| SUBSTRING(string FROM integer)  | Returns a substring of a character string starting at a given point.
+| SUBSTRING(string FROM integer FOR integer) | Returns a substring of a character string starting at a given point with a given length.
 | INITCAP(string)
 
 Not implemented:
@@ -235,9 +237,9 @@ Not implemented:
 
 | Operator syntax | Description
 | --------------- | -----------
-| binary &#124;&#124; binary
+| binary &#124;&#124; binary | Concatenates two binary strings.
 | POSITION(binary IN binary)
-| SUBSTRING(binary FROM integer FOR integer)
+| SUBSTRING(binary FROM integer FOR integer) | Returns a substring of a binary string starting at a given point with a given length.
 
 ### Date/time functions
 
@@ -291,18 +293,27 @@ Not implemented:
 
 | Operator syntax | Description
 | --------------- | -----------
-| CAST(value AS type)
+| CAST(value AS type) | Converts a value to a given type.
 
 ### Value constructors
 
 | Operator syntax | Description
 | --------------- | -----------
-| ROW (value [, value]* )
-| (value [, value]* )
-| map [ key ]
-| array [ index ]
-| ARRAY [ value [, value ]* ]
-| MAP [ key, value [, key, value ]* ]
+| ROW (value [, value]* ) | Creates a row from a list of values.
+| (value [, value]* )     | Creates a row from a list of values.
+| map [ key ]     | Returns the element of a map with a particular key.
+| array [ index ] | Returns the element at a particular location in an array.
+| ARRAY [ value [, value ]* ] | Creates an array from a list of values.
+| MAP [ key, value [, key, value ]* ] | Creates a map from a list of key-value pairs.
+
+### Collection functions
+
+| Operator syntax | Description
+| --------------- | -----------
+| ELEMENT(value)  | Returns the sole element of a array or multiset; null if the collection is empty; throws if it has more than one element.
+| CARDINALITY(value) | Returns the number of elements in an array or multiset.
+
+See also: UNNEST relational operator converts a collection to a relation.
 
 ### JDBC function escape
 

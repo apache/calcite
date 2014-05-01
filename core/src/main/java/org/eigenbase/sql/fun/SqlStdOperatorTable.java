@@ -1247,7 +1247,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           SqlKind.OTHER_FUNCTION,
           ReturnTypes.MULTISET_ELEMENT_NULLABLE,
           null,
-          OperandTypes.MULTISET,
+          OperandTypes.COLLECTION,
           SqlFunctionCategory.SYSTEM);
 
   /**
@@ -1299,7 +1299,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           false,
           ReturnTypes.MULTISET_PROJECT0,
           null,
-          OperandTypes.RECORD_MULTISET) {
+          OperandTypes.RECORD_COLLECTION) {
       };
 
   /**
@@ -1378,7 +1378,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           SqlKind.OTHER_FUNCTION,
           ReturnTypes.INTEGER_NULLABLE,
           null,
-          OperandTypes.COLLECTION,
+          OperandTypes.COLLECTION_OR_MAP,
           SqlFunctionCategory.SYSTEM);
 
   /**

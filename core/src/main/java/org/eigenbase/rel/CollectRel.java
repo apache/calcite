@@ -35,10 +35,10 @@ import org.eigenbase.sql.type.*;
  * {@link org.eigenbase.sql.fun.SqlMultisetQueryConstructor}.</li>
  * </ul>
  */
-public final class CollectRel extends SingleRel {
+public class CollectRel extends SingleRel {
   //~ Instance fields --------------------------------------------------------
 
-  private final String fieldName;
+  protected final String fieldName;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -51,12 +51,10 @@ public final class CollectRel extends SingleRel {
    */
   public CollectRel(
       RelOptCluster cluster,
+      RelTraitSet traitSet,
       RelNode child,
       String fieldName) {
-    super(
-        cluster,
-        cluster.traitSetOf(Convention.NONE),
-        child);
+    super(cluster, traitSet, child);
     this.fieldName = fieldName;
   }
 
@@ -64,18 +62,20 @@ public final class CollectRel extends SingleRel {
    * Creates a CollectRel by parsing serialized output.
    */
   public CollectRel(RelInput input) {
-    this(input.getCluster(), input.getInput(), input.getString("field"));
+    this(input.getCluster(), input.getTraitSet(), input.getInput(),
+        input.getString("field"));
   }
 
   //~ Methods ----------------------------------------------------------------
 
   @Override
-  public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
+  public final RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
+    return copy(traitSet, sole(inputs));
+  }
+
+  public RelNode copy(RelTraitSet traitSet, RelNode input) {
     assert traitSet.containsIfApplicable(Convention.NONE);
-    return new CollectRel(
-        getCluster(),
-        sole(inputs),
-        fieldName);
+    return new CollectRel(getCluster(), traitSet, input, fieldName);
   }
 
   @Override
