@@ -503,6 +503,7 @@ public class MongoAdapterTest {
                 + "}"));
   }
 
+  @Ignore("https://github.com/julianhyde/optiq/issues/270")
   @Test public void testGroupByHaving2() {
     OptiqAssert.that()
         .enable(enabled())
