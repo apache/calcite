@@ -962,14 +962,16 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     final boolean allowInfiniteCostConverters =
         SaffronProperties.instance().allowInfiniteCostConverters.get();
 
-    // Naive algorithm: assumes that conversion from Tx1.Ty1 to Tx2.Ty2
-    // can happen in order (e.g. the traits are completely orthogonal).
+    // Traits may build on top of another...for example a collation trait
+    // would typically come after a distribution trait since distribution
+    // destroys collation; so when doing the conversion below we use
+    // fromTraits as the trait of the just previously converted RelNode.
     // Also, toTraits may have fewer traits than fromTraits, excess traits
     // will be left as is.  Finally, any null entries in toTraits are
     // ignored.
     RelNode converted = rel;
     for (int i = 0; (converted != null) && (i < toTraits.size()); i++) {
-      RelTrait fromTrait = fromTraits.getTrait(i);
+      RelTrait fromTrait = converted.getTraitSet().getTrait(i);
       final RelTraitDef traitDef = fromTrait.getTraitDef();
       RelTrait toTrait = toTraits.getTrait(i);
 
@@ -1009,6 +1011,11 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
       }
 
       converted = rel;
+    }
+
+    // make sure final converted traitset subsumes what was required
+    if (converted != null) {
+      assert converted.getTraitSet().subsumes(toTraits);
     }
 
     return converted;
