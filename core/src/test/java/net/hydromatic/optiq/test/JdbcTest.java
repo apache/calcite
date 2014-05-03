@@ -1315,6 +1315,46 @@ public class JdbcTest {
             "deptno=40; C=1");
   }
 
+  /** Tests JDBC support for nested arrays. */
+  @Test public void testNestedArray() throws Exception {
+    OptiqAssert.that()
+        .with(OptiqAssert.Config.REGULAR)
+        .doWithConnection(
+            new Function1<OptiqConnection, Object>() {
+              public Object apply(OptiqConnection a0) {
+                try {
+                  final Statement statement = a0.createStatement();
+                  ResultSet resultSet =
+                      statement.executeQuery(
+                          "select \"empid\",\n"
+                          + "array[array['x', 'y', 'z'], array[\"name\"]] as a\n"
+                          + "from \"hr\".\"emps\"");
+                  assertThat(resultSet.next(), is(true));
+                  assertThat(resultSet.getInt(1), equalTo(100));
+                  assertThat(resultSet.getString(2),
+                      equalTo("[[x, y, z], [Bill]]"));
+                  final Array array = resultSet.getArray(2);
+                  assertThat(array.getBaseType(),
+                      equalTo(java.sql.Types.ARRAY));
+                  final Object[] arrayValues =
+                      (Object[]) array.getArray();
+                  assertThat(arrayValues.length, equalTo(2));
+                  final Array subArray = (Array) arrayValues[0];
+                  assertThat(subArray.getBaseType(),
+                      equalTo(java.sql.Types.VARCHAR));
+                  final Object[] subArrayValues =
+                      (Object[]) subArray.getArray();
+                  assertThat(subArrayValues.length, equalTo(3));
+                  assertThat(subArrayValues[2], equalTo((Object) "z"));
+                  statement.close();
+                  return null;
+                } catch (SQLException e) {
+                  throw new RuntimeException(e);
+                }
+              }
+            });
+  }
+
   @Test public void testArrayConstructor() {
     OptiqAssert.that()
         .with(OptiqAssert.Config.REGULAR)

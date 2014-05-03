@@ -17,6 +17,7 @@
 */
 package net.hydromatic.avatica;
 
+import java.lang.reflect.Type;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.Collections;
@@ -49,6 +50,7 @@ public class ColumnMetaData {
   public final boolean writable;
   public final boolean definitelyWritable;
   public final String columnClassName;
+  public final ColumnMetaData component;
 
   /** The type of the field that holds the value. Not a JDBC property. */
   public final Rep representation;
@@ -75,6 +77,7 @@ public class ColumnMetaData {
       boolean writable,
       boolean definitelyWritable,
       String columnClassName,
+      ColumnMetaData component,
       Rep representation) {
     this.ordinal = ordinal;
     this.autoIncrement = autoIncrement;
@@ -104,6 +107,7 @@ public class ColumnMetaData {
     this.writable = writable;
     this.definitelyWritable = definitelyWritable;
     this.columnClassName = columnClassName;
+    this.component = component;
     this.representation = representation;
 
     assert representation != null;
@@ -154,6 +158,12 @@ public class ColumnMetaData {
 
     Rep(Class clazz) {
       this.clazz = clazz;
+    }
+
+    public static Rep of(Type clazz) {
+      //noinspection SuspiciousMethodCalls
+      Rep t0 = VALUE_MAP.get(clazz);
+      return t0 != null ? t0 : OBJECT;
     }
   }
 }

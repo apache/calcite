@@ -149,7 +149,7 @@ public class MetaImpl implements Meta {
             : DatabaseMetaData.columnNoNulls,
         true, -1, name, name, null,
         0, 0, null, null, pair.left, pair.right, true,
-        false, false, null, rep);
+        false, false, null, null, rep);
   }
 
   static List<ColumnMetaData> fieldMetaData(Class clazz) {

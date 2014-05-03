@@ -387,47 +387,57 @@ public class OptiqPrepareImpl implements OptiqPrepare {
   private List<ColumnMetaData> getColumnMetaDataList(
       JavaTypeFactory typeFactory, RelDataType x, RelDataType jdbcType,
       List<List<String>> originList) {
-    final List<ColumnMetaData> columns =
-        new ArrayList<ColumnMetaData>();
+    final List<ColumnMetaData> columns = new ArrayList<ColumnMetaData>();
     for (Ord<RelDataTypeField> pair : Ord.zip(jdbcType.getFieldList())) {
       final RelDataTypeField field = pair.e;
-      RelDataType type = field.getType();
-      List<String> origins = originList.get(pair.i);
-      Class clazz =
-          (Class) typeFactory.getJavaClass(
-              x.isStruct()
-                  ? x.getFieldList().get(pair.i).getType()
-                  : type);
-      final ColumnMetaData.Rep rep =
-          Util.first(ColumnMetaData.Rep.VALUE_MAP.get(clazz),
-              ColumnMetaData.Rep.OBJECT);
-      assert rep != null;
+      final RelDataType type = field.getType();
+      final RelDataType fieldType =
+          x.isStruct() ? x.getFieldList().get(pair.i).getType() : type;
       columns.add(
-          new ColumnMetaData(
-              columns.size(),
-              false,
-              true,
-              false,
-              false,
-              type.isNullable() ? 1 : 0,
-              true,
-              type.getPrecision(),
-              field.getName(),
-              origin(origins, 0),
-              origin(origins, 2),
-              getPrecision(type),
-              getScale(type),
-              origin(origins, 1),
-              null,
-              getTypeOrdinal(type),
-              getTypeName(type),
-              true,
-              false,
-              false,
-              getClassName(type),
-              rep));
+          metaData(typeFactory, columns.size(), field.getName(), type,
+              fieldType, originList.get(pair.i)));
     }
     return columns;
+  }
+
+  private ColumnMetaData metaData(JavaTypeFactory typeFactory, int ordinal,
+      String fieldName, RelDataType type, RelDataType fieldType,
+      List<String> origins) {
+    if (type == null) {
+      return null;
+    }
+    if (fieldType == null) {
+      fieldType = type;
+    }
+    final Type clazz = typeFactory.getJavaClass(fieldType);
+    final ColumnMetaData.Rep rep = ColumnMetaData.Rep.of(clazz);
+    assert rep != null;
+    final ColumnMetaData component =
+        metaData(typeFactory, 0, null, type.getComponentType(), null, null);
+    return new ColumnMetaData(
+        ordinal,
+        false,
+        true,
+        false,
+        false,
+        type.isNullable() ? 1 : 0,
+        true,
+        type.getPrecision(),
+        fieldName,
+        origin(origins, 0),
+        origin(origins, 2),
+        getPrecision(type),
+        getScale(type),
+        origin(origins, 1),
+        null,
+        getTypeOrdinal(type),
+        getTypeName(type),
+        true,
+        false,
+        false,
+        getClassName(type),
+        component,
+        rep);
   }
 
   private static String origin(List<String> origins, int offsetFromEnd) {

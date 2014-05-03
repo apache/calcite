@@ -17,9 +17,7 @@
 */
 package net.hydromatic.optiq.runtime;
 
-import net.hydromatic.avatica.ByteString;
-import net.hydromatic.avatica.ColumnMetaData;
-import net.hydromatic.avatica.Cursor;
+import net.hydromatic.avatica.*;
 
 import net.hydromatic.linq4j.expressions.Primitive;
 
@@ -134,7 +132,7 @@ public abstract class AbstractCursor implements Cursor {
         throw new AssertionError("bad " + type.representation);
       }
     case Types.ARRAY:
-      return new ArrayAccessor(getter, Types.INTEGER); // FIXME
+      return new ArrayAccessor(getter, type.component);
     case Types.JAVA_OBJECT:
     case Types.STRUCT:
     case Types.OTHER: // e.g. map
@@ -1035,11 +1033,11 @@ public abstract class AbstractCursor implements Cursor {
    * corresponds to {@link java.sql.Types#ARRAY}.
    */
   private static class ArrayAccessor extends AccessorImpl {
-    private final int sqlType;
+    private final ColumnMetaData component;
 
-    public ArrayAccessor(Getter getter, int sqlType) {
+    public ArrayAccessor(Getter getter, ColumnMetaData component) {
       super(getter);
-      this.sqlType = sqlType;
+      this.component = component;
     }
 
     @Override
@@ -1048,7 +1046,7 @@ public abstract class AbstractCursor implements Cursor {
       if (list == null) {
         return null;
       }
-      return new ArrayImpl(list, sqlType);
+      return new ArrayImpl(list, component);
     }
 
     @Override
@@ -1107,84 +1105,6 @@ public abstract class AbstractCursor implements Cursor {
     }
   }
 
-  /** Implementation of JDBC {@link Array}. */
-  static class ArrayImpl implements java.sql.Array {
-    private final List list;
-    private final int sqlType;
-
-    ArrayImpl(List list, int sqlType) {
-      this.list = list;
-      this.sqlType = sqlType;
-    }
-
-    public String getBaseTypeName() throws SQLException {
-      throw new UnsupportedOperationException(); // TODO
-    }
-
-    public int getBaseType() throws SQLException {
-      return sqlType;
-    }
-
-    public Object getArray() throws SQLException {
-      return jdbcToPrimitive(sqlType).toArray(list);
-    }
-
-    public Object getArray(Map<String, Class<?>> map) throws SQLException {
-      throw new UnsupportedOperationException(); // TODO
-    }
-
-    public Object getArray(long index, int count) throws SQLException {
-      return jdbcToPrimitive(sqlType).toArray(list.subList((int) index, count));
-    }
-
-    public Object getArray(long index, int count, Map<String, Class<?>> map)
-      throws SQLException {
-      throw new UnsupportedOperationException(); // TODO
-    }
-
-    public ResultSet getResultSet() throws SQLException {
-      throw new UnsupportedOperationException(); // TODO
-    }
-
-    public ResultSet getResultSet(Map<String, Class<?>> map)
-      throws SQLException {
-      throw new UnsupportedOperationException(); // TODO
-    }
-
-    public ResultSet getResultSet(long index, int count) throws SQLException {
-      throw new UnsupportedOperationException(); // TODO
-    }
-
-    public ResultSet getResultSet(long index, int count,
-        Map<String, Class<?>> map) throws SQLException {
-      throw new UnsupportedOperationException(); // TODO
-    }
-
-    public void free() throws SQLException {
-      // nothing to do
-    }
-  }
-
-  static Primitive jdbcToPrimitive(int sqlType) {
-    switch (sqlType) {
-    case Types.TINYINT:
-      return Primitive.BYTE;
-    case Types.SMALLINT:
-      return Primitive.SHORT;
-    case Types.INTEGER:
-      return Primitive.INT;
-    case Types.BIGINT:
-      return Primitive.LONG;
-    case Types.DOUBLE:
-      return Primitive.DOUBLE;
-    case Types.FLOAT:
-      return Primitive.FLOAT;
-    case Types.BOOLEAN:
-      return Primitive.BOOLEAN;
-    default:
-      return Primitive.OTHER;
-    }
-  }
 }
 
 // End AbstractCursor.java
