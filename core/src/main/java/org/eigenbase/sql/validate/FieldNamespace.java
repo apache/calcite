@@ -46,7 +46,7 @@ class FieldNamespace extends AbstractNamespace {
 
   //~ Methods ----------------------------------------------------------------
 
-  public void setRowType(RelDataType rowType) {
+  public void setType(RelDataType type) {
     throw new UnsupportedOperationException();
   }
 

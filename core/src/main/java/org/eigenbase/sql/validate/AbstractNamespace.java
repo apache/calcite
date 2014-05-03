@@ -23,6 +23,8 @@ import org.eigenbase.reltype.*;
 import org.eigenbase.sql.*;
 import org.eigenbase.util.*;
 
+import com.google.common.collect.ImmutableList;
+
 /**
  * Abstract implementation of {@link SqlValidatorNamespace}.
  */
@@ -43,6 +45,9 @@ abstract class AbstractNamespace implements SqlValidatorNamespace {
    * column. Set on validate.
    */
   protected RelDataType rowType;
+
+  /** As {@link #rowType}, but not necessarily a struct. */
+  protected RelDataType type;
 
   private boolean forceNullable;
 
@@ -77,19 +82,20 @@ abstract class AbstractNamespace implements SqlValidatorNamespace {
         Util.permAssert(
             rowType == null,
             "Namespace.rowType must be null before validate has been called");
-        rowType = validateImpl();
+        RelDataType type = validateImpl();
         Util.permAssert(
-            rowType != null,
+            type != null,
             "validateImpl() returned null");
         if (forceNullable) {
           // REVIEW jvs 10-Oct-2005: This may not be quite right
           // if it means that nullability will be forced in the
           // ON clause where it doesn't belong.
-          rowType =
+          type =
               validator.getTypeFactory().createTypeWithNullability(
-                  rowType,
+                  type,
                   true);
         }
+        setType(type);
       } finally {
         status = SqlValidatorImpl.Status.VALID;
       }
@@ -124,8 +130,14 @@ abstract class AbstractNamespace implements SqlValidatorNamespace {
     return getRowType();
   }
 
-  public void setRowType(RelDataType rowType) {
-    this.rowType = rowType;
+  public RelDataType getType() {
+    Util.discard(getRowType());
+    return type;
+  }
+
+  public void setType(RelDataType type) {
+    this.type = type;
+    this.rowType = convertToStruct(type);
   }
 
   public SqlNode getEnclosingNode() {
@@ -148,7 +160,7 @@ abstract class AbstractNamespace implements SqlValidatorNamespace {
   }
 
   public List<Pair<SqlNode, SqlMonotonicity>> getMonotonicExprs() {
-    return Collections.emptyList();
+    return ImmutableList.of();
   }
 
   public SqlMonotonicity getMonotonicity(String columnName) {
@@ -173,6 +185,35 @@ abstract class AbstractNamespace implements SqlValidatorNamespace {
 
   public boolean isWrapperFor(Class<?> clazz) {
     return clazz.isInstance(this);
+  }
+
+  protected RelDataType convertToStruct(RelDataType type) {
+    // "MULTISET [<expr>, ...]" needs to be wrapped in a record if
+    // <expr> has a scalar type.
+    // For example, "MULTISET [8, 9]" has type
+    // "RECORD(INTEGER EXPR$0 NOT NULL) NOT NULL MULTISET NOT NULL".
+    final RelDataType componentType = type.getComponentType();
+    if (componentType == null || componentType.isStruct()) {
+      return type;
+    }
+    final RelDataTypeFactory typeFactory = validator.getTypeFactory();
+    final RelDataType structType =
+        typeFactory.builder()
+            .add(validator.deriveAlias(getNode(), 0), componentType)
+            .build();
+    final RelDataType collectionType;
+    switch (type.getSqlTypeName()) {
+    case ARRAY:
+      collectionType = typeFactory.createArrayType(structType, -1);
+      break;
+    case MULTISET:
+      collectionType = typeFactory.createMultisetType(structType, -1);
+      break;
+    default:
+      throw new AssertionError(type);
+    }
+    return typeFactory.createTypeWithNullability(collectionType,
+        type.isNullable());
   }
 }
 

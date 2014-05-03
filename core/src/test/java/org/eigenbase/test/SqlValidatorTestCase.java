@@ -295,6 +295,7 @@ public class SqlValidatorTestCase {
             "Validator threw unexpected exception"
             + "; query [" + sap.sql
             + "]; exception [" + actualMessage
+            + "]; class [" + actualException.getClass()
             + "]; pos [line " + actualLine
             + " col " + actualColumn
             + " thru line " + actualLine

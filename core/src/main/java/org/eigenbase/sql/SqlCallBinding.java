@@ -137,7 +137,7 @@ public class SqlCallBinding extends SqlOperatorBinding {
     final RelDataType type = validator.deriveType(scope, operand);
     final SqlValidatorNamespace namespace = validator.getNamespace(operand);
     if (namespace != null) {
-      return namespace.getRowTypeSansSystemColumns();
+      return namespace.getType();
     }
     return type;
   }

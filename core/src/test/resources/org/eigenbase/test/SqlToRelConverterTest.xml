@@ -1771,4 +1771,22 @@ ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], 
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testJoinUnnest">
+        <Resource name="sql">
+            <![CDATA[select*from dept as d, unnest(multiset[d.deptno * 2])]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+ProjectRel(DEPTNO=[$0], NAME=[$1], EXPR$0=[$2])
+  CorrelatorRel(condition=[true], joinType=[inner], correlations=[[var0=offset0]])
+    TableAccessRel(table=[[CATALOG, SALES, DEPT]])
+    UncollectRel
+      ProjectRel(EXPR$0=[$SLICE($0)])
+        CollectRel(field=[EXPR$0])
+          UnionRel(all=[true])
+            ProjectRel(EXPR$0=[*($cor0.DEPTNO, 2)])
+              OneRowRel
+]]>
+        </Resource>
+    </TestCase>
 </Root>

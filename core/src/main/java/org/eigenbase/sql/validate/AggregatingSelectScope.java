@@ -22,6 +22,8 @@ import java.util.*;
 import org.eigenbase.sql.*;
 import org.eigenbase.sql.fun.*;
 
+import static org.eigenbase.sql.SqlUtil.stripAs;
+
 /**
  * Scope for resolving identifiers within a SELECT statement that has a
  * GROUP BY clause.
@@ -92,16 +94,9 @@ public class AggregatingSelectScope
       // Remove the AS operator so the expressions are consistent with
       // OrderExpressionExpander.
       List<SqlNode> groupExprs = new ArrayList<SqlNode>();
-      for (
-          SqlNode selectItem
+      for (SqlNode selectItem
           : ((SelectScope) parent).getExpandedSelectList()) {
-        if (SqlUtil.isCallTo(
-            selectItem,
-            SqlStdOperatorTable.AS)) {
-          groupExprs.add(((SqlCall) selectItem).operand(0));
-        } else {
-          groupExprs.add(selectItem);
-        }
+        groupExprs.add(stripAs(selectItem));
       }
       return groupExprs;
     } else if (select.getGroup() != null) {

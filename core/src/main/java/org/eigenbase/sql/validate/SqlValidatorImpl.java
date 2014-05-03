@@ -39,6 +39,7 @@ import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
+import static org.eigenbase.sql.SqlUtil.stripAs;
 import static org.eigenbase.util.Static.RESOURCE;
 
 /**
@@ -746,7 +747,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   protected void validateNamespace(final SqlValidatorNamespace namespace) {
     namespace.validate();
     if (namespace.getNode() != null) {
-      setValidatedNodeType(namespace.getNode(), namespace.getRowType());
+      setValidatedNodeType(namespace.getNode(), namespace.getType());
     }
   }
 
@@ -789,12 +790,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   }
 
   public SqlValidatorScope getJoinScope(SqlNode node) {
-    switch (node.getKind()) {
-    case AS:
-      return getJoinScope(((SqlCall) node).operand(0));
-    default:
-      return scopes.get(node);
-    }
+    return scopes.get(stripAs(node));
   }
 
   public SqlValidatorScope getOverScope(SqlNode node) {
@@ -1257,7 +1253,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     }
     final SqlValidatorNamespace ns = getNamespace(node);
     if (ns != null) {
-      return ns.getRowType();
+      return ns.getType();
     }
     final SqlNode original = originalExprs.get(node);
     if (original != null) {
@@ -1300,7 +1296,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     }
     final SqlValidatorNamespace ns = getNamespace(expr);
     if (ns != null) {
-      return ns.getRowType();
+      return ns.getType();
     }
     type = deriveTypeImpl(scope, expr);
     Util.permAssert(
@@ -1725,14 +1721,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       scopes.put(join, joinScope);
       final SqlNode left = join.getLeft();
       final SqlNode right = join.getRight();
-      boolean rightIsLateral = false;
-
-      if (right.getKind() == SqlKind.LATERAL
-          || (right.getKind() == SqlKind.AS
-              && ((SqlCall) right).operand(0).getKind() == SqlKind.LATERAL)) {
-        rightIsLateral = true;
-      }
-
+      final boolean rightIsLateral = isLateral(right);
       boolean forceLeftNullable = forceNullable;
       boolean forceRightNullable = forceNullable;
       switch (join.getJoinType()) {
@@ -1864,6 +1853,19 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
     default:
       throw Util.unexpected(kind);
+    }
+  }
+
+  private static boolean isLateral(SqlNode node) {
+    switch (node.getKind()) {
+    case LATERAL:
+    case UNNEST:
+      // Per SQL std, UNNEST is implicitly LATERAL.
+      return true;
+    case AS:
+      return isLateral(((SqlCall) node).operand(0));
+    default:
+      return false;
     }
   }
 
@@ -2223,6 +2225,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       break;
 
     case MULTISET_QUERY_CONSTRUCTOR:
+    case MULTISET_VALUE_CONSTRUCTOR:
       validateFeature(RESOURCE.sQLFeature_S271(), node.getParserPosition());
       call = (SqlCall) node;
       CollectScope cs = new CollectScope(parentScope, usingScope, call);
@@ -2333,9 +2336,10 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       SqlNode node) {
     if (node == null) {
       return;
-    } else if (node.getKind().belongsTo(SqlKind.QUERY)) {
-      registerQuery(parentScope, null, node, node, null, false);
-    } else if (node.getKind() == SqlKind.MULTISET_QUERY_CONSTRUCTOR) {
+    }
+    if (node.getKind().belongsTo(SqlKind.QUERY)
+        || node.getKind() == SqlKind.MULTISET_QUERY_CONSTRUCTOR
+        || node.getKind() == SqlKind.MULTISET_VALUE_CONSTRUCTOR) {
       registerQuery(parentScope, null, node, node, null, false);
     } else if (node instanceof SqlCall) {
       validateNodeFeature(node);
@@ -2771,7 +2775,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     // window name in the WINDOW clause etc.
     final RelDataType rowType =
         validateSelectList(selectItems, select, targetRowType);
-    ns.setRowType(rowType);
+    ns.setType(rowType);
 
     // Validate ORDER BY after we have set ns.rowType because in some
     // dialects you can refer to columns of the select list, e.g.
@@ -3697,10 +3701,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       SqlSelect sqlSelect = (SqlSelect) sqlQuery;
       final SelectScope scope = getRawSelectScope(sqlSelect);
       final List<SqlNode> selectList = scope.getExpandedSelectList();
-      SqlNode selectItem = selectList.get(i);
-      if (SqlUtil.isCallTo(selectItem, SqlStdOperatorTable.AS)) {
-        selectItem = ((SqlCall) selectItem).operand(0);
-      }
+      final SqlNode selectItem = stripAs(selectList.get(i));
       if (selectItem instanceof SqlIdentifier) {
         SqlIdentifier id = (SqlIdentifier) selectItem;
         SqlValidatorNamespace namespace = null;
@@ -4072,12 +4073,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
               select,
               false);
       SqlNode expr = expandedSelectList.get(ordinal);
-      if (expr instanceof SqlCall) {
-        SqlCall call = (SqlCall) expr;
-        if (call.getOperator() == SqlStdOperatorTable.AS) {
-          expr = call.operand(0);
-        }
-      }
+      expr = stripAs(expr);
       if (expr instanceof SqlIdentifier) {
         expr = getScope().fullyQualify((SqlIdentifier) expr);
       }

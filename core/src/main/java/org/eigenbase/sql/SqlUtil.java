@@ -509,11 +509,7 @@ public abstract class SqlUtil {
     switch (query.getKind()) {
     case SELECT:
       SqlSelect select = (SqlSelect) query;
-      SqlNode from = select.getFrom();
-      if (from.getKind() == SqlKind.AS) {
-        SqlCall as = (SqlCall) from;
-        from = as.operand(0);
-      }
+      final SqlNode from = stripAs(select.getFrom());
       if (from.getKind() == SqlKind.VALUES) {
         // They wrote "VALUES (x, y)", but the validator has
         // converted this into "SELECT * FROM VALUES (x, y)".
@@ -738,6 +734,17 @@ public abstract class SqlUtil {
       return name;
     }
     return null;
+  }
+
+  /** If a node is "AS", returns the underlying expression; otherwise returns
+   * the node. */
+  public static SqlNode stripAs(SqlNode node) {
+    switch (node.getKind()) {
+    case AS:
+      return ((SqlCall) node).operand(0);
+    default:
+      return node;
+    }
   }
 
   //~ Inner Classes ----------------------------------------------------------

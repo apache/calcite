@@ -19,8 +19,6 @@ package org.eigenbase.sql.validate;
 
 import org.eigenbase.reltype.*;
 import org.eigenbase.sql.*;
-import org.eigenbase.sql.type.*;
-import org.eigenbase.util.Util;
 
 /**
  * Namespace for COLLECT and TABLE constructs.
@@ -59,50 +57,14 @@ public class CollectNamespace extends AbstractNamespace {
     super((SqlValidatorImpl) scope.getValidator(), enclosingNode);
     this.child = child;
     this.scope = scope;
+    assert child.getKind() == SqlKind.MULTISET_VALUE_CONSTRUCTOR
+        || child.getKind() == SqlKind.MULTISET_QUERY_CONSTRUCTOR;
   }
 
   //~ Methods ----------------------------------------------------------------
 
   protected RelDataType validateImpl() {
-    final RelDataType type =
-        child.getOperator().deriveType(validator, scope, child);
-
-    switch (child.getKind()) {
-    case MULTISET_VALUE_CONSTRUCTOR:
-
-      // "MULTISET [<expr>, ...]" needs to be wrapped in a record if
-      // <expr> has a scalar type.
-      // For example, "MULTISET [8, 9]" has type
-      // "RECORD(INTEGER EXPR$0 NOT NULL) NOT NULL MULTISET NOT NULL".
-      boolean isNullable = type.isNullable();
-      final RelDataType componentType =
-          ((MultisetSqlType) type).getComponentType();
-      final RelDataTypeFactory typeFactory = validator.getTypeFactory();
-      if (componentType.isStruct()) {
-        return type;
-      } else {
-        final RelDataType structType =
-            typeFactory.builder()
-                .add(validator.deriveAlias(child, 0), type)
-                .build();
-        final RelDataType multisetType =
-            typeFactory.createMultisetType(structType, -1);
-        return typeFactory.createTypeWithNullability(
-            multisetType,
-            isNullable);
-      }
-
-    case MULTISET_QUERY_CONSTRUCTOR:
-
-      // "MULTISET(<query>)" is already a record.
-      assert (type instanceof MultisetSqlType)
-          && ((MultisetSqlType) type).getComponentType().isStruct()
-          : type;
-      return type;
-
-    default:
-      throw Util.unexpected(child.getKind());
-    }
+    return child.getOperator().deriveType(validator, scope, child);
   }
 
   public SqlNode getNode() {

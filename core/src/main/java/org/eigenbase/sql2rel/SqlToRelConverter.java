@@ -49,6 +49,7 @@ import net.hydromatic.optiq.util.BitSets;
 
 import com.google.common.collect.*;
 
+import static org.eigenbase.sql.SqlUtil.stripAs;
 import static org.eigenbase.util.Static.RESOURCE;
 
 /**
@@ -1702,9 +1703,13 @@ public class SqlToRelConverter {
       final boolean isNatural = join.isNatural();
       final JoinType joinType = join.getJoinType();
       final Blackboard leftBlackboard =
-          createBlackboard(validator.getJoinScope(left), null);
+          createBlackboard(
+              Util.first(validator.getJoinScope(left),
+                  ((DelegatingScope) bb.scope).getParent()), null);
       final Blackboard rightBlackboard =
-          createBlackboard(validator.getJoinScope(right), null);
+          createBlackboard(
+              Util.first(validator.getJoinScope(right),
+                  ((DelegatingScope) bb.scope).getParent()), null);
       convertFrom(leftBlackboard, left);
       RelNode leftRel = leftBlackboard.root;
       convertFrom(rightBlackboard, right);
@@ -1750,13 +1755,13 @@ public class SqlToRelConverter {
       return;
 
     case UNNEST:
-      call = ((SqlCall) from).operand(0);
-      replaceSubqueries(bb, call);
+      final SqlNode node = ((SqlCall) from).operand(0);
+      replaceSubqueries(bb, node);
       final RelNode childRel =
           CalcRel.createProject(
               (null != bb.root) ? bb.root : new OneRowRel(cluster),
-              Collections.singletonList(bb.convertExpression(call)),
-              Collections.singletonList(validator.deriveAlias(call, 0)),
+              Collections.singletonList(bb.convertExpression(node)),
+              Collections.singletonList(validator.deriveAlias(node, 0)),
               true);
 
       UncollectRel uncollectRel =
@@ -2701,10 +2706,7 @@ public class SqlToRelConverter {
     int ordinal = -1;
     for (SqlNode selectItem : selectScope.getExpandedSelectList()) {
       ++ordinal;
-      if (selectItem.getKind() == SqlKind.AS) {
-        selectItem = ((SqlCall) selectItem).operand(0);
-      }
-      if (converted.equalsDeep(selectItem, false)) {
+      if (converted.equalsDeep(stripAs(selectItem), false)) {
         return new RelFieldCollation(
             ordinal, direction, nullDirection);
       }
@@ -3268,7 +3270,7 @@ public class SqlToRelConverter {
 
   private RelNode convertMultisets(final List<SqlNode> operands,
       Blackboard bb) {
-    // NOTE: Wael 2/04/05: this implementation is not the most efficent in
+    // NOTE: Wael 2/04/05: this implementation is not the most efficient in
     // terms of planning since it generates XOs that can be reduced.
     List<Object> joinList = new ArrayList<Object>();
     List<SqlNode> lastList = new ArrayList<SqlNode>();

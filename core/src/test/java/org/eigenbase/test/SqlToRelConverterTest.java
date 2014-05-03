@@ -632,6 +632,12 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
         "${plan}");
   }
 
+  @Test public void testJoinUnnest() {
+    check(
+        "select*from dept as d, unnest(multiset[d.deptno * 2])",
+        "${plan}");
+  }
+
   @Test public void testLateral() {
     tester.withDecorrelation(false).assertConvertsTo(
         "select * from emp, LATERAL (select * from dept where emp.deptno=dept.deptno)",

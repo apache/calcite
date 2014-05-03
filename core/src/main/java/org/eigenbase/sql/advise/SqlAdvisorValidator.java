@@ -179,7 +179,7 @@ public class SqlAdvisorValidator extends SqlValidatorImpl {
     if (activeNamespaces.add(namespace)) {
       super.validateNamespace(namespace);
     } else {
-      namespace.setRowType(emptyStructType);
+      namespace.setType(emptyStructType);
     }
   }
 

@@ -57,12 +57,16 @@ public abstract class DelegatingNamespace implements SqlValidatorNamespace {
     return namespace.getRowType();
   }
 
-  public void setRowType(RelDataType rowType) {
-    namespace.setRowType(rowType);
+  public void setType(RelDataType type) {
+    namespace.setType(type);
   }
 
   public RelDataType getRowTypeSansSystemColumns() {
     return namespace.getRowTypeSansSystemColumns();
+  }
+
+  public RelDataType getType() {
+    return namespace.getType();
   }
 
   public void validate() {

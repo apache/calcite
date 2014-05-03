@@ -39,6 +39,8 @@ import net.hydromatic.optiq.runtime.Utilities;
 
 import com.google.common.collect.ImmutableList;
 
+import static org.eigenbase.sql.SqlUtil.stripAs;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.fail;
@@ -195,11 +197,8 @@ public class SqlTesterImpl implements SqlTester {
 
     SqlNode node = null;
     for (int i = 0; i < n.operandCount(); i++) {
-      node = n.operand(i);
+      node = stripAs(n.operand(i));
       if (node instanceof SqlCall) {
-        if (node.getKind() == SqlKind.AS) {
-          node = ((SqlCall) node).operand(0);
-        }
         node = ((SqlCall) node).operand(0);
         break;
       }
