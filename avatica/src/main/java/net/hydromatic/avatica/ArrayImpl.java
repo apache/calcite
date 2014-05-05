@@ -22,20 +22,23 @@ import java.util.*;
 
 /** Implementation of JDBC {@link Array}. */
 public class ArrayImpl implements Array {
+  private final ColumnMetaData.AvaticaType elementType;
+  private final Factory factory;
   private final List list;
-  private final ColumnMetaData component;
 
-  public ArrayImpl(List list, ColumnMetaData component) {
+  public ArrayImpl(List list, ColumnMetaData.AvaticaType elementType,
+      Factory factory) {
     this.list = list;
-    this.component = component;
+    this.elementType = elementType;
+    this.factory = factory;
   }
 
   public String getBaseTypeName() throws SQLException {
-    return component.typeName;
+    return elementType.typeName;
   }
 
   public int getBaseType() throws SQLException {
-    return component.type;
+    return elementType.type;
   }
 
   public Object getArray() throws SQLException {
@@ -43,63 +46,66 @@ public class ArrayImpl implements Array {
   }
 
   /**
-   * Converts a collection of boxed primitives into an array of primitives.
+   * Converts a list into an array.
    *
-   * @param list Collection of boxed primitives
+   * <p>If the elements of the list are primitives, converts to an array of
+   * primitives (e.g. {@code boolean[]}.</p>
    *
-   * @return array of primitives
+   * @param list List of objects
+   *
+   * @return array
    * @throws ClassCastException   if any element is not of the box type
    * @throws NullPointerException if any element is null
    */
   @SuppressWarnings("unchecked")
   protected Object getArray(List list) throws SQLException {
     int i = 0;
-    switch (component.representation) {
+    switch (elementType.representation) {
     case PRIMITIVE_DOUBLE:
-      double[] doubles = new double[list.size()];
-      for (double v : (Collection<Double>) list) {
+      final double[] doubles = new double[list.size()];
+      for (double v : (List<Double>) list) {
         doubles[i++] = v;
       }
       return doubles;
     case PRIMITIVE_FLOAT:
-      float[] floats = new float[list.size()];
-      for (float v : (Collection<Float>) list) {
+      final float[] floats = new float[list.size()];
+      for (float v : (List<Float>) list) {
         floats[i++] = v;
       }
       return floats;
     case PRIMITIVE_INT:
-      int[] ints = new int[list.size()];
-      for (int v : (Collection<Integer>) list) {
+      final int[] ints = new int[list.size()];
+      for (int v : (List<Integer>) list) {
         ints[i++] = v;
       }
       return ints;
     case PRIMITIVE_LONG:
-      long[] longs = new long[list.size()];
-      for (long v : (Collection<Long>) list) {
+      final long[] longs = new long[list.size()];
+      for (long v : (List<Long>) list) {
         longs[i++] = v;
       }
       return longs;
     case PRIMITIVE_SHORT:
-      short[] shorts = new short[list.size()];
-      for (short v : (Collection<Short>) list) {
+      final short[] shorts = new short[list.size()];
+      for (short v : (List<Short>) list) {
         shorts[i++] = v;
       }
       return shorts;
     case PRIMITIVE_BOOLEAN:
-      boolean[] booleans = new boolean[list.size()];
-      for (boolean v : (Collection<Boolean>) list) {
+      final boolean[] booleans = new boolean[list.size()];
+      for (boolean v : (List<Boolean>) list) {
         booleans[i++] = v;
       }
       return booleans;
     case PRIMITIVE_BYTE:
-      byte[] bytes = new byte[list.size()];
-      for (byte v : (Collection<Byte>) list) {
+      final byte[] bytes = new byte[list.size()];
+      for (byte v : (List<Byte>) list) {
         bytes[i++] = v;
       }
       return bytes;
     case PRIMITIVE_CHAR:
-      char[] chars = new char[list.size()];
-      for (char v : (Collection<Character>) list) {
+      final char[] chars = new char[list.size()];
+      for (char v : (List<Character>) list) {
         chars[i++] = v;
       }
       return chars;
@@ -107,10 +113,13 @@ public class ArrayImpl implements Array {
       // fall through
     }
     final Object[] objects = list.toArray();
-    switch (component.type) {
+    switch (elementType.type) {
     case Types.ARRAY:
+      final ColumnMetaData.ArrayType arrayType =
+          (ColumnMetaData.ArrayType) elementType;
       for (i = 0; i < objects.length; i++) {
-        objects[i] = new ArrayImpl((List) objects[i], component.component);
+        objects[i] =
+            new ArrayImpl((List) objects[i], arrayType.component, factory);
       }
     }
     return objects;
@@ -130,7 +139,7 @@ public class ArrayImpl implements Array {
   }
 
   public ResultSet getResultSet() throws SQLException {
-    throw new UnsupportedOperationException(); // TODO
+    return factory.create(elementType, list);
   }
 
   public ResultSet getResultSet(Map<String, Class<?>> map)
@@ -149,6 +158,11 @@ public class ArrayImpl implements Array {
 
   public void free() throws SQLException {
     // nothing to do
+  }
+
+  /** Factory that can create a result set based on a list of values. */
+  public interface Factory {
+    ResultSet create(ColumnMetaData.AvaticaType elementType, Iterable iterable);
   }
 }
 

@@ -29,11 +29,11 @@ import java.util.*;
  * Implementation of {@link java.sql.ResultSet}
  * for the Avatica engine.
  */
-public class AvaticaResultSet implements ResultSet {
+public class AvaticaResultSet implements ResultSet, ArrayImpl.Factory {
   protected final AvaticaStatement statement;
   protected final AvaticaPrepareResult prepareResult;
   protected final List<ColumnMetaData> columnMetaDataList;
-  private final ResultSetMetaData resultSetMetaData;
+  protected final ResultSetMetaData resultSetMetaData;
   protected final Calendar localCalendar;
 
   protected Cursor cursor;
@@ -161,10 +161,25 @@ public class AvaticaResultSet implements ResultSet {
   protected AvaticaResultSet execute() throws SQLException {
     this.cursor = statement.connection.meta.createCursor(this);
     this.accessorList =
-        cursor.createAccessors(columnMetaDataList, localCalendar);
+        cursor.createAccessors(columnMetaDataList, localCalendar, this);
     this.row = -1;
     this.afterLast = false;
     return this;
+  }
+
+  protected AvaticaResultSet execute2(Cursor cursor,
+      List<ColumnMetaData> columnMetaDataList) {
+    this.cursor = cursor;
+    this.accessorList =
+        cursor.createAccessors(columnMetaDataList, localCalendar, this);
+    this.row = -1;
+    this.afterLast = false;
+    return this;
+  }
+
+  public ResultSet create(ColumnMetaData.AvaticaType elementType,
+      Iterable iterable) {
+    throw new UnsupportedOperationException();
   }
 
   public boolean next() throws SQLException {

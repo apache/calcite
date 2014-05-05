@@ -19,6 +19,13 @@ package net.hydromatic.optiq.jdbc;
 
 import net.hydromatic.avatica.*;
 
+import net.hydromatic.linq4j.Enumerator;
+import net.hydromatic.linq4j.Linq4j;
+
+import net.hydromatic.optiq.runtime.*;
+
+import com.google.common.collect.ImmutableList;
+
 import java.sql.*;
 import java.util.*;
 
@@ -51,6 +58,33 @@ public class OptiqResultSet extends AvaticaResultSet {
 
     super.execute();
     return this;
+  }
+
+  @Override public ResultSet create(ColumnMetaData.AvaticaType elementType,
+      Iterable iterable) {
+    final OptiqResultSet resultSet =
+        new OptiqResultSet(statement,
+            (OptiqPrepare.PrepareResult) prepareResult, resultSetMetaData,
+            localCalendar.getTimeZone());
+    final Cursor cursor = resultSet.createCursor(elementType, iterable);
+    final List<ColumnMetaData> columnMetaDataList;
+    if (elementType instanceof ColumnMetaData.StructType) {
+      columnMetaDataList = ((ColumnMetaData.StructType) elementType).columns;
+    } else {
+      columnMetaDataList =
+          ImmutableList.of(ColumnMetaData.dummy(elementType, false));
+    }
+    return resultSet.execute2(cursor, columnMetaDataList);
+  }
+
+  private Cursor createCursor(ColumnMetaData.AvaticaType elementType,
+      Iterable iterable) {
+    final Enumerator enumerator = Linq4j.iterableEnumerator(iterable);
+    //noinspection unchecked
+    return !(elementType instanceof ColumnMetaData.StructType)
+        || ((ColumnMetaData.StructType) elementType).columns.size() == 1
+        ? new ObjectEnumeratorCursor(enumerator)
+        : new ArrayEnumeratorCursor(enumerator);
   }
 
   // do not make public

@@ -18,10 +18,10 @@
 package net.hydromatic.avatica;
 
 import java.lang.reflect.Type;
-import java.sql.Time;
-import java.sql.Timestamp;
+import java.sql.*;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -44,16 +44,11 @@ public class ColumnMetaData {
   public final int scale;
   public final String tableName;
   public final String catalogName;
-  public final int type;
-  public final String typeName;
   public final boolean readOnly;
   public final boolean writable;
   public final boolean definitelyWritable;
   public final String columnClassName;
-  public final ColumnMetaData component;
-
-  /** The type of the field that holds the value. Not a JDBC property. */
-  public final Rep representation;
+  public final AvaticaType type;
 
   public ColumnMetaData(
       int ordinal,
@@ -71,14 +66,11 @@ public class ColumnMetaData {
       int scale,
       String tableName,
       String catalogName,
-      int type,
-      String typeName,
+      AvaticaType type,
       boolean readOnly,
       boolean writable,
       boolean definitelyWritable,
-      String columnClassName,
-      ColumnMetaData component,
-      Rep representation) {
+      String columnClassName) {
     this.ordinal = ordinal;
     this.autoIncrement = autoIncrement;
     this.caseSensitive = caseSensitive;
@@ -102,19 +94,59 @@ public class ColumnMetaData {
     this.tableName = tableName;
     this.catalogName = catalogName;
     this.type = type;
-    this.typeName = typeName;
     this.readOnly = readOnly;
     this.writable = writable;
     this.definitelyWritable = definitelyWritable;
     this.columnClassName = columnClassName;
-    this.component = component;
-    this.representation = representation;
-
-    assert representation != null;
   }
 
   private static <T> T first(T t0, T t1) {
     return t0 != null ? t0 : t1;
+  }
+
+  /** Creates a {@link ScalarType}. */
+  public static ScalarType scalar(int type, String typeName, Rep rep) {
+    return new ScalarType(type, typeName, rep);
+  }
+
+  /** Creates a {@link StructType}. */
+  public static StructType struct(List<ColumnMetaData> columns) {
+    return new StructType(columns, "STRUCT", Types.STRUCT,
+        ColumnMetaData.Rep.OBJECT);
+  }
+
+  /** Creates an {@link ArrayType}. */
+  public static ArrayType array(AvaticaType componentType, String typeName,
+      Rep rep) {
+    return new ArrayType(Types.ARRAY, typeName, rep, componentType);
+  }
+
+  /** Creates a ColumnMetaData for result sets that are not based on a struct
+   * but need to have a single 'field' for purposes of
+   * {@link ResultSetMetaData}. */
+  public static ColumnMetaData dummy(AvaticaType type, boolean nullable) {
+    return new ColumnMetaData(
+        0,
+        false,
+        true,
+        false,
+        false,
+        nullable
+            ? DatabaseMetaData.columnNullable
+            : DatabaseMetaData.columnNoNulls,
+        true,
+        -1,
+        null,
+        null,
+        null,
+        -1,
+        -1,
+        null,
+        null, type,
+        true,
+        false,
+        false,
+        null);
   }
 
   /** Description of the type used to internally represent a value. For example,
@@ -162,8 +194,53 @@ public class ColumnMetaData {
 
     public static Rep of(Type clazz) {
       //noinspection SuspiciousMethodCalls
-      Rep t0 = VALUE_MAP.get(clazz);
-      return t0 != null ? t0 : OBJECT;
+      final Rep rep = VALUE_MAP.get(clazz);
+      return rep != null ? rep : OBJECT;
+    }
+  }
+
+  /** Base class for a column type. */
+  public static class AvaticaType {
+    public final int type;
+    public final String typeName;
+
+    /** The type of the field that holds the value. Not a JDBC property. */
+    public final Rep representation;
+
+    protected AvaticaType(int type, String typeName, Rep representation) {
+      this.type = type;
+      this.typeName = typeName;
+      this.representation = representation;
+      assert representation != null;
+    }
+  }
+
+  /** Scalar type. */
+  public static class ScalarType extends AvaticaType {
+    public ScalarType(int type, String typeName, Rep representation) {
+      super(type, typeName, representation);
+    }
+  }
+
+  /** Record type. */
+  public static class StructType extends AvaticaType {
+    public final List<ColumnMetaData> columns;
+
+    private StructType(List<ColumnMetaData> columns, String typeName, int type,
+        Rep representation) {
+      super(type, typeName, representation);
+      this.columns = columns;
+    }
+  }
+
+  /** Array type. */
+  public static class ArrayType extends AvaticaType {
+    public final AvaticaType component;
+
+    private ArrayType(int type, String typeName, Rep representation,
+        AvaticaType component) {
+      super(type, typeName, representation);
+      this.component = component;
     }
   }
 }

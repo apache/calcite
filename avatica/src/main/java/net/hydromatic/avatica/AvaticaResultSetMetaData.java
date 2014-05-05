@@ -106,11 +106,11 @@ public class AvaticaResultSetMetaData implements ResultSetMetaData {
   }
 
   public int getColumnType(int column) throws SQLException {
-    return getColumnMetaData(column).type;
+    return getColumnMetaData(column).type.type;
   }
 
   public String getColumnTypeName(int column) throws SQLException {
-    return getColumnMetaData(column).typeName;
+    return getColumnMetaData(column).type.typeName;
   }
 
   public boolean isReadOnly(int column) throws SQLException {

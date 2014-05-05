@@ -55,20 +55,21 @@ public abstract class AbstractCursor implements Cursor {
   }
 
   public List<Accessor> createAccessors(List<ColumnMetaData> types,
-      Calendar localCalendar) {
+      Calendar localCalendar, ArrayImpl.Factory factory) {
     List<Accessor> accessors = new ArrayList<Accessor>();
     for (ColumnMetaData type : types) {
-      accessors.add(createAccessor(type, accessors.size(), localCalendar));
+      accessors.add(
+          createAccessor(type, accessors.size(), localCalendar, factory));
     }
     return accessors;
   }
 
   protected Accessor createAccessor(ColumnMetaData type, int ordinal,
-      Calendar localCalendar) {
+      Calendar localCalendar, ArrayImpl.Factory factory) {
     // Create an accessor appropriate to the underlying type; the accessor
     // can convert to any type in the same family.
     Getter getter = createGetter(ordinal);
-    switch (type.type) {
+    switch (type.type.type) {
     case Types.TINYINT:
       return new ByteAccessor(getter);
     case Types.SMALLINT:
@@ -87,7 +88,7 @@ public abstract class AbstractCursor implements Cursor {
     case Types.DECIMAL:
       return new BigDecimalAccessor(getter);
     case Types.CHAR:
-      switch (type.representation) {
+      switch (type.type.representation) {
       case PRIMITIVE_CHAR:
       case CHARACTER:
         return new StringFromCharAccessor(getter, type.displaySize);
@@ -100,27 +101,27 @@ public abstract class AbstractCursor implements Cursor {
     case Types.VARBINARY:
       return new BinaryAccessor(getter);
     case Types.DATE:
-      switch (type.representation) {
+      switch (type.type.representation) {
       case PRIMITIVE_INT:
       case INTEGER:
         return new DateFromIntAccessor(getter, localCalendar);
       case JAVA_SQL_DATE:
         return new DateAccessor(getter, localCalendar);
       default:
-        throw new AssertionError("bad " + type.representation);
+        throw new AssertionError("bad " + type.type.representation);
       }
     case Types.TIME:
-      switch (type.representation) {
+      switch (type.type.representation) {
       case PRIMITIVE_INT:
       case INTEGER:
         return new TimeFromIntAccessor(getter, localCalendar);
       case JAVA_SQL_TIME:
         return new TimeAccessor(getter, localCalendar);
       default:
-        throw new AssertionError("bad " + type.representation);
+        throw new AssertionError("bad " + type.type.representation);
       }
     case Types.TIMESTAMP:
-      switch (type.representation) {
+      switch (type.type.representation) {
       case PRIMITIVE_LONG:
       case LONG:
         return new TimestampFromLongAccessor(getter, localCalendar);
@@ -129,21 +130,22 @@ public abstract class AbstractCursor implements Cursor {
       case JAVA_UTIL_DATE:
         return new TimestampFromUtilDateAccessor(getter, localCalendar);
       default:
-        throw new AssertionError("bad " + type.representation);
+        throw new AssertionError("bad " + type.type.representation);
       }
     case Types.ARRAY:
-      return new ArrayAccessor(getter, type.component);
+      return new ArrayAccessor(getter,
+          ((ColumnMetaData.ArrayType) type.type).component, factory);
     case Types.JAVA_OBJECT:
     case Types.STRUCT:
     case Types.OTHER: // e.g. map
-      if (type.typeName.startsWith("INTERVAL_")) {
-        int end = type.typeName.indexOf("(");
+      if (type.type.typeName.startsWith("INTERVAL_")) {
+        int end = type.type.typeName.indexOf("(");
         if (end < 0) {
-          end = type.typeName.length();
+          end = type.type.typeName.length();
         }
         SqlFunctions.TimeUnitRange range =
             SqlFunctions.TimeUnitRange.valueOf(
-                type.typeName.substring("INTERVAL_".length(), end));
+                type.type.typeName.substring("INTERVAL_".length(), end));
         if (range.monthly()) {
           return new IntervalYearMonthAccessor(getter, range);
         } else {
@@ -152,7 +154,7 @@ public abstract class AbstractCursor implements Cursor {
       }
       return new ObjectAccessor(getter);
     default:
-      throw new RuntimeException("unknown type " + type.type);
+      throw new RuntimeException("unknown type " + type.type.type);
     }
   }
 
@@ -1033,11 +1035,14 @@ public abstract class AbstractCursor implements Cursor {
    * corresponds to {@link java.sql.Types#ARRAY}.
    */
   private static class ArrayAccessor extends AccessorImpl {
-    private final ColumnMetaData component;
+    private final ColumnMetaData.AvaticaType componentType;
+    private final ArrayImpl.Factory factory;
 
-    public ArrayAccessor(Getter getter, ColumnMetaData component) {
+    public ArrayAccessor(Getter getter,
+        ColumnMetaData.AvaticaType componentType, ArrayImpl.Factory factory) {
       super(getter);
-      this.component = component;
+      this.componentType = componentType;
+      this.factory = factory;
     }
 
     @Override
@@ -1046,7 +1051,7 @@ public abstract class AbstractCursor implements Cursor {
       if (list == null) {
         return null;
       }
-      return new ArrayImpl(list, component);
+      return new ArrayImpl(list, componentType, factory);
     }
 
     @Override

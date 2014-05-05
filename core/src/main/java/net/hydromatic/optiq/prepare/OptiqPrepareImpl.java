@@ -65,6 +65,7 @@ import java.io.IOException;
 import java.io.StringReader;
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
+import java.sql.DatabaseMetaData;
 import java.util.*;
 
 /**
@@ -368,7 +369,7 @@ public class OptiqPrepareImpl implements OptiqPrepare {
 
     RelDataType jdbcType = makeStruct(typeFactory, x);
     final List<List<String>> originList = preparedResult.getFieldOrigins();
-    final List<ColumnMetaData> columns =
+    final ColumnMetaData.StructType structType =
         getColumnMetaDataList(typeFactory, x, jdbcType, originList);
     Class resultClazz = null;
     if (preparedResult instanceof Typed) {
@@ -378,13 +379,13 @@ public class OptiqPrepareImpl implements OptiqPrepare {
         sql,
         parameters,
         jdbcType,
-        columns,
+        structType,
         maxRowCount,
         preparedResult.getBindable(),
         resultClazz);
   }
 
-  private List<ColumnMetaData> getColumnMetaDataList(
+  private ColumnMetaData.StructType getColumnMetaDataList(
       JavaTypeFactory typeFactory, RelDataType x, RelDataType jdbcType,
       List<List<String>> originList) {
     final List<ColumnMetaData> columns = new ArrayList<ColumnMetaData>();
@@ -397,30 +398,21 @@ public class OptiqPrepareImpl implements OptiqPrepare {
           metaData(typeFactory, columns.size(), field.getName(), type,
               fieldType, originList.get(pair.i)));
     }
-    return columns;
+    return ColumnMetaData.struct(columns);
   }
 
   private ColumnMetaData metaData(JavaTypeFactory typeFactory, int ordinal,
       String fieldName, RelDataType type, RelDataType fieldType,
       List<String> origins) {
-    if (type == null) {
-      return null;
-    }
-    if (fieldType == null) {
-      fieldType = type;
-    }
-    final Type clazz = typeFactory.getJavaClass(fieldType);
-    final ColumnMetaData.Rep rep = ColumnMetaData.Rep.of(clazz);
-    assert rep != null;
-    final ColumnMetaData component =
-        metaData(typeFactory, 0, null, type.getComponentType(), null, null);
     return new ColumnMetaData(
         ordinal,
         false,
         true,
         false,
         false,
-        type.isNullable() ? 1 : 0,
+        type.isNullable()
+            ? DatabaseMetaData.columnNullable
+            : DatabaseMetaData.columnNoNulls,
         true,
         type.getPrecision(),
         fieldName,
@@ -430,14 +422,26 @@ public class OptiqPrepareImpl implements OptiqPrepare {
         getScale(type),
         origin(origins, 1),
         null,
-        getTypeOrdinal(type),
-        getTypeName(type),
+        avaticaType(typeFactory, type, fieldType),
         true,
         false,
         false,
-        getClassName(type),
-        component,
-        rep);
+        getClassName(type));
+  }
+
+  private ColumnMetaData.AvaticaType avaticaType(JavaTypeFactory typeFactory,
+      RelDataType type, RelDataType fieldType) {
+    final Type clazz = typeFactory.getJavaClass(Util.first(fieldType, type));
+    final ColumnMetaData.Rep rep = ColumnMetaData.Rep.of(clazz);
+    assert rep != null;
+    final String typeName = getTypeName(type);
+    if (type.getComponentType() != null) {
+      final ColumnMetaData.AvaticaType componentType =
+          avaticaType(typeFactory, type.getComponentType(), null);
+      return ColumnMetaData.array(componentType, typeName, rep);
+    } else {
+      return ColumnMetaData.scalar(getTypeOrdinal(type), typeName, rep);
+    }
   }
 
   private static String origin(List<String> origins, int offsetFromEnd) {

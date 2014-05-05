@@ -79,10 +79,10 @@ public class MaterializationService {
         materializedTable =
             CloneSchema.createCloneTable(typeFactory,
                 RelDataTypeImpl.proto(prepareResult.rowType),
-                Functions.adapt(prepareResult.columnList,
+                Functions.adapt(prepareResult.structType.columns,
                     new Function1<ColumnMetaData, ColumnMetaData.Rep>() {
                       public ColumnMetaData.Rep apply(ColumnMetaData column) {
-                        return column.representation;
+                        return column.type.representation;
                       }
                     }),
                 new AbstractQueryable<Object>() {

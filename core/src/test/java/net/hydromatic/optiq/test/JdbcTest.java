@@ -1327,7 +1327,9 @@ public class JdbcTest {
                   ResultSet resultSet =
                       statement.executeQuery(
                           "select \"empid\",\n"
-                          + "array[array['x', 'y', 'z'], array[\"name\"]] as a\n"
+                          + "  array[\n"
+                          + "    array['x', 'y', 'z'],\n"
+                          + "    array[\"name\"]] as a\n"
                           + "from \"hr\".\"emps\"");
                   assertThat(resultSet.next(), is(true));
                   assertThat(resultSet.getInt(1), equalTo(100));
@@ -1346,6 +1348,23 @@ public class JdbcTest {
                       (Object[]) subArray.getArray();
                   assertThat(subArrayValues.length, equalTo(3));
                   assertThat(subArrayValues[2], equalTo((Object) "z"));
+
+                  final ResultSet subResultSet = subArray.getResultSet();
+                  assertThat(subResultSet.next(), is(true));
+                  assertThat(subResultSet.getString(1), equalTo("x"));
+                  try {
+                    final String string = subResultSet.getString(2);
+                    fail("expected error, got " + string);
+                  } catch (SQLException e) {
+                    assertThat(e.getMessage(),
+                        equalTo("invalid column ordinal: 2"));
+                  }
+                  assertThat(subResultSet.next(), is(true));
+                  assertThat(subResultSet.next(), is(true));
+                  assertThat(subResultSet.isAfterLast(), is(false));
+                  assertThat(subResultSet.getString(1), equalTo("z"));
+                  assertThat(subResultSet.next(), is(false));
+                  assertThat(subResultSet.isAfterLast(), is(true));
                   statement.close();
                   return null;
                 } catch (SQLException e) {

@@ -142,17 +142,18 @@ public class MetaImpl implements Meta {
     Pair<Integer, String> pair = MAP.get(type);
     ColumnMetaData.Rep rep =
         ColumnMetaData.Rep.VALUE_MAP.get(type);
+    ColumnMetaData.AvaticaType scalarType =
+        ColumnMetaData.scalar(pair.left, pair.right, rep);
     return new ColumnMetaData(
         index, false, true, false, false,
         Primitive.is(type)
             ? DatabaseMetaData.columnNullable
             : DatabaseMetaData.columnNoNulls,
         true, -1, name, name, null,
-        0, 0, null, null, pair.left, pair.right, true,
-        false, false, null, null, rep);
+        0, 0, null, null, scalarType, true, false, false, null);
   }
 
-  static List<ColumnMetaData> fieldMetaData(Class clazz) {
+  static ColumnMetaData.StructType fieldMetaData(Class clazz) {
     final List<ColumnMetaData> list = new ArrayList<ColumnMetaData>();
     for (Field field : clazz.getFields()) {
       if (Modifier.isPublic(field.getModifiers())
@@ -162,7 +163,7 @@ public class MetaImpl implements Meta {
                 list.size() + 1, field.getType()));
       }
     }
-    return list;
+    return ColumnMetaData.struct(list);
   }
 
   /** Creates an empty result set. Useful for JDBC metadata methods that are
@@ -178,14 +179,14 @@ public class MetaImpl implements Meta {
   }
 
   private static <E> ResultSet createResultSet(OptiqConnectionImpl connection,
-      final List<ColumnMetaData> columnList,
+      final ColumnMetaData.StructType structType,
       final Cursor cursor) {
     try {
       final AvaticaResultSet resultSet = connection.getFactory().newResultSet(
           connection.createStatement(),
           new OptiqPrepare.PrepareResult<E>("",
               ImmutableList.<AvaticaParameter>of(), null,
-              columnList, -1, null, Object.class) {
+              structType, -1, null, Object.class) {
             @Override
             public Cursor createCursor(DataContext dataContext) {
               return cursor;
@@ -203,9 +204,7 @@ public class MetaImpl implements Meta {
       final Enumerable<?> enumerable,
       final NamedFieldGetter columnGetter) {
     //noinspection unchecked
-    return createResultSet(
-        connection,
-        columnGetter.columnNames,
+    return createResultSet(connection, columnGetter.structType,
         columnGetter.cursor(((Enumerable) enumerable).enumerator()));
   }
 
@@ -892,10 +891,11 @@ public class MetaImpl implements Meta {
   /** Accesses fields by name. */
   private static class NamedFieldGetter {
     private final List<Field> fields = new ArrayList<Field>();
-    private final List<ColumnMetaData> columnNames =
-        new ArrayList<ColumnMetaData>();
+    private final ColumnMetaData.StructType structType;
 
     public NamedFieldGetter(Class clazz, String... names) {
+      final List<ColumnMetaData> columns =
+          new ArrayList<ColumnMetaData>();
       for (String name : names) {
         final int index = fields.size();
         final String fieldName = Util.toCamelCase(name);
@@ -905,9 +905,10 @@ public class MetaImpl implements Meta {
         } catch (NoSuchFieldException e) {
           throw new RuntimeException(e);
         }
-        columnNames.add(columnMetaData(name, index, field.getType()));
+        columns.add(columnMetaData(name, index, field.getType()));
         fields.add(field);
       }
+      structType = ColumnMetaData.struct(columns);
     }
 
     Object get(Object o, int columnIndex) {

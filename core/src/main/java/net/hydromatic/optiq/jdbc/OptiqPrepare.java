@@ -204,7 +204,7 @@ public interface OptiqPrepare {
     public final String sql; // for debug
     public final List<AvaticaParameter> parameterList;
     public final RelDataType rowType;
-    public final List<ColumnMetaData> columnList;
+    public final ColumnMetaData.StructType structType;
     private final int maxRowCount;
     private final Bindable<T> bindable;
     public final Class resultClazz;
@@ -212,7 +212,7 @@ public interface OptiqPrepare {
     public PrepareResult(String sql,
         List<AvaticaParameter> parameterList,
         RelDataType rowType,
-        List<ColumnMetaData> columnList,
+        ColumnMetaData.StructType structType,
         int maxRowCount,
         Bindable<T> bindable,
         Class resultClazz) {
@@ -220,7 +220,7 @@ public interface OptiqPrepare {
       this.sql = sql;
       this.parameterList = parameterList;
       this.rowType = rowType;
-      this.columnList = columnList;
+      this.structType = structType;
       this.maxRowCount = maxRowCount;
       this.bindable = bindable;
       this.resultClazz = resultClazz;
@@ -229,7 +229,7 @@ public interface OptiqPrepare {
     public Cursor createCursor(DataContext dataContext) {
       Enumerator<?> enumerator = enumerator(dataContext);
       //noinspection unchecked
-      return columnList.size() == 1
+      return structType.columns.size() == 1
           ? new ObjectEnumeratorCursor((Enumerator) enumerator)
           : resultClazz != null && !resultClazz.isArray()
           ? new RecordEnumeratorCursor((Enumerator) enumerator, resultClazz)
@@ -237,7 +237,7 @@ public interface OptiqPrepare {
     }
 
     public List<ColumnMetaData> getColumnList() {
-      return columnList;
+      return structType.columns;
     }
 
     public List<AvaticaParameter> getParameterList() {
