@@ -23,6 +23,8 @@ package org.eigenbase.rel;
 public interface RelShuttle {
   RelNode visit(TableAccessRelBase scan);
 
+  RelNode visit(TableFunctionRelBase scan);
+
   RelNode visit(ValuesRel values);
 
   RelNode visit(FilterRel filter);

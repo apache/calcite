@@ -123,7 +123,7 @@ public class ViewTable
       return Collections.emptyList();
     }
 
-    public Table apply(List<Object> arguments) {
+    public TranslatableTable apply(List<Object> arguments) {
       OptiqPrepare.ParseResult parsed =
           Schemas.parse(MATERIALIZATION_CONNECTION, schema, schemaPath,
               viewSql);
@@ -132,10 +132,6 @@ public class ViewTable
       final JavaTypeFactory typeFactory = (JavaTypeFactory) parsed.typeFactory;
       return new ViewTable(typeFactory.getJavaClass(parsed.rowType),
           RelDataTypeImpl.proto(parsed.rowType), viewSql, schemaPath1);
-    }
-
-    public RelDataType getRowType(RelDataTypeFactory typeFactory) {
-      return apply(Collections.emptyList()).getRowType(typeFactory);
     }
   }
 }

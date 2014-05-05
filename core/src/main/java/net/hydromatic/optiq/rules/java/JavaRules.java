@@ -30,6 +30,7 @@ import net.hydromatic.optiq.util.BitSets;
 
 import org.eigenbase.rel.*;
 import org.eigenbase.rel.convert.ConverterRule;
+import org.eigenbase.rel.metadata.RelColumnMapping;
 import org.eigenbase.rel.metadata.RelMetadataQuery;
 import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.*;
@@ -885,7 +886,7 @@ public class JavaRules {
       final JavaTypeFactory typeFactory = implementor.getTypeFactory();
       final BlockBuilder builder = new BlockBuilder();
       final RexToLixTranslator translator =
-          RexToLixTranslator.forAggregation(typeFactory);
+          RexToLixTranslator.forAggregation(typeFactory, null);
       final EnumerableRel child = (EnumerableRel) getChild();
       final Result result = implementor.visitChild(this, 0, child, pref);
       Expression childExp =
@@ -2003,7 +2004,7 @@ public class JavaRules {
       final JavaTypeFactory typeFactory = implementor.getTypeFactory();
       final EnumerableRel child = (EnumerableRel) getChild();
       final RexToLixTranslator translator =
-          RexToLixTranslator.forAggregation(typeFactory);
+          RexToLixTranslator.forAggregation(typeFactory, null);
       final BlockBuilder builder = new BlockBuilder();
       final Result result = implementor.visitChild(this, 0, child, pref);
       Expression source_ = builder.append("source", result.block);
@@ -2616,6 +2617,63 @@ public class JavaRules {
               program,
               ImmutableList.<RelCollation>of());
       call.transformTo(calc);
+    }
+  }
+
+  public static final EnumerableTableFunctionRule ENUMERABLE_TABLE_FUNCTION_RULE
+    = new EnumerableTableFunctionRule();
+
+  public static class EnumerableTableFunctionRule extends ConverterRule {
+    public EnumerableTableFunctionRule() {
+      super(TableFunctionRel.class, Convention.NONE,
+          EnumerableConvention.INSTANCE, "EnumerableTableFunctionRule");
+    }
+
+    @Override
+    public RelNode convert(RelNode rel) {
+      final RelTraitSet traitSet =
+          rel.getTraitSet().replace(EnumerableConvention.INSTANCE);
+      TableFunctionRel tbl = (TableFunctionRel) rel;
+      return new EnumerableTableFunctionRel(rel.getCluster(), traitSet,
+          tbl.getInputs(), tbl.getElementType(), tbl.getRowType(),
+          tbl.getCall(), tbl.getColumnMappings());
+    }
+  }
+
+  public static class EnumerableTableFunctionRel extends TableFunctionRelBase
+      implements EnumerableRel {
+
+    public EnumerableTableFunctionRel(RelOptCluster cluster,
+        RelTraitSet traits, List<RelNode> inputs, Type elementType,
+        RelDataType rowType, RexNode call,
+        Set<RelColumnMapping> columnMappings) {
+      super(cluster, traits, inputs, call, elementType, rowType,
+        columnMappings);
+    }
+
+    @Override
+    public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
+      return new EnumerableTableFunctionRel(getCluster(), traitSet, inputs,
+          getElementType(), getRowType(), getCall(), getColumnMappings());
+    }
+
+    public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
+      BlockBuilder bb = new BlockBuilder();
+       // Non-array user-specified types are not supported yet
+      final PhysType physType =
+          PhysTypeImpl.of(
+              implementor.getTypeFactory(),
+              getRowType(),
+              getElementType() == null /* e.g. not known */
+              || (getElementType() instanceof Class
+                  && Object[].class.isAssignableFrom((Class) getElementType()))
+              ? JavaRowFormat.ARRAY
+              : JavaRowFormat.CUSTOM);
+      RexToLixTranslator t = RexToLixTranslator.forAggregation(
+          (JavaTypeFactory) getCluster().getTypeFactory(), bb);
+      final Expression translated = t.translate(getCall());
+      bb.add(Expressions.return_(null, translated));
+      return implementor.result(physType, bb.toBlock());
     }
   }
 

@@ -17,6 +17,7 @@
 */
 package org.eigenbase.rel;
 
+import java.lang.reflect.Type;
 import java.util.*;
 
 import org.eigenbase.rel.metadata.*;
@@ -38,7 +39,9 @@ public abstract class TableFunctionRelBase extends AbstractRelNode {
 
   private final RexNode rexCall;
 
-  protected final ImmutableList<RelNode> inputs;
+  private final Type elementType;
+
+  private ImmutableList<RelNode> inputs;
 
   protected final ImmutableSet<RelColumnMapping> columnMappings;
 
@@ -50,6 +53,8 @@ public abstract class TableFunctionRelBase extends AbstractRelNode {
    * @param cluster        Cluster that this relational expression belongs to
    * @param inputs         0 or more relational inputs
    * @param rexCall        function invocation expression
+   * @param elementType    element type of the collection that will implement
+   *                       this table
    * @param rowType        row type produced by function
    * @param columnMappings column mappings associated with this function
    */
@@ -58,10 +63,11 @@ public abstract class TableFunctionRelBase extends AbstractRelNode {
       RelTraitSet traits,
       List<RelNode> inputs,
       RexNode rexCall,
-      RelDataType rowType,
+      Type elementType, RelDataType rowType,
       Set<RelColumnMapping> columnMappings) {
     super(cluster, traits);
     this.rexCall = rexCall;
+    this.elementType = elementType;
     this.rowType = rowType;
     this.inputs = ImmutableList.copyOf(inputs);
     this.columnMappings =
@@ -74,7 +80,8 @@ public abstract class TableFunctionRelBase extends AbstractRelNode {
   protected TableFunctionRelBase(RelInput input) {
     this(
         input.getCluster(), input.getTraitSet(), input.getInputs(),
-        input.getExpression("invocation"), input.getRowType("rowType"),
+        input.getExpression("invocation"), (Type) input.get("elementType"),
+        input.getRowType("rowType"),
         ImmutableSet.<RelColumnMapping>of());
   }
 
@@ -88,6 +95,14 @@ public abstract class TableFunctionRelBase extends AbstractRelNode {
   @Override
   public List<RexNode> getChildExps() {
     return ImmutableList.of(rexCall);
+  }
+
+  @Override
+  public void replaceInput(int ordinalInParent, RelNode p) {
+    final List<RelNode> newInputs = new ArrayList<RelNode>(inputs);
+    newInputs.set(ordinalInParent, p);
+    inputs = ImmutableList.copyOf(newInputs);
+    recomputeDigest();
   }
 
   @Override
@@ -122,8 +137,12 @@ public abstract class TableFunctionRelBase extends AbstractRelNode {
     for (Ord<RelNode> ord : Ord.zip(inputs)) {
       pw.input("input#" + ord.i, ord.e);
     }
-    return pw.item("invocation", rexCall)
-        .item("rowType", rowType);
+    pw.item("invocation", rexCall)
+      .item("rowType", rowType);
+    if (elementType != null) {
+      pw.item("elementType", elementType);
+    }
+    return pw;
   }
 
   /**
@@ -132,6 +151,14 @@ public abstract class TableFunctionRelBase extends AbstractRelNode {
    */
   public Set<RelColumnMapping> getColumnMappings() {
     return columnMappings;
+  }
+
+  /**
+   * Returns element type of the collection that will implement this table.
+   * @return element type of the collection that will implement this table
+   */
+  public Type getElementType() {
+    return elementType;
   }
 }
 

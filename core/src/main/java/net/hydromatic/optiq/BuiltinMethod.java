@@ -49,6 +49,8 @@ import static org.eigenbase.rel.metadata.BuiltInMetadata.*;
 public enum BuiltinMethod {
   QUERYABLE_SELECT(Queryable.class, "select", FunctionExpression.class),
   QUERYABLE_AS_ENUMERABLE(Queryable.class, "asEnumerable"),
+  QUERYABLE_TABLE_AS_QUERYABLE(QueryableTable.class, "asQueryable",
+      QueryProvider.class, SchemaPlus.class, String.class),
   AS_QUERYABLE(Enumerable.class, "asQueryable"),
   ABSTRACT_ENUMERABLE_CTOR(AbstractEnumerable.class),
   INTO(ExtendedEnumerable.class, "into", Collection.class),
@@ -209,6 +211,7 @@ public enum BuiltinMethod {
   NON_CUMULATIVE_COST(NonCumulativeCost.class, "getNonCumulativeCost"),
   EXPLAIN_VISIBILITY(ExplainVisibility.class, "isVisibleInExplain",
       SqlExplainLevel.class),
+  DATA_CONTEXT_GET_QUERY_PROVIDER(DataContext.class, "getQueryProvider"),
   METADATA_REL(Metadata.class, "rel");
 
   public final Method method;

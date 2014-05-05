@@ -17,92 +17,66 @@
 */
 package net.hydromatic.optiq.impl;
 
-import net.hydromatic.optiq.FunctionParameter;
-import net.hydromatic.optiq.Table;
-import net.hydromatic.optiq.TableMacro;
-import net.hydromatic.optiq.impl.java.JavaTypeFactory;
-
-import org.eigenbase.reltype.RelDataType;
-import org.eigenbase.reltype.RelDataTypeFactory;
+import net.hydromatic.optiq.*;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
 import static org.eigenbase.util.Static.*;
 
 /**
- * Implementation of {@link TableMacro} based on a method.
+ * Implementation of {@link net.hydromatic.optiq.TableMacro} based on a method.
 */
-public class TableMacroImpl implements TableMacro {
-  private final List<FunctionParameter> parameters;
-  private final Method method;
+public class TableMacroImpl extends ReflectiveFunctionBase
+    implements TableMacro {
 
   /** Private constructor; use {@link #create}. */
-  private TableMacroImpl(List<FunctionParameter> parameters, Method method) {
-    this.parameters = parameters;
-    this.method = method;
+  private TableMacroImpl(Method method) {
+    super(method);
   }
 
-  /** Creates a {@code TableMacroImpl} from a class, looking for an "eval"
+  /** Creates a {@code TableMacro} from a class, looking for an "eval"
    * method. Returns null if there is no such method. */
   public static TableMacro create(Class<?> clazz) {
-    final Method method = ScalarFunctionImpl.findMethod(clazz, "eval");
+    final Method method = findMethod(clazz, "eval");
     if (method == null) {
-      return null;
-    }
-    if ((method.getModifiers() & Modifier.STATIC) == 0) {
-      if (!ScalarFunctionImpl.classHasPublicZeroArgsConstructor(clazz)) {
-        throw RESOURCE.requireDefaultConstructor(clazz.getName()).ex();
-      }
-    }
-    final Class<?> returnType = method.getReturnType();
-    if (!Table.class.isAssignableFrom(returnType)) {
       return null;
     }
     return create(method);
   }
 
-  /** Creates a {@code TableMacroImpl} from a method. */
+  /** Creates a {@code TableMacro} from a method. */
   public static TableMacro create(final Method method) {
-    final List<FunctionParameter> parameters =
-        new ArrayList<FunctionParameter>();
-    for (final Class<?> parameterType : method.getParameterTypes()) {
-      parameters.add(
-          new FunctionParameter() {
-            final int ordinal = parameters.size();
-
-            public int getOrdinal() {
-              return ordinal;
-            }
-
-            public String getName() {
-              return "a" + ordinal;
-            }
-
-            public RelDataType getType(RelDataTypeFactory typeFactory) {
-              return ((JavaTypeFactory) typeFactory).createType(parameterType);
-            }
-          });
+    Class clazz = method.getDeclaringClass();
+    if (!Modifier.isStatic(method.getModifiers())) {
+      if (!classHasPublicZeroArgsConstructor(clazz)) {
+        throw RESOURCE.requireDefaultConstructor(clazz.getName()).ex();
+      }
     }
-    return new TableMacroImpl(parameters, method);
+    final Class<?> returnType = method.getReturnType();
+    if (!TranslatableTable.class.isAssignableFrom(returnType)) {
+      return null;
+    }
+    return new TableMacroImpl(method);
   }
 
-  public List<FunctionParameter> getParameters() {
-    return parameters;
-  }
-
-  public Table apply(List<Object> arguments) {
+  /**
+   * Applies arguments to yield a table.
+   *
+   * @param arguments Arguments
+   * @return Table
+   */
+  public TranslatableTable apply(List<Object> arguments) {
     try {
       Object o = null;
       if (!Modifier.isStatic(method.getModifiers())) {
         o = method.getDeclaringClass().newInstance();
       }
       //noinspection unchecked
-      return (Table) method.invoke(o, arguments.toArray());
+      return (TranslatableTable) method.invoke(o, arguments.toArray());
     } catch (IllegalArgumentException e) {
       throw new RuntimeException("Expected "
           + Arrays.asList(method.getParameterTypes()) + " actual "
@@ -115,11 +89,6 @@ public class TableMacroImpl implements TableMacro {
     } catch (InstantiationException e) {
       throw new RuntimeException(e);
     }
-  }
-
-  public RelDataType getRowType(RelDataTypeFactory typeFactory) {
-    final Class<?> returnType = method.getReturnType();
-    return ((JavaTypeFactory) typeFactory).createType(returnType);
   }
 }
 

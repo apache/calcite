@@ -17,23 +17,20 @@
 */
 package net.hydromatic.optiq;
 
-import java.util.List;
+import net.hydromatic.optiq.rules.java.CallImplementor;
 
 /**
- * Function that returns a {@link Table}.
- *
- * <p>As the name "macro" implies, this is invoked at "compile time", that is,
- * during query preparation. Compile-time expansion of table expressions allows
- * for some very powerful query-optimizations.</p>
+ * Function that can be translated to java code.
+ * <p>
+ * @see net.hydromatic.optiq.ScalarFunction
+ * @see net.hydromatic.optiq.TableFunction
  */
-public interface TableMacro extends Function {
+public interface ImplementableFunction extends Function {
   /**
-   * Applies arguments to yield a table.
-   *
-   * @param arguments Arguments
-   * @return Table
+   * Returns implementor that translates the function to linq4j expression.
+   * @return implementor that translates the function to linq4j expression.
    */
-  TranslatableTable apply(List<Object> arguments);
+  CallImplementor getImplementor();
 }
 
-// End TableMacro.java
+// End ImplementableFunction.java

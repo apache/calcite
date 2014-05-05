@@ -109,7 +109,7 @@ public class MaterializedViewTable extends ViewTable {
     }
 
     @Override
-    public Table apply(List<Object> arguments) {
+    public TranslatableTable apply(List<Object> arguments) {
       assert arguments.isEmpty();
       OptiqPrepare.ParseResult parsed =
           Schemas.parse(MATERIALIZATION_CONNECTION, schema, schemaPath,

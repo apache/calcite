@@ -67,6 +67,10 @@ public class RelShuttleImpl implements RelShuttle {
     return scan;
   }
 
+  public RelNode visit(TableFunctionRelBase scan) {
+    return visitChildren(scan);
+  }
+
   public RelNode visit(ValuesRel values) {
     return values;
   }

@@ -22,6 +22,7 @@ import net.hydromatic.avatica.*;
 import net.hydromatic.linq4j.*;
 import net.hydromatic.linq4j.expressions.Types;
 import net.hydromatic.linq4j.function.Function1;
+import net.hydromatic.linq4j.function.Function2;
 
 import net.hydromatic.optiq.*;
 import net.hydromatic.optiq.impl.*;
@@ -75,7 +76,11 @@ import static org.junit.Assert.*;
  */
 public class JdbcTest {
   public static final Method GENERATE_STRINGS_METHOD =
-      Types.lookupMethod(JdbcTest.class, "generateStrings", Integer.TYPE);
+      Types.lookupMethod(JdbcTest.class, "generateStrings", Integer.class);
+
+  public static final Method MULTIPLICATION_TABLE_METHOD =
+      Types.lookupMethod(JdbcTest.class, "multiplicationTable", int.class,
+        int.class, Integer.class);
 
   public static final Method VIEW_METHOD =
       Types.lookupMethod(JdbcTest.class, "view", String.class);
@@ -83,6 +88,14 @@ public class JdbcTest {
   public static final Method STRING_UNION_METHOD =
       Types.lookupMethod(
           JdbcTest.class, "stringUnion", Queryable.class, Queryable.class);
+
+  public static final Method PROCESS_CURSOR_METHOD =
+      Types.lookupMethod(JdbcTest.class, "processCursor",
+          int.class, Enumerable.class);
+
+  public static final Method PROCESS_CURSORS_METHOD =
+      Types.lookupMethod(JdbcTest.class, "processCursors",
+          int.class, Enumerable.class, Enumerable.class);
 
   public static final String FOODMART_SCHEMA =
       "     {\n"
@@ -131,14 +144,8 @@ public class JdbcTest {
   }
 
   /**
-   * Tests a relation that is accessed via method syntax.
-   *
-   * <p>The function ({@link #generateStrings(int)} has a return type
-   * {@link Table} and the actual returned value implements
-   * {@link net.hydromatic.optiq.QueryableTable} but not
-   * {@link net.hydromatic.optiq.TranslatableTable}.
+   * Tests a table function with literal arguments.
    */
-  @Ignore
   @Test public void testTableFunction()
     throws SQLException, ClassNotFoundException {
     Class.forName("net.hydromatic.optiq.jdbc.Driver");
@@ -148,14 +155,156 @@ public class JdbcTest {
         connection.unwrap(OptiqConnection.class);
     SchemaPlus rootSchema = optiqConnection.getRootSchema();
     SchemaPlus schema = rootSchema.add("s", new AbstractSchema());
-    final TableMacro tableMacro =
-        TableMacroImpl.create(GENERATE_STRINGS_METHOD);
-    schema.add("GenerateStrings", tableMacro);
+    final TableFunction table =
+        TableFunctionImpl.create(GENERATE_STRINGS_METHOD);
+    schema.add("GenerateStrings", table);
     ResultSet resultSet = connection.createStatement().executeQuery(
         "select *\n"
         + "from table(\"s\".\"GenerateStrings\"(5)) as t(n, c)\n"
         + "where char_length(c) > 3");
-    assertTrue(resultSet.next());
+    assertThat(OptiqAssert.toString(resultSet),
+        equalTo("N=4; C=abcd\n"));
+  }
+
+  /**
+   * Tests a table function that returns different row type based on
+   * actual call arguments.
+   */
+  @Test public void testTableFunctionDynamicStructure()
+    throws SQLException, ClassNotFoundException {
+    Connection connection = getConnectionWithMultiplyFunction();
+    final PreparedStatement ps = connection.prepareStatement(
+        "select *\n"
+        + "from table(\"s\".\"multiplication\"(4, 3, ?))\n"
+    );
+    ps.setInt(1, 100);
+    ResultSet resultSet = ps.executeQuery();
+    assertThat(OptiqAssert.toString(resultSet),
+        equalTo("row_name=row 0; c1=101; c2=102; c3=103; c4=104\n"
+                + "row_name=row 1; c1=102; c2=104; c3=106; c4=108\n"
+                + "row_name=row 2; c1=103; c2=106; c3=109; c4=112\n"));
+  }
+
+  /**
+   * Tests that non-nullable arguments of a table function must be provided
+   * as literals.
+   */
+  @Ignore("SQLException does not include message from nested exception")
+  @Test public void testTableFunctionNonNullableMustBeLiterals()
+    throws SQLException, ClassNotFoundException {
+    Connection connection = getConnectionWithMultiplyFunction();
+    try {
+      final PreparedStatement ps = connection.prepareStatement(
+          "select *\n"
+          + "from table(\"s\".\"multiplication\"(?, 3, 100))\n"
+      );
+      ps.setInt(1, 100);
+      ResultSet resultSet = ps.executeQuery();
+      fail("Should fail with ");
+    } catch (SQLException e) {
+      assertThat(e.getMessage(),
+          containsString("Wrong arguments for table function 'public static "
+                         + "net.hydromatic.optiq.QueryableTable net"
+                         + ".hydromatic.optiq.test.JdbcTest"
+                         + ".multiplicationTable(int,int,java.lang.Integer)'"
+                         + " call. Expected '[int, int, class"
+                         + "java.lang.Integer]', actual '[null, 3, 100]'"));
+    }
+  }
+
+  private Connection getConnectionWithMultiplyFunction()
+    throws ClassNotFoundException, SQLException {
+    Class.forName("net.hydromatic.optiq.jdbc.Driver");
+    Connection connection =
+        DriverManager.getConnection("jdbc:optiq:");
+    OptiqConnection optiqConnection =
+        connection.unwrap(OptiqConnection.class);
+    SchemaPlus rootSchema = optiqConnection.getRootSchema();
+    SchemaPlus schema = rootSchema.add("s", new AbstractSchema());
+    final TableFunction table =
+        TableFunctionImpl.create(MULTIPLICATION_TABLE_METHOD);
+    schema.add("multiplication", table);
+    return connection;
+  }
+
+  /**
+   * Tests a table function that takes cursor input.
+   */
+  @Ignore("CannotPlanException: Node [rel#18:Subset#4.ENUMERABLE.[]] "
+          + "could not be implemented")
+  @Test public void testTableFunctionCursorInputs()
+    throws SQLException, ClassNotFoundException {
+    Class.forName("net.hydromatic.optiq.jdbc.Driver");
+    Connection connection =
+        DriverManager.getConnection("jdbc:optiq:");
+    OptiqConnection optiqConnection =
+        connection.unwrap(OptiqConnection.class);
+    SchemaPlus rootSchema = optiqConnection.getRootSchema();
+    SchemaPlus schema = rootSchema.add("s", new AbstractSchema());
+    final TableFunction table =
+        TableFunctionImpl.create(GENERATE_STRINGS_METHOD);
+    schema.add("GenerateStrings", table);
+    final TableFunction add =
+        TableFunctionImpl.create(PROCESS_CURSOR_METHOD);
+    schema.add("process", add);
+    final PreparedStatement ps = connection.prepareStatement(
+        "select *\n"
+        + "from table(\"s\".\"process\"(2,\n"
+        + "cursor(select * from table(\"s\".\"GenerateStrings\"(?)))\n"
+        + ")) as t(u)\n"
+        + "where u > 3"
+    );
+    ps.setInt(1, 5);
+    ResultSet resultSet = ps.executeQuery();
+    // GenerateStrings returns 0..4, then 2 is added (process function),
+    // thus 2..6, finally where u > 3 leaves just 4..6
+    assertThat(OptiqAssert.toString(resultSet),
+        equalTo("u=4\n"
+                + "u=5\n"
+                + "u=6\n"));
+  }
+
+  /**
+   * Tests a table function that takes multiple cursor inputs.
+   */
+  @Ignore("CannotPlanException: Node [rel#24:Subset#6.ENUMERABLE.[]] "
+          + "could not be implemented")
+  @Test public void testTableFunctionCursorsInputs()
+    throws SQLException, ClassNotFoundException {
+    Class.forName("net.hydromatic.optiq.jdbc.Driver");
+    Connection connection =
+        getConnectionWithMultiplyFunction();
+    OptiqConnection optiqConnection =
+        connection.unwrap(OptiqConnection.class);
+    SchemaPlus rootSchema = optiqConnection.getRootSchema();
+    SchemaPlus schema = rootSchema.getSubSchema("s");
+    final TableFunction table =
+        TableFunctionImpl.create(GENERATE_STRINGS_METHOD);
+    schema.add("GenerateStrings", table);
+    final TableFunction add =
+        TableFunctionImpl.create(PROCESS_CURSORS_METHOD);
+    schema.add("process", add);
+    final PreparedStatement ps = connection.prepareStatement(
+        "select *\n"
+        + "from table(\"s\".\"process\"(2,\n"
+        + "cursor(select * from table(\"s\".\"multiplication\"(5,5,0))),\n"
+        + "cursor(select * from table(\"s\".\"GenerateStrings\"(?)))\n"
+        + ")) as t(u)\n"
+        + "where u > 3"
+    );
+    ps.setInt(1, 5);
+    ResultSet resultSet = ps.executeQuery();
+    // GenerateStrings produce 0..4
+    // multiplication produce 1..5
+    // process sums and adds 2
+    // sum is 2 + 1..9 == 3..9
+    assertThat(OptiqAssert.toString(resultSet),
+        equalTo("u=4\n"
+                + "u=5\n"
+                + "u=6\n"
+                + "u=7\n"
+                + "u=8\n"
+                + "u=9\n"));
   }
 
   /**
@@ -183,15 +332,32 @@ public class JdbcTest {
     // The call to "View('(10), (2)')" expands to 'values (1), (3), (10), (20)'.
     assertThat(OptiqAssert.toString(resultSet),
         equalTo("N=1\n"
-            + "N=3\n"
-            + "N=10\n"));
+                + "N=3\n"
+                + "N=10\n"));
   }
 
   /** Tests a JDBC connection that provides a model that contains a table
    *  macro. */
   @Test public void testTableMacroInModel() throws Exception {
     checkTableMacroInModel(TableMacroFunction.class);
+  }
+
+  /** Tests a JDBC connection that provides a model that contains a table
+   *  macro defined as a static method. */
+  @Test public void testStaticTableMacroInModel() throws Exception {
     checkTableMacroInModel(StaticTableMacroFunction.class);
+  }
+
+  /** Tests a JDBC connection that provides a model that contains a table
+   *  function. */
+  @Test public void testTableFunctionInModel() throws Exception {
+    checkTableMacroInModel(TestTableFunction.class);
+  }
+
+  /** Tests a JDBC connection that provides a model that contains a table
+   *  function defined as a static method. */
+  @Test public void testStaticTableFunctionInModel() throws Exception {
+    checkTableMacroInModel(TestStaticTableFunction.class);
   }
 
   private void checkTableMacroInModel(Class clazz) {
@@ -224,13 +390,10 @@ public class JdbcTest {
 
   /** A function that generates a table that generates a sequence of
    * {@link net.hydromatic.optiq.test.JdbcTest.IntString} values. */
-  public static Table generateStrings(final int count) {
+  public static QueryableTable generateStrings(final Integer count) {
     return new AbstractQueryableTable(IntString.class) {
       public RelDataType getRowType(RelDataTypeFactory typeFactory) {
-        return typeFactory.builder()
-            .add("n", SqlTypeName.INTEGER)
-            .add("s", SqlTypeName.VARCHAR, -1)
-            .build();
+        return typeFactory.createJavaType(IntString.class);
       }
 
       public <T> Queryable<T> asQueryable(QueryProvider queryProvider,
@@ -241,16 +404,18 @@ public class JdbcTest {
                 return new Enumerator<IntString>() {
                   static final String Z = "abcdefghijklm";
 
-                  int i = -1;
-                  IntString o;
+                  int i = 0;
+                  int curI;
+                  String curS;
 
                   public IntString current() {
-                    return o;
+                    return new IntString(curI, curS);
                   }
 
                   public boolean moveNext() {
-                    if (i < count - 1) {
-                      o = new IntString(i, Z.substring(0, i % Z.length()));
+                    if (i < count) {
+                      curI = i;
+                      curS = Z.substring(0, i % Z.length());
                       ++i;
                       return true;
                     } else {
@@ -259,7 +424,7 @@ public class JdbcTest {
                   }
 
                   public void reset() {
-                    i = -1;
+                    i = 0;
                   }
 
                   public void close() {
@@ -269,6 +434,117 @@ public class JdbcTest {
             };
         //noinspection unchecked
         return (Queryable<T>) queryable;
+      }
+    };
+  }
+
+  /** A function that generates multiplication table of {@code ncol} columns x
+   * {@code nrow} rows. */
+  public static QueryableTable multiplicationTable(final int ncol,
+      final int nrow, Integer offset) {
+    final int offs = offset == null ? 0 : offset;
+    return new AbstractQueryableTable(Object[].class) {
+      public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+        final RelDataTypeFactory.FieldInfoBuilder builder =
+          typeFactory.builder();
+        builder.add("row_name", typeFactory.createJavaType(String.class));
+        final RelDataType int_ = typeFactory.createJavaType(int.class);
+        for (int i = 1; i <= ncol; i++) {
+          builder.add("c" + i, int_);
+        }
+        return builder.build();
+      }
+
+      public <T> Queryable<T> asQueryable(QueryProvider queryProvider,
+          SchemaPlus schema, String tableName) {
+        final List<Object[]> table = new AbstractList<Object[]>() {
+          @Override
+          public Object[] get(int index) {
+            Object[] cur = new Object[ncol + 1];
+            cur[0] = "row " + index;
+            for (int j = 1; j <= ncol; j++) {
+              cur[j] = j * (index + 1) + offs;
+            }
+            return cur;
+          }
+
+          @Override
+          public int size() {
+            return nrow;
+          }
+        };
+        BaseQueryable<Object[]> queryable =
+            new BaseQueryable<Object[]>(null, Object[].class, null) {
+              public Enumerator<Object[]> enumerator() {
+                return Linq4j.iterableEnumerator(table);
+              }
+            };
+        //noinspection unchecked
+        return (Queryable<T>) queryable;
+      }
+    };
+  }
+
+  /**
+   * A function that adds a number to the first column of input cursor
+   */
+  public static QueryableTable processCursor(final int offset,
+    final Enumerable<Object[]> a) {
+    return new AbstractQueryableTable(Object[].class) {
+      public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+        return typeFactory.builder()
+            .add("result", SqlTypeName.INTEGER)
+            .build();
+      }
+
+      public Queryable<Integer> asQueryable(QueryProvider queryProvider,
+          SchemaPlus schema, String tableName) {
+        final Enumerable<Integer> enumerable =
+            a.select(new Function1<Object[], Integer>() {
+              public Integer apply(Object[] a0) {
+                return offset + ((Integer) a0[0]);
+              }
+            });
+        BaseQueryable<Integer> queryable =
+            new BaseQueryable<Integer>(null, Integer.class, null) {
+              public Enumerator<Integer> enumerator() {
+                return enumerable.enumerator();
+              }
+            };
+        return queryable;
+      }
+    };
+  }
+
+  /**
+   * A function that sums the second column of first input cursor, second
+   * column of first input and the given int.
+   */
+  public static QueryableTable processCursors(final int offset,
+    final Enumerable<Object[]> a, final Enumerable<IntString> b
+  ) {
+    return new AbstractQueryableTable(Object[].class) {
+      public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+        return typeFactory.builder()
+            .add("result", SqlTypeName.INTEGER)
+            .build();
+      }
+
+      public Queryable<Integer> asQueryable(QueryProvider queryProvider,
+          SchemaPlus schema, String tableName) {
+        final Enumerable<Integer> enumerable =
+            a.zip(b, new Function2<Object[], IntString, Integer>() {
+              public Integer apply(Object[] v0, IntString v1) {
+                return ((Integer) v0[1]) + v1.n + offset;
+              }
+            });
+        BaseQueryable<Integer> queryable =
+            new BaseQueryable<Integer>(null, Integer.class, null) {
+              public Enumerator<Integer> enumerator() {
+                return enumerable.enumerator();
+              }
+            };
+        return queryable;
       }
     };
   }
@@ -4223,16 +4499,16 @@ public class JdbcTest {
       new Department(40, "HR", Collections.singletonList(emps[1])),
     };
 
-    public Table foo(int count) {
+    public QueryableTable foo(int count) {
       return generateStrings(count);
     }
 
-    public Table view(String s) {
+    public TranslatableTable view(String s) {
       return JdbcTest.view(s);
     }
   }
 
-  public static Table view(String s) {
+  public static TranslatableTable view(String s) {
     return new ViewTable(Object.class,
         new RelProtoDataType() {
           public RelDataType apply(RelDataTypeFactory typeFactory) {
@@ -4587,14 +4863,47 @@ public class JdbcTest {
   }
 
   public static class TableMacroFunction {
-    public Table eval(String s) {
+    public TranslatableTable eval(String s) {
       return view(s);
     }
   }
 
   public static class StaticTableMacroFunction {
-    public static Table eval(String s) {
+    public static TranslatableTable eval(String s) {
       return view(s);
+    }
+  }
+
+  private static QueryableTable oneThreePlus(String s) {
+    Integer latest = Integer.parseInt(s.substring(1, s.length() - 1));
+    List<Object> items = Arrays.<Object>asList(1, 3, latest);
+    final Enumerable<Object> enumerable = Linq4j.asEnumerable(items);
+    return new AbstractQueryableTable(Object[].class) {
+      public Queryable<Object> asQueryable(
+          QueryProvider queryProvider, SchemaPlus schema, String tableName) {
+        return new BaseQueryable<Object>(queryProvider, Object[].class, null) {
+          @Override
+          public Enumerator<Object> enumerator() {
+            return enumerable.enumerator();
+          }
+        };
+      }
+
+      public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+        return typeFactory.builder().add("c", SqlTypeName.INTEGER).build();
+      }
+    };
+  }
+
+  public static class TestTableFunction {
+    public QueryableTable eval(String s) {
+      return oneThreePlus(s);
+    }
+  }
+
+  public static class TestStaticTableFunction {
+    public static QueryableTable eval(String s) {
+      return oneThreePlus(s);
     }
   }
 }

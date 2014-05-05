@@ -15,25 +15,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 */
-package net.hydromatic.optiq;
+package net.hydromatic.optiq.rules.java;
 
-import java.util.List;
+import net.hydromatic.linq4j.expressions.Expression;
+
+import org.eigenbase.rex.RexCall;
 
 /**
- * Function that returns a {@link Table}.
- *
- * <p>As the name "macro" implies, this is invoked at "compile time", that is,
- * during query preparation. Compile-time expansion of table expressions allows
- * for some very powerful query-optimizations.</p>
+ * Implements a call via given translator.
+ * <p>
+ * @see net.hydromatic.optiq.ScalarFunction
+ * @see net.hydromatic.optiq.TableFunction
+ * @see net.hydromatic.optiq.rules.java.RexImpTable
  */
-public interface TableMacro extends Function {
-  /**
-   * Applies arguments to yield a table.
-   *
-   * @param arguments Arguments
-   * @return Table
-   */
-  TranslatableTable apply(List<Object> arguments);
+public interface CallImplementor {
+  /** Implements a call. */
+  Expression implement(
+      RexToLixTranslator translator,
+      RexCall call,
+      RexImpTable.NullAs nullAs);
 }
-
-// End TableMacro.java

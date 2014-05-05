@@ -86,16 +86,13 @@ public class ReflectiveSchema
           || methodName.equals("toString")) {
         continue;
       }
-      final TableMacro tableMacro = methodMember(method);
-      builder.put(methodName, tableMacro);
+      if (TranslatableTable.class.isAssignableFrom(method.getReturnType())) {
+        final TableMacro tableMacro =
+            new MethodTableMacro(this, method);
+        builder.put(methodName, tableMacro);
+      }
     }
     return builder.build();
-  }
-
-  private TableMacro methodMember(final Method method) {
-    final Type elementType = getElementType(method.getReturnType());
-    final Class<?>[] parameterTypes = method.getParameterTypes();
-    return new MethodTableMacro(this, method, elementType, parameterTypes);
   }
 
   /** Returns an expression for the object wrapped by this schema (not the
@@ -256,71 +253,26 @@ public class ReflectiveSchema
   }
 
   /** Table macro based on a Java method. */
-  private static class MethodTableMacro implements TableMacro {
+  private static class MethodTableMacro extends ReflectiveFunctionBase
+      implements TableMacro {
     private final ReflectiveSchema schema;
-    private final Method method;
-    private final Type elementType;
-    private final Class<?>[] parameterTypes;
 
-    public MethodTableMacro(ReflectiveSchema schema, Method method,
-        Type elementType, Class<?>[] parameterTypes) {
+    public MethodTableMacro(ReflectiveSchema schema, Method method) {
+      super(method);
       this.schema = schema;
-      this.method = method;
-      this.elementType = elementType;
-      this.parameterTypes = parameterTypes;
+      assert TranslatableTable.class.isAssignableFrom(method.getReturnType())
+          : "Method should return TranslatableTable so the macro can be "
+            + "expanded";
     }
 
     public String toString() {
       return "Member {method=" + method + "}";
     }
 
-    public RelDataType getRowType(RelDataTypeFactory typeFactory) {
-      return ((JavaTypeFactory) typeFactory).createType(elementType);
-    }
-
-    public List<FunctionParameter> getParameters() {
-      return new AbstractList<FunctionParameter>() {
-        public FunctionParameter get(final int index) {
-          return new FunctionParameter() {
-            public int getOrdinal() {
-              return index;
-            }
-
-            public String getName() {
-              return "arg" + index;
-            }
-
-            public RelDataType getType(RelDataTypeFactory typeFactory) {
-              return typeFactory.createJavaType(
-                  parameterTypes[index]);
-            }
-          };
-        }
-
-        public int size() {
-          return parameterTypes.length;
-        }
-      };
-    }
-
-    public Table apply(final List<Object> arguments) {
-      final List<Expression> list = new ArrayList<Expression>();
-      for (Object argument : arguments) {
-        list.add(Expressions.constant(argument));
-      }
+    public TranslatableTable apply(final List<Object> arguments) {
       try {
-        final Object o = method.invoke(schema, arguments.toArray());
-        @SuppressWarnings("unchecked")
-        final Enumerable enumerable = toEnumerable(o);
-        return new ReflectiveTable(elementType, enumerable) {
-          @Override
-          public Expression getExpression(SchemaPlus schema, String tableName,
-              Class clazz) {
-            return Expressions.call(
-                schema.unwrap(ReflectiveSchema.class).getTargetExpression(
-                    schema.getParentSchema(), schema.getName()), method, list);
-          }
-        };
+        final Object o = method.invoke(schema.getTarget(), arguments.toArray());
+        return (TranslatableTable) o;
       } catch (IllegalAccessException e) {
         throw new RuntimeException(e);
       } catch (InvocationTargetException e) {

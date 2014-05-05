@@ -40,7 +40,8 @@ import java.util.*;
  * and also {@link org.eigenbase.sql.SqlOperatorTable} based on tables and
  * functions defined schemas.
  */
-class OptiqCatalogReader implements Prepare.CatalogReader, SqlOperatorTable {
+public class OptiqCatalogReader implements Prepare.CatalogReader,
+    SqlOperatorTable {
   final OptiqSchema rootSchema;
   final JavaTypeFactory typeFactory;
   private final List<String> defaultSchema;
@@ -209,10 +210,15 @@ class OptiqCatalogReader implements Prepare.CatalogReader, SqlOperatorTable {
           ReturnTypes.explicit(returnType), InferTypes.explicit(argTypes),
           OperandTypes.family(typeFamilies), (AggregateFunction) function);
     } else if (function instanceof TableMacro) {
-      return new SqlUserDefinedFunction(name,
-          ReturnTypes.explicit(SqlTypeName.CURSOR),
+      return new SqlUserDefinedTableMacro(name,
+          ReturnTypes.CURSOR,
           InferTypes.explicit(argTypes), OperandTypes.family(typeFamilies),
-          function);
+          (TableMacro) function);
+    } else if (function instanceof TableFunction) {
+      return new SqlUserDefinedTableFunction(name,
+          ReturnTypes.CURSOR,
+          InferTypes.explicit(argTypes), OperandTypes.family(typeFamilies),
+          (TableFunction) function);
     } else {
       throw new AssertionError("unknown function type " + function);
     }

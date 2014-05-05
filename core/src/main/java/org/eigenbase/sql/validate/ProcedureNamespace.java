@@ -21,8 +21,6 @@ import org.eigenbase.reltype.*;
 import org.eigenbase.sql.*;
 import org.eigenbase.sql.type.SqlTypeName;
 
-import net.hydromatic.optiq.Table;
-
 /**
  * Namespace whose contents are defined by the result of a call to a
  * user-defined procedure.
@@ -51,15 +49,20 @@ public class ProcedureNamespace extends AbstractNamespace {
   public RelDataType validateImpl() {
     validator.inferUnknownTypes(validator.unknownType, scope, call);
     final RelDataType type = validator.deriveTypeImpl(scope, call);
-    if (call.getOperator() instanceof SqlUserDefinedFunction) {
-      assert type.getSqlTypeName() == SqlTypeName.CURSOR : type;
-      final SqlUserDefinedFunction udf =
-          (SqlUserDefinedFunction) call.getOperator();
-      final Table table =
-          udf.getTable(validator.typeFactory, call.getOperandList());
-      if (table != null) {
-        return table.getRowType(validator.typeFactory);
-      }
+    final SqlOperator operator = call.getOperator();
+    if (operator instanceof SqlUserDefinedTableFunction) {
+      assert type.getSqlTypeName() == SqlTypeName.CURSOR
+          : "User-defined table function should have CURSOR type, not " + type;
+      final SqlUserDefinedTableFunction udf =
+          (SqlUserDefinedTableFunction) operator;
+      return udf.getRowType(validator.typeFactory, call.getOperandList());
+    } else if (operator instanceof SqlUserDefinedTableMacro) {
+      assert type.getSqlTypeName() == SqlTypeName.CURSOR
+          : "User-defined table macro should have CURSOR type, not " + type;
+      final SqlUserDefinedTableMacro udf =
+          (SqlUserDefinedTableMacro) operator;
+      return udf.getTable(validator.typeFactory, call.getOperandList())
+          .getRowType(validator.typeFactory);
     }
     return type;
   }

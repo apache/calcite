@@ -17,6 +17,7 @@
 */
 package org.eigenbase.rel;
 
+import java.lang.reflect.Type;
 import java.util.List;
 import java.util.Set;
 
@@ -39,6 +40,8 @@ public class TableFunctionRel extends TableFunctionRelBase {
    * @param cluster        Cluster that this relational expression belongs to
    * @param inputs         0 or more relational inputs
    * @param rexCall        function invocation expression
+   * @param elementType    element type of the collection that will implement
+   *                       this table
    * @param rowType        row type produced by function
    * @param columnMappings column mappings associated with this function
    */
@@ -46,13 +49,14 @@ public class TableFunctionRel extends TableFunctionRelBase {
       RelOptCluster cluster,
       List<RelNode> inputs,
       RexNode rexCall,
-      RelDataType rowType,
+      Type elementType, RelDataType rowType,
       Set<RelColumnMapping> columnMappings) {
     super(
         cluster,
         cluster.traitSetOf(Convention.NONE),
         inputs,
         rexCall,
+        elementType,
         rowType,
         columnMappings);
   }
@@ -73,7 +77,7 @@ public class TableFunctionRel extends TableFunctionRelBase {
         getCluster(),
         inputs,
         getCall(),
-        getRowType(),
+        getElementType(), getRowType(),
         columnMappings);
   }
 

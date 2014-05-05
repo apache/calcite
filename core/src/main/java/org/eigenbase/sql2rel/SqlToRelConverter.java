@@ -17,6 +17,7 @@
 */
 package org.eigenbase.sql2rel;
 
+import java.lang.reflect.Type;
 import java.math.*;
 import java.util.*;
 import java.util.logging.*;
@@ -41,7 +42,6 @@ import net.hydromatic.linq4j.Ord;
 import net.hydromatic.linq4j.function.Function1;
 
 import net.hydromatic.optiq.ModifiableTable;
-import net.hydromatic.optiq.Table;
 import net.hydromatic.optiq.TranslatableTable;
 import net.hydromatic.optiq.prepare.Prepare;
 import net.hydromatic.optiq.prepare.RelOptTableImpl;
@@ -1787,7 +1787,8 @@ public class SqlToRelConverter {
   protected void convertCollectionTable(
       Blackboard bb,
       SqlCall call) {
-    if (call.getOperator() == SqlStdOperatorTable.TABLESAMPLE) {
+    final SqlOperator operator = call.getOperator();
+    if (operator == SqlStdOperatorTable.TABLESAMPLE) {
       final String sampleName =
           SqlLiteral.stringValue(call.operand(0));
       datasetStack.push(sampleName);
@@ -1802,29 +1803,37 @@ public class SqlToRelConverter {
 
     // Expand table macro if possible. It's more efficient than
     // TableFunctionRel.
-    if (call.getOperator() instanceof SqlUserDefinedFunction) {
-      final SqlUserDefinedFunction udf =
-          (SqlUserDefinedFunction) call.getOperator();
-      final Table table = udf.getTable(typeFactory, call.getOperandList());
-      if (table instanceof TranslatableTable) {
-        final RelDataType rowType = table.getRowType(typeFactory);
-        RelOptTable relOptTable =
-            RelOptTableImpl.create(null, rowType, (TranslatableTable) table);
-        RelNode converted = toRel(relOptTable);
-        bb.setRoot(converted, true);
-        return;
-      }
+    if (operator instanceof SqlUserDefinedTableMacro) {
+      final SqlUserDefinedTableMacro udf =
+          (SqlUserDefinedTableMacro) operator;
+      final TranslatableTable table = udf.getTable(typeFactory,
+        call.getOperandList());
+      final RelDataType rowType = table.getRowType(typeFactory);
+      RelOptTable relOptTable =
+          RelOptTableImpl.create(null, rowType, (TranslatableTable) table);
+      RelNode converted = toRel(relOptTable);
+      bb.setRoot(converted, true);
+      return;
+    }
+
+    Type elementType;
+    if (operator instanceof SqlUserDefinedTableFunction) {
+      SqlUserDefinedTableFunction udtf = (SqlUserDefinedTableFunction) operator;
+      elementType = udtf.getElementType(typeFactory, call.getOperandList());
+    } else {
+      elementType = null;
     }
 
     RexNode rexCall = bb.convertExpression(call);
     final List<RelNode> inputs = bb.retrieveCursors();
     Set<RelColumnMapping> columnMappings =
-        getColumnMappings(call.getOperator());
+        getColumnMappings(operator);
     TableFunctionRel callRel =
         new TableFunctionRel(
             cluster,
             inputs,
             rexCall,
+            elementType,
             validator.getValidatedNodeType(call),
             columnMappings);
     bb.setRoot(callRel, true);

@@ -436,6 +436,10 @@ public interface EigenbaseNewResource {
   ExInst<SqlValidatorException> argumentMustBeValidPrecision(String a0, int a1,
       int a2);
 
+  @BaseMessage("Wrong arguments for table function ''{0}'' call. Expected ''{1}'', actual ''{2}''")
+  ExInst<EigenbaseException> illegalArgumentForTableFunctionCall(String a0,
+      String a1, String a2);
+
   @BaseMessage("''{0}'' is not a valid datetime format")
   ExInst<EigenbaseException> invalidDatetimeFormat(String a0);
 

@@ -26,7 +26,6 @@ import org.eigenbase.util.Util;
 import com.google.common.collect.ImmutableList;
 
 import java.lang.reflect.Method;
-import java.util.AbstractList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -42,6 +41,7 @@ public class AggregateFunctionImpl implements AggregateFunction {
   public final Method mergeMethod;
   public final Method resultMethod; // may be null
   public final ImmutableList<Class<?>> valueTypes;
+  private final List<FunctionParameter> parameters;
   public final Class<?> accumulatorType;
   public final Class<?> resultType;
   public final Class<?> declaringClass;
@@ -56,6 +56,7 @@ public class AggregateFunctionImpl implements AggregateFunction {
       Method mergeMethod,
       Method resultMethod) {
     this.valueTypes = ImmutableList.copyOf(valueTypes);
+    this.parameters = ReflectiveFunctionBase.toFunctionParameters(valueTypes);
     this.accumulatorType = accumulatorType;
     this.resultType = resultType;
     this.initMethod = initMethod;
@@ -79,12 +80,13 @@ public class AggregateFunctionImpl implements AggregateFunction {
 
   /** Creates an aggregate function, or returns null. */
   public static AggregateFunction create(Class<?> clazz) {
-    final Method initMethod = ScalarFunctionImpl.findMethod(clazz, "init");
+    final Method initMethod = ReflectiveFunctionBase.findMethod(clazz, "init");
     final Method initAddMethod =
-        ScalarFunctionImpl.findMethod(clazz, "initAdd");
-    final Method addMethod = ScalarFunctionImpl.findMethod(clazz, "add");
+        ReflectiveFunctionBase.findMethod(clazz, "initAdd");
+    final Method addMethod = ReflectiveFunctionBase.findMethod(clazz, "add");
     final Method mergeMethod = null; // TODO:
-    final Method resultMethod = ScalarFunctionImpl.findMethod(clazz, "result");
+    final Method resultMethod = ReflectiveFunctionBase.findMethod(
+        clazz, "result");
     if (initMethod != null && addMethod != null) {
       // A is return type of init by definition
       final Class<?> accumulatorType = initMethod.getReturnType();
@@ -128,27 +130,7 @@ public class AggregateFunctionImpl implements AggregateFunction {
   }
 
   public List<FunctionParameter> getParameters() {
-    return new AbstractList<FunctionParameter>() {
-      public FunctionParameter get(final int index) {
-        return new FunctionParameter() {
-          public int getOrdinal() {
-            return index;
-          }
-
-          public String getName() {
-            return "arg" + index;
-          }
-
-          public RelDataType getType(RelDataTypeFactory typeFactory) {
-            return typeFactory.createJavaType(valueTypes.get(index));
-          }
-        };
-      }
-
-      public int size() {
-        return valueTypes.size();
-      }
-    };
+    return parameters;
   }
 
   public RelDataType getReturnType(RelDataTypeFactory typeFactory) {

@@ -143,8 +143,9 @@ public class RexToLixTranslator {
   }
 
   /** Creates a translator for translating aggregate functions. */
-  public static RexToLixTranslator forAggregation(JavaTypeFactory typeFactory) {
-    return new RexToLixTranslator(null, typeFactory, null, null);
+  public static RexToLixTranslator forAggregation(JavaTypeFactory typeFactory,
+      BlockBuilder list) {
+    return new RexToLixTranslator(null, typeFactory, null, list);
   }
 
   Expression translate(RexNode expr) {
@@ -382,7 +383,7 @@ public class RexToLixTranslator {
   /** Translates a call to an operator or function. */
   private Expression translateCall(RexCall call, RexImpTable.NullAs nullAs) {
     final SqlOperator operator = call.getOperator();
-    RexImpTable.CallImplementor implementor =
+    CallImplementor implementor =
         RexImpTable.INSTANCE.get(operator);
     if (implementor == null) {
       throw new RuntimeException("cannot translate call " + call);
@@ -593,6 +594,8 @@ public class RexToLixTranslator {
     final Primitive toBox = Primitive.ofBox(toType);
     final Primitive fromBox = Primitive.ofBox(fromType);
     final Primitive fromPrimitive = Primitive.of(fromType);
+    final boolean fromNumber = fromType instanceof Class
+       && Number.class.isAssignableFrom((Class) fromType);
     if (fromType == String.class) {
       if (toPrimitive != null) {
         switch (toPrimitive) {
@@ -638,7 +641,7 @@ public class RexToLixTranslator {
         return Expressions.convert_(
             operand, toPrimitive.primitiveClass);
       }
-      if (fromBox != null) {
+      if (fromNumber) {
         // Generate "x.shortValue()".
         return Expressions.unbox(operand, toPrimitive);
       } else {
@@ -649,7 +652,7 @@ public class RexToLixTranslator {
             "to" + SqlFunctions.initcap(toPrimitive.primitiveName),
             operand);
       }
-    } else if (fromBox != null && toBox != null) {
+    } else if (fromNumber && toBox != null) {
       // E.g. from "Short" to "Integer"
       // Generate "x == null ? null : Integer.valueOf(x.intValue())"
       return Expressions.condition(

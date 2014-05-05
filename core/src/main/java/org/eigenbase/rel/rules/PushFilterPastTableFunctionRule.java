@@ -106,7 +106,7 @@ public class PushFilterPastTableFunctionRule extends RelOptRule {
             cluster,
             newFuncInputs,
             funcRel.getCall(),
-            funcRel.getRowType(),
+            funcRel.getElementType(), funcRel.getRowType(),
             columnMappings);
     call.transformTo(newFuncRel);
   }

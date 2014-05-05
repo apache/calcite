@@ -17,22 +17,14 @@
 */
 package org.eigenbase.sql.validate;
 
-import java.util.ArrayList;
-import java.util.List;
-
-import org.eigenbase.reltype.RelDataType;
-import org.eigenbase.reltype.RelDataTypeFactory;
-import org.eigenbase.reltype.RelDataTypeFactoryImpl;
 import org.eigenbase.sql.*;
 import org.eigenbase.sql.type.*;
-import org.eigenbase.util.NlsString;
-import org.eigenbase.util.Pair;
 import org.eigenbase.util.Util;
 
-import net.hydromatic.optiq.*;
+import net.hydromatic.optiq.Function;
 
 /**
-* User-defined function.
+* User-defined scalar function.
  *
  * <p>Created by the validator, after resolving a function call to a function
  * defined in an Optiq schema.</p>
@@ -51,48 +43,12 @@ public class SqlUserDefinedFunction extends SqlFunction {
     this.function = function;
   }
 
-  /** Returns the table in this UDF, or null if there is no table. */
-  public Table getTable(RelDataTypeFactory typeFactory,
-      List<SqlNode> operandList) {
-    if (!(function instanceof TableMacro)) {
-      return null;
-    }
-    final TableMacro tableMacro = (TableMacro) function;
-    // Construct a list of arguments, if they are all constants.
-    final List<Object> arguments = new ArrayList<Object>();
-    for (Pair<FunctionParameter, SqlNode> pair
-        : Pair.zip(tableMacro.getParameters(), operandList)) {
-      if (SqlUtil.isNullLiteral(pair.right, true)) {
-        arguments.add(null);
-      } else if (SqlUtil.isLiteral(pair.right)) {
-        final Object o = ((SqlLiteral) pair.right).getValue();
-        final Object o2 = coerce(o, pair.left.getType(typeFactory));
-        if (o2 == null) {
-          return null; // not suitable type
-        }
-        arguments.add(o2);
-      } else {
-        // Not all operands are constants. Cannot expand table macro.
-        return null;
-      }
-    }
-    return tableMacro.apply(arguments);
-  }
-
-  private Object coerce(Object o, RelDataType type) {
-    if (!(type instanceof RelDataTypeFactoryImpl.JavaType)) {
-      return null;
-    }
-    final RelDataTypeFactoryImpl.JavaType javaType =
-        (RelDataTypeFactoryImpl.JavaType) type;
-    final Class clazz = javaType.getJavaClass();
-    if (clazz.isInstance(o)) {
-      return o;
-    }
-    if (clazz == String.class && o instanceof NlsString) {
-      return ((NlsString) o).getValue();
-    }
-    return null;
+  /**
+   * Returns function that implements given operator call.
+   * @return function that implements given operator call
+   */
+  public Function getFunction() {
+    return function;
   }
 }
 

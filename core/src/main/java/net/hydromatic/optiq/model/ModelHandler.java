@@ -76,6 +76,10 @@ public class ModelHandler {
     }
     // Must look for TableMacro before ScalarFunction. Both have an "eval"
     // method.
+    final TableFunction tableFunction = TableFunctionImpl.create(clazz);
+    if (tableFunction != null) {
+      return tableFunction;
+    }
     final TableMacro macro = TableMacroImpl.create(clazz);
     if (macro != null) {
       return macro;

@@ -20,10 +20,8 @@ package net.hydromatic.optiq.rules.java;
 import net.hydromatic.linq4j.Ord;
 import net.hydromatic.linq4j.expressions.*;
 
-import net.hydromatic.optiq.BuiltinMethod;
-import net.hydromatic.optiq.Function;
+import net.hydromatic.optiq.*;
 import net.hydromatic.optiq.impl.AggregateFunctionImpl;
-import net.hydromatic.optiq.impl.ScalarFunctionImpl;
 import net.hydromatic.optiq.runtime.SqlFunctions;
 
 import org.eigenbase.rel.Aggregation;
@@ -65,27 +63,6 @@ public class RexImpTable {
       Expressions.field(null, Boolean.class, "FALSE");
   public static final MemberExpression BOXED_TRUE_EXPR =
       Expressions.field(null, Boolean.class, "TRUE");
-
-  private static final CallImplementor UDF_IMPLEMENTOR =
-      createImplementor(
-          new NotNullImplementor() {
-            public Expression implement(RexToLixTranslator translator,
-                RexCall call, List<Expression> translatedOperands) {
-              Function x =
-                  ((SqlUserDefinedFunction) call.getOperator()).function;
-              final Method method = ((ScalarFunctionImpl) x).method;
-              if ((method.getModifiers() & Modifier.STATIC) != 0) {
-                return Expressions.call(method, translatedOperands);
-              } else {
-                // The UDF class must have a public zero-args constructor.
-                // Assume that the validator checked already.
-                final NewExpression target =
-                    Expressions.new_(method.getDeclaringClass());
-                return Expressions.call(target, method, translatedOperands);
-              }
-            }
-          },
-          NullPolicy.ANY, false);
 
   private final Map<SqlOperator, CallImplementor> map =
       new HashMap<SqlOperator, CallImplementor>();
@@ -234,7 +211,7 @@ public class RexImpTable {
     return call.clone(call.getType(), operands2);
   }
 
-  private static CallImplementor createImplementor(
+  public static CallImplementor createImplementor(
       final NotNullImplementor implementor,
       final NullPolicy nullPolicy,
       final boolean harmonize) {
@@ -398,7 +375,14 @@ public class RexImpTable {
 
   public CallImplementor get(final SqlOperator operator) {
     if (operator instanceof SqlUserDefinedFunction) {
-      return UDF_IMPLEMENTOR;
+      Function udf =
+        ((SqlUserDefinedFunction) operator).getFunction();
+      if (!(udf instanceof ImplementableFunction)) {
+        throw new IllegalStateException(
+            "User defined function " + operator + " must implement "
+            + "ImplementableFunction");
+      }
+      return ((ImplementableFunction) udf).getImplementor();
     }
     return map.get(operator);
   }
@@ -718,14 +702,6 @@ public class RexImpTable {
     }
   }
 
-  interface CallImplementor {
-    /** Implements a call. */
-    Expression implement(
-        RexToLixTranslator translator,
-        RexCall call,
-        NullAs nullAs);
-  }
-
   abstract static class AbstractCallImplementor implements CallImplementor {
     /** Implements a call with "normal" {@link NullAs} semantics. */
     abstract Expression implement(
@@ -737,15 +713,6 @@ public class RexImpTable {
       // Convert "normal" NullAs semantics to those asked for.
       return nullAs.handle(implement(translator, call));
     }
-  }
-
-  /** Simplified version of {@link CallImplementor} that does not know about
-   * null semantics. */
-  interface NotNullImplementor {
-    Expression implement(
-        RexToLixTranslator translator,
-        RexCall call,
-        List<Expression> translatedOperands);
   }
 
   static class CountImplementor implements AggImplementor {
@@ -1088,30 +1055,6 @@ public class RexImpTable {
           expressionType,
           translatedOperands.get(0));
     }
-  }
-
-  /** Describes when a function/operator will return null.
-   *
-   * <p>STRICT and ANY are similar. STRICT says f(a0, a1) will NEVER return
-   * null if a0 and a1 are not null. This means that we can check whether f
-   * returns null just by checking its arguments. Use STRICT in preference to
-   * ANY whenever possible.</p>
-   */
-  enum NullPolicy {
-    /** Returns null if and only if one of the arguments are null. */
-    STRICT,
-    /** If any of the arguments are null, return null. */
-    ANY,
-    /** If any of the arguments are false, result is false; else if any
-     * arguments are null, result is null; else true. */
-    AND,
-    /** If any of the arguments are true, result is true; else if any
-     * arguments are null, result is null; else false. */
-    OR,
-    /** If any argument is true, result is false; else if any argument is null,
-     * result is null; else true. */
-    NOT,
-    NONE
   }
 
   private static class CaseImplementor implements CallImplementor {

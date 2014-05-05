@@ -132,6 +132,9 @@ class OptiqMaterializer extends OptiqPrepareImpl.OptiqPreparingStmt {
     public RelNode visit(TableAccessRelBase scan) {
       return scan;
     }
+    public RelNode visit(TableFunctionRelBase scan) {
+      return scan;
+    }
     public RelNode visit(ValuesRel values) {
       return values;
     }
