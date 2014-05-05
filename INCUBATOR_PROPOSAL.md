@@ -176,11 +176,48 @@ committers including non-salaried developers.
 
 ### Relationships with Other Apache Products
 
-As mentioned in the Alignment section, Optiq is being used by Apache
-Hive and Apache Drill, and has adapters for Apache Phoenix and Apache
-Spark. Optiq often operates on data in a Hadoop environment, so
-collaboration with other Hadoop projects is desirable and highly
-likely.
+As mentioned in the Alignment section, Optiq is being used by
+<a href="http://hive.apache.org">Apache Hive</a> and
+<a href="http://incubator.apache.org/drill">Apache Drill</a>,
+and has adapters for
+<a href="http://phoenix.incubator.apache.org">Apache Phoenix</a>
+and
+<a href="http://spark.apache.org">Apache Spark</a>.
+Optiq often operates on data in a Hadoop environment, so collaboration
+with other Hadoop projects is desirable and highly likely.
+
+Unsurprisingly there is some overlap in capabilities between Optiq and
+other Apache projects. Several projects that are databases or
+database-like have query-planning capabilities. These include Hive,
+Drill, Phoenix, Spark,
+<a href="http://db.apache.org/derby">Apache Derby</a>,
+<a href="http://pig.apache.org">Apache Pig</a>,
+<a href="http://jena.apache.org">Apache Jena</a> and
+<a href="http://tajo.apache.org">Apache Tajo</a>.
+Optiq’s query planner is extensible at run time, and does
+not have a preferred runtime engine on which to execute compiled
+queries. These capabilities, and the large corpus of pre-built rules,
+are what allow Optiq to be embedded in other projects.
+
+Several other Apache projects access third-party data sources,
+including Hive, Pig, Drill, Spark and
+<a href="http://metamodel.incubator.apache.org">Apache MetaModel</a>.
+Optiq allows users to optimize access to third-party data sources by
+writing rules to push processing down to the data source, and provide
+a cost model to choose the optimal location for processing. That said,
+maintaining a library of adapters is burdensome, and so it would make
+sense to collaborate with other projects on adapter libraries, and
+re-use libraries where possible.
+
+Optiq supports several front ends for submitting queries. The most
+popular is SQL, with driver connectivity via JDBC (and ODBC
+planned). Other Apache projects with a SQL parser include Hive, Spark,
+Phoenix, Derby, Tajo. Drill uses Optiq’s parser and JDBC stack; both
+Phoenix and Drill have expressed interest in collaborating on JDBC and
+ODBC. Optiq’s Linq4j API is similar to the fluent query-builder APIs
+in Spark and MetaModel. Use of a front end is not required; for
+instance, Hive integrates with Optiq by directly building a graph of
+`RelNode` objects.
 
 ### An Excessive Fascination with the Apache Brand
 
