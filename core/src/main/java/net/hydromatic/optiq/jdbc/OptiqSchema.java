@@ -686,7 +686,7 @@ public class OptiqSchema {
     private SubSchemaCache(final OptiqSchema optiqSchema,
         ImmutableSortedSet<String> names) {
       this.names = names;
-      this.cache = CacheBuilder.<String, OptiqSchema>newBuilder().build(
+      this.cache = CacheBuilder.newBuilder().build(
           new CacheLoader<String, OptiqSchema>() {
             @SuppressWarnings("NullableProblems")
             @Override public OptiqSchema load(String schemaName) {

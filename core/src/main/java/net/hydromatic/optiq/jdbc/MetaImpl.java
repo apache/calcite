@@ -894,8 +894,13 @@ public class MetaImpl implements Meta {
     private final ColumnMetaData.StructType structType;
 
     public NamedFieldGetter(Class clazz, String... names) {
-      final List<ColumnMetaData> columns =
-          new ArrayList<ColumnMetaData>();
+      final List<ColumnMetaData> columns = new ArrayList<ColumnMetaData>();
+      init(clazz, names, columns, fields);
+      structType = ColumnMetaData.struct(columns);
+    }
+
+    private static void init(Class clazz, String[] names,
+        List<ColumnMetaData> columns, List<Field> fields) {
       for (String name : names) {
         final int index = fields.size();
         final String fieldName = Util.toCamelCase(name);
@@ -908,7 +913,6 @@ public class MetaImpl implements Meta {
         columns.add(columnMetaData(name, index, field.getType()));
         fields.add(field);
       }
-      structType = ColumnMetaData.struct(columns);
     }
 
     Object get(Object o, int columnIndex) {
