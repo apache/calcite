@@ -5097,6 +5097,26 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         EMP_RECORD_TYPE);
   }
 
+  /** Tests the {@code WITH} clause and column aliases. */
+  @Test public void testWithColumnAlias() {
+    checkResultType(
+        "with w(x, y) as (select * from dept)\n"
+            + "select * from w",
+        "RecordType(INTEGER NOT NULL X, VARCHAR(10) NOT NULL Y) NOT NULL");
+    checkResultType(
+        "with w(x, y) as (select * from dept)\n"
+            + "select * from w, w as w2",
+        "RecordType(INTEGER NOT NULL X, VARCHAR(10) NOT NULL Y, INTEGER NOT NULL X0, VARCHAR(10) NOT NULL Y0) NOT NULL");
+    checkFails(
+        "with w(x, y) as (select * from dept)\n"
+            + "select ^deptno^ from w",
+        "Column 'DEPTNO' not found in any table");
+    checkFails(
+        "with w(x, ^x^) as (select * from dept)\n"
+            + "select * from w",
+        "Duplicate name 'X' in column list");
+  }
+
   /** Tests the {@code WITH} clause in sub-queries. */
   @Test public void testWithSubquery() {
     // nested WITH (parentheses required - and even with parentheses SQL

@@ -28,7 +28,6 @@ public class WithNamespace extends AbstractNamespace {
   //~ Instance fields --------------------------------------------------------
 
   private final SqlWith with;
-  private final SqlValidatorScope scope;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -37,16 +36,13 @@ public class WithNamespace extends AbstractNamespace {
    *
    * @param validator     Validator
    * @param with          WITH clause
-   * @param scope         Scope
    * @param enclosingNode Enclosing node
    */
   WithNamespace(SqlValidatorImpl validator,
       SqlWith with,
-      SqlValidatorScope scope,
       SqlNode enclosingNode) {
     super(validator, enclosingNode);
     this.with = with;
-    this.scope = scope;
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -65,15 +61,6 @@ public class WithNamespace extends AbstractNamespace {
 
   public SqlNode getNode() {
     return with;
-  }
-
-  /**
-   * Returns the scope.
-   *
-   * @return scope
-   */
-  public SqlValidatorScope getScope() {
-    return scope;
   }
 }
 

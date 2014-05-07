@@ -2282,7 +2282,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       boolean forceNullable,
       boolean checkUpdate) {
     final WithNamespace withNamespace =
-        new WithNamespace(this, with, parentScope, enclosingNode);
+        new WithNamespace(this, with, enclosingNode);
     registerNamespace(usingScope, alias, withNamespace, forceNullable);
 
     SqlValidatorScope scope = parentScope;
@@ -2291,10 +2291,11 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       final WithScope withScope = new WithScope(scope, withItem);
       scopes.put(withItem, withScope);
 
-      registerQuery(scope, usingScope, withItem.query, with,
+      registerQuery(scope, null, withItem.query, with,
           withItem.name.getSimple(), false);
-//      SqlValidatorNamespace ns = null; // TODO:
-//      registerNamespace(usingScope, withItemCall.name.getSimple(), ns, false);
+      registerNamespace(null, alias,
+          new WithItemNamespace(this, withItem, enclosingNode),
+          false);
       scope = withScope;
     }
 

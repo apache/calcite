@@ -1789,4 +1789,22 @@ ProjectRel(DEPTNO=[$0], NAME=[$1], EXPR$0=[$2])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testWithAlias">
+        <Resource name="sql">
+            <![CDATA[with w(x, y) as (select * from dept where deptno > 10)
+select x from w where x < 30 union all select deptno from dept]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+UnionRel(all=[true])
+  ProjectRel(X=[$0])
+    FilterRel(condition=[<($0, 30)])
+      ProjectRel(DEPTNO=[$0], NAME=[$1])
+        FilterRel(condition=[>($0, 10)])
+          TableAccessRel(table=[[CATALOG, SALES, DEPT]])
+  ProjectRel(DEPTNO=[$0])
+    TableAccessRel(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+    </TestCase>
 </Root>

@@ -50,7 +50,7 @@ class WithScope extends ListScope {
   @Override
   public SqlValidatorNamespace getTableNamespace(List<String> names) {
     if (names.size() == 1 && names.get(0).equals(withItem.name.getSimple())) {
-      return getValidator().getNamespace(withItem.query);
+      return validator.getNamespace(withItem);
     }
     return super.getTableNamespace(names);
   }
@@ -60,7 +60,7 @@ class WithScope extends ListScope {
       SqlValidatorScope[] ancestorOut,
       int[] offsetOut) {
     if (name.equals(withItem.name.getSimple())) {
-      return getValidator().getNamespace(withItem.query);
+      return validator.getNamespace(withItem);
     }
     return super.resolve(name, ancestorOut, offsetOut);
   }

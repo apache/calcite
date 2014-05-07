@@ -442,6 +442,12 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
         "${plan}");
   }
 
+  @Test public void testWithAlias() {
+    check("with w(x, y) as (select * from dept where deptno > 10)\n"
+        + "select x from w where x < 30 union all select deptno from dept",
+        "${plan}");
+  }
+
   @Test public void testWithInsideWhereExists() {
     tester.withDecorrelation(false).assertConvertsTo("select * from emp\n"
         + "where exists (\n"

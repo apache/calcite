@@ -94,7 +94,7 @@ public class SqlWithItem extends SqlCall {
       if (withItem.columnList != null) {
         withItem.columnList.unparse(writer, getLeftPrec(), getRightPrec());
       }
-      writer.sep("AS");
+      writer.keyword("AS");
       withItem.query.unparse(writer, getLeftPrec(), getRightPrec());
     }
 
