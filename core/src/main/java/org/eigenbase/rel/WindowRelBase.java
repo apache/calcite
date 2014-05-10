@@ -47,19 +47,22 @@ import com.google.common.collect.ImmutableList;
  */
 public abstract class WindowRelBase extends SingleRel {
   public final ImmutableList<Window> windows;
+  public final List<RexLiteral> constants;
 
   /**
    * Creates a window relational expression.
    *
    * @param cluster Cluster
    * @param child   Input relational expression
+   * @param constants List of constants that are additional inputs
    * @param rowType Output row type
    * @param windows Windows
    */
   public WindowRelBase(
       RelOptCluster cluster, RelTraitSet traits, RelNode child,
-      RelDataType rowType, List<Window> windows) {
+      List<RexLiteral> constants, RelDataType rowType, List<Window> windows) {
     super(cluster, traits, child);
+    this.constants = ImmutableList.copyOf(constants);
     assert rowType != null;
     this.rowType = rowType;
     this.windows = ImmutableList.copyOf(windows);
@@ -70,8 +73,27 @@ public abstract class WindowRelBase extends SingleRel {
     // In the window specifications, an aggregate call such as
     // 'SUM(RexInputRef #10)' refers to expression #10 of inputProgram.
     // (Not its projections.)
+    final RelDataType childRowType = getChild().getRowType();
+
+    final int childFieldCount = childRowType.getFieldCount();
+    final int inputSize = childFieldCount + constants.size();
+    final List<RelDataType> inputTypes =
+        new AbstractList<RelDataType>() {
+          @Override
+          public RelDataType get(int index) {
+            return index < childFieldCount
+                ? childRowType.getFieldList().get(index).getType()
+                : constants.get(index - childFieldCount).getType();
+          }
+
+          @Override
+          public int size() {
+            return inputSize;
+          }
+        };
+
     final RexChecker checker =
-        new RexChecker(getChild().getRowType(), fail);
+        new RexChecker(inputTypes, fail);
     int count = 0;
     for (Window window : windows) {
       for (RexWinAggCall over : window.aggCalls) {
@@ -124,6 +146,14 @@ public abstract class WindowRelBase extends SingleRel {
             return collations.size();
           }
         });
+  }
+
+  /**
+   * Returns constants that are additional inputs of current relation.
+   * @return constants that are additional inputs of current relation
+   */
+  public List<RexLiteral> getConstants() {
+    return constants;
   }
 
   /**

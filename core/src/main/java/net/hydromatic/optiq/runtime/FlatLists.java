@@ -479,13 +479,13 @@ public class FlatLists {
   }
 
   /** Empty list that implements the {@link Comparable} interface. */
-  private static class ComparableEmptyList
-      extends AbstractList
-      implements Comparable<List> {
+  private static class ComparableEmptyList<T>
+      extends AbstractList<T>
+      implements ComparableList<T> {
     private ComparableEmptyList() {
     }
 
-    public Object get(int index) {
+    public T get(int index) {
       throw new IndexOutOfBoundsException();
     }
 

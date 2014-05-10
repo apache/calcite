@@ -30,8 +30,8 @@ import net.hydromatic.linq4j.Ord;
 
 import net.hydromatic.optiq.util.BitSets;
 
-import com.google.common.collect.LinkedListMultimap;
-import com.google.common.collect.Multimap;
+import com.google.common.base.Predicate;
+import com.google.common.collect.*;
 
 /**
  * A relational expression representing a set of window aggregates.
@@ -53,19 +53,20 @@ public final class WindowRel extends WindowRelBase {
    *
    * @param cluster Cluster
    * @param child   Input relational expression
+   * @param constants List of constants that are additional inputs
    * @param rowType Output row type
    * @param windows Windows
    */
   public WindowRel(
       RelOptCluster cluster, RelTraitSet traits, RelNode child,
-      RelDataType rowType, List<Window> windows) {
-    super(cluster, traits, child, rowType, windows);
+      List<RexLiteral> constants, RelDataType rowType, List<Window> windows) {
+    super(cluster, traits, child, constants, rowType, windows);
   }
 
   @Override
   public WindowRel copy(RelTraitSet traitSet, List<RelNode> inputs) {
     return new WindowRel(
-        getCluster(), traitSet, sole(inputs), rowType, windows);
+        getCluster(), traitSet, sole(inputs), constants, rowType, windows);
   }
 
   /**
@@ -82,12 +83,37 @@ public final class WindowRel extends WindowRelBase {
     final Multimap<WindowKey, RexOver> windowMap =
         LinkedListMultimap.create();
 
+    final int inputFieldCount = child.getRowType().getFieldCount();
+
+    final Map<RexLiteral, RexInputRef> constantPool =
+        new HashMap<RexLiteral, RexInputRef>();
+    final List<RexLiteral> constants = new ArrayList<RexLiteral>();
+
+    // Identify constants in the expression tree and replace them with
+    // references to newly generated constant pool.
+    RexShuttle replaceConstants = new RexShuttle() {
+      @Override
+      public RexNode visitLiteral(RexLiteral literal) {
+        RexInputRef ref = constantPool.get(literal);
+        if (ref != null) {
+          return ref;
+        }
+        constants.add(literal);
+        ref = new RexInputRef(constantPool.size() + inputFieldCount,
+            literal.getType());
+        constantPool.put(literal, ref);
+        return ref;
+      }
+    };
+
     // Build a list of windows, partitions, and aggregate functions. Each
     // aggregate function will add its arguments as outputs of the input
     // program.
     for (RexNode agg : program.getExprList()) {
       if (agg instanceof RexOver) {
-        addWindows(windowMap, (RexOver) agg);
+        RexOver over = (RexOver) agg;
+        over = (RexOver) over.accept(replaceConstants);
+        addWindows(windowMap, over, inputFieldCount);
       }
     }
 
@@ -154,8 +180,6 @@ public final class WindowRel extends WindowRelBase {
     final RelDataType intermediateRowType =
         cluster.getTypeFactory().createStructType(fieldList);
 
-    final int inputFieldCount = child.getRowType().getFieldCount();
-
     // The output program is the windowed agg's program, combined with
     // the output calc (if it exists).
     RexShuttle shuttle =
@@ -208,24 +232,17 @@ public final class WindowRel extends WindowRelBase {
 
     WindowRel window =
         new WindowRel(
-            cluster, traitSet, child, intermediateRowType, windowList);
+            cluster, traitSet, child, constants, intermediateRowType,
+            windowList);
 
     return CalcRel.createProject(
         window,
-        new AbstractList<RexNode>() {
-          public RexNode get(int index) {
-            final RexLocalRef ref = program.getProjectList().get(index);
-            return new RexInputRef(ref.getIndex(), ref.getType());
-          }
-
-          public int size() {
-            return program.getProjectList().size();
-          }
-        },
+        toInputRefs(program.getProjectList()),
         outRowType.getFieldNames());
   }
 
-  private static List<RexNode> toInputRefs(final List<RexNode> operands) {
+  private static List<RexNode> toInputRefs(
+      final List<? extends RexNode> operands) {
     return new AbstractList<RexNode>() {
       public int size() {
         return operands.size();
@@ -233,6 +250,9 @@ public final class WindowRel extends WindowRelBase {
 
       public RexNode get(int index) {
         final RexNode operand = operands.get(index);
+        if (operand instanceof RexInputRef) {
+          return operand;
+        }
         assert operand instanceof RexLocalRef;
         final RexLocalRef ref = (RexLocalRef) operand;
         return new RexInputRef(ref.getIndex(), ref.getType());
@@ -283,13 +303,28 @@ public final class WindowRel extends WindowRelBase {
 
   private static void addWindows(
       Multimap<WindowKey, RexOver> windowMap,
-      RexOver over) {
+      RexOver over, final int inputFieldCount) {
     final RexWindow aggWindow = over.getWindow();
 
     // Look up or create a window.
-    RelCollation orderKeys = getCollation(aggWindow.orderKeys);
+    RelCollation orderKeys = getCollation(
+      Lists.newArrayList(
+        Iterables.filter(aggWindow.orderKeys,
+          new Predicate<RexFieldCollation>() {
+            public boolean apply(RexFieldCollation rexFieldCollation) {
+              // If ORDER BY references constant (i.e. RexInputRef),
+              // then we can ignore such ORDER BY key.
+              return rexFieldCollation.left instanceof RexLocalRef;
+            }
+          })));
     BitSet groupSet =
         BitSets.of(getProjectOrdinals(aggWindow.partitionKeys));
+    final int groupLength = groupSet.length();
+    if (inputFieldCount < groupLength) {
+      // If PARTITION BY references constant, we can ignore such partition key.
+      // All the inputs after inputFieldCount are literals, thus we can clear.
+      groupSet.clear(inputFieldCount, groupLength);
+    }
 
     WindowKey windowKey =
         new WindowKey(

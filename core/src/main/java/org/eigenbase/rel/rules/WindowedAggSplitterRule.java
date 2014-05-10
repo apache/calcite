@@ -183,6 +183,8 @@ public abstract class WindowedAggSplitterRule extends RelOptRule {
                   RelNode child,
                   RexProgram program) {
                 assert !program.containsAggs();
+                program = RexProgramBuilder.normalize(cluster.getRexBuilder(),
+                    program);
                 return super.makeRel(
                     cluster,
                     traits,

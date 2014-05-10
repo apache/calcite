@@ -28,7 +28,6 @@ import org.eigenbase.reltype.RelDataType;
 
 import java.lang.reflect.Type;
 import java.util.AbstractList;
-import java.util.Collections;
 import java.util.List;
 
 /**
@@ -128,8 +127,8 @@ public enum JavaRowFormat {
       case 0:
         return Expressions.field(
           null,
-          Collections.class,
-          "EMPTY_LIST");
+          FlatLists.class,
+          "COMPARABLE_EMPTY_LIST");
       case 2:
         return Expressions.convert_(
             Expressions.call(

@@ -418,8 +418,9 @@ public class RexUtil {
         RexCall rexCall = (RexCall) expr;
         if (rexCall.getOperator() instanceof SqlAggFunction) {
           for (RexNode operand : rexCall.operands) {
-            if (!(operand instanceof RexLocalRef)) {
-              assert !fail : "contains non trivial agg";
+            if (!(operand instanceof RexLocalRef)
+                && !(operand instanceof RexLiteral)) {
+              assert !fail : "contains non trivial agg: " + operand;
               return true;
             }
           }

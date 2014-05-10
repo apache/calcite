@@ -310,6 +310,7 @@ public class PhysTypeImpl implements PhysType {
     // ...
     // return 0;
     BlockBuilder body = new BlockBuilder();
+    final Type javaRowClass = Primitive.box(this.javaRowClass);
     final ParameterExpression parameterV0 =
         Expressions.parameter(javaRowClass, "v0");
     final ParameterExpression parameterV1 =

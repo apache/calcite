@@ -572,7 +572,9 @@ public abstract class CalcRelSplitter {
     final RexProgram program =
         new RexProgram(
             inputRowType, exprs, projectRefs, conditionRef, outputRowType);
-    return RexProgramBuilder.normalize(cluster.getRexBuilder(), program);
+    // Program is NOT normalized here (e.g. can contain literals in
+    // call operands), since literals should be inlined.
+    return program;
   }
 
   private String deriveFieldName(RexNode expr, int ordinal) {
