@@ -24,28 +24,18 @@ import net.hydromatic.linq4j.Enumerator;
  * {@link net.hydromatic.linq4j.Enumerator} that
  * returns an array of {@link Object} for each row.
  */
-public class ArrayEnumeratorCursor extends AbstractCursor {
-  private final Enumerator<Object[]> enumerator;
-
+public class ArrayEnumeratorCursor extends EnumeratorCursor<Object[]> {
   /**
    * Creates an ArrayEnumeratorCursor.
    *
    * @param enumerator Enumerator
    */
   public ArrayEnumeratorCursor(Enumerator<Object[]> enumerator) {
-    this.enumerator = enumerator;
+    super(enumerator);
   }
 
   protected Getter createGetter(int ordinal) {
     return new ArrayEnumeratorGetter(ordinal);
-  }
-
-  public boolean next() {
-    return enumerator.moveNext();
-  }
-
-  public void close() {
-    enumerator.close();
   }
 
   /** Implementation of {@link Getter} that reads from records that are
@@ -58,7 +48,7 @@ public class ArrayEnumeratorCursor extends AbstractCursor {
     }
 
     public Object getObject() {
-      Object o = enumerator.current()[field];
+      Object o = current()[field];
       wasNull[0] = o == null;
       return o;
     }

@@ -29,8 +29,7 @@ import java.lang.reflect.Field;
  *
  * @param <E> Element type
  */
-public class RecordEnumeratorCursor<E> extends AbstractCursor {
-  private final Enumerator<E> enumerator;
+public class RecordEnumeratorCursor<E> extends EnumeratorCursor<E> {
   private final Class<E> clazz;
 
   /**
@@ -42,20 +41,12 @@ public class RecordEnumeratorCursor<E> extends AbstractCursor {
   public RecordEnumeratorCursor(
       Enumerator<E> enumerator,
       Class<E> clazz) {
-    this.enumerator = enumerator;
+    super(enumerator);
     this.clazz = clazz;
   }
 
   protected Getter createGetter(int ordinal) {
     return new RecordEnumeratorGetter(clazz.getFields()[ordinal]);
-  }
-
-  public boolean next() {
-    return enumerator.moveNext();
-  }
-
-  public void close() {
-    enumerator.close();
   }
 
   /** Implementation of {@link Getter} that reads fields via reflection. */
@@ -69,7 +60,7 @@ public class RecordEnumeratorCursor<E> extends AbstractCursor {
     public Object getObject() {
       Object o;
       try {
-        o = field.get(enumerator.current());
+        o = field.get(current());
       } catch (IllegalAccessException e) {
         throw new RuntimeException(e);
       }

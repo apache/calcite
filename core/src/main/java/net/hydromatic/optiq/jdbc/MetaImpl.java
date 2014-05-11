@@ -925,26 +925,19 @@ public class MetaImpl implements Meta {
       }
     }
 
-    public Cursor cursor(final Enumerator<Object> enumerator) {
-      return new AbstractCursor() {
+    public Cursor cursor(Enumerator<Object> enumerator) {
+      //noinspection unchecked
+      return new EnumeratorCursor(enumerator) {
         protected Getter createGetter(final int ordinal) {
           return new Getter() {
             public Object getObject() {
-              return get(enumerator.current(), ordinal);
+              return get(current(), ordinal);
             }
 
             public boolean wasNull() {
               return getObject() == null;
             }
           };
-        }
-
-        public boolean next() {
-          return enumerator.moveNext();
-        }
-
-        public void close() {
-          enumerator.close();
         }
       };
     }
