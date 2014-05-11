@@ -56,18 +56,14 @@ public interface SqlValidatorCatalogReader {
   RelDataType getNamedType(SqlIdentifier typeName);
 
   /**
-   * Gets schema object names as specified. They can be schema or table
-   * object. If names array contain 1 element, return all schema names and all
-   * table names under the default schema (if that is set) If names array
-   * contain 2 elements, treat 1st element as schema name and return all table
-   * names in this schema
+   * Given fully qualified schema name, returns schema object names as
+   * specified. They can be schema, table, function, view.
+   * When names array is empty, the contents of root schema should be returned.
    *
-   * @param names the array contains either 2 elements representing a
-   *              partially qualified object name in the format of
-   *              'schema.object', or an unqualified name in the format of
-   *              'object'
-   * @return the list of all object (schema and table) names under the above
-   * criteria
+   * @param names the array contains fully qualified schema name or empty
+   *              list for root schema
+   * @return the list of all object (schema, table, function,
+   *         view) names under the above criteria
    */
   List<SqlMoniker> getAllSchemaObjectNames(List<String> names);
 
@@ -76,7 +72,7 @@ public interface SqlValidatorCatalogReader {
    *
    * @return name of the current schema
    */
-  String getSchemaName();
+  List<String> getSchemaName();
 
   /**
    * Finds a field with a given name, using the case-sensitivity of the current

@@ -23,6 +23,7 @@ import net.hydromatic.linq4j.expressions.ParameterExpression;
 
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 
+import org.eigenbase.sql.advise.SqlAdvisor;
 import org.eigenbase.util.Util;
 
 import java.lang.reflect.Modifier;
@@ -73,6 +74,9 @@ public interface DataContext {
 
     /** The Spark engine. Available if Spark is on the class path. */
     SPARK_CONTEXT("sparkContext", Object.class),
+
+    /** Sql advisor that suggests completion hints. */
+    SQL_ADVISOR("sqlAdvisor", SqlAdvisor.class),
 
     /** Time zone in which the current statement is executing. Required;
      * defaults to the time zone of the JVM if the connection does not specify a

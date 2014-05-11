@@ -267,8 +267,7 @@ public class SqlValidatorUtil {
     if (subNames.size() == 0) {
       hints.addAll(
           catalogReader.getAllSchemaObjectNames(
-              Collections.singletonList(
-                  catalogReader.getSchemaName())));
+              catalogReader.getSchemaName()));
     }
   }
 

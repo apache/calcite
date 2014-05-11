@@ -139,11 +139,33 @@ public class OptiqCatalogReader implements Prepare.CatalogReader,
   }
 
   public List<SqlMoniker> getAllSchemaObjectNames(List<String> names) {
-    return null;
+    final OptiqSchema schema = getSchema(names);
+    if (schema == null) {
+      return ImmutableList.of();
+    }
+    final List<SqlMoniker> result = new ArrayList<SqlMoniker>();
+    final Map<String, OptiqSchema> schemaMap = schema.getSubSchemaMap();
+
+    for (String subSchema : schemaMap.keySet()) {
+      result.add(
+          new SqlMonikerImpl(schema.path(subSchema), SqlMonikerType.SCHEMA));
+    }
+
+    for (String table : schema.getTableNames()) {
+      result.add(
+          new SqlMonikerImpl(schema.path(table), SqlMonikerType.TABLE));
+    }
+
+    final NavigableSet<String> functions = schema.getFunctionNames();
+    for (String function : functions) { // views are here as well
+      result.add(
+          new SqlMonikerImpl(schema.path(function), SqlMonikerType.FUNCTION));
+    }
+    return result;
   }
 
-  public String getSchemaName() {
-    return null;
+  public List<String> getSchemaName() {
+    return defaultSchema;
   }
 
   public RelOptTableImpl getTableForMember(List<String> names) {

@@ -280,8 +280,8 @@ public class MockCatalogReader implements Prepare.CatalogReader {
     }
   }
 
-  public String getSchemaName() {
-    return DEFAULT_SCHEMA;
+  public List<String> getSchemaName() {
+    return Collections.singletonList(DEFAULT_SCHEMA);
   }
 
   public RelDataTypeField field(RelDataType rowType, String alias) {

@@ -30,8 +30,15 @@ import net.hydromatic.optiq.config.OptiqConnectionConfig;
 import net.hydromatic.optiq.config.OptiqConnectionProperty;
 import net.hydromatic.optiq.impl.AbstractSchema;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
+import net.hydromatic.optiq.prepare.OptiqCatalogReader;
 import net.hydromatic.optiq.server.OptiqServer;
 import net.hydromatic.optiq.server.OptiqServerStatement;
+
+import org.eigenbase.sql.advise.SqlAdvisor;
+import org.eigenbase.sql.advise.SqlAdvisorValidator;
+import org.eigenbase.sql.fun.SqlStdOperatorTable;
+import org.eigenbase.sql.validate.SqlConformance;
+import org.eigenbase.sql.validate.SqlValidatorWithHints;
 
 import com.google.common.collect.*;
 
@@ -291,7 +298,25 @@ abstract class OptiqConnectionImpl
       if (o == AvaticaParameter.DUMMY_VALUE) {
         return null;
       }
+      if (o == null && Variable.SQL_ADVISOR.camelName.equals(name)) {
+        return getSqlAdvisor();
+      }
       return o;
+    }
+
+    private SqlAdvisor getSqlAdvisor() {
+      final OptiqConnectionImpl con = (OptiqConnectionImpl) queryProvider;
+      final String schemaName = con.getSchema();
+      final List<String> schemaPath =
+          schemaName == null
+              ? ImmutableList.<String>of()
+              : ImmutableList.of(schemaName);
+      final SqlValidatorWithHints validator =
+          new SqlAdvisorValidator(SqlStdOperatorTable.instance(),
+          new OptiqCatalogReader(rootSchema, con.config().caseSensitive(),
+              schemaPath, typeFactory),
+          typeFactory, SqlConformance.DEFAULT);
+      return new SqlAdvisor(validator);
     }
 
     public SchemaPlus getRootSchema() {

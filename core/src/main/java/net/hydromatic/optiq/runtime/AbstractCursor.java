@@ -1046,6 +1046,17 @@ public abstract class AbstractCursor implements Cursor {
     }
 
     @Override
+    public Object getObject() {
+      final Object object = super.getObject();
+      if (object == null || object instanceof List) {
+        return object;
+      }
+      // The object can be java array in case of user-provided class for row
+      // storage.
+      return Primitive.asList(object);
+    }
+
+    @Override
     public Array getArray() {
       final List list = (List) getObject();
       if (list == null) {

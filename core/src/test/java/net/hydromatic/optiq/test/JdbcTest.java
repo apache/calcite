@@ -46,6 +46,8 @@ import org.eigenbase.reltype.RelDataTypeFactory;
 import org.eigenbase.reltype.RelProtoDataType;
 import org.eigenbase.resource.EigenbaseNewResource;
 import org.eigenbase.sql.*;
+import org.eigenbase.sql.advise.SqlAdvisorGetHintsFunction;
+import org.eigenbase.sql.parser.SqlParserUtil;
 import org.eigenbase.sql.type.SqlTypeName;
 import org.eigenbase.util.Bug;
 import org.eigenbase.util.Pair;
@@ -308,6 +310,61 @@ public class JdbcTest {
   }
 
   /**
+   * Tests {@link org.eigenbase.sql.advise.SqlAdvisorGetHintsFunction}.
+   */
+  @Test public void testSqlAdvisorGetHintsFunction()
+    throws SQLException, ClassNotFoundException {
+    String res = adviseSql("select e.e^ from \"emps\" e");
+    assertThat(res,
+        equalTo("id=e; names=null; type=MATCH\n"
+                + "id=empid; names=[empid]; type=COLUMN\n"));
+  }
+  /**
+   * Tests {@link org.eigenbase.sql.advise.SqlAdvisorGetHintsFunction}.
+   */
+  @Test public void testSqlAdvisorSchemaNames()
+    throws SQLException, ClassNotFoundException {
+    String res = adviseSql("select empid from \"emps\" e, ^");
+    assertThat(res,
+        equalTo("id=; names=null; type=MATCH\n"
+                + "id=(; names=[(]; type=KEYWORD\n"
+                + "id=LATERAL; names=[LATERAL]; type=KEYWORD\n"
+                + "id=TABLE; names=[TABLE]; type=KEYWORD\n"
+                + "id=UNNEST; names=[UNNEST]; type=KEYWORD\n"
+                + "id=hr; names=[hr]; type=SCHEMA\n"
+                + "id=metadata; names=[metadata]; type=SCHEMA\n"
+                + "id=s; names=[s]; type=SCHEMA\n"
+                + "id=hr.depts; names=[hr, depts]; type=TABLE\n"
+                + "id=hr.emps; names=[hr, emps]; type=TABLE\n"));
+  }
+
+  private String adviseSql(String sql) throws ClassNotFoundException,
+      SQLException {
+    Class.forName("net.hydromatic.optiq.jdbc.Driver");
+    Properties info = new Properties();
+    info.put("lex", "JAVA");
+    info.put("quoting", "DOUBLE_QUOTE");
+    Connection connection =
+        DriverManager.getConnection("jdbc:optiq:", info);
+    OptiqConnection optiqConnection =
+        connection.unwrap(OptiqConnection.class);
+    SchemaPlus rootSchema = optiqConnection.getRootSchema();
+    rootSchema.add("hr", new ReflectiveSchema(new HrSchema()));
+    SchemaPlus schema = rootSchema.add("s", new AbstractSchema());
+    optiqConnection.setSchema("hr");
+    final TableFunction table =
+        new SqlAdvisorGetHintsFunction();
+    schema.add("get_hints", table);
+    PreparedStatement ps = connection.prepareStatement(
+        "select *\n"
+        + "from table(\"s\".\"get_hints\"(?, ?)) as t(id, names, type)");
+    SqlParserUtil.StringAndPos sap = SqlParserUtil.findPos(sql);
+    ps.setString(1, sap.sql);
+    ps.setInt(2, sap.cursor);
+    return OptiqAssert.toString(ps.executeQuery());
+  }
+
+  /**
    * Tests a relation that is accessed via method syntax.
    *
    * <p>The function ({@link #view(String)} has a return type
@@ -455,7 +512,7 @@ public class JdbcTest {
         return builder.build();
       }
 
-      public <T> Queryable<T> asQueryable(QueryProvider queryProvider,
+      public Queryable<Object[]> asQueryable(QueryProvider queryProvider,
           SchemaPlus schema, String tableName) {
         final List<Object[]> table = new AbstractList<Object[]>() {
           @Override
@@ -473,14 +530,7 @@ public class JdbcTest {
             return nrow;
           }
         };
-        BaseQueryable<Object[]> queryable =
-            new BaseQueryable<Object[]>(null, Object[].class, null) {
-              public Enumerator<Object[]> enumerator() {
-                return Linq4j.iterableEnumerator(table);
-              }
-            };
-        //noinspection unchecked
-        return (Queryable<T>) queryable;
+        return Linq4j.asEnumerable(table).<Object[]>asQueryable();
       }
     };
   }
@@ -505,13 +555,7 @@ public class JdbcTest {
                 return offset + ((Integer) a0[0]);
               }
             });
-        BaseQueryable<Integer> queryable =
-            new BaseQueryable<Integer>(null, Integer.class, null) {
-              public Enumerator<Integer> enumerator() {
-                return enumerable.enumerator();
-              }
-            };
-        return queryable;
+        return enumerable.asQueryable();
       }
     };
   }
@@ -538,13 +582,7 @@ public class JdbcTest {
                 return ((Integer) v0[1]) + v1.n + offset;
               }
             });
-        BaseQueryable<Integer> queryable =
-            new BaseQueryable<Integer>(null, Integer.class, null) {
-              public Enumerator<Integer> enumerator() {
-                return enumerable.enumerator();
-              }
-            };
-        return queryable;
+        return enumerable.asQueryable();
       }
     };
   }
@@ -5162,12 +5200,7 @@ public class JdbcTest {
     return new AbstractQueryableTable(Object[].class) {
       public Queryable<Object> asQueryable(
           QueryProvider queryProvider, SchemaPlus schema, String tableName) {
-        return new BaseQueryable<Object>(queryProvider, Object[].class, null) {
-          @Override
-          public Enumerator<Object> enumerator() {
-            return enumerable.enumerator();
-          }
-        };
+        return enumerable.asQueryable();
       }
 
       public RelDataType getRowType(RelDataTypeFactory typeFactory) {

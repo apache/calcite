@@ -53,7 +53,7 @@ public abstract class DelegatingSqlValidatorCatalogReader
     return catalogReader.getAllSchemaObjectNames(names);
   }
 
-  public String getSchemaName() {
+  public List<String> getSchemaName() {
     return catalogReader.getSchemaName();
   }
 }
