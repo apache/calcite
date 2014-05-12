@@ -89,6 +89,7 @@
     <module>plus</module>
     <module>spark</module>
     <module>splunk</module>
+    <module>ubenchmark</module>
   </modules>
 
   <!-- Dependencies. -->
@@ -176,6 +177,21 @@
     </dependency>
   </dependencies>
 
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>net.hydromatic</groupId>
+        <artifactId>optiq-avatica</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>net.hydromatic</groupId>
+        <artifactId>optiq-core</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
   <build>
     <plugins>
       <plugin>
@@ -236,6 +252,16 @@
         </dependencies>
       </plugin>
     </plugins>
+
+    <pluginManagement>
+      <plugins>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-shade-plugin</artifactId>
+          <version>2.0</version>
+        </plugin>
+      </plugins>
+    </pluginManagement>
 
     <resources>
       <resource>
