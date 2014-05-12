@@ -189,7 +189,7 @@ For more details, see the <a href="REFERENCE.md">Reference guide</a>.
 * <a href="HOWTO.md">HOWTO</a>
 * <a href="MODEL.md">JSON model</a>
 * <a href="REFERENCE.md">Reference guide</a>
-* <a href="RELEASE.md">Release notes</a>
+* <a href="HISTORY.md">Release notes and history</a>
 
 ### Presentations
 
