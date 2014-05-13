@@ -18,16 +18,18 @@
 package org.eigenbase.sql.test;
 
 import java.sql.ResultSet;
+import java.sql.Types;
 import java.util.*;
 import java.util.regex.Pattern;
 
 import org.eigenbase.reltype.*;
 import org.eigenbase.sql.type.*;
 
-import org.junit.Assert;
+import net.hydromatic.avatica.ColumnMetaData;
 
 import static org.eigenbase.sql.test.SqlTester.*;
 
+import static org.hamcrest.CoreMatchers.*;
 import static org.junit.Assert.*;
 
 /**
@@ -128,12 +130,70 @@ public abstract class SqlTests {
       ResultSet resultSet,
       Set<String> refSet) throws Exception {
     Set<String> actualSet = new HashSet<String>();
+    final int columnType = resultSet.getMetaData().getColumnType(1);
+    final ColumnMetaData.Rep rep = rep(columnType);
     while (resultSet.next()) {
-      String s = resultSet.getString(1);
+      final String s = resultSet.getString(1);
+      final String s0 = s == null ? "0" : s;
+      final boolean wasNull0 = resultSet.wasNull();
       actualSet.add(s);
+      switch (rep) {
+      case BOOLEAN:
+        assertThat(resultSet.getBoolean(1), equalTo(Boolean.valueOf(s)));
+        break;
+      case BYTE:
+      case SHORT:
+      case INTEGER:
+      case LONG:
+        final long l = Long.parseLong(s0);
+        assertThat(resultSet.getByte(1), equalTo((byte) l));
+        assertThat(resultSet.getShort(1), equalTo((short) l));
+        assertThat(resultSet.getInt(1), equalTo((int) l));
+        assertThat(resultSet.getLong(1), equalTo(l));
+        break;
+      case FLOAT:
+      case DOUBLE:
+        final double d = Double.parseDouble(s0);
+        assertThat(resultSet.getFloat(1), equalTo((float) d));
+        assertThat(resultSet.getDouble(1), equalTo(d));
+        break;
+      }
+      final boolean wasNull1 = resultSet.wasNull();
+      final Object object = resultSet.getObject(1);
+      final boolean wasNull2 = resultSet.wasNull();
+      assertThat(object == null, equalTo(wasNull0));
+      assertThat(wasNull1, equalTo(wasNull0));
+      assertThat(wasNull2, equalTo(wasNull0));
     }
     resultSet.close();
-    Assert.assertEquals(refSet, actualSet);
+    assertEquals(refSet, actualSet);
+  }
+
+  private static ColumnMetaData.Rep rep(int columnType) {
+    switch (columnType) {
+    case Types.BOOLEAN:
+      return ColumnMetaData.Rep.BOOLEAN;
+    case Types.TINYINT:
+      return ColumnMetaData.Rep.BYTE;
+    case Types.SMALLINT:
+      return ColumnMetaData.Rep.SHORT;
+    case Types.INTEGER:
+      return ColumnMetaData.Rep.INTEGER;
+    case Types.BIGINT:
+      return ColumnMetaData.Rep.LONG;
+    case Types.FLOAT:
+      return ColumnMetaData.Rep.FLOAT;
+    case Types.DOUBLE:
+      return ColumnMetaData.Rep.DOUBLE;
+    case Types.TIME:
+      return ColumnMetaData.Rep.JAVA_SQL_TIME;
+    case Types.TIMESTAMP:
+      return ColumnMetaData.Rep.JAVA_SQL_TIMESTAMP;
+    case Types.DATE:
+      return ColumnMetaData.Rep.JAVA_SQL_DATE;
+    default:
+      return ColumnMetaData.Rep.OBJECT;
+    }
   }
 
   /**
@@ -147,16 +207,20 @@ public abstract class SqlTests {
       ResultSet resultSet,
       Pattern pattern) throws Exception {
     if (!resultSet.next()) {
-      Assert.fail("Query returned 0 rows, expected 1");
+      fail("Query returned 0 rows, expected 1");
     }
     String actual = resultSet.getString(1);
     if (resultSet.next()) {
-      Assert.fail("Query returned 2 or more rows, expected 1");
+      fail("Query returned 2 or more rows, expected 1");
     }
     if (!pattern.matcher(actual).matches()) {
-      Assert.fail(
-          "Query returned '" + actual + "', expected '"
-          + pattern.pattern() + "'");
+      fail(
+          "Query returned '"
+              + actual
+              + "', expected '"
+              + pattern.pattern()
+              + "'"
+      );
     }
   }
 
@@ -173,17 +237,18 @@ public abstract class SqlTests {
       double expected,
       double delta) throws Exception {
     if (!resultSet.next()) {
-      Assert.fail("Query returned 0 rows, expected 1");
+      fail("Query returned 0 rows, expected 1");
     }
     double actual = resultSet.getDouble(1);
     if (resultSet.next()) {
-      Assert.fail("Query returned 2 or more rows, expected 1");
+      fail("Query returned 2 or more rows, expected 1");
     }
     if ((actual < (expected - delta)) || (actual > (expected + delta))) {
-      Assert.fail(
-          "Query returned " + actual
-          + ", expected " + expected
-          + ((delta == 0) ? "" : ("+/-" + delta)));
+      fail(
+          "Query returned " + actual + ", expected " + expected + ((delta == 0)
+              ? ""
+              : ("+/-" + delta))
+      );
     }
   }
 
@@ -204,7 +269,7 @@ public abstract class SqlTests {
       actualSet.add(s);
     }
     resultSet.close();
-    Assert.assertEquals(refList, actualSet);
+    assertEquals(refList, actualSet);
   }
 
   /**
@@ -221,9 +286,9 @@ public abstract class SqlTests {
       List<String>... refLists) throws Exception {
     int numExpectedColumns = refLists.length;
 
-    Assert.assertTrue(numExpectedColumns > 0);
+    assertTrue(numExpectedColumns > 0);
 
-    Assert.assertTrue(
+    assertTrue(
         resultSet.getMetaData().getColumnCount() >= numExpectedColumns);
 
     int numExpectedRows = -1;
@@ -235,7 +300,7 @@ public abstract class SqlTests {
       if (i == 0) {
         numExpectedRows = refLists[i].size();
       } else {
-        Assert.assertEquals(
+        assertEquals(
             "num rows differ across ref lists",
             numExpectedRows,
             refLists[i].size());
@@ -252,7 +317,7 @@ public abstract class SqlTests {
     resultSet.close();
 
     for (int i = 0; i < numExpectedColumns; i++) {
-      Assert.assertEquals(
+      assertEquals(
           "column mismatch in column " + (i + 1),
           refLists[i],
           actualLists.get(i));
@@ -310,7 +375,7 @@ public abstract class SqlTests {
     if (result instanceof Pattern) {
       return new PatternResultChecker((Pattern) result);
     } else if (delta != 0) {
-      Assert.assertTrue(result instanceof Number);
+      assertTrue(result instanceof Number);
       return new ApproximateResultChecker((Number) result, delta);
     } else {
       Set<String> refSet = new HashSet<String>();

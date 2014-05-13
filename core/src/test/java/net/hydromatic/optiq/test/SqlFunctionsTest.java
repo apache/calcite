@@ -228,15 +228,15 @@ public class SqlFunctionsTest {
   }
 
   @Test public void testExtract() {
-    assertThat(unixDateExtract(TimeUnitRange.YEAR, 0), equalTo(1970));
-    assertThat(unixDateExtract(TimeUnitRange.YEAR, -1), equalTo(1969));
-    assertThat(unixDateExtract(TimeUnitRange.YEAR, 364), equalTo(1970));
-    assertThat(unixDateExtract(TimeUnitRange.YEAR, 365), equalTo(1971));
+    assertThat(unixDateExtract(TimeUnitRange.YEAR, 0), equalTo(1970L));
+    assertThat(unixDateExtract(TimeUnitRange.YEAR, -1), equalTo(1969L));
+    assertThat(unixDateExtract(TimeUnitRange.YEAR, 364), equalTo(1970L));
+    assertThat(unixDateExtract(TimeUnitRange.YEAR, 365), equalTo(1971L));
 
-    assertThat(unixDateExtract(TimeUnitRange.MONTH, 0), equalTo(1));
-    assertThat(unixDateExtract(TimeUnitRange.MONTH, -1), equalTo(12));
-    assertThat(unixDateExtract(TimeUnitRange.MONTH, 364), equalTo(12));
-    assertThat(unixDateExtract(TimeUnitRange.MONTH, 365), equalTo(1));
+    assertThat(unixDateExtract(TimeUnitRange.MONTH, 0), equalTo(1L));
+    assertThat(unixDateExtract(TimeUnitRange.MONTH, -1), equalTo(12L));
+    assertThat(unixDateExtract(TimeUnitRange.MONTH, 364), equalTo(12L));
+    assertThat(unixDateExtract(TimeUnitRange.MONTH, 365), equalTo(1L));
 
     thereAndBack(2000, 1, 1);
     thereAndBack(2000, 2, 28);
@@ -260,9 +260,12 @@ public class SqlFunctionsTest {
 
   private void thereAndBack(int year, int month, int day) {
     final int unixDate = ymdToUnixDate(year, month, day);
-    assertThat(unixDateExtract(TimeUnitRange.YEAR, unixDate), equalTo(year));
-    assertThat(unixDateExtract(TimeUnitRange.MONTH, unixDate), equalTo(month));
-    assertThat(unixDateExtract(TimeUnitRange.DAY, unixDate), equalTo(day));
+    assertThat(unixDateExtract(TimeUnitRange.YEAR, unixDate),
+        equalTo((long) year));
+    assertThat(unixDateExtract(TimeUnitRange.MONTH, unixDate),
+        equalTo((long) month));
+    assertThat(unixDateExtract(TimeUnitRange.DAY, unixDate),
+        equalTo((long) day));
   }
 
   /** Unit test for

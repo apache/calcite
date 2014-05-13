@@ -639,6 +639,16 @@ public class SqlFunctions {
 
   // MOD
 
+  /** SQL <code>MOD</code> operator applied to byte values. */
+  public static byte mod(byte b0, byte b1) {
+    return (byte) (b0 % b1);
+  }
+
+  /** SQL <code>MOD</code> operator applied to short values. */
+  public static short mod(short b0, short b1) {
+    return (short) (b0 % b1);
+  }
+
   /** SQL <code>MOD</code> operator applied to int values. */
   public static int mod(int b0, int b1) {
     return b0 % b1;
@@ -665,6 +675,16 @@ public class SqlFunctions {
   }
 
   // ABS
+
+  /** SQL <code>ABS</code> operator applied to byte values. */
+  public static byte abs(byte b0) {
+    return (byte) Math.abs(b0);
+  }
+
+  /** SQL <code>ABS</code> operator applied to short values. */
+  public static short abs(short b0) {
+    return (short) Math.abs(b0);
+  }
 
   /** SQL <code>ABS</code> operator applied to int values. */
   public static int abs(int b0) {
@@ -1211,7 +1231,7 @@ public class SqlFunctions {
     int2(buf, day);
   }
 
-  public static int unixDateExtract(TimeUnitRange range, long date) {
+  public static long unixDateExtract(TimeUnitRange range, long date) {
     return julianExtract(range, (int) date + EPOCH_JULIAN);
   }
 

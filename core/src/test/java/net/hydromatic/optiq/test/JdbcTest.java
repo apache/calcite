@@ -1368,6 +1368,28 @@ public class JdbcTest {
         .returns("C=287\n");
   }
 
+  /** Test case for
+   * <a href="https://github.com/julianhyde/optiq/issues/281">issue #281</a>,
+   * "SQL type of EXTRACT is BIGINT but it is implemented as int". */
+  @Test public void testExtract() {
+    OptiqAssert.that()
+        .with(OptiqAssert.Config.JDBC_FOODMART)
+        .query(
+            "values extract(year from date '2008-2-23')")
+        .returns(
+            new Function1<ResultSet, Void>() {
+              public Void apply(ResultSet a0) {
+                try {
+                  final BigDecimal bigDecimal = a0.getBigDecimal(1);
+                  assertThat(bigDecimal, equalTo(BigDecimal.valueOf(2008)));
+                } catch (SQLException e) {
+                  throw new RuntimeException(e);
+                }
+                return null;
+              }
+            });
+  }
+
   /** Unit test for self-join. Left and right children of the join are the same
    * relational expression. */
   @Test public void testSelfJoin() {

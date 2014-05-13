@@ -3462,6 +3462,9 @@ public abstract class SqlOperatorBaseTest {
         "TINYINT NOT NULL",
         "5");
 
+    if (!DECIMAL) {
+      return;
+    }
     tester.checkScalarExact(
         "mod(cast(9 as decimal(2, 0)), 7)",
         "INTEGER NOT NULL",
@@ -3474,8 +3477,14 @@ public abstract class SqlOperatorBaseTest {
         "mod(cast(-9 as decimal(2, 0)), cast(7 as decimal(1, 0)))",
         "DECIMAL(1, 0) NOT NULL",
         "-2");
+  }
+
+  @Test public void testModFuncNull() {
     tester.checkNull("mod(cast(null as integer),2)");
     tester.checkNull("mod(4,cast(null as tinyint))");
+    if (!DECIMAL) {
+      return;
+    }
     tester.checkNull("mod(4,cast(null as decimal(12,0)))");
   }
 
