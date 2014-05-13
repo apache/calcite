@@ -107,7 +107,7 @@ public class SqlAdvisorGetHintsFunction
     for (SqlMoniker hint : hints) {
       res.add(new SqlAdvisorHint(hint));
     }
-    return Linq4j.asEnumerable(res).<SqlAdvisorHint>asQueryable();
+    return Linq4j.asEnumerable(res).asQueryable();
   }
 }
 

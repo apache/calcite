@@ -177,14 +177,14 @@ public class JdbcTest {
     Connection connection = getConnectionWithMultiplyFunction();
     final PreparedStatement ps = connection.prepareStatement(
         "select *\n"
-        + "from table(\"s\".\"multiplication\"(4, 3, ?))\n"
-    );
+        + "from table(\"s\".\"multiplication\"(4, 3, ?))\n");
     ps.setInt(1, 100);
     ResultSet resultSet = ps.executeQuery();
     assertThat(OptiqAssert.toString(resultSet),
-        equalTo("row_name=row 0; c1=101; c2=102; c3=103; c4=104\n"
-                + "row_name=row 1; c1=102; c2=104; c3=106; c4=108\n"
-                + "row_name=row 2; c1=103; c2=106; c3=109; c4=112\n"));
+        equalTo(
+            "row_name=row 0; c1=101; c2=102; c3=103; c4=104\n"
+            + "row_name=row 1; c1=102; c2=104; c3=106; c4=108\n"
+            + "row_name=row 2; c1=103; c2=106; c3=109; c4=112\n"));
   }
 
   /**
@@ -198,19 +198,19 @@ public class JdbcTest {
     try {
       final PreparedStatement ps = connection.prepareStatement(
           "select *\n"
-          + "from table(\"s\".\"multiplication\"(?, 3, 100))\n"
-      );
+          + "from table(\"s\".\"multiplication\"(?, 3, 100))\n");
       ps.setInt(1, 100);
       ResultSet resultSet = ps.executeQuery();
-      fail("Should fail with ");
+      fail("Should fail, got " + resultSet);
     } catch (SQLException e) {
       assertThat(e.getMessage(),
-          containsString("Wrong arguments for table function 'public static "
-                         + "net.hydromatic.optiq.QueryableTable net"
-                         + ".hydromatic.optiq.test.JdbcTest"
-                         + ".multiplicationTable(int,int,java.lang.Integer)'"
-                         + " call. Expected '[int, int, class"
-                         + "java.lang.Integer]', actual '[null, 3, 100]'"));
+          containsString(
+              "Wrong arguments for table function 'public static "
+              + "net.hydromatic.optiq.QueryableTable net"
+              + ".hydromatic.optiq.test.JdbcTest"
+              + ".multiplicationTable(int,int,java.lang.Integer)'"
+              + " call. Expected '[int, int, class"
+              + "java.lang.Integer]', actual '[null, 3, 100]'"));
     }
   }
 
@@ -254,16 +254,16 @@ public class JdbcTest {
         + "from table(\"s\".\"process\"(2,\n"
         + "cursor(select * from table(\"s\".\"GenerateStrings\"(?)))\n"
         + ")) as t(u)\n"
-        + "where u > 3"
-    );
+        + "where u > 3");
     ps.setInt(1, 5);
     ResultSet resultSet = ps.executeQuery();
     // GenerateStrings returns 0..4, then 2 is added (process function),
     // thus 2..6, finally where u > 3 leaves just 4..6
     assertThat(OptiqAssert.toString(resultSet),
-        equalTo("u=4\n"
-                + "u=5\n"
-                + "u=6\n"));
+        equalTo(
+            "u=4\n"
+            + "u=5\n"
+            + "u=6\n"));
   }
 
   /**
@@ -292,8 +292,7 @@ public class JdbcTest {
         + "cursor(select * from table(\"s\".\"multiplication\"(5,5,0))),\n"
         + "cursor(select * from table(\"s\".\"GenerateStrings\"(?)))\n"
         + ")) as t(u)\n"
-        + "where u > 3"
-    );
+        + "where u > 3");
     ps.setInt(1, 5);
     ResultSet resultSet = ps.executeQuery();
     // GenerateStrings produce 0..4
@@ -301,12 +300,13 @@ public class JdbcTest {
     // process sums and adds 2
     // sum is 2 + 1..9 == 3..9
     assertThat(OptiqAssert.toString(resultSet),
-        equalTo("u=4\n"
-                + "u=5\n"
-                + "u=6\n"
-                + "u=7\n"
-                + "u=8\n"
-                + "u=9\n"));
+        equalTo(
+            "u=4\n"
+            + "u=5\n"
+            + "u=6\n"
+            + "u=7\n"
+            + "u=8\n"
+            + "u=9\n"));
   }
 
   /**
@@ -316,8 +316,9 @@ public class JdbcTest {
     throws SQLException, ClassNotFoundException {
     String res = adviseSql("select e.e^ from \"emps\" e");
     assertThat(res,
-        equalTo("id=e; names=null; type=MATCH\n"
-                + "id=empid; names=[empid]; type=COLUMN\n"));
+        equalTo(
+            "id=e; names=null; type=MATCH\n"
+            + "id=empid; names=[empid]; type=COLUMN\n"));
   }
   /**
    * Tests {@link org.eigenbase.sql.advise.SqlAdvisorGetHintsFunction}.
@@ -326,16 +327,17 @@ public class JdbcTest {
     throws SQLException, ClassNotFoundException {
     String res = adviseSql("select empid from \"emps\" e, ^");
     assertThat(res,
-        equalTo("id=; names=null; type=MATCH\n"
-                + "id=(; names=[(]; type=KEYWORD\n"
-                + "id=LATERAL; names=[LATERAL]; type=KEYWORD\n"
-                + "id=TABLE; names=[TABLE]; type=KEYWORD\n"
-                + "id=UNNEST; names=[UNNEST]; type=KEYWORD\n"
-                + "id=hr; names=[hr]; type=SCHEMA\n"
-                + "id=metadata; names=[metadata]; type=SCHEMA\n"
-                + "id=s; names=[s]; type=SCHEMA\n"
-                + "id=hr.depts; names=[hr, depts]; type=TABLE\n"
-                + "id=hr.emps; names=[hr, emps]; type=TABLE\n"));
+        equalTo(
+            "id=; names=null; type=MATCH\n"
+            + "id=(; names=[(]; type=KEYWORD\n"
+            + "id=LATERAL; names=[LATERAL]; type=KEYWORD\n"
+            + "id=TABLE; names=[TABLE]; type=KEYWORD\n"
+            + "id=UNNEST; names=[UNNEST]; type=KEYWORD\n"
+            + "id=hr; names=[hr]; type=SCHEMA\n"
+            + "id=metadata; names=[metadata]; type=SCHEMA\n"
+            + "id=s; names=[s]; type=SCHEMA\n"
+            + "id=hr.depts; names=[hr, depts]; type=TABLE\n"
+            + "id=hr.emps; names=[hr, emps]; type=TABLE\n"));
   }
 
   private String adviseSql(String sql) throws ClassNotFoundException,
@@ -388,9 +390,10 @@ public class JdbcTest {
         + "where n < 15");
     // The call to "View('(10), (2)')" expands to 'values (1), (3), (10), (20)'.
     assertThat(OptiqAssert.toString(resultSet),
-        equalTo("N=1\n"
-                + "N=3\n"
-                + "N=10\n"));
+        equalTo(
+            "N=1\n"
+            + "N=3\n"
+            + "N=10\n"));
   }
 
   /** Tests a JDBC connection that provides a model that contains a table
@@ -530,7 +533,7 @@ public class JdbcTest {
             return nrow;
           }
         };
-        return Linq4j.asEnumerable(table).<Object[]>asQueryable();
+        return Linq4j.asEnumerable(table).asQueryable();
       }
     };
   }
@@ -565,8 +568,7 @@ public class JdbcTest {
    * column of first input and the given int.
    */
   public static QueryableTable processCursors(final int offset,
-    final Enumerable<Object[]> a, final Enumerable<IntString> b
-  ) {
+      final Enumerable<Object[]> a, final Enumerable<IntString> b) {
     return new AbstractQueryableTable(Object[].class) {
       public RelDataType getRowType(RelDataTypeFactory typeFactory) {
         return typeFactory.builder()
@@ -1548,11 +1550,13 @@ public class JdbcTest {
     String hsqldbMemUrl = "jdbc:hsqldb:mem:.";
     Connection baseConnection = DriverManager.getConnection(hsqldbMemUrl);
     Statement baseStmt = baseConnection.createStatement();
-    baseStmt.execute("CREATE TABLE ARR_TABLE (\n"
-      + "ID INTEGER,\n"
-      + "VALS INTEGER ARRAY)");
+    baseStmt.execute(
+        "CREATE TABLE ARR_TABLE (\n"
+        + "ID INTEGER,\n"
+        + "VALS INTEGER ARRAY)");
     baseStmt.execute("INSERT INTO ARR_TABLE VALUES (1, ARRAY[1,2,3])");
-    baseStmt.execute("CREATE TABLE ARR_TABLE2 (\n"
+    baseStmt.execute(
+        "CREATE TABLE ARR_TABLE2 (\n"
         + "ID INTEGER,\n"
         + "VALS INTEGER ARRAY,\n"
         + "VALVALS VARCHAR(10) ARRAY)");
@@ -1705,7 +1709,8 @@ public class JdbcTest {
   @Test public void testMultisetQuery() {
     OptiqAssert.that()
         .with(OptiqAssert.Config.REGULAR)
-        .query("select multiset(\n"
+        .query(
+            "select multiset(\n"
             + "  select \"deptno\", \"empid\" from \"hr\".\"emps\") as a\n"
             + "from (values (1))")
         .returnsUnordered("A=[[10, 100], [20, 200], [10, 150], [10, 110]]");
@@ -1714,7 +1719,8 @@ public class JdbcTest {
   @Test public void testMultisetQueryWithSingleColumn() {
     OptiqAssert.that()
         .with(OptiqAssert.Config.REGULAR)
-        .query("select multiset(\n"
+        .query(
+            "select multiset(\n"
             + "  select \"deptno\" from \"hr\".\"emps\") as a\n"
             + "from (values (1))")
         .returnsUnordered("A=[10, 20, 10, 10]");
@@ -1738,7 +1744,8 @@ public class JdbcTest {
   @Test public void testUnnestMultiset2() {
     OptiqAssert.that()
         .with(OptiqAssert.Config.REGULAR)
-        .query("select*from unnest(\n"
+        .query(
+            "select*from unnest(\n"
             + " select \"employees\" from \"hr\".\"depts\"\n"
             + " where \"deptno\" = 10)")
         .returnsUnordered(
@@ -1749,7 +1756,8 @@ public class JdbcTest {
   @Test public void testArrayElement() {
     OptiqAssert.that()
         .with(OptiqAssert.Config.REGULAR)
-        .query("select element(\"employees\") from \"hr\".\"depts\"\n"
+        .query(
+            "select element(\"employees\") from \"hr\".\"depts\"\n"
             + "where cardinality(\"employees\") < 2")
         .returnsUnordered(
             "EXPR$0=Employee [empid: 200, deptno: 20, name: Eric]",
@@ -1958,10 +1966,11 @@ public class JdbcTest {
             "return current.empid <= current.deptno * 10 "
             + "? (String) null "
             + ": $L4J$C$net_hydromatic_optiq_runtime_SqlFunctions_upper_y_;")
-        .returns("T=null\n"
-                 + "T=null\n"
-                 + "T=Y\n"
-                 + "T=Y\n");
+        .returns(
+            "T=null\n"
+            + "T=null\n"
+            + "T=Y\n"
+            + "T=Y\n");
   }
 
   @Test public void testReuseExpressionWhenNullChecking2() {
@@ -1976,10 +1985,11 @@ public class JdbcTest {
             + "|| inp2_ == null "
             + "? (String) null "
             + ": net.hydromatic.optiq.runtime.SqlFunctions.upper(inp2_);")
-        .returns("T=null\n"
-                 + "T=null\n"
-                 + "T=SEBASTIAN\n"
-                 + "T=THEODORE\n");
+        .returns(
+            "T=null\n"
+            + "T=null\n"
+            + "T=SEBASTIAN\n"
+            + "T=THEODORE\n");
   }
 
   @Test public void testReuseExpressionWhenNullChecking3() {
@@ -2033,10 +2043,11 @@ public class JdbcTest {
             + "net.hydromatic.optiq.runtime.SqlFunctions.trim(true, true, \" \", "
             + "net.hydromatic.optiq.runtime.SqlFunctions.substring(inp2_, "
             + "inp1_ * 0 + 1)), (v5 ? 4 : 5) - 2);")
-        .returns("T=ill\n"
-                 + "T=ric\n"
-                 + "T=ebastian\n"
-                 + "T=heodore\n");
+        .returns(
+            "T=ill\n"
+            + "T=ric\n"
+            + "T=ebastian\n"
+            + "T=heodore\n");
   }
 
   @Test public void testReuseExpressionWhenNullChecking5() {
@@ -2073,10 +2084,11 @@ public class JdbcTest {
             + "net.hydromatic.optiq.runtime.SqlFunctions.trim(true, true, \" \", "
             + "net.hydromatic.optiq.runtime.SqlFunctions.substring(inp2_, "
             + "inp1_ * 0 + 1)), $L4J$C$5_2);")
-        .returns("T=ll\n"
-                 + "T=ic\n"
-                 + "T=bastian\n"
-                 + "T=eodore\n");
+        .returns(
+            "T=ll\n"
+            + "T=ic\n"
+            + "T=bastian\n"
+            + "T=eodore\n");
   }
 
   @Test public void testValues() {
@@ -2638,7 +2650,8 @@ public class JdbcTest {
   @Test public void testSelectDistinctComposite() {
     OptiqAssert.that()
         .with(OptiqAssert.Config.REGULAR)
-        .query("select distinct \"empid\" > 140 as c, \"deptno\"\n"
+        .query(
+            "select distinct \"empid\" > 140 as c, \"deptno\"\n"
             + "from \"hr\".\"emps\"\n")
         .returnsUnordered(
             "C=false; deptno=10",
@@ -3025,13 +3038,15 @@ public class JdbcTest {
     // sql, since e.g. HSQLDB does not support them.
     OptiqAssert.that()
         .withModel(FOODMART_MODEL)
-        .query("select count(*) as c from \"customer\" "
+        .query(
+            "select count(*) as c from \"customer\" "
             + "where \"lname\" = 'this string is longer than 30 characters'")
         .returns("C=0\n");
 
     OptiqAssert.that()
         .withModel(FOODMART_MODEL)
-        .query("select count(*) as c from \"customer\" "
+        .query(
+            "select count(*) as c from \"customer\" "
             + "where cast(\"customer_id\" as char(20)) = 'this string is longer than 30 characters'")
         .returns("C=0\n");
   }
@@ -3058,13 +3073,15 @@ public class JdbcTest {
   @Test public void testTrim() {
     OptiqAssert.that()
         .withModel(FOODMART_MODEL)
-        .query("select trim(\"lname\") as \"lname\" "
+        .query(
+            "select trim(\"lname\") as \"lname\" "
             + "from \"customer\" where \"lname\" = 'Nowmer'")
         .returns("lname=Nowmer\n");
 
     OptiqAssert.that()
         .withModel(FOODMART_MODEL)
-        .query("select trim(leading 'N' from \"lname\") as \"lname\" "
+        .query(
+            "select trim(leading 'N' from \"lname\") as \"lname\" "
             + "from \"customer\" where \"lname\" = 'Nowmer'")
         .returns("lname=owmer\n");
   }
@@ -3356,7 +3373,7 @@ public class JdbcTest {
             + "        where d.\"deptno\" = e.\"deptno\")\n"
             + "  THEN (Select d.\"name\" from \"hr\".\"depts\" d\n"
             + "        where d.\"deptno\" = e.\"deptno\")\n"
-            + "  ELSE 'DepartmentNotFound'  END ) AS DEPTNAME\n"
+            + "  ELSE 'DepartmentNotFound'  END) AS DEPTNAME\n"
             + "from \"hr\".\"emps\" e")
         .returnsUnordered("name=Bill; DEPTNAME=Sales",
             "name=Eric; DEPTNAME=DepartmentNotFound",
@@ -3373,7 +3390,7 @@ public class JdbcTest {
             + "    Select \"deptno\" from \"hr\".\"depts\" d\n"
             + "    where d.\"name\" = 'Sales')\n"
             + "  THEN 'Sales'\n"
-            + "  ELSE 'Not Matched'  END ) AS DEPTNAME\n"
+            + "  ELSE 'Not Matched'  END) AS DEPTNAME\n"
             + "from \"hr\".\"emps\" e")
         .returnsUnordered("name=Bill; DEPTNAME=Sales      ",
             "name=Eric; DEPTNAME=Not Matched",
@@ -3773,17 +3790,20 @@ public class JdbcTest {
             + "order by \"empid\" limit 2");
     with
         .query("select \"name\" from \"adhoc\".V order by \"name\"")
-        .returns("name=Bill\n"
+        .returns(
+            "name=Bill\n"
             + "name=Theodore\n");
 
     // Now a sub-query with ORDER BY and LIMIT clauses. (Same net effect, but
     // ORDER BY and LIMIT in sub-query were not standard SQL until SQL:2008.)
     with
-        .query("select \"name\" from (\n"
+        .query(
+            "select \"name\" from (\n"
             + "select * from \"adhoc\".\"EMPLOYEES\" where \"deptno\" = 10\n"
             + "order by \"empid\" limit 2)\n"
             + "order by \"name\"")
-        .returns("name=Bill\n"
+        .returns(
+            "name=Bill\n"
             + "name=Theodore\n");
   }
 
@@ -4013,7 +4033,8 @@ public class JdbcTest {
         .returnsUnordered(
             "deptno=20; P=20",
             "deptno=10; P=30");
-    with.query("select \"deptno\", my_sum2(\"deptno\") as p from EMPLOYEES\n"
+    with.query(
+        "select \"deptno\", my_sum2(\"deptno\") as p from EMPLOYEES\n"
         + "group by \"deptno\"")
         .returnsUnordered("deptno=20; P=20", "deptno=10; P=30");
   }
@@ -4432,7 +4453,8 @@ public class JdbcTest {
 
     // The CONVERT function (what SQL:2011 calls "character transliteration") is
     // not implemented yet. See https://github.com/julianhyde/optiq/issues/111.
-    with.query("select * from \"employee\"\n"
+    with.query(
+        "select * from \"employee\"\n"
         + "where convert(\"full_name\" using UTF16) = _UTF16'\u82f1\u56fd'")
         .throws_("Column 'UTF16' not found in any table");
   }
