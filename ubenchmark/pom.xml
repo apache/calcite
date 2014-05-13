@@ -3,7 +3,7 @@
   <parent>
     <artifactId>optiq-parent</artifactId>
     <groupId>net.hydromatic</groupId>
-    <version>0.7</version>
+    <version>0.8-SNAPSHOT</version>
   </parent>
   <modelVersion>4.0.0</modelVersion>
 
