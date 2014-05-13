@@ -24,6 +24,8 @@ New features
   * Windowed aggregates computed over primitive scalars.
 * Fix return type inference for aggregate calls. If the `GROUP BY` clause is
   empty, `SUM` may return null.
+* Fix <a href="https://github.com/julianhyde/optiq/issues/37">#37</a>,
+  "Document JSON model file format" (as <a href="MODEL.md">MODEL.md</a>).
 * Fix <a href="https://github.com/julianhyde/optiq/issues/238">#238</a>,
   "Add adapter that generates TPC-H data".
 * Improve exception message in `AvaticaConnection`; add
@@ -60,8 +62,6 @@ Bug-fixes and internal changes
 * Hush warnings from `SplunkAdapterTest` if Splunk is not available.
 * Fix <a href="https://github.com/julianhyde/optiq/issues/252">#252</a>,
   "Scalar sub-query that returns 0 rows should become NULL value".
-* Fix <a href="https://github.com/julianhyde/optiq/issues/37">#37</a>,
-  "Document JSON model file format"
 * `SplunkAdapterTest` now uses the same Foodmart database as `JdbcTest`.
 * Fix <a href="https://github.com/julianhyde/optiq/issues/242">#242</a>,
   "SplunkAdapterTest fails".
