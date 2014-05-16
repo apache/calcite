@@ -51,6 +51,11 @@
       <url>http://conjars.org/repo</url>
       <layout>default</layout>
     </repository>
+    <site>
+      <id>linq4j.website</id>
+      <name>Linq4j Website</name>
+      <url>file:/home/jhyde/linq4j</url>
+    </site>
   </distributionManagement>
 
   <issueManagement>
