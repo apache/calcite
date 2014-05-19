@@ -2959,6 +2959,42 @@ public class JdbcTest {
             "empid=110; M=2");
   }
 
+  /** Tests windowed aggregation with no ORDER BY clause.
+   *
+   * <p>Test case for
+   * <a href="https://github.com/julianhyde/optiq/issues/285">issue #285</a>,
+   * "Window functions throw exception without ORDER BY".
+   *
+   * <p>Note:</p>
+   *
+   * <ul>
+   * <li>With no ORDER BY, the window is over all rows in the partition.
+   * <li>With an ORDER BY, the implicit frame is 'BETWEEN UNBOUNDED PRECEDING
+   *     AND CURRENT ROW'.
+   * <li>With no ORDER BY or PARTITION BY, the window contains all rows in the
+   *     table.
+   * </ul>
+   */
+  @Ignore("https://github.com/julianhyde/optiq/issues/285")
+  @Test public void testOverNoOrder() {
+    OptiqAssert.that()
+        .with(OptiqAssert.Config.REGULAR)
+        .query(
+            "select \"empid\",\n"
+            + "  \"deptno\",\n"
+            + "  \"salary\",\n"
+            + "  count(\"empid\") over (partition by \"deptno\") as m,\n"
+            + "  count(\"empid\") over (partition by \"deptno\"\n"
+            + "                         order by \"salary\") as m2,\n"
+            + "  count(\"empid\") over () as m3\n"
+            + "from \"hr\".\"emps\"")
+        .returnsUnordered(
+            "empid=100; deptno=10; salary=10000; M=1; M2=3; M3=4",
+            "empid=110; deptno=10; salary=11500; M=1; M2=2; M3=4",
+            "empid=150; deptno=10; salary=7000; M=1; M2=1; M3=4",
+            "empid=200; deptno=20; salary=8000; M=1; M2=1; M3=4");
+  }
+
   /** Tests window aggregate whose argument is a constant. */
   @Test public void testWinAggConstant() {
     OptiqAssert.that()
