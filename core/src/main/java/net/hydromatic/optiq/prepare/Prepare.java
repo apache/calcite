@@ -100,16 +100,6 @@ public abstract class Prepare {
     final DataContext dataContext = context.getDataContext();
     planner.setExecutor(new RexExecutorImpl(dataContext));
 
-    // Allow each rel to register its own rules.
-    RelVisitor visitor = new RelVisitor() {
-      @Override
-      public void visit(RelNode node, int ordinal, RelNode parent) {
-        planner.registerClass(node);
-        super.visit(node, ordinal, parent);
-      }
-    };
-    visitor.go(rootRel);
-
     planner.setRoot(rootRel);
     for (Materialization materialization : materializations) {
       planner.addMaterialization(

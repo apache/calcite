@@ -33,6 +33,7 @@ import net.hydromatic.optiq.rules.java.EnumerableConvention;
 import org.junit.Ignore;
 import org.junit.Test;
 
+import static org.hamcrest.CoreMatchers.*;
 import static org.junit.Assert.*;
 
 /**
@@ -114,6 +115,53 @@ public class VolcanoPlannerTest {
     planner.setRoot(convertedRel);
     RelNode result = planner.chooseDelegate().findBestExp();
     assertTrue(result instanceof PhysSingleRel);
+  }
+
+  /**
+   * Tests a rule that is fired once per subset (whereas most rules are fired
+   * once per rel in a set or rel in a subset)
+   */
+  @Test public void testSubsetRule() {
+    VolcanoPlanner planner = new VolcanoPlanner();
+    planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
+
+    planner.addRule(new PhysLeafRule());
+    planner.addRule(new GoodSingleRule());
+    final List<String> buf = new ArrayList<String>();
+    planner.addRule(new SubsetRule(buf));
+
+    RelOptCluster cluster = newCluster(planner);
+    NoneLeafRel leafRel =
+        new NoneLeafRel(
+            cluster,
+            "a");
+    NoneSingleRel singleRel =
+        new NoneSingleRel(
+            cluster,
+            leafRel);
+    RelNode convertedRel =
+        planner.changeTraits(
+            singleRel,
+            cluster.traitSetOf(PHYS_CALLING_CONVENTION));
+    planner.setRoot(convertedRel);
+    RelNode result = planner.chooseDelegate().findBestExp();
+    assertTrue(result instanceof PhysSingleRel);
+    assertThat(sort(buf),
+        equalTo(
+            sort(
+                "NoneSingleRel:Subset#0.NONE",
+                "PhysSingleRel:Subset#0.NONE",
+                "PhysSingleRel:Subset#0.PHYS")));
+  }
+
+  private static <E extends Comparable> List<E> sort(List<E> list) {
+    final List<E> list2 = new ArrayList<E>(list);
+    Collections.sort(list2);
+    return list2;
+  }
+
+  private static <E extends Comparable> List<E> sort(E... es) {
+    return sort(Arrays.asList(es));
   }
 
   /**
@@ -602,6 +650,28 @@ public class VolcanoPlannerTest {
           new PhysSingleRel(
               singleRel.getCluster(),
               physInput));
+    }
+  }
+
+  private static class SubsetRule extends RelOptRule {
+    private final List<String> buf;
+
+    SubsetRule(List<String> buf) {
+      super(operand(TestSingleRel.class, operand(RelSubset.class, any())));
+      this.buf = buf;
+    }
+
+    public Convention getOutConvention() {
+      return PHYS_CALLING_CONVENTION;
+    }
+
+    public void onMatch(RelOptRuleCall call) {
+      // Do not transform to anything; just log the calls.
+      TestSingleRel singleRel = call.rel(0);
+      RelSubset childRel = call.rel(1);
+      assertThat(call.rels.length, equalTo(2));
+      buf.add(singleRel.getClass().getSimpleName() + ":"
+          + childRel.getDigest());
     }
   }
 
