@@ -2354,12 +2354,21 @@ public class JavaRules {
       final Expression max_ =
           Expressions.subtract(Expressions.field(rows_, "length"),
               Expressions.constant(1));
-      final SqlWindow.OffsetRange offsetAndRange =
-          SqlWindow.getOffsetAndRange(
-              window.lowerBound, window.upperBound, window.isRows);
+      final SqlWindow.OffsetRange offsetAndRange;
+      if (window.orderKeys.getFieldCollations().isEmpty()) {
+        // If there is no ORDER BY, every row is effectively equal to the
+        // current row, so we disable range-checking.
+        //
+        // TODO: extend range to rows "equal to current row" even with ORDER BY
+        offsetAndRange = null;
+      } else {
+        offsetAndRange =
+            SqlWindow.getOffsetAndRange(window.lowerBound, window.upperBound,
+                window.isRows);
+      }
       final Expression start_ =
           builder.append("start",
-              offsetAndRange.range == Long.MAX_VALUE
+              offsetAndRange == null || offsetAndRange.range == Long.MAX_VALUE
               ? min_
               : optimizeAdd(i_,
                   (int) offsetAndRange.offset - (int) offsetAndRange.range,
@@ -2367,7 +2376,9 @@ public class JavaRules {
               false);
       final Expression end_ =
           builder.append("end",
-              optimizeAdd(i_, (int) offsetAndRange.offset, min_, max_),
+              offsetAndRange == null
+                  ? max_
+                  : optimizeAdd(i_, (int) offsetAndRange.offset, min_, max_),
               false);
       final DeclarationStatement jDecl = Expressions.declare(0, "j", start_);
       final ParameterExpression j_ = jDecl.parameter;

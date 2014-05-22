@@ -20,7 +20,6 @@ package org.eigenbase.sql;
 import java.util.*;
 
 import org.eigenbase.reltype.*;
-import org.eigenbase.resource.*;
 import org.eigenbase.sql.parser.*;
 import org.eigenbase.sql.type.*;
 import org.eigenbase.sql.util.*;
@@ -609,10 +608,44 @@ public abstract class SqlOperator {
    * subclass type is used (an instance of SqlAggFunction is assumed to be an
    * aggregator; anything else is not).
    *
-   * @return whether this operator is an aggregator
+   * <p>Per SQL:2011, there are <dfn>aggregate functions</dfn> and
+   * <dfn>window functions</dfn>.
+   * Every aggregate function (e.g. SUM) is also a window function.
+   * There are window functions that are not aggregate functions, e.g. RANK,
+   * NTILE, LEAD, FIRST_VALUE.</p>
+   *
+   * <p>Collectively, aggregate and window functions are called <dfn>analytic
+   * functions</dfn>. Despite its name, this method returns true for every
+   * analytic function.</p>
+   *
+   * @see #requiresOrder()
+   *
+   * @return whether this operator is an analytic function (aggregate function
+   * or window function)
    */
   public boolean isAggregator() {
     return false;
+  }
+
+  /**
+   * Returns whether this is a window function that requires ordering.
+   *
+   * <p>Per SQL:2011, 2, 6.10: "If &lt;ntile function&gt;, &lt;lead or lag
+   * function&gt, RANK or DENSE_RANK is specified, then the window ordering
+   * clause shall be present."</p>
+   *
+   * @see #isAggregator()
+   */
+  public boolean requiresOrder() {
+    return false;
+  }
+
+  /**
+   * Returns whether this is a window function that allows framing (i.e. a
+   * ROWS or RANGE clause in the window specification).
+   */
+  public boolean allowsFraming() {
+    return true;
   }
 
   /**

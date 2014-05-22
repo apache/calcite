@@ -201,20 +201,16 @@ public abstract class SqlUtil {
    * @param operator    The operator
    * @param writer      Writer
    * @param call    List of 0 or more operands
-   * @param emptyParens Whether to print parentheses if there are 0 operands
-   * @param quantifier  Quantifier
    */
   public static void unparseFunctionSyntax(
       SqlOperator operator,
       SqlWriter writer,
-      SqlCall call,
-      boolean emptyParens,
-      SqlLiteral quantifier) {
+      SqlCall call) {
     if (operator instanceof SqlFunction) {
       SqlFunction function = (SqlFunction) operator;
 
-      if (function.getFunctionType()
-          == SqlFunctionCategory.USER_DEFINED_SPECIFIC_FUNCTION) {
+      switch (function.getFunctionType()) {
+      case USER_DEFINED_SPECIFIC_FUNCTION:
         writer.keyword("SPECIFIC");
       }
       SqlIdentifier id = function.getSqlIdentifier();
@@ -226,18 +222,28 @@ public abstract class SqlUtil {
     } else {
       writer.print(operator.getName());
     }
-    if (call.operandCount() == 0 && !emptyParens) {
-      // For example, the "LOCALTIME" function appears as "LOCALTIME"
-      // when it has 0 args, not "LOCALTIME()".
-      return;
+    if (call.operandCount() == 0) {
+      switch (call.getOperator().getSyntax()) {
+      case FUNCTION_ID:
+        // For example, the "LOCALTIME" function appears as "LOCALTIME"
+        // when it has 0 args, not "LOCALTIME()".
+        return;
+      case FUNCTION_STAR: // E.g. "COUNT(*)"
+      case FUNCTION: // E.g. "RANK()"
+        // fall through - dealt with below
+      }
     }
     final SqlWriter.Frame frame =
         writer.startList(SqlWriter.FrameTypeEnum.FUN_CALL, "(", ")");
-    if (null != quantifier) {
+    final SqlLiteral quantifier = call.getFunctionQuantifier();
+    if (quantifier != null) {
       quantifier.unparse(writer, 0, 0);
     }
-    if (call.operandCount() == 0 && operator instanceof SqlAggFunction) {
-      writer.sep("*");
+    if (call.operandCount() == 0) {
+      switch (call.getOperator().getSyntax()) {
+      case FUNCTION_STAR:
+        writer.sep("*");
+      }
     }
     for (SqlNode operand : call.getOperandList()) {
       writer.sep(",");

@@ -50,6 +50,14 @@ public class SqlRankFunction extends SqlAggFunction {
 
   //~ Methods ----------------------------------------------------------------
 
+  @Override public boolean requiresOrder() {
+    return true;
+  }
+
+  @Override public boolean allowsFraming() {
+    return false;
+  }
+
   public RelDataType getReturnType(RelDataTypeFactory typeFactory) {
     return type;
   }

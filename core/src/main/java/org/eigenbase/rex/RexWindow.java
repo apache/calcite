@@ -62,9 +62,6 @@ public class RexWindow {
     this.upperBound = upperBound;
     this.isRows = isRows;
     this.digest = computeDigest();
-    if (!isRows) {
-      assert orderKeys.size() > 0 : "logical window requires sort key";
-    }
   }
 
   //~ Methods ----------------------------------------------------------------

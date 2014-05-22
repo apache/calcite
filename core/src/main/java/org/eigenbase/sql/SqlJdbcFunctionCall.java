@@ -399,7 +399,7 @@ public class SqlJdbcFunctionCall extends SqlFunction {
         null,
         null,
         OperandTypes.VARIADIC,
-        null);
+        SqlFunctionCategory.SYSTEM);
     jdbcName = name;
     lookupMakeCallObj = JdbcToInternalLookupTable.INSTANCE.lookup(name);
     lookupCall = null;

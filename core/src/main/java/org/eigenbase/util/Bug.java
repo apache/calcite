@@ -22,15 +22,15 @@ package org.eigenbase.util;
  * fixed.
  *
  * <p>You can use these constants to control the flow of your code. For example,
- * suppose that bug FNL-123 causes the "INSERT" statement to return an incorrect
- * row-count, and you want to disable unit tests. You might use the constant in
- * your code as follows:
+ * suppose that bug OPTIQ-123 causes the "INSERT" statement to return an
+ * incorrect row-count, and you want to disable unit tests. You might use the
+ * constant in your code as follows:
  *
  * <blockquote>
  * <pre>Statement stmt = connection.createStatement();
  * int rowCount = stmt.execute(
  *     "INSERT INTO FemaleEmps SELECT * FROM Emps WHERE gender = 'F'");
- * if (Bug.Fnl123Fixed) {
+ * if (Bug.OPTIQ123_FIXED) {
  *    assertEquals(rowCount, 5);
  * }</pre>
  * </blockquote>
@@ -40,6 +40,14 @@ package org.eigenbase.util;
  * usages of it. Also, the constant helps track the propagation of the fix: as
  * the fix is integrated into other branches, the constant will be removed from
  * those branches.</p>
+ *
+ * <p><b>To do</b></p>
+ *
+ * <p>The following is a list of tasks to be completed before committing to
+ * master branch.</p>
+ *
+ * <ul>
+ * </ul>
  */
 public abstract class Bug {
   //~ Static fields/initializers ---------------------------------------------
@@ -53,13 +61,6 @@ public abstract class Bug {
 
   public static final boolean DT785_FIXED = false;
 
-  // angel
-
-  /**
-   * Whether dtbug1446 "Window Rank Functions not fully implemented" is fixed.
-   */
-  public static final boolean DT1446_FIXED = false;
-
   // jhyde
 
   /**
@@ -67,13 +68,6 @@ public abstract class Bug {
    * Fnl-3</a> is fixed.
    */
   public static final boolean FNL3_FIXED = false;
-
-  /**
-   * Whether <a href="http://issues.eigenbase.org/browse/FNL-77">issue FNL-77:
-   * Fennel calc returns CURRENT_TIMESTAMP in UTC, should be local time</a> is
-   * fixed.
-   */
-  public static final boolean FNL77_FIXED = false;
 
   /**
    * Whether <a href="http://issues.eigenbase.org/browse/FRG-327">issue
@@ -95,37 +89,11 @@ public abstract class Bug {
    */
   public static final boolean DT1684_FIXED = false;
 
-  // kkrueger
-
-  // mberkowitz
-
-  // murali
-
-  // rchen
-
-  // schoi
-
-  // stephan
-
-  // tleung
-
-  // xluo
-
-  // zfong
-
   /**
    * Whether <a href="http://issues.eigenbase.org/browse/FNL-25">issue
    * FNL-25</a> is fixed. (also filed as dtbug 153)
    */
   public static final boolean FNL25_FIXED = false;
-
-  // johnk
-
-  // jouellette
-
-  // jpham
-
-  // jvs
 
   /**
    * Whether <a href="http://issues.eigenbase.org/browse/FRG-73">issue FRG-73:
@@ -160,16 +128,6 @@ public abstract class Bug {
    */
   public static final boolean FRG189_FIXED = false;
 
-  // elin
-
-  // fliang
-
-  // fzhang
-
-  // hersker
-
-  // jack
-
   /**
    * Whether <a href="http://issues.eigenbase.org/browse/FRG-254">issue
    * FRG-254: environment-dependent failure for
@@ -195,13 +153,6 @@ public abstract class Bug {
    * It should return FALSE.</a> is fixed.
    */
   public static final boolean FRG375_FIXED = false;
-
-  /**
-   * Whether <a href="http://issues.eigenbase.org/browse/FRG-378">issue
-   * FRG-378: Regular expressions in SIMILAR TO predicates
-   * potentially don't match SQL:2008 spec in a few cases.</a> is fixed.
-   */
-  public static final boolean FRG378_FIXED = true;
 
   /**
    * Whether

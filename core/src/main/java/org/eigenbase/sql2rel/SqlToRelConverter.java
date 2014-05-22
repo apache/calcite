@@ -1585,9 +1585,6 @@ public class SqlToRelConverter {
         throw new AssertionError(
             "Relation should have sort key for implicit ORDER BY");
       }
-      if (orderList.size() <= 0) {
-        throw new AssertionError("sort key must not be empty");
-      }
     }
     final ImmutableList.Builder<RexFieldCollation> orderKeys =
         ImmutableList.builder();

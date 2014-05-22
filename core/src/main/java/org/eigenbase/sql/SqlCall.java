@@ -80,7 +80,6 @@ public abstract class SqlCall extends SqlNode {
       int leftPrec,
       int rightPrec) {
     final SqlOperator operator = getOperator();
-    final SqlLiteral functionQuantifier = getFunctionQuantifier();
     if (leftPrec > operator.getLeftPrec()
         || (operator.getRightPrec() <= rightPrec && (rightPrec != 0))
         || writer.isAlwaysUseParentheses() && isA(SqlKind.EXPRESSION)) {
@@ -88,14 +87,7 @@ public abstract class SqlCall extends SqlNode {
       operator.unparse(writer, this, 0, 0);
       writer.endList(frame);
     } else {
-      if (functionQuantifier != null) {
-        // REVIEW jvs 24-July-2006:  This is currently the only
-        // way to get the quantifier through to the unparse
-        SqlUtil.unparseFunctionSyntax(operator, writer, this, true,
-            functionQuantifier);
-      } else {
-        operator.unparse(writer, this, leftPrec, rightPrec);
-      }
+      operator.unparse(writer, this, leftPrec, rightPrec);
     }
   }
 

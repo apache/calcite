@@ -39,7 +39,7 @@ public class SqlUserDefinedFunction extends SqlFunction {
       Function function) {
     super(Util.last(opName.names), opName, SqlKind.OTHER_FUNCTION,
         returnTypeInference, operandTypeInference, operandTypeChecker,
-        null, null);
+        null, SqlFunctionCategory.USER_DEFINED_FUNCTION);
     this.function = function;
   }
 

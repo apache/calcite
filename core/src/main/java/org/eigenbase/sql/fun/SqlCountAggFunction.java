@@ -48,6 +48,10 @@ public class SqlCountAggFunction extends SqlAggFunction {
 
   //~ Methods ----------------------------------------------------------------
 
+  @Override public SqlSyntax getSyntax() {
+    return SqlSyntax.FUNCTION_STAR;
+  }
+
   public List<RelDataType> getParameterTypes(RelDataTypeFactory typeFactory) {
     return ImmutableList.of(typeFactory.createSqlType(SqlTypeName.ANY));
   }

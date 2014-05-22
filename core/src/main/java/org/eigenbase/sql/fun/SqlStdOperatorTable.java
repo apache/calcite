@@ -1332,9 +1332,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
             int rightPrec) {
           SqlUtil.unparseFunctionSyntax(
               this,
-              writer, call,
-              true,
-              null);
+              writer, call);
         }
       };
 
@@ -1468,7 +1466,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   public static synchronized SqlStdOperatorTable instance() {
     if (instance == null) {
       // Creates and initializes the standard operator table.
-      // Uses two-phase construction, because we can't intialize the
+      // Uses two-phase construction, because we can't initialize the
       // table until the constructor of the sub-class has completed.
       instance = new SqlStdOperatorTable();
       instance.init();

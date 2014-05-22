@@ -2975,24 +2975,28 @@ public class JdbcTest {
    *     table.
    * </ul>
    */
-  @Ignore("https://github.com/julianhyde/optiq/issues/285")
   @Test public void testOverNoOrder() {
-    OptiqAssert.that()
-        .with(OptiqAssert.Config.REGULAR)
-        .query(
-            "select \"empid\",\n"
-            + "  \"deptno\",\n"
-            + "  \"salary\",\n"
-            + "  count(\"empid\") over (partition by \"deptno\") as m,\n"
-            + "  count(\"empid\") over (partition by \"deptno\"\n"
-            + "                         order by \"salary\") as m2,\n"
-            + "  count(\"empid\") over () as m3\n"
-            + "from \"hr\".\"emps\"")
-        .returnsUnordered(
-            "empid=100; deptno=10; salary=10000; M=1; M2=3; M3=4",
-            "empid=110; deptno=10; salary=11500; M=1; M2=2; M3=4",
-            "empid=150; deptno=10; salary=7000; M=1; M2=1; M3=4",
-            "empid=200; deptno=20; salary=8000; M=1; M2=1; M3=4");
+    // If no range is specified, default is "ROWS BETWEEN UNBOUNDED PRECEDING
+    // AND CURRENT ROW".
+    // The aggregate function is within the current partition;
+    // if there is no partition, that means the whole table.
+    // Rows are deemed "equal to" the current row per the ORDER BY clause.
+    // If there is no ORDER BY clause, CURRENT ROW has the same effect as
+    // UNBOUNDED FOLLOWING; that is, no filtering effect at all.
+    checkOuter(
+        "select *,\n"
+        + " count(*) over (partition by deptno) as m1,\n"
+        + " count(*) over (partition by deptno order by ename) as m2,\n"
+        + " count(*) over () as m3\n"
+        + "from emp",
+        "ENAME=Adam ; DEPTNO=50; GENDER=M; M1=2; M2=1; M3=8",
+        "ENAME=Alice; DEPTNO=30; GENDER=F; M1=2; M2=1; M3=8",
+        "ENAME=Bob  ; DEPTNO=10; GENDER=M; M1=2; M2=1; M3=8",
+        "ENAME=Eric ; DEPTNO=20; GENDER=M; M1=1; M2=1; M3=8",
+        "ENAME=Eve  ; DEPTNO=50; GENDER=F; M1=2; M2=2; M3=8",
+        "ENAME=Grace; DEPTNO=60; GENDER=F; M1=1; M2=1; M3=8",
+        "ENAME=Jane ; DEPTNO=10; GENDER=F; M1=2; M2=2; M3=8",
+        "ENAME=Susan; DEPTNO=30; GENDER=F; M1=2; M2=2; M3=8");
   }
 
   /** Tests window aggregate whose argument is a constant. */

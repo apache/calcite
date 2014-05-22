@@ -45,6 +45,10 @@ public class SqlFirstLastValueAggFunction extends SqlAggFunction {
 
   //~ Methods ----------------------------------------------------------------
 
+  @Override public boolean requiresOrder() {
+    return true;
+  }
+
   public List<RelDataType> getParameterTypes(RelDataTypeFactory typeFactory) {
     return ImmutableList.of(typeFactory.createSqlType(SqlTypeName.ANY));
   }

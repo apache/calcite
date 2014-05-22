@@ -18,6 +18,8 @@
 package org.eigenbase.test;
 
 import java.nio.charset.*;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Locale;
 import java.util.logging.*;
 
@@ -3847,95 +3849,89 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     checkWinFuncExpWithWinClause("sum(sal)", null);
   }
 
-  @Ignore
   @Test public void testWindowFunctions2() {
-    if (Bug.DT1446_FIXED) {
-      // row_number function
-      checkWinFuncExpWithWinClause(
-          "row_number() over (order by deptno)",
-          null);
+    List<String> defined = Arrays.asList("RANK", "ROW_NUMBER");
+    checkWin(
+        "select rank() over w from emp\n"
+        + "window w as ^(partition by sal)^, w2 as (w order by deptno)",
+        "RANK or DENSE_RANK functions require ORDER BY clause in window specification");
+    checkWin(
+        "select rank() over w2 from emp\n"
+        + "window w as (partition by sal), w2 as (w order by deptno)",
+        null);
+    // row_number function
+    checkWinFuncExpWithWinClause(
+        "row_number() over (order by deptno)",
+        null);
 
-      // rank function type
+    // rank function type
+    if (defined.contains("DENSE_RANK")) {
       checkWinFuncExpWithWinClause("dense_rank()", null);
-      checkWinFuncExpWithWinClause("rank() over (order by empno)", null);
-      checkWinFuncExpWithWinClause(
-          "percent_rank() over (order by empno)",
-          null);
-      checkWinFuncExpWithWinClause(
-          "cume_dist() over (order by empno)",
-          null);
-
-      // rule 6a
-      // ORDER BY required with RANK & DENSE_RANK
-      checkWin(
-          "select rank() over ^(partition by deptno)^ from emp",
-          "RANK or DENSE_RANK functions require ORDER BY clause in window specification");
-      checkWin(
-          "select dense_rank() over ^(partition by deptno)^ from emp ",
-          "RANK or DENSE_RANK functions require ORDER BY clause in window specification");
-      // The following fail but it is reported as window needing OBC due
-      // to
-      // test sequence, so
-      // not really failing due to 6a.
-/*
-             checkWin(
-                "select rank() over w from emp "
-                + "window w as ^(partition by deptno)^",
-                "RANK or DENSE_RANK functions require ORDER BY clause in "
-                + "window specification");
-            checkWin(
-                "select dense_rank() over w from emp "
-                + "window w as ^(partition by deptno)^",
-                "RANK or DENSE_RANK functions require ORDER BY clause in "
-                + "window specification");
-*/
-
-      // rule 6b
-      // Framing not allowed with RANK & DENSE_RANK functions
-      // window framing defined in window clause
-      checkWin(
-          "select rank() over w from emp window w as (order by empno ^rows^ 2 preceding )",
-          "ROW/RANGE not allowed with RANK or DENSE_RANK functions");
-      checkWin(
-          "select dense_rank() over w from emp window w as (order by empno ^rows^ 2 preceding)",
-          "ROW/RANGE not allowed with RANK or DENSE_RANK functions");
-      checkWin(
-          "select percent_rank() over w from emp window w as (rows 2 preceding )",
-          null);
-      checkWin(
-          "select cume_dist() over w from emp window w as (rows 2 preceding)",
-          null);
-
-      // window framing defined in in-line window
-      checkWin(
-          "select rank() over (order by empno ^range^ 2 preceding ) from emp ",
-          "ROW/RANGE not allowed with RANK or DENSE_RANK functions");
-      checkWin(
-          "select dense_rank() over (order by empno ^rows^ 2 preceding ) from emp ",
-          "ROW/RANGE not allowed with RANK or DENSE_RANK functions");
-      checkWin(
-          "select percent_rank() over (rows 2 preceding ) from emp",
-          null);
-      checkWin(
-          "select cume_dist() over (rows 2 preceding ) from emp ",
-          null);
     } else {
-      // Check for Rank function failure.
       checkWinFuncExpWithWinClause(
           "^dense_rank()^",
           "Function 'DENSE_RANK\\(\\)' is not defined");
+    }
+    checkWinFuncExpWithWinClause("rank() over (order by empno)", null);
+    checkWinFuncExpWithWinClause(
+        "percent_rank() over (order by empno)",
+        null);
+    checkWinFuncExpWithWinClause(
+        "cume_dist() over (order by empno)",
+        null);
+
+    // rule 6a
+    // ORDER BY required with RANK & DENSE_RANK
+    checkWin(
+        "select rank() over ^(partition by deptno)^ from emp",
+        "RANK or DENSE_RANK functions require ORDER BY clause in window specification");
+    checkWin(
+        "select dense_rank() over ^(partition by deptno)^ from emp ",
+        "RANK or DENSE_RANK functions require ORDER BY clause in window specification");
+    checkWin(
+        "select rank() over w from emp window w as ^(partition by deptno)^",
+        "RANK or DENSE_RANK functions require ORDER BY clause in window specification");
+    checkWin(
+        "select dense_rank() over w from emp window w as ^(partition by deptno)^",
+        "RANK or DENSE_RANK functions require ORDER BY clause in window specification");
+
+    // rule 6b
+    // Framing not allowed with RANK & DENSE_RANK functions
+    // window framing defined in window clause
+    checkWin(
+        "select rank() over w from emp window w as (order by empno ^rows^ 2 preceding )",
+        "ROW/RANGE not allowed with RANK or DENSE_RANK functions");
+    checkWin(
+        "select dense_rank() over w from emp window w as (order by empno ^rows^ 2 preceding)",
+        "ROW/RANGE not allowed with RANK or DENSE_RANK functions");
+    if (defined.contains("PERCENT_RANK")) {
+      checkWin(
+          "select percent_rank() over w from emp window w as (rows 2 preceding )",
+          null);
+    } else {
       checkWinFuncExpWithWinClause(
           "^percent_rank()^",
           "Function 'PERCENT_RANK\\(\\)' is not defined");
-      checkWinFuncExpWithWinClause(
-          "^rank()^",
-          "Function 'RANK\\(\\)' is not defined");
+    }
+    if (defined.contains("CUME_DIST")) {
+      checkWin(
+          "select cume_dist() over w from emp window w as (rows 2 preceding)",
+          null);
+      checkWin("select cume_dist() over (rows 2 preceding ) from emp ", null);
+    } else {
       checkWinFuncExpWithWinClause(
           "^cume_dist()^",
           "Function 'CUME_DIST\\(\\)' is not defined");
-      checkWinFuncExpWithWinClause(
-          "^row_number()^",
-          "Function 'ROW_NUMBER\\(\\)' is not defined");
+    }
+    // window framing defined in in-line window
+    checkWin(
+        "select rank() over (order by empno ^range^ 2 preceding ) from emp ",
+        "ROW/RANGE not allowed with RANK or DENSE_RANK functions");
+    checkWin(
+        "select dense_rank() over (order by empno ^rows^ 2 preceding ) from emp ",
+        "ROW/RANGE not allowed with RANK or DENSE_RANK functions");
+    if (defined.contains("PERCENT_RANK")) {
+      checkWin("select percent_rank() over (rows 2 preceding ) from emp", null);
     }
 
     // invalid column reference
@@ -3948,7 +3944,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         "^invalidFun(sal)^",
         "No match found for function signature INVALIDFUN\\(<NUMERIC>\\)");
 
-    // 6.10 rule 10. no distinct allowed aggreagate function
+    // 6.10 rule 10. no distinct allowed aggregate function
     // Fails in parser.
     // checkWinFuncExpWithWinClause(" sum(distinct sal) over w ", null);
 
@@ -3968,6 +3964,16 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     checkWin("select sum(sal) over (w)\n"
         + " from emp window w as (order by empno ^rows^ 2 preceding )",
         "Referenced window cannot have framing declarations");
+
+    // Empty window is OK for functions that don't require ordering.
+    checkWin("select sum(sal) over () from emp", null);
+    checkWin("select sum(sal) over w from emp window w as ()", null);
+    checkWin("select count(*) over () from emp", null);
+    checkWin("select count(*) over w from emp window w as ()", null);
+    checkWin("select rank() over ^()^ from emp",
+        "RANK or DENSE_RANK functions require ORDER BY clause in window specification");
+    checkWin("select rank() over w from emp window w as ^()^",
+        "RANK or DENSE_RANK functions require ORDER BY clause in window specification");
   }
 
   @Test public void testInlineWinDef() {
@@ -4155,7 +4161,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     checkWinClauseExp("window w as (rows 2 preceding)", null);
 
     // invalid tests exact numeric for the unsigned value specification The
-    // followoing two test fail as they should but in the parser: JR not
+    // following two test fail as they should but in the parser: JR not
     // anymore now the validator kicks out
     checkWinClauseExp(
         "window w as (rows ^-2.5^ preceding)",
@@ -4178,12 +4184,12 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         "window w as (partition by ^xyz^)",
         "Column 'XYZ' not found in any table");
 
-    // window defintion is empty when applied to unsorted table
+    // window definition is empty when applied to unsorted table
     checkWinClauseExp(
         "window w as ^( /* boo! */  )^",
-        "Window specification must contain an ORDER BY clause");
+        null);
 
-    // duplidate window name
+    // duplicate window name
     checkWinClauseExp(
         "window w as (order by empno), ^w^ as (order by empno)",
         "Duplicate window names not allowed");
@@ -4253,7 +4259,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         null);
     checkWinClauseExp(
         "window w as ^(partition by sal)^, w2 as (w order by deptno)",
-        "Window specification must contain an ORDER BY clause");
+        null);
     checkWinClauseExp(
         "window w as (w2 partition by ^sal^), w2 as (order by deptno)",
         "PARTITION BY not allowed with existing window reference");

@@ -33,7 +33,22 @@ public enum SqlSyntax {
         SqlCall call,
         int leftPrec,
         int rightPrec) {
-      SqlUtil.unparseFunctionSyntax(operator, writer, call, true, null);
+      SqlUtil.unparseFunctionSyntax(operator, writer, call);
+    }
+  },
+
+  /**
+   * Function syntax, as in "Foo(x, y)", but uses "*" if there are no arguments,
+   * for example "COUNT(*)".
+   */
+  FUNCTION_STAR {
+    public void unparse(
+        SqlWriter writer,
+        SqlOperator operator,
+        SqlCall call,
+        int leftPrec,
+        int rightPrec) {
+      SqlUtil.unparseFunctionSyntax(operator, writer, call);
     }
   },
 
@@ -113,7 +128,7 @@ public enum SqlSyntax {
         SqlCall call,
         int leftPrec,
         int rightPrec) {
-      SqlUtil.unparseFunctionSyntax(operator, writer, call, false, null);
+      SqlUtil.unparseFunctionSyntax(operator, writer, call);
     }
   },
 

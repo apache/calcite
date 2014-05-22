@@ -627,25 +627,18 @@ public class SqlWindow extends SqlCall {
       }
     }
 
-    boolean triggerFunction = false;
-    if (null != windowCall) {
-      if (windowCall.getOperator().isName("RANK")
-          || windowCall.getOperator().isName("DENSE_RANK")) {
-        triggerFunction = true;
-      }
-    }
-
-    // 6.10 rule 6a Function RANk & DENSE_RANK require OBC
+    // 6.10 rule 6a Function RANK & DENSE_RANK require ORDER BY clause
     if (orderList.size() == 0
-        && triggerFunction
-        && !SqlWindow.isTableSorted(scope)) {
+        && !SqlWindow.isTableSorted(scope)
+        && windowCall != null
+        && windowCall.getOperator().requiresOrder()) {
       throw validator.newValidationError(this, RESOURCE.funcNeedsOrderBy());
     }
 
     // Run framing checks if there are any
     if (upperBound != null || lowerBound != null) {
-      // 6.10 Rule 6a
-      if (triggerFunction) {
+      // 6.10 Rule 6a RANK & DENSE_RANK do not allow ROWS or RANGE
+      if (windowCall != null && !windowCall.getOperator().allowsFraming()) {
         throw validator.newValidationError(isRows, RESOURCE.rankWithFrame());
       }
       SqlTypeFamily orderTypeFam = null;
@@ -690,7 +683,10 @@ public class SqlWindow extends SqlCall {
 
       // Validate across boundaries. 7.10 Rule 8 a-d
       checkSpecialLiterals(this, validator);
-    } else if (orderList.size() == 0 && !SqlWindow.isTableSorted(scope)) {
+    } else if (orderList.size() == 0
+        && !SqlWindow.isTableSorted(scope)
+        && windowCall != null
+        && windowCall.getOperator().requiresOrder()) {
       throw validator.newValidationError(this, RESOURCE.overMissingOrderBy());
     }
 

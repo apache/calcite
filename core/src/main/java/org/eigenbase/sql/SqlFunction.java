@@ -113,6 +113,7 @@ public class SqlFunction extends SqlOperator {
     this.category = category;
     this.paramTypes =
         paramTypes == null ? null : ImmutableList.copyOf(paramTypes);
+    assert category != null;
   }
 
   //~ Methods ----------------------------------------------------------------

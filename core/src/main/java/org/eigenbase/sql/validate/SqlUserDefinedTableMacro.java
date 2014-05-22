@@ -50,13 +50,13 @@ public class SqlUserDefinedTableMacro extends SqlFunction {
   private final TableMacro tableMacro;
 
   public SqlUserDefinedTableMacro(SqlIdentifier opName,
-        SqlReturnTypeInference returnTypeInference,
-        SqlOperandTypeInference operandTypeInference,
-        SqlOperandTypeChecker operandTypeChecker,
-        TableMacro tableMacro) {
+      SqlReturnTypeInference returnTypeInference,
+      SqlOperandTypeInference operandTypeInference,
+      SqlOperandTypeChecker operandTypeChecker,
+      TableMacro tableMacro) {
     super(Util.last(opName.names), opName, SqlKind.OTHER_FUNCTION,
-            returnTypeInference, operandTypeInference, operandTypeChecker,
-            null, null);
+        returnTypeInference, operandTypeInference, operandTypeChecker, null,
+        SqlFunctionCategory.USER_DEFINED_FUNCTION);
     this.tableMacro = tableMacro;
   }
 

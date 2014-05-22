@@ -3554,8 +3554,13 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       window = window.overlay(refWindow, this);
     }
 
-    // Fill in missing bounds.
+    // Fill in missing bounds. Default bounds are "BETWEEN UNBOUNDED PRECEDING
+    // AND CURRENT ROW". (That has no effect if there is no ORDER BY clause.)
     if (populateBounds) {
+      if (window.getLowerBound() == null && window.getUpperBound() == null) {
+        window.setLowerBound(
+            SqlWindow.createUnboundedPreceding(SqlParserPos.ZERO));
+      }
       if (window.getLowerBound() == null) {
         window.setLowerBound(
             SqlWindow.createCurrentRow(SqlParserPos.ZERO));

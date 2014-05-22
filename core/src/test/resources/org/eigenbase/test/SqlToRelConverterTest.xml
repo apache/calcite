@@ -1139,7 +1139,7 @@ from emp
         </Resource>
         <Resource name="plan">
             <![CDATA[
-ProjectRel(EXPR$0=[CAST(LAST_VALUE($7) OVER (ORDER BY $0 ROWS BETWEEN CURRENT ROW AND CURRENT ROW)):INTEGER])
+ProjectRel(EXPR$0=[CAST(LAST_VALUE($7) OVER (ORDER BY $0 RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)):INTEGER])
   TableAccessRel(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
