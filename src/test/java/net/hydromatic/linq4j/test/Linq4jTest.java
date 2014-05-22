@@ -403,6 +403,54 @@ public class Linq4jTest {
     Department d = depts[0];
     assertEquals(d, depts[0]);
     assertEquals(d, Linq4j.asEnumerable(depts).first());
+
+    try {
+      String s = Linq4j.<String>emptyEnumerable().first();
+      fail("expected exception, got " + s);
+    } catch (NoSuchElementException ex) {
+      // ok
+    }
+
+    // close occurs if first throws
+    final int[] closeCount = {0};
+    try {
+      String s = myEnumerable(closeCount, 0).first();
+      fail("expected exception, got " + s);
+    } catch (NoSuchElementException ex) {
+      // ok
+    }
+    assertThat(closeCount[0], equalTo(1));
+
+    // close occurs if first does not throw
+    closeCount[0] = 0;
+    final String s = myEnumerable(closeCount, 1).first();
+    assertThat(s, equalTo("x"));
+    assertThat(closeCount[0], equalTo(1));
+  }
+
+  private Enumerable<String> myEnumerable(final int[] closes, final int size) {
+    return new AbstractEnumerable<String>() {
+      public Enumerator<String> enumerator() {
+        return new Enumerator<String>() {
+          int i = 0;
+
+          public String current() {
+            return "x";
+          }
+
+          public boolean moveNext() {
+            return i++ < size;
+          }
+
+          public void reset() {
+          }
+
+          public void close() {
+            ++closes[0];
+          }
+        };
+      }
+    };
   }
 
   @Test public void testFirstPredicate1() {

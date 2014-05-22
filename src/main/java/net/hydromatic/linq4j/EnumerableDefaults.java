@@ -476,7 +476,15 @@ public abstract class EnumerableDefaults {
    * by Enumerable.)
    */
   public static <TSource> TSource first(Enumerable<TSource> enumerable) {
-    return enumerable.iterator().next();
+    final Enumerator<TSource> os = enumerable.enumerator();
+    try {
+      if (os.moveNext()) {
+        return os.current();
+      }
+      throw new NoSuchElementException();
+    } finally {
+      os.close();
+    }
   }
 
   /**
