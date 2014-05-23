@@ -25,7 +25,6 @@ import org.eigenbase.rel.rules.*;
 import org.eigenbase.relopt.*;
 import org.eigenbase.rex.*;
 import org.eigenbase.sql.*;
-import org.eigenbase.sql.fun.*;
 import org.eigenbase.sql.type.*;
 import org.eigenbase.util14.*;
 
@@ -394,9 +393,7 @@ public class RelMdUtil {
     double artificialSel = 1.0;
 
     for (RexNode pred : RelOptUtil.conjunctions(predicate)) {
-      if ((pred instanceof RexCall)
-          && (((RexCall) pred).getOperator()
-          == SqlStdOperatorTable.IS_NOT_NULL)) {
+      if (pred.getKind() == SqlKind.IS_NOT_NULL) {
         sel *= .9;
       } else if (
           (pred instanceof RexCall)

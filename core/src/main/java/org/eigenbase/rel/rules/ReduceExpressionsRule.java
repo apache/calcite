@@ -119,12 +119,15 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
           // it with an EmptyRel.
           SqlOperator op = rexCall.getOperator();
           boolean alwaysTrue;
-          if (op == SqlStdOperatorTable.IS_NULL
-              || op == SqlStdOperatorTable.IS_UNKNOWN) {
+          switch (rexCall.getKind()) {
+          case IS_NULL:
+          case IS_UNKNOWN:
             alwaysTrue = false;
-          } else if (op == SqlStdOperatorTable.IS_NOT_NULL) {
+            break;
+          case IS_NOT_NULL:
             alwaysTrue = true;
-          } else {
+            break;
+          default:
             return;
           }
           if (reverse) {
