@@ -433,7 +433,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   public static final SqlPostfixOperator IS_NOT_NULL =
       new SqlPostfixOperator(
           "IS NOT NULL",
-          SqlKind.OTHER,
+          SqlKind.IS_NOT_NULL,
           30,
           ReturnTypes.BOOLEAN_NOT_NULL,
           InferTypes.VARCHAR_1024,
