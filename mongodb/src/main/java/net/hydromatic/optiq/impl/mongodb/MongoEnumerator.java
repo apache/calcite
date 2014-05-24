@@ -20,6 +20,8 @@ package net.hydromatic.optiq.impl.mongodb;
 import net.hydromatic.linq4j.Enumerator;
 import net.hydromatic.linq4j.function.Function1;
 
+import org.eigenbase.util14.DateTimeUtil;
+
 import com.mongodb.*;
 
 import java.util.*;
@@ -80,11 +82,11 @@ class MongoEnumerator implements Enumerator<Object> {
     };
   }
 
-  static Function1<DBObject, Object> singletonGetter(
-      final String field) {
+  static Function1<DBObject, Object> singletonGetter(final String fieldName,
+      final Class fieldClass) {
     return new Function1<DBObject, Object>() {
       public Object apply(DBObject a0) {
-        return a0.get(field);
+        return convert(a0.get(fieldName), fieldClass);
       }
     };
   }
@@ -93,26 +95,40 @@ class MongoEnumerator implements Enumerator<Object> {
    * @param fields List of fields to project; or null to return map
    */
   static Function1<DBObject, Object[]> listGetter(
-      final List<String> fields) {
+      final List<Map.Entry<String, Class>> fields) {
     return new Function1<DBObject, Object[]>() {
       public Object[] apply(DBObject a0) {
         Object[] objects = new Object[fields.size()];
         for (int i = 0; i < fields.size(); i++) {
-          String s = fields.get(i);
-          objects[i] = a0.get(s);
+          final Map.Entry<String, Class> field = fields.get(i);
+          final String name = field.getKey();
+          objects[i] = convert(a0.get(name), field.getValue());
         }
         return objects;
       }
     };
   }
 
-  static Function1<DBObject, Object> getter(List<String> fields) {
+  static Function1<DBObject, Object> getter(
+      List<Map.Entry<String, Class>> fields) {
     //noinspection unchecked
     return fields == null
         ? (Function1) mapGetter()
         : fields.size() == 1
-            ? singletonGetter(fields.get(0))
+            ? singletonGetter(fields.get(0).getKey(), fields.get(0).getValue())
             : listGetter(fields);
+  }
+
+  private static Object convert(Object o, Class clazz) {
+    if (o == null || clazz.isInstance(o)) {
+      return o;
+    }
+    if (clazz == int.class || clazz == Integer.class) {
+      if (o instanceof Date) {
+        return (int) (((Date) o).getTime() / DateTimeUtil.MILLIS_PER_DAY);
+      }
+    }
+    return o;
   }
 }
 

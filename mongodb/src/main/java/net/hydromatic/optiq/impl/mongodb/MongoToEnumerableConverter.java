@@ -27,11 +27,13 @@ import net.hydromatic.optiq.runtime.Hook;
 import org.eigenbase.rel.RelNode;
 import org.eigenbase.rel.convert.ConverterRelImpl;
 import org.eigenbase.relopt.*;
+import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.util.Pair;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 
+import java.util.AbstractList;
 import java.util.List;
 
 /**
@@ -89,9 +91,25 @@ public class MongoToEnumerableConverter
         ++findCount;
       }
     }
+    final RelDataType rowType = getRowType();
+    final PhysType physType =
+        PhysTypeImpl.of(
+            implementor.getTypeFactory(), rowType,
+            pref.prefer(JavaRowFormat.ARRAY));
     final Expression fields =
         list.append("fields",
-            constantArrayList(MongoRules.mongoFieldNames(getRowType())));
+            constantArrayList(
+                Pair.zip(MongoRules.mongoFieldNames(rowType),
+                    new AbstractList<Class>() {
+                      @Override public Class get(int index) {
+                        return physType.fieldClass(index);
+                      }
+
+                      @Override public int size() {
+                        return rowType.getFieldCount();
+                      }
+                    }),
+                Pair.class));
     final Expression table =
         list.append("table",
             mongoImplementor.table.getExpression(
@@ -99,7 +117,7 @@ public class MongoToEnumerableConverter
     List<String> opList = Pair.right(mongoImplementor.list);
     final Expression ops =
         list.append("ops",
-            constantArrayList(opList));
+            constantArrayList(opList, String.class));
     Expression enumerable =
         list.append("enumerable",
             Expressions.call(table,
@@ -110,20 +128,16 @@ public class MongoToEnumerableConverter
     Hook.QUERY_PLAN.run(opList);
     list.add(
         Expressions.return_(null, enumerable));
-    final PhysType physType =
-        PhysTypeImpl.of(
-            implementor.getTypeFactory(),
-            getRowType(),
-            pref.prefer(JavaRowFormat.ARRAY));
     return implementor.result(physType, list.toBlock());
   }
 
   /** E.g. {@code constantArrayList("x", "y")} returns
    * "Arrays.asList('x', 'y')". */
-  private static <T> MethodCallExpression constantArrayList(List<T> values) {
+  private static <T> MethodCallExpression constantArrayList(List<T> values,
+      Class clazz) {
     return Expressions.call(
         BuiltinMethod.ARRAYS_AS_LIST.method,
-        Expressions.newArrayInit(String.class, constantList(values)));
+        Expressions.newArrayInit(clazz, constantList(values)));
   }
 
   /** E.g. {@code constantList("x", "y")} returns

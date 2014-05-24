@@ -686,6 +686,46 @@ public class MongoAdapterTest {
       }
     }
   }
+
+  /** Test case for <a href="https://github.com/julianhyde/optiq/issues/286">
+   * optiq-286, "Error casting MongoDB date"</a>. */
+  @Test public void testDate() {
+    // Assumes that you have created the following collection before running
+    // this test:
+    //
+    // $ mongo
+    // > use test
+    // switched to db test
+    // > db.createCollection("datatypes")
+    // { "ok" : 1 }
+    // > db.datatypes.insert( {
+    //     "_id" : ObjectId("53655599e4b0c980df0a8c27"),
+    //     "_class" : "com.ericblue.Test",
+    //     "date" : ISODate("2012-09-05T07:00:00Z"),
+    //     "value" : 1231,
+    //     "ownerId" : "531e7789e4b0853ddb861313"
+    //   } )
+    OptiqAssert.that()
+        .enable(enabled())
+        .withModel(
+            "{\n"
+            + "  version: '1.0',\n"
+            + "  defaultSchema: 'test',\n"
+            + "   schemas: [\n"
+            + "     {\n"
+            + "       type: 'custom',\n"
+            + "       name: 'test',\n"
+            + "       factory: 'net.hydromatic.optiq.impl.mongodb.MongoSchemaFactory',\n"
+            + "       operand: {\n"
+            + "         host: 'localhost',\n"
+            + "         database: 'test'\n"
+            + "       }\n"
+            + "     }\n"
+            + "   ]\n"
+            + "}")
+        .query("select cast(_MAP['date'] as DATE) from \"datatypes\"")
+        .returnsUnordered("EXPR$0=2012-09-05");
+  }
 }
 
 // End MongoAdapterTest.java

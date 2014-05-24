@@ -87,7 +87,7 @@ public class MongoTable extends AbstractQueryableTable
    * @return Enumerator of results
    */
   public Enumerable<Object> find(DB mongoDb, String filterJson,
-      String projectJson, final List<String> fields) {
+      String projectJson, List<Map.Entry<String, Class>> fields) {
     final DBCollection collection =
         mongoDb.getCollection(collectionName);
     final DBObject filter =
@@ -117,14 +117,16 @@ public class MongoTable extends AbstractQueryableTable
    * @return Enumerator of results
    */
   public Enumerable<Object> aggregate(final DB mongoDb,
-      final List<String> fields, final List<String> operations) {
+      final List<Map.Entry<String, Class>> fields,
+      final List<String> operations) {
     List<DBObject> list = new ArrayList<DBObject>();
     for (String operation : operations) {
       list.add((DBObject) JSON.parse(operation));
     }
     final DBObject first = list.get(0);
     final List<DBObject> rest = Util.skip(list);
-    final Function1<DBObject, Object> getter = MongoEnumerator.getter(fields);
+    final Function1<DBObject, Object> getter =
+        MongoEnumerator.getter(fields);
     return new AbstractEnumerable<Object>() {
       public Enumerator<Object> enumerator() {
         final AggregationOutput result;
@@ -168,7 +170,7 @@ public class MongoTable extends AbstractQueryableTable
      * @see net.hydromatic.optiq.impl.mongodb.MongoMethod#MONGO_QUERYABLE_AGGREGATE
      */
     @SuppressWarnings("UnusedDeclaration")
-    public Enumerable<Object> aggregate(final List<String> fields,
+    public Enumerable<Object> aggregate(List<Map.Entry<String, Class>> fields,
         List<String> operations) {
       return getTable().aggregate(getMongoDb(), fields, operations);
     }
@@ -179,7 +181,7 @@ public class MongoTable extends AbstractQueryableTable
      */
     @SuppressWarnings("UnusedDeclaration")
     public Enumerable<Object> find(String filterJson,
-        String projectJson, final List<String> fields) {
+        String projectJson, List<Map.Entry<String, Class>> fields) {
       return getTable().find(getMongoDb(), filterJson, projectJson, fields);
     }
   }
