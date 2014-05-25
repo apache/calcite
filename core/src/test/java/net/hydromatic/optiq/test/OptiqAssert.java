@@ -20,6 +20,8 @@ package net.hydromatic.optiq.test;
 import net.hydromatic.linq4j.function.Function1;
 
 import net.hydromatic.optiq.*;
+import net.hydromatic.optiq.impl.AbstractSchema;
+import net.hydromatic.optiq.impl.ViewTable;
 import net.hydromatic.optiq.impl.clone.CloneSchema;
 import net.hydromatic.optiq.impl.java.ReflectiveSchema;
 import net.hydromatic.optiq.impl.jdbc.JdbcSchema;
@@ -29,6 +31,7 @@ import net.hydromatic.optiq.runtime.Hook;
 
 import org.eigenbase.util.*;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMultiset;
 
 import java.io.PrintWriter;
@@ -467,6 +470,31 @@ public class OptiqAssert {
       rootSchema.add("SALES",
           new ReflectiveSchema(new JdbcTest.LingualSchema()));
     }
+    if (schemaList.contains("post")) {
+      final SchemaPlus post = rootSchema.add("POST", new AbstractSchema());
+      post.add("EMP",
+          ViewTable.viewMacro(
+              post,
+              "select * from (values\n"
+              + "    ('Jane', 10, 'F'),\n"
+              + "    ('Bob', 10, 'M'),\n"
+              + "    ('Eric', 20, 'M'),\n"
+              + "    ('Susan', 30, 'F'),\n"
+              + "    ('Alice', 30, 'F'),\n"
+              + "    ('Adam', 50, 'M'),\n"
+              + "    ('Eve', 50, 'F'),\n"
+              + "    ('Grace', 60, 'F')) as t(ename, deptno, gender)",
+              ImmutableList.<String>of()));
+      post.add("DEPT",
+          ViewTable.viewMacro(
+              post,
+              "select * from (values\n"
+              + "    (10, 'Sales'),\n"
+              + "    (20, 'Marketing'),\n"
+              + "    (30, 'Engineering'),\n"
+              + "    (40, 'Empty')) as t(deptno, dname)",
+              ImmutableList.<String>of()));
+    }
     if (schemaList.contains("metadata")) {
       // always present
       Util.discard(0);
@@ -676,6 +704,11 @@ public class OptiqAssert {
           new SchemaConnectionFactory(connectionFactory, schema));
     }
 
+    /** Use sparingly. Does not close the connection. */
+    public Connection connect() throws Exception {
+      return connectionFactory.createConnection();
+    }
+
     public AssertThat enable(boolean enabled) {
       return enabled ? this : DISABLED;
     }
@@ -695,7 +728,7 @@ public class OptiqAssert {
     public OptiqConnection createConnection() throws Exception {
       switch (config) {
       case REGULAR:
-        return getConnection("hr", "foodmart");
+        return getConnection("hr", "foodmart", "post");
       case REGULAR_PLUS_METADATA:
         return getConnection("hr", "foodmart", "metadata");
       case LINGUAL:

@@ -38,6 +38,7 @@ import net.hydromatic.optiq.jdbc.Driver;
 import net.hydromatic.optiq.prepare.Prepare;
 import net.hydromatic.optiq.runtime.Hook;
 import net.hydromatic.optiq.runtime.SqlFunctions;
+import net.hydromatic.optiq.tools.SqlRun;
 
 import org.eigenbase.rel.*;
 import org.eigenbase.relopt.*;
@@ -56,14 +57,16 @@ import org.eigenbase.util.Util;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
+import com.google.common.io.Files;
 
 import org.hsqldb.jdbcDriver;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import java.io.IOException;
+import java.io.*;
 import java.lang.reflect.Method;
 import java.math.BigDecimal;
+import java.net.URL;
 import java.sql.*;
 import java.sql.Date;
 import java.sql.Statement;
@@ -3409,6 +3412,50 @@ public class JdbcTest {
             + "    (40, 'Empty'))\n"
             + sql)
         .returnsUnordered(lines);
+  }
+
+  @Test public void testRun() throws Exception {
+    checkRun("sql/outer.oq");
+  }
+
+  private void checkRun(String path) throws Exception {
+    // e.g. "file:/home/fred/optiq/core/target/test-classes/sql/outer.oq"
+    final URL inUrl = JdbcTest.class.getResource("/" + path);
+    String x = inUrl.getFile();
+    assert x.endsWith(path);
+    x = x.substring(0, x.length() - path.length());
+    assert x.endsWith("/test-classes/");
+    x = x.substring(0, x.length() - "/test-classes/".length());
+    final File base = new File(x);
+    final File inFile = new File(base, "/test-classes/" + path);
+    final File outFile = new File(base, "/surefire/" + path);
+    outFile.getParentFile().mkdirs();
+    final FileReader fileReader = new FileReader(inFile);
+    final BufferedReader bufferedReader = new BufferedReader(fileReader);
+    final FileWriter writer = new FileWriter(outFile);
+    final SqlRun sqlRun = new SqlRun(bufferedReader, writer);
+    sqlRun.execute(
+        new SqlRun.ConnectionFactory() {
+          public Connection connect(String name) throws Exception {
+            if (name.equals("hr")) {
+              return OptiqAssert.that()
+                  .with(OptiqAssert.Config.REGULAR)
+                  .connect();
+            }
+            if (name.equals("post")) {
+              return OptiqAssert.that()
+                  .with(OptiqAssert.Config.REGULAR)
+                  .withSchema("POST")
+                  .connect();
+            }
+            throw new RuntimeException("unknown connection '" + name + "'");
+          }
+        });
+    final byte[] inBytes = Files.toByteArray(inFile);
+    final byte[] outBytes = Files.toByteArray(outFile);
+    if (!Arrays.equals(inBytes, outBytes)) {
+      fail("Files differ: " + outFile + " " + inFile);
+    }
   }
 
   @Test public void testScalarSubQueryUncorrelated() {
