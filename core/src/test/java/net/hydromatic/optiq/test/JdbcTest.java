@@ -3241,139 +3241,15 @@ public class JdbcTest {
    * against MySQL (except full join, which MySQL does not support). */
   @Test public void testVariousOuter() {
     checkOuter(
-        "select * from emp",
-        "ENAME=Adam ; DEPTNO=50; GENDER=M",
-        "ENAME=Alice; DEPTNO=30; GENDER=F",
-        "ENAME=Bob  ; DEPTNO=10; GENDER=M",
-        "ENAME=Eric ; DEPTNO=20; GENDER=M",
-        "ENAME=Eve  ; DEPTNO=50; GENDER=F",
-        "ENAME=Grace; DEPTNO=60; GENDER=F",
-        "ENAME=Jane ; DEPTNO=10; GENDER=F",
-        "ENAME=Susan; DEPTNO=30; GENDER=F");
-    checkOuter(
         "select * from emp join dept on emp.deptno = dept.deptno",
         "ENAME=Alice; DEPTNO=30; GENDER=F; DEPTNO0=30; DNAME=Engineering",
         "ENAME=Bob  ; DEPTNO=10; GENDER=M; DEPTNO0=10; DNAME=Sales      ",
         "ENAME=Eric ; DEPTNO=20; GENDER=M; DEPTNO0=20; DNAME=Marketing  ",
         "ENAME=Jane ; DEPTNO=10; GENDER=F; DEPTNO0=10; DNAME=Sales      ",
         "ENAME=Susan; DEPTNO=30; GENDER=F; DEPTNO0=30; DNAME=Engineering");
-
-    // The following test is disabled, because we cannot handle non-equi-join.
-    // Following it are the results from MySQL.
-    checkOuter(
-        "select * from emp join dept on emp.deptno = dept.deptno and emp.gender = 'F'",
-        "TODO");
-    // +-------+--------+--------+--------+-------------+
-    // | ename | deptno | gender | deptno | dname       |
-    // +-------+--------+--------+--------+-------------+
-    // | Jane  |     10 | F      |     10 | Sales       |
-    // | Susan |     30 | F      |     30 | Engineering |
-    // | Alice |     30 | F      |     30 | Engineering |
-    // +-------+--------+--------+--------+-------------+
-
-    checkOuter(
-        "select * from emp join dept on emp.deptno = dept.deptno where emp.gender = 'F'",
-        "ENAME=Alice; DEPTNO=30; GENDER=F; DEPTNO0=30; DNAME=Engineering",
-        "ENAME=Jane ; DEPTNO=10; GENDER=F; DEPTNO0=10; DNAME=Sales      ",
-        "ENAME=Susan; DEPTNO=30; GENDER=F; DEPTNO0=30; DNAME=Engineering");
-
-    checkOuter(
-        "select * from (select * from emp where gender ='F') as emp join dept on emp.deptno = dept.deptno",
-        "ENAME=Jane ; DEPTNO=10; GENDER=F; DEPTNO0=10; DNAME=Sales      ",
-        "ENAME=Susan; DEPTNO=30; GENDER=F; DEPTNO0=30; DNAME=Engineering",
-        "ENAME=Alice; DEPTNO=30; GENDER=F; DEPTNO0=30; DNAME=Engineering");
-
-    // The following test is disabled, because we cannot handle non-equi-join.
-    // Following it are the results from MySQL.
-    checkOuter(
-        "select * from emp left join dept on emp.deptno = dept.deptno and emp.gender = 'F'",
-        "TODO");
-    // +-------+--------+--------+--------+-------------+
-    // | ename | deptno | gender | deptno | dname       |
-    // +-------+--------+--------+--------+-------------+
-    // | Jane  |     10 | F      |     10 | Sales       |
-    // | Susan |     30 | F      |     30 | Engineering |
-    // | Alice |     30 | F      |     30 | Engineering |
-    // | Bob   |     10 | M      |   NULL | NULL        |
-    // | Eric  |     20 | M      |   NULL | NULL        |
-    // | Adam  |     50 | M      |   NULL | NULL        |
-    // | Eve   |     50 | F      |   NULL | NULL        |
-    // | Grace |     60 | F      |   NULL | NULL        |
-    // +-------+--------+--------+--------+-------------+
-
-    checkOuter(
-        "select * from emp left join dept on emp.deptno = dept.deptno where emp.gender = 'F'",
-        "ENAME=Jane ; DEPTNO=10; GENDER=F; DEPTNO0=10; DNAME=Sales      ",
-        "ENAME=Susan; DEPTNO=30; GENDER=F; DEPTNO0=30; DNAME=Engineering",
-        "ENAME=Alice; DEPTNO=30; GENDER=F; DEPTNO0=30; DNAME=Engineering",
-        "ENAME=Eve  ; DEPTNO=50; GENDER=F; DEPTNO0=null; DNAME=null",
-        "ENAME=Grace; DEPTNO=60; GENDER=F; DEPTNO0=null; DNAME=null");
-
-    checkOuter(
-        "select * from (select * from emp where gender ='F') as emp left join dept on emp.deptno = dept.deptno",
-        "ENAME=Jane ; DEPTNO=10; GENDER=F; DEPTNO0=10; DNAME=Sales      ",
-        "ENAME=Susan; DEPTNO=30; GENDER=F; DEPTNO0=30; DNAME=Engineering",
-        "ENAME=Alice; DEPTNO=30; GENDER=F; DEPTNO0=30; DNAME=Engineering",
-        "ENAME=Eve  ; DEPTNO=50; GENDER=F; DEPTNO0=null; DNAME=null",
-        "ENAME=Grace; DEPTNO=60; GENDER=F; DEPTNO0=null; DNAME=null");
-
-    // The following test is disabled, because we cannot handle non-equi-join.
-    // Following it are the results from MySQL.
-    checkOuter(
-        "select * from emp right join dept on emp.deptno = dept.deptno and emp.gender = 'F'",
-        "TODO");
-    // +-------+--------+--------+--------+-------------+
-    // | ename | deptno | gender | deptno | dname       |
-    // +-------+--------+--------+--------+-------------+
-    // | Jane  |     10 | F      |     10 | Sales       |
-    // | Susan |     30 | F      |     30 | Engineering |
-    // | Alice |     30 | F      |     30 | Engineering |
-    // | NULL  |   NULL | NULL   |     20 | Marketing   |
-    // | NULL  |   NULL | NULL   |     40 | Empty       |
-    // +-------+--------+--------+--------+-------------+
-
-    checkOuter(
-        "select * from emp right join dept on emp.deptno = dept.deptno where emp.gender = 'F'",
-        "ENAME=Jane ; DEPTNO=10; GENDER=F; DEPTNO0=10; DNAME=Sales      ",
-        "ENAME=Susan; DEPTNO=30; GENDER=F; DEPTNO0=30; DNAME=Engineering",
-        "ENAME=Alice; DEPTNO=30; GENDER=F; DEPTNO0=30; DNAME=Engineering");
-
-    checkOuter(
-        "select * from (select * from emp where gender ='F') as emp right join dept on emp.deptno = dept.deptno",
-        "ENAME=Jane ; DEPTNO=10; GENDER=F; DEPTNO0=10; DNAME=Sales      ",
-        "ENAME=null; DEPTNO=null; GENDER=null; DEPTNO0=20; DNAME=Marketing  ",
-        "ENAME=Susan; DEPTNO=30; GENDER=F; DEPTNO0=30; DNAME=Engineering",
-        "ENAME=Alice; DEPTNO=30; GENDER=F; DEPTNO0=30; DNAME=Engineering",
-        "ENAME=null; DEPTNO=null; GENDER=null; DEPTNO0=40; DNAME=Empty      ");
-
-    checkOuter(
-        "select * from emp full join dept on emp.deptno = dept.deptno and emp.gender = 'F'",
-        "TODO");
-
-    checkOuter(
-        "select * from emp full join dept on emp.deptno = dept.deptno where emp.gender = 'F'",
-        "ENAME=Alice; DEPTNO=30; GENDER=F; DEPTNO0=30; DNAME=Engineering",
-        "ENAME=Eve  ; DEPTNO=50; GENDER=F; DEPTNO0=null; DNAME=null",
-        "ENAME=Grace; DEPTNO=60; GENDER=F; DEPTNO0=null; DNAME=null",
-        "ENAME=Jane ; DEPTNO=10; GENDER=F; DEPTNO0=10; DNAME=Sales      ",
-        "ENAME=Susan; DEPTNO=30; GENDER=F; DEPTNO0=30; DNAME=Engineering");
-
-    checkOuter(
-        "select * from (select * from emp where gender ='F') as emp full join dept on emp.deptno = dept.deptno",
-        "ENAME=Alice; DEPTNO=30; GENDER=F; DEPTNO0=30; DNAME=Engineering",
-        "ENAME=Eve  ; DEPTNO=50; GENDER=F; DEPTNO0=null; DNAME=null",
-        "ENAME=Grace; DEPTNO=60; GENDER=F; DEPTNO0=null; DNAME=null",
-        "ENAME=Jane ; DEPTNO=10; GENDER=F; DEPTNO0=10; DNAME=Sales      ",
-        "ENAME=Susan; DEPTNO=30; GENDER=F; DEPTNO0=30; DNAME=Engineering",
-        "ENAME=null; DEPTNO=null; GENDER=null; DEPTNO0=20; DNAME=Marketing  ",
-        "ENAME=null; DEPTNO=null; GENDER=null; DEPTNO0=40; DNAME=Empty      ");
   }
 
   private void checkOuter(String sql, String... lines) {
-    if (sql.contains("on emp.deptno = dept.deptno and emp.gender = 'F'")) {
-      // We can't do non-equi-join yet
-      return;
-    }
     // Append a 'WITH' clause that supplies EMP and DEPT tables like this:
     //
     // drop table emp;

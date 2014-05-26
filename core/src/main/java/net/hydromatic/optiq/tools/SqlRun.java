@@ -101,6 +101,9 @@ public class SqlRun {
   }
 
   private static String pad(String s, int width, boolean right) {
+    if (s == null) {
+      s = "";
+    }
     final int x = width - s.length();
     if (x <= 0) {
       return s;
@@ -291,60 +294,94 @@ public class SqlRun {
     PSQL {
       @Override
       public void format(ResultSet resultSet, SqlRun run) throws Exception {
-        final ResultSetMetaData metaData = resultSet.getMetaData();
-        final PrintWriter pw = run.printWriter;
-        final int n = metaData.getColumnCount();
-        final int[] widths = new int[n];
-        final List<String[]> rows = new ArrayList<String[]>();
-        final boolean[] rights = new boolean[n];
-        for (int i = 0; i < n; i++) {
-          widths[i] = metaData.getColumnLabel(i + 1).length();
-        }
-        while (resultSet.next()) {
-          String[] row = new String[n];
-          for (int i = 0; i < n; i++) {
-            String value = resultSet.getString(i + 1);
-            widths[i] = Math.max(widths[i], value.length());
-            row[i] = value;
-          }
-          rows.add(row);
-        }
-        for (int i = 0; i < widths.length; i++) {
-          switch (metaData.getColumnType(i + 1)) {
-          case Types.INTEGER:
-            rights[i] = true;
-          }
-        }
-        for (int i = 0; i < n; i++) {
-          pw.print(i > 0 ? " | " : " ");
-          pw.print(metaData.getColumnLabel(i + 1));
-        }
-        pw.println();
-        for (int i = 0; i < n; i++) {
-          if (i > 0) {
-            pw.print("+");
-          }
-          pw.print(chars('-', widths[i] + 2));
-        }
-        pw.println();
-        for (String[] row : rows) {
-          for (int i = 0; i < n; i++) {
-            pw.print(i > 0 ? " | " : " ");
-            // don't pad the last field if it is left-justified
-            final String s = i == n - 1 && !rights[i]
-                ? row[i]
-                : pad(row[i], widths[i], rights[i]);
-            pw.print(s);
-          }
-          pw.println();
-        }
-        pw.println(rows.size() == 1 ? "(1 row)" : "(" + rows.size() + " rows)");
-        pw.println();
+        SqlRun.format(resultSet, run.printWriter, false);
+      }
+    },
+
+    // Example:
+    //
+    // +-------+--------+--------+-------------+
+    // | ename | deptno | gender | first_value |
+    // +-------+--------+--------+-------------+
+    // | Jane  |     10 | F      | Jane        |
+    // | Bob   |     10 | M      | Jane        |
+    // +-------+--------+--------+-------------+
+    // (2 rows)
+    MYSQL {
+      @Override
+      public void format(ResultSet resultSet, SqlRun run) throws Exception {
+        SqlRun.format(resultSet, run.printWriter, true);
       }
     };
 
     public abstract void format(ResultSet resultSet, SqlRun run)
       throws Exception;
+  }
+
+  private static void format(ResultSet resultSet, PrintWriter pw, boolean b)
+    throws SQLException {
+    final ResultSetMetaData metaData = resultSet.getMetaData();
+    final int n = metaData.getColumnCount();
+    final int[] widths = new int[n];
+    final List<String[]> rows = new ArrayList<String[]>();
+    final boolean[] rights = new boolean[n];
+
+    for (int i = 0; i < n; i++) {
+      widths[i] = metaData.getColumnLabel(i + 1).length();
+    }
+    while (resultSet.next()) {
+      String[] row = new String[n];
+      for (int i = 0; i < n; i++) {
+        String value = resultSet.getString(i + 1);
+        widths[i] = Math.max(widths[i], value == null ? 0 : value.length());
+        row[i] = value;
+      }
+      rows.add(row);
+    }
+    for (int i = 0; i < widths.length; i++) {
+      switch (metaData.getColumnType(i + 1)) {
+      case Types.INTEGER:
+        rights[i] = true;
+      }
+    }
+
+    // Compute "+-----+---+" (if b)
+    // or       "-----+---" (if not b)
+    final StringBuilder buf = new StringBuilder();
+    for (int i = 0; i < n; i++) {
+      buf.append(b || i > 0 ? "+" : "");
+      buf.append(chars('-', widths[i] + 2));
+    }
+    buf.append(b ? "+" : "");
+    String hyphens = buf.toString();
+
+    if (b) {
+      pw.println(hyphens);
+    }
+
+    // Print "| FOO | B |"
+    for (int i = 0; i < n; i++) {
+      pw.print(i > 0 ? " | " : b ? "| " : " ");
+      pw.print(pad(metaData.getColumnLabel(i + 1), widths[i], false));
+    }
+    pw.println(b ? " |" : "");
+    pw.println(hyphens);
+    for (String[] row : rows) {
+      for (int i = 0; i < n; i++) {
+        pw.print(i > 0 ? " | " : b ? "| " : " ");
+        // don't pad the last field if it is left-justified
+        final String s = !b && i == n - 1 && !rights[i]
+            ? row[i]
+            : pad(row[i], widths[i], rights[i]);
+        pw.print(s);
+      }
+      pw.println(b ? " |" : "");
+    }
+    if (b) {
+      pw.println(hyphens);
+    }
+    pw.println(rows.size() == 1 ? "(1 row)" : "(" + rows.size() + " rows)");
+    pw.println();
   }
 
   /** Command. */

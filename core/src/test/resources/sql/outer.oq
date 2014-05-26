@@ -1,30 +1,194 @@
 # outer.oq - Various kinds of outer join
 !use post
-!set outputformat psql
+!set outputformat mysql
 
 select * from emp;
- ENAME | DEPTNO | GENDER
--------+--------+--------
- Jane  |     10 | F
- Bob   |     10 | M
- Eric  |     20 | M
- Susan |     30 | F
- Alice |     30 | F
- Adam  |     50 | M
- Eve   |     50 | F
- Grace |     60 | F
++-------+--------+--------+
+| ENAME | DEPTNO | GENDER |
++-------+--------+--------+
+| Jane  |     10 | F      |
+| Bob   |     10 | M      |
+| Eric  |     20 | M      |
+| Susan |     30 | F      |
+| Alice |     30 | F      |
+| Adam  |     50 | M      |
+| Eve   |     50 | F      |
+| Grace |     60 | F      |
++-------+--------+--------+
 (8 rows)
 
 !ok
 select * from emp join dept on emp.deptno = dept.deptno;
- ENAME | DEPTNO | GENDER | DEPTNO0 | DNAME
--------+--------+--------+---------+-------------
- Jane  |     10 | F      |      10 | Sales      
- Bob   |     10 | M      |      10 | Sales      
- Eric  |     20 | M      |      20 | Marketing  
- Susan |     30 | F      |      30 | Engineering
- Alice |     30 | F      |      30 | Engineering
++-------+--------+--------+---------+-------------+
+| ENAME | DEPTNO | GENDER | DEPTNO0 | DNAME       |
++-------+--------+--------+---------+-------------+
+| Jane  |     10 | F      |      10 | Sales       |
+| Bob   |     10 | M      |      10 | Sales       |
+| Eric  |     20 | M      |      20 | Marketing   |
+| Susan |     30 | F      |      30 | Engineering |
+| Alice |     30 | F      |      30 | Engineering |
++-------+--------+--------+---------+-------------+
 (5 rows)
+
+!ok
+
+# The following test is disabled, because we cannot handle non-equi-join.
+# Following it are the results from MySQL.
+!if (false) {
+select * from emp join dept on emp.deptno = dept.deptno and emp.gender = 'F';
+ ename | deptno | gender | deptno | dname
+-------+--------+--------+--------+-------------
+ Jane  |     10 | F      |     10 | Sales
+ Susan |     30 | F      |     30 | Engineering
+ Alice |     30 | F      |     30 | Engineering
+
+!ok
+!}
+
+select * from emp join dept on emp.deptno = dept.deptno where emp.gender = 'F';
++-------+--------+--------+---------+-------------+
+| ENAME | DEPTNO | GENDER | DEPTNO0 | DNAME       |
++-------+--------+--------+---------+-------------+
+| Jane  |     10 | F      |      10 | Sales       |
+| Susan |     30 | F      |      30 | Engineering |
+| Alice |     30 | F      |      30 | Engineering |
++-------+--------+--------+---------+-------------+
+(3 rows)
+
+!ok
+
+select * from (select * from emp where gender ='F') as emp join dept on emp.deptno = dept.deptno;
++-------+--------+--------+---------+-------------+
+| ENAME | DEPTNO | GENDER | DEPTNO0 | DNAME       |
++-------+--------+--------+---------+-------------+
+| Jane  |     10 | F      |      10 | Sales       |
+| Susan |     30 | F      |      30 | Engineering |
+| Alice |     30 | F      |      30 | Engineering |
++-------+--------+--------+---------+-------------+
+(3 rows)
+
+!ok
+
+# The following test is disabled, because we cannot handle non-equi-join.
+# Following it are the results from MySQL.
+!if (false) {
+select * from emp left join dept on emp.deptno = dept.deptno and emp.gender = 'F';
+ ename | deptno | gender | deptno | dname
+-------+--------+--------+--------+-------------
+ Jane  |     10 | F      |     10 | Sales
+ Susan |     30 | F      |     30 | Engineering
+ Alice |     30 | F      |     30 | Engineering
+ Bob   |     10 | M      |   NULL | NULL
+ Eric  |     20 | M      |   NULL | NULL
+ Adam  |     50 | M      |   NULL | NULL
+ Eve   |     50 | F      |   NULL | NULL
+ Grace |     60 | F      |   NULL | NULL
+!ok
+!}
+
+select * from emp left join dept on emp.deptno = dept.deptno where emp.gender = 'F';
++-------+--------+--------+---------+-------------+
+| ENAME | DEPTNO | GENDER | DEPTNO0 | DNAME       |
++-------+--------+--------+---------+-------------+
+| Jane  |     10 | F      |      10 | Sales       |
+| Susan |     30 | F      |      30 | Engineering |
+| Alice |     30 | F      |      30 | Engineering |
+| Eve   |     50 | F      |         |             |
+| Grace |     60 | F      |         |             |
++-------+--------+--------+---------+-------------+
+(5 rows)
+
+!ok
+
+select * from (select * from emp where gender ='F') as emp left join dept on emp.deptno = dept.deptno;
++-------+--------+--------+---------+-------------+
+| ENAME | DEPTNO | GENDER | DEPTNO0 | DNAME       |
++-------+--------+--------+---------+-------------+
+| Jane  |     10 | F      |      10 | Sales       |
+| Susan |     30 | F      |      30 | Engineering |
+| Alice |     30 | F      |      30 | Engineering |
+| Eve   |     50 | F      |         |             |
+| Grace |     60 | F      |         |             |
++-------+--------+--------+---------+-------------+
+(5 rows)
+
+!ok
+
+# The following test is disabled, because we cannot handle non-equi-join.
+# Following it are the results from MySQL.
+!if (false) {
+select * from emp right join dept on emp.deptno = dept.deptno and emp.gender = 'F';
++-------+--------+--------+--------+-------------+
+| ename | deptno | gender | deptno | dname       |
++-------+--------+--------+--------+-------------+
+| Jane  |     10 | F      |     10 | Sales       |
+| Susan |     30 | F      |     30 | Engineering |
+| Alice |     30 | F      |     30 | Engineering |
+| NULL  |   NULL | NULL   |     20 | Marketing   |
+| NULL  |   NULL | NULL   |     40 | Empty       |
++-------+--------+--------+--------+-------------+
+!ok
+!}
+
+select * from emp right join dept on emp.deptno = dept.deptno where emp.gender = 'F';
++-------+--------+--------+---------+-------------+
+| ENAME | DEPTNO | GENDER | DEPTNO0 | DNAME       |
++-------+--------+--------+---------+-------------+
+| Jane  |     10 | F      |      10 | Sales       |
+| Susan |     30 | F      |      30 | Engineering |
+| Alice |     30 | F      |      30 | Engineering |
++-------+--------+--------+---------+-------------+
+(3 rows)
+
+!ok
+
+select * from (select * from emp where gender ='F') as emp right join dept on emp.deptno = dept.deptno;
++-------+--------+--------+---------+-------------+
+| ENAME | DEPTNO | GENDER | DEPTNO0 | DNAME       |
++-------+--------+--------+---------+-------------+
+| Jane  |     10 | F      |      10 | Sales       |
+| Susan |     30 | F      |      30 | Engineering |
+| Alice |     30 | F      |      30 | Engineering |
+|       |        |        |      20 | Marketing   |
+|       |        |        |      40 | Empty       |
++-------+--------+--------+---------+-------------+
+(5 rows)
+
+!ok
+
+!if (false) {
+select * from emp full join dept on emp.deptno = dept.deptno and emp.gender = 'F';
+!ok
+!}
+
+
+select * from emp full join dept on emp.deptno = dept.deptno where emp.gender = 'F';
++-------+--------+--------+---------+-------------+
+| ENAME | DEPTNO | GENDER | DEPTNO0 | DNAME       |
++-------+--------+--------+---------+-------------+
+| Jane  |     10 | F      |      10 | Sales       |
+| Susan |     30 | F      |      30 | Engineering |
+| Alice |     30 | F      |      30 | Engineering |
+| Eve   |     50 | F      |         |             |
+| Grace |     60 | F      |         |             |
++-------+--------+--------+---------+-------------+
+(5 rows)
+
+!ok
+
+select * from (select * from emp where gender ='F') as emp full join dept on emp.deptno = dept.deptno;
++-------+--------+--------+---------+-------------+
+| ENAME | DEPTNO | GENDER | DEPTNO0 | DNAME       |
++-------+--------+--------+---------+-------------+
+| Jane  |     10 | F      |      10 | Sales       |
+| Susan |     30 | F      |      30 | Engineering |
+| Alice |     30 | F      |      30 | Engineering |
+| Eve   |     50 | F      |         |             |
+| Grace |     60 | F      |         |             |
+|       |        |        |      20 | Marketing   |
+|       |        |        |      40 | Empty       |
++-------+--------+--------+---------+-------------+
+(7 rows)
 
 !ok
 
