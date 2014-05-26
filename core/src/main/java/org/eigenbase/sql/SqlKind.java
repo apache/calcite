@@ -383,6 +383,16 @@ public enum SqlKind {
   IS_FALSE,
 
   /**
+   * The "IS NOT TRUE" operator.
+   */
+  IS_NOT_TRUE,
+
+  /**
+   * The "IS NOT FALSE" operator.
+   */
+  IS_NOT_FALSE,
+
+  /**
    * The "IS UNKNOWN" operator.
    */
   IS_UNKNOWN,

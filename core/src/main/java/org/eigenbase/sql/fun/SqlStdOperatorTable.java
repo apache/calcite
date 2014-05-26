@@ -451,7 +451,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   public static final SqlPostfixOperator IS_NOT_TRUE =
       new SqlPostfixOperator(
           "IS NOT TRUE",
-          SqlKind.OTHER,
+          SqlKind.IS_NOT_TRUE,
           30,
           ReturnTypes.BOOLEAN_NOT_NULL,
           InferTypes.BOOLEAN,
@@ -469,7 +469,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   public static final SqlPostfixOperator IS_NOT_FALSE =
       new SqlPostfixOperator(
           "IS NOT FALSE",
-          SqlKind.OTHER,
+          SqlKind.IS_NOT_FALSE,
           30,
           ReturnTypes.BOOLEAN_NOT_NULL,
           InferTypes.BOOLEAN,
@@ -487,7 +487,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   public static final SqlPostfixOperator IS_NOT_UNKNOWN =
       new SqlPostfixOperator(
           "IS NOT UNKNOWN",
-          SqlKind.OTHER,
+          SqlKind.IS_NOT_NULL,
           30,
           ReturnTypes.BOOLEAN_NOT_NULL,
           InferTypes.BOOLEAN,
