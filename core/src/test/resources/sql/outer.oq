@@ -1,20 +1,31 @@
+# outer.oq - Various kinds of outer join
 !use post
+!set outputformat psql
+
 select * from emp;
-ENAME, DEPTNO, GENDER
-Jane , 10, F
-Bob  , 10, M
-Eric , 20, M
-Susan, 30, F
-Alice, 30, F
-Adam , 50, M
-Eve  , 50, F
-Grace, 60, F
+ ENAME | DEPTNO | GENDER
+-------+--------+--------
+ Jane  |     10 | F
+ Bob   |     10 | M
+ Eric  |     20 | M
+ Susan |     30 | F
+ Alice |     30 | F
+ Adam  |     50 | M
+ Eve   |     50 | F
+ Grace |     60 | F
+(8 rows)
+
 !ok
 select * from emp join dept on emp.deptno = dept.deptno;
-ENAME, DEPTNO, GENDER, DEPTNO0, DNAME
-Jane , 10, F, 10, Sales      
-Bob  , 10, M, 10, Sales      
-Eric , 20, M, 20, Marketing  
-Susan, 30, F, 30, Engineering
-Alice, 30, F, 30, Engineering
+ ENAME | DEPTNO | GENDER | DEPTNO0 | DNAME
+-------+--------+--------+---------+-------------
+ Jane  |     10 | F      |      10 | Sales      
+ Bob   |     10 | M      |      10 | Sales      
+ Eric  |     20 | M      |      20 | Marketing  
+ Susan |     30 | F      |      30 | Engineering
+ Alice |     30 | F      |      30 | Engineering
+(5 rows)
+
 !ok
+
+# End outer.oq

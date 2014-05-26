@@ -1,0 +1,124 @@
+# winagg.oq - Unit tests for windowed aggregation, verified on Postgres
+!use post
+!set outputformat psql
+!if (false) {
+select *, first_value(deptno) over () from emp;
+ ename | deptno | gender | first_value
+-------+--------+--------+-------------
+ Jane  |     10 | F      |          10
+ Bob   |     10 | M      |          10
+ Eric  |     20 | M      |          10
+ Susan |     30 | F      |          10
+ Alice |     30 | F      |          10
+ Adam  |     50 | M      |          10
+ Eve   |     50 | F      |          10
+ Grace |     60 | F      |          10
+(8 rows)
+
+!ok
+!}
+!if (false) {
+select *, first_value(ename) over () from emp;
+ ename | deptno | gender | first_value
+-------+--------+--------+-------------
+ Jane  |     10 | F      | Jane
+ Bob   |     10 | M      | Jane
+ Eric  |     20 | M      | Jane
+ Susan |     30 | F      | Jane
+ Alice |     30 | F      | Jane
+ Adam  |     50 | M      | Jane
+ Eve   |     50 | F      | Jane
+ Grace |     60 | F      | Jane
+(8 rows)
+
+!ok
+!}
+!if (false) {
+select *, first_value(ename) over (partition by deptno) from emp;
+ ename | deptno | gender | first_value
+-------+--------+--------+-------------
+ Jane  |     10 | F      | Jane
+ Bob   |     10 | M      | Jane
+ Eric  |     20 | M      | Eric
+ Susan |     30 | F      | Susan
+ Alice |     30 | F      | Susan
+ Adam  |     50 | M      | Adam
+ Eve   |     50 | F      | Adam
+ Grace |     60 | F      | Grace
+(8 rows)
+
+!ok
+!}
+!if (false) {
+select *, first_value(ename) over (partition by deptno range current row) from emp;
+ ename | deptno | gender | first_value
+-------+--------+--------+-------------
+ Jane  |     10 | F      | Jane
+ Bob   |     10 | M      | Jane
+ Eric  |     20 | M      | Eric
+ Susan |     30 | F      | Susan
+ Alice |     30 | F      | Susan
+ Adam  |     50 | M      | Adam
+ Eve   |     50 | F      | Adam
+ Grace |     60 | F      | Grace
+(8 rows)
+
+!ok
+!}
+!if (false) {
+select *, first_value(ename) over (partition by deptno range unbounded preceding) from emp;
+ ename | deptno | gender | first_value
+-------+--------+--------+-------------
+ Jane  |     10 | F      | Jane
+ Bob   |     10 | M      | Jane
+ Eric  |     20 | M      | Eric
+ Susan |     30 | F      | Susan
+ Alice |     30 | F      | Susan
+ Adam  |     50 | M      | Adam
+ Eve   |     50 | F      | Adam
+ Grace |     60 | F      | Grace
+(8 rows)
+
+!ok
+!}
+!if (false) {
+select *, first_value(ename) over (partition by deptno order by gender range unbounded preceding) from emp;
+ ename | deptno | gender | first_value
+-------+--------+--------+-------------
+ Jane  |     10 | F      | Jane
+ Bob   |     10 | M      | Jane
+ Eric  |     20 | M      | Eric
+ Alice |     30 | F      | Alice
+ Susan |     30 | F      | Alice
+ Eve   |     50 | F      | Eve
+ Adam  |     50 | M      | Eve
+ Grace |     60 | F      | Grace
+(8 rows)
+
+!ok
+!}
+# Optiq does not yet generate tied ranks
+!if (false) {
+select *, count(*) over (order by deptno) as c from emp;
+ ENAME | DEPTNO | GENDER | C
+-------+--------+--------+---
+ Jane  |     10 | F      | 2
+ Bob   |     10 | M      | 2
+ Eric  |     20 | M      | 3
+ Susan |     30 | F      | 5
+ Alice |     30 | F      | 5
+ Adam  |     50 | M      | 7
+ Eve   |     50 | F      | 7
+ Grace |     60 | F      | 8
+(8 rows)
+
+!ok
+!}
+!if (false) {
+select *, count(*) over (order by deptno), first_value(ename) over (order by deptno rows 2 following) from emp;
+ ERROR:  frame starting from following row cannot end with current row
+ LINE 1: ...o), first_value(ename) over (order by deptno rows 2 followin...
+!ok
+!}
+
+# End winagg.oq

@@ -3414,8 +3414,12 @@ public class JdbcTest {
         .returnsUnordered(lines);
   }
 
-  @Test public void testRun() throws Exception {
+  @Test public void testRunOuter() throws Exception {
     checkRun("sql/outer.oq");
+  }
+
+  @Test public void testRunWinAgg() throws Exception {
+    checkRun("sql/winagg.oq");
   }
 
   private void checkRun(String path) throws Exception {
