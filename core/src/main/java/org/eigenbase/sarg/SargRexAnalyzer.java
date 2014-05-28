@@ -492,15 +492,20 @@ public class SargRexAnalyzer {
       }
 
       SqlOperator op = call.getOperator();
-      if ((op == SqlStdOperatorTable.IS_NULL)
-          || (op == SqlStdOperatorTable.IS_UNKNOWN)) {
+      switch (op.getKind()) {
+      case IS_NULL:
         coordinate = factory.getRexBuilder().constantNull();
-      } else if (op == SqlStdOperatorTable.IS_TRUE) {
+        break;
+      case IS_TRUE:
         coordinate = factory.getRexBuilder().makeLiteral(true);
-      } else if (op == SqlStdOperatorTable.IS_FALSE) {
+        break;
+      case IS_FALSE:
         coordinate = factory.getRexBuilder().makeLiteral(false);
-      } else if (coordinate == null) {
-        failed = true;
+        break;
+      default:
+        if (coordinate == null) {
+          failed = true;
+        }
       }
 
       if (failed) {

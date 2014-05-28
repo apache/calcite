@@ -26,7 +26,7 @@ import java.util.Set;
  *
  * <p>The values are immutable, canonical constants, so you can use Kinds to
  * find particular types of expressions quickly. To identity a call to a common
- * operator such as '=', use {@link org.eigenbase.sql.SqlNode#isA}:
+ * operator such as '=', use {@link org.eigenbase.sql.SqlNode#isA}:</p>
  *
  * <blockquote>
  * <pre>exp.{@link org.eigenbase.sql.SqlNode#isA isA}({@link #EQUALS})</pre>
@@ -35,16 +35,6 @@ import java.util.Set;
  * <p>Only commonly-used nodes have their own type; other nodes are of type
  * {@link #OTHER}. Some of the values, such as {@link #SET_QUERY}, represent
  * aggregates.</p>
- *
- * <p>To identify a category of expressions, you can use
- * {@link org.eigenbase.sql.SqlNode#isA} with
- * an aggregate SqlKind. The following expression will return <code>true</code>
- * for calls to '=' and '&gt;=', but <code>false</code> for the constant '5', or
- * a call to '+':</p>
- *
- * <blockquote>
- * <pre>exp.{@link org.eigenbase.sql.SqlNode#isA isA}({@link #COMPARISON SqlKind.Comparison})</pre>
- * </blockquote>
  *
  * <p>To quickly choose between a number of options, use a switch statement:</p>
  *
@@ -55,9 +45,34 @@ import java.util.Set;
  * case {@link #NOT_EQUALS}:
  *     ...;
  * default:
- *     throw {@link org.eigenbase.util.Util#unexpected Util.unexpected}(exp.getKind());
+ *     throw new AssertionError("unexpected");
  * }</pre>
  * </blockquote>
+ *
+ * <p>Note that we do not even have to check that a {@code SqlNode} is a
+ * {@link SqlCall}.</p>
+ *
+ * <p>To identify a category of expressions, use {@code SqlNode.isA} with
+ * an aggregate SqlKind. The following expression will return <code>true</code>
+ * for calls to '=' and '&gt;=', but <code>false</code> for the constant '5', or
+ * a call to '+':</p>
+ *
+ * <blockquote>
+ * <pre>exp.isA({@link #COMPARISON SqlKind.COMPARISON})</pre>
+ * </blockquote>
+ *
+ * <p>RexNode also has a {@code getKind} method; {@code SqlKind} values are
+ * preserved during translation from {@code SqlNode} to {@code RexNode}, where
+ * applicable.</p>
+ *
+ * <p>There is no water-tight definition of "common", but that's OK. There will
+ * always be operators that don't have their own kind, and for these we use the
+ * {@code SqlOperator}. But for really the common ones, e.g. the many places
+ * where we are looking for {@code AND}, {@code OR} and {@code EQUALS}, the enum
+ * helps.</p>
+ *
+ * <p>(If we were using Scala, {@link SqlOperator} would be a case
+ * class, and we wouldn't need {@code SqlKind}. But we're not.)</p>
  */
 public enum SqlKind {
   //~ Static fields/initializers ---------------------------------------------
