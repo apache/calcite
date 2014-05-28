@@ -2,6 +2,14 @@
 
 For a full list of releases, see <a href="https://github.com/julianhyde/linq4j/releases">github</a>.
 
+## <a href="https://github.com/julianhyde/linq4j/releases/tag/linq4j-0.4">0.4</a> / 2014-05-28
+
+* Fix <a href="https://github.com/julianhyde/linq4j/issues/27">#27</a>,
+  "Incorrectly inlines non-final variable".
+* Maven build process now deploys web site.
+* Implement `Enumerable` methods: `any`, `all`,
+  `contains` with `EqualityComparer`, `first`, `first` with predicate.
+
 ## <a href="https://github.com/julianhyde/linq4j/releases/tag/linq4j-0.3">0.3</a> / 2014-04-21
 
 * Move optimizer visitor from optiq to linq4j; add
