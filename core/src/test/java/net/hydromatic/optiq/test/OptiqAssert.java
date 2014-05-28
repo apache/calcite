@@ -483,7 +483,9 @@ public class OptiqAssert {
               + "    ('Alice', 30, 'F'),\n"
               + "    ('Adam', 50, 'M'),\n"
               + "    ('Eve', 50, 'F'),\n"
-              + "    ('Grace', 60, 'F')) as t(ename, deptno, gender)",
+              + "    ('Grace', 60, 'F'),\n"
+              + "    ('Wilma', cast(null as integer), 'F'))\n"
+              + "  as t(ename, deptno, gender)",
               ImmutableList.<String>of()));
       post.add("DEPT",
           ViewTable.viewMacro(

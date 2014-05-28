@@ -14,8 +14,9 @@ select * from emp;
 | Adam  |     50 | M      |
 | Eve   |     50 | F      |
 | Grace |     60 | F      |
+| Wilma |        | F      |
 +-------+--------+--------+
-(8 rows)
+(9 rows)
 
 !ok
 select * from emp join dept on emp.deptno = dept.deptno;
@@ -95,8 +96,9 @@ select * from emp left join dept on emp.deptno = dept.deptno where emp.gender = 
 | Alice |     30 | F      |      30 | Engineering |
 | Eve   |     50 | F      |         |             |
 | Grace |     60 | F      |         |             |
+| Wilma |        | F      |         |             |
 +-------+--------+--------+---------+-------------+
-(5 rows)
+(6 rows)
 
 !ok
 
@@ -109,8 +111,9 @@ select * from (select * from emp where gender ='F') as emp left join dept on emp
 | Alice |     30 | F      |      30 | Engineering |
 | Eve   |     50 | F      |         |             |
 | Grace |     60 | F      |         |             |
+| Wilma |        | F      |         |             |
 +-------+--------+--------+---------+-------------+
-(5 rows)
+(6 rows)
 
 !ok
 
@@ -171,8 +174,9 @@ select * from emp full join dept on emp.deptno = dept.deptno where emp.gender = 
 | Alice |     30 | F      |      30 | Engineering |
 | Eve   |     50 | F      |         |             |
 | Grace |     60 | F      |         |             |
+| Wilma |        | F      |         |             |
 +-------+--------+--------+---------+-------------+
-(5 rows)
+(6 rows)
 
 !ok
 
@@ -185,10 +189,11 @@ select * from (select * from emp where gender ='F') as emp full join dept on emp
 | Alice |     30 | F      |      30 | Engineering |
 | Eve   |     50 | F      |         |             |
 | Grace |     60 | F      |         |             |
+| Wilma |        | F      |         |             |
 |       |        |        |      20 | Marketing   |
 |       |        |        |      40 | Empty       |
 +-------+--------+--------+---------+-------------+
-(7 rows)
+(8 rows)
 
 !ok
 

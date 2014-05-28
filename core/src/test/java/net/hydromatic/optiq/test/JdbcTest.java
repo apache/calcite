@@ -2992,14 +2992,15 @@ public class JdbcTest {
         + " count(*) over (partition by deptno order by ename) as m2,\n"
         + " count(*) over () as m3\n"
         + "from emp",
-        "ENAME=Adam ; DEPTNO=50; GENDER=M; M1=2; M2=1; M3=8",
-        "ENAME=Alice; DEPTNO=30; GENDER=F; M1=2; M2=1; M3=8",
-        "ENAME=Bob  ; DEPTNO=10; GENDER=M; M1=2; M2=1; M3=8",
-        "ENAME=Eric ; DEPTNO=20; GENDER=M; M1=1; M2=1; M3=8",
-        "ENAME=Eve  ; DEPTNO=50; GENDER=F; M1=2; M2=2; M3=8",
-        "ENAME=Grace; DEPTNO=60; GENDER=F; M1=1; M2=1; M3=8",
-        "ENAME=Jane ; DEPTNO=10; GENDER=F; M1=2; M2=2; M3=8",
-        "ENAME=Susan; DEPTNO=30; GENDER=F; M1=2; M2=2; M3=8");
+        "ENAME=Adam ; DEPTNO=50; GENDER=M; M1=2; M2=1; M3=9",
+        "ENAME=Alice; DEPTNO=30; GENDER=F; M1=2; M2=1; M3=9",
+        "ENAME=Bob  ; DEPTNO=10; GENDER=M; M1=2; M2=1; M3=9",
+        "ENAME=Eric ; DEPTNO=20; GENDER=M; M1=1; M2=1; M3=9",
+        "ENAME=Eve  ; DEPTNO=50; GENDER=F; M1=2; M2=2; M3=9",
+        "ENAME=Grace; DEPTNO=60; GENDER=F; M1=1; M2=1; M3=9",
+        "ENAME=Jane ; DEPTNO=10; GENDER=F; M1=2; M2=2; M3=9",
+        "ENAME=Susan; DEPTNO=30; GENDER=F; M1=2; M2=2; M3=9",
+        "ENAME=Wilma; DEPTNO=null; GENDER=F; M1=1; M2=1; M3=9");
   }
 
   /** Tests window aggregate whose argument is a constant. */
@@ -3135,6 +3136,35 @@ public class JdbcTest {
     predicate("\"name\" not in ('a', 'b', null) and \"name\" is not null");
   }
 
+  @Test public void testNotInEmptyQuery() {
+    // RHS is empty, therefore returns all rows from emp
+    checkOuter("select deptno from emp where deptno not in (\n"
+        + "select deptno from dept where deptno = -1)",
+        "DEPTNO=10",
+        "DEPTNO=10",
+        "DEPTNO=20",
+        "DEPTNO=30",
+        "DEPTNO=30",
+        "DEPTNO=50",
+        "DEPTNO=50",
+        "DEPTNO=60");
+  }
+
+  @Test public void testNotInQuery() {
+    checkOuter("select deptno from emp where deptno not in (\n"
+        + "select deptno from dept)",
+        "DEPTNO=50",
+        "DEPTNO=50",
+        "DEPTNO=60");
+  }
+
+  @Test public void testNotInQueryWithNull() {
+    // There is a NULL on the RHS, and '10 not in (20, null)' yields null,
+    // so no rows are returned.
+    checkOuter("select deptno from emp where deptno not in (\n"
+        + "select deptno from emp)");
+  }
+
   @Test public void testTrim() {
     OptiqAssert.that()
         .withModel(FOODMART_MODEL)
@@ -3263,6 +3293,7 @@ public class JdbcTest {
     // insert into emp values ('Adam', 50, 'M');
     // insert into emp values ('Eve', 50, 'F');
     // insert into emp values ('Grace', 60, 'F');
+    // insert into emp values ('Wilma', null, 'F');
     // create table dept (deptno int, dname varchar(12));
     // insert into dept values (10, 'Sales');
     // insert into dept values (20, 'Marketing');
@@ -3280,7 +3311,8 @@ public class JdbcTest {
             + "    ('Alice', 30, 'F'),\n"
             + "    ('Adam', 50, 'M'),\n"
             + "    ('Eve', 50, 'F'),\n"
-            + "    ('Grace', 60, 'F')),\n"
+            + "    ('Grace', 60, 'F'),\n"
+            + "    ('Wilma', cast(null as integer), 'F')),\n"
             + "  dept(deptno, dname) as (values\n"
             + "    (10, 'Sales'),\n"
             + "    (20, 'Marketing'),\n"

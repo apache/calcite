@@ -125,7 +125,8 @@ select *, rank() over (order by deptno) as c from emp;
  Adam  |     50 | M      | 6
  Eve   |     50 | F      | 6
  Grace |     60 | F      | 8
-(8 rows)
+ Wilma |        | F      | 9
+(9 rows)
 
 !ok
 # Optiq does not yet generate tied ranks
@@ -140,7 +141,8 @@ select *, dense_rank() over (order by deptno) as c from emp;
  Adam  |     50 | M      | 4
  Eve   |     50 | F      | 4
  Grace |     60 | F      | 5
-(8 rows)
+ Wilma |        | F      | 6
+(9 rows)
 
 !ok
 !if (false) {
