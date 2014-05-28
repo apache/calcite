@@ -18,6 +18,7 @@
 package net.hydromatic.optiq.rules.java;
 
 import net.hydromatic.linq4j.expressions.Expression;
+import net.hydromatic.linq4j.expressions.Expressions;
 
 import org.eigenbase.rel.Aggregation;
 
@@ -30,9 +31,7 @@ interface AggImplementor {
   Expression implementInit(RexToLixTranslator translator,
       Aggregation aggregation, Type returnType, List<Type> parameterTypes);
 
-  Expression implementAdd(RexToLixTranslator translator,
-      Aggregation aggregation, Expression accumulator,
-      List<Expression> arguments);
+  Expression implementAdd(AddInfo info);
 
   Expression implementInitAdd(RexToLixTranslator translator,
       Aggregation aggregation, Type returnType, List<Type> parameterTypes,
@@ -40,6 +39,56 @@ interface AggImplementor {
 
   Expression implementResult(RexToLixTranslator translator,
       Aggregation aggregation, Expression accumulator);
+
+  /** Information for a call to {@link AggImplementor#implementAdd(AddInfo)}. */
+  interface AddInfo {
+    RexToLixTranslator translator();
+    Aggregation aggregation();
+    Expression accumulator();
+    List<Expression> arguments();
+    Expression orderChanged();
+    Expression index();
+    Expression orderKeyStartIndex();
+  }
+
+  /** Helper class. */
+  class Impls {
+    private Impls() {}
+
+    static AddInfo add(final RexToLixTranslator translator,
+        final Aggregation aggregation, final List<Expression> arguments,
+        final Expression accumulator) {
+      return new AddInfo() {
+        public RexToLixTranslator translator() {
+          return translator;
+        }
+
+        public Aggregation aggregation() {
+          return aggregation;
+        }
+
+        public Expression accumulator() {
+          return accumulator;
+        }
+
+        public List<Expression> arguments() {
+          return arguments;
+        }
+
+        public Expression orderChanged() {
+          return RexImpTable.FALSE_EXPR;
+        }
+
+        public Expression index() {
+          return Expressions.constant(0);
+        }
+
+        public Expression orderKeyStartIndex() {
+          return index();
+        }
+      };
+    }
+  }
 }
 
 // End AggImplementor.java

@@ -23,9 +23,19 @@ import org.eigenbase.rel.Aggregation;
 
 /** Implements a windowed aggregate function. */
 interface WinAggImplementor extends AggImplementor {
-  Expression implementResultPlus(RexToLixTranslator translator,
-      Aggregation aggregation, Expression accumulator, Expression start,
-      Expression end, Expression rows, Expression current);
+  Expression implementResultPlus(ResultPlusInfo info);
+
+  /** Information for a call to
+   * {@link WinAggImplementor#implementResultPlus}. */
+  interface ResultPlusInfo {
+    RexToLixTranslator translator();
+    Aggregation aggregation();
+    Expression accumulator();
+    Expression start();
+    Expression end();
+    Expression rows();
+    Expression current();
+  }
 }
 
 // End WinAggImplementor.java

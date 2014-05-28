@@ -25,7 +25,9 @@ import org.eigenbase.relopt.RelTraitDef;
 import org.eigenbase.reltype.*;
 import org.eigenbase.util.Util;
 
+import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 
 /**
  * Simple implementation of {@link RelCollation}.
@@ -170,6 +172,16 @@ public class RelCollationImpl implements RelCollation {
       List<RelCollation> collationList1,
       List<RelCollation> collationList2) {
     return collationList1.equals(collationList2);
+  }
+
+  /** Returns the indexes of the field collations in a given collation. */
+  public static List<Integer> ordinals(RelCollation collation) {
+    return Lists.transform(collation.getFieldCollations(),
+        new Function<RelFieldCollation, Integer>() {
+          public Integer apply(RelFieldCollation input) {
+            return input.getFieldIndex();
+          }
+        });
   }
 }
 

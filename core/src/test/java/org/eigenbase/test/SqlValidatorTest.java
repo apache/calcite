@@ -3851,6 +3851,11 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
   @Test public void testWindowFunctions2() {
     List<String> defined = Arrays.asList("RANK", "ROW_NUMBER");
+    if (Bug.TODO_FIXED) {
+      checkColumnType(
+          "select rank() over (order by deptno) from emp",
+          "INTEGER NOT NULL");
+    }
     checkWin(
         "select rank() over w from emp\n"
         + "window w as ^(partition by sal)^, w2 as (w order by deptno)",

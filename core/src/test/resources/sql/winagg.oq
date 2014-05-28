@@ -114,6 +114,35 @@ select *, count(*) over (order by deptno) as c from emp;
 
 !ok
 !}
+select *, rank() over (order by deptno) as c from emp;
+ ENAME | DEPTNO | GENDER | C
+-------+--------+--------+---
+ Jane  |     10 | F      | 1
+ Bob   |     10 | M      | 1
+ Eric  |     20 | M      | 3
+ Susan |     30 | F      | 4
+ Alice |     30 | F      | 4
+ Adam  |     50 | M      | 6
+ Eve   |     50 | F      | 6
+ Grace |     60 | F      | 8
+(8 rows)
+
+!ok
+# Optiq does not yet generate tied ranks
+select *, dense_rank() over (order by deptno) as c from emp;
+ ENAME | DEPTNO | GENDER | C
+-------+--------+--------+---
+ Jane  |     10 | F      | 1
+ Bob   |     10 | M      | 1
+ Eric  |     20 | M      | 2
+ Susan |     30 | F      | 3
+ Alice |     30 | F      | 3
+ Adam  |     50 | M      | 4
+ Eve   |     50 | F      | 4
+ Grace |     60 | F      | 5
+(8 rows)
+
+!ok
 !if (false) {
 select *, count(*) over (order by deptno), first_value(ename) over (order by deptno rows 2 following) from emp;
  ERROR:  frame starting from following row cannot end with current row

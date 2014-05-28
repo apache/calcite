@@ -105,7 +105,7 @@ public class JdbcToEnumerableConverter
     if (fieldCount == 1) {
       final ParameterExpression value_ =
           Expressions.parameter(Object.class, builder.newName("value"));
-      builder.add(Expressions.declare(0, value_, null));
+      builder.add(Expressions.declare(Modifier.FINAL, value_, null));
       generateGet(implementor, physType, builder, resultSet_, 0, value_,
           calendar_, calendarPolicy);
       builder.add(Expressions.return_(null, value_));

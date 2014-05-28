@@ -216,9 +216,8 @@ public class PhysTypeImpl implements PhysType {
         Expressions.parameter(javaRowClass, "v1");
     final ParameterExpression parameterC =
         Expressions.parameter(int.class, "c");
-    body.add(
-        Expressions.declare(
-            0, parameterC, null));
+    final int mod = collations.size() == 1 ? Modifier.FINAL : 0;
+    body.add(Expressions.declare(mod, parameterC, null));
     for (RelFieldCollation collation : collations) {
       final int index = collation.getFieldIndex();
       Expression arg0 = fieldReference(parameterV0, index);
@@ -317,9 +316,9 @@ public class PhysTypeImpl implements PhysType {
         Expressions.parameter(javaRowClass, "v1");
     final ParameterExpression parameterC =
         Expressions.parameter(int.class, "c");
-    body.add(
-        Expressions.declare(
-            0, parameterC, null));
+    final int mod =
+        collation.getFieldCollations().size() == 1 ? Modifier.FINAL : 0;
+    body.add(Expressions.declare(mod, parameterC, null));
     for (RelFieldCollation fieldCollation : collation.getFieldCollations()) {
       final int index = fieldCollation.getFieldIndex();
       Expression arg0 = fieldReference(parameterV0, index);

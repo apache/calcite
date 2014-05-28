@@ -62,7 +62,7 @@ public abstract class ReturnTypes {
    * such as {@code DATE}.
    */
   public static ExplicitReturnTypeInference explicit(SqlTypeName typeName) {
-    return explicit(RelDataTypeImpl.proto(typeName));
+    return explicit(RelDataTypeImpl.proto(typeName, false));
   }
 
   /**
@@ -71,7 +71,7 @@ public abstract class ReturnTypes {
    */
   public static ExplicitReturnTypeInference explicit(SqlTypeName typeName,
       int precision) {
-    return explicit(RelDataTypeImpl.proto(typeName, precision));
+    return explicit(RelDataTypeImpl.proto(typeName, precision, false));
   }
 
   /**

@@ -32,8 +32,7 @@ import org.eigenbase.rex.*;
 import org.eigenbase.sql.*;
 import org.eigenbase.util.*;
 
-import java.lang.reflect.Method;
-import java.lang.reflect.Type;
+import java.lang.reflect.*;
 import java.math.BigDecimal;
 import java.util.*;
 
@@ -352,7 +351,7 @@ public class RexToLixTranslator {
       }
       ParameterExpression unboxed = Expressions.parameter(nullHandled.getType(),
           list.newName(unboxVarName));
-      list.add(Expressions.declare(0, unboxed, nullHandled));
+      list.add(Expressions.declare(Modifier.FINAL, unboxed, nullHandled));
 
       return unboxed;
     case LOCAL_REF:

@@ -267,9 +267,9 @@ public class EnumerableRelImplementor extends JavaRelImplementor {
     final BlockBuilder blockBuilder4 = new BlockBuilder();
     final ParameterExpression cParameter =
         Expressions.parameter(int.class, "c");
+    final int mod = type.getRecordFields().size() == 1 ? Modifier.FINAL : 0;
     blockBuilder4.add(
-        Expressions.declare(
-            0, cParameter, null));
+        Expressions.declare(mod, cParameter, null));
     final ConditionalStatement conditionalStatement =
         Expressions.ifThen(
             Expressions.notEqual(cParameter, constantZero),

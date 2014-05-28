@@ -386,7 +386,7 @@ public abstract class DiffTestCase {
    * Returns a string containing the difference between the contents of two
    * files. The string has a similar format to the UNIX 'diff' utility.
    */
-  private static String diff(File file1, File file2) {
+  public static String diff(File file1, File file2) {
     List<String> lines1 = fileLines(file1);
     List<String> lines2 = fileLines(file2);
     return diffLines(lines1, lines2);

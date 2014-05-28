@@ -50,6 +50,7 @@ import org.eigenbase.sql.*;
 import org.eigenbase.sql.advise.SqlAdvisorGetHintsFunction;
 import org.eigenbase.sql.parser.SqlParserUtil;
 import org.eigenbase.sql.type.SqlTypeName;
+import org.eigenbase.test.DiffTestCase;
 import org.eigenbase.util.Bug;
 import org.eigenbase.util.Pair;
 import org.eigenbase.util.Util;
@@ -57,7 +58,6 @@ import org.eigenbase.util.Util;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
-import com.google.common.io.Files;
 
 import org.hsqldb.jdbcDriver;
 import org.junit.Ignore;
@@ -3331,10 +3331,9 @@ public class JdbcTest {
             throw new RuntimeException("unknown connection '" + name + "'");
           }
         });
-    final byte[] inBytes = Files.toByteArray(inFile);
-    final byte[] outBytes = Files.toByteArray(outFile);
-    if (!Arrays.equals(inBytes, outBytes)) {
-      fail("Files differ: " + outFile + " " + inFile);
+    final String diff = DiffTestCase.diff(inFile, outFile);
+    if (!diff.isEmpty()) {
+      fail("Files differ: " + outFile + " " + inFile + "\n" + diff);
     }
   }
 

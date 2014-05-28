@@ -40,7 +40,9 @@ import org.eigenbase.sql.fun.SqlStdOperatorTable;
 import org.eigenbase.trace.EigenbaseTrace;
 import org.eigenbase.util.*;
 
+import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 
 import java.lang.reflect.*;
 import java.math.BigDecimal;
@@ -379,6 +381,43 @@ public class JavaRules {
         implementors.add(implementor2);
       }
       return implementors;
+    }
+
+    static Expression andList(List<Expression> list) {
+      Expression expression = null;
+      for (Expression e : list) {
+        expression = expression == null
+            ? e
+            : Expressions.andAlso(expression, e);
+      }
+      return expression;
+    }
+
+    static Expression optimizeAdd(Expression i_,
+        int offset,
+        Expression min_,
+        Expression max_) {
+      if (offset == 0) {
+        return i_;
+      } else if (offset < 0) {
+        return Expressions.call(null,
+            BuiltinMethod.MATH_MAX.method,
+            min_,
+            Expressions.subtract(i_, Expressions.constant(-offset)));
+      } else {
+        return Expressions.call(null,
+            BuiltinMethod.MATH_MIN.method,
+            max_,
+            Expressions.add(i_, Expressions.constant(offset)));
+      }
+    }
+
+    static Expression makeEquals(Expression e0, Expression e1) {
+      if (Primitive.is(e0.getType()) && Primitive.is(e1.getType())) {
+        return Expressions.equal(e0, e1);
+      } else {
+        return Expressions.call(BuiltinMethod.OBJECTS_EQUAL.method, e0, e1);
+      }
     }
   }
 
@@ -1054,11 +1093,13 @@ public class JavaRules {
         final Statement assign =
             Expressions.statement(
                 Expressions.assign(accumulator,
-                    ord.e.right.implementAdd(translator,
-                        ord.e.left.getAggregation(),
-                        Types.castIfNecessary(type, accumulator),
-                        inputPhysType.accessors(
-                            inParameter, ord.e.left.getArgList()))));
+                    ord.e.right.implementAdd(
+                        AggImplementor.Impls.add(
+                            translator,
+                            ord.e.left.getAggregation(),
+                            inputPhysType.accessors(
+                                inParameter, ord.e.left.getArgList()),
+                            Types.castIfNecessary(type, accumulator)))));
         if (conditions.isEmpty()) {
           builder2.add(assign);
         } else {
@@ -1741,7 +1782,7 @@ public class JavaRules {
           Types.toClass(expression.getType())) : expression.getType();
       builder.add(
           Expressions.declare(
-              0,
+              Modifier.FINAL,
               collectionParameter,
               Expressions.call(
                   expression,
@@ -2208,20 +2249,16 @@ public class JavaRules {
           builder4.add(Expressions.declare(0, parameter, initExpression));
         }
 
-        final List<Expression> expressions = new ArrayList<Expression>();
-        for (int i = 0; i < offset; i++) {
-          expressions.add(
-              inputPhysType.fieldReference(row_, i,
-                  outputPhysType.getJavaFieldType(i)));
-        }
+        final WinImpl win =
+            new WinImpl(typeFactory, builder4, window, rows_, i_, row_,
+                offset, inputPhysType, outputPhysType);
 
-        final PhysType finalInputPhysType = inputPhysType;
-        generateWindowLoop(translator, builder4, window, aggregateCalls,
-            implementors, variables, rows_, i_, row_, expressions,
+        generateWindowLoop(translator, builder4, aggregateCalls, implementors,
+            variables, win,
             new Function1<AggCallContext, Void>() {
-              public Void apply(AggCallContext a0) {
+              public Void apply(final AggCallContext a0) {
                 final int inputFieldCount =
-                    finalInputPhysType.getRowType().getFieldCount();
+                    win.inputPhysType.getRowType().getFieldCount();
                 for (final Ord<Pair<AggregateCall, AggImplementor>> ord
                     : Ord.zip(Pair.zip(aggregateCalls, implementors))) {
                   final Expression accumulator = variables.get(ord.i);
@@ -2229,10 +2266,10 @@ public class JavaRules {
                       new ArrayList<Expression>();
                   for (int arg : ord.e.left.getArgList()) {
                     if (arg < inputFieldCount) {
-                      if (finalInputPhysType.fieldNullable(arg)) {
+                      if (win.inputPhysType.fieldNullable(arg)) {
                         conditions.add(
                             Expressions.notEqual(
-                                finalInputPhysType.fieldReference(row_, arg),
+                                win.inputPhysType.fieldReference(row_, arg),
                                 Expressions.constant(null)));
                       }
                     } else {
@@ -2246,37 +2283,41 @@ public class JavaRules {
                       }
                     }
                   }
-                  final List<Integer> argList = ord.e.left.getArgList();
-                  final List<Expression> arguments =
-                    new AbstractList<Expression>() {
-                      @Override
-                      public Expression get(int index) {
-                        int arg = argList.get(index);
-                        if (arg < inputFieldCount) {
-                          return finalInputPhysType.fieldReference(row_,
-                              arg);
-                        }
-
-                        final RexLiteral const_ =
-                            constants.get(arg - inputFieldCount);
-                        return RexToLixTranslator.translateLiteral(
-                            const_, const_.getType(), typeFactory,
-                            RexImpTable.NullAs.NULL);
-                      }
-
-                      @Override
-                      public int size() {
-                        return argList.size();
-                      }
-                    };
-
                   final Statement assign =
                       Expressions.statement(
                           Expressions.assign(accumulator,
-                              ord.e.right.implementAdd(translator,
-                                  ord.e.left.getAggregation(),
-                                  accumulator,
-                                  arguments)));
+                              ord.e.right.implementAdd(
+                                  new AggImplementor.AddInfo() {
+                                    public RexToLixTranslator translator() {
+                                      return translator;
+                                    }
+
+                                    public Aggregation aggregation() {
+                                      return ord.e.left.getAggregation();
+                                    }
+
+                                    public Expression accumulator() {
+                                      return accumulator;
+                                    }
+
+                                    public List<Expression> arguments() {
+                                      return Lists.transform(
+                                          ord.e.left.getArgList(), win.getter);
+                                    }
+
+                                    public Expression orderChanged() {
+                                      return Expressions.equal(a0.index(),
+                                          a0.orderKeyStartIndex());
+                                    }
+
+                                    public Expression index() {
+                                      return a0.index();
+                                    }
+
+                                    public Expression orderKeyStartIndex() {
+                                      return a0.orderKeyStartIndex();
+                                    }
+                                  })));
                   if (conditions.isEmpty()) {
                     a0.builder().add(assign);
                   } else {
@@ -2294,7 +2335,7 @@ public class JavaRules {
                 Expressions.call(
                     list_,
                     BuiltinMethod.COLLECTION_ADD.method,
-                    outputPhysType.record(expressions))));
+                    outputPhysType.record(win.expressions))));
 
         builder3.add(
             Expressions.for_(
@@ -2334,13 +2375,137 @@ public class JavaRules {
       return implementor.result(inputPhysType, builder.toBlock());
     }
 
-    /** Generates the loop that computes aggregate functions over the window.
-     * Calls a callback to increment each aggregate function's accumulator. */
-    private void generateWindowLoop(RexToLixTranslator translator,
-        BlockBuilder builder, Window window, List<AggregateCall> aggregateCalls,
-        List<AggImplementor> implementors, List<ParameterExpression> variables,
-        Expression rows_, ParameterExpression i_, Expression row_,
-        List<Expression> expressions, Function1<AggCallContext, Void> f3) {
+    class WinImpl {
+      final BlockBuilder builder;
+      final Window window;
+      final Expression rowsX;
+      private final ParameterExpression iX;
+      private final Expression rowX;
+      private final int offset;
+      private final PhysType outputPhysType;
+      private final PhysType inputPhysType;
+      final Expression minX;
+      final Expression maxX;
+      final SqlWindow.OffsetRange offsetAndRange;
+      final Expression startX;
+      final Expression endX;
+      final DeclarationStatement jDecl;
+      final ParameterExpression jX;
+      final Expression row2X;
+      final DeclarationStatement orderStartDecl;
+      final Expression orderStartX;
+      final List<Expression> expressions = new ArrayList<Expression>();
+      final Function<Integer, Expression> getter;
+
+      WinImpl(final JavaTypeFactory typeFactory, BlockBuilder builder,
+          Window window, Expression rows_, ParameterExpression i_,
+          Expression row_, int offset, PhysType inputPhysType,
+          PhysType outputPhysType) {
+        this.builder = builder;
+        this.window = window;
+        this.rowsX = rows_;
+        this.iX = i_;
+        this.rowX = row_;
+        this.offset = offset;
+        this.outputPhysType = outputPhysType;
+        this.inputPhysType = inputPhysType;
+        if (this.window.orderKeys.getFieldCollations().isEmpty()) {
+          // If there is no ORDER BY, every row is effectively equal to the
+          // current row, so we disable range-checking.
+          //
+          // TODO: extend range to rows "equal to current row" even with ORDER
+          // BY
+          offsetAndRange = null;
+        } else {
+          offsetAndRange = SqlWindow.getOffsetAndRange(window.lowerBound,
+              window.upperBound, window.isRows);
+        }
+        minX = Expressions.constant(0);
+        maxX = Expressions.subtract(
+            Expressions.field(this.rowsX, "length"), Expressions.constant(1));
+        startX = builder.append(
+            "start",
+            offsetAndRange == null || offsetAndRange.range == Long.MAX_VALUE
+                ? minX
+                : EnumUtil.optimizeAdd(i_,
+                    (int) offsetAndRange.offset - (int) offsetAndRange.range,
+                    minX, maxX),
+            false);
+        endX = builder.append(
+            "end",
+            offsetAndRange == null
+                ? maxX
+                : EnumUtil.optimizeAdd(i_, (int) offsetAndRange.offset, minX,
+                    maxX),
+            false);
+        jDecl = Expressions.declare(0, "j", startX);
+        jX = jDecl.parameter;
+        this.row2X = builder.append("row2",
+            Expressions.convert_(
+                Expressions.arrayIndex(this.rowsX, jX), row_.getType()));
+        orderStartDecl = Expressions.declare(0, "orderStart", startX);
+        orderStartX = orderStartDecl.parameter;
+        for (int i = 0; i < offset; i++) {
+          expressions.add(
+              inputPhysType.fieldReference(
+                  row_, i,
+                  outputPhysType.getJavaFieldType(i)));
+        }
+        getter =
+            new Function<Integer, Expression>() {
+              public Expression apply(Integer arg) {
+                final int inputFieldCount =
+                    WinImpl.this.inputPhysType.getRowType().getFieldCount();
+                if (arg < inputFieldCount) {
+                  return WinImpl.this.inputPhysType.fieldReference(
+                      WinImpl.this.rowX, arg);
+                }
+
+                final RexLiteral const_ = constants.get(arg - inputFieldCount);
+                return RexToLixTranslator.translateLiteral(
+                    const_, const_.getType(), typeFactory,
+                    RexImpTable.NullAs.NULL);
+              }
+            };
+      }
+
+      public Expression lagExpression(int lag, int field) {
+        final Expression lagRow_ = RexToLixTranslator.convert(
+            Expressions.arrayIndex(
+                rowsX, lag == 0 ? jX : Expressions.subtract(
+                    jX, Expressions.constant(lag))),
+            inputPhysType.getJavaRowType());
+        return inputPhysType.fieldReference(
+            lagRow_, field, outputPhysType.getJavaFieldType(field));
+      }
+
+      public Expression isNewOrderKey() {
+        if (window.orderKeys.getFieldCollations().isEmpty()) {
+          return RexImpTable.FALSE_EXPR;
+        }
+        List<Expression> conditions = new ArrayList<Expression>();
+        for (RelFieldCollation field : window.orderKeys.getFieldCollations()) {
+          conditions.add(
+              EnumUtil.makeEquals(
+                  lagExpression(0, field.getFieldIndex()), lagExpression(
+                      1, field.getFieldIndex())));
+        }
+        Expression condition = Expressions.greaterThan(jX, startX);
+        return Expressions.andAlso(
+            condition,
+            Expressions.not(EnumUtil.andList(Lists.reverse(conditions))));
+      }
+    }
+
+    /**
+     * Generates the loop that computes aggregate functions over the window.
+     * Calls a callback to increment each aggregate function's accumulator.
+     */
+    private void generateWindowLoop(final RexToLixTranslator translator,
+        BlockBuilder builder, List<AggregateCall> aggregateCalls,
+        List<AggImplementor> implementors,
+        final List<ParameterExpression> variables,
+        final WinImpl win, Function1<AggCallContext, Void> f3) {
       //       int j = Math.max(0, i - 1);
       //       while (j <= i) {
       //         // <builder5>
@@ -2349,45 +2514,14 @@ public class JavaRules {
       //         ++count;
       //         ++j;
       //       }
-
-      final Expression min_ = Expressions.constant(0);
-      final Expression max_ =
-          Expressions.subtract(Expressions.field(rows_, "length"),
-              Expressions.constant(1));
-      final SqlWindow.OffsetRange offsetAndRange;
-      if (window.orderKeys.getFieldCollations().isEmpty()) {
-        // If there is no ORDER BY, every row is effectively equal to the
-        // current row, so we disable range-checking.
-        //
-        // TODO: extend range to rows "equal to current row" even with ORDER BY
-        offsetAndRange = null;
-      } else {
-        offsetAndRange =
-            SqlWindow.getOffsetAndRange(window.lowerBound, window.upperBound,
-                window.isRows);
-      }
-      final Expression start_ =
-          builder.append("start",
-              offsetAndRange == null || offsetAndRange.range == Long.MAX_VALUE
-              ? min_
-              : optimizeAdd(i_,
-                  (int) offsetAndRange.offset - (int) offsetAndRange.range,
-                  min_, max_),
-              false);
-      final Expression end_ =
-          builder.append("end",
-              offsetAndRange == null
-                  ? max_
-                  : optimizeAdd(i_, (int) offsetAndRange.offset, min_, max_),
-              false);
-      final DeclarationStatement jDecl = Expressions.declare(0, "j", start_);
-      final ParameterExpression j_ = jDecl.parameter;
-      final Expression row2_ = builder.append("row2",
-          Expressions.convert_(
-              Expressions.arrayIndex(rows_, j_),
-              row_.getType()));
-
       final BlockBuilder builder5 = new BlockBuilder();
+      final Expression test = win.isNewOrderKey();
+      if (test != RexImpTable.FALSE_EXPR) {
+        builder5.add(
+            Expressions.ifThen(
+                test, Expressions.statement(
+                    Expressions.assign(win.orderStartX, win.jX))));
+      }
       f3.apply(
           new AggCallContext() {
             public BlockBuilder builder() {
@@ -2395,59 +2529,73 @@ public class JavaRules {
             }
 
             public Expression index() {
-              return j_;
+              return win.jX;
             }
 
             public Expression current() {
-              return row2_;
+              return win.row2X;
             }
 
             public Expression isFirst() {
-              return Expressions.equal(j_, start_);
+              return Expressions.equal(win.jX, win.startX);
             }
 
             public Expression isLast() {
-              return Expressions.equal(j_, end_);
+              return Expressions.equal(win.jX, win.endX);
+            }
+
+            public Expression orderKeyStartIndex() {
+              return win.orderStartX;
             }
           });
 
       builder.add(
           Expressions.for_(
-              jDecl,
-              Expressions.lessThanOrEqual(j_, end_),
-              Expressions.preIncrementAssign(j_),
+              Arrays.asList(win.jDecl, win.orderStartDecl),
+              Expressions.lessThanOrEqual(win.jX, win.endX),
+              Expressions.preIncrementAssign(win.jX),
               builder5.toBlock()));
 
-      for (Ord<Pair<AggregateCall, AggImplementor>> ord
+      for (final Ord<Pair<AggregateCall, AggImplementor>> ord
           : Ord.zip(Pair.zip(aggregateCalls, implementors))) {
         final AggImplementor implementor2 = ord.e.right;
-        expressions.add(
-            implementor2 instanceof WinAggImplementor
-                ? ((WinAggImplementor) implementor2)
-                .implementResultPlus(translator,
-                    ord.e.left.getAggregation(), variables.get(ord.i),
-                    start_, end_, rows_, i_)
-                : implementor2.implementResult(translator,
-                    ord.e.left.getAggregation(), variables.get(ord.i)));
-      }
-    }
+        Expression x;
+        if (implementor2 instanceof WinAggImplementor) {
+          x = ((WinAggImplementor) implementor2).implementResultPlus(
+              new WinAggImplementor.ResultPlusInfo() {
+                public RexToLixTranslator translator() {
+                  return translator;
+                }
 
-    private Expression optimizeAdd(Expression i_,
-        int offset,
-        Expression min_,
-        Expression max_) {
-      if (offset == 0) {
-        return i_;
-      } else if (offset < 0) {
-        return Expressions.call(null,
-            BuiltinMethod.MATH_MAX.method,
-            min_,
-            Expressions.subtract(i_, Expressions.constant(-offset)));
-      } else {
-        return Expressions.call(null,
-            BuiltinMethod.MATH_MIN.method,
-            max_,
-            Expressions.add(i_, Expressions.constant(offset)));
+                public Aggregation aggregation() {
+                  return ord.e.left.getAggregation();
+                }
+
+                public Expression accumulator() {
+                  return variables.get(ord.i);
+                }
+
+                public Expression start() {
+                  return win.startX;
+                }
+
+                public Expression end() {
+                  return win.endX;
+                }
+
+                public Expression rows() {
+                  return win.rowsX;
+                }
+
+                public Expression current() {
+                  return win.iX;
+                }
+              });
+        } else {
+          x = implementor2.implementResult(
+              translator, ord.e.left.getAggregation(), variables.get(ord.i));
+        }
+        win.expressions.add(x);
       }
     }
   }
@@ -2735,6 +2883,9 @@ public class JavaRules {
     Expression current();
     Expression isFirst();
     Expression isLast();
+
+    /** The index at which the current ORDER BY key value started. */
+    Expression orderKeyStartIndex();
   }
 }
 
