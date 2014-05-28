@@ -19,12 +19,16 @@ package net.hydromatic.linq4j.test;
 
 import net.hydromatic.linq4j.expressions.*;
 
+import org.hamcrest.CoreMatchers;
 import org.junit.Before;
 import org.junit.Test;
+
+import java.lang.reflect.Modifier;
 
 import static net.hydromatic.linq4j.test.BlockBuilderBase.*;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
 
 /**
  * Tests expression inlining in BlockBuilder.
@@ -106,12 +110,28 @@ public class InlinerTest {
   }
 
   @Test public void testAssignInConditionOptimizedOut() {
+    checkAssignInConditionOptimizedOut(Modifier.FINAL,
+        "{\n"
+        + "  return 1 != a ? b : c;\n"
+        + "}\n");
+  }
+
+  @Test public void testAssignInConditionNotOptimizedWithoutFinal() {
+    checkAssignInConditionOptimizedOut(0,
+        "{\n"
+        + "  int t;\n"
+        + "  return (t = 1) != a ? b : c;\n"
+        + "}\n");
+  }
+
+  void checkAssignInConditionOptimizedOut(int modifiers, String s) {
     // int t;
     // return (t = 1) != a ? b : c
     final BlockBuilder builder = new BlockBuilder(true);
-    final ParameterExpression t = Expressions.parameter(int.class, "t");
+    final ParameterExpression t =
+        Expressions.parameter(int.class, "t");
 
-    builder.add(Expressions.declare(0, t, null));
+    builder.add(Expressions.declare(modifiers, t, null));
 
     Expression v = builder.append("v",
         Expressions.makeTernary(ExpressionType.Conditional,
@@ -121,11 +141,8 @@ public class InlinerTest {
             Expressions.parameter(int.class, "b"),
             Expressions.parameter(int.class, "c")));
     builder.add(Expressions.return_(null, v));
-    assertEquals(
-        "{\n"
-        + "  return 1 != a ? b : c;\n"
-        + "}\n",
-        Expressions.toString(builder.toBlock()));
+    assertThat(Expressions.toString(builder.toBlock()),
+        CoreMatchers.equalTo(s));
   }
 
   @Test public void testAssignInConditionMultipleUsageNonOptimized() {

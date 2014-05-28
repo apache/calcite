@@ -34,7 +34,7 @@ public abstract class Linq4j {
   private static final Method AUTO_CLOSEABLE_CLOSE_METHOD =
       getMethod("java.lang.AutoCloseable", "close");
 
-  private static Method getMethod(String className, String methodName,
+  public static Method getMethod(String className, String methodName,
       Class... parameterTypes) {
     try {
       return Class.forName(className).getMethod(methodName, parameterTypes);

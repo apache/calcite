@@ -231,11 +231,10 @@ public class BlockBuilder {
   }
 
   protected boolean isSafeForReuse(DeclarationStatement decl) {
-    return (decl.modifiers & Modifier.FINAL) != 0
-           && decl.initializer != null;
+    return (decl.modifiers & Modifier.FINAL) != 0;
   }
 
-  protected void addExpresisonForReuse(DeclarationStatement decl) {
+  protected void addExpressionForReuse(DeclarationStatement decl) {
     if (isSafeForReuse(decl)) {
       Expression expr = normalizeDeclaration(decl);
       expressionForReuse.put(expr, decl);
@@ -282,7 +281,7 @@ public class BlockBuilder {
       if (!variables.add(name)) {
         throw new AssertionError("duplicate variable " + name);
       }
-      addExpresisonForReuse(decl);
+      addExpressionForReuse(decl);
     }
   }
 
@@ -343,10 +342,14 @@ public class BlockBuilder {
         DeclarationStatement statement = (DeclarationStatement) oldStatement;
         final Slot slot = useCounter.map.get(statement.parameter);
         int count = slot == null ? Integer.MAX_VALUE - 10 : slot.count;
-        if (count > 1 && isSafeForReuse(statement)
-            && isSimpleExpression(statement.initializer)) {
+        if (count > 1 && isSimpleExpression(statement.initializer)) {
           // Inline simple final constants
           count = 1;
+        }
+        if (!isSafeForReuse(statement)) {
+          // Don't inline variables that are not final. They might be assigned
+          // more than once.
+          count = 100;
         }
         if (statement.parameter.name.startsWith("_")) {
           // Don't inline variables whose name begins with "_". This
@@ -397,7 +400,7 @@ public class BlockBuilder {
           }
           if (oldStatement != OptimizeVisitor.EMPTY_STATEMENT) {
             if (oldStatement instanceof DeclarationStatement) {
-              addExpresisonForReuse((DeclarationStatement) oldStatement);
+              addExpressionForReuse((DeclarationStatement) oldStatement);
             }
             statements.add(oldStatement);
           }

@@ -17,12 +17,17 @@
 */
 package net.hydromatic.linq4j.test;
 
+import net.hydromatic.linq4j.Linq4j;
 import net.hydromatic.linq4j.expressions.*;
 
 import org.junit.Test;
 
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
+
 import static net.hydromatic.linq4j.test.BlockBuilderBase.*;
 
+import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.*;
 
 /**
@@ -658,6 +663,78 @@ public class OptimizerTest {
     // Boolean.valueOf(false) -> false
     assertEquals("{\n  return false;\n}\n",
         optimize(Expressions.call(Boolean.class, "valueOf", FALSE)));
+  }
+
+  @Test public void testAssign() {
+    // long x = 0;
+    // final long y = System.currentTimeMillis();
+    // if (System.nanoTime() > 0) {
+    //   x = y;
+    // }
+    // System.out.println(x);
+    //
+    // In bug https://github.com/julianhyde/linq4j/issues/27, this was
+    // incorrectly optimized to
+    //
+    // if (System.nanoTime() > 0L) {
+    //    System.currentTimeMillis();
+    // }
+    // System.out.println(0L);
+    final ParameterExpression x_ = Expressions.parameter(long.class, "x");
+    final ParameterExpression y_ = Expressions.parameter(long.class, "y");
+    final Method mT = Linq4j.getMethod("java.lang.System", "currentTimeMillis");
+    final Method mNano = Linq4j.getMethod("java.lang.System", "nanoTime");
+    final ConstantExpression zero = Expressions.constant(0L);
+    assertThat(
+        optimize(
+            Expressions.block(
+                Expressions.declare(0, x_, zero),
+                Expressions.declare(Modifier.FINAL, y_, Expressions.call(mT)),
+                Expressions.ifThen(
+                    Expressions.greaterThan(Expressions.call(mNano), zero),
+                    Expressions.statement(Expressions.assign(x_, y_))),
+                Expressions.statement(
+                    Expressions.call(
+                        Expressions.field(null, System.class, "out"),
+                        "println",
+                        x_)))),
+        equalTo(
+            "{\n"
+            + "  long x = 0L;\n"
+            + "  if (System.nanoTime() > 0L) {\n"
+            + "    x = System.currentTimeMillis();\n"
+            + "  }\n"
+            + "  System.out.println(x);\n"
+            + "}\n"));
+  }
+
+  @Test public void testAssign2() {
+    // long x = 0;
+    // final long y = System.currentTimeMillis();
+    // if (System.currentTimeMillis() > 0) {
+    //   x = y;
+    // }
+    //
+    // Make sure we don't fold two calls to System.currentTimeMillis into one.
+    final ParameterExpression x_ = Expressions.parameter(long.class, "x");
+    final ParameterExpression y_ = Expressions.parameter(long.class, "y");
+    final Method mT = Linq4j.getMethod("java.lang.System", "currentTimeMillis");
+    final ConstantExpression zero = Expressions.constant(0L);
+    assertThat(
+        optimize(
+            Expressions.block(
+                Expressions.declare(0, x_, zero),
+                Expressions.declare(Modifier.FINAL, y_, Expressions.call(mT)),
+                Expressions.ifThen(
+                    Expressions.greaterThan(Expressions.call(mT), zero),
+                    Expressions.statement(Expressions.assign(x_, y_))))),
+        equalTo(
+            "{\n"
+            + "  long x = 0L;\n"
+            + "  if (System.currentTimeMillis() > 0L) {\n"
+            + "    x = System.currentTimeMillis();\n"
+            + "  }\n"
+            + "}\n"));
   }
 }
 
