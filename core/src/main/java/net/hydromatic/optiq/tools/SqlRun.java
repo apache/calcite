@@ -39,6 +39,7 @@ public class SqlRun {
   private Connection connection;
   private ConnectionFactory connectionFactory;
   private boolean execute = true;
+  private boolean skip = false;
 
   public SqlRun(BufferedReader reader, Writer writer) {
     this.reader = reader;
@@ -180,6 +181,9 @@ public class SqlRun {
         }
         if (line.startsWith("ok")) {
           return new CheckResultCommand(lines);
+        }
+        if (line.startsWith("skip")) {
+          return new SkipCommand(lines);
         }
         if (line.startsWith("set outputformat")) {
           String[] parts = line.split(" ");
@@ -527,7 +531,7 @@ public class SqlRun {
     }
   }
 
-  /** Command that executes a comment. (Does nothing.) */
+  /** Command that disables execution of a block. */
   class IfCommand extends AbstractCommand {
     private final List<String> ifLines;
     private final List<String> endLines;
@@ -542,12 +546,31 @@ public class SqlRun {
 
     public void execute() throws Exception {
       echo(ifLines);
-      // switch to a mode where we don't execute, just echo
+      // Switch to a mode where we don't execute, just echo.
       boolean oldExecute = execute;
-      execute = false;
+      if (!skip) {
+        // If "skip" is set, stay in the current mode.
+        execute = false;
+      }
       command.execute();
       execute = oldExecute;
       echo(endLines);
+    }
+  }
+
+  /** Command that switches to a mode where we skip executing the rest of the
+   * input. The input is still printed. */
+  class SkipCommand extends SimpleCommand {
+    public SkipCommand(List<String> lines) {
+      super(lines);
+    }
+
+    public void execute() throws Exception {
+      echo(lines);
+      // Switch to a mode where we don't execute, just echo.
+      // Set "skip" so we don't leave that mode.
+      skip = true;
+      execute = false;
     }
   }
 
