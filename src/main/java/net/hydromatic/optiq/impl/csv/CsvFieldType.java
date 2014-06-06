@@ -34,7 +34,7 @@ import java.util.Map;
  * makes it easier to write SQL.</p>
  */
 enum CsvFieldType {
-  STRING(null, String.class),
+  STRING(null, String.class, "string"),
   BOOLEAN(Primitive.BOOLEAN),
   BYTE(Primitive.BYTE),
   CHAR(Primitive.CHAR),
@@ -43,32 +43,32 @@ enum CsvFieldType {
   LONG(Primitive.LONG),
   FLOAT(Primitive.FLOAT),
   DOUBLE(Primitive.DOUBLE),
-  DATE(null, java.sql.Date.class),
-  TIME(null, java.sql.Time.class),
-  TIMESTAMP(null, java.sql.Timestamp.class);
+  DATE(null, java.sql.Date.class, "date"),
+  TIME(null, java.sql.Time.class, "time"),
+  TIMESTAMP(null, java.sql.Timestamp.class, "timestamp");
 
   private final Primitive primitive;
   private final Class clazz;
+  private final String simpleName;
 
   private static final Map<String, CsvFieldType> MAP =
     new HashMap<String, CsvFieldType>();
 
   static {
     for (CsvFieldType value : values()) {
-      MAP.put(value.clazz.getSimpleName(), value);
-      if (value.primitive != null) {
-        MAP.put(value.primitive.primitiveClass.getSimpleName(), value);
-      }
+      MAP.put(value.simpleName, value);
     }
   }
 
   CsvFieldType(Primitive primitive) {
-    this(primitive, primitive.boxClass);
+    this(primitive, primitive.boxClass,
+      primitive.primitiveClass.getSimpleName());
   }
 
-  CsvFieldType(Primitive primitive, Class clazz) {
+  CsvFieldType(Primitive primitive, Class clazz, String simpleName) {
     this.primitive = primitive;
     this.clazz = clazz;
+    this.simpleName = simpleName;
   }
 
   public RelDataType toType(JavaTypeFactory typeFactory) {

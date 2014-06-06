@@ -267,6 +267,60 @@ public class CsvTest {
         "select empno, slacker from emps where slacker",
         "EMPNO=100; SLACKER=true");
   }
+
+  @Test
+  public void testDateType() throws SQLException {
+
+    Properties info = new Properties();
+    info.put("model", "target/test-classes/bug.json");
+
+    Connection connection = DriverManager
+        .getConnection("jdbc:optiq:", info);
+
+    try {
+
+      ResultSet res = connection.getMetaData().getColumns(null, null,
+          "DATE", "JOINEDAT");
+      res.next();
+      Assert.assertEquals(res.getInt("DATA_TYPE"), java.sql.Types.DATE);
+
+      res = connection.getMetaData().getColumns(null, null,
+          "DATE", "JOINTIME");
+      res.next();
+      Assert.assertEquals(res.getInt("DATA_TYPE"), java.sql.Types.TIME);
+
+      res = connection.getMetaData().getColumns(null, null,
+          "DATE", "JOINTIMES");
+      res.next();
+      Assert.assertEquals(res.getInt("DATA_TYPE"), java.sql.Types.TIMESTAMP);
+
+      Statement statement = connection.createStatement();
+      ResultSet resultSet = statement.executeQuery(
+          "select \"JOINEDAT\", \"JOINTIME\", \"JOINTIMES\" from \"DATE\" where EMPNO = 100");
+      resultSet.next();
+
+      // date
+      Assert.assertEquals(java.sql.Date.class, resultSet.getDate(1).getClass());
+      Assert.assertEquals(java.sql.Date.valueOf("1996-08-03"),
+          resultSet.getDate(1));
+
+      // time
+      Assert.assertEquals(java.sql.Time.class, resultSet.getTime(2).getClass());
+      Assert.assertEquals(java.sql.Time.valueOf("00:01:02"),
+          resultSet.getTime(2));
+
+      // timestamp
+      Assert.assertEquals(java.sql.Timestamp.class,
+          resultSet.getTimestamp(3).getClass());
+      Assert.assertEquals(java.sql.Timestamp.valueOf("1996-08-03 00:01:02"),
+          resultSet.getTimestamp(3));
+
+    } finally {
+      connection.close();
+    }
+
+
+  }
 }
 
 // End CsvTest.java

@@ -21,13 +21,32 @@ import net.hydromatic.linq4j.Enumerator;
 
 import au.com.bytecode.opencsv.CSVReader;
 
+import org.apache.commons.lang3.time.FastDateFormat;
+
 import java.io.*;
+import java.text.ParseException;
+import java.util.Date;
+import java.util.TimeZone;
+
 
 /** Enumerator that reads from a CSV file. */
 class CsvEnumerator implements Enumerator<Object> {
   private final CSVReader reader;
   private final RowConverter rowConverter;
   private Object current;
+
+  private static final FastDateFormat TIME_FORMAT_DATE;
+  private static final FastDateFormat TIME_FORMAT_TIME;
+  private static final FastDateFormat TIME_FORMAT_TIMESTAMP;
+
+  static {
+
+    TimeZone gmt = TimeZone.getTimeZone("GMT");
+    TIME_FORMAT_DATE = FastDateFormat.getInstance("yyyy-MM-dd", gmt);
+    TIME_FORMAT_TIME = FastDateFormat.getInstance("hh:mm:ss", gmt);
+    TIME_FORMAT_TIMESTAMP = FastDateFormat.getInstance(
+        "yyyy-MM-dd hh:mm:ss", gmt);
+  }
 
   public CsvEnumerator(File file, CsvFieldType[] fieldTypes) {
     this(file, fieldTypes, identityList(fieldTypes.length));
@@ -131,6 +150,40 @@ class CsvEnumerator implements Enumerator<Object> {
           return null;
         }
         return Double.parseDouble(string);
+      case DATE:
+        if (string.length() == 0) {
+          return null;
+        }
+
+        try {
+          Date date = TIME_FORMAT_DATE.parse(string);
+          return new java.sql.Date(date.getTime());
+        } catch (ParseException e) {
+          return null;
+        }
+
+      case TIME:
+        if (string.length() == 0) {
+          return null;
+        }
+
+        try {
+          Date date = TIME_FORMAT_TIME.parse(string);
+          return new java.sql.Time(date.getTime());
+        } catch (ParseException e) {
+          return null;
+        }
+
+      case TIMESTAMP:
+        if (string.length() == 0) {
+          return null;
+        }
+        try {
+          Date date = TIME_FORMAT_TIMESTAMP.parse(string);
+          return new java.sql.Timestamp(date.getTime());
+        } catch (ParseException e) {
+          return null;
+        }
       }
     }
   }
