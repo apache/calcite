@@ -22,6 +22,8 @@ import java.util.*;
 import org.eigenbase.reltype.*;
 import org.eigenbase.util.Util;
 
+import com.google.common.base.Predicates;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
@@ -52,6 +54,10 @@ public class SqlTypeExplicitPrecedenceList
           null,
           SqlTypeName.FLOAT,
           SqlTypeName.DOUBLE);
+
+  private static final List<SqlTypeName> COMPACT_NUMERIC_TYPES =
+      ImmutableList.copyOf(
+          Iterables.filter(NUMERIC_TYPES, Predicates.notNull()));
 
   /**
    * Map from SqlTypeName to corresponding precedence list.
@@ -100,8 +106,9 @@ public class SqlTypeExplicitPrecedenceList
   }
 
   private static SqlTypeExplicitPrecedenceList numeric(SqlTypeName typeName) {
-    int i = getListPosition(typeName, NUMERIC_TYPES);
-    return new SqlTypeExplicitPrecedenceList(Util.skip(NUMERIC_TYPES, i));
+    int i = getListPosition(typeName, COMPACT_NUMERIC_TYPES);
+    return new SqlTypeExplicitPrecedenceList(
+        Util.skip(COMPACT_NUMERIC_TYPES, i));
   }
 
   // implement RelDataTypePrecedenceList
