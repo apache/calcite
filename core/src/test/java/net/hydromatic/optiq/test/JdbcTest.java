@@ -3898,6 +3898,24 @@ public class JdbcTest {
             + "           className: '"
             + MyDoubleFunction.class.getName()
             + "'\n"
+            + "         },\n"
+            + "         {\n"
+            + "           name: 'COUNT_ARGS',\n"
+            + "           className: '"
+            + CountArgs0Function.class.getName()
+            + "'\n"
+            + "         },\n"
+            + "         {\n"
+            + "           name: 'COUNT_ARGS',\n"
+            + "           className: '"
+            + CountArgs1Function.class.getName()
+            + "'\n"
+            + "         },\n"
+            + "         {\n"
+            + "           name: 'COUNT_ARGS',\n"
+            + "           className: '"
+            + CountArgs2Function.class.getName()
+            + "'\n"
             + "         }\n"
             + "       ]\n"
             + "     }\n"
@@ -3986,6 +4004,22 @@ public class JdbcTest {
         + "where \"adhoc\".my_str(\"name\") is null")
         .returns(
             "P=null\n");
+  }
+
+  /** Tests a user-defined function that has multiple overloads. */
+  @Test public void testUdfOverloaded() {
+    final OptiqAssert.AssertThat with = withUdf();
+    with.query(
+        "values (\"adhoc\".count_args(),\n"
+        + " \"adhoc\".count_args(0),\n"
+        + " \"adhoc\".count_args(0, 0))")
+        .returns("EXPR$0=0; EXPR$1=1; EXPR$2=2\n");
+    with.query(
+        "select max(\"adhoc\".count_args()) as p0,\n"
+        + " min(\"adhoc\".count_args(0)) as p1,\n"
+        + " max(\"adhoc\".count_args(0, 0)) as p2\n"
+        + "from \"adhoc\".EMPLOYEES limit 1")
+        .returns("P0=0; P1=1; P2=2\n");
   }
 
   /** Test for {@link EigenbaseNewResource#requireDefaultConstructor(String)}. */
@@ -5148,6 +5182,33 @@ public class JdbcTest {
 
     public static int eval(int x) {
       return x * 2;
+    }
+  }
+
+  /** Example of a UDF that has overloaded UDFs (same name, different args). */
+  public abstract static class CountArgs0Function {
+    private CountArgs0Function() {}
+
+    public static int eval() {
+      return 0;
+    }
+  }
+
+  /** See {@link CountArgs0Function}. */
+  public abstract static class CountArgs1Function {
+    private CountArgs1Function() {}
+
+    public static int eval(int x) {
+      return 1;
+    }
+  }
+
+  /** See {@link CountArgs0Function}. */
+  public abstract static class CountArgs2Function {
+    private CountArgs2Function() {}
+
+    public static int eval(int x, int y) {
+      return 2;
     }
   }
 
