@@ -20,9 +20,11 @@ package org.eigenbase.sql;
 import java.util.List;
 
 import org.eigenbase.reltype.RelDataType;
+import org.eigenbase.sql.type.BasicSqlType;
 import org.eigenbase.sql.type.SqlOperandTypeChecker;
 import org.eigenbase.sql.type.SqlOperandTypeInference;
 import org.eigenbase.sql.type.SqlReturnTypeInference;
+import org.eigenbase.sql.type.SqlTypeName;
 
 /**
  * Placeholder for an unresolved function.
@@ -53,6 +55,19 @@ public class SqlUnresolvedFunction extends SqlFunction {
     super(sqlIdentifier, returnTypeInference, operandTypeInference,
         operandTypeChecker, paramTypes, funcType);
   }
+
+  /**
+   * The operator class for this function isn't resolved to the
+   * correct class. This happens in the case of user defined
+   * functions. Return the return type to be 'ANY', so we don't
+   * fail.
+   */
+  @Override
+  public RelDataType inferReturnType(
+      SqlOperatorBinding opBinding) {
+    return new BasicSqlType(SqlTypeName.ANY);
+  }
+
 }
 
 // End SqlUnresolvedFunction.java
