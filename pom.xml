@@ -40,11 +40,11 @@
 
   <mailingLists>
     <mailingList>
-      <name>Optiq developers list</name>
-      <subscribe>optiq-dev-subscribe@googlegroups.com</subscribe>
-      <unsubscribe>optiq-dev-unsubscribe@googlegroups.com</unsubscribe>
-      <post>optiq-dev@googlegroups.com</post>
-      <archive>http://groups.google.com/group/optiq-dev</archive>
+      <name>Apache Optiq developers list</name>
+      <subscribe>dev-subscribe@optiq.incubator.apache.org</subscribe>
+      <unsubscribe>dev-unsubscribe@optiq.incubator.apache.org</unsubscribe>
+      <post>dev@optiq.incubator.apache.org</post>
+      <archive>http://mail-archives.apache.org/mod_mbox/incubator-optiq-dev</archive>
     </mailingList>
   </mailingLists>
 

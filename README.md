@@ -183,17 +183,29 @@ For more details, see the <a href="REFERENCE.md">Reference guide</a>.
 * License: Apache License, Version 2.0.
 * Author: Julian Hyde
 * Blog: http://julianhyde.blogspot.com
+* Incubation status page: http://incubator.apache.org/projects/optiq.html
 * Project page: http://www.hydromatic.net/optiq
 * Source code: http://github.com/julianhyde/optiq
-* Developers list: http://groups.google.com/group/optiq-dev
+* Developers list: <a href="mailto:dev@optiq.incubator.apache.org">dev at optiq.incubator.apache.org</a> (<a href="http://mail-archives.apache.org/mod_mbox/incubator-optiq-dev/">archive</a>, <a href="mailto:dev-subscribe@optiq.incubator.apache.org">subscribe</a>)
 * <a href="HOWTO.md">HOWTO</a>
 * <a href="MODEL.md">JSON model</a>
 * <a href="REFERENCE.md">Reference guide</a>
 * <a href="HISTORY.md">Release notes and history</a>
 
+### Pre-Apache resources
+
+These resources, which we used before Optiq was an Apache incubator
+project, are for reference only.
+They may be out of date.
+Please don't post to the mailing list.
+
+* Developers list: <a href="http://groups.google.com/group/optiq-dev">optiq-dev@googlegroups.com</a>
+
 ### Presentations
 
-* <a href="http://www.slideshare.net/julianhyde/how-to-integrate-splunk-with-any-data-solution">Splunk 2012 User Conference</a>
-* <a href="https://github.com/julianhyde/share/blob/master/slides/optiq-drill-user-group-2013.pdf?raw=true">Drill / SQL / Optiq</a>
-* <a href="https://github.com/julianhyde/share/blob/master/slides/optiq-richrelevance-2013.pdf?raw=true">SQL on Big Data using Optiq</a>
-* <a href="https://github.com/julianhyde/share/blob/master/slides/optiq-nosql-now-2013.pdf?raw=true">SQL Now!</a>
+* <a href="http://www.slideshare.net/julianhyde/how-to-integrate-splunk-with-any-data-solution">How to integrate Splunk with any data solution</a> (Splunk User Conference, 2012)
+* <a href="https://github.com/julianhyde/share/blob/master/slides/optiq-drill-user-group-2013.pdf?raw=true">Drill / SQL / Optiq</a> (2013)
+* <a href="https://github.com/julianhyde/share/blob/master/slides/optiq-richrelevance-2013.pdf?raw=true">SQL on Big Data using Optiq</a> (2013)
+* <a href="https://github.com/julianhyde/share/blob/master/slides/optiq-nosql-now-2013.pdf?raw=true">SQL Now!</a> (NoSQL Now! conference, 2013)
+* <a href="https://github.com/julianhyde/share/blob/master/slides/hive-cbo-summit-2014.pdf?raw=true">Cost-based optimization in Hive</a> (Hadoop Summit, 2014)
+* <a href="https://github.com/julianhyde/share/blob/master/slides/dmmq-summit-2014.pdf?raw=true">Discardable, in-memory materialized query for Hadoop</a> (Hadoop Summit, 2014)
