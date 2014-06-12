@@ -205,8 +205,7 @@ public class PushSemiJoinPastJoinRule extends RelOptRule {
     for (int i = nFieldsX; i < (nFieldsX + nFieldsY); i++) {
       adjustments[i] = adjustY;
     }
-    for (
-        int i = nFieldsX + nFieldsY;
+    for (int i = nFieldsX + nFieldsY;
         i < (nFieldsX + nFieldsY + nFieldsZ);
         i++) {
       adjustments[i] = adjustZ;

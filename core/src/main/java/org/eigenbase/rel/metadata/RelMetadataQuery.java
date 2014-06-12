@@ -25,6 +25,8 @@ import org.eigenbase.rex.*;
 import org.eigenbase.sql.*;
 import org.eigenbase.stat.*;
 
+import com.google.common.collect.Iterables;
+
 /**
  * RelMetadataQuery provides a strongly-typed facade on top of {@link
  * RelMetadataProvider} for the set of relational expression metadata queries
@@ -155,6 +157,48 @@ public abstract class RelMetadataQuery {
     final BuiltInMetadata.ColumnOrigin metadata =
         rel.metadata(BuiltInMetadata.ColumnOrigin.class);
     return metadata.getColumnOrigins(column);
+  }
+
+  /**
+   * Determines the origin of a column, provided the column maps to a single
+   * column that isn't derived.
+   *
+   * @see #getColumnOrigins(org.eigenbase.rel.RelNode, int)
+   *
+   * @param rel the RelNode of the column
+   * @param column the offset of the column whose origin we are trying to
+   * determine
+   *
+   * @return the origin of a column provided it's a simple column; otherwise,
+   * returns null
+   */
+  public static RelColumnOrigin getColumnOrigin(RelNode rel, int column) {
+    final Set<RelColumnOrigin> origins = getColumnOrigins(rel, column);
+    if (origins == null || origins.size() != 1) {
+      return null;
+    }
+    final RelColumnOrigin origin = Iterables.getOnlyElement(origins);
+    return origin.isDerived() ? null : origin;
+  }
+
+  /**
+   * Determines the origin of a {@link RelNode}, provided it maps to a single
+   * table, optionally with filtering and projection.
+   *
+   * @param rel the RelNode
+   *
+   * @return the table, if the RelNode is a simple table; otherwise null
+   */
+  public static RelOptTable getTableOrigin(RelNode rel) {
+    // Determine the simple origin of the first column in the
+    // RelNode.  If it's simple, then that means that the underlying
+    // table is also simple, even if the column itself is derived.
+    final Set<RelColumnOrigin> colOrigins =
+        getColumnOrigins(rel, 0);
+    if (colOrigins == null || colOrigins.size() == 0) {
+      return null;
+    }
+    return colOrigins.iterator().next().getOriginTable();
   }
 
   /**

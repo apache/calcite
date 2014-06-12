@@ -351,8 +351,7 @@ public class UtilTest {
     properties.put("foo", "george");
     properties.put("bar", "ringo");
     StringBuilder sb = new StringBuilder();
-    for (
-        Map.Entry<String, String> entry : Util.toMap(properties).entrySet()) {
+    for (Map.Entry<String, String> entry : Util.toMap(properties).entrySet()) {
       sb.append(entry.getKey()).append("=").append(entry.getValue());
       sb.append(";");
     }
@@ -362,10 +361,8 @@ public class UtilTest {
 
     properties.put("nonString", 34);
     try {
-      for (
-          Map.Entry<String, String> entry
-          : Util.toMap(properties).entrySet()) {
-        String s = entry.getValue();
+      for (Map.Entry<String, String> e : Util.toMap(properties).entrySet()) {
+        String s = e.getValue();
         Util.discard(s);
       }
       fail("expected exception");

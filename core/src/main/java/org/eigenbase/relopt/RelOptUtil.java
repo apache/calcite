@@ -2210,10 +2210,7 @@ public abstract class RelOptUtil {
     int currInput = -1;
     int startField = 0;
     int nFields = 0;
-    for (
-        int bit = inputRefs.nextSetBit(0);
-        bit >= 0;
-        bit = inputRefs.nextSetBit(bit + 1)) {
+    for (int bit : BitSets.toIter(inputRefs)) {
       while (bit >= (startField + nFields)) {
         startField += nFields;
         currInput++;
@@ -2516,8 +2513,8 @@ public abstract class RelOptUtil {
     protected final RexBuilder rexBuilder;
     private final List<RelDataTypeField> srcFields;
     protected final List<RelDataTypeField> destFields;
-    private final RelDataTypeField[] leftDestFields;
-    private final RelDataTypeField[] rightDestFields;
+    private final List<RelDataTypeField> leftDestFields;
+    private final List<RelDataTypeField> rightDestFields;
     private final int nLeftDestFields;
     private final int[] adjustments;
 
@@ -2541,8 +2538,8 @@ public abstract class RelOptUtil {
         RexBuilder rexBuilder,
         List<RelDataTypeField> srcFields,
         List<RelDataTypeField> destFields,
-        RelDataTypeField[] leftDestFields,
-        RelDataTypeField[] rightDestFields,
+        List<RelDataTypeField> leftDestFields,
+        List<RelDataTypeField> rightDestFields,
         int[] adjustments) {
       this.rexBuilder = rexBuilder;
       this.srcFields = srcFields;
@@ -2554,15 +2551,15 @@ public abstract class RelOptUtil {
         nLeftDestFields = 0;
       } else {
         assert destFields == null;
-        nLeftDestFields = leftDestFields.length;
+        nLeftDestFields = leftDestFields.size();
       }
     }
 
     public RexInputConverter(
         RexBuilder rexBuilder,
         List<RelDataTypeField> srcFields,
-        RelDataTypeField[] leftDestFields,
-        RelDataTypeField[] rightDestFields,
+        List<RelDataTypeField> leftDestFields,
+        List<RelDataTypeField> rightDestFields,
         int[] adjustments) {
       this(
           rexBuilder,
@@ -2597,10 +2594,10 @@ public abstract class RelOptUtil {
         type = destFields.get(destIndex).getType();
       } else if (leftDestFields != null) {
         if (destIndex < nLeftDestFields) {
-          type = leftDestFields[destIndex].getType();
+          type = leftDestFields.get(destIndex).getType();
         } else {
           type =
-              rightDestFields[destIndex - nLeftDestFields].getType();
+              rightDestFields.get(destIndex - nLeftDestFields).getType();
         }
       } else {
         type = srcFields.get(srcIndex).getType();

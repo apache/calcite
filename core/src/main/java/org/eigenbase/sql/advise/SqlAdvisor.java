@@ -80,9 +80,8 @@ public class SqlAdvisor {
     // search backward starting from current position to find a "word"
     int wordStart = cursor;
     boolean quoted = false;
-    while (
-        (wordStart > 0)
-            && Character.isJavaIdentifierPart(sql.charAt(wordStart - 1))) {
+    while (wordStart > 0
+        && Character.isJavaIdentifierPart(sql.charAt(wordStart - 1))) {
       --wordStart;
     }
     if ((wordStart > 0)
@@ -98,9 +97,8 @@ public class SqlAdvisor {
     // Search forwards to the end of the word we should remove. Eat up
     // trailing double-quote, if any
     int wordEnd = cursor;
-    while (
-        (wordEnd < sql.length())
-            && Character.isJavaIdentifierPart(sql.charAt(wordEnd))) {
+    while (wordEnd < sql.length()
+        && Character.isJavaIdentifierPart(sql.charAt(wordEnd))) {
       ++wordEnd;
     }
     if (quoted

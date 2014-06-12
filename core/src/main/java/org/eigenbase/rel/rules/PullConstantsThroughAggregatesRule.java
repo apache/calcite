@@ -139,8 +139,7 @@ public class PullConstantsThroughAggregatesRule extends RelOptRule {
 
       // Ensure that the first positions in the mapping are for the new
       // group columns.
-      for (
-          int i = 0, groupOrdinal = 0, constOrdinal = newGroupCount;
+      for (int i = 0, groupOrdinal = 0, constOrdinal = newGroupCount;
           i < groupCount;
           ++i) {
         if (i >= groupCount) {

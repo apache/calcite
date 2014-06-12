@@ -1070,8 +1070,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
       SortedMap<CorrelatorRel.Correlation, Integer>
           rightChildMapCorVarToOutputPos =
           mapNewRelToMapCorVarToOutputPos.get(newRightRel);
-      for (
-          CorrelatorRel.Correlation corVar
+      for (CorrelatorRel.Correlation corVar
           : rightChildMapCorVarToOutputPos.keySet()) {
         oldRightPos = rightChildMapCorVarToOutputPos.get(corVar);
         mapCorVarToOutputPos.put(

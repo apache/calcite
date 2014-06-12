@@ -297,8 +297,7 @@ public abstract class CalcRelSplitter {
       for (;; ++level) {
         if (level >= levelCount) {
           // This is a new level. We can use any reltype we like.
-          for (
-              int relTypeOrdinal = 0;
+          for (int relTypeOrdinal = 0;
               relTypeOrdinal < relTypes.length;
               relTypeOrdinal++) {
             if (!relTypesPossibleForTopLevel[relTypeOrdinal]) {
@@ -324,8 +323,7 @@ public abstract class CalcRelSplitter {
               }
 
               // Successive reltypes may be possible.
-              for (
-                  int j = relTypeOrdinal + 1;
+              for (int j = relTypeOrdinal + 1;
                   j < relTypes.length;
                   ++j) {
                 if (relTypesPossibleForTopLevel[j]) {

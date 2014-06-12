@@ -1098,9 +1098,8 @@ public class RhBase64 {
             int b = 0;
             do {
               b = in.read();
-            } while (
-                (b >= 0)
-                    && (DECODABET[b & 0x7f] <= WHITE_SPACE_ENC));
+            } while ((b >= 0)
+                && (DECODABET[b & 0x7f] <= WHITE_SPACE_ENC));
 
             if (b < 0) {
               break; // Reads a -1 if end of stream

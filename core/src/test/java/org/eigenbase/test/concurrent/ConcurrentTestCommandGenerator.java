@@ -678,10 +678,8 @@ public class ConcurrentTestCommandGenerator {
         if (failPattern == null) {
           matches = true; // by default
         } else {
-          for (
-              SQLException err2 = err;
-              err2 != null;
-              err2 = err2.getNextException()) {
+          for (SQLException err2 = err; err2 != null;
+               err2 = err2.getNextException()) {
             String msg = err2.getMessage();
             if (msg != null) {
               matches = failPattern.matcher(msg).find();
@@ -1232,9 +1230,8 @@ public class ConcurrentTestCommandGenerator {
           resultRowIter = resultRow.iterator();
         }
 
-        while (
-            ((expectedRowIter != null) && expectedRowIter.hasNext())
-                || ((resultRowIter != null) && resultRowIter.hasNext())) {
+        while (((expectedRowIter != null) && expectedRowIter.hasNext())
+            || ((resultRowIter != null) && resultRowIter.hasNext())) {
           Object expectedObject =
               expectedRowIter != null ? expectedRowIter.next() : "";
 

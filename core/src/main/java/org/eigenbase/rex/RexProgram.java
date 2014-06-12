@@ -559,9 +559,7 @@ public class RexProgram {
     for (RelCollation collation : inputCollations) {
       final ArrayList<RelFieldCollation> fieldCollations =
           new ArrayList<RelFieldCollation>(0);
-      for (
-          RelFieldCollation fieldCollation
-          : collation.getFieldCollations()) {
+      for (RelFieldCollation fieldCollation : collation.getFieldCollations()) {
         final int source = fieldCollation.getFieldIndex();
         final int target = targets[source];
         if (target < 0) {
