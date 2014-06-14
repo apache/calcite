@@ -17,10 +17,10 @@
 */
 package org.eigenbase.sql;
 
-import java.util.Arrays;
 import java.util.List;
 
 import org.eigenbase.sql.parser.SqlParserPos;
+import org.eigenbase.util.UnmodifiableArrayList;
 
 /**
  * Implementation of {@link SqlCall} that keeps its operands in an array.
@@ -76,7 +76,7 @@ public class SqlBasicCall extends SqlCall {
   }
 
   public List<SqlNode> getOperandList() {
-    return Arrays.asList(operands);
+    return UnmodifiableArrayList.of(operands); // not immutable, but quick
   }
 
   @SuppressWarnings("unchecked")

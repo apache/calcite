@@ -39,6 +39,8 @@ import org.eigenbase.sql.validate.SqlValidatorUtil;
 import org.eigenbase.trace.EigenbaseTrace;
 import org.eigenbase.util.*;
 
+import com.google.common.collect.ImmutableList;
+
 import java.util.*;
 import java.util.logging.Logger;
 
@@ -56,7 +58,7 @@ public class JdbcRules {
   private static final SqlParserPos POS = SqlParserPos.ZERO;
 
   public static List<RelOptRule> rules(JdbcConvention out) {
-    return Arrays.<RelOptRule>asList(
+    return ImmutableList.<RelOptRule>of(
         new JdbcToEnumerableConverterRule(out),
         new JdbcJoinRule(out),
         new JdbcCalcRule(out),

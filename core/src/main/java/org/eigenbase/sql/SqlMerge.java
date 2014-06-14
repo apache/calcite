@@ -21,6 +21,7 @@ import java.util.*;
 
 import org.eigenbase.sql.parser.*;
 import org.eigenbase.sql.validate.*;
+import org.eigenbase.util.ImmutableNullableList;
 import org.eigenbase.util.Pair;
 
 /**
@@ -70,8 +71,8 @@ public class SqlMerge extends SqlCall {
   }
 
   public List<SqlNode> getOperandList() {
-    return Arrays.asList(targetTable, condition, source, updateCall, insertCall,
-        sourceSelect, alias);
+    return ImmutableNullableList.of(targetTable, condition, source, updateCall,
+        insertCall, sourceSelect, alias);
   }
 
   @Override

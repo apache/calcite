@@ -17,11 +17,11 @@
 */
 package org.eigenbase.sql.fun;
 
-import java.util.Arrays;
 import java.util.List;
 
 import org.eigenbase.sql.*;
 import org.eigenbase.sql.parser.*;
+import org.eigenbase.util.UnmodifiableArrayList;
 
 /**
  * A <code>SqlCase</code> is a node of a parse tree which represents a case
@@ -98,7 +98,7 @@ public class SqlCase extends SqlCall {
   }
 
   public List<SqlNode> getOperandList() {
-    return Arrays.asList(value, whenList, thenList, elseExpr);
+    return UnmodifiableArrayList.of(value, whenList, thenList, elseExpr);
   }
 
   @Override public void setOperand(int i, SqlNode operand) {

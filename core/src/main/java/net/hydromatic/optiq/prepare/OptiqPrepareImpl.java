@@ -937,7 +937,7 @@ public class OptiqPrepareImpl implements OptiqPrepare {
     private RexNode binary(Expression expression, SqlBinaryOperator op) {
       BinaryExpression call = (BinaryExpression) expression;
       return rexBuilder.makeCall(
-          op, toRex(Arrays.asList(call.expression0, call.expression1)));
+          op, toRex(ImmutableList.of(call.expression0, call.expression1)));
     }
 
     private List<RexNode> toRex(List<Expression> expressions) {

@@ -79,7 +79,7 @@ public class TableMacroImpl extends ReflectiveFunctionBase
       return (TranslatableTable) method.invoke(o, arguments.toArray());
     } catch (IllegalArgumentException e) {
       throw new RuntimeException("Expected "
-          + Arrays.asList(method.getParameterTypes()) + " actual "
+          + Arrays.toString(method.getParameterTypes()) + " actual "
           + arguments,
           e);
     } catch (IllegalAccessException e) {

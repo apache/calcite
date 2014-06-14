@@ -17,10 +17,10 @@
 */
 package org.eigenbase.sql;
 
-import java.util.Arrays;
 import java.util.List;
 
 import org.eigenbase.sql.parser.SqlParserPos;
+import org.eigenbase.util.ImmutableNullableList;
 
 /**
  * An item in a WITH clause of a query.
@@ -46,7 +46,7 @@ public class SqlWithItem extends SqlCall {
   }
 
   public List<SqlNode> getOperandList() {
-    return Arrays.asList(name, columnList, query);
+    return ImmutableNullableList.of(name, columnList, query);
   }
 
   @Override

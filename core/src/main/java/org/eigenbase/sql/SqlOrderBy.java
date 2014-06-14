@@ -17,10 +17,10 @@
 */
 package org.eigenbase.sql;
 
-import java.util.Arrays;
 import java.util.List;
 
 import org.eigenbase.sql.parser.SqlParserPos;
+import org.eigenbase.util.ImmutableNullableList;
 
 /**
  * Parse tree node that represents an {@code ORDER BY} on a query other than a
@@ -60,7 +60,7 @@ public class SqlOrderBy extends SqlCall {
   }
 
   public List<SqlNode> getOperandList() {
-    return Arrays.asList(query, orderList, offset, fetch);
+    return ImmutableNullableList.of(query, orderList, offset, fetch);
   }
 
   /** Definition of {@code ORDER BY} operator. */

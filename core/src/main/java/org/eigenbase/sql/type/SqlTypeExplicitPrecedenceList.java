@@ -20,6 +20,7 @@ package org.eigenbase.sql.type;
 import java.util.*;
 
 import org.eigenbase.reltype.*;
+import org.eigenbase.util.ImmutableNullableList;
 import org.eigenbase.util.Util;
 
 import com.google.common.base.Predicates;
@@ -39,7 +40,7 @@ public class SqlTypeExplicitPrecedenceList
   // NOTE jvs 25-Jan-2005:  the null entries delimit equivalence
   // classes
   private static final List<SqlTypeName> NUMERIC_TYPES =
-      Arrays.asList(
+      ImmutableNullableList.of(
           SqlTypeName.TINYINT,
           null,
           SqlTypeName.SMALLINT,

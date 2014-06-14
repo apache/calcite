@@ -321,12 +321,12 @@ public class MetaImpl implements Meta {
 
   Enumerable<MetaCatalog> catalogs() {
     return Linq4j.asEnumerable(
-        Arrays.asList(new MetaCatalog(connection.getCatalog())));
+        ImmutableList.of(new MetaCatalog(connection.getCatalog())));
   }
 
   Enumerable<MetaTableType> tableTypes() {
     return Linq4j.asEnumerable(
-        Arrays.asList(
+        ImmutableList.of(
             new MetaTableType("TABLE"), new MetaTableType("VIEW")));
   }
 

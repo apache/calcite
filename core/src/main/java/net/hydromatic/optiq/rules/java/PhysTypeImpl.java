@@ -32,6 +32,7 @@ import org.eigenbase.reltype.RelDataTypeField;
 import org.eigenbase.util.Pair;
 
 import com.google.common.base.Function;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
 import java.lang.reflect.Modifier;
@@ -265,7 +266,7 @@ public class PhysTypeImpl implements PhysType {
                 Modifier.PUBLIC,
                 int.class,
                 "compare",
-                Arrays.asList(
+                ImmutableList.of(
                     parameterV0, parameterV1),
                 body.toBlock()));
 
@@ -291,7 +292,7 @@ public class PhysTypeImpl implements PhysType {
       memberDeclarations.add(
           JavaRules.EnumUtil.overridingMethodDecl(
               BuiltinMethod.COMPARATOR_COMPARE.method,
-              Arrays.asList(parameterO0, parameterO1),
+              ImmutableList.of(parameterO0, parameterO1),
               bridgeBody.toBlock()));
     }
     return Pair.<Expression, Expression>of(
@@ -366,8 +367,7 @@ public class PhysTypeImpl implements PhysType {
                 Modifier.PUBLIC,
                 int.class,
                 "compare",
-                Arrays.asList(
-                    parameterV0, parameterV1),
+                ImmutableList.of(parameterV0, parameterV1),
                 body.toBlock()));
 
     if (JavaRules.BRIDGE_METHODS) {
@@ -392,7 +392,7 @@ public class PhysTypeImpl implements PhysType {
       memberDeclarations.add(
           JavaRules.EnumUtil.overridingMethodDecl(
               BuiltinMethod.COMPARATOR_COMPARE.method,
-              Arrays.asList(parameterO0, parameterO1),
+              ImmutableList.of(parameterO0, parameterO1),
               bridgeBody.toBlock()));
     }
     return Expressions.new_(

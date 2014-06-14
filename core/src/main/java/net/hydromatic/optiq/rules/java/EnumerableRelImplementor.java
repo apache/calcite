@@ -242,7 +242,7 @@ public class EnumerableRelImplementor extends JavaRelImplementor {
                   Expressions.call(
                       Utilities.class,
                       "hash",
-                      Arrays.<Expression>asList(
+                      ImmutableList.of(
                           hParameter,
                           Expressions.field(thisParameter, field))))));
     }

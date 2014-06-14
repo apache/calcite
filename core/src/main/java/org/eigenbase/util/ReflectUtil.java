@@ -444,7 +444,7 @@ public abstract class ReflectUtil {
           String visitMethodName,
           List<Class> additionalParameterTypes) {
         final List<Object> key =
-            Arrays.asList(
+            ImmutableList.of(
                 visitorClass,
                 visiteeClass,
                 visitMethodName,

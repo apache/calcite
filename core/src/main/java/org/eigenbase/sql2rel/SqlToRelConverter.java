@@ -2248,11 +2248,11 @@ public class SqlToRelConverter {
     if (condition == null) {
       return rexBuilder.makeLiteral(true);
     }
-    bb.setRoot(Arrays.asList(leftRel, rightRel));
+    bb.setRoot(ImmutableList.of(leftRel, rightRel));
     replaceSubqueries(bb, condition);
     switch (conditionType) {
     case ON:
-      bb.setRoot(Arrays.asList(leftRel, rightRel));
+      bb.setRoot(ImmutableList.of(leftRel, rightRel));
       return bb.convertExpression(condition);
     case USING:
       SqlNodeList list = (SqlNodeList) condition;
@@ -2857,7 +2857,7 @@ public class SqlToRelConverter {
     case UNION:
       return new UnionRel(
           cluster,
-          Arrays.asList(left, right),
+          ImmutableList.of(left, right),
           all);
 
     case INTERSECT:
@@ -2865,7 +2865,7 @@ public class SqlToRelConverter {
       if (!all) {
         return new IntersectRel(
             cluster,
-            Arrays.asList(left, right),
+            ImmutableList.of(left, right),
             all);
       } else {
         throw Util.newInternal(
@@ -2877,7 +2877,7 @@ public class SqlToRelConverter {
       if (!all) {
         return new MinusRel(
             cluster,
-            Arrays.asList(left, right),
+            ImmutableList.of(left, right),
             all);
       } else {
         throw Util.newInternal(
@@ -3755,8 +3755,7 @@ public class SqlToRelConverter {
                 rexBuilder.makeInputRef(root, i));
           }
 
-          newLeftInputExpr.addAll(
-              Arrays.<RexNode>asList(leftJoinKeysForIn));
+          Collections.addAll(newLeftInputExpr, leftJoinKeysForIn);
 
           ProjectRel newLeftInput =
               (ProjectRel) CalcRel.createProject(

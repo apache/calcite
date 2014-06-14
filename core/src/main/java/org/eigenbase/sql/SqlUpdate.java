@@ -17,11 +17,11 @@
 */
 package org.eigenbase.sql;
 
-import java.util.Arrays;
 import java.util.List;
 
 import org.eigenbase.sql.parser.*;
 import org.eigenbase.sql.validate.*;
+import org.eigenbase.util.ImmutableNullableList;
 import org.eigenbase.util.Pair;
 
 /**
@@ -69,8 +69,8 @@ public class SqlUpdate extends SqlCall {
   }
 
   public List<SqlNode> getOperandList() {
-    return Arrays.asList(targetTable, targetColumnList, sourceExpressionList,
-        condition, sourceSelect, alias);
+    return ImmutableNullableList.of(targetTable, targetColumnList,
+        sourceExpressionList, condition, sourceSelect, alias);
   }
 
   @Override

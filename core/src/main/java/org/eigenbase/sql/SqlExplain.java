@@ -17,10 +17,10 @@
 */
 package org.eigenbase.sql;
 
-import java.util.Arrays;
 import java.util.List;
 
 import org.eigenbase.sql.parser.*;
+import org.eigenbase.util.ImmutableNullableList;
 
 /**
  * A <code>SqlExplain</code> is a node of a parse tree which represents an
@@ -81,7 +81,7 @@ public class SqlExplain extends SqlCall {
   }
 
   public List<SqlNode> getOperandList() {
-    return Arrays.asList(explicandum, detailLevel, depth, asXml);
+    return ImmutableNullableList.of(explicandum, detailLevel, depth, asXml);
   }
 
   @Override public void setOperand(int i, SqlNode operand) {

@@ -21,6 +21,7 @@ import java.sql.Timestamp;
 import java.util.*;
 
 import org.eigenbase.sql.SqlDialect;
+import org.eigenbase.util.UnmodifiableArrayList;
 
 /**
  * Extension to {@link StringBuilder} for the purposes of creating SQL queries
@@ -177,7 +178,7 @@ public class SqlBuilder {
    * @return This builder
    */
   public SqlBuilder identifier(String... names) {
-    dialect.quoteIdentifier(buf, Arrays.asList(names));
+    dialect.quoteIdentifier(buf, UnmodifiableArrayList.of(names));
     return this;
   }
 

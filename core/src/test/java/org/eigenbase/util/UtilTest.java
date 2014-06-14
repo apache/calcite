@@ -44,8 +44,7 @@ import com.google.common.collect.Iterables;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.*;
 import static org.junit.Assert.*;
 
 /**
@@ -1273,6 +1272,81 @@ public class UtilTest {
 
   private NavigableSet<String> asdasda(NavigableSet<String> set, String s) {
     return set.subSet(s.toUpperCase(), true, s.toLowerCase(), true);
+  }
+
+  /** Test for {@link org.eigenbase.util.ImmutableNullableList}. */
+  @Test public void testImmutableNullableList() {
+    final List<String> arrayList = Arrays.asList("a", null, "c");
+    final List<String> list = ImmutableNullableList.copyOf(arrayList);
+    assertThat(list.size(), equalTo(arrayList.size()));
+    assertThat(list, equalTo(arrayList));
+    assertThat(list.hashCode(), equalTo(arrayList.hashCode()));
+    assertThat(list.toString(), equalTo(arrayList.toString()));
+    String z = "";
+    for (String s : list) {
+      z += s;
+    }
+    assertThat(z, equalTo("anullc"));
+
+    // changes to array list do not affect copy
+    arrayList.set(0, "z");
+    assertThat(arrayList.get(0), equalTo("z"));
+    assertThat(list.get(0), equalTo("a"));
+
+    try {
+      boolean b = list.add("z");
+      fail("expected error, got " + b);
+    } catch (UnsupportedOperationException e) {
+      // ok
+    }
+    try {
+      String b = list.set(1, "z");
+      fail("expected error, got " + b);
+    } catch (UnsupportedOperationException e) {
+      // ok
+    }
+
+    // empty list uses ImmutableList
+    assertThat(ImmutableNullableList.copyOf(Collections.emptyList()),
+        isA((Class) ImmutableList.class));
+
+    // list with no nulls uses ImmutableList
+    assertThat(ImmutableNullableList.copyOf(Arrays.asList("a", "b", "c")),
+        isA((Class) ImmutableList.class));
+  }
+
+  /** Test for {@link org.eigenbase.util.UnmodifiableArrayList}. */
+  @Test public void testUnmodifiableArrayList() {
+    final String[] strings = {"a", null, "c"};
+    final List<String> arrayList = Arrays.asList(strings);
+    final List<String> list = UnmodifiableArrayList.of(strings);
+    assertThat(list.size(), equalTo(arrayList.size()));
+    assertThat(list, equalTo(arrayList));
+    assertThat(list.hashCode(), equalTo(arrayList.hashCode()));
+    assertThat(list.toString(), equalTo(arrayList.toString()));
+    String z = "";
+    for (String s : list) {
+      z += s;
+    }
+    assertThat(z, equalTo("anullc"));
+
+    // changes to array list do affect copy
+    arrayList.set(0, "z");
+    assertThat(arrayList.get(0), equalTo("z"));
+    assertThat(list.get(0), equalTo("z"));
+
+    try {
+      boolean b = list.add("z");
+      fail("expected error, got " + b);
+    } catch (UnsupportedOperationException e) {
+      // ok
+    }
+    try {
+      String b = list.set(1, "z");
+      fail("expected error, got " + b);
+    } catch (UnsupportedOperationException e) {
+      // ok
+    }
   }
 }
 

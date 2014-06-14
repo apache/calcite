@@ -17,11 +17,11 @@
 */
 package org.eigenbase.sql;
 
-import java.util.Arrays;
 import java.util.List;
 
 import org.eigenbase.sql.parser.*;
 import org.eigenbase.sql.validate.*;
+import org.eigenbase.util.ImmutableNullableList;
 
 /**
  * A <code>SqlSelect</code> is a node of a parse tree which represents a select
@@ -83,9 +83,8 @@ public class SqlSelect extends SqlCall {
     return SqlKind.SELECT;
   }
 
-  @Override
-  public List<SqlNode> getOperandList() {
-    return Arrays.asList(keywordList, selectList, from, where,
+  @Override public List<SqlNode> getOperandList() {
+    return ImmutableNullableList.of(keywordList, selectList, from, where,
         groupBy, having, windowDecls, orderBy, offset, fetch);
   }
 

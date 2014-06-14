@@ -119,7 +119,7 @@ public class SqlBetweenOperator extends SqlInfixOperator {
     List<RelDataType> argTypes =
         SqlTypeUtil.deriveAndCollectTypes(
             validator, scope, call.getOperandList());
-    return Arrays.asList(
+    return ImmutableNullableList.of(
         argTypes.get(VALUE_OPERAND),
         argTypes.get(LOWER_OPERAND),
         argTypes.get(UPPER_OPERAND));

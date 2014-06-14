@@ -144,7 +144,7 @@ public class SqlWindow extends SqlCall {
   }
 
   public List<SqlNode> getOperandList() {
-    return Arrays.asList(declName, refName, partitionList, orderList,
+    return ImmutableNullableList.of(declName, refName, partitionList, orderList,
         isRows, lowerBound, upperBound, allowPartial);
   }
 

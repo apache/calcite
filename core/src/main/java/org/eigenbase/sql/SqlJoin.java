@@ -17,11 +17,11 @@
 */
 package org.eigenbase.sql;
 
-import java.util.Arrays;
 import java.util.List;
 
 import org.eigenbase.sql.parser.*;
 import org.eigenbase.sql.type.SqlTypeName;
+import org.eigenbase.util.ImmutableNullableList;
 import org.eigenbase.util.Util;
 
 /**
@@ -84,8 +84,8 @@ public class SqlJoin extends SqlCall {
   }
 
   public List<SqlNode> getOperandList() {
-    return Arrays.asList(left, natural, joinType, right, conditionType,
-        condition);
+    return ImmutableNullableList.of(left, natural, joinType, right,
+        conditionType, condition);
   }
 
   @Override public void setOperand(int i, SqlNode operand) {

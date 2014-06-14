@@ -17,11 +17,11 @@
 */
 package org.eigenbase.sql;
 
-import java.util.Arrays;
 import java.util.List;
 
 import org.eigenbase.sql.parser.*;
 import org.eigenbase.sql.validate.*;
+import org.eigenbase.util.ImmutableNullableList;
 
 /**
  * A <code>SqlInsert</code> is a node of a parse tree which represents an INSERT
@@ -62,7 +62,7 @@ public class SqlInsert extends SqlCall {
   }
 
   public List<SqlNode> getOperandList() {
-    return Arrays.asList(keywords, targetTable, source, columnList);
+    return ImmutableNullableList.of(keywords, targetTable, source, columnList);
   }
 
   @Override public void setOperand(int i, SqlNode operand) {

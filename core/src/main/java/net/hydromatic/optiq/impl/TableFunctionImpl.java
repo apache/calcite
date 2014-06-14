@@ -123,7 +123,7 @@ public class TableFunctionImpl extends ReflectiveFunctionBase implements
     } catch (IllegalArgumentException e) {
       throw RESOURCE.illegalArgumentForTableFunctionCall(
           method.toString(),
-          Arrays.asList(method.getParameterTypes()).toString(),
+          Arrays.toString(method.getParameterTypes()),
           arguments.toString()
       ).ex(e);
     } catch (IllegalAccessException e) {

@@ -24,6 +24,8 @@ import org.eigenbase.sql.*;
 import org.eigenbase.sql.type.*;
 import org.eigenbase.sql.validate.*;
 
+import com.google.common.collect.ImmutableList;
+
 import static org.eigenbase.util.Static.RESOURCE;
 
 /**
@@ -134,7 +136,7 @@ public class SqlInOperator extends SqlBinaryOperator {
                 validator,
                 scope,
                 call),
-            Arrays.asList(leftRowType, rightRowType)))) {
+            ImmutableList.of(leftRowType, rightRowType)))) {
       throw validator.newValidationError(call,
           RESOURCE.incompatibleValueType(SqlStdOperatorTable.IN.getName()));
     }

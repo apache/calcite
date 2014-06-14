@@ -17,11 +17,11 @@
 */
 package org.eigenbase.sql;
 
-import java.util.Arrays;
 import java.util.List;
 
 import org.eigenbase.sql.parser.*;
 import org.eigenbase.sql.validate.*;
+import org.eigenbase.util.ImmutableNullableList;
 
 /**
  * A <code>SqlDelete</code> is a node of a parse tree which represents a DELETE
@@ -62,7 +62,7 @@ public class SqlDelete extends SqlCall {
   }
 
   public List<SqlNode> getOperandList() {
-    return Arrays.asList(targetTable, condition, alias);
+    return ImmutableNullableList.of(targetTable, condition, alias);
   }
 
   @Override public void setOperand(int i, SqlNode operand) {

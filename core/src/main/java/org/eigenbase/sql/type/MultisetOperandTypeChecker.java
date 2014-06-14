@@ -17,10 +17,10 @@
 */
 package org.eigenbase.sql.type;
 
-import java.util.Arrays;
-
 import org.eigenbase.reltype.*;
 import org.eigenbase.sql.*;
+
+import com.google.common.collect.ImmutableList;
 
 import static org.eigenbase.util.Static.RESOURCE;
 
@@ -59,7 +59,7 @@ public class MultisetOperandTypeChecker implements SqlOperandTypeChecker {
     // a mismatch.
     RelDataType biggest =
         callBinding.getTypeFactory().leastRestrictive(
-            Arrays.asList(
+            ImmutableList.of(
                 callBinding.getValidator()
                     .deriveType(callBinding.getScope(), op0)
                     .getComponentType(),

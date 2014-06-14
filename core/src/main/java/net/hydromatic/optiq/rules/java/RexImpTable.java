@@ -37,6 +37,7 @@ import org.eigenbase.sql.validate.SqlUserDefinedFunction;
 import org.eigenbase.util.Util;
 
 import com.google.common.base.Supplier;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
 import java.lang.reflect.*;
@@ -1057,7 +1058,7 @@ public class RexImpTable {
   static class RowNumberImplementor extends StrictWinAggImplementor {
     @Override
     public List<Type> getNotNullState(WinAggContext info) {
-      return Collections.<Type>emptyList();
+      return Collections.emptyList();
     }
 
     @Override
@@ -1136,7 +1137,7 @@ public class RexImpTable {
     /** Types that can be arguments to comparison operators such as
      * {@code <}. */
     private static final List<Primitive> COMP_OP_TYPES =
-        Arrays.asList(
+        ImmutableList.of(
             Primitive.BYTE,
             Primitive.CHAR,
             Primitive.SHORT,
@@ -1146,7 +1147,7 @@ public class RexImpTable {
             Primitive.DOUBLE);
 
     private static final List<SqlBinaryOperator> COMPARISON_OPERATORS =
-        Arrays.asList(
+        ImmutableList.of(
             SqlStdOperatorTable.LESS_THAN,
             SqlStdOperatorTable.LESS_THAN_OR_EQUAL,
             SqlStdOperatorTable.GREATER_THAN,

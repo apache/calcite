@@ -17,12 +17,12 @@
 */
 package org.eigenbase.sql.type;
 
-import java.util.Arrays;
 import java.util.List;
 
 import org.eigenbase.reltype.*;
 import org.eigenbase.sql.*;
-import org.eigenbase.util.*;
+
+import com.google.common.collect.ImmutableList;
 
 /**
  * Returns the first type that matches a set of given {@link SqlTypeName}s. If
@@ -42,8 +42,8 @@ public class MatchReturnTypeInference implements SqlReturnTypeInference {
    *
    * @see #MatchReturnTypeInference(int, SqlTypeName[])
    */
-  public MatchReturnTypeInference(int start, SqlTypeName... typeName) {
-    this(start, Arrays.asList(typeName));
+  public MatchReturnTypeInference(int start, SqlTypeName... typeNames) {
+    this(start, ImmutableList.copyOf(typeNames));
   }
 
   /**
@@ -55,7 +55,7 @@ public class MatchReturnTypeInference implements SqlReturnTypeInference {
     assert null != typeNames;
     assert typeNames.size() > 0;
     this.start = start;
-    this.typeNames = typeNames;
+    this.typeNames = ImmutableList.copyOf(typeNames);
   }
 
   //~ Methods ----------------------------------------------------------------

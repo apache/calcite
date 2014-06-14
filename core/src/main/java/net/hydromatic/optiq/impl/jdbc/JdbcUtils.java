@@ -25,6 +25,8 @@ import org.eigenbase.util.IntList;
 import org.eigenbase.util.Pair;
 import org.eigenbase.util14.DateTimeUtil;
 
+import com.google.common.collect.ImmutableList;
+
 import java.sql.*;
 import java.sql.Date;
 import java.util.*;
@@ -51,7 +53,7 @@ final class JdbcUtils {
         DatabaseMetaData metaData = connection.getMetaData();
         String productName = metaData.getDatabaseProductName();
         String productVersion = metaData.getDatabaseProductVersion();
-        List key = Arrays.asList(productName, productVersion);
+        List key = ImmutableList.of(productName, productVersion);
         SqlDialect dialect = map.get(key);
         if (dialect == null) {
           final SqlDialect.DatabaseProduct product =
