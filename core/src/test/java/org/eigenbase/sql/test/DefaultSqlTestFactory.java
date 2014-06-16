@@ -77,7 +77,7 @@ public class DefaultSqlTestFactory implements SqlTestFactory {
     final boolean caseSensitive = (Boolean) factory.get("caseSensitive");
     final RelDataTypeFactory typeFactory = new SqlTypeFactoryImpl();
     return SqlValidatorUtil.newValidator(operatorTable,
-        new MockCatalogReader(typeFactory, caseSensitive),
+        new MockCatalogReader(typeFactory, caseSensitive).init(),
         typeFactory);
   }
 

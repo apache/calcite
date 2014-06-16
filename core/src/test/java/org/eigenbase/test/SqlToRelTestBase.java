@@ -35,6 +35,7 @@ import net.hydromatic.linq4j.expressions.Expression;
 
 import net.hydromatic.optiq.prepare.Prepare;
 
+import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 
@@ -66,7 +67,7 @@ public abstract class SqlToRelTestBase {
   }
 
   protected Tester createTester() {
-    return new TesterImpl(getDiffRepos(), true);
+    return new TesterImpl(getDiffRepos(), true, null);
   }
 
   /**
@@ -169,6 +170,9 @@ public abstract class SqlToRelTestBase {
 
     /** Returns a tester that optionally decorrelates queries. */
     Tester withDecorrelation(boolean enable);
+
+    Tester withCatalogReaderFactory(
+        Function<RelDataTypeFactory, Prepare.CatalogReader> factory);
   }
 
   //~ Inner Classes ----------------------------------------------------------
@@ -391,6 +395,8 @@ public abstract class SqlToRelTestBase {
     private SqlOperatorTable opTab;
     private final DiffRepository diffRepos;
     private final boolean enableDecorrelate;
+    private final Function<RelDataTypeFactory, Prepare.CatalogReader>
+    catalogReaderFactory;
     private RelDataTypeFactory typeFactory;
 
     /**
@@ -398,10 +404,14 @@ public abstract class SqlToRelTestBase {
      *
      * @param diffRepos Diff repository
      * @param enableDecorrelate Whether to decorrelate
+     * @param catalogReaderFactory Function to create catalog reader, or null
      */
-    protected TesterImpl(DiffRepository diffRepos, boolean enableDecorrelate) {
+    protected TesterImpl(DiffRepository diffRepos, boolean enableDecorrelate,
+        Function<RelDataTypeFactory, Prepare.CatalogReader>
+            catalogReaderFactory) {
       this.diffRepos = diffRepos;
       this.enableDecorrelate = enableDecorrelate;
+      this.catalogReaderFactory = catalogReaderFactory;
     }
 
     public RelNode convertSqlToRel(String sql) {
@@ -480,10 +490,9 @@ public abstract class SqlToRelTestBase {
     public SqlValidator createValidator(
         SqlValidatorCatalogReader catalogReader,
         RelDataTypeFactory typeFactory) {
-      boolean caseSensitive = true;
       return new FarragoTestValidator(
           getOperatorTable(),
-          new MockCatalogReader(typeFactory, caseSensitive),
+          createCatalogReader(typeFactory),
           typeFactory,
           getConformance());
     }
@@ -509,8 +518,10 @@ public abstract class SqlToRelTestBase {
 
     public Prepare.CatalogReader createCatalogReader(
         RelDataTypeFactory typeFactory) {
-      boolean caseSensitive = true;
-      return new MockCatalogReader(typeFactory, caseSensitive);
+      if (this.catalogReaderFactory != null) {
+        return catalogReaderFactory.apply(typeFactory);
+      }
+      return new MockCatalogReader(typeFactory, true).init();
     }
 
     public RelOptPlanner createPlanner() {
@@ -576,15 +587,17 @@ public abstract class SqlToRelTestBase {
       final RelDataTypeFactory typeFactory = getTypeFactory();
       final SqlValidatorCatalogReader catalogReader =
           createCatalogReader(typeFactory);
-      return
-          createValidator(
-              catalogReader,
-              typeFactory);
+      return createValidator(catalogReader, typeFactory);
     }
 
     public TesterImpl withDecorrelation(boolean enable) {
       return this.enableDecorrelate == enable ? this
-          : new TesterImpl(diffRepos, enable);
+          : new TesterImpl(diffRepos, enable, catalogReaderFactory);
+    }
+
+    public Tester withCatalogReaderFactory(
+        Function<RelDataTypeFactory, Prepare.CatalogReader> factory) {
+      return new TesterImpl(diffRepos, enableDecorrelate, factory);
     }
   }
 

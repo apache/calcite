@@ -20,6 +20,13 @@ package org.eigenbase.test;
 import org.eigenbase.rel.TableModificationRel;
 import org.eigenbase.rel.rules.*;
 import org.eigenbase.relopt.hep.*;
+import org.eigenbase.reltype.RelDataType;
+import org.eigenbase.reltype.RelDataTypeFactory;
+import org.eigenbase.sql.type.SqlTypeName;
+
+import net.hydromatic.optiq.prepare.Prepare;
+
+import com.google.common.base.Function;
 
 import org.junit.Ignore;
 import org.junit.Test;
@@ -132,7 +139,7 @@ public class RelOptRulesTest extends RelOptTestBase {
         + "(select * from emp e1 union all select * from emp e2) r2");
   }
 
-  @Ignore // have not tried under optiq (it might work)
+  @Ignore("cycles")
   @Test public void testMergeFilterWithJoinCondition() throws Exception {
     HepProgram program = new HepProgramBuilder()
         .addRuleInstance(TableAccessRule.INSTANCE)
@@ -145,13 +152,13 @@ public class RelOptRulesTest extends RelOptTestBase {
         .build();
 
     checkPlanning(program,
-        "select d.name as dname,e.name as ename"
-        + " from sales.emps e inner join sales.depts d"
+        "select d.name as dname,e.ename as ename"
+        + " from emp e inner join dept d"
         + " on e.deptno=d.deptno"
         + " where d.name='Propane'");
   }
 
-  @Ignore // have not tried under optiq (it might work)
+  @Ignore("cycles")
   @Test public void testHeterogeneousConversion() throws Exception {
     // This one tests the planner's ability to correctly
     // apply different converters on top of a common
@@ -175,11 +182,10 @@ public class RelOptRulesTest extends RelOptTestBase {
         .build();
 
     checkPlanning(program,
-        "select upper(name) from sales.emps union all"
-        + " select lower(name) from sales.emps");
+        "select upper(ename) from emp union all"
+        + " select lower(ename) from emp");
   }
 
-  @Ignore
   @Test public void testPushSemiJoinPastJoinRuleLeft() throws Exception {
     // tests the case where the semijoin is pushed to the left
     HepProgram program = new HepProgramBuilder()
@@ -188,11 +194,10 @@ public class RelOptRulesTest extends RelOptTestBase {
         .addRuleInstance(PushSemiJoinPastJoinRule.INSTANCE)
         .build();
     checkPlanning(program,
-        "select e1.name from sales.emps e1, sales.depts d, sales.emps e2 "
+        "select e1.ename from emp e1, dept d, emp e2 "
         + "where e1.deptno = d.deptno and e1.empno = e2.empno");
   }
 
-  @Ignore // have not tried under optiq (it might work)
   @Test public void testPushSemiJoinPastJoinRuleRight() throws Exception {
     // tests the case where the semijoin is pushed to the right
     HepProgram program = new HepProgramBuilder()
@@ -201,11 +206,10 @@ public class RelOptRulesTest extends RelOptTestBase {
         .addRuleInstance(PushSemiJoinPastJoinRule.INSTANCE)
         .build();
     checkPlanning(program,
-        "select e1.name from sales.emps e1, sales.depts d, sales.emps e2 "
+        "select e1.ename from emp e1, dept d, emp e2 "
         + "where e1.deptno = d.deptno and d.deptno = e2.deptno");
   }
 
-  @Ignore
   @Test public void testPushSemiJoinPastFilter() throws Exception {
     HepProgram program = new HepProgramBuilder()
         .addRuleInstance(PushFilterPastJoinRule.FILTER_ON_JOIN)
@@ -213,11 +217,10 @@ public class RelOptRulesTest extends RelOptTestBase {
         .addRuleInstance(PushSemiJoinPastFilterRule.INSTANCE)
         .build();
     checkPlanning(program,
-        "select e.name from sales.emps e, sales.depts d "
-        + "where e.deptno = d.deptno and e.name = 'foo'");
+        "select e.ename from emp e, dept d "
+        + "where e.deptno = d.deptno and e.ename = 'foo'");
   }
 
-  @Ignore
   @Test public void testConvertMultiJoinRule() throws Exception {
     HepProgram program = new HepProgramBuilder()
         .addRuleInstance(PushFilterPastJoinRule.FILTER_ON_JOIN)
@@ -225,7 +228,7 @@ public class RelOptRulesTest extends RelOptTestBase {
         .addRuleInstance(ConvertMultiJoinRule.INSTANCE)
         .build();
     checkPlanning(program,
-        "select e1.name from sales.emps e1, sales.depts d, sales.emps e2 "
+        "select e1.ename from emp e1, dept d, emp e2 "
         + "where e1.deptno = d.deptno and d.deptno = e2.deptno");
   }
 
@@ -320,7 +323,6 @@ public class RelOptRulesTest extends RelOptTestBase {
         + ") where u = 'TABLE'");
   }
 
-  @Ignore // have not tried under optiq (it might work)
   @Test public void testRemoveSemiJoin() throws Exception {
     HepProgram program = new HepProgramBuilder()
         .addRuleInstance(PushFilterPastJoinRule.FILTER_ON_JOIN)
@@ -328,11 +330,10 @@ public class RelOptRulesTest extends RelOptTestBase {
         .addRuleInstance(RemoveSemiJoinRule.INSTANCE)
         .build();
     checkPlanning(program,
-        "select e.name from sales.emps e, sales.depts d "
+        "select e.ename from emp e, dept d "
         + "where e.deptno = d.deptno");
   }
 
-  @Ignore // have not tried under optiq (it might work)
   @Test public void testRemoveSemiJoinWithFilter() throws Exception {
     HepProgram program = new HepProgramBuilder()
         .addRuleInstance(PushFilterPastJoinRule.FILTER_ON_JOIN)
@@ -341,11 +342,10 @@ public class RelOptRulesTest extends RelOptTestBase {
         .addRuleInstance(RemoveSemiJoinRule.INSTANCE)
         .build();
     checkPlanning(program,
-        "select e.name from sales.emps e, sales.depts d "
-        + "where e.deptno = d.deptno and e.name = 'foo'");
+        "select e.ename from emp e, dept d "
+        + "where e.deptno = d.deptno and e.ename = 'foo'");
   }
 
-  @Ignore // have not tried under optiq (it might work)
   @Test public void testRemoveSemiJoinRight() throws Exception {
     HepProgram program = new HepProgramBuilder()
         .addRuleInstance(PushFilterPastJoinRule.FILTER_ON_JOIN)
@@ -354,11 +354,10 @@ public class RelOptRulesTest extends RelOptTestBase {
         .addRuleInstance(RemoveSemiJoinRule.INSTANCE)
         .build();
     checkPlanning(program,
-        "select e1.name from sales.emps e1, sales.depts d, sales.emps e2 "
+        "select e1.ename from emp e1, dept d, emp e2 "
         + "where e1.deptno = d.deptno and d.deptno = e2.deptno");
   }
 
-  @Ignore // have not tried under optiq (it might work)
   @Test public void testRemoveSemiJoinRightWithFilter() throws Exception {
     HepProgram program = new HepProgramBuilder()
         .addRuleInstance(PushFilterPastJoinRule.FILTER_ON_JOIN)
@@ -368,44 +367,45 @@ public class RelOptRulesTest extends RelOptTestBase {
         .addRuleInstance(RemoveSemiJoinRule.INSTANCE)
         .build();
     checkPlanning(program,
-        "select e1.name from sales.emps e1, sales.depts d, sales.emps e2 "
+        "select e1.ename from emp e1, dept d, emp e2 "
         + "where e1.deptno = d.deptno and d.deptno = e2.deptno "
         + "and d.name = 'foo'");
   }
 
-  @Ignore // have not tried under optiq (it might work)
   @Test public void testConvertMultiJoinRuleOuterJoins() throws Exception {
-/*
-    stmt.executeUpdate("create schema oj");
-    stmt.executeUpdate("set schema 'oj'");
-    stmt.executeUpdate(
-        "create table A(a int primary key)");
-    stmt.executeUpdate(
-        "create table B(b int primary key)");
-    stmt.executeUpdate(
-        "create table C(c int primary key)");
-    stmt.executeUpdate(
-        "create table D(d int primary key)");
-    stmt.executeUpdate(
-        "create table E(e int primary key)");
-    stmt.executeUpdate(
-        "create table F(f int primary key)");
-    stmt.executeUpdate(
-        "create table G(g int primary key)");
-    stmt.executeUpdate(
-        "create table H(h int primary key)");
-    stmt.executeUpdate(
-        "create table I(i int primary key)");
-    stmt.executeUpdate(
-        "create table J(j int primary key)");
-*/
-
+    final Tester tester1 = tester.withCatalogReaderFactory(
+        new Function<RelDataTypeFactory, Prepare.CatalogReader>() {
+          public Prepare.CatalogReader apply(RelDataTypeFactory typeFactory) {
+            return new MockCatalogReader(typeFactory, true) {
+              @Override
+              public MockCatalogReader init() {
+                // CREATE SCHEMA abc;
+                // CREATE TABLE a(a INT);
+                // ...
+                // CREATE TABLE j(j INT);
+                MockSchema schema = new MockSchema("SALES");
+                registerSchema(schema);
+                final RelDataType intType =
+                    typeFactory.createSqlType(SqlTypeName.INTEGER);
+                for (int i = 0; i < 10; i++) {
+                  String t = String.valueOf((char) ('A' + i));
+                  MockTable table = new MockTable(this, schema, t);
+                  table.addColumn(t, intType);
+                  registerTable(table);
+                }
+                return this;
+              }
+              // CHECKSTYLE: IGNORE 1
+            }.init();
+          }
+        });
     HepProgram program = new HepProgramBuilder()
         .addMatchOrder(HepMatchOrder.BOTTOM_UP)
         .addRuleInstance(RemoveTrivialProjectRule.INSTANCE)
         .addRuleInstance(ConvertMultiJoinRule.INSTANCE)
         .build();
-    checkPlanning(program,
+    checkPlanning(tester1, null,
+        new HepPlanner(program),
         "select * from "
         + "    (select * from "
         + "        (select * from "
@@ -425,7 +425,6 @@ public class RelOptRulesTest extends RelOptTestBase {
         + "    on a = i and h = j");
   }
 
-  @Ignore // have not tried under optiq (it might work)
   @Test public void testPushSemiJoinPastProject() throws Exception {
     HepProgram program = new HepProgramBuilder()
         .addRuleInstance(PushFilterPastJoinRule.FILTER_ON_JOIN)
@@ -434,8 +433,7 @@ public class RelOptRulesTest extends RelOptTestBase {
         .build();
     checkPlanning(program,
         "select e.* from "
-        + "(select name, trim(city), age * 2, deptno from sales.emps) e, "
-        + "sales.depts d "
+        + "(select ename, trim(job), sal * 2, deptno from emp) e, dept d "
         + "where e.deptno = d.deptno");
   }
 

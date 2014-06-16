@@ -81,44 +81,20 @@ abstract class RelOptTestBase extends SqlToRelTestBase {
   protected void checkPlanning(
       RelOptPlanner planner,
       String sql) {
-    checkPlanning(
-        null,
-        planner,
-        sql);
+    checkPlanning(tester, null, planner, sql);
   }
 
   /**
    * Checks the plan for a SQL statement before/after executing a given rule,
    * with a pre-program to prepare the tree.
    *
-   * @param preProgram Program to execute before comparing before state
-   * @param rule       Planner rule
-   * @param sql        SQL query
-   */
-  protected void checkPlanning(
-      HepProgram preProgram,
-      RelOptRule rule,
-      String sql) {
-    HepProgramBuilder programBuilder = HepProgram.builder();
-    programBuilder.addRuleInstance(rule);
-    final HepPlanner planner =
-        new HepPlanner(programBuilder.build());
-
-    checkPlanning(
-        preProgram,
-        planner,
-        sql);
-  }
-
-  /**
-   * Checks the plan for a SQL statement before/after executing a given rule,
-   * with a pre-program to prepare the tree.
-   *
+   * @param tester     Tester
    * @param preProgram Program to execute before comparing before state
    * @param planner    Planner
    * @param sql        SQL query
    */
   protected void checkPlanning(
+      Tester tester,
       HepProgram preProgram,
       RelOptPlanner planner,
       String sql) {
@@ -156,21 +132,6 @@ abstract class RelOptTestBase extends SqlToRelTestBase {
 
     String planAfter = NL + RelOptUtil.toString(relAfter);
     diffRepos.assertEquals("planAfter", "${planAfter}", planAfter);
-  }
-
-  /**
-   * Creates a program which is a sequence of rules.
-   *
-   * @param rules Sequence of rules
-   * @return Program
-   */
-  protected static HepProgram createProgram(
-      RelOptRule... rules) {
-    final HepProgramBuilder builder = HepProgram.builder();
-    for (RelOptRule rule : rules) {
-      builder.addRuleInstance(rule);
-    }
-    return builder.build();
   }
 }
 

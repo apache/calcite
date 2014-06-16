@@ -130,7 +130,7 @@ public class SqlValidatorFeatureTest extends SqlValidatorTestCase {
       final boolean caseSensitive = (Boolean) get("caseSensitive");
       return new FeatureValidator(
           factory.createOperatorTable(),
-          new MockCatalogReader(typeFactory, caseSensitive),
+          new MockCatalogReader(typeFactory, caseSensitive).init(),
           typeFactory,
           conformance);
     }

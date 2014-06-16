@@ -64,28 +64,14 @@ public class MockCatalogReader implements Prepare.CatalogReader {
   /**
    * Creates a MockCatalogReader.
    *
+   * <p>Caller must then call {@link #init} to populate with data.</p>
+   *
    * @param typeFactory Type factory
    */
   public MockCatalogReader(RelDataTypeFactory typeFactory,
       boolean caseSensitive) {
-    this(typeFactory, caseSensitive, false);
-    init();
-  }
-
-  /**
-   * Creates a MockCatalogReader but does not initialize.
-   *
-   * <p>Protected constructor for use by subclasses, which must call
-   * {@link #init} at the end of their public constructor.
-   *
-   * @param typeFactory Type factory
-   * @param dummy       Dummy parameter to distinguish from public constructor
-   */
-  protected MockCatalogReader(RelDataTypeFactory typeFactory,
-      boolean caseSensitive, boolean dummy) {
     this.typeFactory = typeFactory;
     this.caseSensitive = caseSensitive;
-    assert !dummy;
     if (caseSensitive) {
       tables = new HashMap<List<String>, MockTable>();
       schemas = new HashMap<String, MockSchema>();
@@ -99,7 +85,7 @@ public class MockCatalogReader implements Prepare.CatalogReader {
   /**
    * Initializes this catalog reader.
    */
-  protected void init() {
+  public MockCatalogReader init() {
     final RelDataType intType =
         typeFactory.createSqlType(SqlTypeName.INTEGER);
     final RelDataType intTypeNull =
@@ -194,6 +180,7 @@ public class MockCatalogReader implements Prepare.CatalogReader {
     accountTable.addColumn("TYPE", varchar20Type);
     accountTable.addColumn("BALANCE", intType);
     registerTable(accountTable);
+    return this;
   }
 
   //~ Methods ----------------------------------------------------------------

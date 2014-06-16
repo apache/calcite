@@ -1184,7 +1184,7 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
       final boolean caseSensitive = (Boolean) factory.get("caseSensitive");
       return new SqlAdvisorValidator(
           SqlStdOperatorTable.instance(),
-          new MockCatalogReader(typeFactory, caseSensitive),
+          new MockCatalogReader(typeFactory, caseSensitive).init(),
           typeFactory,
           conformance);
     }

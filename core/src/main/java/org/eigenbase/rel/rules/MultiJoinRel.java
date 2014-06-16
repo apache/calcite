@@ -23,11 +23,13 @@ import org.eigenbase.rel.*;
 import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.*;
 import org.eigenbase.rex.*;
+import org.eigenbase.util.ImmutableNullableList;
 
 import net.hydromatic.linq4j.Ord;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Lists;
 
 /**
  * A MultiJoinRel represents a join of N inputs, whereas other join relnodes
@@ -36,13 +38,13 @@ import com.google.common.collect.ImmutableMap;
 public final class MultiJoinRel extends AbstractRelNode {
   //~ Instance fields --------------------------------------------------------
 
-  private ImmutableList<RelNode> inputs;
+  private List<RelNode> inputs;
   private RexNode joinFilter;
   private RelDataType rowType;
   private boolean isFullOuterJoin;
-  private ImmutableList<RexNode> outerJoinConditions;
+  private List<RexNode> outerJoinConditions;
   private ImmutableList<JoinRelType> joinTypes;
-  private ImmutableList<BitSet> projFields;
+  private List<BitSet> projFields;
   private ImmutableMap<Integer, int[]> joinFieldRefCountsMap;
   private RexNode postJoinFilter;
 
@@ -85,24 +87,28 @@ public final class MultiJoinRel extends AbstractRelNode {
       List<BitSet> projFields,
       Map<Integer, int[]> joinFieldRefCountsMap,
       RexNode postJoinFilter) {
-    super(
-        cluster,
-        cluster.traitSetOf(Convention.NONE));
-    this.inputs = ImmutableList.copyOf(inputs);
+    super(cluster, cluster.traitSetOf(Convention.NONE));
+    this.inputs = Lists.newArrayList(inputs);
     this.joinFilter = joinFilter;
     this.rowType = rowType;
     this.isFullOuterJoin = isFullOuterJoin;
-    this.outerJoinConditions = ImmutableList.copyOf(outerJoinConditions);
+    this.outerJoinConditions =
+        ImmutableNullableList.copyOf(outerJoinConditions);
+    assert outerJoinConditions.size() == inputs.size();
     this.joinTypes = ImmutableList.copyOf(joinTypes);
-    this.projFields = ImmutableList.copyOf(projFields);
+    this.projFields = ImmutableNullableList.copyOf(projFields);
     this.joinFieldRefCountsMap = ImmutableMap.copyOf(joinFieldRefCountsMap);
     this.postJoinFilter = postJoinFilter;
   }
 
   //~ Methods ----------------------------------------------------------------
 
-  public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
-    assert traitSet.comprises(Convention.NONE);
+  @Override public void replaceInput(int ordinalInParent, RelNode p) {
+    inputs.set(ordinalInParent, p);
+  }
+
+  @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
+    assert traitSet.containsIfApplicable(Convention.NONE);
     return new MultiJoinRel(
         getCluster(),
         inputs,
