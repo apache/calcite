@@ -69,7 +69,8 @@ public class Frameworks {
   public static Planner getPlanner(Lex lex, SchemaPlus defaultSchema,
       SqlOperatorTable operatorTable, RuleSet... ruleSets) {
     return getPlanner(lex, SqlParserImpl.FACTORY, defaultSchema,
-        operatorTable, null, StandardConvertletTable.INSTANCE, ruleSets);
+        operatorTable, null, StandardConvertletTable.INSTANCE,
+        Programs.listOf(ruleSets));
   }
 
   /**
@@ -100,6 +101,9 @@ public class Frameworks {
    *  @param  traitDefs The list of RelTraitDef that would be registered with
    *     planner, or null.
    * @return The Planner object.
+   *
+   * @deprecated Use {@link #getPlanner(net.hydromatic.optiq.config.Lex, org.eigenbase.sql.parser.SqlParserImplFactory, net.hydromatic.optiq.SchemaPlus, org.eigenbase.sql.SqlOperatorTable, java.util.List, org.eigenbase.sql2rel.SqlRexConvertletTable, java.util.List)}.
+   * Will be removed before optiq-0.9.
    */
   public static Planner getPlanner(Lex lex,
       SqlParserImplFactory parserFactory,
@@ -108,8 +112,52 @@ public class Frameworks {
       List<RelTraitDef> traitDefs,
       SqlRexConvertletTable convertletTable,
       RuleSet... ruleSets) {
+    org.eigenbase.util.Bug.upgrade("remove before optiq-0.9");
+    return getPlanner(lex, parserFactory, defaultSchema, operatorTable,
+        traitDefs, convertletTable, Programs.listOf(ruleSets));
+  }
+
+  /**
+   * Creates an instance of {@code Planner}.
+   *
+   * <p>If {@code traitDefs} is specified, the planner first de-registers any
+   * existing {@link RelTraitDef}s, then registers the {@code RelTraitDef}s in
+   * this list.</p>
+   *
+   * <p>The order of {@code RelTraitDef}s in {@code traitDefs} matters if the
+   * planner is VolcanoPlanner. The planner calls {@link RelTraitDef#convert} in
+   * the order of this list. The most important trait comes first in the list,
+   * followed by the second most important one, etc.</p>
+   *
+   * @param lex The type of lexing the SqlParser should do.  Controls case rules
+   *     and quoted identifier syntax.
+   * @param parserFactory Parser factory creates and returns the SQL parser.
+   * @param operatorTable The instance of SqlOperatorTable that be should to
+   *     resolve Optiq operators.
+   * @param programs List of of one or more programs used during the course of
+   *     query evaluation. The common use case is when there is a single program
+   *     created using {@link Programs#of(RuleSet)}
+   *     and {@link net.hydromatic.optiq.tools.Planner#transform}
+   *     will only be called once. However, consumers may also create programs
+   *     not based on rule sets, register multiple programs,
+   *     and do multiple repetitions
+   *     of {@link Planner#transform} planning cycles using different indices.
+   *     The order of programs provided here determines the zero-based indices
+   *     of programs elsewhere in this class.
+   *  @param  traitDefs The list of RelTraitDef that would be registered with
+   *     planner, or null.
+   * @return The Planner object.
+   */
+  public static Planner getPlanner(Lex lex,
+      SqlParserImplFactory parserFactory,
+      SchemaPlus defaultSchema,
+      SqlOperatorTable operatorTable,
+      List<RelTraitDef> traitDefs,
+      SqlRexConvertletTable convertletTable,
+      List<Program> programs) {
+    org.eigenbase.util.Bug.upgrade("remove before optiq-0.9");
     return new PlannerImpl(lex, parserFactory, defaultSchema,
-        operatorTable, ImmutableList.copyOf(ruleSets),
+        operatorTable, ImmutableList.copyOf(programs),
         traitDefs == null ? null : ImmutableList.copyOf(traitDefs),
         convertletTable);
   }

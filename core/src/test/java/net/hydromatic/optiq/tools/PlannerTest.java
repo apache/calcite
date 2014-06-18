@@ -144,7 +144,8 @@ public class PlannerTest {
             new ListSqlOperatorTable(
                 ImmutableList.<SqlOperator>of(new MyCountAggFunction()))));
     Planner planner = Frameworks.getPlanner(Lex.ORACLE, SqlParserImpl.FACTORY,
-        createHrSchema(), opTab, null, StandardConvertletTable.INSTANCE);
+        createHrSchema(), opTab, null, StandardConvertletTable.INSTANCE,
+        ImmutableList.<Program>of());
     SqlNode parse =
         planner.parse("select \"deptno\", my_count(\"empid\") from \"emps\"\n"
             + "group by \"deptno\"");
@@ -178,10 +179,10 @@ public class PlannerTest {
         new ReflectiveSchema(new JdbcTest.HrSchema()));
   }
 
-  private Planner getPlanner(List<RelTraitDef> traitDefs, RuleSet... ruleSets) {
+  private Planner getPlanner(List<RelTraitDef> traitDefs, Program... programs) {
     return Frameworks.getPlanner(Lex.ORACLE, SqlParserImpl.FACTORY,
         createHrSchema(), SqlStdOperatorTable.instance(), traitDefs,
-        StandardConvertletTable.INSTANCE, ruleSets);
+        StandardConvertletTable.INSTANCE, ImmutableList.copyOf(programs));
   }
 
   /** Tests that planner throws an error if you pass to
@@ -202,12 +203,12 @@ public class PlannerTest {
 
   /** Unit test that parses, validates, converts and plans. */
   @Test public void testPlan() throws Exception {
-    RuleSet ruleSet =
-        RuleSets.ofList(
+    Program program =
+        Programs.ofRules(
             MergeFilterRule.INSTANCE,
             JavaRules.ENUMERABLE_FILTER_RULE,
             JavaRules.ENUMERABLE_PROJECT_RULE);
-    Planner planner = getPlanner(null, ruleSet);
+    Planner planner = getPlanner(null, program);
     SqlNode parse = planner.parse("select * from \"emps\"");
     SqlNode validate = planner.validate(parse);
     RelNode convert = planner.convert(validate);
@@ -227,7 +228,7 @@ public class PlannerTest {
             RemoveSortRule.INSTANCE,
             JavaRules.ENUMERABLE_PROJECT_RULE,
             JavaRules.ENUMERABLE_SORT_RULE);
-    Planner planner = getPlanner(null, ruleSet);
+    Planner planner = getPlanner(null, Programs.of(ruleSet));
     SqlNode parse = planner.parse(
         "select * from \"emps\" "
             + "order by \"emps\".\"deptno\"");
@@ -251,7 +252,7 @@ public class PlannerTest {
             RemoveSortRule.INSTANCE,
             JavaRules.ENUMERABLE_PROJECT_RULE,
             JavaRules.ENUMERABLE_SORT_RULE);
-    Planner planner = getPlanner(null, ruleSet);
+    Planner planner = getPlanner(null, Programs.of(ruleSet));
     SqlNode parse = planner.parse(
         "select \"empid\" from ( "
          + "select * "
@@ -278,7 +279,7 @@ public class PlannerTest {
         RuleSets.ofList(
             JavaRules.ENUMERABLE_PROJECT_RULE,
             JavaRules.ENUMERABLE_SORT_RULE);
-    Planner planner = getPlanner(null, ruleSet);
+    Planner planner = getPlanner(null, Programs.of(ruleSet));
     SqlNode parse = planner.parse(
         "select \"empid\" from ( "
             + "select * "
@@ -311,7 +312,7 @@ public class PlannerTest {
     traitDefs.add(ConventionTraitDef.INSTANCE);
     traitDefs.add(RelCollationTraitDef.INSTANCE);
 
-    Planner planner = getPlanner(traitDefs, ruleSet);
+    Planner planner = getPlanner(traitDefs, Programs.of(ruleSet));
 
     SqlNode parse = planner.parse("select * from \"emps\"");
     SqlNode validate = planner.validate(parse);
@@ -331,7 +332,7 @@ public class PlannerTest {
             MergeFilterRule.INSTANCE,
             JavaRules.ENUMERABLE_FILTER_RULE,
             JavaRules.ENUMERABLE_PROJECT_RULE);
-    Planner planner = getPlanner(null, ruleSet);
+    Planner planner = getPlanner(null, Programs.of(ruleSet));
     SqlNode parse = planner.parse("select * from \"emps\"");
     SqlNode validate = planner.validate(parse);
     RelNode convert = planner.convert(validate);
@@ -368,17 +369,17 @@ public class PlannerTest {
    * between calls to {@link Planner#transform}. */
   @Test public void testPlanTransformWithDiffRuleSetAndConvention()
     throws Exception {
-    RuleSet ruleSet0 =
-        RuleSets.ofList(
+    Program program0 =
+        Programs.ofRules(
             MergeFilterRule.INSTANCE,
             JavaRules.ENUMERABLE_FILTER_RULE,
             JavaRules.ENUMERABLE_PROJECT_RULE);
 
     JdbcConvention out = new JdbcConvention(null, null, "myjdbc");
-    RuleSet ruleSet1 = RuleSets.ofList(
+    Program program1 = Programs.ofRules(
         new MockJdbcProjectRule(out), new MockJdbcTableRule(out));
 
-    Planner planner = getPlanner(null, ruleSet0, ruleSet1);
+    Planner planner = getPlanner(null, program0, program1);
     SqlNode parse = planner.parse("select T1.\"name\" from \"emps\" as T1 ");
 
     SqlNode validate = planner.validate(parse);
@@ -469,40 +470,39 @@ public class PlannerTest {
     }
   }
 
-  private static final RuleSet[] RULE_SETS = {
-    new RuleSet() {
-      final Set<RelOptRule> setOfRules =
-          ImmutableSet.of(
-              JavaRules.ENUMERABLE_JOIN_RULE,
-              JavaRules.ENUMERABLE_PROJECT_RULE,
-              JavaRules.ENUMERABLE_FILTER_RULE,
-              JavaRules.ENUMERABLE_AGGREGATE_RULE,
-              JavaRules.ENUMERABLE_SORT_RULE,
-              JavaRules.ENUMERABLE_LIMIT_RULE,
-              JavaRules.ENUMERABLE_UNION_RULE,
-              JavaRules.ENUMERABLE_INTERSECT_RULE,
-              JavaRules.ENUMERABLE_MINUS_RULE,
-              JavaRules.ENUMERABLE_TABLE_MODIFICATION_RULE,
-              JavaRules.ENUMERABLE_VALUES_RULE,
-              JavaRules.ENUMERABLE_WINDOW_RULE,
-              JavaRules.ENUMERABLE_ONE_ROW_RULE,
-              JavaRules.ENUMERABLE_EMPTY_RULE,
-              TableAccessRule.INSTANCE,
-              MergeProjectRule.INSTANCE,
-              PushFilterPastProjectRule.INSTANCE,
-              PushFilterPastJoinRule.FILTER_ON_JOIN,
-              RemoveDistinctAggregateRule.INSTANCE,
-              ReduceAggregatesRule.INSTANCE,
-              SwapJoinRule.INSTANCE,
-              PushJoinThroughJoinRule.RIGHT,
-              PushJoinThroughJoinRule.LEFT,
-              PushSortPastProjectRule.INSTANCE);
+  private static final RuleSet RULE_SET =
+      new RuleSet() {
+        final Set<RelOptRule> setOfRules =
+            ImmutableSet.of(
+                JavaRules.ENUMERABLE_JOIN_RULE,
+                JavaRules.ENUMERABLE_PROJECT_RULE,
+                JavaRules.ENUMERABLE_FILTER_RULE,
+                JavaRules.ENUMERABLE_AGGREGATE_RULE,
+                JavaRules.ENUMERABLE_SORT_RULE,
+                JavaRules.ENUMERABLE_LIMIT_RULE,
+                JavaRules.ENUMERABLE_UNION_RULE,
+                JavaRules.ENUMERABLE_INTERSECT_RULE,
+                JavaRules.ENUMERABLE_MINUS_RULE,
+                JavaRules.ENUMERABLE_TABLE_MODIFICATION_RULE,
+                JavaRules.ENUMERABLE_VALUES_RULE,
+                JavaRules.ENUMERABLE_WINDOW_RULE,
+                JavaRules.ENUMERABLE_ONE_ROW_RULE,
+                JavaRules.ENUMERABLE_EMPTY_RULE,
+                TableAccessRule.INSTANCE,
+                MergeProjectRule.INSTANCE,
+                PushFilterPastProjectRule.INSTANCE,
+                PushFilterPastJoinRule.FILTER_ON_JOIN,
+                RemoveDistinctAggregateRule.INSTANCE,
+                ReduceAggregatesRule.INSTANCE,
+                SwapJoinRule.INSTANCE,
+                PushJoinThroughJoinRule.RIGHT,
+                PushJoinThroughJoinRule.LEFT,
+                PushSortPastProjectRule.INSTANCE);
 
-      public Iterator<RelOptRule> iterator() {
-        return setOfRules.iterator();
-      }
-    }
-  };
+        public Iterator<RelOptRule> iterator() {
+          return setOfRules.iterator();
+        }
+      };
 
   /**
    * Test to determine whether de-correlation correctly removes CorrelatorRel.
@@ -532,7 +532,7 @@ public class PlannerTest {
             new ReflectiveSchema(new TpchSchema()));
 
     Planner p = Frameworks.getPlanner(Lex.MYSQL, schema,
-        SqlStdOperatorTable.instance(), RULE_SETS);
+        SqlStdOperatorTable.instance(), RULE_SET);
     SqlNode n = p.parse(tpchTestQuery);
     n = p.validate(n);
     RelNode r = p.convert(n);

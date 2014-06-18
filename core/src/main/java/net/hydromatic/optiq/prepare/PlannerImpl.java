@@ -40,7 +40,7 @@ import com.google.common.collect.ImmutableList;
 /** Implementation of {@link net.hydromatic.optiq.tools.Planner}. */
 public class PlannerImpl implements Planner {
   private final SqlOperatorTable operatorTable;
-  private final ImmutableList<RuleSet> ruleSets;
+  private final ImmutableList<Program> programs;
 
   /** Holds the trait definitions to be registered with planner. May be null. */
   private final ImmutableList<RelTraitDef> traitDefs;
@@ -74,13 +74,13 @@ public class PlannerImpl implements Planner {
    * {@link net.hydromatic.optiq.tools.Frameworks#getPlanner} instead. */
   public PlannerImpl(Lex lex, SqlParserImplFactory parserFactory,
       SchemaPlus defaultSchema,
-      SqlOperatorTable operatorTable, ImmutableList<RuleSet> ruleSets,
+      SqlOperatorTable operatorTable, ImmutableList<Program> programs,
       ImmutableList<RelTraitDef> traitDefs,
       SqlRexConvertletTable convertletTable) {
     assert defaultSchema != null;
     this.defaultSchema = defaultSchema;
     this.operatorTable = operatorTable;
-    this.ruleSets = ruleSets;
+    this.programs = programs;
     this.lex = lex;
     this.parserFactory = parserFactory;
     this.state = State.STATE_0_CLOSED;
@@ -222,16 +222,8 @@ public class PlannerImpl implements Planner {
   public RelNode transform(int ruleSetIndex, RelTraitSet requiredOutputTraits,
       RelNode rel) throws RelConversionException {
     ensure(State.STATE_5_CONVERTED);
-    RuleSet ruleSet = ruleSets.get(ruleSetIndex);
-    planner.clear();
-    for (RelOptRule rule : ruleSet) {
-      planner.addRule(rule);
-    }
-    if (!rel.getTraitSet().equals(requiredOutputTraits)) {
-      rel = planner.changeTraits(rel, requiredOutputTraits);
-    }
-    planner.setRoot(rel);
-    return planner.findBestExp();
+    Program program = programs.get(ruleSetIndex);
+    return program.run(planner, rel, requiredOutputTraits);
   }
 
   /** Stage of a statement in the query-preparation lifecycle. */
