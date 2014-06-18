@@ -186,6 +186,7 @@ For more details, see the <a href="REFERENCE.md">Reference guide</a>.
 * Incubation status page: http://incubator.apache.org/projects/optiq.html
 * Project page: http://www.hydromatic.net/optiq
 * Source code: http://github.com/julianhyde/optiq
+* Issues: <a href="https://issues.apache.org/jira/browse/OPTIQ">Apache JIRA</a>
 * Developers list: <a href="mailto:dev@optiq.incubator.apache.org">dev at optiq.incubator.apache.org</a> (<a href="http://mail-archives.apache.org/mod_mbox/incubator-optiq-dev/">archive</a>, <a href="mailto:dev-subscribe@optiq.incubator.apache.org">subscribe</a>)
 * <a href="HOWTO.md">HOWTO</a>
 * <a href="MODEL.md">JSON model</a>

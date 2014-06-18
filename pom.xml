@@ -71,8 +71,8 @@
   </distributionManagement>
 
   <issueManagement>
-    <system>github</system>
-    <url>https://github.com/julianhyde/optiq/issues</url>
+    <system>Jira</system>
+    <url>https://issues.apache.org/jira/browse/OPTIQ</url>
   </issueManagement>
 
   <scm>
