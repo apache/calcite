@@ -1521,6 +1521,40 @@ public class JdbcTest {
             + "+-------+---------------------+-----+------+------------+");
   }
 
+  /** Tests a simple (primary key to primary key) N-way join, with arbitrary
+   * N. */
+  @Test public void testJoinManyWay() {
+    // Timings without LoptOptimizeJoinRule
+    //    N  Time
+    //   == =====
+    //    6     2
+    //   10    10
+    //   11    19
+    //   12    36
+    //   13   116 - OOM did not complete
+    checkJoinNWay(1);
+    checkJoinNWay(6);
+  }
+
+  private static void checkJoinNWay(int n) {
+    assert n > 0;
+    final StringBuilder buf = new StringBuilder();
+    buf.append("select count(*)");
+    for (int i = 0; i < n; i++) {
+      buf.append(i == 0 ? "\nfrom " : ",\n ")
+          .append("\"hr\".\"depts\" as d").append(i);
+    }
+    for (int i = 1; i < n; i++) {
+      buf.append(i == 1 ? "\nwhere" : "\nand").append(" d")
+          .append(i).append(".\"deptno\" = d")
+          .append(i - 1).append(".\"deptno\"");
+    }
+    OptiqAssert.that()
+        .with(OptiqAssert.Config.REGULAR)
+        .query(buf.toString())
+        .returns("EXPR$0=3\n");
+  }
+
   /** Returns a list of (query, expected) pairs. The expected result is
    * sometimes null. */
   private static List<Pair<String, String>> querify(String[] queries1) {

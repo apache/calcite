@@ -350,29 +350,7 @@ public abstract class Prepare {
     // For now, don't trim if there are more than 3 joins. The projects
     // near the leaves created by trim migrate past joins and seem to
     // prevent join-reordering.
-    return trim || countJoins(rootRel) < 2;
-  }
-
-  /** Returns the number of {@link JoinRelBase} nodes in a tree. */
-  private static int countJoins(RelNode rootRel) {
-    /** Visitor that counts join nodes. */
-    class JoinCounter extends RelVisitor {
-      int joinCount;
-
-      @Override public void visit(RelNode node, int ordinal, RelNode parent) {
-        if (node instanceof JoinRelBase) {
-          ++joinCount;
-        }
-        super.visit(node, ordinal, parent);
-      }
-
-      int run(RelNode node) {
-        go(node);
-        return joinCount;
-      }
-    }
-
-    return new JoinCounter().run(rootRel);
+    return trim || RelOptUtil.countJoins(rootRel) < 2;
   }
 
   /**

@@ -2352,6 +2352,29 @@ public abstract class RelOptUtil {
     };
   }
 
+  /** Returns the number of {@link org.eigenbase.rel.JoinRelBase} nodes in a
+   * tree. */
+  public static int countJoins(RelNode rootRel) {
+    /** Visitor that counts join nodes. */
+    class JoinCounter extends RelVisitor {
+      int joinCount;
+
+      @Override public void visit(RelNode node, int ordinal, RelNode parent) {
+        if (node instanceof JoinRelBase) {
+          ++joinCount;
+        }
+        super.visit(node, ordinal, parent);
+      }
+
+      int run(RelNode node) {
+        go(node);
+        return joinCount;
+      }
+    }
+
+    return new JoinCounter().run(rootRel);
+  }
+
   //~ Inner Classes ----------------------------------------------------------
 
   /** Visitor that finds all variables used but not stopped in an expression. */

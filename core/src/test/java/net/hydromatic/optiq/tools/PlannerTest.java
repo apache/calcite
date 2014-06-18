@@ -26,11 +26,13 @@ import net.hydromatic.optiq.rules.java.EnumerableConvention;
 import net.hydromatic.optiq.rules.java.JavaRules;
 import net.hydromatic.optiq.rules.java.JavaRules.EnumerableProjectRel;
 import net.hydromatic.optiq.test.JdbcTest;
+import net.hydromatic.optiq.test.OptiqAssert;
 
 import org.eigenbase.rel.*;
 import org.eigenbase.rel.convert.ConverterRule;
 import org.eigenbase.rel.rules.*;
 import org.eigenbase.relopt.*;
+import org.eigenbase.relopt.hep.*;
 import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.reltype.RelDataTypeFactory;
 import org.eigenbase.sql.*;
@@ -47,6 +49,7 @@ import org.eigenbase.util.Util;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 
 import org.junit.Test;
 
@@ -396,6 +399,93 @@ public class PlannerTest {
     assertThat(toString(transform2), equalTo(
         "JdbcProjectRel(name=[$2])\n"
         + "  MockJdbcTableScan(table=[[hr, emps]])\n"));
+  }
+
+  /** Unit test that plans a query with a large number of joins. */
+  @Test public void testPlanNWayJoin()
+    throws Exception {
+    // Here the times before and after enabling LoptOptimizeJoinRule.
+    //
+    // Note the jump between N=6 and N=7; LoptOptimizeJoinRule is disabled if
+    // there are fewer than 6 joins (7 relations).
+    //
+    //       N    Before     After
+    //         time (ms) time (ms)
+    // ======= ========= =========
+    //       5                 382
+    //       6                 790
+    //       7                  26
+    //       9    6,000         39
+    //      10    9,000         47
+    //      11   19,000         67
+    //      12   40,000         63
+    //      13 OOM              96
+    //      35 OOM           1,716
+    //      60 OOM          12,230
+    checkJoinNWay(5); // LoptOptimizeJoinRule disabled; takes about .4s
+    checkJoinNWay(9); // LoptOptimizeJoinRule enabled; takes about 0.04s
+    checkJoinNWay(35); // takes about 2s
+    if (OptiqAssert.ENABLE_SLOW) {
+      checkJoinNWay(60); // takes about 15s
+    }
+  }
+
+  private void checkJoinNWay(int n) throws Exception {
+    final StringBuilder buf = new StringBuilder();
+    buf.append("select *");
+    for (int i = 0; i < n; i++) {
+      buf.append(i == 0 ? "\nfrom " : ",\n ")
+          .append("\"depts\" as d").append(i);
+    }
+    for (int i = 1; i < n; i++) {
+      buf.append(i == 1 ? "\nwhere" : "\nand").append(" d")
+          .append(i).append(".\"deptno\" = d")
+          .append(i - 1).append(".\"deptno\"");
+    }
+    Planner planner = getPlanner(null, adaptiveJoinProgram(RULE_SET));
+    SqlNode parse = planner.parse(buf.toString());
+
+    SqlNode validate = planner.validate(parse);
+    RelNode convert = planner.convert(validate);
+    RelTraitSet traitSet = planner.getEmptyTraitSet()
+        .replace(EnumerableConvention.INSTANCE);
+    RelNode transform = planner.transform(0, traitSet, convert);
+    assertThat(toString(transform), containsString(
+        "EnumerableJoinRel(condition=[=($3, $0)], joinType=[inner])"));
+  }
+
+  /** Creates a program that invokes heuristic join-order optimization
+   * (via {@link org.eigenbase.rel.rules.ConvertMultiJoinRule},
+   * {@link org.eigenbase.rel.rules.MultiJoinRel} and
+   * {@link org.eigenbase.rel.rules.LoptOptimizeJoinRule})
+   * if there are 6 or more joins (7 or more relations). */
+  private static Program adaptiveJoinProgram(final RuleSet ruleSet) {
+    return new Program() {
+      public RelNode run(RelOptPlanner planner, RelNode rel,
+          RelTraitSet requiredOutputTraits) {
+        final int joinCount = RelOptUtil.countJoins(rel);
+        final Program program;
+        if (joinCount < 6) {
+          program = Programs.of(ruleSet);
+        } else {
+          final HepProgram hep = new HepProgramBuilder()
+              .addRuleInstance(PushFilterPastJoinRule.FILTER_ON_JOIN)
+              .addMatchOrder(HepMatchOrder.BOTTOM_UP)
+              .addRuleInstance(ConvertMultiJoinRule.INSTANCE)
+              .build();
+          final List<RelOptRule> list = new ArrayList<RelOptRule>();
+          Iterables.addAll(list, ruleSet);
+          list.removeAll(
+              ImmutableList.of(SwapJoinRule.INSTANCE,
+                  PushJoinThroughJoinRule.LEFT,
+                  PushJoinThroughJoinRule.RIGHT));
+          list.add(LoptOptimizeJoinRule.INSTANCE);
+          program =
+              Programs.sequence(Programs.of(hep), Programs.ofRules(list));
+        }
+        return program.run(planner, rel, requiredOutputTraits);
+      }
+    };
   }
 
   /**
