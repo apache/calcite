@@ -15,23 +15,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 */
-package net.hydromatic.optiq.test;
-
-import net.hydromatic.optiq.impl.tpcds.TpcdsTest;
-import net.hydromatic.optiq.impl.tpch.TpchTest;
-
-import org.junit.runner.RunWith;
-import org.junit.runners.Suite;
 
 /**
- * Suite consisting of all tests in the <code>optiq-plus</code> module.
+ * TPC-DS schema.
  */
-@RunWith(Suite.class)
-@Suite.SuiteClasses({
-    TpcdsTest.class,
-    TpchTest.class
-})
-public class PlusSuite {
-}
+package net.hydromatic.optiq.impl.tpcds;
 
-// End PlusSuite.java
+// End package-info.java

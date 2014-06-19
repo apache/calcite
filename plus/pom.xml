@@ -36,6 +36,12 @@
       <version>0.1</version>
       <type>jar</type>
     </dependency>
+    <dependency>
+      <groupId>net.hydromatic</groupId>
+      <artifactId>tpcds</artifactId>
+      <version>0.1</version>
+      <type>jar</type>
+    </dependency>
   </dependencies>
 
   <build>
