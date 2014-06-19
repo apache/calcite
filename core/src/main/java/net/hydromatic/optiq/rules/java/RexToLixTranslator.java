@@ -143,8 +143,8 @@ public class RexToLixTranslator {
 
   /** Creates a translator for translating aggregate functions. */
   public static RexToLixTranslator forAggregation(JavaTypeFactory typeFactory,
-      BlockBuilder list) {
-    return new RexToLixTranslator(null, typeFactory, null, list);
+      BlockBuilder list, InputGetter inputGetter) {
+    return new RexToLixTranslator(null, typeFactory, inputGetter, list);
   }
 
   Expression translate(RexNode expr) {
@@ -594,7 +594,7 @@ public class RexToLixTranslator {
     final Primitive fromBox = Primitive.ofBox(fromType);
     final Primitive fromPrimitive = Primitive.of(fromType);
     final boolean fromNumber = fromType instanceof Class
-       && Number.class.isAssignableFrom((Class) fromType);
+        && Number.class.isAssignableFrom((Class) fromType);
     if (fromType == String.class) {
       if (toPrimitive != null) {
         switch (toPrimitive) {
@@ -660,6 +660,18 @@ public class RexToLixTranslator {
           Expressions.box(
               Expressions.unbox(operand, toBox),
               toBox));
+    } else if (fromPrimitive != null && toBox != null) {
+      // E.g. from "int" to "Long".
+      // Generate Long.valueOf(x)
+      // Eliminate primitive casts like Long.valueOf((long) x)
+      if (operand instanceof UnaryExpression) {
+        UnaryExpression una = (UnaryExpression) operand;
+        if (una.nodeType == ExpressionType.Convert
+            || Primitive.of(una.getType()) == toBox) {
+          return Expressions.box(una.expression, toBox);
+        }
+      }
+      return Expressions.box(operand, toBox);
     } else if (toType == BigDecimal.class) {
       if (fromBox != null) {
         // E.g. from "Integer" to "BigDecimal".
@@ -823,8 +835,20 @@ public class RexToLixTranslator {
    * expression is nullable. */
   public RexToLixTranslator setNullable(Map<? extends RexNode,
                                         Boolean> nullable) {
+    if (nullable == null || nullable.isEmpty()) {
+      return this;
+    }
     return new RexToLixTranslator(
         program, typeFactory, inputGetter, list, nullable, builder, this);
+  }
+
+  public RexToLixTranslator setBlock(BlockBuilder block) {
+    if (block == list) {
+      return this;
+    }
+    return new RexToLixTranslator(
+        program, typeFactory, inputGetter, block,
+        Collections.<RexNode, Boolean>emptyMap(), builder, this);
   }
 
   public RelDataType nullifyType(RelDataType type, boolean nullable) {
@@ -860,10 +884,18 @@ public class RexToLixTranslator {
     }
 
     public Expression field(BlockBuilder list, int index, Type storageType) {
-      final Pair<Expression, PhysType> input = inputs.get(0);
-      final PhysType physType = input.right;
-      final Expression left = list.append("current", input.left);
-      return physType.fieldReference(left, index, storageType);
+      int offset = 0;
+      for (Pair<Expression, PhysType> input : inputs) {
+        final PhysType physType = input.right;
+        int fieldCount = physType.getRowType().getFieldCount();
+        if (index >= offset + fieldCount) {
+          offset += fieldCount;
+          continue;
+        }
+        final Expression left = list.append("current", input.left);
+        return physType.fieldReference(left, index - offset, storageType);
+      }
+      throw new IllegalArgumentException("Unable to find field #" + index);
     }
   }
 

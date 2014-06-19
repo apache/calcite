@@ -59,9 +59,9 @@ windowSpec:
       [ ORDER BY orderItem [, orderItem ]* ]
       [ PARTITION BY expression [, expression ]* ]
       {
-          RANGE numericOrInterval { PRECEDING | FOLLOWING }
+          RANGE numericOrIntervalExpression { PRECEDING | FOLLOWING }
       |
-          ROWS numeric { PRECEDING | FOLLOWING }
+          ROWS numericExpression { PRECEDING | FOLLOWING }
       }
   )
 ```
@@ -430,11 +430,13 @@ Not implemented:
 | MAX(value) OVER window
 | MIN(value) OVER window
 | RANK() OVER window
+| DENSE_RANK() OVER window
+| ROW_NUMBER() OVER window
+| FIRST_VALUE(value) OVER window
+| LAST_VALUE(value) OVER window
 
 Not implemented:
-* FIRST_VALUE() OVER window
-* LAST_VALUE() OVER window
-* DENSE_RANK(value) OVER window
+* FIRST_VALUE(value) IGNORE NULLS OVER window
+* LAST_VALUE(value) IGNORE NULLS OVER window
 * PERCENT_RANK(value) OVER window
 * CUME_DIST(value) OVER window
-* ROW_NUMBER() OVER window

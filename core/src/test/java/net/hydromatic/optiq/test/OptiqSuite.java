@@ -18,6 +18,7 @@
 package net.hydromatic.optiq.test;
 
 import net.hydromatic.optiq.impl.clone.ArrayTableTest;
+import net.hydromatic.optiq.runtime.BinarySearchTest;
 import net.hydromatic.optiq.tools.FrameworksTest;
 import net.hydromatic.optiq.tools.PlannerTest;
 import net.hydromatic.optiq.util.PartiallyOrderedSetTest;
@@ -68,6 +69,7 @@ import org.junit.runners.Suite;
     SqlPrettyWriterTest.class,
     RelWriterTest.class,
     RexProgramTest.class,
+    BinarySearchTest.class,
 
     // medium tests (above 0.1s)
     SqlParserTest.class,

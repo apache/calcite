@@ -249,7 +249,8 @@ public class OptiqAssert {
           OptiqAssert.toStringList(resultSet, actualList);
           Collections.sort(actualList);
 
-          assertThat(actualList, equalTo(expectedList));
+          // Use assertArrayEquals since it implements fine-grained comparison.
+          assertArrayEquals(expectedList.toArray(), actualList.toArray());
           return null;
         } catch (SQLException e) {
           throw new RuntimeException(e);

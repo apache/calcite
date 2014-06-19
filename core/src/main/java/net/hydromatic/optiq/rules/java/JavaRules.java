@@ -24,6 +24,7 @@ import net.hydromatic.linq4j.function.*;
 
 import net.hydromatic.optiq.*;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
+import net.hydromatic.optiq.prepare.OptiqPrepareImpl;
 import net.hydromatic.optiq.prepare.Prepare;
 import net.hydromatic.optiq.runtime.SortedMultiMap;
 import net.hydromatic.optiq.util.BitSets;
@@ -35,14 +36,12 @@ import org.eigenbase.rel.metadata.RelMetadataQuery;
 import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.*;
 import org.eigenbase.rex.*;
-import org.eigenbase.sql.SqlWindow;
 import org.eigenbase.sql.fun.SqlStdOperatorTable;
 import org.eigenbase.trace.EigenbaseTrace;
 import org.eigenbase.util.*;
 
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
 
 import java.lang.reflect.*;
 import java.math.BigDecimal;
@@ -350,74 +349,33 @@ public class JavaRules {
 
     static List<Type> fieldTypes(
         final JavaTypeFactory typeFactory,
+        final List<? extends RelDataType> inputTypes) {
+      return new AbstractList<Type>() {
+        public Type get(int index) {
+          return EnumUtil.javaClass(typeFactory, inputTypes.get(index));
+        }
+        public int size() {
+          return inputTypes.size();
+        }
+      };
+    }
+
+    static List<RelDataType> fieldRowTypes(
         final RelDataType inputRowType,
         final List<? extends RexNode> extraInputs,
         final List<Integer> argList) {
       final List<RelDataTypeField> inputFields = inputRowType.getFieldList();
-      return new AbstractList<Type>() {
-        public Type get(int index) {
+      return new AbstractList<RelDataType>() {
+        public RelDataType get(int index) {
           final int arg = argList.get(index);
-          return EnumUtil.javaClass(
-              typeFactory,
-              arg < inputFields.size()
+          return arg < inputFields.size()
               ? inputFields.get(arg).getType()
-              : extraInputs.get(arg - inputFields.size()).getType());
+              : extraInputs.get(arg - inputFields.size()).getType();
         }
         public int size() {
           return argList.size();
         }
       };
-    }
-
-    static List<AggImplementor> getImplementors(List<AggregateCall> aggCalls) {
-      final List<AggImplementor> implementors = new ArrayList<AggImplementor>();
-      for (AggregateCall aggCall : aggCalls) {
-        AggImplementor implementor2 =
-            RexImpTable.INSTANCE.get(aggCall.getAggregation());
-        if (implementor2 == null) {
-          throw new RuntimeException(
-              "cannot implement aggregate " + aggCall);
-        }
-        implementors.add(implementor2);
-      }
-      return implementors;
-    }
-
-    static Expression andList(List<Expression> list) {
-      Expression expression = null;
-      for (Expression e : list) {
-        expression = expression == null
-            ? e
-            : Expressions.andAlso(expression, e);
-      }
-      return expression;
-    }
-
-    static Expression optimizeAdd(Expression i_,
-        int offset,
-        Expression min_,
-        Expression max_) {
-      if (offset == 0) {
-        return i_;
-      } else if (offset < 0) {
-        return Expressions.call(null,
-            BuiltinMethod.MATH_MAX.method,
-            min_,
-            Expressions.subtract(i_, Expressions.constant(-offset)));
-      } else {
-        return Expressions.call(null,
-            BuiltinMethod.MATH_MIN.method,
-            max_,
-            Expressions.add(i_, Expressions.constant(offset)));
-      }
-    }
-
-    static Expression makeEquals(Expression e0, Expression e1) {
-      if (Primitive.is(e0.getType()) && Primitive.is(e1.getType())) {
-        return Expressions.equal(e0, e1);
-      } else {
-        return Expressions.call(BuiltinMethod.OBJECTS_EQUAL.method, e0, e1);
-      }
     }
   }
 
@@ -904,7 +862,7 @@ public class JavaRules {
               "distinct aggregation not supported");
         }
         AggImplementor implementor2 =
-            RexImpTable.INSTANCE.get(aggCall.getAggregation());
+            RexImpTable.INSTANCE.get(aggCall.getAggregation(), false);
         if (implementor2 == null) {
           throw new InvalidRelException(
               "aggregation " + aggCall.getAggregation() + " not supported");
@@ -927,15 +885,13 @@ public class JavaRules {
     public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
       final JavaTypeFactory typeFactory = implementor.getTypeFactory();
       final BlockBuilder builder = new BlockBuilder();
-      final RexToLixTranslator translator =
-          RexToLixTranslator.forAggregation(typeFactory, null);
       final EnumerableRel child = (EnumerableRel) getChild();
       final Result result = implementor.visitChild(this, 0, child, pref);
       Expression childExp =
           builder.append(
               "child",
               result.block);
-      RelDataType inputRowType = getChild().getRowType();
+      final RelDataType inputRowType = getChild().getRowType();
 
       final PhysType physType =
           PhysTypeImpl.of(
@@ -1000,7 +956,7 @@ public class JavaRules {
       // return child
       //     .distinct(equalityComparer);
 
-      PhysType inputPhysType = result.physType;
+      final PhysType inputPhysType = result.physType;
 
       ParameterExpression parameter =
           Expressions.parameter(inputPhysType.getJavaRowType(), "a0");
@@ -1022,8 +978,13 @@ public class JavaRules {
                   BitSets.toList(groupSet),
                   keyPhysType.getFormat()));
 
-      final List<AggImplementor> implementors =
-          EnumUtil.getImplementors(aggCalls);
+      final List<AggImpState> aggs =
+          new ArrayList<AggImpState>(aggCalls.size());
+
+      for (int i = 0; i < aggCalls.size(); i++) {
+        AggregateCall call = aggCalls.get(i);
+        aggs.add(new AggImpState(i, call, false));
+      }
 
       // Function0<Object[]> accumulatorInitializer =
       //     new Function0<Object[]>() {
@@ -1033,35 +994,77 @@ public class JavaRules {
       //     };
       final List<Expression> initExpressions =
           new ArrayList<Expression>();
-      for (Ord<Pair<AggregateCall, AggImplementor>> ord
-          : Ord.zip(Pair.zip(aggCalls, implementors))) {
-        initExpressions.add(
-            ord.e.right.implementInit(translator, ord.e.left.getAggregation(),
-                physType.fieldClass(keyArity + ord.i),
-                EnumUtil.fieldTypes(typeFactory, inputRowType, null,
-                    ord.e.left.getArgList())));
+      final BlockBuilder initBlock = new BlockBuilder();
+
+      final List<Type> aggStateTypes = new ArrayList<Type>();
+      for (final AggImpState agg : aggs) {
+        agg.context =
+            new AggContext() {
+              public Aggregation aggregation() {
+                return agg.call.getAggregation();
+              }
+
+              public RelDataType returnRelType() {
+                return agg.call.type;
+              }
+
+              public Type returnType() {
+                return EnumUtil.javaClass(typeFactory, returnRelType());
+              }
+
+              public List<? extends RelDataType> parameterRelTypes() {
+                return EnumUtil.fieldRowTypes(inputRowType, null,
+                    agg.call.getArgList());
+              }
+
+              public List<? extends Type> parameterTypes() {
+                return EnumUtil.fieldTypes(typeFactory,
+                    parameterRelTypes());
+              }
+            };
+        List<Type> state =
+            agg.implementor.getStateType(agg.context);
+
+        if (state.isEmpty()) {
+          continue;
+        }
+
+        aggStateTypes.addAll(state);
+
+        final List<Expression> decls =
+            new ArrayList<Expression>(state.size());
+        for (int i = 0; i < state.size(); i++) {
+          String aggName = "a" + agg.aggIdx;
+          if (OptiqPrepareImpl.DEBUG) {
+            aggName = Util.toJavaId(agg.call.getAggregation().getName(), 0)
+                .substring("ID$0$".length()) + aggName;
+          }
+          Type type = state.get(i);
+          ParameterExpression pe =
+              Expressions.parameter(type,
+                  initBlock.newName(aggName + "s" + i));
+          initBlock.add(Expressions.declare(0, pe, null));
+          decls.add(pe);
+        }
+        agg.state = decls;
+        initExpressions.addAll(decls);
+        agg.implementor.implementReset(agg.context,
+            new AggResultContext(initBlock, decls));
       }
 
       final PhysType accPhysType =
           PhysTypeImpl.of(
               typeFactory,
-              typeFactory.createSyntheticType(
-                  new AbstractList<Type>() {
-                    public Type get(int index) {
-                      return initExpressions.get(index).getType();
-                    }
+              typeFactory.createSyntheticType(aggStateTypes));
 
-                    public int size() {
-                      return initExpressions.size();
-                    }
-                  }));
+      initBlock.add(accPhysType.record(initExpressions));
 
       final Expression accumulatorInitializer =
           builder.append(
               "accumulatorInitializer",
               Expressions.lambda(
                   Function0.class,
-                  accPhysType.record(initExpressions)));
+                  initBlock.toBlock()));
 
       // Function2<Object[], Employee, Object[]> accumulatorAdder =
       //     new Function2<Object[], Employee, Object[]>() {
@@ -1071,42 +1074,48 @@ public class JavaRules {
       //             return acc;
       //         }
       //     };
-      BlockBuilder builder2 = new BlockBuilder();
+      final BlockBuilder builder2 = new BlockBuilder();
       final ParameterExpression inParameter =
           Expressions.parameter(inputPhysType.getJavaRowType(), "in");
       final ParameterExpression acc_ =
           Expressions.parameter(accPhysType.getJavaRowType(), "acc");
-      for (Ord<Pair<AggregateCall, AggImplementor>> ord
-          : Ord.zip(Pair.zip(aggCalls, implementors))) {
-        final Type type = initExpressions.get(ord.i).type;
-        final Expression accumulator =
-            accPhysType.fieldReference(acc_, ord.i);
-        final List<Expression> conditions = new ArrayList<Expression>();
-        for (int arg : ord.e.left.getArgList()) {
-          if (inputPhysType.fieldNullable(arg)) {
-            conditions.add(
-                Expressions.notEqual(
-                    inputPhysType.fieldReference(inParameter, arg),
-                    Expressions.constant(null)));
-          }
+      for (int i = 0, stateOffset = 0; i < aggs.size(); i++) {
+        final AggImpState agg = aggs.get(i);
+
+        int stateSize = agg.state.size();
+        List<Expression> accumulator =
+            new ArrayList<Expression>(stateSize);
+        for (int j = 0; j < stateSize; j++) {
+          accumulator.add(accPhysType.fieldReference(
+              acc_, j + stateOffset));
         }
-        final Statement assign =
-            Expressions.statement(
-                Expressions.assign(accumulator,
-                    ord.e.right.implementAdd(
-                        AggImplementor.Impls.add(
-                            translator,
-                            ord.e.left.getAggregation(),
-                            inputPhysType.accessors(
-                                inParameter, ord.e.left.getArgList()),
-                            Types.castIfNecessary(type, accumulator)))));
-        if (conditions.isEmpty()) {
-          builder2.add(assign);
-        } else {
-          builder2.add(
-              Expressions.ifThen(
-                  Expressions.foldAnd(conditions), assign));
-        }
+        agg.state = accumulator;
+
+        stateOffset += stateSize;
+
+        AggAddContext addContext =
+            new AggAddContext(builder2, accumulator) {
+              public List<RexNode> rexArguments() {
+                List<RelDataTypeField> inputTypes =
+                    inputPhysType.getRowType().getFieldList();
+                List<RexNode> args = new ArrayList<RexNode>();
+                for (Integer index : agg.call.getArgList()) {
+                  args.add(new RexInputRef(index,
+                      inputTypes.get(index).getType()));
+                }
+                return args;
+              }
+
+              public RexToLixTranslator rowTranslator() {
+                return RexToLixTranslator.forAggregation(typeFactory,
+                    currentBlock(), new RexToLixTranslator.InputGetterImpl(
+                        Collections.singletonList(Pair.of(
+                            (Expression) inParameter, inputPhysType))))
+                    .setNullable(currentNullables());
+              }
+            };
+
+        agg.implementor.implementAdd(agg.context, addContext);
       }
       builder2.add(acc_);
       final Expression accumulatorAdder =
@@ -1124,6 +1133,7 @@ public class JavaRules {
       //             return new Object[] { key, acc[0], acc[1] };
       //         }
       //     };
+      final BlockBuilder resultBlock = new BlockBuilder();
       final List<Expression> results = Expressions.list();
       final ParameterExpression key_;
       if (keyArity == 0) {
@@ -1136,21 +1146,19 @@ public class JavaRules {
               keyPhysType.fieldReference(key_, j));
         }
       }
-      for (Ord<Pair<AggregateCall, AggImplementor>> ord
-          : Ord.zip(Pair.zip(aggCalls, implementors))) {
-        results.add(
-            ord.e.right.implementResult(translator, ord.e.left.getAggregation(),
-                accPhysType.fieldReference(
-                    acc_, ord.i)));
+      for (final AggImpState agg : aggs) {
+        results.add(agg.implementor.implementResult(
+            agg.context,
+            new AggResultContext(resultBlock, agg.state)));
       }
-      final PhysType resultPhysType = physType;
+      resultBlock.add(physType.record(results));
       if (keyArity == 0) {
         final Expression resultSelector =
             builder.append(
                 "resultSelector",
                 Expressions.lambda(
                     Function1.class,
-                    resultPhysType.record(results),
+                    resultBlock.toBlock(),
                     acc_));
         builder.add(
             Expressions.return_(
@@ -1179,7 +1187,7 @@ public class JavaRules {
                 "resultSelector",
                 Expressions.lambda(
                     Function2.class,
-                    resultPhysType.record(results),
+                    resultBlock.toBlock(),
                     key_,
                     acc_));
         builder.add(
@@ -2044,18 +2052,108 @@ public class JavaRules {
       return planner.getCostFactory().makeCost(rowsIn, rowsIn * count, 0);
     }
 
+    private static class WindowRelInputGetter implements
+        RexToLixTranslator.InputGetter {
+      private final Expression row;
+      private final PhysType rowPhysType;
+      private final int actualInputFieldCount;
+      private final List<Expression> constants;
+
+      private WindowRelInputGetter(Expression row,
+          PhysType rowPhysType, int actualInputFieldCount,
+          List<Expression> constants) {
+        this.row = row;
+        this.rowPhysType = rowPhysType;
+        this.actualInputFieldCount = actualInputFieldCount;
+        this.constants = constants;
+      }
+
+      public Expression field(BlockBuilder list, int index, Type storageType) {
+        if (index < actualInputFieldCount) {
+          Expression current = list.append("current", row);
+          return rowPhysType.fieldReference(current, index, storageType);
+        }
+        return constants.get(index - actualInputFieldCount);
+      }
+    }
+
+
+    private void sampleOfTheGeneratedWindowedAggregate() {
+      // Here's overview of the generated code
+      // For each list of rows that have the same partitioning key, evaluate
+      // all of the windowed aggregate functions.
+
+      // builder
+      Iterator<Integer[]> iterator = null;
+
+      // builder3
+      Integer[] rows = iterator.next();
+
+      int prevStart = -1;
+      int prevEnd = -1;
+
+      for (int i = 0; i < rows.length; i++) {
+        // builder4
+        Integer row = rows[i];
+
+        int start = 0;
+        int end = 100;
+        if (start != prevStart || end != prevEnd) {
+          // builder5
+          int actualStart = 0;
+          if (start != prevStart || end < prevEnd) {
+            // builder6
+            // recompute
+            actualStart = start;
+            // implementReset
+          } else { // must be start == prevStart && end > prevEnd
+            actualStart = prevEnd + 1;
+          }
+          prevStart = start;
+          prevEnd = end;
+
+          if (start != -1) {
+            for (int j = actualStart; j <= end; j++) {
+              // builder7
+              // implementAdd
+            }
+          }
+          // implementResult
+          // list.add(new Xxx(row.deptno, row.empid, sum, count));
+        }
+      }
+      // multiMap.clear(); // allows gc
+      // source = Linq4j.asEnumerable(list);
+    }
+
     public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
       final JavaTypeFactory typeFactory = implementor.getTypeFactory();
       final EnumerableRel child = (EnumerableRel) getChild();
-      final RexToLixTranslator translator =
-          RexToLixTranslator.forAggregation(typeFactory, null);
       final BlockBuilder builder = new BlockBuilder();
       final Result result = implementor.visitChild(this, 0, child, pref);
       Expression source_ = builder.append("source", result.block);
 
+      final List<Expression> translatedConstants =
+          new ArrayList<Expression>(constants.size());
+      for (RexLiteral constant : constants) {
+        translatedConstants.add(RexToLixTranslator.translateLiteral(
+            constant, constant.getType(),
+            typeFactory,
+            RexImpTable.NullAs.NULL));
+      }
+
       PhysType inputPhysType = result.physType;
 
-      for (Window window : windows) {
+      ParameterExpression prevStart =
+          Expressions.parameter(int.class, "prevStart");
+      ParameterExpression prevEnd =
+          Expressions.parameter(int.class, "prevEnd");
+
+      builder.add(Expressions.declare(0, prevStart, null));
+      builder.add(Expressions.declare(0, prevEnd, null));
+
+      for (int windowIdx = 0; windowIdx < windows.size(); windowIdx++) {
+        Window window = windows.get(windowIdx);
         // Comparator:
         // final Comparator<JdbcTest.Employee> comparator =
         //    new Comparator<JdbcTest.Employee>() {
@@ -2070,134 +2168,30 @@ public class JavaRules {
                 inputPhysType.generateComparator(
                     window.collation()));
 
-        // Populate map of lists, one per partition
-        //   final Map<Integer, List<Employee>> multiMap =
-        //     new SortedMultiMap<Integer, List<Employee>>();
-        //    source.foreach(
-        //      new Function1<Employee, Void>() {
-        //        public Void apply(Employee v) {
-        //          final Integer k = v.deptno;
-        //          multiMap.putMulti(k, v);
-        //          return null;
-        //        }
-        //      });
-        //   final List<Xxx> list = new ArrayList<Xxx>(multiMap.size());
-        //   Iterator<Employee[]> iterator = multiMap.arrays(comparator);
-        //
-        final Expression collectionExpr;
-        final Expression iterator_;
-        if (window.groupSet.isEmpty()) {
-          // If partition key is empty, no need to partition.
-          //
-          //   final List<Employee> tempList =
-          //       source.into(new ArrayList<Employee>());
-          //   Iterator<Employee[]> iterator =
-          //       SortedMultiMap.singletonArrayIterator(comparator, tempList);
-          //   final List<Xxx> list = new ArrayList<Xxx>(tempList.size());
+        Pair<Expression, Expression> partitionIterator =
+            getPartitionIterator(builder, source_, inputPhysType, window,
+                comparator_);
+        final Expression collectionExpr = partitionIterator.left;
+        final Expression iterator_ = partitionIterator.right;
 
-          final Expression tempList_ = builder.append(
-              "tempList",
-              Expressions.convert_(
-                  Expressions.call(
-                      source_,
-                      BuiltinMethod.INTO.method,
-                      Expressions.new_(ArrayList.class)),
-                  List.class));
-          iterator_ = builder.append(
-              "iterator",
-              Expressions.call(
-                  null,
-                  BuiltinMethod.SORTED_MULTI_MAP_SINGLETON.method,
-                  comparator_,
-                  tempList_));
-
-          collectionExpr = tempList_;
-        } else {
-          Expression multiMap_ =
-              builder.append(
-                  "multiMap", Expressions.new_(SortedMultiMap.class));
-          final BlockBuilder builder2 = new BlockBuilder();
-          final ParameterExpression v_ =
-              Expressions.parameter(inputPhysType.getJavaRowType(),
-                  builder2.newName("v"));
-          final DeclarationStatement declare =
-              Expressions.declare(
-                  0, "key",
-                  inputPhysType.selector(
-                      v_,
-                      BitSets.toList(window.groupSet),
-                      JavaRowFormat.CUSTOM));
-          builder2.add(declare);
-          final ParameterExpression key_ = declare.parameter;
-          builder2.add(
-              Expressions.statement(
-                  Expressions.call(
-                      multiMap_,
-                      BuiltinMethod.SORTED_MULTI_MAP_PUT_MULTI.method,
-                      key_,
-                      v_)));
-          builder2.add(
-              Expressions.return_(
-                  null, Expressions.constant(null)));
-
-          builder.add(
-              Expressions.statement(
-                  Expressions.call(
-                      source_,
-                      BuiltinMethod.ENUMERABLE_FOREACH.method,
-                      Expressions.lambda(
-                          builder2.toBlock(), v_))));
-
-          iterator_ = builder.append(
-              "iterator",
-              Expressions.call(
-                  multiMap_,
-                  BuiltinMethod.SORTED_MULTI_MAP_ARRAYS.method,
-                  comparator_));
-
-          collectionExpr = multiMap_;
+        List<AggImpState> aggs = new ArrayList<AggImpState>();
+        List<AggregateCall> aggregateCalls = window.getAggregateCalls(this);
+        for (int aggIdx = 0; aggIdx < aggregateCalls.size(); aggIdx++) {
+          AggregateCall call = aggregateCalls.get(aggIdx);
+          aggs.add(new AggImpState(aggIdx, call, true));
         }
 
         // The output from this stage is the input plus the aggregate functions.
         final RelDataTypeFactory.FieldInfoBuilder typeBuilder =
             typeFactory.builder();
         typeBuilder.addAll(inputPhysType.getRowType().getFieldList());
-        final int offset = typeBuilder.getFieldCount();
-        final List<AggregateCall> aggregateCalls =
-            window.getAggregateCalls(this);
-        for (AggregateCall aggregateCall : aggregateCalls) {
-          typeBuilder.add(aggregateCall.name, aggregateCall.type);
+        for (AggImpState agg : aggs) {
+          typeBuilder.add(agg.call.name, agg.call.type);
         }
         RelDataType outputRowType = typeBuilder.build();
-        PhysType outputPhysType =
+        final PhysType outputPhysType =
             PhysTypeImpl.of(
                 typeFactory, outputRowType, pref.prefer(result.format));
-
-        // For each list of rows that have the same partitioning key, evaluate
-        // all of the windowed aggregate functions.
-        //
-        //   while (iterator.hasNext()) {
-        //     // <builder3>
-        //     Employee[] rows = iterator.next();
-        //     int i = 0;
-        //     while (i < rows.length) {
-        //       // <builder4>
-        //       JdbcTest.Employee row = rows[i];
-        //       int sum = 0;
-        //       int count = 0;
-        //       int j = Math.max(0, i - 1);
-        //       while (j <= i) {
-        //         // <builder5>
-        //         sum += rows[j].salary;
-        //         ++count;
-        //         ++j;
-        //       }
-        //       list.add(new Xxx(row.deptno, row.empid, sum, count));
-        //       i++;
-        //     }
-        //     multiMap.clear(); // allows gc
-        //   }
-        //   source = Linq4j.asEnumerable(list);
 
         final Expression list_ =
             builder.append(
@@ -2208,8 +2202,12 @@ public class JavaRules {
                         collectionExpr, BuiltinMethod.COLLECTION_SIZE.method)),
                 false);
 
+        Pair<Expression, Expression> collationKey =
+            getRowCollationKey(builder, inputPhysType, window, windowIdx);
+        Expression keySelector = collationKey.left;
+        Expression keyComparator = collationKey.right;
         final BlockBuilder builder3 = new BlockBuilder();
-        Expression rows_ =
+        final Expression rows_ =
             builder3.append(
                 "rows",
                 Expressions.convert_(
@@ -2217,6 +2215,12 @@ public class JavaRules {
                         iterator_, BuiltinMethod.ITERATOR_NEXT.method),
                     Object[].class),
                 false);
+
+        builder3.add(Expressions.statement(
+            Expressions.assign(prevStart, Expressions.constant(-1))));
+        builder3.add(Expressions.statement(
+            Expressions.assign(prevEnd,
+                Expressions.constant(Integer.MAX_VALUE))));
 
         final BlockBuilder builder4 = new BlockBuilder();
 
@@ -2230,112 +2234,211 @@ public class JavaRules {
                     Expressions.arrayIndex(rows_, i_),
                     inputPhysType.getJavaRowType()));
 
-        final List<AggImplementor> implementors =
-            EnumUtil.getImplementors(aggregateCalls);
-        final List<ParameterExpression> variables =
-            new ArrayList<ParameterExpression>();
-        for (Ord<Pair<AggregateCall, AggImplementor>> ord
-            : Ord.zip(Pair.zip(aggregateCalls, implementors))) {
-          final ParameterExpression parameter =
-              Expressions.parameter(outputPhysType.fieldClass(offset + ord.i),
-                  builder4.newName(ord.e.left.name));
-          final Expression initExpression =
-              ord.e.right.implementInit(translator, ord.e.left.getAggregation(),
-                  parameter.type,
-                  EnumUtil.fieldTypes(typeFactory,
-                      inputPhysType.getRowType(),
-                      constants, ord.e.left.getArgList()));
-          variables.add(parameter);
-          builder4.add(Expressions.declare(0, parameter, initExpression));
+        final RexToLixTranslator.InputGetter inputGetter =
+            new WindowRelInputGetter(row_, inputPhysType,
+                result.physType.getRowType().getFieldCount(),
+                translatedConstants);
+
+        final RexToLixTranslator translator =
+            RexToLixTranslator.forAggregation(typeFactory, builder4,
+                inputGetter);
+
+        final List<Expression> outputRow = new ArrayList<Expression>();
+        int fieldCountWithAggResults =
+          inputPhysType.getRowType().getFieldCount();
+        for (int i = 0; i < fieldCountWithAggResults; i++) {
+          outputRow.add(
+              inputPhysType.fieldReference(
+                  row_, i,
+                  outputPhysType.getJavaFieldType(i)));
         }
 
-        final WinImpl win =
-            new WinImpl(typeFactory, builder4, window, rows_, i_, row_,
-                offset, inputPhysType, outputPhysType);
+        declareAndResetState(typeFactory, builder, result, windowIdx, aggs,
+            outputPhysType, outputRow);
 
-        generateWindowLoop(translator, builder4, aggregateCalls, implementors,
-            variables, win,
-            new Function1<AggCallContext, Void>() {
-              public Void apply(final AggCallContext a0) {
-                final int inputFieldCount =
-                    win.inputPhysType.getRowType().getFieldCount();
-                for (final Ord<Pair<AggregateCall, AggImplementor>> ord
-                    : Ord.zip(Pair.zip(aggregateCalls, implementors))) {
-                  final Expression accumulator = variables.get(ord.i);
-                  final List<Expression> conditions =
-                      new ArrayList<Expression>();
-                  for (int arg : ord.e.left.getArgList()) {
-                    if (arg < inputFieldCount) {
-                      if (win.inputPhysType.fieldNullable(arg)) {
-                        conditions.add(
-                            Expressions.notEqual(
-                                win.inputPhysType.fieldReference(row_, arg),
-                                Expressions.constant(null)));
-                      }
-                    } else {
-                      final RexLiteral const_ = constants.get(
-                          arg - inputFieldCount);
-                      if (const_.getType().isNullable()) {
-                        conditions.add(
-                          RexToLixTranslator.translateLiteral(
-                              const_, const_.getType(), typeFactory,
-                              RexImpTable.NullAs.IS_NOT_NULL));
-                      }
-                    }
-                  }
-                  final Statement assign =
-                      Expressions.statement(
-                          Expressions.assign(accumulator,
-                              ord.e.right.implementAdd(
-                                  new AggImplementor.AddInfo() {
-                                    public RexToLixTranslator translator() {
-                                      return translator;
-                                    }
+        final Expression minX = Expressions.constant(0);
+        final Expression maxX = builder3.append("maxX",
+            Expressions.subtract(
+                Expressions.field(rows_, "length"), Expressions.constant(1)));
 
-                                    public Aggregation aggregation() {
-                                      return ord.e.left.getAggregation();
-                                    }
+        final Expression startUnchecked = builder4.append("start",
+            translateBound(translator, i_, row_, minX, maxX, rows_,
+                window, true,
+                inputPhysType, comparator_, keySelector, keyComparator));
+        final Expression endUnchecked = builder4.append("end",
+            translateBound(translator, i_, row_, minX, maxX, rows_,
+                window, false,
+                inputPhysType, comparator_, keySelector, keyComparator));
 
-                                    public Expression accumulator() {
-                                      return accumulator;
-                                    }
+        int startIdx = window.lowerBound.getOrderKey();
+        int endIdx = window.upperBound.getOrderKey();
+        final Expression startX;
+        final Expression endX;
+        final Expression hasRows;
+        if (startIdx >= 0 && startIdx <= endIdx) {
+          startX = startUnchecked;
+          endX = endUnchecked;
+          hasRows = Expressions.constant(true);
+        } else {
+          Expression startTmp =
+              window.lowerBound.isUnbounded() || startUnchecked == i_
+                  ? startUnchecked
+                  : builder4.append("startTmp",
+                      Expressions.call(null, BuiltinMethod.MATH_MAX.method,
+                          startUnchecked, minX));
+          Expression endTmp =
+              window.upperBound.isUnbounded() || endUnchecked == i_
+                  ? endUnchecked
+                  : builder4.append("endTmp",
+                      Expressions.call(null, BuiltinMethod.MATH_MIN.method,
+                          endUnchecked, maxX));
 
-                                    public List<Expression> arguments() {
-                                      return Lists.transform(
-                                          ord.e.left.getArgList(), win.getter);
-                                    }
+          ParameterExpression startPe = Expressions.parameter(0, int.class,
+              builder4.newName("startChecked"));
+          ParameterExpression endPe = Expressions.parameter(0, int.class,
+              builder4.newName("endChecked"));
+          builder4.add(Expressions.declare(Modifier.FINAL, startPe, null));
+          builder4.add(Expressions.declare(Modifier.FINAL, endPe, null));
 
-                                    public Expression orderChanged() {
-                                      return Expressions.equal(a0.index(),
-                                          a0.orderKeyStartIndex());
-                                    }
+          hasRows = builder4.append("hasRows",
+              Expressions.lessThanOrEqual(startTmp, endTmp));
+          builder4.add(Expressions.ifThenElse(
+              hasRows,
+              Expressions.block(
+                  Expressions.statement(
+                      Expressions.assign(startPe, startTmp)),
+                  Expressions.statement(
+                    Expressions.assign(endPe, endTmp))
+            ),
+              Expressions.block(
+                  Expressions.statement(
+                      Expressions.assign(startPe, Expressions.constant(-1))),
+                  Expressions.statement(
+                      Expressions.assign(endPe, Expressions.constant(-1))))));
+          startX = startPe;
+          endX = endPe;
+        }
 
-                                    public Expression index() {
-                                      return a0.index();
-                                    }
+        final BlockBuilder builder5 = new BlockBuilder(true, builder4);
 
-                                    public Expression orderKeyStartIndex() {
-                                      return a0.orderKeyStartIndex();
-                                    }
-                                  })));
-                  if (conditions.isEmpty()) {
-                    a0.builder().add(assign);
-                  } else {
-                    a0.builder().add(
-                        Expressions.ifThen(
-                            Expressions.foldAnd(conditions), assign));
-                  }
+        BinaryExpression rowCountWhenNonEmpty = Expressions.add(
+            startX == minX ? endX : Expressions.subtract(endX, startX),
+            Expressions.constant(1));
+
+        final Expression partitionRowCount;
+
+        if (hasRows.equals(Expressions.constant(true))) {
+          partitionRowCount =
+              builder3.append("totalRows", rowCountWhenNonEmpty);
+        } else {
+          partitionRowCount =
+              builder5.append("totalRows", Expressions.condition(hasRows,
+                  rowCountWhenNonEmpty, Expressions.constant(0)));
+        }
+
+        ParameterExpression actualStart = Expressions.parameter(
+            0, int.class, builder5.newName("actualStart"));
+
+        final BlockBuilder builder6 = new BlockBuilder(true, builder5);
+        builder6.add(Expressions.statement(
+            Expressions.assign(actualStart, startX)));
+
+        for (final AggImpState agg : aggs) {
+          agg.implementor.implementReset(agg.context,
+              new WinAggResetContext(builder6, agg.state, i_, startX, endX,
+                  hasRows, partitionRowCount));
+        }
+
+        Expression lowerBoundCanChange =
+            window.lowerBound.isUnbounded() && window.lowerBound.isPreceding()
+            ? Expressions.constant(false)
+            : Expressions.notEqual(startX, prevStart);
+        Expression needRecomputeWindow = Expressions.orElse(
+            lowerBoundCanChange,
+            Expressions.lessThan(endX, prevEnd));
+
+        BlockStatement resetWindowState = builder6.toBlock();
+        if (resetWindowState.statements.size() == 1) {
+          builder5.add(Expressions.declare(0, actualStart,
+              Expressions.condition(needRecomputeWindow,
+                  startX, Expressions.add(prevEnd, Expressions.constant(1)))));
+        } else {
+          builder5.add(Expressions.declare(0, actualStart,
+              null));
+          builder5.add(Expressions.ifThenElse(needRecomputeWindow,
+              resetWindowState,
+              Expressions.statement(Expressions.assign(actualStart,
+                  Expressions.add(prevEnd, Expressions.constant(1))))));
+        }
+
+        if (lowerBoundCanChange instanceof BinaryExpression) {
+          builder5.add(Expressions.statement(
+              Expressions.assign(prevStart, startX)));
+        }
+        builder5.add(Expressions.statement(
+            Expressions.assign(prevEnd, endX)));
+
+        final BlockBuilder builder7 = new BlockBuilder(true, builder5);
+        final DeclarationStatement jDecl =
+            Expressions.declare(0, "j", actualStart);
+
+        final PhysType inputPhysTypeFinal = inputPhysType;
+        final Function<BlockBuilder, WinAggImplementor.WinAggFrameResultContext>
+            resultContextBuilder =
+            getBlockBuilderWinAggFrameResultContextFunction(typeFactory, result,
+                translatedConstants, comparator_, rows_, i_, startX, endX,
+                jDecl, inputPhysTypeFinal);
+
+        final Function<AggImpState, List<RexNode>> rexArguments =
+            new Function<AggImpState, List<RexNode>>() {
+              public List<RexNode> apply(AggImpState agg) {
+                List<Integer> argList = agg.call.getArgList();
+                List<RelDataType> inputTypes =
+                    EnumUtil.fieldRowTypes(
+                        result.physType.getRowType(),
+                        constants,
+                        argList);
+                List<RexNode> args = new ArrayList<RexNode>(
+                    inputTypes.size());
+                for (int i = 0; i < argList.size(); i++) {
+                  Integer idx = argList.get(i);
+                  args.add(new RexInputRef(idx, inputTypes.get(i)));
                 }
-                return null;
+                return args;
               }
-            });
+            };
+
+        implementAdd(aggs, i_, startX, endX, hasRows, partitionRowCount,
+            builder7, jDecl, resultContextBuilder, rexArguments);
+
+        BlockStatement forBlock = builder7.toBlock();
+        if (!forBlock.statements.isEmpty()) {
+          // For instance, row_number does not use for loop to compute the value
+          Statement forAggLoop = Expressions.for_(
+              Arrays.asList(jDecl),
+              Expressions.lessThanOrEqual(jDecl.parameter, endX),
+              Expressions.preIncrementAssign(jDecl.parameter),
+              forBlock);
+          if (!hasRows.equals(Expressions.constant(true))) {
+            forAggLoop = Expressions.ifThen(hasRows, forAggLoop);
+          }
+          builder5.add(forAggLoop);
+        }
+
+        implementResult(aggs, i_, startX, endX, hasRows, builder5,
+            partitionRowCount,
+            resultContextBuilder, rexArguments);
+
+        builder4.add(Expressions.ifThen(Expressions.orElse(
+            lowerBoundCanChange,
+            Expressions.notEqual(endX, prevEnd)), builder5.toBlock()));
 
         builder4.add(
             Expressions.statement(
                 Expressions.call(
                     list_,
                     BuiltinMethod.COLLECTION_ADD.method,
-                    outputPhysType.record(win.expressions))));
+                    outputPhysType.record(outputRow))));
 
         builder3.add(
             Expressions.for_(
@@ -2375,228 +2478,467 @@ public class JavaRules {
       return implementor.result(inputPhysType, builder.toBlock());
     }
 
-    class WinImpl {
-      final BlockBuilder builder;
-      final Window window;
-      final Expression rowsX;
-      private final ParameterExpression iX;
-      private final Expression rowX;
-      private final int offset;
-      private final PhysType outputPhysType;
-      private final PhysType inputPhysType;
-      final Expression minX;
-      final Expression maxX;
-      final SqlWindow.OffsetRange offsetAndRange;
-      final Expression startX;
-      final Expression endX;
-      final DeclarationStatement jDecl;
-      final ParameterExpression jX;
-      final Expression row2X;
-      final DeclarationStatement orderStartDecl;
-      final Expression orderStartX;
-      final List<Expression> expressions = new ArrayList<Expression>();
-      final Function<Integer, Expression> getter;
+    private Function<BlockBuilder, WinAggImplementor.WinAggFrameResultContext>
+    getBlockBuilderWinAggFrameResultContextFunction(
+        final JavaTypeFactory typeFactory, final Result result,
+        final List<Expression> translatedConstants,
+        final Expression comparator_,
+        final Expression rows_, final ParameterExpression i_,
+        final Expression startX,
+        final Expression endX, final DeclarationStatement jDecl,
+        final PhysType inputPhysTypeFinal) {
+      return new Function<BlockBuilder,
+          WinAggImplementor.WinAggFrameResultContext>() {
+        public WinAggImplementor.WinAggFrameResultContext apply(
+            final BlockBuilder block) {
+          return new WinAggImplementor.WinAggFrameResultContext() {
+            public RexToLixTranslator rowTranslator(Expression rowIndex) {
+              Expression row =
+                  getRow(rowIndex);
+              final RexToLixTranslator.InputGetter inputGetter =
+                  new WindowRelInputGetter(row, inputPhysTypeFinal,
+                      result.physType.getRowType().getFieldCount(),
+                      translatedConstants);
 
-      WinImpl(final JavaTypeFactory typeFactory, BlockBuilder builder,
-          Window window, Expression rows_, ParameterExpression i_,
-          Expression row_, int offset, PhysType inputPhysType,
-          PhysType outputPhysType) {
-        this.builder = builder;
-        this.window = window;
-        this.rowsX = rows_;
-        this.iX = i_;
-        this.rowX = row_;
-        this.offset = offset;
-        this.outputPhysType = outputPhysType;
-        this.inputPhysType = inputPhysType;
-        if (this.window.orderKeys.getFieldCollations().isEmpty()) {
-          // If there is no ORDER BY, every row is effectively equal to the
-          // current row, so we disable range-checking.
-          //
-          // TODO: extend range to rows "equal to current row" even with ORDER
-          // BY
-          offsetAndRange = null;
-        } else {
-          offsetAndRange = SqlWindow.getOffsetAndRange(window.lowerBound,
-              window.upperBound, window.isRows);
-        }
-        minX = Expressions.constant(0);
-        maxX = Expressions.subtract(
-            Expressions.field(this.rowsX, "length"), Expressions.constant(1));
-        startX = builder.append(
-            "start",
-            offsetAndRange == null || offsetAndRange.range == Long.MAX_VALUE
-                ? minX
-                : EnumUtil.optimizeAdd(i_,
-                    (int) offsetAndRange.offset - (int) offsetAndRange.range,
-                    minX, maxX),
-            false);
-        endX = builder.append(
-            "end",
-            offsetAndRange == null
-                ? maxX
-                : EnumUtil.optimizeAdd(i_, (int) offsetAndRange.offset, minX,
-                    maxX),
-            false);
-        jDecl = Expressions.declare(0, "j", startX);
-        jX = jDecl.parameter;
-        this.row2X = builder.append("row2",
-            Expressions.convert_(
-                Expressions.arrayIndex(this.rowsX, jX), row_.getType()));
-        orderStartDecl = Expressions.declare(0, "orderStart", startX);
-        orderStartX = orderStartDecl.parameter;
-        for (int i = 0; i < offset; i++) {
-          expressions.add(
-              inputPhysType.fieldReference(
-                  row_, i,
-                  outputPhysType.getJavaFieldType(i)));
-        }
-        getter =
-            new Function<Integer, Expression>() {
-              public Expression apply(Integer arg) {
-                final int inputFieldCount =
-                    WinImpl.this.inputPhysType.getRowType().getFieldCount();
-                if (arg < inputFieldCount) {
-                  return WinImpl.this.inputPhysType.fieldReference(
-                      WinImpl.this.rowX, arg);
-                }
+              return RexToLixTranslator.forAggregation(typeFactory,
+                  block, inputGetter);
+            }
 
-                final RexLiteral const_ = constants.get(arg - inputFieldCount);
-                return RexToLixTranslator.translateLiteral(
-                    const_, const_.getType(), typeFactory,
-                    RexImpTable.NullAs.NULL);
+            public List<RexNode> rexArguments() {
+              throw new UnsupportedOperationException(
+                  "Should not be used");
+            }
+
+            public List<Expression> arguments(Expression rowIndex) {
+              throw new UnsupportedOperationException(
+                  "Should not be used");
+            }
+
+            public Expression computeIndex(Expression offset,
+                WinAggImplementor.SeekType seekType) {
+              Expression index;
+              if (seekType == WinAggImplementor.SeekType.AGG_INDEX) {
+                index = jDecl.parameter;
+              } else if (seekType == WinAggImplementor.SeekType.SET) {
+                index = i_;
+              } else if (seekType == WinAggImplementor.SeekType.START) {
+                index = startX;
+              } else if (seekType == WinAggImplementor.SeekType.END) {
+                index = endX;
+              } else {
+                throw new IllegalArgumentException("SeekSet " + seekType
+                    + " is not supported");
               }
-            };
-      }
+              if (!Expressions.constant(0).equals(offset)) {
+                index = Expressions.add(index, offset);
+                index = Expressions.call(
+                    BuiltinMethod.MATH_MIN.method, index, endX);
+                index = Expressions.call(
+                    BuiltinMethod.MATH_MAX.method, index, startX);
+              }
+              return index;
+            }
 
-      public Expression lagExpression(int lag, int field) {
-        final Expression lagRow_ = RexToLixTranslator.convert(
-            Expressions.arrayIndex(
-                rowsX, lag == 0 ? jX : Expressions.subtract(
-                    jX, Expressions.constant(lag))),
-            inputPhysType.getJavaRowType());
-        return inputPhysType.fieldReference(
-            lagRow_, field, outputPhysType.getJavaFieldType(field));
-      }
+            public Expression compareRows(Expression a, Expression b) {
+              return Expressions.call(comparator_,
+                  BuiltinMethod.COMPARATOR_COMPARE.method,
+                  getRow(a), getRow(b));
+            }
 
-      public Expression isNewOrderKey() {
-        if (window.orderKeys.getFieldCollations().isEmpty()) {
-          return RexImpTable.FALSE_EXPR;
+            public Expression getRow(Expression rowIndex) {
+              return block.append(
+                  "jRow",
+                  RexToLixTranslator.convert(
+                      Expressions.arrayIndex(rows_, rowIndex),
+                      inputPhysTypeFinal.getJavaRowType()));
+            }
+          };
         }
-        List<Expression> conditions = new ArrayList<Expression>();
-        for (RelFieldCollation field : window.orderKeys.getFieldCollations()) {
-          conditions.add(
-              EnumUtil.makeEquals(
-                  lagExpression(0, field.getFieldIndex()), lagExpression(
-                      1, field.getFieldIndex())));
-        }
-        Expression condition = Expressions.greaterThan(jX, startX);
-        return Expressions.andAlso(
-            condition,
-            Expressions.not(EnumUtil.andList(Lists.reverse(conditions))));
+      };
+    }
+
+    private Pair<Expression, Expression> getPartitionIterator(
+        BlockBuilder builder,
+        Expression source_,
+        PhysType inputPhysType,
+        Window window,
+        Expression comparator_) {
+      // Populate map of lists, one per partition
+      //   final Map<Integer, List<Employee>> multiMap =
+      //     new SortedMultiMap<Integer, List<Employee>>();
+      //    source.foreach(
+      //      new Function1<Employee, Void>() {
+      //        public Void apply(Employee v) {
+      //          final Integer k = v.deptno;
+      //          multiMap.putMulti(k, v);
+      //          return null;
+      //        }
+      //      });
+      //   final List<Xxx> list = new ArrayList<Xxx>(multiMap.size());
+      //   Iterator<Employee[]> iterator = multiMap.arrays(comparator);
+      //
+      if (window.groupSet.isEmpty()) {
+        // If partition key is empty, no need to partition.
+        //
+        //   final List<Employee> tempList =
+        //       source.into(new ArrayList<Employee>());
+        //   Iterator<Employee[]> iterator =
+        //       SortedMultiMap.singletonArrayIterator(comparator, tempList);
+        //   final List<Xxx> list = new ArrayList<Xxx>(tempList.size());
+
+        final Expression tempList_ = builder.append(
+            "tempList",
+            Expressions.convert_(
+                Expressions.call(
+                    source_,
+                    BuiltinMethod.INTO.method,
+                    Expressions.new_(ArrayList.class)),
+                List.class));
+        return Pair.of(tempList_,
+            builder.append(
+              "iterator",
+              Expressions.call(
+                  null,
+                  BuiltinMethod.SORTED_MULTI_MAP_SINGLETON.method,
+                  comparator_,
+                  tempList_)));
+      }
+      Expression multiMap_ =
+          builder.append(
+              "multiMap", Expressions.new_(SortedMultiMap.class));
+      final BlockBuilder builder2 = new BlockBuilder();
+      final ParameterExpression v_ =
+          Expressions.parameter(inputPhysType.getJavaRowType(),
+              builder2.newName("v"));
+      final DeclarationStatement declare =
+          Expressions.declare(
+              0, "key",
+              inputPhysType.selector(
+                  v_,
+                  BitSets.toList(window.groupSet),
+                  JavaRowFormat.CUSTOM));
+      builder2.add(declare);
+      final ParameterExpression key_ = declare.parameter;
+      builder2.add(
+          Expressions.statement(
+              Expressions.call(
+                  multiMap_,
+                  BuiltinMethod.SORTED_MULTI_MAP_PUT_MULTI.method,
+                  key_,
+                  v_)));
+      builder2.add(
+          Expressions.return_(
+              null, Expressions.constant(null)));
+
+      builder.add(
+          Expressions.statement(
+              Expressions.call(
+                  source_,
+                  BuiltinMethod.ENUMERABLE_FOREACH.method,
+                  Expressions.lambda(
+                      builder2.toBlock(), v_))));
+
+      return Pair.of(multiMap_,
+        builder.append(
+          "iterator",
+          Expressions.call(
+              multiMap_,
+              BuiltinMethod.SORTED_MULTI_MAP_ARRAYS.method,
+              comparator_)));
+    }
+
+    private Pair<Expression, Expression> getRowCollationKey(
+        BlockBuilder builder, PhysType inputPhysType,
+        Window window, int windowIdx) {
+      if (!(window.isRows || (window.upperBound.isUnbounded()
+          && window.lowerBound.isUnbounded()))) {
+        Pair<Expression, Expression> pair =
+            inputPhysType.generateCollationKey(
+                window.collation().getFieldCollations());
+        // optimize=false to prevent inlining of object create into for-loops
+        return Pair.of(
+            builder.append("keySelector" + windowIdx, pair.left, false),
+            builder.append("keyComparator" + windowIdx, pair.right, false));
+      } else {
+        return Pair.of(null, null);
       }
     }
 
-    /**
-     * Generates the loop that computes aggregate functions over the window.
-     * Calls a callback to increment each aggregate function's accumulator.
-     */
-    private void generateWindowLoop(final RexToLixTranslator translator,
-        BlockBuilder builder, List<AggregateCall> aggregateCalls,
-        List<AggImplementor> implementors,
-        final List<ParameterExpression> variables,
-        final WinImpl win, Function1<AggCallContext, Void> f3) {
-      //       int j = Math.max(0, i - 1);
-      //       while (j <= i) {
-      //         // <builder5>
-      //         Employee row2 = rows[j];
-      //         sum += rows[j].salary;
-      //         ++count;
-      //         ++j;
-      //       }
-      final BlockBuilder builder5 = new BlockBuilder();
-      final Expression test = win.isNewOrderKey();
-      if (test != RexImpTable.FALSE_EXPR) {
-        builder5.add(
-            Expressions.ifThen(
-                test, Expressions.statement(
-                    Expressions.assign(win.orderStartX, win.jX))));
-      }
-      f3.apply(
-          new AggCallContext() {
-            public BlockBuilder builder() {
-              return builder5;
-            }
+    private void declareAndResetState(final JavaTypeFactory typeFactory,
+        BlockBuilder builder, final Result result, int windowIdx,
+        List<AggImpState> aggs, PhysType outputPhysType,
+        List<Expression> outputRow) {
+      for (final AggImpState agg: aggs) {
+        agg.context =
+            new WinAggImplementor.WinAggContext() {
+              public Aggregation aggregation() {
+                return agg.call.getAggregation();
+              }
 
-            public Expression index() {
-              return win.jX;
-            }
+              public RelDataType returnRelType() {
+                return agg.call.type;
+              }
 
-            public Expression current() {
-              return win.row2X;
-            }
+              public Type returnType() {
+                return EnumUtil.javaClass(typeFactory, returnRelType());
+              }
 
-            public Expression isFirst() {
-              return Expressions.equal(win.jX, win.startX);
-            }
+              public List<? extends Type> parameterTypes() {
+                return EnumUtil.fieldTypes(typeFactory,
+                    parameterRelTypes());
+              }
 
-            public Expression isLast() {
-              return Expressions.equal(win.jX, win.endX);
-            }
-
-            public Expression orderKeyStartIndex() {
-              return win.orderStartX;
-            }
-          });
-
-      builder.add(
-          Expressions.for_(
-              Arrays.asList(win.jDecl, win.orderStartDecl),
-              Expressions.lessThanOrEqual(win.jX, win.endX),
-              Expressions.preIncrementAssign(win.jX),
-              builder5.toBlock()));
-
-      for (final Ord<Pair<AggregateCall, AggImplementor>> ord
-          : Ord.zip(Pair.zip(aggregateCalls, implementors))) {
-        final AggImplementor implementor2 = ord.e.right;
-        Expression x;
-        if (implementor2 instanceof WinAggImplementor) {
-          x = ((WinAggImplementor) implementor2).implementResultPlus(
-              new WinAggImplementor.ResultPlusInfo() {
-                public RexToLixTranslator translator() {
-                  return translator;
-                }
-
-                public Aggregation aggregation() {
-                  return ord.e.left.getAggregation();
-                }
-
-                public Expression accumulator() {
-                  return variables.get(ord.i);
-                }
-
-                public Expression start() {
-                  return win.startX;
-                }
-
-                public Expression end() {
-                  return win.endX;
-                }
-
-                public Expression rows() {
-                  return win.rowsX;
-                }
-
-                public Expression current() {
-                  return win.iX;
-                }
-              });
-        } else {
-          x = implementor2.implementResult(
-              translator, ord.e.left.getAggregation(), variables.get(ord.i));
+              public List<? extends RelDataType> parameterRelTypes() {
+                return EnumUtil.fieldRowTypes(result.physType.getRowType(),
+                    constants, agg.call.getArgList());
+              }
+            };
+        String aggName = "a" + agg.aggIdx;
+        if (OptiqPrepareImpl.DEBUG) {
+          aggName = Util.toJavaId(agg.call.getAggregation().getName(), 0)
+              .substring("ID$0$".length()) + aggName;
         }
-        win.expressions.add(x);
+        List<Type> state = agg.implementor.getStateType(agg.context);
+        final List<Expression> decls =
+            new ArrayList<Expression>(state.size());
+        for (int i = 0; i < state.size(); i++) {
+          Type type = state.get(i);
+          ParameterExpression pe =
+              Expressions.parameter(type,
+                  builder.newName(aggName
+                      + "s" + i + "w" + windowIdx));
+          builder.add(Expressions.declare(0, pe, null));
+          decls.add(pe);
+        }
+        agg.state = decls;
+        Type aggHolderType = agg.context.returnType();
+        Type aggStorageType =
+            outputPhysType.getJavaFieldType(outputRow.size());
+        if (Primitive.is(aggHolderType) && !Primitive.is(aggStorageType)) {
+          aggHolderType = Primitive.box(aggHolderType);
+        }
+        ParameterExpression aggRes = Expressions.parameter(0,
+            aggHolderType,
+            builder.newName(aggName + "w" + windowIdx));
+
+        builder.add(Expressions.declare(0, aggRes,
+            Expressions.constant(
+                Primitive.is(aggRes.getType())
+                    ? Primitive.of(aggRes.getType()).defaultValue
+                    : null, aggRes.getType())));
+        agg.result = aggRes;
+        outputRow.add(aggRes);
+        agg.implementor.implementReset(agg.context,
+            new WinAggResetContext(builder, agg.state,
+                null, null, null, null, null));
       }
+    }
+
+    private void implementAdd(List<AggImpState> aggs,
+        final ParameterExpression i_,
+        final Expression startX, final Expression endX,
+        final Expression hasRows,
+        final Expression partitionRowCount, final BlockBuilder builder7,
+        final DeclarationStatement jDecl,
+        final Function<BlockBuilder, WinAggImplementor
+            .WinAggFrameResultContext> resultContextBuilder,
+        final Function<AggImpState, List<RexNode>> rexArguments) {
+      for (final AggImpState agg : aggs) {
+        final WinAggAddContext addContext =
+            new WinAggAddContext(builder7, agg.state) {
+              public Expression computeIndex(Expression offset,
+                  WinAggImplementor.SeekType seekType) {
+                WinAggImplementor.WinAggFrameResultContext context =
+                    resultContextBuilder.apply(currentBlock());
+                return context.computeIndex(offset, seekType);
+              }
+
+              public RexToLixTranslator rowTranslator(Expression rowIndex) {
+                WinAggImplementor.WinAggFrameResultContext context =
+                    resultContextBuilder.apply(currentBlock());
+                return context.rowTranslator(rowIndex)
+                    .setNullable(currentNullables());
+              }
+
+              public Expression compareRows(Expression a, Expression b) {
+                WinAggImplementor.WinAggFrameResultContext context =
+                    resultContextBuilder.apply(currentBlock());
+                return context.compareRows(a, b);
+              }
+
+              public Expression currentPosition() {
+                return jDecl.parameter;
+              }
+
+              public Expression index() {
+                return i_;
+              }
+
+              public Expression startIndex() {
+                return startX;
+              }
+
+              public Expression endIndex() {
+                return endX;
+              }
+
+              public Expression hasRows() {
+                return hasRows;
+              }
+
+              public Expression getPartitionRowCount() {
+                return partitionRowCount;
+              }
+
+              @Override
+              public List<RexNode> rexArguments() {
+                return rexArguments.apply(agg);
+              }
+            };
+        agg.implementor.implementAdd(agg.context, addContext);
+      }
+    }
+
+    private void implementResult(List<AggImpState> aggs,
+        final ParameterExpression i_,
+        final Expression startX, final Expression endX,
+        final Expression hasRows,
+        final BlockBuilder builder5, final Expression partitionRowCount,
+        final Function<BlockBuilder, WinAggImplementor
+                    .WinAggFrameResultContext> resultContextBuilder,
+        final Function<AggImpState, List<RexNode>> rexArguments) {
+      for (final AggImpState agg : aggs) {
+        Expression res = agg.implementor.implementResult(agg.context,
+            new WinAggResultContext(builder5, agg.state) {
+              public List<RexNode> rexArguments() {
+                return rexArguments.apply(agg);
+              }
+
+              public Expression computeIndex(Expression offset,
+                  WinAggImplementor.SeekType seekType) {
+                WinAggImplementor.WinAggFrameResultContext context =
+                    resultContextBuilder.apply(currentBlock());
+                return context.computeIndex(offset, seekType);
+              }
+
+              public RexToLixTranslator rowTranslator(Expression rowIndex) {
+                WinAggImplementor.WinAggFrameResultContext context =
+                    resultContextBuilder.apply(currentBlock());
+                return context.rowTranslator(rowIndex)
+                    .setNullable(currentNullables());
+              }
+
+              public Expression compareRows(Expression a, Expression b) {
+                WinAggImplementor.WinAggFrameResultContext context =
+                    resultContextBuilder.apply(currentBlock());
+                return context.compareRows(a, b);
+              }
+
+              public Expression index() {
+                return i_;
+              }
+
+              public Expression startIndex() {
+                return startX;
+              }
+
+              public Expression endIndex() {
+                return endX;
+              }
+
+              public Expression hasRows() {
+                return hasRows;
+              }
+
+              public Expression getPartitionRowCount() {
+                return partitionRowCount;
+              }
+            });
+        // Several count(a) and count(b) might share the result
+        Expression aggRes = builder5.append("a" + agg.aggIdx + "res",
+            RexToLixTranslator.convert(res, agg.result.getType()));
+        builder5.add(Expressions.statement(
+            Expressions.assign(agg.result, aggRes)));
+      }
+    }
+
+    private Expression translateBound(RexToLixTranslator translator,
+        ParameterExpression i_, Expression row_, Expression min_,
+        Expression max_, Expression rows_, Window window,
+        boolean lower,
+        PhysType physType, Expression rowComparator,
+        Expression keySelector, Expression keyComparator) {
+      RexWindowBound bound = lower ? window.lowerBound : window.upperBound;
+      if (bound.isUnbounded()) {
+        return bound.isPreceding() ? min_ : max_;
+      }
+      if (window.isRows) {
+        if (bound.isCurrentRow()) {
+          return i_;
+        }
+        RexNode node = bound.getOffset();
+        Expression offs = translator.translate(node);
+        // Floating offset does not make sense since we refer to array index.
+        // Nulls do not make sense as well.
+        offs = RexToLixTranslator.convert(offs, int.class);
+
+        Expression b = i_;
+        if (bound.isFollowing()) {
+          b = Expressions.add(b, offs);
+        } else {
+          b = Expressions.subtract(b, offs);
+        }
+        return b;
+      }
+      Expression searchLower = min_;
+      Expression searchUpper = max_;
+      if (bound.isCurrentRow()) {
+        if (lower) {
+          searchUpper = i_;
+        } else {
+          searchLower = i_;
+        }
+      }
+
+      List<RelFieldCollation> fieldCollations =
+          window.collation().getFieldCollations();
+      if (bound.isCurrentRow() && fieldCollations.size() != 1) {
+        return Expressions.call(
+            (lower
+                ? BuiltinMethod.BINARY_SEARCH5_LOWER
+                : BuiltinMethod.BINARY_SEARCH5_UPPER).method,
+            rows_, row_, searchLower, searchUpper, keySelector, keyComparator);
+      }
+      assert fieldCollations.size() == 1
+          : "When using range window specification, ORDER BY should have"
+            + " exactly one expression."
+            + " Actual collation is " + window.collation();
+      // isRange
+      int orderKey =
+          fieldCollations.get(0).getFieldIndex();
+      RelDataType keyType =
+          physType.getRowType().getFieldList().get(orderKey).getType();
+      Type desiredKeyType = translator.typeFactory.getJavaClass(keyType);
+      if (bound.getOffset() == null) {
+        desiredKeyType = Primitive.box(desiredKeyType);
+      }
+      Expression val = translator.translate(new RexInputRef(orderKey,
+              keyType), desiredKeyType);
+      if (!bound.isCurrentRow()) {
+        RexNode node = bound.getOffset();
+        Expression offs = translator.translate(node);
+        // TODO: support date + interval somehow
+        if (bound.isFollowing()) {
+          val = Expressions.add(val, offs);
+        } else {
+          val = Expressions.subtract(val, offs);
+        }
+      }
+      return Expressions.call(
+          (lower
+              ? BuiltinMethod.BINARY_SEARCH6_LOWER
+              : BuiltinMethod.BINARY_SEARCH6_UPPER).method,
+          rows_, val, searchLower, searchUpper, keySelector, keyComparator);
     }
   }
 
@@ -2870,22 +3212,11 @@ public class JavaRules {
               ? JavaRowFormat.ARRAY
               : JavaRowFormat.CUSTOM);
       RexToLixTranslator t = RexToLixTranslator.forAggregation(
-          (JavaTypeFactory) getCluster().getTypeFactory(), bb);
+          (JavaTypeFactory) getCluster().getTypeFactory(), bb, null);
       final Expression translated = t.translate(getCall());
       bb.add(Expressions.return_(null, translated));
       return implementor.result(physType, bb.toBlock());
     }
-  }
-
-  public interface AggCallContext {
-    BlockBuilder builder();
-    Expression index();
-    Expression current();
-    Expression isFirst();
-    Expression isLast();
-
-    /** The index at which the current ORDER BY key value started. */
-    Expression orderKeyStartIndex();
   }
 }
 

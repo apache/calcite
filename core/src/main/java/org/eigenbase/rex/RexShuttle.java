@@ -58,12 +58,16 @@ public class RexShuttle implements RexVisitor<RexNode> {
         visitFieldCollations(window.orderKeys, update);
     List<RexNode> clonedPartitionKeys =
         visitList(window.partitionKeys, update);
-    if (update[0]) {
+    RexWindowBound lowerBound = window.getLowerBound().accept(this);
+    RexWindowBound upperBound = window.getUpperBound().accept(this);
+    if (update[0]
+        || (lowerBound != window.getLowerBound() && lowerBound != null)
+        || (upperBound != window.getUpperBound() && upperBound != null)) {
       return new RexWindow(
           clonedPartitionKeys,
           clonedOrderKeys,
-          window.getLowerBound(),
-          window.getUpperBound(),
+          lowerBound,
+          upperBound,
           window.isRows());
     } else {
       return window;

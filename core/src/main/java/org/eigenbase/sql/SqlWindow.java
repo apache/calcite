@@ -17,11 +17,11 @@
 */
 package org.eigenbase.sql;
 
-import java.math.BigDecimal;
 import java.util.*;
 
 import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.sql.parser.*;
+import org.eigenbase.sql.type.ReturnTypes;
 import org.eigenbase.sql.type.SqlTypeFamily;
 import org.eigenbase.sql.util.SqlBasicVisitor;
 import org.eigenbase.sql.util.SqlVisitor;
@@ -54,13 +54,15 @@ public class SqlWindow extends SqlCall {
    * The FOLLOWING operator used exclusively in a window specification.
    */
   static final SqlPostfixOperator FOLLOWING_OPERATOR =
-      new SqlPostfixOperator("FOLLOWING", SqlKind.FOLLOWING, 20, null, null,
+      new SqlPostfixOperator("FOLLOWING", SqlKind.FOLLOWING, 20,
+          ReturnTypes.ARG0, null,
           null);
   /**
    * The PRECEDING operator used exclusively in a window specification.
    */
   static final SqlPostfixOperator PRECEDING_OPERATOR =
-      new SqlPostfixOperator("PRECEDING", SqlKind.PRECEDING, 20, null, null,
+      new SqlPostfixOperator("PRECEDING", SqlKind.PRECEDING, 20,
+          ReturnTypes.ARG0, null,
           null);
 
   //~ Instance fields --------------------------------------------------------
@@ -291,20 +293,6 @@ public class SqlWindow extends SqlCall {
         }
       }
     }
-
-    // Check that window size is non-negative. I would prefer to allow
-    // negative windows and return NULL (as Oracle does) but this is
-    // expedient.
-    final OffsetRange offsetAndRange =
-        getOffsetAndRange(lowerBound, upperBound, false);
-    if (offsetAndRange == null) {
-      throw validator.newValidationError(window,
-          RESOURCE.unboundedFollowingWindowNotSupported());
-    }
-    if (offsetAndRange.range < 0) {
-      throw validator.newValidationError(window,
-          RESOURCE.windowHasNegativeSize());
-    }
   }
 
   /**
@@ -341,12 +329,12 @@ public class SqlWindow extends SqlCall {
     return Bound.UNBOUNDED_PRECEDING.symbol(pos);
   }
 
-  public static SqlNode createFollowing(SqlLiteral literal, SqlParserPos pos) {
-    return FOLLOWING_OPERATOR.createCall(pos, literal);
+  public static SqlNode createFollowing(SqlNode e, SqlParserPos pos) {
+    return FOLLOWING_OPERATOR.createCall(pos, e);
   }
 
-  public static SqlNode createPreceding(SqlLiteral literal, SqlParserPos pos) {
-    return PRECEDING_OPERATOR.createCall(pos, literal);
+  public static SqlNode createPreceding(SqlNode e, SqlParserPos pos) {
+    return PRECEDING_OPERATOR.createCall(pos, e);
   }
 
   public static SqlNode createBound(SqlLiteral range) {
@@ -375,89 +363,6 @@ public class SqlWindow extends SqlCall {
   public static boolean isUnboundedFollowing(SqlNode node) {
     return (node instanceof SqlLiteral)
         && ((SqlLiteral) node).symbolValue() == Bound.UNBOUNDED_FOLLOWING;
-  }
-
-  /**
-   * Converts a pair of bounds into a (range, offset) pair.
-   *
-   * <p>If the upper bound is unbounded, returns null, since that cannot be
-   * represented as a (range, offset) pair. (The offset would be +infinity,
-   * but what would the range be?)
-   *
-   * @param lowerBound Lower bound
-   * @param upperBound Upper bound
-   * @param physical   Whether interval is physical (rows), as opposed to
-   *                   logical (values)
-   * @return range-offset pair, or null
-   */
-  public static OffsetRange getOffsetAndRange(
-      final SqlNode lowerBound,
-      final SqlNode upperBound,
-      boolean physical) {
-    ValSign upper = getRangeOffset(upperBound, PRECEDING_OPERATOR);
-    ValSign lower = getRangeOffset(lowerBound, FOLLOWING_OPERATOR);
-    long offset;
-    long range;
-    if (upper == null) {
-      // cannot represent this as a range-offset pair
-      return null;
-    } else if (lower == null) {
-      offset = upper.signedVal();
-      range = Long.MAX_VALUE;
-    } else {
-      offset = upper.signedVal();
-      range = lower.signedVal() + upper.signedVal();
-    }
-
-    return new OffsetRange(offset, range);
-  }
-
-  /**
-   * Decodes a node, representing an upper or lower bound to a window, into a
-   * range offset. For example, '3 FOLLOWING' is 3, '3 PRECEDING' is -3, and
-   * 'UNBOUNDED PRECEDING' or 'UNBOUNDED FOLLOWING' is null.
-   *
-   * @param node Node representing window bound
-   * @param op   Either {@link #PRECEDING_OPERATOR} or {@link #FOLLOWING_OPERATOR}
-   * @return range
-   */
-  private static ValSign getRangeOffset(SqlNode node, SqlPostfixOperator op) {
-    assert op == PRECEDING_OPERATOR || op == FOLLOWING_OPERATOR;
-    if (node == null) {
-      return new ValSign(0, 1);
-    } else if (node instanceof SqlLiteral) {
-      SqlLiteral literal = (SqlLiteral) node;
-      if (literal.getValue() == Bound.CURRENT_ROW) {
-        return new ValSign(0, 1);
-      } else if (literal.getValue() == Bound.UNBOUNDED_FOLLOWING
-          && op == PRECEDING_OPERATOR) {
-        return null;
-      } else if (literal.getValue() == Bound.UNBOUNDED_PRECEDING
-          && op == FOLLOWING_OPERATOR) {
-        return null;
-      } else {
-        throw Util.newInternal("unexpected literal " + literal);
-      }
-    } else if (node instanceof SqlCall) {
-      final SqlCall call = (SqlCall) node;
-      long sign = (call.getOperator() == op) ? -1 : 1;
-      assert call.operandCount() == 1;
-      SqlLiteral operand = call.operand(0);
-      Object obj = operand.getValue();
-      long val;
-      if (obj instanceof BigDecimal) {
-        val = ((BigDecimal) obj).intValue();
-      } else if (obj instanceof SqlIntervalLiteral.IntervalValue) {
-        val =
-            SqlParserUtil.intervalToMillis(
-                (SqlIntervalLiteral.IntervalValue) obj);
-      } else {
-        val = 0;
-      }
-      return new ValSign(val, sign);
-    } else {
-      return new ValSign(0, 1);
-    }
   }
 
   /**
@@ -571,10 +476,6 @@ public class SqlWindow extends SqlCall {
             Util.skip(getOperandList()),
             Util.skip(((SqlWindow) node).getOperandList()),
           fail);
-  }
-
-  public OffsetRange getOffsetAndRange() {
-    return getOffsetAndRange(getLowerBound(), getUpperBound(), isRows());
   }
 
   /**
@@ -718,12 +619,6 @@ public class SqlWindow extends SqlCall {
       assert bound instanceof SqlCall;
       final SqlNode boundVal = ((SqlCall) bound).operand(0);
 
-      // Boundaries must be a constant
-      if (!(boundVal instanceof SqlLiteral)) {
-        throw validator.newValidationError(boundVal,
-            RESOURCE.rangeOrRowMustBeConstant());
-      }
-
       // SQL03 7.10 rule 11b Physical ROWS must be a numeric constant. JR:
       // actually it's SQL03 7.11 rule 11b "exact numeric with scale 0"
       // means not only numeric constant but exact numeric integral
@@ -741,8 +636,7 @@ public class SqlWindow extends SqlCall {
                 RESOURCE.rowMustBeNonNegativeIntegral());
           }
         } else {
-          throw validator.newValidationError(boundVal,
-              RESOURCE.rowMustBeNonNegativeIntegral());
+          // Allow expressions in ROWS clause
         }
       }
 
@@ -846,33 +740,6 @@ public class SqlWindow extends SqlCall {
      */
     public SqlNode symbol(SqlParserPos pos) {
       return SqlLiteral.createSymbol(this, pos);
-    }
-  }
-
-  /** Offset and range pair. */
-  public static class OffsetRange {
-    public final long offset;
-    public final long range;
-
-    OffsetRange(long offset, long range) {
-      this.offset = offset;
-      this.range = range;
-    }
-  }
-
-  /** Value and sign pair. */
-  private static class ValSign {
-    long val;
-    long sign;
-
-    ValSign(long val, long sign) {
-      this.val = val;
-      this.sign = sign;
-      assert (sign == 1) || (sign == -1);
-    }
-
-    long signedVal() {
-      return val * sign;
     }
   }
 

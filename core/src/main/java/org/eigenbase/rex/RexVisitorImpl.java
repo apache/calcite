@@ -60,6 +60,8 @@ public class RexVisitorImpl<R> implements RexVisitor<R> {
     for (RexNode partitionKey : window.partitionKeys) {
       partitionKey.accept(this);
     }
+    window.getLowerBound().accept(this);
+    window.getUpperBound().accept(this);
     return r;
   }
 

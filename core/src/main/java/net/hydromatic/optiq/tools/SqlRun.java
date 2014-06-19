@@ -17,6 +17,8 @@
 */
 package net.hydromatic.optiq.tools;
 
+import net.hydromatic.optiq.prepare.OptiqPrepareImpl;
+
 import com.google.common.collect.ImmutableList;
 
 import java.io.*;
@@ -481,6 +483,9 @@ public class SqlRun {
           throw new AssertionError("result set already present");
         }
         try {
+          if (OptiqPrepareImpl.DEBUG) {
+            System.out.println("sql=" + sql);
+          }
           resultSet = statement.executeQuery(sql);
         } catch (SQLException e) {
           resultSetException = e;

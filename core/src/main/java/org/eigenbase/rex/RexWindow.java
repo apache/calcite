@@ -20,8 +20,6 @@ package org.eigenbase.rex;
 import java.io.*;
 import java.util.List;
 
-import org.eigenbase.sql.*;
-
 import com.google.common.collect.ImmutableList;
 
 /**
@@ -35,8 +33,8 @@ public class RexWindow {
 
   public final ImmutableList<RexNode> partitionKeys;
   public final ImmutableList<RexFieldCollation> orderKeys;
-  private final SqlNode lowerBound;
-  private final SqlNode upperBound;
+  private final RexWindowBound lowerBound;
+  private final RexWindowBound upperBound;
   private final boolean isRows;
   private final String digest;
 
@@ -51,8 +49,8 @@ public class RexWindow {
   RexWindow(
       List<RexNode> partitionKeys,
       List<RexFieldCollation> orderKeys,
-      SqlNode lowerBound,
-      SqlNode upperBound,
+      RexWindowBound lowerBound,
+      RexWindowBound upperBound,
       boolean isRows) {
     assert partitionKeys != null;
     assert orderKeys != null;
@@ -140,11 +138,11 @@ public class RexWindow {
     return sw.toString();
   }
 
-  public SqlNode getLowerBound() {
+  public RexWindowBound getLowerBound() {
     return lowerBound;
   }
 
-  public SqlNode getUpperBound() {
+  public RexWindowBound getUpperBound() {
     return upperBound;
   }
 

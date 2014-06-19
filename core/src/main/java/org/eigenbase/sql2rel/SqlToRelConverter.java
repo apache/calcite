@@ -1575,6 +1575,8 @@ public class SqlToRelConverter {
     for (SqlNode partition : partitionList) {
       partitionKeys.add(bb.convertExpression(partition));
     }
+    RexNode lowerBound = bb.convertExpression(window.getLowerBound());
+    RexNode upperBound = bb.convertExpression(window.getUpperBound());
     SqlNodeList orderList = window.getOrderList();
     if ((orderList.size() == 0) && !window.isRows()) {
       // A logical range requires an ORDER BY clause. Use the implicit
@@ -1604,7 +1606,10 @@ public class SqlToRelConverter {
     // to an agg function. For example, AVG(x) becomes SUM(x) / COUNT(x).
     final RexShuttle visitor =
         new HistogramShuttle(
-            partitionKeys.build(), orderKeys.build(), window);
+            partitionKeys.build(), orderKeys.build(),
+            RexWindowBound.create(window.getLowerBound(), lowerBound),
+            RexWindowBound.create(window.getUpperBound(), upperBound),
+            window);
     return rexAgg.accept(visitor);
   }
 
@@ -4714,14 +4719,19 @@ public class SqlToRelConverter {
 
     private final List<RexNode> partitionKeys;
     private final ImmutableList<RexFieldCollation> orderKeys;
+    private final RexWindowBound lowerBound;
+    private final RexWindowBound upperBound;
     private final SqlWindow window;
 
     HistogramShuttle(
         List<RexNode> partitionKeys,
         ImmutableList<RexFieldCollation> orderKeys,
+        RexWindowBound lowerBound, RexWindowBound upperBound,
         SqlWindow window) {
       this.partitionKeys = partitionKeys;
       this.orderKeys = orderKeys;
+      this.lowerBound = lowerBound;
+      this.upperBound = upperBound;
       this.window = window;
     }
 
@@ -4737,24 +4747,9 @@ public class SqlToRelConverter {
       boolean isUnboundedPreceding =
           SqlWindow.isUnboundedPreceding(window.getLowerBound());
 
-      // The fennel support for windowed Agg MIN/MAX only
-      // supports BIGINT and DOUBLE numeric types. If the
-      // expression result is numeric but not correct then pre
-      // and post CAST the data.  Example with INTEGER
-      // CAST(MIN(CAST(exp to BIGINT)) to INTEGER)
-      SqlFunction histogramOp =
-          isUnboundedPreceding || !ENABLE_HISTOGRAM_AGG
-              ? null
-              : getHistogramOp(aggOp);
-
-      // If a window contains only the current row, treat it as physical.
-      // (It could be logical too, but physical is simpler to implement.)
-      boolean physical = window.isRows();
-      if (!physical
-          && SqlWindow.isCurrentRow(window.getLowerBound())
-          && SqlWindow.isCurrentRow(window.getUpperBound())) {
-        physical = true;
-      }
+      SqlFunction histogramOp = !ENABLE_HISTOGRAM_AGG
+          ? null
+          : getHistogramOp(aggOp);
 
       if (histogramOp != null) {
         final RelDataType histogramType = computeHistogramType(type);
@@ -4791,9 +4786,9 @@ public class SqlToRelConverter {
                 exprs,
                 partitionKeys,
                 orderKeys,
-                window.getLowerBound(),
-                window.getUpperBound(),
-                physical,
+                lowerBound,
+                upperBound,
+                window.isRows(),
                 window.isAllowPartial(),
                 false);
 
@@ -4830,9 +4825,9 @@ public class SqlToRelConverter {
             exprs,
             partitionKeys,
             orderKeys,
-            window.getLowerBound(),
-            window.getUpperBound(),
-            physical,
+            lowerBound,
+            upperBound,
+            window.isRows(),
             window.isAllowPartial(),
             needSum0);
       }

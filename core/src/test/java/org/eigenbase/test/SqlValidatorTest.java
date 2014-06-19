@@ -4017,12 +4017,12 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         "sum(sal) over ^("
         + "order by deptno "
         + "rows between unbounded preceding and unbounded following)^",
-        "UNBOUNDED FOLLOWING window not supported");
+        null);
     checkWinFuncExp(
         "sum(sal) over ^("
         + "order by deptno "
         + "rows between CURRENT ROW and unbounded following)^",
-        "UNBOUNDED FOLLOWING window not supported");
+        null);
     checkWinFuncExp(
         "sum(sal) over ("
         + "order by deptno "
@@ -4319,15 +4319,17 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   @Test public void testWindowNegative() {
-    final String negSize = "Window has negative size";
+    // Do not fail when window has negative size. Allow
+    final String negSize = null;
     checkNegWindow("rows between 2 preceding and 4 preceding", negSize);
     checkNegWindow("rows between 2 preceding and 3 preceding", negSize);
     checkNegWindow("rows between 2 preceding and 2 preceding", null);
     checkNegWindow(
         "rows between unbounded preceding and current row",
         null);
+    // Unbounded following IS supported
     final String unboundedFollowing =
-        "UNBOUNDED FOLLOWING window not supported";
+        null;
     checkNegWindow(
         "rows between unbounded preceding and unbounded following",
         unboundedFollowing);

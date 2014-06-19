@@ -46,7 +46,10 @@ public class SqlFirstLastValueAggFunction extends SqlAggFunction {
   //~ Methods ----------------------------------------------------------------
 
   @Override public boolean requiresOrder() {
-    return true;
+    // Allow the user to shoot herself into the foot by using first_value
+    // and/or last_value without order by. This will result in undefined
+    // behaviour, however lots of databases allow that.
+    return false;
   }
 
   public List<RelDataType> getParameterTypes(RelDataTypeFactory typeFactory) {

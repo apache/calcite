@@ -35,6 +35,7 @@ import net.hydromatic.optiq.impl.jdbc.JdbcConvention;
 import net.hydromatic.optiq.impl.jdbc.JdbcSchema;
 import net.hydromatic.optiq.jdbc.*;
 import net.hydromatic.optiq.jdbc.Driver;
+import net.hydromatic.optiq.prepare.OptiqPrepareImpl;
 import net.hydromatic.optiq.prepare.Prepare;
 import net.hydromatic.optiq.runtime.Hook;
 import net.hydromatic.optiq.runtime.SqlFunctions;
@@ -45,7 +46,6 @@ import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.reltype.RelDataTypeFactory;
 import org.eigenbase.reltype.RelProtoDataType;
-import org.eigenbase.resource.EigenbaseNewResource;
 import org.eigenbase.sql.*;
 import org.eigenbase.sql.advise.SqlAdvisorGetHintsFunction;
 import org.eigenbase.sql.parser.SqlParserUtil;
@@ -2805,44 +2805,56 @@ public class JdbcTest {
     OptiqAssert.that()
         .with(OptiqAssert.Config.REGULAR)
         .query(
-            "select sum(\"salary\" + \"empid\") over w as s,\n"
+            "select"
+            + " \"deptno\",\n"
+            + " \"empid\",\n"
+            + "sum(\"salary\" + \"empid\") over w as s,\n"
             + " 5 as five,\n"
             + " min(\"salary\") over w as m,\n"
-            + " count(*) over w as c,\n"
-            + " \"deptno\",\n"
-            + " \"empid\"\n"
+            + " count(*) over w as c\n"
             + "from \"hr\".\"emps\"\n"
             + "window w as (partition by \"deptno\" order by \"empid\" rows 1 preceding)")
         .typeIs(
-            "[S REAL, FIVE INTEGER NOT NULL, M REAL, C BIGINT, deptno INTEGER NOT NULL, empid INTEGER NOT NULL]")
+            "[deptno INTEGER NOT NULL, empid INTEGER NOT NULL, S REAL, FIVE INTEGER NOT NULL, M REAL, C BIGINT]")
         .explainContains(
-            "EnumerableCalcRel(expr#0..7=[{inputs}], expr#8=[0], expr#9=[>($t4, $t8)], expr#10=[null], expr#11=[CASE($t9, $t5, $t10)], expr#12=[CAST($t11):JavaType(class java.lang.Float)], expr#13=[5], expr#14=[CAST($t6):JavaType(class java.lang.Float)], expr#15=[CAST($t7):BIGINT], S=[$t12], FIVE=[$t13], M=[$t14], C=[$t15], deptno=[$t1], empid=[$t0])\n"
-            + "  EnumerableWindowRel(window#0=[window(partition {1} order by [0] rows between 1 PRECEDING and CURRENT ROW aggs [COUNT($3), $SUM0($3), MIN($2), COUNT()])])\n"
+            "EnumerableCalcRel(expr#0..7=[{inputs}], expr#8=[0], expr#9=[>($t4, $t8)], expr#10=[null], expr#11=[CASE($t9, $t5, $t10)], expr#12=[CAST($t11):JavaType(class java.lang.Float)], expr#13=[5], expr#14=[CAST($t6):JavaType(class java.lang.Float)], expr#15=[CAST($t7):BIGINT], deptno=[$t1], empid=[$t0], S=[$t12], FIVE=[$t13], M=[$t14], C=[$t15])\n"
+            + "  EnumerableWindowRel(window#0=[window(partition {1} order by [0] rows between $4 PRECEDING and CURRENT ROW aggs [COUNT($3), $SUM0($3), MIN($2), COUNT()])])\n"
             + "    EnumerableCalcRel(expr#0..4=[{inputs}], expr#5=[+($t3, $t0)], proj#0..1=[{exprs}], salary=[$t3], $3=[$t5])\n"
             + "      EnumerableTableAccessRel(table=[[hr, emps]])\n")
-        .returns(
-            "S=8200.0; FIVE=5; M=8000.0; C=1; deptno=20; empid=200\n"
-            + "S=10100.0; FIVE=5; M=10000.0; C=1; deptno=10; empid=100\n"
-            + "S=23220.0; FIVE=5; M=11500.0; C=2; deptno=10; empid=110\n"
-            + "S=14300.0; FIVE=5; M=7000.0; C=2; deptno=10; empid=150\n")
+        .returnsUnordered(
+            "deptno=10; empid=100; S=10100.0; FIVE=5; M=10000.0; C=1"
+            , "deptno=10; empid=110; S=21710.0; FIVE=5; M=10000.0; C=2"
+            , "deptno=10; empid=150; S=18760.0; FIVE=5; M=7000.0; C=2"
+            , "deptno=20; empid=200; S=8200.0; FIVE=5; M=8000.0; C=1")
         .planContains(
-            "_list.add(new Object[] {\n"
-            + "        row[0],\n" // box-unbox is optimized
-            + "        row[1],\n"
-            + "        row[2],\n"
-            + "        row[3],\n"
-            + "        w0$o0,\n"
-            + "        w0$o1,\n"
-            + "        w0$o2,\n"
-            + "        w0$o3});")
+            OptiqPrepareImpl.DEBUG
+                ? "_list.add(new Object[] {\n"
+                  + "        row[0],\n" // box-unbox is optimized
+                  + "        row[1],\n"
+                  + "        row[2],\n"
+                  + "        row[3],\n"
+                  + "        COUNTa0w0,\n"
+                  + "        $SUM0a1w0,\n"
+                  + "        MINa2w0,\n"
+                  + "        COUNTa3w0});"
+                : "_list.add(new Object[] {\n"
+                  + "        row[0],\n" // box-unbox is optimized
+                  + "        row[1],\n"
+                  + "        row[2],\n"
+                  + "        row[3],\n"
+                  + "        a0w0,\n"
+                  + "        a1w0,\n"
+                  + "        a2w0,\n"
+                  + "        a3w0});")
         .planContains(
             "return new Object[] {\n"
+            + "                  current[1],\n"
+            + "                  current[0],\n"
             + "                  net.hydromatic.optiq.runtime.SqlFunctions.toLong(current[4]) > 0L ? (Float) current[5] : (Float) null,\n"
             + "                  5,\n"
             + "                  (Float) current[6],\n"
-            + "                  (Long) current[7],\n" // box-unbox eliminated
-            + "                  current[1],\n"
-            + "                  current[0]};");
+            // box-unbox eliminated
+            + "                  (Long) current[7]};\n");
   }
 
   /** Tests windowed aggregation with multiple windows.
@@ -2852,29 +2864,30 @@ public class JdbcTest {
     OptiqAssert.that()
         .with(OptiqAssert.Config.REGULAR)
         .query(
-            "select sum(\"salary\" + \"empid\") over w as s,\n"
+            "select"
+            + " \"deptno\",\n"
+            + " \"empid\",\n"
+            + "sum(\"salary\" + \"empid\") over w as s,\n"
             + " 5 as five,\n"
             + " min(\"salary\") over w as m,\n"
             + " count(*) over w as c,\n"
             + " count(*) over w2 as c2,\n"
             + " count(*) over w11 as c11,\n"
-            + " count(*) over w11dept as c11dept,\n"
-            + " \"deptno\",\n"
-            + " \"empid\"\n"
+            + " count(*) over w11dept as c11dept\n"
             + "from \"hr\".\"emps\"\n"
             + "window w as (order by \"empid\" rows 1 preceding),\n"
             + " w2 as (order by \"empid\" rows 2 preceding),\n"
             + " w11 as (order by \"empid\" rows between 1 preceding and 1 following),\n"
             + " w11dept as (partition by \"deptno\" order by \"empid\" rows between 1 preceding and 1 following)")
         .typeIs(
-            "[S REAL, FIVE INTEGER NOT NULL, M REAL, C BIGINT, C2 BIGINT, C11 BIGINT, C11DEPT BIGINT, deptno INTEGER NOT NULL, empid INTEGER NOT NULL]")
+            "[deptno INTEGER NOT NULL, empid INTEGER NOT NULL, S REAL, FIVE INTEGER NOT NULL, M REAL, C BIGINT, C2 BIGINT, C11 BIGINT, C11DEPT BIGINT]")
         // Check that optimizes for window whose PARTITION KEY is empty
         .planContains("tempList.size()")
-        .returns(
-            "S=16400.0; FIVE=5; M=8000.0; C=2; C2=3; C11=2; C11DEPT=1; deptno=20; empid=200\n"
-            + "S=10100.0; FIVE=5; M=10000.0; C=1; C2=1; C11=2; C11DEPT=2; deptno=10; empid=100\n"
-            + "S=23220.0; FIVE=5; M=11500.0; C=2; C2=2; C11=3; C11DEPT=3; deptno=10; empid=110\n"
-            + "S=14300.0; FIVE=5; M=7000.0; C=2; C2=3; C11=3; C11DEPT=2; deptno=10; empid=150\n");
+        .returnsUnordered(
+            "deptno=20; empid=200; S=15350.0; FIVE=5; M=7000.0; C=2; C2=3; C11=2; C11DEPT=1",
+            "deptno=10; empid=100; S=10100.0; FIVE=5; M=10000.0; C=1; C2=1; C11=2; C11DEPT=2",
+            "deptno=10; empid=110; S=21710.0; FIVE=5; M=10000.0; C=2; C2=2; C11=3; C11DEPT=3",
+            "deptno=10; empid=150; S=18760.0; FIVE=5; M=7000.0; C=2; C2=3; C11=3; C11DEPT=2");
   }
 
   /**
@@ -2884,6 +2897,11 @@ public class JdbcTest {
    * primitives are properly boxed and un-boxed.
    */
   @Test public void testWinAggScalarNonNullPhysType() {
+    String planLine =
+        "a0s0w0 = net.hydromatic.optiq.runtime.SqlFunctions.lesser(a0s0w0, net.hydromatic.optiq.runtime.SqlFunctions.toFloat(_rows[j]));";
+    if (OptiqPrepareImpl.DEBUG) {
+      planLine = planLine.replaceAll("a0s0w0", "MINa0s0w0");
+    }
     OptiqAssert.that()
         .with(OptiqAssert.Config.REGULAR)
         .query(
@@ -2892,13 +2910,12 @@ public class JdbcTest {
             + "window w as (order by \"salary\"+1 rows 1 preceding)\n")
         .typeIs(
             "[M REAL]")
-        .planContains(
-            "final float row = net.hydromatic.optiq.runtime.SqlFunctions.toFloat(_rows[i]);")
+        .planContains(planLine)
         .returnsUnordered(
             "M=7001.0",
+            "M=7001.0",
             "M=8001.0",
-            "M=10001.0",
-            "M=11501.0");
+            "M=10001.0");
   }
 
   /**
@@ -2906,6 +2923,11 @@ public class JdbcTest {
    * when input is {@link org.eigenbase.rel.WindowRel} and literal.
    */
   @Test public void testWinAggScalarNonNullPhysTypePlusOne() {
+    String planLine =
+        "a0s0w0 = net.hydromatic.optiq.runtime.SqlFunctions.lesser(a0s0w0, net.hydromatic.optiq.runtime.SqlFunctions.toFloat(_rows[j]));";
+    if (OptiqPrepareImpl.DEBUG) {
+      planLine = planLine.replaceAll("a0s0w0", "MINa0s0w0");
+    }
     OptiqAssert.that()
         .with(OptiqAssert.Config.REGULAR)
         .query(
@@ -2914,13 +2936,12 @@ public class JdbcTest {
             + "window w as (order by \"salary\"+1 rows 1 preceding)\n")
         .typeIs(
             "[M REAL]")
-        .planContains(
-            "final float row = net.hydromatic.optiq.runtime.SqlFunctions.toFloat(_rows[i]);")
+        .planContains(planLine)
         .returnsUnordered(
             "M=7002.0",
+            "M=7002.0",
             "M=8002.0",
-            "M=10002.0",
-            "M=11502.0");
+            "M=10002.0");
   }
 
   /** Tests for RANK and ORDER BY ... DESCENDING, NULLS FIRST, NULLS LAST. */
@@ -2938,11 +2959,182 @@ public class JdbcTest {
             + "from \"hr\".\"emps\"")
         .typeIs(
             "[deptno INTEGER NOT NULL, empid INTEGER NOT NULL, commission INTEGER, RCNF INTEGER, RCNL INTEGER, R INTEGER, RD INTEGER]")
-        .returns(
-            "deptno=20; empid=200; commission=500; RCNF=1; RCNL=1; R=1; RD=1\n"
-            + "deptno=10; empid=150; commission=null; RCNF=1; RCNL=3; R=3; RD=1\n"
-            + "deptno=10; empid=110; commission=250; RCNF=3; RCNL=2; R=2; RD=2\n"
-            + "deptno=10; empid=100; commission=1000; RCNF=2; RCNL=1; R=1; RD=3\n");
+        .returnsUnordered(
+            "deptno=10; empid=100; commission=1000; RCNF=2; RCNL=1; R=1; RD=3",
+            "deptno=10; empid=110; commission=250; RCNF=3; RCNL=2; R=2; RD=2",
+            "deptno=10; empid=150; commission=null; RCNF=1; RCNL=3; R=3; RD=1",
+            "deptno=20; empid=200; commission=500; RCNF=1; RCNL=1; R=1; RD=1");
+  }
+
+  /** Tests for RANK with same values */
+  @Test public void testWinAggRankValues() {
+    OptiqAssert.that()
+        .with(OptiqAssert.Config.REGULAR)
+        .query(
+            "select  \"deptno\",\n"
+            + " rank() over (order by \"deptno\") as r\n"
+            + "from \"hr\".\"emps\"")
+        .typeIs(
+            "[deptno INTEGER NOT NULL, R INTEGER]")
+        .returnsUnordered(
+            "deptno=10; R=1",
+            "deptno=10; R=1",
+            "deptno=10; R=1",
+            "deptno=20; R=4"); // 4 for rank and 2 for dense_rank
+  }
+
+  /** Tests for RANK with same values */
+  @Test public void testWinAggRankValuesDesc() {
+    OptiqAssert.that()
+        .with(OptiqAssert.Config.REGULAR)
+        .query(
+            "select  \"deptno\",\n"
+            + " rank() over (order by \"deptno\" desc) as r\n"
+            + "from \"hr\".\"emps\"")
+        .typeIs(
+            "[deptno INTEGER NOT NULL, R INTEGER]")
+        .returnsUnordered(
+            "deptno=10; R=2",
+            "deptno=10; R=2",
+            "deptno=10; R=2",
+            "deptno=20; R=1");
+  }
+
+  /** Tests for DENSE_RANK with same values */
+  @Test public void testWinAggDenseRankValues() {
+    OptiqAssert.that()
+        .with(OptiqAssert.Config.REGULAR)
+        .query(
+            "select  \"deptno\",\n"
+            + " dense_rank() over (order by \"deptno\") as r\n"
+            + "from \"hr\".\"emps\"")
+        .typeIs(
+            "[deptno INTEGER NOT NULL, R INTEGER]")
+        .returnsUnordered(
+            "deptno=10; R=1",
+            "deptno=10; R=1",
+            "deptno=10; R=1",
+            "deptno=20; R=2");
+  }
+
+  /** Tests for DENSE_RANK with same values */
+  @Test public void testWinAggDenseRankValuesDesc() {
+    OptiqAssert.that()
+        .with(OptiqAssert.Config.REGULAR)
+        .query(
+            "select  \"deptno\",\n"
+            + " dense_rank() over (order by \"deptno\" desc) as r\n"
+            + "from \"hr\".\"emps\"")
+        .typeIs(
+            "[deptno INTEGER NOT NULL, R INTEGER]")
+        .returnsUnordered(
+            "deptno=10; R=2",
+            "deptno=10; R=2",
+            "deptno=10; R=2",
+            "deptno=20; R=1");
+  }
+
+  /** Tests for DATE +- INTERVAL window frame */
+  @Ignore("DATE/TIMESTAMP/INTERVAL support is broken:"
+      + "1 year is converted to 12 months instead of milliseconds")
+  @Test public void testWinIntervalFrame() {
+    OptiqAssert.that()
+        .with(OptiqAssert.Config.REGULAR)
+        .query(
+            "select  \"deptno\",\n"
+                + " \"empid\",\n"
+                + " \"hire_date\",\n"
+                + " count(*) over (partition by \"deptno\" order by \"hire_date\""
+                + " range between interval '1' year preceding and interval '1' year following) as r\n"
+                + "from (select \"empid\", \"deptno\",\n"
+                + "  DATE '2014-06-12' + \"empid\"*interval '0' day \"hire_date\"\n"
+                + "  from \"hr\".\"emps\")")
+        .typeIs(
+            "[deptno INTEGER NOT NULL, empid INTEGER NOT NULL, hire_date DATE NOT NULL, R BIGINT]")
+        .returnsUnordered(
+            "deptno=10; R=1",
+            "deptno=10; R=1",
+            "deptno=10; R=1",
+            "deptno=20; R=4"); // 4 for rank and 2 for dense_rank
+  }
+
+  /** Tests for FIRST_VALUE */
+  @Test public void testWinAggFirstValue() {
+    OptiqAssert.that()
+        .with(OptiqAssert.Config.REGULAR)
+        .query(
+            "select  \"deptno\",\n"
+            + " \"empid\",\n"
+            + " \"commission\",\n"
+            + " first_value(\"commission\") over (partition by \"deptno\" order by \"empid\") as r\n"
+            + "from \"hr\".\"emps\"")
+        .typeIs(
+            "[deptno INTEGER NOT NULL, empid INTEGER NOT NULL, commission INTEGER, R INTEGER]")
+        .returnsUnordered(
+            "deptno=10; empid=100; commission=1000; R=1000",
+            "deptno=10; empid=110; commission=250; R=1000",
+            "deptno=10; empid=150; commission=null; R=1000",
+            "deptno=20; empid=200; commission=500; R=500");
+  }
+
+  /** Tests for FIRST_VALUE desc */
+  @Test public void testWinAggFirstValueDesc() {
+    OptiqAssert.that()
+        .with(OptiqAssert.Config.REGULAR)
+        .query(
+            "select  \"deptno\",\n"
+            + " \"empid\",\n"
+            + " \"commission\",\n"
+            + " first_value(\"commission\") over (partition by \"deptno\" order by \"empid\" desc) as r\n"
+            + "from \"hr\".\"emps\"")
+        .typeIs(
+            "[deptno INTEGER NOT NULL, empid INTEGER NOT NULL, commission INTEGER, R INTEGER]")
+        .returnsUnordered(
+            "deptno=10; empid=100; commission=1000; R=null",
+            "deptno=10; empid=110; commission=250; R=null",
+            "deptno=10; empid=150; commission=null; R=null",
+            "deptno=20; empid=200; commission=500; R=500");
+  }
+
+  /** Tests for FIRST_VALUE empty window */
+  @Test public void testWinAggFirstValueEmptyWindow() {
+    OptiqAssert.that()
+        .with(OptiqAssert.Config.REGULAR)
+        .query(
+            "select \"deptno\",\n"
+            + " \"empid\",\n"
+            + " \"commission\",\n"
+            + " first_value(\"commission\") over (partition by \"deptno\" order by \"empid\" desc range between 1000 preceding and 999 preceding) as r\n"
+            + "from \"hr\".\"emps\"")
+        .typeIs(
+            "[deptno INTEGER NOT NULL, empid INTEGER NOT NULL, commission INTEGER, R INTEGER]")
+        .returnsUnordered(
+            "deptno=10; empid=100; commission=1000; R=null",
+            "deptno=10; empid=110; commission=250; R=null",
+            "deptno=10; empid=150; commission=null; R=null",
+            "deptno=20; empid=200; commission=500; R=null");
+  }
+
+  /** Tests for ROW_NUMBER */
+  @Test public void testWinRowNumber() {
+    OptiqAssert.that()
+        .with(OptiqAssert.Config.REGULAR)
+        .query(
+            "select \"deptno\",\n"
+            + " \"empid\",\n"
+            + " \"commission\",\n"
+            + " row_number() over (partition by \"deptno\" order by \"commission\" desc nulls first) as rcnf,\n"
+            + " row_number() over (partition by \"deptno\" order by \"commission\" desc nulls last) as rcnl,\n"
+            + " row_number() over (partition by \"deptno\" order by \"empid\") as r,\n"
+            + " row_number() over (partition by \"deptno\" order by \"empid\" desc) as rd\n"
+            + "from \"hr\".\"emps\"")
+        .typeIs(
+            "[deptno INTEGER NOT NULL, empid INTEGER NOT NULL, commission INTEGER, RCNF INTEGER, RCNL INTEGER, R INTEGER, RD INTEGER]")
+        .returnsUnordered(
+            "deptno=10; empid=100; commission=1000; RCNF=2; RCNL=1; R=1; RD=3",
+            "deptno=10; empid=110; commission=250; RCNF=3; RCNL=2; R=2; RD=2",
+            "deptno=10; empid=150; commission=null; RCNF=1; RCNL=3; R=3; RD=1",
+            "deptno=20; empid=200; commission=500; RCNF=1; RCNL=1; R=1; RD=1");
   }
 
   /** Tests UNBOUNDED PRECEDING clause. */
@@ -2972,14 +3164,14 @@ public class JdbcTest {
    *
    * <ul>
    * <li>With no ORDER BY, the window is over all rows in the partition.
-   * <li>With an ORDER BY, the implicit frame is 'BETWEEN UNBOUNDED PRECEDING
-   *     AND CURRENT ROW'.
+   * <li>With an ORDER BY, the implicit frame is 'RANGE BETWEEN
+   *     UNBOUNDED PRECEDING AND CURRENT ROW'.
    * <li>With no ORDER BY or PARTITION BY, the window contains all rows in the
    *     table.
    * </ul>
    */
   @Test public void testOverNoOrder() {
-    // If no range is specified, default is "ROWS BETWEEN UNBOUNDED PRECEDING
+    // If no range is specified, default is "RANGE BETWEEN UNBOUNDED PRECEDING
     // AND CURRENT ROW".
     // The aggregate function is within the current partition;
     // if there is no partition, that means the whole table.
@@ -3016,6 +3208,24 @@ public class JdbcTest {
             "M=1",
             "M=1",
             "M=1");
+  }
+  /** Tests multiple window aggregates over constants.
+   * This tests that EnumerableWindowRel is able to reference the right slot
+   * when accessing constant for aggregation argument.*/
+  @Test public void testWinAggConstantMultipleConstants() {
+    OptiqAssert.that()
+        .with(OptiqAssert.Config.REGULAR)
+        .query(
+            "select \"deptno\", sum(1) over (partition by \"deptno\"\n"
+            + "  order by \"empid\" rows between unbounded preceding and current row) as a,\n"
+            + " sum(-1) over (partition by \"deptno\"\n"
+            + "  order by \"empid\" rows between unbounded preceding and current row) as b\n"
+            + "from \"hr\".\"emps\"")
+        .returnsUnordered(
+            "deptno=10; A=1; B=-1",
+            "deptno=10; A=2; B=-2",
+            "deptno=10; A=3; B=-3",
+            "deptno=20; A=1; B=-1");
   }
 
   /** Tests window aggregate PARTITION BY constant. */
@@ -4091,13 +4301,6 @@ public class JdbcTest {
         "select \"deptno\", my_sum2(\"deptno\") as p from EMPLOYEES\n"
         + "group by \"deptno\"")
         .returnsUnordered("deptno=20; P=20", "deptno=10; P=30");
-  }
-
-  /** Test for {@link EigenbaseNewResource#initAddWrongParamTypes(String)}. */
-  @Test public void testUserDefinedAggregateFunction2() throws Exception {
-    Util.discard(EigenbaseNewResource.class);
-    withBadUdf(SumFunctionBadInitAdd.class).connectThrows(
-        "In user-defined aggregate class 'net.hydromatic.optiq.test.JdbcTest$SumFunctionBadInitAdd', parameter types of 'initAdd' method must be same as value type(s)");
   }
 
   /** Test for {@link EigenbaseNewResource#firstParameterOfAdd(String)}. */
@@ -5229,9 +5432,6 @@ public class JdbcTest {
     public long init() {
       return 0L;
     }
-    public long initAdd(int v) {
-      return v;
-    }
     public long add(long accumulator, int v) {
       return accumulator + v;
     }
@@ -5249,9 +5449,6 @@ public class JdbcTest {
     public static long init() {
       return 0L;
     }
-    public static long initAdd(int v) {
-      return v;
-    }
     public static long add(long accumulator, int v) {
       return accumulator + v;
     }
@@ -5260,18 +5457,6 @@ public class JdbcTest {
     }
     public static long result(long accumulator) {
       return accumulator;
-    }
-  }
-
-  public static class SumFunctionBadInitAdd {
-    public long init() {
-      return 0L;
-    }
-    public long initAdd(int v) {
-      return v;
-    }
-    public long add(long accumulator, long v) {
-      return accumulator + v;
     }
   }
 

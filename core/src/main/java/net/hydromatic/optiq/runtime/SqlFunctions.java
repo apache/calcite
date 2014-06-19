@@ -1550,13 +1550,6 @@ public class SqlFunctions {
     return b == null || b;
   }
 
-  public static Object throwIf(Object o, Object v) {
-    if (o != null) {
-      throw new RuntimeException("more than one value");
-    }
-    return v;
-  }
-
   /** Converts a JDBC array to a list. */
   public static List arrayToList(final java.sql.Array a) {
     if (a == null) {

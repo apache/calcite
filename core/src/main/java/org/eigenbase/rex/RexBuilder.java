@@ -287,8 +287,8 @@ public class RexBuilder {
       List<RexNode> exprs,
       List<RexNode> partitionKeys,
       ImmutableList<RexFieldCollation> orderKeys,
-      SqlNode lowerBound,
-      SqlNode upperBound,
+      RexWindowBound lowerBound,
+      RexWindowBound upperBound,
       boolean physical,
       boolean allowPartial,
       boolean nullWhenCountZero) {
@@ -368,8 +368,8 @@ public class RexBuilder {
   public RexWindow makeWindow(
       List<RexNode> partitionKeys,
       ImmutableList<RexFieldCollation> orderKeys,
-      SqlNode lowerBound,
-      SqlNode upperBound,
+      RexWindowBound lowerBound,
+      RexWindowBound upperBound,
       boolean isRows) {
     return new RexWindow(
         partitionKeys,

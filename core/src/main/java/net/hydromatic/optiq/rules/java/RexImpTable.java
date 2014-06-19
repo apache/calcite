@@ -21,6 +21,7 @@ import net.hydromatic.linq4j.Ord;
 import net.hydromatic.linq4j.expressions.*;
 
 import net.hydromatic.optiq.*;
+import net.hydromatic.optiq.Function;
 import net.hydromatic.optiq.impl.AggregateFunctionImpl;
 import net.hydromatic.optiq.runtime.SqlFunctions;
 
@@ -35,12 +36,11 @@ import org.eigenbase.sql.validate.SqlUserDefinedAggFunction;
 import org.eigenbase.sql.validate.SqlUserDefinedFunction;
 import org.eigenbase.util.Util;
 
-import com.google.common.collect.ImmutableList;
+import com.google.common.base.Supplier;
 import com.google.common.collect.Lists;
 
 import java.lang.reflect.*;
 import java.math.BigDecimal;
-import java.math.BigInteger;
 import java.util.*;
 
 import static net.hydromatic.linq4j.expressions.ExpressionType.*;
@@ -66,8 +66,11 @@ public class RexImpTable {
 
   private final Map<SqlOperator, CallImplementor> map =
       new HashMap<SqlOperator, CallImplementor>();
-  private final Map<Aggregation, AggImplementor> aggMap =
-      new HashMap<Aggregation, AggImplementor>();
+  private final Map<Aggregation, Supplier<? extends AggImplementor>> aggMap =
+      new HashMap<Aggregation, Supplier<? extends AggImplementor>>();
+  private final Map<Aggregation, Supplier<? extends WinAggImplementor>>
+  winAggMap =
+      new HashMap<Aggregation, Supplier<? extends WinAggImplementor>>();
 
   RexImpTable() {
     defineMethod(UPPER, BuiltinMethod.UPPER.method, NullPolicy.STRICT);
@@ -176,15 +179,47 @@ public class RexImpTable {
     map.put(LOCALTIME, systemFunctionImplementor);
     map.put(LOCALTIMESTAMP, systemFunctionImplementor);
 
-    aggMap.put(COUNT, new CountImplementor());
-    aggMap.put(SUM0, new SumImplementor());
-    final MinMaxImplementor minMax =
-        new MinMaxImplementor();
+    aggMap.put(COUNT, constructorSupplier(CountImplementor.class));
+    aggMap.put(SUM0, constructorSupplier(SumImplementor.class));
+    aggMap.put(SUM, constructorSupplier(SumImplementor.class));
+    Supplier<MinMaxImplementor> minMax =
+        constructorSupplier(MinMaxImplementor.class);
     aggMap.put(MIN, minMax);
     aggMap.put(MAX, minMax);
-    aggMap.put(SINGLE_VALUE, new SingleValueImplementor());
-    aggMap.put(RANK, new RankImplementor());
-    aggMap.put(DENSE_RANK, new DenseRankImplementor());
+    aggMap.put(SINGLE_VALUE, constructorSupplier(SingleValueImplementor.class));
+    winAggMap.put(RANK, constructorSupplier(RankImplementor.class));
+    winAggMap.put(DENSE_RANK, constructorSupplier(DenseRankImplementor.class));
+    winAggMap.put(ROW_NUMBER, constructorSupplier(RowNumberImplementor.class));
+    winAggMap.put(FIRST_VALUE,
+        constructorSupplier(FirstValueImplementor.class));
+    winAggMap.put(LAST_VALUE, constructorSupplier(LastValueImplementor.class));
+    winAggMap.put(COUNT, constructorSupplier(CountWinImplementor.class));
+  }
+
+  private <T> Supplier<T> constructorSupplier(Class<T> klass) {
+    final Constructor<T> constructor;
+    try {
+      constructor = klass.getDeclaredConstructor();
+    } catch (NoSuchMethodException e) {
+      throw new IllegalArgumentException(
+          klass + " should implement zero arguments constructor");
+    }
+    return new Supplier<T>() {
+      public T get() {
+        try {
+          return constructor.newInstance();
+        } catch (InstantiationException e) {
+          throw new IllegalStateException(
+              "Unable to instantiate aggregate implementor " + constructor, e);
+        } catch (IllegalAccessException e) {
+          throw new IllegalStateException(
+              "Error while creating aggregate implementor " + constructor, e);
+        } catch (InvocationTargetException e) {
+          throw new IllegalStateException(
+              "Error while creating aggregate implementor " + constructor, e);
+        }
+      }
+    };
   }
 
   private void defineImplementor(
@@ -388,16 +423,34 @@ public class RexImpTable {
     return map.get(operator);
   }
 
-  public AggImplementor get(final Aggregation aggregation) {
+  public AggImplementor get(final Aggregation aggregation,
+      boolean forWindowAggregate) {
     if (aggregation instanceof SqlUserDefinedAggFunction) {
       final SqlUserDefinedAggFunction udaf =
           (SqlUserDefinedAggFunction) aggregation;
-      if (udaf.function instanceof AggregateFunctionImpl) {
-        return UserDefinedAggImplementor.INSTANCE;
+      if (!(udaf.function instanceof ImplementableAggFunction)) {
+        throw new IllegalStateException(
+            "User defined aggregation " + aggregation + " must implement "
+                + "ImplementableAggFunction");
       }
+      return ((ImplementableAggFunction) udaf.function)
+          .getImplementor(forWindowAggregate);
+    }
+    if (forWindowAggregate) {
+      Supplier<? extends WinAggImplementor> winAgg =
+          winAggMap.get(aggregation);
+      if (winAgg != null) {
+        return winAgg.get();
+      }
+      // Regular aggregates can be used in window context as well
     }
 
-    return aggMap.get(aggregation);
+    Supplier<? extends AggImplementor> aggSupplier = aggMap.get(aggregation);
+    if (aggSupplier == null) {
+      return null;
+    }
+
+    return aggSupplier.get();
   }
 
   static Expression maybeNegate(boolean negate, Expression expression) {
@@ -703,246 +756,322 @@ public class RexImpTable {
     }
   }
 
-  abstract static class AbstractCallImplementor implements CallImplementor {
-    /** Implements a call with "normal" {@link NullAs} semantics. */
-    abstract Expression implement(
-        RexToLixTranslator translator,
-        RexCall call);
+  static Expression getDefaultValue(Type type) {
+    if (Primitive.is(type)) {
+      Primitive p = Primitive.of(type);
+      return Expressions.constant(p.defaultValue, type);
+    }
+    return Expressions.constant(null, type);
+  }
 
-    public final Expression implement(
-        RexToLixTranslator translator, RexCall call, NullAs nullAs) {
-      // Convert "normal" NullAs semantics to those asked for.
-      return nullAs.handle(implement(translator, call));
+  static class CountImplementor extends StrictAggImplementor {
+    @Override
+    public void implementNotNullAdd(AggContext info, AggAddContext add) {
+      add.currentBlock().add(Expressions.statement(
+          Expressions.postIncrementAssign(add.accumulator().get(0))));
     }
   }
 
-  static class CountImplementor implements AggImplementor {
-    public Expression implementInit(RexToLixTranslator translator,
-        Aggregation aggregation, Type returnType, List<Type> parameterTypes) {
-      return Expressions.constant(0, returnType);
+  static class CountWinImplementor extends StrictWinAggImplementor {
+    boolean justPartitionRowCount;
+
+    @Override
+    public List<Type> getNotNullState(WinAggContext info) {
+      boolean hasNullable = false;
+      for (RelDataType type : info.parameterRelTypes()) {
+        if (type.isNullable()) {
+          hasNullable = true;
+          break;
+        }
+      }
+      if (!hasNullable) {
+        justPartitionRowCount = true;
+        return Collections.emptyList();
+      }
+      return super.getNotNullState(info);
     }
 
-    public Expression implementAdd(AddInfo info) {
-      // We don't need to check whether the argument is NULL. callOnNull()
-      // returned false, so that container has checked for us.
-      final Expression accumulator = info.accumulator();
-      return Expressions.add(accumulator,
-          Expressions.constant(1, accumulator.type));
+    @Override
+    public void implementNotNullAdd(WinAggContext info, WinAggAddContext add) {
+      if (justPartitionRowCount) {
+        return;
+      }
+      add.currentBlock().add(Expressions.statement(
+          Expressions.postIncrementAssign(add.accumulator().get(0))));
     }
 
-    public Expression implementInitAdd(RexToLixTranslator translator,
-        Aggregation aggregation, Type returnType, List<Type> parameterTypes,
-        List<Expression> arguments) {
-      return Expressions.constant(1, returnType);
-    }
-
-    public Expression implementResult(RexToLixTranslator translator,
-        Aggregation aggregation, Expression accumulator) {
-      return accumulator;
+    @Override
+    protected Expression implementNotNullResult(WinAggContext info,
+        WinAggResultContext result) {
+      if (justPartitionRowCount) {
+        return result.getPartitionRowCount();
+      }
+      return super.implementNotNullResult(info, result);
     }
   }
 
-  static class SumImplementor implements AggImplementor {
-    public Expression implementInit(RexToLixTranslator translator,
-        Aggregation aggregation, Type returnType, List<Type> parameterTypes) {
-      final Primitive primitive = choosePrimitive(returnType);
-      assert primitive != null;
-      return Expressions.constant(primitive.number(0), returnType);
+  static class SumImplementor extends StrictAggImplementor {
+    @Override
+    protected void implementNotNullReset(AggContext info,
+        AggResetContext reset) {
+      Expression start = info.returnType() == BigDecimal.class
+          ? Expressions.constant(BigDecimal.ZERO)
+          : Expressions.constant(0);
+
+      reset.currentBlock().add(Expressions.statement(Expressions.assign(
+          reset.accumulator().get(0), start)));
     }
 
-    private Primitive choosePrimitive(Type returnType) {
-      switch (Primitive.flavor(returnType)) {
-      case PRIMITIVE:
-        return Primitive.of(returnType);
-      case BOX:
-        return Primitive.ofBox(returnType);
-      default:
-        assert returnType == BigDecimal.class
-            : "expected primitive or boxed primitive, got "
-            + returnType;
-        return Primitive.INT;
+    @Override
+    public void implementNotNullAdd(AggContext info, AggAddContext add) {
+      Expression acc = add.accumulator().get(0);
+      Expression next;
+      if (info.returnType() == BigDecimal.class) {
+        next = Expressions.call(acc, "add", add.arguments().get(0));
+      } else {
+        next = Expressions.add(acc,
+            Types.castIfNecessary(acc.type, add.arguments().get(0)));
       }
+      accAdvance(add, acc, next);
     }
 
-    public Expression implementAdd(AddInfo info) {
-      final List<Expression> arguments = info.arguments();
-      final Expression accumulator = info.accumulator();
-      assert arguments.size() == 1;
-      if (accumulator.type == BigDecimal.class
-          || accumulator.type == BigInteger.class) {
-        return Expressions.call(accumulator, "add", arguments.get(0));
-      }
-      return Types.castIfNecessary(accumulator.type,
-          Expressions.add(accumulator,
-              Types.castIfNecessary(accumulator.type, arguments.get(0))));
-    }
-
-    public Expression implementInitAdd(RexToLixTranslator translator,
-        Aggregation aggregation,
-        Type returnType,
-        List<Type> parameterTypes,
-        List<Expression> arguments) {
-      return Types.castIfNecessary(returnType, arguments.get(0));
-    }
-
-    public Expression implementResult(RexToLixTranslator translator,
-        Aggregation aggregation, Expression accumulator) {
-      return accumulator;
+    @Override
+    public Expression implementNotNullResult(AggContext info,
+        AggResultContext result) {
+      return super.implementNotNullResult(info, result);
     }
   }
 
-  static class MinMaxImplementor implements AggImplementor {
-    public Expression implementInit(RexToLixTranslator translator,
-        Aggregation aggregation, Type returnType, List<Type> parameterTypes) {
-      final Primitive primitive = Primitive.of(returnType);
-      if (primitive != null) {
-        // allow nulls even if input does not
-        returnType = primitive.boxClass;
-      }
-      return Types.castIfNecessary(returnType, NULL_EXPR);
+  static class MinMaxImplementor extends StrictAggImplementor {
+    @Override
+    protected void implementNotNullReset(AggContext info,
+        AggResetContext reset) {
+      Expression acc = reset.accumulator().get(0);
+      Primitive p = Primitive.of(acc.getType());
+      boolean isMin = MIN == info.aggregation();
+      Object inf = p == null ? null : (isMin ? p.max : p.min);
+      reset.currentBlock().add(Expressions.statement(Expressions.assign(
+          acc, Expressions.constant(inf, acc.getType()))));
     }
 
-    public Expression implementAdd(AddInfo info) {
-      final List<Expression> arguments = info.arguments();
-      final Aggregation aggregation = info.aggregation();
-      final Expression accumulator = info.accumulator();
-      // Need to check for null accumulator (e.g. first call to "add"
-      // after "init") but because callWithNull() returned false, the
-      // container has ensured that argument is not null.
-      //
-      // acc = acc == null
-      //   ? arg
-      //   : lesser(acc, arg)
-      assert arguments.size() == 1;
-      final Expression arg = arguments.get(0);
-      return optimize(
-          Expressions.condition(
-              Expressions.foldOr(
-                  Expressions.<Expression>list(
-                      Expressions.equal(accumulator, NULL_EXPR))
-                      .appendIf(
-                          !Primitive.is(arg.type),
-                          Expressions.equal(arg, NULL_EXPR))),
-              arg,
-              Expressions.convert_(
-                  Expressions.call(
-                      SqlFunctions.class,
-                      aggregation == MIN ? "lesser" : "greater",
-                      Expressions.unbox(accumulator),
-                      Expressions.unbox(arg)), arg.getType())));
-    }
-
-    public Expression implementInitAdd(RexToLixTranslator translator,
-        Aggregation aggregation, Type returnType, List<Type> parameterTypes,
-        List<Expression> arguments) {
-      return arguments.get(0);
-    }
-
-    public Expression implementResult(RexToLixTranslator translator,
-        Aggregation aggregation, Expression accumulator) {
-      return accumulator;
+    @Override
+    public void implementNotNullAdd(AggContext info, AggAddContext add) {
+      Expression acc = add.accumulator().get(0);
+      Expression arg = add.arguments().get(0);
+      Aggregation aggregation = info.aggregation();
+      Expression next = Expressions.call(
+          SqlFunctions.class,
+          aggregation == MIN ? "lesser" : "greater",
+          acc,
+          Expressions.unbox(arg));
+      accAdvance(add, acc, next);
     }
   }
 
   static class SingleValueImplementor implements AggImplementor {
-    public Expression implementInit(RexToLixTranslator translator,
-        Aggregation aggregation, Type returnType, List<Type> parameterTypes) {
-      return Types.castIfNecessary(Primitive.box(returnType), NULL_EXPR);
+    public List<Type> getStateType(AggContext info) {
+      return Arrays.asList(boolean.class, info.returnType());
     }
 
-    public Expression implementAdd(AddInfo info) {
-      // Need to check for null accumulator (e.g. first call to "add"
-      // after "init") but because callWithNull() returned false, the
-      // container has ensured that argument is not null.
-      //
-      // acc = throwIf(acc, arg)
-      //
-      // Object throwIf(Object acc, Object arg) {
-      //   if (acc != null) {
-      //     throw new RuntimeException("move than one value");
-      //   }
-      //   return arg;
-      // }
-      final List<Expression> arguments = info.arguments();
-      final Expression accumulator = info.accumulator();
-
-      assert arguments.size() == 1;
-      final Expression arg = arguments.get(0);
-      return Types.castIfNecessary(accumulator.type,
-          Expressions.call(BuiltinMethod.THROW_IF.method, accumulator, arg));
+    public void implementReset(AggContext info, AggResetContext reset) {
+      List<Expression> acc = reset.accumulator();
+      reset.currentBlock().add(Expressions.statement(Expressions.assign(
+          acc.get(0), Expressions.constant(false))));
+      reset.currentBlock().add(Expressions.statement(Expressions.assign(
+          acc.get(1), getDefaultValue(acc.get(1).getType()))));
     }
 
-    public Expression implementInitAdd(RexToLixTranslator translator,
-        Aggregation aggregation, Type returnType, List<Type> parameterTypes,
-        List<Expression> arguments) {
-      return arguments.get(0);
+    public void implementAdd(AggContext info, AggAddContext add) {
+      List<Expression> acc = add.accumulator();
+      Expression flag = acc.get(0);
+      add.currentBlock().add(Expressions.ifThen(flag,
+          Expressions.throw_(Expressions.new_(IllegalStateException.class,
+              Expressions.constant("more than one value in agg "
+                  + info.aggregation().toString())))));
+      add.currentBlock().add(Expressions.statement(
+          Expressions.assign(flag, Expressions.constant(true))));
+      add.currentBlock().add(Expressions.statement(Expressions.assign(
+          acc.get(1), add.arguments().get(0))));
     }
 
-    public Expression implementResult(RexToLixTranslator translator,
-        Aggregation aggregation, Expression accumulator) {
-      return accumulator;
+    public Expression implementResult(AggContext info,
+        AggResultContext result) {
+      return result.accumulator().get(1);
     }
   }
 
-  static class RankImplementor implements WinAggImplementor {
-    public Expression implementInit(RexToLixTranslator translator,
-        Aggregation aggregation, Type returnType, List<Type> parameterTypes) {
-      return Expressions.constant(0, returnType);
+  public static class UserDefinedAggReflectiveImplementor
+      extends StrictAggImplementor {
+    private final AggregateFunctionImpl afi;
+
+    public UserDefinedAggReflectiveImplementor(AggregateFunctionImpl afi) {
+      this.afi = afi;
     }
 
-    public Expression implementAdd(AddInfo info) {
-      return info.orderKeyStartIndex();
+    @Override
+    public List<Type> getNotNullState(AggContext info) {
+      if (afi.isStatic) {
+        return Collections.<Type>singletonList(afi.accumulatorType);
+      }
+      return Arrays.<Type>asList(afi.accumulatorType, afi.declaringClass);
     }
 
-    public Expression implementInitAdd(RexToLixTranslator translator,
-        Aggregation aggregation, Type returnType, List<Type> parameterTypes,
-        List<Expression> arguments) {
-      return Expressions.constant(0, returnType);
+    @Override
+    protected void implementNotNullReset(AggContext info,
+        AggResetContext reset) {
+      List<Expression> acc = reset.accumulator();
+      if (!afi.isStatic) {
+        reset.currentBlock().add(Expressions.statement(Expressions.assign(
+            acc.get(1), Expressions.new_(afi.declaringClass)
+        )));
+      }
+      reset.currentBlock().add(Expressions.statement(Expressions.assign(
+          acc.get(0), Expressions.call(
+              afi.isStatic ? null : acc.get(1), afi.initMethod))));
     }
 
-    public Expression implementResult(RexToLixTranslator translator,
-        Aggregation aggregation, Expression accumulator) {
-      return accumulator;
+    @Override
+    protected void implementNotNullAdd(AggContext info, AggAddContext add) {
+      List<Expression> acc = add.accumulator();
+      List<Expression> aggArgs = add.arguments();
+      List<Expression> args = new ArrayList<Expression>(aggArgs.size() + 1);
+      args.add(acc.get(0));
+      args.addAll(aggArgs);
+      add.currentBlock().add(Expressions.statement(Expressions.assign(
+          acc.get(0), Expressions.call(
+              afi.isStatic ? null : acc.get(1), afi.addMethod,
+              args))));
     }
 
-    public Expression implementResultPlus(ResultPlusInfo info) {
+    @Override
+    protected Expression implementNotNullResult(AggContext info,
+        AggResultContext result) {
+      List<Expression> acc = result.accumulator();
+      return Expressions.call(
+          afi.isStatic ? null : acc.get(1), afi.resultMethod, acc.get(0));
+    }
+  }
+
+  static class RankImplementor extends StrictWinAggImplementor {
+    @Override
+    protected void implementNotNullAdd(WinAggContext info,
+        WinAggAddContext add) {
+      Expression acc = add.accumulator().get(0);
+      // This is an example of the generated code
+      if (false) {
+        new Object() {
+          int curentPosition; // position in for-win-agg-loop
+          int startIndex;     // index of start of window
+          Comparable[] rows;  // accessed via WinAggAddContext.compareRows
+          {
+            if (curentPosition > startIndex) {
+              if (rows[curentPosition - 1].compareTo(rows[curentPosition]) > 0)
+              {
+                // update rank
+              }
+            }
+          }
+        };
+      }
+      BlockBuilder builder = add.nestBlock();
+      add.currentBlock().add(Expressions.ifThen(Expressions.lessThan(
+              add.compareRows(Expressions.subtract(add.currentPosition(),
+                  Expressions.constant(1)), add.currentPosition()),
+              Expressions.constant(0)),
+          Expressions.statement(Expressions.assign(
+              acc, computeNewRank(acc, add)))));
+      add.exitBlock();
+      add.currentBlock().add(
+          Expressions.ifThen(Expressions.greaterThan(add.currentPosition(),
+              add.startIndex()), builder.toBlock()));
+    }
+
+    protected Expression computeNewRank(Expression acc, WinAggAddContext add) {
+      Expression pos = add.currentPosition();
+      if (!add.startIndex().equals(Expressions.constant(0))) {
+        // In general, currentPosition-startIndex should be used
+        // However, rank/dense_rank does not allow preceding/following clause
+        // so we always result in startIndex==0.
+        pos = Expressions.subtract(pos, add.startIndex());
+      }
+      return pos;
+    }
+
+    @Override
+    protected Expression implementNotNullResult(
+        WinAggContext info, WinAggResultContext result) {
       // Rank is 1-based
-      return Expressions.add(info.accumulator(), Expressions.constant(1));
+      return Expressions.add(super.implementNotNullResult(info, result),
+          Expressions.constant(1));
     }
   }
 
-  static class DenseRankImplementor implements WinAggImplementor {
-    public Expression implementInit(RexToLixTranslator translator,
-        Aggregation aggregation, Type returnType, List<Type> parameterTypes) {
-      return Expressions.constant(0, Primitive.unbox(returnType));
+  static class DenseRankImplementor extends RankImplementor {
+    @Override
+    protected Expression computeNewRank(Expression acc, WinAggAddContext add) {
+      return Expressions.add(acc, Expressions.constant(1));
+    }
+  }
+
+  static class FirstLastValueImplementor implements WinAggImplementor {
+    private final SeekType seekType;
+
+    protected FirstLastValueImplementor(SeekType seekType) {
+      this.seekType = seekType;
     }
 
-    public Expression implementAdd(AddInfo info) {
-      // orderChanged will be true if this is the first row with a particular
-      // value of the ORDER BY key, including if it is the first row.
-      final Expression orderChanged = info.orderChanged();
-      final Expression accumulator = info.accumulator();
-      return Expressions.condition(
-          orderChanged,
-          Expressions.box(
-              Expressions.add(Expressions.unbox(accumulator),
-                  Expressions.constant(1))),
-          accumulator);
+    public List<Type> getStateType(AggContext info) {
+      return Collections.emptyList();
     }
 
-    public Expression implementInitAdd(RexToLixTranslator translator,
-        Aggregation aggregation, Type returnType, List<Type> parameterTypes,
-        List<Expression> arguments) {
-      return Expressions.constant(1, returnType);
+    public void implementReset(AggContext info, AggResetContext reset) {
+      // no op
     }
 
-    public Expression implementResult(RexToLixTranslator translator,
-        Aggregation aggregation, Expression accumulator) {
-      return accumulator;
+    public void implementAdd(AggContext info, AggAddContext add) {
+      // no op
     }
 
-    public Expression implementResultPlus(ResultPlusInfo info) {
-      return info.accumulator();
+    public Expression implementResult(AggContext info,
+        AggResultContext result) {
+      WinAggResultContext winResult = (WinAggResultContext) result;
+      return Expressions.condition(winResult.hasRows(),
+          winResult.arguments(winResult.computeIndex(
+              Expressions.constant(0), seekType)).get(0),
+          getDefaultValue(info.returnType()));
+    }
+  }
+
+  static class FirstValueImplementor extends FirstLastValueImplementor {
+    protected FirstValueImplementor() {
+      super(SeekType.START);
+    }
+  }
+
+  static class LastValueImplementor extends FirstLastValueImplementor {
+    protected LastValueImplementor() {
+      super(SeekType.END);
+    }
+  }
+
+  static class RowNumberImplementor extends StrictWinAggImplementor {
+    @Override
+    public List<Type> getNotNullState(WinAggContext info) {
+      return Collections.<Type>emptyList();
+    }
+
+    @Override
+    protected void implementNotNullAdd(WinAggContext info,
+        WinAggAddContext add) {
+      // no op
+    }
+
+    @Override
+    protected Expression implementNotNullResult(
+        WinAggContext info, WinAggResultContext result) {
+      // Window cannot be empty since ROWS/RANGE is not possible for ROW_NUMBER
+      return Expressions.add(Expressions.subtract(
+          result.index(), result.startIndex()), Expressions.constant(1));
     }
   }
 
@@ -1311,81 +1440,6 @@ public class RexImpTable {
       final Expression expression =
           implementor.implement(translator, call, translatedOperands);
       return Expressions.not(expression);
-    }
-  }
-
-  /** Implementor for user-defined aggregate functions. */
-  static class UserDefinedAggImplementor implements AggImplementor {
-    public static final UserDefinedAggImplementor INSTANCE =
-        new UserDefinedAggImplementor();
-
-    private UserDefinedAggImplementor() {}
-
-    private static AggregateFunctionImpl afi(Aggregation aggregation) {
-      final SqlUserDefinedAggFunction udf =
-          (SqlUserDefinedAggFunction) aggregation;
-      return (AggregateFunctionImpl) udf.function;
-    }
-
-    private static boolean isStatic(Method method) {
-      return (method.getModifiers() & Modifier.STATIC) == Modifier.STATIC;
-    }
-
-    private Expression object(AggregateFunctionImpl afi,
-        RexToLixTranslator translator) {
-      // TODO: use translator to cache instance
-      return Expressions.new_(afi.declaringClass);
-    }
-
-    private Expression call(RexToLixTranslator translator,
-        AggregateFunctionImpl afi, Method method, List<Expression> arguments) {
-      if (isStatic(method)) {
-        return Expressions.call(method, arguments);
-      } else {
-        return Expressions.call(object(afi, translator), method, arguments);
-      }
-    }
-    public Expression implementInit(RexToLixTranslator translator,
-        Aggregation aggregation, Type returnType, List<Type> parameterTypes) {
-      final AggregateFunctionImpl afi = afi(aggregation);
-      final ImmutableList<Expression> args = ImmutableList.of();
-      return call(translator, afi, afi.initMethod, args);
-    }
-
-    public Expression implementAdd(AddInfo info) {
-      final Aggregation aggregation = info.aggregation();
-      final Expression accumulator = info.accumulator();
-      final RexToLixTranslator translator = info.translator();
-      final List<Expression> arguments = info.arguments();
-      final AggregateFunctionImpl afi = afi(aggregation);
-      final ImmutableList<Expression> args =
-          ImmutableList.<Expression>builder().add(accumulator).addAll(arguments)
-              .build();
-      return call(translator, afi, afi.addMethod, args);
-    }
-
-    public Expression implementInitAdd(final RexToLixTranslator translator,
-        final Aggregation aggregation, Type returnType,
-        List<Type> parameterTypes, final List<Expression> arguments) {
-      final AggregateFunctionImpl afi = afi(aggregation);
-      if (afi.initAddMethod != null) {
-        return call(translator, afi, afi.initAddMethod, arguments);
-      } else {
-        final Expression accumulator =
-            implementInit(translator, aggregation, returnType, parameterTypes);
-        return implementAdd(
-            Impls.add(translator, aggregation, arguments, accumulator));
-      }
-    }
-
-    public Expression implementResult(RexToLixTranslator translator,
-        Aggregation aggregation, Expression accumulator) {
-      final AggregateFunctionImpl afi = afi(aggregation);
-      if (afi.resultMethod == null) {
-        return accumulator;
-      }
-      final ImmutableList<Expression> args = ImmutableList.of(accumulator);
-      return call(translator, afi, afi.resultMethod, args);
     }
   }
 }

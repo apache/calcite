@@ -58,10 +58,13 @@ import org.eigenbase.util.Util;
 import com.google.common.collect.*;
 
 import org.codehaus.commons.compiler.CompileException;
-import org.codehaus.janino.*;
-import org.codehaus.janino.Scanner;
+import org.codehaus.commons.compiler.CompilerFactoryFactory;
+import org.codehaus.commons.compiler.IClassBodyEvaluator;
+import org.codehaus.commons.compiler.ICompilerFactory;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.io.StringReader;
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
@@ -718,8 +721,7 @@ public class OptiqPrepareImpl implements OptiqPrepare {
       String s = Expressions.toString(expr.memberDeclarations, "\n", false);
 
       if (DEBUG) {
-        System.out.println();
-        System.out.println(s);
+        debugCode(System.out, s);
       }
 
       Hook.JAVA_PLAN.run(s);
@@ -763,17 +765,52 @@ public class OptiqPrepareImpl implements OptiqPrepare {
       };
     }
 
+    /**
+     * Prints the given code with line numbering.
+     */
+    private void debugCode(PrintStream out, String code) {
+      out.println();
+      StringReader sr = new StringReader(code);
+      BufferedReader br = new BufferedReader(sr);
+      try {
+        String line;
+        for (int i = 1; (line = br.readLine()) != null; i++) {
+          out.print("/*");
+          String number = Integer.toString(i);
+          if (number.length() < 4) {
+            Spaces.append(out, 4 - number.length());
+          }
+          out.print(number);
+          out.print(" */ ");
+          out.println(line);
+        }
+      } catch (IOException e) {
+        // not possible
+      }
+    }
+
     private Bindable getBindable(ClassDeclaration expr,
         String s) throws CompileException, IOException {
       if (context.spark().enabled()) {
         return context.spark().compile(expr, s);
       }
-      return (Bindable) ClassBodyEvaluator.createFastClassBodyEvaluator(
-          new Scanner(null, new StringReader(s)),
-          expr.name,
-          Utilities.class,
-          new Class[]{Bindable.class, Typed.class},
-          getClass().getClassLoader());
+      ICompilerFactory compilerFactory;
+      try {
+        compilerFactory = CompilerFactoryFactory.getDefaultCompilerFactory();
+      } catch (Exception e) {
+        throw new IllegalStateException(
+            "Unable to instantiate java compiler", e);
+      }
+      IClassBodyEvaluator cbe = compilerFactory.newClassBodyEvaluator();
+      cbe.setClassName(expr.name);
+      cbe.setExtendedClass(Utilities.class);
+      cbe.setImplementedInterfaces(new Class[]{Bindable.class, Typed.class});
+      cbe.setParentClassLoader(getClass().getClassLoader());
+      if (DEBUG) {
+        // Add line numbers to the generated janino class
+        cbe.setDebuggingInformation(true, true, true);
+      }
+      return (Bindable) cbe.createInstance(new StringReader(s));
     }
   }
 

@@ -370,6 +370,16 @@ public abstract class CalcRelSplitter {
         }
       }
     }
+    if (levelCount > 0) {
+      // The latest level should be CalcRelType otherwise literals cannot be
+      // implemented.
+      assert "CalcRelType".equals(relTypes[0].name)
+          : "The first RelType should be CalcRelType for proper RexLiteral"
+          + " implementation at the last level, got " + relTypes[0].name;
+      if (levelTypeOrdinals[levelCount - 1] != 0) {
+        levelCount++;
+      }
+    }
     return levelCount;
   }
 

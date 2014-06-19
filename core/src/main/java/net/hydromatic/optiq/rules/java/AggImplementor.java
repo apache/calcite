@@ -18,77 +18,62 @@
 package net.hydromatic.optiq.rules.java;
 
 import net.hydromatic.linq4j.expressions.Expression;
-import net.hydromatic.linq4j.expressions.Expressions;
-
-import org.eigenbase.rel.Aggregation;
 
 import java.lang.reflect.Type;
 import java.util.List;
 
-/** Implements an aggregate function by generating expressions to
- * initialize, add to, and get a result from, an accumulator. */
-interface AggImplementor {
-  Expression implementInit(RexToLixTranslator translator,
-      Aggregation aggregation, Type returnType, List<Type> parameterTypes);
+/**
+ * Implements an aggregate function by generating expressions to
+ * initialize, add to, and get a result from, an accumulator.
+ *
+ * @see net.hydromatic.optiq.rules.java.StrictAggImplementor
+ * @see net.hydromatic.optiq.rules.java.StrictWinAggImplementor
+ * @see net.hydromatic.optiq.rules.java.RexImpTable.CountImplementor
+ * @see net.hydromatic.optiq.rules.java.RexImpTable.SumImplementor
+ */
+public interface AggImplementor {
+  /**
+   * Returns the types of the intermediate variables used by the aggregate
+   * implementation.
+   * For instance, for "concatenate to string" this can be {@link java.lang.StringBuilder}.
+   * Optiq calls this method before all other {@code implement*} methods.
+   * @param info aggregate context
+   * @return types of the intermediate variables used by the aggregate
+   *   implementation
+   */
+  List<Type> getStateType(AggContext info);
 
-  Expression implementAdd(AddInfo info);
+  /**
+   * Implements reset of the intermediate variables to the initial state.
+   * {@link AggResetContext#accumulator()} should be used to reference
+   * the state variables.
+   * For instance, to zero the count use the following code:
+   * {@code reset.currentBlock().add(Expressions.statement(
+   * Expressions.assign(reset.accumulator().get(0), Expressions.constant(0)));}
+   * @param info aggregate context
+   * @param reset reset context
+   */
+  void implementReset(AggContext info, AggResetContext reset);
 
-  Expression implementInitAdd(RexToLixTranslator translator,
-      Aggregation aggregation, Type returnType, List<Type> parameterTypes,
-      List<Expression> arguments);
+  /**
+   * Updates intermediate values to account for the newly added value.
+   * {@link AggResetContext#accumulator()} should be used to reference
+   * the state variables.
+   * @param info aggregate context
+   * @param add add context
+   */
+  void implementAdd(AggContext info, AggAddContext add);
 
-  Expression implementResult(RexToLixTranslator translator,
-      Aggregation aggregation, Expression accumulator);
-
-  /** Information for a call to {@link AggImplementor#implementAdd(AddInfo)}. */
-  interface AddInfo {
-    RexToLixTranslator translator();
-    Aggregation aggregation();
-    Expression accumulator();
-    List<Expression> arguments();
-    Expression orderChanged();
-    Expression index();
-    Expression orderKeyStartIndex();
-  }
-
-  /** Helper class. */
-  class Impls {
-    private Impls() {}
-
-    static AddInfo add(final RexToLixTranslator translator,
-        final Aggregation aggregation, final List<Expression> arguments,
-        final Expression accumulator) {
-      return new AddInfo() {
-        public RexToLixTranslator translator() {
-          return translator;
-        }
-
-        public Aggregation aggregation() {
-          return aggregation;
-        }
-
-        public Expression accumulator() {
-          return accumulator;
-        }
-
-        public List<Expression> arguments() {
-          return arguments;
-        }
-
-        public Expression orderChanged() {
-          return RexImpTable.FALSE_EXPR;
-        }
-
-        public Expression index() {
-          return Expressions.constant(0);
-        }
-
-        public Expression orderKeyStartIndex() {
-          return index();
-        }
-      };
-    }
-  }
+  /**
+   * Calculates the resulting value based on the intermediate variables.
+   * Note: this method must NOT destroy the intermediate variables as
+   * optiq might reuse the state when calculating sliding aggregates.
+   * {@link AggResetContext#accumulator()} should be used to reference
+   * the state variables.
+   * @param info aggregate context
+   * @param result result context
+   */
+  Expression implementResult(AggContext info, AggResultContext result);
 }
 
 // End AggImplementor.java

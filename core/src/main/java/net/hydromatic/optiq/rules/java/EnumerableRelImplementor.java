@@ -275,15 +275,29 @@ public class EnumerableRelImplementor extends JavaRelImplementor {
             Expressions.notEqual(cParameter, constantZero),
             Expressions.return_(null, cParameter));
     for (Types.RecordField field : type.getRecordFields()) {
+      MethodCallExpression compareCall;
+      try {
+        compareCall = Expressions.call(
+            Utilities.class,
+            field.nullable() ? "compareNullsLast" : "compare",
+            Expressions.field(thisParameter, field),
+            Expressions.field(thatParameter, field));
+      } catch (RuntimeException e) {
+        if (e.getCause() instanceof NoSuchMethodException) {
+          // Just ignore the field in compareTo
+          // "create synthetic record class" blindly creates compareTo for
+          // all the fields, however not all the records will actually be used
+          // as sorting keys (e.g. temporary state for aggregate calculation).
+          // In those cases it is fine if we skip the problematic fields.
+          continue;
+        }
+        throw e;
+      }
       blockBuilder4.add(
           Expressions.statement(
               Expressions.assign(
                   cParameter,
-                  Expressions.call(
-                      Utilities.class,
-                      field.nullable() ? "compareNullsLast" : "compare",
-                      Expressions.field(thisParameter, field),
-                      Expressions.field(thatParameter, field)))));
+                  compareCall)));
       blockBuilder4.add(conditionalStatement);
     }
     blockBuilder4.add(

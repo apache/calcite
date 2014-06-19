@@ -22,7 +22,6 @@ import java.util.*;
 import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.*;
 import org.eigenbase.rex.*;
-import org.eigenbase.sql.SqlNode;
 import org.eigenbase.util.Pair;
 import org.eigenbase.util.Util;
 
@@ -135,12 +134,18 @@ public final class WindowRel extends WindowRelBase {
         aggCalls.add(aggCall);
         aggMap.put(over, aggCall);
       }
+      RexShuttle toInputRefs = new RexShuttle() {
+        @Override
+        public RexNode visitLocalRef(RexLocalRef localRef) {
+          return new RexInputRef(localRef.getIndex(), localRef.getType());
+        }
+      };
       windowList.add(
           new Window(
               windowKey.groupSet,
               windowKey.isRows,
-              windowKey.lowerBound,
-              windowKey.upperBound,
+              windowKey.lowerBound.accept(toInputRefs),
+              windowKey.upperBound.accept(toInputRefs),
               windowKey.orderKeys,
               aggCalls));
     }
@@ -267,15 +272,15 @@ public final class WindowRel extends WindowRelBase {
     private final BitSet groupSet;
     private final RelCollation orderKeys;
     private final boolean isRows;
-    private final SqlNode lowerBound;
-    private final SqlNode upperBound;
+    private final RexWindowBound lowerBound;
+    private final RexWindowBound upperBound;
 
     public WindowKey(
         BitSet groupSet,
         RelCollation orderKeys,
         boolean isRows,
-        SqlNode lowerBound,
-        SqlNode upperBound) {
+        RexWindowBound lowerBound,
+        RexWindowBound upperBound) {
       this.groupSet = groupSet;
       this.orderKeys = orderKeys;
       this.isRows = isRows;

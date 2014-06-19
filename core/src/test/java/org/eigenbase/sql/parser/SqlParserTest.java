@@ -2444,13 +2444,15 @@ public class SqlParserTest {
     // Chained string literals are valid syntax. They are unlikely to be
     // semantically valid, because intervals are usually numeric or
     // datetime.
+    // Note: literal chain is not yet replaced with combined literal
+    // since we are just parsing, and not validating the sql.
     check(
         "select count(*) over w from emp window w as (\n"
         + "  rows 'foo' 'bar'\n"
         + "       'baz' preceding)",
         "SELECT (COUNT(*) OVER `W`)\n"
         + "FROM `EMP`\n"
-        + "WINDOW `W` AS (ROWS 'foobarbaz' PRECEDING)");
+        + "WINDOW `W` AS (ROWS 'foo'\n'bar'\n'baz' PRECEDING)");
 
     // Partition clause out of place. Found after ORDER BY
     checkFails(

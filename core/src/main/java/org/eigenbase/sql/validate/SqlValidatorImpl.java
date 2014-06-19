@@ -3555,7 +3555,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     }
 
     // Fill in missing bounds. Default bounds are "BETWEEN UNBOUNDED PRECEDING
-    // AND CURRENT ROW". (That has no effect if there is no ORDER BY clause.)
+    // AND CURRENT ROW" when ORDER BY present and "BETWEEN UNBOUNDED PRECEDING
+    // AND UNBOUNDED FOLLOWING" when no ORDER BY present.
     if (populateBounds) {
       if (window.getLowerBound() == null && window.getUpperBound() == null) {
         window.setLowerBound(
@@ -3566,8 +3567,11 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
             SqlWindow.createCurrentRow(SqlParserPos.ZERO));
       }
       if (window.getUpperBound() == null) {
+        SqlParserPos pos = window.getOrderList().getParserPosition();
         window.setUpperBound(
-            SqlWindow.createCurrentRow(SqlParserPos.ZERO));
+            window.getOrderList().size() == 0
+            ? SqlWindow.createUnboundedFollowing(pos)
+            : SqlWindow.createCurrentRow(pos));
       }
     }
     return window;

@@ -23,7 +23,6 @@ import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.rex.*;
 import org.eigenbase.sql.SqlAggFunction;
-import org.eigenbase.sql.SqlNode;
 import org.eigenbase.util.ImmutableIntList;
 import org.eigenbase.util.Util;
 
@@ -179,8 +178,8 @@ public abstract class WindowRelBase extends SingleRel {
   public static class Window {
     public final BitSet groupSet;
     public final boolean isRows;
-    public final SqlNode lowerBound;
-    public final SqlNode upperBound;
+    public final RexWindowBound lowerBound;
+    public final RexWindowBound upperBound;
     public final RelCollation orderKeys;
     private final String digest;
 
@@ -194,8 +193,8 @@ public abstract class WindowRelBase extends SingleRel {
     public Window(
         BitSet groupSet,
         boolean isRows,
-        SqlNode lowerBound,
-        SqlNode upperBound,
+        RexWindowBound lowerBound,
+        RexWindowBound upperBound,
         RelCollation orderKeys,
         List<RexWinAggCall> aggCalls) {
       assert orderKeys != null : "precondition: ordinals != null";

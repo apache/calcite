@@ -2042,7 +2042,7 @@ SqlWindow WindowSpecification() :
 
 SqlNode WindowRange() :
 {
-    SqlNode literal;
+    SqlNode e;
     SqlParserPos pos = null;
     SqlParserPos endPos;
 }
@@ -2069,18 +2069,18 @@ SqlNode WindowRange() :
         }
     )
     |
-    literal = Literal()
+    e = Expression(ExprContext.ACCEPT_NONQUERY)
     (
         <PRECEDING>
         {
             return SqlWindow.createPreceding(
-                SqlLiteral.unchain(literal), getPos());
+                e, getPos());
         }
         |
         <FOLLOWING>
         {
             return SqlWindow.createFollowing(
-                SqlLiteral.unchain(literal), getPos());
+                e, getPos());
         }
     )
 }

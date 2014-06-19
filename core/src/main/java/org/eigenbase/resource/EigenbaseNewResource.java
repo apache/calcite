@@ -310,9 +310,6 @@ public interface EigenbaseNewResource {
   @BaseMessage("Window ORDER BY expression of type DATE requires range of type INTERVAL")
   ExInst<SqlValidatorException> dateRequiresInterval();
 
-  @BaseMessage("Window boundary must be constant")
-  ExInst<SqlValidatorException> rangeOrRowMustBeConstant();
-
   @BaseMessage("ROWS value must be a non-negative integral constant")
   ExInst<SqlValidatorException> rowMustBeNonNegativeIntegral();
 
@@ -536,9 +533,6 @@ public interface EigenbaseNewResource {
 
   @BaseMessage("In user-defined aggregate class ''{0}'', first parameter to ''add'' method must be the accumulator (the return type of the ''init'' method)")
   ExInst<RuntimeException> firstParameterOfAdd(String className);
-
-  @BaseMessage("In user-defined aggregate class ''{0}'', parameter types of ''initAdd'' method must be same as value type(s)")
-  ExInst<RuntimeException> initAddWrongParamTypes(String className);
 }
 
 // End EigenbaseNewResource.java

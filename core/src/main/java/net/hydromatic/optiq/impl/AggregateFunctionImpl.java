@@ -18,6 +18,7 @@
 package net.hydromatic.optiq.impl;
 
 import net.hydromatic.optiq.*;
+import net.hydromatic.optiq.rules.java.*;
 
 import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.reltype.RelDataTypeFactory;
@@ -26,17 +27,24 @@ import org.eigenbase.util.Util;
 import com.google.common.collect.ImmutableList;
 
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.util.Arrays;
 import java.util.List;
 
 import static org.eigenbase.util.Static.*;
 
 /**
-* Implementation of {@link ScalarFunction}.
-*/
-public class AggregateFunctionImpl implements AggregateFunction {
+ * Implementation of {@link AggregateFunction} via user-defined class.
+ * The class should implement {@code A init()}, {@code A add(A, V)}, and
+ * {@code R result(A)} methods.
+ * All the methods should be either static or instance.
+ * Bonus point: when using non-static implementation, the aggregate object is
+ * reused through the calculation, thus it can have aggregation-related state.
+ */
+public class AggregateFunctionImpl implements AggregateFunction,
+    ImplementableAggFunction {
+  public final boolean isStatic;
   public final Method initMethod;
-  public final Method initAddMethod; // may be null
   public final Method addMethod;
   public final Method mergeMethod;
   public final Method resultMethod; // may be null
@@ -47,42 +55,33 @@ public class AggregateFunctionImpl implements AggregateFunction {
   public final Class<?> declaringClass;
 
   /** Private constructor; use {@link #create}. */
-  private AggregateFunctionImpl(List<Class<?>> valueTypes,
+  private AggregateFunctionImpl(Class<?> declaringClass,
+      List<Class<?>> valueTypes,
       Class<?> accumulatorType,
       Class<?> resultType,
       Method initMethod,
-      Method initAddMethod,
       Method addMethod,
       Method mergeMethod,
       Method resultMethod) {
+    this.declaringClass = declaringClass;
+    this.isStatic = Modifier.isStatic(initMethod.getModifiers());
     this.valueTypes = ImmutableList.copyOf(valueTypes);
     this.parameters = ReflectiveFunctionBase.toFunctionParameters(valueTypes);
     this.accumulatorType = accumulatorType;
     this.resultType = resultType;
     this.initMethod = initMethod;
-    this.initAddMethod = initAddMethod;
     this.addMethod = addMethod;
     this.mergeMethod = mergeMethod;
     this.resultMethod = resultMethod;
-    this.declaringClass = initMethod.getDeclaringClass();
 
     assert initMethod != null;
     assert addMethod != null;
     assert resultMethod != null || accumulatorType == resultType;
-    assert addMethod.getDeclaringClass() == declaringClass;
-    assert initAddMethod == null
-        || initAddMethod.getDeclaringClass() == declaringClass;
-    assert mergeMethod == null
-        || mergeMethod.getDeclaringClass() == declaringClass;
-    assert resultMethod == null
-        || resultMethod.getDeclaringClass() == declaringClass;
   }
 
   /** Creates an aggregate function, or returns null. */
   public static AggregateFunction create(Class<?> clazz) {
     final Method initMethod = ReflectiveFunctionBase.findMethod(clazz, "init");
-    final Method initAddMethod =
-        ReflectiveFunctionBase.findMethod(clazz, "initAdd");
     final Method addMethod = ReflectiveFunctionBase.findMethod(clazz, "add");
     final Method mergeMethod = null; // TODO:
     final Method resultMethod = ReflectiveFunctionBase.findMethod(
@@ -104,27 +103,17 @@ public class AggregateFunctionImpl implements AggregateFunction {
       final List<Class<?>> valueTypes = Util.skip(addParamTypes, 1);
 
       // A init()
-      // A initAdd(V)
       // A add(A, V)
       // A merge(A, A)
       // R result(A)
 
-      // TODO: check initAdd return is A
-      // TODO: check initAdd args are (V)
       // TODO: check add returns A
       // TODO: check merge returns A
       // TODO: check merge args are (A, A)
       // TODO: check result args are (A)
 
-      if (initAddMethod != null) {
-        final List<Class<?>> initAddParams =
-            Arrays.asList(initAddMethod.getParameterTypes());
-        if (!initAddParams.equals(valueTypes)) {
-          throw RESOURCE.initAddWrongParamTypes(clazz.getName()).ex();
-        }
-      }
-      return new AggregateFunctionImpl(valueTypes, accumulatorType, resultType,
-          initMethod, initAddMethod, addMethod, mergeMethod, resultMethod);
+      return new AggregateFunctionImpl(clazz, valueTypes, accumulatorType,
+          resultType, initMethod, addMethod, mergeMethod, resultMethod);
     }
     return null;
   }
@@ -135,6 +124,10 @@ public class AggregateFunctionImpl implements AggregateFunction {
 
   public RelDataType getReturnType(RelDataTypeFactory typeFactory) {
     return typeFactory.createJavaType(resultType);
+  }
+
+  public AggImplementor getImplementor(boolean windowContext) {
+    return new RexImpTable.UserDefinedAggReflectiveImplementor(this);
   }
 }
 
