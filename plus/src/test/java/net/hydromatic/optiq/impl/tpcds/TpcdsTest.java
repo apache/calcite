@@ -22,9 +22,10 @@ import net.hydromatic.optiq.test.OptiqAssert;
 import org.junit.Ignore;
 import org.junit.Test;
 
+import java.util.Random;
+
 import net.hydromatic.tpcds.query.Query;
 
-import java.util.Random;
 
 /** Unit test for {@link net.hydromatic.optiq.impl.tpcds.TpcdsSchema}.
  *

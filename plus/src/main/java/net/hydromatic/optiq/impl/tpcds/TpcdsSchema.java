@@ -31,15 +31,15 @@ import net.hydromatic.optiq.impl.java.AbstractQueryableTable;
 import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.reltype.RelDataTypeFactory;
 
-import net.hydromatic.tpcds.TpcdsColumn;
-import net.hydromatic.tpcds.TpcdsEntity;
-import net.hydromatic.tpcds.TpcdsTable;
-
 import com.google.common.collect.ImmutableMap;
 
 import java.sql.Date;
 import java.util.List;
 import java.util.Map;
+
+import net.hydromatic.tpcds.TpcdsColumn;
+import net.hydromatic.tpcds.TpcdsEntity;
+import net.hydromatic.tpcds.TpcdsTable;
 
 /** Schema that provides TPC-H tables, populated according to a
  * particular scale factor. */
