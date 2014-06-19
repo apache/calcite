@@ -849,7 +849,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     checkExpType("cast(null as date)", "DATE");
     checkExpType("cast(null as time)", "TIME(0)");
     checkExpType("cast(null as timestamp)", "TIMESTAMP(0)");
-    checkExpType("cast(null as decimal)", "DECIMAL(19, 0)");
+    checkExpType("cast(null as decimal)", "DECIMAL(38, 0)");
     checkExpType("cast(null as varbinary(1))", "VARBINARY(1)");
 
     checkExp("cast(null as integer), cast(null as char(1))");
@@ -880,7 +880,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     checkExpType("cast(1 as double)", "DOUBLE NOT NULL");
     checkExpType("cast(123 as decimal(6,4))", "DECIMAL(6, 4) NOT NULL");
     checkExpType("cast(123 as decimal(6))", "DECIMAL(6, 0) NOT NULL");
-    checkExpType("cast(123 as decimal)", "DECIMAL(19, 0) NOT NULL");
+    checkExpType("cast(123 as decimal)", "DECIMAL(38, 0) NOT NULL");
     checkExpType("cast(1.234 as decimal(2,5))", "DECIMAL(2, 5) NOT NULL");
     checkExpType("cast('4.5' as decimal(3,1))", "DECIMAL(3, 1) NOT NULL");
     checkExpType("cast(null as boolean)", "BOOLEAN");
@@ -1184,7 +1184,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         "DECIMAL(2, 1) NOT NULL MULTISET NOT NULL");
     checkExpType(
         "multiset[1,2.3, cast(4 as bigint)]",
-        "DECIMAL(19, 0) NOT NULL MULTISET NOT NULL");
+        "DECIMAL(20, 1) NOT NULL MULTISET NOT NULL");
     checkExpType(
         "multiset['1','22', '333','22']",
         "CHAR(3) NOT NULL MULTISET NOT NULL");
@@ -3594,7 +3594,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     checkExpType("1.543 + 2.34", "DECIMAL(5, 3) NOT NULL");
     checkExpType(
         "cast(1 as DECIMAL(5, 2)) + cast(1 as BIGINT)",
-        "DECIMAL(19, 2) NOT NULL");
+        "DECIMAL(22, 2) NOT NULL");
     checkExpType(
         "cast(1 as NUMERIC(5, 2)) + cast(1 as INTEGER)",
         "DECIMAL(13, 2) NOT NULL");
@@ -3619,7 +3619,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         "DECIMAL(7, 4)");
     checkExpType(
         "cast(1 as DECIMAL(19, 2)) + cast(1 as DECIMAL(19, 2))",
-        "DECIMAL(19, 2) NOT NULL");
+        "DECIMAL(20, 2) NOT NULL");
 
     // substraction operator
     checkExpType(
@@ -3638,7 +3638,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     checkExpType("1.543 - 24", "DECIMAL(14, 3) NOT NULL");
     checkExpType(
         "cast(1 as DECIMAL(5)) - cast(1 as BIGINT)",
-        "DECIMAL(19, 0) NOT NULL");
+        "DECIMAL(20, 0) NOT NULL");
     checkExpType(
         "cast(1 as DECIMAL(5, 2)) - cast(1 as INTEGER)",
         "DECIMAL(13, 2) NOT NULL");
@@ -3660,10 +3660,10 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         "DECIMAL(7, 4) NOT NULL");
     checkExpType(
         "cast(null as DECIMAL) - cast(1 as DECIMAL(6, 4))",
-        "DECIMAL(19, 4)");
+        "DECIMAL(38, 4)");
     checkExpType(
         "cast(1 as DECIMAL(19, 2)) - cast(1 as DECIMAL(19, 2))",
-        "DECIMAL(19, 2) NOT NULL");
+        "DECIMAL(20, 2) NOT NULL");
 
     // multiply operator
     checkExpType(
@@ -3682,7 +3682,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
     checkExpType(
         "cast(null as DECIMAL(5, 2)) * cast(1 as BIGINT)",
-        "DECIMAL(19, 2)");
+        "DECIMAL(24, 2)");
     checkExpType(
         "cast(1 as DECIMAL(5, 2)) * cast(1 as INTEGER)",
         "DECIMAL(15, 2) NOT NULL");
@@ -3707,10 +3707,10 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         "DECIMAL(10, 6)");
     checkExpType(
         "cast(1 as DECIMAL(4, 10)) * cast(null as DECIMAL(6, 10))",
-        "DECIMAL(10, 19)");
+        "DECIMAL(10, 20)");
     checkExpType(
         "cast(1 as DECIMAL(19, 2)) * cast(1 as DECIMAL(19, 2))",
-        "DECIMAL(19, 4) NOT NULL");
+        "DECIMAL(38, 4) NOT NULL");
 
     // divide operator
     checkExpType(
@@ -3728,7 +3728,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
     checkExpType(
         "cast(null as DECIMAL(5, 2)) / cast(1 as BIGINT)",
-        "DECIMAL(19, 16)");
+        "DECIMAL(25, 22)");
     checkExpType(
         "cast(1 as DECIMAL(5, 2)) / cast(1 as INTEGER)",
         "DECIMAL(16, 13) NOT NULL");
@@ -3753,10 +3753,10 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         "DECIMAL(15, 9)");
     checkExpType(
         "cast(1 as DECIMAL(4, 10)) / cast(null as DECIMAL(6, 19))",
-        "DECIMAL(19, 6)");
+        "DECIMAL(30, 17)");
     checkExpType(
         "cast(1 as DECIMAL(19, 2)) / cast(1 as DECIMAL(19, 2))",
-        "DECIMAL(19, 0) NOT NULL");
+        "DECIMAL(38, 19) NOT NULL");
   }
 
   @Test public void testFloorCeil() {

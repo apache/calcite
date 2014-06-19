@@ -47,9 +47,9 @@ public class SqlLimitsTest {
           new BasicSqlType(SqlTypeName.DECIMAL, 5),
           new BasicSqlType(SqlTypeName.DECIMAL, 6, 2),
           new BasicSqlType(SqlTypeName.DECIMAL,
-              SqlTypeName.DECIMAL.getMaxPrecision(), 0),
+              19, 0),
           new BasicSqlType(SqlTypeName.DECIMAL,
-              SqlTypeName.DECIMAL.getMaxPrecision(), 5),
+              19, 5),
 
           // todo: test IntervalDayTime and IntervalYearMonth
           // todo: test Float, Real, Double

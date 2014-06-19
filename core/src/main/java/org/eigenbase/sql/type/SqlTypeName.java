@@ -88,8 +88,8 @@ public enum SqlTypeName {
       SqlTypeFamily.COLUMN_LIST);
 
   public static final int MAX_DATETIME_PRECISION = 3;
-  public static final int MAX_NUMERIC_PRECISION = 19;
-  public static final int MAX_NUMERIC_SCALE = 19;
+  public static final int MAX_NUMERIC_PRECISION = 38;
+  public static final int MAX_NUMERIC_SCALE = 38;
   public static final int MAX_CHAR_LENGTH = 65536;
   public static final int MAX_BINARY_LENGTH = 65536;
 

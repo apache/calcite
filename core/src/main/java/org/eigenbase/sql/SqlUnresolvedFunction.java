@@ -20,11 +20,7 @@ package org.eigenbase.sql;
 import java.util.List;
 
 import org.eigenbase.reltype.RelDataType;
-import org.eigenbase.sql.type.BasicSqlType;
-import org.eigenbase.sql.type.SqlOperandTypeChecker;
-import org.eigenbase.sql.type.SqlOperandTypeInference;
-import org.eigenbase.sql.type.SqlReturnTypeInference;
-import org.eigenbase.sql.type.SqlTypeName;
+import org.eigenbase.sql.type.*;
 
 /**
  * Placeholder for an unresolved function.
