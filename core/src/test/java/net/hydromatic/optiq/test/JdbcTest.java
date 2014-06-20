@@ -3855,6 +3855,10 @@ public class JdbcTest {
     checkRun("sql/winagg.oq");
   }
 
+  @Test public void testRunMisc() throws Exception {
+    checkRun("sql/misc.oq");
+  }
+
   private void checkRun(String path) throws Exception {
     // e.g. "file:/home/fred/optiq/core/target/test-classes/sql/outer.oq"
     final URL inUrl = JdbcTest.class.getResource("/" + path);
