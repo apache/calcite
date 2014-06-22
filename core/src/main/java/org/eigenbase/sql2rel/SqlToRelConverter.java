@@ -1651,6 +1651,10 @@ public class SqlToRelConverter {
       convertFrom(bb, ((SqlWithItem) from).query);
       return;
 
+    case WITH:
+      convertFrom(bb, ((SqlWith) from).body);
+      return;
+
     case TABLESAMPLE:
       operands = ((SqlBasicCall) from).getOperands();
       SqlSampleSpec sampleSpec = SqlLiteral.sampleValue(operands[1]);

@@ -2847,6 +2847,20 @@ public class JdbcTest {
             "deptno=10");
   }
 
+  @Test public void testWithOrderBy() {
+    OptiqAssert.that()
+        .with(OptiqAssert.Config.REGULAR)
+        .query(
+            "with emp2 as (select * from \"hr\".\"emps\")\n"
+                + "select * from emp2\n"
+                + "order by \"deptno\" desc, \"empid\" desc")
+        .returns(
+            "empid=200; deptno=20; name=Eric; salary=8000.0; commission=500\n"
+            + "empid=150; deptno=10; name=Sebastian; salary=7000.0; commission=null\n"
+            + "empid=110; deptno=10; name=Theodore; salary=11500.0; commission=250\n"
+            + "empid=100; deptno=10; name=Bill; salary=10000.0; commission=1000\n");
+  }
+
   /** Tests windowed aggregation. */
   @Test public void testWinAgg() {
     OptiqAssert.that()
