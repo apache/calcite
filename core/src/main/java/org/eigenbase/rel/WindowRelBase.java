@@ -254,6 +254,21 @@ public abstract class WindowRelBase extends SingleRel {
     }
 
     /**
+     * Returns if the window is guaranteed to have rows.
+     * This is useful to refine data type of window aggregates.
+     * For instance sum(non-nullable) over (empty window) is NULL.
+     * @return true when the window is non-empty
+     * @see org.eigenbase.sql.SqlWindow#isAlwaysNonEmpty()
+     * @see org.eigenbase.sql.SqlOperatorBinding#getGroupCount()
+     * @see org.eigenbase.sql.validate.SqlValidatorImpl#resolveWindow(org.eigenbase.sql.SqlNode, org.eigenbase.sql.validate.SqlValidatorScope, boolean)
+     */
+    public boolean isAlwaysNonEmpty() {
+      int lowerKey = lowerBound.getOrderKey();
+      int upperKey = upperBound.getOrderKey();
+      return lowerKey > -1 && lowerKey <= upperKey;
+    }
+
+    /**
      * Presents a view of the {@link RexWinAggCall} list as a list of
      * {@link AggregateCall}.
      */

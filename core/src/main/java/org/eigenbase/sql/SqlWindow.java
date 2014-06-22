@@ -20,6 +20,7 @@ package org.eigenbase.sql;
 import java.util.*;
 
 import org.eigenbase.reltype.RelDataType;
+import org.eigenbase.rex.RexWindowBound;
 import org.eigenbase.sql.parser.*;
 import org.eigenbase.sql.type.ReturnTypes;
 import org.eigenbase.sql.type.SqlTypeFamily;
@@ -212,6 +213,34 @@ public class SqlWindow extends SqlCall {
 
   public void setUpperBound(SqlNode upperBound) {
     this.upperBound = upperBound;
+  }
+
+  /**
+   * Returns if the window is guaranteed to have rows.
+   * This is useful to refine data type of window aggregates.
+   * For instance sum(non-nullable) over (empty window) is NULL.
+   * @return true when the window is non-empty
+   * @see org.eigenbase.rel.WindowRelBase.Window#isAlwaysNonEmpty()
+   * @see SqlOperatorBinding#getGroupCount()
+   * @see org.eigenbase.sql.validate.SqlValidatorImpl#resolveWindow(SqlNode, org.eigenbase.sql.validate.SqlValidatorScope, boolean)
+   */
+  public boolean isAlwaysNonEmpty() {
+    final SqlWindow tmp;
+    if (lowerBound == null || upperBound == null) {
+      // Keep the current window unmodified
+      tmp = new SqlWindow(getParserPosition(), null, null, partitionList,
+          orderList, isRows, lowerBound, upperBound, allowPartial);
+      tmp.populateBounds();
+    } else {
+      tmp = this;
+    }
+    if (tmp.lowerBound instanceof SqlLiteral
+        && tmp.upperBound instanceof SqlLiteral) {
+      int lowerKey = RexWindowBound.create(tmp.lowerBound, null).getOrderKey();
+      int upperKey = RexWindowBound.create(tmp.upperBound, null).getOrderKey();
+      return lowerKey > -1 && lowerKey <= upperKey;
+    }
+    return false;
   }
 
   public boolean isRows() {
@@ -713,6 +742,29 @@ public class SqlWindow extends SqlCall {
         SqlWindow.createCurrentRow(SqlParserPos.ZERO),
         SqlLiteral.createBoolean(false, SqlParserPos.ZERO),
         SqlParserPos.ZERO);
+  }
+
+  /**
+   * Fill in missing bounds. Default bounds are "BETWEEN UNBOUNDED PRECEDING
+   * AND CURRENT ROW" when ORDER BY present and "BETWEEN UNBOUNDED PRECEDING
+   * AND UNBOUNDED FOLLOWING" when no ORDER BY present.
+   */
+  public void populateBounds() {
+    if (lowerBound == null && upperBound == null) {
+      setLowerBound(
+          SqlWindow.createUnboundedPreceding(getParserPosition()));
+    }
+    if (lowerBound == null) {
+      setLowerBound(
+          SqlWindow.createCurrentRow(getParserPosition()));
+    }
+    if (upperBound == null) {
+      SqlParserPos pos = orderList.getParserPosition();
+      setUpperBound(
+          orderList.size() == 0
+              ? SqlWindow.createUnboundedFollowing(pos)
+              : SqlWindow.createCurrentRow(pos));
+    }
   }
 
   /**

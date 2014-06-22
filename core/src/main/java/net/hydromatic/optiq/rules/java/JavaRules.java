@@ -2145,9 +2145,9 @@ public class JavaRules {
       PhysType inputPhysType = result.physType;
 
       ParameterExpression prevStart =
-          Expressions.parameter(int.class, "prevStart");
+          Expressions.parameter(int.class, builder.newName("prevStart"));
       ParameterExpression prevEnd =
-          Expressions.parameter(int.class, "prevEnd");
+          Expressions.parameter(int.class, builder.newName("prevEnd"));
 
       builder.add(Expressions.declare(0, prevStart, null));
       builder.add(Expressions.declare(0, prevEnd, null));
@@ -2270,12 +2270,10 @@ public class JavaRules {
                 window, false,
                 inputPhysType, comparator_, keySelector, keyComparator));
 
-        int startIdx = window.lowerBound.getOrderKey();
-        int endIdx = window.upperBound.getOrderKey();
         final Expression startX;
         final Expression endX;
         final Expression hasRows;
-        if (startIdx >= 0 && startIdx <= endIdx) {
+        if (window.isAlwaysNonEmpty()) {
           startX = startUnchecked;
           endX = endUnchecked;
           hasRows = Expressions.constant(true);

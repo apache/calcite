@@ -897,7 +897,8 @@ public class RexImpTable {
 
     public Expression implementResult(AggContext info,
         AggResultContext result) {
-      return result.accumulator().get(1);
+      return RexToLixTranslator.convert(result.accumulator().get(1),
+          info.returnType());
     }
   }
 
@@ -1037,8 +1038,9 @@ public class RexImpTable {
         AggResultContext result) {
       WinAggResultContext winResult = (WinAggResultContext) result;
       return Expressions.condition(winResult.hasRows(),
-          winResult.arguments(winResult.computeIndex(
-              Expressions.constant(0), seekType)).get(0),
+          RexToLixTranslator.convert(
+              winResult.arguments(winResult.computeIndex(
+              Expressions.constant(0), seekType)).get(0), info.returnType()),
           getDefaultValue(info.returnType()));
     }
   }

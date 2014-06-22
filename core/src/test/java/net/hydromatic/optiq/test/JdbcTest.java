@@ -144,6 +144,19 @@ public class JdbcTest {
       + "   ]\n"
       + "}";
 
+
+  public static final String START_OF_GROUP_DATA =
+      "values"
+      + "(1,0,1),\n"
+      + "(2,0,1),\n"
+      + "(3,1,2),\n"
+      + "(4,0,3),\n"
+      + "(5,0,3),\n"
+      + "(6,0,3),\n"
+      + "(7,1,4),\n"
+      + "(8,1,4))\n"
+      + " as t(rn,val,expected)";
+
   public static List<Pair<String, String>> getFoodmartQueries() {
     return FOODMART_QUERIES;
   }
@@ -2849,9 +2862,9 @@ public class JdbcTest {
             + "from \"hr\".\"emps\"\n"
             + "window w as (partition by \"deptno\" order by \"empid\" rows 1 preceding)")
         .typeIs(
-            "[deptno INTEGER NOT NULL, empid INTEGER NOT NULL, S REAL, FIVE INTEGER NOT NULL, M REAL, C BIGINT]")
+            "[deptno INTEGER NOT NULL, empid INTEGER NOT NULL, S REAL, FIVE INTEGER NOT NULL, M REAL, C BIGINT NOT NULL]")
         .explainContains(
-            "EnumerableCalcRel(expr#0..7=[{inputs}], expr#8=[0], expr#9=[>($t4, $t8)], expr#10=[null], expr#11=[CASE($t9, $t5, $t10)], expr#12=[CAST($t11):JavaType(class java.lang.Float)], expr#13=[5], expr#14=[CAST($t6):JavaType(class java.lang.Float)], expr#15=[CAST($t7):BIGINT], deptno=[$t1], empid=[$t0], S=[$t12], FIVE=[$t13], M=[$t14], C=[$t15])\n"
+            "EnumerableCalcRel(expr#0..7=[{inputs}], expr#8=[0], expr#9=[>($t4, $t8)], expr#10=[CAST($t5):JavaType(class java.lang.Float)], expr#11=[null], expr#12=[CASE($t9, $t10, $t11)], expr#13=[5], deptno=[$t1], empid=[$t0], S=[$t12], FIVE=[$t13], M=[$t6], C=[$t7])\n"
             + "  EnumerableWindowRel(window#0=[window(partition {1} order by [0] rows between $4 PRECEDING and CURRENT ROW aggs [COUNT($3), $SUM0($3), MIN($2), COUNT()])])\n"
             + "    EnumerableCalcRel(expr#0..4=[{inputs}], expr#5=[+($t3, $t0)], proj#0..1=[{exprs}], salary=[$t3], $3=[$t5])\n"
             + "      EnumerableTableAccessRel(table=[[hr, emps]])\n")
@@ -2884,11 +2897,11 @@ public class JdbcTest {
             "return new Object[] {\n"
             + "                  current[1],\n"
             + "                  current[0],\n"
-            + "                  net.hydromatic.optiq.runtime.SqlFunctions.toLong(current[4]) > 0L ? (Float) current[5] : (Float) null,\n"
+            // Float.valueOf(SqlFunctions.toFloat(current[5])) comes from SUM0
+            + "                  net.hydromatic.optiq.runtime.SqlFunctions.toLong(current[4]) > 0L ? Float.valueOf(net.hydromatic.optiq.runtime.SqlFunctions.toFloat(current[5])) : (Float) null,\n"
             + "                  5,\n"
-            + "                  (Float) current[6],\n"
-            // box-unbox eliminated
-            + "                  (Long) current[7]};\n");
+            + "                  current[6],\n"
+            + "                  current[7]};\n");
   }
 
   /** Tests windowed aggregation with multiple windows.
@@ -2914,7 +2927,7 @@ public class JdbcTest {
             + " w11 as (order by \"empid\" rows between 1 preceding and 1 following),\n"
             + " w11dept as (partition by \"deptno\" order by \"empid\" rows between 1 preceding and 1 following)")
         .typeIs(
-            "[deptno INTEGER NOT NULL, empid INTEGER NOT NULL, S REAL, FIVE INTEGER NOT NULL, M REAL, C BIGINT, C2 BIGINT, C11 BIGINT, C11DEPT BIGINT]")
+            "[deptno INTEGER NOT NULL, empid INTEGER NOT NULL, S REAL, FIVE INTEGER NOT NULL, M REAL, C BIGINT NOT NULL, C2 BIGINT NOT NULL, C11 BIGINT NOT NULL, C11DEPT BIGINT NOT NULL]")
         // Check that optimizes for window whose PARTITION KEY is empty
         .planContains("tempList.size()")
         .returnsUnordered(
@@ -2992,7 +3005,7 @@ public class JdbcTest {
             + " rank() over (partition by \"deptno\" order by \"empid\" desc) as rd\n"
             + "from \"hr\".\"emps\"")
         .typeIs(
-            "[deptno INTEGER NOT NULL, empid INTEGER NOT NULL, commission INTEGER, RCNF INTEGER, RCNL INTEGER, R INTEGER, RD INTEGER]")
+            "[deptno INTEGER NOT NULL, empid INTEGER NOT NULL, commission INTEGER, RCNF INTEGER NOT NULL, RCNL INTEGER NOT NULL, R INTEGER NOT NULL, RD INTEGER NOT NULL]")
         .returnsUnordered(
             "deptno=10; empid=100; commission=1000; RCNF=2; RCNL=1; R=1; RD=3",
             "deptno=10; empid=110; commission=250; RCNF=3; RCNL=2; R=2; RD=2",
@@ -3009,7 +3022,7 @@ public class JdbcTest {
             + " rank() over (order by \"deptno\") as r\n"
             + "from \"hr\".\"emps\"")
         .typeIs(
-            "[deptno INTEGER NOT NULL, R INTEGER]")
+            "[deptno INTEGER NOT NULL, R INTEGER NOT NULL]")
         .returnsUnordered(
             "deptno=10; R=1",
             "deptno=10; R=1",
@@ -3026,7 +3039,7 @@ public class JdbcTest {
             + " rank() over (order by \"deptno\" desc) as r\n"
             + "from \"hr\".\"emps\"")
         .typeIs(
-            "[deptno INTEGER NOT NULL, R INTEGER]")
+            "[deptno INTEGER NOT NULL, R INTEGER NOT NULL]")
         .returnsUnordered(
             "deptno=10; R=2",
             "deptno=10; R=2",
@@ -3043,7 +3056,7 @@ public class JdbcTest {
             + " dense_rank() over (order by \"deptno\") as r\n"
             + "from \"hr\".\"emps\"")
         .typeIs(
-            "[deptno INTEGER NOT NULL, R INTEGER]")
+            "[deptno INTEGER NOT NULL, R INTEGER NOT NULL]")
         .returnsUnordered(
             "deptno=10; R=1",
             "deptno=10; R=1",
@@ -3060,7 +3073,7 @@ public class JdbcTest {
             + " dense_rank() over (order by \"deptno\" desc) as r\n"
             + "from \"hr\".\"emps\"")
         .typeIs(
-            "[deptno INTEGER NOT NULL, R INTEGER]")
+            "[deptno INTEGER NOT NULL, R INTEGER NOT NULL]")
         .returnsUnordered(
             "deptno=10; R=2",
             "deptno=10; R=2",
@@ -3090,6 +3103,194 @@ public class JdbcTest {
             "deptno=10; R=1",
             "deptno=10; R=1",
             "deptno=20; R=4"); // 4 for rank and 2 for dense_rank
+  }
+
+  /**
+   * Tests start_of_group approach for grouping of adjacent intervals.
+   * This is a step1, implemented as last_value.
+   * http://timurakhmadeev.wordpress.com/2013/07/21/start_of_group/
+   */
+  @Test public void testStartOfGroupLastValueStep1() {
+    OptiqAssert.that()
+        .with(OptiqAssert.Config.REGULAR)
+        .query(
+                "select t.*\n"
+                + "  from (\n"
+                + "       select  t.*,\n"
+                + "               case when val = last_value(val) over (order by rn rows between 1 preceding and 1 preceding) then 0 else 1 end start_of_group\n"
+                + "         from ("
+                + START_OF_GROUP_DATA
+                + ") t\n")
+        .typeIs(
+            "[RN INTEGER NOT NULL, VAL INTEGER NOT NULL, EXPECTED INTEGER NOT NULL, START_OF_GROUP INTEGER NOT NULL]")
+        .returnsUnordered(
+            "RN=1; VAL=0; EXPECTED=1; START_OF_GROUP=1",
+            "RN=2; VAL=0; EXPECTED=1; START_OF_GROUP=0",
+            "RN=3; VAL=1; EXPECTED=2; START_OF_GROUP=1",
+            "RN=4; VAL=0; EXPECTED=3; START_OF_GROUP=1",
+            "RN=5; VAL=0; EXPECTED=3; START_OF_GROUP=0",
+            "RN=6; VAL=0; EXPECTED=3; START_OF_GROUP=0",
+            "RN=7; VAL=1; EXPECTED=4; START_OF_GROUP=1",
+            "RN=8; VAL=1; EXPECTED=4; START_OF_GROUP=0");
+
+  }
+
+  /**
+   * Tests start_of_group approach for grouping of adjacent intervals.
+   * This is a step2, that gets the final group numbers
+   * http://timurakhmadeev.wordpress.com/2013/07/21/start_of_group/
+   */
+  @Test public void testStartOfGroupLastValueStep2() {
+    OptiqAssert.that()
+        .with(OptiqAssert.Config.REGULAR)
+        .query(
+                "select t.*\n"
+                // current row is assumed, group_id should be NOT NULL
+                + "       ,sum(start_of_group) over (order by rn rows unbounded preceding) group_id\n"
+                + "  from (\n"
+                + "       select  t.*,\n"
+                + "               case when val = last_value(val) over (order by rn rows between 1 preceding and 1 preceding) then 0 else 1 end start_of_group\n"
+                + "         from ("
+                + START_OF_GROUP_DATA
+                + ") t\n")
+        .typeIs(
+            "[RN INTEGER NOT NULL, VAL INTEGER NOT NULL, EXPECTED INTEGER NOT NULL, START_OF_GROUP INTEGER NOT NULL, GROUP_ID INTEGER NOT NULL]")
+        .returnsUnordered(
+            "RN=1; VAL=0; EXPECTED=1; START_OF_GROUP=1; GROUP_ID=1",
+            "RN=2; VAL=0; EXPECTED=1; START_OF_GROUP=0; GROUP_ID=1",
+            "RN=3; VAL=1; EXPECTED=2; START_OF_GROUP=1; GROUP_ID=2",
+            "RN=4; VAL=0; EXPECTED=3; START_OF_GROUP=1; GROUP_ID=3",
+            "RN=5; VAL=0; EXPECTED=3; START_OF_GROUP=0; GROUP_ID=3",
+            "RN=6; VAL=0; EXPECTED=3; START_OF_GROUP=0; GROUP_ID=3",
+            "RN=7; VAL=1; EXPECTED=4; START_OF_GROUP=1; GROUP_ID=4",
+            "RN=8; VAL=1; EXPECTED=4; START_OF_GROUP=0; GROUP_ID=4");
+
+  }
+
+  /**
+   * Tests start_of_group approach for grouping of adjacent intervals.
+   * This is a step3, that aggregates the computed groups
+   * http://timurakhmadeev.wordpress.com/2013/07/21/start_of_group/
+   */
+  @Test public void testStartOfGroupLastValueStep3() {
+    OptiqAssert.that()
+        .with(OptiqAssert.Config.REGULAR)
+        .query(
+                "select group_id, min(rn) min_rn, max(rn) max_rn, count(rn) cnt_rn, avg(val) avg_val"
+                + " from (\n"
+                + "select t.*\n"
+                // current row is assumed, group_id should be NOT NULL
+                + "       ,sum(start_of_group) over (order by rn rows unbounded preceding) group_id\n"
+                + "  from (\n"
+                + "       select  t.*,\n"
+                + "               case when val = last_value(val) over (order by rn rows between 1 preceding and 1 preceding) then 0 else 1 end start_of_group\n"
+                + "         from ("
+                + START_OF_GROUP_DATA
+                + ") t\n"
+                + ") group by group_id\n")
+        .typeIs(
+            "[GROUP_ID INTEGER NOT NULL, MIN_RN INTEGER NOT NULL, MAX_RN INTEGER NOT NULL, CNT_RN BIGINT NOT NULL, AVG_VAL INTEGER NOT NULL]")
+        .returnsUnordered(
+            "GROUP_ID=1; MIN_RN=1; MAX_RN=2; CNT_RN=2; AVG_VAL=0",
+            "GROUP_ID=2; MIN_RN=3; MAX_RN=3; CNT_RN=1; AVG_VAL=1",
+            "GROUP_ID=3; MIN_RN=4; MAX_RN=6; CNT_RN=3; AVG_VAL=0",
+            "GROUP_ID=4; MIN_RN=7; MAX_RN=8; CNT_RN=2; AVG_VAL=1");
+
+  }
+
+  /**
+   * Tests start_of_group approach for grouping of adjacent intervals.
+   * This is a step1, implemented as last_value.
+   * http://timurakhmadeev.wordpress.com/2013/07/21/start_of_group/
+   */
+  @Ignore("LEAD/LAG is not implemented yet")
+  @Test public void testStartOfGroupLagStep1() {
+    OptiqAssert.that()
+        .with(OptiqAssert.Config.REGULAR)
+        .query(
+                "select t.*\n"
+                + "  from (\n"
+                + "       select  t.*,\n"
+                + "               case when val = lag(val) over (order by rn) then 0 else 1 end start_of_group\n"
+                + "         from ("
+                + START_OF_GROUP_DATA
+                + ") t\n")
+        .typeIs(
+            "[RN INTEGER NOT NULL, VAL INTEGER NOT NULL, EXPECTED INTEGER NOT NULL, START_OF_GROUP INTEGER NOT NULL]")
+        .returnsUnordered(
+            "RN=1; VAL=0; EXPECTED=1; START_OF_GROUP=1",
+            "RN=2; VAL=0; EXPECTED=1; START_OF_GROUP=0",
+            "RN=3; VAL=1; EXPECTED=2; START_OF_GROUP=1",
+            "RN=4; VAL=0; EXPECTED=3; START_OF_GROUP=1",
+            "RN=5; VAL=0; EXPECTED=3; START_OF_GROUP=0",
+            "RN=6; VAL=0; EXPECTED=3; START_OF_GROUP=0",
+            "RN=7; VAL=1; EXPECTED=4; START_OF_GROUP=1",
+            "RN=8; VAL=1; EXPECTED=4; START_OF_GROUP=0");
+
+  }
+
+  /**
+   * Tests start_of_group approach for grouping of adjacent intervals.
+   * This is a step2, that gets the final group numbers
+   * http://timurakhmadeev.wordpress.com/2013/07/21/start_of_group/
+   */
+  @Ignore("LEAD/LAG is not implemented yet")
+  @Test public void testStartOfGroupLagValueStep2() {
+    OptiqAssert.that()
+        .with(OptiqAssert.Config.REGULAR)
+        .query(
+                "select t.*\n"
+                + "       ,sum(start_of_group) over (order by rn rows between unbounded preceding and current row) group_id\n"
+                + "  from (\n"
+                + "       select  t.*,\n"
+                + "               case when val = lag(val) over (order by rn) then 0 else 1 end start_of_group\n"
+                + "         from ("
+                + START_OF_GROUP_DATA
+                + ") t\n")
+        .typeIs(
+            "[RN INTEGER NOT NULL, VAL INTEGER NOT NULL, EXPECTED INTEGER NOT NULL, START_OF_GROUP INTEGER NOT NULL, GROUP_ID INTEGER NOT NULL]")
+        .returnsUnordered(
+            "RN=1; VAL=0; EXPECTED=1; START_OF_GROUP=1; GROUP_ID=1",
+            "RN=2; VAL=0; EXPECTED=1; START_OF_GROUP=0; GROUP_ID=1",
+            "RN=3; VAL=1; EXPECTED=2; START_OF_GROUP=1; GROUP_ID=2",
+            "RN=4; VAL=0; EXPECTED=3; START_OF_GROUP=1; GROUP_ID=3",
+            "RN=5; VAL=0; EXPECTED=3; START_OF_GROUP=0; GROUP_ID=3",
+            "RN=6; VAL=0; EXPECTED=3; START_OF_GROUP=0; GROUP_ID=3",
+            "RN=7; VAL=1; EXPECTED=4; START_OF_GROUP=1; GROUP_ID=4",
+            "RN=8; VAL=1; EXPECTED=4; START_OF_GROUP=0; GROUP_ID=4");
+
+  }
+
+  /**
+   * Tests start_of_group approach for grouping of adjacent intervals.
+   * This is a step3, that aggregates the computed groups
+   * http://timurakhmadeev.wordpress.com/2013/07/21/start_of_group/
+   */
+  @Ignore("LEAD/LAG is not implemented yet")
+  @Test public void testStartOfGroupLagStep3() {
+    OptiqAssert.that()
+        .with(OptiqAssert.Config.REGULAR)
+        .query(
+            "select group_id, min(rn) min_rn, max(rn) max_rn, count(rn) cnt_rn, avg(val) avg_val"
+                + " from (\n"
+                + "select t.*\n"
+                // current row is assumed, group_id should be NOT NULL
+                + "       ,sum(start_of_group) over (order by rn rows unbounded preceding) group_id\n"
+                + "  from (\n"
+                + "       select  t.*,\n"
+                + "               case when val = lag(val) over (order by rn) then 0 else 1 end start_of_group\n"
+                + "         from ("
+                + START_OF_GROUP_DATA
+                + ") t\n"
+                + ") group by group_id\n")
+        .typeIs(
+            "[GROUP_ID INTEGER NOT NULL, MIN_RN INTEGER NOT NULL, MAX_RN INTEGER NOT NULL, CNT_RN BIGINT NOT NULL, AVG_VAL INTEGER NOT NULL]")
+        .returnsUnordered(
+            "GROUP_ID=1; MIN_RN=1; MAX_RN=2; CNT_RN=2; AVG_VAL=0",
+            "GROUP_ID=2; MIN_RN=3; MAX_RN=3; CNT_RN=1; AVG_VAL=1",
+            "GROUP_ID=3; MIN_RN=4; MAX_RN=6; CNT_RN=3; AVG_VAL=0",
+            "GROUP_ID=4; MIN_RN=7; MAX_RN=8; CNT_RN=2; AVG_VAL=1");
+
   }
 
   /** Tests for FIRST_VALUE */
@@ -3163,7 +3364,7 @@ public class JdbcTest {
             + " row_number() over (partition by \"deptno\" order by \"empid\" desc) as rd\n"
             + "from \"hr\".\"emps\"")
         .typeIs(
-            "[deptno INTEGER NOT NULL, empid INTEGER NOT NULL, commission INTEGER, RCNF INTEGER, RCNL INTEGER, R INTEGER, RD INTEGER]")
+            "[deptno INTEGER NOT NULL, empid INTEGER NOT NULL, commission INTEGER, RCNF INTEGER NOT NULL, RCNL INTEGER NOT NULL, R INTEGER NOT NULL, RD INTEGER NOT NULL]")
         .returnsUnordered(
             "deptno=10; empid=100; commission=1000; RCNF=2; RCNL=1; R=1; RD=3",
             "deptno=10; empid=110; commission=250; RCNF=3; RCNL=2; R=2; RD=2",
@@ -3177,15 +3378,58 @@ public class JdbcTest {
         .with(OptiqAssert.Config.REGULAR)
         .query(
             "select \"empid\",\n"
+            + "  \"commission\",\n"
             + "  count(\"empid\") over (partition by 42\n"
             + "    order by \"commission\" nulls first\n"
             + "    rows between UNBOUNDED PRECEDING and current row) as m\n"
             + "from \"hr\".\"emps\"")
+        .typeIs(
+            "[empid INTEGER NOT NULL, commission INTEGER, M BIGINT NOT NULL]")
         .returnsUnordered(
-            "empid=100; M=4",
-            "empid=200; M=3",
-            "empid=150; M=1",
-            "empid=110; M=2");
+            "empid=100; commission=1000; M=4",
+            "empid=200; commission=500; M=3",
+            "empid=150; commission=null; M=1",
+            "empid=110; commission=250; M=2");
+  }
+
+  /** Tests UNBOUNDED PRECEDING clause. */
+  @Test public void testSumOverUnboundedPreceding() {
+    OptiqAssert.that()
+        .with(OptiqAssert.Config.REGULAR)
+        .query(
+            "select \"empid\",\n"
+            + "  \"commission\",\n"
+            + "  sum(\"empid\") over (partition by 42\n"
+            + "    order by \"commission\" nulls first\n"
+            + "    rows between UNBOUNDED PRECEDING and current row) as m\n"
+            + "from \"hr\".\"emps\"")
+        .typeIs(
+            "[empid INTEGER NOT NULL, commission INTEGER, M INTEGER NOT NULL]")
+        .returnsUnordered(
+            "empid=100; commission=1000; M=560",
+            "empid=110; commission=250; M=260",
+            "empid=150; commission=null; M=150",
+            "empid=200; commission=500; M=460");
+  }
+
+  /** Tests that sum over possibly empty window is nullable. */
+  @Test public void testSumOverPossiblyEmptyWindow() {
+    OptiqAssert.that()
+        .with(OptiqAssert.Config.REGULAR)
+        .query(
+            "select \"empid\",\n"
+            + "  \"commission\",\n"
+            + "  sum(\"empid\") over (partition by 42\n"
+            + "    order by \"commission\" nulls first\n"
+            + "    rows between UNBOUNDED PRECEDING and 1 preceding) as m\n"
+            + "from \"hr\".\"emps\"")
+        .typeIs(
+            "[empid INTEGER NOT NULL, commission INTEGER, M INTEGER]")
+        .returnsUnordered(
+            "empid=100; commission=1000; M=460",
+            "empid=110; commission=250; M=150",
+            "empid=150; commission=null; M=null",
+            "empid=200; commission=500; M=260");
   }
 
   /** Tests windowed aggregation with no ORDER BY clause.

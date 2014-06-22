@@ -1596,21 +1596,27 @@ public class SqlToRelConverter {
       RexNode e = bb.convertSortExpression(order, flags);
       orderKeys.add(new RexFieldCollation(e, flags));
     }
-    RexNode rexAgg = exprConverter.convertCall(bb, aggCall);
-    rexAgg =
-        rexBuilder.ensureType(
-            validator.getValidatedNodeType(call), rexAgg, false);
+    try {
+      Util.permAssert(bb.window == null, "already in window agg mode");
+      bb.window = window;
+      RexNode rexAgg = exprConverter.convertCall(bb, aggCall);
+      rexAgg =
+          rexBuilder.ensureType(
+              validator.getValidatedNodeType(call), rexAgg, false);
 
-    // Walk over the tree and apply 'over' to all agg functions. This is
-    // necessary because the returned expression is not necessarily a call
-    // to an agg function. For example, AVG(x) becomes SUM(x) / COUNT(x).
-    final RexShuttle visitor =
-        new HistogramShuttle(
-            partitionKeys.build(), orderKeys.build(),
-            RexWindowBound.create(window.getLowerBound(), lowerBound),
-            RexWindowBound.create(window.getUpperBound(), upperBound),
-            window);
-    return rexAgg.accept(visitor);
+      // Walk over the tree and apply 'over' to all agg functions. This is
+      // necessary because the returned expression is not necessarily a call
+      // to an agg function. For example, AVG(x) becomes SUM(x) / COUNT(x).
+      final RexShuttle visitor =
+          new HistogramShuttle(
+              partitionKeys.build(), orderKeys.build(),
+              RexWindowBound.create(window.getLowerBound(), lowerBound),
+              RexWindowBound.create(window.getUpperBound(), upperBound),
+              window);
+      return rexAgg.accept(visitor);
+    } finally {
+      bb.window = null;
+    }
   }
 
   /**
@@ -3677,6 +3683,12 @@ public class SqlToRelConverter {
     AggConverter agg;
 
     /**
+     * When converting window aggregate, we need to know if the window is
+     * guaranteed to be non-empty.
+     */
+    SqlWindow window;
+
+    /**
      * Project the groupby expressions out of the root of this sub-select.
      * Subqueries can reference group by expressions projected from the
      * "right" to the subquery.
@@ -4190,6 +4202,17 @@ public class SqlToRelConverter {
         }
       }
       return false;
+    }
+
+    // implement SqlRexContext
+    public int getGroupCount() {
+      if (agg != null) {
+        return agg.groupExprs.size();
+      }
+      if (window != null) {
+        return window.isAlwaysNonEmpty() ? 1 : 0;
+      }
+      return -1;
     }
 
     // implement SqlRexContext
@@ -4740,9 +4763,6 @@ public class SqlToRelConverter {
       final RelDataType type = call.getType();
       List<RexNode> exprs = call.getOperands();
 
-      boolean isUnboundedPreceding =
-          SqlWindow.isUnboundedPreceding(window.getLowerBound());
-
       SqlFunction histogramOp = !ENABLE_HISTOGRAM_AGG
           ? null
           : getHistogramOp(aggOp);
@@ -4811,7 +4831,8 @@ public class SqlToRelConverter {
 
         return histogramCall;
       } else {
-        boolean needSum0 = aggOp == SqlStdOperatorTable.SUM;
+        boolean needSum0 = aggOp == SqlStdOperatorTable.SUM
+            && type.isNullable();
         SqlAggFunction aggOpToUse =
             needSum0 ? SqlStdOperatorTable.SUM0
                 : aggOp;

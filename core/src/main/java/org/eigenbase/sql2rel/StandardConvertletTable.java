@@ -608,7 +608,20 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
     } else {
       exprs = convertExpressionList(cx, operands);
     }
-    return cx.getRexBuilder().makeCall(fun, exprs);
+    RelDataType returnType =
+        cx.getValidator().getValidatedNodeTypeIfKnown(call);
+    final int groupCount = cx.getGroupCount();
+    if (returnType == null) {
+      RexCallBinding binding =
+          new RexCallBinding(cx.getTypeFactory(), fun, exprs) {
+            @Override
+            public int getGroupCount() {
+              return groupCount;
+            }
+          };
+      returnType = fun.inferReturnType(binding);
+    }
+    return cx.getRexBuilder().makeCall(returnType, fun, exprs);
   }
 
   private static RexNode makeConstructorCall(

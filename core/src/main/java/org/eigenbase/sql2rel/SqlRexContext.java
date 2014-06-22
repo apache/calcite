@@ -38,6 +38,24 @@ public interface SqlRexContext {
   RexNode convertExpression(SqlNode expr);
 
   /**
+   * If the operator call occurs in an aggregate query, returns the number of
+   * columns in the GROUP BY clause. For example, for "SELECT count(*) FROM emp
+   * GROUP BY deptno, gender", returns 2.
+   * If the operator call occurs in window aggregate query, then returns 1 if
+   * the window is guaranteed to be non-empty, or 0 if the window might be
+   * empty.
+   *
+   * <p>Returns 0 if the query is implicitly "GROUP BY ()" because of an
+   * aggregate expression. For example, "SELECT sum(sal) FROM emp".</p>
+   *
+   * <p>Returns -1 if the query is not an aggregate query.</p>
+   * @return 0 if the query is implicitly GROUP BY (), -1 if the query is not
+   * and aggregate query
+   * @see org.eigenbase.sql.SqlOperatorBinding#getGroupCount()
+   */
+  int getGroupCount();
+
+  /**
    * Returns the {@link RexBuilder} to use to create {@link RexNode} objects.
    */
   RexBuilder getRexBuilder();

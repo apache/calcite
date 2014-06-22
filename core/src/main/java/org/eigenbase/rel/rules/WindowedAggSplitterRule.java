@@ -232,19 +232,11 @@ public abstract class WindowedAggSplitterRule extends RelOptRule {
 
     @Override
     protected List<Set<Integer>> getCohorts() {
-      final Set<Integer> cohort = new LinkedHashSet<Integer>();
-      final List<RexNode> exprList = program.getExprList();
-      for (int i = 0; i < exprList.size(); i++) {
-        RexNode expr = exprList.get(i);
-        if (expr instanceof RexOver) {
-          cohort.add(i);
-        }
-      }
-      if (cohort.isEmpty()) {
-        return Collections.emptyList();
-      } else {
-        return Collections.singletonList(cohort);
-      }
+      // Here used to be the implementation that treats all the RexOvers
+      // as a single Cohort. This is flawed if the RexOvers
+      // depend on each other (i.e. the second one uses the result
+      // of the first).
+      return Collections.emptyList();
     }
   }
 }

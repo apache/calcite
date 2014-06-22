@@ -37,7 +37,7 @@ public class SqlFirstLastValueAggFunction extends SqlAggFunction {
     super(
         firstFlag ? "FIRST_VALUE" : "LAST_VALUE",
         SqlKind.OTHER_FUNCTION,
-        ReturnTypes.ARG0,
+        ReturnTypes.ARG0_NULLABLE_IF_EMPTY,
         null,
         OperandTypes.ANY,
         SqlFunctionCategory.NUMERIC);

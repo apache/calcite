@@ -72,9 +72,40 @@ public class SqlOverOperator extends SqlBinaryOperator {
       SqlValidator validator,
       SqlValidatorScope scope,
       SqlCall call) {
-    // Do not try to derive the types of the operands. We will do that
-    // later, top down.
-    return validateOperands(validator, scope, call);
+    // Validate type of the inner aggregate call
+    validateOperands(validator, scope, call);
+
+    // Assume the first operand is an aggregate call and derive its type.
+    // When we are sure the window is not empty, pass that information to the
+    // aggregate's operator return type inference as groupCount=1
+    // Otherwise pass groupCount=0 so the agg operator understands the window
+    // can be empty
+    SqlNode agg = call.operand(0);
+
+    if (!(agg instanceof SqlCall)) {
+      throw new IllegalStateException("Argument to SqlOverOperator"
+          + " should be SqlCall, got " + agg.getClass() + ": " + agg);
+    }
+
+    SqlNode window = call.operand(1);
+    SqlWindow w = validator.resolveWindow(window, scope, false);
+
+    final int groupCount = w.isAlwaysNonEmpty() ? 1 : 0;
+    final SqlCall aggCall = (SqlCall) agg;
+
+    SqlCallBinding opBinding = new SqlCallBinding(validator, scope, aggCall) {
+      @Override
+      public int getGroupCount() {
+        return groupCount;
+      }
+    };
+
+    RelDataType ret = aggCall.getOperator().inferReturnType(opBinding);
+
+    // Copied from validateOperands
+    validator.setValidatedNodeType(call, ret);
+    validator.setValidatedNodeType(agg, ret);
+    return ret;
   }
 
   /**

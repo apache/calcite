@@ -303,8 +303,6 @@ public class RexBuilder {
             lowerBound,
             upperBound,
             physical);
-    // Windowed aggregates are nullable, because the window might be empty.
-    type = typeFactory.createTypeWithNullability(type, true);
     final RexOver over = new RexOver(type, operator, exprs, window);
     RexNode result = over;
 
@@ -326,8 +324,11 @@ public class RexBuilder {
                   BigDecimal.ZERO,
                   bigintType,
                   SqlTypeName.DECIMAL)),
-          over,
-          makeCast(over.getType(), constantNull()));
+          ensureType(type, // SUM0 is non-nullable, thus need a cast
+              new RexOver(typeFactory.createTypeWithNullability(type, false),
+              operator, exprs, window),
+              false),
+          makeCast(type, constantNull()));
     }
     if (!allowPartial) {
       Util.permAssert(physical, "DISALLOW PARTIAL over RANGE");
