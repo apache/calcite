@@ -330,11 +330,16 @@ public class RelMetadataTest extends SqlToRelTestBase {
         false);
   }
 
-  @Test public void testColumnOriginsAggMeasure() {
+  @Test public void testColumnOriginsAggReduced() {
+    checkNoColumnOrigin(
+        "select count(deptno),name from dept group by name");
+  }
+
+  @Test public void testColumnOriginsAggCountNullable() {
     checkSingleColumnOrigin(
-        "select count(deptno),name from dept group by name",
-        "DEPT",
-        "DEPTNO",
+        "select count(mgr),ename from emp group by ename",
+        "EMP",
+        "MGR",
         true);
   }
 

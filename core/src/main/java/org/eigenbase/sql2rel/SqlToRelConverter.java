@@ -4556,6 +4556,10 @@ public class SqlToRelConverter {
       if (call.getOperator().isAggregator()) {
         assert bb.agg == this;
         List<Integer> args = new ArrayList<Integer>();
+        List<RelDataType> argTypes =
+            call.getOperator() instanceof SqlCountAggFunction
+            ? new ArrayList<RelDataType>(call.getOperandList().size())
+            : null;
         try {
           // switch out of agg mode
           bb.agg = null;
@@ -4573,6 +4577,9 @@ public class SqlToRelConverter {
             }
             convertedExpr = bb.convertExpression(operand);
             assert convertedExpr != null;
+            if (argTypes != null) {
+              argTypes.add(convertedExpr.getType());
+            }
             args.add(lookupOrCreateGroupExpr(convertedExpr));
           }
         } finally {
@@ -4601,7 +4608,8 @@ public class SqlToRelConverter {
                 aggCall,
                 groupExprs.size(),
                 aggCalls,
-                aggCallMapping);
+                aggCallMapping,
+                argTypes);
         aggMapping.put(call, rex);
       } else if (call instanceof SqlSelect) {
         // rchen 2006-10-17:

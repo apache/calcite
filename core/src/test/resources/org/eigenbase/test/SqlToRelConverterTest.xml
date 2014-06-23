@@ -63,7 +63,7 @@ ProjectRel(DEPTNO=[$0], EXPR$1=[$1])
         <Resource name="plan">
             <![CDATA[
 ProjectRel(EXPR$0=[+($0, 4)], EXPR$1=[$1], EXPR$2=[$2], EXPR$3=[*(2, $3)])
-  AggregateRel(group=[{0}], EXPR$1=[SUM($1)], EXPR$2=[SUM($2)], agg#2=[COUNT($1)])
+  AggregateRel(group=[{0}], EXPR$1=[SUM($1)], EXPR$2=[SUM($2)], agg#2=[COUNT()])
     ProjectRel(DEPTNO=[$7], SAL=[$5], $f2=[+(3, $5)])
       TableAccessRel(table=[[CATALOG, SALES, EMP]])
 ]]>
@@ -130,7 +130,7 @@ ProjectRel(NAME=[$0])
             <![CDATA[
 ProjectRel(NAME=[$1], FOO=[$2])
   ProjectRel(DEPTNO=[$1], NAME=[$0], FOO=[$2])
-    AggregateRel(group=[{0, 1}], FOO=[COUNT($1)])
+    AggregateRel(group=[{0, 1}], FOO=[COUNT()])
       ProjectRel(NAME=[$1], DEPTNO=[$0])
         TableAccessRel(table=[[CATALOG, SALES, DEPT]])
 ]]>

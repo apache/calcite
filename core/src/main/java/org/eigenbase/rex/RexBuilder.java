@@ -262,12 +262,56 @@ public class RexBuilder {
 
   /**
    * Creates a reference to an aggregate call, checking for repeated calls.
+   * @param aggCall aggregate call to be added
+   * @param groupCount number of groups in the aggregate relation
+   * @param aggCalls destination list of aggregate calls
+   * @param aggCallMapping the dictionary of already added calls
+   * @return Rex expression for the given aggregate call
+   * @deprecated Use {@link #addAggCall(org.eigenbase.rel.AggregateCall, int, java.util.List, java.util.Map, java.util.List)}
+   * Will be removed before optiq-0.9.
    */
+  @Deprecated
   public RexNode addAggCall(
       AggregateCall aggCall,
       int groupCount,
       List<AggregateCall> aggCalls,
       Map<AggregateCall, RexNode> aggCallMapping) {
+    Bug.upgrade("remove before optiq-0.9");
+    return addAggCall(aggCall, groupCount, aggCalls, aggCallMapping, null);
+  }
+
+  /**
+   * Creates a reference to an aggregate call, checking for repeated calls.
+   * Argument types help to optimize for repeated aggregates.
+   * For instance count(42) is equivalent to count(*)
+   * @param aggCall aggregate call to be added
+   * @param groupCount number of groups in the aggregate relation
+   * @param aggCalls destination list of aggregate calls
+   * @param aggCallMapping the dictionary of already added calls
+   * @return Rex expression for the given aggregate call
+   */
+  public RexNode addAggCall(
+      AggregateCall aggCall,
+      int groupCount,
+      List<AggregateCall> aggCalls,
+      Map<AggregateCall, RexNode> aggCallMapping,
+      List<RelDataType> aggArgTypes) {
+    if (aggCall.getAggregation() instanceof SqlCountAggFunction
+        && aggArgTypes != null && !aggArgTypes.isEmpty()
+        && !aggCall.isDistinct()) {
+      boolean hasNotNullArg = false;
+      for (RelDataType type : aggArgTypes) {
+        if (!type.isNullable()) {
+          hasNotNullArg = true;
+          break;
+        }
+      }
+      if (hasNotNullArg) {
+        aggCall = new AggregateCall(aggCall.getAggregation(),
+            aggCall.isDistinct(), ImmutableList.<Integer>of(),
+            aggCall.getType(), aggCall.getName());
+      }
+    }
     RexNode rex = aggCallMapping.get(aggCall);
     if (rex == null) {
       int index = aggCalls.size() + groupCount;
