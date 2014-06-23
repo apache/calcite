@@ -2852,8 +2852,8 @@ public class JdbcTest {
         .with(OptiqAssert.Config.REGULAR)
         .query(
             "with emp2 as (select * from \"hr\".\"emps\")\n"
-                + "select * from emp2\n"
-                + "order by \"deptno\" desc, \"empid\" desc")
+            + "select * from emp2\n"
+            + "order by \"deptno\" desc, \"empid\" desc")
         .returns(
             "empid=200; deptno=20; name=Eric; salary=8000.0; commission=500\n"
             + "empid=150; deptno=10; name=Sebastian; salary=7000.0; commission=null\n"
@@ -4524,7 +4524,8 @@ public class JdbcTest {
         .returns("P0=0; P1=1; P2=2\n");
   }
 
-  /** Test for {@link EigenbaseNewResource#requireDefaultConstructor(String)}. */
+  /** Test for
+   * {@link org.eigenbase.resource.EigenbaseNewResource#requireDefaultConstructor(String)}. */
   @Test public void testUserDefinedFunction2() throws Exception {
     withBadUdf(AwkwardFunction.class)
         .connectThrows(
@@ -4595,7 +4596,8 @@ public class JdbcTest {
         .returnsUnordered("deptno=20; P=20", "deptno=10; P=30");
   }
 
-  /** Test for {@link EigenbaseNewResource#firstParameterOfAdd(String)}. */
+  /** Test for
+   * {@link org.eigenbase.resource.EigenbaseNewResource#firstParameterOfAdd(String)}. */
   @Test public void testUserDefinedAggregateFunction3() throws Exception {
     withBadUdf(SumFunctionBadIAdd.class).connectThrows(
         "Caused by: java.lang.RuntimeException: In user-defined aggregate class 'net.hydromatic.optiq.test.JdbcTest$SumFunctionBadIAdd', first parameter to 'add' method must be the accumulator (the return type of the 'init' method)");

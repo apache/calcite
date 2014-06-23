@@ -436,6 +436,24 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
         "${plan}");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/OPTIQ-309">[OPTIQ-309]
+   * WITH ... ORDER BY query gives AssertionError</a>. */
+  @Test public void testWithOrder() {
+    check("with emp2 as (select * from emp)\n"
+        + "select * from emp2 order by deptno",
+        "${plan}");
+  }
+
+  @Test public void testWithUnionOrder() {
+    check("with emp2 as (select empno, deptno as x from emp)\n"
+        + "select * from emp2\n"
+        + "union all\n"
+        + "select * from emp2\n"
+        + "order by empno + x",
+        "${plan}");
+  }
+
   @Test public void testWithUnion() {
     check("with emp2 as (select * from emp where deptno > 10)\n"
       + "select empno from emp2 where deptno < 30 union all select deptno from emp",

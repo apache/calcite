@@ -1807,4 +1807,42 @@ UnionRel(all=[true])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testWithOrder">
+        <Resource name="sql">
+            <![CDATA[with emp2 as (select * from emp)
+select * from emp2 order by deptno]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+SortRel(sort0=[$7], dir0=[ASC])
+  ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+    ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+      ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+        TableAccessRel(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testWithUnionOrder">
+        <Resource name="sql">
+            <![CDATA[with emp2 as (select empno, deptno as x from emp)
+select * from emp2
+union all
+select * from emp2
+order by empno + x]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+ProjectRel(EMPNO=[$0], X=[$1])
+  SortRel(sort0=[$2], dir0=[ASC])
+    ProjectRel(EMPNO=[$0], X=[$1], EXPR$2=[+($0, $1)])
+      UnionRel(all=[true])
+        ProjectRel(EMPNO=[$0], X=[$1])
+          ProjectRel(EMPNO=[$0], X=[$7])
+            TableAccessRel(table=[[CATALOG, SALES, EMP]])
+        ProjectRel(EMPNO=[$0], X=[$1])
+          ProjectRel(EMPNO=[$0], X=[$7])
+            TableAccessRel(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
 </Root>

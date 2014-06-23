@@ -83,17 +83,16 @@ public class TpcdsTest {
         .returnsCount(750000);
   }
 
-  @Ignore("assert fail in registerQuery")
   @Test public void testQuery01() {
-    checkQuery(1);
+    checkQuery(1).runs();
   }
 
   @Ignore("takes too long to optimize")
   @Test public void testQuery72() {
-    checkQuery(72);
+    checkQuery(72).runs();
   }
 
-  private void checkQuery(int i) {
+  private OptiqAssert.AssertQuery checkQuery(int i) {
     final Query query = Query.of(i);
     String sql = query.sql(-1, new Random(0));
     switch (i) {
@@ -101,9 +100,8 @@ public class TpcdsTest {
       // Work around OPTIQ-304: Support '<DATE> + <INTEGER>'.
       sql = sql.replace("+ 5", "+ interval '5' day");
     }
-    with()
-        .query(sql.replaceAll("tpcds\\.", "tpcds_01."))
-        .runs();
+    return with()
+        .query(sql.replaceAll("tpcds\\.", "tpcds_01."));
   }
 }
 
