@@ -32,7 +32,6 @@ import org.eigenbase.rel.*;
 import org.eigenbase.rel.convert.ConverterRule;
 import org.eigenbase.rel.rules.*;
 import org.eigenbase.relopt.*;
-import org.eigenbase.relopt.hep.*;
 import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.reltype.RelDataTypeFactory;
 import org.eigenbase.sql.*;
@@ -49,7 +48,6 @@ import org.eigenbase.util.Util;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
 
 import org.junit.Test;
 
@@ -442,7 +440,7 @@ public class PlannerTest {
           .append(i).append(".\"deptno\" = d")
           .append(i - 1).append(".\"deptno\"");
     }
-    Planner planner = getPlanner(null, adaptiveJoinProgram(RULE_SET));
+    Planner planner = getPlanner(null, Programs.heuristicJoinOrder(RULE_SET));
     SqlNode parse = planner.parse(buf.toString());
 
     SqlNode validate = planner.validate(parse);
@@ -452,40 +450,6 @@ public class PlannerTest {
     RelNode transform = planner.transform(0, traitSet, convert);
     assertThat(toString(transform), containsString(
         "EnumerableJoinRel(condition=[=($3, $0)], joinType=[inner])"));
-  }
-
-  /** Creates a program that invokes heuristic join-order optimization
-   * (via {@link org.eigenbase.rel.rules.ConvertMultiJoinRule},
-   * {@link org.eigenbase.rel.rules.MultiJoinRel} and
-   * {@link org.eigenbase.rel.rules.LoptOptimizeJoinRule})
-   * if there are 6 or more joins (7 or more relations). */
-  private static Program adaptiveJoinProgram(final RuleSet ruleSet) {
-    return new Program() {
-      public RelNode run(RelOptPlanner planner, RelNode rel,
-          RelTraitSet requiredOutputTraits) {
-        final int joinCount = RelOptUtil.countJoins(rel);
-        final Program program;
-        if (joinCount < 6) {
-          program = Programs.of(ruleSet);
-        } else {
-          final HepProgram hep = new HepProgramBuilder()
-              .addRuleInstance(PushFilterPastJoinRule.FILTER_ON_JOIN)
-              .addMatchOrder(HepMatchOrder.BOTTOM_UP)
-              .addRuleInstance(ConvertMultiJoinRule.INSTANCE)
-              .build();
-          final List<RelOptRule> list = new ArrayList<RelOptRule>();
-          Iterables.addAll(list, ruleSet);
-          list.removeAll(
-              ImmutableList.of(SwapJoinRule.INSTANCE,
-                  PushJoinThroughJoinRule.LEFT,
-                  PushJoinThroughJoinRule.RIGHT));
-          list.add(LoptOptimizeJoinRule.INSTANCE);
-          program =
-              Programs.sequence(Programs.of(hep), Programs.ofRules(list));
-        }
-        return program.run(planner, rel, requiredOutputTraits);
-      }
-    };
   }
 
   /**
@@ -560,39 +524,32 @@ public class PlannerTest {
     }
   }
 
-  private static final RuleSet RULE_SET =
-      new RuleSet() {
-        final Set<RelOptRule> setOfRules =
-            ImmutableSet.of(
-                JavaRules.ENUMERABLE_JOIN_RULE,
-                JavaRules.ENUMERABLE_PROJECT_RULE,
-                JavaRules.ENUMERABLE_FILTER_RULE,
-                JavaRules.ENUMERABLE_AGGREGATE_RULE,
-                JavaRules.ENUMERABLE_SORT_RULE,
-                JavaRules.ENUMERABLE_LIMIT_RULE,
-                JavaRules.ENUMERABLE_UNION_RULE,
-                JavaRules.ENUMERABLE_INTERSECT_RULE,
-                JavaRules.ENUMERABLE_MINUS_RULE,
-                JavaRules.ENUMERABLE_TABLE_MODIFICATION_RULE,
-                JavaRules.ENUMERABLE_VALUES_RULE,
-                JavaRules.ENUMERABLE_WINDOW_RULE,
-                JavaRules.ENUMERABLE_ONE_ROW_RULE,
-                JavaRules.ENUMERABLE_EMPTY_RULE,
-                TableAccessRule.INSTANCE,
-                MergeProjectRule.INSTANCE,
-                PushFilterPastProjectRule.INSTANCE,
-                PushFilterPastJoinRule.FILTER_ON_JOIN,
-                RemoveDistinctAggregateRule.INSTANCE,
-                ReduceAggregatesRule.INSTANCE,
-                SwapJoinRule.INSTANCE,
-                PushJoinThroughJoinRule.RIGHT,
-                PushJoinThroughJoinRule.LEFT,
-                PushSortPastProjectRule.INSTANCE);
-
-        public Iterator<RelOptRule> iterator() {
-          return setOfRules.iterator();
-        }
-      };
+  private static final ImmutableSet<RelOptRule> RULE_SET =
+      ImmutableSet.of(
+          JavaRules.ENUMERABLE_JOIN_RULE,
+          JavaRules.ENUMERABLE_PROJECT_RULE,
+          JavaRules.ENUMERABLE_FILTER_RULE,
+          JavaRules.ENUMERABLE_AGGREGATE_RULE,
+          JavaRules.ENUMERABLE_SORT_RULE,
+          JavaRules.ENUMERABLE_LIMIT_RULE,
+          JavaRules.ENUMERABLE_UNION_RULE,
+          JavaRules.ENUMERABLE_INTERSECT_RULE,
+          JavaRules.ENUMERABLE_MINUS_RULE,
+          JavaRules.ENUMERABLE_TABLE_MODIFICATION_RULE,
+          JavaRules.ENUMERABLE_VALUES_RULE,
+          JavaRules.ENUMERABLE_WINDOW_RULE,
+          JavaRules.ENUMERABLE_ONE_ROW_RULE,
+          JavaRules.ENUMERABLE_EMPTY_RULE,
+          TableAccessRule.INSTANCE,
+          MergeProjectRule.INSTANCE,
+          PushFilterPastProjectRule.INSTANCE,
+          PushFilterPastJoinRule.FILTER_ON_JOIN,
+          RemoveDistinctAggregateRule.INSTANCE,
+          ReduceAggregatesRule.INSTANCE,
+          SwapJoinRule.INSTANCE,
+          PushJoinThroughJoinRule.RIGHT,
+          PushJoinThroughJoinRule.LEFT,
+          PushSortPastProjectRule.INSTANCE);
 
   /**
    * Test to determine whether de-correlation correctly removes CorrelatorRel.
@@ -622,7 +579,7 @@ public class PlannerTest {
             new ReflectiveSchema(new TpchSchema()));
 
     Planner p = Frameworks.getPlanner(Lex.MYSQL, schema,
-        SqlStdOperatorTable.instance(), RULE_SET);
+        SqlStdOperatorTable.instance(), RuleSets.ofList(RULE_SET));
     SqlNode n = p.parse(tpchTestQuery);
     n = p.validate(n);
     RelNode r = p.convert(n);

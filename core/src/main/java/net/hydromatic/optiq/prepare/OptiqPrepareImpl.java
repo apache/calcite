@@ -98,6 +98,46 @@ public class OptiqPrepareImpl implements OptiqPrepare {
           "values 1",
           "VALUES 1");
 
+  private static final List<RelOptRule> DEFAULT_RULES =
+      ImmutableList.of(
+          JavaRules.ENUMERABLE_JOIN_RULE,
+          JavaRules.ENUMERABLE_PROJECT_RULE,
+          JavaRules.ENUMERABLE_FILTER_RULE,
+          JavaRules.ENUMERABLE_AGGREGATE_RULE,
+          JavaRules.ENUMERABLE_SORT_RULE,
+          JavaRules.ENUMERABLE_LIMIT_RULE,
+          JavaRules.ENUMERABLE_COLLECT_RULE,
+          JavaRules.ENUMERABLE_UNCOLLECT_RULE,
+          JavaRules.ENUMERABLE_UNION_RULE,
+          JavaRules.ENUMERABLE_INTERSECT_RULE,
+          JavaRules.ENUMERABLE_MINUS_RULE,
+          JavaRules.ENUMERABLE_TABLE_MODIFICATION_RULE,
+          JavaRules.ENUMERABLE_VALUES_RULE,
+          JavaRules.ENUMERABLE_WINDOW_RULE,
+          JavaRules.ENUMERABLE_ONE_ROW_RULE,
+          JavaRules.ENUMERABLE_EMPTY_RULE,
+          JavaRules.ENUMERABLE_TABLE_FUNCTION_RULE,
+          TableAccessRule.INSTANCE,
+          MergeProjectRule.INSTANCE,
+          PushFilterPastProjectRule.INSTANCE,
+          PushFilterPastJoinRule.FILTER_ON_JOIN,
+          RemoveDistinctAggregateRule.INSTANCE,
+          ReduceAggregatesRule.INSTANCE,
+          SwapJoinRule.INSTANCE,
+          PushJoinThroughJoinRule.RIGHT,
+          PushJoinThroughJoinRule.LEFT,
+          PushSortPastProjectRule.INSTANCE);
+
+  private static final List<RelOptRule> CONSTANT_REDUCTION_RULES =
+      ImmutableList.of(
+          ReduceExpressionsRule.PROJECT_INSTANCE,
+          ReduceExpressionsRule.FILTER_INSTANCE,
+          ReduceExpressionsRule.CALC_INSTANCE,
+          ReduceExpressionsRule.JOIN_INSTANCE,
+          ReduceValuesRule.FILTER_INSTANCE,
+          ReduceValuesRule.PROJECT_FILTER_INSTANCE,
+          ReduceValuesRule.PROJECT_INSTANCE);
+
   public OptiqPrepareImpl() {
   }
 
@@ -157,48 +197,29 @@ public class OptiqPrepareImpl implements OptiqPrepare {
       planner.registerAbstractRelationalRules();
     }
     RelOptUtil.registerAbstractRels(planner);
-    planner.addRule(JavaRules.ENUMERABLE_JOIN_RULE);
-    planner.addRule(JavaRules.ENUMERABLE_PROJECT_RULE);
-    planner.addRule(JavaRules.ENUMERABLE_FILTER_RULE);
-    planner.addRule(JavaRules.ENUMERABLE_AGGREGATE_RULE);
-    planner.addRule(JavaRules.ENUMERABLE_SORT_RULE);
-    planner.addRule(JavaRules.ENUMERABLE_LIMIT_RULE);
-    planner.addRule(JavaRules.ENUMERABLE_COLLECT_RULE);
-    planner.addRule(JavaRules.ENUMERABLE_UNCOLLECT_RULE);
-    planner.addRule(JavaRules.ENUMERABLE_UNION_RULE);
-    planner.addRule(JavaRules.ENUMERABLE_INTERSECT_RULE);
-    planner.addRule(JavaRules.ENUMERABLE_MINUS_RULE);
-    planner.addRule(JavaRules.ENUMERABLE_TABLE_MODIFICATION_RULE);
-    planner.addRule(JavaRules.ENUMERABLE_VALUES_RULE);
-    planner.addRule(JavaRules.ENUMERABLE_WINDOW_RULE);
-    planner.addRule(JavaRules.ENUMERABLE_ONE_ROW_RULE);
-    planner.addRule(JavaRules.ENUMERABLE_EMPTY_RULE);
-    planner.addRule(JavaRules.ENUMERABLE_TABLE_FUNCTION_RULE);
-    planner.addRule(TableAccessRule.INSTANCE);
-    planner.addRule(MergeProjectRule.INSTANCE);
-    planner.addRule(PushFilterPastProjectRule.INSTANCE);
-    planner.addRule(PushFilterPastJoinRule.FILTER_ON_JOIN);
-    planner.addRule(RemoveDistinctAggregateRule.INSTANCE);
-    planner.addRule(ReduceAggregatesRule.INSTANCE);
-    planner.addRule(SwapJoinRule.INSTANCE);
-    planner.addRule(PushJoinThroughJoinRule.RIGHT);
-    planner.addRule(PushJoinThroughJoinRule.LEFT);
-    planner.addRule(PushSortPastProjectRule.INSTANCE);
+    for (RelOptRule rule : DEFAULT_RULES) {
+      planner.addRule(rule);
+    }
 
     // Change the below to enable constant-reduction.
     if (false) {
-      planner.addRule(ReduceExpressionsRule.PROJECT_INSTANCE);
-      planner.addRule(ReduceExpressionsRule.FILTER_INSTANCE);
-      planner.addRule(ReduceExpressionsRule.CALC_INSTANCE);
-      planner.addRule(ReduceExpressionsRule.JOIN_INSTANCE);
-      planner.addRule(ReduceValuesRule.FILTER_INSTANCE);
-      planner.addRule(ReduceValuesRule.PROJECT_FILTER_INSTANCE);
-      planner.addRule(ReduceValuesRule.PROJECT_INSTANCE);
+      for (RelOptRule rule : CONSTANT_REDUCTION_RULES) {
+        planner.addRule(rule);
+      }
     }
 
     final SparkHandler spark = context.spark();
     if (spark.enabled()) {
-      spark.registerRules(planner);
+      spark.registerRules(
+          new SparkHandler.RuleSetBuilder() {
+          public void addRule(RelOptRule rule) {
+            // TODO:
+          }
+
+          public void removeRule(RelOptRule rule) {
+            // TODO:
+          }
+        });
     }
     return planner;
   }

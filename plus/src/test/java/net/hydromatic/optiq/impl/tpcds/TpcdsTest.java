@@ -92,6 +92,11 @@ public class TpcdsTest {
     checkQuery(72).runs();
   }
 
+  @Ignore("work in progress")
+  @Test public void testQuery72Plan() {
+    checkQuery(72).planContains("xx");
+  }
+
   private OptiqAssert.AssertQuery checkQuery(int i) {
     final Query query = Query.of(i);
     String sql = query.sql(-1, new Random(0));

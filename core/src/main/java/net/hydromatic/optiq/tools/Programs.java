@@ -18,19 +18,17 @@
 package net.hydromatic.optiq.tools;
 
 import org.eigenbase.rel.RelNode;
-import org.eigenbase.relopt.RelOptPlanner;
-import org.eigenbase.relopt.RelOptRule;
-import org.eigenbase.relopt.RelTraitSet;
-import org.eigenbase.relopt.hep.HepPlanner;
-import org.eigenbase.relopt.hep.HepProgram;
+import org.eigenbase.rel.metadata.ChainedRelMetadataProvider;
+import org.eigenbase.rel.metadata.RelMetadataProvider;
+import org.eigenbase.rel.rules.*;
+import org.eigenbase.relopt.*;
+import org.eigenbase.relopt.hep.*;
 
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.List;
+import java.util.*;
 
 /**
  * Utilities for creating {@link Program}s.
@@ -71,14 +69,77 @@ public class Programs {
     return new SequenceProgram(ImmutableList.copyOf(programs));
   }
 
+  /** Creates a program that executes a list of rules in a HEP planner. */
+  public static Program hep(ImmutableList<RelOptRule> rules, boolean noDag,
+      RelMetadataProvider metadataProvider) {
+    final HepProgramBuilder builder = HepProgram.builder();
+    for (RelOptRule rule : rules) {
+      builder.addRuleInstance(rule);
+    }
+    return of(builder.build(), noDag, metadataProvider);
+  }
+
   /** Creates a program that executes a {@link HepProgram}. */
-  public static Program of(final HepProgram hepProgram) {
+  public static Program of(final HepProgram hepProgram, final boolean noDag,
+      final RelMetadataProvider metadataProvider) {
     return new Program() {
       public RelNode run(RelOptPlanner planner, RelNode rel,
           RelTraitSet requiredOutputTraits) {
-        final HepPlanner hepPlanner = new HepPlanner(hepProgram);
+        final HepPlanner hepPlanner = new HepPlanner(hepProgram,
+            noDag, null, RelOptCostImpl.FACTORY);
+
+        if (metadataProvider != null) {
+          List<RelMetadataProvider> list = Lists.newArrayList();
+          list.add(metadataProvider);
+          hepPlanner.registerMetadataProviders(list);
+          RelMetadataProvider plannerChain =
+              ChainedRelMetadataProvider.of(list);
+          rel.getCluster().setMetadataProvider(plannerChain);
+        }
+
         hepPlanner.setRoot(rel);
         return hepPlanner.findBestExp();
+      }
+    };
+  }
+
+  /** Creates a program that invokes heuristic join-order optimization
+   * (via {@link org.eigenbase.rel.rules.ConvertMultiJoinRule},
+   * {@link org.eigenbase.rel.rules.MultiJoinRel} and
+   * {@link org.eigenbase.rel.rules.LoptOptimizeJoinRule})
+   * if there are 6 or more joins (7 or more relations). */
+  public static Program heuristicJoinOrder(final Collection<RelOptRule> rules) {
+    return new Program() {
+      public RelNode run(RelOptPlanner planner, RelNode rel,
+          RelTraitSet requiredOutputTraits) {
+        final int joinCount = RelOptUtil.countJoins(rel);
+        final Program program;
+        if (joinCount < 6) {
+          program = ofRules(rules);
+        } else {
+          // Create a program that gathers together joins as a MultiJoinRel.
+          final HepProgram hep = new HepProgramBuilder()
+              .addRuleInstance(PushFilterPastJoinRule.FILTER_ON_JOIN)
+              .addMatchOrder(HepMatchOrder.BOTTOM_UP)
+              .addRuleInstance(ConvertMultiJoinRule.INSTANCE)
+              .build();
+          final Program program1 = of(hep, false, null);
+
+          // Create a program that contains a rule to expand a MultiJoinRel
+          // into heuristically ordered joins.
+          // We use the rule set passed in, but remove SwapJoinRule and
+          // PushJoinThroughJoinRule, because they cause exhaustive search.
+          final List<RelOptRule> list = new ArrayList<RelOptRule>(rules);
+          list.removeAll(
+              ImmutableList.of(SwapJoinRule.INSTANCE,
+                  PushJoinThroughJoinRule.LEFT,
+                  PushJoinThroughJoinRule.RIGHT));
+          list.add(LoptOptimizeJoinRule.INSTANCE);
+          final Program program2 = ofRules(list);
+
+          program = sequence(program1, program2);
+        }
+        return program.run(planner, rel, requiredOutputTraits);
       }
     };
   }

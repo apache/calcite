@@ -31,7 +31,7 @@ import net.hydromatic.optiq.runtime.*;
 
 import org.eigenbase.rel.RelNode;
 import org.eigenbase.relopt.RelOptPlanner;
-import org.eigenbase.relopt.volcano.VolcanoPlanner;
+import org.eigenbase.relopt.RelOptRule;
 import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.reltype.RelDataTypeFactory;
 import org.eigenbase.sql.SqlNode;
@@ -96,13 +96,19 @@ public interface OptiqPrepare {
     RelNode flattenTypes(RelOptPlanner planner, RelNode rootRel,
         boolean restructure);
 
-    void registerRules(VolcanoPlanner planner);
+    void registerRules(RuleSetBuilder builder);
 
     boolean enabled();
 
     Bindable compile(ClassDeclaration expr, String s);
 
     Object sparkContext();
+
+    /** Allows Spark to declare the rules it needs. */
+    interface RuleSetBuilder {
+      void addRule(RelOptRule rule);
+      void removeRule(RelOptRule rule);
+    }
   }
 
   /** Namespace that allows us to define non-abstract methods inside an
@@ -160,7 +166,7 @@ public interface OptiqPrepare {
         return rootRel;
       }
 
-      public void registerRules(VolcanoPlanner planner) {
+      public void registerRules(RuleSetBuilder builder) {
       }
 
       public boolean enabled() {

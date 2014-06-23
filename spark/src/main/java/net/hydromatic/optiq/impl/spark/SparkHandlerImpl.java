@@ -27,7 +27,6 @@ import net.hydromatic.optiq.runtime.Typed;
 import org.eigenbase.javac.JaninoCompiler;
 import org.eigenbase.rel.RelNode;
 import org.eigenbase.relopt.*;
-import org.eigenbase.relopt.volcano.VolcanoPlanner;
 
 import org.apache.spark.api.java.JavaSparkContext;
 
@@ -89,11 +88,11 @@ public class SparkHandlerImpl implements OptiqPrepare.SparkHandler {
     return planner.changeTraits(root2, rootRel.getTraitSet());
   }
 
-  public void registerRules(VolcanoPlanner planner) {
+  public void registerRules(RuleSetBuilder builder) {
     for (RelOptRule rule : SparkRules.rules()) {
-      planner.addRule(rule);
+      builder.addRule(rule);
     }
-    planner.removeRule(JavaRules.ENUMERABLE_VALUES_RULE);
+    builder.removeRule(JavaRules.ENUMERABLE_VALUES_RULE);
   }
 
   public Object sparkContext() {

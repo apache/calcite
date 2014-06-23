@@ -17,8 +17,6 @@
 */
 package net.hydromatic.optiq.prepare;
 
-import net.hydromatic.linq4j.function.Functions;
-
 import net.hydromatic.optiq.DataContext;
 import net.hydromatic.optiq.impl.StarTable;
 import net.hydromatic.optiq.jdbc.OptiqPrepare;
@@ -26,12 +24,13 @@ import net.hydromatic.optiq.jdbc.OptiqSchema;
 import net.hydromatic.optiq.rules.java.JavaRules;
 import net.hydromatic.optiq.runtime.Bindable;
 import net.hydromatic.optiq.runtime.Typed;
+import net.hydromatic.optiq.tools.Program;
+import net.hydromatic.optiq.tools.Programs;
 
 import org.eigenbase.rel.*;
 import org.eigenbase.rel.metadata.*;
 import org.eigenbase.rel.rules.*;
 import org.eigenbase.relopt.*;
-import org.eigenbase.relopt.hep.*;
 import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.rex.RexBuilder;
 import org.eigenbase.rex.RexExecutorImpl;
@@ -41,7 +40,7 @@ import org.eigenbase.sql2rel.SqlToRelConverter;
 import org.eigenbase.trace.EigenbaseTimingTracer;
 import org.eigenbase.trace.EigenbaseTrace;
 
-import com.google.common.collect.Lists;
+import com.google.common.collect.ImmutableList;
 
 import java.lang.reflect.Type;
 import java.util.*;
@@ -54,6 +53,24 @@ import java.util.logging.Logger;
  */
 public abstract class Prepare {
   protected static final Logger LOGGER = EigenbaseTrace.getStatementTracer();
+
+  private static final ImmutableList<RelOptRule> CALC_RULES =
+      ImmutableList.of(
+          JavaRules.ENUMERABLE_CALC_RULE,
+          JavaRules.ENUMERABLE_FILTER_TO_CALC_RULE,
+          JavaRules.ENUMERABLE_PROJECT_TO_CALC_RULE,
+          MergeCalcRule.INSTANCE,
+          MergeFilterOntoCalcRule.INSTANCE,
+          MergeProjectOntoCalcRule.INSTANCE,
+          FilterToCalcRule.INSTANCE,
+          ProjectToCalcRule.INSTANCE,
+          MergeCalcRule.INSTANCE,
+
+          // REVIEW jvs 9-Apr-2006: Do we still need these two?  Doesn't the
+          // combination of MergeCalcRule, FilterToCalcRule, and
+          // ProjectToCalcRule have the same effect?
+          MergeFilterOntoCalcRule.INSTANCE,
+          MergeProjectOntoCalcRule.INSTANCE);
 
   protected final OptiqPrepare.Context context;
   protected final CatalogReader catalogReader;
@@ -93,64 +110,46 @@ public abstract class Prepare {
    * @param materializations Tables known to be populated with a given query
    * @return an equivalent optimized relational expression
    */
-  protected RelNode optimize(RelDataType logicalRowType, RelNode rootRel,
-      List<Materialization> materializations) {
+  protected RelNode optimize(RelDataType logicalRowType, final RelNode rootRel,
+      final List<Materialization> materializations) {
     final RelOptPlanner planner = rootRel.getCluster().getPlanner();
 
-    final DataContext dataContext = context.getDataContext();
-    planner.setExecutor(new RexExecutorImpl(dataContext));
-
     planner.setRoot(rootRel);
-    for (Materialization materialization : materializations) {
-      planner.addMaterialization(
-          new RelOptMaterialization(materialization.tableRel,
-              materialization.queryRel, materialization.starRelOptTable));
-    }
 
-    RelTraitSet desiredTraits = getDesiredRootTraitSet(rootRel);
+    final RelTraitSet desiredTraits = getDesiredRootTraitSet(rootRel);
+    final Program program1 =
+        new Program() {
+          public RelNode run(RelOptPlanner planner, RelNode rel,
+              RelTraitSet requiredOutputTraits) {
+            final DataContext dataContext = context.getDataContext();
+            planner.setExecutor(new RexExecutorImpl(dataContext));
 
-    final RelNode rootRel2 = planner.changeTraits(rootRel, desiredTraits);
-    assert rootRel2 != null;
+            for (Materialization materialization : materializations) {
+              planner.addMaterialization(
+                  new RelOptMaterialization(materialization.tableRel,
+                      materialization.queryRel,
+                      materialization.starRelOptTable));
+            }
 
-    planner.setRoot(rootRel2);
-    final RelOptPlanner planner2 = planner.chooseDelegate();
-    final RelNode rootRel3 = planner2.findBestExp();
-    assert rootRel3 != null : "could not implement exp";
+            final RelNode rootRel2 =
+                planner.changeTraits(rel, requiredOutputTraits);
+            assert rootRel2 != null;
+
+            planner.setRoot(rootRel2);
+            final RelOptPlanner planner2 = planner.chooseDelegate();
+            final RelNode rootRel3 = planner2.findBestExp();
+            assert rootRel3 != null : "could not implement exp";
+            return rootRel3;
+          }
+        };
+
+    final RelNode rootRel3 = program1.run(planner, rootRel, desiredTraits);
 
     // Second planner pass to do physical "tweaks". This the first time that
     // EnumerableCalcRel is introduced.
-    final HepProgram program = HepProgram.builder()
-        .addRuleInstance(JavaRules.ENUMERABLE_CALC_RULE)
-        .addRuleInstance(JavaRules.ENUMERABLE_FILTER_TO_CALC_RULE)
-        .addRuleInstance(JavaRules.ENUMERABLE_PROJECT_TO_CALC_RULE)
-        .addRuleInstance(MergeCalcRule.INSTANCE)
-        .addRuleInstance(MergeFilterOntoCalcRule.INSTANCE)
-        .addRuleInstance(MergeProjectOntoCalcRule.INSTANCE)
-        .addRuleInstance(FilterToCalcRule.INSTANCE)
-        .addRuleInstance(ProjectToCalcRule.INSTANCE)
-        .addRuleInstance(MergeCalcRule.INSTANCE)
-
-            // REVIEW jvs 9-Apr-2006: Do we still need these two?  Doesn't the
-            // combination of MergeCalcRule, FilterToCalcRule, and
-            // ProjectToCalcRule have the same effect?
-        .addRuleInstance(MergeFilterOntoCalcRule.INSTANCE)
-        .addRuleInstance(MergeProjectOntoCalcRule.INSTANCE)
-        .build();
-    final HepPlanner planner3 =
-        new HepPlanner(program, true,
-            Functions.<RelNode, RelNode, Void>ignore2(),
-            RelOptCostImpl.FACTORY);
-    List<RelMetadataProvider> list = Lists.newArrayList();
-    DefaultRelMetadataProvider defaultProvider =
-        new DefaultRelMetadataProvider();
-    list.add(defaultProvider);
-    planner3.registerMetadataProviders(list);
-    RelMetadataProvider plannerChain =
-        ChainedRelMetadataProvider.of(list);
-    rootRel3.getCluster().setMetadataProvider(plannerChain);
-    planner3.setRoot(rootRel3);
-
-    final RelNode rootRel4 = planner3.findBestExp();
+    final Program program2 =
+        Programs.hep(CALC_RULES, true, new DefaultRelMetadataProvider());
+    final RelNode rootRel4 = program2.run(null, rootRel3, null);
     if (LOGGER.isLoggable(Level.FINE)) {
       LOGGER.fine(
           "Plan after physical tweaks: "
