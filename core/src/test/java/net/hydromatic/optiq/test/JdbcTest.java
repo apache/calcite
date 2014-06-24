@@ -146,7 +146,7 @@ public class JdbcTest {
 
 
   public static final String START_OF_GROUP_DATA =
-      "values"
+      "(values"
       + "(1,0,1),\n"
       + "(2,0,1),\n"
       + "(3,1,2),\n"
@@ -3142,20 +3142,16 @@ public class JdbcTest {
             "deptno=20; R=4"); // 4 for rank and 2 for dense_rank
   }
 
-  /**
-   * Tests start_of_group approach for grouping of adjacent intervals.
-   * This is a step1, implemented as last_value.
-   * http://timurakhmadeev.wordpress.com/2013/07/21/start_of_group/
-   */
-  @Test public void testStartOfGroupLastValueStep1() {
+  private void startOfGroupStep1(String startOfGroup) {
     OptiqAssert.that()
         .with(OptiqAssert.Config.REGULAR)
         .query(
-                "select t.*\n"
+            "select t.*\n"
                 + "  from (\n"
                 + "       select  t.*,\n"
-                + "               case when val = last_value(val) over (order by rn rows between 1 preceding and 1 preceding) then 0 else 1 end start_of_group\n"
-                + "         from ("
+                + "               case when " + startOfGroup
+                + " then 0 else 1 end start_of_group\n"
+                + "         from "
                 + START_OF_GROUP_DATA
                 + ") t\n")
         .typeIs(
@@ -3169,25 +3165,20 @@ public class JdbcTest {
             "RN=6; VAL=0; EXPECTED=3; START_OF_GROUP=0",
             "RN=7; VAL=1; EXPECTED=4; START_OF_GROUP=1",
             "RN=8; VAL=1; EXPECTED=4; START_OF_GROUP=0");
-
   }
 
-  /**
-   * Tests start_of_group approach for grouping of adjacent intervals.
-   * This is a step2, that gets the final group numbers
-   * http://timurakhmadeev.wordpress.com/2013/07/21/start_of_group/
-   */
-  @Test public void testStartOfGroupLastValueStep2() {
+  private void startOfGroupStep2(String startOfGroup) {
     OptiqAssert.that()
         .with(OptiqAssert.Config.REGULAR)
         .query(
-                "select t.*\n"
+            "select t.*\n"
                 // current row is assumed, group_id should be NOT NULL
                 + "       ,sum(start_of_group) over (order by rn rows unbounded preceding) group_id\n"
                 + "  from (\n"
                 + "       select  t.*,\n"
-                + "               case when val = last_value(val) over (order by rn rows between 1 preceding and 1 preceding) then 0 else 1 end start_of_group\n"
-                + "         from ("
+                + "               case when " + startOfGroup
+                + " then 0 else 1 end start_of_group\n"
+                + "         from "
                 + START_OF_GROUP_DATA
                 + ") t\n")
         .typeIs(
@@ -3201,110 +3192,9 @@ public class JdbcTest {
             "RN=6; VAL=0; EXPECTED=3; START_OF_GROUP=0; GROUP_ID=3",
             "RN=7; VAL=1; EXPECTED=4; START_OF_GROUP=1; GROUP_ID=4",
             "RN=8; VAL=1; EXPECTED=4; START_OF_GROUP=0; GROUP_ID=4");
-
   }
 
-  /**
-   * Tests start_of_group approach for grouping of adjacent intervals.
-   * This is a step3, that aggregates the computed groups
-   * http://timurakhmadeev.wordpress.com/2013/07/21/start_of_group/
-   */
-  @Test public void testStartOfGroupLastValueStep3() {
-    OptiqAssert.that()
-        .with(OptiqAssert.Config.REGULAR)
-        .query(
-                "select group_id, min(rn) min_rn, max(rn) max_rn, count(rn) cnt_rn, avg(val) avg_val"
-                + " from (\n"
-                + "select t.*\n"
-                // current row is assumed, group_id should be NOT NULL
-                + "       ,sum(start_of_group) over (order by rn rows unbounded preceding) group_id\n"
-                + "  from (\n"
-                + "       select  t.*,\n"
-                + "               case when val = last_value(val) over (order by rn rows between 1 preceding and 1 preceding) then 0 else 1 end start_of_group\n"
-                + "         from ("
-                + START_OF_GROUP_DATA
-                + ") t\n"
-                + ") group by group_id\n")
-        .typeIs(
-            "[GROUP_ID INTEGER NOT NULL, MIN_RN INTEGER NOT NULL, MAX_RN INTEGER NOT NULL, CNT_RN BIGINT NOT NULL, AVG_VAL INTEGER NOT NULL]")
-        .returnsUnordered(
-            "GROUP_ID=1; MIN_RN=1; MAX_RN=2; CNT_RN=2; AVG_VAL=0",
-            "GROUP_ID=2; MIN_RN=3; MAX_RN=3; CNT_RN=1; AVG_VAL=1",
-            "GROUP_ID=3; MIN_RN=4; MAX_RN=6; CNT_RN=3; AVG_VAL=0",
-            "GROUP_ID=4; MIN_RN=7; MAX_RN=8; CNT_RN=2; AVG_VAL=1");
-
-  }
-
-  /**
-   * Tests start_of_group approach for grouping of adjacent intervals.
-   * This is a step1, implemented as last_value.
-   * http://timurakhmadeev.wordpress.com/2013/07/21/start_of_group/
-   */
-  @Ignore("LEAD/LAG is not implemented yet")
-  @Test public void testStartOfGroupLagStep1() {
-    OptiqAssert.that()
-        .with(OptiqAssert.Config.REGULAR)
-        .query(
-                "select t.*\n"
-                + "  from (\n"
-                + "       select  t.*,\n"
-                + "               case when val = lag(val) over (order by rn) then 0 else 1 end start_of_group\n"
-                + "         from ("
-                + START_OF_GROUP_DATA
-                + ") t\n")
-        .typeIs(
-            "[RN INTEGER NOT NULL, VAL INTEGER NOT NULL, EXPECTED INTEGER NOT NULL, START_OF_GROUP INTEGER NOT NULL]")
-        .returnsUnordered(
-            "RN=1; VAL=0; EXPECTED=1; START_OF_GROUP=1",
-            "RN=2; VAL=0; EXPECTED=1; START_OF_GROUP=0",
-            "RN=3; VAL=1; EXPECTED=2; START_OF_GROUP=1",
-            "RN=4; VAL=0; EXPECTED=3; START_OF_GROUP=1",
-            "RN=5; VAL=0; EXPECTED=3; START_OF_GROUP=0",
-            "RN=6; VAL=0; EXPECTED=3; START_OF_GROUP=0",
-            "RN=7; VAL=1; EXPECTED=4; START_OF_GROUP=1",
-            "RN=8; VAL=1; EXPECTED=4; START_OF_GROUP=0");
-
-  }
-
-  /**
-   * Tests start_of_group approach for grouping of adjacent intervals.
-   * This is a step2, that gets the final group numbers
-   * http://timurakhmadeev.wordpress.com/2013/07/21/start_of_group/
-   */
-  @Ignore("LEAD/LAG is not implemented yet")
-  @Test public void testStartOfGroupLagValueStep2() {
-    OptiqAssert.that()
-        .with(OptiqAssert.Config.REGULAR)
-        .query(
-                "select t.*\n"
-                + "       ,sum(start_of_group) over (order by rn rows between unbounded preceding and current row) group_id\n"
-                + "  from (\n"
-                + "       select  t.*,\n"
-                + "               case when val = lag(val) over (order by rn) then 0 else 1 end start_of_group\n"
-                + "         from ("
-                + START_OF_GROUP_DATA
-                + ") t\n")
-        .typeIs(
-            "[RN INTEGER NOT NULL, VAL INTEGER NOT NULL, EXPECTED INTEGER NOT NULL, START_OF_GROUP INTEGER NOT NULL, GROUP_ID INTEGER NOT NULL]")
-        .returnsUnordered(
-            "RN=1; VAL=0; EXPECTED=1; START_OF_GROUP=1; GROUP_ID=1",
-            "RN=2; VAL=0; EXPECTED=1; START_OF_GROUP=0; GROUP_ID=1",
-            "RN=3; VAL=1; EXPECTED=2; START_OF_GROUP=1; GROUP_ID=2",
-            "RN=4; VAL=0; EXPECTED=3; START_OF_GROUP=1; GROUP_ID=3",
-            "RN=5; VAL=0; EXPECTED=3; START_OF_GROUP=0; GROUP_ID=3",
-            "RN=6; VAL=0; EXPECTED=3; START_OF_GROUP=0; GROUP_ID=3",
-            "RN=7; VAL=1; EXPECTED=4; START_OF_GROUP=1; GROUP_ID=4",
-            "RN=8; VAL=1; EXPECTED=4; START_OF_GROUP=0; GROUP_ID=4");
-
-  }
-
-  /**
-   * Tests start_of_group approach for grouping of adjacent intervals.
-   * This is a step3, that aggregates the computed groups
-   * http://timurakhmadeev.wordpress.com/2013/07/21/start_of_group/
-   */
-  @Ignore("LEAD/LAG is not implemented yet")
-  @Test public void testStartOfGroupLagStep3() {
+  private void startOfGroupStep3(String startOfGroup) {
     OptiqAssert.that()
         .with(OptiqAssert.Config.REGULAR)
         .query(
@@ -3315,8 +3205,9 @@ public class JdbcTest {
                 + "       ,sum(start_of_group) over (order by rn rows unbounded preceding) group_id\n"
                 + "  from (\n"
                 + "       select  t.*,\n"
-                + "               case when val = lag(val) over (order by rn) then 0 else 1 end start_of_group\n"
-                + "         from ("
+                + "               case when " + startOfGroup
+                + " then 0 else 1 end start_of_group\n"
+                + "         from "
                 + START_OF_GROUP_DATA
                 + ") t\n"
                 + ") group by group_id\n")
@@ -3327,7 +3218,262 @@ public class JdbcTest {
             "GROUP_ID=2; MIN_RN=3; MAX_RN=3; CNT_RN=1; AVG_VAL=1",
             "GROUP_ID=3; MIN_RN=4; MAX_RN=6; CNT_RN=3; AVG_VAL=0",
             "GROUP_ID=4; MIN_RN=7; MAX_RN=8; CNT_RN=2; AVG_VAL=1");
+  }
 
+  /**
+   * Tests start_of_group approach for grouping of adjacent intervals.
+   * This is a step1, implemented as last_value.
+   * http://timurakhmadeev.wordpress.com/2013/07/21/start_of_group/
+   */
+  @Test public void testStartOfGroupLastValueStep1() {
+    startOfGroupStep1(
+        "val = last_value(val) over (order by rn rows between 1 preceding and 1 preceding)");
+  }
+
+  /**
+   * Tests start_of_group approach for grouping of adjacent intervals.
+   * This is a step2, that gets the final group numbers
+   * http://timurakhmadeev.wordpress.com/2013/07/21/start_of_group/
+   */
+  @Test public void testStartOfGroupLastValueStep2() {
+    startOfGroupStep2(
+        "val = last_value(val) over (order by rn rows between 1 preceding and 1 preceding)");
+  }
+
+  /**
+   * Tests start_of_group approach for grouping of adjacent intervals.
+   * This is a step3, that aggregates the computed groups
+   * http://timurakhmadeev.wordpress.com/2013/07/21/start_of_group/
+   */
+  @Test public void testStartOfGroupLastValueStep3() {
+    startOfGroupStep3(
+        "val = last_value(val) over (order by rn rows between 1 preceding and 1 preceding)");
+  }
+
+  /**
+   * Tests start_of_group approach for grouping of adjacent intervals.
+   * This is a step1, implemented as last_value.
+   * http://timurakhmadeev.wordpress.com/2013/07/21/start_of_group/
+   */
+  @Test public void testStartOfGroupLagStep1() {
+    startOfGroupStep1("val = lag(val) over (order by rn)");
+  }
+
+  /**
+   * Tests start_of_group approach for grouping of adjacent intervals.
+   * This is a step2, that gets the final group numbers
+   * http://timurakhmadeev.wordpress.com/2013/07/21/start_of_group/
+   */
+  @Test public void testStartOfGroupLagValueStep2() {
+    startOfGroupStep2("val = lag(val) over (order by rn)");
+  }
+
+  /**
+   * Tests start_of_group approach for grouping of adjacent intervals.
+   * This is a step3, that aggregates the computed groups
+   * http://timurakhmadeev.wordpress.com/2013/07/21/start_of_group/
+   */
+  @Test public void testStartOfGroupLagStep3() {
+    startOfGroupStep3("val = lag(val) over (order by rn)");
+  }
+
+  /**
+   * Tests start_of_group approach for grouping of adjacent intervals.
+   * This is a step1, implemented as last_value.
+   * http://timurakhmadeev.wordpress.com/2013/07/21/start_of_group/
+   */
+  @Test public void testStartOfGroupLeadStep1() {
+    startOfGroupStep1("val = lead(val, -1) over (order by rn)");
+  }
+
+  /**
+   * Tests start_of_group approach for grouping of adjacent intervals.
+   * This is a step2, that gets the final group numbers
+   * http://timurakhmadeev.wordpress.com/2013/07/21/start_of_group/
+   */
+  @Test public void testStartOfGroupLeadValueStep2() {
+    startOfGroupStep2("val = lead(val, -1) over (order by rn)");
+  }
+
+  /**
+   * Tests start_of_group approach for grouping of adjacent intervals.
+   * This is a step3, that aggregates the computed groups
+   * http://timurakhmadeev.wordpress.com/2013/07/21/start_of_group/
+   */
+  @Test public void testStartOfGroupLeadStep3() {
+    startOfGroupStep3("val = lead(val, -1) over (order by rn)");
+  }
+
+  /**
+   * Tests default value of LAG function.
+   */
+  @Test public void testLagDefaultValue() {
+    OptiqAssert.that()
+        .with(OptiqAssert.Config.REGULAR)
+        .query(
+            "select t.*, lag(rn+expected,1,42) over (order by rn) l\n"
+            + " from " + START_OF_GROUP_DATA)
+        .typeIs(
+            "[RN INTEGER NOT NULL, VAL INTEGER NOT NULL, EXPECTED INTEGER NOT NULL, L INTEGER NOT NULL]")
+        .returnsUnordered(
+            "RN=1; VAL=0; EXPECTED=1; L=42",
+            "RN=2; VAL=0; EXPECTED=1; L=2",
+            "RN=3; VAL=1; EXPECTED=2; L=3",
+            "RN=4; VAL=0; EXPECTED=3; L=5",
+            "RN=5; VAL=0; EXPECTED=3; L=7",
+            "RN=6; VAL=0; EXPECTED=3; L=8",
+            "RN=7; VAL=1; EXPECTED=4; L=9",
+            "RN=8; VAL=1; EXPECTED=4; L=11");
+  }
+
+  /**
+   * Tests default value of LEAD function.
+   */
+  @Test public void testLeadDefaultValue() {
+    OptiqAssert.that()
+        .with(OptiqAssert.Config.REGULAR)
+        .query(
+            "select t.*, lead(rn+expected,1,42) over (order by rn) l\n"
+            + " from " + START_OF_GROUP_DATA)
+        .typeIs(
+            "[RN INTEGER NOT NULL, VAL INTEGER NOT NULL, EXPECTED INTEGER NOT NULL, L INTEGER NOT NULL]")
+        .returnsUnordered(
+            "RN=1; VAL=0; EXPECTED=1; L=3",
+            "RN=2; VAL=0; EXPECTED=1; L=5",
+            "RN=3; VAL=1; EXPECTED=2; L=7",
+            "RN=4; VAL=0; EXPECTED=3; L=8",
+            "RN=5; VAL=0; EXPECTED=3; L=9",
+            "RN=6; VAL=0; EXPECTED=3; L=11",
+            "RN=7; VAL=1; EXPECTED=4; L=12",
+            "RN=8; VAL=1; EXPECTED=4; L=42");
+  }
+
+  /**
+   * Tests expression in offset value of LAG function.
+   */
+  @Test public void testLagExpressionOffset() {
+    OptiqAssert.that()
+        .with(OptiqAssert.Config.REGULAR)
+        .query(
+            "select t.*, lag(rn, expected, 42) over (order by rn) l\n"
+            + " from " + START_OF_GROUP_DATA)
+        .typeIs(
+            "[RN INTEGER NOT NULL, VAL INTEGER NOT NULL, EXPECTED INTEGER NOT NULL, L INTEGER NOT NULL]")
+        .returnsUnordered(
+            "RN=1; VAL=0; EXPECTED=1; L=42",
+            "RN=2; VAL=0; EXPECTED=1; L=1",
+            "RN=3; VAL=1; EXPECTED=2; L=1",
+            "RN=4; VAL=0; EXPECTED=3; L=1",
+            "RN=5; VAL=0; EXPECTED=3; L=2",
+            "RN=6; VAL=0; EXPECTED=3; L=3",
+            "RN=7; VAL=1; EXPECTED=4; L=3",
+            "RN=8; VAL=1; EXPECTED=4; L=4");
+  }
+
+  /**
+   * Tests DATE as offset argument of LAG function.
+   */
+  @Test public void testLagInvalidOffsetArgument() {
+    OptiqAssert.that()
+        .with(OptiqAssert.Config.REGULAR)
+        .query(
+            "select t.*, lag(rn, DATE '2014-06-20', 42) over (order by rn) l\n"
+            + " from " + START_OF_GROUP_DATA)
+        .throws_(
+            "Cannot apply 'LAG' to arguments of type 'LAG(<INTEGER>, <DATE>, <INTEGER>)'");
+  }
+
+  /**
+   * Tests NTILE(2).
+   */
+  @Test public void testNtile1() {
+    OptiqAssert.that()
+        .with(OptiqAssert.Config.REGULAR)
+        .query(
+            "select rn, ntile(1) over (order by rn) l\n"
+                + " from " + START_OF_GROUP_DATA)
+        .typeIs(
+            "[RN INTEGER NOT NULL, L INTEGER NOT NULL]")
+        .returnsUnordered(
+            "RN=1; L=1",
+            "RN=2; L=1",
+            "RN=3; L=1",
+            "RN=4; L=1",
+            "RN=5; L=1",
+            "RN=6; L=1",
+            "RN=7; L=1",
+            "RN=8; L=1");
+  }
+
+  /**
+   * Tests NTILE(2).
+   */
+  @Test public void testNtile2() {
+    OptiqAssert.that()
+        .with(OptiqAssert.Config.REGULAR)
+        .query(
+            "select rn, ntile(2) over (order by rn) l\n"
+                + " from " + START_OF_GROUP_DATA)
+        .typeIs(
+            "[RN INTEGER NOT NULL, L INTEGER NOT NULL]")
+        .returnsUnordered(
+            "RN=1; L=1",
+            "RN=2; L=1",
+            "RN=3; L=1",
+            "RN=4; L=1",
+            "RN=5; L=2",
+            "RN=6; L=2",
+            "RN=7; L=2",
+            "RN=8; L=2");
+  }
+
+  /**
+   * Tests expression in offset value of LAG function.
+   */
+  @Ignore("Have no idea how to validate that expression is constant")
+  @Test public void testNtileConstantArgs() {
+    OptiqAssert.that()
+        .with(OptiqAssert.Config.REGULAR)
+        .query(
+            "select rn, ntile(1+1) over (order by rn) l\n"
+                + " from " + START_OF_GROUP_DATA)
+        .typeIs(
+            "[RN INTEGER NOT NULL, VAL INTEGER NOT NULL, EXPECTED INTEGER NOT NULL, L INTEGER NOT NULL]")
+        .returnsUnordered(
+            "RN=1; L=1",
+            "RN=2; L=1",
+            "RN=3; L=1",
+            "RN=4; L=1",
+            "RN=5; L=2",
+            "RN=6; L=2",
+            "RN=7; L=2",
+            "RN=8; L=2");
+  }
+
+  /**
+   * Tests expression in offset value of LAG function.
+   */
+  @Test public void testNtileNegativeArg() {
+    OptiqAssert.that()
+        .with(OptiqAssert.Config.REGULAR)
+        .query(
+            "select rn, ntile(-1) over (order by rn) l\n"
+                + " from " + START_OF_GROUP_DATA)
+        .throws_(
+            "Argument to function 'NTILE' must be a positive integer literal");
+  }
+
+  /**
+   * Tests expression in offset value of LAG function.
+   */
+  @Test public void testNtileDecimalArg() {
+    OptiqAssert.that()
+        .with(OptiqAssert.Config.REGULAR)
+        .query(
+            "select rn, ntile(3.141592653) over (order by rn) l\n"
+                + " from " + START_OF_GROUP_DATA)
+        .throws_(
+            "Cannot apply 'NTILE' to arguments of type 'NTILE(<DECIMAL(10, 9)>)'");
   }
 
   /** Tests for FIRST_VALUE */

@@ -21,7 +21,7 @@ import org.eigenbase.sql.*;
 
 /**
  * SqlSingleOperandTypeChecker is an extension of {@link SqlOperandTypeChecker}
- * for implementations which are cabable of checking the type of a single
+ * for implementations which are capable of checking the type of a single
  * operand in isolation. This isn't meaningful for all type-checking rules (e.g.
  * SameOperandTypeChecker requires two operands to have matching types, so
  * checking one in isolation is meaningless).

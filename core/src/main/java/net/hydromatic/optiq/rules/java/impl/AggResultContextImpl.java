@@ -15,15 +15,30 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 */
-package net.hydromatic.optiq.rules.java;
+package net.hydromatic.optiq.rules.java.impl;
+
+import net.hydromatic.linq4j.expressions.BlockBuilder;
+import net.hydromatic.linq4j.expressions.Expression;
+
+import net.hydromatic.optiq.rules.java.AggResultContext;
+
+import java.util.List;
 
 /**
- * Information for a call to {@link AggImplementor#implementResult(AggContext, AggResultContext)}
- * Typically, the aggregation implementation will convert {@link #accumulator()}
- * to the resulting value of the aggregation.
- * The implementation MUST NOT destroy the contents of {@link #accumulator()}.
+ * Implementation of {@link net.hydromatic.optiq.rules.java.AggResultContext}
  */
-public interface AggResultContext extends NestedBlockBuilder, AggResetContext {
+public class AggResultContextImpl extends AggResetContextImpl
+    implements AggResultContext {
+  /**
+   * Creates aggregate result context
+   * @param block code block that will contain the result calculation statements
+   * @param accumulator accumulator variables that store the intermediate
+   *                    aggregate state
+   */
+  public AggResultContextImpl(BlockBuilder block,
+      List<Expression> accumulator) {
+    super(block, accumulator);
+  }
 }
 
 // End AggResultContext.java

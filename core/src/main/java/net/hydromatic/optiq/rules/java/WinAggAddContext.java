@@ -17,51 +17,27 @@
 */
 package net.hydromatic.optiq.rules.java;
 
-import net.hydromatic.linq4j.expressions.BlockBuilder;
 import net.hydromatic.linq4j.expressions.Expression;
-import net.hydromatic.linq4j.expressions.Expressions;
-
-import java.util.List;
 
 /**
  * Information for a call to {@link AggImplementor#implementAdd(AggContext, AggAddContext)}.
  * {@link WinAggAddContext} is used when implementing windowed aggregate.
- * Note: logically, {@link WinAggAddContext} should extend {@link WinAggResultContext},
- * however this would prohibit usage of the same {@link AggImplementor} for both
- * regular aggregate and window aggregate.
  * Typically, the aggregation implementation will use {@link #arguments()}
  * or {@link #rexArguments()} to update aggregate value.
- * @see net.hydromatic.optiq.rules.java.AggAddContext
+ * @see AggAddContext
  */
-public abstract class WinAggAddContext
-    extends AggAddContext
-    implements WinAggImplementor.WinAggFrameContext,
-      WinAggImplementor.WinAggFrameResultContext {
-  public WinAggAddContext(BlockBuilder block, List<Expression> accumulator) {
-    super(block, accumulator);
-  }
-
+public interface WinAggAddContext extends AggAddContext, WinAggResultContext {
   /**
    * Returns current position inside for-loop of window aggregate.
-   * Note, the position is relative to {@link WinAggImplementor.WinAggFrameContext#startIndex()}.
+   * Note, the position is relative to {@link WinAggFrameContext#startIndex()}.
    * This is NOT current row as in "rows between current row".
    * If you need to know the relative index of the current row in the partition,
-   * use {@link WinAggImplementor.WinAggFrameContext#index()}.
+   * use {@link WinAggFrameContext#index()}.
    * @return current position inside for-loop of window aggregate.
-   * @see WinAggImplementor.WinAggFrameContext#index()
-   * @see WinAggImplementor.WinAggFrameContext#startIndex()
+   * @see WinAggFrameContext#index()
+   * @see WinAggFrameContext#startIndex()
    */
-  public abstract Expression currentPosition();
-
-  public List<Expression> arguments(Expression rowIndex) {
-    return rowTranslator(rowIndex).translateList(rexArguments());
-  }
-
-  @Override
-  public final RexToLixTranslator rowTranslator() {
-    return rowTranslator(computeIndex(Expressions.constant(0),
-        WinAggImplementor.SeekType.AGG_INDEX));
-  }
+  Expression currentPosition();
 }
 
 // End WinAggAddContext.java

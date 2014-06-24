@@ -17,8 +17,9 @@
 */
 package net.hydromatic.optiq.rules.java;
 
-import net.hydromatic.linq4j.expressions.BlockBuilder;
 import net.hydromatic.linq4j.expressions.Expression;
+
+import org.eigenbase.rex.RexNode;
 
 import java.util.List;
 
@@ -26,30 +27,28 @@ import java.util.List;
  * Information for a call to {@link AggImplementor#implementResult(AggContext, AggResultContext)}
  * Typically, the aggregation implementation will convert {@link #accumulator()}
  * to the resulting value of the aggregation.
- * The implementation MUST NOT destroy the cotents of {@link #accumulator()}.
- * Note: logically, {@link WinAggResultContext} should extend {@link WinAggResetContext},
- * however this would prohibit usage of the same {@link AggImplementor} for both
- * regular aggregate and window aggregate.
+ * The implementation MUST NOT destroy the contents of {@link #accumulator()}.
  */
-public abstract class WinAggResultContext
-    extends AggResultContext
-    implements WinAggImplementor.WinAggFrameContext,
-      WinAggImplementor.WinAggFrameResultContext {
+public interface WinAggResultContext extends AggResultContext,
+    WinAggFrameResultContext {
+  /**
+   * Returns {@link org.eigenbase.rex.RexNode} representation of arguments.
+   * This can be useful for manual translation of required arguments with
+   * different {@link NullPolicy}.
+   * @return {@link org.eigenbase.rex.RexNode} representation of arguments
+   */
+  List<RexNode> rexArguments();
 
   /**
-   * Creates window aggregate result context.
-   * @param block code block that will contain the added initialization
-   * @param accumulator accumulator variables that store the intermediate
-   *                    aggregate state
+   * Returns Linq4j form of arguments.
+   * The resulting value is equivalent to
+   * {@code rowTranslator().translateList(rexArguments())}.
+   * This is handy if you need just operate on argument.
+   * @param rowIndex index of the requested row. The index must be in range
+   *                 of partition's startIndex and endIndex.
+   * @return Linq4j form of arguments of the particular row
    */
-  public WinAggResultContext(BlockBuilder block,
-      List<Expression> accumulator) {
-    super(block, accumulator);
-  }
-
-  public final List<Expression> arguments(Expression rowIndex) {
-    return rowTranslator(rowIndex).translateList(rexArguments());
-  }
+  List<Expression> arguments(Expression rowIndex);
 }
 
 // End WinAggResultContext.java

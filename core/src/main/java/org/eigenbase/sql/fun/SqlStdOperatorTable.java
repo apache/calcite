@@ -624,6 +624,24 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
       new SqlFirstLastValueAggFunction(true);
 
   /**
+   * <code>LEAD</code> aggregate function.
+   */
+  public static final SqlAggFunction LEAD =
+      new SqlLeadLagAggFunction(true);
+
+  /**
+   * <code>LAG</code> aggregate function.
+   */
+  public static final SqlAggFunction LAG =
+      new SqlLeadLagAggFunction(false);
+
+  /**
+   * <code>NTILE</code> aggregate function.
+   */
+  public static final SqlAggFunction NTILE =
+      new SqlNtileAggFunction();
+
+  /**
    * <code>SINGLE_VALUE</code> aggregate function.
    */
   public static final SqlAggFunction SINGLE_VALUE =

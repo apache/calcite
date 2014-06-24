@@ -78,4 +78,8 @@ public abstract class StrictWinAggImplementor extends StrictAggImplementor
     return implementNotNullResult((WinAggContext) info,
         (WinAggResultContext) result);
   }
+
+  public boolean needCacheWhenFrameIntact() {
+    return true;
+  }
 }

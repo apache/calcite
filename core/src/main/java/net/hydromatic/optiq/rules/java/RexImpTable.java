@@ -194,6 +194,9 @@ public class RexImpTable {
     winAggMap.put(FIRST_VALUE,
         constructorSupplier(FirstValueImplementor.class));
     winAggMap.put(LAST_VALUE, constructorSupplier(LastValueImplementor.class));
+    winAggMap.put(LEAD, constructorSupplier(LeadImplementor.class));
+    winAggMap.put(LAG, constructorSupplier(LagImplementor.class));
+    winAggMap.put(NTILE, constructorSupplier(NtileImplementor.class));
     winAggMap.put(COUNT, constructorSupplier(CountWinImplementor.class));
   }
 
@@ -774,7 +777,7 @@ public class RexImpTable {
   }
 
   static class CountWinImplementor extends StrictWinAggImplementor {
-    boolean justPartitionRowCount;
+    boolean justFrameRowCount;
 
     @Override
     public List<Type> getNotNullState(WinAggContext info) {
@@ -786,7 +789,7 @@ public class RexImpTable {
         }
       }
       if (!hasNullable) {
-        justPartitionRowCount = true;
+        justFrameRowCount = true;
         return Collections.emptyList();
       }
       return super.getNotNullState(info);
@@ -794,7 +797,7 @@ public class RexImpTable {
 
     @Override
     public void implementNotNullAdd(WinAggContext info, WinAggAddContext add) {
-      if (justPartitionRowCount) {
+      if (justFrameRowCount) {
         return;
       }
       add.currentBlock().add(Expressions.statement(
@@ -804,8 +807,8 @@ public class RexImpTable {
     @Override
     protected Expression implementNotNullResult(WinAggContext info,
         WinAggResultContext result) {
-      if (justPartitionRowCount) {
-        return result.getPartitionRowCount();
+      if (justFrameRowCount) {
+        return result.getFrameRowCount();
       }
       return super.implementNotNullResult(info, result);
     }
@@ -1034,13 +1037,18 @@ public class RexImpTable {
       // no op
     }
 
+    public boolean needCacheWhenFrameIntact() {
+      return true;
+    }
+
     public Expression implementResult(AggContext info,
         AggResultContext result) {
       WinAggResultContext winResult = (WinAggResultContext) result;
+
       return Expressions.condition(winResult.hasRows(),
-          RexToLixTranslator.convert(
-              winResult.arguments(winResult.computeIndex(
-              Expressions.constant(0), seekType)).get(0), info.returnType()),
+          winResult.rowTranslator(winResult.computeIndex(
+              Expressions.constant(0), seekType)).translate(
+              winResult.rexArguments().get(0), info.returnType()),
           getDefaultValue(info.returnType()));
     }
   }
@@ -1054,6 +1062,126 @@ public class RexImpTable {
   static class LastValueImplementor extends FirstLastValueImplementor {
     protected LastValueImplementor() {
       super(SeekType.END);
+    }
+  }
+
+  static class LeadLagImplementor implements WinAggImplementor {
+    private final boolean isLead;
+
+    protected LeadLagImplementor(boolean isLead) {
+      this.isLead = isLead;
+    }
+
+    public List<Type> getStateType(AggContext info) {
+      return Collections.emptyList();
+    }
+
+    public void implementReset(AggContext info, AggResetContext reset) {
+      // no op
+    }
+
+    public void implementAdd(AggContext info, AggAddContext add) {
+      // no op
+    }
+
+    public boolean needCacheWhenFrameIntact() {
+      return false;
+    }
+
+    public Expression implementResult(AggContext info,
+        AggResultContext result) {
+      WinAggResultContext winResult = (WinAggResultContext) result;
+
+      List<RexNode> rexArgs = winResult.rexArguments();
+
+      ParameterExpression res = Expressions.parameter(0, info.returnType(),
+          result.currentBlock().newName(isLead ? "lead" : "lag"));
+
+      Expression offset;
+      RexToLixTranslator currentRowTranslator =
+          winResult.rowTranslator(winResult.computeIndex(
+              Expressions.constant(0), SeekType.SET));
+      if (rexArgs.size() >= 2) {
+        // lead(x, offset) or lead(x, offset, default)
+        offset = currentRowTranslator.translate(
+            rexArgs.get(1), int.class);
+      } else {
+        offset = Expressions.constant(1);
+      }
+      if (!isLead) {
+        offset = Expressions.negate(offset);
+      }
+      Expression dstIndex = winResult.computeIndex(offset, SeekType.SET);
+
+      Expression rowInRange = winResult.rowInPartition(dstIndex);
+
+      BlockBuilder thenBlock = result.nestBlock();
+      Expression lagResult = winResult.rowTranslator(dstIndex).translate(
+          rexArgs.get(0), res.type);
+      thenBlock.add(Expressions.statement(Expressions.assign(res, lagResult)));
+      result.exitBlock();
+      BlockStatement thenBranch = thenBlock.toBlock();
+
+      Expression defaultValue = rexArgs.size() == 3
+          ? currentRowTranslator.translate(rexArgs.get(2), res.type)
+          : getDefaultValue(res.type);
+
+      result.currentBlock().add(Expressions.declare(0, res, null));
+      result.currentBlock().add(Expressions.ifThenElse(rowInRange, thenBranch,
+          Expressions.statement(Expressions.assign(res, defaultValue))));
+      return res;
+    }
+  }
+
+  public static class LeadImplementor extends LeadLagImplementor {
+    protected LeadImplementor() {
+      super(true);
+    }
+  }
+
+  public static class LagImplementor extends LeadLagImplementor {
+    protected LagImplementor() {
+      super(false);
+    }
+  }
+
+  static class NtileImplementor implements WinAggImplementor {
+    public List<Type> getStateType(AggContext info) {
+      return Collections.emptyList();
+    }
+
+    public void implementReset(AggContext info, AggResetContext reset) {
+      // no op
+    }
+
+    public void implementAdd(AggContext info, AggAddContext add) {
+      // no op
+    }
+
+    public boolean needCacheWhenFrameIntact() {
+      return false;
+    }
+
+    public Expression implementResult(AggContext info,
+        AggResultContext result) {
+      WinAggResultContext winResult = (WinAggResultContext) result;
+
+      List<RexNode> rexArgs = winResult.rexArguments();
+
+      Expression tiles =
+          winResult.rowTranslator(winResult.index()).translate(
+              rexArgs.get(0), int.class);
+
+      Expression ntile =
+          Expressions.add(Expressions.constant(1),
+              Expressions.divide(
+                  Expressions.multiply(
+                      tiles,
+                      Expressions.subtract(
+                          winResult.index(), winResult.startIndex())),
+                  winResult.getPartitionRowCount()));
+
+      return ntile;
     }
   }
 

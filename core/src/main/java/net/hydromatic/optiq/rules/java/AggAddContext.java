@@ -17,7 +17,6 @@
 */
 package net.hydromatic.optiq.rules.java;
 
-import net.hydromatic.linq4j.expressions.BlockBuilder;
 import net.hydromatic.linq4j.expressions.Expression;
 
 import org.eigenbase.rex.RexNode;
@@ -25,22 +24,18 @@ import org.eigenbase.rex.RexNode;
 import java.util.List;
 
 /**
- * Information for a call to {@link AggImplementor#implementAdd(AggContext, AggAddContext)}.
+ * Information for a call to {@link net.hydromatic.optiq.rules.java.AggImplementor#implementAdd(AggContext, AggAddContext)}.
  * Typically, the aggregation implementation will use {@link #arguments()}
  * or {@link #rexArguments()} to update aggregate value.
  */
-public abstract class AggAddContext extends AggResultContext {
-  public AggAddContext(BlockBuilder block, List<Expression> accumulator) {
-    super(block, accumulator);
-  }
-
+public interface AggAddContext extends AggResultContext {
   /**
-   * Returns {@link RexNode} representation of arguments.
+   * Returns {@link org.eigenbase.rex.RexNode} representation of arguments.
    * This can be useful for manual translation of required arguments with
-   * different {@link net.hydromatic.optiq.rules.java.NullPolicy}.
-   * @return {@link RexNode} representation of arguments
+   * different {@link NullPolicy}.
+   * @return {@link org.eigenbase.rex.RexNode} representation of arguments
    */
-  public abstract List<RexNode> rexArguments();
+  List<RexNode> rexArguments();
 
   /**
    * Returns Linq4j form of arguments.
@@ -49,14 +44,13 @@ public abstract class AggAddContext extends AggResultContext {
    * This is handy if you need just operate on argument.
    * @return Linq4j form of arguments.
    */
-  public final List<Expression> arguments() {
-    return rowTranslator().translateList(rexArguments());
-  }
+  List<Expression> arguments();
 
   /**
-   * Returns {@link RexToLixTranslator} suitable to transform the arguments.
-   * @return {@link RexToLixTranslator} suitable to transform the arguments.
+   * Returns {@link net.hydromatic.optiq.rules.java.RexToLixTranslator} suitable to transform the arguments.
+   * @return {@link net.hydromatic.optiq.rules.java.RexToLixTranslator} suitable to transform the arguments.
    */
-  public abstract RexToLixTranslator rowTranslator();
-
+  RexToLixTranslator rowTranslator();
 }
+
+// End AggAddContext.java

@@ -15,19 +15,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 */
-package net.hydromatic.optiq.rules.java;
 
 /**
- * Information for a call to {@link AggImplementor#implementReset(AggContext, AggResetContext)}.
- * {@link AggResetContext} provides access to the accumulator variables
- * that should be reset.
- * Note: the very first reset of windowed aggregates is performed with null
- * knowledge of indices and row count in the partition.
- * In other words, the implementation should treat indices and partition row
- * count as a hint to pre-size the collections.
+ * Optiq-specific classes for implementation of regular and window aggregates.
  */
-public interface WinAggResetContext
-    extends AggResetContext, WinAggFrameContext {
-}
+package net.hydromatic.optiq.rules.java.impl;
 
-// End WinAggResetContext.java
+// End package-info.java

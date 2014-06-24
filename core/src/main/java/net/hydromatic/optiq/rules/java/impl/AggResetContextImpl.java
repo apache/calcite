@@ -15,26 +15,37 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 */
-package net.hydromatic.optiq.rules.java;
+package net.hydromatic.optiq.rules.java.impl;
 
+import net.hydromatic.linq4j.expressions.BlockBuilder;
 import net.hydromatic.linq4j.expressions.Expression;
+
+import net.hydromatic.optiq.rules.java.AggResetContext;
+import net.hydromatic.optiq.rules.java.NestedBlockBuilderImpl;
 
 import java.util.List;
 
 /**
- * Information for a call to {@link AggImplementor#implementReset(AggContext, AggResetContext)}.
- * {@link AggResetContext} provides access to the accumulator variables
- * that should be reset.
+ * Implementation of {@link net.hydromatic.optiq.rules.java.AggResetContext}
  */
-public interface AggResetContext extends NestedBlockBuilder {
+public class AggResetContextImpl extends NestedBlockBuilderImpl
+    implements AggResetContext {
+  private final List<Expression> accumulator;
+
   /**
-   * Returns accumulator variables that should be reset.
-   * There MUST be an assignment even if you just assign the default value.
-   * @return accumulator variables that should be reset or empty list when no
-   *   accumulator variables are used by the aggregate implementation.
-   * @see AggImplementor#getStateType(net.hydromatic.optiq.rules.java.AggContext)
+   * Creates aggregate reset context
+   * @param block code block that will contain the added initialization
+   * @param accumulator accumulator variables that store the intermediate
+   *                    aggregate state
    */
-  List<Expression> accumulator();
+  public AggResetContextImpl(BlockBuilder block, List<Expression> accumulator) {
+    super(block);
+    this.accumulator = accumulator;
+  }
+
+  public List<Expression> accumulator() {
+    return accumulator;
+  }
 }
 
 // End AggResetContext.java

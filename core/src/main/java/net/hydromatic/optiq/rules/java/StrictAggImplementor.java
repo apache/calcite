@@ -64,9 +64,7 @@ public abstract class StrictAggImplementor implements AggImplementor {
         break;
       }
     }
-    trackNullsPerRow =
-        !(info instanceof WinAggImplementor.WinAggContext)
-            || hasNullableArgs;
+    trackNullsPerRow = !(info instanceof WinAggContext) || hasNullableArgs;
 
     List<Type> res = new ArrayList<Type>(subState.size() + 1);
     res.addAll(subState);

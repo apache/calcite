@@ -434,8 +434,12 @@ Not implemented:
 | ROW_NUMBER() OVER window
 | FIRST_VALUE(value) OVER window
 | LAST_VALUE(value) OVER window
+| LEAD(value, offset, default) OVER window
+| LAG(value, offset, default) OVER window
+| NTILE(value) OVER window
 
 Not implemented:
+* COUNT(DISTINCT value) OVER window
 * FIRST_VALUE(value) IGNORE NULLS OVER window
 * LAST_VALUE(value) IGNORE NULLS OVER window
 * PERCENT_RANK(value) OVER window

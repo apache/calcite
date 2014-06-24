@@ -294,6 +294,12 @@ public class CompositeOperandTypeChecker
       default:
         if (!rule.checkOperandTypes(callBinding, false)) {
           typeErrorCount++;
+          if (composition == Composition.AND) {
+            // Avoid trying other rules in AND if the first one fails.
+            break label;
+          }
+        } else if (composition == Composition.OR) {
+          break label; // true OR any == true, just break
         }
         break;
       }

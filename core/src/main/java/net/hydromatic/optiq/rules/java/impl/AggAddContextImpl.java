@@ -15,19 +15,25 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 */
-package net.hydromatic.optiq.rules.java;
+package net.hydromatic.optiq.rules.java.impl;
+
+import net.hydromatic.linq4j.expressions.BlockBuilder;
+import net.hydromatic.linq4j.expressions.Expression;
+
+import net.hydromatic.optiq.rules.java.AggAddContext;
+
+import java.util.List;
 
 /**
- * Information for a call to {@link AggImplementor#implementReset(AggContext, AggResetContext)}.
- * {@link AggResetContext} provides access to the accumulator variables
- * that should be reset.
- * Note: the very first reset of windowed aggregates is performed with null
- * knowledge of indices and row count in the partition.
- * In other words, the implementation should treat indices and partition row
- * count as a hint to pre-size the collections.
+ * Implementation of {@link net.hydromatic.optiq.rules.java.AggAddContext}.
  */
-public interface WinAggResetContext
-    extends AggResetContext, WinAggFrameContext {
-}
+public abstract class AggAddContextImpl extends AggResultContextImpl
+    implements AggAddContext {
+  public AggAddContextImpl(BlockBuilder block, List<Expression> accumulator) {
+    super(block, accumulator);
+  }
 
-// End WinAggResetContext.java
+  public final List<Expression> arguments() {
+    return rowTranslator().translateList(rexArguments());
+  }
+}
