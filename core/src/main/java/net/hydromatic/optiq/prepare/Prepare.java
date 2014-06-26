@@ -23,6 +23,7 @@ import net.hydromatic.optiq.jdbc.OptiqPrepare;
 import net.hydromatic.optiq.jdbc.OptiqSchema;
 import net.hydromatic.optiq.rules.java.JavaRules;
 import net.hydromatic.optiq.runtime.Bindable;
+import net.hydromatic.optiq.runtime.Hook;
 import net.hydromatic.optiq.runtime.Typed;
 import net.hydromatic.optiq.tools.Program;
 import net.hydromatic.optiq.tools.Programs;
@@ -215,6 +216,7 @@ public abstract class Prepare {
 
     RelNode rootRel =
         sqlToRelConverter.convertQuery(sqlQuery, needsValidation, true);
+    Hook.CONVERTED.run(rootRel);
 
     if (timingTracer != null) {
       timingTracer.traceTime("end sql2rel");

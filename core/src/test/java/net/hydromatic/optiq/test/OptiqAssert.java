@@ -29,6 +29,8 @@ import net.hydromatic.optiq.jdbc.MetaImpl;
 import net.hydromatic.optiq.jdbc.OptiqConnection;
 import net.hydromatic.optiq.runtime.Hook;
 
+import org.eigenbase.rel.RelNode;
+import org.eigenbase.relopt.RelOptUtil;
 import org.eigenbase.util.*;
 
 import com.google.common.collect.ImmutableList;
@@ -350,6 +352,35 @@ public class OptiqAssert {
     } catch (Throwable e) {
       throw new RuntimeException(message, e);
     }
+  }
+
+  static void assertPrepare(
+      Connection connection,
+      String sql,
+      boolean materializationsEnabled,
+      Function1<RelNode, Void> convertChecker) throws Exception {
+    final String message =
+        "With materializationsEnabled=" + materializationsEnabled;
+    final RelNode[] s = {null};
+    Hook.Closeable closeable = Hook.CONVERTED.addThread(
+        new Function1<Object, Object>() {
+          public Object apply(Object rel) {
+            s[0] = (RelNode) rel;
+            return null;
+          }
+        });
+    try {
+      ((OptiqConnection) connection).getProperties().setProperty(
+          "materializationsEnabled", Boolean.toString(materializationsEnabled));
+      PreparedStatement statement = connection.prepareStatement(sql);
+      statement.close();
+      connection.close();
+    } catch (Throwable e) {
+      throw new RuntimeException(message, e);
+    } finally {
+      closeable.close();
+    }
+    convertChecker.apply(s[0]);
   }
 
   static String toString(ResultSet resultSet) throws SQLException {
@@ -848,6 +879,29 @@ public class OptiqAssert {
         assertQuery(
             createConnection(), sql, limit, false,
             checkResultType(expected), null);
+        return this;
+      } catch (Exception e) {
+        throw new RuntimeException(
+            "exception while executing [" + sql + "]", e);
+      }
+    }
+
+    /** Checks that when the query (which was set using
+     * {@link AssertThat#query(String)}) is converted to a relational algrebra
+     * expression matching the given string. */
+    public AssertQuery convertContains(final String expected) {
+      try {
+        assertPrepare(
+            createConnection(),
+            sql,
+            false,
+            new Function1<RelNode, Void>() {
+              public Void apply(RelNode relNode) {
+                String s = RelOptUtil.toString(relNode);
+                assertThat(s, containsString(expected));
+                return null;
+              }
+            });
         return this;
       } catch (Exception e) {
         throw new RuntimeException(

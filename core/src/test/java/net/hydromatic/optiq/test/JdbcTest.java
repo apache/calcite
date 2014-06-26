@@ -3656,6 +3656,46 @@ public class JdbcTest {
         "ENAME=Wilma; DEPTNO=null; GENDER=F; M1=1; M2=1; M3=9");
   }
 
+  /** Tests that field-trimming creates a project near the table scan. */
+  @Test public void testTrimFields() throws Exception {
+    try {
+      Prepare.trim = true;
+      OptiqAssert.that()
+          .with(OptiqAssert.Config.REGULAR)
+          .query(
+            "select \"name\", count(\"commission\") + 1\n"
+            + "from \"hr\".\"emps\"\n"
+            + "group by \"deptno\", \"name\"")
+          .convertContains(
+              "ProjectRel(name=[$1], EXPR$1=[+($2, 1)])\n"
+              + "  AggregateRel(group=[{0, 1}], agg#0=[COUNT($2)])\n"
+              + "    ProjectRel(deptno=[$1], name=[$2], commission=[$4])\n"
+              + "      EnumerableTableAccessRel(table=[[hr, emps]])\n");
+    } finally {
+      Prepare.trim = false;
+    }
+  }
+
+  /** Tests that field-trimming creates a project near the table scan, in a
+   * query with windowed-aggregation. */
+  @Test public void testTrimFieldsOver() throws Exception {
+    try {
+      Prepare.trim = true;
+      OptiqAssert.that()
+          .with(OptiqAssert.Config.REGULAR)
+          .query(
+            "select \"name\", count(\"commission\") over (partition by \"deptno\") + 1\n"
+            + "from \"hr\".\"emps\"\n"
+            + "where \"empid\" > 10")
+          .convertContains(
+              "ProjectRel(name=[$2], EXPR$1=[+(CAST(COUNT($4) OVER (PARTITION BY $1 RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)):BIGINT, 1)])\n"
+              + "  FilterRel(condition=[>($0, 10)])\n"
+              + "    EnumerableTableAccessRel(table=[[hr, emps]])\n");
+    } finally {
+      Prepare.trim = false;
+    }
+  }
+
   /** Tests window aggregate whose argument is a constant. */
   @Test public void testWinAggConstant() {
     OptiqAssert.that()
