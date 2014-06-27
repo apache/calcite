@@ -40,6 +40,10 @@ public enum Hook {
   /** Called with the output of sql-to-rel-converter. */
   CONVERTED,
 
+  /** Called after de-correlation and field trimming, but before
+   * optimization. */
+  TRIMMED,
+
   /** Called when a constant expression is being reduced. */
   EXPRESSION_REDUCER,
 

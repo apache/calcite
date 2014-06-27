@@ -17,10 +17,19 @@
 */
 package net.hydromatic.optiq.impl.tpch;
 
+import net.hydromatic.linq4j.function.Function1;
+
 import net.hydromatic.optiq.test.OptiqAssert;
+
+import org.eigenbase.rel.RelNode;
+import org.eigenbase.relopt.RelOptUtil;
 
 import org.junit.Ignore;
 import org.junit.Test;
+
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.CoreMatchers.not;
+import static org.junit.Assert.assertThat;
 
 /** Unit test for {@link TpchSchema}.
  *
@@ -791,6 +800,18 @@ public class TpchTest {
     checkQuery(2);
   }
 
+  @Ignore("RelDecorrelator leaves a CorrelatorRel behind")
+  @Test public void testQuery02Conversion() {
+    query(2)
+        .convertMatches(new Function1<RelNode, Void>() {
+          public Void apply(RelNode relNode) {
+            String s = RelOptUtil.toString(relNode);
+            assertThat(s, not(containsString("CorrelatorRel")));
+            return null;
+          }
+        });
+  }
+
   @Test public void testQuery03() {
     checkQuery(3);
   }
@@ -885,9 +906,12 @@ public class TpchTest {
   }
 
   private void checkQuery(int i) {
-    with()
-        .query(QUERIES[i - 1].replaceAll("tpch\\.", "tpch_01."))
-        .runs();
+    query(i).runs();
+  }
+
+  private OptiqAssert.AssertQuery query(int i) {
+    return with()
+        .query(QUERIES[i - 1].replaceAll("tpch\\.", "tpch_01."));
   }
 }
 

@@ -255,6 +255,8 @@ public abstract class Prepare {
     // Trim unused fields.
     rootRel = trimUnusedFields(rootRel);
 
+    Hook.TRIMMED.run(rootRel);
+
     // Display physical plan after decorrelation.
     if (sqlExplain != null) {
       SqlExplain.Depth explainDepth = sqlExplain.getDepth();

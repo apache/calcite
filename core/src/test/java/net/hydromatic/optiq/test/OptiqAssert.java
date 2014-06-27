@@ -210,8 +210,7 @@ public class OptiqAssert {
         ++executeCount;
         try {
           final Collection result =
-              OptiqAssert.toStringList(
-                  resultSet,
+              OptiqAssert.toStringList(resultSet,
                   ordered ? new ArrayList<String>() : new TreeSet<String>());
           if (executeCount == 1) {
             expected = result;
@@ -358,14 +357,14 @@ public class OptiqAssert {
       Connection connection,
       String sql,
       boolean materializationsEnabled,
-      Function1<RelNode, Void> convertChecker) throws Exception {
+      final Function1<RelNode, Void> convertChecker) throws Exception {
     final String message =
         "With materializationsEnabled=" + materializationsEnabled;
-    final RelNode[] s = {null};
-    Hook.Closeable closeable = Hook.CONVERTED.addThread(
+    Hook.Closeable closeable = Hook.TRIMMED.addThread(
         new Function1<Object, Object>() {
-          public Object apply(Object rel) {
-            s[0] = (RelNode) rel;
+          public Object apply(Object a0) {
+            RelNode rel = (RelNode) a0;
+            convertChecker.apply(rel);
             return null;
           }
         });
@@ -380,7 +379,6 @@ public class OptiqAssert {
     } finally {
       closeable.close();
     }
-    convertChecker.apply(s[0]);
   }
 
   static String toString(ResultSet resultSet) throws SQLException {
@@ -887,25 +885,26 @@ public class OptiqAssert {
     }
 
     /** Checks that when the query (which was set using
-     * {@link AssertThat#query(String)}) is converted to a relational algrebra
+     * {@link AssertThat#query(String)}) is converted to a relational algebra
      * expression matching the given string. */
     public AssertQuery convertContains(final String expected) {
+      return convertMatches(
+          new Function1<RelNode, Void>() {
+            public Void apply(RelNode relNode) {
+              String s = RelOptUtil.toString(relNode);
+              assertThat(s, containsString(expected));
+              return null;
+            }
+          });
+    }
+
+    public AssertQuery convertMatches(final Function1<RelNode, Void> checker) {
       try {
-        assertPrepare(
-            createConnection(),
-            sql,
-            false,
-            new Function1<RelNode, Void>() {
-              public Void apply(RelNode relNode) {
-                String s = RelOptUtil.toString(relNode);
-                assertThat(s, containsString(expected));
-                return null;
-              }
-            });
+        assertPrepare(createConnection(), sql, false, checker);
         return this;
       } catch (Exception e) {
         throw new RuntimeException(
-            "exception while executing [" + sql + "]", e);
+            "exception while preparing [" + sql + "]", e);
       }
     }
 
@@ -1087,6 +1086,10 @@ public class OptiqAssert {
 
     @Override
     public AssertQuery runs() {
+      return this;
+    }
+
+    @Override public AssertQuery convertContains(String expected) {
       return this;
     }
 
