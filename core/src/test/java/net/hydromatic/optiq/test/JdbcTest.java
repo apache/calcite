@@ -3688,7 +3688,7 @@ public class JdbcTest {
             + "from \"hr\".\"emps\"\n"
             + "where \"empid\" > 10")
           .convertContains(
-              "ProjectRel(name=[$2], EXPR$1=[+(CAST(COUNT($3) OVER (PARTITION BY $1 RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)):BIGINT, 1)])\n"
+              "ProjectRel(name=[$2], EXPR$1=[+(COUNT($3) OVER (PARTITION BY $1 RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING), 1)])\n"
               + "  FilterRel(condition=[>($0, 10)])\n"
               + "    ProjectRel(empid=[$0], deptno=[$1], name=[$2], commission=[$4])\n"
               + "      EnumerableTableAccessRel(table=[[hr, emps]])\n");
