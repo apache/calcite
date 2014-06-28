@@ -1180,8 +1180,7 @@ public class JavaRules {
                     childExp,
                     BuiltinMethod.DISTINCT.method,
                     Expressions.<Expression>list()
-                        .appendIfNotNull(
-                            keyPhysType.comparer()))));
+                        .appendIfNotNull(physType.comparer()))));
       } else {
         final Expression resultSelector =
             builder.append(
