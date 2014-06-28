@@ -17,10 +17,10 @@ New features
 * [<a href="https://issues.apache.org/jira/browse/OPTIQ-294">OPTIQ-294</a>]
   Implement DENSE_RANK windowed aggregate function
 * SqlRun utility
-** [<a href="https://issues.apache.org/jira/browse/OPTIQ-290">OPTIQ-290</a>]
-   Add `SqlRun`, an idempotent utility for running SQL test scripts
-** Add "!skip" command to SqlRun.
-** Add MySQL formatting mode to SqlRun.
+  * [<a href="https://issues.apache.org/jira/browse/OPTIQ-290">OPTIQ-290</a>]
+    Add `SqlRun`, an idempotent utility for running SQL test scripts
+  * Add "!skip" command to SqlRun.
+  * Add MySQL formatting mode to SqlRun.
 
 API changes
 * Re-organize planner initialization,
@@ -30,9 +30,9 @@ API changes
 * [<a href="https://issues.apache.org/jira/browse/OPTIQ-263">OPTIQ-263</a>]
   Add operand type that will cause a rule to fire when a new subset is created
 * Clean up and document SqlKind.
-** Add `IS_NOT_TRUE` and `IS_NOT_FALSE` `SqlKind` enums.
-** Add `SqlKind.IS_NOT_NULL` enum value, and use where possible,
-   including for `IS_NOT_UNKNOWN` operator.
+  * Add `IS_NOT_TRUE` and `IS_NOT_FALSE` `SqlKind` enums.
+  * Add `SqlKind.IS_NOT_NULL` enum value, and use where possible,
+    including for `IS_NOT_UNKNOWN` operator.
 
 Bug-fixes and internal changes
 * [<a href="https://issues.apache.org/jira/browse/OPTIQ-312">OPTIQ-312</a>]
@@ -48,7 +48,7 @@ Bug-fixes and internal changes
 * Add method `IntPair.zip`.
 * Reimplement regular and windowed aggregates
 * Switch from github to Apache JIRA for issues tracking.
-** In release history, update issue URLs from github to Apache JIRA
+  * In release history, update issue URLs from github to Apache JIRA
 * The Apache mailing list is now the official mailing list. Add presentations.
 * Add test for overloaded UDF.
 * Add tests for `NOT IN` where sub-query returns NULL values.
@@ -146,7 +146,7 @@ New features
   User-defined table macros
 * [<a href="https://issues.apache.org/jira/browse/OPTIQ-179">OPTIQ-179</a>]
   Optiq on Windows
-** Add `sqlline.bat` and fix issues running `sqlline` under Cygwin.
+  * Add `sqlline.bat` and fix issues running `sqlline` under Cygwin.
 * [<a href="https://issues.apache.org/jira/browse/OPTIQ-195">OPTIQ-195</a>]
   Push aggregation into MongoDB adapter
 * [<a href="https://issues.apache.org/jira/browse/OPTIQ-193">OPTIQ-193</a>]
@@ -270,11 +270,11 @@ API changes
 * [<a href="https://issues.apache.org/jira/browse/OPTIQ-147">OPTIQ-147</a>]
   Create a new kind of `SqlCall` that keeps operands in fields, not an operands
   array
-** Very widely used parse tree nodes with complex operands, including
-   `SqlSelect`, `SqlJoin`, `SqlInsert`, and a new node type `SqlOrderBy`, are now
-   sub-classes of `SqlCall` but not `SqlBasicCall`.
-** (**This is a breaking change** to code that assumes that, say,
-   `SqlSelect` has an `operands` field.)
+  * Very widely used parse tree nodes with complex operands, including
+    `SqlSelect`, `SqlJoin`, `SqlInsert`, and a new node type `SqlOrderBy`, are now
+    sub-classes of `SqlCall` but not `SqlBasicCall`.
+  * (**This is a breaking change** to code that assumes that, say,
+    `SqlSelect` has an `operands` field.)
 * Convert all enum constants to upper-case.
   (**This is a breaking change**.)
 
@@ -428,7 +428,6 @@ Bug fixes and internal changes
 ## <a href="https://github.com/julianhyde/optiq/releases/tag/optiq-parent-0.4.17">0.4.17</a> / 2014-01-13
 
 API changes
-
 * [<a href="https://issues.apache.org/jira/browse/OPTIQ-106">OPTIQ-106</a>]
   Make `Schema` and `Table` SPIs simpler to implement, and make them
   re-usable across connections
@@ -451,7 +450,6 @@ API changes
   Externalize RelNode to and from JSON
 
 Tuning
-
 * If `EnumerableAggregateRel` has no aggregate functions, generate a
    call to `Enumerable.distinct()`, thereby saving the effort of
    building trivial accumulators.
@@ -477,11 +475,10 @@ Tuning
   a fast O(n) get, and fast scan.
 
 Other
-
 * [<a href="https://issues.apache.org/jira/browse/OPTIQ-87">OPTIQ-87</a>]
   Constant folding
-** Rules for constant-expression reduction, and to simplify/eliminate
-   `VALUES` operator.
+  * Rules for constant-expression reduction, and to simplify/eliminate
+    `VALUES` operator.
 * Graph algorithms: Implement breadth-first iterator and cycle-detector.
 * Fix bug in planner which occurred when two `RelNode`s have identical
   digest but different row-type.
@@ -515,7 +512,12 @@ Other
 * Fix JDBC column, table, schema names for when the table is not in a schema of depth 1.
 * [<a href="https://issues.apache.org/jira/browse/OPTIQ-85">OPTIQ-85</a>]
   Adding a table to the root schema causes breakage in OptiqPrepareImpl
-* Extract Optiq's JDBC driver as a new JDBC driver framework, Avatica ([<a href="https://issues.apache.org/jira/browse/OPTIQ-84">OPTIQ-84</a>). Other projects can use this to implement a JDBC driver by implementing just a few methods. If you wish to use Optiq's JDBC driver, you will now need to include optiq-avatica.jar in addition to optiq-core.jar. Avatica does not depend on anything besides the standard Java library.
+* [<a href="https://issues.apache.org/jira/browse/OPTIQ-84">OPTIQ-84</a>]
+  Extract Optiq's JDBC driver as a new JDBC driver framework, Avatica.
+  Other projects can use this to implement a JDBC driver by implementing
+  just a few methods. If you wish to use Optiq's JDBC driver, you will
+  now need to include optiq-avatica.jar in addition to optiq-core.jar.
+  Avatica does not depend on anything besides the standard Java library.
 * Support for parameters in PreparedStatement.
 * First steps in recognizing complex materializations. Internally we introduce a concept called a "star table", virtual table composed of real tables joined together via many-to-one relationships. The queries that define materializations and end-user queries are canonized in terms of star tables. Matching (not done yet) will then be a matter of looking for sort, groupBy, project. It is not yet possible to define a star in an Optiq model file.
 * Add section to <a href="HOWTO.md">HOWTO</a> on implementing adapters.
