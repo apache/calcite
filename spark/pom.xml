@@ -3,12 +3,12 @@
   <parent>
     <groupId>net.hydromatic</groupId>
     <artifactId>optiq-parent</artifactId>
-    <version>0.8</version>
+    <version>0.9-SNAPSHOT</version>
   </parent>
 
   <artifactId>optiq-spark</artifactId>
   <packaging>jar</packaging>
-  <version>0.8</version>
+  <version>0.9-SNAPSHOT</version>
   <name>optiq-spark</name>
 
   <properties>
@@ -19,12 +19,12 @@
     <dependency>
       <groupId>net.hydromatic</groupId>
       <artifactId>optiq-core</artifactId>
-      <version>0.8</version>
+      <version>0.9-SNAPSHOT</version>
     </dependency>
     <dependency>
       <groupId>net.hydromatic</groupId>
       <artifactId>optiq-core</artifactId>
-      <version>0.8</version>
+      <version>0.9-SNAPSHOT</version>
       <type>test-jar</type>
       <scope>test</scope>
     </dependency>
