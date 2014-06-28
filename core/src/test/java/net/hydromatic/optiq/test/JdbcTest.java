@@ -3659,7 +3659,7 @@ public class JdbcTest {
   /** Tests that field-trimming creates a project near the table scan. */
   @Test public void testTrimFields() throws Exception {
     try {
-      Prepare.trim = true;
+      Prepare.THREAD_TRIM.set(true);
       OptiqAssert.that()
           .with(OptiqAssert.Config.REGULAR)
           .query(
@@ -3672,7 +3672,7 @@ public class JdbcTest {
               + "    ProjectRel(deptno=[$1], name=[$2], commission=[$4])\n"
               + "      EnumerableTableAccessRel(table=[[hr, emps]])\n");
     } finally {
-      Prepare.trim = false;
+      Prepare.THREAD_TRIM.set(false);
     }
   }
 
@@ -3680,7 +3680,7 @@ public class JdbcTest {
    * query with windowed-aggregation. */
   @Test public void testTrimFieldsOver() throws Exception {
     try {
-      Prepare.trim = true;
+      Prepare.THREAD_TRIM.set(true);
       OptiqAssert.that()
           .with(OptiqAssert.Config.REGULAR)
           .query(
@@ -3693,7 +3693,7 @@ public class JdbcTest {
               + "    ProjectRel(empid=[$0], deptno=[$1], name=[$2], commission=[$4])\n"
               + "      EnumerableTableAccessRel(table=[[hr, emps]])\n");
     } finally {
-      Prepare.trim = false;
+      Prepare.THREAD_TRIM.set(false);
     }
   }
 

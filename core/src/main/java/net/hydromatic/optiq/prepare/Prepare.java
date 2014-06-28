@@ -84,7 +84,13 @@ public abstract class Prepare {
   protected List<List<String>> fieldOrigins;
   protected RelDataType parameterRowType;
 
-  public static boolean trim = false; // temporary. for testing.
+  // temporary. for testing.
+  public static final ThreadLocal<Boolean> THREAD_TRIM =
+      new ThreadLocal<Boolean>() {
+        @Override protected Boolean initialValue() {
+          return false;
+        }
+      };
 
   public Prepare(OptiqPrepare.Context context, CatalogReader catalogReader,
       Convention resultConvention) {
@@ -353,7 +359,7 @@ public abstract class Prepare {
     // For now, don't trim if there are more than 3 joins. The projects
     // near the leaves created by trim migrate past joins and seem to
     // prevent join-reordering.
-    return trim || RelOptUtil.countJoins(rootRel) < 2;
+    return THREAD_TRIM.get() || RelOptUtil.countJoins(rootRel) < 2;
   }
 
   /**

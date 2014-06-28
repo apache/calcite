@@ -67,7 +67,7 @@ public class MaterializationTest {
 
   @Test public void testFilterQueryOnProjectView() {
     try {
-      Prepare.trim = true;
+      Prepare.THREAD_TRIM.set(true);
       MaterializationService.setThreadLocal();
       OptiqAssert.that()
           .with(OptiqAssert.Config.REGULAR)
@@ -82,7 +82,7 @@ public class MaterializationTest {
               "EnumerableTableAccessRel(table=[[hr, m0]])")
           .sameResultWithMaterializationsDisabled();
     } finally {
-      Prepare.trim = false;
+      Prepare.THREAD_TRIM.set(false);
     }
   }
 
@@ -97,7 +97,7 @@ public class MaterializationTest {
   private void checkMaterialize(String materialize, String query, String model,
       Function1<ResultSet, Void> checker) {
     try {
-      Prepare.trim = true;
+      Prepare.THREAD_TRIM.set(true);
       MaterializationService.setThreadLocal();
       OptiqAssert.that()
           .with(OptiqAssert.Config.REGULAR)
@@ -107,7 +107,7 @@ public class MaterializationTest {
           .explainMatches(checker)
           .sameResultWithMaterializationsDisabled();
     } finally {
-      Prepare.trim = false;
+      Prepare.THREAD_TRIM.set(false);
     }
   }
 
@@ -116,7 +116,7 @@ public class MaterializationTest {
   private void checkNoMaterialize(String materialize, String query,
       String model) {
     try {
-      Prepare.trim = true;
+      Prepare.THREAD_TRIM.set(true);
       MaterializationService.setThreadLocal();
       OptiqAssert.that()
           .with(OptiqAssert.Config.REGULAR)
@@ -126,7 +126,7 @@ public class MaterializationTest {
           .explainContains(
               "EnumerableTableAccessRel(table=[[hr, emps]])");
     } finally {
-      Prepare.trim = false;
+      Prepare.THREAD_TRIM.set(false);
     }
   }
 
