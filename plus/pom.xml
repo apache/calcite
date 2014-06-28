@@ -3,12 +3,12 @@
   <parent>
     <groupId>net.hydromatic</groupId>
     <artifactId>optiq-parent</artifactId>
-    <version>0.8-SNAPSHOT</version>
+    <version>0.8</version>
   </parent>
 
   <artifactId>optiq-plus</artifactId>
   <packaging>jar</packaging>
-  <version>0.8-SNAPSHOT</version>
+  <version>0.8</version>
   <name>optiq-plus</name>
   <description>Miscellaneous extras for Optiq.</description>
 
@@ -20,13 +20,13 @@
     <dependency>
       <groupId>net.hydromatic</groupId>
       <artifactId>optiq-core</artifactId>
-      <version>0.8-SNAPSHOT</version>
+      <version>0.8</version>
       <type>jar</type>
     </dependency>
     <dependency>
       <groupId>net.hydromatic</groupId>
       <artifactId>optiq-core</artifactId>
-      <version>0.8-SNAPSHOT</version>
+      <version>0.8</version>
       <type>test-jar</type>
       <scope>test</scope>
     </dependency>
