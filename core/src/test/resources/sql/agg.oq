@@ -48,9 +48,7 @@ select count(deptno, ename, 1, deptno) as c from emp;
 !ok
 !}
 
-!use foodmart
-
-select city, gender as c from "emps";
+select city, gender as c from emps;
 +---------------+---+
 | CITY          | C |
 +---------------+---+
@@ -65,7 +63,7 @@ select city, gender as c from "emps";
 !ok
 
 # SELECT DISTINCT includes fully and partially null rows
-select distinct city, gender from "emps";
+select distinct city, gender from emps;
 +---------------+--------+
 | CITY          | GENDER |
 +---------------+--------+
@@ -80,7 +78,7 @@ select distinct city, gender from "emps";
 !ok
 
 # COUNT excludes fully or partially null rows
-select count(city, gender) as c from "emps";
+select count(city, gender) as c from emps;
 +---+
 | C |
 +---+
@@ -91,7 +89,7 @@ select count(city, gender) as c from "emps";
 !ok
 
 # COUNT-DISTINCT excludes fully or partially null rows
-select count(distinct city, gender) as c from "emps";
+select count(distinct city, gender) as c from emps;
 +---+
 | C |
 +---+
@@ -101,7 +99,7 @@ select count(distinct city, gender) as c from "emps";
 
 !ok
 
-select distinct mod(deptno, 20) as m, gender as c from "emps";
+select distinct mod(deptno, 20) as m, gender as c from emps;
 +----+---+
 | M  | C |
 +----+---+
@@ -114,7 +112,7 @@ select distinct mod(deptno, 20) as m, gender as c from "emps";
 !ok
 
 # Partially null row (10, NULL) is excluded from count.
-select count(distinct mod(deptno, 20), gender) as c from "emps";
+select count(distinct mod(deptno, 20), gender) as c from emps;
 +---+
 | C |
 +---+
@@ -124,7 +122,7 @@ select count(distinct mod(deptno, 20), gender) as c from "emps";
 
 !ok
 
-select count(mod(deptno, 20), gender) as c from "emps";
+select count(mod(deptno, 20), gender) as c from emps;
 +---+
 | C |
 +---+

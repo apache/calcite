@@ -526,6 +526,17 @@ public class OptiqAssert {
               + "    (30, 'Engineering'),\n"
               + "    (40, 'Empty')) as t(deptno, dname)",
               ImmutableList.<String>of()));
+      post.add("EMPS",
+          ViewTable.viewMacro(
+              post,
+              "select * from (values\n"
+              + "    (100, 'Fred',  10, CAST(NULL AS CHAR(1)), CAST(NULL AS VARCHAR(20)), 40,               25, TRUE,    FALSE, DATE '1996-08-03'),\n"
+              + "    (110, 'Eric',  20, 'M',                   'San Francisco',           3,                80, UNKNOWN, FALSE, DATE '2001-01-01'),\n"
+              + "    (110, 'John',  40, 'M',                   'Vancouver',               2, CAST(NULL AS INT), FALSE,   TRUE,  DATE '2002-05-03'),\n"
+              + "    (120, 'Wilma', 20, 'F',                   CAST(NULL AS VARCHAR(20)), 1,                 5, UNKNOWN, TRUE,  DATE '2005-09-07'),\n"
+              + "    (130, 'Alice', 40, 'F',                   'Vancouver',               2, CAST(NULL AS INT), FALSE,   TRUE,  DATE '2007-01-01'))\n"
+              + " as t(empno, name, deptno, gender, city, empid, age, slacker, manager, joinedat)",
+              ImmutableList.<String>of()));
     }
     if (schemaList.contains("metadata")) {
       // always present
