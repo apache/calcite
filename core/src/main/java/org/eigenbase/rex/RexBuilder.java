@@ -262,32 +262,15 @@ public class RexBuilder {
 
   /**
    * Creates a reference to an aggregate call, checking for repeated calls.
+   *
+   * <p>Argument types help to optimize for repeated aggregates.
+   * For instance count(42) is equivalent to count(*).</p>
+   *
    * @param aggCall aggregate call to be added
    * @param groupCount number of groups in the aggregate relation
    * @param aggCalls destination list of aggregate calls
    * @param aggCallMapping the dictionary of already added calls
-   * @return Rex expression for the given aggregate call
-   * @deprecated Use {@link #addAggCall(org.eigenbase.rel.AggregateCall, int, java.util.List, java.util.Map, java.util.List)}
-   * Will be removed before optiq-0.9.
-   */
-  @Deprecated
-  public RexNode addAggCall(
-      AggregateCall aggCall,
-      int groupCount,
-      List<AggregateCall> aggCalls,
-      Map<AggregateCall, RexNode> aggCallMapping) {
-    Bug.upgrade("remove before optiq-0.9");
-    return addAggCall(aggCall, groupCount, aggCalls, aggCallMapping, null);
-  }
-
-  /**
-   * Creates a reference to an aggregate call, checking for repeated calls.
-   * Argument types help to optimize for repeated aggregates.
-   * For instance count(42) is equivalent to count(*)
-   * @param aggCall aggregate call to be added
-   * @param groupCount number of groups in the aggregate relation
-   * @param aggCalls destination list of aggregate calls
-   * @param aggCallMapping the dictionary of already added calls
+   * @param aggArgTypes Argument types, not null
    * @return Rex expression for the given aggregate call
    */
   public RexNode addAggCall(
@@ -295,20 +278,14 @@ public class RexBuilder {
       int groupCount,
       List<AggregateCall> aggCalls,
       Map<AggregateCall, RexNode> aggCallMapping,
-      List<RelDataType> aggArgTypes) {
+      final List<RelDataType> aggArgTypes) {
     if (aggCall.getAggregation() instanceof SqlCountAggFunction
-        && aggArgTypes != null && !aggArgTypes.isEmpty()
         && !aggCall.isDistinct()) {
-      boolean hasNotNullArg = false;
-      for (RelDataType type : aggArgTypes) {
-        if (!type.isNullable()) {
-          hasNotNullArg = true;
-          break;
-        }
-      }
-      if (hasNotNullArg) {
+      final List<Integer> notNullArgList =
+          nullableArgs(aggCall.getArgList(), aggArgTypes);
+      if (!notNullArgList.equals(aggCall.getArgList())) {
         aggCall = new AggregateCall(aggCall.getAggregation(),
-            aggCall.isDistinct(), ImmutableList.<Integer>of(),
+            aggCall.isDistinct(), notNullArgList,
             aggCall.getType(), aggCall.getName());
       }
     }
@@ -320,6 +297,17 @@ public class RexBuilder {
       aggCallMapping.put(aggCall, rex);
     }
     return rex;
+  }
+
+  private static List<Integer> nullableArgs(List<Integer> list0,
+      List<RelDataType> types) {
+    final List<Integer> list = new ArrayList<Integer>();
+    for (Pair<Integer, RelDataType> pair : Pair.zip(list0, types)) {
+      if (pair.right.isNullable()) {
+        list.add(pair.left);
+      }
+    }
+    return list;
   }
 
   /**

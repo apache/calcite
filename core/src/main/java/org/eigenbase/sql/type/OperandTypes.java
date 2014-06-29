@@ -99,21 +99,30 @@ public abstract class OperandTypes {
    * number or type of operands.
    */
   public static final SqlOperandTypeChecker VARIADIC =
-      new SqlOperandTypeChecker() {
-        public boolean checkOperandTypes(
-            SqlCallBinding callBinding,
-            boolean throwOnFailure) {
-          return true;
-        }
+      variadic(SqlOperandCountRanges.any());
 
-        public SqlOperandCountRange getOperandCountRange() {
-          return SqlOperandCountRanges.any();
-        }
+  /** Operand type-checking strategy that allows one or more operands. */
+  public static final SqlOperandTypeChecker ONE_OR_MORE =
+      variadic(SqlOperandCountRanges.from(1));
 
-        public String getAllowedSignatures(SqlOperator op, String opName) {
-          return opName + "(...)";
-        }
-      };
+  private static SqlOperandTypeChecker variadic(
+      final SqlOperandCountRange range) {
+    return new SqlOperandTypeChecker() {
+      public boolean checkOperandTypes(
+          SqlCallBinding callBinding,
+          boolean throwOnFailure) {
+        return range.isValidCount(callBinding.getOperandCount());
+      }
+
+      public SqlOperandCountRange getOperandCountRange() {
+        return range;
+      }
+
+      public String getAllowedSignatures(SqlOperator op, String opName) {
+        return opName + "(...)";
+      }
+    };
+  }
 
   public static final SqlSingleOperandTypeChecker BOOLEAN =
       family(SqlTypeFamily.BOOLEAN);

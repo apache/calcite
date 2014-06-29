@@ -73,6 +73,9 @@ import org.eigenbase.util.*;
  * names in a particular clause of a SQL statement.</p>
  */
 public interface SqlValidator {
+  /** Whether to follow the SQL standard strictly. */
+  boolean STRICT = Util.first(Boolean.getBoolean("optiq.strict.sql"), false);
+
   //~ Methods ----------------------------------------------------------------
 
   /**

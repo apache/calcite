@@ -42,7 +42,9 @@ public class SqlCountAggFunction extends SqlAggFunction {
         SqlKind.OTHER_FUNCTION,
         ReturnTypes.BIGINT,
         null,
-        OperandTypes.ANY,
+        SqlValidator.STRICT
+            ? OperandTypes.ANY
+            : OperandTypes.ONE_OR_MORE,
         SqlFunctionCategory.NUMERIC);
   }
 

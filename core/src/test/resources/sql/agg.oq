@@ -1,200 +1,137 @@
-# outer.oq - Various kinds of outer join
+# agg.oq - Aggregate functions
 !use post
 !set outputformat mysql
 
-select * from emp;
-+-------+--------+--------+
-| ENAME | DEPTNO | GENDER |
-+-------+--------+--------+
-| Jane  |     10 | F      |
-| Bob   |     10 | M      |
-| Eric  |     20 | M      |
-| Susan |     30 | F      |
-| Alice |     30 | F      |
-| Adam  |     50 | M      |
-| Eve   |     50 | F      |
-| Grace |     60 | F      |
-| Wilma |        | F      |
-+-------+--------+--------+
-(9 rows)
+# count(*) returns number of rows in table
+select count(ename) as c from emp;
++---+
+| C |
++---+
+| 9 |
++---+
+(1 row)
 
 !ok
-select * from emp join dept on emp.deptno = dept.deptno;
-+-------+--------+--------+---------+-------------+
-| ENAME | DEPTNO | GENDER | DEPTNO0 | DNAME       |
-+-------+--------+--------+---------+-------------+
-| Jane  |     10 | F      |      10 | Sales       |
-| Bob   |     10 | M      |      10 | Sales       |
-| Eric  |     20 | M      |      20 | Marketing   |
-| Susan |     30 | F      |      30 | Engineering |
-| Alice |     30 | F      |      30 | Engineering |
-+-------+--------+--------+---------+-------------+
+
+# count of not-nullable column same as count(*)
+select count(ename) as c from emp;
++---+
+| C |
++---+
+| 9 |
++---+
+(1 row)
+
+!ok
+
+# count of nullable column
+select count(deptno) as c from emp;
++---+
+| C |
++---+
+| 8 |
++---+
+(1 row)
+
+!ok
+
+# composite count
+!if (false) {
+select count(deptno, ename, 1, deptno) as c from emp;
++---+
+| C |
++---+
+| 8 |
++---+
+(1 row)
+
+!ok
+!}
+
+!use foodmart
+
+select city, gender as c from "emps";
++---------------+---+
+| CITY          | C |
++---------------+---+
+| Vancouver     | F |
+| San Francisco | M |
+|               |   |
+| Vancouver     | M |
+|               | F |
++---------------+---+
 (5 rows)
 
 !ok
 
-# The following test is disabled, because we cannot handle non-equi-join.
-# Following it are the results from MySQL.
-!if (false) {
-select * from emp join dept on emp.deptno = dept.deptno and emp.gender = 'F';
- ename | deptno | gender | deptno | dname
--------+--------+--------+--------+-------------
- Jane  |     10 | F      |     10 | Sales
- Susan |     30 | F      |     30 | Engineering
- Alice |     30 | F      |     30 | Engineering
-
-!ok
-!}
-
-select * from emp join dept on emp.deptno = dept.deptno where emp.gender = 'F';
-+-------+--------+--------+---------+-------------+
-| ENAME | DEPTNO | GENDER | DEPTNO0 | DNAME       |
-+-------+--------+--------+---------+-------------+
-| Jane  |     10 | F      |      10 | Sales       |
-| Susan |     30 | F      |      30 | Engineering |
-| Alice |     30 | F      |      30 | Engineering |
-+-------+--------+--------+---------+-------------+
-(3 rows)
-
-!ok
-
-select * from (select * from emp where gender ='F') as emp join dept on emp.deptno = dept.deptno;
-+-------+--------+--------+---------+-------------+
-| ENAME | DEPTNO | GENDER | DEPTNO0 | DNAME       |
-+-------+--------+--------+---------+-------------+
-| Jane  |     10 | F      |      10 | Sales       |
-| Susan |     30 | F      |      30 | Engineering |
-| Alice |     30 | F      |      30 | Engineering |
-+-------+--------+--------+---------+-------------+
-(3 rows)
-
-!ok
-
-# The following test is disabled, because we cannot handle non-equi-join.
-# Following it are the results from MySQL.
-!if (false) {
-select * from emp left join dept on emp.deptno = dept.deptno and emp.gender = 'F';
- ename | deptno | gender | deptno | dname
--------+--------+--------+--------+-------------
- Jane  |     10 | F      |     10 | Sales
- Susan |     30 | F      |     30 | Engineering
- Alice |     30 | F      |     30 | Engineering
- Bob   |     10 | M      |   NULL | NULL
- Eric  |     20 | M      |   NULL | NULL
- Adam  |     50 | M      |   NULL | NULL
- Eve   |     50 | F      |   NULL | NULL
- Grace |     60 | F      |   NULL | NULL
-!ok
-!}
-
-select * from emp left join dept on emp.deptno = dept.deptno where emp.gender = 'F';
-+-------+--------+--------+---------+-------------+
-| ENAME | DEPTNO | GENDER | DEPTNO0 | DNAME       |
-+-------+--------+--------+---------+-------------+
-| Jane  |     10 | F      |      10 | Sales       |
-| Susan |     30 | F      |      30 | Engineering |
-| Alice |     30 | F      |      30 | Engineering |
-| Eve   |     50 | F      |         |             |
-| Grace |     60 | F      |         |             |
-| Wilma |        | F      |         |             |
-+-------+--------+--------+---------+-------------+
-(6 rows)
-
-!ok
-
-select * from (select * from emp where gender ='F') as emp left join dept on emp.deptno = dept.deptno;
-+-------+--------+--------+---------+-------------+
-| ENAME | DEPTNO | GENDER | DEPTNO0 | DNAME       |
-+-------+--------+--------+---------+-------------+
-| Jane  |     10 | F      |      10 | Sales       |
-| Susan |     30 | F      |      30 | Engineering |
-| Alice |     30 | F      |      30 | Engineering |
-| Eve   |     50 | F      |         |             |
-| Grace |     60 | F      |         |             |
-| Wilma |        | F      |         |             |
-+-------+--------+--------+---------+-------------+
-(6 rows)
-
-!ok
-
-# The following test is disabled, because we cannot handle non-equi-join.
-# Following it are the results from MySQL.
-!if (false) {
-select * from emp right join dept on emp.deptno = dept.deptno and emp.gender = 'F';
-+-------+--------+--------+--------+-------------+
-| ename | deptno | gender | deptno | dname       |
-+-------+--------+--------+--------+-------------+
-| Jane  |     10 | F      |     10 | Sales       |
-| Susan |     30 | F      |     30 | Engineering |
-| Alice |     30 | F      |     30 | Engineering |
-| NULL  |   NULL | NULL   |     20 | Marketing   |
-| NULL  |   NULL | NULL   |     40 | Empty       |
-+-------+--------+--------+--------+-------------+
-!ok
-!}
-
-select * from emp right join dept on emp.deptno = dept.deptno where emp.gender = 'F';
-+-------+--------+--------+---------+-------------+
-| ENAME | DEPTNO | GENDER | DEPTNO0 | DNAME       |
-+-------+--------+--------+---------+-------------+
-| Jane  |     10 | F      |      10 | Sales       |
-| Susan |     30 | F      |      30 | Engineering |
-| Alice |     30 | F      |      30 | Engineering |
-+-------+--------+--------+---------+-------------+
-(3 rows)
-
-!ok
-
-select * from (select * from emp where gender ='F') as emp right join dept on emp.deptno = dept.deptno;
-+-------+--------+--------+---------+-------------+
-| ENAME | DEPTNO | GENDER | DEPTNO0 | DNAME       |
-+-------+--------+--------+---------+-------------+
-| Jane  |     10 | F      |      10 | Sales       |
-| Susan |     30 | F      |      30 | Engineering |
-| Alice |     30 | F      |      30 | Engineering |
-|       |        |        |      20 | Marketing   |
-|       |        |        |      40 | Empty       |
-+-------+--------+--------+---------+-------------+
+# SELECT DISTINCT includes fully and partially null rows
+select distinct city, gender from "emps";
++---------------+--------+
+| CITY          | GENDER |
++---------------+--------+
+|               |        |
+| Vancouver     | M      |
+|               | F      |
+| San Francisco | M      |
+| Vancouver     | F      |
++---------------+--------+
 (5 rows)
 
 !ok
 
-!if (false) {
-select * from emp full join dept on emp.deptno = dept.deptno and emp.gender = 'F';
-!ok
-!}
-
-
-select * from emp full join dept on emp.deptno = dept.deptno where emp.gender = 'F';
-+-------+--------+--------+---------+-------------+
-| ENAME | DEPTNO | GENDER | DEPTNO0 | DNAME       |
-+-------+--------+--------+---------+-------------+
-| Jane  |     10 | F      |      10 | Sales       |
-| Susan |     30 | F      |      30 | Engineering |
-| Alice |     30 | F      |      30 | Engineering |
-| Eve   |     50 | F      |         |             |
-| Grace |     60 | F      |         |             |
-| Wilma |        | F      |         |             |
-+-------+--------+--------+---------+-------------+
-(6 rows)
+# COUNT excludes fully or partially null rows
+select count(city, gender) as c from "emps";
++---+
+| C |
++---+
+| 3 |
++---+
+(1 row)
 
 !ok
 
-select * from (select * from emp where gender ='F') as emp full join dept on emp.deptno = dept.deptno;
-+-------+--------+--------+---------+-------------+
-| ENAME | DEPTNO | GENDER | DEPTNO0 | DNAME       |
-+-------+--------+--------+---------+-------------+
-| Jane  |     10 | F      |      10 | Sales       |
-| Susan |     30 | F      |      30 | Engineering |
-| Alice |     30 | F      |      30 | Engineering |
-| Eve   |     50 | F      |         |             |
-| Grace |     60 | F      |         |             |
-| Wilma |        | F      |         |             |
-|       |        |        |      20 | Marketing   |
-|       |        |        |      40 | Empty       |
-+-------+--------+--------+---------+-------------+
-(8 rows)
+# COUNT-DISTINCT excludes fully or partially null rows
+select count(distinct city, gender) as c from "emps";
++---+
+| C |
++---+
+| 3 |
++---+
+(1 row)
 
 !ok
 
-# End outer.oq
+select distinct mod(deptno, 20) as m, gender as c from "emps";
++----+---+
+| M  | C |
++----+---+
+|  0 | F |
+| 10 |   |
+|  0 | M |
++----+---+
+(3 rows)
+
+!ok
+
+# Partially null row (10, NULL) is excluded from count.
+select count(distinct mod(deptno, 20), gender) as c from "emps";
++---+
+| C |
++---+
+| 2 |
++---+
+(1 row)
+
+!ok
+
+select count(mod(deptno, 20), gender) as c from "emps";
++---+
+| C |
++---+
+| 4 |
++---+
+(1 row)
+
+!ok
+
+# End agg.oq

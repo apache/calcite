@@ -96,6 +96,7 @@ public enum BuiltinMethod {
   ARRAYS_AS_LIST(FlatLists.class, "of", Object[].class),
   LIST2(FlatLists.class, "of", Object.class, Object.class),
   LIST3(FlatLists.class, "of", Object.class, Object.class, Object.class),
+  IDENTITY_COMPARER(Functions.class, "identityComparer"),
   IDENTITY_SELECTOR(Functions.class, "identitySelector"),
   AS_ENUMERABLE(Linq4j.class, "asEnumerable", Object[].class),
   AS_ENUMERABLE2(Linq4j.class, "asEnumerable", Iterable.class),

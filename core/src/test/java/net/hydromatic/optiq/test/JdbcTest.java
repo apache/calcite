@@ -2335,13 +2335,83 @@ public class JdbcTest {
             "empid=110; deptno=10; name=Theodore; salary=11500.0; commission=250; deptno0=40; name0=HR; employees=[Employee [empid: 200, deptno: 20, name: Eric]]");
   }
 
-  @Test public void testDistinctCount() {
+  @Test public void testDistinctCountSimple() {
     final String s =
-        "select \"time_by_day\".\"the_year\" as \"c0\", sum(\"sales_fact_1997\".\"unit_sales\") as \"m0\" from \"time_by_day\" as \"time_by_day\", \"sales_fact_1997\" as \"sales_fact_1997\" where \"sales_fact_1997\".\"time_id\" = \"time_by_day\".\"time_id\" and \"time_by_day\".\"the_year\" = 1997 group by \"time_by_day\".\"the_year\"";
+        "select count(distinct \"sales_fact_1997\".\"unit_sales\") as \"m0\"\n"
+        + "from \"sales_fact_1997\" as \"sales_fact_1997\"";
     OptiqAssert.that()
         .with(OptiqAssert.Config.FOODMART_CLONE)
         .query(s)
-        .returns("c0=1997; m0=266773.0000\n");
+        .explainContains(
+            "EnumerableAggregateRel(group=[{}], m0=[COUNT($0)])\n"
+            + "  EnumerableAggregateRel(group=[{0}])\n"
+            + "    EnumerableCalcRel(expr#0..7=[{inputs}], unit_sales=[$t7])\n"
+            + "      EnumerableTableAccessRel(table=[[foodmart2, sales_fact_1997]])")
+        .returns("m0=6\n");
+  }
+
+  @Test public void testDistinctCount2() {
+    final String s =
+        "select cast(\"unit_sales\" as integer) as \"u\",\n"
+        + " count(distinct \"sales_fact_1997\".\"customer_id\") as \"m0\"\n"
+        + "from \"sales_fact_1997\" as \"sales_fact_1997\"\n"
+        + "group by \"unit_sales\"";
+    OptiqAssert.that()
+        .with(OptiqAssert.Config.FOODMART_CLONE)
+        .query(s)
+        .explainContains(
+            "EnumerableCalcRel(expr#0..1=[{inputs}], expr#2=[CAST($t0):INTEGER NOT NULL], u=[$t2], m0=[$t1])\n"
+            + "  EnumerableAggregateRel(group=[{0}], m0=[COUNT($1)])\n"
+            + "    EnumerableAggregateRel(group=[{0, 1}])\n"
+            + "      EnumerableCalcRel(expr#0..7=[{inputs}], unit_sales=[$t7], customer_id=[$t2])\n"
+            + "        EnumerableTableAccessRel(table=[[foodmart2, sales_fact_1997]])")
+        .returnsUnordered(
+            "u=1; m0=523",
+            "u=5; m0=1059",
+            "u=4; m0=4459",
+            "u=6; m0=19",
+            "u=3; m0=4895",
+            "u=2; m0=4735");
+  }
+
+  @Test public void testDistinctCount() {
+    final String s =
+        "select \"time_by_day\".\"the_year\" as \"c0\",\n"
+        + " count(distinct \"sales_fact_1997\".\"unit_sales\") as \"m0\"\n"
+        + "from \"time_by_day\" as \"time_by_day\",\n"
+        + " \"sales_fact_1997\" as \"sales_fact_1997\"\n"
+        + "where \"sales_fact_1997\".\"time_id\" = \"time_by_day\".\"time_id\"\n"
+        + "and \"time_by_day\".\"the_year\" = 1997\n"
+        + "group by \"time_by_day\".\"the_year\"";
+    OptiqAssert.that()
+        .with(OptiqAssert.Config.FOODMART_CLONE)
+        .query(s)
+        .explainContains(
+            "EnumerableAggregateRel(group=[{0}], m0=[COUNT($1)])\n"
+            + "  EnumerableAggregateRel(group=[{0, 1}])\n"
+            + "    EnumerableCalcRel(expr#0..3=[{inputs}], c0=[$t3], unit_sales=[$t1])\n"
+            + "      EnumerableJoinRel(condition=[=($0, $2)], joinType=[inner])\n"
+            + "        EnumerableCalcRel(expr#0..7=[{inputs}], time_id=[$t1], unit_sales=[$t7])\n"
+            + "          EnumerableTableAccessRel(table=[[foodmart2, sales_fact_1997]])\n"
+            + "        EnumerableCalcRel(expr#0..9=[{inputs}], expr#10=[CAST($t4):INTEGER], expr#11=[1997], expr#12=[=($t10, $t11)], time_id=[$t0], the_year=[$t4], $condition=[$t12])\n"
+            + "          EnumerableTableAccessRel(table=[[foodmart2, time_by_day]])")
+        .returns("c0=1997; m0=6\n");
+  }
+
+  @Test public void testDistinctCountComposite() {
+    final String s =
+        "select \"time_by_day\".\"the_year\" as \"c0\",\n"
+        + " count(distinct \"sales_fact_1997\".\"product_id\",\n"
+        + "       \"sales_fact_1997\".\"customer_id\") as \"m0\"\n"
+        + "from \"time_by_day\" as \"time_by_day\",\n"
+        + " \"sales_fact_1997\" as \"sales_fact_1997\"\n"
+        + "where \"sales_fact_1997\".\"time_id\" = \"time_by_day\".\"time_id\"\n"
+        + "and \"time_by_day\".\"the_year\" = 1997\n"
+        + "group by \"time_by_day\".\"the_year\"";
+    OptiqAssert.that()
+        .with(OptiqAssert.Config.FOODMART_CLONE)
+        .query(s)
+        .returns("c0=1997; m0=85452\n");
   }
 
   /** A difficult query: an IN list so large that the planner promotes it
@@ -2727,7 +2797,6 @@ public class JdbcTest {
             + "from \"hr\".\"emps\"\n")
         .returnsUnordered(
             "C=false; deptno=10",
-            "C=false; deptno=10",
             "C=true; deptno=10",
             "C=true; deptno=20")
         .planContains(".distinct(");
@@ -2824,6 +2893,22 @@ public class JdbcTest {
             + "    EnumerableCalcRel(expr#0..4=[{inputs}], expr#5=[0], expr#6=[<($t1, $t5)], DUMMY=[$t5], $condition=[$t6])\n"
             + "      EnumerableTableAccessRel(table=[[hr, emps]])\n")
         .returns("CS=0; CS2=0\n");
+  }
+
+  /** Tests that {@code count(deptno, commission, commission + 1)} is reduced to
+   * {@code count(commission, commission + 1)}, because deptno is NOT NULL. */
+  @Test public void testReduceCompositeCountNotNullable() {
+    OptiqAssert.that()
+        .with(OptiqAssert.Config.REGULAR)
+        .query(
+            "select\n"
+            + " count(\"deptno\", \"commission\", \"commission\" + 1) as cs\n"
+            + "from \"hr\".\"emps\"")
+        .explainContains(
+            "EnumerableAggregateRel(group=[{}], CS=[COUNT($0, $1)])\n"
+            + "  EnumerableCalcRel(expr#0..4=[{inputs}], expr#5=[1], expr#6=[+($t4, $t5)], commission=[$t4], $f2=[$t6])\n"
+            + "    EnumerableTableAccessRel(table=[[hr, emps]])")
+        .returns("CS=3\n");
   }
 
   /** Tests sorting by a column that is already sorted. */
@@ -4034,6 +4119,10 @@ public class JdbcTest {
         .returnsUnordered(lines);
   }
 
+  @Test public void testRunAgg() throws Exception {
+    checkRun("sql/agg.oq");
+  }
+
   @Test public void testRunOuter() throws Exception {
     checkRun("sql/outer.oq");
   }
@@ -4068,6 +4157,11 @@ public class JdbcTest {
             if (name.equals("hr")) {
               return OptiqAssert.that()
                   .with(OptiqAssert.Config.REGULAR)
+                  .connect();
+            }
+            if (name.equals("foodmart")) {
+              return OptiqAssert.that()
+                  .with(OptiqAssert.Config.FOODMART_CLONE)
                   .connect();
             }
             if (name.equals("post")) {

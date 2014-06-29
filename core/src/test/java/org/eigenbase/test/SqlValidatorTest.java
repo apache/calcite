@@ -6023,8 +6023,22 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     check("select count(sal) from emp");
     check("select count(1) from emp");
     checkFails(
-        "select ^count(sal,ename)^ from emp",
+        "select ^count()^ from emp",
         "Invalid number of arguments to function 'COUNT'. Was expecting 1 arguments");
+  }
+
+  @Test public void testCountCompositeFunction() {
+    check("select count(ename, deptno) from emp");
+    checkFails("select count(ename, deptno, ^gender^) from emp",
+        "Column 'GENDER' not found in any table");
+    check("select count(ename, 1, deptno) from emp");
+    check("select count(distinct ename, 1, deptno) from emp");
+    checkFails(
+        "select count(deptno, *) from emp",
+        "(?s).*Encountered \", \\*\" at .*");
+    checkFails(
+        "select count(*, deptno) from emp",
+        "(?s).*Encountered \",\" at .*");
   }
 
   @Test public void testLastFunction() {

@@ -32,22 +32,12 @@ public abstract class SqlOperandCountRanges {
     return new RangeImpl(min, max);
   }
 
-  public static SqlOperandCountRange any() {
-    return new VariadicImpl();
+  public static SqlOperandCountRange from(int min) {
+    return new RangeImpl(min, -1);
   }
 
-  private static class VariadicImpl implements SqlOperandCountRange {
-    public boolean isValidCount(int count) {
-      return true;
-    }
-
-    public int getMin() {
-      return 0;
-    }
-
-    public int getMax() {
-      return -1;
-    }
+  public static SqlOperandCountRange any() {
+    return new RangeImpl(0, -1);
   }
 
   private static class RangeImpl implements SqlOperandCountRange {
@@ -60,7 +50,7 @@ public abstract class SqlOperandCountRanges {
     }
 
     public boolean isValidCount(int count) {
-      return count >= min && count <= max;
+      return count >= min && (max == -1 || count <= max);
     }
 
     public int getMin() {

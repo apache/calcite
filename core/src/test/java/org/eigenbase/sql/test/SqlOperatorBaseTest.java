@@ -4288,19 +4288,14 @@ public abstract class SqlOperatorBaseTest {
         "^COUNT()^",
         "Invalid number of arguments to function 'COUNT'. Was expecting 1 arguments",
         false);
-    tester.checkFails(
-        "^COUNT(1, 2)^",
-        "Invalid number of arguments to function 'COUNT'. Was expecting 1 arguments",
-        false);
+    tester.checkType("count(1, 2)", "BIGINT NOT NULL");
+    tester.checkType("count(1, 2, 'x', 'y')", "BIGINT NOT NULL");
     final String[] values = {"0", "CAST(null AS INTEGER)", "1", "0"};
     tester.checkAgg(
         "COUNT(x)",
         values,
         3,
         (double) 0);
-    if (!enable) {
-      return;
-    }
     tester.checkAgg(
         "COUNT(CASE x WHEN 0 THEN NULL ELSE -1 END)",
         values,
