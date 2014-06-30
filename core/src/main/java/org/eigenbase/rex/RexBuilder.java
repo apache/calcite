@@ -281,11 +281,16 @@ public class RexBuilder {
       final List<RelDataType> aggArgTypes) {
     if (aggCall.getAggregation() instanceof SqlCountAggFunction
         && !aggCall.isDistinct()) {
-      final List<Integer> notNullArgList =
-          nullableArgs(aggCall.getArgList(), aggArgTypes);
-      if (!notNullArgList.equals(aggCall.getArgList())) {
+      final List<Integer> nullableArgs = new ArrayList<Integer>();
+      for (Pair<Integer, RelDataType> pair
+          : Pair.zip(aggCall.getArgList(), aggArgTypes)) {
+        if (pair.right.isNullable()) {
+          nullableArgs.add(pair.left);
+        }
+      }
+      if (!nullableArgs.equals(aggCall.getArgList())) {
         aggCall = new AggregateCall(aggCall.getAggregation(),
-            aggCall.isDistinct(), notNullArgList,
+            aggCall.isDistinct(), nullableArgs,
             aggCall.getType(), aggCall.getName());
       }
     }
