@@ -100,7 +100,7 @@ public class SqlRun {
     try {
       Command command = new Parser().parse();
       try {
-        command.execute();
+        command.execute(execute);
       } catch (Exception e) {
         throw new RuntimeException(
             "Error while executing command " + command, e);
@@ -432,7 +432,7 @@ public class SqlRun {
 
   /** Command. */
   interface Command {
-    void execute() throws Exception;
+    void execute(boolean execute) throws Exception;
   }
 
   /** Base class for implementations of Command. */
@@ -468,7 +468,7 @@ public class SqlRun {
       this.name = name;
     }
 
-    public void execute() throws Exception {
+    public void execute(boolean execute) throws Exception {
       echo(lines);
       if (connection != null) {
         connection.close();
@@ -486,7 +486,7 @@ public class SqlRun {
       this.sqlCommand = sqlCommand;
     }
 
-    public void execute() throws Exception {
+    public void execute(boolean execute) throws Exception {
       if (execute) {
         OutputFormat format = (OutputFormat) map.get(Property.OUTPUTFORMAT);
         if (resultSet != null) {
@@ -555,7 +555,7 @@ public class SqlRun {
       this.output = ImmutableList.copyOf(output);
     }
 
-    public void execute() throws Exception {
+    public void execute(boolean execute) throws Exception {
       echo(lines);
       if (execute) {
         if (connection == null) {
@@ -603,7 +603,7 @@ public class SqlRun {
       this.value = value;
     }
 
-    public void execute() throws Exception {
+    public void execute(boolean execute) throws Exception {
       echo(lines);
       map.put(property, value);
     }
@@ -615,7 +615,7 @@ public class SqlRun {
       super(lines);
     }
 
-    public void execute() throws Exception {
+    public void execute(boolean execute) throws Exception {
       echo(lines);
     }
   }
@@ -633,16 +633,16 @@ public class SqlRun {
       this.command = command;
     }
 
-    public void execute() throws Exception {
+    public void execute(boolean execute) throws Exception {
       echo(ifLines);
       // Switch to a mode where we don't execute, just echo.
-      boolean oldExecute = execute;
+      boolean oldExecute = SqlRun.this.execute;
+      boolean newExecute = execute;
       if (!skip) {
         // If "skip" is set, stay in the current mode.
-        execute = false;
+        newExecute = false;
       }
-      command.execute();
-      execute = oldExecute;
+      command.execute(newExecute);
       echo(endLines);
     }
   }
@@ -654,12 +654,12 @@ public class SqlRun {
       super(lines);
     }
 
-    public void execute() throws Exception {
+    public void execute(boolean execute) throws Exception {
       echo(lines);
       // Switch to a mode where we don't execute, just echo.
       // Set "skip" so we don't leave that mode.
       skip = true;
-      execute = false;
+      SqlRun.this.execute = false;
     }
   }
 
@@ -671,13 +671,14 @@ public class SqlRun {
       this.commands = commands;
     }
 
-    public void execute() throws Exception {
+    public void execute(boolean execute) throws Exception {
       for (Command command : commands) {
         try {
-          command.execute();
+          command.execute(execute);
         } catch (Exception e) {
-          throw new RuntimeException(
-              "Error while executing command " + command, e);
+          command.execute(false); // echo the command
+          printWriter.println("Error while executing command " + command);
+          e.printStackTrace(printWriter);
         }
       }
     }
