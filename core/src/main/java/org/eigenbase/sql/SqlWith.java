@@ -92,6 +92,13 @@ public class SqlWith extends SqlCall {
       writer.endList(frame);
     }
 
+
+    @Override
+    public SqlCall createCall(SqlLiteral functionQualifier, SqlParserPos pos,
+        SqlNode... operands) {
+      return new SqlWith(pos, (SqlNodeList) operands[0], operands[1]);
+    }
+
     @Override public void validateCall(SqlCall call,
         SqlValidator validator,
         SqlValidatorScope scope,
