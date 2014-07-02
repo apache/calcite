@@ -51,9 +51,8 @@ public class PushProjectPastJoinRule extends RelOptRule {
   private PushProjectPastJoinRule(
       PushProjector.ExprCondition preserveExprCondition) {
     super(
-        operand(
-            ProjectRel.class,
-            operand(JoinRel.class, any())));
+        operand(ProjectRel.class,
+            operand(JoinRelBase.class, any())));
     this.preserveExprCondition = preserveExprCondition;
   }
 
@@ -62,7 +61,7 @@ public class PushProjectPastJoinRule extends RelOptRule {
   // implement RelOptRule
   public void onMatch(RelOptRuleCall call) {
     ProjectRel origProj = call.rel(0);
-    JoinRel joinRel = call.rel(1);
+    final JoinRelBase join = call.rel(1);
 
     // locate all fields referenced in the projection and join condition;
     // determine which inputs are referenced in the projection and
@@ -71,8 +70,8 @@ public class PushProjectPastJoinRule extends RelOptRule {
     PushProjector pushProject =
         new PushProjector(
             origProj,
-            joinRel.getCondition(),
-            joinRel,
+            join.getCondition(),
+            join,
             preserveExprCondition);
     if (pushProject.locateAllRefs()) {
       return;
@@ -82,45 +81,43 @@ public class PushProjectPastJoinRule extends RelOptRule {
     // fields referenced on each side
     RelNode leftProjRel =
         pushProject.createProjectRefsAndExprs(
-            joinRel.getLeft(),
+            join.getLeft(),
             true,
             false);
     RelNode rightProjRel =
         pushProject.createProjectRefsAndExprs(
-            joinRel.getRight(),
+            join.getRight(),
             true,
             true);
 
     // convert the join condition to reference the projected columns
     RexNode newJoinFilter = null;
     int[] adjustments = pushProject.getAdjustments();
-    if (joinRel.getCondition() != null) {
+    if (join.getCondition() != null) {
       List<RelDataTypeField> projJoinFieldList =
           new ArrayList<RelDataTypeField>();
       projJoinFieldList.addAll(
-          joinRel.getSystemFieldList());
+          join.getSystemFieldList());
       projJoinFieldList.addAll(
           leftProjRel.getRowType().getFieldList());
       projJoinFieldList.addAll(
           rightProjRel.getRowType().getFieldList());
       newJoinFilter =
           pushProject.convertRefsAndExprs(
-              joinRel.getCondition(),
+              join.getCondition(),
               projJoinFieldList,
               adjustments);
     }
 
-    // create a new joinrel with the projected children
-    JoinRel newJoinRel =
-        new JoinRel(
-            joinRel.getCluster(),
+    // create a new join with the projected children
+    JoinRelBase newJoinRel =
+        join.copy(
+            join.getTraitSet(),
+            newJoinFilter,
             leftProjRel,
             rightProjRel,
-            newJoinFilter,
-            joinRel.getJoinType(),
-            Collections.<String>emptySet(),
-            joinRel.isSemiJoinDone(),
-            joinRel.getSystemFieldList());
+            join.getJoinType(),
+            join.isSemiJoinDone());
 
     // put the original project on top of the join, converting it to
     // reference the modified projection list

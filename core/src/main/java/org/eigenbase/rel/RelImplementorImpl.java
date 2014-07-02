@@ -106,7 +106,7 @@ public class RelImplementorImpl implements RelImplementor {
       RelNode rel,
       int offset,
       int[] offsets) {
-    if (rel instanceof JoinRel) {
+    if (rel instanceof JoinRelBase) {
       // no variable here -- go deeper
       List<RelNode> inputs = rel.getInputs();
       for (RelNode input : inputs) {

@@ -189,8 +189,10 @@ public class PullUpProjectsAboveJoinRule extends RelOptRule {
     RexNode newCondition =
         mergedProgram.expandLocalRef(
             mergedProgram.getCondition());
-    JoinRelBase newJoinRel = joinRel.copy(joinRel.getTraitSet(), newCondition,
-            leftJoinChild, rightJoinChild, joinRel.getJoinType());
+    JoinRelBase newJoinRel =
+        joinRel.copy(joinRel.getTraitSet(), newCondition,
+            leftJoinChild, rightJoinChild, joinRel.getJoinType(),
+            joinRel.isSemiJoinDone());
 
     // expand out the new projection expressions; if the join is an
     // outer join, modify the expressions to reference the join output

@@ -220,6 +220,19 @@ public abstract class JoinRelBase extends AbstractRelNode {
   }
 
   /**
+   * Returns whether this JoinRel has already spawned a
+   * {@link org.eigenbase.rel.rules.SemiJoinRel} via
+   * {@link org.eigenbase.rel.rules.AddRedundantSemiJoinRule}.
+   *
+   * <p>The base implementation returns false.</p>
+   *
+   * @return whether this join has already spawned a semi join
+   */
+  public boolean isSemiJoinDone() {
+    return false;
+  }
+
+  /**
    * Returns a list of system fields that will be prefixed to
    * output row type.
    *
@@ -348,7 +361,7 @@ public abstract class JoinRelBase extends AbstractRelNode {
   public final JoinRelBase copy(RelTraitSet traitSet, List<RelNode> inputs) {
     assert inputs.size() == 2;
     return copy(traitSet, getCondition(), inputs.get(0), inputs.get(1),
-        joinType);
+        joinType, isSemiJoinDone());
   }
 
   /**
@@ -361,10 +374,12 @@ public abstract class JoinRelBase extends AbstractRelNode {
    * @param left          Left input
    * @param right         Right input
    * @param joinType      Join type
+   * @param semiJoinDone  Whether this join has been translated to a
+   *                      semi-join
    * @return Copy of this join
    */
   public abstract JoinRelBase copy(RelTraitSet traitSet, RexNode conditionExpr,
-      RelNode left, RelNode right, JoinRelType joinType);
+      RelNode left, RelNode right, JoinRelType joinType, boolean semiJoinDone);
 }
 
 // End JoinRelBase.java

@@ -51,13 +51,19 @@ import net.hydromatic.optiq.util.BitSets;
  * ({@code ON TRUE}). After the rule, each join has one condition.</p>
  */
 public class PushJoinThroughJoinRule extends RelOptRule {
-
+  /** Instance of the rule that works on logical joins only, and pushes to the
+   * right. */
   public static final RelOptRule RIGHT =
       new PushJoinThroughJoinRule(
-          "PushJoinThroughJoinRule:right", true, JoinRel.class);
+          "PushJoinThroughJoinRule:right", true, JoinRel.class,
+          RelFactories.DEFAULT_PROJECT_FACTORY);
+
+  /** Instance of the rule that works on logical joins only, and pushes to the
+   * left. */
   public static final RelOptRule LEFT =
       new PushJoinThroughJoinRule(
-          "PushJoinThroughJoinRule:left", false, JoinRel.class);
+          "PushJoinThroughJoinRule:left", false, JoinRel.class,
+          RelFactories.DEFAULT_PROJECT_FACTORY);
 
   private final boolean right;
 
@@ -66,15 +72,8 @@ public class PushJoinThroughJoinRule extends RelOptRule {
   /**
    * Creates a PushJoinThroughJoinRule.
    */
-  private PushJoinThroughJoinRule(String description, boolean right,
-      Class<? extends JoinRelBase> clazz) {
-    this(description, right, clazz, RelFactories.DEFAULT_PROJECT_FACTORY);
-  }
-
-  public PushJoinThroughJoinRule(
-      String description,
-      boolean right,
-      Class<? extends JoinRelBase> clazz, ProjectFactory pFactory) {
+  public PushJoinThroughJoinRule(String description, boolean right,
+      Class<? extends JoinRelBase> clazz, ProjectFactory projectFactory) {
     super(
         operand(
             clazz,
@@ -82,7 +81,7 @@ public class PushJoinThroughJoinRule extends RelOptRule {
             operand(RelNode.class, any())),
         description);
     this.right = right;
-    projectFactory = pFactory;
+    this.projectFactory = projectFactory;
   }
 
   @Override
@@ -168,7 +167,7 @@ public class PushJoinThroughJoinRule extends RelOptRule {
         RexUtil.composeConjunction(rexBuilder, newBottomList, false);
     final JoinRelBase newBottomJoin =
         bottomJoin.copy(bottomJoin.getTraitSet(), newBottomCondition, relA,
-            relC, bottomJoin.getJoinType());
+            relC, bottomJoin.getJoinType(), bottomJoin.isSemiJoinDone());
 
     // target: | A       | C      | B |
     // source: | A       | B | C      |
@@ -188,7 +187,7 @@ public class PushJoinThroughJoinRule extends RelOptRule {
     @SuppressWarnings("SuspiciousNameCombination")
     final JoinRelBase newTopJoin =
         topJoin.copy(topJoin.getTraitSet(), newTopCondition, newBottomJoin,
-            relB, topJoin.getJoinType());
+            relB, topJoin.getJoinType(), topJoin.isSemiJoinDone());
 
     assert !Mappings.isIdentity(topMapping);
     final RelNode newProject = RelFactories.createProject(projectFactory,
@@ -276,7 +275,7 @@ public class PushJoinThroughJoinRule extends RelOptRule {
         RexUtil.composeConjunction(rexBuilder, newBottomList, false);
     final JoinRelBase newBottomJoin =
         bottomJoin.copy(bottomJoin.getTraitSet(), newBottomCondition, relC,
-            relB, bottomJoin.getJoinType());
+            relB, bottomJoin.getJoinType(), bottomJoin.isSemiJoinDone());
 
     // target: | C      | B | A       |
     // source: | A       | B | C      |
@@ -296,7 +295,7 @@ public class PushJoinThroughJoinRule extends RelOptRule {
     @SuppressWarnings("SuspiciousNameCombination")
     final JoinRelBase newTopJoin =
         topJoin.copy(topJoin.getTraitSet(), newTopCondition, newBottomJoin,
-            relA, topJoin.getJoinType());
+            relA, topJoin.getJoinType(), topJoin.isSemiJoinDone());
 
     final RelNode newProject = RelFactories.createProject(projectFactory,
         newTopJoin, Mappings.asList(topMapping));

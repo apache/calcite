@@ -31,9 +31,9 @@ import org.eigenbase.util.Pair;
  * input in an outer join, i.e., either input in a full outer join, the right
  * hand side of a left outer join, or the left hand side of a right outer join.
  *
- * <p>Join conditions are also pulled up from the inputs into the topmost {@link
- * MultiJoinRel}, unless the input corresponds to a null generating input in an
- * outer join,
+ * <p>Join conditions are also pulled up from the inputs into the topmost
+ * {@link MultiJoinRel},
+ * unless the input corresponds to a null generating input in an outer join,
  *
  * <p>Outer join information is also stored in the {@link MultiJoinRel}. A
  * boolean flag indicates if the join is a full outer join, and in the case of
@@ -62,20 +62,22 @@ import org.eigenbase.util.Pair;
  *      inner MultiJoinRel and right outer join on input#0 in the second inner
  *      MultiJoinRel
  * </pre>
+ *
+ * <p>The constructor is parameterized to allow any sub-class of
+ * {@link JoinRelBase}, not just {@link JoinRel}.</p>
  */
 public class ConvertMultiJoinRule extends RelOptRule {
   public static final ConvertMultiJoinRule INSTANCE =
-      new ConvertMultiJoinRule();
+      new ConvertMultiJoinRule(JoinRel.class);
 
   //~ Constructors -----------------------------------------------------------
 
   /**
    * Creates a ConvertMultiJoinRule.
    */
-  private ConvertMultiJoinRule() {
+  public ConvertMultiJoinRule(Class<? extends JoinRelBase> clazz) {
     super(
-        operand(
-            JoinRel.class,
+        operand(clazz,
             operand(RelNode.class, any()),
             operand(RelNode.class, any())));
   }
@@ -83,10 +85,10 @@ public class ConvertMultiJoinRule extends RelOptRule {
   //~ Methods ----------------------------------------------------------------
 
   public void onMatch(RelOptRuleCall call) {
-    JoinRel origJoinRel = call.rel(0);
+    final JoinRelBase origJoin = call.rel(0);
 
-    RelNode left = call.rel(1);
-    RelNode right = call.rel(2);
+    final RelNode left = call.rel(1);
+    final RelNode right = call.rel(2);
 
     // combine the children MultiJoinRel inputs into an array of inputs
     // for the new MultiJoinRel
@@ -94,7 +96,7 @@ public class ConvertMultiJoinRule extends RelOptRule {
     List<int[]> joinFieldRefCountsList = new ArrayList<int[]>();
     List<RelNode> newInputs =
         combineInputs(
-            origJoinRel,
+            origJoin,
             left,
             right,
             projFieldsList,
@@ -106,7 +108,7 @@ public class ConvertMultiJoinRule extends RelOptRule {
     final List<Pair<JoinRelType, RexNode>> joinSpecs =
         new ArrayList<Pair<JoinRelType, RexNode>>();
     combineOuterJoins(
-        origJoinRel,
+        origJoin,
         newInputs,
         left,
         right,
@@ -118,29 +120,28 @@ public class ConvertMultiJoinRule extends RelOptRule {
     // pull up the join filters from the children MultiJoinRels and
     // combine them with the join filter associated with this JoinRel to
     // form the join filter for the new MultiJoinRel
-    RexNode newJoinFilter = combineJoinFilters(origJoinRel, left, right);
+    RexNode newJoinFilter = combineJoinFilters(origJoin, left, right);
 
     // add on the join field reference counts for the join condition
     // associated with this JoinRel
     Map<Integer, int[]> newJoinFieldRefCountsMap =
         new HashMap<Integer, int[]>();
-    addOnJoinFieldRefCounts(
-        newInputs,
-        origJoinRel.getRowType().getFieldCount(),
-        origJoinRel.getCondition(),
+    addOnJoinFieldRefCounts(newInputs,
+        origJoin.getRowType().getFieldCount(),
+        origJoin.getCondition(),
         joinFieldRefCountsList,
         newJoinFieldRefCountsMap);
 
     RexNode newPostJoinFilter =
-        combinePostJoinFilters(origJoinRel, left, right);
+        combinePostJoinFilters(origJoin, left, right);
 
     RelNode multiJoin =
         new MultiJoinRel(
-            origJoinRel.getCluster(),
+            origJoin.getCluster(),
             newInputs,
             newJoinFilter,
-            origJoinRel.getRowType(),
-            origJoinRel.getJoinType() == JoinRelType.FULL,
+            origJoin.getRowType(),
+            origJoin.getJoinType() == JoinRelType.FULL,
             newOuterJoinConds,
             joinTypes,
             projFieldsList,
@@ -163,7 +164,7 @@ public class ConvertMultiJoinRule extends RelOptRule {
    * @return combined left and right inputs in an array
    */
   private List<RelNode> combineInputs(
-      JoinRel join,
+      JoinRelBase join,
       RelNode left,
       RelNode right,
       List<BitSet> projFieldsList,
@@ -245,7 +246,7 @@ public class ConvertMultiJoinRule extends RelOptRule {
    *                       copied
    */
   private void combineOuterJoins(
-      JoinRel joinRel,
+      JoinRelBase joinRel,
       List<RelNode> combinedInputs,
       RelNode left,
       RelNode right,
@@ -361,12 +362,12 @@ public class ConvertMultiJoinRule extends RelOptRule {
    * outer join
    *
    * @param joinRel join rel
-   * @param left    left child of the joinrel
-   * @param right   right child of the joinrel
-   * @return combined join filters AND'd together
+   * @param left    left child of the join
+   * @param right   right child of the join
+   * @return combined join filters AND-ed together
    */
   private RexNode combineJoinFilters(
-      JoinRel joinRel,
+      JoinRelBase joinRel,
       RelNode left,
       RelNode right) {
     RexBuilder rexBuilder = joinRel.getCluster().getRexBuilder();
@@ -432,7 +433,7 @@ public class ConvertMultiJoinRule extends RelOptRule {
    * @return the adjusted right filter
    */
   private RexNode shiftRightFilter(
-      JoinRel joinRel,
+      JoinRelBase joinRel,
       RelNode left,
       MultiJoinRel right,
       RexNode rightFilter) {
@@ -517,7 +518,7 @@ public class ConvertMultiJoinRule extends RelOptRule {
    * @return combined post-join filters AND'd together
    */
   private RexNode combinePostJoinFilters(
-      JoinRel joinRel,
+      JoinRelBase joinRel,
       RelNode left,
       RelNode right) {
     RexNode rightPostJoinFilter = null;

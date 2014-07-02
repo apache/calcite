@@ -37,23 +37,25 @@ import com.google.common.collect.ImmutableSet;
 public final class RemoveDistinctAggregateRule extends RelOptRule {
   //~ Static fields/initializers ---------------------------------------------
 
-  /** The singleton. */
+  /** The default instance of the rule; operates only on logical expressions. */
   public static final RemoveDistinctAggregateRule INSTANCE =
-      new RemoveDistinctAggregateRule();
+      new RemoveDistinctAggregateRule(AggregateRel.class,
+          RelFactories.DEFAULT_JOIN_FACTORY);
+
+  private final RelFactories.JoinFactory joinFactory;
 
   //~ Constructors -----------------------------------------------------------
 
-  /**
-   * Private constructor.
-   */
-  private RemoveDistinctAggregateRule() {
-    super(operand(AggregateRel.class, any()));
+  public RemoveDistinctAggregateRule(Class<? extends AggregateRel> clazz,
+      RelFactories.JoinFactory joinFactory) {
+    super(operand(clazz, any()));
+    this.joinFactory = joinFactory;
   }
 
   //~ Methods ----------------------------------------------------------------
 
   public void onMatch(RelOptRuleCall call) {
-    AggregateRel aggregate = call.rel(0);
+    final AggregateRelBase aggregate = call.rel(0);
     if (!aggregate.containsDistinctCall()) {
       return;
     }
@@ -143,12 +145,12 @@ public final class RemoveDistinctAggregateRule extends RelOptRule {
   }
 
   /**
-   * Converts an aggregrate relational expression which contains just one
+   * Converts an aggregate relational expression that contains just one
    * distinct aggregate function (or perhaps several over the same arguments)
    * and no non-distinct aggregate functions.
    */
   private RelNode convertMonopole(
-      AggregateRel aggregate,
+      AggregateRelBase aggregate,
       List<Integer> argList) {
     // For example,
     //    SELECT deptno, COUNT(DISTINCT sal), SUM(DISTINCT sal)
@@ -166,21 +168,18 @@ public final class RemoveDistinctAggregateRule extends RelOptRule {
     // Project the columns of the GROUP BY plus the arguments
     // to the agg function.
     Map<Integer, Integer> sourceOf = new HashMap<Integer, Integer>();
-    final AggregateRel distinct =
+    final AggregateRelBase distinct =
         createSelectDistinct(aggregate, argList, sourceOf);
 
     // Create an aggregate on top, with the new aggregate list.
     final List<AggregateCall> newAggCalls =
         new ArrayList<AggregateCall>(aggregate.getAggCallList());
     rewriteAggCalls(newAggCalls, argList, sourceOf);
-    AggregateRel newAggregate =
-        new AggregateRel(
-            aggregate.getCluster(),
-            distinct,
-            aggregate.getGroupSet(),
-            newAggCalls);
-
-    return newAggregate;
+    return aggregate.copy(
+        aggregate.getTraitSet(),
+        distinct,
+        aggregate.getGroupSet(),
+        newAggCalls);
   }
 
   /**
@@ -203,7 +202,7 @@ public final class RemoveDistinctAggregateRule extends RelOptRule {
    * @return Relational expression
    */
   private RelNode doRewrite(
-      AggregateRel aggregate,
+      AggregateRelBase aggregate,
       RelNode left,
       List<Integer> argList,
       List<RexInputRef> refs) {
@@ -253,13 +252,13 @@ public final class RemoveDistinctAggregateRule extends RelOptRule {
     //
     // Note that if a query contains no non-distinct aggregates, then the
     // very first join/group by is omitted.  In the example above, if
-    // MAX(age) is removed, then the subselect of "e" is not needed, and
+    // MAX(age) is removed, then the sub-select of "e" is not needed, and
     // instead the two other group by's are joined to one another.
 
     // Project the columns of the GROUP BY plus the arguments
     // to the agg function.
     Map<Integer, Integer> sourceOf = new HashMap<Integer, Integer>();
-    final AggregateRel distinct =
+    final AggregateRelBase distinct =
         createSelectDistinct(aggregate, argList, sourceOf);
 
     // Now compute the aggregate functions on top of the distinct dataset.
@@ -318,9 +317,9 @@ public final class RemoveDistinctAggregateRule extends RelOptRule {
       aggCallList.add(newAggCall);
     }
 
-    AggregateRel distinctAgg =
-        new AggregateRel(
-            aggregate.getCluster(),
+    AggregateRelBase distinctAgg =
+        aggregate.copy(
+            aggregate.getTraitSet(),
             distinct,
             aggregate.getGroupSet(),
             aggCallList);
@@ -362,14 +361,13 @@ public final class RemoveDistinctAggregateRule extends RelOptRule {
     }
 
     // Join in the new 'select distinct' relation.
-    return
-        new JoinRel(
-            aggregate.getCluster(),
-            left,
-            distinctAgg,
-            condition,
-            JoinRelType.INNER,
-            ImmutableSet.<String>of());
+    return joinFactory.createJoin(
+        left,
+        distinctAgg,
+        condition,
+        JoinRelType.INNER,
+        ImmutableSet.<String>of(),
+        false);
   }
 
   private static void rewriteAggCalls(
@@ -440,14 +438,14 @@ public final class RemoveDistinctAggregateRule extends RelOptRule {
    * column; in this case sourceOf.get(0) = 0, and sourceOf.get(1) = 2.</p>
    *
    * @param aggregate Aggregate relational expression
-   * @param argList   Ordinals of columns to distinctify
+   * @param argList   Ordinals of columns to make distinct
    * @param sourceOf  Out parameter, is populated with a map of where each
    *                  output field came from
    * @return Aggregate relational expression which projects the required
    * columns
    */
-  private static AggregateRel createSelectDistinct(
-      AggregateRel aggregate,
+  private static AggregateRelBase createSelectDistinct(
+      AggregateRelBase aggregate,
       List<Integer> argList,
       Map<Integer, Integer> sourceOf) {
     final List<Pair<RexNode, String>> projects =
@@ -471,13 +469,11 @@ public final class RemoveDistinctAggregateRule extends RelOptRule {
 
     // Get the distinct values of the GROUP BY fields and the arguments
     // to the agg functions.
-    final AggregateRel distinct =
-        new AggregateRel(
-            aggregate.getCluster(),
-            project,
-            BitSets.range(projects.size()),
-            ImmutableList.<AggregateCall>of());
-    return distinct;
+    return aggregate.copy(
+        aggregate.getTraitSet(),
+        project,
+        BitSets.range(projects.size()),
+        ImmutableList.<AggregateCall>of());
   }
 }
 

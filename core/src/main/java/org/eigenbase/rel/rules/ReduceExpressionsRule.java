@@ -174,20 +174,20 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
       };
 
   public static final ReduceExpressionsRule JOIN_INSTANCE =
-      new ReduceExpressionsRule(JoinRel.class,
+      new ReduceExpressionsRule(JoinRelBase.class,
           "ReduceExpressionsRule[Join]") {
         public void onMatch(RelOptRuleCall call) {
-          JoinRel join = call.rel(0);
+          final JoinRelBase join = call.rel(0);
           List<RexNode> expList = new ArrayList<RexNode>(join.getChildExps());
           if (reduceExpressions(join, expList)) {
             call.transformTo(
-                new JoinRel(
-                    join.getCluster(),
+                join.copy(
+                    join.getTraitSet(),
+                    expList.get(0),
                     join.getLeft(),
                     join.getRight(),
-                    expList.get(0),
                     join.getJoinType(),
-                    join.getVariablesStopped()));
+                    join.isSemiJoinDone()));
 
             // New plan is absolutely better than old plan.
             call.getPlanner().setImportance(join, 0.0);

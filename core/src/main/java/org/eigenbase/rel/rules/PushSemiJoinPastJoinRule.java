@@ -25,8 +25,9 @@ import org.eigenbase.reltype.*;
 import org.eigenbase.rex.*;
 
 /**
- * PushSemiJoinPastJoinRule implements the rule for pushing semijoins down in a
- * tree past a join in order to trigger other rules that will convert semijoins.
+ * PushSemiJoinPastJoinRule implements the rule for pushing semi-joins down in a
+ * tree past a join in order to trigger other rules that will convert
+ * semi-joins.
  *
  * <ul>
  * <li>SemiJoinRel(JoinRel(X, Y), Z) &rarr; JoinRel(SemiJoinRel(X, Z), Y)
@@ -35,7 +36,7 @@ import org.eigenbase.rex.*;
  *
  * <p>Whether this
  * first or second conversion is applied depends on which operands actually
- * participate in the semijoin.</p>
+ * participate in the semi-join.</p>
  */
 public class PushSemiJoinPastJoinRule extends RelOptRule {
   public static final PushSemiJoinPastJoinRule INSTANCE =
@@ -50,7 +51,7 @@ public class PushSemiJoinPastJoinRule extends RelOptRule {
     super(
         operand(
             SemiJoinRel.class,
-            some(operand(JoinRel.class, any()))));
+            some(operand(JoinRelBase.class, any()))));
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -58,22 +59,25 @@ public class PushSemiJoinPastJoinRule extends RelOptRule {
   // implement RelOptRule
   public void onMatch(RelOptRuleCall call) {
     SemiJoinRel semiJoin = call.rel(0);
-    JoinRel joinRel = call.rel(1);
+    final JoinRelBase join = call.rel(1);
+    if (join instanceof SemiJoinRel) {
+      return;
+    }
     List<Integer> leftKeys = semiJoin.getLeftKeys();
     List<Integer> rightKeys = semiJoin.getRightKeys();
 
-    // X is the left child of the join below the semijoin
-    // Y is the right child of the join below the semijoin
-    // Z is the right child of the semijoin
-    int nFieldsX = joinRel.getLeft().getRowType().getFieldList().size();
-    int nFieldsY = joinRel.getRight().getRowType().getFieldList().size();
+    // X is the left child of the join below the semi-join
+    // Y is the right child of the join below the semi-join
+    // Z is the right child of the semi-join
+    int nFieldsX = join.getLeft().getRowType().getFieldList().size();
+    int nFieldsY = join.getRight().getRowType().getFieldList().size();
     int nFieldsZ = semiJoin.getRight().getRowType().getFieldList().size();
     int nTotalFields = nFieldsX + nFieldsY + nFieldsZ;
     List<RelDataTypeField> fields = new ArrayList<RelDataTypeField>();
 
     // create a list of fields for the full join result; note that
-    // we can't simply use the fields from the semijoin because the
-    // rowtype of a semijoin only includes the left hand side fields
+    // we can't simply use the fields from the semi-join because the
+    // row-type of a semi-join only includes the left hand side fields
     List<RelDataTypeField> joinFields =
         semiJoin.getRowType().getFieldList();
     for (int i = 0; i < (nFieldsX + nFieldsY); i++) {
@@ -84,8 +88,8 @@ public class PushSemiJoinPastJoinRule extends RelOptRule {
       fields.add(joinFields.get(i));
     }
 
-    // determine which operands below the semijoin are the actual
-    // Rels that participate in the semijoin
+    // determine which operands below the semi-join are the actual
+    // Rels that participate in the semi-join
     int nKeysFromX = 0;
     for (int leftKey : leftKeys) {
       if (leftKey < nFieldsX) {
@@ -94,10 +98,10 @@ public class PushSemiJoinPastJoinRule extends RelOptRule {
     }
 
     // the keys must all originate from either the left or right;
-    // otherwise, a semijoin wouldn't have been created
+    // otherwise, a semi-join wouldn't have been created
     assert (nKeysFromX == 0) || (nKeysFromX == leftKeys.size());
 
-    // need to convert the semijoin condition and possibly the keys
+    // need to convert the semi-join condition and possibly the keys
     RexNode newSemiJoinFilter;
     List<Integer> newLeftKeys;
     int[] adjustments = new int[nTotalFields];
@@ -105,7 +109,7 @@ public class PushSemiJoinPastJoinRule extends RelOptRule {
       // (X, Y, Z) --> (X, Z, Y)
       // semiJoin(X, Z)
       // pass 0 as Y's adjustment because there shouldn't be any
-      // references to Y in the semijoin filter
+      // references to Y in the semi-join filter
       setJoinAdjustments(
           adjustments,
           nFieldsX,
@@ -142,9 +146,9 @@ public class PushSemiJoinPastJoinRule extends RelOptRule {
     // create the new join
     RelNode leftSemiJoinOp;
     if (nKeysFromX > 0) {
-      leftSemiJoinOp = joinRel.getLeft();
+      leftSemiJoinOp = join.getLeft();
     } else {
-      leftSemiJoinOp = joinRel.getRight();
+      leftSemiJoinOp = join.getRight();
     }
     SemiJoinRel newSemiJoin =
         new SemiJoinRel(
@@ -159,22 +163,20 @@ public class PushSemiJoinPastJoinRule extends RelOptRule {
     RelNode rightJoinRel;
     if (nKeysFromX > 0) {
       leftJoinRel = newSemiJoin;
-      rightJoinRel = joinRel.getRight();
+      rightJoinRel = join.getRight();
     } else {
-      leftJoinRel = joinRel.getLeft();
+      leftJoinRel = join.getLeft();
       rightJoinRel = newSemiJoin;
     }
 
     RelNode newJoinRel =
-        new JoinRel(
-            joinRel.getCluster(),
+        join.copy(
+            join.getTraitSet(),
+            join.getCondition(),
             leftJoinRel,
             rightJoinRel,
-            joinRel.getCondition(),
-            joinRel.getJoinType(),
-            Collections.<String>emptySet(),
-            joinRel.isSemiJoinDone(),
-            joinRel.getSystemFieldList());
+            join.getJoinType(),
+            join.isSemiJoinDone());
 
     call.transformTo(newJoinRel);
   }

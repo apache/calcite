@@ -157,7 +157,8 @@ public class JavaRules {
 
     @Override
     public EnumerableJoinRel copy(RelTraitSet traitSet, RexNode conditionExpr,
-        RelNode left, RelNode right, JoinRelType joinType) {
+        RelNode left, RelNode right, JoinRelType joinType,
+        boolean semiJoinDone) {
       try {
         return new EnumerableJoinRel(getCluster(), traitSet, left, right,
             conditionExpr, joinType, variablesStopped);

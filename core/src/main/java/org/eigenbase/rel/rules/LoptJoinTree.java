@@ -22,8 +22,8 @@ import java.util.*;
 import org.eigenbase.rel.*;
 
 /**
- * Utility class used to store a {@link JoinRel} tree and the factors that make
- * up the tree.
+ * Utility class used to store a {@link JoinRelBase} tree and the factors that
+ * make up the tree.
  *
  * <p>Because {@link RelNode}s can be duplicated in a query
  * when you have a self-join, factor ids are needed to distinguish between the
@@ -112,14 +112,14 @@ public class LoptJoinTree {
 
   public LoptJoinTree getLeft() {
     return new LoptJoinTree(
-        ((JoinRel) joinTree).getLeft(),
+        ((JoinRelBase) joinTree).getLeft(),
         factorTree.getLeft(),
         factorTree.getLeft().getParent().isRemovableSelfJoin());
   }
 
   public LoptJoinTree getRight() {
     return new LoptJoinTree(
-        ((JoinRel) joinTree).getRight(),
+        ((JoinRelBase) joinTree).getRight(),
         factorTree.getRight(),
         factorTree.getRight().getParent().isRemovableSelfJoin());
   }

@@ -30,6 +30,7 @@ import org.eigenbase.util.mapping.IntPair;
 
 import net.hydromatic.optiq.util.BitSets;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 
 /**
@@ -40,11 +41,14 @@ import com.google.common.collect.Lists;
  */
 public class LoptOptimizeJoinRule extends RelOptRule {
   public static final LoptOptimizeJoinRule INSTANCE =
-      new LoptOptimizeJoinRule();
+      new LoptOptimizeJoinRule(RelFactories.DEFAULT_JOIN_FACTORY);
+
+  private final RelFactories.JoinFactory joinFactory;
 
   /** Creates a LoptOptimizeJoinRule. */
-  private LoptOptimizeJoinRule() {
+  public LoptOptimizeJoinRule(RelFactories.JoinFactory joinFactory) {
     super(operand(MultiJoinRel.class, any()));
+    this.joinFactory = joinFactory;
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -802,8 +806,8 @@ public class LoptOptimizeJoinRule extends RelOptRule {
     // full outer joins were already optimized in a prior instantiation
     // of this rule; therefore we should never see a join input that's
     // a full outer join
-    if (rel instanceof JoinRel) {
-      assert ((JoinRel) rel).getJoinType() != JoinRelType.FULL;
+    if (rel instanceof JoinRelBase) {
+      assert ((JoinRelBase) rel).getJoinType() != JoinRelType.FULL;
       return true;
     } else {
       return false;
@@ -949,7 +953,7 @@ public class LoptOptimizeJoinRule extends RelOptRule {
     // the cost of each JoinRel that appears above that RelNode.
     int width = tree.getRowType().getFieldCount();
     if (isJoinTree(tree)) {
-      JoinRel joinRel = (JoinRel) tree;
+      JoinRelBase joinRel = (JoinRelBase) tree;
       width +=
           rowWidthCost(joinRel.getLeft())
               + rowWidthCost(joinRel.getRight());
@@ -990,7 +994,7 @@ public class LoptOptimizeJoinRule extends RelOptRule {
     int childNo = -1;
     LoptJoinTree left = joinTree.getLeft();
     LoptJoinTree right = joinTree.getRight();
-    JoinRel joinRel = (JoinRel) joinTree.getJoinTree();
+    JoinRelBase joinRel = (JoinRelBase) joinTree.getJoinTree();
     JoinRelType joinType = joinRel.getJoinType();
 
     // can't push factors pass self-joins because in order to later remove
@@ -1063,7 +1067,7 @@ public class LoptOptimizeJoinRule extends RelOptRule {
     // pushdown of the new factor as well as any swapping that may have
     // been done during the pushdown
     RexNode newCondition =
-        ((JoinRel) joinTree.getJoinTree()).getCondition();
+        ((JoinRelBase) joinTree.getJoinTree()).getCondition();
     newCondition =
         adjustFilter(
             multiJoin,
@@ -1734,15 +1738,13 @@ public class LoptOptimizeJoinRule extends RelOptRule {
     }
 
     RelNode joinTree =
-        new JoinRel(
-            multiJoin.getMultiJoinRel().getCluster(),
+        joinFactory.createJoin(
             left.getJoinTree(),
             right.getJoinTree(),
             condition,
             joinType,
-            Collections.<String>emptySet(),
-            true,
-            Collections.<RelDataTypeField>emptyList());
+            ImmutableSet.<String>of(),
+            true);
 
     // if this is a left or right outer join, and additional filters can
     // be applied to the resulting join, then they need to be applied
@@ -1964,7 +1966,7 @@ public class LoptOptimizeJoinRule extends RelOptRule {
    *
    * @return true if the join is removable
    */
-  public static boolean isRemovableSelfJoin(JoinRel joinRel) {
+  public static boolean isRemovableSelfJoin(JoinRelBase joinRel) {
     final RelNode left = joinRel.getLeft();
     final RelNode right = joinRel.getRight();
 

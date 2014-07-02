@@ -137,17 +137,17 @@ public final class JoinRel extends JoinRelBase {
 
   @Override
   public JoinRel copy(RelTraitSet traitSet, RexNode conditionExpr, RelNode left,
-      RelNode right, JoinRelType joinType) {
+      RelNode right, JoinRelType joinType, boolean semiJoinDone) {
     assert traitSet.containsIfApplicable(Convention.NONE);
     return new JoinRel(
         getCluster(),
         left,
         right,
         conditionExpr,
-        this.joinType,
+        joinType,
         this.variablesStopped,
-        this.semiJoinDone,
-        systemFieldList);
+        semiJoinDone,
+        this.systemFieldList);
   }
 
   @Override
@@ -156,23 +156,13 @@ public final class JoinRel extends JoinRelBase {
   }
 
   public RelWriter explainTerms(RelWriter pw) {
-    // NOTE jvs 14-Mar-2006: Do it this way so that semijoin state
-    // don't clutter things up in optimizers that don't use semijoins
-    if (!semiJoinDone) {
-      return super.explainTerms(pw);
-    }
+    // Don't ever print semiJoinDone=false. This way, we
+    // don't clutter things up in optimizers that don't use semi-joins.
     return super.explainTerms(pw)
-        .item("semiJoinDone", semiJoinDone);
+        .itemIf("semiJoinDone", semiJoinDone, semiJoinDone);
   }
 
-  /**
-   * Returns whether this JoinRel has already spawned a {@link
-   * org.eigenbase.rel.rules.SemiJoinRel} via {@link
-   * org.eigenbase.rel.rules.AddRedundantSemiJoinRule}.
-   *
-   * @return whether this join has already spawned a semi join
-   */
-  public boolean isSemiJoinDone() {
+  @Override public boolean isSemiJoinDone() {
     return semiJoinDone;
   }
 

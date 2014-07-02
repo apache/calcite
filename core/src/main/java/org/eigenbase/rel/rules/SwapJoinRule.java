@@ -91,7 +91,7 @@ public class SwapJoinRule extends RelOptRule {
     // that the planner tries the desired order (semijoins after swaps).
     JoinRelBase newJoin =
         join.copy(join.getTraitSet(), condition, join.getRight(),
-            join.getLeft(), joinType.swap());
+            join.getLeft(), joinType.swap(), join.isSemiJoinDone());
     final List<RexNode> exps =
         RelOptUtil.createSwappedJoinExprs(newJoin, join, true);
     return CalcRel.createProject(

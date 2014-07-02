@@ -23,27 +23,30 @@ import org.eigenbase.rel.*;
 import org.eigenbase.relopt.*;
 
 /**
- * Rule to add a semijoin into a joinrel. Transformation is as follows:
+ * Rule to add a semi-join into a join. Transformation is as follows:
  *
  * <p>JoinRel(X, Y) &rarr; JoinRel(SemiJoinRel(X, Y), Y)
+ *
+ * <p>The constructor is parameterized to allow any sub-class of
+ * {@link JoinRelBase}, not just {@link JoinRel}.</p>
  */
 public class AddRedundantSemiJoinRule extends RelOptRule {
   public static final AddRedundantSemiJoinRule INSTANCE =
-      new AddRedundantSemiJoinRule();
+      new AddRedundantSemiJoinRule(JoinRel.class);
 
   //~ Constructors -----------------------------------------------------------
 
   /**
    * Creates an AddRedundantSemiJoinRule.
    */
-  private AddRedundantSemiJoinRule() {
-    super(operand(JoinRel.class, any()));
+  private AddRedundantSemiJoinRule(Class<? extends JoinRelBase> clazz) {
+    super(operand(clazz, any()));
   }
 
   //~ Methods ----------------------------------------------------------------
 
   public void onMatch(RelOptRuleCall call) {
-    JoinRel origJoinRel = call.rel(0);
+    JoinRelBase origJoinRel = call.rel(0);
     if (origJoinRel.isSemiJoinDone()) {
       return;
     }
@@ -76,15 +79,13 @@ public class AddRedundantSemiJoinRule extends RelOptRule {
             rightKeys);
 
     RelNode newJoinRel =
-        new JoinRel(
-            origJoinRel.getCluster(),
+        origJoinRel.copy(
+            origJoinRel.getTraitSet(),
+            origJoinRel.getCondition(),
             semiJoin,
             origJoinRel.getRight(),
-            origJoinRel.getCondition(),
             JoinRelType.INNER,
-            Collections.<String>emptySet(),
-            true,
-            origJoinRel.getSystemFieldList());
+            true);
 
     call.transformTo(newJoinRel);
   }
