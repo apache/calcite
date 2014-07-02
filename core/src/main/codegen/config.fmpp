@@ -73,6 +73,8 @@ data: {
     implementationFiles: [
       "parserImpls.ftl"
     ]
+    
+    includeCompoundIdentifier: true
   }
 }
 
