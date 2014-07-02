@@ -40,7 +40,6 @@ class CsvEnumerator implements Enumerator<Object> {
   private static final FastDateFormat TIME_FORMAT_TIMESTAMP;
 
   static {
-
     TimeZone gmt = TimeZone.getTimeZone("GMT");
     TIME_FORMAT_DATE = FastDateFormat.getInstance("yyyy-MM-dd", gmt);
     TIME_FORMAT_TIME = FastDateFormat.getInstance("hh:mm:ss", gmt);
@@ -112,9 +111,6 @@ class CsvEnumerator implements Enumerator<Object> {
         return string;
       }
       switch (fieldType) {
-      default:
-      case STRING:
-        return string;
       case BOOLEAN:
         if (string.length() == 0) {
           return null;
@@ -154,26 +150,22 @@ class CsvEnumerator implements Enumerator<Object> {
         if (string.length() == 0) {
           return null;
         }
-
         try {
           Date date = TIME_FORMAT_DATE.parse(string);
           return new java.sql.Date(date.getTime());
         } catch (ParseException e) {
           return null;
         }
-
       case TIME:
         if (string.length() == 0) {
           return null;
         }
-
         try {
           Date date = TIME_FORMAT_TIME.parse(string);
           return new java.sql.Time(date.getTime());
         } catch (ParseException e) {
           return null;
         }
-
       case TIMESTAMP:
         if (string.length() == 0) {
           return null;
@@ -184,12 +176,14 @@ class CsvEnumerator implements Enumerator<Object> {
         } catch (ParseException e) {
           return null;
         }
+      case STRING:
+      default:
+        return string;
       }
     }
   }
 
   private static class ArrayRowConverter extends RowConverter {
-
     private final CsvFieldType[] fieldTypes;
     private final int[] fields;
 
@@ -209,7 +203,6 @@ class CsvEnumerator implements Enumerator<Object> {
   }
 
   private static class SingleColumnRowConverter extends RowConverter {
-
     private final CsvFieldType fieldType;
     private final int fieldIndex;
 
@@ -222,7 +215,6 @@ class CsvEnumerator implements Enumerator<Object> {
       return convert(fieldType, strings[fieldIndex]);
     }
   }
-
 }
 
 // End CsvEnumerator.java

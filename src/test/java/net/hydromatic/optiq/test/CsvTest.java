@@ -222,7 +222,7 @@ public class CsvTest {
         buf.append(sep)
             .append(resultSet.getMetaData().getColumnLabel(i))
             .append("=")
-            .append(resultSet.getObject(i));
+            .append(resultSet.getString(i));
         sep = "; ";
       }
       result.add(toLinux(buf.toString()));
@@ -268,17 +268,13 @@ public class CsvTest {
         "EMPNO=100; SLACKER=true");
   }
 
-  @Test
-  public void testDateType() throws SQLException {
-
+  @Test public void testDateType() throws SQLException {
     Properties info = new Properties();
     info.put("model", "target/test-classes/bug.json");
 
-    Connection connection = DriverManager
-        .getConnection("jdbc:optiq:", info);
+    Connection connection = DriverManager.getConnection("jdbc:optiq:", info);
 
     try {
-
       ResultSet res = connection.getMetaData().getColumns(null, null,
           "DATE", "JOINEDAT");
       res.next();
@@ -318,8 +314,6 @@ public class CsvTest {
     } finally {
       connection.close();
     }
-
-
   }
 }
 

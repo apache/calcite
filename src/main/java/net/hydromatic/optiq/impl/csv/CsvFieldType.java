@@ -34,7 +34,7 @@ import java.util.Map;
  * makes it easier to write SQL.</p>
  */
 enum CsvFieldType {
-  STRING(null, String.class, "string"),
+  STRING(String.class, "string"),
   BOOLEAN(Primitive.BOOLEAN),
   BYTE(Primitive.BYTE),
   CHAR(Primitive.CHAR),
@@ -43,11 +43,10 @@ enum CsvFieldType {
   LONG(Primitive.LONG),
   FLOAT(Primitive.FLOAT),
   DOUBLE(Primitive.DOUBLE),
-  DATE(null, java.sql.Date.class, "date"),
-  TIME(null, java.sql.Time.class, "time"),
-  TIMESTAMP(null, java.sql.Timestamp.class, "timestamp");
+  DATE(java.sql.Date.class, "date"),
+  TIME(java.sql.Time.class, "time"),
+  TIMESTAMP(java.sql.Timestamp.class, "timestamp");
 
-  private final Primitive primitive;
   private final Class clazz;
   private final String simpleName;
 
@@ -61,12 +60,10 @@ enum CsvFieldType {
   }
 
   CsvFieldType(Primitive primitive) {
-    this(primitive, primitive.boxClass,
-      primitive.primitiveClass.getSimpleName());
+    this(primitive.boxClass, primitive.primitiveClass.getSimpleName());
   }
 
-  CsvFieldType(Primitive primitive, Class clazz, String simpleName) {
-    this.primitive = primitive;
+  CsvFieldType(Class clazz, String simpleName) {
     this.clazz = clazz;
     this.simpleName = simpleName;
   }
