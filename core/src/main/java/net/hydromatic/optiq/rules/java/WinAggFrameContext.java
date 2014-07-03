@@ -21,8 +21,11 @@ import net.hydromatic.linq4j.expressions.Expression;
 
 /**
  * Provides information on the current window.
- * All the indexes are ready to be used in {@link WinAggFrameResultContext#arguments(net.hydromatic.linq4j.expressions.Expression)},
- * {@link WinAggFrameResultContext#rowTranslator(net.hydromatic.linq4j.expressions.Expression)} and similar methods.
+ *
+ * <p>All the indexes are ready to be used in
+ * {@link WinAggResultContext#arguments(net.hydromatic.linq4j.expressions.Expression)},
+ * {@link WinAggFrameResultContext#rowTranslator(net.hydromatic.linq4j.expressions.Expression)}
+ * and similar methods.
  */
 public interface WinAggFrameContext {
   /**

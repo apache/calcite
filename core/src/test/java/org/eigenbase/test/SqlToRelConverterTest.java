@@ -87,8 +87,9 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
   }
 
   /**
-   * Test case for <a href="https://github.com/julianhyde/optiq/issues/245">
-   * Off-by-one translation of ON clause of JOIN</a>.
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/OPTIQ-245">OPTIQ-245</a>,
+   * "Off-by-one translation of ON clause of JOIN".
    */
   @Test public void testConditionOffByOne() {
     // Bug causes the plan to contain
@@ -121,11 +122,9 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     check("SELECT * FROM emp JOIN dept USING (deptno)", "${plan}");
   }
 
-  /**
-   * Test case for <a href="https://github.com/julianhyde/optiq/issues/74">
-   * JOIN ... USING fails in 3-way join with
-   * UnsupportedOperationException</a>.
-   */
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/OPTIQ-74">OPTIQ-74</a>,
+   * "JOIN ... USING fails in 3-way join with UnsupportedOperationException". */
   @Test public void testJoinUsingThreeWay() {
     check(
         "select *\n"

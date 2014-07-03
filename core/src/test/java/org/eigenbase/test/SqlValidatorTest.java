@@ -6469,7 +6469,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   /** Test case for
-   * <a href="https://github.com/julianhyde/optiq/issues/145">optiq-145,
+   * <a href="https://issues.apache.org/jira/browse/OPTIQ-145">OPTIQ-145,
    * "Unexpected upper-casing of keywords when using java lexer"</a>. */
   @Test public void testLexJavaKeyword() {
     final SqlTester tester1 = tester.withLex(Lex.JAVA);

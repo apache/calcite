@@ -631,7 +631,7 @@ public abstract class SqlOperator {
    * Returns whether this is a window function that requires ordering.
    *
    * <p>Per SQL:2011, 2, 6.10: "If &lt;ntile function&gt;, &lt;lead or lag
-   * function&gt, RANK or DENSE_RANK is specified, then the window ordering
+   * function&gt;, RANK or DENSE_RANK is specified, then the window ordering
    * clause shall be present."</p>
    *
    * @see #isAggregator()

@@ -21,7 +21,7 @@ import net.hydromatic.optiq.rules.java.AggImplementor;
 
 /**
  * Function that can be translated to java code.
- * <p>
+ *
  * @see net.hydromatic.optiq.rules.java.AggImplementor
  * @see net.hydromatic.optiq.rules.java.WinAggImplementor
  * @see net.hydromatic.optiq.rules.java.StrictAggImplementor
@@ -30,6 +30,7 @@ import net.hydromatic.optiq.rules.java.AggImplementor;
 public interface ImplementableAggFunction extends AggregateFunction {
   /**
    * Returns implementor that translates the function to linq4j expression.
+   *
    * @param windowContext true when aggregate is used in window context
    * @return implementor that translates the function to linq4j expression.
    */

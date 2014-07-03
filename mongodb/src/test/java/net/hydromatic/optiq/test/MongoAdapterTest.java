@@ -343,7 +343,7 @@ public class MongoAdapterTest {
                 "warehouse_id=14; warehouse_state_province=CA",
                 "warehouse_id=24; warehouse_state_province=CA"))
         .queryContains(
-            // Per https://github.com/julianhyde/optiq/issues/164,
+            // Per https://issues.apache.org/jira/browse/OPTIQ-164,
             // $match must occur before $project for good performance.
             mongoChecker(
                 "{\n"
@@ -503,7 +503,7 @@ public class MongoAdapterTest {
                 + "}"));
   }
 
-  @Ignore("https://github.com/julianhyde/optiq/issues/270")
+  @Ignore("https://issues.apache.org/jira/browse/OPTIQ-270")
   @Test public void testGroupByHaving2() {
     OptiqAssert.that()
         .enable(enabled())
@@ -687,8 +687,9 @@ public class MongoAdapterTest {
     }
   }
 
-  /** Test case for <a href="https://github.com/julianhyde/optiq/issues/286">
-   * optiq-286, "Error casting MongoDB date"</a>. */
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/OPTIQ-286">OPTIQ-286</a>,
+   * "Error casting MongoDB date". */
   @Test public void testDate() {
     // Assumes that you have created the following collection before running
     // this test:

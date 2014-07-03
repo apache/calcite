@@ -193,7 +193,9 @@ public class JdbcFrontLinqBackTest {
         .throws_("Column 'EMPID' not found in any table");
   }
 
-  /** Test case for https://github.com/julianhyde/optiq/issues/9. */
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/OPTIQ-9">OPTIQ-9</a>,
+   * "RexToLixTranslator not incrementing local variable name counter". */
   @Test public void testWhereOr() {
     that()
         .query(

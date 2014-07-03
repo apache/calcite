@@ -315,8 +315,8 @@ public class ReflectiveSchemaTest {
   }
 
   /** Test case for
-   * <a href="https://github.com/julianhyde/optiq/issues/119">optiq-119</a>.
-   * Comparing a Java type with a SQL type. */
+   * <a href="https://issues.apache.org/jira/browse/OPTIQ-119">OPTIQ-119</a>,
+   * "Comparing a Java type long with a SQL type INTEGER gives wrong answer". */
   @Test public void testCompareJavaAndSqlTypes() throws Exception {
     final OptiqAssert.AssertThat with =
         OptiqAssert.that().with("s", new CatchallSchema());
