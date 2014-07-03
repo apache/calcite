@@ -34,88 +34,80 @@ import com.google.common.collect.ImmutableList;
  * using the Frameworks tools.
  */
 public interface FrameworkConfig {
-
   /**
-   * The type of lexing the SqlParser should do.  Controls case rules
+   * The type of lexical analysis the SqlParser should do.  Controls case rules
    * and quoted identifier syntax.
    */
   Lex getLex();
 
-
   /**
-   * Provides the Parser factory that creates the SqlParser used in parsing
+   * Provides the parser factory that creates the SqlParser used in parsing
    * queries.
    */
   SqlParserImplFactory getParserFactory();
 
   /**
    * Returns the default schema that should be checked before looking at the
-   * root schema.  Return null to only consult the root schema.
+   * root schema.  Returns null to only consult the root schema.
    */
   SchemaPlus getDefaultSchema();
 
-
   /**
-   * List of of one or more programs used during the course of
-   *     query evaluation. The common use case is when there is a single program
-   *     created using {@link Programs#of(RuleSet)}
-   *     and {@link net.hydromatic.optiq.tools.Planner#transform}
-   *     will only be called once. However, consumers may also create programs
-   *     not based on rule sets, register multiple programs,
-   *     and do multiple repetitions
-   *     of {@link Planner#transform} planning cycles using different indices.
-   *     The order of programs provided here determines the zero-based indices
-   *     of programs elsewhere in this class.
+   * Returns a list of one or more programs used during the course of query
+   * evaluation.
+   *
+   * <p>The common use case is when there is a single program
+   * created using {@link Programs#of(RuleSet)}
+   * and {@link net.hydromatic.optiq.tools.Planner#transform}
+   * will only be called once.
+   *
+   * <p>However, consumers may also create programs
+   * not based on rule sets, register multiple programs,
+   * and do multiple repetitions
+   * of {@link Planner#transform} planning cycles using different indices.
+   *
+   * <p>The order of programs provided here determines the zero-based indices
+   * of programs elsewhere in this class.
    */
   ImmutableList<Program> getPrograms();
 
-
   /**
-   * Return the instance of SqlOperatorTable that should be used to
-   * resolve Optiq operators.
+   * Returns operator table that should be used to
+   * resolve functions and operators during query validation.
    */
   SqlOperatorTable getOperatorTable();
 
-
-
   /**
-   * Return the cost factory that should be used when creating the planner.
+   * Returns the cost factory that should be used when creating the planner.
    * If null, use the default cost factory for that planner.
    */
   RelOptCostFactory getCostFactory();
 
-
-/**
-   * <p>If {@code traitDefs} is non-null, the planner first de-registers any
+  /**
+   * Returns a list of trait definitions.
+   *
+   * <p>If the list is not null, the planner first de-registers any
    * existing {@link RelTraitDef}s, then registers the {@code RelTraitDef}s in
    * this list.</p>
    *
-   * <p>The order of {@code RelTraitDef}s in {@code traitDefs} matters if the
+   * <p>The order of {@code RelTraitDef}s in the list matters if the
    * planner is VolcanoPlanner. The planner calls {@link RelTraitDef#convert} in
    * the order of this list. The most important trait comes first in the list,
    * followed by the second most important one, etc.</p>
-   *
-   * @param lex The type of lexing the SqlParser should do.  Controls case rules
-   *     and quoted identifier syntax.
-   * @param parserFactory
-   * @param operatorTable The instance of SqlOperatorTable that be should to
-   *     resolve Optiq operators.
-   * @param ruleSets
-   *  @param  traitDefs The list of RelTraitDef that would be registered with
-   *     planner, or null.
- * @return
- */
+   */
   ImmutableList<RelTraitDef> getTraitDefs();
 
   /**
-   * Return the convertlet table that should be used when converting from Sql
+   * Returns the convertlet table that should be used when converting from SQL
    * to row expressions
    */
   SqlRexConvertletTable getConvertletTable();
 
   /**
    * Returns the PlannerContext that should be made available during planning by
-   * calling {@link org.eigenbase.relopt.RelOptPlanner#getPlannerContext}
+   * calling {@link org.eigenbase.relopt.RelOptPlanner#getContext()}.
    */
   Context getContext();
 }
+
+// End FrameworkConfig.java

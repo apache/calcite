@@ -135,12 +135,12 @@ public class ViewTable
     }
   }
 
-  /** Get the view's SQL definition. */
+  /** Returns the view's SQL definition. */
   public String getViewSql() {
     return viewSql;
   }
 
-  /** Get the schemapath of the view */
+  /** Returns the the schema path of the view. */
   public List<String> getSchemaPath() {
     return schemaPath;
   }

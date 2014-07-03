@@ -54,6 +54,11 @@ public class Programs {
     return Lists.transform(Arrays.asList(ruleSets), RULE_SET_TO_PROGRAM);
   }
 
+  /** Creates a list of programs based on a list of rule sets. */
+  public static List<Program> listOf(List<RuleSet> ruleSets) {
+    return Lists.transform(ruleSets, RULE_SET_TO_PROGRAM);
+  }
+
   /** Creates a program from a list of rules. */
   public static Program ofRules(RelOptRule... rules) {
     return of(RuleSets.ofList(rules));

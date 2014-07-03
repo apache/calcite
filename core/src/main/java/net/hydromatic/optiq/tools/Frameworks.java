@@ -52,6 +52,12 @@ public class Frameworks {
   private Frameworks() {
   }
 
+  /**
+   * Creates a planner.
+   *
+   * @param config Planner configuration
+   * @return Planner
+   */
   public static Planner getPlanner(FrameworkConfig config) {
     return new PlannerImpl(config);
   }
@@ -135,7 +141,6 @@ public class Frameworks {
           connection.unwrap(OptiqConnection.class);
       final OptiqServerStatement statement =
           optiqConnection.createStatement().unwrap(OptiqServerStatement.class);
-      //noinspection deprecation
       return new OptiqPrepareImpl().perform(statement, action);
     } catch (Exception e) {
       throw new RuntimeException(e);
@@ -157,7 +162,7 @@ public class Frameworks {
   }
 
   /**
-   * A builder class to help you build a StdFrameworkConfig using defaults
+   * A builder to help you build a {@link FrameworkConfig} using defaults
    * where values aren't required.
    */
   public static class ConfigBuilder {
@@ -176,25 +181,22 @@ public class Frameworks {
 
     public FrameworkConfig build() {
       return new StdFrameworkConfig(context, convertletTable, operatorTable,
-          programs, traitDefs, lex, defaultSchema, costFactory, //
-          parserFactory);
+          programs, traitDefs, lex, defaultSchema, costFactory, parserFactory);
     }
 
     public ConfigBuilder context(Context c) {
-      Preconditions.checkNotNull(c);
-      this.context = c;
-      return this;
-    };
-
-    public ConfigBuilder convertletTable(SqlRexConvertletTable table) {
-      Preconditions.checkNotNull(table);
-      this.convertletTable = table;
+      this.context = Preconditions.checkNotNull(c);
       return this;
     }
 
-    public ConfigBuilder operatorTable(SqlOperatorTable table) {
-      Preconditions.checkNotNull(table);
-      this.operatorTable = table;
+    public ConfigBuilder convertletTable(
+        SqlRexConvertletTable convertletTable) {
+      this.convertletTable = Preconditions.checkNotNull(convertletTable);
+      return this;
+    }
+
+    public ConfigBuilder operatorTable(SqlOperatorTable operatorTable) {
+      this.operatorTable = Preconditions.checkNotNull(operatorTable);
       return this;
     }
 
@@ -213,8 +215,7 @@ public class Frameworks {
     }
 
     public ConfigBuilder lex(Lex lex) {
-      Preconditions.checkNotNull(lex);
-      this.lex = lex;
+      this.lex = Preconditions.checkNotNull(lex);
       return this;
     }
 
@@ -228,11 +229,12 @@ public class Frameworks {
       return this;
     }
 
+    public ConfigBuilder ruleSets(RuleSet... ruleSets) {
+      return programs(Programs.listOf(ruleSets));
+    }
+
     public ConfigBuilder ruleSets(List<RuleSet> ruleSets) {
-      Preconditions.checkNotNull(ruleSets);
-      this.programs = ImmutableList.copyOf(Programs.listOf(ruleSets.toArray(
-          new RuleSet[ruleSets.size()])));
-      return this;
+      return programs(Programs.listOf(Preconditions.checkNotNull(ruleSets)));
     }
 
     public ConfigBuilder programs(List<Program> programs) {
@@ -245,15 +247,81 @@ public class Frameworks {
       return this;
     }
 
-    public ConfigBuilder ruleSets(RuleSet... ruleSets) {
-      this.programs = ImmutableList.copyOf(Programs.listOf(ruleSets));
+    public ConfigBuilder parserFactory(SqlParserImplFactory parserFactory) {
+      this.parserFactory = Preconditions.checkNotNull(parserFactory);
       return this;
     }
+  }
 
-    public ConfigBuilder parserFactory(SqlParserImplFactory parserFactory) {
-      Preconditions.checkNotNull(parserFactory);
+  /**
+   * An implementation of {@link FrameworkConfig} that uses standard Optiq
+   * classes to provide basic planner functionality.
+   */
+  static class StdFrameworkConfig implements FrameworkConfig {
+    private final Context context;
+    private final SqlRexConvertletTable convertletTable;
+    private final SqlOperatorTable operatorTable;
+    private final ImmutableList<Program> programs;
+    private final ImmutableList<RelTraitDef> traitDefs;
+    private final Lex lex;
+    private final SchemaPlus defaultSchema;
+    private final RelOptCostFactory costFactory;
+    private final SqlParserImplFactory parserFactory;
+
+    public StdFrameworkConfig(Context context,
+        SqlRexConvertletTable convertletTable,
+        SqlOperatorTable operatorTable,
+        ImmutableList<Program> programs,
+        ImmutableList<RelTraitDef> traitDefs,
+        Lex lex,
+        SchemaPlus defaultSchema,
+        RelOptCostFactory costFactory,
+        SqlParserImplFactory parserFactory) {
+      this.context = context;
+      this.convertletTable = convertletTable;
+      this.operatorTable = operatorTable;
+      this.programs = programs;
+      this.traitDefs = traitDefs;
+      this.lex = lex;
+      this.defaultSchema = defaultSchema;
+      this.costFactory = costFactory;
       this.parserFactory = parserFactory;
-      return this;
+    }
+
+    public Lex getLex() {
+      return lex;
+    }
+
+    public SqlParserImplFactory getParserFactory() {
+      return parserFactory;
+    }
+
+    public SchemaPlus getDefaultSchema() {
+      return defaultSchema;
+    }
+
+    public ImmutableList<Program> getPrograms() {
+      return programs;
+    }
+
+    public RelOptCostFactory getCostFactory() {
+      return costFactory;
+    }
+
+    public ImmutableList<RelTraitDef> getTraitDefs() {
+      return traitDefs;
+    }
+
+    public SqlRexConvertletTable getConvertletTable() {
+      return convertletTable;
+    }
+
+    public Context getContext() {
+      return context;
+    }
+
+    public SqlOperatorTable getOperatorTable() {
+      return operatorTable;
     }
   }
 }

@@ -76,8 +76,6 @@ public class PlannerImpl implements Planner {
   private SqlRexConvertletTable convertletTable;
   private RelNode rel;
 
-
-
   /** Creates a planner. Not a public API; call
    * {@link net.hydromatic.optiq.tools.Frameworks#getPlanner} instead. */
   public PlannerImpl(FrameworkConfig config) {
@@ -197,7 +195,7 @@ public class PlannerImpl implements Planner {
   }
 
   /** Implements {@link org.eigenbase.relopt.RelOptTable.ViewExpander}
-   * interface for {@link net.hydromatic.optiq.tools.Planner} */
+   * interface for {@link net.hydromatic.optiq.tools.Planner}. */
   public class ViewExpanderImpl implements ViewExpander {
     public RelNode expandView(RelDataType rowType, String queryString,
         List<String> schemaPath) {
@@ -221,10 +219,7 @@ public class PlannerImpl implements Planner {
           createRexBuilder(), convertletTable);
       sqlToRelConverter.setTrimUnusedFields(false);
 
-      RelNode relNode = sqlToRelConverter.convertQuery(
-          validatedSqlNode, true, false);
-
-      return relNode;
+      return sqlToRelConverter.convertQuery(validatedSqlNode, true, false);
     }
   }
 

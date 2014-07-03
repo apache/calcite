@@ -57,7 +57,9 @@ public class SqlUnresolvedFunction extends SqlFunction {
   }
 
   /**
-   * The operator class for this function isn't resolved to the
+   * {@inheritDoc}T
+   *
+   * <p>The operator class for this function isn't resolved to the
    * correct class. This happens in the case of user defined
    * functions. Return the return type to be 'ANY', so we don't
    * fail.
@@ -67,7 +69,6 @@ public class SqlUnresolvedFunction extends SqlFunction {
       SqlOperatorBinding opBinding) {
     return new BasicSqlType(SqlTypeName.ANY);
   }
-
 }
 
 // End SqlUnresolvedFunction.java

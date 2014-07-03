@@ -48,7 +48,8 @@ public class ImmutableNullableList<E> extends AbstractList<E> {
    */
   public static <E> List<E> copyOf(Collection<? extends E> elements) {
     if (elements instanceof ImmutableNullableList
-        || elements instanceof ImmutableList) {
+        || elements instanceof ImmutableList
+        || elements == SINGLETON_NULL) {
       //noinspection unchecked
       return (List<E>) elements;
     }

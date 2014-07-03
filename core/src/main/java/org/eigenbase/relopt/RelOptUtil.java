@@ -1458,7 +1458,6 @@ public abstract class RelOptUtil {
       final String desc2,
       RelDataType type2,
       boolean fail) {
-
     // if any one of the types is ANY return true
     if (type1.getSqlTypeName() == SqlTypeName.ANY
         || type2.getSqlTypeName() == SqlTypeName.ANY) {

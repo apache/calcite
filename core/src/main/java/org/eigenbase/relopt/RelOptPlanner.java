@@ -100,6 +100,7 @@ public interface RelOptPlanner {
 
   /**
    * Provides the Context created when this planner was constructed.
+   *
    * @return Either null or an externally defined context.
    */
   Context getContext();
