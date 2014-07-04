@@ -109,18 +109,33 @@ public class DriverVersion {
         productVersion = properties.getProperty("product.version");
         jdbcCompliant =
             Boolean.valueOf(properties.getProperty("jdbc.compliant"));
-        majorVersion =
-            Integer.valueOf(
-                properties.getProperty("driver.version.major"));
-        minorVersion =
-            Integer.valueOf(
-                properties.getProperty("driver.version.minor"));
-        databaseMajorVersion =
-            Integer.valueOf(
-                properties.getProperty("database.version.major"));
-        databaseMinorVersion =
-            Integer.valueOf(
-                properties.getProperty("database.version.minor"));
+        String[] s = driverVersion.replaceAll("-.*$", "").split("\\.");
+        final int major = Integer.valueOf(s[0]);
+        final int minor = Integer.valueOf(s[1]);
+        try {
+          majorVersion =
+              Integer.valueOf(properties.getProperty("driver.version.major"));
+        } catch (NumberFormatException e) {
+          majorVersion = major;
+        }
+        try {
+          minorVersion =
+              Integer.valueOf(properties.getProperty("driver.version.minor"));
+        } catch (NumberFormatException e) {
+          minorVersion = minor;
+        }
+        try {
+          databaseMajorVersion =
+              Integer.valueOf(properties.getProperty("database.version.major"));
+        } catch (NumberFormatException e) {
+          databaseMajorVersion = major;
+        }
+        try {
+          databaseMinorVersion =
+              Integer.valueOf(properties.getProperty("database.version.minor"));
+        } catch (NumberFormatException e) {
+          databaseMinorVersion = minor;
+        }
       }
     } catch (IOException e) {
       e.printStackTrace();
