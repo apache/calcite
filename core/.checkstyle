@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<fileset-config file-format-version="1.2.0" simple-config="true" sync-formatter="false">
+  <local-check-config name="maven-checkstyle-plugin" location="file:/src/avatica/core/../src/main/config/checkstyle/checker.xml" type="remote" description="maven-checkstyle-plugin configuration">
+    <property name="checkstyle.cache.file" value="${project_loc}/target/checkstyle-cachefile"/>
+    <property name="checkstyle.header.file" value="/src/avatica/core/target/checkstyle-header.txt"/>
+  </local-check-config>
+  <fileset name="all" enabled="true" check-config-name="nouse" local="false">
+    <file-match-pattern match-pattern="." include-pattern="true"/>
+  </fileset>
+</fileset-config>

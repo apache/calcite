@@ -117,7 +117,7 @@ class OptiqMaterializer extends OptiqPrepareImpl.OptiqPreparingStmt {
     // tables, regardless of schema.
     final OptiqSchema matSchema = schema.root().getSubSchema("mat", true);
     if (matSchema != null) {
-      for (OptiqSchema.TableEntry tis : matSchema.tableMap.values()) {
+      for (OptiqSchema.TableEntry tis : matSchema.getTableEntries()) {
         if (tis.getTable().getJdbcTableType() == Schema.TableType.STAR) {
           list.add(tis);
         }

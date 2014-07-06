@@ -56,7 +56,7 @@ public abstract class OptiqFactory implements AvaticaFactory {
   /** Creates a connection with a root schema. */
   public abstract AvaticaConnection newConnection(UnregisteredDriver driver,
       AvaticaFactory factory, String url, Properties info,
-      OptiqRootSchema rootSchema, JavaTypeFactory typeFactory);
+      OptiqSchema rootSchema, JavaTypeFactory typeFactory);
 }
 
 // End OptiqFactory.java

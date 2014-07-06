@@ -79,7 +79,7 @@ public interface OptiqPrepare {
   interface Context {
     JavaTypeFactory getTypeFactory();
 
-    OptiqRootSchema getRootSchema();
+    OptiqSchema getRootSchema();
 
     List<String> getDefaultSchemaPath();
 

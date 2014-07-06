@@ -46,7 +46,7 @@ public class OptiqJdbc41Factory extends OptiqFactory {
 
   public OptiqJdbc41Connection newConnection(UnregisteredDriver driver,
       AvaticaFactory factory, String url, Properties info,
-      OptiqRootSchema rootSchema, JavaTypeFactory typeFactory) {
+      OptiqSchema rootSchema, JavaTypeFactory typeFactory) {
     return new OptiqJdbc41Connection(
         (Driver) driver, factory, url, info, rootSchema, typeFactory);
   }
@@ -99,7 +99,7 @@ public class OptiqJdbc41Factory extends OptiqFactory {
   /** Implementation of connection for JDBC 4.1. */
   private static class OptiqJdbc41Connection extends OptiqConnectionImpl {
     OptiqJdbc41Connection(Driver driver, AvaticaFactory factory, String url,
-        Properties info, OptiqRootSchema rootSchema,
+        Properties info, OptiqSchema rootSchema,
         JavaTypeFactory typeFactory) {
       super(driver, factory, url, info, rootSchema, typeFactory);
     }
