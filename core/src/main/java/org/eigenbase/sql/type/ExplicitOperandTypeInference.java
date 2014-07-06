@@ -24,7 +24,7 @@ import com.google.common.collect.ImmutableList;
 
 /**
  * ExplicitOperandTypeInferences implements {@link SqlOperandTypeInference} by
- * explicity supplying a type for each parameter.
+ * explicitly supplying a type for each parameter.
  */
 public class ExplicitOperandTypeInference implements SqlOperandTypeInference {
   //~ Instance fields --------------------------------------------------------
@@ -33,7 +33,7 @@ public class ExplicitOperandTypeInference implements SqlOperandTypeInference {
 
   //~ Constructors -----------------------------------------------------------
 
-  /** Use {@link org.eigenbase.sql.type.InferTypes#explicit(List)}. */
+  /** Use {@link org.eigenbase.sql.type.InferTypes#explicit(java.util.List)}. */
   ExplicitOperandTypeInference(ImmutableList<RelDataType> paramTypes) {
     this.paramTypes = paramTypes;
   }

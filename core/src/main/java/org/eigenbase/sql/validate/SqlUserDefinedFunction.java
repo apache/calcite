@@ -17,6 +17,9 @@
 */
 package org.eigenbase.sql.validate;
 
+import java.util.List;
+
+import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.sql.*;
 import org.eigenbase.sql.type.*;
 import org.eigenbase.util.Util;
@@ -36,10 +39,11 @@ public class SqlUserDefinedFunction extends SqlFunction {
       SqlReturnTypeInference returnTypeInference,
       SqlOperandTypeInference operandTypeInference,
       SqlOperandTypeChecker operandTypeChecker,
+      List<RelDataType> paramTypes,
       Function function) {
     super(Util.last(opName.names), opName, SqlKind.OTHER_FUNCTION,
         returnTypeInference, operandTypeInference, operandTypeChecker,
-        null, SqlFunctionCategory.USER_DEFINED_FUNCTION);
+        paramTypes, SqlFunctionCategory.USER_DEFINED_FUNCTION);
     this.function = function;
   }
 

@@ -225,7 +225,7 @@ public class OptiqCatalogReader implements Prepare.CatalogReader,
       return new SqlUserDefinedFunction(name,
           ReturnTypes.explicit(Schemas.proto((ScalarFunction) function)),
           InferTypes.explicit(argTypes), OperandTypes.family(typeFamilies),
-          function);
+          toSql(argTypes), function);
     } else if (function instanceof AggregateFunction) {
       returnType = ((AggregateFunction) function).getReturnType(typeFactory);
       return new SqlUserDefinedAggFunction(name,
@@ -240,10 +240,24 @@ public class OptiqCatalogReader implements Prepare.CatalogReader,
       return new SqlUserDefinedTableFunction(name,
           ReturnTypes.CURSOR,
           InferTypes.explicit(argTypes), OperandTypes.family(typeFamilies),
-          (TableFunction) function);
+          toSql(argTypes), (TableFunction) function);
     } else {
       throw new AssertionError("unknown function type " + function);
     }
+  }
+
+  private List<RelDataType> toSql(List<RelDataType> types) {
+    return Lists.transform(types,
+        new com.google.common.base.Function<RelDataType, RelDataType>() {
+          public RelDataType apply(RelDataType input) {
+            if (input instanceof RelDataTypeFactoryImpl.JavaType
+                && ((RelDataTypeFactoryImpl.JavaType) input).getJavaClass()
+                == Object.class) {
+              return typeFactory.createSqlType(SqlTypeName.ANY);
+            }
+            return typeFactory.toSql(input);
+          }
+        });
   }
 
   public List<SqlOperator> getOperatorList() {

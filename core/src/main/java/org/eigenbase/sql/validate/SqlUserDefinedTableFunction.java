@@ -38,12 +38,13 @@ import net.hydromatic.optiq.TableFunction;
 */
 public class SqlUserDefinedTableFunction extends SqlUserDefinedFunction {
   public SqlUserDefinedTableFunction(SqlIdentifier opName,
-        SqlReturnTypeInference returnTypeInference,
-        SqlOperandTypeInference operandTypeInference,
-        SqlOperandTypeChecker operandTypeChecker,
-        TableFunction function) {
+      SqlReturnTypeInference returnTypeInference,
+      SqlOperandTypeInference operandTypeInference,
+      SqlOperandTypeChecker operandTypeChecker,
+      List<RelDataType> paramTypes,
+      TableFunction function) {
     super(opName, returnTypeInference, operandTypeInference, operandTypeChecker,
-            function);
+        paramTypes, function);
   }
 
   /**

@@ -66,7 +66,8 @@ public class ModelHandler {
   }
 
   /** Creates and validates a ScalarFunctionImpl. */
-  public static Function create(List<String> path, String className) {
+  public static void create(SchemaPlus schema, String functionName,
+      List<String> path, String className, String methodName) {
     final Class<?> clazz;
     try {
       clazz = Class.forName(className);
@@ -78,19 +79,34 @@ public class ModelHandler {
     // method.
     final TableFunction tableFunction = TableFunctionImpl.create(clazz);
     if (tableFunction != null) {
-      return tableFunction;
+      schema.add(functionName, tableFunction);
+      return;
     }
     final TableMacro macro = TableMacroImpl.create(clazz);
     if (macro != null) {
-      return macro;
+      schema.add(functionName, macro);
+      return;
     }
-    final ScalarFunction function = ScalarFunctionImpl.create(clazz);
-    if (function != null) {
-      return function;
+    if (methodName != null && methodName.equals("*")) {
+      for (Map.Entry<String, ScalarFunction> entry
+          : ScalarFunctionImpl.createAll(clazz).entries()) {
+        schema.add(entry.getKey(), entry.getValue());
+      }
+      return;
+    } else {
+      final ScalarFunction function =
+          ScalarFunctionImpl.create(clazz, Util.first(methodName, "eval"));
+      if (function != null) {
+        schema.add(Util.first(functionName, methodName), function);
+        return;
+      }
     }
-    final AggregateFunction aggFunction = AggregateFunctionImpl.create(clazz);
-    if (aggFunction != null) {
-      return aggFunction;
+    if (methodName == null) {
+      final AggregateFunction aggFunction = AggregateFunctionImpl.create(clazz);
+      if (aggFunction != null) {
+        schema.add(functionName, aggFunction);
+        return;
+      }
     }
     throw new RuntimeException("Not a valid function class: " + clazz
         + ". Scalar functions and table macros have an 'eval' method; "
@@ -278,8 +294,11 @@ public class ModelHandler {
       final SchemaPlus schema = currentMutableSchema("function");
       final List<String> path =
           Util.first(jsonFunction.path, currentSchemaPath());
-      schema.add(jsonFunction.name,
-          create(path, jsonFunction.className));
+      create(schema,
+          jsonFunction.name,
+          path,
+          jsonFunction.className,
+          jsonFunction.methodName);
     } catch (Exception e) {
       throw new RuntimeException("Error instantiating " + jsonFunction, e);
     }

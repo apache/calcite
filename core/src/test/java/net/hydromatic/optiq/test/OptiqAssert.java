@@ -182,6 +182,26 @@ public class OptiqAssert {
     };
   }
 
+  static Function1<ResultSet, Void> checkResultValue(final String expected) {
+    return new Function1<ResultSet, Void>() {
+      public Void apply(ResultSet resultSet) {
+        try {
+          if (!resultSet.next()) {
+            throw new AssertionError("too few rows");
+          }
+          if (resultSet.getMetaData().getColumnCount() != 1) {
+            throw new AssertionError("expected 1 column");
+          }
+          final String resultString = resultSet.getString(1);
+          assertEquals(expected, Util.toLinux(resultString));
+          return null;
+        } catch (SQLException e) {
+          throw new RuntimeException(e);
+        }
+      }
+    };
+  }
+
   static Function1<ResultSet, Void> checkResultCount(final int expected) {
     return new Function1<ResultSet, Void>() {
       public Void apply(ResultSet resultSet) {
@@ -842,6 +862,10 @@ public class OptiqAssert {
       return returns(checkResult(expected));
     }
 
+    public AssertQuery returnsValue(String expected) {
+      return returns(checkResultValue(expected));
+    }
+
     public AssertQuery returnsCount(int expectedCount) {
       return returns(checkResultCount(expectedCount));
     }
@@ -1078,11 +1102,6 @@ public class OptiqAssert {
     @Override
     protected Connection createConnection() throws Exception {
       throw new AssertionError("disabled");
-    }
-
-    @Override
-    public AssertQuery returns(String expected) {
-      return this;
     }
 
     @Override

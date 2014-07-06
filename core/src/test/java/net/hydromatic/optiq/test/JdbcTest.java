@@ -4729,6 +4729,19 @@ public class JdbcTest {
             + "           className: '"
             + CountArgs2Function.class.getName()
             + "'\n"
+            + "         },\n"
+            + "         {\n"
+            + "           name: 'MY_ABS',\n"
+            + "           className: '"
+            + java.lang.Math.class.getName()
+            + "',\n"
+            + "           methodName: 'abs'\n"
+            + "         },\n"
+            + "         {\n"
+            + "           className: '"
+            + MultipleFunction.class.getName()
+            + "',\n"
+            + "           methodName: '*'\n"
             + "         }\n"
             + "       ]\n"
             + "     }\n"
@@ -4841,6 +4854,23 @@ public class JdbcTest {
     withBadUdf(AwkwardFunction.class)
         .connectThrows(
             "Declaring class 'net.hydromatic.optiq.test.JdbcTest$AwkwardFunction' of non-static user-defined function must have a public constructor with zero parameters");
+  }
+
+  /** Tests user-defined function, with multiple methods per class. */
+  @Test public void testUserDefinedFunctionWithMethodName() throws Exception {
+    // java.lang.Math has abs(int) and abs(double).
+    final OptiqAssert.AssertThat with = withUdf();
+    with.query("values abs(-4)").returnsValue("4");
+    with.query("values abs(-4.5)").returnsValue("4.5");
+
+    // 3 overloads of "fun1", another method "fun2", but method "nonStatic"
+    // cannot be used as a function
+    with.query("values \"adhoc\".\"fun1\"(2)").returnsValue("4");
+    with.query("values \"adhoc\".\"fun1\"(2, 3)").returnsValue("5");
+    with.query("values \"adhoc\".\"fun1\"('Foo Bar')").returnsValue("foo bar");
+    with.query("values \"adhoc\".\"fun2\"(10)").returnsValue("30");
+    with.query("values \"adhoc\".\"nonStatic\"(2)")
+        .throws_("No match found for function signature nonStatic(<NUMERIC>)");
   }
 
   /** Tests user-defined aggregate function. */
@@ -6028,6 +6058,22 @@ public class JdbcTest {
     public int eval(int x) {
       return 0;
     }
+  }
+
+  /** UDF class that has multiple methods, some overloaded. */
+  public static class MultipleFunction {
+    private MultipleFunction() {}
+
+    // Three overloads
+    public static String fun1(String x) { return x.toLowerCase(); }
+    public static int fun1(int x) { return x * 2; }
+    public static int fun1(int x, int y) { return x + y; }
+
+    // Another method
+    public static int fun2(int x) { return x * 3; }
+
+    // Non-static method cannot be used because constructor is private
+    public int nonStatic(int x) { return x * 3; }
   }
 
   /** Example of a user-defined aggregate function (UDAF). */

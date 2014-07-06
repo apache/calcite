@@ -22,8 +22,6 @@ import net.hydromatic.avatica.ByteString;
 import net.hydromatic.linq4j.Ord;
 import net.hydromatic.linq4j.expressions.Primitive;
 import net.hydromatic.linq4j.expressions.Types;
-import net.hydromatic.linq4j.function.Function1;
-import net.hydromatic.linq4j.function.Functions;
 
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 import net.hydromatic.optiq.runtime.Unit;
@@ -32,6 +30,9 @@ import org.eigenbase.reltype.*;
 import org.eigenbase.sql.type.*;
 import org.eigenbase.util.Pair;
 import org.eigenbase.util.Util;
+
+import com.google.common.base.Function;
+import com.google.common.collect.Lists;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
@@ -168,9 +169,8 @@ public class JavaTypeFactoryImpl
   public RelDataType toSql(RelDataType type) {
     if (type instanceof RelRecordType) {
       return createStructType(
-          Functions.adapt(
-              type.getFieldList(),
-              new Function1<RelDataTypeField, RelDataType>() {
+          Lists.transform(type.getFieldList(),
+              new Function<RelDataTypeField, RelDataType>() {
                 public RelDataType apply(RelDataTypeField a0) {
                   return toSql(a0.getType());
                 }

@@ -18,11 +18,12 @@
 package net.hydromatic.optiq.impl;
 
 import net.hydromatic.optiq.*;
-
 import net.hydromatic.optiq.rules.java.*;
 
 import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.reltype.RelDataTypeFactory;
+
+import com.google.common.collect.ImmutableMultimap;
 
 import java.lang.reflect.*;
 
@@ -42,16 +43,39 @@ public class ScalarFunctionImpl extends ReflectiveFunctionBase implements
   }
 
   /**
+   * Creates {@link net.hydromatic.optiq.ScalarFunction} for each method in a
+   * given class.
+   */
+  public static ImmutableMultimap<String, ScalarFunction> createAll(
+      Class<?> clazz) {
+    final ImmutableMultimap.Builder<String, ScalarFunction> builder =
+        ImmutableMultimap.builder();
+    for (Method method : clazz.getMethods()) {
+      if (method.getDeclaringClass() == Object.class) {
+        continue;
+      }
+      if (!Modifier.isStatic(method.getModifiers())
+          && !ScalarFunctionImpl.classHasPublicZeroArgsConstructor(clazz)) {
+        continue;
+      }
+      final ScalarFunction function = create(method);
+      builder.put(method.getName(), function);
+    }
+    return builder.build();
+  }
+
+  /**
    * Creates {@link net.hydromatic.optiq.ScalarFunction} from given class.
-   * The class should contain {@code eval} method.
-   * When {@code eval} method is not found or it does not suit,
-   * {@code null} is returned.
+   *
+   * <p>If a method of the given name is not found or it does not suit,
+   * returns {@code null}.
    *
    * @param clazz class that is used to implement the function
+   * @param methodName Method name (typically "eval")
    * @return created {@link ScalarFunction} or null
    */
-  public static ScalarFunction create(Class<?> clazz) {
-    final Method method = findMethod(clazz, "eval");
+  public static ScalarFunction create(Class<?> clazz, String methodName) {
+    final Method method = findMethod(clazz, methodName);
     if (method == null) {
       return null;
     }

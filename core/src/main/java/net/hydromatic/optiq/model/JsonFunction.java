@@ -27,6 +27,7 @@ import java.util.List;
 public class JsonFunction {
   public String name;
   public String className;
+  public String methodName;
   public List<String> path;
 
   public void accept(ModelHandler handler) {

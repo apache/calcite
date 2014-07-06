@@ -447,8 +447,7 @@ public abstract class SqlUtil {
       for (Pair<RelDataType, RelDataType> p : Pair.zip(paramTypes, argTypes)) {
         final RelDataType argType = p.right;
         final RelDataType paramType = p.left;
-        final RelDataTypePrecedenceList precList = argType.getPrecedenceList();
-        if (!precList.containsType(paramType)) {
+        if (!SqlTypeUtil.canAssignFrom(paramType, argType)) {
           keep = false;
           break;
         }
