@@ -139,19 +139,6 @@ public class ModelHandler {
       schema.setPath(stringListList(jsonSchema.path));
     }
     populateSchema(jsonSchema, schema);
-    if (schema.getName().equals("mat")) {
-      // Inject by hand a Star Table. Later we'll add a JSON model element.
-      final List<Table> tables = new ArrayList<Table>();
-      final String[] tableNames = {
-        "sales_fact_1997", "time_by_day", "product", "product_class"
-      };
-      final SchemaPlus schema2 = parentSchema.getSubSchema("foodmart");
-      for (String tableName : tableNames) {
-        tables.add(schema2.getTable(tableName));
-      }
-      final String tableName = "star";
-      schema.add(tableName, StarTable.of(tables));
-    }
   }
 
   private static ImmutableList<ImmutableList<String>> stringListList(
