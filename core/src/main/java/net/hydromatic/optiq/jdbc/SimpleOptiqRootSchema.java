@@ -17,10 +17,17 @@
 */
 package net.hydromatic.optiq.jdbc;
 
-/**
- * Interface that marks the root schema.
- */
-public interface OptiqRootSchema {
-}
+import net.hydromatic.optiq.Schema;
 
-// End OptiqRootSchema.java
+/**
+ * The base level schema (no parent) for SimpleOptiqSchema
+ */
+public class SimpleOptiqRootSchema extends SimpleOptiqSchema
+  implements OptiqRootSchema {
+
+  /** Creates a root schema. */
+  SimpleOptiqRootSchema(Schema schema) {
+      super(null, schema, "");
+  }
+
+}
