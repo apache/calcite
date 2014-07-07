@@ -68,14 +68,16 @@ public abstract class AggregateRelBase extends SingleRel {
     assert groupSet != null;
     assert groupSet.isEmpty() == (groupSet.cardinality() == 0)
         : "See http://bugs.sun.com/bugdatabase/view_bug.do?bug_id=6222207";
+    for (AggregateCall aggCall : aggCalls) {
+      assert typeMatchesInferred(aggCall, true);
+    }
   }
 
   /**
    * Creates an AggregateRelBase by parsing serialized output.
    */
   protected AggregateRelBase(RelInput input) {
-    this(
-        input.getCluster(), input.getTraitSet(), input.getInput(),
+    this(input.getCluster(), input.getTraitSet(), input.getInput(),
         input.getBitSet("group"), input.getAggregateCalls("aggs"));
   }
 
@@ -169,17 +171,30 @@ public abstract class AggregateRelBase extends SingleRel {
   }
 
   protected RelDataType deriveRowType() {
-    return getCluster().getTypeFactory().createStructType(
+    return deriveRowType(
+        getCluster().getTypeFactory(),
+        getChild().getRowType(),
+        groupSet,
+        aggCalls);
+  }
+
+  /** Computes the row type of an {@code AggregateRelBase} before it exists. */
+  public static RelDataType deriveRowType(RelDataTypeFactory typeFactory,
+      final RelDataType inputRowType, BitSet groupSet,
+      final List<AggregateCall> aggCalls) {
+    final IntList groupList = BitSets.toList(groupSet);
+    assert groupList.size() == groupSet.cardinality();
+    return typeFactory.createStructType(
         CompositeList.of(
             // fields derived from grouping columns
             new AbstractList<RelDataTypeField>() {
               public int size() {
-                return groupSet.cardinality();
+                return groupList.size();
               }
 
               public RelDataTypeField get(int index) {
-                return getChild().getRowType().getFieldList().get(
-                    BitSets.toList(groupSet).get(index));
+                return inputRowType.getFieldList().get(
+                    groupList.get(index));
               }
             },
 
@@ -195,11 +210,9 @@ public abstract class AggregateRelBase extends SingleRel {
                 if (aggCall.name != null) {
                   name = aggCall.name;
                 } else {
-                  name = "$f" + (groupSet.cardinality() + index);
+                  name = "$f" + (groupList.size() + index);
                 }
-                assert typeMatchesInferred(aggCall, true);
-                return new RelDataTypeFieldImpl(
-                    name, index, aggCall.type);
+                return new RelDataTypeFieldImpl(name, index, aggCall.type);
               }
             }));
   }

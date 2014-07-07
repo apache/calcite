@@ -238,6 +238,8 @@ public abstract class Mappings {
    * Returns a mapping as a list such that {@code list.get(source)} is
    * {@code mapping.getTarget(source)} and {@code list.size()} is
    * {@code mapping.getSourceCount()}.
+   *
+   * <p>Converse of {@link #target(List, int)}</p>
    */
   public static List<Integer> asList(final TargetMapping mapping) {
     return new AbstractList<Integer>() {
@@ -282,6 +284,35 @@ public abstract class Mappings {
       }
     }
     return mapping;
+  }
+
+  public static Mapping source(List<Integer> targets, int targetCount) {
+    final int sourceCount = targets.size();
+    final PartialFunctionImpl mapping =
+        new PartialFunctionImpl(sourceCount, targetCount, MappingType.FUNCTION);
+    for (int source = 0; source < sourceCount; source++) {
+      int target = targets.get(source);
+      mapping.set(source, target);
+    }
+    return mapping;
+  }
+
+  public static Mapping target(List<Integer> sources, int sourceCount) {
+    final int targetCount = sources.size();
+    final PartialFunctionImpl mapping =
+        new PartialFunctionImpl(sourceCount, targetCount, MappingType.FUNCTION);
+    for (int target = 0; target < targetCount; target++) {
+      int source = sources.get(target);
+      mapping.set(source, target);
+    }
+    return mapping;
+  }
+
+  /** Creates a bijection.
+   *
+   * <p>Throws if sources and targets are not one to one.</p> */
+  public static Mapping bijection(List<Integer> targets) {
+    return new Permutation(IntList.toArray(targets));
   }
 
   /**
@@ -487,6 +518,21 @@ public abstract class Mappings {
         },
         sourceCount,
         mapping.getTargetCount() + offset);
+  }
+
+  /** Returns whether a list of integers is the identity mapping
+   * [0, ..., n - 1]. */
+  public static boolean isIdentity(List<Integer> list, int count) {
+    if (list.size() != count) {
+      return false;
+    }
+    for (int i = 0; i < count; i++) {
+      final Integer o = list.get(i);
+      if (o == null || o != i) {
+        return false;
+      }
+    }
+    return true;
   }
 
   //~ Inner Interfaces -------------------------------------------------------

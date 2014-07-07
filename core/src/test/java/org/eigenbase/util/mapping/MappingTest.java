@@ -17,12 +17,16 @@
 */
 package org.eigenbase.util.mapping;
 
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+
 import com.google.common.collect.ImmutableMap;
 
 import org.junit.Test;
 
+import static org.hamcrest.CoreMatchers.*;
 import static org.junit.Assert.*;
-import static org.junit.Assert.assertEquals;
 
 /**
  * Unit test for mappings.
@@ -123,6 +127,102 @@ public class MappingTest {
       fail("expected exception, got " + mapping3);
     } catch (IllegalArgumentException e) {
       // ok
+    }
+  }
+
+  /** Unit test for {@link Mappings#source(List, int)}
+   * and its converse, {@link Mappings#asList(Mappings.TargetMapping)}. */
+  @Test public void testSource() {
+    List<Integer> targets = Arrays.asList(3, 1, 4, 5, 8);
+    final Mapping mapping = Mappings.source(targets, 10);
+    assertThat(mapping.getTarget(0), equalTo(3));
+    assertThat(mapping.getTarget(1), equalTo(1));
+    assertThat(mapping.getTarget(2), equalTo(4));
+    assertThat(mapping.getTargetCount(), equalTo(10));
+    assertThat(mapping.getSourceCount(), equalTo(5));
+
+    final List<Integer> integers = Mappings.asList(mapping);
+    assertThat(integers, equalTo(targets));
+
+    try {
+      final Mapping inverse = mapping.inverse();
+      fail("expected exception, got " + inverse);
+    } catch (UnsupportedOperationException e) {
+      // ok... but we'd prefer if that inverse succeeds if the mapping is
+      // invertible
+    }
+  }
+
+  /** Unit test for {@link Mappings#target(List, int)}. */
+  @Test public void testTarget() {
+    List<Integer> sources = Arrays.asList(3, 1, 4, 5, 8);
+    final Mapping mapping = Mappings.target(sources, 10);
+    assertThat(mapping.getTarget(3), equalTo(0));
+    assertThat(mapping.getTarget(1), equalTo(1));
+    assertThat(mapping.getTarget(4), equalTo(2));
+    try {
+      final int target = mapping.getTarget(0);
+      fail("expected error, got " + target);
+    } catch (Mappings.NoElementException e) {
+      // ok
+    }
+    assertThat(mapping.getTargetCount(), equalTo(5));
+    assertThat(mapping.getSourceCount(), equalTo(10));
+
+    final List<Integer> integers = Mappings.asList(mapping);
+    assertThat(integers,
+        equalTo(Arrays.asList(null, 1, null, 0, 2, 3, null, null, 4, null)));
+  }
+
+  /** Unit test for {@link Mappings#bijection(List)}. */
+  @Test public void testBijection() {
+    List<Integer> targets = Arrays.asList(3, 0, 1, 2);
+    final Mapping mapping = Mappings.bijection(targets);
+    assertThat(mapping.size(), equalTo(4));
+    assertThat(mapping.getTarget(0), equalTo(3));
+    assertThat(mapping.getTarget(1), equalTo(0));
+    assertThat(mapping.getTarget(2), equalTo(1));
+    assertThat(mapping.getTarget(3), equalTo(2));
+    assertThat(mapping.getTargetOpt(3), equalTo(2));
+    assertThat(mapping.getSource(3), equalTo(0));
+    assertThat(mapping.getSourceOpt(3), equalTo(0));
+    try {
+      final int target = mapping.getTarget(4);
+      fail("expected error, got " + target);
+    } catch (Mappings.NoElementException e) {
+      // ok
+    }
+    try {
+      final int source = mapping.getSource(4);
+      fail("expected error, got " + source);
+    } catch (Mappings.NoElementException e) {
+      // ok
+    }
+    assertThat(mapping.getTargetCount(), equalTo(4));
+    assertThat(mapping.getSourceCount(), equalTo(4));
+    assertThat(mapping.toString(), equalTo("[3, 0, 1, 2]"));
+    assertThat(mapping.inverse().toString(), equalTo("[1, 2, 3, 0]"));
+
+    // empty is OK
+    final Mapping empty = Mappings.bijection(Collections.<Integer>emptyList());
+    assertThat(empty.size(), equalTo(0));
+    assertThat(empty.iterator().hasNext(), equalTo(false));
+    assertThat(empty.toString(), equalTo("[]"));
+
+    try {
+      final Mapping x = Mappings.bijection(Arrays.asList(0, 5, 1));
+      fail("expected error, got " + x);
+    } catch (Exception e) {
+      // ok
+      assertThat(e.getMessage(), equalTo("target out of range"));
+    }
+    try {
+      final Mapping x = Mappings.bijection(Arrays.asList(1, 0, 1));
+      fail("expected error, got " + x);
+    } catch (Exception e) {
+      // ok
+      assertThat(e.getMessage(),
+          equalTo("more than one permutation element maps to position 1"));
     }
   }
 }

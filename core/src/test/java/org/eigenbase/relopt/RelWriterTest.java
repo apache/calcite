@@ -81,7 +81,7 @@ public class RelWriterTest {
       + "        {\n"
       + "          agg: \"COUNT\",\n"
       + "          type: {\n"
-      + "            type: \"INTEGER\",\n"
+      + "            type: \"BIGINT\",\n"
       + "            nullable: false\n"
       + "          },\n"
       + "          distinct: true,\n"
@@ -92,7 +92,7 @@ public class RelWriterTest {
       + "        {\n"
       + "          agg: \"COUNT\",\n"
       + "          type: {\n"
-      + "            type: \"INTEGER\",\n"
+      + "            type: \"BIGINT\",\n"
       + "            nullable: false\n"
       + "          },\n"
       + "          distinct: false,\n"
@@ -132,13 +132,15 @@ public class RelWriterTest {
                 final RelJsonWriter writer = new RelJsonWriter();
                 final RelDataType intType =
                     cluster.getTypeFactory().createSqlType(SqlTypeName.INTEGER);
+                final RelDataType bigIntType =
+                    cluster.getTypeFactory().createSqlType(SqlTypeName.BIGINT);
                 AggregateRel aggregate =
                     new AggregateRel(cluster, filter, BitSets.of(0),
                         ImmutableList.of(
                             new AggregateCall(SqlStdOperatorTable.COUNT,
-                                true, ImmutableList.of(1), intType, "c"),
+                                true, ImmutableList.of(1), bigIntType, "c"),
                             new AggregateCall(SqlStdOperatorTable.COUNT,
-                                false, ImmutableList.<Integer>of(), intType,
+                                false, ImmutableList.<Integer>of(), bigIntType,
                                 "d")));
                 aggregate.explain(writer);
                 return writer.asString();

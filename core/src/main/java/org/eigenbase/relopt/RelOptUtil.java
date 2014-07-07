@@ -29,8 +29,7 @@ import org.eigenbase.sql.fun.*;
 import org.eigenbase.sql.type.*;
 import org.eigenbase.sql.validate.SqlValidatorUtil;
 import org.eigenbase.util.*;
-import org.eigenbase.util.mapping.MappingType;
-import org.eigenbase.util.mapping.Mappings;
+import org.eigenbase.util.mapping.*;
 
 import net.hydromatic.linq4j.Ord;
 
@@ -2379,6 +2378,13 @@ public abstract class RelOptUtil {
     }
 
     return new JoinCounter().run(rootRel);
+  }
+
+  /** Permutes a record type according to a mapping. */
+  public static RelDataType permute(RelDataTypeFactory typeFactory,
+      RelDataType rowType, Mapping mapping) {
+    return typeFactory.createStructType(
+        Mappings.apply3(mapping, rowType.getFieldList()));
   }
 
   //~ Inner Classes ----------------------------------------------------------

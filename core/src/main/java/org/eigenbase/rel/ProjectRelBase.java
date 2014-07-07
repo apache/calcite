@@ -26,6 +26,8 @@ import org.eigenbase.rex.*;
 import org.eigenbase.sql.*;
 import org.eigenbase.util.Pair;
 import org.eigenbase.util.Util;
+import org.eigenbase.util.mapping.MappingType;
+import org.eigenbase.util.mapping.Mappings;
 
 import net.hydromatic.linq4j.Ord;
 import net.hydromatic.linq4j.function.Function1;
@@ -233,6 +235,39 @@ public abstract class ProjectRelBase extends SingleRel {
     }
 
     return pw;
+  }
+
+  /**
+   * Returns a mapping, or null if this projection is not a mapping.
+   */
+  public Mappings.TargetMapping getMapping() {
+    return getMapping(getChild().getRowType().getFieldCount(), exps);
+  }
+
+  /**
+   * Returns a mapping of a set of project expressions.
+   *
+   * <p>The mapping is an inverse surjection.
+   * Every target has a source field, but
+   * a source field may appear as zero, one, or more target fields.
+   * Thus you can safely call
+   * {@link Mappings.TargetMapping#getTarget(int)}.
+   *
+   * @param inputFieldCount Number of input fields
+   * @param projects Project expressions
+   */
+  public static Mappings.TargetMapping getMapping(int inputFieldCount,
+      List<RexNode> projects) {
+    Mappings.TargetMapping mapping =
+        Mappings.create(MappingType.INVERSE_SURJECTION, inputFieldCount,
+            projects.size());
+    for (Ord<RexNode> exp : Ord.zip(projects)) {
+      if (!(exp.e instanceof RexInputRef)) {
+        return null;
+      }
+      mapping.set(((RexInputRef) exp.e).getIndex(), exp.i);
+    }
+    return mapping;
   }
 
   //~ Inner Classes ----------------------------------------------------------

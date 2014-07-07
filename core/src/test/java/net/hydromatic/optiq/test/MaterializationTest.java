@@ -95,7 +95,7 @@ public class MaterializationTest {
   /** Checks that a given query can use a materialized view with a given
    * definition. */
   private void checkMaterialize(String materialize, String query, String model,
-      Function1<ResultSet, Void> checker) {
+      Function1<ResultSet, Void> explainChecker) {
     try {
       Prepare.THREAD_TRIM.set(true);
       MaterializationService.setThreadLocal();
@@ -104,7 +104,7 @@ public class MaterializationTest {
           .withMaterializations(model, "m0", materialize)
           .query(query)
           .enableMaterializations(true)
-          .explainMatches(checker)
+          .explainMatches(explainChecker)
           .sameResultWithMaterializationsDisabled();
     } finally {
       Prepare.THREAD_TRIM.set(false);
@@ -154,8 +154,19 @@ public class MaterializationTest {
         "select \"empid\" + 1 as x, \"name\" from \"emps\" where \"deptno\" = 10");
   }
 
-  /** As {@link #testFilterQueryOnProjectView()} but materialized view contains
-   * an expression and query. */
+  /** Temporary. */
+  @Test public void testFilterQueryOnProjectViewX() {
+    testFilterQueryOnProjectView3();
+    testFilterQueryOnProjectView5();
+    testFilterQueryOnProjectView6();
+    testFilterQueryOnProjectView7();
+    testFilterQueryOnProjectView();
+    testFilterQueryOnProjectView0();
+    testFilterQueryOnProjectView1();
+    testFilterQueryOnProjectView2();
+
+  }
+
   @Test public void testFilterQueryOnProjectView3() {
     checkMaterialize(
         "select \"deptno\" - 10 as \"x\", \"empid\" + 1, \"name\" from \"emps\"",
@@ -173,17 +184,29 @@ public class MaterializationTest {
 
   /** As {@link #testFilterQueryOnProjectView3()} but also contains an
    * expression column. */
-  @Ignore("fix project expr on filter - plans, but wrong results")
   @Test public void testFilterQueryOnProjectView5() {
     checkMaterialize(
-        "select \"deptno\" - 10 as \"x\", \"empid\" + 1, \"name\" from \"emps\"",
-        "select \"name\", \"empid\" + 1 from \"emps\" where \"deptno\" - 10 = 0");
+        "select \"deptno\" - 10 as \"x\", \"empid\" + 1 as ee, \"name\"\n"
+        + "from \"emps\"",
+        "select \"name\", \"empid\" + 1 as e\n"
+        + "from \"emps\" where \"deptno\" - 10 = 2",
+        JdbcTest.HR_MODEL,
+        OptiqAssert.checkResultContains(
+            "EnumerableCalcRel(expr#0..2=[{inputs}], expr#3=[2], expr#4=[=($t0, $t3)], name=[$t2], E=[$t1], $condition=[$t4])\n"
+            + "  EnumerableTableAccessRel(table=[[hr, m0]]"));
+  }
+
+  /** Cannot materialize because "name" is not projected in the MV. */
+  @Test public void testFilterQueryOnProjectView6() {
+    checkNoMaterialize(
+        "select \"deptno\" - 10 as \"x\", \"empid\"  from \"emps\"",
+        "select \"name\" from \"emps\" where \"deptno\" - 10 = 0",
+        JdbcTest.HR_MODEL);
   }
 
   /** As {@link #testFilterQueryOnProjectView3()} but also contains an
    * expression column. */
-  @Ignore("fix project expr on filter")
-  @Test public void testFilterQueryOnProjectView6() {
+  @Test public void testFilterQueryOnProjectView7() {
     checkNoMaterialize(
         "select \"deptno\" - 10 as \"x\", \"empid\" + 1, \"name\" from \"emps\"",
         "select \"name\", \"empid\" + 2 from \"emps\" where \"deptno\" - 10 = 0",

@@ -23,26 +23,28 @@ import java.util.logging.Logger;
 
 import org.eigenbase.rel.*;
 import org.eigenbase.rel.rules.RemoveTrivialProjectRule;
-import org.eigenbase.reltype.RelDataTypeField;
+import org.eigenbase.reltype.*;
 import org.eigenbase.rex.*;
 import org.eigenbase.sql.SqlKind;
 import org.eigenbase.sql.fun.SqlStdOperatorTable;
+import org.eigenbase.sql.validate.SqlValidatorUtil;
 import org.eigenbase.trace.EigenbaseTrace;
-import org.eigenbase.util.ControlFlowException;
-import org.eigenbase.util.IntList;
-import org.eigenbase.util.Pair;
+import org.eigenbase.util.*;
 import org.eigenbase.util.mapping.Mapping;
 import org.eigenbase.util.mapping.Mappings;
 
 import net.hydromatic.linq4j.Ord;
 
 import net.hydromatic.optiq.prepare.OptiqPrepareImpl;
+import net.hydromatic.optiq.runtime.Spaces;
 import net.hydromatic.optiq.util.BitSets;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Equivalence;
 import com.google.common.base.Function;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
+import com.google.common.base.Objects;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.*;
 
 /**
  * Substitutes part of a tree of relational expressions with another tree.
@@ -80,9 +82,28 @@ public class SubstitutionVisitor {
 
   private static final Logger LOGGER = EigenbaseTrace.getPlannerTracer();
 
+  /** Equivalence that compares objects by their {@link Object#toString()}
+   * method. */
+  private static final Equivalence<Object> STRING_EQUIVALENCE =
+      new Equivalence<Object>() {
+        @Override protected boolean doEquivalent(Object o, Object o2) {
+          return o.toString().equals(o2.toString());
+        }
+
+        @Override protected int doHash(Object o) {
+          return o.toString().hashCode();
+        }
+      };
+
+  /** Equivalence that compares {@link Lists}s by the
+   * {@link Object#toString()} of their elements. */
+  @SuppressWarnings("unchecked")
+  private static final Equivalence<List<?>> PAIRWISE_STRING_EQUIVALENCE =
+      (Equivalence) STRING_EQUIVALENCE.pairwise();
+
   private static final List<UnifyRule> RULES =
       ImmutableList.<UnifyRule>of(
-          TrivialRule.INSTANCE,
+//          TrivialRule.INSTANCE,
           ProjectToProjectUnifyRule.INSTANCE,
           FilterToProjectUnifyRule.INSTANCE,
 //          ProjectToFilterUnifyRule.INSTANCE,
@@ -93,51 +114,43 @@ public class SubstitutionVisitor {
   private static final Map<Pair<Class, Class>, List<UnifyRule>> RULE_MAP =
       new HashMap<Pair<Class, Class>, List<UnifyRule>>();
 
-  private final RelVisitor registrar =
-      new RelVisitor() {
-        public void visit(RelNode node, int ordinal, RelNode parent) {
-          if (parent != null) {
-            parentMap.put(node, new Parentage(parent, ordinal));
-          }
-          super.visit(node, ordinal, parent);
-        }
-      };
-
-  private final RelNode query;
-  private final RelNode target;
-
-  /**
-   * Map from each node in the query and the materialization query
-   * to its parent.
-   */
-  final Map<RelNode, Parentage> parentMap =
-      new IdentityHashMap<RelNode, Parentage>();
+  private final RelOptCluster cluster;
+  private final Holder query;
+  private final MutableRel target;
 
   /**
    * Nodes in {@link #target} that have no children.
    */
-  final List<RelNode> targetLeaves;
+  final List<MutableRel> targetLeaves;
 
   /**
    * Nodes in {@link #query} that have no children.
    */
-  final List<RelNode> queryLeaves;
+  final List<MutableRel> queryLeaves;
 
-  final Map<RelNode, RelNode> replacementMap =
-      new HashMap<RelNode, RelNode>();
+  final Map<MutableRel, MutableRel> replacementMap =
+      new HashMap<MutableRel, MutableRel>();
 
-  public SubstitutionVisitor(RelNode target, RelNode query) {
-    this.query = query;
-    this.target = target;
-    final Set<RelNode> parents = new HashSet<RelNode>();
-    final List<RelNode> allNodes = new ArrayList<RelNode>();
-    final RelVisitor visitor =
-        new RelVisitor() {
-          public void visit(RelNode node, int ordinal, RelNode parent) {
-            parentMap.put(node, new Parentage(parent, ordinal));
-            parents.add(parent);
+  final Multimap<MutableRel, MutableRel> equivalents =
+      LinkedHashMultimap.create();
+
+  /** Workspace while rule is being matched.
+   * Careful, re-entrant!
+   * Assumes no rule needs more than 2 slots. */
+  protected final MutableRel[] slots = new MutableRel[2];
+
+  public SubstitutionVisitor(RelNode target_, RelNode query_) {
+    this.cluster = target_.getCluster();
+    this.query = Holder.of(toMutable(query_));
+    this.target = toMutable(target_);
+    final Set<MutableRel> parents = Sets.newIdentityHashSet();
+    final List<MutableRel> allNodes = new ArrayList<MutableRel>();
+    final MutableRelVisitor visitor =
+        new MutableRelVisitor() {
+          public void visit(MutableRel node) {
+            parents.add(node.parent);
             allNodes.add(node);
-            super.visit(node, ordinal, parent);
+            super.visit(node);
           }
         };
     visitor.go(target);
@@ -149,25 +162,40 @@ public class SubstitutionVisitor {
     targetLeaves = ImmutableList.copyOf(allNodes);
 
     allNodes.clear();
+    parents.clear();
     visitor.go(query);
     allNodes.removeAll(parents);
     queryLeaves = ImmutableList.copyOf(allNodes);
   }
 
-  void register(RelNode result, RelNode query) {
-    equiv(result, query);
-    registrar.go(result);
+  private static MutableRel toMutable(RelNode rel) {
+    if (rel instanceof TableAccessRelBase) {
+      return MutableScan.of((TableAccessRelBase) rel);
+    }
+    if (rel instanceof ValuesRelBase) {
+      return MutableValues.of((ValuesRelBase) rel);
+    }
+    if (rel instanceof ProjectRelBase) {
+      final ProjectRelBase project = (ProjectRelBase) rel;
+      final MutableRel input = toMutable(project.getChild());
+      return MutableProject.of(input, project.getProjects(),
+          project.getRowType().getFieldNames());
+    }
+    if (rel instanceof FilterRelBase) {
+      final FilterRelBase filter = (FilterRelBase) rel;
+      final MutableRel input = toMutable(filter.getChild());
+      return MutableFilter.of(input, filter.getCondition());
+    }
+    if (rel instanceof AggregateRelBase) {
+      final AggregateRelBase aggregate = (AggregateRelBase) rel;
+      final MutableRel input = toMutable(aggregate.getChild());
+      return MutableAggregate.of(input, aggregate.getGroupSet(),
+          aggregate.getAggCallList());
+    }
+    throw new RuntimeException("cannot translate " + rel + " to MutableRel");
   }
 
-  /** Marks that {@code result} is equivalent to (existing node) {@code query},
-   * and inherits its parentage. */
-  void equiv(RelNode result, RelNode query) {
-    if (result != query && parentMap.get(result) == null) {
-      final Parentage parentage = parentMap.get(query);
-      if (parentage != null) {
-        parentMap.put(result, parentage);
-      }
-    }
+  void register(MutableRel result, MutableRel query) {
   }
 
   /**
@@ -420,56 +448,151 @@ public class SubstitutionVisitor {
             e2));
   }
 
-  public RelNode go(RelNode replacement) {
-    assert RelOptUtil.equalType("target", target, "replacement", replacement,
-        true);
+  public RelNode go0(RelNode replacement_) {
+    assert false; // not called
+    MutableRel replacement = toMutable(replacement_);
+    assert MutableRels.equalType(
+        "target", target, "replacement", replacement, true);
     replacementMap.put(target, replacement);
     final UnifyResult unifyResult = matchRecurse(target);
     if (unifyResult == null) {
       return null;
     }
-    final RelNode node0 = unifyResult.result;
-    RelNode node = replaceAncestors(node0);
+    final MutableRel node0 = unifyResult.result;
+    MutableRel node = node0; // replaceAncestors(node0);
     if (DEBUG) {
       System.out.println(
-          "Convert: query:\n" + RelOptUtil.toString(query)
-          + "\nunify.query:\n" + RelOptUtil.toString(unifyResult.call.query)
-          + "\nunify.result:\n" + RelOptUtil.toString(unifyResult.result)
-          + "\nunify.target:\n" + RelOptUtil.toString(unifyResult.call.target)
-          + "\nnode0:\n" + RelOptUtil.toString(node0)
-          + "\nnode:\n" + RelOptUtil.toString(node));
+          "Convert: query:\n"
+              + query.deep()
+              + "\nunify.query:\n"
+              + unifyResult.call.query.deep()
+              + "\nunify.result:\n"
+              + unifyResult.result.deep()
+              + "\nunify.target:\n"
+              + unifyResult.call.target.deep()
+              + "\nnode0:\n"
+              + node0.deep()
+              + "\nnode:\n"
+              + node.deep());
     }
-    return node;
+    return fromMutable(node);
   }
 
-  private RelNode replaceAncestors(RelNode node) {
-    for (;;) {
-      Parentage parentage = parentMap.get(node);
-      if (parentage == null || parentage.parent == null) {
-        return node;
+  public RelNode go(RelNode replacement_) {
+    MutableRel replacement = toMutable(replacement_);
+    assert MutableRels.equalType(
+        "target", target, "replacement", replacement, true);
+    final List<MutableRel> queryDescendants = MutableRels.descendants(query);
+    final List<MutableRel> targetDescendants = MutableRels.descendants(target);
+
+    // Populate "equivalents" with (q, t) for each query descendant q and
+    // target descendant t that are equal.
+    final Map<MutableRel, MutableRel> map = Maps.newHashMap();
+    for (MutableRel queryDescendant : queryDescendants) {
+      map.put(queryDescendant, queryDescendant);
+    }
+    for (MutableRel targetDescendant : targetDescendants) {
+      MutableRel queryDescendant = map.get(targetDescendant);
+      if (queryDescendant != null) {
+        assert queryDescendant.rowType.equals(targetDescendant.rowType);
+        equivalents.put(queryDescendant, targetDescendant);
       }
-      node = RelOptUtil.replaceInput(parentage.parent, parentage.ordinal, node);
+    }
+    map.clear();
+
+    for (;;) {
+      int count = 0;
+    outer:
+      for (MutableRel queryDescendant : queryDescendants) {
+        for (MutableRel targetDescendant : targetDescendants) {
+          for (UnifyRule rule
+              : applicableRules(queryDescendant, targetDescendant)) {
+            UnifyRuleCall call =
+                rule.match(this, queryDescendant, targetDescendant);
+            if (call != null) {
+              final UnifyResult result = rule.apply(call);
+              if (result != null) {
+                ++count;
+                result.call.query.replaceInParent(result.result);
+                // Replace previous equivalents with new equivalents, higher up
+                // the tree.
+                for (int i = 0; i < rule.slotCount; i++) {
+                  equivalents.removeAll(slots[i]);
+                }
+                assert result.result.rowType.equals(result.call.query.rowType)
+                    : Pair.of(result.result, result.call.query);
+                equivalents.put(result.result, result.call.query);
+                if (targetDescendant == target) {
+                  MutableRels.replace(query, target, replacement);
+                  return fromMutable(query.input);
+                }
+                break outer;
+              }
+            }
+          }
+        }
+      }
+      if (count == 0) {
+        return null;
+      }
     }
   }
 
-  private UnifyResult matchRecurse(RelNode target) {
-    final List<RelNode> targetInputs = target.getInputs();
-    RelNode queryParent = null;
+  private static List<RelNode> fromMutables(List<MutableRel> nodes) {
+    return Lists.transform(nodes,
+        new Function<MutableRel, RelNode>() {
+          public RelNode apply(MutableRel mutableRel) {
+            return fromMutable(mutableRel);
+          }
+        });
+  }
 
-    for (RelNode targetInput : targetInputs) {
+  private static RelNode fromMutable(MutableRel node) {
+    switch (node.type) {
+    case SCAN:
+    case VALUES:
+      return ((MutableLeafRel) node).rel;
+    case PROJECT:
+      final MutableProject project = (MutableProject) node;
+      return new ProjectRel(node.cluster,
+          node.cluster.traitSetOf(RelCollationImpl.EMPTY),
+          fromMutable(project.input),
+          project.projects, project.rowType, ProjectRelBase.Flags.BOXED);
+    case FILTER:
+      final MutableFilter filter = (MutableFilter) node;
+      return new FilterRel(node.cluster, fromMutable(filter.input),
+          filter.condition);
+    case AGGREGATE:
+      final MutableAggregate aggregate = (MutableAggregate) node;
+      return new AggregateRel(node.cluster, fromMutable(aggregate.input),
+          aggregate.groupSet, aggregate.aggCalls);
+    case SORT:
+      final MutableSort sort = (MutableSort) node;
+      return new SortRel(node.cluster, node.cluster.traitSetOf(sort.collation),
+          fromMutable(sort.input), sort.collation, sort.offset, sort.fetch);
+    case UNION:
+      final MutableUnion union = (MutableUnion) node;
+      return new UnionRel(union.cluster, fromMutables(union.inputs), union.all);
+    default:
+      throw new AssertionError(node.deep());
+    }
+  }
+
+  private UnifyResult matchRecurse(MutableRel target) {
+    assert false; // not called
+    final List<MutableRel> targetInputs = target.getInputs();
+    MutableRel queryParent = null;
+
+    for (MutableRel targetInput : targetInputs) {
       UnifyResult unifyResult = matchRecurse(targetInput);
       if (unifyResult == null) {
         return null;
       }
-      Parentage parentage = parentMap.get(unifyResult.call.query);
-      parentMap.put(unifyResult.result, parentage);
-      queryParent = RelOptUtil.replaceInput(parentage.parent, parentage.ordinal,
-          unifyResult.result);
-      equiv(queryParent, parentage.parent);
+      queryParent = unifyResult.call.query.replaceInParent(unifyResult.result);
     }
 
     if (targetInputs.isEmpty()) {
-      for (RelNode queryLeaf : queryLeaves) {
+      for (MutableRel queryLeaf : queryLeaves) {
         for (UnifyRule rule : applicableRules(queryLeaf, target)) {
           final UnifyResult x = apply(rule, queryLeaf, target);
           if (x != null) {
@@ -477,15 +600,15 @@ public class SubstitutionVisitor {
               System.out.println(
                   "Rule: " + rule
                   + "\nQuery:\n"
-                  + RelOptUtil.toString(queryParent)
+                  + queryParent
                   + (x.call.query != queryParent
                      ? "\nQuery (original):\n"
-                     + RelOptUtil.toString(queryParent)
+                     + queryParent
                      : "")
                   + "\nTarget:\n"
-                  + RelOptUtil.toString(target)
+                  + target.deep()
                   + "\nResult:\n"
-                  + RelOptUtil.toString(x.result)
+                  + x.result.deep()
                   + "\n");
             }
             return x;
@@ -493,6 +616,7 @@ public class SubstitutionVisitor {
         }
       }
     } else {
+      assert queryParent != null;
       for (UnifyRule rule : applicableRules(queryParent, target)) {
         final UnifyResult x = apply(rule, queryParent, target);
         if (x != null) {
@@ -500,15 +624,15 @@ public class SubstitutionVisitor {
             System.out.println(
                 "Rule: " + rule
                 + "\nQuery:\n"
-                + RelOptUtil.toString(queryParent)
+                + queryParent.deep()
                 + (x.call.query != queryParent
                    ? "\nQuery (original):\n"
-                   + RelOptUtil.toString(queryParent)
+                   + queryParent.toString()
                    : "")
                 + "\nTarget:\n"
-                + RelOptUtil.toString(target)
+                + target.deep()
                 + "\nResult:\n"
-                + RelOptUtil.toString(x.result)
+                + x.result.deep()
                 + "\n");
           }
           return x;
@@ -519,21 +643,22 @@ public class SubstitutionVisitor {
       System.out.println(
           "Unify failed:"
           + "\nQuery:\n"
-          + RelOptUtil.toString(queryParent)
+          + queryParent.toString()
           + "\nTarget:\n"
-          + RelOptUtil.toString(target)
+          + target.toString()
           + "\n");
     }
     return null;
   }
 
-  private UnifyResult apply(UnifyRule rule, RelNode query, RelNode target) {
-    final UnifyRuleCall call = new UnifyRuleCall(rule, query, target);
+  private UnifyResult apply(UnifyRule rule, MutableRel query,
+      MutableRel target) {
+    final UnifyRuleCall call = new UnifyRuleCall(rule, query, target, null);
     return rule.apply(call);
   }
 
-  private static List<UnifyRule> applicableRules(RelNode query,
-      RelNode target) {
+  private static List<UnifyRule> applicableRules(MutableRel query,
+      MutableRel target) {
     final Class queryClass = query.getClass();
     final Class targetClass = target.getClass();
     final Pair<Class, Class> key = Pair.of(queryClass, targetClass);
@@ -543,7 +668,7 @@ public class SubstitutionVisitor {
           ImmutableList.builder();
       for (UnifyRule rule : RULES) {
         //noinspection unchecked
-        if (rule.mightMatch(queryClass, targetClass)) {
+        if (mightMatch(rule, queryClass, targetClass)) {
           builder.add(rule);
         }
       }
@@ -551,6 +676,12 @@ public class SubstitutionVisitor {
       RULE_MAP.put(key, list);
     }
     return list;
+  }
+
+  private static boolean mightMatch(UnifyRule rule,
+      Class queryClass, Class targetClass) {
+    return rule.queryOperand.clazz.isAssignableFrom(queryClass)
+        && rule.targetOperand.clazz.isAssignableFrom(targetClass);
   }
 
   /** Exception thrown to exit a matcher. Not really an error. */
@@ -564,7 +695,18 @@ public class SubstitutionVisitor {
    * <p>The rule declares the query and target types; this allows the
    * engine to fire only a few rules in a given context.</p>
    */
-  private interface UnifyRule {
+  private abstract static class UnifyRule {
+    protected final int slotCount;
+    protected final Operand queryOperand;
+    protected final Operand targetOperand;
+
+    protected UnifyRule(int slotCount, Operand queryOperand,
+        Operand targetOperand) {
+      this.slotCount = slotCount;
+      this.queryOperand = queryOperand;
+      this.targetOperand = targetOperand;
+    }
+
     /**
      * <p>Applies this rule to a particular node in a query. The goal is
      * to convert {@code query} into {@code target}. Before the rule is
@@ -591,9 +733,30 @@ public class SubstitutionVisitor {
      *
      * @param call Input parameters
      */
-    UnifyResult apply(UnifyRuleCall call);
+    abstract UnifyResult apply(UnifyRuleCall call);
 
-    boolean mightMatch(Class queryClass, Class targetClass);
+    UnifyRuleCall match(SubstitutionVisitor visitor, MutableRel query,
+        MutableRel target) {
+      if (queryOperand.matches(visitor, query)) {
+        if (targetOperand.matches(visitor, target)) {
+          return visitor.new UnifyRuleCall(this, query, target,
+              copy(visitor.slots, slotCount));
+        }
+      }
+      return null;
+    }
+
+    private <E> ImmutableList<E> copy(E[] slots, int slotCount) {
+      // Optimize if there are 0 or 1 slots.
+      switch (slotCount) {
+      case 0:
+        return ImmutableList.of();
+      case 1:
+        return ImmutableList.of(slots[0]);
+      default:
+        return ImmutableList.copyOf(slots).subList(0, slotCount);
+      }
+    }
   }
 
   /**
@@ -601,28 +764,26 @@ public class SubstitutionVisitor {
    */
   private class UnifyRuleCall {
     final UnifyRule rule;
-    final RelNode query;
-    final RelNode target;
+    final MutableRel query;
+    final MutableRel target;
+    final ImmutableList<MutableRel> slots;
 
-    public UnifyRuleCall(UnifyRule rule, RelNode query, RelNode target) {
-      this.rule = rule;
-      this.query = query;
-      this.target = target;
+    public UnifyRuleCall(UnifyRule rule, MutableRel query, MutableRel target,
+        ImmutableList<MutableRel> slots) {
+      this.rule = Preconditions.checkNotNull(rule);
+      this.query = Preconditions.checkNotNull(query);
+      this.target = Preconditions.checkNotNull(target);
+      this.slots = Preconditions.checkNotNull(slots);
     }
 
-    /** Returns the parent of a node, which child it is, and a bitmap of which
-     * columns are used by the parent. */
-    public Parentage parent(RelNode node) {
-      return parentMap.get(node);
-    }
-
-    UnifyResult result(RelNode result) {
-      assert RelOptUtil.contains(result, target);
-      assert RelOptUtil.equalType("result", result, "query", query, true);
-      equiv(result, query);
-      RelNode replace = replacementMap.get(target);
+    UnifyResult result(MutableRel result) {
+      assert MutableRels.contains(result, target);
+      assert MutableRels.equalType("result", result, "query", query, true);
+      MutableRel replace = replacementMap.get(target);
       if (replace != null) {
-        result = RelOptUtil.replace(result, target, replace);
+        assert false; // replacementMap is always empty
+        // result =
+        MutableRels.replace(result, target, replace);
       }
       register(result, query);
       return new UnifyResult(this, result);
@@ -631,8 +792,12 @@ public class SubstitutionVisitor {
     /**
      * Creates a {@link UnifyRuleCall} based on the parent of {@code query}.
      */
-    public UnifyRuleCall create(RelNode query) {
-      return new UnifyRuleCall(rule, query, target);
+    public UnifyRuleCall create(MutableRel query) {
+      return new UnifyRuleCall(rule, query, target, slots);
+    }
+
+    public RelOptCluster getCluster() {
+      return cluster;
     }
   }
 
@@ -645,47 +810,75 @@ public class SubstitutionVisitor {
   private static class UnifyResult {
     private final UnifyRuleCall call;
     // equivalent to "query", contains "result"
-    private final RelNode result;
+    private final MutableRel result;
 
-    UnifyResult(UnifyRuleCall call, RelNode result) {
+    UnifyResult(UnifyRuleCall call, MutableRel result) {
       this.call = call;
-      assert RelOptUtil.equalType("query", call.query, "result", result, true);
+      assert MutableRels.equalType("query", call.query, "result", result, true);
       this.result = result;
     }
   }
 
   /** Abstract base class for implementing {@link UnifyRule}. */
-  private abstract static class AbstractUnifyRule implements UnifyRule {
-    private final Class<? extends RelNode> queryClass;
-    private final Class<? extends RelNode> targetClass;
-
-    public AbstractUnifyRule(Class<? extends RelNode> queryClass,
-        Class<? extends RelNode> targetClass) {
-      this.queryClass = queryClass;
-      this.targetClass = targetClass;
+  private abstract static class AbstractUnifyRule extends UnifyRule {
+    public AbstractUnifyRule(Operand queryOperand, Operand targetOperand,
+        int slotCount) {
+      super(slotCount, queryOperand, targetOperand);
+      //noinspection AssertWithSideEffects
+      assert isValid();
     }
 
-    public boolean mightMatch(Class queryClass, Class targetClass) {
-      return this.queryClass.isAssignableFrom(queryClass)
-          && this.targetClass.isAssignableFrom(targetClass);
+    protected boolean isValid() {
+      final SlotCounter slotCounter = new SlotCounter();
+      slotCounter.visit(queryOperand);
+      assert slotCounter.queryCount == slotCount;
+      assert slotCounter.targetCount == 0;
+      slotCounter.queryCount = 0;
+      slotCounter.visit(targetOperand);
+      assert slotCounter.queryCount == 0;
+      assert slotCounter.targetCount == slotCount;
+      return true;
+    }
+
+    /** Creates an operand with given inputs. */
+    static Operand operand(Class<? extends MutableRel> clazz,
+        Operand... inputOperands) {
+      return new InternalOperand(clazz, ImmutableList.copyOf(inputOperands));
+    }
+
+    /** Creates an operand that doesn't check inputs. */
+    static Operand any(Class<? extends MutableRel> clazz) {
+      return new AnyOperand(clazz);
+    }
+
+    /** Creates an operand that matches a relational expression in the query. */
+    static Operand query(int ordinal) {
+      return new QueryOperand(ordinal);
+    }
+
+    /** Creates an operand that matches a relational expression in the
+     * target. */
+    static Operand target(int ordinal) {
+      return new TargetOperand(ordinal);
     }
   }
 
   /** Implementation of {@link UnifyRule} that matches if the query is already
-   * equal to the target (using {@code ==}).
+   * equal to the target.
    *
-   * <p>Matches scans to the same table, because these will be canonized to
-   * the same {@link org.eigenbase.rel.TableAccessRel} instance.</p>
+   * <p>Matches scans to the same table, because these will be
+   * {@link MutableScan}s with the same
+   * {@link org.eigenbase.rel.TableAccessRel} instance.</p>
    */
   private static class TrivialRule extends AbstractUnifyRule {
     private static final TrivialRule INSTANCE = new TrivialRule();
 
     private TrivialRule() {
-      super(RelNode.class, RelNode.class);
+      super(any(MutableRel.class), any(MutableRel.class), 0);
     }
 
     public UnifyResult apply(UnifyRuleCall call) {
-      if (call.query == call.target) {
+      if (call.query.equals(call.target)) {
         return call.result(call.query);
       }
       return null;
@@ -698,12 +891,13 @@ public class SubstitutionVisitor {
         new ProjectToProjectUnifyRule();
 
     private ProjectToProjectUnifyRule() {
-      super(ProjectRel.class, ProjectRel.class);
+      super(operand(MutableProject.class, query(0)),
+          operand(MutableProject.class, target(0)), 1);
     }
 
     public UnifyResult apply(UnifyRuleCall call) {
-      final ProjectRel target = (ProjectRel) call.target;
-      final ProjectRel query = (ProjectRel) call.query;
+      final MutableProject target = (MutableProject) call.target;
+      final MutableProject query = (MutableProject) call.query;
       final RexShuttle shuttle = getRexShuttle(target);
       final List<RexNode> newProjects;
       try {
@@ -711,59 +905,80 @@ public class SubstitutionVisitor {
       } catch (MatchFailed e) {
         return null;
       }
-      final ProjectRel newProject =
-          new ProjectRel(
-              target.getCluster(),
-              target.getCluster().traitSetOf(
-                  query.getCollationList().isEmpty()
-                      ? RelCollationImpl.EMPTY
-                      : query.getCollationList().get(0)),
-              target,
-              newProjects,
-              query.getRowType(),
-              query.getFlags());
-      final RelNode newProject2 =
-          RemoveTrivialProjectRule.strip(newProject);
+      final MutableProject newProject =
+          MutableProject.of(
+              query.getRowType(), target, newProjects);
+      final MutableRel newProject2 = MutableRels.strip(newProject);
       return call.result(newProject2);
     }
   }
 
-  /** Implementation of {@link UnifyRule} that matches a {@link FilterRel}
-   * to a {@link ProjectRel}. */
+  /** Implementation of {@link UnifyRule} that matches a {@link MutableFilter}
+   * to a {@link MutableProject}. */
   private static class FilterToProjectUnifyRule extends AbstractUnifyRule {
     public static final FilterToProjectUnifyRule INSTANCE =
         new FilterToProjectUnifyRule();
 
     private FilterToProjectUnifyRule() {
-      super(FilterRel.class, ProjectRel.class);
+      super(operand(MutableFilter.class, query(0)),
+          operand(MutableProject.class, target(0)), 1);
     }
 
     public UnifyResult apply(UnifyRuleCall call) {
       // Child of projectTarget is equivalent to child of filterQuery.
       try {
         // TODO: make sure that constants are ok
-        final ProjectRel target = (ProjectRel) call.target;
+        final MutableProject target = (MutableProject) call.target;
         final RexShuttle shuttle = getRexShuttle(target);
         final RexNode newCondition;
-        final FilterRel query = (FilterRel) call.query;
+        final MutableFilter query = (MutableFilter) call.query;
         try {
           newCondition = query.getCondition().accept(shuttle);
         } catch (MatchFailed e) {
           return null;
         }
-        final FilterRel newFilter =
-            new FilterRel(
-                query.getCluster(),
-                target,
-                newCondition);
-        final RelNode inverse = invert(query, newFilter, target);
-        return call.result(inverse);
+        final MutableFilter newFilter = MutableFilter.of(target, newCondition);
+        if (query.parent instanceof MutableProject) {
+          final MutableRel inverse =
+              invert(((MutableProject) query.parent).getNamedProjects(),
+                  newFilter, shuttle);
+          return call.create(query.parent).result(inverse);
+        } else {
+          final MutableRel inverse = invert(query, newFilter, target);
+          return call.result(inverse);
+        }
       } catch (MatchFailed e) {
         return null;
       }
     }
 
-    private RelNode invert(RelNode model, RelNode input, ProjectRel project) {
+    private MutableRel invert(List<Pair<RexNode, String>> namedProjects,
+        MutableRel input,
+        RexShuttle shuttle) {
+      if (LOGGER.isLoggable(Level.FINER)) {
+        LOGGER.finer("SubstitutionVisitor: invert:\n"
+            + "projects: " + namedProjects + "\n"
+            + "input: " + input + "\n"
+            + "project: " + shuttle + "\n");
+      }
+      final List<RexNode> exprList = new ArrayList<RexNode>();
+      final RexBuilder rexBuilder = input.cluster.getRexBuilder();
+      final List<RexNode> projects = Pair.left(namedProjects);
+      for (RexNode expr : projects) {
+        exprList.add(rexBuilder.makeZeroLiteral(expr.getType()));
+      }
+      for (Ord<RexNode> expr : Ord.zip(projects)) {
+        final RexNode node = expr.e.accept(shuttle);
+        if (node == null) {
+          throw MatchFailed.INSTANCE;
+        }
+        exprList.set(expr.i, node);
+      }
+      return MutableProject.of(input, exprList, Pair.right(namedProjects));
+    }
+
+    private MutableRel invert(MutableRel model, MutableRel input,
+        MutableProject project) {
       if (LOGGER.isLoggable(Level.FINER)) {
         LOGGER.finer("SubstitutionVisitor: invert:\n"
             + "model: " + model + "\n"
@@ -771,7 +986,7 @@ public class SubstitutionVisitor {
             + "project: " + project + "\n");
       }
       final List<RexNode> exprList = new ArrayList<RexNode>();
-      final RexBuilder rexBuilder = model.getCluster().getRexBuilder();
+      final RexBuilder rexBuilder = model.cluster.getRexBuilder();
       for (RelDataTypeField field : model.getRowType().getFieldList()) {
         exprList.add(rexBuilder.makeZeroLiteral(field.getType()));
       }
@@ -779,21 +994,26 @@ public class SubstitutionVisitor {
         if (expr.e instanceof RexInputRef) {
           final int target = ((RexInputRef) expr.e).getIndex();
           exprList.set(expr.i,
-              rexBuilder.makeInputRef(input, target));
+              rexBuilder.ensureType(expr.e.getType(),
+                  RexInputRef.of(target, input.rowType),
+                  false));
+        } else {
+          throw MatchFailed.INSTANCE;
         }
       }
-      return new ProjectRel(model.getCluster(), model.getTraitSet(), input,
-          exprList, model.getRowType(), ProjectRelBase.Flags.BOXED);
+      return MutableProject.of(model.rowType, input, exprList);
     }
   }
 
-  /** Implementation of {@link UnifyRule} that matches a {@link FilterRel}. */
+  /** Implementation of {@link UnifyRule} that matches a
+   * {@link MutableFilter}. */
   private static class FilterToFilterUnifyRule extends AbstractUnifyRule {
     public static final FilterToFilterUnifyRule INSTANCE =
         new FilterToFilterUnifyRule();
 
     private FilterToFilterUnifyRule() {
-      super(FilterRel.class, FilterRel.class);
+      super(operand(MutableFilter.class, query(0)),
+          operand(MutableFilter.class, target(0)), 1);
     }
 
     public UnifyResult apply(UnifyRuleCall call) {
@@ -803,20 +1023,19 @@ public class SubstitutionVisitor {
       //   target: SELECT * FROM t WHERE x = 1
       // transforms to
       //   result: SELECT * FROM (target) WHERE y = 2
-      final FilterRel query = (FilterRel) call.query;
-      final FilterRel target = (FilterRel) call.target;
-      final FilterRel newFilter = createFilter(query, target);
+      final MutableFilter query = (MutableFilter) call.query;
+      final MutableFilter target = (MutableFilter) call.target;
+      final MutableFilter newFilter =
+          createFilter(query, target);
       if (newFilter == null) {
         return null;
       }
       return call.result(newFilter);
     }
 
-    FilterRel createFilter(FilterRel query, FilterRel target) {
-      final RelOptCluster cluster = query.getCluster();
+    MutableFilter createFilter(MutableFilter query, MutableFilter target) {
       final RexNode newCondition =
-          splitFilter(
-              cluster.getRexBuilder(), query.getCondition(),
+          splitFilter(query.cluster.getRexBuilder(), query.getCondition(),
               target.getCondition());
       if (newCondition == null) {
         // Could not map query onto target.
@@ -825,35 +1044,33 @@ public class SubstitutionVisitor {
       if (newCondition.isAlwaysTrue()) {
         return target;
       }
-      return new FilterRel(cluster, target, newCondition);
+      return MutableFilter.of(target, newCondition);
     }
   }
 
-  /** Implementation of {@link UnifyRule} that matches a {@link ProjectRel} to
-   * a {@link FilterRel}. */
+  /** Implementation of {@link UnifyRule} that matches a {@link MutableProject}
+   * to a {@link MutableFilter}. */
   private static class ProjectToFilterUnifyRule extends AbstractUnifyRule {
     public static final ProjectToFilterUnifyRule INSTANCE =
         new ProjectToFilterUnifyRule();
 
     private ProjectToFilterUnifyRule() {
-      super(ProjectRel.class, FilterRel.class);
+      super(operand(MutableProject.class, query(0)),
+          operand(MutableFilter.class, target(0)), 1);
     }
 
     public UnifyResult apply(UnifyRuleCall call) {
-      final Parentage queryParent = call.parent(call.query);
-      if (queryParent.parent instanceof FilterRel) {
-        final UnifyRuleCall in2 = call.create(queryParent.parent);
-        final FilterRel query = (FilterRel) in2.query;
-        final FilterRel target = (FilterRel) in2.target;
-        final FilterRel newFilter =
-            FilterToFilterUnifyRule.INSTANCE.createFilter(query, target);
+      if (call.query.parent instanceof MutableFilter) {
+        final UnifyRuleCall in2 = call.create(call.query.parent);
+        final MutableFilter query = (MutableFilter) in2.query;
+        final MutableFilter target = (MutableFilter) in2.target;
+        final MutableFilter newFilter =
+            FilterToFilterUnifyRule.INSTANCE.createFilter(
+                query, target);
         if (newFilter == null) {
           return null;
         }
-        return in2.result(
-            call.query.copy(
-                call.query.getTraitSet(),
-                ImmutableList.<RelNode>of(newFilter)));
+        return in2.result(query.replaceInParent(newFilter));
       }
       return null;
     }
@@ -866,16 +1083,14 @@ public class SubstitutionVisitor {
         new AggregateToAggregateUnifyRule();
 
     private AggregateToAggregateUnifyRule() {
-      super(AggregateRel.class, AggregateRel.class);
+      super(operand(MutableAggregate.class, query(0)),
+          operand(MutableAggregate.class, target(0)), 1);
     }
 
     public UnifyResult apply(UnifyRuleCall call) {
-      final AggregateRel query = (AggregateRel) call.query;
-      final AggregateRel target = (AggregateRel) call.target;
+      final MutableAggregate query = (MutableAggregate) call.query;
+      final MutableAggregate target = (MutableAggregate) call.target;
       assert query != target;
-      if (query.getChild() != target.getChild()) {
-        return null;
-      }
       // in.query can be rewritten in terms of in.target if its groupSet is
       // a subset, and its aggCalls are a superset. For example:
       //   query: SELECT x, COUNT(b) FROM t GROUP BY x
@@ -885,7 +1100,7 @@ public class SubstitutionVisitor {
       if (!BitSets.contains(target.getGroupSet(), query.getGroupSet())) {
         return null;
       }
-      RelNode result = unifyAggregates(query, target);
+      MutableRel result = unifyAggregates(query, target);
       if (result == null) {
         return null;
       }
@@ -893,13 +1108,12 @@ public class SubstitutionVisitor {
     }
   }
 
-  public static AggregateRel permute(AggregateRel aggregate, RelNode input,
-      Mapping mapping) {
+  public static MutableAggregate permute(MutableAggregate aggregate,
+      MutableRel input, Mapping mapping) {
     BitSet groupSet = Mappings.apply(mapping, aggregate.getGroupSet());
     List<AggregateCall> aggregateCalls =
         apply(mapping, aggregate.getAggCallList());
-    return aggregate.copy(aggregate.getTraitSet(), input, groupSet,
-        aggregateCalls);
+    return MutableAggregate.of(input, groupSet, aggregateCalls);
   }
 
   private static List<AggregateCall> apply(final Mapping mapping,
@@ -914,9 +1128,9 @@ public class SubstitutionVisitor {
         });
   }
 
-  public static RelNode unifyAggregates(
-      AggregateRel query, AggregateRel target) {
-    RelNode result;
+  public static MutableRel unifyAggregates(MutableAggregate query,
+      MutableAggregate target) {
+    MutableRel result;
     if (query.getGroupSet().equals(target.getGroupSet())) {
       // Same level of aggregation. Generate a project.
       final List<Integer> projects = Lists.newArrayList();
@@ -931,7 +1145,7 @@ public class SubstitutionVisitor {
         }
         projects.add(groupCount + i);
       }
-      result = CalcRel.createProject(target, projects);
+      result = MutableRels.createProject(target, projects);
     } else {
       // Target is coarser level of aggregation. Generate an aggregate.
       final BitSet groupSet = new BitSet();
@@ -958,30 +1172,37 @@ public class SubstitutionVisitor {
                 ImmutableList.of(groupSet.cardinality() + i),
                 aggregateCall.type, aggregateCall.name));
       }
-      result = new AggregateRel(target.getCluster(), target, groupSet,
-          aggregateCalls);
+      result = MutableAggregate.of(target, groupSet, aggregateCalls);
     }
-    return RelOptUtil.createCastRel(result, query.getRowType(), true);
+    return MutableRels.createCastRel(result, query.getRowType(), true);
   }
 
-  /** Implementation of {@link UnifyRule} that matches a {@link AggregateRel} on
-   * a {@link ProjectRel} to an {@link AggregateRel} target. */
+  /** Implementation of {@link UnifyRule} that matches a
+   * {@link MutableAggregate} on
+   * a {@link MutableProject} query to an {@link MutableAggregate} target.
+   *
+   * <p>The rule is necessary when we unify query=Aggregate(x) with
+   * target=Aggregate(x, y). Query will tend to have an extra Project(x) on its
+   * input, which this rule knows is safe to ignore.</p> */
   private static class AggregateOnProjectToAggregateUnifyRule
       extends AbstractUnifyRule {
     public static final AggregateOnProjectToAggregateUnifyRule INSTANCE =
         new AggregateOnProjectToAggregateUnifyRule();
 
     private AggregateOnProjectToAggregateUnifyRule() {
-      super(AggregateRel.class, AggregateRel.class);
+      super(
+          operand(MutableAggregate.class,
+              operand(MutableProject.class, query(0))),
+          operand(MutableAggregate.class, target(0)), 1);
     }
 
     public UnifyResult apply(UnifyRuleCall call) {
-      final AggregateRel query = (AggregateRel) call.query;
-      final AggregateRel target = (AggregateRel) call.target;
-      if (!(query.getChild() instanceof ProjectRel)) {
+      final MutableAggregate query = (MutableAggregate) call.query;
+      final MutableAggregate target = (MutableAggregate) call.target;
+      if (!(query.getChild() instanceof MutableProject)) {
         return null;
       }
-      final ProjectRel project = (ProjectRel) query.getChild();
+      final MutableProject project = (MutableProject) query.getChild();
       if (project.getChild() != target.getChild()) {
         return null;
       }
@@ -989,9 +1210,9 @@ public class SubstitutionVisitor {
       if (mapping == null) {
         return null;
       }
-      final AggregateRel aggregate2 =
+      final MutableAggregate aggregate2 =
           permute(query, project.getChild(), mapping.inverse());
-      final RelNode result = unifyAggregates(aggregate2, target);
+      final MutableRel result = unifyAggregates(aggregate2, target);
       return result == null ? null : call.result(result);
     }
   }
@@ -1001,7 +1222,9 @@ public class SubstitutionVisitor {
     return aggregation;
   }
 
-  private static RexShuttle getRexShuttle(ProjectRel target) {
+  /** Builds a shuttle that stores a list of expressions, and can map incoming
+   * expressions to references to them. */
+  private static RexShuttle getRexShuttle(MutableProject target) {
     final Map<String, Integer> map = new HashMap<String, Integer>();
     for (RexNode e : target.getProjects()) {
       map.put(e.toString(), map.size());
@@ -1025,14 +1248,791 @@ public class SubstitutionVisitor {
     };
   }
 
-  /** Information about a node's parent and its position among its siblings. */
-  private static class Parentage {
-    final RelNode parent;
-    final int ordinal;
+  /** Type of {@code MutableRel}. */
+  private enum MutableRelType {
+    SCAN,
+    PROJECT,
+    FILTER,
+    AGGREGATE,
+    SORT,
+    UNION,
+    JOIN,
+    HOLDER,
+    VALUES
+  }
 
-    private Parentage(RelNode parent, int ordinal) {
-      this.parent = parent;
+  /** Visitor over {@link MutableRel}. */
+  private static class MutableRelVisitor {
+    private MutableRel root;
+
+    public void visit(MutableRel node) {
+      node.childrenAccept(this);
+    }
+
+    public MutableRel go(MutableRel p) {
+      this.root = p;
+      visit(p);
+      return root;
+    }
+  }
+
+  /** Mutable equivalent of {@link RelNode}.
+   *
+   * <p>Each node has mutable state, and keeps track of its parent and position
+   * within parent.
+   * It doesn't make sense to canonize {@code MutableRels},
+   * otherwise one node could end up with multiple parents.
+   * It follows that {@code #hashCode} and {@code #equals} are less efficient
+   * than their {@code RelNode} counterparts.
+   * But, you don't need to copy a {@code MutableRel} in order to change it.
+   * For this reason, you should use {@code MutableRel} for short-lived
+   * operations, and transcribe back to {@code RelNode} when you are done.</p>
+   */
+  private abstract static class MutableRel {
+    MutableRel parent;
+    int ordinalInParent;
+    public final RelOptCluster cluster;
+    final RelDataType rowType;
+    final MutableRelType type;
+
+    private MutableRel(RelOptCluster cluster, RelDataType rowType,
+        MutableRelType type) {
+      this.cluster = cluster;
+      this.rowType = rowType;
+      this.type = type;
+    }
+
+    public RelDataType getRowType() {
+      return rowType;
+    }
+
+    public abstract void setInput(int ordinalInParent, MutableRel input);
+
+    public abstract List<MutableRel> getInputs();
+
+    public abstract void childrenAccept(MutableRelVisitor visitor);
+
+    /** Replaces this {@code MutableRel} in its parent with another node at the
+     * same position.
+     *
+     * <p>Before the method, {@code child} must be an orphan (have null parent)
+     * and after this method, this {@code MutableRel} is an orphan.
+     *
+     * @return The parent
+     */
+    public MutableRel replaceInParent(MutableRel child) {
+      final MutableRel parent = this.parent;
+      if (this != child) {
+/*
+        if (child.parent != null) {
+          child.parent.setInput(child.ordinalInParent, null);
+          child.parent = null;
+        }
+*/
+        if (parent != null) {
+          parent.setInput(ordinalInParent, child);
+          this.parent = null;
+          this.ordinalInParent = 0;
+        }
+      }
+      return parent;
+    }
+
+    public abstract StringBuilder digest(StringBuilder buf);
+
+    public final String deep() {
+      return new MutableRelDumper().apply(this);
+    }
+
+    @Override public final String toString() {
+      return deep();
+    }
+  }
+
+  /** Implementation of {@link MutableRel} whose only purpose is to have a
+   * child. Used as the root of a tree. */
+  private static class Holder extends MutableSingleRel {
+    private Holder(MutableRelType type, RelDataType rowType, MutableRel input) {
+      super(type, rowType, input);
+    }
+
+    static Holder of(MutableRel input) {
+      return new Holder(MutableRelType.HOLDER, input.rowType, input);
+    }
+
+    @Override public StringBuilder digest(StringBuilder buf) {
+      return buf.append("Holder");
+    }
+  }
+
+   /** Abstract base class for implementations of {@link MutableRel} that have
+   * no inputs. */
+  private abstract static class MutableLeafRel extends MutableRel {
+    protected final RelNode rel;
+
+    MutableLeafRel(MutableRelType type, RelNode rel) {
+      super(rel.getCluster(), rel.getRowType(), type);
+      this.rel = rel;
+    }
+
+    public void setInput(int ordinalInParent, MutableRel input) {
+      throw new IllegalArgumentException();
+    }
+
+    public List<MutableRel> getInputs() {
+      return ImmutableList.of();
+    }
+
+    public void childrenAccept(MutableRelVisitor visitor) {
+      // no children - nothing to do
+    }
+  }
+
+  /** Mutable equivalent of {@link SingleRel}. */
+  private abstract static class MutableSingleRel extends MutableRel {
+    protected MutableRel input;
+
+    MutableSingleRel(MutableRelType type, RelDataType rowType,
+        MutableRel input) {
+      super(input.cluster, rowType, type);
+      this.input = input;
+      input.parent = this;
+      input.ordinalInParent = 0;
+    }
+
+    public void setInput(int ordinalInParent, MutableRel input) {
+      if (ordinalInParent >= 1) {
+        throw new IllegalArgumentException();
+      }
+      this.input = input;
+      if (input != null) {
+        input.parent = this;
+        input.ordinalInParent = 0;
+      }
+    }
+
+    public List<MutableRel> getInputs() {
+      return ImmutableList.of(input);
+    }
+
+    public void childrenAccept(MutableRelVisitor visitor) {
+      visitor.visit(input);
+    }
+
+    public MutableRel getChild() {
+      return input;
+    }
+  }
+
+  /** Mutable equivalent of {@link TableAccessRel}. */
+  private static class MutableScan extends MutableLeafRel {
+    private MutableScan(TableAccessRelBase rel) {
+      super(MutableRelType.SCAN, rel);
+    }
+
+    static MutableScan of(TableAccessRelBase rel) {
+      return new MutableScan(rel);
+    }
+
+    @Override public boolean equals(Object obj) {
+      return obj == this
+          || obj instanceof MutableScan
+          && rel == ((MutableScan) obj).rel;
+    }
+
+    @Override public int hashCode() {
+      return rel.hashCode();
+    }
+
+    @Override public StringBuilder digest(StringBuilder buf) {
+      return buf.append("Scan(table: ")
+          .append(rel.getTable().getQualifiedName()).append(")");
+    }
+  }
+
+  /** Mutable equivalent of {@link ValuesRelBase}. */
+  private static class MutableValues extends MutableLeafRel {
+    private MutableValues(ValuesRelBase rel) {
+      super(MutableRelType.VALUES, rel);
+    }
+
+    static MutableValues of(ValuesRelBase rel) {
+      return new MutableValues(rel);
+    }
+
+    @Override public boolean equals(Object obj) {
+      return obj == this
+          || obj instanceof MutableValues
+          && rel == ((MutableValues) obj).rel;
+    }
+
+    @Override public int hashCode() {
+      return rel.hashCode();
+    }
+
+    @Override public StringBuilder digest(StringBuilder buf) {
+      return buf.append("Values(tuples: ")
+          .append(((ValuesRelBase) rel).getTuples()).append(")");
+    }
+  }
+
+  /** Mutable equivalent of {@link ProjectRel}. */
+  private static class MutableProject extends MutableSingleRel {
+    private final List<RexNode> projects;
+
+    private MutableProject(RelDataType rowType, MutableRel input,
+        List<RexNode> projects) {
+      super(MutableRelType.PROJECT, rowType, input);
+      this.projects = projects;
+      assert RexUtil.compatibleTypes(projects, rowType, true);
+    }
+
+    static MutableProject of(RelDataType rowType, MutableRel input,
+        List<RexNode> projects) {
+      return new MutableProject(rowType, input, projects);
+    }
+
+    /** Equivalent to {@link CalcRel#createProject(RelNode, List, List)}
+     * for {@link MutableRel}. */
+    static MutableRel of(MutableRel child, List<RexNode> exprList,
+        List<String> fieldNameList) {
+      final RelDataType rowType =
+          RexUtil.createStructType(child.cluster.getTypeFactory(), exprList,
+              fieldNameList == null
+                  ? null
+                  : SqlValidatorUtil.uniquify(fieldNameList,
+                      SqlValidatorUtil.F_SUGGESTER));
+      return of(rowType, child, exprList);
+    }
+
+    @Override public boolean equals(Object obj) {
+      return obj == this
+          || obj instanceof MutableProject
+          && PAIRWISE_STRING_EQUIVALENCE.equivalent(
+              projects, ((MutableProject) obj).projects)
+          && input.equals(((MutableProject) obj).input);
+    }
+
+    @Override public int hashCode() {
+      return Objects.hashCode(input,
+          PAIRWISE_STRING_EQUIVALENCE.hash(projects));
+    }
+
+    @Override public StringBuilder digest(StringBuilder buf) {
+      return buf.append("Project(projects: ").append(projects).append(")");
+    }
+
+    public List<RexNode> getProjects() {
+      return projects;
+    }
+
+    /** Returns a list of (expression, name) pairs. */
+    public final List<Pair<RexNode, String>> getNamedProjects() {
+      return Pair.zip(getProjects(), getRowType().getFieldNames());
+    }
+
+    public Mappings.TargetMapping getMapping() {
+      return ProjectRelBase.getMapping(
+          input.getRowType().getFieldCount(), projects);
+    }
+  }
+
+  /** Mutable equivalent of {@link FilterRel}. */
+  private static class MutableFilter extends MutableSingleRel {
+    private final RexNode condition;
+
+    private MutableFilter(MutableRel input, RexNode condition) {
+      super(MutableRelType.FILTER, input.rowType, input);
+      this.condition = condition;
+    }
+
+    static MutableFilter of(MutableRel input, RexNode condition) {
+      return new MutableFilter(input, condition);
+    }
+
+    @Override public boolean equals(Object obj) {
+      return obj == this
+          || obj instanceof MutableFilter
+          && condition.toString().equals(
+              ((MutableFilter) obj).condition.toString())
+          && input.equals(((MutableFilter) obj).input);
+    }
+
+    @Override public int hashCode() {
+      return Util.hashV(input, condition.toString());
+    }
+
+    @Override public StringBuilder digest(StringBuilder buf) {
+      return buf.append("Filter(condition: ").append(condition).append(")");
+    }
+
+    public RexNode getCondition() {
+      return condition;
+    }
+  }
+
+  /** Mutable equivalent of {@link AggregateRel}. */
+  private static class MutableAggregate extends MutableSingleRel {
+    private final BitSet groupSet;
+    private final List<AggregateCall> aggCalls;
+
+    private MutableAggregate(MutableRel input, RelDataType rowType,
+        BitSet groupSet, List<AggregateCall> aggCalls) {
+      super(MutableRelType.AGGREGATE, rowType, input);
+      this.groupSet = groupSet;
+      this.aggCalls = aggCalls;
+    }
+
+    static MutableAggregate of(MutableRel input, BitSet groupSet,
+        List<AggregateCall> aggCalls) {
+      RelDataType rowType =
+          AggregateRelBase.deriveRowType(input.cluster.getTypeFactory(),
+              input.getRowType(), groupSet, aggCalls);
+      return new MutableAggregate(input, rowType, groupSet, aggCalls);
+    }
+
+    @Override public boolean equals(Object obj) {
+      return obj == this
+          || obj instanceof MutableAggregate
+          && groupSet.equals(((MutableAggregate) obj).groupSet)
+          && aggCalls.equals(((MutableAggregate) obj).aggCalls)
+          && input.equals(((MutableAggregate) obj).input);
+    }
+
+    @Override public int hashCode() {
+      return Util.hashV(input, groupSet, aggCalls);
+    }
+
+    @Override public StringBuilder digest(StringBuilder buf) {
+      return buf.append("Aggregate(groupSet: ").append(groupSet)
+          .append(", calls: ").append(aggCalls).append(")");
+    }
+
+    public BitSet getGroupSet() {
+      return groupSet;
+    }
+
+    public List<AggregateCall> getAggCallList() {
+      return aggCalls;
+    }
+  }
+
+  /** Mutable equivalent of {@link SortRel}. */
+  private static class MutableSort extends MutableSingleRel {
+    private final RelCollation collation;
+    private final RexNode offset;
+    private final RexNode fetch;
+
+    private MutableSort(MutableRel input, RelCollation collation,
+        RexNode offset, RexNode fetch) {
+      super(MutableRelType.SORT, input.rowType, input);
+      this.collation = collation;
+      this.offset = offset;
+      this.fetch = fetch;
+    }
+
+    static MutableSort of(MutableRel input, RelCollation collation,
+        RexNode offset, RexNode fetch) {
+      return new MutableSort(input, collation, offset, fetch);
+    }
+
+    @Override public boolean equals(Object obj) {
+      return obj == this
+          || obj instanceof MutableSort
+          && collation.equals(((MutableSort) obj).collation)
+          && Objects.equal(offset, ((MutableSort) obj).offset)
+          && Objects.equal(fetch, ((MutableSort) obj).fetch)
+          && input.equals(((MutableSort) obj).input);
+    }
+
+    @Override public int hashCode() {
+      return Util.hashV(input, collation, offset, fetch);
+    }
+
+    @Override public StringBuilder digest(StringBuilder buf) {
+      buf.append("Sort(collation: ").append(collation);
+      if (offset != null) {
+        buf.append(", offset: ").append(offset);
+      }
+      if (fetch != null) {
+        buf.append(", fetch: ").append(fetch);
+      }
+      return buf.append(")");
+    }
+  }
+
+  /** Base class for set-operations. */
+  private abstract static class MutableSetOp extends MutableRel {
+    protected final List<MutableRel> inputs;
+
+    private MutableSetOp(RelOptCluster cluster, RelDataType rowType,
+        MutableRelType type, List<MutableRel> inputs) {
+      super(cluster, rowType, type);
+      this.inputs = inputs;
+    }
+
+    @Override public void setInput(int ordinalInParent, MutableRel input) {
+      inputs.set(ordinalInParent, input);
+    }
+
+    @Override public List<MutableRel> getInputs() {
+      return inputs;
+    }
+
+    @Override public void childrenAccept(MutableRelVisitor visitor) {
+      for (MutableRel input : inputs) {
+        visitor.visit(input);
+      }
+    }
+  }
+
+  /** Mutable equivalent of {@link UnionRel}. */
+  private static class MutableUnion extends MutableSetOp {
+    public boolean all;
+
+    private MutableUnion(RelOptCluster cluster, RelDataType rowType,
+        List<MutableRel> inputs, boolean all) {
+      super(cluster, rowType, MutableRelType.UNION, inputs);
+      this.all = all;
+    }
+
+    static MutableUnion of(List<MutableRel> inputs, boolean all) {
+      assert inputs.size() >= 2;
+      final MutableRel input0 = inputs.get(0);
+      return new MutableUnion(input0.cluster, input0.rowType, inputs, all);
+    }
+
+    @Override public boolean equals(Object obj) {
+      return obj == this
+          || obj instanceof MutableUnion
+          && inputs.equals(((MutableUnion) obj).getInputs());
+    }
+
+    @Override public int hashCode() {
+      return Util.hashV(type, inputs);
+    }
+
+    @Override public StringBuilder digest(StringBuilder buf) {
+      return buf.append("Union");
+    }
+  }
+
+  /** Utilities for dealing with {@link MutableRel}s. */
+  private static class MutableRels {
+    public static boolean contains(MutableRel ancestor,
+        final MutableRel target) {
+      if (ancestor.equals(target)) {
+        // Short-cut common case.
+        return true;
+      }
+      try {
+        new MutableRelVisitor() {
+          @Override public void visit(MutableRel node) {
+            if (node.equals(target)) {
+              throw Util.FoundOne.NULL;
+            }
+            super.visit(node);
+          }
+          // CHECKSTYLE: IGNORE 1
+        }.go(ancestor);
+        return false;
+      } catch (Util.FoundOne e) {
+        return true;
+      }
+    }
+
+    private static List<MutableRel> descendants(MutableRel query) {
+      final List<MutableRel> list = new ArrayList<MutableRel>();
+      descendantsRecurse(list, query);
+      return list;
+    }
+
+    private static void descendantsRecurse(List<MutableRel> list,
+        MutableRel rel) {
+      list.add(rel);
+      for (MutableRel input : rel.getInputs()) {
+        descendantsRecurse(list, input);
+      }
+    }
+
+    /** Returns whether two relational expressions have the same row-type. */
+    public static boolean equalType(String desc0, MutableRel rel0, String desc1,
+        MutableRel rel1, boolean fail) {
+      return RelOptUtil.equal(desc0, rel0.getRowType(),
+          desc1, rel1.getRowType(), fail);
+    }
+
+    /** Within a relational expression {@code query}, replaces occurrences of
+     * {@code find} with {@code replace}.
+     *
+     * <p>Assumes relational expressions (and their descendants) are not null.
+     * Does not handle cycles. */
+    public static void replace(MutableRel query, MutableRel find,
+        MutableRel replace) {
+      if (find.equals(replace)) {
+        // Short-cut common case.
+        return;
+      }
+      assert equalType("find", find, "replace", replace, true);
+      replaceRecurse(query, find, replace);
+    }
+
+    /** Helper for {@link #replace}. */
+    private static void replaceRecurse(MutableRel query, MutableRel find,
+        MutableRel replace) {
+      final List<MutableRel> inputs = query.getInputs();
+      for (int i = 0; i < inputs.size(); i++) {
+        MutableRel input = inputs.get(i);
+        if (input.equals(find)) {
+          query.setInput(i, replace);
+        } else {
+          replaceRecurse(input, find, replace);
+        }
+      }
+    }
+
+    /** Based on {@link RemoveTrivialProjectRule#strip(ProjectRel)}. */
+    public static MutableRel strip(MutableProject project) {
+      return isTrivial(project) ? project.getChild() : project;
+    }
+
+    /** Based on {@link RemoveTrivialProjectRule#isTrivial(ProjectRelBase)}. */
+    public static boolean isTrivial(MutableProject project) {
+      MutableRel child = project.getChild();
+      final RelDataType childRowType = child.getRowType();
+      if (!childRowType.isStruct()) {
+        return false;
+      }
+      if (!RemoveTrivialProjectRule.isIdentity(
+          project.getProjects(),
+          project.getRowType(),
+          childRowType)) {
+        return false;
+      }
+      return true;
+    }
+
+    /** Equivalent to {@link CalcRel#createProject(RelNode, List)}
+     * for {@link MutableRel}. */
+    public static MutableRel createProject(final MutableRel child,
+        final List<Integer> posList) {
+      final RelDataType rowType = child.getRowType();
+      if (Mappings.isIdentity(posList, rowType.getFieldCount())) {
+        return child;
+      }
+      return MutableProject.of(
+          RelOptUtil.permute(child.cluster.getTypeFactory(), rowType,
+              Mappings.bijection(posList)),
+          child,
+          new AbstractList<RexNode>() {
+            public int size() {
+              return posList.size();
+            }
+
+            public RexNode get(int index) {
+              final int pos = posList.get(index);
+              return RexInputRef.of(pos, rowType);
+            }
+          });
+    }
+
+    /** Equivalence to {@link org.eigenbase.relopt.RelOptUtil#createCastRel}
+     * for {@link MutableRel}. */
+    public static MutableRel createCastRel(MutableRel rel,
+        RelDataType castRowType, boolean rename) {
+      RelDataType rowType = rel.getRowType();
+      if (RelOptUtil.areRowTypesEqual(rowType, castRowType, rename)) {
+        // nothing to do
+        return rel;
+      }
+      List<RexNode> castExps =
+          RexUtil.generateCastExpressions(rel.cluster.getRexBuilder(),
+              castRowType, rowType);
+      final List<String> fieldNames =
+          rename ? castRowType.getFieldNames() : rowType.getFieldNames();
+      return MutableProject.of(rel, castExps, fieldNames);
+    }
+  }
+
+  /** Visitor that prints an indented tree of {@link MutableRel}s. */
+  private static class MutableRelDumper extends MutableRelVisitor {
+    private final StringBuilder buf = new StringBuilder();
+    private int level;
+
+    @Override public void visit(MutableRel node) {
+      Spaces.append(buf, level * 2);
+      if (node == null) {
+        buf.append("null");
+      } else {
+        node.digest(buf);
+        buf.append("\n");
+        ++level;
+        super.visit(node);
+        --level;
+      }
+    }
+
+    public String apply(MutableRel rel) {
+      go(rel);
+      return buf.toString();
+    }
+  }
+
+  /** Operand to a {@link UnifyRule}. */
+  private abstract static class Operand {
+    protected final Class<? extends MutableRel> clazz;
+
+    protected Operand(Class<? extends MutableRel> clazz) {
+      this.clazz = clazz;
+    }
+
+    abstract boolean matches(SubstitutionVisitor visitor, MutableRel rel);
+  }
+
+  /** Operand to a {@link UnifyRule} that matches a relational expression of a
+   * given type. It has zero or more child operands. */
+  private static class InternalOperand extends Operand {
+    private final List<Operand> inputs;
+
+    InternalOperand(Class<? extends MutableRel> clazz, List<Operand> inputs) {
+      super(clazz);
+      this.inputs = inputs;
+    }
+
+    @Override boolean matches(SubstitutionVisitor visitor, MutableRel rel) {
+      return clazz.isInstance(rel)
+          && allMatch(visitor, inputs, rel.getInputs());
+    }
+
+    private static boolean allMatch(SubstitutionVisitor visitor,
+        List<Operand> operands, List<MutableRel> rels) {
+      if (operands.size() != rels.size()) {
+        return false;
+      }
+      for (Pair<Operand, MutableRel> pair : Pair.zip(operands, rels)) {
+        if (!pair.left.matches(visitor, pair.right)) {
+          return false;
+        }
+      }
+      return true;
+    }
+  }
+
+  /** Operand to a {@link UnifyRule} that matches a relational expression of a
+   * given type. */
+  private static class AnyOperand extends Operand {
+    AnyOperand(Class<? extends MutableRel> clazz) {
+      super(clazz);
+    }
+
+    @Override boolean matches(SubstitutionVisitor visitor, MutableRel rel) {
+      return clazz.isInstance(rel);
+    }
+  }
+
+  /** Operand that assigns a particular relational expression to a variable.
+   *
+   * <p>It is applied to a descendant of the query, writes the operand into the
+   * slots array, and always matches.
+   * There is a corresponding operand of type {@link TargetOperand} that checks
+   * whether its relational expression, a descendant of the target, is
+   * equivalent to this {@code QueryOperand}'s relational expression.
+   */
+  private static class QueryOperand extends Operand {
+    private final int ordinal;
+
+    protected QueryOperand(int ordinal) {
+      super(MutableRel.class);
       this.ordinal = ordinal;
+    }
+
+    @Override boolean matches(SubstitutionVisitor visitor, MutableRel rel) {
+      visitor.slots[ordinal] = rel;
+      return true;
+    }
+  }
+
+  /** Operand that checks that a relational expression matches the corresponding
+   * relational expression that was passed to a {@link QueryOperand}. */
+  private static class TargetOperand extends Operand {
+    private final int ordinal;
+
+    protected TargetOperand(int ordinal) {
+      super(MutableRel.class);
+      this.ordinal = ordinal;
+    }
+
+    @Override boolean matches(SubstitutionVisitor visitor, MutableRel rel) {
+      final MutableRel rel0 = visitor.slots[ordinal];
+      assert rel0 != null : "QueryOperand should have been called first";
+      return rel0 == rel || visitor.equivalents.get(rel0).contains(rel);
+    }
+  }
+
+  /** Visitor that counts how many {@link QueryOperand} and
+   * {@link TargetOperand} in an operand tree. */
+  private static class SlotCounter {
+    int queryCount;
+    int targetCount;
+
+    void visit(Operand operand) {
+      if (operand instanceof QueryOperand) {
+        ++queryCount;
+      } else if (operand instanceof TargetOperand) {
+        ++targetCount;
+      } else if (operand instanceof AnyOperand) {
+        // nothing
+      } else {
+        for (Operand input : ((InternalOperand) operand).inputs) {
+          visit(input);
+        }
+      }
+    }
+  }
+
+  /**
+   * Rule that converts a {@link FilterRel} on top of a {@link ProjectRel} into
+   * a trivial filter (on a boolean column).
+   */
+  public static class FilterOnProjectRule extends RelOptRule {
+    public static final FilterOnProjectRule INSTANCE =
+        new FilterOnProjectRule();
+
+    private FilterOnProjectRule() {
+      super(new RelOptRuleOperand(FilterRel.class, null,
+          some(operand(ProjectRel.class, any()))) {
+        @Override public boolean matches(RelNode rel) {
+          return super.matches(rel)
+              && ((FilterRel) rel).getCondition() instanceof RexInputRef;
+        }
+      });
+    }
+
+    public void onMatch(RelOptRuleCall call) {
+      final FilterRel filter = call.rel(0);
+      final ProjectRel project = call.rel(1);
+
+      final List<RexNode> newProjects =
+          new ArrayList<RexNode>(project.getProjects());
+      newProjects.add(filter.getCondition());
+
+      final RelOptCluster cluster = filter.getCluster();
+      RelDataType newRowType =
+          cluster.getTypeFactory().builder()
+              .addAll(project.getRowType().getFieldList())
+              .add("condition", Util.last(newProjects).getType())
+              .build();
+      final RelNode newProject =
+          project.copy(project.getTraitSet(),
+              project.getChild(),
+              newProjects,
+              newRowType);
+
+      final RexInputRef newCondition =
+          cluster.getRexBuilder().makeInputRef(newProject,
+              newProjects.size() - 1);
+
+      call.transformTo(new FilterRel(cluster, newProject, newCondition));
     }
   }
 }

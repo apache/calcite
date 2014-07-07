@@ -23,10 +23,6 @@ import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.*;
 import org.eigenbase.rex.*;
 import org.eigenbase.util.*;
-import org.eigenbase.util.mapping.MappingType;
-import org.eigenbase.util.mapping.Mappings;
-
-import net.hydromatic.linq4j.Ord;
 
 /**
  * <code>ProjectRel</code> is a relational expression which computes a set of
@@ -139,30 +135,6 @@ public final class ProjectRel extends ProjectRelBase {
       }
     }
     return true;
-  }
-
-  /**
-   * Returns a mapping, or null if this projection is not a mapping.
-   *
-   * <p>The mapping is an inverse surjection.
-   * Every target has a source field, but
-   * a source field may appear as zero, one, or more target fields.
-   * Thus you can safely call
-   * {@link org.eigenbase.util.mapping.Mappings.TargetMapping#getTarget(int)}
-   */
-  public Mappings.TargetMapping getMapping() {
-    Mappings.TargetMapping mapping =
-        Mappings.create(
-            MappingType.INVERSE_SURJECTION,
-            getChild().getRowType().getFieldCount(),
-            exps.size());
-    for (Ord<RexNode> exp : Ord.zip(exps)) {
-      if (!(exp.e instanceof RexInputRef)) {
-        return null;
-      }
-      mapping.set(((RexInputRef) exp.e).getIndex(), exp.i);
-    }
-    return mapping;
   }
 }
 

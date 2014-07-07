@@ -24,7 +24,9 @@ import java.util.Set;
 
 import org.eigenbase.relopt.RelOptCluster;
 import org.eigenbase.reltype.RelDataTypeField;
+import org.eigenbase.rex.RexBuilder;
 import org.eigenbase.rex.RexNode;
+import org.eigenbase.util.mapping.Mappings;
 
 import com.google.common.collect.ImmutableList;
 
@@ -118,34 +120,23 @@ public class RelFactories {
    */
   public static RelNode createProject(final ProjectFactory factory,
       final RelNode child, final List<Integer> posList) {
-    if (isIdentity(posList, child.getRowType().getFieldCount())) {
+    if (Mappings.isIdentity(posList, child.getRowType().getFieldCount())) {
       return child;
     }
-    return factory.createProject(child, new AbstractList<RexNode>() {
-      public int size() {
-        return posList.size();
-      }
+    final RexBuilder rexBuilder = child.getCluster().getRexBuilder();
+    return factory.createProject(child,
+        new AbstractList<RexNode>() {
+          public int size() {
+            return posList.size();
+          }
 
-      public RexNode get(int index) {
-        final int pos = posList.get(index);
-        return child.getCluster().getRexBuilder().makeInputRef(child, pos);
-      }
-    }, null);
+          public RexNode get(int index) {
+            final int pos = posList.get(index);
+            return rexBuilder.makeInputRef(child, pos);
+          }
+        },
+        null);
   }
-
-  private static boolean isIdentity(List<Integer> list, int count) {
-    if (list.size() != count) {
-      return false;
-    }
-    for (int i = 0; i < count; i++) {
-      final Integer o = list.get(i);
-      if (o == null || o != i) {
-        return false;
-      }
-    }
-    return true;
-  }
-
 }
 
 // End RelFactories.java

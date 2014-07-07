@@ -352,9 +352,10 @@ public final class CalcRel extends CalcRelBase {
    *
    * @param rel        Relational expression
    * @param mapping    Mapping from source fields to target fields. The mapping
-   *                   type must obey the constaints {@link MappingType#isMandatorySource()} and
-   *                   {@link MappingType#isSingleSource()}, as does {@link
-   *                   MappingType#INVERSE_FUNCTION}.
+   *                   type must obey the constraints
+   *                   {@link MappingType#isMandatorySource()} and
+   *                   {@link MappingType#isSingleSource()}, as does
+   *                   {@link MappingType#INVERSE_FUNCTION}.
    * @param fieldNames Field names; if null, or if a particular entry is null,
    *                   the name of the permuted field is used
    * @return relational expression which projects a subset of the input fields

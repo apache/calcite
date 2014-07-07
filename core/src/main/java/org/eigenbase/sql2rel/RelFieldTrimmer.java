@@ -319,8 +319,8 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
     }
 
     final RelDataType newRowType =
-        project.getCluster().getTypeFactory().createStructType(
-            Mappings.apply3(mapping, rowType.getFieldList()));
+        RelOptUtil.permute(project.getCluster().getTypeFactory(), rowType,
+            mapping);
 
     final List<RelCollation> newCollations =
         RexUtil.apply(inputMapping, project.getCollationList());
@@ -882,9 +882,9 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
     }
 
     final Mapping mapping = createMapping(fieldsUsed, fieldCount);
-    RelDataType newRowType =
-        values.getCluster().getTypeFactory().createStructType(
-            Mappings.apply3(mapping, rowType.getFieldList()));
+    final RelDataType newRowType =
+        RelOptUtil.permute(values.getCluster().getTypeFactory(), rowType,
+            mapping);
     final ValuesRel newValues =
         new ValuesRel(values.getCluster(), newRowType, newTuples);
     return new TrimResult(newValues, mapping);

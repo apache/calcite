@@ -35,7 +35,7 @@ public class Permutation implements Mapping, Mappings.TargetMapping {
   /**
    * Creates a permutation of a given size.
    *
-   * <p>It is intialized to the identity permutation, such as "[0, 1, 2, 3]".
+   * <p>It is initialized to the identity permutation, such as "[0, 1, 2, 3]".
    *
    * @param size Number of elements in the permutation
    */
@@ -62,6 +62,9 @@ public class Permutation implements Mapping, Mappings.TargetMapping {
     Arrays.fill(sources, -1);
     for (int i = 0; i < targets.length; i++) {
       int target = targets[i];
+      if (target < 0 || target >= sources.length) {
+        throw new IllegalArgumentException("target out of range");
+      }
       if (sources[target] != -1) {
         throw new IllegalArgumentException(
             "more than one permutation element maps to position " + target);
@@ -72,7 +75,7 @@ public class Permutation implements Mapping, Mappings.TargetMapping {
   }
 
   /**
-   * Creates a permuation. Arrays are not copied, and are assumed to be valid
+   * Creates a permutation. Arrays are not copied, and are assumed to be valid
    * permutations.
    */
   private Permutation(int[] targets, int[] sources) {
@@ -410,14 +413,22 @@ public class Permutation implements Mapping, Mappings.TargetMapping {
    * Returns the position that <code>source</code> is mapped to.
    */
   public int getTarget(int source) {
-    return targets[source];
+    try {
+      return targets[source];
+    } catch (ArrayIndexOutOfBoundsException e) {
+      throw new Mappings.NoElementException("invalid source " + source);
+    }
   }
 
   /**
    * Returns the position which maps to <code>target</code>.
    */
   public int getSource(int target) {
-    return sources[target];
+    try {
+      return sources[target];
+    } catch (ArrayIndexOutOfBoundsException e) {
+      throw new Mappings.NoElementException("invalid target " + target);
+    }
   }
 
   /**
