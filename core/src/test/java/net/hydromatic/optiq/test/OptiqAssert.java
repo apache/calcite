@@ -1119,7 +1119,8 @@ public class OptiqAssert {
       return this;
     }
 
-    @Override public AssertQuery convertContains(String expected) {
+    @Override public AssertQuery convertMatches(
+        Function1<RelNode, Void> checker) {
       return this;
     }
 

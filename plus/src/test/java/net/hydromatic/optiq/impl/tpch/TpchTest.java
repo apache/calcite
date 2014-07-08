@@ -795,12 +795,11 @@ public class TpchTest {
     checkQuery(1);
   }
 
-  @Ignore("CannotPlanException")
+  @Ignore("slow")
   @Test public void testQuery02() {
     checkQuery(2);
   }
 
-  @Ignore("RelDecorrelator leaves a CorrelatorRel behind")
   @Test public void testQuery02Conversion() {
     query(2)
         .convertMatches(new Function1<RelNode, Void>() {

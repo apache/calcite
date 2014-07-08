@@ -4002,6 +4002,29 @@ public class JdbcTest {
             "empid=110; deptno=10; name=Theodore; salary=11500.0; commission=250");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/OPTIQ-313">OPTIQ-313</a>,
+   * "Query decorrelation fails". */
+  @Test public void testJoinInCorrelatedSubquery() {
+    OptiqAssert.that()
+        .with(OptiqAssert.Config.REGULAR)
+        .query(
+            "select *\n"
+            + "from \"hr\".\"depts\" as d\n"
+            + "where \"deptno\" in (\n"
+            + "  select d2.\"deptno\"\n"
+            + "  from \"hr\".\"depts\" as d2\n"
+            + "  join \"hr\".\"emps\" as e2 using (\"deptno\")\n"
+            + "where d.\"deptno\" = d2.\"deptno\")")
+        .convertMatches(new Function1<RelNode, Void>() {
+          public Void apply(RelNode relNode) {
+            String s = RelOptUtil.toString(relNode);
+            assertThat(s, not(containsString("CorrelatorRel")));
+            return null;
+          }
+        });
+  }
+
   /** Tests a correlated scalar sub-query in the SELECT clause.
    *
    * <p>Note that there should be an extra row "empid=200; deptno=20;

@@ -154,19 +154,6 @@ public class MaterializationTest {
         "select \"empid\" + 1 as x, \"name\" from \"emps\" where \"deptno\" = 10");
   }
 
-  /** Temporary. */
-  @Test public void testFilterQueryOnProjectViewX() {
-    testFilterQueryOnProjectView3();
-    testFilterQueryOnProjectView5();
-    testFilterQueryOnProjectView6();
-    testFilterQueryOnProjectView7();
-    testFilterQueryOnProjectView();
-    testFilterQueryOnProjectView0();
-    testFilterQueryOnProjectView1();
-    testFilterQueryOnProjectView2();
-
-  }
-
   @Test public void testFilterQueryOnProjectView3() {
     checkMaterialize(
         "select \"deptno\" - 10 as \"x\", \"empid\" + 1, \"name\" from \"emps\"",
