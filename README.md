@@ -34,7 +34,7 @@ public static class HrSchema {
   public final Department[] depts = ...;
 }
 
-Class.forName("net.hydromatic.optiq.jdbc.Driver");
+Class.forName("org.apache.optiq.jdbc.Driver");
 Connection connection = DriverManager.getConnection("jdbc:optiq:");
 OptiqConnection optiqConnection =
     connection.unwrap(OptiqConnection.class);
@@ -165,17 +165,17 @@ For more details, see the <a href="REFERENCE.md">Reference guide</a>.
 
 ### Drivers
 
-* <a href="http://www.hydromatic.net/optiq/optiq-core/apidocs/net/hydromatic/optiq/jdbc/package-summary.html">JDBC driver</a>
+* <a href="http://www.hydromatic.net/optiq/optiq-core/apidocs/org/apache/optiq/jdbc/package-summary.html">JDBC driver</a>
 
 ### Adapters
 
 * <a href="https://github.com/apache/incubator-drill">Apache Drill adapter</a>
 * Cascading adapter (<a href="https://github.com/Cascading/lingual">Lingual</a>)
 * CSV adapter (<a href="https://github.com/julianhyde/optiq-csv">optiq-csv</a>)
-* JDBC adapter (part of <a href="http://www.hydromatic.net/optiq/optiq-core/apidocs/net/hydromatic/optiq/impl/jdbc/package-summary.html">optiq-core</a>)
-* MongoDB adapter (<a href="http://www.hydromatic.net/optiq/optiq-mongodb/apidocs/net/hydromatic/optiq/impl/mongodb/package-summary.html">optiq-mongodb</a>)
-* Spark adapter (<a href="http://www.hydromatic.net/optiq/optiq-spark/apidocs/net/hydromatic/optiq/impl/spark/package-summary.html">optiq-spark</a>)
-* Splunk adapter (<a href="http://www.hydromatic.net/optiq/optiq-splunk/apidocs/net/hydromatic/optiq/impl/splunk/package-summary.html">optiq-splunk</a>)
+* JDBC adapter (part of <a href="http://www.hydromatic.net/optiq/optiq-core/apidocs/org/apache/optiq/impl/jdbc/package-summary.html">optiq-core</a>)
+* MongoDB adapter (<a href="http://www.hydromatic.net/optiq/optiq-mongodb/apidocs/org/apache/optiq/impl/mongodb/package-summary.html">optiq-mongodb</a>)
+* Spark adapter (<a href="http://www.hydromatic.net/optiq/optiq-spark/apidocs/org/apache/optiq/impl/spark/package-summary.html">optiq-spark</a>)
+* Splunk adapter (<a href="http://www.hydromatic.net/optiq/optiq-splunk/apidocs/org/apache/optiq/impl/splunk/package-summary.html">optiq-splunk</a>)
 * Eclipse Memory Analyzer (MAT) adapter (<a href="https://github.com/vlsi/optiq-mat-plugin">optiq-mat-plugin</a>)
 
 ## More information

@@ -36,11 +36,11 @@
 data: {
   parser: {
     # Generated parser implementation package and class name.
-    package: "org.eigenbase.sql.parser.impl",
+    package: "org.apache.optiq.sql.parser.impl",
     class: "SqlParserImpl",
 
     # List of additional classes and packages to import.
-    # Example. "org.eigenbase.sql.*", "java.util.List".
+    # Example. "org.apache.optiq.sql.*", "java.util.List".
     imports: [
     ]
 

@@ -26,7 +26,7 @@
   <suppress checks=".*" files="EigenbaseResource.java"/>
   <suppress checks=".*" files="EigenbaseResource_en_US.java"/>
   <suppress checks=".*" files="EigenbaseResource.properties"/>
-  <suppress checks=".*" files="net-hydromatic-optiq-jdbc.properties"/>
+  <suppress checks=".*" files="org-apache-optiq-jdbc.properties"/>
   <suppress checks=".*" files="Foo.java"/>
 
   <!-- This file triggers https://github.com/checkstyle/checkstyle/issues/92,
@@ -35,9 +35,6 @@
 
   <!-- Don't complain about field names such as cust_id -->
   <suppress checks=".*Name" files="JdbcExample.java"/>
-
-  <suppress id="eigenbaseImportOrder" files="net[/\\]hydromatic"/>
-  <suppress id="hydromaticImportOrder" files="org[/\\]eigenbase"/>
 
   <!-- Suppress JavadocPackage in the test packages -->
   <suppress checks="JavadocPackage" files="src[/\\]test[/\\]java[/\\]"/>
@@ -54,83 +51,83 @@
        VolcanoPlannerTraitTest, RexImpTable
        have more than 4 issues.
     -->
-  <suppress checks="JavadocType" files="src[/\\]main[/\\]java[/\\]net[/\\]hydromatic[/\\]optiq[/\\]prepare[/\\]OptiqPrepareImpl.java"/>
-  <suppress checks="JavadocType" files="src[/\\]main[/\\]java[/\\]net[/\\]hydromatic[/\\]optiq[/\\]rules[/\\]java[/\\]JavaRules.java"/>
-  <suppress checks="JavadocType" files="src[/\\]main[/\\]java[/\\]net[/\\]hydromatic[/\\]optiq[/\\]rules[/\\]java[/\\]RexImpTable.java"/>
-  <suppress checks="JavadocType" files="src[/\\]main[/\\]java[/\\]org[/\\]eigenbase[/\\]relopt[/\\]hep[/\\]HepInstruction.java"/>
+  <suppress checks="JavadocType" files="src[/\\]main[/\\]java[/\\]org[/\\]apache[/\\]optiq[/\\]prepare[/\\]OptiqPrepareImpl.java"/>
+  <suppress checks="JavadocType" files="src[/\\]main[/\\]java[/\\]org[/\\]apache[/\\]optiq[/\\]impl[/\\]enumerable[/\\]JavaRules.java"/>
+  <suppress checks="JavadocType" files="src[/\\]main[/\\]java[/\\]org[/\\]apache[/\\]optiq[/\\]impl[/\\]enumerable[/\\]RexImpTable.java"/>
+  <suppress checks="JavadocType" files="src[/\\]main[/\\]java[/\\]org[/\\]apache[/\\]optiq[/\\]relopt[/\\]hep[/\\]HepInstruction.java"/>
 
-  <suppress checks="JavadocType" files="src[/\\]main[/\\]java[/\\]org[/\\]eigenbase[/\\]relopt[/\\]TableAccessMap.java"/>
-  <suppress checks="JavadocType" files="src[/\\]main[/\\]java[/\\]org[/\\]eigenbase[/\\]relopt[/\\]volcano[/\\]VolcanoCost.java"/>
-  <suppress checks="JavadocType" files="src[/\\]main[/\\]java[/\\]org[/\\]eigenbase[/\\]rex[/\\]RexOver.java"/>
-  <suppress checks="JavadocType" files="src[/\\]main[/\\]java[/\\]org[/\\]eigenbase[/\\]rex[/\\]RexProgramBuilder.java"/>
-  <suppress checks="JavadocType" files="src[/\\]main[/\\]java[/\\]org[/\\]eigenbase[/\\]rex[/\\]RexUtil.java"/>
-  <suppress checks="JavadocType" files="src[/\\]main[/\\]java[/\\]org[/\\]eigenbase[/\\]rex[/\\]RexVisitor.java"/>
-  <suppress checks="JavadocType" files="src[/\\]main[/\\]java[/\\]org[/\\]eigenbase[/\\]rex[/\\]RexVisitorImpl.java"/>
-  <suppress checks="JavadocType" files="src[/\\]main[/\\]java[/\\]org[/\\]eigenbase[/\\]sarg[/\\]SargRexAnalyzer.java"/>
-  <suppress checks="JavadocType" files="src[/\\]main[/\\]java[/\\]org[/\\]eigenbase[/\\]sql[/\\]fun[/\\]SqlAvgAggFunction.java"/>
-  <suppress checks="JavadocType" files="src[/\\]main[/\\]java[/\\]org[/\\]eigenbase[/\\]sql[/\\]fun[/\\]SqlBetweenOperator.java"/>
-  <suppress checks="JavadocType" files="src[/\\]main[/\\]java[/\\]org[/\\]eigenbase[/\\]sql[/\\]fun[/\\]SqlCastFunction.java"/>
-  <suppress checks="JavadocType" files="src[/\\]main[/\\]java[/\\]org[/\\]eigenbase[/\\]sql[/\\]parser[/\\]SqlParserUtil.java"/>
-  <suppress checks="JavadocType" files="src[/\\]main[/\\]java[/\\]org[/\\]eigenbase[/\\]sql[/\\]SqlIntervalQualifier.java"/>
-  <suppress checks="JavadocType" files="src[/\\]main[/\\]java[/\\]org[/\\]eigenbase[/\\]sql[/\\]SqlSampleSpec.java"/>
-  <suppress checks="JavadocType" files="src[/\\]main[/\\]java[/\\]org[/\\]eigenbase[/\\]sql[/\\]SqlWindowOperator.java"/>
-  <suppress checks="JavadocType" files="src[/\\]main[/\\]java[/\\]org[/\\]eigenbase[/\\]sql[/\\]SqlWriter.java"/>
-  <suppress checks="JavadocType" files="src[/\\]main[/\\]java[/\\]org[/\\]eigenbase[/\\]sql[/\\]type[/\\]CompositeOperandTypeChecker.java"/>
-  <suppress checks="JavadocType" files="src[/\\]main[/\\]java[/\\]org[/\\]eigenbase[/\\]sql[/\\]type[/\\]SqlOperandCountRanges.java"/>
-  <suppress checks="JavadocType" files="src[/\\]main[/\\]java[/\\]org[/\\]eigenbase[/\\]sql[/\\]type[/\\]SqlTypeName.java"/>
-  <suppress checks="JavadocType" files="src[/\\]main[/\\]java[/\\]org[/\\]eigenbase[/\\]sql[/\\]util[/\\]SqlBasicVisitor.java"/>
-  <suppress checks="JavadocType" files="src[/\\]main[/\\]java[/\\]org[/\\]eigenbase[/\\]sql[/\\]util[/\\]SqlVisitor.java"/>
-  <suppress checks="JavadocType" files="src[/\\]main[/\\]java[/\\]org[/\\]eigenbase[/\\]sql[/\\]validate[/\\]SqlValidatorImpl.java"/>
-  <suppress checks="JavadocType" files="src[/\\]main[/\\]java[/\\]org[/\\]eigenbase[/\\]sql[/\\]validate[/\\]SqlValidatorUtil.java"/>
+  <suppress checks="JavadocType" files="src[/\\]main[/\\]java[/\\]org[/\\]apache[/\\]optiq[/\\]relopt[/\\]TableAccessMap.java"/>
+  <suppress checks="JavadocType" files="src[/\\]main[/\\]java[/\\]org[/\\]apache[/\\]optiq[/\\]relopt[/\\]volcano[/\\]VolcanoCost.java"/>
+  <suppress checks="JavadocType" files="src[/\\]main[/\\]java[/\\]org[/\\]apache[/\\]optiq[/\\]rex[/\\]RexOver.java"/>
+  <suppress checks="JavadocType" files="src[/\\]main[/\\]java[/\\]org[/\\]apache[/\\]optiq[/\\]rex[/\\]RexProgramBuilder.java"/>
+  <suppress checks="JavadocType" files="src[/\\]main[/\\]java[/\\]org[/\\]apache[/\\]optiq[/\\]rex[/\\]RexUtil.java"/>
+  <suppress checks="JavadocType" files="src[/\\]main[/\\]java[/\\]org[/\\]apache[/\\]optiq[/\\]rex[/\\]RexVisitor.java"/>
+  <suppress checks="JavadocType" files="src[/\\]main[/\\]java[/\\]org[/\\]apache[/\\]optiq[/\\]rex[/\\]RexVisitorImpl.java"/>
+  <suppress checks="JavadocType" files="src[/\\]main[/\\]java[/\\]org[/\\]apache[/\\]optiq[/\\]sarg[/\\]SargRexAnalyzer.java"/>
+  <suppress checks="JavadocType" files="src[/\\]main[/\\]java[/\\]org[/\\]apache[/\\]optiq[/\\]sql[/\\]fun[/\\]SqlAvgAggFunction.java"/>
+  <suppress checks="JavadocType" files="src[/\\]main[/\\]java[/\\]org[/\\]apache[/\\]optiq[/\\]sql[/\\]fun[/\\]SqlBetweenOperator.java"/>
+  <suppress checks="JavadocType" files="src[/\\]main[/\\]java[/\\]org[/\\]apache[/\\]optiq[/\\]sql[/\\]fun[/\\]SqlCastFunction.java"/>
+  <suppress checks="JavadocType" files="src[/\\]main[/\\]java[/\\]org[/\\]apache[/\\]optiq[/\\]sql[/\\]parser[/\\]SqlParserUtil.java"/>
+  <suppress checks="JavadocType" files="src[/\\]main[/\\]java[/\\]org[/\\]apache[/\\]optiq[/\\]sql[/\\]SqlIntervalQualifier.java"/>
+  <suppress checks="JavadocType" files="src[/\\]main[/\\]java[/\\]org[/\\]apache[/\\]optiq[/\\]sql[/\\]SqlSampleSpec.java"/>
+  <suppress checks="JavadocType" files="src[/\\]main[/\\]java[/\\]org[/\\]apache[/\\]optiq[/\\]sql[/\\]SqlWindowOperator.java"/>
+  <suppress checks="JavadocType" files="src[/\\]main[/\\]java[/\\]org[/\\]apache[/\\]optiq[/\\]sql[/\\]SqlWriter.java"/>
+  <suppress checks="JavadocType" files="src[/\\]main[/\\]java[/\\]org[/\\]apache[/\\]optiq[/\\]sql[/\\]type[/\\]CompositeOperandTypeChecker.java"/>
+  <suppress checks="JavadocType" files="src[/\\]main[/\\]java[/\\]org[/\\]apache[/\\]optiq[/\\]sql[/\\]type[/\\]SqlOperandCountRanges.java"/>
+  <suppress checks="JavadocType" files="src[/\\]main[/\\]java[/\\]org[/\\]apache[/\\]optiq[/\\]sql[/\\]type[/\\]SqlTypeName.java"/>
+  <suppress checks="JavadocType" files="src[/\\]main[/\\]java[/\\]org[/\\]apache[/\\]optiq[/\\]sql[/\\]util[/\\]SqlBasicVisitor.java"/>
+  <suppress checks="JavadocType" files="src[/\\]main[/\\]java[/\\]org[/\\]apache[/\\]optiq[/\\]sql[/\\]util[/\\]SqlVisitor.java"/>
+  <suppress checks="JavadocType" files="src[/\\]main[/\\]java[/\\]org[/\\]apache[/\\]optiq[/\\]sql[/\\]validate[/\\]SqlValidatorImpl.java"/>
+  <suppress checks="JavadocType" files="src[/\\]main[/\\]java[/\\]org[/\\]apache[/\\]optiq[/\\]sql[/\\]validate[/\\]SqlValidatorUtil.java"/>
 
-  <suppress checks="JavadocType" files="src[/\\]main[/\\]java[/\\]org[/\\]eigenbase[/\\]sql2rel[/\\]RelDecorrelator.java"/>
+  <suppress checks="JavadocType" files="src[/\\]main[/\\]java[/\\]org[/\\]apache[/\\]optiq[/\\]sql2rel[/\\]RelDecorrelator.java"/>
 
-  <suppress checks="JavadocType" files="src[/\\]main[/\\]java[/\\]org[/\\]eigenbase[/\\]sql2rel[/\\]RelStructuredTypeFlattener.java"/>
-  <suppress checks="JavadocType" files="src[/\\]main[/\\]java[/\\]org[/\\]eigenbase[/\\]sql2rel[/\\]SqlToRelConverter.java"/>
-  <suppress checks="JavadocType" files="src[/\\]main[/\\]java[/\\]org[/\\]eigenbase[/\\]sql2rel[/\\]StandardConvertletTable.java"/>
-  <suppress checks="JavadocType" files="src[/\\]main[/\\]java[/\\]org[/\\]eigenbase[/\\]util[/\\]CastingList.java"/>
-  <suppress checks="JavadocType" files="src[/\\]main[/\\]java[/\\]org[/\\]eigenbase[/\\]util[/\\]ChunkList.java"/>
-  <suppress checks="JavadocType" files="src[/\\]main[/\\]java[/\\]org[/\\]eigenbase[/\\]util[/\\]Filterator.java"/>
-  <suppress checks="JavadocType" files="src[/\\]main[/\\]java[/\\]org[/\\]eigenbase[/\\]util[/\\]IdentityHashSet.java"/>
-  <suppress checks="JavadocType" files="src[/\\]main[/\\]java[/\\]org[/\\]eigenbase[/\\]util[/\\]ImmutableIntList.java"/>
-  <suppress checks="JavadocType" files="src[/\\]main[/\\]java[/\\]org[/\\]eigenbase[/\\]util[/\\]IntegerIntervalSet.java"/>
+  <suppress checks="JavadocType" files="src[/\\]main[/\\]java[/\\]org[/\\]apache[/\\]optiq[/\\]sql2rel[/\\]RelStructuredTypeFlattener.java"/>
+  <suppress checks="JavadocType" files="src[/\\]main[/\\]java[/\\]org[/\\]apache[/\\]optiq[/\\]sql2rel[/\\]SqlToRelConverter.java"/>
+  <suppress checks="JavadocType" files="src[/\\]main[/\\]java[/\\]org[/\\]apache[/\\]optiq[/\\]sql2rel[/\\]StandardConvertletTable.java"/>
+  <suppress checks="JavadocType" files="src[/\\]main[/\\]java[/\\]org[/\\]apache[/\\]optiq[/\\]util[/\\]CastingList.java"/>
+  <suppress checks="JavadocType" files="src[/\\]main[/\\]java[/\\]org[/\\]apache[/\\]optiq[/\\]util[/\\]ChunkList.java"/>
+  <suppress checks="JavadocType" files="src[/\\]main[/\\]java[/\\]org[/\\]apache[/\\]optiq[/\\]util[/\\]Filterator.java"/>
+  <suppress checks="JavadocType" files="src[/\\]main[/\\]java[/\\]org[/\\]apache[/\\]optiq[/\\]util[/\\]IdentityHashSet.java"/>
+  <suppress checks="JavadocType" files="src[/\\]main[/\\]java[/\\]org[/\\]apache[/\\]optiq[/\\]util[/\\]ImmutableIntList.java"/>
+  <suppress checks="JavadocType" files="src[/\\]main[/\\]java[/\\]org[/\\]apache[/\\]optiq[/\\]util[/\\]IntegerIntervalSet.java"/>
 
-  <suppress checks="JavadocType" files="src[/\\]main[/\\]java[/\\]org[/\\]eigenbase[/\\]util[/\\]mapping[/\\]Mappings.java"/>
-  <suppress checks="JavadocType" files="src[/\\]main[/\\]java[/\\]org[/\\]eigenbase[/\\]util[/\\]OptionsList.java"/>
+  <suppress checks="JavadocType" files="src[/\\]main[/\\]java[/\\]org[/\\]apache[/\\]optiq[/\\]util[/\\]mapping[/\\]Mappings.java"/>
+  <suppress checks="JavadocType" files="src[/\\]main[/\\]java[/\\]org[/\\]apache[/\\]optiq[/\\]util[/\\]OptionsList.java"/>
 
-  <suppress checks="JavadocType" files="src[/\\]main[/\\]java[/\\]org[/\\]eigenbase[/\\]util[/\\]Pair.java"/>
-  <suppress checks="JavadocType" files="src[/\\]main[/\\]java[/\\]org[/\\]eigenbase[/\\]util[/\\]ReflectiveVisitDispatcher.java"/>
-  <suppress checks="JavadocType" files="src[/\\]main[/\\]java[/\\]org[/\\]eigenbase[/\\]util[/\\]StringRepresentationComparator.java"/>
-  <suppress checks="JavadocType" files="src[/\\]main[/\\]java[/\\]org[/\\]eigenbase[/\\]util[/\\]Util.java"/>
-  <suppress checks="JavadocType" files="src[/\\]test[/\\]java[/\\]net[/\\]hydromatic[/\\]optiq[/\\]examples[/\\]foodmart[/\\]java[/\\]JdbcExample.java"/>
-  <suppress checks="JavadocType" files="src[/\\]test[/\\]java[/\\]net[/\\]hydromatic[/\\]optiq[/\\]test[/\\]FoodmartTest.java"/>
+  <suppress checks="JavadocType" files="src[/\\]main[/\\]java[/\\]org[/\\]apache[/\\]optiq[/\\]util[/\\]Pair.java"/>
+  <suppress checks="JavadocType" files="src[/\\]main[/\\]java[/\\]org[/\\]apache[/\\]optiq[/\\]util[/\\]ReflectiveVisitDispatcher.java"/>
+  <suppress checks="JavadocType" files="src[/\\]main[/\\]java[/\\]org[/\\]apache[/\\]optiq[/\\]util[/\\]StringRepresentationComparator.java"/>
+  <suppress checks="JavadocType" files="src[/\\]main[/\\]java[/\\]org[/\\]apache[/\\]optiq[/\\]util[/\\]Util.java"/>
+  <suppress checks="JavadocType" files="src[/\\]test[/\\]java[/\\]org[/\\]apache[/\\]optiq[/\\]examples[/\\]foodmart[/\\]java[/\\]JdbcExample.java"/>
+  <suppress checks="JavadocType" files="src[/\\]test[/\\]java[/\\]org[/\\]apache[/\\]optiq[/\\]test[/\\]FoodmartTest.java"/>
 
-  <suppress checks="JavadocType" files="src[/\\]test[/\\]java[/\\]net[/\\]hydromatic[/\\]optiq[/\\]test[/\\]JdbcTest.java"/>
-  <suppress checks="JavadocType" files="src[/\\]test[/\\]java[/\\]net[/\\]hydromatic[/\\]optiq[/\\]test[/\\]OptiqAssert.java"/>
+  <suppress checks="JavadocType" files="src[/\\]test[/\\]java[/\\]org[/\\]apache[/\\]optiq[/\\]test[/\\]JdbcTest.java"/>
+  <suppress checks="JavadocType" files="src[/\\]test[/\\]java[/\\]org[/\\]apache[/\\]optiq[/\\]test[/\\]OptiqAssert.java"/>
 
-  <suppress checks="JavadocType" files="src[/\\]test[/\\]java[/\\]net[/\\]hydromatic[/\\]optiq[/\\]test[/\\]ReflectiveSchemaTest.java"/>
-  <suppress checks="JavadocType" files="src[/\\]test[/\\]java[/\\]net[/\\]hydromatic[/\\]optiq[/\\]test[/\\]TableInRootSchemaTest.java"/>
-  <suppress checks="JavadocType" files="src[/\\]test[/\\]java[/\\]org[/\\]eigenbase[/\\]relopt[/\\]RelOptPlanReaderTest.java"/>
+  <suppress checks="JavadocType" files="src[/\\]test[/\\]java[/\\]org[/\\]apache[/\\]optiq[/\\]test[/\\]ReflectiveSchemaTest.java"/>
+  <suppress checks="JavadocType" files="src[/\\]test[/\\]java[/\\]org[/\\]apache[/\\]optiq[/\\]test[/\\]TableInRootSchemaTest.java"/>
+  <suppress checks="JavadocType" files="src[/\\]test[/\\]java[/\\]org[/\\]apache[/\\]optiq[/\\]relopt[/\\]RelOptPlanReaderTest.java"/>
 
-  <suppress checks="JavadocType" files="src[/\\]test[/\\]java[/\\]org[/\\]eigenbase[/\\]relopt[/\\]volcano[/\\]VolcanoPlannerTest.java"/>
-  <suppress checks="JavadocType" files="src[/\\]test[/\\]java[/\\]org[/\\]eigenbase[/\\]relopt[/\\]volcano[/\\]VolcanoPlannerTraitTest.java"/>
+  <suppress checks="JavadocType" files="src[/\\]test[/\\]java[/\\]org[/\\]apache[/\\]optiq[/\\]relopt[/\\]volcano[/\\]VolcanoPlannerTest.java"/>
+  <suppress checks="JavadocType" files="src[/\\]test[/\\]java[/\\]org[/\\]apache[/\\]optiq[/\\]relopt[/\\]volcano[/\\]VolcanoPlannerTraitTest.java"/>
 
-  <suppress checks="JavadocType" files="src[/\\]test[/\\]java[/\\]org[/\\]eigenbase[/\\]sql[/\\]test[/\\]SqlAdvisorTest.java"/>
-  <suppress checks="JavadocType" files="src[/\\]test[/\\]java[/\\]org[/\\]eigenbase[/\\]sql[/\\]test[/\\]SqlTester.java"/>
-  <suppress checks="JavadocType" files="src[/\\]test[/\\]java[/\\]org[/\\]eigenbase[/\\]test[/\\]concurrent[/\\]ConcurrentTestCommandGenerator.java"/>
+  <suppress checks="JavadocType" files="src[/\\]test[/\\]java[/\\]org[/\\]apache[/\\]optiq[/\\]sql[/\\]test[/\\]SqlAdvisorTest.java"/>
+  <suppress checks="JavadocType" files="src[/\\]test[/\\]java[/\\]org[/\\]apache[/\\]optiq[/\\]sql[/\\]test[/\\]SqlTester.java"/>
+  <suppress checks="JavadocType" files="src[/\\]test[/\\]java[/\\]org[/\\]apache[/\\]optiq[/\\]test[/\\]concurrent[/\\]ConcurrentTestCommandGenerator.java"/>
 
-  <suppress checks="JavadocType" files="src[/\\]test[/\\]java[/\\]org[/\\]eigenbase[/\\]test[/\\]concurrent[/\\]ConcurrentTestCommandScript.java"/>
+  <suppress checks="JavadocType" files="src[/\\]test[/\\]java[/\\]org[/\\]apache[/\\]optiq[/\\]test[/\\]concurrent[/\\]ConcurrentTestCommandScript.java"/>
 
-  <suppress checks="JavadocType" files="src[/\\]test[/\\]java[/\\]org[/\\]eigenbase[/\\]test[/\\]concurrent[/\\]ConcurrentTestPluginCommand.java"/>
-  <suppress checks="JavadocType" files="src[/\\]test[/\\]java[/\\]org[/\\]eigenbase[/\\]test[/\\]concurrent[/\\]SamplePlugin.java"/>
-  <suppress checks="JavadocType" files="src[/\\]test[/\\]java[/\\]org[/\\]eigenbase[/\\]test[/\\]DiffRepository.java"/>
-  <suppress checks="JavadocType" files="src[/\\]test[/\\]java[/\\]org[/\\]eigenbase[/\\]test[/\\]EigenbaseTestCase.java"/>
-  <suppress checks="JavadocType" files="src[/\\]test[/\\]java[/\\]org[/\\]eigenbase[/\\]test[/\\]MockCatalogReader.java"/>
-  <suppress checks="JavadocType" files="src[/\\]test[/\\]java[/\\]org[/\\]eigenbase[/\\]test[/\\]MockRelOptPlanner.java"/>
-  <suppress checks="JavadocType" files="src[/\\]test[/\\]java[/\\]org[/\\]eigenbase[/\\]test[/\\]MockSqlOperatorTable.java"/>
-  <suppress checks="JavadocType" files="src[/\\]test[/\\]java[/\\]org[/\\]eigenbase[/\\]test[/\\]SargTest.java"/>
-  <suppress checks="JavadocType" files="src[/\\]test[/\\]java[/\\]org[/\\]eigenbase[/\\]test[/\\]SqlToRelTestBase.java"/>
-  <suppress checks="JavadocType" files="src[/\\]test[/\\]java[/\\]org[/\\]eigenbase[/\\]test[/\\]SqlValidatorFeatureTest.java"/>
-  <suppress checks="JavadocType" files="src[/\\]test[/\\]java[/\\]org[/\\]eigenbase[/\\]util[/\\]OptionsListTest.java"/>
-  <suppress checks="JavadocType" files="src[/\\]test[/\\]java[/\\]org[/\\]eigenbase[/\\]util[/\\]ReflectVisitorTest.java"/>
+  <suppress checks="JavadocType" files="src[/\\]test[/\\]java[/\\]org[/\\]apache[/\\]optiq[/\\]test[/\\]concurrent[/\\]ConcurrentTestPluginCommand.java"/>
+  <suppress checks="JavadocType" files="src[/\\]test[/\\]java[/\\]org[/\\]apache[/\\]optiq[/\\]test[/\\]concurrent[/\\]SamplePlugin.java"/>
+  <suppress checks="JavadocType" files="src[/\\]test[/\\]java[/\\]org[/\\]apache[/\\]optiq[/\\]test[/\\]DiffRepository.java"/>
+  <suppress checks="JavadocType" files="src[/\\]test[/\\]java[/\\]org[/\\]apache[/\\]optiq[/\\]test[/\\]apache[/\\]optiq.java"/>
+  <suppress checks="JavadocType" files="src[/\\]test[/\\]java[/\\]org[/\\]apache[/\\]optiq[/\\]test[/\\]MockCatalogReader.java"/>
+  <suppress checks="JavadocType" files="src[/\\]test[/\\]java[/\\]org[/\\]apache[/\\]optiq[/\\]test[/\\]MockRelOptPlanner.java"/>
+  <suppress checks="JavadocType" files="src[/\\]test[/\\]java[/\\]org[/\\]apache[/\\]optiq[/\\]test[/\\]MockSqlOperatorTable.java"/>
+  <suppress checks="JavadocType" files="src[/\\]test[/\\]java[/\\]org[/\\]apache[/\\]optiq[/\\]test[/\\]SargTest.java"/>
+  <suppress checks="JavadocType" files="src[/\\]test[/\\]java[/\\]org[/\\]apache[/\\]optiq[/\\]test[/\\]SqlToRelTestBase.java"/>
+  <suppress checks="JavadocType" files="src[/\\]test[/\\]java[/\\]org[/\\]apache[/\\]optiq[/\\]test[/\\]SqlValidatorFeatureTest.java"/>
+  <suppress checks="JavadocType" files="src[/\\]test[/\\]java[/\\]org[/\\]apache[/\\]optiq[/\\]util[/\\]OptionsListTest.java"/>
+  <suppress checks="JavadocType" files="src[/\\]test[/\\]java[/\\]org[/\\]apache[/\\]optiq[/\\]util[/\\]ReflectVisitorTest.java"/>
 </suppressions>

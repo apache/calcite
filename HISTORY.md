@@ -231,7 +231,7 @@ Bug fixes and internal changes
   add aggregate functions
 * [<a href="https://issues.apache.org/jira/browse/OPTIQ-200">OPTIQ-200</a>]
   Javadoc generation fails under JDK 1.8
-* Add class `XmlOutput` (based on `org.eigenbase.xom.XMLOutput`) and remove
+* Add class `XmlOutput` (based on `org.apache.optiq.xom.XMLOutput`) and remove
   dependency on eigenbase-xom.
 * Performance: Don't create stack-trace for exceptions used for control-flow.
   (Vladimir Sitnikov)

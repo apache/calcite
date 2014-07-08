@@ -34,17 +34,17 @@ package ${parser.package};
 import ${importStr};
 </#list>
 
-import org.eigenbase.sql.*;
-import org.eigenbase.sql.parser.*;
-import org.eigenbase.sql.fun.*;
-import org.eigenbase.trace.EigenbaseTrace;
-import org.eigenbase.util.BitString;
-import org.eigenbase.util14.DateTimeUtil;
-import org.eigenbase.sql.fun.SqlStdOperatorTable;
-import org.eigenbase.sql.type.SqlTypeName;
-import org.eigenbase.resource.*;
+import org.apache.optiq.sql.*;
+import org.apache.optiq.sql.parser.*;
+import org.apache.optiq.sql.fun.*;
+import org.apache.optiq.trace.EigenbaseTrace;
+import org.apache.optiq.util.BitString;
+import org.apache.optiq.util.DateTimeUtil;
+import org.apache.optiq.sql.fun.SqlStdOperatorTable;
+import org.apache.optiq.sql.type.SqlTypeName;
+import org.apache.optiq.resource.*;
 
-import net.hydromatic.avatica.Casing;
+import org.apache.avatica.Casing;
 
 import com.google.common.collect.ImmutableList;
 
@@ -58,7 +58,7 @@ import java.util.List;
 import java.util.logging.Logger;
 import java.util.logging.Level;
 
-import static org.eigenbase.util.Static.RESOURCE;
+import static org.apache.optiq.util.Static.RESOURCE;
 
 /**
  * SQL parser, generated from Parser.jj and CommonParser.jj by JavaCC.
@@ -456,15 +456,15 @@ JAVACODE SqlParseException convertException(Throwable ex)
             int column = Integer.parseInt(matcher.group(2));
             pos = new SqlParserPos(line, column, line, column);
         }
-    } else if (ex instanceof org.eigenbase.util.EigenbaseContextException) {
+    } else if (ex instanceof org.apache.optiq.util.EigenbaseContextException) {
         // EigenbaseContextException is the standard wrapper for exceptions
         // produced by the validator, but in the parser, the standard is
         // SqlParseException; so, strip it away. In case you were wondering,
         // the EigenbaseContextException appears because the parser
         // occasionally calls into validator-style code such as
         // SqlSpecialOperator.reduceExpr.
-        org.eigenbase.util.EigenbaseContextException ece =
-            (org.eigenbase.util.EigenbaseContextException) ex;
+        org.apache.optiq.util.EigenbaseContextException ece =
+            (org.apache.optiq.util.EigenbaseContextException) ex;
         pos = new SqlParserPos(
             ece.getPosLine(),
             ece.getPosColumn(),

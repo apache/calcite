@@ -27,11 +27,11 @@ framework. Put the following into core/src/test/resources/logging.properties:
 ```properties
 handlers= java.util.logging.ConsoleHandler
 .level= INFO
-org.eigenbase.relopt.RelOptPlanner.level=FINER
+org.apache.optiq.relopt.RelOptPlanner.level=FINER
 java.util.logging.ConsoleHandler.level=ALL
 ```
 
-The line org.eigenbase.relopt.RelOptPlanner.level=FINER tells the planner to produce
+The line org.apache.optiq.relopt.RelOptPlanner.level=FINER tells the planner to produce
 fairly verbose outout. You can modify the file to enable other loggers, or to change levels.
 For instance, if you change FINER to FINEST the planner will give you an account of the
 planning process so detailed that it might fill up your hard drive.
@@ -96,7 +96,7 @@ sqlline> select count(*) from zips;
 +---------+
 1 row selected (0.746 seconds)
 sqlline> !quit
-Closing: net.hydromatic.optiq.jdbc.FactoryJdbc41$OptiqConnectionJdbc41
+Closing: org.apache.optiq.jdbc.FactoryJdbc41$OptiqConnectionJdbc41
 $
 ```
 
@@ -115,9 +115,9 @@ queries. It is also necessary if you intend to run the test suite, using
 New adapters can be created by implementing `OptiqPrepare.Context`:
 
 ```java
-import net.hydromatic.optiq.Schema;
-import net.hydromatic.optiq.impl.java.JavaTypeFactory;
-import net.hydromatic.optiq.jdbc.OptiqPrepare;
+import org.apache.optiq.Schema;
+import org.apache.optiq.impl.enumerable.JavaTypeFactory;
+import org.apache.optiq.jdbc.OptiqPrepare;
 public class AdapterContext implements OptiqPrepare.Context {
 
     @Override
@@ -140,8 +140,8 @@ public class AdapterContext implements OptiqPrepare.Context {
 The example below shows how SQL query can be submitted to `OptiqPrepare` with a custom context (`AdapterContext` in this case). Optiq prepares and implements the query execution, using the resources provided by the `Context`. `OptiqPrepare.PrepareResult` provides access to the underlying enumerable and methods for enumeration. The enumerable itself can naturally be some adapter specific implementation.
 
 ```java
-import net.hydromatic.optiq.jdbc.OptiqPrepare;
-import net.hydromatic.optiq.prepare.OptiqPrepareImpl;
+import org.apache.optiq.jdbc.OptiqPrepare;
+import org.apache.optiq.prepare.OptiqPrepareImpl;
 import org.junit.Test;
 
 public class AdapterContextTest {

@@ -5,7 +5,7 @@
     {
       type: 'custom',
       name: 'mongo_raw',
-      factory: 'net.hydromatic.optiq.impl.mongodb.MongoSchemaFactory',
+      factory: 'org.apache.optiq.impl.mongodb.MongoSchemaFactory',
       operand: {
         host: 'localhost',
         database: 'test'

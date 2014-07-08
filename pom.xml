@@ -2,7 +2,7 @@
   <modelVersion>4.0.0</modelVersion>
 
   <!-- The basics. -->
-  <groupId>net.hydromatic</groupId>
+  <groupId>org.apache</groupId>
   <artifactId>optiq-parent</artifactId>
   <packaging>pom</packaging>
   <version>0.9-SNAPSHOT</version>
@@ -104,9 +104,9 @@
       <version>1.1.4</version>
     </dependency>
     <dependency>
-      <groupId>net.hydromatic</groupId>
+      <groupId>org.apache</groupId>
       <artifactId>linq4j</artifactId>
-      <version>0.4</version>
+      <version>0.5-SNAPSHOT</version>
     </dependency>
     <dependency>
       <groupId>com.google.guava</groupId>
@@ -178,12 +178,12 @@
   <dependencyManagement>
     <dependencies>
       <dependency>
-        <groupId>net.hydromatic</groupId>
+        <groupId>org.apache</groupId>
         <artifactId>optiq-avatica</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
-        <groupId>net.hydromatic</groupId>
+        <groupId>org.apache</groupId>
         <artifactId>optiq-core</artifactId>
         <version>${project.version}</version>
       </dependency>
@@ -283,7 +283,7 @@
           <links>
             <link>http://docs.oracle.com/javase/8/docs/api/</link>
           </links>
-          <excludePackageNames>org.eigenbase.sql.parser.impl</excludePackageNames>
+          <excludePackageNames>org.apache.optiq.sql.parser.impl</excludePackageNames>
           <tags>
             <tag>
               <name>sql.92</name>

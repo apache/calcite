@@ -1,7 +1,7 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <parent>
-    <groupId>net.hydromatic</groupId>
+    <groupId>org.apache</groupId>
     <artifactId>optiq-parent</artifactId>
     <version>0.9-SNAPSHOT</version>
   </parent>
@@ -18,13 +18,13 @@
 
   <dependencies>
     <dependency>
-      <groupId>net.hydromatic</groupId>
+      <groupId>org.apache</groupId>
       <artifactId>optiq-core</artifactId>
       <version>0.9-SNAPSHOT</version>
       <type>jar</type>
     </dependency>
     <dependency>
-      <groupId>net.hydromatic</groupId>
+      <groupId>org.apache</groupId>
       <artifactId>optiq-core</artifactId>
       <version>0.9-SNAPSHOT</version>
       <type>test-jar</type>
@@ -60,7 +60,7 @@
         <version>2.16</version>
         <configuration>
           <includes>
-            <include>net/hydromatic/optiq/test/PlusSuite.java</include>
+            <include>org/apache/optiq/test/PlusSuite.java</include>
           </includes>
           <threadCount>1</threadCount>
           <perCoreThreadCount>true</perCoreThreadCount>

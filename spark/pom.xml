@@ -1,7 +1,7 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <parent>
-    <groupId>net.hydromatic</groupId>
+    <groupId>org.apache</groupId>
     <artifactId>optiq-parent</artifactId>
     <version>0.9-SNAPSHOT</version>
   </parent>
@@ -17,12 +17,12 @@
 
   <dependencies>
     <dependency>
-      <groupId>net.hydromatic</groupId>
+      <groupId>org.apache</groupId>
       <artifactId>optiq-core</artifactId>
       <version>0.9-SNAPSHOT</version>
     </dependency>
     <dependency>
-      <groupId>net.hydromatic</groupId>
+      <groupId>org.apache</groupId>
       <artifactId>optiq-core</artifactId>
       <version>0.9-SNAPSHOT</version>
       <type>test-jar</type>
@@ -32,6 +32,15 @@
       <groupId>org.apache.spark</groupId>
       <artifactId>spark-core_2.10</artifactId>
       <version>0.9.0-incubating</version>
+      <exclusions>
+        <exclusion>
+          <!--
+               To get past java.lang.NoSuchMethodError: org.hsqldb.DatabaseURL.parseURL(Ljava/lang/String;ZZ)Lorg/hsqldb/persist/HsqlProperties; error
+           -->
+          <groupId>hsqldb</groupId>
+          <artifactId>hsqldb</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
     <!-- Use explicit xerces and xalan. Without them, Hadoop gives
       "Failed to set setXIncludeAware(true)" error. -->
@@ -69,7 +78,7 @@
         <version>2.15</version>
         <configuration>
           <excludes>
-            <exclude>net/hydromatic/**/*.java</exclude>
+            <exclude>org/apache/**/*.java</exclude>
             <exclude>org/eigenbase/**/*.java</exclude>
           </excludes>
         </configuration>
