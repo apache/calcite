@@ -61,4 +61,51 @@ select cast(c_timestamp as varchar(20)), cast(c_timestamp as date) from data whe
 !ok
 !}
 
+# [OPTIQ-340] SqlToRelConverter fails with complex join condition
+select e."deptno", d."deptno"
+from "hr"."emps" as e
+join "hr"."depts" as d
+on ( e."deptno" + 1 - 1 = d."deptno" + 2 - 2  and e."deptno" + 10 - 10 = d."deptno" + 20 - 20);
++--------+--------+
+| deptno | deptno |
++--------+--------+
+|     10 |     10 |
+|     10 |     10 |
+|     10 |     10 |
++--------+--------+
+(3 rows)
+
+!ok
+
+# [OPTIQ-340] SqlToRelConverter fails with complex join condition. Switch LHS and RHS.
+select e."deptno", d."deptno"
+from "hr"."emps" as e
+join "hr"."depts" as d
+on ( d."deptno" + 2 - 2 = e."deptno" + 1 - 1  and d."deptno" + 20 - 20 = e."deptno" + 10 - 10);
++--------+--------+
+| deptno | deptno |
++--------+--------+
+|     10 |     10 |
+|     10 |     10 |
+|     10 |     10 |
++--------+--------+
+(3 rows)
+
+!ok
+
+# [OPTIQ-340] SqlToRelConverter fails with complex join condition. Switch LHS and RHS.
+select e."deptno", d."deptno"
+from "hr"."emps" as e
+join "hr"."depts" as d
+on ( d."deptno" + 2 - 2 = e."deptno" + 1 - 1  and e."deptno" + 10 - 10 = d."deptno" + 20 - 20);
++--------+--------+
+| deptno | deptno |
++--------+--------+
+|     10 |     10 |
+|     10 |     10 |
+|     10 |     10 |
++--------+--------+
+(3 rows)
+
+!ok
 # End misc.oq
