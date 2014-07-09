@@ -2130,9 +2130,7 @@ public class SqlToRelConverter {
         final int left3 = leftCount + extraLeftExprs.size();
         final int right3 = rightCount + extraRightExprs.size();
         fix(remainingOperands, left2, left3);
-        fix(remainingOperands, left3 + right2, left3 + right3);
         fix(list, left2, left3);
-        fix(list, left3 + right2, left3 + right3);
         list.add(e);
       }
       if (!list.equals(call.getOperands())) {
@@ -2147,6 +2145,7 @@ public class SqlToRelConverter {
       final int mid = leftCount + extraLeftExprs.size();
       switch (Side.of(bits, mid)) {
       case LEFT:
+        fix(extraRightExprs, mid, mid + 1);
         extraLeftExprs.add(node);
         return new RexInputRef(mid, node.getType());
       case RIGHT:
