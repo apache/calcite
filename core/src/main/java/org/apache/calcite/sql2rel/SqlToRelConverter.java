@@ -38,6 +38,7 @@ import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinInfo;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.Sample;
 import org.apache.calcite.rel.core.Uncollect;
 import org.apache.calcite.rel.logical.LogicalAggregate;
@@ -141,7 +142,6 @@ import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.NumberUtil;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
-import org.apache.calcite.util.mapping.Mappings;
 import org.apache.calcite.util.trace.CalciteTrace;
 
 import com.google.common.base.Function;
@@ -2173,81 +2173,11 @@ public class SqlToRelConverter {
       }
     }
 
-    final List<RexNode> extraLeftExprs = new ArrayList<>();
-    final List<RexNode> extraRightExprs = new ArrayList<>();
-    final int leftCount = leftRel.getRowType().getFieldCount();
-    final int rightCount = rightRel.getRowType().getFieldCount();
-    if (!containsGet(joinCond)) {
-      joinCond = pushDownJoinConditions(
-          joinCond, leftCount, rightCount, extraLeftExprs, extraRightExprs);
-    }
-    if (!extraLeftExprs.isEmpty()) {
-      final List<RelDataTypeField> fields =
-          leftRel.getRowType().getFieldList();
-      leftRel = RelOptUtil.createProject(
-          leftRel,
-          new AbstractList<Pair<RexNode, String>>() {
-            @Override public int size() {
-              return leftCount + extraLeftExprs.size();
-            }
+    final Join originalJoin =
+        (Join) RelFactories.DEFAULT_JOIN_FACTORY.createJoin(leftRel, rightRel,
+            joinCond, joinType, ImmutableSet.<String>of(), false);
 
-            @Override public Pair<RexNode, String> get(int index) {
-              if (index < leftCount) {
-                RelDataTypeField field = fields.get(index);
-                return Pair.<RexNode, String>of(
-                    new RexInputRef(index, field.getType()),
-                    field.getName());
-              } else {
-                return Pair.of(extraLeftExprs.get(index - leftCount), null);
-              }
-            }
-          },
-          true);
-    }
-    if (!extraRightExprs.isEmpty()) {
-      final List<RelDataTypeField> fields =
-          rightRel.getRowType().getFieldList();
-      final int newLeftCount = leftCount + extraLeftExprs.size();
-      rightRel = RelOptUtil.createProject(
-          rightRel,
-          new AbstractList<Pair<RexNode, String>>() {
-            @Override public int size() {
-              return rightCount + extraRightExprs.size();
-            }
-
-            @Override public Pair<RexNode, String> get(int index) {
-              if (index < rightCount) {
-                RelDataTypeField field = fields.get(index);
-                return Pair.<RexNode, String>of(
-                    new RexInputRef(index, field.getType()),
-                    field.getName());
-              } else {
-                return Pair.of(
-                    RexUtil.shift(
-                        extraRightExprs.get(index - rightCount),
-                        -newLeftCount),
-                    null);
-              }
-            }
-          },
-          true);
-    }
-    RelNode join = createJoin(
-        leftRel,
-        rightRel,
-        joinCond,
-        joinType,
-        ImmutableSet.<String>of());
-    if (!extraLeftExprs.isEmpty() || !extraRightExprs.isEmpty()) {
-      Mappings.TargetMapping mapping =
-          Mappings.createShiftMapping(
-              leftCount + extraLeftExprs.size()
-                  + rightCount + extraRightExprs.size(),
-              0, 0, leftCount,
-              leftCount, leftCount + extraLeftExprs.size(), rightCount);
-      return RelOptUtil.createProject(join, mapping);
-    }
-    return join;
+    return RelOptUtil.pushDownJoinConditions(originalJoin);
   }
 
   private static boolean containsGet(RexNode node) {
@@ -2264,103 +2194,6 @@ public class SqlToRelConverter {
       return false;
     } catch (Util.FoundOne e) {
       return true;
-    }
-  }
-
-  /**
-   * Pushes down parts of a join condition. For example, given
-   * "emp JOIN dept ON emp.deptno + 1 = dept.deptno", adds a project above
-   * "emp" that computes the expression
-   * "emp.deptno + 1". The resulting join condition is a simple combination
-   * of AND, equals, and input fields.
-   */
-  private RexNode pushDownJoinConditions(
-      RexNode node,
-      int leftCount,
-      int rightCount,
-      List<RexNode> extraLeftExprs,
-      List<RexNode> extraRightExprs) {
-    switch (node.getKind()) {
-    case AND:
-    case OR:
-    case EQUALS:
-      final RexCall call = (RexCall) node;
-      final List<RexNode> list = new ArrayList<>();
-      List<RexNode> operands = Lists.newArrayList(call.getOperands());
-      for (int i = 0; i < operands.size(); i++) {
-        RexNode operand = operands.get(i);
-        final int left2 = leftCount + extraLeftExprs.size();
-        final int right2 = rightCount + extraRightExprs.size();
-        final RexNode e =
-            pushDownJoinConditions(
-                operand,
-                leftCount,
-                rightCount,
-                extraLeftExprs,
-                extraRightExprs);
-        final List<RexNode> remainingOperands = Util.skip(operands, i + 1);
-        final int left3 = leftCount + extraLeftExprs.size();
-        final int right3 = rightCount + extraRightExprs.size();
-        fix(remainingOperands, left2, left3);
-        fix(list, left2, left3);
-        list.add(e);
-      }
-      if (!list.equals(call.getOperands())) {
-        return call.clone(call.getType(), list);
-      }
-      return call;
-    case INPUT_REF:
-    case LITERAL:
-      return node;
-    default:
-      ImmutableBitSet bits = RelOptUtil.InputFinder.bits(node);
-      final int mid = leftCount + extraLeftExprs.size();
-      switch (Side.of(bits, mid)) {
-      case LEFT:
-        fix(extraRightExprs, mid, mid + 1);
-        extraLeftExprs.add(node);
-        return new RexInputRef(mid, node.getType());
-      case RIGHT:
-        final int index2 = mid + rightCount + extraRightExprs.size();
-        extraRightExprs.add(node);
-        return new RexInputRef(index2, node.getType());
-      case BOTH:
-      case EMPTY:
-      default:
-        return node;
-      }
-    }
-  }
-
-  private void fix(List<RexNode> operands, int before, int after) {
-    if (before == after) {
-      return;
-    }
-    for (int i = 0; i < operands.size(); i++) {
-      RexNode node = operands.get(i);
-      operands.set(i, RexUtil.shift(node, before, after - before));
-    }
-  }
-
-  /**
-   * Categorizes whether a bit set contains bits left and right of a
-   * line.
-   */
-  enum Side {
-    LEFT, RIGHT, BOTH, EMPTY;
-
-    static Side of(ImmutableBitSet bitSet, int middle) {
-      final int firstBit = bitSet.nextSetBit(0);
-      if (firstBit < 0) {
-        return EMPTY;
-      }
-      if (firstBit >= middle) {
-        return RIGHT;
-      }
-      if (bitSet.nextSetBit(middle) < 0) {
-        return LEFT;
-      }
-      return BOTH;
     }
   }
 
@@ -3514,7 +3347,7 @@ public class SqlToRelConverter {
     for (int i = 1; i < joinList.size(); i++) {
       RelNode relNode = (RelNode) joinList.get(i);
       ret =
-          createJoin(
+          RelOptUtil.createJoin(
               ret,
               relNode,
               rexBuilder.makeLiteral(true),
@@ -3524,28 +3357,6 @@ public class SqlToRelConverter {
     return ret;
   }
 
-  /**
-   * Factory method that creates a join.
-   * A subclass can override to use a different kind of join.
-   *
-   * @param left             Left input
-   * @param right            Right input
-   * @param condition        Join condition
-   * @param joinType         Join type
-   * @param variablesStopped Set of names of variables which are set by the
-   *                         LHS and used by the RHS and are not available to
-   *                         nodes above this LogicalJoin in the tree
-   * @return A relational expression representing a join
-   */
-  protected RelNode createJoin(
-      RelNode left,
-      RelNode right,
-      RexNode condition,
-      JoinRelType joinType,
-      Set<String> variablesStopped) {
-    return LogicalJoin.create(left, right, condition, joinType,
-        variablesStopped);
-  }
 
   private void convertSelectList(
       Blackboard bb,
