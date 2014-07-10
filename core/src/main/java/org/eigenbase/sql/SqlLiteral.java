@@ -241,31 +241,6 @@ public class SqlLiteral extends SqlNode {
   }
 
   /**
-   * Converts extracts the value from a boolean literal.
-   *
-   * @throws ClassCastException if the value is not a boolean literal
-   *
-   * @deprecated Use {@link #booleanValue()}
-   */
-  public static boolean booleanValue(SqlNode node) {
-    Bug.upgrade("remove after 0.6");
-    return (Boolean) ((SqlLiteral) node).value;
-  }
-
-  /**
-   * Extracts the enumerated value from a symbol literal.
-   *
-   * @throws ClassCastException if the value is not a symbol literal
-   * @see #createSymbol(SqlSymbol, SqlParserPos)
-   *
-   * @deprecated Use {@link #symbolValue()}
-   */
-  public static SqlSymbol symbolValue(SqlNode node) {
-    Bug.upgrade("remove after 0.6");
-    return (SqlSymbol) ((SqlLiteral) node).value;
-  }
-
-  /**
    * Extracts the {@link SqlSampleSpec} value from a symbol literal.
    *
    * @throws ClassCastException if the value is not a symbol literal

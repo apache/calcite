@@ -57,21 +57,6 @@ public interface RelDataTypeFactory {
   RelDataType createJoinType(RelDataType... types);
 
   /**
-   * Creates a type which represents a structured collection of fields.
-   *
-   * @param types      types of the fields
-   * @param fieldNames names of the fields
-   * @return canonical struct type descriptor
-   *
-   * @deprecated Use {@link #createStructType(List, List)} or
-   *   {@link #builder()}; will be removed after 0.6.
-   * @see org.eigenbase.util.Bug#upgrade(String) remove after 0.6
-   */
-  RelDataType createStructType(
-      RelDataType[] types,
-      String[] fieldNames);
-
-  /**
    * Creates a type which represents a structured collection of fields, given
    * lists of the names and types of the fields.
    *

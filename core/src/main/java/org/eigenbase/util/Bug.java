@@ -156,10 +156,17 @@ public abstract class Bug {
 
   /**
    * Whether
-   * <a href="https://github.com/julianhyde/optiq/issues/194">OPTIQ-194</a>,
+   * <a href="https://issues.apache.org/jira/browse/OPTIQ-194">OPTIQ-194</a>,
    * "Array items in MongoDB adapter" is fixed.
    */
-  public static final boolean OPTIQ194_FIXED = false;
+  public static final boolean OPTIQ_194_FIXED = false;
+
+  /**
+   * Whether
+   * <a href="https://issues.apache.org/jira/browse/OPTIQ-319">OPTIQ-319</a>,
+   * "Array items in MongoDB adapter" is fixed.
+   */
+  public static final boolean OPTIQ_319_FIXED = false;
 
   /**
    * Use this to flag temporary code.

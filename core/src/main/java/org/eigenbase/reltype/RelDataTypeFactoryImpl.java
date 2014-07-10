@@ -120,13 +120,6 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
 
   // implement RelDataTypeFactory
   public RelDataType createStructType(
-      final RelDataType[] types,
-      final String[] fieldNames) {
-    return canonize(Arrays.asList(fieldNames), Arrays.asList(types));
-  }
-
-  // implement RelDataTypeFactory
-  public RelDataType createStructType(
       final List<RelDataType> typeList,
       final List<String> fieldNameList) {
     assert typeList.size() == fieldNameList.size();

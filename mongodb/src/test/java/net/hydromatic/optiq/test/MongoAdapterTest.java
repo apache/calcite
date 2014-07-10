@@ -220,7 +220,7 @@ public class MongoAdapterTest {
 
   @Test public void testFilterSort() {
     // LONGITUDE and LATITUDE are null because of OPTIQ-194.
-    Util.discard(Bug.OPTIQ194_FIXED);
+    Util.discard(Bug.OPTIQ_194_FIXED);
     OptiqAssert.that()
         .enable(enabled())
         .with(ZIPS)

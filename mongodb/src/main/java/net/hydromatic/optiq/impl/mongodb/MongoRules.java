@@ -146,7 +146,7 @@ public class MongoRules {
         final RexNode op1 = call.operands.get(1);
         if (op1 instanceof RexLiteral
             && op1.getType().getSqlTypeName() == SqlTypeName.INTEGER) {
-          if (!Bug.OPTIQ194_FIXED) {
+          if (!Bug.OPTIQ_194_FIXED) {
             return "'" + stripQuotes(strings.get(0)) + "["
                 + ((RexLiteral) op1).getValue2() + "]'";
           }

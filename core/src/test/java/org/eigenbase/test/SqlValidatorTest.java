@@ -6547,7 +6547,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     // mysql> select `D`.day from DAYS as `d`, DAYS as `D`;
     // ERROR 1066 (42000): Not unique table/alias: 'D'
     tester2.checkQuery("select count(*) from dept as [D], dept as [d]");
-    if (!Bug.upgrade("fix case sensitivity bug")) {
+    if (!Bug.OPTIQ_319_FIXED) {
       return;
     }
     tester1.checkQueryFails("select count(*) from dept as [D], dept as [d]",
