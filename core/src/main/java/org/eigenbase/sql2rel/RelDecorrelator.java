@@ -24,6 +24,7 @@ import java.util.logging.*;
 import org.eigenbase.rel.*;
 import org.eigenbase.rel.CorrelatorRel.Correlation;
 import org.eigenbase.rel.metadata.*;
+import org.eigenbase.rel.rules.PushFilterPastJoinRule;
 import org.eigenbase.relopt.*;
 import org.eigenbase.relopt.hep.*;
 import org.eigenbase.reltype.*;
@@ -119,6 +120,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
     HepProgram program = HepProgram.builder()
         .addRuleInstance(new AdjustProjectForCountAggregateRule(false))
         .addRuleInstance(new AdjustProjectForCountAggregateRule(true))
+        .addRuleInstance(PushFilterPastJoinRule.FILTER_ON_JOIN)
         .build();
 
     HepPlanner planner = createPlanner(program);

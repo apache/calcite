@@ -22,6 +22,7 @@ import java.util.*;
 import org.eigenbase.rel.*;
 import org.eigenbase.relopt.*;
 import org.eigenbase.rex.*;
+import org.eigenbase.util.Bug;
 
 import com.google.common.collect.ImmutableList;
 
@@ -178,6 +179,17 @@ public abstract class PushFilterPastJoinRule extends RelOptRule {
             join.getJoinType(),
             join.isSemiJoinDone());
     call.getPlanner().onCopy(join, newJoinRel);
+
+    // The pushed filters are not exact copies of the original filter, but
+    // telling the planner about them seems to help the RelDecorrelator more
+    // often than not. The real solution is to fix OPTIQ-443.
+    Bug.upgrade("OPTIQ-443");
+    if (!leftFilters.isEmpty()) {
+      call.getPlanner().onCopy(filter, leftRel);
+    }
+    if (!rightFilters.isEmpty()) {
+      call.getPlanner().onCopy(filter, rightRel);
+    }
 
     // create a FilterRel on top of the join if needed
     RelNode newRel =
