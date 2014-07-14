@@ -4195,6 +4195,11 @@ public class JdbcTest {
                   .withSchema("POST")
                   .connect();
             }
+            if (name.equals("catchall")) {
+              return OptiqAssert.that()
+                  .with("s", new ReflectiveSchemaTest.CatchallSchema())
+                  .connect();
+            }
             throw new RuntimeException("unknown connection '" + name + "'");
           }
         });

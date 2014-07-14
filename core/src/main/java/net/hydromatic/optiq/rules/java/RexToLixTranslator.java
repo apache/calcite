@@ -434,6 +434,7 @@ public class RexToLixTranslator {
       case NOT_POSSIBLE:
         throw AlwaysNull.INSTANCE;
       case NULL:
+      default:
         return RexImpTable.NULL_EXPR;
       }
     } else {
@@ -449,43 +450,31 @@ public class RexToLixTranslator {
     switch (literal.getType().getSqlTypeName()) {
     case DECIMAL:
       assert javaClass == BigDecimal.class;
-      return value == null
-          ? Expressions.constant(null)
-          : Expressions.new_(
-              BigDecimal.class,
-              Expressions.constant(value.toString()));
+      return Expressions.new_(BigDecimal.class,
+          Expressions.constant(value.toString()));
     case DATE:
-      value2 = value == null ? null
-          : (int) (((Calendar) value).getTimeInMillis() / MILLIS_IN_DAY);
+      value2 = (int) (((Calendar) value).getTimeInMillis() / MILLIS_IN_DAY);
+      javaClass = int.class;
       break;
     case TIME:
-      value2 = value == null ? null
-          : (int) (((Calendar) value).getTimeInMillis() % MILLIS_IN_DAY);
+      value2 = (int) (((Calendar) value).getTimeInMillis() % MILLIS_IN_DAY);
+      javaClass = int.class;
       break;
     case TIMESTAMP:
-      value2 = value == null ? null : ((Calendar) value).getTimeInMillis();
+      value2 = ((Calendar) value).getTimeInMillis();
+      javaClass = long.class;
       break;
     case INTERVAL_DAY_TIME:
-      if (value == null) {
-        value2 = null;
-        javaClass = Long.class;
-      } else {
-        value2 = ((BigDecimal) value).longValue();
-        javaClass = long.class;
-      }
+      value2 = ((BigDecimal) value).longValue();
+      javaClass = long.class;
       break;
     case INTERVAL_YEAR_MONTH:
-      if (value == null) {
-        value2 = null;
-        javaClass = Integer.class;
-      } else {
-        value2 = ((BigDecimal) value).intValue();
-        javaClass = int.class;
-      }
+      value2 = ((BigDecimal) value).intValue();
+      javaClass = int.class;
       break;
     case CHAR:
     case VARCHAR:
-      value2 = value == null ? null : ((NlsString) value).getValue();
+      value2 = ((NlsString) value).getValue();
       break;
     case BINARY:
     case VARBINARY:

@@ -108,4 +108,62 @@ on ( d."deptno" + 2 - 2 = e."deptno" + 1 - 1  and e."deptno" + 10 - 10 = d."dept
 (3 rows)
 
 !ok
+
+# [OPTIQ-345] AssertionError in RexToLixTranslator comparing to date literal
+!use catchall
+select count(*) as c from "everyTypes" where "sqlDate" = DATE '1970-01-01';
++---+
+| C |
++---+
+| 1 |
++---+
+(1 row)
+
+!ok
+select count(*) as c from "everyTypes" where "sqlDate" = DATE '1971-02-03';
++---+
+| C |
++---+
+| 0 |
++---+
+(1 row)
+
+!ok
+select count(*) as c from "everyTypes" where "sqlDate" > DATE '1970-01-01';
++---+
+| C |
++---+
+| 0 |
++---+
+(1 row)
+
+!ok
+select count(*) as c from "everyTypes" where "sqlTime" = TIME '01:23:45';
++---+
+| C |
++---+
+| 0 |
++---+
+(1 row)
+
+!ok
+select count(*) as c from "everyTypes" where "sqlTimestamp" = TIMESTAMP '1970-01-01 01:23:45';
++---+
+| C |
++---+
+| 0 |
++---+
+(1 row)
+
+!ok
+select count(*) as c from "everyTypes" where "utilDate" = TIMESTAMP '1970-01-01 01:23:45';
++---+
+| C |
++---+
+| 0 |
++---+
+(1 row)
+
+!ok
+
 # End misc.oq

@@ -925,6 +925,10 @@ public class SqlFunctions {
         : toInt(v, timeZone);
   }
 
+  public static long toLong(Date v) {
+    return toLong(v, LOCAL_TZ);
+  }
+
   public static int toInt(java.sql.Time v) {
     return (int) (toLong(v) % DateTimeUtil.MILLIS_PER_DAY);
   }
