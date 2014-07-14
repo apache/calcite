@@ -17,8 +17,10 @@
 package net.hydromatic.optiq.impl;
 
 import net.hydromatic.optiq.Table;
+import net.hydromatic.optiq.TranslatableTable;
 
-import org.eigenbase.relopt.RelOptUtil;
+import org.eigenbase.rel.*;
+import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.reltype.RelDataTypeFactory;
 import org.eigenbase.sql.validate.SqlValidatorUtil;
@@ -41,7 +43,7 @@ import java.util.List;
  * to a query on top of a star table. Queries that are candidates to map onto
  * the materialization are mapped onto the same star table.</p>
  */
-public class StarTable extends AbstractTable {
+public class StarTable extends AbstractTable implements TranslatableTable {
   // TODO: we'll also need a list of join conditions between tables. For now
   //  we assume that join conditions match
   public final ImmutableList<Table> tables;
@@ -79,6 +81,11 @@ public class StarTable extends AbstractTable {
         SqlValidatorUtil.uniquify(nameList));
   }
 
+  public RelNode toRel(RelOptTable.ToRelContext context, RelOptTable table) {
+    // Create a table scan of infinite cost.
+    return new StarTableScan(context.getCluster(), table);
+  }
+
   public StarTable add(Table table) {
     final List<Table> tables1 = new ArrayList<Table>(tables);
     tables1.add(table);
@@ -102,6 +109,20 @@ public class StarTable extends AbstractTable {
     }
     throw new IllegalArgumentException("star table " + this
         + " does not contain table " + table);
+  }
+
+  /** Relational expression that scans a {@link StarTable}.
+   *
+   * <p>It has infinite cost.
+   */
+  private static class StarTableScan extends TableAccessRelBase {
+    public StarTableScan(RelOptCluster cluster, RelOptTable relOptTable) {
+      super(cluster, cluster.traitSetOf(Convention.NONE), relOptTable);
+    }
+
+    @Override public RelOptCost computeSelfCost(RelOptPlanner planner) {
+      return planner.getCostFactory().makeInfiniteCost();
+    }
   }
 }
 

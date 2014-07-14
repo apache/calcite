@@ -18,6 +18,7 @@ package net.hydromatic.optiq.prepare;
 
 import net.hydromatic.optiq.DataContext;
 import net.hydromatic.optiq.impl.StarTable;
+import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 import net.hydromatic.optiq.jdbc.OptiqPrepare;
 import net.hydromatic.optiq.jdbc.OptiqSchema;
 import net.hydromatic.optiq.runtime.Bindable;
@@ -95,10 +96,12 @@ public abstract class Prepare {
    * @param rootRel root of a relational expression
    *
    * @param materializations Tables known to be populated with a given query
+   * @param lattices Lattices
    * @return an equivalent optimized relational expression
    */
   protected RelNode optimize(RelDataType logicalRowType, final RelNode rootRel,
-      final List<Materialization> materializations) {
+      final List<Materialization> materializations,
+      final List<OptiqSchema.LatticeEntry> lattices) {
     final RelOptPlanner planner = rootRel.getCluster().getPlanner();
 
     planner.setRoot(rootRel);
@@ -114,6 +117,16 @@ public abstract class Prepare {
           new RelOptMaterialization(materialization.tableRel,
               materialization.queryRel,
               materialization.starRelOptTable));
+    }
+
+    for (OptiqSchema.LatticeEntry lattice : lattices) {
+      final OptiqSchema.TableEntry starTable = lattice.getStarTable();
+      final JavaTypeFactory typeFactory = context.getTypeFactory();
+      final RelOptTableImpl starRelOptTable =
+          RelOptTableImpl.create(catalogReader,
+              starTable.getTable().getRowType(typeFactory), starTable);
+      planner.addLattice(
+          new RelOptLattice(lattice.getLattice(), starRelOptTable));
     }
 
     final RelNode rootRel4 = program.run(planner, rootRel, desiredTraits);
@@ -160,14 +173,16 @@ public abstract class Prepare {
       Class runtimeContextClass,
       SqlValidator validator,
       boolean needsValidation,
-      List<Materialization> materializations) {
+      List<Materialization> materializations,
+      List<OptiqSchema.LatticeEntry> lattices) {
     return prepareSql(
         sqlQuery,
         sqlQuery,
         runtimeContextClass,
         validator,
         needsValidation,
-        materializations);
+        materializations,
+        lattices);
   }
 
   public PreparedResult prepareSql(
@@ -176,7 +191,8 @@ public abstract class Prepare {
       Class runtimeContextClass,
       SqlValidator validator,
       boolean needsValidation,
-      List<Materialization> materializations) {
+      List<Materialization> materializations,
+      List<OptiqSchema.LatticeEntry> lattices) {
     queryString = sqlQuery.toString();
 
     init(runtimeContextClass);
@@ -243,13 +259,14 @@ public abstract class Prepare {
       switch (explainDepth) {
       case PHYSICAL:
       default:
-        rootRel = optimize(rootRel.getRowType(), rootRel, materializations);
+        rootRel = optimize(rootRel.getRowType(), rootRel, materializations,
+            lattices);
         return createPreparedExplanation(
             null, parameterRowType, rootRel, explainAsXml, detailLevel);
       }
     }
 
-    rootRel = optimize(resultType, rootRel, materializations);
+    rootRel = optimize(resultType, rootRel, materializations, lattices);
 
     if (timingTracer != null) {
       timingTracer.traceTime("end optimization");

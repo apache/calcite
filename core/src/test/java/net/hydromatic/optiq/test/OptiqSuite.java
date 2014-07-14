@@ -85,6 +85,7 @@ import org.junit.runners.Suite;
     RelOptRulesTest.class,
     RexExecutorTest.class,
     MaterializationTest.class,
+    LatticeTest.class,
     SqlLimitsTest.class,
     LinqFrontJdbcBackTest.class,
     JdbcFrontLinqBackTest.class,

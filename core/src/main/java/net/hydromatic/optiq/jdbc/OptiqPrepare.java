@@ -60,8 +60,9 @@ public interface OptiqPrepare {
         }
       };
 
-  ParseResult parse(
-      Context context, String sql);
+  ParseResult parse(Context context, String sql);
+
+  ConvertResult convert(Context context, String sql);
 
   <T> PrepareResult<T> prepareSql(
       Context context,
@@ -199,6 +200,18 @@ public interface OptiqPrepare {
       this.sqlNode = sqlNode;
       this.rowType = rowType;
       this.typeFactory = validator.getTypeFactory();
+    }
+  }
+
+  /** The result of parsing and validating a SQL query and converting it to
+   * relational algebra. */
+  public static class ConvertResult extends ParseResult {
+    public final RelNode relNode;
+
+    public ConvertResult(OptiqPrepareImpl prepare, SqlValidator validator,
+        String sql, SqlNode sqlNode, RelDataType rowType, RelNode relNode) {
+      super(prepare, validator, sql, sqlNode, rowType);
+      this.relNode = relNode;
     }
   }
 

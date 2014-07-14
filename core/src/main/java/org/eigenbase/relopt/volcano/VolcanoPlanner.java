@@ -34,9 +34,11 @@ import org.eigenbase.util.*;
 import net.hydromatic.linq4j.expressions.Expressions;
 
 import net.hydromatic.optiq.prepare.OptiqPrepareImpl;
+import net.hydromatic.optiq.runtime.Hook;
 import net.hydromatic.optiq.runtime.Spaces;
 import net.hydromatic.optiq.util.graph.*;
 
+import com.google.common.base.Function;
 import com.google.common.collect.*;
 
 import static org.eigenbase.util.Stacks.*;
@@ -49,6 +51,13 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
   //~ Static fields/initializers ---------------------------------------------
 
   protected static final double COST_IMPROVEMENT = .5;
+
+  private static final Function<RelOptTable, List<String>> GET_QUALIFIED_NAME =
+      new Function<RelOptTable, List<String>>() {
+        public List<String> apply(RelOptTable relOptTable) {
+          return relOptTable.getQualifiedName();
+        }
+      };
 
   //~ Instance fields --------------------------------------------------------
 
@@ -179,7 +188,9 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
   private boolean locked;
 
   private final List<RelOptMaterialization> materializations =
-      new ArrayList<RelOptMaterialization>();
+      Lists.newArrayList();
+
+  private final List<RelOptLattice> lattices = Lists.newArrayList();
 
   final Map<RelNode, Provenance> provenanceMap =
       new HashMap<RelNode, Provenance>();
@@ -261,6 +272,15 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     materializations.add(materialization);
   }
 
+  public void addLattice(RelOptLattice lattice) {
+    lattices.add(lattice);
+  }
+
+  private void useLattice(RelOptLattice lattice, RelNode rel) {
+    Hook.SUB.run(rel);
+    registerImpl(rel, root.set);
+  }
+
   private void useMaterialization(RelOptMaterialization materialization) {
     // Try to rewrite the original root query in terms of the materialized
     // query. If that is possible, register the remnant query as equivalent
@@ -271,6 +291,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
       // TODO: try to substitute other materializations in the remnant.
       // Useful for big queries, e.g.
       //   (t1 group by c1) join (t2 group by c2).
+      Hook.SUB.run(sub);
       registerImpl(sub, root.set);
       return;
     }
@@ -348,6 +369,23 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
           useMaterialization(materialization);
         }
       }
+    }
+
+    // Use a lattice if the query uses at least the central (fact) table of the
+    // lattice.
+    final List<Pair<RelOptLattice, RelNode>> latticeUses = Lists.newArrayList();
+    final Set<List<String>> queryTableNames =
+        Sets.newHashSet(Iterables.transform(queryTables, GET_QUALIFIED_NAME));
+    for (RelOptLattice lattice : lattices) {
+      if (queryTableNames.contains(lattice.rootTable().getQualifiedName())) {
+        RelNode rel2 = lattice.rewrite(originalRoot);
+        if (rel2 != null) {
+          latticeUses.add(Pair.of(lattice, rel2));
+        }
+      }
+    }
+    if (!latticeUses.isEmpty()) {
+      useLattice(latticeUses.get(0).left, latticeUses.get(0).right);
     }
   }
 
@@ -587,8 +625,8 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
    * <p>Furthermore, after every 10 iterations without an implementable plan,
    * RelSubSets that contain only logical RelNodes are given an importance
    * boost via {@link #injectImportanceBoost()}. Once an implementable plan is
-   * found, the artificially raised importances are cleared ({@link
-   * #clearImportanceBoost()}).
+   * found, the artificially raised importance values are cleared (see
+   * {@link #clearImportanceBoost()}).
    *
    * @return the most efficient RelNode tree found for implementing the given
    * query

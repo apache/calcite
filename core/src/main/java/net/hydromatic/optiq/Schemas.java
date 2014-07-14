@@ -23,6 +23,7 @@ import net.hydromatic.linq4j.expressions.*;
 import net.hydromatic.optiq.config.OptiqConnectionConfig;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 import net.hydromatic.optiq.jdbc.*;
+import net.hydromatic.optiq.materialize.Lattice;
 
 import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.reltype.RelDataTypeFactory;
@@ -30,6 +31,7 @@ import org.eigenbase.reltype.RelProtoDataType;
 import org.eigenbase.sql.type.SqlTypeUtil;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Lists;
 
 import java.lang.reflect.*;
 import java.sql.Connection;
@@ -39,6 +41,26 @@ import java.util.*;
  * Utility functions for schemas.
  */
 public final class Schemas {
+  private static final com.google.common.base.Function<OptiqSchema.LatticeEntry,
+      OptiqSchema.TableEntry> TO_TABLE_ENTRY =
+      new com.google.common.base.Function<OptiqSchema.LatticeEntry,
+          OptiqSchema.TableEntry>() {
+        public OptiqSchema.TableEntry apply(OptiqSchema.LatticeEntry entry) {
+          final OptiqSchema.TableEntry starTable = entry.getStarTable();
+          assert starTable.getTable().getJdbcTableType()
+              == Schema.TableType.STAR;
+          return entry.getStarTable();
+        }
+      };
+
+  private static final com.google.common.base.Function<OptiqSchema.LatticeEntry,
+      Lattice> TO_LATTICE =
+      new com.google.common.base.Function<OptiqSchema.LatticeEntry, Lattice>() {
+        public Lattice apply(OptiqSchema.LatticeEntry entry) {
+          return entry.getLattice();
+        }
+      };
+
   private Schemas() {
     throw new AssertionError("no instances!");
   }
@@ -178,6 +200,22 @@ public final class Schemas {
     }
   }
 
+  /** Parses and validates a SQL query and converts to relational algebra. For
+   * use within Optiq only. */
+  public static OptiqPrepare.ConvertResult convert(
+      final OptiqConnection connection, final OptiqSchema schema,
+      final List<String> schemaPath, final String sql) {
+    final OptiqPrepare prepare = OptiqPrepare.DEFAULT_FACTORY.apply();
+    final OptiqPrepare.Context context =
+        makeContext(connection, schema, schemaPath);
+    OptiqPrepare.Dummy.push(context);
+    try {
+      return prepare.convert(context, sql);
+    } finally {
+      OptiqPrepare.Dummy.pop(context);
+    }
+  }
+
   /** Prepares a SQL query for execution. For use within Optiq only. */
   public static OptiqPrepare.PrepareResult<Object> prepare(
       final OptiqConnection connection, final OptiqSchema schema,
@@ -260,6 +298,40 @@ public final class Schemas {
         return function.getReturnType(typeFactory);
       }
     };
+  }
+
+  /** Returns the star tables defined in a schema.
+   *
+   * @param schema Schema */
+  public static List<OptiqSchema.TableEntry> getStarTables(OptiqSchema schema) {
+    final List<OptiqSchema.LatticeEntry> list = getLatticeEntries(schema);
+    return Lists.transform(list, TO_TABLE_ENTRY);
+  }
+
+  /** Returns the lattices defined in a schema.
+   *
+   * @param schema Schema */
+  public static List<Lattice> getLattices(OptiqSchema schema) {
+    final List<OptiqSchema.LatticeEntry> list = getLatticeEntries(schema);
+    return Lists.transform(list, TO_LATTICE);
+  }
+
+  /** Returns the lattices defined in a schema.
+   *
+   * @param schema Schema */
+  public static List<OptiqSchema.LatticeEntry> getLatticeEntries(
+      OptiqSchema schema) {
+    final List<OptiqSchema.LatticeEntry> list = Lists.newArrayList();
+    gatherLattices(schema, list);
+    return list;
+  }
+
+  private static void gatherLattices(OptiqSchema schema,
+      List<OptiqSchema.LatticeEntry> list) {
+    list.addAll(schema.getLatticeMap().values());
+    for (OptiqSchema subSchema : schema.getSubSchemaMap().values()) {
+      gatherLattices(subSchema, list);
+    }
   }
 
   /** Dummy data context that has no variables. */

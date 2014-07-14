@@ -47,6 +47,9 @@ public enum Hook {
    * optimization. */
   TRIMMED,
 
+  /** Called by the planner after substituting a materialization. */
+  SUB,
+
   /** Called when a constant expression is being reduced. */
   EXPRESSION_REDUCER,
 
@@ -130,6 +133,12 @@ public enum Hook {
    * JDK 1.6.</p>
    */
   public interface Closeable /*extends AutoCloseable*/ {
+    /** Closeable that does nothing. */
+    Closeable EMPTY =
+        new Closeable() {
+          public void close() {}
+        };
+
     void close(); // override, removing "throws"
   }
 }

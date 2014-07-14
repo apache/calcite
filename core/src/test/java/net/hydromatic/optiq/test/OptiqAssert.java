@@ -19,6 +19,7 @@ package net.hydromatic.optiq.test;
 import net.hydromatic.linq4j.function.Function1;
 
 import net.hydromatic.optiq.*;
+import net.hydromatic.optiq.config.OptiqConnectionProperty;
 import net.hydromatic.optiq.impl.AbstractSchema;
 import net.hydromatic.optiq.impl.ViewTable;
 import net.hydromatic.optiq.impl.clone.CloneSchema;
@@ -44,6 +45,7 @@ import java.sql.*;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import javax.sql.DataSource;
 
 import static org.hamcrest.CoreMatchers.*;
@@ -145,6 +147,20 @@ public class OptiqAssert {
    * configuration. */
   public static AssertThat that() {
     return new AssertThat(Config.REGULAR);
+  }
+
+  static Function1<RelNode, Void> checkRel(final String expected,
+      final AtomicInteger counter) {
+    return new Function1<RelNode, Void>() {
+      public Void apply(RelNode relNode) {
+        if (counter != null) {
+          counter.incrementAndGet();
+        }
+        String s = RelOptUtil.toString(relNode);
+        assertThat(s, containsString(expected));
+        return null;
+      }
+    };
   }
 
   static Function1<Throwable, Void> checkException(
@@ -356,7 +372,8 @@ public class OptiqAssert {
     final List<Hook.Closeable> closeableList = Lists.newArrayList();
     try {
       ((OptiqConnection) connection).getProperties().setProperty(
-          "materializationsEnabled", Boolean.toString(materializationsEnabled));
+          OptiqConnectionProperty.MATERIALIZATIONS_ENABLED.camelName(),
+          Boolean.toString(materializationsEnabled));
       for (Pair<Hook, Function> hook : hooks) {
         closeableList.add(hook.left.addThread(hook.right));
       }
@@ -401,19 +418,34 @@ public class OptiqAssert {
       Connection connection,
       String sql,
       boolean materializationsEnabled,
-      final Function1<RelNode, Void> convertChecker) throws Exception {
+      final Function1<RelNode, Void> convertChecker,
+      final Function1<RelNode, Void> substitutionChecker) throws Exception {
     final String message =
         "With materializationsEnabled=" + materializationsEnabled;
-    Hook.Closeable closeable = Hook.TRIMMED.addThread(
-        new Function<RelNode, Object>() {
-          public Void apply(RelNode rel) {
-            convertChecker.apply(rel);
-            return null;
-          }
-        });
+    final Hook.Closeable closeable =
+        convertChecker == null
+            ? Hook.Closeable.EMPTY
+            : Hook.TRIMMED.addThread(
+                new Function<RelNode, Void>() {
+                  public Void apply(RelNode rel) {
+                    convertChecker.apply(rel);
+                    return null;
+                  }
+                });
+    final Hook.Closeable closeable2 =
+        substitutionChecker == null
+            ? Hook.Closeable.EMPTY
+            : Hook.SUB.addThread(
+                new Function<RelNode, Void>() {
+                  public Void apply(RelNode rel) {
+                    substitutionChecker.apply(rel);
+                    return null;
+                  }
+                });
     try {
       ((OptiqConnection) connection).getProperties().setProperty(
-          "materializationsEnabled", Boolean.toString(materializationsEnabled));
+          OptiqConnectionProperty.MATERIALIZATIONS_ENABLED.camelName(),
+          Boolean.toString(materializationsEnabled));
       PreparedStatement statement = connection.prepareStatement(sql);
       statement.close();
       connection.close();
@@ -421,6 +453,7 @@ public class OptiqAssert {
       throw new RuntimeException(message, e);
     } finally {
       closeable.close();
+      closeable2.close();
     }
   }
 
@@ -972,24 +1005,30 @@ public class OptiqAssert {
     /** Checks that when the query (which was set using
      * {@link AssertThat#query(String)}) is converted to a relational algebra
      * expression matching the given string. */
-    public AssertQuery convertContains(final String expected) {
-      return convertMatches(
-          new Function1<RelNode, Void>() {
-            public Void apply(RelNode relNode) {
-              String s = RelOptUtil.toString(relNode);
-              assertThat(s, containsString(expected));
-              return null;
-            }
-          });
+    public final AssertQuery convertContains(final String expected) {
+      return convertMatches(checkRel(expected, null));
     }
 
     public AssertQuery convertMatches(final Function1<RelNode, Void> checker) {
       try {
-        assertPrepare(createConnection(), sql, false, checker);
+        assertPrepare(createConnection(), sql, this.materializationsEnabled,
+            checker, null);
         return this;
       } catch (Exception e) {
-        throw new RuntimeException(
-            "exception while preparing [" + sql + "]", e);
+        throw new RuntimeException("exception while preparing [" + sql + "]",
+            e);
+      }
+    }
+
+    public AssertQuery substitutionMatches(
+        final Function1<RelNode, Void> checker) {
+      try {
+        assertPrepare(createConnection(), sql, materializationsEnabled,
+            null, checker);
+        return this;
+      } catch (Exception e) {
+        throw new RuntimeException("exception while preparing [" + sql + "]",
+            e);
       }
     }
 
@@ -1170,6 +1209,11 @@ public class OptiqAssert {
     }
 
     @Override public AssertQuery convertMatches(
+        Function1<RelNode, Void> checker) {
+      return this;
+    }
+
+    @Override public AssertQuery substitutionMatches(
         Function1<RelNode, Void> checker) {
       return this;
     }

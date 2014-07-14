@@ -19,7 +19,8 @@ package net.hydromatic.optiq.model;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 
-import java.util.ArrayList;
+import com.google.common.collect.Lists;
+
 import java.util.List;
 
 /**
@@ -42,8 +43,10 @@ public abstract class JsonSchema {
    * string-list. */
   public List<Object> path;
 
-  public List<JsonMaterialization> materializations =
-      new ArrayList<JsonMaterialization>();
+  public final List<JsonMaterialization> materializations =
+      Lists.newArrayList();
+
+  public final List<JsonLattice> lattices = Lists.newArrayList();
 
   /** Whether to cache metadata (tables, functions and sub-schemas) generated
    * by this schema. Default value is {@code true}.
@@ -71,6 +74,9 @@ public abstract class JsonSchema {
   public abstract void accept(ModelHandler handler);
 
   public void visitChildren(ModelHandler modelHandler) {
+    for (JsonLattice jsonLattice : lattices) {
+      jsonLattice.accept(modelHandler);
+    }
     for (JsonMaterialization jsonMaterialization : materializations) {
       jsonMaterialization.accept(modelHandler);
     }

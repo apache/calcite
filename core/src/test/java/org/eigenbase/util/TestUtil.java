@@ -134,6 +134,42 @@ public abstract class TestUtil {
     return buf.toString();
   }
 
+  /** Quotes a string for Java or JSON. */
+  public static String escapeString(String s) {
+    return escapeString(new StringBuilder(), s).toString();
+  }
+
+  /** Quotes a string for Java or JSON, into a builder. */
+  public static StringBuilder escapeString(StringBuilder buf, String s) {
+    buf.append('"');
+    int n = s.length();
+    char lastChar = 0;
+    for (int i = 0; i < n; ++i) {
+      char c = s.charAt(i);
+      switch (c) {
+      case '\\':
+        buf.append("\\\\");
+        break;
+      case '"':
+        buf.append("\\\"");
+        break;
+      case '\n':
+        buf.append("\\n");
+        break;
+      case '\r':
+        if (lastChar != '\n') {
+          buf.append("\\r");
+        }
+        break;
+      default:
+        buf.append(c);
+        break;
+      }
+      lastChar = c;
+    }
+    return buf.append('"');
+  }
+
   /**
    * Quotes a pattern.
    */

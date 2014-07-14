@@ -132,6 +132,10 @@ public class HepPlanner extends AbstractRelOptPlanner {
     // ignore - this planner does not support materializations
   }
 
+  public void addLattice(RelOptLattice lattice) {
+    // ignore - this planner does not support lattices
+  }
+
   // implement RelOptPlanner
   public boolean addRule(RelOptRule rule) {
     boolean added = allRules.add(rule);

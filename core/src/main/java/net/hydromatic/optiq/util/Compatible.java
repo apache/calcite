@@ -41,6 +41,10 @@ public interface Compatible {
    * {@link java.util.NavigableMap}. */
   <K, V> NavigableMap<K, V> navigableMap(ImmutableSortedMap<K, V> map);
 
+  /** Converts a {@link Map} to a {@link java.util.NavigableMap} that is
+   * immutable. */
+  <K, V> NavigableMap<K, V> immutableNavigableMap(NavigableMap<K, V> map);
+
   /** Creates the implementation of Compatible suitable for the
    * current environment. */
   class Factory {
@@ -70,6 +74,11 @@ public interface Compatible {
               if (method.getName().equals("navigableMap")) {
                 ImmutableSortedMap map = (ImmutableSortedMap) args[0];
                 return CompatibleGuava11.navigableMap(map);
+              }
+              if (method.getName().equals("immutableNavigableMap")) {
+                Map map = (Map) args[0];
+                ImmutableSortedMap sortedMap = ImmutableSortedMap.copyOf(map);
+                return CompatibleGuava11.navigableMap(sortedMap);
               }
               return null;
             }

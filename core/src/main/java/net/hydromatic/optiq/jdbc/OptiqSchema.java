@@ -22,6 +22,8 @@ import net.hydromatic.linq4j.expressions.Expression;
 import net.hydromatic.optiq.*;
 import net.hydromatic.optiq.Table;
 import net.hydromatic.optiq.impl.MaterializedViewTable;
+import net.hydromatic.optiq.impl.StarTable;
+import net.hydromatic.optiq.materialize.Lattice;
 import net.hydromatic.optiq.util.Compatible;
 
 import org.eigenbase.util.Pair;
@@ -62,6 +64,8 @@ public class OptiqSchema {
       new TreeMap<String, TableEntry>(COMPARATOR);
   private final Multimap<String, FunctionEntry> functionMap =
       LinkedListMultimap.create();
+  private final NavigableMap<String, LatticeEntry> latticeMap =
+      new TreeMap<String, LatticeEntry>(COMPARATOR);
   private final NavigableSet<String> functionNames =
       new TreeSet<String>(COMPARATOR);
   private final NavigableMap<String, FunctionEntry> nullaryFunctionMap =
@@ -134,6 +138,15 @@ public class OptiqSchema {
     if (function.getParameters().isEmpty()) {
       nullaryFunctionMap.put(name, entry);
     }
+    return entry;
+  }
+
+  private LatticeEntry add(String name, Lattice lattice) {
+    if (latticeMap.containsKey(name)) {
+      throw new RuntimeException("Duplicate lattice '" + name + "'");
+    }
+    final LatticeEntryImpl entry = new LatticeEntryImpl(this, name, lattice);
+    latticeMap.put(name, entry);
     return entry;
   }
 
@@ -299,6 +312,13 @@ public class OptiqSchema {
     }
     builder.putAll(subSchemaMap);
     return Compatible.INSTANCE.navigableMap(builder.build());
+  }
+
+  /** Returns a collection of lattices.
+   *
+   * <p>All are explicit (defined using {@link #add(String, Lattice)}). */
+  public NavigableMap<String, LatticeEntry> getLatticeMap() {
+    return Compatible.INSTANCE.immutableNavigableMap(latticeMap);
   }
 
   /** Returns the set of all table names. Includes implicit and explicit tables
@@ -502,6 +522,17 @@ public class OptiqSchema {
     public abstract boolean isMaterialization();
   }
 
+  /** Membership of a lattice in a schema. */
+  public abstract static class LatticeEntry extends Entry {
+    public LatticeEntry(OptiqSchema schema, String name) {
+      super(schema, name);
+    }
+
+    public abstract Lattice getLattice();
+
+    public abstract TableEntry getStarTable();
+  }
+
   /** Implementation of {@link SchemaPlus} based on an {@code OptiqSchema}. */
   private class SchemaPlusImpl implements SchemaPlus {
     public OptiqSchema optiqSchema() {
@@ -591,6 +622,10 @@ public class OptiqSchema {
     public void add(String name, net.hydromatic.optiq.Function function) {
       OptiqSchema.this.add(name, function);
     }
+
+    public void add(String name, Lattice lattice) {
+      OptiqSchema.this.add(name, lattice);
+    }
   }
 
   /**
@@ -633,6 +668,33 @@ public class OptiqSchema {
     public boolean isMaterialization() {
       return function
           instanceof MaterializedViewTable.MaterializedViewTableMacro;
+    }
+  }
+
+  /**
+   * Implementation of {@link LatticeEntry}
+   * where all properties are held in fields.
+   */
+  public static class LatticeEntryImpl extends LatticeEntry {
+    private final Lattice lattice;
+    private final OptiqSchema.TableEntry starTableEntry;
+
+    /** Creates a LatticeEntryImpl. */
+    public LatticeEntryImpl(OptiqSchema schema, String name, Lattice lattice) {
+      super(schema, name);
+      this.lattice = lattice;
+
+      // Star table has same name as lattice and is in same schema.
+      final StarTable starTable = lattice.createStarTable();
+      starTableEntry = schema.add(name, starTable);
+    }
+
+    public Lattice getLattice() {
+      return lattice;
+    }
+
+    public TableEntry getStarTable() {
+      return starTableEntry;
     }
   }
 

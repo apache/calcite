@@ -37,7 +37,12 @@ public class DefaultDirectedGraph<V, E extends DefaultEdge>
   }
 
   public static <V> DefaultDirectedGraph<V, DefaultEdge> create() {
-    return new DefaultDirectedGraph<V, DefaultEdge>(DefaultEdge.<V>factory());
+    return create(DefaultEdge.<V>factory());
+  }
+
+  public static <V, E extends DefaultEdge> DefaultDirectedGraph<V, E> create(
+      EdgeFactory<V, E> edgeFactory) {
+    return new DefaultDirectedGraph<V, E>(edgeFactory);
   }
 
   @Override

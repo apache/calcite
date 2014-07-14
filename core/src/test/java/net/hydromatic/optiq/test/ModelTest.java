@@ -175,6 +175,53 @@ public class ModelTest {
         "Cannot define materialization; parent schema 'adhoc' is not a "
         + "SemiMutableSchema");
   }
+
+  /** Tests a model containing a lattice. */
+  @Test public void testReadLattice() throws IOException {
+    final ObjectMapper mapper = mapper();
+    JsonRoot root = mapper.readValue(
+        "{\n"
+        + "  version: '1.0',\n"
+        + "   schemas: [\n"
+        + "     {\n"
+        + "       name: 'FoodMart',\n"
+        + "       tables: [\n"
+        + "         {\n"
+        + "           name: 'time_by_day',\n"
+        + "           columns: [\n"
+        + "             {\n"
+        + "               name: 'time_id'\n"
+        + "             }\n"
+        + "           ]\n"
+        + "         },\n"
+        + "         {\n"
+        + "           name: 'sales_fact_1997',\n"
+        + "           columns: [\n"
+        + "             {\n"
+        + "               name: 'time_id'\n"
+        + "             }\n"
+        + "           ]\n"
+        + "         }\n"
+        + "       ],\n"
+        + "       lattices: [\n"
+        + "         {\n"
+        + "           name: 'SalesStar',\n"
+        + "           sql: 'select * from sales_fact_1997'\n"
+        + "         }\n"
+        + "       ]\n"
+        + "     }\n"
+        + "   ]\n"
+        + "}",
+        JsonRoot.class);
+    assertEquals("1.0", root.version);
+    assertEquals(1, root.schemas.size());
+    final JsonMapSchema schema = (JsonMapSchema) root.schemas.get(0);
+    assertEquals("FoodMart", schema.name);
+    assertEquals(1, schema.lattices.size());
+    final JsonLattice lattice0 = schema.lattices.get(0);
+    assertEquals("SalesStar", lattice0.name);
+    assertEquals("select * from sales_fact_1997", lattice0.sql);
+  }
 }
 
 // End ModelTest.java

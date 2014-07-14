@@ -21,6 +21,7 @@ import net.hydromatic.optiq.impl.*;
 import net.hydromatic.optiq.impl.jdbc.JdbcSchema;
 import net.hydromatic.optiq.jdbc.OptiqConnection;
 import net.hydromatic.optiq.jdbc.OptiqSchema;
+import net.hydromatic.optiq.materialize.Lattice;
 
 import org.eigenbase.util.Pair;
 import org.eigenbase.util.Util;
@@ -239,6 +240,23 @@ public class ModelHandler {
     } catch (Exception e) {
       throw new RuntimeException("Error instantiating " + jsonMaterialization,
           e);
+    }
+  }
+
+  public void visit(JsonLattice jsonLattice) {
+    try {
+      final SchemaPlus schema = currentSchema();
+      if (!schema.isMutable()) {
+        throw new RuntimeException(
+            "Cannot define lattice; parent schema '"
+            + currentSchemaName()
+            + "' is not a SemiMutableSchema");
+      }
+      OptiqSchema optiqSchema = OptiqSchema.from(schema);
+      schema.add(jsonLattice.name,
+          Lattice.create(optiqSchema, jsonLattice.sql));
+    } catch (Exception e) {
+      throw new RuntimeException("Error instantiating " + jsonLattice, e);
     }
   }
 

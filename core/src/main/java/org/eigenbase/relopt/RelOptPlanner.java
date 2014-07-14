@@ -156,6 +156,14 @@ public interface RelOptPlanner {
   void addMaterialization(RelOptMaterialization materialization);
 
   /**
+   * Defines a lattice.
+   *
+   * <p>The lattice may have materializations; it is not necessary to call
+   * {@link #addMaterialization} for these; they are registered implicitly.
+   */
+  void addLattice(RelOptLattice lattice);
+
+  /**
    * Finds the most efficient expression to implement this query.
    *
    * @throws CannotPlanException if cannot find a plan
