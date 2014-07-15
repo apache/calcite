@@ -15,10 +15,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 */
+package net.hydromatic.optiq.jdbc;
+
+import net.hydromatic.optiq.Schema;
 
 /**
- * Provides utility classes.
+ * The base level schema (no parent) for SimpleOptiqSchema
  */
-package net.hydromatic.avatica.test;
+public class SimpleOptiqRootSchema extends SimpleOptiqSchema
+  implements OptiqRootSchema {
 
-// End package-info.java
+  /** Creates a root schema. */
+  SimpleOptiqRootSchema(Schema schema) {
+      super(null, schema, "");
+  }
+
+}

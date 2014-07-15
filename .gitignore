@@ -5,7 +5,7 @@ target
 settings.xml
 .classpath.txt
 .fullclasspath.txt
-
+.checkstyle
 # eclipse
 .project
 .buildpath

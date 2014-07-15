@@ -18,7 +18,6 @@
 package net.hydromatic.optiq.prepare;
 
 import net.hydromatic.optiq.*;
-import net.hydromatic.optiq.Function;
 import net.hydromatic.optiq.Table;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 import net.hydromatic.optiq.jdbc.OptiqSchema;
@@ -144,9 +143,8 @@ public class OptiqCatalogReader implements Prepare.CatalogReader,
       return ImmutableList.of();
     }
     final List<SqlMoniker> result = new ArrayList<SqlMoniker>();
-    final Map<String, OptiqSchema> schemaMap = schema.getSubSchemaMap();
 
-    for (String subSchema : schemaMap.keySet()) {
+    for (String subSchema : schema.getSubSchemaNames()) {
       result.add(
           new SqlMonikerImpl(schema.path(subSchema), SqlMonikerType.SCHEMA));
     }
@@ -156,7 +154,7 @@ public class OptiqCatalogReader implements Prepare.CatalogReader,
           new SqlMonikerImpl(schema.path(table), SqlMonikerType.TABLE));
     }
 
-    final NavigableSet<String> functions = schema.getFunctionNames();
+    final Set<String> functions = schema.getFunctionNames();
     for (String function : functions) { // views are here as well
       result.add(
           new SqlMonikerImpl(schema.path(function), SqlMonikerType.FUNCTION));

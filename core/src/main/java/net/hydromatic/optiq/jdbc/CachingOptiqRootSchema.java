@@ -15,10 +15,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 */
+package net.hydromatic.optiq.jdbc;
+
+import net.hydromatic.optiq.Schema;
 
 /**
- * Provides utility classes.
+ * Root schema.
  */
-package net.hydromatic.avatica.test;
+public class CachingOptiqRootSchema extends CachingOptiqSchema
+  implements OptiqRootSchema {
+  /** Creates a root schema. */
+  CachingOptiqRootSchema(Schema schema) {
+    super(null, schema, "");
+  }
+}
 
-// End package-info.java
+// End OptiqRootSchema.java

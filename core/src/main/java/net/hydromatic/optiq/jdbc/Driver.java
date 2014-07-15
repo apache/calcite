@@ -108,7 +108,7 @@ public class Driver extends UnregisteredDriver {
   }
 
   /** Creates an internal connection. */
-  OptiqConnection connect(OptiqRootSchema rootSchema,
+  OptiqConnection connect(OptiqSchema rootSchema,
       JavaTypeFactory typeFactory) {
     return (OptiqConnection) ((OptiqFactory) factory)
         .newConnection(this, factory, CONNECT_STRING_PREFIX, new Properties(),

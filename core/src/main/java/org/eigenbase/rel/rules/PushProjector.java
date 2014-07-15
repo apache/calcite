@@ -241,7 +241,7 @@ public class PushProjector {
    * @return the converted projection if it makes sense to push elements of
    * the projection; otherwise returns null
    */
-  public ProjectRel convertProject(RexNode defaultExpr) {
+  public RelNode convertProject(RexNode defaultExpr) {
     // locate all fields referenced in the projection and filter
     locateAllRefs();
 
@@ -305,7 +305,7 @@ public class PushProjector {
     // put the original project on top of the filter/project, converting
     // it to reference the modified projection list; otherwise, create
     // a projection that essentially selects all fields
-    ProjectRel topProject = createNewProject(projChild, adjustments);
+    RelNode topProject = createNewProject(projChild, adjustments);
 
     return topProject;
   }
@@ -531,7 +531,7 @@ public class PushProjector {
    *                    be adjusted by
    * @return the created projection
    */
-  public ProjectRel createNewProject(RelNode projChild, int[] adjustments) {
+  public RelNode createNewProject(RelNode projChild, int[] adjustments) {
     List<Pair<RexNode, String>> projects =
         new ArrayList<Pair<RexNode, String>>();
 
@@ -553,7 +553,7 @@ public class PushProjector {
                     field.e.getType(), field.i), field.e.getName()));
       }
     }
-    return (ProjectRel) CalcRel.createProject(
+    return CalcRel.createProject(
         projChild,
         Pair.left(projects),
         Pair.right(projects),

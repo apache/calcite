@@ -332,7 +332,7 @@ public class MetaImpl implements Meta {
 
   Enumerable<MetaSchema> schemas(String catalog) {
     return Linq4j.asEnumerable(
-        connection.rootSchema.getSubSchemaMap().values())
+        connection.rootSchema.getSubSchemas())
         .select(
             new Function1<OptiqSchema, MetaSchema>() {
               public MetaSchema apply(OptiqSchema optiqSchema) {
@@ -629,7 +629,7 @@ public class MetaImpl implements Meta {
 
   /** A trojan-horse method, subject to change without notice. */
   @VisibleForTesting
-  public static OptiqConnection connect(OptiqRootSchema schema,
+  public static OptiqConnection connect(OptiqSchema schema,
       JavaTypeFactory typeFactory) {
     return DRIVER.connect(schema, typeFactory);
   }
