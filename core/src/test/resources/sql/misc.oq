@@ -61,6 +61,21 @@ select cast(c_timestamp as varchar(20)), cast(c_timestamp as date) from data whe
 !ok
 !}
 
+# [DRILL-1149]
+select *, upper("name")
+from "hr"."emps";
++-------+--------+-----------+---------+------------+-----------+
+| empid | deptno | name      | salary  | commission | EXPR$5    |
++-------+--------+-----------+---------+------------+-----------+
+|   100 |     10 | Bill      | 10000.0 |       1000 | BILL      |
+|   110 |     10 | Theodore  | 11500.0 |        250 | THEODORE  |
+|   150 |     10 | Sebastian | 7000.0  |            | SEBASTIAN |
+|   200 |     20 | Eric      | 8000.0  |        500 | ERIC      |
++-------+--------+-----------+---------+------------+-----------+
+(4 rows)
+
+!ok
+
 # [OPTIQ-340] SqlToRelConverter fails with complex join condition
 select e."deptno", d."deptno"
 from "hr"."emps" as e
