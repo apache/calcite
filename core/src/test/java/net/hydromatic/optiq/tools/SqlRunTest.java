@@ -76,6 +76,85 @@ public class SqlRunTest {
             + "\": From line 1, column 18 to line 1, column 21: Table 'BLAH' not found"));
   }
 
+  @Test public void testPlan() {
+    check(
+        "!use foodmart\n"
+        + "values (1), (2);\n"
+        + "!plan\n"
+        + "\n",
+        containsString(
+            "!use foodmart\n"
+            + "values (1), (2);\n"
+            + "EnumerableValuesRel(tuples=[[{ 1 }, { 2 }]])\n"
+            + "!plan\n"));
+  }
+
+  @Test public void testPlanAfterOk() {
+    check(
+        "!use foodmart\n"
+        + "values (1), (2);\n"
+        + "!ok\n"
+        + "!plan\n"
+        + "\n",
+        containsString(
+            "!use foodmart\n"
+            + "values (1), (2);\n"
+            + "EXPR$0\n"
+            + "1\n"
+            + "2\n"
+            + "!ok\n"
+            + "EnumerableValuesRel(tuples=[[{ 1 }, { 2 }]])\n"
+            + "!plan\n"
+            + "\n"));
+  }
+
+  /** It is OK to have consecutive '!plan' calls and no '!ok'.
+   * (Previously there was a "result already open" error.) */
+  @Test public void testPlanPlan() {
+    check(
+        "!use foodmart\n"
+        + "values (1), (2);\n"
+        + "!plan\n"
+        + "values (3), (4);\n"
+        + "!plan\n"
+        + "!ok\n"
+        + "\n",
+        containsString(
+            "!use foodmart\n"
+            + "values (1), (2);\n"
+            + "EnumerableValuesRel(tuples=[[{ 1 }, { 2 }]])\n"
+            + "!plan\n"
+            + "values (3), (4);\n"
+            + "EnumerableValuesRel(tuples=[[{ 3 }, { 4 }]])\n"
+            + "!plan\n"
+            + "EXPR$0\n"
+            + "3\n"
+            + "4\n"
+            + "!ok\n"
+            + "\n"));
+  }
+
+  @Test public void testPlanDisabled() {
+    check(
+        "!use foodmart\n"
+        + "!if (false) {\n"
+        + "values (1), (2);\n"
+        + "anything\n"
+        + "you like\n"
+        + "!plan\n"
+        + "!}\n"
+        + "\n",
+        containsString(
+            "!use foodmart\n"
+            + "!if (false) {\n"
+            + "values (1), (2);\n"
+            + "anything\n"
+            + "you like\n"
+            + "!plan\n"
+            + "!}\n"
+            + "\n"));
+  }
+
   static void check(String input, String expected) {
     check(input, CoreMatchers.equalTo(expected));
   }

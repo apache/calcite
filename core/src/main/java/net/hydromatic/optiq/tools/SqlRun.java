@@ -19,9 +19,8 @@ package net.hydromatic.optiq.tools;
 
 import net.hydromatic.optiq.prepare.OptiqPrepareImpl;
 
-import org.eigenbase.util.Util;
-
 import com.google.common.base.Function;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.*;
 
 import java.io.*;
@@ -197,8 +196,12 @@ public class SqlRun {
           return new UseCommand(lines, parts[1]);
         }
         if (line.startsWith("ok")) {
-          SqlCommand command = (SqlCommand) Util.last(commands);
+          SqlCommand command = previousSqlCommand();
           return new CheckResultCommand(lines, command);
+        }
+        if (line.startsWith("plan")) {
+          SqlCommand command = previousSqlCommand();
+          return new ExplainCommand(lines, command);
         }
         if (line.startsWith("skip")) {
           return new SkipCommand(lines);
@@ -251,6 +254,15 @@ public class SqlRun {
       return new SqlCommand(sqlLines, sql, outputLines);
     }
 
+    private SqlCommand previousSqlCommand() {
+      for (int i = commands.size() - 1; i >= 0; i--) {
+        Command command = commands.get(i);
+        if (command instanceof SqlCommand) {
+          return (SqlCommand) command;
+        }
+      }
+      throw new AssertionError("no previous SQL command");
+    }
 
     private void pushLine() {
       if (pushedLine != null) {
@@ -544,6 +556,33 @@ public class SqlRun {
     }
   }
 
+  /** Command that prints the plan for the current query. */
+  class ExplainCommand extends SimpleCommand {
+    private final SqlCommand sqlCommand;
+
+    public ExplainCommand(List<String> lines, SqlCommand sqlCommand) {
+      super(lines);
+      this.sqlCommand = sqlCommand;
+    }
+
+    public void execute(boolean execute) throws Exception {
+      if (execute) {
+        final Statement statement = connection.createStatement();
+        final ResultSet resultSet =
+            statement.executeQuery("explain plan for " + sqlCommand.sql);
+        if (!resultSet.next()) {
+          throw new AssertionError("explain returned 0 records");
+        }
+        printWriter.print(resultSet.getString(1));
+        if (resultSet.next()) {
+          throw new AssertionError("explain returned more than 1 record");
+        }
+        printWriter.flush();
+      }
+      echo(lines);
+    }
+  }
+
   /** Command that executes a SQL statement. */
   private class SqlCommand extends SimpleCommand {
     private final String sql;
@@ -551,7 +590,7 @@ public class SqlRun {
 
     protected SqlCommand(List<String> lines, String sql, List<String> output) {
       super(lines);
-      this.sql = sql;
+      this.sql = Preconditions.checkNotNull(sql);
       this.output = ImmutableList.copyOf(output);
     }
 
@@ -563,7 +602,7 @@ public class SqlRun {
         }
         final Statement statement = connection.createStatement();
         if (resultSet != null) {
-          throw new AssertionError("result set already present");
+          resultSet.close();
         }
         try {
           if (OptiqPrepareImpl.DEBUG) {
