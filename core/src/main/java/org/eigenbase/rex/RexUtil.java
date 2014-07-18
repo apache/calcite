@@ -30,19 +30,24 @@ import org.eigenbase.util.mapping.*;
 
 import net.hydromatic.linq4j.function.*;
 
+import com.google.common.base.Predicate;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterators;
+import com.google.common.collect.UnmodifiableIterator;
+
 /**
  * Utility methods concerning row-expressions.
  */
 public class RexUtil {
-  private static final Predicate1<RexNode> NOT_ALWAYS_TRUE_PREDICATE =
-      new Predicate1<RexNode>() {
+  private static final Predicate<RexNode> NOT_ALWAYS_TRUE_PREDICATE =
+      new Predicate<RexNode>() {
         public boolean apply(RexNode e) {
           return !e.isAlwaysTrue();
         }
       };
 
-  private static final Predicate1<RexNode> NOT_ALWAYS_FALSE_PREDICATE =
-      new Predicate1<RexNode>() {
+  private static final Predicate<RexNode> NOT_ALWAYS_FALSE_PREDICATE =
+      new Predicate<RexNode>() {
         public boolean apply(RexNode e) {
           return !e.isAlwaysFalse();
         }
@@ -587,20 +592,25 @@ public class RexUtil {
    * Returns null only if {@code nullOnEmpty} and expression is TRUE.
    */
   public static RexNode composeConjunction(
-      RexBuilder rexBuilder, List<RexNode> nodes, boolean nullOnEmpty) {
-    List<RexNode> nodes2 =
-        Functions.filter(nodes, NOT_ALWAYS_TRUE_PREDICATE);
-    switch (nodes2.size()) {
-    case 0:
+      RexBuilder rexBuilder, Iterable<RexNode> nodes, boolean nullOnEmpty) {
+    final UnmodifiableIterator<RexNode> iterator =
+        Iterators.filter(nodes.iterator(), NOT_ALWAYS_TRUE_PREDICATE);
+    if (!iterator.hasNext()) {
+      // Zero expressions
       return nullOnEmpty
           ? null
           : rexBuilder.makeLiteral(true);
-    case 1:
-      return nodes2.get(0);
-    default:
-      return rexBuilder.makeCall(
-          SqlStdOperatorTable.AND, nodes2);
     }
+    final RexNode node = iterator.next();
+    if (!iterator.hasNext()) {
+      // One expression
+      return node;
+    }
+    // More than one expression
+    final ImmutableList.Builder<RexNode> builder = ImmutableList.builder();
+    builder.add(node);
+    builder.addAll(iterator);
+    return rexBuilder.makeCall(SqlStdOperatorTable.AND, builder.build());
   }
 
   /**
@@ -610,20 +620,25 @@ public class RexUtil {
    * Removes expressions that always evaluate to FALSE.
    */
   public static RexNode composeDisjunction(
-      RexBuilder rexBuilder, List<RexNode> nodes, boolean nullOnEmpty) {
-    List<RexNode> nodes2 =
-        Functions.filter(nodes, NOT_ALWAYS_FALSE_PREDICATE);
-    switch (nodes2.size()) {
-    case 0:
+      RexBuilder rexBuilder, Iterable<RexNode> nodes, boolean nullOnEmpty) {
+    final UnmodifiableIterator<RexNode> iterator =
+        Iterators.filter(nodes.iterator(), NOT_ALWAYS_FALSE_PREDICATE);
+    if (!iterator.hasNext()) {
+      // Zero expressions
       return nullOnEmpty
           ? null
           : rexBuilder.makeLiteral(false);
-    case 1:
-      return nodes2.get(0);
-    default:
-      return rexBuilder.makeCall(
-          SqlStdOperatorTable.OR, nodes2);
     }
+    final RexNode node = iterator.next();
+    if (!iterator.hasNext()) {
+      // One expression
+      return node;
+    }
+    // More than one expression
+    final ImmutableList.Builder<RexNode> builder = ImmutableList.builder();
+    builder.add(node);
+    builder.addAll(iterator);
+    return rexBuilder.makeCall(SqlStdOperatorTable.OR, builder.build());
   }
 
   /**

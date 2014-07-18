@@ -643,9 +643,8 @@ public class LoptOptimizeJoinRule extends RelOptRule {
       int firstFactor) {
     LoptJoinTree joinTree = null;
     int nJoinFactors = multiJoin.getNumJoinFactors();
-    BitSet factorsToAdd = new BitSet(nJoinFactors);
+    BitSet factorsToAdd = BitSets.range(0, nJoinFactors);
     BitSet factorsAdded = new BitSet(nJoinFactors);
-    factorsToAdd.flip(0, nJoinFactors);
     List<RexNode> filtersToAdd =
         new ArrayList<RexNode>(multiJoin.getJoinFilters());
 

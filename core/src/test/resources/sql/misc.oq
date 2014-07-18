@@ -181,4 +181,50 @@ select count(*) as c from "everyTypes" where "utilDate" = TIMESTAMP '1970-01-01 
 
 !ok
 
+# [OPTIQ-346] Add commutative join rule
+#
+# 3-way join that does not require bushy join.  Best plan is: sales_fact_1997 as
+# left-most leaf, then customer (with filter), then product.
+!use foodmart
+select *
+from "sales_fact_1997" as s
+  join "customer" as c using ("customer_id")
+  join "product" as p using ("product_id")
+where c."city" = 'San Francisco';
+EnumerableJoinRel(condition=[=($0, $38)], joinType=[inner])
+  EnumerableJoinRel(condition=[=($2, $8)], joinType=[inner])
+    EnumerableTableAccessRel(table=[[foodmart2, sales_fact_1997]])
+    EnumerableCalcRel(expr#0..28=[{inputs}], expr#29=['San Francisco'], expr#30=[=($t9, $t29)], proj#0..28=[{exprs}], $condition=[$t30])
+      EnumerableTableAccessRel(table=[[foodmart2, customer]])
+  EnumerableTableAccessRel(table=[[foodmart2, product]])
+!plan
+
+# 4-way join whose optimal plan requires bushy join.
+#
+# In the plan, note that filters on customer.city and product_department are
+# pushed down. And the plan is a bushy join, with sub-joins (product_class,
+# product) and (sales_fact_1997, customer).  However, scan(sales_fact_1997)
+# should be left-most leaf, but is not because CommutativeJoinRule is currently
+# disabled.
+!use foodmart
+select *
+from "sales_fact_1997" as s
+  join "customer" as c using ("customer_id")
+  join "product" as p using ("product_id")
+  join "product_class" as pc using ("product_class_id")
+where c."city" = 'San Francisco'
+ and pc."product_department" = 'Snacks';
+EnumerableCalcRel(expr#0..56=[{inputs}], $f0=[$t20], $f1=[$t21], $f2=[$t22], $f3=[$t23], $f4=[$t24], $f5=[$t25], $f6=[$t26], $f7=[$t27], $f8=[$t28], $f9=[$t29], $f10=[$t30], $f11=[$t31], $f12=[$t32], $f13=[$t33], $f14=[$t34], $f15=[$t35], $f16=[$t36], $f17=[$t37], $f18=[$t38], $f19=[$t39], $f20=[$t40], $f21=[$t41], $f22=[$t42], $f23=[$t43], $f24=[$t44], $f25=[$t45], $f26=[$t46], $f27=[$t47], $f28=[$t48], $f29=[$t49], $f30=[$t50], $f31=[$t51], $f32=[$t52], $f33=[$t53], $f34=[$t54], $f35=[$t55], $f36=[$t56], $f37=[$t5], $f38=[$t6], $f39=[$t7], $f40=[$t8], $f41=[$t9], $f42=[$t10], $f43=[$t11], $f44=[$t12], $f45=[$t13], $f46=[$t14], $f47=[$t15], $f48=[$t16], $f49=[$t17], $f50=[$t18], $f51=[$t19], $f52=[$t0], $f53=[$t1], $f54=[$t2], $f55=[$t3], $f56=[$t4])
+  EnumerableJoinRel(condition=[=($20, $6)], joinType=[inner])
+    EnumerableJoinRel(condition=[=($5, $0)], joinType=[inner])
+      EnumerableCalcRel(expr#0..4=[{inputs}], expr#5=['Snacks'], expr#6=[=($t3, $t5)], proj#0..4=[{exprs}], $condition=[$t6])
+        EnumerableTableAccessRel(table=[[foodmart2, product_class]])
+      EnumerableTableAccessRel(table=[[foodmart2, product]])
+    EnumerableJoinRel(condition=[=($2, $8)], joinType=[inner])
+      EnumerableTableAccessRel(table=[[foodmart2, sales_fact_1997]])
+      EnumerableCalcRel(expr#0..28=[{inputs}], expr#29=['San Francisco'], expr#30=[=($t9, $t29)], proj#0..28=[{exprs}], $condition=[$t30])
+        EnumerableTableAccessRel(table=[[foodmart2, customer]])
+!plan
+
+
 # End misc.oq

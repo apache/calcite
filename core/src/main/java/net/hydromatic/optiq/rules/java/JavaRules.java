@@ -171,7 +171,6 @@ public class JavaRules {
 
     @Override
     public RelOptCost computeSelfCost(RelOptPlanner planner) {
-      // We always "build" the
       double rowCount = RelMetadataQuery.getRowCount(this);
 
       // Joins can be flipped, and for many algorithms, both versions are viable
@@ -187,14 +186,19 @@ public class JavaRules {
         }
       }
 
-      // Cheaper if the smaller number of rows is coming from the RHS.
+      // Cheaper if the smaller number of rows is coming from the LHS.
+      // Model this by adding L log L to the cost.
       final double rightRowCount = right.getRows();
       final double leftRowCount = left.getRows();
-      if (rightRowCount > leftRowCount && !Double.isInfinite(rightRowCount)) {
-        rowCount *= rightRowCount / (leftRowCount + 1d);
+      if (Double.isInfinite(leftRowCount)) {
+        rowCount = leftRowCount;
+      } else {
+        rowCount += Util.nLogN(leftRowCount);
       }
-      if (condition.isAlwaysTrue()) {
-        rowCount *= 10d;
+      if (Double.isInfinite(rightRowCount)) {
+        rowCount = rightRowCount;
+      } else {
+        rowCount += rightRowCount;
       }
       return planner.getCostFactory().makeCost(rowCount, 0, 0);
     }
@@ -218,24 +222,6 @@ public class JavaRules {
       // If d is NaN, this still will probably not change the value. That's OK.
       d *= 1.001d;
       return d;
-    }
-
-    @Override
-    public double getRows() {
-      final boolean leftKey = left.isKey(BitSets.of(leftKeys));
-      final boolean rightKey = right.isKey(BitSets.of(rightKeys));
-      final double leftRowCount = left.getRows();
-      final double rightRowCount = right.getRows();
-      if (leftKey && rightKey) {
-        return Math.min(leftRowCount, rightRowCount);
-      }
-      if (leftKey) {
-        return rightRowCount;
-      }
-      if (rightKey) {
-        return leftRowCount;
-      }
-      return leftRowCount * rightRowCount;
     }
 
     public Result implement(EnumerableRelImplementor implementor, Prefer pref) {

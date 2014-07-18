@@ -19,6 +19,8 @@ package net.hydromatic.optiq.impl.tpcds;
 
 import net.hydromatic.optiq.test.OptiqAssert;
 
+import org.eigenbase.util.Bug;
+
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -87,6 +89,14 @@ public class TpcdsTest {
     checkQuery(1).runs();
   }
 
+  @Test public void testQuery17() {
+    checkQuery(17).explainContains("xx");
+  }
+
+  @Test public void testQuery58() {
+    checkQuery(58).explainContains("xx").runs();
+  }
+
   @Ignore("takes too long to optimize")
   @Test public void testQuery72() {
     checkQuery(72).runs();
@@ -101,9 +111,20 @@ public class TpcdsTest {
     final Query query = Query.of(i);
     String sql = query.sql(-1, new Random(0));
     switch (i) {
+    case 58:
+      if (Bug.upgrade("new TPC-DS generator")) {
+        // Work around bug: Support '<DATE>  = <character literal>'.
+        sql = sql.replace(" = '", " = DATE '");
+      } else {
+        // Until TPC-DS generator can handle date(...).
+        sql = sql.replace("'date([YEAR]+\"-01-01\",[YEAR]+\"-07-24\",sales)'",
+            "DATE '1998-08-18'");
+      }
+      break;
     case 72:
       // Work around OPTIQ-304: Support '<DATE> + <INTEGER>'.
       sql = sql.replace("+ 5", "+ interval '5' day");
+      break;
     }
     return with()
         .query(sql.replaceAll("tpcds\\.", "tpcds_01."));

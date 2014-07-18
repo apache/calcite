@@ -22,6 +22,7 @@ import net.hydromatic.optiq.config.Lex;
 import net.hydromatic.optiq.impl.java.ReflectiveSchema;
 import net.hydromatic.optiq.impl.jdbc.*;
 import net.hydromatic.optiq.impl.jdbc.JdbcRules.JdbcProjectRel;
+import net.hydromatic.optiq.prepare.OptiqPrepareImpl;
 import net.hydromatic.optiq.rules.java.EnumerableConvention;
 import net.hydromatic.optiq.rules.java.JavaRules;
 import net.hydromatic.optiq.rules.java.JavaRules.EnumerableProjectRel;
@@ -543,7 +544,9 @@ public class PlannerTest {
           JavaRules.ENUMERABLE_ONE_ROW_RULE,
           JavaRules.ENUMERABLE_EMPTY_RULE,
           TableAccessRule.INSTANCE,
-          MergeProjectRule.INSTANCE,
+          OptiqPrepareImpl.COMMUTE
+              ? CommutativeJoinRule.INSTANCE
+              : MergeProjectRule.INSTANCE,
           PushFilterPastProjectRule.INSTANCE,
           PushFilterPastJoinRule.FILTER_ON_JOIN,
           RemoveDistinctAggregateRule.INSTANCE,

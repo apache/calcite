@@ -137,6 +137,7 @@ public class Programs {
           final List<RelOptRule> list = new ArrayList<RelOptRule>(rules);
           list.removeAll(
               ImmutableList.of(SwapJoinRule.INSTANCE,
+                  CommutativeJoinRule.INSTANCE,
                   PushJoinThroughJoinRule.LEFT,
                   PushJoinThroughJoinRule.RIGHT));
           list.add(LoptOptimizeJoinRule.INSTANCE);

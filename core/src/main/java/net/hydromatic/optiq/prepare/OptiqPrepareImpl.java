@@ -83,6 +83,10 @@ public class OptiqPrepareImpl implements OptiqPrepare {
   public static final boolean DEBUG =
       "true".equals(System.getProperties().getProperty("optiq.debug"));
 
+  public static final boolean COMMUTE =
+      "true".equals(
+          System.getProperties().getProperty("optiq.enable.join.commute"));
+
   /** Whether to enable the collation trait. Some extra optimizations are
    * possible if enabled, but queries should work either way. At some point
    * this will become a preference, or we will run multiple phases: first
@@ -118,7 +122,9 @@ public class OptiqPrepareImpl implements OptiqPrepare {
           JavaRules.ENUMERABLE_EMPTY_RULE,
           JavaRules.ENUMERABLE_TABLE_FUNCTION_RULE,
           TableAccessRule.INSTANCE,
-          MergeProjectRule.INSTANCE,
+          COMMUTE
+              ? CommutativeJoinRule.INSTANCE
+              : MergeProjectRule.INSTANCE,
           PushFilterPastProjectRule.INSTANCE,
           PushFilterPastJoinRule.FILTER_ON_JOIN,
           RemoveDistinctAggregateRule.INSTANCE,

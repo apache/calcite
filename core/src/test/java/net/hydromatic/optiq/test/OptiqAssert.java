@@ -297,6 +297,25 @@ public class OptiqAssert {
     };
   }
 
+  public static Function1<ResultSet, Void> checkMaskedResultContains(
+      final String expected) {
+    return new Function1<ResultSet, Void>() {
+      public Void apply(ResultSet s) {
+        try {
+          final String actual = Util.toLinux(OptiqAssert.toString(s));
+          final String maskedActual =
+              actual.replaceAll(", id = [0-9]+", "");
+          if (!maskedActual.contains(expected)) {
+            assertEquals("contains", expected, maskedActual);
+          }
+          return null;
+        } catch (SQLException e) {
+          throw new RuntimeException(e);
+        }
+      }
+    };
+  }
+
   public static Function1<ResultSet, Void> checkResultType(
       final String expected) {
     return new Function1<ResultSet, Void>() {
@@ -870,7 +889,12 @@ public class OptiqAssert {
       return returns(checkResultCount(expectedCount));
     }
 
-    public AssertQuery returns(Function1<ResultSet, Void> checker) {
+    public final AssertQuery returns(Function1<ResultSet, Void> checker) {
+      return returns(sql, checker);
+    }
+
+    protected AssertQuery returns(String sql,
+        Function1<ResultSet, Void> checker) {
       try {
         assertQuery(createConnection(), sql, limit, materializationsEnabled,
             checker, null);
@@ -944,20 +968,12 @@ public class OptiqAssert {
     }
 
     public AssertQuery explainContains(String expected) {
-      return explainMatches(checkResultContains(expected));
+      return explainMatches("", checkResultContains(expected));
     }
 
-    public AssertQuery explainMatches(Function1<ResultSet, Void> checker) {
-      String explainSql = "explain plan for " + sql;
-      try {
-        assertQuery(
-            createConnection(), explainSql, limit, materializationsEnabled,
-            checker, null);
-        return this;
-      } catch (Exception e) {
-        throw new RuntimeException(
-            "exception while executing [" + explainSql + "]", e);
-      }
+    public final AssertQuery explainMatches(String extra,
+        Function1<ResultSet, Void> checker) {
+      return returns("explain plan " + extra + "for " + sql, checker);
     }
 
     public AssertQuery planContains(String expected) {
@@ -1105,7 +1121,7 @@ public class OptiqAssert {
     }
 
     @Override
-    public AssertQuery returns(Function1<ResultSet, Void> checker) {
+    public AssertQuery returns(String sql, Function1<ResultSet, Void> checker) {
       return this;
     }
 
@@ -1121,11 +1137,6 @@ public class OptiqAssert {
 
     @Override public AssertQuery convertMatches(
         Function1<RelNode, Void> checker) {
-      return this;
-    }
-
-    @Override
-    public AssertQuery explainMatches(Function1<ResultSet, Void> checker) {
       return this;
     }
 

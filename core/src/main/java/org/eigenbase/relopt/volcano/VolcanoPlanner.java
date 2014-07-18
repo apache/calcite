@@ -34,8 +34,8 @@ import org.eigenbase.util.*;
 
 import net.hydromatic.linq4j.expressions.Expressions;
 
+import net.hydromatic.optiq.prepare.OptiqPrepareImpl;
 import net.hydromatic.optiq.runtime.Spaces;
-
 import net.hydromatic.optiq.util.graph.*;
 
 import com.google.common.collect.*;
@@ -743,6 +743,12 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
       for (RelNode rel : rule.rels) {
         provenanceRecurse(pw, rel, i + 2, visited);
       }
+    } else if (o == null && node instanceof RelSubset) {
+      // A few operands recognize subsets, not individual rels.
+      // The first rel in the subset is deemed to have created it.
+      final RelSubset subset = (RelSubset) node;
+      pw.println("subset " + subset);
+      provenanceRecurse(pw, subset.getRelList().get(0), i + 2, visited);
     } else {
       throw new AssertionError("bad type " + o);
     }
@@ -892,8 +898,13 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
   }
 
   public void registerAbstractRelationalRules() {
+    addRule(PushFilterPastJoinRule.FILTER_ON_JOIN);
+    addRule(PushFilterPastJoinRule.JOIN);
     addRule(AbstractConverter.ExpandConversionRule.INSTANCE);
     addRule(SwapJoinRule.INSTANCE);
+    if (OptiqPrepareImpl.COMMUTE) {
+      addRule(CommutativeJoinRule.INSTANCE);
+    }
     addRule(RemoveDistinctRule.INSTANCE);
     addRule(UnionToDistinctRule.INSTANCE);
     addRule(RemoveTrivialProjectRule.INSTANCE);

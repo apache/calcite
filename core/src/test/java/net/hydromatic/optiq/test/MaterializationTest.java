@@ -104,7 +104,7 @@ public class MaterializationTest {
           .withMaterializations(model, "m0", materialize)
           .query(query)
           .enableMaterializations(true)
-          .explainMatches(explainChecker)
+          .explainMatches("", explainChecker)
           .sameResultWithMaterializationsDisabled();
     } finally {
       Prepare.THREAD_TRIM.set(false);
