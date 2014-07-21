@@ -22,6 +22,7 @@ import net.hydromatic.optiq.runtime.BinarySearchTest;
 import net.hydromatic.optiq.tools.FrameworksTest;
 import net.hydromatic.optiq.tools.PlannerTest;
 import net.hydromatic.optiq.tools.SqlRunTest;
+import net.hydromatic.optiq.util.BitSetsTest;
 import net.hydromatic.optiq.util.PartiallyOrderedSetTest;
 import net.hydromatic.optiq.util.graph.DirectedGraphTest;
 
@@ -52,6 +53,7 @@ import org.junit.runners.Suite;
 @Suite.SuiteClasses({
     // very fast tests (under 0.1s)
     ArrayTableTest.class,
+    BitSetsTest.class,
     DirectedGraphTest.class,
     ReflectVisitorTest.class,
     RelOptUtilTest.class,
