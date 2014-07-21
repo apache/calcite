@@ -55,13 +55,13 @@ public class LoptOptimizeJoinRule extends RelOptRule {
 
   // implement RelOptRule
   public void onMatch(RelOptRuleCall call) {
-    MultiJoinRel multiJoinRel = (MultiJoinRel) call.rels[0];
-    LoptMultiJoin multiJoin = new LoptMultiJoin(multiJoinRel);
+    final MultiJoinRel multiJoinRel = call.rel(0);
+    final LoptMultiJoin multiJoin = new LoptMultiJoin(multiJoinRel);
 
     findRemovableOuterJoins(multiJoin);
 
-    RexBuilder rexBuilder = multiJoinRel.getCluster().getRexBuilder();
-    LoptSemiJoinOptimizer semiJoinOpt =
+    final RexBuilder rexBuilder = multiJoinRel.getCluster().getRexBuilder();
+    final LoptSemiJoinOptimizer semiJoinOpt =
         new LoptSemiJoinOptimizer(multiJoin, rexBuilder);
 
     // determine all possible semijoins
@@ -745,13 +745,10 @@ public class LoptOptimizeJoinRule extends RelOptRule {
 
       // can't add a null-generating factor if its dependent,
       // non-null generating factors haven't been added yet
-      if (multiJoin.isNullGenerating(factor)) {
-        BitSet tmp =
-            (BitSet) multiJoin.getOuterJoinFactors(factor).clone();
-        tmp.andNot(factorsAdded);
-        if (tmp.cardinality() != 0) {
-          continue;
-        }
+      if (multiJoin.isNullGenerating(factor)
+          && !BitSets.contains(factorsAdded,
+              multiJoin.getOuterJoinFactors(factor))) {
+        continue;
       }
 
       // determine the best weight between the current factor
@@ -1838,12 +1835,11 @@ public class LoptOptimizeJoinRule extends RelOptRule {
 
     if (selfJoin) {
       return !multiJoin.isLeftFactorInRemovableSelfJoin(
-          left.getFactorTree().getId());
+          ((LoptJoinTree.Leaf) left.getFactorTree()).getId());
     }
 
     Double leftRowCount = RelMetadataQuery.getRowCount(left.getJoinTree());
-    Double rightRowCount =
-        RelMetadataQuery.getRowCount(right.getJoinTree());
+    Double rightRowCount = RelMetadataQuery.getRowCount(right.getJoinTree());
 
     // The left side is smaller than the right if it has fewer rows,
     // or if it has the same number of rows as the right (excluding

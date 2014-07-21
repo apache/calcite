@@ -113,7 +113,8 @@ public class Programs {
    * {@link org.eigenbase.rel.rules.MultiJoinRel} and
    * {@link org.eigenbase.rel.rules.LoptOptimizeJoinRule})
    * if there are 6 or more joins (7 or more relations). */
-  public static Program heuristicJoinOrder(final Collection<RelOptRule> rules) {
+  public static Program heuristicJoinOrder(final Collection<RelOptRule> rules,
+      final boolean bushy) {
     return new Program() {
       public RelNode run(RelOptPlanner planner, RelNode rel,
           RelTraitSet requiredOutputTraits) {
@@ -140,7 +141,9 @@ public class Programs {
                   CommutativeJoinRule.INSTANCE,
                   PushJoinThroughJoinRule.LEFT,
                   PushJoinThroughJoinRule.RIGHT));
-          list.add(LoptOptimizeJoinRule.INSTANCE);
+          list.add(bushy
+              ? OptimizeBushyJoinRule.INSTANCE
+              : LoptOptimizeJoinRule.INSTANCE);
           final Program program2 = ofRules(list);
 
           program = sequence(program1, program2);

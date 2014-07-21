@@ -518,32 +518,37 @@ public class OptiqAssert {
     throw new AssertionError("method " + methodName + " not found");
   }
 
-  static OptiqConnection getConnection(String... schema)
-    throws ClassNotFoundException, SQLException {
-    final List<String> schemaList = Arrays.asList(schema);
-    Class.forName("net.hydromatic.optiq.jdbc.Driver");
-    String suffix = schemaList.contains("spark") ? "spark=true" : "";
-    Connection connection =
-        DriverManager.getConnection("jdbc:optiq:" + suffix);
-    OptiqConnection optiqConnection =
-        connection.unwrap(OptiqConnection.class);
-    SchemaPlus rootSchema = optiqConnection.getRootSchema();
-    if (schemaList.contains("hr")) {
-      rootSchema.add("hr", new ReflectiveSchema(new JdbcTest.HrSchema()));
-    }
-    if (schemaList.contains("foodmart")) {
-      rootSchema.add("foodmart",
+  public static SchemaPlus addSchema(SchemaPlus rootSchema, SchemaSpec schema) {
+    switch (schema) {
+    case REFLECTIVE_FOODMART:
+      return rootSchema.add("foodmart",
           new ReflectiveSchema(new JdbcTest.FoodmartSchema()));
-    }
-    if (schemaList.contains("lingual")) {
-      rootSchema.add("SALES",
+    case JDBC_FOODMART:
+      final DataSource dataSource =
+          JdbcSchema.dataSource(
+              CONNECTION_SPEC.url,
+              CONNECTION_SPEC.driver,
+              CONNECTION_SPEC.username,
+              CONNECTION_SPEC.password);
+      return rootSchema.add("foodmart",
+          JdbcSchema.create(rootSchema, "foodmart", dataSource, null,
+              "foodmart"));
+    case CLONE_FOODMART:
+      SchemaPlus foodmart = rootSchema.getSubSchema("foodmart");
+      if (foodmart == null) {
+        foodmart = OptiqAssert.addSchema(rootSchema, SchemaSpec.JDBC_FOODMART);
+      }
+      return rootSchema.add("foodmart2", new CloneSchema(foodmart));
+    case HR:
+      return rootSchema.add("hr",
+          new ReflectiveSchema(new JdbcTest.HrSchema()));
+    case LINGUAL:
+      return rootSchema.add("SALES",
           new ReflectiveSchema(new JdbcTest.LingualSchema()));
-    }
-    if (schemaList.contains("post")) {
+    case POST:
       final SchemaPlus post = rootSchema.add("POST", new AbstractSchema());
       post.add("EMP",
-          ViewTable.viewMacro(
-              post,
+          ViewTable.viewMacro(post,
               "select * from (values\n"
               + "    ('Jane', 10, 'F'),\n"
               + "    ('Bob', 10, 'M'),\n"
@@ -557,8 +562,7 @@ public class OptiqAssert {
               + "  as t(ename, deptno, gender)",
               ImmutableList.<String>of()));
       post.add("DEPT",
-          ViewTable.viewMacro(
-              post,
+          ViewTable.viewMacro(post,
               "select * from (values\n"
               + "    (10, 'Sales'),\n"
               + "    (20, 'Marketing'),\n"
@@ -566,8 +570,7 @@ public class OptiqAssert {
               + "    (40, 'Empty')) as t(deptno, dname)",
               ImmutableList.<String>of()));
       post.add("EMPS",
-          ViewTable.viewMacro(
-              post,
+          ViewTable.viewMacro(post,
               "select * from (values\n"
               + "    (100, 'Fred',  10, CAST(NULL AS CHAR(1)), CAST(NULL AS VARCHAR(20)), 40,               25, TRUE,    FALSE, DATE '1996-08-03'),\n"
               + "    (110, 'Eric',  20, 'M',                   'San Francisco',           3,                80, UNKNOWN, FALSE, DATE '2001-01-01'),\n"
@@ -576,6 +579,33 @@ public class OptiqAssert {
               + "    (130, 'Alice', 40, 'F',                   'Vancouver',               2, CAST(NULL AS INT), FALSE,   TRUE,  DATE '2007-01-01'))\n"
               + " as t(empno, name, deptno, gender, city, empid, age, slacker, manager, joinedat)",
               ImmutableList.<String>of()));
+      return post;
+    default:
+      throw new AssertionError("unknown schema " + schema);
+    }
+  }
+
+  static OptiqConnection getConnection(String... schema)
+    throws ClassNotFoundException, SQLException {
+    final List<String> schemaList = Arrays.asList(schema);
+    Class.forName("net.hydromatic.optiq.jdbc.Driver");
+    String suffix = schemaList.contains("spark") ? "spark=true" : "";
+    Connection connection =
+        DriverManager.getConnection("jdbc:optiq:" + suffix);
+    OptiqConnection optiqConnection =
+        connection.unwrap(OptiqConnection.class);
+    SchemaPlus rootSchema = optiqConnection.getRootSchema();
+    if (schemaList.contains("hr")) {
+      addSchema(rootSchema, SchemaSpec.HR);
+    }
+    if (schemaList.contains("foodmart")) {
+      addSchema(rootSchema, SchemaSpec.REFLECTIVE_FOODMART);
+    }
+    if (schemaList.contains("lingual")) {
+      addSchema(rootSchema, SchemaSpec.LINGUAL);
+    }
+    if (schemaList.contains("post")) {
+      addSchema(rootSchema, SchemaSpec.POST);
     }
     if (schemaList.contains("metadata")) {
       // always present
@@ -602,18 +632,9 @@ public class OptiqAssert {
     OptiqConnection optiqConnection =
         connection.unwrap(OptiqConnection.class);
     final SchemaPlus rootSchema = optiqConnection.getRootSchema();
-    final DataSource dataSource =
-        JdbcSchema.dataSource(
-            CONNECTION_SPEC.url,
-            CONNECTION_SPEC.driver,
-            CONNECTION_SPEC.username,
-            CONNECTION_SPEC.password);
-    final SchemaPlus foodmart =
-        rootSchema.add("foodmart",
-            JdbcSchema.create(rootSchema, "foodmart", dataSource, null,
-                "foodmart"));
+    addSchema(rootSchema, SchemaSpec.JDBC_FOODMART);
     if (withClone) {
-      rootSchema.add("foodmart2", new CloneSchema(foodmart));
+      addSchema(rootSchema, SchemaSpec.CLONE_FOODMART);
     }
     optiqConnection.setSchema("foodmart2");
     return optiqConnection;
@@ -1176,6 +1197,15 @@ public class OptiqAssert {
       this.password = password;
       this.driver = driver;
     }
+  }
+
+  public enum SchemaSpec {
+    REFLECTIVE_FOODMART,
+    JDBC_FOODMART,
+    CLONE_FOODMART,
+    HR,
+    LINGUAL,
+    POST
   }
 }
 

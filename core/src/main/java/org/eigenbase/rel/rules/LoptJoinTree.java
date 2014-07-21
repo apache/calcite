@@ -21,6 +21,8 @@ import java.util.*;
 
 import org.eigenbase.rel.*;
 
+import com.google.common.base.Preconditions;
+
 /**
  * Utility class used to store a {@link JoinRelBase} tree and the factors that
  * make up the tree.
@@ -34,26 +36,26 @@ import org.eigenbase.rel.*;
 public class LoptJoinTree {
   //~ Instance fields --------------------------------------------------------
 
-  private BinaryTree factorTree;
-  private RelNode joinTree;
-  private boolean removableSelfJoin;
+  private final BinaryTree factorTree;
+  private final RelNode joinTree;
+  private final boolean removableSelfJoin;
 
   //~ Constructors -----------------------------------------------------------
 
   /**
-   * Creates a jointree consisting of a single node
+   * Creates a join-tree consisting of a single node.
    *
    * @param joinTree RelNode corresponding to the single node
    * @param factorId factor id of the node
    */
   public LoptJoinTree(RelNode joinTree, int factorId) {
     this.joinTree = joinTree;
-    factorTree = new BinaryTree(factorId, this);
+    this.factorTree = new Leaf(factorId, this);
     this.removableSelfJoin = false;
   }
 
   /**
-   * Associates the factor ids with a jointree
+   * Associates the factor ids with a join-tree.
    *
    * @param joinTree RelNodes corresponding to the join tree
    * @param factorTree tree of the factor ids
@@ -70,8 +72,8 @@ public class LoptJoinTree {
   }
 
   /**
-   * Associates the factor ids with a jointree given the factors corresponding
-   * to the left and right subtrees of the join
+   * Associates the factor ids with a join-tree given the factors corresponding
+   * to the left and right subtrees of the join.
    *
    * @param joinTree RelNodes corresponding to the join tree
    * @param leftFactorTree tree of the factor ids for left subtree
@@ -85,7 +87,7 @@ public class LoptJoinTree {
   }
 
   /**
-   * Associates the factor ids with a jointree given the factors corresponding
+   * Associates the factor ids with a join-tree given the factors corresponding
    * to the left and right subtrees of the join. Also indicates whether the
    * join is a removable self-join.
    *
@@ -99,7 +101,7 @@ public class LoptJoinTree {
       BinaryTree leftFactorTree,
       BinaryTree rightFactorTree,
       boolean removableSelfJoin) {
-    factorTree = new BinaryTree(leftFactorTree, rightFactorTree, this);
+    factorTree = new Node(leftFactorTree, rightFactorTree, this);
     this.joinTree = joinTree;
     this.removableSelfJoin = removableSelfJoin;
   }
@@ -111,17 +113,19 @@ public class LoptJoinTree {
   }
 
   public LoptJoinTree getLeft() {
+    final Node node = (Node) factorTree;
     return new LoptJoinTree(
         ((JoinRelBase) joinTree).getLeft(),
-        factorTree.getLeft(),
-        factorTree.getLeft().getParent().isRemovableSelfJoin());
+        node.getLeft(),
+        node.getLeft().getParent().isRemovableSelfJoin());
   }
 
   public LoptJoinTree getRight() {
+    final Node node = (Node) factorTree;
     return new LoptJoinTree(
         ((JoinRelBase) joinTree).getRight(),
-        factorTree.getRight(),
-        factorTree.getRight().getParent().isRemovableSelfJoin());
+        node.getRight(),
+        node.getRight().getParent().isRemovableSelfJoin());
   }
 
   public BinaryTree getFactorTree() {
@@ -142,26 +146,50 @@ public class LoptJoinTree {
    * Simple binary tree class that stores an id in the leaf nodes and keeps
    * track of the parent LoptJoinTree object associated with the binary tree.
    */
-  protected class BinaryTree {
-    private int id;
-    private BinaryTree left;
-    private BinaryTree right;
-    private LoptJoinTree parent;
+  protected abstract static class BinaryTree {
+    private final LoptJoinTree parent;
 
-    public BinaryTree(int rootId, LoptJoinTree parent) {
-      this.id = rootId;
-      this.left = null;
-      this.right = null;
-      this.parent = parent;
+    protected BinaryTree(LoptJoinTree parent) {
+      this.parent = Preconditions.checkNotNull(parent);
     }
 
-    public BinaryTree(
-        BinaryTree left,
-        BinaryTree right,
-        LoptJoinTree parent) {
-      this.left = left;
-      this.right = right;
-      this.parent = parent;
+    public LoptJoinTree getParent() {
+      return parent;
+    }
+
+    public abstract void getTreeOrder(List<Integer> treeOrder);
+  }
+
+  /** Binary tree node that has no children. */
+  protected static class Leaf extends BinaryTree {
+    private final int id;
+
+    public Leaf(int rootId, LoptJoinTree parent) {
+      super(parent);
+      this.id = rootId;
+    }
+
+    /**
+     * @return the id associated with a leaf node in a binary tree
+     */
+    public int getId() {
+      return id;
+    }
+
+    public void getTreeOrder(List<Integer> treeOrder) {
+      treeOrder.add(id);
+    }
+  }
+
+  /** Binary tree node that has two children. */
+  protected static class Node extends BinaryTree {
+    private BinaryTree left;
+    private BinaryTree right;
+
+    public Node(BinaryTree left, BinaryTree right, LoptJoinTree parent) {
+      super(parent);
+      this.left = Preconditions.checkNotNull(left);
+      this.right = Preconditions.checkNotNull(right);
     }
 
     public BinaryTree getLeft() {
@@ -172,25 +200,9 @@ public class LoptJoinTree {
       return right;
     }
 
-    public LoptJoinTree getParent() {
-      return parent;
-    }
-
-    /**
-     * @return the id associated with a leaf node in a binary tree
-     */
-    public int getId() {
-      assert left == null && right == null;
-      return id;
-    }
-
     public void getTreeOrder(List<Integer> treeOrder) {
-      if ((left == null) || (right == null)) {
-        treeOrder.add(id);
-      } else {
-        left.getTreeOrder(treeOrder);
-        right.getTreeOrder(treeOrder);
-      }
+      left.getTreeOrder(treeOrder);
+      right.getTreeOrder(treeOrder);
     }
   }
 }

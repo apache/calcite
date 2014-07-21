@@ -26,7 +26,6 @@ import net.hydromatic.optiq.prepare.OptiqPrepareImpl;
 import net.hydromatic.optiq.rules.java.EnumerableConvention;
 import net.hydromatic.optiq.rules.java.JavaRules;
 import net.hydromatic.optiq.rules.java.JavaRules.EnumerableProjectRel;
-import net.hydromatic.optiq.test.JdbcTest;
 import net.hydromatic.optiq.test.OptiqAssert;
 
 import org.eigenbase.rel.*;
@@ -143,10 +142,13 @@ public class PlannerTest {
         ImmutableList.of(stdOpTab,
             new ListSqlOperatorTable(
                 ImmutableList.<SqlOperator>of(new MyCountAggFunction()))));
-    Planner planner = Frameworks.getPlanner(Frameworks.newConfigBuilder() //
-        .defaultSchema(createHrSchema()) //
-        .operatorTable(opTab) //
-        .build());
+    final SchemaPlus rootSchema = Frameworks.createRootSchema(true);
+    final FrameworkConfig config = Frameworks.newConfigBuilder()
+        .defaultSchema(
+            OptiqAssert.addSchema(rootSchema, OptiqAssert.SchemaSpec.HR))
+        .operatorTable(opTab)
+        .build();
+    final Planner planner = Frameworks.getPlanner(config);
     SqlNode parse =
         planner.parse("select \"deptno\", my_count(\"empid\") from \"emps\"\n"
             + "group by \"deptno\"");
@@ -175,18 +177,16 @@ public class PlannerTest {
     }
   }
 
-  private SchemaPlus createHrSchema() {
-    return Frameworks.createRootSchema(true).add("hr",
-        new ReflectiveSchema(new JdbcTest.HrSchema()));
-  }
-
   private Planner getPlanner(List<RelTraitDef> traitDefs, Program... programs) {
-    return Frameworks.getPlanner(Frameworks.newConfigBuilder() //
-        .lex(Lex.ORACLE) //
-        .defaultSchema(createHrSchema()) //
-        .traitDefs(traitDefs) //
-        .programs(programs) //
-        .build());
+    final SchemaPlus rootSchema = Frameworks.createRootSchema(true);
+    final FrameworkConfig config = Frameworks.newConfigBuilder()
+        .lex(Lex.ORACLE)
+        .defaultSchema(
+            OptiqAssert.addSchema(rootSchema, OptiqAssert.SchemaSpec.HR))
+        .traitDefs(traitDefs)
+        .programs(programs)
+        .build();
+    return Frameworks.getPlanner(config);
   }
 
   /** Tests that planner throws an error if you pass to
@@ -443,7 +443,8 @@ public class PlannerTest {
           .append(i).append(".\"deptno\" = d")
           .append(i - 1).append(".\"deptno\"");
     }
-    Planner planner = getPlanner(null, Programs.heuristicJoinOrder(RULE_SET));
+    Planner planner =
+        getPlanner(null, Programs.heuristicJoinOrder(RULE_SET, false));
     SqlNode parse = planner.parse(buf.toString());
 
     SqlNode validate = planner.validate(parse);
@@ -453,6 +454,43 @@ public class PlannerTest {
     RelNode transform = planner.transform(0, traitSet, convert);
     assertThat(toString(transform), containsString(
         "EnumerableJoinRel(condition=[=($3, $0)], joinType=[inner])"));
+  }
+
+  /** Plans a 4-table join query on the FoodMart schema. The ideal plan is not
+   * bushy, but nevertheless exercises the bushy-join heuristic optimizer. */
+  @Test public void testAlmostBushy() throws Exception {
+    final String sql = "select *\n"
+        + "from \"sales_fact_1997\" as s\n"
+        + "  join \"customer\" as c using (\"customer_id\")\n"
+        + "  join \"product\" as p using (\"product_id\")\n"
+        + "where c.\"city\" = 'San Francisco'\n"
+        + "and p.\"brand_name\" = 'Washington'";
+    final String expected = ""
+        + "EnumerableJoinRel(condition=[=($0, $38)], joinType=[inner])\n"
+        + "  EnumerableJoinRel(condition=[=($2, $8)], joinType=[inner])\n"
+        + "    EnumerableTableAccessRel(table=[[foodmart2, sales_fact_1997]])\n"
+        + "    EnumerableFilterRel(condition=[=($9, 'San Francisco')])\n"
+        + "      EnumerableTableAccessRel(table=[[foodmart2, customer]])\n"
+        + "  EnumerableFilterRel(condition=[=($2, 'Washington')])\n"
+        + "    EnumerableTableAccessRel(table=[[foodmart2, product]])\n";
+    final SchemaPlus rootSchema = Frameworks.createRootSchema(true);
+    final FrameworkConfig config = Frameworks.newConfigBuilder()
+        .lex(Lex.ORACLE)
+        .defaultSchema(
+            OptiqAssert.addSchema(rootSchema,
+                OptiqAssert.SchemaSpec.CLONE_FOODMART))
+        .traitDefs((List<RelTraitDef>) null)
+        .programs(Programs.heuristicJoinOrder(RULE_SET, true))
+        .build();
+    Planner planner = Frameworks.getPlanner(config);
+    SqlNode parse = planner.parse(sql);
+
+    SqlNode validate = planner.validate(parse);
+    RelNode convert = planner.convert(validate);
+    RelTraitSet traitSet = planner.getEmptyTraitSet()
+        .replace(EnumerableConvention.INSTANCE);
+    RelNode transform = planner.transform(0, traitSet, convert);
+    assertThat(toString(transform), containsString(expected));
   }
 
   /**
