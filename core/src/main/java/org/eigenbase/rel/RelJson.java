@@ -340,14 +340,15 @@ public class RelJson {
       if (op != null) {
         final List operands = (List) map.get("operands");
         final Object jsonType = map.get("type");
+        final SqlOperator operator = toOp(op, map);
+        final List<RexNode> rexOperands = toRexList(relInput, operands);
+        RelDataType type;
         if (jsonType != null) {
-          RelDataType type = toType(cluster.getTypeFactory(), jsonType);
-          return rexBuilder.makeCall(
-              type, toOp(op, map), toRexList(relInput, operands));
+          type = toType(cluster.getTypeFactory(), jsonType);
         } else {
-          return rexBuilder.makeCall(
-              toOp(op, map), toRexList(relInput, operands));
+          type = rexBuilder.deriveReturnType(operator, rexOperands);
         }
+        return rexBuilder.makeCall(type, operator, rexOperands);
       }
       final Integer input = (Integer) map.get("input");
       if (input != null) {

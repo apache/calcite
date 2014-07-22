@@ -927,8 +927,7 @@ public class OptiqPrepareImpl implements OptiqPrepare {
             ((MemberExpression) expression).field.getName(),
             true);
       case GreaterThan:
-        return binary(
-            expression, SqlStdOperatorTable.GREATER_THAN);
+        return binary(expression, SqlStdOperatorTable.GREATER_THAN);
       case LessThan:
         return binary(expression, SqlStdOperatorTable.LESS_THAN);
       case Parameter:
@@ -939,6 +938,7 @@ public class OptiqPrepareImpl implements OptiqPrepare {
             RexToLixTranslator.JAVA_TO_SQL_METHOD_MAP.get(call.method);
         if (operator != null) {
           return rexBuilder.makeCall(
+              type(call),
               operator,
               toRex(
                   Expressions.<Expression>list()
@@ -976,8 +976,8 @@ public class OptiqPrepareImpl implements OptiqPrepare {
 
     private RexNode binary(Expression expression, SqlBinaryOperator op) {
       BinaryExpression call = (BinaryExpression) expression;
-      return rexBuilder.makeCall(
-          op, toRex(ImmutableList.of(call.expression0, call.expression1)));
+      return rexBuilder.makeCall(type(call), op,
+          toRex(ImmutableList.of(call.expression0, call.expression1)));
     }
 
     private List<RexNode> toRex(List<Expression> expressions) {
@@ -986,6 +986,11 @@ public class OptiqPrepareImpl implements OptiqPrepare {
         list.add(toRex(expression));
       }
       return list;
+    }
+
+    protected RelDataType type(Expression expression) {
+      final Type type = expression.getType();
+      return ((JavaTypeFactory) rexBuilder.getTypeFactory()).createType(type);
     }
 
     public ScalarTranslator bind(

@@ -1113,7 +1113,7 @@ public class ReduceDecimalsRule extends RelOptRule {
       }
 
       RexNode newCall =
-          builder.makeCall(call.getOperator(), opBuilder.build());
+          builder.makeCall(retType, call.getOperator(), opBuilder.build());
       if (SqlTypeUtil.isDecimal(retType)) {
         newCall = encodeValue(newCall, retType);
       }
@@ -1136,9 +1136,8 @@ public class ReduceDecimalsRule extends RelOptRule {
     }
 
     public RexNode expand(RexCall call) {
-      List<RexNode> operands = call.operands;
       ImmutableList.Builder<RexNode> opBuilder = ImmutableList.builder();
-      for (RexNode operand : operands) {
+      for (RexNode operand : call.operands) {
         if (SqlTypeUtil.isNumeric(operand.getType())) {
           opBuilder.add(accessValue(operand));
         } else {
@@ -1147,7 +1146,8 @@ public class ReduceDecimalsRule extends RelOptRule {
       }
 
       RexNode newCall =
-          builder.makeCall(call.getOperator(), opBuilder.build());
+          builder.makeCall(call.getType(), call.getOperator(),
+              opBuilder.build());
       if (SqlTypeUtil.isDecimal(call.getType())) {
         return encodeValue(
             newCall,
@@ -1203,6 +1203,7 @@ public class ReduceDecimalsRule extends RelOptRule {
 
       RexNode ret =
           builder.makeCall(
+              call.getType(),
               call.getOperator(),
               opBuilder.build());
       ret =

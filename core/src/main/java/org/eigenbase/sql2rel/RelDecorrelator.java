@@ -1636,14 +1636,15 @@ public class RelDecorrelator implements ReflectiveVisitor {
           }
         }
 
+        final RelDataType newType;
         if (!isSpecialCast) {
           // TODO: ideally this only needs to be called if the result
           // type will also change. However, since that requires
-          // suport from type inference rules to tell whether a rule
+          // support from type inference rules to tell whether a rule
           // decides return type based on input types, for now all
           // operators will be recreated with new type if any operand
           // changed, unless the operator has "built-in" type.
-          newCall = rexBuilder.makeCall(operator, clonedOperands);
+          newType = rexBuilder.deriveReturnType(operator, clonedOperands);
         } else {
           // Use the current return type when creating a new call, for
           // operators with return type built into the operator
@@ -1651,14 +1652,15 @@ public class RelDecorrelator implements ReflectiveVisitor {
           // cast function with less than 2 operands.
 
           // TODO: Comments in RexShuttle.visitCall() mention other
-          // types in this catagory. Need to resolve those together
-          // and preferrably in the base class RexShuttle.
-          newCall =
-              rexBuilder.makeCall(
-                  call.getType(),
-                  operator,
-                  clonedOperands);
+          // types in this category. Need to resolve those together
+          // and preferably in the base class RexShuttle.
+          newType = call.getType();
         }
+        newCall =
+            rexBuilder.makeCall(
+                newType,
+                operator,
+                clonedOperands);
       } else {
         newCall = call;
       }

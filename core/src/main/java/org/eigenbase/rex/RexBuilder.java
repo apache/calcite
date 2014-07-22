@@ -187,7 +187,7 @@ public class RexBuilder {
   }
 
   /**
-   * Creates a call with an array of arguments and a predetermined type.
+   * Creates a call with a list of arguments and a predetermined type.
    */
   public RexNode makeCall(
       RelDataType returnType,
@@ -199,14 +199,14 @@ public class RexBuilder {
   /**
    * Creates a call with an array of arguments.
    *
-   * <p>This is the fundamental method called by all of the other <code>
-   * makeCall</code> methods. If you derive a class from {@link RexBuilder},
-   * this is the only method you need to override.</p>
+   * <p>If you already know the return type of the call, then
+   * {@link #makeCall(org.eigenbase.reltype.RelDataType, org.eigenbase.sql.SqlOperator, java.util.List)}
+   * is preferred.</p>
    */
   public RexNode makeCall(
       SqlOperator op,
       List<? extends RexNode> exprs) {
-    final RelDataType type = deriveReturnType(op, typeFactory, exprs);
+    final RelDataType type = deriveReturnType(op, exprs);
     return new RexCall(type, op, exprs);
   }
 
@@ -223,29 +223,14 @@ public class RexBuilder {
   }
 
   /**
-   * Creates a call with an array of arguments.
-   *
-   * <p>This is the fundamental method called by all of the other <code>
-   * makeCall</code> methods. If you derive a class from {@link RexBuilder},
-   * this is the only method you need to override.</p>
-   */
-  public RexNode makeFlatCall(
-      SqlOperator op,
-      List<? extends RexNode> exprs) {
-    return makeCall(op, RexUtil.flatten(exprs, op));
-  }
-
-  /**
    * Derives the return type of a call to an operator.
    *
    * @param op          the operator being called
-   * @param typeFactory factory for return type
    * @param exprs       actual operands
    * @return derived type
    */
   public RelDataType deriveReturnType(
       SqlOperator op,
-      RelDataTypeFactory typeFactory,
       List<? extends RexNode> exprs) {
     return op.inferReturnType(new RexCallBinding(typeFactory, op, exprs));
   }

@@ -251,15 +251,12 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
 
     RexBuilder rexBuilder = cx.getRexBuilder();
     RelDataType type =
-        rexBuilder.deriveReturnType(
-            call.getOperator(), cx.getTypeFactory(), exprList);
+        rexBuilder.deriveReturnType(call.getOperator(), exprList);
     for (int i : elseArgs(exprList.size())) {
-      exprList.set(
-          i,
+      exprList.set(i,
           rexBuilder.ensureType(type, exprList.get(i), false));
     }
-    return rexBuilder.makeCall(
-        SqlStdOperatorTable.CASE, exprList);
+    return rexBuilder.makeCall(type, SqlStdOperatorTable.CASE, exprList);
   }
 
   public RexNode convertMultiset(
@@ -284,7 +281,8 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
       // then '$SLICE(<ms>) has type 'INTEGER MULTISET'.
       // This will be removed as the expression is translated.
       expr =
-          cx.getRexBuilder().makeCall(SqlStdOperatorTable.SLICE, expr);
+          cx.getRexBuilder().makeCall(originalType, SqlStdOperatorTable.SLICE,
+              ImmutableList.of(expr));
     }
     return expr;
   }
@@ -578,11 +576,10 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
             casts);
     final RelDataType resType =
         cx.getValidator().getValidatedNodeType(call);
-    final RexNode res = rexBuilder.makeReinterpretCast(
+    return rexBuilder.makeReinterpretCast(
         resType,
         minus,
         rexBuilder.makeLiteral(false));
-    return res;
   }
 
   public RexNode convertFunction(
@@ -594,7 +591,12 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
     if (fun.getFunctionType() == SqlFunctionCategory.USER_DEFINED_CONSTRUCTOR) {
       return makeConstructorCall(cx, fun, exprs);
     }
-    return cx.getRexBuilder().makeCall(fun, exprs);
+    RelDataType returnType =
+        cx.getValidator().getValidatedNodeTypeIfKnown(call);
+    if (returnType == null) {
+      returnType = cx.getRexBuilder().deriveReturnType(fun, exprs);
+    }
+    return cx.getRexBuilder().makeCall(returnType, fun, exprs);
   }
 
   public RexNode convertAggregateFunction(
@@ -629,10 +631,7 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
       SqlFunction constructor,
       List<RexNode> exprs) {
     final RexBuilder rexBuilder = cx.getRexBuilder();
-    final RelDataTypeFactory typeFactory = cx.getTypeFactory();
-    RelDataType type =
-        rexBuilder.deriveReturnType(
-            constructor, typeFactory, exprs);
+    RelDataType type = rexBuilder.deriveReturnType(constructor, exprs);
 
     int n = type.getFieldCount();
     ImmutableList.Builder<RexNode> initializationExprs =
@@ -673,7 +672,8 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
         == OperandTypes.COMPARABLE_UNORDERED_COMPARABLE_UNORDERED) {
       ensureSameType(cx, exprs);
     }
-    return rexBuilder.makeFlatCall(op, exprs);
+    RelDataType type = rexBuilder.deriveReturnType(op, exprs);
+    return rexBuilder.makeCall(type, op, RexUtil.flatten(exprs, op));
   }
 
   private List<Integer> elseArgs(int count) {
@@ -838,9 +838,9 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
           rexBuilder.makeLiteral(
               ((SqlIdentifier) operand).getSimple()));
     }
-    return rexBuilder.makeCall(
-        SqlStdOperatorTable.COLUMN_LIST,
-        columns);
+    final RelDataType type =
+        rexBuilder.deriveReturnType(SqlStdOperatorTable.COLUMN_LIST, columns);
+    return rexBuilder.makeCall(type, SqlStdOperatorTable.COLUMN_LIST, columns);
   }
 
   /**

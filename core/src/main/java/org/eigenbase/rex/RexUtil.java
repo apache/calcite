@@ -808,10 +808,11 @@ public class RexUtil {
    * Converts a list of operands into a list that is flat with respect to
    * the given operator. The operands are assumed to be flat already.
    */
-  static List<? extends RexNode> flatten(
-      List<? extends RexNode> exprs, SqlOperator op) {
+  public static List<RexNode> flatten(List<? extends RexNode> exprs,
+      SqlOperator op) {
     if (isFlat(exprs, op)) {
-      return exprs;
+      //noinspection unchecked
+      return (List) exprs;
     }
     final List<RexNode> list = new ArrayList<RexNode>();
     flattenRecurse(list, exprs, op);
