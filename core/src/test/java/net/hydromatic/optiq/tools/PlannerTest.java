@@ -22,7 +22,6 @@ import net.hydromatic.optiq.config.Lex;
 import net.hydromatic.optiq.impl.java.ReflectiveSchema;
 import net.hydromatic.optiq.impl.jdbc.*;
 import net.hydromatic.optiq.impl.jdbc.JdbcRules.JdbcProjectRel;
-import net.hydromatic.optiq.prepare.OptiqPrepareImpl;
 import net.hydromatic.optiq.rules.java.EnumerableConvention;
 import net.hydromatic.optiq.rules.java.JavaRules;
 import net.hydromatic.optiq.rules.java.JavaRules.EnumerableProjectRel;
@@ -45,7 +44,6 @@ import org.eigenbase.sql.validate.SqlValidatorScope;
 import org.eigenbase.util.Util;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 
 import org.junit.Test;
 
@@ -444,7 +442,7 @@ public class PlannerTest {
           .append(i - 1).append(".\"deptno\"");
     }
     Planner planner =
-        getPlanner(null, Programs.heuristicJoinOrder(RULE_SET, false));
+        getPlanner(null, Programs.heuristicJoinOrder(Programs.RULE_SET, false));
     SqlNode parse = planner.parse(buf.toString());
 
     SqlNode validate = planner.validate(parse);
@@ -456,23 +454,81 @@ public class PlannerTest {
         "EnumerableJoinRel(condition=[=($3, $0)], joinType=[inner])"));
   }
 
-  /** Plans a 4-table join query on the FoodMart schema. The ideal plan is not
+  /** Plans a 3-table join query on the FoodMart schema. The ideal plan is not
    * bushy, but nevertheless exercises the bushy-join heuristic optimizer. */
   @Test public void testAlmostBushy() throws Exception {
-    final String sql = "select *\n"
+    checkBushy("select *\n"
         + "from \"sales_fact_1997\" as s\n"
         + "  join \"customer\" as c using (\"customer_id\")\n"
         + "  join \"product\" as p using (\"product_id\")\n"
         + "where c.\"city\" = 'San Francisco'\n"
-        + "and p.\"brand_name\" = 'Washington'";
-    final String expected = ""
-        + "EnumerableJoinRel(condition=[=($0, $38)], joinType=[inner])\n"
-        + "  EnumerableJoinRel(condition=[=($2, $8)], joinType=[inner])\n"
-        + "    EnumerableTableAccessRel(table=[[foodmart2, sales_fact_1997]])\n"
-        + "    EnumerableFilterRel(condition=[=($9, 'San Francisco')])\n"
-        + "      EnumerableTableAccessRel(table=[[foodmart2, customer]])\n"
-        + "  EnumerableFilterRel(condition=[=($2, 'Washington')])\n"
-        + "    EnumerableTableAccessRel(table=[[foodmart2, product]])\n";
+        + "and p.\"brand_name\" = 'Washington'",
+        "EnumerableProjectRel(product_id=[$0], time_id=[$1], customer_id=[$2], promotion_id=[$3], store_id=[$4], store_sales=[$5], store_cost=[$6], unit_sales=[$7], customer_id0=[$8], account_num=[$9], lname=[$10], fname=[$11], mi=[$12], address1=[$13], address2=[$14], address3=[$15], address4=[$16], city=[$17], state_province=[$18], postal_code=[$19], country=[$20], customer_region_id=[$21], phone1=[$22], phone2=[$23], birthdate=[$24], marital_status=[$25], yearly_income=[$26], gender=[$27], total_children=[$28], num_children_at_home=[$29], education=[$30], date_accnt_opened=[$31], member_card=[$32], occupation=[$33], houseowner=[$34], num_cars_owned=[$35], fullname=[$36], product_class_id=[$37], product_id0=[$38], brand_name=[$39], product_name=[$40], SKU=[$41], SRP=[$42], gross_weight=[$43], net_weight=[$44], recyclable_package=[$45], low_fat=[$46], units_per_case=[$47], cases_per_pallet=[$48], shelf_width=[$49], shelf_height=[$50], shelf_depth=[$51])\n"
+        + "  EnumerableProjectRel($f0=[$44], $f1=[$45], $f2=[$46], $f3=[$47], $f4=[$48], $f5=[$49], $f6=[$50], $f7=[$51], $f8=[$15], $f9=[$16], $f10=[$17], $f11=[$18], $f12=[$19], $f13=[$20], $f14=[$21], $f15=[$22], $f16=[$23], $f17=[$24], $f18=[$25], $f19=[$26], $f20=[$27], $f21=[$28], $f22=[$29], $f23=[$30], $f24=[$31], $f25=[$32], $f26=[$33], $f27=[$34], $f28=[$35], $f29=[$36], $f30=[$37], $f31=[$38], $f32=[$39], $f33=[$40], $f34=[$41], $f35=[$42], $f36=[$43], $f37=[$0], $f38=[$1], $f39=[$2], $f40=[$3], $f41=[$4], $f42=[$5], $f43=[$6], $f44=[$7], $f45=[$8], $f46=[$9], $f47=[$10], $f48=[$11], $f49=[$12], $f50=[$13], $f51=[$14])\n"
+        + "    EnumerableJoinRel(condition=[=($44, $1)], joinType=[inner])\n"
+        + "      EnumerableFilterRel(condition=[=($2, 'Washington')])\n"
+        + "        EnumerableTableAccessRel(table=[[foodmart2, product]])\n"
+        + "      EnumerableJoinRel(condition=[=($31, $0)], joinType=[inner])\n"
+        + "        EnumerableFilterRel(condition=[=($9, 'San Francisco')])\n"
+        + "          EnumerableTableAccessRel(table=[[foodmart2, customer]])\n"
+        + "        EnumerableTableAccessRel(table=[[foodmart2, sales_fact_1997]])\n");
+  }
+
+  /** Plans a 4-table join query on the FoodMart schema.
+   *
+   * <p>The ideal plan is bushy:
+   *   customer x (product_class x  product x sales)
+   * which would be written
+   *   (customer x ((product_class x product) x sales))
+   * if you don't assume 'x' is left-associative. */
+  @Test public void testBushy() throws Exception {
+    checkBushy("select *\n"
+        + "from \"sales_fact_1997\" as s\n"
+        + "  join \"customer\" as c using (\"customer_id\")\n"
+        + "  join \"product\" as p using (\"product_id\")\n"
+        + "  join \"product_class\" as pc using (\"product_class_id\")\n"
+        + "where c.\"city\" = 'San Francisco'\n"
+        + "and p.\"brand_name\" = 'Washington'",
+        "EnumerableProjectRel(product_id=[$0], time_id=[$1], customer_id=[$2], promotion_id=[$3], store_id=[$4], store_sales=[$5], store_cost=[$6], unit_sales=[$7], customer_id0=[$8], account_num=[$9], lname=[$10], fname=[$11], mi=[$12], address1=[$13], address2=[$14], address3=[$15], address4=[$16], city=[$17], state_province=[$18], postal_code=[$19], country=[$20], customer_region_id=[$21], phone1=[$22], phone2=[$23], birthdate=[$24], marital_status=[$25], yearly_income=[$26], gender=[$27], total_children=[$28], num_children_at_home=[$29], education=[$30], date_accnt_opened=[$31], member_card=[$32], occupation=[$33], houseowner=[$34], num_cars_owned=[$35], fullname=[$36], product_class_id=[$37], product_id0=[$38], brand_name=[$39], product_name=[$40], SKU=[$41], SRP=[$42], gross_weight=[$43], net_weight=[$44], recyclable_package=[$45], low_fat=[$46], units_per_case=[$47], cases_per_pallet=[$48], shelf_width=[$49], shelf_height=[$50], shelf_depth=[$51], product_class_id0=[$52], product_subcategory=[$53], product_category=[$54], product_department=[$55], product_family=[$56])\n"
+        + "  EnumerableProjectRel($f0=[$49], $f1=[$50], $f2=[$51], $f3=[$52], $f4=[$53], $f5=[$54], $f6=[$55], $f7=[$56], $f8=[$0], $f9=[$1], $f10=[$2], $f11=[$3], $f12=[$4], $f13=[$5], $f14=[$6], $f15=[$7], $f16=[$8], $f17=[$9], $f18=[$10], $f19=[$11], $f20=[$12], $f21=[$13], $f22=[$14], $f23=[$15], $f24=[$16], $f25=[$17], $f26=[$18], $f27=[$19], $f28=[$20], $f29=[$21], $f30=[$22], $f31=[$23], $f32=[$24], $f33=[$25], $f34=[$26], $f35=[$27], $f36=[$28], $f37=[$34], $f38=[$35], $f39=[$36], $f40=[$37], $f41=[$38], $f42=[$39], $f43=[$40], $f44=[$41], $f45=[$42], $f46=[$43], $f47=[$44], $f48=[$45], $f49=[$46], $f50=[$47], $f51=[$48], $f52=[$29], $f53=[$30], $f54=[$31], $f55=[$32], $f56=[$33])\n"
+        + "    EnumerableJoinRel(condition=[=($51, $0)], joinType=[inner])\n"
+        + "      EnumerableFilterRel(condition=[=($9, 'San Francisco')])\n"
+        + "        EnumerableTableAccessRel(table=[[foodmart2, customer]])\n"
+        + "      EnumerableJoinRel(condition=[=($20, $6)], joinType=[inner])\n"
+        + "        EnumerableJoinRel(condition=[=($5, $0)], joinType=[inner])\n"
+        + "          EnumerableTableAccessRel(table=[[foodmart2, product_class]])\n"
+        + "          EnumerableFilterRel(condition=[=($2, 'Washington')])\n"
+        + "            EnumerableTableAccessRel(table=[[foodmart2, product]])\n"
+        + "        EnumerableTableAccessRel(table=[[foodmart2, sales_fact_1997]])\n");
+  }
+
+  /** Plans a 5-table join query on the FoodMart schema. The ideal plan is
+   * bushy: store x (customer x (product_class x product x sales)). */
+  @Test public void testBushy5() throws Exception {
+    checkBushy("select *\n"
+        + "from \"sales_fact_1997\" as s\n"
+        + "  join \"customer\" as c using (\"customer_id\")\n"
+        + "  join \"product\" as p using (\"product_id\")\n"
+        + "  join \"product_class\" as pc using (\"product_class_id\")\n"
+        + "  join \"store\" as st using (\"store_id\")\n"
+        + "where c.\"city\" = 'San Francisco'\n",
+        "EnumerableProjectRel(product_id=[$0], time_id=[$1], customer_id=[$2], promotion_id=[$3], store_id=[$4], store_sales=[$5], store_cost=[$6], unit_sales=[$7], customer_id0=[$8], account_num=[$9], lname=[$10], fname=[$11], mi=[$12], address1=[$13], address2=[$14], address3=[$15], address4=[$16], city=[$17], state_province=[$18], postal_code=[$19], country=[$20], customer_region_id=[$21], phone1=[$22], phone2=[$23], birthdate=[$24], marital_status=[$25], yearly_income=[$26], gender=[$27], total_children=[$28], num_children_at_home=[$29], education=[$30], date_accnt_opened=[$31], member_card=[$32], occupation=[$33], houseowner=[$34], num_cars_owned=[$35], fullname=[$36], product_class_id=[$37], product_id0=[$38], brand_name=[$39], product_name=[$40], SKU=[$41], SRP=[$42], gross_weight=[$43], net_weight=[$44], recyclable_package=[$45], low_fat=[$46], units_per_case=[$47], cases_per_pallet=[$48], shelf_width=[$49], shelf_height=[$50], shelf_depth=[$51], product_class_id0=[$52], product_subcategory=[$53], product_category=[$54], product_department=[$55], product_family=[$56], store_id0=[$57], store_type=[$58], region_id=[$59], store_name=[$60], store_number=[$61], store_street_address=[$62], store_city=[$63], store_state=[$64], store_postal_code=[$65], store_country=[$66], store_manager=[$67], store_phone=[$68], store_fax=[$69], first_opened_date=[$70], last_remodel_date=[$71], store_sqft=[$72], grocery_sqft=[$73], frozen_sqft=[$74], meat_sqft=[$75], coffee_bar=[$76], video_store=[$77], salad_bar=[$78], prepared_food=[$79], florist=[$80])\n"
+        + "  EnumerableProjectRel($f0=[$73], $f1=[$74], $f2=[$75], $f3=[$76], $f4=[$77], $f5=[$78], $f6=[$79], $f7=[$80], $f8=[$24], $f9=[$25], $f10=[$26], $f11=[$27], $f12=[$28], $f13=[$29], $f14=[$30], $f15=[$31], $f16=[$32], $f17=[$33], $f18=[$34], $f19=[$35], $f20=[$36], $f21=[$37], $f22=[$38], $f23=[$39], $f24=[$40], $f25=[$41], $f26=[$42], $f27=[$43], $f28=[$44], $f29=[$45], $f30=[$46], $f31=[$47], $f32=[$48], $f33=[$49], $f34=[$50], $f35=[$51], $f36=[$52], $f37=[$58], $f38=[$59], $f39=[$60], $f40=[$61], $f41=[$62], $f42=[$63], $f43=[$64], $f44=[$65], $f45=[$66], $f46=[$67], $f47=[$68], $f48=[$69], $f49=[$70], $f50=[$71], $f51=[$72], $f52=[$53], $f53=[$54], $f54=[$55], $f55=[$56], $f56=[$57], $f57=[$0], $f58=[$1], $f59=[$2], $f60=[$3], $f61=[$4], $f62=[$5], $f63=[$6], $f64=[$7], $f65=[$8], $f66=[$9], $f67=[$10], $f68=[$11], $f69=[$12], $f70=[$13], $f71=[$14], $f72=[$15], $f73=[$16], $f74=[$17], $f75=[$18], $f76=[$19], $f77=[$20], $f78=[$21], $f79=[$22], $f80=[$23])\n"
+        + "    EnumerableJoinRel(condition=[=($77, $0)], joinType=[inner])\n"
+        + "      EnumerableTableAccessRel(table=[[foodmart2, store]])\n"
+        + "      EnumerableJoinRel(condition=[=($51, $0)], joinType=[inner])\n"
+        + "        EnumerableFilterRel(condition=[=($9, 'San Francisco')])\n"
+        + "          EnumerableTableAccessRel(table=[[foodmart2, customer]])\n"
+        + "        EnumerableJoinRel(condition=[=($20, $6)], joinType=[inner])\n"
+        + "          EnumerableJoinRel(condition=[=($5, $0)], joinType=[inner])\n"
+        + "            EnumerableTableAccessRel(table=[[foodmart2, product_class]])\n"
+        + "            EnumerableTableAccessRel(table=[[foodmart2, product]])\n"
+        + "          EnumerableTableAccessRel(table=[[foodmart2, sales_fact_1997]])\n");
+  }
+
+  /** Checks that a query returns a particular plan, using a planner with
+   * OptimizeBushyJoinRule enabled. */
+  private void checkBushy(String sql, String expected) throws Exception {
     final SchemaPlus rootSchema = Frameworks.createRootSchema(true);
     final FrameworkConfig config = Frameworks.newConfigBuilder()
         .lex(Lex.ORACLE)
@@ -480,7 +536,7 @@ public class PlannerTest {
             OptiqAssert.addSchema(rootSchema,
                 OptiqAssert.SchemaSpec.CLONE_FOODMART))
         .traitDefs((List<RelTraitDef>) null)
-        .programs(Programs.heuristicJoinOrder(RULE_SET, true))
+        .programs(Programs.heuristicJoinOrder(Programs.RULE_SET, true))
         .build();
     Planner planner = Frameworks.getPlanner(config);
     SqlNode parse = planner.parse(sql);
@@ -565,35 +621,6 @@ public class PlannerTest {
     }
   }
 
-  private static final ImmutableSet<RelOptRule> RULE_SET =
-      ImmutableSet.of(
-          JavaRules.ENUMERABLE_JOIN_RULE,
-          JavaRules.ENUMERABLE_PROJECT_RULE,
-          JavaRules.ENUMERABLE_FILTER_RULE,
-          JavaRules.ENUMERABLE_AGGREGATE_RULE,
-          JavaRules.ENUMERABLE_SORT_RULE,
-          JavaRules.ENUMERABLE_LIMIT_RULE,
-          JavaRules.ENUMERABLE_UNION_RULE,
-          JavaRules.ENUMERABLE_INTERSECT_RULE,
-          JavaRules.ENUMERABLE_MINUS_RULE,
-          JavaRules.ENUMERABLE_TABLE_MODIFICATION_RULE,
-          JavaRules.ENUMERABLE_VALUES_RULE,
-          JavaRules.ENUMERABLE_WINDOW_RULE,
-          JavaRules.ENUMERABLE_ONE_ROW_RULE,
-          JavaRules.ENUMERABLE_EMPTY_RULE,
-          TableAccessRule.INSTANCE,
-          OptiqPrepareImpl.COMMUTE
-              ? CommutativeJoinRule.INSTANCE
-              : MergeProjectRule.INSTANCE,
-          PushFilterPastProjectRule.INSTANCE,
-          PushFilterPastJoinRule.FILTER_ON_JOIN,
-          RemoveDistinctAggregateRule.INSTANCE,
-          ReduceAggregatesRule.INSTANCE,
-          SwapJoinRule.INSTANCE,
-          PushJoinThroughJoinRule.RIGHT,
-          PushJoinThroughJoinRule.LEFT,
-          PushSortPastProjectRule.INSTANCE);
-
   /**
    * Test to determine whether de-correlation correctly removes CorrelatorRel.
    */
@@ -621,11 +648,12 @@ public class PlannerTest {
         Frameworks.createRootSchema(true).add("tpch",
             new ReflectiveSchema(new TpchSchema()));
 
-    Planner p = Frameworks.getPlanner(Frameworks.newConfigBuilder() //
-        .lex(Lex.MYSQL) //
-        .defaultSchema(schema) //
-        .programs(Programs.ofRules(RULE_SET)) //
-        .build());
+    final FrameworkConfig config = Frameworks.newConfigBuilder()
+        .lex(Lex.MYSQL)
+        .defaultSchema(schema)
+        .programs(Programs.ofRules(Programs.RULE_SET))
+        .build();
+    Planner p = Frameworks.getPlanner(config);
     SqlNode n = p.parse(tpchTestQuery);
     n = p.validate(n);
     RelNode r = p.convert(n);

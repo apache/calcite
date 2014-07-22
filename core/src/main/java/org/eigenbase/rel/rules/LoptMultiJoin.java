@@ -29,6 +29,9 @@ import org.eigenbase.util.IntList;
 
 import net.hydromatic.optiq.util.BitSets;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
+
 /**
  * Utility class that keeps track of the join factors that
  * make up a {@link MultiJoinRel}.
@@ -56,7 +59,7 @@ public class LoptMultiJoin {
   /**
    * Number of factors into the MultiJoinRel
    */
-  private int nJoinFactors;
+  private final int nJoinFactors;
 
   /**
    * Total number of fields in the MultiJoinRel
@@ -66,21 +69,21 @@ public class LoptMultiJoin {
   /**
    * Original inputs into the MultiJoinRel
    */
-  private List<RelNode> joinFactors;
+  private final ImmutableList<RelNode> joinFactors;
 
   /**
    * If a join factor is null generating in a left or right outer join,
    * joinTypes indicates the join type corresponding to the factor. Otherwise,
    * it is set to INNER.
    */
-  private List<JoinRelType> joinTypes;
+  private final ImmutableList<JoinRelType> joinTypes;
 
   /**
    * If a join factor is null generating in a left or right outer join, the
    * bitmap contains the non-null generating factors that the null generating
    * factor is dependent upon
    */
-  private BitSet [] outerJoinFactors;
+  private final BitSet [] outerJoinFactors;
 
   /**
    * Bitmap corresponding to the fields projected from each join factor, after
@@ -134,7 +137,7 @@ public class LoptMultiJoin {
   /**
    * Type factory
    */
-  RelDataTypeFactory factory;
+  final RelDataTypeFactory factory;
 
   /**
    * Indicates for each factor whether its join can be removed because it is
@@ -168,22 +171,18 @@ public class LoptMultiJoin {
 
   public LoptMultiJoin(MultiJoinRel multiJoin) {
     this.multiJoin = multiJoin;
-    joinFactors = multiJoin.getInputs();
+    joinFactors = ImmutableList.copyOf(multiJoin.getInputs());
     nJoinFactors = joinFactors.size();
     projFields = multiJoin.getProjFields();
     joinFieldRefCountsMap = multiJoin.getCopyJoinFieldRefCountsMap();
 
-    joinFilters = new ArrayList<RexNode>();
-    RelOptUtil.decomposeConjunction(
-        multiJoin.getJoinFilter(),
-        joinFilters);
+    joinFilters =
+        Lists.newArrayList(RelOptUtil.conjunctions(multiJoin.getJoinFilter()));
 
     allJoinFilters = new ArrayList<RexNode>(joinFilters);
     List<RexNode> outerJoinFilters = multiJoin.getOuterJoinConditions();
     for (int i = 0; i < nJoinFactors; i++) {
-      List<RexNode> ojFilters = new ArrayList<RexNode>();
-      RelOptUtil.decomposeConjunction(outerJoinFilters.get(i), ojFilters);
-      allJoinFilters.addAll(ojFilters);
+      allJoinFilters.addAll(RelOptUtil.conjunctions(outerJoinFilters.get(i)));
     }
 
     int start = 0;
@@ -197,7 +196,23 @@ public class LoptMultiJoin {
       start += nFieldsInJoinFactor[i];
     }
 
-    setOuterJoinInfo();
+    // Extract outer join information from the join factors, including the type
+    // of outer join and the factors that a null-generating factor is dependent
+    // upon.
+    joinTypes = ImmutableList.copyOf(multiJoin.getJoinTypes());
+    List<RexNode> outerJoinConds = this.multiJoin.getOuterJoinConditions();
+    outerJoinFactors = new BitSet[nJoinFactors];
+    for (int i = 0; i < nJoinFactors; i++) {
+      if (outerJoinConds.get(i) != null) {
+        // set a bitmap containing the factors referenced in the
+        // ON condition of the outer join; mask off the factor
+        // corresponding to the factor itself
+        BitSet dependentFactors =
+            getJoinFilterFactorBitmap(outerJoinConds.get(i), false);
+        dependentFactors.clear(i);
+        outerJoinFactors[i] = dependentFactors;
+      }
+    }
 
     // determine which join factors each join filter references
     setJoinFilterRefs();
@@ -404,28 +419,6 @@ public class LoptMultiJoin {
   }
 
   /**
-   * Extracts outer join information from the join factors, including the type
-   * of outer join and the factors that a null-generating factor is dependent
-   * upon.
-   */
-  private void setOuterJoinInfo() {
-    joinTypes = multiJoin.getJoinTypes();
-    List<RexNode> outerJoinConds = multiJoin.getOuterJoinConditions();
-    outerJoinFactors = new BitSet[nJoinFactors];
-    for (int i = 0; i < nJoinFactors; i++) {
-      if (outerJoinConds.get(i) != null) {
-        // set a bitmap containing the factors referenced in the
-        // ON condition of the outer join; mask off the factor
-        // corresponding to the factor itself
-        BitSet dependentFactors =
-            getJoinFilterFactorBitmap(outerJoinConds.get(i), false);
-        dependentFactors.clear(i);
-        outerJoinFactors[i] = dependentFactors;
-      }
-    }
-  }
-
-  /**
    * Returns a bitmap representing the factors referenced in a join filter
    *
    * @param joinFilter the join filter
@@ -434,18 +427,21 @@ public class LoptMultiJoin {
    *
    * @return the bitmap containing the factor references
    */
-  private BitSet getJoinFilterFactorBitmap(
+  BitSet getJoinFilterFactorBitmap(
       RexNode joinFilter,
       boolean setFields) {
-    BitSet fieldRefBitmap = new BitSet(nTotalFields);
-    joinFilter.accept(new RelOptUtil.InputFinder(fieldRefBitmap));
+    BitSet fieldRefBitmap = fieldBitmap(joinFilter);
     if (setFields) {
       fieldsRefByJoinFilter.put(joinFilter, fieldRefBitmap);
     }
 
-    BitSet factorRefBitmap = new BitSet(nJoinFactors);
-    setFactorBitmap(factorRefBitmap, fieldRefBitmap);
-    return factorRefBitmap;
+    return factorBitmap(fieldRefBitmap);
+  }
+
+  private BitSet fieldBitmap(RexNode joinFilter) {
+    BitSet fieldRefBitmap = new BitSet(nTotalFields);
+    joinFilter.accept(new RelOptUtil.InputFinder(fieldRefBitmap));
+    return fieldRefBitmap;
   }
 
   /**
@@ -474,17 +470,17 @@ public class LoptMultiJoin {
    * Sets the bitmap indicating which factors a filter references based on
    * which fields it references
    *
-   * @param factorRefBitmap bitmap representing factors referenced that will
-   * be set by this method
    * @param fieldRefBitmap bitmap representing fields referenced
+   * @return bitmap representing factors referenced that will
+   * be set by this method
    */
-  private void setFactorBitmap(
-      BitSet factorRefBitmap,
-      BitSet fieldRefBitmap) {
+  private BitSet factorBitmap(BitSet fieldRefBitmap) {
+    BitSet factorRefBitmap = new BitSet(nJoinFactors);
     for (int field : BitSets.toIter(fieldRefBitmap)) {
       int factor = findRef(field);
       factorRefBitmap.set(factor);
     }
+    return factorRefBitmap;
   }
 
   /**
@@ -540,11 +536,9 @@ public class LoptMultiJoin {
         int leftFactor = factorRefs.nextSetBit(0);
         int rightFactor = factorRefs.nextSetBit(leftFactor + 1);
 
-        BitSet leftFields = new BitSet(nTotalFields);
-        List<RexNode> operands = ((RexCall) joinFilter).getOperands();
-        operands.get(0).accept(new RelOptUtil.InputFinder(leftFields));
-        BitSet leftBitmap = new BitSet(nJoinFactors);
-        setFactorBitmap(leftBitmap, leftFields);
+        final RexCall call = (RexCall) joinFilter;
+        BitSet leftFields = fieldBitmap(call.getOperands().get(0));
+        BitSet leftBitmap = factorBitmap(leftFields);
 
         // filter contains only two factor references, one on each
         // side of the operator
@@ -604,29 +598,7 @@ public class LoptMultiJoin {
   public boolean hasAllFactors(
       LoptJoinTree joinTree,
       BitSet factorsNeeded) {
-    BitSet childFactors = new BitSet(nJoinFactors);
-    getChildFactors(joinTree, childFactors);
-    return BitSets.contains(childFactors, factorsNeeded);
-  }
-
-  /**
-   * Sets a bitmap representing all fields corresponding to a RelNode
-   *
-   * @param rel Relational expression for which fields will be set
-   * @param fields bitmap containing set bits for each field in a RelNode
-   */
-  public void setFieldBitmap(LoptJoinTree rel, BitSet fields) {
-    // iterate through all factors within the RelNode
-    BitSet factors = new BitSet(nJoinFactors);
-    getChildFactors(rel, factors);
-    for (int factor = factors.nextSetBit(0);
-        factor >= 0;
-        factor = factors.nextSetBit(factor + 1)) {
-      // set a bit for each field
-      for (int i = 0; i < nFieldsInJoinFactor[factor]; i++) {
-        fields.set(joinStart[factor] + i);
-      }
-    }
+    return BitSets.contains(BitSets.of(joinTree.getTreeOrder()), factorsNeeded);
   }
 
   /**
@@ -636,9 +608,7 @@ public class LoptMultiJoin {
    * @param childFactors bitmap to be set
    */
   public void getChildFactors(LoptJoinTree joinTree, BitSet childFactors) {
-    List<Integer> children = new ArrayList<Integer>();
-    joinTree.getTreeOrder(children);
-    for (int child : children) {
+    for (int child : joinTree.getTreeOrder()) {
       childFactors.set(child);
     }
   }
@@ -807,6 +777,31 @@ public class LoptMultiJoin {
     RemovableSelfJoin selfJoin = removableSelfJoinPairs.get(rightFactor);
     assert selfJoin.getRightFactor() == rightFactor;
     return selfJoin.getColumnMapping().get(rightOffset);
+  }
+
+  public Edge createEdge(RexNode condition) {
+    BitSet fieldRefBitmap = fieldBitmap(condition);
+    BitSet factorRefBitmap = factorBitmap(fieldRefBitmap);
+    return new Edge(condition, factorRefBitmap, fieldRefBitmap);
+  }
+
+  /** Information about a join-condition. */
+  static class Edge {
+    final BitSet factors;
+    final BitSet columns;
+    final RexNode condition;
+
+    Edge(RexNode condition, BitSet factors, BitSet columns) {
+      this.condition = condition;
+      this.factors = factors;
+      this.columns = columns;
+    }
+
+    @Override public String toString() {
+      return "Edge(condition: " + condition
+          + ", factors: " + factors
+          + ", columns: " + columns + ")";
+    }
   }
 
   //~ Inner Classes ----------------------------------------------------------

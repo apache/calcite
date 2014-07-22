@@ -22,6 +22,7 @@ import java.util.*;
 import org.eigenbase.rel.*;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
 
 /**
  * Utility class used to store a {@link JoinRelBase} tree and the factors that
@@ -130,6 +131,12 @@ public class LoptJoinTree {
 
   public BinaryTree getFactorTree() {
     return factorTree;
+  }
+
+  public List<Integer> getTreeOrder() {
+    List<Integer> treeOrder = Lists.newArrayList();
+    getTreeOrder(treeOrder);
+    return treeOrder;
   }
 
   public void getTreeOrder(List<Integer> treeOrder) {

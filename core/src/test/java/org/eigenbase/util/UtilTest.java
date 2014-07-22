@@ -33,6 +33,7 @@ import net.hydromatic.linq4j.function.Function1;
 
 import net.hydromatic.optiq.runtime.FlatLists;
 import net.hydromatic.optiq.runtime.Spaces;
+import net.hydromatic.optiq.util.BitSets;
 import net.hydromatic.optiq.util.CompositeMap;
 
 import com.google.common.collect.ImmutableList;
@@ -848,6 +849,7 @@ public class UtilTest {
     assertEquals(0, list.size());
     assertEquals(list, Collections.<Integer>emptyList());
     assertThat(list.toString(), equalTo("[]"));
+    assertThat(BitSets.of(list), equalTo(new BitSet()));
 
     list = ImmutableIntList.of(1, 3, 5);
     assertEquals(3, list.size());
@@ -1259,6 +1261,47 @@ public class UtilTest {
     } catch (UnsupportedOperationException e) {
       // ok
     }
+  }
+
+  @Test public void testHuman() {
+    assertThat(Util.human(0D), equalTo("0"));
+    assertThat(Util.human(1D), equalTo("1"));
+    assertThat(Util.human(19D), equalTo("19"));
+    assertThat(Util.human(198D), equalTo("198"));
+    assertThat(Util.human(1000D), equalTo("1.00K"));
+    assertThat(Util.human(1002D), equalTo("1.00K"));
+    assertThat(Util.human(1009D), equalTo("1.01K"));
+    assertThat(Util.human(1234D), equalTo("1.23K"));
+    assertThat(Util.human(1987D), equalTo("1.99K"));
+    assertThat(Util.human(1999D), equalTo("2.00K"));
+    assertThat(Util.human(86837.2D), equalTo("86.8K"));
+    assertThat(Util.human(868372.8D), equalTo("868K"));
+    assertThat(Util.human(1009000D), equalTo("1.01M"));
+    assertThat(Util.human(1999999D), equalTo("2.00M"));
+    assertThat(Util.human(1009000000D), equalTo("1.01G"));
+    assertThat(Util.human(1999999000D), equalTo("2.00G"));
+
+    assertThat(Util.human(-1D), equalTo("-1"));
+    assertThat(Util.human(-19D), equalTo("-19"));
+    assertThat(Util.human(-198D), equalTo("-198"));
+    assertThat(Util.human(-1999999000D), equalTo("-2.00G"));
+
+    // not ideal - should use m (milli) and u (micro)
+    assertThat(Util.human(0.18D), equalTo("0.18"));
+    assertThat(Util.human(0.018D), equalTo("0.018"));
+    assertThat(Util.human(0.0018D), equalTo("0.0018"));
+    assertThat(Util.human(0.00018D), equalTo("1.8E-4"));
+    assertThat(Util.human(0.000018D), equalTo("1.8E-5"));
+    assertThat(Util.human(0.0000018D), equalTo("1.8E-6"));
+
+    // bad - should round to 3 digits
+    assertThat(Util.human(0.181111D), equalTo("0.181111"));
+    assertThat(Util.human(0.0181111D), equalTo("0.0181111"));
+    assertThat(Util.human(0.00181111D), equalTo("0.00181111"));
+    assertThat(Util.human(0.000181111D), equalTo("1.81111E-4"));
+    assertThat(Util.human(0.0000181111D), equalTo("1.81111E-5"));
+    assertThat(Util.human(0.00000181111D), equalTo("1.81111E-6"));
+
   }
 }
 

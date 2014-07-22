@@ -17,8 +17,12 @@
 */
 package net.hydromatic.optiq.tools;
 
+import net.hydromatic.optiq.prepare.OptiqPrepareImpl;
+import net.hydromatic.optiq.rules.java.JavaRules;
+
 import org.eigenbase.rel.RelNode;
 import org.eigenbase.rel.metadata.ChainedRelMetadataProvider;
+import org.eigenbase.rel.metadata.DefaultRelMetadataProvider;
 import org.eigenbase.rel.metadata.RelMetadataProvider;
 import org.eigenbase.rel.rules.*;
 import org.eigenbase.relopt.*;
@@ -26,6 +30,7 @@ import org.eigenbase.relopt.hep.*;
 
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 
 import java.util.*;
@@ -40,6 +45,53 @@ public class Programs {
           return of(ruleSet);
         }
       };
+
+  public static final ImmutableList<RelOptRule> CALC_RULES =
+      ImmutableList.of(
+          JavaRules.ENUMERABLE_CALC_RULE,
+          JavaRules.ENUMERABLE_FILTER_TO_CALC_RULE,
+          JavaRules.ENUMERABLE_PROJECT_TO_CALC_RULE,
+          MergeCalcRule.INSTANCE,
+          MergeFilterOntoCalcRule.INSTANCE,
+          MergeProjectOntoCalcRule.INSTANCE,
+          FilterToCalcRule.INSTANCE,
+          ProjectToCalcRule.INSTANCE,
+          MergeCalcRule.INSTANCE,
+
+          // REVIEW jvs 9-Apr-2006: Do we still need these two?  Doesn't the
+          // combination of MergeCalcRule, FilterToCalcRule, and
+          // ProjectToCalcRule have the same effect?
+          MergeFilterOntoCalcRule.INSTANCE,
+          MergeProjectOntoCalcRule.INSTANCE);
+
+  public static final ImmutableSet<RelOptRule> RULE_SET =
+      ImmutableSet.of(
+          JavaRules.ENUMERABLE_JOIN_RULE,
+          JavaRules.ENUMERABLE_PROJECT_RULE,
+          JavaRules.ENUMERABLE_FILTER_RULE,
+          JavaRules.ENUMERABLE_AGGREGATE_RULE,
+          JavaRules.ENUMERABLE_SORT_RULE,
+          JavaRules.ENUMERABLE_LIMIT_RULE,
+          JavaRules.ENUMERABLE_UNION_RULE,
+          JavaRules.ENUMERABLE_INTERSECT_RULE,
+          JavaRules.ENUMERABLE_MINUS_RULE,
+          JavaRules.ENUMERABLE_TABLE_MODIFICATION_RULE,
+          JavaRules.ENUMERABLE_VALUES_RULE,
+          JavaRules.ENUMERABLE_WINDOW_RULE,
+          JavaRules.ENUMERABLE_ONE_ROW_RULE,
+          JavaRules.ENUMERABLE_EMPTY_RULE,
+          TableAccessRule.INSTANCE,
+          OptiqPrepareImpl.COMMUTE
+              ? CommutativeJoinRule.INSTANCE
+              : MergeProjectRule.INSTANCE,
+          PushFilterPastProjectRule.INSTANCE,
+          PushFilterPastJoinRule.FILTER_ON_JOIN,
+          RemoveDistinctAggregateRule.INSTANCE,
+          ReduceAggregatesRule.INSTANCE,
+          SwapJoinRule.INSTANCE,
+          PushJoinThroughJoinRule.RIGHT,
+          PushJoinThroughJoinRule.LEFT,
+          PushSortPastProjectRule.INSTANCE);
 
   // private constructor for utility class
   private Programs() {}
@@ -120,7 +172,7 @@ public class Programs {
           RelTraitSet requiredOutputTraits) {
         final int joinCount = RelOptUtil.countJoins(rel);
         final Program program;
-        if (joinCount < 6) {
+        if (joinCount < (bushy ? 2 : 6)) {
           program = ofRules(rules);
         } else {
           // Create a program that gathers together joins as a MultiJoinRel.
@@ -151,6 +203,41 @@ public class Programs {
         return program.run(planner, rel, requiredOutputTraits);
       }
     };
+  }
+
+  public static Program getProgram() {
+    return new Program() {
+      public RelNode run(RelOptPlanner planner, RelNode rel,
+          RelTraitSet requiredOutputTraits) {
+        return null;
+      }
+    };
+  }
+
+  /** Returns the standard program used by Prepare. */
+  public static Program standard() {
+    final Program program1 =
+        new Program() {
+          public RelNode run(RelOptPlanner planner, RelNode rel,
+              RelTraitSet requiredOutputTraits) {
+            final RelNode rootRel2 =
+                planner.changeTraits(rel, requiredOutputTraits);
+            assert rootRel2 != null;
+
+            planner.setRoot(rootRel2);
+            final RelOptPlanner planner2 = planner.chooseDelegate();
+            final RelNode rootRel3 = planner2.findBestExp();
+            assert rootRel3 != null : "could not implement exp";
+            return rootRel3;
+          }
+        };
+
+    // Second planner pass to do physical "tweaks". This the first time that
+    // EnumerableCalcRel is introduced.
+    final Program program2 =
+        hep(CALC_RULES, true, new DefaultRelMetadataProvider());
+
+    return sequence(program1, program2);
   }
 
   /** Program backed by a {@link RuleSet}. */

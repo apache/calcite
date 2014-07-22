@@ -144,13 +144,21 @@ public class ImmutableIntList extends FlatLists.AbstractFlatList<Integer> {
     return ints[index];
   }
 
+  public int getInt(int index) {
+    return ints[index];
+  }
+
   public int indexOf(Object o) {
     if (o instanceof Integer) {
-      final int seek = (Integer) o;
-      for (int i = 0; i < ints.length; i++) {
-        if (ints[i] == seek) {
-          return i;
-        }
+      return indexOf((int) (Integer) o);
+    }
+    return -1;
+  }
+
+  public int indexOf(int seek) {
+    for (int i = 0; i < ints.length; i++) {
+      if (ints[i] == seek) {
+        return i;
       }
     }
     return -1;
@@ -158,11 +166,15 @@ public class ImmutableIntList extends FlatLists.AbstractFlatList<Integer> {
 
   public int lastIndexOf(Object o) {
     if (o instanceof Integer) {
-      final int seek = (Integer) o;
-      for (int i = ints.length - 1; i >= 0; --i) {
-        if (ints[i] == seek) {
-          return i;
-        }
+      return lastIndexOf((int) (Integer) o);
+    }
+    return -1;
+  }
+
+  public int lastIndexOf(int seek) {
+    for (int i = ints.length - 1; i >= 0; --i) {
+      if (ints[i] == seek) {
+        return i;
       }
     }
     return -1;

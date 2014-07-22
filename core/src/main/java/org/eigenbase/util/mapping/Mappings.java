@@ -396,6 +396,13 @@ public abstract class Mappings {
 
   /**
    * Creates a mapping by appending two mappings.
+   *
+   * <p>Sources and targets of the second mapping are shifted to the right.</p>
+   *
+   * <p>For example, <pre>append({0:0, 1:1}, {0:0, 1:1, 2:2})</pre> yields
+   * <pre>{0:0, 1:1, 2:2, 3:3, 4:4}</pre>.
+   *
+   * @see #merge
    */
   public static TargetMapping append(
       TargetMapping mapping0,
@@ -423,18 +430,27 @@ public abstract class Mappings {
 
   /**
    * Creates a mapping by merging two mappings. There must be no clashes.
+   *
+   * <p>Unlike {@link #append}, sources and targets are not shifted.
+   *
+   * <p>For example, <code>merge({0:0, 1:1}, {2:2, 3:3, 4:4})</code> yields
+   * <code>{0:0, 1:1, 2:2, 3:3, 4:4}</code>.
+   * <code>merge({0:0, 1:1}, {1:2, 2:3})</code> throws, because there are
+   * two entries with source=1.
    */
   public static TargetMapping merge(
       TargetMapping mapping0,
       TargetMapping mapping1) {
     final int s0 = mapping0.getSourceCount();
     final int s1 = mapping1.getSourceCount();
-    assert s0 == s1;
+    final int sMin = Math.min(s0, s1);
+    final int sMax = Math.max(s0, s1);
     final int t0 = mapping0.getTargetCount();
     final int t1 = mapping1.getTargetCount();
+    final int tMax = Math.max(t0, t1);
     final TargetMapping mapping =
-        create(MappingType.INVERSE_SURJECTION, s0, Math.max(t0, t1));
-    for (int s = 0; s < s0; s++) {
+        create(MappingType.INVERSE_SURJECTION, sMax, tMax);
+    for (int s = 0; s < sMin; s++) {
       int t = mapping0.getTargetOpt(s);
       if (t >= 0) {
         mapping.set(s, t);
@@ -446,7 +462,32 @@ public abstract class Mappings {
         }
       }
     }
+    for (int s = sMin; s < sMax; s++) {
+      int t = s < s0 ? mapping0.getTargetOpt(s) : -1;
+      if (t >= 0) {
+        mapping.set(s, t);
+        assert mapping1.getTargetOpt(s) < 0;
+      } else {
+        t = s < s1 ? mapping1.getTargetOpt(s) : -1;
+        if (t >= 0) {
+          mapping.set(s, t);
+        }
+      }
+    }
     return mapping;
+  }
+
+  /**
+   * Returns a mapping that shifts a given mapping's source by a given
+   * offset, incrementing the number of sources by the minimum possible.
+   *
+   * @param mapping     Input mapping
+   * @param offset      Offset to be applied to each source
+   * @return Shifted mapping
+   */
+  public static TargetMapping offsetSource(
+      final TargetMapping mapping, final int offset) {
+    return offsetSource(mapping, offset, mapping.getSourceCount() + offset);
   }
 
   /**
@@ -480,6 +521,50 @@ public abstract class Mappings {
         },
         sourceCount,
         mapping.getTargetCount());
+  }
+
+  /**
+   * Returns a mapping that shifts a given mapping's target by a given
+   * offset, incrementing the number of targets by the minimum possible.
+   *
+   * @param mapping     Input mapping
+   * @param offset      Offset to be applied to each target
+   * @return Shifted mapping
+   */
+  public static TargetMapping offsetTarget(
+      final TargetMapping mapping, final int offset) {
+    return offsetTarget(mapping, offset, mapping.getTargetCount() + offset);
+  }
+
+  /**
+   * Returns a mapping that shifts a given mapping's target by a given
+   * offset.
+   *
+   * <p>For example, given {@code mapping} with sourceCount=2, targetCount=8,
+   * and (source, target) entries {[0: 5], [1: 7]}, offsetTarget(mapping, 3)
+   * returns a mapping with sourceCount=2, targetCount=11,
+   * and (source, target) entries {[0: 8], [1: 10]}.
+   *
+   * @param mapping     Input mapping
+   * @param offset      Offset to be applied to each target
+   * @param targetCount New target count; must be at least {@code mapping}'s
+   *                    target count plus {@code offset}
+   * @return Shifted mapping
+   */
+  public static TargetMapping offsetTarget(
+      final TargetMapping mapping, final int offset, final int targetCount) {
+    if (targetCount < mapping.getTargetCount() + offset) {
+      throw new IllegalArgumentException("new target count too low");
+    }
+    return target(
+        new Function1<Integer, Integer>() {
+          public Integer apply(Integer source) {
+            int target = mapping.getTargetOpt(source);
+            return target < 0 ? null : target + offset;
+          }
+        },
+        mapping.getSourceCount(),
+        targetCount);
   }
 
   /**

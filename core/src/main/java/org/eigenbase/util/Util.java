@@ -2056,6 +2056,53 @@ public class Util {
         && list0.subList(0, list1.size()).equals(list1);
   }
 
+  /** Converts a number into human-readable form, with 3 digits and a "K", "M"
+   * or "G" multiplier for thousands, millions or billions.
+   *
+   * <p>Examples: -2, 0, 1, 999, 1.00K, 1.99K, 3.45M, 4.56B.</p>
+   */
+  public static String human(double d) {
+    if (d == 0d) {
+      return "0";
+    }
+    if (d < 0d) {
+      return "-" + human(-d);
+    }
+    final int digitCount = (int) Math.floor(Math.log10(d));
+    switch (digitCount) {
+    case 0:
+    case 1:
+    case 2:
+      return Integer.toString((int) d);
+    case 3:
+    case 4:
+    case 5:
+      return digits3(Math.round(d / 10D), digitCount % 3) + "K";
+    case 6:
+    case 7:
+    case 8:
+      return digits3(Math.round(d / 10000D), digitCount % 3) + "M";
+    case 9:
+    case 10:
+    case 11:
+      return digits3(Math.round(d / 10000000D), digitCount % 3) + "G";
+    default:
+      return Double.toString(d);
+    }
+  }
+
+  private static String digits3(long x, int z) {
+    final String s = Long.toString(x);
+    switch (z) {
+    case 0:
+      return s.charAt(0) + "." + s.substring(1, 3);
+    case 1:
+      return s.substring(0, 2) + "." + s.substring(2, 3);
+    default:
+      return s.substring(0, 3);
+    }
+  }
+
   //~ Inner Classes ----------------------------------------------------------
 
   /**

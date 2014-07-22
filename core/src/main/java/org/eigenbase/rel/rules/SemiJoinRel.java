@@ -109,11 +109,11 @@ public final class SemiJoinRel extends JoinRelBase {
         Collections.<RelDataTypeField>emptyList());
   }
 
-  public List<Integer> getLeftKeys() {
+  public ImmutableIntList getLeftKeys() {
     return leftKeys;
   }
 
-  public List<Integer> getRightKeys() {
+  public ImmutableIntList getRightKeys() {
     return rightKeys;
   }
 }

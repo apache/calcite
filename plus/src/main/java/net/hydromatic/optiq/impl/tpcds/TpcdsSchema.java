@@ -23,6 +23,8 @@ import net.hydromatic.linq4j.QueryProvider;
 import net.hydromatic.linq4j.Queryable;
 
 import net.hydromatic.optiq.SchemaPlus;
+import net.hydromatic.optiq.Statistic;
+import net.hydromatic.optiq.Statistics;
 import net.hydromatic.optiq.Table;
 import net.hydromatic.optiq.impl.AbstractSchema;
 import net.hydromatic.optiq.impl.AbstractTableQueryable;
@@ -30,10 +32,13 @@ import net.hydromatic.optiq.impl.java.AbstractQueryableTable;
 
 import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.reltype.RelDataTypeFactory;
+import org.eigenbase.util.Bug;
 
 import com.google.common.collect.ImmutableMap;
 
 import java.sql.Date;
+import java.util.BitSet;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -41,13 +46,41 @@ import net.hydromatic.tpcds.TpcdsColumn;
 import net.hydromatic.tpcds.TpcdsEntity;
 import net.hydromatic.tpcds.TpcdsTable;
 
-/** Schema that provides TPC-H tables, populated according to a
+/** Schema that provides TPC-DS tables, populated according to a
  * particular scale factor. */
 public class TpcdsSchema extends AbstractSchema {
   private final double scaleFactor;
   private final int part;
   private final int partCount;
   private final ImmutableMap<String, Table> tableMap;
+
+  // From TPC-DS spec, table 3-2 "Database Row Counts", for 1G sizing.
+  private static final ImmutableMap<String, Integer> TABLE_ROW_COUNTS =
+      ImmutableMap.<String, Integer>builder()
+          .put("call_center", 8)
+          .put("catalog_page", 11718)
+          .put("catalog_returns", 144067)
+          .put("catalog_sales", 1441548)
+          .put("customer", 50000)
+          .put("demographics", 1920800)
+          .put("date_dim", 73049)
+          .put("household_demographics", 7200)
+          .put("income_band", 20)
+          .put("inventory", 11745000)
+          .put("item", 18000)
+          .put("promotions", 300)
+          .put("reason", 35)
+          .put("ship_mode", 20)
+          .put("store", 12)
+          .put("store_returns", 287514)
+          .put("store_sales", 2880404)
+          .put("time_dim", 86400)
+          .put("warehouse", 5)
+          .put("web_page", 60)
+          .put("web_returns", 71763)
+          .put("web_sales", 719384)
+          .put("web_site", 1)
+          .build();
 
   public TpcdsSchema(double scaleFactor, int part, int partCount) {
     this.scaleFactor = scaleFactor;
@@ -56,6 +89,7 @@ public class TpcdsSchema extends AbstractSchema {
 
     final ImmutableMap.Builder<String, Table> builder = ImmutableMap.builder();
     for (TpcdsTable<?> tpcdsTable : TpcdsTable.getTables()) {
+      //noinspection unchecked
       builder.put(tpcdsTable.getTableName().toUpperCase(),
           new TpcdsQueryableTable(tpcdsTable));
     }
@@ -75,6 +109,12 @@ public class TpcdsSchema extends AbstractSchema {
     TpcdsQueryableTable(TpcdsTable<E> tpcdsTable) {
       super(Object[].class);
       this.tpcdsTable = tpcdsTable;
+    }
+
+    @Override public Statistic getStatistic() {
+      Bug.upgrade("add row count estimate to TpcdsTable, and use it");
+      double rowCount = TABLE_ROW_COUNTS.get(tpcdsTable.name);
+      return Statistics.of(rowCount, Collections.<BitSet>emptyList());
     }
 
     public <T> Queryable<T> asQueryable(final QueryProvider queryProvider,

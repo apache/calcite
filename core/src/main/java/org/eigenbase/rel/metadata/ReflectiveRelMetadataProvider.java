@@ -120,9 +120,14 @@ public class ReflectiveRelMetadataProvider
                           //   Selectivity.selectivity(rex)
                           // by calling method
                           //   new SelectivityImpl().selectivity(filter, rex)
-                          if (method.equals(BuiltinMethod.METADATA_REL.method))
-                          {
+                          if (method.equals(
+                              BuiltinMethod.METADATA_REL.method)) {
                             return rel;
+                          }
+                          if (method.equals(
+                              BuiltinMethod.OBJECT_TO_STRING.method)) {
+                            return metadataClass0.getSimpleName() + "(" + rel
+                                + ")";
                           }
                           final Object[] args1;
                           if (args == null) {

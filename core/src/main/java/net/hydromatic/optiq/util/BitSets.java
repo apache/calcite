@@ -17,6 +17,7 @@
 */
 package net.hydromatic.optiq.util;
 
+import org.eigenbase.util.ImmutableIntList;
 import org.eigenbase.util.IntList;
 
 import java.util.*;
@@ -136,7 +137,7 @@ public final class BitSets {
   }
 
   /**
-   * Creates a bitset with given bits set.
+   * Creates a BitSet with given bits set.
    *
    * <p>For example, {@code of(new Integer[] {0, 3})} returns a bit set
    * with bits {0, 3} set.
@@ -153,7 +154,7 @@ public final class BitSets {
   }
 
   /**
-   * Creates a bitset with given bits set.
+   * Creates a BitSet with given bits set.
    *
    * <p>For example, {@code of(Arrays.asList(0, 3)) } returns a bit set
    * with bits {0, 3} set.
@@ -161,10 +162,27 @@ public final class BitSets {
    * @param bits Collection of bits to set
    * @return Bit set
    */
-  public static BitSet of(Collection<? extends Number> bits) {
+  public static BitSet of(Iterable<? extends Number> bits) {
     final BitSet bitSet = new BitSet();
     for (Number bit : bits) {
       bitSet.set(bit.intValue());
+    }
+    return bitSet;
+  }
+
+  /**
+   * Creates a BitSet with given bits set.
+   *
+   * <p>For example, {@code of(ImmutableIntList.of(0, 3))} returns a bit set
+   * with bits {0, 3} set.
+   *
+   * @param bits Collection of bits to set
+   * @return Bit set
+   */
+  public static BitSet of(ImmutableIntList bits) {
+    final BitSet bitSet = new BitSet();
+    for (int i = 0, n = bits.size(); i < n; i++) {
+      bitSet.set(bits.getInt(i));
     }
     return bitSet;
   }
@@ -190,6 +208,7 @@ public final class BitSets {
     return bitSet;
   }
 
+  /** Creates a BitSet with bits between 0 and {@code toIndex} set. */
   public static BitSet range(int toIndex) {
     return range(0, toIndex);
   }

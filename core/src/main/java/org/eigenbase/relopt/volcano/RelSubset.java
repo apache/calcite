@@ -129,10 +129,10 @@ public class RelSubset extends AbstractRelNode {
   }
 
   public double getRows() {
-    if (best == null) {
-      return Double.POSITIVE_INFINITY;
-    } else {
+    if (best != null) {
       return RelMetadataQuery.getRowCount(best);
+    } else {
+      return RelMetadataQuery.getRowCount(set.rel);
     }
   }
 

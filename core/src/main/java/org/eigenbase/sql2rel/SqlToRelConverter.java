@@ -571,11 +571,9 @@ public class SqlToRelConverter {
         return;
       }
 
-      Map<Integer, Integer> squished = new HashMap<Integer, Integer>();
-      final List<RelDataTypeField> fields =
-          rel.getRowType().getFieldList();
-      List<Pair<RexNode, String>> newProjects =
-          new ArrayList<Pair<RexNode, String>>();
+      final Map<Integer, Integer> squished = Maps.newHashMap();
+      final List<RelDataTypeField> fields = rel.getRowType().getFieldList();
+      final List<Pair<RexNode, String>> newProjects = Lists.newArrayList();
       for (int i = 0; i < fields.size(); i++) {
         if (origins.get(i) == i) {
           squished.put(i, newProjects.size());
@@ -596,8 +594,7 @@ public class SqlToRelConverter {
 
       // Create the expressions to reverse the mapping.
       // Project($0, $1, $0, $2).
-      List<Pair<RexNode, String>> undoProjects =
-          new ArrayList<Pair<RexNode, String>>();
+      final List<Pair<RexNode, String>> undoProjects = Lists.newArrayList();
       for (int i = 0; i < fields.size(); i++) {
         final int origin = origins.get(i);
         RelDataTypeField field = fields.get(i);
@@ -625,12 +622,11 @@ public class SqlToRelConverter {
 
     // Usual case: all of the expressions in the SELECT clause are
     // different.
-    List<AggregateCall> aggCalls = Collections.emptyList();
     rel =
         createAggregate(
             bb,
             BitSets.range(rel.getRowType().getFieldCount()),
-            aggCalls);
+            ImmutableList.<AggregateCall>of());
 
     bb.setRoot(
         rel,

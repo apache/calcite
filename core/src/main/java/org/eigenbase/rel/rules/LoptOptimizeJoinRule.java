@@ -25,6 +25,7 @@ import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.*;
 import org.eigenbase.rex.*;
 import org.eigenbase.sql.fun.*;
+import org.eigenbase.util.ImmutableIntList;
 import org.eigenbase.util.Pair;
 import org.eigenbase.util.mapping.IntPair;
 
@@ -445,7 +446,7 @@ public class LoptOptimizeJoinRule extends RelOptRule {
    *
    * @param multiJoin join factors being optimized
    * @param joinTree selected join ordering
-   * @param fieldNames fieldnames corresponding to the projection expressions
+   * @param fieldNames field names corresponding to the projection expressions
    *
    * @return created projection
    */
@@ -459,8 +460,7 @@ public class LoptOptimizeJoinRule extends RelOptRule {
 
     // create a projection on top of the joins, matching the original
     // join order
-    List<Integer> newJoinOrder = new ArrayList<Integer>();
-    joinTree.getTreeOrder(newJoinOrder);
+    final List<Integer> newJoinOrder = joinTree.getTreeOrder();
     int nJoinFactors = multiJoin.getNumJoinFactors();
     List<RelDataTypeField> fields = multiJoin.getMultiJoinFields();
 
@@ -536,9 +536,7 @@ public class LoptOptimizeJoinRule extends RelOptRule {
       LoptJoinTree joinTree,
       List<RexNode> filters,
       int factor) {
-    int nJoinFactors = multiJoin.getNumJoinFactors();
-    BitSet childFactors = new BitSet(nJoinFactors);
-    multiJoin.getChildFactors(joinTree, childFactors);
+    BitSet childFactors = BitSets.of(joinTree.getTreeOrder());
     childFactors.set(factor);
 
     int factorStart = multiJoin.getJoinStart(factor);
@@ -558,12 +556,9 @@ public class LoptOptimizeJoinRule extends RelOptRule {
 
     // then loop through the outer join filters where the factor being
     // added is the null generating factor in the outer join
-    RexNode outerJoinCond = multiJoin.getOuterJoinCond(factor);
-    List<RexNode> outerJoinFilters = new ArrayList<RexNode>();
-    RelOptUtil.decomposeConjunction(outerJoinCond, outerJoinFilters);
     setFactorJoinKeys(
         multiJoin,
-        outerJoinFilters,
+        RelOptUtil.conjunctions(multiJoin.getOuterJoinCond(factor)),
         childFactors,
         factorStart,
         nFields,
@@ -845,7 +840,7 @@ public class LoptOptimizeJoinRule extends RelOptRule {
           joinTree,
           -1,
           factorToAdd,
-          new ArrayList<Integer>(),
+          ImmutableIntList.of(),
           null,
           filtersToAdd);
     }
@@ -1038,8 +1033,7 @@ public class LoptOptimizeJoinRule extends RelOptRule {
     // remember the original join order before the pushdown so we can
     // appropriately adjust any filters already attached to the join
     // node
-    List<Integer> origJoinOrder = new ArrayList<Integer>();
-    joinTree.getTreeOrder(origJoinOrder);
+    final List<Integer> origJoinOrder = joinTree.getTreeOrder();
 
     // recursively pushdown the factor
     LoptJoinTree subTree = (childNo == 0) ? left : right;
@@ -1212,19 +1206,18 @@ public class LoptOptimizeJoinRule extends RelOptRule {
       boolean adjust) {
     // loop through the remaining filters to be added and pick out the
     // ones that reference only the factors in the new join tree
-    RexNode condition = null;
-    ListIterator<RexNode> filterIter = filtersToAdd.listIterator();
-    int nJoinFactors = multiJoin.getNumJoinFactors();
-    RexBuilder rexBuilder =
+    final RexBuilder rexBuilder =
         multiJoin.getMultiJoinRel().getCluster().getRexBuilder();
-    BitSet childFactors = new BitSet(nJoinFactors);
+    final BitSet childFactors = BitSets.of(rightTree.getTreeOrder());
     if (leftIdx >= 0) {
       childFactors.set(leftIdx);
     } else {
-      multiJoin.getChildFactors(leftTree, childFactors);
+      BitSets.setAll(childFactors, leftTree.getTreeOrder());
     }
     multiJoin.getChildFactors(rightTree, childFactors);
 
+    RexNode condition = null;
+    final ListIterator<RexNode> filterIter = filtersToAdd.listIterator();
     while (filterIter.hasNext()) {
       RexNode joinFilter = filterIter.next();
       BitSet filterBitmap =
@@ -1491,8 +1484,7 @@ public class LoptOptimizeJoinRule extends RelOptRule {
     }
 
     int factIdx = multiJoin.getJoinRemovalFactor(dimIdx);
-    List<Integer> joinOrder = new ArrayList<Integer>();
-    factTree.getTreeOrder(joinOrder);
+    final List<Integer> joinOrder = factTree.getTreeOrder();
     assert joinOrder.contains(factIdx);
 
     // figure out the position of the fact table in the current jointree
@@ -1511,8 +1503,8 @@ public class LoptOptimizeJoinRule extends RelOptRule {
     int nDimFields = dimFields.size();
     Integer [] replacementKeys = new Integer[nDimFields];
     SemiJoinRel semiJoin = multiJoin.getJoinRemovalSemiJoin(dimIdx);
-    List<Integer> dimKeys = semiJoin.getRightKeys();
-    List<Integer> factKeys = semiJoin.getLeftKeys();
+    ImmutableIntList dimKeys = semiJoin.getRightKeys();
+    ImmutableIntList factKeys = semiJoin.getLeftKeys();
     for (int i = 0; i < dimKeys.size(); i++) {
       replacementKeys[dimKeys.get(i)] = factKeys.get(i) + adjustment;
     }
@@ -1554,7 +1546,7 @@ public class LoptOptimizeJoinRule extends RelOptRule {
       LoptJoinTree currJoinTree,
       int leftIdx,
       int factorToAdd,
-      List<Integer> newKeys,
+      ImmutableIntList newKeys,
       Integer [] replacementKeys,
       List<RexNode> filtersToAdd) {
     // create a projection, projecting the fields from the join tree

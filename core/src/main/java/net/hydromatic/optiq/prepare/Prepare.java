@@ -21,7 +21,6 @@ import net.hydromatic.optiq.DataContext;
 import net.hydromatic.optiq.impl.StarTable;
 import net.hydromatic.optiq.jdbc.OptiqPrepare;
 import net.hydromatic.optiq.jdbc.OptiqSchema;
-import net.hydromatic.optiq.rules.java.JavaRules;
 import net.hydromatic.optiq.runtime.Bindable;
 import net.hydromatic.optiq.runtime.Hook;
 import net.hydromatic.optiq.runtime.Typed;
@@ -29,8 +28,6 @@ import net.hydromatic.optiq.tools.Program;
 import net.hydromatic.optiq.tools.Programs;
 
 import org.eigenbase.rel.*;
-import org.eigenbase.rel.metadata.*;
-import org.eigenbase.rel.rules.*;
 import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.rex.RexBuilder;
@@ -40,6 +37,7 @@ import org.eigenbase.sql.validate.*;
 import org.eigenbase.sql2rel.SqlToRelConverter;
 import org.eigenbase.trace.EigenbaseTimingTracer;
 import org.eigenbase.trace.EigenbaseTrace;
+import org.eigenbase.util.Pair;
 
 import com.google.common.collect.ImmutableList;
 
@@ -54,24 +52,6 @@ import java.util.logging.Logger;
  */
 public abstract class Prepare {
   protected static final Logger LOGGER = EigenbaseTrace.getStatementTracer();
-
-  private static final ImmutableList<RelOptRule> CALC_RULES =
-      ImmutableList.of(
-          JavaRules.ENUMERABLE_CALC_RULE,
-          JavaRules.ENUMERABLE_FILTER_TO_CALC_RULE,
-          JavaRules.ENUMERABLE_PROJECT_TO_CALC_RULE,
-          MergeCalcRule.INSTANCE,
-          MergeFilterOntoCalcRule.INSTANCE,
-          MergeProjectOntoCalcRule.INSTANCE,
-          FilterToCalcRule.INSTANCE,
-          ProjectToCalcRule.INSTANCE,
-          MergeCalcRule.INSTANCE,
-
-          // REVIEW jvs 9-Apr-2006: Do we still need these two?  Doesn't the
-          // combination of MergeCalcRule, FilterToCalcRule, and
-          // ProjectToCalcRule have the same effect?
-          MergeFilterOntoCalcRule.INSTANCE,
-          MergeProjectOntoCalcRule.INSTANCE);
 
   protected final OptiqPrepare.Context context;
   protected final CatalogReader catalogReader;
@@ -124,39 +104,19 @@ public abstract class Prepare {
     planner.setRoot(rootRel);
 
     final RelTraitSet desiredTraits = getDesiredRootTraitSet(rootRel);
-    final Program program1 =
-        new Program() {
-          public RelNode run(RelOptPlanner planner, RelNode rel,
-              RelTraitSet requiredOutputTraits) {
-            final DataContext dataContext = context.getDataContext();
-            planner.setExecutor(new RexExecutorImpl(dataContext));
+    final Program program = getProgram();
 
-            for (Materialization materialization : materializations) {
-              planner.addMaterialization(
-                  new RelOptMaterialization(materialization.tableRel,
-                      materialization.queryRel,
-                      materialization.starRelOptTable));
-            }
+    final DataContext dataContext = context.getDataContext();
+    planner.setExecutor(new RexExecutorImpl(dataContext));
 
-            final RelNode rootRel2 =
-                planner.changeTraits(rel, requiredOutputTraits);
-            assert rootRel2 != null;
+    for (Materialization materialization : materializations) {
+      planner.addMaterialization(
+          new RelOptMaterialization(materialization.tableRel,
+              materialization.queryRel,
+              materialization.starRelOptTable));
+    }
 
-            planner.setRoot(rootRel2);
-            final RelOptPlanner planner2 = planner.chooseDelegate();
-            final RelNode rootRel3 = planner2.findBestExp();
-            assert rootRel3 != null : "could not implement exp";
-            return rootRel3;
-          }
-        };
-
-    final RelNode rootRel3 = program1.run(planner, rootRel, desiredTraits);
-
-    // Second planner pass to do physical "tweaks". This the first time that
-    // EnumerableCalcRel is introduced.
-    final Program program2 =
-        Programs.hep(CALC_RULES, true, new DefaultRelMetadataProvider());
-    final RelNode rootRel4 = program2.run(null, rootRel3, null);
+    final RelNode rootRel4 = program.run(planner, rootRel, desiredTraits);
     if (LOGGER.isLoggable(Level.FINE)) {
       LOGGER.fine(
           "Plan after physical tweaks: "
@@ -164,6 +124,19 @@ public abstract class Prepare {
     }
 
     return rootRel4;
+  }
+
+  private Program getProgram() {
+    // Allow a test to override the planner.
+    final List<Materialization> materializations = ImmutableList.of();
+    final Pair<List<Materialization>, Program[]> pair =
+        Pair.of(materializations, new Program[1]);
+    Hook.PROGRAM.run(pair);
+    if (pair.right[0] != null) {
+      return pair.right[0];
+    }
+
+    return Programs.standard();
   }
 
   protected RelTraitSet getDesiredRootTraitSet(RelNode rootRel) {
