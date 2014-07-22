@@ -1376,6 +1376,7 @@ public abstract class RelOptUtil {
     planner.addRule(RemoveEmptyRules.JOIN_RIGHT_INSTANCE);
     planner.addRule(RemoveEmptyRules.SORT_FETCH_ZERO_INSTANCE);
     planner.addRule(WindowedAggSplitterRule.PROJECT);
+    planner.addRule(MergeFilterRule.INSTANCE);
   }
 
   /**

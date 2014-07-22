@@ -206,16 +206,6 @@ public class RexBuilder {
   public RexNode makeCall(
       SqlOperator op,
       List<? extends RexNode> exprs) {
-    // TODO jvs 12-Jun-2010:  Find a better place for this;
-    // it surely does not belong here.
-    if (op == SqlStdOperatorTable.AND
-        && exprs.size() == 2
-        && exprs.get(0).equals(exprs.get(1))) {
-      // Avoid generating 'AND(x, x)'; this can cause plan explosions if a
-      // relnode is its own child and is merged with itself.
-      return exprs.get(0);
-    }
-
     final RelDataType type = deriveReturnType(op, typeFactory, exprs);
     return new RexCall(type, op, exprs);
   }

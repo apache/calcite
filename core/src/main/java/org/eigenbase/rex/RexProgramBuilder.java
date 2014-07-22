@@ -248,14 +248,16 @@ public class RexProgramBuilder {
       conditionRef = registerInput(expr);
     } else {
       // AND the new condition with the existing condition.
+      // If the new condition is identical to the existing condition, skip it.
       RexLocalRef ref = registerInput(expr);
-      final RexLocalRef andRef =
-          registerInput(
-              rexBuilder.makeCall(
-                  SqlStdOperatorTable.AND,
-                  conditionRef,
-                  ref));
-      conditionRef = andRef;
+      if (!ref.equals(conditionRef)) {
+        conditionRef =
+            registerInput(
+                rexBuilder.makeCall(
+                    SqlStdOperatorTable.AND,
+                    conditionRef,
+                    ref));
+      }
     }
   }
 
