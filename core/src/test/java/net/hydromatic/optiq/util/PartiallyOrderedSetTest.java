@@ -17,6 +17,8 @@
 */
 package net.hydromatic.optiq.util;
 
+import net.hydromatic.optiq.test.OptiqAssert;
+
 import org.eigenbase.util.TestUtil;
 
 import org.junit.Test;
@@ -30,7 +32,9 @@ import static org.junit.Assert.*;
  */
 public class PartiallyOrderedSetTest {
   private static final boolean DEBUG = false;
-  private static final int SCALE = 100; // 100, 250, 1000, 3000 are reasonable
+
+  // 100, 250, 1000, 3000 are reasonable
+  private static final int SCALE = OptiqAssert.ENABLE_SLOW ? 250 : 50;
 
   final long seed = new Random().nextLong();
   final Random random = new Random(seed);
@@ -215,6 +219,9 @@ public class PartiallyOrderedSetTest {
   }
 
   @Test public void testDivisorPoset() {
+    if (!OptiqAssert.ENABLE_SLOW) {
+      return;
+    }
     PartiallyOrderedSet<Integer> integers =
         new PartiallyOrderedSet<Integer>(IS_DIVISOR, range(1, 1000));
     assertEquals(
