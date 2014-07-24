@@ -1,42 +1,28 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>org.apache</groupId>
+    <artifactId>apache</artifactId>
+    <version>14</version>
+  </parent>
 
   <!-- The basics. -->
-  <groupId>net.hydromatic</groupId>
-  <artifactId>optiq-parent</artifactId>
+  <groupId>org.apache.optiq</groupId>
+  <artifactId>optiq</artifactId>
   <packaging>pom</packaging>
-  <version>0.9-SNAPSHOT</version>
+  <version>0.9.0-incubating-SNAPSHOT</version>
 
   <!-- More project information. -->
-  <name>optiq-parent</name>
+  <name>optiq</name>
   <description>Optiq is a dynamic data management framework.</description>
-  <url>http://github.com/julianhyde/optiq</url>
+  <url>http://incubator.apache.org/optiq</url>
   <inceptionYear>2012</inceptionYear>
-  <organization>
-    <name>Julian Hyde</name>
-    <url>http://www.hydromatic.net</url>
-  </organization>
   <licenses>
     <license>
       <name>Apache 2</name>
       <url>http://www.apache.org/licenses/LICENSE-2.0.html</url>
     </license>
   </licenses>
-
-  <developers>
-    <developer>
-      <id>julianhyde</id>
-      <name>Julian Hyde</name>
-      <email>julianhyde@gmail.com</email>
-      <url>https://github.com/julianhyde</url>
-      <roles>
-        <role>architect</role>
-        <role>developer</role>
-      </roles>
-      <timezone>-8</timezone>
-      <properties />
-    </developer>
-  </developers>
 
   <mailingLists>
     <mailingList>
@@ -53,30 +39,15 @@
     <top.dir>${project.basedir}</top.dir>
   </properties>
 
-  <!-- Environment settings. -->
-  <distributionManagement>
-    <repository>
-      <id>conjars</id>
-      <name>Concurrent Conjars repository</name>
-      <url>http://conjars.org/repo</url>
-      <layout>default</layout>
-    </repository>
-    <site>
-      <id>optiq.website</id>
-      <name>Optiq Website</name>
-      <url>file:/home/jhyde/optiq</url>
-    </site>
-  </distributionManagement>
-
   <issueManagement>
     <system>Jira</system>
     <url>https://issues.apache.org/jira/browse/OPTIQ</url>
   </issueManagement>
 
   <scm>
-    <connection>scm:git:git://github.com/julianhyde/optiq.git</connection>
-    <developerConnection>scm:git:git@github.com:julianhyde/optiq.git</developerConnection>
-    <url>http://github.com/julianhyde/optiq/tree/master</url>
+    <connection>scm:git:https://git-wip-us.apache.org/repos/asf/incubator-optiq.git</connection>
+    <developerConnection>scm:git:https://git-wip-us.apache.org/repos/asf/incubator-optiq.git</developerConnection>
+    <url>https://github.com/apache/incubator-optiq</url>
     <tag>HEAD</tag>
   </scm>
 
@@ -178,12 +149,12 @@
   <dependencyManagement>
     <dependencies>
       <dependency>
-        <groupId>net.hydromatic</groupId>
+        <groupId>org.apache.optiq</groupId>
         <artifactId>optiq-avatica</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
-        <groupId>net.hydromatic</groupId>
+        <groupId>org.apache.optiq</groupId>
         <artifactId>optiq-core</artifactId>
         <version>${project.version}</version>
       </dependency>

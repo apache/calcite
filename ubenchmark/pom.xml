@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-  <parent>
-    <artifactId>optiq-parent</artifactId>
-    <groupId>net.hydromatic</groupId>
-    <version>0.9-SNAPSHOT</version>
-  </parent>
   <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>org.apache.optiq</groupId>
+    <artifactId>optiq</artifactId>
+    <version>0.9.0-incubating-SNAPSHOT</version>
+  </parent>
 
   <properties>
     <top.dir>${project.basedir}/..</top.dir>
@@ -34,7 +34,7 @@
       <scope>provided</scope>
     </dependency>
     <dependency>
-      <groupId>net.hydromatic</groupId>
+      <groupId>org.apache.optiq</groupId>
       <artifactId>optiq-core</artifactId>
     </dependency>
   </dependencies>
