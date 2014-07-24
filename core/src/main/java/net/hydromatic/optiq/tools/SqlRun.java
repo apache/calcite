@@ -179,79 +179,80 @@ public class SqlRun {
 
     private Command nextCommand() throws IOException {
       lines.clear();
-      String line = nextLine();
-      if (line == null) {
-        return null;
-      }
-      if (line.startsWith("#") || line.isEmpty()) {
-        return new CommentCommand(lines);
-      }
-      if (line.startsWith("!")) {
-        line = line.substring(1);
-        while (line.startsWith(" ")) {
-          line = line.substring(1);
-        }
-        if (line.startsWith("use")) {
-          String[] parts = line.split(" ");
-          return new UseCommand(lines, parts[1]);
-        }
-        if (line.startsWith("ok")) {
-          SqlCommand command = previousSqlCommand();
-          return new CheckResultCommand(lines, command);
-        }
-        if (line.startsWith("plan")) {
-          SqlCommand command = previousSqlCommand();
-          return new ExplainCommand(lines, command);
-        }
-        if (line.startsWith("skip")) {
-          return new SkipCommand(lines);
-        }
-        if (line.startsWith("set outputformat")) {
-          String[] parts = line.split(" ");
-          final OutputFormat outputFormat =
-              OutputFormat.valueOf(parts[2].toUpperCase());
-          return new SetCommand(lines, Property.OUTPUTFORMAT, outputFormat);
-        }
-        if (line.equals("if (false) {")) {
-          List<String> ifLines = ImmutableList.copyOf(lines);
-          lines.clear();
-          Command command = new Parser().parse();
-          return new IfCommand(ifLines, lines, command);
-        }
-        if (line.equals("}")) {
+      ImmutableList<String> content = ImmutableList.of();
+      for (;;) {
+        String line = nextLine();
+        if (line == null) {
           return null;
         }
-        throw new RuntimeException("Unknown command: " + line);
-      }
-      buf.setLength(0);
-      for (;;) {
+        if (line.startsWith("#") || line.isEmpty()) {
+          return new CommentCommand(lines);
+        }
+        if (line.startsWith("!")) {
+          line = line.substring(1);
+          while (line.startsWith(" ")) {
+            line = line.substring(1);
+          }
+          if (line.startsWith("use")) {
+            String[] parts = line.split(" ");
+            return new UseCommand(lines, parts[1]);
+          }
+          if (line.startsWith("ok")) {
+            SqlCommand command = previousSqlCommand();
+            return new CheckResultCommand(lines, command, content);
+          }
+          if (line.startsWith("plan")) {
+            SqlCommand command = previousSqlCommand();
+            return new ExplainCommand(lines, command, content);
+          }
+          if (line.startsWith("skip")) {
+            return new SkipCommand(lines);
+          }
+          if (line.startsWith("set outputformat")) {
+            String[] parts = line.split(" ");
+            final OutputFormat outputFormat =
+                OutputFormat.valueOf(parts[2].toUpperCase());
+            return new SetCommand(lines, Property.OUTPUTFORMAT, outputFormat);
+          }
+          if (line.equals("if (false) {")) {
+            List<String> ifLines = ImmutableList.copyOf(lines);
+            lines.clear();
+            Command command = new Parser().parse();
+            return new IfCommand(ifLines, lines, command);
+          }
+          if (line.equals("}")) {
+            return null;
+          }
+          throw new RuntimeException("Unknown command: " + line);
+        }
+        buf.setLength(0);
         boolean last = false;
-        if (line.endsWith(";")) {
-          last = true;
-          line = line.substring(0, line.length() - 1);
+        for (;;) {
+          if (line.endsWith(";")) {
+            last = true;
+            line = line.substring(0, line.length() - 1);
+          }
+          buf.append(line).append("\n");
+          if (last) {
+            break;
+          }
+          line = nextLine();
+          if (line == null) {
+            throw new RuntimeException(
+                "end of file reached before end of SQL command");
+          }
+          if (line.startsWith("!") || line.startsWith("#")) {
+            pushLine();
+            break;
+          }
         }
-        buf.append(line).append("\n");
+        content = ImmutableList.copyOf(lines);
+        lines.clear();
         if (last) {
-          break;
-        }
-        line = nextLine();
-        if (line == null) {
-          throw new RuntimeException(
-              "end of file reached before end of SQL command");
+          String sql = buf.toString();
+          return new SqlCommand(content, sql, null);
         }
       }
-      final ImmutableList<String> sqlLines = ImmutableList.copyOf(lines);
-      String sql = buf.toString();
-      for (;;) {
-        line = nextLine();
-        if (line == null || line.startsWith("!") || line.startsWith("#")) {
-          pushLine();
-          break;
-        }
-      }
-      final List<String> outputLines =
-          lines.subList(sqlLines.size(), lines.size());
-      return new SqlCommand(sqlLines, sql, outputLines);
     }
 
     private SqlCommand previousSqlCommand() {
@@ -492,16 +493,38 @@ public class SqlRun {
   /** Command that executes a SQL statement and checks its result. */
   class CheckResultCommand extends SimpleCommand {
     private final SqlCommand sqlCommand;
+    private final ImmutableList<String> output;
 
-    public CheckResultCommand(List<String> lines, SqlCommand sqlCommand) {
+    public CheckResultCommand(List<String> lines, SqlCommand sqlCommand,
+        ImmutableList<String> output) {
       super(lines);
       this.sqlCommand = sqlCommand;
+      this.output = output;
     }
 
     public void execute(boolean execute) throws Exception {
       if (execute) {
-        OutputFormat format = (OutputFormat) map.get(Property.OUTPUTFORMAT);
+        if (connection == null) {
+          throw new RuntimeException("no connection");
+        }
+        final Statement statement = connection.createStatement();
         if (resultSet != null) {
+          resultSet.close();
+        }
+        try {
+          if (OptiqPrepareImpl.DEBUG) {
+            System.out.println("sql=" + sqlCommand.sql);
+          }
+          resultSet = null;
+          resultSetException = null;
+          resultSet = statement.executeQuery(sqlCommand.sql);
+          sort = !sqlCommand.sql.toUpperCase().contains("ORDER BY");
+        } catch (SQLException e) {
+          resultSetException = e;
+        }
+        if (resultSet != null) {
+          final OutputFormat format =
+              (OutputFormat) map.get(Property.OUTPUTFORMAT);
           final List<String> headerLines = new ArrayList<String>();
           final List<String> bodyLines = new ArrayList<String>();
           final List<String> footerLines = new ArrayList<String>();
@@ -512,7 +535,7 @@ public class SqlRun {
           // Strip the header and footer from the actual output.
           // We assume that original and actual header have the same line count.
           // Ditto footers.
-          final List<String> lines = new ArrayList<String>(sqlCommand.output);
+          final List<String> lines = new ArrayList<String>(output);
           for (String line : headerLines) {
             if (!lines.isEmpty()) {
               lines.remove(0);
@@ -551,6 +574,8 @@ public class SqlRun {
         }
         resultSet = null;
         resultSetException = null;
+      } else {
+        echo(output);
       }
       echo(lines);
     }
@@ -559,10 +584,14 @@ public class SqlRun {
   /** Command that prints the plan for the current query. */
   class ExplainCommand extends SimpleCommand {
     private final SqlCommand sqlCommand;
+    private final ImmutableList<String> content;
 
-    public ExplainCommand(List<String> lines, SqlCommand sqlCommand) {
+    public ExplainCommand(List<String> lines,
+        SqlCommand sqlCommand,
+        ImmutableList<String> content) {
       super(lines);
       this.sqlCommand = sqlCommand;
+      this.content = content;
     }
 
     public void execute(boolean execute) throws Exception {
@@ -578,6 +607,8 @@ public class SqlRun {
           throw new AssertionError("explain returned more than 1 record");
         }
         printWriter.flush();
+      } else {
+        echo(content);
       }
       echo(lines);
     }
@@ -586,36 +617,14 @@ public class SqlRun {
   /** Command that executes a SQL statement. */
   private class SqlCommand extends SimpleCommand {
     private final String sql;
-    private final ImmutableList<String> output;
 
     protected SqlCommand(List<String> lines, String sql, List<String> output) {
       super(lines);
       this.sql = Preconditions.checkNotNull(sql);
-      this.output = ImmutableList.copyOf(output);
     }
 
     public void execute(boolean execute) throws Exception {
       echo(lines);
-      if (execute) {
-        if (connection == null) {
-          throw new RuntimeException("no connection");
-        }
-        final Statement statement = connection.createStatement();
-        if (resultSet != null) {
-          resultSet.close();
-        }
-        try {
-          if (OptiqPrepareImpl.DEBUG) {
-            System.out.println("sql=" + sql);
-          }
-          resultSet = statement.executeQuery(sql);
-          sort = !sql.toUpperCase().contains("ORDER BY");
-        } catch (SQLException e) {
-          resultSetException = e;
-        }
-      } else {
-        echo(output);
-      }
     }
   }
 
@@ -631,7 +640,11 @@ public class SqlRun {
     OUTPUTFORMAT
   }
 
-  /** Command that executes a SQL statement and checks its result. */
+  /** Command that defines the current SQL statement.
+   *
+   * @see CheckResultCommand
+   * @see ExplainCommand
+   */
   class SetCommand extends SimpleCommand {
     private final Property property;
     private final Object value;

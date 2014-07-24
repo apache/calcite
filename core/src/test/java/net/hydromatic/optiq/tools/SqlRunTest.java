@@ -44,6 +44,7 @@ public class SqlRunTest {
         + "!set outputformat mysql\n"
         + "select count(*) as c1 from \"foodmart\".\"days\";\n"
         + "!ok\n"
+        + "!plan\n"
         + "\n",
         "!use foodmart\n"
         + "select count(*) as c1 from \"foodmart\".\"days\";\n"
@@ -60,6 +61,11 @@ public class SqlRunTest {
         + "(1 row)\n"
         + "\n"
         + "!ok\n"
+        + "JdbcToEnumerableConverter\n"
+        + "  JdbcAggregateRel(group=[{}], C1=[COUNT()])\n"
+        + "    JdbcProjectRel(DUMMY=[0])\n"
+        + "      JdbcTableScan(table=[[foodmart, days]])\n"
+        + "!plan\n"
         + "\n");
   }
 
@@ -130,6 +136,46 @@ public class SqlRunTest {
             + "EXPR$0\n"
             + "3\n"
             + "4\n"
+            + "!ok\n"
+            + "\n"));
+  }
+
+  /** Content inside a '!ok' command, that needs to be matched. */
+  @Test public void testOkContent() {
+    check(
+        "!use foodmart\n"
+        + "values (1), (2);\n"
+        + "baz\n"
+        + "!ok\n"
+        + "\n",
+        containsString(
+            "!use foodmart\n"
+            + "values (1), (2);\n"
+            + "EXPR$0\n"
+            + "1\n"
+            + "2\n"
+            + "!ok\n"
+            + "\n"));
+  }
+
+  /** Content inside a '!plan' command, that needs to be matched. */
+  @Test public void testPlanContent() {
+    check(
+        "!use foodmart\n"
+        + "values (1), (2);\n"
+        + "foo\n"
+        + "!plan\n"
+        + "baz\n"
+        + "!ok\n"
+        + "\n",
+        containsString(
+            "!use foodmart\n"
+            + "values (1), (2);\n"
+            + "EnumerableValuesRel(tuples=[[{ 1 }, { 2 }]])\n"
+            + "!plan\n"
+            + "EXPR$0\n"
+            + "1\n"
+            + "2\n"
             + "!ok\n"
             + "\n"));
   }
