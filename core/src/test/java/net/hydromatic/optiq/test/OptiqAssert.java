@@ -33,6 +33,7 @@ import org.eigenbase.rel.RelNode;
 import org.eigenbase.relopt.RelOptUtil;
 import org.eigenbase.util.*;
 
+import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMultiset;
 
@@ -400,9 +401,8 @@ public class OptiqAssert {
     final String message =
         "With materializationsEnabled=" + materializationsEnabled;
     Hook.Closeable closeable = Hook.TRIMMED.addThread(
-        new Function1<Object, Object>() {
-          public Object apply(Object a0) {
-            RelNode rel = (RelNode) a0;
+        new Function<RelNode, Object>() {
+          public Void apply(RelNode rel) {
             convertChecker.apply(rel);
             return null;
           }
@@ -1021,9 +1021,9 @@ public class OptiqAssert {
         return;
       }
       final Hook.Closeable hook = Hook.JAVA_PLAN.addThread(
-          new Function1<Object, Object>() {
-            public Object apply(Object a0) {
-              plan = (String) a0;
+          new Function<String, Void>() {
+            public Void apply(String a0) {
+              plan = a0;
               return null;
             }
           });
@@ -1046,8 +1046,8 @@ public class OptiqAssert {
     public AssertQuery queryContains(Function1<List, Void> predicate1) {
       final List<Object> list = new ArrayList<Object>();
       final Hook.Closeable hook = Hook.QUERY_PLAN.addThread(
-          new Function1<Object, Object>() {
-            public Object apply(Object a0) {
+          new Function<Object, Void>() {
+            public Void apply(Object a0) {
               list.add(a0);
               return null;
             }

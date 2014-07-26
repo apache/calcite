@@ -17,7 +17,7 @@
 */
 package net.hydromatic.optiq.runtime;
 
-import net.hydromatic.linq4j.function.Function1;
+import com.google.common.base.Function;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -52,13 +52,13 @@ public enum Hook {
    * pipeline expressions (for the MongoDB adapter), et cetera. */
   QUERY_PLAN;
 
-  private final List<Function1<Object, Object>> handlers =
-      new CopyOnWriteArrayList<Function1<Object, Object>>();
+  private final List<Function<Object, Object>> handlers =
+      new CopyOnWriteArrayList<Function<Object, Object>>();
 
-  private final ThreadLocal<List<Function1<Object, Object>>> threadHandlers =
-      new ThreadLocal<List<Function1<Object, Object>>>() {
-        protected List<Function1<Object, Object>> initialValue() {
-          return new ArrayList<Function1<Object, Object>>();
+  private final ThreadLocal<List<Function<Object, Object>>> threadHandlers =
+      new ThreadLocal<List<Function<Object, Object>>>() {
+        protected List<Function<Object, Object>> initialValue() {
+          return new ArrayList<Function<Object, Object>>();
         }
       };
 
@@ -76,8 +76,9 @@ public enum Hook {
    *     }</pre>
    * </blockquote>
    */
-  public Closeable add(final Function1<Object, Object> handler) {
-    handlers.add(handler);
+  public <T, R> Closeable add(final Function<T, R> handler) {
+    //noinspection unchecked
+    handlers.add((Function<Object, Object>) handler);
     return new Closeable() {
       public void close() {
         remove(handler);
@@ -86,13 +87,14 @@ public enum Hook {
   }
 
   /** Removes a handler from this Hook. */
-  private boolean remove(Function1 handler) {
+  private boolean remove(Function handler) {
     return handlers.remove(handler);
   }
 
   /** Adds a handler for this thread. */
-  public Closeable addThread(final Function1<Object, Object> handler) {
-    threadHandlers.get().add(handler);
+  public <T, R> Closeable addThread(final Function<T, R> handler) {
+    //noinspection unchecked
+    threadHandlers.get().add((Function<Object, Object>) handler);
     return new Closeable() {
       public void close() {
         removeThread(handler);
@@ -101,16 +103,16 @@ public enum Hook {
   }
 
   /** Removes a thread handler from this Hook. */
-  private boolean removeThread(Function1 handler) {
+  private boolean removeThread(Function handler) {
     return threadHandlers.get().remove(handler);
   }
 
   /** Runs all handlers registered for this Hook, with the given argument. */
   public void run(Object arg) {
-    for (Function1<Object, Object> handler : handlers) {
+    for (Function<Object, Object> handler : handlers) {
       handler.apply(arg);
     }
-    for (Function1<Object, Object> handler : threadHandlers.get()) {
+    for (Function<Object, Object> handler : threadHandlers.get()) {
       handler.apply(arg);
     }
   }

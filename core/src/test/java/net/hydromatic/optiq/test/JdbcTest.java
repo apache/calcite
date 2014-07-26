@@ -55,6 +55,7 @@ import org.eigenbase.util.Bug;
 import org.eigenbase.util.Pair;
 import org.eigenbase.util.Util;
 
+import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
@@ -5630,9 +5631,8 @@ public class JdbcTest {
   @Test public void testHook() {
     final int[] callCount = {0};
     final Hook.Closeable hook = Hook.PARSE_TREE.addThread(
-        new Function1<Object, Object>() {
-          public Object apply(Object a0) {
-            Object[] args = (Object[]) a0;
+        new Function<Object[], Object>() {
+          public Void apply(Object[] args) {
             assertThat(args.length, equalTo(2));
             assertThat(args[0], instanceOf(String.class));
             assertThat((String) args[0], equalTo(
@@ -5661,9 +5661,8 @@ public class JdbcTest {
   @Test public void testDialect() {
     final String[] sqls = {null};
     final Hook.Closeable hook = Hook.QUERY_PLAN.addThread(
-        new Function1<Object, Object>() {
-          public Object apply(Object a0) {
-            String sql = (String) a0;
+        new Function<String, Void>() {
+          public Void apply(String sql) {
             sqls[0] = sql;
             return null;
           }

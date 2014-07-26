@@ -17,8 +17,6 @@
 */
 package net.hydromatic.optiq.test;
 
-import net.hydromatic.linq4j.function.Function1;
-
 import net.hydromatic.optiq.SchemaPlus;
 import net.hydromatic.optiq.runtime.Hook;
 import net.hydromatic.optiq.tools.Frameworks;
@@ -27,6 +25,8 @@ import org.eigenbase.rel.*;
 import org.eigenbase.relopt.RelOptCluster;
 import org.eigenbase.relopt.RelOptSchema;
 import org.eigenbase.test.SqlToRelConverterTest;
+
+import com.google.common.base.Function;
 
 import org.junit.After;
 import org.junit.Before;
@@ -40,9 +40,8 @@ public class SqlToRelConverterExtendedTest extends SqlToRelConverterTest {
   Hook.Closeable closeable;
 
   @Before public void before() {
-    //noinspection unchecked
     this.closeable = Hook.CONVERTED.addThread(
-        (Function1) new Function1<RelNode, Void>() {
+        new Function<RelNode, Void>() {
           public Void apply(RelNode a0) {
             foo(a0);
             return null;
