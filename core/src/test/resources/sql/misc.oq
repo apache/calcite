@@ -76,6 +76,17 @@ from "hr"."emps";
 
 !ok
 
+# [DRILL-1199] Order by nested inside a where clause fails
+# (Not that it's right, but Tableau does it.)
+select * from (select * from "hr"."emps" order by "empid") where (0=1);
++-------+--------+------+--------+------------+
+| empid | deptno | name | salary | commission |
++-------+--------+------+--------+------------+
++-------+--------+------+--------+------------+
+(0 rows)
+
+!ok
+
 # [OPTIQ-340] SqlToRelConverter fails with complex join condition
 select e."deptno", d."deptno"
 from "hr"."emps" as e
