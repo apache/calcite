@@ -61,14 +61,15 @@ public class TpcdsSchema extends AbstractSchema {
           .put("catalog_page", 11718)
           .put("catalog_returns", 144067)
           .put("catalog_sales", 1441548)
-          .put("customer", 50000)
-          .put("demographics", 1920800)
+          .put("customer", 100000)
+          .put("customer_address", 50000)
+          .put("customer_demographics", 1920800)
           .put("date_dim", 73049)
           .put("household_demographics", 7200)
           .put("income_band", 20)
           .put("inventory", 11745000)
           .put("item", 18000)
-          .put("promotions", 300)
+          .put("promotion", 300)
           .put("reason", 35)
           .put("ship_mode", 20)
           .put("store", 12)
@@ -113,7 +114,8 @@ public class TpcdsSchema extends AbstractSchema {
 
     @Override public Statistic getStatistic() {
       Bug.upgrade("add row count estimate to TpcdsTable, and use it");
-      double rowCount = TABLE_ROW_COUNTS.get(tpcdsTable.name);
+      Integer rowCount = TABLE_ROW_COUNTS.get(tpcdsTable.name);
+      assert rowCount != null : tpcdsTable.name;
       return Statistics.of(rowCount, Collections.<BitSet>emptyList());
     }
 

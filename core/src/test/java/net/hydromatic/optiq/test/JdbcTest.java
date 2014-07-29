@@ -5660,32 +5660,28 @@ public class JdbcTest {
   /** Tests {@link SqlDialect}. */
   @Test public void testDialect() {
     final String[] sqls = {null};
-    final Hook.Closeable hook = Hook.QUERY_PLAN.addThread(
-        new Function<String, Void>() {
-          public Void apply(String sql) {
-            sqls[0] = sql;
-            return null;
-          }
-        });
-    try {
-      OptiqAssert.that()
-          .with(OptiqAssert.Config.JDBC_FOODMART)
-          .query(
-              "select count(*) as c from \"foodmart\".\"employee\" as e1\n"
-              + "  where \"first_name\" = 'abcde'\n"
-              + "  and \"gender\" = 'F'")
-          .returns("C=0\n");
-      switch (OptiqAssert.CONNECTION_SPEC) {
-      case HSQLDB:
-        assertThat(Util.toLinux(sqls[0]), equalTo(
-            "SELECT COUNT(*) AS \"C\"\n"
-            + "FROM (SELECT 0 AS \"DUMMY\"\n"
-            + "FROM \"foodmart\".\"employee\"\n"
-            + "WHERE \"first_name\" = 'abcde' AND \"gender\" = 'F') AS \"t0\""));
-        break;
-      }
-    } finally {
-      hook.close();
+    OptiqAssert.that()
+        .with(OptiqAssert.Config.JDBC_FOODMART)
+        .query(
+            "select count(*) as c from \"foodmart\".\"employee\" as e1\n"
+            + "  where \"first_name\" = 'abcde'\n"
+            + "  and \"gender\" = 'F'")
+        .withHook(Hook.QUERY_PLAN,
+            new Function<String, Void>() {
+              public Void apply(String sql) {
+                sqls[0] = sql;
+                return null;
+              }
+            })
+        .returns("C=0\n");
+    switch (OptiqAssert.CONNECTION_SPEC) {
+    case HSQLDB:
+      assertThat(Util.toLinux(sqls[0]), equalTo(
+          "SELECT COUNT(*) AS \"C\"\n"
+          + "FROM (SELECT 0 AS \"DUMMY\"\n"
+          + "FROM \"foodmart\".\"employee\"\n"
+          + "WHERE \"first_name\" = 'abcde' AND \"gender\" = 'F') AS \"t0\""));
+      break;
     }
   }
 

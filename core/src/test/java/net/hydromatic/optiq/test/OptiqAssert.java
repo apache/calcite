@@ -36,6 +36,7 @@ import org.eigenbase.util.*;
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMultiset;
+import com.google.common.collect.Lists;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -352,14 +353,19 @@ public class OptiqAssert {
       String sql,
       int limit,
       boolean materializationsEnabled,
+      List<Pair<Hook, Function>> hooks,
       Function1<ResultSet, Void> resultChecker,
       Function1<Throwable, Void> exceptionChecker) throws Exception {
     final String message =
         "With materializationsEnabled=" + materializationsEnabled
         + ", limit=" + limit;
+    final List<Hook.Closeable> closeableList = Lists.newArrayList();
     try {
       ((OptiqConnection) connection).getProperties().setProperty(
           "materializationsEnabled", Boolean.toString(materializationsEnabled));
+      for (Pair<Hook, Function> hook : hooks) {
+        closeableList.add(hook.left.addThread(hook.right));
+      }
       Statement statement = connection.createStatement();
       statement.setMaxRows(limit <= 0 ? limit : Math.max(limit, 1));
       ResultSet resultSet;
@@ -390,6 +396,10 @@ public class OptiqAssert {
       connection.close();
     } catch (Throwable e) {
       throw new RuntimeException(message, e);
+    } finally {
+      for (Hook.Closeable closeable : closeableList) {
+        closeable.close();
+      }
     }
   }
 
@@ -884,6 +894,7 @@ public class OptiqAssert {
     private String plan;
     private int limit;
     private boolean materializationsEnabled = false;
+    private final List<Pair<Hook, Function>> hooks = Lists.newArrayList();
 
     private AssertQuery(ConnectionFactory connectionFactory, String sql) {
       this.sql = sql;
@@ -918,7 +929,7 @@ public class OptiqAssert {
         Function1<ResultSet, Void> checker) {
       try {
         assertQuery(createConnection(), sql, limit, materializationsEnabled,
-            checker, null);
+            hooks, checker, null);
         return this;
       } catch (Exception e) {
         throw new RuntimeException(
@@ -933,7 +944,7 @@ public class OptiqAssert {
     public AssertQuery throws_(String message) {
       try {
         assertQuery(createConnection(), sql, limit, materializationsEnabled,
-            null, checkException(message));
+            hooks, null, checkException(message));
         return this;
       } catch (Exception e) {
         throw new RuntimeException(
@@ -944,7 +955,7 @@ public class OptiqAssert {
     public AssertQuery runs() {
       try {
         assertQuery(createConnection(), sql, limit, materializationsEnabled,
-            null, null);
+            hooks, null, null);
         return this;
       } catch (Exception e) {
         throw new RuntimeException(
@@ -954,9 +965,8 @@ public class OptiqAssert {
 
     public AssertQuery typeIs(String expected) {
       try {
-        assertQuery(
-            createConnection(), sql, limit, false,
-            checkResultType(expected), null);
+        assertQuery(createConnection(), sql, limit, false,
+            hooks, checkResultType(expected), null);
         return this;
       } catch (Exception e) {
         throw new RuntimeException(
@@ -1020,7 +1030,7 @@ public class OptiqAssert {
       if (plan != null) {
         return;
       }
-      final Hook.Closeable hook = Hook.JAVA_PLAN.addThread(
+      addHook(Hook.JAVA_PLAN,
           new Function<String, Void>() {
             public Void apply(String a0) {
               plan = a0;
@@ -1029,13 +1039,11 @@ public class OptiqAssert {
           });
       try {
         assertQuery(createConnection(), sql, limit, materializationsEnabled,
-            null, null);
+            hooks, null, null);
         assertNotNull(plan);
       } catch (Exception e) {
         throw new RuntimeException(
             "exception while executing [" + sql + "]", e);
-      } finally {
-        hook.close();
       }
     }
 
@@ -1044,8 +1052,8 @@ public class OptiqAssert {
      * what it wants. This method can be used to check whether a particular
      * MongoDB or SQL query is generated, for instance. */
     public AssertQuery queryContains(Function1<List, Void> predicate1) {
-      final List<Object> list = new ArrayList<Object>();
-      final Hook.Closeable hook = Hook.QUERY_PLAN.addThread(
+      final List<Object> list = Lists.newArrayList();
+      addHook(Hook.QUERY_PLAN,
           new Function<Object, Void>() {
             public Void apply(Object a0) {
               list.add(a0);
@@ -1054,14 +1062,12 @@ public class OptiqAssert {
           });
       try {
         assertQuery(createConnection(), sql, limit, materializationsEnabled,
-            null, null);
+            hooks, null, null);
         predicate1.apply(list);
         return this;
       } catch (Exception e) {
         throw new RuntimeException(
             "exception while executing [" + sql + "]", e);
-      } finally {
-        hook.close();
       }
     }
 
@@ -1088,6 +1094,18 @@ public class OptiqAssert {
     public AssertQuery enableMaterializations(boolean enable) {
       this.materializationsEnabled = enable;
       return this;
+    }
+
+    /** Adds a hook and a handler for that hook. Optiq will create a thread
+     * hook (by calling {@link Hook#addThread(com.google.common.base.Function)})
+     * just before running the query, and remove the hook afterwards. */
+    public <T> AssertQuery withHook(Hook hook, Function<T, Void> handler) {
+      addHook(hook, handler);
+      return this;
+    }
+
+    private <T> void addHook(Hook hook, Function<T, Void> handler) {
+      hooks.add(Pair.of(hook, (Function) handler));
     }
   }
 
