@@ -115,22 +115,31 @@ public class OptimizeBushyJoinRule extends RelOptRule {
         };
 
     final List<LoptMultiJoin.Edge> usedEdges = Lists.newArrayList();
-    while (!unusedEdges.isEmpty()) {
+    for (;;) {
       final int edgeOrdinal = chooseBestEdge(unusedEdges, edgeComparator);
       if (pw != null) {
         trace(vertexes, unusedEdges, usedEdges, edgeOrdinal, pw);
       }
-      final LoptMultiJoin.Edge bestEdge = remove(unusedEdges, edgeOrdinal);
-      usedEdges.add(bestEdge);
+      final int[] factors;
+      if (edgeOrdinal == -1) {
+        // No more edges. Are there any un-joined vertexes?
+        final Vertex lastVertex = Util.last(vertexes);
+        final int z = lastVertex.factors.previousClearBit(lastVertex.id - 1);
+        if (z < 0) {
+          break;
+        }
+        factors = new int[] {z, lastVertex.id};
+      } else {
+        final LoptMultiJoin.Edge bestEdge = unusedEdges.get(edgeOrdinal);
 
-      // For now, assume that the edge is between precisely two factors.
-      // 1-factor conditions have probably been pushed down,
-      // and 3-or-more-factor conditions are advanced. (TODO:)
-      // Therefore, for now, the factors that are merged are exactly the factors
-      // on this edge.
-      BitSet merged = bestEdge.factors;
-      assert merged.cardinality() == 2;
-      final int[] factors = BitSets.toArray(merged);
+        // For now, assume that the edge is between precisely two factors.
+        // 1-factor conditions have probably been pushed down,
+        // and 3-or-more-factor conditions are advanced. (TODO:)
+        // Therefore, for now, the factors that are merged are exactly the
+        // factors on this edge.
+        assert bestEdge.factors.cardinality() == 2;
+        factors = BitSets.toArray(bestEdge.factors);
+      }
 
       // Determine which factor is to be on the LHS of the join.
       final int majorFactor;
@@ -149,7 +158,7 @@ public class OptimizeBushyJoinRule extends RelOptRule {
       // the join can now be used.
       final BitSet newFactors =
           BitSets.union(majorVertex.factors, minorVertex.factors);
-      final List<RexNode> conditions = Lists.newArrayList(bestEdge.condition);
+      final List<RexNode> conditions = Lists.newArrayList();
       final Iterator<LoptMultiJoin.Edge> edgeIterator = unusedEdges.iterator();
       while (edgeIterator.hasNext()) {
         LoptMultiJoin.Edge edge = edgeIterator.next();
@@ -179,6 +188,7 @@ public class OptimizeBushyJoinRule extends RelOptRule {
       // This vertex has fewer rows (1k rows) -- a fact that is critical to
       // decisions made later. (Hence "greedy" algorithm not "simple".)
       // The adjacent edges are modified.
+      final BitSet merged = BitSets.of(minorFactor, majorFactor);
       for (int i = 0; i < unusedEdges.size(); i++) {
         final LoptMultiJoin.Edge edge = unusedEdges.get(i);
         if (edge.factors.intersects(merged)) {
@@ -268,20 +278,6 @@ public class OptimizeBushyJoinRule extends RelOptRule {
     }
     pw.println();
     pw.flush();
-  }
-
-  /** Removes the element of a list at a given ordinal, moving the last element
-   * into its place. This is an efficient means of removing an element from an
-   * array list if you do not mind the order of the list changing. */
-  private static <E> E remove(List<E> list, int ordinal) {
-    final int lastOrdinal = list.size() - 1;
-    final E last = list.remove(lastOrdinal);
-    if (ordinal == lastOrdinal) {
-      return last;
-    }
-    final E e = list.get(ordinal);
-    list.set(ordinal, last);
-    return e;
   }
 
   int chooseBestEdge(List<LoptMultiJoin.Edge> edges,
