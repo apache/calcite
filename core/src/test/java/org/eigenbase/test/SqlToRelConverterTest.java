@@ -1,11 +1,10 @@
 /*
-// Licensed to Julian Hyde under one or more contributor license
-// agreements. See the NOTICE file distributed with this work for
-// additional information regarding copyright ownership.
-//
-// Julian Hyde licenses this file to you under the Apache License,
-// Version 2.0 (the "License"); you may not use this file except in
-// compliance with the License. You may obtain a copy of the License at:
+// Licensed to the Apache Software Foundation (ASF) under one or more
+// contributor license agreements.  See the NOTICE file distributed with
+// this work for additional information regarding copyright ownership.
+// The ASF licenses this file to you under the Apache License, Version 2.0
+// (the "License"); you may not use this file except in compliance with
+// the License.  You may obtain a copy of the License at
 //
 // http://www.apache.org/licenses/LICENSE-2.0
 //
@@ -713,7 +712,7 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     // union of subquery, inside from list, also values
     check(
         "select deptno from emp as emp0 cross join\n"
-        + " (select empno from emp union all \n"
+        + " (select empno from emp union all\n"
         + "  select deptno from dept where deptno > 20 union all\n"
         + "  values (45), (67))",
         "${plan}");

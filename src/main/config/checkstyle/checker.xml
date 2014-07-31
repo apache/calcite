@@ -1,23 +1,19 @@
 <?xml version="1.0"?>
-
 <!--
-/*
-// Licensed to Julian Hyde under one or more contributor license
-// agreements. See the NOTICE file distributed with this work for
-// additional information regarding copyright ownership.
-//
-// Julian Hyde licenses this file to you under the Apache License,
-// Version 2.0 (the "License"); you may not use this file except in
-// compliance with the License. You may obtain a copy of the License at:
-//
-// http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-*/
+Licensed to the Apache Software Foundation (ASF) under one or more
+contributor license agreements.  See the NOTICE file distributed with
+this work for additional information regarding copyright ownership.
+The ASF licenses this file to you under the Apache License, Version 2.0
+(the "License"); you may not use this file except in compliance with
+the License.  You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
 -->
 
 <!--
@@ -25,9 +21,9 @@
   configuration, which in turn is based on Hadoop and common-math
   configurations.
 
-  The documentation for checkstyle is available at 
+  The documentation for checkstyle is available at
 
-  http://checkstyle.sourceforge.net 
+  http://checkstyle.sourceforge.net
 -->
 
 <!DOCTYPE module PUBLIC "-//Puppy Crawl//DTD Check Configuration 1.1//EN" "http://www.puppycrawl.com/dtds/configuration_1_1.dtd">
@@ -108,7 +104,7 @@
     <module name="StringLiteralEquality" />
       <!-- Don't declare multiple variables in the same statement -->
     <module name="MultipleVariableDeclarations" />
-      <!-- String literals more than one character long should not be 
+      <!-- String literals more than one character long should not be
 	   repeated several times -->
       <!-- the "unchecked" string is also accepted to allow
 	   @SuppressWarnings("unchecked") -->
@@ -123,7 +119,7 @@
     <!-- See http://checkstyle.sf.net/config_import.html -->
     <module name="RedundantImport"/>
       <!-- Import should be explicit, really needed and only from pure
-	   java packages --> 
+	   java packages -->
     <module name="UnusedImports" />
     <module name="IllegalImport" />
 
@@ -177,7 +173,7 @@
 
     <!-- Checks for Naming Conventions.                  -->
     <!-- See http://checkstyle.sf.net/config_naming.html -->
-      <!-- Constant names should obey the traditional all uppercase 
+      <!-- Constant names should obey the traditional all uppercase
 	   naming convention -->
     <module name="ConstantName"/>
     <module name="LocalFinalVariableName">
@@ -203,14 +199,14 @@
     <module name="TypeName"/>
 
     <!-- Checks for regexp expressions.                  -->
-    <!-- See http://checkstyle.sf.net/config_regexp.html -->    
+    <!-- See http://checkstyle.sf.net/config_regexp.html -->
 
     <!-- No trailing whitespace -->
     <module name="Regexp">
       <property name="format" value="[ \t]+$"/>
       <property name="illegalPattern" value="true"/>
       <property name="message" value="Trailing whitespace"/>
-    </module> 
+    </module>
 
     <!-- Authors should be in pom.xml file -->
     <module name="Regexp">
@@ -224,13 +220,13 @@
       <property name="format" value="^ +/\*[^*][^/]$"/>
       <property name="illegalPattern" value="true"/>
       <property name="message" value="C-style comment"/>
-    </module> 
+    </module>
 
     <module name="Regexp">
       <property name="format" value="^ +/\*$"/>
       <property name="illegalPattern" value="true"/>
       <property name="message" value="C-style comment"/>
-    </module> 
+    </module>
 
     <!-- Checks for Size Violations.                    -->
     <!-- See http://checkstyle.sf.net/config_sizes.html -->
@@ -270,7 +266,7 @@
     <!-- Required for SuppressionCommentFilter below -->
     <module name="FileContentsHolder"/>
   </module>
-  
+
   <!-- Setup special comments to suppress specific checks from source files -->
   <module name="SuppressionCommentFilter">
     <property name="offCommentFormat" value="CHECKSTYLE\: stop ([\w\|]+)"/>
