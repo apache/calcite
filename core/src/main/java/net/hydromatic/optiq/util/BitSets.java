@@ -229,6 +229,23 @@ public final class BitSets {
     }
     return s;
   }
+
+  /** Returns the previous clear bit.
+   *
+   * <p>Has same behavior as {@link BitSet#previousClearBit}, but that method
+   * does not exist before 1.7. */
+  public static int previousClearBit(BitSet bitSet, int fromIndex) {
+    if (fromIndex < -1) {
+      throw new IndexOutOfBoundsException();
+    }
+    while (fromIndex >= 0) {
+      if (!bitSet.get(fromIndex)) {
+        return fromIndex;
+      }
+      --fromIndex;
+    }
+    return -1;
+  }
 }
 
 // End BitSets.java

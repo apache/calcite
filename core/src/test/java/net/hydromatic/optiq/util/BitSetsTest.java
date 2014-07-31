@@ -30,6 +30,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 /**
  * Unit test for {@link net.hydromatic.optiq.util.BitSets}.
@@ -164,7 +165,28 @@ public class BitSetsTest {
     list = ImmutableIntList.of(2, 70, 5, 0);
     assertThat(BitSets.of(list), equalTo(BitSets.of(0, 2, 5, 70)));
   }
+
+  /**
+   * Tests the method
+   * {@link net.hydromatic.optiq.util.BitSets#previousClearBit(java.util.BitSet, int)}.
+   */
+  @Test public void testPreviousClearBit() {
+    assertThat(BitSets.previousClearBit(BitSets.of(), 10), equalTo(10));
+    assertThat(BitSets.previousClearBit(BitSets.of(), 0), equalTo(0));
+    assertThat(BitSets.previousClearBit(BitSets.of(), -1), equalTo(-1));
+    try {
+      final int actual = BitSets.previousClearBit(BitSets.of(), -2);
+      fail("expected exception, got " + actual);
+    } catch (IndexOutOfBoundsException e) {
+      // ok
+    }
+    assertThat(BitSets.previousClearBit(BitSets.of(0, 1, 3, 4), 4), equalTo(2));
+    assertThat(BitSets.previousClearBit(BitSets.of(0, 1, 3, 4), 3), equalTo(2));
+    assertThat(BitSets.previousClearBit(BitSets.of(0, 1, 3, 4), 2), equalTo(2));
+    assertThat(BitSets.previousClearBit(BitSets.of(0, 1, 3, 4), 1),
+        equalTo(-1));
+    assertThat(BitSets.previousClearBit(BitSets.of(1, 3, 4), 1), equalTo(0));
+  }
 }
 
 // End BitSetsTest.java
-

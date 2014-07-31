@@ -124,7 +124,8 @@ public class OptimizeBushyJoinRule extends RelOptRule {
       if (edgeOrdinal == -1) {
         // No more edges. Are there any un-joined vertexes?
         final Vertex lastVertex = Util.last(vertexes);
-        final int z = lastVertex.factors.previousClearBit(lastVertex.id - 1);
+        final int z =
+            BitSets.previousClearBit(lastVertex.factors, lastVertex.id - 1);
         if (z < 0) {
           break;
         }
