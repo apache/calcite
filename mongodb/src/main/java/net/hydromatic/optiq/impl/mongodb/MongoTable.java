@@ -119,7 +119,18 @@ public class MongoTable extends AbstractQueryableTable
   public Enumerable<Object> aggregate(final DB mongoDb,
       final List<Map.Entry<String, Class>> fields,
       final List<String> operations) {
-    List<DBObject> list = new ArrayList<DBObject>();
+    final List<DBObject> list = new ArrayList<DBObject>();
+    final BasicDBList versionArray = (BasicDBList) mongoDb
+        .command("buildInfo").get("versionArray");
+    final Integer versionMajor = parseIntString(versionArray
+        .get(0).toString());
+    final Integer versionMinor = parseIntString(versionArray
+        .get(1).toString());
+//    final Integer versionMaintenance = parseIntString(versionArray
+//      .get(2).toString());
+//    final Integer versionBuild = parseIntString(versionArray
+//      .get(3).toString());
+
     for (String operation : operations) {
       list.add((DBObject) JSON.parse(operation));
     }
@@ -129,17 +140,65 @@ public class MongoTable extends AbstractQueryableTable
         MongoEnumerator.getter(fields);
     return new AbstractEnumerable<Object>() {
       public Enumerator<Object> enumerator() {
-        final AggregationOutput result;
+        final Iterator<DBObject> resultIterator;
         try {
-          result = mongoDb.getCollection(collectionName)
-              .aggregate(first, rest.toArray(new DBObject[rest.size()]));
+          // Changed in version 2.6: The db.collection.aggregate() method
+          // returns a cursor
+          // and can return result sets of any size.
+          // See: http://docs.mongodb.org/manual/core/aggregation-pipeline
+          if (versionMajor > 1) {
+            // MongoDB version 2.6+
+            if (versionMinor > 5) {
+              AggregationOptions options = AggregationOptions.builder()
+                   .outputMode(AggregationOptions.OutputMode.CURSOR).build();
+              // Warning - this can result in a very large ArrayList!
+              // but you should know your data and aggregate accordingly
+              ArrayList<DBObject> resultAsArrayList
+                = new ArrayList<DBObject>(Util.toList(mongoDb.
+                      getCollection(collectionName)
+                       .aggregate(list, options)));
+              resultIterator = resultAsArrayList.iterator();
+            } else { // Pre MongoDB version 2.6
+              AggregationOutput result = aggregateOldWay(mongoDb
+                   .getCollection(collectionName), first, rest);
+              resultIterator = result.results().iterator();
+            }
+          } else { // Pre MongoDB version 2
+            AggregationOutput result = aggregateOldWay(mongoDb
+                 .getCollection(collectionName), first, rest);
+            resultIterator = result.results().iterator();
+          }
         } catch (Exception e) {
           throw new RuntimeException("While running MongoDB query "
               + Util.toString(operations, "[", ",\n", "]"), e);
         }
-        return new MongoEnumerator(result.results().iterator(), getter);
+        return new MongoEnumerator(resultIterator, getter);
       }
     };
+  }
+
+  /** Helper method to strip non-numerics from a string
+   * <p>Currently used to determine mongod versioning numbers
+   * from buildInfo.versionArray for use in aggregate method logic</p>
+   * @param valueString
+   * @return Integer */
+  private static Integer parseIntString(String valueString) {
+    return Integer.parseInt(valueString.replaceAll("[^0-9]", ""));
+  }
+
+  /** Executes an "aggregate" operation for pre-2.6 mongo servers.
+   * <p>Return document is limited to 4M or 16M in size depending on
+   * version of mongo <p>Helper method for
+   * {@link net.hydromatic.optiq.impl.mongodb.MongoTable#aggregate}
+   * </p>
+   * @param dbCollection
+   * @param first the first aggregate action
+   * @param rest the rest of the aggregate actions
+   * @return AggregationOutput */
+  private AggregationOutput aggregateOldWay(DBCollection dbCollection,
+       DBObject first, List<DBObject> rest) {
+    return dbCollection.aggregate(first, rest
+          .toArray(new DBObject[rest.size()]));
   }
 
   /** Implementation of {@link net.hydromatic.linq4j.Queryable} based on
