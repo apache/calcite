@@ -166,3 +166,50 @@ When Optiq compares `Type` instances, it requires them to be the same object. If
 It is recommended to
 -   Use a single instance of `JavaTypeFactory` within the optiq context
 -   Store the `Type` instances so that the same object is always returned for the same `Type`.
+
+## Set up PGP signing keys (for Optiq committers)
+
+Follow instructions at http://www.apache.org/dev/release-signing to create a key pair. (On Mac OS X, I did `brew install gpg` and `gpg --gen-key`.)
+
+Add your public key to the `KEYS` file by following instructions in the `KEYS` file.
+
+## Making a snapshot (for Optiq committers)
+
+Before you start:
+* Set up signing keys as described above.
+* Make sure you are using JDK 1.7 (not 1.6 or 1.8).
+* Make sure build and tests succeed with `-Doptiq.test.db=hsqldb` (the default)
+
+```bash
+# set passphrase variable without putting it into shell history
+read GPG_PASSPHRASE
+
+# make sure that there are no junk files in the sandbox
+git clean -x
+
+mvn clean install -Prelease,apache-release -Dgpg.passphrase=${GPG_PASSPHRASE}
+```
+
+When the dry-run has succeeded, change `install` to `deploy`.
+
+## Making a release (for Optiq committers)
+
+Before you start:
+* Set up signing keys as described above.
+* Make sure you are using JDK 1.7 (not 1.6 or 1.8).
+* Make sure build and tests succeed, including with -Doptiq.test.db={mysql,hsqldb}, -Doptiq.test.slow=true, -Doptiq.test.mongodb=true, -Doptiq.test.splunk=true.
+
+```bash
+# set passphrase variable without putting it into shell history
+read GPG_PASSPHRASE
+
+# make sure that there are no junk files in the sandbox
+git clean -x
+
+```
+
+Check the artifacts:
+* Make sure that binary and source distros have a README file (README.md does not count) and that the version in the README is correct
+* The file name must start `apache-optiq-` and include `incubating`.
+* Check PGP, per https://httpd.apache.org/dev/verification.html
+

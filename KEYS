@@ -1,0 +1,74 @@
+This file contains the PGP keys of various developers.
+Please don't use them for email unless you have to. Their main
+purpose is code signing.
+
+Examples of importing this file in your keystore:
+ gpg --import KEYS.txt
+ (need pgp and other examples here)
+
+Examples of adding your key to this file:
+ pgp -kxa <your name> and append it to this file.
+ (pgpk -ll <your name> && pgpk -xa <your name>) >> this file.
+ (gpg --list-sigs <your name>
+     && gpg --armor --export <your name>) >> this file.
+
+-----------------------------------------------------------------------------------
+
+pub   4096R/2AD3FAE3 2014-07-24
+uid                  Julian Hyde (CODE SIGNING KEY) <jhyde@apache.org>
+sig 3        2AD3FAE3 2014-07-24  Julian Hyde (CODE SIGNING KEY) <jhyde@apache.org>
+sub   4096R/B9E5F68D 2014-07-24
+sig          2AD3FAE3 2014-07-24  Julian Hyde (CODE SIGNING KEY) <jhyde@apache.org>
+
+-----BEGIN PGP PUBLIC KEY BLOCK-----
+Version: GnuPG v1
+
+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
+HFfYzFyXcqX3BhXdDWg/XQ==
+=9tCp
+-----END PGP PUBLIC KEY BLOCK-----
