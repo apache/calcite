@@ -114,7 +114,7 @@ name will have been converted to upper case also.
 | BIGINT    | 8 byte signed integer     | Range is -9223372036854775808 to 9223372036854775807
 | DECIMAL(p, s) | Fixed point           | Example: 123.45 is a DECIMAL(5, 2) value.
 | NUMERIC   | Fixed point               |
-| REAL, FLOAT | 4 byte floating point   | 6 decimal digits precision 
+| REAL, FLOAT | 4 byte floating point   | 6 decimal digits precision
 | DOUBLE    | 8 byte floating point     | 15 decimal digits precision
 | CHAR(n), CHARACTER(n) | Fixed-width character string | 'Hello', '' (empty string), _latin1'Hello', n'Hello', _UTF16'Hello', 'Hello' 'there' (literal split into multiple parts)
 | VARCHAR(n), CHARACTER VARYING(n) | Variable-length character string | As CHAR(n)

@@ -1,28 +1,16 @@
 [![Build Status](https://travis-ci.org/julianhyde/optiq.png)](https://travis-ci.org/julianhyde/optiq)
 
-optiq
-=====
+# Apache Optiq
 
-Optiq is a dynamic data management framework.
+Apache Optiq is a dynamic data management framework.
 
-Prerequisites
-=============
+## Getting Optiq
 
-Optiq requires git, maven (3.0.4 or later), and JDK 1.6 or later (JDK 1.7 preferred).
+To run Apache Optiq, you can either
+[download a release](http://www.apache.org/dyn/closer.cgi/incubator/optiq)
+or [build from the source code](HOWTO.md#building-from-a-source-distribution).
 
-Download and build
-==================
-
-```bash
-$ git clone git://github.com/julianhyde/optiq.git
-$ cd optiq
-$ mvn install
-```
-
-Use `mvn -DskipTests` if you do not want to execute the tests.
-
-Example
-=======
+## Example
 
 Optiq makes data anywhere, of any format, look like a database. For
 example, you can execute a complex ANSI-standard SQL statement on
@@ -210,3 +198,14 @@ Please don't post to the mailing list.
 * <a href="https://github.com/julianhyde/share/blob/master/slides/optiq-nosql-now-2013.pdf?raw=true">SQL Now!</a> (NoSQL Now! conference, 2013)
 * <a href="https://github.com/julianhyde/share/blob/master/slides/hive-cbo-summit-2014.pdf?raw=true">Cost-based optimization in Hive</a> (Hadoop Summit, 2014)
 * <a href="https://github.com/julianhyde/share/blob/master/slides/dmmq-summit-2014.pdf?raw=true">Discardable, in-memory materialized query for Hadoop</a> (Hadoop Summit, 2014)
+
+## Disclaimer
+
+Apache Optiq is an effort undergoing incubation at The Apache Software
+Foundation (ASF), sponsored by the Apache Incubator. Incubation is
+required of all newly accepted projects until a further review
+indicates that the infrastructure, communications, and decision making
+process have stabilized in a manner consistent with other successful
+ASF projects. While incubation status is not necessarily a reflection
+of the completeness or stability of the code, it does indicate that
+the project has yet to be fully endorsed by the ASF.

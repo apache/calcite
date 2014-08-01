@@ -1,0 +1,28 @@
+Apache Optiq release 0.9.0 (incubating)
+
+This is a source or binary distribution of Apache Optiq.
+
+Changes since the previous release are described in the HISTORY.md
+file.
+
+The LICENSE and NOTICE files contain license information.
+
+If this is a source distribution, you can find instructions how to
+build the release in the "Building from a source release" section in
+HOWTO.md.
+
+README.md contains examples of running Optiq.
+
+Further information about Apache Optiq is available at its web site,
+http://incubator.apache.org/optiq.
+
+Disclaimer
+
+Apache Optiq is an effort undergoing incubation at The Apache Software
+Foundation (ASF), sponsored by the Apache Incubator. Incubation is
+required of all newly accepted projects until a further review
+indicates that the infrastructure, communications, and decision making
+process have stabilized in a manner consistent with other successful
+ASF projects. While incubation status is not necessarily a reflection
+of the completeness or stability of the code, it does indicate that
+the project has yet to be fully endorsed by the ASF.
