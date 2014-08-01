@@ -26,7 +26,7 @@ limitations under the License.
   <artifactId>optiq-plus</artifactId>
   <packaging>jar</packaging>
   <version>0.9.0-incubating-SNAPSHOT</version>
-  <name>optiq-plus</name>
+  <name>Optiq Plus</name>
   <description>Miscellaneous extras for Optiq.</description>
 
   <properties>

@@ -30,16 +30,10 @@ limitations under the License.
   <version>0.9.0-incubating-SNAPSHOT</version>
 
   <!-- More project information. -->
-  <name>optiq</name>
+  <name>Optiq</name>
   <description>Optiq is a dynamic data management framework.</description>
   <url>http://incubator.apache.org/optiq</url>
   <inceptionYear>2012</inceptionYear>
-  <licenses>
-    <license>
-      <name>Apache 2</name>
-      <url>http://www.apache.org/licenses/LICENSE-2.0.html</url>
-    </license>
-  </licenses>
 
   <mailingLists>
     <mailingList>

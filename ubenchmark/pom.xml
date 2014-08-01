@@ -28,6 +28,7 @@ limitations under the License.
   </properties>
 
   <artifactId>optiq-ubenchmark</artifactId>
+  <name>Optiq Ubenchmark</name>
   <description>Microbenchmarks for Optiq</description>
 
   <repositories>

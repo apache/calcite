@@ -26,7 +26,7 @@ limitations under the License.
   <artifactId>optiq-core</artifactId>
   <packaging>jar</packaging>
   <version>0.9.0-incubating-SNAPSHOT</version>
-  <name>optiq-core</name>
+  <name>Optiq Core</name>
   <description>Core Optiq APIs and engine.</description>
 
   <properties>
