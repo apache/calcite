@@ -1,6 +1,89 @@
-# Optiq release history
+# Apache Optiq release history
 
 For a full list of releases, see <a href="https://github.com/julianhyde/optiq/releases">github</a>.
+
+## <a href="https://github.com/julianhyde/optiq/releases/tag/optiq-0.9.0">0.9.0</a> / 2014-08-xx
+
+New features
+* [<a href="https://issues.apache.org/jira/browse/OPTIQ-349">OPTIQ-349</a>]
+  Add heuristic join-optimizer that can generate bushy joins
+* [<a href="https://issues.apache.org/jira/browse/OPTIQ-346">OPTIQ-346</a>]
+  Add commutative join rule
+* [<a href="https://issues.apache.org/jira/browse/OPTIQ-347">OPTIQ-347</a>]
+  In `SqlRun`, add `!plan` command
+* [<a href="https://issues.apache.org/jira/browse/OPTIQ-314">OPTIQ-314</a>]
+  Allow simple UDFs based on methods
+* [<a href="https://issues.apache.org/jira/browse/OPTIQ-327">OPTIQ-327</a>]
+  Rules should use base class to find rule match & use factory for object
+  creation
+* [<a href="https://issues.apache.org/jira/browse/OPTIQ-316">OPTIQ-316</a>]
+  In `SqlRun`, match output regardless of order if `ORDER BY` not present
+* [<a href="https://issues.apache.org/jira/browse/OPTIQ-300">OPTIQ-300</a>]
+  Support multiple parameters in `COUNT(DISTINCT x, y, ...)`
+
+API changes
+* Remove deprecated methods.
+* Convert `Hook` to use Guava `Function` (was linq4j `Function1`).
+* Add fluent method `withHook`, to more easily add hooks in tests.
+* [<a href="https://issues.apache.org/jira/browse/OPTIQ-321">OPTIQ-321</a>]
+  Add support for overriding implementation of `CompoundIdentifier` in
+  `SqlParser`.
+* [<a href="https://issues.apache.org/jira/browse/OPTIQ-322">OPTIQ-322</a>]
+  Add support for `SqlExplain`, `SqlOrderBy` and `SqlWith` to support
+  `SqlShuttle` use.
+* [<a href="https://issues.apache.org/jira/browse/OPTIQ-323">OPTIQ-323</a>]
+  Override `SqlUnresolvedFunction.inferReturnType()` to return `ANY` type
+  so framework implementors can support late bound function implementations.
+* [<a href="https://issues.apache.org/jira/browse/OPTIQ-324">OPTIQ-324</a>]
+  Add `ViewExpander` for `Planner` in `Frameworks`. Expose additional
+  properties of `ViewTable` to allow subclassing.
+* [<a href="https://issues.apache.org/jira/browse/OPTIQ-247">OPTIQ-247</a>]
+  Add Context and FrameworkConfig
+
+Bug-fixes and internal changes
+* Add `README` file, incubation disclaimers, and how-to build and running tests.
+* Add `KEYS` and start how-to for making snapshots and releases.
+* Capital case component names; inherit license info from Apache parent POM.
+* Only run `apache-rat` and `git-commit-id-plugin` in "release" maven profile.
+* [<a href="https://issues.apache.org/jira/browse/OPTIQ-348">OPTIQ-348</a>]
+  Add Apache RAT as maven plugin
+* Change license headers from "Julian Hyde" to "ASF"; add headers where missing.
+* Fix build breakage on JDK 1.6 due to missing method `BitSet.previousClearBit`.
+* Refactor test infrastructure to allow testing against heuristic bushy-join
+  optimizer.
+* Add methods and tests for BitSets, and re-organize tests.
+* [<a href="https://issues.apache.org/jira/browse/OPTIQ-354">OPTIQ-354</a>]
+  Change maven groupId to "org.apache.optiq"
+* Specify return type when calling `RexBuilder.makeCall`, if possible.
+* Eliminate duplicate conditions in `RexProgramBuilder.addCondition`, not
+  `RexBuilder.makeCall` as previously.
+* [<a href="https://issues.apache.org/jira/browse/OPTIQ-345">OPTIQ-345</a>]
+  `AssertionError` in `RexToLixTranslator` comparing to date literal
+* Restore `PushFilterPastJoinRule` to `RelDecorrelator`; interim pending
+  [<a href="https://issues.apache.org/jira/browse/OPTIQ-343">OPTIQ-343</a>]
+  fix.
+* [<a href="https://issues.apache.org/jira/browse/OPTIQ-340">OPTIQ-340</a>]
+  Fix bug in `SqlToRelConverter` when push expressions in join condtions into
+  `ProjectRel`.
+* [<a href="https://issues.apache.org/jira/browse/OPTIQ-313">OPTIQ-313</a>]
+  Query decorrelation fails
+* While unifying a `RelNode` tree with a materialized view expression,
+  switch representation to `MutableRel`s.
+* [<a href="https://issues.apache.org/jira/browse/OPTIQ-305">OPTIQ-305</a>]
+  Unit test failure on release candidates
+* [<a href="https://issues.apache.org/jira/browse/OPTIQ-325">OPTIQ-325</a>]
+  Use Java list instead of Guava list to avoid null checks in case of
+  `SqlTypeExplicitPrecedenceList`.
+* [<a href="https://issues.apache.org/jira/browse/OPTIQ-326">OPTIQ-326</a>]
+  Fix `RelOptUtil` `ANY` type check.
+* [<a href="https://issues.apache.org/jira/browse/OPTIQ-303">OPTIQ-303</a>]
+  Migrate issue URLs
+* [<a href="https://issues.apache.org/jira/browse/OPTIQ-331">OPTIQ-331</a>]
+  Precision/scale compatibility checks should always succeed for `ANY` type
+* In `SqlRun`, allow `!plan` after `!ok` for same SQL statement.
+* [<a href="https://issues.apache.org/jira/browse/OPTIQ-318">OPTIQ-318</a>]
+  Add unit test for `SqlRun`
+* Fix a bug where composite `SELECT DISTINCT` would return duplicate rows.
 
 ## <a href="https://github.com/julianhyde/optiq/releases/tag/optiq-parent-0.8">0.8</a> / 2014-06-27
 
