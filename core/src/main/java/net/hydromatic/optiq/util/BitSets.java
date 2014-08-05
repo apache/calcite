@@ -245,6 +245,60 @@ public final class BitSets {
     }
     return -1;
   }
+
+  /** Computes the closure of a map from integers to bits.
+   *
+   * <p>The input must have an entry for each position.
+   *
+   * <p>Does not modify the input map or its bit sets. */
+  public static SortedMap<Integer, BitSet> closure(
+      SortedMap<Integer, BitSet> equivalence) {
+    final Closure closure = new Closure(equivalence);
+    return closure.closure;
+  }
+
+  /**
+   * Setup equivalence Sets for each position. If i & j are equivalent then
+   * they will have the same equivalence Set. The algorithm computes the
+   * closure relation at each position for the position wrt to positions
+   * greater than it. Once a closure is computed for a position, the closure
+   * Set is set on all its descendants. So the closure computation bubbles up
+   * from lower positions and the final equivalence Set is propagated down
+   * from the lowest element in the Set.
+   */
+  private static class Closure {
+    private SortedMap<Integer, BitSet> equivalence;
+    private final SortedMap<Integer, BitSet> closure =
+        new TreeMap<Integer, BitSet>();
+
+    public Closure(SortedMap<Integer, BitSet> equivalence) {
+      this.equivalence = equivalence;
+      final ImmutableIntList keys =
+          ImmutableIntList.copyOf(equivalence.keySet());
+      for (int pos : keys) {
+        computeClosure(pos);
+      }
+    }
+
+    private BitSet computeClosure(int pos) {
+      BitSet o = closure.get(pos);
+      if (o != null) {
+        return o;
+      }
+      BitSet b = equivalence.get(pos);
+      o = (BitSet) b.clone();
+      int i = b.nextSetBit(pos + 1);
+      for (; i >= 0; i = b.nextSetBit(i + 1)) {
+        o.or(computeClosure(i));
+      }
+      closure.put(pos, o);
+      i = o.nextSetBit(pos + 1);
+      for (; i >= 0; i = b.nextSetBit(i + 1)) {
+        closure.put(i, o);
+      }
+      return o;
+    }
+  }
 }
 
 // End BitSets.java

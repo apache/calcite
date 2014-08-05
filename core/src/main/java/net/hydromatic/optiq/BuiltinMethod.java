@@ -221,6 +221,7 @@ public enum BuiltinMethod {
   EXPLAIN_VISIBILITY(ExplainVisibility.class, "isVisibleInExplain",
       SqlExplainLevel.class),
   DATA_CONTEXT_GET_QUERY_PROVIDER(DataContext.class, "getQueryProvider"),
+  PREDICATES(Predicates.class, "getPredicates"),
   METADATA_REL(Metadata.class, "rel");
 
   public final Method method;

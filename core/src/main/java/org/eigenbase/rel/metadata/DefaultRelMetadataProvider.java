@@ -43,7 +43,8 @@ public class DefaultRelMetadataProvider extends ChainedRelMetadataProvider {
             RelMdPopulationSize.SOURCE,
             RelMdDistinctRowCount.SOURCE,
             RelMdSelectivity.SOURCE,
-            RelMdExplainVisibility.SOURCE));
+            RelMdExplainVisibility.SOURCE,
+            RelMdPredicates.SOURCE));
   }
 }
 

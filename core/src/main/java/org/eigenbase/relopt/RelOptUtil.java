@@ -1764,7 +1764,8 @@ public abstract class RelOptUtil {
   /**
    * Returns a condition decomposed by AND.
    *
-   * <p>For example, {@code conjunctions(TRUE)} returns the empty list.</p>
+   * <p>For example, {@code conjunctions(TRUE)} returns the empty list;
+   * {@code conjunctions(FALSE)} returns list {@code {FALSE}}.</p>
    */
   public static List<RexNode> conjunctions(RexNode rexPredicate) {
     final List<RexNode> list = new ArrayList<RexNode>();

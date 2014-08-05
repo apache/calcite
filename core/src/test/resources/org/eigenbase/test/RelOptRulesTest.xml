@@ -1494,4 +1494,513 @@ UnionRel(all=[true])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testTransitiveInferenceJoin">
+        <Resource name="sql">
+            <![CDATA[select 1 from sales.emp d inner join sales.emp e on d.deptno = e.deptno where e.deptno > 7]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+ProjectRel(EXPR$0=[1])
+  JoinRel(condition=[=($7, $16)], joinType=[inner])
+    TableAccessRel(table=[[CATALOG, SALES, EMP]])
+    FilterRel(condition=[>($7, 7)])
+      TableAccessRel(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+ProjectRel(EXPR$0=[1])
+  JoinRel(condition=[=($7, $16)], joinType=[inner])
+    FilterRel(condition=[>($7, 7)])
+      TableAccessRel(table=[[CATALOG, SALES, EMP]])
+    FilterRel(condition=[>($7, 7)])
+      TableAccessRel(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testTransitiveInferenceProject">
+        <Resource name="sql">
+            <![CDATA[select 1 from (select * from sales.emp where deptno > 7) d inner join sales.emp e on d.deptno = e.deptno ]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+ProjectRel(EXPR$0=[1])
+  JoinRel(condition=[=($7, $16)], joinType=[inner])
+    ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+      FilterRel(condition=[>($7, 7)])
+        TableAccessRel(table=[[CATALOG, SALES, EMP]])
+    TableAccessRel(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+ProjectRel(EXPR$0=[1])
+  JoinRel(condition=[=($7, $16)], joinType=[inner])
+    ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+      FilterRel(condition=[>($7, 7)])
+        TableAccessRel(table=[[CATALOG, SALES, EMP]])
+    FilterRel(condition=[>($7, 7)])
+      TableAccessRel(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testTransitiveInferenceAggregate">
+        <Resource name="sql">
+            <![CDATA[select 1 from (select deptno, count(*) from sales.emp where deptno > 7 group by deptno) d inner join sales.emp e on d.deptno = e.deptno ]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+ProjectRel(EXPR$0=[1])
+  JoinRel(condition=[=($0, $9)], joinType=[inner])
+    AggregateRel(group=[{0}], EXPR$1=[COUNT()])
+      ProjectRel(DEPTNO=[$7])
+        FilterRel(condition=[>($7, 7)])
+          TableAccessRel(table=[[CATALOG, SALES, EMP]])
+    TableAccessRel(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+ProjectRel(EXPR$0=[1])
+  JoinRel(condition=[=($0, $9)], joinType=[inner])
+    AggregateRel(group=[{0}], EXPR$1=[COUNT()])
+      ProjectRel(DEPTNO=[$7])
+        FilterRel(condition=[>($7, 7)])
+          TableAccessRel(table=[[CATALOG, SALES, EMP]])
+    FilterRel(condition=[>($7, 7)])
+      TableAccessRel(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testTransitiveInferenceUnion">
+        <Resource name="sql">
+            <![CDATA[select 1 from (select deptno from sales.emp where deptno > 7 union all select deptno from sales.emp where deptno > 10) d inner join sales.emp e on d.deptno = e.deptno ]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+ProjectRel(EXPR$0=[1])
+  JoinRel(condition=[=($0, $8)], joinType=[inner])
+    UnionRel(all=[true])
+      ProjectRel(DEPTNO=[$7])
+        FilterRel(condition=[>($7, 7)])
+          TableAccessRel(table=[[CATALOG, SALES, EMP]])
+      ProjectRel(DEPTNO=[$7])
+        FilterRel(condition=[>($7, 10)])
+          TableAccessRel(table=[[CATALOG, SALES, EMP]])
+    TableAccessRel(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+ProjectRel(EXPR$0=[1])
+  JoinRel(condition=[=($0, $8)], joinType=[inner])
+    UnionRel(all=[true])
+      ProjectRel(DEPTNO=[$7])
+        FilterRel(condition=[>($7, 7)])
+          TableAccessRel(table=[[CATALOG, SALES, EMP]])
+      ProjectRel(DEPTNO=[$7])
+        FilterRel(condition=[>($7, 10)])
+          TableAccessRel(table=[[CATALOG, SALES, EMP]])
+    FilterRel(condition=[OR(>($7, 7), >($7, 10))])
+      TableAccessRel(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testTransitiveInferenceJoin3way">
+        <Resource name="sql">
+            <![CDATA[select 1 from sales.emp d inner join sales.emp e on d.deptno = e.deptno inner join sales.emp f on e.deptno = f.deptno  where d.deptno > 7]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+ProjectRel(EXPR$0=[1])
+  JoinRel(condition=[=($16, $25)], joinType=[inner])
+    JoinRel(condition=[=($7, $16)], joinType=[inner])
+      FilterRel(condition=[>($7, 7)])
+        TableAccessRel(table=[[CATALOG, SALES, EMP]])
+      TableAccessRel(table=[[CATALOG, SALES, EMP]])
+    TableAccessRel(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+ProjectRel(EXPR$0=[1])
+  JoinRel(condition=[=($16, $25)], joinType=[inner])
+    JoinRel(condition=[=($7, $16)], joinType=[inner])
+      FilterRel(condition=[>($7, 7)])
+        TableAccessRel(table=[[CATALOG, SALES, EMP]])
+      FilterRel(condition=[>($7, 7)])
+        TableAccessRel(table=[[CATALOG, SALES, EMP]])
+    FilterRel(condition=[>($7, 7)])
+      TableAccessRel(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testTransitiveInferenceJoin3wayAgg">
+        <Resource name="sql">
+            <![CDATA[select 1 from (select deptno, count(*) from sales.emp where deptno > 7 group by deptno) d inner join sales.emp e on d.deptno = e.deptno inner join sales.emp f on e.deptno = f.deptno ]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+ProjectRel(EXPR$0=[1])
+  JoinRel(condition=[=($9, $18)], joinType=[inner])
+    JoinRel(condition=[=($0, $9)], joinType=[inner])
+      AggregateRel(group=[{0}], EXPR$1=[COUNT()])
+        ProjectRel(DEPTNO=[$7])
+          FilterRel(condition=[>($7, 7)])
+            TableAccessRel(table=[[CATALOG, SALES, EMP]])
+      TableAccessRel(table=[[CATALOG, SALES, EMP]])
+    TableAccessRel(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+ProjectRel(EXPR$0=[1])
+  JoinRel(condition=[=($9, $18)], joinType=[inner])
+    JoinRel(condition=[=($0, $9)], joinType=[inner])
+      AggregateRel(group=[{0}], EXPR$1=[COUNT()])
+        ProjectRel(DEPTNO=[$7])
+          FilterRel(condition=[>($7, 7)])
+            TableAccessRel(table=[[CATALOG, SALES, EMP]])
+      FilterRel(condition=[>($7, 7)])
+        TableAccessRel(table=[[CATALOG, SALES, EMP]])
+    FilterRel(condition=[>($7, 7)])
+      TableAccessRel(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testTransitiveInferenceLeftOuterJoin">
+        <Resource name="sql">
+            <![CDATA[select 1 from sales.emp d left outer join sales.emp e on d.deptno = e.deptno  where d.deptno > 7 and e.deptno > 9]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+ProjectRel(EXPR$0=[1])
+  FilterRel(condition=[>($16, 9)])
+    JoinRel(condition=[=($7, $16)], joinType=[left])
+      FilterRel(condition=[>($7, 7)])
+        TableAccessRel(table=[[CATALOG, SALES, EMP]])
+      TableAccessRel(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+ProjectRel(EXPR$0=[1])
+  FilterRel(condition=[>($16, 9)])
+    JoinRel(condition=[=($7, $16)], joinType=[left])
+      FilterRel(condition=[>($7, 7)])
+        TableAccessRel(table=[[CATALOG, SALES, EMP]])
+      FilterRel(condition=[>($7, 7)])
+        TableAccessRel(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testTransitiveInferenceRightOuterJoin">
+        <Resource name="sql">
+            <![CDATA[select 1 from sales.emp d right outer join sales.emp e on d.deptno = e.deptno  where d.deptno > 7 and e.deptno > 9]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+ProjectRel(EXPR$0=[1])
+  FilterRel(condition=[>($7, 7)])
+    JoinRel(condition=[=($7, $16)], joinType=[right])
+      TableAccessRel(table=[[CATALOG, SALES, EMP]])
+      FilterRel(condition=[>($7, 9)])
+        TableAccessRel(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+ProjectRel(EXPR$0=[1])
+  FilterRel(condition=[>($7, 7)])
+    JoinRel(condition=[=($7, $16)], joinType=[right])
+      FilterRel(condition=[>($7, 9)])
+        TableAccessRel(table=[[CATALOG, SALES, EMP]])
+      FilterRel(condition=[>($7, 9)])
+        TableAccessRel(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testTransitiveInferenceFullOuterJoin">
+        <Resource name="sql">
+            <![CDATA[select 1 from sales.emp d full outer join sales.emp e on d.deptno = e.deptno  where d.deptno > 7 and e.deptno > 9]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+ProjectRel(EXPR$0=[1])
+  FilterRel(condition=[AND(>($7, 7), >($16, 9))])
+    JoinRel(condition=[=($7, $16)], joinType=[full])
+      TableAccessRel(table=[[CATALOG, SALES, EMP]])
+      TableAccessRel(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+ProjectRel(EXPR$0=[1])
+  FilterRel(condition=[AND(>($7, 7), >($16, 9))])
+    JoinRel(condition=[=($7, $16)], joinType=[full])
+      TableAccessRel(table=[[CATALOG, SALES, EMP]])
+      TableAccessRel(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testTransitiveInferencePreventProjectPullup">
+        <Resource name="sql">
+            <![CDATA[select 1 from (select comm as deptno from sales.emp where deptno > 7) d inner join sales.emp e on d.deptno = e.deptno ]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+ProjectRel(EXPR$0=[1])
+  JoinRel(condition=[=($0, $8)], joinType=[inner])
+    ProjectRel(DEPTNO=[$6])
+      FilterRel(condition=[>($7, 7)])
+        TableAccessRel(table=[[CATALOG, SALES, EMP]])
+    TableAccessRel(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+ProjectRel(EXPR$0=[1])
+  JoinRel(condition=[=($0, $8)], joinType=[inner])
+    ProjectRel(DEPTNO=[$6])
+      FilterRel(condition=[>($7, 7)])
+        TableAccessRel(table=[[CATALOG, SALES, EMP]])
+    TableAccessRel(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testTransitiveInferencePullupThruAlias">
+        <Resource name="sql">
+            <![CDATA[select 1 from (select comm as deptno from sales.emp where comm > 7) d inner join sales.emp e on d.deptno = e.deptno ]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+ProjectRel(EXPR$0=[1])
+  JoinRel(condition=[=($0, $8)], joinType=[inner])
+    ProjectRel(DEPTNO=[$6])
+      FilterRel(condition=[>($6, 7)])
+        TableAccessRel(table=[[CATALOG, SALES, EMP]])
+    TableAccessRel(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+ProjectRel(EXPR$0=[1])
+  JoinRel(condition=[=($0, $8)], joinType=[inner])
+    ProjectRel(DEPTNO=[$6])
+      FilterRel(condition=[>($6, 7)])
+        TableAccessRel(table=[[CATALOG, SALES, EMP]])
+    FilterRel(condition=[>($7, 7)])
+      TableAccessRel(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testTransitiveInferenceConjunctInPullUp">
+        <Resource name="sql">
+            <![CDATA[select 1 from sales.emp d inner join sales.emp e on d.deptno = e.deptno  where d.deptno in (7, 9) or d.deptno > 10]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+ProjectRel(EXPR$0=[1])
+  JoinRel(condition=[=($7, $16)], joinType=[inner])
+    FilterRel(condition=[OR(=($7, 7), =($7, 9), >($7, 10))])
+      TableAccessRel(table=[[CATALOG, SALES, EMP]])
+    TableAccessRel(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+ProjectRel(EXPR$0=[1])
+  JoinRel(condition=[=($7, $16)], joinType=[inner])
+    FilterRel(condition=[OR(=($7, 7), =($7, 9), >($7, 10))])
+      TableAccessRel(table=[[CATALOG, SALES, EMP]])
+    FilterRel(condition=[OR(=($7, 7), =($7, 9), >($7, 10))])
+      TableAccessRel(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testTransitiveInferenceNoPullUpExprs">
+        <Resource name="sql">
+            <![CDATA[select 1 from sales.emp d inner join sales.emp e on d.deptno = e.deptno  where d.deptno in (7, 9) or d.comm > 10]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+ProjectRel(EXPR$0=[1])
+  JoinRel(condition=[=($7, $16)], joinType=[inner])
+    FilterRel(condition=[OR(=($7, 7), =($7, 9), >($6, 10))])
+      TableAccessRel(table=[[CATALOG, SALES, EMP]])
+    TableAccessRel(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+ProjectRel(EXPR$0=[1])
+  JoinRel(condition=[=($7, $16)], joinType=[inner])
+    FilterRel(condition=[OR(=($7, 7), =($7, 9), >($6, 10))])
+      TableAccessRel(table=[[CATALOG, SALES, EMP]])
+    TableAccessRel(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testTransitiveInferenceUnion3way">
+        <Resource name="sql">
+            <![CDATA[select 1 from (select deptno from sales.emp where deptno > 7 union all select deptno from sales.emp where deptno > 10 union all select deptno from sales.emp where deptno > 1) d inner join sales.emp e on d.deptno = e.deptno ]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+ProjectRel(EXPR$0=[1])
+  JoinRel(condition=[=($0, $8)], joinType=[inner])
+    UnionRel(all=[true])
+      UnionRel(all=[true])
+        ProjectRel(DEPTNO=[$7])
+          FilterRel(condition=[>($7, 7)])
+            TableAccessRel(table=[[CATALOG, SALES, EMP]])
+        ProjectRel(DEPTNO=[$7])
+          FilterRel(condition=[>($7, 10)])
+            TableAccessRel(table=[[CATALOG, SALES, EMP]])
+      ProjectRel(DEPTNO=[$7])
+        FilterRel(condition=[>($7, 1)])
+          TableAccessRel(table=[[CATALOG, SALES, EMP]])
+    TableAccessRel(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+ProjectRel(EXPR$0=[1])
+  JoinRel(condition=[=($0, $8)], joinType=[inner])
+    UnionRel(all=[true])
+      UnionRel(all=[true])
+        ProjectRel(DEPTNO=[$7])
+          FilterRel(condition=[>($7, 7)])
+            TableAccessRel(table=[[CATALOG, SALES, EMP]])
+        ProjectRel(DEPTNO=[$7])
+          FilterRel(condition=[>($7, 10)])
+            TableAccessRel(table=[[CATALOG, SALES, EMP]])
+      ProjectRel(DEPTNO=[$7])
+        FilterRel(condition=[>($7, 1)])
+          TableAccessRel(table=[[CATALOG, SALES, EMP]])
+    FilterRel(condition=[OR(>($7, 7), >($7, 10), >($7, 1))])
+      TableAccessRel(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testTransitiveInferenceUnion3wayOr">
+        <Resource name="sql">
+            <![CDATA[
+select 1 from (
+    select empno, deptno from sales.emp where deptno > 7 or empno < 10
+    union all
+    select empno, deptno from sales.emp where deptno > 10 or empno < deptno
+    union all
+    select empno, deptno from sales.emp where deptno > 1) d
+inner join sales.emp e on d.deptno = e.deptno ]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+ProjectRel(EXPR$0=[1])
+  JoinRel(condition=[=($1, $9)], joinType=[inner])
+    UnionRel(all=[true])
+      UnionRel(all=[true])
+        ProjectRel(EMPNO=[$0], DEPTNO=[$7])
+          FilterRel(condition=[OR(>($7, 7), <($0, 10))])
+            TableAccessRel(table=[[CATALOG, SALES, EMP]])
+        ProjectRel(EMPNO=[$0], DEPTNO=[$7])
+          FilterRel(condition=[OR(>($7, 10), <($0, $7))])
+            TableAccessRel(table=[[CATALOG, SALES, EMP]])
+      ProjectRel(EMPNO=[$0], DEPTNO=[$7])
+        FilterRel(condition=[>($7, 1)])
+          TableAccessRel(table=[[CATALOG, SALES, EMP]])
+    TableAccessRel(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+ProjectRel(EXPR$0=[1])
+  JoinRel(condition=[=($1, $9)], joinType=[inner])
+    UnionRel(all=[true])
+      UnionRel(all=[true])
+        ProjectRel(EMPNO=[$0], DEPTNO=[$7])
+          FilterRel(condition=[OR(>($7, 7), <($0, 10))])
+            TableAccessRel(table=[[CATALOG, SALES, EMP]])
+        ProjectRel(EMPNO=[$0], DEPTNO=[$7])
+          FilterRel(condition=[OR(>($7, 10), <($0, $7))])
+            TableAccessRel(table=[[CATALOG, SALES, EMP]])
+      ProjectRel(EMPNO=[$0], DEPTNO=[$7])
+        FilterRel(condition=[>($7, 1)])
+          TableAccessRel(table=[[CATALOG, SALES, EMP]])
+    TableAccessRel(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testTransitiveInferenceConstantEquiPredicate">
+        <Resource name="sql">
+            <![CDATA[select 1 from sales.emp d inner join sales.emp e on d.deptno = e.deptno  where 1 = 1]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+ProjectRel(EXPR$0=[1])
+  JoinRel(condition=[=($7, $16)], joinType=[inner])
+    FilterRel(condition=[=(1, 1)])
+      TableAccessRel(table=[[CATALOG, SALES, EMP]])
+    TableAccessRel(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+ProjectRel(EXPR$0=[1])
+  JoinRel(condition=[=($7, $16)], joinType=[inner])
+    FilterRel(condition=[=(1, 1)])
+      TableAccessRel(table=[[CATALOG, SALES, EMP]])
+    TableAccessRel(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testTransitiveInferenceConstantPredicate">
+        <Resource name="sql">
+            <![CDATA[select 1 from sales.emp d inner join sales.emp e on d.deptno = e.deptno  where 2 > 1]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+ProjectRel(EXPR$0=[1])
+  JoinRel(condition=[=($7, $16)], joinType=[inner])
+    FilterRel(condition=[>(2, 1)])
+      TableAccessRel(table=[[CATALOG, SALES, EMP]])
+    TableAccessRel(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+ProjectRel(EXPR$0=[1])
+  JoinRel(condition=[=($7, $16)], joinType=[inner])
+    FilterRel(condition=[>(2, 1)])
+      TableAccessRel(table=[[CATALOG, SALES, EMP]])
+    TableAccessRel(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testTransitiveInferenceComplexPredicate">
+        <Resource name="sql">
+            <![CDATA[select 1 from sales.emp d inner join sales.emp e on d.deptno = e.deptno  where d.deptno > 7 and e.sal = e.deptno and d.comm = d.deptno and d.comm + d.deptno > d.comm/2]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+ProjectRel(EXPR$0=[1])
+  JoinRel(condition=[=($7, $16)], joinType=[inner])
+    FilterRel(condition=[AND(>($7, 7), =($6, $7), >(+($6, $7), /($6, 2)))])
+      TableAccessRel(table=[[CATALOG, SALES, EMP]])
+    FilterRel(condition=[=($5, $7)])
+      TableAccessRel(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+ProjectRel(EXPR$0=[1])
+  JoinRel(condition=[=($7, $16)], joinType=[inner])
+    FilterRel(condition=[AND(>($7, 7), =($6, $7), >(+($6, $7), /($6, 2)))])
+      TableAccessRel(table=[[CATALOG, SALES, EMP]])
+    FilterRel(condition=[>($7, 7)])
+      FilterRel(condition=[=($5, $7)])
+        TableAccessRel(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
 </Root>

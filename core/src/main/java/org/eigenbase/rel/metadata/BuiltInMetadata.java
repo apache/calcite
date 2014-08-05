@@ -20,6 +20,7 @@ import java.util.*;
 
 import org.eigenbase.rel.*;
 import org.eigenbase.relopt.RelOptCost;
+import org.eigenbase.relopt.RelOptPredicateList;
 import org.eigenbase.rex.RexNode;
 import org.eigenbase.sql.SqlExplainLevel;
 
@@ -207,9 +208,21 @@ public abstract class BuiltInMetadata {
     Boolean isVisibleInExplain(SqlExplainLevel explainLevel);
   }
 
+  /** Metadata about the predicates that hold in the rows emitted from a
+   * relational expression. */
+  public interface Predicates extends Metadata {
+    /**
+     * Derives the predicates that hold on rows emitted from a relational
+     * expression.
+     *
+     * @return Predicate list
+     */
+    RelOptPredicateList getPredicates();
+  }
+
   /** The built-in forms of metadata. */
-  interface All extends Selectivity, UniqueKeys, RowCount,
-      DistinctRowCount, PercentageOriginalRows, ColumnUniqueness, ColumnOrigin {
+  interface All extends Selectivity, UniqueKeys, RowCount, DistinctRowCount,
+      PercentageOriginalRows, ColumnUniqueness, ColumnOrigin, Predicates {
   }
 }
 

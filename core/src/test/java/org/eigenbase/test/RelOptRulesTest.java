@@ -16,9 +16,48 @@
 */
 package org.eigenbase.test;
 
+import java.util.List;
+
+import org.eigenbase.rel.RelNode;
 import org.eigenbase.rel.TableModificationRel;
-import org.eigenbase.rel.rules.*;
-import org.eigenbase.relopt.hep.*;
+import org.eigenbase.rel.metadata.CachingRelMetadataProvider;
+import org.eigenbase.rel.metadata.ChainedRelMetadataProvider;
+import org.eigenbase.rel.metadata.DefaultRelMetadataProvider;
+import org.eigenbase.rel.metadata.RelMetadataProvider;
+import org.eigenbase.rel.rules.AddRedundantSemiJoinRule;
+import org.eigenbase.rel.rules.CoerceInputsRule;
+import org.eigenbase.rel.rules.ConvertMultiJoinRule;
+import org.eigenbase.rel.rules.ExtractJoinFilterRule;
+import org.eigenbase.rel.rules.FilterToCalcRule;
+import org.eigenbase.rel.rules.MergeCalcRule;
+import org.eigenbase.rel.rules.MergeProjectRule;
+import org.eigenbase.rel.rules.ProjectToCalcRule;
+import org.eigenbase.rel.rules.PullConstantsThroughAggregatesRule;
+import org.eigenbase.rel.rules.PushAggregateThroughUnionRule;
+import org.eigenbase.rel.rules.PushFilterPastJoinRule;
+import org.eigenbase.rel.rules.PushFilterPastProjectRule;
+import org.eigenbase.rel.rules.PushFilterPastSetOpRule;
+import org.eigenbase.rel.rules.PushJoinThroughUnionRule;
+import org.eigenbase.rel.rules.PushProjectPastFilterRule;
+import org.eigenbase.rel.rules.PushProjectPastJoinRule;
+import org.eigenbase.rel.rules.PushProjectPastSetOpRule;
+import org.eigenbase.rel.rules.PushSemiJoinPastFilterRule;
+import org.eigenbase.rel.rules.PushSemiJoinPastJoinRule;
+import org.eigenbase.rel.rules.PushSemiJoinPastProjectRule;
+import org.eigenbase.rel.rules.ReduceAggregatesRule;
+import org.eigenbase.rel.rules.ReduceExpressionsRule;
+import org.eigenbase.rel.rules.ReduceValuesRule;
+import org.eigenbase.rel.rules.RemoveEmptyRules;
+import org.eigenbase.rel.rules.RemoveSemiJoinRule;
+import org.eigenbase.rel.rules.RemoveTrivialProjectRule;
+import org.eigenbase.rel.rules.TableAccessRule;
+import org.eigenbase.rel.rules.TransitivePredicatesOnJoinRule;
+import org.eigenbase.rel.rules.UnionToDistinctRule;
+import org.eigenbase.relopt.RelOptUtil;
+import org.eigenbase.relopt.hep.HepMatchOrder;
+import org.eigenbase.relopt.hep.HepPlanner;
+import org.eigenbase.relopt.hep.HepProgram;
+import org.eigenbase.relopt.hep.HepProgramBuilder;
 import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.reltype.RelDataTypeFactory;
 import org.eigenbase.sql.type.SqlTypeName;
@@ -26,9 +65,12 @@ import org.eigenbase.sql.type.SqlTypeName;
 import net.hydromatic.optiq.prepare.Prepare;
 
 import com.google.common.base.Function;
+import com.google.common.collect.Lists;
 
 import org.junit.Ignore;
 import org.junit.Test;
+
+import static org.junit.Assert.assertTrue;
 
 /**
  * Unit test for rules in {@code org.eigenbase.rel} and subpackages.
@@ -728,6 +770,123 @@ public class RelOptRulesTest extends RelOptTestBase {
   @Test public void testPullConstantThroughAggregateAllLiterals()
     throws Exception {
     basePullConstantTroughAggregate();
+  }
+
+  public void transitiveInference() throws Exception {
+    final DiffRepository diffRepos = getDiffRepos();
+    String sql = diffRepos.expand(null, "${sql}");
+
+    HepProgram program = new HepProgramBuilder().addRuleCollection(
+        Lists.newArrayList(PushFilterPastJoinRule.FILTER_ON_JOIN,
+            PushFilterPastJoinRule.JOIN, PushFilterPastProjectRule.INSTANCE,
+            PushFilterPastSetOpRule.INSTANCE)).build();
+    HepPlanner planner = new HepPlanner(program);
+
+    RelNode relInitial = tester.convertSqlToRel(sql);
+
+    assertTrue(relInitial != null);
+
+    List<RelMetadataProvider> list = Lists.newArrayList();
+    DefaultRelMetadataProvider defaultProvider =
+        new DefaultRelMetadataProvider();
+    list.add(defaultProvider);
+    planner.registerMetadataProviders(list);
+    RelMetadataProvider plannerChain = ChainedRelMetadataProvider.of(list);
+    relInitial.getCluster().setMetadataProvider(
+        new CachingRelMetadataProvider(plannerChain, planner));
+
+    planner.setRoot(relInitial);
+    RelNode relAfter = planner.findBestExp();
+
+    String planBefore = NL + RelOptUtil.toString(relAfter);
+    diffRepos.assertEquals("planBefore", "${planBefore}", planBefore);
+
+    HepProgram program2 = new HepProgramBuilder()
+        .addMatchOrder(HepMatchOrder.BOTTOM_UP)
+        .addRuleCollection(
+            Lists.newArrayList(PushFilterPastJoinRule.FILTER_ON_JOIN,
+                PushFilterPastJoinRule.JOIN,
+                PushFilterPastProjectRule.INSTANCE,
+                PushFilterPastSetOpRule.INSTANCE,
+                TransitivePredicatesOnJoinRule.INSTANCE)).build();
+    HepPlanner planner2 = new HepPlanner(program2);
+    planner.registerMetadataProviders(list);
+    planner2.setRoot(relAfter);
+    relAfter = planner2.findBestExp();
+
+    String planAfter = NL + RelOptUtil.toString(relAfter);
+    diffRepos.assertEquals("planAfter", "${planAfter}", planAfter);
+  }
+
+  @Test public void testTransitiveInferenceJoin() throws Exception {
+    transitiveInference();
+  }
+
+  @Test public void testTransitiveInferenceProject() throws Exception {
+    transitiveInference();
+  }
+
+  @Test public void testTransitiveInferenceAggregate() throws Exception {
+    transitiveInference();
+  }
+
+  @Test public void testTransitiveInferenceUnion() throws Exception {
+    transitiveInference();
+  }
+
+  @Test public void testTransitiveInferenceJoin3way() throws Exception {
+    transitiveInference();
+  }
+
+  @Test public void testTransitiveInferenceJoin3wayAgg() throws Exception {
+    transitiveInference();
+  }
+
+  @Test public void testTransitiveInferenceLeftOuterJoin() throws Exception {
+    transitiveInference();
+  }
+
+  @Test public void testTransitiveInferenceRightOuterJoin() throws Exception {
+    transitiveInference();
+  }
+
+  @Test public void testTransitiveInferenceFullOuterJoin() throws Exception {
+    transitiveInference();
+  }
+
+  @Test public void testTransitiveInferencePreventProjectPullup()
+    throws Exception {
+    transitiveInference();
+  }
+
+  @Test public void testTransitiveInferencePullupThruAlias() throws Exception {
+    transitiveInference();
+  }
+
+  @Test public void testTransitiveInferenceConjunctInPullUp() throws Exception {
+    transitiveInference();
+  }
+
+  @Test public void testTransitiveInferenceNoPullUpExprs() throws Exception {
+    transitiveInference();
+  }
+
+  @Test public void testTransitiveInferenceUnion3way() throws Exception {
+    transitiveInference();
+  }
+
+  @Ignore("not working")
+  @Test public void testTransitiveInferenceUnion3wayOr() throws Exception {
+    transitiveInference();
+  }
+
+  @Test public void testTransitiveInferenceConstantEquiPredicate()
+    throws Exception {
+    transitiveInference();
+  }
+
+  @Test public void testTransitiveInferenceComplexPredicate() throws Exception {
+    transitiveInference();
   }
 }
 
