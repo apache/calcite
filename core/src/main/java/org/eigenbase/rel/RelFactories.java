@@ -37,6 +37,9 @@ public class RelFactories {
   public static final ProjectFactory DEFAULT_PROJECT_FACTORY =
       new ProjectFactoryImpl();
 
+  public static final FilterFactory DEFAULT_FILTER_FACTORY =
+      new FilterFactoryImpl();
+
   public static final JoinFactory DEFAULT_JOIN_FACTORY = new JoinFactoryImpl();
 
   private RelFactories() {
@@ -63,6 +66,28 @@ public class RelFactories {
     public RelNode createProject(RelNode child, List<RexNode> childExprs,
         List<String> fieldNames) {
       return CalcRel.createProject(child, childExprs, fieldNames);
+    }
+  }
+
+  /**
+   * Can create a {@link org.eigenbase.rel.FilterRel} of the appropriate type
+   * for this rule's calling convention.
+   */
+  public interface FilterFactory {
+    /**
+     * Can create a {@link org.eigenbase.rel.FilterRel} of the appropriate type
+     * for this rule's calling convention.
+     */
+    RelNode createFilter(RelNode child, RexNode condition);
+  }
+
+  /**
+   * Implementation of {@link org.eigenbase.rel.RelFactories.FilterFactory} that
+   * returns vanilla {@link FilterRel}.
+   */
+  private static class FilterFactoryImpl implements FilterFactory {
+    public RelNode createFilter(RelNode child, RexNode condition) {
+      return new FilterRel(child.getCluster(), child, condition);
     }
   }
 
