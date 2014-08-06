@@ -74,21 +74,19 @@ limitations under the License.
 
   <!-- Dependencies. -->
   <dependencies>
+    <!-- Sorted by groupId, artifactId. -->
     <dependency>
-      <groupId>junit</groupId>
-      <artifactId>junit</artifactId>
-      <version>4.11</version>
+      <groupId>commons-dbcp</groupId>
+      <artifactId>commons-dbcp</artifactId>
+      <version>1.4</version>
+<!--
       <scope>test</scope>
+-->
     </dependency>
     <dependency>
-      <groupId>eigenbase</groupId>
-      <artifactId>eigenbase-properties</artifactId>
-      <version>1.1.4</version>
-    </dependency>
-    <dependency>
-      <groupId>net.hydromatic</groupId>
-      <artifactId>linq4j</artifactId>
-      <version>0.4</version>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-databind</artifactId>
+      <version>2.1.1</version>
     </dependency>
     <dependency>
       <groupId>com.google.guava</groupId>
@@ -97,9 +95,26 @@ limitations under the License.
       <version>[11.0.2,]</version>
     </dependency>
     <dependency>
-      <groupId>com.fasterxml.jackson.core</groupId>
-      <artifactId>jackson-databind</artifactId>
-      <version>2.1.1</version>
+      <groupId>eigenbase</groupId>
+      <artifactId>eigenbase-properties</artifactId>
+      <version>1.1.4</version>
+    </dependency>
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <version>4.11</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>mysql</groupId>
+      <artifactId>mysql-connector-java</artifactId>
+      <version>5.1.20</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>net.hydromatic</groupId>
+      <artifactId>linq4j</artifactId>
+      <version>0.4</version>
     </dependency>
     <dependency>
       <groupId>org.codehaus.janino</groupId>
@@ -112,35 +127,21 @@ limitations under the License.
       <version>2.7.3</version>
     </dependency>
     <dependency>
-      <groupId>org.incava</groupId>
-      <artifactId>java-diff</artifactId>
-      <version>1.1</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>commons-dbcp</groupId>
-      <artifactId>commons-dbcp</artifactId>
-      <version>1.4</version>
-<!--
-      <scope>test</scope>
--->
-    </dependency>
-    <dependency>
-      <groupId>mysql</groupId>
-      <artifactId>mysql-connector-java</artifactId>
-      <version>5.1.20</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
       <groupId>org.hsqldb</groupId>
       <artifactId>hsqldb</artifactId>
       <version>2.3.1</version>
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>sqlline</groupId>
-      <artifactId>sqlline</artifactId>
-      <version>1.1.7</version>
+      <groupId>org.incava</groupId>
+      <artifactId>java-diff</artifactId>
+      <version>1.1</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>pentaho</groupId>
+      <artifactId>mondrian-data-foodmart-hsqldb</artifactId>
+      <version>0.2</version>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -150,15 +151,16 @@ limitations under the License.
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>pentaho</groupId>
-      <artifactId>mondrian-data-foodmart-hsqldb</artifactId>
-      <version>0.2</version>
+      <groupId>sqlline</groupId>
+      <artifactId>sqlline</artifactId>
+      <version>1.1.7</version>
       <scope>test</scope>
     </dependency>
   </dependencies>
 
   <dependencyManagement>
     <dependencies>
+      <!-- Sorted by groupId, artifactId; optiq dependencies first. -->
       <dependency>
         <groupId>org.apache.optiq</groupId>
         <artifactId>optiq-avatica</artifactId>
@@ -168,6 +170,65 @@ limitations under the License.
         <groupId>org.apache.optiq</groupId>
         <artifactId>optiq-core</artifactId>
         <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.optiq</groupId>
+        <artifactId>optiq-core</artifactId>
+        <type>test-jar</type>
+        <version>${project.version}</version>
+      </dependency>
+
+      <!-- Now third-party dependencies. -->
+      <dependency>
+        <groupId>io.airlift.tpch</groupId>
+        <artifactId>tpch</artifactId>
+        <version>0.1</version>
+      </dependency>
+      <dependency>
+        <groupId>net.hydromatic</groupId>
+        <artifactId>tpcds</artifactId>
+        <version>0.1</version>
+        <type>jar</type>
+      </dependency>
+      <dependency>
+        <groupId>net.sf.opencsv</groupId>
+        <artifactId>opencsv</artifactId>
+        <version>2.3</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.spark</groupId>
+        <artifactId>spark-core_2.10</artifactId>
+        <version>0.9.0-incubating</version>
+      </dependency>
+      <dependency>
+        <groupId>org.eclipse.jetty</groupId>
+        <artifactId>jetty-server</artifactId>
+        <version>7.6.8.v20121106</version>
+      </dependency>
+      <dependency>
+        <groupId>org.mongodb</groupId>
+        <artifactId>mongo-java-driver</artifactId>
+        <version>2.11.1</version>
+      </dependency>
+      <dependency>
+        <groupId>org.openjdk.jmh</groupId>
+        <artifactId>jmh-core</artifactId>
+        <version>0.7.1</version>
+      </dependency>
+      <dependency>
+        <groupId>org.openjdk.jmh</groupId>
+        <artifactId>jmh-generator-annprocess</artifactId>
+        <version>0.7.1</version>
+      </dependency>
+      <dependency>
+        <groupId>xerces</groupId>
+        <artifactId>xercesImpl</artifactId>
+        <version>2.9.1</version>
+      </dependency>
+      <dependency>
+        <groupId>xalan</groupId>
+        <artifactId>xalan</artifactId>
+        <version>2.7.1</version>
       </dependency>
     </dependencies>
   </dependencyManagement>
@@ -235,10 +296,51 @@ limitations under the License.
 
     <pluginManagement>
       <plugins>
+        <!-- Sorted by groupId, artifactId. -->
+        <plugin>
+          <groupId>com.googlecode.fmpp-maven-plugin</groupId>
+          <artifactId>fmpp-maven-plugin</artifactId>
+          <version>1.0</version>
+        </plugin>
+        <plugin>
+          <groupId>net.hydromatic</groupId>
+          <artifactId>hydromatic-resource-maven-plugin</artifactId>
+          <version>0.2</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-compiler-plugin</artifactId>
+          <version>2.3.2</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-jar-plugin</artifactId>
+          <version>2.2</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-release-plugin</artifactId>
+          <version>2.4.1</version>
+        </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-shade-plugin</artifactId>
           <version>2.0</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-source-plugin</artifactId>
+          <version>2.2.1</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-surefire-plugin</artifactId>
+          <version>2.16</version>
+        </plugin>
+        <plugin>
+          <groupId>org.codehaus.mojo</groupId>
+          <artifactId>javacc-maven-plugin</artifactId>
+          <version>2.4</version>
         </plugin>
       </plugins>
     </pluginManagement>

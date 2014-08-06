@@ -39,20 +39,21 @@ limitations under the License.
   </repositories>
 
   <dependencies>
+    <!-- Sorted by groupId, artifactId; optiq dependencies first. Put versions
+         in dependencyManagement in the root POM, not here. -->
+    <dependency>
+      <groupId>org.apache.optiq</groupId>
+      <artifactId>optiq-core</artifactId>
+    </dependency>
+
     <dependency>
       <groupId>org.openjdk.jmh</groupId>
       <artifactId>jmh-core</artifactId>
-      <version>0.7.1</version>
     </dependency>
     <dependency>
       <groupId>org.openjdk.jmh</groupId>
       <artifactId>jmh-generator-annprocess</artifactId>
-      <version>0.7.1</version>
       <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.optiq</groupId>
-      <artifactId>optiq-core</artifactId>
     </dependency>
   </dependencies>
 

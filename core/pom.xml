@@ -35,10 +35,11 @@ limitations under the License.
    </properties>
 
   <dependencies>
+    <!-- Sorted by groupId, artifactId; optiq dependencies first. Put versions
+         in dependencyManagement in the root POM, not here. -->
     <dependency>
       <groupId>org.apache.optiq</groupId>
       <artifactId>optiq-avatica</artifactId>
-      <version>0.9.0-incubating-SNAPSHOT</version>
     </dependency>
   </dependencies>
 
@@ -47,7 +48,6 @@ limitations under the License.
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
-        <version>2.16</version>
         <configuration>
           <includes>
             <include>net/hydromatic/optiq/test/OptiqSuite.java</include>
@@ -61,7 +61,6 @@ limitations under the License.
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>javacc-maven-plugin</artifactId>
-        <version>2.4</version>
         <executions>
           <execution>
             <id>javacc</id>
@@ -82,7 +81,6 @@ limitations under the License.
       <plugin>
         <groupId>net.hydromatic</groupId>
         <artifactId>hydromatic-resource-maven-plugin</artifactId>
-        <version>0.2</version>
         <executions>
           <execution>
             <goals>
@@ -97,7 +95,6 @@ limitations under the License.
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-jar-plugin</artifactId>
-        <version>2.2</version>
         <executions>
           <execution>
             <goals>
@@ -114,7 +111,6 @@ limitations under the License.
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-source-plugin</artifactId>
-        <version>2.2.1</version>
         <executions>
           <execution>
             <id>attach-sources</id>
@@ -129,7 +125,6 @@ limitations under the License.
       <plugin>
         <groupId>com.googlecode.fmpp-maven-plugin</groupId>
         <artifactId>fmpp-maven-plugin</artifactId>
-        <version>1.0</version>
         <configuration>
           <cfgFile>src/main/codegen/config.fmpp</cfgFile>
           <templateDirectory>src/main/codegen/templates</templateDirectory>
