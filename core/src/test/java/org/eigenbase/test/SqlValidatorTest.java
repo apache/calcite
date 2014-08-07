@@ -5178,6 +5178,23 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         "Table 'E' not found");
   }
 
+  @Test public void testWithOrderAgg() {
+    check("select count(*) from emp order by count(*)");
+    check("with q as (select * from emp)\n"
+        + "select count(*) from q group by deptno order by count(*)");
+    check("with q as (select * from emp)\n"
+        + "select count(*) from q order by count(*)");
+
+    // ORDER BY on UNION would produce a similar parse tree,
+    // SqlOrderBy(SqlUnion(SqlSelect ...)), but is not valid SQL.
+    checkFails(
+        "select count(*) from emp\n"
+        + "union all\n"
+        + "select count(*) from emp\n"
+        + "order by ^count(*)^",
+        "Aggregate expression is illegal in ORDER BY clause of non-aggregating SELECT");
+  }
+
   /**
    * Tests a large scalar expression, which will expose any O(n^2) algorithms
    * lurking in the validation process.

@@ -945,8 +945,28 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       }
       final SqlNodeList selectList = new SqlNodeList(SqlParserPos.ZERO);
       selectList.add(new SqlIdentifier("*", SqlParserPos.ZERO));
+      final SqlNodeList orderList;
+      if (getInnerSelect(node) != null && isAggregate(getInnerSelect(node))) {
+        orderList =
+            orderBy.orderList.clone(orderBy.orderList.getParserPosition());
+        // We assume that ORDER BY item does not have ASC etc.
+        // We assume that ORDER BY item is present in SELECT list.
+        for (int i = 0; i < orderList.size(); i++) {
+          SqlNode sqlNode = orderList.get(i);
+          SqlNodeList selectList2 = getInnerSelect(node).getSelectList();
+          for (Ord<SqlNode> sel : Ord.zip(selectList2)) {
+            if (stripAs(sel.e).equalsDeep(sqlNode, false)) {
+              orderList.set(i,
+                  SqlLiteral.createExactNumeric(Integer.toString(sel.i + 1),
+                      SqlParserPos.ZERO));
+            }
+          }
+        }
+      } else {
+        orderList = orderBy.orderList;
+      }
       return new SqlSelect(SqlParserPos.ZERO, null, selectList, orderBy.query,
-          null, null, null, null, orderBy.orderList, orderBy.offset,
+          null, null, null, null, orderList, orderBy.offset,
           orderBy.fetch);
     }
 
@@ -993,6 +1013,20 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     }
     }
     return node;
+  }
+
+  private SqlSelect getInnerSelect(SqlNode node) {
+    for (;;) {
+      if (node instanceof SqlSelect) {
+        return (SqlSelect) node;
+      } else if (node instanceof SqlOrderBy) {
+        node = ((SqlOrderBy) node).query;
+      } else if (node instanceof SqlWith) {
+        node = ((SqlWith) node).body;
+      } else {
+        return null;
+      }
+    }
   }
 
   private void rewriteMerge(SqlMerge call) {
