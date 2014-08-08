@@ -32,6 +32,11 @@ import org.eigenbase.sql.util.SqlString;
 import org.eigenbase.test.*;
 import org.eigenbase.util.*;
 
+import net.hydromatic.optiq.runtime.Hook;
+import net.hydromatic.optiq.test.OptiqAssert;
+
+import com.google.common.base.Function;
+
 import org.junit.*;
 
 import static org.junit.Assert.*;
@@ -3739,18 +3744,18 @@ public abstract class SqlOperatorBaseTest {
         "LOCALTIME(1)", TIME_PATTERN,
         "TIME(1) NOT NULL");
 
+    final Pair<String, Hook.Closeable> pair = currentTimeString(LOCAL_TZ);
     tester.checkScalar(
         "CAST(LOCALTIME AS VARCHAR(30))",
         Pattern.compile(
-            currentTimeString(LOCAL_TZ).substring(11)
-                + "[0-9][0-9]:[0-9][0-9]"),
+            pair.left.substring(11) + "[0-9][0-9]:[0-9][0-9]"),
         "VARCHAR(30) NOT NULL");
     tester.checkScalar(
         "LOCALTIME",
         Pattern.compile(
-            currentTimeString(LOCAL_TZ).substring(11)
-                + "[0-9][0-9]:[0-9][0-9]"),
+            pair.left.substring(11) + "[0-9][0-9]:[0-9][0-9]"),
         "TIME(0) NOT NULL");
+    pair.right.close();
   }
 
   @Test public void testLocalTimestampFunc() {
@@ -3770,18 +3775,17 @@ public abstract class SqlOperatorBaseTest {
 
     // Check that timestamp is being generated in the right timezone by
     // generating a specific timestamp.
+    final Pair<String, Hook.Closeable> pair = currentTimeString(
+        LOCAL_TZ);
     tester.checkScalar(
         "CAST(LOCALTIMESTAMP AS VARCHAR(30))",
-        Pattern.compile(
-            currentTimeString(LOCAL_TZ)
-                + "[0-9][0-9]:[0-9][0-9]"),
+        Pattern.compile(pair.left + "[0-9][0-9]:[0-9][0-9]"),
         "VARCHAR(30) NOT NULL");
     tester.checkScalar(
         "LOCALTIMESTAMP",
-        Pattern.compile(
-            currentTimeString(LOCAL_TZ)
-                + "[0-9][0-9]:[0-9][0-9]"),
+        Pattern.compile(pair.left + "[0-9][0-9]:[0-9][0-9]"),
         "TIMESTAMP(0) NOT NULL");
+    pair.right.close();
   }
 
   @Test public void testCurrentTimeFunc() {
@@ -3796,18 +3800,16 @@ public abstract class SqlOperatorBaseTest {
     tester.checkScalar(
         "CURRENT_TIME(1)", TIME_PATTERN, "TIME(1) NOT NULL");
 
+    final Pair<String, Hook.Closeable> pair = currentTimeString(CURRENT_TZ);
     tester.checkScalar(
         "CAST(CURRENT_TIME AS VARCHAR(30))",
-        Pattern.compile(
-            currentTimeString(CURRENT_TZ).substring(11)
-                + "[0-9][0-9]:[0-9][0-9]"),
+        Pattern.compile(pair.left.substring(11) + "[0-9][0-9]:[0-9][0-9]"),
         "VARCHAR(30) NOT NULL");
     tester.checkScalar(
         "CURRENT_TIME",
-        Pattern.compile(
-            currentTimeString(CURRENT_TZ).substring(11)
-                + "[0-9][0-9]:[0-9][0-9]"),
+        Pattern.compile(pair.left.substring(11) + "[0-9][0-9]:[0-9][0-9]"),
         "TIME(0) NOT NULL");
+    pair.right.close();
   }
 
   @Test public void testCurrentTimestampFunc() {
@@ -3825,18 +3827,17 @@ public abstract class SqlOperatorBaseTest {
         "CURRENT_TIMESTAMP(1)", TIMESTAMP_PATTERN,
         "TIMESTAMP(1) NOT NULL");
 
+    final Pair<String, Hook.Closeable> pair = currentTimeString(
+        CURRENT_TZ);
     tester.checkScalar(
         "CAST(CURRENT_TIMESTAMP AS VARCHAR(30))",
-        Pattern.compile(
-            currentTimeString(CURRENT_TZ)
-                + "[0-9][0-9]:[0-9][0-9]"),
+        Pattern.compile(pair.left + "[0-9][0-9]:[0-9][0-9]"),
         "VARCHAR(30) NOT NULL");
     tester.checkScalar(
         "CURRENT_TIMESTAMP",
-        Pattern.compile(
-            currentTimeString(CURRENT_TZ)
-                + "[0-9][0-9]:[0-9][0-9]"),
+        Pattern.compile(pair.left + "[0-9][0-9]:[0-9][0-9]"),
         "TIMESTAMP(0) NOT NULL");
+    pair.right.close();
   }
 
   /**
@@ -3849,12 +3850,36 @@ public abstract class SqlOperatorBaseTest {
    * @param tz Time zone
    * @return Time string
    */
-  protected static String currentTimeString(TimeZone tz) {
-    final Calendar calendar = getCalendarNotTooNear(Calendar.HOUR_OF_DAY);
+  protected static Pair<String, Hook.Closeable> currentTimeString(TimeZone tz) {
+    final Calendar calendar;
+    final Hook.Closeable closeable;
+    if (OptiqAssert.ENABLE_SLOW) {
+      calendar = getCalendarNotTooNear(Calendar.HOUR_OF_DAY);
+      closeable = new Hook.Closeable() {
+        public void close() {}
+      };
+    } else {
+      calendar = Calendar.getInstance();
+      calendar.set(Calendar.YEAR, 2014);
+      calendar.set(Calendar.MONTH, 8);
+      calendar.set(Calendar.DATE, 7);
+      calendar.set(Calendar.HOUR_OF_DAY, 17);
+      calendar.set(Calendar.MINUTE, 8);
+      calendar.set(Calendar.SECOND, 48);
+      calendar.set(Calendar.MILLISECOND, 15);
+      final long timeInMillis = calendar.getTimeInMillis();
+      closeable = Hook.CURRENT_TIME.addThread(
+          new Function<long[], Void>() {
+            public Void apply(long[] o) {
+              o[0] = timeInMillis;
+              return null;
+            }
+          });
+    }
 
     SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:");
     sdf.setTimeZone(tz);
-    return sdf.format(calendar.getTime());
+    return Pair.of(sdf.format(calendar.getTime()), closeable);
   }
 
   @Test public void testCurrentDateFunc() {
@@ -3873,14 +3898,16 @@ public abstract class SqlOperatorBaseTest {
         false);
 
     // Check the actual value.
+    final Pair<String, Hook.Closeable> pair = currentTimeString(LOCAL_TZ);
     tester.checkScalar(
         "CAST(CURRENT_DATE AS VARCHAR(30))",
-        currentTimeString(LOCAL_TZ).substring(0, 10),
+        pair.left.substring(0, 10),
         "VARCHAR(30) NOT NULL");
     tester.checkScalar(
         "CURRENT_DATE",
-        currentTimeString(LOCAL_TZ).substring(0, 10),
+        pair.left.substring(0, 10),
         "DATE NOT NULL");
+    pair.right.close();
   }
 
   @Test public void testSubstringFunction() {

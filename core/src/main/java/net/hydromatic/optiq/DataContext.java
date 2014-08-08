@@ -62,6 +62,8 @@ public interface DataContext {
 
   /** Variable that may be asked for in a call to {@link DataContext#get}. */
   enum Variable {
+    UTC_TIMESTAMP("utcTimestamp", Long.class),
+
     /** The time at which the current statement started executing. In
      * milliseconds after 1970-01-01 00:00:00, UTC. Required. */
     CURRENT_TIMESTAMP("currentTimestamp", Long.class),

@@ -30,6 +30,7 @@ import net.hydromatic.optiq.config.OptiqConnectionProperty;
 import net.hydromatic.optiq.impl.AbstractSchema;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 import net.hydromatic.optiq.prepare.OptiqCatalogReader;
+import net.hydromatic.optiq.runtime.Hook;
 import net.hydromatic.optiq.server.OptiqServer;
 import net.hydromatic.optiq.server.OptiqServerStatement;
 
@@ -272,16 +273,20 @@ abstract class OptiqConnectionImpl
       // Store the time at which the query started executing. The SQL
       // standard says that functions such as CURRENT_TIMESTAMP return the
       // same value throughout the query.
-      final long time = System.currentTimeMillis();
+      final long[] times = {System.currentTimeMillis()};
+
+      // Give a hook chance to alter the clock.
+      Hook.CURRENT_TIME.run(times);
+      final long time = times[0];
       final TimeZone timeZone = connection.getTimeZone();
       final long localOffset = timeZone.getOffset(time);
       final long currentOffset = localOffset;
 
       ImmutableMap.Builder<Object, Object> builder = ImmutableMap.builder();
-      builder.put("utcTimestamp", time)
-          .put("currentTimestamp", time + currentOffset)
-          .put("localTimestamp", time + localOffset)
-          .put("timeZone", timeZone);
+      builder.put(Variable.UTC_TIMESTAMP.camelName, time)
+          .put(Variable.CURRENT_TIMESTAMP.camelName, time + currentOffset)
+          .put(Variable.LOCAL_TIMESTAMP.camelName, time + localOffset)
+          .put(Variable.TIME_ZONE.camelName, timeZone);
       for (Ord<Object> value : Ord.zip(parameterValues)) {
         Object e = value.e;
         if (e == null) {

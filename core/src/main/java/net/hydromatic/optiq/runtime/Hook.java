@@ -29,6 +29,10 @@ import java.util.concurrent.CopyOnWriteArrayList;
  * <p>For testing and debugging rather than for end-users.</p>
  */
 public enum Hook {
+  /** Called to get the current time. Use this to return a predictable time
+   * in tests. */
+  CURRENT_TIME,
+
   /** Called with the SQL string and parse tree, in an array. */
   PARSE_TREE,
 
