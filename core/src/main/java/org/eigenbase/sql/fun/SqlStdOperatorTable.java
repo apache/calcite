@@ -368,6 +368,19 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           OperandTypes.PLUS_OPERATOR);
 
   /**
+   * Infix datetime plus operator, '<code>DATETIME + INTERVAL</code>'.
+   */
+  public static final SqlSpecialOperator DATETIME_PLUS =
+      new SqlSpecialOperator(
+          "DATETIME_PLUS",
+          SqlKind.PLUS,
+          40,
+          true,
+          ReturnTypes.NULLABLE_SUM,
+          InferTypes.FIRST_KNOWN,
+          OperandTypes.PLUS_OPERATOR);
+
+  /**
    * Multiset MEMBER OF. Checks to see if a element belongs to a multiset.<br>
    * Example:<br>
    * <code>'green' MEMBER OF MULTISET['red','almost green','blue']</code>

@@ -80,6 +80,14 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
           }
         });
 
+    registerOp(
+        SqlStdOperatorTable.PLUS,
+        new SqlRexConvertlet() {
+          public RexNode convertCall(SqlRexContext cx, SqlCall call) {
+            return convertPlus(cx, call);
+          }
+        });
+
     // Expand "x NOT LIKE y" into "NOT (x LIKE y)"
     registerOp(
         SqlStdOperatorTable.NOT_LIKE,
@@ -663,7 +671,15 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
   public RexNode convertCall(
       SqlRexContext cx,
       SqlCall call) {
-    final SqlOperator op = call.getOperator();
+    return convertCall(cx, call, call.getOperator());
+  }
+
+  /** Converts a {@link SqlCall} to a {@link RexCall} with a perhaps different
+   * operator. */
+  private RexNode convertCall(
+      SqlRexContext cx,
+      SqlCall call,
+      SqlOperator op) {
     final List<SqlNode> operands = call.getOperandList();
     final RexBuilder rexBuilder = cx.getRexBuilder();
     final List<RexNode> exprs = convertExpressionList(cx, operands);
@@ -717,6 +733,18 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
       exprs.add(cx.convertExpression(node));
     }
     return exprs;
+  }
+
+  private RexNode convertPlus(SqlRexContext cx, SqlCall call) {
+    final RexNode rex = convertCall(cx, call);
+    switch (rex.getType().getSqlTypeName()) {
+    case DATE:
+    case TIME:
+    case TIMESTAMP:
+      return convertCall(cx, call, SqlStdOperatorTable.DATETIME_PLUS);
+    default:
+      return rex;
+    }
   }
 
   private RexNode convertIsDistinctFrom(

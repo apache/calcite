@@ -494,6 +494,10 @@ public abstract class SqlOperatorBaseTest {
         "interval '1234.56' second(4,2)",
         "CHAR(8)",
         "+1234.56");
+    checkCastToString(
+        "interval '60' day",
+        "CHAR(8)",
+        "+60");
 
     // boolean
     checkCastToString("True", "CHAR(4)", "TRUE");
@@ -1101,7 +1105,9 @@ public abstract class SqlOperatorBaseTest {
         "cast(cast(TIMESTAMP '1945-02-24 12:42:25.34' as DATE) as TIMESTAMP)",
         "1945-02-24 00:00:00",
         "TIMESTAMP(0) NOT NULL");
+  }
 
+  @Test public void testCastStringToDateTime() {
     tester.checkScalar(
         "cast('12:42:25' as TIME)",
         "12:42:25",
@@ -2579,6 +2585,18 @@ public abstract class SqlOperatorBaseTest {
           "+15-00",
           "INTERVAL YEAR TO MONTH NOT NULL");
     }
+  }
+
+  @Test public void testDatePlusInterval() {
+    tester.checkScalar(
+        "date '2014-02-11' + interval '2' day",
+        "2014-02-13",
+        "DATE NOT NULL");
+    // 60 days is more than 2^32 milliseconds
+    tester.checkScalar(
+        "date '2014-02-11' + interval '60' day",
+        "2014-04-12",
+        "DATE NOT NULL");
   }
 
   @Test public void testNotEqualsOperator() {

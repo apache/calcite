@@ -38,6 +38,7 @@ import org.eigenbase.util.Util;
 import com.google.common.base.Supplier;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
+import org.eigenbase.util14.DateTimeUtil;
 
 import java.lang.reflect.*;
 import java.math.BigDecimal;
@@ -122,6 +123,8 @@ public class RexImpTable {
     defineMethod(FLOOR, "floor", NullPolicy.STRICT);
 
     // datetime
+    defineImplementor(DATETIME_PLUS, NullPolicy.STRICT,
+        new DatetimeArithmeticImplementor(), false);
     defineMethod(EXTRACT_DATE, BuiltinMethod.UNIX_DATE_EXTRACT.method,
         NullPolicy.STRICT);
 
@@ -1396,7 +1399,7 @@ public class RexImpTable {
     }
 
     public Expression implement(RexToLixTranslator translator, RexCall call,
-                                NullAs nullAs) {
+        NullAs nullAs) {
       // Short-circuit if no cast is required
       RexNode arg = call.getOperands().get(0);
       if (call.getType().equals(arg.getType())) {
@@ -1570,6 +1573,29 @@ public class RexImpTable {
       final Expression expression =
           implementor.implement(translator, call, translatedOperands);
       return Expressions.not(expression);
+    }
+  }
+
+  private static class DatetimeArithmeticImplementor
+      implements NotNullImplementor {
+    public Expression implement(RexToLixTranslator translator, RexCall call,
+        List<Expression> translatedOperands) {
+      final RexNode operand0 = call.getOperands().get(0);
+      final Expression trop0 = translatedOperands.get(0);
+      Expression trop1 = translatedOperands.get(1);
+      switch (operand0.getType().getSqlTypeName()) {
+      case DATE:
+        trop1 =
+            Expressions.convert_(
+                Expressions.divide(trop1,
+                    Expressions.constant(DateTimeUtil.MILLIS_PER_DAY)),
+                int.class);
+        break;
+      case TIME:
+        trop1 = Expressions.convert_(trop1, int.class);
+        break;
+      }
+      return Expressions.add(trop0, trop1);
     }
   }
 }

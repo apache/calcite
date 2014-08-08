@@ -160,21 +160,34 @@ public class SqlFunctionsTest {
   }
 
   @Test public void testDateToString() {
-    assertEquals("1970-01-01", unixDateToString(0));
-    assertEquals("1971-02-03", unixDateToString(0 + 365 + 31 + 2));
+    checkDateString("1970-01-01", 0);
+    checkDateString("1971-02-03", 0 + 365 + 31 + 2);
+  }
+
+  private void checkDateString(String s, int d) {
+    assertThat(unixDateToString(d), equalTo(s));
+    assertThat(dateStringToUnixDate(s), equalTo(d));
   }
 
   @Test public void testTimeToString() {
-    assertEquals("00:00:00", unixTimeToString(0));
-    assertEquals("23:59:59", unixTimeToString(86400000 - 1));
+    checkTimeString("00:00:00", 0);
+    checkTimeString("23:59:59", 86400000 - 1000);
+  }
+
+  private void checkTimeString(String s, int d) {
+    assertThat(unixTimeToString(d), equalTo(s));
+    assertThat(timeStringToUnixDate(s), equalTo(d));
   }
 
   @Test public void testTimestampToString() {
     // ISO format would be "1970-01-01T00:00:00" but SQL format is different
-    assertEquals("1970-01-01 00:00:00", unixTimestampToString(0));
-    assertEquals(
-        "1970-02-01 23:59:59",
-        unixTimestampToString(86400000L * 32L - 1L));
+    checkTimestampString("1970-01-01 00:00:00", 0L);
+    checkTimestampString("1970-02-01 23:59:59", 86400000L * 32L - 1000L);
+  }
+
+  private void checkTimestampString(String s, long d) {
+    assertThat(unixTimestampToString(d), equalTo(s));
+    assertThat(timestampStringToUnixDate(s), equalTo(d));
   }
 
   @Test public void testIntervalYearMonthToString() {

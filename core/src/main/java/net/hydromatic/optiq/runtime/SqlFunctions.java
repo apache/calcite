@@ -1193,6 +1193,84 @@ public class SqlFunctions {
     buf.append((char) ('0' + i % 10));
   }
 
+  public static int dateStringToUnixDate(String s) {
+    int hyphen1 = s.indexOf('-');
+    int y;
+    int m;
+    int d;
+    if (hyphen1 < 0) {
+      y = Integer.parseInt(s.trim());
+      m = 1;
+      d = 1;
+    } else {
+      y = Integer.parseInt(s.substring(0, hyphen1).trim());
+      final int hyphen2 = s.indexOf('-', hyphen1 + 1);
+      if (hyphen2 < 0) {
+        m = Integer.parseInt(s.substring(hyphen1 + 1).trim());
+        d = 1;
+      } else {
+        m = Integer.parseInt(s.substring(hyphen1 + 1, hyphen2).trim());
+        d = Integer.parseInt(s.substring(hyphen2 + 1).trim());
+      }
+    }
+    return ymdToUnixDate(y, m, d);
+  }
+
+  public static int timeStringToUnixDate(String v) {
+    return timeStringToUnixDate(v, 0);
+  }
+
+  public static int timeStringToUnixDate(String v, int start) {
+    final int colon1 = v.indexOf(':', start);
+    int hour;
+    int minute;
+    int second;
+    int milli;
+    if (colon1 < 0) {
+      hour = Integer.parseInt(v.trim());
+      minute = 1;
+      second = 1;
+      milli = 0;
+    } else {
+      hour = Integer.parseInt(v.substring(start, colon1).trim());
+      final int colon2 = v.indexOf(':', colon1 + 1);
+      if (colon2 < 0) {
+        minute = Integer.parseInt(v.substring(colon1 + 1).trim());
+        second = 1;
+        milli = 0;
+      } else {
+        minute = Integer.parseInt(v.substring(colon1 + 1, colon2).trim());
+        int dot = v.indexOf('.', colon2);
+        if (dot < 0) {
+          second = Integer.parseInt(v.substring(colon2 + 1).trim());
+          milli = 0;
+        } else {
+          second = Integer.parseInt(v.substring(colon2 + 1, dot).trim());
+          milli = Integer.parseInt(v.substring(dot + 1).trim());
+        }
+      }
+    }
+    return hour * (int) DateTimeUtil.MILLIS_PER_HOUR
+        + minute * (int) DateTimeUtil.MILLIS_PER_MINUTE
+        + second * (int) DateTimeUtil.MILLIS_PER_SECOND
+        + milli;
+  }
+
+  public static long timestampStringToUnixDate(String s) {
+    final long d;
+    final long t;
+    s = s.trim();
+    int space = s.indexOf(' ');
+    if (space >= 0) {
+      d = dateStringToUnixDate(s.substring(0, space));
+      t = timeStringToUnixDate(s, space + 1);
+    } else {
+      d = dateStringToUnixDate(s);
+      t = 0;
+    }
+    return d * DateTimeUtil.MILLIS_PER_DAY + t;
+  }
+
   /** Helper for CAST({date} AS VARCHAR(n)). */
   public static String unixDateToString(int date) {
     final StringBuilder buf = new StringBuilder(10);

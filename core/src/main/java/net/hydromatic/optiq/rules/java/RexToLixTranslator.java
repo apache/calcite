@@ -30,6 +30,7 @@ import org.eigenbase.reltype.RelDataTypeFactoryImpl;
 import org.eigenbase.rex.*;
 import org.eigenbase.sql.*;
 import org.eigenbase.util.*;
+import org.eigenbase.util14.DateTimeUtil;
 
 import java.lang.reflect.*;
 import java.math.BigDecimal;
@@ -52,8 +53,6 @@ public class RexToLixTranslator {
           CHARACTER_LENGTH,
           findMethod(SqlFunctions.class, "charLength", String.class),
           CHAR_LENGTH);
-
-  private static final long MILLIS_IN_DAY = 24 * 60 * 60 * 1000;
 
   final JavaTypeFactory typeFactory;
   final RexBuilder builder;
@@ -177,6 +176,30 @@ public class RexToLixTranslator {
     switch (targetType.getSqlTypeName()) {
     case ANY:
       convert = operand;
+      break;
+    case DATE:
+      switch (sourceType.getSqlTypeName()) {
+      case CHAR:
+      case VARCHAR:
+        convert =
+            Expressions.call(BuiltinMethod.STRING_TO_DATE.method, operand);
+      }
+      break;
+    case TIME:
+      switch (sourceType.getSqlTypeName()) {
+      case CHAR:
+      case VARCHAR:
+        convert =
+            Expressions.call(BuiltinMethod.STRING_TO_TIME.method, operand);
+      }
+      break;
+    case TIMESTAMP:
+      switch (sourceType.getSqlTypeName()) {
+      case CHAR:
+      case VARCHAR:
+        convert =
+            Expressions.call(BuiltinMethod.STRING_TO_TIMESTAMP.method, operand);
+      }
       break;
     case BOOLEAN:
       switch (sourceType.getSqlTypeName()) {
@@ -452,11 +475,13 @@ public class RexToLixTranslator {
       return Expressions.new_(BigDecimal.class,
           Expressions.constant(value.toString()));
     case DATE:
-      value2 = (int) (((Calendar) value).getTimeInMillis() / MILLIS_IN_DAY);
+      value2 = (int)
+          (((Calendar) value).getTimeInMillis() / DateTimeUtil.MILLIS_PER_DAY);
       javaClass = int.class;
       break;
     case TIME:
-      value2 = (int) (((Calendar) value).getTimeInMillis() % MILLIS_IN_DAY);
+      value2 = (int)
+          (((Calendar) value).getTimeInMillis() % DateTimeUtil.MILLIS_PER_DAY);
       javaClass = int.class;
       break;
     case TIMESTAMP:
