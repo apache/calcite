@@ -3869,9 +3869,9 @@ public abstract class SqlOperatorBaseTest {
       calendar.set(Calendar.MILLISECOND, 15);
       final long timeInMillis = calendar.getTimeInMillis();
       closeable = Hook.CURRENT_TIME.addThread(
-          new Function<long[], Void>() {
-            public Void apply(long[] o) {
-              o[0] = timeInMillis;
+          new Function<Holder<Long>, Void>() {
+            public Void apply(Holder<Long> o) {
+              o.set(timeInMillis);
               return null;
             }
           });

@@ -36,6 +36,7 @@ import org.eigenbase.sql.validate.*;
 import org.eigenbase.sql2rel.SqlToRelConverter;
 import org.eigenbase.trace.EigenbaseTimingTracer;
 import org.eigenbase.trace.EigenbaseTrace;
+import org.eigenbase.util.Holder;
 import org.eigenbase.util.Pair;
 
 import com.google.common.collect.ImmutableList;
@@ -128,11 +129,10 @@ public abstract class Prepare {
   private Program getProgram() {
     // Allow a test to override the planner.
     final List<Materialization> materializations = ImmutableList.of();
-    final Pair<List<Materialization>, Program[]> pair =
-        Pair.of(materializations, new Program[1]);
-    Hook.PROGRAM.run(pair);
-    if (pair.right[0] != null) {
-      return pair.right[0];
+    final Holder<Program> holder = Holder.of(null);
+    Hook.PROGRAM.run(Pair.of(materializations, holder));
+    if (holder.get() != null) {
+      return holder.get();
     }
 
     return Programs.standard();

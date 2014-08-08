@@ -39,6 +39,7 @@ import org.eigenbase.sql.advise.SqlAdvisorValidator;
 import org.eigenbase.sql.fun.SqlStdOperatorTable;
 import org.eigenbase.sql.validate.SqlConformance;
 import org.eigenbase.sql.validate.SqlValidatorWithHints;
+import org.eigenbase.util.Holder;
 
 import com.google.common.collect.*;
 
@@ -273,11 +274,11 @@ abstract class OptiqConnectionImpl
       // Store the time at which the query started executing. The SQL
       // standard says that functions such as CURRENT_TIMESTAMP return the
       // same value throughout the query.
-      final long[] times = {System.currentTimeMillis()};
+      final Holder<Long> timeHolder = Holder.of(System.currentTimeMillis());
 
       // Give a hook chance to alter the clock.
-      Hook.CURRENT_TIME.run(times);
-      final long time = times[0];
+      Hook.CURRENT_TIME.run(timeHolder);
+      final long time = timeHolder.get();
       final TimeZone timeZone = connection.getTimeZone();
       final long localOffset = timeZone.getOffset(time);
       final long currentOffset = localOffset;
