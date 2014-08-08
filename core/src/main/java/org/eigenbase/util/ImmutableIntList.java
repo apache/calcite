@@ -21,6 +21,9 @@ import java.util.*;
 
 import net.hydromatic.optiq.runtime.FlatLists;
 
+import com.google.common.base.Preconditions;
+import com.google.common.collect.UnmodifiableListIterator;
+
 /**
  * An immutable list of {@link Integer} values backed by an array of
  * {@code int}s.
@@ -147,6 +150,22 @@ public class ImmutableIntList extends FlatLists.AbstractFlatList<Integer> {
     return ints[index];
   }
 
+  @Override public Iterator<Integer> iterator() {
+    return listIterator();
+  }
+
+  @Override public ListIterator<Integer> listIterator() {
+    return listIterator(0);
+  }
+
+  @Override public ListIterator<Integer> listIterator(int index) {
+    return new AbstractIndexedListIterator<Integer>(size(), index) {
+      protected Integer get(int index) {
+        return ImmutableIntList.this.get(index);
+      }
+    };
+  }
+
   public int indexOf(Object o) {
     if (o instanceof Integer) {
       return indexOf((int) (Integer) o);
@@ -191,6 +210,62 @@ public class ImmutableIntList extends FlatLists.AbstractFlatList<Integer> {
         a[0] = null;
       }
       return a;
+    }
+
+    @Override
+    public Iterator<Integer> iterator() {
+      return Collections.<Integer>emptyList().iterator();
+    }
+
+    @Override
+    public ListIterator<Integer> listIterator() {
+      return Collections.<Integer>emptyList().listIterator();
+    }
+  }
+
+  /** Extension to {@link com.google.common.collect.UnmodifiableListIterator}
+   * that operates by index. */
+  private abstract static class AbstractIndexedListIterator<E>
+      extends UnmodifiableListIterator<E> {
+    private final int size;
+    private int position;
+
+    protected abstract E get(int index);
+
+    protected AbstractIndexedListIterator(int size, int position) {
+      Preconditions.checkPositionIndex(position, size);
+      this.size = size;
+      this.position = position;
+    }
+
+    public final boolean hasNext() {
+      return position < size;
+    }
+
+    public final E next() {
+      if (!hasNext()) {
+        throw new NoSuchElementException();
+      }
+      return get(position++);
+    }
+
+    public final int nextIndex() {
+      return position;
+    }
+
+    public final boolean hasPrevious() {
+      return position > 0;
+    }
+
+    public final E previous() {
+      if (!hasPrevious()) {
+        throw new NoSuchElementException();
+      }
+      return get(--position);
+    }
+
+    public final int previousIndex() {
+      return position - 1;
     }
   }
 }
