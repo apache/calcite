@@ -32,15 +32,12 @@ import com.google.common.collect.ImmutableSet;
  * condition, where the output only contains the columns from the left join
  * input.
  */
-public final class SemiJoinRel extends JoinRelBase {
-  //~ Instance fields --------------------------------------------------------
-
-  private final ImmutableIntList leftKeys;
-  private final ImmutableIntList rightKeys;
-
+public final class SemiJoinRel extends EquiJoinRel {
   //~ Constructors -----------------------------------------------------------
 
   /**
+   * Creates a SemiJoinRel.
+   *
    * @param cluster   cluster that join belongs to
    * @param left      left join input
    * @param right     right join input
@@ -61,10 +58,10 @@ public final class SemiJoinRel extends JoinRelBase {
         left,
         right,
         condition,
+        ImmutableIntList.copyOf(leftKeys),
+        ImmutableIntList.copyOf(rightKeys),
         JoinRelType.INNER,
         ImmutableSet.<String>of());
-    this.leftKeys = ImmutableIntList.copyOf(leftKeys);
-    this.rightKeys = ImmutableIntList.copyOf(rightKeys);
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -106,14 +103,6 @@ public final class SemiJoinRel extends JoinRelBase {
         getCluster().getTypeFactory(),
         null,
         Collections.<RelDataTypeField>emptyList());
-  }
-
-  public ImmutableIntList getLeftKeys() {
-    return leftKeys;
-  }
-
-  public ImmutableIntList getRightKeys() {
-    return rightKeys;
   }
 }
 

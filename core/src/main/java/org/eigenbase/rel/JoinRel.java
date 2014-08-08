@@ -45,7 +45,7 @@ public final class JoinRel extends JoinRelBase {
   // semijoin optimizations, it's pretty much required.
   private final boolean semiJoinDone;
 
-  private List<RelDataTypeField> systemFieldList;
+  private final ImmutableList<RelDataTypeField> systemFieldList;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -76,7 +76,7 @@ public final class JoinRel extends JoinRelBase {
         joinType,
         variablesStopped,
         false,
-        Collections.<RelDataTypeField>emptyList());
+        ImmutableList.<RelDataTypeField>of());
   }
 
   /**
@@ -106,7 +106,7 @@ public final class JoinRel extends JoinRelBase {
       JoinRelType joinType,
       Set<String> variablesStopped,
       boolean semiJoinDone,
-      List<RelDataTypeField> systemFieldList) {
+      ImmutableList<RelDataTypeField> systemFieldList) {
     super(
         cluster,
         cluster.traitSetOf(Convention.NONE),

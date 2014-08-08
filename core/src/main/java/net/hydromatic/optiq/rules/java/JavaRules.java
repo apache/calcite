@@ -33,6 +33,7 @@ import org.eigenbase.rel.*;
 import org.eigenbase.rel.convert.ConverterRule;
 import org.eigenbase.rel.metadata.RelColumnMapping;
 import org.eigenbase.rel.metadata.RelMetadataQuery;
+import org.eigenbase.rel.rules.EquiJoinRel;
 import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.*;
 import org.eigenbase.rex.*;
@@ -96,6 +97,19 @@ public class JavaRules {
         }
         newInputs.add(input);
       }
+      final List<Integer> leftKeys = new ArrayList<Integer>();
+      final List<Integer> rightKeys = new ArrayList<Integer>();
+      RexNode remaining =
+          RelOptUtil.splitJoinCondition(
+              newInputs.get(0),
+              newInputs.get(1),
+              join.getCondition(),
+              leftKeys,
+              rightKeys);
+      if (!remaining.isAlwaysTrue()) {
+        // EnumerableJoinRel only supports equi-join
+        return null;
+      }
       try {
         return new EnumerableJoinRel(
             join.getCluster(),
@@ -103,6 +117,8 @@ public class JavaRules {
             newInputs.get(0),
             newInputs.get(1),
             join.getCondition(),
+            ImmutableIntList.copyOf(leftKeys),
+            ImmutableIntList.copyOf(rightKeys),
             join.getJoinType(),
             join.getVariablesStopped());
       } catch (InvalidRelException e) {
@@ -115,17 +131,16 @@ public class JavaRules {
   /** Implementation of {@link org.eigenbase.rel.JoinRel} in
    * {@link EnumerableConvention enumerable calling convention}. */
   public static class EnumerableJoinRel
-      extends JoinRelBase
+      extends EquiJoinRel
       implements EnumerableRel {
-    final ImmutableIntList leftKeys;
-    final ImmutableIntList rightKeys;
-
     protected EnumerableJoinRel(
         RelOptCluster cluster,
         RelTraitSet traits,
         RelNode left,
         RelNode right,
         RexNode condition,
+        ImmutableIntList leftKeys,
+        ImmutableIntList rightKeys,
         JoinRelType joinType,
         Set<String> variablesStopped)
       throws InvalidRelException {
@@ -135,23 +150,10 @@ public class JavaRules {
           left,
           right,
           condition,
+          leftKeys,
+          rightKeys,
           joinType,
           variablesStopped);
-      final List<Integer> leftKeys = new ArrayList<Integer>();
-      final List<Integer> rightKeys = new ArrayList<Integer>();
-      RexNode remaining =
-          RelOptUtil.splitJoinCondition(
-              left,
-              right,
-              condition,
-              leftKeys,
-              rightKeys);
-      if (!remaining.isAlwaysTrue()) {
-        throw new InvalidRelException(
-            "EnumerableJoinRel only supports equi-join");
-      }
-      this.leftKeys = ImmutableIntList.copyOf(leftKeys);
-      this.rightKeys = ImmutableIntList.copyOf(rightKeys);
     }
 
     @Override
@@ -160,7 +162,7 @@ public class JavaRules {
         boolean semiJoinDone) {
       try {
         return new EnumerableJoinRel(getCluster(), traitSet, left, right,
-            conditionExpr, joinType, variablesStopped);
+            conditionExpr, leftKeys, rightKeys, joinType, variablesStopped);
       } catch (InvalidRelException e) {
         // Semantic error not possible. Must be a bug. Convert to
         // internal error.
