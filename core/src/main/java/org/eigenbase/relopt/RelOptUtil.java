@@ -35,6 +35,7 @@ import net.hydromatic.linq4j.Ord;
 import net.hydromatic.optiq.util.BitSets;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 
 /**
  * <code>RelOptUtil</code> defines static utility methods for use in optimizing
@@ -1845,26 +1846,29 @@ public abstract class RelOptUtil {
    *
    * @param joinRel      join node
    * @param filters      filters to be classified
-   * @param pushJoin     true if filters originated from above the join node and
-   *                     the join is an inner join
+   * @param joinType     join type; determines whether filters can be pushed
+   *                     into the ON clause
    * @param pushLeft     true if filters can be pushed to the left
    * @param pushRight    true if filters can be pushed to the right
    * @param joinFilters  list of filters to push to the join
    * @param leftFilters  list of filters to push to the left child
    * @param rightFilters list of filters to push to the right child
+   * @param smart        Whether to try to strengthen the join type
    * @return true if at least one filter was pushed
    */
   public static boolean classifyFilters(
       RelNode joinRel,
       List<RexNode> filters,
-      boolean pushJoin,
+      JoinRelType joinType,
       boolean pushLeft,
       boolean pushRight,
       List<RexNode> joinFilters,
       List<RexNode> leftFilters,
-      List<RexNode> rightFilters) {
+      List<RexNode> rightFilters,
+      Holder<JoinRelType> joinTypeHolder,
+      boolean smart) {
     RexBuilder rexBuilder = joinRel.getCluster().getRexBuilder();
-    boolean filterPushed = false;
+    final JoinRelType oldJoinType = joinType;
     List<RelDataTypeField> joinFields = joinRel.getRowType().getFieldList();
     final int nTotalFields = joinFields.size();
     final int nSysFields = 0; // joinRel.getSystemFieldList().size();
@@ -1882,11 +1886,9 @@ public abstract class RelOptUtil {
     BitSet rightBitmap =
         BitSets.range(nSysFields + nFieldsLeft, nTotalFields);
 
-    ListIterator<RexNode> filterIter = filters.listIterator();
-    while (filterIter.hasNext()) {
-      RexNode filter = filterIter.next();
-
-      final BitSet filterBitmap = InputFinder.bits(filter);
+    final List<RexNode> filtersToRemove = Lists.newArrayList();
+    for (RexNode filter : filters) {
+      final InputFinder inputFinder = InputFinder.analyze(filter);
 
       // REVIEW - are there any expressions that need special handling
       // and therefore cannot be pushed?
@@ -1894,9 +1896,7 @@ public abstract class RelOptUtil {
       // filters can be pushed to the left child if the left child
       // does not generate NULLs and the only columns referenced in
       // the filter originate from the left child
-      if (pushLeft && BitSets.contains(leftBitmap, filterBitmap)) {
-        filterPushed = true;
-
+      if (pushLeft && BitSets.contains(leftBitmap, inputFinder.inputBitSet)) {
         // ignore filters that always evaluate to true
         if (!filter.isAlwaysTrue()) {
           // adjust the field references in the filter to reflect
@@ -1915,15 +1915,13 @@ public abstract class RelOptUtil {
 
           leftFilters.add(shiftedFilter);
         }
-        filterIter.remove();
+        filtersToRemove.add(filter);
 
         // filters can be pushed to the right child if the right child
         // does not generate NULLs and the only columns referenced in
         // the filter originate from the right child
-      } else if (
-          pushRight
-              && BitSets.contains(rightBitmap, filterBitmap)) {
-        filterPushed = true;
+      } else if (pushRight
+          && BitSets.contains(rightBitmap, inputFinder.inputBitSet)) {
         if (!filter.isAlwaysTrue()) {
           // adjust the field references in the filter to reflect
           // that fields in the right now shift over to the left;
@@ -1931,7 +1929,7 @@ public abstract class RelOptUtil {
           // child, the types of the source should match the dest
           // so we don't need to explicitly pass the destination
           // fields to RexInputConverter
-          final RexNode shilftedFilter =
+          final RexNode shiftedFilter =
               shiftFilter(
                   nSysFields + nFieldsLeft,
                   nTotalFields,
@@ -1941,23 +1939,55 @@ public abstract class RelOptUtil {
                   nTotalFields,
                   rightFields,
                   filter);
-          rightFilters.add(shilftedFilter);
+          rightFilters.add(shiftedFilter);
         }
-        filterIter.remove();
+        filtersToRemove.add(filter);
 
         // if the filter can't be pushed to either child and the join
         // is an inner join, push them to the join if they originated
         // from above the join
-      } else if (pushJoin) {
-        filterPushed = true;
+      } else if (joinType == JoinRelType.INNER) {
         joinFilters.add(filter);
-        filterIter.remove();
+        filtersToRemove.add(filter);
+
+        // If the filter will only evaluate to true if fields from the left
+        // are not null, and the left is null-generating, then we can make the
+        // left. Similarly for the right.
+      } else {
+        if (smart
+            && joinType != null
+            && joinType.generatesNullsOnRight()
+            && inputFinder.strongBitSet.intersects(rightBitmap)) {
+          filtersToRemove.add(filter);
+          joinType = joinType.cancelNullsOnRight();
+          joinTypeHolder.set(joinType);
+          if (!joinFilters.contains(filter)) {
+            joinFilters.add(filter);
+          }
+        }
+        if (smart
+            && joinType != null
+            && joinType.generatesNullsOnLeft()
+            && inputFinder.strongBitSet.intersects(leftBitmap)) {
+          filtersToRemove.add(filter);
+          joinType = joinType.cancelNullsOnLeft();
+          joinTypeHolder.set(joinType);
+          if (!joinFilters.contains(filter)) {
+            joinFilters.add(filter);
+          }
+        }
       }
 
       // else, leave the filter where it is
     }
 
-    return filterPushed;
+    // Remove filters after the loop, to prevent concurrent modification.
+    if (!filtersToRemove.isEmpty()) {
+      filters.removeAll(filtersToRemove);
+    }
+
+    // Did anything change?
+    return !filtersToRemove.isEmpty() || joinType != oldJoinType;
   }
 
   private static RexNode shiftFilter(
@@ -2488,28 +2518,60 @@ public abstract class RelOptUtil {
    * Visitor which builds a bitmap of the inputs used by an expression.
    */
   public static class InputFinder extends RexVisitorImpl<Void> {
-    private final BitSet rexRefSet;
+    final BitSet inputBitSet;
+    final BitSet strongBitSet = new BitSet();
     private final Set<RelDataTypeField> extraFields;
 
-    public InputFinder(BitSet rexRefSet) {
-      this(rexRefSet, null);
+    public InputFinder(BitSet inputBitSet) {
+      this(inputBitSet, null);
     }
 
-    public InputFinder(
-        BitSet rexRefSet,
-        Set<RelDataTypeField> extraFields) {
+    public InputFinder(BitSet inputBitSet, Set<RelDataTypeField> extraFields) {
       super(true);
-      this.rexRefSet = rexRefSet;
+      this.inputBitSet = inputBitSet;
       this.extraFields = extraFields;
+    }
+
+    /** Returns an input finder that has analyzed a given expression. */
+    public static InputFinder analyze(RexNode node) {
+      final InputFinder inputFinder = new InputFinder(new BitSet());
+      node.accept(inputFinder);
+      inputFinder.strong(node);
+      return inputFinder;
+    }
+
+    private byte strong(RexNode node) {
+      switch (node.getKind()) {
+      case IS_TRUE:
+      case IS_NOT_NULL:
+      case AND:
+      case EQUALS:
+      case NOT_EQUALS:
+      case LESS_THAN:
+      case LESS_THAN_OR_EQUAL:
+      case GREATER_THAN:
+      case GREATER_THAN_OR_EQUAL:
+        return strong(((RexCall) node).getOperands());
+      case INPUT_REF:
+        strongBitSet.set(((RexInputRef) node).getIndex());
+        return 0;
+      default:
+        return 0;
+      }
+    }
+
+    private byte strong(List<RexNode> operands) {
+      for (RexNode operand : operands) {
+        strong(operand);
+      }
+      return 0;
     }
 
     /**
      * Returns a bit set describing the inputs used by an expression.
      */
     public static BitSet bits(RexNode node) {
-      final BitSet inputBitSet = new BitSet();
-      node.accept(new InputFinder(inputBitSet));
-      return inputBitSet;
+      return analyze(node).inputBitSet;
     }
 
     /**
@@ -2523,7 +2585,7 @@ public abstract class RelOptUtil {
     }
 
     public Void visitInputRef(RexInputRef inputRef) {
-      rexRefSet.set(inputRef.getIndex());
+      inputBitSet.set(inputRef.getIndex());
       return null;
     }
 

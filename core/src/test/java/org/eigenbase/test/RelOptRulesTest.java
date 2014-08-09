@@ -128,6 +128,27 @@ public class RelOptRulesTest extends RelOptTestBase {
         "select 1 from emp inner join dept on emp.deptno = dept.deptno");
   }
 
+  @Test public void testStrengthenJoinType() {
+    // The "Filter(... , right.c IS NOT NULL)" above a left join is pushed into
+    // the join, makes it an inner join, and then disappears because c is NOT
+    // NULL.
+    final HepProgram preProgram =
+        HepProgram.builder()
+            .addRuleInstance(MergeProjectRule.INSTANCE)
+            .addRuleInstance(PushFilterPastProjectRule.INSTANCE)
+            .build();
+    final HepProgram program =
+        HepProgram.builder()
+            .addRuleInstance(PushFilterPastJoinRule.FILTER_ON_JOIN)
+            .build();
+    checkPlanning(tester.withDecorrelation(true).withTrim(true), preProgram,
+        new HepPlanner(program),
+        "select * from dept where exists (\n"
+        + "  select * from emp\n"
+        + "  where emp.deptno = dept.deptno\n"
+        + "  and emp.sal > 100)");
+  }
+
   @Test public void testPushFilterThroughOuterJoin() {
     checkPlanning(
         PushFilterPastJoinRule.FILTER_ON_JOIN,
@@ -776,10 +797,12 @@ public class RelOptRulesTest extends RelOptTestBase {
     final DiffRepository diffRepos = getDiffRepos();
     String sql = diffRepos.expand(null, "${sql}");
 
-    HepProgram program = new HepProgramBuilder().addRuleCollection(
-        Lists.newArrayList(PushFilterPastJoinRule.FILTER_ON_JOIN,
-            PushFilterPastJoinRule.JOIN, PushFilterPastProjectRule.INSTANCE,
-            PushFilterPastSetOpRule.INSTANCE)).build();
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(PushFilterPastJoinRule.DUMB_FILTER_ON_JOIN)
+        .addRuleInstance(PushFilterPastJoinRule.JOIN)
+        .addRuleInstance(PushFilterPastProjectRule.INSTANCE)
+        .addRuleInstance(PushFilterPastSetOpRule.INSTANCE)
+        .build();
     HepPlanner planner = new HepPlanner(program);
 
     RelNode relInitial = tester.convertSqlToRel(sql);
@@ -803,12 +826,12 @@ public class RelOptRulesTest extends RelOptTestBase {
 
     HepProgram program2 = new HepProgramBuilder()
         .addMatchOrder(HepMatchOrder.BOTTOM_UP)
-        .addRuleCollection(
-            Lists.newArrayList(PushFilterPastJoinRule.FILTER_ON_JOIN,
-                PushFilterPastJoinRule.JOIN,
-                PushFilterPastProjectRule.INSTANCE,
-                PushFilterPastSetOpRule.INSTANCE,
-                TransitivePredicatesOnJoinRule.INSTANCE)).build();
+        .addRuleInstance(PushFilterPastJoinRule.DUMB_FILTER_ON_JOIN)
+        .addRuleInstance(PushFilterPastJoinRule.JOIN)
+        .addRuleInstance(PushFilterPastProjectRule.INSTANCE)
+        .addRuleInstance(PushFilterPastSetOpRule.INSTANCE)
+        .addRuleInstance(TransitivePredicatesOnJoinRule.INSTANCE)
+        .build();
     HepPlanner planner2 = new HepPlanner(program2);
     planner.registerMetadataProviders(list);
     planner2.setRoot(relAfter);

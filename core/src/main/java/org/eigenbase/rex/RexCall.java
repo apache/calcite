@@ -109,6 +109,27 @@ public class RexCall extends RexNode {
     return type;
   }
 
+  @Override
+  public boolean isAlwaysTrue() {
+    // "c IS NOT NULL" occurs when we expand EXISTS.
+    // This reduction allows us to convert it to a semi-join.
+    switch (getKind()) {
+    case IS_NOT_NULL:
+      return !operands.get(0).getType().isNullable();
+    default:
+      return false;
+    }
+  }
+
+  @Override public boolean isAlwaysFalse() {
+    switch (getKind()) {
+    case IS_NULL:
+      return !operands.get(0).getType().isNullable();
+    default:
+      return false;
+    }
+  }
+
   public SqlKind getKind() {
     return op.kind;
   }

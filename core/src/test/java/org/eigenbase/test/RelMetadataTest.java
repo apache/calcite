@@ -439,8 +439,14 @@ public class RelMetadataTest extends SqlToRelTestBase {
 
   @Test public void testSelectivityIsNotNullFilter() {
     checkFilterSelectivity(
-        "select * from emp where deptno is not null",
+        "select * from emp where mgr is not null",
         DEFAULT_NOTNULL_SELECTIVITY);
+  }
+
+  @Test public void testSelectivityIsNotNullFilterOnNotNullColumn() {
+    checkFilterSelectivity(
+        "select * from emp where deptno is not null",
+        1.0d);
   }
 
   @Test public void testSelectivityComparisonFilter() {

@@ -63,6 +63,32 @@ public enum JoinRelType {
       throw new IllegalArgumentException("invalid: " + i);
     }
   }
+
+  /** Returns a join type similar to this but that does not generate nulls on
+   * the left. */
+  public JoinRelType cancelNullsOnLeft() {
+    switch (this) {
+    case RIGHT:
+      return INNER;
+    case FULL:
+      return LEFT;
+    default:
+      return this;
+    }
+  }
+
+  /** Returns a join type similar to this but that does not generate nulls on
+   * the right. */
+  public JoinRelType cancelNullsOnRight() {
+    switch (this) {
+    case LEFT:
+      return INNER;
+    case FULL:
+      return RIGHT;
+    default:
+      return this;
+    }
+  }
 }
 
 // End JoinRelType.java

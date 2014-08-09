@@ -66,7 +66,7 @@ public abstract class SqlToRelTestBase {
   }
 
   protected Tester createTester() {
-    return new TesterImpl(getDiffRepos(), true, null);
+    return new TesterImpl(getDiffRepos(), true, false, null);
   }
 
   /**
@@ -172,6 +172,9 @@ public abstract class SqlToRelTestBase {
 
     Tester withCatalogReaderFactory(
         Function<RelDataTypeFactory, Prepare.CatalogReader> factory);
+
+    /** Returns a tester that optionally trims unused fields. */
+    Tester withTrim(boolean enable);
   }
 
   //~ Inner Classes ----------------------------------------------------------
@@ -394,6 +397,7 @@ public abstract class SqlToRelTestBase {
     private SqlOperatorTable opTab;
     private final DiffRepository diffRepos;
     private final boolean enableDecorrelate;
+    private final boolean enableTrim;
     private final Function<RelDataTypeFactory, Prepare.CatalogReader>
     catalogReaderFactory;
     private RelDataTypeFactory typeFactory;
@@ -403,13 +407,16 @@ public abstract class SqlToRelTestBase {
      *
      * @param diffRepos Diff repository
      * @param enableDecorrelate Whether to decorrelate
+     * @param enableTrim Whether to trim unused fields
      * @param catalogReaderFactory Function to create catalog reader, or null
      */
     protected TesterImpl(DiffRepository diffRepos, boolean enableDecorrelate,
+        boolean enableTrim,
         Function<RelDataTypeFactory, Prepare.CatalogReader>
             catalogReaderFactory) {
       this.diffRepos = diffRepos;
       this.enableDecorrelate = enableDecorrelate;
+      this.enableTrim = enableTrim;
       this.catalogReaderFactory = catalogReaderFactory;
     }
 
@@ -437,9 +444,15 @@ public abstract class SqlToRelTestBase {
       RelNode rel =
           converter.convertQuery(validatedQuery, false, true);
       assert rel != null;
-      if (enableDecorrelate) {
+      if (enableDecorrelate || enableTrim) {
         rel = converter.flattenTypes(rel, true);
+      }
+      if (enableDecorrelate) {
         rel = converter.decorrelate(sqlQuery, rel);
+      }
+      if (enableTrim) {
+        converter.setTrimUnusedFields(true);
+        rel = converter.trimUnusedFields(rel);
       }
       return rel;
     }
@@ -591,12 +604,18 @@ public abstract class SqlToRelTestBase {
 
     public TesterImpl withDecorrelation(boolean enable) {
       return this.enableDecorrelate == enable ? this
-          : new TesterImpl(diffRepos, enable, catalogReaderFactory);
+          : new TesterImpl(diffRepos, enable, enableTrim, catalogReaderFactory);
+    }
+
+    public Tester withTrim(boolean enable) {
+      return this.enableTrim == enable ? this
+          : new TesterImpl(diffRepos, enableDecorrelate, enable,
+              catalogReaderFactory);
     }
 
     public Tester withCatalogReaderFactory(
         Function<RelDataTypeFactory, Prepare.CatalogReader> factory) {
-      return new TesterImpl(diffRepos, enableDecorrelate, factory);
+      return new TesterImpl(diffRepos, enableDecorrelate, false, factory);
     }
   }
 

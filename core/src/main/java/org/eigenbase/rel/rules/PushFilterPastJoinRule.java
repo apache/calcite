@@ -22,6 +22,7 @@ import org.eigenbase.rel.*;
 import org.eigenbase.relopt.*;
 import org.eigenbase.rex.*;
 import org.eigenbase.util.Bug;
+import org.eigenbase.util.Holder;
 
 import com.google.common.collect.ImmutableList;
 
@@ -31,39 +32,29 @@ import com.google.common.collect.ImmutableList;
  */
 public abstract class PushFilterPastJoinRule extends RelOptRule {
   public static final PushFilterPastJoinRule FILTER_ON_JOIN =
-      new PushFilterPastJoinRule(
-          operand(
-              FilterRel.class,
-              operand(JoinRelBase.class, any())),
-          "PushFilterPastJoinRule:filter") {
-        @Override
-        public void onMatch(RelOptRuleCall call) {
-          FilterRel filter = call.rel(0);
-          JoinRelBase join = call.rel(1);
-          perform(call, filter, join);
-        }
-      };
+      new PushFilterIntoJoinRule(true);
+
+  /** Dumber version of {@link #FILTER_ON_JOIN}. Not intended for production
+   * use, but keeps some tests working for which {@code FILTER_ON_JOIN} is too
+   * smart. */
+  public static final PushFilterPastJoinRule DUMB_FILTER_ON_JOIN =
+      new PushFilterIntoJoinRule(false);
 
   public static final PushFilterPastJoinRule JOIN =
-      new PushFilterPastJoinRule(
-          operand(JoinRelBase.class, any()),
-          "PushFilterPastJoinRule:no-filter") {
-        @Override
-        public void onMatch(RelOptRuleCall call) {
-          JoinRelBase join = call.rel(0);
-          perform(call, null, join);
-        }
-      };
+      new PushDownJoinConditionRule();
+
+  /** Whether to try to strengthen join-type. */
+  private final boolean smart;
 
   //~ Constructors -----------------------------------------------------------
 
   /**
    * Creates a PushFilterPastJoinRule with an explicit root operand.
    */
-  private PushFilterPastJoinRule(
-      RelOptRuleOperand operand,
-      String id) {
+  private PushFilterPastJoinRule(RelOptRuleOperand operand, String id,
+      boolean smart) {
     super(operand, "PushFilterRule: " + id);
+    this.smart = smart;
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -109,15 +100,18 @@ public abstract class PushFilterPastJoinRule extends RelOptRule {
     // filters. They can be pushed down if they are not on the NULL
     // generating side.
     boolean filterPushed = false;
+    final Holder<JoinRelType> joinTypeHolder = Holder.of(join.getJoinType());
     if (RelOptUtil.classifyFilters(
         join,
         aboveFilters,
-        join.getJoinType() == JoinRelType.INNER,
+        join.getJoinType(),
         !join.getJoinType().generatesNullsOnLeft(),
         !join.getJoinType().generatesNullsOnRight(),
         joinFilters,
         leftFilters,
-        rightFilters)) {
+        rightFilters,
+        joinTypeHolder,
+        smart)) {
       filterPushed = true;
     }
 
@@ -127,12 +121,14 @@ public abstract class PushFilterPastJoinRule extends RelOptRule {
     if (RelOptUtil.classifyFilters(
         join,
         joinFilters,
-        false,
+        null,
         !join.getJoinType().generatesNullsOnRight(),
         !join.getJoinType().generatesNullsOnLeft(),
         joinFilters,
         leftFilters,
-        rightFilters)) {
+        rightFilters,
+        joinTypeHolder,
+        smart)) {
       filterPushed = true;
     }
 
@@ -142,7 +138,7 @@ public abstract class PushFilterPastJoinRule extends RelOptRule {
 
     // create FilterRels on top of the children if any filters were
     // pushed to them
-    RexBuilder rexBuilder = join.getCluster().getRexBuilder();
+    final RexBuilder rexBuilder = join.getCluster().getRexBuilder();
     RelNode leftRel =
         createFilterOnRel(
             rexBuilder,
@@ -161,7 +157,9 @@ public abstract class PushFilterPastJoinRule extends RelOptRule {
     if (joinFilters.size() == 0) {
       // if nothing actually got pushed and there is nothing leftover,
       // then this rule is a no-op
-      if ((leftFilters.size() == 0) && (rightFilters.size() == 0)) {
+      if (leftFilters.isEmpty()
+          && rightFilters.isEmpty()
+          && joinTypeHolder.get() == join.getJoinType()) {
         return;
       }
       joinFilter = rexBuilder.makeLiteral(true);
@@ -175,7 +173,7 @@ public abstract class PushFilterPastJoinRule extends RelOptRule {
             joinFilter,
             leftRel,
             rightRel,
-            join.getJoinType(),
+            joinTypeHolder.get(),
             join.isSemiJoinDone());
     call.getPlanner().onCopy(join, newJoinRel);
 
@@ -189,6 +187,10 @@ public abstract class PushFilterPastJoinRule extends RelOptRule {
     if (!rightFilters.isEmpty()) {
       call.getPlanner().onCopy(filter, rightRel);
     }
+
+    // Create a project on top of the join if some of the columns have become
+    // NOT NULL due to the join-type getting stricter.
+    newJoinRel = RelOptUtil.createCastRel(newJoinRel, join.getRowType(), false);
 
     // create a FilterRel on top of the join if needed
     RelNode newRel =
@@ -216,6 +218,41 @@ public abstract class PushFilterPastJoinRule extends RelOptRule {
       return rel;
     }
     return CalcRel.createFilter(rel, andFilters);
+  }
+
+  /** Rule that pushes parts of the join condition to its inputs. */
+  private static class PushDownJoinConditionRule
+      extends PushFilterPastJoinRule {
+    public PushDownJoinConditionRule() {
+      super(RelOptRule.operand(JoinRelBase.class, RelOptRule.any()),
+          "PushFilterPastJoinRule:no-filter",
+          true);
+    }
+
+    @Override
+    public void onMatch(RelOptRuleCall call) {
+      JoinRelBase join = call.rel(0);
+      perform(call, null, join);
+    }
+  }
+
+  /** Rule that tries to push filter expressions into a join
+   * condition and into the inputs of the join. */
+  private static class PushFilterIntoJoinRule extends PushFilterPastJoinRule {
+    public PushFilterIntoJoinRule(boolean smart) {
+      super(
+          RelOptRule.operand(FilterRel.class,
+              RelOptRule.operand(JoinRelBase.class, RelOptRule.any())),
+          "PushFilterPastJoinRule:filter",
+          smart);
+    }
+
+    @Override
+    public void onMatch(RelOptRuleCall call) {
+      FilterRel filter = call.rel(0);
+      JoinRelBase join = call.rel(1);
+      perform(call, filter, join);
+    }
   }
 }
 

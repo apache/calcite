@@ -348,7 +348,7 @@ ProjectRel(DEPTNO=[$0], NAME=[$1], EMPSET=[$2])
         <Resource name="plan">
             <![CDATA[
 ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
-  FilterRel(condition=[IS TRUE($9)])
+  FilterRel(condition=[IS NOT NULL($9)])
     JoinRel(condition=[true], joinType=[left])
       TableAccessRel(table=[[CATALOG, SALES, EMP]])
       AggregateRel(group=[{}], agg#0=[MIN($0)])
@@ -378,7 +378,7 @@ ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], 
         <Resource name="plan">
             <![CDATA[
 ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
-  FilterRel(condition=[IS TRUE($9)])
+  FilterRel(condition=[IS NOT NULL($9)])
     CorrelatorRel(condition=[true], joinType=[left], correlations=[[var0=offset7]])
       TableAccessRel(table=[[CATALOG, SALES, EMP]])
       AggregateRel(group=[{}], agg#0=[MIN($0)])
@@ -1594,7 +1594,7 @@ where exists (
         <Resource name="plan">
             <![CDATA[
 ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
-  FilterRel(condition=[IS TRUE($9)])
+  FilterRel(condition=[IS NOT NULL($9)])
     CorrelatorRel(condition=[true], joinType=[left], correlations=[[var1=offset7, var0=offset7]])
       TableAccessRel(table=[[CATALOG, SALES, EMP]])
       AggregateRel(group=[{}], agg#0=[MIN($0)])
@@ -1698,7 +1698,7 @@ where exists (
         <Resource name="plan">
             <![CDATA[
 ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
-  FilterRel(condition=[IS TRUE($9)])
+  FilterRel(condition=[IS NOT NULL($9)])
     ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], $f0=[$11])
       JoinRel(condition=[AND(=($7, $10), =($7, $9))], joinType=[left])
         TableAccessRel(table=[[CATALOG, SALES, EMP]])
@@ -1728,7 +1728,7 @@ ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], 
         <Resource name="plan">
             <![CDATA[
 ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
-  FilterRel(condition=[IS TRUE($9)])
+  FilterRel(condition=[IS NOT NULL($9)])
     ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], $f0=[$10])
       JoinRel(condition=[=($7, $9)], joinType=[left])
         TableAccessRel(table=[[CATALOG, SALES, EMP]])
@@ -1753,7 +1753,7 @@ ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], 
         <Resource name="plan">
             <![CDATA[
 ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
-  FilterRel(condition=[IS TRUE($9)])
+  FilterRel(condition=[IS NOT NULL($9)])
     CorrelatorRel(condition=[true], joinType=[left], correlations=[[var0=offset7]])
       TableAccessRel(table=[[CATALOG, SALES, EMP]])
       AggregateRel(group=[{}], agg#0=[MIN($0)])
@@ -1773,7 +1773,7 @@ ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], 
         <Resource name="plan">
             <![CDATA[
 ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
-  FilterRel(condition=[IS TRUE($9)])
+  FilterRel(condition=[IS NOT NULL($9)])
     ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], $f0=[$9])
       CorrelatorRel(condition=[true], joinType=[left], correlations=[[var0=offset7]])
         TableAccessRel(table=[[CATALOG, SALES, EMP]])

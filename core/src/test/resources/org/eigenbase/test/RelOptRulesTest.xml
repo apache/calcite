@@ -2003,4 +2003,50 @@ ProjectRel(EXPR$0=[1])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testStrengthenJoinType">
+        <Resource name="sql">
+            <![CDATA[select * from dept where exists (
+  select * from emp
+  where emp.deptno = dept.deptno
+  and emp.sal > 100)]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+ProjectRel(DEPTNO=[$0], NAME=[$1])
+  ProjectRel(DEPTNO=[$0], NAME=[$1], $f0=[$3])
+    FilterRel(condition=[IS NOT NULL($3)])
+      JoinRel(condition=[=($0, $2)], joinType=[left])
+        TableAccessRel(table=[[CATALOG, SALES, DEPT]])
+        AggregateRel(group=[{0}], agg#0=[MIN($1)])
+          ProjectRel($f01=[$2], $f0=[true])
+            FilterRel(condition=[AND(=($1, $2), >($0, 100))])
+              JoinRel(condition=[true], joinType=[inner])
+                ProjectRel(SAL=[$5], DEPTNO=[$7])
+                  TableAccessRel(table=[[CATALOG, SALES, EMP]])
+                AggregateRel(group=[{0}])
+                  ProjectRel($f0=[$0])
+                    ProjectRel(DEPTNO=[$0])
+                      TableAccessRel(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+ProjectRel(DEPTNO=[$0], NAME=[$1])
+  ProjectRel(DEPTNO=[$0], NAME=[$1], $f0=[$3])
+    ProjectRel(DEPTNO=[$0], NAME=[$1], $f01=[CAST($2):INTEGER], $f1=[CAST($3):BOOLEAN])
+      JoinRel(condition=[=($0, $2)], joinType=[inner])
+        TableAccessRel(table=[[CATALOG, SALES, DEPT]])
+        AggregateRel(group=[{0}], agg#0=[MIN($1)])
+          ProjectRel($f01=[$2], $f0=[true])
+            JoinRel(condition=[=($1, $2)], joinType=[inner])
+              FilterRel(condition=[>($0, 100)])
+                ProjectRel(SAL=[$5], DEPTNO=[$7])
+                  TableAccessRel(table=[[CATALOG, SALES, EMP]])
+              AggregateRel(group=[{0}])
+                ProjectRel($f0=[$0])
+                  ProjectRel(DEPTNO=[$0])
+                    TableAccessRel(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+    </TestCase>
 </Root>

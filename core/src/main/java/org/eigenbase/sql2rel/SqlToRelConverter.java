@@ -4084,7 +4084,7 @@ public class SqlToRelConverter {
         if (needTruthTest) {
           fieldAccess =
               rexBuilder.makeCall(
-                  SqlStdOperatorTable.IS_TRUE,
+                  SqlStdOperatorTable.IS_NOT_NULL,
                   fieldAccess);
         }
         return fieldAccess;
