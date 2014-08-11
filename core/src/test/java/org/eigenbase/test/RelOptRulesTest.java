@@ -50,6 +50,7 @@ import org.eigenbase.rel.rules.ReduceValuesRule;
 import org.eigenbase.rel.rules.RemoveEmptyRules;
 import org.eigenbase.rel.rules.RemoveSemiJoinRule;
 import org.eigenbase.rel.rules.RemoveTrivialProjectRule;
+import org.eigenbase.rel.rules.SemiJoinRule;
 import org.eigenbase.rel.rules.TableAccessRule;
 import org.eigenbase.rel.rules.TransitivePredicatesOnJoinRule;
 import org.eigenbase.rel.rules.UnionToDistinctRule;
@@ -155,6 +156,25 @@ public class RelOptRulesTest extends RelOptTestBase {
         "select 1 from sales.dept d left outer join sales.emp e"
         + " on d.deptno = e.deptno"
         + " where d.name = 'Charlie'");
+  }
+
+  @Test public void testSemiJoinRule() {
+    final HepProgram preProgram =
+        HepProgram.builder()
+            .addRuleInstance(PushFilterPastProjectRule.INSTANCE)
+            .addRuleInstance(PushFilterPastJoinRule.FILTER_ON_JOIN)
+            .addRuleInstance(MergeProjectRule.INSTANCE)
+            .build();
+    final HepProgram program =
+        HepProgram.builder()
+            .addRuleInstance(SemiJoinRule.INSTANCE)
+            .build();
+    checkPlanning(tester.withDecorrelation(true).withTrim(true), preProgram,
+        new HepPlanner(program),
+        "select * from dept where exists (\n"
+            + "  select * from emp\n"
+            + "  where emp.deptno = dept.deptno\n"
+            + "  and emp.sal > 100)");
   }
 
   @Test public void testReduceAverage() {

@@ -23,6 +23,7 @@ import org.eigenbase.relopt.*;
 import org.eigenbase.rex.*;
 import org.eigenbase.sql.fun.*;
 import org.eigenbase.util.*;
+import org.eigenbase.util.mapping.IntPair;
 
 /**
  * Rule which converts a {@link JoinRel} into a {@link CorrelatorRel}, which can
@@ -79,41 +80,33 @@ public class NestedLoopsJoinRule extends RelOptRule {
   public void onMatch(RelOptRuleCall call) {
     assert matches(call);
     final JoinRel join = call.rel(0);
-    final List<Integer> leftKeys = new ArrayList<Integer>();
-    final List<Integer> rightKeys = new ArrayList<Integer>();
     RelNode right = join.getRight();
     final RelNode left = join.getLeft();
-    RexNode remainingCondition =
-        RelOptUtil.splitJoinCondition(
-            left,
-            right,
-            join.getCondition(),
-            leftKeys,
-            rightKeys);
-    assert leftKeys.size() == rightKeys.size();
+    final JoinInfo joinInfo = join.analyzeCondition();
     final List<CorrelatorRel.Correlation> correlationList =
         new ArrayList<CorrelatorRel.Correlation>();
-    if (leftKeys.size() > 0) {
+    if (joinInfo.leftKeys.size() > 0) {
       final RelOptCluster cluster = join.getCluster();
       final RexBuilder rexBuilder = cluster.getRexBuilder();
       RexNode condition = null;
-      for (Pair<Integer, Integer> p : Pair.zip(leftKeys, rightKeys)) {
+      for (IntPair p : joinInfo.pairs()) {
         final String dynInIdStr = cluster.getQuery().createCorrel();
         final int dynInId = RelOptQuery.getCorrelOrdinal(dynInIdStr);
 
         // Create correlation to say 'each row, set variable #id
         // to the value of column #leftKey'.
         correlationList.add(
-            new CorrelatorRel.Correlation(dynInId, p.left));
+            new CorrelatorRel.Correlation(dynInId, p.source));
         condition =
             RelOptUtil.andJoinFilters(
                 rexBuilder,
                 condition,
                 rexBuilder.makeCall(
                     SqlStdOperatorTable.EQUALS,
-                    rexBuilder.makeInputRef(right, p.right),
+                    rexBuilder.makeInputRef(right, p.target),
                     rexBuilder.makeCorrel(
-                        left.getRowType().getFieldList().get(p.left).getType(),
+                        left.getRowType().getFieldList().get(p.source)
+                            .getType(),
                         dynInIdStr)));
       }
       right =
@@ -126,7 +119,7 @@ public class NestedLoopsJoinRule extends RelOptRule {
             join.getCluster(),
             left,
             right,
-            remainingCondition,
+            joinInfo.remaining,
             correlationList,
             join.getJoinType());
     call.transformTo(newRel);

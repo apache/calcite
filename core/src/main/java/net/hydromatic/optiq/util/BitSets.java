@@ -257,6 +257,21 @@ public final class BitSets {
     return closure.closure;
   }
 
+  /** Populates a {@link BitSet} from an iterable, such as a list of integer. */
+  public static void populate(BitSet bitSet, Iterable<? extends Number> list) {
+    for (Number number : list) {
+      bitSet.set(number.intValue());
+    }
+  }
+
+  /** Populates a {@link BitSet} from an
+   *  {@link org.eigenbase.util.ImmutableIntList}. */
+  public static void populate(BitSet bitSet, ImmutableIntList list) {
+    for (int i = 0; i < list.size(); i++) {
+      bitSet.set(list.getInt(i));
+    }
+  }
+
   /**
    * Setup equivalence Sets for each position. If i & j are equivalent then
    * they will have the same equivalence Set. The algorithm computes the

@@ -18,6 +18,7 @@ package org.eigenbase.rel.rules;
 
 import java.util.Set;
 
+import org.eigenbase.rel.JoinInfo;
 import org.eigenbase.rel.JoinRelBase;
 import org.eigenbase.rel.JoinRelType;
 import org.eigenbase.rel.RelNode;
@@ -51,6 +52,12 @@ public abstract class EquiJoinRel extends JoinRelBase {
 
   public ImmutableIntList getRightKeys() {
     return rightKeys;
+  }
+
+  @Override
+  public JoinInfo analyzeCondition() {
+    return new JoinInfo(leftKeys, rightKeys,
+        getCluster().getRexBuilder().makeLiteral(true));
   }
 }
 

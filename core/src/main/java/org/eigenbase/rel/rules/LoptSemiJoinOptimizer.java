@@ -27,6 +27,8 @@ import org.eigenbase.sql.fun.*;
 
 import net.hydromatic.optiq.util.BitSets;
 
+import com.google.common.collect.Lists;
+
 /**
  * Implements the logic for determining the optimal
  * semi-joins to be used in processing joins in a query.
@@ -236,17 +238,14 @@ public class LoptSemiJoinOptimizer {
             factIdx,
             dimIdx);
 
-    List<Integer> leftKeys = new ArrayList<Integer>();
-    List<Integer> rightKeys = new ArrayList<Integer>();
     RelNode factRel = multiJoin.getJoinFactor(factIdx);
     RelNode dimRel = multiJoin.getJoinFactor(dimIdx);
-    RelOptUtil.splitJoinCondition(
-        factRel,
-        dimRel,
-        semiJoinCondition,
-        leftKeys,
-        rightKeys);
-    assert leftKeys.size() > 0;
+    final JoinInfo joinInfo = JoinInfo.of(factRel, dimRel, semiJoinCondition);
+    assert joinInfo.leftKeys.size() > 0;
+
+    // mutable copies
+    final List<Integer> leftKeys = Lists.newArrayList(joinInfo.leftKeys);
+    final List<Integer> rightKeys = Lists.newArrayList(joinInfo.rightKeys);
 
     // make sure all the fact table keys originate from the same table
     // and are simple column references

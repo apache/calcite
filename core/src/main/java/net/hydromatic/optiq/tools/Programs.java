@@ -79,6 +79,7 @@ public class Programs {
           JavaRules.ENUMERABLE_WINDOW_RULE,
           JavaRules.ENUMERABLE_ONE_ROW_RULE,
           JavaRules.ENUMERABLE_EMPTY_RULE,
+          SemiJoinRule.INSTANCE,
           TableAccessRule.INSTANCE,
           OptiqPrepareImpl.COMMUTE
               ? CommutativeJoinRule.INSTANCE

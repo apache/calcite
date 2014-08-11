@@ -69,7 +69,7 @@ public class RemoveTrivialProjectRule extends RelOptRule {
    * Returns the child of a project if the project is trivial, otherwise
    * the project itself.
    */
-  public static RelNode strip(ProjectRel project) {
+  public static RelNode strip(ProjectRelBase project) {
     return isTrivial(project) ? project.getChild() : project;
   }
 

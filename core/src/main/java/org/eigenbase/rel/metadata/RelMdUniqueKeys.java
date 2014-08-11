@@ -109,8 +109,8 @@ public class RelMdUniqueKeys {
   }
 
   public Set<BitSet> getUniqueKeys(JoinRelBase rel, boolean ignoreNulls) {
-    RelNode left = rel.getLeft();
-    RelNode right = rel.getRight();
+    final RelNode left = rel.getLeft();
+    final RelNode right = rel.getRight();
 
     // first add the different combinations of concatenated unique keys
     // from the left and the right, adjusting the right hand side keys to
@@ -152,23 +152,15 @@ public class RelMdUniqueKeys {
     }
 
     // locate the columns that participate in equijoins
-    BitSet leftJoinCols = new BitSet();
-    BitSet rightJoinCols = new BitSet();
-    RelMdUtil.findEquiJoinCols(
-        left,
-        right,
-        rel.getCondition(),
-        leftJoinCols,
-        rightJoinCols);
+    final JoinInfo joinInfo = rel.analyzeCondition();
 
     // determine if either or both the LHS and RHS are unique on the
     // equijoin columns
     Boolean leftUnique =
-        RelMetadataQuery.areColumnsUnique(left, leftJoinCols, ignoreNulls);
+        RelMetadataQuery.areColumnsUnique(left, joinInfo.leftSet(),
+            ignoreNulls);
     Boolean rightUnique =
-        RelMetadataQuery.areColumnsUnique(
-            right,
-            rightJoinCols,
+        RelMetadataQuery.areColumnsUnique(right, joinInfo.rightSet(),
             ignoreNulls);
 
     // if the right hand side is unique on its equijoin columns, then we can

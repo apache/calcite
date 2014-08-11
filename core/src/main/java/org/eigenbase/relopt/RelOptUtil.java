@@ -2048,11 +2048,14 @@ public abstract class RelOptUtil {
    * @return Array holding the output; neither element is null. Element 0 is
    * the equi-join condition (or TRUE if empty); Element 1 is rest of the
    * condition (or TRUE if empty).
+   *
+   * @deprecated Will be removed after 0.9.1
    */
   public static RexNode[] splitJoinCondition(
       RelNode left,
       RelNode right,
       RexNode condition) {
+    Bug.upgrade("remove after 0.9.1");
     final RexBuilder rexBuilder = left.getCluster().getRexBuilder();
     final List<Integer> leftKeys = new ArrayList<Integer>();
     final List<Integer> rightKeys = new ArrayList<Integer>();

@@ -97,16 +97,9 @@ public class JavaRules {
         }
         newInputs.add(input);
       }
-      final List<Integer> leftKeys = new ArrayList<Integer>();
-      final List<Integer> rightKeys = new ArrayList<Integer>();
-      RexNode remaining =
-          RelOptUtil.splitJoinCondition(
-              newInputs.get(0),
-              newInputs.get(1),
-              join.getCondition(),
-              leftKeys,
-              rightKeys);
-      if (!remaining.isAlwaysTrue()) {
+      final JoinInfo info =
+          JoinInfo.of(newInputs.get(0), newInputs.get(1), join.getCondition());
+      if (!info.isEqui()) {
         // EnumerableJoinRel only supports equi-join
         return null;
       }
@@ -117,8 +110,8 @@ public class JavaRules {
             newInputs.get(0),
             newInputs.get(1),
             join.getCondition(),
-            ImmutableIntList.copyOf(leftKeys),
-            ImmutableIntList.copyOf(rightKeys),
+            info.leftKeys,
+            info.rightKeys,
             join.getJoinType(),
             join.getVariablesStopped());
       } catch (InvalidRelException e) {

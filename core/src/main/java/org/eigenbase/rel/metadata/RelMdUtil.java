@@ -25,6 +25,7 @@ import org.eigenbase.relopt.*;
 import org.eigenbase.rex.*;
 import org.eigenbase.sql.*;
 import org.eigenbase.sql.type.*;
+import org.eigenbase.util.Bug;
 import org.eigenbase.util.Holder;
 import org.eigenbase.util14.*;
 
@@ -428,6 +429,8 @@ public class RelMdUtil {
    *                      of the join that participate in equijoins
    * @return remaining join filters that are not equijoins; may return a
    * {@link RexLiteral} true, but never null
+   *
+   * @deprecated Will be removed after 0.9.1
    */
   public static RexNode findEquiJoinCols(
       RelNode leftChild,
@@ -435,25 +438,12 @@ public class RelMdUtil {
       RexNode predicate,
       BitSet leftJoinCols,
       BitSet rightJoinCols) {
+    Bug.upgrade("remove after 0.9.1");
     // locate the equijoin conditions
-    List<Integer> leftKeys = new ArrayList<Integer>();
-    List<Integer> rightKeys = new ArrayList<Integer>();
-    RexNode nonEquiJoin =
-        RelOptUtil.splitJoinCondition(
-            leftChild,
-            rightChild,
-            predicate,
-            leftKeys,
-            rightKeys);
-    assert nonEquiJoin != null;
-
-    // mark the columns referenced on each side of the equijoin filters
-    for (int i = 0; i < leftKeys.size(); i++) {
-      leftJoinCols.set(leftKeys.get(i));
-      rightJoinCols.set(rightKeys.get(i));
-    }
-
-    return nonEquiJoin;
+    final JoinInfo joinInfo = JoinInfo.of(leftChild, rightChild, predicate);
+    BitSets.populate(leftJoinCols, joinInfo.leftKeys);
+    BitSets.populate(rightJoinCols, joinInfo.rightKeys);
+    return joinInfo.remaining;
   }
 
   /**

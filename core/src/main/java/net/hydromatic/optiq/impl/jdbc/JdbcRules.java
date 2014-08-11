@@ -27,6 +27,7 @@ import net.hydromatic.optiq.util.BitSets;
 import org.eigenbase.rel.*;
 import org.eigenbase.rel.convert.ConverterRule;
 import org.eigenbase.rel.metadata.RelMetadataQuery;
+import org.eigenbase.rel.rules.EquiJoinRel;
 import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.rex.*;
@@ -149,6 +150,12 @@ public class JdbcRules {
         }
         newInputs.add(input);
       }
+      final JoinInfo joinInfo =
+          JoinInfo.of(newInputs.get(0), newInputs.get(1), join.getCondition());
+      if (!joinInfo.isEqui()) {
+        // JdbcJoinRel only supports equi-join
+        return null;
+      }
       try {
         return new JdbcJoinRel(
             join.getCluster(),
@@ -156,6 +163,8 @@ public class JdbcRules {
             newInputs.get(0),
             newInputs.get(1),
             join.getCondition(),
+            joinInfo.leftKeys,
+            joinInfo.rightKeys,
             join.getJoinType(),
             join.getVariablesStopped());
       } catch (InvalidRelException e) {
@@ -167,34 +176,21 @@ public class JdbcRules {
 
   /** Join operator implemented in JDBC convention. */
   public static class JdbcJoinRel
-      extends JoinRelBase
+      extends EquiJoinRel
       implements JdbcRel {
-    final ImmutableIntList leftKeys;
-    final ImmutableIntList rightKeys;
-
     protected JdbcJoinRel(
         RelOptCluster cluster,
         RelTraitSet traits,
         RelNode left,
         RelNode right,
         RexNode condition,
+        ImmutableIntList leftKeys,
+        ImmutableIntList rightKeys,
         JoinRelType joinType,
         Set<String> variablesStopped)
       throws InvalidRelException {
-      super(
-          cluster, traits, left, right, condition, joinType,
-          variablesStopped);
-      final List<Integer> leftKeys = new ArrayList<Integer>();
-      final List<Integer> rightKeys = new ArrayList<Integer>();
-      RexNode remaining =
-          RelOptUtil.splitJoinCondition(
-              left, right, condition, leftKeys, rightKeys);
-      if (!remaining.isAlwaysTrue()) {
-        throw new InvalidRelException(
-            "JdbcJoinRel only supports equi-join");
-      }
-      this.leftKeys = ImmutableIntList.copyOf(leftKeys);
-      this.rightKeys = ImmutableIntList.copyOf(rightKeys);
+      super(cluster, traits, left, right, condition, leftKeys, rightKeys,
+          joinType, variablesStopped);
     }
 
     @Override
@@ -203,7 +199,7 @@ public class JdbcRules {
         boolean semiJoinDone) {
       try {
         return new JdbcJoinRel(getCluster(), traitSet, left, right,
-            conditionExpr, this.joinType, variablesStopped);
+            conditionExpr, leftKeys, rightKeys, joinType, variablesStopped);
       } catch (InvalidRelException e) {
         // Semantic error not possible. Must be a bug. Convert to
         // internal error.

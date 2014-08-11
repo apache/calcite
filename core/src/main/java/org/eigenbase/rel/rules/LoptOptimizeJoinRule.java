@@ -1991,18 +1991,11 @@ public class LoptOptimizeJoinRule extends RelOptRule {
       RelNode leftRel,
       RelNode rightRel,
       RexNode joinFilters) {
-    List<Integer> leftKeys = new ArrayList<Integer>();
-    List<Integer> rightKeys = new ArrayList<Integer>();
-    RelOptUtil.splitJoinCondition(
-        leftRel,
-        rightRel,
-        joinFilters,
-        leftKeys,
-        rightKeys);
+    final JoinInfo joinInfo = JoinInfo.of(leftRel, rightRel, joinFilters);
 
     // Make sure each key on the left maps to the same simple column as the
     // corresponding key on the right
-    for (IntPair pair : IntPair.zip(leftKeys, rightKeys)) {
+    for (IntPair pair : joinInfo.pairs()) {
       final RelColumnOrigin leftOrigin =
           RelMetadataQuery.getColumnOrigin(leftRel, pair.source);
       if (leftOrigin == null) {
@@ -2024,7 +2017,7 @@ public class LoptOptimizeJoinRule extends RelOptRule {
     // IS NOT NULL filter on the join keys that are nullable.  Therefore,
     // it's ok if there are nulls in the unique key.
     return RelMdUtil.areColumnsDefinitelyUniqueWhenNullsFiltered(leftRel,
-        BitSets.of(leftKeys));
+        joinInfo.leftSet());
   }
 }
 

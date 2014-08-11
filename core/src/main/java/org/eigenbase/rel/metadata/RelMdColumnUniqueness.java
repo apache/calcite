@@ -141,8 +141,8 @@ public class RelMdColumnUniqueness {
       return false;
     }
 
-    RelNode left = rel.getLeft();
-    RelNode right = rel.getRight();
+    final RelNode left = rel.getLeft();
+    final RelNode right = rel.getRight();
 
     // Divide up the input column mask into column masks for the left and
     // right sides of the join
@@ -179,23 +179,13 @@ public class RelMdColumnUniqueness {
     // the columns are unique for the entire join if they're unique for
     // the corresponding join input, provided that input is not null
     // generating.
-    BitSet leftJoinCols = new BitSet();
-    BitSet rightJoinCols = new BitSet();
-    RelMdUtil.findEquiJoinCols(
-        left,
-        right,
-        rel.getCondition(),
-        leftJoinCols,
-        rightJoinCols);
-
+    final JoinInfo joinInfo = rel.analyzeCondition();
     if (leftColumns.cardinality() > 0) {
       if (rel.getJoinType().generatesNullsOnLeft()) {
         return false;
       }
       Boolean rightJoinColsUnique =
-          RelMetadataQuery.areColumnsUnique(
-              right,
-              rightJoinCols,
+          RelMetadataQuery.areColumnsUnique(right, joinInfo.rightSet(),
               ignoreNulls);
       if ((rightJoinColsUnique == null) || (leftUnique == null)) {
         return null;
@@ -206,9 +196,7 @@ public class RelMdColumnUniqueness {
         return false;
       }
       Boolean leftJoinColsUnique =
-          RelMetadataQuery.areColumnsUnique(
-              left,
-              leftJoinCols,
+          RelMetadataQuery.areColumnsUnique(left, joinInfo.leftSet(),
               ignoreNulls);
       if ((leftJoinColsUnique == null) || (rightUnique == null)) {
         return null;

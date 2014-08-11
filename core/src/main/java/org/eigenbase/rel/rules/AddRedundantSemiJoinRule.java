@@ -16,8 +16,6 @@
 */
 package org.eigenbase.rel.rules;
 
-import java.util.*;
-
 import org.eigenbase.rel.*;
 import org.eigenbase.relopt.*;
 
@@ -56,15 +54,8 @@ public class AddRedundantSemiJoinRule extends RelOptRule {
     }
 
     // determine if we have a valid join condition
-    List<Integer> leftKeys = new ArrayList<Integer>();
-    List<Integer> rightKeys = new ArrayList<Integer>();
-    RelOptUtil.splitJoinCondition(
-        origJoinRel.getLeft(),
-        origJoinRel.getRight(),
-        origJoinRel.getCondition(),
-        leftKeys,
-        rightKeys);
-    if (leftKeys.size() == 0) {
+    final JoinInfo joinInfo = origJoinRel.analyzeCondition();
+    if (joinInfo.leftKeys.size() == 0) {
       return;
     }
 
@@ -74,8 +65,8 @@ public class AddRedundantSemiJoinRule extends RelOptRule {
             origJoinRel.getLeft(),
             origJoinRel.getRight(),
             origJoinRel.getCondition(),
-            leftKeys,
-            rightKeys);
+            joinInfo.leftKeys,
+            joinInfo.rightKeys);
 
     RelNode newJoinRel =
         origJoinRel.copy(

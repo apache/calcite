@@ -379,6 +379,11 @@ public abstract class JoinRelBase extends AbstractRelNode {
    */
   public abstract JoinRelBase copy(RelTraitSet traitSet, RexNode conditionExpr,
       RelNode left, RelNode right, JoinRelType joinType, boolean semiJoinDone);
+
+  /** Analyzes the join condition. */
+  public JoinInfo analyzeCondition() {
+    return JoinInfo.of(left, right, condition);
+  }
 }
 
 // End JoinRelBase.java
