@@ -19,6 +19,7 @@ package org.eigenbase.test;
 import java.math.BigDecimal;
 import java.util.*;
 
+import org.eigenbase.relopt.Strong;
 import org.eigenbase.reltype.*;
 import org.eigenbase.rex.*;
 import org.eigenbase.sql.fun.SqlStdOperatorTable;
@@ -27,9 +28,13 @@ import org.eigenbase.util.*;
 
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 import net.hydromatic.optiq.jdbc.JavaTypeFactoryImpl;
+import net.hydromatic.optiq.util.BitSets;
 
 import org.junit.Before;
 import org.junit.Test;
+
+import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertThat;
 
 /**
  * Unit tests for {@link RexProgram} and
@@ -247,6 +252,68 @@ public class RexProgramTest {
     }
     return builder;
   }
+
+  static boolean strongIf(RexNode e, BitSet b) {
+    return Strong.is(e, b);
+  }
+
+  /** Unit test for {@link org.eigenbase.relopt.Strong}. */
+  @Test public void testStrong() {
+    final RelDataType intType = typeFactory.createSqlType(SqlTypeName.INTEGER);
+    final RelDataType rowType = typeFactory.builder()
+        .add("a", intType)
+        .add("b", intType)
+        .add("c", intType)
+        .add("d", intType)
+        .build();
+
+    final BitSet c = BitSets.of();
+    final BitSet c0 = BitSets.of(0);
+    final BitSet c1 = BitSets.of(1);
+    final BitSet c01 = BitSets.of(0, 1);
+    final BitSet c13 = BitSets.of(1, 3);
+
+    // input ref
+    final RexInputRef aRef = rexBuilder.makeInputRef(intType, 0);
+    final RexInputRef bRef = rexBuilder.makeInputRef(intType, 1);
+    final RexInputRef cRef = rexBuilder.makeInputRef(intType, 2);
+    final RexInputRef dRef = rexBuilder.makeInputRef(intType, 3);
+
+    assertThat(strongIf(aRef, c0), is(true));
+    assertThat(strongIf(aRef, c1), is(false));
+    assertThat(strongIf(aRef, c01), is(true));
+    assertThat(strongIf(aRef, c13), is(false));
+
+    // literals are strong iff they are always null
+    final RexLiteral trueLiteral = rexBuilder.makeLiteral(true);
+    final RexLiteral falseLiteral = rexBuilder.makeLiteral(false);
+    final RexNode nullLiteral = rexBuilder.makeNullLiteral(SqlTypeName.INTEGER);
+    final RexNode unknownLiteral =
+        rexBuilder.makeNullLiteral(SqlTypeName.BOOLEAN);
+
+    assertThat(strongIf(trueLiteral, c), is(false));
+    assertThat(strongIf(trueLiteral, c13), is(false));
+    assertThat(strongIf(falseLiteral, c13), is(false));
+    assertThat(strongIf(nullLiteral, c), is(true));
+    assertThat(strongIf(nullLiteral, c13), is(true));
+    assertThat(strongIf(unknownLiteral, c13), is(true));
+
+    // AND is strong if one of its arguments is strong
+    final RexNode andUnknownTrue =
+        rexBuilder.makeCall(SqlStdOperatorTable.AND,
+            unknownLiteral, trueLiteral);
+    final RexNode andTrueUnknown =
+        rexBuilder.makeCall(SqlStdOperatorTable.AND,
+            trueLiteral, unknownLiteral);
+    final RexNode andFalseTrue =
+        rexBuilder.makeCall(SqlStdOperatorTable.AND,
+            falseLiteral, trueLiteral);
+
+    assertThat(strongIf(andUnknownTrue, c), is(true));
+    assertThat(strongIf(andTrueUnknown, c), is(true));
+    assertThat(strongIf(andFalseTrue, c), is(false));
+  }
+
 }
 
 // End RexProgramTest.java

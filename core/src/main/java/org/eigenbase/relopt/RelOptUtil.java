@@ -1957,7 +1957,7 @@ public abstract class RelOptUtil {
         if (smart
             && joinType != null
             && joinType.generatesNullsOnRight()
-            && inputFinder.strongBitSet.intersects(rightBitmap)) {
+            && Strong.is(filter, rightBitmap)) {
           filtersToRemove.add(filter);
           joinType = joinType.cancelNullsOnRight();
           joinTypeHolder.set(joinType);
@@ -1968,7 +1968,7 @@ public abstract class RelOptUtil {
         if (smart
             && joinType != null
             && joinType.generatesNullsOnLeft()
-            && inputFinder.strongBitSet.intersects(leftBitmap)) {
+            && Strong.is(filter, leftBitmap)) {
           filtersToRemove.add(filter);
           joinType = joinType.cancelNullsOnLeft();
           joinTypeHolder.set(joinType);
@@ -2522,7 +2522,6 @@ public abstract class RelOptUtil {
    */
   public static class InputFinder extends RexVisitorImpl<Void> {
     final BitSet inputBitSet;
-    final BitSet strongBitSet = new BitSet();
     private final Set<RelDataTypeField> extraFields;
 
     public InputFinder(BitSet inputBitSet) {
@@ -2539,35 +2538,7 @@ public abstract class RelOptUtil {
     public static InputFinder analyze(RexNode node) {
       final InputFinder inputFinder = new InputFinder(new BitSet());
       node.accept(inputFinder);
-      inputFinder.strong(node);
       return inputFinder;
-    }
-
-    private byte strong(RexNode node) {
-      switch (node.getKind()) {
-      case IS_TRUE:
-      case IS_NOT_NULL:
-      case AND:
-      case EQUALS:
-      case NOT_EQUALS:
-      case LESS_THAN:
-      case LESS_THAN_OR_EQUAL:
-      case GREATER_THAN:
-      case GREATER_THAN_OR_EQUAL:
-        return strong(((RexCall) node).getOperands());
-      case INPUT_REF:
-        strongBitSet.set(((RexInputRef) node).getIndex());
-        return 0;
-      default:
-        return 0;
-      }
-    }
-
-    private byte strong(List<RexNode> operands) {
-      for (RexNode operand : operands) {
-        strong(operand);
-      }
-      return 0;
     }
 
     /**
