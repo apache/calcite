@@ -102,7 +102,7 @@ public class ChainedRelMetadataProvider implements RelMetadataProvider {
     }
 
     public Object invoke(Object proxy, Method method, Object[] args)
-      throws Throwable {
+        throws Throwable {
       for (Metadata metadata : metadataList) {
         final Object o = method.invoke(metadata, args);
         if (o != null) {

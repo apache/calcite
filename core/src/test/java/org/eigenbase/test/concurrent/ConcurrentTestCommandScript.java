@@ -255,7 +255,7 @@ public class ConcurrentTestCommandScript
    * BINDINGS
    */
   private void prepare(String filename, List<String> bindings)
-    throws IOException {
+      throws IOException {
     vars = new VariableTable();
     CommandParser parser = new CommandParser();
     parser.rememberVariableRebindings(bindings);
@@ -334,7 +334,7 @@ public class ConcurrentTestCommandScript
   }
 
   protected void executeCommands(int threadID, List<String> commands)
-    throws Exception {
+      throws Exception {
     if (commands == null || commands.size() == 0) {
       return;
     }
@@ -416,7 +416,7 @@ public class ConcurrentTestCommandScript
 
   // timeout < 0 means no timeout
   private void storeResults(Integer threadId, ResultSet rset, long timeout)
-    throws SQLException {
+      throws SQLException {
     ResultsReader r = threadResultsReaders.get(threadId);
     r.read(rset, timeout);
   }
@@ -531,7 +531,7 @@ public class ConcurrentTestCommandScript
   }
 
   private void printThreadResults(BufferedWriter out, String[] threadResult)
-    throws IOException {
+      throws IOException {
     if (threadResult == null) {
       return;
     }
@@ -1311,7 +1311,7 @@ public class ConcurrentTestCommandScript
      * <code>in</code> until a line ending with a semicolon is found.
      */
     private String readSql(String startOfSql, BufferedReader in)
-      throws IOException {
+        throws IOException {
       // REVIEW mb StringBuffer not always needed
       StringBuffer sql = new StringBuffer(startOfSql);
       sql.append('\n');
@@ -1390,7 +1390,7 @@ public class ConcurrentTestCommandScript
     }
 
     protected void doExecute(ConcurrentTestCommandExecutor executor)
-      throws SQLException {
+        throws SQLException {
       Integer threadId = executor.getThreadId();
       BufferedWriter out = threadBufferedWriters.get(threadId);
       threadResultsReaders.put(
@@ -1406,7 +1406,7 @@ public class ConcurrentTestCommandScript
     }
 
     protected void doExecute(ConcurrentTestCommandExecutor executor)
-      throws SQLException {
+        throws SQLException {
       storeMessage(executor.getThreadId(), msg);
     }
   }
@@ -1423,7 +1423,7 @@ public class ConcurrentTestCommandScript
     }
 
     protected void doExecute(final ConcurrentTestCommandExecutor exec)
-      throws Exception {
+        throws Exception {
       ConcurrentTestPluginCommand.TestContext context =
           new ConcurrentTestPluginCommand.TestContext() {
             public void storeMessage(String message) {
@@ -1576,7 +1576,7 @@ public class ConcurrentTestCommandScript
     }
 
     protected void doExecute(ConcurrentTestCommandExecutor executor)
-      throws SQLException {
+        throws SQLException {
       // TODO: trim and chop in constructor; stash sql in base class;
       // execute() calls storeSql.
       String properSql = sql.trim();
@@ -1631,7 +1631,7 @@ public class ConcurrentTestCommandScript
     }
 
     protected void doExecute(ConcurrentTestCommandExecutor executor)
-      throws SQLException {
+        throws SQLException {
       String properSql = sql.trim();
 
       storeSql(
@@ -1708,7 +1708,7 @@ public class ConcurrentTestCommandScript
     }
 
     protected void doExecute(ConcurrentTestCommandExecutor executor)
-      throws SQLException {
+        throws SQLException {
       String properSql = sql.trim();
 
       storeSql(
@@ -1737,7 +1737,7 @@ public class ConcurrentTestCommandScript
     }
 
     protected void doExecute(ConcurrentTestCommandExecutor executor)
-      throws SQLException {
+        throws SQLException {
       PreparedStatement stmt =
           (PreparedStatement) executor.getStatement();
       long timeout = setTimeout(stmt);

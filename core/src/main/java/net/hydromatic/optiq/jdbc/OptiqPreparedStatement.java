@@ -47,7 +47,7 @@ abstract class OptiqPreparedStatement
       int resultSetType,
       int resultSetConcurrency,
       int resultSetHoldability)
-    throws SQLException {
+      throws SQLException {
     super(
         connection, prepareResult, resultSetType, resultSetConcurrency,
         resultSetHoldability);

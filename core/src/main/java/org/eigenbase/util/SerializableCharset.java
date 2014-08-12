@@ -62,7 +62,7 @@ public class SerializableCharset implements Serializable {
    * Per {@link Serializable}.
    */
   private void readObject(ObjectInputStream in)
-    throws IOException, ClassNotFoundException {
+      throws IOException, ClassNotFoundException {
     charsetName = (String) in.readObject();
     charset = Charset.availableCharsets().get(this.charsetName);
   }

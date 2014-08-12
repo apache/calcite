@@ -273,7 +273,7 @@ public class SplunkAdapterTest {
   }
 
   private void checkSql(String sql, Function<ResultSet, Void> f)
-    throws SQLException {
+      throws SQLException {
     if (!enabled()) {
       return;
     }

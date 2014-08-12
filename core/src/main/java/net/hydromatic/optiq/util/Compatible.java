@@ -42,7 +42,7 @@ public interface Compatible {
           new Class<?>[] {Compatible.class},
           new InvocationHandler() {
             public Object invoke(Object proxy, Method method, Object[] args)
-              throws Throwable {
+                throws Throwable {
               if (method.getName().equals("asMap")) {
                 // Use the Guava implementation Maps.asMap if it is available
                 try {

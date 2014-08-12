@@ -165,7 +165,7 @@ public class JdbcTest {
    * Tests a table function with literal arguments.
    */
   @Test public void testTableFunction()
-    throws SQLException, ClassNotFoundException {
+      throws SQLException, ClassNotFoundException {
     Class.forName("net.hydromatic.optiq.jdbc.Driver");
     Connection connection =
         DriverManager.getConnection("jdbc:optiq:");
@@ -189,7 +189,7 @@ public class JdbcTest {
    * actual call arguments.
    */
   @Test public void testTableFunctionDynamicStructure()
-    throws SQLException, ClassNotFoundException {
+      throws SQLException, ClassNotFoundException {
     Connection connection = getConnectionWithMultiplyFunction();
     final PreparedStatement ps = connection.prepareStatement(
         "select *\n"
@@ -209,7 +209,7 @@ public class JdbcTest {
    */
   @Ignore("SQLException does not include message from nested exception")
   @Test public void testTableFunctionNonNullableMustBeLiterals()
-    throws SQLException, ClassNotFoundException {
+      throws SQLException, ClassNotFoundException {
     Connection connection = getConnectionWithMultiplyFunction();
     try {
       final PreparedStatement ps = connection.prepareStatement(
@@ -231,7 +231,7 @@ public class JdbcTest {
   }
 
   private Connection getConnectionWithMultiplyFunction()
-    throws ClassNotFoundException, SQLException {
+      throws ClassNotFoundException, SQLException {
     Class.forName("net.hydromatic.optiq.jdbc.Driver");
     Connection connection =
         DriverManager.getConnection("jdbc:optiq:");
@@ -251,7 +251,7 @@ public class JdbcTest {
   @Ignore("CannotPlanException: Node [rel#18:Subset#4.ENUMERABLE.[]] "
           + "could not be implemented")
   @Test public void testTableFunctionCursorInputs()
-    throws SQLException, ClassNotFoundException {
+      throws SQLException, ClassNotFoundException {
     Class.forName("net.hydromatic.optiq.jdbc.Driver");
     Connection connection =
         DriverManager.getConnection("jdbc:optiq:");
@@ -288,7 +288,7 @@ public class JdbcTest {
   @Ignore("CannotPlanException: Node [rel#24:Subset#6.ENUMERABLE.[]] "
           + "could not be implemented")
   @Test public void testTableFunctionCursorsInputs()
-    throws SQLException, ClassNotFoundException {
+      throws SQLException, ClassNotFoundException {
     Class.forName("net.hydromatic.optiq.jdbc.Driver");
     Connection connection =
         getConnectionWithMultiplyFunction();
@@ -329,7 +329,7 @@ public class JdbcTest {
    * Tests {@link org.eigenbase.sql.advise.SqlAdvisorGetHintsFunction}.
    */
   @Test public void testSqlAdvisorGetHintsFunction()
-    throws SQLException, ClassNotFoundException {
+      throws SQLException, ClassNotFoundException {
     String res = adviseSql("select e.e^ from \"emps\" e");
     assertThat(res,
         equalTo(
@@ -340,7 +340,7 @@ public class JdbcTest {
    * Tests {@link org.eigenbase.sql.advise.SqlAdvisorGetHintsFunction}.
    */
   @Test public void testSqlAdvisorSchemaNames()
-    throws SQLException, ClassNotFoundException {
+      throws SQLException, ClassNotFoundException {
     String res = adviseSql("select empid from \"emps\" e, ^");
     assertThat(res,
         equalTo(
@@ -390,7 +390,7 @@ public class JdbcTest {
    * {@link net.hydromatic.optiq.TranslatableTable}.
    */
   @Test public void testTableMacro()
-    throws SQLException, ClassNotFoundException {
+      throws SQLException, ClassNotFoundException {
     Class.forName("net.hydromatic.optiq.jdbc.Driver");
     Connection connection =
         DriverManager.getConnection("jdbc:optiq:");
@@ -794,7 +794,7 @@ public class JdbcTest {
 
   /** Tests driver's implementation of {@link DatabaseMetaData#getColumns}. */
   @Test public void testMetaDataColumns()
-    throws ClassNotFoundException, SQLException {
+      throws ClassNotFoundException, SQLException {
     Connection connection = OptiqAssert.getConnection("hr", "foodmart");
     DatabaseMetaData metaData = connection.getMetaData();
     ResultSet resultSet = metaData.getColumns(null, null, null, null);
@@ -814,7 +814,7 @@ public class JdbcTest {
   /** Tests driver's implementation of {@link DatabaseMetaData#getPrimaryKeys}.
    * It is empty but it should still have column definitions. */
   @Test public void testMetaDataPrimaryKeys()
-    throws ClassNotFoundException, SQLException {
+      throws ClassNotFoundException, SQLException {
     Connection connection = OptiqAssert.getConnection("hr", "foodmart");
     DatabaseMetaData metaData = connection.getMetaData();
     ResultSet resultSet = metaData.getPrimaryKeys(null, null, null);
@@ -860,7 +860,7 @@ public class JdbcTest {
 
   /** Tests driver's implementation of {@link DatabaseMetaData#getColumns}. */
   @Test public void testResultSetMetaData()
-    throws ClassNotFoundException, SQLException {
+      throws ClassNotFoundException, SQLException {
     Connection connection = OptiqAssert.getConnection("hr", "foodmart");
     Statement statement = connection.createStatement();
     ResultSet resultSet =
@@ -955,7 +955,7 @@ public class JdbcTest {
   }
 
   @Test public void testCloneSchema()
-    throws ClassNotFoundException, SQLException {
+      throws ClassNotFoundException, SQLException {
     final OptiqConnection connection = OptiqAssert.getConnection(false);
     final SchemaPlus rootSchema = connection.getRootSchema();
     final SchemaPlus foodmart = rootSchema.getSubSchema("foodmart");
@@ -4553,7 +4553,7 @@ public class JdbcTest {
 
   /** Tests that an immutable schema in a model cannot contain a view. */
   @Test public void testModelImmutableSchemaCannotContainView()
-    throws Exception {
+      throws Exception {
     final OptiqAssert.AssertThat that =
         OptiqAssert.that().withModel(
             "{\n"

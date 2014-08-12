@@ -83,7 +83,7 @@ public interface Planner {
    */
   RelNode transform(int ruleSetIndex,
       RelTraitSet requiredOutputTraits, RelNode rel)
-    throws RelConversionException;
+      throws RelConversionException;
 
   /**
    * Resets this {@code Planner} to be used with a new query. This

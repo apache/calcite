@@ -113,7 +113,7 @@ public class StatementTest {
 
   @GenerateMicroBenchmark
   public String bindExecute(HrPreparedStatement state)
-    throws SQLException {
+      throws SQLException {
     PreparedStatement st = state.ps;
     ResultSet rs = null;
     String ename = null;

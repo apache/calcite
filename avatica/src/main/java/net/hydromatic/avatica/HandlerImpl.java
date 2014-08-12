@@ -25,7 +25,7 @@ import java.sql.SQLException;
  */
 public class HandlerImpl implements Handler {
   public void onConnectionInit(AvaticaConnection connection)
-    throws SQLException {
+      throws SQLException {
     // nothing
   }
 

@@ -436,7 +436,7 @@ public class ConcurrentTestCommandGenerator {
   }
 
   protected void postExecute(ConcurrentTestCommandExecutor[] threads)
-    throws Exception {
+      throws Exception {
     // check for failures
     if (requiresCustomErrorHandling()) {
       for (ConcurrentTestCommandExecutor executor : threads) {
@@ -708,7 +708,7 @@ public class ConcurrentTestCommandGenerator {
     }
 
     protected void doExecute(ConcurrentTestCommandExecutor executor)
-      throws Exception {
+        throws Exception {
       executor.getSynchronizer().waitForOthers();
     }
   }
@@ -736,7 +736,7 @@ public class ConcurrentTestCommandGenerator {
     }
 
     protected void doExecute(ConcurrentTestCommandExecutor executor)
-      throws Exception {
+        throws Exception {
       Thread.sleep(millis);
     }
   }
@@ -754,7 +754,7 @@ public class ConcurrentTestCommandGenerator {
     }
 
     protected void doExecute(ConcurrentTestCommandExecutor executor)
-      throws SQLException {
+        throws SQLException {
       Statement stmt = executor.getConnection().createStatement();
 
       try {
@@ -790,7 +790,7 @@ public class ConcurrentTestCommandGenerator {
     }
 
     protected void doExecute(ConcurrentTestCommandExecutor executor)
-      throws SQLException {
+        throws SQLException {
       PreparedStatement stmt =
           executor.getConnection().prepareStatement(sql);
 
@@ -804,7 +804,7 @@ public class ConcurrentTestCommandGenerator {
    */
   private static class CloseCommand extends AbstractCommand {
     protected void doExecute(ConcurrentTestCommandExecutor executor)
-      throws SQLException {
+        throws SQLException {
       Statement stmt = executor.getStatement();
 
       if (stmt != null) {
@@ -852,7 +852,7 @@ public class ConcurrentTestCommandGenerator {
     }
 
     protected void doExecute(ConcurrentTestCommandExecutor executor)
-      throws SQLException {
+        throws SQLException {
       PreparedStatement stmt =
           (PreparedStatement) executor.getStatement();
 
@@ -1301,7 +1301,7 @@ public class ConcurrentTestCommandGenerator {
     }
 
     protected void doExecute(ConcurrentTestCommandExecutor executor)
-      throws SQLException {
+        throws SQLException {
       Statement stmt = executor.getConnection().createStatement();
 
       setTimeout(stmt);
@@ -1316,7 +1316,7 @@ public class ConcurrentTestCommandGenerator {
    */
   private static class CommitCommand extends AbstractCommand {
     protected void doExecute(ConcurrentTestCommandExecutor executor)
-      throws SQLException {
+        throws SQLException {
       executor.getConnection().commit();
     }
   }
@@ -1327,7 +1327,7 @@ public class ConcurrentTestCommandGenerator {
    */
   private static class RollbackCommand extends AbstractCommand {
     protected void doExecute(ConcurrentTestCommandExecutor executor)
-      throws SQLException {
+        throws SQLException {
       executor.getConnection().rollback();
     }
   }
@@ -1345,7 +1345,7 @@ public class ConcurrentTestCommandGenerator {
     }
 
     protected void doExecute(ConcurrentTestCommandExecutor executor)
-      throws SQLException {
+        throws SQLException {
       Statement stmt = executor.getConnection().createStatement();
 
       try {

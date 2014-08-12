@@ -156,7 +156,7 @@ public class JaninoCompiler implements JavaCompiler {
 
     // override JavaSourceClassLoader
     public Map generateBytecodes(String name)
-      throws ClassNotFoundException {
+        throws ClassNotFoundException {
       Map<String, byte[]> map = super.generateBytecodes(name);
       if (map == null) {
         return map;

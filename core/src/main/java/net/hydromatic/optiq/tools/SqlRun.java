@@ -297,7 +297,7 @@ public class SqlRun {
       @Override
       public void format(ResultSet resultSet, List<String> headerLines,
           List<String> bodyLines, List<String> footerLines, SqlRun run)
-        throws Exception {
+          throws Exception {
         final ResultSetMetaData metaData = resultSet.getMetaData();
         final PrintWriter pw = run.printWriter;
         final int n = metaData.getColumnCount();
@@ -331,7 +331,7 @@ public class SqlRun {
       @Override
       public void format(ResultSet resultSet, List<String> headerLines,
           List<String> bodyLines, List<String> footerLines, SqlRun run)
-        throws Exception {
+          throws Exception {
         SqlRun.format(resultSet, headerLines, bodyLines, footerLines, run.sort,
             false);
       }
@@ -350,7 +350,7 @@ public class SqlRun {
       @Override
       public void format(ResultSet resultSet, List<String> headerLines,
           List<String> bodyLines, List<String> footerLines, SqlRun run)
-        throws Exception {
+          throws Exception {
         SqlRun.format(resultSet, headerLines, bodyLines, footerLines, run.sort,
             true);
       }
@@ -358,7 +358,7 @@ public class SqlRun {
 
     public abstract void format(ResultSet resultSet, List<String> headerLines,
         List<String> bodyLines, List<String> footerLines, SqlRun run)
-      throws Exception;
+        throws Exception;
   }
 
   private static void format(ResultSet resultSet, List<String> headerLines,

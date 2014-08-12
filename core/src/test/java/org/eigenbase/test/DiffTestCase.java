@@ -149,7 +149,7 @@ public abstract class DiffTestCase {
    *                        extension
    */
   protected OutputStream openTestLogOutputStream(File testFileSansExt)
-    throws IOException {
+      throws IOException {
     assert logOutputStream == null;
 
     logFile = new File(testFileSansExt.toString() + ".log");

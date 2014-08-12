@@ -794,22 +794,22 @@ public class RelOptRulesTest extends RelOptTestBase {
   }
 
   @Test public void testPullConstantThroughAggregatePermutedConstGroupBy()
-    throws Exception {
+      throws Exception {
     basePullConstantTroughAggregate();
   }
 
   @Test public void testPullConstantThroughAggregateConstGroupBy()
-    throws Exception {
+      throws Exception {
     basePullConstantTroughAggregate();
   }
 
   @Test public void testPullConstantThroughAggregateAllConst()
-    throws Exception {
+      throws Exception {
     basePullConstantTroughAggregate();
   }
 
   @Test public void testPullConstantThroughAggregateAllLiterals()
-    throws Exception {
+      throws Exception {
     basePullConstantTroughAggregate();
   }
 
@@ -898,7 +898,7 @@ public class RelOptRulesTest extends RelOptTestBase {
   }
 
   @Test public void testTransitiveInferencePreventProjectPullup()
-    throws Exception {
+      throws Exception {
     transitiveInference();
   }
 
@@ -924,7 +924,7 @@ public class RelOptRulesTest extends RelOptTestBase {
   }
 
   @Test public void testTransitiveInferenceConstantEquiPredicate()
-    throws Exception {
+      throws Exception {
     transitiveInference();
   }
 

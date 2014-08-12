@@ -136,7 +136,7 @@ public class JavaRules {
         ImmutableIntList rightKeys,
         JoinRelType joinType,
         Set<String> variablesStopped)
-      throws InvalidRelException {
+        throws InvalidRelException {
       super(
           cluster,
           traits,
@@ -834,7 +834,7 @@ public class JavaRules {
         RelNode child,
         BitSet groupSet,
         List<AggregateCall> aggCalls)
-      throws InvalidRelException {
+        throws InvalidRelException {
       super(cluster, traitSet, child, groupSet, aggCalls);
       assert getConvention() instanceof EnumerableConvention;
 

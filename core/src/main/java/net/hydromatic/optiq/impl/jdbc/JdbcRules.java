@@ -188,7 +188,7 @@ public class JdbcRules {
         ImmutableIntList rightKeys,
         JoinRelType joinType,
         Set<String> variablesStopped)
-      throws InvalidRelException {
+        throws InvalidRelException {
       super(cluster, traits, left, right, condition, leftKeys, rightKeys,
           joinType, variablesStopped);
     }
@@ -521,7 +521,7 @@ public class JdbcRules {
         RelNode child,
         BitSet groupSet,
         List<AggregateCall> aggCalls)
-      throws InvalidRelException {
+        throws InvalidRelException {
       super(cluster, traitSet, child, groupSet, aggCalls);
       assert getConvention() instanceof JdbcConvention;
     }

@@ -92,7 +92,7 @@ final class JdbcUtils {
 
     public ObjectArrayRowBuilder(
         ResultSet resultSet, Primitive[] primitives, int[] types)
-      throws SQLException {
+        throws SQLException {
       this.resultSet = resultSet;
       this.primitives = primitives;
       this.types = types;

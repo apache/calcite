@@ -40,7 +40,7 @@ public class MongoAggregateRel
       RelNode child,
       BitSet groupSet,
       List<AggregateCall> aggCalls)
-    throws InvalidRelException {
+      throws InvalidRelException {
     super(cluster, traitSet, child, groupSet, aggCalls);
     assert getConvention() == MongoRel.CONVENTION;
     assert getConvention() == child.getConvention();

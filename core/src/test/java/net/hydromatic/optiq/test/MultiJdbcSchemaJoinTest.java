@@ -126,7 +126,7 @@ public class MultiJdbcSchemaJoinTest {
   }
 
   @Test public void testEnumerableWithJdbcJoinWithWhereClause()
-    throws SQLException {
+      throws SQLException {
     // Same query as above but with a where condition added:
     //  * the good: this query does not give a CannotPlanException
     //  * the bad: the result is wrong: there is only one emp called Bill.
@@ -142,7 +142,7 @@ public class MultiJdbcSchemaJoinTest {
   }
 
   private Set<Integer> runQuery(Connection optiqConn, String query)
-    throws SQLException {
+      throws SQLException {
     // Print out the plan
     Statement stmt = optiqConn.createStatement();
     try {

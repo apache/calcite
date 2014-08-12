@@ -369,7 +369,7 @@ public class PlannerTest {
    * a different instance causes problems unless planner state is wiped clean
    * between calls to {@link Planner#transform}. */
   @Test public void testPlanTransformWithDiffRuleSetAndConvention()
-    throws Exception {
+      throws Exception {
     Program program0 =
         Programs.ofRules(
             MergeFilterRule.INSTANCE,
@@ -401,7 +401,7 @@ public class PlannerTest {
 
   /** Unit test that plans a query with a large number of joins. */
   @Test public void testPlanNWayJoin()
-    throws Exception {
+      throws Exception {
     // Here the times before and after enabling LoptOptimizeJoinRule.
     //
     // Note the jump between N=6 and N=7; LoptOptimizeJoinRule is disabled if

@@ -47,7 +47,7 @@ public class ModelHandler {
       new ArrayList<Pair<String, SchemaPlus>>();
 
   public ModelHandler(OptiqConnection connection, String uri)
-    throws IOException {
+      throws IOException {
     super();
     this.connection = connection;
     final ObjectMapper mapper = new ObjectMapper();

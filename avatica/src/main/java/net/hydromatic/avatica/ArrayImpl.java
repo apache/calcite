@@ -133,7 +133,7 @@ public class ArrayImpl implements Array {
   }
 
   public Object getArray(long index, int count, Map<String, Class<?>> map)
-    throws SQLException {
+      throws SQLException {
     throw new UnsupportedOperationException(); // TODO
   }
 
@@ -142,7 +142,7 @@ public class ArrayImpl implements Array {
   }
 
   public ResultSet getResultSet(Map<String, Class<?>> map)
-    throws SQLException {
+      throws SQLException {
     throw new UnsupportedOperationException(); // TODO
   }
 

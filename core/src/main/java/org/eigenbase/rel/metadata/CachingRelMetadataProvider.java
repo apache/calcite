@@ -101,7 +101,7 @@ public class CachingRelMetadataProvider implements RelMetadataProvider {
     }
 
     public Object invoke(Object proxy, Method method, Object[] args)
-      throws Throwable {
+        throws Throwable {
       // Compute hash key.
       final ImmutableList.Builder<Object> builder = ImmutableList.builder();
       builder.add(method);

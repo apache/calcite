@@ -52,7 +52,7 @@ public class SplunkConnectionImpl implements SplunkConnection {
   final Map<String, String> requestHeaders = new HashMap<String, String>();
 
   public SplunkConnectionImpl(String url, String username, String password)
-    throws MalformedURLException {
+      throws MalformedURLException {
     this(new URL(url), username, password);
   }
 
@@ -172,7 +172,7 @@ public class SplunkConnectionImpl implements SplunkConnection {
   }
 
   private static void parseResults(InputStream in, SearchResultListener srl)
-    throws IOException {
+      throws IOException {
     CSVReader csvr = new CSVReader(new InputStreamReader(in));
     try {
       String [] header = csvr.readNext();
