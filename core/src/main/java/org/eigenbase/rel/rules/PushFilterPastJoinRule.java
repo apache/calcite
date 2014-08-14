@@ -41,25 +41,29 @@ public abstract class PushFilterPastJoinRule extends RelOptRule {
       new PushFilterIntoJoinRule(false);
 
   public static final PushFilterPastJoinRule JOIN =
-      new PushDownJoinConditionRule();
+      new PushDownJoinConditionRule(RelFactories.DEFAULT_FILTER_FACTORY);
 
   /** Whether to try to strengthen join-type. */
   private final boolean smart;
 
+  private final RelFactories.FilterFactory filterFactory;
+
   //~ Constructors -----------------------------------------------------------
 
   /**
-   * Creates a PushFilterPastJoinRule with an explicit root operand.
+   * Creates a PushFilterPastJoinRule with an explicit root operand and
+   * factories.
    */
-  private PushFilterPastJoinRule(RelOptRuleOperand operand, String id,
-      boolean smart) {
+  protected PushFilterPastJoinRule(RelOptRuleOperand operand, String id,
+      boolean smart, RelFactories.FilterFactory filterFactory) {
     super(operand, "PushFilterRule: " + id);
     this.smart = smart;
+    this.filterFactory = filterFactory;
   }
 
   //~ Methods ----------------------------------------------------------------
 
-  protected void perform(RelOptRuleCall call, FilterRel filter,
+  protected void perform(RelOptRuleCall call, FilterRelBase filter,
       JoinRelBase join) {
     final List<RexNode> joinFilters =
         RelOptUtil.conjunctions(join.getCondition());
@@ -217,16 +221,16 @@ public abstract class PushFilterPastJoinRule extends RelOptRule {
     if (andFilters.isAlwaysTrue()) {
       return rel;
     }
-    return CalcRel.createFilter(rel, andFilters);
+    return filterFactory.createFilter(rel, andFilters);
   }
 
   /** Rule that pushes parts of the join condition to its inputs. */
-  private static class PushDownJoinConditionRule
+  public static class PushDownJoinConditionRule
       extends PushFilterPastJoinRule {
-    public PushDownJoinConditionRule() {
+    public PushDownJoinConditionRule(RelFactories.FilterFactory filterFactory) {
       super(RelOptRule.operand(JoinRelBase.class, RelOptRule.any()),
           "PushFilterPastJoinRule:no-filter",
-          true);
+          true, filterFactory);
     }
 
     @Override
@@ -238,18 +242,23 @@ public abstract class PushFilterPastJoinRule extends RelOptRule {
 
   /** Rule that tries to push filter expressions into a join
    * condition and into the inputs of the join. */
-  private static class PushFilterIntoJoinRule extends PushFilterPastJoinRule {
+  public static class PushFilterIntoJoinRule extends PushFilterPastJoinRule {
     public PushFilterIntoJoinRule(boolean smart) {
+      this(smart, RelFactories.DEFAULT_FILTER_FACTORY);
+    }
+
+    public PushFilterIntoJoinRule(boolean smart,
+        RelFactories.FilterFactory filterFactory) {
       super(
-          RelOptRule.operand(FilterRel.class,
+          RelOptRule.operand(FilterRelBase.class,
               RelOptRule.operand(JoinRelBase.class, RelOptRule.any())),
           "PushFilterPastJoinRule:filter",
-          smart);
+          smart, filterFactory);
     }
 
     @Override
     public void onMatch(RelOptRuleCall call) {
-      FilterRel filter = call.rel(0);
+      FilterRelBase filter = call.rel(0);
       JoinRelBase join = call.rel(1);
       perform(call, filter, join);
     }

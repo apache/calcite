@@ -68,6 +68,14 @@ public abstract class FilterRelBase extends SingleRel {
   //~ Methods ----------------------------------------------------------------
 
   @Override
+  public final RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
+    return copy(traitSet, sole(inputs), getCondition());
+  }
+
+  public abstract FilterRelBase copy(RelTraitSet traitSet, RelNode input,
+      RexNode condition);
+
+  @Override
   public List<RexNode> getChildExps() {
     return ImmutableList.of(condition);
   }

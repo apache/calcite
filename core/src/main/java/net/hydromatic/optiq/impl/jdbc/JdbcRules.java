@@ -474,9 +474,9 @@ public class JdbcRules {
       assert getConvention() instanceof JdbcConvention;
     }
 
-    @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
-      return new JdbcFilterRel(getCluster(), traitSet, sole(inputs),
-          condition);
+    public JdbcFilterRel copy(RelTraitSet traitSet, RelNode input,
+        RexNode condition) {
+      return new JdbcFilterRel(getCluster(), traitSet, input, condition);
     }
 
     public JdbcImplementor.Result implement(JdbcImplementor implementor) {

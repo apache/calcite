@@ -41,14 +41,24 @@ import com.google.common.collect.Lists;
  */
 public class LoptOptimizeJoinRule extends RelOptRule {
   public static final LoptOptimizeJoinRule INSTANCE =
-      new LoptOptimizeJoinRule(RelFactories.DEFAULT_JOIN_FACTORY);
+      new LoptOptimizeJoinRule(
+          RelFactories.DEFAULT_JOIN_FACTORY,
+          RelFactories.DEFAULT_PROJECT_FACTORY,
+          RelFactories.DEFAULT_FILTER_FACTORY);
 
   private final RelFactories.JoinFactory joinFactory;
+  private final RelFactories.ProjectFactory projectFactory;
+  private final RelFactories.FilterFactory filterFactory;
 
   /** Creates a LoptOptimizeJoinRule. */
-  public LoptOptimizeJoinRule(RelFactories.JoinFactory joinFactory) {
+  public LoptOptimizeJoinRule(
+      RelFactories.JoinFactory joinFactory,
+      RelFactories.ProjectFactory projectFactory,
+      RelFactories.FilterFactory filterFactory) {
     super(operand(MultiJoinRel.class, any()));
     this.joinFactory = joinFactory;
+    this.projectFactory = projectFactory;
+    this.filterFactory = filterFactory;
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -499,9 +509,8 @@ public class LoptOptimizeJoinRule extends RelOptRule {
                 newOffset));
       }
     }
-
-    ProjectRel newProject =
-        (ProjectRel) CalcRel.createProject(
+    ProjectRelBase newProject =
+        (ProjectRelBase) projectFactory.createProject(
             joinTree.getJoinTree(),
             newProjExprs,
             fieldNames);
@@ -511,7 +520,7 @@ public class LoptOptimizeJoinRule extends RelOptRule {
     RexNode postJoinFilter =
         multiJoin.getMultiJoinRel().getPostJoinFilter();
     if (postJoinFilter != null) {
-      return CalcRel.createFilter(newProject, postJoinFilter);
+      return filterFactory.createFilter(newProject, postJoinFilter);
     } else {
       return newProject;
     }
@@ -1605,11 +1614,11 @@ public class LoptOptimizeJoinRule extends RelOptRule {
       }
       projects.add(Pair.of(projExpr, newFields.get(i).getName()));
     }
-    ProjectRel projRel =
-        (ProjectRel) CalcRel.createProject(
+    ProjectRelBase projRel =
+        (ProjectRelBase) projectFactory.createProject(
             currJoinRel,
-            projects,
-            false);
+            Pair.left(projects),
+            Pair.right(projects));
 
     // remove the join conditions corresponding to the join we're removing;
     // we don't actually need to use them, but we need to remove them
@@ -1792,8 +1801,7 @@ public class LoptOptimizeJoinRule extends RelOptRule {
                     joinTree.getRowType().getFieldList(),
                     adjustments));
       }
-      joinTree = CalcRel.createFilter(joinTree, filterCond);
-      return joinTree;
+      return filterFactory.createFilter(joinTree, filterCond);
     }
   }
 

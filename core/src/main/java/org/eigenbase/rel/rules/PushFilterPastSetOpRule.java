@@ -30,28 +30,29 @@ import org.eigenbase.rex.*;
  */
 public class PushFilterPastSetOpRule extends RelOptRule {
   public static final PushFilterPastSetOpRule INSTANCE =
-      new PushFilterPastSetOpRule();
+      new PushFilterPastSetOpRule(RelFactories.DEFAULT_FILTER_FACTORY);
+
+  private final RelFactories.FilterFactory filterFactory;
 
   //~ Constructors -----------------------------------------------------------
 
   /**
    * Creates a PushFilterPastSetOpRule.
    */
-  private PushFilterPastSetOpRule() {
+  private PushFilterPastSetOpRule(RelFactories.FilterFactory filterFactory) {
     super(
-        operand(
-            FilterRel.class,
+        operand(FilterRelBase.class,
             operand(SetOpRel.class, any())));
+    this.filterFactory = filterFactory;
   }
 
   //~ Methods ----------------------------------------------------------------
 
   // implement RelOptRule
   public void onMatch(RelOptRuleCall call) {
-    FilterRel filterRel = call.rel(0);
+    FilterRelBase filterRel = call.rel(0);
     SetOpRel setOpRel = call.rel(1);
 
-    RelOptCluster cluster = setOpRel.getCluster();
     RexNode condition = filterRel.getCondition();
 
     // create filters on top of each setop child, modifying the filter
@@ -69,8 +70,7 @@ public class PushFilterPastSetOpRule extends RelOptRule {
                   origFields,
                   input.getRowType().getFieldList(),
                   adjustments));
-      newSetOpInputs.add(
-          new FilterRel(cluster, input, newCondition));
+      newSetOpInputs.add(filterFactory.createFilter(input, newCondition));
     }
 
     // create a new setop whose children are the filters created above

@@ -25,43 +25,63 @@ import org.eigenbase.rex.*;
  * past a {@link ProjectRel}.
  */
 public class PushFilterPastProjectRule extends RelOptRule {
+  /** The default instance of
+   * {@link org.eigenbase.rel.rules.PushFilterPastJoinRule}.
+   *
+   * <p>It matches any kind of join or filter, and generates the same kind of
+   * join and filter. It uses null values for {@code filterFactory} and
+   * {@code projectFactory} to achieve this. */
   public static final PushFilterPastProjectRule INSTANCE =
-      new PushFilterPastProjectRule();
+      new PushFilterPastProjectRule(
+          FilterRelBase.class, null,
+          ProjectRelBase.class, null);
+
+  private final RelFactories.FilterFactory filterFactory;
+  private final RelFactories.ProjectFactory projectFactory;
 
   //~ Constructors -----------------------------------------------------------
 
   /**
    * Creates a PushFilterPastProjectRule.
+   *
+   * <p>If {@code filterFactory} is null, creates the same kind of filter as
+   * matched in the rule. Similarly {@code projectFactory}.</p>
    */
-  private PushFilterPastProjectRule() {
+  public PushFilterPastProjectRule(
+      Class<? extends FilterRelBase> filterClass,
+      RelFactories.FilterFactory filterFactory,
+      Class<? extends ProjectRelBase> projectRelBaseClass,
+      RelFactories.ProjectFactory projectFactory) {
     super(
-        operand(
-            FilterRel.class,
-            operand(ProjectRel.class, any())));
+        operand(filterClass,
+            operand(projectRelBaseClass, any())));
+    this.filterFactory = filterFactory;
+    this.projectFactory = projectFactory;
   }
 
   //~ Methods ----------------------------------------------------------------
 
   // implement RelOptRule
   public void onMatch(RelOptRuleCall call) {
-    FilterRel filterRel = call.rel(0);
-    ProjectRel projRel = call.rel(1);
+    final FilterRelBase filterRel = call.rel(0);
+    final ProjectRelBase projRel = call.rel(1);
 
     // convert the filter to one that references the child of the project
     RexNode newCondition =
         RelOptUtil.pushFilterPastProject(filterRel.getCondition(), projRel);
 
-    FilterRel newFilterRel =
-        new FilterRel(
-            filterRel.getCluster(),
-            projRel.getChild(),
-            newCondition);
+    RelNode newFilterRel =
+        filterFactory == null
+            ? filterRel.copy(filterRel.getTraitSet(), projRel.getChild(),
+                newCondition)
+            : filterFactory.createFilter(projRel.getChild(), newCondition);
 
-    ProjectRel newProjRel =
-        (ProjectRel) CalcRel.createProject(
-            newFilterRel,
-            projRel.getNamedProjects(),
-            false);
+    RelNode newProjRel =
+        projectFactory == null
+            ? projRel.copy(projRel.getTraitSet(), newFilterRel,
+                projRel.getProjects(), projRel.getRowType())
+            : projectFactory.createProject(newFilterRel, projRel.getProjects(),
+                projRel.getRowType().getFieldNames());
 
     call.transformTo(newProjRel);
   }

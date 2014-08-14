@@ -552,9 +552,9 @@ public class JavaRules {
       assert getConvention() instanceof EnumerableConvention;
     }
 
-    @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
-      return new EnumerableFilterRel(getCluster(), traitSet, sole(inputs),
-          condition);
+    public EnumerableFilterRel copy(RelTraitSet traitSet, RelNode input,
+        RexNode condition) {
+      return new EnumerableFilterRel(getCluster(), traitSet, input, condition);
     }
 
     public Result implement(EnumerableRelImplementor implementor, Prefer pref) {

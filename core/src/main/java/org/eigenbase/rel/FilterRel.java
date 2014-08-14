@@ -16,15 +16,16 @@
 */
 package org.eigenbase.rel;
 
-import java.util.List;
-
 import org.eigenbase.relopt.*;
 import org.eigenbase.rex.*;
 
 /**
- * A <code>FilterRel</code> is a relational expression which iterates over its
- * input, and returns elements for which <code>condition</code> evaluates to
+ * Relational expression that iterates over its input
+ * and returns elements for which <code>condition</code> evaluates to
  * <code>true</code>.
+ *
+ * <p>If the condition allows nulls, then a null value is treated the same as
+ * false.</p>
  */
 public final class FilterRel extends FilterRelBase {
   //~ Constructors -----------------------------------------------------------
@@ -58,13 +59,10 @@ public final class FilterRel extends FilterRelBase {
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override
-  public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
+  public FilterRel copy(RelTraitSet traitSet, RelNode input,
+      RexNode condition) {
     assert traitSet.containsIfApplicable(Convention.NONE);
-    return new FilterRel(
-        getCluster(),
-        sole(inputs),
-        getCondition());
+    return new FilterRel(getCluster(), input, condition);
   }
 
   @Override

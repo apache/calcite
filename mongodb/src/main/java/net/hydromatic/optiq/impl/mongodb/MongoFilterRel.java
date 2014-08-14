@@ -28,8 +28,8 @@ import com.google.common.collect.Multimap;
 import java.util.*;
 
 /**
- * Implementation of {@link org.eigenbase.rel.FilterRel} relational expression in
- * MongoDB.
+ * Implementation of a {@link org.eigenbase.rel.FilterRel} relational expression
+ * in MongoDB.
  */
 public class MongoFilterRel
     extends FilterRelBase
@@ -49,9 +49,9 @@ public class MongoFilterRel
     return super.computeSelfCost(planner).multiplyBy(0.1);
   }
 
-  @Override
-  public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
-    return new MongoFilterRel(getCluster(), traitSet, sole(inputs), condition);
+  public MongoFilterRel copy(RelTraitSet traitSet, RelNode input,
+      RexNode condition) {
+    return new MongoFilterRel(getCluster(), traitSet, input, condition);
   }
 
   public void implement(Implementor implementor) {
