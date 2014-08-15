@@ -56,8 +56,7 @@ public abstract class EquiJoinRel extends JoinRelBase {
 
   @Override
   public JoinInfo analyzeCondition() {
-    return new JoinInfo(leftKeys, rightKeys,
-        getCluster().getRexBuilder().makeLiteral(true));
+    return JoinInfo.of(leftKeys, rightKeys);
   }
 }
 

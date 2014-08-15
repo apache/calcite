@@ -50,6 +50,7 @@ public class PushSemiJoinPastFilterRule extends RelOptRule {
     RelNode newSemiJoin =
         new SemiJoinRel(
             semiJoin.getCluster(),
+            semiJoin.getCluster().traitSetOf(Convention.NONE),
             filter.getChild(),
             semiJoin.getRight(),
             semiJoin.getCondition(),

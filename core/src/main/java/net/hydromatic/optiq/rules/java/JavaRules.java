@@ -34,6 +34,7 @@ import org.eigenbase.rel.convert.ConverterRule;
 import org.eigenbase.rel.metadata.RelColumnMapping;
 import org.eigenbase.rel.metadata.RelMetadataQuery;
 import org.eigenbase.rel.rules.EquiJoinRel;
+import org.eigenbase.rel.rules.SemiJoinRel;
 import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.*;
 import org.eigenbase.rex.*;
@@ -67,6 +68,9 @@ public class JavaRules {
   public static final RelOptRule ENUMERABLE_JOIN_RULE =
       new EnumerableJoinRule();
 
+  public static final RelOptRule ENUMERABLE_SEMI_JOIN_RULE =
+      new EnumerableSemiJoinRule();
+
   public static final String[] LEFT_RIGHT = new String[]{"left", "right"};
 
   private static final boolean B = false;
@@ -97,19 +101,23 @@ public class JavaRules {
         }
         newInputs.add(input);
       }
-      final JoinInfo info =
-          JoinInfo.of(newInputs.get(0), newInputs.get(1), join.getCondition());
-      if (!info.isEqui()) {
-        // EnumerableJoinRel only supports equi-join
+      final RelNode left = newInputs.get(0);
+      final RelNode right = newInputs.get(1);
+      final JoinInfo info = JoinInfo.of(left, right, join.getCondition());
+      if (!info.isEqui() && join.getJoinType() != JoinRelType.INNER) {
+        // EnumerableJoinRel only supports equi-join. We can put a filter on top
+        // if it is an inner join.
         return null;
       }
+      final RelOptCluster cluster = join.getCluster();
+      RelNode newRel;
       try {
-        return new EnumerableJoinRel(
-            join.getCluster(),
+        newRel = new EnumerableJoinRel(
+            cluster,
             join.getTraitSet().replace(EnumerableConvention.INSTANCE),
-            newInputs.get(0),
-            newInputs.get(1),
-            join.getCondition(),
+            left,
+            right,
+            info.getEquiCondition(left, right, cluster.getRexBuilder()),
             info.leftKeys,
             info.rightKeys,
             join.getJoinType(),
@@ -118,6 +126,11 @@ public class JavaRules {
         LOGGER.fine(e.toString());
         return null;
       }
+      if (!info.isEqui()) {
+        newRel = new EnumerableFilterRel(cluster, newRel.getTraitSet(),
+            newRel, info.getRemaining(cluster.getRexBuilder()));
+      }
+      return newRel;
     }
   }
 
@@ -150,12 +163,15 @@ public class JavaRules {
     }
 
     @Override
-    public EnumerableJoinRel copy(RelTraitSet traitSet, RexNode conditionExpr,
+    public EnumerableJoinRel copy(RelTraitSet traitSet, RexNode condition,
         RelNode left, RelNode right, JoinRelType joinType,
         boolean semiJoinDone) {
+      final JoinInfo joinInfo = JoinInfo.of(left, right, condition);
+      assert joinInfo.isEqui();
       try {
         return new EnumerableJoinRel(getCluster(), traitSet, left, right,
-            conditionExpr, leftKeys, rightKeys, joinType, variablesStopped);
+            condition, joinInfo.leftKeys, joinInfo.rightKeys, joinType,
+            variablesStopped);
       } catch (InvalidRelException e) {
         // Semantic error not possible. Must be a bug. Convert to
         // internal error.
@@ -294,6 +310,123 @@ public class JavaRules {
           Function2.class,
           physType.record(expressions),
           parameters);
+    }
+  }
+
+  private static class EnumerableSemiJoinRule extends ConverterRule {
+    private EnumerableSemiJoinRule() {
+      super(SemiJoinRel.class,
+          Convention.NONE,
+          EnumerableConvention.INSTANCE,
+          "EnumerableSemiJoinRule");
+    }
+
+    @Override
+    public RelNode convert(RelNode rel) {
+      final SemiJoinRel semiJoin = (SemiJoinRel) rel;
+      List<RelNode> newInputs = new ArrayList<RelNode>();
+      for (RelNode input : semiJoin.getInputs()) {
+        if (!(input.getConvention() instanceof EnumerableConvention)) {
+          input =
+              convert(input,
+                  input.getTraitSet().replace(EnumerableConvention.INSTANCE));
+        }
+        newInputs.add(input);
+      }
+      try {
+        return new EnumerableSemiJoinRel(
+            semiJoin.getCluster(),
+            semiJoin.getTraitSet().replace(EnumerableConvention.INSTANCE),
+            newInputs.get(0),
+            newInputs.get(1),
+            semiJoin.getCondition(),
+            semiJoin.leftKeys,
+            semiJoin.rightKeys);
+      } catch (InvalidRelException e) {
+        LOGGER.fine(e.toString());
+        return null;
+      }
+    }
+  }
+
+  /** Implementation of {@link org.eigenbase.rel.rules.SemiJoinRel} in
+   * {@link EnumerableConvention enumerable calling convention}. */
+  public static class EnumerableSemiJoinRel
+      extends SemiJoinRel
+      implements EnumerableRel {
+    protected EnumerableSemiJoinRel(
+        RelOptCluster cluster,
+        RelTraitSet traits,
+        RelNode left,
+        RelNode right,
+        RexNode condition,
+        ImmutableIntList leftKeys,
+        ImmutableIntList rightKeys)
+        throws InvalidRelException {
+      super(cluster, traits, left, right, condition, leftKeys, rightKeys);
+    }
+
+    @Override
+    public SemiJoinRel copy(RelTraitSet traitSet, RexNode condition,
+        RelNode left, RelNode right, JoinRelType joinType,
+        boolean semiJoinDone) {
+      assert joinType == JoinRelType.INNER;
+      final JoinInfo joinInfo = JoinInfo.of(left, right, condition);
+      assert joinInfo.isEqui();
+      try {
+        return new EnumerableSemiJoinRel(getCluster(), traitSet, left, right,
+            condition, joinInfo.leftKeys, joinInfo.rightKeys);
+      } catch (InvalidRelException e) {
+        // Semantic error not possible. Must be a bug. Convert to
+        // internal error.
+        throw new AssertionError(e);
+      }
+    }
+
+    @Override
+    public RelOptCost computeSelfCost(RelOptPlanner planner) {
+      double rowCount = RelMetadataQuery.getRowCount(this);
+
+      // Right-hand input is the "build", and hopefully small, input.
+      final double rightRowCount = right.getRows();
+      final double leftRowCount = left.getRows();
+      if (Double.isInfinite(leftRowCount)) {
+        rowCount = leftRowCount;
+      } else {
+        rowCount += Util.nLogN(leftRowCount);
+      }
+      if (Double.isInfinite(rightRowCount)) {
+        rowCount = rightRowCount;
+      } else {
+        rowCount += rightRowCount;
+      }
+      return planner.getCostFactory().makeCost(rowCount, 0, 0).multiplyBy(.01d);
+    }
+
+    public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
+      BlockBuilder builder = new BlockBuilder();
+      final Result leftResult =
+          implementor.visitChild(this, 0, (EnumerableRel) left, pref);
+      Expression leftExpression =
+          builder.append(
+              "left", leftResult.block);
+      final Result rightResult =
+          implementor.visitChild(this, 1, (EnumerableRel) right, pref);
+      Expression rightExpression =
+          builder.append(
+              "right", rightResult.block);
+      final PhysType physType = leftResult.physType;
+      return implementor.result(
+          physType,
+          builder.append(
+              Expressions.call(
+                  BuiltinMethod.SEMI_JOIN.method,
+                  Expressions.list(
+                      leftExpression,
+                      rightExpression,
+                      leftResult.physType.generateAccessor(leftKeys),
+                      rightResult.physType.generateAccessor(rightKeys))))
+              .toBlock());
     }
   }
 

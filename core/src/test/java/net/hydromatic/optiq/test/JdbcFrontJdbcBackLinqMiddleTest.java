@@ -113,20 +113,31 @@ public class JdbcFrontJdbcBackLinqMiddleTest {
         .returns("C=7\n");
   }
 
-  /** Tests that a theta join (a join whose condition cannot be decomposed
-   * into input0.x = input1.x and ... input0.z = input1.z) throws a reasonably
-   * civilized "cannot be implemented" exception. Of course, we'd like to be
-   * able to implement it one day. */
+  /** Tests a theta join: a join whose condition cannot be decomposed
+   * into input0.x = input1.x and ... input0.z = input1.z.
+   *
+   * <p>Currently, the query can be planned, but the plan is not efficient (uses
+   * cartesian product).</p>
+   */
   @Test public void testJoinTheta() {
     that()
-        .with(OptiqAssert.Config.JDBC_FOODMART)
+        .with(OptiqAssert.Config.FOODMART_CLONE)
         .query(
             "select count(*) from (\n"
             + "  select *\n"
             + "  from \"foodmart\".\"sales_fact_1997\" as s\n"
             + "  join \"foodmart\".\"customer\" as c\n"
             + "  on s.\"customer_id\" - c.\"customer_id\" = 0)")
-        .throws_(" could not be implemented");
+        .explainContains(
+            "EnumerableAggregateRel(group=[{}], EXPR$0=[COUNT()])\n"
+                + "  EnumerableCalcRel(expr#0..1=[{inputs}], expr#2=[0], expr#3=[-($t0, $t1)], expr#4=[=($t3, $t2)], DUMMY=[$t2], $condition=[$t4])\n"
+                + "    EnumerableJoinRel(condition=[true], joinType=[inner])\n"
+                + "      JdbcToEnumerableConverter\n"
+                + "        JdbcProjectRel(customer_id=[$2])\n"
+                + "          JdbcTableScan(table=[[foodmart, sales_fact_1997]])\n"
+                + "      JdbcToEnumerableConverter\n"
+                + "        JdbcProjectRel(customer_id=[$0])\n"
+                + "          JdbcTableScan(table=[[foodmart, customer]])");
   }
 
   @Test public void testJoinGroupByEmpty() {

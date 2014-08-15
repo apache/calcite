@@ -24,6 +24,7 @@ import org.eigenbase.relopt.*;
 import org.eigenbase.rex.*;
 import org.eigenbase.sql.SqlKind;
 import org.eigenbase.sql.fun.*;
+import org.eigenbase.util.ImmutableIntList;
 
 import net.hydromatic.optiq.util.BitSets;
 
@@ -304,11 +305,12 @@ public class LoptSemiJoinOptimizer {
     SemiJoinRel semiJoin =
         new SemiJoinRel(
             factRel.getCluster(),
+            factRel.getCluster().traitSetOf(Convention.NONE),
             factRel,
             dimRel,
             semiJoinCondition,
-            truncatedLeftKeys,
-            truncatedRightKeys);
+            ImmutableIntList.copyOf(truncatedLeftKeys),
+            ImmutableIntList.copyOf(truncatedRightKeys));
     return semiJoin;
   }
 
@@ -572,6 +574,7 @@ public class LoptSemiJoinOptimizer {
         SemiJoinRel chosenSemiJoin =
             new SemiJoinRel(
                 factRel.getCluster(),
+                factRel.getCluster().traitSetOf(Convention.NONE),
                 factRel,
                 chosenSemiJoins[bestDimIdx],
                 semiJoin.getCondition(),

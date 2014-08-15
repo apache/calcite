@@ -66,6 +66,8 @@ public enum BuiltinMethod {
       String.class, Function1.class),
   JOIN(ExtendedEnumerable.class, "join", Enumerable.class, Function1.class,
       Function1.class, Function2.class),
+  SEMI_JOIN(Enumerables.class, "semiJoin", Enumerable.class, Enumerable.class,
+      Function1.class, Function1.class),
   SELECT(ExtendedEnumerable.class, "select", Function1.class),
   SELECT2(ExtendedEnumerable.class, "select", Function2.class),
   SELECT_MANY(ExtendedEnumerable.class, "selectMany", Function1.class),

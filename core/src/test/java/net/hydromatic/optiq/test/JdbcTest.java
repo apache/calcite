@@ -1481,6 +1481,26 @@ public class JdbcTest {
             + "full_name=Terry Anderson\n");
   }
 
+  /** A join that has both equi and non-equi conditions.
+   *
+   * <p>Test case for
+   * <a href="https://issues.apache.org/jira/browse/OPTIQ-371">OPTIQ-371</a>,
+   * "Cannot implement JOIN whose ON clause contains mixed equi and theta". */
+  @Test public void testEquiThetaJoin() {
+    OptiqAssert.that()
+        .with(OptiqAssert.Config.REGULAR)
+        .query(
+            "select e.\"empid\", d.\"name\", e.\"name\"\n"
+            + "from \"hr\".\"emps\" as e\n"
+            + "join \"hr\".\"depts\" as d\n"
+            + "on e.\"deptno\" = d.\"deptno\"\n"
+            + "and e.\"name\" <> d.\"name\"\n")
+        .returns(
+            "empid=100; name=Sales; name=Bill\n"
+            + "empid=150; name=Sales; name=Sebastian\n"
+            + "empid=110; name=Sales; name=Theodore\n");
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/OPTIQ-35">OPTIQ-35</a>,
    * "Support parenthesized sub-clause in JOIN". */
@@ -2438,7 +2458,7 @@ public class JdbcTest {
             "EnumerableAggregateRel(group=[{0}], m0=[COUNT($1)])\n"
             + "  EnumerableAggregateRel(group=[{0, 1}])\n"
             + "    EnumerableCalcRel(expr#0..3=[{inputs}], c0=[$t1], unit_sales=[$t3])\n"
-            + "      EnumerableJoinRel(condition=[=($2, $0)], joinType=[inner])\n"
+            + "      EnumerableJoinRel(condition=[=($0, $2)], joinType=[inner])\n"
             + "        EnumerableCalcRel(expr#0..9=[{inputs}], expr#10=[CAST($t4):INTEGER], expr#11=[1997], expr#12=[=($t10, $t11)], time_id=[$t0], the_year=[$t4], $condition=[$t12])\n"
             + "          EnumerableTableAccessRel(table=[[foodmart2, time_by_day]])\n"
             + "        EnumerableCalcRel(expr#0..7=[{inputs}], time_id=[$t1], unit_sales=[$t7])\n"
@@ -2460,6 +2480,35 @@ public class JdbcTest {
         .with(OptiqAssert.Config.FOODMART_CLONE)
         .query(s)
         .returns("c0=1997; m0=85452\n");
+  }
+
+  /** Tests a simple IN query implemented as a semi-join. */
+  @Test public void testSimpleIn() {
+    OptiqAssert.that()
+        .with(OptiqAssert.Config.REGULAR)
+        .query(
+            "select * from \"hr\".\"depts\" where \"deptno\" in (\n"
+            + "  select \"deptno\" from \"hr\".\"emps\"\n"
+            + "  where \"empid\" < 150)")
+        .convertContains(
+            "ProjectRel(deptno=[$0], name=[$1], employees=[$2])\n"
+            + "  JoinRel(condition=[=($3, $4)], joinType=[inner])\n"
+            + "    ProjectRel($f0=[$0], $f1=[$1], $f2=[$2], $f3=[$0])\n"
+            + "      EnumerableTableAccessRel(table=[[hr, depts]])\n"
+            + "    AggregateRel(group=[{0}])\n"
+            + "      ProjectRel(deptno=[$1])\n"
+            + "        FilterRel(condition=[<($0, 150)])\n"
+            + "          ProjectRel(empid=[$0], deptno=[$1])\n"
+            + "            EnumerableTableAccessRel(table=[[hr, emps]])")
+        .explainContains(
+            "EnumerableCalcRel(expr#0..3=[{inputs}], proj#0..2=[{exprs}])\n"
+            + "  EnumerableSemiJoinRel(condition=[=($3, $4)], joinType=[inner])\n"
+            + "    EnumerableCalcRel(expr#0..2=[{inputs}], proj#0..2=[{exprs}], $f3=[$t0])\n"
+            + "      EnumerableTableAccessRel(table=[[hr, depts]])\n"
+            + "    EnumerableCalcRel(expr#0..4=[{inputs}], expr#5=[150], expr#6=[<($t0, $t5)], deptno=[$t1], $condition=[$t6])\n"
+            + "      EnumerableTableAccessRel(table=[[hr, emps]])")
+        .returnsUnordered(
+            "deptno=10; name=Sales; employees=[Employee [empid: 100, deptno: 10, name: Bill], Employee [empid: 150, deptno: 10, name: Sebastian]]");
   }
 
   /** A difficult query: an IN list so large that the planner promotes it

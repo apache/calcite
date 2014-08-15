@@ -22,6 +22,7 @@ import org.eigenbase.rel.*;
 import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.*;
 import org.eigenbase.rex.*;
+import org.eigenbase.util.ImmutableIntList;
 import org.eigenbase.util.Pair;
 
 /**
@@ -72,10 +73,11 @@ public class PushSemiJoinPastProjectRule extends RelOptRule {
     SemiJoinRel newSemiJoin =
         new SemiJoinRel(
             semiJoin.getCluster(),
+            semiJoin.getCluster().traitSetOf(Convention.NONE),
             project.getChild(),
             semiJoin.getRight(),
             newCondition,
-            newLeftKeys,
+            ImmutableIntList.copyOf(newLeftKeys),
             semiJoin.getRightKeys());
 
     // Create the new projection.  Note that the projection expressions

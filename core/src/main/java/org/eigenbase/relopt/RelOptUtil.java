@@ -1846,20 +1846,22 @@ public abstract class RelOptUtil {
    *
    * @param joinRel      join node
    * @param filters      filters to be classified
-   * @param joinType     join type; determines whether filters can be pushed
-   *                     into the ON clause
+   * @param joinType     join type
+   * @param pushInto     whether filters can be pushed into the ON clause
    * @param pushLeft     true if filters can be pushed to the left
    * @param pushRight    true if filters can be pushed to the right
    * @param joinFilters  list of filters to push to the join
    * @param leftFilters  list of filters to push to the left child
    * @param rightFilters list of filters to push to the right child
    * @param smart        Whether to try to strengthen the join type
-   * @return true if at least one filter was pushed
+   * @return whether at least one filter was pushed, or join type was
+   * strengthened
    */
   public static boolean classifyFilters(
       RelNode joinRel,
       List<RexNode> filters,
       JoinRelType joinType,
+      boolean pushInto,
       boolean pushLeft,
       boolean pushRight,
       List<RexNode> joinFilters,
@@ -1943,42 +1945,46 @@ public abstract class RelOptUtil {
         }
         filtersToRemove.add(filter);
 
-        // if the filter can't be pushed to either child and the join
+      } else {
+        // If the filter can't be pushed to either child and the join
         // is an inner join, push them to the join if they originated
         // from above the join
-      } else if (joinType == JoinRelType.INNER) {
-        joinFilters.add(filter);
-        filtersToRemove.add(filter);
+        if (joinType == JoinRelType.INNER && pushInto) {
+          if (!joinFilters.contains(filter)) {
+            joinFilters.add(filter);
+          }
+          filtersToRemove.add(filter);
+        }
 
         // If the filter will only evaluate to true if fields from the left
         // are not null, and the left is null-generating, then we can make the
         // left. Similarly for the right.
-      } else {
         if (smart
-            && joinType != null
             && joinType.generatesNullsOnRight()
             && Strong.is(filter, rightBitmap)) {
-          filtersToRemove.add(filter);
           joinType = joinType.cancelNullsOnRight();
           joinTypeHolder.set(joinType);
-          if (!joinFilters.contains(filter)) {
-            joinFilters.add(filter);
+          if (pushInto) {
+            filtersToRemove.add(filter);
+            if (!joinFilters.contains(filter)) {
+              joinFilters.add(filter);
+            }
           }
         }
         if (smart
-            && joinType != null
             && joinType.generatesNullsOnLeft()
             && Strong.is(filter, leftBitmap)) {
           filtersToRemove.add(filter);
           joinType = joinType.cancelNullsOnLeft();
           joinTypeHolder.set(joinType);
-          if (!joinFilters.contains(filter)) {
-            joinFilters.add(filter);
+          if (pushInto) {
+            filtersToRemove.add(filter);
+            if (!joinFilters.contains(filter)) {
+              joinFilters.add(filter);
+            }
           }
         }
       }
-
-      // else, leave the filter where it is
     }
 
     // Remove filters after the loop, to prevent concurrent modification.

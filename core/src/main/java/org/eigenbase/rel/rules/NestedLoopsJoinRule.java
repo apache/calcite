@@ -119,7 +119,7 @@ public class NestedLoopsJoinRule extends RelOptRule {
             join.getCluster(),
             left,
             right,
-            joinInfo.remaining,
+            joinInfo.getRemaining(join.getCluster().getRexBuilder()),
             correlationList,
             join.getJoinType());
     call.transformTo(newRel);

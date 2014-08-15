@@ -62,6 +62,7 @@ public class AddRedundantSemiJoinRule extends RelOptRule {
     RelNode semiJoin =
         new SemiJoinRel(
             origJoinRel.getCluster(),
+            origJoinRel.getCluster().traitSetOf(Convention.NONE),
             origJoinRel.getLeft(),
             origJoinRel.getRight(),
             origJoinRel.getCondition(),

@@ -104,6 +104,7 @@ public class OptiqPrepareImpl implements OptiqPrepare {
   private static final List<RelOptRule> DEFAULT_RULES =
       ImmutableList.of(
           JavaRules.ENUMERABLE_JOIN_RULE,
+          JavaRules.ENUMERABLE_SEMI_JOIN_RULE,
           JavaRules.ENUMERABLE_PROJECT_RULE,
           JavaRules.ENUMERABLE_FILTER_RULE,
           JavaRules.ENUMERABLE_AGGREGATE_RULE,

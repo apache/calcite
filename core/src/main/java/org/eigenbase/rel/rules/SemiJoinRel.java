@@ -32,13 +32,14 @@ import com.google.common.collect.ImmutableSet;
  * condition, where the output only contains the columns from the left join
  * input.
  */
-public final class SemiJoinRel extends EquiJoinRel {
+public class SemiJoinRel extends EquiJoinRel {
   //~ Constructors -----------------------------------------------------------
 
   /**
    * Creates a SemiJoinRel.
    *
    * @param cluster   cluster that join belongs to
+   * @param traitSet  Traits
    * @param left      left join input
    * @param right     right join input
    * @param condition join condition
@@ -47,19 +48,20 @@ public final class SemiJoinRel extends EquiJoinRel {
    */
   public SemiJoinRel(
       RelOptCluster cluster,
+      RelTraitSet traitSet,
       RelNode left,
       RelNode right,
       RexNode condition,
-      List<Integer> leftKeys,
-      List<Integer> rightKeys) {
+      ImmutableIntList leftKeys,
+      ImmutableIntList rightKeys) {
     super(
         cluster,
-        cluster.traitSetOf(Convention.NONE),
+        traitSet,
         left,
         right,
         condition,
-        ImmutableIntList.copyOf(leftKeys),
-        ImmutableIntList.copyOf(rightKeys),
+        leftKeys,
+        rightKeys,
         JoinRelType.INNER,
         ImmutableSet.<String>of());
   }
@@ -67,16 +69,13 @@ public final class SemiJoinRel extends EquiJoinRel {
   //~ Methods ----------------------------------------------------------------
 
   @Override
-  public SemiJoinRel copy(RelTraitSet traitSet, RexNode conditionExpr,
+  public SemiJoinRel copy(RelTraitSet traitSet, RexNode condition,
       RelNode left, RelNode right, JoinRelType joinType, boolean semiJoinDone) {
     assert joinType == JoinRelType.INNER;
-    return new SemiJoinRel(
-        getCluster(),
-        left,
-        right,
-        conditionExpr,
-        getLeftKeys(),
-        getRightKeys());
+    final JoinInfo joinInfo = JoinInfo.of(left, right, condition);
+    assert joinInfo.isEqui();
+    return new SemiJoinRel(getCluster(), traitSet, left, right, condition,
+        joinInfo.leftKeys, joinInfo.rightKeys);
   }
 
   // implement RelNode

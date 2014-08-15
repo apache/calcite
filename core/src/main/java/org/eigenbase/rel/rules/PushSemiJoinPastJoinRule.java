@@ -22,6 +22,7 @@ import org.eigenbase.rel.*;
 import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.*;
 import org.eigenbase.rex.*;
+import org.eigenbase.util.ImmutableIntList;
 
 /**
  * PushSemiJoinPastJoinRule implements the rule for pushing semi-joins down in a
@@ -62,8 +63,8 @@ public class PushSemiJoinPastJoinRule extends RelOptRule {
     if (join instanceof SemiJoinRel) {
       return;
     }
-    List<Integer> leftKeys = semiJoin.getLeftKeys();
-    List<Integer> rightKeys = semiJoin.getRightKeys();
+    final ImmutableIntList leftKeys = semiJoin.getLeftKeys();
+    final ImmutableIntList rightKeys = semiJoin.getRightKeys();
 
     // X is the left child of the join below the semi-join
     // Y is the right child of the join below the semi-join
@@ -152,10 +153,11 @@ public class PushSemiJoinPastJoinRule extends RelOptRule {
     SemiJoinRel newSemiJoin =
         new SemiJoinRel(
             semiJoin.getCluster(),
+            semiJoin.getCluster().traitSetOf(Convention.NONE),
             leftSemiJoinOp,
             semiJoin.getRight(),
             newSemiJoinFilter,
-            newLeftKeys,
+            ImmutableIntList.copyOf(newLeftKeys),
             rightKeys);
 
     RelNode leftJoinRel;

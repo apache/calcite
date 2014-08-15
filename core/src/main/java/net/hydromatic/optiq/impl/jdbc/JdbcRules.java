@@ -194,12 +194,15 @@ public class JdbcRules {
     }
 
     @Override
-    public JdbcJoinRel copy(RelTraitSet traitSet, RexNode conditionExpr,
+    public JdbcJoinRel copy(RelTraitSet traitSet, RexNode condition,
         RelNode left, RelNode right, JoinRelType joinType,
         boolean semiJoinDone) {
+      final JoinInfo joinInfo = JoinInfo.of(left, right, condition);
+      assert joinInfo.isEqui();
       try {
         return new JdbcJoinRel(getCluster(), traitSet, left, right,
-            conditionExpr, leftKeys, rightKeys, joinType, variablesStopped);
+            condition, joinInfo.leftKeys, joinInfo.rightKeys, joinType,
+            variablesStopped);
       } catch (InvalidRelException e) {
         // Semantic error not possible. Must be a bug. Convert to
         // internal error.

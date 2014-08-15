@@ -151,6 +151,149 @@ on ( d."deptno" + 2 - 2 = e."deptno" + 1 - 1  and e."deptno" + 10 - 10 = d."dept
 
 !ok
 
+# [OPTIQ-377] Mixed equi and non-equi join
+select e."empid", d."name", e."name"
+from "hr"."emps" as e
+join "hr"."depts" as d
+on e."deptno" = d."deptno"
+and e."name" <> d."name";
++-------+-------+-----------+
+| empid | name  | name      |
++-------+-------+-----------+
+|   100 | Sales | Bill      |
+|   110 | Sales | Theodore  |
+|   150 | Sales | Sebastian |
++-------+-------+-----------+
+(3 rows)
+
+!ok
+EnumerableCalcRel(expr#0..4=[{inputs}], expr#5=[CAST($t2):VARCHAR(1) CHARACTER SET "ISO-8859-1" COLLATE "ISO-8859-1$en_US$primary"], expr#6=[CAST($t4):VARCHAR(1) CHARACTER SET "ISO-8859-1" COLLATE "ISO-8859-1$en_US$primary"], expr#7=[<>($t5, $t6)], empid=[$t0], name=[$t4], name0=[$t2], $condition=[$t7])
+  EnumerableJoinRel(condition=[=($1, $3)], joinType=[inner])
+    EnumerableCalcRel(expr#0..4=[{inputs}], proj#0..2=[{exprs}])
+      EnumerableTableAccessRel(table=[[hr, emps]])
+    EnumerableCalcRel(expr#0..2=[{inputs}], proj#0..1=[{exprs}])
+      EnumerableTableAccessRel(table=[[hr, depts]])
+!plan
+
+# Same query, expressed using WHERE.
+select e."empid", d."name", e."name"
+from "hr"."emps" as e,
+  "hr"."depts" as d
+where e."deptno" = d."deptno"
+and e."name" <> d."name";
++-------+-------+-----------+
+| empid | name  | name      |
++-------+-------+-----------+
+|   100 | Sales | Bill      |
+|   110 | Sales | Theodore  |
+|   150 | Sales | Sebastian |
++-------+-------+-----------+
+(3 rows)
+
+!ok
+EnumerableCalcRel(expr#0..4=[{inputs}], expr#5=[CAST($t2):VARCHAR(1) CHARACTER SET "ISO-8859-1" COLLATE "ISO-8859-1$en_US$primary"], expr#6=[CAST($t4):VARCHAR(1) CHARACTER SET "ISO-8859-1" COLLATE "ISO-8859-1$en_US$primary"], expr#7=[<>($t5, $t6)], empid=[$t0], name=[$t4], name0=[$t2], $condition=[$t7])
+  EnumerableJoinRel(condition=[=($1, $3)], joinType=[inner])
+    EnumerableCalcRel(expr#0..4=[{inputs}], proj#0..2=[{exprs}])
+      EnumerableTableAccessRel(table=[[hr, emps]])
+    EnumerableCalcRel(expr#0..2=[{inputs}], proj#0..1=[{exprs}])
+      EnumerableTableAccessRel(table=[[hr, depts]])
+!plan
+
+# EXISTS
+select * from "hr"."emps"
+where exists (
+  select 1 from "hr"."depts" where "depts"."deptno" = "emps"."deptno");
++-------+--------+-----------+---------+------------+
+| empid | deptno | name      | salary  | commission |
++-------+--------+-----------+---------+------------+
+|   100 |     10 | Bill      | 10000.0 |       1000 |
+|   110 |     10 | Theodore  | 11500.0 |        250 |
+|   150 |     10 | Sebastian | 7000.0  |            |
++-------+--------+-----------+---------+------------+
+(3 rows)
+
+!ok
+EnumerableSemiJoinRel(condition=[=($1, $5)], joinType=[inner])
+  EnumerableTableAccessRel(table=[[hr, emps]])
+  EnumerableCalcRel(expr#0..3=[{inputs}], expr#4=[true], $f01=[$t0], $f0=[$t4])
+    EnumerableJoinRel(condition=[=($0, $1)], joinType=[inner])
+      EnumerableAggregateRel(group=[{0}])
+        EnumerableCalcRel(expr#0..4=[{inputs}], $f0=[$t1])
+          EnumerableTableAccessRel(table=[[hr, emps]])
+      EnumerableTableAccessRel(table=[[hr, depts]])
+!plan
+
+# NOT EXISTS
+# Right results, but it would be better if the plan used EnumerableSemiJoinRel; see [OPTIQ-374]
+select * from "hr"."emps"
+where not exists (
+  select 1 from "hr"."depts" where "depts"."deptno" = "emps"."deptno");
++-------+--------+------+--------+------------+
+| empid | deptno | name | salary | commission |
++-------+--------+------+--------+------------+
+|   200 |     20 | Eric | 8000.0 |        500 |
++-------+--------+------+--------+------------+
+(1 row)
+
+!ok
+EnumerableCalcRel(expr#0..6=[{inputs}], expr#7=[IS NOT NULL($t6)], expr#8=[NOT($t7)], proj#0..4=[{exprs}], $condition=[$t8])
+  EnumerableJoinRel(condition=[=($1, $5)], joinType=[left])
+    EnumerableTableAccessRel(table=[[hr, emps]])
+    EnumerableAggregateRel(group=[{0}], agg#0=[MIN($1)])
+      EnumerableCalcRel(expr#0..3=[{inputs}], expr#4=[true], $f01=[$t0], $f0=[$t4])
+        EnumerableJoinRel(condition=[=($0, $1)], joinType=[inner])
+          EnumerableAggregateRel(group=[{0}])
+            EnumerableCalcRel(expr#0..4=[{inputs}], $f0=[$t1])
+              EnumerableTableAccessRel(table=[[hr, emps]])
+          EnumerableTableAccessRel(table=[[hr, depts]])
+!plan
+
+# NOT EXISTS .. OR NOT EXISTS
+# Right results, but it would be better if the plan used EnumerableSemiJoinRel; see [OPTIQ-374]
+select * from "hr"."emps"
+where not exists (
+  select 1 from "hr"."depts" where "depts"."deptno" = "emps"."deptno")
+or not exists (
+  select 1 from "hr"."depts" where "depts"."deptno" + 90 = "emps"."empid");
+
++-------+--------+-----------+---------+------------+
+| empid | deptno | name      | salary  | commission |
++-------+--------+-----------+---------+------------+
+|   110 |     10 | Theodore  | 11500.0 |        250 |
+|   150 |     10 | Sebastian | 7000.0  |            |
+|   200 |     20 | Eric      | 8000.0  |        500 |
++-------+--------+-----------+---------+------------+
+(3 rows)
+
+!ok
+EnumerableCalcRel(expr#0..7=[{inputs}], expr#8=[IS NOT NULL($t5)], expr#9=[NOT($t8)], expr#10=[IS NOT NULL($t7)], expr#11=[NOT($t10)], expr#12=[OR($t9, $t11)], proj#0..4=[{exprs}], $condition=[$t12])
+  EnumerableJoinRel(condition=[=($0, $6)], joinType=[left])
+    EnumerableCalcRel(expr#0..6=[{inputs}], proj#0..4=[{exprs}], $f0=[$t6])
+      EnumerableJoinRel(condition=[=($1, $5)], joinType=[left])
+        EnumerableTableAccessRel(table=[[hr, emps]])
+        EnumerableAggregateRel(group=[{0}], agg#0=[MIN($1)])
+          EnumerableCalcRel(expr#0..3=[{inputs}], expr#4=[true], $f01=[$t0], $f0=[$t4])
+            EnumerableJoinRel(condition=[=($0, $1)], joinType=[inner])
+              EnumerableAggregateRel(group=[{0}])
+                EnumerableCalcRel(expr#0..4=[{inputs}], $f0=[$t1])
+                  EnumerableTableAccessRel(table=[[hr, emps]])
+              EnumerableTableAccessRel(table=[[hr, depts]])
+    EnumerableAggregateRel(group=[{0}], agg#0=[MIN($1)])
+      EnumerableCalcRel(expr#0..3=[{inputs}], expr#4=[true], expr#5=[90], expr#6=[+($t1, $t5)], expr#7=[CAST($t0):INTEGER NOT NULL], expr#8=[=($t6, $t7)], $f01=[$t0], $f0=[$t4], $condition=[$t8])
+        EnumerableJoinRel(condition=[true], joinType=[inner])
+          EnumerableAggregateRel(group=[{0}])
+            EnumerableCalcRel(expr#0..4=[{inputs}], $f0=[$t0])
+              EnumerableSemiJoinRel(condition=[=($1, $5)], joinType=[inner])
+                EnumerableTableAccessRel(table=[[hr, emps]])
+                EnumerableCalcRel(expr#0..3=[{inputs}], expr#4=[true], $f01=[$t0], $f0=[$t4])
+                  EnumerableJoinRel(condition=[=($0, $1)], joinType=[inner])
+                    EnumerableAggregateRel(group=[{0}])
+                      EnumerableCalcRel(expr#0..4=[{inputs}], $f0=[$t1])
+                        EnumerableTableAccessRel(table=[[hr, emps]])
+                    EnumerableTableAccessRel(table=[[hr, depts]])
+          EnumerableTableAccessRel(table=[[hr, depts]])
+!plan
+
 # [OPTIQ-345] AssertionError in RexToLixTranslator comparing to date literal
 !use catchall
 select count(*) as c from "everyTypes" where "sqlDate" = DATE '1970-01-01';
@@ -242,8 +385,8 @@ from "sales_fact_1997" as s
 where c."city" = 'San Francisco'
  and pc."product_department" = 'Snacks';
 EnumerableCalcRel(expr#0..56=[{inputs}], $f0=[$t20], $f1=[$t21], $f2=[$t22], $f3=[$t23], $f4=[$t24], $f5=[$t25], $f6=[$t26], $f7=[$t27], $f8=[$t28], $f9=[$t29], $f10=[$t30], $f11=[$t31], $f12=[$t32], $f13=[$t33], $f14=[$t34], $f15=[$t35], $f16=[$t36], $f17=[$t37], $f18=[$t38], $f19=[$t39], $f20=[$t40], $f21=[$t41], $f22=[$t42], $f23=[$t43], $f24=[$t44], $f25=[$t45], $f26=[$t46], $f27=[$t47], $f28=[$t48], $f29=[$t49], $f30=[$t50], $f31=[$t51], $f32=[$t52], $f33=[$t53], $f34=[$t54], $f35=[$t55], $f36=[$t56], $f37=[$t5], $f38=[$t6], $f39=[$t7], $f40=[$t8], $f41=[$t9], $f42=[$t10], $f43=[$t11], $f44=[$t12], $f45=[$t13], $f46=[$t14], $f47=[$t15], $f48=[$t16], $f49=[$t17], $f50=[$t18], $f51=[$t19], $f52=[$t0], $f53=[$t1], $f54=[$t2], $f55=[$t3], $f56=[$t4])
-  EnumerableJoinRel(condition=[=($20, $6)], joinType=[inner])
-    EnumerableJoinRel(condition=[=($5, $0)], joinType=[inner])
+  EnumerableJoinRel(condition=[=($6, $20)], joinType=[inner])
+    EnumerableJoinRel(condition=[=($0, $5)], joinType=[inner])
       EnumerableCalcRel(expr#0..4=[{inputs}], expr#5=['Snacks'], expr#6=[=($t3, $t5)], proj#0..4=[{exprs}], $condition=[$t6])
         EnumerableTableAccessRel(table=[[foodmart2, product_class]])
       EnumerableTableAccessRel(table=[[foodmart2, product]])

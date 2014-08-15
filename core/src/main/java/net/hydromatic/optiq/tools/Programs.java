@@ -63,9 +63,14 @@ public class Programs {
           MergeFilterOntoCalcRule.INSTANCE,
           MergeProjectOntoCalcRule.INSTANCE);
 
+  /** Program that converts filters and projects to calcs. */
+  public static final Program CALC_PROGRAM =
+      hep(CALC_RULES, true, new DefaultRelMetadataProvider());
+
   public static final ImmutableSet<RelOptRule> RULE_SET =
       ImmutableSet.of(
           JavaRules.ENUMERABLE_JOIN_RULE,
+          JavaRules.ENUMERABLE_SEMI_JOIN_RULE,
           JavaRules.ENUMERABLE_PROJECT_RULE,
           JavaRules.ENUMERABLE_FILTER_RULE,
           JavaRules.ENUMERABLE_AGGREGATE_RULE,
@@ -234,8 +239,7 @@ public class Programs {
 
     // Second planner pass to do physical "tweaks". This the first time that
     // EnumerableCalcRel is introduced.
-    final Program program2 =
-        hep(CALC_RULES, true, new DefaultRelMetadataProvider());
+    final Program program2 = CALC_PROGRAM;
 
     return sequence(program1, program2);
   }

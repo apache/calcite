@@ -24,6 +24,7 @@ import org.eigenbase.rel.JoinInfo;
 import org.eigenbase.rel.JoinRelBase;
 import org.eigenbase.rel.ProjectRelBase;
 import org.eigenbase.rel.RelNode;
+import org.eigenbase.relopt.Convention;
 import org.eigenbase.relopt.RelOptRule;
 import org.eigenbase.relopt.RelOptRuleCall;
 import org.eigenbase.relopt.RelOptUtil;
@@ -75,7 +76,9 @@ public class SemiJoinRule extends RelOptRule {
       newRightKeys.add(aggregateKeys.get(key));
     }
     final SemiJoinRel semiJoin =
-        new SemiJoinRel(join.getCluster(), left, aggregate.getChild(),
+        new SemiJoinRel(join.getCluster(),
+            join.getCluster().traitSetOf(Convention.NONE),
+            left, aggregate.getChild(),
             join.getCondition(), joinInfo.leftKeys,
             ImmutableIntList.copyOf(newRightKeys));
     final ProjectRelBase newProject =

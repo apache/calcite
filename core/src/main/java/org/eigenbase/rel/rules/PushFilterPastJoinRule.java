@@ -65,6 +65,9 @@ public abstract class PushFilterPastJoinRule extends RelOptRule {
 
   protected void perform(RelOptRuleCall call, FilterRelBase filter,
       JoinRelBase join) {
+    if (join instanceof SemiJoinRel) {
+      return;
+    }
     final List<RexNode> joinFilters =
         RelOptUtil.conjunctions(join.getCondition());
 
@@ -109,6 +112,7 @@ public abstract class PushFilterPastJoinRule extends RelOptRule {
         join,
         aboveFilters,
         join.getJoinType(),
+        !(join instanceof EquiJoinRel),
         !join.getJoinType().generatesNullsOnLeft(),
         !join.getJoinType().generatesNullsOnRight(),
         joinFilters,
@@ -125,14 +129,15 @@ public abstract class PushFilterPastJoinRule extends RelOptRule {
     if (RelOptUtil.classifyFilters(
         join,
         joinFilters,
-        null,
+        join.getJoinType(),
+        false,
         !join.getJoinType().generatesNullsOnRight(),
         !join.getJoinType().generatesNullsOnLeft(),
         joinFilters,
         leftFilters,
         rightFilters,
         joinTypeHolder,
-        smart)) {
+        false)) {
       filterPushed = true;
     }
 

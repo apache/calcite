@@ -901,6 +901,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     addRule(PushFilterPastJoinRule.JOIN);
     addRule(AbstractConverter.ExpandConversionRule.INSTANCE);
     addRule(SwapJoinRule.INSTANCE);
+    addRule(SemiJoinRule.INSTANCE);
     if (OptiqPrepareImpl.COMMUTE) {
       addRule(CommutativeJoinRule.INSTANCE);
     }

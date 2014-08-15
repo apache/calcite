@@ -443,7 +443,7 @@ public class RelMdUtil {
     final JoinInfo joinInfo = JoinInfo.of(leftChild, rightChild, predicate);
     BitSets.populate(leftJoinCols, joinInfo.leftKeys);
     BitSets.populate(rightJoinCols, joinInfo.rightKeys);
-    return joinInfo.remaining;
+    return joinInfo.getRemaining(leftChild.getCluster().getRexBuilder());
   }
 
   /**
@@ -652,6 +652,7 @@ public class RelMdUtil {
           joinRel,
           predList,
           joinType,
+          joinType == JoinRelType.INNER,
           !joinType.generatesNullsOnLeft(),
           !joinType.generatesNullsOnRight(),
           joinFilters,
