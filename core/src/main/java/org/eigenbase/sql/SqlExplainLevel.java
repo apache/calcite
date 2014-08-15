@@ -38,6 +38,11 @@ public enum SqlExplainLevel implements SqlLiteral.SqlSymbol {
   DIGEST_ATTRIBUTES,
 
   /**
+   * Display all attributes, including id, except cost.
+   */
+  NON_COST_ATTRIBUTES,
+
+  /**
    * Display all attributes, including cost.
    */
   ALL_ATTRIBUTES;

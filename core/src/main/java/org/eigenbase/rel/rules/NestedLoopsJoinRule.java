@@ -25,6 +25,8 @@ import org.eigenbase.sql.fun.*;
 import org.eigenbase.util.*;
 import org.eigenbase.util.mapping.IntPair;
 
+import com.google.common.collect.Lists;
+
 /**
  * Rule which converts a {@link JoinRel} into a {@link CorrelatorRel}, which can
  * then be implemented using nested loops.
@@ -83,8 +85,7 @@ public class NestedLoopsJoinRule extends RelOptRule {
     RelNode right = join.getRight();
     final RelNode left = join.getLeft();
     final JoinInfo joinInfo = join.analyzeCondition();
-    final List<CorrelatorRel.Correlation> correlationList =
-        new ArrayList<CorrelatorRel.Correlation>();
+    final List<Correlation> correlationList = Lists.newArrayList();
     if (joinInfo.leftKeys.size() > 0) {
       final RelOptCluster cluster = join.getCluster();
       final RexBuilder rexBuilder = cluster.getRexBuilder();
@@ -95,8 +96,7 @@ public class NestedLoopsJoinRule extends RelOptRule {
 
         // Create correlation to say 'each row, set variable #id
         // to the value of column #leftKey'.
-        correlationList.add(
-            new CorrelatorRel.Correlation(dynInId, p.source));
+        correlationList.add(new Correlation(dynInId, p.source));
         condition =
             RelOptUtil.andJoinFilters(
                 rexBuilder,

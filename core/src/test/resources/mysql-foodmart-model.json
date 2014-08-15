@@ -1,0 +1,15 @@
+{
+  version: '1.0',
+  defaultSchema: 'foodmart',
+  schemas: [
+    {
+      type: 'jdbc',
+      name: 'foodmart',
+      jdbcUser: 'foodmart',
+      jdbcPassword: 'foodmart',
+      jdbcUrl: 'jdbc:mysql://localhost',
+      jdbcCatalog: 'foodmart',
+      jdbcSchema: null
+    }
+  ]
+}

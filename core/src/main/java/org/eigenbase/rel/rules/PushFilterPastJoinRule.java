@@ -21,7 +21,6 @@ import java.util.*;
 import org.eigenbase.rel.*;
 import org.eigenbase.relopt.*;
 import org.eigenbase.rex.*;
-import org.eigenbase.util.Bug;
 import org.eigenbase.util.Holder;
 
 import com.google.common.collect.ImmutableList;
@@ -71,22 +70,12 @@ public abstract class PushFilterPastJoinRule extends RelOptRule {
     final List<RexNode> joinFilters =
         RelOptUtil.conjunctions(join.getCondition());
 
-    if (filter == null) {
-      // There is only the joinRel
-      // make sure it does not match a cartesian product joinRel
-      // (with "true" condition) otherwise this rule will be applied
-      // again on the new cartesian product joinRel.
-      boolean onlyTrueFilter = true;
-      for (RexNode joinFilter : joinFilters) {
-        if (!joinFilter.isAlwaysTrue()) {
-          onlyTrueFilter = false;
-          break;
-        }
-      }
-
-      if (onlyTrueFilter) {
-        return;
-      }
+    // If there is only the joinRel,
+    // make sure it does not match a cartesian product joinRel
+    // (with "true" condition), otherwise this rule will be applied
+    // again on the new cartesian product joinRel.
+    if (filter == null && joinFilters.isEmpty()) {
+      return;
     }
 
     final List<RexNode> aboveFilters =
@@ -145,6 +134,14 @@ public abstract class PushFilterPastJoinRule extends RelOptRule {
       return;
     }
 
+    // if nothing actually got pushed and there is nothing leftover,
+    // then this rule is a no-op
+    if (joinFilters.isEmpty()
+        && leftFilters.isEmpty()
+        && rightFilters.isEmpty()) {
+      return;
+    }
+
     // create FilterRels on top of the children if any filters were
     // pushed to them
     final RexBuilder rexBuilder = join.getCluster().getRexBuilder();
@@ -161,21 +158,18 @@ public abstract class PushFilterPastJoinRule extends RelOptRule {
 
     // create the new join node referencing the new children and
     // containing its new join filters (if there are any)
-    RexNode joinFilter;
+    final RexNode joinFilter =
+        RexUtil.composeConjunction(rexBuilder, joinFilters, false);
 
-    if (joinFilters.size() == 0) {
-      // if nothing actually got pushed and there is nothing leftover,
-      // then this rule is a no-op
-      if (leftFilters.isEmpty()
-          && rightFilters.isEmpty()
-          && joinTypeHolder.get() == join.getJoinType()) {
-        return;
-      }
-      joinFilter = rexBuilder.makeLiteral(true);
-    } else {
-      joinFilter =
-          RexUtil.composeConjunction(rexBuilder, joinFilters, true);
+    // If nothing actually got pushed and there is nothing leftover,
+    // then this rule is a no-op
+    if (joinFilter.isAlwaysTrue()
+        && leftFilters.isEmpty()
+        && rightFilters.isEmpty()
+        && joinTypeHolder.get() == join.getJoinType()) {
+      return;
     }
+
     RelNode newJoinRel =
         join.copy(
             join.getCluster().traitSetOf(Convention.NONE),
@@ -185,11 +179,6 @@ public abstract class PushFilterPastJoinRule extends RelOptRule {
             joinTypeHolder.get(),
             join.isSemiJoinDone());
     call.getPlanner().onCopy(join, newJoinRel);
-
-    // The pushed filters are not exact copies of the original filter, but
-    // telling the planner about them seems to help the RelDecorrelator more
-    // often than not. The real solution is to fix OPTIQ-443.
-    Bug.upgrade("OPTIQ-443");
     if (!leftFilters.isEmpty()) {
       call.getPlanner().onCopy(filter, leftRel);
     }

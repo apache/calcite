@@ -86,6 +86,10 @@ public class RelShuttleImpl implements RelShuttle {
     return visitChildren(join);
   }
 
+  public RelNode visit(CorrelatorRel correlator) {
+    return visitChildren(correlator);
+  }
+
   public RelNode visit(UnionRel union) {
     return visitChildren(union);
   }

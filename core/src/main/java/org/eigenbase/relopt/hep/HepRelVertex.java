@@ -48,6 +48,10 @@ public class HepRelVertex extends AbstractRelNode {
 
   //~ Methods ----------------------------------------------------------------
 
+  @Override public void explain(RelWriter pw) {
+    currentRel.explain(pw);
+  }
+
   @Override
   public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
     assert traitSet.equals(this.traitSet);

@@ -30,6 +30,8 @@ import org.eigenbase.util.mapping.Mappings;
 
 import net.hydromatic.linq4j.function.Function1;
 
+import com.google.common.collect.*;
+
 // TODO jvs 10-Feb-2005:  factor out generic rewrite helper, with the
 // ability to map between old and new rels and field ordinals.  Also,
 // for now need to prohibit queries which return UDT instances.
@@ -74,7 +76,7 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
   private final RexBuilder rexBuilder;
   private final RewriteRelVisitor visitor;
 
-  private Map<RelNode, RelNode> oldToNewRelMap;
+  private final Map<RelNode, RelNode> oldToNewRelMap = Maps.newHashMap();
   private RelNode currentRel;
   private int iRestructureInput;
   private RelDataType flattenedRootType;
@@ -94,23 +96,19 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
   //~ Methods ----------------------------------------------------------------
 
   public void updateRelInMap(
-      Map<RelNode, SortedSet<CorrelatorRel.Correlation>> mapRefRelToCorVar) {
-    Set<RelNode> oldRefRelSet = new HashSet<RelNode>();
-    oldRefRelSet.addAll(mapRefRelToCorVar.keySet());
-    for (RelNode rel : oldRefRelSet) {
+      SortedSetMultimap<RelNode, Correlation> mapRefRelToCorVar) {
+    for (RelNode rel : Lists.newArrayList(mapRefRelToCorVar.keySet())) {
       if (oldToNewRelMap.containsKey(rel)) {
-        SortedSet<CorrelatorRel.Correlation> corVarSet =
-            new TreeSet<CorrelatorRel.Correlation>();
-        corVarSet.addAll(mapRefRelToCorVar.get(rel));
-        mapRefRelToCorVar.remove(rel);
-        mapRefRelToCorVar.put(oldToNewRelMap.get(rel), corVarSet);
+        SortedSet<Correlation> corVarSet =
+            mapRefRelToCorVar.removeAll(rel);
+        mapRefRelToCorVar.putAll(oldToNewRelMap.get(rel), corVarSet);
       }
     }
   }
 
   public void updateRelInMap(
-      SortedMap<CorrelatorRel.Correlation, CorrelatorRel> mapCorVarToCorRel) {
-    for (CorrelatorRel.Correlation corVar : mapCorVarToCorRel.keySet()) {
+      SortedMap<Correlation, CorrelatorRel> mapCorVarToCorRel) {
+    for (Correlation corVar : mapCorVarToCorRel.keySet()) {
       CorrelatorRel oldRel = mapCorVarToCorRel.get(corVar);
       if (oldToNewRelMap.containsKey(oldRel)) {
         RelNode newRel = oldToNewRelMap.get(oldRel);
@@ -122,7 +120,6 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
 
   public RelNode rewrite(RelNode root, boolean restructure) {
     // Perform flattening.
-    oldToNewRelMap = new HashMap<RelNode, RelNode>();
     visitor.visit(root, 0, null);
     RelNode flattened = getNewForOldRel(root);
     flattenedRootType = flattened.getRowType();
@@ -374,9 +371,9 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
   }
 
   public void rewriteRel(CorrelatorRel rel) {
-    final List<CorrelatorRel.Correlation> newCorrelations =
-        new ArrayList<CorrelatorRel.Correlation>();
-    for (CorrelatorRel.Correlation c : rel.getCorrelations()) {
+    final List<Correlation> newCorrelations =
+        new ArrayList<Correlation>();
+    for (Correlation c : rel.getCorrelations()) {
       RelDataType corrFieldType =
           rel.getLeft().getRowType().getFieldList().get(c.getOffset())
               .getType();
@@ -384,7 +381,7 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
         throw Util.needToImplement("correlation on structured type");
       }
       newCorrelations.add(
-          new CorrelatorRel.Correlation(
+          new Correlation(
               c.getId(),
               getNewForOldInput(c.getOffset())));
     }

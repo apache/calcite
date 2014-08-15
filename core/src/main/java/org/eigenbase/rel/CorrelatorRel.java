@@ -133,6 +133,10 @@ public final class CorrelatorRel extends JoinRelBase {
         this.joinType);
   }
 
+  @Override public RelNode accept(RelShuttle shuttle) {
+    return shuttle.visit(this);
+  }
+
   public RelWriter explainTerms(RelWriter pw) {
     return super.explainTerms(pw)
         .item("correlations", correlations);
@@ -145,55 +149,6 @@ public final class CorrelatorRel extends JoinRelBase {
    */
   public List<Correlation> getCorrelations() {
     return correlations;
-  }
-
-  //~ Inner Classes ----------------------------------------------------------
-
-  /**
-   * Describes the neccessary parameters for an implementation in order to
-   * identify and set dynamic variables
-   */
-  public static class Correlation
-      implements Cloneable, Comparable<Correlation> {
-    private final int id;
-    private final int offset;
-
-    /**
-     * Creates a correlation.
-     *
-     * @param id     Identifier
-     * @param offset Offset
-     */
-    public Correlation(int id, int offset) {
-      this.id = id;
-      this.offset = offset;
-    }
-
-    /**
-     * Returns the identifier.
-     *
-     * @return identifier
-     */
-    public int getId() {
-      return id;
-    }
-
-    /**
-     * Returns this correlation's offset.
-     *
-     * @return offset
-     */
-    public int getOffset() {
-      return offset;
-    }
-
-    public String toString() {
-      return "var" + id + "=offset" + offset;
-    }
-
-    public int compareTo(Correlation other) {
-      return id - other.id;
-    }
   }
 }
 

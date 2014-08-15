@@ -22,9 +22,14 @@ import net.hydromatic.optiq.test.OptiqAssert;
 
 import org.eigenbase.rel.RelNode;
 import org.eigenbase.relopt.RelOptUtil;
+import org.eigenbase.util.Util;
+
+import com.google.common.collect.ImmutableList;
 
 import org.junit.Ignore;
 import org.junit.Test;
+
+import java.util.List;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.not;
@@ -32,10 +37,17 @@ import static org.junit.Assert.assertThat;
 
 /** Unit test for {@link TpchSchema}.
  *
- * <p>Only runs if {@code -Doptiq.test.slow=true} is specified on the
- * command-line.
+ * <p>Because the TPC-H data generator takes time and memory to instantiate,
+ * tests that read data (that is, most tests) only run
+ * if {@code -Doptiq.test.slow=true} is specified on the command-line.
  * (See {@link net.hydromatic.optiq.test.OptiqAssert#ENABLE_SLOW}.)</p> */
 public class TpchTest {
+  public static final String JAVA_VERSION =
+      System.getProperties().getProperty("java.version");
+
+  public static final boolean ENABLE =
+      OptiqAssert.ENABLE_SLOW && JAVA_VERSION.compareTo("1.7") >= 0;
+
   private static String schema(String name, String scaleFactor) {
     return "     {\n"
         + "       type: 'custom',\n"
@@ -59,7 +71,7 @@ public class TpchTest {
       + "   ]\n"
       + "}";
 
-  static final String[] QUERIES = {
+  static final List<String> QUERIES = ImmutableList.of(
     // 01
     "select\n"
       + "  l_returnflag,\n"
@@ -745,8 +757,7 @@ public class TpchTest {
       + "group by\n"
       + "  cntrycode\n"
       + "order by\n"
-      + "  cntrycode",
-  };
+      + "  cntrycode");
 
   @Test public void testRegion() {
     with()
@@ -777,10 +788,16 @@ public class TpchTest {
         .returnsCount(150000);
   }
 
-  private OptiqAssert.AssertThat with() {
+  private OptiqAssert.AssertThat with(boolean enable) {
     return OptiqAssert.that()
         .withModel(TPCH_MODEL)
-        .enable(OptiqAssert.ENABLE_SLOW);
+        .enable(enable);
+  }
+
+  private OptiqAssert.AssertThat with() {
+    // Only run on JDK 1.7 or higher. The io.airlift.tpch library requires it.
+    // Only run if slow tests are enabled; the library uses lots of memory.
+    return with(ENABLE);
   }
 
   /** Tests the customer table with scale factor 5. */
@@ -800,7 +817,8 @@ public class TpchTest {
   }
 
   @Test public void testQuery02Conversion() {
-    query(2)
+    query(2, true)
+        .enable(ENABLE)
         .convertMatches(new Function1<RelNode, Void>() {
           public Void apply(RelNode relNode) {
             String s = RelOptUtil.toString(relNode);
@@ -904,12 +922,19 @@ public class TpchTest {
   }
 
   private void checkQuery(int i) {
-    query(i).runs();
+    query(i, null).runs();
   }
 
-  private OptiqAssert.AssertQuery query(int i) {
-    return with()
-        .query(QUERIES[i - 1].replaceAll("tpch\\.", "tpch_01."));
+  /** Runs with query #i.
+   *
+   * @param i Ordinal of query, per the benchmark, 1-based
+   * @param enable Whether to enable query execution.
+   *     If null, use the value of {@link #ENABLE}.
+   *     Pass true only for 'fast' tests that do not read any data.
+   */
+  private OptiqAssert.AssertQuery query(int i, Boolean enable) {
+    return with(Util.first(enable, ENABLE))
+        .query(QUERIES.get(i - 1).replaceAll("tpch\\.", "tpch_01."));
   }
 }
 

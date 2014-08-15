@@ -98,16 +98,22 @@ public class RelWriterImpl implements RelWriter {
         s.append(")");
       }
     }
-    if (detailLevel == SqlExplainLevel.ALL_ATTRIBUTES) {
+    switch (detailLevel) {
+    case ALL_ATTRIBUTES:
       s.append(": rowcount = ")
           .append(RelMetadataQuery.getRowCount(rel))
           .append(", cumulative cost = ")
           .append(RelMetadataQuery.getCumulativeCost(rel));
+    }
+    switch (detailLevel) {
+    case NON_COST_ATTRIBUTES:
+    case ALL_ATTRIBUTES:
       if (!withIdPrefix) {
         // If we didn't print the rel id at the start of the line, print
         // it at the end.
         s.append(", id = ").append(rel.getId());
       }
+      break;
     }
     pw.println(s);
     spacer.add(2);

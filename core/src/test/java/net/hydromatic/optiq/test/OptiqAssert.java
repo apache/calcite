@@ -119,14 +119,9 @@ public class OptiqAssert {
           return NopAssertQuery.of(sql);
         }
 
-        @Override
-        public void connectThrows(String message) {
-          // nothing
-        }
-
-        @Override
-        public void connectThrows(Function1<Throwable, Void> exceptionChecker) {
-          // nothing
+        @Override public AssertThat connectThrows(
+            Function1<Throwable, Void> exceptionChecker) {
+          return this;
         }
 
         @Override
@@ -761,13 +756,13 @@ public class OptiqAssert {
 
     /** Asserts that there is an exception with the given message while
      * creating a connection. */
-    public void connectThrows(String message) {
-      connectThrows(checkException(message));
+    public AssertThat connectThrows(String message) {
+      return connectThrows(checkException(message));
     }
 
     /** Asserts that there is an exception that matches the given predicate
      * while creating a connection. */
-    public void connectThrows(
+    public AssertThat connectThrows(
         Function1<Throwable, Void> exceptionChecker) {
       Throwable throwable;
       try {
@@ -782,6 +777,7 @@ public class OptiqAssert {
         throwable = e;
       }
       exceptionChecker.apply(throwable);
+      return this;
     }
 
     /** Creates a {@link OptiqConnection} and executes a callback. */

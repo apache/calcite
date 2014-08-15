@@ -146,6 +146,9 @@ class OptiqMaterializer extends OptiqPrepareImpl.OptiqPreparingStmt {
     public RelNode visit(JoinRel join) {
       return join;
     }
+    public RelNode visit(CorrelatorRel correlator) {
+      return correlator;
+    }
     public RelNode visit(UnionRel union) {
       return union;
     }

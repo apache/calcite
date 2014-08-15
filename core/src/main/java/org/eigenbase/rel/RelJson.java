@@ -205,8 +205,8 @@ public class RelJson {
       return value;
     } else if (value instanceof RexNode) {
       return toJson((RexNode) value);
-    } else if (value instanceof CorrelatorRel.Correlation) {
-      return toJson((CorrelatorRel.Correlation) value);
+    } else if (value instanceof Correlation) {
+      return toJson((Correlation) value);
     } else if (value instanceof List) {
       final List<Object> list = jsonBuilder.list();
       for (Object o : (List) value) {
@@ -261,7 +261,7 @@ public class RelJson {
     return map;
   }
 
-  private Object toJson(CorrelatorRel.Correlation node) {
+  private Object toJson(Correlation node) {
     final Map<String, Object> map = jsonBuilder.map();
     map.put("correlation", node.getId());
     map.put("offset", node.getOffset());

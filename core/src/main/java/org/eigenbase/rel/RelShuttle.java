@@ -32,6 +32,8 @@ public interface RelShuttle {
 
   RelNode visit(JoinRel join);
 
+  RelNode visit(CorrelatorRel correlator);
+
   RelNode visit(UnionRel union);
 
   RelNode visit(IntersectRel intersect);

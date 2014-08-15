@@ -96,24 +96,6 @@ public class SqlToRelConverter {
   private static final String CORREL_PREFIX = "$cor";
 
   /**
-   * Fields used in decorrelation.
-   */
-  private final Map<String, RelNode> mapCorrelToRefRel =
-      new HashMap<String, RelNode>();
-
-  private final SortedMap<CorrelatorRel.Correlation, CorrelatorRel>
-  mapCorVarToCorRel =
-      new TreeMap<CorrelatorRel.Correlation, CorrelatorRel>();
-
-  private final Map<RelNode, SortedSet<CorrelatorRel.Correlation>>
-  mapRefRelToCorVar =
-      new HashMap<RelNode, SortedSet<CorrelatorRel.Correlation>>();
-
-  private final Map<RexFieldAccess, CorrelatorRel.Correlation>
-  mapFieldAccessToCorVar =
-      new HashMap<RexFieldAccess, CorrelatorRel.Correlation>();
-
-  /**
    * Stack of names of datasets requested by the <code>
    * TABLE(SAMPLE(&lt;datasetName&gt;, &lt;query&gt;))</code> construct.
    */
@@ -332,20 +314,7 @@ public class SqlToRelConverter {
       boolean restructure) {
     RelStructuredTypeFlattener typeFlattener =
         new RelStructuredTypeFlattener(rexBuilder, createToRelContext());
-    RelNode newRootRel = typeFlattener.rewrite(rootRel, restructure);
-
-    // There are three maps constructed during convertQuery which need to to
-    // be maintained for use in decorrelation. 1. mapRefRelToCorVar: - map a
-    // rel node to the coorrelated variables it references 2.
-    // mapCorVarToCorRel: - map a correlated variable to the correlatorRel
-    // providing it 3. mapFieldAccessToCorVar: - map a rex field access to
-    // the cor var it represents. because typeFlattener does not clone or
-    // modify a correlated field access this map does not need to be
-    // updated.
-    typeFlattener.updateRelInMap(mapRefRelToCorVar);
-    typeFlattener.updateRelInMap(mapCorVarToCorRel);
-
-    return newRootRel;
+    return typeFlattener.rewrite(rootRel, restructure);
   }
 
   /**
@@ -357,10 +326,11 @@ public class SqlToRelConverter {
    * @return New root relational expression after decorrelation
    */
   public RelNode decorrelate(SqlNode query, RelNode rootRel) {
-    RelNode result = rootRel;
-    if (enableDecorrelation()
-        && hasCorrelation()) {
-      result = decorrelateQuery(result);
+    if (!enableDecorrelation()) {
+      return rootRel;
+    }
+    final RelNode result = decorrelateQuery(rootRel);
+    if (result != rootRel) {
       checkConvertedType(query, result);
     }
     return result;
@@ -828,22 +798,9 @@ public class SqlToRelConverter {
 
     // only allocate filter if the condition is not TRUE
     if (!convertedWhere.isAlwaysTrue()) {
-      RelNode inputRel = bb.root;
-      Set<String> correlatedVariablesBefore =
-          RelOptUtil.getVariablesUsed(inputRel);
-
       bb.setRoot(
           CalcRel.createFilter(bb.root, convertedWhere),
           false);
-      Set<String> correlatedVariables =
-          RelOptUtil.getVariablesUsed(bb.root);
-
-      correlatedVariables.removeAll(correlatedVariablesBefore);
-
-      // Associate the correlated variables with the new filter rel.
-      for (String correl : correlatedVariables) {
-        mapCorrelToRefRel.put(correl, bb.root);
-      }
     }
   }
 
@@ -1884,8 +1841,7 @@ public class SqlToRelConverter {
     }
 
     if (correlatedVariables.size() > 0) {
-      List<CorrelatorRel.Correlation> correlations =
-          new ArrayList<CorrelatorRel.Correlation>();
+      final List<Correlation> correlations = Lists.newArrayList();
 
       for (String correlName : correlatedVariables) {
         DeferredLookup lookup = mapCorrelToDeferred.get(correlName);
@@ -1952,42 +1908,23 @@ public class SqlToRelConverter {
             }
           }
 
-          CorrelatorRel.Correlation newCorVar =
-              new CorrelatorRel.Correlation(
+          Correlation newCorVar =
+              new Correlation(
                   getCorrelOrdinal(correlName),
                   pos);
 
           correlations.add(newCorVar);
-
-          mapFieldAccessToCorVar.put(fieldAccess, newCorVar);
-
-          RelNode refRel = mapCorrelToRefRel.get(correlName);
-
-          SortedSet<CorrelatorRel.Correlation> corVarList;
-
-          if (!mapRefRelToCorVar.containsKey(refRel)) {
-            corVarList = new TreeSet<CorrelatorRel.Correlation>();
-          } else {
-            corVarList = mapRefRelToCorVar.get(refRel);
-          }
-          corVarList.add(newCorVar);
-          mapRefRelToCorVar.put(refRel, corVarList);
         }
       }
 
       if (!correlations.isEmpty()) {
-        CorrelatorRel rel =
-            new CorrelatorRel(
-                rightRel.getCluster(),
-                leftRel,
-                rightRel,
-                joinCond,
-                correlations,
-                joinType);
-        for (CorrelatorRel.Correlation correlation : correlations) {
-          mapCorVarToCorRel.put(correlation, rel);
-        }
-        return rel;
+        return new CorrelatorRel(
+            rightRel.getCluster(),
+            leftRel,
+            rightRel,
+            joinCond,
+            correlations,
+            joinType);
       }
     }
 
@@ -2487,9 +2424,7 @@ public class SqlToRelConverter {
         preNames = Collections.singletonList(null);
       }
 
-      RelNode inputRel = bb.root;
-      Set<String> correlatedVariablesBefore =
-          RelOptUtil.getVariablesUsed(inputRel);
+      final RelNode inputRel = bb.root;
 
       // Project the expressions required by agg and having.
       bb.setRoot(
@@ -2500,15 +2435,6 @@ public class SqlToRelConverter {
               true),
           false);
       bb.mapRootRelToFieldProjection.put(bb.root, groupExprProjection);
-
-      Set<String> correlatedVariables =
-          RelOptUtil.getVariablesUsed(bb.root);
-      correlatedVariables.removeAll(correlatedVariablesBefore);
-
-      // Associate the correlated variables with the new project rel.
-      for (String correl : correlatedVariables) {
-        mapCorrelToRefRel.put(correl, bb.root);
-      }
 
       // REVIEW jvs 31-Oct-2007:  doesn't the declaration of
       // monotonicity here assume sort-based aggregation at
@@ -2752,41 +2678,8 @@ public class SqlToRelConverter {
     return decorrelationEnabled;
   }
 
-  /**
-   * Returns whether there are any correlating variables in this statement.
-   *
-   * @return whether there are any correlating variables
-   */
-  public boolean hasCorrelation() {
-    return !mapCorVarToCorRel.isEmpty();
-  }
-
   protected RelNode decorrelateQuery(RelNode rootRel) {
-    RelDecorrelator decorrelator =
-        new RelDecorrelator(
-            rexBuilder,
-            mapRefRelToCorVar,
-            mapCorVarToCorRel,
-            mapFieldAccessToCorVar,
-            cluster.getPlanner().getContext());
-    boolean dumpPlan = SQL2REL_LOGGER.isLoggable(Level.FINE);
-
-    RelNode newRootRel = decorrelator.removeCorrelationViaRule(rootRel);
-
-    if (dumpPlan) {
-      SQL2REL_LOGGER.fine(
-          RelOptUtil.dumpPlan(
-              "Plan after removing CorrelatorRel",
-              newRootRel,
-              false,
-              SqlExplainLevel.EXPPLAN_ATTRIBUTES));
-    }
-
-    if (!mapCorVarToCorRel.isEmpty()) {
-      newRootRel = decorrelator.decorrelate(newRootRel);
-    }
-
-    return newRootRel;
+    return RelDecorrelator.decorrelateQuery(rootRel);
   }
 
   /**
@@ -3380,14 +3273,6 @@ public class SqlToRelConverter {
                 selectList,
                 fieldNameList);
 
-        Set<String> correlatedVariables =
-            RelOptUtil.getVariablesUsed(projRel);
-
-        // Associate the correlated variables with the new project rel.
-        for (String correl : correlatedVariables) {
-          mapCorrelToRefRel.put(correl, projRel);
-        }
-
         joinList.set(i, projRel);
       }
     }
@@ -3478,9 +3363,6 @@ public class SqlToRelConverter {
     fieldNames = SqlValidatorUtil.uniquify(fieldNames);
 
     RelNode inputRel = bb.root;
-    Set<String> correlatedVariablesBefore =
-        RelOptUtil.getVariablesUsed(inputRel);
-
     bb.setRoot(
         CalcRel.createProject(bb.root, exprs, fieldNames),
         false);
@@ -3490,14 +3372,6 @@ public class SqlToRelConverter {
     for (SqlNode selectItem : selectList) {
       bb.columnMonotonicities.add(
           selectItem.getMonotonicity(bb.scope));
-    }
-
-    Set<String> correlatedVariables = RelOptUtil.getVariablesUsed(bb.root);
-    correlatedVariables.removeAll(correlatedVariablesBefore);
-
-    // Associate the correlated variables with the new project rel.
-    for (String correl : correlatedVariables) {
-      mapCorrelToRefRel.put(correl, bb.root);
     }
   }
 
