@@ -5,6 +5,21 @@ For a full list of releases, see <a href="https://github.com/julianhyde/optiq/re
 ## <a href="https://github.com/julianhyde/optiq/releases/tag/optiq-0.9.0">0.9.0</a> / 2014-08-xx
 
 New features
+* [<a href="https://issues.apache.org/jira/browse/OPTIQ-371">OPTIQ-371</a>]
+  Implement `JOIN` whose `ON` clause contains mixed equi and theta
+* [<a href="https://issues.apache.org/jira/browse/OPTIQ-369">OPTIQ-369</a>]
+  Add `EnumerableSemiJoinRel`, implementation of semi-join in enumerable
+  convention
+* Add class `Strong`, for detecting null-rejecting predicates.
+* [<a href="https://issues.apache.org/jira/browse/OPTIQ-368">OPTIQ-368</a>]
+  Add SemiJoinRule, planner rule to convert project-join-aggregate into semi-join
+* [<a href="https://issues.apache.org/jira/browse/OPTIQ-367">OPTIQ-367</a>]
+  `PushFilterPastJoinRule` should strengthen join type
+* Add `EquiJoinRel`, base class for joins known to be equi-joins.
+* Implement `CAST(&lt;string&gt; AS &lt;datetime&gt;)` and
+  `&lt;datetime&gt; + &lt;interval&gt;`.
+* [<a href="https://issues.apache.org/jira/browse/OPTIQ-360">OPTIQ-360</a>]
+  Introduce a rule to infer predicates from equi-join conditions
 * [<a href="https://issues.apache.org/jira/browse/OPTIQ-349">OPTIQ-349</a>]
   Add heuristic join-optimizer that can generate bushy joins
 * [<a href="https://issues.apache.org/jira/browse/OPTIQ-346">OPTIQ-346</a>]
@@ -38,9 +53,21 @@ API changes
   Add `ViewExpander` for `Planner` in `Frameworks`. Expose additional
   properties of `ViewTable` to allow subclassing.
 * [<a href="https://issues.apache.org/jira/browse/OPTIQ-247">OPTIQ-247</a>]
-  Add Context and FrameworkConfig
+  Add `Context` and `FrameworkConfig`
 
 Bug-fixes and internal changes
+* [<a href="https://issues.apache.org/jira/browse/OPTIQ-372">OPTIQ-372</a>]
+  Change `LoptOptimizeJoinRule` &amp; `PushFilterPast`* rules to use factory
+* Upgrade `maven-checkstyle-plugin`.
+* Add class `Holder`, a mutable slot that can contain one object.
+* Remove the 2-minute wait at the top of the hour for tests of
+  `CURRENT_TIME`, etc.
+* Tune `ImmutableIntList`'s iterators.
+* [<a href="https://issues.apache.org/jira/browse/OPTIQ-364">OPTIQ-364</a>]
+  Validator rejects valid `WITH ... ORDER BY` query
+* [<a href="https://issues.apache.org/jira/browse/OPTIQ-363">OPTIQ-363</a>]
+  Use `dependencyManagement` and `pluginManagement` in POM files
+* Add `FilterFactory`.
 * Add `README` file, incubation disclaimers, and how-to build and running tests.
 * Add `KEYS` and start how-to for making snapshots and releases.
 * Capital case component names; inherit license info from Apache parent POM.

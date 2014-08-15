@@ -294,7 +294,7 @@ read GPG_PASSPHRASE
 # make sure that there are no junk files in the sandbox
 git clean -x
 
-mvn clean install -Prelease,apache-release -Dgpg.passphrase=${GPG_PASSPHRASE}
+mvn -Prelease,apache-release -Dgpg.passphrase=${GPG_PASSPHRASE} clean install
 ```
 
 When the dry-run has succeeded, change `install` to `deploy`.
@@ -309,18 +309,58 @@ Before you start:
   -Doptiq.test.mongodb=true, -Doptiq.test.splunk=true.
 
 ```bash
-# set passphrase variable without putting it into shell history
+# Set passphrase variable without putting it into shell history
 read GPG_PASSPHRASE
 
-# make sure that there are no junk files in the sandbox
-git clean -x
+# Make sure that there are no junk files in the sandbox
+git clean -xn
+
+# Set the version numbers
+mvn -DskipTests -DreleaseVersion=x.y.z-incubating -DdevelopmentVersion=x.y.z+1-incubating-SNAPSHOT -Papache-release,release -Darguments="-Dgpg.passphrase=${GPG_PASSPHRASE}" clean release:prepare
+
+# Perform the release
+mvn -DskipTests -Papache-release,release -Darguments="-Dgpg.passphrase=${GPG_PASSPHRASE}" clean release:prepare
 
 ```
 
+If any of the above steps fail, clean up (see below), fix the problem,
+and start again from the top.
+
 Check the artifacts:
-* Make sure that binary and source distros have a README file
-  (README.md does not count) and that the version in the README is
-  correct
+* Make sure that the source distro (currently there is no binary
+  distro) has a README file (README.md does not count) and that the
+  version in the README is correct
 * The file name must start `apache-optiq-` and include `incubating`.
 * Check PGP, per https://httpd.apache.org/dev/verification.html
 
+Upload the artifacts to a staging area (in this case, your
+people.apache.org home directory):
+
+```bash
+# Rename the files, adding 'apache-' prefix
+cd target
+mkdir apache-optiq-x.y.z-incubating
+for i in optiq-*; do mv $i apache-optiq-x.y.z-incubating/apache-$i; done
+
+# Upload to staging area (your people.apache.org home directory)
+scp -rp apache-optiq-x.y.z-incubating people.apache.org:public_html
+```
+## Cleaning up after a failed release attempt (for Optiq committers)
+
+```
+# Make sure that the tag you are about to generate does not already
+# exist (due to a failed release attempt)
+git tag
+
+# If the tag exists, delete it locally and remotely
+git tag -d optiq-x.y.z-incubating
+git push origin :refs/tags/optiq-x.y.z-incubating
+
+# Remove modified files
+mvn release:clean
+
+# Check whether there are modified files and if so, go back to the
+# original git commit
+git status
+git reset --hard HEAD
+```
