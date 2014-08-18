@@ -13,8 +13,8 @@ Unpack the source distribution `.tar.gz` or `.zip` file,
 then build using maven:
 
 ```bash
-$ tar xvfz apache-optiq-0.9.0-incubating-source.tar.gz
-$ cd apache-optiq-0.9.0-incubating
+$ tar xvfz optiq-0.9.0-incubating-source.tar.gz
+$ cd optiq-0.9.0-incubating
 $ mvn install
 ```
 
@@ -330,21 +330,28 @@ Check the artifacts:
 * Make sure that the source distro (currently there is no binary
   distro) has a README file (README.md does not count) and that the
   version in the README is correct
-* The file name must start `apache-optiq-` and include `incubating`.
+* The file name must start `optiq-` and include `incubating`.
 * Check PGP, per https://httpd.apache.org/dev/verification.html
 
 Upload the artifacts to a staging area (in this case, your
 people.apache.org home directory):
 
 ```bash
-# Rename the files, adding 'apache-' prefix
+# Generate checksum files
 cd target
-mkdir apache-optiq-x.y.z-incubating
-for i in optiq-*; do mv $i apache-optiq-x.y.z-incubating/apache-$i; done
+for i in *.zip; do
+  gpg --print-md SHA512 $i > $i.sha
+  gpg --print-md MD5 $i > $i.md5
+done
+
+# Move the files into a directory
+mkdir optiq-x.y.z-incubating
+mv optiq-* optiq-x.y.z-incubating
 
 # Upload to staging area (your people.apache.org home directory)
 scp -rp apache-optiq-x.y.z-incubating people.apache.org:public_html
 ```
+
 ## Cleaning up after a failed release attempt (for Optiq committers)
 
 ```
@@ -363,4 +370,11 @@ mvn release:clean
 # original git commit
 git status
 git reset --hard HEAD
+```
+
+## Validate a release
+
+```bash
+# Check that the signing key (e.g. 2AD3FAE3) is pushed
+gpg --recv-keys key
 ```

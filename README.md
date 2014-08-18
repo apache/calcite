@@ -8,7 +8,7 @@ Apache Optiq is a dynamic data management framework.
 
 To run Apache Optiq, you can either
 [download a release](http://www.apache.org/dyn/closer.cgi/incubator/optiq)
-or [build from the source code](HOWTO.md#building-from-a-source-distribution).
+or [build from the source code](doc/HOWTO.md#building-from-a-source-distribution).
 
 ## Example
 
@@ -135,7 +135,7 @@ your own adapter.
 See the <a href="https://github.com/julianhyde/optiq-csv/blob/master/TUTORIAL.md">optiq-csv tutorial</a>
 for information on using optiq-csv and writing adapters.
 
-See the <a href="HOWTO.md">HOWTO</a> for more information about using other
+See the <a href="doc/HOWTO.md">HOWTO</a> for more information about using other
 adapters, and about using Optiq in general.
 
 ## Status
@@ -149,7 +149,7 @@ The following features are complete.
 * <a href="https://github.com/julianhyde/linq4j">Linq4j</a> front-end
 * SQL features: SELECT, FROM (including JOIN syntax), WHERE, GROUP BY (and aggregate functions including COUNT(DISTINCT ...)), HAVING, ORDER BY (including NULLS FIRST/LAST), set operations (UNION, INTERSECT, MINUS), sub-queries (including correlated sub-queries), windowed aggregates, LIMIT (syntax as <a href="http://www.postgresql.org/docs/8.4/static/sql-select.html#SQL-LIMIT">Postgres</a>)
 
-For more details, see the <a href="REFERENCE.md">Reference guide</a>.
+For more details, see the <a href="doc/REFERENCE.md">Reference guide</a>.
 
 ### Drivers
 
@@ -176,10 +176,10 @@ For more details, see the <a href="REFERENCE.md">Reference guide</a>.
 * Source code: http://github.com/julianhyde/optiq
 * Issues: <a href="https://issues.apache.org/jira/browse/OPTIQ">Apache JIRA</a>
 * Developers list: <a href="mailto:dev@optiq.incubator.apache.org">dev at optiq.incubator.apache.org</a> (<a href="http://mail-archives.apache.org/mod_mbox/incubator-optiq-dev/">archive</a>, <a href="mailto:dev-subscribe@optiq.incubator.apache.org">subscribe</a>)
-* <a href="HOWTO.md">HOWTO</a>
-* <a href="MODEL.md">JSON model</a>
-* <a href="REFERENCE.md">Reference guide</a>
-* <a href="HISTORY.md">Release notes and history</a>
+* <a href="doc/HOWTO.md">HOWTO</a>
+* <a href="doc/MODEL.md">JSON model</a>
+* <a href="doc/REFERENCE.md">Reference guide</a>
+* <a href="doc/HISTORY.md">Release notes and history</a>
 
 ### Pre-Apache resources
 
