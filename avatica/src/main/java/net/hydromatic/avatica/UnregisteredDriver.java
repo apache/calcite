@@ -18,6 +18,7 @@ package net.hydromatic.avatica;
 
 import java.sql.*;
 import java.util.*;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
@@ -106,12 +107,21 @@ public abstract class UnregisteredDriver implements java.sql.Driver {
       final Class<?> clazz = Class.forName(factoryClassName);
       return (AvaticaFactory) clazz.newInstance();
     } catch (ClassNotFoundException e) {
-      throw new RuntimeException(e);
+      throw handle("Error loading factory " + factoryClassName, e);
     } catch (IllegalAccessException e) {
-      throw new RuntimeException(e);
+      throw handle("Error loading factory " + factoryClassName, e);
     } catch (InstantiationException e) {
-      throw new RuntimeException(e);
+      throw handle("Error loading factory " + factoryClassName, e);
+    } catch (Throwable e) {
+      // It is not usually good to catch Throwable. But class loading can fail
+      // with serious errors such as java.lang.NoClassDefFoundError
+      throw handle("Error loading factory " + factoryClassName, e);
     }
+  }
+
+  private static RuntimeException handle(String msg, Throwable e) {
+    Logger.getLogger("").log(Level.SEVERE, msg, e);
+    throw new RuntimeException(msg, e);
   }
 
   public Connection connect(String url, Properties info) throws SQLException {
