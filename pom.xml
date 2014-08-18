@@ -463,6 +463,7 @@ limitations under the License.
             <configuration>
               <excludes>
                 <exclude>*.md</exclude>
+                <exclude>doc/*.md</exclude>
                 <exclude>git.properties</exclude>
                 <exclude>src/main/resources/META-INF/services/java.sql.Driver</exclude>
               </excludes>
