@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/julianhyde/optiq.png)](https://travis-ci.org/julianhyde/optiq)
+[![Build Status](https://travis-ci.org/julianhyde/optiq.svg?branch=master)](https://travis-ci.org/julianhyde/optiq)
 
 # Apache Optiq
 
