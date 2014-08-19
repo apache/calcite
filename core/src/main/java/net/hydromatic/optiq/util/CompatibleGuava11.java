@@ -453,6 +453,30 @@ class CompatibleGuava11 {
       backingIterator.remove();
     }
   }
+
+  /** Implements {@link Compatible#navigableSet}. */
+  static <E> NavigableSet<E> navigableSet(ImmutableSortedSet<E> set) {
+    if (set instanceof NavigableSet) {
+      // In Guava 12 and later, ImmutableSortedSet implements NavigableSet.
+      //noinspection unchecked
+      return (NavigableSet) set;
+    } else {
+      // In Guava 11, we have to make a copy.
+      return new TreeSet<E>(set);
+    }
+  }
+
+  /** Implements {@link Compatible#navigableMap}. */
+  static <K, V> NavigableMap<K, V> navigableMap(ImmutableSortedMap<K, V> map) {
+    if (map instanceof NavigableMap) {
+      // In Guava 12 and later, ImmutableSortedMap implements NavigableMap.
+      //noinspection unchecked
+      return (NavigableMap) map;
+    } else {
+      // In Guava 11, we have to make a copy.
+      return new TreeMap<K, V>(map);
+    }
+  }
 }
 
 // End CompatibleGuava11.java

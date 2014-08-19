@@ -22,6 +22,7 @@ import net.hydromatic.linq4j.expressions.Expression;
 import net.hydromatic.optiq.*;
 import net.hydromatic.optiq.Table;
 import net.hydromatic.optiq.impl.MaterializedViewTable;
+import net.hydromatic.optiq.util.Compatible;
 
 import org.eigenbase.util.Pair;
 
@@ -70,8 +71,8 @@ public class OptiqSchema {
   private ImmutableList<ImmutableList<String>> path;
   private boolean cache = true;
   private final Cached<SubSchemaCache> implicitSubSchemaCache;
-  private final Cached<ImmutableSortedSet<String>> implicitTableCache;
-  private final Cached<ImmutableSortedSet<String>> implicitFunctionCache;
+  private final Cached<NavigableSet<String>> implicitTableCache;
+  private final Cached<NavigableSet<String>> implicitFunctionCache;
 
   public OptiqSchema(OptiqSchema parent, final Schema schema, String name) {
     this.parent = parent;
@@ -82,22 +83,25 @@ public class OptiqSchema {
         new AbstractCached<SubSchemaCache>() {
           public SubSchemaCache build() {
             return new SubSchemaCache(OptiqSchema.this,
-                ImmutableSortedSet.copyOf(COMPARATOR,
-                    schema.getSubSchemaNames()));
+                Compatible.INSTANCE.navigableSet(
+                    ImmutableSortedSet.copyOf(COMPARATOR,
+                        schema.getSubSchemaNames())));
           }
         };
     this.implicitTableCache =
-        new AbstractCached<ImmutableSortedSet<String>>() {
-          public ImmutableSortedSet<String> build() {
-            return ImmutableSortedSet.copyOf(COMPARATOR,
-                schema.getTableNames());
+        new AbstractCached<NavigableSet<String>>() {
+          public NavigableSet<String> build() {
+            return Compatible.INSTANCE.navigableSet(
+                ImmutableSortedSet.copyOf(COMPARATOR,
+                    schema.getTableNames()));
           }
         };
     this.implicitFunctionCache =
-        new AbstractCached<ImmutableSortedSet<String>>() {
-          public ImmutableSortedSet<String> build() {
-            return ImmutableSortedSet.copyOf(COMPARATOR,
-                schema.getFunctionNames());
+        new AbstractCached<NavigableSet<String>>() {
+          public NavigableSet<String> build() {
+            return Compatible.INSTANCE.navigableSet(
+                ImmutableSortedSet.copyOf(COMPARATOR,
+                    schema.getFunctionNames()));
           }
         };
   }
@@ -294,7 +298,7 @@ public class OptiqSchema {
       builder.put(name, subSchemaCache.cache.getUnchecked(name));
     }
     builder.putAll(subSchemaMap);
-    return builder.build();
+    return Compatible.INSTANCE.navigableMap(builder.build());
   }
 
   /** Returns the set of all table names. Includes implicit and explicit tables
@@ -306,7 +310,7 @@ public class OptiqSchema {
     builder.addAll(tableMap.keySet());
     // Add implicit tables, case-sensitive.
     builder.addAll(implicitTableCache.get(System.currentTimeMillis()));
-    return builder.build();
+    return Compatible.INSTANCE.navigableSet(builder.build());
   }
 
   /** Returns a collection of all functions, explicit and implicit, with a given
@@ -359,7 +363,7 @@ public class OptiqSchema {
     builder.addAll(functionMap.keySet());
     // Add implicit functions, case-sensitive.
     builder.addAll(implicitFunctionCache.get(System.currentTimeMillis()));
-    return builder.build();
+    return Compatible.INSTANCE.navigableSet(builder.build());
   }
 
   /** Returns tables derived from explicit and implicit functions
@@ -384,7 +388,7 @@ public class OptiqSchema {
         }
       }
     }
-    return builder.build();
+    return Compatible.INSTANCE.navigableMap(builder.build());
   }
 
   /** Returns a tables derived from explicit and implicit functions
@@ -677,13 +681,13 @@ public class OptiqSchema {
   /** Information about the implicit sub-schemas of an {@link OptiqSchema}. */
   private static class SubSchemaCache {
     /** The names of sub-schemas returned from the {@link Schema} SPI. */
-    final ImmutableSortedSet<String> names;
+    final NavigableSet<String> names;
     /** Cached {@link net.hydromatic.optiq.jdbc.OptiqSchema} wrappers. It is
      * worth caching them because they contain maps of their own sub-objects. */
     final LoadingCache<String, OptiqSchema> cache;
 
     private SubSchemaCache(final OptiqSchema optiqSchema,
-        ImmutableSortedSet<String> names) {
+        NavigableSet<String> names) {
       this.names = names;
       this.cache = CacheBuilder.newBuilder().build(
           new CacheLoader<String, OptiqSchema>() {

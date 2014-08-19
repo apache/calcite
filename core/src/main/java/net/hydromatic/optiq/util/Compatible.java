@@ -33,6 +33,14 @@ public interface Compatible {
   /** Same as Guava {@code Maps.asMap(set, function)}. */
   <K, V> Map<K, V> asMap(Set<K> set, Function<? super K, V> function);
 
+  /** Converts a {@link com.google.common.collect.ImmutableSortedSet} to a
+   * {@link java.util.NavigableSet}. */
+  <E> NavigableSet<E> navigableSet(ImmutableSortedSet<E> set);
+
+  /** Converts a {@link com.google.common.collect.ImmutableSortedMap} to a
+   * {@link java.util.NavigableMap}. */
+  <K, V> NavigableMap<K, V> navigableMap(ImmutableSortedMap<K, V> map);
+
   /** Creates the implementation of Compatible suitable for the
    * current environment. */
   class Factory {
@@ -54,6 +62,14 @@ public interface Compatible {
                   Function function = (Function) args[1];
                   return CompatibleGuava11.asMap(set, function);
                 }
+              }
+              if (method.getName().equals("navigableSet")) {
+                ImmutableSortedSet set = (ImmutableSortedSet) args[0];
+                return CompatibleGuava11.navigableSet(set);
+              }
+              if (method.getName().equals("navigableMap")) {
+                ImmutableSortedMap map = (ImmutableSortedMap) args[0];
+                return CompatibleGuava11.navigableMap(map);
               }
               return null;
             }

@@ -50,14 +50,14 @@ import org.eigenbase.util.mapping.Mapping;
 import org.eigenbase.util.mapping.MappingType;
 import org.eigenbase.util.mapping.Mappings;
 
+import net.hydromatic.linq4j.Linq4j;
 import net.hydromatic.linq4j.Ord;
+import net.hydromatic.linq4j.function.Predicate1;
 
 import net.hydromatic.optiq.BuiltinMethod;
 import net.hydromatic.optiq.util.BitSets;
 
 import com.google.common.base.Function;
-import com.google.common.base.Predicate;
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
@@ -507,7 +507,7 @@ public class RelMdPredicates {
     }
 
     RexNode compose(RexBuilder rexBuilder, Iterable<RexNode> exprs) {
-      exprs = FluentIterable.from(exprs).filter(new Predicate<RexNode>() {
+      exprs = Linq4j.asEnumerable(exprs).where(new Predicate1<RexNode>() {
         public boolean apply(RexNode expr) {
           return expr != null;
         }

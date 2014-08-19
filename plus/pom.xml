@@ -49,6 +49,12 @@ limitations under the License.
     </dependency>
 
     <dependency>
+      <groupId>com.google.guava</groupId>
+      <artifactId>guava</artifactId>
+      <!-- Override parent POM. Airlift needs guava-15.0, but doesn't say. -->
+      <version>15.0</version>
+    </dependency>
+    <dependency>
       <groupId>io.airlift.tpch</groupId>
       <artifactId>tpch</artifactId>
       <type>jar</type>
