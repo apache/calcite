@@ -371,6 +371,7 @@ public abstract class AvaticaConnection implements Connection {
   /**
    * Executes a parsed query, closing any previously open result set.
    *
+   * @param statement     Statement
    * @param prepareResult Parsed query
    * @return Result set
    * @throws java.sql.SQLException if a database error occurs

@@ -16,8 +16,8 @@
 */
 
 /**
- * Provides utility classes.
+ * Executes queries via Splunk's REST API.
  */
-package org.eigenbase.util;
+package net.hydromatic.optiq.impl.splunk.search;
 
 // End package-info.java

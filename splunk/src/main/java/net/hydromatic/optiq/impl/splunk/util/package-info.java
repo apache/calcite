@@ -16,8 +16,8 @@
 */
 
 /**
- * Provides utility classes.
+ * Utilities for RPC to Splunk.
  */
-package org.eigenbase.util;
+package net.hydromatic.optiq.impl.splunk.util;
 
 // End package-info.java

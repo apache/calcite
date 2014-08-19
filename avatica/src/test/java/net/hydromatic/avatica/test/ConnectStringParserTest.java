@@ -138,8 +138,6 @@ public class ConnectStringParserTest {
    * href="http://msdn.microsoft.com/library/default.asp?url=/library/en-us/oledb/htm/oledbconnectionstringsyntax.asp">
    * OLE DB spec</a>. Omitted are cases for Window handles, returning multiple
    * values, and special handling of "Provider" keyword.
-   *
-   * @throws Throwable
    */
   @Test public void testOleDbExamples() throws Throwable {
     // test the parser with examples from OLE DB documentation

@@ -686,7 +686,8 @@ public class DiffRepository {
      * @param testCaseName   Test case name
      * @param tag            Tag being expanded
      * @param text           Text being expanded
-     * @param expanded       Expanded text @return Expanded text after filtering
+     * @param expanded       Expanded text
+     * @return Expanded text after filtering
      */
     String filter(
         DiffRepository diffRepository,

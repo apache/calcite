@@ -40,7 +40,7 @@
  * <p>
  *     The syntactic structure of an <i>mtsql</i> script is:
  *
- * <p><pre>
+ * <pre>
  *     &lt;directive&gt;*
  *     &lt;setup section&gt;?
  *     &lt;cleanup section&gt;?
@@ -73,8 +73,6 @@
  *     First the setup section (if any) is run.
  *     Next all the thread sections are run at once, each in its own thread.
  *     When all these threads complete, the cleanup section (if any) is run.
- *
- * <p>
  *
  * <h4>Synchronization:</h4>
  *
@@ -112,11 +110,11 @@
  *
  * <h4>Basic Commands (allowed in any section):</h4>
  *
- * <p><pre>
+ * <pre>
  * &lt;SQL statement&gt;:
  *     An SQL statement terminated by a semicolon. The statement can span lines.
  * </pre>
- * <p><pre>
+ * <pre>
  * &#64;include FILE
  *   Reads and executes the contents of FILE, another mtsql script.
  *   Inclusions may nest.
@@ -124,7 +122,7 @@
  *
  * <h4>Threaded Commands (allowed only in a &#64;thread section):</h4>
  *
- * <p><pre>
+ * <pre>
  * &#64;sleep N        -- thread sleeps for N milliseconds
  * &#64;echo MESSAGE   -- prints the message to stdout
  *
@@ -176,7 +174,6 @@
  *     useful to
  *     parameterize SQL statements, timeout values etc.
  *
- * <p>
  * <ul>
  *     <li>Variable Expansion: If VAR is a declared variable, $VAR is replaced
  *         by the value of VAR. Quotes are ignored.  $$ expands to $. A variable

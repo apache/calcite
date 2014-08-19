@@ -147,6 +147,7 @@ public abstract class SqlToRelTestBase {
      *
      * @param sql  SQL query
      * @param plan Expected plan
+     * @param trim Whether to trim columns that are not needed
      */
     void assertConvertsTo(
         String sql,

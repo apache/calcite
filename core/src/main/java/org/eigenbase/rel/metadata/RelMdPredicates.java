@@ -79,14 +79,17 @@ import com.google.common.collect.Lists;
  * Grouping Keys. This can be extended to infer predicates on Aggregation
  * expressions from  expressions on the aggregated columns. For e.g.
  * <pre>
- * select a, max(b) from R1 where b > 7 => max(b) > 7 or max(b) is null
+ * select a, max(b) from R1 where b &gt; 7
+ *   &rarr; max(b) &gt; 7 or max(b) is null
  * </pre>
  *
  * <li> For Projections we only look at columns that are projected without
  * any function applied. So:
  * <pre>
- * select a from R1 where a > 7 -> a > 7 is pulledUp from the Projection.
- * select a + 1 from R1 where a + 1 > 7 -> a + 1 > 7 is not pulledUp
+ * select a from R1 where a &gt; 7
+ *   &rarr; "a &gt; 7" is pulled up from the Projection.
+ * select a + 1 from R1 where a + 1 &gt; 7
+ *   &rarr; "a + 1 gt; 7" is not pulled up
  * </pre>
  *
  * <li> There are several restrictions on Joins:
@@ -135,9 +138,9 @@ public class RelMdPredicates {
    * is not in the projection list.
    *
    * <pre>
-   * childPullUpExprs:      {a > 7, b + c < 10, a + e = 9}
+   * childPullUpExprs:      {a &gt; 7, b + c &lt; 10, a + e = 9}
    * projectionExprs:       {a, b, c, e / 2}
-   * projectionPullupExprs: {a > 7, b + c < 10}
+   * projectionPullupExprs: {a &gt; 7, b + c &lt; 10}
    * </pre>
    *
    * </ol>
@@ -213,9 +216,9 @@ public class RelMdPredicates {
    * GroupSet. For e.g.
    *
    * <pre>
-   * childPullUpExprs : { a > 7, b + c < 10, a + e = 9}
+   * childPullUpExprs : { a &gt; 7, b + c &lt; 10, a + e = 9}
    * groupSet         : { a, b}
-   * pulledUpExprs    : { a > 7}
+   * pulledUpExprs    : { a &gt; 7}
    * </pre>
    */
   public RelOptPredicateList getPredicates(AggregateRelBase agg) {

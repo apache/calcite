@@ -57,6 +57,7 @@ public interface AvaticaFactory {
    *
    * @param statement Statement
    * @param prepareResult Prepared statement
+   * @param timeZone Time zone
    * @return Result set
    */
   AvaticaResultSet newResultSet(

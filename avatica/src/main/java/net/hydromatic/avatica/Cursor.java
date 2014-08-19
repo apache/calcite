@@ -45,6 +45,8 @@ public interface Cursor extends Closeable {
    * Moves to the next row.
    *
    * @return Whether moved
+   *
+   * @throws SQLException on database error
    */
   boolean next() throws SQLException;
 
@@ -55,7 +57,8 @@ public interface Cursor extends Closeable {
 
   /**
    * Returns whether the last value returned was null.
-   * @throws SQLException
+   *
+   * @throws SQLException on database error
    */
   boolean wasNull() throws SQLException;
 

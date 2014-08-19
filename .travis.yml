@@ -24,5 +24,7 @@ jdk:
 branches:
   only:
     - master
-
+    - javadoc
+script:
+  mvn test site
 # End .travis.yml

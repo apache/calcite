@@ -43,6 +43,9 @@ public abstract class AvaticaPreparedStatement
    *
    * @param connection Connection
    * @param prepareResult Result of preparing statement
+   * @param resultSetType Result set type
+   * @param resultSetConcurrency Result set concurrency
+   * @param resultSetHoldability Result set holdability
    * @throws SQLException If fails due to underlying implementation reasons.
    */
   protected AvaticaPreparedStatement(

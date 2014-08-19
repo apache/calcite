@@ -26,6 +26,22 @@ import java.util.*;
 
 /**
  * Compares {@link java.sql.Statement} vs {@link java.sql.PreparedStatement}.
+ *
+ * <p>This package contains micro-benchmarks to test optiq performance.
+ *
+ * <p>To run this and other benchmarks:
+ *
+ * <blockquote>
+ *   <code>mvn package &amp;&amp;
+ *   java -jar ./target/ubenchmarks.jar -wi 5 -i 5 -f 1</code>
+ * </blockquote>
+ *
+ * <p>To run with profiling:
+ *
+ * <blockquote>
+ *   <code>java -Djmh.stack.lines=10 -jar ./target/ubenchmarks.jar
+ *     -prof hs_comp,hs_gc,stack -f 1 -wi 5</code>
+ * </blockquote>
  */
 public class StatementTest {
 
