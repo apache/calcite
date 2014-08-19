@@ -27,7 +27,7 @@ limitations under the License.
   <groupId>org.apache.optiq</groupId>
   <artifactId>optiq</artifactId>
   <packaging>pom</packaging>
-  <version>0.9.0-incubating</version>
+  <version>0.9.1-incubating-SNAPSHOT</version>
 
   <!-- More project information. -->
   <name>Optiq</name>
@@ -59,7 +59,7 @@ limitations under the License.
     <connection>scm:git:https://git-wip-us.apache.org/repos/asf/incubator-optiq.git</connection>
     <developerConnection>scm:git:https://git-wip-us.apache.org/repos/asf/incubator-optiq.git</developerConnection>
     <url>https://github.com/apache/incubator-optiq</url>
-    <tag>optiq-0.9.0-incubating</tag>
+    <tag>HEAD</tag>
   </scm>
 
   <modules>

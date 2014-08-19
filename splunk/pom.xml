@@ -20,12 +20,12 @@ limitations under the License.
   <parent>
     <groupId>org.apache.optiq</groupId>
     <artifactId>optiq</artifactId>
-    <version>0.9.0-incubating</version>
+    <version>0.9.1-incubating-SNAPSHOT</version>
   </parent>
 
   <artifactId>optiq-splunk</artifactId>
   <packaging>jar</packaging>
-  <version>0.9.0-incubating</version>
+  <version>0.9.1-incubating-SNAPSHOT</version>
   <name>Optiq Splunk</name>
   <description>Splunk adapter for Optiq; also a JDBC driver for Splunk.</description>
 
