@@ -1,8 +1,11 @@
 # Apache Optiq release history
 
-For a full list of releases, see <a href="https://github.com/julianhyde/optiq/releases">github</a>.
+For a full list of releases, see
+<a href="https://github.com/apache/incubator-optiq/releases">github</a>.
 
-## <a href="https://github.com/julianhyde/optiq/releases/tag/optiq-0.9.0">0.9.0</a> / 2014-08-xx
+## <a href="https://github.com/apache/incubator-optiq/releases/tag/optiq-0.9.0-incubating">0.9.0-incubating</a> / 2014-08-19
+
+This is the first release under the Apache incubator process.
 
 New features
 * [<a href="https://issues.apache.org/jira/browse/OPTIQ-371">OPTIQ-371</a>]
@@ -37,6 +40,8 @@ New features
   Support multiple parameters in `COUNT(DISTINCT x, y, ...)`
 
 API changes
+* [<a href="https://issues.apache.org/jira/browse/OPTIQ-343">OPTIQ-343</a>]
+  RelDecorrelator should build its own mappings, not inherit from SqlToRelConverter
 * Remove deprecated methods.
 * Convert `Hook` to use Guava `Function` (was linq4j `Function1`).
 * Add fluent method `withHook`, to more easily add hooks in tests.
@@ -56,6 +61,17 @@ API changes
   Add `Context` and `FrameworkConfig`
 
 Bug-fixes and internal changes
+* [<a href="https://issues.apache.org/jira/browse/OPTIQ-380">OPTIQ-380</a>]
+  Downgrade to Guava 11.0.2
+* Move several .md files into new 'doc' directory, to keep the root directory simple.
+* Add DISCLAIMER
+* Update history and HOWTO
+* [<a href="https://issues.apache.org/jira/browse/OPTIQ-377">OPTIQ-377</a>]
+  UnregisteredDriver should catch, log and re-throw NoClassDefFoundError
+* Inherit maven-release-plugin from Apache POM.
+* Test case for
+  [<a href="https://issues.apache.org/jira/browse/OPTIQ-373">OPTIQ-373</a>]
+  NOT IN and NULL values
 * [<a href="https://issues.apache.org/jira/browse/OPTIQ-372">OPTIQ-372</a>]
   Change `LoptOptimizeJoinRule` &amp; `PushFilterPast`* rules to use factory
 * Upgrade `maven-checkstyle-plugin`.
