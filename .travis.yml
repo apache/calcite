@@ -24,5 +24,7 @@ jdk:
 branches:
   only:
     - master
+git:
+  depth: 10
 
 # End .travis.yml
