@@ -496,6 +496,26 @@ public abstract class RelOptUtil {
       final RelNode rel,
       RelDataType castRowType,
       boolean rename) {
+    return createCastRel(rel, castRowType, rename,
+        RelFactories.DEFAULT_PROJECT_FACTORY);
+  }
+
+  /**
+   * Creates a projection which casts a rel's output to a desired row type.
+   *
+   * @param rel         producer of rows to be converted
+   * @param castRowType row type after cast
+   * @param rename      if true, use field names from castRowType; if false,
+   *                    preserve field names from rel
+   * @param projectFactory Project Factory
+   * @return conversion rel
+   */
+  public static RelNode createCastRel(
+      final RelNode rel,
+      RelDataType castRowType,
+      boolean rename,
+      RelFactories.ProjectFactory projectFactory) {
+    assert projectFactory != null;
     RelDataType rowType = rel.getRowType();
     if (areRowTypesEqual(rowType, castRowType, rename)) {
       // nothing to do
@@ -506,13 +526,13 @@ public abstract class RelOptUtil {
             rel.getCluster().getRexBuilder(), castRowType, rowType);
     if (rename) {
       // Use names and types from castRowType.
-      return CalcRel.createProject(
+      return projectFactory.createProject(
           rel,
           castExps,
           castRowType.getFieldNames());
     } else {
       // Use names from rowType, types from castRowType.
-      return CalcRel.createProject(
+      return projectFactory.createProject(
           rel,
           castExps,
           rowType.getFieldNames());

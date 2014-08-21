@@ -24,7 +24,8 @@ import org.eigenbase.relopt.*;
 import org.eigenbase.rex.*;
 
 /**
- * MergeProjectRule merges a {@link ProjectRelBase} into another {@link ProjectRelBase},
+ * MergeProjectRule merges a {@link ProjectRelBase} into
+ * another {@link ProjectRelBase},
  * provided the projects aren't projecting identical sets of input references.
  */
 public class MergeProjectRule extends RelOptRule {
@@ -56,9 +57,8 @@ public class MergeProjectRule extends RelOptRule {
    */
   public MergeProjectRule(boolean force, ProjectFactory pFactory) {
     super(
-        operand(
-            ProjectRel.class,
-            operand(ProjectRel.class, any())),
+        operand(ProjectRelBase.class,
+            operand(ProjectRelBase.class, any())),
         "MergeProjectRule" + (force ? ": force mode" : ""));
     this.force = force;
     projectFactory = pFactory;

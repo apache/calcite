@@ -40,12 +40,15 @@ public abstract class PushFilterPastJoinRule extends RelOptRule {
       new PushFilterIntoJoinRule(false);
 
   public static final PushFilterPastJoinRule JOIN =
-      new PushDownJoinConditionRule(RelFactories.DEFAULT_FILTER_FACTORY);
+      new PushDownJoinConditionRule(RelFactories.DEFAULT_FILTER_FACTORY,
+          RelFactories.DEFAULT_PROJECT_FACTORY);
 
   /** Whether to try to strengthen join-type. */
   private final boolean smart;
 
   private final RelFactories.FilterFactory filterFactory;
+
+  private final RelFactories.ProjectFactory projectFactory;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -54,10 +57,12 @@ public abstract class PushFilterPastJoinRule extends RelOptRule {
    * factories.
    */
   protected PushFilterPastJoinRule(RelOptRuleOperand operand, String id,
-      boolean smart, RelFactories.FilterFactory filterFactory) {
+      boolean smart, RelFactories.FilterFactory filterFactory,
+      RelFactories.ProjectFactory projectFactory) {
     super(operand, "PushFilterRule: " + id);
     this.smart = smart;
     this.filterFactory = filterFactory;
+    this.projectFactory = projectFactory;
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -188,7 +193,8 @@ public abstract class PushFilterPastJoinRule extends RelOptRule {
 
     // Create a project on top of the join if some of the columns have become
     // NOT NULL due to the join-type getting stricter.
-    newJoinRel = RelOptUtil.createCastRel(newJoinRel, join.getRowType(), false);
+    newJoinRel = RelOptUtil.createCastRel(newJoinRel, join.getRowType(),
+        false, projectFactory);
 
     // create a FilterRel on top of the join if needed
     RelNode newRel =
@@ -221,10 +227,11 @@ public abstract class PushFilterPastJoinRule extends RelOptRule {
   /** Rule that pushes parts of the join condition to its inputs. */
   public static class PushDownJoinConditionRule
       extends PushFilterPastJoinRule {
-    public PushDownJoinConditionRule(RelFactories.FilterFactory filterFactory) {
+    public PushDownJoinConditionRule(RelFactories.FilterFactory filterFactory,
+        RelFactories.ProjectFactory projectFactory) {
       super(RelOptRule.operand(JoinRelBase.class, RelOptRule.any()),
           "PushFilterPastJoinRule:no-filter",
-          true, filterFactory);
+          true, filterFactory, projectFactory);
     }
 
     @Override
@@ -238,16 +245,18 @@ public abstract class PushFilterPastJoinRule extends RelOptRule {
    * condition and into the inputs of the join. */
   public static class PushFilterIntoJoinRule extends PushFilterPastJoinRule {
     public PushFilterIntoJoinRule(boolean smart) {
-      this(smart, RelFactories.DEFAULT_FILTER_FACTORY);
+      this(smart, RelFactories.DEFAULT_FILTER_FACTORY,
+          RelFactories.DEFAULT_PROJECT_FACTORY);
     }
 
     public PushFilterIntoJoinRule(boolean smart,
-        RelFactories.FilterFactory filterFactory) {
+        RelFactories.FilterFactory filterFactory,
+        RelFactories.ProjectFactory projectFactory) {
       super(
           RelOptRule.operand(FilterRelBase.class,
               RelOptRule.operand(JoinRelBase.class, RelOptRule.any())),
           "PushFilterPastJoinRule:filter",
-          smart, filterFactory);
+          smart, filterFactory, projectFactory);
     }
 
     @Override

@@ -24,7 +24,7 @@ import org.eigenbase.reltype.*;
 import org.eigenbase.rex.*;
 
 /**
- * Rule which, given a {@link ProjectRel} node which merely returns its input,
+ * Rule which, given a {@link ProjectRelBase} node which merely returns its input,
  * converts the node into its child.
  *
  * <p>For example, <code>ProjectRel(ArrayReader(a), {$input0})</code> becomes
@@ -44,10 +44,10 @@ public class RemoveTrivialProjectRule extends RelOptRule {
     // Create a specialized operand to detect non-matches early. This keeps
     // the rule queue short.
     super(
-      new RelOptRuleOperand(ProjectRel.class, null, any()) {
+      new RelOptRuleOperand(ProjectRelBase.class, null, any()) {
         @Override public boolean matches(RelNode rel) {
           return super.matches(rel)
-              && isTrivial((ProjectRel) rel);
+              && isTrivial((ProjectRelBase) rel);
         }
       });
   }
@@ -55,7 +55,7 @@ public class RemoveTrivialProjectRule extends RelOptRule {
   //~ Methods ----------------------------------------------------------------
 
   public void onMatch(RelOptRuleCall call) {
-    ProjectRel project = call.rel(0);
+    ProjectRelBase project = call.rel(0);
     assert isTrivial(project);
     RelNode stripped = project.getChild();
     RelNode child = call.getPlanner().register(stripped, project);

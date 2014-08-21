@@ -24,26 +24,29 @@ import org.eigenbase.rex.*;
  * MergeFilterRule implements the rule for combining two {@link FilterRel}s
  */
 public class MergeFilterRule extends RelOptRule {
-  public static final MergeFilterRule INSTANCE = new MergeFilterRule();
+  public static final MergeFilterRule INSTANCE =
+      new MergeFilterRule(RelFactories.DEFAULT_FILTER_FACTORY);
+
+  private final RelFactories.FilterFactory filterFactory;
 
   //~ Constructors -----------------------------------------------------------
 
   /**
    * Creates a MergeFilterRule.
    */
-  private MergeFilterRule() {
+  public MergeFilterRule(RelFactories.FilterFactory filterFactory) {
     super(
-        operand(
-            FilterRel.class,
-            operand(FilterRel.class, any())));
+        operand(FilterRelBase.class,
+            operand(FilterRelBase.class, any())));
+    this.filterFactory = filterFactory;
   }
 
   //~ Methods ----------------------------------------------------------------
 
   // implement RelOptRule
   public void onMatch(RelOptRuleCall call) {
-    FilterRel topFilter = call.rel(0);
-    FilterRel bottomFilter = call.rel(1);
+    final FilterRelBase topFilter = call.rel(0);
+    final FilterRelBase bottomFilter = call.rel(1);
 
     // use RexPrograms to merge the two FilterRels into a single program
     // so we can convert the two FilterRel conditions to directly
@@ -62,9 +65,8 @@ public class MergeFilterRule extends RelOptRule {
         mergedProgram.expandLocalRef(
             mergedProgram.getCondition());
 
-    FilterRel newFilterRel =
-        new FilterRel(
-            topFilter.getCluster(),
+    FilterRelBase newFilterRel =
+        (FilterRelBase) filterFactory.createFilter(
             bottomFilter.getChild(),
             newCondition);
 
@@ -77,7 +79,7 @@ public class MergeFilterRule extends RelOptRule {
    * @param filterRel the FilterRel
    * @return created RexProgram
    */
-  private RexProgram createProgram(FilterRel filterRel) {
+  private RexProgram createProgram(FilterRelBase filterRel) {
     RexProgramBuilder programBuilder =
         new RexProgramBuilder(
             filterRel.getRowType(),

@@ -39,7 +39,7 @@ public class PushFilterPastSetOpRule extends RelOptRule {
   /**
    * Creates a PushFilterPastSetOpRule.
    */
-  private PushFilterPastSetOpRule(RelFactories.FilterFactory filterFactory) {
+  public PushFilterPastSetOpRule(RelFactories.FilterFactory filterFactory) {
     super(
         operand(FilterRelBase.class,
             operand(SetOpRel.class, any())));
