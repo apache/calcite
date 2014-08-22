@@ -79,9 +79,6 @@ limitations under the License.
       <groupId>commons-dbcp</groupId>
       <artifactId>commons-dbcp</artifactId>
       <version>1.4</version>
-<!--
-      <scope>test</scope>
--->
     </dependency>
     <dependency>
       <groupId>com.fasterxml.jackson.core</groupId>
@@ -289,6 +286,69 @@ limitations under the License.
           </dependency>
         </dependencies>
       </plugin>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>build-helper-maven-plugin</artifactId>
+        <!-- Make sure every sub-project has LICENSE, NOTICE and
+             git.properties in its jar's META-INF directory. -->
+        <executions>
+          <execution>
+            <id>add-resource</id>
+            <phase>generate-resources</phase>
+            <goals>
+              <goal>add-resource</goal>
+              <goal>add-test-resource</goal>
+            </goals>
+            <configuration>
+              <resources>
+                <resource>
+                  <directory>${top.dir}</directory>
+                  <targetPath>META-INF</targetPath>
+                  <includes>
+                    <include>LICENSE</include>
+                    <include>NOTICE</include>
+                  </includes>
+                </resource>
+                <resource>
+                  <directory>${top.dir}/target</directory>
+                  <targetPath>META-INF</targetPath>
+                  <includes>
+                    <include>git.properties</include>
+                  </includes>
+                </resource>
+              </resources>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>pl.project13.maven</groupId>
+        <artifactId>git-commit-id-plugin</artifactId>
+        <version>2.1.9</version>
+        <inherited>false</inherited>
+        <executions>
+          <execution>
+            <goals>
+              <goal>revision</goal>
+            </goals>
+          </execution>
+        </executions>
+        <configuration>
+          <dateFormat>yyyy-MM-dd'T'HH:mm:ssZ</dateFormat>
+          <verbose>false</verbose>
+          <skipPoms>false</skipPoms>
+          <generateGitPropertiesFile>true</generateGitPropertiesFile>
+          <generateGitPropertiesFilename>target/git.properties</generateGitPropertiesFilename>
+          <failOnNoGitDirectory>false</failOnNoGitDirectory>
+          <gitDescribe>
+            <skip>false</skip>
+            <always>false</always>
+            <abbrev>7</abbrev>
+            <dirty>-dirty</dirty>
+            <forceLongFormat>true</forceLongFormat>
+          </gitDescribe>
+        </configuration>
+      </plugin>
     </plugins>
 
     <pluginManagement>
@@ -311,22 +371,16 @@ limitations under the License.
         </plugin>
         <plugin>
           <groupId>org.codehaus.mojo</groupId>
+          <artifactId>build-helper-maven-plugin</artifactId>
+          <version>1.9</version>
+        </plugin>
+        <plugin>
+          <groupId>org.codehaus.mojo</groupId>
           <artifactId>javacc-maven-plugin</artifactId>
           <version>2.4</version>
         </plugin>
       </plugins>
     </pluginManagement>
-
-    <resources>
-      <resource>
-        <directory>${top.dir}</directory>
-        <targetPath>META-INF</targetPath>
-        <includes>
-          <include>LICENSE</include>
-          <include>NOTICE</include>
-        </includes>
-      </resource>
-    </resources>
   </build>
 
   <reporting>
@@ -403,38 +457,9 @@ limitations under the License.
 
   <profiles>
     <profile>
-      <id>release</id>
+      <id>apache-release</id>
       <build>
         <plugins>
-          <plugin>
-            <groupId>pl.project13.maven</groupId>
-            <artifactId>git-commit-id-plugin</artifactId>
-            <version>2.1.9</version>
-            <inherited>false</inherited>
-            <executions>
-              <execution>
-                <goals>
-                  <goal>revision</goal>
-                </goals>
-              </execution>
-            </executions>
-            <configuration>
-              <dateFormat>yyyy-MM-dd'T'HH:mm:ssZ</dateFormat>
-              <verbose>false</verbose>
-              <skipPoms>false</skipPoms>
-              <generateGitPropertiesFile>true</generateGitPropertiesFile>
-              <generateGitPropertiesFilename>./git.properties</generateGitPropertiesFilename>
-              <failOnNoGitDirectory>false</failOnNoGitDirectory>
-              <gitDescribe>
-                <skip>false</skip>
-                <always>false</always>
-                <abbrev>7</abbrev>
-                <dirty>-dirty</dirty>
-                <forceLongFormat>true</forceLongFormat>
-              </gitDescribe>
-            </configuration>
-          </plugin>
-
           <!-- Apache-RAT checks for files without headers.
                If run on a messy developer's sandbox, it will fail.
                This serves as a reminder to only build a release in a clean
@@ -446,7 +471,6 @@ limitations under the License.
               <excludes>
                 <exclude>*.md</exclude>
                 <exclude>doc/*.md</exclude>
-                <exclude>git.properties</exclude>
                 <exclude>src/main/resources/META-INF/services/java.sql.Driver</exclude>
               </excludes>
             </configuration>

@@ -143,14 +143,6 @@ limitations under the License.
 
     <resources>
       <resource>
-        <directory>${top.dir}</directory>
-        <targetPath>META-INF</targetPath>
-        <includes>
-          <include>LICENSE</include>
-          <include>NOTICE</include>
-        </includes>
-      </resource>
-      <resource>
         <directory>src/main/resources</directory>
         <excludes>
           <exclude>version/*.properties</exclude>
