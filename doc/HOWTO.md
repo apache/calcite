@@ -316,10 +316,10 @@ read GPG_PASSPHRASE
 git clean -xn
 
 # Set the version numbers
-mvn -DskipTests -DreleaseVersion=x.y.z-incubating -DdevelopmentVersion=x.y.z+1-incubating-SNAPSHOT -Papache-release,release -Darguments="-Dgpg.passphrase=${GPG_PASSPHRASE}" clean release:prepare
+mvn -DskipTests -DreleaseVersion=x.y.z-incubating -DdevelopmentVersion=x.y.z+1-incubating-SNAPSHOT -Papache-release -Darguments="-Dgpg.passphrase=${GPG_PASSPHRASE}" clean release:prepare 2>&1 | tee /tmp/prepare.log
 
 # Perform the release
-mvn -DskipTests -Papache-release,release -Darguments="-Dgpg.passphrase=${GPG_PASSPHRASE}" clean release:prepare
+mvn -DskipTests -Papache-release -Darguments="-Dgpg.passphrase=${GPG_PASSPHRASE}" clean release:prepare 2>&1 | tee /tmp/perform.log
 
 ```
 
@@ -377,4 +377,43 @@ git reset --hard HEAD
 ```bash
 # Check that the signing key (e.g. 2AD3FAE3) is pushed
 gpg --recv-keys key
+
+# Check keys
+curl http://people.apache.org/keys/group/optiq.asc > KEYS
+
+# Check keys
+curl -O https://dist.apache.org/repos/dist/release/incubator/optiq/KEYS
+
+# Sign/check md5 and sha1 hashes
+# (Assumes your O/S has 'md5' and 'sha1' commands.)
+function checkHash() {
+  cd "$1"
+  for i in *.{zip,pom,gz}; do
+    if [ ! -f $i ]; then
+      continue
+    fi
+    if [ -f $i.md5 ]; then
+      if [ "$(cat $i.md5)" = "$(md5 -q $i)" ]; then
+        echo $i.md5 present and correct
+      else
+        echo $i.md5 does not match
+      fi
+    else
+      md5 -q $i > $i.md5
+      echo $i.md5 created
+    fi
+    if [ -f $i.sha1 ]; then
+      if [ "$(cat $i.sha1)" = "$(sha1 -q $i)" ]; then
+        echo $i.sha1 present and correct
+      else
+        echo $i.sha1 does not match
+      fi
+    else
+      sha1 -q $i > $i.sha1
+      echo $i.sha1 created
+    fi
+  done
+}
+checkHash optiq-x.y.z-incubating
+
 ```
