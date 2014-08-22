@@ -27,4 +27,6 @@ branches:
     - javadoc
 script:
   mvn test site
+git:
+  depth: 10000
 # End .travis.yml
