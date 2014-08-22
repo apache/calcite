@@ -248,6 +248,7 @@ limitations under the License.
         </executions>
       </plugin>
       <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
         <configuration>
           <source>1.5</source>
@@ -257,7 +258,6 @@ limitations under the License.
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-checkstyle-plugin</artifactId>
-        <version>2.12.1</version>
         <executions>
           <execution>
             <id>validate</id>
@@ -277,6 +277,10 @@ limitations under the License.
         </executions>
       </plugin>
       <plugin>
+        <!-- Override apache parent POM's definition of release
+             plugin. If we don't specify gitexe version, git doesn't
+             commit during release process. -->
+        <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-release-plugin</artifactId>
         <dependencies>
           <dependency>
@@ -324,7 +328,6 @@ limitations under the License.
       <plugin>
         <groupId>pl.project13.maven</groupId>
         <artifactId>git-commit-id-plugin</artifactId>
-        <version>2.1.9</version>
         <inherited>false</inherited>
         <executions>
           <execution>
@@ -366,6 +369,11 @@ limitations under the License.
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-checkstyle-plugin</artifactId>
+          <version>2.12.1</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-shade-plugin</artifactId>
           <version>2.1</version>
         </plugin>
@@ -378,6 +386,11 @@ limitations under the License.
           <groupId>org.codehaus.mojo</groupId>
           <artifactId>javacc-maven-plugin</artifactId>
           <version>2.4</version>
+        </plugin>
+        <plugin>
+          <groupId>pl.project13.maven</groupId>
+          <artifactId>git-commit-id-plugin</artifactId>
+          <version>2.1.9</version>
         </plugin>
       </plugins>
     </pluginManagement>
@@ -417,17 +430,6 @@ limitations under the License.
   </reporting>
 
   <repositories>
-    <repository>
-      <releases>
-        <enabled>true</enabled>
-        <updatePolicy>always</updatePolicy>
-        <checksumPolicy>warn</checksumPolicy>
-      </releases>
-      <id>pentaho</id>
-      <name>Pentaho</name>
-      <url>http://repo.pentaho.org/artifactory/repo</url>
-      <layout>default</layout>
-    </repository>
     <repository>
       <releases>
         <enabled>true</enabled>
