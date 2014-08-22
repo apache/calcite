@@ -119,6 +119,7 @@ public class JdbcFrontJdbcBackLinqMiddleTest {
    * <p>Currently, the query can be planned, but the plan is not efficient (uses
    * cartesian product).</p>
    */
+  @Ignore("non-deterministic on JDK 1.7 vs 1.8")
   @Test public void testJoinTheta() {
     that()
         .with(OptiqAssert.Config.FOODMART_CLONE)
