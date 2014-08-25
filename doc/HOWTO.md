@@ -423,7 +423,132 @@ checkHash optiq-x.y.z-incubating
 
 ```
 
-## Publishing a releae (for Optiq committers)
+## Get approval for a release via Apache voting process (for Optiq committers)
+
+Release vote on dev list
+
+```
+To: dev@optiq.incubator.apache.org
+Subject: Release Optiq-X.Y.Z-incubating (release candidate N)
+
+Hi all,
+
+I have created a build for Apache Optiq X.Y.Z-incubating, release candidate N.
+
+Thanks to everyone who has contributed to this release.
+
+The commit to be voted upon:
+http://git-wip-us.apache.org/repos/asf/incubator-optiq/commit/NNNNNN
+
+The artifacts to be voted on are located here:
+http://people.apache.org/~jhyde/optiq-X.Y.Z-incubating-rcN/
+
+A staged Maven repository is available for review at:
+https://repository.apache.org/content/repositories/orgapacheoptiq-NNNN
+
+Release artifacts are signed with the following key:
+https://people.apache.org/keys/committer/jhyde.asc
+
+Please vote on releasing this package as Apache Optiq X.Y.Z-incubating.
+
+The vote is open for the next 72 hours and passes if a majority of
+at least three +1 PPMC votes are cast.
+
+[ ] +1 Release this package as Apache Optiq X.Y.Z-incubating
+[ ]  0 I don't feel strongly about it, but I'm okay with the release
+[ ] -1 Do not release this package because...
+
+
+Here is my vote:
+
++1 (binding)
+
+Julian
+```
+
+After vote finishes, send out the result:
+
+```
+Subject: [RESULT] [VOTE] Release Optiq-X.Y.Z-incubating (release candidate N)
+To: dev@optiq.incubator.apache.org
+
+Thanks to everyone who has tested the release candidate and given
+their comments and votes.
+
+The tally is as follows.
+
+N binding +1s:
+<names>
+
+N non-binding +1s:
+<names>
+
+No 0s or -1s.
+
+Therefore I am delighted to announce that the proposal to release
+Apache Optiq X.Y.Z-incubating has passed.
+
+I'll now start a vote on the general list. Those of you in the IPMC,
+please recast your vote on the new thread.
+
+Julian
+```
+
+Propose a vote on the incubator list.
+
+```
+To: general@incubator.apache.org
+Subject: [VOTE] Release Apache Optiq X.Y.Z (incubating)
+
+Hi all,
+
+The Optiq community has voted on and approved a proposal to release
+Apache Optiq X.Y.Z (incubating).
+
+Pursuant to the Releases section of the Incubation Policy and with
+the endorsement of NNN of our mentors we would now like to request
+the permission of the Incubator PMC to publish the release. The vote
+is open for 72 hours, or until the necessary number of votes (3 +1)
+is reached.
+
+[ ] +1 Release this package as Apache Optiq X.Y.Z incubating
+[ ] -1 Do not release this package because ...
+
+Apache Optiq PPMC
+
+
+Proposal:
+http://mail-archives.apache.org/mod_mbox/incubator-optiq-dev/201408.mbox/MESSAGE-URI
+
+Vote result:
+N binding +1 votes
+N non-binding +1 votes
+No -1 votes
+http://mail-archives.apache.org/mod_mbox/incubator-optiq-dev/201408.mbox/MESSAGE-URI
+
+Artifacts:
+http://people.apache.org/~jhyde/optiq-X.Y.Z-incubating-rcN/
+
+```
+
+After vote finishes, send out the result:
+
+```
+To: general@incubator.apache.org
+Subject: [RESULT] [VOTE] Release Apache Optiq X.Y.Z (incubating)
+
+This vote passes with N +1s and no 0 or -1 votes:
++1 <name> (mentor)
+
+There was some feedback during voting. I shall open a separate
+thread to discuss.
+
+Thanks everyone. We’ll now roll the release out to the mirrors.
+
+Julian
+```
+
+## Publishing a release (for Optiq committers)
 
 After a successful release vote, we need to push the release
 out to mirrors, and other tasks.
