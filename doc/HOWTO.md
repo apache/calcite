@@ -307,6 +307,11 @@ Before you start:
 * Make sure build and tests succeed, including with
   -Doptiq.test.db={mysql,hsqldb}, -Doptiq.test.slow=true,
   -Doptiq.test.mongodb=true, -Doptiq.test.splunk=true.
+* Make sure that
+  <a href="https://issues.apache.org/jira/issues/?jql=project%20%3D%20OPTIQ%20AND%20status%20%3D%20Resolved">
+  every "resolved" JIRA case</a> (including duplicates) has
+  a fix version assigned (most likely the version we are
+  just about to release)
 
 ```bash
 # Set passphrase variable without putting it into shell history
@@ -417,3 +422,14 @@ function checkHash() {
 checkHash optiq-x.y.z-incubating
 
 ```
+
+## Publishing a releae (for Optiq committers)
+
+After a successful release vote, we need to push the release
+out to mirrors, and other tasks.
+
+* In JIRA, search for all issues resolved in this release,
+  and do a bulk update changing their status to "Closed",
+  with a change comment
+  "Resolved in release X.Y.Z-incubating (YYYY-MM-DD)"
+  (fill in release number and date appropriately).
