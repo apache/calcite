@@ -21,6 +21,7 @@ import java.util.*;
 
 import org.eigenbase.rel.*;
 import org.eigenbase.rel.rules.RemoveTrivialProjectRule;
+import org.eigenbase.rel.rules.SemiJoinRel;
 import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.*;
 import org.eigenbase.rex.*;
@@ -459,11 +460,13 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
    * {@link JoinRel}.
    */
   public TrimResult trimFields(
-      JoinRel join,
+      JoinRelBase join,
       BitSet fieldsUsed,
       Set<RelDataTypeField> extraFields) {
     final RelDataType rowType = join.getRowType();
-    final int fieldCount = rowType.getFieldCount();
+    final int fieldCount = join.getSystemFieldList().size()
+        + join.getLeft().getRowType().getFieldCount()
+        + join.getRight().getRowType().getFieldCount();
     final RexNode conditionExpr = join.getCondition();
     final int systemFieldCount = join.getSystemFieldList().size();
 
@@ -572,9 +575,25 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
     RexNode newConditionExpr =
         conditionExpr.accept(shuttle);
 
-    final JoinRel newJoin =
+    final JoinRelBase newJoin =
         join.copy(join.getTraitSet(), newConditionExpr, newInputs.get(0),
             newInputs.get(1), join.getJoinType(), join.isSemiJoinDone());
+
+    // For SemiJoins only map fields from the left-side
+    if (newJoin instanceof SemiJoinRel) {
+      Mapping inputMapping = inputMappings.get(0);
+      mapping = Mappings.create(MappingType.INVERSE_SURJECTION,
+          join.getRowType().getFieldCount(),
+          newSystemFieldCount + inputMapping.getTargetCount());
+      for (int i = 0; i < newSystemFieldCount; ++i) {
+        mapping.set(i, i);
+      }
+      offset = systemFieldCount;
+      newOffset = newSystemFieldCount;
+      for (IntPair pair : inputMapping) {
+        mapping.set(pair.source + offset, pair.target + newOffset);
+      }
+    }
 
     return new TrimResult(newJoin, mapping);
   }

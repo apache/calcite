@@ -61,7 +61,11 @@ import org.eigenbase.relopt.hep.HepProgram;
 import org.eigenbase.relopt.hep.HepProgramBuilder;
 import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.reltype.RelDataTypeFactory;
+import org.eigenbase.sql.SqlNode;
 import org.eigenbase.sql.type.SqlTypeName;
+import org.eigenbase.sql.validate.SqlValidator;
+import org.eigenbase.sql2rel.SqlToRelConverter;
+import org.eigenbase.util.Util;
 
 import net.hydromatic.optiq.prepare.Prepare;
 
@@ -175,6 +179,60 @@ public class RelOptRulesTest extends RelOptTestBase {
             + "  select * from emp\n"
             + "  where emp.deptno = dept.deptno\n"
             + "  and emp.sal > 100)");
+  }
+
+  protected void semiJoinTrim() {
+
+    final DiffRepository diffRepos = getDiffRepos();
+    String sql = diffRepos.expand(null, "${sql}");
+
+    TesterImpl t = (TesterImpl) tester;
+    final RelDataTypeFactory typeFactory = t.getTypeFactory();
+    final Prepare.CatalogReader catalogReader =
+        t.createCatalogReader(typeFactory);
+    final SqlValidator validator =
+        t.createValidator(
+            catalogReader, typeFactory);
+    final SqlToRelConverter converter =
+        t.createSqlToRelConverter(
+            validator,
+            catalogReader,
+            typeFactory);
+
+    final SqlNode sqlQuery;
+    try {
+      sqlQuery = t.parseQuery(sql);
+    } catch (Exception e) {
+      throw Util.newInternal(e);
+    }
+
+    final SqlNode validatedQuery = validator.validate(sqlQuery);
+    RelNode rel =
+        converter.convertQuery(validatedQuery, false, true);
+    rel = converter.decorrelate(sqlQuery, rel);
+
+    final HepProgram program =
+        HepProgram.builder()
+            .addRuleInstance(PushFilterPastProjectRule.INSTANCE)
+            .addRuleInstance(PushFilterPastJoinRule.FILTER_ON_JOIN)
+            .addRuleInstance(MergeProjectRule.INSTANCE)
+            .addRuleInstance(SemiJoinRule.INSTANCE)
+            .build();
+
+    HepPlanner planner = new HepPlanner(program);
+    planner.setRoot(rel);
+    rel = planner.findBestExp();
+
+    String planBefore = NL + RelOptUtil.toString(rel);
+    diffRepos.assertEquals("planBefore", "${planBefore}", planBefore);
+    converter.setTrimUnusedFields(true);
+    rel = converter.trimUnusedFields(rel);
+    String planAfter = NL + RelOptUtil.toString(rel);
+    diffRepos.assertEquals("planAfter", "${planAfter}", planAfter);
+  }
+
+  @Test public void testSemiJoinTrim() {
+    semiJoinTrim();
   }
 
   @Test public void testReduceAverage() {

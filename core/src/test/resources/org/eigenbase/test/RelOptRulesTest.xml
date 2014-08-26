@@ -2089,4 +2089,48 @@ SemiJoinRel(condition=[=($0, $2)], joinType=[inner])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testSemiJoinTrim">
+        <Resource name="sql">
+            <![CDATA[select s.deptno from (select * from dept where exists (
+  select * from emp
+  where emp.deptno = dept.deptno
+  and emp.sal > 100)) s join customer.account on s.deptno = account.acctno]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+ProjectRel(DEPTNO=[$0])
+  JoinRel(condition=[=($0, $2)], joinType=[inner])
+    SemiJoinRel(condition=[=($0, $2)], joinType=[inner])
+      TableAccessRel(table=[[CATALOG, SALES, DEPT]])
+      ProjectRel($f01=[$9], $f0=[true])
+        JoinRel(condition=[=($7, $9)], joinType=[inner])
+          FilterRel(condition=[>($5, 100)])
+            TableAccessRel(table=[[CATALOG, SALES, EMP]])
+          AggregateRel(group=[{0}])
+            ProjectRel($f0=[$0])
+              TableAccessRel(table=[[CATALOG, SALES, DEPT]])
+    TableAccessRel(table=[[CATALOG, CUSTOMER, ACCOUNT]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+ProjectRel(DEPTNO=[$0])
+  JoinRel(condition=[=($0, $1)], joinType=[inner])
+    SemiJoinRel(condition=[=($0, $1)], joinType=[inner])
+      ProjectRel(DEPTNO=[$0])
+        TableAccessRel(table=[[CATALOG, SALES, DEPT]])
+      ProjectRel($f01=[$2])
+        JoinRel(condition=[=($1, $2)], joinType=[inner])
+          FilterRel(condition=[>($0, 100)])
+            ProjectRel(SAL=[$5], DEPTNO=[$7])
+              TableAccessRel(table=[[CATALOG, SALES, EMP]])
+          AggregateRel(group=[{0}])
+            ProjectRel($f0=[$0])
+              ProjectRel(DEPTNO=[$0])
+                TableAccessRel(table=[[CATALOG, SALES, DEPT]])
+    ProjectRel(ACCTNO=[$0])
+      TableAccessRel(table=[[CATALOG, CUSTOMER, ACCOUNT]])
+]]>
+        </Resource>
+    </TestCase>
 </Root>
