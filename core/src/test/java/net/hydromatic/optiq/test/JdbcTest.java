@@ -1453,6 +1453,25 @@ public class JdbcTest {
             });
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/OPTIQ-387">OPTIQ-387</a>,
+   * "CompileException when cast TRUE to nullable boolean". */
+  @Test public void testTrue() {
+    final OptiqAssert.AssertThat that = OptiqAssert.that();
+    that.query(
+        "select case when deptno = 10 then null else true end as x\n"
+        + "from (values (10), (20)) as t(deptno)")
+        .returnsUnordered("X=null", "X=true");
+    that.query(
+        "select case when deptno = 10 then null else 100 end as x\n"
+        + "from (values (10), (20)) as t(deptno)")
+        .returnsUnordered("X=null", "X=100");
+    that.query(
+        "select case when deptno = 10 then null else 'xy' end as x\n"
+        + "from (values (10), (20)) as t(deptno)")
+        .returnsUnordered("X=null", "X=xy");
+  }
+
   /** Unit test for self-join. Left and right children of the join are the same
    * relational expression. */
   @Test public void testSelfJoin() {

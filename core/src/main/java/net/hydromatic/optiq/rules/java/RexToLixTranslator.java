@@ -384,12 +384,12 @@ public class RexToLixTranslator {
       return unboxed;
     case LOCAL_REF:
       return translate(
-          program.getExprList().get(((RexLocalRef) expr).getIndex()),
+          deref(expr),
           nullAs,
           storageType);
     case LITERAL:
       return translateLiteral(
-          expr,
+          (RexLiteral) expr,
           nullifyType(
               expr.getType(),
               isNullable(expr)
@@ -404,6 +404,17 @@ public class RexToLixTranslator {
       }
       throw new RuntimeException(
           "cannot translate expression " + expr);
+    }
+  }
+
+  /** Dereferences an expression if it is a
+   * {@link org.eigenbase.rex.RexLocalRef}. */
+  public RexNode deref(RexNode expr) {
+    if (expr instanceof RexLocalRef) {
+      RexLocalRef ref = (RexLocalRef) expr;
+      return program.getExprList().get(ref.getIndex());
+    } else {
+      return expr;
     }
   }
 
@@ -439,12 +450,11 @@ public class RexToLixTranslator {
    * {@link net.hydromatic.optiq.rules.java.RexImpTable.NullAs#NOT_POSSIBLE}.
    */
   public static Expression translateLiteral(
-      RexNode expr,
+      RexLiteral literal,
       RelDataType type,
       JavaTypeFactory typeFactory,
       RexImpTable.NullAs nullAs) {
-    final RexLiteral literal = (RexLiteral) expr;
-    Comparable value = literal.getValue();
+    final Comparable value = literal.getValue();
     if (value == null) {
       switch (nullAs) {
       case TRUE:

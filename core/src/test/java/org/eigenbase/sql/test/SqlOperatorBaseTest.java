@@ -1426,6 +1426,12 @@ public abstract class SqlOperatorBaseTest {
     // TODO: Check case with multisets
   }
 
+  @Test public void testCaseNull() {
+    tester.setFor(SqlStdOperatorTable.CASE);
+    tester.checkScalarExact("case when 1 = 1 then 10 else null end", "10");
+    tester.checkNull("case when 1 = 2 then 10 else null end");
+  }
+
   @Test public void testCaseType() {
     tester.setFor(SqlStdOperatorTable.CASE);
     tester.checkType(

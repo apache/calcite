@@ -31,6 +31,7 @@ import org.eigenbase.sql.*;
 import org.eigenbase.sql.fun.SqlStdOperatorTable;
 import org.eigenbase.sql.fun.SqlTrimFunction;
 import org.eigenbase.sql.type.SqlTypeName;
+import org.eigenbase.sql.type.SqlTypeUtil;
 import org.eigenbase.sql.validate.SqlUserDefinedAggFunction;
 import org.eigenbase.sql.validate.SqlUserDefinedFunction;
 import org.eigenbase.util.Util;
@@ -1348,12 +1349,12 @@ public class RexImpTable {
 
   private static class CaseImplementor implements CallImplementor {
     public Expression implement(RexToLixTranslator translator, RexCall call,
-                                NullAs nullAs) {
+        NullAs nullAs) {
       return implementRecurse(translator, call, nullAs, 0);
     }
 
-    private Expression implementRecurse(
-        RexToLixTranslator translator, RexCall call, NullAs nullAs, int i) {
+    private Expression implementRecurse(RexToLixTranslator translator,
+        RexCall call, NullAs nullAs, int i) {
       List<RexNode> operands = call.getOperands();
       if (i == operands.size() - 1) {
         // the "else" clause
@@ -1405,6 +1406,14 @@ public class RexImpTable {
       if (call.getType().equals(arg.getType())) {
         // No cast required, omit cast
         return translator.translate(arg, nullAs);
+      }
+      if (SqlTypeUtil.equalSansNullability(translator.typeFactory,
+              call.getType(), arg.getType())
+          && nullAs == NullAs.NULL
+          && translator.deref(arg) instanceof RexLiteral) {
+        return RexToLixTranslator.translateLiteral(
+            (RexLiteral) translator.deref(arg), call.getType(),
+            translator.typeFactory, nullAs);
       }
       return accurate.implement(translator, call, nullAs);
     }
