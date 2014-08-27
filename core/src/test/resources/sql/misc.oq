@@ -294,6 +294,36 @@ EnumerableCalcRel(expr#0..7=[{inputs}], expr#8=[IS NOT NULL($t5)], expr#9=[NOT($
           EnumerableTableAccessRel(table=[[hr, depts]])
 !plan
 
+# Filter combined with an OR filter.
+select * from (
+  select * from "hr"."emps" as e
+  where e."deptno" < 30) as e
+where e."deptno" > 10 or e."name" = 'Sebastian';
++-------+--------+-----------+--------+------------+
+| empid | deptno | name      | salary | commission |
++-------+--------+-----------+--------+------------+
+|   150 |     10 | Sebastian | 7000.0 |            |
+|   200 |     20 | Eric      | 8000.0 |        500 |
++-------+--------+-----------+--------+------------+
+(2 rows)
+
+!ok
+
+# Filter combined with an AND filter. Test case for
+# [OPTIQ-389] MergeFilterRule should flatten AND condition
+select * from (
+  select * from "hr"."emps" as e
+  where e."deptno" < 30) as e
+where e."deptno" >= 10 and e."name" = 'Sebastian';
++-------+--------+-----------+--------+------------+
+| empid | deptno | name      | salary | commission |
++-------+--------+-----------+--------+------------+
+|   150 |     10 | Sebastian | 7000.0 |            |
++-------+--------+-----------+--------+------------+
+(1 row)
+
+!ok
+
 # [OPTIQ-345] AssertionError in RexToLixTranslator comparing to date literal
 !use catchall
 select count(*) as c from "everyTypes" where "sqlDate" = DATE '1970-01-01';

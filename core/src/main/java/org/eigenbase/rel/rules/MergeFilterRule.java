@@ -68,7 +68,7 @@ public class MergeFilterRule extends RelOptRule {
     FilterRelBase newFilterRel =
         (FilterRelBase) filterFactory.createFilter(
             bottomFilter.getChild(),
-            newCondition);
+            RexUtil.flatten(rexBuilder, newCondition));
 
     call.transformTo(newFilterRel);
   }

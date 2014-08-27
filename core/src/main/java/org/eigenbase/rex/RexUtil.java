@@ -322,7 +322,7 @@ public class RexUtil {
         }
       }
     }
-    return recurse && requiresDecimalExpansion(call.operands, recurse);
+    return recurse && requiresDecimalExpansion(call.operands, true);
   }
 
   /**
@@ -801,6 +801,21 @@ public class RexUtil {
     if (expr != null) {
       expr.accept(visitor);
     }
+  }
+
+  /** Flattens an expression.
+   *
+   * <p>Returns the same expression if it is already flat. */
+  public static RexNode flatten(RexBuilder rexBuilder, RexNode node) {
+    if (node instanceof RexCall) {
+      RexCall call = (RexCall) node;
+      final SqlOperator op = call.getOperator();
+      final List<RexNode> flattenedOperands = flatten(call.getOperands(), op);
+      if (!isFlat(call.getOperands(), op)) {
+        return rexBuilder.makeCall(call.getType(), op, flattenedOperands);
+      }
+    }
+    return node;
   }
 
   /**
