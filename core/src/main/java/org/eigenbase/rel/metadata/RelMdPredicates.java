@@ -36,6 +36,7 @@ import org.eigenbase.rel.RelNode;
 import org.eigenbase.rel.SortRel;
 import org.eigenbase.rel.TableAccessRelBase;
 import org.eigenbase.rel.UnionRelBase;
+import org.eigenbase.rel.rules.SemiJoinRel;
 import org.eigenbase.relopt.RelOptPredicateList;
 import org.eigenbase.relopt.RelOptUtil;
 import org.eigenbase.rex.RexBuilder;
@@ -190,6 +191,14 @@ public class RelMdPredicates {
             RelOptUtil.conjunctions(filter.getCondition())));
   }
 
+  /** Infers predicates for a {@link SemiJoinRel}. */
+  public RelOptPredicateList getPredicates(SemiJoinRel semiJoin) {
+    // Workaround, pending
+    // [OPTIQ-390] Transitive Inference(RelMdPredicate) doesn't handle SemiJoin
+    return RelOptPredicateList.EMPTY;
+  }
+
+  /** Infers predicates for a {@link JoinRelBase}. */
   public RelOptPredicateList getPredicates(JoinRelBase join) {
     RexBuilder rB = join.getCluster().getRexBuilder();
     RelNode left = join.getInput(0);
