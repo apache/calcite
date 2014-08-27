@@ -324,6 +324,43 @@ where e."deptno" >= 10 and e."name" = 'Sebastian';
 
 !ok
 
+# [OPTIQ-393] If no fields are projected from a table, field trimmer should
+# project a dummy expression
+select 1 from "hr"."emps";
++--------+
+| EXPR$0 |
++--------+
+|      1 |
+|      1 |
+|      1 |
+|      1 |
++--------+
+(4 rows)
+
+!ok
+EnumerableCalcRel(expr#0..4=[{inputs}], expr#5=[1], EXPR$0=[$t5])
+  EnumerableTableAccessRel(table=[[hr, emps]])
+!plan
+
+# [OPTIQ-393] for table scan under join
+select count(*) as c from "hr"."emps", "hr"."depts";
++----+
+| C  |
++----+
+| 12 |
++----+
+(1 row)
+
+!ok
+EnumerableAggregateRel(group=[{}], C=[COUNT()])
+  EnumerableCalcRel(expr#0..1=[{inputs}], expr#2=[0], DUMMY=[$t2])
+    EnumerableJoinRel(condition=[true], joinType=[inner])
+      EnumerableCalcRel(expr#0..4=[{inputs}], expr#5=[0], DUMMY=[$t5])
+        EnumerableTableAccessRel(table=[[hr, emps]])
+      EnumerableCalcRel(expr#0..2=[{inputs}], expr#3=[0], DUMMY=[$t3])
+        EnumerableTableAccessRel(table=[[hr, depts]])
+!plan
+
 # [OPTIQ-345] AssertionError in RexToLixTranslator comparing to date literal
 !use catchall
 select count(*) as c from "everyTypes" where "sqlDate" = DATE '1970-01-01';

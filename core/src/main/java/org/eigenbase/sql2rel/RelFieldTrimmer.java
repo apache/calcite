@@ -33,6 +33,8 @@ import net.hydromatic.linq4j.Ord;
 
 import net.hydromatic.optiq.util.BitSets;
 
+import com.google.common.collect.ImmutableList;
+
 /**
  * Transformer that walks over a tree of relational expressions, replacing each
  * {@link RelNode} with a 'slimmed down' relational expression that projects
@@ -277,26 +279,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
     // Some parts of the system can't handle rows with zero fields, so
     // pretend that one field is used.
     if (fieldsUsed.cardinality() == 0) {
-      final Mapping mapping =
-          Mappings.create(
-              MappingType.INVERSE_SURJECTION,
-              fieldCount,
-              1);
-      final RexLiteral expr =
-          project.getCluster().getRexBuilder().makeExactLiteral(
-              BigDecimal.ZERO);
-      RelDataType newRowType =
-          project.getCluster().getTypeFactory().createStructType(
-              Collections.singletonList(expr.getType()),
-              Collections.singletonList("DUMMY"));
-      ProjectRel newProject = new ProjectRel(
-          project.getCluster(),
-          project.getCluster().traitSetOf(RelCollationImpl.EMPTY),
-          newInput,
-          Collections.<RexNode>singletonList(expr),
-          newRowType,
-          project.getFlags());
-      return new TrimResult(newProject, mapping);
+      return dummyProject(fieldCount, newInput);
     }
 
     // Build new project expressions, and populate the mapping.
@@ -346,6 +329,34 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
           project.getFlags());
       assert newProject.getClass() == project.getClass();
     }
+    return new TrimResult(newProject, mapping);
+  }
+
+  /** Creates a project with a dummy column, to protect the parts of the system
+   * that cannot handle a relational expression with no columns.
+   *
+   * @param fieldCount Number of fields in the original relational expression
+   * @param input Trimmed input
+   * @return Dummy project, or null if no dummy is required
+   */
+  private TrimResult dummyProject(int fieldCount, RelNode input) {
+    final RelOptCluster cluster = input.getCluster();
+    final Mapping mapping =
+        Mappings.create(MappingType.INVERSE_SURJECTION, fieldCount, 1);
+    if (input.getRowType().getFieldCount() == 1) {
+      // Input already has one field (and may in fact be a dummy project we
+      // created for the child). We can't do better.
+      return new TrimResult(input, mapping);
+    }
+    final RexLiteral expr =
+        cluster.getRexBuilder().makeExactLiteral(
+            BigDecimal.ZERO);
+    RelDataType newRowType =
+        cluster.getTypeFactory().builder().add("DUMMY", expr.getType()).build();
+    ProjectRel newProject = new ProjectRel(cluster,
+        cluster.traitSetOf(RelCollationImpl.EMPTY), input,
+        ImmutableList.<RexNode>of(expr), newRowType,
+        ProjectRelBase.Flags.BOXED);
     return new TrimResult(newProject, mapping);
   }
 
@@ -930,13 +941,31 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
       BitSet fieldsUsed,
       Set<RelDataTypeField> extraFields) {
     final int fieldCount = tableAccessRel.getRowType().getFieldCount();
-    if (fieldsUsed.equals(BitSets.range(fieldCount))
-        && extraFields.isEmpty()) {
+    if (fieldsUsed.equals(BitSets.range(fieldCount)) && extraFields.isEmpty()) {
+      // if there is nothing to project or if we are projecting everything
+      // then no need to introduce another RelNode
       return trimFields(
           (RelNode) tableAccessRel, fieldsUsed, extraFields);
     }
     final RelNode newTableAccessRel =
         tableAccessRel.project(fieldsUsed, extraFields);
+
+    // Some parts of the system can't handle rows with zero fields, so
+    // pretend that one field is used.
+    if (fieldsUsed.cardinality() == 0) {
+      RelNode input = newTableAccessRel;
+      if (input instanceof ProjectRelBase) {
+        // The table has implemented the project in the obvious way - by
+        // creating project with 0 fields. Strip it away, and create our own
+        // project with one field.
+        ProjectRelBase project = (ProjectRelBase) input;
+        if (project.getRowType().getFieldCount() == 0) {
+          input = project.getChild();
+        }
+      }
+      return dummyProject(fieldCount, input);
+    }
+
     final Mapping mapping = createMapping(fieldsUsed, fieldCount);
     return new TrimResult(newTableAccessRel, mapping);
   }

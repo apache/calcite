@@ -2962,6 +2962,20 @@ public class JdbcTest {
         .returnsCount(0);
   }
 
+  /** Query that reads no columns from either underlying table. */
+  @Test public void testCountStar() {
+    OptiqAssert.that()
+        .with(OptiqAssert.Config.REGULAR)
+        .query("select count(*) c from \"hr\".\"emps\", \"hr\".\"depts\"")
+        .convertContains("AggregateRel(group=[{}], C=[COUNT()])\n"
+            + "  ProjectRel(DUMMY=[0])\n"
+            + "    JoinRel(condition=[true], joinType=[inner])\n"
+            + "      ProjectRel(DUMMY=[0])\n"
+            + "        EnumerableTableAccessRel(table=[[hr, emps]])\n"
+            + "      ProjectRel(DUMMY=[0])\n"
+            + "        EnumerableTableAccessRel(table=[[hr, depts]])");
+  }
+
   /** Same result (and plan) as {@link #testSelectDistinct}. */
   @Test public void testCountUnionAll() {
     OptiqAssert.that()
@@ -3009,7 +3023,7 @@ public class JdbcTest {
         .explainContains(
             "PLAN=EnumerableCalcRel(expr#0=[{inputs}], CS=[$t0], CS2=[$t0])\n"
             + "  EnumerableAggregateRel(group=[{}], CS=[COUNT()])\n"
-            + "    EnumerableCalcRel(expr#0..4=[{inputs}], expr#5=[0], expr#6=[<($t1, $t5)], DUMMY=[$t5], $condition=[$t6])\n"
+            + "    EnumerableCalcRel(expr#0..4=[{inputs}], expr#5=[0], expr#6=[<($t1, $t5)], deptno=[$t1], $condition=[$t6])\n"
             + "      EnumerableTableAccessRel(table=[[hr, emps]])\n")
         .returns("CS=0; CS2=0\n");
   }

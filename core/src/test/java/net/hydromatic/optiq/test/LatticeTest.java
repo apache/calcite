@@ -146,8 +146,7 @@ public class LatticeTest {
           .convertContains(
               "AggregateRel(group=[{}], EXPR$0=[COUNT()])\n"
               + "  ProjectRel(DUMMY=[0])\n"
-              + "    ProjectRel\n"
-              + "      StarTableScan(table=[[adhoc, star]])\n");
+              + "    StarTableScan(table=[[adhoc, star]])\n");
     } catch (RuntimeException e) {
       assertThat(Util.getStackTrace(e), containsString("CannotPlanException"));
     }
