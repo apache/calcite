@@ -930,8 +930,10 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
       BitSet fieldsUsed,
       Set<RelDataTypeField> extraFields) {
     final int fieldCount = tableAccessRel.getRowType().getFieldCount();
-    if (fieldsUsed.equals(BitSets.range(fieldCount))
-        && extraFields.isEmpty()) {
+    if (fieldsUsed.isEmpty() || (fieldsUsed.equals(BitSets.range(fieldCount))
+        && extraFields.isEmpty())) {
+      // if there is nothing to project or if we are projecting everything
+      // then no need to introduce another RelNode
       return trimFields(
           (RelNode) tableAccessRel, fieldsUsed, extraFields);
     }
