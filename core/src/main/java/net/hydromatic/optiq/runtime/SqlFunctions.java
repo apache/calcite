@@ -1631,6 +1631,11 @@ public class SqlFunctions {
     return b == null || b;
   }
 
+  /** NULL &rarr; NULL, FALSE &rarr; TRUE, TRUE &rarr; FALSE. */
+  public static Boolean not(Boolean b) {
+    return (b == null) ? null : !b;
+  }
+
   /** Converts a JDBC array to a list. */
   public static List arrayToList(final java.sql.Array a) {
     if (a == null) {

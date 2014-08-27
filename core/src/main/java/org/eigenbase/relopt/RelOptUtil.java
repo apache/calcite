@@ -317,77 +317,92 @@ public abstract class RelOptUtil {
     return ret;
   }
 
-  public static RelNode createExistsPlan(
-      RelOptCluster cluster,
+  /**
+   * Creates a plan suitable for use in <code>EXISTS</code> or <code>IN</code>
+   * statements.
+   *
+   * @see org.eigenbase.sql2rel.SqlToRelConverter#convertExists
+   *
+   * @param seekRel    A query rel, for example the resulting rel from 'select *
+   *                   from emp' or 'values (1,2,3)' or '('Foo', 34)'.
+   * @param subqueryType Sub-query type
+   * @param logic  Whether to use 2- or 3-valued boolean logic
+   * @param needsOuterJoin Whether query needs outer join
+   *
+   * @return A pair of a relational expression which outer joins a boolean
+   * condition column, and a numeric offset. The offset is 2 if column 0 is
+   * the number of rows and column 1 is the number of rows with not-null keys;
+   * 0 otherwise.
+   */
+  public static Pair<RelNode, Boolean> createExistsPlan(
       RelNode seekRel,
-      boolean isIn,
-      boolean isExists,
+      SubqueryType subqueryType,
+      Logic logic,
       boolean needsOuterJoin) {
-    RelNode ret = seekRel;
+    switch (subqueryType) {
+    case SCALAR:
+      return Pair.of(seekRel, false);
+    default:
+      RelNode ret = seekRel;
+      final RelOptCluster cluster = seekRel.getCluster();
+      final RexBuilder rexBuilder = cluster.getRexBuilder();
+      final RelDataTypeFactory typeFactory = rexBuilder.getTypeFactory();
 
-    if (isIn || isExists) {
-      RexBuilder rexBuilder = cluster.getRexBuilder();
-      RelDataTypeFactory typeFactory = rexBuilder.getTypeFactory();
+      final int keyCount = ret.getRowType().getFieldCount();
+      if (!needsOuterJoin) {
+        return Pair.<RelNode, Boolean>of(
+            new AggregateRel(cluster, ret, BitSets.range(keyCount),
+                ImmutableList.<AggregateCall>of()),
+            false);
+      }
 
-      List<RexNode> exprs = new ArrayList<RexNode>();
-
-      // for IN/NOT IN , it needs to output the fields
-      if (isIn) {
-        for (int i = 0; i < ret.getRowType().getFieldCount(); i++) {
+      // for IN/NOT IN, it needs to output the fields
+      final List<RexNode> exprs = new ArrayList<RexNode>();
+      if (subqueryType == SubqueryType.IN) {
+        for (int i = 0; i < keyCount; i++) {
           exprs.add(rexBuilder.makeInputRef(ret, i));
         }
       }
 
-      if (needsOuterJoin) {
-        // First insert an Agg on top of the subquery
-        // agg does not like no agg functions so just pretend it is
-        // doing a min(TRUE)
-        RexNode trueExp = rexBuilder.makeLiteral(true);
-        exprs.add(trueExp);
+      final int projectedKeyCount = exprs.size();
+      exprs.add(rexBuilder.makeLiteral(true));
 
-        ret = CalcRel.createProject(ret, exprs, null);
+      ret = CalcRel.createProject(ret, exprs, null);
 
-        List<RelDataType> argTypes =
-            ImmutableList.of(
-                typeFactory.createSqlType(SqlTypeName.BOOLEAN));
+      final List<RelDataType> argTypes =
+          ImmutableList.of(typeFactory.createSqlType(SqlTypeName.BOOLEAN));
 
-        SqlAggFunction minFunction =
-            new SqlMinMaxAggFunction(
-                argTypes,
-                true,
-                SqlMinMaxAggFunction.MINMAX_COMPARABLE);
+      SqlAggFunction minFunction =
+          new SqlMinMaxAggFunction(argTypes, true,
+              SqlMinMaxAggFunction.MINMAX_COMPARABLE);
 
-        int newProjFieldCount = ret.getRowType().getFieldCount();
+      RelDataType returnType =
+          minFunction.inferReturnType(
+              new AggregateRelBase.AggCallBinding(
+                  typeFactory, minFunction, argTypes, projectedKeyCount));
 
-        RelDataType returnType =
-            minFunction.inferReturnType(new AggregateRelBase.AggCallBinding(
-                typeFactory, minFunction, argTypes, newProjFieldCount - 1));
+      final AggregateCall aggCall =
+          new AggregateCall(
+              minFunction,
+              false,
+              ImmutableList.of(projectedKeyCount),
+              returnType,
+              null);
 
-        final AggregateCall aggCall =
-            new AggregateCall(
-                minFunction,
-                false,
-                Collections.singletonList(newProjFieldCount - 1),
-                returnType,
-                null);
+      ret = new AggregateRel(
+          cluster,
+          ret,
+          BitSets.range(projectedKeyCount),
+          ImmutableList.of(aggCall));
 
-        ret =
-            new AggregateRel(
-                ret.getCluster(),
-                ret,
-                BitSets.range(newProjFieldCount - 1),
-                Collections.singletonList(aggCall));
-      } else {
-        ret =
-            new AggregateRel(
-                ret.getCluster(),
-                ret,
-                BitSets.range(ret.getRowType().getFieldCount()),
-                Collections.<AggregateCall>emptyList());
+      switch (logic) {
+      case TRUE_FALSE_UNKNOWN:
+      case UNKNOWN_AS_TRUE:
+        return Pair.of(ret, true);
+      default:
+        return Pair.of(ret, false);
       }
     }
-
-    return ret;
   }
 
   /**
@@ -1000,6 +1015,33 @@ public abstract class RelOptUtil {
     // So we fail. Fall through.
     // Add this condition to the list of non-equi-join conditions.
     nonEquiList.add(condition);
+  }
+
+  /** Builds an equi-join condition from a set of left and right keys. */
+  public static RexNode createEquiJoinCondition(
+      final RelNode left, final List<Integer> leftKeys,
+      final RelNode right, final List<Integer> rightKeys,
+      final RexBuilder rexBuilder) {
+    final List<RelDataType> leftTypes =
+        RelOptUtil.getFieldTypeList(left.getRowType());
+    final List<RelDataType> rightTypes =
+        RelOptUtil.getFieldTypeList(right.getRowType());
+    return RexUtil.composeConjunction(rexBuilder,
+        new AbstractList<RexNode>() {
+          @Override public RexNode get(int index) {
+            final int leftKey = leftKeys.get(index);
+            final int rightKey = rightKeys.get(index);
+            return rexBuilder.makeCall(SqlStdOperatorTable.EQUALS,
+                rexBuilder.makeInputRef(leftTypes.get(leftKey), leftKey),
+                rexBuilder.makeInputRef(rightTypes.get(rightKey),
+                    leftTypes.size() + rightKey));
+          }
+
+          @Override public int size() {
+            return leftKeys.size();
+          }
+        },
+        false);
   }
 
   private static SqlKind reverse(SqlKind kind) {
@@ -2447,6 +2489,46 @@ public abstract class RelOptUtil {
         Mappings.apply3(mapping, rowType.getFieldList()));
   }
 
+  /** Policies for handling two- and three-valued boolean logic. */
+  public enum Logic {
+    /** Three-valued boolean logic. */
+    TRUE_FALSE_UNKNOWN,
+
+    /** Nulls are not possible. */
+    TRUE_FALSE,
+
+    /** Two-valued logic where UNKNOWN is treated as FALSE.
+     *
+     * <p>"x IS TRUE" produces the same result, and "WHERE x", "JOIN ... ON x"
+     * and "HAVING x" have the same effect. */
+    UNKNOWN_AS_FALSE,
+
+    /** Two-valued logic where UNKNOWN is treated as TRUE.
+     *
+     * <p>"x IS FALSE" produces the same result, as does "WHERE NOT x", etc.
+     *
+     * <p>In particular, this is the mode used by "WHERE k NOT IN q". If
+     * "k IN q" produces TRUE or UNKNOWN, "NOT k IN q" produces FALSE or
+     * UNKNOWN and the row is eliminated; if "k IN q" it returns FALSE, the
+     * row is retained by the WHERE clause. */
+     UNKNOWN_AS_TRUE,
+
+    /** A semi-join will have been applied, so that only rows for which the
+     * value is TRUE will have been returned. */
+    TRUE;
+
+    public Logic negate() {
+      switch (this) {
+      case UNKNOWN_AS_FALSE:
+        return UNKNOWN_AS_TRUE;
+      case UNKNOWN_AS_TRUE:
+        return UNKNOWN_AS_FALSE;
+      default:
+        return this;
+      }
+    }
+  }
+
   //~ Inner Classes ----------------------------------------------------------
 
   /** Visitor that finds all variables used but not stopped in an expression. */
@@ -2708,6 +2790,13 @@ public abstract class RelOptUtil {
         return var;
       }
     }
+  }
+
+  /** What kind of sub-query. */
+  public enum SubqueryType {
+    EXISTS,
+    IN,
+    SCALAR
   }
 }
 

@@ -347,21 +347,28 @@ public class RexImpTable {
       // else if any arguments are null, result is null;
       // else false.
       return new CallImplementor() {
-        public Expression implement(
-            RexToLixTranslator translator, RexCall call, NullAs nullAs) {
-          NullAs nullAs2;
+        public Expression implement(RexToLixTranslator translator, RexCall call,
+            NullAs nullAs) {
+          switch (nullAs) {
+          case NULL:
+            return Expressions.call(BuiltinMethod.NOT.method,
+                translator.translateList(call.getOperands(), nullAs));
+          default:
+            return Expressions.not(
+                translator.translate(call.getOperands().get(0),
+                    negate(nullAs)));
+          }
+        }
+
+        private NullAs negate(NullAs nullAs) {
           switch (nullAs) {
           case FALSE:
-            nullAs2 = NullAs.TRUE;
-            break;
+            return NullAs.TRUE;
           case TRUE:
-            nullAs2 = NullAs.FALSE;
-            break;
+            return NullAs.FALSE;
           default:
-            nullAs2 = nullAs;
+            return nullAs;
           }
-          return implementNullSemantics0(
-              translator, call, nullAs2, nullPolicy, harmonize, implementor);
         }
       };
     case NONE:
@@ -602,7 +609,8 @@ public class RexImpTable {
       RexToLixTranslator translator,
       RexCall call,
       NullAs nullAs,
-      NullPolicy nullPolicy, NotNullImplementor implementor) {
+      NullPolicy nullPolicy,
+      NotNullImplementor implementor) {
     final List<Expression> list = new ArrayList<Expression>();
     switch (nullAs) {
     case NULL:

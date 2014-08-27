@@ -16,17 +16,13 @@
  */
 package org.eigenbase.rel;
 
-import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.List;
 
 import org.eigenbase.relopt.RelOptUtil;
-import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.rex.RexBuilder;
 import org.eigenbase.rex.RexNode;
-import org.eigenbase.rex.RexUtil;
-import org.eigenbase.sql.fun.SqlStdOperatorTable;
 import org.eigenbase.util.ImmutableIntList;
 import org.eigenbase.util.mapping.IntPair;
 
@@ -95,28 +91,10 @@ public abstract class JoinInfo {
 
   public abstract RexNode getRemaining(RexBuilder rexBuilder);
 
-  public RexNode getEquiCondition(final RelNode left, final RelNode right,
-      final RexBuilder rexBuilder) {
-    final List<RelDataType> leftTypes =
-        RelOptUtil.getFieldTypeList(left.getRowType());
-    final List<RelDataType> rightTypes =
-        RelOptUtil.getFieldTypeList(right.getRowType());
-    return RexUtil.composeConjunction(rexBuilder,
-        new AbstractList<RexNode>() {
-          @Override public RexNode get(int index) {
-            final int leftKey = leftKeys.get(index);
-            final int rightKey = rightKeys.get(index);
-            return rexBuilder.makeCall(SqlStdOperatorTable.EQUALS,
-                rexBuilder.makeInputRef(leftTypes.get(leftKey), leftKey),
-                rexBuilder.makeInputRef(rightTypes.get(rightKey),
-                    leftTypes.size() + rightKey));
-          }
-
-          @Override public int size() {
-            return leftKeys.size();
-          }
-        },
-        false);
+  public RexNode getEquiCondition(RelNode left, RelNode right,
+      RexBuilder rexBuilder) {
+    return RelOptUtil.createEquiJoinCondition(left, leftKeys, right, rightKeys,
+        rexBuilder);
   }
 
   /** JoinInfo that represents an equi-join. */

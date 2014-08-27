@@ -198,6 +198,21 @@ public class ImmutableIntList extends FlatLists.AbstractFlatList<Integer> {
     return -1;
   }
 
+  /** Returns a list that contains the values lower to upper - 1.
+   *
+   * <p>For example, {@code range(1, 3)} contains [1, 2]. */
+  public static List<Integer> range(final int lower, final int upper) {
+    return new AbstractList<Integer>() {
+      @Override public Integer get(int index) {
+        return lower + index;
+      }
+
+      @Override public int size() {
+        return upper - lower;
+      }
+    };
+  }
+
   private static class EmptyImmutableIntList extends ImmutableIntList {
     @Override
     public Object[] toArray() {

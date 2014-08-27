@@ -23,6 +23,8 @@ import java.sql.Timestamp;
 import java.text.MessageFormat;
 import java.util.*;
 
+import javax.annotation.Nullable;
+
 import org.eigenbase.resource.Resources;
 import org.eigenbase.sql.*;
 import org.eigenbase.sql.util.*;
@@ -36,10 +38,12 @@ import net.hydromatic.optiq.util.BitSets;
 import net.hydromatic.optiq.util.Compatible;
 import net.hydromatic.optiq.util.CompositeMap;
 
+import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMultiset;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -396,14 +400,14 @@ public class UtilTest {
     assertThat(Util.toLinux(diff),
         equalTo(
             "1a2\n"
-            + "> (they call her \"Polythene Pam\")\n"
-            + "3c4,5\n"
-            + "< She's the kind of a girl that makes The News of The World\n"
-            + "---\n"
-            + "> She's the kind of a girl that makes The Sunday Times\n"
-            + "> seem more interesting.\n"
-            + "5d6\n"
-            + "< Yeah yeah yeah.\n"));
+                + "> (they call her \"Polythene Pam\")\n"
+                + "3c4,5\n"
+                + "< She's the kind of a girl that makes The News of The World\n"
+                + "---\n"
+                + "> She's the kind of a girl that makes The Sunday Times\n"
+                + "> seem more interesting.\n"
+                + "5d6\n"
+                + "< Yeah yeah yeah.\n"));
   }
 
   /**
@@ -973,18 +977,18 @@ public class UtilTest {
     map.put("nullValue", null);
     assertEquals(
         "{\n"
-        + "  foo: 1,\n"
-        + "  baz: true,\n"
-        + "  bar: \"can't\",\n"
-        + "  list: [\n"
-        + "    2,\n"
-        + "    3,\n"
-        + "    [],\n"
-        + "    {},\n"
-        + "    null\n"
-        + "  ],\n"
-        + "  nullValue: null\n"
-        + "}",
+            + "  foo: 1,\n"
+            + "  baz: true,\n"
+            + "  bar: \"can't\",\n"
+            + "  list: [\n"
+            + "    2,\n"
+            + "    3,\n"
+            + "    [],\n"
+            + "    {},\n"
+            + "    null\n"
+            + "  ],\n"
+            + "  nullValue: null\n"
+            + "}",
         builder.toJsonString(map));
   }
 
@@ -1306,6 +1310,27 @@ public class UtilTest {
     assertThat(Util.human(0.0000181111D), equalTo("1.81111E-5"));
     assertThat(Util.human(0.00000181111D), equalTo("1.81111E-6"));
 
+  }
+
+  @Test public void testAsIndexView() {
+    final List<String> values  = Lists.newArrayList("abCde", "X", "y");
+    final Map<String, String> map = Util.asIndexMap(values,
+        new Function<String, String>() {
+          public String apply(@Nullable String input) {
+            return input.toUpperCase();
+          }
+        });
+    assertThat(map.size(), equalTo(values.size()));
+    assertThat(map.get("X"), equalTo("X"));
+    assertThat(map.get("Y"), equalTo("y"));
+    assertThat(map.get("y"), is((String) null));
+    assertThat(map.get("ABCDE"), equalTo("abCde"));
+
+    // If you change the values collection, the map changes.
+    values.remove(1);
+    assertThat(map.size(), equalTo(values.size()));
+    assertThat(map.get("X"), is((String) null));
+    assertThat(map.get("Y"), equalTo("y"));
   }
 }
 

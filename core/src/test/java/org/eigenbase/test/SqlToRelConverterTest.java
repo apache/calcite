@@ -466,10 +466,10 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
 
   @Test public void testWithInsideWhereExists() {
     tester.withDecorrelation(false).assertConvertsTo("select * from emp\n"
-        + "where exists (\n"
-        + "  with dept2 as (select * from dept where dept.deptno >= emp.deptno)\n"
-        + "  select 1 from dept2 where deptno <= emp.deptno)",
-      "${plan}");
+            + "where exists (\n"
+            + "  with dept2 as (select * from dept where dept.deptno >= emp.deptno)\n"
+            + "  select 1 from dept2 where deptno <= emp.deptno)",
+        "${plan}");
   }
 
   @Test public void testWithInsideWhereExistsDecorrelate() {
@@ -482,10 +482,10 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
 
   @Test public void testWithInsideScalarSubquery() {
     check("select (\n"
-        + " with dept2 as (select * from dept where deptno > 10)"
-        + " select count(*) from dept2) as c\n"
-        + "from emp",
-      "${plan}");
+            + " with dept2 as (select * from dept where deptno > 10)"
+            + " select count(*) from dept2) as c\n"
+            + "from emp",
+        "${plan}");
   }
 
   @Test public void testExplicitTable() {
@@ -551,8 +551,8 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
   @Test public void testCollectionTableWithCursorParam() {
     tester.withDecorrelation(false).assertConvertsTo(
         "select * from table(dedup("
-        + "cursor(select ename from emp),"
-        + " cursor(select name from dept), 'NAME'))",
+            + "cursor(select ename from emp),"
+            + " cursor(select name from dept), 'NAME'))",
         "${plan}");
   }
 
@@ -645,6 +645,44 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     check(
         "select empno from emp where deptno in"
         + " (select deptno from dept)",
+        "${plan}");
+  }
+
+  @Test public void testNotInUncorrelatedSubquery() {
+    check(
+        "select empno from emp where deptno not in"
+        + " (select deptno from dept)",
+        "${plan}");
+  }
+
+  @Test public void testInUncorrelatedSubqueryInSelect() {
+    // In the SELECT clause, the value of IN remains in 3-valued logic
+    // -- it's not forced into 2-valued by the "... IS TRUE" wrapper as in the
+    // WHERE clause -- so the translation is more complicated.
+    check(
+        "select name, deptno in (\n"
+        + "  select case when true then deptno else null end from emp)\n"
+        + "from dept",
+        "${plan}");
+  }
+
+  /** Plan should be as {@link #testInUncorrelatedSubqueryInSelect}, but with
+   * an extra NOT. Both queries require 3-valued logic. */
+  @Test public void testNotInUncorrelatedSubqueryInSelect() {
+    check(
+        "select empno, deptno not in (\n"
+        + "  select case when true then deptno else null end from dept)\n"
+        + "from emp",
+        "${plan}");
+  }
+
+  /** Since 'deptno NOT IN (SELECT deptno FROM dept)' can not be null, we
+   * generate a simpler plan. */
+  @Test public void testNotInUncorrelatedSubqueryInSelectNotNull() {
+    check(
+        "select empno, deptno not in (\n"
+        + "  select deptno from dept)\n"
+        + "from emp",
         "${plan}");
   }
 

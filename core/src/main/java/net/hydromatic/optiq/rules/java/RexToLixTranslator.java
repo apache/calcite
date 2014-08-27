@@ -412,7 +412,9 @@ public class RexToLixTranslator {
   public RexNode deref(RexNode expr) {
     if (expr instanceof RexLocalRef) {
       RexLocalRef ref = (RexLocalRef) expr;
-      return program.getExprList().get(ref.getIndex());
+      final RexNode e2 = program.getExprList().get(ref.getIndex());
+      assert ref.getType().equals(e2.getType());
+      return e2;
     } else {
       return expr;
     }

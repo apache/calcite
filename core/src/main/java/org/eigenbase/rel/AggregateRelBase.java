@@ -66,7 +66,8 @@ public abstract class AggregateRelBase extends SingleRel {
     this.groupSet = groupSet;
     assert groupSet != null;
     assert groupSet.isEmpty() == (groupSet.cardinality() == 0)
-        : "See http://bugs.sun.com/bugdatabase/view_bug.do?bug_id=6222207";
+        : "See https://bugs.openjdk.java.net/browse/JDK-6222207, "
+        + "BitSet internal invariants may be violated";
     for (AggregateCall aggCall : aggCalls) {
       assert typeMatchesInferred(aggCall, true);
     }

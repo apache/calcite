@@ -168,6 +168,7 @@ public enum BuiltinMethod {
   SIMILAR(SqlFunctions.class, "similar", String.class, String.class),
   IS_TRUE(SqlFunctions.class, "isTrue", Boolean.class),
   IS_NOT_FALSE(SqlFunctions.class, "isNotFalse", Boolean.class),
+  NOT(SqlFunctions.class, "not", Boolean.class),
   MODIFIABLE_TABLE_GET_MODIFIABLE_COLLECTION(ModifiableTable.class,
       "getModifiableCollection"),
   STRING_TO_BOOLEAN(SqlFunctions.class, "toBoolean", String.class),

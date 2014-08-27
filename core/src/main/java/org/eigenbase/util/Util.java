@@ -30,11 +30,15 @@ import java.util.jar.*;
 import java.util.logging.*;
 import java.util.regex.*;
 
+import javax.annotation.Nullable;
+
 import net.hydromatic.linq4j.Ord;
 
+import com.google.common.base.Function;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
+import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
@@ -2100,6 +2104,46 @@ public class Util {
     default:
       return s.substring(0, 3);
     }
+  }
+
+  /** Returns a map that is a view onto a collection of values, using the
+   * provided function to convert a value to a key.
+   *
+   * <p>Unlike
+   * {@link com.google.common.collect.Maps#uniqueIndex(Iterable, com.google.common.base.Function)},
+   * returns a view whose contents change as the collection of values changes.
+   *
+   * @param values Collection of values
+   * @param function Function to map value to key
+   * @param <K> Key type
+   * @param <V> Value type
+   * @return Map that is a view onto the values
+   */
+  public static <K, V> Map<K, V> asIndexMap(
+      final Collection<V> values,
+      final Function<V, K> function) {
+    final Collection<Map.Entry<K, V>> entries =
+        Collections2.transform(values,
+            new Function<V, Map.Entry<K, V>>() {
+              public Map.Entry<K, V> apply(@Nullable V input) {
+                return Pair.of(function.apply(input), input);
+              }
+            });
+    final Set<Map.Entry<K, V>> entrySet =
+        new AbstractSet<Map.Entry<K, V>>() {
+          public Iterator<Map.Entry<K, V>> iterator() {
+            return entries.iterator();
+          }
+
+          public int size() {
+            return entries.size();
+          }
+        };
+    return new AbstractMap<K, V>() {
+      public Set<Entry<K, V>> entrySet() {
+        return entrySet;
+      }
+    };
   }
 
   //~ Inner Classes ----------------------------------------------------------

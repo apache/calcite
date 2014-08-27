@@ -142,12 +142,19 @@ public class SqlInOperator extends SqlBinaryOperator {
 
     // Result is a boolean, nullable if there are any nullable types
     // on either side.
-    RelDataType type = typeFactory.createSqlType(SqlTypeName.BOOLEAN);
-    if (leftType.isNullable() || rightType.isNullable()) {
-      type = typeFactory.createTypeWithNullability(type, true);
-    }
+    return typeFactory.createTypeWithNullability(
+        typeFactory.createSqlType(SqlTypeName.BOOLEAN),
+        anyNullable(leftRowType.getFieldList())
+        || anyNullable(rightRowType.getFieldList()));
+  }
 
-    return type;
+  private static boolean anyNullable(List<RelDataTypeField> fieldList) {
+    for (RelDataTypeField field : fieldList) {
+      if (field.getType().isNullable()) {
+        return true;
+      }
+    }
+    return false;
   }
 
   public boolean argumentMustBeScalar(int ordinal) {

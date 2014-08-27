@@ -1076,15 +1076,10 @@ public class JavaRules {
       ParameterExpression parameter =
           Expressions.parameter(inputPhysType.getJavaRowType(), "a0");
 
-      final List<Expression> keyExpressions = Expressions.list();
-      PhysType keyPhysType =
+      final PhysType keyPhysType =
           inputPhysType.project(
               BitSets.toList(groupSet), JavaRowFormat.LIST);
       final int keyArity = groupSet.cardinality();
-      for (int groupKey : BitSets.toIter(groupSet)) {
-        keyExpressions.add(
-            inputPhysType.fieldReference(parameter, groupKey));
-      }
       final Expression keySelector =
           builder.append(
               "keySelector",

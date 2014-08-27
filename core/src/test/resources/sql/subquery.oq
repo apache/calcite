@@ -1,0 +1,234 @@
+# subquery.oq - Queries involving IN and EXISTS sub-queries
+#
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to you under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+!use post
+!set outputformat psql
+
+# [OPTIQ-373]
+# the following should return no rows, because the IN list has a null.
+# for details on this: see HIVE-784, Dayal's paper from VLDB-87
+with
+t1(x) as (select * from  (values 1,2, case when 1 = 1 then null else 3 end)),
+t2(x) as (select * from  (values 1,case when 1 = 1 then null else 3 end))
+select *
+from t1
+where t1.x not in (select t2.x from t2);
+ X
+---
+(0 rows)
+
+!ok
+EnumerableCalcRel(expr#0..5=[{inputs}], expr#6=[0], expr#7=[=($t1, $t6)], expr#8=[false], expr#9=[IS NOT NULL($t5)], expr#10=[true], expr#11=[IS NULL($t3)], expr#12=[null], expr#13=[<($t2, $t1)], expr#14=[CASE($t7, $t8, $t9, $t10, $t11, $t12, $t13, $t12, $t8)], expr#15=[NOT($t14)], X=[$t0], $condition=[$t15])
+  EnumerableJoinRel(condition=[=($3, $4)], joinType=[left])
+    EnumerableCalcRel(expr#0..2=[{inputs}], $f0=[$t2], $f1=[$t0], $f2=[$t1], $f3=[$t2])
+      EnumerableJoinRel(condition=[true], joinType=[inner])
+        EnumerableAggregateRel(group=[{}], agg#0=[COUNT()], agg#1=[COUNT($0)])
+          EnumerableCalcRel(expr#0=[{inputs}], expr#1=[true], proj#0..1=[{exprs}])
+            EnumerableUnionRel(all=[true])
+              EnumerableCalcRel(expr#0=[{inputs}], expr#1=[1], EXPR$0=[$t1])
+                EnumerableValuesRel(tuples=[[{ 0 }]])
+              EnumerableCalcRel(expr#0=[{inputs}], expr#1=[1], expr#2=[=($t1, $t1)], expr#3=[null], expr#4=[3], expr#5=[CASE($t2, $t3, $t4)], EXPR$0=[$t5])
+                EnumerableValuesRel(tuples=[[{ 0 }]])
+        EnumerableUnionRel(all=[true])
+          EnumerableCalcRel(expr#0=[{inputs}], expr#1=[1], EXPR$0=[$t1])
+            EnumerableValuesRel(tuples=[[{ 0 }]])
+          EnumerableCalcRel(expr#0=[{inputs}], expr#1=[2], EXPR$0=[$t1])
+            EnumerableValuesRel(tuples=[[{ 0 }]])
+          EnumerableCalcRel(expr#0=[{inputs}], expr#1=[1], expr#2=[=($t1, $t1)], expr#3=[null], expr#4=[3], expr#5=[CASE($t2, $t3, $t4)], EXPR$0=[$t5])
+            EnumerableValuesRel(tuples=[[{ 0 }]])
+    EnumerableAggregateRel(group=[{0}], agg#0=[MIN($1)])
+      EnumerableCalcRel(expr#0=[{inputs}], expr#1=[true], proj#0..1=[{exprs}])
+        EnumerableUnionRel(all=[true])
+          EnumerableCalcRel(expr#0=[{inputs}], expr#1=[1], EXPR$0=[$t1])
+            EnumerableValuesRel(tuples=[[{ 0 }]])
+          EnumerableCalcRel(expr#0=[{inputs}], expr#1=[1], expr#2=[=($t1, $t1)], expr#3=[null], expr#4=[3], expr#5=[CASE($t2, $t3, $t4)], EXPR$0=[$t5])
+            EnumerableValuesRel(tuples=[[{ 0 }]])
+!plan
+
+# Use of case is to get around issue with directly specifying null in values
+# list. Postgres gives 0 rows.
+with
+t1(x) as (select * from  (values (1),(2),(case when 1 = 1 then null else 3 end)) as t1),
+t2(x) as (select * from  (values (1),(case when 1 = 1 then null else 3 end)) as t2)
+select *
+from t1
+where t1.x not in (select t2.x from t2);
+
+ X
+---
+(0 rows)
+
+!ok
+
+# RHS has a mixture of NULL and NOT NULL keys
+select * from dept where deptno not in (select deptno from emp);
+ DEPTNO | DNAME
+--------+-------
+(0 rows)
+
+!ok
+select deptno, deptno     in (select deptno from emp) from dept;
+ DEPTNO | EXPR$1
+--------+--------
+     10 | true
+     20 | true
+     30 | true
+     40 | null
+(4 rows)
+
+!ok
+select deptno, deptno not in (select deptno from emp) from dept;
+ DEPTNO | EXPR$1
+--------+--------
+     10 | false
+     20 | false
+     30 | false
+     40 | null
+(4 rows)
+
+!ok
+
+# RHS has only NULL keys
+select * from dept where deptno not in (select deptno from emp where deptno is null);
+ DEPTNO | DNAME
+--------+-------
+(0 rows)
+
+!ok
+select deptno, deptno     in (select deptno from emp where deptno is null) from dept;
+ DEPTNO | EXPR$1
+--------+--------
+     10 | null
+     20 | null
+     30 | null
+     40 | null
+(4 rows)
+
+!ok
+select deptno, deptno not in (select deptno from emp where deptno is null) from dept;
+ DEPTNO | EXPR$1
+--------+--------
+     10 | null
+     20 | null
+     30 | null
+     40 | null
+(4 rows)
+
+!ok
+
+# RHS has only NOT NULL keys
+select * from dept where deptno not in (select deptno from emp where deptno is not null);
+ DEPTNO | DNAME      
+--------+-------------
+     40 | Empty      
+(1 row)
+
+!ok
+select deptno, deptno     in (select deptno from emp where deptno is not null) from dept;
+ DEPTNO | EXPR$1
+--------+--------
+     10 | true
+     20 | true
+     30 | true
+     40 | false
+(4 rows)
+
+!ok
+select deptno, deptno not in (select deptno from emp where deptno is not null) from dept;
+ DEPTNO | EXPR$1
+--------+--------
+     10 | false
+     20 | false
+     30 | false
+     40 | true
+(4 rows)
+
+!ok
+
+# RHS has no rows
+# Even 'NULL NOT IN ...' is TRUE.
+select * from dept where deptno not in (select deptno from emp where false);
+ DEPTNO | DNAME      
+--------+-------------
+     10 | Sales      
+     20 | Marketing  
+     30 | Engineering
+     40 | Empty      
+(4 rows)
+
+!ok
+select deptno, deptno     in (select deptno from emp where false) from dept;
+ DEPTNO | EXPR$1
+--------+--------
+     10 | false
+     20 | false
+     30 | false
+     40 | false
+(4 rows)
+
+!ok
+select deptno, deptno not in (select deptno from emp where false) from dept;
+ DEPTNO | EXPR$1
+--------+--------
+     10 | true
+     20 | true
+     30 | true
+     40 | true
+(4 rows)
+
+!ok
+
+# Multiple IN, connected by OR
+select * from dept
+where deptno in (select deptno from emp where gender = 'F')
+or deptno in (select deptno from emp where gender = 'M');
+ DEPTNO | DNAME      
+--------+-------------
+     30 | Engineering
+     10 | Sales      
+     20 | Marketing  
+(3 rows)
+
+!ok
+
+# Mix IN and EXISTS
+select * from dept
+where deptno in (select deptno from emp where gender = 'F')
+or exists (select 99, 101 from emp where gender = 'X');
+ DEPTNO | DNAME      
+--------+-------------
+     30 | Engineering
+     10 | Sales      
+(2 rows)
+
+!ok
+
+# Composite key
+select * from dept
+where (deptno, deptno) in (select deptno * 2 - deptno, deptno from emp where gender = 'F');
+
+# Composite key, part literal
+select * from emp
+where (gender, deptno) in (select gender, 10 from emp where gender = 'F');
+ ENAME | DEPTNO | GENDER
+-------+--------+--------
+ Jane  |     10 | F
+(1 row)
+
+!ok
+
+# End subquery.oq
