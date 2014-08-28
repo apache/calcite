@@ -179,7 +179,7 @@ public class SqlRunTest {
             + "\n"));
   }
 
-  @Test public void testPlanDisabled() {
+  @Test public void testIfFalse() {
     check(
         "!use foodmart\n"
         + "!if (false) {\n"
@@ -196,6 +196,28 @@ public class SqlRunTest {
             + "anything\n"
             + "you like\n"
             + "!plan\n"
+            + "!}\n"
+            + "\n"));
+  }
+
+  @Test public void testIfTrue() {
+    check(
+        "!use foodmart\n"
+        + "!if (true) {\n"
+        + "values (1), (2);\n"
+        + "anything\n"
+        + "you like\n"
+        + "!ok\n"
+        + "!}\n"
+        + "\n",
+        containsString(
+            "!use foodmart\n"
+            + "!if (true) {\n"
+            + "values (1), (2);\n"
+            + "EXPR$0\n"
+            + "1\n"
+            + "2\n"
+            + "!ok\n"
             + "!}\n"
             + "\n"));
   }

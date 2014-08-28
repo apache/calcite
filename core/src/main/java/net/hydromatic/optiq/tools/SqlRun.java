@@ -102,6 +102,9 @@ public class SqlRun {
       } catch (Exception e) {
         throw new RuntimeException(
             "Error while executing command " + command, e);
+      } catch (AssertionError e) {
+        throw new RuntimeException(
+            "Error while executing command " + command, e);
       }
     } finally {
       printWriter.flush();
@@ -135,11 +138,9 @@ public class SqlRun {
   private static CharSequence chars(final char c, final int length) {
     return new CharSequence() {
       @Override public String toString() {
-        final StringBuilder buf = new StringBuilder();
-        for (int i = 0; i < length; i++) {
-          buf.append(c);
-        }
-        return buf.toString();
+        final char[] chars = new char[length];
+        Arrays.fill(chars, c);
+        return new String(chars);
       }
 
       public int length() {
@@ -217,7 +218,13 @@ public class SqlRun {
             List<String> ifLines = ImmutableList.copyOf(lines);
             lines.clear();
             Command command = new Parser().parse();
-            return new IfCommand(ifLines, lines, command);
+            return new IfCommand(ifLines, lines, command, false);
+          }
+          if (line.equals("if (true) {")) {
+            List<String> ifLines = ImmutableList.copyOf(lines);
+            lines.clear();
+            Command command = new Parser().parse();
+            return new IfCommand(ifLines, lines, command, true);
           }
           if (line.equals("}")) {
             return null;
@@ -501,6 +508,10 @@ public class SqlRun {
       this.output = output;
     }
 
+    @Override public String toString() {
+      return "CheckResultCommand [sql: " + sqlCommand.sql + "]";
+    }
+
     public void execute(boolean execute) throws Exception {
       if (execute) {
         if (connection == null) {
@@ -512,7 +523,7 @@ public class SqlRun {
         }
         try {
           if (OptiqPrepareImpl.DEBUG) {
-            System.out.println("sql=" + sqlCommand.sql);
+            System.out.println("execute: " + this);
           }
           resultSet = null;
           resultSetException = null;
@@ -591,6 +602,10 @@ public class SqlRun {
       super(lines);
       this.sqlCommand = sqlCommand;
       this.content = content;
+    }
+
+    @Override public String toString() {
+      return "ExplainCommand [sql: " + sqlCommand.sql + "]";
     }
 
     public void execute(boolean execute) throws Exception {
@@ -676,9 +691,11 @@ public class SqlRun {
     private final List<String> ifLines;
     private final List<String> endLines;
     private final Command command;
+    private final boolean enable;
 
-    public IfCommand(List<String> ifLines,
-        List<String> endLines, Command command) {
+    public IfCommand(List<String> ifLines, List<String> endLines,
+        Command command, boolean enable) {
+      this.enable = enable;
       this.ifLines = ImmutableList.copyOf(ifLines);
       this.endLines = ImmutableList.copyOf(endLines);
       this.command = command;
@@ -688,10 +705,13 @@ public class SqlRun {
       echo(ifLines);
       // Switch to a mode where we don't execute, just echo.
       boolean oldExecute = SqlRun.this.execute;
-      boolean newExecute = execute;
-      if (!skip) {
-        // If "skip" is set, stay in the current mode.
-        newExecute = false;
+      boolean newExecute;
+      if (skip) {
+        // If "skip" is set, stay in current (disabled) mode.
+        newExecute = oldExecute;
+      } else {
+        // If "enable" is true, stay in the current mode.
+        newExecute = enable;
       }
       command.execute(newExecute);
       echo(endLines);
@@ -723,13 +743,32 @@ public class SqlRun {
     }
 
     public void execute(boolean execute) throws Exception {
+      // We handle all RuntimeExceptions, all Exceptions, and a limited number
+      // of Errors. If we don't understand an Error (e.g. OutOfMemoryError)
+      // then we print it out, then abort.
       for (Command command : commands) {
+        boolean abort = false;
+        Throwable e = null;
         try {
           command.execute(execute);
-        } catch (Exception e) {
+        } catch (RuntimeException e0) {
+          e = e0;
+        } catch (Exception e0) {
+          e = e0;
+        } catch (AssertionError e0) {
+          // We handle a limited number of errors.
+          e = e0;
+        } catch (Throwable e0) {
+          e = e0;
+          abort = true;
+        }
+        if (e != null) {
           command.execute(false); // echo the command
           printWriter.println("Error while executing command " + command);
           e.printStackTrace(printWriter);
+          if (abort) {
+            throw (Error) e;
+          }
         }
       }
     }
