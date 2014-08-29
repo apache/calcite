@@ -62,6 +62,12 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
   //~ Instance fields --------------------------------------------------------
 
   private final ReflectUtil.MethodDispatcher<TrimResult> trimFieldsDispatcher;
+  private final RelFactories.ProjectFactory projectFactory;
+  private final RelFactories.FilterFactory filterFactory;
+  private final RelFactories.JoinFactory joinFactory;
+  private final RelFactories.SortRelFactory sortRelFactory;
+  private final RelFactories.AggrRelFactory aggrRelFactory;
+  private final RelFactories.SetOpRelFactory setOpRelFactory;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -71,6 +77,21 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
    * @param validator Validator
    */
   public RelFieldTrimmer(SqlValidator validator) {
+    this (validator, null, null, null, null, null, null);
+  }
+
+  /**
+   * Creates a RelFieldTrimmer.
+   *
+   * @param validator Validator
+   */
+  public RelFieldTrimmer(SqlValidator validator,
+    RelFactories.ProjectFactory projectFactory,
+    RelFactories.FilterFactory filterFactory,
+    RelFactories.JoinFactory joinFactory,
+    RelFactories.SortRelFactory sortRelFactory,
+    RelFactories.AggrRelFactory aggrRelFactory,
+    RelFactories.SetOpRelFactory setOpRelFactory) {
     Util.discard(validator); // may be useful one day
     this.trimFieldsDispatcher =
         ReflectUtil.createMethodDispatcher(
@@ -80,8 +101,20 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
             RelNode.class,
             BitSet.class,
             Set.class);
-  }
+    this.projectFactory = (null == projectFactory)
+      ? RelFactories.DEFAULT_PROJECT_FACTORY : projectFactory;
+    this.filterFactory = (null == filterFactory)
+      ? RelFactories.DEFAULT_FILTER_FACTORY : filterFactory;
+    this.joinFactory = (null == joinFactory)
+      ? RelFactories.DEFAULT_JOIN_FACTORY : joinFactory;
+    this.sortRelFactory = (null == sortRelFactory)
+      ? RelFactories.DEFAULT_SORTREL_FACTORY : sortRelFactory;
+    this.aggrRelFactory = (null == aggrRelFactory)
+      ? RelFactories.DEFAULT_AGGRREL_FACTORY : aggrRelFactory;
+    this.setOpRelFactory = (null == setOpRelFactory)
+      ? RelFactories.DEFAULT_SETOPREL_FACTORY : setOpRelFactory;
 
+  }
   //~ Methods ----------------------------------------------------------------
 
   /**
@@ -165,7 +198,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
               : rexBuilder.makeInputRef(field.getType(), source));
     }
     RelNode project =
-        CalcRel.createProject(
+        projectFactory.createProject(
             trimResult.left, exprList, nameList);
     return new TrimResult(
         project,
@@ -285,17 +318,9 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
       final RexLiteral expr =
           project.getCluster().getRexBuilder().makeExactLiteral(
               BigDecimal.ZERO);
-      RelDataType newRowType =
-          project.getCluster().getTypeFactory().createStructType(
-              Collections.singletonList(expr.getType()),
-              Collections.singletonList("DUMMY"));
-      ProjectRel newProject = new ProjectRel(
-          project.getCluster(),
-          project.getCluster().traitSetOf(RelCollationImpl.EMPTY),
-          newInput,
-          Collections.<RexNode>singletonList(expr),
-          newRowType,
-          project.getFlags());
+      RelNode newProject = projectFactory.createProject(newInput,
+        Collections.<RexNode>singletonList(expr),
+        Collections.singletonList("DUMMY"));
       return new TrimResult(newProject, mapping);
     }
 
@@ -322,9 +347,6 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
         RelOptUtil.permute(project.getCluster().getTypeFactory(), rowType,
             mapping);
 
-    final List<RelCollation> newCollations =
-        RexUtil.apply(inputMapping, project.getCollationList());
-
     final RelNode newProject;
     if (RemoveTrivialProjectRule.isIdentity(
         newProjectExprList,
@@ -334,16 +356,8 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
       // its child.
       newProject = newInput;
     } else {
-      newProject = new ProjectRel(
-          project.getCluster(),
-          project.getCluster().traitSetOf(
-              newCollations.isEmpty()
-                  ? RelCollationImpl.EMPTY
-                  : newCollations.get(0)),
-          newInput,
-          newProjectExprList,
-          newRowType,
-          project.getFlags());
+      newProject = projectFactory.createProject(newInput, newProjectExprList,
+        newRowType.getFieldNames());
       assert newProject.getClass() == project.getClass();
     }
     return new TrimResult(newProject, mapping);
@@ -392,11 +406,8 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
     RexNode newConditionExpr =
         conditionExpr.accept(shuttle);
 
-    final FilterRel newFilter =
-        new FilterRel(
-            filter.getCluster(),
-            newInput,
-            newConditionExpr);
+    final RelNode newFilter = filterFactory.createFilter(newInput,
+      newConditionExpr);
     assert newFilter.getClass() == filter.getClass();
 
     // The result has the same mapping as the input gave us. Sometimes we
@@ -442,11 +453,9 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
           Mappings.createIdentity(fieldCount));
     }
 
-    final SortRel newSort =
-        sort.copy(
-            sort.getTraitSet(),
-            newInput,
-            RexUtil.apply(inputMapping, collation));
+    final RelNode newSort = sortRelFactory.createSortRel(sort.getTraitSet(),
+      newInput, RexUtil.apply(inputMapping, collation),
+      sort.offset, sort.fetch);
     assert newSort.getClass() == sort.getClass();
 
     // The result has the same mapping as the input gave us. Sometimes we
@@ -463,7 +472,6 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
       JoinRelBase join,
       BitSet fieldsUsed,
       Set<RelDataTypeField> extraFields) {
-    final RelDataType rowType = join.getRowType();
     final int fieldCount = join.getSystemFieldList().size()
         + join.getLeft().getRowType().getFieldCount()
         + join.getRight().getRowType().getFieldCount();
@@ -575,12 +583,11 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
     RexNode newConditionExpr =
         conditionExpr.accept(shuttle);
 
-    final JoinRelBase newJoin =
-        join.copy(join.getTraitSet(), newConditionExpr, newInputs.get(0),
-            newInputs.get(1), join.getJoinType(), join.isSemiJoinDone());
-
-    // For SemiJoins only map fields from the left-side
-    if (newJoin instanceof SemiJoinRel) {
+    final JoinRelBase newJoin;
+    if (join instanceof SemiJoinRel) {
+      newJoin = joinFactory.createSemiJoinRel(join.getTraitSet(),
+          newInputs.get(0), newInputs.get(1), newConditionExpr);
+      // For SemiJoins only map fields from the left-side
       Mapping inputMapping = inputMappings.get(0);
       mapping = Mappings.create(MappingType.INVERSE_SURJECTION,
           join.getRowType().getFieldCount(),
@@ -593,6 +600,10 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
       for (IntPair pair : inputMapping) {
         mapping.set(pair.source + offset, pair.target + newOffset);
       }
+    } else {
+      newJoin = (JoinRelBase) joinFactory.createJoin(
+        newInputs.get(0), newInputs.get(1), newConditionExpr,
+        join.getJoinType(), join.getVariablesStopped(), join.isSemiJoinDone());
     }
 
     return new TrimResult(newJoin, mapping);
@@ -660,7 +671,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
           mapping);
     }
 
-    RelNode newSetOp = setOp.copy(setOp.getTraitSet(), newInputs);
+    RelNode newSetOp = setOpRelFactory.createSetOpRelNode(setOp, newInputs);
     return new TrimResult(newSetOp, mapping);
   }
 
@@ -771,12 +782,8 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
       ++j;
     }
 
-    RelNode newAggregate =
-        new AggregateRel(
-            aggregate.getCluster(),
-            newInput,
-            newGroupSet,
-            newAggCallList);
+    RelNode newAggregate = aggrRelFactory.createAggrRelNode(newInput,
+      newGroupSet, newAggCallList);
 
     assert newAggregate.getClass() == aggregate.getClass();
 
@@ -936,7 +943,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
           (RelNode) tableAccessRel, fieldsUsed, extraFields);
     }
     final RelNode newTableAccessRel =
-        tableAccessRel.project(fieldsUsed, extraFields);
+        tableAccessRel.project(fieldsUsed, extraFields, this.projectFactory);
     final Mapping mapping = createMapping(fieldsUsed, fieldCount);
     return new TrimResult(newTableAccessRel, mapping);
   }
