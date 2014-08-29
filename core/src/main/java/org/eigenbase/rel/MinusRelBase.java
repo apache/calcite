@@ -22,6 +22,7 @@ import java.util.List;
 import org.eigenbase.rel.metadata.RelMetadataQuery;
 import org.eigenbase.relopt.RelOptCluster;
 import org.eigenbase.relopt.RelTraitSet;
+import org.eigenbase.sql.SqlKind;
 
 /**
  * Abstract base class for implementations of
@@ -33,7 +34,7 @@ public abstract class MinusRelBase extends SetOpRel {
       RelTraitSet traits,
       List<RelNode> inputs,
       boolean all) {
-    super(cluster, traits, inputs, all);
+    super(cluster, traits, inputs, SqlKind.EXCEPT, all);
   }
 
   /**

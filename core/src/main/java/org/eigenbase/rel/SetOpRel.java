@@ -20,9 +20,11 @@ import java.util.*;
 
 import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.*;
+import org.eigenbase.sql.SqlKind;
 
 import net.hydromatic.linq4j.Ord;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
 /**
@@ -33,6 +35,7 @@ public abstract class SetOpRel extends AbstractRelNode {
   //~ Instance fields --------------------------------------------------------
 
   protected ImmutableList<RelNode> inputs;
+  public final SqlKind kind;
   public final boolean all;
 
   //~ Constructors -----------------------------------------------------------
@@ -44,8 +47,13 @@ public abstract class SetOpRel extends AbstractRelNode {
       RelOptCluster cluster,
       RelTraitSet traits,
       List<RelNode> inputs,
+      SqlKind kind,
       boolean all) {
     super(cluster, traits);
+    Preconditions.checkArgument(kind == SqlKind.UNION
+        || kind == SqlKind.INTERSECT
+        || kind == SqlKind.EXCEPT);
+    this.kind = kind;
     this.inputs = ImmutableList.copyOf(inputs);
     this.all = all;
   }
@@ -54,9 +62,8 @@ public abstract class SetOpRel extends AbstractRelNode {
    * Creates a SetOpRel by parsing serialized output.
    */
   protected SetOpRel(RelInput input) {
-    this(
-        input.getCluster(), input.getTraitSet(), input.getInputs(),
-        input.getBoolean("all"));
+    this(input.getCluster(), input.getTraitSet(), input.getInputs(),
+        SqlKind.UNION, input.getBoolean("all"));
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -66,6 +73,7 @@ public abstract class SetOpRel extends AbstractRelNode {
       List<RelNode> inputs,
       boolean all);
 
+  @Override
   public SetOpRel copy(
       RelTraitSet traitSet,
       List<RelNode> inputs) {
@@ -87,10 +95,12 @@ public abstract class SetOpRel extends AbstractRelNode {
     return !all && columns.nextClearBit(0) >= getRowType().getFieldCount();
   }
 
+  @Override
   public List<RelNode> getInputs() {
     return inputs;
   }
 
+  @Override
   public RelWriter explainTerms(RelWriter pw) {
     super.explainTerms(pw);
     for (Ord<RelNode> ord : Ord.zip(inputs)) {
@@ -99,13 +109,16 @@ public abstract class SetOpRel extends AbstractRelNode {
     return pw.item("all", all);
   }
 
+  @Override
   protected RelDataType deriveRowType() {
     return getCluster().getTypeFactory().leastRestrictive(
         new AbstractList<RelDataType>() {
+          @Override
           public RelDataType get(int index) {
             return inputs.get(index).getRowType();
           }
 
+          @Override
           public int size() {
             return inputs.size();
           }

@@ -59,35 +59,34 @@ public abstract class TableAccessRelBase extends AbstractRelNode {
 
   //~ Methods ----------------------------------------------------------------
 
-  public double getRows() {
+  @Override public double getRows() {
     return table.getRowCount();
   }
 
-  public RelOptTable getTable() {
+  @Override public RelOptTable getTable() {
     return table;
   }
 
-  public List<RelCollation> getCollationList() {
+  @Override public List<RelCollation> getCollationList() {
     return table.getCollationList();
   }
 
-  @Override
-  public boolean isKey(BitSet columns) {
+  @Override public boolean isKey(BitSet columns) {
     return table.isKey(columns);
   }
 
-  public RelOptCost computeSelfCost(RelOptPlanner planner) {
+  @Override public RelOptCost computeSelfCost(RelOptPlanner planner) {
     double dRows = table.getRowCount();
     double dCpu = dRows + 1; // ensure non-zero cost
     double dIo = 0;
     return planner.getCostFactory().makeCost(dRows, dCpu, dIo);
   }
 
-  public RelDataType deriveRowType() {
+  @Override public RelDataType deriveRowType() {
     return table.getRowType();
   }
 
-  public RelWriter explainTerms(RelWriter pw) {
+  @Override public RelWriter explainTerms(RelWriter pw) {
     return super.explainTerms(pw)
         .item("table", table.getQualifiedName());
   }
@@ -108,9 +107,8 @@ public abstract class TableAccessRelBase extends AbstractRelNode {
    *                    wanted by the consumer
    * @return Relational expression that projects the desired fields
    */
-  public RelNode project(
-      BitSet fieldsUsed,
-      Set<RelDataTypeField> extraFields) {
+  public RelNode project(BitSet fieldsUsed, Set<RelDataTypeField> extraFields,
+    RelFactories.ProjectFactory projectFactory) {
     final int fieldCount = getRowType().getFieldCount();
     if (fieldsUsed.equals(BitSets.range(fieldCount))
         && extraFields.isEmpty()) {
@@ -139,12 +137,7 @@ public abstract class TableAccessRelBase extends AbstractRelNode {
       nameList.add(extraField.getName());
     }
 
-    return new ProjectRel(
-        getCluster(),
-        this,
-        exprList,
-        nameList,
-        ProjectRel.Flags.BOXED);
+    return projectFactory.createProject(this, exprList, nameList);
   }
 
   @Override

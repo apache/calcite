@@ -20,6 +20,7 @@ import java.util.List;
 
 import org.eigenbase.rel.metadata.*;
 import org.eigenbase.relopt.*;
+import org.eigenbase.sql.SqlKind;
 
 /**
  * <code>UnionRelBase</code> is an abstract base class for implementations of
@@ -33,7 +34,7 @@ public abstract class UnionRelBase extends SetOpRel {
       RelTraitSet traits,
       List<RelNode> inputs,
       boolean all) {
-    super(cluster, traits, inputs, all);
+    super(cluster, traits, inputs, SqlKind.UNION, all);
   }
 
   /**
