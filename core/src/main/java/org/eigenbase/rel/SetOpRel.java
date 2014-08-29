@@ -66,6 +66,7 @@ public abstract class SetOpRel extends AbstractRelNode {
       List<RelNode> inputs,
       boolean all);
 
+  @Override
   public SetOpRel copy(
       RelTraitSet traitSet,
       List<RelNode> inputs) {
@@ -87,10 +88,12 @@ public abstract class SetOpRel extends AbstractRelNode {
     return !all && columns.nextClearBit(0) >= getRowType().getFieldCount();
   }
 
+  @Override
   public List<RelNode> getInputs() {
     return inputs;
   }
 
+  @Override
   public RelWriter explainTerms(RelWriter pw) {
     super.explainTerms(pw);
     for (Ord<RelNode> ord : Ord.zip(inputs)) {
@@ -99,13 +102,16 @@ public abstract class SetOpRel extends AbstractRelNode {
     return pw.item("all", all);
   }
 
+  @Override
   protected RelDataType deriveRowType() {
     return getCluster().getTypeFactory().leastRestrictive(
         new AbstractList<RelDataType>() {
+          @Override
           public RelDataType get(int index) {
             return inputs.get(index).getRowType();
           }
 
+          @Override
           public int size() {
             return inputs.size();
           }

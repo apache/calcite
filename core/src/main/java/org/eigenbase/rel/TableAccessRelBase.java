@@ -59,14 +59,17 @@ public abstract class TableAccessRelBase extends AbstractRelNode {
 
   //~ Methods ----------------------------------------------------------------
 
+  @Override
   public double getRows() {
     return table.getRowCount();
   }
 
+  @Override
   public RelOptTable getTable() {
     return table;
   }
 
+  @Override
   public List<RelCollation> getCollationList() {
     return table.getCollationList();
   }
@@ -76,6 +79,7 @@ public abstract class TableAccessRelBase extends AbstractRelNode {
     return table.isKey(columns);
   }
 
+  @Override
   public RelOptCost computeSelfCost(RelOptPlanner planner) {
     double dRows = table.getRowCount();
     double dCpu = dRows + 1; // ensure non-zero cost
@@ -83,10 +87,12 @@ public abstract class TableAccessRelBase extends AbstractRelNode {
     return planner.getCostFactory().makeCost(dRows, dCpu, dIo);
   }
 
+  @Override
   public RelDataType deriveRowType() {
     return table.getRowType();
   }
 
+  @Override
   public RelWriter explainTerms(RelWriter pw) {
     return super.explainTerms(pw)
         .item("table", table.getQualifiedName());
@@ -108,9 +114,8 @@ public abstract class TableAccessRelBase extends AbstractRelNode {
    *                    wanted by the consumer
    * @return Relational expression that projects the desired fields
    */
-  public RelNode project(
-      BitSet fieldsUsed,
-      Set<RelDataTypeField> extraFields) {
+  public RelNode project(BitSet fieldsUsed, Set<RelDataTypeField> extraFields,
+    RelFactories.ProjectFactory projectFactory) {
     final int fieldCount = getRowType().getFieldCount();
     if (fieldsUsed.equals(BitSets.range(fieldCount))
         && extraFields.isEmpty()) {
@@ -139,12 +144,7 @@ public abstract class TableAccessRelBase extends AbstractRelNode {
       nameList.add(extraField.getName());
     }
 
-    return new ProjectRel(
-        getCluster(),
-        this,
-        exprList,
-        nameList,
-        ProjectRel.Flags.BOXED);
+    return projectFactory.createProject(this, exprList, nameList);
   }
 
   @Override

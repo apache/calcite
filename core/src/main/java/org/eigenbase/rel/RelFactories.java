@@ -18,10 +18,13 @@
 package org.eigenbase.rel;
 
 import java.util.AbstractList;
+import java.util.BitSet;
 import java.util.List;
 import java.util.Set;
 
+import org.eigenbase.rel.rules.SemiJoinRel;
 import org.eigenbase.relopt.RelOptCluster;
+import org.eigenbase.relopt.RelTraitSet;
 import org.eigenbase.reltype.RelDataTypeField;
 import org.eigenbase.rex.RexBuilder;
 import org.eigenbase.rex.RexNode;
@@ -41,6 +44,15 @@ public class RelFactories {
       new FilterFactoryImpl();
 
   public static final JoinFactory DEFAULT_JOIN_FACTORY = new JoinFactoryImpl();
+
+  public static final SortRelFactory DEFAULT_SORTREL_FACTORY =
+    new SortRelFactoryImpl();
+
+  public static final AggrRelFactory DEFAULT_AGGRREL_FACTORY =
+    new AggrRelFactoryImpl();
+
+  public static final SetOpRelFactory DEFAULT_SETOPREL_FACTORY =
+    new SetOptRelFactoryImpl();
 
   private RelFactories() {
   }
@@ -66,6 +78,69 @@ public class RelFactories {
     public RelNode createProject(RelNode child, List<RexNode> childExprs,
         List<String> fieldNames) {
       return CalcRel.createProject(child, childExprs, fieldNames);
+    }
+  }
+
+  /**
+   * Can create a {@link org.eigenbase.rel.SortRel} of the appropriate type
+   * for this rule's calling convention.
+   */
+  public interface SortRelFactory {
+
+    RelNode createSortRel(RelTraitSet traits, RelNode child,
+      RelCollation collation, RexNode offset, RexNode fetch);
+  }
+
+  /**
+   * Implementation of {@link org.eigenbase.rel.RelFactories.SortRelFactory} that
+   * returns vanilla {@link SortRel}.
+   */
+  private static class SortRelFactoryImpl implements SortRelFactory {
+
+    public RelNode createSortRel(RelTraitSet traits, RelNode child,
+      RelCollation collation, RexNode offset, RexNode fetch) {
+      return new SortRel(child.getCluster(), traits, child, collation,
+        offset, fetch);
+    }
+  }
+
+  /**
+   * Can create a {@link org.eigenbase.rel.SetOpRel} of the appropriate type
+   * for this rule's calling convention.
+   */
+  public interface SetOpRelFactory {
+    RelNode createSetOpRelNode(SetOpRel setOpRel, List<RelNode> inputs);
+  }
+
+  /**
+   * Implementation of {@link org.eigenbase.rel.RelFactories.SetOpRelFactory} that
+   * returns vanilla {@link SetOpRel}.
+   */
+  private static class SetOptRelFactoryImpl implements SetOpRelFactory {
+
+    public RelNode createSetOpRelNode(SetOpRel setOpRel, List<RelNode> inputs) {
+      return setOpRel.copy(setOpRel.getTraitSet(), inputs);
+    }
+  }
+
+  /**
+   * Can create a {@link org.eigenbase.rel.AggregateRel} of the appropriate type
+   * for this rule's calling convention.
+   */
+  public interface AggrRelFactory {
+    RelNode createAggrRelNode(RelNode child, BitSet groupSet,
+      List<AggregateCall> aggCalls);
+  }
+
+  /**
+   * Implementation of {@link org.eigenbase.rel.RelFactories.AggrRelFactory} that
+   * returns vanilla {@link AggregateRel}.
+   */
+  private static class AggrRelFactoryImpl implements AggrRelFactory {
+
+    public RelNode createAggrRelNode(RelNode child, BitSet groupSet,
+        List<AggregateCall> aggCalls) {
+      return new AggregateRel(child.getCluster(), child, groupSet, aggCalls);
     }
   }
 
@@ -112,6 +187,9 @@ public class RelFactories {
     RelNode createJoin(RelNode left, RelNode right, RexNode condition,
         JoinRelType joinType, Set<String> variablesStopped,
         boolean semiJoinDone);
+
+    SemiJoinRel createSemiJoinRel(RelTraitSet traitSet, RelNode left,
+      RelNode right, RexNode condition);
   }
 
   /**
@@ -125,6 +203,13 @@ public class RelFactories {
       final RelOptCluster cluster = left.getCluster();
       return new JoinRel(cluster, left, right, condition, joinType,
           variablesStopped, semiJoinDone, ImmutableList.<RelDataTypeField>of());
+    }
+
+    public SemiJoinRel createSemiJoinRel(RelTraitSet traitSet, RelNode left,
+        RelNode right, RexNode condition) {
+      final JoinInfo joinInfo = JoinInfo.of(left, right, condition);
+      return new SemiJoinRel(left.getCluster(), traitSet, left, right,
+        condition, joinInfo.leftKeys, joinInfo.rightKeys);
     }
   }
 
@@ -150,10 +235,12 @@ public class RelFactories {
     final RexBuilder rexBuilder = child.getCluster().getRexBuilder();
     return factory.createProject(child,
         new AbstractList<RexNode>() {
+          @Override
           public int size() {
             return posList.size();
           }
 
+          @Override
           public RexNode get(int index) {
             final int pos = posList.get(index);
             return rexBuilder.makeInputRef(child, pos);

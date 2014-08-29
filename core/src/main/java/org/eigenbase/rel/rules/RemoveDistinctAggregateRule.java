@@ -53,6 +53,7 @@ public final class RemoveDistinctAggregateRule extends RelOptRule {
 
   //~ Methods ----------------------------------------------------------------
 
+  @Override
   public void onMatch(RelOptRuleCall call) {
     final AggregateRelBase aggregate = call.rel(0);
     if (!aggregate.containsDistinctCall()) {
