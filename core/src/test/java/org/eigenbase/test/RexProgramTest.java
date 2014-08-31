@@ -28,11 +28,16 @@ import org.eigenbase.util.*;
 
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 import net.hydromatic.optiq.jdbc.JavaTypeFactoryImpl;
+import net.hydromatic.optiq.test.OptiqAssert;
 import net.hydromatic.optiq.util.BitSets;
+
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 
 import org.junit.Before;
 import org.junit.Test;
 
+import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 
@@ -113,7 +118,7 @@ public class RexProgramTest {
         + "expr#7=[+($t4, $t2)], a=[$t7], b=[$t6])",
         unnormalizedProgram);
 
-    // normalize eliminates dups (specifically "+($0, $1)")
+    // normalize eliminates duplicates (specifically "+($0, $1)")
     final RexProgramBuilder builder2 = createProg(1);
     final String program2 = builder2.getProgram(true).toString();
     TestUtil.assertEqualsVerbose(
@@ -314,6 +319,256 @@ public class RexProgramTest {
     assertThat(strongIf(andFalseTrue, c), is(false));
   }
 
+  /** Unit test for {@link org.eigenbase.rex.RexUtil#toCnf}. */
+  @Test public void testCnf() {
+    final RelDataType booleanType =
+        typeFactory.createSqlType(SqlTypeName.BOOLEAN);
+    final RelDataType intType = typeFactory.createSqlType(SqlTypeName.INTEGER);
+    final RelDataType rowType = typeFactory.builder()
+        .add("a", booleanType)
+        .add("b", booleanType)
+        .add("c", booleanType)
+        .add("d", booleanType)
+        .add("e", booleanType)
+        .add("f", booleanType)
+        .add("g", booleanType)
+        .add("h", intType)
+        .build();
+
+    final RexDynamicParam range = rexBuilder.makeDynamicParam(rowType, 0);
+    final RexNode aRef = rexBuilder.makeFieldAccess(range, 0);
+    final RexNode bRef = rexBuilder.makeFieldAccess(range, 1);
+    final RexNode cRef = rexBuilder.makeFieldAccess(range, 2);
+    final RexNode dRef = rexBuilder.makeFieldAccess(range, 3);
+    final RexNode eRef = rexBuilder.makeFieldAccess(range, 4);
+    final RexNode fRef = rexBuilder.makeFieldAccess(range, 5);
+    final RexNode gRef = rexBuilder.makeFieldAccess(range, 6);
+    final RexNode hRef = rexBuilder.makeFieldAccess(range, 7);
+
+    final RexLiteral sevenLiteral =
+        rexBuilder.makeExactLiteral(BigDecimal.valueOf(7));
+    final RexNode hEqSeven = eq(hRef, sevenLiteral);
+
+    final RexLiteral trueLiteral = rexBuilder.makeLiteral(true);
+    final RexLiteral falseLiteral = rexBuilder.makeLiteral(false);
+    final RexNode unknownLiteral =
+        rexBuilder.makeNullLiteral(SqlTypeName.BOOLEAN);
+
+    assertThat(RexUtil.toCnf(rexBuilder, aRef).toString(), equalTo("?0.a"));
+    assertThat(RexUtil.toCnf(rexBuilder, trueLiteral).toString(),
+        equalTo("true"));
+    assertThat(RexUtil.toCnf(rexBuilder, falseLiteral).toString(),
+        equalTo("false"));
+    assertThat(RexUtil.toCnf(rexBuilder, unknownLiteral).toString(),
+        equalTo("null"));
+    assertThat(RexUtil.toCnf(rexBuilder, and(aRef, bRef)).toString(),
+        equalTo("AND(?0.a, ?0.b)"));
+    assertThat(RexUtil.toCnf(rexBuilder, and(aRef, bRef, cRef)).toString(),
+        equalTo("AND(?0.a, ?0.b, ?0.c)"));
+
+    assertThat(RexUtil.toCnf(rexBuilder, and(or(aRef, bRef), or(cRef, dRef)))
+            .toString(),
+        equalTo("AND(OR(?0.a, ?0.b), OR(?0.c, ?0.d))"));
+    assertThat(RexUtil.toCnf(rexBuilder, or(and(aRef, bRef), and(cRef, dRef)))
+            .toString(),
+        equalTo(
+            "AND(OR(?0.a, ?0.c), OR(?0.a, ?0.d), OR(?0.b, ?0.c), OR(?0.b, ?0.d))"));
+    // Input has nested ORs, output ORs are flat
+    assertThat(RexUtil.toCnf(rexBuilder, or(and(aRef, bRef), or(cRef, dRef)))
+            .toString(),
+        equalTo("AND(OR(?0.a, ?0.c, ?0.d), OR(?0.b, ?0.c, ?0.d))"));
+
+    assertThat(
+        RexUtil.toCnf(rexBuilder, or(aRef, not(and(bRef, not(hEqSeven)))))
+            .toString(),
+        equalTo("OR(?0.a, NOT(?0.b), =(?0.h, 7))"));
+
+    // apply de Morgan's theorem
+    assertThat(
+        RexUtil.toCnf(rexBuilder, not(or(aRef, not(bRef))))
+            .toString(),
+        equalTo("AND(NOT(?0.a), ?0.b)"));
+
+    // apply de Morgan's theorem,
+    // filter out 'OR ... FALSE' and 'AND ... TRUE'
+    assertThat(
+        RexUtil.toCnf(rexBuilder,
+            not(or(and(aRef, trueLiteral), not(bRef), falseLiteral)))
+            .toString(),
+        equalTo("AND(NOT(?0.a), ?0.b)"));
+
+    assertThat(
+        RexUtil.toCnf(rexBuilder, and(aRef, or(bRef, and(cRef, dRef))))
+            .toString(),
+        equalTo("AND(?0.a, OR(?0.b, ?0.c), OR(?0.b, ?0.d))"));
+
+    assertThat(
+        RexUtil.toCnf(rexBuilder,
+            and(aRef, or(bRef,
+                and(cRef, or(dRef,
+                    and(eRef, or(fRef, gRef)))))))
+            .toString(),
+        equalTo(
+            "AND(?0.a, OR(?0.b, ?0.c), OR(?0.b, ?0.d, ?0.e), OR(?0.b, ?0.d, ?0.f, ?0.g))"));
+
+    assertThat(
+        RexUtil.toCnf(rexBuilder,
+            and(aRef, or(bRef,
+                and(cRef, or(dRef,
+                    and(eRef, or(fRef,
+                        and(gRef, or(trueLiteral, falseLiteral)))))))))
+            .toString(),
+        equalTo(
+            "AND(?0.a, OR(?0.b, ?0.c), OR(?0.b, ?0.d, ?0.e), OR(?0.b, ?0.d, ?0.f, ?0.g))"));
+  }
+
+  /** Unit test for
+   * <a href="https://issues.apache.org/jira/browse/OPTIQ-394">OPTIQ-394,
+   * "Add RexUtil.toCnf, to convert expressions to conjunctive normal form
+   * (CNF)"</a>. */
+  @Test public void testCnf2() {
+    final RelDataType intType = typeFactory.createSqlType(SqlTypeName.INTEGER);
+    final RelDataType rowType = typeFactory.builder()
+        .add("x", intType)
+        .add("y", intType)
+        .add("z", intType)
+        .add("a", intType)
+        .add("b", intType)
+        .build();
+
+    final RexDynamicParam range = rexBuilder.makeDynamicParam(rowType, 0);
+    final RexNode xRef = rexBuilder.makeFieldAccess(range, 0);
+    final RexNode yRef = rexBuilder.makeFieldAccess(range, 1);
+    final RexNode zRef = rexBuilder.makeFieldAccess(range, 2);
+    final RexNode aRef = rexBuilder.makeFieldAccess(range, 3);
+    final RexNode bRef = rexBuilder.makeFieldAccess(range, 4);
+
+    final RexLiteral literal1 =
+        rexBuilder.makeExactLiteral(BigDecimal.valueOf(1));
+    final RexLiteral literal2 =
+        rexBuilder.makeExactLiteral(BigDecimal.valueOf(2));
+    final RexLiteral literal3 =
+        rexBuilder.makeExactLiteral(BigDecimal.valueOf(3));
+
+    assertThat(
+        RexUtil.toCnf(rexBuilder,
+            or(
+                and(eq(xRef, literal1),
+                    eq(yRef, literal1),
+                    eq(zRef, literal1)),
+                and(eq(xRef, literal2),
+                    eq(yRef, literal2),
+                    eq(aRef, literal2)),
+                and(eq(xRef, literal3),
+                    eq(aRef, literal3),
+                    eq(bRef, literal3)))).toString(),
+        equalTo("AND("
+            + "OR(=(?0.x, 1), =(?0.x, 2), =(?0.x, 3)), "
+            + "OR(=(?0.x, 1), =(?0.x, 2), =(?0.a, 3)), "
+            + "OR(=(?0.x, 1), =(?0.x, 2), =(?0.b, 3)), "
+            + "OR(=(?0.x, 1), =(?0.y, 2), =(?0.x, 3)), "
+            + "OR(=(?0.x, 1), =(?0.y, 2), =(?0.a, 3)), "
+            + "OR(=(?0.x, 1), =(?0.y, 2), =(?0.b, 3)), "
+            + "OR(=(?0.x, 1), =(?0.a, 2), =(?0.x, 3)), "
+            + "OR(=(?0.x, 1), =(?0.a, 2), =(?0.a, 3)), "
+            + "OR(=(?0.x, 1), =(?0.a, 2), =(?0.b, 3)), "
+            + "OR(=(?0.y, 1), =(?0.x, 2), =(?0.x, 3)), "
+            + "OR(=(?0.y, 1), =(?0.x, 2), =(?0.a, 3)), "
+            + "OR(=(?0.y, 1), =(?0.x, 2), =(?0.b, 3)), "
+            + "OR(=(?0.y, 1), =(?0.y, 2), =(?0.x, 3)), "
+            + "OR(=(?0.y, 1), =(?0.y, 2), =(?0.a, 3)), "
+            + "OR(=(?0.y, 1), =(?0.y, 2), =(?0.b, 3)), "
+            + "OR(=(?0.y, 1), =(?0.a, 2), =(?0.x, 3)), "
+            + "OR(=(?0.y, 1), =(?0.a, 2), =(?0.a, 3)), "
+            + "OR(=(?0.y, 1), =(?0.a, 2), =(?0.b, 3)), "
+            + "OR(=(?0.z, 1), =(?0.x, 2), =(?0.x, 3)), "
+            + "OR(=(?0.z, 1), =(?0.x, 2), =(?0.a, 3)), "
+            + "OR(=(?0.z, 1), =(?0.x, 2), =(?0.b, 3)), "
+            + "OR(=(?0.z, 1), =(?0.y, 2), =(?0.x, 3)), "
+            + "OR(=(?0.z, 1), =(?0.y, 2), =(?0.a, 3)), "
+            + "OR(=(?0.z, 1), =(?0.y, 2), =(?0.b, 3)), "
+            + "OR(=(?0.z, 1), =(?0.a, 2), =(?0.x, 3)), "
+            + "OR(=(?0.z, 1), =(?0.a, 2), =(?0.a, 3)), "
+            + "OR(=(?0.z, 1), =(?0.a, 2), =(?0.b, 3)))"));
+  }
+
+  /** Tests formulas of various sizes whose size is exponential when converted
+   * to CNF. */
+  @Test public void testCnfExponential() {
+    // run out of memory if limit is higher than about 20
+    final int limit = OptiqAssert.ENABLE_SLOW ? 16 : 6;
+    for (int i = 2; i < limit; i++) {
+      checkExponentialCnf(i);
+    }
+  }
+
+  private void checkExponentialCnf(int n) {
+    final RelDataType booleanType =
+        typeFactory.createSqlType(SqlTypeName.BOOLEAN);
+    final RelDataTypeFactory.FieldInfoBuilder builder = typeFactory.builder();
+    for (int i = 0; i < n; i++) {
+      builder.add("x" + i, booleanType)
+          .add("y" + i, booleanType);
+    }
+    final RelDataType rowType3 = builder.build();
+    final RexDynamicParam range3 = rexBuilder.makeDynamicParam(rowType3, 0);
+    final List<RexNode> list = Lists.newArrayList();
+    for (int i = 0; i < n; i++) {
+      list.add(
+          and(rexBuilder.makeFieldAccess(range3, i * 2),
+              rexBuilder.makeFieldAccess(range3, i * 2 + 1)));
+    }
+    final RexNode cnf = RexUtil.toCnf(rexBuilder, or(list));
+    final int nodeCount = nodeCount(cnf);
+    assertThat((n + 1) * (int) Math.pow(2, n) + 1, equalTo(nodeCount));
+    if (n == 3) {
+      assertThat(cnf.toString(),
+          equalTo(
+              "AND(OR(?0.x0, ?0.x1, ?0.x2), OR(?0.x0, ?0.x1, ?0.y2),"
+              + " OR(?0.x0, ?0.y1, ?0.x2), OR(?0.x0, ?0.y1, ?0.y2),"
+              + " OR(?0.y0, ?0.x1, ?0.x2), OR(?0.y0, ?0.x1, ?0.y2),"
+              + " OR(?0.y0, ?0.y1, ?0.x2), OR(?0.y0, ?0.y1, ?0.y2))"));
+    }
+  }
+
+  /** Returns the number of nodes (including leaves) in a Rex tree. */
+  private static int nodeCount(RexNode node) {
+    int n = 1;
+    if (node instanceof RexCall) {
+      for (RexNode operand : ((RexCall) node).getOperands()) {
+        n += nodeCount(operand);
+      }
+    }
+    return n;
+  }
+
+  private RexNode not(RexNode node) {
+    return rexBuilder.makeCall(SqlStdOperatorTable.NOT, node);
+  }
+
+  private RexNode and(RexNode... nodes) {
+    return and(ImmutableList.copyOf(nodes));
+  }
+
+  private RexNode and(Iterable<? extends RexNode> nodes) {
+    // Does not flatten nested ANDs. We want test input to contain nested ANDs.
+    return rexBuilder.makeCall(SqlStdOperatorTable.AND,
+        ImmutableList.copyOf(nodes));
+  }
+
+  private RexNode or(RexNode... nodes) {
+    return or(ImmutableList.copyOf(nodes));
+  }
+
+  private RexNode or(Iterable<? extends RexNode> nodes) {
+    // Does not flatten nested ORs. We want test input to contain nested ORs.
+    return rexBuilder.makeCall(SqlStdOperatorTable.OR,
+        ImmutableList.copyOf(nodes));
+  }
+
+  private RexNode eq(RexNode n1, RexNode n2) {
+    return rexBuilder.makeCall(SqlStdOperatorTable.EQUALS, n1, n2);
+  }
 }
 
 // End RexProgramTest.java

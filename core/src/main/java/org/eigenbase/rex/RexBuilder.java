@@ -700,7 +700,7 @@ public class RexBuilder {
    * @param offset   Index of first field.
    * @param nullable Whether the record is nullable.
    */
-  public RexNode makeRangeReference(
+  public RexRangeRef makeRangeReference(
       RelDataType type,
       int offset,
       boolean nullable) {

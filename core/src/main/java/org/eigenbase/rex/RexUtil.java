@@ -29,26 +29,19 @@ import org.eigenbase.util.mapping.*;
 
 import net.hydromatic.linq4j.function.*;
 
-import com.google.common.base.Predicate;
+import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterators;
-import com.google.common.collect.UnmodifiableIterator;
+import com.google.common.collect.Lists;
 
 /**
  * Utility methods concerning row-expressions.
  */
 public class RexUtil {
-  private static final Predicate<RexNode> NOT_ALWAYS_TRUE_PREDICATE =
-      new Predicate<RexNode>() {
-        public boolean apply(RexNode e) {
-          return !e.isAlwaysTrue();
-        }
-      };
-
-  private static final Predicate<RexNode> NOT_ALWAYS_FALSE_PREDICATE =
-      new Predicate<RexNode>() {
-        public boolean apply(RexNode e) {
-          return !e.isAlwaysFalse();
+  private static final Function<? super RexNode, ? extends RexNode> ADD_NOT =
+      new Function<RexNode, RexNode>() {
+        public RexNode apply(RexNode input) {
+          return new RexCall(input.getType(), SqlStdOperatorTable.NOT,
+              ImmutableList.of(input));
         }
       };
 
@@ -590,26 +583,44 @@ public class RexUtil {
    * Removes expressions that always evaluate to TRUE.
    * Returns null only if {@code nullOnEmpty} and expression is TRUE.
    */
-  public static RexNode composeConjunction(
-      RexBuilder rexBuilder, Iterable<RexNode> nodes, boolean nullOnEmpty) {
-    final UnmodifiableIterator<RexNode> iterator =
-        Iterators.filter(nodes.iterator(), NOT_ALWAYS_TRUE_PREDICATE);
-    if (!iterator.hasNext()) {
-      // Zero expressions
+  public static RexNode composeConjunction(RexBuilder rexBuilder,
+      Iterable<? extends RexNode> nodes, boolean nullOnEmpty) {
+    ImmutableList<RexNode> list = flattenAnd(nodes);
+    switch (list.size()) {
+    case 0:
       return nullOnEmpty
           ? null
           : rexBuilder.makeLiteral(true);
+    case 1:
+      return list.get(0);
+    default:
+      return rexBuilder.makeCall(SqlStdOperatorTable.AND, list);
     }
-    final RexNode node = iterator.next();
-    if (!iterator.hasNext()) {
-      // One expression
-      return node;
-    }
-    // More than one expression
+  }
+
+  /** Flattens a list of AND nodes. */
+  public static ImmutableList<RexNode> flattenAnd(
+      Iterable<? extends RexNode> nodes) {
     final ImmutableList.Builder<RexNode> builder = ImmutableList.builder();
-    builder.add(node);
-    builder.addAll(iterator);
-    return rexBuilder.makeCall(SqlStdOperatorTable.AND, builder.build());
+    for (RexNode node : nodes) {
+      addAnd(builder, node);
+    }
+    return builder.build();
+  }
+
+  private static void addAnd(ImmutableList.Builder<RexNode> builder,
+      RexNode node) {
+    switch (node.getKind()) {
+    case AND:
+      for (RexNode operand : ((RexCall) node).getOperands()) {
+        addAnd(builder, operand);
+      }
+      return;
+    default:
+      if (!node.isAlwaysTrue()) {
+        builder.add(node);
+      }
+    }
   }
 
   /**
@@ -617,27 +628,46 @@ public class RexUtil {
    * If there are zero expressions, returns FALSE.
    * If there is one expression, returns just that expression.
    * Removes expressions that always evaluate to FALSE.
+   * Flattens expressions that are ORs.
    */
-  public static RexNode composeDisjunction(
-      RexBuilder rexBuilder, Iterable<RexNode> nodes, boolean nullOnEmpty) {
-    final UnmodifiableIterator<RexNode> iterator =
-        Iterators.filter(nodes.iterator(), NOT_ALWAYS_FALSE_PREDICATE);
-    if (!iterator.hasNext()) {
-      // Zero expressions
+  public static RexNode composeDisjunction(RexBuilder rexBuilder,
+      Iterable<? extends RexNode> nodes, boolean nullOnEmpty) {
+    ImmutableList<RexNode> list = flattenOr(nodes);
+    switch (list.size()) {
+    case 0:
       return nullOnEmpty
           ? null
           : rexBuilder.makeLiteral(false);
+    case 1:
+      return list.get(0);
+    default:
+      return rexBuilder.makeCall(SqlStdOperatorTable.OR, list);
     }
-    final RexNode node = iterator.next();
-    if (!iterator.hasNext()) {
-      // One expression
-      return node;
-    }
-    // More than one expression
+  }
+
+  /** Flattens a list of OR nodes. */
+  public static ImmutableList<RexNode> flattenOr(
+      Iterable<? extends RexNode> nodes) {
     final ImmutableList.Builder<RexNode> builder = ImmutableList.builder();
-    builder.add(node);
-    builder.addAll(iterator);
-    return rexBuilder.makeCall(SqlStdOperatorTable.OR, builder.build());
+    for (RexNode node : nodes) {
+      addOr(builder, node);
+    }
+    return builder.build();
+  }
+
+  private static void addOr(ImmutableList.Builder<RexNode> builder,
+      RexNode node) {
+    switch (node.getKind()) {
+    case OR:
+      for (RexNode operand : ((RexCall) node).getOperands()) {
+        addOr(builder, operand);
+      }
+      return;
+    default:
+      if (!node.isAlwaysFalse()) {
+        builder.add(node);
+      }
+    }
   }
 
   /**
@@ -876,6 +906,34 @@ public class RexUtil {
     }
   }
 
+  /** Converts an expression to conjunctive normal form (CNF).
+   *
+   * <p>The following expression is in CNF:
+   *
+   * <blockquote>(a OR b) AND (c OR d)</blockquote>
+   *
+   * <p>The following expression is not in CNF:
+   *
+   * <blockquote>(a AND b) OR c</blockquote>
+   *
+   * but can be converted to CNF:
+   *
+   * <blockquote>(a OR c) AND (b OR c)</blockquote>
+   *
+   * <p>The following expression is not in CNF:
+   *
+   * <blockquote>NOT (a OR NOT b)</blockquote>
+   *
+   * but can be converted to CNF by applying de Morgan's theorem:
+   *
+   * <blockquote>NOT a AND b</blockquote>
+   *
+   * <p>Expressions not involving AND, OR or NOT at the top level are in CNF.
+   */
+  public static RexNode toCnf(RexBuilder rexBuilder, RexNode rex) {
+    return new CnfHelper(rexBuilder).toCnf(rex);
+  }
+
   /**
    * Returns whether an operator is associative. AND is associative,
    * which means that "(x AND y) and z" is equivalent to "x AND (y AND z)".
@@ -1100,6 +1158,77 @@ public class RexUtil {
 
     public List<RexFieldAccess> getFieldAccessList() {
       return fieldAccessList;
+    }
+  }
+
+  /** Helps {@link org.eigenbase.rex.RexUtil#toCnf}. */
+  private static class CnfHelper {
+    final RexBuilder rexBuilder;
+
+    private CnfHelper(RexBuilder rexBuilder) {
+      this.rexBuilder = rexBuilder;
+    }
+
+    public RexNode toCnf(RexNode rex) {
+      final List<RexNode> operands;
+      switch (rex.getKind()) {
+      case AND:
+        operands = flattenAnd(((RexCall) rex).getOperands());
+        return and(toCnfs(operands));
+      case OR:
+        operands = flattenOr(((RexCall) rex).getOperands());
+        final RexNode head = operands.get(0);
+        final RexNode headCnf = toCnf(head);
+        final List<RexNode> headCnfs = RelOptUtil.conjunctions(headCnf);
+        final RexNode tail = or(Util.skip(operands));
+        final RexNode tailCnf = toCnf(tail);
+        final List<RexNode> tailCnfs = RelOptUtil.conjunctions(tailCnf);
+        final List<RexNode> list = Lists.newArrayList();
+        for (RexNode h : headCnfs) {
+          for (RexNode t : tailCnfs) {
+            list.add(or(ImmutableList.of(h, t)));
+          }
+        }
+        return and(list);
+      case NOT:
+        final RexNode arg = ((RexCall) rex).getOperands().get(0);
+        switch (arg.getKind()) {
+        case NOT:
+          return toCnf(((RexCall) arg).getOperands().get(0));
+        case OR:
+          operands = ((RexCall) arg).getOperands();
+          return toCnf(and(Lists.transform(flattenOr(operands), ADD_NOT)));
+        case AND:
+          operands = ((RexCall) arg).getOperands();
+          return toCnf(or(Lists.transform(flattenAnd(operands), ADD_NOT)));
+        default:
+          return rex;
+        }
+      }
+      return rex;
+    }
+
+    private List<RexNode> toCnfs(List<RexNode> nodes) {
+      final List<RexNode> list = Lists.newArrayList();
+      for (RexNode node : nodes) {
+        RexNode cnf = toCnf(node);
+        switch (cnf.getKind()) {
+        case AND:
+          list.addAll(((RexCall) cnf).getOperands());
+          break;
+        default:
+          list.add(cnf);
+        }
+      }
+      return list;
+    }
+
+    private RexNode and(Iterable<? extends RexNode> nodes) {
+      return composeConjunction(rexBuilder, nodes, false);
+    }
+
+    private RexNode or(Iterable<? extends RexNode> nodes) {
+      return composeDisjunction(rexBuilder, nodes, false);
     }
   }
 }
