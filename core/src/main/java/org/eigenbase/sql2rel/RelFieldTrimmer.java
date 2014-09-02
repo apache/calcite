@@ -667,7 +667,8 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
       Mapping remaining = Mappings.divide(mapping, inputMapping);
 
       // Create a projection; does nothing if remaining is identity.
-      newInput = CalcRel.projectMapping(newInput, remaining, null);
+      newInput = CalcRel.projectMapping(newInput, remaining, null,
+        projectFactory);
 
       if (input != newInput) {
         ++changeCount;

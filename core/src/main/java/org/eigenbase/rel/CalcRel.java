@@ -230,10 +230,12 @@ public final class CalcRel extends CalcRelBase {
     assert fieldNames.size() == fields.size();
     final List<Pair<RexNode, String>> refs =
         new AbstractList<Pair<RexNode, String>>() {
+          @Override
           public int size() {
             return fields.size();
           }
 
+          @Override
           public Pair<RexNode, String> get(int index) {
             return RexInputRef.of2(index, fields);
           }
@@ -241,6 +243,7 @@ public final class CalcRel extends CalcRelBase {
     return createProject(rel, refs, true);
   }
 
+  @Override
   public void collectVariablesUsed(Set<String> variableSet) {
     final RelOptUtil.VariableUsedVisitor vuv =
         new RelOptUtil.VariableUsedVisitor();
@@ -362,16 +365,15 @@ public final class CalcRel extends CalcRelBase {
   public static RelNode projectMapping(
       RelNode rel,
       Mapping mapping,
-      List<String> fieldNames) {
+      List<String> fieldNames,
+      RelFactories.ProjectFactory projectFactory) {
     assert mapping.getMappingType().isSingleSource();
     assert mapping.getMappingType().isMandatorySource();
     if (mapping.isIdentity()) {
       return rel;
     }
-    final List<RelDataType> outputTypeList = new ArrayList<RelDataType>();
     final List<String> outputNameList = new ArrayList<String>();
     final List<RexNode> exprList = new ArrayList<RexNode>();
-    final List<RexLocalRef> projectRefList = new ArrayList<RexLocalRef>();
     final List<RelDataTypeField> fields = rel.getRowType().getFieldList();
     final RexBuilder rexBuilder = rel.getCluster().getRexBuilder();
     for (int i = 0; i < fields.size(); i++) {
@@ -380,33 +382,13 @@ public final class CalcRel extends CalcRelBase {
     for (int i = 0; i < mapping.getTargetCount(); i++) {
       int source = mapping.getSource(i);
       final RelDataTypeField sourceField = fields.get(source);
-      outputTypeList.add(sourceField.getType());
       outputNameList.add(
           ((fieldNames == null)
               || (fieldNames.size() <= i)
               || (fieldNames.get(i) == null)) ? sourceField.getName()
               : fieldNames.get(i));
-      projectRefList.add(
-          new RexLocalRef(
-              source,
-              sourceField.getType()));
     }
-    final RexProgram program =
-        new RexProgram(
-            rel.getRowType(),
-            exprList,
-            projectRefList,
-            null,
-            rel.getCluster().getTypeFactory().createStructType(
-                outputTypeList,
-                outputNameList));
-    return new CalcRel(
-        rel.getCluster(),
-        rel.getTraitSet(),
-        rel,
-        program.getOutputRowType(),
-        program,
-        Collections.<RelCollation>emptyList());
+    return projectFactory.createProject(rel, exprList, outputNameList);
   }
 }
 
