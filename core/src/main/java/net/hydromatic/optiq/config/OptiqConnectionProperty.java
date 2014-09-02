@@ -31,8 +31,11 @@ public enum OptiqConnectionProperty implements ConnectionProperty {
   /** Whether to store query results in temporary tables. */
   AUTO_TEMP("autoTemp", Type.BOOLEAN, false),
 
-  /** Whether materializations are enabled. */
+  /** Whether Optiq should use materializations. */
   MATERIALIZATIONS_ENABLED("materializationsEnabled", Type.BOOLEAN, true),
+
+  /** Whether Optiq should create materializations. */
+  CREATE_MATERIALIZATIONS("createMaterializations", Type.BOOLEAN, true),
 
   /** URI of the model. */
   MODEL("model", Type.STRING, null),

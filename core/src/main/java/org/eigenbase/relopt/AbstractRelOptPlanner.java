@@ -63,7 +63,8 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
 
   private final Set<RelTrait> traits = new HashSet<RelTrait>();
 
-  private final Context context;
+  /** External context. Never null. */
+  protected final Context context;
 
   private Executor executor;
 
@@ -76,6 +77,9 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
       Context context) {
     assert costFactory != null;
     this.costFactory = costFactory;
+    if (context == null) {
+      context = Contexts.empty();
+    }
     this.context = context;
 
     // In case no one calls setCancelFlag, set up a
@@ -188,6 +192,19 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
   // implement RelOptPlanner
   public RelOptPlanner chooseDelegate() {
     return this;
+  }
+
+  public void addMaterialization(RelOptMaterialization materialization) {
+    // ignore - this planner does not support materializations
+  }
+
+  public void addLattice(RelOptLattice lattice) {
+    // ignore - this planner does not support lattices
+  }
+
+  public RelOptLattice getLattice(RelOptTable table) {
+    // this planner does not support lattices
+    return null;
   }
 
   // implement RelOptPlanner

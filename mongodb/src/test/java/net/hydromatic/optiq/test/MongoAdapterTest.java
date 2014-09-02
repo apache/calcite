@@ -23,6 +23,7 @@ import org.eigenbase.util.*;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Lists;
 
 import org.junit.*;
 
@@ -133,16 +134,17 @@ public class MongoAdapterTest {
     };
   }
 
+  /** Similar to {@link OptiqAssert#checkResultUnordered}, but filters strings
+   * before comparing them. */
   static Function1<ResultSet, Void> checkResultUnordered(
       final String... lines) {
     return new Function1<ResultSet, Void>() {
       public Void apply(ResultSet resultSet) {
         try {
-          final List<String> expectedList = new ArrayList<String>();
-          Collections.addAll(expectedList, lines);
+          final List<String> expectedList = Lists.newArrayList(lines);
           Collections.sort(expectedList);
 
-          final List<String> actualList = new ArrayList<String>();
+          final List<String> actualList = Lists.newArrayList();
           OptiqAssert.toStringList(resultSet, actualList);
           for (int i = 0; i < actualList.size(); i++) {
             String s = actualList.get(i);

@@ -17,15 +17,20 @@
 package org.eigenbase.relopt;
 
 import org.eigenbase.rel.*;
+import org.eigenbase.rel.metadata.DefaultRelMetadataProvider;
+import org.eigenbase.rel.rules.MergeProjectRule;
 import org.eigenbase.rel.rules.PullUpProjectsAboveJoinRule;
-import org.eigenbase.relopt.hep.HepPlanner;
-import org.eigenbase.relopt.hep.HepProgram;
 import org.eigenbase.sql.SqlExplainLevel;
 import org.eigenbase.util.Util;
 import org.eigenbase.util.mapping.Mappings;
 
 import net.hydromatic.optiq.Table;
 import net.hydromatic.optiq.impl.StarTable;
+import net.hydromatic.optiq.prepare.OptiqPrepareImpl;
+import net.hydromatic.optiq.tools.Program;
+import net.hydromatic.optiq.tools.Programs;
+
+import com.google.common.collect.ImmutableList;
 
 /**
  * Records that a particular query is materialized by a particular table.
@@ -76,8 +81,10 @@ public class RelOptMaterialization {
                       starRelOptTable.getRowType().getFieldCount(),
                       0, 0, relOptTable.getRowType().getFieldCount());
 
-              return RelOptUtil.createProject(
-                  new TableAccessRel(scan.getCluster(), starRelOptTable),
+              final RelOptCluster cluster = scan.getCluster();
+              final RelNode scan2 =
+                  starRelOptTable.toRel(RelOptUtil.getContext(cluster));
+              return RelOptUtil.createProject(scan2,
                   Mappings.asList(mapping.inverse()));
             }
             return scan;
@@ -182,21 +189,24 @@ public class RelOptMaterialization {
    * as close to leaves as possible.
    */
   public static RelNode toLeafJoinForm(RelNode rel) {
-    HepProgram program = HepProgram.builder()
-        .addRuleInstance(PullUpProjectsAboveJoinRule.RIGHT_PROJECT)
-        .addRuleInstance(PullUpProjectsAboveJoinRule.LEFT_PROJECT)
-        .build();
-    final HepPlanner planner =
-        new HepPlanner(program, //
-            rel.getCluster().getPlanner().getContext());
-    planner.setRoot(rel);
-    System.out.println(
-        RelOptUtil.dumpPlan(
-            "before", rel, false, SqlExplainLevel.DIGEST_ATTRIBUTES));
-    final RelNode rel2 = planner.findBestExp();
-    System.out.println(
-        RelOptUtil.dumpPlan(
-            "after", rel2, false, SqlExplainLevel.DIGEST_ATTRIBUTES));
+    final Program program = Programs.hep(
+        ImmutableList.of(
+            PullUpProjectsAboveJoinRule.RIGHT_PROJECT,
+            PullUpProjectsAboveJoinRule.LEFT_PROJECT,
+            MergeProjectRule.INSTANCE),
+        false,
+        new DefaultRelMetadataProvider());
+    if (OptiqPrepareImpl.DEBUG) {
+      System.out.println(
+          RelOptUtil.dumpPlan(
+              "before", rel, false, SqlExplainLevel.DIGEST_ATTRIBUTES));
+    }
+    final RelNode rel2 = program.run(null, rel, null);
+    if (OptiqPrepareImpl.DEBUG) {
+      System.out.println(
+          RelOptUtil.dumpPlan(
+              "after", rel2, false, SqlExplainLevel.DIGEST_ATTRIBUTES));
+    }
     return rel2;
   }
 }

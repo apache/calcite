@@ -178,6 +178,16 @@ public class AggregateCall {
   }
 
   /**
+   * Creates an equivalent AggregateCall with new argument ordinals.
+   *
+   * @param args Arguments
+   * @return AggregateCall that suits new inputs and GROUP BY columns
+   */
+  public AggregateCall copy(List<Integer> args) {
+    return new AggregateCall(aggregation, distinct, args, type, name);
+  }
+
+  /**
    * Creates equivalent AggregateCall that is adapted to a new input types
    * and/or number of columns in GROUP BY.
    *

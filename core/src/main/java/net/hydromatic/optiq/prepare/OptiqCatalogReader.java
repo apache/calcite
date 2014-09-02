@@ -92,7 +92,7 @@ public class OptiqCatalogReader implements Prepare.CatalogReader,
       final Table table = pair.getValue();
       final String name2 = pair.getKey();
       return RelOptTableImpl.create(this, table.getRowType(typeFactory),
-          schema.add(name2, table));
+          schema.add(name2, table), null);
     }
     return null;
   }

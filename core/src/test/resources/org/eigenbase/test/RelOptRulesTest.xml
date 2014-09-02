@@ -2133,4 +2133,29 @@ ProjectRel(DEPTNO=[$0])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testAggregateProjectMerge">
+        <Resource name="sql">
+            <![CDATA[select x, sum(z), y from (
+  select deptno as x, empno as y, sal as z, sal * 2 as zz
+  from emp)
+group by x, y]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+ProjectRel(X=[$0], EXPR$1=[$2], Y=[$1])
+  AggregateRel(group=[{0, 1}], EXPR$1=[SUM($2)])
+    ProjectRel(X=[$0], Y=[$1], Z=[$2])
+      ProjectRel(X=[$7], Y=[$0], Z=[$5], ZZ=[*($5, 2)])
+        TableAccessRel(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+ProjectRel(X=[$0], EXPR$1=[$2], Y=[$1])
+  ProjectRel($f0=[$1], $f1=[$0], $f2=[$2])
+    AggregateRel(group=[{0, 7}], EXPR$1=[SUM($5)])
+      TableAccessRel(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
 </Root>

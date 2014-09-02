@@ -77,7 +77,7 @@ class QueryableRelBuilder<T> implements QueryableFactory<T> {
               .add(tableQueryable.tableName, tableQueryable.table);
       final RelOptTableImpl relOptTable =
           RelOptTableImpl.create(null, table.getRowType(translator.typeFactory),
-              tableEntry);
+              tableEntry, null);
       if (table instanceof TranslatableTable) {
         return ((TranslatableTable) table).toRel(translator, relOptTable);
       } else {

@@ -377,7 +377,7 @@ public class JdbcImplementor {
         select = asSelect();
         clauseList.addAll(this.clauses);
       }
-      Collections.addAll(clauseList, clauses);
+      clauseList.appendAll(clauses);
       Context newContext;
       final SqlNodeList selectList = select.getSelectList();
       if (selectList != null) {

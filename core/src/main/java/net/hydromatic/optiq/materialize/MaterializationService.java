@@ -24,14 +24,18 @@ import net.hydromatic.linq4j.function.Function1;
 import net.hydromatic.linq4j.function.Functions;
 
 import net.hydromatic.optiq.*;
+import net.hydromatic.optiq.config.OptiqConnectionProperty;
 import net.hydromatic.optiq.impl.clone.CloneSchema;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 import net.hydromatic.optiq.jdbc.*;
 import net.hydromatic.optiq.prepare.Prepare;
+import net.hydromatic.optiq.runtime.Hook;
 
 import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.reltype.RelDataTypeImpl;
 import org.eigenbase.util.Pair;
+
+import com.google.common.collect.ImmutableMap;
 
 import java.lang.reflect.Type;
 import java.util.*;
@@ -61,6 +65,13 @@ public class MaterializationService {
   /** Defines a new materialization. Returns its key. */
   public MaterializationKey defineMaterialization(final OptiqSchema schema,
       String viewSql, List<String> viewSchemaPath, String tableName) {
+    final MaterializationActor.QueryKey queryKey =
+        new MaterializationActor.QueryKey(viewSql, schema, viewSchemaPath);
+    final MaterializationKey existingKey = actor.keyBySql.get(queryKey);
+    if (existingKey != null) {
+      return existingKey;
+    }
+
     final OptiqConnection connection =
         MetaImpl.connect(schema.root(), null);
     final MaterializationKey key = new MaterializationKey();
@@ -71,8 +82,11 @@ public class MaterializationService {
       final Pair<String, Table> pair = schema.getTable(tableName, true);
       materializedTable = pair == null ? null : pair.right;
       if (materializedTable == null) {
+        final ImmutableMap<OptiqConnectionProperty, String> map =
+            ImmutableMap.of(OptiqConnectionProperty.CREATE_MATERIALIZATIONS,
+                "false");
         final OptiqPrepare.PrepareResult<Object> prepareResult =
-            Schemas.prepare(connection, schema, viewSchemaPath, viewSql);
+            Schemas.prepare(connection, schema, viewSchemaPath, viewSql, map);
         rowType = prepareResult.rowType;
         final JavaTypeFactory typeFactory = connection.getTypeFactory();
         materializedTable =
@@ -112,6 +126,7 @@ public class MaterializationService {
         schema.add(tableName, materializedTable);
       }
       tableEntry = schema.add(tableName, materializedTable);
+      Hook.CREATE_MATERIALIZATION.run(tableName);
     } else {
       tableEntry = null;
     }
@@ -125,6 +140,7 @@ public class MaterializationService {
         new MaterializationActor.Materialization(key, schema.root(),
             tableEntry, viewSql, rowType);
     actor.keyMap.put(materialization.key, materialization);
+    actor.keyBySql.put(queryKey, materialization.key);
     return key;
   }
 

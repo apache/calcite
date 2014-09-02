@@ -20,6 +20,9 @@ import net.hydromatic.optiq.jdbc.OptiqRootSchema;
 import net.hydromatic.optiq.jdbc.OptiqSchema;
 
 import org.eigenbase.reltype.RelDataType;
+import org.eigenbase.util.Util;
+
+import com.google.common.collect.Maps;
 
 import java.util.*;
 
@@ -30,8 +33,9 @@ class MaterializationActor {
   // Not an actor yet -- TODO make members private and add request/response
   // queues
 
-  final Map<MaterializationKey, Materialization> keyMap =
-      new HashMap<MaterializationKey, Materialization>();
+  final Map<MaterializationKey, Materialization> keyMap = Maps.newHashMap();
+
+  final Map<QueryKey, MaterializationKey> keyBySql = Maps.newHashMap();
 
   /** A query materialized in a table, so that reading from the table gives the
    * same results as executing the query. */
@@ -63,6 +67,32 @@ class MaterializationActor {
       this.materializedTable = materializedTable; // may be null
       this.sql = sql;
       this.rowType = rowType;
+    }
+  }
+
+  /** A materialization can be re-used if it is the same SQL, on the same
+   * schema, with the same path for resolving functions. */
+  static class QueryKey {
+    final String sql;
+    final OptiqSchema schema;
+    final List<String> path;
+
+    QueryKey(String sql, OptiqSchema schema, List<String> path) {
+      this.sql = sql;
+      this.schema = schema;
+      this.path = path;
+    }
+
+    @Override public boolean equals(Object obj) {
+      return obj == this
+          || obj instanceof QueryKey
+          && sql.equals(((QueryKey) obj).sql)
+          && schema.equals(((QueryKey) obj).schema)
+          && path.equals(((QueryKey) obj).path);
+    }
+
+    @Override public int hashCode() {
+      return Util.hashV(sql, schema, path);
     }
   }
 }

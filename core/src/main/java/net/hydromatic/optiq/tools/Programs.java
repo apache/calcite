@@ -89,6 +89,8 @@ public class Programs {
           OptiqPrepareImpl.COMMUTE
               ? CommutativeJoinRule.INSTANCE
               : MergeProjectRule.INSTANCE,
+          AggregateStarTableRule.INSTANCE,
+          AggregateStarTableRule.INSTANCE2,
           PushFilterPastProjectRule.INSTANCE,
           PushFilterPastJoinRule.FILTER_ON_JOIN,
           RemoveDistinctAggregateRule.INSTANCE,
@@ -150,14 +152,14 @@ public class Programs {
         final HepPlanner hepPlanner = new HepPlanner(hepProgram,
             null, noDag, null, RelOptCostImpl.FACTORY);
 
+        List<RelMetadataProvider> list = Lists.newArrayList();
         if (metadataProvider != null) {
-          List<RelMetadataProvider> list = Lists.newArrayList();
           list.add(metadataProvider);
-          hepPlanner.registerMetadataProviders(list);
-          RelMetadataProvider plannerChain =
-              ChainedRelMetadataProvider.of(list);
-          rel.getCluster().setMetadataProvider(plannerChain);
         }
+        hepPlanner.registerMetadataProviders(list);
+        RelMetadataProvider plannerChain =
+            ChainedRelMetadataProvider.of(list);
+        rel.getCluster().setMetadataProvider(plannerChain);
 
         hepPlanner.setRoot(rel);
         return hepPlanner.findBestExp();
@@ -186,13 +188,14 @@ public class Programs {
               .addMatchOrder(HepMatchOrder.BOTTOM_UP)
               .addRuleInstance(ConvertMultiJoinRule.INSTANCE)
               .build();
-          final Program program1 = of(hep, false, null);
+          final Program program1 =
+              of(hep, false, new DefaultRelMetadataProvider());
 
           // Create a program that contains a rule to expand a MultiJoinRel
           // into heuristically ordered joins.
           // We use the rule set passed in, but remove SwapJoinRule and
           // PushJoinThroughJoinRule, because they cause exhaustive search.
-          final List<RelOptRule> list = new ArrayList<RelOptRule>(rules);
+          final List<RelOptRule> list = Lists.newArrayList(rules);
           list.removeAll(
               ImmutableList.of(SwapJoinRule.INSTANCE,
                   CommutativeJoinRule.INSTANCE,

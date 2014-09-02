@@ -128,14 +128,6 @@ public class HepPlanner extends AbstractRelOptPlanner {
     return root;
   }
 
-  public void addMaterialization(RelOptMaterialization materialization) {
-    // ignore - this planner does not support materializations
-  }
-
-  public void addLattice(RelOptLattice lattice) {
-    // ignore - this planner does not support lattices
-  }
-
   // implement RelOptPlanner
   public boolean addRule(RelOptRule rule) {
     boolean added = allRules.add(rule);
@@ -933,15 +925,9 @@ public class HepPlanner extends AbstractRelOptPlanner {
 
     assertNoCycles();
 
-    Iterator<HepRelVertex> bfsIter =
-        new BreadthFirstIterator<HepRelVertex, DefaultEdge>(
-            graph,
-            root);
-
-    StringBuilder sb = new StringBuilder();
+    final StringBuilder sb = new StringBuilder();
     sb.append("\nBreadth-first from root:  {\n");
-    while (bfsIter.hasNext()) {
-      HepRelVertex vertex = bfsIter.next();
+    for (HepRelVertex vertex : BreadthFirstIterator.of(graph, root)) {
       sb.append("    ")
           .append(vertex)
           .append(" = ");

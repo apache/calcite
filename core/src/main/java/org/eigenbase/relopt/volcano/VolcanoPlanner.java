@@ -33,12 +33,15 @@ import org.eigenbase.util.*;
 
 import net.hydromatic.linq4j.expressions.Expressions;
 
+import net.hydromatic.optiq.config.OptiqConnectionConfig;
 import net.hydromatic.optiq.prepare.OptiqPrepareImpl;
 import net.hydromatic.optiq.runtime.Hook;
 import net.hydromatic.optiq.runtime.Spaces;
 import net.hydromatic.optiq.util.graph.*;
 
 import com.google.common.base.Function;
+import com.google.common.base.Supplier;
+import com.google.common.base.Suppliers;
 import com.google.common.collect.*;
 
 import static org.eigenbase.util.Stacks.*;
@@ -190,7 +193,9 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
   private final List<RelOptMaterialization> materializations =
       Lists.newArrayList();
 
-  private final List<RelOptLattice> lattices = Lists.newArrayList();
+  /** Map of lattices by the qualified name of their star table. */
+  private final Map<List<String>, RelOptLattice> latticeByName =
+      Maps.newLinkedHashMap();
 
   final Map<RelNode, Provenance> provenanceMap =
       new HashMap<RelNode, Provenance>();
@@ -268,12 +273,17 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     return root;
   }
 
-  public void addMaterialization(RelOptMaterialization materialization) {
+  @Override public void addMaterialization(
+      RelOptMaterialization materialization) {
     materializations.add(materialization);
   }
 
-  public void addLattice(RelOptLattice lattice) {
-    lattices.add(lattice);
+  @Override public void addLattice(RelOptLattice lattice) {
+    latticeByName.put(lattice.starRelOptTable.getQualifiedName(), lattice);
+  }
+
+  @Override public RelOptLattice getLattice(RelOptTable table) {
+    return latticeByName.get(table.getQualifiedName());
   }
 
   private void useLattice(RelOptLattice lattice, RelNode rel) {
@@ -321,8 +331,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
             .addRuleInstance(MergeProjectRule.INSTANCE)
             .build();
 
-    final HepPlanner hepPlanner = new HepPlanner(program, //
-        getContext());
+    final HepPlanner hepPlanner = new HepPlanner(program, getContext());
     hepPlanner.setRoot(target);
     target = hepPlanner.findBestExp();
 
@@ -334,6 +343,13 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
   }
 
   private void useApplicableMaterializations() {
+    // Avoid using materializations while populating materializations!
+    final OptiqConnectionConfig config =
+        context.unwrap(OptiqConnectionConfig.class);
+    if (config == null || !config.materializationsEnabled()) {
+      return;
+    }
+
     // Given materializations:
     //   T = Emps Join Depts
     //   T2 = T Group by C1
@@ -376,9 +392,16 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     final List<Pair<RelOptLattice, RelNode>> latticeUses = Lists.newArrayList();
     final Set<List<String>> queryTableNames =
         Sets.newHashSet(Iterables.transform(queryTables, GET_QUALIFIED_NAME));
-    for (RelOptLattice lattice : lattices) {
+    // Remember leaf-join form of root so we convert at most once.
+    final Supplier<RelNode> leafJoinRoot = Suppliers.memoize(
+        new Supplier<RelNode>() {
+          public RelNode get() {
+            return RelOptMaterialization.toLeafJoinForm(originalRoot);
+          }
+        });
+    for (RelOptLattice lattice : latticeByName.values()) {
       if (queryTableNames.contains(lattice.rootTable().getQualifiedName())) {
-        RelNode rel2 = lattice.rewrite(originalRoot);
+        RelNode rel2 = lattice.rewrite(leafJoinRoot.get());
         if (rel2 != null) {
           latticeUses.add(Pair.of(lattice, rel2));
         }

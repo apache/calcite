@@ -2902,7 +2902,20 @@ public class JdbcTest {
             + "from \"hr\".\"emps\"\n")
         .returnsUnordered(
             "deptno=10",
-            "deptno=20")
+            "deptno=20");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/OPTIQ-397">OPTIQ-397</a>,
+   * "SELECT DISTINCT *" gives ClassCastException at runtime". */
+  @Ignore("OPTIQ-397")
+  @Test public void testSelectDistinctStar() {
+    OptiqAssert.that()
+        .with(OptiqAssert.Config.REGULAR)
+        .query(
+            "select distinct *\n"
+            + "from \"hr\".\"emps\"\n")
+        .returnsCount(5)
         .planContains(".distinct(");
   }
 
@@ -2931,7 +2944,18 @@ public class JdbcTest {
             + "group by \"deptno\"")
         .returnsUnordered(
             "deptno=10",
-            "deptno=20")
+            "deptno=20");
+  }
+
+  /** Same result (and plan) as {@link #testSelectDistinct}. */
+  @Test public void testGroupByNoAggregatesAllColumns() {
+    OptiqAssert.that()
+        .with(OptiqAssert.Config.REGULAR)
+        .query(
+            "select \"deptno\"\n"
+            + "from \"hr\".\"emps\"\n"
+            + "group by \"deptno\", \"empid\", \"name\", \"salary\", \"commission\"")
+        .returnsCount(4)
         .planContains(".distinct(");
   }
 

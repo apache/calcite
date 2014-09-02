@@ -24,14 +24,25 @@ import net.hydromatic.avatica.Quoting;
  * a method for every property. At some point there will be similar config
  * classes for system and statement properties. */
 public interface OptiqConnectionConfig extends ConnectionConfig {
+  /** @see net.hydromatic.optiq.config.OptiqConnectionProperty#AUTO_TEMP */
   boolean autoTemp();
+  /** @see net.hydromatic.optiq.config.OptiqConnectionProperty#MATERIALIZATIONS_ENABLED */
   boolean materializationsEnabled();
+  /** @see net.hydromatic.optiq.config.OptiqConnectionProperty#CREATE_MATERIALIZATIONS */
+  boolean createMaterializations();
+  /** @see net.hydromatic.optiq.config.OptiqConnectionProperty#MODEL */
   String model();
+  /** @see net.hydromatic.optiq.config.OptiqConnectionProperty#LEX */
   Lex lex();
+  /** @see net.hydromatic.optiq.config.OptiqConnectionProperty#QUOTING */
   Quoting quoting();
+  /** @see net.hydromatic.optiq.config.OptiqConnectionProperty#UNQUOTED_CASING */
   Casing unquotedCasing();
+  /** @see net.hydromatic.optiq.config.OptiqConnectionProperty#QUOTED_CASING */
   Casing quotedCasing();
+  /** @see net.hydromatic.optiq.config.OptiqConnectionProperty#CASE_SENSITIVE */
   boolean caseSensitive();
+  /** @see net.hydromatic.optiq.config.OptiqConnectionProperty#SPARK */
   boolean spark();
 }
 

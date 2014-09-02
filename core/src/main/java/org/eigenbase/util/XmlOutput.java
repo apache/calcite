@@ -19,6 +19,8 @@ package org.eigenbase.util;
 import java.io.*;
 import java.util.*;
 
+import com.google.common.collect.Lists;
+
 /**
  * Streaming XML output.
  *
@@ -612,8 +614,7 @@ public class XmlOutput {
     public StringEscaper getMutableClone() {
       StringEscaper clone = clone();
       if (clone.translationVector == null) {
-        clone.translationVector = new ArrayList<String>();
-        Collections.addAll(clone.translationVector, clone.translationTable);
+        clone.translationVector = Lists.newArrayList(clone.translationTable);
         clone.translationTable = null;
       }
       return clone;

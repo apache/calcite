@@ -1281,7 +1281,9 @@ public class JavaRules {
                         Expressions.call(accumulatorInitializer, "apply"),
                         accumulatorAdder,
                         resultSelector))));
-      } else if (aggCalls.isEmpty()) {
+      } else if (aggCalls.isEmpty()
+          && groupSet.equals(
+              BitSets.range(child.getRowType().getFieldCount()))) {
         builder.add(
             Expressions.return_(
                 null,

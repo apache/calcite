@@ -110,7 +110,7 @@ class OptiqMaterializer extends OptiqPrepareImpl.OptiqPreparingStmt {
       assert table instanceof StarTable;
       RelOptTableImpl starRelOptTable =
           RelOptTableImpl.create(catalogReader, table.getRowType(typeFactory),
-              starTable);
+              starTable, null);
       final RelNode rel3 =
           RelOptMaterialization.tryUseStar(rel2, starRelOptTable);
       if (rel3 != null) {

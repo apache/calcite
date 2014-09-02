@@ -56,6 +56,9 @@ public enum Hook {
   /** Called to create a Program to optimize the statement. */
   PROGRAM,
 
+  /** Called when materialization is created. */
+  CREATE_MATERIALIZATION,
+
   /** Called with a query that has been generated to send to a back-end system.
    * The query might be a SQL string (for the JDBC adapter), a list of Mongo
    * pipeline expressions (for the MongoDB adapter), et cetera. */

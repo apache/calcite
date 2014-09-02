@@ -19,6 +19,7 @@ package net.hydromatic.optiq.prepare;
 import net.hydromatic.linq4j.expressions.Expression;
 
 import net.hydromatic.optiq.QueryableTable;
+import net.hydromatic.optiq.Schemas;
 import net.hydromatic.optiq.Table;
 import net.hydromatic.optiq.TranslatableTable;
 import net.hydromatic.optiq.jdbc.OptiqSchema;
@@ -32,6 +33,7 @@ import org.eigenbase.relopt.RelOptSchema;
 import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.sql.SqlAccessType;
 import org.eigenbase.sql.validate.SqlMonotonicity;
+import org.eigenbase.util.Util;
 
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
@@ -52,17 +54,28 @@ public class RelOptTableImpl implements Prepare.PreparingTable {
   private final Function<Class, Expression> expressionFunction;
   private final ImmutableList<String> names;
 
+  /** Estimate for the row count, or null.
+   *
+   * <p>If not null, overrides the estimate from the actual table.
+   *
+   * <p>Useful when a table that contains a materialized query result is being
+   * used to replace a query expression that wildly underestimates the row
+   * count. Now the materialized table can tell the same lie. */
+  private final Double rowCount;
+
   private RelOptTableImpl(
       RelOptSchema schema,
       RelDataType rowType,
       List<String> names,
       Table table,
-      Function<Class, Expression> expressionFunction) {
+      Function<Class, Expression> expressionFunction,
+      Double rowCount) {
     this.schema = schema;
     this.rowType = rowType;
     this.names = ImmutableList.copyOf(names);
     this.table = table; // may be null
     this.expressionFunction = expressionFunction;
+    this.rowCount = rowCount;
     assert expressionFunction != null;
     assert rowType != null;
   }
@@ -76,13 +89,11 @@ public class RelOptTableImpl implements Prepare.PreparingTable {
     final Function<Class, Expression> expressionFunction =
         (Function) Functions.constant(expression);
     return new RelOptTableImpl(schema, rowType, names, null,
-        expressionFunction);
+        expressionFunction, null);
   }
 
-  public static RelOptTableImpl create(
-      RelOptSchema schema,
-      RelDataType rowType,
-      final OptiqSchema.TableEntry tableEntry) {
+  public static RelOptTableImpl create(RelOptSchema schema, RelDataType rowType,
+      final OptiqSchema.TableEntry tableEntry, Double rowCount) {
     Function<Class, Expression> expressionFunction;
     if (tableEntry.getTable() instanceof QueryableTable) {
       final QueryableTable table = (QueryableTable) tableEntry.getTable();
@@ -100,7 +111,7 @@ public class RelOptTableImpl implements Prepare.PreparingTable {
       };
     }
     return new RelOptTableImpl(schema, rowType, tableEntry.path(),
-      tableEntry.getTable(), expressionFunction);
+      tableEntry.getTable(), expressionFunction, rowCount);
   }
 
   public static RelOptTableImpl create(
@@ -114,7 +125,7 @@ public class RelOptTableImpl implements Prepare.PreparingTable {
           }
         };
     return new RelOptTableImpl(schema, rowType, ImmutableList.<String>of(),
-        table, expressionFunction);
+        table, expressionFunction, null);
   }
 
   public <T> T unwrap(Class<T> clazz) {
@@ -124,6 +135,11 @@ public class RelOptTableImpl implements Prepare.PreparingTable {
     if (clazz.isInstance(table)) {
       return clazz.cast(table);
     }
+    if (clazz == OptiqSchema.class) {
+      return clazz.cast(
+          Schemas.subSchema(((OptiqCatalogReader) schema).rootSchema,
+              Util.skipLast(getQualifiedName())));
+    }
     return null;
   }
 
@@ -132,6 +148,9 @@ public class RelOptTableImpl implements Prepare.PreparingTable {
   }
 
   public double getRowCount() {
+    if (rowCount != null) {
+      return rowCount;
+    }
     if (table != null) {
       final Double rowCount = table.getStatistic().getRowCount();
       if (rowCount != null) {

@@ -58,14 +58,6 @@ public class MockRelOptPlanner extends AbstractRelOptPlanner {
     return root;
   }
 
-  public void addMaterialization(RelOptMaterialization materialization) {
-    // ignore - this planner does not support materializations
-  }
-
-  public void addLattice(RelOptLattice lattice) {
-    // ignore - this planner does not support lattices
-  }
-
   @Override public void clear() {
     super.clear();
     this.rule = null;

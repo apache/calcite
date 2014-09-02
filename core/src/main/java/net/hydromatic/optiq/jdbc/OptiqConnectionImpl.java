@@ -24,9 +24,8 @@ import net.hydromatic.linq4j.expressions.Expressions;
 import net.hydromatic.linq4j.function.Function0;
 
 import net.hydromatic.optiq.*;
-import net.hydromatic.optiq.config.Lex;
 import net.hydromatic.optiq.config.OptiqConnectionConfig;
-import net.hydromatic.optiq.config.OptiqConnectionProperty;
+import net.hydromatic.optiq.config.OptiqConnectionConfigImpl;
 import net.hydromatic.optiq.impl.AbstractSchema;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 import net.hydromatic.optiq.prepare.OptiqCatalogReader;
@@ -394,54 +393,6 @@ abstract class OptiqConnectionImpl
     }
   }
 
-  /** Implementation of {@link OptiqConnectionConfig}. */
-  private static class OptiqConnectionConfigImpl extends ConnectionConfigImpl
-      implements OptiqConnectionConfig {
-    public OptiqConnectionConfigImpl(Properties properties) {
-      super(properties);
-    }
-
-    public boolean autoTemp() {
-      return OptiqConnectionProperty.AUTO_TEMP.wrap(properties).getBoolean();
-    }
-
-    public boolean materializationsEnabled() {
-      return OptiqConnectionProperty.MATERIALIZATIONS_ENABLED.wrap(properties)
-          .getBoolean();
-    }
-
-    public String model() {
-      return OptiqConnectionProperty.MODEL.wrap(properties).getString();
-    }
-
-    public Lex lex() {
-      return OptiqConnectionProperty.LEX.wrap(properties).getEnum(Lex.class);
-    }
-
-    public Quoting quoting() {
-      return OptiqConnectionProperty.QUOTING.wrap(properties)
-          .getEnum(Quoting.class, lex().quoting);
-    }
-
-    public Casing unquotedCasing() {
-      return OptiqConnectionProperty.UNQUOTED_CASING.wrap(properties)
-          .getEnum(Casing.class, lex().unquotedCasing);
-    }
-
-    public Casing quotedCasing() {
-      return OptiqConnectionProperty.QUOTED_CASING.wrap(properties)
-          .getEnum(Casing.class, lex().quotedCasing);
-    }
-
-    public boolean caseSensitive() {
-      return OptiqConnectionProperty.CASE_SENSITIVE.wrap(properties)
-          .getBoolean(lex().caseSensitive);
-    }
-
-    public boolean spark() {
-      return OptiqConnectionProperty.SPARK.wrap(properties).getBoolean();
-    }
-  }
 }
 
 // End OptiqConnectionImpl.java

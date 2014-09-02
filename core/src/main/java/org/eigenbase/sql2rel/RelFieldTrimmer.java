@@ -783,12 +783,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
     for (AggregateCall aggCall : aggregate.getAggCallList()) {
       if (fieldsUsed.get(j)) {
         AggregateCall newAggCall =
-            new AggregateCall(
-                aggCall.getAggregation(),
-                aggCall.isDistinct(),
-                Mappings.apply2(inputMapping, aggCall.getArgList()),
-                aggCall.getType(),
-                aggCall.getName());
+            aggCall.copy(Mappings.apply2(inputMapping, aggCall.getArgList()));
         if (newAggCall.equals(aggCall)) {
           newAggCall = aggCall; // immutable -> canonize to save space
         }

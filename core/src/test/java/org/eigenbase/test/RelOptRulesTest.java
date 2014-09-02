@@ -25,6 +25,7 @@ import org.eigenbase.rel.metadata.ChainedRelMetadataProvider;
 import org.eigenbase.rel.metadata.DefaultRelMetadataProvider;
 import org.eigenbase.rel.metadata.RelMetadataProvider;
 import org.eigenbase.rel.rules.AddRedundantSemiJoinRule;
+import org.eigenbase.rel.rules.AggregateProjectMergeRule;
 import org.eigenbase.rel.rules.CoerceInputsRule;
 import org.eigenbase.rel.rules.ConvertMultiJoinRule;
 import org.eigenbase.rel.rules.ExtractJoinFilterRule;
@@ -869,6 +870,17 @@ public class RelOptRulesTest extends RelOptTestBase {
   @Test public void testPullConstantThroughAggregateAllLiterals()
       throws Exception {
     basePullConstantTroughAggregate();
+  }
+
+  @Test public void testAggregateProjectMerge() throws Exception {
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(AggregateProjectMergeRule.INSTANCE)
+        .build();
+    checkPlanning(program,
+        "select x, sum(z), y from (\n"
+        + "  select deptno as x, empno as y, sal as z, sal * 2 as zz\n"
+        + "  from emp)\n"
+        + "group by x, y");
   }
 
   public void transitiveInference() throws Exception {

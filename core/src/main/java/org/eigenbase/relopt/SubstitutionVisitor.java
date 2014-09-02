@@ -1120,9 +1120,7 @@ public class SubstitutionVisitor {
     return Lists.transform(aggCallList,
         new Function<AggregateCall, AggregateCall>() {
           public AggregateCall apply(AggregateCall call) {
-            return new AggregateCall(call.getAggregation(), call.isDistinct(),
-                Mappings.apply2(mapping, call.getArgList()), call.getType(),
-                call.name);
+            return call.copy(Mappings.apply2(mapping, call.getArgList()));
           }
         });
   }
@@ -1791,9 +1789,7 @@ public class SubstitutionVisitor {
       }
     }
 
-    /** Based on
-     * {@link RemoveTrivialProjectRule#strip(org.eigenbase.rel.ProjectRelBase)}.
-     */
+    /** Based on {@link RemoveTrivialProjectRule#strip}. */
     public static MutableRel strip(MutableProject project) {
       return isTrivial(project) ? project.getChild() : project;
     }

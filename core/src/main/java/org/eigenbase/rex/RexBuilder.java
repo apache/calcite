@@ -258,9 +258,7 @@ public class RexBuilder {
       final List<Integer> args = aggCall.getArgList();
       final List<Integer> nullableArgs = nullableArgs(args, aggArgTypes);
       if (!nullableArgs.equals(args)) {
-        aggCall = new AggregateCall(aggCall.getAggregation(),
-            aggCall.isDistinct(), nullableArgs,
-            aggCall.getType(), aggCall.getName());
+        aggCall = aggCall.copy(nullableArgs);
       }
     }
     RexNode rex = aggCallMapping.get(aggCall);

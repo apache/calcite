@@ -18,6 +18,7 @@ package net.hydromatic.optiq.impl;
 
 import net.hydromatic.optiq.Table;
 import net.hydromatic.optiq.TranslatableTable;
+import net.hydromatic.optiq.materialize.Lattice;
 
 import org.eigenbase.rel.*;
 import org.eigenbase.relopt.*;
@@ -27,6 +28,7 @@ import org.eigenbase.sql.validate.SqlValidatorUtil;
 import org.eigenbase.util.ImmutableIntList;
 import org.eigenbase.util.Pair;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
 import java.util.ArrayList;
@@ -44,6 +46,8 @@ import java.util.List;
  * the materialization are mapped onto the same star table.</p>
  */
 public class StarTable extends AbstractTable implements TranslatableTable {
+  public final Lattice lattice;
+
   // TODO: we'll also need a list of join conditions between tables. For now
   //  we assume that join conditions match
   public final ImmutableList<Table> tables;
@@ -52,14 +56,14 @@ public class StarTable extends AbstractTable implements TranslatableTable {
   public ImmutableIntList fieldCounts;
 
   /** Creates a StarTable. */
-  public StarTable(List<Table> tables) {
-    super();
-    this.tables = ImmutableList.copyOf(tables);
+  private StarTable(Lattice lattice, ImmutableList<Table> tables) {
+    this.lattice = Preconditions.checkNotNull(lattice);
+    this.tables = tables;
   }
 
   /** Creates a StarTable and registers it in a schema. */
-  public static StarTable of(List<Table> tables) {
-    return new StarTable(tables);
+  public static StarTable of(Lattice lattice, List<Table> tables) {
+    return new StarTable(lattice, ImmutableList.copyOf(tables));
   }
 
   public RelDataType getRowType(RelDataTypeFactory typeFactory) {
@@ -87,9 +91,8 @@ public class StarTable extends AbstractTable implements TranslatableTable {
   }
 
   public StarTable add(Table table) {
-    final List<Table> tables1 = new ArrayList<Table>(tables);
-    tables1.add(table);
-    return of(tables1);
+    return of(lattice,
+        ImmutableList.<Table>builder().addAll(tables).add(table).build());
   }
 
   /** Returns the column offset of the first column of {@code table} in this
@@ -115,7 +118,7 @@ public class StarTable extends AbstractTable implements TranslatableTable {
    *
    * <p>It has infinite cost.
    */
-  private static class StarTableScan extends TableAccessRelBase {
+  public static class StarTableScan extends TableAccessRelBase {
     public StarTableScan(RelOptCluster cluster, RelOptTable relOptTable) {
       super(cluster, cluster.traitSetOf(Convention.NONE), relOptTable);
     }

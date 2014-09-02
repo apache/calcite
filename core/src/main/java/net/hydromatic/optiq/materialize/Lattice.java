@@ -27,6 +27,12 @@ import net.hydromatic.optiq.util.graph.*;
 import org.eigenbase.rel.*;
 import org.eigenbase.relopt.RelOptUtil;
 import org.eigenbase.rex.*;
+import org.eigenbase.sql.SqlJoin;
+import org.eigenbase.sql.SqlKind;
+import org.eigenbase.sql.SqlNode;
+import org.eigenbase.sql.SqlSelect;
+import org.eigenbase.sql.SqlUtil;
+import org.eigenbase.sql.validate.SqlValidatorUtil;
 import org.eigenbase.util.mapping.IntPair;
 
 import com.google.common.base.Preconditions;
@@ -40,6 +46,7 @@ import java.util.*;
  */
 public class Lattice {
   public final ImmutableList<Node> nodes;
+  public final ImmutableList<List<String>> columns;
 
   private Lattice(List<Node> nodes) {
     this.nodes = ImmutableList.copyOf(nodes);
@@ -54,6 +61,16 @@ public class Lattice {
         assert nodes.subList(0, i).contains(node.parent);
       }
     }
+
+    final ImmutableList.Builder<List<String>> builder = ImmutableList.builder();
+    for (Node node : nodes) {
+      if (node.scan != null) {
+        for (String name : node.scan.getRowType().getFieldNames()) {
+          builder.add(ImmutableList.of(node.alias, name));
+        }
+      }
+    }
+    columns = builder.build();
   }
 
   /** Creates a Lattice. */
@@ -66,6 +83,10 @@ public class Lattice {
     List<RelNode> relNodes = Lists.newArrayList();
     List<int[][]> tempLinks = Lists.newArrayList();
     populate(relNodes, tempLinks, parsed.relNode);
+
+    // Get aliases.
+    List<String> aliases = Lists.newArrayList();
+    populateAliases(((SqlSelect) parsed.sqlNode).getFrom(), aliases, null);
 
     // Build a graph.
     final DirectedGraph<RelNode, Edge> graph =
@@ -88,30 +109,50 @@ public class Lattice {
     List<Node> nodes = Lists.newArrayList();
     Node previous = null;
     final Map<RelNode, Node> map = Maps.newIdentityHashMap();
+    int previousColumn = 0;
     for (RelNode relNode : TopologicalOrderIterator.of(graph)) {
       final List<Edge> edges = graph.getInwardEdges(relNode);
       Node node;
+      final int column = previousColumn + relNode.getRowType().getFieldCount();
       if (previous == null) {
         if (!edges.isEmpty()) {
           throw new RuntimeException("root node must not have relationships: "
               + relNode);
         }
-        node = new Node((TableAccessRelBase) relNode, null, null);
+        node = new Node((TableAccessRelBase) relNode, null, null,
+            previousColumn, column, aliases.get(nodes.size()));
       } else {
         if (edges.size() != 1) {
           throw new RuntimeException(
               "child node must have precisely one parent: " + relNode);
         }
         final Edge edge = edges.get(0);
-        node =
-            new Node((TableAccessRelBase) relNode, map.get(edge.getSource()),
-                edge.pairs);
+        node = new Node((TableAccessRelBase) relNode, map.get(edge.getSource()),
+            edge.pairs, previousColumn, column, aliases.get(nodes.size()));
       }
       nodes.add(node);
       map.put(relNode, node);
       previous = node;
+      previousColumn = column;
     }
     return new Lattice(nodes);
+  }
+
+  private static void populateAliases(SqlNode from, List<String> aliases,
+      String current) {
+    if (from instanceof SqlJoin) {
+      SqlJoin join = (SqlJoin) from;
+      populateAliases(join.getLeft(), aliases, null);
+      populateAliases(join.getRight(), aliases, null);
+    } else if (from.getKind() == SqlKind.AS) {
+      populateAliases(SqlUtil.stripAs(from), aliases,
+          SqlValidatorUtil.getAlias(from, -1));
+    } else {
+      if (current == null) {
+        current = SqlValidatorUtil.getAlias(from, -1);
+      }
+      aliases.add(current);
+    }
   }
 
   private static boolean populate(List<RelNode> nodes, List<int[][]> tempLinks,
@@ -177,7 +218,11 @@ public class Lattice {
     for (Node node : nodes) {
       tables.add(node.scan.getTable().unwrap(Table.class));
     }
-    return new StarTable(tables);
+    return StarTable.of(this, tables);
+  }
+
+  public List<String> getColumn(int i) {
+    return columns.get(i);
   }
 
   /** Source relation of a lattice.
@@ -189,12 +234,21 @@ public class Lattice {
     public final TableAccessRelBase scan;
     public final Node parent;
     public final ImmutableList<IntPair> link;
+    public final int startCol;
+    public final int endCol;
+    public final String alias;
 
-    public Node(TableAccessRelBase scan, Node parent, List<IntPair> link) {
+    public Node(TableAccessRelBase scan, Node parent, List<IntPair> link,
+        int startCol, int endCol, String alias) {
       this.scan = Preconditions.checkNotNull(scan);
       this.parent = parent;
       this.link = link == null ? null : ImmutableList.copyOf(link);
       assert (parent == null) == (link == null);
+      assert startCol >= 0;
+      assert endCol > startCol;
+      this.startCol = startCol;
+      this.endCol = endCol;
+      this.alias = alias;
     }
   }
 

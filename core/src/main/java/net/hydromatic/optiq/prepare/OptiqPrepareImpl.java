@@ -122,6 +122,8 @@ public class OptiqPrepareImpl implements OptiqPrepare {
           JavaRules.ENUMERABLE_ONE_ROW_RULE,
           JavaRules.ENUMERABLE_EMPTY_RULE,
           JavaRules.ENUMERABLE_TABLE_FUNCTION_RULE,
+          AggregateStarTableRule.INSTANCE,
+          AggregateStarTableRule.INSTANCE2,
           TableAccessRule.INSTANCE,
           COMMUTE
               ? CommutativeJoinRule.INSTANCE
@@ -227,9 +229,13 @@ public class OptiqPrepareImpl implements OptiqPrepare {
 
   /** Creates a query planner and initializes it with a default set of
    * rules. */
-  protected RelOptPlanner createPlanner(OptiqPrepare.Context prepareContext,
+  protected RelOptPlanner createPlanner(
+      final OptiqPrepare.Context prepareContext,
       org.eigenbase.relopt.Context externalContext,
       RelOptCostFactory costFactory) {
+    if (externalContext == null) {
+      externalContext = Contexts.withConfig(prepareContext.config());
+    }
     final VolcanoPlanner planner =
         new VolcanoPlanner(costFactory, externalContext);
     planner.addRelTraitDef(ConventionTraitDef.INSTANCE);

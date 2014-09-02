@@ -100,7 +100,8 @@ public interface RelOptPlanner {
   /**
    * Provides the Context created when this planner was constructed.
    *
-   * @return Either null or an externally defined context.
+   * @return Never null; either an externally defined context, or a dummy
+   * context that returns null for each requested interface
    */
   Context getContext();
 
@@ -162,6 +163,11 @@ public interface RelOptPlanner {
    * {@link #addMaterialization} for these; they are registered implicitly.
    */
   void addLattice(RelOptLattice lattice);
+
+  /**
+   * Retrieves a lattice, given its star table.
+   */
+  RelOptLattice getLattice(RelOptTable table);
 
   /**
    * Finds the most efficient expression to implement this query.

@@ -21,6 +21,8 @@ import net.hydromatic.linq4j.Queryable;
 import net.hydromatic.linq4j.expressions.*;
 
 import net.hydromatic.optiq.config.OptiqConnectionConfig;
+import net.hydromatic.optiq.config.OptiqConnectionConfigImpl;
+import net.hydromatic.optiq.config.OptiqConnectionProperty;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 import net.hydromatic.optiq.jdbc.*;
 import net.hydromatic.optiq.materialize.Lattice;
@@ -191,7 +193,8 @@ public final class Schemas {
       final List<String> schemaPath, final String sql) {
     final OptiqPrepare prepare = OptiqPrepare.DEFAULT_FACTORY.apply();
     final OptiqPrepare.Context context =
-        makeContext(connection, schema, schemaPath);
+        makeContext(connection, schema, schemaPath,
+            ImmutableMap.<OptiqConnectionProperty, String>of());
     OptiqPrepare.Dummy.push(context);
     try {
       return prepare.parse(context, sql);
@@ -207,7 +210,8 @@ public final class Schemas {
       final List<String> schemaPath, final String sql) {
     final OptiqPrepare prepare = OptiqPrepare.DEFAULT_FACTORY.apply();
     final OptiqPrepare.Context context =
-        makeContext(connection, schema, schemaPath);
+        makeContext(connection, schema, schemaPath,
+            ImmutableMap.<OptiqConnectionProperty, String>of());
     OptiqPrepare.Dummy.push(context);
     try {
       return prepare.convert(context, sql);
@@ -219,24 +223,44 @@ public final class Schemas {
   /** Prepares a SQL query for execution. For use within Optiq only. */
   public static OptiqPrepare.PrepareResult<Object> prepare(
       final OptiqConnection connection, final OptiqSchema schema,
-      final List<String> schemaPath, final String sql) {
+      final List<String> schemaPath, final String sql,
+      final ImmutableMap<OptiqConnectionProperty, String> map) {
     final OptiqPrepare prepare = OptiqPrepare.DEFAULT_FACTORY.apply();
-    return prepare.prepareSql(
-        makeContext(connection, schema, schemaPath), sql, null, Object[].class,
-        -1);
+    final OptiqPrepare.Context context =
+        makeContext(connection, schema, schemaPath, map);
+    OptiqPrepare.Dummy.push(context);
+    try {
+      return prepare.prepareSql(context, sql, null, Object[].class, -1);
+    } finally {
+      OptiqPrepare.Dummy.pop(context);
+    }
   }
 
-  private static OptiqPrepare.Context makeContext(
+  public static OptiqPrepare.Context makeContext(
       final OptiqConnection connection, final OptiqSchema schema,
-      final List<String> schemaPath) {
+      final List<String> schemaPath,
+      final ImmutableMap<OptiqConnectionProperty, String> propValues) {
     if (connection == null) {
       final OptiqPrepare.Context context0 = OptiqPrepare.Dummy.peek();
-      return makeContext(context0.config(), context0.getTypeFactory(),
+      final OptiqConnectionConfig config =
+          mutate(context0.config(), propValues);
+      return makeContext(config, context0.getTypeFactory(),
           context0.getDataContext(), schema, schemaPath);
     } else {
-      return makeContext(connection.config(), connection.getTypeFactory(),
+      final OptiqConnectionConfig config =
+          mutate(connection.config(), propValues);
+      return makeContext(config, connection.getTypeFactory(),
           createDataContext(connection), schema, schemaPath);
     }
+  }
+
+  private static OptiqConnectionConfig mutate(OptiqConnectionConfig config,
+      ImmutableMap<OptiqConnectionProperty, String> propValues) {
+    for (Map.Entry<OptiqConnectionProperty, String> e : propValues.entrySet()) {
+      config =
+          ((OptiqConnectionConfigImpl) config).set(e.getKey(), e.getValue());
+    }
+    return config;
   }
 
   private static OptiqPrepare.Context makeContext(
@@ -332,6 +356,13 @@ public final class Schemas {
     for (OptiqSchema subSchema : schema.getSubSchemaMap().values()) {
       gatherLattices(subSchema, list);
     }
+  }
+
+  public static OptiqSchema subSchema(OptiqSchema schema, List<String> names) {
+    for (String string : names) {
+      schema = schema.getSubSchema(string, false);
+    }
+    return schema;
   }
 
   /** Dummy data context that has no variables. */

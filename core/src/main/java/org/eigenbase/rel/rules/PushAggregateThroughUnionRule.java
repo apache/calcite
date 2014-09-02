@@ -151,7 +151,7 @@ public class PushAggregateThroughUnionRule extends RelOptRule {
         SqlAggFunction af = (SqlAggFunction) aggFun;
         final AggregateRelBase.AggCallBinding binding =
             new AggregateRelBase.AggCallBinding(typeFactory, af,
-            Collections.singletonList(origCall.getType()),
+                Collections.singletonList(origCall.getType()),
                 nGroupCols);
         // count(any) is always not null, however nullability of sum might
         // depend on the number of columns in GROUP BY.
