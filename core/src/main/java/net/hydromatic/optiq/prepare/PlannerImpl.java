@@ -33,6 +33,7 @@ import org.eigenbase.sql.parser.SqlParseException;
 import org.eigenbase.sql.parser.SqlParser;
 import org.eigenbase.sql.parser.SqlParserImplFactory;
 import org.eigenbase.sql.validate.SqlValidator;
+import org.eigenbase.sql2rel.RelDecorrelator;
 import org.eigenbase.sql2rel.SqlRexConvertletTable;
 import org.eigenbase.sql2rel.SqlToRelConverter;
 import org.eigenbase.util.Util;
@@ -52,6 +53,7 @@ public class PlannerImpl implements Planner {
 
   private final Lex lex;
   private final SqlParserImplFactory parserFactory;
+  private final SqlRexConvertletTable convertletTable;
 
   // Options. TODO: allow client to set these. Maybe use a ConnectionConfig.
   private boolean caseSensitive = true;
@@ -71,8 +73,6 @@ public class PlannerImpl implements Planner {
   private SqlNode validatedSqlNode;
 
   // set in STATE_5_CONVERT
-  private SqlToRelConverter sqlToRelConverter;
-  private SqlRexConvertletTable convertletTable;
   private RelNode rel;
 
   /** Creates a planner. Not a public API; call
@@ -180,7 +180,7 @@ public class PlannerImpl implements Planner {
   public RelNode convert(SqlNode sql) throws RelConversionException {
     ensure(State.STATE_4_VALIDATED);
     assert validatedSqlNode != null;
-    this.sqlToRelConverter =
+    final SqlToRelConverter sqlToRelConverter =
         new SqlToRelConverter(
             new ViewExpanderImpl(), validator, createCatalogReader(), planner,
             createRexBuilder(), convertletTable);
@@ -188,7 +188,7 @@ public class PlannerImpl implements Planner {
     sqlToRelConverter.enableTableAccessConversion(false);
     rel = sqlToRelConverter.convertQuery(validatedSqlNode, false, true);
     rel = sqlToRelConverter.flattenTypes(rel, true);
-    rel = sqlToRelConverter.decorrelate(validatedSqlNode, rel);
+    rel = RelDecorrelator.decorrelateQuery(rel);
     state = State.STATE_5_CONVERTED;
     return rel;
   }
@@ -198,7 +198,7 @@ public class PlannerImpl implements Planner {
   public class ViewExpanderImpl implements ViewExpander {
     public RelNode expandView(RelDataType rowType, String queryString,
         List<String> schemaPath) {
-      SqlParser parser = SqlParser.create(parserFactory, queryString,
+      final SqlParser parser = SqlParser.create(parserFactory, queryString,
           lex.quoting, lex.unquotedCasing, lex.quotedCasing);
       SqlNode sqlNode;
       try {
@@ -209,11 +209,11 @@ public class PlannerImpl implements Planner {
 
       final OptiqCatalogReader catalogReader =
           createCatalogReader().withSchemaPath(schemaPath);
-      SqlValidator validator = new OptiqSqlValidator(
-          operatorTable, catalogReader, typeFactory);
-      SqlNode validatedSqlNode = validator.validate(sqlNode);
+      final SqlValidator validator = new OptiqSqlValidator(operatorTable,
+          catalogReader, typeFactory);
+      final SqlNode validatedSqlNode = validator.validate(sqlNode);
 
-      SqlToRelConverter sqlToRelConverter = new SqlToRelConverter(
+      final SqlToRelConverter sqlToRelConverter = new SqlToRelConverter(
           null, validator, catalogReader, planner,
           createRexBuilder(), convertletTable);
       sqlToRelConverter.setTrimUnusedFields(false);
