@@ -46,6 +46,9 @@ public class RelFactories {
 
   public static final JoinFactory DEFAULT_JOIN_FACTORY = new JoinFactoryImpl();
 
+  public static final SemiJoinFactory DEFAULT_SEMI_JOIN_FACTORY =
+      new SemiJoinFactoryImpl();
+
   public static final SortFactory DEFAULT_SORT_FACTORY =
     new SortFactoryImpl();
 
@@ -63,16 +66,13 @@ public class RelFactories {
    * for this rule's calling convention.
    */
   public interface ProjectFactory {
-    /**
-     * Can create a {@link org.eigenbase.rel.ProjectRel} of the appropriate type
-     * for this rule's calling convention.
-     */
+    /** Creates a project. */
     RelNode createProject(RelNode child, List<RexNode> childExprs,
         List<String> fieldNames);
   }
 
   /**
-   * Implementation of {@link ProjectFactory} that returns vanilla
+   * Implementation of {@link ProjectFactory} that returns a vanilla
    * {@link ProjectRel}.
    */
   private static class ProjectFactoryImpl implements ProjectFactory {
@@ -87,13 +87,14 @@ public class RelFactories {
    * for this rule's calling convention.
    */
   public interface SortFactory {
+    /** Creates a sort. */
     RelNode createSort(RelTraitSet traits, RelNode child,
         RelCollation collation, RexNode offset, RexNode fetch);
   }
 
   /**
    * Implementation of {@link org.eigenbase.rel.RelFactories.SortFactory} that
-   * returns vanilla {@link SortRel}.
+   * returns a vanilla {@link SortRel}.
    */
   private static class SortFactoryImpl implements SortFactory {
     public RelNode createSort(RelTraitSet traits, RelNode child,
@@ -109,6 +110,7 @@ public class RelFactories {
    * for this rule's calling convention.
    */
   public interface SetOpFactory {
+    /** Creates a set operation. */
     RelNode createSetOp(SqlKind kind, List<RelNode> inputs, boolean all);
   }
 
@@ -139,17 +141,17 @@ public class RelFactories {
    * for this rule's calling convention.
    */
   public interface AggregateFactory {
-    RelNode createAggrRelNode(RelNode child, BitSet groupSet,
-      List<AggregateCall> aggCalls);
+    /** Creates an aggregate. */
+    RelNode createAggregate(RelNode child, BitSet groupSet,
+        List<AggregateCall> aggCalls);
   }
 
   /**
-   * Implementation of {@link org.eigenbase.rel.RelFactories.AggregateFactory} that
-   * returns vanilla {@link AggregateRel}.
+   * Implementation of {@link org.eigenbase.rel.RelFactories.AggregateFactory}
+   * that returns a vanilla {@link AggregateRel}.
    */
   private static class AggregateFactoryImpl implements AggregateFactory {
-
-    public RelNode createAggrRelNode(RelNode child, BitSet groupSet,
+    public RelNode createAggregate(RelNode child, BitSet groupSet,
         List<AggregateCall> aggCalls) {
       return new AggregateRel(child.getCluster(), child, groupSet, aggCalls);
     }
@@ -160,16 +162,13 @@ public class RelFactories {
    * for this rule's calling convention.
    */
   public interface FilterFactory {
-    /**
-     * Can create a {@link org.eigenbase.rel.FilterRel} of the appropriate type
-     * for this rule's calling convention.
-     */
+    /** Creates a filter. */
     RelNode createFilter(RelNode child, RexNode condition);
   }
 
   /**
    * Implementation of {@link org.eigenbase.rel.RelFactories.FilterFactory} that
-   * returns vanilla {@link FilterRel}.
+   * returns a vanilla {@link FilterRel}.
    */
   private static class FilterFactoryImpl implements FilterFactory {
     public RelNode createFilter(RelNode child, RexNode condition) {
@@ -178,8 +177,9 @@ public class RelFactories {
   }
 
   /**
-   * Can create a {@link org.eigenbase.rel.JoinRelBase} of the appropriate type
-   * for this rule's calling convention.
+   * Can create a join of the appropriate type for a rule's calling convention.
+   *
+   * <p>The result is typically a {@link org.eigenbase.rel.JoinRelBase}.
    */
   public interface JoinFactory {
     /**
@@ -198,28 +198,46 @@ public class RelFactories {
     RelNode createJoin(RelNode left, RelNode right, RexNode condition,
         JoinRelType joinType, Set<String> variablesStopped,
         boolean semiJoinDone);
-
-    SemiJoinRel createSemiJoinRel(RelTraitSet traitSet, RelNode left,
-      RelNode right, RexNode condition);
   }
 
   /**
-   * Implementation of {@link JoinFactory} that returns vanilla
+   * Implementation of {@link JoinFactory} that returns a vanilla
    * {@link JoinRel}.
    */
   private static class JoinFactoryImpl implements JoinFactory {
-    public RelNode createJoin(RelNode left, RelNode right, RexNode condition,
-        JoinRelType joinType, Set<String> variablesStopped,
-        boolean semiJoinDone) {
+    public RelNode createJoin(RelNode left, RelNode right,
+        RexNode condition, JoinRelType joinType,
+        Set<String> variablesStopped, boolean semiJoinDone) {
       final RelOptCluster cluster = left.getCluster();
       return new JoinRel(cluster, left, right, condition, joinType,
           variablesStopped, semiJoinDone, ImmutableList.<RelDataTypeField>of());
     }
+  }
 
-    public SemiJoinRel createSemiJoinRel(RelTraitSet traitSet, RelNode left,
-        RelNode right, RexNode condition) {
+  /**
+   * Can create a semi-join of the appropriate type for a rule's calling
+   * convention.
+   */
+  public interface SemiJoinFactory {
+    /**
+     * Creates a semi-join.
+     *
+     * @param left             Left input
+     * @param right            Right input
+     * @param condition        Join condition
+     */
+    RelNode createSemiJoin(RelNode left, RelNode right, RexNode condition);
+  }
+
+  /**
+   * Implementation of {@link SemiJoinFactory} that returns a vanilla
+   * {@link SemiJoinRel}.
+   */
+  private static class SemiJoinFactoryImpl implements SemiJoinFactory {
+    public RelNode createSemiJoin(RelNode left, RelNode right,
+        RexNode condition) {
       final JoinInfo joinInfo = JoinInfo.of(left, right, condition);
-      return new SemiJoinRel(left.getCluster(), traitSet, left, right,
+      return new SemiJoinRel(left.getCluster(), left.getTraitSet(), left, right,
         condition, joinInfo.leftKeys, joinInfo.rightKeys);
     }
   }
@@ -246,12 +264,10 @@ public class RelFactories {
     final RexBuilder rexBuilder = child.getCluster().getRexBuilder();
     return factory.createProject(child,
         new AbstractList<RexNode>() {
-          @Override
           public int size() {
             return posList.size();
           }
 
-          @Override
           public RexNode get(int index) {
             final int pos = posList.get(index);
             return rexBuilder.makeInputRef(child, pos);

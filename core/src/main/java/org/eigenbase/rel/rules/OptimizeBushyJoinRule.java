@@ -242,7 +242,7 @@ public class OptimizeBushyJoinRule extends RelOptRule {
             RexUtil.composeConjunction(rexBuilder, joinVertex.conditions,
                 false);
         relNodes.add(
-            Pair.of(
+            Pair.of((RelNode)
                 joinFactory.createJoin(left, right, condition.accept(shuttle),
                     JoinRelType.INNER, ImmutableSet.<String>of(), false),
                 mapping));

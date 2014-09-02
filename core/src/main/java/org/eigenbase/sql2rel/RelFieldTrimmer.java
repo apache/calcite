@@ -68,6 +68,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
   private final RelFactories.ProjectFactory projectFactory;
   private final RelFactories.FilterFactory filterFactory;
   private final RelFactories.JoinFactory joinFactory;
+  private final RelFactories.SemiJoinFactory semiJoinFactory;
   private final RelFactories.SortFactory sortFactory;
   private final RelFactories.AggregateFactory aggregateFactory;
   private final RelFactories.SetOpFactory setOpFactory;
@@ -84,6 +85,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
         RelFactories.DEFAULT_PROJECT_FACTORY,
         RelFactories.DEFAULT_FILTER_FACTORY,
         RelFactories.DEFAULT_JOIN_FACTORY,
+        RelFactories.DEFAULT_SEMI_JOIN_FACTORY,
         RelFactories.DEFAULT_SORT_FACTORY,
         RelFactories.DEFAULT_AGGREGATE_FACTORY,
         RelFactories.DEFAULT_SET_OP_FACTORY);
@@ -95,12 +97,13 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
    * @param validator Validator
    */
   public RelFieldTrimmer(SqlValidator validator,
-    RelFactories.ProjectFactory projectFactory,
-    RelFactories.FilterFactory filterFactory,
-    RelFactories.JoinFactory joinFactory,
-    RelFactories.SortFactory sortFactory,
-    RelFactories.AggregateFactory aggregateFactory,
-    RelFactories.SetOpFactory setOpFactory) {
+      RelFactories.ProjectFactory projectFactory,
+      RelFactories.FilterFactory filterFactory,
+      RelFactories.JoinFactory joinFactory,
+      RelFactories.SemiJoinFactory semiJoinFactory,
+      RelFactories.SortFactory sortFactory,
+      RelFactories.AggregateFactory aggregateFactory,
+      RelFactories.SetOpFactory setOpFactory) {
     Util.discard(validator); // may be useful one day
     this.trimFieldsDispatcher =
         ReflectUtil.createMethodDispatcher(
@@ -113,6 +116,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
     this.projectFactory = Preconditions.checkNotNull(projectFactory);
     this.filterFactory = Preconditions.checkNotNull(filterFactory);
     this.joinFactory = Preconditions.checkNotNull(joinFactory);
+    this.semiJoinFactory = Preconditions.checkNotNull(semiJoinFactory);
     this.sortFactory = Preconditions.checkNotNull(sortFactory);
     this.aggregateFactory = Preconditions.checkNotNull(aggregateFactory);
     this.setOpFactory = Preconditions.checkNotNull(setOpFactory);
@@ -596,10 +600,10 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
     RexNode newConditionExpr =
         conditionExpr.accept(shuttle);
 
-    final JoinRelBase newJoin;
+    final RelNode newJoin;
     if (join instanceof SemiJoinRel) {
-      newJoin = joinFactory.createSemiJoinRel(join.getTraitSet(),
-          newInputs.get(0), newInputs.get(1), newConditionExpr);
+      newJoin = semiJoinFactory.createSemiJoin(newInputs.get(0),
+          newInputs.get(1), newConditionExpr);
       // For SemiJoins only map fields from the left-side
       Mapping inputMapping = inputMappings.get(0);
       mapping = Mappings.create(MappingType.INVERSE_SURJECTION,
@@ -614,9 +618,9 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
         mapping.set(pair.source + offset, pair.target + newOffset);
       }
     } else {
-      newJoin = (JoinRelBase) joinFactory.createJoin(
-        newInputs.get(0), newInputs.get(1), newConditionExpr,
-        join.getJoinType(), join.getVariablesStopped(), join.isSemiJoinDone());
+      newJoin = joinFactory.createJoin(newInputs.get(0), newInputs.get(1),
+          newConditionExpr, join.getJoinType(), join.getVariablesStopped(),
+          join.isSemiJoinDone());
     }
 
     return new TrimResult(newJoin, mapping);
@@ -797,8 +801,8 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
       ++j;
     }
 
-    RelNode newAggregate = aggregateFactory.createAggrRelNode(newInput,
-      newGroupSet, newAggCallList);
+    RelNode newAggregate = aggregateFactory.createAggregate(newInput,
+        newGroupSet, newAggCallList);
 
     assert newAggregate.getClass() == aggregate.getClass();
 
