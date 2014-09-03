@@ -614,7 +614,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
         mapping.set(pair.source + offset, pair.target + newOffset);
       }
     } else {
-      newJoin = (JoinRelBase) joinFactory.createJoin(
+      newJoin = joinFactory.createJoin(
         newInputs.get(0), newInputs.get(1), newConditionExpr,
         join.getJoinType(), join.getVariablesStopped(), join.isSemiJoinDone());
     }

@@ -195,28 +195,35 @@ public class RelFactories {
      * @param semiJoinDone     Whether this join has been translated to a
      *                         semi-join
      */
-    RelNode createJoin(RelNode left, RelNode right, RexNode condition,
+    JoinRelBase createJoin(RelNode left, RelNode right, RexNode condition,
         JoinRelType joinType, Set<String> variablesStopped,
         boolean semiJoinDone);
-
-    SemiJoinRel createSemiJoinRel(RelTraitSet traitSet, RelNode left,
+    /**
+     * Creates a semi-join.
+     *
+     *@param traitSet          Trait Set
+     * @param left             Left input
+     * @param right            Right input
+     * @param condition        Join condition
+     */
+    JoinRelBase createSemiJoinRel(RelTraitSet traitSet, RelNode left,
       RelNode right, RexNode condition);
   }
 
   /**
    * Implementation of {@link JoinFactory} that returns vanilla
-   * {@link JoinRel}.
+   * {@link JoinRel} and {@link SemiJoinRel}
    */
   private static class JoinFactoryImpl implements JoinFactory {
-    public RelNode createJoin(RelNode left, RelNode right, RexNode condition,
-        JoinRelType joinType, Set<String> variablesStopped,
-        boolean semiJoinDone) {
+    public JoinRelBase createJoin(RelNode left, RelNode right,
+        RexNode condition, JoinRelType joinType,
+        Set<String> variablesStopped, boolean semiJoinDone) {
       final RelOptCluster cluster = left.getCluster();
       return new JoinRel(cluster, left, right, condition, joinType,
           variablesStopped, semiJoinDone, ImmutableList.<RelDataTypeField>of());
     }
 
-    public SemiJoinRel createSemiJoinRel(RelTraitSet traitSet, RelNode left,
+    public JoinRelBase createSemiJoinRel(RelTraitSet traitSet, RelNode left,
         RelNode right, RexNode condition) {
       final JoinInfo joinInfo = JoinInfo.of(left, right, condition);
       return new SemiJoinRel(left.getCluster(), traitSet, left, right,
