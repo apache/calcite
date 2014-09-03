@@ -230,10 +230,12 @@ public final class CalcRel extends CalcRelBase {
     assert fieldNames.size() == fields.size();
     final List<Pair<RexNode, String>> refs =
         new AbstractList<Pair<RexNode, String>>() {
+          @Override
           public int size() {
             return fields.size();
           }
 
+          @Override
           public Pair<RexNode, String> get(int index) {
             return RexInputRef.of2(index, fields);
           }
