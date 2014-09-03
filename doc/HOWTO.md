@@ -558,3 +558,32 @@ out to mirrors, and other tasks.
   with a change comment
   "Resolved in release X.Y.Z-incubating (YYYY-MM-DD)"
   (fill in release number and date appropriately).
+
+## Publishing the web site (for Optiq committers)
+
+Get the code:
+
+```bash
+$ svn co https://svn.apache.org/repos/asf/incubator/optiq/site optiq-site
+```
+
+(Note: `https:`, not `http:`.)
+
+Build the site:
+
+```bash
+$ cd optiq-site
+$ ./build.sh
+```
+
+It will prompt you to install jekyll, redcarpet and pygments, if you
+do not have them installed. It will also check out the git source code
+repo, so that it can generate javadoc.
+
+Check in:
+
+```bash
+svn ci -m"Commit message" file...
+```
+
+The site will automatically be deployed as http://optiq.incubator.apache.org.
