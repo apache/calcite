@@ -17,19 +17,17 @@
 
 package org.eigenbase.rel;
 
-import java.util.AbstractList;
 import java.util.BitSet;
 import java.util.List;
 import java.util.Set;
 
 import org.eigenbase.rel.rules.SemiJoinRel;
 import org.eigenbase.relopt.RelOptCluster;
+import org.eigenbase.relopt.RelOptUtil;
 import org.eigenbase.relopt.RelTraitSet;
 import org.eigenbase.reltype.RelDataTypeField;
-import org.eigenbase.rex.RexBuilder;
 import org.eigenbase.rex.RexNode;
 import org.eigenbase.sql.SqlKind;
-import org.eigenbase.util.mapping.Mappings;
 
 import com.google.common.collect.ImmutableList;
 
@@ -67,7 +65,7 @@ public class RelFactories {
    */
   public interface ProjectFactory {
     /** Creates a project. */
-    RelNode createProject(RelNode child, List<RexNode> childExprs,
+    RelNode createProject(RelNode child, List<? extends RexNode> childExprs,
         List<String> fieldNames);
   }
 
@@ -76,9 +74,9 @@ public class RelFactories {
    * {@link ProjectRel}.
    */
   private static class ProjectFactoryImpl implements ProjectFactory {
-    public RelNode createProject(RelNode child, List<RexNode> childExprs,
-        List<String> fieldNames) {
-      return CalcRel.createProject(child, childExprs, fieldNames);
+    public RelNode createProject(RelNode child,
+        List<? extends RexNode> childExprs, List<String> fieldNames) {
+      return RelOptUtil.createProject(child, childExprs, fieldNames);
     }
   }
 
@@ -240,40 +238,6 @@ public class RelFactories {
       return new SemiJoinRel(left.getCluster(), left.getTraitSet(), left, right,
         condition, joinInfo.leftKeys, joinInfo.rightKeys);
     }
-  }
-
-  /**
-   * Creates a relational expression that projects the given fields of the
-   * input.
-   *
-   * <p>Optimizes if the fields are the identity projection.
-   *
-   * @param factory
-   *          ProjectFactory
-   * @param child
-   *          Input relational expression
-   * @param posList
-   *          Source of each projected field
-   * @return Relational expression that projects given fields
-   */
-  public static RelNode createProject(final ProjectFactory factory,
-      final RelNode child, final List<Integer> posList) {
-    if (Mappings.isIdentity(posList, child.getRowType().getFieldCount())) {
-      return child;
-    }
-    final RexBuilder rexBuilder = child.getCluster().getRexBuilder();
-    return factory.createProject(child,
-        new AbstractList<RexNode>() {
-          public int size() {
-            return posList.size();
-          }
-
-          public RexNode get(int index) {
-            final int pos = posList.get(index);
-            return rexBuilder.makeInputRef(child, pos);
-          }
-        },
-        null);
   }
 }
 

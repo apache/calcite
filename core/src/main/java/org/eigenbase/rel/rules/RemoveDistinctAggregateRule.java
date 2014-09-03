@@ -137,8 +137,7 @@ public final class RemoveDistinctAggregateRule extends RelOptRule {
       rel = doRewrite(aggregate, rel, argList, refs);
     }
 
-    //noinspection unchecked
-    rel = CalcRel.createProject(rel, (List) refs, fieldNames);
+    rel = RelOptUtil.createProject(rel, refs, fieldNames);
 
     call.transformTo(rel);
   }
@@ -464,7 +463,7 @@ public final class RemoveDistinctAggregateRule extends RelOptRule {
       projects.add(RexInputRef.of2(arg, childFields));
     }
     final RelNode project =
-        CalcRel.createProject(child, projects, false);
+        RelOptUtil.createProject(child, projects, false);
 
     // Get the distinct values of the GROUP BY fields and the arguments
     // to the agg functions.

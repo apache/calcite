@@ -1491,7 +1491,8 @@ public class SubstitutionVisitor {
       return new MutableProject(rowType, input, projects);
     }
 
-    /** Equivalent to {@link CalcRel#createProject(RelNode, List, List)}
+    /** Equivalent to
+     * {@link RelOptUtil#createProject(org.eigenbase.rel.RelNode, java.util.List, java.util.List)}
      * for {@link MutableRel}. */
     static MutableRel of(MutableRel child, List<RexNode> exprList,
         List<String> fieldNameList) {
@@ -1790,7 +1791,9 @@ public class SubstitutionVisitor {
       }
     }
 
-    /** Based on {@link RemoveTrivialProjectRule#strip(ProjectRel)}. */
+    /** Based on
+     * {@link RemoveTrivialProjectRule#strip(org.eigenbase.rel.ProjectRelBase)}.
+     */
     public static MutableRel strip(MutableProject project) {
       return isTrivial(project) ? project.getChild() : project;
     }
@@ -1811,7 +1814,7 @@ public class SubstitutionVisitor {
       return true;
     }
 
-    /** Equivalent to {@link CalcRel#createProject(RelNode, List)}
+    /** Equivalent to {@link RelOptUtil#createProject(org.eigenbase.rel.RelNode, java.util.List)}
      * for {@link MutableRel}. */
     public static MutableRel createProject(final MutableRel child,
         final List<Integer> posList) {

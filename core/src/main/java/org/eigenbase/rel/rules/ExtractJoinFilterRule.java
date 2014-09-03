@@ -77,7 +77,7 @@ public final class ExtractJoinFilterRule extends RelOptRule {
             join.isSemiJoinDone());
 
     RelNode filterRel =
-        CalcRel.createFilter(
+        RelOptUtil.createFilter(
             cartesianJoinRel,
             join.getCondition());
 

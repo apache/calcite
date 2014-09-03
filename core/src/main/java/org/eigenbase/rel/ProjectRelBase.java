@@ -66,7 +66,7 @@ public abstract class ProjectRelBase extends SingleRel {
       RelOptCluster cluster,
       RelTraitSet traits,
       RelNode child,
-      List<RexNode> exps,
+      List<? extends RexNode> exps,
       RelDataType rowType,
       int flags) {
     super(cluster, traits, child);

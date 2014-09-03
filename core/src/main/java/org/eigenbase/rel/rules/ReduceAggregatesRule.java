@@ -131,7 +131,7 @@ public class ReduceAggregatesRule extends RelOptRule {
         inputExprs.size() - input.getRowType().getFieldCount();
     if (extraArgCount > 0) {
       input =
-          CalcRel.createProject(
+          RelOptUtil.createProject(
               input,
               inputExprs,
               CompositeList.of(
@@ -145,7 +145,7 @@ public class ReduceAggregatesRule extends RelOptRule {
             oldAggRel, input, newCalls);
 
     RelNode projectRel =
-        CalcRel.createProject(
+        RelOptUtil.createProject(
             newAggRel,
             projList,
             oldAggRel.getRowType().getFieldNames());

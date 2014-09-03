@@ -92,7 +92,7 @@ public class RemoveTrivialProjectRule extends RelOptRule {
   }
 
   public static boolean isIdentity(
-      List<RexNode> exps,
+      List<? extends RexNode> exps,
       RelDataType rowType,
       RelDataType childRowType) {
     List<RelDataTypeField> fields = rowType.getFieldList();

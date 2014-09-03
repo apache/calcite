@@ -165,12 +165,11 @@ public class RexProgram {
    */
   public static RexProgram create(
       RelDataType inputRowType,
-      List<RexNode> projectExprs,
+      List<? extends RexNode> projectExprs,
       RexNode conditionExpr,
       RelDataType outputRowType,
       RexBuilder rexBuilder) {
-    return create(
-        inputRowType, projectExprs, conditionExpr,
+    return create(inputRowType, projectExprs, conditionExpr,
         outputRowType.getFieldNames(), rexBuilder);
   }
 
@@ -187,7 +186,7 @@ public class RexProgram {
    */
   public static RexProgram create(
       RelDataType inputRowType,
-      List<RexNode> projectExprs,
+      List<? extends RexNode> projectExprs,
       RexNode conditionExpr,
       List<String> fieldNames,
       RexBuilder rexBuilder) {

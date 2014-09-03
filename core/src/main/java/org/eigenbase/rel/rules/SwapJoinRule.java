@@ -93,7 +93,7 @@ public class SwapJoinRule extends RelOptRule {
             join.getLeft(), joinType.swap(), join.isSemiJoinDone());
     final List<RexNode> exps =
         RelOptUtil.createSwappedJoinExprs(newJoin, join, true);
-    return CalcRel.createProject(
+    return RelOptUtil.createProject(
         newJoin,
         exps,
         join.getRowType().getFieldNames(),

@@ -267,7 +267,7 @@ public abstract class RelOptUtil {
           RexUtil.composeConjunction(
               cluster.getRexBuilder(), conditions, true);
 
-      ret = CalcRel.createFilter(ret, conditionExp);
+      ret = createFilter(ret, conditionExp);
     }
 
     if (extraExpr != null) {
@@ -281,10 +281,8 @@ public abstract class RelOptUtil {
       // agg does not like no agg functions so just pretend it is
       // doing a min(TRUE)
 
-      ret =
-          CalcRel.createProject(
-              ret, Collections.<RexNode>singletonList(extraExpr), null);
-      List<RelDataType> argTypes =
+      ret = createProject(ret, ImmutableList.of(extraExpr), null);
+      final List<RelDataType> argTypes =
           ImmutableList.of(
               typeFactory.createSqlType(SqlTypeName.BOOLEAN));
 
@@ -295,14 +293,15 @@ public abstract class RelOptUtil {
               SqlMinMaxAggFunction.MINMAX_COMPARABLE);
 
       RelDataType returnType =
-          minFunction.inferReturnType(new AggregateRelBase.AggCallBinding(
-              typeFactory, minFunction, argTypes, 0));
+          minFunction.inferReturnType(
+              new AggregateRelBase.AggCallBinding(
+                  typeFactory, minFunction, argTypes, 0));
 
       final AggregateCall aggCall =
           new AggregateCall(
               minFunction,
               false,
-              Collections.singletonList(0),
+              ImmutableList.of(0),
               returnType,
               extraName);
 
@@ -311,7 +310,7 @@ public abstract class RelOptUtil {
               ret.getCluster(),
               ret,
               BitSets.of(),
-              Collections.singletonList(aggCall));
+              ImmutableList.of(aggCall));
     }
 
     return ret;
@@ -367,7 +366,7 @@ public abstract class RelOptUtil {
       final int projectedKeyCount = exprs.size();
       exprs.add(rexBuilder.makeLiteral(true));
 
-      ret = CalcRel.createProject(ret, exprs, null);
+      ret = createProject(ret, exprs, null);
 
       final List<RelDataType> argTypes =
           ImmutableList.of(typeFactory.createSqlType(SqlTypeName.BOOLEAN));
@@ -440,8 +439,19 @@ public abstract class RelOptUtil {
                   inputField.getIndex()),
               outputField.getName()));
     }
-    return CalcRel.createProject(
-        rel, Pair.left(renames), Pair.right(renames));
+    return createProject(rel, Pair.left(renames), Pair.right(renames));
+  }
+
+  /**
+   * Creates a relational expression which filters according to a given
+   * condition, returning the same fields as its input.
+   *
+   * @param child     Child relational expression
+   * @param condition Condition
+   * @return Relational expression
+   */
+  public static RelNode createFilter(RelNode child, RexNode condition) {
+    return new FilterRel(child.getCluster(), child, condition);
   }
 
   /**
@@ -468,7 +478,7 @@ public abstract class RelOptUtil {
     for (int i = 0; i < n; ++i) {
       int iField;
       if (fieldOrdinals != null) {
-        iField = fieldOrdinals[i].intValue();
+        iField = fieldOrdinals[i];
       } else {
         iField = i;
       }
@@ -495,7 +505,7 @@ public abstract class RelOptUtil {
       return rel;
     }
 
-    return CalcRel.createFilter(rel, condition);
+    return createFilter(rel, condition);
   }
 
   /**
@@ -579,7 +589,7 @@ public abstract class RelOptUtil {
           new AggregateCall(
               SqlStdOperatorTable.SINGLE_VALUE,
               false,
-              Collections.singletonList(i),
+              ImmutableList.of(i),
               returnType,
               null));
     }
@@ -1365,19 +1375,13 @@ public abstract class RelOptUtil {
     // added project if need to produce new keys than the original input
     // fields
     if (newLeftKeyCount > 0) {
-      leftRel =
-          CalcRel.createProject(
-              leftRel,
-              newLeftFields,
-              SqlValidatorUtil.uniquify(newLeftFieldNames));
+      leftRel = createProject(leftRel, newLeftFields,
+          SqlValidatorUtil.uniquify(newLeftFieldNames));
     }
 
     if (newRightKeyCount > 0) {
-      rightRel =
-          CalcRel.createProject(
-              rightRel,
-              newRightFields,
-              SqlValidatorUtil.uniquify(newRightFieldNames));
+      rightRel = createProject(rightRel, newRightFields,
+          SqlValidatorUtil.uniquify(newRightFieldNames));
     }
 
     inputRels[0] = leftRel;
@@ -1418,7 +1422,7 @@ public abstract class RelOptUtil {
       }
 
       // Create a project rel on the output of the join.
-      return CalcRel.createProject(
+      return createProject(
           joinRel,
           Pair.left(newProjects),
           Pair.right(newProjects));
@@ -1487,13 +1491,13 @@ public abstract class RelOptUtil {
     switch (kind) {
     case INSERT:
       return typeFactory.createStructType(
-          Collections.singletonList(
+          ImmutableList.of(
               Pair.of(
                   "ROWCOUNT",
                   typeFactory.createSqlType(SqlTypeName.BIGINT))));
     case EXPLAIN:
       return typeFactory.createStructType(
-          Collections.singletonList(
+          ImmutableList.of(
               Pair.of(
                   "PLAN",
                   typeFactory.createSqlType(
@@ -1717,7 +1721,7 @@ public abstract class RelOptUtil {
       return rel;
     }
     rel =
-        CalcRel.createRename(
+        createRename(
             rel,
             desiredRowType.getFieldNames());
     return rel;
@@ -2487,6 +2491,303 @@ public abstract class RelOptUtil {
       RelDataType rowType, Mapping mapping) {
     return typeFactory.createStructType(
         Mappings.apply3(mapping, rowType.getFieldList()));
+  }
+
+  /**
+   * Creates a relational expression which projects a list of expressions.
+   *
+   * @param child         input relational expression
+   * @param exprList      list of expressions for the input columns
+   * @param fieldNameList aliases of the expressions, or null to generate
+   */
+  public static RelNode createProject(
+      RelNode child,
+      List<? extends RexNode> exprList,
+      List<String> fieldNameList) {
+    return createProject(child, exprList, fieldNameList, false);
+  }
+
+  /**
+   * Creates a relational expression which projects a list of (expression, name)
+   * pairs.
+   *
+   * @param child       input relational expression
+   * @param projectList list of (expression, name) pairs
+   * @param optimize    Whether to optimize
+   */
+  public static RelNode createProject(
+      RelNode child,
+      List<Pair<RexNode, String>> projectList,
+      boolean optimize) {
+    return createProject(child, Pair.left(projectList), Pair.right(projectList),
+        optimize);
+  }
+
+  /**
+   * Creates a relational expression that projects the given fields of the
+   * input.
+   *
+   * <p>Optimizes if the fields are the identity projection.</p>
+   *
+   * @param child   Input relational expression
+   * @param posList Source of each projected field
+   * @return Relational expression that projects given fields
+   */
+  public static RelNode createProject(final RelNode child,
+      final List<Integer> posList) {
+    return createProject(RelFactories.DEFAULT_PROJECT_FACTORY,
+        child, posList);
+  }
+
+  /**
+   * Creates a relational expression which projects an array of expressions,
+   * and optionally optimizes.
+   *
+   * <p>The result may not be a {@link org.eigenbase.rel.ProjectRel}. If the
+   * projection is trivial, <code>child</code> is returned directly; and future
+   * versions may return other formulations of expressions, such as
+   * {@link org.eigenbase.rel.CalcRel}.
+   *
+   * @param child      input relational expression
+   * @param exprs      list of expressions for the input columns
+   * @param fieldNames aliases of the expressions, or null to generate
+   * @param optimize   Whether to return <code>child</code> unchanged if the
+   *                   projections are trivial.
+   */
+  public static RelNode createProject(
+      RelNode child,
+      List<? extends RexNode> exprs,
+      List<String> fieldNames,
+      boolean optimize) {
+    final RelOptCluster cluster = child.getCluster();
+    final RexProgram program =
+        RexProgram.create(
+            child.getRowType(), exprs, null, fieldNames,
+            cluster.getRexBuilder());
+    final List<RelCollation> collationList =
+        program.getCollations(child.getCollationList());
+    final RelDataType rowType =
+        RexUtil.createStructType(
+            cluster.getTypeFactory(),
+            exprs,
+            fieldNames == null
+                ? null
+                : SqlValidatorUtil.uniquify(
+                    fieldNames, SqlValidatorUtil.F_SUGGESTER));
+    if (optimize
+        && RemoveTrivialProjectRule.isIdentity(exprs, rowType,
+            child.getRowType())) {
+      return child;
+    }
+    return new ProjectRel(cluster,
+        cluster.traitSetOf(collationList.isEmpty()
+            ? RelCollationImpl.EMPTY
+            : collationList.get(0)),
+        child,
+        exprs,
+        rowType,
+        ProjectRelBase.Flags.BOXED);
+  }
+
+  /**
+   * Returns a relational expression which has the same fields as the
+   * underlying expression, but the fields have different names.
+   *
+   * @param rel        Relational expression
+   * @param fieldNames Field names
+   * @return Renamed relational expression
+   */
+  public static RelNode createRename(
+      RelNode rel,
+      List<String> fieldNames) {
+    final List<RelDataTypeField> fields = rel.getRowType().getFieldList();
+    assert fieldNames.size() == fields.size();
+    final List<Pair<RexNode, String>> refs =
+        new AbstractList<Pair<RexNode, String>>() {
+          public int size() {
+            return fields.size();
+          }
+
+          public Pair<RexNode, String> get(int index) {
+            return RexInputRef.of2(index, fields);
+          }
+        };
+    return createProject(rel, refs, true);
+  }
+
+  /**
+   * Creates a relational expression which permutes the output fields of a
+   * relational expression according to a permutation.
+   *
+   * <p>Optimizations:</p>
+   *
+   * <ul>
+   * <li>If the relational expression is a {@link org.eigenbase.rel.CalcRel} or
+   * {@link org.eigenbase.rel.ProjectRel} that is already acting as a
+   * permutation, combines the new permutation with the old;</li>
+   *
+   * <li>If the permutation is the identity, returns the original relational
+   * expression.</li>
+   * </ul>
+   *
+   * <p>If a permutation is combined with its inverse, these optimizations
+   * would combine to remove them both.
+   *
+   * @param rel         Relational expression
+   * @param permutation Permutation to apply to fields
+   * @param fieldNames  Field names; if null, or if a particular entry is null,
+   *                    the name of the permuted field is used
+   * @return relational expression which permutes its input fields
+   */
+  public static RelNode permute(
+      RelNode rel,
+      Permutation permutation,
+      List<String> fieldNames) {
+    if (permutation.isIdentity()) {
+      return rel;
+    }
+    if (rel instanceof CalcRel) {
+      CalcRel calcRel = (CalcRel) rel;
+      Permutation permutation1 = calcRel.getProgram().getPermutation();
+      if (permutation1 != null) {
+        Permutation permutation2 = permutation.product(permutation1);
+        return permute(rel, permutation2, null);
+      }
+    }
+    if (rel instanceof ProjectRel) {
+      Permutation permutation1 = ((ProjectRel) rel).getPermutation();
+      if (permutation1 != null) {
+        Permutation permutation2 = permutation.product(permutation1);
+        return permute(rel, permutation2, null);
+      }
+    }
+    final List<RelDataType> outputTypeList = new ArrayList<RelDataType>();
+    final List<String> outputNameList = new ArrayList<String>();
+    final List<RexNode> exprList = new ArrayList<RexNode>();
+    final List<RexLocalRef> projectRefList = new ArrayList<RexLocalRef>();
+    final List<RelDataTypeField> fields = rel.getRowType().getFieldList();
+    for (int i = 0; i < permutation.getTargetCount(); i++) {
+      int target = permutation.getTarget(i);
+      final RelDataTypeField targetField = fields.get(target);
+      outputTypeList.add(targetField.getType());
+      outputNameList.add(
+          ((fieldNames == null)
+              || (fieldNames.size() <= i)
+              || (fieldNames.get(i) == null)) ? targetField.getName()
+              : fieldNames.get(i));
+      exprList.add(
+          rel.getCluster().getRexBuilder().makeInputRef(
+              fields.get(i).getType(),
+              i));
+      final int source = permutation.getSource(i);
+      projectRefList.add(
+          new RexLocalRef(
+              source,
+              fields.get(source).getType()));
+    }
+    final RexProgram program =
+        new RexProgram(
+            rel.getRowType(),
+            exprList,
+            projectRefList,
+            null,
+            rel.getCluster().getTypeFactory().createStructType(
+                outputTypeList,
+                outputNameList));
+    return new CalcRel(
+        rel.getCluster(),
+        rel.getTraitSet(),
+        rel,
+        program.getOutputRowType(),
+        program,
+        ImmutableList.<RelCollation>of());
+  }
+
+  /**
+   * Creates a relational expression that projects the given fields of the
+   * input.
+   *
+   * <p>Optimizes if the fields are the identity projection.
+   *
+   * @param factory
+   *          ProjectFactory
+   * @param child
+   *          Input relational expression
+   * @param posList
+   *          Source of each projected field
+   * @return Relational expression that projects given fields
+   */
+  public static RelNode createProject(final RelFactories.ProjectFactory factory,
+      final RelNode child, final List<Integer> posList) {
+    if (Mappings.isIdentity(posList, child.getRowType().getFieldCount())) {
+      return child;
+    }
+    final RexBuilder rexBuilder = child.getCluster().getRexBuilder();
+    return factory.createProject(child,
+        new AbstractList<RexNode>() {
+          public int size() {
+            return posList.size();
+          }
+
+          public RexNode get(int index) {
+            final int pos = posList.get(index);
+            return rexBuilder.makeInputRef(child, pos);
+          }
+        },
+        null);
+  }
+
+  /**
+   * Creates a relational expression which projects the output fields of a
+   * relational expression according to a partial mapping.
+   *
+   * <p>A partial mapping is weaker than a permutation: every target has one
+   * source, but a source may have 0, 1 or more than one targets. Usually the
+   * result will have fewer fields than the source, unless some source fields
+   * are projected multiple times.
+   *
+   * <p>This method could optimize the result as {@link #permute} does, but
+   * does not at present.
+   *
+   * @param rel        Relational expression
+   * @param mapping    Mapping from source fields to target fields. The mapping
+   *                   type must obey the constraints
+   *                   {@link org.eigenbase.util.mapping.MappingType#isMandatorySource()}
+   *                   and
+   *                   {@link org.eigenbase.util.mapping.MappingType#isSingleSource()},
+   *                   as does
+   *                   {@link org.eigenbase.util.mapping.MappingType#INVERSE_FUNCTION}.
+   * @param fieldNames Field names; if null, or if a particular entry is null,
+   *                   the name of the permuted field is used
+   * @return relational expression which projects a subset of the input fields
+   */
+  public static RelNode projectMapping(
+      RelNode rel,
+      Mapping mapping,
+      List<String> fieldNames,
+      RelFactories.ProjectFactory projectFactory) {
+    assert mapping.getMappingType().isSingleSource();
+    assert mapping.getMappingType().isMandatorySource();
+    if (mapping.isIdentity()) {
+      return rel;
+    }
+    final List<String> outputNameList = new ArrayList<String>();
+    final List<RexNode> exprList = new ArrayList<RexNode>();
+    final List<RelDataTypeField> fields = rel.getRowType().getFieldList();
+    final RexBuilder rexBuilder = rel.getCluster().getRexBuilder();
+    for (int i = 0; i < fields.size(); i++) {
+      exprList.add(rexBuilder.makeInputRef(rel, i));
+    }
+    for (int i = 0; i < mapping.getTargetCount(); i++) {
+      int source = mapping.getSource(i);
+      final RelDataTypeField sourceField = fields.get(source);
+      outputNameList.add(
+          ((fieldNames == null)
+              || (fieldNames.size() <= i)
+              || (fieldNames.get(i) == null)) ? sourceField.getName()
+              : fieldNames.get(i));
+    }
+    return projectFactory.createProject(rel, exprList, outputNameList);
   }
 
   /** Policies for handling two- and three-valued boolean logic. */

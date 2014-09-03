@@ -75,7 +75,7 @@ public final class ProjectRel extends ProjectRelBase {
       RelOptCluster cluster,
       RelTraitSet traitSet,
       RelNode child,
-      List<RexNode> exps,
+      List<? extends RexNode> exps,
       RelDataType rowType,
       int flags) {
     super(cluster, traitSet, child, exps, rowType, flags);

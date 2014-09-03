@@ -239,7 +239,7 @@ public final class WindowRel extends WindowRelBase {
             cluster, traitSet, child, constants, intermediateRowType,
             windowList);
 
-    return CalcRel.createProject(
+    return RelOptUtil.createProject(
         window,
         toInputRefs(program.getProjectList()),
         outRowType.getFieldNames());

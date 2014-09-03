@@ -450,7 +450,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
     // This ProjectRel will be what the old child maps to,
     // replacing any previous mapping from old child).
     RelNode newProjectRel =
-        CalcRel.createProject(newChildRel, projects, false);
+        RelOptUtil.createProject(newChildRel, projects, false);
 
     // update mappings:
     // oldChildRel ----> newChildRel
@@ -614,7 +614,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
     }
 
     RelNode newProjectRel =
-        CalcRel.createProject(newChildRel, projects, false);
+        RelOptUtil.createProject(newChildRel, projects, false);
 
     mapOldToNewRel.put(rel, newProjectRel);
     mapNewRelToMapOldToNewOutputPos.put(
@@ -699,7 +699,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
 
       if (!joinedInputRelSet.contains(newInputRel)) {
         RelNode projectRel =
-            CalcRel.createProject(
+            RelOptUtil.createProject(
                 newInputRel,
                 mapNewInputRelToOutputPos.get(newInputRel));
         RelNode distinctRel = RelOptUtil.createDistinctRel(projectRel);
@@ -862,7 +862,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
     // Replace the filter expression to reference output of the join
     // Map filter to the new filter over join
     RelNode newFilterRel =
-        CalcRel.createFilter(
+        RelOptUtil.createFilter(
             newChildRel,
             decorrelateExpr(rel.getCondition()));
 
@@ -1211,7 +1211,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
     }
 
     RelNode newProjRel =
-        CalcRel.createProject(joinRel, newProjExprs, false);
+        RelOptUtil.createProject(joinRel, newProjExprs, false);
 
     return newProjRel;
   }
@@ -1260,7 +1260,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
       newProjects.add(Pair.of(newProjExpr, pair.right));
     }
 
-    return CalcRel.createProject(corRel, newProjects, false);
+    return RelOptUtil.createProject(corRel, newProjects, false);
   }
 
   /**
@@ -1355,7 +1355,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
               field.e.getName()));
     }
     projects.addAll(additionalExprs);
-    return CalcRel.createProject(childRel, projects, false);
+    return RelOptUtil.createProject(childRel, projects, false);
   }
 
   //~ Inner Classes ----------------------------------------------------------
@@ -1724,7 +1724,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
       // projection that casts proj expr to a nullable type.
       final RelOptCluster cluster = projRel.getCluster();
       RelNode newProjRel =
-          CalcRel.createProject(aggRel,
+          RelOptUtil.createProject(aggRel,
               ImmutableList.of(
                   rexBuilder.makeCast(
                       cluster.getTypeFactory().createTypeWithNullability(
@@ -2249,7 +2249,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
           rexBuilder.makeInputRef(joinRel, nullIndicatorPos));
 
       RelNode joinOutputProjRel =
-          CalcRel.createProject(
+          RelOptUtil.createProject(
               joinRel,
               joinOutputProjExprs,
               null);
@@ -2308,7 +2308,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
               newAggOutputProjExpr));
 
       RelNode newAggOutputProjRel =
-          CalcRel.createProject(
+          RelOptUtil.createProject(
               newAggRel,
               newAggOutputProjExprList,
               null);
@@ -2362,7 +2362,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
           projects.add(RexInputRef.of2(projects.size(), fields));
         }
         aggOutputProjRel =
-            (ProjectRel) CalcRel.createProject(
+            (ProjectRel) RelOptUtil.createProject(
                 aggRel,
                 projects,
                 false);

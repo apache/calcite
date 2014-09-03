@@ -189,7 +189,7 @@ public class PushJoinThroughJoinRule extends RelOptRule {
             relB, topJoin.getJoinType(), topJoin.isSemiJoinDone());
 
     assert !Mappings.isIdentity(topMapping);
-    final RelNode newProject = RelFactories.createProject(projectFactory,
+    final RelNode newProject = RelOptUtil.createProject(projectFactory,
         newTopJoin, Mappings.asList(topMapping));
 
     call.transformTo(newProject);
@@ -296,7 +296,7 @@ public class PushJoinThroughJoinRule extends RelOptRule {
         topJoin.copy(topJoin.getTraitSet(), newTopCondition, newBottomJoin,
             relA, topJoin.getJoinType(), topJoin.isSemiJoinDone());
 
-    final RelNode newProject = RelFactories.createProject(projectFactory,
+    final RelNode newProject = RelOptUtil.createProject(projectFactory,
         newTopJoin, Mappings.asList(topMapping));
 
     call.transformTo(newProject);

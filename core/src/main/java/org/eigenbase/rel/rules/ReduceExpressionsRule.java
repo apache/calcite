@@ -87,7 +87,7 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
                     filter.getRowType()));
           } else if (reduced) {
             call.transformTo(
-                CalcRel.createFilter(
+                RelOptUtil.createFilter(
                     filter.getChild(),
                     expList.get(0)));
           } else {

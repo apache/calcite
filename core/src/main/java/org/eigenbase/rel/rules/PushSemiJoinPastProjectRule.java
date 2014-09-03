@@ -84,7 +84,7 @@ public class PushSemiJoinPastProjectRule extends RelOptRule {
     // are the same as the original because they only reference the LHS
     // of the semijoin and the semijoin only projects out the LHS
     RelNode newProject =
-        CalcRel.createProject(
+        RelOptUtil.createProject(
             newSemiJoin,
             projExprs,
             project.getRowType().getFieldNames());

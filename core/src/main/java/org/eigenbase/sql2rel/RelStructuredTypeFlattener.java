@@ -137,7 +137,7 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
       // REVIEW jvs 23-Mar-2005:  How do we make sure that this
       // implementation stays in Java?  Fennel can't handle
       // structured types.
-      return CalcRel.createProject(
+      return RelOptUtil.createProject(
           flattened,
           structuringExps,
           root.getRowType().getFieldNames());
@@ -352,7 +352,7 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
 
   public void rewriteRel(FilterRel rel) {
     RelNode newRel =
-        CalcRel.createFilter(
+        RelOptUtil.createFilter(
             getNewForOldRel(rel.getChild()),
             flattenFieldAccesses(rel.getCondition()));
     setNewForOldRel(rel, newRel);
@@ -447,7 +447,7 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
         flattenedExpList,
         flattenedFieldNameList);
     RelNode newRel =
-        CalcRel.createProject(
+        RelOptUtil.createProject(
             getNewForOldRel(rel.getChild()),
             flattenedExpList,
             flattenedFieldNameList);

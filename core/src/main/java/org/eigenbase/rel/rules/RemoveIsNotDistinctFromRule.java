@@ -60,7 +60,7 @@ public final class RemoveIsNotDistinctFromRule extends RelOptRule {
             oldFilterRel.getCluster().getRexBuilder());
 
     RelNode newFilterRel =
-        CalcRel.createFilter(
+        RelOptUtil.createFilter(
             oldFilterRel.getChild(),
             oldFilterCond.accept(rewriteShuttle));
 

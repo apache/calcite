@@ -200,7 +200,7 @@ public class PullConstantsThroughAggregatesRule extends RelOptRule {
       projects.add(Pair.of(expr, field.getName()));
     }
     final RelNode inverseProject =
-        CalcRel.createProject(newAggregate, projects, false);
+        RelOptUtil.createProject(newAggregate, projects, false);
 
     call.transformTo(inverseProject);
   }
@@ -234,7 +234,7 @@ public class PullConstantsThroughAggregatesRule extends RelOptRule {
               (RexNode) rexBuilder.makeInputRef(child, source),
               childRowType.getFieldList().get(source).getName()));
     }
-    return CalcRel.createProject(child, projects, false);
+    return RelOptUtil.createProject(child, projects, false);
   }
 }
 

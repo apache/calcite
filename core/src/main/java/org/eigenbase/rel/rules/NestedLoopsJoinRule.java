@@ -110,7 +110,7 @@ public class NestedLoopsJoinRule extends RelOptRule {
                         dynInIdStr)));
       }
       right =
-          CalcRel.createFilter(
+          RelOptUtil.createFilter(
               right,
               condition);
     }

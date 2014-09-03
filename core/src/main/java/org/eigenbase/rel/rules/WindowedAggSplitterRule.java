@@ -117,7 +117,7 @@ public abstract class WindowedAggSplitterRule extends RelOptRule {
                           program.getCondition()));
                 }
                 if (!program.projectsOnlyIdentity()) {
-                  rel = CalcRel.createProject(
+                  rel = RelOptUtil.createProject(
                       rel,
                       Lists.transform(
                           program.getProjectList(),

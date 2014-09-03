@@ -254,7 +254,7 @@ public class OptimizeBushyJoinRule extends RelOptRule {
 
     final Pair<RelNode, Mappings.TargetMapping> top = Util.last(relNodes);
     final RelNode project =
-        RelFactories.createProject(projectFactory, top.left,
+        RelOptUtil.createProject(projectFactory, top.left,
             Mappings.asList(top.right));
 
     call.transformTo(project);

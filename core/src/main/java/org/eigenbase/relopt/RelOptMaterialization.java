@@ -76,7 +76,7 @@ public class RelOptMaterialization {
                       starRelOptTable.getRowType().getFieldCount(),
                       0, 0, relOptTable.getRowType().getFieldCount());
 
-              return CalcRel.createProject(
+              return RelOptUtil.createProject(
                   new TableAccessRel(scan.getCluster(), starRelOptTable),
                   Mappings.asList(mapping.inverse()));
             }
@@ -158,7 +158,7 @@ public class RelOptMaterialization {
                           ((StarTable) leftTable).columnOffset(rightTable),
                           leftRelOptTable.getRowType().getFieldCount()));
               throw new Util.FoundOne(
-                  CalcRel.createProject(
+                  RelOptUtil.createProject(
                       new TableAccessRel(cluster, leftRelOptTable),
                       Mappings.asList(mapping.inverse())));
             }
@@ -168,7 +168,7 @@ public class RelOptMaterialization {
               Mappings.TargetMapping mapping =
                   Mappings.append(leftMapping, rightMapping);
               throw new Util.FoundOne(
-                  CalcRel.createProject(
+                  RelOptUtil.createProject(
                       new TableAccessRel(cluster, rightRelOptTable),
                       Mappings.asList(mapping.inverse())));
             }

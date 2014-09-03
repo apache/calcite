@@ -296,7 +296,7 @@ public class PushProjector {
               origFilter,
               newProject.getRowType().getFieldList(),
               adjustments);
-      projChild = CalcRel.createFilter(newProject, newFilter);
+      projChild = RelOptUtil.createFilter(newProject, newFilter);
     } else {
       projChild = newProject;
     }
@@ -464,7 +464,7 @@ public class PushProjector {
               ((RexCall) projExpr).getOperator().getName()));
     }
 
-    return (ProjectRel) CalcRel.createProject(
+    return (ProjectRel) RelOptUtil.createProject(
         projChild,
         Pair.left(newProjects),
         Pair.right(newProjects));
@@ -552,7 +552,7 @@ public class PushProjector {
                     field.e.getType(), field.i), field.e.getName()));
       }
     }
-    return (ProjectRel) CalcRel.createProject(
+    return (ProjectRel) RelOptUtil.createProject(
         projChild,
         Pair.left(projects),
         Pair.right(projects),

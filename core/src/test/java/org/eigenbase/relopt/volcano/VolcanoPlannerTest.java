@@ -29,6 +29,8 @@ import org.eigenbase.util.*;
 
 import net.hydromatic.optiq.rules.java.EnumerableConvention;
 
+import com.google.common.collect.ImmutableList;
+
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -227,10 +229,10 @@ public class VolcanoPlannerTest {
             "a");
     RexInputRef inputRef = RexInputRef.of(0, leafRel.getRowType());
     RelNode projectRel =
-        CalcRel.createProject(
+        RelOptUtil.createProject(
             leafRel,
-            Collections.<RexNode>singletonList(inputRef),
-            Collections.singletonList("this"));
+            ImmutableList.of(inputRef),
+            ImmutableList.of("this"));
     NoneSingleRel singleRel =
         new NoneSingleRel(
             cluster,

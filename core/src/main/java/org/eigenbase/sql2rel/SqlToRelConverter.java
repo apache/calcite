@@ -806,7 +806,7 @@ public class SqlToRelConverter {
     // only allocate filter if the condition is not TRUE
     if (!convertedWhere.isAlwaysTrue()) {
       bb.setRoot(
-          CalcRel.createFilter(bb.root, convertedWhere),
+          RelOptUtil.createFilter(bb.root, convertedWhere),
           false);
     }
   }
@@ -1823,7 +1823,7 @@ public class SqlToRelConverter {
       final SqlNode node = ((SqlCall) from).operand(0);
       replaceSubqueries(bb, node, RelOptUtil.Logic.TRUE_FALSE_UNKNOWN);
       final RelNode childRel =
-          CalcRel.createProject(
+          RelOptUtil.createProject(
               (null != bb.root) ? bb.root : new OneRowRel(cluster),
               Collections.singletonList(bb.convertExpression(node)),
               Collections.singletonList(validator.deriveAlias(node, 0)),
@@ -2032,7 +2032,7 @@ public class SqlToRelConverter {
     if (!extraLeftExprs.isEmpty()) {
       final List<RelDataTypeField> fields =
           leftRel.getRowType().getFieldList();
-      leftRel = CalcRel.createProject(
+      leftRel = RelOptUtil.createProject(
           leftRel,
           new AbstractList<Pair<RexNode, String>>() {
             @Override
@@ -2059,7 +2059,7 @@ public class SqlToRelConverter {
       final List<RelDataTypeField> fields =
           rightRel.getRowType().getFieldList();
       final int newLeftCount = leftCount + extraLeftExprs.size();
-      rightRel = CalcRel.createProject(
+      rightRel = RelOptUtil.createProject(
           rightRel,
           new AbstractList<Pair<RexNode, String>>() {
             @Override
@@ -2513,7 +2513,7 @@ public class SqlToRelConverter {
 
       // Project the expressions required by agg and having.
       bb.setRoot(
-          CalcRel.createProject(
+          RelOptUtil.createProject(
               inputRel,
               preExprs,
               preNames,
@@ -2595,12 +2595,12 @@ public class SqlToRelConverter {
 
     // implement HAVING (we have already checked that it is non-trivial)
     if (havingExpr != null) {
-      bb.setRoot(CalcRel.createFilter(bb.root, havingExpr), false);
+      bb.setRoot(RelOptUtil.createFilter(bb.root, havingExpr), false);
     }
 
     // implement the SELECT list
     bb.setRoot(
-        CalcRel.createProject(
+        RelOptUtil.createProject(
             bb.root,
             selectExprs,
             selectNames,
@@ -2999,7 +2999,7 @@ public class SqlToRelConverter {
               sourceExps.get(i), field.getType()));
     }
 
-    return CalcRel.createProject(sourceRel, sourceExps, fieldNames, true);
+    return RelOptUtil.createProject(sourceRel, sourceExps, fieldNames, true);
   }
 
   private RexNode castNullLiteralIfNeeded(RexNode node, RelDataType type) {
@@ -3149,7 +3149,7 @@ public class SqlToRelConverter {
     }
 
     RelNode massagedRel =
-        CalcRel.createProject(joinRel, projects, null, true);
+        RelOptUtil.createProject(joinRel, projects, null, true);
 
     return new TableModificationRel(
         cluster,
@@ -3353,7 +3353,7 @@ public class SqlToRelConverter {
         }
 
         RelNode projRel =
-            CalcRel.createProject(
+            RelOptUtil.createProject(
                 new OneRowRel(cluster),
                 selectList,
                 fieldNameList);
@@ -3449,7 +3449,7 @@ public class SqlToRelConverter {
 
     RelNode inputRel = bb.root;
     bb.setRoot(
-        CalcRel.createProject(bb.root, exprs, fieldNames),
+        RelOptUtil.createProject(bb.root, exprs, fieldNames),
         false);
 
     assert bb.columnMonotonicities.isEmpty();
@@ -3565,7 +3565,7 @@ public class SqlToRelConverter {
               ? new OneRowRel(cluster)
               : tmpBb.root;
       unionRels.add(
-          CalcRel.createProject(
+          RelOptUtil.createProject(
               in,
               Pair.left(exps),
               Pair.right(exps),
@@ -3722,7 +3722,7 @@ public class SqlToRelConverter {
         }
 
         ProjectRel newLeftInput =
-            (ProjectRel) CalcRel.createProject(
+            (ProjectRel) RelOptUtil.createProject(
                 root,
                 newLeftInputExpr,
                 null,

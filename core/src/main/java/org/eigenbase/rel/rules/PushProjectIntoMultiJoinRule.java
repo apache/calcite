@@ -64,7 +64,7 @@ public class PushProjectIntoMultiJoinRule extends RelOptRule {
     MultiJoinRel newMultiJoin =
         RelOptUtil.projectMultiJoin(multiJoin, project);
     ProjectRel newProject =
-        (ProjectRel) CalcRel.createProject(
+        (ProjectRel) RelOptUtil.createProject(
             newMultiJoin,
             project.getProjects(),
             project.getRowType().getFieldNames());
