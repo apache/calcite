@@ -31,7 +31,9 @@ import net.hydromatic.linq4j.function.*;
 
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
 /**
  * Utility methods concerning row-expressions.
@@ -49,6 +51,13 @@ public class RexUtil {
       new Predicate1<RexNode>() {
         public boolean apply(RexNode v1) {
           return isFlat(v1);
+        }
+      };
+
+  private static final Function<Object, String> TO_STRING =
+      new Function<Object, String>() {
+        public String apply(Object input) {
+          return input.toString();
         }
       };
 
@@ -1003,6 +1012,32 @@ public class RexUtil {
         });
   }
 
+  /** Creates an equivalent version of a node where common factors among ORs
+   * are pulled up.
+   *
+   * <p>For example,
+   *
+   * <blockquote>(a AND b) OR (a AND c AND d)</blockquote>
+   *
+   * <p>becomes
+   *
+   * <blockquote>a AND (b OR (c AND d))</blockquote>
+   *
+   * <p>Note that this result is not in CNF
+   * (see {@link #toCnf(RexBuilder, RexNode)}) because there is an AND inside an
+   * OR.
+   *
+   * <p>This form is useful if, say, {@code a} contains columns from only the
+   * left-hand side of a join, and can be pushed to the left input.
+   *
+   * @param rexBuilder Rex builder
+   * @param node Expression to transform
+   * @return Equivalent expression with common factors pulled up
+   */
+  public static RexNode pullFactors(RexBuilder rexBuilder, RexNode node) {
+    return new CnfHelper(rexBuilder).pull(node);
+  }
+
   //~ Inner Classes ----------------------------------------------------------
 
   /**
@@ -1204,8 +1239,9 @@ public class RexUtil {
         default:
           return rex;
         }
+      default:
+        return rex;
       }
-      return rex;
     }
 
     private List<RexNode> toCnfs(List<RexNode> nodes) {
@@ -1222,6 +1258,71 @@ public class RexUtil {
       }
       return list;
     }
+
+    private RexNode pull(RexNode rex) {
+      final List<RexNode> operands;
+      switch (rex.getKind()) {
+      case AND:
+        operands = flattenAnd(((RexCall) rex).getOperands());
+        return and(pullList(operands));
+      case OR:
+        operands = flattenOr(((RexCall) rex).getOperands());
+        final Map<String, RexNode> factors = commonFactors(operands);
+        if (factors.isEmpty()) {
+          return or(operands);
+        }
+        final List<RexNode> list = Lists.newArrayList();
+        for (RexNode operand : operands) {
+          list.add(removeFactor(factors, operand));
+        }
+        return and(Iterables.concat(factors.values(),
+            ImmutableList.of(or(list))));
+      default:
+        return rex;
+      }
+    }
+
+    private List<RexNode> pullList(List<RexNode> nodes) {
+      final List<RexNode> list = Lists.newArrayList();
+      for (RexNode node : nodes) {
+        RexNode pulled = pull(node);
+        switch (pulled.getKind()) {
+        case AND:
+          list.addAll(((RexCall) pulled).getOperands());
+          break;
+        default:
+          list.add(pulled);
+        }
+      }
+      return list;
+    }
+
+    private Map<String, RexNode> commonFactors(List<RexNode> nodes) {
+      final Map<String, RexNode> map = Maps.newHashMap();
+      int i = 0;
+      for (RexNode node : nodes) {
+        if (i++ == 0) {
+          for (RexNode conjunction : RelOptUtil.conjunctions(node)) {
+            map.put(conjunction.toString(), conjunction);
+          }
+        } else {
+          map.keySet().retainAll(
+              Lists.transform(RelOptUtil.conjunctions(node), TO_STRING));
+        }
+      }
+      return map;
+    }
+
+    private RexNode removeFactor(Map<String, RexNode> factors, RexNode node) {
+      List<RexNode> list = Lists.newArrayList();
+      for (RexNode operand : RelOptUtil.conjunctions(node)) {
+        if (!factors.containsKey(operand.toString())) {
+          list.add(operand);
+        }
+      }
+      return and(list);
+    }
+
 
     private RexNode and(Iterable<? extends RexNode> nodes) {
       return composeConjunction(rexBuilder, nodes, false);
