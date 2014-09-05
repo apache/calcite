@@ -321,7 +321,7 @@ read GPG_PASSPHRASE
 git clean -xn
 
 # Set the version numbers
-mvn -DskipTests -DreleaseVersion=x.y.z-incubating -DdevelopmentVersion=x.y.z+1-incubating-SNAPSHOT -Papache-release -Darguments="-Dgpg.passphrase=${GPG_PASSPHRASE}" clean release:prepare 2>&1 | tee /tmp/prepare.log
+mvn -DskipTests -DreleaseVersion=X.Y.Z-incubating -DdevelopmentVersion=X.Y.Z+1-incubating-SNAPSHOT -Papache-release -Darguments="-Dgpg.passphrase=${GPG_PASSPHRASE}" clean release:prepare 2>&1 | tee /tmp/prepare.log
 
 # Perform the release
 mvn -DskipTests -Papache-release -Darguments="-Dgpg.passphrase=${GPG_PASSPHRASE}" clean release:prepare 2>&1 | tee /tmp/perform.log
@@ -332,29 +332,42 @@ If any of the above steps fail, clean up (see below), fix the problem,
 and start again from the top.
 
 Check the artifacts:
-* Make sure that the source distro (currently there is no binary
-  distro) has a README file (README.md does not count) and that the
-  version in the README is correct
-* The file name must start `optiq-` and include `incubating`.
+* In the `target` directory should be these 8 files, among others:
+  * apache-optiq-X.Y.Z-incubating-src.tar.gz
+  * apache-optiq-X.Y.Z-incubating-src.tar.gz.asc
+  * apache-optiq-X.Y.Z-incubating-src.tar.gz.md5
+  * apache-optiq-X.Y.Z-incubating-src.tar.gz.sha1
+  * apache-optiq-X.Y.Z-incubating-src.zip
+  * apache-optiq-X.Y.Z-incubating-src.zip.asc
+  * apache-optiq-X.Y.Z-incubating-src.zip.md5
+  * apache-optiq-X.Y.Z-incubating-src.zip.sha1
+* Note that the file names start `apache-optiq-` and include
+  `incubating` in the version.
+* In the two source distros `.tar.gz` and `.zip` (currently there is
+  no binary distro), check that all files belong to a directory called
+  `apache-optiq-X.Y.Z-incubating-src`.
+* That directory must contain files `NOTICE`, `LICENSE`, `README`,
+  `README.md`, `git.properties`
+  * Check that  the version in `README` is correct
+  * Check that `git.properties` is current
+* In each .jar (for example
+  `core/target/optiq-core-X.Y.Z-incubating.jar` and
+  `mongodb/target/optiq-mongodb-X.Y.Z-incubating-sources.jar`), check
+  that the `META-INF` directory contains `DEPENDENCIES`, `LICENSE`,
+  `NOTICE` and `git.properties`
 * Check PGP, per https://httpd.apache.org/dev/verification.html
 
 Upload the artifacts to a staging area (in this case, your
 people.apache.org home directory):
 
 ```bash
-# Generate checksum files
-cd target
-for i in *.zip; do
-  gpg --print-md SHA512 $i > $i.sha
-  gpg --print-md MD5 $i > $i.md5
-done
-
 # Move the files into a directory
-mkdir optiq-x.y.z-incubating
-mv optiq-* optiq-x.y.z-incubating
+cd target
+mkdir apache-optiq-X.Y.Z-incubating-rcN
+mv apache-optiq-* optiq-X.Y.Z-incubating-rcN
 
 # Upload to staging area (your people.apache.org home directory)
-scp -rp apache-optiq-x.y.z-incubating people.apache.org:public_html
+scp -rp apache-optiq-X.Y.Z-incubating-rcN people.apache.org:public_html
 ```
 
 ## Cleaning up after a failed release attempt (for Optiq committers)
@@ -365,8 +378,8 @@ scp -rp apache-optiq-x.y.z-incubating people.apache.org:public_html
 git tag
 
 # If the tag exists, delete it locally and remotely
-git tag -d optiq-x.y.z-incubating
-git push origin :refs/tags/optiq-x.y.z-incubating
+git tag -d optiq-X.Y.Z-incubating
+git push origin :refs/tags/optiq-X.Y.Z-incubating
 
 # Remove modified files
 mvn release:clean
@@ -419,8 +432,7 @@ function checkHash() {
     fi
   done
 }
-checkHash optiq-x.y.z-incubating
-
+checkHash optiq-X.Y.Z-incubating
 ```
 
 ## Get approval for a release via Apache voting process (for Optiq committers)

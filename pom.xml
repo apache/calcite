@@ -375,6 +375,11 @@ limitations under the License.
           <version>0.2</version>
         </plugin>
         <plugin>
+          <groupId>net.ju-n.maven.plugins</groupId>
+          <artifactId>checksum-maven-plugin</artifactId>
+          <version>1.2</version>
+        </plugin>
+        <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-checkstyle-plugin</artifactId>
           <version>2.12.1</version>
@@ -466,6 +471,8 @@ limitations under the License.
 
   <profiles>
     <profile>
+      <!-- This profile adds/overrides few features of the 'apache-release'
+           profile in the parent pom. -->
       <id>apache-release</id>
       <build>
         <plugins>
@@ -489,6 +496,45 @@ limitations under the License.
                 <goals>
                   <goal>check</goal>
                 </goals>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <groupId>net.ju-n.maven.plugins</groupId>
+            <artifactId>checksum-maven-plugin</artifactId>
+            <executions>
+              <execution>
+                <goals>
+                  <goal>artifacts</goal>
+                </goals>
+              </execution>
+            </executions>
+            <configuration>
+              <algorithms>
+                <algorithm>MD5</algorithm>
+                <algorithm>SHA-1</algorithm>
+              </algorithms>
+              <failOnError>false</failOnError>
+            </configuration>
+          </plugin>
+          <!-- Override the parent assembly execution to customize the assembly
+               descriptor and final name. -->
+          <plugin>
+            <artifactId>maven-assembly-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>source-release-assembly</id>
+                <phase>package</phase>
+                <goals>
+                  <goal>single</goal>
+                </goals>
+                <configuration>
+                  <runOnlyAtExecutionRoot>true</runOnlyAtExecutionRoot>
+                  <appendAssemblyId>false</appendAssemblyId>
+                  <descriptor>src/main/config/assemblies/source-assembly.xml</descriptor>
+                  <finalName>apache-optiq-${project.version}-src</finalName>
+                  <tarLongFileMode>gnu</tarLongFileMode>
+                </configuration>
               </execution>
             </executions>
           </plugin>
