@@ -16,6 +16,8 @@
  */
 package net.hydromatic.optiq.test;
 
+import net.hydromatic.linq4j.expressions.Primitive;
+
 import org.eigenbase.util.IntegerIntervalSet;
 
 import com.fasterxml.jackson.core.JsonParser;
@@ -78,6 +80,13 @@ public class FoodmartTest {
     6564, 6566, 6578, 6581, 6582, 6583, 6587, 6591, 6594, 6603, 6610, 6613,
     6615, 6618, 6619, 6622, 6627, 6632, 6635, 6643, 6650, 6651, 6652, 6653,
     6656, 6659, 6668, 6670, 6720, 6726, 6735, 6737, 6739,
+
+    // timeout oor OOM
+    420, 423, 5218, 5219, 5616, 5617, 5618, 5891, 5892, 5895, 5896, 5898, 5899,
+    5900, 5901, 5902, 6080, 6091,
+
+    // bugs
+    6597, // OPTIQ-403
   };
 
   // Interesting tests. (We need to fix and remove from the disabled list.)
@@ -101,7 +110,6 @@ public class FoodmartTest {
       for (int disabledId : DISABLED_IDS) {
         buf.append(",-").append(disabledId);
       }
-      buf.setLength(0); // disable disable
       for (Integer id : IntegerIntervalSet.of(idList + buf)) {
         final FoodmartQuery query1 = set.queries.get(id);
         if (query1 != null) {
@@ -110,6 +118,13 @@ public class FoodmartTest {
       }
     } else {
       for (FoodmartQuery query1 : set.queries.values()) {
+        if (!OptiqAssert.ENABLE_SLOW && query1.id != 2) {
+          // If slow queries are not enabled, only run query #2.
+          continue;
+        }
+        if (Primitive.asList(DISABLED_IDS).contains(query1.id)) {
+          continue;
+        }
         list.add(new Object[]{query1.id /*, query1.sql */});
       }
     }
@@ -127,6 +142,7 @@ public class FoodmartTest {
       OptiqAssert.that()
 //          .withModel(JdbcTest.FOODMART_MODEL)
           .with(OptiqAssert.Config.FOODMART_CLONE)
+          .pooled()
 //          .withSchema("foodmart")
           .query(query.sql)
           .runs();

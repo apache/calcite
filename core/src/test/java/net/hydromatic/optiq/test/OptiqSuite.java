@@ -112,7 +112,11 @@ import org.junit.runners.Suite;
     // slow tests that don't break often
     SqlToRelConverterExtendedTest.class,
     SqlRunTest.class,
-    PartiallyOrderedSetTest.class
+    PartiallyOrderedSetTest.class,
+
+    // system tests and benchmarks (very slow, but usually only run if
+    // '-Doptiq.test.slow=true' is specified)
+    FoodmartTest.class
 })
 public class OptiqSuite {
 }

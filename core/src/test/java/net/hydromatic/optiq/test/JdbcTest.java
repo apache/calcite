@@ -899,7 +899,7 @@ public class JdbcTest {
     // the first instance of the column will be returned."
     OptiqAssert.that()
         .doWithConnection(
-            new Function1<OptiqConnection, Object>() {
+            new Function<OptiqConnection, Object>() {
               public Object apply(OptiqConnection c) {
                 try {
                   Statement s = c.createStatement();
@@ -1440,7 +1440,7 @@ public class JdbcTest {
         .query(
             "values extract(year from date '2008-2-23')")
         .returns(
-            new Function1<ResultSet, Void>() {
+            new Function<ResultSet, Void>() {
               public Void apply(ResultSet a0) {
                 try {
                   final BigDecimal bigDecimal = a0.getBigDecimal(1);
@@ -1797,7 +1797,7 @@ public class JdbcTest {
     OptiqAssert.that()
         .with(OptiqAssert.Config.REGULAR)
         .doWithConnection(
-            new Function1<OptiqConnection, Object>() {
+            new Function<OptiqConnection, Object>() {
               public Object apply(OptiqConnection a0) {
                 try {
                   final Statement statement = a0.createStatement();
@@ -2983,6 +2983,27 @@ public class JdbcTest {
             + "from \"hr\".\"emps\" a) where 1=2\n"
             + "group by cnst\n"
             + ") where max_id is null")
+        .returnsCount(0);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/OPTIQ-403">OPTIQ-403</a>,
+   * "Enumerable gives NullPointerException with HAVING on nullable
+   * expression". */
+  @Ignore("OPTIQ-403")
+  @Test public void testHavingNot() throws IOException {
+    withFoodMartQuery(6597).runs();
+  }
+
+  /** Minimal case of {@link #testHavingNot()}. */
+  @Ignore("OPTIQ-403")
+  @Test public void testHavingNot2() throws IOException {
+    OptiqAssert.that()
+        .with(OptiqAssert.Config.FOODMART_CLONE)
+        .query("select 1\n"
+            + "from \"store\"\n"
+            + "group by \"store\".\"store_street_address\"\n"
+            + "having NOT (sum(\"store\".\"grocery_sqft\") < 10000)")
         .returnsCount(0);
   }
 
@@ -4185,13 +4206,14 @@ public class JdbcTest {
             + "  from \"hr\".\"depts\" as d2\n"
             + "  join \"hr\".\"emps\" as e2 using (\"deptno\")\n"
             + "where d.\"deptno\" = d2.\"deptno\")")
-        .convertMatches(new Function1<RelNode, Void>() {
-          public Void apply(RelNode relNode) {
-            String s = RelOptUtil.toString(relNode);
-            assertThat(s, not(containsString("CorrelatorRel")));
-            return null;
-          }
-        });
+        .convertMatches(
+            new Function<RelNode, Void>() {
+              public Void apply(RelNode relNode) {
+                String s = RelOptUtil.toString(relNode);
+                assertThat(s, not(containsString("CorrelatorRel")));
+                return null;
+              }
+            });
   }
 
   /** Tests a correlated scalar sub-query in the SELECT clause.
@@ -4467,7 +4489,7 @@ public class JdbcTest {
     OptiqAssert.that()
         .with(OptiqAssert.Config.REGULAR)
         .doWithConnection(
-            new Function1<OptiqConnection, Object>() {
+            new Function<OptiqConnection, Object>() {
               public Object apply(OptiqConnection a0) {
                 try {
                   final Statement statement = a0.createStatement();
@@ -4499,7 +4521,7 @@ public class JdbcTest {
     OptiqAssert.that()
         .with(OptiqAssert.Config.REGULAR)
         .doWithConnection(
-            new Function1<OptiqConnection, Object>() {
+            new Function<OptiqConnection, Object>() {
               public Object apply(OptiqConnection connection) {
                 try {
                   final PreparedStatement preparedStatement =
@@ -4670,7 +4692,7 @@ public class JdbcTest {
             + "}");
     // check that the specified 'defaultSchema' was used
     that.doWithConnection(
-        new Function1<OptiqConnection, Object>() {
+        new Function<OptiqConnection, Object>() {
           public Object apply(OptiqConnection connection) {
             try {
               assertEquals("adhoc", connection.getSchema());
@@ -4764,7 +4786,7 @@ public class JdbcTest {
 
     // Make sure that views appear in metadata.
     with.doWithConnection(
-        new Function1<OptiqConnection, Void>() {
+        new Function<OptiqConnection, Void>() {
           public Void apply(OptiqConnection a0) {
             try {
               final DatabaseMetaData metaData = a0.getMetaData();
@@ -4874,7 +4896,7 @@ public class JdbcTest {
               }
             })
         .doWithConnection(
-            new Function1<OptiqConnection, Object>() {
+            new Function<OptiqConnection, Object>() {
               public Object apply(OptiqConnection a0) {
                 try {
                   a0.createStatement()
@@ -5294,7 +5316,7 @@ public class JdbcTest {
     OptiqAssert.that()
         .with(ImmutableMap.of("timezone", "GMT+1:00"))
         .doWithConnection(
-            new Function1<OptiqConnection, Void>() {
+            new Function<OptiqConnection, Void>() {
               public Void apply(OptiqConnection connection) {
                 try {
                   final PreparedStatement statement =
@@ -5333,7 +5355,7 @@ public class JdbcTest {
     OptiqAssert.that()
         .with(ImmutableMap.of("timezone", "GMT+1:00"))
         .doWithConnection(
-            new Function1<OptiqConnection, Void>() {
+            new Function<OptiqConnection, Void>() {
               public Void apply(OptiqConnection connection) {
                 try {
                   checkGetTimestamp(connection);
@@ -5480,23 +5502,24 @@ public class JdbcTest {
   public void testGetDate() throws Exception {
     OptiqAssert.that()
       .with(OptiqAssert.Config.JDBC_FOODMART)
-      .doWithConnection(new Function1<OptiqConnection, Object>() {
-        public Object apply(OptiqConnection conn) {
-          try {
-            Statement stmt = conn.createStatement();
-            ResultSet rs = stmt.executeQuery(
-              "select min(\"date\") mindate from \"foodmart\".\"currency\"");
-            assertTrue(rs.next());
-            assertEquals(
-              Date.valueOf("1997-01-01"),
-              rs.getDate(1));
-            assertFalse(rs.next());
-            return null;
-          } catch (SQLException e) {
-            throw new RuntimeException(e);
-          }
-        }
-      });
+      .doWithConnection(
+          new Function<OptiqConnection, Object>() {
+            public Object apply(OptiqConnection conn) {
+              try {
+                Statement stmt = conn.createStatement();
+                ResultSet rs = stmt.executeQuery(
+                    "select min(\"date\") mindate from \"foodmart\".\"currency\"");
+                assertTrue(rs.next());
+                assertEquals(
+                    Date.valueOf("1997-01-01"),
+                    rs.getDate(1));
+                assertFalse(rs.next());
+                return null;
+              } catch (SQLException e) {
+                throw new RuntimeException(e);
+              }
+            }
+          });
   }
 
   /** Tests accessing a date as a string in a JDBC source whose type is DATE. */
@@ -5512,23 +5535,24 @@ public class JdbcTest {
   public void testGetTimestampObject() throws Exception {
     OptiqAssert.that()
       .with(OptiqAssert.Config.JDBC_FOODMART)
-      .doWithConnection(new Function1<OptiqConnection, Object>() {
-        public Object apply(OptiqConnection conn) {
-          try {
-            Statement stmt = conn.createStatement();
-            ResultSet rs = stmt.executeQuery(
-              "select \"hire_date\" from \"foodmart\".\"employee\" where \"employee_id\" = 1");
-            assertTrue(rs.next());
-            assertEquals(
-              Timestamp.valueOf("1994-12-01 00:00:00"),
-              rs.getTimestamp(1));
-            assertFalse(rs.next());
-            return null;
-          } catch (SQLException e) {
-            throw new RuntimeException(e);
-          }
-        }
-      });
+      .doWithConnection(
+          new Function<OptiqConnection, Object>() {
+            public Object apply(OptiqConnection conn) {
+              try {
+                Statement stmt = conn.createStatement();
+                ResultSet rs = stmt.executeQuery(
+                    "select \"hire_date\" from \"foodmart\".\"employee\" where \"employee_id\" = 1");
+                assertTrue(rs.next());
+                assertEquals(
+                    Timestamp.valueOf("1994-12-01 00:00:00"),
+                    rs.getTimestamp(1));
+                assertFalse(rs.next());
+                return null;
+              } catch (SQLException e) {
+                throw new RuntimeException(e);
+              }
+            }
+          });
   }
 
   @Test public void testUnicode() throws Exception {
@@ -5571,7 +5595,7 @@ public class JdbcTest {
     OptiqAssert.that()
         .with(ImmutableMap.of("lex", "MYSQL"))
         .doWithConnection(
-            new Function1<OptiqConnection, Void>() {
+            new Function<OptiqConnection, Void>() {
               public Void apply(OptiqConnection connection) {
                 try {
                   DatabaseMetaData metaData = connection.getMetaData();
@@ -5605,7 +5629,7 @@ public class JdbcTest {
     OptiqAssert.that()
         .with(ImmutableMap.of("lex", "SQL_SERVER"))
         .doWithConnection(
-            new Function1<OptiqConnection, Void>() {
+            new Function<OptiqConnection, Void>() {
               public Void apply(OptiqConnection connection) {
                 try {
                   DatabaseMetaData metaData = connection.getMetaData();
@@ -5639,7 +5663,7 @@ public class JdbcTest {
     OptiqAssert.that()
         .with(ImmutableMap.of("lex", "ORACLE"))
         .doWithConnection(
-            new Function1<OptiqConnection, Void>() {
+            new Function<OptiqConnection, Void>() {
               public Void apply(OptiqConnection connection) {
                 try {
                   DatabaseMetaData metaData = connection.getMetaData();
@@ -5677,7 +5701,7 @@ public class JdbcTest {
     OptiqAssert.that()
         .with(ImmutableMap.of("lex", "JAVA"))
         .doWithConnection(
-            new Function1<OptiqConnection, Void>() {
+            new Function<OptiqConnection, Void>() {
               public Void apply(OptiqConnection connection) {
                 try {
                   DatabaseMetaData metaData = connection.getMetaData();
@@ -5707,7 +5731,7 @@ public class JdbcTest {
             });
   }
 
-  /** Tests metadata for the ORACLE lexical scheme overriden like JAVA. */
+  /** Tests metadata for the ORACLE lexical scheme overridden like JAVA. */
   @Test public void testLexOracleAsJava() throws Exception {
     OptiqAssert.that()
         .with(ImmutableMap.<String, String>builder()
@@ -5718,7 +5742,7 @@ public class JdbcTest {
             .put("caseSensitive", "TRUE")
             .build())
         .doWithConnection(
-            new Function1<OptiqConnection, Void>() {
+            new Function<OptiqConnection, Void>() {
               public Void apply(OptiqConnection connection) {
                 try {
                   DatabaseMetaData metaData = connection.getMetaData();

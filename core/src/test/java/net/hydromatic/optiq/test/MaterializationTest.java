@@ -16,8 +16,6 @@
  */
 package net.hydromatic.optiq.test;
 
-import net.hydromatic.linq4j.function.Function1;
-
 import net.hydromatic.optiq.jdbc.JavaTypeFactoryImpl;
 import net.hydromatic.optiq.materialize.MaterializationService;
 import net.hydromatic.optiq.prepare.Prepare;
@@ -26,6 +24,8 @@ import org.eigenbase.relopt.SubstitutionVisitor;
 import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.rex.*;
 import org.eigenbase.sql.fun.SqlStdOperatorTable;
+
+import com.google.common.base.Function;
 
 import org.junit.Ignore;
 import org.junit.Test;
@@ -42,7 +42,7 @@ import static org.junit.Assert.*;
  * and checks that the materialization is used.
  */
 public class MaterializationTest {
-  private static final Function1<ResultSet, Void> CONTAINS_M0 =
+  private static final Function<ResultSet, Void> CONTAINS_M0 =
       OptiqAssert.checkResultContains(
           "EnumerableTableAccessRel(table=[[hr, m0]])");
 
@@ -94,7 +94,7 @@ public class MaterializationTest {
   /** Checks that a given query can use a materialized view with a given
    * definition. */
   private void checkMaterialize(String materialize, String query, String model,
-      Function1<ResultSet, Void> explainChecker) {
+      Function<ResultSet, Void> explainChecker) {
     try {
       Prepare.THREAD_TRIM.set(true);
       MaterializationService.setThreadLocal();

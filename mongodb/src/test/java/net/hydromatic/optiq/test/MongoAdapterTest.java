@@ -17,10 +17,10 @@
 package net.hydromatic.optiq.test;
 
 import net.hydromatic.linq4j.Ord;
-import net.hydromatic.linq4j.function.Function1;
 
 import org.eigenbase.util.*;
 
+import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
@@ -123,8 +123,8 @@ public class MongoAdapterTest {
 
   /** Returns a function that checks that a particular MongoDB pipeline is
    * generated to implement a query. */
-  private static Function1<List, Void> mongoChecker(final String... strings) {
-    return new Function1<List, Void>() {
+  private static Function<List, Void> mongoChecker(final String... strings) {
+    return new Function<List, Void>() {
       public Void apply(List actual) {
         if (!actual.contains(ImmutableList.copyOf(strings))) {
           Assert.fail("expected MongoDB query not found; actual: " + actual);
@@ -136,9 +136,9 @@ public class MongoAdapterTest {
 
   /** Similar to {@link OptiqAssert#checkResultUnordered}, but filters strings
    * before comparing them. */
-  static Function1<ResultSet, Void> checkResultUnordered(
+  static Function<ResultSet, Void> checkResultUnordered(
       final String... lines) {
-    return new Function1<ResultSet, Void>() {
+    return new Function<ResultSet, Void>() {
       public Void apply(ResultSet resultSet) {
         try {
           final List<String> expectedList = Lists.newArrayList(lines);

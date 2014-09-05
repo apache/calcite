@@ -144,20 +144,32 @@ class JdbcTable extends AbstractQueryableTable implements TranslatableTable {
 
   public <T> Queryable<T> asQueryable(QueryProvider queryProvider,
       SchemaPlus schema, String tableName) {
-    return new AbstractTableQueryable<T>(queryProvider, schema, this,
-        tableName) {
-      public Enumerator<T> enumerator() {
-        final JavaTypeFactory typeFactory =
-            ((OptiqConnection) queryProvider).getTypeFactory();
-        final SqlString sql = generateSql();
-        //noinspection unchecked
-        final Enumerable<T> enumerable = (Enumerable<T>) ResultSetEnumerable.of(
-            jdbcSchema.getDataSource(),
-            sql.getSql(),
-            JdbcUtils.ObjectArrayRowBuilder.factory(fieldClasses(typeFactory)));
-        return enumerable.enumerator();
-      }
-    };
+    return new JdbcTableQueryable<T>(queryProvider, schema, tableName);
+  }
+
+  /** Enumerable that returns the contents of a {@link JdbcTable} by connecting
+   * to the JDBC data source. */
+  private class JdbcTableQueryable<T> extends AbstractTableQueryable<T> {
+    public JdbcTableQueryable(QueryProvider queryProvider, SchemaPlus schema,
+        String tableName) {
+      super(queryProvider, schema, JdbcTable.this, tableName);
+    }
+
+    @Override public String toString() {
+      return "JdbcTableQueryable {table: " + tableName + "}";
+    }
+
+    public Enumerator<T> enumerator() {
+      final JavaTypeFactory typeFactory =
+          ((OptiqConnection) queryProvider).getTypeFactory();
+      final SqlString sql = generateSql();
+      //noinspection unchecked
+      final Enumerable<T> enumerable = (Enumerable<T>) ResultSetEnumerable.of(
+          jdbcSchema.getDataSource(),
+          sql.getSql(),
+          JdbcUtils.ObjectArrayRowBuilder.factory(fieldClasses(typeFactory)));
+      return enumerable.enumerator();
+    }
   }
 }
 

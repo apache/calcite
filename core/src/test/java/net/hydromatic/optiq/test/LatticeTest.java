@@ -16,8 +16,6 @@
  */
 package net.hydromatic.optiq.test;
 
-import net.hydromatic.linq4j.function.Function1;
-
 import net.hydromatic.optiq.runtime.Hook;
 
 import org.eigenbase.rel.RelNode;
@@ -193,7 +191,7 @@ public class LatticeTest {
             + "join \"foodmart\".\"product\" as p using (\"product_id\")\n")
         .enableMaterializations(true)
         .substitutionMatches(
-            new Function1<RelNode, Void>() {
+            new Function<RelNode, Void>() {
               public Void apply(RelNode relNode) {
                 counter.incrementAndGet();
                 String s = RelOptUtil.toString(relNode);

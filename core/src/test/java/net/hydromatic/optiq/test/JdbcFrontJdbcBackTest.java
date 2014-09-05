@@ -16,9 +16,9 @@
  */
 package net.hydromatic.optiq.test;
 
-import net.hydromatic.linq4j.function.Function1;
-
 import net.hydromatic.optiq.jdbc.OptiqConnection;
+
+import com.google.common.base.Function;
 
 import org.junit.Ignore;
 import org.junit.Test;
@@ -54,7 +54,7 @@ public class JdbcFrontJdbcBackTest {
     that()
         .with(OptiqAssert.Config.JDBC_FOODMART)
         .doWithConnection(
-            new Function1<OptiqConnection, Object>() {
+            new Function<OptiqConnection, Object>() {
               public Object apply(OptiqConnection a0) {
                 try {
                   ResultSet rset =
@@ -79,7 +79,7 @@ public class JdbcFrontJdbcBackTest {
     that()
         .with(OptiqAssert.Config.REGULAR_PLUS_METADATA)
         .doWithConnection(
-            new Function1<OptiqConnection, Object>() {
+            new Function<OptiqConnection, Object>() {
               public Object apply(OptiqConnection a0) {
                 try {
                   ResultSet rset =
@@ -105,7 +105,7 @@ public class JdbcFrontJdbcBackTest {
     that()
         .with(OptiqAssert.Config.JDBC_FOODMART)
         .doWithConnection(
-            new Function1<OptiqConnection, Object>() {
+            new Function<OptiqConnection, Object>() {
               public Object apply(OptiqConnection a0) {
                 try {
                   ResultSet rset =
@@ -133,7 +133,7 @@ public class JdbcFrontJdbcBackTest {
     that()
         .with(OptiqAssert.Config.JDBC_FOODMART)
         .doWithConnection(
-            new Function1<OptiqConnection, Object>() {
+            new Function<OptiqConnection, Object>() {
               public Object apply(OptiqConnection a0) {
                 try {
                   ResultSet rset =

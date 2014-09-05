@@ -288,7 +288,7 @@ public class ReflectiveSchemaTest {
       with.query(
           "select " + fn + "(\"" + field.getName() + "\") as c\n"
           + "from \"s\".\"everyTypes\"")
-          .returns(Functions.<ResultSet, Void>constantNull());
+          .returns(OptiqAssert.<ResultSet, Void>constantNull());
     }
   }
 
@@ -401,7 +401,7 @@ public class ReflectiveSchemaTest {
             + " " + fn + " " + name2 + " as c\n"
             + "from \"s\".\"everyTypes\"\n"
             + "where " + name + " <> 0")
-            .returns(Functions.<ResultSet, Void>constantNull());
+            .returns(OptiqAssert.<ResultSet, Void>constantNull());
       }
     }
   }

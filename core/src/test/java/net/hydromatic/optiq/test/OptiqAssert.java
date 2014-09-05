@@ -16,8 +16,6 @@
  */
 package net.hydromatic.optiq.test;
 
-import net.hydromatic.linq4j.function.Function1;
-
 import net.hydromatic.optiq.*;
 import net.hydromatic.optiq.config.OptiqConnectionProperty;
 import net.hydromatic.optiq.impl.AbstractSchema;
@@ -33,7 +31,9 @@ import org.eigenbase.rel.RelNode;
 import org.eigenbase.relopt.RelOptUtil;
 import org.eigenbase.util.*;
 
+import com.google.common.base.*;
 import com.google.common.base.Function;
+import com.google.common.cache.*;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMultiset;
 import com.google.common.collect.Lists;
@@ -122,12 +122,12 @@ public class OptiqAssert {
         }
 
         @Override public AssertThat connectThrows(
-            Function1<Throwable, Void> exceptionChecker) {
+            Function<Throwable, Void> exceptionChecker) {
           return this;
         }
 
         @Override
-        public <T> AssertThat doWithConnection(Function1<OptiqConnection, T> fn)
+        public <T> AssertThat doWithConnection(Function<OptiqConnection, T> fn)
             throws Exception {
           return this;
         }
@@ -141,6 +141,11 @@ public class OptiqAssert {
         public AssertThat enable(boolean enabled) {
           return this;
         }
+
+        @Override
+        public AssertThat pooled() {
+          return this;
+        }
       };
 
   /** Creates an instance of {@code OptiqAssert} with the regular
@@ -149,9 +154,9 @@ public class OptiqAssert {
     return new AssertThat(Config.REGULAR);
   }
 
-  static Function1<RelNode, Void> checkRel(final String expected,
+  static Function<RelNode, Void> checkRel(final String expected,
       final AtomicInteger counter) {
-    return new Function1<RelNode, Void>() {
+    return new Function<RelNode, Void>() {
       public Void apply(RelNode relNode) {
         if (counter != null) {
           counter.incrementAndGet();
@@ -163,9 +168,9 @@ public class OptiqAssert {
     };
   }
 
-  static Function1<Throwable, Void> checkException(
+  static Function<Throwable, Void> checkException(
       final String expected) {
-    return new Function1<Throwable, Void>() {
+    return new Function<Throwable, Void>() {
       public Void apply(Throwable p0) {
         assertNotNull(
             "expected exception but none was thrown", p0);
@@ -180,8 +185,8 @@ public class OptiqAssert {
     };
   }
 
-  static Function1<ResultSet, Void> checkResult(final String expected) {
-    return new Function1<ResultSet, Void>() {
+  static Function<ResultSet, Void> checkResult(final String expected) {
+    return new Function<ResultSet, Void>() {
       public Void apply(ResultSet resultSet) {
         try {
           final String resultString = OptiqAssert.toString(resultSet);
@@ -194,8 +199,8 @@ public class OptiqAssert {
     };
   }
 
-  static Function1<ResultSet, Void> checkResultValue(final String expected) {
-    return new Function1<ResultSet, Void>() {
+  static Function<ResultSet, Void> checkResultValue(final String expected) {
+    return new Function<ResultSet, Void>() {
       public Void apply(ResultSet resultSet) {
         try {
           if (!resultSet.next()) {
@@ -214,8 +219,8 @@ public class OptiqAssert {
     };
   }
 
-  static Function1<ResultSet, Void> checkResultCount(final int expected) {
-    return new Function1<ResultSet, Void>() {
+  static Function<ResultSet, Void> checkResultCount(final int expected) {
+    return new Function<ResultSet, Void>() {
       public Void apply(ResultSet resultSet) {
         try {
           final int count = OptiqAssert.countRows(resultSet);
@@ -233,8 +238,8 @@ public class OptiqAssert {
    *
    * @param ordered Whether order should be the same both times
    */
-  static Function1<ResultSet, Void> consistentResult(final boolean ordered) {
-    return new Function1<ResultSet, Void>() {
+  static Function<ResultSet, Void> consistentResult(final boolean ordered) {
+    return new Function<ResultSet, Void>() {
       int executeCount = 0;
       Collection expected;
 
@@ -269,9 +274,9 @@ public class OptiqAssert {
     return buf.toString();
   }
 
-  static Function1<ResultSet, Void> checkResultUnordered(
+  static Function<ResultSet, Void> checkResultUnordered(
       final String... lines) {
-    return new Function1<ResultSet, Void>() {
+    return new Function<ResultSet, Void>() {
       public Void apply(ResultSet resultSet) {
         try {
           final List<String> expectedList = Lists.newArrayList(lines);
@@ -291,9 +296,9 @@ public class OptiqAssert {
     };
   }
 
-  public static Function1<ResultSet, Void> checkResultContains(
+  public static Function<ResultSet, Void> checkResultContains(
       final String expected) {
-    return new Function1<ResultSet, Void>() {
+    return new Function<ResultSet, Void>() {
       public Void apply(ResultSet s) {
         try {
           final String actual = Util.toLinux(OptiqAssert.toString(s));
@@ -308,9 +313,9 @@ public class OptiqAssert {
     };
   }
 
-  public static Function1<ResultSet, Void> checkMaskedResultContains(
+  public static Function<ResultSet, Void> checkMaskedResultContains(
       final String expected) {
-    return new Function1<ResultSet, Void>() {
+    return new Function<ResultSet, Void>() {
       public Void apply(ResultSet s) {
         try {
           final String actual = Util.toLinux(OptiqAssert.toString(s));
@@ -327,9 +332,9 @@ public class OptiqAssert {
     };
   }
 
-  public static Function1<ResultSet, Void> checkResultType(
+  public static Function<ResultSet, Void> checkResultType(
       final String expected) {
-    return new Function1<ResultSet, Void>() {
+    return new Function<ResultSet, Void>() {
       public Void apply(ResultSet s) {
         try {
           final String actual = typeString(s.getMetaData());
@@ -363,8 +368,8 @@ public class OptiqAssert {
       int limit,
       boolean materializationsEnabled,
       List<Pair<Hook, Function>> hooks,
-      Function1<ResultSet, Void> resultChecker,
-      Function1<Throwable, Void> exceptionChecker) throws Exception {
+      Function<ResultSet, Void> resultChecker,
+      Function<Throwable, Void> exceptionChecker) throws Exception {
     final String message =
         "With materializationsEnabled=" + materializationsEnabled
         + ", limit=" + limit;
@@ -420,8 +425,8 @@ public class OptiqAssert {
       Connection connection,
       String sql,
       boolean materializationsEnabled,
-      final Function1<RelNode, Void> convertChecker,
-      final Function1<RelNode, Void> substitutionChecker) throws Exception {
+      final Function<RelNode, Void> convertChecker,
+      final Function<RelNode, Void> substitutionChecker) throws Exception {
     final String message =
         "With materializationsEnabled=" + materializationsEnabled;
     final Hook.Closeable closeable =
@@ -682,6 +687,11 @@ public class OptiqAssert {
     return optiqConnection;
   }
 
+  static <F, T> Function<F, T> constantNull() {
+    //noinspection unchecked
+    return (Function<F, T>) (Function) Functions.<T>constant(null);
+  }
+
   /**
    * Result of calling {@link OptiqAssert#that}.
    */
@@ -801,7 +811,7 @@ public class OptiqAssert {
     /** Asserts that there is an exception that matches the given predicate
      * while creating a connection. */
     public AssertThat connectThrows(
-        Function1<Throwable, Void> exceptionChecker) {
+        Function<Throwable, Void> exceptionChecker) {
       Throwable throwable;
       try {
         Connection x = connectionFactory.createConnection();
@@ -819,7 +829,7 @@ public class OptiqAssert {
     }
 
     /** Creates a {@link OptiqConnection} and executes a callback. */
-    public <T> AssertThat doWithConnection(Function1<OptiqConnection, T> fn)
+    public <T> AssertThat doWithConnection(Function<OptiqConnection, T> fn)
         throws Exception {
       Connection connection = connectionFactory.createConnection();
       try {
@@ -832,7 +842,7 @@ public class OptiqAssert {
     }
 
     /** Creates a {@link DataContext} and executes a callback. */
-    public <T> AssertThat doWithDataContext(Function1<DataContext, T> fn)
+    public <T> AssertThat doWithDataContext(Function<DataContext, T> fn)
         throws Exception {
       OptiqConnection connection = connectionFactory.createConnection();
       final DataContext dataContext = MetaImpl.createDataContext(connection);
@@ -858,10 +868,76 @@ public class OptiqAssert {
     public AssertThat enable(boolean enabled) {
       return enabled ? this : DISABLED;
     }
+
+    /** Returns a version that uses a single connection, as opposed to creating
+     * a new one each time a test method is invoked. */
+    public AssertThat pooled() {
+      if (connectionFactory instanceof PoolingConnectionFactory) {
+        return this;
+      } else {
+        return new AssertThat(new PoolingConnectionFactory(connectionFactory));
+      }
+    }
   }
 
   public interface ConnectionFactory {
     OptiqConnection createConnection() throws Exception;
+  }
+
+  private static class MemoizingConnectionFactory implements ConnectionFactory {
+    private final Supplier<OptiqConnection> supplier;
+
+    public MemoizingConnectionFactory(final ConnectionFactory factory) {
+      super();
+      this.supplier = Suppliers.memoize(
+          new Supplier<OptiqConnection>() {
+            public OptiqConnection get() {
+              try {
+                return factory.createConnection();
+              } catch (Exception e) {
+                throw new RuntimeException(e);
+              }
+            }
+          });
+    }
+
+    public OptiqConnection createConnection() throws Exception {
+      try {
+        return supplier.get();
+      } catch (RuntimeException e) {
+        if (e.getClass() == RuntimeException.class
+            && e.getCause() instanceof Exception
+            && e.getCause() != e) {
+          throw (Exception) e.getCause();
+        }
+        throw e;
+      }
+    }
+  }
+
+  private static class PoolingConnectionFactory implements ConnectionFactory {
+    private final ConnectionFactory factory;
+
+    public PoolingConnectionFactory(final ConnectionFactory factory) {
+      this.factory = factory;
+    }
+
+    public OptiqConnection createConnection() throws Exception {
+      return Pool.INSTANCE.cache.get(factory);
+    }
+  }
+
+  private static class Pool {
+    private static final Pool INSTANCE = new Pool();
+
+    private final LoadingCache<ConnectionFactory, OptiqConnection> cache =
+        CacheBuilder.newBuilder().build(
+            new CacheLoader<ConnectionFactory, OptiqConnection>() {
+              public OptiqConnection load(ConnectionFactory key)
+                  throws Exception {
+                return key.createConnection();
+              }
+            });
   }
 
   private static class ConfigConnectionFactory implements ConnectionFactory {
@@ -869,6 +945,16 @@ public class OptiqAssert {
 
     public ConfigConnectionFactory(Config config) {
       this.config = config;
+    }
+
+    @Override public int hashCode() {
+      return config.hashCode();
+    }
+
+    @Override public boolean equals(Object obj) {
+      return obj == this
+          || obj instanceof ConfigConnectionFactory
+          && config == ((ConfigConnectionFactory) obj).config;
     }
 
     public OptiqConnection createConnection() throws Exception {
@@ -954,12 +1040,12 @@ public class OptiqAssert {
       return returns(checkResultCount(expectedCount));
     }
 
-    public final AssertQuery returns(Function1<ResultSet, Void> checker) {
+    public final AssertQuery returns(Function<ResultSet, Void> checker) {
       return returns(sql, checker);
     }
 
     protected AssertQuery returns(String sql,
-        Function1<ResultSet, Void> checker) {
+        Function<ResultSet, Void> checker) {
       try {
         assertQuery(createConnection(), sql, limit, materializationsEnabled,
             hooks, checker, null);
@@ -1014,7 +1100,7 @@ public class OptiqAssert {
       return convertMatches(checkRel(expected, null));
     }
 
-    public AssertQuery convertMatches(final Function1<RelNode, Void> checker) {
+    public AssertQuery convertMatches(final Function<RelNode, Void> checker) {
       try {
         assertPrepare(createConnection(), sql, this.materializationsEnabled,
             checker, null);
@@ -1026,7 +1112,7 @@ public class OptiqAssert {
     }
 
     public AssertQuery substitutionMatches(
-        final Function1<RelNode, Void> checker) {
+        final Function<RelNode, Void> checker) {
       try {
         assertPrepare(createConnection(), sql, materializationsEnabled,
             null, checker);
@@ -1042,7 +1128,7 @@ public class OptiqAssert {
     }
 
     public final AssertQuery explainMatches(String extra,
-        Function1<ResultSet, Void> checker) {
+        Function<ResultSet, Void> checker) {
       return returns("explain plan " + extra + "for " + sql, checker);
     }
 
@@ -1090,7 +1176,7 @@ public class OptiqAssert {
      * queries. The checker should throw to fail the test if it does not see
      * what it wants. This method can be used to check whether a particular
      * MongoDB or SQL query is generated, for instance. */
-    public AssertQuery queryContains(Function1<List, Void> predicate1) {
+    public AssertQuery queryContains(Function<List, Void> predicate1) {
       final List<Object> list = Lists.newArrayList();
       addHook(Hook.QUERY_PLAN,
           new Function<Object, Void>() {
@@ -1121,7 +1207,7 @@ public class OptiqAssert {
       try {
         materializationsEnabled = false;
         final boolean ordered = sql.toUpperCase().contains("ORDER BY");
-        final Function1<ResultSet, Void> checker = consistentResult(ordered);
+        final Function<ResultSet, Void> checker = consistentResult(ordered);
         returns(checker);
         materializationsEnabled = true;
         returns(checker);
@@ -1199,7 +1285,7 @@ public class OptiqAssert {
     }
 
     @Override
-    public AssertQuery returns(String sql, Function1<ResultSet, Void> checker) {
+    public AssertQuery returns(String sql, Function<ResultSet, Void> checker) {
       return this;
     }
 
@@ -1214,12 +1300,12 @@ public class OptiqAssert {
     }
 
     @Override public AssertQuery convertMatches(
-        Function1<RelNode, Void> checker) {
+        Function<RelNode, Void> checker) {
       return this;
     }
 
     @Override public AssertQuery substitutionMatches(
-        Function1<RelNode, Void> checker) {
+        Function<RelNode, Void> checker) {
       return this;
     }
 
@@ -1234,7 +1320,7 @@ public class OptiqAssert {
     }
 
     @Override
-    public AssertQuery queryContains(Function1<List, Void> predicate1) {
+    public AssertQuery queryContains(Function<List, Void> predicate1) {
       return this;
     }
   }

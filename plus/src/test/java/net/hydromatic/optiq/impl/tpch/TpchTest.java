@@ -16,14 +16,13 @@
  */
 package net.hydromatic.optiq.impl.tpch;
 
-import net.hydromatic.linq4j.function.Function1;
-
 import net.hydromatic.optiq.test.OptiqAssert;
 
 import org.eigenbase.rel.RelNode;
 import org.eigenbase.relopt.RelOptUtil;
 import org.eigenbase.util.Util;
 
+import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 
 import org.junit.Ignore;
@@ -819,13 +818,14 @@ public class TpchTest {
   @Test public void testQuery02Conversion() {
     query(2, true)
         .enable(ENABLE)
-        .convertMatches(new Function1<RelNode, Void>() {
-          public Void apply(RelNode relNode) {
-            String s = RelOptUtil.toString(relNode);
-            assertThat(s, not(containsString("CorrelatorRel")));
-            return null;
-          }
-        });
+        .convertMatches(
+          new Function<RelNode, Void>() {
+            public Void apply(RelNode relNode) {
+              String s = RelOptUtil.toString(relNode);
+              assertThat(s, not(containsString("CorrelatorRel")));
+              return null;
+            }
+          });
   }
 
   @Test public void testQuery03() {
