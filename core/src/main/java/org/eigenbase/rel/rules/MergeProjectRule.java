@@ -22,6 +22,7 @@ import org.eigenbase.rel.*;
 import org.eigenbase.rel.RelFactories.ProjectFactory;
 import org.eigenbase.relopt.*;
 import org.eigenbase.rex.*;
+import org.eigenbase.util.Permutation;
 
 /**
  * MergeProjectRule merges a {@link ProjectRelBase} into
@@ -71,6 +72,29 @@ public class MergeProjectRule extends RelOptRule {
     ProjectRelBase topProject = call.rel(0);
     ProjectRelBase bottomProject = call.rel(1);
     RexBuilder rexBuilder = topProject.getCluster().getRexBuilder();
+
+    // If one or both projects are permutations, short-circuit the complex logic
+    // of building a RexProgram.
+    final Permutation topPermutation = topProject.getPermutation();
+    if (topPermutation != null) {
+      if (topPermutation.isIdentity()) {
+        // Let RemoveTrivialProjectRule handle this.
+        return;
+      }
+      final Permutation bottomPermutation = bottomProject.getPermutation();
+      if (bottomPermutation != null) {
+        if (bottomPermutation.isIdentity()) {
+          // Let RemoveTrivialProjectRule handle this.
+          return;
+        }
+        final Permutation product = topPermutation.product(bottomPermutation);
+        call.transformTo(
+            RelOptUtil.projectMapping(bottomProject.getChild(),
+                product.inverse(), topProject.getRowType().getFieldNames(),
+                projectFactory));
+        return;
+      }
+    }
 
     // if we're not in force mode and the two projects reference identical
     // inputs, then return and either let FennelRenameRule or

@@ -24,6 +24,7 @@ import org.eigenbase.reltype.*;
 import org.eigenbase.rex.*;
 import org.eigenbase.sql.*;
 import org.eigenbase.util.Pair;
+import org.eigenbase.util.Permutation;
 import org.eigenbase.util.Util;
 import org.eigenbase.util.mapping.MappingType;
 import org.eigenbase.util.mapping.Mappings;
@@ -267,6 +268,41 @@ public abstract class ProjectRelBase extends SingleRel {
       mapping.set(((RexInputRef) exp.e).getIndex(), exp.i);
     }
     return mapping;
+  }
+
+  /**
+   * Returns a permutation, if this projection is merely a permutation of its
+   * input fields, otherwise null.
+   */
+  public Permutation getPermutation() {
+    final int fieldCount = rowType.getFieldList().size();
+    if (fieldCount != getChild().getRowType().getFieldList().size()) {
+      return null;
+    }
+    Permutation permutation = new Permutation(fieldCount);
+    for (int i = 0; i < fieldCount; ++i) {
+      final RexNode exp = exps.get(i);
+      if (exp instanceof RexInputRef) {
+        permutation.set(i, ((RexInputRef) exp).getIndex());
+      } else {
+        return null;
+      }
+    }
+    return permutation;
+  }
+
+  /**
+   * Checks whether this is a functional mapping.
+   * Every output is a source field, but
+   * a source field may appear as zero, one, or more output fields.
+   */
+  public boolean isMapping() {
+    for (RexNode exp : exps) {
+      if (!(exp instanceof RexInputRef)) {
+        return false;
+      }
+    }
+    return true;
   }
 
   //~ Inner Classes ----------------------------------------------------------

@@ -2771,21 +2771,19 @@ public abstract class RelOptUtil {
     if (mapping.isIdentity()) {
       return rel;
     }
-    final List<String> outputNameList = new ArrayList<String>();
-    final List<RexNode> exprList = new ArrayList<RexNode>();
+    final List<String> outputNameList = Lists.newArrayList();
+    final List<RexNode> exprList = Lists.newArrayList();
     final List<RelDataTypeField> fields = rel.getRowType().getFieldList();
     final RexBuilder rexBuilder = rel.getCluster().getRexBuilder();
-    for (int i = 0; i < fields.size(); i++) {
-      exprList.add(rexBuilder.makeInputRef(rel, i));
-    }
     for (int i = 0; i < mapping.getTargetCount(); i++) {
-      int source = mapping.getSource(i);
+      final int source = mapping.getSource(i);
       final RelDataTypeField sourceField = fields.get(source);
       outputNameList.add(
           ((fieldNames == null)
               || (fieldNames.size() <= i)
               || (fieldNames.get(i) == null)) ? sourceField.getName()
               : fieldNames.get(i));
+      exprList.add(rexBuilder.makeInputRef(rel, source));
     }
     return projectFactory.createProject(rel, exprList, outputNameList);
   }

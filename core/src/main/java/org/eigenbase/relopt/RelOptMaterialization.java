@@ -157,8 +157,6 @@ public class RelOptMaterialization {
             final Table rightTable = rightRelOptTable.unwrap(Table.class);
             if (leftTable instanceof StarTable
                 && ((StarTable) leftTable).tables.contains(rightTable)) {
-              System.out.println("left: " + leftMapping);
-              System.out.println("right: " + rightMapping);
               Mappings.TargetMapping mapping =
                   Mappings.merge(leftMapping,
                       Mappings.offset(rightMapping,
