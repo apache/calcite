@@ -92,6 +92,14 @@ public class SqlRun {
     }
   }
 
+  private void close() throws SQLException {
+    if (connection != null) {
+      Connection c = connection;
+      connection = null;
+      c.close();
+    }
+  }
+
   public void execute(ConnectionFactory connectionFactory) {
     this.connectionFactory = connectionFactory;
     this.printWriter = new PrintWriter(writer);
@@ -99,6 +107,7 @@ public class SqlRun {
       Command command = new Parser().parse();
       try {
         command.execute(execute);
+        close();
       } catch (Exception e) {
         throw new RuntimeException(
             "Error while executing command " + command, e);
@@ -108,7 +117,11 @@ public class SqlRun {
       }
     } finally {
       printWriter.flush();
-      this.connection = null;
+      try {
+        close();
+      } catch (SQLException e) {
+        // ignore
+      }
     }
   }
 
