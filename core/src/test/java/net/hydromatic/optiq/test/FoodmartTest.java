@@ -23,6 +23,8 @@ import org.eigenbase.util.IntegerIntervalSet;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import com.google.common.collect.ImmutableList;
+
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -102,15 +104,24 @@ public class FoodmartTest {
 
   @Parameterized.Parameters(name = "{index}: foodmart({0})={1}")
   public static List<Object[]> getSqls() throws IOException {
-    final String idList = System.getProperty("optiq.ids");
+    String idList = System.getProperty("optiq.ids");
+    if (!OptiqAssert.ENABLE_SLOW && idList == null) {
+      // Avoid loading the query set in a regular test suite run. It burns too
+      // much memory.
+      return ImmutableList.of();
+    }
     final FoodMartQuerySet set = FoodMartQuerySet.instance();
     final List<Object[]> list = new ArrayList<Object[]>();
     if (idList != null) {
-      StringBuilder buf = new StringBuilder();
-      for (int disabledId : DISABLED_IDS) {
-        buf.append(",-").append(disabledId);
+      if (idList.endsWith(",-disabled")) {
+        StringBuilder buf = new StringBuilder(idList);
+        buf.setLength(buf.length() - ",-disabled".length());
+        for (int disabledId : DISABLED_IDS) {
+          buf.append(",-").append(disabledId);
+        }
+        idList = buf.toString();
       }
-      for (Integer id : IntegerIntervalSet.of(idList + buf)) {
+      for (Integer id : IntegerIntervalSet.of(idList)) {
         final FoodmartQuery query1 = set.queries.get(id);
         if (query1 != null) {
           list.add(new Object[] {id /*, query1.sql */});
