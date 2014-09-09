@@ -16,24 +16,25 @@
  */
 package org.eigenbase.rex;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import org.eigenbase.rel.RelNode;
 import org.eigenbase.reltype.RelDataTypeField;
 import org.eigenbase.util.mapping.Mappings;
 
+import com.google.common.collect.ImmutableList;
+
 /**
  * Shuttle which applies a permutation to its input fields.
  *
  * @see RexPermutationShuttle
+ * @see RexUtil#apply(org.eigenbase.util.mapping.Mappings.TargetMapping, RexNode)
  */
 public class RexPermuteInputsShuttle extends RexShuttle {
   //~ Instance fields --------------------------------------------------------
 
   private final Mappings.TargetMapping mapping;
-  private final List<RelDataTypeField> fields =
-      new ArrayList<RelDataTypeField>();
+  private final ImmutableList<RelDataTypeField> fields;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -51,13 +52,33 @@ public class RexPermuteInputsShuttle extends RexShuttle {
   public RexPermuteInputsShuttle(
       Mappings.TargetMapping mapping,
       RelNode... inputs) {
+    this(mapping, fields(inputs));
+  }
+
+  private RexPermuteInputsShuttle(
+      Mappings.TargetMapping mapping,
+      ImmutableList<RelDataTypeField> fields) {
     this.mapping = mapping;
-    for (RelNode input : inputs) {
-      fields.addAll(input.getRowType().getFieldList());
-    }
+    this.fields = fields;
+  }
+
+  /** Creates a shuttle with an empty field list. It cannot handle GET calls but
+   * otherwise works OK. */
+  public static RexPermuteInputsShuttle of(Mappings.TargetMapping mapping) {
+    return new RexPermuteInputsShuttle(mapping,
+        ImmutableList.<RelDataTypeField>of());
   }
 
   //~ Methods ----------------------------------------------------------------
+
+  private static ImmutableList<RelDataTypeField> fields(RelNode[] inputs) {
+    final ImmutableList.Builder<RelDataTypeField> fields =
+        ImmutableList.builder();
+    for (RelNode input : inputs) {
+      fields.addAll(input.getRowType().getFieldList());
+    }
+    return fields.build();
+  }
 
   @Override
   public RexNode visitInputRef(RexInputRef local) {

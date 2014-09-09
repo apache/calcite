@@ -956,7 +956,8 @@ public class JdbcTest {
 
   @Test public void testCloneSchema()
       throws ClassNotFoundException, SQLException {
-    final OptiqConnection connection = OptiqAssert.getConnection(false);
+    final OptiqConnection connection =
+        OptiqAssert.getConnection(OptiqAssert.SchemaSpec.JDBC_FOODMART);
     final SchemaPlus rootSchema = connection.getRootSchema();
     final SchemaPlus foodmart = rootSchema.getSubSchema("foodmart");
     rootSchema.add("foodmart2", new CloneSchema(foodmart));
@@ -2051,6 +2052,28 @@ public class JdbcTest {
             + "              EnumerableTableAccessRel(table=[[foodmart2, customer]])\n"
             + "          EnumerableCalcRel(expr#0..9=[{inputs}], expr#10=[CAST($t4):INTEGER], expr#11=[1997], expr#12=[=($t10, $t11)], proj#0..9=[{exprs}], $condition=[$t12])\n"
             + "            EnumerableTableAccessRel(table=[[foodmart2, time_by_day]])")
+        .runs();
+  }
+
+  /** Tests that a relatively complex query on the foodmart schema creates
+   * an in-memory aggregate table and then uses it. */
+  @Test public void testFoodmartLattice() throws IOException {
+    // 8: select ... from customer, sales, time ... group by ...
+    final FoodmartTest.FoodmartQuery query =
+        FoodmartTest.FoodMartQuerySet.instance().queries.get(8);
+    OptiqAssert.that()
+        .with(OptiqAssert.Config.JDBC_FOODMART_WITH_LATTICE)
+        .pooled()
+        .withSchema("foodmart")
+        .query(query.sql)
+        .enableMaterializations(true)
+        .explainContains(
+            "EnumerableCalcRel(expr#0..8=[{inputs}], c0=[$t3], c1=[$t2], c2=[$t1], c3=[$t0], c4=[$t8], c5=[$t8], c6=[$t6], c7=[$t4], c8=[$t7], c9=[$t5])\n"
+            + "  EnumerableSortRel(sort0=[$3], sort1=[$2], sort2=[$1], sort3=[$8], dir0=[ASC-nulls-last], dir1=[ASC-nulls-last], dir2=[ASC-nulls-last], dir3=[ASC-nulls-last])\n"
+            + "    EnumerableCalcRel(expr#0..8=[{inputs}], expr#9=['%Jeanne%'], expr#10=[LIKE($t8, $t9)], proj#0..8=[{exprs}], $condition=[$t10])\n"
+            + "      EnumerableAggregateRel(group=[{0, 1, 2, 3, 4, 5, 6, 7, 8}])\n"
+            + "        EnumerableCalcRel(expr#0..9=[{inputs}], expr#10=[CAST($t0):INTEGER], expr#11=[1997], expr#12=[=($t10, $t11)], $f0=[$t1], $f1=[$t2], $f2=[$t3], $f3=[$t4], $f4=[$t5], $f5=[$t6], $f6=[$t7], $f7=[$t8], $f8=[$t9], $f9=[$t0], $condition=[$t12])\n"
+            + "          EnumerableTableAccessRel(table=[[foodmart, m{12, 18, 27, 28, 30, 35, 36, 37, 40, 46}]])")
         .runs();
   }
 
@@ -5847,7 +5870,8 @@ public class JdbcTest {
   }
 
   @Test public void testSchemaCaching() throws Exception {
-    final OptiqConnection connection = OptiqAssert.getConnection(false);
+    final OptiqConnection connection =
+        OptiqAssert.getConnection(OptiqAssert.SchemaSpec.JDBC_FOODMART);
     final SchemaPlus rootSchema = connection.getRootSchema();
 
     // create schema "/a"

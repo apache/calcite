@@ -23,6 +23,7 @@ import org.eigenbase.rel.AggregateCall;
 import org.eigenbase.rel.RelNode;
 import org.eigenbase.reltype.RelDataTypeField;
 import org.eigenbase.sql.SqlDialect;
+import org.eigenbase.util.Util;
 import org.eigenbase.util.mapping.IntPair;
 
 import net.hydromatic.optiq.config.OptiqConnectionConfig;
@@ -117,7 +118,12 @@ public class RelOptLattice {
       if (k++ > 0) {
         buf.append(", ");
       }
-      dialect.quoteIdentifier(buf, field.getName());
+      final List<String> identifiers = lattice.columns.get(i);
+      dialect.quoteIdentifier(buf, identifiers);
+      if (!Util.last(identifiers).equals(field.getName())) {
+        buf.append(" AS ");
+        dialect.quoteIdentifier(buf, field.getName());
+      }
     }
     buf.append("\nFROM ");
     for (Lattice.Node node : usedNodes) {

@@ -742,8 +742,6 @@ public class JavaRules {
   public static class EnumerableCalcRel
       extends CalcRelBase
       implements EnumerableRel {
-    private final RexProgram program;
-
     public EnumerableCalcRel(
         RelOptCluster cluster,
         RelTraitSet traitSet,
@@ -754,8 +752,6 @@ public class JavaRules {
       super(cluster, traitSet, child, rowType, program, collationList);
       assert getConvention() instanceof EnumerableConvention;
       assert !program.containsAggs();
-      this.program = program;
-      this.rowType = program.getOutputRowType();
     }
 
     @Override public EnumerableCalcRel copy(RelTraitSet traitSet, RelNode child,

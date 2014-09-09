@@ -869,12 +869,8 @@ public class HepPlanner extends AbstractRelOptPlanner {
 
     // Yer basic mark-and-sweep.
     Set<HepRelVertex> rootSet = new HashSet<HepRelVertex>();
-    Iterator<HepRelVertex> iter =
-        new DepthFirstIterator<HepRelVertex, DefaultEdge>(
-            graph,
-            root);
-    while (iter.hasNext()) {
-      rootSet.add(iter.next());
+    if (graph.vertexSet().contains(root)) {
+      BreadthFirstIterator.reachable(rootSet, graph, root);
     }
 
     if (rootSet.size() == graph.vertexSet().size()) {

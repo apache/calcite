@@ -37,7 +37,7 @@ public class LinqFrontJdbcBackTest {
   @Test public void testTableWhere() throws SQLException,
       ClassNotFoundException {
     final OptiqConnection connection =
-        OptiqAssert.getConnection(false);
+        OptiqAssert.getConnection(OptiqAssert.SchemaSpec.JDBC_FOODMART);
     final SchemaPlus schema =
         connection.getRootSchema().getSubSchema("foodmart");
     ParameterExpression c =

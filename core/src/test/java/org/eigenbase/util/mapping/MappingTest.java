@@ -143,13 +143,10 @@ public class MappingTest {
     final List<Integer> integers = Mappings.asList(mapping);
     assertThat(integers, equalTo(targets));
 
-    try {
-      final Mapping inverse = mapping.inverse();
-      fail("expected exception, got " + inverse);
-    } catch (UnsupportedOperationException e) {
-      // ok... but we'd prefer if that inverse succeeds if the mapping is
-      // invertible
-    }
+    final Mapping inverse = mapping.inverse();
+    assertThat(inverse.toString(),
+        equalTo(
+            "[size=5, sourceCount=10, targetCount=5, elements=[1:1, 3:0, 4:2, 5:3, 8:4]]"));
   }
 
   /** Unit test for {@link Mappings#target(List, int)}. */

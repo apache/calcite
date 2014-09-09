@@ -16,6 +16,7 @@
  */
 package net.hydromatic.optiq.impl;
 
+import net.hydromatic.optiq.Schema;
 import net.hydromatic.optiq.Table;
 import net.hydromatic.optiq.TranslatableTable;
 import net.hydromatic.optiq.materialize.Lattice;
@@ -64,6 +65,10 @@ public class StarTable extends AbstractTable implements TranslatableTable {
   /** Creates a StarTable and registers it in a schema. */
   public static StarTable of(Lattice lattice, List<Table> tables) {
     return new StarTable(lattice, ImmutableList.copyOf(tables));
+  }
+
+  @Override public Schema.TableType getJdbcTableType() {
+    return Schema.TableType.STAR;
   }
 
   public RelDataType getRowType(RelDataTypeFactory typeFactory) {

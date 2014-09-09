@@ -16,10 +16,18 @@
  */
 package org.eigenbase.relopt;
 
+import java.util.List;
+
 import org.eigenbase.rel.*;
 import org.eigenbase.rel.metadata.DefaultRelMetadataProvider;
+import org.eigenbase.rel.rules.AggregateFilterTransposeRule;
+import org.eigenbase.rel.rules.AggregateProjectMergeRule;
 import org.eigenbase.rel.rules.MergeProjectRule;
 import org.eigenbase.rel.rules.PullUpProjectsAboveJoinRule;
+import org.eigenbase.rel.rules.PushFilterPastJoinRule;
+import org.eigenbase.rel.rules.PushProjectPastFilterRule;
+import org.eigenbase.rex.RexNode;
+import org.eigenbase.rex.RexUtil;
 import org.eigenbase.sql.SqlExplainLevel;
 import org.eigenbase.util.Util;
 import org.eigenbase.util.mapping.Mappings;
@@ -30,7 +38,9 @@ import net.hydromatic.optiq.prepare.OptiqPrepareImpl;
 import net.hydromatic.optiq.tools.Program;
 import net.hydromatic.optiq.tools.Programs;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 
 /**
  * Records that a particular query is materialized by a particular table.
@@ -69,7 +79,7 @@ public class RelOptMaterialization {
       final RelOptTable starRelOptTable) {
     final StarTable starTable = starRelOptTable.unwrap(StarTable.class);
     assert starTable != null;
-    return rel.accept(
+    RelNode rel2 = rel.accept(
         new RelShuttleImpl() {
           @Override
           public RelNode visit(TableAccessRelBase scan) {
@@ -98,87 +108,147 @@ public class RelOptMaterialization {
                 return rel;
               }
               join = (JoinRel) rel;
-              final RelNode left = join.getLeft();
-              final RelNode right = join.getRight();
-              try {
-                if (left instanceof TableAccessRelBase
-                    && right instanceof TableAccessRelBase) {
-                  match(left, null, right, null, join.getCluster());
+              final ProjectFilterTable left =
+                  ProjectFilterTable.of(join.getLeft());
+              if (left != null) {
+                final ProjectFilterTable right =
+                    ProjectFilterTable.of(join.getRight());
+                if (right != null) {
+                  try {
+                    match(left, right, join.getCluster());
+                  } catch (Util.FoundOne e) {
+                    return (RelNode) e.getNode();
+                  }
                 }
-                if (isProjectedTable(left)
-                    && right instanceof TableAccessRelBase) {
-                  final ProjectRel leftProject = (ProjectRel) left;
-                  match(leftProject.getChild(), leftProject.getMapping(), right,
-                      null, join.getCluster());
-                }
-                if (left instanceof TableAccessRelBase
-                    && isProjectedTable(right)) {
-                  final ProjectRel rightProject = (ProjectRel) right;
-                  match(left, null, rightProject.getChild(),
-                      rightProject.getMapping(), join.getCluster());
-                }
-                if (isProjectedTable(left)
-                    && isProjectedTable(right)) {
-                  final ProjectRel leftProject = (ProjectRel) left;
-                  final ProjectRel rightProject = (ProjectRel) right;
-                  match(leftProject.getChild(), leftProject.getMapping(),
-                      rightProject.getChild(), rightProject.getMapping(),
-                      join.getCluster());
-                }
-              } catch (Util.FoundOne e) {
-                return (RelNode) e.getNode();
               }
             }
-          }
-
-          private boolean isProjectedTable(RelNode rel) {
-            return rel instanceof ProjectRel
-                && ((ProjectRel) rel).isMapping()
-                && ((ProjectRel) rel).getChild() instanceof TableAccessRelBase;
           }
 
           /** Throws a {@link org.eigenbase.util.Util.FoundOne} containing a
            * {@link org.eigenbase.rel.TableAccessRel} on success.
            * (Yes, an exception for normal operation.) */
-          private void match(RelNode left, Mappings.TargetMapping leftMapping,
-              RelNode right, Mappings.TargetMapping rightMapping,
+          private void match(ProjectFilterTable left, ProjectFilterTable right,
               RelOptCluster cluster) {
-            if (leftMapping == null) {
-              leftMapping =
-                  Mappings.createIdentity(left.getRowType().getFieldCount());
-            }
-            if (rightMapping == null) {
-              rightMapping =
-                  Mappings.createIdentity(right.getRowType().getFieldCount());
-            }
+            final Mappings.TargetMapping leftMapping = left.mapping();
+            final Mappings.TargetMapping rightMapping = right.mapping();
             final RelOptTable leftRelOptTable = left.getTable();
             final Table leftTable = leftRelOptTable.unwrap(Table.class);
+            final int leftCount = leftRelOptTable.getRowType().getFieldCount();
             final RelOptTable rightRelOptTable = right.getTable();
             final Table rightTable = rightRelOptTable.unwrap(Table.class);
             if (leftTable instanceof StarTable
                 && ((StarTable) leftTable).tables.contains(rightTable)) {
+              final int offset =
+                  ((StarTable) leftTable).columnOffset(rightTable);
               Mappings.TargetMapping mapping =
                   Mappings.merge(leftMapping,
-                      Mappings.offset(rightMapping,
-                          ((StarTable) leftTable).columnOffset(rightTable),
-                          leftRelOptTable.getRowType().getFieldCount()));
-              throw new Util.FoundOne(
-                  RelOptUtil.createProject(
-                      new TableAccessRel(cluster, leftRelOptTable),
-                      Mappings.asList(mapping.inverse())));
+                      Mappings.offsetTarget(
+                          Mappings.offsetSource(rightMapping, offset),
+                          leftMapping.getTargetCount()));
+              final RelNode project = RelOptUtil.createProject(
+                  new TableAccessRel(cluster, leftRelOptTable),
+                  Mappings.asList(mapping.inverse()));
+              final List<RexNode> conditions = Lists.newArrayList();
+              if (left.condition != null) {
+                conditions.add(RexUtil.apply(mapping, left.condition));
+              }
+              if (right.condition != null) {
+                conditions.add(
+                    RexUtil.apply(mapping,
+                        RexUtil.shift(right.condition, offset)));
+              }
+              final RelNode filter =
+                  RelOptUtil.createFilter(project, conditions);
+              throw new Util.FoundOne(filter);
             }
             if (rightTable instanceof StarTable
                 && ((StarTable) rightTable).tables.contains(leftTable)) {
-              assert false; // TODO:
+              final int offset =
+                  ((StarTable) rightTable).columnOffset(leftTable);
               Mappings.TargetMapping mapping =
-                  Mappings.append(leftMapping, rightMapping);
-              throw new Util.FoundOne(
-                  RelOptUtil.createProject(
-                      new TableAccessRel(cluster, rightRelOptTable),
-                      Mappings.asList(mapping.inverse())));
+                  Mappings.merge(
+                      Mappings.offsetSource(leftMapping, offset),
+                      Mappings.offsetTarget(rightMapping, leftCount));
+              final RelNode project = RelOptUtil.createProject(
+                  new TableAccessRel(cluster, rightRelOptTable),
+                  Mappings.asList(mapping.inverse()));
+              final List<RexNode> conditions = Lists.newArrayList();
+              if (left.condition != null) {
+                conditions.add(RexUtil.apply(mapping, left.condition));
+              }
+              if (right.condition != null) {
+                conditions.add(
+                    RexUtil.apply(mapping,
+                        RexUtil.shift(right.condition, offset)));
+              }
+              final RelNode filter =
+                  RelOptUtil.createFilter(project, conditions);
+              throw new Util.FoundOne(filter);
             }
           }
         });
+    if (rel2 == rel) {
+      return rel;
+    }
+    final Program program = Programs.hep(
+        ImmutableList.of(PushProjectPastFilterRule.INSTANCE,
+            AggregateProjectMergeRule.INSTANCE,
+            AggregateFilterTransposeRule.INSTANCE),
+        false,
+        new DefaultRelMetadataProvider());
+    return program.run(null, rel2, null);
+  }
+
+  /** A table scan and optional project mapping and filter condition. */
+  private static class ProjectFilterTable {
+    final RexNode condition;
+    final Mappings.TargetMapping mapping;
+    final TableAccessRelBase scan;
+
+    private ProjectFilterTable(RexNode condition,
+        Mappings.TargetMapping mapping, TableAccessRelBase scan) {
+      this.condition = condition;
+      this.mapping = mapping;
+      this.scan = Preconditions.checkNotNull(scan);
+    }
+
+    static ProjectFilterTable of(RelNode node) {
+      if (node instanceof FilterRelBase) {
+        final FilterRelBase filter = (FilterRelBase) node;
+        return of2(filter.getCondition(), filter.getChild());
+      } else {
+        return of2(null, node);
+      }
+    }
+
+    private static ProjectFilterTable of2(RexNode condition, RelNode node) {
+      if (node instanceof ProjectRelBase) {
+        final ProjectRelBase project = (ProjectRelBase) node;
+        return of3(condition, project.getMapping(), project.getChild());
+      } else {
+        return of3(condition, null, node);
+      }
+    }
+
+    private static ProjectFilterTable of3(RexNode condition,
+        Mappings.TargetMapping mapping, RelNode node) {
+      if (node instanceof TableAccessRelBase) {
+        return new ProjectFilterTable(condition, mapping,
+            (TableAccessRelBase) node);
+      } else {
+        return null;
+      }
+    }
+
+    public Mappings.TargetMapping mapping() {
+      return mapping != null
+          ? mapping
+          : Mappings.createIdentity(scan.getRowType().getFieldCount());
+    }
+
+    public RelOptTable getTable() {
+      return scan.getTable();
+    }
   }
 
   /**
@@ -191,6 +261,7 @@ public class RelOptMaterialization {
         ImmutableList.of(
             PullUpProjectsAboveJoinRule.RIGHT_PROJECT,
             PullUpProjectsAboveJoinRule.LEFT_PROJECT,
+            PushFilterPastJoinRule.PushFilterIntoJoinRule.FILTER_ON_JOIN,
             MergeProjectRule.INSTANCE),
         false,
         new DefaultRelMetadataProvider());

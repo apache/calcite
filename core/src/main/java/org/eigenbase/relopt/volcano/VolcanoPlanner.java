@@ -403,6 +403,9 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
       if (queryTableNames.contains(lattice.rootTable().getQualifiedName())) {
         RelNode rel2 = lattice.rewrite(leafJoinRoot.get());
         if (rel2 != null) {
+          if (OptiqPrepareImpl.DEBUG) {
+            System.out.println("use lattice:\n" + RelOptUtil.toString(rel2));
+          }
           latticeUses.add(Pair.of(lattice, rel2));
         }
       }

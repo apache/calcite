@@ -18,6 +18,7 @@ package net.hydromatic.optiq.util.graph;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Lists;
 
 import org.hamcrest.CoreMatchers;
 
@@ -25,6 +26,7 @@ import org.junit.Test;
 
 import java.util.*;
 
+import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.*;
 
 /**
@@ -117,7 +119,10 @@ public class DirectedGraphTest {
     for (String s : DepthFirstIterator.of(graph, "A")) {
       list.add(s);
     }
-    assertEquals("[A, B, C, D, E, C, D, F]", list.toString());
+    assertThat(list.toString(), equalTo("[A, B, C, D, E, C, D, F]"));
+    list.clear();
+    DepthFirstIterator.reachable(list, graph, "A");
+    assertThat(list.toString(), equalTo("[A, B, C, D, E, C, D, F]"));
   }
 
   /** Unit test for {@link DepthFirstIterator}. */
@@ -274,9 +279,10 @@ public class DirectedGraphTest {
    * {@link net.hydromatic.optiq.util.graph.BreadthFirstIterator}. */
   @Test public void testBreadthFirstIterator() {
     DefaultDirectedGraph<String, DefaultEdge> graph = createDag();
-    assertThat(getA(graph, "A"),
-        CoreMatchers.<List<String>>equalTo(
-            ImmutableList.of("A", "B", "E", "C", "F", "D")));
+    final List<String> expected =
+        ImmutableList.of("A", "B", "E", "C", "F", "D");
+    assertThat(getA(graph, "A"), equalTo(expected));
+    assertThat(Lists.newArrayList(getB(graph, "A")), equalTo(expected));
   }
 
   private List<String> getA(DefaultDirectedGraph<String, DefaultEdge> graph,
@@ -285,6 +291,13 @@ public class DirectedGraphTest {
     for (String s : BreadthFirstIterator.of(graph, root)) {
       list.add(s);
     }
+    return list;
+  }
+
+  private Set<String> getB(DefaultDirectedGraph<String, DefaultEdge> graph,
+      String root) {
+    final Set<String> list = new LinkedHashSet<String>();
+    BreadthFirstIterator.reachable(list, graph, root);
     return list;
   }
 

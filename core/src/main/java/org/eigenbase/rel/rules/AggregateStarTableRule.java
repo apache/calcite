@@ -98,7 +98,6 @@ public class AggregateStarTableRule extends RelOptRule {
     if (aggregateTable == null) {
       return;
     }
-    System.out.println(aggregateTable);
     final double rowCount = aggregate.getRows();
     final RelOptTable aggregateRelOptTable =
         RelOptTableImpl.create(table.getRelOptSchema(),

@@ -16,11 +16,10 @@
  */
 package net.hydromatic.optiq.util.graph;
 
-import org.eigenbase.util.ChunkList;
-
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Set;
 
 /**
@@ -32,12 +31,12 @@ import java.util.Set;
 public class BreadthFirstIterator<V, E extends DefaultEdge>
     implements Iterator<V> {
   private final DirectedGraph<V, E> graph;
-  private final List<V> list = new ChunkList<V>();
+  private final Deque<V> deque = new ArrayDeque<V>();
   private final Set<V> set = new HashSet<V>();
 
   public BreadthFirstIterator(DirectedGraph<V, E> graph, V root) {
     this.graph = graph;
-    this.list.add(root);
+    this.deque.add(root);
   }
 
   public static <V, E extends DefaultEdge> Iterable<V> of(
@@ -49,16 +48,33 @@ public class BreadthFirstIterator<V, E extends DefaultEdge>
     };
   }
 
+  /** Populates a set with the nodes reachable from a given node. */
+  public static <V, E extends DefaultEdge> void reachable(Set<V> set,
+      final DirectedGraph<V, E> graph, final V root) {
+    final Deque<V> deque = new ArrayDeque<V>();
+    deque.add(root);
+    set.add(root);
+    while (!deque.isEmpty()) {
+      V v = deque.removeFirst();
+      for (E e : graph.getOutwardEdges(v)) {
+        @SuppressWarnings("unchecked") V target = (V) e.target;
+        if (set.add(target)) {
+          deque.addLast(target);
+        }
+      }
+    }
+  }
+
   public boolean hasNext() {
-    return !list.isEmpty();
+    return !deque.isEmpty();
   }
 
   public V next() {
-    V v = list.remove(0);
+    V v = deque.removeFirst();
     for (E e : graph.getOutwardEdges(v)) {
       @SuppressWarnings("unchecked") V target = (V) e.target;
       if (set.add(target)) {
-        list.add(target);
+        deque.addLast(target);
       }
     }
     return v;

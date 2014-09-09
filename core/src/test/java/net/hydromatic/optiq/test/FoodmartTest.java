@@ -184,7 +184,7 @@ public class FoodmartTest {
     /** Returns the singleton instance of the query set. It is backed by a
      * soft reference, so it may be freed if memory is short and no one is
      * using it. */
-    public static FoodMartQuerySet instance() throws IOException {
+    public static synchronized FoodMartQuerySet instance() throws IOException {
       final SoftReference<FoodMartQuerySet> refLocal = ref;
       if (refLocal != null) {
         final FoodMartQuerySet set = refLocal.get();

@@ -454,6 +454,20 @@ public abstract class RelOptUtil {
     return new FilterRel(child.getCluster(), child, condition);
   }
 
+  /** Creates a filter, or returns the original relational expression if the
+   * condition is trivial. */
+  public static RelNode createFilter(RelNode child,
+      Iterable<? extends RexNode> conditions) {
+    final RelOptCluster cluster = child.getCluster();
+    final RexNode condition =
+        RexUtil.composeConjunction(cluster.getRexBuilder(), conditions, true);
+    if (condition == null) {
+      return child;
+    } else {
+      return createFilter(child, condition);
+    }
+  }
+
   /**
    * Creates a filter which will remove rows containing NULL values.
    *

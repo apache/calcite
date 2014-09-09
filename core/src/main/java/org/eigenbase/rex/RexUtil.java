@@ -607,12 +607,16 @@ public class RexUtil {
     }
   }
 
-  /** Flattens a list of AND nodes. */
+  /** Flattens a list of AND nodes.
+   *
+   * <p>Treats null nodes as literal TRUE (i.e. ignores them). */
   public static ImmutableList<RexNode> flattenAnd(
       Iterable<? extends RexNode> nodes) {
     final ImmutableList.Builder<RexNode> builder = ImmutableList.builder();
     for (RexNode node : nodes) {
-      addAnd(builder, node);
+      if (node != null) {
+        addAnd(builder, node);
+      }
     }
     return builder.build();
   }
@@ -781,6 +785,13 @@ public class RexUtil {
       newFieldCollations.add(apply(mapping, fieldCollation));
     }
     return newFieldCollations;
+  }
+
+  /**
+   * Applies a mapping to an expression.
+   */
+  public static RexNode apply(Mappings.TargetMapping mapping, RexNode node) {
+    return node.accept(RexPermuteInputsShuttle.of(mapping));
   }
 
   /**

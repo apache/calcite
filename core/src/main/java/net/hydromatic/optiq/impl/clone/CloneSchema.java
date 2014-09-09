@@ -62,10 +62,12 @@ public class CloneSchema extends AbstractSchema {
   protected Map<String, Table> getTableMap() {
     final Map<String, Table> map = new LinkedHashMap<String, Table>();
     for (String name : sourceSchema.getTableNames()) {
-      final QueryableTable sourceTable =
-          (QueryableTable) sourceSchema.getTable(name);
-      map.put(name,
-          createCloneTable(MATERIALIZATION_CONNECTION, sourceTable, name));
+      final Table table = sourceSchema.getTable(name);
+      if (table instanceof QueryableTable) {
+        final QueryableTable sourceTable = (QueryableTable) table;
+        map.put(name,
+            createCloneTable(MATERIALIZATION_CONNECTION, sourceTable, name));
+      }
     }
     return map;
   }

@@ -576,7 +576,7 @@ class ArrayTable extends AbstractQueryableTable {
 
     public Object getObject(Object dataSet, int ordinal) {
       Pair<Object, Integer> pair = (Pair<Object, Integer>) dataSet;
-      return pair.getValue();
+      return pair.left;
     }
 
     public int getInt(Object dataSet, int ordinal) {

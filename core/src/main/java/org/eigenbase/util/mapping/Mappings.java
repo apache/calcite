@@ -20,9 +20,9 @@ import java.util.*;
 
 import org.eigenbase.util.*;
 
-import net.hydromatic.linq4j.function.Function1;
-
 import net.hydromatic.optiq.util.BitSets;
+
+import com.google.common.base.Function;
 
 /**
  * Utility functions related to mappings.
@@ -270,17 +270,26 @@ public abstract class Mappings {
   }
 
   public static TargetMapping target(
-      Function1<Integer, Integer> function,
+      Function<Integer, Integer> function,
       int sourceCount,
       int targetCount) {
     final PartialFunctionImpl mapping =
-        new PartialFunctionImpl(
-            sourceCount, targetCount, MappingType.FUNCTION);
+        new PartialFunctionImpl(sourceCount, targetCount, MappingType.FUNCTION);
     for (int source = 0; source < sourceCount; source++) {
       Integer target = function.apply(source);
       if (target != null) {
         mapping.set(source, target);
       }
+    }
+    return mapping;
+  }
+
+  public static Mapping target(Iterable<IntPair> pairs, int sourceCount,
+      int targetCount) {
+    final PartialFunctionImpl mapping =
+        new PartialFunctionImpl(sourceCount, targetCount, MappingType.FUNCTION);
+    for (IntPair pair : pairs) {
+      mapping.set(pair.source, pair.target);
     }
     return mapping;
   }
@@ -465,7 +474,7 @@ public abstract class Mappings {
       int t = s < s0 ? mapping0.getTargetOpt(s) : -1;
       if (t >= 0) {
         mapping.set(s, t);
-        assert mapping1.getTargetOpt(s) < 0;
+        assert s >= s1 || mapping1.getTargetOpt(s) < 0;
       } else {
         t = s < s1 ? mapping1.getTargetOpt(s) : -1;
         if (t >= 0) {
@@ -510,7 +519,7 @@ public abstract class Mappings {
       throw new IllegalArgumentException("new source count too low");
     }
     return target(
-        new Function1<Integer, Integer>() {
+        new Function<Integer, Integer>() {
           public Integer apply(Integer source) {
             int source2 = source - offset;
             return source2 < 0 || source2 >= mapping.getSourceCount()
@@ -556,7 +565,7 @@ public abstract class Mappings {
       throw new IllegalArgumentException("new target count too low");
     }
     return target(
-        new Function1<Integer, Integer>() {
+        new Function<Integer, Integer>() {
           public Integer apply(Integer source) {
             int target = mapping.getTargetOpt(source);
             return target < 0 ? null : target + offset;
@@ -587,7 +596,7 @@ public abstract class Mappings {
       throw new IllegalArgumentException("new source count too low");
     }
     return target(
-        new Function1<Integer, Integer>() {
+        new Function<Integer, Integer>() {
           public Integer apply(Integer source) {
             final int source2 = source - offset;
             if (source2 < 0 || source2 >= mapping.getSourceCount()) {
@@ -617,6 +626,35 @@ public abstract class Mappings {
       }
     }
     return true;
+  }
+
+  /** Inverts an {@link java.lang.Iterable} over
+   * {@link org.eigenbase.util.mapping.IntPair}s. */
+  public static Iterable<IntPair> invert(final Iterable<IntPair> pairs) {
+    return new Iterable<IntPair>() {
+      public Iterator<IntPair> iterator() {
+        return invert(pairs.iterator());
+      }
+    };
+  }
+
+  /** Inverts an {@link java.util.Iterator} over
+   * {@link org.eigenbase.util.mapping.IntPair}s. */
+  public static Iterator<IntPair> invert(final Iterator<IntPair> pairs) {
+    return new Iterator<IntPair>() {
+      public boolean hasNext() {
+        return pairs.hasNext();
+      }
+
+      public IntPair next() {
+        final IntPair pair = pairs.next();
+        return IntPair.of(pair.target, pair.source);
+      }
+
+      public void remove() {
+        throw new UnsupportedOperationException("remove");
+      }
+    };
   }
 
   //~ Inner Interfaces -------------------------------------------------------
@@ -1492,8 +1530,7 @@ public abstract class Mappings {
     }
 
     public Mapping inverse() {
-      // todo: implement
-      throw new UnsupportedOperationException();
+      return target(invert(this), targetCount, sourceCount);
     }
 
     public void set(int source, int target) {

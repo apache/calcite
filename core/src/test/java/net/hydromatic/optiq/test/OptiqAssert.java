@@ -25,6 +25,8 @@ import net.hydromatic.optiq.impl.java.ReflectiveSchema;
 import net.hydromatic.optiq.impl.jdbc.JdbcSchema;
 import net.hydromatic.optiq.jdbc.MetaImpl;
 import net.hydromatic.optiq.jdbc.OptiqConnection;
+import net.hydromatic.optiq.jdbc.OptiqSchema;
+import net.hydromatic.optiq.materialize.Lattice;
 import net.hydromatic.optiq.runtime.Hook;
 
 import org.eigenbase.rel.RelNode;
@@ -566,6 +568,7 @@ public class OptiqAssert {
   }
 
   public static SchemaPlus addSchema(SchemaPlus rootSchema, SchemaSpec schema) {
+    SchemaPlus foodmart;
     switch (schema) {
     case REFLECTIVE_FOODMART:
       return rootSchema.add("foodmart",
@@ -580,8 +583,21 @@ public class OptiqAssert {
       return rootSchema.add("foodmart",
           JdbcSchema.create(rootSchema, "foodmart", dataSource, null,
               "foodmart"));
+    case JDBC_FOODMART_WITH_LATTICE:
+      foodmart = rootSchema.getSubSchema("foodmart");
+      if (foodmart == null) {
+        foodmart = OptiqAssert.addSchema(rootSchema, SchemaSpec.JDBC_FOODMART);
+      }
+      foodmart.add("lattice",
+          Lattice.create(foodmart.unwrap(OptiqSchema.class),
+              "select 1 from \"foodmart\".\"sales_fact_1997\" as s\n"
+              + "join \"foodmart\".\"time_by_day\" as t using (\"time_id\")\n"
+              + "join \"foodmart\".\"customer\" as c using (\"customer_id\")\n"
+              + "join \"foodmart\".\"product\" as p using (\"product_id\")\n"
+              + "join \"foodmart\".\"product_class\" as pc on p.\"product_class_id\" = pc.\"product_class_id\""));
+      return foodmart;
     case CLONE_FOODMART:
-      SchemaPlus foodmart = rootSchema.getSubSchema("foodmart");
+      foodmart = rootSchema.getSubSchema("foodmart");
       if (foodmart == null) {
         foodmart = OptiqAssert.addSchema(rootSchema, SchemaSpec.JDBC_FOODMART);
       }
@@ -666,22 +682,30 @@ public class OptiqAssert {
    * uses the connection as its own provider. The connection contains a
    * schema called "foodmart" backed by a JDBC connection to MySQL.
    *
-   * @param withClone Whether to create a "foodmart2" schema as in-memory
-   *     clone
+   * @param schemaSpec Schema specification; whether to create a "foodmart2"
+   *     schema as in-memory clone
    * @return Connection
    * @throws ClassNotFoundException
    * @throws java.sql.SQLException
    */
-  static OptiqConnection getConnection(boolean withClone)
+  static OptiqConnection getConnection(SchemaSpec schemaSpec)
       throws ClassNotFoundException, SQLException {
     Class.forName("net.hydromatic.optiq.jdbc.Driver");
     Connection connection = DriverManager.getConnection("jdbc:optiq:");
     OptiqConnection optiqConnection =
         connection.unwrap(OptiqConnection.class);
     final SchemaPlus rootSchema = optiqConnection.getRootSchema();
-    addSchema(rootSchema, SchemaSpec.JDBC_FOODMART);
-    if (withClone) {
-      addSchema(rootSchema, SchemaSpec.CLONE_FOODMART);
+    switch (schemaSpec) {
+    case JDBC_FOODMART:
+      addSchema(rootSchema, schemaSpec);
+      break;
+    case CLONE_FOODMART:
+    case JDBC_FOODMART_WITH_LATTICE:
+      addSchema(rootSchema, SchemaSpec.JDBC_FOODMART);
+      addSchema(rootSchema, schemaSpec);
+      break;
+    default:
+      throw new AssertionError("unknown schema " + schemaSpec);
     }
     optiqConnection.setSchema("foodmart2");
     return optiqConnection;
@@ -884,37 +908,6 @@ public class OptiqAssert {
     OptiqConnection createConnection() throws Exception;
   }
 
-  private static class MemoizingConnectionFactory implements ConnectionFactory {
-    private final Supplier<OptiqConnection> supplier;
-
-    public MemoizingConnectionFactory(final ConnectionFactory factory) {
-      super();
-      this.supplier = Suppliers.memoize(
-          new Supplier<OptiqConnection>() {
-            public OptiqConnection get() {
-              try {
-                return factory.createConnection();
-              } catch (Exception e) {
-                throw new RuntimeException(e);
-              }
-            }
-          });
-    }
-
-    public OptiqConnection createConnection() throws Exception {
-      try {
-        return supplier.get();
-      } catch (RuntimeException e) {
-        if (e.getClass() == RuntimeException.class
-            && e.getCause() instanceof Exception
-            && e.getCause() != e) {
-          throw (Exception) e.getCause();
-        }
-        throw e;
-      }
-    }
-  }
-
   private static class PoolingConnectionFactory implements ConnectionFactory {
     private final ConnectionFactory factory;
 
@@ -966,9 +959,11 @@ public class OptiqAssert {
       case LINGUAL:
         return getConnection("lingual");
       case JDBC_FOODMART:
-        return getConnection(false);
+        return getConnection(OptiqAssert.SchemaSpec.JDBC_FOODMART);
       case FOODMART_CLONE:
-        return getConnection(true);
+        return getConnection(SchemaSpec.CLONE_FOODMART);
+      case JDBC_FOODMART_WITH_LATTICE:
+        return getConnection(SchemaSpec.JDBC_FOODMART_WITH_LATTICE);
       case SPARK:
         return getConnection("spark");
       default:
@@ -1261,6 +1256,10 @@ public class OptiqAssert {
      * database. */
     FOODMART_CLONE,
 
+    /** Configuration that contains an in-memory clone of the FoodMart
+     * database, plus a lattice to enable on-the-fly materializations. */
+    JDBC_FOODMART_WITH_LATTICE,
+
     /** Configuration that includes the metadata schema. */
     REGULAR_PLUS_METADATA,
 
@@ -1351,6 +1350,7 @@ public class OptiqAssert {
     REFLECTIVE_FOODMART,
     JDBC_FOODMART,
     CLONE_FOODMART,
+    JDBC_FOODMART_WITH_LATTICE,
     HR,
     LINGUAL,
     POST
