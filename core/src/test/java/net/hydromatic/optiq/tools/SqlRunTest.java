@@ -18,6 +18,8 @@ package net.hydromatic.optiq.tools;
 
 import net.hydromatic.optiq.test.OptiqAssert;
 
+import org.eigenbase.util.Util;
+
 import org.hamcrest.CoreMatchers;
 import org.hamcrest.Matcher;
 
@@ -241,7 +243,7 @@ public class SqlRunTest {
           }
         });
     writer.flush();
-    String out = writer.toString();
+    String out = Util.toLinux(writer.toString());
     Assert.assertThat(out, matcher);
   }
 }

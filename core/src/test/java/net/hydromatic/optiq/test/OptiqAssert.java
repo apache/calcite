@@ -161,7 +161,7 @@ public class OptiqAssert {
         if (counter != null) {
           counter.incrementAndGet();
         }
-        String s = RelOptUtil.toString(relNode);
+        String s = Util.toLinux(RelOptUtil.toString(relNode));
         assertThat(s, containsString(expected));
         return null;
       }

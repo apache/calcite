@@ -194,7 +194,7 @@ public class LatticeTest {
             new Function<RelNode, Void>() {
               public Void apply(RelNode relNode) {
                 counter.incrementAndGet();
-                String s = RelOptUtil.toString(relNode);
+                String s = Util.toLinux(RelOptUtil.toString(relNode));
                 assertThat(s,
                     anyOf(
                         containsString(
