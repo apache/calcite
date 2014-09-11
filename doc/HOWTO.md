@@ -294,7 +294,7 @@ read GPG_PASSPHRASE
 # make sure that there are no junk files in the sandbox
 git clean -x
 
-mvn -Prelease,apache-release -Dgpg.passphrase=${GPG_PASSPHRASE} clean install
+mvn -Papache-release -Dgpg.passphrase=${GPG_PASSPHRASE} clean install
 ```
 
 When the dry-run has succeeded, change `install` to `deploy`.
@@ -307,6 +307,10 @@ Before you start:
 * Make sure build and tests succeed, including with
   -Doptiq.test.db={mysql,hsqldb}, -Doptiq.test.slow=true,
   -Doptiq.test.mongodb=true, -Doptiq.test.splunk=true.
+* Trigger a
+  <a href="https://scan.coverity.com/projects/2966">Coverity scan</a>
+  by merging the latest code into the `julianhyde/coverity_scan` branch,
+  and when it completes, make sure that there are no important issues.
 * Make sure that
   <a href="https://issues.apache.org/jira/issues/?jql=project%20%3D%20OPTIQ%20AND%20status%20%3D%20Resolved">
   every "resolved" JIRA case</a> (including duplicates) has
