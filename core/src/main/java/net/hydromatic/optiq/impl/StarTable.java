@@ -25,7 +25,6 @@ import org.eigenbase.rel.*;
 import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.reltype.RelDataTypeFactory;
-import org.eigenbase.sql.validate.SqlValidatorUtil;
 import org.eigenbase.util.ImmutableIntList;
 import org.eigenbase.util.Pair;
 
@@ -86,8 +85,7 @@ public class StarTable extends AbstractTable implements TranslatableTable {
     if (this.fieldCounts == null) {
       this.fieldCounts = ImmutableIntList.copyOf(fieldCounts);
     }
-    return typeFactory.createStructType(typeList,
-        SqlValidatorUtil.uniquify(nameList));
+    return typeFactory.createStructType(typeList, lattice.uniqueColumnNames);
   }
 
   public RelNode toRel(RelOptTable.ToRelContext context, RelOptTable table) {

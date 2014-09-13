@@ -64,12 +64,16 @@ public class MaterializationService {
 
   /** Defines a new materialization. Returns its key. */
   public MaterializationKey defineMaterialization(final OptiqSchema schema,
-      String viewSql, List<String> viewSchemaPath, String tableName) {
+      String viewSql, List<String> viewSchemaPath, String tableName,
+      boolean create) {
     final MaterializationActor.QueryKey queryKey =
         new MaterializationActor.QueryKey(viewSql, schema, viewSchemaPath);
     final MaterializationKey existingKey = actor.keyBySql.get(queryKey);
     if (existingKey != null) {
       return existingKey;
+    }
+    if (!create) {
+      return null;
     }
 
     final OptiqConnection connection =
@@ -155,6 +159,40 @@ public class MaterializationService {
     return null;
   }
 
+  /**
+   * Defines a tile.
+   *
+   * <p>Setting the {@code create} flag to false prevents a materialization
+   * from being created if one does not exist. Critically, it is set to false
+   * during the recursive SQL that populates a materialization. Otherwise a
+   * materialization would try to create itself to populate itself!
+   */
+  public OptiqSchema.TableEntry defineTile(Lattice lattice, BitSet groupSet,
+      List<Lattice.Measure> measureList, OptiqSchema schema, boolean create) {
+    // FIXME This is all upside down. We are looking for a materialization
+    // first. But we should define a tile first, then find out whether an
+    // exact materialization exists, then find out whether an acceptable
+    // approximate materialization exists, and if it does not, then maybe
+    // create a materialization.
+    //
+    // The SQL should not be part of the key of the materialization. There are
+    // better, more concise keys. And especially, check that we are not using
+    // that SQL to populate the materialization. There may be finer-grained
+    // materializations that we can roll up. (Maybe the SQL on the fact table
+    // gets optimized to use those materializations.)
+    String sql = lattice.sql(groupSet, measureList);
+    final MaterializationKey materializationKey =
+        defineMaterialization(schema, sql, schema.path(null), "m" + groupSet,
+            create);
+    if (materializationKey != null) {
+      final OptiqSchema.TableEntry tableEntry = checkValid(materializationKey);
+      if (tableEntry != null) {
+        return tableEntry;
+      }
+    }
+    return null;
+  }
+
   /** Gathers a list of all materialized tables known within a given root
    * schema. (Each root schema defines a disconnected namespace, with no overlap
    * with the current schema. Especially in a test run, the contents of two
@@ -194,7 +232,6 @@ public class MaterializationService {
     }
     return INSTANCE;
   }
-
 }
 
 // End MaterializationService.java

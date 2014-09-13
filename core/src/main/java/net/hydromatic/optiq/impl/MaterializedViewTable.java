@@ -29,6 +29,8 @@ import org.eigenbase.relopt.RelOptTable;
 import org.eigenbase.reltype.RelDataTypeImpl;
 import org.eigenbase.reltype.RelProtoDataType;
 
+import com.google.common.base.Preconditions;
+
 import java.lang.reflect.Type;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -102,9 +104,9 @@ public class MaterializedViewTable extends ViewTable {
     private MaterializedViewTableMacro(OptiqSchema schema, String viewSql,
         List<String> viewSchemaPath, String tableName) {
       super(schema, viewSql, viewSchemaPath);
-      this.key =
+      this.key = Preconditions.checkNotNull(
           MaterializationService.instance().defineMaterialization(
-              schema, viewSql, schemaPath, tableName);
+              schema, viewSql, schemaPath, tableName, true));
     }
 
     @Override

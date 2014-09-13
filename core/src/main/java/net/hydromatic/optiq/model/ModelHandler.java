@@ -46,6 +46,8 @@ public class ModelHandler {
   private final OptiqConnection connection;
   private final List<Pair<String, SchemaPlus>> schemaStack =
       new ArrayList<Pair<String, SchemaPlus>>();
+  Lattice.Builder latticeBuilder;
+  Lattice.TileBuilder tileBuilder;
 
   public ModelHandler(OptiqConnection connection, String uri)
       throws IOException {
@@ -240,11 +242,27 @@ public class ModelHandler {
             + "' is not a SemiMutableSchema");
       }
       OptiqSchema optiqSchema = OptiqSchema.from(schema);
-      schema.add(jsonLattice.name,
-          Lattice.create(optiqSchema, jsonLattice.sql));
+      final Lattice.Builder latticeBuilder = Lattice.builder(optiqSchema,
+          jsonLattice.sql, jsonLattice.auto);
+      populateLattice(jsonLattice, latticeBuilder);
+      schema.add(jsonLattice.name, latticeBuilder.build());
     } catch (Exception e) {
       throw new RuntimeException("Error instantiating " + jsonLattice, e);
     }
+  }
+
+  private void populateLattice(JsonLattice jsonLattice,
+      Lattice.Builder latticeBuilder) {
+    // By default, the default measure list is just {count(*)}.
+    if (jsonLattice.defaultMeasures == null) {
+      final JsonMeasure countMeasure = new JsonMeasure();
+      countMeasure.agg = "count";
+      jsonLattice.defaultMeasures = ImmutableList.of(countMeasure);
+    }
+    assert this.latticeBuilder == null;
+    this.latticeBuilder = latticeBuilder;
+    jsonLattice.visitChildren(this);
+    this.latticeBuilder = null;
   }
 
   public void visit(JsonCustomTable jsonTable) {
@@ -306,6 +324,33 @@ public class ModelHandler {
     } catch (Exception e) {
       throw new RuntimeException("Error instantiating " + jsonFunction, e);
     }
+  }
+
+  public void visit(JsonMeasure jsonMeasure) {
+    assert latticeBuilder != null;
+    final Lattice.Measure measure =
+        latticeBuilder.resolveMeasure(jsonMeasure.agg, jsonMeasure.args);
+    if (tileBuilder != null) {
+      tileBuilder.addMeasure(measure);
+    } else if (latticeBuilder != null) {
+      latticeBuilder.addMeasure(measure);
+    } else {
+      throw new AssertionError("nowhere to put measure");
+    }
+  }
+
+  public void visit(JsonTile jsonTile) {
+    assert tileBuilder == null;
+    tileBuilder = Lattice.Tile.builder();
+    for (JsonMeasure jsonMeasure : jsonTile.measures) {
+      jsonMeasure.accept(this);
+    }
+    for (Object dimension : jsonTile.dimensions) {
+      final Lattice.Column column = latticeBuilder.resolveColumn(dimension);
+      tileBuilder.addDimension(column);
+    }
+    latticeBuilder.addTile(tileBuilder.build());
+    tileBuilder = null;
   }
 }
 

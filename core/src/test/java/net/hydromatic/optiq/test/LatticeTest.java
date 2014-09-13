@@ -39,9 +39,17 @@ import static org.junit.Assert.assertThat;
  * Unit test for lattices.
  */
 public class LatticeTest {
-  private OptiqAssert.AssertThat modelWithLattice(String name, String sql) {
-    return modelWithLattices(
-        "{ name: '" + name + "', sql: " + TestUtil.escapeString(sql) + "}");
+  private OptiqAssert.AssertThat modelWithLattice(String name, String sql,
+      String... extras) {
+    final StringBuilder buf = new StringBuilder("{ name: '")
+        .append(name)
+        .append("', sql: ")
+        .append(TestUtil.escapeString(sql));
+    for (String extra : extras) {
+      buf.append(", ").append(extra);
+    }
+    buf.append("}");
+    return modelWithLattices(buf.toString());
   }
 
   private OptiqAssert.AssertThat modelWithLattices(String... lattices) {
@@ -232,12 +240,69 @@ public class LatticeTest {
     assertThat(counter.intValue(), equalTo(3));
   }
 
-  private OptiqAssert.AssertThat foodmartModel() {
+  /** Tests 2-way join query on a pre-defined aggregate table. */
+  @Test public void testLatticeWithPreDefinedTiles() {
+    foodmartModel(
+        " auto: false,\n"
+        + "  defaultMeasures: [ {\n"
+        + "    agg: 'count'\n"
+        + "  } ],\n"
+        + "  tiles: [ {\n"
+        + "    dimensions: [ 'the_year', ['t', 'quarter'] ],\n"
+        + "    measures: [ {\n"
+        + "      agg: 'count'\n"
+        + "    }, {\n"
+        + "      agg: 'sum',\n"
+        + "      args: 'unit_sales'\n"
+        + "    } ]\n"
+        + "  } ]\n")
+        .query(
+            "select distinct t.\"the_year\", t.\"quarter\"\n"
+            + "from \"foodmart\".\"sales_fact_1997\" as s\n"
+            + "join \"foodmart\".\"time_by_day\" as t using (\"time_id\")\n")
+      .enableMaterializations(true)
+      .explainContains(
+          "EnumerableTableAccessRel(table=[[adhoc, m{27, 31}")
+      .returnsCount(4);
+  }
+
+  /** A tile with no measures should inherit default measure list from the
+   * lattice. */
+  @Test public void testTileWithNoMeasures() {
+    // TODO
+  }
+
+  /** A lattice with no default measure list should get "count(*)" is its
+   * default measure. */
+  @Test public void testLatticeWithNoMeasures() {
+    // TODO
+  }
+
+  @Test public void testDimensionIsInvalidColumn() {
+    // TODO
+  }
+
+  @Test public void testMeasureArgIsInvalidColumn() {
+    // TODO
+  }
+
+  /** It is an error for "customer_id" to be a measure arg, because is not a
+   * unique alias. Both "c" and "t" have "customer_id". */
+  @Test public void testMeasureArgIsNotUniqueAlias() {
+    // TODO
+  }
+
+  @Test public void testMeasureAggIsInvalid() {
+    // TODO
+  }
+
+  private OptiqAssert.AssertThat foodmartModel(String... extras) {
     return modelWithLattice("star",
-        "select 1 from \"foodmart\".\"sales_fact_1997\" as s\n"
-        + "join \"foodmart\".\"product\" as p using (\"product_id\")\n"
-        + "join \"foodmart\".\"time_by_day\" as t using (\"time_id\")\n"
-        + "join \"foodmart\".\"product_class\" as pc on p.\"product_class_id\" = pc.\"product_class_id\"");
+        "select 1 from \"foodmart\".\"sales_fact_1997\" as \"s\"\n"
+        + "join \"foodmart\".\"product\" as \"p\" using (\"product_id\")\n"
+        + "join \"foodmart\".\"time_by_day\" as \"t\" using (\"time_id\")\n"
+        + "join \"foodmart\".\"product_class\" as \"pc\" on \"p\".\"product_class_id\" = \"pc\".\"product_class_id\"",
+        extras);
   }
 }
 

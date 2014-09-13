@@ -33,6 +33,10 @@ import java.util.List;
  *       {@link JsonColumn} (in collection {@link JsonTable#columns column}
  *     {@link JsonView}
  *     {@link JsonFunction}  (in collection {@link JsonMapSchema#functions functions})
+ *     {@link JsonLattice} (in collection {@link JsonSchema#lattices})
+ *       {@link JsonMeasure} (in collection {@link JsonLattice#defaultMeasures})
+ *       {@link JsonTile} (in collection {@link JsonLattice#tiles})
+ *         {@link JsonMeasure} (in collection {@link JsonTile#measures})
  * </pre>
  */
 public class JsonRoot {

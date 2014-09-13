@@ -28,6 +28,8 @@ import net.hydromatic.optiq.config.OptiqConnectionConfig;
 import net.hydromatic.optiq.config.OptiqConnectionConfigImpl;
 import net.hydromatic.optiq.impl.AbstractSchema;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
+import net.hydromatic.optiq.materialize.Lattice;
+import net.hydromatic.optiq.materialize.MaterializationService;
 import net.hydromatic.optiq.prepare.OptiqCatalogReader;
 import net.hydromatic.optiq.runtime.Hook;
 import net.hydromatic.optiq.server.OptiqServer;
@@ -104,6 +106,19 @@ abstract class OptiqConnectionImpl
 
   public OptiqConnectionConfig config() {
     return new OptiqConnectionConfigImpl(info);
+  }
+
+  /** Called after the constructor has completed and the model has been
+   * loaded. */
+  void init() {
+    final MaterializationService service = MaterializationService.instance();
+    for (OptiqSchema.LatticeEntry e : Schemas.getLatticeEntries(rootSchema)) {
+      final Lattice lattice = e.getLattice();
+      for (Lattice.Tile tile : lattice.tiles) {
+        service.defineTile(lattice, tile.bitSet(), tile.measures, e.schema,
+            true);
+      }
+    }
   }
 
   @Override public AvaticaStatement createStatement(int resultSetType,

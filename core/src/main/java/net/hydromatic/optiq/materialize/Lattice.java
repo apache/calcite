@@ -22,19 +22,27 @@ import net.hydromatic.optiq.impl.MaterializedViewTable;
 import net.hydromatic.optiq.impl.StarTable;
 import net.hydromatic.optiq.jdbc.OptiqPrepare;
 import net.hydromatic.optiq.jdbc.OptiqSchema;
+import net.hydromatic.optiq.prepare.OptiqPrepareImpl;
+import net.hydromatic.optiq.runtime.Utilities;
+import net.hydromatic.optiq.util.BitSets;
 import net.hydromatic.optiq.util.graph.*;
 
 import org.eigenbase.rel.*;
 import org.eigenbase.relopt.RelOptUtil;
 import org.eigenbase.rex.*;
+import org.eigenbase.sql.SqlAggFunction;
+import org.eigenbase.sql.SqlDialect;
 import org.eigenbase.sql.SqlJoin;
 import org.eigenbase.sql.SqlKind;
 import org.eigenbase.sql.SqlNode;
 import org.eigenbase.sql.SqlSelect;
 import org.eigenbase.sql.SqlUtil;
+import org.eigenbase.sql.fun.SqlStdOperatorTable;
 import org.eigenbase.sql.validate.SqlValidatorUtil;
+import org.eigenbase.util.Util;
 import org.eigenbase.util.mapping.IntPair;
 
+import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.*;
 
@@ -45,11 +53,42 @@ import java.util.*;
  * recognized and recommended.
  */
 public class Lattice {
-  public final ImmutableList<Node> nodes;
-  public final ImmutableList<List<String>> columns;
+  private static final Function<Column, String> GET_ALIAS =
+      new Function<Column, String>() {
+        public String apply(Column input) {
+          return input.alias;
+        }
+      };
 
-  private Lattice(List<Node> nodes) {
-    this.nodes = ImmutableList.copyOf(nodes);
+  public final ImmutableList<Node> nodes;
+  public final ImmutableList<Column> columns;
+  public final boolean auto;
+  public final ImmutableList<Measure> defaultMeasures;
+  public final ImmutableList<Tile> tiles;
+  public final ImmutableList<String> uniqueColumnNames;
+
+  private final Function<Integer, Column> toColumnFunction =
+      new Function<Integer, Column>() {
+        public Column apply(Integer input) {
+          return columns.get(input);
+        }
+      };
+  private final Function<AggregateCall, Measure> toMeasureFunction =
+      new Function<AggregateCall, Measure>() {
+        public Measure apply(AggregateCall input) {
+          return new Measure(input.getAggregation(),
+              Lists.transform(input.getArgList(), toColumnFunction));
+        }
+      };
+
+  private Lattice(ImmutableList<Node> nodes, boolean auto,
+      ImmutableList<Column> columns,
+      ImmutableList<Measure> defaultMeasures, ImmutableList<Tile> tiles) {
+    this.nodes = Preconditions.checkNotNull(nodes);
+    this.columns = Preconditions.checkNotNull(columns);
+    this.auto = auto;
+    this.defaultMeasures = Preconditions.checkNotNull(defaultMeasures);
+    this.tiles = Preconditions.checkNotNull(tiles);
 
     // Validate that nodes form a tree; each node except the first references
     // a predecessor.
@@ -62,80 +101,18 @@ public class Lattice {
       }
     }
 
-    final ImmutableList.Builder<List<String>> builder = ImmutableList.builder();
-    for (Node node : nodes) {
-      if (node.scan != null) {
-        for (String name : node.scan.getRowType().getFieldNames()) {
-          builder.add(ImmutableList.of(node.alias, name));
-        }
-      }
+    List<String> nameList = Lists.newArrayList();
+    for (Column column : columns) {
+      nameList.add(column.alias);
     }
-    columns = builder.build();
+    uniqueColumnNames =
+        ImmutableList.copyOf(
+            SqlValidatorUtil.uniquify(Lists.transform(columns, GET_ALIAS)));
   }
 
   /** Creates a Lattice. */
-  public static Lattice create(OptiqSchema schema, String sql) {
-    OptiqPrepare.ConvertResult parsed =
-        Schemas.convert(MaterializedViewTable.MATERIALIZATION_CONNECTION,
-            schema, schema.path(null), sql);
-
-    // Walk the join tree.
-    List<RelNode> relNodes = Lists.newArrayList();
-    List<int[][]> tempLinks = Lists.newArrayList();
-    populate(relNodes, tempLinks, parsed.relNode);
-
-    // Get aliases.
-    List<String> aliases = Lists.newArrayList();
-    populateAliases(((SqlSelect) parsed.sqlNode).getFrom(), aliases, null);
-
-    // Build a graph.
-    final DirectedGraph<RelNode, Edge> graph =
-        DefaultDirectedGraph.create(Edge.FACTORY);
-    for (RelNode node : relNodes) {
-      graph.addVertex(node);
-    }
-    for (int[][] tempLink : tempLinks) {
-      final RelNode source = relNodes.get(tempLink[0][0]);
-      final RelNode target = relNodes.get(tempLink[1][0]);
-      Edge edge = graph.getEdge(source, target);
-      if (edge == null) {
-        edge = graph.addEdge(source, target);
-      }
-      edge.pairs.add(IntPair.of(tempLink[0][1], tempLink[1][1]));
-    }
-
-    // Convert the graph into a tree of nodes, each connected to a parent and
-    // with a join condition to that parent.
-    List<Node> nodes = Lists.newArrayList();
-    Node previous = null;
-    final Map<RelNode, Node> map = Maps.newIdentityHashMap();
-    int previousColumn = 0;
-    for (RelNode relNode : TopologicalOrderIterator.of(graph)) {
-      final List<Edge> edges = graph.getInwardEdges(relNode);
-      Node node;
-      final int column = previousColumn + relNode.getRowType().getFieldCount();
-      if (previous == null) {
-        if (!edges.isEmpty()) {
-          throw new RuntimeException("root node must not have relationships: "
-              + relNode);
-        }
-        node = new Node((TableAccessRelBase) relNode, null, null,
-            previousColumn, column, aliases.get(nodes.size()));
-      } else {
-        if (edges.size() != 1) {
-          throw new RuntimeException(
-              "child node must have precisely one parent: " + relNode);
-        }
-        final Edge edge = edges.get(0);
-        node = new Node((TableAccessRelBase) relNode, map.get(edge.getSource()),
-            edge.pairs, previousColumn, column, aliases.get(nodes.size()));
-      }
-      nodes.add(node);
-      map.put(relNode, node);
-      previous = node;
-      previousColumn = column;
-    }
-    return new Lattice(nodes);
+  public static Lattice create(OptiqSchema schema, String sql, boolean auto) {
+    return builder(schema, sql, auto).build();
   }
 
   private static void populateAliases(SqlNode from, List<String> aliases,
@@ -213,6 +190,75 @@ public class Lattice {
     throw new AssertionError("input not found");
   }
 
+  public String sql(BitSet groupSet, List<Measure> aggCallList) {
+    final BitSet columnSet = (BitSet) groupSet.clone();
+    for (Measure call : aggCallList) {
+      for (Column arg : call.args) {
+        columnSet.set(arg.ordinal);
+      }
+    }
+    // Figure out which nodes are needed. Use a node if its columns are used
+    // or if has a child whose columns are used.
+    List<Node> usedNodes = Lists.newArrayList();
+    for (Node node : nodes) {
+      if (BitSets.range(node.startCol, node.endCol).intersects(columnSet)) {
+        use(usedNodes, node);
+      }
+    }
+    final SqlDialect dialect = SqlDialect.DatabaseProduct.OPTIQ.getDialect();
+    final StringBuilder buf = new StringBuilder();
+    buf.append("SELECT DISTINCT ");
+    int k = 0;
+    for (int i : BitSets.toIter(groupSet)) {
+      if (k++ > 0) {
+        buf.append(", ");
+      }
+      final Column column = columns.get(i);
+      dialect.quoteIdentifier(buf, column.identifiers());
+      final String fieldName = uniqueColumnNames.get(i);
+      if (!column.alias.equals(fieldName)) {
+        buf.append(" AS ");
+        dialect.quoteIdentifier(buf, fieldName);
+      }
+    }
+    buf.append("\nFROM ");
+    for (Node node : usedNodes) {
+      if (node.parent != null) {
+        buf.append("\nJOIN ");
+      }
+      dialect.quoteIdentifier(buf, node.scan.getTable().getQualifiedName());
+      buf.append(" AS ");
+      dialect.quoteIdentifier(buf, node.alias);
+      if (node.parent != null) {
+        buf.append(" ON ");
+        k = 0;
+        for (IntPair pair : node.link) {
+          if (k++ > 0) {
+            buf.append(" AND ");
+          }
+          final Column left = columns.get(node.parent.startCol + pair.source);
+          dialect.quoteIdentifier(buf, left.identifiers());
+          buf.append(" = ");
+          final Column right = columns.get(node.startCol + pair.target);
+          dialect.quoteIdentifier(buf, right.identifiers());
+        }
+      }
+    }
+    if (OptiqPrepareImpl.DEBUG) {
+      System.out.println("Lattice SQL:\n" + buf);
+    }
+    return buf.toString();
+  }
+
+  private static void use(List<Node> usedNodes, Node node) {
+    if (!usedNodes.contains(node)) {
+      if (node.parent != null) {
+        use(usedNodes, node.parent);
+      }
+      usedNodes.add(node);
+    }
+  }
+
   public StarTable createStarTable() {
     final List<Table> tables = Lists.newArrayList();
     for (Node node : nodes) {
@@ -221,8 +267,13 @@ public class Lattice {
     return StarTable.of(this, tables);
   }
 
-  public List<String> getColumn(int i) {
-    return columns.get(i);
+  public static Builder builder(OptiqSchema optiqSchema, String sql,
+      boolean auto) {
+    return new Builder(optiqSchema, sql, auto);
+  }
+
+  public List<Measure> toMeasures(List<AggregateCall> aggCallList) {
+    return Lists.transform(aggCallList, toMeasureFunction);
   }
 
   /** Source relation of a lattice.
@@ -273,6 +324,343 @@ public class Lattice {
 
     public RelNode getSource() {
       return (RelNode) source;
+    }
+  }
+
+  /** Measure in a lattice. */
+  public static class Measure implements Comparable<Measure> {
+    public final Aggregation agg;
+    public final ImmutableList<Column> args;
+
+    public Measure(Aggregation agg, Iterable<Column> args) {
+      this.agg = Preconditions.checkNotNull(agg);
+      this.args = ImmutableList.copyOf(args);
+    }
+
+    public int compareTo(Measure measure) {
+      int c = agg.getName().compareTo(measure.agg.getName());
+      if (c != 0) {
+        return c;
+      }
+      return compare(args, measure.args);
+    }
+
+    @Override public int hashCode() {
+      return Util.hashV(agg, args);
+    }
+
+    @Override public boolean equals(Object obj) {
+      return obj == this
+          || obj instanceof Measure
+          && this.agg == ((Measure) obj).agg
+          && this.args.equals(((Measure) obj).args);
+    }
+
+    private static int compare(List<Column> list0, List<Column> list1) {
+      final int size = Math.min(list0.size(), list1.size());
+      for (int i = 0; i < size; i++) {
+        final int o0 = list0.get(i).ordinal;
+        final int o1 = list1.get(i).ordinal;
+        final int c = Utilities.compare(o0, o1);
+        if (c != 0) {
+          return c;
+        }
+      }
+      return Utilities.compare(list0.size(), list1.size());
+    }
+  }
+
+  /** Column in a lattice. Columns are identified by table alias and
+   * column name, and may have an additional alias that is unique
+   * within the entire lattice. */
+  public static class Column implements Comparable<Column> {
+    public final int ordinal;
+    public final String table;
+    public final String column;
+    public final String alias;
+
+    private Column(int ordinal, String table, String column, String alias) {
+      this.ordinal = ordinal;
+      this.table = Preconditions.checkNotNull(table);
+      this.column = Preconditions.checkNotNull(column);
+      this.alias = Preconditions.checkNotNull(alias);
+    }
+
+    public int compareTo(Column column) {
+      return Utilities.compare(ordinal, column.ordinal);
+    }
+
+    @Override public int hashCode() {
+      return ordinal;
+    }
+
+    @Override public boolean equals(Object obj) {
+      return obj == this
+          || obj instanceof Column
+          && this.ordinal == ((Column) obj).ordinal;
+    }
+
+    public List<String> identifiers() {
+      return ImmutableList.of(table, column);
+    }
+  }
+
+  /** Lattice builder. */
+  public static class Builder {
+    private final boolean auto;
+    private final List<Node> nodes = Lists.newArrayList();
+    private final ImmutableList<Column> columns;
+    private final ImmutableListMultimap<String, Column> columnsByAlias;
+    private final ImmutableList.Builder<Measure> defaultMeasureListBuilder =
+        ImmutableList.builder();
+    private final ImmutableList.Builder<Tile> tileListBuilder =
+        ImmutableList.builder();
+
+    public Builder(OptiqSchema schema, String sql, boolean auto) {
+      this.auto = auto;
+
+      OptiqPrepare.ConvertResult parsed =
+          Schemas.convert(MaterializedViewTable.MATERIALIZATION_CONNECTION,
+              schema, schema.path(null), sql);
+
+      // Walk the join tree.
+      List<RelNode> relNodes = Lists.newArrayList();
+      List<int[][]> tempLinks = Lists.newArrayList();
+      populate(relNodes, tempLinks, parsed.relNode);
+
+      // Get aliases.
+      List<String> aliases = Lists.newArrayList();
+      populateAliases(((SqlSelect) parsed.sqlNode).getFrom(), aliases, null);
+
+      // Build a graph.
+      final DirectedGraph<RelNode, Edge> graph =
+          DefaultDirectedGraph.create(Edge.FACTORY);
+      for (RelNode node : relNodes) {
+        graph.addVertex(node);
+      }
+      for (int[][] tempLink : tempLinks) {
+        final RelNode source = relNodes.get(tempLink[0][0]);
+        final RelNode target = relNodes.get(tempLink[1][0]);
+        Edge edge = graph.getEdge(source, target);
+        if (edge == null) {
+          edge = graph.addEdge(source, target);
+        }
+        edge.pairs.add(IntPair.of(tempLink[0][1], tempLink[1][1]));
+      }
+
+      // Convert the graph into a tree of nodes, each connected to a parent and
+      // with a join condition to that parent.
+      Node previous = null;
+      final Map<RelNode, Node> map = Maps.newIdentityHashMap();
+      int previousColumn = 0;
+      for (RelNode relNode : TopologicalOrderIterator.of(graph)) {
+        final List<Edge> edges = graph.getInwardEdges(relNode);
+        Node node;
+        final int column = previousColumn
+            + relNode.getRowType().getFieldCount();
+        if (previous == null) {
+          if (!edges.isEmpty()) {
+            throw new RuntimeException("root node must not have relationships: "
+                + relNode);
+          }
+          node = new Node((TableAccessRelBase) relNode, null, null,
+              previousColumn, column, aliases.get(nodes.size()));
+        } else {
+          if (edges.size() != 1) {
+            throw new RuntimeException(
+                "child node must have precisely one parent: " + relNode);
+          }
+          final Edge edge = edges.get(0);
+          node = new Node((TableAccessRelBase) relNode,
+              map.get(edge.getSource()), edge.pairs, previousColumn, column,
+              aliases.get(nodes.size()));
+        }
+        nodes.add(node);
+        map.put(relNode, node);
+        previous = node;
+        previousColumn = column;
+      }
+
+      final ImmutableList.Builder<Column> builder = ImmutableList.builder();
+      final ImmutableListMultimap.Builder<String, Column> aliasBuilder =
+          ImmutableListMultimap.builder();
+      int c = 0;
+      for (Node node : nodes) {
+        if (node.scan != null) {
+          for (String name : node.scan.getRowType().getFieldNames()) {
+            final Column column = new Column(c++, node.alias, name, name);
+            builder.add(column);
+            aliasBuilder.put(column.alias, column);
+          }
+        }
+      }
+      columns = builder.build();
+      columnsByAlias = aliasBuilder.build();
+    }
+
+    public Lattice build() {
+      return new Lattice(ImmutableList.copyOf(nodes), auto, columns,
+          defaultMeasureListBuilder.build(), tileListBuilder.build());
+    }
+
+    /** Resolves the arguments of a
+     * {@link net.hydromatic.optiq.model.JsonMeasure}. They must either be null,
+     * a string, or a list of strings. Throws if the structure is invalid, or if
+     * any of the columns do not exist in the lattice. */
+    public ImmutableList<Column> resolveArgs(Object args) {
+      if (args == null) {
+        return ImmutableList.of();
+      } else if (args instanceof String) {
+        return ImmutableList.of(resolveColumnByAlias((String) args));
+      } else if (args instanceof List) {
+        final ImmutableList.Builder<Column> builder = ImmutableList.builder();
+        for (Object o : (List) args) {
+          if (o instanceof String) {
+            builder.add(resolveColumnByAlias((String) o));
+          } else {
+            throw new RuntimeException(
+                "Measure arguments must be a string or a list of strings; argument: "
+                    + o);
+          }
+        }
+        return builder.build();
+      } else {
+        throw new RuntimeException(
+            "Measure arguments must be a string or a list of strings");
+      }
+    }
+
+    /** Looks up a column in this lattice by alias. The alias must be unique
+     * within the lattice.
+     */
+    private Column resolveColumnByAlias(String name) {
+      final ImmutableList<Column> list = columnsByAlias.get(name);
+      if (list == null || list.size() == 0) {
+        throw new RuntimeException("Unknown lattice column '" + name + "'");
+      } else if (list.size() == 1) {
+        return list.get(0);
+      } else {
+        throw new RuntimeException("Lattice column alias '" + name
+            + "' is not unique");
+      }
+    }
+
+    public Column resolveColumn(Object name) {
+      if (name instanceof String) {
+        return resolveColumnByAlias((String) name);
+      }
+      if (name instanceof List) {
+        List list = (List) name;
+        switch (list.size()) {
+        case 1:
+          final Object alias = list.get(0);
+          if (alias instanceof String) {
+            return resolveColumnByAlias((String) alias);
+          }
+          break;
+        case 2:
+          final Object table = list.get(0);
+          final Object column = list.get(1);
+          if (table instanceof String && column instanceof String) {
+            return resolveQualifiedColumn((String) table, (String) column);
+          }
+          break;
+        }
+      }
+      throw new RuntimeException(
+          "Lattice column reference must be a string or a list of 1 or 2 strings; column: "
+              + name);
+    }
+
+    private Column resolveQualifiedColumn(String table, String column) {
+      for (Column column1 : columns) {
+        if (column1.table.equals(table)
+            && column1.column.equals(column)) {
+          return column1;
+        }
+      }
+      throw new RuntimeException("Unknown lattice column [" + table + ", "
+          + column + "]");
+    }
+
+    public Measure resolveMeasure(String aggName, Object args) {
+      final SqlAggFunction agg = resolveAgg(aggName);
+      final ImmutableList<Column> list = resolveArgs(args);
+      return new Measure(agg, list);
+    }
+
+    private SqlAggFunction resolveAgg(String aggName) {
+      if (aggName.equalsIgnoreCase("count")) {
+        return SqlStdOperatorTable.COUNT;
+      } else if (aggName.equalsIgnoreCase("sum")) {
+        return SqlStdOperatorTable.SUM;
+      } else {
+        throw new RuntimeException("Unknown lattice aggregate function "
+            + aggName);
+      }
+    }
+
+    public void addMeasure(Measure measure) {
+      defaultMeasureListBuilder.add(measure);
+    }
+
+    public void addTile(Tile tile) {
+      tileListBuilder.add(tile);
+    }
+  }
+
+  /** Materialized aggregate within a lattice. */
+  public static class Tile {
+    public final ImmutableList<Measure> measures;
+    public final ImmutableList<Column> dimensions;
+
+    public Tile(ImmutableList<Measure> measures,
+        ImmutableList<Column> dimensions) {
+      this.measures = measures;
+      this.dimensions = dimensions;
+      assert isSorted(dimensions);
+      assert isSorted(measures);
+    }
+
+    private static <T extends Comparable<T>> boolean isSorted(List<T> list) {
+      for (int i = 1; i < list.size(); i++) {
+        if (list.get(i - 1).compareTo(list.get(i)) >= 0) {
+          return false;
+        }
+      }
+      return true;
+    }
+
+    public static TileBuilder builder() {
+      return new TileBuilder();
+    }
+
+    public BitSet bitSet() {
+      final BitSet bitSet = new BitSet();
+      for (Column dimension : dimensions) {
+        bitSet.set(dimension.ordinal);
+      }
+      return bitSet;
+    }
+  }
+
+  /** Tile builder. */
+  public static class TileBuilder {
+    private final ImmutableList.Builder<Measure> measureBuilder =
+        ImmutableList.builder();
+    private final ImmutableList.Builder<Column> dimensionListBuilder =
+        ImmutableList.builder();
+
+    public Tile build() {
+      return new Tile(measureBuilder.build(), dimensionListBuilder.build());
+    }
+
+    public void addMeasure(Measure measure) {
+      measureBuilder.add(measure);
+    }
+
+    public void addDimension(Column column) {
+      dimensionListBuilder.add(column);
     }
   }
 }

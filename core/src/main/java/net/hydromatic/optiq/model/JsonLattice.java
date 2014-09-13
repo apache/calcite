@@ -16,6 +16,10 @@
  */
 package net.hydromatic.optiq.model;
 
+import com.google.common.collect.Lists;
+
+import java.util.List;
+
 /**
  * Element that describes a star schema and provides a framework for defining,
  * recognizing, and recommending materialized views at various levels of
@@ -27,12 +31,36 @@ public class JsonLattice {
   public String name;
   public String sql;
 
+  /** Whether to create in-memory materialized aggregates on demand.
+   *
+   * <p>Default is true. */
+  public boolean auto = true;
+
+  /** List of materialized aggregates to create up front. */
+  public final List<JsonTile> tiles = Lists.newArrayList();
+
+  /** List of measures that a tile should have by default.
+   *
+   * <p>A tile can define its own measures, including measures not in this list.
+   *
+   * <p>The default list is just count. */
+  public List<JsonMeasure> defaultMeasures;
+
   public void accept(ModelHandler handler) {
     handler.visit(this);
   }
 
   @Override public String toString() {
     return "JsonLattice(name=" + name + ", sql=" + sql + ")";
+  }
+
+  public void visitChildren(ModelHandler modelHandler) {
+    for (JsonMeasure jsonMeasure : defaultMeasures) {
+      jsonMeasure.accept(modelHandler);
+    }
+    for (JsonTile jsonTile : tiles) {
+      jsonTile.accept(modelHandler);
+    }
   }
 }
 

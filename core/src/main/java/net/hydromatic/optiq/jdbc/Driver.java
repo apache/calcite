@@ -94,6 +94,7 @@ public class Driver extends UnregisteredDriver {
             throw new SQLException(e);
           }
         }
+        connection.init();
       }
     };
   }

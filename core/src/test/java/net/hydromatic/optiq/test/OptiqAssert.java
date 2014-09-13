@@ -594,7 +594,8 @@ public class OptiqAssert {
               + "join \"foodmart\".\"time_by_day\" as t using (\"time_id\")\n"
               + "join \"foodmart\".\"customer\" as c using (\"customer_id\")\n"
               + "join \"foodmart\".\"product\" as p using (\"product_id\")\n"
-              + "join \"foodmart\".\"product_class\" as pc on p.\"product_class_id\" = pc.\"product_class_id\""));
+              + "join \"foodmart\".\"product_class\" as pc on p.\"product_class_id\" = pc.\"product_class_id\"",
+              true));
       return foodmart;
     case CLONE_FOODMART:
       foodmart = rootSchema.getSubSchema("foodmart");
