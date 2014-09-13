@@ -279,7 +279,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
    * {@link ProjectRel}.
    */
   public TrimResult trimFields(
-      ProjectRel project,
+      ProjectRelBase project,
       BitSet fieldsUsed,
       Set<RelDataTypeField> extraFields) {
     final RelDataType rowType = project.getRowType();
@@ -387,7 +387,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
    * {@link FilterRel}.
    */
   public TrimResult trimFields(
-      FilterRel filter,
+      FilterRelBase filter,
       BitSet fieldsUsed,
       Set<RelDataTypeField> extraFields) {
     final RelDataType rowType = filter.getRowType();
@@ -699,7 +699,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
    * {@link AggregateRel}.
    */
   public TrimResult trimFields(
-      AggregateRel aggregate,
+      AggregateRelBase aggregate,
       BitSet fieldsUsed,
       Set<RelDataTypeField> extraFields) {
     // Fields:
