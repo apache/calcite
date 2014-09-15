@@ -1001,6 +1001,28 @@ public class RelOptRulesTest extends RelOptTestBase {
   @Test public void testTransitiveInferenceComplexPredicate() throws Exception {
     transitiveInference();
   }
+
+  @Test public void testPushFilterWithRank() throws Exception {
+    HepProgram program = new HepProgramBuilder().addRuleInstance(
+        PushFilterPastProjectRule.INSTANCE).build();
+    checkPlanning(program, "select e1.ename, r\n"
+        + "from (\n"
+        + "  select ename, "
+        + "  rank() over(partition by  deptno order by sal) as r "
+        + "  from emp) e1\n"
+        + "where r < 2");
+  }
+
+  @Test public void testPushFilterWithRankExpr() throws Exception {
+    HepProgram program = new HepProgramBuilder().addRuleInstance(
+        PushFilterPastProjectRule.INSTANCE).build();
+    checkPlanning(program, "select e1.ename, r\n"
+        + "from (\n"
+        + "  select ename,\n"
+        + "  rank() over(partition by  deptno order by sal) + 1 as r "
+        + "  from emp) e1\n"
+        + "where r < 2");
+  }
 }
 
 // End RelOptRulesTest.java

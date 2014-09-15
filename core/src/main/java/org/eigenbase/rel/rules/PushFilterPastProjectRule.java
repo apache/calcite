@@ -50,11 +50,11 @@ public class PushFilterPastProjectRule extends RelOptRule {
   public PushFilterPastProjectRule(
       Class<? extends FilterRelBase> filterClass,
       RelFactories.FilterFactory filterFactory,
-      Class<? extends ProjectRelBase> projectRelBaseClass,
+      Class<? extends ProjectRelBase> projectClass,
       RelFactories.ProjectFactory projectFactory) {
     super(
         operand(filterClass,
-            operand(projectRelBaseClass, any())));
+            operand(projectClass, any())));
     this.filterFactory = filterFactory;
     this.projectFactory = projectFactory;
   }
@@ -65,6 +65,16 @@ public class PushFilterPastProjectRule extends RelOptRule {
   public void onMatch(RelOptRuleCall call) {
     final FilterRelBase filterRel = call.rel(0);
     final ProjectRelBase projRel = call.rel(1);
+
+    if (RexOver.containsOver(projRel.getProjects(), null)) {
+      // In general a filter cannot be pushed below a windowing calculation.
+      // Applying the filter before the aggregation function changes
+      // the results of the windowing invocation.
+      //
+      // When the filter is on the PARTITION BY expression of the OVER clause
+      // it can be pushed down. For now we don't support this.
+      return;
+    }
 
     // convert the filter to one that references the child of the project
     RexNode newCondition =

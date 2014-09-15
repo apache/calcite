@@ -2158,4 +2158,52 @@ ProjectRel(X=[$0], EXPR$1=[$2], Y=[$1])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testPushFilterWithRank">
+        <Resource name="sql">
+            <![CDATA[select e1.ename, r
+from (select ename, rank() over(partition by  deptno order by sal) as r from emp) e1
+where r < 2
+]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+ProjectRel(ENAME=[$0], R=[$1])
+  FilterRel(condition=[<($1, 2)])
+    ProjectRel(ENAME=[$1], R=[RANK() OVER (PARTITION BY $7 ORDER BY $5 RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)])
+      TableAccessRel(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+ProjectRel(ENAME=[$0], R=[$1])
+  FilterRel(condition=[<($1, 2)])
+    ProjectRel(ENAME=[$1], R=[RANK() OVER (PARTITION BY $7 ORDER BY $5 RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)])
+      TableAccessRel(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testPushFilterWithRankExpr">
+        <Resource name="sql">
+            <![CDATA[select e1.ename, r
+from (select ename, rank() over(partition by  deptno order by sal) as r + 1 from emp) e1
+where r < 2
+]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+ProjectRel(ENAME=[$0], R=[$1])
+  FilterRel(condition=[<($1, 2)])
+    ProjectRel(ENAME=[$1], R=[+(RANK() OVER (PARTITION BY $7 ORDER BY $5 RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW), 1)])
+      TableAccessRel(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+ProjectRel(ENAME=[$0], R=[$1])
+  FilterRel(condition=[<($1, 2)])
+    ProjectRel(ENAME=[$1], R=[+(RANK() OVER (PARTITION BY $7 ORDER BY $5 RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW), 1)])
+      TableAccessRel(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
 </Root>
