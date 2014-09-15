@@ -24,13 +24,14 @@ import org.eigenbase.reltype.*;
 import org.eigenbase.rex.*;
 
 /**
- * Rule which, given a {@link ProjectRelBase} node which merely returns its input,
+ * Rule that, given a {@link ProjectRelBase} node that merely returns its input,
  * converts the node into its child.
  *
  * <p>For example, <code>ProjectRel(ArrayReader(a), {$input0})</code> becomes
  * <code>ArrayReader(a)</code>.</p>
  *
  * @see org.eigenbase.rel.rules.RemoveTrivialCalcRule
+ * @see org.eigenbase.rel.rules.MergeProjectRule
  */
 public class RemoveTrivialProjectRule extends RelOptRule {
   //~ Static fields/initializers ---------------------------------------------
@@ -59,10 +60,7 @@ public class RemoveTrivialProjectRule extends RelOptRule {
     assert isTrivial(project);
     RelNode stripped = project.getChild();
     RelNode child = call.getPlanner().register(stripped, project);
-    call.transformTo(
-        convert(
-            child,
-            project.getTraitSet()));
+    call.transformTo(child);
   }
 
   /**
