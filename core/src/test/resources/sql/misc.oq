@@ -514,4 +514,26 @@ having exists
 
 !ok
 
+# [OPTIQ-411] Duplicate aliases
+select 1 as a, 2 as a from (values (true));
++---+---+
+| A | A |
++---+---+
+| 1 | 2 |
++---+---+
+(1 row)
+
+!ok
+
+select "day", "day" from "days" where "day" < 3;
++-----+-----+
+| day | day |
++-----+-----+
+|   1 |   1 |
+|   2 |   2 |
++-----+-----+
+(2 rows)
+
+!ok
+
 # End misc.oq
