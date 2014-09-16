@@ -7,8 +7,21 @@ Apache Optiq is a dynamic data management framework.
 ## Getting Optiq
 
 To run Apache Optiq, you can either
-[download a release](http://www.apache.org/dyn/closer.cgi/incubator/optiq)
-or [build from the source code](doc/HOWTO.md#building-from-a-source-distribution).
+[download and build from github](doc/HOWTO.md#building-from-git),
+or [download a release](http://www.apache.org/dyn/closer.cgi/incubator/optiq)
+then [build the source code](doc/HOWTO.md#building-from-a-source-distribution).
+
+Pre-built jars are in
+[the Apache maven repository](https://repository.apache.org/content/repositories/releases)
+with the following Maven coordinates:
+
+```xml
+<dependency>
+  <groupId>org.apache.optiq</groupId>
+  <artifactId>optiq-core</artifactId>
+  <version>0.9.0-incubating</version>
+</dependency>
+```
 
 ## Example
 
@@ -196,8 +209,8 @@ Please don't post to the mailing list.
 * <a href="https://github.com/julianhyde/share/blob/master/slides/optiq-drill-user-group-2013.pdf?raw=true">Drill / SQL / Optiq</a> (2013)
 * <a href="https://github.com/julianhyde/share/blob/master/slides/optiq-richrelevance-2013.pdf?raw=true">SQL on Big Data using Optiq</a> (2013)
 * <a href="https://github.com/julianhyde/share/blob/master/slides/optiq-nosql-now-2013.pdf?raw=true">SQL Now!</a> (NoSQL Now! conference, 2013)
-* <a href="https://github.com/julianhyde/share/blob/master/slides/hive-cbo-summit-2014.pdf?raw=true">Cost-based optimization in Hive</a> (Hadoop Summit, 2014)
-* <a href="https://github.com/julianhyde/share/blob/master/slides/dmmq-summit-2014.pdf?raw=true">Discardable, in-memory materialized query for Hadoop</a> (Hadoop Summit, 2014)
+* <a href="https://github.com/julianhyde/share/blob/master/slides/hive-cbo-summit-2014.pdf?raw=true">Cost-based optimization in Hive</a> (<a href="https://www.youtube.com/watch?v=vpG5noIbEFs">video</a>) (Hadoop Summit, 2014)
+* <a href="https://github.com/julianhyde/share/blob/master/slides/dmmq-summit-2014.pdf?raw=true">Discardable, in-memory materialized query for Hadoop</a> (<a href="https://www.youtube.com/watch?v=CziGOa8GXqI">video</a>) (Hadoop Summit, 2014)
 
 ## Disclaimer
 

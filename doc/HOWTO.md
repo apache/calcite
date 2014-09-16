@@ -5,7 +5,7 @@ adapters.
 
 ## Building from a source distribution
 
-Prerequisites are maven (3.0.4 or later)
+Prerequisites are maven (3.2.1 or later)
 and Java (JDK 1.6 or later, 1.8 preferred) on your path.
 
 Unpack the source distribution `.tar.gz` or `.zip` file,
@@ -23,7 +23,7 @@ tests.
 
 ## Building from git
 
-Prerequisites are git, maven (3.0.4 or later)
+Prerequisites are git, maven (3.2.1 or later)
 and Java (JDK 1.6 or later, 1.8 preferred) on your path.
 
 Create a local copy of the github repository,
