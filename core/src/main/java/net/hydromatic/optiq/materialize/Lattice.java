@@ -60,6 +60,13 @@ public class Lattice {
         }
       };
 
+  private static final Function<Column, Integer> GET_ORDINAL =
+      new Function<Column, Integer>() {
+        public Integer apply(Column input) {
+          return input.ordinal;
+        }
+      };
+
   public final ImmutableList<Node> nodes;
   public final ImmutableList<Column> columns;
   public final boolean auto;
@@ -206,20 +213,49 @@ public class Lattice {
       }
     }
     final SqlDialect dialect = SqlDialect.DatabaseProduct.OPTIQ.getDialect();
-    final StringBuilder buf = new StringBuilder();
-    buf.append("SELECT DISTINCT ");
+    final StringBuilder buf = new StringBuilder("SELECT ");
+    final StringBuilder groupBuf = new StringBuilder("\nGROUP BY ");
     int k = 0;
+    final Set<String> columnNames = Sets.newHashSet();
     for (int i : BitSets.toIter(groupSet)) {
       if (k++ > 0) {
         buf.append(", ");
+        groupBuf.append(", ");
       }
       final Column column = columns.get(i);
       dialect.quoteIdentifier(buf, column.identifiers());
+      dialect.quoteIdentifier(groupBuf, column.identifiers());
       final String fieldName = uniqueColumnNames.get(i);
+      columnNames.add(fieldName);
       if (!column.alias.equals(fieldName)) {
         buf.append(" AS ");
         dialect.quoteIdentifier(buf, fieldName);
       }
+    }
+    int m = 0;
+    for (Measure measure : aggCallList) {
+      if (k++ > 0) {
+        buf.append(", ");
+      }
+      buf.append(measure.agg.getName())
+          .append("(");
+      if (measure.args.isEmpty()) {
+        buf.append("*");
+      } else {
+        int z = 0;
+        for (Column arg : measure.args) {
+          if (z++ > 0) {
+            buf.append(", ");
+          }
+          dialect.quoteIdentifier(buf, arg.identifiers());
+        }
+      }
+      buf.append(") AS ");
+      String measureName;
+      while (!columnNames.add(measureName = "m" + m)) {
+        ++m;
+      }
+      dialect.quoteIdentifier(buf, measureName);
     }
     buf.append("\nFROM ");
     for (Node node : usedNodes) {
@@ -247,6 +283,7 @@ public class Lattice {
     if (OptiqPrepareImpl.DEBUG) {
       System.out.println("Lattice SQL:\n" + buf);
     }
+    buf.append(groupBuf);
     return buf.toString();
   }
 
@@ -354,6 +391,20 @@ public class Lattice {
           || obj instanceof Measure
           && this.agg == ((Measure) obj).agg
           && this.args.equals(((Measure) obj).args);
+    }
+
+    /** Returns the set of distinct argument ordinals. */
+    public BitSet argBitSet() {
+      final BitSet bitSet = new BitSet();
+      for (Column arg : args) {
+        bitSet.set(arg.ordinal);
+      }
+      return bitSet;
+    }
+
+    /** Returns a list of argument ordinals. */
+    public List<Integer> argOrdinals() {
+      return Lists.transform(args, GET_ORDINAL);
     }
 
     private static int compare(List<Column> list0, List<Column> list1) {
@@ -613,22 +664,17 @@ public class Lattice {
   public static class Tile {
     public final ImmutableList<Measure> measures;
     public final ImmutableList<Column> dimensions;
+    public final BitSet bitSet = new BitSet();
 
     public Tile(ImmutableList<Measure> measures,
         ImmutableList<Column> dimensions) {
       this.measures = measures;
       this.dimensions = dimensions;
-      assert isSorted(dimensions);
-      assert isSorted(measures);
-    }
-
-    private static <T extends Comparable<T>> boolean isSorted(List<T> list) {
-      for (int i = 1; i < list.size(); i++) {
-        if (list.get(i - 1).compareTo(list.get(i)) >= 0) {
-          return false;
-        }
+      assert Util.isStrictlySorted(dimensions);
+      assert Util.isStrictlySorted(measures);
+      for (Column dimension : dimensions) {
+        bitSet.set(dimension.ordinal);
       }
-      return true;
     }
 
     public static TileBuilder builder() {
@@ -636,10 +682,6 @@ public class Lattice {
     }
 
     public BitSet bitSet() {
-      final BitSet bitSet = new BitSet();
-      for (Column dimension : dimensions) {
-        bitSet.set(dimension.ordinal);
-      }
       return bitSet;
     }
   }
@@ -652,7 +694,9 @@ public class Lattice {
         ImmutableList.builder();
 
     public Tile build() {
-      return new Tile(measureBuilder.build(), dimensionListBuilder.build());
+      return new Tile(
+          ImmutableList.copyOf(Util.sort(measureBuilder.build())),
+          ImmutableList.copyOf(Util.sort(dimensionListBuilder.build())));
     }
 
     public void addMeasure(Measure measure) {

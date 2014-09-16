@@ -1332,6 +1332,24 @@ public class UtilTest {
     assertThat(map.get("X"), is((String) null));
     assertThat(map.get("Y"), equalTo("y"));
   }
+
+  /** Unit test for {@link Util#isSorted(Iterable)}. */
+  @Test public void testIsSorted() {
+    final List<String> empty = Collections.emptyList();
+    assertThat(Util.isSorted(empty), is(true));
+
+    final List<String> listA = Arrays.asList("a");
+    assertThat(Util.isSorted(listA), is(true));
+
+    final List<String> listAB = Arrays.asList("a", "b");
+    assertThat(Util.isSorted(listAB), is(true));
+
+    final List<String> listAA = Arrays.asList("a", "a");
+    assertThat(Util.isSorted(listAA), is(true));
+
+    final List<String> listABA = Arrays.asList("a", "b", "a");
+    assertThat(Util.isSorted(listABA), is(false));
+  }
 }
 
 // End UtilTest.java

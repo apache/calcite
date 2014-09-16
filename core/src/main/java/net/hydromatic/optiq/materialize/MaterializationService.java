@@ -24,18 +24,20 @@ import net.hydromatic.linq4j.function.Function1;
 import net.hydromatic.linq4j.function.Functions;
 
 import net.hydromatic.optiq.*;
+import net.hydromatic.optiq.Table;
 import net.hydromatic.optiq.config.OptiqConnectionProperty;
 import net.hydromatic.optiq.impl.clone.CloneSchema;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 import net.hydromatic.optiq.jdbc.*;
 import net.hydromatic.optiq.prepare.Prepare;
 import net.hydromatic.optiq.runtime.Hook;
+import net.hydromatic.optiq.util.BitSets;
 
 import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.reltype.RelDataTypeImpl;
 import org.eigenbase.util.Pair;
 
-import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.*;
 
 import java.lang.reflect.Type;
 import java.util.*;
@@ -64,8 +66,8 @@ public class MaterializationService {
 
   /** Defines a new materialization. Returns its key. */
   public MaterializationKey defineMaterialization(final OptiqSchema schema,
-      String viewSql, List<String> viewSchemaPath, String tableName,
-      boolean create) {
+      TileKey tileKey, String viewSql, List<String> viewSchemaPath,
+      String tableName, boolean create) {
     final MaterializationActor.QueryKey queryKey =
         new MaterializationActor.QueryKey(viewSql, schema, viewSchemaPath);
     final MaterializationKey existingKey = actor.keyBySql.get(queryKey);
@@ -145,6 +147,9 @@ public class MaterializationService {
             tableEntry, viewSql, rowType);
     actor.keyMap.put(materialization.key, materialization);
     actor.keyBySql.put(queryKey, materialization.key);
+    if (tileKey != null) {
+      actor.tileKeys.add(tileKey);
+    }
     return key;
   }
 
@@ -167,8 +172,9 @@ public class MaterializationService {
    * during the recursive SQL that populates a materialization. Otherwise a
    * materialization would try to create itself to populate itself!
    */
-  public OptiqSchema.TableEntry defineTile(Lattice lattice, BitSet groupSet,
-      List<Lattice.Measure> measureList, OptiqSchema schema, boolean create) {
+  public Pair<OptiqSchema.TableEntry, TileKey> defineTile(Lattice lattice,
+      BitSet groupSet, List<Lattice.Measure> measureList, OptiqSchema schema,
+      boolean create) {
     // FIXME This is all upside down. We are looking for a materialization
     // first. But we should define a tile first, then find out whether an
     // exact materialization exists, then find out whether an acceptable
@@ -181,16 +187,46 @@ public class MaterializationService {
     // materializations that we can roll up. (Maybe the SQL on the fact table
     // gets optimized to use those materializations.)
     String sql = lattice.sql(groupSet, measureList);
-    final MaterializationKey materializationKey =
-        defineMaterialization(schema, sql, schema.path(null), "m" + groupSet,
-            create);
+    final TileKey tileKey =
+        new TileKey(lattice, groupSet, ImmutableList.copyOf(measureList));
+    MaterializationKey materializationKey =
+        defineMaterialization(schema, tileKey, sql, schema.path(null),
+            "m" + groupSet, create);
     if (materializationKey != null) {
       final OptiqSchema.TableEntry tableEntry = checkValid(materializationKey);
       if (tableEntry != null) {
-        return tableEntry;
+        return Pair.of(tableEntry, tileKey);
+      }
+    }
+    // No direct hit. Look for roll-ups.
+    for (TileKey tileKey2 : actor.tileKeys) {
+      if (BitSets.contains(tileKey2.dimensions, groupSet)
+          && allSatisfiable(measureList, tileKey2)) {
+        sql = lattice.sql(tileKey2.dimensions, tileKey2.measures);
+        materializationKey =
+            defineMaterialization(schema, tileKey2, sql, schema.path(null),
+                "m" + tileKey2.dimensions, create);
+        final OptiqSchema.TableEntry tableEntry =
+            checkValid(materializationKey);
+        if (tableEntry != null) {
+          return Pair.of(tableEntry, tileKey2);
+        }
       }
     }
     return null;
+  }
+
+  private boolean allSatisfiable(List<Lattice.Measure> measureList,
+      TileKey tileKey) {
+    // A measure can be satisfied if it is contained in the measure list, or,
+    // less obviously, if it is composed of grouping columns.
+    for (Lattice.Measure measure : measureList) {
+      if (!(tileKey.measures.contains(measure)
+          || BitSets.contains(tileKey.dimensions, measure.argBitSet()))) {
+        return false;
+      }
+    }
+    return true;
   }
 
   /** Gathers a list of all materialized tables known within a given root
@@ -231,6 +267,24 @@ public class MaterializationService {
       return materializationService;
     }
     return INSTANCE;
+  }
+
+  /** Definition of a particular combination of dimensions and measures of a
+   * lattice that is the basis of a materialization.
+   *
+   * <p>Holds similar information to a {@link Lattice.Tile} but a lattice is
+   * immutable and tiles are not added after their creation. */
+  public static class TileKey {
+    public final Lattice lattice;
+    public final BitSet dimensions;
+    public final ImmutableList<Lattice.Measure> measures;
+
+    public TileKey(Lattice lattice, BitSet dimensions,
+        ImmutableList<Lattice.Measure> measures) {
+      this.lattice = lattice;
+      this.dimensions = dimensions;
+      this.measures = measures;
+    }
   }
 }
 

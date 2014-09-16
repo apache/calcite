@@ -91,6 +91,16 @@ public abstract class Mappings {
   }
 
   /**
+   * Converts a mapping to its inverse.
+   */
+  public static Mapping invert(Mapping mapping) {
+    if (mapping instanceof InverseMapping) {
+      return ((InverseMapping) mapping).parent;
+    }
+    return new InverseMapping(mapping);
+  }
+
+  /**
    * Divides one mapping by another.
    *
    * <p>{@code divide(A, B)} returns a mapping C such that B . C (the mapping
@@ -229,6 +239,27 @@ public abstract class Mappings {
       @Override
       public int size() {
         return mapping.getTargetCount();
+      }
+    };
+  }
+
+  /**
+   * Creates a view of a list, permuting according to a target mapping.
+   *
+   * @param mapping Mapping
+   * @param list    List
+   * @param <T>     Element type
+   * @return Permuted view of list
+   */
+  public static <T> List<T> permute(final List<T> list,
+      final TargetMapping mapping) {
+    return new AbstractList<T>() {
+      public T get(int index) {
+        return list.get(mapping.getTarget(index));
+      }
+
+      public int size() {
+        return mapping.getSourceCount();
       }
     };
   }

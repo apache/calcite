@@ -106,7 +106,7 @@ public class MaterializedViewTable extends ViewTable {
       super(schema, viewSql, viewSchemaPath);
       this.key = Preconditions.checkNotNull(
           MaterializationService.instance().defineMaterialization(
-              schema, viewSql, schemaPath, tableName, true));
+              schema, null, viewSql, schemaPath, tableName, true));
     }
 
     @Override

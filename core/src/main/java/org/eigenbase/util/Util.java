@@ -1759,6 +1759,63 @@ public class Util {
   }
 
   /**
+   * Sorts a collection.
+   */
+  public static <E extends Comparable<E>>
+  List<E> sort(Collection<? extends E> collection) {
+    if (collection instanceof List
+        && isSorted((List) collection)) {
+      // Avoid creating a copy of a list that is already sorted.
+      //noinspection unchecked
+      return (List) collection;
+    }
+    final Object[] elements = collection.toArray();
+    Arrays.sort(elements);
+    //noinspection unchecked
+    return (ImmutableList) ImmutableList.copyOf(elements);
+  }
+
+  /** Returns whether an iterable is in non-descending order. */
+  public static <E extends Comparable<E>>
+  boolean isSorted(Iterable<? extends E> list) {
+    final Iterator<? extends E> iterator = list.iterator();
+    if (!iterator.hasNext()) {
+      return true;
+    }
+    E e = iterator.next();
+    for (;;) {
+      if (!iterator.hasNext()) {
+        return true;
+      }
+      E next = iterator.next();
+      if (e.compareTo(next) > 0) {
+        return false;
+      }
+      e = next;
+    }
+  }
+
+  /** Returns whether an iterable is in ascending order. */
+  public static <E extends Comparable<E>>
+  boolean isStrictlySorted(Iterable<? extends E> list) {
+    final Iterator<? extends E> iterator = list.iterator();
+    if (!iterator.hasNext()) {
+      return true;
+    }
+    E e = iterator.next();
+    for (;;) {
+      if (!iterator.hasNext()) {
+        return true;
+      }
+      E next = iterator.next();
+      if (e.compareTo(next) >= 0) {
+        return false;
+      }
+      e = next;
+    }
+  }
+
+  /**
    * Converts a {@link Properties} object to a <code>{@link Map}&lt;String,
    * String&gt;</code>.
    *

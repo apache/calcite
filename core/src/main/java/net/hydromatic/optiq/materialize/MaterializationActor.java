@@ -22,7 +22,7 @@ import net.hydromatic.optiq.jdbc.OptiqSchema;
 import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.util.Util;
 
-import com.google.common.collect.Maps;
+import com.google.common.collect.*;
 
 import java.util.*;
 
@@ -36,6 +36,8 @@ class MaterializationActor {
   final Map<MaterializationKey, Materialization> keyMap = Maps.newHashMap();
 
   final Map<QueryKey, MaterializationKey> keyBySql = Maps.newHashMap();
+
+  final List<MaterializationService.TileKey> tileKeys = Lists.newArrayList();
 
   /** A query materialized in a table, so that reading from the table gives the
    * same results as executing the query. */

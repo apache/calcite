@@ -21,6 +21,7 @@ import java.util.*;
 import org.eigenbase.reltype.*;
 import org.eigenbase.sql.*;
 import org.eigenbase.sql.type.SqlTypeUtil;
+import org.eigenbase.util.mapping.Mappings;
 
 import com.google.common.collect.ImmutableList;
 
@@ -220,6 +221,12 @@ public class AggregateCall {
             aggArgs,
             newReturnType,
             getName());
+  }
+
+  /** Creates a copy of this aggregate call, applying a mapping to its
+   * arguments. */
+  public AggregateCall transform(Mappings.TargetMapping mapping) {
+    return copy(Mappings.permute(argList, mapping));
   }
 }
 

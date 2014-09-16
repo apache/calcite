@@ -249,12 +249,7 @@ public class LatticeTest {
         + "  } ],\n"
         + "  tiles: [ {\n"
         + "    dimensions: [ 'the_year', ['t', 'quarter'] ],\n"
-        + "    measures: [ {\n"
-        + "      agg: 'count'\n"
-        + "    }, {\n"
-        + "      agg: 'sum',\n"
-        + "      args: 'unit_sales'\n"
-        + "    } ]\n"
+        + "    measures: [ ]\n"
         + "  } ]\n")
         .query(
             "select distinct t.\"the_year\", t.\"quarter\"\n"
@@ -264,6 +259,80 @@ public class LatticeTest {
       .explainContains(
           "EnumerableTableAccessRel(table=[[adhoc, m{27, 31}")
       .returnsCount(4);
+  }
+
+  /** A query that uses a pre-defined aggregate table, at the same
+   *  granularity but fewer calls to aggregate functions. */
+  @Test public void testLatticeWithPreDefinedTilesFewerMeasures() {
+    foodmartModel(
+        " auto: false,\n"
+        + "  defaultMeasures: [ {\n"
+        + "    agg: 'count'\n"
+        + "  } ],\n"
+        + "  tiles: [ {\n"
+        + "    dimensions: [ 'the_year', ['t', 'quarter'] ],\n"
+        + "    measures: [ {\n"
+        + "      agg: 'sum',\n"
+        + "      args: 'unit_sales'\n"
+        + "    }, {\n"
+        + "      agg: 'sum',\n"
+        + "      args: 'store_sales'\n"
+        + "    }, {\n"
+        + "      agg: 'count'\n"
+        + "    } ]\n"
+        + "  } ]\n")
+        .query(
+            "select t.\"the_year\", t.\"quarter\", count(*) as c\n"
+            + "from \"foodmart\".\"sales_fact_1997\" as s\n"
+            + "join \"foodmart\".\"time_by_day\" as t using (\"time_id\")\n"
+            + "group by t.\"the_year\", t.\"quarter\"")
+      .enableMaterializations(true)
+      .explainContains(
+          "EnumerableCalcRel(expr#0..4=[{inputs}], proj#0..2=[{exprs}])\n"
+          + "  EnumerableTableAccessRel(table=[[adhoc, m{27, 31}")
+      .returnsUnordered("the_year=1997; quarter=Q1; C=21588",
+          "the_year=1997; quarter=Q2; C=20368",
+          "the_year=1997; quarter=Q3; C=21453",
+          "the_year=1997; quarter=Q4; C=23428")
+      .sameResultWithMaterializationsDisabled();
+  }
+
+  /** Tests a query that uses a pre-defined aggregate table at a lower
+   * granularity. Includes a measure computed from a grouping column, a measure
+   * based on COUNT rolled up using SUM, and an expression on a measure. */
+  @Test public void testLatticeWithPreDefinedTilesRollUp() {
+    foodmartModel(
+        " auto: false,\n"
+        + "  defaultMeasures: [ {\n"
+        + "    agg: 'count'\n"
+        + "  } ],\n"
+        + "  tiles: [ {\n"
+        + "    dimensions: [ 'the_year', ['t', 'quarter'] ],\n"
+        + "    measures: [ {\n"
+        + "      agg: 'sum',\n"
+        + "      args: 'unit_sales'\n"
+        + "    }, {\n"
+        + "      agg: 'sum',\n"
+        + "      args: 'store_sales'\n"
+        + "    }, {\n"
+        + "      agg: 'count'\n"
+        + "    } ]\n"
+        + "  } ]\n")
+        .query(
+            "select t.\"the_year\",\n"
+            + "  count(*) as c,\n"
+            + "  min(\"quarter\") as q,\n"
+            + "  sum(\"unit_sales\") * 10 as us\n"
+            + "from \"foodmart\".\"sales_fact_1997\" as s\n"
+            + "join \"foodmart\".\"time_by_day\" as t using (\"time_id\")\n"
+            + "group by t.\"the_year\"")
+      .enableMaterializations(true)
+      .explainContains(
+          "EnumerableCalcRel(expr#0..3=[{inputs}], expr#4=[10], expr#5=[*($t3, $t4)], proj#0..2=[{exprs}], US=[$t5])\n"
+          + "  EnumerableAggregateRel(group=[{0}], agg#0=[$SUM0($2)], Q=[MIN($1)], agg#2=[$SUM0($4)])\n"
+          + "    EnumerableTableAccessRel(table=[[adhoc, m{27, 31}")
+      .returnsUnordered("the_year=1997; C=86837; Q=Q1; US=2667730.0000")
+      .sameResultWithMaterializationsDisabled();
   }
 
   /** A tile with no measures should inherit default measure list from the

@@ -19,8 +19,8 @@ package org.eigenbase.relopt;
 import java.util.BitSet;
 import java.util.List;
 
-import org.eigenbase.rel.AggregateCall;
 import org.eigenbase.rel.RelNode;
+import org.eigenbase.util.Pair;
 
 import net.hydromatic.optiq.config.OptiqConnectionConfig;
 import net.hydromatic.optiq.jdbc.OptiqSchema;
@@ -31,7 +31,7 @@ import net.hydromatic.optiq.materialize.MaterializationService;
  * Use of a lattice by the query optimizer.
  */
 public class RelOptLattice {
-  private final Lattice lattice;
+  public final Lattice lattice;
   public final RelOptTable starRelOptTable;
 
   public RelOptLattice(Lattice lattice, RelOptTable starRelOptTable) {
@@ -66,11 +66,13 @@ public class RelOptLattice {
    *
    * @param planner Current planner
    * @param groupSet Grouping key
-   * @param aggCallList Aggregate functions
+   * @param measureList Calls to aggregate functions
    * @return Materialized table
    */
-  public OptiqSchema.TableEntry getAggregate(RelOptPlanner planner,
-      BitSet groupSet, List<AggregateCall> aggCallList) {
+  public
+  Pair<OptiqSchema.TableEntry, MaterializationService.TileKey> getAggregate(
+      RelOptPlanner planner, BitSet groupSet,
+      List<Lattice.Measure> measureList) {
     final OptiqConnectionConfig config =
         planner.getContext().unwrap(OptiqConnectionConfig.class);
     if (config == null) {
@@ -79,7 +81,6 @@ public class RelOptLattice {
     final MaterializationService service = MaterializationService.instance();
     boolean create = lattice.auto && config.createMaterializations();
     final OptiqSchema schema = starRelOptTable.unwrap(OptiqSchema.class);
-    final List<Lattice.Measure> measureList = lattice.toMeasures(aggCallList);
     return service.defineTile(lattice, groupSet, measureList, schema, create);
   }
 }
