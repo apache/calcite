@@ -915,6 +915,16 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
         Util.toLinux(sw.toString()));
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/OPTIQ-412">OPTIQ-412</a>,
+   * "RelFieldTrimmer: when trimming SortRel, the collation and trait set don't
+   * match". */
+  @Test public void testSortWithTrim() {
+    tester.assertConvertsTo(
+        "select ename from (select * from emp order by sal) a", "${plan}",
+        true);
+  }
+
   /**
    * Visitor that checks that every {@link RelNode} in a tree is valid.
    *

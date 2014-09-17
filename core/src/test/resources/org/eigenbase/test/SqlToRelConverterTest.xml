@@ -1950,4 +1950,17 @@ ProjectRel(EMPNO=[$0], EXPR$1=[NOT(true)])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testSortWithTrim">
+        <Resource name="sql">
+            <![CDATA[select ename from (select * from emp order by sal) a]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+ProjectRel(ENAME=[$0])
+  SortRel(sort0=[$1], dir0=[ASC])
+    ProjectRel(ENAME=[$1], SAL=[$5])
+      TableAccessRel(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
 </Root>

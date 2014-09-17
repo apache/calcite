@@ -471,9 +471,11 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
           Mappings.createIdentity(fieldCount));
     }
 
-    final RelNode newSort = sortFactory.createSort(sort.getTraitSet(),
-        newInput, RexUtil.apply(inputMapping, collation),
-        sort.offset, sort.fetch);
+    final RelCollation newCollation =
+        sort.getTraitSet().canonize(RexUtil.apply(inputMapping, collation));
+    final RelTraitSet newTraitSet = sort.getTraitSet().replace(newCollation);
+    final RelNode newSort = sortFactory.createSort(newTraitSet, newInput,
+        newCollation, sort.offset, sort.fetch);
 
     // The result has the same mapping as the input gave us. Sometimes we
     // return fields that the consumer didn't ask for, because the filter
