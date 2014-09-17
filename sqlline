@@ -52,6 +52,6 @@ fi
 
 export JAVA_OPTS=-Djavax.xml.parsers.DocumentBuilderFactory=com.sun.org.apache.xerces.internal.jaxp.DocumentBuilderFactoryImpl
 
-exec java $VM_OPTS -cp "${CP}" $JAVA_OPTS org.apache.hive.sqlline.SqlLine "$@"
+exec java $VM_OPTS -cp "${CP}" $JAVA_OPTS sqlline.SqlLine "$@"
 
 # End sqlline
