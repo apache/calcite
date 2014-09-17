@@ -118,6 +118,10 @@ public class CsvTest {
     checkSql("smart", "select name from EMPS");
   }
 
+  @Test public void testSelectSingleProject2() throws SQLException {
+    checkSql("smart", "select name from COMPRESSED_EMPS");
+  }
+
   @Test public void testCustomTable() throws SQLException {
     checkSql("model-with-custom-table", "select * from CUSTOM_TABLE.EMPS");
   }

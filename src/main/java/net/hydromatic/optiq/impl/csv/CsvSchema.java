@@ -46,13 +46,32 @@ public class CsvSchema extends AbstractSchema {
     this.smart = smart;
   }
 
+  /** Looks for a suffix on a string and returns
+   * either the string with the suffix removed
+   * or the original string. */
+  private static String trim(String s, String suffix) {
+    String trimmed = trimOrNull(s, suffix);
+    return trimmed != null ? trimmed : s;
+  }
+
+  /** Looks for a suffix on a string and returns
+   * either the string with the suffix removed
+   * or null. */
+  private static String trimOrNull(String s, String suffix) {
+    return s.endsWith(suffix)
+        ? s.substring(0, s.length() - suffix.length())
+        : null;
+  }
+
   @Override
   protected Map<String, Table> getTableMap() {
     final ImmutableMap.Builder<String, Table> builder = ImmutableMap.builder();
     File[] files = directoryFile.listFiles(
         new FilenameFilter() {
           public boolean accept(File dir, String name) {
-            return name.endsWith(".csv") || name.endsWith(".json");
+            final String nameSansGz = trim(name, ".gz");
+            return nameSansGz.endsWith(".csv")
+                || nameSansGz.endsWith(".json");
           }
         });
     if (files == null) {
@@ -60,18 +79,14 @@ public class CsvSchema extends AbstractSchema {
       files = new File[0];
     }
     for (File file : files) {
-      String tableName = file.getName();
-      if (tableName.endsWith(".json")) {
-        tableName = tableName.substring(
-            0, tableName.length() - ".json".length());
+      String tableName = trim(file.getName(), ".gz");
+      final String tableNameSansJson = trimOrNull(tableName, ".json");
+      if (tableNameSansJson != null) {
         JsonTable table = new JsonTable(file);
-        builder.put(tableName, table);
+        builder.put(tableNameSansJson, table);
         continue;
       }
-      if (tableName.endsWith(".csv")) {
-        tableName = tableName.substring(
-            0, tableName.length() - ".csv".length());
-      }
+      tableName = trim(tableName, ".csv");
       final CsvTable table;
       if (smart) {
         table = new CsvSmartTable(file, null);

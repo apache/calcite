@@ -35,6 +35,7 @@ import au.com.bytecode.opencsv.CSVReader;
 
 import java.io.*;
 import java.util.*;
+import java.util.zip.GZIPInputStream;
 
 /**
  * Table based on a CSV file.
@@ -112,7 +113,15 @@ public class CsvTable extends AbstractQueryableTable
     final List<String> names = new ArrayList<String>();
     CSVReader reader = null;
     try {
-      reader = new CSVReader(new FileReader(file));
+      final FileReader fileReader;
+      if (file.getName().endsWith(".gz")) {
+        final GZIPInputStream inputStream =
+            new GZIPInputStream(new FileInputStream(file));
+        reader = new CSVReader(new InputStreamReader(inputStream));
+      } else {
+        fileReader = new FileReader(file);
+        reader = new CSVReader(fileReader);
+      }
       final String[] strings = reader.readNext();
       for (String string : strings) {
         final String name;
