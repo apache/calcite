@@ -171,13 +171,22 @@ public final class Schemas {
   /** Returns a {@link Queryable}, given a fully-qualified table name. */
   public static <E> Queryable<E> queryable(DataContext root, Class<E> clazz,
       String... names) {
+    return queryable(root, clazz, Arrays.asList(names));
+  }
+
+  /** Returns a {@link Queryable}, given a fully-qualified table name as an
+   * iterable. */
+  public static <E> Queryable<E> queryable(DataContext root, Class<E> clazz,
+      Iterable<? extends String> names) {
     SchemaPlus schema = root.getRootSchema();
-    for (int i = 0; i < names.length - 1; i++) {
-      String name = names[i];
-      schema = schema.getSubSchema(name);
+    for (Iterator<? extends String> iterator = names.iterator();;) {
+      String name = iterator.next();
+      if (iterator.hasNext()) {
+        schema = schema.getSubSchema(name);
+      } else {
+        return queryable(root, schema, clazz, name);
+      }
     }
-    final String tableName = names[names.length - 1];
-    return queryable(root, schema, clazz, tableName);
   }
 
   /** Returns a {@link Queryable}, given a schema and table name. */

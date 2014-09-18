@@ -98,7 +98,7 @@ public abstract class ReflectiveFunctionBase implements Function {
   static boolean classHasPublicZeroArgsConstructor(Class<?> clazz) {
     for (Constructor<?> constructor : clazz.getConstructors()) {
       if (constructor.getParameterTypes().length == 0
-          && (constructor.getModifiers() & Modifier.PUBLIC) != 0) {
+          && Modifier.isPublic(constructor.getModifiers())) {
         return true;
       }
     }

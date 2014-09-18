@@ -64,7 +64,7 @@ public class JavaTypeFactoryImpl
   public RelDataType createStructType(Class type) {
     List<RelDataTypeField> list = new ArrayList<RelDataTypeField>();
     for (Field field : type.getFields()) {
-      if ((field.getModifiers() & Modifier.STATIC) == 0) {
+      if (!Modifier.isStatic(field.getModifiers())) {
         // FIXME: watch out for recursion
         list.add(
             new RelDataTypeFieldImpl(

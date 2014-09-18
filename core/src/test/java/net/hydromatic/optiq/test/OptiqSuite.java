@@ -67,6 +67,7 @@ import org.junit.runners.Suite;
     ModelTest.class,
     SqlValidatorFeatureTest.class,
     VolcanoPlannerTraitTest.class,
+    InterpreterTest.class,
     VolcanoPlannerTest.class,
     SargTest.class,
     SqlPrettyWriterTest.class,
