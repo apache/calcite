@@ -29,6 +29,8 @@ import org.eigenbase.sql.type.*;
 import org.eigenbase.util.*;
 import org.eigenbase.util14.DateTimeUtil;
 
+import net.hydromatic.optiq.runtime.SqlFunctions.TimeUnitRange;
+
 import com.google.common.collect.ImmutableList;
 
 /**
@@ -506,6 +508,34 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
 
     res = mod(rexBuilder, resType, res, getFactor(unit));
     res = divide(rexBuilder, res, unit.multiplier);
+    return res;
+  }
+
+  /**
+   * Converts a Quarter expression.
+   *
+   * <p>Called automatically via reflection.
+   */
+  public RexNode convertQuarter(
+      SqlRexContext cx,
+      SqlQuarterFunction op,
+      SqlCall call) {
+    final SqlNode[] operands = ((SqlBasicCall) call).getOperands();
+    assert operands.length == 1;
+    RexNode x = cx.convertExpression(operands[0]);
+    final RexBuilder rexBuilder = cx.getRexBuilder();
+    RelDataType resType =
+        cx.getTypeFactory().createSqlType(SqlTypeName.BIGINT);
+    RexNode res =
+        rexBuilder.makeCall(
+            resType,
+            SqlStdOperatorTable.EXTRACT_DATE,
+            ImmutableList.of(rexBuilder.makeFlag(TimeUnitRange.MONTH), x));
+    res = rexBuilder.makeCall(SqlStdOperatorTable.MINUS, res,
+        rexBuilder.makeExactLiteral(BigDecimal.ONE));
+    res = divide(rexBuilder, res, 3);
+    res = rexBuilder.makeCall(SqlStdOperatorTable.PLUS, res,
+        rexBuilder.makeExactLiteral(BigDecimal.ONE));
     return res;
   }
 
