@@ -24,13 +24,14 @@ import org.eigenbase.sql.*;
 import org.eigenbase.util.*;
 
 /**
- * SqlTypeFactoryImpl provides a default implementation of {@link
- * RelDataTypeFactory} which supports SQL types.
+ * SqlTypeFactoryImpl provides a default implementation of
+ * {@link RelDataTypeFactory} which supports SQL types.
  */
 public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
   //~ Constructors -----------------------------------------------------------
 
-  public SqlTypeFactoryImpl() {
+  public SqlTypeFactoryImpl(RelDataTypeSystem typeSystem) {
+    super(typeSystem);
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -38,10 +39,10 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
   // implement RelDataTypeFactory
   public RelDataType createSqlType(SqlTypeName typeName) {
     if (typeName.allowsPrec()) {
-      return createSqlType(typeName, typeName.getDefaultPrecision());
+      return createSqlType(typeName, typeSystem.getDefaultPrecision(typeName));
     }
     assertBasic(typeName);
-    RelDataType newType = new BasicSqlType(typeName);
+    RelDataType newType = new BasicSqlType(typeSystem, typeName);
     return canonize(newType);
   }
 
@@ -55,7 +56,7 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
     assertBasic(typeName);
     assert (precision >= 0)
         || (precision == RelDataType.PRECISION_NOT_SPECIFIED);
-    RelDataType newType = new BasicSqlType(typeName, precision);
+    RelDataType newType = new BasicSqlType(typeSystem, typeName, precision);
     newType = SqlTypeUtil.addCharsetAndCollation(newType, this);
     return canonize(newType);
   }
@@ -68,7 +69,8 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
     assertBasic(typeName);
     assert (precision >= 0)
         || (precision == RelDataType.PRECISION_NOT_SPECIFIED);
-    RelDataType newType = new BasicSqlType(typeName, precision, scale);
+    RelDataType newType =
+        new BasicSqlType(typeSystem, typeName, precision, scale);
     newType = SqlTypeUtil.addCharsetAndCollation(newType, this);
     return canonize(newType);
   }
@@ -100,7 +102,8 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
   // implement RelDataTypeFactory
   public RelDataType createSqlIntervalType(
       SqlIntervalQualifier intervalQualifier) {
-    RelDataType newType = new IntervalSqlType(intervalQualifier, false);
+    RelDataType newType =
+        new IntervalSqlType(typeSystem, intervalQualifier, false);
     return canonize(newType);
   }
 
@@ -339,23 +342,24 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
               int p2 = type.getPrecision();
               int s1 = resultType.getScale();
               int s2 = type.getScale();
+              final int maxPrecision = typeSystem.getMaxNumericPrecision();
+              final int maxScale = typeSystem.getMaxNumericScale();
 
               int dout = Math.max(p1 - s1, p2 - s2);
               dout =
                   Math.min(
                       dout,
-                      SqlTypeName.MAX_NUMERIC_PRECISION);
+                      maxPrecision);
 
               int scale = Math.max(s1, s2);
               scale =
                   Math.min(
                       scale,
-                      SqlTypeName.MAX_NUMERIC_PRECISION - dout);
-              scale =
-                  Math.min(scale, SqlTypeName.MAX_NUMERIC_SCALE);
+                      maxPrecision - dout);
+              scale = Math.min(scale, maxScale);
 
               int precision = dout + scale;
-              assert precision <= SqlTypeName.MAX_NUMERIC_PRECISION;
+              assert precision <= maxPrecision;
               assert precision > 0;
 
               resultType =
@@ -461,7 +465,7 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
   }
 
   private RelDataType copyIntervalType(RelDataType type, boolean nullable) {
-    return new IntervalSqlType(
+    return new IntervalSqlType(typeSystem,
         type.getIntervalQualifier(),
         nullable);
   }

@@ -1176,9 +1176,9 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
     }
 
     @Override
-    public SqlValidator getValidator(
-        SqlTestFactory factory) {
-      final RelDataTypeFactory typeFactory = new SqlTypeFactoryImpl();
+    public SqlValidator getValidator(SqlTestFactory factory) {
+      final RelDataTypeFactory typeFactory =
+          new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
       final SqlConformance conformance = (SqlConformance) get("conformance");
       final boolean caseSensitive = (Boolean) factory.get("caseSensitive");
       return new SqlAdvisorValidator(

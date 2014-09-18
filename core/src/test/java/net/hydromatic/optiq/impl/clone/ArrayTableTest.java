@@ -23,6 +23,7 @@ import net.hydromatic.optiq.jdbc.JavaTypeFactoryImpl;
 
 import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.reltype.RelDataTypeImpl;
+import org.eigenbase.reltype.RelDataTypeSystem;
 
 import org.junit.Test;
 
@@ -281,7 +282,8 @@ public class ArrayTableTest {
   }
 
   @Test public void testLoadSorted() {
-    final JavaTypeFactoryImpl typeFactory = new JavaTypeFactoryImpl();
+    final JavaTypeFactoryImpl typeFactory =
+        new JavaTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
     final RelDataType rowType =
         typeFactory.builder()
             .add("empid", typeFactory.createType(int.class))
@@ -316,7 +318,8 @@ public class ArrayTableTest {
    * column #0. The algorithm needs to go back and permute the values of
    * column #0 after it discovers that column #1 is unique and sorts by it. */
   @Test public void testLoadSorted2() {
-    final JavaTypeFactoryImpl typeFactory = new JavaTypeFactoryImpl();
+    final JavaTypeFactoryImpl typeFactory =
+        new JavaTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
     final RelDataType rowType =
         typeFactory.builder()
             .add("deptno", typeFactory.createType(int.class))

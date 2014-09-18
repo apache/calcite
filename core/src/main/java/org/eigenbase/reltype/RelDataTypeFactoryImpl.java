@@ -88,12 +88,29 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
           .put(Timestamp.class, SqlTypeFamily.TIMESTAMP)
           .build();
 
+  protected final RelDataTypeSystem typeSystem;
+
   //~ Constructors -----------------------------------------------------------
 
+  /** Creates a type factory with default type system.
+   *
+   * @deprecated Will be removed after optiq-0.9.1.
+   */
   protected RelDataTypeFactoryImpl() {
+    this(RelDataTypeSystem.DEFAULT);
+    Bug.upgrade("optiq-0.9.1");
+  }
+
+  /** Creates a type factory. */
+  protected RelDataTypeFactoryImpl(RelDataTypeSystem typeSystem) {
+    this.typeSystem = Preconditions.checkNotNull(typeSystem);
   }
 
   //~ Methods ----------------------------------------------------------------
+
+  public RelDataTypeSystem getTypeSystem() {
+    return typeSystem;
+  }
 
   // implement RelDataTypeFactory
   public RelDataType createJavaType(Class clazz) {
@@ -450,12 +467,12 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
         int s2 = type2.getScale();
 
         int scale = s1 + s2;
-        scale = Math.min(scale, SqlTypeName.MAX_NUMERIC_SCALE);
+        scale = Math.min(scale, typeSystem.getMaxNumericScale());
         int precision = p1 + p2;
         precision =
             Math.min(
                 precision,
-                SqlTypeName.MAX_NUMERIC_PRECISION);
+                typeSystem.getMaxNumericPrecision());
 
         RelDataType ret;
         ret =
@@ -511,20 +528,21 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
         int s1 = type1.getScale();
         int s2 = type2.getScale();
 
+        final int maxNumericPrecision = typeSystem.getMaxNumericPrecision();
         int dout =
             Math.min(
                 p1 - s1 + s2,
-                SqlTypeName.MAX_NUMERIC_PRECISION);
+                maxNumericPrecision);
 
         int scale = Math.max(6, s1 + p2 + 1);
         scale =
             Math.min(
                 scale,
-                SqlTypeName.MAX_NUMERIC_PRECISION - dout);
-        scale = Math.min(scale, SqlTypeName.MAX_NUMERIC_SCALE);
+                maxNumericPrecision - dout);
+        scale = Math.min(scale, getTypeSystem().getMaxNumericScale());
 
         int precision = dout + scale;
-        assert precision <= SqlTypeName.MAX_NUMERIC_PRECISION;
+        assert precision <= maxNumericPrecision;
         assert precision > 0;
 
         RelDataType ret;

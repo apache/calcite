@@ -36,7 +36,8 @@ public class RelOptUtilTest {
   //~ Methods ----------------------------------------------------------------
 
   @Test public void testTypeDump() {
-    RelDataTypeFactory typeFactory = new SqlTypeFactoryImpl();
+    RelDataTypeFactory typeFactory =
+        new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
     RelDataType t1 =
         typeFactory.builder()
             .add("f0", SqlTypeName.DECIMAL, 5, 2)

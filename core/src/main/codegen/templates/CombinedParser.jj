@@ -33,6 +33,7 @@ package ${parser.package};
 import ${importStr};
 </#list>
 
+import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.sql.*;
 import org.eigenbase.sql.parser.*;
 import org.eigenbase.sql.fun.*;
@@ -3118,8 +3119,8 @@ SqlIntervalQualifier IntervalQualifier() :
 {
     SqlIntervalQualifier.TimeUnit start;
     SqlIntervalQualifier.TimeUnit end = null;
-    int startPrec = SqlIntervalQualifier.getDefaultPrecisionId();
-    int secondFracPrec = SqlIntervalQualifier.getDefaultPrecisionId();
+    int startPrec = RelDataType.PRECISION_NOT_SPECIFIED;
+    int secondFracPrec = RelDataType.PRECISION_NOT_SPECIFIED;
 }
 {
     (

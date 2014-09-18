@@ -35,6 +35,7 @@ import net.hydromatic.optiq.runtime.Hook;
 import net.hydromatic.optiq.server.OptiqServer;
 import net.hydromatic.optiq.server.OptiqServerStatement;
 
+import org.eigenbase.reltype.RelDataTypeSystem;
 import org.eigenbase.sql.advise.SqlAdvisor;
 import org.eigenbase.sql.advise.SqlAdvisorValidator;
 import org.eigenbase.sql.fun.SqlStdOperatorTable;
@@ -83,13 +84,18 @@ abstract class OptiqConnectionImpl
       String url, Properties info, OptiqRootSchema rootSchema,
       JavaTypeFactory typeFactory) {
     super(driver, factory, url, info);
+    OptiqConnectionConfig cfg = new OptiqConnectionConfigImpl(info);
     this.prepareFactory = driver.prepareFactory;
-    this.typeFactory =
-        typeFactory != null ? typeFactory : new JavaTypeFactoryImpl();
+    if (typeFactory != null) {
+      this.typeFactory = typeFactory;
+    } else {
+      final RelDataTypeSystem typeSystem =
+          cfg.typeSystem(RelDataTypeSystem.class, RelDataTypeSystem.DEFAULT);
+      this.typeFactory = new JavaTypeFactoryImpl(typeSystem);
+    }
     this.rootSchema =
         rootSchema != null ? rootSchema : OptiqSchema.createRootSchema(true);
 
-    OptiqConnectionConfig cfg = new OptiqConnectionConfigImpl(info);
     this.properties.put(InternalProperty.CASE_SENSITIVE, cfg.caseSensitive());
     this.properties.put(InternalProperty.UNQUOTED_CASING, cfg.unquotedCasing());
     this.properties.put(InternalProperty.QUOTED_CASING, cfg.quotedCasing());

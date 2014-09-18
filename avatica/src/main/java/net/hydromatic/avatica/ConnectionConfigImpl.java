@@ -16,6 +16,7 @@
  */
 package net.hydromatic.avatica;
 
+import java.lang.reflect.Field;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Properties;
@@ -123,6 +124,31 @@ public class ConnectionConfigImpl implements ConnectionConfig {
       //noinspection unchecked
       return get_(enumConverter(enumClass), defaultValue.name());
     }
+
+    /** Returns an instance of a plugin.
+     *
+     * <p>Throws if not set and no default.
+     * Also throws if the class does not implement the required interface,
+     * or if it does not have a public default constructor or an public static
+     * field called {@code #INSTANCE}. */
+    public <T> T getPlugin(Class<T> pluginClass, T defaultInstance) {
+      return getPlugin(pluginClass, (String) property.defaultValue(),
+          defaultInstance);
+    }
+
+    /** Returns an instance of a plugin, using a given class name if none is
+     * set.
+     *
+     * <p>Throws if not set and no default.
+     * Also throws if the class does not implement the required interface,
+     * or if it does not have a public default constructor or an public static
+     * field called {@code #INSTANCE}. */
+    public <T> T getPlugin(Class<T> pluginClass, String defaultClassName,
+        T defaultInstance) {
+      assert property.type() == ConnectionProperty.Type.PLUGIN;
+      return get_(pluginConverter(pluginClass, defaultInstance),
+          defaultClassName);
+    }
   }
 
   /** Callback to parse a property from string to its native type. */
@@ -161,6 +187,39 @@ public class ConnectionConfigImpl implements ConnectionConfig {
         } catch (IllegalArgumentException e) {
           throw new RuntimeException("Property '" + s + "' not valid for enum "
               + enumClass.getName());
+        }
+      }
+    };
+  }
+
+  public static <T> Converter<T> pluginConverter(final Class<T> pluginClass,
+      final T defaultInstance) {
+    return new Converter<T>() {
+      public T apply(ConnectionProperty connectionProperty, String s) {
+        if (s == null) {
+          if (defaultInstance != null) {
+            return defaultInstance;
+          }
+          throw new RuntimeException("Required property '"
+              + connectionProperty.camelName() + "' not specified");
+        }
+        // First look for a C.INSTANCE field, then do new C().
+        try {
+          //noinspection unchecked
+          final Class<T> clazz = (Class) Class.forName(s);
+          assert pluginClass.isAssignableFrom(clazz);
+          try {
+            // We assume that if there is an INSTANCE field it is static and
+            // has the right type.
+            final Field field = clazz.getField("INSTANCE");
+            return pluginClass.cast(field.get(null));
+          } catch (NoSuchFieldException e) {
+            // ignore
+          }
+          return clazz.newInstance();
+        } catch (Exception e) {
+          throw new RuntimeException("Property '" + s
+              + "' not valid for plugin type " + pluginClass.getName(), e);
         }
       }
     };

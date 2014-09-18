@@ -17,6 +17,7 @@
 package org.eigenbase.sql.test;
 
 import org.eigenbase.reltype.RelDataTypeFactory;
+import org.eigenbase.reltype.RelDataTypeSystem;
 import org.eigenbase.sql.SqlOperatorTable;
 import org.eigenbase.sql.advise.SqlAdvisor;
 import org.eigenbase.sql.fun.SqlStdOperatorTable;
@@ -74,7 +75,8 @@ public class DefaultSqlTestFactory implements SqlTestFactory {
   public SqlValidator getValidator(SqlTestFactory factory) {
     final SqlOperatorTable operatorTable = factory.createOperatorTable();
     final boolean caseSensitive = (Boolean) factory.get("caseSensitive");
-    final RelDataTypeFactory typeFactory = new SqlTypeFactoryImpl();
+    final RelDataTypeFactory typeFactory =
+        new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
     return SqlValidatorUtil.newValidator(operatorTable,
         new MockCatalogReader(typeFactory, caseSensitive).init(),
         typeFactory);

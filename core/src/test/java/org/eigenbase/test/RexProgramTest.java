@@ -61,7 +61,7 @@ public class RexProgramTest {
 
   @Before
   public void setUp() {
-    typeFactory = new JavaTypeFactoryImpl();
+    typeFactory = new JavaTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
     rexBuilder = new RexBuilder(typeFactory);
   }
 

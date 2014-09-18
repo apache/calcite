@@ -40,6 +40,11 @@ public interface RelDataTypeFactory {
   //~ Methods ----------------------------------------------------------------
 
   /**
+   * Returns the type system.
+   */
+  RelDataTypeSystem getTypeSystem();
+
+  /**
    * Creates a type which corresponds to a Java class.
    *
    * @param clazz the Java class used to define the type

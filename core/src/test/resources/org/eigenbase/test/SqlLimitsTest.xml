@@ -16,9 +16,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 -->
 <Root>
-  <TestCase name="testPrintLimits">
-    <Resource name="output">
-      <![CDATA[BOOLEAN
+    <TestCase name="testPrintLimits">
+        <Resource name="output">
+            <![CDATA[BOOLEAN
   zero:                   false; as SQL: FALSE
   max:                    true; as SQL: TRUE
 
@@ -58,7 +58,7 @@ BIGINT
   max:                    9223372036854775807; as SQL: 9223372036854775807
   max + epsilon:          9223372036854775808; as SQL: 9223372036854775808
 
-DECIMAL
+DECIMAL(19, 0)
   min - epsilon:          -9223372036854775809; as SQL: -9223372036854775809
   min:                    -9223372036854775808; as SQL: -9223372036854775808
   zero - delta:           -1; as SQL: -1
@@ -67,7 +67,7 @@ DECIMAL
   max:                    9223372036854775807; as SQL: 9223372036854775807
   max + epsilon:          9223372036854775808; as SQL: 9223372036854775808
 
-DECIMAL(5)
+DECIMAL(5, 0)
   min - epsilon:          -100000; as SQL: -100000
   min:                    -99999; as SQL: -99999
   zero - delta:           -1; as SQL: -1
@@ -148,6 +148,6 @@ TIMESTAMP(0)
   max:                    Dec 31, 9999 11:59:59 PM; as SQL: TIMESTAMP '9999-12-31 23:59:59'
 
 ]]>
-    </Resource>
-  </TestCase>
+        </Resource>
+    </TestCase>
 </Root>

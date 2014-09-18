@@ -18,6 +18,7 @@ package org.eigenbase.sql.type;
 
 import java.nio.charset.*;
 
+import org.eigenbase.reltype.RelDataTypeSystem;
 import org.eigenbase.sql.*;
 import org.eigenbase.util.*;
 
@@ -30,8 +31,9 @@ public class BasicSqlType extends AbstractSqlType {
 
   //~ Instance fields --------------------------------------------------------
 
-  private int precision;
-  private int scale;
+  private final int precision;
+  private final int scale;
+  private final RelDataTypeSystem typeSystem;
   private SqlCollation collation;
   private SerializableCharset wrappedCharset;
 
@@ -43,12 +45,11 @@ public class BasicSqlType extends AbstractSqlType {
    *
    * @param typeName Type name
    */
-  public BasicSqlType(SqlTypeName typeName) {
-    super(typeName, false, null);
+  public BasicSqlType(RelDataTypeSystem typeSystem, SqlTypeName typeName) {
+    this(typeSystem, typeName, false, PRECISION_NOT_SPECIFIED,
+        SCALE_NOT_SPECIFIED);
     assert typeName.allowsPrecScale(false, false)
         : "typeName.allowsPrecScale(false,false), typeName=" + typeName.name();
-    this.precision = PRECISION_NOT_SPECIFIED;
-    this.scale = SCALE_NOT_SPECIFIED;
     computeDigest();
   }
 
@@ -57,14 +58,11 @@ public class BasicSqlType extends AbstractSqlType {
    *
    * @param typeName Type name
    */
-  public BasicSqlType(
-      SqlTypeName typeName,
+  public BasicSqlType(RelDataTypeSystem typeSystem, SqlTypeName typeName,
       int precision) {
-    super(typeName, false, null);
+    this(typeSystem, typeName, false, precision, SCALE_NOT_SPECIFIED);
     assert typeName.allowsPrecScale(true, false)
         : "typeName.allowsPrecScale(true, false)";
-    this.precision = precision;
-    this.scale = SCALE_NOT_SPECIFIED;
     computeDigest();
   }
 
@@ -73,15 +71,24 @@ public class BasicSqlType extends AbstractSqlType {
    *
    * @param typeName Type name
    */
-  public BasicSqlType(
+  public BasicSqlType(RelDataTypeSystem typeSystem, SqlTypeName typeName,
+      int precision, int scale) {
+    this(typeSystem, typeName, false, precision, scale);
+    assert typeName.allowsPrecScale(true, true);
+    computeDigest();
+  }
+
+  /** Internal constructor. */
+  private BasicSqlType(
+      RelDataTypeSystem typeSystem,
       SqlTypeName typeName,
+      boolean nullable,
       int precision,
       int scale) {
-    super(typeName, false, null);
-    assert typeName.allowsPrecScale(true, true);
+    super(typeName, nullable, null);
+    this.typeSystem = typeSystem;
     this.precision = precision;
     this.scale = scale;
-    computeDigest();
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -137,7 +144,7 @@ public class BasicSqlType extends AbstractSqlType {
       case BIGINT:
         return 19;
       case DECIMAL:
-        return SqlTypeName.MAX_NUMERIC_PRECISION;
+        return RelDataTypeSystem.DEFAULT.getMaxNumericPrecision(); // FIXME
       case REAL:
         return 7;
       case FLOAT:
@@ -205,7 +212,7 @@ public class BasicSqlType extends AbstractSqlType {
     // since (for instance) TIME is equivalent to TIME(0).
     if (withDetail) {
       // -1 means there is no default value for precision
-      if (typeName.getDefaultPrecision() > -1) {
+      if (typeSystem.getDefaultPrecision(typeName) > -1) {
         printPrecision = true;
       }
       if (typeName.getDefaultScale() > -1) {

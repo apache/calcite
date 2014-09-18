@@ -251,7 +251,9 @@ public class RexToLixTranslator {
                 BuiltinMethod.INTERVAL_DAY_TIME_TO_STRING.method,
                 operand,
                 Expressions.constant(interval.foo()),
-                Expressions.constant(interval.getFractionalSecondPrecision())));
+                Expressions.constant(
+                    interval.getFractionalSecondPrecision(
+                        typeFactory.getTypeSystem()))));
         break;
       case BOOLEAN:
         convert = RexImpTable.optimize2(

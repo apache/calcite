@@ -22,6 +22,7 @@ import java.text.*;
 import java.util.*;
 import java.util.logging.*;
 
+import org.eigenbase.reltype.RelDataTypeSystem;
 import org.eigenbase.sql.*;
 import org.eigenbase.trace.*;
 import org.eigenbase.util.*;
@@ -135,7 +136,7 @@ public final class SqlParserUtil {
     int[] ret;
     try {
       ret = intervalQualifier.evaluateIntervalLiteral(literal,
-          intervalQualifier.getParserPosition());
+          intervalQualifier.getParserPosition(), RelDataTypeSystem.DEFAULT);
       assert ret != null;
     } catch (EigenbaseContextException e) {
       throw Util.newInternal(
@@ -177,7 +178,7 @@ public final class SqlParserUtil {
     int[] ret;
     try {
       ret = intervalQualifier.evaluateIntervalLiteral(literal,
-          intervalQualifier.getParserPosition());
+          intervalQualifier.getParserPosition(), RelDataTypeSystem.DEFAULT);
       assert ret != null;
     } catch (EigenbaseContextException e) {
       throw Util.newInternal(

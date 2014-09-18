@@ -22,6 +22,7 @@ import net.hydromatic.optiq.config.Lex;
 import org.eigenbase.relopt.Context;
 import org.eigenbase.relopt.RelOptCostFactory;
 import org.eigenbase.relopt.RelTraitDef;
+import org.eigenbase.reltype.RelDataTypeSystem;
 import org.eigenbase.sql.SqlOperatorTable;
 import org.eigenbase.sql.parser.SqlParserImplFactory;
 import org.eigenbase.sql2rel.SqlRexConvertletTable;
@@ -31,6 +32,8 @@ import com.google.common.collect.ImmutableList;
 /**
  * Interface that describes how to configure planning sessions generated
  * using the Frameworks tools.
+ *
+ * @see Frameworks#newConfigBuilder()
  */
 public interface FrameworkConfig {
   /**
@@ -107,6 +110,11 @@ public interface FrameworkConfig {
    * calling {@link org.eigenbase.relopt.RelOptPlanner#getContext()}.
    */
   Context getContext();
+
+  /**
+   * Returns the type system.
+   */
+  RelDataTypeSystem getTypeSystem();
 }
 
 // End FrameworkConfig.java

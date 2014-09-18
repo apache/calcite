@@ -44,6 +44,8 @@ public interface OptiqConnectionConfig extends ConnectionConfig {
   boolean caseSensitive();
   /** @see net.hydromatic.optiq.config.OptiqConnectionProperty#SPARK */
   boolean spark();
+  /** @see net.hydromatic.optiq.config.OptiqConnectionProperty#TYPE_SYSTEM */
+  <T> T typeSystem(Class<T> typeSystemClass, T defaultTypeSystem);
 }
 
 // End OptiqConnectionConfig.java

@@ -76,7 +76,8 @@ public class SargTest {
   public void setUp() {
     // create some reusable fixtures
 
-    RelDataTypeFactory typeFactory = new SqlTypeFactoryImpl();
+    RelDataTypeFactory typeFactory =
+        new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
     intType = typeFactory.createSqlType(SqlTypeName.INTEGER);
     intType = typeFactory.createTypeWithNullability(intType, true);
     stringType = typeFactory.createSqlType(SqlTypeName.VARCHAR, 20);

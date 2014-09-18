@@ -4746,12 +4746,11 @@ public class SqlToRelConverter {
      */
     private RelDataType computeHistogramType(RelDataType type) {
       if (SqlTypeUtil.isExactNumeric(type)
-          && (type.getSqlTypeName() != SqlTypeName.BIGINT)) {
-        return new BasicSqlType(SqlTypeName.BIGINT);
-      } else if (
-          SqlTypeUtil.isApproximateNumeric(type)
-              && (type.getSqlTypeName() != SqlTypeName.DOUBLE)) {
-        return new BasicSqlType(SqlTypeName.DOUBLE);
+          && type.getSqlTypeName() != SqlTypeName.BIGINT) {
+        return typeFactory.createSqlType(SqlTypeName.BIGINT);
+      } else if (SqlTypeUtil.isApproximateNumeric(type)
+          && type.getSqlTypeName() != SqlTypeName.DOUBLE) {
+        return typeFactory.createSqlType(SqlTypeName.DOUBLE);
       } else {
         return type;
       }

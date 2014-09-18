@@ -22,6 +22,7 @@ import java.sql.*;
 
 import java.util.*;
 
+import org.eigenbase.reltype.RelDataTypeSystem;
 import org.eigenbase.sql.*;
 import org.eigenbase.sql.parser.*;
 import org.eigenbase.util.*;
@@ -87,10 +88,6 @@ public enum SqlTypeName {
       SqlTypeFamily.COLUMN_LIST);
 
   public static final int MAX_DATETIME_PRECISION = 3;
-  public static final int MAX_NUMERIC_PRECISION = 19;
-  public static final int MAX_NUMERIC_SCALE = 19;
-  public static final int MAX_CHAR_LENGTH = 65536;
-  public static final int MAX_BINARY_LENGTH = 65536;
 
   // Minimum and default interval precisions are  defined by SQL2003
   // Maximum interval precisions are implementation dependent,
@@ -301,31 +298,15 @@ public enum SqlTypeName {
   }
 
   /**
-   * @return default precision for this type if supported, otherwise -1 if
-   * precision is either unsupported or must be specified explicitly
+   * Returns the default precision for this type if supported, otherwise -1 if
+   * precision is either unsupported or must be specified explicitly.
+   *
+   * @deprecated Use
+   * {@link org.eigenbase.reltype.RelDataTypeSystem#getDefaultPrecision(SqlTypeName)};
+   * will be removed after optiq-0.9.1.
    */
   public int getDefaultPrecision() {
-    switch (this) {
-    case CHAR:
-    case BINARY:
-    case VARCHAR:
-    case VARBINARY:
-      return 1;
-    case TIME:
-      return 0;
-    case TIMESTAMP:
-
-      // TODO jvs 26-July-2004:  should be 6 for microseconds,
-      // but we can't support that yet
-      return 0;
-    case DECIMAL:
-      return MAX_NUMERIC_PRECISION;
-    case INTERVAL_DAY_TIME:
-    case INTERVAL_YEAR_MONTH:
-      return DEFAULT_INTERVAL_START_PRECISION;
-    default:
-      return -1;
-    }
+    return RelDataTypeSystem.DEFAULT.getDefaultPrecision(this);
   }
 
   /**
@@ -698,26 +679,13 @@ public enum SqlTypeName {
    * precision/length are not applicable for this type.
    *
    * @return Maximum allowed precision
+   *
+   * @deprecated Use
+   * {@link org.eigenbase.reltype.RelDataTypeSystem#getMaxScale(SqlTypeName)};
+   * will be removed after optiq-0.9.1.
    */
   public int getMaxPrecision() {
-    switch (this) {
-    case DECIMAL:
-      return MAX_NUMERIC_PRECISION;
-    case VARCHAR:
-    case CHAR:
-      return MAX_CHAR_LENGTH;
-    case VARBINARY:
-    case BINARY:
-      return MAX_BINARY_LENGTH;
-    case TIME:
-    case TIMESTAMP:
-      return MAX_DATETIME_PRECISION;
-    case INTERVAL_DAY_TIME:
-    case INTERVAL_YEAR_MONTH:
-      return MAX_INTERVAL_START_PRECISION;
-    default:
-      return -1;
-    }
+    return RelDataTypeSystem.DEFAULT.getMaxPrecision(this);
   }
 
   /**
@@ -726,17 +694,13 @@ public enum SqlTypeName {
    * applicable for this type.
    *
    * @return Maximum allowed scale
+   *
+   * @deprecated Use
+   * {@link org.eigenbase.reltype.RelDataTypeSystem#getMaxScale(SqlTypeName)};
+   * will be removed after optiq-0.9.1.
    */
   public int getMaxScale() {
-    switch (this) {
-    case DECIMAL:
-      return MAX_NUMERIC_SCALE;
-    case INTERVAL_DAY_TIME:
-    case INTERVAL_YEAR_MONTH:
-      return MAX_INTERVAL_FRACTIONAL_SECOND_PRECISION;
-    default:
-      return -1;
-    }
+    return RelDataTypeSystem.DEFAULT.getMaxScale(this);
   }
 
   /**

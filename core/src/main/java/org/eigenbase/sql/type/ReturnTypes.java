@@ -468,23 +468,21 @@ public abstract class ReturnTypes {
               int s1 = type1.getScale();
               int s2 = type2.getScale();
 
+              final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
               int scale = Math.max(s1, s2);
-              assert scale <= SqlTypeName.MAX_NUMERIC_SCALE;
+              final RelDataTypeSystem typeSystem = typeFactory.getTypeSystem();
+              assert scale <= typeSystem.getMaxNumericScale();
               int precision = Math.max(p1 - s1, p2 - s2) + scale + 1;
               precision =
                   Math.min(
                       precision,
-                      SqlTypeName.MAX_NUMERIC_PRECISION);
+                      typeSystem.getMaxNumericPrecision());
               assert precision > 0;
 
-              RelDataType ret;
-              ret =
-                  opBinding.getTypeFactory().createSqlType(
-                      SqlTypeName.DECIMAL,
-                      precision,
-                      scale);
-
-              return ret;
+              return typeFactory.createSqlType(
+                  SqlTypeName.DECIMAL,
+                  precision,
+                  scale);
             }
           }
 

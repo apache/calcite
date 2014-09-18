@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.logging.*;
 
+import org.eigenbase.reltype.RelDataTypeSystem;
 import org.eigenbase.sql.*;
 import org.eigenbase.sql.fun.SqlStdOperatorTable;
 import org.eigenbase.sql.test.SqlTester;
@@ -3409,6 +3410,8 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     // First check that min, max, and defaults are what we expect
     // (values used in subtests depend on these being true to
     // accurately test bounds)
+    final RelDataTypeSystem typeSystem =
+        getTester().getValidator().getTypeFactory().getTypeSystem();
     assertTrue(
         SqlTypeName.INTERVAL_YEAR_MONTH.getMinPrecision() == 1);
     assertTrue(
@@ -3417,18 +3420,16 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         SqlTypeName.INTERVAL_YEAR_MONTH.getMaxPrecision() == 10);
     assertTrue(
         SqlTypeName.INTERVAL_DAY_TIME.getMaxPrecision() == 10);
-    assertTrue(
-        SqlTypeName.INTERVAL_YEAR_MONTH.getDefaultPrecision() == 2);
-    assertTrue(
-        SqlTypeName.INTERVAL_DAY_TIME.getDefaultPrecision() == 2);
+    assertEquals(2,
+        typeSystem.getDefaultPrecision(SqlTypeName.INTERVAL_YEAR_MONTH));
+    assertEquals(2,
+        typeSystem.getDefaultPrecision(SqlTypeName.INTERVAL_DAY_TIME));
     assertTrue(
         SqlTypeName.INTERVAL_YEAR_MONTH.getMinScale() == 1);
     assertTrue(
         SqlTypeName.INTERVAL_DAY_TIME.getMinScale() == 1);
-    assertTrue(
-        SqlTypeName.INTERVAL_YEAR_MONTH.getMaxScale() == 9);
-    assertTrue(
-        SqlTypeName.INTERVAL_DAY_TIME.getMaxScale() == 9);
+    assertEquals(9, typeSystem.getMaxScale(SqlTypeName.INTERVAL_YEAR_MONTH));
+    assertEquals(9, typeSystem.getMaxScale(SqlTypeName.INTERVAL_DAY_TIME));
     assertTrue(
         SqlTypeName.INTERVAL_YEAR_MONTH.getDefaultScale() == 6);
     assertTrue(

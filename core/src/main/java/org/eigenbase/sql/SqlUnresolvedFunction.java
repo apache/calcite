@@ -19,7 +19,6 @@ package org.eigenbase.sql;
 import java.util.List;
 
 import org.eigenbase.reltype.RelDataType;
-import org.eigenbase.sql.type.BasicSqlType;
 import org.eigenbase.sql.type.SqlOperandTypeChecker;
 import org.eigenbase.sql.type.SqlOperandTypeInference;
 import org.eigenbase.sql.type.SqlReturnTypeInference;
@@ -64,9 +63,8 @@ public class SqlUnresolvedFunction extends SqlFunction {
    * fail.
    */
   @Override
-  public RelDataType inferReturnType(
-      SqlOperatorBinding opBinding) {
-    return new BasicSqlType(SqlTypeName.ANY);
+  public RelDataType inferReturnType(SqlOperatorBinding opBinding) {
+    return opBinding.getTypeFactory().createSqlType(SqlTypeName.ANY);
   }
 }
 

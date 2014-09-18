@@ -20,9 +20,14 @@ import java.io.*;
 import java.text.*;
 import java.util.*;
 
+import org.eigenbase.reltype.RelDataType;
+import org.eigenbase.reltype.RelDataTypeFactory;
+import org.eigenbase.reltype.RelDataTypeSystem;
 import org.eigenbase.sql.*;
 import org.eigenbase.sql.parser.*;
 import org.eigenbase.sql.type.*;
+
+import net.hydromatic.optiq.jdbc.JavaTypeFactoryImpl;
 
 import com.google.common.collect.ImmutableList;
 
@@ -35,33 +40,6 @@ import org.junit.Test;
 public class SqlLimitsTest {
   //~ Static fields/initializers ---------------------------------------------
 
-  private static final List<BasicSqlType> TYPE_LIST =
-      ImmutableList.of(
-          new BasicSqlType(SqlTypeName.BOOLEAN),
-          new BasicSqlType(SqlTypeName.TINYINT),
-          new BasicSqlType(SqlTypeName.SMALLINT),
-          new BasicSqlType(SqlTypeName.INTEGER),
-          new BasicSqlType(SqlTypeName.BIGINT),
-          new BasicSqlType(SqlTypeName.DECIMAL),
-          new BasicSqlType(SqlTypeName.DECIMAL, 5),
-          new BasicSqlType(SqlTypeName.DECIMAL, 6, 2),
-          new BasicSqlType(SqlTypeName.DECIMAL,
-              SqlTypeName.DECIMAL.getMaxPrecision(), 0),
-          new BasicSqlType(SqlTypeName.DECIMAL,
-              SqlTypeName.DECIMAL.getMaxPrecision(), 5),
-
-          // todo: test IntervalDayTime and IntervalYearMonth
-          // todo: test Float, Real, Double
-
-          new BasicSqlType(SqlTypeName.CHAR, 5),
-          new BasicSqlType(SqlTypeName.VARCHAR, 1),
-          new BasicSqlType(SqlTypeName.VARCHAR, 20),
-          new BasicSqlType(SqlTypeName.BINARY, 3),
-          new BasicSqlType(SqlTypeName.VARBINARY, 4),
-          new BasicSqlType(SqlTypeName.DATE),
-          new BasicSqlType(SqlTypeName.TIME, 0),
-          new BasicSqlType(SqlTypeName.TIMESTAMP, 0));
-
   //~ Constructors -----------------------------------------------------------
 
   public SqlLimitsTest() {
@@ -73,11 +51,33 @@ public class SqlLimitsTest {
     return DiffRepository.lookup(SqlLimitsTest.class);
   }
 
-  /**
-   * Returns a list of typical types.
-   */
-  public static List<BasicSqlType> getTypes() {
-    return TYPE_LIST;
+  /** Returns a list of typical types. */
+  public static List<RelDataType> getTypes(RelDataTypeFactory typeFactory) {
+    final int maxPrecision =
+        typeFactory.getTypeSystem().getMaxPrecision(SqlTypeName.DECIMAL);
+    return ImmutableList.of(
+        typeFactory.createSqlType(SqlTypeName.BOOLEAN),
+        typeFactory.createSqlType(SqlTypeName.TINYINT),
+        typeFactory.createSqlType(SqlTypeName.SMALLINT),
+        typeFactory.createSqlType(SqlTypeName.INTEGER),
+        typeFactory.createSqlType(SqlTypeName.BIGINT),
+        typeFactory.createSqlType(SqlTypeName.DECIMAL),
+        typeFactory.createSqlType(SqlTypeName.DECIMAL, 5),
+        typeFactory.createSqlType(SqlTypeName.DECIMAL, 6, 2),
+        typeFactory.createSqlType(SqlTypeName.DECIMAL, maxPrecision, 0),
+        typeFactory.createSqlType(SqlTypeName.DECIMAL, maxPrecision, 5),
+
+        // todo: test IntervalDayTime and IntervalYearMonth
+        // todo: test Float, Real, Double
+
+        typeFactory.createSqlType(SqlTypeName.CHAR, 5),
+        typeFactory.createSqlType(SqlTypeName.VARCHAR, 1),
+        typeFactory.createSqlType(SqlTypeName.VARCHAR, 20),
+        typeFactory.createSqlType(SqlTypeName.BINARY, 3),
+        typeFactory.createSqlType(SqlTypeName.VARBINARY, 4),
+        typeFactory.createSqlType(SqlTypeName.DATE),
+        typeFactory.createSqlType(SqlTypeName.TIME, 0),
+        typeFactory.createSqlType(SqlTypeName.TIMESTAMP, 0));
   }
 
   @BeforeClass public static void setUSLocale() {
@@ -89,7 +89,9 @@ public class SqlLimitsTest {
   @Test public void testPrintLimits() {
     StringWriter sw = new StringWriter();
     PrintWriter pw = new PrintWriter(sw);
-    for (BasicSqlType type : TYPE_LIST) {
+    final List<RelDataType> types =
+        getTypes(new JavaTypeFactoryImpl(RelDataTypeSystem.DEFAULT));
+    for (RelDataType type : types) {
       pw.println(type.toString());
       printLimit(
           pw,
@@ -163,11 +165,11 @@ public class SqlLimitsTest {
   private void printLimit(
       PrintWriter pw,
       String desc,
-      BasicSqlType type,
+      RelDataType type,
       boolean sign,
       SqlTypeName.Limit limit,
       boolean beyond) {
-    Object o = type.getLimit(sign, limit, beyond);
+    Object o = ((BasicSqlType) type).getLimit(sign, limit, beyond);
     if (o == null) {
       return;
     }

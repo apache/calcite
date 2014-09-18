@@ -2500,7 +2500,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         String intervalStr = interval.getIntervalLiteral();
         // throws EigenbaseContextException if string is invalid
         int[] values = intervalQualifier.evaluateIntervalLiteral(intervalStr,
-            literal.getParserPosition());
+            literal.getParserPosition(), typeFactory.getTypeSystem());
         Util.discard(values);
       }
       break;
@@ -2525,43 +2525,41 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     assert qualifier != null;
     boolean startPrecisionOutOfRange = false;
     boolean fractionalSecondPrecisionOutOfRange = false;
+    final RelDataTypeSystem typeSystem = typeFactory.getTypeSystem();
 
+    final int startPrecision = qualifier.getStartPrecision(typeSystem);
+    final int fracPrecision =
+        qualifier.getFractionalSecondPrecision(typeSystem);
+    final int maxPrecision = typeSystem.getMaxPrecision(qualifier.typeName());
+    final int minPrecision = qualifier.typeName().getMinPrecision();
+    final int minScale = qualifier.typeName().getMinScale();
+    final int maxScale = typeSystem.getMaxScale(qualifier.typeName());
     if (qualifier.isYearMonth()) {
-      if ((qualifier.getStartPrecision()
-          < SqlTypeName.INTERVAL_YEAR_MONTH.getMinPrecision())
-          || (qualifier.getStartPrecision()
-          > SqlTypeName.INTERVAL_YEAR_MONTH.getMaxPrecision())) {
+      if (startPrecision < minPrecision || startPrecision > maxPrecision) {
         startPrecisionOutOfRange = true;
-      } else if (
-          (qualifier.getFractionalSecondPrecision()
-              < SqlTypeName.INTERVAL_YEAR_MONTH.getMinScale())
-              || (qualifier.getFractionalSecondPrecision()
-              > SqlTypeName.INTERVAL_YEAR_MONTH.getMaxScale())) {
-        fractionalSecondPrecisionOutOfRange = true;
+      } else {
+        if (fracPrecision < minScale || fracPrecision > maxScale) {
+          fractionalSecondPrecisionOutOfRange = true;
+        }
       }
     } else {
-      if ((qualifier.getStartPrecision()
-          < SqlTypeName.INTERVAL_DAY_TIME.getMinPrecision())
-          || (qualifier.getStartPrecision()
-          > SqlTypeName.INTERVAL_DAY_TIME.getMaxPrecision())) {
+      if (startPrecision < minPrecision || startPrecision > maxPrecision) {
         startPrecisionOutOfRange = true;
-      } else if (
-          (qualifier.getFractionalSecondPrecision()
-              < SqlTypeName.INTERVAL_DAY_TIME.getMinScale())
-              || (qualifier.getFractionalSecondPrecision()
-              > SqlTypeName.INTERVAL_DAY_TIME.getMaxScale())) {
-        fractionalSecondPrecisionOutOfRange = true;
+      } else {
+        if (fracPrecision < minScale || fracPrecision > maxScale) {
+          fractionalSecondPrecisionOutOfRange = true;
+        }
       }
     }
 
     if (startPrecisionOutOfRange) {
       throw newValidationError(qualifier,
-          RESOURCE.intervalStartPrecisionOutOfRange(
-              qualifier.getStartPrecision(), "INTERVAL " + qualifier));
+          RESOURCE.intervalStartPrecisionOutOfRange(startPrecision,
+              "INTERVAL " + qualifier));
     } else if (fractionalSecondPrecisionOutOfRange) {
       throw newValidationError(qualifier,
           RESOURCE.intervalFractionalSecondPrecisionOutOfRange(
-              qualifier.getFractionalSecondPrecision(),
+              fracPrecision,
               "INTERVAL " + qualifier));
     }
   }

@@ -336,7 +336,9 @@ public class ReduceDecimalsRule extends RelOptRule {
      * @return 10^scale as an exact numeric value
      */
     protected RexNode makeScaleFactor(int scale) {
-      assert (scale > 0) && (scale < SqlTypeName.MAX_NUMERIC_PRECISION);
+      assert scale > 0;
+      assert scale
+          < builder.getTypeFactory().getTypeSystem().getMaxNumericPrecision();
       return makeExactLiteral(powerOfTen(scale));
     }
 
@@ -364,7 +366,9 @@ public class ReduceDecimalsRule extends RelOptRule {
      * @return 10^scale / 2 as an exact numeric value
      */
     protected RexNode makeRoundFactor(int scale) {
-      assert (scale > 0) && (scale < SqlTypeName.MAX_NUMERIC_PRECISION);
+      assert scale > 0;
+      assert scale
+          < builder.getTypeFactory().getTypeSystem().getMaxNumericPrecision();
       return makeExactLiteral(powerOfTen(scale) / 2);
     }
 
@@ -372,7 +376,9 @@ public class ReduceDecimalsRule extends RelOptRule {
      * Calculates a power of ten, as a long value
      */
     protected long powerOfTen(int scale) {
-      assert (scale >= 0) && (scale < SqlTypeName.MAX_NUMERIC_PRECISION);
+      assert scale >= 0;
+      assert scale
+          < builder.getTypeFactory().getTypeSystem().getMaxNumericPrecision();
       return BigInteger.TEN.pow(scale).longValue();
     }
 
@@ -400,7 +406,9 @@ public class ReduceDecimalsRule extends RelOptRule {
      * @return value * 10^scale as an exact numeric value
      */
     protected RexNode scaleUp(RexNode value, int scale) {
-      assert (scale >= 0) && (scale < SqlTypeName.MAX_NUMERIC_PRECISION);
+      assert scale >= 0;
+      assert scale
+          < builder.getTypeFactory().getTypeSystem().getMaxNumericPrecision();
       if (scale == 0) {
         return value;
       }
@@ -422,8 +430,9 @@ public class ReduceDecimalsRule extends RelOptRule {
      * exact numeric value
      */
     protected RexNode scaleDown(RexNode value, int scale) {
-      int maxPrecision = SqlTypeName.MAX_NUMERIC_PRECISION;
-      assert (scale >= 0) && (scale <= maxPrecision);
+      final int maxPrecision =
+          builder.getTypeFactory().getTypeSystem().getMaxNumericPrecision();
+      assert scale >= 0 && scale <= maxPrecision;
       if (scale == 0) {
         return value;
       }
@@ -462,12 +471,13 @@ public class ReduceDecimalsRule extends RelOptRule {
      * double precision arithmetic.
      *
      * @param value the integer representation of a decimal
-     * @param scale a value from zero to {@link
-     *              SqlTypeName#MAX_NUMERIC_PRECISION MAX_NUMERIC_PRECISION}
+     * @param scale a value from zero to max precision
      * @return value/10^scale as a double precision value
      */
     protected RexNode scaleDownDouble(RexNode value, int scale) {
-      assert (scale >= 0) && (scale <= SqlTypeName.MAX_NUMERIC_PRECISION);
+      assert scale >= 0;
+      assert scale
+          <= builder.getTypeFactory().getTypeSystem().getMaxNumericPrecision();
       RexNode cast = ensureType(real8, value);
       if (scale == 0) {
         return cast;
@@ -495,8 +505,10 @@ public class ReduceDecimalsRule extends RelOptRule {
      * corresponding to the input value
      */
     protected RexNode ensureScale(RexNode value, int scale, int required) {
-      int maxPrecision = SqlTypeName.MAX_NUMERIC_PRECISION;
-      assert (scale <= maxPrecision) && (required <= maxPrecision);
+      final RelDataTypeSystem typeSystem =
+          builder.getTypeFactory().getTypeSystem();
+      final int maxPrecision = typeSystem.getMaxNumericPrecision();
+      assert scale <= maxPrecision && required <= maxPrecision;
       assert required >= scale;
       if (scale == required) {
         return value;
@@ -509,7 +521,7 @@ public class ReduceDecimalsRule extends RelOptRule {
       }
 
       // TODO: make a validator exception for this
-      if (scaleDiff >= SqlTypeName.MAX_NUMERIC_PRECISION) {
+      if (scaleDiff >= maxPrecision) {
         throw Util.needToImplement(
             "Source type with scale " + scale
             + " cannot be converted to target type with scale "
@@ -1002,11 +1014,13 @@ public class ReduceDecimalsRule extends RelOptRule {
       RexNode decValue = call.operands.get(0);
       int scale = decValue.getType().getScale();
       RexNode value = decodeValue(decValue);
+      final RelDataTypeSystem typeSystem =
+          builder.getTypeFactory().getTypeSystem();
 
       RexNode rewrite;
       if (scale == 0) {
         rewrite = decValue;
-      } else if (scale == SqlTypeName.MAX_NUMERIC_PRECISION) {
+      } else if (scale == typeSystem.getMaxNumericPrecision()) {
         rewrite =
             makeCase(
                 makeIsNegative(value),
@@ -1049,11 +1063,13 @@ public class ReduceDecimalsRule extends RelOptRule {
       RexNode decValue = call.operands.get(0);
       int scale = decValue.getType().getScale();
       RexNode value = decodeValue(decValue);
+      final RelDataTypeSystem typeSystem =
+          builder.getTypeFactory().getTypeSystem();
 
       RexNode rewrite;
       if (scale == 0) {
         rewrite = decValue;
-      } else if (scale == SqlTypeName.MAX_NUMERIC_PRECISION) {
+      } else if (scale == typeSystem.getMaxNumericPrecision()) {
         rewrite =
             makeCase(
                 makeIsPositive(value),

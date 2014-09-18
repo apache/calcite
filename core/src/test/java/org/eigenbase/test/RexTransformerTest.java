@@ -47,7 +47,7 @@ public class RexTransformerTest {
 
   @Before
   public void setUp() {
-    typeFactory = new JavaTypeFactoryImpl();
+    typeFactory = new JavaTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
     rexBuilder = new RexBuilder(typeFactory);
     boolRelDataType = typeFactory.createSqlType(SqlTypeName.BOOLEAN);
 

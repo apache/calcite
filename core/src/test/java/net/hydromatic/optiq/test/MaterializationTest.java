@@ -22,6 +22,7 @@ import net.hydromatic.optiq.prepare.Prepare;
 
 import org.eigenbase.relopt.SubstitutionVisitor;
 import org.eigenbase.reltype.RelDataType;
+import org.eigenbase.reltype.RelDataTypeSystem;
 import org.eigenbase.rex.*;
 import org.eigenbase.sql.fun.SqlStdOperatorTable;
 
@@ -46,7 +47,8 @@ public class MaterializationTest {
       OptiqAssert.checkResultContains(
           "EnumerableTableAccessRel(table=[[hr, m0]])");
 
-  final JavaTypeFactoryImpl typeFactory = new JavaTypeFactoryImpl();
+  final JavaTypeFactoryImpl typeFactory =
+      new JavaTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
   final RexBuilder rexBuilder = new RexBuilder(typeFactory);
 
   @Test public void testFilter() {

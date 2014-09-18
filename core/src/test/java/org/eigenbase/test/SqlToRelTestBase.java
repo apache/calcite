@@ -480,7 +480,7 @@ public abstract class SqlToRelTestBase {
     }
 
     protected RelDataTypeFactory createTypeFactory() {
-      return new SqlTypeFactoryImpl();
+      return new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
     }
 
     protected final RelOptPlanner getPlanner() {

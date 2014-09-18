@@ -68,7 +68,12 @@ public enum OptiqConnectionProperty implements ConnectionProperty {
   SPARK("spark", Type.BOOLEAN, false),
 
   /** Timezone, for example 'gmt-3'. Default is the JVM's time zone. */
-  TIMEZONE("timezone", Type.STRING, null);
+  TIMEZONE("timezone", Type.STRING, null),
+
+  /** Type system. The name of a class that implements
+   * {@code org.eigenbase.reltype.RelDataTypeSystem} and has a public default
+   * constructor or an {@code INSTANCE} constant. */
+  TYPE_SYSTEM("typeSystem", Type.PLUGIN, null);
 
   private final String camelName;
   private final Type type;

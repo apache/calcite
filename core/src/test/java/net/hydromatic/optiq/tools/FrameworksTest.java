@@ -21,16 +21,21 @@ import net.hydromatic.optiq.Table;
 import net.hydromatic.optiq.impl.AbstractTable;
 import net.hydromatic.optiq.rules.java.EnumerableConvention;
 import net.hydromatic.optiq.rules.java.JavaRules;
+import net.hydromatic.optiq.server.OptiqServerStatement;
 
 import org.eigenbase.rel.FilterRel;
 import org.eigenbase.rel.RelNode;
 import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.reltype.RelDataTypeFactory;
+import org.eigenbase.reltype.RelDataTypeSystem;
+import org.eigenbase.reltype.RelDataTypeSystemImpl;
 import org.eigenbase.rex.RexBuilder;
+import org.eigenbase.rex.RexLiteral;
 import org.eigenbase.rex.RexNode;
 import org.eigenbase.sql.SqlExplainLevel;
 import org.eigenbase.sql.fun.SqlStdOperatorTable;
+import org.eigenbase.sql.type.SqlTypeName;
 import org.eigenbase.util.Util;
 
 import org.junit.Test;
@@ -109,6 +114,69 @@ public class FrameworksTest {
   @Test public void testCreateRootSchemaWithNoMetadataSchema() {
     SchemaPlus rootSchema = Frameworks.createRootSchema(false);
     assertThat(rootSchema.getSubSchemaNames().size(), equalTo(0));
+  }
+
+  /** Tests that validation (specifically, inferring the result of adding
+   * two DECIMAL(19, 0) values together) happens differently with a type system
+   * that allows a larger maximum precision for decimals.
+   *
+   * <p>Test case for
+   * <a href="https://issues.apache.org/jira/browse/OPTIQ-413">OPTIQ-413</a>,
+   * "Add RelDataTypeSystem plugin, allowing different max precision of a
+   * DECIMAL".
+   *
+   * <p>Also tests the plugin system, by specifying implementations of a
+   * plugin interface with public and private constructors. */
+  @Test public void testTypeSystem() {
+    checkTypeSystem(19, Frameworks.newConfigBuilder().build());
+    checkTypeSystem(25, Frameworks.newConfigBuilder()
+        .typeSystem(HiveLikeTypeSystem.INSTANCE).build());
+    checkTypeSystem(31, Frameworks.newConfigBuilder()
+        .typeSystem(new HiveLikeTypeSystem2()).build());
+  }
+
+  private void checkTypeSystem(final int expected, FrameworkConfig config) {
+    Frameworks.withPrepare(
+        new Frameworks.PrepareAction<Void>(config) {
+          @Override public Void apply(RelOptCluster cluster,
+              RelOptSchema relOptSchema, SchemaPlus rootSchema,
+              OptiqServerStatement statement) {
+            final RelDataType type =
+                cluster.getTypeFactory()
+                    .createSqlType(SqlTypeName.DECIMAL, 30, 2);
+            final RexLiteral literal =
+                cluster.getRexBuilder().makeExactLiteral(BigDecimal.ONE, type);
+            final RexNode call =
+                cluster.getRexBuilder().makeCall(SqlStdOperatorTable.PLUS,
+                    literal,
+                    literal);
+            assertEquals(expected, call.getType().getPrecision());
+            return null;
+          }
+        });
+  }
+
+  /** Dummy type system, similar to Hive's, accessed via an INSTANCE member. */
+  public static class HiveLikeTypeSystem extends RelDataTypeSystemImpl {
+    public static final RelDataTypeSystem INSTANCE = new HiveLikeTypeSystem();
+
+    private HiveLikeTypeSystem() {}
+
+    @Override public int getMaxNumericPrecision() {
+      assert super.getMaxNumericPrecision() == 19;
+      return 25;
+    }
+  }
+
+  /** Dummy type system, similar to Hive's, accessed via a public default
+   * constructor. */
+  public static class HiveLikeTypeSystem2 extends RelDataTypeSystemImpl {
+    public HiveLikeTypeSystem2() {}
+
+    @Override public int getMaxNumericPrecision() {
+      assert super.getMaxNumericPrecision() == 19;
+      return 38;
+    }
   }
 }
 

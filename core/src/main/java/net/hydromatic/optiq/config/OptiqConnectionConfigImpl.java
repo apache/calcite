@@ -82,6 +82,11 @@ public class OptiqConnectionConfigImpl extends ConnectionConfigImpl
   public boolean spark() {
     return OptiqConnectionProperty.SPARK.wrap(properties).getBoolean();
   }
+
+  public <T> T typeSystem(Class<T> typeSystemClass, T defaultTypeSystem) {
+    return OptiqConnectionProperty.TYPE_SYSTEM.wrap(properties)
+        .getPlugin(typeSystemClass, defaultTypeSystem);
+  }
 }
 
 // End OptiqConnectionConfigImpl.java

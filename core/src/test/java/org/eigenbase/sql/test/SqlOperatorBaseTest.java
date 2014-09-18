@@ -24,6 +24,7 @@ import java.text.*;
 import java.util.*;
 import java.util.regex.*;
 
+import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.sql.*;
 import org.eigenbase.sql.fun.*;
 import org.eigenbase.sql.parser.*;
@@ -4815,8 +4816,10 @@ public abstract class SqlOperatorBaseTest {
     if (!enable) {
       return;
     }
-    for (BasicSqlType type : SqlLimitsTest.getTypes()) {
-      for (Object o : getValues(type, true)) {
+    final List<RelDataType> types =
+        SqlLimitsTest.getTypes(tester.getValidator().getTypeFactory());
+    for (RelDataType type : types) {
+      for (Object o : getValues((BasicSqlType) type, true)) {
         SqlLiteral literal =
             type.getSqlTypeName().createLiteral(o, SqlParserPos.ZERO);
         SqlString literalString =
@@ -4863,8 +4866,10 @@ public abstract class SqlOperatorBaseTest {
    */
   @Test public void testLiteralBeyondLimit() {
     tester.setFor(SqlStdOperatorTable.CAST);
-    for (BasicSqlType type : SqlLimitsTest.getTypes()) {
-      for (Object o : getValues(type, false)) {
+    final List<RelDataType> types =
+        SqlLimitsTest.getTypes(tester.getValidator().getTypeFactory());
+    for (RelDataType type : types) {
+      for (Object o : getValues((BasicSqlType) type, false)) {
         SqlLiteral literal =
             type.getSqlTypeName().createLiteral(o, SqlParserPos.ZERO);
         SqlString literalString =

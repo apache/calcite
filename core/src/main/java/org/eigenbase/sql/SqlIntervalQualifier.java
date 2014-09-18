@@ -20,6 +20,8 @@ import java.math.BigDecimal;
 import java.util.*;
 import java.util.regex.*;
 
+import org.eigenbase.reltype.RelDataType;
+import org.eigenbase.reltype.RelDataTypeSystem;
 import org.eigenbase.sql.parser.*;
 import org.eigenbase.sql.type.*;
 import org.eigenbase.sql.util.*;
@@ -29,6 +31,7 @@ import org.eigenbase.util14.DateTimeUtil;
 
 import net.hydromatic.optiq.runtime.SqlFunctions;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 
 import static org.eigenbase.util.Static.RESOURCE;
@@ -83,7 +86,6 @@ import static org.eigenbase.util.Static.RESOURCE;
 public class SqlIntervalQualifier extends SqlNode {
   //~ Static fields/initializers ---------------------------------------------
 
-  private static final int USE_DEFAULT_PRECISION = -1;
   private static final BigDecimal ZERO = BigDecimal.ZERO;
   private static final BigDecimal THOUSAND = BigDecimal.valueOf(1000);
   private static final BigDecimal INT_MAX_VALUE_PLUS_ONE =
@@ -204,9 +206,6 @@ public class SqlIntervalQualifier extends SqlNode {
   private final TimeUnitRange timeUnitRange;
   private final int fractionalSecondPrecision;
 
-  private final boolean useDefaultStartPrecision;
-  private final boolean useDefaultFractionalSecondPrecision;
-
   //~ Constructors -----------------------------------------------------------
 
   public SqlIntervalQualifier(
@@ -216,39 +215,10 @@ public class SqlIntervalQualifier extends SqlNode {
       int fractionalSecondPrecision,
       SqlParserPos pos) {
     super(pos);
-    assert null != startUnit;
-
-    this.timeUnitRange = TimeUnitRange.of(startUnit, endUnit);
-
-    // if unspecified, start precision = 2
-    if (startPrecision == USE_DEFAULT_PRECISION) {
-      useDefaultStartPrecision = true;
-      if (this.isYearMonth()) {
-        this.startPrecision =
-            SqlTypeName.INTERVAL_YEAR_MONTH.getDefaultPrecision();
-      } else {
-        this.startPrecision =
-            SqlTypeName.INTERVAL_DAY_TIME.getDefaultPrecision();
-      }
-    } else {
-      useDefaultStartPrecision = false;
-      this.startPrecision = startPrecision;
-    }
-
-    // unspecified fractional second precision = 6
-    if (fractionalSecondPrecision == USE_DEFAULT_PRECISION) {
-      useDefaultFractionalSecondPrecision = true;
-      if (this.isYearMonth()) {
-        this.fractionalSecondPrecision =
-            SqlTypeName.INTERVAL_YEAR_MONTH.getDefaultScale();
-      } else {
-        this.fractionalSecondPrecision =
-            SqlTypeName.INTERVAL_DAY_TIME.getDefaultScale();
-      }
-    } else {
-      useDefaultFractionalSecondPrecision = false;
-      this.fractionalSecondPrecision = fractionalSecondPrecision;
-    }
+    this.timeUnitRange =
+        TimeUnitRange.of(Preconditions.checkNotNull(startUnit), endUnit);
+    this.startPrecision = startPrecision;
+    this.fractionalSecondPrecision = fractionalSecondPrecision;
   }
 
   public SqlIntervalQualifier(
@@ -257,13 +227,19 @@ public class SqlIntervalQualifier extends SqlNode {
       SqlParserPos pos) {
     this(
         startUnit,
-        USE_DEFAULT_PRECISION,
+        RelDataType.PRECISION_NOT_SPECIFIED,
         endUnit,
-        USE_DEFAULT_PRECISION,
+        RelDataType.PRECISION_NOT_SPECIFIED,
         pos);
   }
 
   //~ Methods ----------------------------------------------------------------
+
+  public SqlTypeName typeName() {
+    return isYearMonth()
+        ? SqlTypeName.INTERVAL_YEAR_MONTH
+        : SqlTypeName.INTERVAL_DAY_TIME;
+  }
 
   public SqlFunctions.TimeUnitRange foo() {
     return SqlFunctions.TimeUnitRange.valueOf(timeUnitRange.name());
@@ -289,33 +265,34 @@ public class SqlIntervalQualifier extends SqlNode {
     return true;
   }
 
-  public static int getDefaultPrecisionId() {
-    return USE_DEFAULT_PRECISION;
-  }
-
-  public int getStartPrecision() {
-    return startPrecision;
-  }
-
-  public int getStartPrecisionPreservingDefault() {
-    if (useDefaultStartPrecision) {
-      return USE_DEFAULT_PRECISION;
+  public int getStartPrecision(RelDataTypeSystem typeSystem) {
+    if (startPrecision == RelDataType.PRECISION_NOT_SPECIFIED) {
+      return typeSystem.getDefaultPrecision(typeName());
     } else {
       return startPrecision;
     }
   }
 
+  public int getStartPrecisionPreservingDefault() {
+    return startPrecision;
+  }
+
+  private boolean useDefaultStartPrecision() {
+    return startPrecision == RelDataType.PRECISION_NOT_SPECIFIED;
+  }
+
   public static int combineStartPrecisionPreservingDefault(
+      RelDataTypeSystem typeSystem,
       SqlIntervalQualifier qual1,
       SqlIntervalQualifier qual2) {
-    if (qual1.getStartPrecision()
-        > qual2.getStartPrecision()) {
+    final int start1 = qual1.getStartPrecision(typeSystem);
+    final int start2 = qual2.getStartPrecision(typeSystem);
+    if (start1 > start2) {
       // qual1 is more precise, but if it has the default indicator
       // set, we need to return that indicator so result will also
       // use default
       return qual1.getStartPrecisionPreservingDefault();
-    } else if (qual1.getStartPrecision()
-        < qual2.getStartPrecision()) {
+    } else if (start1 < start2) {
       // qual2 is more precise, but if it has the default indicator
       // set, we need to return that indicator so result will also
       // use default
@@ -323,39 +300,47 @@ public class SqlIntervalQualifier extends SqlNode {
     } else {
       // they are equal.  return default if both are default,
       // otherwise return exact precision
-      if (qual1.useDefaultStartPrecision
-          && qual2.useDefaultStartPrecision) {
+      if (qual1.useDefaultStartPrecision()
+          && qual2.useDefaultStartPrecision()) {
         return qual1.getStartPrecisionPreservingDefault();
       } else {
-        return qual1.getStartPrecision();
+        return start1;
       }
     }
   }
 
-  public int getFractionalSecondPrecision() {
-    return fractionalSecondPrecision;
+  public int getFractionalSecondPrecision(RelDataTypeSystem typeSystem) {
+    if (fractionalSecondPrecision == RelDataType.PRECISION_NOT_SPECIFIED) {
+      return typeName().getDefaultScale();
+    } else {
+      return fractionalSecondPrecision;
+    }
   }
 
   public int getFractionalSecondPrecisionPreservingDefault() {
-    if (useDefaultFractionalSecondPrecision) {
-      return USE_DEFAULT_PRECISION;
+    if (useDefaultFractionalSecondPrecision()) {
+      return RelDataType.PRECISION_NOT_SPECIFIED;
     } else {
       return startPrecision;
     }
   }
 
+  private boolean useDefaultFractionalSecondPrecision() {
+    return fractionalSecondPrecision == RelDataType.PRECISION_NOT_SPECIFIED;
+  }
+
   public static int combineFractionalSecondPrecisionPreservingDefault(
+      RelDataTypeSystem typeSystem,
       SqlIntervalQualifier qual1,
       SqlIntervalQualifier qual2) {
-    if (qual1.getFractionalSecondPrecision()
-        > qual2.getFractionalSecondPrecision()) {
+    final int p1 = qual1.getFractionalSecondPrecision(typeSystem);
+    final int p2 = qual2.getFractionalSecondPrecision(typeSystem);
+    if (p1 > p2) {
       // qual1 is more precise, but if it has the default indicator
       // set, we need to return that indicator so result will also
       // use default
       return qual1.getFractionalSecondPrecisionPreservingDefault();
-    } else if (
-        qual1.getFractionalSecondPrecision()
-            < qual2.getFractionalSecondPrecision()) {
+    } else if (p1 < p2) {
       // qual2 is more precise, but if it has the default indicator
       // set, we need to return that indicator so result will also
       // use default
@@ -363,11 +348,11 @@ public class SqlIntervalQualifier extends SqlNode {
     } else {
       // they are equal.  return default if both are default,
       // otherwise return exact precision
-      if (qual1.useDefaultFractionalSecondPrecision
-          && qual2.useDefaultFractionalSecondPrecision) {
+      if (qual1.useDefaultFractionalSecondPrecision()
+          && qual2.useDefaultFractionalSecondPrecision()) {
         return qual1.getFractionalSecondPrecisionPreservingDefault();
       } else {
-        return qual1.getFractionalSecondPrecision();
+        return p1;
       }
     }
   }
@@ -381,29 +366,30 @@ public class SqlIntervalQualifier extends SqlNode {
   }
 
   public SqlNode clone(SqlParserPos pos) {
-    return new SqlIntervalQualifier(
-        timeUnitRange.startUnit,
-        useDefaultStartPrecision ? USE_DEFAULT_PRECISION
-            : startPrecision,
-        timeUnitRange.endUnit,
-        useDefaultFractionalSecondPrecision ? USE_DEFAULT_PRECISION
-            : fractionalSecondPrecision,
-        pos);
+    return new SqlIntervalQualifier(timeUnitRange.startUnit, startPrecision,
+        timeUnitRange.endUnit, fractionalSecondPrecision, pos);
   }
 
   public void unparse(
       SqlWriter writer,
       int leftPrec,
       int rightPrec) {
+    unparse(RelDataTypeSystem.DEFAULT, writer);
+  }
+
+  public void unparse(RelDataTypeSystem typeSystem, SqlWriter writer) {
     final String start = timeUnitRange.startUnit.name();
+    final int fractionalSecondPrecision =
+        getFractionalSecondPrecision(typeSystem);
+    final int startPrecision = getStartPrecision(typeSystem);
     if (timeUnitRange.startUnit == TimeUnit.SECOND) {
-      if (!useDefaultFractionalSecondPrecision) {
+      if (!useDefaultFractionalSecondPrecision()) {
         final SqlWriter.Frame frame = writer.startFunCall(start);
         writer.print(startPrecision);
         writer.sep(",", true);
-        writer.print(fractionalSecondPrecision);
+        writer.print(getFractionalSecondPrecision(typeSystem));
         writer.endList(frame);
-      } else if (!useDefaultStartPrecision) {
+      } else if (!useDefaultStartPrecision()) {
         final SqlWriter.Frame frame = writer.startFunCall(start);
         writer.print(startPrecision);
         writer.endList(frame);
@@ -411,7 +397,7 @@ public class SqlIntervalQualifier extends SqlNode {
         writer.keyword(start);
       }
     } else {
-      if (!useDefaultStartPrecision) {
+      if (!useDefaultStartPrecision()) {
         final SqlWriter.Frame frame = writer.startFunCall(start);
         writer.print(startPrecision);
         writer.endList(frame);
@@ -423,7 +409,7 @@ public class SqlIntervalQualifier extends SqlNode {
         writer.keyword("TO");
         final String end = timeUnitRange.endUnit.name();
         if ((TimeUnit.SECOND == timeUnitRange.endUnit)
-            && (!useDefaultFractionalSecondPrecision)) {
+            && (!useDefaultFractionalSecondPrecision())) {
           final SqlWriter.Frame frame = writer.startFunCall(end);
           writer.print(fractionalSecondPrecision);
           writer.endList(frame);
@@ -474,21 +460,23 @@ public class SqlIntervalQualifier extends SqlNode {
     return unsignedValue;
   }
 
-  private boolean isLeadFieldInRange(BigDecimal value, TimeUnit unit) {
+  private boolean isLeadFieldInRange(RelDataTypeSystem typeSystem,
+      BigDecimal value, TimeUnit unit) {
     // we should never get handed a negative field value
     assert value.compareTo(ZERO) >= 0;
 
     // Leading fields are only restricted by startPrecision.
+    final int startPrecision = getStartPrecision(typeSystem);
     return startPrecision < POWERS10.length
         ? value.compareTo(POWERS10[startPrecision]) < 0
         : value.compareTo(INT_MAX_VALUE_PLUS_ONE) < 0;
   }
 
-  private void checkLeadFieldInRange(
-      int sign, BigDecimal value, TimeUnit unit, SqlParserPos pos) {
-    if (!isLeadFieldInRange(value, unit)) {
+  private void checkLeadFieldInRange(RelDataTypeSystem typeSystem, int sign,
+      BigDecimal value, TimeUnit unit, SqlParserPos pos) {
+    if (!isLeadFieldInRange(typeSystem, value, unit)) {
       throw fieldExceedsPrecisionException(
-          pos, sign, value, unit, startPrecision);
+          pos, sign, value, unit, getStartPrecision(typeSystem));
     }
   }
 
@@ -581,7 +569,7 @@ public class SqlIntervalQualifier extends SqlNode {
    * @throws EigenbaseContextException if the interval value is illegal.
    */
   private int[] evaluateIntervalLiteralAsYear(
-      int sign,
+      RelDataTypeSystem typeSystem, int sign,
       String value,
       String originalValue,
       SqlParserPos pos) {
@@ -600,7 +588,7 @@ public class SqlIntervalQualifier extends SqlNode {
       }
 
       // Validate individual fields
-      checkLeadFieldInRange(sign, year, TimeUnit.YEAR, pos);
+      checkLeadFieldInRange(typeSystem, sign, year, TimeUnit.YEAR, pos);
 
       // package values up for return
       return fillIntervalValueArray(sign, year, ZERO);
@@ -615,7 +603,7 @@ public class SqlIntervalQualifier extends SqlNode {
    * @throws EigenbaseContextException if the interval value is illegal.
    */
   private int[] evaluateIntervalLiteralAsYearToMonth(
-      int sign,
+      RelDataTypeSystem typeSystem, int sign,
       String value,
       String originalValue,
       SqlParserPos pos) {
@@ -636,7 +624,7 @@ public class SqlIntervalQualifier extends SqlNode {
       }
 
       // Validate individual fields
-      checkLeadFieldInRange(sign, year, TimeUnit.YEAR, pos);
+      checkLeadFieldInRange(typeSystem, sign, year, TimeUnit.YEAR, pos);
       if (!(isSecondaryFieldInRange(month, TimeUnit.MONTH))) {
         throw invalidValueException(pos, originalValue);
       }
@@ -654,7 +642,7 @@ public class SqlIntervalQualifier extends SqlNode {
    * @throws EigenbaseContextException if the interval value is illegal.
    */
   private int[] evaluateIntervalLiteralAsMonth(
-      int sign,
+      RelDataTypeSystem typeSystem, int sign,
       String value,
       String originalValue,
       SqlParserPos pos) {
@@ -673,7 +661,7 @@ public class SqlIntervalQualifier extends SqlNode {
       }
 
       // Validate individual fields
-      checkLeadFieldInRange(sign, month, TimeUnit.MONTH, pos);
+      checkLeadFieldInRange(typeSystem, sign, month, TimeUnit.MONTH, pos);
 
       // package values up for return
       return fillIntervalValueArray(sign, ZERO, month);
@@ -688,7 +676,7 @@ public class SqlIntervalQualifier extends SqlNode {
    * @throws EigenbaseContextException if the interval value is illegal.
    */
   private int[] evaluateIntervalLiteralAsDay(
-      int sign,
+      RelDataTypeSystem typeSystem, int sign,
       String value,
       String originalValue,
       SqlParserPos pos) {
@@ -707,7 +695,7 @@ public class SqlIntervalQualifier extends SqlNode {
       }
 
       // Validate individual fields
-      checkLeadFieldInRange(sign, day, TimeUnit.DAY, pos);
+      checkLeadFieldInRange(typeSystem, sign, day, TimeUnit.DAY, pos);
 
       // package values up for return
       return fillIntervalValueArray(sign, day, ZERO, ZERO, ZERO, ZERO);
@@ -722,7 +710,7 @@ public class SqlIntervalQualifier extends SqlNode {
    * @throws EigenbaseContextException if the interval value is illegal.
    */
   private int[] evaluateIntervalLiteralAsDayToHour(
-      int sign,
+      RelDataTypeSystem typeSystem, int sign,
       String value,
       String originalValue,
       SqlParserPos pos) {
@@ -743,7 +731,7 @@ public class SqlIntervalQualifier extends SqlNode {
       }
 
       // Validate individual fields
-      checkLeadFieldInRange(sign, day, TimeUnit.DAY, pos);
+      checkLeadFieldInRange(typeSystem, sign, day, TimeUnit.DAY, pos);
       if (!(isSecondaryFieldInRange(hour, TimeUnit.HOUR))) {
         throw invalidValueException(pos, originalValue);
       }
@@ -761,7 +749,7 @@ public class SqlIntervalQualifier extends SqlNode {
    * @throws EigenbaseContextException if the interval value is illegal.
    */
   private int[] evaluateIntervalLiteralAsDayToMinute(
-      int sign,
+      RelDataTypeSystem typeSystem, int sign,
       String value,
       String originalValue,
       SqlParserPos pos) {
@@ -784,7 +772,7 @@ public class SqlIntervalQualifier extends SqlNode {
       }
 
       // Validate individual fields
-      checkLeadFieldInRange(sign, day, TimeUnit.DAY, pos);
+      checkLeadFieldInRange(typeSystem, sign, day, TimeUnit.DAY, pos);
       if (!(isSecondaryFieldInRange(hour, TimeUnit.HOUR))
           || !(isSecondaryFieldInRange(minute, TimeUnit.MINUTE))) {
         throw invalidValueException(pos, originalValue);
@@ -803,7 +791,7 @@ public class SqlIntervalQualifier extends SqlNode {
    * @throws EigenbaseContextException if the interval value is illegal.
    */
   private int[] evaluateIntervalLiteralAsDayToSecond(
-      int sign,
+      RelDataTypeSystem typeSystem, int sign,
       String value,
       String originalValue,
       SqlParserPos pos) {
@@ -817,6 +805,8 @@ public class SqlIntervalQualifier extends SqlNode {
     // validate as DAY(startPrecision) TO MINUTE,
     // e.g. 'DD HH:MM:SS' or 'DD HH:MM:SS.SSS'
     // Note: must check two patterns, since fractional second is optional
+    final int fractionalSecondPrecision =
+        getFractionalSecondPrecision(typeSystem);
     String intervalPatternWithFracSec =
         "(\\d+) (\\d{1,2}):(\\d{1,2}):(\\d{1,2})\\.(\\d{1,"
         + fractionalSecondPrecision + "})";
@@ -849,7 +839,7 @@ public class SqlIntervalQualifier extends SqlNode {
       }
 
       // Validate individual fields
-      checkLeadFieldInRange(sign, day, TimeUnit.DAY, pos);
+      checkLeadFieldInRange(typeSystem, sign, day, TimeUnit.DAY, pos);
       if (!(isSecondaryFieldInRange(hour, TimeUnit.HOUR))
           || !(isSecondaryFieldInRange(minute, TimeUnit.MINUTE))
           || !(isSecondaryFieldInRange(second, TimeUnit.SECOND))
@@ -876,7 +866,7 @@ public class SqlIntervalQualifier extends SqlNode {
    * @throws EigenbaseContextException if the interval value is illegal.
    */
   private int[] evaluateIntervalLiteralAsHour(
-      int sign,
+      RelDataTypeSystem typeSystem, int sign,
       String value,
       String originalValue,
       SqlParserPos pos) {
@@ -895,7 +885,7 @@ public class SqlIntervalQualifier extends SqlNode {
       }
 
       // Validate individual fields
-      checkLeadFieldInRange(sign, hour, TimeUnit.HOUR, pos);
+      checkLeadFieldInRange(typeSystem, sign, hour, TimeUnit.HOUR, pos);
 
       // package values up for return
       return fillIntervalValueArray(sign, ZERO, hour, ZERO, ZERO, ZERO);
@@ -911,7 +901,7 @@ public class SqlIntervalQualifier extends SqlNode {
    * @throws EigenbaseContextException if the interval value is illegal.
    */
   private int[] evaluateIntervalLiteralAsHourToMinute(
-      int sign,
+      RelDataTypeSystem typeSystem, int sign,
       String value,
       String originalValue,
       SqlParserPos pos) {
@@ -932,7 +922,7 @@ public class SqlIntervalQualifier extends SqlNode {
       }
 
       // Validate individual fields
-      checkLeadFieldInRange(sign, hour, TimeUnit.HOUR, pos);
+      checkLeadFieldInRange(typeSystem, sign, hour, TimeUnit.HOUR, pos);
       if (!(isSecondaryFieldInRange(minute, TimeUnit.MINUTE))) {
         throw invalidValueException(pos, originalValue);
       }
@@ -951,7 +941,7 @@ public class SqlIntervalQualifier extends SqlNode {
    * @throws EigenbaseContextException if the interval value is illegal.
    */
   private int[] evaluateIntervalLiteralAsHourToSecond(
-      int sign,
+      RelDataTypeSystem typeSystem, int sign,
       String value,
       String originalValue,
       SqlParserPos pos) {
@@ -964,6 +954,8 @@ public class SqlIntervalQualifier extends SqlNode {
     // validate as HOUR(startPrecision) TO SECOND,
     // e.g. 'HH:MM:SS' or 'HH:MM:SS.SSS'
     // Note: must check two patterns, since fractional second is optional
+    final int fractionalSecondPrecision =
+        getFractionalSecondPrecision(typeSystem);
     String intervalPatternWithFracSec =
         "(\\d+):(\\d{1,2}):(\\d{1,2})\\.(\\d{1,"
         + fractionalSecondPrecision + "})";
@@ -995,7 +987,7 @@ public class SqlIntervalQualifier extends SqlNode {
       }
 
       // Validate individual fields
-      checkLeadFieldInRange(sign, hour, TimeUnit.HOUR, pos);
+      checkLeadFieldInRange(typeSystem, sign, hour, TimeUnit.HOUR, pos);
       if (!(isSecondaryFieldInRange(minute, TimeUnit.MINUTE))
           || !(isSecondaryFieldInRange(second, TimeUnit.SECOND))
           || !(isFractionalSecondFieldInRange(secondFrac))) {
@@ -1021,7 +1013,7 @@ public class SqlIntervalQualifier extends SqlNode {
    * @throws EigenbaseContextException if the interval value is illegal.
    */
   private int[] evaluateIntervalLiteralAsMinute(
-      int sign,
+      RelDataTypeSystem typeSystem, int sign,
       String value,
       String originalValue,
       SqlParserPos pos) {
@@ -1040,7 +1032,7 @@ public class SqlIntervalQualifier extends SqlNode {
       }
 
       // Validate individual fields
-      checkLeadFieldInRange(sign, minute, TimeUnit.MINUTE, pos);
+      checkLeadFieldInRange(typeSystem, sign, minute, TimeUnit.MINUTE, pos);
 
       // package values up for return
       return fillIntervalValueArray(sign, ZERO, ZERO, minute, ZERO, ZERO);
@@ -1056,7 +1048,7 @@ public class SqlIntervalQualifier extends SqlNode {
    * @throws EigenbaseContextException if the interval value is illegal.
    */
   private int[] evaluateIntervalLiteralAsMinuteToSecond(
-      int sign,
+      RelDataTypeSystem typeSystem, int sign,
       String value,
       String originalValue,
       SqlParserPos pos) {
@@ -1068,6 +1060,8 @@ public class SqlIntervalQualifier extends SqlNode {
     // validate as MINUTE(startPrecision) TO SECOND,
     // e.g. 'MM:SS' or 'MM:SS.SSS'
     // Note: must check two patterns, since fractional second is optional
+    final int fractionalSecondPrecision =
+        getFractionalSecondPrecision(typeSystem);
     String intervalPatternWithFracSec =
         "(\\d+):(\\d{1,2})\\.(\\d{1," + fractionalSecondPrecision + "})";
     String intervalPatternWithoutFracSec =
@@ -1097,7 +1091,7 @@ public class SqlIntervalQualifier extends SqlNode {
       }
 
       // Validate individual fields
-      checkLeadFieldInRange(sign, minute, TimeUnit.MINUTE, pos);
+      checkLeadFieldInRange(typeSystem, sign, minute, TimeUnit.MINUTE, pos);
       if (!(isSecondaryFieldInRange(second, TimeUnit.SECOND))
           || !(isFractionalSecondFieldInRange(secondFrac))) {
         throw invalidValueException(pos, originalValue);
@@ -1122,6 +1116,7 @@ public class SqlIntervalQualifier extends SqlNode {
    * @throws EigenbaseContextException if the interval value is illegal.
    */
   private int[] evaluateIntervalLiteralAsSecond(
+      RelDataTypeSystem typeSystem,
       int sign,
       String value,
       String originalValue,
@@ -1133,6 +1128,8 @@ public class SqlIntervalQualifier extends SqlNode {
     // validate as SECOND(startPrecision, fractionalSecondPrecision)
     // e.g. 'SS' or 'SS.SSS'
     // Note: must check two patterns, since fractional second is optional
+    final int fractionalSecondPrecision =
+        getFractionalSecondPrecision(typeSystem);
     String intervalPatternWithFracSec =
         "(\\d+)\\.(\\d{1," + fractionalSecondPrecision + "})";
     String intervalPatternWithoutFracSec =
@@ -1161,7 +1158,7 @@ public class SqlIntervalQualifier extends SqlNode {
       }
 
       // Validate individual fields
-      checkLeadFieldInRange(sign, second, TimeUnit.SECOND, pos);
+      checkLeadFieldInRange(typeSystem, sign, second, TimeUnit.SECOND, pos);
       if (!(isFractionalSecondFieldInRange(secondFrac))) {
         throw invalidValueException(pos, originalValue);
       }
@@ -1183,7 +1180,8 @@ public class SqlIntervalQualifier extends SqlNode {
    * @return field values, never null
    * @throws EigenbaseContextException if the interval value is illegal
    */
-  public int[] evaluateIntervalLiteral(String value, SqlParserPos pos) {
+  public int[] evaluateIntervalLiteral(String value, SqlParserPos pos,
+      RelDataTypeSystem typeSystem) {
     // save original value for if we have to throw
     final String value0 = value;
 
@@ -1207,31 +1205,43 @@ public class SqlIntervalQualifier extends SqlNode {
     // well as explicit or implicit precision and range.
     switch (timeUnitRange) {
     case YEAR:
-      return evaluateIntervalLiteralAsYear(sign, value, value0, pos);
+      return evaluateIntervalLiteralAsYear(typeSystem, sign, value, value0,
+          pos);
     case YEAR_TO_MONTH:
-      return evaluateIntervalLiteralAsYearToMonth(sign, value, value0, pos);
+      return evaluateIntervalLiteralAsYearToMonth(typeSystem, sign, value,
+          value0, pos);
     case MONTH:
-      return evaluateIntervalLiteralAsMonth(sign, value, value0, pos);
+      return evaluateIntervalLiteralAsMonth(typeSystem, sign, value, value0,
+          pos);
     case DAY:
-      return evaluateIntervalLiteralAsDay(sign, value, value0, pos);
+      return evaluateIntervalLiteralAsDay(typeSystem, sign, value, value0, pos);
     case DAY_TO_HOUR:
-      return evaluateIntervalLiteralAsDayToHour(sign, value, value0, pos);
+      return evaluateIntervalLiteralAsDayToHour(typeSystem, sign, value, value0,
+          pos);
     case DAY_TO_MINUTE:
-      return evaluateIntervalLiteralAsDayToMinute(sign, value, value0, pos);
+      return evaluateIntervalLiteralAsDayToMinute(typeSystem, sign, value,
+          value0, pos);
     case DAY_TO_SECOND:
-      return evaluateIntervalLiteralAsDayToSecond(sign, value, value0, pos);
+      return evaluateIntervalLiteralAsDayToSecond(typeSystem, sign, value,
+          value0, pos);
     case HOUR:
-      return evaluateIntervalLiteralAsHour(sign, value, value0, pos);
+      return evaluateIntervalLiteralAsHour(typeSystem, sign, value, value0,
+          pos);
     case HOUR_TO_MINUTE:
-      return evaluateIntervalLiteralAsHourToMinute(sign, value, value0, pos);
+      return evaluateIntervalLiteralAsHourToMinute(typeSystem, sign, value,
+          value0, pos);
     case HOUR_TO_SECOND:
-      return evaluateIntervalLiteralAsHourToSecond(sign, value, value0, pos);
+      return evaluateIntervalLiteralAsHourToSecond(typeSystem, sign, value,
+          value0, pos);
     case MINUTE:
-      return evaluateIntervalLiteralAsMinute(sign, value, value0, pos);
+      return evaluateIntervalLiteralAsMinute(typeSystem, sign, value, value0,
+          pos);
     case MINUTE_TO_SECOND:
-      return evaluateIntervalLiteralAsMinuteToSecond(sign, value, value0, pos);
+      return evaluateIntervalLiteralAsMinuteToSecond(typeSystem, sign, value,
+          value0, pos);
     case SECOND:
-      return evaluateIntervalLiteralAsSecond(sign, value, value0, pos);
+      return evaluateIntervalLiteralAsSecond(typeSystem, sign, value, value0,
+          pos);
     default:
       throw invalidValueException(pos, value0);
     }

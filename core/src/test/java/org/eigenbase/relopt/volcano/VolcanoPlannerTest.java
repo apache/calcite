@@ -60,7 +60,8 @@ public class VolcanoPlannerTest {
 
   static RelOptCluster newCluster(VolcanoPlanner planner) {
     RelOptQuery query = new RelOptQuery(planner);
-    RelDataTypeFactory typeFactory = new SqlTypeFactoryImpl();
+    RelDataTypeFactory typeFactory =
+        new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
     return query.createCluster(
         typeFactory,
         new RexBuilder(typeFactory));

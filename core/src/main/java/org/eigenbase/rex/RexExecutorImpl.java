@@ -61,7 +61,8 @@ public class RexExecutorImpl implements RelOptPlanner.Executor {
       programBuilder.addProject(
           node, "c" + programBuilder.getProjectList().size());
     }
-    final JavaTypeFactoryImpl javaTypeFactory = new JavaTypeFactoryImpl();
+    final JavaTypeFactoryImpl javaTypeFactory =
+        new JavaTypeFactoryImpl(rexBuilder.getTypeFactory().getTypeSystem());
     final BlockBuilder blockBuilder = new BlockBuilder();
     final ParameterExpression root0_ =
         Expressions.parameter(Object.class, "root0");

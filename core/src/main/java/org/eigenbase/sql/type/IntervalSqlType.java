@@ -19,6 +19,8 @@ package org.eigenbase.sql.type;
 import org.eigenbase.reltype.*;
 import org.eigenbase.sql.*;
 import org.eigenbase.sql.parser.*;
+import org.eigenbase.sql.pretty.SqlPrettyWriter;
+import org.eigenbase.sql.util.SqlString;
 
 /**
  * IntervalSqlType represents a standard SQL datetime interval type.
@@ -26,6 +28,7 @@ import org.eigenbase.sql.parser.*;
 public class IntervalSqlType extends AbstractSqlType {
   //~ Instance fields --------------------------------------------------------
 
+  private final RelDataTypeSystem typeSystem;
   private SqlIntervalQualifier intervalQualifier;
 
   //~ Constructors -----------------------------------------------------------
@@ -34,14 +37,15 @@ public class IntervalSqlType extends AbstractSqlType {
    * Constructs an IntervalSqlType. This should only be called from a factory
    * method.
    */
-  public IntervalSqlType(
+  public IntervalSqlType(RelDataTypeSystem typeSystem,
       SqlIntervalQualifier intervalQualifier,
       boolean isNullable) {
-    super(
-        intervalQualifier.isYearMonth() ? SqlTypeName.INTERVAL_YEAR_MONTH
+    super(intervalQualifier.isYearMonth()
+            ? SqlTypeName.INTERVAL_YEAR_MONTH
             : SqlTypeName.INTERVAL_DAY_TIME,
         isNullable,
         null);
+    this.typeSystem = typeSystem;
     this.intervalQualifier = intervalQualifier;
     computeDigest();
   }
@@ -51,7 +55,15 @@ public class IntervalSqlType extends AbstractSqlType {
   // implement RelDataTypeImpl
   protected void generateTypeString(StringBuilder sb, boolean withDetail) {
     sb.append("INTERVAL ");
-    sb.append(intervalQualifier.toString());
+    SqlDialect dialect = null;
+    dialect = SqlDialect.DUMMY;
+    SqlPrettyWriter writer = new SqlPrettyWriter(dialect);
+    writer.setAlwaysUseParentheses(false);
+    writer.setSelectListItemsOnSeparateLines(false);
+    writer.setIndentation(0);
+    intervalQualifier.unparse(writer, 0, 0);
+    final String sql = writer.toString();
+    sb.append(new SqlString(dialect, sql).getSql());
   }
 
   // implement RelDataType
@@ -88,10 +100,10 @@ public class IntervalSqlType extends AbstractSqlType {
     int secondPrec =
         this.intervalQualifier.getStartPrecisionPreservingDefault();
     int fracPrec =
-        SqlIntervalQualifier
-            .combineFractionalSecondPrecisionPreservingDefault(
-                this.intervalQualifier,
-                that.intervalQualifier);
+        SqlIntervalQualifier.combineFractionalSecondPrecisionPreservingDefault(
+            typeSystem,
+            this.intervalQualifier,
+            that.intervalQualifier);
 
     if (thisStart.ordinal() > thatStart.ordinal()) {
       thisEnd = thisStart;
@@ -101,17 +113,15 @@ public class IntervalSqlType extends AbstractSqlType {
     } else if (thisStart.ordinal() == thatStart.ordinal()) {
       secondPrec =
           SqlIntervalQualifier.combineStartPrecisionPreservingDefault(
+              typeFactory.getTypeSystem(),
               this.intervalQualifier,
               that.intervalQualifier);
-    } else if (
-        (null == thisEnd)
-            || (thisEnd.ordinal() < thatStart.ordinal())) {
+    } else if (null == thisEnd || thisEnd.ordinal() < thatStart.ordinal()) {
       thisEnd = thatStart;
     }
 
     if (null != thatEnd) {
-      if ((null == thisEnd)
-          || (thisEnd.ordinal() < thatEnd.ordinal())) {
+      if (null == thisEnd || thisEnd.ordinal() < thatEnd.ordinal()) {
         thisEnd = thatEnd;
       }
     }
@@ -131,17 +141,14 @@ public class IntervalSqlType extends AbstractSqlType {
     return (IntervalSqlType) intervalType;
   }
 
-  // implement RelDataType
-  public int getPrecision() {
-    return intervalQualifier.getStartPrecision();
+  @Override public int getPrecision() {
+    return intervalQualifier.getStartPrecision(typeSystem);
   }
 
   @Override
   public int getScale() {
-    // TODO Auto-generated method stub
-    return intervalQualifier.getFractionalSecondPrecision();
+    return intervalQualifier.getFractionalSecondPrecision(typeSystem);
   }
-
 }
 
 // End IntervalSqlType.java

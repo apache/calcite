@@ -18,6 +18,7 @@ package net.hydromatic.optiq.tools;
 
 import net.hydromatic.optiq.SchemaPlus;
 import net.hydromatic.optiq.config.Lex;
+import net.hydromatic.optiq.config.OptiqConnectionProperty;
 import net.hydromatic.optiq.jdbc.OptiqConnection;
 import net.hydromatic.optiq.jdbc.OptiqSchema;
 import net.hydromatic.optiq.prepare.OptiqPrepareImpl;
@@ -29,6 +30,7 @@ import org.eigenbase.relopt.RelOptCluster;
 import org.eigenbase.relopt.RelOptCostFactory;
 import org.eigenbase.relopt.RelOptSchema;
 import org.eigenbase.relopt.RelTraitDef;
+import org.eigenbase.reltype.RelDataTypeSystem;
 import org.eigenbase.sql.SqlOperatorTable;
 import org.eigenbase.sql.fun.SqlStdOperatorTable;
 import org.eigenbase.sql.parser.SqlParserImplFactory;
@@ -42,6 +44,7 @@ import com.google.common.collect.ImmutableList;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.util.List;
+import java.util.Properties;
 
 /**
  * Tools for invoking Optiq functionality without initializing a container /
@@ -134,8 +137,13 @@ public class Frameworks {
   public static <R> R withPrepare(PrepareAction<R> action) {
     try {
       Class.forName("net.hydromatic.optiq.jdbc.Driver");
+      final Properties info = new Properties();
+      if (action.config.getTypeSystem() != RelDataTypeSystem.DEFAULT) {
+        info.setProperty(OptiqConnectionProperty.TYPE_SYSTEM.camelName(),
+            action.config.getTypeSystem().getClass().getName());
+      }
       Connection connection =
-          DriverManager.getConnection("jdbc:optiq:");
+          DriverManager.getConnection("jdbc:optiq:", info);
       OptiqConnection optiqConnection =
           connection.unwrap(OptiqConnection.class);
       final OptiqServerStatement statement =
@@ -175,12 +183,14 @@ public class Frameworks {
     private SchemaPlus defaultSchema;
     private RelOptCostFactory costFactory;
     private SqlParserImplFactory parserFactory = SqlParserImpl.FACTORY;
+    private RelDataTypeSystem typeSystem = RelDataTypeSystem.DEFAULT;
 
     private ConfigBuilder() {}
 
     public FrameworkConfig build() {
       return new StdFrameworkConfig(context, convertletTable, operatorTable,
-          programs, traitDefs, lex, defaultSchema, costFactory, parserFactory);
+          programs, traitDefs, lex, defaultSchema, costFactory, parserFactory,
+          typeSystem);
     }
 
     public ConfigBuilder context(Context c) {
@@ -250,6 +260,11 @@ public class Frameworks {
       this.parserFactory = Preconditions.checkNotNull(parserFactory);
       return this;
     }
+
+    public ConfigBuilder typeSystem(RelDataTypeSystem typeSystem) {
+      this.typeSystem = Preconditions.checkNotNull(typeSystem);
+      return this;
+    }
   }
 
   /**
@@ -266,6 +281,7 @@ public class Frameworks {
     private final SchemaPlus defaultSchema;
     private final RelOptCostFactory costFactory;
     private final SqlParserImplFactory parserFactory;
+    private final RelDataTypeSystem typeSystem;
 
     public StdFrameworkConfig(Context context,
         SqlRexConvertletTable convertletTable,
@@ -275,7 +291,8 @@ public class Frameworks {
         Lex lex,
         SchemaPlus defaultSchema,
         RelOptCostFactory costFactory,
-        SqlParserImplFactory parserFactory) {
+        SqlParserImplFactory parserFactory,
+        RelDataTypeSystem typeSystem) {
       this.context = context;
       this.convertletTable = convertletTable;
       this.operatorTable = operatorTable;
@@ -285,6 +302,7 @@ public class Frameworks {
       this.defaultSchema = defaultSchema;
       this.costFactory = costFactory;
       this.parserFactory = parserFactory;
+      this.typeSystem = typeSystem;
     }
 
     public Lex getLex() {
@@ -321,6 +339,10 @@ public class Frameworks {
 
     public SqlOperatorTable getOperatorTable() {
       return operatorTable;
+    }
+
+    public RelDataTypeSystem getTypeSystem() {
+      return typeSystem;
     }
   }
 }
