@@ -25,8 +25,9 @@ import org.eigenbase.sql.type.SqlTypeName;
  * values as needed.
  *
  * <table border='1'>
- *   <tr><td>Parameter</td>        <td>Value</td></tr>
- *   <tr><td>MAX_NUMERIC_SCALE</td><td>19</td></tr>
+ *   <caption>Parameter values</caption>
+ *   <tr><th>Parameter</th>         <th>Value</th></tr>
+ *   <tr><td>MAX_NUMERIC_SCALE</td> <td>19</td></tr>
  * </table>
  */
 public abstract class RelDataTypeSystemImpl implements RelDataTypeSystem {
