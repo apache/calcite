@@ -38,7 +38,6 @@ import net.hydromatic.optiq.prepare.OptiqPrepareImpl;
 import net.hydromatic.optiq.prepare.Prepare;
 import net.hydromatic.optiq.runtime.Hook;
 import net.hydromatic.optiq.runtime.SqlFunctions;
-import net.hydromatic.optiq.tools.SqlRun;
 
 import org.eigenbase.rel.*;
 import org.eigenbase.relopt.*;
@@ -60,6 +59,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
 
 import org.hsqldb.jdbcDriver;
+
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -72,6 +72,8 @@ import java.sql.Date;
 import java.sql.Statement;
 import java.util.*;
 import javax.sql.DataSource;
+
+import net.hydromatic.quidem.Quidem;
 
 import static org.hamcrest.CoreMatchers.*;
 import static org.junit.Assert.*;
@@ -4407,9 +4409,9 @@ public class JdbcTest {
     final FileReader fileReader = new FileReader(inFile);
     final BufferedReader bufferedReader = new BufferedReader(fileReader);
     final FileWriter writer = new FileWriter(outFile);
-    final SqlRun sqlRun = new SqlRun(bufferedReader, writer);
-    sqlRun.execute(
-        new SqlRun.ConnectionFactory() {
+    final Quidem quidem = new Quidem(bufferedReader, writer);
+    quidem.execute(
+        new Quidem.ConnectionFactory() {
           public Connection connect(String name) throws Exception {
             if (name.equals("hr")) {
               return OptiqAssert.that()

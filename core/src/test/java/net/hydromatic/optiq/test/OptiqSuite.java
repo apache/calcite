@@ -21,7 +21,6 @@ import net.hydromatic.optiq.runtime.BinarySearchTest;
 import net.hydromatic.optiq.runtime.EnumerablesTest;
 import net.hydromatic.optiq.tools.FrameworksTest;
 import net.hydromatic.optiq.tools.PlannerTest;
-import net.hydromatic.optiq.tools.SqlRunTest;
 import net.hydromatic.optiq.util.BitSetsTest;
 import net.hydromatic.optiq.util.PartiallyOrderedSetTest;
 import net.hydromatic.optiq.util.graph.DirectedGraphTest;
@@ -112,7 +111,6 @@ import org.junit.runners.Suite;
 
     // slow tests that don't break often
     SqlToRelConverterExtendedTest.class,
-    SqlRunTest.class,
     PartiallyOrderedSetTest.class,
 
     // system tests and benchmarks (very slow, but usually only run if
