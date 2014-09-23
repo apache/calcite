@@ -4104,6 +4104,8 @@ SqlIdentifier ReservedFunctionName() :
         | <CHARACTER_LENGTH>
         | <COALESCE>
         | <COLLECT>
+        | <COVAR_POP>
+        | <COVAR_SAMP>
         | <CUME_DIST>
         | <COUNT>
         | <CURRENT_DATE>

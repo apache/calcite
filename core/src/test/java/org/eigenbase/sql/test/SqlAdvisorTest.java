@@ -108,6 +108,8 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
           "KEYWORD(COLLECT)",
           "KEYWORD(CONVERT)",
           "KEYWORD(COUNT)",
+          "KEYWORD(COVAR_POP)",
+          "KEYWORD(COVAR_SAMP)",
           "KEYWORD(CUME_DIST)",
           "KEYWORD(CURRENT_CATALOG)",
           "KEYWORD(CURRENT_DATE)",

@@ -79,6 +79,8 @@ public class SqlAvgAggFunction extends SqlAggFunction {
 
   public enum Subtype {
     AVG,
+    COVAR_POP,
+    COVAR_SAMP,
     STDDEV_POP,
     STDDEV_SAMP,
     VAR_POP,
