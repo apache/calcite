@@ -4129,6 +4129,8 @@ SqlIdentifier ReservedFunctionName() :
         | <RANK>
         | <ROW_NUMBER>
         | <SQRT>
+        | <COVAR_POP>
+        | <COVAR_SAMP>
         | <STDDEV_POP>
         | <STDDEV_SAMP>
         | <SUM>

@@ -82,7 +82,9 @@ public class SqlAvgAggFunction extends SqlAggFunction {
     STDDEV_POP,
     STDDEV_SAMP,
     VAR_POP,
-    VAR_SAMP
+    VAR_SAMP,
+    COVAR_POP,
+    COVAR_SAMP
   }
 }
 
