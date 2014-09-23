@@ -4477,6 +4477,52 @@ public abstract class SqlOperatorBaseTest {
         0d);
   }
 
+  @Test public void testCovarPopFunc() {
+    tester.setFor(SqlStdOperatorTable.COVAR_POP, VM_EXPAND);
+    tester.checkFails(
+        "covar_pop(^*^)",
+        "Unknown identifier '\\*'",
+        false);
+    tester.checkFails(
+        "^covar_pop(cast(null as varchar(2)))^",
+        "(?s)Cannot apply 'COVAR_POP' to arguments of type 'COVAR_POP\\(<VARCHAR\\(2\\)>\\)'\\. Supported form\\(s\\): 'COVAR_POP\\(<NUMERIC>\\)'.*",
+        false);
+    tester.checkType("covar_pop(CAST(NULL AS INTEGER))", "INTEGER");
+    checkAggType(tester, "covar_pop(DISTINCT 1.5)", "DECIMAL(2, 1) NOT NULL");
+    if (!enable) {
+      return;
+    }
+    // with zero values
+    tester.checkAgg(
+        "covar_pop(x)",
+        new String[]{},
+        null,
+        0d);
+  }
+
+  @Test public void testCovarSampFunc() {
+    tester.setFor(SqlStdOperatorTable.COVAR_SAMP, VM_EXPAND);
+    tester.checkFails(
+        "covar_samp(^*^)",
+        "Unknown identifier '\\*'",
+        false);
+    tester.checkFails(
+        "^covar_samp(cast(null as varchar(2)))^",
+        "(?s)Cannot apply 'COVAR_SAMP' to arguments of type 'COVAR_SAMP\\(<VARCHAR\\(2\\)>\\)'\\. Supported form\\(s\\): 'COVAR_SAMP\\(<NUMERIC>\\)'.*",
+        false);
+    tester.checkType("covar_samp(CAST(NULL AS INTEGER))", "INTEGER");
+    checkAggType(tester, "covar_samp(DISTINCT 1.5)", "DECIMAL(2, 1) NOT NULL");
+    if (!enable) {
+      return;
+    }
+    // with zero values
+    tester.checkAgg(
+        "covar_samp(x)",
+        new String[]{},
+        null,
+        0d);
+  }
+
   @Test public void testStddevPopFunc() {
     tester.setFor(SqlStdOperatorTable.STDDEV_POP, VM_EXPAND);
     tester.checkFails(

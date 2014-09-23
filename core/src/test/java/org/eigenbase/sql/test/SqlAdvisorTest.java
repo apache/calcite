@@ -155,6 +155,8 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
           "KEYWORD(SPECIFIC)",
           "KEYWORD(SQRT)",
           "KEYWORD(SUBSTRING)",
+          "KEYWORD(COVAR_POP)",
+          "KEYWORD(COVAR_SAMP)",
           "KEYWORD(STDDEV_POP)",
           "KEYWORD(STDDEV_SAMP)",
           "KEYWORD(SUM)",

@@ -173,8 +173,14 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
         SqlStdOperatorTable.AVG,
         new AvgVarianceConvertlet(SqlAvgAggFunction.Subtype.AVG));
     registerOp(
-        SqlStdOperatorTable.STDDEV_POP,
-        new AvgVarianceConvertlet(SqlAvgAggFunction.Subtype.STDDEV_POP));
+            SqlStdOperatorTable.COVAR_POP,
+            new AvgVarianceConvertlet(SqlAvgAggFunction.Subtype.COVAR_POP));
+    registerOp(
+            SqlStdOperatorTable.COVAR_SAMP,
+            new AvgVarianceConvertlet(SqlAvgAggFunction.Subtype.COVAR_SAMP));
+    registerOp(
+            SqlStdOperatorTable.STDDEV_POP,
+            new AvgVarianceConvertlet(SqlAvgAggFunction.Subtype.STDDEV_POP));
     registerOp(
         SqlStdOperatorTable.STDDEV_SAMP,
         new AvgVarianceConvertlet(SqlAvgAggFunction.Subtype.STDDEV_SAMP));
