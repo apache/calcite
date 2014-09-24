@@ -4477,6 +4477,29 @@ public abstract class SqlOperatorBaseTest {
         0d);
   }
 
+  @Test public void testRegrSyyFunc() {
+    tester.setFor(SqlStdOperatorTable.REGR_SYY, VM_EXPAND);
+    tester.checkFails(
+        "regr_syy(^*^)",
+        "Unknown identifier '\\*'",
+        false);
+    tester.checkFails(
+        "^regr_syy(cast(null as varchar(2)))^",
+        "(?s)Cannot apply 'REGR_SYY' to arguments of type 'REGR_SYY\\(<VARCHAR\\(2\\)>\\)'\\. Supported form\\(s\\): 'REGR_SYY\\(<NUMERIC>\\)'.*",
+        false);
+    tester.checkType("regr_syy(CAST(NULL AS INTEGER))", "INTEGER");
+    checkAggType(tester, "regr_syy(DISTINCT 1.5)", "DECIMAL(2, 1) NOT NULL");
+    if (!enable) {
+      return;
+    }
+    // with zero values
+    tester.checkAgg(
+        "regr_syy(x)",
+        new String[]{},
+        null,
+        0d);
+  }
+
   @Test public void testCovarPopFunc() {
     tester.setFor(SqlStdOperatorTable.COVAR_POP, VM_EXPAND);
     tester.checkFails(
