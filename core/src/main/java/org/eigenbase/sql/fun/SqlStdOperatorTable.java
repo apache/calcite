@@ -666,6 +666,12 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
       new SqlAvgAggFunction(null, SqlAvgAggFunction.Subtype.AVG);
 
   /**
+   * <code>REGR_SYY</code> aggregate function.
+   */
+  public static final SqlAggFunction REGR_SYY =
+      new SqlAvgAggFunction(null, SqlAvgAggFunction.Subtype.REGR_SYY);
+
+  /**
    * <code>STDDEV_POP</code> aggregate function.
    */
   public static final SqlAggFunction STDDEV_POP =
