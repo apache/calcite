@@ -2204,8 +2204,9 @@ public class RelDecorrelator implements ReflectiveVisitor {
 
       rightInputRel =
           createProjectWithAdditionalExprs(rightInputRel,
-              ImmutableList.of(Pair.<RexNode, String>of(rexBuilder.makeLiteral(
-                      true), "nullIndicator")));
+              ImmutableList.of(
+                  Pair.<RexNode, String>of(rexBuilder.makeLiteral(true),
+                      "nullIndicator")));
 
       JoinRel joinRel =
           new JoinRel(
@@ -2279,7 +2280,8 @@ public class RelDecorrelator implements ReflectiveVisitor {
           }
         }
 
-        newAggCalls.add(aggCall.adaptTo(joinOutputProjRel, newAggArgs,
+        newAggCalls.add(
+            aggCall.adaptTo(joinOutputProjRel, newAggArgs,
                 aggRel.getGroupCount(), groupCount));
       }
 

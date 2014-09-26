@@ -150,7 +150,7 @@ public class RelOptMaterialization {
                   Mappings.asList(mapping.inverse()));
               final List<RexNode> conditions = Lists.newArrayList();
               if (left.condition != null) {
-                conditions.add(RexUtil.apply(mapping, left.condition));
+                conditions.add(left.condition);
               }
               if (right.condition != null) {
                 conditions.add(
@@ -174,12 +174,12 @@ public class RelOptMaterialization {
                   Mappings.asList(mapping.inverse()));
               final List<RexNode> conditions = Lists.newArrayList();
               if (left.condition != null) {
-                conditions.add(RexUtil.apply(mapping, left.condition));
-              }
-              if (right.condition != null) {
                 conditions.add(
                     RexUtil.apply(mapping,
-                        RexUtil.shift(right.condition, offset)));
+                        RexUtil.shift(left.condition, offset)));
+              }
+              if (right.condition != null) {
+                conditions.add(RexUtil.apply(mapping, right.condition));
               }
               final RelNode filter =
                   RelOptUtil.createFilter(project, conditions);

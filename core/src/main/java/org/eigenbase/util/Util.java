@@ -1990,6 +1990,18 @@ public class Util {
     return list.subList(fromIndex, list.size());
   }
 
+  public static List<Integer> range(final int end) {
+    return new AbstractList<Integer>() {
+      public int size() {
+        return end;
+      }
+
+      public Integer get(int index) {
+        return index;
+      }
+    };
+  }
+
   public static List<Integer> range(final int start, final int end) {
     return new AbstractList<Integer>() {
       public int size() {

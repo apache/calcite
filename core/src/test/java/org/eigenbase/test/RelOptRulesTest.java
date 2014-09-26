@@ -49,6 +49,7 @@ import org.eigenbase.rel.rules.PushSemiJoinPastProjectRule;
 import org.eigenbase.rel.rules.ReduceAggregatesRule;
 import org.eigenbase.rel.rules.ReduceExpressionsRule;
 import org.eigenbase.rel.rules.ReduceValuesRule;
+import org.eigenbase.rel.rules.RemoveDistinctAggregateRule;
 import org.eigenbase.rel.rules.RemoveEmptyRules;
 import org.eigenbase.rel.rules.RemoveSemiJoinRule;
 import org.eigenbase.rel.rules.RemoveTrivialProjectRule;
@@ -249,6 +250,16 @@ public class RelOptRulesTest extends RelOptTestBase {
         ReduceAggregatesRule.INSTANCE,
         "select name, max(name), avg(deptno), min(name)"
         + " from sales.dept group by name");
+  }
+
+  @Test public void testDistinctCount() {
+    final HepProgram program = HepProgram.builder()
+        .addRuleInstance(RemoveDistinctAggregateRule.INSTANCE)
+        .addRuleInstance(AggregateProjectMergeRule.INSTANCE)
+        .build();
+    checkPlanning(program,
+        "select deptno, count(distinct ename)"
+        + " from sales.emp group by deptno");
   }
 
   @Test public void testPushProjectPastFilter() {

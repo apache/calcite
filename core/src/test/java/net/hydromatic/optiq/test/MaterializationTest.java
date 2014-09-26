@@ -238,7 +238,8 @@ public class MaterializationTest {
   }
 
   /** Aggregation query at coarser level of aggregation than aggregation
-   * materialization. Requires an additional AggregateRel to roll up. */
+   * materialization. Requires an additional AggregateRel to roll up. Note that
+   * COUNT is rolled up using SUM. */
   @Test public void testAggregateRollUp() {
     checkMaterialize(
         "select \"empid\", \"deptno\", count(*) as c, sum(\"empid\") as s from \"emps\" group by \"empid\", \"deptno\"",
@@ -246,7 +247,7 @@ public class MaterializationTest {
         JdbcTest.HR_MODEL,
         OptiqAssert.checkResultContains(
             "EnumerableCalcRel(expr#0..1=[{inputs}], expr#2=[1], expr#3=[+($t1, $t2)], C=[$t3], deptno=[$t0])\n"
-            + "  EnumerableAggregateRel(group=[{1}], agg#0=[COUNT($1)])\n"
+            + "  EnumerableAggregateRel(group=[{1}], agg#0=[SUM($2)])\n"
             + "    EnumerableTableAccessRel(table=[[hr, m0]])"));
   }
 

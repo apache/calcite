@@ -24,10 +24,14 @@ import org.eigenbase.util.TestUtil;
 import org.eigenbase.util.Util;
 
 import com.google.common.base.Function;
+import com.google.common.collect.ImmutableList;
 
+import org.junit.Ignore;
 import org.junit.Test;
 
+import java.io.IOException;
 import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.hamcrest.CoreMatchers.anyOf;
@@ -332,6 +336,57 @@ public class LatticeTest {
           + "  EnumerableAggregateRel(group=[{0}], agg#0=[$SUM0($2)], Q=[MIN($1)], agg#2=[$SUM0($4)])\n"
           + "    EnumerableTableAccessRel(table=[[adhoc, m{27, 31}")
       .returnsUnordered("the_year=1997; C=86837; Q=Q1; US=2667730.0000")
+      .sameResultWithMaterializationsDisabled();
+  }
+
+  /** Runs all queries against the Foodmart schema, using a lattice.
+   *
+   * <p>Disabled for normal runs, because it is slow. */
+  @Ignore
+  @Test public void testAllFoodmartQueries() throws IOException {
+    // Test ids that had bugs in them until recently. Useful for a sanity check.
+    final List<Integer> fixed = ImmutableList.of(13, 24, 28, 30, 61, 76, 79, 81,
+        85, 98, 101, 107, 128, 129, 130, 131);
+    // Test ids that still have bugs
+    final List<Integer> bad = ImmutableList.of(382, 423);
+    for (int i = 1; i < 1000; i++) {
+      System.out.println("i=" + i);
+      try {
+        if (bad.contains(i)) {
+          continue;
+        }
+        check(i);
+      } catch (Throwable e) {
+        throw new RuntimeException("error in " + i, e);
+      }
+    }
+  }
+
+  private void check(int n) throws IOException {
+    final FoodmartTest.FoodmartQuery query =
+        FoodmartTest.FoodMartQuerySet.instance().queries.get(n);
+    if (query == null) {
+      return;
+    }
+    foodmartModel(
+        " auto: false,\n"
+        + "  defaultMeasures: [ {\n"
+        + "    agg: 'count'\n"
+        + "  } ],\n"
+        + "  tiles: [ {\n"
+        + "    dimensions: [ 'the_year', ['t', 'quarter'] ],\n"
+        + "    measures: [ {\n"
+        + "      agg: 'sum',\n"
+        + "      args: 'unit_sales'\n"
+        + "    }, {\n"
+        + "      agg: 'sum',\n"
+        + "      args: 'store_sales'\n"
+        + "    }, {\n"
+        + "      agg: 'count'\n"
+        + "    } ]\n"
+        + "  } ]\n")
+        .withSchema("foodmart")
+        .query(query.sql)
       .sameResultWithMaterializationsDisabled();
   }
 

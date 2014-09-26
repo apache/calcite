@@ -2229,4 +2229,23 @@ ProjectRel(ENAME=[$0], R=[$1])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testDistinctCount">
+        <Resource name="sql">
+            <![CDATA[select deptno, count(distinct ename) from sales.emp group by deptno]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+AggregateRel(group=[{0}], EXPR$1=[COUNT(DISTINCT $1)])
+  ProjectRel(DEPTNO=[$7], ENAME=[$1])
+    TableAccessRel(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+AggregateRel(group=[{1}], EXPR$1=[COUNT($0)])
+  AggregateRel(group=[{1, 7}])
+    TableAccessRel(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
 </Root>

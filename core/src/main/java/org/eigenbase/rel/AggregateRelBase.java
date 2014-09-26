@@ -68,6 +68,7 @@ public abstract class AggregateRelBase extends SingleRel {
     assert groupSet.isEmpty() == (groupSet.cardinality() == 0)
         : "See https://bugs.openjdk.java.net/browse/JDK-6222207, "
         + "BitSet internal invariants may be violated";
+    assert groupSet.length() <= child.getRowType().getFieldCount();
     for (AggregateCall aggCall : aggCalls) {
       assert typeMatchesInferred(aggCall, true);
     }

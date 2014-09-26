@@ -29,6 +29,7 @@ import net.hydromatic.optiq.util.BitSets;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Lists;
 
 /**
  * Rule to remove distinct aggregates from a {@link AggregateRel}.
@@ -94,7 +95,7 @@ public final class RemoveDistinctAggregateRule extends RelOptRule {
     final List<RexInputRef> refs = new ArrayList<RexInputRef>();
     final List<String> fieldNames = aggregate.getRowType().getFieldNames();
     final BitSet groupSet = aggregate.getGroupSet();
-    for (int i : BitSets.toIter(groupSet)) {
+    for (int i : Util.range(groupSet.cardinality())) {
       refs.add(RexInputRef.of(i, aggFields));
     }
 
@@ -176,7 +177,7 @@ public final class RemoveDistinctAggregateRule extends RelOptRule {
     return aggregate.copy(
         aggregate.getTraitSet(),
         distinct,
-        aggregate.getGroupSet(),
+        BitSets.range(aggregate.getGroupSet().cardinality()),
         newAggCalls);
   }
 
@@ -300,16 +301,12 @@ public final class RemoveDistinctAggregateRule extends RelOptRule {
               aggCall.getName());
       assert refs.get(i) == null;
       if (left == null) {
-        refs.set(
-            i,
-            new RexInputRef(
-                groupCount + aggCallList.size(),
+        refs.set(i,
+            new RexInputRef(groupCount + aggCallList.size(),
                 newAggCall.getType()));
       } else {
-        refs.set(
-            i,
-            new RexInputRef(
-                leftFields.size() + groupCount + aggCallList.size(),
+        refs.set(i,
+            new RexInputRef(leftFields.size() + groupCount + aggCallList.size(),
                 newAggCall.getType()));
       }
       aggCallList.add(newAggCall);
@@ -319,7 +316,7 @@ public final class RemoveDistinctAggregateRule extends RelOptRule {
         aggregate.copy(
             aggregate.getTraitSet(),
             distinct,
-            aggregate.getGroupSet(),
+            BitSets.range(aggregate.getGroupSet().cardinality()),
             aggCallList);
 
     // If there's no left child yet, no need to create the join
@@ -332,37 +329,22 @@ public final class RemoveDistinctAggregateRule extends RelOptRule {
     // where {f0, f1, ...} are the GROUP BY fields.
     final List<RelDataTypeField> distinctFields =
         distinctAgg.getRowType().getFieldList();
-    RexNode condition = rexBuilder.makeLiteral(true);
+    final List<RexNode> conditions = Lists.newArrayList();
     for (i = 0; i < groupCount; ++i) {
-      final int leftOrdinal = i;
-      final int rightOrdinal = sourceOf.get(i);
-
       // null values form its own group
       // use "is not distinct from" so that the join condition
       // allows null values to match.
-      RexNode equi =
-          rexBuilder.makeCall(
-              SqlStdOperatorTable.IS_NOT_DISTINCT_FROM,
-              RexInputRef.of(leftOrdinal, leftFields),
-              new RexInputRef(
-                  leftFields.size() + rightOrdinal,
-                  distinctFields.get(rightOrdinal).getType()));
-      if (i == 0) {
-        condition = equi;
-      } else {
-        condition =
-            rexBuilder.makeCall(
-                SqlStdOperatorTable.AND,
-                condition,
-                equi);
-      }
+      conditions.add(
+          rexBuilder.makeCall(SqlStdOperatorTable.IS_NOT_DISTINCT_FROM,
+              RexInputRef.of(i, leftFields),
+              new RexInputRef(leftFields.size() + i,
+                  distinctFields.get(i).getType())));
     }
 
     // Join in the new 'select distinct' relation.
-    return joinFactory.createJoin(
-        left,
+    return joinFactory.createJoin(left,
         distinctAgg,
-        condition,
+        RexUtil.composeConjunction(rexBuilder, conditions, false),
         JoinRelType.INNER,
         ImmutableSet.<String>of(),
         false);

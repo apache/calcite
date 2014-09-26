@@ -36,6 +36,7 @@ import org.eigenbase.util.mapping.Mappings;
 import net.hydromatic.optiq.util.BitSets;
 
 import com.google.common.base.Function;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
 /**
@@ -108,14 +109,8 @@ public class AggregateFilterTransposeRule extends RelOptRule {
         topGroupSet.set(BitSets.toList(newGroupSet).indexOf(c));
       }
       final List<AggregateCall> topAggCallList = Lists.newArrayList();
-      final int offset = newGroupSet.cardinality()
-          - aggregate.getGroupSet().cardinality();
-      assert offset > 0;
+      int i = newGroupSet.cardinality();
       for (AggregateCall aggregateCall : aggregate.getAggCallList()) {
-        final List<Integer> args = Lists.newArrayList();
-        for (int arg : aggregateCall.getArgList()) {
-          args.add(arg + offset);
-        }
         final Aggregation rollup =
             SubstitutionVisitor.getRollup(aggregateCall.getAggregation());
         if (rollup == null) {
@@ -127,8 +122,8 @@ public class AggregateFilterTransposeRule extends RelOptRule {
           return;
         }
         topAggCallList.add(
-            new AggregateCall(rollup, aggregateCall.isDistinct(), args,
-                aggregateCall.type, aggregateCall.name));
+            new AggregateCall(rollup, aggregateCall.isDistinct(),
+                ImmutableList.of(i++), aggregateCall.type, aggregateCall.name));
       }
       final AggregateRelBase topAggregate =
           aggregate.copy(aggregate.getTraitSet(), newFilter, topGroupSet,

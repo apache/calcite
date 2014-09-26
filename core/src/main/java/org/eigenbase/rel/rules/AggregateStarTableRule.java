@@ -31,8 +31,8 @@ import org.eigenbase.relopt.RelOptRuleCall;
 import org.eigenbase.relopt.RelOptRuleOperand;
 import org.eigenbase.relopt.RelOptTable;
 import org.eigenbase.relopt.RelOptUtil;
+import org.eigenbase.relopt.SubstitutionVisitor;
 import org.eigenbase.reltype.RelDataType;
-import org.eigenbase.sql.fun.SqlStdOperatorTable;
 import org.eigenbase.util.Pair;
 import org.eigenbase.util.mapping.AbstractSourceMapping;
 
@@ -194,7 +194,7 @@ public class AggregateStarTableRule extends RelOptRule {
     final int i = find(measures, seek);
   tryRoll:
     if (i >= 0) {
-      final Aggregation roll = getRollup(aggregation);
+      final Aggregation roll = SubstitutionVisitor.getRollup(aggregation);
       if (roll == null) {
         break tryRoll;
       }
@@ -219,18 +219,6 @@ public class AggregateStarTableRule extends RelOptRule {
 
     // No roll up possible.
     return null;
-  }
-
-  private static Aggregation getRollup(Aggregation aggregation) {
-    if (aggregation == SqlStdOperatorTable.SUM
-        || aggregation == SqlStdOperatorTable.MIN
-        || aggregation == SqlStdOperatorTable.MAX) {
-      return aggregation;
-    } else if (aggregation == SqlStdOperatorTable.COUNT) {
-      return SqlStdOperatorTable.SUM;
-    } else {
-      return null;
-    }
   }
 
   private static int find(ImmutableList<Lattice.Measure> measures,

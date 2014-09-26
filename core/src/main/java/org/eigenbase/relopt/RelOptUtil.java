@@ -34,6 +34,7 @@ import net.hydromatic.linq4j.Ord;
 
 import net.hydromatic.optiq.util.BitSets;
 
+import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
@@ -45,6 +46,13 @@ public abstract class RelOptUtil {
   //~ Static fields/initializers ---------------------------------------------
 
   public static final double EPSILON = 1.0e-5;
+
+  private static final Function<RelDataTypeField, RelDataType> GET_TYPE =
+      new Function<RelDataTypeField, RelDataType>() {
+        public RelDataType apply(RelDataTypeField field) {
+          return field.getType();
+        }
+      };
 
   //~ Methods ----------------------------------------------------------------
 
@@ -131,15 +139,7 @@ public abstract class RelOptUtil {
    * @see org.eigenbase.reltype.RelDataType#getFieldNames()
    */
   public static List<RelDataType> getFieldTypeList(final RelDataType type) {
-    return new AbstractList<RelDataType>() {
-      public RelDataType get(int index) {
-        return type.getFieldList().get(index).getType();
-      }
-
-      public int size() {
-        return type.getFieldCount();
-      }
-    };
+    return Lists.transform(type.getFieldList(), GET_TYPE);
   }
 
   public static boolean areRowTypesEqual(

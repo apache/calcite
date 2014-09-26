@@ -54,14 +54,15 @@ public abstract class FilterRelBase extends SingleRel {
     assert condition != null;
     assert RexUtil.isFlat(condition) : condition;
     this.condition = condition;
+    // Too expensive for everyday use:
+    // assert isValid(true);
   }
 
   /**
    * Creates a FilterRelBase by parsing serialized output.
    */
   protected FilterRelBase(RelInput input) {
-    this(
-        input.getCluster(), input.getTraitSet(), input.getInput(),
+    this(input.getCluster(), input.getTraitSet(), input.getInput(),
         input.getExpression("condition"));
   }
 
@@ -82,6 +83,16 @@ public abstract class FilterRelBase extends SingleRel {
 
   public RexNode getCondition() {
     return condition;
+  }
+
+  @Override public boolean isValid(boolean fail) {
+    final RexChecker checker = new RexChecker(getChild().getRowType(), fail);
+    condition.accept(checker);
+    if (checker.getFailureCount() > 0) {
+      assert !fail;
+      return false;
+    }
+    return true;
   }
 
   public RelOptCost computeSelfCost(RelOptPlanner planner) {

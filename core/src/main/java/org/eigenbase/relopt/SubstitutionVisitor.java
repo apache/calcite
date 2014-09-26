@@ -1166,7 +1166,7 @@ public class SubstitutionVisitor {
         aggregateCalls.add(
             new AggregateCall(getRollup(aggregateCall.getAggregation()),
                 aggregateCall.isDistinct(),
-                ImmutableList.of(groupSet.cardinality() + i),
+                ImmutableList.of(target.groupSet.cardinality() + i),
                 aggregateCall.type, aggregateCall.name));
       }
       result = MutableAggregate.of(target, groupSet, aggregateCalls);
@@ -1215,8 +1215,15 @@ public class SubstitutionVisitor {
   }
 
   public static Aggregation getRollup(Aggregation aggregation) {
-    // TODO: count rolls up using sum; etc.
-    return aggregation;
+    if (aggregation == SqlStdOperatorTable.SUM
+        || aggregation == SqlStdOperatorTable.MIN
+        || aggregation == SqlStdOperatorTable.MAX) {
+      return aggregation;
+    } else if (aggregation == SqlStdOperatorTable.COUNT) {
+      return SqlStdOperatorTable.SUM;
+    } else {
+      return null;
+    }
   }
 
   /** Builds a shuttle that stores a list of expressions, and can map incoming

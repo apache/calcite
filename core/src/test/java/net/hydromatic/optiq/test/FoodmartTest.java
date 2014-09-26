@@ -25,6 +25,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import com.google.common.collect.ImmutableList;
 
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -151,11 +152,26 @@ public class FoodmartTest {
   public void test() {
     try {
       OptiqAssert.that()
-//          .withModel(JdbcTest.FOODMART_MODEL)
           .with(OptiqAssert.Config.FOODMART_CLONE)
           .pooled()
-//          .withSchema("foodmart")
           .query(query.sql)
+          .runs();
+    } catch (Throwable e) {
+      throw new RuntimeException("Test failed, id=" + query.id + ", sql="
+          + query.sql, e);
+    }
+  }
+
+  @Test(timeout = 60000)
+  @Ignore
+  public void testWithLattice() {
+    try {
+      OptiqAssert.that()
+          .with(OptiqAssert.Config.JDBC_FOODMART_WITH_LATTICE)
+          .pooled()
+          .withSchema("foodmart")
+          .query(query.sql)
+          .enableMaterializations(true)
           .runs();
     } catch (Throwable e) {
       throw new RuntimeException("Test failed, id=" + query.id + ", sql="
