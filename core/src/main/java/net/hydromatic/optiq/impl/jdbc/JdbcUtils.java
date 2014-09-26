@@ -20,11 +20,17 @@ import net.hydromatic.linq4j.expressions.Primitive;
 import net.hydromatic.linq4j.function.*;
 
 import org.eigenbase.sql.SqlDialect;
+import org.eigenbase.util.ImmutableNullableList;
 import org.eigenbase.util.IntList;
 import org.eigenbase.util.Pair;
 import org.eigenbase.util14.DateTimeUtil;
 
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
 import com.google.common.collect.ImmutableList;
+
+import org.apache.commons.dbcp.BasicDataSource;
 
 import java.sql.*;
 import java.sql.Date;
@@ -41,11 +47,17 @@ final class JdbcUtils {
 
   /** Pool of dialects. */
   public static class DialectPool {
+    final Map<DataSource, SqlDialect> map0 =
+        new IdentityHashMap<DataSource, SqlDialect>();
     final Map<List, SqlDialect> map = new HashMap<List, SqlDialect>();
 
     public static final DialectPool INSTANCE = new DialectPool();
 
     SqlDialect get(DataSource dataSource) {
+      final SqlDialect sqlDialect = map0.get(dataSource);
+      if (sqlDialect != null) {
+        return sqlDialect;
+      }
       Connection connection = null;
       try {
         connection = dataSource.getConnection();
@@ -63,6 +75,7 @@ final class JdbcUtils {
                   productName,
                   metaData.getIdentifierQuoteString());
           map.put(key, dialect);
+          map0.put(dataSource, dialect);
         }
         connection.close();
         connection = null;
@@ -172,6 +185,39 @@ final class JdbcUtils {
       long time = v.getTime();
       int offset = TimeZone.getDefault().getOffset(time);
       return new Date(time + offset);
+    }
+  }
+
+  /** Ensures that if two data sources have the same definition, they will use
+   * the same object.
+   *
+   * <p>This in turn makes it easier to cache
+   * {@link org.eigenbase.sql.SqlDialect} objects. Otherwise, each time we
+   * see a new data source, we have to open a connection to find out what
+   * database product and version it is. */
+  public static class DataSourcePool {
+    public static final DataSourcePool INSTANCE = new DataSourcePool();
+
+    private final LoadingCache<List<String>, BasicDataSource> cache =
+        CacheBuilder.newBuilder().softValues().build(
+            new CacheLoader<List<String>, BasicDataSource>() {
+              @Override public BasicDataSource load(List<String> key) {
+                BasicDataSource dataSource = new BasicDataSource();
+                dataSource.setUrl(key.get(0));
+                dataSource.setUsername(key.get(1));
+                dataSource.setPassword(key.get(2));
+                dataSource.setDriverClassName(key.get(3));
+                return dataSource;
+              }
+            });
+
+    public DataSource get(String url, String driverClassName,
+        String username, String password) {
+      // Get data source objects from a cache, so that we don't have to sniff
+      // out what kind of database they are quite as often.
+      final List<String> key =
+          ImmutableNullableList.of(url, username, password, driverClassName);
+      return cache.apply(key);
     }
   }
 }

@@ -26,13 +26,19 @@ import org.eigenbase.sql.test.SqlTester;
  * that generates SQL statements and executes them using Optiq.
  */
 public class OptiqSqlOperatorTest extends SqlOperatorBaseTest {
+  private static final ThreadLocal<OptiqConnection> LOCAL =
+      new ThreadLocal<OptiqConnection>() {
+        @Override protected OptiqConnection initialValue() {
+          try {
+            return OptiqAssert.getConnection("hr");
+          } catch (Exception e) {
+            throw new RuntimeException(e);
+          }
+        }
+      };
+
   private static SqlTester getHrTester() {
-    try {
-      OptiqConnection connection = OptiqAssert.getConnection("hr");
-      return tester(connection);
-    } catch (Exception e) {
-      throw new RuntimeException(e);
-    }
+    return tester(LOCAL.get());
   }
 
   public OptiqSqlOperatorTest() {

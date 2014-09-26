@@ -29,8 +29,6 @@ import org.eigenbase.util.Util;
 
 import com.google.common.collect.*;
 
-import org.apache.commons.dbcp.BasicDataSource;
-
 import java.sql.*;
 import java.util.*;
 import javax.sql.DataSource;
@@ -131,12 +129,8 @@ public class JdbcSchema implements Schema {
       // Prevent hsqldb from screwing up java.util.logging.
       System.setProperty("hsqldb.reconfig_logging", "false");
     }
-    BasicDataSource dataSource = new BasicDataSource();
-    dataSource.setUrl(url);
-    dataSource.setUsername(username);
-    dataSource.setPassword(password);
-    dataSource.setDriverClassName(driverClassName);
-    return dataSource;
+    return JdbcUtils.DataSourcePool.INSTANCE.get(url, driverClassName, username,
+        password);
   }
 
   public boolean isMutable() {
