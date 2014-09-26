@@ -108,6 +108,29 @@ ProjectRel(EXPR$0=[1])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testPushFilterPastAgg">
+        <Resource name="sql">
+            <![CDATA[select dname, c from (select name dname, count(*) as c from dept group by name) t where dname = 'Charlie']]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+ProjectRel(DNAME=[$0], C=[$1])
+  FilterRel(condition=[=($0, 'Charlie')])
+    AggregateRel(group=[{0}], C=[COUNT()])
+      ProjectRel(DNAME=[$1])
+        TableAccessRel(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+ProjectRel(DNAME=[$0], C=[$1])
+  AggregateRel(group=[{0}], C=[COUNT()])
+    FilterRel(condition=[=($0, 'Charlie')])
+      ProjectRel(DNAME=[$1])
+        TableAccessRel(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testReduceAverage">
         <Resource name="sql">
             <![CDATA[select name, max(name), avg(deptno), min(name) from sales.dept group by name]]>

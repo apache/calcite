@@ -95,6 +95,7 @@ public class Programs {
           PushFilterPastJoinRule.FILTER_ON_JOIN,
           RemoveDistinctAggregateRule.INSTANCE,
           ReduceAggregatesRule.INSTANCE,
+          FilterAggregateTransposeRule.INSTANCE,
           SwapJoinRule.INSTANCE,
           PushJoinThroughJoinRule.RIGHT,
           PushJoinThroughJoinRule.LEFT,

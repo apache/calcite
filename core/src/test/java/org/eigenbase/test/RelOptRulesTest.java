@@ -29,6 +29,7 @@ import org.eigenbase.rel.rules.AggregateProjectMergeRule;
 import org.eigenbase.rel.rules.CoerceInputsRule;
 import org.eigenbase.rel.rules.ConvertMultiJoinRule;
 import org.eigenbase.rel.rules.ExtractJoinFilterRule;
+import org.eigenbase.rel.rules.FilterAggregateTransposeRule;
 import org.eigenbase.rel.rules.FilterToCalcRule;
 import org.eigenbase.rel.rules.MergeCalcRule;
 import org.eigenbase.rel.rules.MergeProjectRule;
@@ -163,6 +164,14 @@ public class RelOptRulesTest extends RelOptTestBase {
         + " where d.name = 'Charlie'");
   }
 
+  @Test public void testPushFilterPastAgg() {
+    checkPlanning(
+        FilterAggregateTransposeRule.INSTANCE,
+        "select dname, c from"
+        + " (select name dname, count(*) as c from dept group by name) t"
+        + " where dname = 'Charlie'");
+  }
+
   @Test public void testSemiJoinRule() {
     final HepProgram preProgram =
         HepProgram.builder()
@@ -183,7 +192,6 @@ public class RelOptRulesTest extends RelOptTestBase {
   }
 
   protected void semiJoinTrim() {
-
     final DiffRepository diffRepos = getDiffRepos();
     String sql = diffRepos.expand(null, "${sql}");
 

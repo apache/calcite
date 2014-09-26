@@ -50,6 +50,8 @@ import com.google.common.collect.Lists;
  * away. The rule might be beneficial if the predicate is very expensive to
  * evaluate. The main use of the rule is to match a query that has a filter
  * under an aggregate to an existing aggregate table.
+ *
+ * @see org.eigenbase.rel.rules.FilterAggregateTransposeRule
  */
 public class AggregateFilterTransposeRule extends RelOptRule {
   public static final AggregateFilterTransposeRule INSTANCE =
