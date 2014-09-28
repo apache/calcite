@@ -18,19 +18,23 @@ package org.eigenbase.sql.fun;
 
 import java.util.List;
 
-import org.eigenbase.reltype.*;
-import org.eigenbase.sql.*;
-import org.eigenbase.sql.type.*;
-
 import com.google.common.collect.ImmutableList;
+import org.eigenbase.reltype.RelDataType;
+import org.eigenbase.reltype.RelDataTypeFactory;
+import org.eigenbase.sql.SqlAggFunction;
+import org.eigenbase.sql.SqlFunctionCategory;
+import org.eigenbase.sql.SqlKind;
+import org.eigenbase.sql.type.OperandTypes;
+import org.eigenbase.sql.type.ReturnTypes;
+
 
 /**
- * <code>Avg</code> is an aggregator which returns the average of the values
- * which go into it. It has precisely one argument of numeric type
+ * <code>Covar</code> is an aggregator which returns the Covariance of the
+ * values which go into it. It has precisely two arguments of numeric type
  * (<code>int</code>, <code>long</code>, <code>float</code>, <code>
  * double</code>), and the result is the same type.
  */
-public class SqlAvgAggFunction extends SqlAggFunction {
+public class SqlCovarAggFunction extends SqlAggFunction {
   //~ Instance fields --------------------------------------------------------
 
   private final RelDataType type;
@@ -44,15 +48,15 @@ public class SqlAvgAggFunction extends SqlAggFunction {
    * @param type    Data type
    * @param subtype Specific function, e.g. AVG or STDDEV_POP
    */
-  public SqlAvgAggFunction(
-      RelDataType type,
-      Subtype subtype) {
+  public SqlCovarAggFunction(
+          RelDataType type,
+          Subtype subtype) {
     super(
         subtype.name(),
         SqlKind.OTHER_FUNCTION,
         ReturnTypes.ARG0_NULLABLE_IF_EMPTY,
         null,
-        OperandTypes.NUMERIC,
+        OperandTypes.NUMERIC_NUMERIC,
         SqlFunctionCategory.NUMERIC);
     this.type = type;
     this.subtype = subtype;
@@ -69,7 +73,7 @@ public class SqlAvgAggFunction extends SqlAggFunction {
   }
 
   /**
-   * Returns the specific function, e.g. AVG or STDDEV_POP.
+   * Returns the specific function, e.g. COVAR_POP or COVAR_SAMP.
    *
    * @return Subtype
    */
@@ -77,13 +81,13 @@ public class SqlAvgAggFunction extends SqlAggFunction {
     return subtype;
   }
 
+/**
+ * Enum for defining specific types.
+ */
   public enum Subtype {
-    AVG,
-    STDDEV_POP,
-    STDDEV_SAMP,
-    VAR_POP,
-    VAR_SAMP
+    COVAR_POP,
+    COVAR_SAMP
   }
 }
 
-// End SqlAvgAggFunction.java
+// End SqlCovarAggFunction.java
