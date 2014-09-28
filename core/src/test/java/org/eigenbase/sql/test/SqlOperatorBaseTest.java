@@ -4487,7 +4487,8 @@ public abstract class SqlOperatorBaseTest {
         "^covar_pop(cast(null as varchar(2)),cast(null as varchar(2)))^",
         "(?s)Cannot apply 'COVAR_POP' to arguments of type 'COVAR_POP\\(<VARCHAR\\(2\\)>, <VARCHAR\\(2\\)>\\)'\\. Supported form\\(s\\): 'COVAR_POP\\(<NUMERIC>, <NUMERIC>\\)'.*",
         false);
-    tester.checkType("covar_pop(CAST(NULL AS INTEGER),CAST(NULL AS INTEGER))", "INTEGER");
+    tester.checkType("covar_pop(CAST(NULL AS INTEGER),CAST(NULL AS INTEGER))",
+        "INTEGER");
     checkAggType(tester, "covar_pop(1.5, 2.5)", "DECIMAL(2, 1) NOT NULL");
     if (!enable) {
       return;
@@ -4510,7 +4511,8 @@ public abstract class SqlOperatorBaseTest {
         "^covar_samp(cast(null as varchar(2)),cast(null as varchar(2)))^",
         "(?s)Cannot apply 'COVAR_SAMP' to arguments of type 'COVAR_SAMP\\(<VARCHAR\\(2\\)>, <VARCHAR\\(2\\)>\\)'\\. Supported form\\(s\\): 'COVAR_SAMP\\(<NUMERIC>, <NUMERIC>\\)'.*",
         false);
-    tester.checkType("covar_samp(CAST(NULL AS INTEGER),CAST(NULL AS INTEGER))", "INTEGER");
+    tester.checkType("covar_samp(CAST(NULL AS INTEGER),CAST(NULL AS INTEGER))",
+        "INTEGER");
     checkAggType(tester, "covar_samp(1.5, 2.5)", "DECIMAL(2, 1) NOT NULL");
     if (!enable) {
       return;
@@ -4518,6 +4520,30 @@ public abstract class SqlOperatorBaseTest {
     // with zero values
     tester.checkAgg(
         "covar_samp(x)",
+        new String[]{},
+        null,
+        0d);
+  }
+
+  @Test public void testRegrSyyFunc() {
+    tester.setFor(SqlStdOperatorTable.REGR_SYY, VM_EXPAND);
+    tester.checkFails(
+        "regr_syy(^*^)",
+        "Unknown identifier '\\*'",
+        false);
+    tester.checkFails(
+        "^regr_syy(cast(null as varchar(2)), cast(null as varchar(2)))^",
+        "(?s)Cannot apply 'REGR_SYY' to arguments of type 'REGR_SYY\\(<VARCHAR\\(2\\)>, <VARCHAR\\(2\\)>\\)'\\. Supported form\\(s\\): 'REGR_SYY\\(<NUMERIC>, <NUMERIC>\\)'.*",
+        false);
+    tester.checkType("regr_syy(CAST(NULL AS INTEGER), CAST(NULL AS INTEGER))",
+        "INTEGER");
+    checkAggType(tester, "regr_syy(1.5, 2.5)", "DECIMAL(2, 1) NOT NULL");
+    if (!enable) {
+      return;
+    }
+    // with zero values
+    tester.checkAgg(
+        "regr_syy(x)",
         new String[]{},
         null,
         0d);

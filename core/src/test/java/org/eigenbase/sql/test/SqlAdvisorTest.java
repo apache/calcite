@@ -151,6 +151,7 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
           "KEYWORD(POSITION)",
           "KEYWORD(POWER)",
           "KEYWORD(RANK)",
+          "KEYWORD(REGR_SYY)",
           "KEYWORD(ROW)",
           "KEYWORD(ROW_NUMBER)",
           "KEYWORD(SESSION_USER)",

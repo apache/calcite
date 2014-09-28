@@ -18,7 +18,6 @@ package org.eigenbase.sql.fun;
 
 import java.util.List;
 
-import com.google.common.collect.ImmutableList;
 import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.reltype.RelDataTypeFactory;
 import org.eigenbase.sql.SqlAggFunction;
@@ -26,7 +25,7 @@ import org.eigenbase.sql.SqlFunctionCategory;
 import org.eigenbase.sql.SqlKind;
 import org.eigenbase.sql.type.OperandTypes;
 import org.eigenbase.sql.type.ReturnTypes;
-
+import com.google.common.collect.ImmutableList;
 
 /**
  * <code>Covar</code> is an aggregator which returns the Covariance of the
@@ -86,7 +85,8 @@ public class SqlCovarAggFunction extends SqlAggFunction {
  */
   public enum Subtype {
     COVAR_POP,
-    COVAR_SAMP
+    COVAR_SAMP,
+    REGR_SYY
   }
 }
 
