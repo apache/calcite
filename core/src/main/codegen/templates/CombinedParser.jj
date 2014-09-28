@@ -4129,6 +4129,8 @@ SqlIdentifier ReservedFunctionName() :
         | <PERCENT_RANK>
         | <POWER>
         | <RANK>
+        | <REGR_SXX>
+        | <REGR_SYY>
         | <ROW_NUMBER>
         | <SQRT>
         | <STDDEV_POP>
@@ -4741,6 +4743,7 @@ SqlPostfixOperator PostfixRowOperator() :
     | < REGR_SLOPE: "REGR_SLOPE" >
     | < REGR_SXX: "REGR_SXX" >
     | < REGR_SXY: "REGR_SXY" >
+    | < REGR_SYY: "REGR_SYY" >
     | < RELATIVE: "RELATIVE" >
     | < RELEASE: "RELEASE" >
     | < REPEATABLE: "REPEATABLE" >

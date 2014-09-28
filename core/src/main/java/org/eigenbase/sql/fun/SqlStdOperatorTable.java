@@ -672,6 +672,18 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
       new SqlAvgAggFunction(null, SqlAvgAggFunction.Subtype.STDDEV_POP);
 
   /**
+   * <code>REGR_SXX</code> aggregate function.
+   */
+  public static final SqlAggFunction REGR_SXX =
+      new SqlCovarAggFunction(null, SqlCovarAggFunction.Subtype.REGR_SXX);
+
+  /**
+   * <code>REGR_SYY</code> aggregate function.
+   */
+  public static final SqlAggFunction REGR_SYY =
+      new SqlCovarAggFunction(null, SqlCovarAggFunction.Subtype.REGR_SYY);
+
+  /**
    * <code>COVAR_POP</code> aggregate function.
    */
   public static final SqlAggFunction COVAR_POP =
@@ -705,7 +717,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   // WINDOW Aggregate Functions
   //-------------------------------------------------------------
   /**
-   * <code>HISTORAM</code> aggregate function support. Used by window
+   * <code>HISTOGRAM</code> aggregate function support. Used by window
    * aggregate versions of MIN/MAX
    */
   public static final SqlAggFunction HISTOGRAM_AGG =
@@ -880,8 +892,8 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    * function into a relation, e.g. "<code>SELECT * FROM
    * TABLE(ramp(5))</code>".
    *
-   * <p>This operator has function syntax (with one argument), whereas {@link
-   * #EXPLICIT_TABLE} is a prefix operator.
+   * <p>This operator has function syntax (with one argument), whereas
+   * {@link #EXPLICIT_TABLE} is a prefix operator.
    */
   public static final SqlSpecialOperator COLLECTION_TABLE =
       new SqlCollectionTableOperator(
