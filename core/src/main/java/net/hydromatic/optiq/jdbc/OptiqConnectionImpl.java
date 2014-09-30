@@ -120,7 +120,7 @@ abstract class OptiqConnectionImpl
     final MaterializationService service = MaterializationService.instance();
     for (OptiqSchema.LatticeEntry e : Schemas.getLatticeEntries(rootSchema)) {
       final Lattice lattice = e.getLattice();
-      for (Lattice.Tile tile : lattice.tiles) {
+      for (Lattice.Tile tile : lattice.computeTiles()) {
         service.defineTile(lattice, tile.bitSet(), tile.measures, e.schema,
             true);
       }

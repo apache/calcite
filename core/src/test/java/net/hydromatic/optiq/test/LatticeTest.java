@@ -244,7 +244,7 @@ public class LatticeTest {
     assertThat(counter.intValue(), equalTo(3));
   }
 
-  /** Tests 2-way join query on a pre-defined aggregate table. */
+  /** Tests a model with pre-defined tiles. */
   @Test public void testLatticeWithPreDefinedTiles() {
     foodmartModel(
         " auto: false,\n"
@@ -337,6 +337,45 @@ public class LatticeTest {
           + "    EnumerableTableAccessRel(table=[[adhoc, m{27, 31}")
       .returnsUnordered("the_year=1997; C=86837; Q=Q1; US=2667730.0000")
       .sameResultWithMaterializationsDisabled();
+  }
+
+  /** Tests a model that uses an algorithm to generate an initial set of
+   * tiles.
+   *
+   * <p>Test case for
+   * <a href="https://issues.apache.org/jira/browse/OPTIQ-428">OPTIQ-428,
+   * "Use optimization algorithm to suggest which tiles of a lattice to
+   * materialize"</a>. */
+  @Test public void testTileAlgorithm() {
+    foodmartModel(
+        " auto: false,\n"
+        + "  algorithm: true,\n"
+        + "  rowCountEstimate: 86000,\n"
+        + "  defaultMeasures: [ {\n"
+        + "      agg: 'sum',\n"
+        + "      args: 'unit_sales'\n"
+        + "    }, {\n"
+        + "      agg: 'sum',\n"
+        + "      args: 'store_sales'\n"
+        + "    }, {\n"
+        + "      agg: 'count'\n"
+        + "  } ],\n"
+        + "  tiles: [ {\n"
+        + "    dimensions: [ 'the_year', ['t', 'quarter'] ],\n"
+        + "    measures: [ ]\n"
+        + "  } ]\n")
+        .query(
+            "select distinct t.\"the_year\", t.\"quarter\"\n"
+            + "from \"foodmart\".\"sales_fact_1997\" as s\n"
+            + "join \"foodmart\".\"time_by_day\" as t using (\"time_id\")\n")
+        .enableMaterializations(true)
+        .explainContains("EnumerableAggregateRel(group=[{3, 4}])\n"
+            + "  EnumerableTableAccessRel(table=[[adhoc, m{7, 16, 25, 27, 31, 37}]])")
+        .returnsUnordered("the_year=1997; quarter=Q1",
+            "the_year=1997; quarter=Q2",
+            "the_year=1997; quarter=Q3",
+            "the_year=1997; quarter=Q4")
+        .returnsCount(4);
   }
 
   /** Runs all queries against the Foodmart schema, using a lattice.

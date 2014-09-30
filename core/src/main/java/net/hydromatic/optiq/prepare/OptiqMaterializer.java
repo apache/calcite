@@ -85,10 +85,12 @@ class OptiqMaterializer extends OptiqPrepareImpl.OptiqPreparingStmt {
     for (Callback x : useStar(schema, materialization.queryRel)) {
       // Success -- we found a star table that matches.
       materialization.materialize(x.rel, x.starRelOptTable);
-      System.out.println("Materialization "
-          + materialization.materializedTable + " matched star table "
-          + x.starTable + "; query after re-write: "
-          + RelOptUtil.toString(materialization.queryRel));
+      if (OptiqPrepareImpl.DEBUG) {
+        System.out.println("Materialization "
+            + materialization.materializedTable + " matched star table "
+            + x.starTable + "; query after re-write: "
+            + RelOptUtil.toString(materialization.queryRel));
+      }
     }
   }
 

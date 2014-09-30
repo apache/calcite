@@ -46,6 +46,7 @@ import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.*;
 
+import java.math.BigInteger;
 import java.util.*;
 
 /**
@@ -70,6 +71,8 @@ public class Lattice {
   public final ImmutableList<Node> nodes;
   public final ImmutableList<Column> columns;
   public final boolean auto;
+  public final boolean algorithm;
+  public final double rowCountEstimate;
   public final ImmutableList<Measure> defaultMeasures;
   public final ImmutableList<Tile> tiles;
   public final ImmutableList<String> uniqueColumnNames;
@@ -88,12 +91,13 @@ public class Lattice {
         }
       };
 
-  private Lattice(ImmutableList<Node> nodes, boolean auto,
-      ImmutableList<Column> columns,
+  private Lattice(ImmutableList<Node> nodes, boolean auto, boolean algorithm,
+      Double rowCountEstimate, ImmutableList<Column> columns,
       ImmutableList<Measure> defaultMeasures, ImmutableList<Tile> tiles) {
     this.nodes = Preconditions.checkNotNull(nodes);
     this.columns = Preconditions.checkNotNull(columns);
     this.auto = auto;
+    this.algorithm = algorithm;
     this.defaultMeasures = Preconditions.checkNotNull(defaultMeasures);
     this.tiles = Preconditions.checkNotNull(tiles);
 
@@ -115,11 +119,18 @@ public class Lattice {
     uniqueColumnNames =
         ImmutableList.copyOf(
             SqlValidatorUtil.uniquify(Lists.transform(columns, GET_ALIAS)));
+    if (rowCountEstimate == null) {
+      // We could improve this when we fix
+      // [OPTIQ-429] Add statistics SPI for lattice optimization algorithm
+      rowCountEstimate = 1000d;
+    }
+    Preconditions.checkArgument(rowCountEstimate > 0d);
+    this.rowCountEstimate = rowCountEstimate;
   }
 
   /** Creates a Lattice. */
   public static Lattice create(OptiqSchema schema, String sql, boolean auto) {
-    return builder(schema, sql, auto).build();
+    return builder(schema, sql).auto(auto).build();
   }
 
   private static void populateAliases(SqlNode from, List<String> aliases,
@@ -304,13 +315,100 @@ public class Lattice {
     return StarTable.of(this, tables);
   }
 
-  public static Builder builder(OptiqSchema optiqSchema, String sql,
-      boolean auto) {
-    return new Builder(optiqSchema, sql, auto);
+  public static Builder builder(OptiqSchema optiqSchema, String sql) {
+    return new Builder(optiqSchema, sql);
   }
 
   public List<Measure> toMeasures(List<AggregateCall> aggCallList) {
     return Lists.transform(aggCallList, toMeasureFunction);
+  }
+
+  public Iterable<? extends Tile> computeTiles() {
+    if (!algorithm) {
+      return tiles;
+    }
+    return new TileSuggester(this).tiles();
+  }
+
+  /** Returns an estimate of the number of rows in the un-aggregated star. */
+  public double getFactRowCount() {
+    return rowCountEstimate;
+  }
+
+  /** Returns an estimate of the number of rows in the tile with the given
+   * dimensions. */
+  public double getRowCount(List<Column> columns) {
+    // The expected number of distinct values when choosing p values
+    // with replacement from n integers is n . (1 - ((n - 1) / n) ^ p).
+    //
+    // If we have several uniformly distributed attributes A1 ... Am
+    // with N1 ... Nm distinct values, they behave as one uniformly
+    // distributed attribute with N1 * ... * Nm distinct values.
+    BigInteger n = BigInteger.ONE;
+    for (Column column : columns) {
+      final int cardinality = cardinality(column);
+      if (cardinality > 1) {
+        n = n.multiply(BigInteger.valueOf(cardinality));
+      }
+    }
+    final double nn = n.doubleValue();
+    final double f = getFactRowCount();
+    final double a = (nn - 1d) / nn;
+    if (a == 1d) {
+      // A under-flows if nn is large.
+      return f;
+    }
+    final double v = nn * (1d - Math.pow(a, f));
+    // Cap at fact-row-count, because numerical artifacts can cause it
+    // to go a few % over.
+    return Math.min(v, f);
+  }
+
+  public static final Map<String, Integer> CARDINALITY_MAP =
+      ImmutableMap.<String, Integer>builder()
+          .put("brand_name", 111)
+          .put("cases_per_pallet", 10)
+          .put("customer_id", 5581)
+          .put("day_of_month", 30)
+          .put("fiscal_period", 0)
+          .put("gross_weight", 376)
+          .put("low_fat", 2)
+          .put("month_of_year", 12)
+          .put("net_weight", 332)
+          .put("product_category", 45)
+          .put("product_class_id", 102)
+          .put("product_department", 22)
+          .put("product_family", 3)
+          .put("product_id", 1559)
+          .put("product_name", 1559)
+          .put("product_subcategory", 102)
+          .put("promotion_id", 149)
+          .put("quarter", 4)
+          .put("recyclable_package", 2)
+          .put("shelf_depth", 488)
+          .put("shelf_height", 524)
+          .put("shelf_width", 534)
+          .put("SKU", 1559)
+          .put("SRP", 315)
+          .put("store_cost", 10777)
+          .put("store_id", 13)
+          .put("store_sales", 1049)
+          .put("the_date", 323)
+          .put("the_day", 7)
+          .put("the_month", 12)
+          .put("the_year", 1)
+          .put("time_id", 323)
+          .put("units_per_case", 36)
+          .put("unit_sales", 6)
+          .put("week_of_year", 52)
+          .build();
+
+  private int cardinality(Column column) {
+    final Integer integer = CARDINALITY_MAP.get(column.alias);
+    if (integer != null && integer > 0) {
+      return integer;
+    }
+    return column.alias.length();
   }
 
   /** Source relation of a lattice.
@@ -458,7 +556,6 @@ public class Lattice {
 
   /** Lattice builder. */
   public static class Builder {
-    private final boolean auto;
     private final List<Node> nodes = Lists.newArrayList();
     private final ImmutableList<Column> columns;
     private final ImmutableListMultimap<String, Column> columnsByAlias;
@@ -466,10 +563,11 @@ public class Lattice {
         ImmutableList.builder();
     private final ImmutableList.Builder<Tile> tileListBuilder =
         ImmutableList.builder();
+    private boolean algorithm = false;
+    private boolean auto = true;
+    private Double rowCountEstimate;
 
-    public Builder(OptiqSchema schema, String sql, boolean auto) {
-      this.auto = auto;
-
+    public Builder(OptiqSchema schema, String sql) {
       OptiqPrepare.ConvertResult parsed =
           Schemas.convert(MaterializedViewTable.MATERIALIZATION_CONNECTION,
               schema, schema.path(null), sql);
@@ -549,8 +647,28 @@ public class Lattice {
       columnsByAlias = aliasBuilder.build();
     }
 
+    /** Sets the "auto" attribute (default true). */
+    public Builder auto(boolean auto) {
+      this.auto = auto;
+      return this;
+    }
+
+    /** Sets the "algorithm" attribute (default false). */
+    public Builder algorithm(boolean algorithm) {
+      this.algorithm = algorithm;
+      return this;
+    }
+
+    /** Sets the "rowCountEstimate" attribute (default null). */
+    public Builder rowCountEstimate(double rowCountEstimate) {
+      this.rowCountEstimate = rowCountEstimate;
+      return this;
+    }
+
+    /** Builds a lattice. */
     public Lattice build() {
-      return new Lattice(ImmutableList.copyOf(nodes), auto, columns,
+      return new Lattice(ImmutableList.copyOf(nodes), auto, algorithm,
+          rowCountEstimate, columns,
           defaultMeasureListBuilder.build(), tileListBuilder.build());
     }
 

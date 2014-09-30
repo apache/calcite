@@ -36,6 +36,16 @@ public class JsonLattice {
    * <p>Default is true. */
   public boolean auto = true;
 
+  /** Whether to use an algorithm to suggest aggregates.
+   *
+   * <p>Default is false. */
+  public boolean algorithm = false;
+
+  /** Estimated number of rows.
+   *
+   * <p>If null, Optiq will a query to find the real value. */
+  public Double rowCountEstimate;
+
   /** List of materialized aggregates to create up front. */
   public final List<JsonTile> tiles = Lists.newArrayList();
 

@@ -242,8 +242,13 @@ public class ModelHandler {
             + "' is not a SemiMutableSchema");
       }
       OptiqSchema optiqSchema = OptiqSchema.from(schema);
-      final Lattice.Builder latticeBuilder = Lattice.builder(optiqSchema,
-          jsonLattice.sql, jsonLattice.auto);
+      Lattice.Builder latticeBuilder =
+          Lattice.builder(optiqSchema, jsonLattice.sql)
+              .auto(jsonLattice.auto)
+              .algorithm(jsonLattice.algorithm);
+      if (jsonLattice.rowCountEstimate != null) {
+        latticeBuilder.rowCountEstimate(jsonLattice.rowCountEstimate);
+      }
       populateLattice(jsonLattice, latticeBuilder);
       schema.add(jsonLattice.name, latticeBuilder.build());
     } catch (Exception e) {
