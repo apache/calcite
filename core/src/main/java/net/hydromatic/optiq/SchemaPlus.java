@@ -24,7 +24,7 @@ import com.google.common.collect.ImmutableList;
  * Extension to the {@link Schema} interface.
  *
  * <p>Given a user-defined schema that implements the {@link Schema} interface,
- * Optiq creates a wrapper that implements the {@code SchemaPlus} interface.
+ * Calcite creates a wrapper that implements the {@code SchemaPlus} interface.
  * This provides extra functionality, such as access to tables that have been
  * added explicitly.</p>
  *

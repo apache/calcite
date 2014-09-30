@@ -46,7 +46,7 @@ public class TableInRootSchemaTest {
    * in OptiqPrepareImpl". */
   @Test public void testAddingTableInRootSchema() throws Exception {
     Class.forName("net.hydromatic.optiq.jdbc.Driver");
-    Connection connection = DriverManager.getConnection("jdbc:optiq:");
+    Connection connection = DriverManager.getConnection("jdbc:calcite:");
     OptiqConnection optiqConnection = connection.unwrap(OptiqConnection.class);
 
     optiqConnection.getRootSchema().add("SAMPLE", new SimpleTable());

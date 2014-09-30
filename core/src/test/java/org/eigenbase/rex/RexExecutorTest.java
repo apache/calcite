@@ -79,7 +79,7 @@ public class RexExecutorTest {
             SqlTypeName.VARCHAR);
         final RelDataType integer = rexBuilder.getTypeFactory().createSqlType(
             SqlTypeName.INTEGER);
-        // optiq is internally creating the creating the input ref via a
+        // calcite is internally creating the creating the input ref via a
         // RexRangeRef
         // which eventually leads to a RexInputRef. So we are good.
         final RexInputRef input = rexBuilder.makeInputRef(varchar, 0);
@@ -101,10 +101,10 @@ public class RexExecutorTest {
         Object[] result = exec.execute();
         assertTrue(result[0] instanceof String);
         assertThat((String) result[0], equalTo("llo World"));
-        values[0] = "Optiq";
+        values[0] = "Calcite";
         result = exec.execute();
         assertTrue(result[0] instanceof String);
-        assertThat((String) result[0], equalTo("tiq"));
+        assertThat((String) result[0], equalTo("lcite"));
       }
     });
   }

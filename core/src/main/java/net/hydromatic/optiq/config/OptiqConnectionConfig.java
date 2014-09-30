@@ -20,7 +20,7 @@ import net.hydromatic.avatica.Casing;
 import net.hydromatic.avatica.ConnectionConfig;
 import net.hydromatic.avatica.Quoting;
 
-/** Interface for reading connection properties within Optiq code. There is
+/** Interface for reading connection properties within Calcite code. There is
  * a method for every property. At some point there will be similar config
  * classes for system and statement properties. */
 public interface OptiqConnectionConfig extends ConnectionConfig {

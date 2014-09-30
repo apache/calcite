@@ -16,7 +16,7 @@
  */
 
 /**
- * Utilities to help implement Optiq's SPIs.
+ * Utilities to help implement Calcite's SPIs.
  */
 package net.hydromatic.optiq.impl;
 

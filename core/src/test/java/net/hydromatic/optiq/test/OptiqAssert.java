@@ -54,7 +54,7 @@ import static org.hamcrest.CoreMatchers.*;
 import static org.junit.Assert.*;
 
 /**
- * Fluid DSL for testing Optiq connections and queries.
+ * Fluid DSL for testing Calcite connections and queries.
  */
 public class OptiqAssert {
   private OptiqAssert() {}
@@ -62,20 +62,21 @@ public class OptiqAssert {
   /** Which database to use for tests that require a JDBC data source. By
    * default the test suite runs against the embedded hsqldb database.
    *
-   * <p>We recommend that casual users use hsqldb, and frequent Optiq developers
-   * use MySQL. The test suite runs faster against the MySQL database (mainly
-   * because of the 0.1s versus 6s startup time). You have to populate MySQL
-   * manually with the foodmart data set, otherwise there will be test failures.
-   * To run against MySQL, specify '-Doptiq.test.db=mysql' on the java command
-   * line.</p> */
+   * <p>We recommend that casual users use hsqldb, and frequent Calcite
+   * developers use MySQL. The test suite runs faster against the MySQL database
+   * (mainly because of the 0.1s versus 6s startup time). You have to populate
+   * MySQL manually with the foodmart data set, otherwise there will be test
+   * failures.  To run against MySQL, specify '-Dcalcite.test.db=mysql' on the
+   * java command line. */
   public static final ConnectionSpec CONNECTION_SPEC =
-      Util.first(System.getProperty("optiq.test.db"), "hsqldb").equals("mysql")
+      Util.first(System.getProperty("calcite.test.db"), "hsqldb")
+          .equals("mysql")
           ? ConnectionSpec.MYSQL
           : ConnectionSpec.HSQLDB;
 
   /** Whether to enable slow tests. Default is false. */
   public static final boolean ENABLE_SLOW =
-      Util.first(Boolean.getBoolean("optiq.test.slow"), false);
+      Util.first(Boolean.getBoolean("calcite.test.slow"), false);
 
   private static final DateFormat UTC_DATE_FORMAT;
   private static final DateFormat UTC_TIME_FORMAT;
@@ -655,7 +656,7 @@ public class OptiqAssert {
     Class.forName("net.hydromatic.optiq.jdbc.Driver");
     String suffix = schemaList.contains("spark") ? "spark=true" : "";
     Connection connection =
-        DriverManager.getConnection("jdbc:optiq:" + suffix);
+        DriverManager.getConnection("jdbc:calcite:" + suffix);
     OptiqConnection optiqConnection =
         connection.unwrap(OptiqConnection.class);
     SchemaPlus rootSchema = optiqConnection.getRootSchema();
@@ -692,7 +693,7 @@ public class OptiqAssert {
   static OptiqConnection getConnection(SchemaSpec schemaSpec)
       throws ClassNotFoundException, SQLException {
     Class.forName("net.hydromatic.optiq.jdbc.Driver");
-    Connection connection = DriverManager.getConnection("jdbc:optiq:");
+    Connection connection = DriverManager.getConnection("jdbc:calcite:");
     OptiqConnection optiqConnection =
         connection.unwrap(OptiqConnection.class);
     final SchemaPlus rootSchema = optiqConnection.getRootSchema();
@@ -749,7 +750,7 @@ public class OptiqAssert {
                 info.setProperty(entry.getKey(), entry.getValue());
               }
               return (OptiqConnection) DriverManager.getConnection(
-                  "jdbc:optiq:", info);
+                  "jdbc:calcite:", info);
             }
           });
     }
@@ -762,7 +763,7 @@ public class OptiqAssert {
             public OptiqConnection createConnection() throws Exception {
               Class.forName("net.hydromatic.optiq.jdbc.Driver");
               Connection connection =
-                  DriverManager.getConnection("jdbc:optiq:");
+                  DriverManager.getConnection("jdbc:calcite:");
               OptiqConnection optiqConnection =
                   connection.unwrap(OptiqConnection.class);
               SchemaPlus rootSchema =
@@ -782,7 +783,7 @@ public class OptiqAssert {
               final Properties info = new Properties();
               info.setProperty("model", "inline:" + model);
               return (OptiqConnection) DriverManager.getConnection(
-                  "jdbc:optiq:", info);
+                  "jdbc:calcite:", info);
             }
           });
     }
@@ -1217,7 +1218,7 @@ public class OptiqAssert {
       return this;
     }
 
-    /** Adds a hook and a handler for that hook. Optiq will create a thread
+    /** Adds a hook and a handler for that hook. Calcite will create a thread
      * hook (by calling {@link Hook#addThread(com.google.common.base.Function)})
      * just before running the query, and remove the hook afterwards. */
     public <T> AssertQuery withHook(Hook hook, Function<T, Void> handler) {

@@ -196,7 +196,7 @@ public final class Schemas {
     return table.asQueryable(root.getQueryProvider(), schema, tableName);
   }
 
-  /** Parses and validates a SQL query. For use within Optiq only. */
+  /** Parses and validates a SQL query. For use within Calcite only. */
   public static OptiqPrepare.ParseResult parse(
       final OptiqConnection connection, final OptiqSchema schema,
       final List<String> schemaPath, final String sql) {
@@ -213,7 +213,7 @@ public final class Schemas {
   }
 
   /** Parses and validates a SQL query and converts to relational algebra. For
-   * use within Optiq only. */
+   * use within Calcite only. */
   public static OptiqPrepare.ConvertResult convert(
       final OptiqConnection connection, final OptiqSchema schema,
       final List<String> schemaPath, final String sql) {
@@ -229,7 +229,7 @@ public final class Schemas {
     }
   }
 
-  /** Prepares a SQL query for execution. For use within Optiq only. */
+  /** Prepares a SQL query for execution. For use within Calcite only. */
   public static OptiqPrepare.PrepareResult<Object> prepare(
       final OptiqConnection connection, final OptiqSchema schema,
       final List<String> schemaPath, final String sql,

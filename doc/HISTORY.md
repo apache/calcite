@@ -1,4 +1,4 @@
-# Apache Optiq release history
+# Apache Calcite release history
 
 For a full list of releases, see
 <a href="https://github.com/apache/incubator-optiq/releases">github</a>.
@@ -434,7 +434,7 @@ Bug-fixes and internal changes
 * Fix Optiq on Windows. (All tests and checkstyle checks pass.)
 * In checkstyle, support Windows-style file separator, otherwise build fails in
   Windows due to suppressions not used. (Vladimir Sitnikov)
-* Enable MongoDB tests when `-Doptiq.test.mongodb=true`.
+* Enable MongoDB tests when `-Dcalcite.test.mongodb=true`.
 * Cleanup cache exception-handling and an assert.
 * [<a href="https://issues.apache.org/jira/browse/OPTIQ-153">OPTIQ-153</a>]
   Error using MongoDB adapter: Failed to set setXIncludeAware(true)
@@ -649,7 +649,7 @@ Other
 * Add section to <a href="HOWTO.md">HOWTO</a> on implementing adapters.
 * Fix data type conversions when creating a clone table in memory.
 * Fix how strings are escaped in JsonBuilder.
-* Test suite now depends on an embedded hsqldb database, so you can run <code>mvn test</code> right after pulling from git. You can instead use a MySQL database if you specify '-Doptiq.test.db=mysql', but you need to manually populate it.
+* Test suite now depends on an embedded hsqldb database, so you can run <code>mvn test</code> right after pulling from git. You can instead use a MySQL database if you specify '-Dcalcite.test.db=mysql', but you need to manually populate it.
 * Fix a planner issue which occurs when the left and right children of join are the same relational expression, caused by a self-join query.
 * [<a href="https://issues.apache.org/jira/browse/OPTIQ-76">OPTIQ-76</a>]
   Precedence of the item operator, <code>map[index]</code>; remove the space before '[' when converting parse tree to string.

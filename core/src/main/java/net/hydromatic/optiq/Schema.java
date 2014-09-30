@@ -31,7 +31,7 @@ import java.util.*;
  * <p>There may be multiple overloaded functions with the same name but
  * different numbers or types of parameters.
  * For this reason, {@link #getFunctions} returns a list of all
- * members with the same name. Optiq will call
+ * members with the same name. Calcite will call
  * {@link Schemas#resolve(org.eigenbase.reltype.RelDataTypeFactory, String, java.util.Collection, java.util.List)}
  * to choose the appropriate one.</p>
  *
@@ -102,23 +102,23 @@ public interface Schema {
    * and sub-schemas in this schema, in addition to those returned automatically
    * by methods such as {@link #getTable(String)}.
    *
-   * <p>Even if this method returns true, the maps are not modified. Optiq
+   * <p>Even if this method returns true, the maps are not modified. Calcite
    * stores the defined objects in a wrapper object. */
   boolean isMutable();
 
   /** Returns whether the contents of this schema have changed since a given
    * time. The time is a millisecond value, as returned by
    * {@link System#currentTimeMillis()}. If this method returns true, and
-   * caching is enabled, Optiq will re-build caches.
+   * caching is enabled, Calcite will re-build caches.
    *
    * <p>The default implementation in
    * {@link net.hydromatic.optiq.impl.AbstractSchema} always returns
    * {@code false}.</p>
    *
-   * <p>To control whether Optiq caches the contents of a schema, use the
+   * <p>To control whether Calcite caches the contents of a schema, use the
    * "cache" JSON attribute. The default value is "true".</p>
    *
-   * @param lastCheck The last time that Optiq called this method, or
+   * @param lastCheck The last time that Calcite called this method, or
    *   {@link Long#MIN_VALUE} if this is the first call
    * @param now The current time in millis, as returned by
    *   {@link System#currentTimeMillis()}

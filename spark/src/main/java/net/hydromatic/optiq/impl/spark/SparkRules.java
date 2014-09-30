@@ -370,7 +370,7 @@ public abstract class SparkRules {
   // Play area
 
   public static void main(String[] args) {
-    final JavaSparkContext sc = new JavaSparkContext("local[1]", "optiq");
+    final JavaSparkContext sc = new JavaSparkContext("local[1]", "calcite");
     final JavaRDD<String> file = sc.textFile("/usr/share/dict/words");
     System.out.println(
         file.map(

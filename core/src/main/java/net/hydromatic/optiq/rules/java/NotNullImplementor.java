@@ -23,18 +23,17 @@ import org.eigenbase.rex.RexCall;
 import java.util.List;
 
 /**
- * Simplified version of {@link net.hydromatic.optiq.rules.java.CallImplementor} that does not know about
- * null semantics.
- * <p>
+ * Simplified version of {@link net.hydromatic.optiq.rules.java.CallImplementor}
+ * that does not know about null semantics.
+ *
  * @see net.hydromatic.optiq.rules.java.RexImpTable
  * @see net.hydromatic.optiq.rules.java.CallImplementor
- *
- **/
+ */
 public interface NotNullImplementor {
   /**
    * Implements a call with assumption that all the null-checking is
    * implemented by caller.
-   * <p>
+   *
    * @param translator translator to implement the code
    * @param call call to implement
    * @param translatedOperands arguments of a call

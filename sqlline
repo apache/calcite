@@ -18,7 +18,7 @@
 #
 # Example:
 # $ ./sqlline
-# sqlline> !connect jdbc:optiq: admin admin
+# sqlline> !connect jdbc:calcite: admin admin
 
 # Deduce whether we are running cygwin
 case $(uname -s) in

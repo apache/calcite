@@ -28,7 +28,7 @@ import org.apache.spark.api.java.function.FlatMapFunction;
 import java.util.*;
 
 /**
- * Runtime utilities for Optiq's Spark adapter. Generated code calls these
+ * Runtime utilities for Calcite's Spark adapter. Generated code calls these
  * methods.
  */
 public abstract class SparkRuntime {

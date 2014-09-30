@@ -303,7 +303,7 @@ public enum SqlTypeName {
    *
    * @deprecated Use
    * {@link org.eigenbase.reltype.RelDataTypeSystem#getDefaultPrecision(SqlTypeName)};
-   * will be removed after optiq-0.9.1.
+   * will be removed after calcite-0.9.1.
    */
   public int getDefaultPrecision() {
     return RelDataTypeSystem.DEFAULT.getDefaultPrecision(this);
@@ -682,7 +682,7 @@ public enum SqlTypeName {
    *
    * @deprecated Use
    * {@link org.eigenbase.reltype.RelDataTypeSystem#getMaxScale(SqlTypeName)};
-   * will be removed after optiq-0.9.1.
+   * will be removed after calcite-0.9.1.
    */
   public int getMaxPrecision() {
     return RelDataTypeSystem.DEFAULT.getMaxPrecision(this);
@@ -697,7 +697,7 @@ public enum SqlTypeName {
    *
    * @deprecated Use
    * {@link org.eigenbase.reltype.RelDataTypeSystem#getMaxScale(SqlTypeName)};
-   * will be removed after optiq-0.9.1.
+   * will be removed after calcite-0.9.1.
    */
   public int getMaxScale() {
     return RelDataTypeSystem.DEFAULT.getMaxScale(this);

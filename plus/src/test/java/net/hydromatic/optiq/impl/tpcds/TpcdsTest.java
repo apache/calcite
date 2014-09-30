@@ -38,7 +38,7 @@ import net.hydromatic.tpcds.query.Query;
 
 /** Unit test for {@link net.hydromatic.optiq.impl.tpcds.TpcdsSchema}.
  *
- * <p>Only runs if {@code -Doptiq.test.slow=true} is specified on the
+ * <p>Only runs if {@code -Dcalcite.test.slow=true} is specified on the
  * command-line.
  * (See {@link net.hydromatic.optiq.test.OptiqAssert#ENABLE_SLOW}.)</p> */
 public class TpcdsTest {

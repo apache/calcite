@@ -143,7 +143,7 @@ public abstract class UnregisteredDriver implements java.sql.Driver {
   }
 
   /** Returns the prefix of the connect string that this driver will recognize
-   * as its own. For example, "jdbc:optiq:". */
+   * as its own. For example, "jdbc:calcite:". */
   protected abstract String getConnectStringPrefix();
 
   public DriverPropertyInfo[] getPropertyInfo(

@@ -82,11 +82,11 @@ public class SqlLeadLagAggFunction extends SqlAggFunction {
   }
 
   public List<RelDataType> getParameterTypes(RelDataTypeFactory typeFactory) {
-    throw new UnsupportedOperationException("remove before optiq-0.9");
+    throw new UnsupportedOperationException("remove before calcite-0.9");
   }
 
   public RelDataType getReturnType(RelDataTypeFactory typeFactory) {
-    throw new UnsupportedOperationException("remove before optiq-0.9");
+    throw new UnsupportedOperationException("remove before calcite-0.9");
   }
 }
 

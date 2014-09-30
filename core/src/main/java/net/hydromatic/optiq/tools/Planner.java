@@ -23,7 +23,7 @@ import org.eigenbase.sql.SqlNode;
 import org.eigenbase.sql.parser.SqlParseException;
 
 /**
- * A fa&ccedil;ade that covers Optiq's query planning process: parse SQL,
+ * A fa&ccedil;ade that covers Calcite's query planning process: parse SQL,
  * validate the parse tree, convert the parse tree to a relational expression,
  * and optimize the relational expression.
  *

@@ -51,18 +51,18 @@ public abstract class JsonSchema {
   /** Whether to cache metadata (tables, functions and sub-schemas) generated
    * by this schema. Default value is {@code true}.
    *
-   * <p>If {@code false}, Optiq will go back to the schema each time it needs
+   * <p>If {@code false}, Calcite will go back to the schema each time it needs
    * metadata, for example, each time it needs a list of tables in order to
    * validate a query against the schema.</p>
    *
-   * <p>If {@code true}, Optiq will cache the metadata the first time it reads
+   * <p>If {@code true}, Calcite will cache the metadata the first time it reads
    * it. This can lead to better performance, especially if name-matching is
    * case-insensitive
    * (see {@link net.hydromatic.optiq.config.Lex#caseSensitive}).
    * However, it also leads to the problem of cache staleness.
    * A particular schema implementation can override the
    * {@link net.hydromatic.optiq.Schema#contentsHaveChangedSince(long, long)}
-   * method to tell Optiq when it should consider its cache to be out of
+   * method to tell Calcite when it should consider its cache to be out of
    * date.</p>
    *
    * <p>Tables, functions and sub-schemas explicitly created in a schema are

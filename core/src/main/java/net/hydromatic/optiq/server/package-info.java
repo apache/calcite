@@ -16,7 +16,7 @@
  */
 
 /**
- * Provides a server for hosting Optiq connections.
+ * Provides a server for hosting Calcite connections.
  */
 package net.hydromatic.optiq.server;
 

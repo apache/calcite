@@ -23,7 +23,7 @@ import org.eigenbase.sql.test.SqlTester;
 
 /**
  * Embodiment of {@link org.eigenbase.sql.test.SqlOperatorBaseTest}
- * that generates SQL statements and executes them using Optiq.
+ * that generates SQL statements and executes them using Calcite.
  */
 public class OptiqSqlOperatorTest extends SqlOperatorBaseTest {
   private static final ThreadLocal<OptiqConnection> LOCAL =

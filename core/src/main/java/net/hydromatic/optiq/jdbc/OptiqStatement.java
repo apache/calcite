@@ -24,7 +24,7 @@ import net.hydromatic.optiq.server.OptiqServerStatement;
 
 /**
  * Implementation of {@link java.sql.Statement}
- * for the Optiq engine.
+ * for the Calcite engine.
  */
 public abstract class OptiqStatement
     extends AvaticaStatement

@@ -40,7 +40,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 
 /**
- * Optiq test suite.
+ * Calcite test suite.
  *
  * <p>Tests are sorted by approximate running time. The suite runs the fastest
  * tests first, so that regressions can be discovered as fast as possible.
@@ -114,7 +114,7 @@ import org.junit.runners.Suite;
     PartiallyOrderedSetTest.class,
 
     // system tests and benchmarks (very slow, but usually only run if
-    // '-Doptiq.test.slow=true' is specified)
+    // '-Dcalcite.test.slow=true' is specified)
     FoodmartTest.class
 })
 public class OptiqSuite {

@@ -43,7 +43,7 @@ import net.hydromatic.optiq.rules.java.RexToLixTranslator;
  * User-defined table macro.
  * <p>
  * Created by the validator, after resolving a function call to a function
- * defined in an Optiq schema.
+ * defined in a Calcite schema.
 */
 public class SqlUserDefinedTableMacro extends SqlFunction {
   private final TableMacro tableMacro;

@@ -1,4 +1,4 @@
-# Optiq JSON model reference
+# Calcite JSON model reference
 
 ## Elements
 
@@ -16,7 +16,7 @@
 
 `defaultSchema` (optional string). If specified, it is
 the name (case-sensitive) of a schema defined in this model, and will
-become the default schema for connections to Optiq that use this model.
+become the default schema for connections to Calcite that use this model.
 
 `schemas` (optional list of <a href="#schema">Schema</a> elements).
 
@@ -57,21 +57,21 @@ string.
 <a href="#materialization">Materialization</a>) defines the tables
 in this schema that are materializations of queries.
 
-`cache` (optional boolean, default true) tells Optiq whether to
+`cache` (optional boolean, default true) tells Calcite whether to
 cache metadata (tables, functions and sub-schemas) generated
 by this schema.
 
-* If `false`, Optiq will go back to the schema each time it needs
+* If `false`, Calcite will go back to the schema each time it needs
   metadata, for example, each time it needs a list of tables in order to
   validate a query against the schema.
 
-* If `true`, Optiq will cache the metadata the first time it reads
+* If `true`, Calcite will cache the metadata the first time it reads
   it. This can lead to better performance, especially if name-matching is
   case-insensitive.
 
 However, it also leads to the problem of cache staleness.
 A particular schema implementation can override the
-`Schema.contentsHaveChangedSince` method to tell Optiq
+`Schema.contentsHaveChangedSince` method to tell Calcite
 when it should consider its cache to be out of date.
 
 Tables, functions and sub-schemas explicitly created in a schema are

@@ -24,20 +24,20 @@ limitations under the License.
   </parent>
 
   <!-- The basics. -->
-  <groupId>org.apache.optiq</groupId>
-  <artifactId>optiq</artifactId>
+  <groupId>org.apache.calcite</groupId>
+  <artifactId>calcite</artifactId>
   <packaging>pom</packaging>
   <version>0.9.1-incubating-SNAPSHOT</version>
 
   <!-- More project information. -->
-  <name>Optiq</name>
-  <description>Optiq is a dynamic data management framework.</description>
-  <url>http://incubator.apache.org/optiq</url>
+  <name>Calcite</name>
+  <description>Calcite is a dynamic data management framework</description>
+  <url>http://optiq.incubator.apache.org</url>
   <inceptionYear>2012</inceptionYear>
 
   <mailingLists>
     <mailingList>
-      <name>Apache Optiq developers list</name>
+      <name>Apache Calcite developers list</name>
       <subscribe>dev-subscribe@optiq.incubator.apache.org</subscribe>
       <unsubscribe>dev-unsubscribe@optiq.incubator.apache.org</unsubscribe>
       <post>dev@optiq.incubator.apache.org</post>
@@ -163,20 +163,20 @@ limitations under the License.
 
   <dependencyManagement>
     <dependencies>
-      <!-- Sorted by groupId, artifactId; optiq dependencies first. -->
+      <!-- Sorted by groupId, artifactId; calcite dependencies first. -->
       <dependency>
-        <groupId>org.apache.optiq</groupId>
-        <artifactId>optiq-avatica</artifactId>
+        <groupId>org.apache.calcite</groupId>
+        <artifactId>calcite-avatica</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
-        <groupId>org.apache.optiq</groupId>
-        <artifactId>optiq-core</artifactId>
+        <groupId>org.apache.calcite</groupId>
+        <artifactId>calcite-core</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
-        <groupId>org.apache.optiq</groupId>
-        <artifactId>optiq-core</artifactId>
+        <groupId>org.apache.calcite</groupId>
+        <artifactId>calcite-core</artifactId>
         <type>test-jar</type>
         <version>${project.version}</version>
       </dependency>
@@ -542,7 +542,7 @@ limitations under the License.
                   <runOnlyAtExecutionRoot>true</runOnlyAtExecutionRoot>
                   <appendAssemblyId>false</appendAssemblyId>
                   <descriptor>src/main/config/assemblies/source-assembly.xml</descriptor>
-                  <finalName>apache-optiq-${project.version}-src</finalName>
+                  <finalName>apache-calcite-${project.version}-src</finalName>
                   <tarLongFileMode>gnu</tarLongFileMode>
                 </configuration>
               </execution>

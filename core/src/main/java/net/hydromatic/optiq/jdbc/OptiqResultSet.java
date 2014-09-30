@@ -30,7 +30,7 @@ import java.util.*;
 
 /**
  * Implementation of {@link ResultSet}
- * for the Optiq engine.
+ * for the Calcite engine.
  */
 public class OptiqResultSet extends AvaticaResultSet {
   OptiqResultSet(

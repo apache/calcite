@@ -23,7 +23,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 
 /**
- * Suite consisting of all tests in the <code>optiq-plus</code> module.
+ * Suite consisting of all tests in the <code>calcite-plus</code> module.
  */
 @RunWith(Suite.class)
 @Suite.SuiteClasses({

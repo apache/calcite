@@ -79,7 +79,7 @@ import static org.hamcrest.CoreMatchers.*;
 import static org.junit.Assert.*;
 
 /**
- * Tests for using Optiq via JDBC.
+ * Tests for using Calcite via JDBC.
  */
 public class JdbcTest {
   public static final Method GENERATE_STRINGS_METHOD =
@@ -170,7 +170,7 @@ public class JdbcTest {
       throws SQLException, ClassNotFoundException {
     Class.forName("net.hydromatic.optiq.jdbc.Driver");
     Connection connection =
-        DriverManager.getConnection("jdbc:optiq:");
+        DriverManager.getConnection("jdbc:calcite:");
     OptiqConnection optiqConnection =
         connection.unwrap(OptiqConnection.class);
     SchemaPlus rootSchema = optiqConnection.getRootSchema();
@@ -236,7 +236,7 @@ public class JdbcTest {
       throws ClassNotFoundException, SQLException {
     Class.forName("net.hydromatic.optiq.jdbc.Driver");
     Connection connection =
-        DriverManager.getConnection("jdbc:optiq:");
+        DriverManager.getConnection("jdbc:calcite:");
     OptiqConnection optiqConnection =
         connection.unwrap(OptiqConnection.class);
     SchemaPlus rootSchema = optiqConnection.getRootSchema();
@@ -256,7 +256,7 @@ public class JdbcTest {
       throws SQLException, ClassNotFoundException {
     Class.forName("net.hydromatic.optiq.jdbc.Driver");
     Connection connection =
-        DriverManager.getConnection("jdbc:optiq:");
+        DriverManager.getConnection("jdbc:calcite:");
     OptiqConnection optiqConnection =
         connection.unwrap(OptiqConnection.class);
     SchemaPlus rootSchema = optiqConnection.getRootSchema();
@@ -365,7 +365,7 @@ public class JdbcTest {
     info.put("lex", "JAVA");
     info.put("quoting", "DOUBLE_QUOTE");
     Connection connection =
-        DriverManager.getConnection("jdbc:optiq:", info);
+        DriverManager.getConnection("jdbc:calcite:", info);
     OptiqConnection optiqConnection =
         connection.unwrap(OptiqConnection.class);
     SchemaPlus rootSchema = optiqConnection.getRootSchema();
@@ -395,7 +395,7 @@ public class JdbcTest {
       throws SQLException, ClassNotFoundException {
     Class.forName("net.hydromatic.optiq.jdbc.Driver");
     Connection connection =
-        DriverManager.getConnection("jdbc:optiq:");
+        DriverManager.getConnection("jdbc:calcite:");
     OptiqConnection optiqConnection =
         connection.unwrap(OptiqConnection.class);
     SchemaPlus rootSchema = optiqConnection.getRootSchema();
@@ -628,7 +628,7 @@ public class JdbcTest {
     final HandlerDriver driver =
         new HandlerDriver();
     OptiqConnection connection = (OptiqConnection)
-        driver.connect("jdbc:optiq:", new Properties());
+        driver.connect("jdbc:calcite:", new Properties());
     SchemaPlus rootSchema = connection.getRootSchema();
     rootSchema.add("hr", new ReflectiveSchema(new HrSchema()));
     connection.setSchema("hr");
@@ -678,7 +678,7 @@ public class JdbcTest {
     }
     final Driver driver = new Driver();
     OptiqConnection connection = (OptiqConnection)
-        driver.connect("jdbc:optiq:", new Properties());
+        driver.connect("jdbc:calcite:", new Properties());
     SchemaPlus rootSchema = connection.getRootSchema();
     rootSchema.add("hr", new ReflectiveSchema(new HrSchema()));
     connection.setSchema("hr");
@@ -710,7 +710,7 @@ public class JdbcTest {
    */
   @Test public void testReadme() throws ClassNotFoundException, SQLException {
     Class.forName("net.hydromatic.optiq.jdbc.Driver");
-    Connection connection = DriverManager.getConnection("jdbc:optiq:");
+    Connection connection = DriverManager.getConnection("jdbc:calcite:");
     OptiqConnection optiqConnection =
         connection.unwrap(OptiqConnection.class);
     final SchemaPlus rootSchema = optiqConnection.getRootSchema();
@@ -734,9 +734,9 @@ public class JdbcTest {
   @Test public void testConnectionProperties() throws ClassNotFoundException,
       SQLException {
     Class.forName("net.hydromatic.optiq.jdbc.Driver");
-    java.sql.Driver driver = DriverManager.getDriver("jdbc:optiq:");
+    java.sql.Driver driver = DriverManager.getDriver("jdbc:calcite:");
     final DriverPropertyInfo[] propertyInfo =
-        driver.getPropertyInfo("jdbc:optiq:", new Properties());
+        driver.getPropertyInfo("jdbc:calcite:", new Properties());
     final HashSet<String> names = new HashSet<String>();
     for (DriverPropertyInfo info : propertyInfo) {
       names.add(info.name);
@@ -751,11 +751,11 @@ public class JdbcTest {
    */
   @Test public void testVersion() throws ClassNotFoundException, SQLException {
     Class.forName("net.hydromatic.optiq.jdbc.Driver");
-    Connection connection = DriverManager.getConnection("jdbc:optiq:");
+    Connection connection = DriverManager.getConnection("jdbc:calcite:");
     OptiqConnection optiqConnection =
         connection.unwrap(OptiqConnection.class);
     final DatabaseMetaData metaData = optiqConnection.getMetaData();
-    assertEquals("Optiq JDBC Driver", metaData.getDriverName());
+    assertEquals("Calcite JDBC Driver", metaData.getDriverName());
 
     final String driverVersion = metaData.getDriverVersion();
     final int driverMajorVersion = metaData.getDriverMajorVersion();
@@ -763,7 +763,7 @@ public class JdbcTest {
     assertEquals(0, driverMajorVersion);
     assertTrue(driverMinorVersion >= 5); // will work for the next few releases
 
-    assertEquals("Optiq", metaData.getDatabaseProductName());
+    assertEquals("Calcite", metaData.getDatabaseProductName());
     final String databaseProductVersion =
         metaData.getDatabaseProductVersion();
     final int databaseMajorVersion = metaData.getDatabaseMajorVersion();
@@ -1746,7 +1746,7 @@ public class JdbcTest {
         + "}");
 
     Connection optiqConnection = DriverManager.getConnection(
-      "jdbc:optiq:", info);
+      "jdbc:calcite:", info);
 
     Statement optiqStatement = optiqConnection.createStatement();
     ResultSet rs = optiqStatement.executeQuery(
@@ -4023,7 +4023,7 @@ public class JdbcTest {
         .with(OptiqAssert.Config.REGULAR)
         .query(
             // *0 is used to make results predictable.
-            // If using just max(empid) optiq cannot compute the result
+            // If using just max(empid) calcite cannot compute the result
             // properly since it does not support range windows yet :(
             "select max(\"empid\"*0) over (partition by 42\n"
             + "  order by \"empid\") as m\n"
@@ -4043,7 +4043,7 @@ public class JdbcTest {
         .with(OptiqAssert.Config.REGULAR)
         .query(
             // *0 is used to make results predictable.
-            // If using just max(empid) optiq cannot compute the result
+            // If using just max(empid) calcite cannot compute the result
             // properly since it does not support range windows yet :(
             "select max(\"empid\"*0) over (partition by \"deptno\"\n"
             + "  order by 42) as m\n"
@@ -4393,7 +4393,7 @@ public class JdbcTest {
       outFile = new File(path + ".out");
     } else {
       // e.g. path = "sql/outer.oq"
-      // inUrl = "file:/home/fred/optiq/core/target/test-classes/sql/outer.oq"
+      // inUrl = "file:/home/fred/calcite/core/target/test-classes/sql/outer.oq"
       final URL inUrl = JdbcTest.class.getResource("/" + path);
       String x = inUrl.getFile();
       assert x.endsWith(path);
@@ -4911,7 +4911,7 @@ public class JdbcTest {
               public OptiqConnection createConnection() throws Exception {
                 OptiqConnection connection = (OptiqConnection)
                     new AutoTempDriver(objects)
-                        .connect("jdbc:optiq:", new Properties());
+                        .connect("jdbc:calcite:", new Properties());
                 final SchemaPlus rootSchema = connection.getRootSchema();
                 rootSchema.add("hr",
                     new ReflectiveSchema(new HrSchema()));
@@ -5316,11 +5316,11 @@ public class JdbcTest {
   }
 
   /** Test case for bug where if two tables have different element classes
-   * but those classes have identical fields, Optiq would generate code to use
+   * but those classes have identical fields, Calcite would generate code to use
    * the wrong element class; a {@link ClassCastException} would ensue. */
   @Test public void testDifferentTypesSameFields() throws Exception {
     Class.forName("net.hydromatic.optiq.jdbc.Driver");
-    Connection connection = DriverManager.getConnection("jdbc:optiq:");
+    Connection connection = DriverManager.getConnection("jdbc:calcite:");
     OptiqConnection optiqConnection =
         connection.unwrap(OptiqConnection.class);
     final SchemaPlus rootSchema = optiqConnection.getRootSchema();

@@ -20,7 +20,7 @@ import net.hydromatic.optiq.jdbc.OptiqConnection;
 import net.hydromatic.optiq.jdbc.OptiqPrepare;
 
 /**
- * Statement within an Optiq server.
+ * Statement within a Calcite server.
  */
 public interface OptiqServerStatement {
   /** Creates a context for preparing a statement for execution. */

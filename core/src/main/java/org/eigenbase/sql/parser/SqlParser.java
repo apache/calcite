@@ -59,7 +59,7 @@ public class SqlParser {
 
   /**
    * Creates a <code>SqlParser</code> to parse the given string using
-   * Optiq's parser implementation.
+   * Calcite's parser implementation.
    *
    * @param s An SQL statement or expression to parse.
    * @return A <code>SqlParser</code> object.

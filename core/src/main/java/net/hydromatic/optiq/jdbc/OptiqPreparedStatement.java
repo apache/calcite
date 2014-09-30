@@ -25,7 +25,7 @@ import java.sql.*;
 
 /**
  * Implementation of {@link java.sql.PreparedStatement}
- * for the Optiq engine.
+ * for the Calcite engine.
  *
  * <p>This class has sub-classes which implement JDBC 3.0 and JDBC 4.0 APIs;
  * it is instantiated using {@link net.hydromatic.avatica.AvaticaFactory#newPreparedStatement}.</p>

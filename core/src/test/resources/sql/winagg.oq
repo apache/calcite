@@ -113,7 +113,7 @@ select *, first_value(ename) over (partition by deptno order by gender range unb
 
 !ok
 !}
-# Optiq does not yet generate tied ranks
+# Calcite does not yet generate tied ranks
 !if (false) {
 select *, count(*) over (order by deptno) as c from emp;
  ENAME | DEPTNO | GENDER | C
@@ -145,7 +145,7 @@ select *, rank() over (order by deptno) as c from emp;
 (9 rows)
 
 !ok
-# Optiq does not yet generate tied ranks
+# Calcite does not yet generate tied ranks
 select *, dense_rank() over (order by deptno) as c from emp;
  ENAME | DEPTNO | GENDER | C
 -------+--------+--------+---

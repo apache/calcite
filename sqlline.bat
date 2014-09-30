@@ -18,7 +18,7 @@
 ::
 :: Example:
 :: > sqlline.bat
-:: sqlline> !connect jdbc:optiq: admin admin 
+:: sqlline> !connect jdbc:calcite: admin admin 
 
 :: Copy dependency jars on first call. (To force jar refresh, remove target\dependencies)
 if not exist target\dependencies (call mvn -B dependency:copy-dependencies -DoverWriteReleases=false -DoverWriteSnapshots=false -DoverWriteIfNewer=true -DoutputDirectory=target\dependencies)

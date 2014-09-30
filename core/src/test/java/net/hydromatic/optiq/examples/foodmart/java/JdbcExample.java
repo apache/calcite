@@ -23,7 +23,7 @@ import net.hydromatic.optiq.jdbc.OptiqConnection;
 import java.sql.*;
 
 /**
- * Example of using Optiq via JDBC.
+ * Example of using Calcite via JDBC.
  *
  * <p>Schema is specified programmatically.</p>
  */
@@ -35,7 +35,7 @@ public class JdbcExample {
   public void run() throws ClassNotFoundException, SQLException {
     Class.forName("net.hydromatic.optiq.jdbc.Driver");
     Connection connection =
-        DriverManager.getConnection("jdbc:optiq:");
+        DriverManager.getConnection("jdbc:calcite:");
     OptiqConnection optiqConnection =
         connection.unwrap(OptiqConnection.class);
     SchemaPlus rootSchema = optiqConnection.getRootSchema();

@@ -19,7 +19,7 @@
  * Provides model files, in JSON format, defining schemas and other metadata.
  *
  * <p>Models are specified using a <code>model=&lt;uri&gt;</code> parameter on
- * the JDBC connect string. Optiq loads the model while initializing the
+ * the JDBC connect string. Calcite loads the model while initializing the
  * connection. It first parses the JSON, then uses a
  * {@link net.hydromatic.optiq.model.ModelHandler} as visitor over the parse
  * tree.</p>

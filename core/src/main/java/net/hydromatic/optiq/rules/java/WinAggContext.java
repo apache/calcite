@@ -17,8 +17,9 @@
 package net.hydromatic.optiq.rules.java;
 
 /**
- * Marker interface to allow {@link net.hydromatic.optiq.rules.java.AggImplementor} to tell if it is used in
- * regular or windowed context.
+ * Marker interface to allow
+ * {@link net.hydromatic.optiq.rules.java.AggImplementor}
+ * to tell if it is used in regular or windowed context.
  */
 public interface WinAggContext extends AggContext {
 }

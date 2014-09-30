@@ -35,7 +35,7 @@ public interface AggImplementor {
    * Returns the types of the intermediate variables used by the aggregate
    * implementation.
    * For instance, for "concatenate to string" this can be {@link java.lang.StringBuilder}.
-   * Optiq calls this method before all other {@code implement*} methods.
+   * Calcite calls this method before all other {@code implement*} methods.
    * @param info aggregate context
    * @return types of the intermediate variables used by the aggregate
    *   implementation
@@ -66,7 +66,7 @@ public interface AggImplementor {
   /**
    * Calculates the resulting value based on the intermediate variables.
    * Note: this method must NOT destroy the intermediate variables as
-   * optiq might reuse the state when calculating sliding aggregates.
+   * calcite might reuse the state when calculating sliding aggregates.
    * {@link AggResetContext#accumulator()} should be used to reference
    * the state variables.
    * @param info aggregate context

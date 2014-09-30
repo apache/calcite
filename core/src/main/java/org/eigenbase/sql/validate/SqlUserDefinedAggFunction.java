@@ -33,7 +33,7 @@ import com.google.common.collect.Lists;
  * User-defined aggregate function.
  *
  * <p>Created by the validator, after resolving a function call to a function
- * defined in an Optiq schema.</p>
+ * defined in a Calcite schema.</p>
  */
 public class SqlUserDefinedAggFunction extends SqlAggFunction {
   public final AggregateFunction function;

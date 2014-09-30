@@ -27,7 +27,7 @@ import java.sql.SQLException;
 import java.util.Properties;
 
 /**
- * Extension to Optiq's implementation of
+ * Extension to Calcite's implementation of
  * {@link java.sql.Connection JDBC connection} allows schemas to be defined
  * dynamically.
  *

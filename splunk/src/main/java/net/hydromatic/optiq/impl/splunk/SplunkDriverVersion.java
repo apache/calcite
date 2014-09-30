@@ -19,15 +19,15 @@ package net.hydromatic.optiq.impl.splunk;
 import net.hydromatic.avatica.DriverVersion;
 
 /**
- * Version information for Optiq JDBC Driver for Splunk.
+ * Version information for Calcite JDBC Driver for Splunk.
  */
 class SplunkDriverVersion extends DriverVersion {
   /** Creates an OptiqDriverVersion. */
   SplunkDriverVersion() {
     super(
-        "Optiq JDBC Driver for Splunk",
+        "Calcite JDBC Driver for Splunk",
         "0.2",
-        "Optiq-Splunk",
+        "Calcite-Splunk",
         "0.2",
         true,
         0,

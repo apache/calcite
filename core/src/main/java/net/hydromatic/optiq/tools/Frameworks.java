@@ -47,7 +47,7 @@ import java.util.List;
 import java.util.Properties;
 
 /**
- * Tools for invoking Optiq functionality without initializing a container /
+ * Tools for invoking Calcite functionality without initializing a container /
  * server first.
  */
 public class Frameworks {
@@ -143,7 +143,7 @@ public class Frameworks {
             action.config.getTypeSystem().getClass().getName());
       }
       Connection connection =
-          DriverManager.getConnection("jdbc:optiq:", info);
+          DriverManager.getConnection("jdbc:calcite:", info);
       OptiqConnection optiqConnection =
           connection.unwrap(OptiqConnection.class);
       final OptiqServerStatement statement =
@@ -268,7 +268,7 @@ public class Frameworks {
   }
 
   /**
-   * An implementation of {@link FrameworkConfig} that uses standard Optiq
+   * An implementation of {@link FrameworkConfig} that uses standard Calcite
    * classes to provide basic planner functionality.
    */
   static class StdFrameworkConfig implements FrameworkConfig {

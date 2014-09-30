@@ -16,7 +16,7 @@
  */
 
 /**
- * Tests for Optiq.
+ * Tests for Calcite.
  */
 package net.hydromatic.optiq.test;
 

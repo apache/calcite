@@ -1,6 +1,6 @@
-Apache Optiq release 0.9.0 (incubating)
+Apache Calcite release 0.9.1 (incubating)
 
-This is a source or binary distribution of Apache Optiq.
+This is a source or binary distribution of Apache Calcite.
 
 Changes since the previous release are described in the doc/HISTORY.md
 file.
@@ -11,14 +11,14 @@ If this is a source distribution, you can find instructions how to
 build the release in the "Building from a source release" section in
 doc/HOWTO.md.
 
-README.md contains examples of running Optiq.
+README.md contains examples of running Calcite.
 
-Further information about Apache Optiq is available at its web site,
+Further information about Apache Calcite is available at its web site,
 http://incubator.apache.org/optiq.
 
 Disclaimer
 
-Apache Optiq is an effort undergoing incubation at The Apache Software
+Apache Calcite is an effort undergoing incubation at The Apache Software
 Foundation (ASF), sponsored by the Apache Incubator. Incubation is
 required of all newly accepted projects until a further review
 indicates that the infrastructure, communications, and decision making

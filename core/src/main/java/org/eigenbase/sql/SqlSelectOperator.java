@@ -154,7 +154,7 @@ public class SqlSelectOperator extends SqlOperator {
     writer.endList(selectListFrame);
 
     if (select.from != null) {
-      // Optiq SQL requires FROM but MySQL does not.
+      // Calcite SQL requires FROM but MySQL does not.
       writer.sep("FROM");
 
       // for FROM clause, use precedence just below join operator to make

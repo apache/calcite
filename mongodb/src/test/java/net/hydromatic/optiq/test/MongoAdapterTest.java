@@ -112,9 +112,9 @@ public class MongoAdapterTest {
 
   /** Whether to run Mongo tests. Disabled by default, because we do not expect
    * Mongo to be installed and populated with the FoodMart data set. To enable,
-   * specify {@code -Doptiq.test.mongodb=true} on the Java command line. */
+   * specify {@code -Dcalcite.test.mongodb=true} on the Java command line. */
   public static final boolean ENABLED =
-      Boolean.getBoolean("optiq.test.mongodb");
+      Boolean.getBoolean("calcite.test.mongodb");
 
   /** Whether to run this test. */
   protected boolean enabled() {

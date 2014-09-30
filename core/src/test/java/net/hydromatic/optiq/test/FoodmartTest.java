@@ -105,7 +105,7 @@ public class FoodmartTest {
 
   @Parameterized.Parameters(name = "{index}: foodmart({0})={1}")
   public static List<Object[]> getSqls() throws IOException {
-    String idList = System.getProperty("optiq.ids");
+    String idList = System.getProperty("calcite.ids");
     if (!OptiqAssert.ENABLE_SLOW && idList == null) {
       // Avoid loading the query set in a regular test suite run. It burns too
       // much memory.

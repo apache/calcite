@@ -635,7 +635,7 @@ public class RelOptRulesTest extends RelOptTestBase {
         + " where a - b < 21");
   }
 
-  @Ignore // Optiq does not support INSERT yet
+  @Ignore // Calcite does not support INSERT yet
   @Test public void testReduceValuesNull() throws Exception {
     // The NULL literal presents pitfalls for value-reduction. Only
     // an INSERT statement contains un-CASTed NULL values.
@@ -773,7 +773,7 @@ public class RelOptRulesTest extends RelOptTestBase {
         + "where cast((empno + (10/2)) as int) = 13");
   }
 
-  @Ignore // Optiq does not support INSERT yet
+  @Ignore // Calcite does not support INSERT yet
   @Test public void testReduceCastsNullable() throws Exception {
     HepProgram program = new HepProgramBuilder()
 

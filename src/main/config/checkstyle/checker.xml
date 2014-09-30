@@ -28,7 +28,7 @@ limitations under the License.
 
 <!DOCTYPE module PUBLIC "-//Puppy Crawl//DTD Check Configuration 1.1//EN" "http://www.puppycrawl.com/dtds/configuration_1_1.dtd">
 
-<!-- Optiq customization of default Checkstyle behavior -->
+<!-- Calcite customization of default Checkstyle behavior -->
 <module name="Checker">
   <property name="localeLanguage" value="en"/>
 

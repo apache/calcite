@@ -37,14 +37,14 @@ import java.util.Calendar;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * Implementation of {@link OptiqPrepare.SparkHandler}. Gives the core Optiq
+ * Implementation of {@link OptiqPrepare.SparkHandler}. Gives the core Calcite
  * engine access to rules that only exist in the Spark module.
  */
 public class SparkHandlerImpl implements OptiqPrepare.SparkHandler {
   private final HttpServer classServer;
   private final AtomicInteger classId;
   private final JavaSparkContext sparkContext =
-      new JavaSparkContext("local[1]", "optiq");
+      new JavaSparkContext("local[1]", "calcite");
 
   private static SparkHandlerImpl instance;
   private static final File SRC_DIR = new File("/tmp");
@@ -69,7 +69,7 @@ public class SparkHandlerImpl implements OptiqPrepare.SparkHandler {
         + calendar.get(Calendar.SECOND));
   }
 
-  /** Creates a SparkHandlerImpl, initializing on first call. Optiq-core calls
+  /** Creates a SparkHandlerImpl, initializing on first call. Calcite-core calls
    * this via reflection. */
   @SuppressWarnings("UnusedDeclaration")
   public static OptiqPrepare.SparkHandler instance() {

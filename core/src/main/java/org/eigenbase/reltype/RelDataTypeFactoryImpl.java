@@ -94,11 +94,11 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
 
   /** Creates a type factory with default type system.
    *
-   * @deprecated Will be removed after optiq-0.9.1.
+   * @deprecated Will be removed after calcite-0.9.1.
    */
   protected RelDataTypeFactoryImpl() {
     this(RelDataTypeSystem.DEFAULT);
-    Bug.upgrade("optiq-0.9.1");
+    Bug.upgrade("calcite-0.9.1");
   }
 
   /** Creates a type factory. */

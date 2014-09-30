@@ -27,9 +27,12 @@ import java.lang.reflect.Modifier;
 import java.util.List;
 
 /**
- * Implementation of {@link net.hydromatic.optiq.rules.java
- * .NotNullImplementor} that calls given {@link java.lang.reflect.Method}.
- * When method is not static, a new instance of the required class is created.
+ * Implementation of
+ * {@link net.hydromatic.optiq.rules.java.NotNullImplementor}
+ * that calls a given {@link java.lang.reflect.Method}.
+ *
+ * <p>When method is not static, a new instance of the required class is
+ * created.
  */
 public class ReflectiveCallNotNullImplementor implements NotNullImplementor {
   protected final Method method;

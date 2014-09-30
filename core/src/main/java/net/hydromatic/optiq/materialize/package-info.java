@@ -24,9 +24,9 @@
  * ({@link net.hydromatic.optiq.materialize.MaterializationService})
  * for access from other parts of the system.</p>
  *
- * <p>Optimizer rules allow Optiq to rewrite queries using materializations, if
- * they are valid (that is, contain the same result as executing their defining
- * query) and lower cost.
+ * <p>Optimizer rules allow Calcite to rewrite queries using materializations,
+ * if they are valid (that is, contain the same result as executing their
+ * defining query) and lower cost.
  *
  * <p>In future, the actor may manage the process of updating materializations,
  * instantiating materializations from the intermediate results of queries, and

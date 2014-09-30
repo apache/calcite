@@ -550,8 +550,8 @@ public class RexToLixTranslator {
    * Translates the list of {@code RexNode}, using the default output types.
    * This might be suboptimal in terms of additional box-unbox when you use
    * the translation later.
-   * If you know the java class that will be used to store the results,
-   * use {@link net.hydromatic.optiq.rules.java.RexToLixTranslator#translateList(java.util.List, java.util.List)}
+   * If you know the java class that will be used to store the results, use
+   * {@link net.hydromatic.optiq.rules.java.RexToLixTranslator#translateList(java.util.List, java.util.List)}
    * version.
    *
    * @param operandList list of RexNodes to translate

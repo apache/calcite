@@ -31,10 +31,10 @@ public enum OptiqConnectionProperty implements ConnectionProperty {
   /** Whether to store query results in temporary tables. */
   AUTO_TEMP("autoTemp", Type.BOOLEAN, false),
 
-  /** Whether Optiq should use materializations. */
+  /** Whether Calcite should use materializations. */
   MATERIALIZATIONS_ENABLED("materializationsEnabled", Type.BOOLEAN, true),
 
-  /** Whether Optiq should create materializations. */
+  /** Whether Calcite should create materializations. */
   CREATE_MATERIALIZATIONS("createMaterializations", Type.BOOLEAN, true),
 
   /** URI of the model. */
@@ -63,7 +63,7 @@ public enum OptiqConnectionProperty implements ConnectionProperty {
   SCHEMA("schema", Type.STRING, null),
 
   /** Specifies whether Spark should be used as the engine for processing that
-   * cannot be pushed to the source system. If false (the default), Optiq
+   * cannot be pushed to the source system. If false (the default), Calcite
    * generates code that implements the Enumerable interface. */
   SPARK("spark", Type.BOOLEAN, false),
 

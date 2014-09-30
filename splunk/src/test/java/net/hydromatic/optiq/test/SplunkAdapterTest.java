@@ -30,7 +30,7 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.*;
 
 /**
- * Unit test of the Optiq adapter for Splunk.
+ * Unit test of the Calcite adapter for Splunk.
  */
 public class SplunkAdapterTest {
   public static final String SPLUNK_URL = "https://localhost:8089";
@@ -39,9 +39,9 @@ public class SplunkAdapterTest {
 
   /** Whether to run Splunk tests. Disabled by default, because we do not expect
    * Splunk to be installed and populated data set. To enable,
-   * specify {@code -Doptiq.test.splunk=true} on the Java command line. */
+   * specify {@code -Dcalcite.test.splunk=true} on the Java command line. */
   public static final boolean ENABLED =
-      Boolean.getBoolean("optiq.test.splunk");
+      Boolean.getBoolean("calcite.test.splunk");
 
   /** Whether this test is enabled. Tests are disabled unless we know that
    * Splunk is present and loaded with the requisite data. */

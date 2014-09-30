@@ -1,6 +1,6 @@
-# Optiq HOWTO
+# Calcite HOWTO
 
-Here's some miscellaneous documentation about using Optiq and its various
+Here's some miscellaneous documentation about using Calcite and its various
 adapters.
 
 ## Building from a source distribution
@@ -13,8 +13,8 @@ Unpack the source distribution `.tar.gz` or `.zip` file,
 then build using maven:
 
 ```bash
-$ tar xvfz optiq-0.9.0-incubating-source.tar.gz
-$ cd optiq-0.9.0-incubating
+$ tar xvfz calcite-0.9.1-incubating-source.tar.gz
+$ cd calcite-0.9.1-incubating
 $ mvn install
 ```
 
@@ -51,22 +51,22 @@ $ mvn -DskipTests clean install
 There are other options that control which tests are run, and in what
 environment, as follows.
 
-* `-Doptiq.test.db=DB` (where db is `hsqldb` or `mysql`) allows you
-  to change the JDBC data source for the test suite. Optiq's test
+* `-Dcalcite.test.db=DB` (where db is `hsqldb` or `mysql`) allows you
+  to change the JDBC data source for the test suite. Calcite's test
   suite requires a JDBC data source populated with the foodmart data
   set.
    * `hsqldb`, the default, uses an in-memory hsqldb database.
    * `mysql` uses a MySQL database in `jdbc:mysql://localhost/foodmart`.
      It is somewhat faster than hsqldb, but you need to populate it
      manually.
-* `-Doptiq.debug` prints extra debugging information to stdout.
-* `-Doptiq.test.slow` enables tests that take longer to execute. For
+* `-Dcalcite.debug` prints extra debugging information to stdout.
+* `-Dcalcite.test.slow` enables tests that take longer to execute. For
   example, there are tests that create virtual TPC-H and TPC-DS schemas
   in-memory and run tests from those benchmarks.
-* `-Doptiq.test.mongodb=true` enables tests that run against
+* `-Dcalcite.test.mongodb=true` enables tests that run against
   MongoDB. MongoDB must be installed, running, and
   [populated with the zips.json data set](HOWTO.md#mongodb-adapter).
-* `-Doptiq.test.splunk=true` enables tests that run against Splunk.
+* `-Dcalcite.test.splunk=true` enables tests that run against Splunk.
   Splunk must be installed and running.
 
 ## Contributing
@@ -104,10 +104,10 @@ changes.
 To enable tracing, add the following flags to the java command line:
 
 ```
--Doptiq.debug=true -Djava.util.logging.config.file=core/src/test/resources/logging.properties
+-Dcalcite.debug=true -Djava.util.logging.config.file=core/src/test/resources/logging.properties
 ```
 
-The first flag causes Optiq to print the Java code it generates
+The first flag causes Calcite to print the Java code it generates
 (to execute queries) to stdout. It is especially useful if you are debugging
 mysterious problems like this:
 
@@ -139,7 +139,7 @@ tutorial</a>.
 
 ## MongoDB adapter
 
-First, download and install Optiq,
+First, download and install Calcite,
 and <a href="http://www.mongodb.org/downloads">install MongoDB</a>.
 
 Import MongoDB's zipcode data set into MongoDB:
@@ -165,13 +165,13 @@ connecting to: test
 bye
 ```
 
-Connect using the <a href="https://github.com/julianhyde/optiq/blob/master/mongodb/src/test/resources/mongo-zips-model.json">mongo-zips-model.json</a> Optiq model:
+Connect using the <a href="https://github.com/julianhyde/optiq/blob/master/mongodb/src/test/resources/mongo-zips-model.json">mongo-zips-model.json</a> Calcite model:
 ```bash
 $ ./sqlline
-sqlline> !connect jdbc:optiq:model=mongodb/target/test-classes/mongo-zips-model.json admin admin
-Connecting to jdbc:optiq:model=mongodb/target/test-classes/mongo-zips-model.json
-Connected to: Optiq (version 0.4.x)
-Driver: Optiq JDBC Driver (version 0.4.x)
+sqlline> !connect jdbc:calcite:model=mongodb/target/test-classes/mongo-zips-model.json admin admin
+Connecting to jdbc:calcite:model=mongodb/target/test-classes/mongo-zips-model.json
+Connected to: Calcite (version 0.9.x)
+Driver: Calcite JDBC Driver (version 0.9.x)
 Autocommit status: true
 Transaction isolation: TRANSACTION_REPEATABLE_READ
 sqlline> !tables
@@ -204,7 +204,7 @@ load Splunk's `tutorialdata.zip` data set as described in
 
 (This step is optional, but it provides some interesting data for the sample
 queries. It is also necessary if you intend to run the test suite, using
-`-Doptiq.test.splunk=true`.)
+`-Dcalcite.test.splunk=true`.)
 
 ## Implementing an adapter
 
@@ -235,7 +235,7 @@ public class AdapterContext implements OptiqPrepare.Context {
 
 The example below shows how SQL query can be submitted to
 `OptiqPrepare` with a custom context (`AdapterContext` in this
-case). Optiq prepares and implements the query execution, using the
+case). Calcite prepares and implements the query execution, using the
 resources provided by the `Context`. `OptiqPrepare.PrepareResult`
 provides access to the underlying enumerable and methods for
 enumeration. The enumerable itself can naturally be some adapter
@@ -264,14 +264,14 @@ public class AdapterContextTest {
 
 ## JavaTypeFactory
 
-When Optiq compares `Type` instances, it requires them to be the same
+When Calcite compares `Type` instances, it requires them to be the same
 object. If there are two distinct `Type` instances that refer to the
-same Java type, Optiq may fail to recognize that they match.  It is
+same Java type, Calcite may fail to recognize that they match.  It is
 recommended to:
--   Use a single instance of `JavaTypeFactory` within the optiq context
+-   Use a single instance of `JavaTypeFactory` within the calcite context
 -   Store the `Type` instances so that the same object is always returned for the same `Type`.
 
-## Set up PGP signing keys (for Optiq committers)
+## Set up PGP signing keys (for Calcite committers)
 
 Follow instructions at http://www.apache.org/dev/release-signing to
 create a key pair. (On Mac OS X, I did `brew install gpg` and `gpg
@@ -280,12 +280,12 @@ create a key pair. (On Mac OS X, I did `brew install gpg` and `gpg
 Add your public key to the `KEYS` file by following instructions in
 the `KEYS` file.
 
-## Making a snapshot (for Optiq committers)
+## Making a snapshot (for Calcite committers)
 
 Before you start:
 * Set up signing keys as described above.
 * Make sure you are using JDK 1.7 (not 1.6 or 1.8).
-* Make sure build and tests succeed with `-Doptiq.test.db=hsqldb` (the default)
+* Make sure build and tests succeed with `-Dcalcite.test.db=hsqldb` (the default)
 
 ```bash
 # set passphrase variable without putting it into shell history
@@ -299,14 +299,14 @@ mvn -Papache-release -Dgpg.passphrase=${GPG_PASSPHRASE} clean install
 
 When the dry-run has succeeded, change `install` to `deploy`.
 
-## Making a release (for Optiq committers)
+## Making a release (for Calcite committers)
 
 Before you start:
 * Set up signing keys as described above.
 * Make sure you are using JDK 1.7 (not 1.6 or 1.8).
 * Make sure build and tests succeed, including with
-  -Doptiq.test.db={mysql,hsqldb}, -Doptiq.test.slow=true,
-  -Doptiq.test.mongodb=true, -Doptiq.test.splunk=true.
+  -Dcalcite.test.db={mysql,hsqldb}, -Dcalcite.test.slow=true,
+  -Dcalcite.test.mongodb=true, -Dcalcite.test.splunk=true.
 * Trigger a
   <a href="https://scan.coverity.com/projects/2966">Coverity scan</a>
   by merging the latest code into the `julianhyde/coverity_scan` branch,
@@ -337,26 +337,26 @@ and start again from the top.
 
 Check the artifacts:
 * In the `target` directory should be these 8 files, among others:
-  * apache-optiq-X.Y.Z-incubating-src.tar.gz
-  * apache-optiq-X.Y.Z-incubating-src.tar.gz.asc
-  * apache-optiq-X.Y.Z-incubating-src.tar.gz.md5
-  * apache-optiq-X.Y.Z-incubating-src.tar.gz.sha1
-  * apache-optiq-X.Y.Z-incubating-src.zip
-  * apache-optiq-X.Y.Z-incubating-src.zip.asc
-  * apache-optiq-X.Y.Z-incubating-src.zip.md5
-  * apache-optiq-X.Y.Z-incubating-src.zip.sha1
-* Note that the file names start `apache-optiq-` and include
+  * apache-calcite-X.Y.Z-incubating-src.tar.gz
+  * apache-calcite-X.Y.Z-incubating-src.tar.gz.asc
+  * apache-calcite-X.Y.Z-incubating-src.tar.gz.md5
+  * apache-calcite-X.Y.Z-incubating-src.tar.gz.sha1
+  * apache-calcite-X.Y.Z-incubating-src.zip
+  * apache-calcite-X.Y.Z-incubating-src.zip.asc
+  * apache-calcite-X.Y.Z-incubating-src.zip.md5
+  * apache-calcite-X.Y.Z-incubating-src.zip.sha1
+* Note that the file names start `apache-calcite-` and include
   `incubating` in the version.
 * In the two source distros `.tar.gz` and `.zip` (currently there is
   no binary distro), check that all files belong to a directory called
-  `apache-optiq-X.Y.Z-incubating-src`.
+  `apache-calcite-X.Y.Z-incubating-src`.
 * That directory must contain files `NOTICE`, `LICENSE`, `README`,
   `README.md`, `git.properties`
   * Check that  the version in `README` is correct
   * Check that `git.properties` is current
 * In each .jar (for example
-  `core/target/optiq-core-X.Y.Z-incubating.jar` and
-  `mongodb/target/optiq-mongodb-X.Y.Z-incubating-sources.jar`), check
+  `core/target/calcite-core-X.Y.Z-incubating.jar` and
+  `mongodb/target/calcite-mongodb-X.Y.Z-incubating-sources.jar`), check
   that the `META-INF` directory contains `DEPENDENCIES`, `LICENSE`,
   `NOTICE` and `git.properties`
 * Check PGP, per https://httpd.apache.org/dev/verification.html
@@ -367,14 +367,14 @@ people.apache.org home directory):
 ```bash
 # Move the files into a directory
 cd target
-mkdir apache-optiq-X.Y.Z-incubating-rcN
-mv apache-optiq-* optiq-X.Y.Z-incubating-rcN
+mkdir apache-calcite-X.Y.Z-incubating-rcN
+mv apache-calcite-* calcite-X.Y.Z-incubating-rcN
 
 # Upload to staging area (your people.apache.org home directory)
-scp -rp apache-optiq-X.Y.Z-incubating-rcN people.apache.org:public_html
+scp -rp apache-calcite-X.Y.Z-incubating-rcN people.apache.org:public_html
 ```
 
-## Cleaning up after a failed release attempt (for Optiq committers)
+## Cleaning up after a failed release attempt (for Calcite committers)
 
 ```
 # Make sure that the tag you are about to generate does not already
@@ -382,8 +382,8 @@ scp -rp apache-optiq-X.Y.Z-incubating-rcN people.apache.org:public_html
 git tag
 
 # If the tag exists, delete it locally and remotely
-git tag -d optiq-X.Y.Z-incubating
-git push origin :refs/tags/optiq-X.Y.Z-incubating
+git tag -d apache-calcite-X.Y.Z-incubating
+git push origin :refs/tags/apache-calcite-X.Y.Z-incubating
 
 # Remove modified files
 mvn release:clean
@@ -401,10 +401,10 @@ git reset --hard HEAD
 gpg --recv-keys key
 
 # Check keys
-curl http://people.apache.org/keys/group/optiq.asc > KEYS
+curl http://people.apache.org/keys/group/calcite.asc > KEYS
 
 # Check keys
-curl -O https://dist.apache.org/repos/dist/release/incubator/optiq/KEYS
+curl -O https://dist.apache.org/repos/dist/release/incubator/calcite/KEYS
 
 # Sign/check md5 and sha1 hashes
 # (Assumes your O/S has 'md5' and 'sha1' commands.)
@@ -436,20 +436,20 @@ function checkHash() {
     fi
   done
 }
-checkHash optiq-X.Y.Z-incubating
+checkHash apache-calcite-X.Y.Z-incubating
 ```
 
-## Get approval for a release via Apache voting process (for Optiq committers)
+## Get approval for a release via Apache voting process (for Calcite committers)
 
 Release vote on dev list
 
 ```
 To: dev@optiq.incubator.apache.org
-Subject: Release Optiq-X.Y.Z-incubating (release candidate N)
+Subject: Release apache-Calcite-X.Y.Z-incubating (release candidate N)
 
 Hi all,
 
-I have created a build for Apache Optiq X.Y.Z-incubating, release candidate N.
+I have created a build for Apache Calcite X.Y.Z-incubating, release candidate N.
 
 Thanks to everyone who has contributed to this release.
 
@@ -457,7 +457,7 @@ The commit to be voted upon:
 http://git-wip-us.apache.org/repos/asf/incubator-optiq/commit/NNNNNN
 
 The artifacts to be voted on are located here:
-http://people.apache.org/~jhyde/optiq-X.Y.Z-incubating-rcN/
+http://people.apache.org/~jhyde/apache-calcite-X.Y.Z-incubating-rcN/
 
 A staged Maven repository is available for review at:
 https://repository.apache.org/content/repositories/orgapacheoptiq-NNNN
@@ -465,12 +465,12 @@ https://repository.apache.org/content/repositories/orgapacheoptiq-NNNN
 Release artifacts are signed with the following key:
 https://people.apache.org/keys/committer/jhyde.asc
 
-Please vote on releasing this package as Apache Optiq X.Y.Z-incubating.
+Please vote on releasing this package as Apache Calcite X.Y.Z-incubating.
 
 The vote is open for the next 72 hours and passes if a majority of
 at least three +1 PPMC votes are cast.
 
-[ ] +1 Release this package as Apache Optiq X.Y.Z-incubating
+[ ] +1 Release this package as Apache Calcite X.Y.Z-incubating
 [ ]  0 I don't feel strongly about it, but I'm okay with the release
 [ ] -1 Do not release this package because...
 
@@ -485,7 +485,7 @@ Julian
 After vote finishes, send out the result:
 
 ```
-Subject: [RESULT] [VOTE] Release Optiq-X.Y.Z-incubating (release candidate N)
+Subject: [RESULT] [VOTE] Release apache-Calcite-X.Y.Z-incubating (release candidate N)
 To: dev@optiq.incubator.apache.org
 
 Thanks to everyone who has tested the release candidate and given
@@ -502,7 +502,7 @@ N non-binding +1s:
 No 0s or -1s.
 
 Therefore I am delighted to announce that the proposal to release
-Apache Optiq X.Y.Z-incubating has passed.
+Apache Calcite X.Y.Z-incubating has passed.
 
 I'll now start a vote on the general list. Those of you in the IPMC,
 please recast your vote on the new thread.
@@ -514,12 +514,12 @@ Propose a vote on the incubator list.
 
 ```
 To: general@incubator.apache.org
-Subject: [VOTE] Release Apache Optiq X.Y.Z (incubating)
+Subject: [VOTE] Release Apache Calcite X.Y.Z (incubating)
 
 Hi all,
 
-The Optiq community has voted on and approved a proposal to release
-Apache Optiq X.Y.Z (incubating).
+The Calcite community has voted on and approved a proposal to release
+Apache Calcite X.Y.Z (incubating).
 
 Pursuant to the Releases section of the Incubation Policy and with
 the endorsement of NNN of our mentors we would now like to request
@@ -527,10 +527,10 @@ the permission of the Incubator PMC to publish the release. The vote
 is open for 72 hours, or until the necessary number of votes (3 +1)
 is reached.
 
-[ ] +1 Release this package as Apache Optiq X.Y.Z incubating
+[ ] +1 Release this package as Apache Calcite X.Y.Z incubating
 [ ] -1 Do not release this package because ...
 
-Apache Optiq PPMC
+Apache Calcite PPMC
 
 
 Proposal:
@@ -543,7 +543,7 @@ No -1 votes
 http://mail-archives.apache.org/mod_mbox/incubator-optiq-dev/201408.mbox/MESSAGE-URI
 
 Artifacts:
-http://people.apache.org/~jhyde/optiq-X.Y.Z-incubating-rcN/
+http://people.apache.org/~jhyde/calcite-X.Y.Z-incubating-rcN/
 
 ```
 
@@ -551,7 +551,7 @@ After vote finishes, send out the result:
 
 ```
 To: general@incubator.apache.org
-Subject: [RESULT] [VOTE] Release Apache Optiq X.Y.Z (incubating)
+Subject: [RESULT] [VOTE] Release Apache Calcite X.Y.Z (incubating)
 
 This vote passes with N +1s and no 0 or -1 votes:
 +1 <name> (mentor)
@@ -564,7 +564,7 @@ Thanks everyone. We’ll now roll the release out to the mirrors.
 Julian
 ```
 
-## Publishing a release (for Optiq committers)
+## Publishing a release (for Calcite committers)
 
 After a successful release vote, we need to push the release
 out to mirrors, and other tasks.
@@ -575,12 +575,12 @@ out to mirrors, and other tasks.
   "Resolved in release X.Y.Z-incubating (YYYY-MM-DD)"
   (fill in release number and date appropriately).
 
-## Publishing the web site (for Optiq committers)
+## Publishing the web site (for Calcite committers)
 
 Get the code:
 
 ```bash
-$ svn co https://svn.apache.org/repos/asf/incubator/optiq/site optiq-site
+$ svn co https://svn.apache.org/repos/asf/incubator/optiq/site calcite-site
 ```
 
 (Note: `https:`, not `http:`.)
@@ -588,7 +588,7 @@ $ svn co https://svn.apache.org/repos/asf/incubator/optiq/site optiq-site
 Build the site:
 
 ```bash
-$ cd optiq-site
+$ cd calcite-site
 $ ./build.sh
 ```
 

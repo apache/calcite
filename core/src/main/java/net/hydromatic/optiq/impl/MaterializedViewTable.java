@@ -50,13 +50,13 @@ public class MaterializedViewTable extends ViewTable {
 
   /**
    * Internal connection, used to execute queries to materialize views.
-   * To be used only by Optiq internals. And sparingly.
+   * To be used only by Calcite internals. And sparingly.
    */
   public static final OptiqConnection MATERIALIZATION_CONNECTION;
 
   static {
     try {
-      MATERIALIZATION_CONNECTION = DriverManager.getConnection("jdbc:optiq:")
+      MATERIALIZATION_CONNECTION = DriverManager.getConnection("jdbc:calcite:")
           .unwrap(OptiqConnection.class);
     } catch (SQLException e) {
       throw new RuntimeException(e);

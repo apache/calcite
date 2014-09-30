@@ -34,7 +34,7 @@ import org.eigenbase.sql.SqlDialect;
  * pops out in JDBC.</p>
  *
  * <p>This is the only convention, thus far, that is not a singleton. Each
- * instance contains a JDBC schema (and therefore a data source). If Optiq is
+ * instance contains a JDBC schema (and therefore a data source). If Calcite is
  * working with two different databases, it would even make sense to convert
  * from "JDBC#A" convention to "JDBC#B", even though we don't do it currently.
  * (That would involve asking database B to open a database link to database

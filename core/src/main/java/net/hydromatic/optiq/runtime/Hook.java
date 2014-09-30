@@ -132,7 +132,7 @@ public enum Hook {
   /** Removes a Hook after use.
    *
    * <p>Note: Although it would be convenient, this interface cannot extend
-   * {@code AutoCloseable} while Optiq maintains compatibility with
+   * {@code AutoCloseable} while Calcite maintains compatibility with
    * JDK 1.6.</p>
    */
   public interface Closeable /*extends AutoCloseable*/ {

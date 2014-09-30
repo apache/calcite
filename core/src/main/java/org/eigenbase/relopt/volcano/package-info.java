@@ -80,7 +80,7 @@
  *
  * <p>New traits are added to the planner in one of two ways:</p>
  * <ol>
- *     <li>If the new trait is integral to Optiq, then each and every
+ *     <li>If the new trait is integral to Calcite, then each and every
  *         implementation of {@link org.eigenbase.rel.RelNode} should include
  *         its manifestation of the trait as part of the
  *         {@link org.eigenbase.relopt.RelTraitSet} passed to

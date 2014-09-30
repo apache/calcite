@@ -18,7 +18,7 @@ package net.hydromatic.optiq.jdbc;
 
 /**
  * Implementation of {@link net.hydromatic.avatica.AvaticaFactory}
- * for Optiq and JDBC 4.0 (corresponds to JDK 1.6).
+ * for Calcite and JDBC 4.0 (corresponds to JDK 1.6).
  */
 public class OptiqJdbc40Factory extends OptiqJdbc41Factory {
   /** Creates a factory for JDBC version 4.1. */

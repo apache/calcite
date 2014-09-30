@@ -16,7 +16,7 @@
  */
 
 /**
- * Main package for Optiq, the dynamic data management platform.
+ * Main package for Calcite, the dynamic data management platform.
  */
 package net.hydromatic.optiq;
 

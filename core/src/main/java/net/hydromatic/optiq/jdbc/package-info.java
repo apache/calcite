@@ -16,7 +16,7 @@
  */
 
 /**
- * JDBC driver for Optiq.
+ * JDBC driver for Calcite.
  */
 package net.hydromatic.optiq.jdbc;
 

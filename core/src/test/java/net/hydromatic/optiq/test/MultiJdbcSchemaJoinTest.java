@@ -57,8 +57,8 @@ public class MultiJdbcSchemaJoinTest {
     stmt2.execute("insert into table2 values('a', 'aaaa')");
     c2.close();
 
-    // Connect via optiq to these databases
-    Connection connection = DriverManager.getConnection("jdbc:optiq:");
+    // Connect via calcite to these databases
+    Connection connection = DriverManager.getConnection("jdbc:calcite:");
     OptiqConnection optiqConnection = connection.unwrap(OptiqConnection.class);
     SchemaPlus rootSchema = optiqConnection.getRootSchema();
     final DataSource ds1 =
@@ -95,8 +95,8 @@ public class MultiJdbcSchemaJoinTest {
     stmt1.execute("insert into table1 values(200, 'bar')");
     c1.close();
 
-    // Make an optiq schema with both a jdbc schema and a non-jdbc schema
-    Connection optiqConn = DriverManager.getConnection("jdbc:optiq:");
+    // Make a Calcite schema with both a jdbc schema and a non-jdbc schema
+    Connection optiqConn = DriverManager.getConnection("jdbc:calcite:");
     OptiqConnection optiqConnection =
         optiqConn.unwrap(OptiqConnection.class);
     SchemaPlus rootSchema = optiqConnection.getRootSchema();
@@ -174,8 +174,8 @@ public class MultiJdbcSchemaJoinTest {
         "create table table1(id varchar(10) not null primary key, "
             + "field1 varchar(10))");
 
-    // Connect via optiq to these databases
-    Connection connection = DriverManager.getConnection("jdbc:optiq:");
+    // Connect via calcite to these databases
+    Connection connection = DriverManager.getConnection("jdbc:calcite:");
     OptiqConnection optiqConnection = connection.unwrap(OptiqConnection.class);
     SchemaPlus rootSchema = optiqConnection.getRootSchema();
     final DataSource ds =

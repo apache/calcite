@@ -43,7 +43,7 @@ public class JsonLattice {
 
   /** Estimated number of rows.
    *
-   * <p>If null, Optiq will a query to find the real value. */
+   * <p>If null, Calcite will a query to find the real value. */
   public Double rowCountEstimate;
 
   /** List of materialized aggregates to create up front. */

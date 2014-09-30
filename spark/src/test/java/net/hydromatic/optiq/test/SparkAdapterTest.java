@@ -21,7 +21,7 @@ import org.junit.Test;
 import java.sql.*;
 
 /**
- * Tests for using Optiq with Spark as an internal engine, as implemented by
+ * Tests for using Calcite with Spark as an internal engine, as implemented by
  * the {@link net.hydromatic.optiq.impl.spark} package.
  */
 public class SparkAdapterTest {

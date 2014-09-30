@@ -24,7 +24,7 @@ import java.util.Properties;
 
 /**
  * Extension of {@link net.hydromatic.avatica.AvaticaFactory}
- * for Optiq.
+ * for Calcite.
  */
 public abstract class OptiqFactory implements AvaticaFactory {
   protected final int major;

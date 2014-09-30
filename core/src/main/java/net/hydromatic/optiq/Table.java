@@ -22,9 +22,9 @@ import org.eigenbase.reltype.RelDataTypeFactory;
 /**
  * Table.
  *
- * <p>The typical way for a table to be created is when Optiq interrogates
+ * <p>The typical way for a table to be created is when Calcite interrogates
  * a user-defined schema in order to validate names appearing in a SQL query.
- * Optiq finds the schema by calling {@link Schema#getSubSchema(String)} on the
+ * Calcite finds the schema by calling {@link Schema#getSubSchema(String)} on the
  * connection's root schema, then gets a table by calling
  * {@link Schema#getTable(String)}.</p>
  *

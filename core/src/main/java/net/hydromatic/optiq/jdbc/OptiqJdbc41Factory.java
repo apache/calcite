@@ -29,7 +29,7 @@ import java.util.TimeZone;
 
 /**
  * Implementation of {@link net.hydromatic.avatica.AvaticaFactory}
- * for Optiq and JDBC 4.1 (corresponds to JDK 1.7).
+ * for Calcite and JDBC 4.1 (corresponds to JDK 1.7).
  */
 @SuppressWarnings("UnusedDeclaration")
 public class OptiqJdbc41Factory extends OptiqFactory {

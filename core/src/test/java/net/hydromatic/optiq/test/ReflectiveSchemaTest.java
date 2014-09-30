@@ -138,7 +138,7 @@ public class ReflectiveSchemaTest {
   @Test public void testOperator() throws SQLException, ClassNotFoundException {
     Class.forName("net.hydromatic.optiq.jdbc.Driver");
     Connection connection =
-        DriverManager.getConnection("jdbc:optiq:");
+        DriverManager.getConnection("jdbc:calcite:");
     OptiqConnection optiqConnection =
         connection.unwrap(OptiqConnection.class);
     SchemaPlus rootSchema = optiqConnection.getRootSchema();
@@ -163,7 +163,7 @@ public class ReflectiveSchemaTest {
   @Test public void testView() throws SQLException, ClassNotFoundException {
     Class.forName("net.hydromatic.optiq.jdbc.Driver");
     Connection connection =
-        DriverManager.getConnection("jdbc:optiq:");
+        DriverManager.getConnection("jdbc:calcite:");
     OptiqConnection optiqConnection =
         connection.unwrap(OptiqConnection.class);
     SchemaPlus rootSchema = optiqConnection.getRootSchema();
@@ -189,7 +189,7 @@ public class ReflectiveSchemaTest {
   @Test public void testViewPath() throws SQLException, ClassNotFoundException {
     Class.forName("net.hydromatic.optiq.jdbc.Driver");
     Connection connection =
-        DriverManager.getConnection("jdbc:optiq:");
+        DriverManager.getConnection("jdbc:calcite:");
     OptiqConnection optiqConnection =
         connection.unwrap(OptiqConnection.class);
     SchemaPlus rootSchema = optiqConnection.getRootSchema();
@@ -319,7 +319,7 @@ public class ReflectiveSchemaTest {
   @Test public void testCompareJavaAndSqlTypes() throws Exception {
     final OptiqAssert.AssertThat with =
         OptiqAssert.that().with("s", new CatchallSchema());
-    // With optiq-119, returned 0 rows. The problem was that when comparing
+    // With OPTIQ-119, returned 0 rows. The problem was that when comparing
     // a Java type (long) and a SQL type (INTEGER), the SQL type was deemed
     // "less restrictive". So, the long value got truncated to an int value.
     with.query(

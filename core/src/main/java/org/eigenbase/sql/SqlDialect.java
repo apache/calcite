@@ -483,7 +483,7 @@ public class SqlDialect {
     INFORMIX("Informix", null),
     INGRES("Ingres", null),
     LUCIDDB("LucidDB", "\""),
-    OPTIQ("Apache Optiq", "\""),
+    OPTIQ("Apache Calcite", "\""),
     INTERBASE("Interbase", null),
     PHOENIX("Phoenix", "\""),
     POSTGRESQL("PostgreSQL", "\""),

@@ -71,7 +71,7 @@ public class ExceptionMessageTest {
 
   @Before
   public void setUp() throws SQLException {
-    Connection connection = DriverManager.getConnection("jdbc:optiq:");
+    Connection connection = DriverManager.getConnection("jdbc:calcite:");
     OptiqConnection optiqConnection = connection.unwrap(OptiqConnection.class);
     SchemaPlus rootSchema = optiqConnection.getRootSchema();
     rootSchema.add("test", new ReflectiveSchema(new TestSchema()));

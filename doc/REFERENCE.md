@@ -1,4 +1,4 @@
-# Optiq SQL language reference
+# Calcite SQL language reference
 
 ## SQL constructs
 
@@ -95,7 +95,7 @@ spaces and other punctuation.  If you wish to include a double quote
 in an identifier, use another double quote to escape it, like this:
 "An employee called ""Fred""."
 
-In Optiq, matching identifiers to the name of the referenced object is
+In Calcite, matching identifiers to the name of the referenced object is
 case-sensitive.  But remember that unquoted identifiers are implicitly
 converted to upper case before matching, and if the object it refers
 to was created using an unquoted identifier for its name, then its

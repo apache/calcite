@@ -52,7 +52,7 @@ import java.util.*;
 
 /**
  * Implementation of JDBC connection
- * in the Optiq engine.
+ * in the Calcite engine.
  *
  * <p>Abstract to allow newer versions of JDBC to add methods.</p>
  */

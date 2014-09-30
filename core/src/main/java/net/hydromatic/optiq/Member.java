@@ -29,7 +29,7 @@ import java.util.List;
  *
  * <p>Several kinds of members crop up in real life. They all implement the
  * {@code Member} interface, but tend to be treated differently by the
- * back-end system if not by Optiq.</p>
+ * back-end system if not by Calcite.</p>
  *
  * <p>A member that has zero arguments and a type that is a collection of
  * records is referred to as a <i>relation</i>. In schemas backed by a

@@ -29,10 +29,10 @@ import java.sql.SQLException;
 import java.util.*;
 
 /**
- * Optiq JDBC driver.
+ * Calcite JDBC driver.
  */
 public class Driver extends UnregisteredDriver {
-  public static final String CONNECT_STRING_PREFIX = "jdbc:optiq:";
+  public static final String CONNECT_STRING_PREFIX = "jdbc:calcite:";
 
   final Function0<OptiqPrepare> prepareFactory;
 
@@ -71,9 +71,9 @@ public class Driver extends UnregisteredDriver {
     return DriverVersion.load(
         Driver.class,
         "net-hydromatic-optiq-jdbc.properties",
-        "Optiq JDBC Driver",
+        "Calcite JDBC Driver",
         "unknown version",
-        "Optiq",
+        "Calcite",
         "unknown version");
   }
 

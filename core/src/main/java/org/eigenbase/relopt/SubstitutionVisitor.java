@@ -709,7 +709,7 @@ public class SubstitutionVisitor {
     /**
      * <p>Applies this rule to a particular node in a query. The goal is
      * to convert {@code query} into {@code target}. Before the rule is
-     * invoked, Optiq has made sure that query's children are equivalent
+     * invoked, Calcite has made sure that query's children are equivalent
      * to target's children.
      *
      * <p>There are 3 possible outcomes:</p>

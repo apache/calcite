@@ -18,8 +18,8 @@ limitations under the License.
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <parent>
-    <groupId>org.apache.optiq</groupId>
-    <artifactId>optiq</artifactId>
+    <groupId>org.apache.calcite</groupId>
+    <artifactId>calcite</artifactId>
     <version>0.9.1-incubating-SNAPSHOT</version>
   </parent>
 
@@ -27,9 +27,9 @@ limitations under the License.
     <top.dir>${project.basedir}/..</top.dir>
   </properties>
 
-  <artifactId>optiq-ubenchmark</artifactId>
-  <name>Optiq Ubenchmark</name>
-  <description>Microbenchmarks for Optiq</description>
+  <artifactId>calcite-ubenchmark</artifactId>
+  <name>Calcite Ubenchmark</name>
+  <description>Microbenchmarks for Calcite</description>
 
   <repositories>
     <repository>
@@ -39,11 +39,11 @@ limitations under the License.
   </repositories>
 
   <dependencies>
-    <!-- Sorted by groupId, artifactId; optiq dependencies first. Put versions
+    <!-- Sorted by groupId, artifactId; calcite dependencies first. Put versions
          in dependencyManagement in the root POM, not here. -->
     <dependency>
-      <groupId>org.apache.optiq</groupId>
-      <artifactId>optiq-core</artifactId>
+      <groupId>org.apache.calcite</groupId>
+      <artifactId>calcite-core</artifactId>
     </dependency>
 
     <dependency>

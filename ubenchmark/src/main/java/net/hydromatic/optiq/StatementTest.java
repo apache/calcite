@@ -27,7 +27,7 @@ import java.util.*;
 /**
  * Compares {@link java.sql.Statement} vs {@link java.sql.PreparedStatement}.
  *
- * <p>This package contains micro-benchmarks to test optiq performance.
+ * <p>This package contains micro-benchmarks to test calcite performance.
  *
  * <p>To run this and other benchmarks:
  *
@@ -67,7 +67,7 @@ public class StatementTest {
         Properties info = new Properties();
         info.put("lex", "JAVA");
         info.put("quoting", "DOUBLE_QUOTE");
-        connection = DriverManager.getConnection("jdbc:optiq:", info);
+        connection = DriverManager.getConnection("jdbc:calcite:", info);
       } catch (SQLException e) {
         throw new IllegalStateException(e);
       }

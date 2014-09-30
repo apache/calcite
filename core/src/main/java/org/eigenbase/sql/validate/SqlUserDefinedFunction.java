@@ -29,7 +29,7 @@ import net.hydromatic.optiq.Function;
 * User-defined scalar function.
  *
  * <p>Created by the validator, after resolving a function call to a function
- * defined in an Optiq schema.</p>
+ * defined in a Calcite schema.</p>
 */
 public class SqlUserDefinedFunction extends SqlFunction {
   public final Function function;

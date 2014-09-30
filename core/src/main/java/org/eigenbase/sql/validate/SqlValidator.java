@@ -73,7 +73,7 @@ import org.eigenbase.util.*;
  */
 public interface SqlValidator {
   /** Whether to follow the SQL standard strictly. */
-  boolean STRICT = Util.first(Boolean.getBoolean("optiq.strict.sql"), false);
+  boolean STRICT = Util.first(Boolean.getBoolean("calcite.strict.sql"), false);
 
   //~ Methods ----------------------------------------------------------------
 

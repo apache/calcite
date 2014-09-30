@@ -18,16 +18,16 @@ limitations under the License.
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <parent>
-    <groupId>org.apache.optiq</groupId>
-    <artifactId>optiq</artifactId>
+    <groupId>org.apache.calcite</groupId>
+    <artifactId>calcite</artifactId>
     <version>0.9.1-incubating-SNAPSHOT</version>
   </parent>
 
-  <artifactId>optiq-core</artifactId>
+  <artifactId>calcite-core</artifactId>
   <packaging>jar</packaging>
   <version>0.9.1-incubating-SNAPSHOT</version>
-  <name>Optiq Core</name>
-  <description>Core Optiq APIs and engine.</description>
+  <name>Calcite Core</name>
+  <description>Core Calcite APIs and engine.</description>
 
   <properties>
     <top.dir>${project.basedir}/..</top.dir>
@@ -35,11 +35,11 @@ limitations under the License.
    </properties>
 
   <dependencies>
-    <!-- Sorted by groupId, artifactId; optiq dependencies first. Put versions
+    <!-- Sorted by groupId, artifactId; calcite dependencies first. Put versions
          in dependencyManagement in the root POM, not here. -->
     <dependency>
-      <groupId>org.apache.optiq</groupId>
-      <artifactId>optiq-avatica</artifactId>
+      <groupId>org.apache.calcite</groupId>
+      <artifactId>calcite-avatica</artifactId>
     </dependency>
     <dependency>
       <groupId>org.pentaho</groupId>
@@ -158,7 +158,7 @@ limitations under the License.
       </resource>
       <resource>
         <!-- Copy freemarker template and fmpp configuration files of
-             Optiq's SQL parser to allow clients to extend parser. -->
+             Calcite's SQL parser to allow clients to extend parser. -->
         <directory>${basedir}/src/main/codegen</directory>
         <targetPath>codegen</targetPath>
       </resource>

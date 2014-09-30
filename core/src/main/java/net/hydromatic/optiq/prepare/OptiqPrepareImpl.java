@@ -81,11 +81,11 @@ import java.util.*;
 public class OptiqPrepareImpl implements OptiqPrepare {
 
   public static final boolean DEBUG =
-      "true".equals(System.getProperties().getProperty("optiq.debug"));
+      "true".equals(System.getProperties().getProperty("calcite.debug"));
 
   public static final boolean COMMUTE =
       "true".equals(
-          System.getProperties().getProperty("optiq.enable.join.commute"));
+          System.getProperties().getProperty("calcite.enable.join.commute"));
 
   /** Whether to enable the collation trait. Some extra optimizations are
    * possible if enabled, but queries should work either way. At some point
@@ -203,7 +203,7 @@ public class OptiqPrepareImpl implements OptiqPrepare {
   /** Creates a collection of planner factories.
    *
    * <p>The collection must have at least one factory, and each factory must
-   * create a planner. If the collection has more than one planner, Optiq will
+   * create a planner. If the collection has more than one planner, Calcite will
    * try each planner in turn.</p>
    *
    * <p>One of the things you can do with this mechanism is to try a simpler,

@@ -33,7 +33,7 @@ import net.hydromatic.optiq.TableFunction;
  * User-defined table function.
  * <p>
  * Created by the validator, after resolving a function call to a function
- * defined in an Optiq schema.
+ * defined in a Calcite schema.
 */
 public class SqlUserDefinedTableFunction extends SqlUserDefinedFunction {
   public SqlUserDefinedTableFunction(SqlIdentifier opName,
