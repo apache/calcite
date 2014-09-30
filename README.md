@@ -4,6 +4,8 @@
 
 Apache Calcite is a dynamic data management framework.
 
+It was formerly called Optiq.
+
 ## Getting Calcite
 
 To run Apache Calcite, you can either
@@ -181,14 +183,16 @@ For more details, see the <a href="doc/REFERENCE.md">Reference guide</a>.
 
 ## More information
 
-* License: Apache License, Version 2.0.
-* Author: Julian Hyde
+* License: Apache License, Version 2.0
 * Blog: http://julianhyde.blogspot.com
+* Project page: http://optiq.incubator.apache.org
 * Incubation status page: http://incubator.apache.org/projects/optiq.html
-* Project page: http://www.hydromatic.net/calcite
 * Source code: http://github.com/apache/incubator-optiq
 * Issues: <a href="https://issues.apache.org/jira/browse/OPTIQ">Apache JIRA</a>
-* Developers list: <a href="mailto:dev@optiq.incubator.apache.org">dev at optiq.incubator.apache.org</a> (<a href="http://mail-archives.apache.org/mod_mbox/incubator-optiq-dev/">archive</a>, <a href="mailto:dev-subscribe@optiq.incubator.apache.org">subscribe</a>)
+* Developers list: <a href="mailto:dev@optiq.incubator.apache.org">dev at optiq.incubator.apache.org</a>
+  (<a href="http://mail-archives.apache.org/mod_mbox/incubator-optiq-dev/">archive</a>,
+  <a href="mailto:dev-subscribe@optiq.incubator.apache.org">subscribe</a>)
+* Twitter: <a href="https://twitter.com/ApacheCalcite">@ApacheCalcite</a>
 * <a href="doc/HOWTO.md">HOWTO</a>
 * <a href="doc/MODEL.md">JSON model</a>
 * <a href="doc/REFERENCE.md">Reference guide</a>
@@ -196,10 +200,10 @@ For more details, see the <a href="doc/REFERENCE.md">Reference guide</a>.
 
 ### Pre-Apache resources
 
-These resources, which we used before Calcite was an Apache incubator
-project, are for reference only.
+These resources, which we used when Calcite was called Optiq and
+before it joined the Apache incubator, are for reference only.
 They may be out of date.
-Please don't post to the mailing list.
+Please don't post or try to subscribe to the mailing list.
 
 * Developers list: <a href="http://groups.google.com/group/optiq-dev">optiq-dev@googlegroups.com</a>
 
@@ -211,6 +215,7 @@ Please don't post to the mailing list.
 * <a href="https://github.com/julianhyde/share/blob/master/slides/optiq-nosql-now-2013.pdf?raw=true">SQL Now!</a> (NoSQL Now! conference, 2013)
 * <a href="https://github.com/julianhyde/share/blob/master/slides/hive-cbo-summit-2014.pdf?raw=true">Cost-based optimization in Hive</a> (<a href="https://www.youtube.com/watch?v=vpG5noIbEFs">video</a>) (Hadoop Summit, 2014)
 * <a href="https://github.com/julianhyde/share/blob/master/slides/dmmq-summit-2014.pdf?raw=true">Discardable, in-memory materialized query for Hadoop</a> (<a href="https://www.youtube.com/watch?v=CziGOa8GXqI">video</a>) (Hadoop Summit, 2014)
+* <a href="https://github.com/julianhyde/share/blob/master/slides/hive-cbo-seattle-2014.pdf?raw=true">Cost-based optimization in Hive 0.14</a> (Seattle, 2014)
 
 ## Disclaimer
 
