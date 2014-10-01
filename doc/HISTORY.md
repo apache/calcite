@@ -82,6 +82,8 @@ API changes
     Change return type of `JoinFactory.createJoin()`; add `SemiJoinFactory`
 
 Bug-fixes and internal changes
+* [<a href="https://issues.apache.org/jira/browse/OPTIQ-386">OPTIQ-386</a>]
+  Fix NOTICE
 * Add tests inspired by Derby bugs.
 * Add recent presentation to README.md.
 * [<a href="https://issues.apache.org/jira/browse/OPTIQ-427">OPTIQ-427</a>]
