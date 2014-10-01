@@ -3,6 +3,134 @@
 For a full list of releases, see
 <a href="https://github.com/apache/incubator-optiq/releases">github</a>.
 
+## <a href="https://github.com/apache/incubator-optiq/releases/tag/calcite-0.9.1-incubating">0.9.1-incubating</a> / 2014-10-02
+
+This is the first release as Calcite. (The project was previously called Optiq.)
+
+New features
+* [<a href="https://issues.apache.org/jira/browse/OPTIQ-430">OPTIQ-430</a>]
+  Rename project from Optiq to Calcite
+* [<a href="https://issues.apache.org/jira/browse/OPTIQ-426">OPTIQ-426</a>]
+  Pool JDBC data sources, to make it easier to pool connections
+* [<a href="https://issues.apache.org/jira/browse/OPTIQ-416">OPTIQ-416</a>]
+  Execute logical `RelNode`s using an interpreter
+* [<a href="https://issues.apache.org/jira/browse/OPTIQ-376">OPTIQ-376</a>]
+  Move `SqlRun` into its own artifact,
+  <a href="https://github.com/julianhyde/quidem">Quidem</a>.
+* [<a href="https://issues.apache.org/jira/browse/OPTIQ-269">OPTIQ-269</a>]
+  MongoDB result sets larger than 16MB
+* [<a href="https://issues.apache.org/jira/browse/OPTIQ-373">OPTIQ-373</a>]
+  `NULL` values in `NOT IN` sub-queries
+* SQL functions:
+  * [<a href="https://issues.apache.org/jira/browse/OPTIQ-422">OPTIQ-422</a>]
+    Add `REGR_SXX` and `REGR_SYY` regression functions
+  * [<a href="https://issues.apache.org/jira/browse/OPTIQ-421">OPTIQ-421</a>]
+    Add `COVAR_POP` and `COVAR_SAMP` aggregate functions
+* Planner rules:
+  * [<a href="https://issues.apache.org/jira/browse/OPTIQ-425">OPTIQ-425</a>]
+    Add `FilterAggregateTransposeRule`, that pushes a filter through an
+    aggregate
+  * [<a href="https://issues.apache.org/jira/browse/OPTIQ-399">OPTIQ-399</a>]
+    Factorize common `AND` factors out of `OR` predicates
+  * [<a href="https://issues.apache.org/jira/browse/OPTIQ-404">OPTIQ-404</a>]
+    `MergeProjectRule` should not construct `RexProgram`s for simple mappings
+  * [<a href="https://issues.apache.org/jira/browse/OPTIQ-394">OPTIQ-394</a>]
+    Add `RexUtil.toCnf()`, to convert expressions to conjunctive normal form
+    (CNF)
+  * [<a href="https://issues.apache.org/jira/browse/OPTIQ-389">OPTIQ-389</a>]
+    `MergeFilterRule` should flatten `AND` condition
+* Lattices:
+  * [<a href="https://issues.apache.org/jira/browse/OPTIQ-428">OPTIQ-428</a>]
+    Use optimization algorithm to suggest which tiles of a lattice to
+    materialize
+  * [<a href="https://issues.apache.org/jira/browse/OPTIQ-410">OPTIQ-410</a>]
+    Allow lattice tiles to satisfy a query by rolling up
+  * [<a href="https://issues.apache.org/jira/browse/OPTIQ-406">OPTIQ-406</a>]
+    Add tile and measure elements to lattice model element
+  * Now, a lattice can materialize an aggregate-join and use it in a subsequent
+    query.
+  * [<a href="https://issues.apache.org/jira/browse/OPTIQ-402">OPTIQ-402</a>]
+    Lattice should create materializations on demand
+  * [<a href="https://issues.apache.org/jira/browse/OPTIQ-344">OPTIQ-344</a>]
+    Lattice data structure
+* Field trimmer:
+  * [<a href="https://issues.apache.org/jira/browse/OPTIQ-408">OPTIQ-408</a>]
+    Make `FieldTrimmer` work with `RelNode` base classes
+  * [<a href="https://issues.apache.org/jira/browse/OPTIQ-388">OPTIQ-388</a>]
+    Handle semi-joins in field trimmer
+  * [<a href="https://issues.apache.org/jira/browse/OPTIQ-395">OPTIQ-395</a>]
+    Make `FieldTrimmer.trimFields(SetOp)` generate `ProjectRel` instead of
+    `CalcRel`
+  * [<a href="https://issues.apache.org/jira/browse/OPTIQ-393">OPTIQ-393</a>]
+    If no fields are projected from a table, field trimmer should project a
+    dummy expression
+
+API changes
+* [<a href="https://issues.apache.org/jira/browse/OPTIQ-413">OPTIQ-413</a>]
+  Add `RelDataTypeSystem` plugin, allowing different max precision of a
+  `DECIMAL`
+* In `Planner`, query de-correlation no longer requires state in a
+  `SqlToRelConverter`.
+* Factories:
+  * [<a href="https://issues.apache.org/jira/browse/OPTIQ-392">OPTIQ-392</a>]
+    `RelFieldTrimmer` should use factory to create new rel nodes
+  * [<a href="https://issues.apache.org/jira/browse/OPTIQ-382">OPTIQ-382</a>]
+    Refactoring rules to use factories
+  * [<a href="https://issues.apache.org/jira/browse/OPTIQ-398">OPTIQ-398</a>]
+    Move `CalcRel.createProject` methods to `RelOptUtil`
+  * [<a href="https://issues.apache.org/jira/browse/OPTIQ-396">OPTIQ-396</a>]
+    Change return type of `JoinFactory.createJoin()`; add `SemiJoinFactory`
+
+Bug-fixes and internal changes
+* Add tests inspired by Derby bugs.
+* Add recent presentation to README.md.
+* [<a href="https://issues.apache.org/jira/browse/OPTIQ-427">OPTIQ-427</a>]
+  Off-by-one issues in `RemoveDistinctAggregateRule`,
+  `AggregateFilterTransposeRule`
+* [<a href="https://issues.apache.org/jira/browse/OPTIQ-414">OPTIQ-414</a>]
+  Bad class name in `sqlline` shell script
+* Bad package name in `package-info.java` was causing errors in Eclipse.
+* [<a href="https://issues.apache.org/jira/browse/OPTIQ-412">OPTIQ-412</a>]
+  `RelFieldTrimmer`: when trimming `SortRel`, the collation and trait set don't
+  match
+* Add test case for
+  [<a href="https://issues.apache.org/jira/browse/OPTIQ-411">OPTIQ-411</a>]
+  Duplicate column aliases
+* [<a href="https://issues.apache.org/jira/browse/OPTIQ-407">OPTIQ-407</a>]
+  `RemoveTrivialProjectRule` drops child node's traits
+* [<a href="https://issues.apache.org/jira/browse/OPTIQ-409">OPTIQ-409</a>]
+  `PushFilterPastProjectRule` should not push filters past windowed aggregates
+* Fix tests on Windows.
+* Don't load `FoodMartQuerySet` unless we have to. It's big.
+* Enable connection pooling in test suite.
+* [<a href="https://issues.apache.org/jira/browse/OPTIQ-384">OPTIQ-384</a>]
+  Add `apache-` prefix to tarball and directory within tarball
+* Freeze hive fmpp > freemarker plugin dependency.
+* Upgrade Janino
+* Removed hardcoded foodmart schema information
+* [<a href="https://issues.apache.org/jira/browse/OPTIQ-387">OPTIQ-387</a>]
+  CompileException when cast TRUE to nullable boolean
+* Temporary fix for
+  [<a href="https://issues.apache.org/jira/browse/OPTIQ-390">OPTIQ-390</a>]
+  Transitive inference (`RelMdPredicates`) doesn't handle semi-join
+* [<a href="https://issues.apache.org/jira/browse/OPTIQ-385">OPTIQ-385</a>]
+  Change comment style for Java headers
+* Disable test that is inconistent between JDK 1.7 and 1.8.
+* Fix `git-commit-id-plugin` error when running in Travis-CI.
+* [<a href="https://issues.apache.org/jira/browse/OPTIQ-381">OPTIQ-381</a>]
+  Remove plugin versions from the `&lt;plugins&gt;` tag in root pom
+* [<a href="https://issues.apache.org/jira/browse/OPTIQ-383">OPTIQ-383</a>]
+  Each jar should have a `git.properties` file describing its exact version
+* Fix `mvn site` on JDK 1.8 and enable in Travis-CI.
+* Status icon based on master branch, not whichever branch happened to build
+  most recently.
+* HOWTO:
+  * Document how to build from git, and how to get jars from maven repo.
+  * Optiq web site
+  * Template emails for Apache votes
+  * Update JIRA cases following release
+  * Instructions for making and verifying a release
+
 ## <a href="https://github.com/apache/incubator-optiq/releases/tag/optiq-0.9.0-incubating">0.9.0-incubating</a> / 2014-08-19
 
 This is the first release under the Apache incubator process.
