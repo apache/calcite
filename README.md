@@ -168,17 +168,17 @@ For more details, see the <a href="doc/REFERENCE.md">Reference guide</a>.
 
 ### Drivers
 
-* <a href="http://www.hydromatic.net/calcite/calcite-core/apidocs/net/hydromatic/optiq/jdbc/package-summary.html">JDBC driver</a>
+* <a href="http://www.hydromatic.net/calcite/apidocs/net/hydromatic/optiq/jdbc/package-summary.html">JDBC driver</a>
 
 ### Adapters
 
 * <a href="https://github.com/apache/incubator-drill">Apache Drill adapter</a>
 * Cascading adapter (<a href="https://github.com/Cascading/lingual">Lingual</a>)
 * CSV adapter (<a href="https://github.com/julianhyde/optiq-csv">optiq-csv</a>)
-* JDBC adapter (part of <a href="http://www.hydromatic.net/calcite/calcite-core/apidocs/net/hydromatic/optiq/impl/jdbc/package-summary.html">calcite-core</a>)
-* MongoDB adapter (<a href="http://www.hydromatic.net/calcite/calcite-mongodb/apidocs/net/hydromatic/optiq/impl/mongodb/package-summary.html">calcite-mongodb</a>)
-* Spark adapter (<a href="http://www.hydromatic.net/calcite/calcite-spark/apidocs/net/hydromatic/optiq/impl/spark/package-summary.html">calcite-spark</a>)
-* Splunk adapter (<a href="http://www.hydromatic.net/calcite/calcite-splunk/apidocs/net/hydromatic/optiq/impl/splunk/package-summary.html">calcite-splunk</a>)
+* JDBC adapter (part of <a href="http://www.hydromatic.net/calcite/apidocs/net/hydromatic/optiq/impl/jdbc/package-summary.html">calcite-core</a>)
+* MongoDB adapter (<a href="http://www.hydromatic.net/calcite/apidocs/net/hydromatic/optiq/impl/mongodb/package-summary.html">calcite-mongodb</a>)
+* Spark adapter (<a href="http://www.hydromatic.net/calcite/apidocs/net/hydromatic/optiq/impl/spark/package-summary.html">calcite-spark</a>)
+* Splunk adapter (<a href="http://www.hydromatic.net/calcite/apidocs/net/hydromatic/optiq/impl/splunk/package-summary.html">calcite-splunk</a>)
 * Eclipse Memory Analyzer (MAT) adapter (<a href="https://github.com/vlsi/optiq-mat-plugin">optiq-mat-plugin</a>)
 
 ## More information
@@ -186,7 +186,7 @@ For more details, see the <a href="doc/REFERENCE.md">Reference guide</a>.
 * License: Apache License, Version 2.0
 * Blog: http://julianhyde.blogspot.com
 * Project page: http://optiq.incubator.apache.org
-* Incubation status page: http://incubator.apache.org/projects/optiq.html
+* Incubation status page: http://incubator.apache.org/projects/calcite.html
 * Source code: http://github.com/apache/incubator-optiq
 * Issues: <a href="https://issues.apache.org/jira/browse/OPTIQ">Apache JIRA</a>
 * Developers list: <a href="mailto:dev@optiq.incubator.apache.org">dev at optiq.incubator.apache.org</a>
