@@ -536,4 +536,265 @@ select "day", "day" from "days" where "day" < 3;
 
 !ok
 
+# [DERBY-5313] CASE expression in GROUP BY clause
+select case when a=1 then 1 else 2 end
+from "days" t1(a,x) join "days" t2(b,x) on a=b
+group by case when a=1 then 1 else 2 end;
++--------+
+| EXPR$0 |
++--------+
+|      1 |
+|      2 |
++--------+
+(2 rows)
+
+!ok
+
+# [DERBY-4450] GROUP BY in an IN-subquery inside HAVING clause whose select list
+# is subset of group by columns.
+select sum("day") from "days" group by "week_day" having "week_day" in (
+  select "week_day" from "days" group by "week_day", "day");
++--------+
+| EXPR$0 |
++--------+
+|      1 |
+|      2 |
+|      3 |
+|      4 |
+|      5 |
+|      6 |
+|      7 |
++--------+
+(7 rows)
+
+!ok
+
+# [DERBY-4701] Aggregate function on a GROUP BY column also present in a HAVING
+# clause
+SELECT MAX("day") as m, COUNT(T."week_day") AS c
+FROM "days" T
+GROUP BY T."week_day"
+HAVING COUNT(T."week_day") = 1;
++---+---+
+| M | C |
++---+---+
+| 1 | 1 |
+| 2 | 1 |
+| 3 | 1 |
+| 4 | 1 |
+| 5 | 1 |
+| 6 | 1 |
+| 7 | 1 |
++---+---+
+(7 rows)
+
+!ok
+
+# [DERBY-3616] Combinations of DISTINCT and GROUP BY
+!use post
+select distinct gender from emp group by gender;
++--------+
+| GENDER |
++--------+
+| F      |
+| M      |
++--------+
+(2 rows)
+
+!ok
+select distinct gender from emp group by gender, deptno;
++--------+
+| GENDER |
++--------+
+| F      |
+| M      |
++--------+
+(2 rows)
+
+!ok
+select gender, deptno from emp;
++--------+--------+
+| GENDER | DEPTNO |
++--------+--------+
+| F      |     10 |
+| F      |     30 |
+| F      |     30 |
+| F      |     50 |
+| F      |     60 |
+| F      |        |
+| M      |     10 |
+| M      |     20 |
+| M      |     50 |
++--------+--------+
+(9 rows)
+
+!ok
+select distinct gender, deptno from emp group by gender, deptno, ename;
++--------+--------+
+| GENDER | DEPTNO |
++--------+--------+
+| F      |     10 |
+| F      |     30 |
+| F      |     50 |
+| F      |     60 |
+| F      |        |
+| M      |     10 |
+| M      |     20 |
+| M      |     50 |
++--------+--------+
+(8 rows)
+
+!ok
+select distinct gender, deptno from emp group by gender, deptno;
++--------+--------+
+| GENDER | DEPTNO |
++--------+--------+
+| F      |     10 |
+| F      |     30 |
+| F      |     50 |
+| F      |     60 |
+| F      |        |
+| M      |     10 |
+| M      |     20 |
+| M      |     50 |
++--------+--------+
+(8 rows)
+
+!ok
+select distinct gender, deptno from emp group by gender, ename, deptno;
++--------+--------+
+| GENDER | DEPTNO |
++--------+--------+
+| F      |     10 |
+| F      |     30 |
+| F      |     50 |
+| F      |     60 |
+| F      |        |
+| M      |     10 |
+| M      |     20 |
+| M      |     50 |
++--------+--------+
+(8 rows)
+
+!ok
+select distinct gender, sum(deptno) as s from emp group by gender, deptno;
++--------+----+
+| GENDER | S  |
++--------+----+
+| F      | 10 |
+| F      | 50 |
+| F      | 60 |
+| F      |    |
+| M      | 10 |
+| M      | 20 |
+| M      | 50 |
++--------+----+
+(7 rows)
+
+!ok
+select gender, sum(deptno) as s from emp group by gender, deptno;
++--------+----+
+| GENDER | S  |
++--------+----+
+| F      | 10 |
+| F      | 50 |
+| F      | 60 |
+| F      | 60 |
+| F      |    |
+| M      | 10 |
+| M      | 20 |
+| M      | 50 |
++--------+----+
+(8 rows)
+
+!ok
+select gender, sum(deptno) as s from emp group by gender, ename;
++--------+----+
+| GENDER | S  |
++--------+----+
+| F      | 10 |
+| F      | 30 |
+| F      | 30 |
+| F      | 50 |
+| F      | 60 |
+| F      |    |
+| M      | 10 |
+| M      | 20 |
+| M      | 50 |
++--------+----+
+(9 rows)
+
+!ok
+select distinct gender, sum(deptno) as s from emp group by gender, ename;
++--------+----+
+| GENDER | S  |
++--------+----+
+| F      | 10 |
+| F      | 30 |
+| F      | 50 |
+| F      | 60 |
+| F      |    |
+| M      | 10 |
+| M      | 20 |
+| M      | 50 |
++--------+----+
+(8 rows)
+
+!ok
+select gender, sum(deptno) as s from emp group by gender, deptno, ename;
++--------+----+
+| GENDER | S  |
++--------+----+
+| F      | 10 |
+| F      | 30 |
+| F      | 30 |
+| F      | 50 |
+| F      | 60 |
+| F      |    |
+| M      | 10 |
+| M      | 20 |
+| M      | 50 |
++--------+----+
+(9 rows)
+
+!ok
+select distinct gender, sum(deptno) as s from emp group by gender, deptno, ename;
++--------+----+
+| GENDER | S  |
++--------+----+
+| F      | 10 |
+| F      | 30 |
+| F      | 50 |
+| F      | 60 |
+| F      |    |
+| M      | 10 |
+| M      | 20 |
+| M      | 50 |
++--------+----+
+(8 rows)
+
+!ok
+select distinct gender, sum(deptno) as s from emp group by gender;
++--------+-----+
+| GENDER | S   |
++--------+-----+
+| F      | 180 |
+| M      |  80 |
++--------+-----+
+(2 rows)
+
+!ok
+# The following queries should give error. Uncomment when
+#   [QUIDEM-1] Add '!error' command
+# is fixed.
+#select distinct gender, deptno from emp group by gender;
+#Expression 'DEPTNO' is not being grouped
+#!error
+#select distinct gender, deptno from emp group by gender, ename;
+#Expression 'DEPTNO' is not being grouped
+#!error
+#select distinct gender, deptno, sum(deptno) as s from emp group by gender;
+#Expression 'DEPTNO' is not being grouped
+#!error
+
 # End misc.oq
