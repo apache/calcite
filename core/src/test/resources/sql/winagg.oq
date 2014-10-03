@@ -168,4 +168,40 @@ select *, count(*) over (order by deptno), first_value(ename) over (order by dep
 !ok
 !}
 
+# Without ORDER BY
+select *, count(*) over (partition by deptno) as c from emp;
+ ENAME | DEPTNO | GENDER | C
+-------+--------+--------+---
+ Adam  |     50 | M      | 2
+ Alice |     30 | F      | 2
+ Bob   |     10 | M      | 2
+ Eric  |     20 | M      | 1
+ Eve   |     50 | F      | 2
+ Grace |     60 | F      | 1
+ Jane  |     10 | F      | 2
+ Susan |     30 | F      | 2
+ Wilma |        | F      | 1
+(9 rows)
+
+!ok
+# No ORDER BY, windows defined in WINDOW clause.
+select deptno, gender, min(gender) over w1 as a, min(gender) over w2 as d
+from emp
+window w1 as (),
+ w2 as (partition by deptno);
+ DEPTNO | GENDER | A | D
+--------+--------+---+---
+     10 | F      | F | F
+     10 | M      | F | F
+     20 | M      | F | M
+     30 | F      | F | F
+     30 | F      | F | F
+     50 | F      | F | F
+     50 | M      | F | F
+     60 | F      | F | F
+        | F      | F | F
+(9 rows)
+
+!ok
+
 # End winagg.oq
