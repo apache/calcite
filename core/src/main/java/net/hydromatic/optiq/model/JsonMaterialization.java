@@ -24,7 +24,7 @@ package net.hydromatic.optiq.model;
 public class JsonMaterialization {
   public String view;
   public String table;
-  public String sql;
+  public Object sql;
 
   public void accept(ModelHandler handler) {
     handler.visit(this);
@@ -33,6 +33,12 @@ public class JsonMaterialization {
   @Override
   public String toString() {
     return "JsonMaterialization(table=" + table + ", view=" + view + ")";
+  }
+
+  /** Returns the SQL query as a string, concatenating a list of lines if
+   * necessary. */
+  public String getSql() {
+    return JsonLattice.toString(sql);
   }
 }
 

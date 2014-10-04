@@ -72,12 +72,10 @@ public class StarTable extends AbstractTable implements TranslatableTable {
 
   public RelDataType getRowType(RelDataTypeFactory typeFactory) {
     final List<RelDataType> typeList = new ArrayList<RelDataType>();
-    final List<String> nameList = new ArrayList<String>();
     final List<Integer> fieldCounts = new ArrayList<Integer>();
     for (Table table : tables) {
       final RelDataType rowType = table.getRowType(typeFactory);
       typeList.addAll(RelOptUtil.getFieldTypeList(rowType));
-      nameList.addAll(rowType.getFieldNames());
       fieldCounts.add(rowType.getFieldCount());
     }
     // Compute fieldCounts the first time this method is called. Safe to assume

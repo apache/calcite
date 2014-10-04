@@ -25,7 +25,7 @@ import java.util.List;
  */
 public class JsonView extends JsonTable {
   /** SQL query that is the definition of the view. */
-  public String sql;
+  public Object sql;
 
   /** Schema name(s) to use when resolving query. If not specified, defaults
    * to current schema. */
@@ -38,6 +38,12 @@ public class JsonView extends JsonTable {
   @Override
   public String toString() {
     return "JsonView(name=" + name + ")";
+  }
+
+  /** Returns the SQL query as a string, concatenating a list of lines if
+   * necessary. */
+  public String getSql() {
+    return JsonLattice.toString(sql);
   }
 }
 

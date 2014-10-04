@@ -23,20 +23,22 @@ import java.util.List;
  * Root schema element.
  *
  * <p>A POJO with fields of {@link Boolean}, {@link String}, {@link ArrayList},
- * {@link java.util.LinkedHashMap}, per Jackson simple data binding.</p>
+ * {@link java.util.LinkedHashMap LinkedHashMap}, per Jackson simple data
+ * binding.</p>
  *
  * <p>Schema structure is as follows:</p>
  *
  * <pre>{@code Root}
  *   {@link JsonSchema} (in collection {@link JsonRoot#schemas schemas})
  *     {@link JsonTable} (in collection {@link JsonMapSchema#tables tables})
- *       {@link JsonColumn} (in collection {@link JsonTable#columns column}
+ *       {@link JsonColumn} (in collection {@link JsonTable#columns columns}
  *     {@link JsonView}
  *     {@link JsonFunction}  (in collection {@link JsonMapSchema#functions functions})
- *     {@link JsonLattice} (in collection {@link JsonSchema#lattices})
- *       {@link JsonMeasure} (in collection {@link JsonLattice#defaultMeasures})
- *       {@link JsonTile} (in collection {@link JsonLattice#tiles})
- *         {@link JsonMeasure} (in collection {@link JsonTile#measures})
+ *     {@link JsonLattice} (in collection {@link JsonSchema#lattices lattices})
+ *       {@link JsonMeasure} (in collection {@link JsonLattice#defaultMeasures defaultMeasures})
+ *       {@link JsonTile} (in collection {@link JsonLattice#tiles tiles})
+ *         {@link JsonMeasure} (in collection {@link JsonTile#measures measures})
+ *     {@link JsonMaterialization} (in collection {@link JsonSchema#materializations materializations})
  * </pre>
  */
 public class JsonRoot {

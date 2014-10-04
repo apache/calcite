@@ -16,6 +16,7 @@
  */
 package net.hydromatic.optiq.test;
 
+import net.hydromatic.optiq.materialize.MaterializationService;
 import net.hydromatic.optiq.runtime.Hook;
 
 import org.eigenbase.rel.RelNode;
@@ -25,11 +26,16 @@ import org.eigenbase.util.Util;
 
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 
 import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -246,8 +252,7 @@ public class LatticeTest {
 
   /** Tests a model with pre-defined tiles. */
   @Test public void testLatticeWithPreDefinedTiles() {
-    foodmartModel(
-        " auto: false,\n"
+    foodmartModel(" auto: false,\n"
         + "  defaultMeasures: [ {\n"
         + "    agg: 'count'\n"
         + "  } ],\n"
@@ -255,8 +260,7 @@ public class LatticeTest {
         + "    dimensions: [ 'the_year', ['t', 'quarter'] ],\n"
         + "    measures: [ ]\n"
         + "  } ]\n")
-        .query(
-            "select distinct t.\"the_year\", t.\"quarter\"\n"
+        .query("select distinct t.\"the_year\", t.\"quarter\"\n"
             + "from \"foodmart\".\"sales_fact_1997\" as s\n"
             + "join \"foodmart\".\"time_by_day\" as t using (\"time_id\")\n")
       .enableMaterializations(true)
@@ -268,25 +272,8 @@ public class LatticeTest {
   /** A query that uses a pre-defined aggregate table, at the same
    *  granularity but fewer calls to aggregate functions. */
   @Test public void testLatticeWithPreDefinedTilesFewerMeasures() {
-    foodmartModel(
-        " auto: false,\n"
-        + "  defaultMeasures: [ {\n"
-        + "    agg: 'count'\n"
-        + "  } ],\n"
-        + "  tiles: [ {\n"
-        + "    dimensions: [ 'the_year', ['t', 'quarter'] ],\n"
-        + "    measures: [ {\n"
-        + "      agg: 'sum',\n"
-        + "      args: 'unit_sales'\n"
-        + "    }, {\n"
-        + "      agg: 'sum',\n"
-        + "      args: 'store_sales'\n"
-        + "    }, {\n"
-        + "      agg: 'count'\n"
-        + "    } ]\n"
-        + "  } ]\n")
-        .query(
-            "select t.\"the_year\", t.\"quarter\", count(*) as c\n"
+    foodmartModelWithOneTile()
+        .query("select t.\"the_year\", t.\"quarter\", count(*) as c\n"
             + "from \"foodmart\".\"sales_fact_1997\" as s\n"
             + "join \"foodmart\".\"time_by_day\" as t using (\"time_id\")\n"
             + "group by t.\"the_year\", t.\"quarter\"")
@@ -305,25 +292,8 @@ public class LatticeTest {
    * granularity. Includes a measure computed from a grouping column, a measure
    * based on COUNT rolled up using SUM, and an expression on a measure. */
   @Test public void testLatticeWithPreDefinedTilesRollUp() {
-    foodmartModel(
-        " auto: false,\n"
-        + "  defaultMeasures: [ {\n"
-        + "    agg: 'count'\n"
-        + "  } ],\n"
-        + "  tiles: [ {\n"
-        + "    dimensions: [ 'the_year', ['t', 'quarter'] ],\n"
-        + "    measures: [ {\n"
-        + "      agg: 'sum',\n"
-        + "      args: 'unit_sales'\n"
-        + "    }, {\n"
-        + "      agg: 'sum',\n"
-        + "      args: 'store_sales'\n"
-        + "    }, {\n"
-        + "      agg: 'count'\n"
-        + "    } ]\n"
-        + "  } ]\n")
-        .query(
-            "select t.\"the_year\",\n"
+    foodmartModelWithOneTile()
+        .query("select t.\"the_year\",\n"
             + "  count(*) as c,\n"
             + "  min(\"quarter\") as q,\n"
             + "  sum(\"unit_sales\") * 10 as us\n"
@@ -333,7 +303,7 @@ public class LatticeTest {
       .enableMaterializations(true)
       .explainContains(
           "EnumerableCalcRel(expr#0..3=[{inputs}], expr#4=[10], expr#5=[*($t3, $t4)], proj#0..2=[{exprs}], US=[$t5])\n"
-          + "  EnumerableAggregateRel(group=[{0}], agg#0=[$SUM0($2)], Q=[MIN($1)], agg#2=[$SUM0($4)])\n"
+          + "  EnumerableAggregateRel(group=[{0}], C=[$SUM0($2)], Q=[MIN($1)], agg#2=[$SUM0($4)])\n"
           + "    EnumerableTableAccessRel(table=[[adhoc, m{27, 31}")
       .returnsUnordered("the_year=1997; C=86837; Q=Q1; US=2667730.0000")
       .sameResultWithMaterializationsDisabled();
@@ -347,9 +317,12 @@ public class LatticeTest {
    * "Use optimization algorithm to suggest which tiles of a lattice to
    * materialize"</a>. */
   @Test public void testTileAlgorithm() {
+    MaterializationService.setThreadLocal();
+    MaterializationService.instance().clear();
     foodmartModel(
         " auto: false,\n"
         + "  algorithm: true,\n"
+        + "  algorithmMaxMillis: -1,\n"
         + "  rowCountEstimate: 86000,\n"
         + "  defaultMeasures: [ {\n"
         + "      agg: 'sum',\n"
@@ -369,13 +342,109 @@ public class LatticeTest {
             + "from \"foodmart\".\"sales_fact_1997\" as s\n"
             + "join \"foodmart\".\"time_by_day\" as t using (\"time_id\")\n")
         .enableMaterializations(true)
-        .explainContains("EnumerableAggregateRel(group=[{3, 4}])\n"
-            + "  EnumerableTableAccessRel(table=[[adhoc, m{7, 16, 25, 27, 31, 37}]])")
+        .explainContains("EnumerableAggregateRel(group=[{2, 3}])\n"
+            + "  EnumerableTableAccessRel(table=[[adhoc, m{16, 17, 27, 31}]])")
         .returnsUnordered("the_year=1997; quarter=Q1",
             "the_year=1997; quarter=Q2",
             "the_year=1997; quarter=Q3",
             "the_year=1997; quarter=Q4")
         .returnsCount(4);
+  }
+
+  /** Tests a query that uses no columns from the fact table. */
+  @Test public void testGroupByEmpty() {
+    foodmartModel()
+        .query("select count(*) as c from \"foodmart\".\"sales_fact_1997\"")
+        .enableMaterializations(true)
+        .returnsUnordered("C=86837");
+  }
+
+  /** Calls {@link #testDistinctCount()} followed by
+   * {@link #testGroupByEmpty()}. */
+  @Test public void testGroupByEmptyWithPrelude() {
+    testDistinctCount();
+    testGroupByEmpty();
+  }
+
+  /** Tests a query that uses no dimension columns and one measure column. */
+  @Test public void testGroupByEmpty2() {
+    foodmartModel()
+        .query("select sum(\"unit_sales\") as s\n"
+            + "from \"foodmart\".\"sales_fact_1997\"")
+        .enableMaterializations(true)
+        .returnsUnordered("S=266773.0000");
+  }
+
+  /** Tests that two queries of the same dimensionality that use different
+   * measures can use the same materialization. */
+  @Test public void testGroupByEmpty3() {
+    final List<String> mats = Lists.newArrayList();
+    final Function<String, Void> handler =
+        new Function<String, Void>() {
+          public Void apply(String materializationName) {
+            mats.add(materializationName);
+            return null;
+          }
+        };
+    final OptiqAssert.AssertThat that = foodmartModel().pooled();
+    that.query("select sum(\"unit_sales\") as s, count(*) as c\n"
+            + "from \"foodmart\".\"sales_fact_1997\"")
+        .withHook(Hook.CREATE_MATERIALIZATION, handler)
+        .enableMaterializations(true)
+        .explainContains("EnumerableTableAccessRel(table=[[adhoc, m{}]])")
+        .returnsUnordered("S=266773.0000; C=86837");
+    assertThat(mats.toString(), mats.size(), equalTo(2));
+
+    // A similar query can use the same materialization.
+    that.query("select sum(\"unit_sales\") as s\n"
+        + "from \"foodmart\".\"sales_fact_1997\"")
+        .withHook(Hook.CREATE_MATERIALIZATION, handler)
+        .enableMaterializations(true)
+        .returnsUnordered("S=266773.0000");
+    assertThat(mats.toString(), mats.size(), equalTo(2));
+  }
+
+  /** Rolling up SUM. */
+  @Test public void testSum() {
+    foodmartModelWithOneTile()
+        .query("select sum(\"unit_sales\") as c\n"
+            + "from \"foodmart\".\"sales_fact_1997\"\n"
+            + "group by \"product_id\"\n"
+            + "order by 1 desc limit 1")
+        .enableMaterializations(true)
+        .returnsUnordered("C=267.0000");
+  }
+
+  /** Tests a distinct-count query.
+   *
+   * <p>We can't just roll up count(distinct ...) as we do count(...), but we
+   * can still use the aggregate table if we're smart. */
+  @Test public void testDistinctCount() {
+    foodmartModelWithOneTile()
+        .query("select count(distinct \"quarter\") as c\n"
+            + "from \"foodmart\".\"sales_fact_1997\"\n"
+            + "join \"foodmart\".\"time_by_day\" using (\"time_id\")\n"
+            + "group by \"the_year\"")
+        .enableMaterializations(true)
+        .explainContains("EnumerableCalcRel(expr#0..1=[{inputs}], C=[$t1])\n"
+            + "  EnumerableAggregateRel(group=[{0}], C=[COUNT($1)])\n"
+            + "    EnumerableCalcRel(expr#0..4=[{inputs}], proj#0..1=[{exprs}])\n"
+            + "      EnumerableTableAccessRel(table=[[adhoc, m{27, 31}]])")
+        .returnsUnordered("C=4");
+  }
+
+  @Test public void testDistinctCount2() {
+    foodmartModelWithOneTile()
+        .query("select count(distinct \"the_year\") as c\n"
+            + "from \"foodmart\".\"sales_fact_1997\"\n"
+            + "join \"foodmart\".\"time_by_day\" using (\"time_id\")\n"
+            + "group by \"the_year\"")
+        .enableMaterializations(true)
+        .explainContains("EnumerableCalcRel(expr#0..1=[{inputs}], C=[$t1])\n"
+            + "  EnumerableAggregateRel(group=[{0}], C=[COUNT($0)])\n"
+            + "    EnumerableAggregateRel(group=[{0}])\n"
+            + "      EnumerableTableAccessRel(table=[[adhoc, m{27, 31}]])")
+        .returnsUnordered("C=1");
   }
 
   /** Runs all queries against the Foodmart schema, using a lattice.
@@ -407,23 +476,7 @@ public class LatticeTest {
     if (query == null) {
       return;
     }
-    foodmartModel(
-        " auto: false,\n"
-        + "  defaultMeasures: [ {\n"
-        + "    agg: 'count'\n"
-        + "  } ],\n"
-        + "  tiles: [ {\n"
-        + "    dimensions: [ 'the_year', ['t', 'quarter'] ],\n"
-        + "    measures: [ {\n"
-        + "      agg: 'sum',\n"
-        + "      args: 'unit_sales'\n"
-        + "    }, {\n"
-        + "      agg: 'sum',\n"
-        + "      args: 'store_sales'\n"
-        + "    }, {\n"
-        + "      agg: 'count'\n"
-        + "    } ]\n"
-        + "  } ]\n")
+    foodmartModelWithOneTile()
         .withSchema("foodmart")
         .query(query.sql)
       .sameResultWithMaterializationsDisabled();
@@ -466,6 +519,36 @@ public class LatticeTest {
         + "join \"foodmart\".\"time_by_day\" as \"t\" using (\"time_id\")\n"
         + "join \"foodmart\".\"product_class\" as \"pc\" on \"p\".\"product_class_id\" = \"pc\".\"product_class_id\"",
         extras);
+  }
+
+  private OptiqAssert.AssertThat foodmartModelWithOneTile() {
+    return foodmartModel(
+        " auto: false,\n"
+        + "  defaultMeasures: [ {\n"
+        + "    agg: 'count'\n"
+        + "  } ],\n"
+        + "  tiles: [ {\n"
+        + "    dimensions: [ 'the_year', ['t', 'quarter'] ],\n"
+        + "    measures: [ {\n"
+        + "      agg: 'sum',\n"
+        + "      args: 'unit_sales'\n"
+        + "    }, {\n"
+        + "      agg: 'sum',\n"
+        + "      args: 'store_sales'\n"
+        + "    }, {\n"
+        + "      agg: 'count'\n"
+        + "    } ]\n"
+        + "  } ]\n");
+  }
+
+  // Just for debugging.
+  private static void runJdbc() throws SQLException {
+    final Connection connection = DriverManager.getConnection(
+        "jdbc:calcite:model=core/src/test/resources/mysql-foodmart-lattice-model.json");
+    final ResultSet resultSet = connection.createStatement()
+        .executeQuery("select * from \"adhoc\".\"m{27, 31}\"");
+    System.out.println(OptiqAssert.toString(resultSet));
+    connection.close();
   }
 }
 

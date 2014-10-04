@@ -25,6 +25,12 @@ import org.eigenbase.reltype.*;
  *
  * <p>It is used, via a {@link AggregateCall}, in an {@link AggregateRel}
  * relational operator.</p>
+ *
+ * @deprecated Use {@link org.eigenbase.sql.SqlAggFunction};
+ * after {@link org.eigenbase.util.Bug#upgrade calcite-0.9.1},
+ * {@link org.eigenbase.rel.AggregateCall} will require a {@code SqlAggFunction}
+ * and after {@link org.eigenbase.util.Bug#upgrade calcite-0.9.2}
+ * this interface will be removed.
  */
 public interface Aggregation {
   //~ Methods ----------------------------------------------------------------
@@ -34,6 +40,10 @@ public interface Aggregation {
    *
    * @param typeFactory Type factory to create the types
    * @return Array of parameter types
+   *
+   * @deprecated Use
+   * {@link org.eigenbase.sql.SqlAggFunction#getOperandTypeInference()}; will
+   * be removed after {@link org.eigenbase.util.Bug#upgrade calcite-0.9.2}.
    */
   List<RelDataType> getParameterTypes(RelDataTypeFactory typeFactory);
 
@@ -42,6 +52,10 @@ public interface Aggregation {
    *
    * @param typeFactory Type factory to create the type
    * @return Result type
+   *
+   * @deprecated Use
+   * {@link org.eigenbase.sql.SqlAggFunction#getReturnTypeInference()}; will
+   * be removed after {@link org.eigenbase.util.Bug#upgrade calcite-0.9.2}.
    */
   RelDataType getReturnType(RelDataTypeFactory typeFactory);
 

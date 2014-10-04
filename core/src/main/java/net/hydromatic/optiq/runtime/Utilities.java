@@ -30,6 +30,8 @@ public class Utilities {
   }
 
   public static boolean equal(Object o0, Object o1) {
+    // Same as java.lang.Objects.equals (JDK 1.7 and later)
+    // and com.google.common.base.Objects.equal
     return o0 == o1 || o0 != null && o0.equals(o1);
   }
 

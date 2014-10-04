@@ -21,7 +21,6 @@ import java.util.List;
 
 import org.eigenbase.rel.AggregateCall;
 import org.eigenbase.rel.AggregateRelBase;
-import org.eigenbase.rel.Aggregation;
 import org.eigenbase.rel.ProjectRelBase;
 import org.eigenbase.rel.RelNode;
 import org.eigenbase.relopt.RelOptCluster;
@@ -33,6 +32,7 @@ import org.eigenbase.relopt.RelOptTable;
 import org.eigenbase.relopt.RelOptUtil;
 import org.eigenbase.relopt.SubstitutionVisitor;
 import org.eigenbase.reltype.RelDataType;
+import org.eigenbase.sql.SqlAggFunction;
 import org.eigenbase.util.Pair;
 import org.eigenbase.util.mapping.AbstractSourceMapping;
 
@@ -40,7 +40,7 @@ import net.hydromatic.optiq.Table;
 import net.hydromatic.optiq.impl.StarTable;
 import net.hydromatic.optiq.jdbc.OptiqSchema;
 import net.hydromatic.optiq.materialize.Lattice;
-import net.hydromatic.optiq.materialize.MaterializationService;
+import net.hydromatic.optiq.materialize.TileKey;
 import net.hydromatic.optiq.prepare.OptiqPrepareImpl;
 import net.hydromatic.optiq.prepare.RelOptTableImpl;
 import net.hydromatic.optiq.util.BitSets;
@@ -109,14 +109,14 @@ public class AggregateStarTableRule extends RelOptRule {
     final RelOptLattice lattice = call.getPlanner().getLattice(table);
     final List<Lattice.Measure> measures =
         lattice.lattice.toMeasures(aggregate.getAggCallList());
-    Pair<OptiqSchema.TableEntry, MaterializationService.TileKey> pair =
+    final Pair<OptiqSchema.TableEntry, TileKey> pair =
         lattice.getAggregate(call.getPlanner(), aggregate.getGroupSet(),
             measures);
     if (pair == null) {
       return;
     }
     final OptiqSchema.TableEntry tableEntry = pair.left;
-    final MaterializationService.TileKey tileKey = pair.right;
+    final TileKey tileKey = pair.right;
     final double rowCount = aggregate.getRows();
     final Table aggregateTable = tableEntry.getTable();
     final RelDataType aggregateTableRowType =
@@ -141,16 +141,17 @@ public class AggregateStarTableRule extends RelOptRule {
       }
       assert BitSets.contains(tileKey.dimensions, aggregate.getGroupSet());
       final List<AggregateCall> aggCalls = Lists.newArrayList();
+      BitSet groupSet = new BitSet();
+      for (int key : BitSets.toIter(aggregate.getGroupSet())) {
+        groupSet.set(BitSets.toList(tileKey.dimensions).indexOf(key));
+      }
       for (AggregateCall aggCall : aggregate.getAggCallList()) {
-        final AggregateCall copy = rollUp(aggCall, tileKey);
+        final AggregateCall copy =
+            rollUp(groupSet.cardinality(), rel, aggCall, tileKey);
         if (copy == null) {
           return;
         }
         aggCalls.add(copy);
-      }
-      BitSet groupSet = new BitSet();
-      for (int key : BitSets.toIter(aggregate.getGroupSet())) {
-        groupSet.set(BitSets.toList(tileKey.dimensions).indexOf(key));
       }
       rel = aggregate.copy(aggregate.getTraitSet(), rel, groupSet, aggCalls);
     } else if (!tileKey.measures.equals(measures)) {
@@ -181,10 +182,14 @@ public class AggregateStarTableRule extends RelOptRule {
     call.transformTo(rel);
   }
 
-  private static AggregateCall rollUp(AggregateCall aggregateCall,
-      MaterializationService.TileKey tileKey) {
-    final Aggregation aggregation = aggregateCall.getAggregation();
-    final Pair<Aggregation, List<Integer>> seek =
+  private static AggregateCall rollUp(int groupCount, RelNode input,
+      AggregateCall aggregateCall, TileKey tileKey) {
+    if (aggregateCall.isDistinct()) {
+      return null;
+    }
+    final SqlAggFunction aggregation =
+        (SqlAggFunction) aggregateCall.getAggregation();
+    final Pair<SqlAggFunction, List<Integer>> seek =
         Pair.of(aggregation, aggregateCall.getArgList());
     final int offset = tileKey.dimensions.cardinality();
     final ImmutableList<Lattice.Measure> measures = tileKey.measures;
@@ -194,12 +199,12 @@ public class AggregateStarTableRule extends RelOptRule {
     final int i = find(measures, seek);
   tryRoll:
     if (i >= 0) {
-      final Aggregation roll = SubstitutionVisitor.getRollup(aggregation);
+      final SqlAggFunction roll = SubstitutionVisitor.getRollup(aggregation);
       if (roll == null) {
         break tryRoll;
       }
-      return new AggregateCall(roll, false, ImmutableList.of(offset + i),
-          aggregateCall.type, aggregateCall.name);
+      return AggregateCall.create(roll, false, ImmutableList.of(offset + i),
+          groupCount, input, null, aggregateCall.name);
     }
 
     // Second, try to satisfy the aggregation based on group set columns.
@@ -213,8 +218,8 @@ public class AggregateStarTableRule extends RelOptRule {
         }
         newArgs.add(z);
       }
-      return new AggregateCall(aggregation, false, newArgs, aggregateCall.type,
-          aggregateCall.name);
+      return AggregateCall.create((SqlAggFunction) aggregation, false, newArgs,
+          groupCount, input, null, aggregateCall.name);
     }
 
     // No roll up possible.
@@ -222,7 +227,7 @@ public class AggregateStarTableRule extends RelOptRule {
   }
 
   private static int find(ImmutableList<Lattice.Measure> measures,
-      Pair<Aggregation, List<Integer>> seek) {
+      Pair<SqlAggFunction, List<Integer>> seek) {
     for (int i = 0; i < measures.size(); i++) {
       Lattice.Measure measure = measures.get(i);
       if (measure.agg.equals(seek.left)

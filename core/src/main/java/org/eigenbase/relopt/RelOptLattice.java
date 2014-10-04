@@ -26,6 +26,7 @@ import net.hydromatic.optiq.config.OptiqConnectionConfig;
 import net.hydromatic.optiq.jdbc.OptiqSchema;
 import net.hydromatic.optiq.materialize.Lattice;
 import net.hydromatic.optiq.materialize.MaterializationService;
+import net.hydromatic.optiq.materialize.TileKey;
 
 /**
  * Use of a lattice by the query optimizer.
@@ -69,8 +70,7 @@ public class RelOptLattice {
    * @param measureList Calls to aggregate functions
    * @return Materialized table
    */
-  public
-  Pair<OptiqSchema.TableEntry, MaterializationService.TileKey> getAggregate(
+  public Pair<OptiqSchema.TableEntry, TileKey> getAggregate(
       RelOptPlanner planner, BitSet groupSet,
       List<Lattice.Measure> measureList) {
     final OptiqConnectionConfig config =
@@ -81,7 +81,8 @@ public class RelOptLattice {
     final MaterializationService service = MaterializationService.instance();
     boolean create = lattice.auto && config.createMaterializations();
     final OptiqSchema schema = starRelOptTable.unwrap(OptiqSchema.class);
-    return service.defineTile(lattice, groupSet, measureList, schema, create);
+    return service.defineTile(lattice, groupSet, measureList, schema, create,
+        false);
   }
 }
 

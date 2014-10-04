@@ -28,6 +28,7 @@ import net.hydromatic.optiq.util.Compatible;
 
 import org.eigenbase.util.Pair;
 
+import com.google.common.base.Preconditions;
 import com.google.common.cache.*;
 import com.google.common.collect.*;
 
@@ -124,8 +125,14 @@ public class OptiqSchema {
 
   /** Defines a table within this schema. */
   public TableEntry add(String tableName, Table table) {
+    return add(tableName, table, ImmutableList.<String>of());
+  }
+
+  /** Defines a table within this schema. */
+  public TableEntry add(String tableName, Table table,
+      ImmutableList<String> sqls) {
     final TableEntryImpl entry =
-        new TableEntryImpl(this, tableName, table);
+        new TableEntryImpl(this, tableName, table, sqls);
     tableMap.put(tableName, entry);
     return entry;
   }
@@ -225,6 +232,16 @@ public class OptiqSchema {
     final OptiqSchema optiqSchema = new OptiqSchema(this, schema, name);
     subSchemaMap.put(name, optiqSchema);
     return optiqSchema;
+  }
+
+  /** Returns a table that materializes the given SQL statement. */
+  public final Pair<String, Table> getTableBySql(String sql) {
+    for (TableEntry tableEntry : tableMap.values()) {
+      if (tableEntry.sqls.contains(sql)) {
+        return Pair.of(tableEntry.name, tableEntry.getTable());
+      }
+    }
+    return null;
   }
 
   /** Returns a table with the given name. Does not look for views. */
@@ -502,8 +519,12 @@ public class OptiqSchema {
 
   /** Membership of a table in a schema. */
   public abstract static class TableEntry extends Entry {
-    public TableEntry(OptiqSchema schema, String name) {
+    public final List<String> sqls;
+
+    public TableEntry(OptiqSchema schema, String name,
+        ImmutableList<String> sqls) {
       super(schema, name);
+      this.sqls = Preconditions.checkNotNull(sqls);
     }
 
     public abstract Table getTable();
@@ -636,10 +657,11 @@ public class OptiqSchema {
     private final Table table;
 
     /** Creates a TableEntryImpl. */
-    public TableEntryImpl(OptiqSchema schema, String name, Table table) {
-      super(schema, name);
+    public TableEntryImpl(OptiqSchema schema, String name, Table table,
+        ImmutableList<String> sqls) {
+      super(schema, name, sqls);
       assert table != null;
-      this.table = table;
+      this.table = Preconditions.checkNotNull(table);
     }
 
     public Table getTable() {

@@ -122,7 +122,7 @@ abstract class OptiqConnectionImpl
       final Lattice lattice = e.getLattice();
       for (Lattice.Tile tile : lattice.computeTiles()) {
         service.defineTile(lattice, tile.bitSet(), tile.measures, e.schema,
-            true);
+            true, true);
       }
     }
   }

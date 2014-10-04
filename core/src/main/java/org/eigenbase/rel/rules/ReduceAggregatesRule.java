@@ -151,6 +151,11 @@ public class ReduceAggregatesRule extends RelOptRule {
             oldAggRel.getRowType().getFieldNames());
 
     ruleCall.transformTo(projectRel);
+    // If we old AggRel(SUM(0)) transforms to new AggRel($SUM0($0)) both will
+    // have the same cost, but we prefer new. Before we set the importance of
+    // old to 0, we were getting different results between JDK 1.7 and 1.8
+    // because of some arbitrary orderings of rels within an equivalence set.
+    ruleCall.getPlanner().setImportance(oldAggRel, 0d);
   }
 
   private RexNode reduceAgg(
@@ -246,14 +251,14 @@ public class ReduceAggregatesRule extends RelOptRule {
             oldCall.getArgList(),
             sumType,
             null);
-    SqlAggFunction countAgg = SqlStdOperatorTable.COUNT;
-    RelDataType countType = countAgg.getReturnType(typeFactory);
     AggregateCall countCall =
-        new AggregateCall(
-            countAgg,
+        AggregateCall.create(
+            SqlStdOperatorTable.COUNT,
             oldCall.isDistinct(),
             oldCall.getArgList(),
-            countType,
+            oldAggRel.getGroupCount(),
+            oldAggRel.getChild(),
+            null,
             null);
 
     // NOTE:  these references are with respect to the output
@@ -295,25 +300,24 @@ public class ReduceAggregatesRule extends RelOptRule {
         getFieldType(
             oldAggRel.getChild(),
             arg);
-    RelDataType sumType =
+    final RelDataType sumType =
         typeFactory.createTypeWithNullability(
             argType, argType.isNullable());
-    SqlAggFunction sumZeroAgg = new SqlSumEmptyIsZeroAggFunction(sumType);
-    AggregateCall sumZeroCall =
+    final AggregateCall sumZeroCall =
         new AggregateCall(
-            sumZeroAgg,
+            SqlStdOperatorTable.SUM0,
             oldCall.isDistinct(),
             oldCall.getArgList(),
             sumType,
             null);
-    SqlAggFunction countAgg = SqlStdOperatorTable.COUNT;
-    RelDataType countType = countAgg.getReturnType(typeFactory);
-    AggregateCall countCall =
-        new AggregateCall(
-            countAgg,
+    final AggregateCall countCall =
+        AggregateCall.create(
+            SqlStdOperatorTable.COUNT,
             oldCall.isDistinct(),
             oldCall.getArgList(),
-            countType,
+            oldAggRel.getGroupCount(),
+            oldAggRel,
+            null,
             null);
 
     // NOTE:  these references are with respect to the output
@@ -420,14 +424,14 @@ public class ReduceAggregatesRule extends RelOptRule {
         rexBuilder.makeCall(
             SqlStdOperatorTable.MULTIPLY, sumArg, sumArg);
 
-    final SqlAggFunction countAgg = SqlStdOperatorTable.COUNT;
-    final RelDataType countType = countAgg.getReturnType(typeFactory);
     final AggregateCall countArgAggCall =
-        new AggregateCall(
-            countAgg,
+        AggregateCall.create(
+            SqlStdOperatorTable.COUNT,
             oldCall.isDistinct(),
             oldCall.getArgList(),
-            countType,
+            oldAggRel.getGroupCount(),
+            oldAggRel.getChild(),
+            null,
             null);
     final RexNode countArg =
         rexBuilder.addAggCall(

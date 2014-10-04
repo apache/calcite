@@ -775,7 +775,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    * <code>SUM0</code> aggregate function.
    */
   public static final SqlAggFunction SUM0 =
-      new SqlSumEmptyIsZeroAggFunction(null);
+      new SqlSumEmptyIsZeroAggFunction();
 
   //-------------------------------------------------------------
   // WINDOW Rank Functions

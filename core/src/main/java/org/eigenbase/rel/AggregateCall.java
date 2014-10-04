@@ -71,6 +71,23 @@ public class AggregateCall {
 
   //~ Methods ----------------------------------------------------------------
 
+  /** Creates an AggregateCall, inferring its type if {@code type} is null. */
+  public static AggregateCall create(SqlAggFunction aggFunction,
+      boolean distinct, List<Integer> argList, int groupCount, RelNode input,
+      RelDataType type, String name) {
+    if (type == null) {
+      final RelDataTypeFactory typeFactory =
+          input.getCluster().getTypeFactory();
+      final List<RelDataType> types =
+          SqlTypeUtil.projectTypes(input.getRowType(), argList);
+      final AggregateRelBase.AggCallBinding callBinding =
+          new AggregateRelBase.AggCallBinding(typeFactory, aggFunction, types,
+              groupCount);
+      type = aggFunction.inferReturnType(callBinding);
+    }
+    return new AggregateCall(aggFunction, distinct, argList, type, name);
+  }
+
   /**
    * Returns whether this AggregateCall is distinct, as in <code>
    * COUNT(DISTINCT empno)</code>.
@@ -203,24 +220,10 @@ public class AggregateCall {
     final SqlAggFunction sqlAgg = (SqlAggFunction) aggregation;
     // The return type of aggregate call need to be recomputed.
     // Since it might depend on the number of columns in GROUP BY.
-    RelDataType newReturnType;
-    if (oldGroupKeyCount == newGroupKeyCount) {
-      newReturnType = getType();
-    } else {
-      newReturnType = sqlAgg.inferReturnType(
-            new AggregateRelBase.AggCallBinding(
-                input.getCluster().getTypeFactory(),
-                sqlAgg,
-                SqlTypeUtil.projectTypes(input.getRowType(), aggArgs),
-                newGroupKeyCount));
-    }
-
-    return new AggregateCall(
-            aggregation,
-            isDistinct(),
-            aggArgs,
-            newReturnType,
-            getName());
+    final RelDataType newType =
+        oldGroupKeyCount == newGroupKeyCount ? type : null;
+    return create(sqlAgg, distinct, aggArgs, newGroupKeyCount, input, newType,
+        getName());
   }
 
   /** Creates a copy of this aggregate call, applying a mapping to its

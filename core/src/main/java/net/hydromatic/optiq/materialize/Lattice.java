@@ -72,6 +72,7 @@ public class Lattice {
   public final ImmutableList<Column> columns;
   public final boolean auto;
   public final boolean algorithm;
+  public final long algorithmMaxMillis;
   public final double rowCountEstimate;
   public final ImmutableList<Measure> defaultMeasures;
   public final ImmutableList<Tile> tiles;
@@ -92,12 +93,14 @@ public class Lattice {
       };
 
   private Lattice(ImmutableList<Node> nodes, boolean auto, boolean algorithm,
+      long algorithmMaxMillis,
       Double rowCountEstimate, ImmutableList<Column> columns,
       ImmutableList<Measure> defaultMeasures, ImmutableList<Tile> tiles) {
     this.nodes = Preconditions.checkNotNull(nodes);
     this.columns = Preconditions.checkNotNull(columns);
     this.auto = auto;
     this.algorithm = algorithm;
+    this.algorithmMaxMillis = algorithmMaxMillis;
     this.defaultMeasures = Preconditions.checkNotNull(defaultMeasures);
     this.tiles = Preconditions.checkNotNull(tiles);
 
@@ -223,6 +226,9 @@ public class Lattice {
         use(usedNodes, node);
       }
     }
+    if (usedNodes.isEmpty()) {
+      usedNodes.add(nodes.get(0));
+    }
     final SqlDialect dialect = SqlDialect.DatabaseProduct.OPTIQ.getDialect();
     final StringBuilder buf = new StringBuilder("SELECT ");
     final StringBuilder groupBuf = new StringBuilder("\nGROUP BY ");
@@ -242,6 +248,9 @@ public class Lattice {
         buf.append(" AS ");
         dialect.quoteIdentifier(buf, fieldName);
       }
+    }
+    if (groupSet.isEmpty()) {
+      groupBuf.append("()");
     }
     int m = 0;
     for (Measure measure : aggCallList) {
@@ -480,6 +489,10 @@ public class Lattice {
       return compare(args, measure.args);
     }
 
+    @Override public String toString() {
+      return "Measure: [agg: " + agg + ", args: " + args + "]";
+    }
+
     @Override public int hashCode() {
       return Util.hashV(agg, args);
     }
@@ -487,7 +500,7 @@ public class Lattice {
     @Override public boolean equals(Object obj) {
       return obj == this
           || obj instanceof Measure
-          && this.agg == ((Measure) obj).agg
+          && this.agg.equals(((Measure) obj).agg)
           && this.args.equals(((Measure) obj).args);
     }
 
@@ -564,6 +577,7 @@ public class Lattice {
     private final ImmutableList.Builder<Tile> tileListBuilder =
         ImmutableList.builder();
     private boolean algorithm = false;
+    private long algorithmMaxMillis = -1;
     private boolean auto = true;
     private Double rowCountEstimate;
 
@@ -659,6 +673,12 @@ public class Lattice {
       return this;
     }
 
+    /** Sets the "algorithmMaxMillis" attribute (default -1). */
+    public Builder algorithmMaxMillis(long algorithmMaxMillis) {
+      this.algorithmMaxMillis = algorithmMaxMillis;
+      return this;
+    }
+
     /** Sets the "rowCountEstimate" attribute (default null). */
     public Builder rowCountEstimate(double rowCountEstimate) {
       this.rowCountEstimate = rowCountEstimate;
@@ -668,7 +688,7 @@ public class Lattice {
     /** Builds a lattice. */
     public Lattice build() {
       return new Lattice(ImmutableList.copyOf(nodes), auto, algorithm,
-          rowCountEstimate, columns,
+          algorithmMaxMillis, rowCountEstimate, columns,
           defaultMeasureListBuilder.build(), tileListBuilder.build());
     }
 

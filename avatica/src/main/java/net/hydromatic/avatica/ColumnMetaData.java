@@ -175,7 +175,7 @@ public class ColumnMetaData {
     STRING(String.class),
     OBJECT(Object.class);
 
-    private final Class clazz;
+    public final Class clazz;
 
     public static final Map<Class, Rep> VALUE_MAP;
 

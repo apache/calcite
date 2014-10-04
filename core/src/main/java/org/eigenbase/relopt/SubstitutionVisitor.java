@@ -24,6 +24,7 @@ import org.eigenbase.rel.*;
 import org.eigenbase.rel.rules.RemoveTrivialProjectRule;
 import org.eigenbase.reltype.*;
 import org.eigenbase.rex.*;
+import org.eigenbase.sql.SqlAggFunction;
 import org.eigenbase.sql.SqlKind;
 import org.eigenbase.sql.fun.SqlStdOperatorTable;
 import org.eigenbase.sql.validate.SqlValidatorUtil;
@@ -1215,13 +1216,14 @@ public class SubstitutionVisitor {
     }
   }
 
-  public static Aggregation getRollup(Aggregation aggregation) {
+  public static SqlAggFunction getRollup(Aggregation aggregation) {
     if (aggregation == SqlStdOperatorTable.SUM
         || aggregation == SqlStdOperatorTable.MIN
-        || aggregation == SqlStdOperatorTable.MAX) {
-      return aggregation;
+        || aggregation == SqlStdOperatorTable.MAX
+        || aggregation == SqlStdOperatorTable.SUM0) {
+      return (SqlAggFunction) aggregation;
     } else if (aggregation == SqlStdOperatorTable.COUNT) {
-      return SqlStdOperatorTable.SUM;
+      return SqlStdOperatorTable.SUM0;
     } else {
       return null;
     }

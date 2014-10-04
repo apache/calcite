@@ -29,7 +29,13 @@ import java.util.List;
  */
 public class JsonLattice {
   public String name;
-  public String sql;
+
+  /** SQL query that defines the lattice.
+   *
+   * <p>Must be a string or a list of strings (which are concatenated separated
+   * by newlines).
+   */
+  public Object sql;
 
   /** Whether to create in-memory materialized aggregates on demand.
    *
@@ -40,6 +46,9 @@ public class JsonLattice {
    *
    * <p>Default is false. */
   public boolean algorithm = false;
+
+  /** Maximum time to run the algorithm. Default is -1, meaning no timeout. */
+  public long algorithmMaxMillis = -1;
 
   /** Estimated number of rows.
    *
@@ -61,7 +70,35 @@ public class JsonLattice {
   }
 
   @Override public String toString() {
-    return "JsonLattice(name=" + name + ", sql=" + sql + ")";
+    return "JsonLattice(name=" + name + ", sql=" + getSql() + ")";
+  }
+
+  /** Returns the SQL query as a string, concatenating a list of lines if
+   * necessary. */
+  public String getSql() {
+    return toString(sql);
+  }
+
+  /** Converts a string or a list of strings to a string. The list notation
+   * is a convenient way of writing long multi-line strings in JSON. */
+  static String toString(Object o) {
+    return o == null ? null
+        : o instanceof String ? (String) o
+        : concatenate((List) o);
+  }
+
+  /** Converts a list of strings into a multi-line string. */
+  private static String concatenate(List list) {
+    final StringBuilder buf = new StringBuilder();
+    for (Object o : list) {
+      if (!(o instanceof String)) {
+        throw new RuntimeException(
+            "each element of a string list must be a string; found: " + o);
+      }
+      buf.append((String) o);
+      buf.append("\n");
+    }
+    return buf.toString();
   }
 
   public void visitChildren(ModelHandler modelHandler) {

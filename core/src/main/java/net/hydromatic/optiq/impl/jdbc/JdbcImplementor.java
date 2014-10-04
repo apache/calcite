@@ -27,6 +27,7 @@ import org.eigenbase.rex.*;
 import org.eigenbase.sql.*;
 import org.eigenbase.sql.fun.SqlCase;
 import org.eigenbase.sql.fun.SqlStdOperatorTable;
+import org.eigenbase.sql.fun.SqlSumEmptyIsZeroAggFunction;
 import org.eigenbase.sql.parser.SqlParserPos;
 import org.eigenbase.sql.type.BasicSqlType;
 import org.eigenbase.sql.type.SqlTypeName;
@@ -259,6 +260,9 @@ public class JdbcImplementor {
     /** Converts a call to an aggregate function to an expression. */
     public SqlNode toSql(AggregateCall aggCall) {
       SqlOperator op = (SqlAggFunction) aggCall.getAggregation();
+      if (op instanceof SqlSumEmptyIsZeroAggFunction) {
+        op = SqlStdOperatorTable.SUM;
+      }
       final List<SqlNode> operands = Expressions.list();
       for (int arg : aggCall.getArgList()) {
         operands.add(field(arg));

@@ -64,13 +64,15 @@ public class TileSuggester {
     final StatisticsProvider statisticsProvider =
         new StatisticsProviderImpl(lattice);
     final double f = statisticsProvider.getFactRowCount();
-    final ImmutableMap<Parameter, Object> map =
-        ImmutableMap.<Parameter, Object>of(
-            Algorithm.ParameterEnum.timeLimitSeconds, 1,
-            Algorithm.ParameterEnum.aggregateLimit, 3,
-            Algorithm.ParameterEnum.costLimit, f * 5d);
+    final ImmutableMap.Builder<Parameter, Object> map = ImmutableMap.builder();
+    if (lattice.algorithmMaxMillis >= 0) {
+      map.put(Algorithm.ParameterEnum.timeLimitSeconds,
+          Math.max(1, (int) (lattice.algorithmMaxMillis / 1000L)));
+    }
+    map.put(Algorithm.ParameterEnum.aggregateLimit, 3);
+    map.put(Algorithm.ParameterEnum.costLimit, f * 5d);
     final SchemaImpl schema = new SchemaImpl(lattice, statisticsProvider);
-    final Result result = algorithm.run(schema, map, progress);
+    final Result result = algorithm.run(schema, map.build(), progress);
     final ImmutableList.Builder<Lattice.Tile> tiles = ImmutableList.builder();
     for (Aggregate aggregate : result.getAggregates()) {
       System.out.println(aggregate);

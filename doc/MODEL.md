@@ -91,7 +91,8 @@ Like base class <a href="#schema">Schema</a>, occurs within `root.schemas`.
 }
 ```
 
-`name`, `type`, `path`, `cache`, `materializations` inherited from <a href="#schema">Schema</a>.
+`name`, `type`, `path`, `cache`, `materializations` inherited from
+<a href="#schema">Schema</a>.
 
 `tables` (optional list of <a href="#table">Table</a> elements)
 defines the tables in this schema.
@@ -115,7 +116,8 @@ Like base class <a href="#schema">Schema</a>, occurs within `root.schemas`.
 }
 ```
 
-`name`, `type`, `path`, `cache`, `materializations` inherited from <a href="#schema">Schema</a>.
+`name`, `type`, `path`, `cache`, `materializations` inherited from
+<a href="#schema">Schema</a>.
 
 `factory` (required string) is the name of the factory class for this
 schema. Must implement interface `net.hydromatic.optiq.SchemaFactory`
@@ -141,33 +143,43 @@ Like base class <a href="#schema">Schema</a>, occurs within `root.schemas`.
 }
 ```
 
-`name`, `type`, `path`, `cache`, `materializations` inherited from <a href="#schema">Schema</a>.
+`name`, `type`, `path`, `cache`, `materializations` inherited from
+<a href="#schema">Schema</a>.
 
-`jdbcDriver` (optional string) is TODO.
+`jdbcDriver` (optional string) is the name of the JDBC driver class. It not
+specified, uses whichever class the JDBC DriverManager chooses.
 
-`jdbcUrl` (optional string) is TODO.
+`jdbcUrl` (optional string) is the JDBC connect string, for example
+"jdbc:mysql://localhost/foodmart".
 
-`jdbcUser` (optional string) is TODO.
+`jdbcUser` (optional string) is the JDBC user name.
 
-`jdbcPassword` (optional string) is TODO.
+`jdbcPassword` (optional string) is the JDBC password.
 
-`jdbcCatalog` (optional string) is TODO.
+`jdbcCatalog` (optional string) is the name of the initial catalog in the JDBC
+data source.
 
-`jdbcSchema` (optional string) is TODO.
+`jdbcSchema` (optional string) is the name of the initial schema in the JDBC
+data source.
 
 ### Materialization
 
 Occurs within `root.schemas.materializations`.
 
 ```json
-TODO
+{
+  view: 'V',
+  table: 'T',
+  sql: 'select deptno, count(*) as c, sum(sal) as s from emp group by deptno'
+}
 ```
 
 `view` (optional string) TODO
 
 `table` (optional string) TODO
 
-`sql` (optional string) TODO
+`sql` (optional string, or list of strings that will be concatenated as a
+ multi-line string) is the SQL definition of the materialization.
 
 ### Table
 
@@ -202,7 +214,8 @@ Like base class <a href="#table">Table</a>, occurs within `root.schemas.tables`.
 
 `name`, `type`, `columns` inherited from <a href="#table">Table</a>.
 
-`sql` (required string) is the SQL definition of the view.
+`sql` (required string, or list of strings that will be concatenated as a
+ multi-line string) is the SQL definition of the view.
 
 `path` (optional list) is the SQL path to resolve the query. If not
 specified, defaults to the current schema.
@@ -236,7 +249,9 @@ factory.
 Occurs within `root.schemas.tables.columns`.
 
 ```json
-TODO
+{
+  name: 'empno'
+}
 ```
 
 `name` (required string) is the name of this column.
@@ -246,11 +261,133 @@ TODO
 Occurs within `root.schemas.functions`.
 
 ```json
-TODO
+{
+  name: 'MY_PLUS',
+  className: 'com.example.functions.MyPlusFunction',
+  methodName: 'apply',
+  path: []
+}
 ```
 
 `name` (required string) is the name of this function.
 
-`className` (required string) is the name of the class that implements this function.
+`className` (required string) is the name of the class that implements this
+function.
+
+`methodName` (optional string) is the name of the method that implements this
+function.
 
 `path` (optional list of string) is the path for resolving this function.
+
+### Lattice
+
+Occurs within `root.schemas.lattices`.
+
+```json
+{
+  name: 'star',
+  sql: [
+    'select 1 from "foodmart"."sales_fact_1997" as "s"',
+    'join "foodmart"."product" as "p" using ("product_id")',
+    'join "foodmart"."time_by_day" as "t" using ("time_id")',
+    'join "foodmart"."product_class" as "pc" on "p"."product_class_id" = "pc"."product_class_id"'
+  ],
+  auto: false,
+  algorithm: true,
+  algorithmMaxMillis: 10000,
+  rowCountEstimate: 86837,
+  defaultMeasures: [ {
+    agg: 'count'
+  } ],
+  tiles: [ {
+    dimensions: [ 'the_year', ['t', 'quarter'] ],
+    measures: [ {
+      agg: 'sum',
+      args: 'unit_sales'
+    }, {
+      agg: 'sum',
+      args: 'store_sales'
+    }, {
+      agg: 'count'
+    } ]
+  } ]
+}
+```
+
+`name` (required string) is the name of this lattice.
+
+`sql` (required string, or list of strings that will be concatenated as a
+multi-line string) is the SQL statement that defines the fact table, dimension
+tables, and join paths for this lattice.
+
+`auto` (optional boolean, default true) is whether to materialize tiles on need
+as queries are executed.
+
+`algorithm` (optional boolean, default false) is whether to use an optimization
+algorithm to suggest and populate an initial set of tiles.
+
+`algorithmMaxMillis` (optional long, default -1, meaning no limit) is the
+maximum number of milliseconds for which to run the algorithm. After this point,
+takes the best result the algorithm has come up with so far.
+
+`rowCountEstimate` (optional double, default 1000.0) estimated number of rows in
+the star
+
+`tiles` (optional list of <a href="#tile">Tile</a> elements) is a list of
+materialized aggregates to create up front.
+
+`defaultMeasures`  (optional list of <a href="#measure">Measure</a> elements)
+is a list of measures that a tile should have by default.
+Any tile defined in `tiles` can still define its own measures, including
+measures not on this list. If not specified, the default list of measures is
+just 'count(*)':
+
+```json
+[ { name: 'count' } ]
+```
+
+### Tile
+
+Occurs within `root.schemas.lattices.tiles`.
+
+```json
+{
+  dimensions: [ 'the_year', ['t', 'quarter'] ],
+  measures: [ {
+    agg: 'sum',
+    args: 'unit_sales'
+  }, {
+    agg: 'sum',
+    args: 'store_sales'
+  }, {
+    agg: 'count'
+  } ]
+}
+```
+
+`dimensions` is a list of dimensions (columns from the star), like a `GROUP BY`
+clause. Each element is either a string (the unique label of the column within
+the star) or a string list (a column name qualified by a table name).
+
+`measures` (optional list of <a href="#measure">Measure</a> elements) is a list
+of aggregate functions applied to arguments. If not specified, uses the
+lattice's default measure list.
+
+### Measure
+
+Occurs within `root.schemas.lattices.defaultMeasures`
+and `root.schemas.lattices.tiles.measures`.
+
+```json
+{
+  agg: 'sum',
+  args: [ 'unit_sales' ]
+}
+```
+
+`agg` is the name of an aggregate function (usually 'count', 'sum', 'min',
+'max').
+
+`args` (optional) is a column label (string), or list of zero or more columns.
+If a list, each element is either a string (the unique label of the column
+within the star) or a string list (a column name qualified by a table name).

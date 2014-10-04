@@ -37,7 +37,13 @@ class MaterializationActor {
 
   final Map<QueryKey, MaterializationKey> keyBySql = Maps.newHashMap();
 
-  final List<MaterializationService.TileKey> tileKeys = Lists.newArrayList();
+  final Map<TileKey, MaterializationKey> keyByTile = Maps.newHashMap();
+
+  /** Tiles grouped by dimensionality. We use a
+   *  {@link TileKey} with no measures to represent a
+   *  dimensionality. */
+  final Multimap<TileKey, TileKey> tilesByDimensionality =
+      HashMultimap.create();
 
   /** A query materialized in a table, so that reading from the table gives the
    * same results as executing the query. */

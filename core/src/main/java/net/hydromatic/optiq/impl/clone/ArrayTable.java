@@ -74,31 +74,7 @@ class ArrayTable extends AbstractQueryableTable {
       @SuppressWarnings("unchecked")
       public Enumerator<T> enumerator() {
         final Content content = supplier.get();
-        return new Enumerator() {
-          final int rowCount = content.size;
-          final int columnCount = content.columns.size();
-          int i = -1;
-
-          public Object[] current() {
-            Object[] objects = new Object[columnCount];
-            for (int j = 0; j < objects.length; j++) {
-              final Column pair = content.columns.get(j);
-              objects[j] = pair.representation.getObject(pair.dataSet, i);
-            }
-            return objects;
-          }
-
-          public boolean moveNext() {
-            return ++i < rowCount;
-          }
-
-          public void reset() {
-            i = -1;
-          }
-
-          public void close() {
-          }
-        };
+        return content.enumerator();
       }
     };
   }
@@ -809,6 +785,78 @@ class ArrayTable extends AbstractQueryableTable {
       this.columns = ImmutableList.copyOf(columns);
       this.size = size;
       this.sortField = sortField;
+    }
+
+    @SuppressWarnings("unchecked")
+    public <T> Enumerator<T> enumerator() {
+      if (columns.size() == 1) {
+        return (Enumerator<T>) new ObjectEnumerator(size, columns.get(0));
+      } else {
+        return (Enumerator<T>) new ArrayEnumerator(size, columns);
+      }
+    }
+
+    /** Enumerator over a table with a single column; each element
+     * returned is an object. */
+    private static class ObjectEnumerator implements Enumerator<Object> {
+      final int rowCount;
+      final Object dataSet;
+      final Representation representation;
+      int i = -1;
+
+      public ObjectEnumerator(int rowCount, Column column) {
+        this.rowCount = rowCount;
+        this.dataSet = column.dataSet;
+        this.representation = column.representation;
+      }
+
+      public Object current() {
+        return representation.getObject(dataSet, i);
+      }
+
+      public boolean moveNext() {
+        return ++i < rowCount;
+      }
+
+      public void reset() {
+        i = -1;
+      }
+
+      public void close() {
+      }
+    }
+
+    /** Enumerator over a table with more than one column; each element
+     * returned is an array. */
+    private static class ArrayEnumerator implements Enumerator {
+      final int rowCount;
+      final List<Column> columns;
+      int i = -1;
+
+      public ArrayEnumerator(int rowCount, List<Column> columns) {
+        this.rowCount = rowCount;
+        this.columns = columns;
+      }
+
+      public Object[] current() {
+        Object[] objects = new Object[columns.size()];
+        for (int j = 0; j < objects.length; j++) {
+          final Column pair = columns.get(j);
+          objects[j] = pair.representation.getObject(pair.dataSet, i);
+        }
+        return objects;
+      }
+
+      public boolean moveNext() {
+        return ++i < rowCount;
+      }
+
+      public void reset() {
+        i = -1;
+      }
+
+      public void close() {
+      }
     }
   }
 }

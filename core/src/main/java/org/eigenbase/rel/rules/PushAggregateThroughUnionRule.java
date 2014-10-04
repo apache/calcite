@@ -25,6 +25,11 @@ import org.eigenbase.reltype.*;
 import org.eigenbase.sql.SqlAggFunction;
 import org.eigenbase.sql.fun.*;
 
+import net.hydromatic.linq4j.Ord;
+
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
+
 /**
  * PushAggregateThroughUnionRule implements the rule for pushing an
  * {@link AggregateRel} past a non-distinct {@link UnionRel}.
@@ -73,8 +78,7 @@ public class PushAggregateThroughUnionRule extends RelOptRule {
     RelOptCluster cluster = unionRel.getCluster();
 
     List<AggregateCall> transformedAggCalls =
-        transformAggCalls(
-            aggRel.getCluster().getTypeFactory(),
+        transformAggCalls(aggRel,
             aggRel.getGroupSet().cardinality(),
             aggRel.getAggCallList());
     if (transformedAggCalls == null) {
@@ -132,45 +136,34 @@ public class PushAggregateThroughUnionRule extends RelOptRule {
     call.transformTo(castRel);
   }
 
-  private List<AggregateCall> transformAggCalls(
-      RelDataTypeFactory typeFactory,
-      int nGroupCols,
+  private List<AggregateCall> transformAggCalls(RelNode input, int groupCount,
       List<AggregateCall> origCalls) {
-    List<AggregateCall> newCalls = new ArrayList<AggregateCall>();
-    int iInput = nGroupCols;
-    for (AggregateCall origCall : origCalls) {
+    final List<AggregateCall> newCalls = Lists.newArrayList();
+    for (Ord<AggregateCall> ord: Ord.zip(origCalls)) {
+      final AggregateCall origCall = ord.e;
       if (origCall.isDistinct()
           || !SUPPORTED_AGGREGATES.containsKey(origCall.getAggregation()
               .getClass())) {
         return null;
       }
-      Aggregation aggFun;
-      RelDataType aggType;
-      if (origCall.getAggregation().getName().equals("COUNT")) {
-        aggFun = new SqlSumEmptyIsZeroAggFunction(origCall.getType());
-        SqlAggFunction af = (SqlAggFunction) aggFun;
-        final AggregateRelBase.AggCallBinding binding =
-            new AggregateRelBase.AggCallBinding(typeFactory, af,
-                Collections.singletonList(origCall.getType()),
-                nGroupCols);
+      final SqlAggFunction aggFun;
+      final RelDataType aggType;
+      if (origCall.getAggregation() == SqlStdOperatorTable.COUNT) {
+        aggFun = SqlStdOperatorTable.SUM0;
         // count(any) is always not null, however nullability of sum might
         // depend on the number of columns in GROUP BY.
         // Here we use SUM0 since we are sure we will not face nullable
         // inputs nor we'll face empty set.
-        aggType = af.inferReturnType(binding);
+        aggType = null;
       } else {
-        aggFun = origCall.getAggregation();
+        aggFun = (SqlAggFunction) origCall.getAggregation();
         aggType = origCall.getType();
       }
       AggregateCall newCall =
-          new AggregateCall(
-              aggFun,
-              origCall.isDistinct(),
-              Collections.singletonList(iInput),
-              aggType,
-              origCall.getName());
+          AggregateCall.create(aggFun, origCall.isDistinct(),
+              ImmutableList.of(groupCount + ord.i), groupCount, input,
+              aggType, origCall.getName());
       newCalls.add(newCall);
-      ++iInput;
     }
     return newCalls;
   }

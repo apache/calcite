@@ -36,6 +36,7 @@ import net.hydromatic.optiq.util.BitSets;
 import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.reltype.RelDataTypeImpl;
 import org.eigenbase.util.Pair;
+import org.eigenbase.util.Util;
 
 import com.google.common.collect.*;
 
@@ -59,6 +60,23 @@ public class MaterializationService {
         }
       };
 
+  private static final Comparator<Pair<OptiqSchema.TableEntry, TileKey>> C =
+      new Comparator<Pair<OptiqSchema.TableEntry, TileKey>>() {
+        public int compare(Pair<OptiqSchema.TableEntry, TileKey> o0,
+            Pair<OptiqSchema.TableEntry, TileKey> o1) {
+          // We prefer rolling up from the table with the fewest rows.
+          final Table t0 = o0.left.getTable();
+          final Table t1 = o1.left.getTable();
+          int c = Double.compare(t0.getStatistic().getRowCount(),
+              t1.getStatistic().getRowCount());
+          if (c != 0) {
+            return c;
+          }
+          // Tie-break based on table name.
+          return o0.left.name.compareTo(o1.left.name);
+        }
+      };
+
   private final MaterializationActor actor = new MaterializationActor();
 
   private MaterializationService() {
@@ -67,7 +85,7 @@ public class MaterializationService {
   /** Defines a new materialization. Returns its key. */
   public MaterializationKey defineMaterialization(final OptiqSchema schema,
       TileKey tileKey, String viewSql, List<String> viewSchemaPath,
-      String tableName, boolean create) {
+      final String suggestedTableName, boolean create) {
     final MaterializationActor.QueryKey queryKey =
         new MaterializationActor.QueryKey(viewSql, schema, viewSchemaPath);
     final MaterializationKey existingKey = actor.keyBySql.get(queryKey);
@@ -80,75 +98,71 @@ public class MaterializationService {
 
     final OptiqConnection connection =
         MetaImpl.connect(schema.root(), null);
-    final MaterializationKey key = new MaterializationKey();
-    Table materializedTable;
+    final Pair<String, Table> pair = schema.getTableBySql(viewSql);
+    Table materializedTable = pair == null ? null : pair.right;
     RelDataType rowType = null;
-    OptiqSchema.TableEntry tableEntry;
-    if (tableName != null) {
-      final Pair<String, Table> pair = schema.getTable(tableName, true);
-      materializedTable = pair == null ? null : pair.right;
-      if (materializedTable == null) {
-        final ImmutableMap<OptiqConnectionProperty, String> map =
-            ImmutableMap.of(OptiqConnectionProperty.CREATE_MATERIALIZATIONS,
-                "false");
-        final OptiqPrepare.PrepareResult<Object> prepareResult =
-            Schemas.prepare(connection, schema, viewSchemaPath, viewSql, map);
-        rowType = prepareResult.rowType;
-        final JavaTypeFactory typeFactory = connection.getTypeFactory();
-        materializedTable =
-            CloneSchema.createCloneTable(typeFactory,
-                RelDataTypeImpl.proto(prepareResult.rowType),
-                Functions.adapt(prepareResult.structType.columns,
-                    new Function1<ColumnMetaData, ColumnMetaData.Rep>() {
-                      public ColumnMetaData.Rep apply(ColumnMetaData column) {
-                        return column.type.representation;
-                      }
-                    }),
-                new AbstractQueryable<Object>() {
-                  public Enumerator<Object> enumerator() {
-                    final DataContext dataContext =
-                        Schemas.createDataContext(connection);
-                    return prepareResult.enumerator(dataContext);
-                  }
+    if (materializedTable == null) {
+      final ImmutableMap<OptiqConnectionProperty, String> map =
+          ImmutableMap.of(OptiqConnectionProperty.CREATE_MATERIALIZATIONS,
+              "false");
+      final OptiqPrepare.PrepareResult<Object> prepareResult =
+          Schemas.prepare(connection, schema, viewSchemaPath, viewSql, map);
+      rowType = prepareResult.rowType;
+      final JavaTypeFactory typeFactory = connection.getTypeFactory();
+      materializedTable =
+          CloneSchema.createCloneTable(typeFactory,
+              RelDataTypeImpl.proto(prepareResult.rowType),
+              Functions.adapt(prepareResult.structType.columns,
+                  new Function1<ColumnMetaData, ColumnMetaData.Rep>() {
+                    public ColumnMetaData.Rep apply(ColumnMetaData column) {
+                      return column.type.representation;
+                    }
+                  }),
+              new AbstractQueryable<Object>() {
+                public Enumerator<Object> enumerator() {
+                  final DataContext dataContext =
+                      Schemas.createDataContext(connection);
+                  return prepareResult.enumerator(dataContext);
+                }
 
-                  public Type getElementType() {
-                    return Object.class;
-                  }
+                public Type getElementType() {
+                  return Object.class;
+                }
 
-                  public Expression getExpression() {
-                    throw new UnsupportedOperationException();
-                  }
+                public Expression getExpression() {
+                  throw new UnsupportedOperationException();
+                }
 
-                  public QueryProvider getProvider() {
-                    return connection;
-                  }
+                public QueryProvider getProvider() {
+                  return connection;
+                }
 
-                  public Iterator<Object> iterator() {
-                    final DataContext dataContext =
-                        Schemas.createDataContext(connection);
-                    return prepareResult.iterator(dataContext);
-                  }
-                });
-        schema.add(tableName, materializedTable);
-      }
-      tableEntry = schema.add(tableName, materializedTable);
-      Hook.CREATE_MATERIALIZATION.run(tableName);
-    } else {
-      tableEntry = null;
+                public Iterator<Object> iterator() {
+                  final DataContext dataContext =
+                      Schemas.createDataContext(connection);
+                  return prepareResult.iterator(dataContext);
+                }
+              });
     }
+    final String tableName =
+        Schemas.uniqueTableName(schema, Util.first(suggestedTableName, "m"));
+    final OptiqSchema.TableEntry tableEntry =
+        schema.add(tableName, materializedTable, ImmutableList.of(viewSql));
+    Hook.CREATE_MATERIALIZATION.run(tableName);
     if (rowType == null) {
       // If we didn't validate the SQL by populating a table, validate it now.
       final OptiqPrepare.ParseResult parse =
           Schemas.parse(connection, schema, viewSchemaPath, viewSql);
       rowType = parse.rowType;
     }
+    final MaterializationKey key = new MaterializationKey();
     final MaterializationActor.Materialization materialization =
         new MaterializationActor.Materialization(key, schema.root(),
             tableEntry, viewSql, rowType);
     actor.keyMap.put(materialization.key, materialization);
     actor.keyBySql.put(queryKey, materialization.key);
     if (tileKey != null) {
-      actor.tileKeys.add(tileKey);
+      actor.keyByTile.put(tileKey, materialization.key);
     }
     return key;
   }
@@ -174,43 +188,114 @@ public class MaterializationService {
    */
   public Pair<OptiqSchema.TableEntry, TileKey> defineTile(Lattice lattice,
       BitSet groupSet, List<Lattice.Measure> measureList, OptiqSchema schema,
-      boolean create) {
-    // FIXME This is all upside down. We are looking for a materialization
-    // first. But we should define a tile first, then find out whether an
-    // exact materialization exists, then find out whether an acceptable
-    // approximate materialization exists, and if it does not, then maybe
-    // create a materialization.
-    //
-    // The SQL should not be part of the key of the materialization. There are
-    // better, more concise keys. And especially, check that we are not using
-    // that SQL to populate the materialization. There may be finer-grained
-    // materializations that we can roll up. (Maybe the SQL on the fact table
-    // gets optimized to use those materializations.)
-    String sql = lattice.sql(groupSet, measureList);
+      boolean create, boolean exact) {
+    MaterializationKey materializationKey;
     final TileKey tileKey =
         new TileKey(lattice, groupSet, ImmutableList.copyOf(measureList));
-    MaterializationKey materializationKey =
-        defineMaterialization(schema, tileKey, sql, schema.path(null),
-            "m" + groupSet, create);
+
+    // Step 1. Look for an exact match for the tile.
+    materializationKey = actor.keyByTile.get(tileKey);
     if (materializationKey != null) {
       final OptiqSchema.TableEntry tableEntry = checkValid(materializationKey);
       if (tableEntry != null) {
         return Pair.of(tableEntry, tileKey);
       }
     }
-    // No direct hit. Look for roll-ups.
-    for (TileKey tileKey2 : actor.tileKeys) {
-      if (BitSets.contains(tileKey2.dimensions, groupSet)
-          && allSatisfiable(measureList, tileKey2)) {
-        sql = lattice.sql(tileKey2.dimensions, tileKey2.measures);
-        materializationKey =
-            defineMaterialization(schema, tileKey2, sql, schema.path(null),
-                "m" + tileKey2.dimensions, create);
-        final OptiqSchema.TableEntry tableEntry =
-            checkValid(materializationKey);
-        if (tableEntry != null) {
-          return Pair.of(tableEntry, tileKey2);
+
+    // Step 2. Look for a match of the tile with the same dimensionality and an
+    // acceptable list of measures.
+    final TileKey tileKey0 =
+        new TileKey(lattice, groupSet, ImmutableList.<Lattice.Measure>of());
+    for (TileKey tileKey1 : actor.tilesByDimensionality.get(tileKey0)) {
+      assert tileKey1.dimensions.equals(groupSet);
+      if (allSatisfiable(measureList, tileKey1)) {
+        materializationKey = actor.keyByTile.get(tileKey1);
+        if (materializationKey != null) {
+          final OptiqSchema.TableEntry tableEntry =
+              checkValid(materializationKey);
+          if (tableEntry != null) {
+            return Pair.of(tableEntry, tileKey1);
+          }
         }
+      }
+    }
+
+    // Step 3. There's nothing at the exact dimensionality. Look for a roll-up
+    // from tiles that have a super-set of dimensions and all the measures we
+    // need.
+    //
+    // If there are several roll-ups, choose the one with the fewest rows.
+    //
+    // TODO: Allow/deny roll-up based on a size factor. If the source is only
+    // say 2x larger than the target, don't materialize, but if it is 3x, do.
+    //
+    // TODO: Use a partially-ordered set data structure, so we are not scanning
+    // through all tiles.
+    if (!exact) {
+      final PriorityQueue<Pair<OptiqSchema.TableEntry, TileKey>> queue =
+          new PriorityQueue<Pair<OptiqSchema.TableEntry, TileKey>>(1, C);
+      for (Map.Entry<TileKey, MaterializationKey> entry
+          : actor.keyByTile.entrySet()) {
+        final TileKey tileKey2 = entry.getKey();
+        if (tileKey2.lattice == lattice
+            && BitSets.contains(tileKey2.dimensions, groupSet)
+            && !tileKey2.dimensions.equals(groupSet)
+            && allSatisfiable(measureList, tileKey2)) {
+          materializationKey = entry.getValue();
+          final OptiqSchema.TableEntry tableEntry =
+              checkValid(materializationKey);
+          if (tableEntry != null) {
+            queue.add(Pair.of(tableEntry, tileKey2));
+          }
+        }
+      }
+      if (!queue.isEmpty()) {
+        final Pair<OptiqSchema.TableEntry, TileKey> best = queue.peek();
+        for (Pair<OptiqSchema.TableEntry, TileKey> pair : queue) {
+          System.out.println("table=" + pair.left.path() + " "
+              + pair.left.getTable().getStatistic().getRowCount());
+        }
+        return best;
+      }
+    }
+
+    // What we need is not there. If we can't create, we're done.
+    if (!create) {
+      return null;
+    }
+
+    // Step 4. Create the tile we need.
+    //
+    // If there were any tiles at this dimensionality, regardless of
+    // whether they were current, create a wider tile that contains their
+    // measures plus the currently requested measures. Then we can obsolete all
+    // other tiles.
+    final List<TileKey> obsolete = Lists.newArrayList();
+    final LinkedHashSet<Lattice.Measure> measureSet = Sets.newLinkedHashSet();
+    for (TileKey tileKey1 : actor.tilesByDimensionality.get(tileKey0)) {
+      measureSet.addAll(tileKey1.measures);
+      obsolete.add(tileKey1);
+    }
+    measureSet.addAll(measureList);
+    final TileKey newTileKey =
+        new TileKey(lattice, groupSet, ImmutableList.copyOf(measureSet));
+
+    final String sql = lattice.sql(groupSet, newTileKey.measures);
+    materializationKey =
+        defineMaterialization(schema, newTileKey, sql, schema.path(null),
+            "m" + groupSet, true);
+    if (materializationKey != null) {
+      final OptiqSchema.TableEntry tableEntry = checkValid(materializationKey);
+      if (tableEntry != null) {
+        // Obsolete all of the narrower tiles.
+        for (TileKey tileKey1 : obsolete) {
+          actor.tilesByDimensionality.remove(tileKey0, tileKey1);
+          actor.keyByTile.remove(tileKey1);
+        }
+
+        actor.tilesByDimensionality.put(tileKey0, newTileKey);
+        actor.keyByTile.put(newTileKey, materializationKey);
+        return Pair.of(tableEntry, newTileKey);
       }
     }
     return null;
@@ -269,23 +354,6 @@ public class MaterializationService {
     return INSTANCE;
   }
 
-  /** Definition of a particular combination of dimensions and measures of a
-   * lattice that is the basis of a materialization.
-   *
-   * <p>Holds similar information to a {@link Lattice.Tile} but a lattice is
-   * immutable and tiles are not added after their creation. */
-  public static class TileKey {
-    public final Lattice lattice;
-    public final BitSet dimensions;
-    public final ImmutableList<Lattice.Measure> measures;
-
-    public TileKey(Lattice lattice, BitSet dimensions,
-        ImmutableList<Lattice.Measure> measures) {
-      this.lattice = lattice;
-      this.dimensions = dimensions;
-      this.measures = measures;
-    }
-  }
 }
 
 // End MaterializationService.java

@@ -31,35 +31,25 @@ import com.google.common.collect.ImmutableList;
  * Count</code> to implement <code>Sum</code>.
  */
 public class SqlSumEmptyIsZeroAggFunction extends SqlAggFunction {
-  //~ Instance fields --------------------------------------------------------
-
-  private final RelDataType type;
-
   //~ Constructors -----------------------------------------------------------
 
-  public SqlSumEmptyIsZeroAggFunction(RelDataType type) {
-    super(
-        "$SUM0",
+  SqlSumEmptyIsZeroAggFunction() {
+    super("$SUM0",
         SqlKind.OTHER_FUNCTION,
         ReturnTypes.ARG0,
         null,
         OperandTypes.NUMERIC,
         SqlFunctionCategory.NUMERIC);
-    this.type = type;
   }
 
   //~ Methods ----------------------------------------------------------------
 
   public List<RelDataType> getParameterTypes(RelDataTypeFactory typeFactory) {
-    return ImmutableList.of(type);
-  }
-
-  public RelDataType getType() {
-    return type;
+    return ImmutableList.of(typeFactory.createSqlType(SqlTypeName.ANY));
   }
 
   public RelDataType getReturnType(RelDataTypeFactory typeFactory) {
-    return type;
+    return typeFactory.createSqlType(SqlTypeName.ANY);
   }
 }
 

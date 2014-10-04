@@ -247,7 +247,7 @@ public class MaterializationTest {
         JdbcTest.HR_MODEL,
         OptiqAssert.checkResultContains(
             "EnumerableCalcRel(expr#0..1=[{inputs}], expr#2=[1], expr#3=[+($t1, $t2)], C=[$t3], deptno=[$t0])\n"
-            + "  EnumerableAggregateRel(group=[{1}], agg#0=[SUM($2)])\n"
+            + "  EnumerableAggregateRel(group=[{1}], agg#0=[$SUM0($2)])\n"
             + "    EnumerableTableAccessRel(table=[[hr, m0]])"));
   }
 

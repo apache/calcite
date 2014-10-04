@@ -293,17 +293,13 @@ public abstract class RelOptUtil {
               true,
               SqlMinMaxAggFunction.MINMAX_COMPARABLE);
 
-      RelDataType returnType =
-          minFunction.inferReturnType(
-              new AggregateRelBase.AggCallBinding(
-                  typeFactory, minFunction, argTypes, 0));
-
       final AggregateCall aggCall =
-          new AggregateCall(
-              minFunction,
+          AggregateCall.create(minFunction,
               false,
               ImmutableList.of(0),
-              returnType,
+              0,
+              ret,
+              null,
               extraName);
 
       ret =
@@ -372,21 +368,17 @@ public abstract class RelOptUtil {
       final List<RelDataType> argTypes =
           ImmutableList.of(typeFactory.createSqlType(SqlTypeName.BOOLEAN));
 
-      SqlAggFunction minFunction =
+      final SqlAggFunction minFunction =
           new SqlMinMaxAggFunction(argTypes, true,
               SqlMinMaxAggFunction.MINMAX_COMPARABLE);
 
-      RelDataType returnType =
-          minFunction.inferReturnType(
-              new AggregateRelBase.AggCallBinding(
-                  typeFactory, minFunction, argTypes, projectedKeyCount));
-
       final AggregateCall aggCall =
-          new AggregateCall(
-              minFunction,
+          AggregateCall.create(minFunction,
               false,
               ImmutableList.of(projectedKeyCount),
-              returnType,
+              projectedKeyCount,
+              ret,
+              null,
               null);
 
       ret = new AggregateRel(

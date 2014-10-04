@@ -86,9 +86,18 @@ public class CloneSchema extends AbstractSchema {
       final RelProtoDataType protoRowType,
       final List<ColumnMetaData.Rep> repList,
       final Enumerable<T> source) {
-    final Type elementType = source instanceof QueryableTable
-        ? ((QueryableTable) source).getElementType()
-        : Object[].class;
+    final Type elementType;
+    if (source instanceof QueryableTable) {
+      elementType = ((QueryableTable) source).getElementType();
+    } else if (protoRowType.apply(typeFactory).getFieldCount() == 1) {
+      if (repList != null) {
+        elementType = repList.get(0).clazz;
+      } else {
+        elementType = Object.class;
+      }
+    } else {
+      elementType = Object[].class;
+    }
     return new ArrayTable(
         elementType,
         protoRowType,

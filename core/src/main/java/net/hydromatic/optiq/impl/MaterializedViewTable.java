@@ -102,11 +102,11 @@ public class MaterializedViewTable extends ViewTable {
     private final MaterializationKey key;
 
     private MaterializedViewTableMacro(OptiqSchema schema, String viewSql,
-        List<String> viewSchemaPath, String tableName) {
+        List<String> viewSchemaPath, String suggestedTableName) {
       super(schema, viewSql, viewSchemaPath);
       this.key = Preconditions.checkNotNull(
           MaterializationService.instance().defineMaterialization(
-              schema, null, viewSql, schemaPath, tableName, true));
+              schema, null, viewSql, schemaPath, suggestedTableName, true));
     }
 
     @Override
