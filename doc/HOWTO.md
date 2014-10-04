@@ -304,6 +304,7 @@ When the dry-run has succeeded, change `install` to `deploy`.
 Before you start:
 * Set up signing keys as described above.
 * Make sure you are using JDK 1.7 (not 1.6 or 1.8).
+* Check that README and README.md have the correct version number.
 * Make sure build and tests succeed, including with
   -Dcalcite.test.db={mysql,hsqldb}, -Dcalcite.test.slow=true,
   -Dcalcite.test.mongodb=true, -Dcalcite.test.splunk=true.
@@ -312,10 +313,17 @@ Before you start:
   by merging the latest code into the `julianhyde/coverity_scan` branch,
   and when it completes, make sure that there are no important issues.
 * Make sure that
-  <a href="https://issues.apache.org/jira/issues/?jql=project%20%3D%20OPTIQ%20AND%20status%20%3D%20Resolved">
+  <a href="https://issues.apache.org/jira/issues/?jql=project%20%3D%20OPTIQ%20AND%20status%20%3D%20Resolved%20and%20fixVersion%20is%20null">
   every "resolved" JIRA case</a> (including duplicates) has
   a fix version assigned (most likely the version we are
   just about to release)
+
+Now, set up your environment and do a dry run. The dry run will not
+commit any changes back to git and gives you the opportunity to verify
+that the release process will complete as expected.
+
+If any of the steps fail, clean up (see below), fix the problem, and
+start again from the top.
 
 ```bash
 # Set passphrase variable without putting it into shell history
@@ -324,16 +332,9 @@ read GPG_PASSPHRASE
 # Make sure that there are no junk files in the sandbox
 git clean -xn
 
-# Set the version numbers
-mvn -DskipTests -DreleaseVersion=X.Y.Z-incubating -DdevelopmentVersion=X.Y.Z+1-incubating-SNAPSHOT -Papache-release -Darguments="-Dgpg.passphrase=${GPG_PASSPHRASE}" clean release:prepare 2>&1 | tee /tmp/prepare.log
-
-# Perform the release
-mvn -DskipTests -Papache-release -Darguments="-Dgpg.passphrase=${GPG_PASSPHRASE}" clean release:prepare 2>&1 | tee /tmp/perform.log
-
+# Do a dry run of the release:prepare step, which sets version numbers.
+mvn -DdryRun=true -DskipTests -DreleaseVersion=X.Y.Z-incubating -DdevelopmentVersion=X.Y.Z+1-incubating-SNAPSHOT -Papache-release -Darguments="-Dgpg.passphrase=${GPG_PASSPHRASE}" clean release:prepare 2>&1 | tee /tmp/prepare-dry.log
 ```
-
-If any of the above steps fail, clean up (see below), fix the problem,
-and start again from the top.
 
 Check the artifacts:
 * In the `target` directory should be these 8 files, among others:
@@ -360,6 +361,22 @@ Check the artifacts:
   that the `META-INF` directory contains `DEPENDENCIES`, `LICENSE`,
   `NOTICE` and `git.properties`
 * Check PGP, per https://httpd.apache.org/dev/verification.html
+
+Now, remove the `-DdryRun` flag and run the release for real.
+
+```bash
+# Prepare sets the version numbers, creates a tag, and pushes it to git.
+mvn -DdryRun=false -DskipTests -DreleaseVersion=X.Y.Z-incubating -DdevelopmentVersion=X.Y.Z+1-incubating-SNAPSHOT -Papache-release -Darguments="-Dgpg.passphrase=${GPG_PASSPHRASE}" clean release:prepare 2>&1 | tee /tmp/prepare.log
+
+# Perform checks out the tagged version, builds, and deploys to the staging repository
+mvn -DskipTests -Papache-release -Darguments="-Dgpg.passphrase=${GPG_PASSPHRASE}" clean release:perform 2>&1 | tee /tmp/perform.log
+```
+
+Verify the staged artifacts in the Nexus repository:
+* Go to https://repository.apache.org/
+* Enterprise &rarr; Staging
+* Staging tab &rarr; Name column &rarr; org.apache.calcite
+* Navigate through the artifact tree and make sure the .jar, .pom, .asc files are present
 
 Upload the artifacts to a staging area (in this case, your
 people.apache.org home directory):
@@ -401,9 +418,6 @@ git reset --hard HEAD
 gpg --recv-keys key
 
 # Check keys
-curl http://people.apache.org/keys/group/calcite.asc > KEYS
-
-# Check keys
 curl -O https://dist.apache.org/repos/dist/release/incubator/calcite/KEYS
 
 # Sign/check md5 and sha1 hashes
@@ -436,7 +450,7 @@ function checkHash() {
     fi
   done
 }
-checkHash apache-calcite-X.Y.Z-incubating
+checkHash apache-calcite-X.Y.Z-incubating-rcN
 ```
 
 ## Get approval for a release via Apache voting process (for Calcite committers)
