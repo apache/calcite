@@ -26,9 +26,10 @@ case $(uname -s) in
 (*) cygwin=;;
 esac
 
-# Build classpath on first call. (To force rebuild, remove .classpath.txt.)
+# Build classpath on first call.
+# (To force rebuild, remove target/fullclasspath.txt.)
 cd $(dirname $0)
-if [ ! -f .fullclasspath.txt ]; then
+if [ ! -f target/fullclasspath.txt ]; then
     mvn dependency:build-classpath -Dmdep.outputFile=target/classpath.txt
     awk -v RS=: -v ORS=: '{if(!m[$0]) {m[$0]=1; print}}' \
         target/classpath.txt \
