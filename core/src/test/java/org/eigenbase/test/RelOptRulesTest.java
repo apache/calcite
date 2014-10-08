@@ -100,14 +100,23 @@ import static org.junit.Assert.assertTrue;
  * examples. You'll have to come up with an SQL statement to which your rule
  * will apply in a meaningful way. See {@link SqlToRelTestBase} class comments
  * for details on the schema.
+ *
  * <li>Run the test. It should fail. Inspect the output in
- * RelOptRulesTest.log.xml; verify that the "planBefore" is the correct
+ * {@code target/surefire/.../RelOptRulesTest.xml}.
+ * (If you are running using maven and this file does not exist, add a
+ * {@code -X} flag to the maven command line.)
+ *
+ * <li>Verify that the "planBefore" is the correct
  * translation of your SQL, and that it contains the pattern on which your rule
- * is supposed to fire. If all is well, check out RelOptRulesTest.ref.xml and
- * replace it with the new .log.xml.
+ * is supposed to fire. If all is well, replace
+ * {@code src/test/resources/.../RelOptRulesTest.xml} and
+ * with the new {@code target/surefire/.../RelOptRulesTest.xml}.
+ *
  * <li>Run the test again. It should fail again, but this time it should contain
  * a "planAfter" entry for your rule. Verify that your rule applied its
- * transformation correctly, and then update the .ref.xml file again.
+ * transformation correctly, and then update the
+ * {@code src/test/resources/.../RelOptRulesTest.xml} file again.
+ *
  * <li>Run the test one last time; this time it should pass.
  * </ol>
  */

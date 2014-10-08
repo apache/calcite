@@ -57,7 +57,7 @@ import org.xml.sax.*;
  * </code></pre></blockquote>
  *
  * <p>There is an accompanying reference file named after the class,
- * <code>com/acme/test/MyTest.ref.xml</code>:</p>
+ * <code>src/test/resources/com/acme/test/MyTest.xml</code>:</p>
  *
  * <blockquote><pre><code>
  *
@@ -80,11 +80,22 @@ import org.xml.sax.*;
  *
  * </code></pre></blockquote>
  *
- * <p>If any of the testcases fails, a log file is generated, called <code>
- * com/acme/test/MyTest.log.xml</code> containing the actual output. The log
+ * <p>If any of the testcases fails, a log file is generated, called
+ * <code>target/surefire/com/acme/test/MyTest.xml</code>, containing the actual
+ * output.</p>
+ *
+ * <p>(Maven sometimes removes this file; if it is not present, run maven with
+ * an extra {@code -X} flag.
+ * See <a href="http://jira.codehaus.org/browse/SUREFIRE-846">SUREFIRE-846</a>
+ * for details.)</p>
+ *
+ * <p>The log
  * file is otherwise identical to the reference log, so once the log file has
  * been verified, it can simply be copied over to become the new reference
- * log.</p>
+ * log:</p>
+ *
+ * <blockquote><code>cp target/surefire/com/acme/test/MyTest.xml
+ * src/test/resources/com/acme/test/MyTest.xml</code></blockquote>
  *
  * <p>If a resource or testcase does not exist, <code>DiffRepository</code>
  * creates them in the log file. Because DiffRepository is so forgiving, it is
@@ -92,7 +103,8 @@ import org.xml.sax.*;
  *
  * <p>The {@link #lookup} method ensures that all test cases share the same
  * instance of the repository. This is important more than one one test case
- * fails. The shared instance ensures that the generated <code>.log.xml</code>
+ * fails. The shared instance ensures that the generated
+ * <code>target/surefire/com/acme/test/MyTest.xml</code>
  * file contains the actual for <em>both</em> test cases.
  */
 public class DiffRepository {
@@ -453,7 +465,7 @@ public class DiffRepository {
   }
 
   /**
-   * Flush the reference document to the file system.
+   * Flushes the reference document to the file system.
    */
   private void flushDoc() {
     FileWriter w = null;
@@ -463,8 +475,7 @@ public class DiffRepository {
       w = new FileWriter(logFile);
       write(doc, w);
     } catch (IOException e) {
-      throw Util.newInternal(
-          e,
+      throw Util.newInternal(e,
           "error while writing test reference log '" + logFile + "'");
     } finally {
       if (w != null) {
