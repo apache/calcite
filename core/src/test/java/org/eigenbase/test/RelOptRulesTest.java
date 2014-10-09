@@ -554,7 +554,7 @@ public class RelOptRulesTest extends RelOptTestBase {
         + "and d.name = 'foo'");
   }
 
-  @Test public void testConvertMultiJoinRuleOuterJoins() throws Exception {
+  private void checkPlanning(String query) throws Exception {
     final Tester tester1 = tester.withCatalogReaderFactory(
         new Function<RelDataTypeFactory, Prepare.CatalogReader>() {
           public Prepare.CatalogReader apply(RelDataTypeFactory typeFactory) {
@@ -587,8 +587,11 @@ public class RelOptRulesTest extends RelOptTestBase {
         .addRuleInstance(ConvertMultiJoinRule.INSTANCE)
         .build();
     checkPlanning(tester1, null,
-        new HepPlanner(program),
-        "select * from "
+        new HepPlanner(program), query);
+  }
+
+  @Test public void testConvertMultiJoinRuleOuterJoins() throws Exception {
+    checkPlanning("select * from "
         + "    (select * from "
         + "        (select * from "
         + "            (select * from A right outer join B on a = b) "
@@ -605,6 +608,24 @@ public class RelOptRulesTest extends RelOptTestBase {
         + "    inner join "
         + "    (select * from I inner join J on i = j) "
         + "    on a = i and h = j");
+  }
+
+  @Test public void testConvertMultiJoinRuleOuterJoins2() throws Exception {
+    // in (A right join B) join C, pushing C is not allowed;
+    // therefore there should be 2 MultiJoinRel
+    checkPlanning("select * from A right join B on a = b join C on b = c");
+  }
+
+  @Test public void testConvertMultiJoinRuleOuterJoins3() throws Exception {
+    // in (A join B) left join C, pushing C is allowed;
+    // therefore there should be 1 MultiJoinRel
+    checkPlanning("select * from A join B on a = b left join C on b = c");
+  }
+
+  @Test public void testConvertMultiJoinRuleOuterJoins4() throws Exception {
+    // in (A join B) right join C, pushing C is not allowed;
+    // therefore there should be 2 MultiJoinRel
+    checkPlanning("select * from A join B on a = b right join C on b = c");
   }
 
   @Test public void testPushSemiJoinPastProject() throws Exception {

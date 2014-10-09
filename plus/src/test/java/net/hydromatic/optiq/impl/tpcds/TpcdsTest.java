@@ -44,14 +44,15 @@ import net.hydromatic.tpcds.query.Query;
 public class TpcdsTest {
   private static
   Function<Pair<List<Prepare.Materialization>, Holder<Program>>, Void>
-  handler(final boolean bushy) {
+  handler(final boolean bushy, final int minJoinCount) {
     return new Function<Pair<List<Prepare.Materialization>, Holder<Program>>,
         Void>() {
       public Void apply(
           Pair<List<Prepare.Materialization>, Holder<Program>> pair) {
         pair.right.set(
             Programs.sequence(
-                Programs.heuristicJoinOrder(Programs.RULE_SET, bushy),
+                Programs.heuristicJoinOrder(Programs.RULE_SET, bushy,
+                    minJoinCount),
                 Programs.CALC_PROGRAM));
         return null;
       }
@@ -115,7 +116,7 @@ public class TpcdsTest {
   @Test public void testQuery17Plan() {
     //noinspection unchecked
     checkQuery(17)
-        .withHook(Hook.PROGRAM, handler(true))
+        .withHook(Hook.PROGRAM, handler(true, 2))
         .explainMatches("including all attributes ",
             OptiqAssert.checkMaskedResultContains(""
                 + "EnumerableCalcRel(expr#0..11=[{inputs}], expr#12=[/($t5, $t4)], expr#13=[/($t8, $t7)], expr#14=[/($t11, $t10)], proj#0..5=[{exprs}], STORE_SALES_QUANTITYCOV=[$t12], AS_STORE_RETURNS_QUANTITYCOUNT=[$t6], AS_STORE_RETURNS_QUANTITYAVE=[$t7], AS_STORE_RETURNS_QUANTITYSTDEV=[$t8], STORE_RETURNS_QUANTITYCOV=[$t13], CATALOG_SALES_QUANTITYCOUNT=[$t9], CATALOG_SALES_QUANTITYAVE=[$t10], CATALOG_SALES_QUANTITYSTDEV=[$t14], CATALOG_SALES_QUANTITYCOV=[$t14]): rowcount = 5.434029018852197E26, cumulative cost = {1.618185849567114E30 rows, 1.2672155671963324E30 cpu, 0.0 io}\n"
@@ -155,13 +156,13 @@ public class TpcdsTest {
   @Ignore("work in progress")
   @Test public void testQuery72Plan() {
     checkQuery(72)
-        .withHook(Hook.PROGRAM, handler(true))
+        .withHook(Hook.PROGRAM, handler(true, 2))
         .planContains("xx");
   }
 
   @Test public void testQuery95() {
     checkQuery(95)
-        .withHook(Hook.PROGRAM, handler(false))
+        .withHook(Hook.PROGRAM, handler(false, 6))
         .runs();
   }
 

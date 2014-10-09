@@ -22,6 +22,7 @@ import org.eigenbase.rel.*;
 import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.*;
 import org.eigenbase.rex.*;
+import org.eigenbase.util.ImmutableIntList;
 import org.eigenbase.util.ImmutableNullableList;
 
 import net.hydromatic.linq4j.Ord;
@@ -37,15 +38,15 @@ import com.google.common.collect.Lists;
 public final class MultiJoinRel extends AbstractRelNode {
   //~ Instance fields --------------------------------------------------------
 
-  private List<RelNode> inputs;
-  private RexNode joinFilter;
-  private RelDataType rowType;
-  private boolean isFullOuterJoin;
-  private List<RexNode> outerJoinConditions;
-  private ImmutableList<JoinRelType> joinTypes;
-  private List<BitSet> projFields;
-  private ImmutableMap<Integer, int[]> joinFieldRefCountsMap;
-  private RexNode postJoinFilter;
+  private final List<RelNode> inputs;
+  private final RexNode joinFilter;
+  private final RelDataType rowType;
+  private final boolean isFullOuterJoin;
+  private final List<RexNode> outerJoinConditions;
+  private final ImmutableList<JoinRelType> joinTypes;
+  private final List<BitSet> projFields;
+  public final ImmutableMap<Integer, ImmutableIntList> joinFieldRefCountsMap;
+  private final RexNode postJoinFilter;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -73,7 +74,6 @@ public final class MultiJoinRel extends AbstractRelNode {
    *                              is referenced in join conditions, indexed by
    *                              the input #
    * @param postJoinFilter        filter to be applied after the joins are
-   *                              executed
    */
   public MultiJoinRel(
       RelOptCluster cluster,
@@ -84,7 +84,7 @@ public final class MultiJoinRel extends AbstractRelNode {
       List<RexNode> outerJoinConditions,
       List<JoinRelType> joinTypes,
       List<BitSet> projFields,
-      Map<Integer, int[]> joinFieldRefCountsMap,
+      ImmutableMap<Integer, ImmutableIntList> joinFieldRefCountsMap,
       RexNode postJoinFilter) {
     super(cluster, cluster.traitSetOf(Convention.NONE));
     this.inputs = Lists.newArrayList(inputs);
@@ -96,7 +96,7 @@ public final class MultiJoinRel extends AbstractRelNode {
     assert outerJoinConditions.size() == inputs.size();
     this.joinTypes = ImmutableList.copyOf(joinTypes);
     this.projFields = ImmutableNullableList.copyOf(projFields);
-    this.joinFieldRefCountsMap = ImmutableMap.copyOf(joinFieldRefCountsMap);
+    this.joinFieldRefCountsMap = joinFieldRefCountsMap;
     this.postJoinFilter = postJoinFilter;
   }
 
@@ -117,7 +117,7 @@ public final class MultiJoinRel extends AbstractRelNode {
         outerJoinConditions,
         joinTypes,
         projFields,
-        cloneJoinFieldRefCountsMap(),
+        joinFieldRefCountsMap,
         postJoinFilter);
   }
 
@@ -127,7 +127,7 @@ public final class MultiJoinRel extends AbstractRelNode {
   private Map<Integer, int[]> cloneJoinFieldRefCountsMap() {
     Map<Integer, int[]> clonedMap = new HashMap<Integer, int[]>();
     for (int i = 0; i < inputs.size(); i++) {
-      clonedMap.put(i, joinFieldRefCountsMap.get(i).clone());
+      clonedMap.put(i, joinFieldRefCountsMap.get(i).toIntArray());
     }
     return clonedMap;
   }
@@ -215,7 +215,7 @@ public final class MultiJoinRel extends AbstractRelNode {
    * @return the map of reference counts for each input, representing the
    * fields accessed in join conditions
    */
-  public Map<Integer, int[]> getJoinFieldRefCountsMap() {
+  public ImmutableMap<Integer, ImmutableIntList> getJoinFieldRefCountsMap() {
     return joinFieldRefCountsMap;
   }
 
@@ -232,6 +232,15 @@ public final class MultiJoinRel extends AbstractRelNode {
    */
   public RexNode getPostJoinFilter() {
     return postJoinFilter;
+  }
+
+  boolean containsOuter() {
+    for (JoinRelType joinType : joinTypes) {
+      if (joinType != JoinRelType.INNER) {
+        return true;
+      }
+    }
+    return false;
   }
 }
 

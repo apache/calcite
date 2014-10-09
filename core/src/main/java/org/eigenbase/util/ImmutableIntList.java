@@ -142,6 +142,11 @@ public class ImmutableIntList extends FlatLists.AbstractFlatList<Integer> {
     return a;
   }
 
+  /** Returns an array of {@code int}s with the same contents as this list. */
+  public int[] toIntArray() {
+    return ints.clone();
+  }
+
   public Integer get(int index) {
     return ints[index];
   }

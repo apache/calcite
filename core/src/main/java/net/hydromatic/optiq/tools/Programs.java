@@ -174,13 +174,13 @@ public class Programs {
    * {@link org.eigenbase.rel.rules.LoptOptimizeJoinRule})
    * if there are 6 or more joins (7 or more relations). */
   public static Program heuristicJoinOrder(final Collection<RelOptRule> rules,
-      final boolean bushy) {
+      final boolean bushy, final int minJoinCount) {
     return new Program() {
       public RelNode run(RelOptPlanner planner, RelNode rel,
           RelTraitSet requiredOutputTraits) {
         final int joinCount = RelOptUtil.countJoins(rel);
         final Program program;
-        if (joinCount < (bushy ? 2 : 6)) {
+        if (joinCount < minJoinCount) {
           program = ofRules(rules);
         } else {
           // Create a program that gathers together joins as a MultiJoinRel.

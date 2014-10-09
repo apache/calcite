@@ -71,12 +71,12 @@ public class PlannerTest {
         "select * from \"emps\" where \"name\" like '%e%'",
 
         "SELECT *\n"
-        + "FROM `emps`\n"
-        + "WHERE `name` LIKE '%e%'",
+            + "FROM `emps`\n"
+            + "WHERE `name` LIKE '%e%'",
 
         "ProjectRel(empid=[$0], deptno=[$1], name=[$2], salary=[$3], commission=[$4])\n"
-        + "  FilterRel(condition=[LIKE($2, '%e%')])\n"
-        + "    EnumerableTableAccessRel(table=[[hr, emps]])\n");
+            + "  FilterRel(condition=[LIKE($2, '%e%')])\n"
+            + "    EnumerableTableAccessRel(table=[[hr, emps]])\n");
   }
 
   /** Unit test that parses, validates and converts the query using
@@ -351,7 +351,7 @@ public class PlannerTest {
     Planner planner = getPlanner(null);
     SqlNode parse = planner.parse(
         "select * from (select * from \"emps\") as t\n"
-        + "where \"name\" like '%e%'");
+            + "where \"name\" like '%e%'");
     final SqlDialect hiveDialect =
         new SqlDialect(SqlDialect.DatabaseProduct.HIVE, "Hive", null);
     assertThat(Util.toLinux(parse.toSqlString(hiveDialect).getSql()),
@@ -440,8 +440,8 @@ public class PlannerTest {
           .append(i).append(".\"deptno\" = d")
           .append(i - 1).append(".\"deptno\"");
     }
-    Planner planner =
-        getPlanner(null, Programs.heuristicJoinOrder(Programs.RULE_SET, false));
+    Planner planner = getPlanner(null,
+        Programs.heuristicJoinOrder(Programs.RULE_SET, false, 6));
     SqlNode parse = planner.parse(buf.toString());
 
     SqlNode validate = planner.validate(parse);
@@ -451,6 +451,81 @@ public class PlannerTest {
     RelNode transform = planner.transform(0, traitSet, convert);
     assertThat(toString(transform), containsString(
         "EnumerableJoinRel(condition=[=($0, $3)], joinType=[inner])"));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/OPTIQ-435">OPTIQ-435</a>,
+   * "LoptOptimizeJoinRule incorrectly re-orders outer joins".
+   *
+   * <p>Checks the {@link org.eigenbase.rel.rules.LoptOptimizeJoinRule} on a
+   * query with a left outer join.
+   *
+   * <p>Specifically, tests that a relation (dependents) in an inner join
+   * cannot be pushed into an outer join (emps left join depts).
+   */
+  @Test public void testHeuristicLeftJoin() throws Exception {
+    checkHeuristic(
+        "select * from \"emps\" as e\n"
+        + "left join \"depts\" as d using (\"deptno\")\n"
+        + "join \"dependents\" as p on e.\"empid\" = p.\"empid\"",
+        "EnumerableProjectRel(empid=[$0], deptno=[$1], name=[$2], salary=[$3], commission=[$4], deptno0=[$5], name0=[$6], employees=[$7], empid0=[$8], name1=[$9])\n"
+        + "  EnumerableProjectRel(empid=[$2], deptno=[$3], name=[$4], salary=[$5], commission=[$6], deptno0=[$7], name0=[$8], employees=[$9], empid0=[$0], name1=[$1])\n"
+        + "    EnumerableJoinRel(condition=[=($0, $2)], joinType=[inner])\n"
+        + "      EnumerableTableAccessRel(table=[[hr, dependents]])\n"
+        + "      EnumerableProjectRel(empid=[$0], deptno=[$1], name=[$2], salary=[$3], commission=[$4], deptno0=[$5], name0=[$6], employees=[$7])\n"
+        + "        EnumerableJoinRel(condition=[=($1, $5)], joinType=[left])\n"
+        + "          EnumerableTableAccessRel(table=[[hr, emps]])\n"
+        + "          EnumerableTableAccessRel(table=[[hr, depts]])");
+  }
+
+  /** It would probably be OK to transform
+   * {@code (emps right join depts) join dependents}
+   * to
+   * {@code (emps  join dependents) right join depts}
+   * but we do not currently allow it.
+   */
+  @Test public void testHeuristicPushInnerJoin() throws Exception {
+    checkHeuristic(
+        "select * from \"emps\" as e\n"
+        + "right join \"depts\" as d using (\"deptno\")\n"
+        + "join \"dependents\" as p on e.\"empid\" = p.\"empid\"",
+        "EnumerableProjectRel(empid=[$0], deptno=[$1], name=[$2], salary=[$3], commission=[$4], deptno0=[$5], name0=[$6], employees=[$7], empid0=[$8], name1=[$9])\n"
+        + "  EnumerableProjectRel(empid=[$2], deptno=[$3], name=[$4], salary=[$5], commission=[$6], deptno0=[$7], name0=[$8], employees=[$9], empid0=[$0], name1=[$1])\n"
+        + "    EnumerableJoinRel(condition=[=($0, $2)], joinType=[inner])\n"
+        + "      EnumerableTableAccessRel(table=[[hr, dependents]])\n"
+        + "      EnumerableProjectRel(empid=[$0], deptno=[$1], name=[$2], salary=[$3], commission=[$4], deptno0=[$5], name0=[$6], employees=[$7])\n"
+        + "        EnumerableJoinRel(condition=[=($1, $5)], joinType=[right])\n"
+        + "          EnumerableTableAccessRel(table=[[hr, emps]])\n"
+        + "          EnumerableTableAccessRel(table=[[hr, depts]])");
+  }
+
+  /** Tests that a relation (dependents) that is on the null-generating side of
+   * an outer join cannot be pushed into an inner join (emps join depts). */
+  @Test public void testHeuristicRightJoin() throws Exception {
+    checkHeuristic(
+        "select * from \"emps\" as e\n"
+        + "join \"depts\" as d using (\"deptno\")\n"
+        + "right join \"dependents\" as p on e.\"empid\" = p.\"empid\"",
+        "EnumerableProjectRel(empid=[$0], deptno=[$1], name=[$2], salary=[$3], commission=[$4], deptno0=[$5], name0=[$6], employees=[$7], empid0=[$8], name1=[$9])\n"
+        + "  EnumerableProjectRel(empid=[$2], deptno=[$3], name=[$4], salary=[$5], commission=[$6], deptno0=[$7], name0=[$8], employees=[$9], empid0=[$0], name1=[$1])\n"
+        + "    EnumerableJoinRel(condition=[=($0, $2)], joinType=[left])\n"
+        + "      EnumerableTableAccessRel(table=[[hr, dependents]])\n"
+        + "      EnumerableProjectRel(empid=[$0], deptno=[$1], name=[$2], salary=[$3], commission=[$4], deptno0=[$5], name0=[$6], employees=[$7])\n"
+        + "        EnumerableJoinRel(condition=[=($1, $5)], joinType=[inner])\n"
+        + "          EnumerableTableAccessRel(table=[[hr, emps]])\n"
+        + "          EnumerableTableAccessRel(table=[[hr, depts]])");
+  }
+
+  private void checkHeuristic(String sql, String expected) throws Exception {
+    Planner planner = getPlanner(null,
+        Programs.heuristicJoinOrder(Programs.RULE_SET, false, 0));
+    SqlNode parse = planner.parse(sql);
+    SqlNode validate = planner.validate(parse);
+    RelNode convert = planner.convert(validate);
+    RelTraitSet traitSet = planner.getEmptyTraitSet()
+        .replace(EnumerableConvention.INSTANCE);
+    RelNode transform = planner.transform(0, traitSet, convert);
+    assertThat(toString(transform), containsString(expected));
   }
 
   /** Plans a 3-table join query on the FoodMart schema. The ideal plan is not
@@ -568,7 +643,7 @@ public class PlannerTest {
             OptiqAssert.addSchema(rootSchema,
                 OptiqAssert.SchemaSpec.CLONE_FOODMART))
         .traitDefs((List<RelTraitDef>) null)
-        .programs(Programs.heuristicJoinOrder(Programs.RULE_SET, true))
+        .programs(Programs.heuristicJoinOrder(Programs.RULE_SET, true, 2))
         .build();
     Planner planner = Frameworks.getPlanner(config);
     SqlNode parse = planner.parse(sql);

@@ -86,39 +86,29 @@ public class NestedLoopsJoinRule extends RelOptRule {
     final RelNode left = join.getLeft();
     final JoinInfo joinInfo = join.analyzeCondition();
     final List<Correlation> correlationList = Lists.newArrayList();
-    if (joinInfo.leftKeys.size() > 0) {
-      final RelOptCluster cluster = join.getCluster();
-      final RexBuilder rexBuilder = cluster.getRexBuilder();
-      RexNode condition = null;
-      for (IntPair p : joinInfo.pairs()) {
-        final String dynInIdStr = cluster.getQuery().createCorrel();
-        final int dynInId = RelOptQuery.getCorrelOrdinal(dynInIdStr);
+    final RelOptCluster cluster = join.getCluster();
+    final RexBuilder rexBuilder = cluster.getRexBuilder();
+    final List<RexNode> conditions = Lists.newArrayList();
+    for (IntPair p : joinInfo.pairs()) {
+      final String dynInIdStr = cluster.getQuery().createCorrel();
+      final int dynInId = RelOptQuery.getCorrelOrdinal(dynInIdStr);
 
-        // Create correlation to say 'each row, set variable #id
-        // to the value of column #leftKey'.
-        correlationList.add(new Correlation(dynInId, p.source));
-        condition =
-            RelOptUtil.andJoinFilters(
-                rexBuilder,
-                condition,
-                rexBuilder.makeCall(
-                    SqlStdOperatorTable.EQUALS,
-                    rexBuilder.makeInputRef(right, p.target),
-                    rexBuilder.makeCorrel(
-                        left.getRowType().getFieldList().get(p.source)
-                            .getType(),
-                        dynInIdStr)));
-      }
-      right =
-          RelOptUtil.createFilter(
-              right,
-              condition);
+      // Create correlation to say 'each row, set variable #id
+      // to the value of column #leftKey'.
+      correlationList.add(new Correlation(dynInId, p.source));
+      conditions.add(
+          rexBuilder.makeCall(SqlStdOperatorTable.EQUALS,
+              rexBuilder.makeInputRef(right, p.target),
+              rexBuilder.makeCorrel(
+                  left.getRowType().getFieldList().get(p.source).getType(),
+                  dynInIdStr)));
     }
+    final RelNode filteredRight = RelOptUtil.createFilter(right, conditions);
     RelNode newRel =
         new CorrelatorRel(
             join.getCluster(),
             left,
-            right,
+            filteredRight,
             joinInfo.getRemaining(join.getCluster().getRexBuilder()),
             correlationList,
             join.getJoinType());

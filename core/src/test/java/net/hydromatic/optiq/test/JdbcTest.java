@@ -354,8 +354,10 @@ public class JdbcTest {
             + "id=hr; names=[hr]; type=SCHEMA\n"
             + "id=metadata; names=[metadata]; type=SCHEMA\n"
             + "id=s; names=[s]; type=SCHEMA\n"
+            + "id=hr.dependents; names=[hr, dependents]; type=TABLE\n"
             + "id=hr.depts; names=[hr, depts]; type=TABLE\n"
-            + "id=hr.emps; names=[hr, emps]; type=TABLE\n"));
+            + "id=hr.emps; names=[hr, emps]; type=TABLE\n"
+            + "id=hr.locations; names=[hr, locations]; type=TABLE\n"));
   }
 
   private String adviseSql(String sql) throws ClassNotFoundException,
@@ -5989,6 +5991,14 @@ public class JdbcTest {
       new Department(30, "Marketing", Collections.<Employee>emptyList()),
       new Department(40, "HR", Collections.singletonList(emps[1])),
     };
+    public final Dependent[] dependents = {
+      new Dependent(10, "Michael"),
+      new Dependent(10, "Jane"),
+    };
+    public final Dependent[] locations = {
+      new Dependent(10, "San Francisco"),
+      new Dependent(20, "San Diego"),
+    };
 
     public QueryableTable foo(int count) {
       return generateStrings(count);
@@ -6047,6 +6057,34 @@ public class JdbcTest {
     public String toString() {
       return "Department [deptno: " + deptno + ", name: " + name
           + ", employees: " + employees + "]";
+    }
+  }
+
+  public static class Location {
+    public final int locid;
+    public final String name;
+
+    public Location(int locid, String name) {
+      this.locid = locid;
+      this.name = name;
+    }
+
+    @Override public String toString() {
+      return "Location [locid: " + locid + ", name: " + name + "]";
+    }
+  }
+
+  public static class Dependent {
+    public final int empid;
+    public final String name;
+
+    public Dependent(int empid, String name) {
+      this.empid = empid;
+      this.name = name;
+    }
+
+    @Override public String toString() {
+      return "Dependent [empid: " + empid + ", name: " + name + "]";
     }
   }
 

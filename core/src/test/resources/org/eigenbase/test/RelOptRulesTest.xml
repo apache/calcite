@@ -1355,18 +1355,22 @@ ProjectRel(A=[$0], B=[$1], C=[$2], D=[$3], E=[$4], F=[$5], G=[$6], H=[$7], I=[$8
         </Resource>
         <Resource name="planAfter">
             <![CDATA[
-MultiJoinRel(joinFilter=[AND(AND(=($0, $8), =($7, $9)), =($8, $9))], isFullOuterJoin=[false], joinTypes=[[RIGHT, RIGHT, INNER, LEFT, INNER, INNER]], outerJoinConditions=[[AND(=($0, $4), =($1, $5), =($2, $6), =($3, $7)), AND(=($4, $6), =($5, $7)), NULL, =($6, $7), NULL, NULL]], projFields=[[ALL, ALL, ALL, ALL, ALL, ALL]])
-  MultiJoinRel(joinFilter=[true], isFullOuterJoin=[false], joinTypes=[[RIGHT, INNER, LEFT]], outerJoinConditions=[[=($0, $1), NULL, AND(=($0, $2), =($1, $3))]], projFields=[[ALL, ALL, ALL]])
-    TableAccessRel(table=[[CATALOG, SALES, A]])
-    TableAccessRel(table=[[CATALOG, SALES, B]])
-    MultiJoinRel(joinFilter=[=($0, $1)], isFullOuterJoin=[true], joinTypes=[[INNER, INNER]], outerJoinConditions=[[NULL, NULL]], projFields=[[ALL, ALL]])
-      TableAccessRel(table=[[CATALOG, SALES, C]])
-      TableAccessRel(table=[[CATALOG, SALES, D]])
-  MultiJoinRel(joinFilter=[=($0, $1)], isFullOuterJoin=[true], joinTypes=[[INNER, INNER]], outerJoinConditions=[[NULL, NULL]], projFields=[[ALL, ALL]])
-    TableAccessRel(table=[[CATALOG, SALES, E]])
-    TableAccessRel(table=[[CATALOG, SALES, F]])
-  TableAccessRel(table=[[CATALOG, SALES, G]])
-  TableAccessRel(table=[[CATALOG, SALES, H]])
+MultiJoinRel(joinFilter=[AND(=($0, $8), =($7, $9), =($8, $9))], isFullOuterJoin=[false], joinTypes=[[INNER, INNER, INNER]], outerJoinConditions=[[NULL, NULL, NULL]], projFields=[[ALL, ALL, ALL]])
+  MultiJoinRel(joinFilter=[true], isFullOuterJoin=[false], joinTypes=[[RIGHT, INNER]], outerJoinConditions=[[AND(=($0, $4), =($1, $5), =($2, $6), =($3, $7)), NULL]], projFields=[[ALL, ALL]])
+    MultiJoinRel(joinFilter=[true], isFullOuterJoin=[false], joinTypes=[[INNER, LEFT]], outerJoinConditions=[[NULL, AND(=($0, $2), =($1, $3))]], projFields=[[ALL, ALL]])
+      MultiJoinRel(joinFilter=[true], isFullOuterJoin=[false], joinTypes=[[RIGHT, INNER]], outerJoinConditions=[[=($0, $1), NULL]], projFields=[[ALL, ALL]])
+        TableAccessRel(table=[[CATALOG, SALES, A]])
+        TableAccessRel(table=[[CATALOG, SALES, B]])
+      MultiJoinRel(joinFilter=[=($0, $1)], isFullOuterJoin=[true], joinTypes=[[INNER, INNER]], outerJoinConditions=[[NULL, NULL]], projFields=[[ALL, ALL]])
+        TableAccessRel(table=[[CATALOG, SALES, C]])
+        TableAccessRel(table=[[CATALOG, SALES, D]])
+    MultiJoinRel(joinFilter=[true], isFullOuterJoin=[false], joinTypes=[[RIGHT, INNER]], outerJoinConditions=[[AND(=($0, $2), =($1, $3)), NULL]], projFields=[[ALL, ALL]])
+      MultiJoinRel(joinFilter=[=($0, $1)], isFullOuterJoin=[true], joinTypes=[[INNER, INNER]], outerJoinConditions=[[NULL, NULL]], projFields=[[ALL, ALL]])
+        TableAccessRel(table=[[CATALOG, SALES, E]])
+        TableAccessRel(table=[[CATALOG, SALES, F]])
+      MultiJoinRel(joinFilter=[true], isFullOuterJoin=[false], joinTypes=[[INNER, LEFT]], outerJoinConditions=[[NULL, =($0, $1)]], projFields=[[ALL, ALL]])
+        TableAccessRel(table=[[CATALOG, SALES, G]])
+        TableAccessRel(table=[[CATALOG, SALES, H]])
   TableAccessRel(table=[[CATALOG, SALES, I]])
   TableAccessRel(table=[[CATALOG, SALES, J]])
 ]]>
@@ -2275,6 +2279,77 @@ AggregateRel(group=[{0}], EXPR$1=[COUNT(DISTINCT $1)])
 AggregateRel(group=[{1}], EXPR$1=[COUNT($0)])
   AggregateRel(group=[{1, 7}])
     TableAccessRel(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testConvertMultiJoinRuleOuterJoins2">
+        <Resource name="sql">
+            <![CDATA[select * from A right join B on a = b join C on b = c]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+ProjectRel(A=[$0], B=[$1], C=[$2])
+  JoinRel(condition=[=($1, $2)], joinType=[inner])
+    JoinRel(condition=[=($0, $1)], joinType=[right])
+      TableAccessRel(table=[[CATALOG, SALES, A]])
+      TableAccessRel(table=[[CATALOG, SALES, B]])
+    TableAccessRel(table=[[CATALOG, SALES, C]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+MultiJoinRel(joinFilter=[=($1, $2)], isFullOuterJoin=[false], joinTypes=[[INNER, INNER]], outerJoinConditions=[[NULL, NULL]], projFields=[[ALL, ALL]])
+  MultiJoinRel(joinFilter=[true], isFullOuterJoin=[false], joinTypes=[[RIGHT, INNER]], outerJoinConditions=[[=($0, $1), NULL]], projFields=[[ALL, ALL]])
+    TableAccessRel(table=[[CATALOG, SALES, A]])
+    TableAccessRel(table=[[CATALOG, SALES, B]])
+  TableAccessRel(table=[[CATALOG, SALES, C]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testConvertMultiJoinRuleOuterJoins3">
+        <Resource name="sql">
+            <![CDATA[select * from A join B on a = b left join C on b = c]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+ProjectRel(A=[$0], B=[$1], C=[$2])
+  JoinRel(condition=[=($1, $2)], joinType=[left])
+    JoinRel(condition=[=($0, $1)], joinType=[inner])
+      TableAccessRel(table=[[CATALOG, SALES, A]])
+      TableAccessRel(table=[[CATALOG, SALES, B]])
+    TableAccessRel(table=[[CATALOG, SALES, C]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+MultiJoinRel(joinFilter=[=($0, $1)], isFullOuterJoin=[false], joinTypes=[[INNER, INNER, LEFT]], outerJoinConditions=[[NULL, NULL, =($1, $2)]], projFields=[[ALL, ALL, ALL]])
+  TableAccessRel(table=[[CATALOG, SALES, A]])
+  TableAccessRel(table=[[CATALOG, SALES, B]])
+  TableAccessRel(table=[[CATALOG, SALES, C]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testConvertMultiJoinRuleOuterJoins4">
+        <Resource name="sql">
+            <![CDATA[select * from A join B on a = b right join C on b = c]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+ProjectRel(A=[$0], B=[$1], C=[$2])
+  JoinRel(condition=[=($1, $2)], joinType=[right])
+    JoinRel(condition=[=($0, $1)], joinType=[inner])
+      TableAccessRel(table=[[CATALOG, SALES, A]])
+      TableAccessRel(table=[[CATALOG, SALES, B]])
+    TableAccessRel(table=[[CATALOG, SALES, C]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+MultiJoinRel(joinFilter=[true], isFullOuterJoin=[false], joinTypes=[[RIGHT, INNER]], outerJoinConditions=[[=($1, $2), NULL]], projFields=[[ALL, ALL]])
+  MultiJoinRel(joinFilter=[=($0, $1)], isFullOuterJoin=[false], joinTypes=[[INNER, INNER]], outerJoinConditions=[[NULL, NULL]], projFields=[[ALL, ALL]])
+    TableAccessRel(table=[[CATALOG, SALES, A]])
+    TableAccessRel(table=[[CATALOG, SALES, B]])
+  TableAccessRel(table=[[CATALOG, SALES, C]])
 ]]>
         </Resource>
     </TestCase>
