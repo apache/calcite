@@ -221,6 +221,7 @@ public interface OptiqPrepare {
   public static class PrepareResult<T> implements AvaticaPrepareResult {
     public final String sql; // for debug
     public final List<AvaticaParameter> parameterList;
+    private final Map<String, Object> internalParameters;
     public final RelDataType rowType;
     public final ColumnMetaData.StructType structType;
     private final int maxRowCount;
@@ -229,6 +230,7 @@ public interface OptiqPrepare {
 
     public PrepareResult(String sql,
         List<AvaticaParameter> parameterList,
+        Map<String, Object> internalParameters,
         RelDataType rowType,
         ColumnMetaData.StructType structType,
         int maxRowCount,
@@ -237,6 +239,7 @@ public interface OptiqPrepare {
       super();
       this.sql = sql;
       this.parameterList = parameterList;
+      this.internalParameters = internalParameters;
       this.rowType = rowType;
       this.structType = structType;
       this.maxRowCount = maxRowCount;
@@ -260,6 +263,10 @@ public interface OptiqPrepare {
 
     public List<AvaticaParameter> getParameterList() {
       return parameterList;
+    }
+
+    public Map<String, Object> getInternalParameters() {
+      return internalParameters;
     }
 
     public String getSql() {

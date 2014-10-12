@@ -20,6 +20,7 @@ import net.hydromatic.linq4j.AbstractEnumerable;
 import net.hydromatic.linq4j.Enumerator;
 
 import net.hydromatic.optiq.DataContext;
+import net.hydromatic.optiq.prepare.OptiqPrepareImpl;
 
 import org.eigenbase.rel.*;
 import org.eigenbase.rex.*;
@@ -28,8 +29,10 @@ import org.eigenbase.util.ReflectiveVisitDispatcher;
 import org.eigenbase.util.ReflectiveVisitor;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
+import java.math.BigDecimal;
 import java.util.*;
 
 /**
@@ -39,26 +42,26 @@ import java.util.*;
  * particular it holds working state while the data flow graph is being
  * assembled.</p>
  */
-public class Interpreter extends AbstractEnumerable<Row> {
+public class Interpreter extends AbstractEnumerable<Object[]> {
   final Map<RelNode, NodeInfo> nodes = Maps.newLinkedHashMap();
   private final DataContext dataContext;
   private final RelNode rootRel;
+  private final Map<RelNode, List<RelNode>> relInputs = Maps.newHashMap();
 
   public Interpreter(DataContext dataContext, RelNode rootRel) {
     this.dataContext = dataContext;
-    this.rootRel = rootRel;
     Compiler compiler = new Nodes.CoreCompiler(this);
-    compiler.visit(rootRel, 0, null);
+    this.rootRel = compiler.visitRoot(rootRel);
   }
 
-  public Enumerator<Row> enumerator() {
+  public Enumerator<Object[]> enumerator() {
     start();
     final ArrayDeque<Row> queue = nodes.get(rootRel).sink.list;
-    return new Enumerator<Row>() {
+    return new Enumerator<Object[]>() {
       Row row;
 
-      public Row current() {
-        return row;
+      public Object[] current() {
+        return row.getValues();
       }
 
       public boolean moveNext() {
@@ -108,19 +111,55 @@ public class Interpreter extends AbstractEnumerable<Row> {
       return new Scalar() {
         public Object execute(final Context context) {
           final List<Object> args;
-          final Comparable o0;
-          final Comparable o1;
+          Comparable o0;
+          Comparable o1;
           switch (call.getKind()) {
           case LESS_THAN:
-            args = lazyArgs(context);
-            o0 = (Comparable) args.get(0);
-            o1 = (Comparable) args.get(1);
-            return o0 == null || o1 == null ? null : o0.compareTo(o1) < 0;
+          case LESS_THAN_OR_EQUAL:
           case GREATER_THAN:
+          case GREATER_THAN_OR_EQUAL:
+          case EQUALS:
+          case NOT_EQUALS:
             args = lazyArgs(context);
             o0 = (Comparable) args.get(0);
+            if (o0 == null) {
+              return null;
+            }
             o1 = (Comparable) args.get(1);
-            return o0 == null || o1 == null ? null : o0.compareTo(o1) > 0;
+            if (o1 == null) {
+              return null;
+            }
+            if (o0 instanceof BigDecimal) {
+              if (o1 instanceof Double || o1 instanceof Float) {
+                o1 = new BigDecimal(((Number) o1).doubleValue());
+              } else {
+                o1 = new BigDecimal(((Number) o1).longValue());
+              }
+            }
+            if (o1 instanceof BigDecimal) {
+              if (o0 instanceof Double || o0 instanceof Float) {
+                o0 = new BigDecimal(((Number) o0).doubleValue());
+              } else {
+                o0 = new BigDecimal(((Number) o0).longValue());
+              }
+            }
+            final int c = o0.compareTo(o1);
+            switch (call.getKind()) {
+            case LESS_THAN:
+              return c < 0;
+            case LESS_THAN_OR_EQUAL:
+              return c <= 0;
+            case GREATER_THAN:
+              return c > 0;
+            case GREATER_THAN_OR_EQUAL:
+              return c >= 0;
+            case EQUALS:
+              return c == 0;
+            case NOT_EQUALS:
+              return c != 0;
+            default:
+              throw new AssertionError("unknown expression " + call);
+            }
           default:
             throw new AssertionError("unknown expression " + call);
           }
@@ -154,12 +193,20 @@ public class Interpreter extends AbstractEnumerable<Row> {
   }
 
   public Source source(RelNode rel, int ordinal) {
-    final RelNode input = rel.getInput(ordinal);
+    final RelNode input = getInput(rel, ordinal);
     final NodeInfo x = nodes.get(input);
     if (x == null) {
       throw new AssertionError("should be registered: " + rel);
     }
     return new ListSource(x.sink);
+  }
+
+  private RelNode getInput(RelNode rel, int ordinal) {
+    final List<RelNode> inputs = relInputs.get(rel);
+    if (inputs != null) {
+      return inputs.get(ordinal);
+    }
+    return rel.getInput(ordinal);
   }
 
   public Sink sink(RelNode rel) {
@@ -240,17 +287,60 @@ public class Interpreter extends AbstractEnumerable<Row> {
     private final ReflectiveVisitDispatcher<Compiler, RelNode> dispatcher =
         ReflectUtil.createDispatcher(Compiler.class, RelNode.class);
     protected final Interpreter interpreter;
+    protected RelNode rootRel;
+    protected RelNode rel;
     protected Node node;
 
+    private static final String REWRITE_METHOD_NAME = "rewrite";
     private static final String VISIT_METHOD_NAME = "visit";
 
     Compiler(Interpreter interpreter) {
       this.interpreter = interpreter;
     }
 
+    public RelNode visitRoot(RelNode p) {
+      rootRel = p;
+      visit(p, 0, null);
+      return rootRel;
+    }
+
     @Override public void visit(RelNode p, int ordinal, RelNode parent) {
+      for (;;) {
+        rel = null;
+        boolean found = dispatcher.invokeVisitor(this, p, REWRITE_METHOD_NAME);
+        if (!found) {
+          throw new AssertionError(
+              "interpreter: no implementation for rewrite");
+        }
+        if (rel == null) {
+          break;
+        }
+        if (OptiqPrepareImpl.DEBUG) {
+          System.out.println("Interpreter: rewrite " + p + " to " + rel);
+        }
+        p = rel;
+        if (parent != null) {
+          List<RelNode> inputs = interpreter.relInputs.get(parent);
+          if (inputs == null) {
+            inputs = Lists.newArrayList(parent.getInputs());
+            interpreter.relInputs.put(parent, inputs);
+          }
+          inputs.set(ordinal, p);
+        } else {
+          rootRel = p;
+        }
+      }
+
       // rewrite children first (from left to right)
-      super.visit(p, ordinal, parent);
+      final List<RelNode> inputs = interpreter.relInputs.get(p);
+      if (inputs != null) {
+        for (int i = 0; i < inputs.size(); i++) {
+          RelNode input = inputs.get(i);
+          visit(input, i, p);
+        }
+      } else {
+        p.childrenAccept(this);
+      }
 
       node = null;
       boolean found = dispatcher.invokeVisitor(this, p, VISIT_METHOD_NAME);
@@ -262,6 +352,14 @@ public class Interpreter extends AbstractEnumerable<Row> {
       final NodeInfo nodeInfo = interpreter.nodes.get(p);
       assert nodeInfo != null;
       nodeInfo.node = node;
+    }
+
+    /** Fallback rewrite method.
+     *
+     * <p>Overriding methods (each with a different sub-class of {@link RelNode}
+     * as its argument type) sets the {@link #rel} field if intends to
+     * rewrite. */
+    public void rewrite(RelNode r) {
     }
   }
 }

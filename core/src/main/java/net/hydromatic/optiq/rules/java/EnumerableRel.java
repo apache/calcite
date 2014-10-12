@@ -18,7 +18,16 @@ package net.hydromatic.optiq.rules.java;
 
 import net.hydromatic.linq4j.expressions.BlockStatement;
 
+import org.eigenbase.rel.ProjectRelBase;
+import org.eigenbase.rel.RelFactories;
 import org.eigenbase.rel.RelNode;
+import org.eigenbase.relopt.RelOptCluster;
+import org.eigenbase.reltype.RelDataType;
+import org.eigenbase.rex.RexNode;
+import org.eigenbase.rex.RexUtil;
+import org.eigenbase.sql.validate.SqlValidatorUtil;
+
+import java.util.List;
 
 /**
  * A relational expression of one of the
@@ -27,6 +36,30 @@ import org.eigenbase.rel.RelNode;
  */
 public interface EnumerableRel
     extends RelNode {
+  RelFactories.FilterFactory FILTER_FACTORY =
+      new RelFactories.FilterFactory() {
+        public RelNode createFilter(RelNode child, RexNode condition) {
+          return new JavaRules.EnumerableFilterRel(child.getCluster(),
+              child.getTraitSet(), child, condition);
+        }
+      };
+
+  RelFactories.ProjectFactory PROJECT_FACTORY =
+      new RelFactories.ProjectFactory() {
+        public RelNode createProject(RelNode child,
+            List<? extends RexNode> exprs, List<String> fieldNames) {
+          final RelOptCluster cluster = child.getCluster();
+          final RelDataType rowType =
+              RexUtil.createStructType(cluster.getTypeFactory(), exprs,
+                  fieldNames == null ? null
+                      : SqlValidatorUtil.uniquify(fieldNames,
+                          SqlValidatorUtil.F_SUGGESTER));
+          return new JavaRules.EnumerableProjectRel(cluster,
+              child.getTraitSet(), child, exprs, rowType,
+              ProjectRelBase.Flags.BOXED);
+        }
+      };
+
   //~ Methods ----------------------------------------------------------------
 
   /**

@@ -25,6 +25,7 @@ import net.hydromatic.optiq.DataContext;
 import net.hydromatic.optiq.jdbc.JavaTypeFactoryImpl;
 import net.hydromatic.optiq.runtime.*;
 
+import org.eigenbase.rel.RelNode;
 import org.eigenbase.rex.RexBuilder;
 
 import com.google.common.collect.ImmutableList;
@@ -40,11 +41,12 @@ import java.util.*;
  * operators of {@link EnumerableConvention} calling convention.
  */
 public class EnumerableRelImplementor extends JavaRelImplementor {
-  public final Map<String, Queryable> map =
-      new LinkedHashMap<String, Queryable>();
+  public final Map<String, Object> map;
 
-  public EnumerableRelImplementor(RexBuilder rexBuilder) {
+  public EnumerableRelImplementor(RexBuilder rexBuilder,
+      Map<String, Object> internalParameters) {
     super(rexBuilder);
+    this.map = internalParameters;
   }
 
   public EnumerableRel.Result visitChild(
@@ -88,19 +90,13 @@ public class EnumerableRelImplementor extends JavaRelImplementor {
             BuiltinMethod.BINDABLE_BIND.method.getName(),
             Expressions.list(root0_),
             block));
-    memberDeclarations.add(
-        Expressions.methodDecl(
-            Modifier.PUBLIC,
-            Type.class,
-            BuiltinMethod.TYPED_GET_ELEMENT_TYPE.method.getName(),
-            Collections.<ParameterExpression>emptyList(),
-            Blocks.toFunctionBlock(
-                Expressions.return_(
-                    null,
-                    Expressions.constant(
-                        result.physType.getJavaRowType())))));
-    return Expressions.classDecl(
-        Modifier.PUBLIC,
+    memberDeclarations.add(Expressions.methodDecl(Modifier.PUBLIC,
+        Type.class,
+        BuiltinMethod.TYPED_GET_ELEMENT_TYPE.method.getName(),
+        Collections.<ParameterExpression>emptyList(),
+        Blocks.toFunctionBlock(Expressions.return_(null,
+            Expressions.constant(result.physType.getJavaRowType())))));
+    return Expressions.classDecl(Modifier.PUBLIC,
         "Baz",
         null,
         Collections.<Type>singletonList(Bindable.class),
@@ -355,9 +351,20 @@ public class EnumerableRelImplementor extends JavaRelImplementor {
   }
 
   public Expression register(Queryable queryable) {
-    String name = "v" + map.size();
-    map.put(name, queryable);
-    return Expressions.variable(queryable.getClass(), name);
+    return register(queryable, queryable.getClass());
+  }
+
+  public ParameterExpression register(Object o, Class clazz) {
+    final String name = "v" + map.size();
+    map.put(name, o);
+    return Expressions.variable(clazz, name);
+  }
+
+  public Expression stash(RelNode child, Class clazz) {
+    final ParameterExpression x = register(child, clazz);
+    final Expression e = Expressions.call(getRootExpression(),
+        BuiltinMethod.DATA_CONTEXT_GET.method, Expressions.constant(x.name));
+    return Expressions.convert_(e, clazz);
   }
 
   public EnumerableRel.Result result(PhysType physType, BlockStatement block) {

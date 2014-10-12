@@ -128,6 +128,10 @@ public class OptiqPrepareImpl implements OptiqPrepare {
           COMMUTE
               ? CommutativeJoinRule.INSTANCE
               : MergeProjectRule.INSTANCE,
+          FilterTableRule.INSTANCE,
+          ProjectTableRule.INSTANCE,
+          ProjectTableRule.INSTANCE2,
+          PushProjectPastFilterRule.INSTANCE,
           PushFilterPastProjectRule.INSTANCE,
           PushFilterPastJoinRule.FILTER_ON_JOIN,
           RemoveDistinctAggregateRule.INSTANCE,
@@ -339,6 +343,7 @@ public class OptiqPrepareImpl implements OptiqPrepare {
     return new PrepareResult<T>(
         sql,
         ImmutableList.<AvaticaParameter>of(),
+        ImmutableMap.<String, Object>of(),
         x,
         getColumnMetaDataList(typeFactory, x, x, origins),
         -1,
@@ -453,6 +458,7 @@ public class OptiqPrepareImpl implements OptiqPrepare {
     return new PrepareResult<T>(
         sql,
         parameters,
+        preparingStmt.internalParameters,
         jdbcType,
         structType,
         maxRowCount,
@@ -622,7 +628,8 @@ public class OptiqPrepareImpl implements OptiqPrepare {
     protected final OptiqSchema schema;
     protected final RelDataTypeFactory typeFactory;
     private final EnumerableRel.Prefer prefer;
-
+    private final Map<String, Object> internalParameters =
+        Maps.newLinkedHashMap();
     private int expansionDepth;
     private SqlValidator sqlValidator;
 
@@ -706,7 +713,7 @@ public class OptiqPrepareImpl implements OptiqPrepare {
     @Override
     protected EnumerableRelImplementor getRelImplementor(
         RexBuilder rexBuilder) {
-      return new EnumerableRelImplementor(rexBuilder);
+      return new EnumerableRelImplementor(rexBuilder, internalParameters);
     }
 
     @Override

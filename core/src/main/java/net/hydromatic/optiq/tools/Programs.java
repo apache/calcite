@@ -91,6 +91,7 @@ public class Programs {
               : MergeProjectRule.INSTANCE,
           AggregateStarTableRule.INSTANCE,
           AggregateStarTableRule.INSTANCE2,
+          FilterTableRule.INSTANCE,
           PushFilterPastProjectRule.INSTANCE,
           PushFilterPastJoinRule.FILTER_ON_JOIN,
           RemoveDistinctAggregateRule.INSTANCE,

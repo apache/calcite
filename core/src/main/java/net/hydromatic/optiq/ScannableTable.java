@@ -14,19 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.avatica;
+package net.hydromatic.optiq;
 
-import java.util.List;
-import java.util.Map;
+import net.hydromatic.linq4j.Enumerable;
 
 /**
- * Result of preparing a statement.
+ * Table that can be scanned without creating an intermediate relational
+ * expression.
  */
-public interface AvaticaPrepareResult {
-  List<ColumnMetaData> getColumnList();
-  String getSql();
-  List<AvaticaParameter> getParameterList();
-  Map<String, Object> getInternalParameters();
+public interface ScannableTable extends Table {
+  /** Returns an enumerator over the rows in this Table. Each row is represented
+   * as an array of its column values. */
+  Enumerable<Object[]> scan(DataContext root);
 }
 
-// End AvaticaPrepareResult.java
+// End ScannableTable.java

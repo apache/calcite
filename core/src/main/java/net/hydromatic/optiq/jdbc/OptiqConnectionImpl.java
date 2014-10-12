@@ -213,14 +213,14 @@ abstract class OptiqConnectionImpl
       OptiqPrepare.PrepareResult<T> enumerable =
           statement.prepare(queryable);
       final DataContext dataContext =
-          createDataContext(Collections.emptyList());
+          createDataContext(ImmutableMap.<String, Object>of());
       return enumerable.enumerator(dataContext);
     } catch (SQLException e) {
       throw new RuntimeException(e);
     }
   }
 
-  public DataContext createDataContext(List<Object> parameterValues) {
+  public DataContext createDataContext(Map<String, Object> parameterValues) {
     if (config().spark()) {
       return new SlimDataContext();
     }
@@ -286,7 +286,7 @@ abstract class OptiqConnectionImpl
     private final JavaTypeFactory typeFactory;
 
     DataContextImpl(OptiqConnectionImpl connection,
-        List<Object> parameterValues) {
+        Map<String, Object> parameters) {
       this.queryProvider = connection;
       this.typeFactory = connection.getTypeFactory();
       this.rootSchema = connection.rootSchema;
@@ -308,12 +308,12 @@ abstract class OptiqConnectionImpl
           .put(Variable.CURRENT_TIMESTAMP.camelName, time + currentOffset)
           .put(Variable.LOCAL_TIMESTAMP.camelName, time + localOffset)
           .put(Variable.TIME_ZONE.camelName, timeZone);
-      for (Ord<Object> value : Ord.zip(parameterValues)) {
-        Object e = value.e;
+      for (Map.Entry<String, Object> entry : parameters.entrySet()) {
+        Object e = entry.getValue();
         if (e == null) {
           e = AvaticaParameter.DUMMY_VALUE;
         }
-        builder.put("?" + value.i, e);
+        builder.put(entry.getKey(), e);
       }
       map = builder.build();
     }
@@ -376,8 +376,8 @@ abstract class OptiqConnectionImpl
     public List<String> getDefaultSchemaPath() {
       final String schemaName = connection.getSchema();
       return schemaName == null
-          ? Collections.<String>emptyList()
-          : Collections.singletonList(schemaName);
+          ? ImmutableList.<String>of()
+          : ImmutableList.of(schemaName);
     }
 
     public OptiqConnectionConfig config() {
@@ -385,7 +385,7 @@ abstract class OptiqConnectionImpl
     }
 
     public DataContext getDataContext() {
-      return connection.createDataContext(ImmutableList.of());
+      return connection.createDataContext(ImmutableMap.<String, Object>of());
     }
 
     public OptiqPrepare.SparkHandler spark() {

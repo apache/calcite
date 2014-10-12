@@ -434,7 +434,6 @@ public abstract class AvaticaConnection implements Connection {
       return statement.getParameterValues();
     }
   }
-
 }
 
 // End AvaticaConnection.java

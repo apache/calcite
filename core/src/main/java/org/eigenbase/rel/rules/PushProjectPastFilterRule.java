@@ -82,7 +82,7 @@ public class PushProjectPastFilterRule extends RelOptRule {
     PushProjector pushProjector =
         new PushProjector(
             origProj, origFilter, rel, preserveExprCondition);
-    ProjectRel topProject = pushProjector.convertProject(null);
+    RelNode topProject = pushProjector.convertProject(null);
 
     if (topProject != null) {
       call.transformTo(topProject);

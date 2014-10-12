@@ -26,7 +26,7 @@ import net.hydromatic.linq4j.Enumerator;
  * For instance,
  * {@link net.hydromatic.optiq.rules.java.JavaRules.EnumerableCalcRel}
  * computes result just in {@code current()} method, thus it makes sense to
- * cache the result and make it available for all the accesors.
+ * cache the result and make it available for all the accessors.
  *
  * @param <T> Element type
  */

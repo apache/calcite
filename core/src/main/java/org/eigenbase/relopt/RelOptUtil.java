@@ -445,7 +445,8 @@ public abstract class RelOptUtil {
 
   /**
    * Creates a relational expression which filters according to a given
-   * condition, returning the same fields as its input.
+   * condition, returning the same fields as its input, using the default
+   * filter factory.
    *
    * @param child     Child relational expression
    * @param condition Condition
@@ -477,7 +478,8 @@ public abstract class RelOptUtil {
     return createFilter(child, conditions, RelFactories.DEFAULT_FILTER_FACTORY);
   }
 
-  /** Creates a filter, or returns the original relational expression if the
+  /** Creates a filter using the default factory,
+   * or returns the original relational expression if the
    * condition is trivial. */
   public static RelNode createFilter(RelNode child,
       Iterable<? extends RexNode> conditions,

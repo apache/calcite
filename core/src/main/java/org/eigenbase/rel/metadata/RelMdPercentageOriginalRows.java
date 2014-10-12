@@ -22,6 +22,7 @@ import org.eigenbase.rel.*;
 import org.eigenbase.relopt.*;
 
 import net.hydromatic.optiq.BuiltinMethod;
+import net.hydromatic.optiq.rules.java.JavaRules;
 
 import com.google.common.collect.ImmutableList;
 
@@ -151,6 +152,10 @@ public class RelMdPercentageOriginalRows {
       cost = cost.plus(RelMetadataQuery.getCumulativeCost(input));
     }
     return cost;
+  }
+
+  public RelOptCost getCumulativeCost(JavaRules.EnumerableInterpreterRel rel) {
+    return RelMetadataQuery.getNonCumulativeCost(rel);
   }
 
   // Ditto for getNonCumulativeCost

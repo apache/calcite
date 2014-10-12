@@ -29,6 +29,7 @@ import org.eigenbase.sql.type.*;
 import org.eigenbase.util.*;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 
 /**
  * A collection of expressions which read inputs, compute output expressions,
@@ -519,6 +520,23 @@ public class RexProgram {
     // this program
     ExpansionShuttle shuttle = new ExpansionShuttle();
     return ref.accept(shuttle);
+  }
+
+  /** Splits this program into a list of project expressions and a list of
+   * filter expressions.
+   *
+   * <p>Neither list is null.
+   * The filters are evaluated first. */
+  public Pair<ImmutableList<RexNode>, ImmutableList<RexNode>> split() {
+    final List<RexNode> filters = Lists.newArrayList();
+    if (condition != null) {
+      RelOptUtil.decomposeConjunction(expandLocalRef(condition), filters);
+    }
+    final ImmutableList.Builder<RexNode> projects = ImmutableList.builder();
+    for (RexLocalRef project : this.projects) {
+      projects.add(expandLocalRef(project));
+    }
+    return Pair.of(projects.build(), ImmutableList.copyOf(filters));
   }
 
   /**

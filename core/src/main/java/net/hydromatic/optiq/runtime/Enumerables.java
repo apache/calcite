@@ -23,6 +23,8 @@ import net.hydromatic.linq4j.function.EqualityComparer;
 import net.hydromatic.linq4j.function.Function1;
 import net.hydromatic.linq4j.function.Predicate1;
 
+import net.hydromatic.optiq.impl.interpreter.Row;
+
 import org.eigenbase.util.Bug;
 
 /**
@@ -33,9 +35,30 @@ import org.eigenbase.util.Bug;
  * Methods are subject to removal without notice.</p>
  */
 public class Enumerables {
+  private static final Function1<?, ?> SLICE =
+      new Function1<Object[], Object>() {
+        public Object apply(Object[] a0) {
+          return a0[0];
+        }
+      };
+
+  private static final Function1<Object[], Row> ARRAY_TO_ROW =
+      new Function1<Object[], Row>() {
+        public Row apply(Object[] a0) {
+          return Row.asCopy(a0);
+        }
+      };
+
   private Enumerables() {}
 
-  /**
+  /** Converts an enumerable over singleton arrays into the enumerable of their
+   * first elements. */
+  public static <E> Enumerable<E> slice0(Enumerable<E[]> enumerable) {
+    //noinspection unchecked
+    return enumerable.select((Function1<E[], E>) SLICE);
+  }
+
+   /**
    * Returns elements of {@code outer} for which there is a member of
    * {@code inner} with a matching key.
    */
@@ -117,6 +140,11 @@ public class Enumerables {
     };
   }
 
+  /** Converts an {@link Enumerable} over object arrays into an
+   * {@link Enumerable} over {@link Row} objects. */
+  public static Enumerable<Row> toRow(final Enumerable<Object[]> enumerator) {
+    return enumerator.select(ARRAY_TO_ROW);
+  }
 }
 
 // End Enumerables.java

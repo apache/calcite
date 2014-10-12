@@ -18,10 +18,7 @@ package net.hydromatic.optiq.prepare;
 
 import net.hydromatic.linq4j.expressions.Expression;
 
-import net.hydromatic.optiq.QueryableTable;
-import net.hydromatic.optiq.Schemas;
-import net.hydromatic.optiq.Table;
-import net.hydromatic.optiq.TranslatableTable;
+import net.hydromatic.optiq.*;
 import net.hydromatic.optiq.jdbc.OptiqSchema;
 import net.hydromatic.optiq.rules.java.EnumerableConvention;
 import net.hydromatic.optiq.rules.java.JavaRules;
@@ -95,12 +92,23 @@ public class RelOptTableImpl implements Prepare.PreparingTable {
   public static RelOptTableImpl create(RelOptSchema schema, RelDataType rowType,
       final OptiqSchema.TableEntry tableEntry, Double rowCount) {
     Function<Class, Expression> expressionFunction;
-    if (tableEntry.getTable() instanceof QueryableTable) {
-      final QueryableTable table = (QueryableTable) tableEntry.getTable();
+    final Table table = tableEntry.getTable();
+    if (table instanceof QueryableTable) {
+      final QueryableTable queryableTable = (QueryableTable) table;
       expressionFunction = new Function<Class, Expression>() {
         public Expression apply(Class clazz) {
-          return table.getExpression(tableEntry.schema.plus(),
+          return queryableTable.getExpression(tableEntry.schema.plus(),
               tableEntry.name, clazz);
+        }
+      };
+    } else if (table instanceof ScannableTable
+        || table instanceof FilterableTable
+        || table instanceof ProjectableFilterableTable) {
+      expressionFunction = new Function<Class, Expression>() {
+        public Expression apply(Class clazz) {
+          return Schemas.tableExpression(tableEntry.schema.plus(),
+              Object[].class, tableEntry.name,
+              table.getClass());
         }
       };
     } else {
@@ -111,7 +119,7 @@ public class RelOptTableImpl implements Prepare.PreparingTable {
       };
     }
     return new RelOptTableImpl(schema, rowType, tableEntry.path(),
-      tableEntry.getTable(), expressionFunction, rowCount);
+        table, expressionFunction, rowCount);
   }
 
   public static RelOptTableImpl create(
@@ -170,9 +178,14 @@ public class RelOptTableImpl implements Prepare.PreparingTable {
     }
     RelOptCluster cluster = context.getCluster();
     Class elementType = deduceElementType();
-    return new JavaRules.EnumerableTableAccessRel(
-        cluster, cluster.traitSetOf(EnumerableConvention.INSTANCE),
-        this, elementType);
+    final RelNode scan = new JavaRules.EnumerableTableAccessRel(cluster,
+        cluster.traitSetOf(EnumerableConvention.INSTANCE), this, elementType);
+    if (table instanceof FilterableTable
+        || table instanceof ProjectableFilterableTable) {
+      return new JavaRules.EnumerableInterpreterRel(cluster, scan.getTraitSet(),
+          scan, 1d);
+    }
+    return scan;
   }
 
   private Class deduceElementType() {
@@ -184,6 +197,10 @@ public class RelOptTableImpl implements Prepare.PreparingTable {
       } else {
         return Object[].class;
       }
+    } else if (table instanceof ScannableTable
+        || table instanceof FilterableTable
+        || table instanceof ProjectableFilterableTable) {
+      return Object[].class;
     } else {
       return Object.class;
     }

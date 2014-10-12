@@ -120,7 +120,7 @@ public class PushProjectPastJoinRule extends RelOptRule {
 
     // put the original project on top of the join, converting it to
     // reference the modified projection list
-    ProjectRel topProject =
+    RelNode topProject =
         pushProject.createNewProject(newJoinRel, adjustments);
 
     call.transformTo(topProject);

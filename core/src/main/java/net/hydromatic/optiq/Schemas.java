@@ -16,6 +16,7 @@
  */
 package net.hydromatic.optiq;
 
+import net.hydromatic.linq4j.Enumerable;
 import net.hydromatic.linq4j.QueryProvider;
 import net.hydromatic.linq4j.Queryable;
 import net.hydromatic.linq4j.expressions.*;
@@ -30,8 +31,10 @@ import net.hydromatic.optiq.materialize.Lattice;
 import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.reltype.RelDataTypeFactory;
 import org.eigenbase.reltype.RelProtoDataType;
+import org.eigenbase.rex.RexNode;
 import org.eigenbase.sql.type.SqlTypeUtil;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 
@@ -152,6 +155,18 @@ public final class Schemas {
           expression(schema),
           BuiltinMethod.SCHEMA_GET_TABLE.method,
           Expressions.constant(tableName));
+      if (ScannableTable.class.isAssignableFrom(clazz)) {
+        return Expressions.call(
+            BuiltinMethod.SCHEMAS_ENUMERABLE.method,
+            Expressions.convert_(expression, ScannableTable.class),
+            DataContext.ROOT);
+      }
+      if (FilterableTable.class.isAssignableFrom(clazz)) {
+        return Expressions.call(
+            BuiltinMethod.SCHEMAS_ENUMERABLE2.method,
+            Expressions.convert_(expression, FilterableTable.class),
+            DataContext.ROOT);
+      }
     } else {
       expression = Expressions.call(
           BuiltinMethod.SCHEMAS_QUERYABLE.method,
@@ -160,8 +175,7 @@ public final class Schemas {
           Expressions.constant(elementType),
           Expressions.constant(tableName));
     }
-    return Types.castIfNecessary(
-        clazz, expression);
+    return Types.castIfNecessary(clazz, expression);
   }
 
   public static DataContext createDataContext(Connection connection) {
@@ -194,6 +208,37 @@ public final class Schemas {
       Class<E> clazz, String tableName) {
     QueryableTable table = (QueryableTable) schema.getTable(tableName);
     return table.asQueryable(root.getQueryProvider(), schema, tableName);
+  }
+
+  /** Returns an {@link net.hydromatic.linq4j.Enumerable} over the rows of
+   * a given table, representing each row as an object array. */
+  public static Enumerable<Object[]> enumerable(final ScannableTable table,
+      final DataContext root) {
+    return table.scan(root);
+  }
+
+  /** Returns an {@link net.hydromatic.linq4j.Enumerable} over the rows of
+   * a given table, not applying any filters, representing each row as an object
+   * array. */
+  public static Enumerable<Object[]> enumerable(final FilterableTable table,
+      final DataContext root) {
+    return table.scan(root, ImmutableList.<RexNode>of());
+  }
+
+  /** Returns an {@link net.hydromatic.linq4j.Enumerable} over object arrays,
+   * given a fully-qualified table name which leads to a
+   * {@link ScannableTable}. */
+  public static Table table(DataContext root, String... names) {
+    SchemaPlus schema = root.getRootSchema();
+    final List<String> nameList = Arrays.asList(names);
+    for (Iterator<? extends String> iterator = nameList.iterator();;) {
+      String name = iterator.next();
+      if (iterator.hasNext()) {
+        schema = schema.getSubSchema(name);
+      } else {
+        return schema.getTable(name);
+      }
+    }
   }
 
   /** Parses and validates a SQL query. For use within Calcite only. */

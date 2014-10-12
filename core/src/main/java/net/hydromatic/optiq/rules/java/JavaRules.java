@@ -22,7 +22,10 @@ import net.hydromatic.linq4j.expressions.Expression;
 import net.hydromatic.linq4j.function.*;
 
 import net.hydromatic.optiq.*;
+import net.hydromatic.optiq.impl.interpreter.Interpreter;
+import net.hydromatic.optiq.impl.interpreter.Row;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
+import net.hydromatic.optiq.jdbc.JavaTypeFactoryImpl;
 import net.hydromatic.optiq.prepare.OptiqPrepareImpl;
 import net.hydromatic.optiq.prepare.Prepare;
 import net.hydromatic.optiq.rules.java.impl.*;
@@ -508,36 +511,74 @@ public class JavaRules {
       this.elementType = elementType;
     }
 
-    private Expression getExpression() {
-      Expression expression = table.getExpression(Queryable.class);
+    private Expression getExpression(PhysType physType) {
+      final Expression expression = table.getExpression(Queryable.class);
+      final Expression expression2 = toEnumerable(expression);
+      assert Types.isAssignableFrom(Enumerable.class, expression2.getType());
+      Expression expression3 = toRows(physType, expression2);
+      return expression3;
+    }
+
+    private Expression toEnumerable(Expression expression) {
       final Type type = expression.getType();
       if (Types.isArray(type)) {
         if (Types.toClass(type).getComponentType().isPrimitive()) {
           expression =
-              Expressions.call(
-                  BuiltinMethod.AS_LIST.method,
-                  expression);
+              Expressions.call(BuiltinMethod.AS_LIST.method, expression);
         }
-        expression =
-            Expressions.call(
-                BuiltinMethod.AS_ENUMERABLE.method,
-                expression);
+        return Expressions.call(BuiltinMethod.AS_ENUMERABLE.method, expression);
       } else if (Types.isAssignableFrom(Iterable.class, type)
           && !Types.isAssignableFrom(Enumerable.class, type)) {
-        expression =
-            Expressions.call(
-                BuiltinMethod.AS_ENUMERABLE2.method,
-                expression);
+        return Expressions.call(BuiltinMethod.AS_ENUMERABLE2.method,
+            expression);
       } else if (Types.isAssignableFrom(Queryable.class, type)) {
         // Queryable extends Enumerable, but it's too "clever", so we call
         // Queryable.asEnumerable so that operations such as take(int) will be
         // evaluated directly.
-        expression =
-            Expressions.call(
-                expression,
-                BuiltinMethod.QUERYABLE_AS_ENUMERABLE.method);
+        return Expressions.call(expression,
+            BuiltinMethod.QUERYABLE_AS_ENUMERABLE.method);
       }
       return expression;
+    }
+
+    private Expression toRows(PhysType physType, Expression expression) {
+      final ParameterExpression row_ =
+          Expressions.parameter(elementType, "row");
+      List<Expression> expressionList = new ArrayList<Expression>();
+      final int fieldCount = table.getRowType().getFieldCount();
+      if (elementType == Row.class) {
+        // Convert Enumerable<Row> to Enumerable<SyntheticRecord>
+        for (int i = 0; i < fieldCount; i++) {
+          expressionList.add(
+              RexToLixTranslator.convert(
+                  Expressions.call(row_,
+                      BuiltinMethod.ROW_VALUE.method,
+                      Expressions.constant(i)),
+                  physType.getJavaFieldType(i)));
+        }
+      } else if (elementType == Object[].class
+          && rowType.getFieldCount() == 1) {
+        // Convert Enumerable<Object[]> to Enumerable<SyntheticRecord>
+        for (int i = 0; i < fieldCount; i++) {
+          expressionList.add(
+              RexToLixTranslator.convert(
+                  Expressions.arrayIndex(row_, Expressions.constant(i)),
+                  physType.getJavaFieldType(i)));
+        }
+      } else if (elementType == Object.class) {
+        if (!(physType.getJavaRowType()
+            instanceof JavaTypeFactoryImpl.SyntheticRecordType)) {
+          return expression;
+        }
+        expressionList.add(
+            RexToLixTranslator.convert(row_, physType.getJavaFieldType(0)));
+      } else {
+        return expression;
+      }
+      return Expressions.call(expression,
+          BuiltinMethod.SELECT.method,
+          Expressions.lambda(Function1.class, physType.record(expressionList),
+              row_));
     }
 
     private JavaRowFormat format() {
@@ -564,8 +605,52 @@ public class JavaRules {
               implementor.getTypeFactory(),
               getRowType(),
               format());
-      final Expression expression = getExpression();
+      final Expression expression = getExpression(physType);
       return implementor.result(physType, Blocks.toBlock(expression));
+    }
+  }
+
+  /** Relational expression that executes its children using an interpreter.
+   *
+   * <p>Although quite a few kinds of {@link RelNode} can be interpreted,
+   * this is only created by default for {@link FilterableTable}
+   * and {@link ProjectableFilterableTable}.
+   */
+  public static class EnumerableInterpreterRel extends SingleRel
+      implements EnumerableRel {
+    private final double factor;
+
+    /** Creates an EnumerableInterpreterRel. */
+    public EnumerableInterpreterRel(RelOptCluster cluster,
+        RelTraitSet traitSet, RelNode input, double factor) {
+      super(cluster, traitSet, input);
+      this.factor = factor;
+    }
+
+    @Override public RelOptCost computeSelfCost(RelOptPlanner planner) {
+      return super.computeSelfCost(planner).multiplyBy(factor);
+    }
+
+    @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
+      return new EnumerableInterpreterRel(getCluster(), traitSet, sole(inputs),
+          factor);
+    }
+
+    public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
+      final JavaTypeFactory typeFactory = implementor.getTypeFactory();
+      final BlockBuilder builder = new BlockBuilder();
+      final PhysType physType =
+          PhysTypeImpl.of(typeFactory, getRowType(), JavaRowFormat.ARRAY);
+      final Expression interpreter_ = builder.append("interpreter",
+          Expressions.new_(Interpreter.class,
+              implementor.getRootExpression(),
+              implementor.stash(getChild(), RelNode.class)));
+      final Expression sliced_ =
+          getRowType().getFieldCount() == 1
+              ? Expressions.call(BuiltinMethod.SLICE0.method, interpreter_)
+              : interpreter_;
+      builder.add(sliced_);
+      return implementor.result(physType, builder.toBlock());
     }
   }
 
@@ -616,7 +701,7 @@ public class JavaRules {
         RelOptCluster cluster,
         RelTraitSet traitSet,
         RelNode child,
-        List<RexNode> exps,
+        List<? extends RexNode> exps,
         RelDataType rowType,
         int flags) {
       super(cluster, traitSet, child, exps, rowType, flags);

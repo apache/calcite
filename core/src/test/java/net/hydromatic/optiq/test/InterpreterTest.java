@@ -22,7 +22,6 @@ import net.hydromatic.optiq.DataContext;
 import net.hydromatic.optiq.SchemaPlus;
 import net.hydromatic.optiq.config.Lex;
 import net.hydromatic.optiq.impl.interpreter.Interpreter;
-import net.hydromatic.optiq.impl.interpreter.Row;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 import net.hydromatic.optiq.tools.FrameworkConfig;
 import net.hydromatic.optiq.tools.Frameworks;
@@ -109,8 +108,8 @@ public class InterpreterTest {
 
   private static void assertRows(Interpreter interpreter, String... rows) {
     final List<String> list = Lists.newArrayList();
-    for (Row row : interpreter) {
-      list.add(row.toString());
+    for (Object[] row : interpreter) {
+      list.add(Arrays.toString(row));
     }
     assertThat(list, equalTo(Arrays.asList(rows)));
   }
@@ -130,6 +129,40 @@ public class InterpreterTest {
         "[110, 10, Theodore, 11500.0, 250]",
         "[150, 10, Sebastian, 7000.0, null]",
         "[200, 20, Eric, 8000.0, 500]");
+  }
+
+  /** Tests executing a plan on a {@link net.hydromatic.optiq.ScannableTable}
+   * using an interpreter. */
+  @Test public void testInterpretScannableTable() throws Exception {
+    rootSchema.add("beatles", new ScannableTableTest.BeatlesTable());
+    SqlNode parse =
+        planner.parse("select * from \"beatles\" order by \"i\"");
+
+    SqlNode validate = planner.validate(parse);
+    RelNode convert = planner.convert(validate);
+
+    final Interpreter interpreter =
+        new Interpreter(new MyDataContext(planner), convert);
+    assertRows(interpreter,
+        "[4, John]",
+        "[4, Paul]",
+        "[5, Ringo]",
+        "[6, George]");
+  }
+
+  /** Tests executing a plan on a single-column
+   * {@link net.hydromatic.optiq.ScannableTable} using an interpreter. */
+  @Test public void testInterpretSimpleScannableTable() throws Exception {
+    rootSchema.add("simple", new ScannableTableTest.SimpleTable());
+    SqlNode parse =
+        planner.parse("select * from \"simple\" limit 2");
+
+    SqlNode validate = planner.validate(parse);
+    RelNode convert = planner.convert(validate);
+
+    final Interpreter interpreter =
+        new Interpreter(new MyDataContext(planner), convert);
+    assertRows(interpreter, "[0]", "[10]");
   }
 }
 

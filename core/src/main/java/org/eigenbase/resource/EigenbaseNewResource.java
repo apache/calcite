@@ -532,6 +532,12 @@ public interface EigenbaseNewResource {
 
   @BaseMessage("In user-defined aggregate class ''{0}'', first parameter to ''add'' method must be the accumulator (the return type of the ''init'' method)")
   ExInst<RuntimeException> firstParameterOfAdd(String className);
+
+  @BaseMessage("FilterableTable.scan returned a filter that was not in the original list: {0}")
+  ExInst<EigenbaseException> filterableTableInventedFilter(String s);
+
+  @BaseMessage("FilterableTable.scan must not return null")
+  ExInst<EigenbaseException> filterableTableScanReturnedNull();
 }
 
 // End EigenbaseNewResource.java

@@ -64,9 +64,7 @@ public class ReflectiveSchemaTest {
         queryProvider.createQuery(
             Expressions.call(
                 Expressions.call(
-                    net.hydromatic.linq4j.expressions.Types.of(
-                        Enumerable.class,
-                        Employee.class),
+                    Types.of(Enumerable.class, Employee.class),
                     null,
                     LINQ4J_AS_ENUMERABLE_METHOD,
                     Expressions.constant(
@@ -115,8 +113,7 @@ public class ReflectiveSchemaTest {
         queryProvider.createQuery(
             Expressions.call(
                 Expressions.call(
-                    net.hydromatic.linq4j.expressions.Types.of(
-                        Enumerable.class, Employee.class),
+                    Types.of(Enumerable.class, Employee.class),
                     null,
                     LINQ4J_AS_ENUMERABLE_METHOD,
                     Arrays.<Expression>asList(

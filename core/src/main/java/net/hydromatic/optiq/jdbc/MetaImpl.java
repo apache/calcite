@@ -171,20 +171,20 @@ public class MetaImpl implements Meta {
   public static <E> ResultSet createEmptyResultSet(
       OptiqConnectionImpl connection,
       final Class<E> clazz) {
-    return createResultSet(
-        connection,
+    return createResultSet(connection, ImmutableMap.<String, Object>of(),
         fieldMetaData(clazz),
         new RecordEnumeratorCursor<E>(Linq4j.<E>emptyEnumerator(), clazz));
   }
 
   private static <E> ResultSet createResultSet(OptiqConnectionImpl connection,
+      final Map<String, Object> internalParameters,
       final ColumnMetaData.StructType structType,
       final Cursor cursor) {
     try {
       final AvaticaResultSet resultSet = connection.getFactory().newResultSet(
           connection.createStatement(),
           new OptiqPrepare.PrepareResult<E>("",
-              ImmutableList.<AvaticaParameter>of(), null,
+              ImmutableList.<AvaticaParameter>of(), internalParameters, null,
               structType, -1, null, Object.class) {
             @Override
             public Cursor createCursor(DataContext dataContext) {
@@ -203,7 +203,8 @@ public class MetaImpl implements Meta {
       final Enumerable<?> enumerable,
       final NamedFieldGetter columnGetter) {
     //noinspection unchecked
-    return createResultSet(connection, columnGetter.structType,
+    return createResultSet(connection, ImmutableMap.<String, Object>of(),
+        columnGetter.structType,
         columnGetter.cursor(((Enumerable) enumerable).enumerator()));
   }
 
@@ -603,10 +604,14 @@ public class MetaImpl implements Meta {
 
   public Cursor createCursor(AvaticaResultSet resultSet_) {
     OptiqResultSet resultSet = (OptiqResultSet) resultSet_;
-    final DataContext dataContext =
-        connection.createDataContext(
-            OptiqConnectionImpl.TROJAN.getParameterValues(
-                resultSet.getStatement()));
+    Map<String, Object> map = Maps.newLinkedHashMap();
+    final List<Object> parameterValues =
+        OptiqConnectionImpl.TROJAN.getParameterValues(resultSet.getStatement());
+    for (Ord<Object> o : Ord.zip(parameterValues)) {
+      map.put("?" + o.i, o.e);
+    }
+    map.putAll(resultSet.getPrepareResult().getInternalParameters());
+    final DataContext dataContext = connection.createDataContext(map);
     OptiqPrepare.PrepareResult prepareResult = resultSet.getPrepareResult();
     return prepareResult.createCursor(dataContext);
   }
@@ -623,7 +628,7 @@ public class MetaImpl implements Meta {
   @VisibleForTesting
   public static DataContext createDataContext(OptiqConnection connection) {
     return ((OptiqConnectionImpl) connection)
-        .createDataContext(ImmutableList.of());
+        .createDataContext(ImmutableMap.<String, Object>of());
   }
 
   /** A trojan-horse method, subject to change without notice. */
