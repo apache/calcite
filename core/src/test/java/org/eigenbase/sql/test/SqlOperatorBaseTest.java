@@ -2980,6 +2980,18 @@ public abstract class SqlOperatorBaseTest {
     tester.checkBoolean("'abc' not like '_b_'", Boolean.FALSE);
   }
 
+  @Test public void testLikeEscape() {
+    tester.setFor(SqlStdOperatorTable.LIKE);
+    tester.checkBoolean("'a_c' like 'a#_c' escape '#'", Boolean.TRUE);
+    tester.checkBoolean("'axc' like 'a#_c' escape '#'", Boolean.FALSE);
+    tester.checkBoolean("'a_c' like 'a\\_c' escape '\\'", Boolean.TRUE);
+    tester.checkBoolean("'axc' like 'a\\_c' escape '\\'", Boolean.FALSE);
+    tester.checkBoolean("'a%c' like 'a\\%c' escape '\\'", Boolean.TRUE);
+    tester.checkBoolean("'a%cde' like 'a\\%c_e' escape '\\'", Boolean.TRUE);
+    tester.checkBoolean("'abbc' like 'a%c' escape '\\'", Boolean.TRUE);
+    tester.checkBoolean("'abbc' like 'a\\%c' escape '\\'", Boolean.FALSE);
+  }
+
   @Test public void testLikeOperator() {
     tester.setFor(SqlStdOperatorTable.LIKE);
     tester.checkBoolean("''  like ''", Boolean.TRUE);
