@@ -1963,4 +1963,18 @@ ProjectRel(ENAME=[$0])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testGroupAlias">
+        <Resource name="sql">
+            <![CDATA[select "$f2", max(x), max(x + 1)
+from (values (1, 2)) as t("$f2", x)
+group by "$f2"]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+AggregateRel(group=[{0}], EXPR$1=[MAX($1)], EXPR$2=[MAX($2)])
+  ProjectRel($f2=[$0], EXPR$1=[$1], $f3=[+($1, 1)])
+    ValuesRel(tuples=[[{ 1, 2 }]])
+]]>
+        </Resource>
+    </TestCase>
 </Root>

@@ -2213,9 +2213,9 @@ ProjectRel(X=[$0], EXPR$1=[$2], Y=[$1])
     <TestCase name="testPushFilterWithRank">
         <Resource name="sql">
             <![CDATA[select e1.ename, r
-from (select ename, rank() over(partition by  deptno order by sal) as r from emp) e1
-where r < 2
-]]>
+from (
+  select ename,   rank() over(partition by  deptno order by sal) as r   from emp) e1
+where r < 2]]>
         </Resource>
         <Resource name="planBefore">
             <![CDATA[
@@ -2237,9 +2237,10 @@ ProjectRel(ENAME=[$0], R=[$1])
     <TestCase name="testPushFilterWithRankExpr">
         <Resource name="sql">
             <![CDATA[select e1.ename, r
-from (select ename, rank() over(partition by  deptno order by sal) as r + 1 from emp) e1
-where r < 2
-]]>
+from (
+  select ename,
+  rank() over(partition by  deptno order by sal) + 1 as r   from emp) e1
+where r < 2]]>
         </Resource>
         <Resource name="planBefore">
             <![CDATA[

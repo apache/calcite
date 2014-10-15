@@ -411,6 +411,17 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
         "${plan}");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/OPTIQ-439">[OPTIQ-439]
+   * SqlValidatorUtil.uniquify() may not terminate under some
+   * conditions</a>. */
+  @Test public void testGroupAlias() {
+    check("select \"$f2\", max(x), max(x + 1)\n"
+        + "from (values (1, 2)) as t(\"$f2\", x)\n"
+        + "group by \"$f2\"",
+        "${plan}");
+  }
+
   @Test public void testOrderGroup() {
     check(
         "select deptno, count(*) "
