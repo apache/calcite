@@ -192,6 +192,28 @@ public class RelOptRulesTest extends RelOptTestBase {
             + "  and emp.sal > 100)");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/OPTIQ-438">[OPTIQ-438],
+   * Push predicates through SemiJoinRel</a>. */
+  @Test public void testPushFilterThroughSemiJoin() {
+    final HepProgram preProgram =
+        HepProgram.builder()
+            .addRuleInstance(SemiJoinRule.INSTANCE)
+            .build();
+
+    final HepProgram program =
+        HepProgram.builder()
+            .addRuleInstance(PushFilterPastProjectRule.INSTANCE)
+            .addRuleInstance(PushFilterPastJoinRule.FILTER_ON_JOIN)
+            .addRuleInstance(PushFilterPastJoinRule.JOIN)
+            .build();
+    checkPlanning(tester.withDecorrelation(true).withTrim(false), preProgram,
+        new HepPlanner(program),
+        "select * from (select * from dept where dept.deptno in (\n"
+            + "  select emp.deptno from emp\n"
+            + "  ))R where R.deptno <=10 ");
+  }
+
   protected void semiJoinTrim() {
     final DiffRepository diffRepos = getDiffRepos();
     String sql = diffRepos.expand(null, "${sql}");

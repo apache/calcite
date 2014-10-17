@@ -108,6 +108,35 @@ ProjectRel(EXPR$0=[1])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testPushFilterThroughSemiJoin">
+        <Resource name="sql">
+            <![CDATA[select * from (select * from dept where dept.deptno in (select emp.deptno from emp))R where R.deptno <=10 ]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+ProjectRel(DEPTNO=[$0], NAME=[$1])
+  FilterRel(condition=[<=($0, 10)])
+    ProjectRel(DEPTNO=[$0], NAME=[$1])
+      SemiJoinRel(condition=[=($2, $3)], joinType=[inner])
+        ProjectRel($f0=[$0], $f1=[$1], $f2=[$0])
+          TableAccessRel(table=[[CATALOG, SALES, DEPT]])
+        ProjectRel(DEPTNO=[$7])
+          TableAccessRel(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+ProjectRel(DEPTNO=[$0], NAME=[$1])
+  ProjectRel(DEPTNO=[$0], NAME=[$1])
+    SemiJoinRel(condition=[=($2, $3)], joinType=[inner])
+      FilterRel(condition=[<=($0, 10)])
+        ProjectRel($f0=[$0], $f1=[$1], $f2=[$0])
+          TableAccessRel(table=[[CATALOG, SALES, DEPT]])
+      ProjectRel(DEPTNO=[$7])
+        TableAccessRel(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testPushFilterPastAgg">
         <Resource name="sql">
             <![CDATA[select dname, c from (select name dname, count(*) as c from dept group by name) t where dname = 'Charlie']]>

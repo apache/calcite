@@ -24,6 +24,7 @@ import org.eigenbase.rex.*;
 import org.eigenbase.util.Holder;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Sets;
 
 /**
  * PushFilterPastJoinRule implements the rule for pushing filters above and
@@ -69,11 +70,9 @@ public abstract class PushFilterPastJoinRule extends RelOptRule {
 
   protected void perform(RelOptRuleCall call, FilterRelBase filter,
       JoinRelBase join) {
-    if (join instanceof SemiJoinRel) {
-      return;
-    }
     final List<RexNode> joinFilters =
         RelOptUtil.conjunctions(join.getCondition());
+    final List<RexNode> origJoinFilters = ImmutableList.copyOf(joinFilters);
 
     // If there is only the joinRel,
     // make sure it does not match a cartesian product joinRel
@@ -115,6 +114,19 @@ public abstract class PushFilterPastJoinRule extends RelOptRule {
         joinTypeHolder,
         smart)) {
       filterPushed = true;
+    }
+
+    // Move join filters up if needed
+    validateJoinFilters(aboveFilters, joinFilters, join);
+
+    // If no filter got pushed after validate reset filterPushed flag
+    if (leftFilters.isEmpty()
+        && rightFilters.isEmpty()
+        && joinFilters.size() == origJoinFilters.size()) {
+      if (Sets.newHashSet(joinFilters)
+          .equals(Sets.newHashSet(origJoinFilters))) {
+        filterPushed = false;
+      }
     }
 
     // Try to push down filters in ON clause. A ON clause filter can only be
@@ -201,6 +213,25 @@ public abstract class PushFilterPastJoinRule extends RelOptRule {
         createFilterOnRel(rexBuilder, newJoinRel, aboveFilters);
 
     call.transformTo(newRel);
+  }
+
+  /**
+   * Validates that target execution framework can satisfy join filters.
+   *
+   * <p>If the join filter cannot be satifisfied (for example, if it is
+   * {@code l.c1 > r.c2} and the join only supports equi-join), removes the
+   * filter from {@code joinFilters} and adds it to {@code aboveFilters}.
+   *
+   * <p>The default implementation does nothing; i.e. the join can handle all
+   * conditions.
+   *
+   * @param aboveFilters Filter above Join
+   * @param joinFilters Filters in join condition
+   * @param join Join
+   */
+  protected void validateJoinFilters(List<RexNode> aboveFilters,
+      List<RexNode> joinFilters, JoinRelBase join) {
+    return;
   }
 
   /**

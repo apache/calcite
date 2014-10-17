@@ -1960,7 +1960,9 @@ public abstract class RelOptUtil {
     final List<RelDataTypeField> rightFields =
         joinRel.getInputs().get(1).getRowType().getFieldList();
     final int nFieldsRight = rightFields.size();
-    assert nTotalFields == nSysFields + nFieldsLeft + nFieldsRight;
+    assert nTotalFields == (joinRel instanceof SemiJoinRel
+        ? nSysFields + nFieldsLeft
+        : nSysFields + nFieldsLeft + nFieldsRight);
 
     // set the reference bitmaps for the left and right children
     BitSet leftBitmap =
