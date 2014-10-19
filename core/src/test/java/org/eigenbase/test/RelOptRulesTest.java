@@ -173,6 +173,17 @@ public class RelOptRulesTest extends RelOptTestBase {
         + " where dname = 'Charlie'");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/OPTIQ-434">[OPTIQ-434],
+   * FilterAggregateTransposeRule loses conditions that cannot be pushed</a>. */
+  @Test public void testPushFilterPastAggTwo() {
+    checkPlanning(FilterAggregateTransposeRule.INSTANCE,
+        "select dept1.c1 from (\n"
+        + "  select dept.name as c1, count(*) as c2\n"
+        + "  from dept where dept.name > 'b' group by dept.name) dept1\n"
+        + "where dept1.c1 > 'c' and (dept1.c2 > 30 or dept1.c1 < 'z')");
+  }
+
   @Test public void testSemiJoinRule() {
     final HepProgram preProgram =
         HepProgram.builder()

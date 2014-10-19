@@ -110,7 +110,9 @@ ProjectRel(EXPR$0=[1])
     </TestCase>
     <TestCase name="testPushFilterThroughSemiJoin">
         <Resource name="sql">
-            <![CDATA[select * from (select * from dept where dept.deptno in (select emp.deptno from emp))R where R.deptno <=10 ]]>
+            <![CDATA[select * from (select * from dept where dept.deptno in (
+  select emp.deptno from emp
+  ))R where R.deptno <=10 ]]>
         </Resource>
         <Resource name="planBefore">
             <![CDATA[
@@ -2350,6 +2352,35 @@ MultiJoinRel(joinFilter=[true], isFullOuterJoin=[false], joinTypes=[[RIGHT, INNE
     TableAccessRel(table=[[CATALOG, SALES, A]])
     TableAccessRel(table=[[CATALOG, SALES, B]])
   TableAccessRel(table=[[CATALOG, SALES, C]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testPushFilterPastAggTwo">
+        <Resource name="sql">
+            <![CDATA[select dept1.c1 from (
+  select dept.name as c1, count(*) as c2
+  from dept where dept.name > 'b' group by dept.name) dept1
+where dept1.c1 > 'c' and (dept1.c2 > 30 or dept1.c1 < 'z')]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+ProjectRel(C1=[$0])
+  FilterRel(condition=[AND(>($0, 'c'), OR(>($1, 30), <($0, 'z')))])
+    AggregateRel(group=[{0}], C2=[COUNT()])
+      ProjectRel(C1=[$1])
+        FilterRel(condition=[>($1, 'b')])
+          TableAccessRel(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+ProjectRel(C1=[$0])
+  FilterRel(condition=[OR(>($1, 30), <($0, 'z'))])
+    AggregateRel(group=[{0}], C2=[COUNT()])
+      FilterRel(condition=[>($0, 'c')])
+        ProjectRel(C1=[$1])
+          FilterRel(condition=[>($1, 'b')])
+            TableAccessRel(table=[[CATALOG, SALES, DEPT]])
 ]]>
         </Resource>
     </TestCase>

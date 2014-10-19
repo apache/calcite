@@ -267,7 +267,8 @@ public abstract class RelOptUtil {
           RexUtil.composeConjunction(
               cluster.getRexBuilder(), conditions, true);
 
-      ret = createFilter(ret, conditionExp);
+      ret = createFilter(ret, conditionExp,
+          RelFactories.DEFAULT_FILTER_FACTORY);
     }
 
     if (extraExpr != null) {
@@ -451,20 +452,43 @@ public abstract class RelOptUtil {
    * @return Relational expression
    */
   public static RelNode createFilter(RelNode child, RexNode condition) {
-    return new FilterRel(child.getCluster(), child, condition);
+    return createFilter(child, condition, RelFactories.DEFAULT_FILTER_FACTORY);
+  }
+
+  /**
+   * Creates a relational expression which filters according to a given
+   * condition, returning the same fields as its input.
+   *
+   * @param child     Child relational expression
+   * @param condition Condition
+   * @param filterFactory Filter factory
+   * @return Relational expression
+   */
+  public static RelNode createFilter(RelNode child, RexNode condition,
+      RelFactories.FilterFactory filterFactory) {
+    return filterFactory.createFilter(child, condition);
+  }
+
+  /** Creates a filter, using the default filter factory,
+   * or returns the original relational expression if the
+   * condition is trivial. */
+  public static RelNode createFilter(RelNode child,
+      Iterable<? extends RexNode> conditions) {
+    return createFilter(child, conditions, RelFactories.DEFAULT_FILTER_FACTORY);
   }
 
   /** Creates a filter, or returns the original relational expression if the
    * condition is trivial. */
   public static RelNode createFilter(RelNode child,
-      Iterable<? extends RexNode> conditions) {
+      Iterable<? extends RexNode> conditions,
+      RelFactories.FilterFactory filterFactory) {
     final RelOptCluster cluster = child.getCluster();
     final RexNode condition =
         RexUtil.composeConjunction(cluster.getRexBuilder(), conditions, true);
     if (condition == null) {
       return child;
     } else {
-      return createFilter(child, condition);
+      return createFilter(child, condition, filterFactory);
     }
   }
 
@@ -519,7 +543,7 @@ public abstract class RelOptUtil {
       return rel;
     }
 
-    return createFilter(rel, condition);
+    return createFilter(rel, condition, RelFactories.DEFAULT_FILTER_FACTORY);
   }
 
   /**

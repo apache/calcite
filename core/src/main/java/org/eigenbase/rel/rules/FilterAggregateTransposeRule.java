@@ -81,6 +81,7 @@ public class FilterAggregateTransposeRule extends RelOptRule {
         aggRel.getRowType().getFieldList();
     final int[] adjustments = new int[origFields.size()];
     final List<RexNode> pushedConditions = Lists.newArrayList();
+    final List<RexNode> remainingConditions = Lists.newArrayList();
 
     for (RexNode condition : conditions) {
       BitSet rCols = RelOptUtil.InputFinder.bits(condition);
@@ -90,19 +91,19 @@ public class FilterAggregateTransposeRule extends RelOptRule {
                 new RelOptUtil.RexInputConverter(rexBuilder, origFields,
                     aggRel.getInput(0).getRowType().getFieldList(),
                     adjustments)));
+      } else {
+        remainingConditions.add(condition);
       }
     }
 
-    final RexNode pushedCondition = RexUtil.composeConjunction(rexBuilder,
-        pushedConditions, true);
-
-    if (pushedCondition != null) {
-      RelNode newFilterRel = filterFactory.createFilter(aggRel.getInput(0),
-          pushedCondition);
-      RelNode newAggRel = aggRel.copy(aggRel.getTraitSet(),
-          ImmutableList.of(newFilterRel));
-      call.transformTo(newAggRel);
+    RelNode rel = RelOptUtil.createFilter(aggRel.getInput(0), pushedConditions,
+        filterFactory);
+    if (rel == aggRel.getInput(0)) {
+      return;
     }
+    rel = aggRel.copy(aggRel.getTraitSet(), ImmutableList.of(rel));
+    rel = RelOptUtil.createFilter(rel, remainingConditions, filterFactory);
+    call.transformTo(rel);
   }
 }
 
