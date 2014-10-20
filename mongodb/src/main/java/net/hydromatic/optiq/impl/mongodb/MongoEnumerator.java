@@ -122,9 +122,16 @@ class MongoEnumerator implements Enumerator<Object> {
     if (o == null || clazz.isInstance(o)) {
       return o;
     }
-    if (clazz == int.class || clazz == Integer.class) {
-      if (o instanceof Date) {
+    if (o instanceof Date) {
+      // If the return type is an int, then the number of *days* since
+      // Jan 1, 1970 is expected
+      if (clazz == int.class || clazz == Integer.class) {
         return (int) (((Date) o).getTime() / DateTimeUtil.MILLIS_PER_DAY);
+      }
+      // If the return type is a long, then the number of *milliseconds* since
+      // Jan 1, 1970 00:00:00 is expected
+      if (clazz == long.class || clazz == Long.class) {
+        return (long) (((Date) o).getTime());
       }
     }
     return o;
