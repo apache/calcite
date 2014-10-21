@@ -1,6 +1,19 @@
 # Optiq-csv release history
 
-For a full list of releases, see <a href="https://github.com/julianhyde/optiq-csv/releases">github</a>.
+For a full list of releases, see
+<a href="https://github.com/julianhyde/optiq-csv/releases">github</a>.
+
+## HEAD
+
+* Upgrade to calcite-0.9.1.
+* Support gzip-compressed CSV and JSON files (recognized by '.gz' suffix).
+* Cleanup, and fix minor timezone issue in a test.
+* Support for date types (date, time, timestamp) (Martijn van den Broek)
+* Upgrade to optiq-0.8, optiq-avatica-0.8, linq4j-0.4.
+* Add support for JSON files (recognized by '.json' suffix).
+* Upgrade maven-release-plugin to version 2.4.2.
+* Upgrade to optiq-0.6, linq4j-0.2.
+* Add NOTICE and LICENSE files in generated JAR file.
 
 ## <a href="https://github.com/julianhyde/optiq-csv/releases/tag/optiq-csv-0.3">0.3</a> / 2014-03-21
 

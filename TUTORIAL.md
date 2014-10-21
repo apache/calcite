@@ -1,10 +1,10 @@
 Tutorial
 ========
 
-Optiq-csv is a fully functional adapter for <a
-href="https://github.com/julianhyde/optiq">Optiq</a> that reads text
-files in <a
-href="http://en.wikipedia.org/wiki/Comma-separated_values">CSV
+Optiq-csv is a fully functional adapter for
+<a href="https://github.com/apache/incubator-calcite">Calcite</a> that reads
+text files in
+<a href="http://en.wikipedia.org/wiki/Comma-separated_values">CSV
 (comma-separated values)</a> format. It is remarkable that a couple of
 hundred lines of Java code are sufficient to provide full SQL query
 capability.
@@ -27,17 +27,16 @@ Without further ado, let's get started.
 If you haven't already installed, follow the instructions in the <a href="README.md">README</a>.
 It's just two commands: <code>git clone</code> followed <code>mvn install</code>.
 
-Now let's connect to Optiq using 
+Now let's connect to Calcite using
 <a href="https://github.com/julianhyde/sqlline">sqlline</a>, a SQL shell
 that is included in the optiq-csv github project.
 
 ```bash
 $ ./sqlline
-sqlline> !connect jdbc:optiq:model=target/test-classes/model.json admin admin
+sqlline> !connect jdbc:calcite:model=target/test-classes/model.json admin admin
 ```
 
-(If you are running Windows, the command is `sqlline.bat`. Everything
-else in this tutorial should be the same.)
+(If you are running Windows, the command is `sqlline.bat`.)
 
 Execute a metadata query:
 
@@ -62,13 +61,13 @@ As you can see there are 4 tables in the system: tables
 <code>EMPS</code> and <code>DEPTS</code> in the current
 <code>SALES</code> schema, and <code>COLUMNS</code> and
 <code>TABLES</code> in the system <code>metadata</code> schema. The
-system tables are always present in Optiq, but the other tables are
+system tables are always present in Calcite, but the other tables are
 provided by the specific implementation of the schema; in this case,
 the <code>EMPS</code> and <code>DEPTS</code> tables are based on the
 <code>EMPS.csv</code> and <code>DEPTS.csv</code> files in the
 <code>target/test-classes</code> directory.
 
-Let's execute some queries on those tables, to show that Optiq is providing
+Let's execute some queries on those tables, to show that Calcite is providing
 a full implementation of SQL. First, a table scan:
 
 ```bash
@@ -110,14 +109,14 @@ sqlline> VALUES CHAR_LENGTH('Hello, ' || 'world!');
 +---------+
 ```
 
-Optiq has many other SQL features. We don't have time to cover them
+Calcite has many other SQL features. We don't have time to cover them
 here. Write some more queries to experiment.
 
 ## Schema discovery
 
-Now, how did Optiq find these tables? Remember, core Optiq does not
+Now, how did Calcite find these tables? Remember, core Calcite does not
 know anything about CSV files. (As a "database without a storage
-layer", Optiq doesn't know about any file formats.) Optiq knows about
+layer", Calcite doesn't know about any file formats.) Calcite knows about
 those tables because we told it to run code in the optiq-csv
 project.
 
@@ -125,7 +124,7 @@ There are a couple of steps in that chain. First, we define a schema
 based on a schema factory class in a model file. Then the schema
 factory creates a schema, and the schema creates several tables, each
 of which knows how to get data by scanning a CSV file. Last, after
-Optiq has parsed the query and planned it to use those tables, Optiq
+Calcite has parsed the query and planned it to use those tables, Calcite
 invokes the tables to read the data as the query is being
 executed. Now let's look at those steps in more detail.
 
@@ -152,8 +151,8 @@ format. Here is the model:
 The model defines a single schema called 'SALES'. The schema is
 powered by a plugin class,
 <a href="https://github.com/julianhyde/optiq-csv/blob/master/src/main/java/net/hydromatic/optiq/impl/csv/CsvSchemaFactory.java">net.hydromatic.optiq.impl.csv.CsvSchemaFactory</a>, which is part of the
-optiq-csv project and implements the Optiq interface
-<a href="http://www.hydromatic.net/optiq/apidocs/net/hydromatic/optiq/SchemaFactory.html">SchemaFactory</a>. Its <code>create</code> method instantiates a
+optiq-csv project and implements the Calcite interface
+<a href="http://www.hydromatic.net/calcite/apidocs/net/hydromatic/optiq/SchemaFactory.html">SchemaFactory</a>. Its <code>create</code> method instantiates a
 schema, passing in the <code>directory</code> argument from the model file:
 
 ```java
@@ -172,17 +171,18 @@ public Schema create(SchemaPlus parentSchema, String name,
 Driven by the model, the schema factory instantiates a single schema
 called 'SALES'.  The schema is an instance of
 <a href="https://github.com/julianhyde/optiq-csv/blob/master/src/main/java/net/hydromatic/optiq/impl/csv/CsvSchema.java">net.hydromatic.optiq.impl.csv.CsvSchema</a>
-and implements the Optiq interface <a
-href="http://www.hydromatic.net/optiq/apidocs/net/hydromatic/optiq/Schema.html">Schema</a>.
+and implements the Calcite interface <a
+href="http://www.hydromatic.net/calcite/apidocs/net/hydromatic/optiq/Schema.html">Schema</a>.
 
 A schema's job is to produce a list of tables. (It can also list sub-schemas and
 table-functions, but these are advanced features and optiq-csv does
-not support them.) The tables implement Optiq's <a
-href="http://www.hydromatic.net/optiq/apidocs/net/hydromatic/optiq/Table.html">Table</a> interface. <code>CsvSchema</code> produces tables that are instances of
+not support them.) The tables implement Calcite's
+<a href="http://www.hydromatic.net/calcite/apidocs/net/hydromatic/optiq/Table.html">Table</a>
+interface. <code>CsvSchema</code> produces tables that are instances of
 <a href="https://github.com/julianhyde/optiq-csv/blob/master/src/main/java/net/hydromatic/optiq/impl/csv/CsvTable.java">CsvTable</a>.
 
 Here is the relevant code from <code>CsvSchema</code>, overriding the
-<code><a href="http://www.hydromatic.net/optiq/apidocs/net/hydromatic/optiq/impl/AbstractSchema.html#getTableMap()">getTableMap()</a></code>
+<code><a href="http://www.hydromatic.net/calcite/apidocs/net/hydromatic/optiq/impl/AbstractSchema.html#getTableMap()">getTableMap()</a></code>
 method in the <code>AbstractSchema</code> base class.
 
 ```java
@@ -266,11 +266,27 @@ Here is a schema that defines a view:
 }
 ```
 
-The line <code>type: 'view'</code> tags <code>FEMALE_EMPS</code> as a view, as opposed to a regular table
-or a custom table. Note that single-quotes within the view definition are escaped using a
+The line <code>type: 'view'</code> tags <code>FEMALE_EMPS</code> as a view,
+as opposed to a regular table or a custom table.
+Note that single-quotes within the view definition are escaped using a
 back-slash, in the normal way for JSON.
 
-We can now execute queries using that view just as if it were a table:
+JSON doesn't make it easy to author long strings, so Calcite supports an
+alternative syntax. If your view has a long SQL statement, you can instead
+supply a list of lines rather than a single string:
+
+```json
+        {
+          name: 'FEMALE_EMPS',
+          type: 'view',
+          sql: [
+            'SELECT * FROM emps',
+            'WHERE gender = \'F\''
+          ]
+        }
+```
+
+Now we have defined a view, we can use it in queries just as if it were a table:
 
 ```sql
 sqlline> SELECT e.name, d.name FROM female_emps AS e JOIN depts AS d on e.deptno = d.deptno;
@@ -314,7 +330,7 @@ There is an example in <code>model-with-custom-table.json</code>:
 We can query the table in the usual way:
 
 ```sql
-sqlline> !connect jdbc:optiq:model=target/test-classes/model-with-custom-table.json admin admin
+sqlline> !connect jdbc:calcite:model=target/test-classes/model-with-custom-table.json admin admin
 sqlline> SELECT empno, name FROM custom_table.emps;
 +--------+--------+
 | EMPNO  |  NAME  |
@@ -329,10 +345,10 @@ sqlline> SELECT empno, name FROM custom_table.emps;
 
 The schema is a regular one, and contains a custom table powered by
 <a href="https://github.com/julianhyde/optiq-csv/blob/master/src/main/java/net/hydromatic/optiq/impl/csv/CsvTableFactory.java">net.hydromatic.optiq.impl.csv.CsvTableFactory</a>,
-which implements the Optiq interface
-<a href="http://www.hydromatic.net/optiq/apidocs/net/hydromatic/optiq/TableFactory.html">TableFactory</a>.
-Its <code>create</code> method instantiates a
-table, passing in the <code>file</code> argument from the model file:
+which implements the Calcite interface
+<a href="http://www.hydromatic.net/calcite/apidocs/net/hydromatic/optiq/TableFactory.html">TableFactory</a>.
+Its <code>create</code> method instantiates a table,
+passing in the <code>file</code> argument from the model file:
 
 ```java
 public CsvTable create(SchemaPlus schema, String name,
@@ -385,10 +401,10 @@ Models can include comments using `/* ... */` and `//` syntax:
 The table implementations we have seen so far are fine as long as the tables
 don't contain a great deal of data. But if your customer table has, say, a
 hundred columns and a million rows, you would rather that the system did not
-retrieve all of the data for every query. You would like Optiq to negotiate
+retrieve all of the data for every query. You would like Calcite to negotiate
 with the adapter and find a more efficient way of accessing the data.
 
-This negotiation is a simple form of query optimization. Optiq supports query
+This negotiation is a simple form of query optimization. Calcite supports query
 optimization by adding <i>planner rules</i>. Planner rules operate by
 looking for patterns in the query parse tree (for instance a project on top
 of a certain kind of table), and
@@ -402,7 +418,7 @@ a subset of columns from a CSV file. Let's run the same query against two very
 similar schemas:
 
 ```sql
-sqlline> !connect jdbc:optiq:model=target/test-classes/model.json admin admin
+sqlline> !connect jdbc:calcite:model=target/test-classes/model.json admin admin
 sqlline> explain plan for select name from emps;
 +-----------------------------------------------------+
 | PLAN                                                |
@@ -410,7 +426,7 @@ sqlline> explain plan for select name from emps;
 | EnumerableCalcRel(expr#0..9=[{inputs}], NAME=[$t1]) |
 |   EnumerableTableAccessRel(table=[[SALES, EMPS]])   |
 +-----------------------------------------------------+
-sqlline> !connect jdbc:optiq:model=target/test-classes/smart.json admin admin
+sqlline> !connect jdbc:calcite:model=target/test-classes/smart.json admin admin
 sqlline> explain plan for select name from emps;
 +-----------------------------------------------------+
 | PLAN                                                |
@@ -427,18 +443,19 @@ What causes the difference in plan? Let's follow the trail of evidence. In the
 smart: true
 ```
 
-This causes <code>CsvSchema</code> to be created with <code>smart = true</code>,
+This causes a <code>CsvSchema</code> to be created with
+<code>smart = true</code>,
 and its <code>createTable</code> method creates instances of
 <a href="https://github.com/julianhyde/optiq-csv/blob/master/src/main/java/net/hydromatic/optiq/impl/csv/CsvSmartTable.java">CsvSmartTable</a>
 rather than a <code>CsvTable</code>.
 
 <code>CsvSmartTable</code> overrides the
-<code><a href="http://www.hydromatic.net/optiq/apidocs/net/hydromatic/optiq/TranslatableTable#toRel()">TranslatableTable.toRel()</a></code>
+<code><a href="http://www.hydromatic.net/calcite/apidocs/net/hydromatic/optiq/TranslatableTable#toRel()">TranslatableTable.toRel()</a></code>
 method to create
 <a href="https://github.com/julianhyde/optiq-csv/blob/master/src/main/java/net/hydromatic/optiq/impl/csv/CsvTableScan.java">CsvTableScan</a>.
 Table scans are the leaves of a query operator tree.
 The usual implementation is
-<code><a href="http://www.hydromatic.net/optiq/apidocs/net/hydromatic/optiq/impl/java/JavaRules.EnumerableTableAccessRel.html">EnumerableTableAccessRel</a></code>,
+<code><a href="http://www.hydromatic.net/calcite/apidocs/net/hydromatic/optiq/impl/java/JavaRules.EnumerableTableAccessRel.html">EnumerableTableAccessRel</a></code>,
 but we have created a distinctive sub-type that will cause rules to fire.
 
 Here is the rule in its entirety:
@@ -491,21 +508,21 @@ The constructor declares the pattern of relational expressions that will cause
 the rule to fire.
 
 The <code>onMatch</code> method generates a new relational expression and calls
-<code><a href="http://www.hydromatic.net/optiq/apidocs/org/eigenbase/relopt/RelOptRuleCall.html#transformTo(org.eigenbase.rel.RelNode)">RelOptRuleCall.transformTo()</a></code>
+<code><a href="http://www.hydromatic.net/calcite/apidocs/org/eigenbase/relopt/RelOptRuleCall.html#transformTo(org.eigenbase.rel.RelNode)">RelOptRuleCall.transformTo()</a></code>
 to indicate that the rule has fired successfully.
 
 ## The query optimization process
 
-There's a lot to say about how clever Optiq's query planner is, but we won't say
-it here. The cleverness is designed to take the burden off you, the writer of
-planner rules.
+There's a lot to say about how clever Calcite's query planner is, but we won't
+say it here. The cleverness is designed to take the burden off you, the writer
+of planner rules.
 
-First, Optiq doesn't fire rules in a prescribed order. The query optimization process
-follows many branches of a branching tree, just like a chess playing program
-examines many possible sequences of moves. If rules A and B both match a given
-section of the query operator tree, then Optiq can fire both.
+First, Calcite doesn't fire rules in a prescribed order. The query optimization
+process follows many branches of a branching tree, just like a chess playing
+program examines many possible sequences of moves. If rules A and B both match a
+given section of the query operator tree, then Calcite can fire both.
 
-Second, Optiq uses cost in choosing between plans, but the cost model doesn't
+Second, Calcite uses cost in choosing between plans, but the cost model doesn't
 prevent rules from firing which may seem to be more expensive in the short term.
 
 Many optimizers have a linear optimization scheme. Faced with a choice between
@@ -514,14 +531,14 @@ might have a policy such as "apply rule A to the whole tree, then apply rule B
 to the whole tree", or apply a cost-based policy, applying the rule that
 produces the cheaper result.
 
-Optiq doesn't require such compromises.
+Calcite doesn't require such compromises.
 This makes it simple to combine various sets of rules.
 If, say you want to combine rules to recognize materialized views with rules to
-read from CSV and JDBC source systems, you just give Optiq the set of all rules
-and tell it to go at it.
+read from CSV and JDBC source systems, you just give Calcite the set of all
+rules and tell it to go at it.
 
-Optiq does use a cost model. The cost model decides which plan to ultimately use,
-and sometimes to prune the search tree to prevent the search space from
+Calcite does use a cost model. The cost model decides which plan to ultimately
+use, and sometimes to prune the search tree to prevent the search space from
 exploding, but it never forces you to choose between rule A and rule B. This is
 important, because it avoids falling into local minima in the search space that
 are not actually optimal.
@@ -531,7 +548,7 @@ operator statistics it is based upon. But that can be a subject for later.
 
 ## JDBC adapter
 
-The JDBC adapter maps a schema in a JDBC data source as an Optiq schema.
+The JDBC adapter maps a schema in a JDBC data source as a Calcite schema.
 
 For example, this schema reads from a MySQL "foodmart" database:
 
@@ -563,19 +580,19 @@ installation instructions</a>.)
 
 <b>Current limitations</b>: The JDBC adapter currently only pushes
 down table scan operations; all other processing (filtering, joins,
-aggregations and so forth) occurs within Optiq. Our goal is to push
+aggregations and so forth) occurs within Calcite. Our goal is to push
 down as much processing as possible to the source system, translating
-syntax, data types and built-in functions as we go. If an Optiq query
+syntax, data types and built-in functions as we go. If a Calcite query
 is based on tables from a single JDBC database, in principle the whole
 query should go to that database. If tables are from multiple JDBC
-sources, or a mixture of JDBC and non-JDBC, Optiq will use the most
+sources, or a mixture of JDBC and non-JDBC, Calcite will use the most
 efficient distributed query approach that it can.
 
 ## The cloning JDBC adapter
 
 The cloning JDBC adapter creates a hybrid database. The data is
 sourced from a JDBC database but is read into in-memory tables the
-first time each table is accessed. Optiq evaluates queries based on
+first time each table is accessed. Calcite evaluates queries based on
 those in-memory tables, effectively a cache of the database.
 
 For example, the following model reads tables from a MySQL
@@ -676,7 +693,8 @@ How to enable DML operations (INSERT, UPDATE and DELETE) on your schema.
 
 ### Built-in SQL implementation
 
-How does Optiq implement SQL, if an adapter does not implement all of the core relational operators?
+How does Calcite implement SQL, if an adapter does not implement all of the core
+relational operators?
 
 (To be written.)
 
@@ -686,5 +704,6 @@ How does Optiq implement SQL, if an adapter does not implement all of the core r
 
 ## Further resources
 
-* <a href="http://github.com/julianhyde/optiq">Optiq</a> home page
+* <a href="http://github.com/apache/incubator-calcite">Apache Calcite</a> home
+  page
 * <a href="http://github.com/julianhyde/optiq-csv">Optiq-csv</a> home page

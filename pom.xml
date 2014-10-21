@@ -9,7 +9,7 @@
 
   <!-- More project information. -->
   <name>optiq-csv</name>
-  <description>Optiq provider that reads CSV files.</description>
+  <description>Calcite provider that reads CSV files.</description>
   <url>http://github.com/julianhyde/optiq-csv</url>
   <inceptionYear>2013</inceptionYear>
   <organization>
@@ -18,8 +18,9 @@
   </organization>
   <licenses>
     <license>
-      <name>Apache 2</name>
-      <url>http://www.apache.org/licenses/LICENSE-2.0.html</url>
+      <name>The Apache Software License, Version 2.0</name>
+      <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+      <distribution>repo</distribution>
     </license>
   </licenses>
 
@@ -40,11 +41,11 @@
 
   <mailingLists>
     <mailingList>
-      <name>Apache Optiq developers list</name>
-      <subscribe>dev-subscribe@optiq.incubator.apache.org</subscribe>
-      <unsubscribe>dev-unsubscribe@optiq.incubator.apache.org</unsubscribe>
-      <post>dev@optiq.incubator.apache.org</post>
-      <archive>http://mail-archives.apache.org/mod_mbox/incubator-optiq-dev</archive>
+      <name>Apache Calcite developers list</name>
+      <subscribe>dev-subscribe@calcite.incubator.apache.org</subscribe>
+      <unsubscribe>dev-unsubscribe@calcite.incubator.apache.org</unsubscribe>
+      <post>dev@calcite.incubator.apache.org</post>
+      <archive>http://mail-archives.apache.org/mod_mbox/incubator-calcite-dev</archive>
     </mailingList>
   </mailingLists>
 
@@ -81,14 +82,14 @@
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>org.apache.optiq</groupId>
-      <artifactId>optiq-core</artifactId>
-      <version>0.9.0-incubating</version>
+      <groupId>org.apache.calcite</groupId>
+      <artifactId>calcite-core</artifactId>
+      <version>0.9.1-incubating</version>
     </dependency>
     <dependency>
-      <groupId>org.apache.optiq</groupId>
-      <artifactId>optiq-avatica</artifactId>
-      <version>0.9.0-incubating</version>
+      <groupId>org.apache.calcite</groupId>
+      <artifactId>calcite-avatica</artifactId>
+      <version>0.9.1-incubating</version>
     </dependency>
     <dependency>
       <groupId>net.hydromatic</groupId>
@@ -126,7 +127,7 @@
         <version>2.8.1</version>
         <configuration>
           <links>
-            <link>http://docs.oracle.com/javase/7/docs/api/</link>
+            <link>http://docs.oracle.com/javase/8/docs/api/</link>
           </links>
         </configuration>
       </plugin>
@@ -134,17 +135,6 @@
   </reporting>
 
   <repositories>
-    <repository>
-      <releases>
-        <enabled>true</enabled>
-        <updatePolicy>always</updatePolicy>
-        <checksumPolicy>warn</checksumPolicy>
-      </releases>
-      <id>pentaho</id>
-      <name>Pentaho</name>
-      <url>http://repo.pentaho.org/artifactory/repo</url>
-      <layout>default</layout>
-    </repository>
     <repository>
       <releases>
         <enabled>true</enabled>
