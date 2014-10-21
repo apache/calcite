@@ -18,7 +18,7 @@
 !use post
 !set outputformat psql
 
-# [OPTIQ-373]
+# [CALCITE-373]
 # the following should return no rows, because the IN list has a null.
 # for details on this: see HIVE-784, Dayal's paper from VLDB-87
 with

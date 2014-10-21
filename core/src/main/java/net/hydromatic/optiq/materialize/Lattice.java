@@ -121,7 +121,7 @@ public class Lattice {
             SqlValidatorUtil.uniquify(Lists.transform(columns, GET_ALIAS)));
     if (rowCountEstimate == null) {
       // We could improve this when we fix
-      // [OPTIQ-429] Add statistics SPI for lattice optimization algorithm
+      // [CALCITE-429] Add statistics SPI for lattice optimization algorithm
       rowCountEstimate = 1000d;
     }
     Preconditions.checkArgument(rowCountEstimate > 0d);

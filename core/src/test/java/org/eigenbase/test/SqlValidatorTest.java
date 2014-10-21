@@ -6486,7 +6486,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/OPTIQ-145">OPTIQ-145,
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-145">CALCITE-145,
    * "Unexpected upper-casing of keywords when using java lexer"</a>. */
   @Test public void testLexJavaKeyword() {
     final SqlTester tester1 = tester.withLex(Lex.JAVA);
@@ -6564,7 +6564,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     // mysql> select `D`.day from DAYS as `d`, DAYS as `D`;
     // ERROR 1066 (42000): Not unique table/alias: 'D'
     tester2.checkQuery("select count(*) from dept as [D], dept as [d]");
-    if (!Bug.OPTIQ_319_FIXED) {
+    if (!Bug.CALCITE_319_FIXED) {
       return;
     }
     tester1.checkQueryFails("select count(*) from dept as [D], dept as [d]",

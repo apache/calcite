@@ -31,8 +31,8 @@ Create a local copy of the github repository,
 then build using maven:
 
 ```bash
-$ git clone git://github.com/apache/incubator-optiq.git
-$ cd incubator-optiq
+$ git clone git://github.com/apache/incubator-calcite.git
+$ cd incubator-calcite
 $ mvn install
 ```
 
@@ -75,7 +75,7 @@ We welcome contributions.
 
 If you are planning to make a large contribution, talk to us first! It
 helps to agree on the general approach. Log a
-[JIRA case](https://issues.apache.org/jira/browse/OPTIQ) for your
+[JIRA case](https://issues.apache.org/jira/browse/CALCITE) for your
 proposed feature or start a discussion on the dev list.
 
 Fork the github repository, and create a branch for your feature.
@@ -87,7 +87,7 @@ Commit your change to your branch, and use a comment that starts with
 the JIRA case number, like this:
 
 ```
-[OPTIQ-345] AssertionError in RexToLixTranslator comparing to date literal
+[CALCITE-345] AssertionError in RexToLixTranslator comparing to date literal
 ```
 
 If your change had multiple commits, use `git rebase -i master` to
@@ -95,7 +95,7 @@ combine them into a single commit, and to bring your code up to date
 with the latest on the main line.
 
 Then push your commit(s) to github, and create a pull request from
-your branch to the incubator-optiq master branch. Update the JIRA case
+your branch to the incubator-calcite master branch. Update the JIRA case
 to reference your pull request, and a committer will review your
 changes.
 
@@ -165,7 +165,9 @@ connecting to: test
 bye
 ```
 
-Connect using the <a href="https://github.com/julianhyde/optiq/blob/master/mongodb/src/test/resources/mongo-zips-model.json">mongo-zips-model.json</a> Calcite model:
+Connect using the
+<a href="https://github.com/apache/incubator-calcite/blob/master/mongodb/src/test/resources/mongo-zips-model.json">mongo-zips-model.json</a>
+Calcite model:
 ```bash
 $ ./sqlline
 sqlline> !connect jdbc:calcite:model=mongodb/target/test-classes/mongo-zips-model.json admin admin
@@ -313,7 +315,7 @@ Before you start:
   by merging the latest code into the `julianhyde/coverity_scan` branch,
   and when it completes, make sure that there are no important issues.
 * Make sure that
-  <a href="https://issues.apache.org/jira/issues/?jql=project%20%3D%20OPTIQ%20AND%20status%20%3D%20Resolved%20and%20fixVersion%20is%20null">
+  <a href="https://issues.apache.org/jira/issues/?jql=project%20%3D%20CALCITE%20AND%20status%20%3D%20Resolved%20and%20fixVersion%20is%20null">
   every "resolved" JIRA case</a> (including duplicates) has
   a fix version assigned (most likely the version we are
   just about to release)
@@ -458,8 +460,8 @@ checkHash apache-calcite-X.Y.Z-incubating-rcN
 Release vote on dev list
 
 ```
-To: dev@optiq.incubator.apache.org
-Subject: Release apache-Calcite-X.Y.Z-incubating (release candidate N)
+To: dev@calcite.incubator.apache.org
+Subject: Release apache-calcite-X.Y.Z-incubating (release candidate N)
 
 Hi all,
 
@@ -468,13 +470,13 @@ I have created a build for Apache Calcite X.Y.Z-incubating, release candidate N.
 Thanks to everyone who has contributed to this release.
 
 The commit to be voted upon:
-http://git-wip-us.apache.org/repos/asf/incubator-optiq/commit/NNNNNN
+http://git-wip-us.apache.org/repos/asf/incubator-calcite/commit/NNNNNN
 
 The artifacts to be voted on are located here:
 http://people.apache.org/~jhyde/apache-calcite-X.Y.Z-incubating-rcN/
 
 A staged Maven repository is available for review at:
-https://repository.apache.org/content/repositories/orgapacheoptiq-NNNN
+https://repository.apache.org/content/repositories/orgapachecalcite-NNNN
 
 Release artifacts are signed with the following key:
 https://people.apache.org/keys/committer/jhyde.asc
@@ -499,8 +501,8 @@ Julian
 After vote finishes, send out the result:
 
 ```
-Subject: [RESULT] [VOTE] Release apache-Calcite-X.Y.Z-incubating (release candidate N)
-To: dev@optiq.incubator.apache.org
+Subject: [RESULT] [VOTE] Release apache-calcite-X.Y.Z-incubating (release candidate N)
+To: dev@calcite.incubator.apache.org
 
 Thanks to everyone who has tested the release candidate and given
 their comments and votes.
@@ -548,13 +550,13 @@ Apache Calcite PPMC
 
 
 Proposal:
-http://mail-archives.apache.org/mod_mbox/incubator-optiq-dev/201408.mbox/MESSAGE-URI
+http://mail-archives.apache.org/mod_mbox/incubator-calcite-dev/201408.mbox/MESSAGE-URI
 
 Vote result:
 N binding +1 votes
 N non-binding +1 votes
 No -1 votes
-http://mail-archives.apache.org/mod_mbox/incubator-optiq-dev/201408.mbox/MESSAGE-URI
+http://mail-archives.apache.org/mod_mbox/incubator-calcite-dev/201408.mbox/MESSAGE-URI
 
 Artifacts:
 http://people.apache.org/~jhyde/calcite-X.Y.Z-incubating-rcN/
@@ -583,18 +585,41 @@ Julian
 After a successful release vote, we need to push the release
 out to mirrors, and other tasks.
 
-* In JIRA, search for all issues resolved in this release,
-  and do a bulk update changing their status to "Closed",
-  with a change comment
-  "Resolved in release X.Y.Z-incubating (YYYY-MM-DD)"
-  (fill in release number and date appropriately).
+In JIRA, search for all issues resolved in this release,
+and do a bulk update changing their status to "Closed",
+with a change comment
+"Resolved in release X.Y.Z-incubating (YYYY-MM-DD)"
+(fill in release number and date appropriately).
+
+Promote the staged nexus artifacts.
+* Go to https://repository.apache.org/
+* Under "Build Promotion" click "Staging Repositories"
+* In the line with "orgapachecalcite-xxxx", check the box
+* Press "Release" button
+
+Check the artifacts into svn.
+
+```bash
+ssh people.apache.org
+mkdir -p dist
+cd dist
+svn co https://dist.apache.org/repos/dist/release/incubator/calcite
+# Copy the artifacts. Note that the copy does not have '-rcN' suffix.
+cp -rp ../public_html/apache-calcite-X.Y.Z-incubating-rcN calcite/apache-calcite-X.Y.Z-incubating
+# Check in.
+svn ci
+```
+
+Svnpubsub will publish to
+https://dist.apache.org/repos/dist/release/incubator/calcite and propagate to
+http://www.apache.org/dyn/closer.cgi/incubator/calcite within 24 hours.
 
 ## Publishing the web site (for Calcite committers)
 
 Get the code:
 
 ```bash
-$ svn co https://svn.apache.org/repos/asf/incubator/optiq/site calcite-site
+$ svn co https://svn.apache.org/repos/asf/incubator/calcite/site calcite-site
 ```
 
 (Note: `https:`, not `http:`.)
@@ -616,4 +641,4 @@ Check in:
 svn ci -m"Commit message" file...
 ```
 
-The site will automatically be deployed as http://optiq.incubator.apache.org.
+The site will automatically be deployed as http://calcite.incubator.apache.org.

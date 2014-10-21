@@ -314,12 +314,12 @@ public class ReflectiveSchemaTest {
   }
 
   /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/OPTIQ-119">OPTIQ-119</a>,
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-119">CALCITE-119</a>,
    * "Comparing a Java type long with a SQL type INTEGER gives wrong answer". */
   @Test public void testCompareJavaAndSqlTypes() throws Exception {
     final OptiqAssert.AssertThat with =
         OptiqAssert.that().with("s", new CatchallSchema());
-    // With OPTIQ-119, returned 0 rows. The problem was that when comparing
+    // With CALCITE-119, returned 0 rows. The problem was that when comparing
     // a Java type (long) and a SQL type (INTEGER), the SQL type was deemed
     // "less restrictive". So, the long value got truncated to an int value.
     with.query(

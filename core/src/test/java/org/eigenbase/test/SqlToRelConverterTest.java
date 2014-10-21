@@ -87,7 +87,7 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
 
   /**
    * Test case for
-   * <a href="https://issues.apache.org/jira/browse/OPTIQ-245">OPTIQ-245</a>,
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-245">CALCITE-245</a>,
    * "Off-by-one translation of ON clause of JOIN".
    */
   @Test public void testConditionOffByOne() {
@@ -122,7 +122,7 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
   }
 
   /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/OPTIQ-74">OPTIQ-74</a>,
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-74">CALCITE-74</a>,
    * "JOIN ... USING fails in 3-way join with UnsupportedOperationException". */
   @Test public void testJoinUsingThreeWay() {
     check(
@@ -412,7 +412,7 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
   }
 
   /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/OPTIQ-439">[OPTIQ-439]
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-439">[CALCITE-439]
    * SqlValidatorUtil.uniquify() may not terminate under some
    * conditions</a>. */
   @Test public void testGroupAlias() {
@@ -446,7 +446,7 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
   }
 
   /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/OPTIQ-309">[OPTIQ-309]
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-309">[CALCITE-309]
    * WITH ... ORDER BY query gives AssertionError</a>. */
   @Test public void testWithOrder() {
     check("with emp2 as (select * from emp)\n"
@@ -927,7 +927,7 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
   }
 
   /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/OPTIQ-412">OPTIQ-412</a>,
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-412">CALCITE-412</a>,
    * "RelFieldTrimmer: when trimming SortRel, the collation and trait set don't
    * match". */
   @Test public void testSortWithTrim() {

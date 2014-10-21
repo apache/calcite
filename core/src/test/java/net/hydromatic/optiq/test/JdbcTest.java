@@ -1396,7 +1396,7 @@ public class JdbcTest {
 
   /** Tests 3-way AND.
    *
-   * <p>With <a href="https://issues.apache.org/jira/browse/OPTIQ-127">OPTIQ-127,
+   * <p>With <a href="https://issues.apache.org/jira/browse/CALCITE-127">CALCITE-127,
    * "EnumerableCalcRel can't support 3+ AND conditions"</a>, the last condition
    * is ignored and rows with deptno=10 are wrongly returned.</p>
    */
@@ -1437,7 +1437,7 @@ public class JdbcTest {
   }
 
   /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/OPTIQ-281">OPTIQ-281</a>,
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-281">CALCITE-281</a>,
    * "SQL type of EXTRACT is BIGINT but it is implemented as int". */
   @Test public void testExtract() {
     OptiqAssert.that()
@@ -1459,7 +1459,7 @@ public class JdbcTest {
   }
 
   /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/OPTIQ-387">OPTIQ-387</a>,
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-387">CALCITE-387</a>,
    * "CompileException when cast TRUE to nullable boolean". */
   @Test public void testTrue() {
     final OptiqAssert.AssertThat that = OptiqAssert.that();
@@ -1508,7 +1508,7 @@ public class JdbcTest {
   /** A join that has both equi and non-equi conditions.
    *
    * <p>Test case for
-   * <a href="https://issues.apache.org/jira/browse/OPTIQ-371">OPTIQ-371</a>,
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-371">CALCITE-371</a>,
    * "Cannot implement JOIN whose ON clause contains mixed equi and theta". */
   @Test public void testEquiThetaJoin() {
     OptiqAssert.that()
@@ -1526,7 +1526,7 @@ public class JdbcTest {
   }
 
   /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/OPTIQ-35">OPTIQ-35</a>,
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-35">CALCITE-35</a>,
    * "Support parenthesized sub-clause in JOIN". */
   @Ignore
   @Test public void testJoinJoin() {
@@ -1969,7 +1969,7 @@ public class JdbcTest {
    * plan.
    *
    * <p>Test case for (not yet fixed)
-   * <a href="https://issues.apache.org/jira/browse/OPTIQ-92">OPTIQ-92</a>,
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-92">CALCITE-92</a>,
    * "Project should be optimized away, not converted to EnumerableCalcRel".</p>
    */
   @Ignore
@@ -2081,7 +2081,7 @@ public class JdbcTest {
   }
 
   /** Test case for (not yet fixed)
-   * <a href="https://issues.apache.org/jira/browse/OPTIQ-99">OPTIQ-99</a>,
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-99">CALCITE-99</a>,
    * "Recognize semi-join that has high selectivity and push it down". */
   @Ignore
   @Test public void testExplainJoin4() throws IOException {
@@ -2684,7 +2684,7 @@ public class JdbcTest {
   }
 
   /** Tests sorting by an expression not in the '*' select clause. Test case for
-   * <a href="https://issues.apache.org/jira/browse/OPTIQ-176">OPTIQ-176</a>. */
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-176">CALCITE-176</a>. */
   @Test public void testOrderStarByExpr() {
     OptiqAssert.that().with(OptiqAssert.Config.REGULAR)
         .query(
@@ -2869,7 +2869,7 @@ public class JdbcTest {
   }
 
   /** Limit implemented using {@link Queryable#take}. Test case for
-   * <a href="https://issues.apache.org/jira/browse/OPTIQ-96">OPTIQ-96</a>,
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-96">CALCITE-96</a>,
    * "LIMIT against a table in a clone schema causes
    * UnsupportedOperationException". */
   @Test public void testLimitOnQueryableTable() {
@@ -2884,7 +2884,7 @@ public class JdbcTest {
   }
 
   /** Limit implemented using {@link Queryable#take}. Test case for
-   * <a href="https://issues.apache.org/jira/browse/OPTIQ-70">OPTIQ-70</a>,
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-70">CALCITE-70</a>,
    * "Joins seem to be very expensive in memory". */
   @Test public void testSelfJoinCount() {
     OptiqAssert.that()
@@ -2932,9 +2932,9 @@ public class JdbcTest {
   }
 
   /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/OPTIQ-397">OPTIQ-397</a>,
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-397">CALCITE-397</a>,
    * "SELECT DISTINCT *" gives ClassCastException at runtime". */
-  @Ignore("OPTIQ-397")
+  @Ignore("CALCITE-397")
   @Test public void testSelectDistinctStar() {
     OptiqAssert.that()
         .with(OptiqAssert.Config.REGULAR)
@@ -3013,16 +3013,16 @@ public class JdbcTest {
   }
 
   /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/OPTIQ-403">OPTIQ-403</a>,
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-403">CALCITE-403</a>,
    * "Enumerable gives NullPointerException with HAVING on nullable
    * expression". */
-  @Ignore("OPTIQ-403")
+  @Ignore("CALCITE-403")
   @Test public void testHavingNot() throws IOException {
     withFoodMartQuery(6597).runs();
   }
 
   /** Minimal case of {@link #testHavingNot()}. */
-  @Ignore("OPTIQ-403")
+  @Ignore("CALCITE-403")
   @Test public void testHavingNot2() throws IOException {
     OptiqAssert.that()
         .with(OptiqAssert.Config.FOODMART_CLONE)
@@ -3907,7 +3907,7 @@ public class JdbcTest {
   /** Tests windowed aggregation with no ORDER BY clause.
    *
    * <p>Test case for
-   * <a href="https://issues.apache.org/jira/browse/OPTIQ-285">OPTIQ-285</a>,
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-285">CALCITE-285</a>,
    * "Window functions throw exception without ORDER BY".
    *
    * <p>Note:</p>
@@ -4219,7 +4219,7 @@ public class JdbcTest {
   }
 
   /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/OPTIQ-313">OPTIQ-313</a>,
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-313">CALCITE-313</a>,
    * "Query decorrelation fails". */
   @Test public void testJoinInCorrelatedSubquery() {
     OptiqAssert.that()
@@ -4599,7 +4599,7 @@ public class JdbcTest {
    * allow Jackson's comments extension.
    *
    * <p>Test case for
-   * <a href="https://issues.apache.org/jira/browse/OPTIQ-160">OPTIQ-160</a>,
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-160">CALCITE-160</a>,
    * "Allow comments in schema definitions".</p> */
   @Test public void testModelWithComment() {
     final String model =
@@ -5609,7 +5609,8 @@ public class JdbcTest {
             "Cannot apply = to the two different charsets ISO-8859-1 and UTF-16LE");
 
     // The CONVERT function (what SQL:2011 calls "character transliteration") is
-    // not implemented yet. See https://issues.apache.org/jira/browse/OPTIQ-111.
+    // not implemented yet. See
+    // https://issues.apache.org/jira/browse/CALCITE-111.
     with.query(
         "select * from \"employee\"\n"
         + "where convert(\"full_name\" using UTF16) = _UTF16'\u82f1\u56fd'")

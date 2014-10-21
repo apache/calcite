@@ -174,7 +174,7 @@ public class RelOptRulesTest extends RelOptTestBase {
   }
 
   /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/OPTIQ-434">[OPTIQ-434],
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-434">[CALCITE-434],
    * FilterAggregateTransposeRule loses conditions that cannot be pushed</a>. */
   @Test public void testPushFilterPastAggTwo() {
     checkPlanning(FilterAggregateTransposeRule.INSTANCE,
@@ -204,7 +204,7 @@ public class RelOptRulesTest extends RelOptTestBase {
   }
 
   /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/OPTIQ-438">[OPTIQ-438],
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-438">[CALCITE-438],
    * Push predicates through SemiJoinRel</a>. */
   @Test public void testPushFilterThroughSemiJoin() {
     final HepProgram preProgram =

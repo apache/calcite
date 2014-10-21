@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/julianhyde/optiq.svg?branch=master)](https://travis-ci.org/julianhyde/optiq)
+[![Build Status](https://travis-ci.org/julianhyde/incubator-calcite.svg?branch=master)](https://travis-ci.org/julianhyde/incubator-calcite)
 
 # Apache Calcite
 
@@ -10,7 +10,7 @@ It was formerly called Optiq.
 
 To run Apache Calcite, you can either
 [download and build from github](doc/HOWTO.md#building-from-git),
-or [download a release](http://www.apache.org/dyn/closer.cgi/incubator/optiq)
+or [download a release](http://www.apache.org/dyn/closer.cgi/incubator/calcite)
 then [build the source code](doc/HOWTO.md#building-from-a-source-distribution).
 
 Pre-built jars are in
@@ -185,13 +185,13 @@ For more details, see the <a href="doc/REFERENCE.md">Reference guide</a>.
 
 * License: Apache License, Version 2.0
 * Blog: http://julianhyde.blogspot.com
-* Project page: http://optiq.incubator.apache.org
+* Project page: http://calcite.incubator.apache.org
 * Incubation status page: http://incubator.apache.org/projects/calcite.html
-* Source code: http://github.com/apache/incubator-optiq
-* Issues: <a href="https://issues.apache.org/jira/browse/OPTIQ">Apache JIRA</a>
-* Developers list: <a href="mailto:dev@optiq.incubator.apache.org">dev at optiq.incubator.apache.org</a>
-  (<a href="http://mail-archives.apache.org/mod_mbox/incubator-optiq-dev/">archive</a>,
-  <a href="mailto:dev-subscribe@optiq.incubator.apache.org">subscribe</a>)
+* Source code: http://github.com/apache/incubator-calcite
+* Issues: <a href="https://issues.apache.org/jira/browse/CALCITE">Apache JIRA</a>
+* Developers list: <a href="mailto:dev@calcite.incubator.apache.org">dev at calcite.incubator.apache.org</a>
+  (<a href="http://mail-archives.apache.org/mod_mbox/incubator-calcite-dev/">archive</a>,
+  <a href="mailto:dev-subscribe@calcite.incubator.apache.org">subscribe</a>)
 * Twitter: <a href="https://twitter.com/ApacheCalcite">@ApacheCalcite</a>
 * <a href="doc/HOWTO.md">HOWTO</a>
 * <a href="doc/MODEL.md">JSON model</a>

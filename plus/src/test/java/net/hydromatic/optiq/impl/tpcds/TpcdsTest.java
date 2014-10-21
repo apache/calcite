@@ -181,7 +181,7 @@ public class TpcdsTest {
       }
       break;
     case 72:
-      // Work around OPTIQ-304: Support '<DATE> + <INTEGER>'.
+      // Work around CALCITE-304: Support '<DATE> + <INTEGER>'.
       sql = sql.replace("+ 5", "+ interval '5' day");
       break;
     case 95:

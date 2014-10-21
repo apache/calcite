@@ -193,8 +193,8 @@ public class RelMdPredicates {
 
   /** Infers predicates for a {@link SemiJoinRel}. */
   public RelOptPredicateList getPredicates(SemiJoinRel semiJoin) {
-    // Workaround, pending
-    // [OPTIQ-390] Transitive Inference(RelMdPredicate) doesn't handle SemiJoin
+    // Workaround, pending [CALCITE-390] "Transitive inference (RelMdPredicate)
+    // doesn't handle semi-join"
     return RelOptPredicateList.EMPTY;
   }
 

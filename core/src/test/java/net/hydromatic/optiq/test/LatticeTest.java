@@ -343,7 +343,7 @@ public class LatticeTest {
    * tiles.
    *
    * <p>Test case for
-   * <a href="https://issues.apache.org/jira/browse/OPTIQ-428">OPTIQ-428,
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-428">CALCITE-428,
    * "Use optimization algorithm to suggest which tiles of a lattice to
    * materialize"</a>. */
   @Test public void testTileAlgorithm() {

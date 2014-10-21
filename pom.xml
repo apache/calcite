@@ -32,16 +32,16 @@ limitations under the License.
   <!-- More project information. -->
   <name>Calcite</name>
   <description>Calcite is a dynamic data management framework</description>
-  <url>http://optiq.incubator.apache.org</url>
+  <url>http://calcite.incubator.apache.org</url>
   <inceptionYear>2012</inceptionYear>
 
   <mailingLists>
     <mailingList>
       <name>Apache Calcite developers list</name>
-      <subscribe>dev-subscribe@optiq.incubator.apache.org</subscribe>
-      <unsubscribe>dev-unsubscribe@optiq.incubator.apache.org</unsubscribe>
-      <post>dev@optiq.incubator.apache.org</post>
-      <archive>http://mail-archives.apache.org/mod_mbox/incubator-optiq-dev</archive>
+      <subscribe>dev-subscribe@calcite.incubator.apache.org</subscribe>
+      <unsubscribe>dev-unsubscribe@calcite.incubator.apache.org</unsubscribe>
+      <post>dev@calcite.incubator.apache.org</post>
+      <archive>http://mail-archives.apache.org/mod_mbox/incubator-calcite-dev</archive>
     </mailingList>
   </mailingLists>
 
@@ -52,13 +52,13 @@ limitations under the License.
 
   <issueManagement>
     <system>Jira</system>
-    <url>https://issues.apache.org/jira/browse/OPTIQ</url>
+    <url>https://issues.apache.org/jira/browse/CALCITE</url>
   </issueManagement>
 
   <scm>
-    <connection>scm:git:https://git-wip-us.apache.org/repos/asf/incubator-optiq.git</connection>
-    <developerConnection>scm:git:https://git-wip-us.apache.org/repos/asf/incubator-optiq.git</developerConnection>
-    <url>https://github.com/apache/incubator-optiq</url>
+    <connection>scm:git:https://git-wip-us.apache.org/repos/asf/incubator-calcite.git</connection>
+    <developerConnection>scm:git:https://git-wip-us.apache.org/repos/asf/incubator-calcite.git</developerConnection>
+    <url>https://github.com/apache/incubator-calcite</url>
     <tag>HEAD</tag>
   </scm>
 

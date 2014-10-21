@@ -439,7 +439,7 @@ public class RexProgramTest {
   }
 
   /** Unit test for
-   * <a href="https://issues.apache.org/jira/browse/OPTIQ-394">OPTIQ-394,
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-394">CALCITE-394,
    * "Add RexUtil.toCnf, to convert expressions to conjunctive normal form
    * (CNF)"</a>. */
   @Test public void testCnf2() {

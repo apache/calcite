@@ -18,7 +18,7 @@
 !use post
 !set outputformat mysql
 
-# OPTIQ-307 CAST(timestamp AS DATE) gives ClassCastException
+# CALCITE-307 CAST(timestamp AS DATE) gives ClassCastException
 # Based on DRILL-1051
 !if (false) {
 with data(c_row, c_timestamp) as (select * from (values
@@ -103,7 +103,7 @@ select * from (select * from "hr"."emps" order by "empid") where (0=1);
 
 !ok
 
-# [OPTIQ-340] SqlToRelConverter fails with complex join condition
+# [CALCITE-340] SqlToRelConverter fails with complex join condition
 select e."deptno", d."deptno"
 from "hr"."emps" as e
 join "hr"."depts" as d
@@ -119,7 +119,7 @@ on ( e."deptno" + 1 - 1 = d."deptno" + 2 - 2  and e."deptno" + 10 - 10 = d."dept
 
 !ok
 
-# [OPTIQ-340] SqlToRelConverter fails with complex join condition. Switch LHS and RHS.
+# [CALCITE-340] SqlToRelConverter fails with complex join condition. Switch LHS and RHS.
 select e."deptno", d."deptno"
 from "hr"."emps" as e
 join "hr"."depts" as d
@@ -135,7 +135,7 @@ on ( d."deptno" + 2 - 2 = e."deptno" + 1 - 1  and d."deptno" + 20 - 20 = e."dept
 
 !ok
 
-# [OPTIQ-340] SqlToRelConverter fails with complex join condition. Switch LHS and RHS.
+# [CALCITE-340] SqlToRelConverter fails with complex join condition. Switch LHS and RHS.
 select e."deptno", d."deptno"
 from "hr"."emps" as e
 join "hr"."depts" as d
@@ -151,7 +151,7 @@ on ( d."deptno" + 2 - 2 = e."deptno" + 1 - 1  and e."deptno" + 10 - 10 = d."dept
 
 !ok
 
-# [OPTIQ-377] Mixed equi and non-equi join
+# [CALCITE-377] Mixed equi and non-equi join
 select e."empid", d."name", e."name"
 from "hr"."emps" as e
 join "hr"."depts" as d
@@ -224,7 +224,7 @@ EnumerableSemiJoinRel(condition=[=($1, $5)], joinType=[inner])
 !plan
 
 # NOT EXISTS
-# Right results, but it would be better if the plan used EnumerableSemiJoinRel; see [OPTIQ-374]
+# Right results, but it would be better if the plan used EnumerableSemiJoinRel; see [CALCITE-374]
 select * from "hr"."emps"
 where not exists (
   select 1 from "hr"."depts" where "depts"."deptno" = "emps"."deptno");
@@ -249,7 +249,7 @@ EnumerableCalcRel(expr#0..6=[{inputs}], expr#7=[IS NOT NULL($t6)], expr#8=[NOT($
 !plan
 
 # NOT EXISTS .. OR NOT EXISTS
-# Right results, but it would be better if the plan used EnumerableSemiJoinRel; see [OPTIQ-374]
+# Right results, but it would be better if the plan used EnumerableSemiJoinRel; see [CALCITE-374]
 select * from "hr"."emps"
 where not exists (
   select 1 from "hr"."depts" where "depts"."deptno" = "emps"."deptno")
@@ -310,7 +310,7 @@ where e."deptno" > 10 or e."name" = 'Sebastian';
 !ok
 
 # Filter combined with an AND filter. Test case for
-# [OPTIQ-389] MergeFilterRule should flatten AND condition
+# [CALCITE-389] MergeFilterRule should flatten AND condition
 select * from (
   select * from "hr"."emps" as e
   where e."deptno" < 30) as e
@@ -324,7 +324,7 @@ where e."deptno" >= 10 and e."name" = 'Sebastian';
 
 !ok
 
-# [OPTIQ-393] If no fields are projected from a table, field trimmer should
+# [CALCITE-393] If no fields are projected from a table, field trimmer should
 # project a dummy expression
 select 1 from "hr"."emps";
 +--------+
@@ -342,7 +342,7 @@ EnumerableCalcRel(expr#0..4=[{inputs}], expr#5=[1], EXPR$0=[$t5])
   EnumerableTableAccessRel(table=[[hr, emps]])
 !plan
 
-# [OPTIQ-393] for table scan under join
+# [CALCITE-393] for table scan under join
 select count(*) as c from "hr"."emps", "hr"."depts";
 +----+
 | C  |
@@ -361,7 +361,7 @@ EnumerableAggregateRel(group=[{}], C=[COUNT()])
         EnumerableTableAccessRel(table=[[hr, depts]])
 !plan
 
-# [OPTIQ-345] AssertionError in RexToLixTranslator comparing to date literal
+# [CALCITE-345] AssertionError in RexToLixTranslator comparing to date literal
 !use catchall
 select count(*) as c from "everyTypes" where "sqlDate" = DATE '1970-01-01';
 +---+
@@ -418,7 +418,7 @@ select count(*) as c from "everyTypes" where "utilDate" = TIMESTAMP '1970-01-01 
 
 !ok
 
-# [OPTIQ-346] Add commutative join rule
+# [CALCITE-346] Add commutative join rule
 #
 # 3-way join that does not require bushy join.  Best plan is: sales_fact_1997 as
 # left-most leaf, then customer (with filter), then product.
@@ -473,7 +473,7 @@ EnumerableCalcRel(expr#0..1=[{inputs}], expr#2=[1], expr#3=[=($t0, $t2)], proj#0
 !plan
 
 # [HIVE-5873] Semi-join to count subquery
-# [OPTIQ-365] AssertionError while translating query with WITH and correlated sub-query
+# [CALCITE-365] AssertionError while translating query with WITH and correlated sub-query
 !if (false) {
 with parts (PNum, OrderOnHand)
      as (select * from (values (3, 6), (10, 1), (8, 0)) as t(PNum, OrderOnHand)),
@@ -514,7 +514,7 @@ having exists
 
 !ok
 
-# [OPTIQ-411] Duplicate aliases
+# [CALCITE-411] Duplicate aliases
 select 1 as a, 2 as a from (values (true));
 +---+---+
 | A | A |

@@ -21,7 +21,7 @@ package org.eigenbase.util;
  * fixed.
  *
  * <p>You can use these constants to control the flow of your code. For example,
- * suppose that bug OPTIQ-123 causes the "INSERT" statement to return an
+ * suppose that bug CALCITE-123 causes the "INSERT" statement to return an
  * incorrect row-count, and you want to disable unit tests. You might use the
  * constant in your code as follows:
  *
@@ -155,17 +155,17 @@ public abstract class Bug {
 
   /**
    * Whether
-   * <a href="https://issues.apache.org/jira/browse/OPTIQ-194">OPTIQ-194</a>,
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-194">CALCITE-194</a>,
    * "Array items in MongoDB adapter" is fixed.
    */
-  public static final boolean OPTIQ_194_FIXED = false;
+  public static final boolean CALCITE_194_FIXED = false;
 
   /**
    * Whether
-   * <a href="https://issues.apache.org/jira/browse/OPTIQ-319">OPTIQ-319</a>,
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-319">CALCITE-319</a>,
    * "Array items in MongoDB adapter" is fixed.
    */
-  public static final boolean OPTIQ_319_FIXED = false;
+  public static final boolean CALCITE_319_FIXED = false;
 
   /**
    * Use this to flag temporary code.

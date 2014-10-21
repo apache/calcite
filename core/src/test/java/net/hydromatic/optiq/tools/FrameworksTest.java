@@ -121,7 +121,7 @@ public class FrameworksTest {
    * that allows a larger maximum precision for decimals.
    *
    * <p>Test case for
-   * <a href="https://issues.apache.org/jira/browse/OPTIQ-413">OPTIQ-413</a>,
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-413">CALCITE-413</a>,
    * "Add RelDataTypeSystem plugin, allowing different max precision of a
    * DECIMAL".
    *

@@ -193,7 +193,7 @@ public class JdbcFrontLinqBackTest {
   }
 
   /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/OPTIQ-9">OPTIQ-9</a>,
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-9">CALCITE-9</a>,
    * "RexToLixTranslator not incrementing local variable name counter". */
   @Test public void testWhereOr() {
     that()

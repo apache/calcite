@@ -89,7 +89,7 @@ public class FoodmartTest {
     5900, 5901, 5902, 6080, 6091,
 
     // bugs
-    6597, // OPTIQ-403
+    6597, // CALCITE-403
   };
 
   // Interesting tests. (We need to fix and remove from the disabled list.)

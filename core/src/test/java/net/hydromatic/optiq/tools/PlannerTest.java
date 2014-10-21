@@ -454,7 +454,7 @@ public class PlannerTest {
   }
 
   /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/OPTIQ-435">OPTIQ-435</a>,
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-435">CALCITE-435</a>,
    * "LoptOptimizeJoinRule incorrectly re-orders outer joins".
    *
    * <p>Checks the {@link org.eigenbase.rel.rules.LoptOptimizeJoinRule} on a
