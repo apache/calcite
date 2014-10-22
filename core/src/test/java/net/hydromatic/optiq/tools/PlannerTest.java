@@ -28,6 +28,7 @@ import net.hydromatic.optiq.test.OptiqAssert;
 
 import org.eigenbase.rel.*;
 import org.eigenbase.rel.convert.ConverterRule;
+import org.eigenbase.rel.metadata.RelMetadataQuery;
 import org.eigenbase.rel.rules.*;
 import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.RelDataType;
@@ -200,6 +201,58 @@ public class PlannerTest {
       assertThat(e.getMessage(), containsString(
           "cannot move from STATE_3_PARSED to STATE_4_VALIDATED"));
     }
+  }
+
+  /** Helper method for testing {@link RelMetadataQuery#getPulledUpPredicates}
+   * metadata. */
+  private void checkMetadataUnionPredicates(String sql,
+      String expectedPredicates) throws Exception {
+    Planner planner = getPlanner(null);
+    SqlNode parse = planner.parse(sql);
+    SqlNode validate = planner.validate(parse);
+    RelNode rel = planner.convert(validate);
+    final RelOptPredicateList predicates =
+        RelMetadataQuery.getPulledUpPredicates(rel);
+    final String buf = predicates.pulledUpPredicates.toString();
+    assertThat(buf, equalTo(expectedPredicates));
+  }
+
+  /** Tests predicates that can be pulled-up from a UNION. */
+  @Test public void testMetadataUnionPredicates() throws Exception {
+    checkMetadataUnionPredicates(
+        "select * from \"emps\" where \"deptno\" < 10\n"
+        + "union all\n"
+        + "select * from \"emps\" where \"empid\" > 2",
+        "[OR(<($1, 10), >($0, 2))]");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-443">[CALCITE-443],
+   * getPredicates from a union is not correct</a>. */
+  @Test public void testMetadataUnionPredicates2() throws Exception {
+    checkMetadataUnionPredicates(
+        "select * from \"emps\" where \"deptno\" < 10\n"
+        + "union all\n"
+        + "select * from \"emps\"",
+        "[]");
+  }
+
+  @Test public void testMetadataUnionPredicates3() throws Exception {
+    // The result [OR(<($1, 10), AND(<($1, 10), >($0, 1)))]
+    // could be simplified to [<($1, 10)] but is nevertheless correct.
+    checkMetadataUnionPredicates(
+        "select * from \"emps\" where \"deptno\" < 10\n"
+        + "union all\n"
+        + "select * from \"emps\" where \"deptno\" < 10 and \"empid\" > 1",
+        "[OR(<($1, 10), AND(<($1, 10), >($0, 1)))]");
+  }
+
+  @Test public void testMetadataUnionPredicates4() throws Exception {
+    checkMetadataUnionPredicates(
+        "select * from \"emps\" where \"deptno\" < 10\n"
+        + "union all\n"
+        + "select * from \"emps\" where \"deptno\" < 10 or \"empid\" > 1",
+        "[OR(<($1, 10), <($1, 10), >($0, 1))]");
   }
 
   /** Unit test that parses, validates, converts and plans. */
