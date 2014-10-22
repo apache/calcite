@@ -266,12 +266,12 @@ public class RelMdPredicates {
     List<RexNode> orList = Lists.newArrayList();
     for (RelNode input : union.getInputs()) {
       RelOptPredicateList info = RelMetadataQuery.getPulledUpPredicates(input);
-      if (!info.pulledUpPredicates.isEmpty()) {
-        orList.addAll(
-            RelOptUtil.disjunctions(
-                RexUtil.composeConjunction(rB, info.pulledUpPredicates,
-                    false)));
+      if (info.pulledUpPredicates.isEmpty()) {
+        return RelOptPredicateList.EMPTY;
       }
+      RelOptUtil.decomposeDisjunction(
+          RexUtil.composeConjunction(rB, info.pulledUpPredicates, false),
+          orList);
     }
 
     if (orList.isEmpty()) {
@@ -298,10 +298,10 @@ public class RelMdPredicates {
    * So for:
    * <ol>
    * <li>'<code>R1(x) join R2(y) on x = y</code>' a call for
-   * equivalentPredciates on '<code>x > 7</code>' will return '
+   * equivalentPredicates on '<code>x > 7</code>' will return '
    * <code>[y > 7]</code>'
    * <li>'<code>R1(x) join R2(y) on x = y join R3(z) on y = z</code>' a call for
-   * equivalentPredciates on the second join '<code>x > 7</code>' will return '
+   * equivalentPredicates on the second join '<code>x > 7</code>' will return '
    * <code>[y > 7, z > 7]</code>'
    * </ol>
    */

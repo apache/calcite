@@ -1693,9 +1693,52 @@ ProjectRel(EXPR$0=[1])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testTransitiveInferenceUnionAlwaysTrue">
+        <Resource name="sql">
+            <![CDATA[select d.deptno, e.deptno from
+                (select deptno from sales.emp where deptno < 4) d
+            inner join
+                (select deptno from sales.emp where deptno > 7
+                union all
+                select deptno from sales.emp) e
+            on d.deptno = e.deptno ]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+ProjectRel(DEPTNO=[$0], DEPTNO0=[$1])
+  JoinRel(condition=[=($0, $1)], joinType=[inner])
+    ProjectRel(DEPTNO=[$7])
+      FilterRel(condition=[<($7, 4)])
+        TableAccessRel(table=[[CATALOG, SALES, EMP]])
+    UnionRel(all=[true])
+      ProjectRel(DEPTNO=[$7])
+        FilterRel(condition=[>($7, 7)])
+          TableAccessRel(table=[[CATALOG, SALES, EMP]])
+      ProjectRel(DEPTNO=[$7])
+        TableAccessRel(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+ProjectRel(DEPTNO=[$0], DEPTNO0=[$1])
+  JoinRel(condition=[=($0, $1)], joinType=[inner])
+    ProjectRel(DEPTNO=[$7])
+      FilterRel(condition=[<($7, 4)])
+        TableAccessRel(table=[[CATALOG, SALES, EMP]])
+    FilterRel(condition=[<($0, 4)])
+      UnionRel(all=[true])
+        ProjectRel(DEPTNO=[$7])
+          FilterRel(condition=[>($7, 7)])
+            TableAccessRel(table=[[CATALOG, SALES, EMP]])
+        ProjectRel(DEPTNO=[$7])
+          TableAccessRel(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testTransitiveInferenceJoin3wayAgg">
         <Resource name="sql">
-            <![CDATA[select 1 from (select deptno, count(*) from sales.emp where deptno > 7 group by deptno) d inner join sales.emp e on d.deptno = e.deptno inner join sales.emp f on e.deptno = f.deptno ]]>
+            <![CDATA[select 1 from (select deptno, count(*) from sales.emp where deptno > 7 group by deptno) d inner join
+            sales.emp e on d.deptno = e.deptno inner join sales.emp f on e.deptno = f.deptno ]]>
         </Resource>
         <Resource name="planBefore">
             <![CDATA[

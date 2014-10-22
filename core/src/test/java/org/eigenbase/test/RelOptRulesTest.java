@@ -1066,6 +1066,13 @@ public class RelOptRulesTest extends RelOptTestBase {
     transitiveInference();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-443">[CALCITE-443],
+   * getPredicates from a union is not correct</a>. */
+  @Test public void testTransitiveInferenceUnionAlwaysTrue() throws Exception {
+    transitiveInference();
+  }
+
   @Test public void testTransitiveInferenceConstantEquiPredicate()
       throws Exception {
     transitiveInference();
