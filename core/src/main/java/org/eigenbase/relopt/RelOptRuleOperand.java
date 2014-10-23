@@ -21,6 +21,9 @@ import java.util.*;
 import org.eigenbase.rel.RelNode;
 import org.eigenbase.util.*;
 
+import com.google.common.base.Preconditions;
+import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
 
 /**
@@ -39,6 +42,7 @@ public class RelOptRuleOperand {
 
   private RelOptRuleOperand parent;
   private RelOptRule rule;
+  private final Predicate<RelNode> predicate;
 
   // REVIEW jvs 29-Aug-2004: some of these are Volcano-specific and should be
   // factored out
@@ -71,10 +75,39 @@ public class RelOptRuleOperand {
    * @param clazz    Class of relational expression to match (must not be null)
    * @param trait    Trait to match, or null to match any trait
    * @param children Child operands
+   *
+   * @deprecated Use
+   * {@link #RelOptRuleOperand(Class, RelTrait, com.google.common.base.Predicate, RelOptRuleOperandChildren)};
+   * will be removed after {@link Bug#upgrade(String) 0.9.2}
    */
-  protected RelOptRuleOperand(
-      Class<? extends RelNode> clazz,
+  protected <R extends RelNode> RelOptRuleOperand(
+      Class<? extends R> clazz,
       RelTrait trait,
+      RelOptRuleOperandChildren children) {
+    this(clazz, trait, Predicates.<R>alwaysTrue(), children);
+  }
+
+  /**
+   * Creates an operand.
+   *
+   * <p>The {@code childOperands} argument is often populated by calling one
+   * of the following methods:
+   * {@link RelOptRule#some},
+   * {@link RelOptRule#none()},
+   * {@link RelOptRule#any},
+   * {@link RelOptRule#unordered},
+   * See {@link org.eigenbase.relopt.RelOptRuleOperandChildren} for more
+   * details.</p>
+   *
+   * @param clazz    Class of relational expression to match (must not be null)
+   * @param trait    Trait to match, or null to match any trait
+   * @param predicate Predicate to apply to relational expression
+   * @param children Child operands
+   */
+  protected <R extends RelNode> RelOptRuleOperand(
+      Class<R> clazz,
+      RelTrait trait,
+      Predicate<? super R> predicate,
       RelOptRuleOperandChildren children) {
     assert clazz != null;
     switch (children.policy) {
@@ -90,8 +123,10 @@ public class RelOptRuleOperand {
       assert children.operands.size() > 0;
     }
     this.childPolicy = children.policy;
-    this.clazz = clazz;
+    this.clazz = Preconditions.checkNotNull(clazz);
     this.trait = trait;
+    //noinspection unchecked
+    this.predicate = Preconditions.checkNotNull((Predicate) predicate);
     this.children = children.operands;
     for (RelOptRuleOperand child : this.children) {
       assert child.parent == null : "cannot re-use operands";
@@ -185,7 +220,7 @@ public class RelOptRuleOperand {
     if ((trait != null) && !rel.getTraitSet().contains(trait)) {
       return false;
     }
-    return true;
+    return predicate.apply(rel);
   }
 }
 

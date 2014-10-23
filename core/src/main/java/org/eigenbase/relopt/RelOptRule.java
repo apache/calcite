@@ -21,6 +21,8 @@ import java.util.*;
 import org.eigenbase.rel.*;
 
 import com.google.common.base.Function;
+import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
@@ -91,9 +93,11 @@ public abstract class RelOptRule {
    * @param clazz Class of relational expression to match (must not be null)
    * @return Operand
    */
-  public static RelOptRuleOperand operand(
-      Class<? extends RelNode> clazz, RelOptRuleOperandChildren operandList) {
-    return new RelOptRuleOperand(clazz, null, operandList);
+  public static <R extends RelNode> RelOptRuleOperand operand(
+      Class<R> clazz,
+      RelOptRuleOperandChildren operandList) {
+    return new RelOptRuleOperand(clazz, null, Predicates.<R>alwaysTrue(),
+        operandList);
   }
 
   /**
@@ -104,11 +108,28 @@ public abstract class RelOptRule {
    * @param trait Trait to match, or null to match any trait
    * @return Operand
    */
-  public static RelOptRuleOperand operand(
-      Class<? extends RelNode> clazz,
+  public static <R extends RelNode> RelOptRuleOperand operand(
+      Class<R> clazz,
       RelTrait trait,
       RelOptRuleOperandChildren operandList) {
-    return new RelOptRuleOperand(clazz, trait, operandList);
+    return new RelOptRuleOperand(clazz, trait, Predicates.<R>alwaysTrue(),
+        operandList);
+  }
+
+  /**
+   * Creates an operand that matches a relational expression that has no
+   * children.
+   *
+   * @param clazz Class of relational expression to match (must not be null)
+   * @param trait Trait to match, or null to match any trait
+   * @return Operand
+   */
+  public static <R extends RelNode> RelOptRuleOperand operand(
+      Class<R> clazz,
+      RelTrait trait,
+      Predicate<? super R> predicate,
+      RelOptRuleOperandChildren operandList) {
+    return new RelOptRuleOperand(clazz, trait, predicate, operandList);
   }
 
   /**
@@ -126,8 +147,8 @@ public abstract class RelOptRule {
    * @param clazz Class of relational expression to match (must not be null)
    * @return Operand
    */
-  public static RelOptRuleOperand operand(
-      Class<? extends RelNode> clazz,
+  public static <R extends RelNode> RelOptRuleOperand operand(
+      Class<R> clazz,
       RelOptRuleOperand first,
       RelOptRuleOperand... rest) {
     return operand(clazz, some(first, rest));

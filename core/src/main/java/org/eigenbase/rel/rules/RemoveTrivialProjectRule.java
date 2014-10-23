@@ -23,6 +23,8 @@ import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.*;
 import org.eigenbase.rex.*;
 
+import com.google.common.base.Predicate;
+
 /**
  * Rule that, given a {@link ProjectRelBase} node that merely returns its input,
  * converts the node into its child.
@@ -36,6 +38,13 @@ import org.eigenbase.rex.*;
 public class RemoveTrivialProjectRule extends RelOptRule {
   //~ Static fields/initializers ---------------------------------------------
 
+  private static final Predicate<ProjectRelBase> PREDICATE =
+      new Predicate<ProjectRelBase>() {
+        public boolean apply(ProjectRelBase input) {
+          return isTrivial(input);
+        }
+      };
+
   public static final RemoveTrivialProjectRule INSTANCE =
       new RemoveTrivialProjectRule();
 
@@ -44,13 +53,7 @@ public class RemoveTrivialProjectRule extends RelOptRule {
   private RemoveTrivialProjectRule() {
     // Create a specialized operand to detect non-matches early. This keeps
     // the rule queue short.
-    super(
-      new RelOptRuleOperand(ProjectRelBase.class, null, any()) {
-        @Override public boolean matches(RelNode rel) {
-          return super.matches(rel)
-              && isTrivial((ProjectRelBase) rel);
-        }
-      });
+    super(operand(ProjectRelBase.class, null, PREDICATE, any()));
   }
 
   //~ Methods ----------------------------------------------------------------

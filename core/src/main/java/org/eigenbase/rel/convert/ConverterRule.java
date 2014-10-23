@@ -19,6 +19,8 @@ package org.eigenbase.rel.convert;
 import org.eigenbase.rel.*;
 import org.eigenbase.relopt.*;
 
+import com.google.common.base.Predicates;
+
 /**
  * Abstract base class for a rule which converts from one calling convention to
  * another without changing semantics.
@@ -108,7 +110,7 @@ public abstract class ConverterRule extends RelOptRule {
   private static class ConverterRelOptRuleOperand extends RelOptRuleOperand {
     public ConverterRelOptRuleOperand(
         Class<? extends RelNode> clazz, RelTrait in) {
-      super(clazz, in, any());
+      super(clazz, in, Predicates.<RelNode>alwaysTrue(), any());
     }
 
     public boolean matches(RelNode rel) {

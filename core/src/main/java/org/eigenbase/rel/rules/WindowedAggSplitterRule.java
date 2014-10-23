@@ -25,6 +25,7 @@ import org.eigenbase.rex.*;
 import org.eigenbase.util.*;
 
 import com.google.common.base.Function;
+import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
@@ -39,6 +40,20 @@ import com.google.common.collect.Lists;
 public abstract class WindowedAggSplitterRule extends RelOptRule {
   //~ Static fields/initializers ---------------------------------------------
 
+  private static final Predicate<CalcRelBase> PREDICATE =
+      new Predicate<CalcRelBase>() {
+        public boolean apply(CalcRelBase calc) {
+          return RexOver.containsOver(calc.getProgram());
+        }
+      };
+
+  private static final Predicate<ProjectRelBase> PREDICATE2 =
+      new Predicate<ProjectRelBase>() {
+        public boolean apply(ProjectRelBase project) {
+          return RexOver.containsOver(project.getProjects(), null);
+        }
+      };
+
   /**
    * Instance of the rule that applies to a {@link CalcRelBase} that contains
    * windowed aggregates and converts it into a mixture of
@@ -46,13 +61,7 @@ public abstract class WindowedAggSplitterRule extends RelOptRule {
    */
   public static final WindowedAggSplitterRule INSTANCE =
       new WindowedAggSplitterRule(
-        new RelOptRuleOperand(CalcRelBase.class, null, any()) {
-          @Override
-          public boolean matches(RelNode rel) {
-            return super.matches(rel)
-                && RexOver.containsOver(((CalcRelBase) rel).getProgram());
-          }
-        },
+        operand(CalcRelBase.class, null, PREDICATE, any()),
         "WindowedAggSplitterRule") {
         public void onMatch(RelOptRuleCall call) {
           CalcRelBase calc = call.rel(0);
@@ -70,15 +79,7 @@ public abstract class WindowedAggSplitterRule extends RelOptRule {
    */
   public static final WindowedAggSplitterRule PROJECT =
       new WindowedAggSplitterRule(
-        new RelOptRuleOperand(
-            ProjectRelBase.class, null, any()) {
-          @Override
-          public boolean matches(RelNode rel) {
-            return super.matches(rel)
-                && RexOver.containsOver(((ProjectRelBase) rel).getProjects(),
-                     null);
-          }
-        },
+        operand(ProjectRelBase.class, null, PREDICATE2, any()),
         "WindowedAggSplitterRule:project") {
         @Override
         public void onMatch(RelOptRuleCall call) {

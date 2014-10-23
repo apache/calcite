@@ -43,6 +43,7 @@ import com.google.common.base.Equivalence;
 import com.google.common.base.Function;
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Predicate;
 import com.google.common.collect.*;
 
 /**
@@ -2000,17 +2001,20 @@ public class SubstitutionVisitor {
    * a trivial filter (on a boolean column).
    */
   public static class FilterOnProjectRule extends RelOptRule {
+    private static final Predicate<FilterRel> PREDICATE =
+        new Predicate<FilterRel>() {
+          public boolean apply(FilterRel input) {
+            return input.getCondition() instanceof RexInputRef;
+          }
+        };
+
     public static final FilterOnProjectRule INSTANCE =
         new FilterOnProjectRule();
 
     private FilterOnProjectRule() {
-      super(new RelOptRuleOperand(FilterRel.class, null,
-          some(operand(ProjectRel.class, any()))) {
-        @Override public boolean matches(RelNode rel) {
-          return super.matches(rel)
-              && ((FilterRel) rel).getCondition() instanceof RexInputRef;
-        }
-      });
+      super(
+          operand(FilterRel.class, null, PREDICATE,
+              some(operand(ProjectRel.class, any()))));
     }
 
     public void onMatch(RelOptRuleCall call) {
