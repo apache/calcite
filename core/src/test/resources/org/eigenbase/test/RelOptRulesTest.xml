@@ -108,6 +108,127 @@ ProjectRel(EXPR$0=[1])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testFullOuterJoinSimplificationToLeftOuter">
+        <Resource name="sql">
+            <![CDATA[select 1 from sales.dept d full outer join sales.emp e on d.deptno = e.deptno where d.name = 'Charlie']]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+ProjectRel(EXPR$0=[1])
+  FilterRel(condition=[=($1, 'Charlie')])
+    JoinRel(condition=[=($0, $9)], joinType=[full])
+      TableAccessRel(table=[[CATALOG, SALES, DEPT]])
+      TableAccessRel(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+ProjectRel(EXPR$0=[1])
+  ProjectRel(DEPTNO=[CAST($0):INTEGER], NAME=[CAST($1):VARCHAR(10) CHARACTER SET "ISO-8859-1" COLLATE "ISO-8859-1$en_US$primary"], EMPNO=[$2], ENAME=[$3], JOB=[$4], MGR=[$5], HIREDATE=[$6], SAL=[$7], COMM=[$8], DEPTNO0=[$9], SLACKER=[$10])
+    JoinRel(condition=[=($0, $9)], joinType=[left])
+      FilterRel(condition=[=($1, 'Charlie')])
+        TableAccessRel(table=[[CATALOG, SALES, DEPT]])
+      TableAccessRel(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testFullOuterJoinSimplificationToRightOuter">
+        <Resource name="sql">
+            <![CDATA[select 1 from sales.dept d full outer join sales.emp e on d.deptno = e.deptno where e.sal > 100]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+ProjectRel(EXPR$0=[1])
+  FilterRel(condition=[>($7, 100)])
+    JoinRel(condition=[=($0, $9)], joinType=[full])
+      TableAccessRel(table=[[CATALOG, SALES, DEPT]])
+      TableAccessRel(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+ProjectRel(EXPR$0=[1])
+  ProjectRel(DEPTNO=[$0], NAME=[$1], EMPNO=[CAST($2):INTEGER], ENAME=[CAST($3):VARCHAR(20) CHARACTER SET "ISO-8859-1" COLLATE "ISO-8859-1$en_US$primary"], JOB=[CAST($4):VARCHAR(10) CHARACTER SET "ISO-8859-1" COLLATE "ISO-8859-1$en_US$primary"], MGR=[$5], HIREDATE=[CAST($6):TIMESTAMP(0)], SAL=[CAST($7):INTEGER], COMM=[CAST($8):INTEGER], DEPTNO0=[CAST($9):INTEGER], SLACKER=[CAST($10):BOOLEAN])
+    JoinRel(condition=[=($0, $9)], joinType=[right])
+      TableAccessRel(table=[[CATALOG, SALES, DEPT]])
+      FilterRel(condition=[>($5, 100)])
+        TableAccessRel(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testFullOuterJoinSimplificationToInner">
+        <Resource name="sql">
+            <![CDATA[select 1 from sales.dept d full outer join sales.emp e on d.deptno = e.deptno where d.name = 'Charlie' and e.sal > 100]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+ProjectRel(EXPR$0=[1])
+  FilterRel(condition=[AND(=($1, 'Charlie'), >($7, 100))])
+    JoinRel(condition=[=($0, $9)], joinType=[full])
+      TableAccessRel(table=[[CATALOG, SALES, DEPT]])
+      TableAccessRel(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+ProjectRel(EXPR$0=[1])
+  ProjectRel(DEPTNO=[CAST($0):INTEGER], NAME=[CAST($1):VARCHAR(10) CHARACTER SET "ISO-8859-1" COLLATE "ISO-8859-1$en_US$primary"], EMPNO=[CAST($2):INTEGER], ENAME=[CAST($3):VARCHAR(20) CHARACTER SET "ISO-8859-1" COLLATE "ISO-8859-1$en_US$primary"], JOB=[CAST($4):VARCHAR(10) CHARACTER SET "ISO-8859-1" COLLATE "ISO-8859-1$en_US$primary"], MGR=[$5], HIREDATE=[CAST($6):TIMESTAMP(0)], SAL=[CAST($7):INTEGER], COMM=[CAST($8):INTEGER], DEPTNO0=[CAST($9):INTEGER], SLACKER=[CAST($10):BOOLEAN])
+    JoinRel(condition=[=($0, $9)], joinType=[inner])
+      FilterRel(condition=[=($1, 'Charlie')])
+        TableAccessRel(table=[[CATALOG, SALES, DEPT]])
+      FilterRel(condition=[>($5, 100)])
+        TableAccessRel(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testLeftOuterJoinSimplificationToInner">
+        <Resource name="sql">
+            <![CDATA[select 1 from sales.dept d left outer join sales.emp e on d.deptno = e.deptno where e.sal > 100]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+ProjectRel(EXPR$0=[1])
+  FilterRel(condition=[>($7, 100)])
+    JoinRel(condition=[=($0, $9)], joinType=[left])
+      TableAccessRel(table=[[CATALOG, SALES, DEPT]])
+      TableAccessRel(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+ProjectRel(EXPR$0=[1])
+  ProjectRel(DEPTNO=[$0], NAME=[$1], EMPNO=[CAST($2):INTEGER], ENAME=[CAST($3):VARCHAR(20) CHARACTER SET "ISO-8859-1" COLLATE "ISO-8859-1$en_US$primary"], JOB=[CAST($4):VARCHAR(10) CHARACTER SET "ISO-8859-1" COLLATE "ISO-8859-1$en_US$primary"], MGR=[$5], HIREDATE=[CAST($6):TIMESTAMP(0)], SAL=[CAST($7):INTEGER], COMM=[CAST($8):INTEGER], DEPTNO0=[CAST($9):INTEGER], SLACKER=[CAST($10):BOOLEAN])
+    JoinRel(condition=[=($0, $9)], joinType=[inner])
+      TableAccessRel(table=[[CATALOG, SALES, DEPT]])
+      FilterRel(condition=[>($5, 100)])
+        TableAccessRel(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testRightOuterJoinSimplificationToInner">
+        <Resource name="sql">
+            <![CDATA[select 1 from sales.dept d right outer join sales.emp e on d.deptno = e.deptno where d.name = 'Charlie']]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+ProjectRel(EXPR$0=[1])
+  FilterRel(condition=[=($1, 'Charlie')])
+    JoinRel(condition=[=($0, $9)], joinType=[right])
+      TableAccessRel(table=[[CATALOG, SALES, DEPT]])
+      TableAccessRel(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+ProjectRel(EXPR$0=[1])
+  ProjectRel(DEPTNO=[CAST($0):INTEGER], NAME=[CAST($1):VARCHAR(10) CHARACTER SET "ISO-8859-1" COLLATE "ISO-8859-1$en_US$primary"], EMPNO=[$2], ENAME=[$3], JOB=[$4], MGR=[$5], HIREDATE=[$6], SAL=[$7], COMM=[$8], DEPTNO0=[$9], SLACKER=[$10])
+    JoinRel(condition=[=($0, $9)], joinType=[inner])
+      FilterRel(condition=[=($1, 'Charlie')])
+        TableAccessRel(table=[[CATALOG, SALES, DEPT]])
+      TableAccessRel(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testPushFilterThroughSemiJoin">
         <Resource name="sql">
             <![CDATA[select * from (select * from dept where dept.deptno in (

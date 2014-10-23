@@ -157,10 +157,43 @@ public class RelOptRulesTest extends RelOptTestBase {
         + "  and emp.sal > 100)");
   }
 
-  @Test public void testPushFilterThroughOuterJoin() {
+  @Test public void testFullOuterJoinSimplificationToLeftOuter() {
+    checkPlanning(
+        PushFilterPastJoinRule.FILTER_ON_JOIN,
+        "select 1 from sales.dept d full outer join sales.emp e"
+        + " on d.deptno = e.deptno"
+        + " where d.name = 'Charlie'");
+  }
+
+  @Test public void testFullOuterJoinSimplificationToRightOuter() {
+    checkPlanning(
+        PushFilterPastJoinRule.FILTER_ON_JOIN,
+        "select 1 from sales.dept d full outer join sales.emp e"
+        + " on d.deptno = e.deptno"
+        + " where e.sal > 100");
+  }
+
+  @Test public void testFullOuterJoinSimplificationToInner() {
+    checkPlanning(
+        PushFilterPastJoinRule.FILTER_ON_JOIN,
+        "select 1 from sales.dept d full outer join sales.emp e"
+        + " on d.deptno = e.deptno"
+        + " where d.name = 'Charlie' and e.sal > 100");
+  }
+
+  @Test public void testLeftOuterJoinSimplificationToInner() {
     checkPlanning(
         PushFilterPastJoinRule.FILTER_ON_JOIN,
         "select 1 from sales.dept d left outer join sales.emp e"
+        + " on d.deptno = e.deptno"
+        + " where e.sal > 100");
+  }
+
+
+  @Test public void testRightOuterJoinSimplificationToInner() {
+    checkPlanning(
+        PushFilterPastJoinRule.FILTER_ON_JOIN,
+        "select 1 from sales.dept d right outer join sales.emp e"
         + " on d.deptno = e.deptno"
         + " where d.name = 'Charlie'");
   }

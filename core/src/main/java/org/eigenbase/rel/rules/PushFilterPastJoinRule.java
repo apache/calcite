@@ -21,9 +21,9 @@ import java.util.*;
 import org.eigenbase.rel.*;
 import org.eigenbase.relopt.*;
 import org.eigenbase.rex.*;
-import org.eigenbase.util.Holder;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 /**
@@ -85,7 +85,17 @@ public abstract class PushFilterPastJoinRule extends RelOptRule {
     final List<RexNode> aboveFilters =
         filter != null
             ? RelOptUtil.conjunctions(filter.getCondition())
-            : ImmutableList.<RexNode>of();
+            : Lists.<RexNode>newArrayList();
+    final ImmutableList<RexNode> origAboveFilters =
+        ImmutableList.copyOf(aboveFilters);
+
+    // Simplify Outer Joins
+    JoinRelType joinType = join.getJoinType();
+    if (smart
+        && !origAboveFilters.isEmpty()
+        && join.getJoinType() != JoinRelType.INNER) {
+      joinType = RelOptUtil.simplifyJoin(join, origAboveFilters, joinType);
+    }
 
     List<RexNode> leftFilters = new ArrayList<RexNode>();
     List<RexNode> rightFilters = new ArrayList<RexNode>();
@@ -100,26 +110,23 @@ public abstract class PushFilterPastJoinRule extends RelOptRule {
     // filters. They can be pushed down if they are not on the NULL
     // generating side.
     boolean filterPushed = false;
-    final Holder<JoinRelType> joinTypeHolder = Holder.of(join.getJoinType());
     if (RelOptUtil.classifyFilters(
         join,
         aboveFilters,
-        join.getJoinType(),
+        joinType,
         !(join instanceof EquiJoinRel),
-        !join.getJoinType().generatesNullsOnLeft(),
-        !join.getJoinType().generatesNullsOnRight(),
+        !joinType.generatesNullsOnLeft(),
+        !joinType.generatesNullsOnRight(),
         joinFilters,
         leftFilters,
-        rightFilters,
-        joinTypeHolder,
-        smart)) {
+        rightFilters)) {
       filterPushed = true;
     }
 
     // Move join filters up if needed
-    validateJoinFilters(aboveFilters, joinFilters, join);
+    validateJoinFilters(aboveFilters, joinFilters, join, joinType);
 
-    // If no filter got pushed after validate reset filterPushed flag
+    // If no filter got pushed after validate, reset filterPushed flag
     if (leftFilters.isEmpty()
         && rightFilters.isEmpty()
         && joinFilters.size() == origJoinFilters.size()) {
@@ -135,27 +142,23 @@ public abstract class PushFilterPastJoinRule extends RelOptRule {
     if (RelOptUtil.classifyFilters(
         join,
         joinFilters,
-        join.getJoinType(),
+        joinType,
         false,
-        !join.getJoinType().generatesNullsOnRight(),
-        !join.getJoinType().generatesNullsOnLeft(),
+        !joinType.generatesNullsOnRight(),
+        !joinType.generatesNullsOnLeft(),
         joinFilters,
         leftFilters,
-        rightFilters,
-        joinTypeHolder,
-        false)) {
+        rightFilters)) {
       filterPushed = true;
-    }
-
-    if (!filterPushed) {
-      return;
     }
 
     // if nothing actually got pushed and there is nothing leftover,
     // then this rule is a no-op
-    if (joinFilters.isEmpty()
-        && leftFilters.isEmpty()
-        && rightFilters.isEmpty()) {
+    if ((!filterPushed
+            && joinType == join.getJoinType())
+        || (joinFilters.isEmpty()
+            && leftFilters.isEmpty()
+            && rightFilters.isEmpty())) {
       return;
     }
 
@@ -163,15 +166,9 @@ public abstract class PushFilterPastJoinRule extends RelOptRule {
     // pushed to them
     final RexBuilder rexBuilder = join.getCluster().getRexBuilder();
     RelNode leftRel =
-        createFilterOnRel(
-            rexBuilder,
-            join.getLeft(),
-            leftFilters);
+        RelOptUtil.createFilter(join.getLeft(), leftFilters, filterFactory);
     RelNode rightRel =
-        createFilterOnRel(
-            rexBuilder,
-            join.getRight(),
-            rightFilters);
+        RelOptUtil.createFilter(join.getRight(), rightFilters, filterFactory);
 
     // create the new join node referencing the new children and
     // containing its new join filters (if there are any)
@@ -183,7 +180,7 @@ public abstract class PushFilterPastJoinRule extends RelOptRule {
     if (joinFilter.isAlwaysTrue()
         && leftFilters.isEmpty()
         && rightFilters.isEmpty()
-        && joinTypeHolder.get() == join.getJoinType()) {
+        && joinType == join.getJoinType()) {
       return;
     }
 
@@ -193,7 +190,7 @@ public abstract class PushFilterPastJoinRule extends RelOptRule {
             joinFilter,
             leftRel,
             rightRel,
-            joinTypeHolder.get(),
+            joinType,
             join.isSemiJoinDone());
     call.getPlanner().onCopy(join, newJoinRel);
     if (!leftFilters.isEmpty()) {
@@ -210,7 +207,7 @@ public abstract class PushFilterPastJoinRule extends RelOptRule {
 
     // create a FilterRel on top of the join if needed
     RelNode newRel =
-        createFilterOnRel(rexBuilder, newJoinRel, aboveFilters);
+        RelOptUtil.createFilter(newJoinRel, aboveFilters, filterFactory);
 
     call.transformTo(newRel);
   }
@@ -218,7 +215,7 @@ public abstract class PushFilterPastJoinRule extends RelOptRule {
   /**
    * Validates that target execution framework can satisfy join filters.
    *
-   * <p>If the join filter cannot be satifisfied (for example, if it is
+   * <p>If the join filter cannot be satisfied (for example, if it is
    * {@code l.c1 > r.c2} and the join only supports equi-join), removes the
    * filter from {@code joinFilters} and adds it to {@code aboveFilters}.
    *
@@ -228,31 +225,35 @@ public abstract class PushFilterPastJoinRule extends RelOptRule {
    * @param aboveFilters Filter above Join
    * @param joinFilters Filters in join condition
    * @param join Join
+   *
+   * @deprecated Use {@link #validateJoinFilters(java.util.List, java.util.List, org.eigenbase.rel.JoinRelBase, org.eigenbase.rel.JoinRelType)};
+   * very short-term; will be removed before
+   * {@link org.eigenbase.util.Bug#upgrade(String) calcite-0.9.2}.
    */
   protected void validateJoinFilters(List<RexNode> aboveFilters,
       List<RexNode> joinFilters, JoinRelBase join) {
-    return;
+    validateJoinFilters(aboveFilters, joinFilters, join, join.getJoinType());
   }
 
   /**
-   * If the filter list passed in is non-empty, creates a FilterRel on top of
-   * the existing RelNode; otherwise, just returns the RelNode
+   * Validates that target execution framework can satisfy join filters.
    *
-   * @param rexBuilder rex builder
-   * @param rel        the RelNode that the filter will be put on top of
-   * @param filters    list of filters
-   * @return new RelNode or existing one if no filters
+   * <p>If the join filter cannot be satisfied (for example, if it is
+   * {@code l.c1 > r.c2} and the join only supports equi-join), removes the
+   * filter from {@code joinFilters} and adds it to {@code aboveFilters}.
+   *
+   * <p>The default implementation does nothing; i.e. the join can handle all
+   * conditions.
+   *
+   * @param aboveFilters Filter above Join
+   * @param joinFilters Filters in join condition
+   * @param join Join
+   * @param joinType JoinRelType could be different from type in Join due to
+   * outer join simplification.
    */
-  private RelNode createFilterOnRel(
-      RexBuilder rexBuilder,
-      RelNode rel,
-      List<RexNode> filters) {
-    RexNode andFilters =
-        RexUtil.composeConjunction(rexBuilder, filters, false);
-    if (andFilters.isAlwaysTrue()) {
-      return rel;
-    }
-    return filterFactory.createFilter(rel, andFilters);
+  protected void validateJoinFilters(List<RexNode> aboveFilters,
+      List<RexNode> joinFilters, JoinRelBase join, JoinRelType joinType) {
+    return;
   }
 
   /** Rule that pushes parts of the join condition to its inputs. */

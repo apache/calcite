@@ -1943,6 +1943,44 @@ public abstract class RelOptUtil {
   }
 
   /**
+   * Simplifies outer joins if filter above would reject nulls.
+   *
+   * @param joinRel Join
+   * @param aboveFilters Filters from above
+   * @param joinType Join type, can not be inner join
+   */
+  public static JoinRelType simplifyJoin(RelNode joinRel,
+      ImmutableList<RexNode> aboveFilters,
+      JoinRelType joinType) {
+    final int nTotalFields = joinRel.getRowType().getFieldCount();
+    final int nSysFields = 0;
+    final int nFieldsLeft =
+        joinRel.getInputs().get(0).getRowType().getFieldCount();
+    final int nFieldsRight =
+        joinRel.getInputs().get(1).getRowType().getFieldCount();
+    assert nTotalFields == nSysFields + nFieldsLeft + nFieldsRight;
+
+    // set the reference bitmaps for the left and right children
+    BitSet leftBitmap = BitSets.range(nSysFields, nSysFields + nFieldsLeft);
+    BitSet rightBitmap = BitSets.range(nSysFields + nFieldsLeft, nTotalFields);
+
+    for (RexNode filter : aboveFilters) {
+      if (joinType.generatesNullsOnLeft()
+          && Strong.is(filter, leftBitmap)) {
+        joinType = joinType.cancelNullsOnLeft();
+      }
+      if (joinType.generatesNullsOnRight()
+          && Strong.is(filter, rightBitmap)) {
+        joinType = joinType.cancelNullsOnRight();
+      }
+      if (joinType == JoinRelType.INNER) {
+        break;
+      }
+    }
+    return joinType;
+  }
+
+  /**
    * Classifies filters according to where they should be processed. They
    * either stay where they are, are pushed to the join (if they originated
    * from above the join), or are pushed to one of the children. Filters that
@@ -1960,6 +1998,10 @@ public abstract class RelOptUtil {
    * @param smart        Whether to try to strengthen the join type
    * @return whether at least one filter was pushed, or join type was
    * strengthened
+   *
+   * @deprecated Use the other {@link #classifyFilters};
+   * very short-term; will be removed before
+   * {@link org.eigenbase.util.Bug#upgrade(String) calcite-0.9.2}.
    */
   public static boolean classifyFilters(
       RelNode joinRel,
@@ -1973,8 +2015,47 @@ public abstract class RelOptUtil {
       List<RexNode> rightFilters,
       Holder<JoinRelType> joinTypeHolder,
       boolean smart) {
-    RexBuilder rexBuilder = joinRel.getCluster().getRexBuilder();
     final JoinRelType oldJoinType = joinType;
+    final int filterCount = filters.size();
+    if (smart) {
+      joinType = simplifyJoin(joinRel, ImmutableList.copyOf(joinFilters),
+          joinType);
+      joinTypeHolder.set(joinType);
+    }
+    classifyFilters(joinRel, filters, joinType, pushInto, pushLeft, pushRight,
+        joinFilters, leftFilters, rightFilters);
+
+    return filters.size() < filterCount || joinType != oldJoinType;
+  }
+
+  /**
+   * Classifies filters according to where they should be processed. They
+   * either stay where they are, are pushed to the join (if they originated
+   * from above the join), or are pushed to one of the children. Filters that
+   * are pushed are added to list passed in as input parameters.
+   *
+   * @param joinRel      join node
+   * @param filters      filters to be classified
+   * @param joinType     join type
+   * @param pushInto     whether filters can be pushed into the ON clause
+   * @param pushLeft     true if filters can be pushed to the left
+   * @param pushRight    true if filters can be pushed to the right
+   * @param joinFilters  list of filters to push to the join
+   * @param leftFilters  list of filters to push to the left child
+   * @param rightFilters list of filters to push to the right child
+   * @return whether at least one filter was pushed
+   */
+  public static boolean classifyFilters(
+      RelNode joinRel,
+      List<RexNode> filters,
+      JoinRelType joinType,
+      boolean pushInto,
+      boolean pushLeft,
+      boolean pushRight,
+      List<RexNode> joinFilters,
+      List<RexNode> leftFilters,
+      List<RexNode> rightFilters) {
+    RexBuilder rexBuilder = joinRel.getCluster().getRexBuilder();
     List<RelDataTypeField> joinFields = joinRel.getRowType().getFieldList();
     final int nTotalFields = joinFields.size();
     final int nSysFields = 0; // joinRel.getSystemFieldList().size();
@@ -2061,35 +2142,6 @@ public abstract class RelOptUtil {
           }
           filtersToRemove.add(filter);
         }
-
-        // If the filter will only evaluate to true if fields from the left
-        // are not null, and the left is null-generating, then we can make the
-        // left. Similarly for the right.
-        if (smart
-            && joinType.generatesNullsOnRight()
-            && Strong.is(filter, rightBitmap)) {
-          joinType = joinType.cancelNullsOnRight();
-          joinTypeHolder.set(joinType);
-          if (pushInto) {
-            filtersToRemove.add(filter);
-            if (!joinFilters.contains(filter)) {
-              joinFilters.add(filter);
-            }
-          }
-        }
-        if (smart
-            && joinType.generatesNullsOnLeft()
-            && Strong.is(filter, leftBitmap)) {
-          filtersToRemove.add(filter);
-          joinType = joinType.cancelNullsOnLeft();
-          joinTypeHolder.set(joinType);
-          if (pushInto) {
-            filtersToRemove.add(filter);
-            if (!joinFilters.contains(filter)) {
-              joinFilters.add(filter);
-            }
-          }
-        }
       }
     }
 
@@ -2099,7 +2151,7 @@ public abstract class RelOptUtil {
     }
 
     // Did anything change?
-    return !filtersToRemove.isEmpty() || joinType != oldJoinType;
+    return !filtersToRemove.isEmpty();
   }
 
   private static RexNode shiftFilter(

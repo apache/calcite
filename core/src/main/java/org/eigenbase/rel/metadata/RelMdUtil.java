@@ -26,7 +26,6 @@ import org.eigenbase.rex.*;
 import org.eigenbase.sql.*;
 import org.eigenbase.sql.type.*;
 import org.eigenbase.util.Bug;
-import org.eigenbase.util.Holder;
 import org.eigenbase.util14.*;
 
 import net.hydromatic.optiq.util.BitSets;
@@ -657,9 +656,7 @@ public class RelMdUtil {
           !joinType.generatesNullsOnRight(),
           joinFilters,
           leftFilters,
-          rightFilters,
-          Holder.of(joinType),
-          false);
+          rightFilters);
 
       RexBuilder rexBuilder = joinRel.getCluster().getRexBuilder();
       leftPred =
