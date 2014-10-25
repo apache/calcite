@@ -164,6 +164,10 @@ public interface PhysType {
   /** Returns a copy of this type that allows nulls if {@code nullable} is
    * true. */
   PhysType makeNullable(boolean nullable);
+
+  /** Converts an enumerable of this physical type to an enumerable that uses a
+   * given physical type for its rows. */
+  Expression convertTo(Expression expression, PhysType targetPhysType);
 }
 
 // End PhysType.java

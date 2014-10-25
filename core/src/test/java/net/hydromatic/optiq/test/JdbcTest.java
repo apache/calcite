@@ -2932,16 +2932,16 @@ public class JdbcTest {
   }
 
   /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-397">CALCITE-397</a>,
-   * "SELECT DISTINCT *" gives ClassCastException at runtime". */
-  @Ignore("CALCITE-397")
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-397">[CALCITE-397]
+   * "SELECT DISTINCT *" on reflective schema gives ClassCastException at
+   * runtime</a>. */
   @Test public void testSelectDistinctStar() {
     OptiqAssert.that()
         .with(OptiqAssert.Config.REGULAR)
         .query(
             "select distinct *\n"
             + "from \"hr\".\"emps\"\n")
-        .returnsCount(5)
+        .returnsCount(4)
         .planContains(".distinct(");
   }
 

@@ -1338,9 +1338,9 @@ public class JavaRules {
         }
       }
       for (final AggImpState agg : aggs) {
-        results.add(agg.implementor.implementResult(
-            agg.context,
-            new AggResultContextImpl(resultBlock, agg.state)));
+        results.add(
+            agg.implementor.implementResult(agg.context,
+                new AggResultContextImpl(resultBlock, agg.state)));
       }
       resultBlock.add(physType.record(results));
       if (keyArity == 0) {
@@ -1369,7 +1369,7 @@ public class JavaRules {
             Expressions.return_(
                 null,
                 Expressions.call(
-                    childExp,
+                    inputPhysType.convertTo(childExp, physType),
                     BuiltinMethod.DISTINCT.method,
                     Expressions.<Expression>list()
                         .appendIfNotNull(physType.comparer()))));
@@ -1998,9 +1998,7 @@ public class JavaRules {
         final JavaTypeFactory typeFactory =
             (JavaTypeFactory) getCluster().getTypeFactory();
         PhysType physType =
-            PhysTypeImpl.of(
-                typeFactory,
-                table.getRowType(),
+            PhysTypeImpl.of(typeFactory, table.getRowType(),
                 JavaRowFormat.CUSTOM);
         List<Expression> expressionList = new ArrayList<Expression>();
         final PhysType childPhysType = result.physType;

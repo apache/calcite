@@ -187,10 +187,8 @@ public enum JavaRowFormat {
           Object.class, stripCasts(expressions));
     }
 
-    @Override
-    public Expression comparer() {
-      return Expressions.call(
-          null, BuiltinMethod.ARRAY_COMPARER.method);
+    @Override public Expression comparer() {
+      return Expressions.call(BuiltinMethod.ARRAY_COMPARER.method);
     }
 
     @Override

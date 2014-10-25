@@ -29,6 +29,7 @@ import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.reltype.RelDataTypeFactory;
 import org.eigenbase.reltype.RelDataTypeField;
 import org.eigenbase.util.Pair;
+import org.eigenbase.util.Util;
 
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
@@ -130,8 +131,7 @@ public class PhysTypeImpl implements PhysType {
       return Expressions.call(BuiltinMethod.IDENTITY_SELECTOR.method);
     default:
       return Expressions.lambda(Function1.class,
-          targetPhysType.record(fieldReferences(parameter, fields)),
-          parameter);
+          targetPhysType.record(fieldReferences(parameter, fields)), parameter);
     }
   }
 
@@ -176,6 +176,18 @@ public class PhysTypeImpl implements PhysType {
     return new PhysTypeImpl(typeFactory,
         typeFactory.createTypeWithNullability(rowType, true),
         Primitive.box(javaRowClass), format);
+  }
+
+  public Expression convertTo(Expression exp, PhysType targetPhysType) {
+    final JavaRowFormat targetFormat = targetPhysType.getFormat();
+    if (format == targetFormat) {
+      return exp;
+    }
+    final ParameterExpression o_ =
+        Expressions.parameter(javaRowClass, "o");
+    final int fieldCount = rowType.getFieldCount();
+    return Expressions.call(exp, BuiltinMethod.SELECT.method,
+        generateSelector(o_, Util.range(fieldCount), targetFormat));
   }
 
   public Pair<Expression, Expression> generateCollationKey(
