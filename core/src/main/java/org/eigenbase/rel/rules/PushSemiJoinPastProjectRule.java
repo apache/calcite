@@ -19,6 +19,7 @@ package org.eigenbase.rel.rules;
 import java.util.*;
 
 import org.eigenbase.rel.*;
+import org.eigenbase.rel.RelFactories.ProjectFactory;
 import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.*;
 import org.eigenbase.rex.*;
@@ -34,18 +35,23 @@ import org.eigenbase.util.Pair;
  */
 public class PushSemiJoinPastProjectRule extends RelOptRule {
   public static final PushSemiJoinPastProjectRule INSTANCE =
-      new PushSemiJoinPastProjectRule();
+      new PushSemiJoinPastProjectRule(RelFactories.DEFAULT_PROJECT_FACTORY);
+
+  private final RelFactories.ProjectFactory projectFactory;
 
   //~ Constructors -----------------------------------------------------------
 
   /**
    * Creates a PushSemiJoinPastProjectRule.
+   *
+   * @param projectFactory factory to create Project
    */
-  private PushSemiJoinPastProjectRule() {
+  public PushSemiJoinPastProjectRule(ProjectFactory projectFactory) {
     super(
         operand(
             SemiJoinRel.class,
             some(operand(ProjectRel.class, any()))));
+    this.projectFactory = projectFactory;
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -84,7 +90,7 @@ public class PushSemiJoinPastProjectRule extends RelOptRule {
     // are the same as the original because they only reference the LHS
     // of the semijoin and the semijoin only projects out the LHS
     RelNode newProject =
-        RelOptUtil.createProject(
+        projectFactory.createProject(
             newSemiJoin,
             projExprs,
             project.getRowType().getFieldNames());

@@ -83,7 +83,7 @@ import com.google.common.collect.Maps;
  */
 public class ConvertMultiJoinRule extends RelOptRule {
   public static final ConvertMultiJoinRule INSTANCE =
-      new ConvertMultiJoinRule(JoinRel.class);
+      new ConvertMultiJoinRule(JoinRelBase.class);
 
   //~ Constructors -----------------------------------------------------------
 

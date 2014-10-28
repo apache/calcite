@@ -17,6 +17,7 @@
 package org.eigenbase.rel.rules;
 
 import org.eigenbase.rel.*;
+import org.eigenbase.rel.RelFactories.FilterFactory;
 import org.eigenbase.relopt.*;
 
 /**
@@ -26,18 +27,22 @@ import org.eigenbase.relopt.*;
  */
 public class PushSemiJoinPastFilterRule extends RelOptRule {
   public static final PushSemiJoinPastFilterRule INSTANCE =
-      new PushSemiJoinPastFilterRule();
+      new PushSemiJoinPastFilterRule(RelFactories.DEFAULT_FILTER_FACTORY);
+
+  private final FilterFactory filterFactory;
 
   //~ Constructors -----------------------------------------------------------
 
   /**
    * Creates a PushSemiJoinPastFilterRule.
+   * @param filterFactory Factory to create Filter
    */
-  private PushSemiJoinPastFilterRule() {
+  public PushSemiJoinPastFilterRule(FilterFactory filterFactory) {
     super(
         operand(
             SemiJoinRel.class,
-            some(operand(FilterRel.class, any()))));
+            some(operand(FilterRelBase.class, any()))));
+    this.filterFactory = filterFactory;
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -45,7 +50,7 @@ public class PushSemiJoinPastFilterRule extends RelOptRule {
   // implement RelOptRule
   public void onMatch(RelOptRuleCall call) {
     SemiJoinRel semiJoin = call.rel(0);
-    FilterRel filter = call.rel(1);
+    FilterRelBase filter = call.rel(1);
 
     RelNode newSemiJoin =
         new SemiJoinRel(
@@ -60,7 +65,7 @@ public class PushSemiJoinPastFilterRule extends RelOptRule {
     RelNode newFilter =
         RelOptUtil.createFilter(
             newSemiJoin,
-            filter.getCondition());
+            filter.getCondition(), filterFactory);
 
     call.transformTo(newFilter);
   }
