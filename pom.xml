@@ -27,7 +27,7 @@ limitations under the License.
   <groupId>org.apache.calcite</groupId>
   <artifactId>calcite</artifactId>
   <packaging>pom</packaging>
-  <version>0.9.2-incubating-SNAPSHOT</version>
+  <version>0.9.2-incubating</version>
 
   <!-- More project information. -->
   <name>Calcite</name>
@@ -59,7 +59,7 @@ limitations under the License.
     <connection>scm:git:https://git-wip-us.apache.org/repos/asf/incubator-calcite.git</connection>
     <developerConnection>scm:git:https://git-wip-us.apache.org/repos/asf/incubator-calcite.git</developerConnection>
     <url>https://github.com/apache/incubator-calcite</url>
-    <tag>HEAD</tag>
+    <tag>calcite-0.9.2-incubating</tag>
   </scm>
 
   <modules>
