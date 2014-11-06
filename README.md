@@ -21,7 +21,7 @@ with the following Maven coordinates:
 <dependency>
   <groupId>org.apache.calcite</groupId>
   <artifactId>calcite-core</artifactId>
-  <version>0.9.1-incubating</version>
+  <version>0.9.2-incubating</version>
 </dependency>
 ```
 

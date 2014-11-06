@@ -3,6 +3,51 @@
 For a full list of releases, see
 <a href="https://github.com/apache/incubator-calcite/releases">github</a>.
 
+## <a href="https://github.com/apache/incubator-calcite/releases/tag/calcite-0.9.2-incubating">0.9.2-incubating</a> / 2014-11-05
+
+A fairly minor release, and last release before we rename all of the
+packages and lots of classes, in what we expect to call 1.0. If you
+have an existing application, it's worth upgrading to this first,
+before you move on to 1.0.
+
+New features
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-436">CALCITE-436</a>]
+  Simpler SPI to query `Table`
+
+API changes
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-447">CALCITE-447</a>]
+  Change semi-join rules to make use of factories
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-442">CALCITE-442</a>
+  Add `RelOptRuleOperand` constructor that takes a predicate
+
+Bug-fixes and internal changes
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-397">CALCITE-397</a>]
+  `SELECT DISTINCT *` on reflective schema gives `ClassCastException` at runtime
+* Various lattice improvements.
+* sqlline: Looking for class-path in inconsistent locations.
+* Re-order test suite, so that fast tests are run first.
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-444">CALCITE-444</a>]
+  Filters wrongly pushed into full outer join
+* Make it more convenient to unit test `RelMetadataQuery`, and add some more
+  tests for
+  [<a href="https://issues.apache.org/jira/browse/CALCITE-443">CALCITE-443</a>]
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-443">CALCITE-443</a>]
+  `getPredicates` from a Union is not correct
+* Update references to web sites, git repositories, jira, mailing lists,
+  travis CI now that [INFRA-8413] is fixed
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-434">CALCITE-435</a>]
+  `FilterAggregateTransposeRule` loses conditions that cannot be pushed
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-435">CALCITE-435</a>]
+  `LoptOptimizeJoinRule` incorrectly re-orders outer joins
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-439">CALCITE-439</a>]
+  `SqlValidatorUtil.uniquify()` may not terminate under some conditions
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-438">CALCITE-438</a>]
+  Push predicates through `SemiJoinRel`
+* Add test case for `LIKE ... ESCAPE`.
+* HOWTO: Modify release instructions.
+* Update `DiffRepository` documentation.
+* Add tests for windowed aggregates without `ORDER BY`. (Works already.)
+
 ## <a href="https://github.com/apache/incubator-calcite/releases/tag/calcite-0.9.1-incubating">0.9.1-incubating</a> / 2014-10-02
 
 This is the first release as Calcite. (The project was previously called Optiq.)
