@@ -155,6 +155,10 @@ public class MongoAggregateRel
       assert args.size() == 1;
       final String inName = inNames.get(args.get(0));
       return "{$max: " + MongoRules.maybeQuote("$" + inName) + "}";
+    } else if (aggregation == SqlStdOperatorTable.AVG) {
+      assert args.size() == 1;
+      final String inName = inNames.get(args.get(0));
+      return "{$avg: " + MongoRules.maybeQuote("$" + inName) + "}";
     } else {
       throw new AssertionError("unknown aggregate " + aggregation);
     }
