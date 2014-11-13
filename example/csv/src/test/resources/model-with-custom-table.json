@@ -1,0 +1,20 @@
+{
+  version: '1.0',
+  defaultSchema: 'CUSTOM_TABLE',
+  schemas: [
+    {
+      name: 'CUSTOM_TABLE',
+      tables: [
+        {
+          name: 'EMPS',
+          type: 'custom',
+          factory: 'net.hydromatic.optiq.impl.csv.CsvTableFactory',
+          operand: {
+            file: 'target/test-classes/sales/EMPS.csv',
+            smart: false
+          }
+        }
+      ]
+    }
+  ]
+}

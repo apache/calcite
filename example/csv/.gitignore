@@ -1,0 +1,6 @@
+*~
+target
+.idea
+*.iml
+settings.xml
+cp.txt
