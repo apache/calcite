@@ -1,0 +1,212 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <!-- The basics. -->
+  <groupId>net.hydromatic</groupId>
+  <artifactId>linq4j</artifactId>
+  <packaging>jar</packaging>
+  <version>0.5-SNAPSHOT</version>
+
+  <!-- More project information. -->
+  <name>linq4j</name>
+  <description>linq4j is a port of LINQ (Language-Integrated Query) to Java.</description>
+  <url>http://github.com/julianhyde/linq4j</url>
+  <inceptionYear>2012</inceptionYear>
+  <organization>
+    <name>Julian Hyde</name>
+    <url>http://www.hydromatic.net</url>
+  </organization>
+  <licenses>
+    <license>
+      <name>Apache 2</name>
+      <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+    </license>
+  </licenses>
+
+  <developers>
+    <developer>
+      <id>julianhyde</id>
+      <name>Julian Hyde</name>
+      <email>jhyde@pentaho.com</email>
+      <url>https://github.com/julianhyde</url>
+      <roles>
+        <role>architect</role>
+        <role>developer</role>
+      </roles>
+      <timezone>-8</timezone>
+      <properties />
+    </developer>
+  </developers>
+
+  <properties>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <top.dir>${project.basedir}</top.dir>
+  </properties>
+
+  <!-- Environment settings. -->
+  <distributionManagement>
+    <repository>
+      <id>conjars</id>
+      <name>Concurrent Conjars repository</name>
+      <url>http://conjars.org/repo</url>
+      <layout>default</layout>
+    </repository>
+    <site>
+      <id>linq4j.website</id>
+      <name>Linq4j Website</name>
+      <url>file:/home/jhyde/linq4j</url>
+    </site>
+  </distributionManagement>
+
+  <issueManagement>
+    <system>github</system>
+    <url>https://github.com/julianhyde/linq4j/issues</url>
+  </issueManagement>
+
+  <mailingLists>
+    <mailingList>
+      <name>Linq4j developers list</name>
+      <subscribe>linq4j-dev-subscribe@googlegroups.com</subscribe>
+      <unsubscribe>linq4j-dev-unsubscribe@googlegroups.com</unsubscribe>
+      <post>linq4j-dev@googlegroups.com</post>
+      <archive>http://groups.google.com/group/linq4j-dev</archive>
+    </mailingList>
+  </mailingLists>
+
+  <scm>
+    <connection>scm:git:git://github.com/julianhyde/linq4j.git</connection>
+    <developerConnection>scm:git:git@github.com:julianhyde/linq4j.git</developerConnection>
+    <url>scm:git:git://github.com/julianhyde/linq4j.git</url>
+    <tag>HEAD</tag>
+  </scm>
+
+  <!-- Dependencies. -->
+  <dependencies>
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <version>[4.8,)</version>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+<!--
+ <extensions>
+    <extension>
+      <groupId>org.apache.maven.wagon</groupId>
+      <artifactId>wagon-ssh</artifactId>
+      <version>1.0-beta-6</version>
+    </extension>
+ </extensions>  
+-->
+
+    <plugins>
+      <plugin>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>2.3.2</version>
+        <configuration>
+          <source>1.5</source>
+          <target>1.5</target>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-checkstyle-plugin</artifactId>
+        <version>2.10</version>
+        <executions>
+          <execution>
+            <id>validate</id>
+            <phase>validate</phase>
+            <configuration>
+              <configLocation>${top.dir}/src/main/config/checkstyle.xml</configLocation>
+              <suppressionsLocation>${top.dir}/src/main/config/checkstyle-suppressions.xml</suppressionsLocation>
+              <consoleOutput>true</consoleOutput>
+              <headerLocation>${top.dir}/src/main/config/license-header.txt</headerLocation>
+              <failOnViolation>true</failOnViolation>
+              <includeTestSourceDirectory>true</includeTestSourceDirectory>
+            </configuration>
+            <goals>
+              <goal>check</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>2.15</version>
+        <configuration>
+          <includes>
+            <include>net/hydromatic/linq4j/test/Linq4jSuite.java</include>
+          </includes>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-source-plugin</artifactId>
+        <version>2.2.1</version>
+        <executions>
+          <execution>
+            <id>attach-sources</id>
+            <phase>verify</phase>
+            <goals>
+              <goal>jar-no-fork</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-release-plugin</artifactId>
+        <version>2.4.2</version>
+        <dependencies>
+          <dependency>
+            <groupId>org.apache.maven.scm</groupId>
+            <artifactId>maven-scm-provider-gitexe</artifactId>
+            <version>1.8.1</version>
+          </dependency>
+        </dependencies>
+      </plugin>
+<!--
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>wagon-maven-plugin</artifactId>
+        <version>1.0-beta-3</version>
+        <configuration>
+          <fromFile>${project.build.directory}/${project.build.finalName}.jar</fromFile> 
+          <url>scp://servername/</url>
+          <toDir>.</toDir>
+        </configuration>
+      </plugin>
+-->
+    </plugins>
+
+    <resources>
+      <resource>
+        <directory>${top.dir}</directory>
+        <targetPath>META-INF</targetPath>
+        <includes>
+          <include>LICENSE</include>
+          <include>NOTICE</include>
+        </includes>
+      </resource>
+    </resources>
+  </build>
+
+  <reporting>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-javadoc-plugin</artifactId>
+        <version>2.8.1</version>
+        <configuration>
+          <links>
+            <link>http://docs.oracle.com/javase/7/docs/api/</link>
+          </links>
+        </configuration>
+      </plugin>
+    </plugins>
+  </reporting>
+
+</project>

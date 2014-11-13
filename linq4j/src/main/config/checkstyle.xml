@@ -1,0 +1,282 @@
+<?xml version="1.0"?>
+
+<!--
+/*
+// Licensed to Julian Hyde under one or more contributor license
+// agreements. See the NOTICE file distributed with this work for
+// additional information regarding copyright ownership.
+//
+// Julian Hyde licenses this file to you under the Apache License,
+// Version 2.0 (the "License"); you may not use this file except in
+// compliance with the License. You may obtain a copy of the License at:
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+*/
+-->
+
+<!--
+  This version of checkstyle is based on the Apache Giraph checkstyle
+  configuration, which in turn is based on Hadoop and common-math
+  configurations.
+
+  The documentation for checkstyle is available at 
+
+  http://checkstyle.sourceforge.net 
+-->
+
+<!DOCTYPE module PUBLIC "-//Puppy Crawl//DTD Check Configuration 1.1//EN" "http://www.puppycrawl.com/dtds/configuration_1_1.dtd">
+
+<!-- Optiq customization of default Checkstyle behavior -->
+<module name="Checker">
+  <property name="localeLanguage" value="en"/>
+
+  <!-- Checks for headers -->
+  <!-- See http://checkstyle.sf.net/config_header.html -->
+    <!-- Verify that EVERY source file has the appropriate license -->
+  <module name="Header">
+    <property name="headerFile" value="${checkstyle.header.file}"/>
+  </module>
+
+  <!-- Checks for Javadoc comments (checker).           -->
+  <!-- See http://checkstyle.sf.net/config_javadoc.html -->
+    <!-- Require package javadoc -->
+  <module name="JavadocPackage"/>
+
+  <!-- Miscellaneous other checks (checker).         -->
+  <!-- See http://checkstyle.sf.net/config_misc.html -->
+    <!-- Require files to end with newline characters -->
+  <module name="NewlineAtEndOfFile">
+    <property name="lineSeparator" value="lf"/>
+  </module>
+
+  <!-- Checks for whitespace (tree walker)                 -->
+  <!-- See http://checkstyle.sf.net/config_whitespace.html -->
+    <!-- No tabs allowed! -->
+  <module name="FileTabCharacter"/>
+
+  <module name="TreeWalker">
+    <property name="cacheFile" value="target/checkstyle-cachefile"/>
+
+    <!-- Checks for blocks. You know, those {}'s         -->
+    <!-- See http://checkstyle.sf.net/config_blocks.html -->
+      <!-- No empty blocks (i.e. catch); must contain at least a comment -->
+    <module name="EmptyBlock">
+      <property name="option" value="text"/>
+    </module>
+    <module name="AvoidNestedBlocks">
+        <property name="allowInSwitchCase" value="true"/>
+    </module>
+    <module name="LeftCurly"/>
+      <!-- No if/else/do/for/while without braces -->
+    <module name="NeedBraces"/>
+    <module name="RightCurly"/>
+
+    <!-- Checks for class design                         -->
+    <!-- See http://checkstyle.sf.net/config_design.html -->
+      <!-- Utility class should not be instantiated, they must have a
+	   private constructor -->
+    <module name="HideUtilityClassConstructor"/>
+
+    <!-- Checks for common coding problems               -->
+    <!-- See http://checkstyle.sf.net/config_coding.html -->
+    <module name="EmptyStatement"/>
+      <!-- Require hash code override when equals is -->
+    <module name="EqualsHashCode"/>
+      <!-- Disallow unnecessary instantiation of Boolean, String -->
+    <module name="IllegalInstantiation">
+      <property name="classes" value="java.lang.Boolean, java.lang.String"/>
+    </module>
+      <!-- Switch statements should be complete and with independent cases -->
+    <module name="FallThrough"/>
+    <!-- For hadoop_yarn profile, some YARN exceptions aren't loading in checkstyle -->
+    <module name="RedundantThrows">
+        <property name="suppressLoadErrors" value="true" />
+    </module>
+    <module name="SimplifyBooleanExpression"/>
+    <module name="SimplifyBooleanReturn"/>
+      <!-- Only one statement per line allowed -->
+    <module name="OneStatementPerLine"/>
+      <!-- Don't add up parentheses when they are not required -->
+    <module name="UnnecessaryParentheses" />
+      <!-- Don't use = or != for string comparisons -->
+    <module name="StringLiteralEquality" />
+      <!-- Don't declare multiple variables in the same statement -->
+    <module name="MultipleVariableDeclarations" />
+      <!-- String literals more than one character long should not be 
+	   repeated several times -->
+      <!-- the "unchecked" string is also accepted to allow
+	   @SuppressWarnings("unchecked") -->
+      <!-- Disabling for now until we have a better ignoreStringsRegexp -->
+      <!--
+    <module name="MultipleStringLiterals" >
+      <property name="ignoreStringsRegexp" value='^(("")|(".")|("unchecked"))$'/>
+    </module>
+      -->
+
+    <!-- Checks for imports                              -->
+    <!-- See http://checkstyle.sf.net/config_import.html -->
+    <module name="RedundantImport"/>
+      <!-- Import should be explicit, really needed and only from pure
+	   java packages --> 
+    <module name="UnusedImports" />
+    <module name="IllegalImport" />
+
+    <module name="ImportOrder">
+      <property name="groups" value="net.hydromatic.lambda,net.hydromatic.linq4j,au.com.,com.,org.,/^javax?\./"/>
+      <property name="ordered" value="true"/>
+      <property name="separated" value="true"/>
+      <property name="option" value="bottom"/>
+    </module>
+
+    <!-- Checks for Javadoc comments (tree walker).       -->
+    <!-- See http://checkstyle.sf.net/config_javadoc.html -->
+      <!-- Javadoc must be formatted correctly -->
+    <module name="JavadocStyle">
+      <property name="checkFirstSentence" value="false"/>
+    </module>
+      <!-- Must have class / interface header comments -->
+    <module name="JavadocType"/>
+
+    <!-- Miscellaneous other checks (tree walker).     -->
+    <!-- See http://checkstyle.sf.net/config_misc.html -->
+      <!-- Java style arrays -->
+    <module name="ArrayTypeStyle"/>
+      <!-- Indentation -->
+    <module name="Indentation">
+      <property name="caseIndent" value="0"/>
+      <property name="basicOffset" value="2"/>
+      <property name="braceAdjustment" value="0"/>
+    </module>
+      <!-- Turn this on to see what needs to be done
+    <module name="TodoComment"/>
+       -->
+    <module name="UpperEll"/>
+
+    <module name="OperatorWrap"/>
+
+    <!-- Modifier Checks                                    -->
+    <!-- See http://checkstyle.sf.net/config_modifiers.html -->
+      <!-- Use a consistent way to put modifiers -->
+    <module name="ModifierOrder"/>
+    <module name="RedundantModifier"/>
+
+    <!-- Checks for Naming Conventions.                  -->
+    <!-- See http://checkstyle.sf.net/config_naming.html -->
+      <!-- Constant names should obey the traditional all uppercase 
+	   naming convention -->
+    <module name="ConstantName"/>
+    <module name="LocalFinalVariableName">
+      <!-- Allow '_' except first. -->
+      <property name="format" value="^[a-z][a-zA-Z0-9_]*$"/>
+    </module>
+    <module name="LocalVariableName">
+      <!-- Allow '_' except first. -->
+      <property name="format" value="^[a-z][a-zA-Z0-9_]*$"/>
+    </module>
+    <module name="MemberName"/>
+    <module name="MethodName">
+      <!-- Allow '_' prefix, indicating disabled method or junit test. -->
+      <property name="format" value="^_?[a-z][a-zA-Z0-9_]*$"/>
+    </module>
+    <module name="PackageName"/>
+    <module name="ParameterName">
+      <!-- Allow trailing '_'. -->
+      <property name="format" value="^[a-z][a-zA-Z0-9]*_?$"/>
+    </module>
+    <module name="StaticVariableName"/>
+    <module name="TypeName"/>
+
+    <!-- Checks for regexp expressions.                  -->
+    <!-- See http://checkstyle.sf.net/config_regexp.html -->    
+
+    <!-- No trailing whitespace -->
+    <module name="Regexp">
+      <property name="format" value="[ \t]+$"/>
+      <property name="illegalPattern" value="true"/>
+      <property name="message" value="Trailing whitespace"/>
+    </module> 
+
+    <!-- Authors should be in pom.xml file -->
+    <module name="Regexp">
+      <property name="format" value="@author"/>
+      <property name="illegalPattern" value="true"/>
+      <property name="message" value="developers names should be in pom file"/>
+    </module>
+
+    <!-- No multi-line C-style comments except at start of line. -->
+    <module name="Regexp">
+      <property name="format" value="^ +/\*[^*][^/]$"/>
+      <property name="illegalPattern" value="true"/>
+      <property name="message" value="C-style comment"/>
+    </module> 
+
+    <module name="Regexp">
+      <property name="format" value="^ +/\*$"/>
+      <property name="illegalPattern" value="true"/>
+      <property name="message" value="C-style comment"/>
+    </module> 
+
+    <!-- Checks for Size Violations.                    -->
+    <!-- See http://checkstyle.sf.net/config_sizes.html -->
+    <!-- Lines cannot exceed 80 chars, except if they are hyperlinks
+         or strings (possibly preceded by '+' and followed by say '),'. -->
+    <module name="LineLength">
+      <property name="max" value="80"/>
+      <property name="ignorePattern" value="^import|@see|@link|href|^[ +]*&quot;.*&quot;[);,]*$"/>
+    </module>
+      <!-- Over time, we will revise this down -->
+    <module name="MethodLength">
+      <property name="max" value="390"/>
+    </module>
+
+    <!-- Checks for whitespace (tree walker)                 -->
+    <!-- See http://checkstyle.sf.net/config_whitespace.html -->
+    <module name="EmptyForIteratorPad"/>
+      <!-- Spacing around methods -->
+    <module name="MethodParamPad">
+      <property name="option" value="nospace"/>
+      <property name="allowLineBreaks" value="true"/>
+     </module>
+      <!-- No whitespace before a token -->
+    <module name="NoWhitespaceBefore"/>
+      <!-- Whitespace after tokens is required -->
+    <module name="WhitespaceAfter"/>
+      <!-- Whitespace around tokens is required -->
+    <module name="WhitespaceAround">
+        <property name="allowEmptyConstructors" value="true"/>
+        <property name="allowEmptyMethods" value="true"/>
+    </module>
+    <module name="ParenPad"/>
+    <module name="TypecastParenPad"/>
+      <!-- No extra whitespace around types -->
+    <module name="GenericWhitespace"/>
+
+    <!-- Required for SuppressionCommentFilter below -->
+    <module name="FileContentsHolder"/>
+  </module>
+  
+  <!-- Setup special comments to suppress specific checks from source files -->
+  <module name="SuppressionCommentFilter">
+    <property name="offCommentFormat" value="CHECKSTYLE\: stop ([\w\|]+)"/>
+    <property name="onCommentFormat"  value="CHECKSTYLE\: resume ([\w\|]+)"/>
+    <property name="checkFormat"      value="$1"/>
+  </module>
+
+  <!-- Turn off all checks between OFF and ON -->
+  <module name="SuppressionCommentFilter">
+    <property name="offCommentFormat" value="CHECKSTYLE\: OFF"/>
+    <property name="onCommentFormat"  value="CHECKSTYLE\: ON"/>
+  </module>
+
+  <!-- Turn off checks for the next N lines. -->
+  <module name="SuppressWithNearbyCommentFilter">
+    <property name="commentFormat" value="CHECKSTYLE: +IGNORE (\d+)"/>
+    <property name="influenceFormat" value="$1"/>
+  </module>
+</module>
