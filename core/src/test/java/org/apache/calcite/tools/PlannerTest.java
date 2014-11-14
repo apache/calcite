@@ -57,6 +57,7 @@ import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParseException;
+import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeName;
@@ -107,6 +108,23 @@ public class PlannerTest {
         "LogicalProject(empid=[$0], deptno=[$1], name=[$2], salary=[$3], commission=[$4])\n"
             + "  LogicalFilter(condition=[LIKE($2, '%e%')])\n"
             + "    EnumerableTableScan(table=[[hr, emps]])\n");
+  }
+
+  @Test(expected = SqlParseException.class)
+  public void testParseIdentiferMaxLengthWithDefault() throws Exception {
+    Planner planner = getPlanner(null, SqlParser.ORACLE_PARSER_CONFIG);
+    planner.parse("select name as "
+        + "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa from \"emps\""
+    );
+  }
+
+  @Test
+  public void testParseIdentiferMaxLengthWithIncreased() throws Exception {
+    Planner planner = getPlanner(null,
+        new SqlParser.ParserConfigImpl(Lex.ORACLE, 512));
+    planner.parse("select name as "
+        + "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa from \"emps\""
+    );
   }
 
   /** Unit test that parses, validates and converts the query using
@@ -204,9 +222,15 @@ public class PlannerTest {
   }
 
   private Planner getPlanner(List<RelTraitDef> traitDefs, Program... programs) {
+    return getPlanner(traitDefs, SqlParser.ORACLE_PARSER_CONFIG, programs);
+  }
+
+  private Planner getPlanner(List<RelTraitDef> traitDefs,
+                             SqlParser.ParserConfig parserConfig,
+                             Program... programs) {
     final SchemaPlus rootSchema = Frameworks.createRootSchema(true);
     final FrameworkConfig config = Frameworks.newConfigBuilder()
-        .lex(Lex.ORACLE)
+        .parserConfig(parserConfig)
         .defaultSchema(
             CalciteAssert.addSchema(rootSchema, CalciteAssert.SchemaSpec.HR))
         .traitDefs(traitDefs)
@@ -720,7 +744,7 @@ public class PlannerTest {
   private void checkBushy(String sql, String expected) throws Exception {
     final SchemaPlus rootSchema = Frameworks.createRootSchema(true);
     final FrameworkConfig config = Frameworks.newConfigBuilder()
-        .lex(Lex.ORACLE)
+        .parserConfig(SqlParser.ORACLE_PARSER_CONFIG)
         .defaultSchema(
             CalciteAssert.addSchema(rootSchema,
                 CalciteAssert.SchemaSpec.CLONE_FOODMART))
@@ -840,7 +864,7 @@ public class PlannerTest {
             new ReflectiveSchema(new TpchSchema()));
 
     final FrameworkConfig config = Frameworks.newConfigBuilder()
-        .lex(Lex.MYSQL)
+        .parserConfig(SqlParser.MYSQL_PARSER_CONFIG)
         .defaultSchema(schema)
         .programs(Programs.ofRules(Programs.RULE_SET))
         .build();

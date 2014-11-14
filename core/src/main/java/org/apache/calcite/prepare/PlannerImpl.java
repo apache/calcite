@@ -17,7 +17,6 @@
 package org.apache.calcite.prepare;
 
 import org.apache.calcite.adapter.java.JavaTypeFactory;
-import org.apache.calcite.config.Lex;
 import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptPlanner;
@@ -59,7 +58,8 @@ public class PlannerImpl implements Planner {
   /** Holds the trait definitions to be registered with planner. May be null. */
   private final ImmutableList<RelTraitDef> traitDefs;
 
-  private final Lex lex;
+  private final SqlParser.ParserConfig parserConfig;
+
   private final SqlParserImplFactory parserFactory;
   private final SqlRexConvertletTable convertletTable;
 
@@ -90,7 +90,7 @@ public class PlannerImpl implements Planner {
     this.defaultSchema = config.getDefaultSchema();
     this.operatorTable = config.getOperatorTable();
     this.programs = config.getPrograms();
-    this.lex = config.getLex();
+    this.parserConfig = config.getParserConfig();
     this.parserFactory = config.getParserFactory();
     this.state = State.STATE_0_CLOSED;
     this.traitDefs = config.getTraitDefs();
@@ -165,7 +165,7 @@ public class PlannerImpl implements Planner {
     }
     ensure(State.STATE_2_READY);
     SqlParser parser = SqlParser.create(parserFactory, sql,
-        lex.quoting, lex.unquotedCasing, lex.quotedCasing);
+        parserConfig);
     SqlNode sqlNode = parser.parseStmt();
     state = State.STATE_3_PARSED;
     return sqlNode;
@@ -206,8 +206,8 @@ public class PlannerImpl implements Planner {
   public class ViewExpanderImpl implements ViewExpander {
     public RelNode expandView(RelDataType rowType, String queryString,
         List<String> schemaPath) {
-      final SqlParser parser = SqlParser.create(parserFactory, queryString,
-          lex.quoting, lex.unquotedCasing, lex.quotedCasing);
+      SqlParser parser = SqlParser.create(parserFactory, queryString,
+          parserConfig);
       SqlNode sqlNode;
       try {
         sqlNode = parser.parseQuery();

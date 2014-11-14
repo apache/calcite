@@ -437,6 +437,11 @@ public abstract class SqlAbstractParserImpl {
   public abstract void setUnquotedCasing(Casing unquotedCasing);
 
   /**
+   * Sets the maximum length for sql identifier.
+   */
+  public abstract void setIdentifierMaxLength(int identifierMaxLength);
+
+  /**
    * Change parser state.
    *
    * @param stateName new state.
