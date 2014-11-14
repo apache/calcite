@@ -7,7 +7,7 @@
       type: 'custom',
       factory: 'net.hydromatic.optiq.impl.csv.CsvSchemaFactory',
       operand: {
-        directory: 'example/csv/target/test-classes/sales'
+        directory: 'sales'
       }
     }
   ]

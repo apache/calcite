@@ -17,6 +17,7 @@
 package net.hydromatic.optiq.impl.csv;
 
 import net.hydromatic.optiq.*;
+import net.hydromatic.optiq.model.ModelHandler;
 
 import java.io.File;
 import java.util.Map;
@@ -35,7 +36,13 @@ public class CsvSchemaFactory implements SchemaFactory {
 
   public Schema create(SchemaPlus parentSchema, String name,
       Map<String, Object> operand) {
-    String directory = (String) operand.get("directory");
+    final String directory = (String) operand.get("directory");
+    final File base =
+        (File) operand.get(ModelHandler.ExtraOperand.BASE_DIRECTORY.camelName);
+    File directoryFile = new File(directory);
+    if (base != null && !directoryFile.isAbsolute()) {
+      directoryFile = new File(base, directory);
+    }
     String flavorName = (String) operand.get("flavor");
     CsvTable.Flavor flavor;
     if (flavorName == null) {
@@ -43,9 +50,7 @@ public class CsvSchemaFactory implements SchemaFactory {
     } else {
       flavor = CsvTable.Flavor.valueOf(flavorName.toUpperCase());
     }
-    return new CsvSchema(
-        new File(directory),
-        flavor);
+    return new CsvSchema(directoryFile, flavor);
   }
 }
 

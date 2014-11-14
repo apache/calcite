@@ -17,6 +17,7 @@
 package net.hydromatic.optiq.impl.csv;
 
 import net.hydromatic.optiq.*;
+import net.hydromatic.optiq.model.ModelHandler;
 
 import org.eigenbase.reltype.*;
 
@@ -36,9 +37,14 @@ public class CsvTableFactory implements TableFactory<CsvTable> {
   }
 
   public CsvTable create(SchemaPlus schema, String name,
-      Map<String, Object> map, RelDataType rowType) {
-    String fileName = (String) map.get("file");
-    final File file = new File(fileName);
+      Map<String, Object> operand, RelDataType rowType) {
+    String fileName = (String) operand.get("file");
+    File file = new File(fileName);
+    final File base =
+        (File) operand.get(ModelHandler.ExtraOperand.BASE_DIRECTORY.camelName);
+    if (base != null && !file.isAbsolute()) {
+      file = new File(base, fileName);
+    }
     final RelProtoDataType protoRowType =
         rowType != null ? RelDataTypeImpl.proto(rowType) : null;
     return new CsvScannableTable(file, protoRowType);

@@ -23,6 +23,7 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.PrintStream;
+import java.net.URL;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -224,7 +225,7 @@ public class CsvTest {
     Statement statement = null;
     try {
       Properties info = new Properties();
-      info.put("model", "example/csv/target/test-classes/" + model + ".json");
+      info.put("model", jsonPath(model));
       connection = DriverManager.getConnection("jdbc:calcite:", info);
       statement = connection.createStatement();
       final ResultSet resultSet =
@@ -234,6 +235,15 @@ public class CsvTest {
     } finally {
       close(connection, statement);
     }
+  }
+
+  private String jsonPath(String model) {
+    final URL url = CsvTest.class.getResource("/" + model + ".json");
+    String s = url.toString();
+    if (s.startsWith("file:")) {
+      s = s.substring("file:".length());
+    }
+    return s;
   }
 
   private static void collect(List<String> result, ResultSet resultSet)
@@ -295,7 +305,7 @@ public class CsvTest {
 
   @Test public void testDateType() throws SQLException {
     Properties info = new Properties();
-    info.put("model", "example/csv/target/test-classes/bug.json");
+    info.put("model", jsonPath("bug"));
 
     Connection connection = DriverManager.getConnection("jdbc:calcite:", info);
 

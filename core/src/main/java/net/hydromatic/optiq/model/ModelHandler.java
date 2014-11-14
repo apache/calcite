@@ -30,6 +30,7 @@ import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 
 import java.io.File;
 import java.io.IOException;
@@ -46,6 +47,7 @@ public class ModelHandler {
   private final OptiqConnection connection;
   private final List<Pair<String, SchemaPlus>> schemaStack =
       new ArrayList<Pair<String, SchemaPlus>>();
+  private final String modelUri;
   Lattice.Builder latticeBuilder;
   Lattice.TileBuilder tileBuilder;
 
@@ -53,6 +55,7 @@ public class ModelHandler {
       throws IOException {
     super();
     this.connection = connection;
+    this.modelUri = uri;
     final ObjectMapper mapper = new ObjectMapper();
     mapper.configure(JsonParser.Feature.ALLOW_UNQUOTED_FIELD_NAMES, true);
     mapper.configure(JsonParser.Feature.ALLOW_SINGLE_QUOTES, true);
@@ -190,12 +193,33 @@ public class ModelHandler {
       final SchemaFactory schemaFactory = (SchemaFactory) clazz.newInstance();
       final Schema schema =
           schemaFactory.create(
-              parentSchema, jsonSchema.name, jsonSchema.operand);
+              parentSchema, jsonSchema.name, operandMap(jsonSchema.operand));
       final SchemaPlus optiqSchema = parentSchema.add(jsonSchema.name, schema);
       populateSchema(jsonSchema, optiqSchema);
     } catch (Exception e) {
       throw new RuntimeException("Error instantiating " + jsonSchema, e);
     }
+  }
+
+  /** Adds extra entries to an operand to a custom schema. */
+  protected Map<String, Object> operandMap(Map<String, Object> operand) {
+    final ImmutableMap.Builder<String, Object> builder = ImmutableMap.builder();
+    builder.putAll(operand);
+    for (ExtraOperand extraOperand : ExtraOperand.values()) {
+      if (!operand.containsKey(extraOperand.camelName)) {
+        switch (extraOperand) {
+        case MODEL_URI:
+          builder.put(extraOperand.camelName, modelUri);
+          break;
+        case BASE_DIRECTORY:
+          if (!modelUri.startsWith("inline:")) {
+            final File file = new File(modelUri);
+            builder.put(extraOperand.camelName, file.getParentFile());
+          }
+        }
+      }
+    }
+    return builder.build();
   }
 
   public void visit(JsonJdbcSchema jsonSchema) {
@@ -275,7 +299,8 @@ public class ModelHandler {
       final Class clazz = Class.forName(jsonTable.factory);
       final TableFactory tableFactory = (TableFactory) clazz.newInstance();
       final Table table =
-          tableFactory.create(schema, jsonTable.name, jsonTable.operand, null);
+          tableFactory.create(schema, jsonTable.name,
+              operandMap(jsonTable.operand), null);
       schema.add(jsonTable.name, table);
     } catch (Exception e) {
       throw new RuntimeException("Error instantiating " + jsonTable, e);
@@ -355,6 +380,23 @@ public class ModelHandler {
     }
     latticeBuilder.addTile(tileBuilder.build());
     tileBuilder = null;
+  }
+
+  /** Extra operands automatically injected into a
+   * {@link JsonCustomSchema#operand}, as extra context for the adapter. */
+  public enum ExtraOperand {
+    /** URI of model, e.g. "target/test-classes/model.json",
+     * "http://localhost/foo/bar.json", "inline:{...}". */
+    MODEL_URI("modelUri"),
+
+    /** Base directory from which to read files. */
+    BASE_DIRECTORY("baseDirectory");
+
+    public final String camelName;
+
+    ExtraOperand(String camelName) {
+      this.camelName = camelName;
+    }
   }
 }
 
