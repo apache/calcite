@@ -24,7 +24,6 @@ import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.advise.SqlAdvisor;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParser;
-import org.apache.calcite.sql.parser.impl.SqlParserImpl;
 import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
 import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlValidator;
@@ -36,7 +35,7 @@ import org.apache.calcite.test.MockSqlOperatorTable;
 import com.google.common.collect.ImmutableMap;
 
 /**
-* Default implementation of {@link SqlTestFactory}.
+ * Default implementation of {@link SqlTestFactory}.
  *
  * <p>Suitable for most tests. If you want different behavior, you can extend;
  * if you want a factory with different properties (e.g. SQL conformance level
@@ -67,11 +66,12 @@ public class DefaultSqlTestFactory implements SqlTestFactory {
   }
 
   public SqlParser createParser(SqlTestFactory factory, String sql) {
-    Quoting quoting = (Quoting) factory.get("quoting");
-    Casing quotedCasing = (Casing) factory.get("quotedCasing");
-    Casing unquotedCasing = (Casing) factory.get("unquotedCasing");
-    return SqlParser.create(SqlParserImpl.FACTORY, sql, quoting,
-        unquotedCasing, quotedCasing);
+    return SqlParser.create(sql,
+        SqlParser.configBuilder()
+            .setQuoting((Quoting) factory.get("quoting"))
+            .setUnquotedCasing((Casing) factory.get("unquotedCasing"))
+            .setQuotedCasing((Casing) factory.get("quotedCasing"))
+            .build());
   }
 
   public SqlValidator getValidator(SqlTestFactory factory) {

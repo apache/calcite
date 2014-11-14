@@ -16,14 +16,13 @@
  */
 package org.apache.calcite.tools;
 
-import org.apache.calcite.config.Lex;
 import org.apache.calcite.plan.Context;
 import org.apache.calcite.plan.RelOptCostFactory;
 import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.sql.SqlOperatorTable;
-import org.apache.calcite.sql.parser.SqlParserImplFactory;
+import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql2rel.SqlRexConvertletTable;
 
 import com.google.common.collect.ImmutableList;
@@ -36,16 +35,9 @@ import com.google.common.collect.ImmutableList;
  */
 public interface FrameworkConfig {
   /**
-   * The type of lexical analysis the SqlParser should do.  Controls case rules
-   * and quoted identifier syntax.
+   * The configuration of SQL parser.
    */
-  Lex getLex();
-
-  /**
-   * Provides the parser factory that creates the SqlParser used in parsing
-   * queries.
-   */
-  SqlParserImplFactory getParserFactory();
+  SqlParser.Config getParserConfig();
 
   /**
    * Returns the default schema that should be checked before looking at the

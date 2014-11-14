@@ -99,7 +99,6 @@ import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParser;
-import org.apache.calcite.sql.parser.impl.SqlParserImpl;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.util.ChainedSqlOperatorTable;
 import org.apache.calcite.sql.validate.SqlConformance;
@@ -444,8 +443,12 @@ public class CalcitePrepareImpl implements CalcitePrepare {
     if (sql != null) {
       assert queryable == null;
       final CalciteConnectionConfig config = context.config();
-      SqlParser parser = SqlParser.create(SqlParserImpl.FACTORY, sql,
-          config.quoting(), config.unquotedCasing(), config.quotedCasing());
+      SqlParser parser = SqlParser.create(sql,
+          SqlParser.configBuilder()
+              .setQuotedCasing(config.quotedCasing())
+              .setUnquotedCasing(config.unquotedCasing())
+              .setQuoting(config.quoting())
+              .build());
       SqlNode sqlNode;
       try {
         sqlNode = parser.parseStmt();

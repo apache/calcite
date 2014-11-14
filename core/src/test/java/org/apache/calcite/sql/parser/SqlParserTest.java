@@ -21,7 +21,6 @@ import org.apache.calcite.avatica.Quoting;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlSetOption;
-import org.apache.calcite.sql.parser.impl.SqlParserImpl;
 import org.apache.calcite.sql.pretty.SqlPrettyWriter;
 import org.apache.calcite.test.SqlValidatorTestCase;
 import org.apache.calcite.util.Bug;
@@ -84,8 +83,12 @@ public class SqlParserTest {
   }
 
   private SqlParser getSqlParser(String sql) {
-    return SqlParser.create(SqlParserImpl.FACTORY, sql, quoting,
-        unquotedCasing, quotedCasing);
+    return SqlParser.create(sql,
+        SqlParser.configBuilder()
+            .setQuoting(quoting)
+            .setUnquotedCasing(unquotedCasing)
+            .setQuotedCasing(quotedCasing)
+            .build());
   }
 
   protected SqlNode parseStmt(String sql) throws SqlParseException {

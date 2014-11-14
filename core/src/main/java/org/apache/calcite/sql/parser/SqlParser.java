@@ -18,9 +18,12 @@ package org.apache.calcite.sql.parser;
 
 import org.apache.calcite.avatica.Casing;
 import org.apache.calcite.avatica.Quoting;
+import org.apache.calcite.config.Lex;
 import org.apache.calcite.runtime.CalciteContextException;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.parser.impl.SqlParserImpl;
+
+import com.google.common.base.Preconditions;
 
 import java.io.StringReader;
 
@@ -28,20 +31,22 @@ import java.io.StringReader;
  * A <code>SqlParser</code> parses a SQL statement.
  */
 public class SqlParser {
-  //~ Instance fields --------------------------------------------------------
+  public static final int DEFAULT_IDENTIFIER_MAX_LENGTH = 128;
 
+  //~ Instance fields --------------------------------------------------------
   private final SqlAbstractParserImpl parser;
-  private String originalInput;
+  private final String originalInput;
 
   //~ Constructors -----------------------------------------------------------
   private SqlParser(String s, SqlAbstractParserImpl parser,
-      Quoting quoting, Casing unquotedCasing, Casing quotedCasing) {
+      Config config) {
     this.originalInput = s;
     this.parser = parser;
     parser.setTabSize(1);
-    parser.setQuotedCasing(quotedCasing);
-    parser.setUnquotedCasing(unquotedCasing);
-    switch (quoting) {
+    parser.setQuotedCasing(config.quotedCasing());
+    parser.setUnquotedCasing(config.unquotedCasing());
+    parser.setIdentifierMaxLength(config.identifierMaxLength());
+    switch (config.quoting()) {
     case DOUBLE_QUOTE:
       parser.switchTo("DQID");
       break;
@@ -60,12 +65,15 @@ public class SqlParser {
    * Creates a <code>SqlParser</code> to parse the given string using
    * Calcite's parser implementation.
    *
+   * <p>The default lexical policy is similar to Oracle.
+   *
+   * @see Lex#ORACLE
+   *
    * @param s An SQL statement or expression to parse.
-   * @return A <code>SqlParser</code> object.
+   * @return A parser
    */
   public static SqlParser create(String s) {
-    return create(SqlParserImpl.FACTORY, s, Quoting.DOUBLE_QUOTE,
-        Casing.TO_UPPER, Casing.UNCHANGED);
+    return create(s, configBuilder().build());
   }
 
   /**
@@ -73,22 +81,15 @@ public class SqlParser {
    * parser implementation created from given {@link SqlParserImplFactory}
    * with given quoting syntax and casing policies for identifiers.
    *
-   * @param parserFactory {@link SqlParserImplFactory} to get the parser
-   *     implementation.
-   * @param s An SQL statement or expression to parse.
-   * @param quoting Syntax for quoting identifiers in SQL statements.
-   * @param unquotedCasing Policy for converting case of <i>unquoted</i>
-   *     identifiers.
-   * @param quotedCasing Policy for converting case of <i>quoted</i>
-   *     identifiers.
-   * @return A <code>SqlParser</code> object.
+   * @param sql A SQL statement or expression to parse.
+   * @param config The parser configuration (identifier max length, etc.)
+   * @return A parser
    */
-  public static SqlParser create(SqlParserImplFactory parserFactory, String s,
-      Quoting quoting, Casing unquotedCasing, Casing quotedCasing) {
-    SqlAbstractParserImpl parser = parserFactory.getParser(
-        new StringReader(s));
+  public static SqlParser create(String sql, Config config) {
+    SqlAbstractParserImpl parser =
+        config.parserFactory().getParser(new StringReader(sql));
 
-    return new SqlParser(s, parser, quoting, unquotedCasing, quotedCasing);
+    return new SqlParser(sql, parser, config);
   }
 
   /**
@@ -157,6 +158,151 @@ public class SqlParser {
    */
   public SqlAbstractParserImpl.Metadata getMetadata() {
     return parser.getMetadata();
+  }
+
+  /**
+   * Builder for a {@link Config}.
+   */
+  public static ConfigBuilder configBuilder() {
+    return new ConfigBuilder();
+  }
+
+  /**
+   * Builder for a {@link Config} that starts with an existing {@code Config}.
+   */
+  public static ConfigBuilder configBuilder(Config config) {
+    return new ConfigBuilder().setConfig(config);
+  }
+
+  /**
+   * Interface to define the configuration for a SQL parser.
+   *
+   * @see ConfigBuilder
+   */
+  public interface Config {
+    /** Default configuration. */
+    Config DEFAULT = configBuilder().build();
+
+    int identifierMaxLength();
+    Casing quotedCasing();
+    Casing unquotedCasing();
+    Quoting quoting();
+    boolean caseSensitive();
+    SqlParserImplFactory parserFactory();
+  }
+
+  /** Builder for a {@link Config}. */
+  public static class ConfigBuilder {
+    private Casing quotedCasing = Lex.ORACLE.quotedCasing;
+    private Casing unquotedCasing = Lex.ORACLE.unquotedCasing;
+    private Quoting quoting = Lex.ORACLE.quoting;
+    private int identifierMaxLength = DEFAULT_IDENTIFIER_MAX_LENGTH;
+    private boolean caseSensitive = Lex.ORACLE.caseSensitive;
+    private SqlParserImplFactory parserFactory = SqlParserImpl.FACTORY;
+
+    private ConfigBuilder() {}
+
+    /** Sets configuration identical to a given {@link Config}. */
+    public ConfigBuilder setConfig(Config config) {
+      this.quotedCasing = config.quotedCasing();
+      this.unquotedCasing = config.unquotedCasing();
+      this.quoting = config.quoting();
+      this.identifierMaxLength = config.identifierMaxLength();
+      this.parserFactory = config.parserFactory();
+      return this;
+    }
+
+    public ConfigBuilder setQuotedCasing(Casing quotedCasing) {
+      this.quotedCasing = Preconditions.checkNotNull(quotedCasing);
+      return this;
+    }
+
+    public ConfigBuilder setUnquotedCasing(Casing unquotedCasing) {
+      this.unquotedCasing = Preconditions.checkNotNull(unquotedCasing);
+      return this;
+    }
+
+    public ConfigBuilder setQuoting(Quoting quoting) {
+      this.quoting = Preconditions.checkNotNull(quoting);
+      return this;
+    }
+
+    public ConfigBuilder setCaseSensitive(boolean caseSensitive) {
+      this.caseSensitive = caseSensitive;
+      return this;
+    }
+
+    public ConfigBuilder setIdentifierMaxLength(int identifierMaxLength) {
+      this.identifierMaxLength = identifierMaxLength;
+      return this;
+    }
+
+    public ConfigBuilder setParserFactory(SqlParserImplFactory factory) {
+      this.parserFactory = Preconditions.checkNotNull(factory);
+      return this;
+    }
+
+    public ConfigBuilder setLex(Lex lex) {
+      setCaseSensitive(lex.caseSensitive);
+      setUnquotedCasing(lex.unquotedCasing);
+      setQuotedCasing(lex.quotedCasing);
+      setQuoting(lex.quoting);
+      return this;
+    }
+
+    /** Builds a
+     * {@link Config}. */
+    public Config build() {
+      return new ConfigImpl(identifierMaxLength, quotedCasing,
+          unquotedCasing, quoting, caseSensitive, parserFactory);
+    }
+  }
+
+  /** Implementation of
+   * {@link Config}.
+   * Called by builder; all values are in private final fields. */
+  private static class ConfigImpl implements Config {
+    private final int identifierMaxLength;
+    private final boolean caseSensitive;
+    private final Casing quotedCasing;
+    private final Casing unquotedCasing;
+    private final Quoting quoting;
+    private final SqlParserImplFactory parserFactory;
+
+    private ConfigImpl(int identifierMaxLength, Casing quotedCasing,
+        Casing unquotedCasing, Quoting quoting, boolean caseSensitive,
+        SqlParserImplFactory parserFactory) {
+      this.identifierMaxLength = identifierMaxLength;
+      this.caseSensitive = caseSensitive;
+      this.quotedCasing = Preconditions.checkNotNull(quotedCasing);
+      this.unquotedCasing = Preconditions.checkNotNull(unquotedCasing);
+      this.quoting = Preconditions.checkNotNull(quoting);
+      this.parserFactory = Preconditions.checkNotNull(parserFactory);
+    }
+
+    public int identifierMaxLength() {
+      return identifierMaxLength;
+    }
+
+    public Casing quotedCasing() {
+      return quotedCasing;
+    }
+
+    public Casing unquotedCasing() {
+      return unquotedCasing;
+    }
+
+    public Quoting quoting() {
+      return quoting;
+    }
+
+    public boolean caseSensitive() {
+      return caseSensitive;
+    }
+
+    public SqlParserImplFactory parserFactory() {
+      return parserFactory;
+    }
   }
 }
 

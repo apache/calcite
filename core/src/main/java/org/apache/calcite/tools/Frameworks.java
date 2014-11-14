@@ -17,7 +17,6 @@
 package org.apache.calcite.tools;
 
 import org.apache.calcite.config.CalciteConnectionProperty;
-import org.apache.calcite.config.Lex;
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.plan.Context;
@@ -32,8 +31,7 @@ import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.server.CalciteServerStatement;
 import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
-import org.apache.calcite.sql.parser.SqlParserImplFactory;
-import org.apache.calcite.sql.parser.impl.SqlParserImpl;
+import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql2rel.SqlRexConvertletTable;
 import org.apache.calcite.sql2rel.StandardConvertletTable;
 
@@ -178,17 +176,17 @@ public class Frameworks {
     private ImmutableList<Program> programs = ImmutableList.of();
     private Context context;
     private ImmutableList<RelTraitDef> traitDefs;
-    private Lex lex = Lex.ORACLE;
+    private SqlParser.Config parserConfig =
+        SqlParser.Config.DEFAULT;
     private SchemaPlus defaultSchema;
     private RelOptCostFactory costFactory;
-    private SqlParserImplFactory parserFactory = SqlParserImpl.FACTORY;
     private RelDataTypeSystem typeSystem = RelDataTypeSystem.DEFAULT;
 
     private ConfigBuilder() {}
 
     public FrameworkConfig build() {
       return new StdFrameworkConfig(context, convertletTable, operatorTable,
-          programs, traitDefs, lex, defaultSchema, costFactory, parserFactory,
+          programs, traitDefs, parserConfig, defaultSchema, costFactory,
           typeSystem);
     }
 
@@ -222,8 +220,8 @@ public class Frameworks {
       return this;
     }
 
-    public ConfigBuilder lex(Lex lex) {
-      this.lex = Preconditions.checkNotNull(lex);
+    public ConfigBuilder parserConfig(SqlParser.Config parserConfig) {
+      this.parserConfig = Preconditions.checkNotNull(parserConfig);
       return this;
     }
 
@@ -255,11 +253,6 @@ public class Frameworks {
       return this;
     }
 
-    public ConfigBuilder parserFactory(SqlParserImplFactory parserFactory) {
-      this.parserFactory = Preconditions.checkNotNull(parserFactory);
-      return this;
-    }
-
     public ConfigBuilder typeSystem(RelDataTypeSystem typeSystem) {
       this.typeSystem = Preconditions.checkNotNull(typeSystem);
       return this;
@@ -276,10 +269,9 @@ public class Frameworks {
     private final SqlOperatorTable operatorTable;
     private final ImmutableList<Program> programs;
     private final ImmutableList<RelTraitDef> traitDefs;
-    private final Lex lex;
+    private final SqlParser.Config parserConfig;
     private final SchemaPlus defaultSchema;
     private final RelOptCostFactory costFactory;
-    private final SqlParserImplFactory parserFactory;
     private final RelDataTypeSystem typeSystem;
 
     public StdFrameworkConfig(Context context,
@@ -287,29 +279,23 @@ public class Frameworks {
         SqlOperatorTable operatorTable,
         ImmutableList<Program> programs,
         ImmutableList<RelTraitDef> traitDefs,
-        Lex lex,
+        SqlParser.Config parserConfig,
         SchemaPlus defaultSchema,
         RelOptCostFactory costFactory,
-        SqlParserImplFactory parserFactory,
         RelDataTypeSystem typeSystem) {
       this.context = context;
       this.convertletTable = convertletTable;
       this.operatorTable = operatorTable;
       this.programs = programs;
       this.traitDefs = traitDefs;
-      this.lex = lex;
+      this.parserConfig = parserConfig;
       this.defaultSchema = defaultSchema;
       this.costFactory = costFactory;
-      this.parserFactory = parserFactory;
       this.typeSystem = typeSystem;
     }
 
-    public Lex getLex() {
-      return lex;
-    }
-
-    public SqlParserImplFactory getParserFactory() {
-      return parserFactory;
+    public SqlParser.Config getParserConfig() {
+      return parserConfig;
     }
 
     public SchemaPlus getDefaultSchema() {

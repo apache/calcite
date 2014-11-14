@@ -17,7 +17,6 @@
 package org.apache.calcite.prepare;
 
 import org.apache.calcite.adapter.java.JavaTypeFactory;
-import org.apache.calcite.config.Lex;
 import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptPlanner;
@@ -33,7 +32,6 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParser;
-import org.apache.calcite.sql.parser.SqlParserImplFactory;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql2rel.RelDecorrelator;
 import org.apache.calcite.sql2rel.SqlRexConvertletTable;
@@ -59,12 +57,8 @@ public class PlannerImpl implements Planner {
   /** Holds the trait definitions to be registered with planner. May be null. */
   private final ImmutableList<RelTraitDef> traitDefs;
 
-  private final Lex lex;
-  private final SqlParserImplFactory parserFactory;
+  private final SqlParser.Config parserConfig;
   private final SqlRexConvertletTable convertletTable;
-
-  // Options. TODO: allow client to set these. Maybe use a ConnectionConfig.
-  private boolean caseSensitive = true;
 
   private State state;
 
@@ -90,8 +84,7 @@ public class PlannerImpl implements Planner {
     this.defaultSchema = config.getDefaultSchema();
     this.operatorTable = config.getOperatorTable();
     this.programs = config.getPrograms();
-    this.lex = config.getLex();
-    this.parserFactory = config.getParserFactory();
+    this.parserConfig = config.getParserConfig();
     this.state = State.STATE_0_CLOSED;
     this.traitDefs = config.getTraitDefs();
     this.convertletTable = config.getConvertletTable();
@@ -164,8 +157,7 @@ public class PlannerImpl implements Planner {
       ready();
     }
     ensure(State.STATE_2_READY);
-    SqlParser parser = SqlParser.create(parserFactory, sql,
-        lex.quoting, lex.unquotedCasing, lex.quotedCasing);
+    SqlParser parser = SqlParser.create(sql, parserConfig);
     SqlNode sqlNode = parser.parseStmt();
     state = State.STATE_3_PARSED;
     return sqlNode;
@@ -206,8 +198,7 @@ public class PlannerImpl implements Planner {
   public class ViewExpanderImpl implements ViewExpander {
     public RelNode expandView(RelDataType rowType, String queryString,
         List<String> schemaPath) {
-      final SqlParser parser = SqlParser.create(parserFactory, queryString,
-          lex.quoting, lex.unquotedCasing, lex.quotedCasing);
+      SqlParser parser = SqlParser.create(queryString, parserConfig);
       SqlNode sqlNode;
       try {
         sqlNode = parser.parseQuery();
@@ -235,7 +226,7 @@ public class PlannerImpl implements Planner {
     SchemaPlus rootSchema = rootSchema(defaultSchema);
     return new CalciteCatalogReader(
         CalciteSchema.from(rootSchema),
-        caseSensitive,
+        parserConfig.caseSensitive(),
         CalciteSchema.from(defaultSchema).path(null),
         typeFactory);
   }

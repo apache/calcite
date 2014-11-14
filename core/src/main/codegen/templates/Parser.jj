@@ -125,6 +125,7 @@ public class ${parser.class} extends SqlAbstractParserImpl
 
     private Casing unquotedCasing;
     private Casing quotedCasing;
+    private int identifierMaxLength;
 
     /**
      * {@link SqlParserImplFactory} implementation for creating parser.
@@ -184,6 +185,12 @@ public class ${parser.class} extends SqlAbstractParserImpl
     public void setUnquotedCasing(Casing unquotedCasing)
     {
         this.unquotedCasing = unquotedCasing;
+    }
+
+    // implement SqlAbstractParserImpl
+    public void setIdentifierMaxLength(int identifierMaxLength)
+    {
+        this.identifierMaxLength = identifierMaxLength;
     }
 
     // implement SqlAbstractParserImpl
@@ -3363,9 +3370,9 @@ String Identifier() :
         | id = NonReservedKeyWord()
     )
     {
-        if (id.length() > 128) {
+        if (id.length() > this.identifierMaxLength) {
             throw SqlUtil.newContextException(getPos(),
-                RESOURCE.identifierTooLong(id, 128));
+                RESOURCE.identifierTooLong(id, this.identifierMaxLength));
         }
         return id;
     }
