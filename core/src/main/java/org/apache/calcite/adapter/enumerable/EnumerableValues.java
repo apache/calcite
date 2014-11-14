@@ -31,6 +31,8 @@ import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.Pair;
 
+import com.google.common.collect.ImmutableList;
+
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
@@ -39,7 +41,7 @@ import java.util.List;
  * {@link org.apache.calcite.adapter.enumerable.EnumerableConvention enumerable calling convention}. */
 public class EnumerableValues extends Values implements EnumerableRel {
   EnumerableValues(RelOptCluster cluster, RelDataType rowType,
-      List<List<RexLiteral>> tuples, RelTraitSet traitSet) {
+      ImmutableList<ImmutableList<RexLiteral>> tuples, RelTraitSet traitSet) {
     super(cluster, rowType, tuples, traitSet);
   }
 

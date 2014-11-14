@@ -46,7 +46,6 @@ import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.logical.LogicalIntersect;
 import org.apache.calcite.rel.logical.LogicalJoin;
 import org.apache.calcite.rel.logical.LogicalMinus;
-import org.apache.calcite.rel.logical.LogicalOneRow;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.logical.LogicalTableFunctionScan;
 import org.apache.calcite.rel.logical.LogicalTableModify;
@@ -1426,8 +1425,8 @@ public class SqlToRelConverter {
     // subqueries), we union each row in as a projection on top of a
     // LogicalOneRow.
 
-    final List<List<RexLiteral>> tupleList =
-        new ArrayList<List<RexLiteral>>();
+    final ImmutableList.Builder<ImmutableList<RexLiteral>> tupleList =
+        ImmutableList.builder();
     final RelDataType rowType;
     if (targetRowType != null) {
       rowType = targetRowType;
@@ -1444,14 +1443,14 @@ public class SqlToRelConverter {
       SqlBasicCall call;
       if (isRowConstructor(node)) {
         call = (SqlBasicCall) node;
-        List<RexLiteral> tuple = new ArrayList<RexLiteral>();
-        for (SqlNode operand : call.operands) {
+        ImmutableList.Builder<RexLiteral> tuple = ImmutableList.builder();
+        for (Ord<SqlNode> operand : Ord.zip(call.operands)) {
           RexLiteral rexLiteral =
               convertLiteralInValuesList(
-                  operand,
+                  operand.e,
                   bb,
                   rowType,
-                  tuple.size());
+                  operand.i);
           if ((rexLiteral == null) && allowLiteralsOnly) {
             return null;
           }
@@ -1463,7 +1462,7 @@ public class SqlToRelConverter {
           tuple.add(rexLiteral);
         }
         if (tuple != null) {
-          tupleList.add(tuple);
+          tupleList.add(tuple.build());
           continue;
         }
       } else {
@@ -1474,8 +1473,7 @@ public class SqlToRelConverter {
                 rowType,
                 0);
         if ((rexLiteral != null) && shouldCreateValuesRel) {
-          tupleList.add(
-              Collections.singletonList(rexLiteral));
+          tupleList.add(ImmutableList.of(rexLiteral));
           continue;
         } else {
           if ((rexLiteral == null) && allowLiteralsOnly) {
@@ -1495,12 +1493,12 @@ public class SqlToRelConverter {
         new LogicalValues(
             cluster,
             rowType,
-            tupleList);
+            tupleList.build());
     RelNode resultRel;
     if (unionInputs.isEmpty()) {
       resultRel = values;
     } else {
-      if (!tupleList.isEmpty()) {
+      if (!values.getTuples().isEmpty()) {
         unionInputs.add(values);
       }
       LogicalUnion union =
@@ -1940,7 +1938,7 @@ public class SqlToRelConverter {
       replaceSubqueries(bb, node, RelOptUtil.Logic.TRUE_FALSE_UNKNOWN);
       final RelNode childRel =
           RelOptUtil.createProject(
-              (null != bb.root) ? bb.root : new LogicalOneRow(cluster),
+              (null != bb.root) ? bb.root : LogicalValues.createOneRow(cluster),
               Collections.singletonList(bb.convertExpression(node)),
               Collections.singletonList(validator.deriveAlias(node, 0)),
               true);
@@ -3602,7 +3600,7 @@ public class SqlToRelConverter {
 
         RelNode projRel =
             RelOptUtil.createProject(
-                new LogicalOneRow(cluster),
+                LogicalValues.createOneRow(cluster),
                 selectList,
                 fieldNameList);
 
@@ -3810,7 +3808,7 @@ public class SqlToRelConverter {
       }
       RelNode in =
           (null == tmpBb.root)
-              ? new LogicalOneRow(cluster)
+              ? LogicalValues.createOneRow(cluster)
               : tmpBb.root;
       unionRels.add(
           RelOptUtil.createProject(

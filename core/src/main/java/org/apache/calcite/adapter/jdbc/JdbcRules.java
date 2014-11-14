@@ -904,14 +904,13 @@ public class JdbcRules {
   /** Values operator implemented in JDBC convention. */
   public static class JdbcValues extends Values implements JdbcRel {
     JdbcValues(RelOptCluster cluster, RelDataType rowType,
-        List<List<RexLiteral>> tuples, RelTraitSet traitSet) {
+        ImmutableList<ImmutableList<RexLiteral>> tuples, RelTraitSet traitSet) {
       super(cluster, rowType, tuples, traitSet);
     }
 
     @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
       assert inputs.isEmpty();
-      return new JdbcValues(
-          getCluster(), rowType, tuples, traitSet);
+      return new JdbcValues(getCluster(), rowType, tuples, traitSet);
     }
 
     public JdbcImplementor.Result implement(JdbcImplementor implementor) {

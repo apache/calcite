@@ -35,7 +35,6 @@ import org.apache.calcite.rel.rules.AggregateReduceFunctionsRule;
 import org.apache.calcite.rel.rules.AggregateUnionTransposeRule;
 import org.apache.calcite.rel.rules.CalcMergeRule;
 import org.apache.calcite.rel.rules.CoerceInputsRule;
-import org.apache.calcite.rel.rules.EmptyPruneRules;
 import org.apache.calcite.rel.rules.FilterAggregateTransposeRule;
 import org.apache.calcite.rel.rules.FilterJoinRule;
 import org.apache.calcite.rel.rules.FilterProjectTransposeRule;
@@ -52,6 +51,7 @@ import org.apache.calcite.rel.rules.ProjectMergeRule;
 import org.apache.calcite.rel.rules.ProjectRemoveRule;
 import org.apache.calcite.rel.rules.ProjectSetOpTransposeRule;
 import org.apache.calcite.rel.rules.ProjectToCalcRule;
+import org.apache.calcite.rel.rules.PruneEmptyRules;
 import org.apache.calcite.rel.rules.ReduceExpressionsRule;
 import org.apache.calcite.rel.rules.SemiJoinFilterTransposeRule;
 import org.apache.calcite.rel.rules.SemiJoinJoinTransposeRule;
@@ -520,7 +520,7 @@ public class RelOptRulesTest extends RelOptTestBase {
         .addRuleInstance(ReduceExpressionsRule.CALC_INSTANCE)
 
             // the hard part is done... a few more rule calls to clean up
-        .addRuleInstance(EmptyPruneRules.UNION_INSTANCE)
+        .addRuleInstance(PruneEmptyRules.UNION_INSTANCE)
         .addRuleInstance(ProjectToCalcRule.INSTANCE)
         .addRuleInstance(CalcMergeRule.INSTANCE)
         .addRuleInstance(ReduceExpressionsRule.CALC_INSTANCE)
@@ -745,8 +745,8 @@ public class RelOptRulesTest extends RelOptTestBase {
         .addRuleInstance(FilterProjectTransposeRule.INSTANCE)
         .addRuleInstance(ProjectMergeRule.INSTANCE)
         .addRuleInstance(ValuesReduceRule.PROJECT_FILTER_INSTANCE)
-        .addRuleInstance(EmptyPruneRules.PROJECT_INSTANCE)
-        .addRuleInstance(EmptyPruneRules.UNION_INSTANCE)
+        .addRuleInstance(PruneEmptyRules.PROJECT_INSTANCE)
+        .addRuleInstance(PruneEmptyRules.UNION_INSTANCE)
         .build();
 
     // Plan should be same as for
@@ -763,9 +763,9 @@ public class RelOptRulesTest extends RelOptTestBase {
   @Test public void testEmptyJoin() {
     HepProgram program = new HepProgramBuilder()
         .addRuleInstance(ReduceExpressionsRule.FILTER_INSTANCE)
-        .addRuleInstance(EmptyPruneRules.PROJECT_INSTANCE)
-        .addRuleInstance(EmptyPruneRules.JOIN_LEFT_INSTANCE)
-        .addRuleInstance(EmptyPruneRules.JOIN_RIGHT_INSTANCE)
+        .addRuleInstance(PruneEmptyRules.PROJECT_INSTANCE)
+        .addRuleInstance(PruneEmptyRules.JOIN_LEFT_INSTANCE)
+        .addRuleInstance(PruneEmptyRules.JOIN_RIGHT_INSTANCE)
         .build();
 
     // Plan should be empty
@@ -778,9 +778,9 @@ public class RelOptRulesTest extends RelOptTestBase {
   @Test public void testEmptyJoinLeft() {
     HepProgram program = new HepProgramBuilder()
         .addRuleInstance(ReduceExpressionsRule.FILTER_INSTANCE)
-        .addRuleInstance(EmptyPruneRules.PROJECT_INSTANCE)
-        .addRuleInstance(EmptyPruneRules.JOIN_LEFT_INSTANCE)
-        .addRuleInstance(EmptyPruneRules.JOIN_RIGHT_INSTANCE)
+        .addRuleInstance(PruneEmptyRules.PROJECT_INSTANCE)
+        .addRuleInstance(PruneEmptyRules.JOIN_LEFT_INSTANCE)
+        .addRuleInstance(PruneEmptyRules.JOIN_RIGHT_INSTANCE)
         .build();
 
     // Plan should be empty
@@ -793,9 +793,9 @@ public class RelOptRulesTest extends RelOptTestBase {
   @Test public void testEmptyJoinRight() {
     HepProgram program = new HepProgramBuilder()
         .addRuleInstance(ReduceExpressionsRule.FILTER_INSTANCE)
-        .addRuleInstance(EmptyPruneRules.PROJECT_INSTANCE)
-        .addRuleInstance(EmptyPruneRules.JOIN_LEFT_INSTANCE)
-        .addRuleInstance(EmptyPruneRules.JOIN_RIGHT_INSTANCE)
+        .addRuleInstance(PruneEmptyRules.PROJECT_INSTANCE)
+        .addRuleInstance(PruneEmptyRules.JOIN_LEFT_INSTANCE)
+        .addRuleInstance(PruneEmptyRules.JOIN_RIGHT_INSTANCE)
         .build();
 
     // Plan should be equivalent to "select * from emp join dept".
@@ -809,7 +809,7 @@ public class RelOptRulesTest extends RelOptTestBase {
   @Test public void testEmptySort() {
     HepProgram program = new HepProgramBuilder()
         .addRuleInstance(ReduceExpressionsRule.FILTER_INSTANCE)
-        .addRuleInstance(EmptyPruneRules.SORT_INSTANCE)
+        .addRuleInstance(PruneEmptyRules.SORT_INSTANCE)
         .build();
 
     checkPlanning(program,
@@ -818,7 +818,7 @@ public class RelOptRulesTest extends RelOptTestBase {
 
   @Test public void testEmptySortLimitZero() {
     HepProgram program = new HepProgramBuilder()
-        .addRuleInstance(EmptyPruneRules.SORT_FETCH_ZERO_INSTANCE)
+        .addRuleInstance(PruneEmptyRules.SORT_FETCH_ZERO_INSTANCE)
         .build();
 
     checkPlanning(program,

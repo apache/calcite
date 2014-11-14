@@ -25,7 +25,11 @@ import org.apache.calcite.rel.RelShuttle;
 import org.apache.calcite.rel.core.Values;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexLiteral;
+import org.apache.calcite.sql.type.SqlTypeName;
 
+import com.google.common.collect.ImmutableList;
+
+import java.math.BigDecimal;
 import java.util.List;
 
 /**
@@ -51,7 +55,7 @@ public class LogicalValues extends Values {
   public LogicalValues(
       RelOptCluster cluster,
       RelDataType rowType,
-      List<List<RexLiteral>> tuples) {
+      ImmutableList<ImmutableList<RexLiteral>> tuples) {
     super(cluster, rowType, tuples, cluster.traitSetOf(Convention.NONE));
   }
 
@@ -69,6 +73,27 @@ public class LogicalValues extends Values {
         getCluster(),
         rowType,
         tuples);
+  }
+
+  /** Creates a LogicalValues that outputs no rows of a given row type. */
+  public static LogicalValues createEmpty(RelOptCluster cluster,
+      RelDataType rowType) {
+    return new LogicalValues(cluster, rowType,
+        ImmutableList.<ImmutableList<RexLiteral>>of());
+  }
+
+  /** Creates a LogicalValues that outputs one row and one column. */
+  public static LogicalValues createOneRow(RelOptCluster cluster) {
+    final RelDataType rowType =
+        cluster.getTypeFactory().builder()
+            .add("ZERO", SqlTypeName.INTEGER).nullable(false)
+            .build();
+    final ImmutableList<ImmutableList<RexLiteral>> tuples =
+        ImmutableList.of(
+            ImmutableList.of(
+                cluster.getRexBuilder().makeExactLiteral(BigDecimal.ZERO,
+                    rowType.getFieldList().get(0).getType())));
+    return new LogicalValues(cluster, rowType, tuples);
   }
 
   @Override public RelNode accept(RelShuttle shuttle) {

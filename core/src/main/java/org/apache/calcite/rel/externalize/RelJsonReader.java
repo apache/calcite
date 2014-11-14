@@ -220,21 +220,23 @@ public class RelJsonReader {
         return relJson.toCollation((List) get("collation"));
       }
 
-      public List<List<RexLiteral>> getTuples(String tag) {
+      public ImmutableList<ImmutableList<RexLiteral>> getTuples(String tag) {
         List<List> jsonTuples = (List) get(tag);
-        final List<List<RexLiteral>> list = new ArrayList<List<RexLiteral>>();
+        final ImmutableList.Builder<ImmutableList<RexLiteral>> builder =
+            ImmutableList.builder();
         for (List jsonTuple : jsonTuples) {
-          list.add(getTuple(jsonTuple));
+          builder.add(getTuple(jsonTuple));
         }
-        return list;
+        return builder.build();
       }
 
-      public List<RexLiteral> getTuple(List jsonTuple) {
-        final List<RexLiteral> list = new ArrayList<RexLiteral>();
+      public ImmutableList<RexLiteral> getTuple(List jsonTuple) {
+        final ImmutableList.Builder<RexLiteral> builder =
+            ImmutableList.builder();
         for (Object jsonValue : jsonTuple) {
-          list.add((RexLiteral) relJson.toRex(this, jsonValue));
+          builder.add((RexLiteral) relJson.toRex(this, jsonValue));
         }
-        return list;
+        return builder.build();
       }
     };
     try {

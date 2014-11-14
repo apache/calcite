@@ -25,6 +25,8 @@ import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.util.ImmutableBitSet;
 
+import com.google.common.collect.ImmutableList;
+
 import java.util.List;
 
 /**
@@ -82,7 +84,7 @@ public interface RelInput {
 
   RelCollation getCollation();
 
-  List<List<RexLiteral>> getTuples(String tag);
+  ImmutableList<ImmutableList<RexLiteral>> getTuples(String tag);
 
   boolean getBoolean(String tag, boolean default_);
 }

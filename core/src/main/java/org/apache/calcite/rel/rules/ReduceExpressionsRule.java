@@ -21,11 +21,11 @@ import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
-import org.apache.calcite.rel.core.Empty;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.logical.LogicalCalc;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalProject;
+import org.apache.calcite.rel.logical.LogicalValues;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexBuilder;
@@ -80,8 +80,8 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
   /**
    * Singleton rule that reduces constants inside a
    * {@link org.apache.calcite.rel.logical.LogicalFilter}. If the condition is a
-   * constant, the filter is removed (if TRUE) or replaced with
-   * {@link org.apache.calcite.rel.core.Empty} (if FALSE or NULL).
+   * constant, the filter is removed (if TRUE) or replaced with an empty
+   * {@link org.apache.calcite.rel.core.Values} (if FALSE or NULL).
    */
   public static final ReduceExpressionsRule FILTER_INSTANCE =
       new ReduceExpressionsRule(LogicalFilter.class,
@@ -106,18 +106,14 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
           if (newConditionExp.isAlwaysTrue()) {
             call.transformTo(
                 filter.getInput());
-          } else if (
-              (newConditionExp instanceof RexLiteral)
-                  || RexUtil.isNullLiteral(newConditionExp, true)) {
+          } else if (newConditionExp instanceof RexLiteral
+              || RexUtil.isNullLiteral(newConditionExp, true)) {
             call.transformTo(
-                new Empty(
-                    filter.getCluster(),
+                LogicalValues.createEmpty(filter.getCluster(),
                     filter.getRowType()));
           } else if (reduced) {
             call.transformTo(
-                RelOptUtil.createFilter(
-                    filter.getInput(),
-                    expList.get(0)));
+                RelOptUtil.createFilter(filter.getInput(), expList.get(0)));
           } else {
             if (newConditionExp instanceof RexCall) {
               RexCall rexCall = (RexCall) newConditionExp;
@@ -168,8 +164,7 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
                 call.transformTo(filter.getInput());
               } else {
                 call.transformTo(
-                    new Empty(
-                        filter.getCluster(),
+                    LogicalValues.createEmpty(filter.getCluster(),
                         filter.getRowType()));
               }
             }
@@ -263,8 +258,7 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
                 // condition is always NULL or FALSE - replace calc
                 // with empty
                 call.transformTo(
-                    new Empty(
-                        calc.getCluster(),
+                    LogicalValues.createEmpty(calc.getCluster(),
                         calc.getRowType()));
                 return;
               } else {

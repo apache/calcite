@@ -22,12 +22,13 @@ import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.SingleRel;
 import org.apache.calcite.rel.core.Aggregate;
-import org.apache.calcite.rel.core.Empty;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.Sort;
+import org.apache.calcite.rel.core.Values;
 import org.apache.calcite.rel.logical.LogicalUnion;
+import org.apache.calcite.rel.logical.LogicalValues;
 import org.apache.calcite.rex.RexLiteral;
 
 import java.util.ArrayList;
@@ -43,9 +44,12 @@ import static org.apache.calcite.plan.RelOptRule.unordered;
  * Collection of rules which remove sections of a query plan known never to
  * produce any rows.
  *
- * @see org.apache.calcite.rel.core.Empty
+ * <p>Conventionally, the way to represent an empty relational expression is
+ * with a {@link Values} that has no tuples.
+ *
+ * @see LogicalValues#createEmpty
  */
-public abstract class EmptyPruneRules {
+public abstract class PruneEmptyRules {
   //~ Static fields/initializers ---------------------------------------------
 
   /**
@@ -63,14 +67,14 @@ public abstract class EmptyPruneRules {
   public static final RelOptRule UNION_INSTANCE =
       new RelOptRule(
           operand(LogicalUnion.class,
-              unordered(operand(Empty.class, none()))),
+              unordered(operand(Values.class, null, Values.IS_EMPTY, none()))),
           "Union") {
         public void onMatch(RelOptRuleCall call) {
           LogicalUnion union = call.rel(0);
           final List<RelNode> childRels = call.getChildRels(union);
           final List<RelNode> newChildRels = new ArrayList<RelNode>();
           for (RelNode childRel : childRels) {
-            if (!(childRel instanceof Empty)) {
+            if (!isEmpty(childRel)) {
               newChildRels.add(childRel);
             }
           }
@@ -99,6 +103,11 @@ public abstract class EmptyPruneRules {
           call.transformTo(newRel);
         }
       };
+
+  private static boolean isEmpty(RelNode node) {
+    return node instanceof Values
+        && ((Values) node).getTuples().isEmpty();
+  }
 
   /**
    * Rule that converts a {@link org.apache.calcite.rel.logical.LogicalProject}
@@ -188,7 +197,7 @@ public abstract class EmptyPruneRules {
       new RelOptRule(
           operand(Join.class,
               some(
-                  operand(Empty.class, none()),
+                  operand(Values.class, null, Values.IS_EMPTY, none()),
                   operand(RelNode.class, any()))),
               "PruneEmptyJoin(left)") {
         @Override public void onMatch(RelOptRuleCall call) {
@@ -217,7 +226,7 @@ public abstract class EmptyPruneRules {
           operand(Join.class,
               some(
                   operand(RelNode.class, any()),
-                  operand(Empty.class, none()))),
+                  operand(Values.class, null, Values.IS_EMPTY, none()))),
               "PruneEmptyJoin(right)") {
         @Override public void onMatch(RelOptRuleCall call) {
           Join join = call.rel(0);
@@ -230,10 +239,10 @@ public abstract class EmptyPruneRules {
         }
       };
 
-  /** Creates an {@link org.apache.calcite.rel.core.Empty} to replace
+  /** Creates a {@link org.apache.calcite.rel.core.Values} to replace
    * {@code node}. */
-  private static Empty empty(RelNode node) {
-    return new Empty(node.getCluster(), node.getRowType());
+  private static Values empty(RelNode node) {
+    return LogicalValues.createEmpty(node.getCluster(), node.getRowType());
   }
 
   /** Planner rule that converts a single-rel (e.g. project, sort, aggregate or
@@ -243,7 +252,7 @@ public abstract class EmptyPruneRules {
         String description) {
       super(
           operand(clazz,
-              operand(Empty.class, none())),
+              operand(Values.class, null, Values.IS_EMPTY, none())),
           description);
     }
 
@@ -254,4 +263,4 @@ public abstract class EmptyPruneRules {
   }
 }
 
-// End EmptyPruneRules.java
+// End PruneEmptyRules.java

@@ -21,6 +21,7 @@ import org.apache.calcite.linq4j.function.Functions;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.AbstractRelNode;
 import org.apache.calcite.rel.RelInput;
@@ -33,6 +34,9 @@ import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.util.Pair;
 
+import com.google.common.base.Predicate;
+import com.google.common.collect.ImmutableList;
+
 import java.util.List;
 
 /**
@@ -43,9 +47,9 @@ public abstract class Values extends AbstractRelNode {
   /**
    * Lambda that helps render tuples as strings.
    */
-  private static final Function1<List<RexLiteral>, Object> F =
-      new Function1<List<RexLiteral>, Object>() {
-        public Object apply(List<RexLiteral> tuple) {
+  private static final Function1<ImmutableList<RexLiteral>, Object> F =
+      new Function1<ImmutableList<RexLiteral>, Object>() {
+        public Object apply(ImmutableList<RexLiteral> tuple) {
           String s = tuple.toString();
           assert s.startsWith("[");
           assert s.endsWith("]");
@@ -53,9 +57,23 @@ public abstract class Values extends AbstractRelNode {
         }
       };
 
+  /** Predicate, to be used when defining an operand of a {@link RelOptRule},
+   * that returns true if a Values contains zero tuples.
+   *
+   * <p>This is the conventional way to represent an empty relational
+   * expression. There are several rules that recognize empty relational
+   * expressions and prune away that section of the tree.
+   */
+  public static final Predicate<? super Values> IS_EMPTY =
+      new Predicate<Values>() {
+        public boolean apply(Values values) {
+          return values.getTuples().isEmpty();
+        }
+      };
+
   //~ Instance fields --------------------------------------------------------
 
-  protected final List<List<RexLiteral>> tuples;
+  protected final ImmutableList<ImmutableList<RexLiteral>> tuples;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -75,7 +93,7 @@ public abstract class Values extends AbstractRelNode {
   protected Values(
       RelOptCluster cluster,
       RelDataType rowType,
-      List<List<RexLiteral>> tuples,
+      ImmutableList<ImmutableList<RexLiteral>> tuples,
       RelTraitSet traits) {
     super(cluster, traits);
     this.rowType = rowType;
@@ -93,20 +111,18 @@ public abstract class Values extends AbstractRelNode {
 
   //~ Methods ----------------------------------------------------------------
 
-  public List<List<RexLiteral>> getTuples(RelInput input) {
+  public ImmutableList<ImmutableList<RexLiteral>> getTuples(RelInput input) {
     return input.getTuples("tuples");
   }
 
-  /**
-   * @return rows of literals represented by this rel
-   */
-  public List<List<RexLiteral>> getTuples() {
+  /** Returns the rows of literals represented by this Values relational
+   * expression. */
+  public ImmutableList<ImmutableList<RexLiteral>> getTuples() {
     return tuples;
   }
 
-  /**
-   * @return true if all tuples match rowType; otherwise, assert on mismatch
-   */
+  /** Returns true if all tuples match rowType; otherwise, assert on
+   * mismatch. */
   private boolean assertRowType() {
     for (List<RexLiteral> tuple : tuples) {
       assert tuple.size() == rowType.getFieldCount();

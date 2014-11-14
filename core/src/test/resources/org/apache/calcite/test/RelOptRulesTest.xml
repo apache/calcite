@@ -476,7 +476,7 @@ LogicalProject(EXPR$0=[$0], EXPR$1=[$1])
         <Resource name="planAfter">
             <![CDATA[
 LogicalProject(EXPR$0=[$0], EXPR$1=[$1])
-  Empty
+  LogicalValues(tuples=[[]])
 ]]>
         </Resource>
     </TestCase>
@@ -494,7 +494,7 @@ LogicalProject(EXPR$0=[$0], EXPR$1=[$1])
         <Resource name="planAfter">
             <![CDATA[
 LogicalProject(EXPR$0=[$0], EXPR$1=[$1])
-  Empty
+  LogicalValues(tuples=[[]])
 ]]>
         </Resource>
     </TestCase>
@@ -562,7 +562,7 @@ LogicalProject(X=[+($0, $1)], B=[$1], A=[$0])
         </Resource>
         <Resource name="planAfter">
             <![CDATA[
-Empty
+LogicalValues(tuples=[[]])
 ]]>
         </Resource>
     </TestCase>
@@ -718,14 +718,14 @@ LogicalCalc(expr#0=[{inputs}], expr#1=['TABLE'], expr#2=['t'], U=[$t1], S=[$t2])
             <![CDATA[
 LogicalProject(EXPR$0=[CAST(CASE(IS NULL($1), IS NULL($0), IS NULL($0), IS NULL($1), =($1, $0))):BOOLEAN NOT NULL])
   LogicalProject(EXPR$0=[2], EXPR$1=[null])
-    LogicalOneRow
+    LogicalValues(tuples=[[{ 0 }]])
 ]]>
         </Resource>
         <Resource name="planAfter">
             <![CDATA[
 LogicalProject(EXPR$0=[CAST(CASE(IS NULL($1), IS NULL($0), IS NULL($0), IS NULL($1), =($1, $0))):BOOLEAN NOT NULL])
   LogicalProject(EXPR$0=[2], EXPR$1=[null])
-    LogicalOneRow
+    LogicalValues(tuples=[[{ 0 }]])
 ]]>
         </Resource>
     </TestCase>
@@ -748,7 +748,7 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
         <Resource name="planAfter">
             <![CDATA[
 LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], NAME=[$10])
-  Empty
+  LogicalValues(tuples=[[]])
 ]]>
         </Resource>
     </TestCase>
@@ -772,7 +772,7 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
             <![CDATA[
 LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], NAME=[$10])
   LogicalJoin(condition=[=($7, $9)], joinType=[right])
-    Empty
+    LogicalValues(tuples=[[]])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
         </Resource>
@@ -796,7 +796,7 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
         <Resource name="planAfter">
             <![CDATA[
 LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], NAME=[$10])
-  Empty
+  LogicalValues(tuples=[[]])
 ]]>
         </Resource>
     </TestCase>
@@ -833,7 +833,7 @@ Sort(sort0=[$7], dir0=[ASC])
             <![CDATA[
 Sort(sort0=[$7], dir0=[ASC])
   LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
-    Empty
+    LogicalValues(tuples=[[]])
 ]]>
         </Resource>
     </TestCase>
@@ -850,7 +850,7 @@ Sort(sort0=[$7], dir0=[ASC], fetch=[0])
         </Resource>
         <Resource name="planAfter">
             <![CDATA[
-Empty
+LogicalValues(tuples=[[]])
 ]]>
         </Resource>
     </TestCase>

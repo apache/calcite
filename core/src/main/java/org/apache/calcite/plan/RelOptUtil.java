@@ -36,11 +36,11 @@ import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalJoin;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.rules.AggregateProjectPullUpConstantsRule;
-import org.apache.calcite.rel.rules.EmptyPruneRules;
 import org.apache.calcite.rel.rules.FilterMergeRule;
 import org.apache.calcite.rel.rules.MultiJoin;
 import org.apache.calcite.rel.rules.ProjectRemoveRule;
 import org.apache.calcite.rel.rules.ProjectToWindowRule;
+import org.apache.calcite.rel.rules.PruneEmptyRules;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
@@ -1509,14 +1509,14 @@ public abstract class RelOptUtil {
 
   public static void registerAbstractRels(RelOptPlanner planner) {
     planner.addRule(AggregateProjectPullUpConstantsRule.INSTANCE);
-    planner.addRule(EmptyPruneRules.UNION_INSTANCE);
-    planner.addRule(EmptyPruneRules.PROJECT_INSTANCE);
-    planner.addRule(EmptyPruneRules.FILTER_INSTANCE);
-    planner.addRule(EmptyPruneRules.SORT_INSTANCE);
-    planner.addRule(EmptyPruneRules.AGGREGATE_INSTANCE);
-    planner.addRule(EmptyPruneRules.JOIN_LEFT_INSTANCE);
-    planner.addRule(EmptyPruneRules.JOIN_RIGHT_INSTANCE);
-    planner.addRule(EmptyPruneRules.SORT_FETCH_ZERO_INSTANCE);
+    planner.addRule(PruneEmptyRules.UNION_INSTANCE);
+    planner.addRule(PruneEmptyRules.PROJECT_INSTANCE);
+    planner.addRule(PruneEmptyRules.FILTER_INSTANCE);
+    planner.addRule(PruneEmptyRules.SORT_INSTANCE);
+    planner.addRule(PruneEmptyRules.AGGREGATE_INSTANCE);
+    planner.addRule(PruneEmptyRules.JOIN_LEFT_INSTANCE);
+    planner.addRule(PruneEmptyRules.JOIN_RIGHT_INSTANCE);
+    planner.addRule(PruneEmptyRules.SORT_FETCH_ZERO_INSTANCE);
     planner.addRule(ProjectToWindowRule.PROJECT);
     planner.addRule(FilterMergeRule.INSTANCE);
   }

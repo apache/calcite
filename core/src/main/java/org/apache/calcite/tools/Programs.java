@@ -111,8 +111,6 @@ public class Programs {
           EnumerableRules.ENUMERABLE_TABLE_MODIFICATION_RULE,
           EnumerableRules.ENUMERABLE_VALUES_RULE,
           EnumerableRules.ENUMERABLE_WINDOW_RULE,
-          EnumerableRules.ENUMERABLE_ONE_ROW_RULE,
-          EnumerableRules.ENUMERABLE_EMPTY_RULE,
           SemiJoinRule.INSTANCE,
           TableScanRule.INSTANCE,
           CalcitePrepareImpl.COMMUTE

@@ -957,13 +957,14 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
       return new TrimResult(values, mapping);
     }
 
-    List<List<RexLiteral>> newTuples = new ArrayList<List<RexLiteral>>();
-    for (List<RexLiteral> tuple : values.getTuples()) {
-      List<RexLiteral> newTuple = new ArrayList<RexLiteral>();
+    final ImmutableList.Builder<ImmutableList<RexLiteral>> newTuples =
+        ImmutableList.builder();
+    for (ImmutableList<RexLiteral> tuple : values.getTuples()) {
+      ImmutableList.Builder<RexLiteral> newTuple = ImmutableList.builder();
       for (int field : fieldsUsed) {
         newTuple.add(tuple.get(field));
       }
-      newTuples.add(newTuple);
+      newTuples.add(newTuple.build());
     }
 
     final Mapping mapping = createMapping(fieldsUsed, fieldCount);
@@ -971,7 +972,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
         RelOptUtil.permute(values.getCluster().getTypeFactory(), rowType,
             mapping);
     final LogicalValues newValues =
-        new LogicalValues(values.getCluster(), newRowType, newTuples);
+        new LogicalValues(values.getCluster(), newRowType, newTuples.build());
     return new TrimResult(newValues, mapping);
   }
 

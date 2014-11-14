@@ -72,12 +72,6 @@ public class EnumerableRules {
   public static final EnumerableValuesRule ENUMERABLE_VALUES_RULE =
       new EnumerableValuesRule();
 
-  public static final EnumerableOneRowRule ENUMERABLE_ONE_ROW_RULE =
-      new EnumerableOneRowRule();
-
-  public static final EnumerableEmptyRule ENUMERABLE_EMPTY_RULE =
-      new EnumerableEmptyRule();
-
   public static final EnumerableWindowRule ENUMERABLE_WINDOW_RULE =
       new EnumerableWindowRule();
 

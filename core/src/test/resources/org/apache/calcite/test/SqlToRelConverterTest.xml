@@ -20,7 +20,7 @@ limitations under the License.
         <Resource name="plan">
             <![CDATA[
 LogicalProject(EXPR$0=[CASE(=('a', 'a'), 1, null)])
-  LogicalOneRow
+  LogicalValues(tuples=[[{ 0 }]])
 ]]>
         </Resource>
         <Resource name="sql">
@@ -295,9 +295,9 @@ LogicalProject(EXPR$0=['abc'], EXPR$1=[$SLICE($9)])
     Collect(field=[EXPR$0])
       LogicalUnion(all=[true])
         LogicalProject(EXPR$0=[$cor0.DEPTNO])
-          LogicalOneRow
+          LogicalValues(tuples=[[{ 0 }]])
         LogicalProject(EXPR$0=[$cor1.SAL])
-          LogicalOneRow
+          LogicalValues(tuples=[[{ 0 }]])
 ]]>
         </Resource>
         <Resource name="sql">
@@ -415,7 +415,7 @@ LogicalProject(EXPR$0=[$0])
         Collect(field=[EXPR$0])
           LogicalUnion(all=[true])
             LogicalProject(EXPR$0=[$cor0.DEPTNO])
-              LogicalOneRow
+              LogicalValues(tuples=[[{ 0 }]])
 ]]>
         </Resource>
         <Resource name="sql">
@@ -564,9 +564,9 @@ LogicalUnion(all=[true])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
   LogicalUnion(all=[true])
     LogicalProject(EXPR$0=[30])
-      LogicalOneRow
+      LogicalValues(tuples=[[{ 0 }]])
     LogicalProject(EXPR$0=[+(45, 10)])
-      LogicalOneRow
+      LogicalValues(tuples=[[{ 0 }]])
 ]]>
         </Resource>
         <Resource name="sql">
@@ -681,7 +681,7 @@ ProjectRel(EXPR$0=[CASE(IS NULL(1), IS NULL(2), IS NULL(2), IS NULL(1), =(1, 2))
         <Resource name="plan">
             <![CDATA[
 LogicalProject(EXPR$0=[NOT(LIKE('a', 'b', 'c'))])
-  LogicalOneRow
+  LogicalValues(tuples=[[{ 0 }]])
 ]]>
         </Resource>
         <Resource name="sql">
@@ -725,7 +725,7 @@ ProjectRel(EXPR$0=[SUM($5) OVER (PARTITION BY $2 ORDER BY $4 ROWS 2 PRECEDING)],
         <Resource name="plan">
             <![CDATA[
 LogicalProject(EXPR$0=[CHAR_LENGTH('foo')])
-  LogicalOneRow
+  LogicalValues(tuples=[[{ 0 }]])
 ]]>
         </Resource>
         <Resource name="sql">
@@ -1800,7 +1800,7 @@ LogicalProject(DEPTNO=[$0], NAME=[$1], EXPR$0=[$2])
         Collect(field=[EXPR$0])
           LogicalUnion(all=[true])
             LogicalProject(EXPR$0=[*($cor0.DEPTNO, 2)])
-              LogicalOneRow
+              LogicalValues(tuples=[[{ 0 }]])
 ]]>
         </Resource>
     </TestCase>

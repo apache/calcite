@@ -20,7 +20,6 @@ import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptRuleOperand;
 import org.apache.calcite.rel.RelNode;
-import org.apache.calcite.rel.core.Empty;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.logical.LogicalValues;
@@ -34,6 +33,8 @@ import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.trace.CalciteTrace;
 
+import com.google.common.collect.ImmutableList;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Logger;
@@ -42,9 +43,8 @@ import java.util.logging.Logger;
  * Planner rule that folds projections and filters into an underlying
  * {@link org.apache.calcite.rel.logical.LogicalValues}.
  *
- * <p>Returns a simplified {@code Values},
- * or an {@link org.apache.calcite.rel.core.Empty} if all rows are
- * filtered away.
+ * <p>Returns a simplified {@code Values}, perhaps containing zero tuples
+ * if all rows are filtered away.
  *
  * <p>For example,</p>
  *
@@ -175,8 +175,8 @@ public abstract class ValuesReduceRule extends RelOptRule {
     ReduceExpressionsRule.reduceExpressions(values, reducibleExps);
 
     int changeCount = 0;
-    final List<List<RexLiteral>> tupleList =
-        new ArrayList<List<RexLiteral>>();
+    final ImmutableList.Builder<ImmutableList<RexLiteral>> tuplesBuilder =
+        ImmutableList.builder();
     for (int row = 0; row < values.getTuples().size(); ++row) {
       int i = 0;
       RexNode reducedValue;
@@ -189,23 +189,26 @@ public abstract class ValuesReduceRule extends RelOptRule {
         }
       }
 
-      List<RexLiteral> valuesList = new ArrayList<RexLiteral>();
+      ImmutableList<RexLiteral> valuesList;
       if (projectExprs != null) {
         ++changeCount;
+        final ImmutableList.Builder<RexLiteral> tupleBuilder =
+            ImmutableList.builder();
         for (; i < fieldsPerRow; ++i) {
           reducedValue = reducibleExps.get((row * fieldsPerRow) + i);
           if (reducedValue instanceof RexLiteral) {
-            valuesList.add((RexLiteral) reducedValue);
+            tupleBuilder.add((RexLiteral) reducedValue);
           } else if (RexUtil.isNullLiteral(reducedValue, true)) {
-            valuesList.add(rexBuilder.constantNull());
+            tupleBuilder.add(rexBuilder.constantNull());
           } else {
             return;
           }
         }
+        valuesList = tupleBuilder.build();
       } else {
         valuesList = values.getTuples().get(row);
       }
-      tupleList.add(valuesList);
+      tuplesBuilder.add(valuesList);
     }
 
     if (changeCount > 0) {
@@ -215,21 +218,10 @@ public abstract class ValuesReduceRule extends RelOptRule {
       } else {
         rowType = values.getRowType();
       }
-      final RelNode newRel;
-      if (tupleList.isEmpty()) {
-        newRel =
-            new Empty(
-                values.getCluster(),
-                rowType);
-      } else {
-        newRel =
-            new LogicalValues(
-                values.getCluster(),
-                rowType,
-                tupleList);
-      }
+      final RelNode newRel =
+          new LogicalValues(values.getCluster(), rowType,
+              tuplesBuilder.build());
       call.transformTo(newRel);
-
     } else {
       // Filter had no effect, so we can say that Filter(Values) ==
       // Values.
