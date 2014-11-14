@@ -81,8 +81,28 @@ public class SqlValidatorTestCase {
     return new SqlTesterImpl(DefaultSqlTestFactory.INSTANCE);
   }
 
+  public final Sql sql(String sql) {
+    return new Sql(sql);
+  }
+
+  public final Sql winSql(String sql) {
+    return sql(sql);
+  }
+
+  public final Sql win(String sql) {
+    return sql("select * from emp " + sql);
+  }
+
+  public Sql winExp(String sql) {
+    return winSql("select " + sql + " from emp window w as (order by deptno)");
+  }
+
+  public Sql winExp2(String sql) {
+    return winSql("select " + sql + " from emp");
+  }
+
   public void check(String sql) {
-    tester.assertExceptionIsThrown(sql, null);
+    sql(sql).ok();
   }
 
   public void checkExp(String sql) {
@@ -98,7 +118,7 @@ public class SqlValidatorTestCase {
   public final void checkFails(
       String sql,
       String expected) {
-    tester.assertExceptionIsThrown(sql, expected);
+    sql(sql).fails(expected);
   }
 
   /**
@@ -319,12 +339,15 @@ public class SqlValidatorTestCase {
             || (actualEndColumn <= 0)
             || (actualEndLine <= 0)) {
           if (sap.pos != null) {
-            throw new AssertionError("Expected error to have position,"
-                + " but actual error did not: "
-                + " actual pos [line " + actualLine
-                + " col " + actualColumn
-                + " thru line " + actualEndLine
-                + " col " + actualEndColumn + "]");
+            AssertionError e =
+                new AssertionError("Expected error to have position,"
+                    + " but actual error did not: "
+                    + " actual pos [line " + actualLine
+                    + " col " + actualColumn
+                    + " thru line " + actualEndLine + " col "
+                    + actualEndColumn + "]");
+            e.initCause(actualException);
+            throw e;
           }
           sqlWithCarets = sap.sql;
         } else {
@@ -509,6 +532,31 @@ public class SqlValidatorTestCase {
     SqlMonotonicity getMonotonicity(String sql);
 
     SqlConformance getConformance();
+  }
+
+  /** Fluent testing API. */
+  class Sql {
+    private final String sql;
+
+    Sql(String sql) {
+      this.sql = sql;
+    }
+
+    void ok() {
+      tester.assertExceptionIsThrown(sql, null);
+    }
+
+    void fails(String expected) {
+      tester.assertExceptionIsThrown(sql, expected);
+    }
+
+    void failsIf(boolean b, String expected) {
+      if (b) {
+        fails(expected);
+      } else {
+        ok();
+      }
+    }
   }
 }
 

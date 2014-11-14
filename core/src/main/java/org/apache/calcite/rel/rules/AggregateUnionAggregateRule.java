@@ -19,6 +19,7 @@ package org.apache.calcite.rel.rules;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.logical.LogicalUnion;
 
@@ -48,7 +49,7 @@ public class AggregateUnionAggregateRule extends RelOptRule {
    */
   private AggregateUnionAggregateRule() {
     super(
-        operand(LogicalAggregate.class,
+        operand(LogicalAggregate.class, null, Aggregate.IS_SIMPLE,
             operand(LogicalUnion.class,
                 operand(RelNode.class, any()),
                 operand(RelNode.class, any()))));
@@ -101,11 +102,8 @@ public class AggregateUnionAggregateRule extends RelOptRule {
             true);
 
     LogicalAggregate newAggRel =
-        new LogicalAggregate(
-            topAggRel.getCluster(),
-            newUnion,
-            topAggRel.getGroupSet(),
-            topAggRel.getAggCallList());
+        new LogicalAggregate(topAggRel.getCluster(), newUnion, false,
+            topAggRel.getGroupSet(), null, topAggRel.getAggCallList());
 
     call.transformTo(newAggRel);
   }

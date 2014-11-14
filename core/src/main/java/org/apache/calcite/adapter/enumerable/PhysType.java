@@ -118,6 +118,22 @@ public interface PhysType {
       List<Integer> fields,
       JavaRowFormat targetFormat);
 
+  /** Generates a lambda expression that is a selector for the given fields from
+   * an expression.
+   *
+   * <p>{@code usedFields} must be a subset of {@code fields}.
+   * For each field, there is a corresponding indicator field.
+   * If a field is used, its value is assigned and its indicator is left
+   * {@code false}.
+   * If a field is not used, its value is not assigned and its indicator is
+   * set to {@code true};
+   * This will become a value of 1 when {@code GROUPING(field)} is called. */
+  Expression generateSelector(
+      ParameterExpression parameter,
+      List<Integer> fields,
+      List<Integer> usedFields,
+      JavaRowFormat targetFormat);
+
   /** Generates a selector for the given fields from an expression. */
   Expression selector(
       ParameterExpression parameter,
@@ -129,6 +145,16 @@ public interface PhysType {
    * if there are 0 or 1 fields. */
   PhysType project(
       List<Integer> integers,
+      JavaRowFormat format);
+
+  /** Projects a given collection of fields from this input record, optionally
+   * with indicator fields, into a particular preferred output format.
+   *
+   * <p>The output format is optimized if there are 0 or 1 fields
+   * and indicators are disabled. */
+  PhysType project(
+      List<Integer> integers,
+      boolean indicator,
       JavaRowFormat format);
 
   /** Returns a lambda to create a collation key and a comparator. The

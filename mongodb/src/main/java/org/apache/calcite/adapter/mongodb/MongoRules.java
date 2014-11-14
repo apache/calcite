@@ -455,7 +455,9 @@ public class MongoRules {
             rel.getCluster(),
             traitSet,
             convert(agg.getInput(), traitSet),
+            agg.indicator,
             agg.getGroupSet(),
+            agg.getGroupSets(),
             agg.getAggCallList());
       } catch (InvalidRelException e) {
         LOGGER.warning(e.toString());

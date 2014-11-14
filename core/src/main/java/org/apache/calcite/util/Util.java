@@ -27,6 +27,7 @@ import com.google.common.cache.LoadingCache;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Ordering;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
@@ -55,6 +56,7 @@ import java.util.AbstractSet;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -1742,9 +1744,20 @@ public class Util {
     }
   }
 
-  /** Returns whether an iterable is in ascending order. */
+  /** Returns whether an iterable is in ascending order.
+   *
+   * <p>This implies that it contains no duplicates. */
   public static <E extends Comparable<E>>
   boolean isStrictlySorted(Iterable<? extends E> list) {
+    return isStrictlySorted(list, Ordering.natural());
+  }
+
+  /** Returns whether an iterable is in ascending order, according to a
+   * {@link java.util.Comparator}.
+   *
+   * <p>This implies that it contains no duplicates. */
+  public static <E> boolean isStrictlySorted(Iterable<? extends E> list,
+      Comparator<E> comparator) {
     final Iterator<? extends E> iterator = list.iterator();
     if (!iterator.hasNext()) {
       return true;
@@ -1755,7 +1768,7 @@ public class Util {
         return true;
       }
       E next = iterator.next();
-      if (e.compareTo(next) >= 0) {
+      if (comparator.compare(e, next) >= 0) {
         return false;
       }
       e = next;

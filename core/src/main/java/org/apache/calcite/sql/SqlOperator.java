@@ -65,7 +65,7 @@ public abstract class SqlOperator {
   /**
    * Maximum precedence.
    */
-  protected static final int MDX_PRECEDENCE = 200;
+  public static final int MDX_PRECEDENCE = 200;
 
   //~ Instance fields --------------------------------------------------------
 

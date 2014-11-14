@@ -66,15 +66,6 @@ public class SqlSpecialOperator extends SqlOperator {
     return SqlSyntax.SPECIAL;
   }
 
-  public void unparse(
-      SqlWriter writer,
-      SqlCall call,
-      int leftPrec,
-      int rightPrec) {
-    throw new UnsupportedOperationException(
-        "unparse must be implemented by SqlCall subclass");
-  }
-
   /**
    * Reduces a list of operators and arguments according to the rules of
    * precedence and associativity. Returns the ordinal of the node which

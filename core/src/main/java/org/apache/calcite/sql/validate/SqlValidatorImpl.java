@@ -3035,16 +3035,42 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       aggregatingScope = (AggregatingSelectScope) selectScope;
     }
     for (SqlNode groupItem : groupList) {
+      if (groupItem instanceof SqlNodeList
+          && ((SqlNodeList) groupItem).size() == 0) {
+        continue;
+      }
+      validateGroupItem(groupScope, aggregatingScope, groupItem);
+    }
+
+    SqlNode agg = aggFinder.findAgg(groupList);
+    if (agg != null) {
+      throw newValidationError(agg, RESOURCE.aggregateIllegalInGroupBy());
+    }
+  }
+
+  private void validateGroupItem(SqlValidatorScope groupScope,
+      AggregatingSelectScope aggregatingScope,
+      SqlNode groupItem) {
+    switch (groupItem.getKind()) {
+    case GROUPING_SETS:
+      validateGroupingSets(groupScope, aggregatingScope, (SqlCall) groupItem);
+      break;
+    default:
+      if (groupItem instanceof SqlNodeList) {
+        break;
+      }
       final RelDataType type = deriveType(groupScope, groupItem);
       setValidatedNodeTypeImpl(groupItem, type);
       if (aggregatingScope != null) {
         aggregatingScope.addGroupExpr(groupItem);
       }
     }
+  }
 
-    SqlNode agg = aggFinder.findAgg(groupList);
-    if (agg != null) {
-      throw newValidationError(agg, RESOURCE.aggregateIllegalInGroupBy());
+  private void validateGroupingSets(SqlValidatorScope groupScope,
+      AggregatingSelectScope aggregatingScope, SqlCall groupItem) {
+    for (SqlNode node : groupItem.getOperandList()) {
+      validateGroupItem(groupScope, aggregatingScope, node);
     }
   }
 

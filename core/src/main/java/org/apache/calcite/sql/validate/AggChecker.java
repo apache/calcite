@@ -22,9 +22,12 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.util.SqlBasicVisitor;
+import org.apache.calcite.util.Stacks;
+
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 
 import java.util.List;
-import java.util.Stack;
 
 import static org.apache.calcite.util.Static.RESOURCE;
 
@@ -35,9 +38,8 @@ import static org.apache.calcite.util.Static.RESOURCE;
 class AggChecker extends SqlBasicVisitor<Void> {
   //~ Instance fields --------------------------------------------------------
 
-  private final Stack<SqlValidatorScope> scopes =
-      new Stack<SqlValidatorScope>();
-  private final List<SqlNode> groupExprs;
+  private final List<SqlValidatorScope> scopes = Lists.newArrayList();
+  private final ImmutableList<SqlNode> groupExprs;
   private boolean distinct;
   private SqlValidatorImpl validator;
 
@@ -59,9 +61,9 @@ class AggChecker extends SqlBasicVisitor<Void> {
       List<SqlNode> groupExprs,
       boolean distinct) {
     this.validator = validator;
-    this.groupExprs = groupExprs;
+    this.groupExprs = ImmutableList.copyOf(groupExprs);
     this.distinct = distinct;
-    this.scopes.push(scope);
+    Stacks.push(this.scopes, scope);
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -98,7 +100,7 @@ class AggChecker extends SqlBasicVisitor<Void> {
     // it fully-qualified.
     // TODO: It would be better if we always compared fully-qualified
     // to fully-qualified.
-    final SqlIdentifier fqId = scopes.peek().fullyQualify(id);
+    final SqlIdentifier fqId = Stacks.peek(scopes).fullyQualify(id);
     if (isGroupExpr(fqId)) {
       return null;
     }
@@ -135,16 +137,16 @@ class AggChecker extends SqlBasicVisitor<Void> {
     }
 
     // Switch to new scope.
-    SqlValidatorScope oldScope = scopes.peek();
+    SqlValidatorScope oldScope = Stacks.peek(scopes);
     SqlValidatorScope newScope = oldScope.getOperandScope(call);
-    scopes.push(newScope);
+    Stacks.push(scopes, newScope);
 
     // Visit the operands (only expressions).
     call.getOperator()
         .acceptCall(this, call, true, ArgHandlerImpl.<Void>instance());
 
     // Restore scope.
-    scopes.pop();
+    Stacks.pop(scopes, newScope);
     return null;
   }
 }

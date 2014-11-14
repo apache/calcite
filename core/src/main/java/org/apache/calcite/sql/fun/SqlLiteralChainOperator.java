@@ -22,11 +22,11 @@ import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlCharStringLiteral;
 import org.apache.calcite.sql.SqlCollation;
-import org.apache.calcite.sql.SqlInternalOperator;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperatorBinding;
+import org.apache.calcite.sql.SqlSpecialOperator;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.parser.SqlParserPos;
@@ -56,7 +56,7 @@ import static org.apache.calcite.util.Static.RESOURCE;
  * objects, a {@link SqlCollation} object is attached only to the head of the
  * chain.
  */
-public class SqlLiteralChainOperator extends SqlInternalOperator {
+public class SqlLiteralChainOperator extends SqlSpecialOperator {
   //~ Constructors -----------------------------------------------------------
 
   SqlLiteralChainOperator() {

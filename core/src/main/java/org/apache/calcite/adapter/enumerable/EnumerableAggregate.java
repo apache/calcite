@@ -45,6 +45,7 @@ import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 
 import java.lang.reflect.Type;
 import java.util.ArrayList;
@@ -66,10 +67,12 @@ public class EnumerableAggregate extends Aggregate
       RelOptCluster cluster,
       RelTraitSet traitSet,
       RelNode child,
+      boolean indicator,
       ImmutableBitSet groupSet,
+      List<ImmutableBitSet> groupSets,
       List<AggregateCall> aggCalls)
       throws InvalidRelException {
-    super(cluster, traitSet, child, groupSet, aggCalls);
+    super(cluster, traitSet, child, indicator, groupSet, groupSets, aggCalls);
     assert getConvention() instanceof EnumerableConvention;
 
     for (AggregateCall aggCall : aggCalls) {
@@ -86,11 +89,12 @@ public class EnumerableAggregate extends Aggregate
     }
   }
 
-  @Override public EnumerableAggregate copy(RelTraitSet traitSet,
-      RelNode input, ImmutableBitSet groupSet, List<AggregateCall> aggCalls) {
+  @Override public EnumerableAggregate copy(RelTraitSet traitSet, RelNode input,
+      boolean indicator, ImmutableBitSet groupSet,
+      List<ImmutableBitSet> groupSets, List<AggregateCall> aggCalls) {
     try {
-      return new EnumerableAggregate(getCluster(), traitSet, input,
-          groupSet, aggCalls);
+      return new EnumerableAggregate(getCluster(), traitSet, input, indicator,
+          groupSet, groupSets, aggCalls);
     } catch (InvalidRelException e) {
       // Semantic error not possible. Must be a bug. Convert to
       // internal error.
@@ -178,15 +182,9 @@ public class EnumerableAggregate extends Aggregate
         Expressions.parameter(inputPhysType.getJavaRowType(), "a0");
 
     final PhysType keyPhysType =
-        inputPhysType.project(groupSet.toList(), JavaRowFormat.LIST);
+        inputPhysType.project(groupSet.asList(), getGroupType() != Group.SIMPLE,
+            JavaRowFormat.LIST);
     final int keyArity = groupSet.cardinality();
-    final Expression keySelector =
-        builder.append(
-            "keySelector",
-            inputPhysType.generateSelector(
-                parameter,
-                groupSet.toList(),
-                keyPhysType.getFormat()));
 
     final List<AggImpState> aggs =
         new ArrayList<AggImpState>(aggCalls.size());
@@ -362,7 +360,34 @@ public class EnumerableAggregate extends Aggregate
               new AggResultContextImpl(resultBlock, agg.state)));
     }
     resultBlock.add(physType.record(results));
-    if (keyArity == 0) {
+    if (getGroupType() != Group.SIMPLE) {
+      final List<Expression> list = Lists.newArrayList();
+      for (ImmutableBitSet set : groupSets) {
+        list.add(
+            inputPhysType.generateSelector(parameter, groupSet.toList(),
+                set.toList(), keyPhysType.getFormat()));
+      }
+      final Expression keySelectors_ =
+          builder.append("keySelectors",
+              Expressions.call(BuiltInMethod.ARRAYS_AS_LIST.method,
+                  list));
+      final Expression resultSelector =
+          builder.append("resultSelector",
+              Expressions.lambda(Function2.class,
+                  resultBlock.toBlock(),
+                  key_,
+                  acc_));
+      builder.add(
+          Expressions.return_(null,
+              Expressions.call(
+                  BuiltInMethod.GROUP_BY_MULTIPLE.method,
+                  Expressions.list(childExp,
+                      keySelectors_,
+                      accumulatorInitializer,
+                      accumulatorAdder,
+                      resultSelector)
+                      .appendIfNotNull(keyPhysType.comparer()))));
+    } else if (keyArity == 0) {
       final Expression resultSelector =
           builder.append(
               "resultSelector",
@@ -393,28 +418,26 @@ public class EnumerableAggregate extends Aggregate
                   Expressions.<Expression>list()
                       .appendIfNotNull(physType.comparer()))));
     } else {
-      final Expression resultSelector =
-          builder.append(
-              "resultSelector",
-              Expressions.lambda(
-                  Function2.class,
+      final Expression keySelector_ =
+          builder.append("keySelector",
+              inputPhysType.generateSelector(parameter,
+                  groupSet.toList(),
+                  keyPhysType.getFormat()));
+      final Expression resultSelector_ =
+          builder.append("resultSelector",
+              Expressions.lambda(Function2.class,
                   resultBlock.toBlock(),
                   key_,
                   acc_));
       builder.add(
-          Expressions.return_(
-              null,
-              Expressions.call(
-                  childExp,
+          Expressions.return_(null,
+              Expressions.call(childExp,
                   BuiltInMethod.GROUP_BY2.method,
-                  Expressions
-                      .list(
-                          keySelector,
-                          accumulatorInitializer,
-                          accumulatorAdder,
-                          resultSelector)
-                      .appendIfNotNull(
-                          keyPhysType.comparer()))));
+                  Expressions.list(keySelector_,
+                      accumulatorInitializer,
+                      accumulatorAdder,
+                      resultSelector_)
+                      .appendIfNotNull(keyPhysType.comparer()))));
     }
     return implementor.result(physType, builder.toBlock());
   }

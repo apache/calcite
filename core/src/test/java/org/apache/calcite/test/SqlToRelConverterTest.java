@@ -43,15 +43,19 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     return DiffRepository.lookup(SqlToRelConverterTest.class);
   }
 
+  /** Sets the SQL statement for a test. */
+  public final Sql sql(String sql) {
+    return new Sql(sql);
+  }
+
   protected final void check(
       String sql,
       String plan) {
-    tester.assertConvertsTo(sql, plan);
+    sql(sql).convertsTo(plan);
   }
 
   @Test public void testIntegerLiteral() {
-    check(
-        "select 1 from emp", "${plan}");
+    check("select 1 from emp", "${plan}");
   }
 
   @Test public void testAliasList() {
@@ -193,9 +197,82 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
   }
 
   @Test public void testAggregateNoGroup() {
-    check(
-        "select sum(deptno) from emp",
-        "${plan}");
+    sql("select sum(deptno) from emp").ok();
+  }
+
+  @Test public void testGroupEmpty() {
+    sql("select sum(deptno) from emp group by ()").ok();
+  }
+
+  // Same effect as writing "GROUP BY deptno"
+  @Test public void testSingletonGroupingSet() {
+    sql("select sum(sal) from emp group by grouping sets (deptno)").ok();
+  }
+
+  @Test public void testGroupingSets() {
+    sql("select deptno, ename, sum(sal) from emp\n"
+        + "group by grouping sets ((deptno), (ename, deptno))\n"
+        + "order by 2").ok();
+  }
+
+  /**
+   * GROUP BY with duplicates
+   *
+   * <p>From SQL spec:
+   * <blockquote>NOTE 190 — That is, a simple <em>group by clause</em> that is
+   * not primitive may be transformed into a primitive <em>group by clause</em>
+   * by deleting all parentheses, and deleting extra commas as necessary for
+   * correct syntax. If there are no grouping columns at all (for example,
+   * GROUP BY (), ()), this is transformed to the canonical form GROUP BY ().
+   * </blockquote> */
+  // Same effect as writing "GROUP BY ()"
+  @Test public void testGroupByWithDuplicates() {
+    sql("select sum(sal) from emp group by (), ()").ok();
+  }
+
+  /** GROUP BY with duplicate (and heavily nested) GROUPING SETS. */
+  @Test public void testDuplicateGroupingSets() {
+    sql("select sum(sal) from emp\n"
+        + "group by sal,\n"
+        + "  grouping sets (deptno,\n"
+        + "    grouping sets ((deptno, ename), ename),\n"
+        + "      (ename)),\n"
+        + "  ()").ok();
+  }
+
+  @Test public void testGroupingSetsCartesianProduct() {
+    // Equivalent to (a, c), (a, d), (b, c), (b, d)
+    sql("select 1 from (values (1, 2, 3, 4)) as t(a, b, c, d)\n"
+        + "group by grouping sets (a, b), grouping sets (c, d)").ok();
+  }
+
+  @Test public void testGroupingSetsCartesianProduct2() {
+    sql("select 1 from (values (1, 2, 3, 4)) as t(a, b, c, d)\n"
+      + "group by grouping sets (a, (a, b)), grouping sets (c), d").ok();
+  }
+
+  @Test public void testRollup() {
+    // Equivalent to {(a, b), (a), ()}  * {(c, d), (c), ()}
+    sql("select 1 from (values (1, 2, 3, 4)) as t(a, b, c, d)\n"
+        + "group by rollup(a, b), rollup(c, d)").ok();
+  }
+
+  @Test public void testRollupTuples() {
+    // rollup(b, (a, d)) is (b, a, d), (b), ()
+    sql("select 1 from (values (1, 2, 3, 4)) as t(a, b, c, d)\n"
+        + "group by rollup(b, (a, d))").ok();
+  }
+
+  @Test public void testCube() {
+    // cube(a, b) is {(a, b), (a), (b), ()}
+    sql("select 1 from (values (1, 2, 3, 4)) as t(a, b, c, d)\n"
+        + "group by cube(a, b)").ok();
+  }
+
+  @Test public void testGroupingSetsWith() {
+    sql("with t(a, b, c, d) as (values (1, 2, 3, 4))\n"
+        + "select 1 from t\n"
+        + "group by rollup(a, b), rollup(c, d)").ok();
   }
 
   @Test public void testHaving() {
@@ -216,32 +293,24 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
 
   @Test public void testGroupBug281b() {
     // Try to confuse it with spurious columns.
-    check(
-        "select name, foo from ("
-            + "select deptno, name, count(deptno) as foo "
-            + "from dept "
-            + "group by name, deptno, name)",
-        "${plan}");
+    sql("select name, foo from ("
+        + "select deptno, name, count(deptno) as foo "
+        + "from dept "
+        + "group by name, deptno, name)").ok();
   }
 
   @Test public void testAggDistinct() {
-    check(
-        "select deptno, sum(sal), sum(distinct sal), count(*) "
-            + "from emp "
-            + "group by deptno",
-        "${plan}");
+    sql("select deptno, sum(sal), sum(distinct sal), count(*) "
+        + "from emp "
+        + "group by deptno").ok();
   }
 
   @Test public void testSelectDistinct() {
-    check(
-        "select distinct sal + 5 from emp",
-        "${plan}");
+    sql("select distinct sal + 5 from emp").ok();
   }
 
   @Test public void testSelectDistinctGroup() {
-    check(
-        "select distinct sum(sal) from emp group by deptno",
-        "${plan}");
+    sql("select distinct sum(sal) from emp group by deptno").ok();
   }
 
   /**
@@ -955,6 +1024,23 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
         ++invalidCount;
       }
       super.visit(node, ordinal, parent);
+    }
+  }
+
+  /** Allows fluent testing. */
+  public class Sql {
+    private final String sql;
+
+    Sql(String sql) {
+      this.sql = sql;
+    }
+
+    public void ok() {
+      convertsTo("${plan}");
+    }
+
+    public void convertsTo(String plan) {
+      tester.assertConvertsTo(sql, plan);
     }
   }
 }

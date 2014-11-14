@@ -21,6 +21,8 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlSelect;
 
+import com.google.common.collect.Lists;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -70,7 +72,10 @@ public class AggregatingSelectScope
       SqlNodeList sqlNodeList =
           (SqlNodeList) this.select.getGroup().accept(
               new SqlValidatorUtil.DeepCopier(parent));
-      this.groupExprList = sqlNodeList.getList();
+      groupExprList = Lists.newArrayList();
+      for (SqlNode node : sqlNodeList) {
+        addGroupExpr(node);
+      }
     } else {
       groupExprList = null;
     }
@@ -179,7 +184,23 @@ public class AggregatingSelectScope
    * @param expr Expression
    */
   public void addGroupExpr(SqlNode expr) {
-    groupExprList.add(expr);
+    switch (expr.getKind()) {
+    case CUBE:
+    case GROUPING_SETS:
+    case ROLLUP:
+    case ROW:
+      for (SqlNode child : ((SqlCall) expr).getOperandList()) {
+        addGroupExpr(child);
+      }
+      break;
+    default:
+      for (SqlNode existingNode : groupExprList) {
+        if (existingNode.equalsDeep(expr, false)) {
+          return;
+        }
+      }
+      groupExprList.add(expr);
+    }
   }
 }
 

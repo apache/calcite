@@ -31,11 +31,11 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.runtime.Utilities;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
-import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
@@ -104,14 +104,25 @@ public class PhysTypeImpl implements PhysType {
   }
 
   public PhysType project(List<Integer> integers, JavaRowFormat format) {
-    RelDataType projectedRowType =
-        typeFactory.createStructType(
-            Lists.transform(integers,
-                new Function<Integer, RelDataTypeField>() {
-                  public RelDataTypeField apply(Integer index) {
-                    return rowType.getFieldList().get(index);
-                  }
-                }));
+    return project(integers, false, format);
+  }
+
+  public PhysType project(List<Integer> integers, boolean indicator,
+      JavaRowFormat format) {
+    final RelDataTypeFactory.FieldInfoBuilder builder = typeFactory.builder();
+    for (int index : integers) {
+      builder.add(rowType.getFieldList().get(index));
+    }
+    if (indicator) {
+      final RelDataType booleanType =
+          typeFactory.createTypeWithNullability(
+              typeFactory.createSqlType(SqlTypeName.BOOLEAN), false);
+      for (int index : integers) {
+        builder.add("i$" + rowType.getFieldList().get(index).getName(),
+            booleanType);
+      }
+    }
+    RelDataType projectedRowType = builder.build();
     return of(typeFactory, projectedRowType, format.optimize(projectedRowType));
   }
 
@@ -143,6 +154,30 @@ public class PhysTypeImpl implements PhysType {
       return Expressions.lambda(Function1.class,
           targetPhysType.record(fieldReferences(parameter, fields)), parameter);
     }
+  }
+
+  public Expression generateSelector(final ParameterExpression parameter,
+      final List<Integer> fields, List<Integer> usedFields,
+      JavaRowFormat targetFormat) {
+    final PhysType targetPhysType =
+        project(fields, true, targetFormat);
+    final List<Expression> expressions = Lists.newArrayList();
+    for (Integer field : fields) {
+      if (usedFields.contains(field)) {
+        expressions.add(fieldReference(parameter, field));
+      } else {
+        final Primitive primitive =
+            Primitive.of(targetPhysType.fieldClass(field));
+        expressions.add(
+            Expressions.constant(
+                primitive != null ? primitive.defaultValue : null));
+      }
+    }
+    for (Integer field : fields) {
+      expressions.add(Expressions.constant(!usedFields.contains(field)));
+    }
+    return Expressions.lambda(Function1.class,
+        targetPhysType.record(expressions), parameter);
   }
 
   public Expression selector(

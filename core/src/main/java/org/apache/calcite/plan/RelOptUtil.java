@@ -357,11 +357,8 @@ public abstract class RelOptUtil {
               extraName);
 
       ret =
-          new LogicalAggregate(
-              ret.getCluster(),
-              ret,
-              ImmutableBitSet.of(),
-              ImmutableList.of(aggCall));
+          new LogicalAggregate(ret.getCluster(), ret, false,
+              ImmutableBitSet.of(), null, ImmutableList.of(aggCall));
     }
 
     return ret;
@@ -401,7 +398,8 @@ public abstract class RelOptUtil {
       final int keyCount = ret.getRowType().getFieldCount();
       if (!needsOuterJoin) {
         return Pair.<RelNode, Boolean>of(
-            new LogicalAggregate(cluster, ret, ImmutableBitSet.range(keyCount),
+            new LogicalAggregate(cluster, ret, false,
+                ImmutableBitSet.range(keyCount), null,
                 ImmutableList.<AggregateCall>of()),
             false);
       }
@@ -435,10 +433,8 @@ public abstract class RelOptUtil {
               null,
               null);
 
-      ret = new LogicalAggregate(
-          cluster,
-          ret,
-          ImmutableBitSet.range(projectedKeyCount),
+      ret = new LogicalAggregate(cluster, ret, false,
+          ImmutableBitSet.range(projectedKeyCount), null,
           ImmutableList.of(aggCall));
 
       switch (logic) {
@@ -680,11 +676,8 @@ public abstract class RelOptUtil {
               null));
     }
 
-    return new LogicalAggregate(
-        rel.getCluster(),
-        rel,
-        ImmutableBitSet.of(),
-        aggCalls);
+    return new LogicalAggregate(rel.getCluster(), rel, false,
+        ImmutableBitSet.of(), null, aggCalls);
   }
 
   /**
@@ -695,10 +688,8 @@ public abstract class RelOptUtil {
    * @return rel implementing DISTINCT
    */
   public static RelNode createDistinctRel(RelNode rel) {
-    return new LogicalAggregate(
-        rel.getCluster(),
-        rel,
-        ImmutableBitSet.range(rel.getRowType().getFieldCount()),
+    return new LogicalAggregate(rel.getCluster(), rel, false,
+        ImmutableBitSet.range(rel.getRowType().getFieldCount()), null,
         ImmutableList.<AggregateCall>of());
   }
 

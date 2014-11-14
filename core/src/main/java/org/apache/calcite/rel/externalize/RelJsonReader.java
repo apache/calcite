@@ -134,8 +134,25 @@ public class RelJsonReader {
         return ImmutableBitSet.of(getIntegerList(tag));
       }
 
+      public List<ImmutableBitSet> getBitSetList(String tag) {
+        List<List<Integer>> list = getIntegerListList(tag);
+        if (list == null) {
+          return null;
+        }
+        final ImmutableList.Builder<ImmutableBitSet> builder =
+            ImmutableList.builder();
+        for (List<Integer> integers : list) {
+          builder.add(ImmutableBitSet.of(integers));
+        }
+        return builder.build();
+      }
+
       public List<Integer> getIntegerList(String tag) {
         return (List<Integer>) jsonRel.get(tag);
+      }
+
+      public List<List<Integer>> getIntegerListList(String tag) {
+        return (List<List<Integer>>) jsonRel.get(tag);
       }
 
       public List<AggregateCall> getAggregateCalls(String tag) {
@@ -159,8 +176,9 @@ public class RelJsonReader {
         return ((Number) jsonRel.get(tag)).floatValue();
       }
 
-      public boolean getBoolean(String tag) {
-        return (Boolean) jsonRel.get(tag);
+      public boolean getBoolean(String tag, boolean default_) {
+        final Boolean b = (Boolean) jsonRel.get(tag);
+        return b != null ? b : default_;
       }
 
       public <E extends Enum<E>> E getEnum(String tag, Class<E> enumClass) {

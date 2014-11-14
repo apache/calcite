@@ -2866,6 +2866,30 @@ public class JdbcTest {
             "deptno=10; commission=250; S=11500.0");
   }
 
+  @Test public void testGroupingSets() {
+    CalciteAssert.that()
+        .with(CalciteAssert.Config.REGULAR)
+        .query("select \"deptno\", count(*) as c, sum(\"salary\") as s\n"
+            + "from \"hr\".\"emps\"\n"
+            + "group by grouping sets((\"deptno\"), ())")
+        .returnsUnordered(
+            "deptno=0; C=4; S=36500.0",
+            "deptno=10; C=3; S=28500.0",
+            "deptno=20; C=1; S=8000.0");
+  }
+
+  @Test public void testRollup() {
+    CalciteAssert.that()
+        .with(CalciteAssert.Config.REGULAR)
+        .query("select \"deptno\", count(*) as c, sum(\"salary\") as s\n"
+            + "from \"hr\".\"emps\"\n"
+            + "group by rollup(\"deptno\")")
+        .returnsUnordered(
+            "deptno=0; C=4; S=36500.0",
+            "deptno=10; C=3; S=28500.0",
+            "deptno=20; C=1; S=8000.0");
+  }
+
   @Test public void testSelectDistinct() {
     CalciteAssert.that()
         .with(CalciteAssert.Config.REGULAR)

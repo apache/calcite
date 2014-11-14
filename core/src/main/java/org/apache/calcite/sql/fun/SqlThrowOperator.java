@@ -17,8 +17,8 @@
 package org.apache.calcite.sql.fun;
 
 import org.apache.calcite.sql.SqlCall;
-import org.apache.calcite.sql.SqlInternalOperator;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlSpecialOperator;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
@@ -37,7 +37,7 @@ import org.apache.calcite.sql.type.ReturnTypes;
  * ELSE throw("what's wrong with you man?")<br>
  * END</code></blockquote>
  */
-public class SqlThrowOperator extends SqlInternalOperator {
+public class SqlThrowOperator extends SqlSpecialOperator {
   //~ Constructors -----------------------------------------------------------
 
   public SqlThrowOperator() {

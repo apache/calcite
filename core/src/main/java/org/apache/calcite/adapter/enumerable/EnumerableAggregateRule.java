@@ -42,7 +42,9 @@ class EnumerableAggregateRule extends ConverterRule {
           rel.getCluster(),
           traitSet,
           convert(agg.getInput(), traitSet),
+          agg.indicator,
           agg.getGroupSet(),
+          agg.getGroupSets(),
           agg.getAggCallList());
     } catch (InvalidRelException e) {
       EnumerableRules.LOGGER.fine(e.toString());

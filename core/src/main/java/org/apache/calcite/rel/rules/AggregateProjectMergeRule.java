@@ -51,7 +51,7 @@ public class AggregateProjectMergeRule extends RelOptRule {
   /** Private constructor. */
   private AggregateProjectMergeRule() {
     super(
-        operand(Aggregate.class,
+        operand(Aggregate.class, null, Aggregate.IS_SIMPLE,
             operand(Project.class, any())));
   }
 
@@ -95,8 +95,8 @@ public class AggregateProjectMergeRule extends RelOptRule {
 
     final ImmutableBitSet newGroupSet = ImmutableBitSet.of(newKeys);
     final Aggregate newAggregate =
-        aggregate.copy(aggregate.getTraitSet(), project.getInput(), newGroupSet,
-            aggCalls.build());
+        aggregate.copy(aggregate.getTraitSet(), project.getInput(), false,
+            newGroupSet, null, aggCalls.build());
 
     // Add a project if the group set is not in the same order or
     // contains duplicates.

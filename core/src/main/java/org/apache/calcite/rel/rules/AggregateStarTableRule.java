@@ -56,13 +56,13 @@ import java.util.List;
 public class AggregateStarTableRule extends RelOptRule {
   public static final AggregateStarTableRule INSTANCE =
       new AggregateStarTableRule(
-          operand(Aggregate.class,
+          operand(Aggregate.class, null, Aggregate.IS_SIMPLE,
               some(operand(StarTable.StarTableScan.class, none()))),
           "AggregateStarTableRule");
 
   public static final AggregateStarTableRule INSTANCE2 =
       new AggregateStarTableRule(
-          operand(Aggregate.class,
+          operand(Aggregate.class, null, Aggregate.IS_SIMPLE,
               operand(Project.class,
                   operand(StarTable.StarTableScan.class, none()))),
           "AggregateStarTableRule:project") {
@@ -149,8 +149,8 @@ public class AggregateStarTableRule extends RelOptRule {
         }
         aggCalls.add(copy);
       }
-      rel = aggregate.copy(aggregate.getTraitSet(), rel, groupSet.build(),
-          aggCalls);
+      rel = aggregate.copy(aggregate.getTraitSet(), rel, false,
+          groupSet.build(), null, aggCalls);
     } else if (!tileKey.measures.equals(measures)) {
       System.out.println("Using materialization "
           + aggregateRelOptTable.getQualifiedName()

@@ -550,8 +550,8 @@ public class JdbcRules {
           agg.getTraitSet().replace(out);
       try {
         return new JdbcAggregate(rel.getCluster(), traitSet,
-            convert(agg.getInput(), traitSet), agg.getGroupSet(),
-            agg.getAggCallList());
+            convert(agg.getInput(), traitSet), agg.indicator, agg.getGroupSet(),
+            agg.getGroupSets(), agg.getAggCallList());
       } catch (InvalidRelException e) {
         LOGGER.fine(e.toString());
         return null;
@@ -565,18 +565,21 @@ public class JdbcRules {
         RelOptCluster cluster,
         RelTraitSet traitSet,
         RelNode child,
+        boolean indicator,
         ImmutableBitSet groupSet,
+        List<ImmutableBitSet> groupSets,
         List<AggregateCall> aggCalls)
         throws InvalidRelException {
-      super(cluster, traitSet, child, groupSet, aggCalls);
+      super(cluster, traitSet, child, indicator, groupSet, groupSets, aggCalls);
       assert getConvention() instanceof JdbcConvention;
     }
 
     @Override public JdbcAggregate copy(RelTraitSet traitSet, RelNode input,
-        ImmutableBitSet groupSet, List<AggregateCall> aggCalls) {
+        boolean indicator, ImmutableBitSet groupSet,
+        List<ImmutableBitSet> groupSets, List<AggregateCall> aggCalls) {
       try {
-        return new JdbcAggregate(getCluster(), traitSet, input, groupSet,
-            aggCalls);
+        return new JdbcAggregate(getCluster(), traitSet, input, indicator,
+            groupSet, groupSets, aggCalls);
       } catch (InvalidRelException e) {
         // Semantic error not possible. Must be a bug. Convert to
         // internal error.

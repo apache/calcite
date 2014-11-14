@@ -118,8 +118,8 @@ public abstract class RelOptRule {
   }
 
   /**
-   * Creates an operand that matches a relational expression that has no
-   * children.
+   * Creates an operand that matches a relational expression that has a
+   * particular trait and predicate.
    *
    * @param clazz Class of relational expression to match (must not be null)
    * @param trait Trait to match, or null to match any trait
@@ -131,6 +131,23 @@ public abstract class RelOptRule {
       Predicate<? super R> predicate,
       RelOptRuleOperandChildren operandList) {
     return new RelOptRuleOperand(clazz, trait, predicate, operandList);
+  }
+
+  /**
+   * Creates an operand that matches a relational expression that has no
+   * children.
+   *
+   * @param clazz Class of relational expression to match (must not be null)
+   * @param trait Trait to match, or null to match any trait
+   * @return Operand
+   */
+  public static <R extends RelNode> RelOptRuleOperand operand(
+      Class<R> clazz,
+      RelTrait trait,
+      Predicate<? super R> predicate,
+      RelOptRuleOperand first,
+      RelOptRuleOperand... rest) {
+    return new RelOptRuleOperand(clazz, trait, predicate, some(first, rest));
   }
 
   /**

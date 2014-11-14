@@ -168,6 +168,11 @@ public abstract class Bug {
    * Pull up filters rejected by a ProjectableFilterableTable</a> is fixed. */
   public static final boolean CALCITE_445_FIXED = false;
 
+  /** Whether
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-461">[CALCITE-461]
+   * Convert more planner rules to handle grouping sets</a> is fixed. */
+  public static final boolean CALCITE_461_FIXED = false;
+
   /**
    * Use this to flag temporary code.
    */

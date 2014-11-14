@@ -148,7 +148,8 @@ public class RelFactories {
    */
   public interface AggregateFactory {
     /** Creates an aggregate. */
-    RelNode createAggregate(RelNode child, ImmutableBitSet groupSet,
+    RelNode createAggregate(RelNode child, boolean indicator,
+        ImmutableBitSet groupSet, ImmutableList<ImmutableBitSet> groupSets,
         List<AggregateCall> aggCalls);
   }
 
@@ -157,10 +158,11 @@ public class RelFactories {
    * that returns a vanilla {@link LogicalAggregate}.
    */
   private static class AggregateFactoryImpl implements AggregateFactory {
-    public RelNode createAggregate(RelNode child, ImmutableBitSet groupSet,
+    public RelNode createAggregate(RelNode child, boolean indicator,
+        ImmutableBitSet groupSet, ImmutableList<ImmutableBitSet> groupSets,
         List<AggregateCall> aggCalls) {
-      return new LogicalAggregate(child.getCluster(), child, groupSet,
-          aggCalls);
+      return new LogicalAggregate(child.getCluster(), child, indicator,
+          groupSet, groupSets, aggCalls);
     }
   }
 

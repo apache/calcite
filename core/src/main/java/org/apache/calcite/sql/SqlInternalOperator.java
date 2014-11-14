@@ -16,27 +16,42 @@
  */
 package org.apache.calcite.sql;
 
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.sql.type.OperandTypes;
+import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlOperandTypeInference;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
+import org.apache.calcite.sql.validate.SqlValidator;
+import org.apache.calcite.sql.validate.SqlValidatorScope;
 
 /**
  * Generic operator for nodes with internal syntax.
+ *
+ * <p>If you do not override {@link #getSyntax()} or
+ * {@link #unparse(SqlWriter, SqlCall, int, int)}, they will be unparsed using
+ * function syntax, {@code F(arg1, arg2, ...)}. This may be OK for operators
+ * that never appear in SQL, only as structural elements in an abstract syntax
+ * tree.
+ *
+ * <p>You can use this operator, without creating a sub-class, for
+ * non-expression nodes. Validate will validate the arguments, but will not
+ * attempt to deduce a type.
  */
-public abstract class SqlInternalOperator extends SqlSpecialOperator {
+public class SqlInternalOperator extends SqlSpecialOperator {
   //~ Constructors -----------------------------------------------------------
 
   public SqlInternalOperator(
       String name,
       SqlKind kind) {
-    super(name, kind, 2, true, null, null, null);
+    super(name, kind, 2, true, ReturnTypes.ARG0, null, OperandTypes.VARIADIC);
   }
 
   public SqlInternalOperator(
       String name,
       SqlKind kind,
       int prec) {
-    super(name, kind, prec, true, null, null, null);
+    super(name, kind, prec, true, ReturnTypes.ARG0, null, null);
   }
 
   public SqlInternalOperator(
@@ -60,16 +75,12 @@ public abstract class SqlInternalOperator extends SqlSpecialOperator {
   //~ Methods ----------------------------------------------------------------
 
   public SqlSyntax getSyntax() {
-    return SqlSyntax.INTERNAL;
+    return SqlSyntax.FUNCTION;
   }
 
-  public void unparse(
-      SqlWriter writer,
-      SqlCall call,
-      int leftPrec,
-      int rightPrec) {
-    throw new UnsupportedOperationException(
-        "unparse must be implemented by SqlCall subclass");
+  @Override public RelDataType deriveType(SqlValidator validator,
+      SqlValidatorScope scope, SqlCall call) {
+    return validateOperands(validator, scope, call);
   }
 }
 

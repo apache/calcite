@@ -49,18 +49,23 @@ public final class LogicalAggregate extends Aggregate {
    * @param cluster  Cluster that this relational expression belongs to
    * @param child    input relational expression
    * @param groupSet Bit set of grouping fields
+   * @param groupSets Grouping sets, or null to use just {@code groupSet}
    * @param aggCalls Array of aggregates to compute, not null
    */
   public LogicalAggregate(
       RelOptCluster cluster,
       RelNode child,
+      boolean indicator,
       ImmutableBitSet groupSet,
+      List<ImmutableBitSet> groupSets,
       List<AggregateCall> aggCalls) {
     super(
         cluster,
         cluster.traitSetOf(Convention.NONE),
         child,
+        indicator,
         groupSet,
+        groupSets,
         aggCalls);
   }
 
@@ -74,9 +79,11 @@ public final class LogicalAggregate extends Aggregate {
   //~ Methods ----------------------------------------------------------------
 
   @Override public LogicalAggregate copy(RelTraitSet traitSet, RelNode input,
-      ImmutableBitSet groupSet, List<AggregateCall> aggCalls) {
+      boolean indicator, ImmutableBitSet groupSet,
+      List<ImmutableBitSet> groupSets, List<AggregateCall> aggCalls) {
     assert traitSet.containsIfApplicable(Convention.NONE);
-    return new LogicalAggregate(getCluster(), input, groupSet, aggCalls);
+    return new LogicalAggregate(getCluster(), input, this.indicator, groupSet,
+        groupSets, aggCalls);
   }
 
   @Override public RelNode accept(RelShuttle shuttle) {

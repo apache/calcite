@@ -20,6 +20,7 @@ import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.logical.LogicalProject;
@@ -72,7 +73,7 @@ public class AggregateProjectPullUpConstantsRule extends RelOptRule {
    */
   private AggregateProjectPullUpConstantsRule() {
     super(
-        operand(LogicalAggregate.class,
+        operand(LogicalAggregate.class, null, Aggregate.IS_SIMPLE,
             operand(LogicalProject.class, any())));
   }
 
@@ -137,11 +138,8 @@ public class AggregateProjectPullUpConstantsRule extends RelOptRule {
                 newGroupCount));
       }
       newAggregate =
-          new LogicalAggregate(
-              aggregate.getCluster(),
-              child,
-              ImmutableBitSet.range(newGroupCount),
-              newAggCalls);
+          new LogicalAggregate(aggregate.getCluster(), child, false,
+              ImmutableBitSet.range(newGroupCount), null, newAggCalls);
     } else {
       // Create the mapping from old field positions to new field
       // positions.
@@ -182,11 +180,8 @@ public class AggregateProjectPullUpConstantsRule extends RelOptRule {
 
       // Aggregate on projection.
       newAggregate =
-          new LogicalAggregate(
-              aggregate.getCluster(),
-              project,
-              ImmutableBitSet.range(newGroupCount),
-              newAggCalls);
+          new LogicalAggregate(aggregate.getCluster(), project, false,
+              ImmutableBitSet.range(newGroupCount), null, newAggCalls);
     }
 
     final RexBuilder rexBuilder = aggregate.getCluster().getRexBuilder();

@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.linq4j;
 
+import com.google.common.collect.Lists;
+
 import java.io.Closeable;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -373,6 +375,21 @@ public abstract class Linq4j {
   public static <T> Enumerator<List<T>> product(
       List<Enumerator<T>> enumerators) {
     return new CartesianProductEnumerator<T>(enumerators);
+  }
+
+  /** Returns the cartesian product of an iterable of iterables. */
+  public static <T> Iterable<List<T>> product(
+      final Iterable<? extends Iterable<T>> iterables) {
+    return new Iterable<List<T>>() {
+      public Iterator<List<T>> iterator() {
+        final List<Enumerator<T>> enumerators = Lists.newArrayList();
+        for (Iterable<T> iterable : iterables) {
+          enumerators.add(iterableEnumerator(iterable));
+        }
+        return enumeratorIterator(
+            new CartesianProductEnumerator<T>(enumerators));
+      }
+    };
   }
 
   /**

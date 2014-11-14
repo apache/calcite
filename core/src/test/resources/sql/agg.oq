@@ -148,4 +148,125 @@ select count(mod(deptno, 20), gender) as c from emps;
 
 !ok
 
+# Basic GROUPING SETS
+select deptno, count(*) as c from emps group by grouping sets ((), (deptno));
++--------+---+
+| DEPTNO | C |
++--------+---+
+|      0 | 5 |
+|     10 | 1 |
+|     20 | 2 |
+|     40 | 2 |
++--------+---+
+(4 rows)
+
+!ok
+
+# GROUPING SETS on expression
+select deptno + 1, count(*) as c from emps group by grouping sets ((), (deptno + 1));
++--------+---+
+| EXPR$0 | C |
++--------+---+
+|      0 | 5 |
+|     11 | 1 |
+|     21 | 2 |
+|     41 | 2 |
++--------+---+
+(4 rows)
+
+!ok
+
+# CUBE
+!if (false) {
+select deptno + 1, count(*) as c from emps group by cube(deptno, gender);
+!ok
+!}
+
+# ROLLUP on 1 column
+select deptno + 1, count(*) as c from emps group by rollup(deptno);
++--------+---+
+| EXPR$0 | C |
++--------+---+
+|      1 | 5 |
+|     11 | 1 |
+|     21 | 2 |
+|     41 | 2 |
++--------+---+
+(4 rows)
+
+!ok
+
+# ROLLUP on 2 columns; project columns in different order
+select gender, deptno + 1, count(*) as c
+from emps
+group by rollup(deptno, gender);
++--------+--------+---+
+| GENDER | EXPR$1 | C |
++--------+--------+---+
+| F      |     21 | 1 |
+| F      |     41 | 1 |
+| M      |     21 | 1 |
+| M      |     41 | 1 |
+|        |      1 | 5 |
+|        |     11 | 1 |
+|        |     11 | 1 |
+|        |     21 | 2 |
+|        |     41 | 2 |
++--------+--------+---+
+(9 rows)
+
+!ok
+
+# ROLLUP on column with nulls
+# Note the two rows with NULL key (one represents ALL)
+select gender, count(*) as c
+from emps
+group by rollup(gender);
++--------+---+
+| GENDER | C |
++--------+---+
+| F      | 2 |
+| M      | 2 |
+|        | 1 |
+|        | 5 |
++--------+---+
+(4 rows)
+
+!ok
+
+# ROLLUP plus ORDER BY
+select gender, count(*) as c
+from emps
+group by rollup(gender)
+order by c desc;
++--------+---+
+| GENDER | C |
++--------+---+
+|        | 5 |
+| F      | 2 |
+| M      | 2 |
+|        | 1 |
++--------+---+
+(4 rows)
+
+!ok
+
+# ROLLUP cartesian product
+!if (false) {
+select deptno + 1, count(*) as c from emps group by rollup(deptno, gender), rollup(city);
+!ok
+!}
+
+# ROLLUP with HAVING
+select deptno + 1, count(*) as c from emps group by rollup(deptno)
+having count(*) > 3;
++--------+---+
+| EXPR$0 | C |
++--------+---+
+|      1 | 5 |
++--------+---+
+(1 row)
+
+!ok
+
 # End agg.oq

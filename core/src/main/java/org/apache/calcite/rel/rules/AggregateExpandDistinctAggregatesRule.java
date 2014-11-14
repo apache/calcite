@@ -77,7 +77,7 @@ public final class AggregateExpandDistinctAggregatesRule extends RelOptRule {
   public AggregateExpandDistinctAggregatesRule(
       Class<? extends LogicalAggregate> clazz,
       RelFactories.JoinFactory joinFactory) {
-    super(operand(clazz, any()));
+    super(operand(clazz, null, Aggregate.IS_SIMPLE, any()));
     this.joinFactory = joinFactory;
   }
 
@@ -154,11 +154,8 @@ public final class AggregateExpandDistinctAggregatesRule extends RelOptRule {
       rel = null;
     } else {
       rel =
-          new LogicalAggregate(
-              aggregate.getCluster(),
-              aggregate.getInput(),
-              groupSet,
-              newAggCallList);
+          new LogicalAggregate(aggregate.getCluster(), aggregate.getInput(),
+              false, groupSet, null, newAggCallList);
     }
 
     // For each set of operands, find and rewrite all calls which have that
@@ -201,12 +198,11 @@ public final class AggregateExpandDistinctAggregatesRule extends RelOptRule {
 
     // Create an aggregate on top, with the new aggregate list.
     final List<AggregateCall> newAggCalls =
-        new ArrayList<AggregateCall>(aggregate.getAggCallList());
+        Lists.newArrayList(aggregate.getAggCallList());
     rewriteAggCalls(newAggCalls, argList, sourceOf);
-    return aggregate.copy(
-        aggregate.getTraitSet(),
-        distinct,
-        ImmutableBitSet.range(aggregate.getGroupSet().cardinality()),
+    final int cardinality = aggregate.getGroupSet().cardinality();
+    return aggregate.copy(aggregate.getTraitSet(), distinct,
+        aggregate.indicator, ImmutableBitSet.range(cardinality), null,
         newAggCalls);
   }
 
@@ -342,11 +338,9 @@ public final class AggregateExpandDistinctAggregatesRule extends RelOptRule {
     }
 
     Aggregate distinctAgg =
-        aggregate.copy(
-            aggregate.getTraitSet(),
-            distinct,
+        aggregate.copy(aggregate.getTraitSet(), distinct, false,
             ImmutableBitSet.range(aggregate.getGroupSet().cardinality()),
-            aggCallList);
+            null, aggCallList);
 
     // If there's no left child yet, no need to create the join
     if (left == null) {
@@ -479,11 +473,9 @@ public final class AggregateExpandDistinctAggregatesRule extends RelOptRule {
 
     // Get the distinct values of the GROUP BY fields and the arguments
     // to the agg functions.
-    return aggregate.copy(
-        aggregate.getTraitSet(),
-        project,
+    return aggregate.copy(aggregate.getTraitSet(), project, false,
         ImmutableBitSet.range(projects.size()),
-        ImmutableList.<AggregateCall>of());
+        null, ImmutableList.<AggregateCall>of());
   }
 }
 

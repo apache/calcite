@@ -30,22 +30,22 @@ import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
-import org.apache.calcite.rel.type.RelDataTypeFieldImpl;
 import org.apache.calcite.runtime.CalciteException;
 import org.apache.calcite.runtime.Resources;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlOperatorBinding;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlValidatorException;
-import org.apache.calcite.util.CompositeList;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.IntList;
 import org.apache.calcite.util.Util;
 
+import com.google.common.base.Preconditions;
+import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
 
-import java.util.AbstractList;
 import java.util.List;
 
 /**
@@ -65,33 +65,75 @@ import java.util.List;
  * </ul>
  */
 public abstract class Aggregate extends SingleRel {
+  /**
+   * @see org.apache.calcite.util.Bug#CALCITE_461_FIXED
+   */
+  public static final Predicate<Aggregate> IS_SIMPLE =
+      new Predicate<Aggregate>() {
+        public boolean apply(Aggregate input) {
+          return input.getGroupType() == Group.SIMPLE;
+        }
+      };
+
   //~ Instance fields --------------------------------------------------------
 
+  public final boolean indicator;
   protected final List<AggregateCall> aggCalls;
   protected final ImmutableBitSet groupSet;
+  public final ImmutableList<ImmutableBitSet> groupSets;
 
   //~ Constructors -----------------------------------------------------------
 
   /**
    * Creates an Aggregate.
    *
+   * <p>All members of {@code groupSets} must be sub-sets of {@code groupSet}.
+   * For a simple {@code GROUP BY}, {@code groupSets} is a singleton list
+   * containing {@code groupSet}.
+   *
+   * <p>If {@code GROUP BY} is not specified,
+   * or equivalently if {@code GROUP BY ()} is specified,
+   * {@code groupSet} will be the empty set,
+   * and {@code groupSets} will have one element, that empty set.
+   *
+   * <p>If {@code CUBE}, {@code ROLLUP} or {@code GROUPING SETS} are
+   * specified, {@code groupSets} will have additional elements,
+   * but they must each be a subset of {@code groupSet},
+   * and they must be sorted by inclusion:
+   * {@code (0, 1, 2), (1), (0, 2), (0), ()}.
+   *
    * @param cluster  Cluster
    * @param traits   Traits
    * @param child    Child
+   * @param indicator Whether row type should include indicator fields to
+   *                 indicate which grouping set is active; must be true if
+   *                 aggregate is not simple
    * @param groupSet Bit set of grouping fields
+   * @param groupSets List of all grouping sets; null for just {@code groupSet}
    * @param aggCalls Collection of calls to aggregate functions
    */
   protected Aggregate(
       RelOptCluster cluster,
       RelTraitSet traits,
       RelNode child,
+      boolean indicator,
       ImmutableBitSet groupSet,
+      List<ImmutableBitSet> groupSets,
       List<AggregateCall> aggCalls) {
     super(cluster, traits, child);
-    assert aggCalls != null;
+    this.indicator = indicator;
     this.aggCalls = ImmutableList.copyOf(aggCalls);
-    this.groupSet = groupSet;
-    assert groupSet != null;
+    this.groupSet = Preconditions.checkNotNull(groupSet);
+    if (groupSets == null) {
+      this.groupSets = ImmutableList.of(groupSet);
+    } else {
+      this.groupSets = ImmutableList.copyOf(groupSets);
+      assert Util.isStrictlySorted(groupSets, ImmutableBitSet.COMPARATOR)
+          : groupSets;
+      for (ImmutableBitSet set : groupSets) {
+        assert groupSet.contains(set);
+      }
+    }
     assert groupSet.length() <= child.getRowType().getFieldCount();
     for (AggregateCall aggCall : aggCalls) {
       assert typeMatchesInferred(aggCall, true);
@@ -103,14 +145,17 @@ public abstract class Aggregate extends SingleRel {
    */
   protected Aggregate(RelInput input) {
     this(input.getCluster(), input.getTraitSet(), input.getInput(),
-        input.getBitSet("group"), input.getAggregateCalls("aggs"));
+        input.getBoolean("indicator", false),
+        input.getBitSet("group"), input.getBitSetList("groups"),
+        input.getAggregateCalls("aggs"));
   }
 
   //~ Methods ----------------------------------------------------------------
 
   @Override public final RelNode copy(RelTraitSet traitSet,
       List<RelNode> inputs) {
-    return copy(traitSet, sole(inputs), groupSet, aggCalls);
+    return copy(traitSet, sole(inputs), indicator, groupSet, groupSets,
+        aggCalls);
   }
 
   /** Creates a copy of this aggregate.
@@ -118,7 +163,8 @@ public abstract class Aggregate extends SingleRel {
    * @see #copy(org.apache.calcite.plan.RelTraitSet, java.util.List)
    */
   public abstract Aggregate copy(RelTraitSet traitSet, RelNode input,
-      ImmutableBitSet groupSet, List<AggregateCall> aggCalls);
+      boolean indicator, ImmutableBitSet groupSet,
+      List<ImmutableBitSet> groupSets, List<AggregateCall> aggCalls);
 
   // implement RelNode
   public boolean isDistinct() {
@@ -160,9 +206,19 @@ public abstract class Aggregate extends SingleRel {
     return groupSet;
   }
 
+  /**
+   * Returns the list of grouping sets computed by this Aggregate.
+   */
+  public ImmutableList<ImmutableBitSet> getGroupSets() {
+    return groupSets;
+  }
+
   public RelWriter explainTerms(RelWriter pw) {
+    // We skip the "groups" element if it is a singleton of "group".
     super.explainTerms(pw)
+        .itemIf("indicator", indicator, indicator)
         .item("group", groupSet)
+        .itemIf("groups", groupSets, getGroupType() != Group.SIMPLE)
         .itemIf("aggs", aggCalls, pw.nest());
     if (!pw.nest()) {
       for (Ord<AggregateCall> ord : Ord.zip(aggCalls)) {
@@ -172,8 +228,7 @@ public abstract class Aggregate extends SingleRel {
     return pw;
   }
 
-  // implement RelNode
-  public double getRows() {
+  @Override public double getRows() {
     // Assume that each sort column has 50% of the value count.
     // Therefore one sort column has .5 * rowCount,
     // 2 sort columns give .75 * rowCount.
@@ -188,7 +243,7 @@ public abstract class Aggregate extends SingleRel {
     }
   }
 
-  public RelOptCost computeSelfCost(RelOptPlanner planner) {
+  @Override public RelOptCost computeSelfCost(RelOptPlanner planner) {
     // REVIEW jvs 24-Aug-2008:  This is bogus, but no more bogus
     // than what's currently in Join.
     double rowCount = RelMetadataQuery.getRowCount(this);
@@ -196,50 +251,53 @@ public abstract class Aggregate extends SingleRel {
   }
 
   protected RelDataType deriveRowType() {
-    return deriveRowType(
-        getCluster().getTypeFactory(),
-        getInput().getRowType(),
-        groupSet,
-        aggCalls);
+    return deriveRowType(getCluster().getTypeFactory(), getInput().getRowType(),
+        indicator, groupSet, groupSets, aggCalls);
   }
 
   /** Computes the row type of an {@code Aggregate} before it exists. */
   public static RelDataType deriveRowType(RelDataTypeFactory typeFactory,
-      final RelDataType inputRowType, ImmutableBitSet groupSet,
+      final RelDataType inputRowType, boolean indicator,
+      ImmutableBitSet groupSet, List<ImmutableBitSet> groupSets,
       final List<AggregateCall> aggCalls) {
     final IntList groupList = groupSet.toList();
     assert groupList.size() == groupSet.cardinality();
-    return typeFactory.createStructType(
-        CompositeList.of(
-            // fields derived from grouping columns
-            new AbstractList<RelDataTypeField>() {
-              public int size() {
-                return groupList.size();
-              }
+    final RelDataTypeFactory.FieldInfoBuilder builder = typeFactory.builder();
+    for (int groupKey : groupList) {
+      final RelDataTypeField field = inputRowType.getFieldList().get(groupKey);
+      boolean nullable = field.getType().isNullable()
+          || indicator
+          && !allContain(groupSets, groupKey);
+      builder.add(field).nullable(nullable);
+    }
+    if (indicator) {
+      for (int groupKey : groupList) {
+        final RelDataType booleanType =
+            typeFactory.createTypeWithNullability(
+                typeFactory.createSqlType(SqlTypeName.BOOLEAN), false);
+        builder.add("i$" + inputRowType.getFieldList().get(groupKey),
+            booleanType);
+      }
+    }
+    for (Ord<AggregateCall> aggCall : Ord.zip(aggCalls)) {
+      String name;
+      if (aggCall.e.name != null) {
+        name = aggCall.e.name;
+      } else {
+        name = "$f" + (groupList.size() + aggCall.i);
+      }
+      builder.add(name, aggCall.e.type);
+    }
+    return builder.build();
+  }
 
-              public RelDataTypeField get(int index) {
-                return inputRowType.getFieldList().get(
-                    groupList.get(index));
-              }
-            },
-
-            // fields derived from aggregate calls
-            new AbstractList<RelDataTypeField>() {
-              public int size() {
-                return aggCalls.size();
-              }
-
-              public RelDataTypeField get(int index) {
-                final AggregateCall aggCall = aggCalls.get(index);
-                String name;
-                if (aggCall.name != null) {
-                  name = aggCall.name;
-                } else {
-                  name = "$f" + (groupList.size() + index);
-                }
-                return new RelDataTypeFieldImpl(name, index, aggCall.type);
-              }
-            }));
+  private static boolean allContain(List<ImmutableBitSet> bitSets, int bit) {
+    for (ImmutableBitSet bitSet : bitSets) {
+      if (!bitSet.get(bit)) {
+        return false;
+      }
+    }
+    return true;
   }
 
   /**
@@ -275,6 +333,27 @@ public abstract class Aggregate extends SingleRel {
       }
     }
     return false;
+  }
+
+  /** Returns the type of roll-up. */
+  public Group getGroupType() {
+    return Group.induce(groupSet, groupSets);
+  }
+
+  /** What kind of roll-up is it? */
+  public enum Group {
+    SIMPLE,
+    ROLLUP,
+    CUBE,
+    OTHER;
+
+    public static Group induce(ImmutableBitSet groupSet,
+        List<ImmutableBitSet> groupSets) {
+      if (groupSets.size() == 1 && groupSets.get(0).equals(groupSet)) {
+        return SIMPLE;
+      }
+      return OTHER;
+    }
   }
 
   //~ Inner Classes ----------------------------------------------------------

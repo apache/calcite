@@ -48,6 +48,7 @@ import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
+import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.ControlFlowException;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.IntList;
@@ -64,6 +65,7 @@ import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -223,7 +225,8 @@ public class SubstitutionVisitor {
     if (rel instanceof Aggregate) {
       final Aggregate aggregate = (Aggregate) rel;
       final MutableRel input = toMutable(aggregate.getInput());
-      return MutableAggregate.of(input, aggregate.getGroupSet(),
+      return MutableAggregate.of(input, aggregate.indicator,
+          aggregate.getGroupSet(), aggregate.getGroupSets(),
           aggregate.getAggCallList());
     }
     throw new RuntimeException("cannot translate " + rel + " to MutableRel");
@@ -598,7 +601,8 @@ public class SubstitutionVisitor {
     case AGGREGATE:
       final MutableAggregate aggregate = (MutableAggregate) node;
       return new LogicalAggregate(node.cluster, fromMutable(aggregate.input),
-          aggregate.groupSet, aggregate.aggCalls);
+          aggregate.indicator, aggregate.groupSet, aggregate.groupSets,
+          aggregate.aggCalls);
     case SORT:
       final MutableSort sort = (MutableSort) node;
       return new Sort(node.cluster, node.cluster.traitSetOf(sort.collation),
@@ -1145,11 +1149,20 @@ public class SubstitutionVisitor {
   }
 
   public static MutableAggregate permute(MutableAggregate aggregate,
-      MutableRel input, Mapping mapping) {
+      MutableRel input, final Mapping mapping) {
     ImmutableBitSet groupSet = Mappings.apply(mapping, aggregate.getGroupSet());
+    ImmutableList<ImmutableBitSet> groupSets =
+        ImmutableList.copyOf(
+            Iterables.transform(aggregate.getGroupSets(),
+                new Function<ImmutableBitSet, ImmutableBitSet>() {
+                  public ImmutableBitSet apply(ImmutableBitSet input1) {
+                    return Mappings.apply(mapping, input1);
+                  }
+                }));
     List<AggregateCall> aggregateCalls =
         apply(mapping, aggregate.getAggCallList());
-    return MutableAggregate.of(input, groupSet, aggregateCalls);
+    return MutableAggregate.of(input, aggregate.indicator, groupSet, groupSets,
+        aggregateCalls);
   }
 
   private static List<AggregateCall> apply(final Mapping mapping,
@@ -1164,6 +1177,10 @@ public class SubstitutionVisitor {
 
   public static MutableRel unifyAggregates(MutableAggregate query,
       MutableAggregate target) {
+    if (query.getGroupType() != Aggregate.Group.SIMPLE
+        || target.getGroupType() != Aggregate.Group.SIMPLE) {
+      throw new AssertionError(Bug.CALCITE_461_FIXED);
+    }
     MutableRel result;
     if (query.getGroupSet().equals(target.getGroupSet())) {
       // Same level of aggregation. Generate a project.
@@ -1206,7 +1223,8 @@ public class SubstitutionVisitor {
                 ImmutableList.of(target.groupSet.cardinality() + i),
                 aggregateCall.type, aggregateCall.name));
       }
-      result = MutableAggregate.of(target, groupSet.build(), aggregateCalls);
+      result = MutableAggregate.of(target, false, groupSet.build(), null,
+          aggregateCalls);
     }
     return MutableRels.createCastRel(result, query.getRowType(), true);
   }
@@ -1620,22 +1638,31 @@ public class SubstitutionVisitor {
   /** Mutable equivalent of
    * {@link org.apache.calcite.rel.logical.LogicalAggregate}. */
   private static class MutableAggregate extends MutableSingleRel {
+    public final boolean indicator;
     private final ImmutableBitSet groupSet;
+    private final ImmutableList<ImmutableBitSet> groupSets;
     private final List<AggregateCall> aggCalls;
 
     private MutableAggregate(MutableRel input, RelDataType rowType,
-        ImmutableBitSet groupSet, List<AggregateCall> aggCalls) {
+        boolean indicator, ImmutableBitSet groupSet,
+        List<ImmutableBitSet> groupSets, List<AggregateCall> aggCalls) {
       super(MutableRelType.AGGREGATE, rowType, input);
+      this.indicator = indicator;
       this.groupSet = groupSet;
+      this.groupSets = groupSets == null
+          ? ImmutableList.of(groupSet)
+          : ImmutableList.copyOf(groupSets);
       this.aggCalls = aggCalls;
     }
 
-    static MutableAggregate of(MutableRel input, ImmutableBitSet groupSet,
+    static MutableAggregate of(MutableRel input, boolean indicator,
+        ImmutableBitSet groupSet, ImmutableList<ImmutableBitSet> groupSets,
         List<AggregateCall> aggCalls) {
       RelDataType rowType =
           Aggregate.deriveRowType(input.cluster.getTypeFactory(),
-              input.getRowType(), groupSet, aggCalls);
-      return new MutableAggregate(input, rowType, groupSet, aggCalls);
+              input.getRowType(), indicator, groupSet, groupSets, aggCalls);
+      return new MutableAggregate(input, rowType, indicator, groupSet,
+          groupSets, aggCalls);
     }
 
     @Override public boolean equals(Object obj) {
@@ -1652,6 +1679,7 @@ public class SubstitutionVisitor {
 
     @Override public StringBuilder digest(StringBuilder buf) {
       return buf.append("Aggregate(groupSet: ").append(groupSet)
+          .append(", groupSets: ").append(groupSets)
           .append(", calls: ").append(aggCalls).append(")");
     }
 
@@ -1659,8 +1687,16 @@ public class SubstitutionVisitor {
       return groupSet;
     }
 
+    public ImmutableList<ImmutableBitSet> getGroupSets() {
+      return groupSets;
+    }
+
     public List<AggregateCall> getAggCallList() {
       return aggCalls;
+    }
+
+    public Aggregate.Group getGroupType() {
+      return Aggregate.Group.induce(groupSet, groupSets);
     }
   }
 

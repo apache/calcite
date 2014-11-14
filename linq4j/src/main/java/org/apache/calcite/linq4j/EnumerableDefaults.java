@@ -666,6 +666,30 @@ public abstract class EnumerableDefaults {
   }
 
   /**
+   * Groups the elements of a sequence according to a list of
+   * specified key selector functions, initializing an accumulator for each
+   * group and adding to it each time an element with the same key is seen.
+   * Creates a result value from each accumulator and its key using a
+   * specified function.
+   *
+   * <p>This method exists to support SQL {@code GROUPING SETS}.
+   * It does not correspond to any method in {@link Enumerable}.
+   */
+  public static <TSource, TKey, TAccumulate, TResult> Enumerable<TResult>
+  groupByMultiple(Enumerable<TSource> enumerable,
+      List<Function1<TSource, TKey>> keySelectors,
+      Function0<TAccumulate> accumulatorInitializer,
+      Function2<TAccumulate, TSource, TAccumulate> accumulatorAdder,
+      final Function2<TKey, TAccumulate, TResult> resultSelector) {
+    return groupByMultiple_(new HashMap<TKey, TAccumulate>(),
+        enumerable,
+        keySelectors,
+        accumulatorInitializer,
+        accumulatorAdder,
+        resultSelector);
+  }
+
+  /**
    * Groups the elements of a sequence according to a
    * specified key selector function, initializing an accumulator for each
    * group and adding to it each time an element with the same key is seen.
@@ -710,26 +734,42 @@ public abstract class EnumerableDefaults {
     } finally {
       os.close();
     }
-    return new AbstractEnumerable2<TResult>() {
-      public Iterator<TResult> iterator() {
-        final Iterator<Map.Entry<TKey, TAccumulate>> iterator =
-            map.entrySet().iterator();
-        return new Iterator<TResult>() {
-          public boolean hasNext() {
-            return iterator.hasNext();
-          }
+    return new LookupResultEnumerable<TResult, TKey, TAccumulate>(map,
+        resultSelector);
+  }
 
-          public TResult next() {
-            final Map.Entry<TKey, TAccumulate> entry = iterator.next();
-            return resultSelector.apply(entry.getKey(), entry.getValue());
+  private static <TSource, TKey, TAccumulate, TResult> Enumerable<TResult>
+  groupByMultiple_(final Map<TKey, TAccumulate> map,
+      Enumerable<TSource> enumerable,
+      List<Function1<TSource, TKey>> keySelectors,
+      Function0<TAccumulate> accumulatorInitializer,
+      Function2<TAccumulate, TSource, TAccumulate> accumulatorAdder,
+      final Function2<TKey, TAccumulate, TResult> resultSelector) {
+    final Enumerator<TSource> os = enumerable.enumerator();
+    try {
+      while (os.moveNext()) {
+        for (Function1<TSource, TKey> keySelector : keySelectors) {
+          TSource o = os.current();
+          TKey key = keySelector.apply(o);
+          TAccumulate accumulator = map.get(key);
+          if (accumulator == null) {
+            accumulator = accumulatorInitializer.apply();
+            accumulator = accumulatorAdder.apply(accumulator, o);
+            map.put(key, accumulator);
+          } else {
+            TAccumulate accumulator0 = accumulator;
+            accumulator = accumulatorAdder.apply(accumulator, o);
+            if (accumulator != accumulator0) {
+              map.put(key, accumulator);
+            }
           }
-
-          public void remove() {
-            throw new UnsupportedOperationException();
-          }
-        };
+        }
       }
-    };
+    } finally {
+      os.close();
+    }
+    return new LookupResultEnumerable<TResult, TKey, TAccumulate>(map,
+        resultSelector);
   }
 
   private static <TSource, TKey, TResult> Enumerable<TResult>
@@ -2362,6 +2402,38 @@ public abstract class EnumerableDefaults {
 
     @Override public Collection<V> values() {
       return map.values();
+    }
+  }
+
+  /** Reads a populated map, applying a selector function. */
+  private static class LookupResultEnumerable<TResult, TKey, TAccumulate>
+      extends AbstractEnumerable2<TResult> {
+    private final Map<TKey, TAccumulate> map;
+    private final Function2<TKey, TAccumulate, TResult> resultSelector;
+
+    public LookupResultEnumerable(Map<TKey, TAccumulate> map,
+        Function2<TKey, TAccumulate, TResult> resultSelector) {
+      this.map = map;
+      this.resultSelector = resultSelector;
+    }
+
+    public Iterator<TResult> iterator() {
+      final Iterator<Map.Entry<TKey, TAccumulate>> iterator =
+          map.entrySet().iterator();
+      return new Iterator<TResult>() {
+        public boolean hasNext() {
+          return iterator.hasNext();
+        }
+
+        public TResult next() {
+          final Map.Entry<TKey, TAccumulate> entry = iterator.next();
+          return resultSelector.apply(entry.getKey(), entry.getValue());
+        }
+
+        public void remove() {
+          throw new UnsupportedOperationException();
+        }
+      };
     }
   }
 }

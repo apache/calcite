@@ -67,7 +67,7 @@ public abstract class SetOp extends AbstractRelNode {
    */
   protected SetOp(RelInput input) {
     this(input.getCluster(), input.getTraitSet(), input.getInputs(),
-        SqlKind.UNION, input.getBoolean("all"));
+        SqlKind.UNION, input.getBoolean("all", false));
   }
 
   //~ Methods ----------------------------------------------------------------

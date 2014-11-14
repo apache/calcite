@@ -74,8 +74,16 @@ public class SqlCallBinding extends SqlOperatorBinding {
       return 0;
     }
     final SqlSelect select = selectScope.getNode();
-    if (select.getGroup() != null) {
-      return select.getGroup().size();
+    final SqlNodeList group = select.getGroup();
+    if (group != null) {
+      int n = 0;
+      for (SqlNode groupItem : group) {
+        if (!(groupItem instanceof SqlNodeList)
+            || ((SqlNodeList) groupItem).size() != 0) {
+          ++n;
+        }
+      }
+      return n;
     }
     return validator.isAggregate(select) ? 0 : -1;
   }

@@ -148,6 +148,21 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    */
   public static final SqlAsOperator AS = new SqlAsOperator();
 
+  /** {@code CUBE} operator, occurs within {@code GROUP BY} clause
+   * or nested within a {@code GROUPING SETS}. */
+  public static final SqlInternalOperator CUBE =
+      new SqlInternalOperator("CUBE", SqlKind.CUBE);
+
+  /** {@code ROLLUP} operator, occurs within {@code GROUP BY} clause
+   * or nested within a {@code GROUPING SETS}. */
+  public static final SqlInternalOperator ROLLUP =
+      new SqlInternalOperator("ROLLUP", SqlKind.ROLLUP);
+
+  /** {@code GROUPING SETS} operator, occurs within {@code GROUP BY} clause
+   * or nested within a {@code GROUPING SETS}. */
+  public static final SqlInternalOperator GROUPING_SETS =
+      new SqlInternalOperator("GROUPING_SETS", SqlKind.GROUPING_SETS);
+
   /**
    * String concatenation operator, '<code>||</code>'.
    */
@@ -937,7 +952,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   public static final SqlLiteralChainOperator LITERAL_CHAIN =
       new SqlLiteralChainOperator();
 
-  public static final SqlInternalOperator THROW = new SqlThrowOperator();
+  public static final SqlThrowOperator THROW = new SqlThrowOperator();
 
   public static final SqlBetweenOperator BETWEEN =
       new SqlBetweenOperator(

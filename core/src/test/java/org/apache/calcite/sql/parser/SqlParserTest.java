@@ -76,7 +76,11 @@ public class SqlParserTest {
   protected void check(
       String sql,
       String expected) {
-    getTester().check(sql, expected);
+    sql(sql).ok(expected);
+  }
+
+  protected Sql sql(String sql) {
+    return new Sql(sql);
   }
 
   private SqlParser getSqlParser(String sql) {
@@ -109,7 +113,7 @@ public class SqlParserTest {
   protected void checkFails(
       String sql,
       String expectedMsgPattern) {
-    getTester().checkFails(sql, expectedMsgPattern);
+    sql(sql).fails(expectedMsgPattern);
   }
 
   /**
@@ -189,8 +193,7 @@ public class SqlParserTest {
   }
 
   @Test public void testColumnAliasWithoutAs() {
-    check(
-        "select 1 foo from emp",
+    check("select 1 foo from emp",
         "SELECT 1 AS `FOO`\n"
             + "FROM `EMP`");
   }
@@ -204,9 +207,7 @@ public class SqlParserTest {
   }
 
   @Test public void testEmbeddedTimestamp() {
-    checkExp(
-        "{ts '1998-10-22 16:22:34'}",
-        "TIMESTAMP '1998-10-22 16:22:34'");
+    checkExp("{ts '1998-10-22 16:22:34'}", "TIMESTAMP '1998-10-22 16:22:34'");
   }
 
   @Test public void testNot() {
@@ -261,14 +262,12 @@ public class SqlParserTest {
   }
 
   @Test public void testIsBooleanPrecedenceAndAssociativity() {
-    check(
-        "select * from t where x is unknown is not unknown",
+    check("select * from t where x is unknown is not unknown",
         "SELECT *\n"
             + "FROM `T`\n"
             + "WHERE ((`X` IS UNKNOWN) IS NOT UNKNOWN)");
 
-    check(
-        "select 1 from t where not true is unknown",
+    check("select 1 from t where not true is unknown",
         "SELECT 1\n"
             + "FROM `T`\n"
             + "WHERE ((NOT TRUE) IS UNKNOWN)");
@@ -292,8 +291,7 @@ public class SqlParserTest {
     checkExp("'abc'=123", "('abc' = 123)");
     checkExp("'abc'<>123", "('abc' <> 123)");
     checkExp("'abc'<>123='def'<>456", "((('abc' <> 123) = 'def') <> 456)");
-    checkExp(
-        "'abc'<>123=('def'<>456)", "(('abc' <> 123) = ('def' <> 456))");
+    checkExp("'abc'<>123=('def'<>456)", "(('abc' <> 123) = ('def' <> 456))");
   }
 
   @Test public void testBangEqualIsBad() {
@@ -304,8 +302,7 @@ public class SqlParserTest {
     //   equals' is <> as in BASIC. There are many texts which will tell
     //   you that != is SQL's not-equals operator; those texts are false;
     //   it's one of those unstampoutable urban myths."
-    checkFails(
-        "'abc'^!^=123",
+    checkFails("'abc'^!^=123",
         "Lexical error at line 1, column 6\\.  Encountered: \"!\" \\(33\\), after : \"\"");
   }
 
@@ -654,8 +651,7 @@ public class SqlParserTest {
   }
 
   @Test public void testFromWithAs() {
-    check(
-        "select 1 from emp as e where 1",
+    check("select 1 from emp as e where 1",
         "SELECT 1\n"
             + "FROM `EMP` AS `E`\n"
             + "WHERE 1");
@@ -684,8 +680,7 @@ public class SqlParserTest {
   }
 
   @Test public void testFunction() {
-    check(
-        "select substring('Eggs and ham', 1, 3 + 2) || ' benedict' from emp",
+    check("select substring('Eggs and ham', 1, 3 + 2) || ' benedict' from emp",
         "SELECT (SUBSTRING('Eggs and ham' FROM 1 FOR (3 + 2)) || ' benedict')\n"
             + "FROM `EMP`");
     checkExp(
@@ -697,8 +692,7 @@ public class SqlParserTest {
     checkExp("count(DISTINCT 1)", "COUNT(DISTINCT 1)");
     checkExp("count(ALL 1)", "COUNT(ALL 1)");
     checkExp("count(1)", "COUNT(1)");
-    check(
-        "select count(1), count(distinct 2) from emp",
+    check("select count(1), count(distinct 2) from emp",
         "SELECT COUNT(1), COUNT(DISTINCT 2)\n"
             + "FROM `EMP`");
   }
@@ -730,13 +724,17 @@ public class SqlParserTest {
             + "HAVING (1 = 2)\n"
             + "ORDER BY 3");
 
-    checkFails(
-        "select 1 from emp group by ()^,^ x",
-        "(?s)Encountered \\\",\\\" at .*");
+    // Used to be invalid, valid now that we support grouping sets.
+    sql("select 1 from emp group by (), x")
+        .ok("SELECT 1\n"
+            + "FROM `EMP`\n"
+            + "GROUP BY (), `X`");
 
-    checkFails(
-        "select 1 from emp group by x, ^(^)",
-        "(?s)Encountered \"\\( \\)\" at .*");
+    // Used to be invalid, valid now that we support grouping sets.
+    sql("select 1 from emp group by x, ()")
+        .ok("SELECT 1\n"
+            + "FROM `EMP`\n"
+            + "GROUP BY `X`, ()");
 
     // parentheses do not an empty GROUP BY make
     check(
@@ -768,6 +766,69 @@ public class SqlParserTest {
         "SELECT `DEPTNO`\n"
             + "FROM `EMP`\n"
             + "HAVING (COUNT(*) > 5)");
+  }
+
+  @Test public void testGroupingSets() {
+    sql("select deptno from emp\n"
+        + "group by grouping sets (deptno, (deptno, gender), ())")
+        .ok("SELECT `DEPTNO`\n"
+            + "FROM `EMP`\n"
+            + "GROUP BY (GROUPING_SETS(`DEPTNO`, (ROW(`DEPTNO`, `GENDER`)),))");
+
+    // Grouping sets must have parentheses
+    sql("select deptno from emp\n"
+        + "group by grouping sets ^deptno^, (deptno, gender), ()")
+        .fails("(?s).*Encountered \"deptno\" at line 2, column 24.\n"
+            + "Was expecting:\n"
+            + "    \"\\(\" .*");
+
+    // Nested grouping sets, cube, rollup, grouping sets all OK
+    sql("select deptno from emp\n"
+        + "group by grouping sets (deptno, grouping sets (e, d), (),\n"
+        + "  cube (x, y), rollup(p, q))\n"
+        + "order by a")
+        .ok("SELECT `DEPTNO`\n"
+            + "FROM `EMP`\n"
+            + "GROUP BY (GROUPING_SETS(`DEPTNO`, (GROUPING_SETS(`E`, `D`)),, (CUBE(`X`, `Y`)), (ROLLUP(`P`, `Q`))))\n"
+            + "ORDER BY `A`");
+
+    sql("select deptno from emp\n"
+        + "group by grouping sets (())")
+        .ok("SELECT `DEPTNO`\n"
+            + "FROM `EMP`\n"
+            + "GROUP BY (GROUPING_SETS())");
+  }
+
+  @Test public void testGroupByCube() {
+    sql("select deptno from emp\n"
+        + "group by cube ((a, b), (c, d))")
+        .ok("SELECT `DEPTNO`\n"
+            + "FROM `EMP`\n"
+            + "GROUP BY (CUBE((ROW(`A`, `B`)), (ROW(`C`, `D`))))");
+  }
+
+  @Test public void testGroupByCube2() {
+    sql("select deptno from emp\n"
+        + "group by cube ((a, b), (c, d)) order by a")
+        .ok("SELECT `DEPTNO`\n"
+            + "FROM `EMP`\n"
+            + "GROUP BY (CUBE((ROW(`A`, `B`)), (ROW(`C`, `D`))))\n"
+            + "ORDER BY `A`");
+    sql("select deptno from emp\n"
+        + "group by cube (^)")
+        .fails("(?s)Encountered \"\\)\" at .*");
+  }
+
+  @Test public void testGroupByRollup() {
+    sql("select deptno from emp\n"
+        + "group by rollup (deptno, deptno + 1, gender)")
+        .ok("SELECT `DEPTNO`\n" + "FROM `EMP`\n"
+            + "GROUP BY (ROLLUP(`DEPTNO`, (`DEPTNO` + 1), `GENDER`))");
+
+    // Nested rollup not ok
+    sql("select deptno from emp\n"
+        + "group by rollup (deptno^, rollup(e, d))")
+        .fails("(?s)Encountered \", rollup\" at .*");
   }
 
   @Test public void testWith() {
@@ -5731,6 +5792,24 @@ public class SqlParserTest {
 
     public void checkExpFails(String sql, String expectedMsgPattern) {
       // Do nothing. We're not interested in unparsing invalid SQL
+    }
+  }
+
+  /** Helper class for building fluent code such as
+   * {@code sql("values 1").ok();}. */
+  private class Sql {
+    private final String sql;
+
+    Sql(String sql) {
+      this.sql = sql;
+    }
+
+    public void ok(String expected) {
+      getTester().check(sql, expected);
+    }
+
+    public void fails(String expectedMsgPattern) {
+      getTester().checkFails(sql, expectedMsgPattern);
     }
   }
 }

@@ -111,7 +111,7 @@ public class FoodmartTest {
     if (!CalciteAssert.ENABLE_SLOW && idList == null) {
       // Avoid loading the query set in a regular test suite run. It burns too
       // much memory.
-      return ImmutableList.of();
+      return ImmutableList.of(new Object[] {-1});
     }
     final FoodMartQuerySet set = FoodMartQuerySet.instance();
     final List<Object[]> list = new ArrayList<Object[]>();
@@ -146,7 +146,13 @@ public class FoodmartTest {
   }
 
   public FoodmartTest(int id) throws IOException {
-    this.query = FoodMartQuerySet.instance().queries.get(id);
+    if (id < 0) {
+      this.query = new FoodmartQuery();
+      query.id = id;
+      query.sql = "select * from (values 1) as t(c)";
+    } else {
+      this.query = FoodMartQuerySet.instance().queries.get(id);
+    }
     assert query.id == id : id + ":" + query.id;
   }
 

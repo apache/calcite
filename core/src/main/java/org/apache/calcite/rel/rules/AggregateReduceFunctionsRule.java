@@ -558,10 +558,8 @@ public class AggregateReduceFunctionsRule extends RelOptRule {
       Aggregate oldAggRel,
       RelNode inputRel,
       List<AggregateCall> newCalls) {
-    return new LogicalAggregate(
-        oldAggRel.getCluster(),
-        inputRel,
-        oldAggRel.getGroupSet(),
+    return new LogicalAggregate(oldAggRel.getCluster(), inputRel,
+        oldAggRel.indicator, oldAggRel.getGroupSet(), oldAggRel.getGroupSets(),
         newCalls);
   }
 

@@ -204,10 +204,7 @@ public abstract class Mappings {
       final int target = mapping.getTarget(source);
       builder.set(target);
     }
-    if (builder.wouldEqual(bitSet)) {
-      return bitSet;
-    }
-    return builder.build();
+    return builder.build(bitSet);
   }
 
   /**

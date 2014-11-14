@@ -22,6 +22,7 @@ import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.logical.LogicalUnion;
@@ -66,7 +67,7 @@ public class AggregateUnionTransposeRule extends RelOptRule {
    */
   private AggregateUnionTransposeRule() {
     super(
-        operand(LogicalAggregate.class,
+        operand(LogicalAggregate.class, null, Aggregate.IS_SIMPLE,
             operand(LogicalUnion.class, any())));
   }
 
@@ -114,10 +115,8 @@ public class AggregateUnionTransposeRule extends RelOptRule {
       } else {
         anyTransformed = true;
         newUnionInputs.add(
-            new LogicalAggregate(
-                cluster, input,
-                aggRel.getGroupSet(),
-                aggRel.getAggCallList()));
+            new LogicalAggregate(cluster, input, false, aggRel.getGroupSet(),
+                null, aggRel.getAggCallList()));
       }
     }
 
@@ -131,11 +130,9 @@ public class AggregateUnionTransposeRule extends RelOptRule {
     // create a new union whose children are the aggs created above
     LogicalUnion newUnion = new LogicalUnion(cluster, newUnionInputs, true);
 
-    LogicalAggregate newTopAggRel = new LogicalAggregate(
-        cluster,
-        newUnion,
-        aggRel.getGroupSet(),
-        transformedAggCalls);
+    LogicalAggregate newTopAggRel =
+        new LogicalAggregate(cluster, newUnion, false, aggRel.getGroupSet(),
+            null, transformedAggCalls);
 
     // In case we transformed any COUNT (which is always NOT NULL)
     // to SUM (which is always NULLABLE), cast back to keep the
@@ -168,7 +165,7 @@ public class AggregateUnionTransposeRule extends RelOptRule {
         // inputs nor we'll face empty set.
         aggType = null;
       } else {
-        aggFun = (SqlAggFunction) origCall.getAggregation();
+        aggFun = origCall.getAggregation();
         aggType = origCall.getType();
       }
       AggregateCall newCall =

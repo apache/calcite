@@ -45,10 +45,12 @@ public class MongoAggregate
       RelOptCluster cluster,
       RelTraitSet traitSet,
       RelNode child,
+      boolean indicator,
       ImmutableBitSet groupSet,
+      List<ImmutableBitSet> groupSets,
       List<AggregateCall> aggCalls)
       throws InvalidRelException {
-    super(cluster, traitSet, child, groupSet, aggCalls);
+    super(cluster, traitSet, child, indicator, groupSet, groupSets, aggCalls);
     assert getConvention() == MongoRel.CONVENTION;
     assert getConvention() == child.getConvention();
 
@@ -58,13 +60,21 @@ public class MongoAggregate
             "distinct aggregation not supported");
       }
     }
+    switch (getGroupType()) {
+    case SIMPLE:
+      break;
+    default:
+      throw new InvalidRelException("unsupported group type: "
+          + getGroupType());
+    }
   }
 
   @Override public Aggregate copy(RelTraitSet traitSet, RelNode input,
-      ImmutableBitSet groupSet, List<AggregateCall> aggCalls) {
+      boolean indicator, ImmutableBitSet groupSet,
+      List<ImmutableBitSet> groupSets, List<AggregateCall> aggCalls) {
     try {
-      return new MongoAggregate(getCluster(), traitSet, input, groupSet,
-          aggCalls);
+      return new MongoAggregate(getCluster(), traitSet, input, indicator,
+          groupSet, groupSets, aggCalls);
     } catch (InvalidRelException e) {
       // Semantic error not possible. Must be a bug. Convert to
       // internal error.

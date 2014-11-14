@@ -32,6 +32,7 @@ import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelShuttleImpl;
 import org.apache.calcite.rel.RelVisitor;
+import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.Correlation;
 import org.apache.calcite.rel.core.Correlator;
@@ -427,6 +428,9 @@ public class RelDecorrelator implements ReflectiveVisitor {
    * @param rel Aggregate to rewrite
    */
   public void decorrelateRel(LogicalAggregate rel) {
+    if (rel.getGroupType() != Aggregate.Group.SIMPLE) {
+      throw new AssertionError(Bug.CALCITE_461_FIXED);
+    }
     //
     // Rewrite logic:
     //
@@ -578,11 +582,8 @@ public class RelDecorrelator implements ReflectiveVisitor {
     }
 
     LogicalAggregate newAggregate =
-        new LogicalAggregate(
-            rel.getCluster(),
-            newProjectRel,
-            ImmutableBitSet.range(newGroupKeyCount),
-            newAggCalls);
+        new LogicalAggregate(rel.getCluster(), newProjectRel, false,
+            ImmutableBitSet.range(newGroupKeyCount), null, newAggCalls);
 
     mapOldToNewRel.put(rel, newAggregate);
 
@@ -2003,15 +2004,11 @@ public class RelDecorrelator implements ReflectiveVisitor {
       extends RelOptRule {
     public RemoveCorrelationForScalarAggregateRule() {
       super(
-          operand(
-              Correlator.class,
+          operand(Correlator.class,
               operand(RelNode.class, any()),
-              operand(
-                  LogicalProject.class,
-                  operand(
-                      LogicalAggregate.class,
-                      operand(
-                          LogicalProject.class,
+              operand(LogicalProject.class,
+                  operand(LogicalAggregate.class, null, Aggregate.IS_SIMPLE,
+                      operand(LogicalProject.class,
                           operand(RelNode.class, any()))))));
     }
 
@@ -2347,11 +2344,8 @@ public class RelDecorrelator implements ReflectiveVisitor {
       ImmutableBitSet groupSet =
           ImmutableBitSet.range(groupCount);
       LogicalAggregate newAggRel =
-          new LogicalAggregate(
-              cluster,
-              joinOutputProjRel,
-              groupSet,
-              newAggCalls);
+          new LogicalAggregate(cluster, joinOutputProjRel, false, groupSet,
+              null, newAggCalls);
 
       List<RexNode> newAggOutputProjExprList = Lists.newArrayList();
       for (int i : groupSet) {

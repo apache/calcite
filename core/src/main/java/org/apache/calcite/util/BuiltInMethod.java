@@ -22,6 +22,7 @@ import org.apache.calcite.adapter.jdbc.JdbcSchema;
 import org.apache.calcite.interpreter.Row;
 import org.apache.calcite.linq4j.AbstractEnumerable;
 import org.apache.calcite.linq4j.Enumerable;
+import org.apache.calcite.linq4j.EnumerableDefaults;
 import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.linq4j.ExtendedEnumerable;
 import org.apache.calcite.linq4j.Linq4j;
@@ -128,6 +129,9 @@ public enum BuiltInMethod {
   GROUP_BY(ExtendedEnumerable.class, "groupBy", Function1.class),
   GROUP_BY2(ExtendedEnumerable.class, "groupBy", Function1.class,
       Function0.class, Function2.class, Function2.class),
+  GROUP_BY_MULTIPLE(EnumerableDefaults.class, "groupByMultiple",
+      Enumerable.class, List.class, Function0.class, Function2.class,
+      Function2.class),
   AGGREGATE(ExtendedEnumerable.class, "aggregate", Object.class,
       Function2.class, Function1.class),
   ORDER_BY(ExtendedEnumerable.class, "orderBy", Function1.class,

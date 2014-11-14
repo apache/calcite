@@ -3775,33 +3775,16 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     checkExpType("ceil(interval '2' second)", "INTERVAL SECOND NOT NULL");
   }
 
-  protected void checkWin(String sql, String expectedMsgPattern) {
-    LOGGER.info(sql);
-    checkFails(sql, expectedMsgPattern);
-  }
-
-  public void checkWinClauseExp(String sql, String expectedMsgPattern) {
-    sql = "select * from emp " + sql;
-    checkWin(sql, expectedMsgPattern);
-  }
-
   public void checkWinFuncExpWithWinClause(
       String sql,
       String expectedMsgPattern) {
-    sql = "select " + sql + " from emp window w as (order by deptno)";
-    checkWin(sql, expectedMsgPattern);
-  }
-
-  public void checkWinFuncExp(String sql, String expectedMsgPattern) {
-    sql = "select " + sql + " from emp";
-    checkWin(sql, expectedMsgPattern);
+    winExp(sql).fails(expectedMsgPattern);
   }
 
   // test window partition clause. See SQL 2003 specification for detail
   public void _testWinPartClause() {
-    checkWinClauseExp(
-        "window w as (w2 order by deptno), w2 as (^rang^e 100 preceding)",
-        "Referenced window cannot have framing declarations");
+    win("window w as (w2 order by deptno), w2 as (^rang^e 100 preceding)")
+        .fails("Referenced window cannot have framing declarations");
     // Test specified collation, window clause syntax rule 4,5.
   }
 
@@ -3812,43 +3795,40 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     // <query specification> or <select statement: single row>,
     // or the <order by clause> of a simple table query.
     // See 4.15.3 for detail
-    checkWin(
-        "select *\n"
-            + " from emp\n"
-            + " where ^sum(sal) over (partition by deptno\n"
-            + "    order by empno\n"
-            + "    rows 3 preceding)^ > 10",
-        "Windowed aggregate expression is illegal in WHERE clause");
+    winSql("select *\n"
+        + " from emp\n"
+        + " where ^sum(sal) over (partition by deptno\n"
+        + "    order by empno\n"
+        + "    rows 3 preceding)^ > 10")
+        .fails("Windowed aggregate expression is illegal in WHERE clause");
 
-    checkWin(
-        "select *\n"
-            + " from emp\n"
-            + " group by ename, ^sum(sal) over (partition by deptno\n"
-            + "    order by empno\n"
-            + "    rows 3 preceding)^ + 10\n"
-            + "order by deptno",
-        "Windowed aggregate expression is illegal in GROUP BY clause");
+    winSql("select *\n"
+        + " from emp\n"
+        + " group by ename, ^sum(sal) over (partition by deptno\n"
+        + "    order by empno\n"
+        + "    rows 3 preceding)^ + 10\n"
+        + "order by deptno")
+        .fails("Windowed aggregate expression is illegal in GROUP BY clause");
 
-    checkWin(
-        "select *\n"
-            + " from emp\n"
-            + " join dept on emp.deptno = dept.deptno\n"
-            + " and ^sum(sal) over (partition by deptno\n"
-            + "    order by empno\n"
-            + "    rows 3 preceding)^ = dept.deptno + 40\n"
-            + "order by deptno",
-        "Windowed aggregate expression is illegal in ON clause");
+    winSql("select *\n"
+        + " from emp\n"
+        + " join dept on emp.deptno = dept.deptno\n"
+        + " and ^sum(sal) over (partition by deptno\n"
+        + "    order by empno\n"
+        + "    rows 3 preceding)^ = dept.deptno + 40\n"
+        + "order by deptno")
+        .fails("Windowed aggregate expression is illegal in ON clause");
 
     // rule 3, a)
-    checkWin(
-        "select sal from emp order by sum(sal) over (partition by deptno order by deptno)",
-        null);
+    winSql(
+        "select sal from emp order by sum(sal) over (partition by deptno order by deptno)")
+        .ok();
 
     // scope reference
 
     // rule 4,
     // valid window functions
-    checkWinFuncExpWithWinClause("sum(sal)", null);
+    winExp("sum(sal)").ok();
   }
 
   @Test public void testWindowFunctions2() {
@@ -3858,87 +3838,79 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
           "select rank() over (order by deptno) from emp",
           "INTEGER NOT NULL");
     }
-    checkWin(
-        "select rank() over w from emp\n"
-            + "window w as ^(partition by sal)^, w2 as (w order by deptno)",
-        "RANK or DENSE_RANK functions require ORDER BY clause in window specification");
-    checkWin(
-        "select rank() over w2 from emp\n"
-            + "window w as (partition by sal), w2 as (w order by deptno)",
-        null);
+    winSql("select rank() over w from emp\n"
+        + "window w as ^(partition by sal)^, w2 as (w order by deptno)")
+        .fails(
+            "RANK or DENSE_RANK functions require ORDER BY clause in window specification");
+    winSql("select rank() over w2 from emp\n"
+        + "window w as (partition by sal), w2 as (w order by deptno)").ok();
     // row_number function
-    checkWinFuncExpWithWinClause(
-        "row_number() over (order by deptno)",
-        null);
+    winExp("row_number() over (order by deptno)").ok();
 
     // rank function type
     if (defined.contains("DENSE_RANK")) {
-      checkWinFuncExpWithWinClause("dense_rank()", null);
+      winExp("dense_rank()").ok();
     } else {
       checkWinFuncExpWithWinClause(
           "^dense_rank()^",
           "Function 'DENSE_RANK\\(\\)' is not defined");
     }
-    checkWinFuncExpWithWinClause("rank() over (order by empno)", null);
-    checkWinFuncExpWithWinClause(
-        "percent_rank() over (order by empno)",
-        null);
-    checkWinFuncExpWithWinClause(
-        "cume_dist() over (order by empno)",
-        null);
+    winExp("rank() over (order by empno)").ok();
+    winExp("percent_rank() over (order by empno)").ok();
+    winExp("cume_dist() over (order by empno)").ok();
 
     // rule 6a
     // ORDER BY required with RANK & DENSE_RANK
-    checkWin(
-        "select rank() over ^(partition by deptno)^ from emp",
-        "RANK or DENSE_RANK functions require ORDER BY clause in window specification");
-    checkWin(
-        "select dense_rank() over ^(partition by deptno)^ from emp ",
-        "RANK or DENSE_RANK functions require ORDER BY clause in window specification");
-    checkWin(
-        "select rank() over w from emp window w as ^(partition by deptno)^",
-        "RANK or DENSE_RANK functions require ORDER BY clause in window specification");
-    checkWin(
-        "select dense_rank() over w from emp window w as ^(partition by deptno)^",
-        "RANK or DENSE_RANK functions require ORDER BY clause in window specification");
+    winSql("select rank() over ^(partition by deptno)^ from emp")
+        .fails(
+            "RANK or DENSE_RANK functions require ORDER BY clause in window specification");
+    winSql("select dense_rank() over ^(partition by deptno)^ from emp ")
+        .fails(
+            "RANK or DENSE_RANK functions require ORDER BY clause in window specification");
+    winSql("select rank() over w from emp window w as ^(partition by deptno)^")
+        .fails(
+            "RANK or DENSE_RANK functions require ORDER BY clause in window specification");
+    winSql(
+        "select dense_rank() over w from emp window w as ^(partition by deptno)^")
+        .fails(
+            "RANK or DENSE_RANK functions require ORDER BY clause in window specification");
 
     // rule 6b
     // Framing not allowed with RANK & DENSE_RANK functions
     // window framing defined in window clause
-    checkWin(
-        "select rank() over w from emp window w as (order by empno ^rows^ 2 preceding )",
-        "ROW/RANGE not allowed with RANK or DENSE_RANK functions");
-    checkWin(
-        "select dense_rank() over w from emp window w as (order by empno ^rows^ 2 preceding)",
-        "ROW/RANGE not allowed with RANK or DENSE_RANK functions");
+    winSql(
+        "select rank() over w from emp window w as (order by empno ^rows^ 2 preceding )")
+        .fails("ROW/RANGE not allowed with RANK or DENSE_RANK functions");
+    winSql(
+        "select dense_rank() over w from emp window w as (order by empno ^rows^ 2 preceding)")
+        .fails("ROW/RANGE not allowed with RANK or DENSE_RANK functions");
     if (defined.contains("PERCENT_RANK")) {
-      checkWin(
-          "select percent_rank() over w from emp window w as (rows 2 preceding )",
-          null);
+      winSql(
+          "select percent_rank() over w from emp window w as (rows 2 preceding )")
+          .ok();
     } else {
       checkWinFuncExpWithWinClause(
           "^percent_rank()^",
           "Function 'PERCENT_RANK\\(\\)' is not defined");
     }
     if (defined.contains("CUME_DIST")) {
-      checkWin(
-          "select cume_dist() over w from emp window w as (rows 2 preceding)",
-          null);
-      checkWin("select cume_dist() over (rows 2 preceding ) from emp ", null);
+      winSql(
+          "select cume_dist() over w from emp window w as (rows 2 preceding)")
+          .ok();
+      winSql("select cume_dist() over (rows 2 preceding ) from emp ").ok();
     } else {
       checkWinFuncExpWithWinClause(
           "^cume_dist()^",
           "Function 'CUME_DIST\\(\\)' is not defined");
     }
     // window framing defined in in-line window
-    checkWin(
-        "select rank() over (order by empno ^range^ 2 preceding ) from emp ",
-        "ROW/RANGE not allowed with RANK or DENSE_RANK functions");
-    checkWin(
-        "select dense_rank() over (order by empno ^rows^ 2 preceding ) from emp ",
-        "ROW/RANGE not allowed with RANK or DENSE_RANK functions");
+    winSql("select rank() over (order by empno ^range^ 2 preceding ) from emp ")
+        .fails("ROW/RANGE not allowed with RANK or DENSE_RANK functions");
+    winSql(
+        "select dense_rank() over (order by empno ^rows^ 2 preceding ) from emp ")
+        .fails("ROW/RANGE not allowed with RANK or DENSE_RANK functions");
     if (defined.contains("PERCENT_RANK")) {
-      checkWin("select percent_rank() over (rows 2 preceding ) from emp", null);
+      winSql("select percent_rank() over (rows 2 preceding ) from emp").ok();
     }
 
     // invalid column reference
@@ -3956,31 +3928,31 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     // checkWinFuncExpWithWinClause(" sum(distinct sal) over w ", null);
 
     // 7.11 rule 10c
-    checkWin(
-        "select sum(sal) over (w partition by ^deptno^)\n"
-            + " from emp window w as (order by empno rows 2 preceding )",
-        "PARTITION BY not allowed with existing window reference");
+    winSql("select sum(sal) over (w partition by ^deptno^)\n"
+        + " from emp window w as (order by empno rows 2 preceding )")
+        .fails("PARTITION BY not allowed with existing window reference");
 
     // 7.11 rule 10d
-    checkWin(
-        "select sum(sal) over (w order by ^empno^)\n"
-            + " from emp window w as (order by empno rows 2 preceding )",
-        "ORDER BY not allowed in both base and referenced windows");
+    winSql("select sum(sal) over (w order by ^empno^)\n"
+        + " from emp window w as (order by empno rows 2 preceding )")
+        .fails("ORDER BY not allowed in both base and referenced windows");
 
     // 7.11 rule 10e
-    checkWin("select sum(sal) over (w)\n"
-            + " from emp window w as (order by empno ^rows^ 2 preceding )",
-        "Referenced window cannot have framing declarations");
+    winSql("select sum(sal) over (w)\n"
+        + " from emp window w as (order by empno ^rows^ 2 preceding )")
+        .fails("Referenced window cannot have framing declarations");
 
     // Empty window is OK for functions that don't require ordering.
-    checkWin("select sum(sal) over () from emp", null);
-    checkWin("select sum(sal) over w from emp window w as ()", null);
-    checkWin("select count(*) over () from emp", null);
-    checkWin("select count(*) over w from emp window w as ()", null);
-    checkWin("select rank() over ^()^ from emp",
-        "RANK or DENSE_RANK functions require ORDER BY clause in window specification");
-    checkWin("select rank() over w from emp window w as ^()^",
-        "RANK or DENSE_RANK functions require ORDER BY clause in window specification");
+    winSql("select sum(sal) over () from emp").ok();
+    winSql("select sum(sal) over w from emp window w as ()").ok();
+    winSql("select count(*) over () from emp").ok();
+    winSql("select count(*) over w from emp window w as ()").ok();
+    winSql("select rank() over ^()^ from emp")
+        .fails(
+            "RANK or DENSE_RANK functions require ORDER BY clause in window specification");
+    winSql("select rank() over w from emp window w as ^()^")
+        .fails(
+            "RANK or DENSE_RANK functions require ORDER BY clause in window specification");
   }
 
   @Test public void testInlineWinDef() {
@@ -3988,136 +3960,102 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     // fully defined in SQL 03 Std. section 7.1 <window clause>
     check("select sum(sal) over (partition by deptno order by empno)\n"
         + "from emp order by empno");
-    checkWinFuncExp(
-        "sum(sal) OVER ("
-            + "partition by deptno "
-            + "order by empno "
-            + "rows 2 preceding )",
-        null);
-    checkWinFuncExp(
-        "sum(sal) OVER ("
-            + "order by 1 "
-            + "rows 2 preceding )",
-        null);
-    checkWinFuncExp(
-        "sum(sal) OVER ("
-            + "order by 'b' "
-            + "rows 2 preceding )",
-        null);
-    checkWinFuncExp(
-        "sum(sal) over ("
-            + "partition by deptno "
-            + "order by 1+1 rows 26 preceding)",
-        null);
-    checkWinFuncExp(
-        "sum(sal) over (order by deptno rows unbounded preceding)",
-        null);
-    checkWinFuncExp(
-        "sum(sal) over (order by deptno rows current row)",
-        null);
-    checkWinFuncExp(
-        "sum(sal) over ^("
-            + "order by deptno "
-            + "rows between unbounded preceding and unbounded following)^",
-        null);
-    checkWinFuncExp(
-        "sum(sal) over ^("
-            + "order by deptno "
-            + "rows between CURRENT ROW and unbounded following)^",
-        null);
-    checkWinFuncExp(
-        "sum(sal) over ("
-            + "order by deptno "
-            + "rows between unbounded preceding and CURRENT ROW)",
-        null);
+    winExp2("sum(sal) OVER ("
+        + "partition by deptno "
+        + "order by empno "
+        + "rows 2 preceding )").ok();
+    winExp2("sum(sal) OVER ("
+        + "order by 1 "
+        + "rows 2 preceding )").ok();
+    winExp2("sum(sal) OVER ("
+        + "order by 'b' "
+        + "rows 2 preceding )").ok();
+    winExp2("sum(sal) over ("
+        + "partition by deptno "
+        + "order by 1+1 rows 26 preceding)").ok();
+    winExp2("sum(sal) over (order by deptno rows unbounded preceding)").ok();
+    winExp2("sum(sal) over (order by deptno rows current row)").ok();
+    winExp2("sum(sal) over ^("
+        + "order by deptno "
+        + "rows between unbounded preceding and unbounded following)^").ok();
+    winExp2("sum(sal) over ^("
+        + "order by deptno "
+        + "rows between CURRENT ROW and unbounded following)^").ok();
+    winExp2("sum(sal) over ("
+        + "order by deptno "
+        + "rows between unbounded preceding and CURRENT ROW)").ok();
 
     // logical current row/current row
-    checkWinFuncExp(
-        "sum(sal) over ("
-            + "order by deptno "
-            + "rows between CURRENT ROW and CURRENT ROW)",
-        null);
+    winExp2("sum(sal) over ("
+        + "order by deptno "
+        + "rows between CURRENT ROW and CURRENT ROW)").ok();
 
     // physical current row/current row
-    checkWinFuncExp(
-        "sum(sal) over ("
-            + "order by deptno "
-            + "range between CURRENT ROW and CURRENT ROW)",
-        null);
+    winExp2("sum(sal) over ("
+        + "order by deptno "
+        + "range between CURRENT ROW and CURRENT ROW)").ok();
 
-    checkWinFuncExp(
-        "sum(sal) over ("
-            + "order by deptno "
-            + "rows between 2 preceding and CURRENT ROW)",
-        null);
-    checkWinFuncExpWithWinClause(
-        "sum(sal) OVER (w "
-            + "rows 2 preceding )",
-        null);
-    checkWinFuncExp(
-        "sum(sal) over (order by deptno range 2.0 preceding)",
-        null);
+    winExp2("sum(sal) over ("
+        + "order by deptno "
+        + "rows between 2 preceding and CURRENT ROW)").ok();
+    winExp("sum(sal) OVER (w "
+        + "rows 2 preceding )").ok();
+    winExp2("sum(sal) over (order by deptno range 2.0 preceding)").ok();
 
     // Failure mode tests
-    checkWinFuncExp(
-        "sum(sal) over (order by deptno "
-            + "rows between ^UNBOUNDED FOLLOWING^ and unbounded preceding)",
-        "UNBOUNDED FOLLOWING cannot be specified for the lower frame boundary");
-    checkWinFuncExp(
-        "sum(sal) over ("
-            + "order by deptno "
-            + "rows between 2 preceding and ^UNBOUNDED PRECEDING^)",
-        "UNBOUNDED PRECEDING cannot be specified for the upper frame boundary");
-    checkWinFuncExp(
-        "sum(sal) over ("
-            + "order by deptno "
-            + "rows between CURRENT ROW and ^2 preceding^)",
-        "Upper frame boundary cannot be PRECEDING when lower boundary is CURRENT ROW");
-    checkWinFuncExp(
-        "sum(sal) over ("
-            + "order by deptno "
-            + "rows between 2 following and ^CURRENT ROW^)",
-        "Upper frame boundary cannot be CURRENT ROW when lower boundary is FOLLOWING");
-    checkWinFuncExp(
-        "sum(sal) over ("
-            + "order by deptno "
-            + "rows between 2 following and ^2 preceding^)",
-        "Upper frame boundary cannot be PRECEDING when lower boundary is FOLLOWING");
-    checkWinFuncExp(
-        "sum(sal) over ("
-            + "order by deptno "
-            + "RANGE BETWEEN ^INTERVAL '1' SECOND^ PRECEDING AND INTERVAL '1' SECOND FOLLOWING)",
-        "Data Type mismatch between ORDER BY and RANGE clause");
-    checkWinFuncExp(
-        "sum(sal) over ("
-            + "order by empno "
-            + "RANGE BETWEEN ^INTERVAL '1' SECOND^ PRECEDING AND INTERVAL '1' SECOND FOLLOWING)",
-        "Data Type mismatch between ORDER BY and RANGE clause");
-    checkWinFuncExp(
-        "sum(sal) over (order by deptno, empno ^range^ 2 preceding)",
-        "RANGE clause cannot be used with compound ORDER BY clause");
-    checkWinFuncExp(
-        "sum(sal) over ^(partition by deptno range 5 preceding)^",
-        "Window specification must contain an ORDER BY clause");
-    checkWinFuncExp(
-        "sum(sal) over ^w1^",
-        "Window 'W1' not found");
-    checkWinFuncExp(
-        "sum(sal) OVER (^w1^ "
-            + "partition by deptno "
-            + "order by empno "
-            + "rows 2 preceding )",
-        "Window 'W1' not found");
+    winExp2("sum(sal) over (order by deptno "
+        + "rows between ^UNBOUNDED FOLLOWING^ and unbounded preceding)")
+        .fails(
+            "UNBOUNDED FOLLOWING cannot be specified for the lower frame boundary");
+    winExp2("sum(sal) over ("
+        + "order by deptno "
+        + "rows between 2 preceding and ^UNBOUNDED PRECEDING^)")
+        .fails(
+            "UNBOUNDED PRECEDING cannot be specified for the upper frame boundary");
+    winExp2("sum(sal) over ("
+        + "order by deptno "
+        + "rows between CURRENT ROW and ^2 preceding^)")
+        .fails(
+            "Upper frame boundary cannot be PRECEDING when lower boundary is CURRENT ROW");
+    winExp2("sum(sal) over ("
+        + "order by deptno "
+        + "rows between 2 following and ^CURRENT ROW^)")
+        .fails(
+            "Upper frame boundary cannot be CURRENT ROW when lower boundary is FOLLOWING");
+    winExp2("sum(sal) over ("
+        + "order by deptno "
+        + "rows between 2 following and ^2 preceding^)")
+        .fails(
+            "Upper frame boundary cannot be PRECEDING when lower boundary is FOLLOWING");
+    winExp2("sum(sal) over ("
+        + "order by deptno "
+        + "RANGE BETWEEN ^INTERVAL '1' SECOND^ PRECEDING AND INTERVAL '1' SECOND FOLLOWING)")
+        .fails("Data Type mismatch between ORDER BY and RANGE clause");
+    winExp2("sum(sal) over ("
+        + "order by empno "
+        + "RANGE BETWEEN ^INTERVAL '1' SECOND^ PRECEDING AND INTERVAL '1' SECOND FOLLOWING)")
+        .fails("Data Type mismatch between ORDER BY and RANGE clause");
+    winExp2("sum(sal) over (order by deptno, empno ^range^ 2 preceding)")
+        .fails("RANGE clause cannot be used with compound ORDER BY clause");
+    winExp2("sum(sal) over ^(partition by deptno range 5 preceding)^")
+        .fails("Window specification must contain an ORDER BY clause");
+    winExp2("sum(sal) over ^w1^").fails("Window 'W1' not found");
+    winExp2("sum(sal) OVER (^w1^ "
+        + "partition by deptno "
+        + "order by empno "
+        + "rows 2 preceding )")
+        .fails("Window 'W1' not found");
   }
 
   @Test public void testPartitionByExpr() {
-    checkWinFuncExp(
-        "sum(sal) over (partition by empno + deptno order by empno range 5 preceding)",
-        null);
+    winExp2(
+        "sum(sal) over (partition by empno + deptno order by empno range 5 preceding)")
+        .ok();
 
-    checkWinFuncExp(
-        "sum(sal) over (partition by ^empno + ename^ order by empno range 5 preceding)",
-        "(?s)Cannot apply '\\+' to arguments of type '<INTEGER> \\+ <VARCHAR\\(20\\)>'.*");
+    winExp2(
+        "sum(sal) over (partition by ^empno + ename^ order by empno range 5 preceding)")
+        .fails(
+            "(?s)Cannot apply '\\+' to arguments of type '<INTEGER> \\+ <VARCHAR\\(20\\)>'.*");
   }
 
   @Test public void testWindowClause() {
@@ -4125,13 +4063,12 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     // --   positive testings           --
     // -----------------------------------
     // correct syntax:
-    checkWinFuncExpWithWinClause("sum(sal) as sumsal", null);
-    checkWinClauseExp(
-        "window w as (partition by sal order by deptno rows 2 preceding)",
-        null);
+    winExp("sum(sal) as sumsal").ok();
+    win("window w as (partition by sal order by deptno rows 2 preceding)")
+        .ok();
 
     // define window on an existing window
-    checkWinClauseExp("window w as (order by sal), w1 as (w)", null);
+    win("window w as (order by sal), w1 as (w)").ok();
 
     // -----------------------------------
     // --   negative testings           --
@@ -4143,117 +4080,99 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     // rule 11
     // a)
     // missing window order clause.
-    checkWinClauseExp(
-        "window w as ^(range 100 preceding)^",
-        "Window specification must contain an ORDER BY clause");
+    win("window w as ^(range 100 preceding)^")
+        .fails("Window specification must contain an ORDER BY clause");
 
     // order by number
-    checkWinClauseExp(
-        "window w as (order by sal range 100 preceding)",
-        null);
+    win("window w as (order by sal range 100 preceding)").ok();
 
     // order by date
-    checkWinClauseExp(
-        "window w as (order by hiredate range ^100^ preceding)",
-        "Data Type mismatch between ORDER BY and RANGE clause");
+    win("window w as (order by hiredate range ^100^ preceding)")
+        .fails("Data Type mismatch between ORDER BY and RANGE clause");
 
     // order by string, should fail
-    checkWinClauseExp(
-        "window w as (order by ename range ^100^ preceding)",
-        "Data type of ORDER BY prohibits use of RANGE clause");
+    win("window w as (order by ename range ^100^ preceding)")
+        .fails("Data type of ORDER BY prohibits use of RANGE clause");
     // todo: interval test ???
 
     // b)
     // valid
-    checkWinClauseExp("window w as (rows 2 preceding)", null);
+    win("window w as (rows 2 preceding)").ok();
 
     // invalid tests exact numeric for the unsigned value specification The
     // following two test fail as they should but in the parser: JR not
     // anymore now the validator kicks out
-    checkWinClauseExp(
-        "window w as (rows ^-2.5^ preceding)",
-        "ROWS value must be a non-negative integral constant");
-    checkWinClauseExp(
-        "window w as (rows ^-2^ preceding)",
-        "ROWS value must be a non-negative integral constant");
+    win("window w as (rows ^-2.5^ preceding)")
+        .fails("ROWS value must be a non-negative integral constant");
+    win("window w as (rows ^-2^ preceding)")
+        .fails("ROWS value must be a non-negative integral constant");
 
     // This test should fail as per 03 Std. but we pass it and plan
     // to apply the FLOOR function before window processing
-    checkWinClauseExp(
-        "window w as (rows ^2.5^ preceding)",
-        "ROWS value must be a non-negative integral constant");
+    win("window w as (rows ^2.5^ preceding)")
+        .fails("ROWS value must be a non-negative integral constant");
 
     // -----------------------------------
     // --   negative testings           --
     // -----------------------------------
     // reference undefined xyz column
-    checkWinClauseExp(
-        "window w as (partition by ^xyz^)",
-        "Column 'XYZ' not found in any table");
+    win("window w as (partition by ^xyz^)")
+        .fails("Column 'XYZ' not found in any table");
 
     // window definition is empty when applied to unsorted table
-    checkWinClauseExp(
-        "window w as ^( /* boo! */  )^",
-        null);
+    win("window w as ^( /* boo! */  )^").ok();
 
     // duplicate window name
-    checkWinClauseExp(
-        "window w as (order by empno), ^w^ as (order by empno)",
-        "Duplicate window names not allowed");
-    checkWinClauseExp(
-        "window win1 as (order by empno), ^win1^ as (order by empno)",
-        "Duplicate window names not allowed");
+    win("window w as (order by empno), ^w^ as (order by empno)")
+        .fails("Duplicate window names not allowed");
+    win("window win1 as (order by empno), ^win1^ as (order by empno)")
+        .fails("Duplicate window names not allowed");
 
     // syntax rule 6
-    checkFails(
-        "select min(sal) over (order by deptno) from emp group by deptno,sal",
-        null);
+    sql("select min(sal) over (order by deptno) from emp group by deptno,sal")
+        .ok();
     checkFails(
         "select min(sal) over (order by ^deptno^) from emp group by sal",
         "Expression 'DEPTNO' is not being grouped");
-    checkFails(
-        "select min(sal) over\n"
-            + "(partition by comm order by deptno) from emp group by deptno,sal,comm",
-        null);
-    checkFails(
-        "select min(sal) over\n"
-            + "(partition by ^comm^ order by deptno) from emp group by deptno,sal",
+    sql("select min(sal) over\n"
+        + "(partition by comm order by deptno) from emp group by deptno,sal,comm")
+        .ok();
+    checkFails("select min(sal) over\n"
+        + "(partition by ^comm^ order by deptno) from emp group by deptno,sal",
         "Expression 'COMM' is not being grouped");
 
     // syntax rule 7
-    checkWinClauseExp(
-        "window w as (order by rank() over (order by sal))",
-        null);
+    win("window w as (order by rank() over (order by sal))").ok();
 
     // ------------------------------------
     // ---- window frame between tests ----
     // ------------------------------------
     // bound 1 shall not specify UNBOUNDED FOLLOWING
-    checkWinClauseExp(
-        "window w as (rows between ^unbounded following^ and 5 following)",
-        "UNBOUNDED FOLLOWING cannot be specified for the lower frame boundary");
+    win("window w as (rows between ^unbounded following^ and 5 following)")
+        .fails(
+            "UNBOUNDED FOLLOWING cannot be specified for the lower frame boundary");
 
     // bound 2 shall not specify UNBOUNDED PRECEDING
-    checkWinClauseExp(
-        "window w as ("
-            + "order by deptno "
-            + "rows between 2 preceding and ^UNBOUNDED PRECEDING^)",
-        "UNBOUNDED PRECEDING cannot be specified for the upper frame boundary");
-    checkWinClauseExp(
-        "window w as ("
-            + "order by deptno "
-            + "rows between 2 following and ^2 preceding^)",
-        "Upper frame boundary cannot be PRECEDING when lower boundary is FOLLOWING");
-    checkWinClauseExp(
-        "window w as ("
-            + "order by deptno "
-            + "rows between CURRENT ROW and ^2 preceding^)",
-        "Upper frame boundary cannot be PRECEDING when lower boundary is CURRENT ROW");
-    checkWinClauseExp(
-        "window w as ("
-            + "order by deptno "
-            + "rows between 2 following and ^CURRENT ROW^)",
-        "Upper frame boundary cannot be CURRENT ROW when lower boundary is FOLLOWING");
+    win("window w as ("
+        + "order by deptno "
+        + "rows between 2 preceding and ^UNBOUNDED PRECEDING^)")
+        .fails(
+            "UNBOUNDED PRECEDING cannot be specified for the upper frame boundary");
+    win("window w as ("
+        + "order by deptno "
+        + "rows between 2 following and ^2 preceding^)")
+        .fails(
+            "Upper frame boundary cannot be PRECEDING when lower boundary is FOLLOWING");
+    win("window w as ("
+        + "order by deptno "
+        + "rows between CURRENT ROW and ^2 preceding^)")
+        .fails(
+            "Upper frame boundary cannot be PRECEDING when lower boundary is CURRENT ROW");
+    win("window w as ("
+        + "order by deptno "
+        + "rows between 2 following and ^CURRENT ROW^)")
+        .fails(
+            "Upper frame boundary cannot be CURRENT ROW when lower boundary is FOLLOWING");
 
     // Sql '03 rule 10 c) assertExceptionIsThrown("select deptno as d, sal
     // as s from emp window w as (partition by deptno order by sal), w2 as
@@ -4261,46 +4180,38 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     // (partition by sal order by deptno), w2 as (w partition by sal)",
     // null); d) valid because existing window does not have an ORDER BY
     // clause
-    checkWinClauseExp(
-        "window w as (w2 range 2 preceding ), w2 as (order by sal)",
-        null);
-    checkWinClauseExp(
-        "window w as ^(partition by sal)^, w2 as (w order by deptno)",
-        null);
-    checkWinClauseExp(
-        "window w as (w2 partition by ^sal^), w2 as (order by deptno)",
-        "PARTITION BY not allowed with existing window reference");
-    checkWinClauseExp(
-        "window w as (partition by sal order by deptno), w2 as (w order by ^deptno^)",
-        "ORDER BY not allowed in both base and referenced windows");
+    win("window w as (w2 range 2 preceding ), w2 as (order by sal)").ok();
+    win("window w as ^(partition by sal)^, w2 as (w order by deptno)").ok();
+    win("window w as (w2 partition by ^sal^), w2 as (order by deptno)")
+        .fails("PARTITION BY not allowed with existing window reference");
+    win(
+        "window w as (partition by sal order by deptno), w2 as (w order by ^deptno^)")
+        .fails("ORDER BY not allowed in both base and referenced windows");
 
     // e)
-    checkWinClauseExp(
-        "window w as (w2 order by deptno), w2 as (^range^ 100 preceding)",
-        "Referenced window cannot have framing declarations");
+    win("window w as (w2 order by deptno), w2 as (^range^ 100 preceding)")
+        .fails("Referenced window cannot have framing declarations");
 
     // rule 12, todo: test scope of window assertExceptionIsThrown("select
     // deptno as d from emp window d as (partition by deptno)", null);
 
     // rule 13
-    checkWinClauseExp("window w as (order by sal)", null);
-    checkWinClauseExp(
-        "window w as (order by ^non_exist_col^)",
-        "Column 'NON_EXIST_COL' not found in any table");
-    checkWinClauseExp(
-        "window w as (partition by ^non_exist_col^ order by sal)",
-        "Column 'NON_EXIST_COL' not found in any table");
+    win("window w as (order by sal)").ok();
+    win("window w as (order by ^non_exist_col^)")
+        .fails("Column 'NON_EXIST_COL' not found in any table");
+    win("window w as (partition by ^non_exist_col^ order by sal)")
+        .fails("Column 'NON_EXIST_COL' not found in any table");
   }
 
   @Test public void testWindowClause2() {
     // 7.10 syntax rule 2 <new window name> NWN1 shall not be contained in
     // the scope of another <new window name> NWN2 such that NWN1 and NWN2
     // are equivalent.
-    checkWinClauseExp(
-        "window\n"
-            + "w  as (partition by deptno order by empno rows 2 preceding),\n"
-            + "w2 as ^(partition by deptno order by empno rows 2 preceding)^\n",
-        "Duplicate window specification not allowed in the same window clause");
+    win("window\n"
+        + "w  as (partition by deptno order by empno rows 2 preceding),\n"
+        + "w2 as ^(partition by deptno order by empno rows 2 preceding)^\n")
+        .fails(
+            "Duplicate window specification not allowed in the same window clause");
   }
 
   @Test public void testWindowClauseWithSubquery() {
@@ -4372,9 +4283,8 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   @Test public void testOneWinFunc() {
-    checkWinClauseExp(
-        "window w as (partition by sal order by deptno rows 2 preceding)",
-        null);
+    win("window w as (partition by sal order by deptno rows 2 preceding)")
+        .ok();
   }
 
   @Test public void testNameResolutionInValuesClause() {
@@ -5449,12 +5359,11 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "group by empno, deptno "
         + "order by x * sum(sal + 2)");
 
-    checkFails(
-        "select empno as x "
-            + "from emp "
-            + "group by empno, deptno "
-            + "order by empno * sum(sal + 2)",
-        tester.getConformance().isSortByAliasObscures() ? "xxxx" : null);
+    sql("select empno as x "
+        + "from emp "
+        + "group by empno, deptno "
+        + "order by empno * sum(sal + 2)")
+        .failsIf(tester.getConformance().isSortByAliasObscures(), "xxxx");
 
     // Distinct on expressions with attempts to order on a column in
     // the underlying table
@@ -5478,21 +5387,18 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     // These tests are primarily intended to test cases where sorting by
     // an alias is allowed.  But for instances that don't support sorting
     // by alias, the tests also verify that a proper exception is thrown.
-    checkFails(
-        "select distinct cast(empno as bigint) as empno "
-            + "from emp order by ^empno^",
-        tester.getConformance().isSortByAlias() ? null
-            : "Expression 'EMPNO' is not in the select clause");
-    checkFails(
-        "select distinct cast(empno as bigint) as eno "
-            + "from emp order by ^eno^",
-        tester.getConformance().isSortByAlias() ? null
-            : "Column 'ENO' not found in any table");
-    checkFails(
-        "select distinct cast(empno as bigint) as empno "
-            + "from emp e order by ^empno^",
-        tester.getConformance().isSortByAlias() ? null
-            : "Expression 'EMPNO' is not in the select clause");
+    sql("select distinct cast(empno as bigint) as empno "
+        + "from emp order by ^empno^")
+        .failsIf(!tester.getConformance().isSortByAlias(),
+            "Expression 'EMPNO' is not in the select clause");
+    sql("select distinct cast(empno as bigint) as eno "
+        + "from emp order by ^eno^")
+        .failsIf(!tester.getConformance().isSortByAlias(),
+            "Column 'ENO' not found in any table");
+    sql("select distinct cast(empno as bigint) as empno "
+        + "from emp e order by ^empno^")
+        .failsIf(!tester.getConformance().isSortByAlias(),
+            "Expression 'EMPNO' is not in the select clause");
 
     // Distinct on expressions, sorting using ordinals.
     if (tester.getConformance().isSortByOrdinal()) {
@@ -5558,6 +5464,28 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     // constant expressions
     check("select cast(1 as integer) + 2 from emp group by deptno");
     check("select localtime, deptno + 3 from emp group by deptno");
+  }
+
+  @Test public void testGroupingSets() {
+    sql("select count(1), ^empno^ from emp group by grouping sets (deptno)")
+        .fails("Expression 'EMPNO' is not being grouped");
+    sql("select deptno, ename, sum(sal) from emp\n"
+        + "group by grouping sets ((deptno), (ename, deptno))\n"
+        + "order by 2").ok();
+
+    // duplicate (and heavily nested) GROUPING SETS
+    sql("select sum(sal) from emp\n"
+        + "group by deptno,\n"
+        + "  grouping sets (deptno,\n"
+        + "    grouping sets (deptno, ename),\n"
+        + "      (ename)),\n"
+        + "  ()").ok();
+  }
+
+  @Test public void testRollup() {
+    sql("select deptno, count(*) as c, sum(sal) as s\n"
+        + "from emp\n"
+        + "group by rollup(deptno)").ok();
   }
 
   @Test public void testGroupByCorrelatedColumnFails() {

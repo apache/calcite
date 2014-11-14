@@ -91,6 +91,7 @@ import org.apache.calcite.util.trace.CalciteTrace;
 import org.apache.calcite.util.DateTimeUtil;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 
 import java.io.Reader;
 import java.math.BigDecimal;
@@ -1883,25 +1884,69 @@ SqlNode WhereOpt() :
  */
 SqlNodeList GroupByOpt() :
 {
-    SqlNodeList list;
+    List<SqlNode> list = Lists.newArrayList();
     SqlNode e;
     SqlParserPos pos;
 }
 {
-    LOOKAHEAD(4)
     <GROUP> { pos = getPos(); }
-    <BY> list = ExpressionCommaList(pos, ExprContext.ACCEPT_SUBQUERY)
-    {
-        return list;
+    <BY> list = GroupingElementList() {
+        if (list.size() == 1
+            && list.get(0) instanceof SqlNodeList) {
+            // Preserve the old behavior that "GROUP BY ()" returns a list
+            // of length 0, not a of length 1 containing an empty list.
+            return (SqlNodeList) list.get(0);
+        }
+        return new SqlNodeList(list, pos);
     }
-    |
-    <GROUP> <BY> <LPAREN> <RPAREN>
-    {
-        return new SqlNodeList(getPos());
-    }
-    |
+|
     {
         return null;
+    }
+}
+
+List<SqlNode> GroupingElementList() :
+{
+    List<SqlNode> list = Lists.newArrayList();
+    SqlNode e;
+}
+{
+    e = GroupingElement() { list.add(e); }
+    (
+        <COMMA>
+        e = GroupingElement() { list.add(e); }
+    )*
+    { return list; }
+}
+
+SqlNode GroupingElement() :
+{
+    List<SqlNode> list;
+    SqlNodeList nlist;
+    SqlNode e;
+    SqlParserPos pos;
+}
+{
+    <GROUPING> { pos = getPos(); }
+    <SETS> <LPAREN> list = GroupingElementList() <RPAREN> {
+        return SqlStdOperatorTable.GROUPING_SETS.createCall(pos, list);
+    }
+|   <ROLLUP> { pos = getPos(); }
+    <LPAREN> nlist = ExpressionCommaList(pos, ExprContext.ACCEPT_SUBQUERY)
+    <RPAREN> {
+        return SqlStdOperatorTable.ROLLUP.createCall(nlist);
+    }
+|   <CUBE> { pos = getPos(); }
+    <LPAREN> nlist = ExpressionCommaList(pos, ExprContext.ACCEPT_SUBQUERY)
+    <RPAREN> {
+        return SqlStdOperatorTable.CUBE.createCall(nlist);
+    }
+|   LOOKAHEAD(3)
+    <LPAREN> <RPAREN> {
+        return new SqlNodeList(getPos());
+    }
+|   e = Expression(ExprContext.ACCEPT_SUBQUERY) {
+        return e;
     }
 }
 

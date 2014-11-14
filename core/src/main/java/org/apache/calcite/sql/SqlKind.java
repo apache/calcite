@@ -563,7 +563,19 @@ public enum SqlKind {
    * The internal REINTERPRET operator (meaning a reinterpret cast).
    * An internal operator that does not appear in SQL syntax.
    */
-  REINTERPRET;
+  REINTERPRET,
+
+  /** The internal {@code CUBE} operator that occurs within a {@code GROUP BY}
+   * clause. */
+  CUBE,
+
+  /** The internal {@code ROLLUP} operator that occurs within a {@code GROUP BY}
+   * clause. */
+  ROLLUP,
+
+  /** The internal {@code GROUPING SETS} operator that occurs within a
+   * {@code GROUP BY} clause. */
+  GROUPING_SETS;
 
   //~ Static fields/initializers ---------------------------------------------
 

@@ -133,12 +133,11 @@ public class RelWriterTest {
                                 "deptno", true),
                             rexBuilder.makeExactLiteral(BigDecimal.TEN)));
                 final RelJsonWriter writer = new RelJsonWriter();
-                final RelDataType intType =
-                    cluster.getTypeFactory().createSqlType(SqlTypeName.INTEGER);
                 final RelDataType bigIntType =
                     cluster.getTypeFactory().createSqlType(SqlTypeName.BIGINT);
                 LogicalAggregate aggregate =
-                    new LogicalAggregate(cluster, filter, ImmutableBitSet.of(0),
+                    new LogicalAggregate(cluster, filter, false,
+                        ImmutableBitSet.of(0), null,
                         ImmutableList.of(
                             new AggregateCall(SqlStdOperatorTable.COUNT,
                                 true, ImmutableList.of(1), bigIntType, "c"),

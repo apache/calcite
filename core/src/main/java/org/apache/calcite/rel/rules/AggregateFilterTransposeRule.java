@@ -58,7 +58,7 @@ public class AggregateFilterTransposeRule extends RelOptRule {
 
   private AggregateFilterTransposeRule() {
     super(
-        operand(Aggregate.class,
+        operand(Aggregate.class, null, Aggregate.IS_SIMPLE,
             operand(Filter.class, any())));
   }
 
@@ -81,7 +81,7 @@ public class AggregateFilterTransposeRule extends RelOptRule {
       return;
     }
     final Aggregate newAggregate =
-        aggregate.copy(aggregate.getTraitSet(), input, newGroupSet,
+        aggregate.copy(aggregate.getTraitSet(), input, false, newGroupSet, null,
             aggregate.getAggCallList());
     final Mappings.TargetMapping mapping = Mappings.target(
         new Function<Integer, Integer>() {
@@ -124,8 +124,8 @@ public class AggregateFilterTransposeRule extends RelOptRule {
                 ImmutableList.of(i++), aggregateCall.type, aggregateCall.name));
       }
       final Aggregate topAggregate =
-          aggregate.copy(aggregate.getTraitSet(), newFilter,
-              topGroupSet.build(), topAggCallList);
+          aggregate.copy(aggregate.getTraitSet(), newFilter, false,
+              topGroupSet.build(), null, topAggCallList);
       call.transformTo(topAggregate);
     }
   }

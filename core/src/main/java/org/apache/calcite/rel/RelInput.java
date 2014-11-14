@@ -53,6 +53,8 @@ public interface RelInput {
 
   ImmutableBitSet getBitSet(String tag);
 
+  List<ImmutableBitSet> getBitSetList(String tag);
+
   List<AggregateCall> getAggregateCalls(String tag);
 
   Object get(String tag);
@@ -82,7 +84,7 @@ public interface RelInput {
 
   List<List<RexLiteral>> getTuples(String tag);
 
-  boolean getBoolean(String tag);
+  boolean getBoolean(String tag, boolean default_);
 }
 
 // End RelInput.java

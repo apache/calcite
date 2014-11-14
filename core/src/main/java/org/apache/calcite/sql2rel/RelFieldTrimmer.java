@@ -58,8 +58,10 @@ import org.apache.calcite.util.mapping.Mapping;
 import org.apache.calcite.util.mapping.MappingType;
 import org.apache.calcite.util.mapping.Mappings;
 
+import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -734,6 +736,9 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
       Aggregate aggregate,
       ImmutableBitSet fieldsUsed,
       Set<RelDataTypeField> extraFields) {
+    if (aggregate.indicator) {
+      throw new AssertionError(Bug.CALCITE_461_FIXED);
+    }
     // Fields:
     //
     // | sys fields | group fields | agg functions |
@@ -798,6 +803,16 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
     final ImmutableBitSet newGroupSet =
         Mappings.apply(inputMapping, aggregate.getGroupSet());
 
+    final ImmutableList<ImmutableBitSet> newGroupSets =
+        ImmutableList.copyOf(
+            Iterables.transform(
+                aggregate.getGroupSets(),
+                new Function<ImmutableBitSet, ImmutableBitSet>() {
+                  public ImmutableBitSet apply(ImmutableBitSet input) {
+                    return Mappings.apply(inputMapping, input);
+                  }
+                }));
+
     // Populate mapping of where to find the fields. System and grouping
     // fields first.
     for (IntPair pair : inputMapping) {
@@ -827,7 +842,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
     }
 
     RelNode newAggregate = aggregateFactory.createAggregate(newInput,
-        newGroupSet, newAggCallList);
+        false, newGroupSet, newGroupSets, newAggCallList);
 
     assert newAggregate.getClass() == aggregate.getClass();
 
