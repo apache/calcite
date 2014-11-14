@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.util14;
+package org.apache.calcite.util;
 
-import java.nio.*;
-import java.text.*;
+import java.nio.ByteOrder;
+import java.text.NumberFormat;
 
-import static org.eigenbase.util.Static.RESOURCE;
+import static org.apache.calcite.util.Static.RESOURCE;
 
 /**
  * Utility functions for converting from one type to another
@@ -79,8 +79,8 @@ public class ConversionUtil {
   }
 
   /**
-   * Converts a string into a byte array. The inverse of {@link
-   * #toStringFromByteArray(byte[], int)}.
+   * Converts a string into a byte array. The inverse of
+   * {@link #toStringFromByteArray(byte[], int)}.
    */
   public static byte[] toByteArrayFromString(
       String value,

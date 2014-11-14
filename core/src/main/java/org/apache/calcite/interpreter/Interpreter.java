@@ -14,26 +14,32 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.impl.interpreter;
+package org.apache.calcite.interpreter;
 
-import net.hydromatic.linq4j.AbstractEnumerable;
-import net.hydromatic.linq4j.Enumerator;
-
-import net.hydromatic.optiq.DataContext;
-import net.hydromatic.optiq.prepare.OptiqPrepareImpl;
-
-import org.eigenbase.rel.*;
-import org.eigenbase.rex.*;
-import org.eigenbase.util.ReflectUtil;
-import org.eigenbase.util.ReflectiveVisitDispatcher;
-import org.eigenbase.util.ReflectiveVisitor;
+import org.apache.calcite.DataContext;
+import org.apache.calcite.linq4j.AbstractEnumerable;
+import org.apache.calcite.linq4j.Enumerator;
+import org.apache.calcite.prepare.CalcitePrepareImpl;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelVisitor;
+import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexInputRef;
+import org.apache.calcite.rex.RexLiteral;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.util.ReflectUtil;
+import org.apache.calcite.util.ReflectiveVisitDispatcher;
+import org.apache.calcite.util.ReflectiveVisitor;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 import java.math.BigDecimal;
-import java.util.*;
+import java.util.AbstractList;
+import java.util.ArrayDeque;
+import java.util.List;
+import java.util.Map;
+import java.util.NoSuchElementException;
 
 /**
  * Interpreter.
@@ -271,8 +277,8 @@ public class Interpreter extends AbstractEnumerable<Object[]> {
   }
 
   /**
-   * Walks over a tree of {@link org.eigenbase.rel.RelNode} and, for each,
-   * creates a {@link net.hydromatic.optiq.impl.interpreter.Node} that can be
+   * Walks over a tree of {@link org.apache.calcite.rel.RelNode} and, for each,
+   * creates a {@link org.apache.calcite.interpreter.Node} that can be
    * executed in the interpreter.
    *
    * <p>The compiler looks for methods of the form "visit(XxxRel)".
@@ -315,7 +321,7 @@ public class Interpreter extends AbstractEnumerable<Object[]> {
         if (rel == null) {
           break;
         }
-        if (OptiqPrepareImpl.DEBUG) {
+        if (CalcitePrepareImpl.DEBUG) {
           System.out.println("Interpreter: rewrite " + p + " to " + rel);
         }
         p = rel;

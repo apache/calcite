@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.runtime;
+package org.apache.calcite.runtime;
 
 import com.google.common.collect.Ordering;
 
@@ -24,7 +24,7 @@ import org.junit.Test;
 import java.util.Arrays;
 
 /**
- * Tests {@link net.hydromatic.optiq.runtime.BinarySearch}.
+ * Tests {@link org.apache.calcite.runtime.BinarySearch}.
  */
 public class BinarySearchTest {
   private void search(int key, int lower, int upper, Integer... array) {

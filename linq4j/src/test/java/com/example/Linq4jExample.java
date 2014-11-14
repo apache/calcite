@@ -16,8 +16,11 @@
  */
 package com.example;
 
-import net.hydromatic.linq4j.Linq4j;
-import net.hydromatic.linq4j.function.*;
+import org.apache.calcite.linq4j.Linq4j;
+import org.apache.calcite.linq4j.function.Function0;
+import org.apache.calcite.linq4j.function.Function1;
+import org.apache.calcite.linq4j.function.Function2;
+import org.apache.calcite.linq4j.function.Functions;
 
 /**
  * Example using linq4j to query in-memory collections.

@@ -14,12 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.util;
+package org.apache.calcite.util;
+
+import com.google.common.base.Objects;
+import com.google.common.collect.Iterators;
 
 import java.io.Serializable;
-import java.util.*;
-
-import com.google.common.collect.Iterators;
+import java.util.AbstractList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Pair of objects.
@@ -27,6 +33,9 @@ import com.google.common.collect.Iterators;
  * <p>Because a pair implements {@link #equals(Object)}, {@link #hashCode()} and
  * {@link #compareTo(Pair)}, it can be used in any kind of
  * {@link java.util.Collection}.
+ *
+ * @param <T1> Left-hand type
+ * @param <T2> Right-hand type
  */
 public class Pair<T1, T2>
     implements Comparable<Pair<T1, T2>>, Map.Entry<T1, T2>, Serializable {
@@ -70,8 +79,8 @@ public class Pair<T1, T2>
   public boolean equals(Object obj) {
     return this == obj
         || (obj instanceof Pair)
-        && Util.equal(this.left, ((Pair) obj).left)
-        && Util.equal(this.right, ((Pair) obj).right);
+        && Objects.equal(this.left, ((Pair) obj).left)
+        && com.google.common.base.Objects.equal(this.right, ((Pair) obj).right);
   }
 
   public int hashCode() {
@@ -147,14 +156,14 @@ public class Pair<T1, T2>
   }
 
   /**
-   * Converts two lists into a list of {@link org.eigenbase.util.Pair}s,
+   * Converts two lists into a list of {@link Pair}s,
    * whose length is the lesser of the lengths of the
    * source lists.
    *
    * @param ks Left list
    * @param vs Right list
    * @return List of pairs
-   * @see net.hydromatic.linq4j.Ord#zip(java.util.List)
+   * @see org.apache.calcite.linq4j.Ord#zip(java.util.List)
    */
   public static <K, V> List<Pair<K, V>> zip(List<K> ks, List<V> vs) {
     return zip(ks, vs, false);
@@ -170,7 +179,7 @@ public class Pair<T1, T2>
    * @param vs     Right list
    * @param strict Whether to fail if lists have different size
    * @return List of pairs
-   * @see net.hydromatic.linq4j.Ord#zip(java.util.List)
+   * @see org.apache.calcite.linq4j.Ord#zip(java.util.List)
    */
   public static <K, V> List<Pair<K, V>> zip(
       final List<K> ks,

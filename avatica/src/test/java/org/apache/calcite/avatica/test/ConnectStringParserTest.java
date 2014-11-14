@@ -14,16 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.avatica.test;
+package org.apache.calcite.avatica.test;
 
-import net.hydromatic.avatica.ConnectStringParser;
+import org.apache.calcite.avatica.ConnectStringParser;
 
 import org.junit.Test;
 
 import java.sql.SQLException;
 import java.util.Properties;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.fail;
 
 /**
  * Unit test for JDBC connect string parser, {@link ConnectStringParser}. The
@@ -69,8 +71,7 @@ public class ConnectStringParserTest {
    */
   @Test public void testComplexStrings() throws Throwable {
     Properties props =
-        ConnectStringParser.parse(
-            "normalProp=value;"
+        ConnectStringParser.parse("normalProp=value;"
             + "emptyValue=;"
             + " spaceBeforeProp=abc;"
             + " spaceBeforeAndAfterProp =def;"
@@ -226,14 +227,11 @@ public class ConnectStringParserTest {
       Throwable e,
       String expectedPattern) {
     if (e == null) {
-      fail(
-          "Expected an error which matches pattern '" + expectedPattern
-          + "'");
+      fail("Expected an error which matches pattern '" + expectedPattern + "'");
     }
     String msg = e.toString();
     if (!msg.matches(expectedPattern)) {
-      fail(
-          "Got a different error '" + msg + "' than expected '"
+      fail("Got a different error '" + msg + "' than expected '"
           + expectedPattern + "'");
     }
   }

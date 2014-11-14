@@ -14,22 +14,34 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel;
+package org.apache.calcite.rel.core;
 
-import java.util.*;
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptCost;
+import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.AbstractRelNode;
+import org.apache.calcite.rel.RelCollation;
+import org.apache.calcite.rel.RelInput;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelShuttle;
+import org.apache.calcite.rel.RelWriter;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.util.BitSets;
 
-import org.eigenbase.relopt.*;
-import org.eigenbase.reltype.*;
-import org.eigenbase.rex.RexBuilder;
-import org.eigenbase.rex.RexNode;
-
-import net.hydromatic.optiq.util.BitSets;
+import java.util.ArrayList;
+import java.util.BitSet;
+import java.util.List;
+import java.util.Set;
 
 /**
- * <code>TableAccessRelBase</code> is an abstract base class for implementations
- * of {@link TableAccessRel}.
+ * Relational operator that returns the contents of a table.
  */
-public abstract class TableAccessRelBase extends AbstractRelNode {
+public abstract class TableScan extends AbstractRelNode {
   //~ Instance fields --------------------------------------------------------
 
   /**
@@ -39,7 +51,7 @@ public abstract class TableAccessRelBase extends AbstractRelNode {
 
   //~ Constructors -----------------------------------------------------------
 
-  protected TableAccessRelBase(
+  protected TableScan(
       RelOptCluster cluster,
       RelTraitSet traits,
       RelOptTable table) {
@@ -51,9 +63,9 @@ public abstract class TableAccessRelBase extends AbstractRelNode {
   }
 
   /**
-   * Creates a TableAccessRelBase by parsing serialized output.
+   * Creates a TableScan by parsing serialized output.
    */
-  protected TableAccessRelBase(RelInput input) {
+  protected TableScan(RelInput input) {
     this(input.getCluster(), input.getTraitSet(), input.getTable("table"));
   }
 
@@ -96,7 +108,8 @@ public abstract class TableAccessRelBase extends AbstractRelNode {
    * fields that were not included in the table's official type.
    *
    * <p>The default implementation assumes that tables cannot do either of
-   * these operations, therefore it adds a {@link ProjectRel}, projecting
+   * these operations, therefore it adds a
+   * {@link org.apache.calcite.rel.logical.LogicalProject}, projecting
    * {@code NULL} values for the extra fields.</p>
    *
    * <p>Sub-classes, representing table types that have these capabilities,
@@ -140,10 +153,9 @@ public abstract class TableAccessRelBase extends AbstractRelNode {
     return projectFactory.createProject(this, exprList, nameList);
   }
 
-  @Override
-  public RelNode accept(RelShuttle shuttle) {
+  @Override public RelNode accept(RelShuttle shuttle) {
     return shuttle.visit(this);
   }
 }
 
-// End TableAccessRelBase.java
+// End TableScan.java

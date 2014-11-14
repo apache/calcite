@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.relopt;
+package org.apache.calcite.plan;
 
 /**
  * Provides library users a way to store data within the planner session and
@@ -31,3 +31,5 @@ public interface Context {
   <T> T unwrap(Class<T> clazz);
 
 }
+
+// End Context.java

@@ -14,14 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.relopt;
+package org.apache.calcite.plan;
 
-import java.util.*;
+import org.apache.calcite.linq4j.tree.Expression;
+import org.apache.calcite.rel.RelCollation;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.type.RelDataType;
 
-import org.eigenbase.rel.*;
-import org.eigenbase.reltype.*;
-
-import net.hydromatic.linq4j.expressions.Expression;
+import java.util.BitSet;
+import java.util.List;
 
 /**
  * Represents a relational dataset in a {@link RelOptSchema}. It has methods to
@@ -56,11 +57,12 @@ public interface RelOptTable {
   /**
    * Converts this table into a {@link RelNode relational expression}.
    *
-   * <p>The {@link org.eigenbase.relopt.RelOptPlanner planner} calls this
+   * <p>The {@link org.apache.calcite.plan.RelOptPlanner planner} calls this
    * method to convert a table into an initial relational expression,
-   * generally something abstract, such as a {@link
-   * org.eigenbase.rel.TableAccessRel}, then optimizes this expression by
-   * applying {@link org.eigenbase.relopt.RelOptRule rules} to transform it
+   * generally something abstract, such as a
+   * {@link org.apache.calcite.rel.logical.LogicalTableScan},
+   * then optimizes this expression by
+   * applying {@link org.apache.calcite.plan.RelOptRule rules} to transform it
    * into more efficient access methods for this table.</p>
    */
   RelNode toRel(ToRelContext context);

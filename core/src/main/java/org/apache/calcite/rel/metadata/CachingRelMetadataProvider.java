@@ -14,16 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel.metadata;
+package org.apache.calcite.rel.metadata;
 
-import java.lang.reflect.*;
-import java.util.*;
-
-import org.eigenbase.rel.*;
-import org.eigenbase.relopt.*;
+import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.rel.RelNode;
 
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
+
+import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.Method;
+import java.lang.reflect.Proxy;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Implementation of the {@link RelMetadataProvider}
@@ -39,8 +43,7 @@ public class CachingRelMetadataProvider implements RelMetadataProvider {
   private final RelOptPlanner planner;
 
   private static final Object NULL_SENTINEL = new Object() {
-    @Override
-    public String toString() {
+    @Override public String toString() {
       return "{null}";
     }
   };

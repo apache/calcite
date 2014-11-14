@@ -22,6 +22,6 @@
  * "host", "index", "source", "sourcetype". It has a variable type, so other
  * fields are held in a map field called "_others".</p>
  */
-package net.hydromatic.optiq.impl.splunk;
+package org.apache.calcite.adapter.splunk;
 
 // End package-info.java

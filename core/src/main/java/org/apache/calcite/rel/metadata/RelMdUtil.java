@@ -14,23 +14,40 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel.metadata;
+package org.apache.calcite.rel.metadata;
 
-import java.math.*;
-import java.util.*;
-
-import org.eigenbase.rel.*;
-import org.eigenbase.rel.rules.*;
-import org.eigenbase.relopt.*;
-import org.eigenbase.rex.*;
-import org.eigenbase.sql.*;
-import org.eigenbase.sql.type.*;
-import org.eigenbase.util.Bug;
-import org.eigenbase.util14.*;
-
-import net.hydromatic.optiq.util.BitSets;
+import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.Aggregate;
+import org.apache.calcite.rel.core.AggregateCall;
+import org.apache.calcite.rel.core.JoinInfo;
+import org.apache.calcite.rel.core.JoinRelType;
+import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.core.SemiJoin;
+import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexInputRef;
+import org.apache.calcite.rex.RexLiteral;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexUtil;
+import org.apache.calcite.rex.RexVisitorImpl;
+import org.apache.calcite.sql.SqlFunction;
+import org.apache.calcite.sql.SqlFunctionCategory;
+import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.type.OperandTypes;
+import org.apache.calcite.sql.type.ReturnTypes;
+import org.apache.calcite.util.BitSets;
+import org.apache.calcite.util.Bug;
+import org.apache.calcite.util.NumberUtil;
 
 import com.google.common.collect.ImmutableList;
+
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.BitSet;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 /**
  * RelMdUtil provides utility methods used by the metadata provider methods.
@@ -60,7 +77,7 @@ public class RelMdUtil {
    * @param rel the semijoin of interest
    * @return constructed rexnode
    */
-  public static RexNode makeSemiJoinSelectivityRexNode(SemiJoinRel rel) {
+  public static RexNode makeSemiJoinSelectivityRexNode(SemiJoin rel) {
     RexBuilder rexBuilder = rel.getCluster().getRexBuilder();
     double selectivity =
         computeSemiJoinSelectivity(
@@ -96,7 +113,7 @@ public class RelMdUtil {
    * @param rel semijoin rel
    * @return calculated selectivity
    */
-  public static double computeSemiJoinSelectivity(SemiJoinRel rel) {
+  public static double computeSemiJoinSelectivity(SemiJoin rel) {
     return computeSemiJoinSelectivity(
         rel.getLeft(),
         rel.getRight(),
@@ -118,7 +135,7 @@ public class RelMdUtil {
   public static double computeSemiJoinSelectivity(
       RelNode factRel,
       RelNode dimRel,
-      SemiJoinRel rel) {
+      SemiJoin rel) {
     return computeSemiJoinSelectivity(
         factRel,
         dimRel,
@@ -518,7 +535,7 @@ public class RelMdUtil {
    */
   public static void setAggChildKeys(
       BitSet groupKey,
-      AggregateRelBase aggRel,
+      Aggregate aggRel,
       BitSet childKey) {
     List<AggregateCall> aggCalls = aggRel.getAggCallList();
     for (int bit : BitSets.toIter(groupKey)) {
@@ -568,7 +585,7 @@ public class RelMdUtil {
    * @param expr projection expression
    * @return cardinality
    */
-  public static Double cardOfProjExpr(ProjectRelBase rel, RexNode expr) {
+  public static Double cardOfProjExpr(Project rel, RexNode expr) {
     return expr.accept(new CardOfProjExpr(rel));
   }
 
@@ -697,9 +714,9 @@ public class RelMdUtil {
   /** Visitor that walks over a scalar expression and computes the
    * cardinality of its result. */
   private static class CardOfProjExpr extends RexVisitorImpl<Double> {
-    private ProjectRelBase rel;
+    private Project rel;
 
-    public CardOfProjExpr(ProjectRelBase rel) {
+    public CardOfProjExpr(Project rel) {
       super(true);
       this.rel = rel;
     }
@@ -710,7 +727,7 @@ public class RelMdUtil {
       col.set(index);
       Double distinctRowCount =
           RelMetadataQuery.getDistinctRowCount(
-              rel.getChild(),
+              rel.getInput(),
               col,
               null);
       if (distinctRowCount == null) {

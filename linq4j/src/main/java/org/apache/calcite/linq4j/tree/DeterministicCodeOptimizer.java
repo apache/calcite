@@ -14,16 +14,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.linq4j.expressions;
+package org.apache.calcite.linq4j.tree;
 
-import net.hydromatic.linq4j.function.Deterministic;
-import net.hydromatic.linq4j.function.NonDeterministic;
+import org.apache.calcite.linq4j.function.Deterministic;
+import org.apache.calcite.linq4j.function.NonDeterministic;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.util.*;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.IdentityHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.regex.Pattern;
 
 /**
@@ -86,8 +92,8 @@ public class DeterministicCodeOptimizer extends ClassDeclarationFinder {
    * @param newExpression expression to optimize
    * @return optimized expression
    */
-  @Override
-  protected Expression tryOptimizeNewInstance(NewExpression newExpression) {
+  @Override protected Expression
+  tryOptimizeNewInstance(NewExpression newExpression) {
     if (newExpression.type instanceof Class
         && isConstant(newExpression.arguments)
         && isConstructorDeterministic(newExpression)) {
@@ -97,8 +103,7 @@ public class DeterministicCodeOptimizer extends ClassDeclarationFinder {
     return newExpression;
   }
 
-  @Override
-  public Expression visit(BinaryExpression binaryExpression,
+  @Override public Expression visit(BinaryExpression binaryExpression,
       Expression expression0, Expression expression1) {
     Expression result = super.visit(binaryExpression, expression0, expression1);
     if (binaryExpression.getNodeType().modifiesLvalue) {
@@ -111,8 +116,7 @@ public class DeterministicCodeOptimizer extends ClassDeclarationFinder {
     return result;
   }
 
-  @Override
-  public Expression visit(TernaryExpression ternaryExpression,
+  @Override public Expression visit(TernaryExpression ternaryExpression,
       Expression expression0, Expression expression1, Expression expression2) {
     Expression result =
         super.visit(ternaryExpression, expression0, expression1, expression2);
@@ -125,8 +129,7 @@ public class DeterministicCodeOptimizer extends ClassDeclarationFinder {
     return result;
   }
 
-  @Override
-  public Expression visit(UnaryExpression unaryExpression,
+  @Override public Expression visit(UnaryExpression unaryExpression,
       Expression expression) {
     Expression result = super.visit(unaryExpression, expression);
 
@@ -139,8 +142,7 @@ public class DeterministicCodeOptimizer extends ClassDeclarationFinder {
     return result;
   }
 
-  @Override
-  public Expression visit(TypeBinaryExpression typeBinaryExpression,
+  @Override public Expression visit(TypeBinaryExpression typeBinaryExpression,
       Expression expression) {
     Expression result = super.visit(typeBinaryExpression, expression);
 
@@ -166,8 +168,7 @@ public class DeterministicCodeOptimizer extends ClassDeclarationFinder {
     return methodCallExpression;
   }
 
-  @Override
-  public Expression visit(MethodCallExpression methodCallExpression,
+  @Override public Expression visit(MethodCallExpression methodCallExpression,
       Expression targetExpression, List<Expression> expressions) {
     Expression result =
         super.visit(methodCallExpression, targetExpression, expressions);
@@ -176,8 +177,7 @@ public class DeterministicCodeOptimizer extends ClassDeclarationFinder {
     return result;
   }
 
-  @Override
-  public Expression visit(MemberExpression memberExpression,
+  @Override public Expression visit(MemberExpression memberExpression,
       Expression expression) {
     Expression result = super.visit(memberExpression, expression);
 
@@ -188,8 +188,7 @@ public class DeterministicCodeOptimizer extends ClassDeclarationFinder {
     return result;
   }
 
-  @Override
-  public MemberDeclaration visit(FieldDeclaration fieldDeclaration,
+  @Override public MemberDeclaration visit(FieldDeclaration fieldDeclaration,
       Expression initializer) {
     if (Modifier.isStatic(fieldDeclaration.modifier)) {
       // Avoid optimization of static fields, since we'll have to track order
@@ -205,8 +204,7 @@ public class DeterministicCodeOptimizer extends ClassDeclarationFinder {
    *
    * @param memberDeclarations list of declarations to search finals from
    */
-  @Override
-  protected void learnFinalStaticDeclarations(
+  @Override protected void learnFinalStaticDeclarations(
       List<MemberDeclaration> memberDeclarations) {
     for (MemberDeclaration decl : memberDeclarations) {
       if (decl instanceof FieldDeclaration) {
@@ -298,8 +296,7 @@ public class DeterministicCodeOptimizer extends ClassDeclarationFinder {
    * @param expression expression to test
    * @return true when the expression is known to be constant
    */
-  @Override
-  protected boolean isConstant(Expression expression) {
+  @Override protected boolean isConstant(Expression expression) {
     return expression == null
         || expression instanceof ConstantExpression
         || !constants.isEmpty() && constants.containsKey(expression)
@@ -351,8 +348,7 @@ public class DeterministicCodeOptimizer extends ClassDeclarationFinder {
    * @param name name of the variable to test
    * @return true if the name is used by one of static final fields
    */
-  @Override
-  protected boolean hasField(String name) {
+  @Override protected boolean hasField(String name) {
     return !fieldsByName.isEmpty() && fieldsByName.containsKey(name)
         || parent != null && parent.hasField(name);
   }

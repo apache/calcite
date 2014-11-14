@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.server;
+package org.apache.calcite.server;
 
 /**
  * Server.
@@ -22,10 +22,10 @@ package net.hydromatic.optiq.server;
  * <p>Represents shared state among connections, and will have monitoring and
  * management facilities.
  */
-public interface OptiqServer {
-  void removeStatement(OptiqServerStatement optiqServerStatement);
+public interface CalciteServer {
+  void removeStatement(CalciteServerStatement calciteServerStatement);
 
-  void addStatement(OptiqServerStatement optiqServerStatement);
+  void addStatement(CalciteServerStatement calciteServerStatement);
 }
 
-// End OptiqServer.java
+// End CalciteServer.java

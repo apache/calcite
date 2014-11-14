@@ -14,53 +14,58 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel.rules;
+package org.apache.calcite.rel.rules;
 
-import java.util.*;
+import org.apache.calcite.plan.Convention;
+import org.apache.calcite.plan.RelOptRule;
+import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.Join;
+import org.apache.calcite.rel.core.SemiJoin;
+import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.util.ImmutableIntList;
 
-import org.eigenbase.rel.*;
-import org.eigenbase.relopt.*;
-import org.eigenbase.reltype.*;
-import org.eigenbase.rex.*;
-import org.eigenbase.util.ImmutableIntList;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
- * PushSemiJoinPastJoinRule implements the rule for pushing semi-joins down in a
- * tree past a join in order to trigger other rules that will convert
- * semi-joins.
+ * Planner rule that pushes a {@link org.apache.calcite.rel.core.SemiJoin}
+ * down in a tree past a {@link org.apache.calcite.rel.core.Join}
+ * in order to trigger other rules that will convert {@code SemiJoin}s.
  *
  * <ul>
- * <li>SemiJoinRel(JoinRel(X, Y), Z) &rarr; JoinRel(SemiJoinRel(X, Z), Y)
- * <li>SemiJoinRel(JoinRel(X, Y), Z) &rarr; JoinRel(X, SemiJoinRel(Y, Z))
+ * <li>SemiJoin(LogicalJoin(X, Y), Z) &rarr; LogicalJoin(SemiJoin(X, Z), Y)
+ * <li>SemiJoin(LogicalJoin(X, Y), Z) &rarr; LogicalJoin(X, SemiJoin(Y, Z))
  * </ul>
  *
  * <p>Whether this
  * first or second conversion is applied depends on which operands actually
  * participate in the semi-join.</p>
  */
-public class PushSemiJoinPastJoinRule extends RelOptRule {
-  public static final PushSemiJoinPastJoinRule INSTANCE =
-      new PushSemiJoinPastJoinRule();
+public class SemiJoinJoinTransposeRule extends RelOptRule {
+  public static final SemiJoinJoinTransposeRule INSTANCE =
+      new SemiJoinJoinTransposeRule();
 
   //~ Constructors -----------------------------------------------------------
 
   /**
-   * Creates a PushSemiJoinPastJoinRule.
+   * Creates a SemiJoinJoinTransposeRule.
    */
-  private PushSemiJoinPastJoinRule() {
+  private SemiJoinJoinTransposeRule() {
     super(
-        operand(
-            SemiJoinRel.class,
-            some(operand(JoinRelBase.class, any()))));
+        operand(SemiJoin.class,
+            some(operand(Join.class, any()))));
   }
 
   //~ Methods ----------------------------------------------------------------
 
   // implement RelOptRule
   public void onMatch(RelOptRuleCall call) {
-    SemiJoinRel semiJoin = call.rel(0);
-    final JoinRelBase join = call.rel(1);
-    if (join instanceof SemiJoinRel) {
+    SemiJoin semiJoin = call.rel(0);
+    final Join join = call.rel(1);
+    if (join instanceof SemiJoin) {
       return;
     }
     final ImmutableIntList leftKeys = semiJoin.getLeftKeys();
@@ -150,8 +155,8 @@ public class PushSemiJoinPastJoinRule extends RelOptRule {
     } else {
       leftSemiJoinOp = join.getRight();
     }
-    SemiJoinRel newSemiJoin =
-        new SemiJoinRel(
+    SemiJoin newSemiJoin =
+        new SemiJoin(
             semiJoin.getCluster(),
             semiJoin.getCluster().traitSetOf(Convention.NONE),
             leftSemiJoinOp,
@@ -216,4 +221,4 @@ public class PushSemiJoinPastJoinRule extends RelOptRule {
   }
 }
 
-// End PushSemiJoinPastJoinRule.java
+// End SemiJoinJoinTransposeRule.java

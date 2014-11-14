@@ -14,18 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql.fun;
+package org.apache.calcite.sql.fun;
 
-import org.eigenbase.sql.*;
-import org.eigenbase.sql.type.*;
+import org.apache.calcite.sql.SqlFunctionalOperator;
+import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.type.OperandTypes;
+import org.apache.calcite.sql.type.ReturnTypes;
 
 /**
  * SqlCollectionTableOperator is the "table function derived table" operator. It
  * converts a table-valued function into a relation, e.g. "<code>SELECT * FROM
  * TABLE(ramp(5))</code>".
  *
- * <p>This operator has function syntax (with one argument), whereas {@link
- * SqlStdOperatorTable#EXPLICIT_TABLE} is a prefix operator.
+ * <p>This operator has function syntax (with one argument), whereas
+ * {@link SqlStdOperatorTable#EXPLICIT_TABLE} is a prefix operator.
  */
 public class SqlCollectionTableOperator extends SqlFunctionalOperator {
   //~ Static fields/initializers ---------------------------------------------

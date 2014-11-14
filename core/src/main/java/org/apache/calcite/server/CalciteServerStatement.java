@@ -14,20 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.server;
+package org.apache.calcite.server;
 
-import net.hydromatic.optiq.jdbc.OptiqConnection;
-import net.hydromatic.optiq.jdbc.OptiqPrepare;
+import org.apache.calcite.jdbc.CalciteConnection;
+import org.apache.calcite.jdbc.CalcitePrepare;
 
 /**
  * Statement within a Calcite server.
  */
-public interface OptiqServerStatement {
+public interface CalciteServerStatement {
   /** Creates a context for preparing a statement for execution. */
-  OptiqPrepare.Context createPrepareContext();
+  CalcitePrepare.Context createPrepareContext();
 
   /** Returns the connection. */
-  OptiqConnection getConnection();
+  CalciteConnection getConnection();
 }
 
-// End OptiqServerStatement.java
+// End CalciteServerStatement.java

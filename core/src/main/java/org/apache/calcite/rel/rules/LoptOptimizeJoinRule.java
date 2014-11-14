@@ -14,30 +14,57 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel.rules;
+package org.apache.calcite.rel.rules;
 
-import java.util.*;
-
-import org.eigenbase.rel.*;
-import org.eigenbase.rel.metadata.*;
-import org.eigenbase.relopt.*;
-import org.eigenbase.reltype.*;
-import org.eigenbase.rex.*;
-import org.eigenbase.sql.fun.*;
-import org.eigenbase.util.ImmutableIntList;
-import org.eigenbase.util.Pair;
-import org.eigenbase.util.mapping.IntPair;
-
-import net.hydromatic.optiq.util.BitSets;
+import org.apache.calcite.plan.RelOptCost;
+import org.apache.calcite.plan.RelOptRule;
+import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.Join;
+import org.apache.calcite.rel.core.JoinInfo;
+import org.apache.calcite.rel.core.JoinRelType;
+import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.core.RelFactories;
+import org.apache.calcite.rel.core.SemiJoin;
+import org.apache.calcite.rel.metadata.RelColumnOrigin;
+import org.apache.calcite.rel.metadata.RelMdUtil;
+import org.apache.calcite.rel.metadata.RelMetadataQuery;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexInputRef;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexUtil;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.util.BitSets;
+import org.apache.calcite.util.ImmutableIntList;
+import org.apache.calcite.util.Pair;
+import org.apache.calcite.util.mapping.IntPair;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
+
+import java.util.ArrayList;
+import java.util.BitSet;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.ListIterator;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
 
 /**
  * Planner rule that implements the heuristic planner for determining optimal
  * join orderings.
  *
- * <p>It is triggered by the pattern {@link ProjectRel} ({@link MultiJoinRel}).
+ * <p>It is triggered by the pattern
+ * {@link org.apache.calcite.rel.logical.LogicalProject}
+ * ({@link MultiJoin}).
  */
 public class LoptOptimizeJoinRule extends RelOptRule {
   public static final LoptOptimizeJoinRule INSTANCE =
@@ -55,7 +82,7 @@ public class LoptOptimizeJoinRule extends RelOptRule {
       RelFactories.JoinFactory joinFactory,
       RelFactories.ProjectFactory projectFactory,
       RelFactories.FilterFactory filterFactory) {
-    super(operand(MultiJoinRel.class, any()));
+    super(operand(MultiJoin.class, any()));
     this.joinFactory = joinFactory;
     this.projectFactory = projectFactory;
     this.filterFactory = filterFactory;
@@ -65,7 +92,7 @@ public class LoptOptimizeJoinRule extends RelOptRule {
 
   // implement RelOptRule
   public void onMatch(RelOptRuleCall call) {
-    final MultiJoinRel multiJoinRel = call.rel(0);
+    final MultiJoin multiJoinRel = call.rel(0);
     final LoptMultiJoin multiJoin = new LoptMultiJoin(multiJoinRel);
 
     findRemovableOuterJoins(multiJoin);
@@ -509,8 +536,8 @@ public class LoptOptimizeJoinRule extends RelOptRule {
                 newOffset));
       }
     }
-    ProjectRelBase newProject =
-        (ProjectRelBase) projectFactory.createProject(
+    Project newProject =
+        (Project) projectFactory.createProject(
             joinTree.getJoinTree(),
             newProjExprs,
             fieldNames);
@@ -798,15 +825,15 @@ public class LoptOptimizeJoinRule extends RelOptRule {
   }
 
   /**
-   * Returns true if a relnode corresponds to a JoinRel that wasn't one of the
-   * original MultiJoinRel input factors
+   * Returns whether a RelNode corresponds to a Join that wasn't one of the
+   * original MultiJoin input factors.
    */
   private boolean isJoinTree(RelNode rel) {
     // full outer joins were already optimized in a prior instantiation
     // of this rule; therefore we should never see a join input that's
     // a full outer join
-    if (rel instanceof JoinRelBase) {
-      assert ((JoinRelBase) rel).getJoinType() != JoinRelType.FULL;
+    if (rel instanceof Join) {
+      assert ((Join) rel).getJoinType() != JoinRelType.FULL;
       return true;
     } else {
       return false;
@@ -949,10 +976,10 @@ public class LoptOptimizeJoinRule extends RelOptRule {
     // The width cost is the width of the tree itself plus the widths
     // of its children.  Hence, skinnier rows are better when they're
     // lower in the tree since the width of a RelNode contributes to
-    // the cost of each JoinRel that appears above that RelNode.
+    // the cost of each LogicalJoin that appears above that RelNode.
     int width = tree.getRowType().getFieldCount();
     if (isJoinTree(tree)) {
-      JoinRelBase joinRel = (JoinRelBase) tree;
+      Join joinRel = (Join) tree;
       width +=
           rowWidthCost(joinRel.getLeft())
               + rowWidthCost(joinRel.getRight());
@@ -993,7 +1020,7 @@ public class LoptOptimizeJoinRule extends RelOptRule {
     int childNo = -1;
     LoptJoinTree left = joinTree.getLeft();
     LoptJoinTree right = joinTree.getRight();
-    JoinRelBase joinRel = (JoinRelBase) joinTree.getJoinTree();
+    Join joinRel = (Join) joinTree.getJoinTree();
     JoinRelType joinType = joinRel.getJoinType();
 
     // can't push factors pass self-joins because in order to later remove
@@ -1065,7 +1092,7 @@ public class LoptOptimizeJoinRule extends RelOptRule {
     // pushdown of the new factor as well as any swapping that may have
     // been done during the pushdown
     RexNode newCondition =
-        ((JoinRelBase) joinTree.getJoinTree()).getCondition();
+        ((Join) joinTree.getJoinTree()).getCondition();
     newCondition =
         adjustFilter(
             multiJoin,
@@ -1142,7 +1169,7 @@ public class LoptOptimizeJoinRule extends RelOptRule {
     // as a left outer join since it's being added to the RHS side of
     // the join; createJoinSubTree may swap the inputs and therefore
     // convert the left outer join to a right outer join; if the original
-    // MultiJoinRel was a full outer join, these should be the only
+    // MultiJoin was a full outer join, these should be the only
     // factors in the join, so create the join as a full outer join
     JoinRelType joinType;
     if (multiJoin.getMultiJoinRel().isFullOuterJoin()) {
@@ -1510,7 +1537,7 @@ public class LoptOptimizeJoinRule extends RelOptRule {
         multiJoin.getJoinFactor(dimIdx).getRowType().getFieldList();
     int nDimFields = dimFields.size();
     Integer [] replacementKeys = new Integer[nDimFields];
-    SemiJoinRel semiJoin = multiJoin.getJoinRemovalSemiJoin(dimIdx);
+    SemiJoin semiJoin = multiJoin.getJoinRemovalSemiJoin(dimIdx);
     ImmutableIntList dimKeys = semiJoin.getRightKeys();
     ImmutableIntList factKeys = semiJoin.getLeftKeys();
     for (int i = 0; i < dimKeys.size(); i++) {
@@ -1614,8 +1641,8 @@ public class LoptOptimizeJoinRule extends RelOptRule {
       }
       projects.add(Pair.of(projExpr, newFields.get(i).getName()));
     }
-    ProjectRelBase projRel =
-        (ProjectRelBase) projectFactory.createProject(
+    Project projRel =
+        (Project) projectFactory.createProject(
             currJoinRel,
             Pair.left(projects),
             Pair.right(projects));
@@ -1637,7 +1664,7 @@ public class LoptOptimizeJoinRule extends RelOptRule {
 
     // Filters referencing factors other than leftIdx and factorToAdd
     // still do need to be applied.  So, add them into a separate
-    // FilterRel placed on top off the projection created above.
+    // LogicalFilter placed on top off the projection created above.
     RelNode topRelNode = projRel;
     if (leftIdx >= 0) {
       topRelNode =
@@ -1661,7 +1688,7 @@ public class LoptOptimizeJoinRule extends RelOptRule {
   }
 
   /**
-   * Creates a JoinRel given left and right operands and a join condition.
+   * Creates a LogicalJoin given left and right operands and a join condition.
    * Swaps the operands if beneficial.
    *
    * @param multiJoin join factors being optimized
@@ -1674,11 +1701,11 @@ public class LoptOptimizeJoinRule extends RelOptRule {
    * otherwise, the condition has already been partially adjusted and only
    * needs to be further adjusted if swapping is done
    * @param filtersToAdd additional filters that may be added on top of the
-   * resulting JoinRel, if the join is a left or right outer join
+   * resulting LogicalJoin, if the join is a left or right outer join
    * @param selfJoin true if the join being created is a self-join that's
    * removable
    *
-   * @return created JoinRel
+   * @return created LogicalJoin
    */
   private LoptJoinTree createJoinSubtree(
       LoptMultiJoin multiJoin,
@@ -1960,7 +1987,7 @@ public class LoptOptimizeJoinRule extends RelOptRule {
    *
    * @return true if the join is removable
    */
-  public static boolean isRemovableSelfJoin(JoinRelBase joinRel) {
+  public static boolean isRemovableSelfJoin(Join joinRel) {
     final RelNode left = joinRel.getLeft();
     final RelNode right = joinRel.getRight();
 

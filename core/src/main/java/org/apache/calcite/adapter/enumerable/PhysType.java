@@ -14,15 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.rules.java;
+package org.apache.calcite.adapter.enumerable;
 
-import net.hydromatic.linq4j.expressions.Expression;
-import net.hydromatic.linq4j.expressions.ParameterExpression;
-
-import org.eigenbase.rel.RelCollation;
-import org.eigenbase.rel.RelFieldCollation;
-import org.eigenbase.reltype.RelDataType;
-import org.eigenbase.util.Pair;
+import org.apache.calcite.linq4j.tree.Expression;
+import org.apache.calcite.linq4j.tree.ParameterExpression;
+import org.apache.calcite.rel.RelCollation;
+import org.apache.calcite.rel.RelFieldCollation;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.util.Pair;
 
 import java.lang.reflect.Type;
 import java.util.List;

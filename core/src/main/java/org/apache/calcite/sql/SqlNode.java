@@ -14,20 +14,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql;
+package org.apache.calcite.sql;
 
-import java.util.*;
+import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.pretty.SqlPrettyWriter;
+import org.apache.calcite.sql.util.SqlString;
+import org.apache.calcite.sql.util.SqlVisitor;
+import org.apache.calcite.sql.validate.SqlMoniker;
+import org.apache.calcite.sql.validate.SqlMonotonicity;
+import org.apache.calcite.sql.validate.SqlValidator;
+import org.apache.calcite.sql.validate.SqlValidatorScope;
+import org.apache.calcite.util.Util;
 
-import org.eigenbase.sql.parser.*;
-import org.eigenbase.sql.pretty.*;
-import org.eigenbase.sql.util.*;
-import org.eigenbase.sql.validate.*;
-import org.eigenbase.util.*;
+import java.util.List;
+import java.util.Set;
 
 /**
- * A <code>SqlNode</code> is a SQL parse tree. It may be an {@link SqlOperator
- * operator}, {@link SqlLiteral literal}, {@link SqlIdentifier identifier}, and
- * so forth.
+ * A <code>SqlNode</code> is a SQL parse tree.
+ *
+ * <p>It may be an
+ * {@link SqlOperator operator}, {@link SqlLiteral literal},
+ * {@link SqlIdentifier identifier}, and so forth.
  */
 public abstract class SqlNode implements Cloneable {
   //~ Static fields/initializers ---------------------------------------------
@@ -71,8 +78,8 @@ public abstract class SqlNode implements Cloneable {
   }
 
   /**
-   * Returns the type of node this is, or {@link
-   * org.eigenbase.sql.SqlKind#OTHER} if it's nothing special.
+   * Returns the type of node this is, or
+   * {@link org.apache.calcite.sql.SqlKind#OTHER} if it's nothing special.
    *
    * @return a {@link SqlKind} value, never null
    * @see #isA
@@ -227,8 +234,8 @@ public abstract class SqlNode implements Cloneable {
    * Accepts a generic visitor.
    *
    * <p>Implementations of this method in subtypes simply call the appropriate
-   * <code>visit</code> method on the {@link org.eigenbase.sql.util.SqlVisitor
-   * visitor object}.
+   * <code>visit</code> method on the
+   * {@link org.apache.calcite.sql.util.SqlVisitor visitor object}.
    *
    * <p>The type parameter <code>R</code> must be consistent with the type
    * parameter of the visitor.
@@ -248,8 +255,8 @@ public abstract class SqlNode implements Cloneable {
   public abstract boolean equalsDeep(SqlNode node, boolean fail);
 
   /**
-   * Returns whether two nodes are equal (using {@link
-   * #equalsDeep(SqlNode, boolean)}) or are both null.
+   * Returns whether two nodes are equal (using
+   * {@link #equalsDeep(SqlNode, boolean)}) or are both null.
    *
    * @param node1 First expression
    * @param node2 Second expression
@@ -274,8 +281,8 @@ public abstract class SqlNode implements Cloneable {
    * This property is useful because it allows to safely aggregte infinite
    * streams of values.
    *
-   * <p>The default implementation returns {@link
-   * SqlMonotonicity#NOT_MONOTONIC}.
+   * <p>The default implementation returns
+   * {@link SqlMonotonicity#NOT_MONOTONIC}.
    */
   public SqlMonotonicity getMonotonicity(SqlValidatorScope scope) {
     return SqlMonotonicity.NOT_MONOTONIC;

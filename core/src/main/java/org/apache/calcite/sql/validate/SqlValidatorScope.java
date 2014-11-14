@@ -14,21 +14,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql.validate;
+package org.apache.calcite.sql.validate;
 
-import java.util.*;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlIdentifier;
+import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlNodeList;
+import org.apache.calcite.sql.SqlWindow;
 
-import org.eigenbase.reltype.*;
-import org.eigenbase.sql.*;
+import java.util.List;
 
 /**
  * Name-resolution scope. Represents any position in a parse tree than an
  * expression can be, or anything in the parse tree which has columns.
  *
- * <p>When validating an expression, say "foo"."bar", you first use the {@link
- * #resolve} method of the scope where the expression is defined to locate
- * "foo". If successful, this returns a {@link SqlValidatorNamespace namespace}
- * describing the type of the resulting object.
+ * <p>When validating an expression, say "foo"."bar", you first use the
+ * {@link #resolve} method of the scope where the expression is defined to
+ * locate "foo". If successful, this returns a
+ * {@link SqlValidatorNamespace namespace} describing the type of the resulting
+ * object.
  */
 public interface SqlValidatorScope {
   //~ Methods ----------------------------------------------------------------
@@ -59,11 +64,11 @@ public interface SqlValidatorScope {
    * Finds the table alias which is implicitly qualifying an unqualified
    * column name. Throws an error if there is not exactly one table.
    *
-   * <p>This method is only implemented in scopes (such as {@link
-   * org.eigenbase.sql.validate.SelectScope}) which can be the context for
-   * name-resolution. In scopes such as {@link
-   * org.eigenbase.sql.validate.IdentifierNamespace}, it throws {@link
-   * UnsupportedOperationException}.</p>
+   * <p>This method is only implemented in scopes (such as
+   * {@link org.apache.calcite.sql.validate.SelectScope}) which can be the
+   * context for name-resolution. In scopes such as
+   * {@link org.apache.calcite.sql.validate.IdentifierNamespace}, it throws
+   * {@link UnsupportedOperationException}.</p>
    *
    * @param columnName Column name
    * @param ctx        Validation context, to appear in any error thrown

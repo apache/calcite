@@ -14,21 +14,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.test;
+package org.apache.calcite.test;
 
-import java.nio.charset.*;
-import java.util.regex.*;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.runtime.CalciteContextException;
+import org.apache.calcite.sql.SqlCollation;
+import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.parser.SqlParseException;
+import org.apache.calcite.sql.parser.SqlParserUtil;
+import org.apache.calcite.sql.test.DefaultSqlTestFactory;
+import org.apache.calcite.sql.test.SqlTester;
+import org.apache.calcite.sql.test.SqlTesterImpl;
+import org.apache.calcite.sql.validate.SqlConformance;
+import org.apache.calcite.sql.validate.SqlMonotonicity;
+import org.apache.calcite.sql.validate.SqlValidator;
+import org.apache.calcite.util.TestUtil;
+import org.apache.calcite.util.Util;
 
-import org.eigenbase.reltype.*;
-import org.eigenbase.sql.*;
-import org.eigenbase.sql.parser.*;
-import org.eigenbase.sql.test.DefaultSqlTestFactory;
-import org.eigenbase.sql.test.SqlTester;
-import org.eigenbase.sql.test.SqlTesterImpl;
-import org.eigenbase.sql.validate.*;
-import org.eigenbase.util.*;
+import java.nio.charset.Charset;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.fail;
 
 /**
  * An abstract base class for implementing tests against {@link SqlValidator}.
@@ -210,9 +217,8 @@ public class SqlValidatorTestCase {
         // No error expected, and no error happened.
         return;
       } else {
-        throw new AssertionError(
-            "Expected query to throw exception, but it did not; "
-            + "query [" + sap.sql
+        throw new AssertionError("Expected query to throw exception, "
+            + "but it did not; query [" + sap.sql
             + "]; expected [" + expectedMsgPattern + "]");
       }
     }
@@ -223,11 +229,11 @@ public class SqlValidatorTestCase {
     int actualEndLine = 100;
     int actualEndColumn = 99;
 
-    // Search for an EigenbaseContextException somewhere in the stack.
-    EigenbaseContextException ece = null;
+    // Search for an CalciteContextException somewhere in the stack.
+    CalciteContextException ece = null;
     for (Throwable x = ex; x != null; x = x.getCause()) {
-      if (x instanceof EigenbaseContextException) {
-        ece = (EigenbaseContextException) x;
+      if (x instanceof CalciteContextException) {
+        ece = (CalciteContextException) x;
         break;
       }
       if (x.getCause() == x) {
@@ -313,8 +319,7 @@ public class SqlValidatorTestCase {
             || (actualEndColumn <= 0)
             || (actualEndLine <= 0)) {
           if (sap.pos != null) {
-            throw new AssertionError(
-                "Expected error to have position,"
+            throw new AssertionError("Expected error to have position,"
                 + " but actual error did not: "
                 + " actual pos [line " + actualLine
                 + " col " + actualColumn
@@ -347,8 +352,7 @@ public class SqlValidatorTestCase {
               (actualMessage == null) ? "null"
                   : TestUtil.quoteForJava(
                       TestUtil.quotePattern(actualMessage));
-          fail(
-              "Validator threw different "
+          fail("Validator threw different "
               + "exception than expected; query [" + sap.sql
               + "];\n"
               + " expected pattern [" + expectedMsgPattern

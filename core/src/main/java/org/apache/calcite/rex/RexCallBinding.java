@@ -14,18 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rex;
+package org.apache.calcite.rex;
 
-import java.util.List;
-
-import org.eigenbase.reltype.*;
-import org.eigenbase.resource.Resources;
-import org.eigenbase.sql.*;
-import org.eigenbase.sql.parser.*;
-import org.eigenbase.sql.validate.*;
-import org.eigenbase.util.*;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.runtime.CalciteException;
+import org.apache.calcite.runtime.Resources;
+import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.SqlOperatorBinding;
+import org.apache.calcite.sql.SqlUtil;
+import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.validate.SqlValidatorException;
 
 import com.google.common.collect.ImmutableList;
+
+import java.util.List;
 
 /**
  * <code>RexCallBinding</code> implements {@link SqlOperatorBinding} by
@@ -73,7 +76,7 @@ public class RexCallBinding extends SqlOperatorBinding {
     return operands.get(ordinal).getType();
   }
 
-  public EigenbaseException newError(
+  public CalciteException newError(
       Resources.ExInst<SqlValidatorException> e) {
     return SqlUtil.newContextException(SqlParserPos.ZERO, e);
   }

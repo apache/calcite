@@ -14,15 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.impl.csv;
+package org.apache.calcite.adapter.csv;
 
-import net.hydromatic.optiq.*;
-import net.hydromatic.optiq.impl.AbstractSchema;
+import org.apache.calcite.schema.Table;
+import org.apache.calcite.schema.impl.AbstractSchema;
 
 import com.google.common.collect.ImmutableMap;
 
-import java.io.*;
-import java.util.*;
+import java.io.File;
+import java.io.FilenameFilter;
+import java.util.Map;
 
 /**
  * Schema mapped onto a directory of CSV files. Each table in the schema
@@ -62,8 +63,7 @@ public class CsvSchema extends AbstractSchema {
         : null;
   }
 
-  @Override
-  protected Map<String, Table> getTableMap() {
+  @Override protected Map<String, Table> getTableMap() {
     // Look for files in the directory ending in ".csv", ".csv.gz", ".json",
     // ".json.gz".
     File[] files = directoryFile.listFiles(

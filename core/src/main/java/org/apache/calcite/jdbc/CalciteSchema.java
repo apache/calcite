@@ -14,32 +14,49 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.jdbc;
+package org.apache.calcite.jdbc;
 
-import net.hydromatic.linq4j.Linq4j;
-import net.hydromatic.linq4j.expressions.Expression;
-
-import net.hydromatic.optiq.*;
-import net.hydromatic.optiq.Table;
-import net.hydromatic.optiq.impl.MaterializedViewTable;
-import net.hydromatic.optiq.impl.StarTable;
-import net.hydromatic.optiq.materialize.Lattice;
-import net.hydromatic.optiq.util.Compatible;
-
-import org.eigenbase.util.Pair;
+import org.apache.calcite.linq4j.Linq4j;
+import org.apache.calcite.linq4j.tree.Expression;
+import org.apache.calcite.materialize.Lattice;
+import org.apache.calcite.schema.Function;
+import org.apache.calcite.schema.Schema;
+import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.schema.Table;
+import org.apache.calcite.schema.TableMacro;
+import org.apache.calcite.schema.impl.MaterializedViewTable;
+import org.apache.calcite.schema.impl.StarTable;
+import org.apache.calcite.util.Compatible;
+import org.apache.calcite.util.Pair;
 
 import com.google.common.base.Preconditions;
-import com.google.common.cache.*;
-import com.google.common.collect.*;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSortedMap;
+import com.google.common.collect.ImmutableSortedSet;
+import com.google.common.collect.LinkedListMultimap;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Multimap;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
+import java.util.NavigableMap;
+import java.util.NavigableSet;
+import java.util.Set;
+import java.util.TreeMap;
+import java.util.TreeSet;
 
 /**
  * Schema.
  *
  * <p>Wrapper around user-defined schema used internally.</p>
  */
-public class OptiqSchema {
+public class CalciteSchema {
   /** Comparator that compares all strings differently, but if two strings are
    * equal in case-insensitive match they are right next to each other. In a
    * collection sorted on this comparator, we can find case-insensitive matches
@@ -56,7 +73,7 @@ public class OptiqSchema {
         }
       };
 
-  private final OptiqSchema parent;
+  private final CalciteSchema parent;
   public final Schema schema;
   public final String name;
   /** Tables explicitly defined in this schema. Does not include tables in
@@ -71,23 +88,23 @@ public class OptiqSchema {
       new TreeSet<String>(COMPARATOR);
   private final NavigableMap<String, FunctionEntry> nullaryFunctionMap =
       new TreeMap<String, FunctionEntry>(COMPARATOR);
-  private final NavigableMap<String, OptiqSchema> subSchemaMap =
-      new TreeMap<String, OptiqSchema>(COMPARATOR);
+  private final NavigableMap<String, CalciteSchema> subSchemaMap =
+      new TreeMap<String, CalciteSchema>(COMPARATOR);
   private ImmutableList<ImmutableList<String>> path;
   private boolean cache = true;
   private final Cached<SubSchemaCache> implicitSubSchemaCache;
   private final Cached<NavigableSet<String>> implicitTableCache;
   private final Cached<NavigableSet<String>> implicitFunctionCache;
 
-  public OptiqSchema(OptiqSchema parent, final Schema schema, String name) {
+  public CalciteSchema(CalciteSchema parent, final Schema schema, String name) {
     this.parent = parent;
     this.schema = schema;
     this.name = name;
-    assert (parent == null) == (this instanceof OptiqRootSchema);
+    assert (parent == null) == (this instanceof CalciteRootSchema);
     this.implicitSubSchemaCache =
         new AbstractCached<SubSchemaCache>() {
           public SubSchemaCache build() {
-            return new SubSchemaCache(OptiqSchema.this,
+            return new SubSchemaCache(CalciteSchema.this,
                 Compatible.INSTANCE.navigableSet(
                     ImmutableSortedSet.copyOf(COMPARATOR,
                         schema.getSubSchemaNames())));
@@ -114,9 +131,9 @@ public class OptiqSchema {
   /** Creates a root schema. When <code>addMetadataSchema</code> argument is
    * true a "metadata" schema containing definitions of tables, columns etc. is
    * added to root schema. */
-  public static OptiqRootSchema createRootSchema(boolean addMetadataSchema) {
-    OptiqRootSchema rootSchema =
-        new OptiqRootSchema(new OptiqConnectionImpl.RootSchema());
+  public static CalciteRootSchema createRootSchema(boolean addMetadataSchema) {
+    CalciteRootSchema rootSchema =
+        new CalciteRootSchema(new CalciteConnectionImpl.RootSchema());
     if (addMetadataSchema) {
       rootSchema.add("metadata", MetadataSchema.INSTANCE);
     }
@@ -157,10 +174,10 @@ public class OptiqSchema {
     return entry;
   }
 
-  public OptiqRootSchema root() {
-    for (OptiqSchema schema = this;;) {
+  public CalciteRootSchema root() {
+    for (CalciteSchema schema = this;;) {
       if (schema.parent == null) {
-        return (OptiqRootSchema) schema;
+        return (CalciteRootSchema) schema;
       }
       schema = schema.parent;
     }
@@ -172,7 +189,7 @@ public class OptiqSchema {
     if (name != null) {
       list.add(name);
     }
-    for (OptiqSchema s = this; s != null; s = s.parent) {
+    for (CalciteSchema s = this; s != null; s = s.parent) {
       if (s.parent != null || !s.name.equals("")) {
         // Omit the root schema's name from the path if it's the empty string,
         // which it usually is.
@@ -193,11 +210,11 @@ public class OptiqSchema {
     this.cache = cache;
   }
 
-  public final OptiqSchema getSubSchema(String schemaName,
+  public final CalciteSchema getSubSchema(String schemaName,
       boolean caseSensitive) {
     if (caseSensitive) {
       // Check explicit schemas, case-sensitive.
-      final OptiqSchema entry = subSchemaMap.get(schemaName);
+      final CalciteSchema entry = subSchemaMap.get(schemaName);
       if (entry != null) {
         return entry;
       }
@@ -211,7 +228,7 @@ public class OptiqSchema {
     } else {
       // Check explicit schemas, case-insensitive.
       //noinspection LoopStatementThatDoesntLoop
-      for (Map.Entry<String, OptiqSchema> entry
+      for (Map.Entry<String, CalciteSchema> entry
           : find(subSchemaMap, schemaName).entrySet()) {
         return entry.getValue();
       }
@@ -228,10 +245,10 @@ public class OptiqSchema {
   }
 
   /** Adds a child schema of this schema. */
-  public OptiqSchema add(String name, Schema schema) {
-    final OptiqSchema optiqSchema = new OptiqSchema(this, schema, name);
-    subSchemaMap.put(name, optiqSchema);
-    return optiqSchema;
+  public CalciteSchema add(String name, Schema schema) {
+    final CalciteSchema calciteSchema = new CalciteSchema(this, schema, name);
+    subSchemaMap.put(name, calciteSchema);
+    return calciteSchema;
   }
 
   /** Returns a table that materializes the given SQL statement. */
@@ -292,8 +309,8 @@ public class OptiqSchema {
     return new SchemaPlusImpl();
   }
 
-  public static OptiqSchema from(SchemaPlus plus) {
-    return ((SchemaPlusImpl) plus).optiqSchema();
+  public static CalciteSchema from(SchemaPlus plus) {
+    return ((SchemaPlusImpl) plus).calciteSchema();
   }
 
   /** Returns the default path resolving functions from this schema.
@@ -314,14 +331,14 @@ public class OptiqSchema {
   }
 
   /** Returns a collection of sub-schemas, both explicit (defined using
-   * {@link #add(String, net.hydromatic.optiq.Schema)}) and implicit
-   * (defined using {@link net.hydromatic.optiq.Schema#getSubSchemaNames()}
+   * {@link #add(String, org.apache.calcite.schema.Schema)}) and implicit
+   * (defined using {@link org.apache.calcite.schema.Schema#getSubSchemaNames()}
    * and {@link Schema#getSubSchema(String)}). */
-  public NavigableMap<String, OptiqSchema> getSubSchemaMap() {
+  public NavigableMap<String, CalciteSchema> getSubSchemaMap() {
     // Build a map of implicit sub-schemas first, then explicit sub-schemas.
     // If there are implicit and explicit with the same name, explicit wins.
-    final ImmutableSortedMap.Builder<String, OptiqSchema> builder =
-        new ImmutableSortedMap.Builder<String, OptiqSchema>(COMPARATOR);
+    final ImmutableSortedMap.Builder<String, CalciteSchema> builder =
+        new ImmutableSortedMap.Builder<String, CalciteSchema>(COMPARATOR);
     final long now = System.currentTimeMillis();
     final SubSchemaCache subSchemaCache = implicitSubSchemaCache.get(now);
     for (String name : subSchemaCache.names) {
@@ -501,10 +518,10 @@ public class OptiqSchema {
    * <p>The members of a schema must have unique names.
    */
   public abstract static class Entry {
-    public final OptiqSchema schema;
+    public final CalciteSchema schema;
     public final String name;
 
-    public Entry(OptiqSchema schema, String name) {
+    public Entry(CalciteSchema schema, String name) {
       Linq4j.requireNonNull(schema);
       Linq4j.requireNonNull(name);
       this.schema = schema;
@@ -521,7 +538,7 @@ public class OptiqSchema {
   public abstract static class TableEntry extends Entry {
     public final List<String> sqls;
 
-    public TableEntry(OptiqSchema schema, String name,
+    public TableEntry(CalciteSchema schema, String name,
         ImmutableList<String> sqls) {
       super(schema, name);
       this.sqls = Preconditions.checkNotNull(sqls);
@@ -532,7 +549,7 @@ public class OptiqSchema {
 
   /** Membership of a function in a schema. */
   public abstract static class FunctionEntry extends Entry {
-    public FunctionEntry(OptiqSchema schema, String name) {
+    public FunctionEntry(CalciteSchema schema, String name) {
       super(schema, name);
     }
 
@@ -545,7 +562,7 @@ public class OptiqSchema {
 
   /** Membership of a lattice in a schema. */
   public abstract static class LatticeEntry extends Entry {
-    public LatticeEntry(OptiqSchema schema, String name) {
+    public LatticeEntry(CalciteSchema schema, String name) {
       super(schema, name);
     }
 
@@ -554,10 +571,11 @@ public class OptiqSchema {
     public abstract TableEntry getStarTable();
   }
 
-  /** Implementation of {@link SchemaPlus} based on an {@code OptiqSchema}. */
+  /** Implementation of {@link SchemaPlus} based on a
+   * {@link org.apache.calcite.jdbc.CalciteSchema}. */
   private class SchemaPlusImpl implements SchemaPlus {
-    public OptiqSchema optiqSchema() {
-      return OptiqSchema.this;
+    CalciteSchema calciteSchema() {
+      return CalciteSchema.this;
     }
 
     public SchemaPlus getParentSchema() {
@@ -565,7 +583,7 @@ public class OptiqSchema {
     }
 
     public String getName() {
-      return OptiqSchema.this.getName();
+      return CalciteSchema.this.getName();
     }
 
     public boolean isMutable() {
@@ -573,11 +591,11 @@ public class OptiqSchema {
     }
 
     public void setCacheEnabled(boolean cache) {
-      OptiqSchema.this.setCache(cache);
+      CalciteSchema.this.setCache(cache);
     }
 
     public boolean isCacheEnabled() {
-      return OptiqSchema.this.cache;
+      return CalciteSchema.this.cache;
     }
 
     public boolean contentsHaveChangedSince(long lastCheck, long now) {
@@ -589,75 +607,76 @@ public class OptiqSchema {
     }
 
     public Table getTable(String name) {
-      final Pair<String, Table> pair = OptiqSchema.this.getTable(name, true);
+      final Pair<String, Table> pair = CalciteSchema.this.getTable(name, true);
       return pair == null ? null : pair.getValue();
     }
 
     public NavigableSet<String> getTableNames() {
-      return OptiqSchema.this.getTableNames();
+      return CalciteSchema.this.getTableNames();
     }
 
     public Collection<Function> getFunctions(String name) {
-      return OptiqSchema.this.getFunctions(name, true);
+      return CalciteSchema.this.getFunctions(name, true);
     }
 
     public NavigableSet<String> getFunctionNames() {
-      return OptiqSchema.this.getFunctionNames();
+      return CalciteSchema.this.getFunctionNames();
     }
 
     public SchemaPlus getSubSchema(String name) {
-      final OptiqSchema subSchema = OptiqSchema.this.getSubSchema(name, true);
+      final CalciteSchema subSchema =
+          CalciteSchema.this.getSubSchema(name, true);
       return subSchema == null ? null : subSchema.plus();
     }
 
     public Set<String> getSubSchemaNames() {
-      return OptiqSchema.this.getSubSchemaMap().keySet();
+      return CalciteSchema.this.getSubSchemaMap().keySet();
     }
 
     public SchemaPlus add(String name, Schema schema) {
-      final OptiqSchema optiqSchema = OptiqSchema.this.add(name, schema);
-      return optiqSchema.plus();
+      final CalciteSchema calciteSchema = CalciteSchema.this.add(name, schema);
+      return calciteSchema.plus();
     }
 
     public <T> T unwrap(Class<T> clazz) {
       if (clazz.isInstance(this)) {
         return clazz.cast(this);
       }
-      if (clazz.isInstance(OptiqSchema.this)) {
-        return clazz.cast(OptiqSchema.this);
+      if (clazz.isInstance(CalciteSchema.this)) {
+        return clazz.cast(CalciteSchema.this);
       }
-      if (clazz.isInstance(OptiqSchema.this.schema)) {
-        return clazz.cast(OptiqSchema.this.schema);
+      if (clazz.isInstance(CalciteSchema.this.schema)) {
+        return clazz.cast(CalciteSchema.this.schema);
       }
       throw new ClassCastException("not a " + clazz);
     }
 
     public void setPath(ImmutableList<ImmutableList<String>> path) {
-      OptiqSchema.this.path = path;
+      CalciteSchema.this.path = path;
     }
 
     public void add(String name, Table table) {
-      OptiqSchema.this.add(name, table);
+      CalciteSchema.this.add(name, table);
     }
 
-    public void add(String name, net.hydromatic.optiq.Function function) {
-      OptiqSchema.this.add(name, function);
+    public void add(String name, Function function) {
+      CalciteSchema.this.add(name, function);
     }
 
     public void add(String name, Lattice lattice) {
-      OptiqSchema.this.add(name, lattice);
+      CalciteSchema.this.add(name, lattice);
     }
   }
 
   /**
-   * Implementation of {@link net.hydromatic.optiq.jdbc.OptiqSchema.TableEntry}
+   * Implementation of {@link CalciteSchema.TableEntry}
    * where all properties are held in fields.
    */
   public static class TableEntryImpl extends TableEntry {
     private final Table table;
 
     /** Creates a TableEntryImpl. */
-    public TableEntryImpl(OptiqSchema schema, String name, Table table,
+    public TableEntryImpl(CalciteSchema schema, String name, Table table,
         ImmutableList<String> sqls) {
       super(schema, name, sqls);
       assert table != null;
@@ -677,7 +696,7 @@ public class OptiqSchema {
     private final Function function;
 
     /** Creates a FunctionEntryImpl. */
-    public FunctionEntryImpl(OptiqSchema schema, String name,
+    public FunctionEntryImpl(CalciteSchema schema, String name,
         Function function) {
       super(schema, name);
       this.function = function;
@@ -699,10 +718,11 @@ public class OptiqSchema {
    */
   public static class LatticeEntryImpl extends LatticeEntry {
     private final Lattice lattice;
-    private final OptiqSchema.TableEntry starTableEntry;
+    private final CalciteSchema.TableEntry starTableEntry;
 
     /** Creates a LatticeEntryImpl. */
-    public LatticeEntryImpl(OptiqSchema schema, String name, Lattice lattice) {
+    public LatticeEntryImpl(CalciteSchema schema, String name,
+        Lattice lattice) {
       super(schema, name);
       this.lattice = lattice;
 
@@ -732,18 +752,18 @@ public class OptiqSchema {
     /** Creates a new value. */
     T build();
 
-    /** Called when OptiqSchema caching is enabled or disabled. */
+    /** Called when CalciteSchema caching is enabled or disabled. */
     void enable(long now, boolean enabled);
   }
 
-  /** Implementation of {@link net.hydromatic.optiq.jdbc.OptiqSchema.Cached}
-   * that drives from {@link net.hydromatic.optiq.jdbc.OptiqSchema#cache}. */
+  /** Implementation of {@link CalciteSchema.Cached}
+   * that drives from {@link CalciteSchema#cache}. */
   private abstract class AbstractCached<T> implements Cached<T> {
     T t;
     long checked = Long.MIN_VALUE;
 
     public T get(long now) {
-      if (!OptiqSchema.this.cache) {
+      if (!CalciteSchema.this.cache) {
         return build();
       }
       if (checked == Long.MIN_VALUE
@@ -762,32 +782,32 @@ public class OptiqSchema {
     }
   }
 
-  /** Information about the implicit sub-schemas of an {@link OptiqSchema}. */
+  /** Information about the implicit sub-schemas of an {@link CalciteSchema}. */
   private static class SubSchemaCache {
     /** The names of sub-schemas returned from the {@link Schema} SPI. */
     final NavigableSet<String> names;
-    /** Cached {@link net.hydromatic.optiq.jdbc.OptiqSchema} wrappers. It is
+    /** Cached {@link CalciteSchema} wrappers. It is
      * worth caching them because they contain maps of their own sub-objects. */
-    final LoadingCache<String, OptiqSchema> cache;
+    final LoadingCache<String, CalciteSchema> cache;
 
-    private SubSchemaCache(final OptiqSchema optiqSchema,
+    private SubSchemaCache(final CalciteSchema calciteSchema,
         NavigableSet<String> names) {
       this.names = names;
       this.cache = CacheBuilder.newBuilder().build(
-          new CacheLoader<String, OptiqSchema>() {
+          new CacheLoader<String, CalciteSchema>() {
             @SuppressWarnings("NullableProblems")
-            @Override public OptiqSchema load(String schemaName) {
+            @Override public CalciteSchema load(String schemaName) {
               final Schema subSchema =
-                  optiqSchema.schema.getSubSchema(schemaName);
+                  calciteSchema.schema.getSubSchema(schemaName);
               if (subSchema == null) {
                 throw new RuntimeException("sub-schema " + schemaName
                     + " not found");
               }
-              return new OptiqSchema(optiqSchema, subSchema, schemaName);
+              return new CalciteSchema(calciteSchema, subSchema, schemaName);
             }
           });
     }
   }
 }
 
-// End OptiqSchema.java
+// End CalciteSchema.java

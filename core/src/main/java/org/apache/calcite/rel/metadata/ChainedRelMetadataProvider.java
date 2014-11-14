@@ -14,21 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel.metadata;
+package org.apache.calcite.rel.metadata;
 
-import java.lang.reflect.*;
-import java.util.*;
-
-import org.eigenbase.rel.*;
+import org.apache.calcite.rel.RelNode;
 
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
+import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.Method;
+import java.lang.reflect.Proxy;
+import java.util.List;
+
 /**
  * Implementation of the {@link RelMetadataProvider}
  * interface via the
- * {@link org.eigenbase.util.Glossary#CHAIN_OF_RESPONSIBILITY_PATTERN}.
+ * {@link org.apache.calcite.util.Glossary#CHAIN_OF_RESPONSIBILITY_PATTERN}.
  *
  * <p>When a consumer calls the {@link #apply} method to ask for a provider
  * for a particular type of {@link RelNode} and {@link Metadata}, scans the list

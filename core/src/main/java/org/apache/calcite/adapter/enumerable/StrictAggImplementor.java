@@ -14,20 +14,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.rules.java;
+package org.apache.calcite.adapter.enumerable;
 
-import net.hydromatic.linq4j.expressions.*;
-
-import org.eigenbase.reltype.RelDataType;
-import org.eigenbase.rex.RexNode;
+import org.apache.calcite.linq4j.tree.BlockBuilder;
+import org.apache.calcite.linq4j.tree.BlockStatement;
+import org.apache.calcite.linq4j.tree.Expression;
+import org.apache.calcite.linq4j.tree.Expressions;
+import org.apache.calcite.linq4j.tree.ParameterExpression;
+import org.apache.calcite.linq4j.tree.Primitive;
+import org.apache.calcite.linq4j.tree.Types;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rex.RexNode;
 
 import java.lang.reflect.Type;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * The base implementation of strict aggregate function.
- * @see net.hydromatic.optiq.rules.java.RexImpTable.CountImplementor
- * @see net.hydromatic.optiq.rules.java.RexImpTable.SumImplementor
+ * @see org.apache.calcite.adapter.enumerable.RexImpTable.CountImplementor
+ * @see org.apache.calcite.adapter.enumerable.RexImpTable.SumImplementor
  */
 public abstract class StrictAggImplementor implements AggImplementor {
   private boolean needTrackEmptySet;
@@ -181,3 +190,5 @@ public abstract class StrictAggImplementor implements AggImplementor {
     return result.accumulator().get(0);
   }
 }
+
+// End StrictAggImplementor.java

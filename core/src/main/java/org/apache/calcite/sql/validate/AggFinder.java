@@ -14,19 +14,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql.validate;
+package org.apache.calcite.sql.validate;
 
-import java.util.List;
-
-import org.eigenbase.sql.*;
-import org.eigenbase.sql.util.*;
-import org.eigenbase.util.*;
+import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlFunction;
+import org.apache.calcite.sql.SqlFunctionCategory;
+import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.SqlOperatorTable;
+import org.apache.calcite.sql.SqlSyntax;
+import org.apache.calcite.sql.util.SqlBasicVisitor;
+import org.apache.calcite.util.Util;
 
 import com.google.common.collect.Lists;
 
+import java.util.List;
+
 /**
- * Visitor which looks for an aggregate function inside a tree of {@link
- * SqlNode} objects.
+ * Visitor which looks for an aggregate function inside a tree of
+ * {@link SqlNode} objects.
  */
 class AggFinder extends SqlBasicVisitor<Void> {
   //~ Instance fields --------------------------------------------------------

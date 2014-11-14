@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.jdbc;
+package org.apache.calcite.jdbc;
 
 import java.sql.SQLException;
 

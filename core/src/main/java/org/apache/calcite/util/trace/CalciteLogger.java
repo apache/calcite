@@ -14,32 +14,44 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.trace;
+package org.apache.calcite.util.trace;
 
-import java.util.logging.*;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
- * This class is a small extension to {@link Logger}. {@link Logger#log(Level
- * level, String msg, Object[] params)} is expensive to call, since the caller
- * must always allocate and fill in the array <code>params</code>, even when
- * <code>level</code> will prevent a message being logged. On the other hand,
- * {@link Logger#log(Level level, String msg)} and {@link Logger#log(Level
- * level, String msg, Object)} do not have this problem. As a workaround this
- * class provides {@link #log(Level, String msg, Object, Object)} etc. (The
- * varargs feature of java 1.5 half-solves this problem, by automatically
- * wrapping args in an array, but it does so without testing the level.) Usage:
- * replace: <code>static final Logger tracer =
- * EigenbaseTracer.getMyTracer();</code> by: <code>static final EigenbaseLogger
- * tracer = new EigenbaseLogger(EigenbaseTracer.getMyTracer());</code>
+ * Small extension to {@link Logger} with some performance improvements.
+ *
+ * <p>{@link Logger#log(Level level, String msg, Object[] params)} is expensive
+ * to call, since the caller must always allocate and fill in the array
+ * <code>params</code>, even when <code>level</code> will prevent a message
+ * being logged. On the other hand, {@link Logger#log(Level level, String msg)}
+ * and {@link Logger#log(Level level, String msg, Object)} do not have this
+ * problem.
+ *
+ * <p>As a workaround this class provides
+ * {@link #log(Level, String msg, Object, Object)} etc. (The varargs feature of
+ * java 1.5 half-solves this problem, by automatically wrapping args in an
+ * array, but it does so without testing the level.)
+ *
+ * <p>Usage: replace:
+ *
+ * <blockquote><code>static final Logger tracer =
+ * CalciteTracer.getMyTracer();</code></blockquote>
+ *
+ * <p>by:
+ *
+ * <blockquote><code>static final CalciteLogger tracer =
+ *     new CalciteLogger(CalciteTrace.getMyTracer());</code></blockquote>
  */
-public class EigenbaseLogger {
+public class CalciteLogger {
   //~ Instance fields --------------------------------------------------------
 
   private final Logger logger; // delegate
 
   //~ Constructors -----------------------------------------------------------
 
-  public EigenbaseLogger(Logger logger) {
+  public CalciteLogger(Logger logger) {
     assert logger != null;
     this.logger = logger;
   }
@@ -144,4 +156,4 @@ public class EigenbaseLogger {
   }
 }
 
-// End EigenbaseLogger.java
+// End CalciteLogger.java

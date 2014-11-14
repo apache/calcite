@@ -17,8 +17,8 @@
 
 /**
  * Provides a heuristic planner implementation for the interfaces in
- * {@link org.eigenbase.relopt}.
+ * {@link org.apache.calcite.plan}.
  */
-package org.eigenbase.relopt.hep;
+package org.apache.calcite.plan.hep;
 
 // End package-info.java

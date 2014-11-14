@@ -14,16 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql.type;
+package org.apache.calcite.sql.type;
 
-import java.util.*;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.sql.SqlCallBinding;
+import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlOperandCountRange;
+import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.SqlSelect;
+import org.apache.calcite.sql.SqlUtil;
+import org.apache.calcite.sql.validate.SqlValidator;
+import org.apache.calcite.util.Util;
 
-import org.eigenbase.reltype.*;
-import org.eigenbase.sql.*;
-import org.eigenbase.sql.validate.*;
-import org.eigenbase.util.*;
+import java.util.AbstractList;
+import java.util.List;
 
-import static org.eigenbase.util.Static.RESOURCE;
+import static org.apache.calcite.util.Static.RESOURCE;
 
 /**
  * Parameter type-checking strategy for a set operator (UNION, INTERSECT,

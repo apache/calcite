@@ -14,33 +14,36 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.test;
+package org.apache.calcite.test;
 
-import java.nio.charset.*;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Locale;
-import java.util.logging.*;
-
-import org.eigenbase.reltype.RelDataTypeSystem;
-import org.eigenbase.sql.*;
-import org.eigenbase.sql.fun.SqlStdOperatorTable;
-import org.eigenbase.sql.test.SqlTester;
-import org.eigenbase.sql.type.*;
-import org.eigenbase.sql.validate.*;
-import org.eigenbase.util.*;
-
-import net.hydromatic.avatica.Casing;
-import net.hydromatic.avatica.Quoting;
-
-import net.hydromatic.optiq.config.Lex;
+import org.apache.calcite.avatica.Casing;
+import org.apache.calcite.avatica.Quoting;
+import org.apache.calcite.config.Lex;
+import org.apache.calcite.rel.type.RelDataTypeSystem;
+import org.apache.calcite.sql.SqlCollation;
+import org.apache.calcite.sql.SqlIntervalQualifier;
+import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.test.SqlTester;
+import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.validate.SqlConformance;
+import org.apache.calcite.sql.validate.SqlValidator;
+import org.apache.calcite.util.Bug;
 
 import org.hamcrest.CoreMatchers;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import static org.junit.Assert.*;
+import java.nio.charset.Charset;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Locale;
+import java.util.logging.Logger;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 
 /**
  * Concrete child class of {@link SqlValidatorTestCase}, containing lots of unit
@@ -48,7 +51,7 @@ import static org.junit.Assert.*;
  *
  * <p>If you want to run these same tests in a different environment, create a
  * derived class whose {@link #getTester} returns a different implementation of
- * {@link org.eigenbase.sql.test.SqlTester}.
+ * {@link org.apache.calcite.sql.test.SqlTester}.
  */
 public class SqlValidatorTest extends SqlValidatorTestCase {
   //~ Static fields/initializers ---------------------------------------------
@@ -81,14 +84,14 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
   private static final String EMP_RECORD_TYPE =
       "RecordType(INTEGER NOT NULL EMPNO,"
-      + " VARCHAR(20) NOT NULL ENAME,"
-      + " VARCHAR(10) NOT NULL JOB,"
-      + " INTEGER MGR,"
-      + " TIMESTAMP(0) NOT NULL HIREDATE,"
-      + " INTEGER NOT NULL SAL,"
-      + " INTEGER NOT NULL COMM,"
-      + " INTEGER NOT NULL DEPTNO,"
-      + " BOOLEAN NOT NULL SLACKER) NOT NULL";
+          + " VARCHAR(20) NOT NULL ENAME,"
+          + " VARCHAR(10) NOT NULL JOB,"
+          + " INTEGER MGR,"
+          + " TIMESTAMP(0) NOT NULL HIREDATE,"
+          + " INTEGER NOT NULL SAL,"
+          + " INTEGER NOT NULL COMM,"
+          + " INTEGER NOT NULL DEPTNO,"
+          + " BOOLEAN NOT NULL SLACKER) NOT NULL";
 
   //~ Constructors -----------------------------------------------------------
 
@@ -105,8 +108,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   @Test public void testMultipleSameAsPass() {
-    check(
-        "select 1 as again,2 as \"again\", 3 as AGAiN from (values (true))");
+    check("select 1 as again,2 as \"again\", 3 as AGAiN from (values (true))");
   }
 
   @Test public void testMultipleDifferentAs() {
@@ -136,17 +138,17 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "' cd'", "CHAR(6) NOT NULL");
     checkExpType(
         "'ab'\n"
-        + "'cd'\n"
-        + "'ef'\n"
-        + "'gh'\n"
-        + "'ij'\n"
-        + "'kl'",
+            + "'cd'\n"
+            + "'ef'\n"
+            + "'gh'\n"
+            + "'ij'\n"
+            + "'kl'",
         "CHAR(12) NOT NULL");
     checkExpType("n'ab '\n"
-        + "' cd'",
+            + "' cd'",
         "CHAR(6) NOT NULL");
     checkExpType("_UTF16'ab '\n"
-        + "' cd'",
+            + "' cd'",
         "CHAR(6) NOT NULL");
 
     checkExpFails(
@@ -154,13 +156,13 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         "Binary literal string must contain an even number of hexits");
     checkExpType("x'abcd'", "BINARY(2) NOT NULL");
     checkExpType("x'abcd'\n"
-        + "'ff001122aabb'",
+            + "'ff001122aabb'",
         "BINARY(8) NOT NULL");
     checkExpType(
         "x'aaaa'\n"
-        + "'bbbb'\n"
-        + "'0000'\n"
-        + "'1111'",
+            + "'bbbb'\n"
+            + "'0000'\n"
+            + "'1111'",
         "BINARY(8) NOT NULL");
 
     checkExpType("1234567890", "INTEGER NOT NULL");
@@ -516,9 +518,9 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         "(?s).*ELSE clause or at least one THEN clause must be non-NULL.*");
     checkWholeExpFails(
         "case when true and true then 1 "
-        + "when false then 2 "
-        + "when false then true " + "else "
-        + "case when true then 3 end end",
+            + "when false then 2 "
+            + "when false then true " + "else "
+            + "case when true then 3 end end",
         "Illegal mixing of types in CASE or COALESCE statement");
   }
 
@@ -599,7 +601,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     checkWholeExpFails(
         "'a'||x'ff'",
         "(?s).*Cannot apply '\\|\\|' to arguments of type '<CHAR.1.> \\|\\| <BINARY.1.>'"
-        + ".*Supported form.s.: '<STRING> \\|\\| <STRING>.*'");
+            + ".*Supported form.s.: '<STRING> \\|\\| <STRING>.*'");
   }
 
   @Test public void testBetween() {
@@ -1170,7 +1172,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   @Test public void testRow() {
     // double-nested rows can confuse validator namespace resolution
     checkColumnType("select t.r.\"EXPR$1\".\"EXPR$2\"\n"
-        + "from (select ((1,2),(3,4,5)) r from dept) t",
+            + "from (select ((1,2),(3,4,5)) r from dept) t",
         "INTEGER NOT NULL");
   }
 
@@ -1202,14 +1204,14 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         "RecordType(DECIMAL(11, 1) NOT NULL EXPR$0, DECIMAL(11, 1) NOT NULL EXPR$1) NOT NULL MULTISET NOT NULL");
     checkExpType("multiset(select*from emp)",
         "RecordType(INTEGER NOT NULL EMPNO,"
-        + " VARCHAR(20) NOT NULL ENAME,"
-        + " VARCHAR(10) NOT NULL JOB,"
-        + " INTEGER MGR,"
-        + " TIMESTAMP(0) NOT NULL HIREDATE,"
-        + " INTEGER NOT NULL SAL,"
-        + " INTEGER NOT NULL COMM,"
-        + " INTEGER NOT NULL DEPTNO,"
-        + " BOOLEAN NOT NULL SLACKER) NOT NULL MULTISET NOT NULL");
+            + " VARCHAR(20) NOT NULL ENAME,"
+            + " VARCHAR(10) NOT NULL JOB,"
+            + " INTEGER MGR,"
+            + " TIMESTAMP(0) NOT NULL HIREDATE,"
+            + " INTEGER NOT NULL SAL,"
+            + " INTEGER NOT NULL COMM,"
+            + " INTEGER NOT NULL DEPTNO,"
+            + " BOOLEAN NOT NULL SLACKER) NOT NULL MULTISET NOT NULL");
   }
 
   @Test public void testMultisetSetOperators() {
@@ -1275,8 +1277,8 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     checkWholeExpFails(
         "cardinality('a')",
         "Cannot apply 'CARDINALITY' to arguments of type 'CARDINALITY\\(<CHAR\\(1\\)>\\)'\\. Supported form\\(s\\): 'CARDINALITY\\(<MULTISET>\\)'\n"
-        + "'CARDINALITY\\(<ARRAY>\\)'\n"
-        + "'CARDINALITY\\(<MAP>\\)'");
+            + "'CARDINALITY\\(<ARRAY>\\)'\n"
+            + "'CARDINALITY\\(<MAP>\\)'");
   }
 
   @Test public void testIntervalTimeUnitEnumeration() {
@@ -3271,25 +3273,25 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     checkWholeExpFails(
         "INTERVAL '1:60' MINUTE TO SECOND",
         "Illegal interval literal format '1:60' for"
-        + " INTERVAL MINUTE TO SECOND.*");
+            + " INTERVAL MINUTE TO SECOND.*");
     checkWholeExpFails(
         "INTERVAL '1:1.0000001' MINUTE TO SECOND",
         "Illegal interval literal format '1:1\\.0000001' for"
-        + " INTERVAL MINUTE TO SECOND.*");
+            + " INTERVAL MINUTE TO SECOND.*");
     checkWholeExpFails(
         "INTERVAL '1:1:1.0001' MINUTE TO SECOND(3)",
         "Illegal interval literal format '1:1:1\\.0001' for"
-        + " INTERVAL MINUTE TO SECOND\\(3\\).*");
+            + " INTERVAL MINUTE TO SECOND\\(3\\).*");
 
     // precision > maximum
     checkExpFails(
         "INTERVAL '1:1' MINUTE(11) TO ^SECOND^",
         "Interval leading field precision '11' out of range for"
-        + " INTERVAL MINUTE\\(11\\) TO SECOND");
+            + " INTERVAL MINUTE\\(11\\) TO SECOND");
     checkExpFails(
         "INTERVAL '1:1' MINUTE TO SECOND(10^)^",
         "Interval fractional second precision '10' out of range for"
-        + " INTERVAL MINUTE TO SECOND\\(10\\)");
+            + " INTERVAL MINUTE TO SECOND\\(10\\)");
 
     // precision < minimum allowed)
     // note: parser will catch negative values, here we
@@ -3297,11 +3299,11 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     checkExpFails(
         "INTERVAL '0:0' MINUTE(0) TO ^SECOND^",
         "Interval leading field precision '0' out of range for"
-        + " INTERVAL MINUTE\\(0\\) TO SECOND");
+            + " INTERVAL MINUTE\\(0\\) TO SECOND");
     checkExpFails(
         "INTERVAL '0:0' MINUTE TO SECOND(0^)^",
         "Interval fractional second precision '0' out of range for"
-        + " INTERVAL MINUTE TO SECOND\\(0\\)");
+            + " INTERVAL MINUTE TO SECOND\\(0\\)");
   }
 
   /**
@@ -3381,17 +3383,17 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     checkWholeExpFails(
         "INTERVAL '1.0000000001' SECOND(2, 9)",
         "Illegal interval literal format '1\\.0000000001' for"
-        + " INTERVAL SECOND\\(2, 9\\).*");
+            + " INTERVAL SECOND\\(2, 9\\).*");
 
     // precision > maximum
     checkExpFails(
         "INTERVAL '1' SECOND(11^)^",
         "Interval leading field precision '11' out of range for"
-        + " INTERVAL SECOND\\(11\\)");
+            + " INTERVAL SECOND\\(11\\)");
     checkExpFails(
         "INTERVAL '1.1' SECOND(1, 10^)^",
         "Interval fractional second precision '10' out of range for"
-        + " INTERVAL SECOND\\(1, 10\\)");
+            + " INTERVAL SECOND\\(1, 10\\)");
 
     // precision < minimum allowed)
     // note: parser will catch negative values, here we
@@ -3399,11 +3401,11 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     checkExpFails(
         "INTERVAL '0' SECOND(0^)^",
         "Interval leading field precision '0' out of range for"
-        + " INTERVAL SECOND\\(0\\)");
+            + " INTERVAL SECOND\\(0\\)");
     checkExpFails(
         "INTERVAL '0' SECOND(1, 0^)^",
         "Interval fractional second precision '0' out of range for"
-        + " INTERVAL SECOND\\(1, 0\\)");
+            + " INTERVAL SECOND\\(1, 0\\)");
   }
 
   @Test public void testIntervalLiterals() {
@@ -3812,29 +3814,29 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     // See 4.15.3 for detail
     checkWin(
         "select *\n"
-        + " from emp\n"
-        + " where ^sum(sal) over (partition by deptno\n"
-        + "    order by empno\n"
-        + "    rows 3 preceding)^ > 10",
+            + " from emp\n"
+            + " where ^sum(sal) over (partition by deptno\n"
+            + "    order by empno\n"
+            + "    rows 3 preceding)^ > 10",
         "Windowed aggregate expression is illegal in WHERE clause");
 
     checkWin(
         "select *\n"
-        + " from emp\n"
-        + " group by ename, ^sum(sal) over (partition by deptno\n"
-        + "    order by empno\n"
-        + "    rows 3 preceding)^ + 10\n"
-        + "order by deptno",
+            + " from emp\n"
+            + " group by ename, ^sum(sal) over (partition by deptno\n"
+            + "    order by empno\n"
+            + "    rows 3 preceding)^ + 10\n"
+            + "order by deptno",
         "Windowed aggregate expression is illegal in GROUP BY clause");
 
     checkWin(
         "select *\n"
-        + " from emp\n"
-        + " join dept on emp.deptno = dept.deptno\n"
-        + " and ^sum(sal) over (partition by deptno\n"
-        + "    order by empno\n"
-        + "    rows 3 preceding)^ = dept.deptno + 40\n"
-        + "order by deptno",
+            + " from emp\n"
+            + " join dept on emp.deptno = dept.deptno\n"
+            + " and ^sum(sal) over (partition by deptno\n"
+            + "    order by empno\n"
+            + "    rows 3 preceding)^ = dept.deptno + 40\n"
+            + "order by deptno",
         "Windowed aggregate expression is illegal in ON clause");
 
     // rule 3, a)
@@ -3858,11 +3860,11 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     }
     checkWin(
         "select rank() over w from emp\n"
-        + "window w as ^(partition by sal)^, w2 as (w order by deptno)",
+            + "window w as ^(partition by sal)^, w2 as (w order by deptno)",
         "RANK or DENSE_RANK functions require ORDER BY clause in window specification");
     checkWin(
         "select rank() over w2 from emp\n"
-        + "window w as (partition by sal), w2 as (w order by deptno)",
+            + "window w as (partition by sal), w2 as (w order by deptno)",
         null);
     // row_number function
     checkWinFuncExpWithWinClause(
@@ -3956,18 +3958,18 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     // 7.11 rule 10c
     checkWin(
         "select sum(sal) over (w partition by ^deptno^)\n"
-        + " from emp window w as (order by empno rows 2 preceding )",
+            + " from emp window w as (order by empno rows 2 preceding )",
         "PARTITION BY not allowed with existing window reference");
 
     // 7.11 rule 10d
     checkWin(
         "select sum(sal) over (w order by ^empno^)\n"
-        + " from emp window w as (order by empno rows 2 preceding )",
+            + " from emp window w as (order by empno rows 2 preceding )",
         "ORDER BY not allowed in both base and referenced windows");
 
     // 7.11 rule 10e
     checkWin("select sum(sal) over (w)\n"
-        + " from emp window w as (order by empno ^rows^ 2 preceding )",
+            + " from emp window w as (order by empno ^rows^ 2 preceding )",
         "Referenced window cannot have framing declarations");
 
     // Empty window is OK for functions that don't require ordering.
@@ -3984,28 +3986,28 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   @Test public void testInlineWinDef() {
     // the <window specification> used by windowed agg functions is
     // fully defined in SQL 03 Std. section 7.1 <window clause>
-    check(
-        "select sum(sal) over (partition by deptno order by empno) from emp order by empno");
+    check("select sum(sal) over (partition by deptno order by empno)\n"
+        + "from emp order by empno");
     checkWinFuncExp(
         "sum(sal) OVER ("
-        + "partition by deptno "
-        + "order by empno "
-        + "rows 2 preceding )",
+            + "partition by deptno "
+            + "order by empno "
+            + "rows 2 preceding )",
         null);
     checkWinFuncExp(
         "sum(sal) OVER ("
-        + "order by 1 "
-        + "rows 2 preceding )",
+            + "order by 1 "
+            + "rows 2 preceding )",
         null);
     checkWinFuncExp(
         "sum(sal) OVER ("
-        + "order by 'b' "
-        + "rows 2 preceding )",
+            + "order by 'b' "
+            + "rows 2 preceding )",
         null);
     checkWinFuncExp(
         "sum(sal) over ("
-        + "partition by deptno "
-        + "order by 1+1 rows 26 preceding)",
+            + "partition by deptno "
+            + "order by 1+1 rows 26 preceding)",
         null);
     checkWinFuncExp(
         "sum(sal) over (order by deptno rows unbounded preceding)",
@@ -4015,42 +4017,42 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         null);
     checkWinFuncExp(
         "sum(sal) over ^("
-        + "order by deptno "
-        + "rows between unbounded preceding and unbounded following)^",
+            + "order by deptno "
+            + "rows between unbounded preceding and unbounded following)^",
         null);
     checkWinFuncExp(
         "sum(sal) over ^("
-        + "order by deptno "
-        + "rows between CURRENT ROW and unbounded following)^",
+            + "order by deptno "
+            + "rows between CURRENT ROW and unbounded following)^",
         null);
     checkWinFuncExp(
         "sum(sal) over ("
-        + "order by deptno "
-        + "rows between unbounded preceding and CURRENT ROW)",
+            + "order by deptno "
+            + "rows between unbounded preceding and CURRENT ROW)",
         null);
 
     // logical current row/current row
     checkWinFuncExp(
         "sum(sal) over ("
-        + "order by deptno "
-        + "rows between CURRENT ROW and CURRENT ROW)",
+            + "order by deptno "
+            + "rows between CURRENT ROW and CURRENT ROW)",
         null);
 
     // physical current row/current row
     checkWinFuncExp(
         "sum(sal) over ("
-        + "order by deptno "
-        + "range between CURRENT ROW and CURRENT ROW)",
+            + "order by deptno "
+            + "range between CURRENT ROW and CURRENT ROW)",
         null);
 
     checkWinFuncExp(
         "sum(sal) over ("
-        + "order by deptno "
-        + "rows between 2 preceding and CURRENT ROW)",
+            + "order by deptno "
+            + "rows between 2 preceding and CURRENT ROW)",
         null);
     checkWinFuncExpWithWinClause(
         "sum(sal) OVER (w "
-        + "rows 2 preceding )",
+            + "rows 2 preceding )",
         null);
     checkWinFuncExp(
         "sum(sal) over (order by deptno range 2.0 preceding)",
@@ -4059,37 +4061,37 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     // Failure mode tests
     checkWinFuncExp(
         "sum(sal) over (order by deptno "
-        + "rows between ^UNBOUNDED FOLLOWING^ and unbounded preceding)",
+            + "rows between ^UNBOUNDED FOLLOWING^ and unbounded preceding)",
         "UNBOUNDED FOLLOWING cannot be specified for the lower frame boundary");
     checkWinFuncExp(
         "sum(sal) over ("
-        + "order by deptno "
-        + "rows between 2 preceding and ^UNBOUNDED PRECEDING^)",
+            + "order by deptno "
+            + "rows between 2 preceding and ^UNBOUNDED PRECEDING^)",
         "UNBOUNDED PRECEDING cannot be specified for the upper frame boundary");
     checkWinFuncExp(
         "sum(sal) over ("
-        + "order by deptno "
-        + "rows between CURRENT ROW and ^2 preceding^)",
+            + "order by deptno "
+            + "rows between CURRENT ROW and ^2 preceding^)",
         "Upper frame boundary cannot be PRECEDING when lower boundary is CURRENT ROW");
     checkWinFuncExp(
         "sum(sal) over ("
-        + "order by deptno "
-        + "rows between 2 following and ^CURRENT ROW^)",
+            + "order by deptno "
+            + "rows between 2 following and ^CURRENT ROW^)",
         "Upper frame boundary cannot be CURRENT ROW when lower boundary is FOLLOWING");
     checkWinFuncExp(
         "sum(sal) over ("
-        + "order by deptno "
-        + "rows between 2 following and ^2 preceding^)",
+            + "order by deptno "
+            + "rows between 2 following and ^2 preceding^)",
         "Upper frame boundary cannot be PRECEDING when lower boundary is FOLLOWING");
     checkWinFuncExp(
         "sum(sal) over ("
-        + "order by deptno "
-        + "RANGE BETWEEN ^INTERVAL '1' SECOND^ PRECEDING AND INTERVAL '1' SECOND FOLLOWING)",
+            + "order by deptno "
+            + "RANGE BETWEEN ^INTERVAL '1' SECOND^ PRECEDING AND INTERVAL '1' SECOND FOLLOWING)",
         "Data Type mismatch between ORDER BY and RANGE clause");
     checkWinFuncExp(
         "sum(sal) over ("
-        + "order by empno "
-        + "RANGE BETWEEN ^INTERVAL '1' SECOND^ PRECEDING AND INTERVAL '1' SECOND FOLLOWING)",
+            + "order by empno "
+            + "RANGE BETWEEN ^INTERVAL '1' SECOND^ PRECEDING AND INTERVAL '1' SECOND FOLLOWING)",
         "Data Type mismatch between ORDER BY and RANGE clause");
     checkWinFuncExp(
         "sum(sal) over (order by deptno, empno ^range^ 2 preceding)",
@@ -4102,9 +4104,9 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         "Window 'W1' not found");
     checkWinFuncExp(
         "sum(sal) OVER (^w1^ "
-        + "partition by deptno "
-        + "order by empno "
-        + "rows 2 preceding )",
+            + "partition by deptno "
+            + "order by empno "
+            + "rows 2 preceding )",
         "Window 'W1' not found");
   }
 
@@ -4211,11 +4213,11 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         "Expression 'DEPTNO' is not being grouped");
     checkFails(
         "select min(sal) over\n"
-        + "(partition by comm order by deptno) from emp group by deptno,sal,comm",
+            + "(partition by comm order by deptno) from emp group by deptno,sal,comm",
         null);
     checkFails(
         "select min(sal) over\n"
-        + "(partition by ^comm^ order by deptno) from emp group by deptno,sal",
+            + "(partition by ^comm^ order by deptno) from emp group by deptno,sal",
         "Expression 'COMM' is not being grouped");
 
     // syntax rule 7
@@ -4234,23 +4236,23 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     // bound 2 shall not specify UNBOUNDED PRECEDING
     checkWinClauseExp(
         "window w as ("
-        + "order by deptno "
-        + "rows between 2 preceding and ^UNBOUNDED PRECEDING^)",
+            + "order by deptno "
+            + "rows between 2 preceding and ^UNBOUNDED PRECEDING^)",
         "UNBOUNDED PRECEDING cannot be specified for the upper frame boundary");
     checkWinClauseExp(
         "window w as ("
-        + "order by deptno "
-        + "rows between 2 following and ^2 preceding^)",
+            + "order by deptno "
+            + "rows between 2 following and ^2 preceding^)",
         "Upper frame boundary cannot be PRECEDING when lower boundary is FOLLOWING");
     checkWinClauseExp(
         "window w as ("
-        + "order by deptno "
-        + "rows between CURRENT ROW and ^2 preceding^)",
+            + "order by deptno "
+            + "rows between CURRENT ROW and ^2 preceding^)",
         "Upper frame boundary cannot be PRECEDING when lower boundary is CURRENT ROW");
     checkWinClauseExp(
         "window w as ("
-        + "order by deptno "
-        + "rows between 2 following and ^CURRENT ROW^)",
+            + "order by deptno "
+            + "rows between 2 following and ^CURRENT ROW^)",
         "Upper frame boundary cannot be CURRENT ROW when lower boundary is FOLLOWING");
 
     // Sql '03 rule 10 c) assertExceptionIsThrown("select deptno as d, sal
@@ -4296,25 +4298,23 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     // are equivalent.
     checkWinClauseExp(
         "window\n"
-        + "w  as (partition by deptno order by empno rows 2 preceding),\n"
-        + "w2 as ^(partition by deptno order by empno rows 2 preceding)^\n",
+            + "w  as (partition by deptno order by empno rows 2 preceding),\n"
+            + "w2 as ^(partition by deptno order by empno rows 2 preceding)^\n",
         "Duplicate window specification not allowed in the same window clause");
   }
 
   @Test public void testWindowClauseWithSubquery() {
-    check(
-        "select * from\n"
+    check("select * from\n"
         + "( select sum(empno) over w, sum(deptno) over w from emp\n"
         + "window w as (order by hiredate range interval '1' minute preceding))");
 
-    check(
-        "select * from\n"
+    check("select * from\n"
         + "( select sum(empno) over w, sum(deptno) over w, hiredate from emp)\n"
         + "window w as (order by hiredate range interval '1' minute preceding)");
 
     checkFails("select * from\n"
-        + "( select sum(empno) over w, sum(deptno) over w from emp)\n"
-        + "window w as (order by ^hiredate^ range interval '1' minute preceding)",
+            + "( select sum(empno) over w, sum(deptno) over w from emp)\n"
+            + "window w as (order by ^hiredate^ range interval '1' minute preceding)",
         "Column 'HIREDATE' not found in any table");
   }
 
@@ -4348,27 +4348,26 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   private void checkNegWindow(String s, String msg) {
     String sql =
         "select sum(deptno) over ^(order by empno "
-        + s
-        + ")^ from emp";
+            + s
+            + ")^ from emp";
     checkFails(
         sql,
         msg);
   }
 
   @Test public void testWindowPartial() {
-    check(
-        "select sum(deptno) over (\n"
+    check("select sum(deptno) over (\n"
         + "order by deptno, empno rows 2 preceding disallow partial)\n"
         + "from emp");
 
     // cannot do partial over logical window
     checkFails(
         "select sum(deptno) over (\n"
-        + "  partition by deptno\n"
-        + "  order by empno\n"
-        + "  range between 2 preceding and 3 following\n"
-        + "  ^disallow partial^)\n"
-        + "from emp",
+            + "  partition by deptno\n"
+            + "  order by empno\n"
+            + "  range between 2 preceding and 3 following\n"
+            + "  ^disallow partial^)\n"
+            + "from emp",
         "Cannot use DISALLOW PARTIAL with window based on RANGE");
   }
 
@@ -4386,52 +4385,49 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
     checkFails(
         "select * from " + emps + " join " + depts + "\n"
-        + " on ^emps^.deptno = deptno",
+            + " on ^emps^.deptno = deptno",
         "Table 'EMPS' not found");
 
     // this is ok
-    check(
-        "select * from " + emps + " as e\n"
+    check("select * from " + emps + " as e\n"
         + " join " + depts + " as d\n"
         + " on e.deptno = d.deptno");
 
     // fail: ambiguous column in WHERE
     checkFails(
         "select * from " + emps + " as emps,\n"
-        + " " + depts + "\n"
-        + "where ^deptno^ > 5",
+            + " " + depts + "\n"
+            + "where ^deptno^ > 5",
         "Column 'DEPTNO' is ambiguous");
 
     // fail: ambiguous column reference in ON clause
     checkFails(
         "select * from " + emps + " as e\n"
-        + " join " + depts + " as d\n"
-        + " on e.deptno = ^deptno^",
+            + " join " + depts + " as d\n"
+            + " on e.deptno = ^deptno^",
         "Column 'DEPTNO' is ambiguous");
 
     // ok: column 'age' is unambiguous
-    check(
-        "select * from " + emps + " as e\n"
+    check("select * from " + emps + " as e\n"
         + " join " + depts + " as d\n"
         + " on e.deptno = age");
 
     // ok: reference to derived column
-    check(
-        "select * from " + depts + "\n"
+    check("select * from " + depts + "\n"
         + " join (select mod(age, 30) as agemod from " + emps + ")\n"
         + "on deptno = agemod");
 
     // fail: deptno is ambiguous
     checkFails(
         "select name from " + depts + "\n"
-        + "join (select mod(age, 30) as agemod, deptno from " + emps + ")\n"
-        + "on ^deptno^ = agemod",
+            + "join (select mod(age, 30) as agemod, deptno from " + emps + ")\n"
+            + "on ^deptno^ = agemod",
         "Column 'DEPTNO' is ambiguous");
 
     // fail: lateral reference
     checkFails(
         "select * from " + emps + " as e,\n"
-        + " (select 1, ^e^.deptno from (values(true))) as d",
+            + " (select 1, ^e^.deptno from (values(true))) as d",
         "Table 'E' not found");
   }
 
@@ -4446,69 +4442,66 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         "BOOLEAN NOT NULL");
     checkColumnType(
         "select * from ("
-        + "  select * from ("
-        + "    select * from (values(true))"
-        + "    union"
-        + "    select * from (values (false)))"
-        + "  except"
-        + "  select * from (values(true)))",
+            + "  select * from ("
+            + "    select * from (values(true))"
+            + "    union"
+            + "    select * from (values (false)))"
+            + "  except"
+            + "  select * from (values(true)))",
         "BOOLEAN NOT NULL");
   }
 
   @Test public void testAmbiguousColumn() {
     checkFails(
         "select * from emp join dept\n"
-        + " on emp.deptno = ^deptno^",
+            + " on emp.deptno = ^deptno^",
         "Column 'DEPTNO' is ambiguous");
 
     // this is ok
-    check(
-        "select * from emp as e\n"
+    check("select * from emp as e\n"
         + " join dept as d\n"
         + " on e.deptno = d.deptno");
 
     // fail: ambiguous column in WHERE
     checkFails(
         "select * from emp as emps, dept\n"
-        + "where ^deptno^ > 5",
+            + "where ^deptno^ > 5",
         "Column 'DEPTNO' is ambiguous");
 
     // fail: alias 'd' obscures original table name 'dept'
     checkFails(
         "select * from emp as emps, dept as d\n"
-        + "where ^dept^.deptno > 5",
+            + "where ^dept^.deptno > 5",
         "Table 'DEPT' not found");
 
     // fail: ambiguous column reference in ON clause
     checkFails(
         "select * from emp as e\n"
-        + " join dept as d\n"
-        + " on e.deptno = ^deptno^",
+            + " join dept as d\n"
+            + " on e.deptno = ^deptno^",
         "Column 'DEPTNO' is ambiguous");
 
     // ok: column 'comm' is unambiguous
-    check(
-        "select * from emp as e\n"
+    check("select * from emp as e\n"
         + " join dept as d\n"
         + " on e.deptno = comm");
 
     // ok: reference to derived column
-    check(
-        "select * from dept\n"
+    check("select * from dept\n"
         + " join (select mod(comm, 30) as commmod from emp)\n"
         + "on deptno = commmod");
 
     // fail: deptno is ambiguous
     checkFails(
         "select name from dept\n"
-        + "join (select mod(comm, 30) as commmod, deptno from emp)\n"
-        + "on ^deptno^ = commmod",
+            + "join (select mod(comm, 30) as commmod, deptno from emp)\n"
+            + "on ^deptno^ = commmod",
         "Column 'DEPTNO' is ambiguous");
 
     // fail: lateral reference
     checkFails(
         "select * from emp as e,\n"
-        + " (select 1, ^e^.deptno from (values(true))) as d",
+            + " (select 1, ^e^.deptno from (values(true))) as d",
         "Table 'E' not found");
   }
 
@@ -4558,8 +4551,8 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     check("select * from emp where empno in (10,20)");
 
     // "select * from emp where empno in ()" is invalid -- see parser test
-    check(
-        "select * from emp where empno in (10 + deptno, cast(null as integer))");
+    check("select * from emp\n"
+        + "where empno in (10 + deptno, cast(null as integer))");
     checkFails(
         "select * from emp where empno in ^(10, '20')^",
         ERR_IN_VALUES_INCOMPATIBLE);
@@ -4601,8 +4594,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
   @Test public void testInSubquery() {
     check("select * from emp where deptno in (select deptno from dept)");
-    check(
-        "select * from emp where (empno,deptno)"
+    check("select * from emp where (empno,deptno)"
         + " in (select deptno,deptno from dept)");
 
     // NOTE: jhyde: The closing caret should be one character to the right
@@ -4610,7 +4602,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     // discarded during the parsing process.
     checkFails(
         "select * from emp where ^deptno in "
-        + "(select deptno,deptno from dept^)",
+            + "(select deptno,deptno from dept^)",
         "Values passed to IN operator must have compatible types");
   }
 
@@ -4645,8 +4637,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     check("select 1 from emp as e join emp on emp.empno = e.deptno");
 
     // explicit alias does not clash with overridden alias
-    check(
-        "select 1 from emp as e join dept as emp on e.empno = emp.deptno");
+    check("select 1 from emp as e join dept as emp on e.empno = emp.deptno");
 
     // more than 2 in from clause
     checkFails(
@@ -4673,8 +4664,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         "Duplicate relation name 'EMP' in FROM clause");
 
     // alias does not clash with alias inherited from enclosing context
-    check(
-        "select 1 from emp, dept where exists (\n"
+    check("select 1 from emp, dept where exists (\n"
         + "  select 1 from emp where emp.empno = emp.deptno)");
   }
 
@@ -4710,7 +4700,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     // It is an error to refer to a table which has been given another
     // alias.
     checkFails("select * from emp as e where exists (\n"
-        + "  select 1 from dept where dept.deptno = ^emp^.deptno)",
+            + "  select 1 from dept where dept.deptno = ^emp^.deptno)",
         "Table 'EMP' not found");
   }
 
@@ -4718,8 +4708,8 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     // You cannot refer to a table ('e2') in the parent scope of a query in
     // the from clause.
     checkFails("select * from emp as e1 where exists (\n"
-        + "  select * from emp as e2,\n"
-        + "    (select * from dept where dept.deptno = ^e2^.deptno))",
+            + "  select * from emp as e2,\n"
+            + "    (select * from dept where dept.deptno = ^e2^.deptno))",
         "Table 'E2' not found");
   }
 
@@ -4736,43 +4726,43 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   @Test public void testUnionNameResolution() {
     checkFails(
         "select * from emp as e1 where exists (\n"
-        + "  select * from emp as e2,\n"
-        + "  (select deptno from dept as d\n"
-        + "   union\n"
-        + "   select deptno from emp as e3 where deptno = ^e2^.deptno))",
+            + "  select * from emp as e2,\n"
+            + "  (select deptno from dept as d\n"
+            + "   union\n"
+            + "   select deptno from emp as e3 where deptno = ^e2^.deptno))",
         "Table 'E2' not found");
 
     checkFails("select * from emp\n"
-        + "union\n"
-        + "select * from dept where ^empno^ < 10",
+            + "union\n"
+            + "select * from dept where ^empno^ < 10",
         "Column 'EMPNO' not found in any table");
   }
 
   @Test public void testUnionCountMismatchFails() {
     checkFails(
         "select 1,2 from emp\n"
-        + "union\n"
-        + "select ^3^ from dept",
+            + "union\n"
+            + "select ^3^ from dept",
         "Column count mismatch in UNION");
   }
 
   @Test public void testUnionCountMismatcWithValuesFails() {
     checkFails(
         "select * from ( values (1))\n"
-        + "union\n"
-        + "select ^*^ from ( values (1,2))",
+            + "union\n"
+            + "select ^*^ from ( values (1,2))",
         "Column count mismatch in UNION");
 
     checkFails(
         "select * from ( values (1))\n"
-        + "union\n"
-        + "select ^*^ from emp",
+            + "union\n"
+            + "select ^*^ from emp",
         "Column count mismatch in UNION");
 
     checkFails(
         "select * from emp\n"
-        + "union\n"
-        + "select ^*^ from ( values (1))",
+            + "union\n"
+            + "select ^*^ from ( values (1))",
         "Column count mismatch in UNION");
   }
 
@@ -4799,17 +4789,17 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   @Test public void testUnionTypeMismatchWithValuesFails() {
     checkFails(
         "values (1, ^2^, 3), (3, 4, 5), (6, 7, 8) union\n"
-        + "select deptno, name, deptno from dept",
+            + "select deptno, name, deptno from dept",
         "Type mismatch in column 2 of UNION");
 
     checkFails(
         "select 1 from (values (^'x'^)) union\n"
-        + "select 'a' from (values ('y'))",
+            + "select 'a' from (values ('y'))",
         "Type mismatch in column 1 of UNION");
 
     checkFails(
         "select 1 from (values (^'x'^)) union\n"
-        + "(values ('a'))",
+            + "(values ('a'))",
         "Type mismatch in column 1 of UNION");
   }
 
@@ -4847,28 +4837,28 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     // USING clause
     checkFails(
         "select * from dept where exists (\n"
-        + "select 1 from emp join bonus using (^dname^))",
+            + "select 1 from emp join bonus using (^dname^))",
         "Column 'DNAME' not found in any table");
 
     // inherited column, found in only one side of the join, in the
     // USING clause
     checkFails(
         "select * from dept where exists (\n"
-        + "select 1 from emp join bonus using (^deptno^))",
+            + "select 1 from emp join bonus using (^deptno^))",
         "Column 'DEPTNO' not found in any table");
   }
 
   @Test public void testCrossJoinOnFails() {
     checkFails(
         "select * from emp cross join dept\n"
-        + " ^on emp.deptno = dept.deptno^",
+            + " ^on emp.deptno = dept.deptno^",
         "Cannot specify condition \\(NATURAL keyword, or ON or USING clause\\) following CROSS JOIN");
   }
 
   @Test public void testInnerJoinWithoutUsingOrOnFails() {
     checkFails(
         "select * from emp inner ^join^ dept\n"
-        + "where emp.deptno = dept.deptno",
+            + "where emp.deptno = dept.deptno",
         "INNER, LEFT, RIGHT or FULL join requires a condition \\(NATURAL keyword or ON or USING clause\\)");
   }
 
@@ -4887,7 +4877,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   @Test public void testNaturalJoinIncompatibleDatatype() {
     checkFails(
         "select * from emp natural ^join^\n"
-        + "(select deptno, name as sal from dept)",
+            + "(select deptno, name as sal from dept)",
         "Column 'SAL' matched using NATURAL keyword or USING clause has incompatible types: cannot compare 'INTEGER' to 'VARCHAR\\(10\\)'");
 
     // make sal occur more than once on rhs, it is ignored and therefore
@@ -4918,44 +4908,44 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     checkResultType(
         "select * from emp left join dept on emp.deptno = dept.deptno",
         "RecordType(INTEGER NOT NULL EMPNO,"
-        + " VARCHAR(20) NOT NULL ENAME,"
-        + " VARCHAR(10) NOT NULL JOB,"
-        + " INTEGER MGR,"
-        + " TIMESTAMP(0) NOT NULL HIREDATE,"
-        + " INTEGER NOT NULL SAL,"
-        + " INTEGER NOT NULL COMM,"
-        + " INTEGER NOT NULL DEPTNO,"
-        + " BOOLEAN NOT NULL SLACKER,"
-        + " INTEGER DEPTNO0,"
-        + " VARCHAR(10) NAME) NOT NULL");
+            + " VARCHAR(20) NOT NULL ENAME,"
+            + " VARCHAR(10) NOT NULL JOB,"
+            + " INTEGER MGR,"
+            + " TIMESTAMP(0) NOT NULL HIREDATE,"
+            + " INTEGER NOT NULL SAL,"
+            + " INTEGER NOT NULL COMM,"
+            + " INTEGER NOT NULL DEPTNO,"
+            + " BOOLEAN NOT NULL SLACKER,"
+            + " INTEGER DEPTNO0,"
+            + " VARCHAR(10) NAME) NOT NULL");
 
     checkResultType(
         "select * from emp right join dept on emp.deptno = dept.deptno",
         "RecordType(INTEGER EMPNO,"
-        + " VARCHAR(20) ENAME,"
-        + " VARCHAR(10) JOB,"
-        + " INTEGER MGR,"
-        + " TIMESTAMP(0) HIREDATE,"
-        + " INTEGER SAL,"
-        + " INTEGER COMM,"
-        + " INTEGER DEPTNO,"
-        + " BOOLEAN SLACKER,"
-        + " INTEGER NOT NULL DEPTNO0,"
-        + " VARCHAR(10) NOT NULL NAME) NOT NULL");
+            + " VARCHAR(20) ENAME,"
+            + " VARCHAR(10) JOB,"
+            + " INTEGER MGR,"
+            + " TIMESTAMP(0) HIREDATE,"
+            + " INTEGER SAL,"
+            + " INTEGER COMM,"
+            + " INTEGER DEPTNO,"
+            + " BOOLEAN SLACKER,"
+            + " INTEGER NOT NULL DEPTNO0,"
+            + " VARCHAR(10) NOT NULL NAME) NOT NULL");
 
     checkResultType(
         "select * from emp full join dept on emp.deptno = dept.deptno",
         "RecordType(INTEGER EMPNO,"
-        + " VARCHAR(20) ENAME,"
-        + " VARCHAR(10) JOB,"
-        + " INTEGER MGR,"
-        + " TIMESTAMP(0) HIREDATE,"
-        + " INTEGER SAL,"
-        + " INTEGER COMM,"
-        + " INTEGER DEPTNO,"
-        + " BOOLEAN SLACKER,"
-        + " INTEGER DEPTNO0,"
-        + " VARCHAR(10) NAME) NOT NULL");
+            + " VARCHAR(20) ENAME,"
+            + " VARCHAR(10) JOB,"
+            + " INTEGER MGR,"
+            + " TIMESTAMP(0) HIREDATE,"
+            + " INTEGER SAL,"
+            + " INTEGER COMM,"
+            + " INTEGER DEPTNO,"
+            + " BOOLEAN SLACKER,"
+            + " INTEGER DEPTNO0,"
+            + " VARCHAR(10) NAME) NOT NULL");
   }
 
   // todo: Cannot handle '(a join b)' yet -- we see the '(' and expect to
@@ -4968,11 +4958,11 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     // counting?)
     checkFails(
         "select * from (emp join bonus using (job)) as x\n"
-        + "join dept using (deptno)",
+            + "join dept using (deptno)",
         "as wrong here");
     checkFails(
         "select * from (emp join bonus using (job))\n"
-        + "join dept using (^dname^)",
+            + "join dept using (^dname^)",
         "dname not found in lhs");
 
     // Needs real Error Message and error marks in query
@@ -4984,21 +4974,20 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   @Test public void testJoinSubquery() {
     // Sub-queries require alias
     checkFails("select * from (select 1 as one from emp)\n"
-        + "join (values (1), (2)) on true",
+            + "join (values (1), (2)) on true",
         "require alias");
   }
 
   @Test public void testJoinUsingThreeWay() {
-    check(
-        "select *\n"
+    check("select *\n"
         + "from emp as e\n"
         + "join dept as d using (deptno)\n"
         + "join emp as e2 using (empno)");
     checkFails(
         "select *\n"
-        + "from emp as e\n"
-        + "join dept as d using (deptno)\n"
-        + "join dept as d2 using (^deptno^)",
+            + "from emp as e\n"
+            + "join dept as d using (deptno)\n"
+            + "join dept as d2 using (^deptno^)",
         "Column name 'DEPTNO' in USING clause is not unique on one side of join");
   }
 
@@ -5031,8 +5020,8 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
   @Test public void testHavingBetween() {
     // FRG-115: having clause with between not working
-    check(
-        "select deptno from emp group by deptno having deptno between 10 and 12");
+    check("select deptno from emp group by deptno\n"
+        + "having deptno between 10 and 12");
 
     // this worked even before FRG-115 was fixed
     check("select deptno from emp group by deptno having deptno + 5 > 10");
@@ -5043,50 +5032,50 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     // simplest possible
     checkResultType(
         "with emp2 as (select * from emp)\n"
-        + "select * from emp2", EMP_RECORD_TYPE);
+            + "select * from emp2", EMP_RECORD_TYPE);
 
     // degree of emp2 column list does not match its query
     checkFails(
         "with emp2 ^(x, y)^ as (select * from emp)\n"
-        + "select * from emp2",
+            + "select * from emp2",
         "Number of columns must match number of query columns");
 
     // duplicate names in column list
     checkFails(
         "with emp2 (x, y, ^y^, x) as (select sal, deptno, ename, empno from emp)\n"
-        + "select * from emp2",
+            + "select * from emp2",
         "Duplicate name 'Y' in column list");
 
     // column list required if aliases are not unique
     checkFails(
         "with emp2 as (^select empno as e, sal, deptno as e from emp^)\n"
-        + "select * from emp2",
+            + "select * from emp2",
         "Column has duplicate column name 'E' and no column list specified");
 
     // forward reference
     checkFails(
         "with emp3 as (select * from ^emp2^),\n"
-        + " emp2 as (select * from emp)\n"
-        + "select * from emp3",
+            + " emp2 as (select * from emp)\n"
+            + "select * from emp3",
         "Table 'EMP2' not found");
 
     // forward reference in with-item not used; should still fail
     checkFails(
         "with emp3 as (select * from ^emp2^),\n"
-        + " emp2 as (select * from emp)\n"
-        + "select * from emp2",
+            + " emp2 as (select * from emp)\n"
+            + "select * from emp2",
         "Table 'EMP2' not found");
 
     // table not used is ok
     checkResultType(
         "with emp2 as (select * from emp),\n"
-        + " emp3 as (select * from emp2)\n"
-        + "select * from emp2",
+            + " emp3 as (select * from emp2)\n"
+            + "select * from emp2",
         EMP_RECORD_TYPE);
 
     // self-reference is not ok, even in table not used
     checkFails("with emp2 as (select * from emp),\n"
-        + " emp3 as (select * from ^emp3^)\n" + "values (1)",
+            + " emp3 as (select * from ^emp3^)\n" + "values (1)",
         "Table 'EMP3' not found");
 
     // self-reference not ok
@@ -5095,9 +5084,9 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
     // refer to 2 previous tables, not just immediately preceding
     checkResultType("with emp2 as (select * from emp),\n"
-        + " dept2 as (select * from dept),\n"
-        + " empDept as (select emp2.empno, dept2.deptno from dept2 join emp2 using (deptno))\n"
-        + "select 1 as one from empDept",
+            + " dept2 as (select * from dept),\n"
+            + " empDept as (select emp2.empno, dept2.deptno from dept2 join emp2 using (deptno))\n"
+            + "select 1 as one from empDept",
         "RecordType(INTEGER NOT NULL ONE) NOT NULL");
   }
 
@@ -5106,7 +5095,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     // nested WITH (parentheses required - and even with parentheses SQL
     // standard doesn't allow sub-query to have WITH)
     checkResultType("with emp2 as (select * from emp)\n"
-        + "select * from emp2 union all select * from emp",
+            + "select * from emp2 union all select * from emp",
         EMP_RECORD_TYPE);
   }
 
@@ -5135,47 +5124,47 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     // nested WITH (parentheses required - and even with parentheses SQL
     // standard doesn't allow sub-query to have WITH)
     checkResultType("with emp2 as (select * from emp)\n"
-        + "(\n"
-        + "  with dept2 as (select * from dept)\n"
-        + "  (\n"
-        + "    with empDept as (select emp2.empno, dept2.deptno from dept2 join emp2 using (deptno))\n"
-        + "    select 1 as one from empDept))",
+            + "(\n"
+            + "  with dept2 as (select * from dept)\n"
+            + "  (\n"
+            + "    with empDept as (select emp2.empno, dept2.deptno from dept2 join emp2 using (deptno))\n"
+            + "    select 1 as one from empDept))",
         "RecordType(INTEGER NOT NULL ONE) NOT NULL");
 
     // WITH inside WHERE can see enclosing tables
     checkResultType("select * from emp\n"
-        + "where exists (\n"
-        + "  with dept2 as (select * from dept where dept.deptno >= emp.deptno)\n"
-        + "  select 1 from dept2 where deptno <= emp.deptno)",
+            + "where exists (\n"
+            + "  with dept2 as (select * from dept where dept.deptno >= emp.deptno)\n"
+            + "  select 1 from dept2 where deptno <= emp.deptno)",
         EMP_RECORD_TYPE);
 
     // WITH inside FROM cannot see enclosing tables
     checkFails("select * from emp\n"
-        + "join (\n"
-        + "  with dept2 as (select * from dept where dept.deptno >= ^emp^.deptno)\n"
-        + "  select * from dept2) as d on true",
+            + "join (\n"
+            + "  with dept2 as (select * from dept where dept.deptno >= ^emp^.deptno)\n"
+            + "  select * from dept2) as d on true",
         "Table 'EMP' not found");
 
     // as above, using USING
     checkFails("select * from emp\n"
-        + "join (\n"
-        + "  with dept2 as (select * from dept where dept.deptno >= ^emp^.deptno)\n"
-        + "  select * from dept2) as d using (deptno)",
+            + "join (\n"
+            + "  with dept2 as (select * from dept where dept.deptno >= ^emp^.deptno)\n"
+            + "  select * from dept2) as d using (deptno)",
         "Table 'EMP' not found");
 
     // WITH inside FROM
     checkResultType("select e.empno, d.* from emp as e\n"
-        + "join (\n"
-        + "  with dept2 as (select * from dept where dept.deptno > 10)\n"
-        + "  select deptno, 1 as one from dept2) as d using (deptno)",
+            + "join (\n"
+            + "  with dept2 as (select * from dept where dept.deptno > 10)\n"
+            + "  select deptno, 1 as one from dept2) as d using (deptno)",
         "RecordType(INTEGER NOT NULL EMPNO,"
-        + " INTEGER NOT NULL DEPTNO,"
-        + " INTEGER NOT NULL ONE) NOT NULL");
+            + " INTEGER NOT NULL DEPTNO,"
+            + " INTEGER NOT NULL ONE) NOT NULL");
 
     checkFails("select ^e^.empno, d.* from emp\n"
-        + "join (\n"
-        + "  with dept2 as (select * from dept where dept.deptno > 10)\n"
-        + "  select deptno, 1 as one from dept2) as d using (deptno)",
+            + "join (\n"
+            + "  with dept2 as (select * from dept where dept.deptno > 10)\n"
+            + "  select deptno, 1 as one from dept2) as d using (deptno)",
         "Table 'E' not found");
   }
 
@@ -5190,9 +5179,9 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     // SqlOrderBy(SqlUnion(SqlSelect ...)), but is not valid SQL.
     checkFails(
         "select count(*) from emp\n"
-        + "union all\n"
-        + "select count(*) from emp\n"
-        + "order by ^count(*)^",
+            + "union all\n"
+            + "select count(*) from emp\n"
+            + "order by ^count(*)^",
         "Aggregate expression is illegal in ORDER BY clause of non-aggregating SELECT");
   }
 
@@ -5227,8 +5216,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     // E.g. "select x1, x2 ... from (
     // select 'a' as x1, 'a' as x2, ... from emp union
     // select 'bb' as x1, 'bb' as x2, ... from dept)"
-    check(
-        "select " + list(", ", "x", x)
+    check("select " + list(", ", "x", x)
         + " from (select " + list(", ", "'a' as x", x) + " from emp "
         + "union all select " + list(", ", "'bb' as x", x) + " from dept)");
   }
@@ -5306,35 +5294,33 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
             // Ambiguous in SQL:2003
             : "col ambig");
 
-    check(
-        "select deptno from dept\n"
+    check("select deptno from dept\n"
         + "union\n"
         + "select empno from emp\n"
         + "order by deptno");
 
     checkFails(
         "select deptno from dept\n"
-        + "union\n"
-        + "select empno from emp\n"
-        + "order by ^empno^",
+            + "union\n"
+            + "select empno from emp\n"
+            + "order by ^empno^",
         "Column 'EMPNO' not found in any table");
 
     checkFails(
         "select deptno from dept\n"
-        + "union\n"
-        + "select empno from emp\n"
-        + "order by ^10^",
+            + "union\n"
+            + "select empno from emp\n"
+            + "order by ^10^",
 
         // invalid in oracle and pre-99
         conformance.isSortByOrdinal() ? "Ordinal out of range" : null);
 
     // Sort by scalar subquery
-    check(
-        "select * from emp\n"
+    check("select * from emp\n"
         + "order by (select name from dept where deptno = emp.deptno)");
     checkFails(
         "select * from emp\n"
-        + "order by (select name from dept where deptno = emp.^foo^)",
+            + "order by (select name from dept where deptno = emp.^foo^)",
         "Column 'FOO' not found in table 'EMP'");
 
     // REVIEW jvs 10-Apr-2008:  I disabled this because I don't
@@ -5359,38 +5345,36 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   @Test public void testOrderUnion() {
-    check(
-        "select empno, sal from emp "
+    check("select empno, sal from emp "
         + "union all "
         + "select deptno, deptno from dept "
         + "order by empno");
 
     checkFails(
         "select empno, sal from emp "
-        + "union all "
-        + "select deptno, deptno from dept "
-        + "order by ^asc^",
+            + "union all "
+            + "select deptno, deptno from dept "
+            + "order by ^asc^",
         "Column 'ASC' not found in any table");
 
     // name belongs to emp but is not projected so cannot sort on it
     checkFails(
         "select empno, sal from emp "
-        + "union all "
-        + "select deptno, deptno from dept "
-        + "order by ^ename^ desc",
+            + "union all "
+            + "select deptno, deptno from dept "
+            + "order by ^ename^ desc",
         "Column 'ENAME' not found in any table");
 
     // empno is not an alias in the first select in the union
     checkFails(
         "select deptno, deptno from dept "
-        + "union all "
-        + "select empno, sal from emp "
-        + "order by deptno asc, ^empno^",
+            + "union all "
+            + "select empno, sal from emp "
+            + "order by deptno asc, ^empno^",
         "Column 'EMPNO' not found in any table");
 
     // ordinals ok
-    check(
-        "select empno, sal from emp "
+    check("select empno, sal from emp "
         + "union all "
         + "select deptno, deptno from dept "
         + "order by 2");
@@ -5400,22 +5384,20 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     if (tester.getConformance().isSortByOrdinal()) {
       checkFails(
           "select empno, sal from emp "
-          + "union all "
-          + "select deptno, deptno from dept "
-          + "order by ^3^",
+              + "union all "
+              + "select deptno, deptno from dept "
+              + "order by ^3^",
           "Ordinal out of range");
     }
 
     // Expressions made up of aliases are OK.
     // (This is illegal in Oracle 10G.)
-    check(
-        "select empno, sal from emp "
+    check("select empno, sal from emp "
         + "union all "
         + "select deptno, deptno from dept "
         + "order by empno * sal + 2");
 
-    check(
-        "select empno, sal from emp "
+    check("select empno, sal from emp "
         + "union all "
         + "select deptno, deptno from dept "
         + "order by 'foobar'");
@@ -5431,8 +5413,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         "Expression 'EMP\\.EMPNO' is not being grouped");
 
     // order by can contain aggregate expressions
-    check(
-        "select empno from emp "
+    check("select empno from emp "
         + "group by empno, deptno "
         + "order by deptno * sum(sal + 2)");
 
@@ -5442,8 +5423,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         "select sum(sal) from emp having count(*) > 3 order by ^empno^",
         "Expression 'EMP\\.EMPNO' is not being grouped");
 
-    check(
-        "select sum(sal) from emp having count(*) > 3 order by sum(deptno)");
+    check("select sum(sal) from emp having count(*) > 3 order by sum(deptno)");
 
     // Select distinct
 
@@ -5455,47 +5435,44 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         "select distinct deptno from emp group by deptno order by deptno, ^empno^",
         "Expression 'EMP\\.EMPNO' is not in the select clause");
 
-    check(
-        "select distinct deptno from emp group by deptno order by deptno");
+    check("select distinct deptno from emp group by deptno order by deptno");
 
     // UNION of SELECT DISTINCT and GROUP BY behaves just like a UNION.
-    check(
-        "select distinct deptno from dept "
+    check("select distinct deptno from dept "
         + "union all "
         + "select empno from emp group by deptno, empno "
         + "order by deptno");
 
     // order by can contain a mixture of aliases and aggregate expressions
-    check(
-        "select empno as x "
+    check("select empno as x "
         + "from emp "
         + "group by empno, deptno "
         + "order by x * sum(sal + 2)");
 
     checkFails(
         "select empno as x "
-        + "from emp "
-        + "group by empno, deptno "
-        + "order by empno * sum(sal + 2)",
+            + "from emp "
+            + "group by empno, deptno "
+            + "order by empno * sum(sal + 2)",
         tester.getConformance().isSortByAliasObscures() ? "xxxx" : null);
 
     // Distinct on expressions with attempts to order on a column in
     // the underlying table
     checkFails(
         "select distinct cast(empno as bigint) "
-        + "from emp order by ^empno^",
+            + "from emp order by ^empno^",
         "Expression 'EMP\\.EMPNO' is not in the select clause");
     checkFails(
         "select distinct cast(empno as bigint) "
-        + "from emp order by ^emp.empno^",
+            + "from emp order by ^emp.empno^",
         "Expression 'EMP\\.EMPNO' is not in the select clause");
     checkFails(
         "select distinct cast(empno as bigint) as empno "
-        + "from emp order by ^emp.empno^",
+            + "from emp order by ^emp.empno^",
         "Expression 'EMP\\.EMPNO' is not in the select clause");
     checkFails(
         "select distinct cast(empno as bigint) as empno "
-        + "from emp as e order by ^e.empno^",
+            + "from emp as e order by ^e.empno^",
         "Expression 'E\\.EMPNO' is not in the select clause");
 
     // These tests are primarily intended to test cases where sorting by
@@ -5503,39 +5480,35 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     // by alias, the tests also verify that a proper exception is thrown.
     checkFails(
         "select distinct cast(empno as bigint) as empno "
-        + "from emp order by ^empno^",
+            + "from emp order by ^empno^",
         tester.getConformance().isSortByAlias() ? null
             : "Expression 'EMPNO' is not in the select clause");
     checkFails(
         "select distinct cast(empno as bigint) as eno "
-        + "from emp order by ^eno^",
+            + "from emp order by ^eno^",
         tester.getConformance().isSortByAlias() ? null
             : "Column 'ENO' not found in any table");
     checkFails(
         "select distinct cast(empno as bigint) as empno "
-        + "from emp e order by ^empno^",
+            + "from emp e order by ^empno^",
         tester.getConformance().isSortByAlias() ? null
             : "Expression 'EMPNO' is not in the select clause");
 
     // Distinct on expressions, sorting using ordinals.
     if (tester.getConformance().isSortByOrdinal()) {
-      check(
-          "select distinct cast(empno as bigint) from emp order by 1");
-      check(
-          "select distinct cast(empno as bigint) as empno "
+      check("select distinct cast(empno as bigint) from emp order by 1");
+      check("select distinct cast(empno as bigint) as empno "
           + "from emp order by 1");
-      check(
-          "select distinct cast(empno as bigint) as empno "
+      check("select distinct cast(empno as bigint) as empno "
           + "from emp as e order by 1");
     }
 
     // Distinct on expressions with ordering on expressions as well
-    check(
-        "select distinct cast(empno as varchar(10)) from emp "
+    check("select distinct cast(empno as varchar(10)) from emp "
         + "order by cast(empno as varchar(10))");
     checkFails(
         "select distinct cast(empno as varchar(10)) as eno from emp "
-        + " order by upper(^eno^)",
+            + " order by upper(^eno^)",
         tester.getConformance().isSortByAlias() ? null
             : "Column 'ENO' not found in any table");
   }
@@ -5555,22 +5528,19 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
     // If we're grouping on ALL columns, 'select *' is ok.
     // Checked on Oracle10G.
-    check(
-        "select * from (select empno,deptno from emp) group by deptno,empno");
+    check("select * from (select empno,deptno from emp) group by deptno,empno");
 
     // This query tries to reference an agg expression from within a
     // subquery as a correlating expression, but the SQL syntax rules say
     // that the agg function SUM always applies to the current scope.
     // As it happens, the query is valid.
-    check(
-        "select deptno\n"
+    check("select deptno\n"
         + "from emp\n"
         + "group by deptno\n"
         + "having exists (select sum(emp.sal) > 10 from (values(true)))");
 
     // if you reference a column from a subquery, it must be a group col
-    check(
-        "select deptno "
+    check("select deptno "
         + "from emp "
         + "group by deptno "
         + "having exists (select 1 from (values(true)) where emp.deptno = 10)");
@@ -5579,9 +5549,9 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     if (TODO) {
       checkFails(
           "select deptno "
-          + "from emp "
-          + "group by deptno "
-          + "having exists (select 1 from (values(true)) where emp.empno = 10)",
+              + "from emp "
+              + "group by deptno "
+              + "having exists (select 1 from (values(true)) where emp.empno = 10)",
           "xx");
     }
 
@@ -5595,8 +5565,8 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     // -- see sql2003 part2,  7.9
     checkFails(
         "select count(*)\n"
-        + "from emp\n"
-        + "where exists (select count(*) from dept group by ^emp^.empno)",
+            + "from emp\n"
+            + "where exists (select count(*) from dept group by ^emp^.empno)",
         "Table 'EMP' not found");
   }
 
@@ -5608,8 +5578,8 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         "Expression 'EMPNO' is not being grouped");
 
     // datatype equivalence
-    check(
-        "select cast(empno as VARCHAR(10)) from emp group by cast(empno as VARCHAR(10))");
+    check("select cast(empno as VARCHAR(10)) from emp\n"
+        + "group by cast(empno as VARCHAR(10))");
     checkFails(
         "select cast(^empno^ as VARCHAR(11)) from emp group by cast(empno as VARCHAR(10))",
         "Expression 'EMPNO' is not being grouped");
@@ -5617,27 +5587,23 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
   @Test public void testGroupExpressionEquivalenceId() {
     // identifier equivalence
-    check(
-        "select case empno when 10 then deptno else null end from emp "
+    check("select case empno when 10 then deptno else null end from emp "
         + "group by case empno when 10 then deptno else null end");
 
     // matches even when one column is qualified (checked on Oracle10.1)
-    check(
-        "select case empno when 10 then deptno else null end from emp "
+    check("select case empno when 10 then deptno else null end from emp "
         + "group by case empno when 10 then emp.deptno else null end");
-    check(
-        "select case empno when 10 then deptno else null end from emp "
+    check("select case empno when 10 then deptno else null end from emp "
         + "group by case emp.empno when 10 then emp.deptno else null end");
-    check(
-        "select case emp.empno when 10 then deptno else null end from emp "
+    check("select case emp.empno when 10 then deptno else null end from emp "
         + "group by case empno when 10 then emp.deptno else null end");
 
     // emp.deptno is different to dept.deptno (even though there is an '='
     // between them)
     checkFails(
         "select case ^emp.empno^ when 10 then emp.deptno else null end "
-        + "from emp join dept on emp.deptno = dept.deptno "
-        + "group by case emp.empno when 10 then dept.deptno else null end",
+            + "from emp join dept on emp.deptno = dept.deptno "
+            + "group by case emp.empno when 10 then dept.deptno else null end",
         "Expression 'EMP\\.EMPNO' is not being grouped");
   }
 
@@ -5645,11 +5611,9 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   public void _testGroupExpressionEquivalenceCorrelated() {
     // dname comes from dept, so it is constant within the subquery, and
     // is so is a valid expr in a group-by query
-    check(
-        "select * from dept where exists ("
+    check("select * from dept where exists ("
         + "select dname from emp group by empno)");
-    check(
-        "select * from dept where exists ("
+    check("select * from dept where exists ("
         + "select dname + empno + 1 from emp group by empno, dept.deptno)");
   }
 
@@ -5666,56 +5630,56 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     // CASE expression.
 
     // literal equivalence
-    check(
-        "select case empno when 10 then date '1969-04-29' else null end from emp "
+    check("select case empno when 10 then date '1969-04-29' else null end\n"
+        + "from emp\n"
         + "group by case empno when 10 then date '1969-04-29' else null end");
 
     // this query succeeds in oracle 10.1 because 1 and 1.0 have the same
     // type
     checkFails(
         "select case ^empno^ when 10 then 1 else null end from emp "
-        + "group by case empno when 10 then 1.0 else null end",
+            + "group by case empno when 10 then 1.0 else null end",
         "Expression 'EMPNO' is not being grouped");
 
     // 3.1415 and 3.14150 are different literals (I don't care either way)
     checkFails(
         "select case ^empno^ when 10 then 3.1415 else null end from emp "
-        + "group by case empno when 10 then 3.14150 else null end",
+            + "group by case empno when 10 then 3.14150 else null end",
         "Expression 'EMPNO' is not being grouped");
 
     // 3 and 03 are the same literal (I don't care either way)
-    check(
-        "select case empno when 10 then 03 else null end from emp "
+    check("select case empno when 10 then 03 else null end from emp "
         + "group by case empno when 10 then 3 else null end");
     checkFails(
         "select case ^empno^ when 10 then 1 else null end from emp "
-        + "group by case empno when 10 then 2 else null end",
+            + "group by case empno when 10 then 2 else null end",
         "Expression 'EMPNO' is not being grouped");
-    check(
-        "select case empno when 10 then timestamp '1969-04-29 12:34:56.0' else null end from emp "
+    check("select case empno when 10 then timestamp '1969-04-29 12:34:56.0'\n"
+        + "       else null end from emp\n"
         + "group by case empno when 10 then timestamp '1969-04-29 12:34:56' else null end");
   }
 
   @Test public void testGroupExpressionEquivalenceStringLiteral() {
-    check(
-        "select case empno when 10 then 'foo bar' else null end from emp "
+    check("select case empno when 10 then 'foo bar' else null end from emp "
         + "group by case empno when 10 then 'foo bar' else null end");
 
     if (Bug.FRG78_FIXED) {
-      check(
-          "select case empno when 10 then _iso-8859-1'foo bar' collate latin1$en$1 else null end from emp "
-          + "group by case empno when 10 then _iso-8859-1'foo bar' collate latin1$en$1 else null end");
+      check("select case empno when 10\n"
+          + "      then _iso-8859-1'foo bar' collate latin1$en$1 else null end\n"
+          + "from emp\n"
+          + "group by case empno when 10\n"
+          + "      then _iso-8859-1'foo bar' collate latin1$en$1 else null end");
     }
 
     checkFails(
         "select case ^empno^ when 10 then _iso-8859-1'foo bar' else null end from emp "
-        + "group by case empno when 10 then _UTF16'foo bar' else null end",
+            + "group by case empno when 10 then _UTF16'foo bar' else null end",
         "Expression 'EMPNO' is not being grouped");
 
     if (Bug.FRG78_FIXED) {
       checkFails(
           "select case ^empno^ when 10 then 'foo bar' collate latin1$en$1 else null end from emp "
-          + "group by case empno when 10 then 'foo bar' collate latin1$fr$1 else null end",
+              + "group by case empno when 10 then 'foo bar' collate latin1$fr$1 else null end",
           "Expression 'EMPNO' is not being grouped");
     }
   }
@@ -5744,7 +5708,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     // make sure it fails in HAVING too
     checkFails(
         "select count(*) from emp group by deptno "
-        + "having ^sum(max(empno))^=3",
+            + "having ^sum(max(empno))^=3",
         ERR_NESTED_AGG);
 
     // double-nesting should fail too; bottom-up validation currently
@@ -5797,13 +5761,11 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
   @Test public void testCorrelatingVariables() {
     // reference to unqualified correlating column
-    check(
-        "select * from emp where exists (\n"
+    check("select * from emp where exists (\n"
         + "select * from dept where deptno = sal)");
 
     // reference to qualified correlating column
-    check(
-        "select * from emp where exists (\n"
+    check("select * from emp where exists (\n"
         + "select * from dept where deptno = emp.sal)");
   }
 
@@ -5933,12 +5895,11 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
       check("select case when deptno = ? then 1 else 2 end from emp");
     }
     if (TODO_TYPE_INFERENCE) {
-      check(
-          "select deptno from emp group by substring(name from ? for ?)");
+      check("select deptno from emp group by substring(name from ? for ?)");
     }
     if (TODO_TYPE_INFERENCE) {
-      check(
-          "select deptno from emp group by case when deptno = ? then 1 else 2 end");
+      check("select deptno from emp\n"
+          + "group by case when deptno = ? then 1 else 2 end");
     }
     check("select 1 from emp having sum(sal) < ?");
   }
@@ -5979,8 +5940,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   @Test public void testCorrelationJoin() {
-    check(
-        "select *,"
+    check("select *,"
         + "         multiset(select * from emp where deptno=dept.deptno) "
         + "               as empset"
         + "      from dept");
@@ -6008,12 +5968,12 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         "select * from emp, (select * from dept where ^emp^.deptno=dept.deptno)",
         "Table 'EMP' not found");
 
-    check(
-        "select * from emp, LATERAL (select * from dept where emp.deptno=dept.deptno)");
-    check(
-        "select * from emp, LATERAL (select * from dept where emp.deptno=dept.deptno) as ldt");
-    check(
-        "select * from emp, LATERAL (select * from dept where emp.deptno=dept.deptno) ldt");
+    check("select * from emp,\n"
+        + "  LATERAL (select * from dept where emp.deptno=dept.deptno)");
+    check("select * from emp,\n"
+        + "  LATERAL (select * from dept where emp.deptno=dept.deptno) as ldt");
+    check("select * from emp,\n"
+        + "  LATERAL (select * from dept where emp.deptno=dept.deptno) ldt");
   }
 
   @Test public void testCollect() {
@@ -6096,8 +6056,8 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         "Expression 'DEPTNO' is not being grouped");
     check("SELECT DISTINCT deptno, sal from emp GROUP BY sal, deptno");
     check("SELECT deptno FROM emp GROUP BY deptno HAVING deptno > 55");
-    check(
-        "SELECT DISTINCT deptno, 33 FROM emp GROUP BY deptno HAVING deptno > 55");
+    check("SELECT DISTINCT deptno, 33 FROM emp\n"
+        + "GROUP BY deptno HAVING deptno > 55");
     checkFails(
         "SELECT DISTINCT deptno, 33 FROM emp HAVING ^deptno^ > 55",
         "Expression 'DEPTNO' is not being grouped");
@@ -6128,8 +6088,8 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         "Expression 'EMP\\.EMPNO' is not in the select clause");
 
     // redundant distinct; same query is in unitsql/optimizer/distinct.sql
-    check(
-        "select distinct * from (select distinct deptno from emp) order by 1");
+    check("select distinct * from (\n"
+        + "  select distinct deptno from emp) order by 1");
 
     check("SELECT DISTINCT 5, 10+5, 'string' from emp");
   }
@@ -6137,14 +6097,14 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   @Test public void testExplicitTable() {
     final String empRecordType =
         "RecordType(INTEGER NOT NULL EMPNO,"
-        + " VARCHAR(20) NOT NULL ENAME,"
-        + " VARCHAR(10) NOT NULL JOB,"
-        + " INTEGER MGR,"
-        + " TIMESTAMP(0) NOT NULL HIREDATE,"
-        + " INTEGER NOT NULL SAL,"
-        + " INTEGER NOT NULL COMM,"
-        + " INTEGER NOT NULL DEPTNO,"
-        + " BOOLEAN NOT NULL SLACKER) NOT NULL";
+            + " VARCHAR(20) NOT NULL ENAME,"
+            + " VARCHAR(10) NOT NULL JOB,"
+            + " INTEGER MGR,"
+            + " TIMESTAMP(0) NOT NULL HIREDATE,"
+            + " INTEGER NOT NULL SAL,"
+            + " INTEGER NOT NULL COMM,"
+            + " INTEGER NOT NULL DEPTNO,"
+            + " BOOLEAN NOT NULL SLACKER) NOT NULL";
     checkResultType("select * from (table emp)", empRecordType);
     checkResultType("table emp", empRecordType);
     checkFails(
@@ -6204,8 +6164,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   public void _testSubqueryInOnClause() {
     // Currently not supported. Should give validator error, but gives
     // internal error.
-    check(
-        "select * from emp as emps left outer join dept as depts\n"
+    check("select * from emp as emps left outer join dept as depts\n"
         + "on emps.deptno = depts.deptno and emps.deptno = (\n"
         + "select min(deptno) from dept as depts2)");
   }
@@ -6235,8 +6194,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     check("SELECT * FROM emp TABLESAMPLE SYSTEM(50)");
 
     // applied to query
-    check(
-        "SELECT * FROM ("
+    check("SELECT * FROM ("
         + "SELECT deptno FROM emp "
         + "UNION ALL "
         + "SELECT deptno FROM dept) AS x TABLESAMPLE SUBSTITUTE('foo') "
@@ -6244,20 +6202,18 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
     checkFails(
         "SELECT x.^empno^ FROM ("
-        + "SELECT deptno FROM emp TABLESAMPLE SUBSTITUTE('bar') "
-        + "UNION ALL "
-        + "SELECT deptno FROM dept) AS x TABLESAMPLE SUBSTITUTE('foo') "
-        + "ORDER BY 1",
+            + "SELECT deptno FROM emp TABLESAMPLE SUBSTITUTE('bar') "
+            + "UNION ALL "
+            + "SELECT deptno FROM dept) AS x TABLESAMPLE SUBSTITUTE('foo') "
+            + "ORDER BY 1",
         "Column 'EMPNO' not found in table 'X'");
 
-    check(
-        "select * from (\n"
+    check("select * from (\n"
         + "    select * from emp\n"
         + "    join dept on emp.deptno = dept.deptno\n"
         + ") tablesample substitute('SMALL')");
 
-    check(
-        "SELECT * FROM ("
+    check("SELECT * FROM ("
         + "SELECT deptno FROM emp "
         + "UNION ALL "
         + "SELECT deptno FROM dept) AS x TABLESAMPLE BERNOULLI(50) "
@@ -6265,20 +6221,18 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
     checkFails(
         "SELECT x.^empno^ FROM ("
-        + "SELECT deptno FROM emp TABLESAMPLE BERNOULLI(50) "
-        + "UNION ALL "
-        + "SELECT deptno FROM dept) AS x TABLESAMPLE BERNOULLI(10) "
-        + "ORDER BY 1",
+            + "SELECT deptno FROM emp TABLESAMPLE BERNOULLI(50) "
+            + "UNION ALL "
+            + "SELECT deptno FROM dept) AS x TABLESAMPLE BERNOULLI(10) "
+            + "ORDER BY 1",
         "Column 'EMPNO' not found in table 'X'");
 
-    check(
-        "select * from (\n"
+    check("select * from (\n"
         + "    select * from emp\n"
         + "    join dept on emp.deptno = dept.deptno\n"
         + ") tablesample bernoulli(10)");
 
-    check(
-        "SELECT * FROM ("
+    check("SELECT * FROM ("
         + "SELECT deptno FROM emp "
         + "UNION ALL "
         + "SELECT deptno FROM dept) AS x TABLESAMPLE SYSTEM(50) "
@@ -6286,14 +6240,13 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
     checkFails(
         "SELECT x.^empno^ FROM ("
-        + "SELECT deptno FROM emp TABLESAMPLE SYSTEM(50) "
-        + "UNION ALL "
-        + "SELECT deptno FROM dept) AS x TABLESAMPLE SYSTEM(10) "
-        + "ORDER BY 1",
+            + "SELECT deptno FROM emp TABLESAMPLE SYSTEM(50) "
+            + "UNION ALL "
+            + "SELECT deptno FROM dept) AS x TABLESAMPLE SYSTEM(10) "
+            + "ORDER BY 1",
         "Column 'EMPNO' not found in table 'X'");
 
-    check(
-        "select * from (\n"
+    check("select * from (\n"
         + "    select * from emp\n"
         + "    join dept on emp.deptno = dept.deptno\n"
         + ") tablesample system(10)");
@@ -6306,7 +6259,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         validator,
         "select * from dept",
         "SELECT *\n"
-        + "FROM `DEPT`");
+            + "FROM `DEPT`");
   }
 
   @Test public void testRewriteWithIdentifierExpansion() {
@@ -6316,7 +6269,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         validator,
         "select * from dept",
         "SELECT `DEPT`.`DEPTNO`, `DEPT`.`NAME`\n"
-        + "FROM `CATALOG`.`SALES`.`DEPT` AS `DEPT`");
+            + "FROM `CATALOG`.`SALES`.`DEPT` AS `DEPT`");
   }
 
   @Test public void testRewriteWithColumnReferenceExpansion() {
@@ -6330,13 +6283,13 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     tester.checkRewrite(
         validator,
         "select name from dept where name = 'Moonracer' group by name"
-        + " having sum(deptno) > 3 order by name",
+            + " having sum(deptno) > 3 order by name",
         "SELECT `DEPT`.`NAME`\n"
-        + "FROM `CATALOG`.`SALES`.`DEPT` AS `DEPT`\n"
-        + "WHERE `DEPT`.`NAME` = 'Moonracer'\n"
-        + "GROUP BY `DEPT`.`NAME`\n"
-        + "HAVING SUM(`DEPT`.`DEPTNO`) > 3\n"
-        + "ORDER BY `NAME`");
+            + "FROM `CATALOG`.`SALES`.`DEPT` AS `DEPT`\n"
+            + "WHERE `DEPT`.`NAME` = 'Moonracer'\n"
+            + "GROUP BY `DEPT`.`NAME`\n"
+            + "HAVING SUM(`DEPT`.`DEPTNO`) > 3\n"
+            + "ORDER BY `NAME`");
   }
 
   @Test public void testRewriteWithColumnReferenceExpansionAndFromAlias() {
@@ -6350,15 +6303,15 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     tester.checkRewrite(
         validator,
         "select name from (select * from dept)"
-        + " where name = 'Moonracer' group by name"
-        + " having sum(deptno) > 3 order by name",
+            + " where name = 'Moonracer' group by name"
+            + " having sum(deptno) > 3 order by name",
         "SELECT `EXPR$0`.`NAME`\n"
-        + "FROM (SELECT `DEPT`.`DEPTNO`, `DEPT`.`NAME`\n"
-        + "FROM `CATALOG`.`SALES`.`DEPT` AS `DEPT`) AS `EXPR$0`\n"
-        + "WHERE `EXPR$0`.`NAME` = 'Moonracer'\n"
-        + "GROUP BY `EXPR$0`.`NAME`\n"
-        + "HAVING SUM(`EXPR$0`.`DEPTNO`) > 3\n"
-        + "ORDER BY `NAME`");
+            + "FROM (SELECT `DEPT`.`DEPTNO`, `DEPT`.`NAME`\n"
+            + "FROM `CATALOG`.`SALES`.`DEPT` AS `DEPT`) AS `EXPR$0`\n"
+            + "WHERE `EXPR$0`.`NAME` = 'Moonracer'\n"
+            + "GROUP BY `EXPR$0`.`NAME`\n"
+            + "HAVING SUM(`EXPR$0`.`DEPTNO`) > 3\n"
+            + "ORDER BY `NAME`");
   }
 
   @Test public void testCoalesceWithoutRewrite() {
@@ -6369,13 +6322,13 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
           validator,
           "select coalesce(deptno, empno) from emp",
           "SELECT COALESCE(`EMP`.`DEPTNO`, `EMP`.`EMPNO`)\n"
-          + "FROM `CATALOG`.`SALES`.`EMP` AS `EMP`");
+              + "FROM `CATALOG`.`SALES`.`EMP` AS `EMP`");
     } else {
       tester.checkRewrite(
           validator,
           "select coalesce(deptno, empno) from emp",
           "SELECT COALESCE(`DEPTNO`, `EMPNO`)\n"
-          + "FROM `EMP`");
+              + "FROM `EMP`");
     }
   }
 
@@ -6387,13 +6340,13 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
           validator,
           "select coalesce(deptno, empno) from emp",
           "SELECT CASE WHEN `EMP`.`DEPTNO` IS NOT NULL THEN `EMP`.`DEPTNO` ELSE `EMP`.`EMPNO` END\n"
-          + "FROM `CATALOG`.`SALES`.`EMP` AS `EMP`");
+              + "FROM `CATALOG`.`SALES`.`EMP` AS `EMP`");
     } else {
       tester.checkRewrite(
           validator,
           "select coalesce(deptno, empno) from emp",
           "SELECT CASE WHEN `DEPTNO` IS NOT NULL THEN `DEPTNO` ELSE `EMPNO` END\n"
-          + "FROM `EMP`");
+              + "FROM `EMP`");
     }
   }
 
@@ -6407,25 +6360,25 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     tester.checkFieldOrigin(
         "select * from emp join dept on true",
         "{CATALOG.SALES.EMP.EMPNO,"
-        + " CATALOG.SALES.EMP.ENAME,"
-        + " CATALOG.SALES.EMP.JOB,"
-        + " CATALOG.SALES.EMP.MGR,"
-        + " CATALOG.SALES.EMP.HIREDATE,"
-        + " CATALOG.SALES.EMP.SAL,"
-        + " CATALOG.SALES.EMP.COMM,"
-        + " CATALOG.SALES.EMP.DEPTNO,"
-        + " CATALOG.SALES.EMP.SLACKER,"
-        + " CATALOG.SALES.DEPT.DEPTNO,"
-        + " CATALOG.SALES.DEPT.NAME}");
+            + " CATALOG.SALES.EMP.ENAME,"
+            + " CATALOG.SALES.EMP.JOB,"
+            + " CATALOG.SALES.EMP.MGR,"
+            + " CATALOG.SALES.EMP.HIREDATE,"
+            + " CATALOG.SALES.EMP.SAL,"
+            + " CATALOG.SALES.EMP.COMM,"
+            + " CATALOG.SALES.EMP.DEPTNO,"
+            + " CATALOG.SALES.EMP.SLACKER,"
+            + " CATALOG.SALES.DEPT.DEPTNO,"
+            + " CATALOG.SALES.DEPT.NAME}");
 
     tester.checkFieldOrigin(
         "select distinct emp.empno, hiredate, 1 as one,\n"
-        + " emp.empno * 2 as twiceEmpno\n"
-        + "from emp join dept on true",
+            + " emp.empno * 2 as twiceEmpno\n"
+            + "from emp join dept on true",
         "{CATALOG.SALES.EMP.EMPNO,"
-        + " CATALOG.SALES.EMP.HIREDATE,"
-        + " null,"
-        + " null}");
+            + " CATALOG.SALES.EMP.HIREDATE,"
+            + " null,"
+            + " null}");
   }
 
   @Test public void testBrackets() {
@@ -6440,7 +6393,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
     tester1.checkQueryFails(
         "select ^x^ from (\n"
-        + "  select [e].EMPNO as [x] from [EMP] as [e])",
+            + "  select [e].EMPNO as [x] from [EMP] as [e])",
         "Column 'X' not found in any table");
 
     tester1.checkQueryFails(
@@ -6449,7 +6402,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
     tester1.checkResultType(
         "select [x[y]] z ] from (\n"
-        + "  select [e].EMPNO as [x[y]] z ] from [EMP] as [e])",
+            + "  select [e].EMPNO as [x[y]] z ] from [EMP] as [e])",
         "RecordType(INTEGER NOT NULL x[y] z ) NOT NULL");
   }
 
@@ -6469,7 +6422,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
     tester1.checkQueryFails(
         "select ^x^ from (\n"
-        + "  select e.EMPNO as X from EMP as e)",
+            + "  select e.EMPNO as X from EMP as e)",
         "Column 'x' not found in any table");
 
     // double-quotes are not valid in this lexical convention
@@ -6481,7 +6434,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     // can use back-ticks if you really have to
     tester1.checkResultType(
         "select `x[y] z ` from (\n"
-        + "  select e.EMPNO as `x[y] z ` from EMP as e)",
+            + "  select e.EMPNO as `x[y] z ` from EMP as e)",
         "RecordType(INTEGER NOT NULL x[y] z ) NOT NULL");
   }
 
@@ -6528,7 +6481,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     // can use double-quote if you really have to
     tester1.checkResultType(
         "select \"x[y] z \" from (\n"
-        + "  select e.EMPNO as \"x[y] z \" from EMP as e)",
+            + "  select e.EMPNO as \"x[y] z \" from EMP as e)",
         "RecordType(INTEGER NOT NULL x[y] z ) NOT NULL");
   }
 
@@ -6549,10 +6502,10 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     // correlating variable
     tester1.checkQuery(
         "select * from emp as [e] where exists (\n"
-        + "select 1 from dept where dept.deptno = [E].deptno)");
+            + "select 1 from dept where dept.deptno = [E].deptno)");
     tester2.checkQueryFails(
         "select * from emp as [e] where exists (\n"
-        + "select 1 from dept where dept.deptno = ^[E]^.deptno)",
+            + "select 1 from dept where dept.deptno = ^[E]^.deptno)",
         "(?s).*Table 'E' not found");
 
     checkFails("select count(1), ^empno^ from emp",
@@ -6644,7 +6597,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .withCaseSensitive(false)
         .withQuoting(Quoting.BRACKET);
     tester1.checkQueryFails("insert into EMP ([EMPNO], deptno, ^[empno]^)\n"
-        + " values (1, 1, 1)",
+            + " values (1, 1, 1)",
         "Target column 'EMPNO' is assigned more than once");
   }
 

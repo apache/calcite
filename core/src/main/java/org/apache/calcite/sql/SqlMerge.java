@@ -14,14 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql;
+package org.apache.calcite.sql;
 
-import java.util.*;
+import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.validate.SqlValidator;
+import org.apache.calcite.sql.validate.SqlValidatorImpl;
+import org.apache.calcite.sql.validate.SqlValidatorScope;
+import org.apache.calcite.util.ImmutableNullableList;
+import org.apache.calcite.util.Pair;
 
-import org.eigenbase.sql.parser.*;
-import org.eigenbase.sql.validate.*;
-import org.eigenbase.util.ImmutableNullableList;
-import org.eigenbase.util.Pair;
+import java.util.Iterator;
+import java.util.List;
 
 /**
  * A <code>SqlMerge</code> is a node of a parse tree which represents a MERGE
@@ -74,8 +77,7 @@ public class SqlMerge extends SqlCall {
         insertCall, sourceSelect, alias);
   }
 
-  @Override
-  public void setOperand(int i, SqlNode operand) {
+  @Override public void setOperand(int i, SqlNode operand) {
     switch (i) {
     case 0:
       targetTable = (SqlIdentifier) operand;

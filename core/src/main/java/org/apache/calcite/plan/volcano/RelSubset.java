@@ -14,21 +14,36 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.relopt.volcano;
+package org.apache.calcite.plan.volcano;
 
-import java.io.*;
-import java.util.*;
-import java.util.logging.*;
+import org.apache.calcite.linq4j.Linq4j;
+import org.apache.calcite.linq4j.function.Predicate1;
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptCost;
+import org.apache.calcite.plan.RelOptListener;
+import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.plan.RelTrait;
+import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.AbstractRelNode;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelWriter;
+import org.apache.calcite.rel.metadata.RelMetadataQuery;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.util.Util;
+import org.apache.calcite.util.trace.CalciteTrace;
 
-import org.eigenbase.rel.*;
-import org.eigenbase.rel.metadata.*;
-import org.eigenbase.relopt.*;
-import org.eigenbase.reltype.*;
-import org.eigenbase.trace.*;
-import org.eigenbase.util.*;
-
-import net.hydromatic.linq4j.Linq4j;
-import net.hydromatic.linq4j.function.Predicate1;
+import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.util.ArrayList;
+import java.util.BitSet;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * A <code>RelSubset</code> is set of expressions in a set which have the same
@@ -38,7 +53,7 @@ import net.hydromatic.linq4j.function.Predicate1;
 public class RelSubset extends AbstractRelNode {
   //~ Static fields/initializers ---------------------------------------------
 
-  private static final Logger LOGGER = EigenbaseTrace.getPlannerTracer();
+  private static final Logger LOGGER = CalciteTrace.getPlannerTracer();
 
   //~ Instance fields --------------------------------------------------------
 
@@ -170,8 +185,7 @@ public class RelSubset extends AbstractRelNode {
     return false;
   }
 
-  @Override
-  public boolean isKey(BitSet columns) {
+  @Override public boolean isKey(BitSet columns) {
     for (RelNode rel : set.rels) {
       if (rel.isKey(columns)) {
         return true;
@@ -332,8 +346,7 @@ public class RelSubset extends AbstractRelNode {
       final RelOptCost cost = planner.getCost(rel);
       if (cost.isLt(bestCost)) {
         if (LOGGER.isLoggable(Level.FINER)) {
-          LOGGER.finer(
-              "Subset cost improved: subset [" + this
+          LOGGER.finer("Subset cost improved: subset [" + this
               + "] cost was " + bestCost + " now " + cost);
         }
 
@@ -435,8 +448,7 @@ public class RelSubset extends AbstractRelNode {
           // out why we reached impasse.
           StringWriter sw = new StringWriter();
           final PrintWriter pw = new PrintWriter(sw);
-          pw.println(
-              "Node [" + subset.getDescription()
+          pw.println("Node [" + subset.getDescription()
               + "] could not be implemented; planner state:\n");
           planner.dump(pw);
           pw.flush();

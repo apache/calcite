@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.relopt;
+package org.apache.calcite.plan;
 
-import org.eigenbase.rel.RelNode;
+import org.apache.calcite.rel.RelNode;
 
 /**
  * Calling convention trait.

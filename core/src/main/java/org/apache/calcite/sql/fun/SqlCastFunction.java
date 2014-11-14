@@ -14,16 +14,35 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql.fun;
+package org.apache.calcite.sql.fun;
 
-import java.util.*;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFamily;
+import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlCallBinding;
+import org.apache.calcite.sql.SqlDynamicParam;
+import org.apache.calcite.sql.SqlFunction;
+import org.apache.calcite.sql.SqlFunctionCategory;
+import org.apache.calcite.sql.SqlIntervalQualifier;
+import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlLiteral;
+import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlOperandCountRange;
+import org.apache.calcite.sql.SqlOperatorBinding;
+import org.apache.calcite.sql.SqlSyntax;
+import org.apache.calcite.sql.SqlUtil;
+import org.apache.calcite.sql.SqlWriter;
+import org.apache.calcite.sql.type.InferTypes;
+import org.apache.calcite.sql.type.SqlOperandCountRanges;
+import org.apache.calcite.sql.type.SqlTypeFamily;
+import org.apache.calcite.sql.type.SqlTypeUtil;
+import org.apache.calcite.sql.validate.SqlMonotonicity;
+import org.apache.calcite.sql.validate.SqlValidatorScope;
 
-import org.eigenbase.reltype.*;
-import org.eigenbase.sql.*;
-import org.eigenbase.sql.type.*;
-import org.eigenbase.sql.validate.*;
+import java.util.HashSet;
+import java.util.Set;
 
-import static org.eigenbase.util.Static.RESOURCE;
+import static org.apache.calcite.util.Static.RESOURCE;
 
 /**
  * SqlCastFunction. Note that the std functions are really singleton objects,
@@ -210,8 +229,7 @@ public class SqlCastFunction extends SqlFunction {
     writer.endFunCall(frame);
   }
 
-  @Override
-  public SqlMonotonicity getMonotonicity(
+  @Override public SqlMonotonicity getMonotonicity(
       SqlCall call,
       SqlValidatorScope scope) {
     RelDataTypeFamily castFrom =
@@ -227,6 +245,7 @@ public class SqlCastFunction extends SqlFunction {
 
   //~ Inner Classes ----------------------------------------------------------
 
+  /** Pair of source-target type families. */
   private class TypeFamilyCast {
     private final RelDataTypeFamily castFrom;
     private final RelDataTypeFamily castTo;
@@ -238,8 +257,7 @@ public class SqlCastFunction extends SqlFunction {
       this.castTo = castTo;
     }
 
-    @Override
-    public boolean equals(Object obj) {
+    @Override public boolean equals(Object obj) {
       // TODO Auto-generated method stub
       if (obj.getClass() != TypeFamilyCast.class) {
         return false;
@@ -249,8 +267,7 @@ public class SqlCastFunction extends SqlFunction {
           && this.castTo.equals(other.castTo);
     }
 
-    @Override
-    public int hashCode() {
+    @Override public int hashCode() {
       // TODO Auto-generated method stub
       return castFrom.hashCode() + castTo.hashCode();
     }

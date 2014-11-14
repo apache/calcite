@@ -14,9 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.impl;
+package org.apache.calcite.schema.impl;
 
-import net.hydromatic.optiq.*;
+import org.apache.calcite.schema.TableMacro;
+import org.apache.calcite.schema.TranslatableTable;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -24,10 +25,11 @@ import java.lang.reflect.Modifier;
 import java.util.Arrays;
 import java.util.List;
 
-import static org.eigenbase.util.Static.*;
+import static org.apache.calcite.util.Static.RESOURCE;
 
 /**
- * Implementation of {@link net.hydromatic.optiq.TableMacro} based on a method.
+ * Implementation of {@link org.apache.calcite.schema.TableMacro} based on a
+ * method.
 */
 public class TableMacroImpl extends ReflectiveFunctionBase
     implements TableMacro {

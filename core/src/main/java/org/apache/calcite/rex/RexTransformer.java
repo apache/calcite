@@ -14,14 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rex;
+package org.apache.calcite.rex;
 
-import java.util.*;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.type.SqlTypeUtil;
 
-import org.eigenbase.reltype.*;
-import org.eigenbase.sql.*;
-import org.eigenbase.sql.fun.*;
-import org.eigenbase.sql.type.*;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * Takes a tree of {@link RexNode} objects and transforms it into another in one
@@ -51,7 +54,7 @@ public class RexTransformer {
     transformableOperators.add(SqlStdOperatorTable.AND);
 
     /** NOTE the OR operator is NOT missing.
-     * see {@link org.eigenbase.test.RexTransformerTest} */
+     * see {@link org.apache.calcite.test.RexTransformerTest} */
     transformableOperators.add(SqlStdOperatorTable.EQUALS);
     transformableOperators.add(SqlStdOperatorTable.NOT_EQUALS);
     transformableOperators.add(SqlStdOperatorTable.GREATER_THAN);

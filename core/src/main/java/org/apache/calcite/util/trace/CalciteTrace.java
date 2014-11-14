@@ -14,28 +14,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.trace;
+package org.apache.calcite.util.trace;
+
+import org.apache.calcite.linq4j.function.Function2;
+import org.apache.calcite.linq4j.function.Functions;
+import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.prepare.Prepare;
+import org.apache.calcite.rel.RelImplementorImpl;
 
 import java.io.File;
-import java.util.logging.*;
-
-import org.eigenbase.rel.RelImplementorImpl;
-import org.eigenbase.relopt.*;
-import org.eigenbase.util.property.*;
-
-import net.hydromatic.linq4j.function.Function2;
-import net.hydromatic.linq4j.function.Functions;
-
-import net.hydromatic.optiq.prepare.Prepare;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Contains all of the {@link java.util.logging.Logger tracers} used within
- * org.eigenbase class libraries.
+ * org.apache.calcite class libraries.
  *
  * <h3>Note to developers</h3>
  *
- * <p>Please ensure that every tracer used in org.eigenbase is added to this
- * class as a <em>public static final</em> member called <code>
+ * <p>Please ensure that every tracer used in org.apache.calcite is added to
+ * this class as a <em>public static final</em> member called <code>
  * <i>component</i>Tracer</code>. For example, {@link #getPlannerTracer} is the
  * tracer used by all classes which take part in the query planning process.
  *
@@ -48,21 +46,20 @@ import net.hydromatic.optiq.prepare.Prepare;
  * perhaps <em>protected</em>) <em>static final</em> member called <code>
  * tracer</code>.
  */
-public abstract class EigenbaseTrace {
+public abstract class CalciteTrace {
   //~ Static fields/initializers ---------------------------------------------
 
   /**
-   * The "org.eigenbase.sql.parser" tracer reports parser events in {@link
-   * org.eigenbase.sql.parser.SqlParser} and other classes (at level {@link
-   * Level#FINE} or higher).
+   * The "org.apache.calcite.sql.parser" tracer reports parser events in
+   * {@link org.apache.calcite.sql.parser.SqlParser} and other classes (at level
+   * {@link Level#FINE} or higher).
    */
   public static final Logger PARSER_LOGGER = getParserTracer();
 
   private static final ThreadLocal<Function2<Void, File, String>>
   DYNAMIC_HANDLER =
       new ThreadLocal<Function2<Void, File, String>>() {
-        @Override
-        protected Function2<Void, File, String> initialValue() {
+        @Override protected Function2<Void, File, String> initialValue() {
           return Functions.ignore2();
         }
       };
@@ -70,7 +67,7 @@ public abstract class EigenbaseTrace {
   //~ Methods ----------------------------------------------------------------
 
   /**
-   * The "org.eigenbase.relopt.RelOptPlanner" tracer prints the query
+   * The "org.apache.calcite.plan.RelOptPlanner" tracer prints the query
    * optimization process.
    *
    * <p>Levels:
@@ -87,7 +84,7 @@ public abstract class EigenbaseTrace {
   }
 
   /**
-   * The "net.hydromatic.optiq.prepare.Prepare" tracer prints the generated
+   * The "org.apache.calcite.prepare.Prepare" tracer prints the generated
    * program at level {@link java.util.logging.Level#FINE} or higher.
    */
   public static Logger getStatementTracer() {
@@ -95,7 +92,7 @@ public abstract class EigenbaseTrace {
   }
 
   /**
-   * The "org.eigenbase.rel.RelImplementorImpl" tracer reports when
+   * The "org.apache.calcite.rel.RelImplementorImpl" tracer reports when
    * expressions are bound to variables ({@link Level#FINE})
    */
   public static Logger getRelImplementorTracer() {
@@ -103,42 +100,27 @@ public abstract class EigenbaseTrace {
   }
 
   /**
-   * The tracer "org.eigenbase.sql.timing" traces timing for various stages of
-   * query processing.
+   * The tracer "org.apache.calcite.sql.timing" traces timing for
+   * various stages of query processing.
    *
-   * @see EigenbaseTimingTracer
+   * @see CalciteTimingTracer
    */
   public static Logger getSqlTimingTracer() {
-    return Logger.getLogger("org.eigenbase.sql.timing");
+    return Logger.getLogger("org.apache.calcite.sql.timing");
   }
 
   /**
-   * The "org.eigenbase.sql.parser" tracer reports parse events.
+   * The "org.apache.calcite.sql.parser" tracer reports parse events.
    */
   public static Logger getParserTracer() {
-    return Logger.getLogger("org.eigenbase.sql.parser");
+    return Logger.getLogger("org.apache.calcite.sql.parser");
   }
 
   /**
-   * The "org.eigenbase.sql2rel" tracer reports parse events.
+   * The "org.apache.calcite.sql2rel" tracer reports parse events.
    */
   public static Logger getSqlToRelTracer() {
-    return Logger.getLogger("org.eigenbase.sql2rel");
-  }
-
-  /**
-   * The "org.eigenbase.jmi.JmiChangeSet" tracer reports JmiChangeSet events.
-   */
-  public static Logger getJmiChangeSetTracer() {
-    return Logger.getLogger("org.eigenbase.jmi.JmiChangeSet");
-  }
-
-  /**
-   * The "org.eigenbase.util.property.Property" tracer reports errors related
-   * to all manner of properties.
-   */
-  public static Logger getPropertyTracer() {
-    return Logger.getLogger(Property.class.getName());
+    return Logger.getLogger("org.apache.calcite.sql2rel");
   }
 
   /**
@@ -151,4 +133,4 @@ public abstract class EigenbaseTrace {
   }
 }
 
-// End EigenbaseTrace.java
+// End CalciteTrace.java

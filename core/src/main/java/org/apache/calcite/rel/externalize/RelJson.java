@@ -14,29 +14,49 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel;
+package org.apache.calcite.rel.externalize;
+
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.rel.RelCollation;
+import org.apache.calcite.rel.RelCollationImpl;
+import org.apache.calcite.rel.RelFieldCollation;
+import org.apache.calcite.rel.RelInput;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.AggregateCall;
+import org.apache.calcite.rel.core.Correlation;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexCorrelVariable;
+import org.apache.calcite.rex.RexFieldAccess;
+import org.apache.calcite.rex.RexInputRef;
+import org.apache.calcite.rex.RexLiteral;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.sql.SqlAggFunction;
+import org.apache.calcite.sql.SqlFunction;
+import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.util.BitSets;
+import org.apache.calcite.util.JsonBuilder;
+import org.apache.calcite.util.Util;
+
+import com.google.common.collect.ImmutableList;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.math.BigDecimal;
-import java.util.*;
-
-import org.eigenbase.relopt.RelOptCluster;
-import org.eigenbase.reltype.*;
-import org.eigenbase.rex.*;
-import org.eigenbase.sql.SqlFunction;
-import org.eigenbase.sql.SqlOperator;
-import org.eigenbase.sql.fun.SqlStdOperatorTable;
-import org.eigenbase.sql.type.SqlTypeName;
-import org.eigenbase.util.JsonBuilder;
-import org.eigenbase.util.Util;
-
-import net.hydromatic.optiq.util.BitSets;
-
-import com.google.common.collect.ImmutableList;
+import java.util.ArrayList;
+import java.util.BitSet;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
- * Utilities for converting {@link RelNode} into JSON format.
+ * Utilities for converting {@link org.apache.calcite.rel.RelNode}
+ * into JSON format.
  */
 public class RelJson {
   private final Map<String, Constructor> constructorMap =
@@ -45,9 +65,11 @@ public class RelJson {
 
   public static final List<String> PACKAGES =
       ImmutableList.of(
-          "org.eigenbase.rel.",
-          "net.hydromatic.optiq.impl.jdbc.",
-          "net.hydromatic.optiq.impl.jdbc.JdbcRules$");
+          "org.apache.calcite.rel.",
+          "org.apache.calcite.rel.core.",
+          "org.apache.calcite.rel.logical.",
+          "org.apache.calcite.adapter.jdbc.",
+          "org.apache.calcite.adapter.jdbc.JdbcRules$");
 
   public RelJson(JsonBuilder jsonBuilder) {
     this.jsonBuilder = jsonBuilder;
@@ -81,9 +103,8 @@ public class RelJson {
         //noinspection unchecked
         constructor = clazz.getConstructor(RelInput.class);
       } catch (NoSuchMethodException e) {
-        throw new RuntimeException(
-            "class does not have required constructor, " + clazz
-            + "(RelInput)");
+        throw new RuntimeException("class does not have required constructor, "
+            + clazz + "(RelInput)");
       }
       constructorMap.put(type, constructor);
     }
@@ -91,8 +112,8 @@ public class RelJson {
   }
 
   /**
-   * Converts a type name to a class. E.g. {@code getClass("ProjectRel")}
-   * returns {@link org.eigenbase.rel.ProjectRel}.class.
+   * Converts a type name to a class. E.g. {@code getClass("LogicalProject")}
+   * returns {@link org.apache.calcite.rel.logical.LogicalProject}.class.
    */
   public Class typeNameToClass(String type) {
     if (!type.contains(".")) {
@@ -436,8 +457,8 @@ public class RelJson {
     return null;
   }
 
-  Aggregation toAggregation(String agg, Map<String, Object> map) {
-    return (Aggregation) toOp(agg, map);
+  SqlAggFunction toAggregation(String agg, Map<String, Object> map) {
+    return (SqlAggFunction) toOp(agg, map);
   }
 
   private String toJson(SqlOperator operator) {

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.materialize;
+package org.apache.calcite.materialize;
 
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;

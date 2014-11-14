@@ -14,35 +14,39 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.relopt;
+package org.apache.calcite.plan;
 
-import org.eigenbase.rel.*;
-
-import net.hydromatic.optiq.impl.jdbc.JdbcRules;
+import org.apache.calcite.adapter.jdbc.JdbcRules;
+import org.apache.calcite.rel.AbstractRelNode;
+import org.apache.calcite.rel.externalize.RelJson;
+import org.apache.calcite.rel.logical.LogicalProject;
 
 import org.junit.Test;
 
-import static org.hamcrest.CoreMatchers.*;
-import static org.junit.Assert.*;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.sameInstance;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
 
 /**
- * Unit test for {@link org.eigenbase.rel.RelJson}.
+ * Unit test for {@link org.apache.calcite.rel.externalize.RelJson}.
  */
 public class RelOptPlanReaderTest {
   @Test public void testTypeToClass() {
     RelJson relJson = new RelJson(null);
 
-    // in org.eigenbase.rel package
-    assertThat(relJson.classToTypeName(ProjectRel.class),
-        is("ProjectRel"));
-    assertThat(relJson.typeNameToClass("ProjectRel"),
-        sameInstance((Class) ProjectRel.class));
+    // in org.apache.calcite.rel package
+    assertThat(relJson.classToTypeName(LogicalProject.class),
+        is("LogicalProject"));
+    assertThat(relJson.typeNameToClass("LogicalProject"),
+        sameInstance((Class) LogicalProject.class));
 
-    // in net.hydromatic.optiq.impl.jdbc.JdbcRules outer class
-    assertThat(relJson.classToTypeName(JdbcRules.JdbcProjectRel.class),
+    // in org.apache.calcite.adapter.jdbc.JdbcRules outer class
+    assertThat(relJson.classToTypeName(JdbcRules.JdbcProject.class),
         is("JdbcProjectRel"));
     assertThat(relJson.typeNameToClass("JdbcProjectRel"),
-        equalTo((Class) JdbcRules.JdbcProjectRel.class));
+        equalTo((Class) JdbcRules.JdbcProject.class));
 
     try {
       Class clazz = relJson.typeNameToClass("NonExistentRel");
@@ -52,16 +56,16 @@ public class RelOptPlanReaderTest {
     }
     try {
       Class clazz =
-          relJson.typeNameToClass("org.eigenbase.rel.NonExistentRel");
+          relJson.typeNameToClass("org.apache.calcite.rel.NonExistentRel");
       fail("expected exception, got " + clazz);
     } catch (RuntimeException e) {
       assertThat(e.getMessage(),
-          is("unknown type org.eigenbase.rel.NonExistentRel"));
+          is("unknown type org.apache.calcite.rel.NonExistentRel"));
     }
 
     // In this class; no special treatment. Note: '$MyRel' not '.MyRel'.
     assertThat(relJson.classToTypeName(MyRel.class),
-        is("org.eigenbase.relopt.RelOptPlanReaderTest$MyRel"));
+        is("org.apache.calcite.plan.RelOptPlanReaderTest$MyRel"));
     assertThat(relJson.typeNameToClass(MyRel.class.getName()),
         equalTo((Class) MyRel.class));
 
@@ -72,10 +76,12 @@ public class RelOptPlanReaderTest {
       fail("expected exception, got " + clazz);
     } catch (RuntimeException e) {
       assertThat(e.getMessage(),
-          is("unknown type org.eigenbase.relopt.RelOptPlanReaderTest.MyRel"));
+          is(
+              "unknown type org.apache.calcite.plan.RelOptPlanReaderTest.MyRel"));
     }
   }
 
+  /** Dummy relational expression. */
   public static class MyRel extends AbstractRelNode {
     public MyRel(RelOptCluster cluster, RelTraitSet traitSet) {
       super(cluster, traitSet);

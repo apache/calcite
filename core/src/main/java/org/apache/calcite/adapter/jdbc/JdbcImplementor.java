@@ -14,30 +14,55 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.impl.jdbc;
+package org.apache.calcite.adapter.jdbc;
 
-import net.hydromatic.linq4j.expressions.Expressions;
-
-import net.hydromatic.optiq.impl.java.JavaTypeFactory;
-
-import org.eigenbase.rel.*;
-import org.eigenbase.reltype.RelDataType;
-import org.eigenbase.reltype.RelDataTypeField;
-import org.eigenbase.rex.*;
-import org.eigenbase.sql.*;
-import org.eigenbase.sql.fun.SqlCase;
-import org.eigenbase.sql.fun.SqlStdOperatorTable;
-import org.eigenbase.sql.fun.SqlSumEmptyIsZeroAggFunction;
-import org.eigenbase.sql.parser.SqlParserPos;
-import org.eigenbase.sql.type.BasicSqlType;
-import org.eigenbase.sql.type.SqlTypeName;
-import org.eigenbase.sql.validate.SqlValidatorUtil;
-import org.eigenbase.util.Pair;
-import org.eigenbase.util.Util;
+import org.apache.calcite.adapter.java.JavaTypeFactory;
+import org.apache.calcite.linq4j.tree.Expressions;
+import org.apache.calcite.rel.RelFieldCollation;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.AggregateCall;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexInputRef;
+import org.apache.calcite.rex.RexLiteral;
+import org.apache.calcite.rex.RexLocalRef;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexProgram;
+import org.apache.calcite.sql.SqlAggFunction;
+import org.apache.calcite.sql.SqlBinaryOperator;
+import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlDataTypeSpec;
+import org.apache.calcite.sql.SqlDialect;
+import org.apache.calcite.sql.SqlIdentifier;
+import org.apache.calcite.sql.SqlJoin;
+import org.apache.calcite.sql.SqlLiteral;
+import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlNodeList;
+import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.SqlSelect;
+import org.apache.calcite.sql.SqlSelectKeyword;
+import org.apache.calcite.sql.SqlSetOperator;
+import org.apache.calcite.sql.fun.SqlCase;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.fun.SqlSumEmptyIsZeroAggFunction;
+import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.type.BasicSqlType;
+import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.validate.SqlValidatorUtil;
+import org.apache.calcite.util.Pair;
+import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
-import java.util.*;
+import java.util.AbstractList;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
 
 /**
  * State for generating a SQL statement.
@@ -356,9 +381,9 @@ public class JdbcImplementor {
      * start a new SELECT that wraps the previous result.</p>
      *
      * <p>When you have called
-     * {@link Builder#setSelect(org.eigenbase.sql.SqlNodeList)},
-     * {@link Builder#setWhere(org.eigenbase.sql.SqlNode)} etc. call
-     * {@link Builder#result(org.eigenbase.sql.SqlNode, java.util.Collection, org.eigenbase.rel.RelNode)}
+     * {@link Builder#setSelect(org.apache.calcite.sql.SqlNodeList)},
+     * {@link Builder#setWhere(org.apache.calcite.sql.SqlNode)} etc. call
+     * {@link Builder#result(org.apache.calcite.sql.SqlNode, java.util.Collection, org.apache.calcite.rel.RelNode)}
      * to fix the new query.</p>
      *
      * @param rel Relational expression being implemented
@@ -387,8 +412,7 @@ public class JdbcImplementor {
       final SqlNodeList selectList = select.getSelectList();
       if (selectList != null) {
         newContext = new Context(selectList.size()) {
-          @Override
-          public SqlNode field(int ordinal) {
+          @Override public SqlNode field(int ordinal) {
             final SqlNode selectItem = selectList.get(ordinal);
             switch (selectItem.getKind()) {
             case AS:

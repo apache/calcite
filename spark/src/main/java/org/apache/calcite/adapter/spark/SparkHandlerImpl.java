@@ -14,18 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.impl.spark;
+package org.apache.calcite.adapter.spark;
 
-import net.hydromatic.linq4j.expressions.ClassDeclaration;
-
-import net.hydromatic.optiq.jdbc.OptiqPrepare;
-import net.hydromatic.optiq.rules.java.JavaRules;
-import net.hydromatic.optiq.runtime.Bindable;
-import net.hydromatic.optiq.runtime.Typed;
-
-import org.eigenbase.javac.JaninoCompiler;
-import org.eigenbase.rel.RelNode;
-import org.eigenbase.relopt.*;
+import org.apache.calcite.adapter.enumerable.EnumerableRules;
+import org.apache.calcite.jdbc.CalcitePrepare;
+import org.apache.calcite.linq4j.tree.ClassDeclaration;
+import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.plan.RelOptRule;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.runtime.Bindable;
+import org.apache.calcite.runtime.Typed;
+import org.apache.calcite.util.javac.JaninoCompiler;
 
 import org.apache.spark.api.java.JavaSparkContext;
 
@@ -37,10 +36,11 @@ import java.util.Calendar;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * Implementation of {@link OptiqPrepare.SparkHandler}. Gives the core Calcite
- * engine access to rules that only exist in the Spark module.
+ * Implementation of
+ * {@link org.apache.calcite.jdbc.CalcitePrepare.SparkHandler}. Gives the core
+ * Calcite engine access to rules that only exist in the Spark module.
  */
-public class SparkHandlerImpl implements OptiqPrepare.SparkHandler {
+public class SparkHandlerImpl implements CalcitePrepare.SparkHandler {
   private final HttpServer classServer;
   private final AtomicInteger classId;
   private final JavaSparkContext sparkContext =
@@ -72,7 +72,7 @@ public class SparkHandlerImpl implements OptiqPrepare.SparkHandler {
   /** Creates a SparkHandlerImpl, initializing on first call. Calcite-core calls
    * this via reflection. */
   @SuppressWarnings("UnusedDeclaration")
-  public static OptiqPrepare.SparkHandler instance() {
+  public static CalcitePrepare.SparkHandler instance() {
     if (instance == null) {
       instance = new SparkHandlerImpl();
     }
@@ -91,7 +91,7 @@ public class SparkHandlerImpl implements OptiqPrepare.SparkHandler {
     for (RelOptRule rule : SparkRules.rules()) {
       builder.addRule(rule);
     }
-    builder.removeRule(JavaRules.ENUMERABLE_VALUES_RULE);
+    builder.removeRule(EnumerableRules.ENUMERABLE_VALUES_RULE);
   }
 
   public Object sparkContext() {
@@ -104,11 +104,10 @@ public class SparkHandlerImpl implements OptiqPrepare.SparkHandler {
 
   public Bindable compile(ClassDeclaration expr, String s) {
     try {
-      String className = "OptiqProgram" + classId.getAndIncrement();
+      String className = "CalciteProgram" + classId.getAndIncrement();
       File file = new File(SRC_DIR, className + ".java");
       FileWriter fileWriter = new FileWriter(file, false);
-      String source =
-          "public class " + className + "\n"
+      String source = "public class " + className + "\n"
           + "    implements " + Bindable.class.getName()
           + ", " + Typed.class.getName()
           + ", " + Serializable.class.getName()

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.avatica;
+package org.apache.calcite.avatica;
 
 import java.lang.reflect.Field;
 import java.util.LinkedHashMap;
@@ -39,7 +39,7 @@ public class ConnectionConfigImpl implements ConnectionConfig {
 
   /** Converts a {@link Properties} object containing (name, value)
    * pairs into a map whose keys are
-   * {@link net.hydromatic.avatica.InternalProperty} objects.
+   * {@link org.apache.calcite.avatica.InternalProperty} objects.
    *
    * <p>Matching is case-insensitive. Throws if a property is not known.
    * If a property occurs more than once, takes the last occurrence.</p>

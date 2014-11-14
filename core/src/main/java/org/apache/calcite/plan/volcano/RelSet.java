@@ -14,16 +14,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.relopt.volcano;
+package org.apache.calcite.plan.volcano;
 
-import java.util.*;
-import java.util.logging.*;
-
-import org.eigenbase.rel.*;
-import org.eigenbase.relopt.*;
-import org.eigenbase.trace.*;
+import org.apache.calcite.plan.Convention;
+import org.apache.calcite.plan.ConventionTraitDef;
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptListener;
+import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.util.trace.CalciteTrace;
 
 import com.google.common.collect.ImmutableList;
+
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.logging.Logger;
 
 /**
  * A <code>RelSet</code> is an equivalence-set of expressions; that is, a set of
@@ -36,7 +44,7 @@ import com.google.common.collect.ImmutableList;
 class RelSet {
   //~ Static fields/initializers ---------------------------------------------
 
-  private static final Logger LOGGER = EigenbaseTrace.getPlannerTracer();
+  private static final Logger LOGGER = CalciteTrace.getPlannerTracer();
 
   //~ Instance fields --------------------------------------------------------
 
@@ -196,8 +204,8 @@ class RelSet {
 
   /**
    * Adds an expression <code>rel</code> to this set, without creating a
-   * {@link org.eigenbase.relopt.volcano.RelSubset}. (Called only from
-   * {@link org.eigenbase.relopt.volcano.RelSubset#add}.
+   * {@link org.apache.calcite.plan.volcano.RelSubset}. (Called only from
+   * {@link org.apache.calcite.plan.volcano.RelSubset#add}.
    *
    * @param rel Relational expression
    */

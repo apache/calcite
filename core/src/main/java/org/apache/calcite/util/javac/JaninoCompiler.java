@@ -14,18 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.javac;
+package org.apache.calcite.util.javac;
+
+import org.apache.calcite.util.Util;
+
+import org.codehaus.janino.JavaSourceClassLoader;
+import org.codehaus.janino.util.ClassFile;
+import org.codehaus.janino.util.resource.MapResourceFinder;
+import org.codehaus.janino.util.resource.ResourceFinder;
 
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.util.*;
-
-import org.eigenbase.util.*;
-
-import org.codehaus.janino.*;
-import org.codehaus.janino.util.*;
-import org.codehaus.janino.util.resource.*;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * <code>JaninoCompiler</code> implements the {@link JavaCompiler} interface by
@@ -34,7 +36,7 @@ import org.codehaus.janino.util.resource.*;
 public class JaninoCompiler implements JavaCompiler {
   //~ Instance fields --------------------------------------------------------
 
-  private JaninoCompilerArgs args = new JaninoCompilerArgs();
+  public JaninoCompilerArgs args = new JaninoCompilerArgs();
 
   // REVIEW jvs 28-June-2004:  pool this instance?  Is it thread-safe?
   private AccountingClassLoader classLoader;
@@ -103,7 +105,7 @@ public class JaninoCompiler implements JavaCompiler {
   /**
    * Arguments to an invocation of the Janino compiler.
    */
-  private static class JaninoCompilerArgs extends JavaCompilerArgs {
+  public static class JaninoCompilerArgs extends JavaCompilerArgs {
     String destdir;
     String fullClassName;
     String source;

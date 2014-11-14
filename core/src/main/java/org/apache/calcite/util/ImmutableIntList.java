@@ -14,15 +14,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.util;
+package org.apache.calcite.util;
 
-import java.lang.reflect.Array;
-import java.util.*;
-
-import net.hydromatic.optiq.runtime.FlatLists;
+import org.apache.calcite.runtime.FlatLists;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.UnmodifiableListIterator;
+
+import java.lang.reflect.Array;
+import java.util.AbstractList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
+import java.util.ListIterator;
+import java.util.NoSuchElementException;
 
 /**
  * An immutable list of {@link Integer} values backed by an array of
@@ -83,13 +90,11 @@ public class ImmutableIntList extends FlatLists.AbstractFlatList<Integer> {
     return new ImmutableIntList(ints);
   }
 
-  @Override
-  public int hashCode() {
+  @Override public int hashCode() {
     return Arrays.hashCode(ints);
   }
 
-  @Override
-  public boolean equals(Object obj) {
+  @Override public boolean equals(Object obj) {
     return this == obj
         || obj instanceof ImmutableIntList
         && Arrays.equals(ints, ((ImmutableIntList) obj).ints)
@@ -97,13 +102,11 @@ public class ImmutableIntList extends FlatLists.AbstractFlatList<Integer> {
         && obj.equals(this);
   }
 
-  @Override
-  public String toString() {
+  @Override public String toString() {
     return Arrays.toString(ints);
   }
 
-  @Override
-  public boolean isEmpty() {
+  @Override public boolean isEmpty() {
     return ints.length == 0;
   }
 
@@ -218,27 +221,25 @@ public class ImmutableIntList extends FlatLists.AbstractFlatList<Integer> {
     };
   }
 
+  /** Special sub-class of {@link ImmutableIntList} that is always
+   * empty and has only one instance. */
   private static class EmptyImmutableIntList extends ImmutableIntList {
-    @Override
-    public Object[] toArray() {
+    @Override public Object[] toArray() {
       return EMPTY_ARRAY;
     }
 
-    @Override
-    public <T> T[] toArray(T[] a) {
+    @Override public <T> T[] toArray(T[] a) {
       if (a.length > 0) {
         a[0] = null;
       }
       return a;
     }
 
-    @Override
-    public Iterator<Integer> iterator() {
+    @Override public Iterator<Integer> iterator() {
       return Collections.<Integer>emptyList().iterator();
     }
 
-    @Override
-    public ListIterator<Integer> listIterator() {
+    @Override public ListIterator<Integer> listIterator() {
       return Collections.<Integer>emptyList().listIterator();
     }
   }

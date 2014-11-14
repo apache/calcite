@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.util.mapping;
+package org.apache.calcite.util.mapping;
 
-import java.util.*;
+import java.util.Iterator;
 
 /**
  * A <dfn>Mapping</dfn> is a relationship between a source domain to target
@@ -45,8 +45,8 @@ public interface Mapping
   /**
    * Returns an iterator over the elements in this mapping.
    *
-   * <p>This method is optional; implementations may throw {@link
-   * UnsupportedOperationException}.
+   * <p>This method is optional; implementations may throw
+   * {@link UnsupportedOperationException}.
    */
   Iterator<IntPair> iterator();
 

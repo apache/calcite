@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rex;
+package org.apache.calcite.rex;
 
-import org.eigenbase.reltype.*;
+import org.apache.calcite.rel.type.RelDataType;
 
 /**
  * A row-expression which references a field.

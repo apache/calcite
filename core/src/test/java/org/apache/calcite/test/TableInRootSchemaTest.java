@@ -14,43 +14,56 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.test;
+package org.apache.calcite.test;
 
-import net.hydromatic.linq4j.*;
-
-import net.hydromatic.optiq.*;
-import net.hydromatic.optiq.impl.AbstractTableQueryable;
-import net.hydromatic.optiq.impl.java.AbstractQueryableTable;
-import net.hydromatic.optiq.jdbc.OptiqConnection;
-import net.hydromatic.optiq.rules.java.EnumerableConvention;
-import net.hydromatic.optiq.rules.java.JavaRules;
-
-import org.eigenbase.rel.RelNode;
-import org.eigenbase.relopt.RelOptTable;
-import org.eigenbase.reltype.RelDataType;
-import org.eigenbase.reltype.RelDataTypeFactory;
-import org.eigenbase.util.Pair;
+import org.apache.calcite.adapter.enumerable.EnumerableConvention;
+import org.apache.calcite.adapter.enumerable.EnumerableTableScan;
+import org.apache.calcite.adapter.java.AbstractQueryableTable;
+import org.apache.calcite.jdbc.CalciteConnection;
+import org.apache.calcite.linq4j.Enumerator;
+import org.apache.calcite.linq4j.Linq4j;
+import org.apache.calcite.linq4j.QueryProvider;
+import org.apache.calcite.linq4j.Queryable;
+import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.schema.TranslatableTable;
+import org.apache.calcite.schema.impl.AbstractTableQueryable;
+import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableMultiset;
 
 import org.junit.Test;
 
-import java.sql.*;
-import java.util.*;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Iterator;
+import java.util.List;
 
-import static org.hamcrest.CoreMatchers.*;
-import static org.junit.Assert.*;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.nullValue;
+import static org.junit.Assert.assertThat;
 
+/** Test case for issue 85. */
 public class TableInRootSchemaTest {
-  /** Test case for issue 85, "Adding a table to the root schema causes breakage
-   * in OptiqPrepareImpl". */
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-85">[CALCITE-85]
+   * Adding a table to the root schema causes breakage in
+   * CalcitePrepareImpl</a>. */
   @Test public void testAddingTableInRootSchema() throws Exception {
-    Class.forName("net.hydromatic.optiq.jdbc.Driver");
     Connection connection = DriverManager.getConnection("jdbc:calcite:");
-    OptiqConnection optiqConnection = connection.unwrap(OptiqConnection.class);
+    CalciteConnection calciteConnection =
+        connection.unwrap(CalciteConnection.class);
 
-    optiqConnection.getRootSchema().add("SAMPLE", new SimpleTable());
-    Statement statement = optiqConnection.createStatement();
+    calciteConnection.getRootSchema().add("SAMPLE", new SimpleTable());
+    Statement statement = calciteConnection.createStatement();
     ResultSet resultSet =
         statement.executeQuery("select A, SUM(B) from SAMPLE group by A");
 
@@ -58,7 +71,7 @@ public class TableInRootSchemaTest {
         ImmutableMultiset.of(
             "A=foo; EXPR$1=8",
             "A=bar; EXPR$1=4"),
-        equalTo(OptiqAssert.toSet(resultSet)));
+        equalTo(CalciteAssert.toSet(resultSet)));
 
     final ResultSetMetaData resultSetMetaData = resultSet.getMetaData();
     assertThat(resultSetMetaData.getColumnName(1), equalTo("A"));
@@ -74,6 +87,7 @@ public class TableInRootSchemaTest {
     connection.close();
   }
 
+  /** Table with columns (A, B). */
   public static class SimpleTable extends AbstractQueryableTable
       implements TranslatableTable {
     private String[] columnNames = { "A", "B" };
@@ -161,7 +175,7 @@ public class TableInRootSchemaTest {
     // keep
     public RelNode toRel(RelOptTable.ToRelContext context,
         RelOptTable relOptTable) {
-      return new JavaRules.EnumerableTableAccessRel(context.getCluster(),
+      return new EnumerableTableScan(context.getCluster(),
           context.getCluster().traitSetOf(EnumerableConvention.INSTANCE),
           relOptTable, (Class) getElementType());
     }

@@ -14,40 +14,57 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.materialize;
+package org.apache.calcite.materialize;
 
-import net.hydromatic.optiq.Schemas;
-import net.hydromatic.optiq.Table;
-import net.hydromatic.optiq.impl.MaterializedViewTable;
-import net.hydromatic.optiq.impl.StarTable;
-import net.hydromatic.optiq.jdbc.OptiqPrepare;
-import net.hydromatic.optiq.jdbc.OptiqSchema;
-import net.hydromatic.optiq.prepare.OptiqPrepareImpl;
-import net.hydromatic.optiq.runtime.Utilities;
-import net.hydromatic.optiq.util.BitSets;
-import net.hydromatic.optiq.util.graph.*;
-
-import org.eigenbase.rel.*;
-import org.eigenbase.relopt.RelOptUtil;
-import org.eigenbase.rex.*;
-import org.eigenbase.sql.SqlAggFunction;
-import org.eigenbase.sql.SqlDialect;
-import org.eigenbase.sql.SqlJoin;
-import org.eigenbase.sql.SqlKind;
-import org.eigenbase.sql.SqlNode;
-import org.eigenbase.sql.SqlSelect;
-import org.eigenbase.sql.SqlUtil;
-import org.eigenbase.sql.fun.SqlStdOperatorTable;
-import org.eigenbase.sql.validate.SqlValidatorUtil;
-import org.eigenbase.util.Util;
-import org.eigenbase.util.mapping.IntPair;
+import org.apache.calcite.jdbc.CalcitePrepare;
+import org.apache.calcite.jdbc.CalciteSchema;
+import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.prepare.CalcitePrepareImpl;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.AggregateCall;
+import org.apache.calcite.rel.core.JoinRelType;
+import org.apache.calcite.rel.core.TableScan;
+import org.apache.calcite.rel.logical.LogicalJoin;
+import org.apache.calcite.rel.logical.LogicalProject;
+import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexInputRef;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.runtime.Utilities;
+import org.apache.calcite.schema.Schemas;
+import org.apache.calcite.schema.Table;
+import org.apache.calcite.schema.impl.MaterializedViewTable;
+import org.apache.calcite.schema.impl.StarTable;
+import org.apache.calcite.sql.SqlAggFunction;
+import org.apache.calcite.sql.SqlDialect;
+import org.apache.calcite.sql.SqlJoin;
+import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlSelect;
+import org.apache.calcite.sql.SqlUtil;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.validate.SqlValidatorUtil;
+import org.apache.calcite.util.BitSets;
+import org.apache.calcite.util.Util;
+import org.apache.calcite.util.graph.DefaultDirectedGraph;
+import org.apache.calcite.util.graph.DefaultEdge;
+import org.apache.calcite.util.graph.DirectedGraph;
+import org.apache.calcite.util.graph.TopologicalOrderIterator;
+import org.apache.calcite.util.mapping.IntPair;
 
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.*;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableListMultimap;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
 import java.math.BigInteger;
-import java.util.*;
+import java.util.BitSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * Structure that allows materialized views based upon a star schema to be
@@ -132,7 +149,7 @@ public class Lattice {
   }
 
   /** Creates a Lattice. */
-  public static Lattice create(OptiqSchema schema, String sql, boolean auto) {
+  public static Lattice create(CalciteSchema schema, String sql, boolean auto) {
     return builder(schema, sql).auto(auto).build();
   }
 
@@ -155,15 +172,15 @@ public class Lattice {
 
   private static boolean populate(List<RelNode> nodes, List<int[][]> tempLinks,
       RelNode rel) {
-    if (nodes.isEmpty() && rel instanceof ProjectRel) {
-      return populate(nodes, tempLinks, ((ProjectRel) rel).getChild());
+    if (nodes.isEmpty() && rel instanceof LogicalProject) {
+      return populate(nodes, tempLinks, ((LogicalProject) rel).getInput());
     }
-    if (rel instanceof TableAccessRelBase) {
+    if (rel instanceof TableScan) {
       nodes.add(rel);
       return true;
     }
-    if (rel instanceof JoinRel) {
-      JoinRel join = (JoinRel) rel;
+    if (rel instanceof LogicalJoin) {
+      LogicalJoin join = (LogicalJoin) rel;
       if (join.getJoinType() != JoinRelType.INNER) {
         throw new RuntimeException("only inner join allowed, but got "
             + join.getJoinType());
@@ -229,7 +246,7 @@ public class Lattice {
     if (usedNodes.isEmpty()) {
       usedNodes.add(nodes.get(0));
     }
-    final SqlDialect dialect = SqlDialect.DatabaseProduct.OPTIQ.getDialect();
+    final SqlDialect dialect = SqlDialect.DatabaseProduct.CALCITE.getDialect();
     final StringBuilder buf = new StringBuilder("SELECT ");
     final StringBuilder groupBuf = new StringBuilder("\nGROUP BY ");
     int k = 0;
@@ -300,7 +317,7 @@ public class Lattice {
         }
       }
     }
-    if (OptiqPrepareImpl.DEBUG) {
+    if (CalcitePrepareImpl.DEBUG) {
       System.out.println("Lattice SQL:\n" + buf);
     }
     buf.append(groupBuf);
@@ -324,8 +341,8 @@ public class Lattice {
     return StarTable.of(this, tables);
   }
 
-  public static Builder builder(OptiqSchema optiqSchema, String sql) {
-    return new Builder(optiqSchema, sql);
+  public static Builder builder(CalciteSchema calciteSchema, String sql) {
+    return new Builder(calciteSchema, sql);
   }
 
   public List<Measure> toMeasures(List<AggregateCall> aggCallList) {
@@ -426,14 +443,14 @@ public class Lattice {
    * (the fact table) have precisely one parent and an equi-join
    * condition on one or more pairs of columns linking to it. */
   public static class Node {
-    public final TableAccessRelBase scan;
+    public final TableScan scan;
     public final Node parent;
     public final ImmutableList<IntPair> link;
     public final int startCol;
     public final int endCol;
     public final String alias;
 
-    public Node(TableAccessRelBase scan, Node parent, List<IntPair> link,
+    public Node(TableScan scan, Node parent, List<IntPair> link,
         int startCol, int endCol, String alias) {
       this.scan = Preconditions.checkNotNull(scan);
       this.parent = parent;
@@ -473,10 +490,10 @@ public class Lattice {
 
   /** Measure in a lattice. */
   public static class Measure implements Comparable<Measure> {
-    public final Aggregation agg;
+    public final SqlAggFunction agg;
     public final ImmutableList<Column> args;
 
-    public Measure(Aggregation agg, Iterable<Column> args) {
+    public Measure(SqlAggFunction agg, Iterable<Column> args) {
       this.agg = Preconditions.checkNotNull(agg);
       this.args = ImmutableList.copyOf(args);
     }
@@ -494,7 +511,7 @@ public class Lattice {
     }
 
     @Override public int hashCode() {
-      return Util.hashV(agg, args);
+      return com.google.common.base.Objects.hashCode(agg, args);
     }
 
     @Override public boolean equals(Object obj) {
@@ -581,8 +598,8 @@ public class Lattice {
     private boolean auto = true;
     private Double rowCountEstimate;
 
-    public Builder(OptiqSchema schema, String sql) {
-      OptiqPrepare.ConvertResult parsed =
+    public Builder(CalciteSchema schema, String sql) {
+      CalcitePrepare.ConvertResult parsed =
           Schemas.convert(MaterializedViewTable.MATERIALIZATION_CONNECTION,
               schema, schema.path(null), sql);
 
@@ -626,7 +643,7 @@ public class Lattice {
             throw new RuntimeException("root node must not have relationships: "
                 + relNode);
           }
-          node = new Node((TableAccessRelBase) relNode, null, null,
+          node = new Node((TableScan) relNode, null, null,
               previousColumn, column, aliases.get(nodes.size()));
         } else {
           if (edges.size() != 1) {
@@ -634,7 +651,7 @@ public class Lattice {
                 "child node must have precisely one parent: " + relNode);
           }
           final Edge edge = edges.get(0);
-          node = new Node((TableAccessRelBase) relNode,
+          node = new Node((TableScan) relNode,
               map.get(edge.getSource()), edge.pairs, previousColumn, column,
               aliases.get(nodes.size()));
         }
@@ -693,7 +710,7 @@ public class Lattice {
     }
 
     /** Resolves the arguments of a
-     * {@link net.hydromatic.optiq.model.JsonMeasure}. They must either be null,
+     * {@link org.apache.calcite.model.JsonMeasure}. They must either be null,
      * a string, or a list of strings. Throws if the structure is invalid, or if
      * any of the columns do not exist in the lattice. */
     public ImmutableList<Column> resolveArgs(Object args) {

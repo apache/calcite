@@ -14,9 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql.validate;
+package org.apache.calcite.sql.validate;
 
-import org.eigenbase.sql.*;
+import org.apache.calcite.sql.SqlJoin;
+import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlWindow;
 
 /**
  * The name-resolution context for expression inside a JOIN clause. The objects

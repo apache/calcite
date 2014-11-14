@@ -14,24 +14,32 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel;
+package org.apache.calcite.rel.core;
 
-import java.util.*;
-
-import org.eigenbase.relopt.*;
-import org.eigenbase.reltype.*;
-import org.eigenbase.sql.SqlKind;
-
-import net.hydromatic.linq4j.Ord;
+import org.apache.calcite.linq4j.Ord;
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.AbstractRelNode;
+import org.apache.calcite.rel.RelInput;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelWriter;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.sql.SqlKind;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
+import java.util.AbstractList;
+import java.util.ArrayList;
+import java.util.BitSet;
+import java.util.List;
+
 /**
- * <code>SetOpRel</code> is an abstract base for relational set operators such
+ * <code>SetOp</code> is an abstract base for relational set operators such
  * as UNION, MINUS (aka EXCEPT), and INTERSECT.
  */
-public abstract class SetOpRel extends AbstractRelNode {
+public abstract class SetOp extends AbstractRelNode {
   //~ Instance fields --------------------------------------------------------
 
   protected ImmutableList<RelNode> inputs;
@@ -41,14 +49,10 @@ public abstract class SetOpRel extends AbstractRelNode {
   //~ Constructors -----------------------------------------------------------
 
   /**
-   * Creates a SetOpRel.
+   * Creates a SetOp.
    */
-  protected SetOpRel(
-      RelOptCluster cluster,
-      RelTraitSet traits,
-      List<RelNode> inputs,
-      SqlKind kind,
-      boolean all) {
+  protected SetOp(RelOptCluster cluster, RelTraitSet traits,
+      List<RelNode> inputs, SqlKind kind, boolean all) {
     super(cluster, traits);
     Preconditions.checkArgument(kind == SqlKind.UNION
         || kind == SqlKind.INTERSECT
@@ -59,49 +63,42 @@ public abstract class SetOpRel extends AbstractRelNode {
   }
 
   /**
-   * Creates a SetOpRel by parsing serialized output.
+   * Creates a SetOp by parsing serialized output.
    */
-  protected SetOpRel(RelInput input) {
+  protected SetOp(RelInput input) {
     this(input.getCluster(), input.getTraitSet(), input.getInputs(),
         SqlKind.UNION, input.getBoolean("all"));
   }
 
   //~ Methods ----------------------------------------------------------------
 
-  public abstract SetOpRel copy(
+  public abstract SetOp copy(
       RelTraitSet traitSet,
       List<RelNode> inputs,
       boolean all);
 
-  @Override
-  public SetOpRel copy(
-      RelTraitSet traitSet,
-      List<RelNode> inputs) {
+  @Override public SetOp copy(RelTraitSet traitSet, List<RelNode> inputs) {
     return copy(traitSet, inputs, all);
   }
 
-  @Override
-  public void replaceInput(int ordinalInParent, RelNode p) {
+  @Override public void replaceInput(int ordinalInParent, RelNode p) {
     final List<RelNode> newInputs = new ArrayList<RelNode>(inputs);
     newInputs.set(ordinalInParent, p);
     inputs = ImmutableList.copyOf(newInputs);
     recomputeDigest();
   }
 
-  @Override
-  public boolean isKey(BitSet columns) {
+  @Override public boolean isKey(BitSet columns) {
     // If not ALL then the rows are distinct.
     // Therefore the set of all columns is a key.
     return !all && columns.nextClearBit(0) >= getRowType().getFieldCount();
   }
 
-  @Override
-  public List<RelNode> getInputs() {
+  @Override public List<RelNode> getInputs() {
     return inputs;
   }
 
-  @Override
-  public RelWriter explainTerms(RelWriter pw) {
+  @Override public RelWriter explainTerms(RelWriter pw) {
     super.explainTerms(pw);
     for (Ord<RelNode> ord : Ord.zip(inputs)) {
       pw.input("input#" + ord.i, ord.e);
@@ -109,17 +106,14 @@ public abstract class SetOpRel extends AbstractRelNode {
     return pw.item("all", all);
   }
 
-  @Override
-  protected RelDataType deriveRowType() {
+  @Override protected RelDataType deriveRowType() {
     return getCluster().getTypeFactory().leastRestrictive(
         new AbstractList<RelDataType>() {
-          @Override
-          public RelDataType get(int index) {
+          @Override public RelDataType get(int index) {
             return inputs.get(index).getRowType();
           }
 
-          @Override
-          public int size() {
+          @Override public int size() {
             return inputs.size();
           }
         });
@@ -129,7 +123,7 @@ public abstract class SetOpRel extends AbstractRelNode {
    * Returns whether all the inputs of this set operator have the same row
    * type as its output row.
    *
-   * @param compareNames whether or not column names are important in the
+   * @param compareNames Whether column names are important in the
    *                     homogeneity comparison
    */
   public boolean isHomogeneous(boolean compareNames) {
@@ -142,15 +136,6 @@ public abstract class SetOpRel extends AbstractRelNode {
     }
     return true;
   }
-
-  /**
-   * Returns whether all the inputs of this set operator have the same row
-   * type as its output row. Equivalent to {@link #isHomogeneous(boolean)
-   * isHomogeneous(true)}.
-   */
-  public boolean isHomogeneous() {
-    return isHomogeneous(true);
-  }
 }
 
-// End SetOpRel.java
+// End SetOp.java

@@ -14,22 +14,47 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq;
+package org.apache.calcite.util;
 
-import net.hydromatic.linq4j.*;
-import net.hydromatic.linq4j.expressions.FunctionExpression;
-import net.hydromatic.linq4j.expressions.Primitive;
-import net.hydromatic.linq4j.expressions.Types;
-import net.hydromatic.linq4j.function.*;
-
-import net.hydromatic.optiq.impl.interpreter.Row;
-import net.hydromatic.optiq.impl.java.ReflectiveSchema;
-import net.hydromatic.optiq.impl.jdbc.JdbcSchema;
-import net.hydromatic.optiq.runtime.*;
-
-import org.eigenbase.rel.metadata.Metadata;
-import org.eigenbase.rex.RexNode;
-import org.eigenbase.sql.SqlExplainLevel;
+import org.apache.calcite.DataContext;
+import org.apache.calcite.adapter.java.ReflectiveSchema;
+import org.apache.calcite.adapter.jdbc.JdbcSchema;
+import org.apache.calcite.interpreter.Row;
+import org.apache.calcite.linq4j.AbstractEnumerable;
+import org.apache.calcite.linq4j.Enumerable;
+import org.apache.calcite.linq4j.Enumerator;
+import org.apache.calcite.linq4j.ExtendedEnumerable;
+import org.apache.calcite.linq4j.Linq4j;
+import org.apache.calcite.linq4j.QueryProvider;
+import org.apache.calcite.linq4j.Queryable;
+import org.apache.calcite.linq4j.function.EqualityComparer;
+import org.apache.calcite.linq4j.function.Function0;
+import org.apache.calcite.linq4j.function.Function1;
+import org.apache.calcite.linq4j.function.Function2;
+import org.apache.calcite.linq4j.function.Functions;
+import org.apache.calcite.linq4j.function.Predicate1;
+import org.apache.calcite.linq4j.function.Predicate2;
+import org.apache.calcite.linq4j.tree.FunctionExpression;
+import org.apache.calcite.linq4j.tree.Primitive;
+import org.apache.calcite.linq4j.tree.Types;
+import org.apache.calcite.rel.metadata.Metadata;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.runtime.BinarySearch;
+import org.apache.calcite.runtime.Bindable;
+import org.apache.calcite.runtime.Enumerables;
+import org.apache.calcite.runtime.FlatLists;
+import org.apache.calcite.runtime.ResultSetEnumerable;
+import org.apache.calcite.runtime.SortedMultiMap;
+import org.apache.calcite.runtime.SqlFunctions;
+import org.apache.calcite.runtime.Typed;
+import org.apache.calcite.schema.FilterableTable;
+import org.apache.calcite.schema.ModifiableTable;
+import org.apache.calcite.schema.QueryableTable;
+import org.apache.calcite.schema.ScannableTable;
+import org.apache.calcite.schema.Schema;
+import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.schema.Schemas;
+import org.apache.calcite.sql.SqlExplainLevel;
 
 import com.google.common.collect.ImmutableMap;
 
@@ -38,15 +63,34 @@ import java.lang.reflect.Method;
 import java.sql.ResultSet;
 import java.sql.Time;
 import java.sql.Timestamp;
-import java.util.*;
+import java.util.BitSet;
+import java.util.Calendar;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.TimeZone;
 import javax.sql.DataSource;
 
-import static org.eigenbase.rel.metadata.BuiltInMetadata.*;
+import static org.apache.calcite.rel.metadata.BuiltInMetadata.ColumnOrigin;
+import static org.apache.calcite.rel.metadata.BuiltInMetadata.ColumnUniqueness;
+import static org.apache.calcite.rel.metadata.BuiltInMetadata.CumulativeCost;
+import static org.apache.calcite.rel.metadata.BuiltInMetadata.DistinctRowCount;
+import static org.apache.calcite.rel.metadata.BuiltInMetadata.ExplainVisibility;
+import static org.apache.calcite.rel.metadata.BuiltInMetadata.NonCumulativeCost;
+import static org.apache.calcite.rel.metadata.BuiltInMetadata.PercentageOriginalRows;
+import static org.apache.calcite.rel.metadata.BuiltInMetadata.PopulationSize;
+import static org.apache.calcite.rel.metadata.BuiltInMetadata.Predicates;
+import static org.apache.calcite.rel.metadata.BuiltInMetadata.RowCount;
+import static org.apache.calcite.rel.metadata.BuiltInMetadata.Selectivity;
+import static org.apache.calcite.rel.metadata.BuiltInMetadata.UniqueKeys;
 
 /**
- * Builtin methods.
+ * Built-in methods.
  */
-public enum BuiltinMethod {
+public enum BuiltInMethod {
   QUERYABLE_SELECT(Queryable.class, "select", FunctionExpression.class),
   QUERYABLE_AS_ENUMERABLE(Queryable.class, "asEnumerable"),
   QUERYABLE_TABLE_AS_QUERYABLE(QueryableTable.class, "asQueryable",
@@ -241,12 +285,12 @@ public enum BuiltinMethod {
   public final Method method;
   public final Constructor constructor;
 
-  public static final ImmutableMap<Method, BuiltinMethod> MAP;
+  public static final ImmutableMap<Method, BuiltInMethod> MAP;
 
   static {
-    final ImmutableMap.Builder<Method, BuiltinMethod> builder =
+    final ImmutableMap.Builder<Method, BuiltInMethod> builder =
         ImmutableMap.builder();
-    for (BuiltinMethod value : BuiltinMethod.values()) {
+    for (BuiltInMethod value : BuiltInMethod.values()) {
       if (value.method != null) {
         builder.put(value.method, value);
       }
@@ -254,15 +298,15 @@ public enum BuiltinMethod {
     MAP = builder.build();
   }
 
-  BuiltinMethod(Class clazz, String methodName, Class... argumentTypes) {
+  BuiltInMethod(Class clazz, String methodName, Class... argumentTypes) {
     this.method = Types.lookupMethod(clazz, methodName, argumentTypes);
     this.constructor = null;
   }
 
-  BuiltinMethod(Class clazz, Class... argumentTypes) {
+  BuiltInMethod(Class clazz, Class... argumentTypes) {
     this.method = null;
     this.constructor = Types.lookupConstructor(clazz, argumentTypes);
   }
 }
 
-// End BuiltinMethod.java
+// End BuiltInMethod.java

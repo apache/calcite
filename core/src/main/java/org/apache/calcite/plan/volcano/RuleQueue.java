@@ -14,20 +14,36 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.relopt.volcano;
+package org.apache.calcite.plan.volcano;
 
-import java.io.*;
-import java.util.*;
-import java.util.logging.*;
-
-import org.eigenbase.rel.*;
-import org.eigenbase.relopt.*;
-import org.eigenbase.trace.*;
-import org.eigenbase.util.*;
+import org.apache.calcite.plan.RelOptCost;
+import org.apache.calcite.plan.RelOptRuleOperand;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.util.ChunkList;
+import org.apache.calcite.util.Stacks;
+import org.apache.calcite.util.Util;
+import org.apache.calcite.util.trace.CalciteTrace;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
+
+import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.EnumMap;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Priority queue of relexps whose rules have not been called, and rule-matches
@@ -36,7 +52,7 @@ import com.google.common.collect.Multimap;
 class RuleQueue {
   //~ Static fields/initializers ---------------------------------------------
 
-  private static final Logger LOGGER = EigenbaseTrace.getPlannerTracer();
+  private static final Logger LOGGER = CalciteTrace.getPlannerTracer();
 
   private static final Set<String> ALL_RULES = ImmutableSet.of("<ALL RULES>");
 
@@ -180,8 +196,8 @@ class RuleQueue {
   }
 
   /**
-   * Equivalent to {@link #recompute(RelSubset, boolean) recompute(subset,
-   * false)}.
+   * Equivalent to
+   * {@link #recompute(RelSubset, boolean) recompute(subset, false)}.
    */
   public void recompute(RelSubset subset) {
     recompute(subset, false);
@@ -541,7 +557,7 @@ class RuleQueue {
    *
    * <p>is a valid match.</p>
    *
-   * @throws org.eigenbase.util.Util.FoundOne on match
+   * @throws org.apache.calcite.util.Util.FoundOne on match
    */
   private void checkDuplicateSubsets(List<RelSubset> subsets,
       RelOptRuleOperand operand, RelNode[] rels) {
@@ -578,8 +594,7 @@ class RuleQueue {
     }
     final double importance = parentImportance * alpha;
     if (LOGGER.isLoggable(Level.FINEST)) {
-      LOGGER.finest(
-          "Importance of [" + child + "] to its parent ["
+      LOGGER.finest("Importance of [" + child + "] to its parent ["
           + parent + "] is " + importance + " (parent importance="
           + parentImportance + ", child cost=" + childCost
           + ", parent cost=" + parentCost + ")");
@@ -666,8 +681,8 @@ class RuleQueue {
 
   /**
    * PhaseMatchList represents a set of {@link VolcanoRuleMatch rule-matches}
-   * for a particular {@link VolcanoPlannerPhase phase of the planner's
-   * execution}.
+   * for a particular
+   * {@link VolcanoPlannerPhase phase of the planner's execution}.
    */
   private static class PhaseMatchList {
     /**

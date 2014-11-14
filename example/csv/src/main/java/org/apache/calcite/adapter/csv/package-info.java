@@ -22,6 +22,6 @@
  * directory appears as a table.  Full SQL operations are available on
  * those tables.</p>
  */
-package net.hydromatic.optiq.impl.csv;
+package org.apache.calcite.adapter.csv;
 
 // End package-info.java

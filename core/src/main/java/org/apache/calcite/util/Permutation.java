@@ -14,11 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.util;
+package org.apache.calcite.util;
 
-import java.util.*;
+import org.apache.calcite.util.mapping.IntPair;
+import org.apache.calcite.util.mapping.Mapping;
+import org.apache.calcite.util.mapping.MappingType;
+import org.apache.calcite.util.mapping.Mappings;
 
-import org.eigenbase.util.mapping.*;
+import java.util.Arrays;
+import java.util.Iterator;
 
 /**
  * Represents a mapping which reorders elements in an array.
@@ -109,8 +113,7 @@ public class Permutation implements Mapping, Mappings.TargetMapping {
 
   public void clear() {
     throw new UnsupportedOperationException(
-        "Cannot clear: permutation must always contain one mapping per "
-        + "element");
+        "Cannot clear: permutation must always contain one mapping per element");
   }
 
   /**
@@ -450,13 +453,15 @@ public class Permutation implements Mapping, Mappings.TargetMapping {
     for (int i = 0; i < size; i++) {
       int target = targets[i];
       if (sources[target] != i) {
-        assert !fail : "source[" + target + "] = " + sources[target]
+        assert !fail
+            : "source[" + target + "] = " + sources[target]
             + ", should be " + i;
         return false;
       }
       int source = sources[i];
       if (targets[source] != i) {
-        assert !fail : "target[" + source + "] = " + targets[source]
+        assert !fail
+            : "target[" + source + "] = " + targets[source]
             + ", should be " + i;
         return false;
       }

@@ -14,32 +14,59 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql.validate;
+package org.apache.calcite.sql.validate;
 
-import java.util.*;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.runtime.CalciteContextException;
+import org.apache.calcite.runtime.CalciteException;
+import org.apache.calcite.runtime.Resources;
+import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlDataTypeSpec;
+import org.apache.calcite.sql.SqlDelete;
+import org.apache.calcite.sql.SqlDynamicParam;
+import org.apache.calcite.sql.SqlFunction;
+import org.apache.calcite.sql.SqlIdentifier;
+import org.apache.calcite.sql.SqlInsert;
+import org.apache.calcite.sql.SqlIntervalQualifier;
+import org.apache.calcite.sql.SqlLiteral;
+import org.apache.calcite.sql.SqlMerge;
+import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlNodeList;
+import org.apache.calcite.sql.SqlOperatorTable;
+import org.apache.calcite.sql.SqlSelect;
+import org.apache.calcite.sql.SqlUpdate;
+import org.apache.calcite.sql.SqlWindow;
+import org.apache.calcite.sql.SqlWith;
+import org.apache.calcite.sql.SqlWithItem;
+import org.apache.calcite.util.Util;
 
-import org.eigenbase.reltype.*;
-import org.eigenbase.resource.Resources;
-import org.eigenbase.sql.*;
-import org.eigenbase.util.*;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Validates the parse tree of a SQL statement, and provides semantic
  * information about the parse tree.
  *
- * <p>To create an instance of the default validator implementation, call {@link
- * SqlValidatorUtil#newValidator}.
+ * <p>To create an instance of the default validator implementation, call
+ * {@link SqlValidatorUtil#newValidator}.
  *
  * <h2>Visitor pattern</h2>
  *
- * <p>The validator interface is an instance of the {@link
- * org.eigenbase.util.Glossary#VISITOR_PATTERN visitor pattern}. Implementations
+ * <p>The validator interface is an instance of the
+ * {@link org.apache.calcite.util.Glossary#VISITOR_PATTERN visitor pattern}.
+ * Implementations
  * of the {@link SqlNode#validate} method call the <code>validateXxx</code>
- * method appropriate to the kind of node: {@link
- * SqlLiteral#validate(SqlValidator, SqlValidatorScope)} calls {@link
- * #validateLiteral(org.eigenbase.sql.SqlLiteral)}; {@link
- * SqlCall#validate(SqlValidator, SqlValidatorScope)} calls {@link
- * #validateCall(SqlCall, SqlValidatorScope)}; and so forth.
+ * method appropriate to the kind of node:
+ * <ul>
+ * <li>{@link SqlLiteral#validate(SqlValidator, SqlValidatorScope)}
+ *     calls
+ *     {@link #validateLiteral(org.apache.calcite.sql.SqlLiteral)};
+ * <li>{@link SqlCall#validate(SqlValidator, SqlValidatorScope)}
+ *     calls
+ *     {@link #validateCall(SqlCall, SqlValidatorScope)};
+ * <li>and so forth.</ul>
  *
  * <p>The {@link SqlNode#validateExpr(SqlValidator, SqlValidatorScope)} method
  * is as {@link SqlNode#validate(SqlValidator, SqlValidatorScope)} but is called
@@ -48,27 +75,29 @@ import org.eigenbase.util.*;
  * <h2>Scopes and namespaces</h2>
  *
  * <p>In order to resolve names to objects, the validator builds a map of the
- * structure of the query. This map consists of two types of objects. A {@link
- * SqlValidatorScope} describes the tables and columns accessible at a
+ * structure of the query. This map consists of two types of objects. A
+ * {@link SqlValidatorScope} describes the tables and columns accessible at a
  * particular point in the query; and a {@link SqlValidatorNamespace} is a
  * description of a data source used in a query.
  *
  * <p>There are different kinds of namespace for different parts of the query.
- * for example {@link IdentifierNamespace} for table names, {@link
- * SelectNamespace} for SELECT queries, {@link SetopNamespace} for UNION, EXCEPT
+ * for example {@link IdentifierNamespace} for table names,
+ * {@link SelectNamespace} for SELECT queries,
+ * {@link SetopNamespace} for UNION, EXCEPT
  * and INTERSECT. A validator is allowed to wrap namespaces in other objects
  * which implement {@link SqlValidatorNamespace}, so don't try to cast your
- * namespace or use <code>instanceof</code>; use {@link
- * SqlValidatorNamespace#unwrap(Class)} and {@link
- * SqlValidatorNamespace#isWrapperFor(Class)} instead.</p>
+ * namespace or use <code>instanceof</code>; use
+ * {@link SqlValidatorNamespace#unwrap(Class)} and
+ * {@link SqlValidatorNamespace#isWrapperFor(Class)} instead.</p>
  *
  * <p>The validator builds the map by making a quick scan over the query when
  * the root {@link SqlNode} is first provided. Thereafter, it supplies the
  * correct scope or namespace object when it calls validation methods.</p>
  *
- * <p>The methods {@link #getSelectScope}, {@link #getFromScope}, {@link
- * #getWhereScope}, {@link #getGroupScope}, {@link #getHavingScope}, {@link
- * #getOrderScope} and {@link #getJoinScope} get the correct scope to resolve
+ * <p>The methods {@link #getSelectScope}, {@link #getFromScope},
+ * {@link #getWhereScope}, {@link #getGroupScope}, {@link #getHavingScope},
+ * {@link #getOrderScope} and {@link #getJoinScope} get the correct scope
+ * to resolve
  * names in a particular clause of a SQL statement.</p>
  */
 public interface SqlValidator {
@@ -225,8 +254,8 @@ public interface SqlValidator {
 
   /**
    * Validates the right-hand side of an OVER expression. It might be either
-   * an {@link SqlIdentifier identifier} referencing a window, or an {@link
-   * SqlWindow inline window specification}.
+   * an {@link SqlIdentifier identifier} referencing a window, or an
+   * {@link SqlWindow inline window specification}.
    *
    * @param windowOrId SqlNode that can be either SqlWindow with all the
    *                   components of a window spec or a SqlIdentifier with the
@@ -294,7 +323,7 @@ public interface SqlValidator {
    * @param e    The validation error
    * @return Exception containing positional information, never null
    */
-  EigenbaseContextException newValidationError(
+  CalciteContextException newValidationError(
       SqlNode node,
       Resources.ExInst<SqlValidatorException> e);
 
@@ -443,11 +472,14 @@ public interface SqlValidator {
    *
    * <ul>
    * <li>In FROM ({@link #getFromScope} , you can only see 'foo'.
+   *
    * <li>In WHERE ({@link #getWhereScope}), GROUP BY ({@link #getGroupScope}),
-   * SELECT ({@link #getSelectScope}), and the ON clause of the JOIN ({@link
-   * #getJoinScope}) you can see 'emp', 'dept', and 'foo'.
-   * <li>In ORDER BY ({@link #getOrderScope}), you can see the column alias
-   * 'x'; and tables 'emp', 'dept', and 'foo'.
+   * SELECT ({@link #getSelectScope}), and the ON clause of the JOIN
+   * ({@link #getJoinScope}) you can see 'emp', 'dept', and 'foo'.
+   *
+   * <li>In ORDER BY ({@link #getOrderScope}), you can see the column alias 'x';
+   * and tables 'emp', 'dept', and 'foo'.
+   *
    * </ul>
    *
    * @param select SELECT statement
@@ -457,8 +489,8 @@ public interface SqlValidator {
 
   /**
    * Returns the scope for resolving the SELECT, GROUP BY and HAVING clauses.
-   * Always a {@link SelectScope}; if this is an aggregation query, the {@link
-   * AggregatingScope} is stripped away.
+   * Always a {@link SelectScope}; if this is an aggregation query, the
+   * {@link AggregatingScope} is stripped away.
    *
    * @param select SELECT statement
    * @return naming scope for SELECT statement, sans any aggregating scope
@@ -602,7 +634,7 @@ public interface SqlValidator {
    *                           call
    * @param argTypes           Types of arguments
    */
-  EigenbaseException handleUnresolvedFunction(
+  CalciteException handleUnresolvedFunction(
       SqlCall call,
       SqlFunction unresolvedFunction,
       List<RelDataType> argTypes);

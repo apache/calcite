@@ -14,23 +14,38 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.impl.jdbc;
+package org.apache.calcite.adapter.jdbc;
 
-import net.hydromatic.linq4j.expressions.Expression;
+import org.apache.calcite.linq4j.tree.Expression;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rel.type.RelDataTypeImpl;
+import org.apache.calcite.rel.type.RelDataTypeSystem;
+import org.apache.calcite.rel.type.RelProtoDataType;
+import org.apache.calcite.schema.Function;
+import org.apache.calcite.schema.Schema;
+import org.apache.calcite.schema.SchemaFactory;
+import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.schema.Schemas;
+import org.apache.calcite.schema.Table;
+import org.apache.calcite.sql.SqlDialect;
+import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
+import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.util.Util;
 
-import net.hydromatic.optiq.*;
-import net.hydromatic.optiq.Table;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Multimap;
 
-import org.eigenbase.reltype.*;
-import org.eigenbase.sql.SqlDialect;
-import org.eigenbase.sql.type.SqlTypeFactoryImpl;
-import org.eigenbase.sql.type.SqlTypeName;
-import org.eigenbase.util.Util;
-
-import com.google.common.collect.*;
-
-import java.sql.*;
-import java.util.*;
+import java.sql.Connection;
+import java.sql.DatabaseMetaData;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.Collection;
+import java.util.Map;
+import java.util.Set;
 import javax.sql.DataSource;
 
 /**
@@ -357,7 +372,7 @@ public class JdbcSchema implements Schema {
   }
 
   /** Schema factory that creates a
-   * {@link net.hydromatic.optiq.impl.jdbc.JdbcSchema}.
+   * {@link org.apache.calcite.adapter.jdbc.JdbcSchema}.
    * This allows you to create a jdbc schema inside a model.json file.
    *
    * <pre>{@code
@@ -368,7 +383,7 @@ public class JdbcSchema implements Schema {
    *     {
    *       name: 'FOODMART_CLONE',
    *       type: 'custom',
-   *       factory: 'net.hydromatic.optiq.impl.clone.JdbcSchema$Factory',
+   *       factory: 'org.apache.calcite.adapter.jdbc.JdbcSchema$Factory',
    *       operand: {
    *         jdbcDriver: 'com.mysql.jdbc.Driver',
    *         jdbcUrl: 'jdbc:mysql://localhost/foodmart',

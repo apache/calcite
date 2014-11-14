@@ -22,6 +22,6 @@
  * preparation time is less, and so the total prepare + execute time is
  * competitive for queries over small data sets.
  */
-package net.hydromatic.optiq.impl.interpreter;
+package org.apache.calcite.adapter.interpreter;
 
 // End package-info.java

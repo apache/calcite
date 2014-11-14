@@ -14,23 +14,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql.type;
+package org.apache.calcite.sql.type;
 
-import java.util.*;
-
-import org.eigenbase.reltype.*;
-import org.eigenbase.sql.*;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeComparability;
+import org.apache.calcite.sql.SqlCallBinding;
+import org.apache.calcite.sql.SqlLiteral;
+import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlOperandCountRange;
+import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.SqlUtil;
 
 import com.google.common.collect.ImmutableList;
 
-import static org.eigenbase.util.Static.RESOURCE;
+import java.util.List;
+
+import static org.apache.calcite.util.Static.RESOURCE;
 
 /**
  * Strategies for checking operand types.
  *
  * <p>This class defines singleton instances of strategy objects for operand
- * type checking. {@link org.eigenbase.sql.type.ReturnTypes}
- * and {@link org.eigenbase.sql.type.InferTypes} provide similar strategies
+ * type checking. {@link org.apache.calcite.sql.type.ReturnTypes}
+ * and {@link org.apache.calcite.sql.type.InferTypes} provide similar strategies
  * for operand type inference and operator return type inference.
  *
  * <p>Note to developers: avoid anonymous inner classes here except for unique,
@@ -38,9 +44,9 @@ import static org.eigenbase.util.Static.RESOURCE;
  * class. If you find yourself copying and pasting an existing strategy's
  * anonymous inner class, you're making a mistake.
  *
- * @see org.eigenbase.sql.type.SqlOperandTypeChecker
- * @see org.eigenbase.sql.type.ReturnTypes
- * @see org.eigenbase.sql.type.InferTypes
+ * @see org.apache.calcite.sql.type.SqlOperandTypeChecker
+ * @see org.apache.calcite.sql.type.ReturnTypes
+ * @see org.apache.calcite.sql.type.InferTypes
  */
 public abstract class OperandTypes {
   private OperandTypes() {

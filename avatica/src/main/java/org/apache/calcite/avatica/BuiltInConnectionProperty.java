@@ -14,13 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.avatica;
+package org.apache.calcite.avatica;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 
-import static net.hydromatic.avatica.ConnectionConfigImpl.*;
+import static org.apache.calcite.avatica.ConnectionConfigImpl.PropEnv;
+import static org.apache.calcite.avatica.ConnectionConfigImpl.parse;
 
 /**
  * Enumeration of Avatica's built-in connection properties.

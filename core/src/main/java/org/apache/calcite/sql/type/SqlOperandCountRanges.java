@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql.type;
+package org.apache.calcite.sql.type;
 
-import org.eigenbase.sql.SqlOperandCountRange;
+import org.apache.calcite.sql.SqlOperandCountRange;
 
 /**
  * Helpers for {@link SqlOperandCountRange}.
@@ -39,6 +39,7 @@ public abstract class SqlOperandCountRanges {
     return new RangeImpl(0, -1);
   }
 
+  /** Implementation of {@link SqlOperandCountRange}. */
   private static class RangeImpl implements SqlOperandCountRange {
     private final int min;
     private final int max;

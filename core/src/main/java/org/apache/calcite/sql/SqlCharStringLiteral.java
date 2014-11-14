@@ -14,16 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql;
+package org.apache.calcite.sql;
 
-import java.util.List;
-
-import org.eigenbase.sql.parser.*;
-import org.eigenbase.sql.type.*;
-import org.eigenbase.util.*;
+import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.util.Bug;
+import org.apache.calcite.util.NlsString;
+import org.apache.calcite.util.Util;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
+
+import java.util.List;
 
 /**
  * A character string literal.

@@ -14,37 +14,52 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel;
+package org.apache.calcite.rel.core;
 
-import java.util.*;
-
-import org.eigenbase.relopt.*;
-import org.eigenbase.reltype.RelDataType;
-import org.eigenbase.rex.*;
-import org.eigenbase.sql.SqlAggFunction;
-import org.eigenbase.util.ImmutableIntList;
-import org.eigenbase.util.Util;
-
-import net.hydromatic.linq4j.Ord;
+import org.apache.calcite.linq4j.Ord;
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.RelCollation;
+import org.apache.calcite.rel.RelCollationImpl;
+import org.apache.calcite.rel.RelFieldCollation;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelWriter;
+import org.apache.calcite.rel.SingleRel;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexChecker;
+import org.apache.calcite.rex.RexFieldCollation;
+import org.apache.calcite.rex.RexLiteral;
+import org.apache.calcite.rex.RexLocalRef;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexSlot;
+import org.apache.calcite.rex.RexWindowBound;
+import org.apache.calcite.sql.SqlAggFunction;
+import org.apache.calcite.util.ImmutableIntList;
+import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
+
+import java.util.AbstractList;
+import java.util.BitSet;
+import java.util.List;
 
 /**
  * A relational expression representing a set of window aggregates.
  *
- * <p>A window rel can handle several window aggregate functions, over several
+ * <p>A Window can handle several window aggregate functions, over several
  * partitions, with pre- and post-expressions, and an optional post-filter.
  * Each of the partitions is defined by a partition key (zero or more columns)
  * and a range (logical or physical). The partitions expect the data to be
  * sorted correctly on input to the relational expression.
  *
- * <p>Each {@link org.eigenbase.rel.WindowRelBase.Window} has a set of
- * {@link org.eigenbase.rex.RexOver} objects.
+ * <p>Each {@link Window.Group} has a set of
+ * {@link org.apache.calcite.rex.RexOver} objects.
  *
- * <p>Created by {@link org.eigenbase.rel.rules.WindowedAggSplitterRule}.
+ * <p>Created by {@link org.apache.calcite.rel.rules.ProjectToWindowRule}.
  */
-public abstract class WindowRelBase extends SingleRel {
-  public final ImmutableList<Window> windows;
+public abstract class Window extends SingleRel {
+  public final ImmutableList<Group> groups;
   public final List<RexLiteral> constants;
 
   /**
@@ -54,38 +69,35 @@ public abstract class WindowRelBase extends SingleRel {
    * @param child   Input relational expression
    * @param constants List of constants that are additional inputs
    * @param rowType Output row type
-   * @param windows Windows
+   * @param groups Windows
    */
-  public WindowRelBase(
+  public Window(
       RelOptCluster cluster, RelTraitSet traits, RelNode child,
-      List<RexLiteral> constants, RelDataType rowType, List<Window> windows) {
+      List<RexLiteral> constants, RelDataType rowType, List<Group> groups) {
     super(cluster, traits, child);
     this.constants = ImmutableList.copyOf(constants);
     assert rowType != null;
     this.rowType = rowType;
-    this.windows = ImmutableList.copyOf(windows);
+    this.groups = ImmutableList.copyOf(groups);
   }
 
-  @Override
-  public boolean isValid(boolean fail) {
+  @Override public boolean isValid(boolean fail) {
     // In the window specifications, an aggregate call such as
     // 'SUM(RexInputRef #10)' refers to expression #10 of inputProgram.
     // (Not its projections.)
-    final RelDataType childRowType = getChild().getRowType();
+    final RelDataType childRowType = getInput().getRowType();
 
     final int childFieldCount = childRowType.getFieldCount();
     final int inputSize = childFieldCount + constants.size();
     final List<RelDataType> inputTypes =
         new AbstractList<RelDataType>() {
-          @Override
-          public RelDataType get(int index) {
+          @Override public RelDataType get(int index) {
             return index < childFieldCount
                 ? childRowType.getFieldList().get(index).getType()
                 : constants.get(index - childFieldCount).getType();
           }
 
-          @Override
-          public int size() {
+          @Override public int size() {
             return inputSize;
           }
         };
@@ -93,8 +105,8 @@ public abstract class WindowRelBase extends SingleRel {
     final RexChecker checker =
         new RexChecker(inputTypes, fail);
     int count = 0;
-    for (Window window : windows) {
-      for (RexWinAggCall over : window.aggCalls) {
+    for (Group group : groups) {
+      for (RexWinAggCall over : group.aggCalls) {
         ++count;
         if (!checker.isValid(over)) {
           return false;
@@ -110,13 +122,13 @@ public abstract class WindowRelBase extends SingleRel {
 
   public RelWriter explainTerms(RelWriter pw) {
     super.explainTerms(pw);
-    for (Ord<Window> window : Ord.zip(windows)) {
+    for (Ord<Group> window : Ord.zip(groups)) {
       pw.item("window#" + window.i, window.e.toString());
     }
     return pw;
   }
 
-  static ImmutableIntList getProjectOrdinals(final List<RexNode> exprs) {
+  public static ImmutableIntList getProjectOrdinals(final List<RexNode> exprs) {
     return ImmutableIntList.copyOf(
         new AbstractList<Integer>() {
           public Integer get(int index) {
@@ -129,7 +141,8 @@ public abstract class WindowRelBase extends SingleRel {
         });
   }
 
-  static RelCollation getCollation(final List<RexFieldCollation> collations) {
+  public static RelCollation getCollation(
+      final List<RexFieldCollation> collations) {
     return RelCollationImpl.of(
         new AbstractList<RelFieldCollation>() {
           public RelFieldCollation get(int index) {
@@ -155,8 +168,10 @@ public abstract class WindowRelBase extends SingleRel {
   }
 
   /**
-   * A Window is a range of input rows, defined by an upper and lower bound.
-   * It also has zero or more partitioning columns.
+   * Group of windowed aggregate calls that have the same window specification.
+   *
+   * <p>The specification is defined by an upper and lower bound, and
+   * also has zero or more partitioning columns.
    *
    * <p>A window is either logical or physical. A physical window is measured
    * in terms of row count. A logical window is measured in terms of rows
@@ -174,8 +189,8 @@ public abstract class WindowRelBase extends SingleRel {
    * CURRENT ROW</code>) is a logical window with an upper and lower bound.
    * </ul>
    */
-  public static class Window {
-    public final BitSet groupSet;
+  public static class Group {
+    public final BitSet keys;
     public final boolean isRows;
     public final RexWindowBound lowerBound;
     public final RexWindowBound upperBound;
@@ -183,22 +198,22 @@ public abstract class WindowRelBase extends SingleRel {
     private final String digest;
 
     /**
-     * List of {@link org.eigenbase.rel.WindowRelBase.RexWinAggCall}
+     * List of {@link Window.RexWinAggCall}
      * objects, each of which is a call to a
-     * {@link org.eigenbase.sql.SqlAggFunction}.
+     * {@link org.apache.calcite.sql.SqlAggFunction}.
      */
     public final ImmutableList<RexWinAggCall> aggCalls;
 
-    public Window(
-        BitSet groupSet,
+    public Group(
+        BitSet keys,
         boolean isRows,
         RexWindowBound lowerBound,
         RexWindowBound upperBound,
         RelCollation orderKeys,
         List<RexWinAggCall> aggCalls) {
       assert orderKeys != null : "precondition: ordinals != null";
-      assert groupSet != null;
-      this.groupSet = groupSet;
+      assert keys != null;
+      this.keys = keys;
       this.isRows = isRows;
       this.lowerBound = lowerBound;
       this.upperBound = upperBound;
@@ -214,7 +229,7 @@ public abstract class WindowRelBase extends SingleRel {
     private String computeString() {
       final StringBuilder buf = new StringBuilder();
       buf.append("window(partition ");
-      buf.append(groupSet);
+      buf.append(keys);
       buf.append(" order by ");
       buf.append(orderKeys);
       buf.append(isRows ? " rows " : " range ");
@@ -236,15 +251,13 @@ public abstract class WindowRelBase extends SingleRel {
       return buf.toString();
     }
 
-    @Override
-    public boolean equals(Object obj) {
+    @Override public boolean equals(Object obj) {
       return this == obj
-          || obj instanceof Window
-          && this.digest.equals(((Window) obj).digest);
+          || obj instanceof Group
+          && this.digest.equals(((Group) obj).digest);
     }
 
-    @Override
-    public int hashCode() {
+    @Override public int hashCode() {
       return digest.hashCode();
     }
 
@@ -257,9 +270,9 @@ public abstract class WindowRelBase extends SingleRel {
      * This is useful to refine data type of window aggregates.
      * For instance sum(non-nullable) over (empty window) is NULL.
      * @return true when the window is non-empty
-     * @see org.eigenbase.sql.SqlWindow#isAlwaysNonEmpty()
-     * @see org.eigenbase.sql.SqlOperatorBinding#getGroupCount()
-     * @see org.eigenbase.sql.validate.SqlValidatorImpl#resolveWindow(org.eigenbase.sql.SqlNode, org.eigenbase.sql.validate.SqlValidatorScope, boolean)
+     * @see org.apache.calcite.sql.SqlWindow#isAlwaysNonEmpty()
+     * @see org.apache.calcite.sql.SqlOperatorBinding#getGroupCount()
+     * @see org.apache.calcite.sql.validate.SqlValidatorImpl#resolveWindow(org.apache.calcite.sql.SqlNode, org.apache.calcite.sql.validate.SqlValidatorScope, boolean)
      */
     public boolean isAlwaysNonEmpty() {
       int lowerKey = lowerBound.getOrderKey();
@@ -271,10 +284,10 @@ public abstract class WindowRelBase extends SingleRel {
      * Presents a view of the {@link RexWinAggCall} list as a list of
      * {@link AggregateCall}.
      */
-    public List<AggregateCall> getAggregateCalls(WindowRelBase windowRel) {
+    public List<AggregateCall> getAggregateCalls(Window windowRel) {
       final List<String> fieldNames =
           Util.skip(windowRel.getRowType().getFieldNames(),
-              windowRel.getChild().getRowType().getFieldCount());
+              windowRel.getInput().getRowType().getFieldCount());
       return new AbstractList<AggregateCall>() {
         public int size() {
           return aggCalls.size();
@@ -283,7 +296,7 @@ public abstract class WindowRelBase extends SingleRel {
         public AggregateCall get(int index) {
           final RexWinAggCall aggCall = aggCalls.get(index);
           return new AggregateCall(
-              (Aggregation) aggCall.getOperator(),
+              (SqlAggFunction) aggCall.getOperator(),
               false,
               getProjectOrdinals(aggCall.getOperands()),
               aggCall.getType(),
@@ -296,10 +309,10 @@ public abstract class WindowRelBase extends SingleRel {
   /**
    * A call to a windowed aggregate function.
    *
-   * <p>Belongs to a {@link org.eigenbase.rel.WindowRelBase.Window}.
+   * <p>Belongs to a {@link Window.Group}.
    *
-   * <p>It's a bastard son of a {@link org.eigenbase.rex.RexCall}; similar
-   * enough that it gets visited by a {@link org.eigenbase.rex.RexVisitor},
+   * <p>It's a bastard son of a {@link org.apache.calcite.rex.RexCall}; similar
+   * enough that it gets visited by a {@link org.apache.calcite.rex.RexVisitor},
    * but it also has some extra data members.
    */
   public static class RexWinAggCall extends RexCall {
@@ -325,11 +338,10 @@ public abstract class WindowRelBase extends SingleRel {
       this.ordinal = ordinal;
     }
 
-    @Override
-    public RexCall clone(RelDataType type, List<RexNode> operands) {
+    @Override public RexCall clone(RelDataType type, List<RexNode> operands) {
       throw new UnsupportedOperationException();
     }
   }
 }
 
-// End WindowRelBase.java
+// End Window.java

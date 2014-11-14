@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql.type;
+package org.apache.calcite.sql.type;
 
-import org.eigenbase.reltype.*;
-import org.eigenbase.sql.*;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.sql.SqlCallBinding;
 
 import com.google.common.collect.ImmutableList;
 
@@ -32,7 +32,8 @@ public class ExplicitOperandTypeInference implements SqlOperandTypeInference {
 
   //~ Constructors -----------------------------------------------------------
 
-  /** Use {@link org.eigenbase.sql.type.InferTypes#explicit(java.util.List)}. */
+  /** Use
+   * {@link org.apache.calcite.sql.type.InferTypes#explicit(java.util.List)}. */
   ExplicitOperandTypeInference(ImmutableList<RelDataType> paramTypes) {
     this.paramTypes = paramTypes;
   }

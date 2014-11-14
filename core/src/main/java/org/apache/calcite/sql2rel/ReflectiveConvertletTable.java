@@ -14,16 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql2rel;
+package org.apache.calcite.sql2rel;
 
-import java.lang.reflect.*;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.util.Util;
 
-import java.util.*;
-
-import org.eigenbase.rex.*;
-import org.eigenbase.sql.*;
-import org.eigenbase.sql.parser.*;
-import org.eigenbase.util.*;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Implementation of {@link SqlRexConvertletTable} which uses reflection to call
@@ -191,8 +195,8 @@ public class ReflectiveConvertletTable implements SqlRexConvertletTable {
   /**
    * Registers a convertlet for a given operator instance
    *
-   * @param op         Operator instance, say {@link
-   *                   org.eigenbase.sql.fun.SqlStdOperatorTable#MINUS}
+   * @param op         Operator instance, say
+   * {@link org.apache.calcite.sql.fun.SqlStdOperatorTable#MINUS}
    * @param convertlet Convertlet
    */
   protected void registerOp(SqlOperator op, SqlRexConvertlet convertlet) {

@@ -14,27 +14,34 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel.metadata;
+package org.apache.calcite.rel.metadata;
 
-import java.util.*;
+import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.Aggregate;
+import org.apache.calcite.rel.core.Filter;
+import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.core.SemiJoin;
+import org.apache.calcite.rel.core.Sort;
+import org.apache.calcite.rel.core.Union;
+import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexUtil;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.util.BitSets;
+import org.apache.calcite.util.BuiltInMethod;
 
-import org.eigenbase.rel.*;
-import org.eigenbase.rel.rules.*;
-import org.eigenbase.relopt.*;
-import org.eigenbase.rex.*;
-import org.eigenbase.sql.fun.*;
-
-import net.hydromatic.optiq.BuiltinMethod;
-import net.hydromatic.optiq.util.BitSets;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
- * RelMdSelectivity supplies a default implementation of {@link
- * RelMetadataQuery#getSelectivity} for the standard logical algebra.
+ * RelMdSelectivity supplies a default implementation of
+ * {@link RelMetadataQuery#getSelectivity} for the standard logical algebra.
  */
 public class RelMdSelectivity {
   public static final RelMetadataProvider SOURCE =
       ReflectiveRelMetadataProvider.reflectiveSource(
-          BuiltinMethod.SELECTIVITY.method, new RelMdSelectivity());
+          BuiltInMethod.SELECTIVITY.method, new RelMdSelectivity());
 
   //~ Constructors -----------------------------------------------------------
 
@@ -43,7 +50,7 @@ public class RelMdSelectivity {
 
   //~ Methods ----------------------------------------------------------------
 
-  public Double getSelectivity(UnionRelBase rel, RexNode predicate) {
+  public Double getSelectivity(Union rel, RexNode predicate) {
     if ((rel.getInputs().size() == 0) || (predicate == null)) {
       return 1.0;
     }
@@ -78,32 +85,32 @@ public class RelMdSelectivity {
     return sumSelectedRows / sumRows;
   }
 
-  public Double getSelectivity(SortRel rel, RexNode predicate) {
+  public Double getSelectivity(Sort rel, RexNode predicate) {
     return RelMetadataQuery.getSelectivity(
-        rel.getChild(),
+        rel.getInput(),
         predicate);
   }
 
-  public Double getSelectivity(FilterRelBase rel, RexNode predicate) {
+  public Double getSelectivity(Filter rel, RexNode predicate) {
     // Take the difference between the predicate passed in and the
     // predicate in the filter's condition, so we don't apply the
     // selectivity of the filter twice.  If no predicate is passed in,
     // use the filter's condition.
     if (predicate != null) {
       return RelMetadataQuery.getSelectivity(
-          rel.getChild(),
+          rel.getInput(),
           RelMdUtil.minusPreds(
               rel.getCluster().getRexBuilder(),
               predicate,
               rel.getCondition()));
     } else {
       return RelMetadataQuery.getSelectivity(
-          rel.getChild(),
+          rel.getInput(),
           rel.getCondition());
     }
   }
 
-  public Double getSelectivity(SemiJoinRel rel, RexNode predicate) {
+  public Double getSelectivity(SemiJoin rel, RexNode predicate) {
     // create a RexNode representing the selectivity of the
     // semijoin filter and pass it to getSelectivity
     RexBuilder rexBuilder = rel.getCluster().getRexBuilder();
@@ -121,7 +128,7 @@ public class RelMdSelectivity {
         newPred);
   }
 
-  public Double getSelectivity(AggregateRelBase rel, RexNode predicate) {
+  public Double getSelectivity(Aggregate rel, RexNode predicate) {
     List<RexNode> notPushable = new ArrayList<RexNode>();
     List<RexNode> pushable = new ArrayList<RexNode>();
     RelOptUtil.splitFilters(
@@ -135,7 +142,7 @@ public class RelMdSelectivity {
 
     Double selectivity =
         RelMetadataQuery.getSelectivity(
-            rel.getChild(),
+            rel.getInput(),
             childPred);
     if (selectivity == null) {
       return null;
@@ -146,7 +153,7 @@ public class RelMdSelectivity {
     }
   }
 
-  public Double getSelectivity(ProjectRelBase rel, RexNode predicate) {
+  public Double getSelectivity(Project rel, RexNode predicate) {
     List<RexNode> notPushable = new ArrayList<RexNode>();
     List<RexNode> pushable = new ArrayList<RexNode>();
     RelOptUtil.splitFilters(
@@ -166,7 +173,7 @@ public class RelMdSelectivity {
     }
     Double selectivity =
         RelMetadataQuery.getSelectivity(
-            rel.getChild(),
+            rel.getInput(),
             modifiedPred);
     if (selectivity == null) {
       return null;

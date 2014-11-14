@@ -14,14 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.impl.mongodb;
+package org.apache.calcite.adapter.mongodb;
 
-import net.hydromatic.linq4j.expressions.Types;
+import org.apache.calcite.linq4j.tree.Types;
 
 import com.google.common.collect.ImmutableMap;
 
 import java.lang.reflect.Method;
-import java.util.*;
+import java.util.List;
 
 /**
  * Builtin methods in the MongoDB adapter.

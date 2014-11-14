@@ -18,6 +18,6 @@
 /**
  * Avatica JDBC framework.
  */
-package net.hydromatic.avatica;
+package org.apache.calcite.avatica;
 
 // End package-info.java

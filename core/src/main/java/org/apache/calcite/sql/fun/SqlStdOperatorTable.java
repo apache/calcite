@@ -14,18 +14,46 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql.fun;
+package org.apache.calcite.sql.fun;
 
-import org.eigenbase.reltype.*;
-import org.eigenbase.sql.*;
-import org.eigenbase.sql.type.*;
-import org.eigenbase.sql.util.*;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.sql.SqlAggFunction;
+import org.apache.calcite.sql.SqlAsOperator;
+import org.apache.calcite.sql.SqlBinaryOperator;
+import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlFunction;
+import org.apache.calcite.sql.SqlFunctionCategory;
+import org.apache.calcite.sql.SqlFunctionalOperator;
+import org.apache.calcite.sql.SqlInternalOperator;
+import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlLiteral;
+import org.apache.calcite.sql.SqlOperandCountRange;
+import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.SqlOverOperator;
+import org.apache.calcite.sql.SqlPostfixOperator;
+import org.apache.calcite.sql.SqlPrefixOperator;
+import org.apache.calcite.sql.SqlProcedureCallOperator;
+import org.apache.calcite.sql.SqlRankFunction;
+import org.apache.calcite.sql.SqlSampleSpec;
+import org.apache.calcite.sql.SqlSetOperator;
+import org.apache.calcite.sql.SqlSpecialOperator;
+import org.apache.calcite.sql.SqlUnnestOperator;
+import org.apache.calcite.sql.SqlUtil;
+import org.apache.calcite.sql.SqlValuesOperator;
+import org.apache.calcite.sql.SqlWindow;
+import org.apache.calcite.sql.SqlWriter;
+import org.apache.calcite.sql.type.InferTypes;
+import org.apache.calcite.sql.type.OperandTypes;
+import org.apache.calcite.sql.type.ReturnTypes;
+import org.apache.calcite.sql.type.SqlOperandCountRanges;
+import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.util.ReflectiveSqlOperatorTable;
 
 import com.google.common.collect.ImmutableList;
 
 /**
- * Implementation of {@link org.eigenbase.sql.SqlOperatorTable} containing the
- * standard operators and functions.
+ * Implementation of {@link org.apache.calcite.sql.SqlOperatorTable} containing
+ * the standard operators and functions.
  */
 public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   //~ Static fields/initializers ---------------------------------------------
@@ -964,9 +992,9 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    * <p>Operands are as follows:
    *
    * <ol>
-   * <li>name of window function ({@link org.eigenbase.sql.SqlCall})</li>
-   * <li>window name ({@link org.eigenbase.sql.SqlLiteral}) or window in-line
-   * specification (@link SqlWindowOperator})</li>
+   * <li>name of window function ({@link org.apache.calcite.sql.SqlCall})</li>
+   * <li>window name ({@link org.apache.calcite.sql.SqlLiteral}) or window
+   * in-line specification (@link SqlWindowOperator})</li>
    * </ol>
    */
   public static final SqlBinaryOperator OVER = new SqlOverOperator();

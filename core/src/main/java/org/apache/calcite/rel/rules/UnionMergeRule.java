@@ -14,32 +14,35 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel.rules;
+package org.apache.calcite.rel.rules;
+
+import org.apache.calcite.plan.RelOptRule;
+import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.logical.LogicalUnion;
+import org.apache.calcite.util.Util;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import org.eigenbase.rel.*;
-import org.eigenbase.relopt.*;
-import org.eigenbase.util.Util;
-
 /**
- * CombineUnionsRule implements the rule for combining two non-distinct
- * {@link UnionRel}s into a single {@link UnionRel}.
+ * UnionMergeRule implements the rule for combining two
+ * non-distinct {@link org.apache.calcite.rel.logical.LogicalUnion}s
+ * into a single {@link org.apache.calcite.rel.logical.LogicalUnion}.
  */
-public class CombineUnionsRule extends RelOptRule {
-  public static final CombineUnionsRule INSTANCE =
-      new CombineUnionsRule();
+public class UnionMergeRule extends RelOptRule {
+  public static final UnionMergeRule INSTANCE =
+      new UnionMergeRule();
 
   //~ Constructors -----------------------------------------------------------
 
   /**
-   * Creates a CombineUnionsRule.
+   * Creates a UnionMergeRule.
    */
-  private CombineUnionsRule() {
+  private UnionMergeRule() {
     super(
         operand(
-            UnionRel.class,
+            LogicalUnion.class,
             operand(RelNode.class, any()),
             operand(RelNode.class, any())));
   }
@@ -48,50 +51,50 @@ public class CombineUnionsRule extends RelOptRule {
 
   // implement RelOptRule
   public void onMatch(RelOptRuleCall call) {
-    UnionRel topUnionRel = call.rel(0);
-    UnionRel bottomUnionRel;
+    LogicalUnion topUnion = call.rel(0);
+    LogicalUnion bottomUnion;
 
-    // We want to combine the UnionRel that's in the second input first.
+    // We want to combine the Union that's in the second input first.
     // Hence, that's why the rule pattern matches on generic RelNodes
     // rather than explicit UnionRels.  By doing so, and firing this rule
     // in a bottom-up order, it allows us to only specify a single
     // pattern for this rule.
-    if (call.rel(2) instanceof UnionRel) {
-      bottomUnionRel = call.rel(2);
-    } else if (call.rel(1) instanceof UnionRel) {
-      bottomUnionRel = call.rel(1);
+    if (call.rel(2) instanceof LogicalUnion) {
+      bottomUnion = call.rel(2);
+    } else if (call.rel(1) instanceof LogicalUnion) {
+      bottomUnion = call.rel(1);
     } else {
       return;
     }
 
     // If distincts haven't been removed yet, defer invoking this rule
-    if (!topUnionRel.all || !bottomUnionRel.all) {
+    if (!topUnion.all || !bottomUnion.all) {
       return;
     }
 
     // Combine the inputs from the bottom union with the other inputs from
     // the top union
     List<RelNode> unionInputs = new ArrayList<RelNode>();
-    if (call.rel(2) instanceof UnionRel) {
-      assert topUnionRel.getInputs().size() == 2;
-      unionInputs.add(topUnionRel.getInput(0));
-      unionInputs.addAll(bottomUnionRel.getInputs());
+    if (call.rel(2) instanceof LogicalUnion) {
+      assert topUnion.getInputs().size() == 2;
+      unionInputs.add(topUnion.getInput(0));
+      unionInputs.addAll(bottomUnion.getInputs());
     } else {
-      unionInputs.addAll(bottomUnionRel.getInputs());
-      unionInputs.addAll(Util.skip(topUnionRel.getInputs()));
+      unionInputs.addAll(bottomUnion.getInputs());
+      unionInputs.addAll(Util.skip(topUnion.getInputs()));
     }
     assert unionInputs.size()
-        == bottomUnionRel.getInputs().size()
-        + topUnionRel.getInputs().size()
+        == bottomUnion.getInputs().size()
+        + topUnion.getInputs().size()
         - 1;
-    UnionRel newUnionRel =
-        new UnionRel(
-            topUnionRel.getCluster(),
+    LogicalUnion newUnion =
+        new LogicalUnion(
+            topUnion.getCluster(),
             unionInputs,
             true);
 
-    call.transformTo(newUnionRel);
+    call.transformTo(newUnion);
   }
 }
 
-// End CombineUnionsRule.java
+// End UnionMergeRule.java

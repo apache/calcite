@@ -14,12 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql;
+package org.apache.calcite.sql;
 
-import java.util.*;
+import org.apache.calcite.sql.type.SqlOperandTypeChecker;
+import org.apache.calcite.sql.type.SqlOperandTypeInference;
+import org.apache.calcite.sql.type.SqlReturnTypeInference;
+import org.apache.calcite.util.Util;
 
-import org.eigenbase.sql.type.*;
-import org.eigenbase.util.*;
+import java.util.List;
 
 /**
  * Generic operator for nodes with special syntax.
@@ -78,14 +80,14 @@ public class SqlSpecialOperator extends SqlOperator {
    * precedence and associativity. Returns the ordinal of the node which
    * replaced the expression.
    *
-   * <p>The default implementation throws {@link
-   * UnsupportedOperationException}.
+   * <p>The default implementation throws
+   * {@link UnsupportedOperationException}.
    *
    * @param ordinal indicating the ordinal of the current operator in the list
    *                on which a possible reduction can be made
-   * @param list    List of alternating {@link
-   *                org.eigenbase.sql.parser.SqlParserUtil.ToTreeListItem} and {@link
-   *                SqlNode}
+   * @param list    List of alternating
+   *     {@link org.apache.calcite.sql.parser.SqlParserUtil.ToTreeListItem} and
+   *     {@link SqlNode}
    * @return ordinal of the node which replaced the expression
    */
   public int reduceExpr(

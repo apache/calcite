@@ -14,25 +14,30 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel;
+package org.apache.calcite.rel.core;
+
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.RelInput;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.metadata.RelMetadataQuery;
+import org.apache.calcite.sql.SqlKind;
 
 import java.util.BitSet;
 import java.util.List;
 
-import org.eigenbase.rel.metadata.RelMetadataQuery;
-import org.eigenbase.relopt.RelOptCluster;
-import org.eigenbase.relopt.RelTraitSet;
-import org.eigenbase.sql.SqlKind;
-
 /**
- * Abstract base class for implementations of
- * {@link IntersectRel}.
+ * Relational expression that returns the intersection of the rows of its
+ * inputs.
+ *
+ * <p>If "all" is true, performs then multiset intersection; otherwise,
+ * performs set set intersection (implying no duplicates in the results).
  */
-public abstract class IntersectRelBase extends SetOpRel {
+public abstract class Intersect extends SetOp {
   /**
-   * Creates an IntersectRelBase.
+   * Creates an Intersect.
    */
-  public IntersectRelBase(
+  public Intersect(
       RelOptCluster cluster,
       RelTraitSet traits,
       List<RelNode> inputs,
@@ -41,14 +46,13 @@ public abstract class IntersectRelBase extends SetOpRel {
   }
 
   /**
-   * Creates an IntersectRelBase by parsing serialized output.
+   * Creates an Intersect by parsing serialized output.
    */
-  protected IntersectRelBase(RelInput input) {
+  protected Intersect(RelInput input) {
     super(input);
   }
 
-  @Override
-  public double getRows() {
+  @Override public double getRows() {
     // REVIEW jvs 30-May-2005:  I just pulled this out of a hat.
     double dRows = Double.MAX_VALUE;
     for (RelNode input : inputs) {
@@ -59,8 +63,7 @@ public abstract class IntersectRelBase extends SetOpRel {
     return dRows;
   }
 
-  @Override
-  public boolean isKey(BitSet columns) {
+  @Override public boolean isKey(BitSet columns) {
     for (RelNode input : inputs) {
       if (input.isKey(columns)) {
         return true;
@@ -70,4 +73,4 @@ public abstract class IntersectRelBase extends SetOpRel {
   }
 }
 
-// End IntersectRelBase.java
+// End Intersect.java

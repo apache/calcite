@@ -14,32 +14,37 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel.rules;
+package org.apache.calcite.rel.rules;
 
-import org.eigenbase.rel.*;
-import org.eigenbase.relopt.*;
+import org.apache.calcite.plan.RelOptRule;
+import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.RelCollation;
+import org.apache.calcite.rel.RelCollationTraitDef;
+import org.apache.calcite.rel.core.Sort;
 
 /**
- * Planner rule that removes a {@link SortRel} if its input is already sorted.
- * Requires {@link RelCollationTraitDef}.
+ * Planner rule that removes
+ * a {@link org.apache.calcite.rel.core.Sort} if its input is already sorted.
+ *
+ * <p>Requires {@link RelCollationTraitDef}.
  */
-public class RemoveSortRule extends RelOptRule {
-  public static final RemoveSortRule INSTANCE = new RemoveSortRule();
+public class SortRemoveRule extends RelOptRule {
+  public static final SortRemoveRule INSTANCE = new SortRemoveRule();
 
-  private RemoveSortRule() {
+  private SortRemoveRule() {
     super(
-        operand(SortRel.class, any()),
-        "RemoveSortRule");
+        operand(Sort.class, any()),
+        "SortRemoveRule");
   }
 
-  @Override
-  public void onMatch(RelOptRuleCall call) {
+  @Override public void onMatch(RelOptRuleCall call) {
     if (!call.getPlanner().getRelTraitDefs()
         .contains(RelCollationTraitDef.INSTANCE)) {
       // Collation is not an active trait.
       return;
     }
-    final SortRel sort = call.rel(0);
+    final Sort sort = call.rel(0);
     if (sort.offset != null || sort.fetch != null) {
       // Don't remove sort if would also remove OFFSET or LIMIT.
       return;
@@ -50,9 +55,9 @@ public class RemoveSortRule extends RelOptRule {
     final RelCollation collation = sort.getCollation();
     assert collation == sort.getTraitSet()
         .getTrait(RelCollationTraitDef.INSTANCE);
-    final RelTraitSet traits = sort.getChild().getTraitSet().replace(collation);
-    call.transformTo(convert(sort.getChild(), traits));
+    final RelTraitSet traits = sort.getInput().getTraitSet().replace(collation);
+    call.transformTo(convert(sort.getInput(), traits));
   }
 }
 
-// End RemoveSortRule.java
+// End SortRemoveRule.java

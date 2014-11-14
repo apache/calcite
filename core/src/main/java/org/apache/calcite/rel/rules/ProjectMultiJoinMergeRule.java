@@ -14,37 +14,42 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel.rules;
+package org.apache.calcite.rel.rules;
 
-import org.eigenbase.rel.*;
-import org.eigenbase.relopt.*;
+import org.apache.calcite.plan.RelOptRule;
+import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.rel.logical.LogicalProject;
 
 /**
- * PushProjectIntoMultiJoinRule implements the rule for pushing projection
- * information from a {@link ProjectRel} into the {@link MultiJoinRel} that is
- * input into the {@link ProjectRel}.
+ * Planner rule that pushes
+ * {@link org.apache.calcite.rel.core.Project}
+ * into a {@link MultiJoin},
+ * creating a richer {@code MultiJoin}.
+ *
+ * @see org.apache.calcite.rel.rules.FilterMultiJoinMergeRule
  */
-public class PushProjectIntoMultiJoinRule extends RelOptRule {
-  public static final PushProjectIntoMultiJoinRule INSTANCE =
-      new PushProjectIntoMultiJoinRule();
+public class ProjectMultiJoinMergeRule extends RelOptRule {
+  public static final ProjectMultiJoinMergeRule INSTANCE =
+      new ProjectMultiJoinMergeRule();
 
   //~ Constructors -----------------------------------------------------------
 
   /**
-   * Creates a PushProjectIntoMultiJoinRule.
+   * Creates a ProjectMultiJoinMergeRule.
    */
-  private PushProjectIntoMultiJoinRule() {
+  private ProjectMultiJoinMergeRule() {
     super(
         operand(
-            ProjectRel.class,
-            operand(MultiJoinRel.class, any())));
+            LogicalProject.class,
+            operand(MultiJoin.class, any())));
   }
 
   //~ Methods ----------------------------------------------------------------
 
   public void onMatch(RelOptRuleCall call) {
-    ProjectRel project = call.rel(0);
-    MultiJoinRel multiJoin = call.rel(1);
+    LogicalProject project = call.rel(0);
+    MultiJoin multiJoin = call.rel(1);
 
     // if all inputs have their projFields set, then projection information
     // has already been pushed into each input
@@ -59,12 +64,12 @@ public class PushProjectIntoMultiJoinRule extends RelOptRule {
       return;
     }
 
-    // create a new MultiJoinRel that reflects the columns in the projection
-    // above the MultiJoinRel
-    MultiJoinRel newMultiJoin =
+    // create a new MultiJoin that reflects the columns in the projection
+    // above the MultiJoin
+    MultiJoin newMultiJoin =
         RelOptUtil.projectMultiJoin(multiJoin, project);
-    ProjectRel newProject =
-        (ProjectRel) RelOptUtil.createProject(
+    LogicalProject newProject =
+        (LogicalProject) RelOptUtil.createProject(
             newMultiJoin,
             project.getProjects(),
             project.getRowType().getFieldNames());
@@ -73,4 +78,4 @@ public class PushProjectIntoMultiJoinRule extends RelOptRule {
   }
 }
 
-// End PushProjectIntoMultiJoinRule.java
+// End ProjectMultiJoinMergeRule.java

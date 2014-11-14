@@ -14,19 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rex;
+package org.apache.calcite.rex;
+
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.sql.SqlKind;
 
 import java.util.Collection;
-
-import org.eigenbase.reltype.*;
-import org.eigenbase.sql.SqlKind;
 
 /**
  * Row expression.
  *
- * <p>Every row-expression has a type. (Compare with {@link
- * org.eigenbase.sql.SqlNode}, which is created before validation, and therefore
- * types may not be available.)</p>
+ * <p>Every row-expression has a type.
+ * (Compare with {@link org.apache.calcite.sql.SqlNode}, which is created before
+ * validation, and therefore types may not be available.)
  *
  * <p>Some common row-expressions are: {@link RexLiteral} (constant value),
  * {@link RexVariable} (variable), {@link RexCall} (call to operator with
@@ -83,8 +83,8 @@ public abstract class RexNode {
   }
 
   /**
-   * Accepts a visitor, dispatching to the right overloaded {@link
-   * RexVisitor#visitInputRef visitXxx} method.
+   * Accepts a visitor, dispatching to the right overloaded
+   * {@link RexVisitor#visitInputRef visitXxx} method.
    *
    * <p>Also see {@link RexProgram#apply(RexVisitor, java.util.List, RexNode)},
    * which applies a visitor to several expressions simultaneously.

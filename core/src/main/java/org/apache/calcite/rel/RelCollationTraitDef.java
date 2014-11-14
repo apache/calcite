@@ -14,20 +14,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel;
+package org.apache.calcite.rel;
 
-import org.eigenbase.relopt.*;
+import org.apache.calcite.plan.Convention;
+import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.plan.RelTraitDef;
+import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.core.Sort;
 
 /**
  * Definition of the ordering trait.
  *
  * <p>Ordering is a physical property (i.e. a trait) because it can be changed
- * without loss of information. The converter to do this is the {@link SortRel}
- * operator.</p>
+ * without loss of information. The converter to do this is the
+ * {@link org.apache.calcite.rel.core.Sort} operator.
  *
  * <p>Unlike other current traits, a {@link RelNode} can have more than one
  * value of this trait simultaneously. For example,
- * <code>TableAccessRel(table=TIME_BY_DAY)</code> might be sorted by
+ * <code>LogicalTableScan(table=TIME_BY_DAY)</code> might be sorted by
  * <code>{the_year, the_month, the_date}</code> and also by
  * <code>{time_id}</code>. We have to allow a RelNode to belong to more than
  * one RelSubset (these RelSubsets are always in the same set).</p>
@@ -47,8 +51,7 @@ public class RelCollationTraitDef extends RelTraitDef<RelCollation> {
     return "sort";
   }
 
-  @Override
-  public boolean multiple() {
+  @Override public boolean multiple() {
     return true;
   }
 
@@ -73,8 +76,8 @@ public class RelCollationTraitDef extends RelTraitDef<RelCollation> {
     // Create a logical sort, then ask the planner to convert its remaining
     // traits (e.g. convert it to an EnumerableSortRel if rel is enumerable
     // convention)
-    final SortRel sort =
-        new SortRel(
+    final Sort sort =
+        new Sort(
             rel.getCluster(),
             rel.getCluster().traitSetOf(Convention.NONE, toCollation),
             rel,

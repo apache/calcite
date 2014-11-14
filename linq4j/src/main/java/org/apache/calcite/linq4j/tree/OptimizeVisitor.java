@@ -14,14 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.linq4j.expressions;
+package org.apache.calcite.linq4j.tree;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.EnumMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
-import static net.hydromatic.linq4j.expressions.ExpressionType.Equal;
-import static net.hydromatic.linq4j.expressions.ExpressionType.NotEqual;
+import static org.apache.calcite.linq4j.tree.ExpressionType.Equal;
+import static org.apache.calcite.linq4j.tree.ExpressionType.NotEqual;
 
 /**
  * Visitor that optimizes expressions.
@@ -75,8 +80,7 @@ public class OptimizeVisitor extends Visitor {
   private static final Method BOOLEAN_VALUEOF_BOOL =
       Types.lookupMethod(Boolean.class, "valueOf", boolean.class);
 
-  @Override
-  public Expression visit(
+  @Override public Expression visit(
       TernaryExpression ternary,
       Expression expression0,
       Expression expression1,
@@ -151,8 +155,7 @@ public class OptimizeVisitor extends Visitor {
     return super.visit(ternary, expression0, expression1, expression2);
   }
 
-  @Override
-  public Expression visit(
+  @Override public Expression visit(
       BinaryExpression binary,
       Expression expression0,
       Expression expression1) {
@@ -266,8 +269,7 @@ public class OptimizeVisitor extends Visitor {
     return null;
   }
 
-  @Override
-  public Expression visit(UnaryExpression unaryExpression,
+  @Override public Expression visit(UnaryExpression unaryExpression,
       Expression expression) {
     switch (unaryExpression.getNodeType()) {
     case Convert:
@@ -301,8 +303,7 @@ public class OptimizeVisitor extends Visitor {
     return super.visit(unaryExpression, expression);
   }
 
-  @Override
-  public Statement visit(ConditionalStatement conditionalStatement,
+  @Override public Statement visit(ConditionalStatement conditionalStatement,
       List<Node> list) {
     // if (false) { <-- remove branch
     // } if (true) { <-- stop here
@@ -361,8 +362,7 @@ public class OptimizeVisitor extends Visitor {
     return super.visit(conditionalStatement, newList);
   }
 
-  @Override
-  public Expression visit(MethodCallExpression methodCallExpression,
+  @Override public Expression visit(MethodCallExpression methodCallExpression,
       Expression targetExpression,
       List<Expression> expressions) {
     if (BOOLEAN_VALUEOF_BOOL.equals(methodCallExpression.method)) {

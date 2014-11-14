@@ -14,27 +14,37 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.impl.jdbc;
+package org.apache.calcite.adapter.jdbc;
 
-import net.hydromatic.linq4j.expressions.Primitive;
-import net.hydromatic.linq4j.function.*;
+import org.apache.calcite.linq4j.function.Function0;
+import org.apache.calcite.linq4j.function.Function1;
+import org.apache.calcite.linq4j.tree.Primitive;
+import org.apache.calcite.sql.SqlDialect;
+import org.apache.calcite.util.DateTimeUtil;
+import org.apache.calcite.util.ImmutableNullableList;
+import org.apache.calcite.util.IntList;
+import org.apache.calcite.util.Pair;
 
-import org.eigenbase.sql.SqlDialect;
-import org.eigenbase.util.ImmutableNullableList;
-import org.eigenbase.util.IntList;
-import org.eigenbase.util.Pair;
-import org.eigenbase.util14.DateTimeUtil;
+import org.apache.commons.dbcp.BasicDataSource;
 
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.collect.ImmutableList;
 
-import org.apache.commons.dbcp.BasicDataSource;
-
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.DatabaseMetaData;
 import java.sql.Date;
-import java.util.*;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Time;
+import java.sql.Timestamp;
+import java.sql.Types;
+import java.util.HashMap;
+import java.util.IdentityHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.TimeZone;
 import javax.sql.DataSource;
 
 /**
@@ -192,7 +202,7 @@ final class JdbcUtils {
    * the same object.
    *
    * <p>This in turn makes it easier to cache
-   * {@link org.eigenbase.sql.SqlDialect} objects. Otherwise, each time we
+   * {@link org.apache.calcite.sql.SqlDialect} objects. Otherwise, each time we
    * see a new data source, we have to open a connection to find out what
    * database product and version it is. */
   public static class DataSourcePool {

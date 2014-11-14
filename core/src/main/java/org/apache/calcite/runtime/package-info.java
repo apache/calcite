@@ -18,6 +18,6 @@
 /**
  * Utilities required at runtime.
  */
-package net.hydromatic.optiq.runtime;
+package org.apache.calcite.runtime;
 
 // End package-info.java

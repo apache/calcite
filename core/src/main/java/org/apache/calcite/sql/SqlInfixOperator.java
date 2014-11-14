@@ -14,11 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql;
+package org.apache.calcite.sql;
 
-import org.eigenbase.sql.type.*;
-
-import net.hydromatic.linq4j.Ord;
+import org.apache.calcite.linq4j.Ord;
+import org.apache.calcite.sql.type.SqlOperandTypeChecker;
+import org.apache.calcite.sql.type.SqlOperandTypeInference;
+import org.apache.calcite.sql.type.SqlReturnTypeInference;
 
 /**
  * A generalization of a binary operator to involve several (two or more)

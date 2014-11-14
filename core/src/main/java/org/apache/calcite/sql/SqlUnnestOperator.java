@@ -14,10 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql;
+package org.apache.calcite.sql;
 
-import org.eigenbase.reltype.*;
-import org.eigenbase.sql.type.*;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.sql.type.ArraySqlType;
+import org.apache.calcite.sql.type.MultisetSqlType;
+import org.apache.calcite.sql.type.OperandTypes;
 
 /**
  * The <code>UNNEST</code> operator.

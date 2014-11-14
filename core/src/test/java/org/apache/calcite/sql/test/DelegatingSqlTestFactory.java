@@ -14,25 +14,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql.test;
+package org.apache.calcite.sql.test;
 
-import org.eigenbase.sql.SqlOperatorTable;
-import org.eigenbase.sql.advise.SqlAdvisor;
-import org.eigenbase.sql.parser.SqlParser;
-import org.eigenbase.sql.validate.SqlValidator;
-import org.eigenbase.sql.validate.SqlValidatorWithHints;
+import org.apache.calcite.sql.SqlOperatorTable;
+import org.apache.calcite.sql.advise.SqlAdvisor;
+import org.apache.calcite.sql.parser.SqlParser;
+import org.apache.calcite.sql.validate.SqlValidator;
+import org.apache.calcite.sql.validate.SqlValidatorWithHints;
 
 /**
 * Implementation of {@link SqlTestFactory} that delegates
  * everything to an underlying factory.
  *
  * <p>Generally a chain starts with a
- * {@link org.eigenbase.sql.test.DefaultSqlTestFactory}, and continues with a
- * succession of objects that derive from {@code DelegatingSqlTestFactory}
- * and override one method.</p>
+ * {@link org.apache.calcite.sql.test.DefaultSqlTestFactory}, and continues with
+ * a succession of objects that derive from {@code DelegatingSqlTestFactory} and
+ * override one method.</p>
  *
- * <p>Methods such as {@link org.eigenbase.sql.test.SqlTester#withConformance}
- * help create such chains.</p>
+ * <p>Methods such as
+ * {@link org.apache.calcite.sql.test.SqlTester#withConformance} help create
+ * such chains.</p>
 */
 public class DelegatingSqlTestFactory implements SqlTestFactory {
   private final SqlTestFactory factory;

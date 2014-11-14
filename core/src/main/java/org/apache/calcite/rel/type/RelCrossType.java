@@ -14,19 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.reltype;
+package org.apache.calcite.rel.type;
 
-import java.util.List;
-
-import net.hydromatic.linq4j.Ord;
+import org.apache.calcite.linq4j.Ord;
 
 import com.google.common.collect.ImmutableList;
+
+import java.util.List;
 
 /**
  * Type of the cartesian product of two or more sets of records.
  *
- * <p>Its fields are those of its constituent records, but unlike a {@link
- * RelRecordType}, those fields' names are not necessarily distinct.</p>
+ * <p>Its fields are those of its constituent records, but unlike a
+ * {@link RelRecordType}, those fields' names are not necessarily distinct.</p>
  */
 public class RelCrossType extends RelDataTypeImpl {
   //~ Instance fields --------------------------------------------------------
@@ -54,13 +54,11 @@ public class RelCrossType extends RelDataTypeImpl {
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override
-  public boolean isStruct() {
+  @Override public boolean isStruct() {
     return false;
   }
 
-  @Override
-  public List<RelDataTypeField> getFieldList() {
+  @Override public List<RelDataTypeField> getFieldList() {
     return fieldList;
   }
 

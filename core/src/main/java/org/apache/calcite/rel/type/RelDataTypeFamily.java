@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.reltype;
+package org.apache.calcite.rel.type;
 
 /**
  * RelDataTypeFamily represents a family of related types. The specific criteria

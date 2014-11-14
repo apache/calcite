@@ -22,18 +22,18 @@
  *
  * <p>A <dfn>planner</dfn> (also known as an <dfn>optimizer</dfn>) finds the
  * most efficient implementation of a
- * {@link org.eigenbase.rel.RelNode relational expression}.</p>
+ * {@link org.apache.calcite.rel.RelNode relational expression}.</p>
  *
- * <p>Interface {@link org.eigenbase.relopt.RelOptPlanner} defines a planner,
- * and class {@link org.eigenbase.relopt.volcano.VolcanoPlanner} is an
+ * <p>Interface {@link org.apache.calcite.plan.RelOptPlanner} defines a planner,
+ * and class {@link org.apache.calcite.plan.volcano.VolcanoPlanner} is an
  * implementation which uses a dynamic programming technique. It is based upon
  * the Volcano optimizer [<a href="#graefe93">1</a>].</p>
  *
- * <p>Interface {@link org.eigenbase.relopt.RelOptCost} defines a cost
- * model; class {@link org.eigenbase.relopt.volcano.VolcanoCost} is
+ * <p>Interface {@link org.apache.calcite.plan.RelOptCost} defines a cost
+ * model; class {@link org.apache.calcite.plan.volcano.VolcanoCost} is
  * the implementation for a <code>VolcanoPlanner</code>.</p>
  *
- * <p>A {@link org.eigenbase.relopt.volcano.RelSet} is a set of equivalent
+ * <p>A {@link org.apache.calcite.plan.volcano.RelSet} is a set of equivalent
  * relational expressions.  They are equivalent because they will produce the
  * same result for any set of input data. It is an equivalence class: two
  * expressions are in the same set if and only if they are in the same
@@ -42,25 +42,25 @@
  * <p>One of the unique features of the optimizer is that expressions can take
  * on a variety of physical traits. Each relational expression has a set of
  * traits. Each trait is described by an implementation of
- * {@link org.eigenbase.relopt.RelTraitDef}.  Manifestations of the trait
- * implement {@link org.eigenbase.relopt.RelTrait}. The most common example of a
- * trait is calling convention: the protocol used to receive and transmit
- * data. {@link org.eigenbase.relopt.ConventionTraitDef} defines the trait and
- * {@link org.eigenbase.relopt.Convention} enumerates the protocols. Every
- * relational expression has a single calling convention by which it returns its
- * results. Some examples:</p>
+ * {@link org.apache.calcite.plan.RelTraitDef}.  Manifestations of the trait
+ * implement {@link org.apache.calcite.plan.RelTrait}. The most common example
+ * of a trait is calling convention: the protocol used to receive and transmit
+ * data. {@link org.apache.calcite.plan.ConventionTraitDef} defines the trait
+ * and {@link org.apache.calcite.plan.Convention} enumerates the
+ * protocols. Every relational expression has a single calling convention by
+ * which it returns its results. Some examples:</p>
  *
  * <ul>
- *     <li>{@link net.hydromatic.optiq.impl.jdbc.JdbcConvention} is a fairly
+ *     <li>{@link org.apache.calcite.adapter.jdbc.JdbcConvention} is a fairly
  *         conventional convention; the results are rows from a
  *         {@link java.sql.ResultSet JDBC result set}.
  *     </li>
- *     <li>{@link org.eigenbase.relopt.Convention#NONE} means that a
+ *     <li>{@link org.apache.calcite.plan.Convention#NONE} means that a
  *         relational
  *         expression cannot be implemented; typically there are rules which can
  *         transform it to equivalent, implementable expressions.
  *     </li>
- *     <li>{@link net.hydromatic.optiq.rules.java.EnumerableConvention}
+ *     <li>{@link org.apache.calcite.adapter.enumerable.EnumerableConvention}
  *         implements the expression by
  *         generating Java code. The code places the current row in a Java
  *         variable, then
@@ -80,41 +80,40 @@
  *
  * <p>New traits are added to the planner in one of two ways:</p>
  * <ol>
- *     <li>If the new trait is integral to Calcite, then each and every
- *         implementation of {@link org.eigenbase.rel.RelNode} should include
- *         its manifestation of the trait as part of the
- *         {@link org.eigenbase.relopt.RelTraitSet} passed to
- *         {@link org.eigenbase.rel.AbstractRelNode}'s constructor. It may be
- *         useful to provide alternate <code>AbstractRelNode</code> constructors
- *         if most relational expressions use a single manifestation of the
- *         trait.</li>
+ * <li>If the new trait is integral to Calcite, then each and every
+ *     implementation of {@link org.apache.calcite.rel.RelNode} should include
+ *     its manifestation of the trait as part of the
+ *     {@link org.apache.calcite.plan.RelTraitSet} passed to
+ *     {@link org.apache.calcite.rel.AbstractRelNode}'s constructor. It may be
+ *     useful to provide alternate <code>AbstractRelNode</code> constructors
+ *     if most relational expressions use a single manifestation of the
+ *     trait.</li>
  *
- *     <li>If the new trait describes some aspect of a Farrago extension, then
- *         the RelNodes passed to
- *         {@link org.eigenbase.relopt.volcano.VolcanoPlanner#setRoot(org.eigenbase.rel.RelNode)}
- *         should have their trait sets expanded before the
- *         <code>setRoot(RelNode)</code> call.</li>
+ * <li>If the new trait describes some aspect of a Farrago extension, then
+ *     the RelNodes passed to
+ *     {@link org.apache.calcite.plan.volcano.VolcanoPlanner#setRoot(org.apache.calcite.rel.RelNode)}
+ *     should have their trait sets expanded before the
+ *     <code>setRoot(RelNode)</code> call.</li>
  *
  * </ol>
  *
- * <p>The second trait extension mechanism requires that implementations of {@link
- *     org.eigenbase.rel.AbstractRelNode#clone()} must not assume the type and
- *     quantity of traits in
- *     their trait set. In either case, the new <code>RelTraitDef</code>
- *     implementation must be
- *     {@link org.eigenbase.relopt.volcano.VolcanoPlanner#addRelTraitDef(org.eigenbase.relopt.RelTraitDef)}
- *     registered with the planner.</p>
+ * <p>The second trait extension mechanism requires that implementations of
+ * {@link org.apache.calcite.rel.AbstractRelNode#clone()} must not assume the
+ * type and quantity of traits in their trait set. In either case, the new
+ * <code>RelTraitDef</code> implementation must be
+ * {@link org.apache.calcite.plan.volcano.VolcanoPlanner#addRelTraitDef(org.apache.calcite.plan.RelTraitDef)}
+ * registered with the planner.</p>
  *
- * <p>A {@link org.eigenbase.relopt.volcano.RelSubset} is a subset of a <code>RelSet</code>
- *     containing expressions which are equivalent and which have the same
- *     <code>Convention</code>. Like <code>RelSet</code>, it is an equivalence
- *     class.</p>
+ * <p>A {@link org.apache.calcite.plan.volcano.RelSubset} is a subset of a
+ * <code>RelSet</code> containing expressions which are equivalent and which
+ * have the same <code>Convention</code>. Like <code>RelSet</code>, it is an
+ * equivalence class.</p>
  *
  * <h2>Related packages</h2>
  * <ul>
- *     <li>{@code <a href="../rel/package-summary.html">org.eigenbase.rel</a>}
- *         defines {@link org.eigenbase.rel.RelNode relational expressions}.
- *     </li>
+ * <li>{@code <a href="../rel/package-summary.html">org.apache.calcite.rel</a>}
+ *     defines {@link org.apache.calcite.rel.RelNode relational expressions}.
+ * </li>
  * </ul>
  *
  * <h2>Details</h2>
@@ -269,6 +268,6 @@
  *     McKenna
  *     (1993)</a>.</p>
  */
-package org.eigenbase.relopt.volcano;
+package org.apache.calcite.plan.volcano;
 
 // End package-info.java

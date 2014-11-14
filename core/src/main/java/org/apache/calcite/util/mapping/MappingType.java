@@ -14,14 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.util.mapping;
+package org.apache.calcite.util.mapping;
 
 /**
- * Describes the type of a mapping, from the most general {@link #MULTI_FUNCTION}
- * (every element in the source and target domain can participate in many
- * mappings) to the most retricted {@link #BIJECTION} (every element in the
- * source and target domain must be paired with precisely one element in the
- * other domain).
+ * Describes the type of a mapping, from the most general
+ * {@link #MULTI_FUNCTION} (every element in the source and target domain can
+ * participate in many mappings) to the most retricted {@link #BIJECTION} (every
+ * element in the source and target domain must be paired with precisely one
+ * element in the other domain).
  *
  * <p>Some common types:
  *
@@ -36,9 +36,9 @@ package org.eigenbase.util.mapping;
  * Every source has precisely one target, and vice versa.
  * </ul>
  *
- * <p>Once you know what type of mapping you want, call {@link
- * Mappings#create(MappingType, int, int)} to create an efficient implementation
- * of that mapping.
+ * <p>Once you know what type of mapping you want, call
+ * {@link Mappings#create(MappingType, int, int)} to create an efficient
+ * implementation of that mapping.
  */
 public enum MappingType {
   //            ordinal source target function inverse
@@ -92,8 +92,8 @@ public enum MappingType {
    * An inverse function has a source for every target, but a source might
    * have 0, 1 or more targets.
    *
-   * <p>Obeys the constaints {@link MappingType#isMandatorySource()}, {@link
-   * MappingType#isSingleSource()}.
+   * <p>Obeys the constaints {@link MappingType#isMandatorySource()},
+   * {@link MappingType#isSingleSource()}.
    *
    * <p>Similar types:
    *

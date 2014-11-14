@@ -14,9 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.test;
+package org.apache.calcite.test;
 
-import net.hydromatic.optiq.model.*;
+import org.apache.calcite.model.JsonColumn;
+import org.apache.calcite.model.JsonCustomSchema;
+import org.apache.calcite.model.JsonJdbcSchema;
+import org.apache.calcite.model.JsonLattice;
+import org.apache.calcite.model.JsonMapSchema;
+import org.apache.calcite.model.JsonRoot;
+import org.apache.calcite.model.JsonTable;
+import org.apache.calcite.model.JsonView;
 
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -24,10 +31,14 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.Test;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.List;
 
 import static org.hamcrest.CoreMatchers.equalTo;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 /**
  * Unit test for data models.
@@ -113,18 +124,17 @@ public class ModelTest {
   /** Reads a custom schema. */
   @Test public void testCustomSchema() throws IOException {
     final ObjectMapper mapper = mapper();
-    JsonRoot root = mapper.readValue(
-        "{\n"
-        + "  version: '1.0',\n"
-        + "   schemas: [\n"
-        + "     {\n"
-        + "       type: 'custom',\n"
-        + "       name: 'My Custom Schema',\n"
-        + "       factory: 'com.acme.MySchemaFactory',\n"
-        + "       operand: {a: 'foo', b: [1, 3.5] }\n"
-        + "     }\n"
-        + "   ]\n"
-        + "}",
+    JsonRoot root = mapper.readValue("{\n"
+            + "  version: '1.0',\n"
+            + "   schemas: [\n"
+            + "     {\n"
+            + "       type: 'custom',\n"
+            + "       name: 'My Custom Schema',\n"
+            + "       factory: 'com.acme.MySchemaFactory',\n"
+            + "       operand: {a: 'foo', b: [1, 3.5] }\n"
+            + "     }\n"
+            + "   ]\n"
+            + "}",
         JsonRoot.class);
     assertEquals("1.0", root.version);
     assertEquals(1, root.schemas.size());
@@ -144,9 +154,8 @@ public class ModelTest {
    * materialization. */
   @Test public void testModelImmutableSchemaCannotContainMaterialization()
       throws Exception {
-    final OptiqAssert.AssertThat that =
-        OptiqAssert.that().withModel(
-            "{\n"
+    final CalciteAssert.AssertThat that =
+        CalciteAssert.that().withModel("{\n"
             + "  version: '1.0',\n"
             + "  defaultSchema: 'adhoc',\n"
             + "  schemas: [\n"
@@ -172,61 +181,59 @@ public class ModelTest {
             + "    }\n"
             + "  ]\n"
             + "}");
-    that.connectThrows(
-        "Cannot define materialization; parent schema 'adhoc' is not a "
-        + "SemiMutableSchema");
+    that.connectThrows("Cannot define materialization; parent schema 'adhoc' "
+        + "is not a SemiMutableSchema");
   }
 
   /** Tests a model containing a lattice and some views. */
   @Test public void testReadLattice() throws IOException {
     final ObjectMapper mapper = mapper();
-    JsonRoot root = mapper.readValue(
-        "{\n"
-        + "  version: '1.0',\n"
-        + "   schemas: [\n"
-        + "     {\n"
-        + "       name: 'FoodMart',\n"
-        + "       tables: [\n"
-        + "         {\n"
-        + "           name: 'time_by_day',\n"
-        + "           columns: [\n"
-        + "             {\n"
-        + "               name: 'time_id'\n"
-        + "             }\n"
-        + "           ]\n"
-        + "         },\n"
-        + "         {\n"
-        + "           name: 'sales_fact_1997',\n"
-        + "           columns: [\n"
-        + "             {\n"
-        + "               name: 'time_id'\n"
-        + "             }\n"
-        + "           ]\n"
-        + "         },\n"
-        + "         {\n"
-        + "           name: 'V',\n"
-        + "           type: 'view',\n"
-        + "           sql: 'values (1)'\n"
-        + "         },\n"
-        + "         {\n"
-        + "           name: 'V2',\n"
-        + "           type: 'view',\n"
-        + "           sql: [ 'values (1)', '(2)' ]\n"
-        + "         }\n"
-        + "       ],\n"
-        + "       lattices: [\n"
-        + "         {\n"
-        + "           name: 'SalesStar',\n"
-        + "           sql: 'select * from sales_fact_1997'\n"
-        + "         },\n"
-        + "         {\n"
-        + "           name: 'SalesStar2',\n"
-        + "           sql: [ 'select *', 'from sales_fact_1997' ]\n"
-        + "         }\n"
-        + "       ]\n"
-        + "     }\n"
-        + "   ]\n"
-        + "}",
+    JsonRoot root = mapper.readValue("{\n"
+            + "  version: '1.0',\n"
+            + "   schemas: [\n"
+            + "     {\n"
+            + "       name: 'FoodMart',\n"
+            + "       tables: [\n"
+            + "         {\n"
+            + "           name: 'time_by_day',\n"
+            + "           columns: [\n"
+            + "             {\n"
+            + "               name: 'time_id'\n"
+            + "             }\n"
+            + "           ]\n"
+            + "         },\n"
+            + "         {\n"
+            + "           name: 'sales_fact_1997',\n"
+            + "           columns: [\n"
+            + "             {\n"
+            + "               name: 'time_id'\n"
+            + "             }\n"
+            + "           ]\n"
+            + "         },\n"
+            + "         {\n"
+            + "           name: 'V',\n"
+            + "           type: 'view',\n"
+            + "           sql: 'values (1)'\n"
+            + "         },\n"
+            + "         {\n"
+            + "           name: 'V2',\n"
+            + "           type: 'view',\n"
+            + "           sql: [ 'values (1)', '(2)' ]\n"
+            + "         }\n"
+            + "       ],\n"
+            + "       lattices: [\n"
+            + "         {\n"
+            + "           name: 'SalesStar',\n"
+            + "           sql: 'select * from sales_fact_1997'\n"
+            + "         },\n"
+            + "         {\n"
+            + "           name: 'SalesStar2',\n"
+            + "           sql: [ 'select *', 'from sales_fact_1997' ]\n"
+            + "         }\n"
+            + "       ]\n"
+            + "     }\n"
+            + "   ]\n"
+            + "}",
         JsonRoot.class);
     assertEquals("1.0", root.version);
     assertEquals(1, root.schemas.size());
@@ -253,22 +260,21 @@ public class ModelTest {
   /** Tests a model with bad multi-line SQL. */
   @Test public void testReadBadMultiLineSql() throws IOException {
     final ObjectMapper mapper = mapper();
-    JsonRoot root = mapper.readValue(
-        "{\n"
-        + "  version: '1.0',\n"
-        + "   schemas: [\n"
-        + "     {\n"
-        + "       name: 'FoodMart',\n"
-        + "       tables: [\n"
-        + "         {\n"
-        + "           name: 'V',\n"
-        + "           type: 'view',\n"
-        + "           sql: [ 'values (1)', 2 ]\n"
-        + "         }\n"
-        + "       ]\n"
-        + "     }\n"
-        + "   ]\n"
-        + "}",
+    JsonRoot root = mapper.readValue("{\n"
+            + "  version: '1.0',\n"
+            + "   schemas: [\n"
+            + "     {\n"
+            + "       name: 'FoodMart',\n"
+            + "       tables: [\n"
+            + "         {\n"
+            + "           name: 'V',\n"
+            + "           type: 'view',\n"
+            + "           sql: [ 'values (1)', 2 ]\n"
+            + "         }\n"
+            + "       ]\n"
+            + "     }\n"
+            + "   ]\n"
+            + "}",
         JsonRoot.class);
     assertEquals(1, root.schemas.size());
     final JsonMapSchema schema = (JsonMapSchema) root.schemas.get(0);

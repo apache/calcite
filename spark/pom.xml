@@ -114,29 +114,9 @@ limitations under the License.
         <artifactId>maven-surefire-plugin</artifactId>
         <configuration>
           <excludes>
-            <exclude>net/hydromatic/**/*.java</exclude>
-            <exclude>org/eigenbase/**/*.java</exclude>
+            <exclude>org/apache/calcite/**/*.java</exclude>
           </excludes>
         </configuration>
-      </plugin>
-      <plugin>
-        <groupId>org.codehaus.mojo</groupId>
-        <artifactId>javacc-maven-plugin</artifactId>
-        <executions>
-          <execution>
-            <id>javacc</id>
-            <goals>
-              <goal>javacc</goal>
-            </goals>
-            <configuration>
-              <includes>
-                <include>**/CombinedParser.jj</include>
-              </includes>
-              <lookAhead>2</lookAhead>
-              <isStatic>false</isStatic>
-            </configuration>
-          </execution>
-        </executions>
       </plugin>
     </plugins>
   </build>

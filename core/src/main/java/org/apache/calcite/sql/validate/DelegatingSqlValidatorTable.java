@@ -14,15 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql.validate;
+package org.apache.calcite.sql.validate;
+
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.sql.SqlAccessType;
 
 import java.util.List;
 
-import org.eigenbase.reltype.*;
-import org.eigenbase.sql.*;
-
 /**
- * Implements {@link org.eigenbase.sql.validate.SqlValidatorTable} by
+ * Implements {@link org.apache.calcite.sql.validate.SqlValidatorTable} by
  * delegating to a parent table.
  */
 public abstract class DelegatingSqlValidatorTable implements SqlValidatorTable {

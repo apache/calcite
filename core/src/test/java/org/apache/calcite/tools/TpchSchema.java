@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.tools;
+package org.apache.calcite.tools;
 
 /**
  * TPC-H table schema.
@@ -35,8 +35,7 @@ public class TpchSchema {
       this.pPartkey = pPartkey;
     }
 
-    @Override
-    public String toString() {
+    @Override public String toString() {
       return "Part [pPartkey=" + pPartkey + "]";
     }
   }
@@ -54,8 +53,7 @@ public class TpchSchema {
       this.psSupplyCost = psSupplyCost;
     }
 
-    @Override
-    public String toString() {
+    @Override public String toString() {
       return "PartSupp [pSupplyCost=" + psPartkey + ", pSupplyCost="
         + psSupplyCost + "]";
     }

@@ -14,37 +14,96 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.relopt.volcano;
+package org.apache.calcite.plan.volcano;
 
-import java.io.*;
-import java.util.*;
-import java.util.logging.*;
-import java.util.regex.*;
-
-import org.eigenbase.rel.*;
-import org.eigenbase.rel.convert.*;
-import org.eigenbase.rel.metadata.*;
-import org.eigenbase.rel.rules.*;
-import org.eigenbase.relopt.*;
-import org.eigenbase.relopt.hep.*;
-import org.eigenbase.reltype.RelDataType;
-import org.eigenbase.sql.SqlExplainLevel;
-import org.eigenbase.util.*;
-
-import net.hydromatic.linq4j.expressions.Expressions;
-
-import net.hydromatic.optiq.config.OptiqConnectionConfig;
-import net.hydromatic.optiq.prepare.OptiqPrepareImpl;
-import net.hydromatic.optiq.runtime.Hook;
-import net.hydromatic.optiq.runtime.Spaces;
-import net.hydromatic.optiq.util.graph.*;
+import org.apache.calcite.config.CalciteConnectionConfig;
+import org.apache.calcite.linq4j.tree.Expressions;
+import org.apache.calcite.plan.AbstractRelOptPlanner;
+import org.apache.calcite.plan.Context;
+import org.apache.calcite.plan.Convention;
+import org.apache.calcite.plan.RelOptCost;
+import org.apache.calcite.plan.RelOptCostFactory;
+import org.apache.calcite.plan.RelOptLattice;
+import org.apache.calcite.plan.RelOptListener;
+import org.apache.calcite.plan.RelOptMaterialization;
+import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.plan.RelOptRule;
+import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.plan.RelOptRuleOperand;
+import org.apache.calcite.plan.RelOptSchema;
+import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.plan.RelTrait;
+import org.apache.calcite.plan.RelTraitDef;
+import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.plan.SubstitutionVisitor;
+import org.apache.calcite.plan.hep.HepPlanner;
+import org.apache.calcite.plan.hep.HepProgram;
+import org.apache.calcite.plan.hep.HepProgramBuilder;
+import org.apache.calcite.prepare.CalcitePrepareImpl;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelVisitor;
+import org.apache.calcite.rel.convert.Converter;
+import org.apache.calcite.rel.convert.ConverterRule;
+import org.apache.calcite.rel.core.TableScan;
+import org.apache.calcite.rel.metadata.RelMetadataProvider;
+import org.apache.calcite.rel.metadata.RelMetadataQuery;
+import org.apache.calcite.rel.rules.AggregateRemoveRule;
+import org.apache.calcite.rel.rules.CalcRemoveRule;
+import org.apache.calcite.rel.rules.FilterJoinRule;
+import org.apache.calcite.rel.rules.FilterProjectTransposeRule;
+import org.apache.calcite.rel.rules.JoinAssociateRule;
+import org.apache.calcite.rel.rules.JoinCommuteRule;
+import org.apache.calcite.rel.rules.ProjectMergeRule;
+import org.apache.calcite.rel.rules.ProjectRemoveRule;
+import org.apache.calcite.rel.rules.SemiJoinRule;
+import org.apache.calcite.rel.rules.SortRemoveRule;
+import org.apache.calcite.rel.rules.UnionToDistinctRule;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.runtime.Hook;
+import org.apache.calcite.runtime.Spaces;
+import org.apache.calcite.sql.SqlExplainLevel;
+import org.apache.calcite.util.Pair;
+import org.apache.calcite.util.SaffronProperties;
+import org.apache.calcite.util.Util;
+import org.apache.calcite.util.graph.DefaultDirectedGraph;
+import org.apache.calcite.util.graph.DefaultEdge;
+import org.apache.calcite.util.graph.DirectedGraph;
+import org.apache.calcite.util.graph.Graphs;
 
 import com.google.common.base.Function;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
-import com.google.common.collect.*;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.LinkedListMultimap;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Multimap;
+import com.google.common.collect.Sets;
 
-import static org.eigenbase.util.Stacks.*;
+import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.IdentityHashMap;
+import java.util.Iterator;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.logging.Level;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import static org.apache.calcite.util.Stacks.peek;
+import static org.apache.calcite.util.Stacks.pop;
+import static org.apache.calcite.util.Stacks.push;
 
 /**
  * VolcanoPlanner optimizes queries by transforming expressions selectively
@@ -204,7 +263,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
       new ArrayList<VolcanoRuleCall>();
 
   /** Zero cost, according to {@link #costFactory}. Not necessarily a
-   * {@link org.eigenbase.relopt.volcano.VolcanoCost}. */
+   * {@link org.apache.calcite.plan.volcano.VolcanoCost}. */
   private final RelOptCost zeroCost;
 
   //~ Constructors -----------------------------------------------------------
@@ -327,8 +386,8 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     RelNode target = materialization.queryRel;
     HepProgram program =
         new HepProgramBuilder()
-            .addRuleInstance(PushFilterPastProjectRule.INSTANCE)
-            .addRuleInstance(MergeProjectRule.INSTANCE)
+            .addRuleInstance(FilterProjectTransposeRule.INSTANCE)
+            .addRuleInstance(ProjectMergeRule.INSTANCE)
             .build();
 
     final HepPlanner hepPlanner = new HepPlanner(program, getContext());
@@ -344,8 +403,8 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
 
   private void useApplicableMaterializations() {
     // Avoid using materializations while populating materializations!
-    final OptiqConnectionConfig config =
-        context.unwrap(OptiqConnectionConfig.class);
+    final CalciteConnectionConfig config =
+        context.unwrap(CalciteConnectionConfig.class);
     if (config == null || !config.materializationsEnabled()) {
       return;
     }
@@ -403,7 +462,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
       if (queryTableNames.contains(lattice.rootTable().getQualifiedName())) {
         RelNode rel2 = lattice.rewrite(leafJoinRoot.get());
         if (rel2 != null) {
-          if (OptiqPrepareImpl.DEBUG) {
+          if (CalcitePrepareImpl.DEBUG) {
             System.out.println("use lattice:\n" + RelOptUtil.toString(rel2));
           }
           latticeUses.add(Pair.of(lattice, rel2));
@@ -436,9 +495,8 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
   private static Set<RelOptTable> findTables(RelNode rel) {
     final Set<RelOptTable> usedTables = new LinkedHashSet<RelOptTable>();
     new RelVisitor() {
-      @Override
-      public void visit(RelNode node, int ordinal, RelNode parent) {
-        if (node instanceof TableAccessRelBase) {
+      @Override public void visit(RelNode node, int ordinal, RelNode parent) {
+        if (node instanceof TableScan) {
           usedTables.add(node.getTable());
         }
         super.visit(node, ordinal, parent);
@@ -466,23 +524,19 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     return null;
   }
 
-  @Override
-  public boolean addRelTraitDef(RelTraitDef relTraitDef) {
+  @Override public boolean addRelTraitDef(RelTraitDef relTraitDef) {
     return !traitDefs.contains(relTraitDef) && traitDefs.add(relTraitDef);
   }
 
-  @Override
-  public void clearRelTraitDefs() {
+  @Override public void clearRelTraitDefs() {
     traitDefs.clear();
   }
 
-  @Override
-  public List<RelTraitDef> getRelTraitDefs() {
+  @Override public List<RelTraitDef> getRelTraitDefs() {
     return traitDefs;
   }
 
-  @Override
-  public RelTraitSet emptyTraitSet() {
+  @Override public RelTraitSet emptyTraitSet() {
     RelTraitSet traitSet = super.emptyTraitSet();
     for (RelTraitDef traitDef : traitDefs) {
       if (traitDef.multiple()) {
@@ -629,7 +683,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
 
   /**
    * Finds the most efficient expression to implement the query given via
-   * {@link org.eigenbase.relopt.RelOptPlanner#setRoot(org.eigenbase.rel.RelNode)}.
+   * {@link org.apache.calcite.plan.RelOptPlanner#setRoot(org.apache.calcite.rel.RelNode)}.
    *
    * <p>The algorithm executes repeatedly in a series of phases. In each phase
    * the exact rules that may be fired varies. The mapping of phases to rule
@@ -708,8 +762,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
         }
 
         if (LOGGER.isLoggable(Level.FINE)) {
-          LOGGER.fine(
-              "PLANNER = " + this
+          LOGGER.fine("PLANNER = " + this
               + "; TICK = " + cumulativeTicks + "/" + tick
               + "; PHASE = " + phase.toString()
               + "; COST = " + root.bestCost);
@@ -782,7 +835,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
   }
 
   /**
-   * Helper for {@link #provenance(org.eigenbase.rel.RelNode)}.
+   * Helper for {@link #provenance(org.apache.calcite.rel.RelNode)}.
    */
   private void provenanceRecurse(
       PrintWriter pw, RelNode node, int i, Set<RelNode> visited) {
@@ -858,8 +911,8 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
   }
 
   /**
-   * Finds RelSubsets in the plan that contain only rels of {@link
-   * Convention#NONE} and boosts their importance by 25%.
+   * Finds RelSubsets in the plan that contain only rels of
+   * {@link Convention#NONE} and boosts their importance by 25%.
    */
   private void injectImportanceBoost() {
     HashSet<RelSubset> requireBoost = new HashSet<RelSubset>();
@@ -961,19 +1014,19 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
   }
 
   public void registerAbstractRelationalRules() {
-    addRule(PushFilterPastJoinRule.FILTER_ON_JOIN);
-    addRule(PushFilterPastJoinRule.JOIN);
+    addRule(FilterJoinRule.FILTER_ON_JOIN);
+    addRule(FilterJoinRule.JOIN);
     addRule(AbstractConverter.ExpandConversionRule.INSTANCE);
-    addRule(SwapJoinRule.INSTANCE);
+    addRule(JoinCommuteRule.INSTANCE);
     addRule(SemiJoinRule.INSTANCE);
-    if (OptiqPrepareImpl.COMMUTE) {
-      addRule(CommutativeJoinRule.INSTANCE);
+    if (CalcitePrepareImpl.COMMUTE) {
+      addRule(JoinAssociateRule.INSTANCE);
     }
-    addRule(RemoveDistinctRule.INSTANCE);
+    addRule(AggregateRemoveRule.INSTANCE);
     addRule(UnionToDistinctRule.INSTANCE);
-    addRule(RemoveTrivialProjectRule.INSTANCE);
-    addRule(RemoveTrivialCalcRule.INSTANCE);
-    addRule(RemoveSortRule.INSTANCE);
+    addRule(ProjectRemoveRule.INSTANCE);
+    addRule(CalcRemoveRule.INSTANCE);
+    addRule(SortRemoveRule.INSTANCE);
 
     // todo: rule which makes Project({OrdinalRef}) disappear
   }
@@ -1227,8 +1280,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
           }
         });
     for (RelSet set : sets) {
-      pw.println(
-          "Set#" + set.id
+      pw.println("Set#" + set.id
           + ", type: " + set.subsets.get(0).getRowType());
       int j = -1;
       for (RelSubset subset : set.subsets) {
@@ -1492,8 +1544,8 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
    * equivalence set. If an identical expression is already registered, we
    * don't need to register this one and nor should we queue up rule matches.
    *
-   * @param rel relational expression to register. Must be either a {@link
-   *            RelSubset}, or an unregistered {@link RelNode}
+   * @param rel relational expression to register. Must be either a
+   *         {@link RelSubset}, or an unregistered {@link RelNode}
    * @param set set that rel belongs to, or <code>null</code>
    * @return the equivalence-set
    * @pre rel instanceof RelSubset || !isRegistered(rel)
@@ -1509,8 +1561,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     }
 
     if (rel.getCluster().getPlanner() != this) {
-      throw Util.newInternal(
-          "Relational expression " + rel
+      throw Util.newInternal("Relational expression " + rel
           + " belongs to a different planner than is currently being"
           + " used.");
     }
@@ -1521,12 +1572,12 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     final Convention convention =
         (Convention) traits.getTrait(0);
     if (!convention.getInterface().isInstance(rel)
-        && !(rel instanceof ConverterRel)) {
+        && !(rel instanceof Converter)) {
       throw Util.newInternal(
           "Relational expression " + rel
-          + " has calling-convention " + convention
-          + " but does not implement the required interface '"
-          + convention.getInterface() + "' of that convention");
+              + " has calling-convention " + convention
+              + " but does not implement the required interface '"
+              + convention.getInterface() + "' of that convention");
     }
     if (traits.size() != traitDefs.size()) {
       throw Util.newInternal(
@@ -1580,8 +1631,8 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     }
 
     // Converters are in the same set as their children.
-    if (rel instanceof ConverterRel) {
-      final RelNode input = ((ConverterRel) rel).getChild();
+    if (rel instanceof Converter) {
+      final RelNode input = ((Converter) rel).getInput();
       final RelSet childSet = getSet(input);
       if ((set != null)
           && (set != childSet)
@@ -1719,8 +1770,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
         && (set != null)
         && (set.equivalentSet == null)
         && (subset.set.equivalentSet == null)) {
-      LOGGER.finer(
-          "Register #" + subset.getId() + " " + subset
+      LOGGER.finer("Register #" + subset.getId() + " " + subset
           + ", and merge sets");
       merge(set, subset.set);
       registerCount++;
@@ -1808,7 +1858,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
 
   /**
    * Sets whether this planner is locked. A locked planner does not accept
-   * new rules. {@link #addRule(org.eigenbase.relopt.RelOptRule)} will do
+   * new rules. {@link #addRule(org.apache.calcite.plan.RelOptRule)} will do
    * nothing and return false.
    *
    * @param locked Whether planner is locked

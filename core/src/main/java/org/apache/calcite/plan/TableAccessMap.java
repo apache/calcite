@@ -14,11 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.relopt;
+package org.apache.calcite.plan;
 
-import java.util.*;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelVisitor;
+import org.apache.calcite.rel.core.TableModify;
 
-import org.eigenbase.rel.*;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 // TODO jvs 9-Mar-2006:  move this class to another package; it
 // doesn't really belong here.  Also, use a proper class for table
@@ -31,6 +37,7 @@ import org.eigenbase.rel.*;
 public class TableAccessMap {
   //~ Enums ------------------------------------------------------------------
 
+  /** Access mode. */
   public static enum Mode {
     /**
      * Table is not accessed at all.
@@ -161,8 +168,8 @@ public class TableAccessMap {
 
   //~ Inner Classes ----------------------------------------------------------
 
+  /** Visitor that finds all tables in a tree. */
   private class TableRelVisitor extends RelVisitor {
-    // implement RelVisitor
     public void visit(
         RelNode p,
         int ordinal,
@@ -176,10 +183,10 @@ public class TableAccessMap {
 
       // FIXME jvs 1-Feb-2006:  Don't rely on object type here;
       // eventually someone is going to write a rule which transforms
-      // to something which doesn't inherit TableModificationRelBase,
+      // to something which doesn't inherit TableModify,
       // and this will break.  Need to make this explicit in
       // the RelNode interface.
-      if (p instanceof TableModificationRelBase) {
+      if (p instanceof TableModify) {
         newAccess = Mode.WRITE_ACCESS;
       } else {
         newAccess = Mode.READ_ACCESS;

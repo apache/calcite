@@ -14,17 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq;
+package org.apache.calcite.schema;
 
-import net.hydromatic.optiq.rules.java.AggImplementor;
+import org.apache.calcite.adapter.enumerable.AggImplementor;
 
 /**
  * Function that can be translated to java code.
  *
- * @see net.hydromatic.optiq.rules.java.AggImplementor
- * @see net.hydromatic.optiq.rules.java.WinAggImplementor
- * @see net.hydromatic.optiq.rules.java.StrictAggImplementor
- * @see net.hydromatic.optiq.rules.java.StrictWinAggImplementor
+ * @see org.apache.calcite.adapter.enumerable.AggImplementor
+ * @see org.apache.calcite.adapter.enumerable.WinAggImplementor
+ * @see org.apache.calcite.adapter.enumerable.StrictAggImplementor
+ * @see org.apache.calcite.adapter.enumerable.StrictWinAggImplementor
  */
 public interface ImplementableAggFunction extends AggregateFunction {
   /**

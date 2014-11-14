@@ -14,10 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.avatica;
+package org.apache.calcite.avatica;
 
 import java.lang.reflect.Type;
-import java.sql.*;
+import java.sql.DatabaseMetaData;
+import java.sql.ResultSetMetaData;
+import java.sql.Time;
+import java.sql.Timestamp;
+import java.sql.Types;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -25,7 +29,7 @@ import java.util.Map;
 
 /**
  * Metadata for a column.
- * (Compare with {@link java.sql.ResultSetMetaData}.)
+ * (Compare with {@link ResultSetMetaData}.)
  */
 public class ColumnMetaData {
   public final int ordinal; // 0-based

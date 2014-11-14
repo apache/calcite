@@ -14,16 +14,32 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.linq4j;
+package org.apache.calcite.linq4j;
 
-import net.hydromatic.linq4j.expressions.Expression;
-import net.hydromatic.linq4j.expressions.Expressions;
-import net.hydromatic.linq4j.expressions.FunctionExpression;
-import net.hydromatic.linq4j.function.*;
+import org.apache.calcite.linq4j.function.BigDecimalFunction1;
+import org.apache.calcite.linq4j.function.DoubleFunction1;
+import org.apache.calcite.linq4j.function.EqualityComparer;
+import org.apache.calcite.linq4j.function.FloatFunction1;
+import org.apache.calcite.linq4j.function.Function1;
+import org.apache.calcite.linq4j.function.Function2;
+import org.apache.calcite.linq4j.function.Functions;
+import org.apache.calcite.linq4j.function.IntegerFunction1;
+import org.apache.calcite.linq4j.function.LongFunction1;
+import org.apache.calcite.linq4j.function.NullableBigDecimalFunction1;
+import org.apache.calcite.linq4j.function.NullableDoubleFunction1;
+import org.apache.calcite.linq4j.function.NullableFloatFunction1;
+import org.apache.calcite.linq4j.function.NullableIntegerFunction1;
+import org.apache.calcite.linq4j.function.NullableLongFunction1;
+import org.apache.calcite.linq4j.function.Predicate1;
+import org.apache.calcite.linq4j.function.Predicate2;
+import org.apache.calcite.linq4j.tree.Expression;
+import org.apache.calcite.linq4j.tree.Expressions;
+import org.apache.calcite.linq4j.tree.FunctionExpression;
 
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
-import java.util.*;
+import java.util.Comparator;
+import java.util.Iterator;
 
 /**
  * Default implementations for methods in the {@link Queryable} interface.
@@ -405,7 +421,7 @@ public abstract class QueryableDefaults {
    * each group and its key.
    *
    * <p>NOTE: Renamed from {@code groupBy} to distinguish from
-   * {@link #groupBy(net.hydromatic.linq4j.Queryable, net.hydromatic.linq4j.expressions.FunctionExpression, net.hydromatic.linq4j.expressions.FunctionExpression)},
+   * {@link #groupBy(org.apache.calcite.linq4j.Queryable, org.apache.calcite.linq4j.tree.FunctionExpression, org.apache.calcite.linq4j.tree.FunctionExpression)},
    * which has the same erasure.</p>
    */
   public static <T, TKey, TResult> Queryable<Grouping<TKey, TResult>> groupByK(
@@ -436,7 +452,7 @@ public abstract class QueryableDefaults {
    * comparer.
    *
    * <p>NOTE: Renamed from {@code groupBy} to distinguish from
-   * {@link #groupBy(net.hydromatic.linq4j.Queryable, net.hydromatic.linq4j.expressions.FunctionExpression, net.hydromatic.linq4j.expressions.FunctionExpression, net.hydromatic.linq4j.function.EqualityComparer)},
+   * {@link #groupBy(org.apache.calcite.linq4j.Queryable, org.apache.calcite.linq4j.tree.FunctionExpression, org.apache.calcite.linq4j.tree.FunctionExpression, org.apache.calcite.linq4j.function.EqualityComparer)},
    * which has the same erasure.</p>
    */
   public static <T, TKey, TResult> Queryable<TResult> groupByK(
@@ -649,12 +665,13 @@ public abstract class QueryableDefaults {
    * specified type.
    *
    * <p>This method generates a
-   * {@link net.hydromatic.linq4j.expressions.MethodCallExpression} that
+   * {@link org.apache.calcite.linq4j.tree.MethodCallExpression} that
    * represents calling {@code ofType} itself as a constructed generic method.
    * It then passes the {@code MethodCallExpression} to the
-   * {@link net.hydromatic.linq4j.QueryProvider#createQuery createQuery} method of the
-   * {@link net.hydromatic.linq4j.QueryProvider} represented by the Provider property of the source
-   * parameter.</p>
+   * {@link org.apache.calcite.linq4j.QueryProvider#createQuery createQuery}
+   * method of the
+   * {@link org.apache.calcite.linq4j.QueryProvider} represented by
+   * the Provider property of the source parameter.</p>
    *
    * <p>The query behavior that occurs as a result of executing an expression
    * tree that represents calling OfType depends on the implementation of the
@@ -738,7 +755,7 @@ public abstract class QueryableDefaults {
    * form by incorporating the element's index.
    *
    * <p>NOTE: Renamed from {@code select} because had same erasure as
-   * {@link #select(net.hydromatic.linq4j.Queryable, net.hydromatic.linq4j.expressions.FunctionExpression)}.</p>
+   * {@link #select(org.apache.calcite.linq4j.Queryable, org.apache.calcite.linq4j.tree.FunctionExpression)}.
    */
   public static <T, TResult> Queryable<TResult> selectN(Queryable<T> source,
       FunctionExpression<Function2<T, Integer, TResult>> selector) {
@@ -762,7 +779,7 @@ public abstract class QueryableDefaults {
    * projected form of that element.
    *
    * <p>NOTE: Renamed from {@code selectMany} because had same erasure as
-   * {@link #selectMany(net.hydromatic.linq4j.Queryable, net.hydromatic.linq4j.expressions.FunctionExpression)}</p>
+   * {@link #selectMany(org.apache.calcite.linq4j.Queryable, org.apache.calcite.linq4j.tree.FunctionExpression)}.
    */
   public static <T, TResult> Queryable<TResult> selectManyN(Queryable<T> source,
       FunctionExpression<Function2<T, Integer, Enumerable<TResult>>> selector) {
@@ -793,7 +810,7 @@ public abstract class QueryableDefaults {
    * and returned.
    *
    * <p>NOTE: Renamed from {@code selectMany} because had same erasure as
-   * {@link #selectMany(net.hydromatic.linq4j.Queryable, net.hydromatic.linq4j.expressions.FunctionExpression, net.hydromatic.linq4j.expressions.FunctionExpression)}</p>
+   * {@link #selectMany(org.apache.calcite.linq4j.Queryable, org.apache.calcite.linq4j.tree.FunctionExpression, org.apache.calcite.linq4j.tree.FunctionExpression)}.
    */
   public static <T, TCollection, TResult> Queryable<TResult> selectManyN(
       Queryable<T> source,

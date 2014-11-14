@@ -14,23 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.rules.java.impl;
+package org.apache.calcite.adapter.enumerable.impl;
 
-import net.hydromatic.linq4j.expressions.BlockBuilder;
-import net.hydromatic.linq4j.expressions.Expression;
-import net.hydromatic.linq4j.expressions.Expressions;
-
-import net.hydromatic.optiq.rules.java.RexToLixTranslator;
-import net.hydromatic.optiq.rules.java.WinAggAddContext;
-import net.hydromatic.optiq.rules.java.WinAggFrameResultContext;
-import net.hydromatic.optiq.rules.java.WinAggImplementor;
+import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
+import org.apache.calcite.adapter.enumerable.WinAggAddContext;
+import org.apache.calcite.adapter.enumerable.WinAggFrameResultContext;
+import org.apache.calcite.adapter.enumerable.WinAggImplementor;
+import org.apache.calcite.linq4j.tree.BlockBuilder;
+import org.apache.calcite.linq4j.tree.Expression;
+import org.apache.calcite.linq4j.tree.Expressions;
 
 import com.google.common.base.Function;
 
 import java.util.List;
 
 /**
- * Implementation of {@link net.hydromatic.optiq.rules.java.WinAggAddContext}.
+ * Implementation of
+ * {@link org.apache.calcite.adapter.enumerable.WinAggAddContext}.
  */
 public abstract class WinAggAddContextImpl extends WinAggResultContextImpl
     implements WinAggAddContext {
@@ -49,4 +49,4 @@ public abstract class WinAggAddContextImpl extends WinAggResultContextImpl
   }
 }
 
-// End WinAggAddContext.java
+// End WinAggAddContextImpl.java

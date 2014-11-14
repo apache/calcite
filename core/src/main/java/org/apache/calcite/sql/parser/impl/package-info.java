@@ -17,8 +17,8 @@
 
 /**
  * Contains generated code for the
- * {@link org.eigenbase.sql.parser Eigenbase SQL parser}.
+ * {@link org.apache.calcite.sql.parser Calcite SQL parser}.
  */
-package org.eigenbase.sql.parser.impl;
+package org.apache.calcite.sql.parser.impl;
 
 // End package-info.java

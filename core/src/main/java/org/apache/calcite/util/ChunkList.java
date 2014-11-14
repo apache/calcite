@@ -14,9 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.util;
+package org.apache.calcite.util;
 
-import java.util.*;
+import java.util.AbstractSequentialList;
+import java.util.Collection;
+import java.util.LinkedList;
+import java.util.ListIterator;
+import java.util.NoSuchElementException;
 
 /**
  * Implementation of list similar to {@link LinkedList}, but stores elements
@@ -24,6 +28,8 @@ import java.util.*;
  *
  * <p>ArrayList has O(n) insertion and deletion into the middle of the list.
  * ChunkList insertion and deletion are O(1).</p>
+ *
+ * @param <E> element type
  */
 public class ChunkList<E> extends AbstractSequentialList<E> {
   private static final int HEADER_SIZE = 3;
@@ -91,18 +97,15 @@ public class ChunkList<E> extends AbstractSequentialList<E> {
     return true;
   }
 
-  @Override
-  public ListIterator<E> listIterator(int index) {
+  @Override public ListIterator<E> listIterator(int index) {
     return locate(index);
   }
 
-  @Override
-  public int size() {
+  @Override public int size() {
     return size;
   }
 
-  @Override
-  public boolean add(E element) {
+  @Override public boolean add(E element) {
     Object[] chunk = last;
     int occupied;
     if (chunk == null) {
@@ -124,8 +127,7 @@ public class ChunkList<E> extends AbstractSequentialList<E> {
     return true;
   }
 
-  @Override
-  public void add(int index, E element) {
+  @Override public void add(int index, E element) {
     if (index == size) {
       add(element);
     } else {
@@ -185,6 +187,7 @@ public class ChunkList<E> extends AbstractSequentialList<E> {
     }
   }
 
+  /** Iterator over a {@link ChunkList}. */
   private class ChunkListIterator implements ListIterator<E> {
     private Object[] chunk;
     private int startIndex;

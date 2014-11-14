@@ -14,24 +14,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel;
+package org.apache.calcite.rel.externalize;
 
-import java.io.PrintWriter;
-import java.util.*;
-
-import org.eigenbase.rel.metadata.*;
-import org.eigenbase.rex.*;
-import org.eigenbase.sql.*;
-import org.eigenbase.util.*;
-
-import net.hydromatic.linq4j.Ord;
-
-import net.hydromatic.optiq.runtime.Spacer;
+import org.apache.calcite.linq4j.Ord;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelWriter;
+import org.apache.calcite.rel.metadata.RelMetadataQuery;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.runtime.Spacer;
+import org.apache.calcite.sql.SqlExplainLevel;
+import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableList;
 
+import java.io.PrintWriter;
+import java.util.ArrayList;
+import java.util.List;
+
 /**
- * Implementation of {@link org.eigenbase.rel.RelWriter}.
+ * Implementation of {@link org.apache.calcite.rel.RelWriter}.
  */
 public class RelWriterImpl implements RelWriter {
   //~ Instance fields --------------------------------------------------------

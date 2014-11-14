@@ -14,36 +14,39 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel.rules;
+package org.apache.calcite.rel.rules;
 
-import org.eigenbase.relopt.*;
+import org.apache.calcite.plan.RelOptRule;
+import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.rel.core.SemiJoin;
 
 /**
- * RemoveSemiJoinRule implements the rule that removes semijoins from a join
- * tree if it turns out it's not possible to convert a SemiJoinRel to an indexed
- * scan on a join factor. Namely, if the join factor does not reduce to a single
- * table that can be scanned using an index. This rule should only be applied
- * after attempts have been made to convert SemiJoinRels.
+ * Planner rule that removes a {@link org.apache.calcite.rel.core.SemiJoin}s
+ * from a join tree.
+ *
+ * <p>It is invoked after attempts have been made to convert a SemiJoin to an
+ * indexed scan on a join factor have failed. Namely, if the join factor does
+ * not reduce to a single table that can be scanned using an index.
+ *
+ * <p>It should only be enabled if all SemiJoins in the plan are advisory; that
+ * is, they can be safely dropped without affecting the semantics of the query.
  */
-public class RemoveSemiJoinRule extends RelOptRule {
-  public static final RemoveSemiJoinRule INSTANCE =
-      new RemoveSemiJoinRule();
+public class SemiJoinRemoveRule extends RelOptRule {
+  public static final SemiJoinRemoveRule INSTANCE =
+      new SemiJoinRemoveRule();
 
   //~ Constructors -----------------------------------------------------------
 
-  /**
-   * Creates a RemoveSemiJoinRule.
-   */
-  private RemoveSemiJoinRule() {
-    super(operand(SemiJoinRel.class, any()));
+  /** Creates a SemiJoinRemoveRule. */
+  private SemiJoinRemoveRule() {
+    super(operand(SemiJoin.class, any()));
   }
 
   //~ Methods ----------------------------------------------------------------
 
-  // implement RelOptRule
   public void onMatch(RelOptRuleCall call) {
     call.transformTo(call.rel(0).getInput(0));
   }
 }
 
-// End RemoveSemiJoinRule.java
+// End SemiJoinRemoveRule.java

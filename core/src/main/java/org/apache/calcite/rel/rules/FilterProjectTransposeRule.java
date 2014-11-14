@@ -14,27 +14,34 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel.rules;
+package org.apache.calcite.rel.rules;
 
-import org.eigenbase.rel.*;
-import org.eigenbase.relopt.*;
-import org.eigenbase.rex.*;
+import org.apache.calcite.plan.RelOptRule;
+import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.Filter;
+import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.core.RelFactories;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexOver;
 
 /**
- * PushFilterPastProjectRule implements the rule for pushing a {@link FilterRel}
- * past a {@link ProjectRel}.
+ * Planner rule that pushes
+ * a {@link org.apache.calcite.rel.logical.LogicalFilter}
+ * past a {@link org.apache.calcite.rel.logical.LogicalProject}.
  */
-public class PushFilterPastProjectRule extends RelOptRule {
+public class FilterProjectTransposeRule extends RelOptRule {
   /** The default instance of
-   * {@link org.eigenbase.rel.rules.PushFilterPastJoinRule}.
+   * {@link org.apache.calcite.rel.rules.FilterProjectTransposeRule}.
    *
    * <p>It matches any kind of join or filter, and generates the same kind of
    * join and filter. It uses null values for {@code filterFactory} and
    * {@code projectFactory} to achieve this. */
-  public static final PushFilterPastProjectRule INSTANCE =
-      new PushFilterPastProjectRule(
-          FilterRelBase.class, null,
-          ProjectRelBase.class, null);
+  public static final FilterProjectTransposeRule INSTANCE =
+      new FilterProjectTransposeRule(
+          Filter.class, null,
+          Project.class, null);
 
   private final RelFactories.FilterFactory filterFactory;
   private final RelFactories.ProjectFactory projectFactory;
@@ -42,15 +49,15 @@ public class PushFilterPastProjectRule extends RelOptRule {
   //~ Constructors -----------------------------------------------------------
 
   /**
-   * Creates a PushFilterPastProjectRule.
+   * Creates a FilterProjectTransposeRule.
    *
    * <p>If {@code filterFactory} is null, creates the same kind of filter as
    * matched in the rule. Similarly {@code projectFactory}.</p>
    */
-  public PushFilterPastProjectRule(
-      Class<? extends FilterRelBase> filterClass,
+  public FilterProjectTransposeRule(
+      Class<? extends Filter> filterClass,
       RelFactories.FilterFactory filterFactory,
-      Class<? extends ProjectRelBase> projectClass,
+      Class<? extends Project> projectClass,
       RelFactories.ProjectFactory projectFactory) {
     super(
         operand(filterClass,
@@ -63,8 +70,8 @@ public class PushFilterPastProjectRule extends RelOptRule {
 
   // implement RelOptRule
   public void onMatch(RelOptRuleCall call) {
-    final FilterRelBase filterRel = call.rel(0);
-    final ProjectRelBase projRel = call.rel(1);
+    final Filter filterRel = call.rel(0);
+    final Project projRel = call.rel(1);
 
     if (RexOver.containsOver(projRel.getProjects(), null)) {
       // In general a filter cannot be pushed below a windowing calculation.
@@ -82,9 +89,9 @@ public class PushFilterPastProjectRule extends RelOptRule {
 
     RelNode newFilterRel =
         filterFactory == null
-            ? filterRel.copy(filterRel.getTraitSet(), projRel.getChild(),
+            ? filterRel.copy(filterRel.getTraitSet(), projRel.getInput(),
                 newCondition)
-            : filterFactory.createFilter(projRel.getChild(), newCondition);
+            : filterFactory.createFilter(projRel.getInput(), newCondition);
 
     RelNode newProjRel =
         projectFactory == null
@@ -97,4 +104,4 @@ public class PushFilterPastProjectRule extends RelOptRule {
   }
 }
 
-// End PushFilterPastProjectRule.java
+// End FilterProjectTransposeRule.java

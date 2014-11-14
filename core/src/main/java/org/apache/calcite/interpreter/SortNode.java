@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.impl.interpreter;
+package org.apache.calcite.interpreter;
 
-import org.eigenbase.rel.RelFieldCollation;
-import org.eigenbase.rel.SortRel;
-import org.eigenbase.rex.RexLiteral;
+import org.apache.calcite.rel.RelFieldCollation;
+import org.apache.calcite.rel.core.Sort;
+import org.apache.calcite.rex.RexLiteral;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Iterables;
@@ -32,14 +32,14 @@ import java.util.List;
 
 /**
  * Interpreter node that implements a
- * {@link org.eigenbase.rel.SortRel}.
+ * {@link org.apache.calcite.rel.core.Sort}.
  */
 public class SortNode implements Node {
   private final Source source;
   private final Sink sink;
-  private final SortRel rel;
+  private final Sort rel;
 
-  public SortNode(Interpreter interpreter, SortRel rel) {
+  public SortNode(Interpreter interpreter, Sort rel) {
     this.rel = rel;
     this.source = interpreter.source(rel, 0);
     this.sink = interpreter.sink(rel);
@@ -129,4 +129,4 @@ public class SortNode implements Node {
   }
 }
 
-// End ScanNode.java
+// End SortNode.java

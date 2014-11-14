@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql;
+package org.apache.calcite.sql;
 
 import java.util.Collection;
 import java.util.EnumSet;
@@ -25,10 +25,10 @@ import java.util.Set;
  *
  * <p>The values are immutable, canonical constants, so you can use Kinds to
  * find particular types of expressions quickly. To identity a call to a common
- * operator such as '=', use {@link org.eigenbase.sql.SqlNode#isA}:</p>
+ * operator such as '=', use {@link org.apache.calcite.sql.SqlNode#isA}:</p>
  *
  * <blockquote>
- * <pre>exp.{@link org.eigenbase.sql.SqlNode#isA isA}({@link #EQUALS})</pre>
+ * exp.{@link org.apache.calcite.sql.SqlNode#isA isA}({@link #EQUALS})
  * </blockquote>
  *
  * <p>Only commonly-used nodes have their own type; other nodes are of type

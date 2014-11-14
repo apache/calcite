@@ -14,10 +14,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.linq4j.test;
+package org.apache.calcite.linq4j.test;
 
-import net.hydromatic.linq4j.expressions.*;
-import net.hydromatic.linq4j.function.Function1;
+import org.apache.calcite.linq4j.function.Function1;
+import org.apache.calcite.linq4j.tree.BlockBuilder;
+import org.apache.calcite.linq4j.tree.BlockStatement;
+import org.apache.calcite.linq4j.tree.Blocks;
+import org.apache.calcite.linq4j.tree.ClassDeclaration;
+import org.apache.calcite.linq4j.tree.DeclarationStatement;
+import org.apache.calcite.linq4j.tree.Expression;
+import org.apache.calcite.linq4j.tree.Expressions;
+import org.apache.calcite.linq4j.tree.FieldDeclaration;
+import org.apache.calcite.linq4j.tree.FunctionExpression;
+import org.apache.calcite.linq4j.tree.MemberDeclaration;
+import org.apache.calcite.linq4j.tree.MethodCallExpression;
+import org.apache.calcite.linq4j.tree.NewExpression;
+import org.apache.calcite.linq4j.tree.Node;
+import org.apache.calcite.linq4j.tree.ParameterExpression;
+import org.apache.calcite.linq4j.tree.Types;
+import org.apache.calcite.linq4j.tree.Visitor;
 
 import org.junit.Test;
 
@@ -25,12 +40,17 @@ import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.util.*;
+import java.util.AbstractList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
+import java.util.TreeSet;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 
 /**
- * Unit test for {@link net.hydromatic.linq4j.expressions.Expression}
+ * Unit test for {@link org.apache.calcite.linq4j.tree.Expression}
  * and subclasses.
  */
 public class ExpressionTest {
@@ -50,19 +70,19 @@ public class ExpressionTest {
     // Print out the expression.
     String s = Expressions.toString(lambdaExpr);
     assertEquals(
-        "new net.hydromatic.linq4j.function.Function1() {\n"
-        + "  public double apply(double arg) {\n"
-        + "    return arg + 2.0D;\n"
-        + "  }\n"
-        + "  public Object apply(Double arg) {\n"
-        + "    return apply(\n"
-        + "      arg.doubleValue());\n"
-        + "  }\n"
-        + "  public Object apply(Object arg) {\n"
-        + "    return apply(\n"
-        + "      (Double) arg);\n"
-        + "  }\n"
-        + "}\n",
+        "new org.apache.calcite.linq4j.function.Function1() {\n"
+            + "  public double apply(double arg) {\n"
+            + "    return arg + 2.0D;\n"
+            + "  }\n"
+            + "  public Object apply(Double arg) {\n"
+            + "    return apply(\n"
+            + "      arg.doubleValue());\n"
+            + "  }\n"
+            + "  public Object apply(Object arg) {\n"
+            + "    return apply(\n"
+            + "      (Double) arg);\n"
+            + "  }\n"
+            + "}\n",
         s);
 
     // Compile and run the lambda expression.
@@ -92,21 +112,21 @@ public class ExpressionTest {
 
     // Print out the expression.
     String s = Expressions.toString(lambdaExpr);
-    assertEquals("new net.hydromatic.linq4j.function.Function2() {\n"
-        + "  public int apply(int key, int key2) {\n"
-        + "    return key;\n"
-        + "  }\n"
-        + "  public Integer apply(Integer key, Integer key2) {\n"
-        + "    return apply(\n"
-        + "      key.intValue(),\n"
-        + "      key2.intValue());\n"
-        + "  }\n"
-        + "  public Integer apply(Object key, Object key2) {\n"
-        + "    return apply(\n"
-        + "      (Integer) key,\n"
-        + "      (Integer) key2);\n"
-        + "  }\n"
-        + "}\n",
+    assertEquals("new org.apache.calcite.linq4j.function.Function2() {\n"
+            + "  public int apply(int key, int key2) {\n"
+            + "    return key;\n"
+            + "  }\n"
+            + "  public Integer apply(Integer key, Integer key2) {\n"
+            + "    return apply(\n"
+            + "      key.intValue(),\n"
+            + "      key2.intValue());\n"
+            + "  }\n"
+            + "  public Integer apply(Object key, Object key2) {\n"
+            + "    return apply(\n"
+            + "      (Integer) key,\n"
+            + "      (Integer) key2);\n"
+            + "  }\n"
+            + "}\n",
         s);
   }
 
@@ -315,15 +335,15 @@ public class ExpressionTest {
     final ParameterExpression paramX =
         Expressions.parameter(String.class, "x");
     assertEquals(
-        "new net.hydromatic.linq4j.function.Function1() {\n"
-        + "  public int apply(String x) {\n"
-        + "    return x.length();\n"
-        + "  }\n"
-        + "  public Object apply(Object x) {\n"
-        + "    return apply(\n"
-        + "      (String) x);\n"
-        + "  }\n"
-        + "}\n",
+        "new org.apache.calcite.linq4j.function.Function1() {\n"
+            + "  public int apply(String x) {\n"
+            + "    return x.length();\n"
+            + "  }\n"
+            + "  public Object apply(Object x) {\n"
+            + "    return apply(\n"
+            + "      (String) x);\n"
+            + "  }\n"
+            + "}\n",
         Expressions.toString(
             Expressions.lambda(
                 Function1.class,
@@ -334,9 +354,9 @@ public class ExpressionTest {
     // 1-dimensional array with initializer
     assertEquals(
         "new String[] {\n"
-        + "  \"foo\",\n"
-        + "  null,\n"
-        + "  \"bar\\\"baz\"}",
+            + "  \"foo\",\n"
+            + "  null,\n"
+            + "  \"bar\\\"baz\"}",
         Expressions.toString(
             Expressions.newArrayInit(
                 String.class,
@@ -347,12 +367,12 @@ public class ExpressionTest {
     // 2-dimensional array with initializer
     assertEquals(
         "new String[][] {\n"
-        + "  new String[] {\n"
-        + "    \"foo\",\n"
-        + "    \"bar\"},\n"
-        + "  null,\n"
-        + "  new String[] {\n"
-        + "    null}}",
+            + "  new String[] {\n"
+            + "    \"foo\",\n"
+            + "    \"bar\"},\n"
+            + "  null,\n"
+            + "  new String[] {\n"
+            + "    null}}",
         Expressions.toString(
             Expressions.newArrayInit(
                 String.class,
@@ -431,9 +451,9 @@ public class ExpressionTest {
     // array of primitives
     assertEquals(
         "new int[] {\n"
-        + "  1,\n"
-        + "  2,\n"
-        + "  -1}",
+            + "  1,\n"
+            + "  2,\n"
+            + "  -1}",
         Expressions.toString(
             Expressions.constant(new int[]{1, 2, -1})));
 
@@ -498,8 +518,8 @@ public class ExpressionTest {
     // objects and nulls
     assertEquals(
         "new String[] {\n"
-        + "  \"foo\",\n"
-        + "  null}",
+            + "  \"foo\",\n"
+            + "  null}",
         Expressions.toString(
             Expressions.constant(new String[] {"foo", null})));
 
@@ -511,15 +531,15 @@ public class ExpressionTest {
 
     // enum
     assertEquals(
-        "net.hydromatic.linq4j.test.ExpressionTest.MyEnum.X",
+        "org.apache.calcite.linq4j.test.ExpressionTest.MyEnum.X",
         Expressions.toString(
             Expressions.constant(MyEnum.X)));
 
     // array of enum
     assertEquals(
-        "new net.hydromatic.linq4j.test.ExpressionTest.MyEnum[] {\n"
-        + "  net.hydromatic.linq4j.test.ExpressionTest.MyEnum.X,\n"
-        + "  net.hydromatic.linq4j.test.ExpressionTest.MyEnum.Y}",
+        "new org.apache.calcite.linq4j.test.ExpressionTest.MyEnum[] {\n"
+            + "  org.apache.calcite.linq4j.test.ExpressionTest.MyEnum.X,\n"
+            + "  org.apache.calcite.linq4j.test.ExpressionTest.MyEnum.Y}",
         Expressions.toString(
             Expressions.constant(new MyEnum[]{MyEnum.X, MyEnum.Y})));
 
@@ -542,23 +562,23 @@ public class ExpressionTest {
 
     // automatically call constructor if it matches fields
     assertEquals(
-        "new net.hydromatic.linq4j.test.Linq4jTest.Employee[] {\n"
-        + "  new net.hydromatic.linq4j.test.Linq4jTest.Employee(\n"
-        + "    100,\n"
-        + "    \"Fred\",\n"
-        + "    10),\n"
-        + "  new net.hydromatic.linq4j.test.Linq4jTest.Employee(\n"
-        + "    110,\n"
-        + "    \"Bill\",\n"
-        + "    30),\n"
-        + "  new net.hydromatic.linq4j.test.Linq4jTest.Employee(\n"
-        + "    120,\n"
-        + "    \"Eric\",\n"
-        + "    10),\n"
-        + "  new net.hydromatic.linq4j.test.Linq4jTest.Employee(\n"
-        + "    130,\n"
-        + "    \"Janet\",\n"
-        + "    10)}",
+        "new org.apache.calcite.linq4j.test.Linq4jTest.Employee[] {\n"
+            + "  new org.apache.calcite.linq4j.test.Linq4jTest.Employee(\n"
+            + "    100,\n"
+            + "    \"Fred\",\n"
+            + "    10),\n"
+            + "  new org.apache.calcite.linq4j.test.Linq4jTest.Employee(\n"
+            + "    110,\n"
+            + "    \"Bill\",\n"
+            + "    30),\n"
+            + "  new org.apache.calcite.linq4j.test.Linq4jTest.Employee(\n"
+            + "    120,\n"
+            + "    \"Eric\",\n"
+            + "    10),\n"
+            + "  new org.apache.calcite.linq4j.test.Linq4jTest.Employee(\n"
+            + "    130,\n"
+            + "    \"Janet\",\n"
+            + "    10)}",
         Expressions.toString(
             Expressions.constant(Linq4jTest.emps)));
   }
@@ -645,19 +665,19 @@ public class ExpressionTest {
                                         .<Expression>emptyList())))))));
     assertEquals(
         "{\n"
-        + "  final java.util.List<String> baz = java.util.Arrays.asList(\"foo\", \"bar\");\n"
-        + "  new java.util.AbstractList<String>(){\n"
-        + "    public final String qux = \"xyzzy\";\n"
-        + "    public int size() {\n"
-        + "      return baz.size();\n"
-        + "    }\n"
-        + "\n"
-        + "    public String get(int index) {\n"
-        + "      return ((String) baz.get(index)).toUpperCase();\n"
-        + "    }\n"
-        + "\n"
-        + "  };\n"
-        + "}\n",
+            + "  final java.util.List<String> baz = java.util.Arrays.asList(\"foo\", \"bar\");\n"
+            + "  new java.util.AbstractList<String>(){\n"
+            + "    public final String qux = \"xyzzy\";\n"
+            + "    public int size() {\n"
+            + "      return baz.size();\n"
+            + "    }\n"
+            + "\n"
+            + "    public String get(int index) {\n"
+            + "      return ((String) baz.get(index)).toUpperCase();\n"
+            + "    }\n"
+            + "\n"
+            + "  };\n"
+            + "}\n",
         Expressions.toString(e));
   }
 
@@ -682,12 +702,12 @@ public class ExpressionTest {
                     Expressions.preIncrementAssign(yDecl.parameter))));
     assertEquals(
         "{\n"
-        + "  int x = 10;\n"
-        + "  int y = 0;\n"
-        + "  while (x < 5) {\n"
-        + "    ++y;\n"
-        + "  }\n"
-        + "}\n",
+            + "  int x = 10;\n"
+            + "  int y = 0;\n"
+            + "  while (x < 5) {\n"
+            + "    ++y;\n"
+            + "  }\n"
+            + "}\n",
         Expressions.toString(node));
   }
 
@@ -707,21 +727,21 @@ public class ExpressionTest {
                 Expressions.call(
                     Expressions.constant("foo"),
                     "toUpperCase")),
-        Expressions.catch_(cce_,
-            Expressions.return_(null, Expressions.constant(null))),
-        Expressions.catch_(re_,
-            Expressions.throw_(
-                Expressions.new_(IndexOutOfBoundsException.class))));
+            Expressions.catch_(cce_,
+                Expressions.return_(null, Expressions.constant(null))),
+            Expressions.catch_(re_,
+                Expressions.throw_(
+                    Expressions.new_(IndexOutOfBoundsException.class))));
     assertEquals(
         "try {\n"
-        + "  return \"foo\".length();\n"
-        + "} catch (final ClassCastException cce) {\n"
-        + "  return null;\n"
-        + "} catch (RuntimeException re) {\n"
-        + "  throw new IndexOutOfBoundsException();\n"
-        + "} finally {\n"
-        + "  \"foo\".toUpperCase();\n"
-        + "}\n",
+            + "  return \"foo\".length();\n"
+            + "} catch (final ClassCastException cce) {\n"
+            + "  return null;\n"
+            + "} catch (RuntimeException re) {\n"
+            + "  throw new IndexOutOfBoundsException();\n"
+            + "} finally {\n"
+            + "  \"foo\".toUpperCase();\n"
+            + "}\n",
         Expressions.toString(node));
   }
 
@@ -733,24 +753,24 @@ public class ExpressionTest {
     Node node =
         Expressions.ifThen(
             Expressions.constant(true),
-        Expressions.tryFinally(
-            Expressions.block(
-                Expressions.return_(null,
+            Expressions.tryFinally(
+                Expressions.block(
+                    Expressions.return_(null,
+                        Expressions.call(
+                            Expressions.constant("foo"),
+                            "length"))),
+                Expressions.statement(
                     Expressions.call(
                         Expressions.constant("foo"),
-                        "length"))),
-            Expressions.statement(
-                Expressions.call(
-                    Expressions.constant("foo"),
-                    "toUpperCase"))));
+                        "toUpperCase"))));
     assertEquals(
         "if (true) {\n"
-        + "  try {\n"
-        + "    return \"foo\".length();\n"
-        + "  } finally {\n"
-        + "    \"foo\".toUpperCase();\n"
-        + "  }\n"
-        + "}\n",
+            + "  try {\n"
+            + "    return \"foo\".length();\n"
+            + "  } finally {\n"
+            + "    \"foo\".toUpperCase();\n"
+            + "  }\n"
+            + "}\n",
         Expressions.toString(node));
   }
 
@@ -771,12 +791,12 @@ public class ExpressionTest {
                     Expressions.call(re_, "toString"))));
     assertEquals(
         "try {\n"
-        + "  return \"foo\".length();\n"
-        + "} catch (final ClassCastException cce) {\n"
-        + "  return null;\n"
-        + "} catch (RuntimeException re) {\n"
-        + "  return re.toString();\n"
-        + "}\n",
+            + "  return \"foo\".length();\n"
+            + "} catch (final ClassCastException cce) {\n"
+            + "  return null;\n"
+            + "} catch (RuntimeException re) {\n"
+            + "  return re.toString();\n"
+            + "}\n",
         Expressions.toString(node));
   }
 
@@ -837,18 +857,18 @@ public class ExpressionTest {
     checkBlockBuilder(
         false,
         "{\n"
-        + "  final int three = 1 + 2;\n"
-        + "  final int six = three * 2;\n"
-        + "  final int nine = three * three;\n"
-        + "  final int eighteen = three + six + nine;\n"
-        + "  return eighteen;\n"
-        + "}\n");
+            + "  final int three = 1 + 2;\n"
+            + "  final int six = three * 2;\n"
+            + "  final int nine = three * three;\n"
+            + "  final int eighteen = three + six + nine;\n"
+            + "  return eighteen;\n"
+            + "}\n");
     checkBlockBuilder(
         true,
         "{\n"
-        + "  final int three = 1 + 2;\n"
-        + "  return three + three * 2 + three * three;\n"
-        + "}\n");
+            + "  final int three = 1 + 2;\n"
+            + "  return three + three * 2 + three * three;\n"
+            + "}\n");
   }
 
   public void checkBlockBuilder(boolean optimizing, String expected) {
@@ -906,9 +926,9 @@ public class ExpressionTest {
     BlockStatement expression = statements.toBlock();
     assertEquals(
         "{\n"
-        + "  return new java.util.TreeSet(\n"
-        + "      (java.util.Comparator) null).add(null);\n"
-        + "}\n",
+            + "  return new java.util.TreeSet(\n"
+            + "      (java.util.Comparator) null).add(null);\n"
+            + "}\n",
         Expressions.toString(expression));
     expression.accept(new Visitor());
   }
@@ -952,11 +972,11 @@ public class ExpressionTest {
     BlockStatement expression = builder0.toBlock();
     assertEquals(
         "{\n"
-        + "  final int _b = 1 + 2;\n"
-        + "  final int _c = 1 + 3;\n"
-        + "  final int _d = 1 + 4;\n"
-        + "  net.hydromatic.linq4j.test.ExpressionTest.bar(1, _b, _c, _d, net.hydromatic.linq4j.test.ExpressionTest.foo(_c));\n"
-        + "}\n",
+            + "  final int _b = 1 + 2;\n"
+            + "  final int _c = 1 + 3;\n"
+            + "  final int _d = 1 + 4;\n"
+            + "  org.apache.calcite.linq4j.test.ExpressionTest.bar(1, _b, _c, _d, org.apache.calcite.linq4j.test.ExpressionTest.foo(_c));\n"
+            + "}\n",
         Expressions.toString(expression));
     expression.accept(new Visitor());
   }
@@ -970,36 +990,36 @@ public class ExpressionTest {
             (float) 5, (double) 6, (char) 7, true, "string", null
           },
           new AllType(true, (byte) 100, (char) 101, (short) 102, 103,
-            (long) 104, (float) 105, (double) 106, new BigDecimal(107),
-            new BigInteger("108"), "109", null)
+              (long) 104, (float) 105, (double) 106, new BigDecimal(107),
+              new BigInteger("108"), "109", null)
         });
     assertEquals(
         "new Object[] {\n"
-        + "  1,\n"
-        + "  new Object[] {\n"
-        + "    (byte)1,\n"
-        + "    (short)2,\n"
-        + "    3,\n"
-        + "    4L,\n"
-        + "    5.0F,\n"
-        + "    6.0D,\n"
-        + "    (char)7,\n"
-        + "    true,\n"
-        + "    \"string\",\n"
-        + "    null},\n"
-        + "  new net.hydromatic.linq4j.test.ExpressionTest.AllType(\n"
-        + "    true,\n"
-        + "    (byte)100,\n"
-        + "    (char)101,\n"
-        + "    (short)102,\n"
-        + "    103,\n"
-        + "    104L,\n"
-        + "    105.0F,\n"
-        + "    106.0D,\n"
-        + "    new java.math.BigDecimal(107L),\n"
-        + "    new java.math.BigInteger(\"108\"),\n"
-        + "    \"109\",\n"
-        + "    null)}",
+            + "  1,\n"
+            + "  new Object[] {\n"
+            + "    (byte)1,\n"
+            + "    (short)2,\n"
+            + "    3,\n"
+            + "    4L,\n"
+            + "    5.0F,\n"
+            + "    6.0D,\n"
+            + "    (char)7,\n"
+            + "    true,\n"
+            + "    \"string\",\n"
+            + "    null},\n"
+            + "  new org.apache.calcite.linq4j.test.ExpressionTest.AllType(\n"
+            + "    true,\n"
+            + "    (byte)100,\n"
+            + "    (char)101,\n"
+            + "    (short)102,\n"
+            + "    103,\n"
+            + "    104L,\n"
+            + "    105.0F,\n"
+            + "    106.0D,\n"
+            + "    new java.math.BigDecimal(107L),\n"
+            + "    new java.math.BigInteger(\"108\"),\n"
+            + "    \"109\",\n"
+            + "    null)}",
         constant.toString());
     constant.accept(new Visitor());
   }
@@ -1029,12 +1049,12 @@ public class ExpressionTest {
                     Expressions.parameter(int.class, "i"))));
     assertEquals(
         "new Object(){\n"
-        + "  public final String foo = \"bar\";\n"
-        + "  public static class MyClass {\n"
-        + "    int x = 0;\n"
-        + "  }\n"
-        + "  int i;\n"
-        + "}",
+            + "  public final String foo = \"bar\";\n"
+            + "  public static class MyClass {\n"
+            + "    int x = 0;\n"
+            + "  }\n"
+            + "  int i;\n"
+            + "}",
         Expressions.toString(newExpression));
     newExpression.accept(new Visitor());
   }
@@ -1042,10 +1062,10 @@ public class ExpressionTest {
   @Test public void testReturn() {
     assertEquals(
         "if (true) {\n"
-        + "  return;\n"
-        + "} else {\n"
-        + "  return 1;\n"
-        + "}\n",
+            + "  return;\n"
+            + "} else {\n"
+            + "  return 1;\n"
+            + "}\n",
         Expressions.toString(
             Expressions.ifThenElse(
                 Expressions.constant(true),
@@ -1056,12 +1076,12 @@ public class ExpressionTest {
   @Test public void testIfElseIfElse() {
     assertEquals(
         "if (true) {\n"
-        + "  return;\n"
-        + "} else if (false) {\n"
-        + "  return;\n"
-        + "} else {\n"
-        + "  return 1;\n"
-        + "}\n",
+            + "  return;\n"
+            + "} else if (false) {\n"
+            + "  return;\n"
+            + "} else {\n"
+            + "  return 1;\n"
+            + "}\n",
         Expressions.toString(
             Expressions.ifThenElse(
                 Expressions.constant(true),
@@ -1115,10 +1135,10 @@ public class ExpressionTest {
     builder.add(Expressions.return_(null, v6));
     assertEquals(
         "{\n"
-        + "  final Short v = (Short) ((Object[]) p)[4];\n"
-        + "  return (Number) v == null ? (Boolean) null : ("
-        + "(Number) v).intValue() == 1997;\n"
-        + "}\n",
+            + "  final Short v = (Short) ((Object[]) p)[4];\n"
+            + "  return (Number) v == null ? (Boolean) null : ("
+            + "(Number) v).intValue() == 1997;\n"
+            + "}\n",
         Expressions.toString(builder.toBlock()));
   }
 
@@ -1140,10 +1160,10 @@ public class ExpressionTest {
                         i_)))));
     assertEquals(
         "{\n"
-        + "  for (int i = 0; i < 10; i++) {\n"
-        + "    System.out.println(i);\n"
-        + "  }\n"
-        + "}\n",
+            + "  for (int i = 0; i < 10; i++) {\n"
+            + "    System.out.println(i);\n"
+            + "  }\n"
+            + "}\n",
         Expressions.toString(builder.toBlock()));
   }
 
@@ -1168,12 +1188,12 @@ public class ExpressionTest {
                     Expressions.break_(null)))));
     assertEquals(
         "{\n"
-        + "  for (int i = 0, j = 10; ; ) {\n"
-        + "    if (++i < --j) {\n"
-        + "      break;\n"
-        + "    }\n"
-        + "  }\n"
-        + "}\n",
+            + "  for (int i = 0, j = 10; ; ) {\n"
+            + "    if (++i < --j) {\n"
+            + "      break;\n"
+            + "    }\n"
+            + "  }\n"
+            + "}\n",
         Expressions.toString(builder.toBlock()));
   }
 

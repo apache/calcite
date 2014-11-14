@@ -14,35 +14,35 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.jdbc;
+package org.apache.calcite.jdbc;
 
-import net.hydromatic.avatica.AvaticaPrepareResult;
-import net.hydromatic.avatica.AvaticaPreparedStatement;
+import org.apache.calcite.avatica.AvaticaPrepareResult;
+import org.apache.calcite.avatica.AvaticaPreparedStatement;
+import org.apache.calcite.server.CalciteServerStatement;
 
-import net.hydromatic.optiq.server.OptiqServerStatement;
-
-import java.sql.*;
+import java.sql.SQLException;
 
 /**
  * Implementation of {@link java.sql.PreparedStatement}
  * for the Calcite engine.
  *
  * <p>This class has sub-classes which implement JDBC 3.0 and JDBC 4.0 APIs;
- * it is instantiated using {@link net.hydromatic.avatica.AvaticaFactory#newPreparedStatement}.</p>
+ * it is instantiated using
+ * {@link org.apache.calcite.avatica.AvaticaFactory#newPreparedStatement}.
  */
-abstract class OptiqPreparedStatement
+abstract class CalcitePreparedStatement
     extends AvaticaPreparedStatement
-    implements OptiqServerStatement {
+    implements CalciteServerStatement {
   /**
-   * Creates an OptiqPreparedStatement.
+   * Creates a CalcitePreparedStatement.
    *
    * @param connection Connection
    * @param prepareResult Result of preparing statement
    *
    * @throws SQLException if database error occurs
    */
-  protected OptiqPreparedStatement(
-      OptiqConnectionImpl connection,
+  protected CalcitePreparedStatement(
+      CalciteConnectionImpl connection,
       AvaticaPrepareResult prepareResult,
       int resultSetType,
       int resultSetConcurrency,
@@ -53,14 +53,13 @@ abstract class OptiqPreparedStatement
         resultSetHoldability);
   }
 
-  @Override
-  public OptiqConnectionImpl getConnection() {
-    return (OptiqConnectionImpl) super.getConnection();
+  @Override public CalciteConnectionImpl getConnection() {
+    return (CalciteConnectionImpl) super.getConnection();
   }
 
-  public OptiqConnectionImpl.ContextImpl createPrepareContext() {
-    return new OptiqConnectionImpl.ContextImpl(getConnection());
+  public CalciteConnectionImpl.ContextImpl createPrepareContext() {
+    return new CalciteConnectionImpl.ContextImpl(getConnection());
   }
 }
 
-// End OptiqPreparedStatement.java
+// End CalcitePreparedStatement.java

@@ -14,79 +14,79 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.config;
+package org.apache.calcite.config;
 
-import net.hydromatic.avatica.Casing;
-import net.hydromatic.avatica.ConnectionConfigImpl;
-import net.hydromatic.avatica.Quoting;
+import org.apache.calcite.avatica.Casing;
+import org.apache.calcite.avatica.ConnectionConfigImpl;
+import org.apache.calcite.avatica.Quoting;
 
 import java.util.Properties;
 
-/** Implementation of {@link OptiqConnectionConfig}. */
-public class OptiqConnectionConfigImpl extends ConnectionConfigImpl
-    implements OptiqConnectionConfig {
-  public OptiqConnectionConfigImpl(Properties properties) {
+/** Implementation of {@link CalciteConnectionConfig}. */
+public class CalciteConnectionConfigImpl extends ConnectionConfigImpl
+    implements CalciteConnectionConfig {
+  public CalciteConnectionConfigImpl(Properties properties) {
     super(properties);
   }
 
   /** Returns a copy of this configuration with one property changed. */
-  public OptiqConnectionConfigImpl set(OptiqConnectionProperty property,
+  public CalciteConnectionConfigImpl set(CalciteConnectionProperty property,
       String value) {
     final Properties properties1 = new Properties(properties);
     properties1.setProperty(property.camelName(), value);
-    return new OptiqConnectionConfigImpl(properties1);
+    return new CalciteConnectionConfigImpl(properties1);
   }
 
   public boolean autoTemp() {
-    return OptiqConnectionProperty.AUTO_TEMP.wrap(properties).getBoolean();
+    return CalciteConnectionProperty.AUTO_TEMP.wrap(properties).getBoolean();
   }
 
   public boolean materializationsEnabled() {
-    return OptiqConnectionProperty.MATERIALIZATIONS_ENABLED.wrap(properties)
+    return CalciteConnectionProperty.MATERIALIZATIONS_ENABLED.wrap(properties)
         .getBoolean();
   }
 
   public boolean createMaterializations() {
-    return OptiqConnectionProperty.CREATE_MATERIALIZATIONS.wrap(properties)
+    return CalciteConnectionProperty.CREATE_MATERIALIZATIONS.wrap(properties)
         .getBoolean();
   }
 
   public String model() {
-    return OptiqConnectionProperty.MODEL.wrap(properties).getString();
+    return CalciteConnectionProperty.MODEL.wrap(properties).getString();
   }
 
   public Lex lex() {
-    return OptiqConnectionProperty.LEX.wrap(properties).getEnum(Lex.class);
+    return CalciteConnectionProperty.LEX.wrap(properties).getEnum(Lex.class);
   }
 
   public Quoting quoting() {
-    return OptiqConnectionProperty.QUOTING.wrap(properties)
+    return CalciteConnectionProperty.QUOTING.wrap(properties)
         .getEnum(Quoting.class, lex().quoting);
   }
 
   public Casing unquotedCasing() {
-    return OptiqConnectionProperty.UNQUOTED_CASING.wrap(properties)
+    return CalciteConnectionProperty.UNQUOTED_CASING.wrap(properties)
         .getEnum(Casing.class, lex().unquotedCasing);
   }
 
   public Casing quotedCasing() {
-    return OptiqConnectionProperty.QUOTED_CASING.wrap(properties)
+    return CalciteConnectionProperty.QUOTED_CASING.wrap(properties)
         .getEnum(Casing.class, lex().quotedCasing);
   }
 
   public boolean caseSensitive() {
-    return OptiqConnectionProperty.CASE_SENSITIVE.wrap(properties)
+    return CalciteConnectionProperty.CASE_SENSITIVE.wrap(properties)
         .getBoolean(lex().caseSensitive);
   }
 
   public boolean spark() {
-    return OptiqConnectionProperty.SPARK.wrap(properties).getBoolean();
+    return CalciteConnectionProperty.SPARK.wrap(properties).getBoolean();
   }
 
   public <T> T typeSystem(Class<T> typeSystemClass, T defaultTypeSystem) {
-    return OptiqConnectionProperty.TYPE_SYSTEM.wrap(properties)
+    return CalciteConnectionProperty.TYPE_SYSTEM.wrap(properties)
         .getPlugin(typeSystemClass, defaultTypeSystem);
   }
 }
 
-// End OptiqConnectionConfigImpl.java
+// End CalciteConnectionConfigImpl.java

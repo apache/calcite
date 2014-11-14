@@ -14,10 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.relopt.volcano;
+package org.apache.calcite.plan.volcano;
 
-import org.eigenbase.relopt.*;
-import org.eigenbase.util.Util;
+import org.apache.calcite.plan.RelOptCost;
+import org.apache.calcite.plan.RelOptCostFactory;
+import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.util.Util;
 
 /**
  * <code>VolcanoCost</code> represents the cost of a plan node.
@@ -116,8 +118,7 @@ class VolcanoCost implements RelOptCost {
     return rowCount;
   }
 
-  @Override
-  public int hashCode() {
+  @Override public int hashCode() {
     return Util.hashCode(rowCount) + Util.hashCode(cpu) + Util.hashCode(io);
   }
 
@@ -206,6 +207,8 @@ class VolcanoCost implements RelOptCost {
     return "{" + rowCount + " rows, " + cpu + " cpu, " + io + " io}";
   }
 
+  /** Implementation of {@link org.apache.calcite.plan.RelOptCostFactory}
+   * that creates {@link org.apache.calcite.plan.volcano.VolcanoCost}s. */
   private static class Factory implements RelOptCostFactory {
     public RelOptCost makeCost(double dRows, double dCpu, double dIo) {
       return new VolcanoCost(dRows, dCpu, dIo);

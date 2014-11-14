@@ -14,12 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql.validate;
+package org.apache.calcite.sql.validate;
 
-import java.util.*;
+import org.apache.calcite.sql.SqlIdentifier;
+import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.parser.SqlParserPos;
 
-import org.eigenbase.sql.*;
-import org.eigenbase.sql.parser.*;
+import java.util.List;
 
 /**
  * Extends {@link SqlValidator} to allow discovery of useful data such as fully
@@ -32,7 +33,7 @@ public interface SqlValidatorWithHints extends SqlValidator {
   /**
    * Looks up completion hints for a syntatically correct SQL statement that
    * has been parsed into an expression tree. (Note this should be called
-   * after {@link #validate(org.eigenbase.sql.SqlNode)}.
+   * after {@link #validate(org.apache.calcite.sql.SqlNode)}.
    *
    * @param topNode top of expression tree in which to lookup completion hints
    * @param pos     indicates the position in the sql statement we want to get
@@ -54,8 +55,9 @@ public interface SqlValidatorWithHints extends SqlValidator {
    *
    * @param topNode top of expression tree in which to lookup the qualfied
    *                name for the SqlIdentifier
-   * @param pos     indicates the position of the {@link SqlIdentifier} in the sql
-   *                statement we want to get the qualified name for
+   * @param pos indicates the position of the {@link SqlIdentifier} in
+   *                the SQL statement we want to get the qualified
+   *                name for
    * @return a string of the fully qualified name of the {@link SqlIdentifier}
    * if the Parser position represents a valid {@link SqlIdentifier}. Else
    * return an empty string

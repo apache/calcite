@@ -14,50 +14,76 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.test;
+package org.apache.calcite.test;
 
-import net.hydromatic.optiq.*;
-import net.hydromatic.optiq.config.OptiqConnectionProperty;
-import net.hydromatic.optiq.impl.AbstractSchema;
-import net.hydromatic.optiq.impl.ViewTable;
-import net.hydromatic.optiq.impl.clone.CloneSchema;
-import net.hydromatic.optiq.impl.java.ReflectiveSchema;
-import net.hydromatic.optiq.impl.jdbc.JdbcSchema;
-import net.hydromatic.optiq.jdbc.MetaImpl;
-import net.hydromatic.optiq.jdbc.OptiqConnection;
-import net.hydromatic.optiq.jdbc.OptiqSchema;
-import net.hydromatic.optiq.materialize.Lattice;
-import net.hydromatic.optiq.runtime.Hook;
+import org.apache.calcite.DataContext;
+import org.apache.calcite.adapter.clone.CloneSchema;
+import org.apache.calcite.adapter.java.ReflectiveSchema;
+import org.apache.calcite.adapter.jdbc.JdbcSchema;
+import org.apache.calcite.config.CalciteConnectionProperty;
+import org.apache.calcite.jdbc.CalciteConnection;
+import org.apache.calcite.jdbc.CalciteSchema;
+import org.apache.calcite.jdbc.MetaImpl;
+import org.apache.calcite.materialize.Lattice;
+import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.runtime.Hook;
+import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.schema.impl.AbstractSchema;
+import org.apache.calcite.schema.impl.ViewTable;
+import org.apache.calcite.util.JsonBuilder;
+import org.apache.calcite.util.Pair;
+import org.apache.calcite.util.Util;
 
-import org.eigenbase.rel.RelNode;
-import org.eigenbase.relopt.RelOptUtil;
-import org.eigenbase.util.*;
-
-import com.google.common.base.*;
 import com.google.common.base.Function;
-import com.google.common.cache.*;
+import com.google.common.base.Functions;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMultiset;
 import com.google.common.collect.Lists;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
-import java.lang.reflect.*;
-import java.sql.*;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.TimeZone;
+import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicInteger;
 import javax.sql.DataSource;
 
-import static org.hamcrest.CoreMatchers.*;
-import static org.junit.Assert.*;
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 /**
  * Fluid DSL for testing Calcite connections and queries.
  */
-public class OptiqAssert {
-  private OptiqAssert() {}
+public class CalciteAssert {
+  private CalciteAssert() {}
 
   /** Which database to use for tests that require a JDBC data source. By
    * default the test suite runs against the embedded hsqldb database.
@@ -94,33 +120,27 @@ public class OptiqAssert {
   /** Implementation of {@link AssertThat} that does nothing. */
   private static final AssertThat DISABLED =
       new AssertThat((Config) null) {
-        @Override
-        public AssertThat with(Config config) {
+        @Override public AssertThat with(Config config) {
           return this;
         }
 
-        @Override
-        public AssertThat with(ConnectionFactory connectionFactory) {
+        @Override public AssertThat with(ConnectionFactory connectionFactory) {
           return this;
         }
 
-        @Override
-        public AssertThat with(Map<String, String> map) {
+        @Override public AssertThat with(Map<String, String> map) {
           return this;
         }
 
-        @Override
-        public AssertThat with(String name, Object schema) {
+        @Override public AssertThat with(String name, Object schema) {
           return this;
         }
 
-        @Override
-        public AssertThat withModel(String model) {
+        @Override public AssertThat withModel(String model) {
           return this;
         }
 
-        @Override
-        public AssertQuery query(String sql) {
+        @Override public AssertQuery query(String sql) {
           return NopAssertQuery.of(sql);
         }
 
@@ -129,29 +149,26 @@ public class OptiqAssert {
           return this;
         }
 
-        @Override
-        public <T> AssertThat doWithConnection(Function<OptiqConnection, T> fn)
+        @Override public <T> AssertThat doWithConnection(
+            Function<CalciteConnection, T> fn)
             throws Exception {
           return this;
         }
 
-        @Override
-        public AssertThat withSchema(String schema) {
+        @Override public AssertThat withSchema(String schema) {
           return this;
         }
 
-        @Override
-        public AssertThat enable(boolean enabled) {
+        @Override public AssertThat enable(boolean enabled) {
           return this;
         }
 
-        @Override
-        public AssertThat pooled() {
+        @Override public AssertThat pooled() {
           return this;
         }
       };
 
-  /** Creates an instance of {@code OptiqAssert} with the regular
+  /** Creates an instance of {@code CalciteAssert} with the regular
    * configuration. */
   public static AssertThat that() {
     return new AssertThat(Config.REGULAR);
@@ -192,7 +209,7 @@ public class OptiqAssert {
     return new Function<ResultSet, Void>() {
       public Void apply(ResultSet resultSet) {
         try {
-          final String resultString = OptiqAssert.toString(resultSet);
+          final String resultString = CalciteAssert.toString(resultSet);
           assertEquals(expected, Util.toLinux(resultString));
           return null;
         } catch (SQLException e) {
@@ -226,7 +243,7 @@ public class OptiqAssert {
     return new Function<ResultSet, Void>() {
       public Void apply(ResultSet resultSet) {
         try {
-          final int count = OptiqAssert.countRows(resultSet);
+          final int count = CalciteAssert.countRows(resultSet);
           assertEquals(expected, count);
           return null;
         } catch (SQLException e) {
@@ -250,7 +267,7 @@ public class OptiqAssert {
         ++executeCount;
         try {
           final Collection result =
-              OptiqAssert.toStringList(resultSet,
+              CalciteAssert.toStringList(resultSet,
                   ordered ? new ArrayList<String>() : new TreeSet<String>());
           if (executeCount == 1) {
             expected = result;
@@ -286,7 +303,7 @@ public class OptiqAssert {
           Collections.sort(expectedList);
 
           final List<String> actualList = Lists.newArrayList();
-          OptiqAssert.toStringList(resultSet, actualList);
+          CalciteAssert.toStringList(resultSet, actualList);
           Collections.sort(actualList);
 
           // Use assertArrayEquals since it implements fine-grained comparison.
@@ -304,7 +321,7 @@ public class OptiqAssert {
     return new Function<ResultSet, Void>() {
       public Void apply(ResultSet s) {
         try {
-          final String actual = Util.toLinux(OptiqAssert.toString(s));
+          final String actual = Util.toLinux(CalciteAssert.toString(s));
           if (!actual.contains(expected)) {
             assertEquals("contains", expected, actual);
           }
@@ -321,7 +338,7 @@ public class OptiqAssert {
     return new Function<ResultSet, Void>() {
       public Void apply(ResultSet s) {
         try {
-          final String actual = Util.toLinux(OptiqAssert.toString(s));
+          final String actual = Util.toLinux(CalciteAssert.toString(s));
           final String maskedActual =
               actual.replaceAll(", id = [0-9]+", "");
           if (!maskedActual.contains(expected)) {
@@ -375,14 +392,14 @@ public class OptiqAssert {
       Function<Throwable, Void> exceptionChecker) throws Exception {
     final String message =
         "With materializationsEnabled=" + materializationsEnabled
-        + ", limit=" + limit;
+            + ", limit=" + limit;
     final List<Hook.Closeable> closeableList = Lists.newArrayList();
     try {
-      ((OptiqConnection) connection).getProperties().setProperty(
-          OptiqConnectionProperty.MATERIALIZATIONS_ENABLED.camelName(),
+      ((CalciteConnection) connection).getProperties().setProperty(
+          CalciteConnectionProperty.MATERIALIZATIONS_ENABLED.camelName(),
           Boolean.toString(materializationsEnabled));
-      ((OptiqConnection) connection).getProperties().setProperty(
-          OptiqConnectionProperty.CREATE_MATERIALIZATIONS.camelName(),
+      ((CalciteConnection) connection).getProperties().setProperty(
+          CalciteConnectionProperty.CREATE_MATERIALIZATIONS.camelName(),
           Boolean.toString(materializationsEnabled));
       for (Pair<Hook, Function> hook : hooks) {
         closeableList.add(hook.left.addThread(hook.right));
@@ -453,11 +470,11 @@ public class OptiqAssert {
                   }
                 });
     try {
-      ((OptiqConnection) connection).getProperties().setProperty(
-          OptiqConnectionProperty.MATERIALIZATIONS_ENABLED.camelName(),
+      ((CalciteConnection) connection).getProperties().setProperty(
+          CalciteConnectionProperty.MATERIALIZATIONS_ENABLED.camelName(),
           Boolean.toString(materializationsEnabled));
-      ((OptiqConnection) connection).getProperties().setProperty(
-          OptiqConnectionProperty.CREATE_MATERIALIZATIONS.camelName(),
+      ((CalciteConnection) connection).getProperties().setProperty(
+          CalciteConnectionProperty.CREATE_MATERIALIZATIONS.camelName(),
           Boolean.toString(materializationsEnabled));
       PreparedStatement statement = connection.prepareStatement(sql);
       statement.close();
@@ -587,21 +604,23 @@ public class OptiqAssert {
     case JDBC_FOODMART_WITH_LATTICE:
       foodmart = rootSchema.getSubSchema("foodmart");
       if (foodmart == null) {
-        foodmart = OptiqAssert.addSchema(rootSchema, SchemaSpec.JDBC_FOODMART);
+        foodmart =
+            CalciteAssert.addSchema(rootSchema, SchemaSpec.JDBC_FOODMART);
       }
       foodmart.add("lattice",
-          Lattice.create(foodmart.unwrap(OptiqSchema.class),
+          Lattice.create(foodmart.unwrap(CalciteSchema.class),
               "select 1 from \"foodmart\".\"sales_fact_1997\" as s\n"
-              + "join \"foodmart\".\"time_by_day\" as t using (\"time_id\")\n"
-              + "join \"foodmart\".\"customer\" as c using (\"customer_id\")\n"
-              + "join \"foodmart\".\"product\" as p using (\"product_id\")\n"
-              + "join \"foodmart\".\"product_class\" as pc on p.\"product_class_id\" = pc.\"product_class_id\"",
+                  + "join \"foodmart\".\"time_by_day\" as t using (\"time_id\")\n"
+                  + "join \"foodmart\".\"customer\" as c using (\"customer_id\")\n"
+                  + "join \"foodmart\".\"product\" as p using (\"product_id\")\n"
+                  + "join \"foodmart\".\"product_class\" as pc on p.\"product_class_id\" = pc.\"product_class_id\"",
               true));
       return foodmart;
     case CLONE_FOODMART:
       foodmart = rootSchema.getSubSchema("foodmart");
       if (foodmart == null) {
-        foodmart = OptiqAssert.addSchema(rootSchema, SchemaSpec.JDBC_FOODMART);
+        foodmart =
+            CalciteAssert.addSchema(rootSchema, SchemaSpec.JDBC_FOODMART);
       }
       return rootSchema.add("foodmart2", new CloneSchema(foodmart));
     case HR:
@@ -615,34 +634,34 @@ public class OptiqAssert {
       post.add("EMP",
           ViewTable.viewMacro(post,
               "select * from (values\n"
-              + "    ('Jane', 10, 'F'),\n"
-              + "    ('Bob', 10, 'M'),\n"
-              + "    ('Eric', 20, 'M'),\n"
-              + "    ('Susan', 30, 'F'),\n"
-              + "    ('Alice', 30, 'F'),\n"
-              + "    ('Adam', 50, 'M'),\n"
-              + "    ('Eve', 50, 'F'),\n"
-              + "    ('Grace', 60, 'F'),\n"
-              + "    ('Wilma', cast(null as integer), 'F'))\n"
-              + "  as t(ename, deptno, gender)",
+                  + "    ('Jane', 10, 'F'),\n"
+                  + "    ('Bob', 10, 'M'),\n"
+                  + "    ('Eric', 20, 'M'),\n"
+                  + "    ('Susan', 30, 'F'),\n"
+                  + "    ('Alice', 30, 'F'),\n"
+                  + "    ('Adam', 50, 'M'),\n"
+                  + "    ('Eve', 50, 'F'),\n"
+                  + "    ('Grace', 60, 'F'),\n"
+                  + "    ('Wilma', cast(null as integer), 'F'))\n"
+                  + "  as t(ename, deptno, gender)",
               ImmutableList.<String>of()));
       post.add("DEPT",
           ViewTable.viewMacro(post,
               "select * from (values\n"
-              + "    (10, 'Sales'),\n"
-              + "    (20, 'Marketing'),\n"
-              + "    (30, 'Engineering'),\n"
-              + "    (40, 'Empty')) as t(deptno, dname)",
+                  + "    (10, 'Sales'),\n"
+                  + "    (20, 'Marketing'),\n"
+                  + "    (30, 'Engineering'),\n"
+                  + "    (40, 'Empty')) as t(deptno, dname)",
               ImmutableList.<String>of()));
       post.add("EMPS",
           ViewTable.viewMacro(post,
               "select * from (values\n"
-              + "    (100, 'Fred',  10, CAST(NULL AS CHAR(1)), CAST(NULL AS VARCHAR(20)), 40,               25, TRUE,    FALSE, DATE '1996-08-03'),\n"
-              + "    (110, 'Eric',  20, 'M',                   'San Francisco',           3,                80, UNKNOWN, FALSE, DATE '2001-01-01'),\n"
-              + "    (110, 'John',  40, 'M',                   'Vancouver',               2, CAST(NULL AS INT), FALSE,   TRUE,  DATE '2002-05-03'),\n"
-              + "    (120, 'Wilma', 20, 'F',                   CAST(NULL AS VARCHAR(20)), 1,                 5, UNKNOWN, TRUE,  DATE '2005-09-07'),\n"
-              + "    (130, 'Alice', 40, 'F',                   'Vancouver',               2, CAST(NULL AS INT), FALSE,   TRUE,  DATE '2007-01-01'))\n"
-              + " as t(empno, name, deptno, gender, city, empid, age, slacker, manager, joinedat)",
+                  + "    (100, 'Fred',  10, CAST(NULL AS CHAR(1)), CAST(NULL AS VARCHAR(20)), 40,               25, TRUE,    FALSE, DATE '1996-08-03'),\n"
+                  + "    (110, 'Eric',  20, 'M',                   'San Francisco',           3,                80, UNKNOWN, FALSE, DATE '2001-01-01'),\n"
+                  + "    (110, 'John',  40, 'M',                   'Vancouver',               2, CAST(NULL AS INT), FALSE,   TRUE,  DATE '2002-05-03'),\n"
+                  + "    (120, 'Wilma', 20, 'F',                   CAST(NULL AS VARCHAR(20)), 1,                 5, UNKNOWN, TRUE,  DATE '2005-09-07'),\n"
+                  + "    (130, 'Alice', 40, 'F',                   'Vancouver',               2, CAST(NULL AS INT), FALSE,   TRUE,  DATE '2007-01-01'))\n"
+                  + " as t(empno, name, deptno, gender, city, empid, age, slacker, manager, joinedat)",
               ImmutableList.<String>of()));
       return post;
     default:
@@ -650,16 +669,15 @@ public class OptiqAssert {
     }
   }
 
-  static OptiqConnection getConnection(String... schema)
+  static CalciteConnection getConnection(String... schema)
       throws ClassNotFoundException, SQLException {
     final List<String> schemaList = Arrays.asList(schema);
-    Class.forName("net.hydromatic.optiq.jdbc.Driver");
     String suffix = schemaList.contains("spark") ? "spark=true" : "";
     Connection connection =
         DriverManager.getConnection("jdbc:calcite:" + suffix);
-    OptiqConnection optiqConnection =
-        connection.unwrap(OptiqConnection.class);
-    SchemaPlus rootSchema = optiqConnection.getRootSchema();
+    CalciteConnection calciteConnection =
+        connection.unwrap(CalciteConnection.class);
+    SchemaPlus rootSchema = calciteConnection.getRootSchema();
     if (schemaList.contains("hr")) {
       addSchema(rootSchema, SchemaSpec.HR);
     }
@@ -676,7 +694,7 @@ public class OptiqAssert {
       // always present
       Util.discard(0);
     }
-    return optiqConnection;
+    return calciteConnection;
   }
 
   /**
@@ -690,13 +708,12 @@ public class OptiqAssert {
    * @throws ClassNotFoundException
    * @throws java.sql.SQLException
    */
-  static OptiqConnection getConnection(SchemaSpec schemaSpec)
+  static CalciteConnection getConnection(SchemaSpec schemaSpec)
       throws ClassNotFoundException, SQLException {
-    Class.forName("net.hydromatic.optiq.jdbc.Driver");
     Connection connection = DriverManager.getConnection("jdbc:calcite:");
-    OptiqConnection optiqConnection =
-        connection.unwrap(OptiqConnection.class);
-    final SchemaPlus rootSchema = optiqConnection.getRootSchema();
+    CalciteConnection calciteConnection =
+        connection.unwrap(CalciteConnection.class);
+    final SchemaPlus rootSchema = calciteConnection.getRootSchema();
     switch (schemaSpec) {
     case JDBC_FOODMART:
       addSchema(rootSchema, schemaSpec);
@@ -709,8 +726,8 @@ public class OptiqAssert {
     default:
       throw new AssertionError("unknown schema " + schemaSpec);
     }
-    optiqConnection.setSchema("foodmart2");
-    return optiqConnection;
+    calciteConnection.setSchema("foodmart2");
+    return calciteConnection;
   }
 
   static <F, T> Function<F, T> constantNull() {
@@ -719,7 +736,7 @@ public class OptiqAssert {
   }
 
   /**
-   * Result of calling {@link OptiqAssert#that}.
+   * Result of calling {@link CalciteAssert#that}.
    */
   public static class AssertThat {
     private final ConnectionFactory connectionFactory;
@@ -743,13 +760,12 @@ public class OptiqAssert {
     public AssertThat with(final Map<String, String> map) {
       return new AssertThat(
           new ConnectionFactory() {
-            public OptiqConnection createConnection() throws Exception {
-              Class.forName("net.hydromatic.optiq.jdbc.Driver");
+            public CalciteConnection createConnection() throws Exception {
               final Properties info = new Properties();
               for (Map.Entry<String, String> entry : map.entrySet()) {
                 info.setProperty(entry.getKey(), entry.getValue());
               }
-              return (OptiqConnection) DriverManager.getConnection(
+              return (CalciteConnection) DriverManager.getConnection(
                   "jdbc:calcite:", info);
             }
           });
@@ -759,30 +775,28 @@ public class OptiqAssert {
      * object. */
     public AssertThat with(final String name, final Object schema) {
       return with(
-          new OptiqAssert.ConnectionFactory() {
-            public OptiqConnection createConnection() throws Exception {
-              Class.forName("net.hydromatic.optiq.jdbc.Driver");
+          new CalciteAssert.ConnectionFactory() {
+            public CalciteConnection createConnection() throws Exception {
               Connection connection =
                   DriverManager.getConnection("jdbc:calcite:");
-              OptiqConnection optiqConnection =
-                  connection.unwrap(OptiqConnection.class);
+              CalciteConnection calciteConnection =
+                  connection.unwrap(CalciteConnection.class);
               SchemaPlus rootSchema =
-                  optiqConnection.getRootSchema();
+                  calciteConnection.getRootSchema();
               rootSchema.add(name, new ReflectiveSchema(schema));
-              optiqConnection.setSchema(name);
-              return optiqConnection;
+              calciteConnection.setSchema(name);
+              return calciteConnection;
             }
           });
     }
 
     public AssertThat withModel(final String model) {
       return new AssertThat(
-          new OptiqAssert.ConnectionFactory() {
-            public OptiqConnection createConnection() throws Exception {
-              Class.forName("net.hydromatic.optiq.jdbc.Driver");
+          new CalciteAssert.ConnectionFactory() {
+            public CalciteConnection createConnection() throws Exception {
               final Properties info = new Properties();
               info.setProperty("model", "inline:" + model);
-              return (OptiqConnection) DriverManager.getConnection(
+              return (CalciteConnection) DriverManager.getConnection(
                   "jdbc:calcite:", info);
             }
           });
@@ -854,12 +868,13 @@ public class OptiqAssert {
       return this;
     }
 
-    /** Creates a {@link OptiqConnection} and executes a callback. */
-    public <T> AssertThat doWithConnection(Function<OptiqConnection, T> fn)
+    /** Creates a {@link org.apache.calcite.jdbc.CalciteConnection}
+     * and executes a callback. */
+    public <T> AssertThat doWithConnection(Function<CalciteConnection, T> fn)
         throws Exception {
       Connection connection = connectionFactory.createConnection();
       try {
-        T t = fn.apply((OptiqConnection) connection);
+        T t = fn.apply((CalciteConnection) connection);
         Util.discard(t);
         return AssertThat.this;
       } finally {
@@ -870,7 +885,7 @@ public class OptiqAssert {
     /** Creates a {@link DataContext} and executes a callback. */
     public <T> AssertThat doWithDataContext(Function<DataContext, T> fn)
         throws Exception {
-      OptiqConnection connection = connectionFactory.createConnection();
+      CalciteConnection connection = connectionFactory.createConnection();
       final DataContext dataContext = MetaImpl.createDataContext(connection);
       try {
         T t = fn.apply(dataContext);
@@ -906,10 +921,12 @@ public class OptiqAssert {
     }
   }
 
+  /** Connection factory. */
   public interface ConnectionFactory {
-    OptiqConnection createConnection() throws Exception;
+    CalciteConnection createConnection() throws Exception;
   }
 
+  /** Connection factory that uses the same instance of connections. */
   private static class PoolingConnectionFactory implements ConnectionFactory {
     private final ConnectionFactory factory;
 
@@ -917,24 +934,27 @@ public class OptiqAssert {
       this.factory = factory;
     }
 
-    public OptiqConnection createConnection() throws Exception {
+    public CalciteConnection createConnection() throws Exception {
       return Pool.INSTANCE.cache.get(factory);
     }
   }
 
+  /** Connection pool. */
   private static class Pool {
     private static final Pool INSTANCE = new Pool();
 
-    private final LoadingCache<ConnectionFactory, OptiqConnection> cache =
+    private final LoadingCache<ConnectionFactory, CalciteConnection> cache =
         CacheBuilder.newBuilder().build(
-            new CacheLoader<ConnectionFactory, OptiqConnection>() {
-              public OptiqConnection load(ConnectionFactory key)
+            new CacheLoader<ConnectionFactory, CalciteConnection>() {
+              public CalciteConnection load(ConnectionFactory key)
                   throws Exception {
                 return key.createConnection();
               }
             });
   }
 
+  /** Connection factory that creates connections based on a given
+   * {@link Config}. */
   private static class ConfigConnectionFactory implements ConnectionFactory {
     private final Config config;
 
@@ -952,7 +972,7 @@ public class OptiqAssert {
           && config == ((ConfigConnectionFactory) obj).config;
     }
 
-    public OptiqConnection createConnection() throws Exception {
+    public CalciteConnection createConnection() throws Exception {
       switch (config) {
       case REGULAR:
         return getConnection("hr", "foodmart", "post");
@@ -961,7 +981,7 @@ public class OptiqAssert {
       case LINGUAL:
         return getConnection("lingual");
       case JDBC_FOODMART:
-        return getConnection(OptiqAssert.SchemaSpec.JDBC_FOODMART);
+        return getConnection(CalciteAssert.SchemaSpec.JDBC_FOODMART);
       case FOODMART_CLONE:
         return getConnection(SchemaSpec.CLONE_FOODMART);
       case JDBC_FOODMART_WITH_LATTICE:
@@ -974,6 +994,7 @@ public class OptiqAssert {
     }
   }
 
+  /** Connection factory that delegates to an underlying factory. */
   private static class DelegatingConnectionFactory
       implements ConnectionFactory {
     private final ConnectionFactory factory;
@@ -982,11 +1003,13 @@ public class OptiqAssert {
       this.factory = factory;
     }
 
-    public OptiqConnection createConnection() throws Exception {
+    public CalciteConnection createConnection() throws Exception {
       return factory.createConnection();
     }
   }
 
+  /** Connection factory that gets a connection from an underlying factory, then
+   * sets its schema. */
   private static class SchemaConnectionFactory
       extends DelegatingConnectionFactory {
     private final String schema;
@@ -996,14 +1019,14 @@ public class OptiqAssert {
       this.schema = schema;
     }
 
-    @Override
-    public OptiqConnection createConnection() throws Exception {
-      OptiqConnection connection = super.createConnection();
+    @Override public CalciteConnection createConnection() throws Exception {
+      CalciteConnection connection = super.createConnection();
       connection.setSchema(schema);
       return connection;
     }
   }
 
+  /** Fluent interface for building a query to be tested. */
   public static class AssertQuery {
     private final String sql;
     private ConnectionFactory connectionFactory;
@@ -1231,11 +1254,13 @@ public class OptiqAssert {
     }
   }
 
+  /** Connection configuration. Basically, a set of schemas that should be
+   * instantiated in the connection. */
   public enum Config {
     /**
      * Configuration that creates a connection with two in-memory data sets:
-     * {@link net.hydromatic.optiq.test.JdbcTest.HrSchema} and
-     * {@link net.hydromatic.optiq.test.JdbcTest.FoodmartSchema}.
+     * {@link org.apache.calcite.test.JdbcTest.HrSchema} and
+     * {@link org.apache.calcite.test.JdbcTest.FoodmartSchema}.
      */
     REGULAR,
 
@@ -1250,7 +1275,7 @@ public class OptiqAssert {
      * such as "customer" and "sales_fact_1997" are available. Queries
      * are processed by generating Java that calls linq4j operators
      * such as
-     * {@link net.hydromatic.linq4j.Enumerable#where(net.hydromatic.linq4j.function.Predicate1)}.
+     * {@link org.apache.calcite.linq4j.Enumerable#where(org.apache.calcite.linq4j.function.Predicate1)}.
      */
     JDBC_FOODMART,
 
@@ -1280,23 +1305,20 @@ public class OptiqAssert {
       return new NopAssertQuery(sql);
     }
 
-    @Override
-    protected Connection createConnection() throws Exception {
+    @Override protected Connection createConnection() throws Exception {
       throw new AssertionError("disabled");
     }
 
-    @Override
-    public AssertQuery returns(String sql, Function<ResultSet, Void> checker) {
+    @Override public AssertQuery returns(String sql,
+        Function<ResultSet, Void> checker) {
       return this;
     }
 
-    @Override
-    public AssertQuery throws_(String message) {
+    @Override public AssertQuery throws_(String message) {
       return this;
     }
 
-    @Override
-    public AssertQuery runs() {
+    @Override public AssertQuery runs() {
       return this;
     }
 
@@ -1310,18 +1332,16 @@ public class OptiqAssert {
       return this;
     }
 
-    @Override
-    public AssertQuery planContains(String expected) {
+    @Override public AssertQuery planContains(String expected) {
       return this;
     }
 
-    @Override
-    public AssertQuery planHasSql(String expected) {
+    @Override public AssertQuery planHasSql(String expected) {
       return this;
     }
 
-    @Override
-    public AssertQuery queryContains(Function<List, Void> predicate1) {
+    @Override public AssertQuery
+    queryContains(Function<List, Void> predicate1) {
       return this;
     }
   }
@@ -1348,6 +1368,7 @@ public class OptiqAssert {
     }
   }
 
+  /** Specification for common test schemas. */
   public enum SchemaSpec {
     REFLECTIVE_FOODMART,
     JDBC_FOODMART,
@@ -1359,4 +1380,4 @@ public class OptiqAssert {
   }
 }
 
-// End OptiqAssert.java
+// End CalciteAssert.java

@@ -14,29 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.util;
+package org.apache.calcite.util;
 
-import java.io.*;
-import java.lang.management.*;
-import java.math.*;
-import java.sql.Timestamp;
-import java.text.MessageFormat;
-import java.util.*;
-
-import javax.annotation.Nullable;
-
-import org.eigenbase.resource.Resources;
-import org.eigenbase.sql.*;
-import org.eigenbase.sql.util.*;
-import org.eigenbase.test.*;
-
-import net.hydromatic.linq4j.function.Function1;
-
-import net.hydromatic.optiq.runtime.FlatLists;
-import net.hydromatic.optiq.runtime.Spaces;
-import net.hydromatic.optiq.util.BitSets;
-import net.hydromatic.optiq.util.Compatible;
-import net.hydromatic.optiq.util.CompositeMap;
+import org.apache.calcite.linq4j.function.Function1;
+import org.apache.calcite.runtime.FlatLists;
+import org.apache.calcite.runtime.Resources;
+import org.apache.calcite.runtime.Spaces;
+import org.apache.calcite.sql.SqlDialect;
+import org.apache.calcite.sql.util.SqlBuilder;
+import org.apache.calcite.sql.util.SqlString;
+import org.apache.calcite.test.DiffTestCase;
 
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
@@ -48,8 +35,43 @@ import com.google.common.collect.Lists;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import static org.hamcrest.CoreMatchers.*;
-import static org.junit.Assert.*;
+import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.io.UnsupportedEncodingException;
+import java.lang.management.MemoryType;
+import java.math.BigDecimal;
+import java.sql.Timestamp;
+import java.text.MessageFormat;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.BitSet;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.NavigableSet;
+import java.util.Properties;
+import java.util.Random;
+import java.util.Set;
+import java.util.SortedSet;
+import java.util.TimeZone;
+import java.util.TreeSet;
+import javax.annotation.Nullable;
+
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.isA;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 /**
  * Unit test for {@link Util} and other classes in this package.
@@ -316,7 +338,7 @@ public class UtilTest {
   }
 
   /**
-   * Tests {@link CastingList} and {@link Util#cast}.
+   * Tests {@link org.apache.calcite.util.CastingList} and {@link Util#cast}.
    */
   @Test public void testCastingList() {
     final List<Number> numberList = new ArrayList<Number>();
@@ -398,16 +420,15 @@ public class UtilTest {
             Arrays.asList(before),
             Arrays.asList(after));
     assertThat(Util.toLinux(diff),
-        equalTo(
-            "1a2\n"
-                + "> (they call her \"Polythene Pam\")\n"
-                + "3c4,5\n"
-                + "< She's the kind of a girl that makes The News of The World\n"
-                + "---\n"
-                + "> She's the kind of a girl that makes The Sunday Times\n"
-                + "> seem more interesting.\n"
-                + "5d6\n"
-                + "< Yeah yeah yeah.\n"));
+        equalTo("1a2\n"
+            + "> (they call her \"Polythene Pam\")\n"
+            + "3c4,5\n"
+            + "< She's the kind of a girl that makes The News of The World\n"
+            + "---\n"
+            + "> She's the kind of a girl that makes The Sunday Times\n"
+            + "> seem more interesting.\n"
+            + "5d6\n"
+            + "< Yeah yeah yeah.\n"));
   }
 
   /**
@@ -469,8 +490,8 @@ public class UtilTest {
   }
 
   /**
-   * Tests the methods {@link Util#enumConstants(Class)} and {@link
-   * Util#enumVal(Class, String)}.
+   * Tests the methods {@link Util#enumConstants(Class)} and
+   * {@link Util#enumVal(Class, String)}.
    */
   @Test public void testEnumConstants() {
     final Map<String, MemoryType> memoryTypeMap =
@@ -494,7 +515,7 @@ public class UtilTest {
    * Tests SQL builders.
    */
   @Test public void testSqlBuilder() {
-    final SqlBuilder buf = new SqlBuilder(SqlDialect.EIGENBASE);
+    final SqlBuilder buf = new SqlBuilder(SqlDialect.CALCITE);
     assertEquals(0, buf.length());
     buf.append("select ");
     assertEquals("select ", buf.getSql());
@@ -507,7 +528,7 @@ public class UtilTest {
     assertEquals("select \"x\", \"y\".\"a b\"", buf.getSql());
 
     final SqlString sqlString = buf.toSqlString();
-    assertEquals(SqlDialect.EIGENBASE, sqlString.getDialect());
+    assertEquals(SqlDialect.CALCITE, sqlString.getDialect());
     assertEquals(buf.getSql(), sqlString.getSql());
 
     assertTrue(buf.getSql().length() > 0);
@@ -533,7 +554,7 @@ public class UtilTest {
   }
 
   /**
-   * Unit test for {@link org.eigenbase.util.CompositeList}.
+   * Unit test for {@link org.apache.calcite.util.CompositeList}.
    */
   @Test public void testCompositeList() {
     // Made up of zero lists
@@ -923,30 +944,6 @@ public class UtilTest {
   }
 
   /**
-   * Unit test for {@link Util#toCamelCase(String)}.
-   */
-  @Test public void testToCamelCase() {
-    assertEquals("myJdbcDriver", Util.toCamelCase("MY_JDBC_DRIVER"));
-    assertEquals("myJdbcDriver", Util.toCamelCase("MY_JDBC__DRIVER"));
-    assertEquals("myJdbcDriver", Util.toCamelCase("my_jdbc_driver"));
-    assertEquals("abCdefGHij", Util.toCamelCase("ab_cdEf_g_Hij"));
-    assertEquals("JdbcDriver", Util.toCamelCase("_JDBC_DRIVER"));
-    assertEquals("", Util.toCamelCase("_"));
-    assertEquals("", Util.toCamelCase(""));
-  }
-
-  /**
-   * Unit test for {@link Util#camelToUpper(String)}.
-   */
-  @Test public void testCamelToUpper() {
-    assertEquals("MY_JDBC_DRIVER", Util.camelToUpper("myJdbcDriver"));
-    assertEquals("MY_J_D_B_C_DRIVER", Util.camelToUpper("myJDBCDriver"));
-    assertEquals("AB_CDEF_G_HIJ", Util.camelToUpper("abCdefGHij"));
-    assertEquals("_JDBC_DRIVER", Util.camelToUpper("JdbcDriver"));
-    assertEquals("", Util.camelToUpper(""));
-  }
-
-  /**
    * Unit test for {@link Util#isDistinct(java.util.List)}.
    */
   @Test public void testDistinct() {
@@ -959,7 +956,7 @@ public class UtilTest {
   }
 
   /**
-   * Unit test for {@link org.eigenbase.util.JsonBuilder}.
+   * Unit test for {@link org.apache.calcite.util.JsonBuilder}.
    */
   @Test public void testJsonBuilder() {
     JsonBuilder builder = new JsonBuilder();
@@ -1196,7 +1193,7 @@ public class UtilTest {
     return set.subSet(s.toUpperCase(), true, s.toLowerCase(), true);
   }
 
-  /** Test for {@link org.eigenbase.util.ImmutableNullableList}. */
+  /** Test for {@link org.apache.calcite.util.ImmutableNullableList}. */
   @Test public void testImmutableNullableList() {
     final List<String> arrayList = Arrays.asList("a", null, "c");
     final List<String> list = ImmutableNullableList.copyOf(arrayList);
@@ -1237,7 +1234,7 @@ public class UtilTest {
         isA((Class) ImmutableList.class));
   }
 
-  /** Test for {@link org.eigenbase.util.UnmodifiableArrayList}. */
+  /** Test for {@link org.apache.calcite.util.UnmodifiableArrayList}. */
   @Test public void testUnmodifiableArrayList() {
     final String[] strings = {"a", null, "c"};
     final List<String> arrayList = Arrays.asList(strings);

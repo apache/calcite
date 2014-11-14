@@ -14,10 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql2rel;
+package org.apache.calcite.sql2rel;
 
-import org.eigenbase.rex.*;
-import org.eigenbase.sql.*;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlNode;
 
 /**
  * Thunk which converts a {@link SqlNode} expression into a {@link RexNode}

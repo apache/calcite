@@ -16,7 +16,7 @@
  */
 <@pp.dropOutputFile />
 
-<@pp.changeOutputFile name="javacc/CombinedParser.jj" />
+<@pp.changeOutputFile name="javacc/Parser.jj" />
 
 options {
     STATIC = false;
@@ -33,41 +33,85 @@ package ${parser.package};
 import ${importStr};
 </#list>
 
-import org.eigenbase.reltype.RelDataType;
-import org.eigenbase.sql.*;
-import org.eigenbase.sql.parser.*;
-import org.eigenbase.sql.fun.*;
-import org.eigenbase.trace.EigenbaseTrace;
-import org.eigenbase.util.BitString;
-import org.eigenbase.util14.DateTimeUtil;
-import org.eigenbase.sql.fun.SqlStdOperatorTable;
-import org.eigenbase.sql.type.SqlTypeName;
-import org.eigenbase.resource.*;
 
-import net.hydromatic.avatica.Casing;
+import org.apache.calcite.avatica.Casing;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.runtime.CalciteContextException;
+import org.apache.calcite.sql.JoinConditionType;
+import org.apache.calcite.sql.JoinType;
+import org.apache.calcite.sql.SqlBinaryOperator;
+import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlCharStringLiteral;
+import org.apache.calcite.sql.SqlCollation;
+import org.apache.calcite.sql.SqlDataTypeSpec;
+import org.apache.calcite.sql.SqlDateLiteral;
+import org.apache.calcite.sql.SqlDelete;
+import org.apache.calcite.sql.SqlDynamicParam;
+import org.apache.calcite.sql.SqlExplain;
+import org.apache.calcite.sql.SqlExplainLevel;
+import org.apache.calcite.sql.SqlFunctionCategory;
+import org.apache.calcite.sql.SqlIdentifier;
+import org.apache.calcite.sql.SqlInsert;
+import org.apache.calcite.sql.SqlIntervalLiteral;
+import org.apache.calcite.sql.SqlIntervalQualifier;
+import org.apache.calcite.sql.SqlJdbcFunctionCall;
+import org.apache.calcite.sql.SqlJoin;
+import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlLiteral;
+import org.apache.calcite.sql.SqlMerge;
+import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlNodeList;
+import org.apache.calcite.sql.SqlNumericLiteral;
+import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.SqlOrderBy;
+import org.apache.calcite.sql.SqlPostfixOperator;
+import org.apache.calcite.sql.SqlPrefixOperator;
+import org.apache.calcite.sql.SqlSampleSpec;
+import org.apache.calcite.sql.SqlSelect;
+import org.apache.calcite.sql.SqlSelectKeyword;
+import org.apache.calcite.sql.SqlSetOption;
+import org.apache.calcite.sql.SqlTimeLiteral;
+import org.apache.calcite.sql.SqlTimestampLiteral;
+import org.apache.calcite.sql.SqlUpdate;
+import org.apache.calcite.sql.SqlUtil;
+import org.apache.calcite.sql.SqlWindow;
+import org.apache.calcite.sql.SqlWith;
+import org.apache.calcite.sql.SqlWithItem;
+import org.apache.calcite.sql.fun.SqlCase;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.fun.SqlTrimFunction;
+import org.apache.calcite.sql.parser.SqlAbstractParserImpl;
+import org.apache.calcite.sql.parser.SqlParseException;
+import org.apache.calcite.sql.parser.SqlParser;
+import org.apache.calcite.sql.parser.SqlParserImplFactory;
+import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.parser.SqlParserUtil;
+import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.util.trace.CalciteTrace;
+import org.apache.calcite.util.DateTimeUtil;
 
 import com.google.common.collect.ImmutableList;
 
 import java.io.Reader;
-import java.math.*;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.List;
-import java.util.logging.Logger;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 
-import static org.eigenbase.util.Static.RESOURCE;
+import static org.apache.calcite.util.Static.RESOURCE;
 
 /**
- * SQL parser, generated from Parser.jj and CommonParser.jj by JavaCC.
+ * SQL parser, generated from Parser.jj by JavaCC.
  *
  * <p>The public wrapper for this parser is {@link SqlParser}.
  */
 public class ${parser.class} extends SqlAbstractParserImpl
 {
-    private static final Logger LOGGER = EigenbaseTrace.getParserTracer();
+    private static final Logger LOGGER = CalciteTrace.getParserTracer();
 
     // Can't use quoted literal because of a bug in how JavaCC translates
     // backslash-backslash.
@@ -437,15 +481,15 @@ JAVACODE SqlParseException convertException(Throwable ex)
             int column = Integer.parseInt(matcher.group(2));
             pos = new SqlParserPos(line, column, line, column);
         }
-    } else if (ex instanceof org.eigenbase.util.EigenbaseContextException) {
-        // EigenbaseContextException is the standard wrapper for exceptions
+    } else if (ex instanceof CalciteContextException) {
+        // CalciteContextException is the standard wrapper for exceptions
         // produced by the validator, but in the parser, the standard is
         // SqlParseException; so, strip it away. In case you were wondering,
-        // the EigenbaseContextException appears because the parser
+        // the CalciteContextException appears because the parser
         // occasionally calls into validator-style code such as
         // SqlSpecialOperator.reduceExpr.
-        org.eigenbase.util.EigenbaseContextException ece =
-            (org.eigenbase.util.EigenbaseContextException) ex;
+        CalciteContextException ece =
+            (CalciteContextException) ex;
         pos = new SqlParserPos(
             ece.getPosLine(),
             ece.getPosColumn(),
@@ -666,9 +710,7 @@ SqlNode ParenthesizedExpression(ExprContext exprContext) :
 /**
  * Parses a parenthesized query or comma-list of row expressions.
  *
- *<p>
- *
- * REVIEW jvs 8-Feb-2004: There's a small hole in this production.  It can be
+ * <p>REVIEW jvs 8-Feb-2004: There's a small hole in this production.  It can be
  * used to construct something like
  *
  * <code>WHERE x IN (select count(*) from t where c=d,5)</code>,
@@ -732,10 +774,8 @@ SqlNodeList ParenthesizedQueryOrCommaList(
 /**
  * Parses function parameter lists including DISTINCT keyword recognition
  *
- *<p>
- *
- * This is pretty much the same as ParenthesizedQueryOrCommaList but allows the
- * DISTINCT keyword to follow the left paren and not be followed by a comma.
+ * <p>This is pretty much the same as ParenthesizedQueryOrCommaList but allows
+ * the DISTINCT keyword to follow the left paren and not be followed by a comma.
  */
 List FunctionParameterList(
     ExprContext exprContext) :
@@ -3919,9 +3959,7 @@ SqlNode BuiltinFunctionCall() :
  * Parses a call to a named function (could be a builtin with regular
  * syntax, or else a UDF).
  *
- *<p>
- *
- * NOTE: every UDF has two names: an <em>invocation name</em> and a
+ * <p>NOTE: every UDF has two names: an <em>invocation name</em> and a
  * <em>specific name</em>.  Normally, function calls are resolved via overload
  * resolution and invocation names.  The SPECIFIC prefix allows overload
  * resolution to be bypassed.  Note that usage of the SPECIFIC prefix in
@@ -3929,9 +3967,7 @@ SqlNode BuiltinFunctionCall() :
  * view definitions to permanently bind references to a particular function
  * after the overload resolution performed by view creation.
  *
- *<p>
- *
- * TODO jvs 25-Mar-2005:  Once we have SQL-Flagger support, flag SPECIFIC
+ * <p>TODO jvs 25-Mar-2005:  Once we have SQL-Flagger support, flag SPECIFIC
  * as non-standard.
  */
 SqlNode NamedFunctionCall() :
@@ -4916,9 +4952,7 @@ SqlPostfixOperator PostfixRowOperator() :
  * of this parser can use this as a base for implementing the
  * NonReservedKeyWord() production.
  *
- *<p>
- *
- * When adding keywords to this list, be sure that they are not reserved
+ * <p>When adding keywords to this list, be sure that they are not reserved
  * by the SQL:2003 standard (see productions for "non-reserved word"
  * and "reserved word" in reference below).
  *

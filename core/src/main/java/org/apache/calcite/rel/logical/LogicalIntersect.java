@@ -14,21 +14,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel;
+package org.apache.calcite.rel.logical;
+
+import org.apache.calcite.plan.Convention;
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.RelInput;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelShuttle;
+import org.apache.calcite.rel.core.Intersect;
 
 import java.util.List;
 
-import org.eigenbase.relopt.*;
-
 /**
- * <code>IntersectRel</code> returns the intersection of the rows of its inputs.
- * If "all" is true, then multiset intersection is performed; otherwise, set
- * intersection is performed (implying no duplicates in the results).
+ * Sub-class of {@link org.apache.calcite.rel.core.Intersect}
+ * not targeted at any particular engine or calling convention.
  */
-public final class IntersectRel extends IntersectRelBase {
+public final class LogicalIntersect extends Intersect {
   //~ Constructors -----------------------------------------------------------
 
-  public IntersectRel(
+  public LogicalIntersect(
       RelOptCluster cluster,
       List<RelNode> inputs,
       boolean all) {
@@ -39,29 +44,22 @@ public final class IntersectRel extends IntersectRelBase {
         all);
   }
 
-  /**
-   * Creates an IntersectRel by parsing serialized output.
-   */
-  public IntersectRel(RelInput input) {
+  /** Creates a LogicalIntersect by parsing serialized output. */
+  public LogicalIntersect(RelInput input) {
     super(input);
   }
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override
-  public IntersectRel copy(
-      RelTraitSet traitSet, List<RelNode> inputs, boolean all) {
+  @Override public LogicalIntersect copy(RelTraitSet traitSet,
+      List<RelNode> inputs, boolean all) {
     assert traitSet.containsIfApplicable(Convention.NONE);
-    return new IntersectRel(
-        getCluster(),
-        inputs,
-        all);
+    return new LogicalIntersect(getCluster(), inputs, all);
   }
 
-  @Override
-  public RelNode accept(RelShuttle shuttle) {
+  @Override public RelNode accept(RelShuttle shuttle) {
     return shuttle.visit(this);
   }
 }
 
-// End IntersectRel.java
+// End LogicalIntersect.java

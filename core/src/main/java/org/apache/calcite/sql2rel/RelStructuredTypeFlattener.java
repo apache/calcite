@@ -14,22 +14,71 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql2rel;
+package org.apache.calcite.sql2rel;
 
-import java.util.*;
-
-import org.eigenbase.rel.*;
-import org.eigenbase.relopt.*;
-import org.eigenbase.reltype.*;
-import org.eigenbase.rex.*;
-import org.eigenbase.sql.*;
-import org.eigenbase.sql.fun.*;
-import org.eigenbase.sql.type.*;
-import org.eigenbase.util.*;
-import org.eigenbase.util.mapping.Mappings;
+import org.apache.calcite.plan.Convention;
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.rel.RelCollation;
+import org.apache.calcite.rel.RelFieldCollation;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelVisitor;
+import org.apache.calcite.rel.core.Collect;
+import org.apache.calcite.rel.core.Correlation;
+import org.apache.calcite.rel.core.Correlator;
+import org.apache.calcite.rel.core.Sample;
+import org.apache.calcite.rel.core.Sort;
+import org.apache.calcite.rel.core.Uncollect;
+import org.apache.calcite.rel.logical.LogicalAggregate;
+import org.apache.calcite.rel.logical.LogicalCalc;
+import org.apache.calcite.rel.logical.LogicalFilter;
+import org.apache.calcite.rel.logical.LogicalIntersect;
+import org.apache.calcite.rel.logical.LogicalJoin;
+import org.apache.calcite.rel.logical.LogicalMinus;
+import org.apache.calcite.rel.logical.LogicalOneRow;
+import org.apache.calcite.rel.logical.LogicalProject;
+import org.apache.calcite.rel.logical.LogicalTableFunctionScan;
+import org.apache.calcite.rel.logical.LogicalTableModify;
+import org.apache.calcite.rel.logical.LogicalTableScan;
+import org.apache.calcite.rel.logical.LogicalUnion;
+import org.apache.calcite.rel.logical.LogicalValues;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexCorrelVariable;
+import org.apache.calcite.rex.RexFieldAccess;
+import org.apache.calcite.rex.RexInputRef;
+import org.apache.calcite.rex.RexLiteral;
+import org.apache.calcite.rex.RexLocalRef;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexProgram;
+import org.apache.calcite.rex.RexProgramBuilder;
+import org.apache.calcite.rex.RexShuttle;
+import org.apache.calcite.rex.RexUtil;
+import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.type.SqlTypeUtil;
+import org.apache.calcite.util.ReflectUtil;
+import org.apache.calcite.util.ReflectiveVisitDispatcher;
+import org.apache.calcite.util.ReflectiveVisitor;
+import org.apache.calcite.util.Util;
+import org.apache.calcite.util.mapping.Mappings;
 
 import com.google.common.base.Function;
-import com.google.common.collect.*;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.collect.SortedSetMultimap;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.SortedMap;
+import java.util.SortedSet;
 
 // TODO jvs 10-Feb-2005:  factor out generic rewrite helper, with the
 // ability to map between old and new rels and field ordinals.  Also,
@@ -48,14 +97,14 @@ import com.google.common.collect.*;
  * unflattened tree looks like:
  *
  * <pre><code>
- * ProjectRel(C2=[$1], A2=[$0.A2])
- *   TableAccessRel(table=[T])
+ * LogicalProject(C2=[$1], A2=[$0.A2])
+ *   LogicalTableScan(table=[T])
  * </code></pre>
  *
  * After flattening, the resulting tree looks like
  *
  * <pre><code>
- * ProjectRel(C2=[$3], A2=[$2])
+ * LogicalProject(C2=[$3], A2=[$2])
  *   FtrsIndexScanRel(table=[T], index=[clustered])
  * </code></pre>
  *
@@ -106,13 +155,13 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
   }
 
   public void updateRelInMap(
-      SortedMap<Correlation, CorrelatorRel> mapCorVarToCorRel) {
+      SortedMap<Correlation, Correlator> mapCorVarToCorRel) {
     for (Correlation corVar : mapCorVarToCorRel.keySet()) {
-      CorrelatorRel oldRel = mapCorVarToCorRel.get(corVar);
+      Correlator oldRel = mapCorVarToCorRel.get(corVar);
       if (oldToNewRelMap.containsKey(oldRel)) {
         RelNode newRel = oldToNewRelMap.get(oldRel);
-        assert newRel instanceof CorrelatorRel;
-        mapCorVarToCorRel.put(corVar, (CorrelatorRel) newRel);
+        assert newRel instanceof Correlator;
+        mapCorVarToCorRel.put(corVar, (Correlator) newRel);
       }
     }
   }
@@ -295,21 +344,21 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
     return exp.accept(shuttle);
   }
 
-  public void rewriteRel(TableModificationRel rel) {
-    TableModificationRel newRel =
-        new TableModificationRel(
+  public void rewriteRel(LogicalTableModify rel) {
+    LogicalTableModify newRel =
+        new LogicalTableModify(
             rel.getCluster(),
             rel.getTable(),
             rel.getCatalogReader(),
-            getNewForOldRel(rel.getChild()),
+            getNewForOldRel(rel.getInput()),
             rel.getOperation(),
             rel.getUpdateColumnList(),
             true);
     setNewForOldRel(rel, newRel);
   }
 
-  public void rewriteRel(AggregateRel rel) {
-    RelDataType inputType = rel.getChild().getRowType();
+  public void rewriteRel(LogicalAggregate rel) {
+    RelDataType inputType = rel.getInput().getRowType();
     for (RelDataTypeField field : inputType.getFieldList()) {
       if (field.getType().isStruct()) {
         // TODO jvs 10-Feb-2005
@@ -320,9 +369,9 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
     rewriteGeneric(rel);
   }
 
-  public void rewriteRel(SortRel rel) {
+  public void rewriteRel(Sort rel) {
     RelCollation oldCollation = rel.getCollation();
-    final RelNode oldChild = rel.getChild();
+    final RelNode oldChild = rel.getInput();
     final RelNode newChild = getNewForOldRel(oldChild);
     final Mappings.TargetMapping mapping =
         getNewForOldInputMapping(oldChild);
@@ -338,8 +387,8 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
       }
     }
     RelCollation newCollation = RexUtil.apply(mapping, oldCollation);
-    SortRel newRel =
-        new SortRel(
+    Sort newRel =
+        new Sort(
             rel.getCluster(),
             rel.getCluster().traitSetOf(Convention.NONE).plus(newCollation),
             newChild,
@@ -349,17 +398,17 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
     setNewForOldRel(rel, newRel);
   }
 
-  public void rewriteRel(FilterRel rel) {
+  public void rewriteRel(LogicalFilter rel) {
     RelNode newRel =
         RelOptUtil.createFilter(
-            getNewForOldRel(rel.getChild()),
+            getNewForOldRel(rel.getInput()),
             flattenFieldAccesses(rel.getCondition()));
     setNewForOldRel(rel, newRel);
   }
 
-  public void rewriteRel(JoinRel rel) {
-    JoinRel newRel =
-        new JoinRel(
+  public void rewriteRel(LogicalJoin rel) {
+    LogicalJoin newRel =
+        new LogicalJoin(
             rel.getCluster(),
             getNewForOldRel(rel.getLeft()),
             getNewForOldRel(rel.getRight()),
@@ -369,7 +418,7 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
     setNewForOldRel(rel, newRel);
   }
 
-  public void rewriteRel(CorrelatorRel rel) {
+  public void rewriteRel(Correlator rel) {
     final List<Correlation> newCorrelations =
         new ArrayList<Correlation>();
     for (Correlation c : rel.getCorrelations()) {
@@ -384,8 +433,8 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
               c.getId(),
               getNewForOldInput(c.getOffset())));
     }
-    CorrelatorRel newRel =
-        new CorrelatorRel(
+    Correlator newRel =
+        new Correlator(
             rel.getCluster(),
             getNewForOldRel(rel.getLeft()),
             getNewForOldRel(rel.getRight()),
@@ -395,47 +444,47 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
     setNewForOldRel(rel, newRel);
   }
 
-  public void rewriteRel(CollectRel rel) {
+  public void rewriteRel(Collect rel) {
     rewriteGeneric(rel);
   }
 
-  public void rewriteRel(UncollectRel rel) {
+  public void rewriteRel(Uncollect rel) {
     rewriteGeneric(rel);
   }
 
-  public void rewriteRel(IntersectRel rel) {
+  public void rewriteRel(LogicalIntersect rel) {
     rewriteGeneric(rel);
   }
 
-  public void rewriteRel(MinusRel rel) {
+  public void rewriteRel(LogicalMinus rel) {
     rewriteGeneric(rel);
   }
 
-  public void rewriteRel(UnionRel rel) {
+  public void rewriteRel(LogicalUnion rel) {
     rewriteGeneric(rel);
   }
 
-  public void rewriteRel(OneRowRel rel) {
+  public void rewriteRel(LogicalOneRow rel) {
     rewriteGeneric(rel);
   }
 
-  public void rewriteRel(ValuesRel rel) {
+  public void rewriteRel(LogicalValues rel) {
     // NOTE jvs 30-Apr-2006:  UDT instances require invocation
     // of a constructor method, which can't be represented
-    // by the tuples stored in a ValuesRel, so we don't have
+    // by the tuples stored in a LogicalValues, so we don't have
     // to worry about them here.
     rewriteGeneric(rel);
   }
 
-  public void rewriteRel(TableFunctionRel rel) {
+  public void rewriteRel(LogicalTableFunctionScan rel) {
     rewriteGeneric(rel);
   }
 
-  public void rewriteRel(SamplingRel rel) {
+  public void rewriteRel(Sample rel) {
     rewriteGeneric(rel);
   }
 
-  public void rewriteRel(ProjectRel rel) {
+  public void rewriteRel(LogicalProject rel) {
     final List<RexNode> flattenedExpList = new ArrayList<RexNode>();
     final List<String> flattenedFieldNameList = new ArrayList<String>();
     List<String> fieldNames = rel.getRowType().getFieldNames();
@@ -447,15 +496,15 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
         flattenedFieldNameList);
     RelNode newRel =
         RelOptUtil.createProject(
-            getNewForOldRel(rel.getChild()),
+            getNewForOldRel(rel.getInput()),
             flattenedExpList,
             flattenedFieldNameList);
     setNewForOldRel(rel, newRel);
   }
 
-  public void rewriteRel(CalcRel rel) {
+  public void rewriteRel(LogicalCalc rel) {
     // Translate the child.
-    final RelNode newChild = getNewForOldRel(rel.getChild());
+    final RelNode newChild = getNewForOldRel(rel.getInput());
 
     final RelOptCluster cluster = rel.getCluster();
     RexProgramBuilder programBuilder =
@@ -502,8 +551,8 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
     RexProgram newProgram = programBuilder.getProgram();
 
     // Create a new calc relational expression.
-    CalcRel newRel =
-        new CalcRel(
+    LogicalCalc newRel =
+        new LogicalCalc(
             cluster,
             rel.getTraitSet(),
             newChild,
@@ -653,7 +702,7 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
         || (call.isA(SqlKind.NEW_SPECIFICATION));
   }
 
-  public void rewriteRel(TableAccessRel rel) {
+  public void rewriteRel(LogicalTableScan rel) {
     RelNode newRel =
         rel.getTable().toRel(toRelContext);
 
@@ -662,15 +711,18 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
 
   //~ Inner Interfaces -------------------------------------------------------
 
+  /** Mix-in interface for relational expressions that know how to
+   * flatten themselves. */
   public interface SelfFlatteningRel extends RelNode {
     void flattenRel(RelStructuredTypeFlattener flattener);
   }
 
   //~ Inner Classes ----------------------------------------------------------
 
+  /** Visitor that flattens each relational expression in a tree. */
   private class RewriteRelVisitor extends RelVisitor {
     private final ReflectiveVisitDispatcher<RelStructuredTypeFlattener,
-        RelNode> dispatcher =
+            RelNode> dispatcher =
         ReflectUtil.createDispatcher(
             RelStructuredTypeFlattener.class,
             RelNode.class);
@@ -703,6 +755,7 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
     }
   }
 
+  /** Shuttle that rewrites scalar expressions. */
   private class RewriteRexShuttle extends RexShuttle {
     // override RexShuttle
     public RexNode visitInputRef(RexInputRef input) {

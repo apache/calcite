@@ -14,23 +14,38 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.impl.splunk;
+package org.apache.calcite.adapter.splunk;
 
-import net.hydromatic.optiq.impl.splunk.util.StringUtils;
-
-import org.eigenbase.rel.*;
-import org.eigenbase.relopt.*;
-import org.eigenbase.reltype.*;
-import org.eigenbase.rex.*;
-import org.eigenbase.sql.*;
-import org.eigenbase.sql.fun.SqlStdOperatorTable;
-import org.eigenbase.sql.type.SqlTypeName;
-import org.eigenbase.util.NlsString;
-import org.eigenbase.util.Pair;
+import org.apache.calcite.adapter.splunk.util.StringUtils;
+import org.apache.calcite.plan.RelOptRule;
+import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.plan.RelOptRuleOperand;
+import org.apache.calcite.rel.RelCollationImpl;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.logical.LogicalFilter;
+import org.apache.calcite.rel.logical.LogicalProject;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rel.type.RelRecordType;
+import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexInputRef;
+import org.apache.calcite.rex.RexLiteral;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexSlot;
+import org.apache.calcite.sql.SqlBinaryOperator;
+import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.util.NlsString;
+import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableSet;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Set;
 import java.util.logging.Logger;
 
 /**
@@ -58,34 +73,34 @@ public class SplunkPushDownRule
   public static final SplunkPushDownRule PROJECT_ON_FILTER =
       new SplunkPushDownRule(
           operand(
-              ProjectRel.class,
+              LogicalProject.class,
               operand(
-                  FilterRel.class,
+                  LogicalFilter.class,
                   operand(
-                      ProjectRel.class,
-                      operand(SplunkTableAccessRel.class, none())))),
+                      LogicalProject.class,
+                      operand(SplunkTableScan.class, none())))),
           "proj on filter on proj");
 
   public static final SplunkPushDownRule FILTER_ON_PROJECT =
       new SplunkPushDownRule(
           operand(
-              FilterRel.class,
+              LogicalFilter.class,
               operand(
-                  ProjectRel.class,
-                  operand(SplunkTableAccessRel.class, none()))),
+                  LogicalProject.class,
+                  operand(SplunkTableScan.class, none()))),
           "filter on proj");
 
   public static final SplunkPushDownRule FILTER =
       new SplunkPushDownRule(
           operand(
-              FilterRel.class, operand(SplunkTableAccessRel.class, none())),
+              LogicalFilter.class, operand(SplunkTableScan.class, none())),
           "filter");
 
   public static final SplunkPushDownRule PROJECT =
       new SplunkPushDownRule(
           operand(
-              ProjectRel.class,
-              operand(SplunkTableAccessRel.class, none())),
+              LogicalProject.class,
+              operand(SplunkTableScan.class, none())),
           "proj");
 
   /** Creates a SplunkPushDownRule. */
@@ -100,19 +115,19 @@ public class SplunkPushDownRule
     LOGGER.fine(description);
 
     int relLength = call.rels.length;
-    SplunkTableAccessRel splunkRel =
-        (SplunkTableAccessRel) call.rels[relLength - 1];
+    SplunkTableScan splunkRel =
+        (SplunkTableScan) call.rels[relLength - 1];
 
-    FilterRel  filter;
-    ProjectRel topProj    = null;
-    ProjectRel bottomProj = null;
+    LogicalFilter filter;
+    LogicalProject topProj    = null;
+    LogicalProject bottomProj = null;
 
 
     RelDataType topRow = splunkRel.getRowType();
 
     int filterIdx = 2;
-    if (call.rels[relLength - 2] instanceof ProjectRel) {
-      bottomProj = (ProjectRel) call.rels[relLength - 2];
+    if (call.rels[relLength - 2] instanceof LogicalProject) {
+      bottomProj = (LogicalProject) call.rels[relLength - 2];
       filterIdx  = 3;
 
       // bottom projection will change the field count/order
@@ -122,13 +137,13 @@ public class SplunkPushDownRule
     String filterString;
 
     if (filterIdx <= relLength
-        && call.rels[relLength - filterIdx] instanceof FilterRel) {
-      filter = (FilterRel) call.rels[relLength - filterIdx];
+        && call.rels[relLength - filterIdx] instanceof LogicalFilter) {
+      filter = (LogicalFilter) call.rels[relLength - filterIdx];
 
       int topProjIdx = filterIdx + 1;
       if (topProjIdx <= relLength
-          && call.rels[relLength - topProjIdx] instanceof ProjectRel) {
-        topProj = (ProjectRel) call.rels[relLength - topProjIdx];
+          && call.rels[relLength - topProjIdx] instanceof LogicalProject) {
+        topProj = (LogicalProject) call.rels[relLength - topProjIdx];
       }
 
       RexCall filterCall = (RexCall) filter.getCondition();
@@ -169,9 +184,9 @@ public class SplunkPushDownRule
    */
   protected RelNode appendSearchString(
       String toAppend,
-      SplunkTableAccessRel splunkRel,
-      ProjectRel topProj,
-      ProjectRel bottomProj,
+      SplunkTableScan splunkRel,
+      LogicalProject topProj,
+      LogicalProject bottomProj,
       RelDataType topRow,
       RelDataType bottomRow) {
     StringBuilder updateSearchStr = new StringBuilder(splunkRel.search);
@@ -243,7 +258,7 @@ public class SplunkPushDownRule
     String searchWithFilter = updateSearchStr.toString();
 
     RelNode rel =
-        new SplunkTableAccessRel(
+        new SplunkTableScan(
             splunkRel.getCluster(),
             splunkRel.getTable(),
             splunkRel.splunkTable,
@@ -260,11 +275,11 @@ public class SplunkPushDownRule
 
   // ~ Private Methods ------------------------------------------------------
 
-  private static RelNode addProjectionRule(ProjectRel proj, RelNode rel) {
+  private static RelNode addProjectionRule(LogicalProject proj, RelNode rel) {
     if (proj == null) {
       return rel;
     }
-    return new ProjectRel(
+    return new LogicalProject(
         proj.getCluster(),
         proj.getCluster().traitSetOf(
             proj.getCollationList().isEmpty()
@@ -399,32 +414,32 @@ public class SplunkPushDownRule
   // usually used to stop the optimizer from calling us
   protected void transformToFarragoUdxRel(
       RelOptRuleCall call,
-      SplunkTableAccessRel splunkRel,
-      FilterRel filter,
-      ProjectRel topProj,
-      ProjectRel bottomProj) {
+      SplunkTableScan splunkRel,
+      LogicalFilter filter,
+      LogicalProject topProj,
+      LogicalProject bottomProj) {
     assert false;
 /*
-        RelNode rel =
-            new JavaRules.EnumerableTableAccessRel(
-                udxRel.getCluster(),
-                udxRel.getTable(),
-                udxRel.getRowType(),
-                udxRel.getServerMofId());
+    RelNode rel =
+        new EnumerableRules.EnumerableTableAccessRel(
+            udxRel.getCluster(),
+            udxRel.getTable(),
+            udxRel.getRowType(),
+            udxRel.getServerMofId());
 
-        rel = RelOptUtil.createCastRel(rel, udxRel.getRowType(), true);
+    rel = RelOptUtil.createCastRel(rel, udxRel.getRowType(), true);
 
-        rel = addProjectionRule(bottomProj, rel);
+    rel = addProjectionRule(bottomProj, rel);
 
-        if (filter != null) {
-            rel =
-                new FilterRel(filter.getCluster(), rel, filter.getCondition());
-        }
+    if (filter != null) {
+      rel =
+          new LogicalFilter(filter.getCluster(), rel, filter.getCondition());
+    }
 
-        rel = addProjectionRule(topProj, rel);
+    rel = addProjectionRule(topProj, rel);
 
-        call.transformTo(rel);
-        */
+    call.transformTo(rel);
+*/
   }
 
   public static String getFieldsString(RelDataType row) {

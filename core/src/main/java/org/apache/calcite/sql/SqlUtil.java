@@ -14,24 +14,36 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql;
+package org.apache.calcite.sql;
 
-import java.nio.charset.*;
-import java.sql.*;
-import java.text.*;
-import java.util.*;
-
-import org.eigenbase.reltype.*;
-import org.eigenbase.resource.Resources;
-import org.eigenbase.sql.fun.*;
-import org.eigenbase.sql.parser.*;
-import org.eigenbase.sql.type.*;
-import org.eigenbase.util.*;
-import org.eigenbase.util14.*;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rel.type.RelDataTypePrecedenceList;
+import org.apache.calcite.runtime.CalciteContextException;
+import org.apache.calcite.runtime.CalciteException;
+import org.apache.calcite.runtime.Resources;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.type.SqlTypeFamily;
+import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.type.SqlTypeUtil;
+import org.apache.calcite.util.BarfingInvocationHandler;
+import org.apache.calcite.util.ConversionUtil;
+import org.apache.calcite.util.NlsString;
+import org.apache.calcite.util.Pair;
+import org.apache.calcite.util.Util;
 
 import com.google.common.collect.Lists;
 
-import static org.eigenbase.util.Static.RESOURCE;
+import java.nio.charset.Charset;
+import java.sql.DatabaseMetaData;
+import java.sql.SQLException;
+import java.text.MessageFormat;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+
+import static org.apache.calcite.util.Static.RESOURCE;
 
 /**
  * Contains utility functions related to SQL parsing, all static.
@@ -637,11 +649,11 @@ public abstract class SqlUtil {
   /**
    * Wraps an exception with context.
    */
-  public static EigenbaseException newContextException(
+  public static CalciteException newContextException(
       final SqlParserPos pos,
       Resources.ExInst<?> e,
       String inputText) {
-    EigenbaseContextException ex = newContextException(pos, e);
+    CalciteContextException ex = newContextException(pos, e);
     ex.setOriginalStatement(inputText);
     return ex;
   }
@@ -649,7 +661,7 @@ public abstract class SqlUtil {
   /**
    * Wraps an exception with context.
    */
-  public static EigenbaseContextException newContextException(
+  public static CalciteContextException newContextException(
       final SqlParserPos pos,
       Resources.ExInst<?> e) {
     int line = pos.getLineNum();
@@ -662,13 +674,13 @@ public abstract class SqlUtil {
   /**
    * Wraps an exception with context.
    */
-  public static EigenbaseContextException newContextException(
+  public static CalciteContextException newContextException(
       int line,
       int col,
       int endLine,
       int endCol,
       Resources.ExInst<?> e) {
-    EigenbaseContextException contextExcn =
+    CalciteContextException contextExcn =
         (line == endLine && col == endCol
             ? RESOURCE.validatorContextPoint(line, col)
             : RESOURCE.validatorContext(line, col, endLine, endCol)).ex(e.ex());
@@ -686,10 +698,11 @@ public abstract class SqlUtil {
   }
 
   /**
-   * Creates the type of an {@link NlsString}.
+   * Creates the type of an {@link org.apache.calcite.util.NlsString}.
    *
-   * <p>The type inherits the The NlsString's {@link Charset} and {@link
-   * SqlCollation}, if they are set, otherwise it gets the system defaults.
+   * <p>The type inherits the The NlsString's {@link Charset} and
+   * {@link SqlCollation}, if they are set, otherwise it gets the system
+   * defaults.
    *
    * @param typeFactory Type factory
    * @param str         String
@@ -755,8 +768,9 @@ public abstract class SqlUtil {
 
   /**
    * Handles particular {@link DatabaseMetaData} methods; invocations of other
-   * methods will fall through to the base class, {@link
-   * BarfingInvocationHandler}, which will throw an error.
+   * methods will fall through to the base class,
+   * {@link org.apache.calcite.util.BarfingInvocationHandler}, which will throw
+   * an error.
    */
   public static class DatabaseMetaDataInvocationHandler
       extends BarfingInvocationHandler {

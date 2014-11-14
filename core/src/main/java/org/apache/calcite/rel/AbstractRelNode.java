@@ -14,23 +14,40 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel;
+package org.apache.calcite.rel;
 
-import java.io.*;
-import java.util.*;
-import java.util.logging.*;
-
-import org.eigenbase.rel.metadata.*;
-import org.eigenbase.relopt.*;
-import org.eigenbase.reltype.*;
-import org.eigenbase.rex.*;
-import org.eigenbase.sql.*;
-import org.eigenbase.trace.*;
-import org.eigenbase.util.*;
-
-import net.hydromatic.optiq.util.BitSets;
+import org.apache.calcite.plan.Convention;
+import org.apache.calcite.plan.ConventionTraitDef;
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptCost;
+import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.plan.RelOptQuery;
+import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.plan.RelTrait;
+import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.externalize.RelWriterImpl;
+import org.apache.calcite.rel.metadata.Metadata;
+import org.apache.calcite.rel.metadata.RelMetadataQuery;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.sql.SqlExplainLevel;
+import org.apache.calcite.util.BitSets;
+import org.apache.calcite.util.Pair;
+import org.apache.calcite.util.Util;
+import org.apache.calcite.util.trace.CalciteTrace;
 
 import com.google.common.collect.ImmutableList;
+
+import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.util.ArrayList;
+import java.util.BitSet;
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Base class for every relational expression ({@link RelNode}).
@@ -44,7 +61,7 @@ public abstract class AbstractRelNode implements RelNode {
   /** Generator for {@link #id} values. */
   static int nextId = 0;
 
-  private static final Logger LOGGER = EigenbaseTrace.getPlannerTracer();
+  private static final Logger LOGGER = CalciteTrace.getPlannerTracer();
 
   //~ Instance fields --------------------------------------------------------
 
@@ -61,9 +78,9 @@ public abstract class AbstractRelNode implements RelNode {
   /**
    * A short description of this relational expression's type, inputs, and
    * other properties. The string uniquely identifies the node; another node
-   * is equivalent if and only if it has the same value. Computed by {@link
-   * #computeDigest}, assigned by {@link #onRegister}, returned by {@link
-   * #getDigest()}.
+   * is equivalent if and only if it has the same value. Computed by
+   * {@link #computeDigest}, assigned by {@link #onRegister}, returned by
+   * {@link #getDigest()}.
    *
    * @see #desc
    */
@@ -115,9 +132,10 @@ public abstract class AbstractRelNode implements RelNode {
         && traitSet == getTraitSet()) {
       return this;
     }
-    throw new AssertionError(
-        "Relational expression should override copy. Class=[" + getClass()
-        + "]; traits=[" + getTraitSet() + "]; desired traits=[" + traitSet
+    throw new AssertionError("Relational expression should override copy. "
+        + "Class=[" + getClass()
+        + "]; traits=[" + getTraitSet()
+        + "]; desired traits=[" + traitSet
         + "]");
   }
 
@@ -252,8 +270,8 @@ public abstract class AbstractRelNode implements RelNode {
   }
 
   public RelNode accept(RelShuttle shuttle) {
-    // Call fall-back method. Specific logical types (such as ProjectRel
-    // and JoinRel) have their own RelShuttle.visit methods.
+    // Call fall-back method. Specific logical types (such as LogicalProject
+    // and LogicalJoin) have their own RelShuttle.visit methods.
     return shuttle.visit(this);
   }
 
@@ -283,9 +301,10 @@ public abstract class AbstractRelNode implements RelNode {
   /**
    * Describes the inputs and attributes of this relational expression.
    * Each node should call {@code super.explainTerms}, then call the
-   * {@link RelWriterImpl#input(String, RelNode)}
-   * and {@link RelWriterImpl#item(String, Object)} methods for each input
-   * and attribute.
+   * {@link org.apache.calcite.rel.externalize.RelWriterImpl#input(String, RelNode)}
+   * and
+   * {@link org.apache.calcite.rel.externalize.RelWriterImpl#item(String, Object)}
+   * methods for each input and attribute.
    *
    * @param pw Plan writer
    */

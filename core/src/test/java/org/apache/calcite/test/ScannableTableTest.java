@@ -14,33 +14,42 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.test;
+package org.apache.calcite.test;
 
-import net.hydromatic.linq4j.AbstractEnumerable;
-import net.hydromatic.linq4j.Enumerable;
-import net.hydromatic.linq4j.Enumerator;
-
-import net.hydromatic.optiq.*;
-import net.hydromatic.optiq.impl.AbstractSchema;
-import net.hydromatic.optiq.impl.AbstractTable;
-import net.hydromatic.optiq.impl.java.ReflectiveSchema;
-import net.hydromatic.optiq.jdbc.OptiqConnection;
-
-import org.eigenbase.reltype.RelDataType;
-import org.eigenbase.reltype.RelDataTypeFactory;
-import org.eigenbase.rex.RexCall;
-import org.eigenbase.rex.RexInputRef;
-import org.eigenbase.rex.RexLiteral;
-import org.eigenbase.rex.RexNode;
-import org.eigenbase.sql.fun.SqlStdOperatorTable;
-import org.eigenbase.sql.type.SqlTypeName;
-import org.eigenbase.util.Bug;
+import org.apache.calcite.DataContext;
+import org.apache.calcite.adapter.java.ReflectiveSchema;
+import org.apache.calcite.jdbc.CalciteConnection;
+import org.apache.calcite.linq4j.AbstractEnumerable;
+import org.apache.calcite.linq4j.Enumerable;
+import org.apache.calcite.linq4j.Enumerator;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexInputRef;
+import org.apache.calcite.rex.RexLiteral;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.schema.FilterableTable;
+import org.apache.calcite.schema.ProjectableFilterableTable;
+import org.apache.calcite.schema.ScannableTable;
+import org.apache.calcite.schema.Schema;
+import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.schema.Statistic;
+import org.apache.calcite.schema.Statistics;
+import org.apache.calcite.schema.impl.AbstractSchema;
+import org.apache.calcite.schema.impl.AbstractTable;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.util.Bug;
 
 import org.junit.Assert;
 import org.junit.Test;
 
 import java.math.BigDecimal;
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
@@ -51,7 +60,7 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 /**
- * Unit test for {@link net.hydromatic.optiq.ScannableTable}.
+ * Unit test for {@link org.apache.calcite.schema.ScannableTable}.
  */
 public class ScannableTableTest {
   @Test public void testTens() throws SQLException {
@@ -72,15 +81,15 @@ public class ScannableTableTest {
   @Test public void testSimple() throws Exception {
     Connection connection =
         DriverManager.getConnection("jdbc:calcite:");
-    OptiqConnection optiqConnection =
-        connection.unwrap(OptiqConnection.class);
-    SchemaPlus rootSchema = optiqConnection.getRootSchema();
+    CalciteConnection calciteConnection =
+        connection.unwrap(CalciteConnection.class);
+    SchemaPlus rootSchema = calciteConnection.getRootSchema();
     SchemaPlus schema = rootSchema.add("s", new AbstractSchema());
     schema.add("simple", new SimpleTable());
     rootSchema.add("hr", new ReflectiveSchema(new JdbcTest.HrSchema()));
     ResultSet resultSet = connection.createStatement().executeQuery(
         "select * from \"s\".\"simple\"");
-    assertThat(OptiqAssert.toString(resultSet),
+    assertThat(CalciteAssert.toString(resultSet),
         equalTo("i=0\ni=10\ni=20\ni=30\n"));
   }
 
@@ -88,15 +97,15 @@ public class ScannableTableTest {
   @Test public void testSimple2() throws Exception {
     Connection connection =
         DriverManager.getConnection("jdbc:calcite:");
-    OptiqConnection optiqConnection =
-        connection.unwrap(OptiqConnection.class);
-    SchemaPlus rootSchema = optiqConnection.getRootSchema();
+    CalciteConnection calciteConnection =
+        connection.unwrap(CalciteConnection.class);
+    SchemaPlus rootSchema = calciteConnection.getRootSchema();
     SchemaPlus schema = rootSchema.add("s", new AbstractSchema());
     schema.add("beatles", new BeatlesTable());
     rootSchema.add("hr", new ReflectiveSchema(new JdbcTest.HrSchema()));
     ResultSet resultSet = connection.createStatement().executeQuery(
         "select * from \"s\".\"beatles\"");
-    assertThat(OptiqAssert.toString(resultSet),
+    assertThat(CalciteAssert.toString(resultSet),
         equalTo("i=4; j=John\ni=4; j=Paul\ni=6; j=George\ni=5; j=Ringo\n"));
   }
 
@@ -104,16 +113,16 @@ public class ScannableTableTest {
   @Test public void testSimpleFilter2() throws Exception {
     Connection connection =
         DriverManager.getConnection("jdbc:calcite:");
-    OptiqConnection optiqConnection =
-        connection.unwrap(OptiqConnection.class);
-    SchemaPlus rootSchema = optiqConnection.getRootSchema();
+    CalciteConnection calciteConnection =
+        connection.unwrap(CalciteConnection.class);
+    SchemaPlus rootSchema = calciteConnection.getRootSchema();
     SchemaPlus schema = rootSchema.add("s", new AbstractSchema());
     final StringBuilder buf = new StringBuilder();
     schema.add("beatles", new BeatlesFilterableTable(buf, true));
     final Statement statement = connection.createStatement();
     ResultSet resultSet = statement.executeQuery(
         "select * from \"s\".\"beatles\" where \"i\" = 4");
-    assertThat(OptiqAssert.toString(resultSet),
+    assertThat(CalciteAssert.toString(resultSet),
         equalTo("i=4; j=John; k=1940\ni=4; j=Paul; k=1942\n"));
     resultSet.close();
     // Only 2 rows came out of the table. If the value is 4, it means that the
@@ -126,28 +135,28 @@ public class ScannableTableTest {
     schema.add("beatles2", new BeatlesFilterableTable(buf, false));
     resultSet = statement.executeQuery(
         "select * from \"s\".\"beatles2\" where \"i\" = 4");
-    assertThat(OptiqAssert.toString(resultSet),
+    assertThat(CalciteAssert.toString(resultSet),
         equalTo("i=4; j=John; k=1940\ni=4; j=Paul; k=1942\n"));
     resultSet.close();
     assertThat(buf.toString(), equalTo("returnCount=4"));
     buf.setLength(0);
   }
 
-  /** A filter on a {@link net.hydromatic.optiq.ProjectableFilterableTable} with
-   * two columns. */
+  /** A filter on a {@link org.apache.calcite.schema.ProjectableFilterableTable}
+   * with two columns. */
   @Test public void testProjectableFilterable2() throws Exception {
     Connection connection =
         DriverManager.getConnection("jdbc:calcite:");
-    OptiqConnection optiqConnection =
-        connection.unwrap(OptiqConnection.class);
-    SchemaPlus rootSchema = optiqConnection.getRootSchema();
+    CalciteConnection calciteConnection =
+        connection.unwrap(CalciteConnection.class);
+    SchemaPlus rootSchema = calciteConnection.getRootSchema();
     SchemaPlus schema = rootSchema.add("s", new AbstractSchema());
     final StringBuilder buf = new StringBuilder();
     schema.add("beatles", new BeatlesProjectableFilterableTable(buf, true));
     final Statement statement = connection.createStatement();
     ResultSet resultSet = statement.executeQuery(
         "select * from \"s\".\"beatles\" where \"i\" = 4");
-    assertThat(OptiqAssert.toString(resultSet),
+    assertThat(CalciteAssert.toString(resultSet),
         equalTo("i=4; j=John; k=1940\ni=4; j=Paul; k=1942\n"));
     resultSet.close();
     // Only 2 rows came out of the table. If the value is 4, it means that the
@@ -160,21 +169,21 @@ public class ScannableTableTest {
     schema.add("beatles2", new BeatlesProjectableFilterableTable(buf, false));
     resultSet = statement.executeQuery(
         "select * from \"s\".\"beatles2\" where \"i\" = 4");
-    assertThat(OptiqAssert.toString(resultSet),
+    assertThat(CalciteAssert.toString(resultSet),
         equalTo("i=4; j=John; k=1940\ni=4; j=Paul; k=1942\n"));
     resultSet.close();
     assertThat(buf.toString(), equalTo("returnCount=4"));
     buf.setLength(0);
   }
 
-  /** A filter on a {@link net.hydromatic.optiq.ProjectableFilterableTable} with
-   * two columns, and a project in the query. */
+  /** A filter on a {@link org.apache.calcite.schema.ProjectableFilterableTable}
+   * with two columns, and a project in the query. */
   @Test public void testProjectableFilterable2WithProject() throws Exception {
     Connection connection =
         DriverManager.getConnection("jdbc:calcite:");
-    OptiqConnection optiqConnection =
-        connection.unwrap(OptiqConnection.class);
-    SchemaPlus rootSchema = optiqConnection.getRootSchema();
+    CalciteConnection calciteConnection =
+        connection.unwrap(CalciteConnection.class);
+    SchemaPlus rootSchema = calciteConnection.getRootSchema();
     SchemaPlus schema = rootSchema.add("s", new AbstractSchema());
     final StringBuilder buf = new StringBuilder();
     schema.add("beatles", new BeatlesProjectableFilterableTable(buf, true));
@@ -183,7 +192,7 @@ public class ScannableTableTest {
     final Statement statement = connection.createStatement();
     ResultSet resultSet = statement.executeQuery(
         "select \"k\",\"j\" from \"s\".\"beatles\" where \"i\" = 4");
-    assertThat(OptiqAssert.toString(resultSet),
+    assertThat(CalciteAssert.toString(resultSet),
         equalTo("k=1940; j=John\nk=1942; j=Paul\n"));
     resultSet.close();
     assertThat(buf.toString(), equalTo("returnCount=2, projects=[2, 1]"));
@@ -191,15 +200,15 @@ public class ScannableTableTest {
   }
 
   /** A filter and project on a
-   * {@link net.hydromatic.optiq.ProjectableFilterableTable}. The table
+   * {@link org.apache.calcite.schema.ProjectableFilterableTable}. The table
    * refuses to execute the filter, so Calcite should add a pull up and
    * transform the filter (projecting the column needed by the filter). */
   @Test public void testPFTableRefusesFilter() throws Exception {
     Connection connection =
         DriverManager.getConnection("jdbc:calcite:");
-    OptiqConnection optiqConnection =
-        connection.unwrap(OptiqConnection.class);
-    SchemaPlus rootSchema = optiqConnection.getRootSchema();
+    CalciteConnection calciteConnection =
+        connection.unwrap(CalciteConnection.class);
+    SchemaPlus rootSchema = calciteConnection.getRootSchema();
     SchemaPlus schema = rootSchema.add("s", new AbstractSchema());
     final StringBuilder buf = new StringBuilder();
     schema.add("beatles2", new BeatlesProjectableFilterableTable(buf, false));
@@ -209,7 +218,7 @@ public class ScannableTableTest {
     final Statement statement = connection.createStatement();
     ResultSet resultSet = statement.executeQuery(
         "select \"k\" from \"s\".\"beatles2\" where \"i\" = 4");
-    assertThat(OptiqAssert.toString(resultSet),
+    assertThat(CalciteAssert.toString(resultSet),
         equalTo(Bug.CALCITE_445_FIXED ? "k=1940\nk=1942\n" : ""));
     resultSet.close();
     assertThat(buf.toString(),

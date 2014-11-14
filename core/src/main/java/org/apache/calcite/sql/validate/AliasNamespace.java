@@ -14,16 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql.validate;
+package org.apache.calcite.sql.validate;
 
-import java.util.*;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlIdentifier;
+import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.util.Util;
 
-import org.eigenbase.reltype.*;
-import org.eigenbase.sql.*;
-import org.eigenbase.sql.fun.*;
-import org.eigenbase.util.Util;
+import java.util.ArrayList;
+import java.util.List;
 
-import static org.eigenbase.util.Static.RESOURCE;
+import static org.apache.calcite.util.Static.RESOURCE;
 
 /**
  * Namespace for an <code>AS t(c1, c2, ...)</code> clause.
@@ -115,8 +119,7 @@ public class AliasNamespace extends AbstractNamespace {
       }
       ++i;
     }
-    throw new AssertionError(
-        "unknown field '" + name
+    throw new AssertionError("unknown field '" + name
         + "' in rowtype " + underlyingRowType);
   }
 }

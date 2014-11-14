@@ -14,22 +14,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql.validate;
+package org.apache.calcite.sql.validate;
 
-import java.util.*;
-
-import org.eigenbase.reltype.*;
-import org.eigenbase.sql.*;
-import org.eigenbase.sql.parser.*;
-import org.eigenbase.util.*;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.sql.SqlIdentifier;
+import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableList;
 
-import static org.eigenbase.util.Static.RESOURCE;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
+import static org.apache.calcite.util.Static.RESOURCE;
 
 /**
- * Namespace whose contents are defined by the type of an {@link
- * org.eigenbase.sql.SqlIdentifier identifier}.
+ * Namespace whose contents are defined by the type of an
+ * {@link org.apache.calcite.sql.SqlIdentifier identifier}.
  */
 public class IdentifierNamespace extends AbstractNamespace {
   //~ Instance fields --------------------------------------------------------

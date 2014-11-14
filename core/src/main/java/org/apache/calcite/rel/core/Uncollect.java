@@ -14,26 +14,32 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel;
+package org.apache.calcite.rel.core;
+
+import org.apache.calcite.plan.Convention;
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.RelInput;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.SingleRel;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.sql.SqlUtil;
 
 import java.util.List;
 
-import org.eigenbase.relopt.*;
-import org.eigenbase.reltype.*;
-import org.eigenbase.sql.*;
-
 /**
- * A relational expression which unnests its input's sole column into a
+ * Relational expression that unnests its input's sole column into a
  * relation.
  *
- * <p>Like its inverse operation {@link CollectRel}, UncollectRel is generally
- * invoked in a nested loop, driven by {@link CorrelatorRel} or similar.
+ * <p>Like its inverse operation {@link Collect}, Uncollect is generally
+ * invoked in a nested loop, driven by {@link Correlator} or similar.
  */
-public class UncollectRel extends SingleRel {
+public class Uncollect extends SingleRel {
   //~ Constructors -----------------------------------------------------------
 
   /**
-   * Creates an UncollectRel.
+   * Creates an Uncollect.
    *
    * <p>The row type of the child relational expression must contain precisely
    * one column, that column must be a multiset of records.
@@ -42,16 +48,16 @@ public class UncollectRel extends SingleRel {
    * @param traitSet Traits
    * @param child   Child relational expression
    */
-  public UncollectRel(RelOptCluster cluster, RelTraitSet traitSet,
+  public Uncollect(RelOptCluster cluster, RelTraitSet traitSet,
       RelNode child) {
     super(cluster, traitSet, child);
     assert deriveRowType() != null : "invalid child rowtype";
   }
 
   /**
-   * Creates an UncollectRel by parsing serialized output.
+   * Creates an Uncollect by parsing serialized output.
    */
-  public UncollectRel(RelInput input) {
+  public Uncollect(RelInput input) {
     this(input.getCluster(), input.getTraitSet(), input.getInput());
   }
 
@@ -64,11 +70,11 @@ public class UncollectRel extends SingleRel {
 
   public RelNode copy(RelTraitSet traitSet, RelNode input) {
     assert traitSet.containsIfApplicable(Convention.NONE);
-    return new UncollectRel(getCluster(), traitSet, input);
+    return new Uncollect(getCluster(), traitSet, input);
   }
 
   protected RelDataType deriveRowType() {
-    return deriveUncollectRowType(getChild());
+    return deriveUncollectRowType(getInput());
   }
 
   /**
@@ -96,4 +102,4 @@ public class UncollectRel extends SingleRel {
   }
 }
 
-// End UncollectRel.java
+// End Uncollect.java

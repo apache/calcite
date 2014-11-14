@@ -14,16 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql;
+package org.apache.calcite.sql;
 
-import java.util.*;
-
-import org.eigenbase.sql.parser.*;
-import org.eigenbase.sql.util.*;
-import org.eigenbase.sql.validate.*;
-import org.eigenbase.util.Util;
+import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.util.SqlVisitor;
+import org.apache.calcite.sql.validate.SqlMonotonicity;
+import org.apache.calcite.sql.validate.SqlValidator;
+import org.apache.calcite.sql.validate.SqlValidatorNamespace;
+import org.apache.calcite.sql.validate.SqlValidatorScope;
+import org.apache.calcite.sql.validate.SqlValidatorUtil;
+import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
+
+import java.util.List;
 
 /**
  * A <code>SqlIdentifier</code> is an identifier, possibly compound.
@@ -150,8 +154,9 @@ public class SqlIdentifier extends SqlNode {
 
   /**
    * Creates an identifier which contains only the <code>ordinal</code>th
-   * component of this compound identifier. It will have the correct {@link
-   * SqlParserPos}, provided that detailed position information is available.
+   * component of this compound identifier. It will have the correct
+   * {@link SqlParserPos}, provided that detailed position information is
+   * available.
    */
   public SqlIdentifier getComponent(int ordinal) {
     return new SqlIdentifier(names.get(ordinal),

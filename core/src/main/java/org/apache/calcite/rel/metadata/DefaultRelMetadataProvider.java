@@ -14,15 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel.metadata;
+package org.apache.calcite.rel.metadata;
 
 import com.google.common.collect.ImmutableList;
 
 /**
- * DefaultRelMetadataProvider supplies a default implementation of the {@link
- * RelMetadataProvider} interface. It provides generic formulas and derivation
- * rules for the standard logical algebra; coverage corresponds to the methods
- * declared in {@link RelMetadataQuery}.
+ * DefaultRelMetadataProvider supplies a default implementation of the
+ * {@link RelMetadataProvider} interface. It provides generic formulas and
+ * derivation rules for the standard logical algebra; coverage corresponds to
+ * the methods declared in {@link RelMetadataQuery}.
  */
 public class DefaultRelMetadataProvider extends ChainedRelMetadataProvider {
   //~ Constructors -----------------------------------------------------------

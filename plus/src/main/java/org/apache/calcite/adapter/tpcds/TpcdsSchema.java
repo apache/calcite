@@ -14,36 +14,34 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.impl.tpcds;
+package org.apache.calcite.adapter.tpcds;
 
-import net.hydromatic.linq4j.Enumerator;
-import net.hydromatic.linq4j.Linq4j;
-import net.hydromatic.linq4j.QueryProvider;
-import net.hydromatic.linq4j.Queryable;
-
-import net.hydromatic.optiq.SchemaPlus;
-import net.hydromatic.optiq.Statistic;
-import net.hydromatic.optiq.Statistics;
-import net.hydromatic.optiq.Table;
-import net.hydromatic.optiq.impl.AbstractSchema;
-import net.hydromatic.optiq.impl.AbstractTableQueryable;
-import net.hydromatic.optiq.impl.java.AbstractQueryableTable;
-
-import org.eigenbase.reltype.RelDataType;
-import org.eigenbase.reltype.RelDataTypeFactory;
-import org.eigenbase.util.Bug;
+import org.apache.calcite.adapter.java.AbstractQueryableTable;
+import org.apache.calcite.linq4j.Enumerator;
+import org.apache.calcite.linq4j.Linq4j;
+import org.apache.calcite.linq4j.QueryProvider;
+import org.apache.calcite.linq4j.Queryable;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.schema.Statistic;
+import org.apache.calcite.schema.Statistics;
+import org.apache.calcite.schema.Table;
+import org.apache.calcite.schema.impl.AbstractSchema;
+import org.apache.calcite.schema.impl.AbstractTableQueryable;
+import org.apache.calcite.util.Bug;
 
 import com.google.common.collect.ImmutableMap;
+
+import net.hydromatic.tpcds.TpcdsColumn;
+import net.hydromatic.tpcds.TpcdsEntity;
+import net.hydromatic.tpcds.TpcdsTable;
 
 import java.sql.Date;
 import java.util.BitSet;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-
-import net.hydromatic.tpcds.TpcdsColumn;
-import net.hydromatic.tpcds.TpcdsEntity;
-import net.hydromatic.tpcds.TpcdsTable;
 
 /** Schema that provides TPC-DS tables, populated according to a
  * particular scale factor. */
@@ -96,8 +94,7 @@ public class TpcdsSchema extends AbstractSchema {
     this.tableMap = builder.build();
   }
 
-  @Override
-  protected Map<String, Table> getTableMap() {
+  @Override protected Map<String, Table> getTableMap() {
     return tableMap;
   }
 
@@ -185,4 +182,3 @@ public class TpcdsSchema extends AbstractSchema {
 }
 
 // End TpcdsSchema.java
-

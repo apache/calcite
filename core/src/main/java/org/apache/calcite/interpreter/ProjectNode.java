@@ -14,15 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.impl.interpreter;
+package org.apache.calcite.interpreter;
 
-import org.eigenbase.rel.ProjectRelBase;
-import org.eigenbase.rex.RexNode;
+import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rex.RexNode;
 
 import com.google.common.collect.ImmutableList;
 
 /**
- * Interpreter node that implements a {@link org.eigenbase.rel.FilterRel}.
+ * Interpreter node that implements a
+ * {@link org.apache.calcite.rel.logical.LogicalFilter}.
  */
 public class ProjectNode implements Node {
   private final ImmutableList<Scalar> projects;
@@ -30,7 +31,7 @@ public class ProjectNode implements Node {
   private final Sink sink;
   private final Context context;
 
-  public ProjectNode(Interpreter interpreter, ProjectRelBase rel) {
+  public ProjectNode(Interpreter interpreter, Project rel) {
     ImmutableList.Builder<Scalar> builder = ImmutableList.builder();
     for (RexNode node : rel.getProjects()) {
       builder.add(interpreter.compile(node));

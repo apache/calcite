@@ -14,33 +14,38 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.relopt;
+package org.apache.calcite.plan;
 
-import java.util.List;
-
-import org.eigenbase.rel.*;
-import org.eigenbase.rel.metadata.DefaultRelMetadataProvider;
-import org.eigenbase.rel.rules.AggregateFilterTransposeRule;
-import org.eigenbase.rel.rules.AggregateProjectMergeRule;
-import org.eigenbase.rel.rules.MergeProjectRule;
-import org.eigenbase.rel.rules.PullUpProjectsAboveJoinRule;
-import org.eigenbase.rel.rules.PushFilterPastJoinRule;
-import org.eigenbase.rel.rules.PushProjectPastFilterRule;
-import org.eigenbase.rex.RexNode;
-import org.eigenbase.rex.RexUtil;
-import org.eigenbase.sql.SqlExplainLevel;
-import org.eigenbase.util.Util;
-import org.eigenbase.util.mapping.Mappings;
-
-import net.hydromatic.optiq.Table;
-import net.hydromatic.optiq.impl.StarTable;
-import net.hydromatic.optiq.prepare.OptiqPrepareImpl;
-import net.hydromatic.optiq.tools.Program;
-import net.hydromatic.optiq.tools.Programs;
+import org.apache.calcite.prepare.CalcitePrepareImpl;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelShuttleImpl;
+import org.apache.calcite.rel.core.Filter;
+import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.core.TableScan;
+import org.apache.calcite.rel.logical.LogicalJoin;
+import org.apache.calcite.rel.logical.LogicalTableScan;
+import org.apache.calcite.rel.metadata.DefaultRelMetadataProvider;
+import org.apache.calcite.rel.rules.AggregateFilterTransposeRule;
+import org.apache.calcite.rel.rules.AggregateProjectMergeRule;
+import org.apache.calcite.rel.rules.FilterJoinRule;
+import org.apache.calcite.rel.rules.JoinProjectTransposeRule;
+import org.apache.calcite.rel.rules.ProjectFilterTransposeRule;
+import org.apache.calcite.rel.rules.ProjectMergeRule;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexUtil;
+import org.apache.calcite.schema.Table;
+import org.apache.calcite.schema.impl.StarTable;
+import org.apache.calcite.sql.SqlExplainLevel;
+import org.apache.calcite.tools.Program;
+import org.apache.calcite.tools.Programs;
+import org.apache.calcite.util.Util;
+import org.apache.calcite.util.mapping.Mappings;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
+
+import java.util.List;
 
 /**
  * Records that a particular query is materialized by a particular table.
@@ -71,9 +76,9 @@ public class RelOptMaterialization {
 
   /**
    * Converts a relational expression to one that uses a
-   * {@link net.hydromatic.optiq.impl.StarTable}.
+   * {@link org.apache.calcite.schema.impl.StarTable}.
    * The relational expression is already in leaf-join-form, per
-   * {@link #toLeafJoinForm(org.eigenbase.rel.RelNode)}.
+   * {@link #toLeafJoinForm(org.apache.calcite.rel.RelNode)}.
    */
   public static RelNode tryUseStar(RelNode rel,
       final RelOptTable starRelOptTable) {
@@ -81,8 +86,7 @@ public class RelOptMaterialization {
     assert starTable != null;
     RelNode rel2 = rel.accept(
         new RelShuttleImpl() {
-          @Override
-          public RelNode visit(TableAccessRelBase scan) {
+          @Override public RelNode visit(TableScan scan) {
             RelOptTable relOptTable = scan.getTable();
             final Table table = relOptTable.unwrap(Table.class);
             if (table.equals(starTable.tables.get(0))) {
@@ -100,14 +104,13 @@ public class RelOptMaterialization {
             return scan;
           }
 
-          @Override
-          public RelNode visit(JoinRel join) {
+          @Override public RelNode visit(LogicalJoin join) {
             for (;;) {
               RelNode rel = super.visit(join);
-              if (rel == join || !(rel instanceof JoinRel)) {
+              if (rel == join || !(rel instanceof LogicalJoin)) {
                 return rel;
               }
-              join = (JoinRel) rel;
+              join = (LogicalJoin) rel;
               final ProjectFilterTable left =
                   ProjectFilterTable.of(join.getLeft());
               if (left != null) {
@@ -124,9 +127,9 @@ public class RelOptMaterialization {
             }
           }
 
-          /** Throws a {@link org.eigenbase.util.Util.FoundOne} containing a
-           * {@link org.eigenbase.rel.TableAccessRel} on success.
-           * (Yes, an exception for normal operation.) */
+          /** Throws a {@link org.apache.calcite.util.Util.FoundOne} containing
+           * a {@link org.apache.calcite.rel.logical.LogicalTableScan} on
+           * success.  (Yes, an exception for normal operation.) */
           private void match(ProjectFilterTable left, ProjectFilterTable right,
               RelOptCluster cluster) {
             final Mappings.TargetMapping leftMapping = left.mapping();
@@ -146,7 +149,7 @@ public class RelOptMaterialization {
                           Mappings.offsetSource(rightMapping, offset),
                           leftMapping.getTargetCount()));
               final RelNode project = RelOptUtil.createProject(
-                  new TableAccessRel(cluster, leftRelOptTable),
+                  new LogicalTableScan(cluster, leftRelOptTable),
                   Mappings.asList(mapping.inverse()));
               final List<RexNode> conditions = Lists.newArrayList();
               if (left.condition != null) {
@@ -170,7 +173,7 @@ public class RelOptMaterialization {
                       Mappings.offsetSource(leftMapping, offset),
                       Mappings.offsetTarget(rightMapping, leftCount));
               final RelNode project = RelOptUtil.createProject(
-                  new TableAccessRel(cluster, rightRelOptTable),
+                  new LogicalTableScan(cluster, rightRelOptTable),
                   Mappings.asList(mapping.inverse()));
               final List<RexNode> conditions = Lists.newArrayList();
               if (left.condition != null) {
@@ -191,7 +194,7 @@ public class RelOptMaterialization {
       return rel;
     }
     final Program program = Programs.hep(
-        ImmutableList.of(PushProjectPastFilterRule.INSTANCE,
+        ImmutableList.of(ProjectFilterTransposeRule.INSTANCE,
             AggregateProjectMergeRule.INSTANCE,
             AggregateFilterTransposeRule.INSTANCE),
         false,
@@ -203,28 +206,28 @@ public class RelOptMaterialization {
   private static class ProjectFilterTable {
     final RexNode condition;
     final Mappings.TargetMapping mapping;
-    final TableAccessRelBase scan;
+    final TableScan scan;
 
     private ProjectFilterTable(RexNode condition,
-        Mappings.TargetMapping mapping, TableAccessRelBase scan) {
+        Mappings.TargetMapping mapping, TableScan scan) {
       this.condition = condition;
       this.mapping = mapping;
       this.scan = Preconditions.checkNotNull(scan);
     }
 
     static ProjectFilterTable of(RelNode node) {
-      if (node instanceof FilterRelBase) {
-        final FilterRelBase filter = (FilterRelBase) node;
-        return of2(filter.getCondition(), filter.getChild());
+      if (node instanceof Filter) {
+        final Filter filter = (Filter) node;
+        return of2(filter.getCondition(), filter.getInput());
       } else {
         return of2(null, node);
       }
     }
 
     private static ProjectFilterTable of2(RexNode condition, RelNode node) {
-      if (node instanceof ProjectRelBase) {
-        final ProjectRelBase project = (ProjectRelBase) node;
-        return of3(condition, project.getMapping(), project.getChild());
+      if (node instanceof Project) {
+        final Project project = (Project) node;
+        return of3(condition, project.getMapping(), project.getInput());
       } else {
         return of3(condition, null, node);
       }
@@ -232,9 +235,9 @@ public class RelOptMaterialization {
 
     private static ProjectFilterTable of3(RexNode condition,
         Mappings.TargetMapping mapping, RelNode node) {
-      if (node instanceof TableAccessRelBase) {
+      if (node instanceof TableScan) {
         return new ProjectFilterTable(condition, mapping,
-            (TableAccessRelBase) node);
+            (TableScan) node);
       } else {
         return null;
       }
@@ -253,25 +256,25 @@ public class RelOptMaterialization {
 
   /**
    * Converts a relational expression to a form where
-   * {@link org.eigenbase.rel.JoinRel}s are
+   * {@link org.apache.calcite.rel.logical.LogicalJoin}s are
    * as close to leaves as possible.
    */
   public static RelNode toLeafJoinForm(RelNode rel) {
     final Program program = Programs.hep(
         ImmutableList.of(
-            PullUpProjectsAboveJoinRule.RIGHT_PROJECT,
-            PullUpProjectsAboveJoinRule.LEFT_PROJECT,
-            PushFilterPastJoinRule.PushFilterIntoJoinRule.FILTER_ON_JOIN,
-            MergeProjectRule.INSTANCE),
+            JoinProjectTransposeRule.RIGHT_PROJECT,
+            JoinProjectTransposeRule.LEFT_PROJECT,
+            FilterJoinRule.FilterIntoJoinRule.FILTER_ON_JOIN,
+            ProjectMergeRule.INSTANCE),
         false,
         new DefaultRelMetadataProvider());
-    if (OptiqPrepareImpl.DEBUG) {
+    if (CalcitePrepareImpl.DEBUG) {
       System.out.println(
           RelOptUtil.dumpPlan(
               "before", rel, false, SqlExplainLevel.DIGEST_ATTRIBUTES));
     }
     final RelNode rel2 = program.run(null, rel, null);
-    if (OptiqPrepareImpl.DEBUG) {
+    if (CalcitePrepareImpl.DEBUG) {
       System.out.println(
           RelOptUtil.dumpPlan(
               "after", rel2, false, SqlExplainLevel.DIGEST_ATTRIBUTES));

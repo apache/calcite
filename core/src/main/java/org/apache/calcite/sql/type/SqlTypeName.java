@@ -14,22 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql.type;
+package org.apache.calcite.sql.type;
 
-import java.math.*;
-
-import java.sql.*;
-
-import java.util.*;
-
-import org.eigenbase.reltype.RelDataTypeSystem;
-import org.eigenbase.sql.*;
-import org.eigenbase.sql.parser.*;
-import org.eigenbase.util.*;
-import org.eigenbase.util14.DateTimeUtil;
+import org.apache.calcite.rel.type.RelDataTypeSystem;
+import org.apache.calcite.sql.SqlLiteral;
+import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.util.DateTimeUtil;
+import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+
+import java.math.BigDecimal;
+import java.sql.Types;
+import java.util.Arrays;
+import java.util.Calendar;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Enumeration of the type names which can be used to construct a SQL type.
@@ -302,7 +303,7 @@ public enum SqlTypeName {
    * precision is either unsupported or must be specified explicitly.
    *
    * @deprecated Use
-   * {@link org.eigenbase.reltype.RelDataTypeSystem#getDefaultPrecision(SqlTypeName)};
+   * {@link org.apache.calcite.rel.type.RelDataTypeSystem#getDefaultPrecision(SqlTypeName)};
    * will be removed after calcite-0.9.1.
    */
   public int getDefaultPrecision() {
@@ -681,7 +682,7 @@ public enum SqlTypeName {
    * @return Maximum allowed precision
    *
    * @deprecated Use
-   * {@link org.eigenbase.reltype.RelDataTypeSystem#getMaxScale(SqlTypeName)};
+   * {@link org.apache.calcite.rel.type.RelDataTypeSystem#getMaxScale(SqlTypeName)};
    * will be removed after calcite-0.9.1.
    */
   public int getMaxPrecision() {
@@ -696,7 +697,7 @@ public enum SqlTypeName {
    * @return Maximum allowed scale
    *
    * @deprecated Use
-   * {@link org.eigenbase.reltype.RelDataTypeSystem#getMaxScale(SqlTypeName)};
+   * {@link org.apache.calcite.rel.type.RelDataTypeSystem#getMaxScale(SqlTypeName)};
    * will be removed after calcite-0.9.1.
    */
   public int getMaxScale() {
@@ -745,6 +746,7 @@ public enum SqlTypeName {
     }
   }
 
+  /** Limit. */
   public enum Limit {
     ZERO, UNDERFLOW, OVERFLOW
   }

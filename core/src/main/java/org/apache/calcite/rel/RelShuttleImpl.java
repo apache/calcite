@@ -14,19 +14,30 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel;
+package org.apache.calcite.rel;
+
+import org.apache.calcite.linq4j.Ord;
+import org.apache.calcite.rel.core.Correlator;
+import org.apache.calcite.rel.core.Sort;
+import org.apache.calcite.rel.core.TableFunctionScan;
+import org.apache.calcite.rel.core.TableScan;
+import org.apache.calcite.rel.logical.LogicalAggregate;
+import org.apache.calcite.rel.logical.LogicalFilter;
+import org.apache.calcite.rel.logical.LogicalIntersect;
+import org.apache.calcite.rel.logical.LogicalJoin;
+import org.apache.calcite.rel.logical.LogicalMinus;
+import org.apache.calcite.rel.logical.LogicalProject;
+import org.apache.calcite.rel.logical.LogicalUnion;
+import org.apache.calcite.rel.logical.LogicalValues;
+import org.apache.calcite.util.Stacks;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import org.eigenbase.util.Stacks;
-
-import net.hydromatic.linq4j.Ord;
-
 /**
  * Basic implementation of {@link RelShuttle} that calls
  * {@link RelNode#accept(RelShuttle)} on each child, and
- * {@link RelNode#copy(org.eigenbase.relopt.RelTraitSet, java.util.List)} if
+ * {@link RelNode#copy(org.apache.calcite.plan.RelTraitSet, java.util.List)} if
  * any children change.
  */
 public class RelShuttleImpl implements RelShuttle {
@@ -58,51 +69,51 @@ public class RelShuttleImpl implements RelShuttle {
     return rel;
   }
 
-  public RelNode visit(AggregateRel aggregate) {
-    return visitChild(aggregate, 0, aggregate.getChild());
+  public RelNode visit(LogicalAggregate aggregate) {
+    return visitChild(aggregate, 0, aggregate.getInput());
   }
 
-  public RelNode visit(TableAccessRelBase scan) {
+  public RelNode visit(TableScan scan) {
     return scan;
   }
 
-  public RelNode visit(TableFunctionRelBase scan) {
+  public RelNode visit(TableFunctionScan scan) {
     return visitChildren(scan);
   }
 
-  public RelNode visit(ValuesRel values) {
+  public RelNode visit(LogicalValues values) {
     return values;
   }
 
-  public RelNode visit(FilterRel filter) {
-    return visitChild(filter, 0, filter.getChild());
+  public RelNode visit(LogicalFilter filter) {
+    return visitChild(filter, 0, filter.getInput());
   }
 
-  public RelNode visit(ProjectRel project) {
-    return visitChild(project, 0, project.getChild());
+  public RelNode visit(LogicalProject project) {
+    return visitChild(project, 0, project.getInput());
   }
 
-  public RelNode visit(JoinRel join) {
+  public RelNode visit(LogicalJoin join) {
     return visitChildren(join);
   }
 
-  public RelNode visit(CorrelatorRel correlator) {
+  public RelNode visit(Correlator correlator) {
     return visitChildren(correlator);
   }
 
-  public RelNode visit(UnionRel union) {
+  public RelNode visit(LogicalUnion union) {
     return visitChildren(union);
   }
 
-  public RelNode visit(IntersectRel intersect) {
+  public RelNode visit(LogicalIntersect intersect) {
     return visitChildren(intersect);
   }
 
-  public RelNode visit(MinusRel minus) {
+  public RelNode visit(LogicalMinus minus) {
     return visitChildren(minus);
   }
 
-  public RelNode visit(SortRel sort) {
+  public RelNode visit(Sort sort) {
     return visitChildren(sort);
   }
 

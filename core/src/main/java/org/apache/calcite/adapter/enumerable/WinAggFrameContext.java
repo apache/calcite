@@ -14,16 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.rules.java;
+package org.apache.calcite.adapter.enumerable;
 
-import net.hydromatic.linq4j.expressions.Expression;
+import org.apache.calcite.linq4j.tree.Expression;
 
 /**
  * Provides information on the current window.
  *
  * <p>All the indexes are ready to be used in
- * {@link WinAggResultContext#arguments(net.hydromatic.linq4j.expressions.Expression)},
- * {@link WinAggFrameResultContext#rowTranslator(net.hydromatic.linq4j.expressions.Expression)}
+ * {@link WinAggResultContext#arguments(org.apache.calcite.linq4j.tree.Expression)},
+ * {@link WinAggFrameResultContext#rowTranslator(org.apache.calcite.linq4j.tree.Expression)}
  * and similar methods.
  */
 public interface WinAggFrameContext {

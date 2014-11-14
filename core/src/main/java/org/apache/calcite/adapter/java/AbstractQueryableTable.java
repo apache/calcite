@@ -14,17 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.impl.java;
+package org.apache.calcite.adapter.java;
 
-import net.hydromatic.linq4j.expressions.Expression;
-
-import net.hydromatic.optiq.*;
-import net.hydromatic.optiq.impl.AbstractTable;
+import org.apache.calcite.linq4j.tree.Expression;
+import org.apache.calcite.schema.QueryableTable;
+import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.schema.Schemas;
+import org.apache.calcite.schema.impl.AbstractTable;
 
 import java.lang.reflect.Type;
 
 /**
- * Abstract base class for implementing {@link net.hydromatic.optiq.Table}.
+ * Abstract base class for implementing {@link org.apache.calcite.schema.Table}.
  */
 public abstract class AbstractQueryableTable extends AbstractTable
     implements QueryableTable {

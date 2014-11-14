@@ -14,11 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql.util;
+package org.apache.calcite.sql.util;
 
-import java.util.*;
+import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlDataTypeSpec;
+import org.apache.calcite.sql.SqlDynamicParam;
+import org.apache.calcite.sql.SqlIdentifier;
+import org.apache.calcite.sql.SqlIntervalQualifier;
+import org.apache.calcite.sql.SqlLiteral;
+import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlNodeList;
 
-import org.eigenbase.sql.*;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Basic implementation of {@link SqlVisitor} which returns each leaf node

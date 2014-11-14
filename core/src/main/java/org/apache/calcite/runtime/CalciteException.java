@@ -14,21 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.util;
+package org.apache.calcite.runtime;
 
-import java.util.logging.*;
+import java.util.logging.Logger;
 
 // NOTE:  This class gets compiled independently of everything else so that
 // resource generation can use reflection.  That means it must have no
-// dependencies on other Eigenbase code.
+// dependencies on other Calcite code.
 
 
 /**
  * Base class for all exceptions originating from Farrago.
  *
- * @see EigenbaseContextException
+ * @see CalciteContextException
  */
-public class EigenbaseException extends RuntimeException {
+public class CalciteException extends RuntimeException {
   //~ Static fields/initializers ---------------------------------------------
 
   /**
@@ -39,26 +39,26 @@ public class EigenbaseException extends RuntimeException {
   private static final long serialVersionUID = -1314522633397794178L;
 
   private static final Logger LOGGER =
-      Logger.getLogger(EigenbaseException.class.getName());
+      Logger.getLogger(CalciteException.class.getName());
 
   //~ Constructors -----------------------------------------------------------
 
   /**
-   * Creates a new EigenbaseException object.
+   * Creates a new CalciteException object.
    *
    * @param message error message
    * @param cause   underlying cause
    */
-  public EigenbaseException(
+  public CalciteException(
       String message,
       Throwable cause) {
     super(message, cause);
 
     // TODO: Force the caller to pass in a Logger as a trace argument for
     // better context.  Need to extend ResGen for this.
-    LOGGER.throwing("EigenbaseException", "constructor", this);
+    LOGGER.throwing("CalciteException", "constructor", this);
     LOGGER.severe(toString());
   }
 }
 
-// End EigenbaseException.java
+// End CalciteException.java

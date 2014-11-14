@@ -14,30 +14,58 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel;
+package org.apache.calcite.rel.core;
 
-import java.util.*;
-
-import org.eigenbase.rel.metadata.*;
-import org.eigenbase.relopt.*;
-import org.eigenbase.reltype.*;
-import org.eigenbase.resource.Resources;
-import org.eigenbase.sql.*;
-import org.eigenbase.sql.parser.*;
-import org.eigenbase.sql.validate.*;
-import org.eigenbase.util.*;
-
-import net.hydromatic.linq4j.Ord;
-
-import net.hydromatic.optiq.util.BitSets;
+import org.apache.calcite.linq4j.Ord;
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptCost;
+import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.RelInput;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelWriter;
+import org.apache.calcite.rel.SingleRel;
+import org.apache.calcite.rel.metadata.RelMetadataQuery;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rel.type.RelDataTypeFieldImpl;
+import org.apache.calcite.runtime.CalciteException;
+import org.apache.calcite.runtime.Resources;
+import org.apache.calcite.sql.SqlAggFunction;
+import org.apache.calcite.sql.SqlOperatorBinding;
+import org.apache.calcite.sql.SqlUtil;
+import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.validate.SqlValidatorException;
+import org.apache.calcite.util.BitSets;
+import org.apache.calcite.util.CompositeList;
+import org.apache.calcite.util.IntList;
+import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
+import java.util.AbstractList;
+import java.util.BitSet;
+import java.util.List;
+
 /**
- * <code>AggregateRelBase</code> is an abstract base class for implementations
- * of {@link AggregateRel}.
+ * Relational operator that eliminates
+ * duplicates and computes totals.
+ *
+ * <p>It corresponds to the {@code GROUP BY} operator in a SQL query
+ * statement, together with the aggregate functions in the {@code SELECT}
+ * clause.
+ *
+ * <p>Rules:
+ *
+ * <ul>
+ * <li>{@link org.apache.calcite.rel.rules.AggregateProjectPullUpConstantsRule}
+ * <li>{@link org.apache.calcite.rel.rules.AggregateExpandDistinctAggregatesRule}
+ * <li>{@link org.apache.calcite.rel.rules.AggregateReduceFunctionsRule}.
+ * </ul>
  */
-public abstract class AggregateRelBase extends SingleRel {
+public abstract class Aggregate extends SingleRel {
   //~ Instance fields --------------------------------------------------------
 
   protected final List<AggregateCall> aggCalls;
@@ -46,7 +74,7 @@ public abstract class AggregateRelBase extends SingleRel {
   //~ Constructors -----------------------------------------------------------
 
   /**
-   * Creates an AggregateRelBase.
+   * Creates an Aggregate.
    *
    * @param cluster  Cluster
    * @param traits   Traits
@@ -54,7 +82,7 @@ public abstract class AggregateRelBase extends SingleRel {
    * @param groupSet Bit set of grouping fields
    * @param aggCalls Collection of calls to aggregate functions
    */
-  protected AggregateRelBase(
+  protected Aggregate(
       RelOptCluster cluster,
       RelTraitSet traits,
       RelNode child,
@@ -75,9 +103,9 @@ public abstract class AggregateRelBase extends SingleRel {
   }
 
   /**
-   * Creates an AggregateRelBase by parsing serialized output.
+   * Creates an Aggregate by parsing serialized output.
    */
-  protected AggregateRelBase(RelInput input) {
+  protected Aggregate(RelInput input) {
     this(input.getCluster(), input.getTraitSet(), input.getInput(),
         input.getBitSet("group"), input.getAggregateCalls("aggs"));
   }
@@ -91,9 +119,9 @@ public abstract class AggregateRelBase extends SingleRel {
 
   /** Creates a copy of this aggregate.
    *
-   * @see #copy(org.eigenbase.relopt.RelTraitSet, java.util.List)
+   * @see #copy(org.apache.calcite.plan.RelTraitSet, java.util.List)
    */
-  public abstract AggregateRelBase copy(RelTraitSet traitSet, RelNode input,
+  public abstract Aggregate copy(RelTraitSet traitSet, RelNode input,
       BitSet groupSet, List<AggregateCall> aggCalls);
 
   // implement RelNode
@@ -166,7 +194,7 @@ public abstract class AggregateRelBase extends SingleRel {
 
   public RelOptCost computeSelfCost(RelOptPlanner planner) {
     // REVIEW jvs 24-Aug-2008:  This is bogus, but no more bogus
-    // than what's currently in JoinRelBase.
+    // than what's currently in Join.
     double rowCount = RelMetadataQuery.getRowCount(this);
     return planner.getCostFactory().makeCost(rowCount, 0, 0);
   }
@@ -174,12 +202,12 @@ public abstract class AggregateRelBase extends SingleRel {
   protected RelDataType deriveRowType() {
     return deriveRowType(
         getCluster().getTypeFactory(),
-        getChild().getRowType(),
+        getInput().getRowType(),
         groupSet,
         aggCalls);
   }
 
-  /** Computes the row type of an {@code AggregateRelBase} before it exists. */
+  /** Computes the row type of an {@code Aggregate} before it exists. */
   public static RelDataType deriveRowType(RelDataTypeFactory typeFactory,
       final RelDataType inputRowType, BitSet groupSet,
       final List<AggregateCall> aggCalls) {
@@ -256,9 +284,9 @@ public abstract class AggregateRelBase extends SingleRel {
   //~ Inner Classes ----------------------------------------------------------
 
   /**
-   * Implementation of the {@link SqlOperatorBinding} interface for an {@link
-   * AggregateCall aggregate call} applied to a set of operands in the context
-   * of a {@link AggregateRel}.
+   * Implementation of the {@link SqlOperatorBinding} interface for an
+   * {@link AggregateCall aggregate call} applied to a set of operands in the
+   * context of a {@link org.apache.calcite.rel.logical.LogicalAggregate}.
    */
   public static class AggCallBinding extends SqlOperatorBinding {
     private final List<RelDataType> operands;
@@ -268,7 +296,7 @@ public abstract class AggregateRelBase extends SingleRel {
      * Creates an AggCallBinding
      *
      * @param typeFactory  Type factory
-     * @param aggFunction  Aggregation function
+     * @param aggFunction  Aggregate function
      * @param operands     Data types of operands
      * @param groupCount   Number of columns in the GROUP BY clause
      */
@@ -284,7 +312,7 @@ public abstract class AggregateRelBase extends SingleRel {
           : "operands of aggregate call should not be null";
       assert groupCount >= 0
           : "number of group by columns should be greater than zero in "
-            + "aggregate call. Got " + groupCount;
+          + "aggregate call. Got " + groupCount;
     }
 
     @Override public int getGroupCount() {
@@ -299,11 +327,11 @@ public abstract class AggregateRelBase extends SingleRel {
       return operands.get(ordinal);
     }
 
-    public EigenbaseException newError(
+    public CalciteException newError(
         Resources.ExInst<SqlValidatorException> e) {
       return SqlUtil.newContextException(SqlParserPos.ZERO, e);
     }
   }
 }
 
-// End AggregateRelBase.java
+// End Aggregate.java

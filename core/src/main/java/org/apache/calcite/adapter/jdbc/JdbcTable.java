@@ -14,41 +14,50 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.impl.jdbc;
+package org.apache.calcite.adapter.jdbc;
 
-import net.hydromatic.linq4j.*;
-import net.hydromatic.linq4j.expressions.*;
-import net.hydromatic.linq4j.function.*;
-
-import net.hydromatic.optiq.*;
-import net.hydromatic.optiq.impl.AbstractTableQueryable;
-import net.hydromatic.optiq.impl.java.AbstractQueryableTable;
-import net.hydromatic.optiq.impl.java.JavaTypeFactory;
-import net.hydromatic.optiq.jdbc.OptiqConnection;
-import net.hydromatic.optiq.runtime.ResultSetEnumerable;
-
-import org.eigenbase.rel.RelNode;
-import org.eigenbase.relopt.RelOptTable;
-import org.eigenbase.reltype.RelDataType;
-import org.eigenbase.reltype.RelDataTypeFactory;
-import org.eigenbase.reltype.RelDataTypeField;
-import org.eigenbase.reltype.RelProtoDataType;
-import org.eigenbase.sql.*;
-import org.eigenbase.sql.parser.SqlParserPos;
-import org.eigenbase.sql.pretty.SqlPrettyWriter;
-import org.eigenbase.sql.util.SqlString;
-import org.eigenbase.util.Pair;
-import org.eigenbase.util.Util;
+import org.apache.calcite.adapter.java.AbstractQueryableTable;
+import org.apache.calcite.adapter.java.JavaTypeFactory;
+import org.apache.calcite.jdbc.CalciteConnection;
+import org.apache.calcite.linq4j.Enumerable;
+import org.apache.calcite.linq4j.Enumerator;
+import org.apache.calcite.linq4j.QueryProvider;
+import org.apache.calcite.linq4j.Queryable;
+import org.apache.calcite.linq4j.function.Function1;
+import org.apache.calcite.linq4j.function.Functions;
+import org.apache.calcite.linq4j.tree.Primitive;
+import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rel.type.RelProtoDataType;
+import org.apache.calcite.runtime.ResultSetEnumerable;
+import org.apache.calcite.schema.Schema;
+import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.schema.TranslatableTable;
+import org.apache.calcite.schema.impl.AbstractTableQueryable;
+import org.apache.calcite.sql.SqlIdentifier;
+import org.apache.calcite.sql.SqlNodeList;
+import org.apache.calcite.sql.SqlSelect;
+import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.pretty.SqlPrettyWriter;
+import org.apache.calcite.sql.util.SqlString;
+import org.apache.calcite.util.Pair;
+import org.apache.calcite.util.Util;
 
 import java.sql.SQLException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * Queryable that gets its data from a table within a JDBC connection.
  *
  * <p>The idea is not to read the whole table, however. The idea is to use
  * this as a building block for a query, by applying Queryable operators
- * such as {@link net.hydromatic.linq4j.Queryable#where(net.hydromatic.linq4j.function.Predicate2)}.
+ * such as
+ * {@link org.apache.calcite.linq4j.Queryable#where(org.apache.calcite.linq4j.function.Predicate2)}.
  * The resulting queryable can then be converted to a SQL query, which can be
  * executed efficiently on the JDBC server.</p>
  */
@@ -89,7 +98,7 @@ class JdbcTable extends AbstractQueryableTable implements TranslatableTable {
       } catch (SQLException e) {
         throw new RuntimeException(
             "Exception while reading definition of table '" + jdbcTableName
-            + "'", e);
+                + "'", e);
       }
     }
     return protoRowType.apply(typeFactory);
@@ -161,7 +170,7 @@ class JdbcTable extends AbstractQueryableTable implements TranslatableTable {
 
     public Enumerator<T> enumerator() {
       final JavaTypeFactory typeFactory =
-          ((OptiqConnection) queryProvider).getTypeFactory();
+          ((CalciteConnection) queryProvider).getTypeFactory();
       final SqlString sql = generateSql();
       //noinspection unchecked
       final Enumerable<T> enumerable = (Enumerable<T>) ResultSetEnumerable.of(

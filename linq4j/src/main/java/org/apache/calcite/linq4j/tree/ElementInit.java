@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.linq4j.expressions;
+package org.apache.calcite.linq4j.tree;
 
 /**
  * Represents an initializer for a single element of an
- * {@link net.hydromatic.linq4j.Enumerable} collection.
+ * {@link org.apache.calcite.linq4j.Enumerable} collection.
  */
 public class ElementInit {
 }

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.linq4j.expressions;
+package org.apache.calcite.linq4j.tree;
 
 import java.lang.reflect.Type;
 
@@ -45,8 +45,7 @@ public abstract class AbstractNode implements Node {
     return type;
   }
 
-  @Override
-  public String toString() {
+  @Override public String toString() {
     ExpressionWriter writer = new ExpressionWriter(true);
     accept(writer, 0, 0);
     return writer.toString();
@@ -75,8 +74,7 @@ public abstract class AbstractNode implements Node {
         "evaluation not supported: " + getClass() + ":" + nodeType);
   }
 
-  @Override
-  public boolean equals(Object o) {
+  @Override public boolean equals(Object o) {
     if (this == o) {
       return true;
     }
@@ -96,8 +94,7 @@ public abstract class AbstractNode implements Node {
     return true;
   }
 
-  @Override
-  public int hashCode() {
+  @Override public int hashCode() {
     int result = nodeType != null ? nodeType.hashCode() : 0;
     result = 31 * result + (type != null ? type.hashCode() : 0);
     return result;

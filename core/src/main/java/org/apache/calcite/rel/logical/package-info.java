@@ -16,8 +16,21 @@
  */
 
 /**
- * Query optimizer rules.
+ * Defines logical relational expressions.
+ *
+ * <h2>Related packages and classes</h2>
+ * <ul>
+ *
+ * <li>Package <code>
+ * <a href="../logical/package-summary.html">org.apache.calcite.rel.core</a></code>
+ * contains core relational expressions
+ *
+ * <li>Package <code>
+ * <a href="../package-summary.html">org.apache.calcite.rex</a></code>
+ * defines the relational expression API
+ *
+ * </ul>
  */
-package net.hydromatic.optiq.rules;
+package org.apache.calcite.rel.logical;
 
 // End package-info.java

@@ -14,11 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.util;
+package org.apache.calcite.util;
 
-import java.io.*;
-
-import java.nio.charset.*;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.io.Serializable;
+import java.nio.charset.Charset;
 
 /**
  * Serializable wrapper around a {@link Charset}.
@@ -38,8 +40,8 @@ public class SerializableCharset implements Serializable {
   //~ Constructors -----------------------------------------------------------
 
   /**
-   * Creates a SerializableCharset. External users should call {@link
-   * #forCharset(Charset)}.
+   * Creates a SerializableCharset. External users should call
+   * {@link #forCharset(Charset)}.
    *
    * @param charset Character set; must not be null
    */

@@ -14,36 +14,44 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel;
+package org.apache.calcite.rel.logical;
 
-import java.util.*;
+import org.apache.calcite.plan.Convention;
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.RelInput;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelShuttle;
+import org.apache.calcite.rel.core.Aggregate;
+import org.apache.calcite.rel.core.AggregateCall;
 
-import org.eigenbase.relopt.*;
+import java.util.BitSet;
+import java.util.List;
 
 /**
- * <code>AggregateRel</code> is a relational operator which eliminates
+ * <code>LogicalAggregate</code> is a relational operator which eliminates
  * duplicates and computes totals.
  *
  * <p>Rules:
  *
  * <ul>
- * <li>{@link org.eigenbase.rel.rules.PullConstantsThroughAggregatesRule}
- * <li>{@link org.eigenbase.rel.rules.RemoveDistinctAggregateRule}
- * <li>{@link org.eigenbase.rel.rules.ReduceAggregatesRule}.
+ * <li>{@link org.apache.calcite.rel.rules.AggregateProjectPullUpConstantsRule}
+ * <li>{@link org.apache.calcite.rel.rules.AggregateExpandDistinctAggregatesRule}
+ * <li>{@link org.apache.calcite.rel.rules.AggregateReduceFunctionsRule}.
  * </ul>
  */
-public final class AggregateRel extends AggregateRelBase {
+public final class LogicalAggregate extends Aggregate {
   //~ Constructors -----------------------------------------------------------
 
   /**
-   * Creates an AggregateRel.
+   * Creates a LogicalAggregate.
    *
    * @param cluster  Cluster that this relational expression belongs to
    * @param child    input relational expression
    * @param groupSet Bit set of grouping fields
    * @param aggCalls Array of aggregates to compute, not null
    */
-  public AggregateRel(
+  public LogicalAggregate(
       RelOptCluster cluster,
       RelNode child,
       BitSet groupSet,
@@ -57,18 +65,18 @@ public final class AggregateRel extends AggregateRelBase {
   }
 
   /**
-   * Creates an AggregateRel by parsing serialized output.
+   * Creates a LogicalAggregate by parsing serialized output.
    */
-  public AggregateRel(RelInput input) {
+  public LogicalAggregate(RelInput input) {
     super(input);
   }
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override public AggregateRel copy(RelTraitSet traitSet, RelNode input,
+  @Override public LogicalAggregate copy(RelTraitSet traitSet, RelNode input,
       BitSet groupSet, List<AggregateCall> aggCalls) {
     assert traitSet.containsIfApplicable(Convention.NONE);
-    return new AggregateRel(getCluster(), input, groupSet, aggCalls);
+    return new LogicalAggregate(getCluster(), input, groupSet, aggCalls);
   }
 
   @Override public RelNode accept(RelShuttle shuttle) {
@@ -76,4 +84,4 @@ public final class AggregateRel extends AggregateRelBase {
   }
 }
 
-// End AggregateRel.java
+// End LogicalAggregate.java

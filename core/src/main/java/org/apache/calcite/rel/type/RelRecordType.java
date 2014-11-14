@@ -14,14 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.reltype;
+package org.apache.calcite.rel.type;
 
-import java.io.*;
+import org.apache.calcite.linq4j.Ord;
+import org.apache.calcite.sql.type.SqlTypeName;
+
+import java.io.Serializable;
 import java.util.List;
-
-import org.eigenbase.sql.type.*;
-
-import net.hydromatic.linq4j.Ord;
 
 /**
  * RelRecordType represents a structured type having named fields.
@@ -89,9 +88,9 @@ public class RelRecordType extends RelDataTypeImpl implements Serializable {
   //~ Inner Classes ----------------------------------------------------------
 
   /**
-   * Skinny object which has the same information content as a {@link
-   * RelRecordType} but skips redundant stuff like digest and the immutable
-   * list.
+   * Skinny object which has the same information content as a
+   * {@link RelRecordType} but skips redundant stuff like digest and the
+   * immutable list.
    */
   private static class SerializableRelRecordType implements Serializable {
     private List<RelDataTypeField> fields;
@@ -101,8 +100,8 @@ public class RelRecordType extends RelDataTypeImpl implements Serializable {
     }
 
     /**
-     * Per {@link Serializable} API. See {@link
-     * RelRecordType#writeReplace()}.
+     * Per {@link Serializable} API. See
+     * {@link RelRecordType#writeReplace()}.
      */
     private Object readResolve() {
       return new RelRecordType(fields);

@@ -14,27 +14,31 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.test;
+package org.apache.calcite.test;
 
-import net.hydromatic.optiq.impl.clone.ArrayTableTest;
-import net.hydromatic.optiq.runtime.BinarySearchTest;
-import net.hydromatic.optiq.runtime.EnumerablesTest;
-import net.hydromatic.optiq.tools.FrameworksTest;
-import net.hydromatic.optiq.tools.PlannerTest;
-import net.hydromatic.optiq.util.BitSetsTest;
-import net.hydromatic.optiq.util.PartiallyOrderedSetTest;
-import net.hydromatic.optiq.util.graph.DirectedGraphTest;
-
-import org.eigenbase.relopt.RelOptUtilTest;
-import org.eigenbase.relopt.RelWriterTest;
-import org.eigenbase.relopt.volcano.VolcanoPlannerTest;
-import org.eigenbase.relopt.volcano.VolcanoPlannerTraitTest;
-import org.eigenbase.rex.RexExecutorTest;
-import org.eigenbase.sql.parser.SqlParserTest;
-import org.eigenbase.sql.test.*;
-import org.eigenbase.test.*;
-import org.eigenbase.util.*;
-import org.eigenbase.util.mapping.MappingTest;
+import org.apache.calcite.adapter.clone.ArrayTableTest;
+import org.apache.calcite.plan.RelOptUtilTest;
+import org.apache.calcite.plan.RelWriterTest;
+import org.apache.calcite.plan.volcano.VolcanoPlannerTest;
+import org.apache.calcite.plan.volcano.VolcanoPlannerTraitTest;
+import org.apache.calcite.rex.RexExecutorTest;
+import org.apache.calcite.runtime.BinarySearchTest;
+import org.apache.calcite.runtime.EnumerablesTest;
+import org.apache.calcite.sql.parser.SqlParserTest;
+import org.apache.calcite.sql.test.SqlAdvisorTest;
+import org.apache.calcite.sql.test.SqlOperatorTest;
+import org.apache.calcite.sql.test.SqlPrettyWriterTest;
+import org.apache.calcite.sql.test.SqlTypeNameTest;
+import org.apache.calcite.tools.FrameworksTest;
+import org.apache.calcite.tools.PlannerTest;
+import org.apache.calcite.util.BitSetsTest;
+import org.apache.calcite.util.ChunkListTest;
+import org.apache.calcite.util.PartiallyOrderedSetTest;
+import org.apache.calcite.util.PermutationTestCase;
+import org.apache.calcite.util.ReflectVisitorTest;
+import org.apache.calcite.util.UtilTest;
+import org.apache.calcite.util.graph.DirectedGraphTest;
+import org.apache.calcite.util.mapping.MappingTest;
 
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
@@ -58,7 +62,7 @@ import org.junit.runners.Suite;
     RelOptUtilTest.class,
     UtilTest.class,
     MappingTest.class,
-    EigenbaseResourceTest.class,
+    CalciteResourceTest.class,
     FilteratorTest.class,
     PermutationTestCase.class,
     SqlFunctionsTest.class,
@@ -69,7 +73,6 @@ import org.junit.runners.Suite;
     InterpreterTest.class,
     VolcanoPlannerTest.class,
     HepPlannerTest.class,
-    SargTest.class,
     RelWriterTest.class,
     RexProgramTest.class,
     RexTransformerTest.class,
@@ -100,7 +103,7 @@ import org.junit.runners.Suite;
     JdbcAdapterTest.class,
     LinqFrontJdbcBackTest.class,
     JdbcFrontJdbcBackLinqMiddleTest.class,
-    OptiqSqlOperatorTest.class,
+    CalciteSqlOperatorTest.class,
     LatticeTest.class,
     ReflectiveSchemaTest.class,
     JdbcTest.class,
@@ -117,7 +120,7 @@ import org.junit.runners.Suite;
     // '-Dcalcite.test.slow=true' is specified)
     FoodmartTest.class
 })
-public class OptiqSuite {
+public class CalciteSuite {
 }
 
-// End OptiqSuite.java
+// End CalciteSuite.java

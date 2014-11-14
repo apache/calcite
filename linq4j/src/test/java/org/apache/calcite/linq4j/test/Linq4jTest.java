@@ -14,20 +14,53 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.linq4j.test;
+package org.apache.calcite.linq4j.test;
 
-import net.hydromatic.linq4j.*;
-import net.hydromatic.linq4j.expressions.*;
-import net.hydromatic.linq4j.function.*;
+import org.apache.calcite.linq4j.AbstractEnumerable;
+import org.apache.calcite.linq4j.Enumerable;
+import org.apache.calcite.linq4j.EnumerableDefaults;
+import org.apache.calcite.linq4j.Enumerator;
+import org.apache.calcite.linq4j.ExtendedEnumerable;
+import org.apache.calcite.linq4j.Grouping;
+import org.apache.calcite.linq4j.Linq4j;
+import org.apache.calcite.linq4j.Lookup;
+import org.apache.calcite.linq4j.Queryable;
+import org.apache.calcite.linq4j.QueryableDefaults;
+import org.apache.calcite.linq4j.function.EqualityComparer;
+import org.apache.calcite.linq4j.function.Function0;
+import org.apache.calcite.linq4j.function.Function1;
+import org.apache.calcite.linq4j.function.Function2;
+import org.apache.calcite.linq4j.function.Functions;
+import org.apache.calcite.linq4j.function.IntegerFunction1;
+import org.apache.calcite.linq4j.function.Predicate1;
+import org.apache.calcite.linq4j.function.Predicate2;
+import org.apache.calcite.linq4j.tree.Expressions;
+import org.apache.calcite.linq4j.tree.ParameterExpression;
 
 import com.example.Linq4jExample;
 
 import org.junit.Test;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.NoSuchElementException;
+import java.util.TreeSet;
 
-import static org.hamcrest.CoreMatchers.*;
-import static org.junit.Assert.*;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.nullValue;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 /**
  * Tests for LINQ4J.
@@ -369,16 +402,16 @@ public class Linq4jTest {
 
   @Test public void testContainsWithEqualityComparer() {
     EqualityComparer<Employee> compareByEmpno =
-            new EqualityComparer<Employee>() {
-        public boolean equal(Employee e1, Employee e2) {
-          return e1 != null && e2 != null
-                  && e1.empno == e2.empno;
-        }
+        new EqualityComparer<Employee>() {
+          public boolean equal(Employee e1, Employee e2) {
+            return e1 != null && e2 != null
+                && e1.empno == e2.empno;
+          }
 
-        public int hashCode(Employee t) {
-          return t == null ? 0x789d : t.hashCode();
-        }
-      };
+          public int hashCode(Employee t) {
+            return t == null ? 0x789d : t.hashCode();
+          }
+        };
 
     Employee e = emps[1];
     Employee employeeClone = new Employee(e.empno, e.name, e.deptno);
@@ -386,11 +419,11 @@ public class Linq4jTest {
 
     assertEquals(e, employeeClone);
     assertTrue(Linq4j.asEnumerable(emps)
-            .contains(e, compareByEmpno));
+        .contains(e, compareByEmpno));
     assertTrue(Linq4j.asEnumerable(emps)
-            .contains(employeeClone, compareByEmpno));
+        .contains(employeeClone, compareByEmpno));
     assertFalse(Linq4j.asEnumerable(emps)
-            .contains(employeeOther, compareByEmpno));
+        .contains(employeeOther, compareByEmpno));
 
   }
 
@@ -539,7 +572,7 @@ public class Linq4jTest {
     }
     assertEquals(
         "Fred: [Employee(name: Fred, deptno:10), Employee(name: Bill, deptno:30), Employee(name: Eric, deptno:10)]\n"
-        + "Janet: [Employee(name: Janet, deptno:10)]\n",
+            + "Janet: [Employee(name: Janet, deptno:10)]\n",
         buf.toString());
   }
 
@@ -818,8 +851,8 @@ public class Linq4jTest {
             .toString();
     assertEquals(
         "[[Fred, Eric, Janet] work(s) in Sales, "
-        + "[] work(s) in HR, "
-        + "[Bill] work(s) in Marketing]",
+            + "[] work(s) in HR, "
+            + "[Bill] work(s) in Marketing]",
         s);
   }
 
@@ -844,9 +877,9 @@ public class Linq4jTest {
             .toString();
     assertEquals(
         "[Bill works in Marketing, "
-        + "Eric works in Sales, "
-        + "Fred works in Sales, "
-        + "Janet works in Sales]",
+            + "Eric works in Sales, "
+            + "Fred works in Sales, "
+            + "Janet works in Sales]",
         s);
   }
 
@@ -873,10 +906,10 @@ public class Linq4jTest {
             .toString();
     assertEquals(
         "[Bill works in Marketing, "
-        + "Cedric works in null, "
-        + "Eric works in Sales, "
-        + "Fred works in Sales, "
-        + "Janet works in Sales]",
+            + "Cedric works in null, "
+            + "Eric works in Sales, "
+            + "Fred works in Sales, "
+            + "Janet works in Sales]",
         s);
   }
 
@@ -903,10 +936,10 @@ public class Linq4jTest {
             .toString();
     assertEquals(
         "[Bill works in Marketing, "
-        + "Eric works in Sales, "
-        + "Fred works in Sales, "
-        + "Janet works in Sales, "
-        + "null works in HR]",
+            + "Eric works in Sales, "
+            + "Fred works in Sales, "
+            + "Janet works in Sales, "
+            + "null works in HR]",
         s);
   }
 
@@ -933,11 +966,11 @@ public class Linq4jTest {
             .toString();
     assertEquals(
         "[Bill works in Marketing, "
-        + "Cedric works in null, "
-        + "Eric works in Sales, "
-        + "Fred works in Sales, "
-        + "Janet works in Sales, "
-        + "null works in HR]",
+            + "Cedric works in null, "
+            + "Eric works in Sales, "
+            + "Fred works in Sales, "
+            + "Janet works in Sales, "
+            + "null works in HR]",
         s);
   }
 
@@ -1173,7 +1206,7 @@ public class Linq4jTest {
               public boolean apply(Department v1, Integer v2) {
                 // Make sure we're passed the correct indices
                 assertEquals(
-                  "Invalid index passed to function", index++, (int) v2);
+                    "Invalid index passed to function", index++, (int) v2);
                 return 20 != v1.deptno;
               }
             }).toList();
@@ -1272,7 +1305,7 @@ public class Linq4jTest {
             new Predicate2<Department, Integer>() {
               public boolean apply(Department v1, Integer v2) {
                 return v1.name.equals("Sales")
-                       || v2 == 1;
+                    || v2 == 1;
               }
             }).count());
 
@@ -1301,7 +1334,7 @@ public class Linq4jTest {
                 new Predicate2<Department, Integer>() {
                   public boolean apply(Department v1, Integer v2) {
                     return v1.name.equals("Sales")
-                           || v2 == 1;
+                        || v2 == 1;
                   }
                 })).count());
   }
@@ -1310,9 +1343,9 @@ public class Linq4jTest {
     // Note: sort is stable. Records occur Fred, Eric, Janet in input.
     assertEquals(
         "[Employee(name: Fred, deptno:10),"
-        + " Employee(name: Eric, deptno:10),"
-        + " Employee(name: Janet, deptno:10),"
-        + " Employee(name: Bill, deptno:30)]",
+            + " Employee(name: Eric, deptno:10),"
+            + " Employee(name: Janet, deptno:10),"
+            + " Employee(name: Bill, deptno:30)]",
         Linq4j.asEnumerable(emps).orderBy(EMP_DEPTNO_SELECTOR)
             .toList().toString());
   }
@@ -1320,9 +1353,9 @@ public class Linq4jTest {
   @Test public void testOrderByComparator() {
     assertEquals(
         "[Employee(name: Bill, deptno:30),"
-        + " Employee(name: Eric, deptno:10),"
-        + " Employee(name: Fred, deptno:10),"
-        + " Employee(name: Janet, deptno:10)]",
+            + " Employee(name: Eric, deptno:10),"
+            + " Employee(name: Fred, deptno:10),"
+            + " Employee(name: Janet, deptno:10)]",
         Linq4j.asEnumerable(emps)
             .orderBy(EMP_NAME_SELECTOR)
             .orderBy(
@@ -1334,9 +1367,9 @@ public class Linq4jTest {
     // OrderBy in series works because sort is stable.
     assertEquals(
         "[Employee(name: Eric, deptno:10),"
-        + " Employee(name: Fred, deptno:10),"
-        + " Employee(name: Janet, deptno:10),"
-        + " Employee(name: Bill, deptno:30)]",
+            + " Employee(name: Fred, deptno:10),"
+            + " Employee(name: Janet, deptno:10),"
+            + " Employee(name: Bill, deptno:30)]",
         Linq4j.asEnumerable(emps)
             .orderBy(EMP_NAME_SELECTOR)
             .orderBy(EMP_DEPTNO_SELECTOR)
@@ -1346,9 +1379,9 @@ public class Linq4jTest {
   @Test public void testOrderByDescending() {
     assertEquals(
         "[Employee(name: Janet, deptno:10),"
-        + " Employee(name: Fred, deptno:10),"
-        + " Employee(name: Eric, deptno:10),"
-        + " Employee(name: Bill, deptno:30)]",
+            + " Employee(name: Fred, deptno:10),"
+            + " Employee(name: Eric, deptno:10),"
+            + " Employee(name: Bill, deptno:30)]",
         Linq4j.asEnumerable(emps)
             .orderByDescending(EMP_NAME_SELECTOR)
             .toList().toString());
@@ -1357,9 +1390,9 @@ public class Linq4jTest {
   @Test public void testReverse() {
     assertEquals(
         "[Employee(name: Janet, deptno:10),"
-        + " Employee(name: Eric, deptno:10),"
-        + " Employee(name: Bill, deptno:30),"
-        + " Employee(name: Fred, deptno:10)]",
+            + " Employee(name: Eric, deptno:10),"
+            + " Employee(name: Bill, deptno:30),"
+            + " Employee(name: Fred, deptno:10)]",
         Linq4j.asEnumerable(emps)
             .reverse()
             .toList()
@@ -1430,8 +1463,7 @@ public class Linq4jTest {
       return "Employee(name: " + name + ", deptno:" + deptno + ")";
     }
 
-    @Override
-    public int hashCode() {
+    @Override public int hashCode() {
       final int prime = 31;
       int result = 1;
       result = prime * result + deptno;
@@ -1440,8 +1472,7 @@ public class Linq4jTest {
       return result;
     }
 
-    @Override
-    public boolean equals(Object obj) {
+    @Override public boolean equals(Object obj) {
       if (this == obj) {
         return true;
       }
@@ -1483,9 +1514,9 @@ public class Linq4jTest {
 
     public String toString() {
       return "Department(name: " + name
-             + ", deptno:" + deptno
-             + ", employees: " + employees
-             + ")";
+          + ", deptno:" + deptno
+          + ", employees: " + employees
+          + ")";
     }
   }
 

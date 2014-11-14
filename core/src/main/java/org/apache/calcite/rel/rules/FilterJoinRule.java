@@ -14,34 +14,45 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel.rules;
+package org.apache.calcite.rel.rules;
 
-import java.util.*;
-
-import org.eigenbase.rel.*;
-import org.eigenbase.relopt.*;
-import org.eigenbase.rex.*;
+import org.apache.calcite.plan.Convention;
+import org.apache.calcite.plan.RelOptRule;
+import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.plan.RelOptRuleOperand;
+import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.Filter;
+import org.apache.calcite.rel.core.Join;
+import org.apache.calcite.rel.core.JoinRelType;
+import org.apache.calcite.rel.core.RelFactories;
+import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexUtil;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
- * PushFilterPastJoinRule implements the rule for pushing filters above and
+ * Planner rule that pushes filters above and
  * within a join node into the join node and/or its children nodes.
  */
-public abstract class PushFilterPastJoinRule extends RelOptRule {
-  public static final PushFilterPastJoinRule FILTER_ON_JOIN =
-      new PushFilterIntoJoinRule(true);
+public abstract class FilterJoinRule extends RelOptRule {
+  public static final FilterJoinRule FILTER_ON_JOIN =
+      new FilterIntoJoinRule(true);
 
   /** Dumber version of {@link #FILTER_ON_JOIN}. Not intended for production
    * use, but keeps some tests working for which {@code FILTER_ON_JOIN} is too
    * smart. */
-  public static final PushFilterPastJoinRule DUMB_FILTER_ON_JOIN =
-      new PushFilterIntoJoinRule(false);
+  public static final FilterJoinRule DUMB_FILTER_ON_JOIN =
+      new FilterIntoJoinRule(false);
 
-  public static final PushFilterPastJoinRule JOIN =
-      new PushDownJoinConditionRule(RelFactories.DEFAULT_FILTER_FACTORY,
+  public static final FilterJoinRule JOIN =
+      new JoinConditionPushRule(RelFactories.DEFAULT_FILTER_FACTORY,
           RelFactories.DEFAULT_PROJECT_FACTORY);
 
   /** Whether to try to strengthen join-type. */
@@ -54,10 +65,10 @@ public abstract class PushFilterPastJoinRule extends RelOptRule {
   //~ Constructors -----------------------------------------------------------
 
   /**
-   * Creates a PushFilterPastJoinRule with an explicit root operand and
+   * Creates a FilterJoinRule with an explicit root operand and
    * factories.
    */
-  protected PushFilterPastJoinRule(RelOptRuleOperand operand, String id,
+  protected FilterJoinRule(RelOptRuleOperand operand, String id,
       boolean smart, RelFactories.FilterFactory filterFactory,
       RelFactories.ProjectFactory projectFactory) {
     super(operand, "PushFilterRule: " + id);
@@ -68,8 +79,8 @@ public abstract class PushFilterPastJoinRule extends RelOptRule {
 
   //~ Methods ----------------------------------------------------------------
 
-  protected void perform(RelOptRuleCall call, FilterRelBase filter,
-      JoinRelBase join) {
+  protected void perform(RelOptRuleCall call, Filter filter,
+      Join join) {
     final List<RexNode> joinFilters =
         RelOptUtil.conjunctions(join.getCondition());
     final List<RexNode> origJoinFilters = ImmutableList.copyOf(joinFilters);
@@ -114,7 +125,7 @@ public abstract class PushFilterPastJoinRule extends RelOptRule {
         join,
         aboveFilters,
         joinType,
-        !(join instanceof EquiJoinRel),
+        !(join instanceof EquiJoin),
         !joinType.generatesNullsOnLeft(),
         !joinType.generatesNullsOnRight(),
         joinFilters,
@@ -205,7 +216,7 @@ public abstract class PushFilterPastJoinRule extends RelOptRule {
     newJoinRel = RelOptUtil.createCastRel(newJoinRel, join.getRowType(),
         false, projectFactory);
 
-    // create a FilterRel on top of the join if needed
+    // create a LogicalFilter on top of the join if needed
     RelNode newRel =
         RelOptUtil.createFilter(newJoinRel, aboveFilters, filterFactory);
 
@@ -226,12 +237,13 @@ public abstract class PushFilterPastJoinRule extends RelOptRule {
    * @param joinFilters Filters in join condition
    * @param join Join
    *
-   * @deprecated Use {@link #validateJoinFilters(java.util.List, java.util.List, org.eigenbase.rel.JoinRelBase, org.eigenbase.rel.JoinRelType)};
+   * @deprecated Use
+   * {@link #validateJoinFilters(java.util.List, java.util.List, org.apache.calcite.rel.core.Join, org.apache.calcite.rel.core.JoinRelType)};
    * very short-term; will be removed before
-   * {@link org.eigenbase.util.Bug#upgrade(String) calcite-0.9.2}.
+   * {@link org.apache.calcite.util.Bug#upgrade(String) calcite-0.9.2}.
    */
   protected void validateJoinFilters(List<RexNode> aboveFilters,
-      List<RexNode> joinFilters, JoinRelBase join) {
+      List<RexNode> joinFilters, Join join) {
     validateJoinFilters(aboveFilters, joinFilters, join, join.getJoinType());
   }
 
@@ -252,52 +264,49 @@ public abstract class PushFilterPastJoinRule extends RelOptRule {
    * outer join simplification.
    */
   protected void validateJoinFilters(List<RexNode> aboveFilters,
-      List<RexNode> joinFilters, JoinRelBase join, JoinRelType joinType) {
+      List<RexNode> joinFilters, Join join, JoinRelType joinType) {
     return;
   }
 
   /** Rule that pushes parts of the join condition to its inputs. */
-  public static class PushDownJoinConditionRule
-      extends PushFilterPastJoinRule {
-    public PushDownJoinConditionRule(RelFactories.FilterFactory filterFactory,
+  public static class JoinConditionPushRule extends FilterJoinRule {
+    public JoinConditionPushRule(RelFactories.FilterFactory filterFactory,
         RelFactories.ProjectFactory projectFactory) {
-      super(RelOptRule.operand(JoinRelBase.class, RelOptRule.any()),
-          "PushFilterPastJoinRule:no-filter",
+      super(RelOptRule.operand(Join.class, RelOptRule.any()),
+          "FilterJoinRule:no-filter",
           true, filterFactory, projectFactory);
     }
 
-    @Override
-    public void onMatch(RelOptRuleCall call) {
-      JoinRelBase join = call.rel(0);
+    @Override public void onMatch(RelOptRuleCall call) {
+      Join join = call.rel(0);
       perform(call, null, join);
     }
   }
 
   /** Rule that tries to push filter expressions into a join
    * condition and into the inputs of the join. */
-  public static class PushFilterIntoJoinRule extends PushFilterPastJoinRule {
-    public PushFilterIntoJoinRule(boolean smart) {
+  public static class FilterIntoJoinRule extends FilterJoinRule {
+    public FilterIntoJoinRule(boolean smart) {
       this(smart, RelFactories.DEFAULT_FILTER_FACTORY,
           RelFactories.DEFAULT_PROJECT_FACTORY);
     }
 
-    public PushFilterIntoJoinRule(boolean smart,
+    public FilterIntoJoinRule(boolean smart,
         RelFactories.FilterFactory filterFactory,
         RelFactories.ProjectFactory projectFactory) {
       super(
-          RelOptRule.operand(FilterRelBase.class,
-              RelOptRule.operand(JoinRelBase.class, RelOptRule.any())),
-          "PushFilterPastJoinRule:filter",
+          RelOptRule.operand(Filter.class,
+              RelOptRule.operand(Join.class, RelOptRule.any())),
+          "FilterJoinRule:filter",
           smart, filterFactory, projectFactory);
     }
 
-    @Override
-    public void onMatch(RelOptRuleCall call) {
-      FilterRelBase filter = call.rel(0);
-      JoinRelBase join = call.rel(1);
+    @Override public void onMatch(RelOptRuleCall call) {
+      Filter filter = call.rel(0);
+      Join join = call.rel(1);
       perform(call, filter, join);
     }
   }
 }
 
-// End PushFilterPastJoinRule.java
+// End FilterJoinRule.java

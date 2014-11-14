@@ -18,6 +18,6 @@
 /**
  * Query provider based on a MongoDB database.
  */
-package net.hydromatic.optiq.impl.mongodb;
+package org.apache.calcite.adapter.mongodb;
 
 // End package-info.java

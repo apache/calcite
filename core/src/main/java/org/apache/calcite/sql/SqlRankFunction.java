@@ -14,18 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql;
+package org.apache.calcite.sql;
 
-import java.util.List;
-
-import org.eigenbase.reltype.*;
-import org.eigenbase.sql.parser.*;
-import org.eigenbase.sql.type.*;
-import org.eigenbase.sql.validate.*;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.type.OperandTypes;
+import org.apache.calcite.sql.type.ReturnTypes;
+import org.apache.calcite.sql.validate.SqlValidator;
+import org.apache.calcite.sql.validate.SqlValidatorScope;
 
 import com.google.common.collect.ImmutableList;
 
-import static org.eigenbase.util.Static.RESOURCE;
+import java.util.List;
+
+import static org.apache.calcite.util.Static.RESOURCE;
 
 /**
  * Operator which aggregates sets of values into a result.

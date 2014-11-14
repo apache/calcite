@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.rules.java;
+package org.apache.calcite.adapter.enumerable;
 
-import net.hydromatic.linq4j.expressions.Expression;
+import org.apache.calcite.linq4j.tree.Expression;
 
 /**
  * Provides information on the current window when computing the result of

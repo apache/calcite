@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.relopt;
+package org.apache.calcite.plan;
 
 /**
  * RelOptCost defines an interface for optimizer cost in terms of number of rows
@@ -31,8 +31,8 @@ public interface RelOptCost {
 
   /**
    * @return number of rows processed; this should not be confused with the
-   * row count produced by a relational expression ({@link
-   * org.eigenbase.rel.RelNode#getRows})
+   * row count produced by a relational expression
+   * ({@link org.apache.calcite.rel.RelNode#getRows})
    */
   double getRows();
 

@@ -14,25 +14,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.rules.java;
+package org.apache.calcite.adapter.enumerable;
 
-import net.hydromatic.linq4j.expressions.Expression;
-
-import org.eigenbase.rex.RexNode;
+import org.apache.calcite.linq4j.tree.Expression;
+import org.apache.calcite.rex.RexNode;
 
 import java.util.List;
 
 /**
- * Information for a call to {@link net.hydromatic.optiq.rules.java.AggImplementor#implementAdd(AggContext, AggAddContext)}.
- * Typically, the aggregation implementation will use {@link #arguments()}
+ * Information for a call to
+ * {@link org.apache.calcite.adapter.enumerable.AggImplementor#implementAdd(AggContext, AggAddContext)}.
+ *
+ * <p>Typically, the aggregation implementation will use {@link #arguments()}
  * or {@link #rexArguments()} to update aggregate value.
  */
 public interface AggAddContext extends AggResultContext {
   /**
-   * Returns {@link org.eigenbase.rex.RexNode} representation of arguments.
+   * Returns {@link org.apache.calcite.rex.RexNode} representation of arguments.
    * This can be useful for manual translation of required arguments with
    * different {@link NullPolicy}.
-   * @return {@link org.eigenbase.rex.RexNode} representation of arguments
+   * @return {@link org.apache.calcite.rex.RexNode} representation of arguments
    */
   List<RexNode> rexArguments();
 
@@ -46,8 +47,9 @@ public interface AggAddContext extends AggResultContext {
   List<Expression> arguments();
 
   /**
-   * Returns {@link net.hydromatic.optiq.rules.java.RexToLixTranslator} suitable to transform the arguments.
-   * @return {@link net.hydromatic.optiq.rules.java.RexToLixTranslator} suitable to transform the arguments.
+   * Returns a
+   * {@link org.apache.calcite.adapter.enumerable.RexToLixTranslator}
+   * suitable to transform the arguments.
    */
   RexToLixTranslator rowTranslator();
 }

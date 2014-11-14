@@ -14,15 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.relopt;
+package org.apache.calcite.plan;
 
-import org.eigenbase.reltype.*;
-import org.eigenbase.sql.type.*;
-import org.eigenbase.util.*;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rel.type.RelDataTypeSystem;
+import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
+import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.util.TestUtil;
+import org.apache.calcite.util.Util;
 
 import org.junit.Test;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
 /**
  * Unit test for {@link RelOptUtil} and other classes in this package.
@@ -77,9 +82,8 @@ public class RelOptUtilTest {
       Util.discard(RelOptRule.guessDescription("com.foo.Bar$1"));
       fail("expected exception");
     } catch (RuntimeException e) {
-      assertEquals(
-          "Derived description of rule class com.foo.Bar$1 is an "
-          + "integer, not valid. Supply a description manually.",
+      assertEquals("Derived description of rule class com.foo.Bar$1 is an "
+              + "integer, not valid. Supply a description manually.",
           e.getMessage());
     }
   }

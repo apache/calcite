@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.avatica.test;
+package org.apache.calcite.avatica.test;
 
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;

@@ -14,19 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql.type;
+package org.apache.calcite.sql.type;
 
-import java.util.List;
-
-import org.eigenbase.reltype.*;
-import org.eigenbase.sql.*;
-import org.eigenbase.util.*;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.sql.SqlOperatorBinding;
+import org.apache.calcite.util.Util;
 
 import com.google.common.base.Preconditions;
 
+import java.util.List;
+
 /**
- * SqlTypeTransforms defines a number of reusable instances of {@link
- * SqlTypeTransform}.
+ * SqlTypeTransforms defines a number of reusable instances of
+ * {@link SqlTypeTransform}.
  *
  * <p>NOTE: avoid anonymous inner classes here except for unique,
  * non-generalizable strategies; anything else belongs in a reusable top-level

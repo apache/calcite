@@ -14,24 +14,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.jdbc;
+package org.apache.calcite.jdbc;
 
-import net.hydromatic.avatica.*;
-
-import net.hydromatic.optiq.impl.java.JavaTypeFactory;
+import org.apache.calcite.adapter.java.JavaTypeFactory;
+import org.apache.calcite.avatica.AvaticaConnection;
+import org.apache.calcite.avatica.AvaticaFactory;
+import org.apache.calcite.avatica.UnregisteredDriver;
 
 import java.util.Properties;
 
 /**
- * Extension of {@link net.hydromatic.avatica.AvaticaFactory}
+ * Extension of {@link org.apache.calcite.avatica.AvaticaFactory}
  * for Calcite.
  */
-public abstract class OptiqFactory implements AvaticaFactory {
+public abstract class CalciteFactory implements AvaticaFactory {
   protected final int major;
   protected final int minor;
 
   /** Creates a JDBC factory with given major/minor version number. */
-  protected OptiqFactory(int major, int minor) {
+  protected CalciteFactory(int major, int minor) {
     this.major = major;
     this.minor = minor;
   }
@@ -55,7 +56,7 @@ public abstract class OptiqFactory implements AvaticaFactory {
   /** Creates a connection with a root schema. */
   public abstract AvaticaConnection newConnection(UnregisteredDriver driver,
       AvaticaFactory factory, String url, Properties info,
-      OptiqRootSchema rootSchema, JavaTypeFactory typeFactory);
+      CalciteRootSchema rootSchema, JavaTypeFactory typeFactory);
 }
 
-// End OptiqFactory.java
+// End CalciteFactory.java

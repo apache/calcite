@@ -14,28 +14,43 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel.rules;
+package org.apache.calcite.rel.rules;
 
-import java.util.*;
+import org.apache.calcite.plan.RelOptRule;
+import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.SingleRel;
+import org.apache.calcite.rel.core.Aggregate;
+import org.apache.calcite.rel.core.Empty;
+import org.apache.calcite.rel.core.Filter;
+import org.apache.calcite.rel.core.Join;
+import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.core.Sort;
+import org.apache.calcite.rel.logical.LogicalUnion;
+import org.apache.calcite.rex.RexLiteral;
 
-import org.eigenbase.rel.*;
-import org.eigenbase.relopt.*;
-import org.eigenbase.rex.RexLiteral;
+import java.util.ArrayList;
+import java.util.List;
 
-import static org.eigenbase.relopt.RelOptRule.*;
+import static org.apache.calcite.plan.RelOptRule.any;
+import static org.apache.calcite.plan.RelOptRule.none;
+import static org.apache.calcite.plan.RelOptRule.operand;
+import static org.apache.calcite.plan.RelOptRule.some;
+import static org.apache.calcite.plan.RelOptRule.unordered;
 
 /**
  * Collection of rules which remove sections of a query plan known never to
  * produce any rows.
  *
- * @see EmptyRel
+ * @see org.apache.calcite.rel.core.Empty
  */
-public abstract class RemoveEmptyRules {
+public abstract class EmptyPruneRules {
   //~ Static fields/initializers ---------------------------------------------
 
   /**
    * Rule that removes empty children of a
-   * {@link UnionRel}.
+   * {@link org.apache.calcite.rel.logical.LogicalUnion}.
    *
    * <p>Examples:
    *
@@ -47,20 +62,20 @@ public abstract class RemoveEmptyRules {
    */
   public static final RelOptRule UNION_INSTANCE =
       new RelOptRule(
-          operand(UnionRel.class,
-              unordered(operand(EmptyRel.class, none()))),
+          operand(LogicalUnion.class,
+              unordered(operand(Empty.class, none()))),
           "Union") {
         public void onMatch(RelOptRuleCall call) {
-          UnionRel union = call.rel(0);
+          LogicalUnion union = call.rel(0);
           final List<RelNode> childRels = call.getChildRels(union);
           final List<RelNode> newChildRels = new ArrayList<RelNode>();
           for (RelNode childRel : childRels) {
-            if (!(childRel instanceof EmptyRel)) {
+            if (!(childRel instanceof Empty)) {
               newChildRels.add(childRel);
             }
           }
           assert newChildRels.size() < childRels.size()
-              : "planner promised us at least one EmptyRel child";
+              : "planner promised us at least one Empty child";
           RelNode newRel;
           switch (newChildRels.size()) {
           case 0:
@@ -75,7 +90,7 @@ public abstract class RemoveEmptyRules {
             break;
           default:
             newRel =
-                new UnionRel(
+                new LogicalUnion(
                     union.getCluster(),
                     newChildRels,
                     union.all);
@@ -86,7 +101,7 @@ public abstract class RemoveEmptyRules {
       };
 
   /**
-   * Rule that converts a {@link ProjectRel}
+   * Rule that converts a {@link org.apache.calcite.rel.logical.LogicalProject}
    * to empty if its child is empty.
    *
    * <p>Examples:
@@ -96,10 +111,10 @@ public abstract class RemoveEmptyRules {
    * </ul>
    */
   public static final RelOptRule PROJECT_INSTANCE =
-      new RemoveEmptySingleRule(ProjectRelBase.class, "PruneEmptyProject");
+      new RemoveEmptySingleRule(Project.class, "PruneEmptyProject");
 
   /**
-   * Rule that converts a {@link FilterRel}
+   * Rule that converts a {@link org.apache.calcite.rel.logical.LogicalFilter}
    * to empty if its child is empty.
    *
    * <p>Examples:
@@ -109,10 +124,10 @@ public abstract class RemoveEmptyRules {
    * </ul>
    */
   public static final RelOptRule FILTER_INSTANCE =
-      new RemoveEmptySingleRule(FilterRelBase.class, "PruneEmptyFilter");
+      new RemoveEmptySingleRule(Filter.class, "PruneEmptyFilter");
 
   /**
-   * Rule that converts a {@link SortRel}
+   * Rule that converts a {@link org.apache.calcite.rel.core.Sort}
    * to empty if its child is empty.
    *
    * <p>Examples:
@@ -122,10 +137,10 @@ public abstract class RemoveEmptyRules {
    * </ul>
    */
   public static final RelOptRule SORT_INSTANCE =
-      new RemoveEmptySingleRule(SortRel.class, "PruneEmptySort");
+      new RemoveEmptySingleRule(Sort.class, "PruneEmptySort");
 
   /**
-   * Rule that converts a {@link SortRel}
+   * Rule that converts a {@link org.apache.calcite.rel.core.Sort}
    * to empty if it has {@code LIMIT 0}.
    *
    * <p>Examples:
@@ -136,10 +151,9 @@ public abstract class RemoveEmptyRules {
    */
   public static final RelOptRule SORT_FETCH_ZERO_INSTANCE =
       new RelOptRule(
-          operand(SortRel.class, any()), "PruneSortLimit0") {
-        @Override
-        public void onMatch(RelOptRuleCall call) {
-          SortRel sort = call.rel(0);
+          operand(Sort.class, any()), "PruneSortLimit0") {
+        @Override public void onMatch(RelOptRuleCall call) {
+          Sort sort = call.rel(0);
           if (sort.fetch != null
               && RexLiteral.intValue(sort.fetch) == 0) {
             call.transformTo(empty(sort));
@@ -148,7 +162,7 @@ public abstract class RemoveEmptyRules {
       };
 
   /**
-   * Rule that converts an {@link AggregateRelBase}
+   * Rule that converts an {@link org.apache.calcite.rel.core.Aggregate}
    * to empty if its child is empty.
    *
    * <p>Examples:
@@ -158,10 +172,10 @@ public abstract class RemoveEmptyRules {
    * </ul>
    */
   public static final RelOptRule AGGREGATE_INSTANCE =
-      new RemoveEmptySingleRule(AggregateRelBase.class, "PruneEmptyAggregate");
+      new RemoveEmptySingleRule(Aggregate.class, "PruneEmptyAggregate");
 
   /**
-   * Rule that converts a {@link JoinRelBase}
+   * Rule that converts a {@link org.apache.calcite.rel.core.Join}
    * to empty if its left child is empty.
    *
    * <p>Examples:
@@ -172,14 +186,13 @@ public abstract class RemoveEmptyRules {
    */
   public static final RelOptRule JOIN_LEFT_INSTANCE =
       new RelOptRule(
-          operand(JoinRelBase.class,
+          operand(Join.class,
               some(
-                  operand(EmptyRel.class, none()),
+                  operand(Empty.class, none()),
                   operand(RelNode.class, any()))),
               "PruneEmptyJoin(left)") {
-        @Override
-        public void onMatch(RelOptRuleCall call) {
-          JoinRelBase join = call.rel(0);
+        @Override public void onMatch(RelOptRuleCall call) {
+          Join join = call.rel(0);
           if (join.getJoinType().generatesNullsOnLeft()) {
             // "select * from emp right join dept" is not necessarily empty if
             // emp is empty
@@ -190,7 +203,7 @@ public abstract class RemoveEmptyRules {
       };
 
   /**
-   * Rule that converts a {@link JoinRelBase}
+   * Rule that converts a {@link org.apache.calcite.rel.core.Join}
    * to empty if its right child is empty.
    *
    * <p>Examples:
@@ -201,14 +214,13 @@ public abstract class RemoveEmptyRules {
    */
   public static final RelOptRule JOIN_RIGHT_INSTANCE =
       new RelOptRule(
-          operand(JoinRelBase.class,
+          operand(Join.class,
               some(
                   operand(RelNode.class, any()),
-                  operand(EmptyRel.class, none()))),
+                  operand(Empty.class, none()))),
               "PruneEmptyJoin(right)") {
-        @Override
-        public void onMatch(RelOptRuleCall call) {
-          JoinRelBase join = call.rel(0);
+        @Override public void onMatch(RelOptRuleCall call) {
+          Join join = call.rel(0);
           if (join.getJoinType().generatesNullsOnRight()) {
             // "select * from emp left join dept" is not necessarily empty if
             // dept is empty
@@ -218,9 +230,10 @@ public abstract class RemoveEmptyRules {
         }
       };
 
-  /** Creates an {@link EmptyRel} to replace {@code node}. */
-  private static EmptyRel empty(RelNode node) {
-    return new EmptyRel(node.getCluster(), node.getRowType());
+  /** Creates an {@link org.apache.calcite.rel.core.Empty} to replace
+   * {@code node}. */
+  private static Empty empty(RelNode node) {
+    return new Empty(node.getCluster(), node.getRowType());
   }
 
   /** Planner rule that converts a single-rel (e.g. project, sort, aggregate or
@@ -230,7 +243,7 @@ public abstract class RemoveEmptyRules {
         String description) {
       super(
           operand(clazz,
-              operand(EmptyRel.class, none())),
+              operand(Empty.class, none())),
           description);
     }
 
@@ -241,4 +254,4 @@ public abstract class RemoveEmptyRules {
   }
 }
 
-// End RemoveEmptyRules.java
+// End EmptyPruneRules.java

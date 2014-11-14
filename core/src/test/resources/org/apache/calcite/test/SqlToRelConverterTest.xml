@@ -19,8 +19,8 @@ limitations under the License.
     <TestCase name="testCase">
         <Resource name="plan">
             <![CDATA[
-ProjectRel(EXPR$0=[CASE(=('a', 'a'), 1, null)])
-  OneRowRel
+LogicalProject(EXPR$0=[CASE(=('a', 'a'), 1, null)])
+  LogicalOneRow
 ]]>
         </Resource>
         <Resource name="sql">
@@ -37,9 +37,9 @@ ProjectRel(EXPR$0=[$0])
     <TestCase name="testGroup">
         <Resource name="plan">
             <![CDATA[
-AggregateRel(group=[{0}])
-  ProjectRel(DEPTNO=[$7])
-    TableAccessRel(table=[[CATALOG, SALES, EMP]])
+LogicalAggregate(group=[{0}])
+  LogicalProject(DEPTNO=[$7])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
         <Resource name="sql">
@@ -57,9 +57,9 @@ ProjectRel(DEPTNO=[$0])
     <TestCase name="testGroupJustOneAgg">
         <Resource name="plan">
             <![CDATA[
-AggregateRel(group=[{0}], SUM_SAL=[SUM($1)])
-  ProjectRel(DEPTNO=[$7], SAL=[$5])
-    TableAccessRel(table=[[CATALOG, SALES, EMP]])
+LogicalAggregate(group=[{0}], SUM_SAL=[SUM($1)])
+  LogicalProject(DEPTNO=[$7], SAL=[$5])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
         <Resource name="sql">
@@ -77,10 +77,10 @@ ProjectRel(DEPTNO=[$0], EXPR$1=[$1])
     <TestCase name="testGroupExpressionsInsideAndOut">
         <Resource name="plan">
             <![CDATA[
-ProjectRel(EXPR$0=[+($0, 4)], EXPR$1=[$1], EXPR$2=[$2], EXPR$3=[*(2, $3)])
-  AggregateRel(group=[{0}], EXPR$1=[SUM($1)], EXPR$2=[SUM($2)], agg#2=[COUNT()])
-    ProjectRel(DEPTNO=[$7], SAL=[$5], $f2=[+(3, $5)])
-      TableAccessRel(table=[[CATALOG, SALES, EMP]])
+LogicalProject(EXPR$0=[+($0, 4)], EXPR$1=[$1], EXPR$2=[$2], EXPR$3=[*(2, $3)])
+  LogicalAggregate(group=[{0}], EXPR$1=[SUM($1)], EXPR$2=[SUM($2)], agg#2=[COUNT()])
+    LogicalProject(DEPTNO=[$7], SAL=[$5], $f2=[+(3, $5)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
         <Resource name="sql">
@@ -98,11 +98,11 @@ ProjectRel(EXPR$0=[+($0, 4)], EXPR$1=[$1], EXPR$2=[$2], EXPR$3=[*(2, $3)])
     <TestCase name="testHaving">
         <Resource name="plan">
             <![CDATA[
-ProjectRel(EXPR$0=[$0])
-  FilterRel(condition=[>($1, 10)])
-    AggregateRel(group=[{}], EXPR$0=[SUM($0)], agg#1=[SUM($1)])
-      ProjectRel($f0=[+($5, $5)], SAL=[$5])
-        TableAccessRel(table=[[CATALOG, SALES, EMP]])
+LogicalProject(EXPR$0=[$0])
+  LogicalFilter(condition=[>($1, 10)])
+    LogicalAggregate(group=[{}], EXPR$0=[SUM($0)], agg#1=[SUM($1)])
+      LogicalProject($f0=[+($5, $5)], SAL=[$5])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
         <Resource name="sql">
@@ -121,10 +121,10 @@ ProjectRel(EXPR$0=[$0])
     <TestCase name="testGroupBug281">
         <Resource name="plan">
             <![CDATA[
-ProjectRel(NAME=[$0])
-  AggregateRel(group=[{0}])
-    ProjectRel(NAME=[$1])
-      TableAccessRel(table=[[CATALOG, SALES, DEPT]])
+LogicalProject(NAME=[$0])
+  LogicalAggregate(group=[{0}])
+    LogicalProject(NAME=[$1])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
         </Resource>
         <Resource name="sql">
@@ -143,11 +143,11 @@ ProjectRel(NAME=[$0])
     <TestCase name="testGroupBug281b">
         <Resource name="plan">
             <![CDATA[
-ProjectRel(NAME=[$1], FOO=[$2])
-  ProjectRel(DEPTNO=[$1], NAME=[$0], FOO=[$2])
-    AggregateRel(group=[{0, 1}], FOO=[COUNT()])
-      ProjectRel(NAME=[$1], DEPTNO=[$0])
-        TableAccessRel(table=[[CATALOG, SALES, DEPT]])
+LogicalProject(NAME=[$1], FOO=[$2])
+  LogicalProject(DEPTNO=[$1], NAME=[$0], FOO=[$2])
+    LogicalAggregate(group=[{0, 1}], FOO=[COUNT()])
+      LogicalProject(NAME=[$1], DEPTNO=[$0])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
         </Resource>
         <Resource name="sql">
@@ -166,9 +166,9 @@ ProjectRel(NAME=[$1], FOO=[$2])
     <TestCase name="testAggDistinct">
         <Resource name="plan">
             <![CDATA[
-AggregateRel(group=[{0}], EXPR$1=[SUM($1)], EXPR$2=[SUM(DISTINCT $1)], EXPR$3=[COUNT()])
-  ProjectRel(DEPTNO=[$7], SAL=[$5])
-    TableAccessRel(table=[[CATALOG, SALES, EMP]])
+LogicalAggregate(group=[{0}], EXPR$1=[SUM($1)], EXPR$2=[SUM(DISTINCT $1)], EXPR$3=[COUNT()])
+  LogicalProject(DEPTNO=[$7], SAL=[$5])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
         <Resource name="sql">
@@ -186,11 +186,11 @@ ProjectRel(DEPTNO=[$0], EXPR$1=[$1], EXPR$2=[$2], EXPR$3=[$3])
     <TestCase name="testUnnest">
         <Resource name="plan">
             <![CDATA[
-ProjectRel(EXPR$0=[$0])
-  UncollectRel
-    ProjectRel(EXPR$0=[$SLICE($0)])
-      CollectRel(field=[EXPR$0])
-        ValuesRel(tuples=[[{ 1 }, { 2 }]])
+LogicalProject(EXPR$0=[$0])
+  Uncollect
+    LogicalProject(EXPR$0=[$SLICE($0)])
+      Collect(field=[EXPR$0])
+        LogicalValues(tuples=[[{ 1 }, { 2 }]])
 ]]>
         </Resource>
         <Resource name="sql">
@@ -213,11 +213,11 @@ ProjectRel(EXPR$0=[$0])
     <TestCase name="testUnnestSubquery">
         <Resource name="plan">
             <![CDATA[
-ProjectRel(DEPTNO=[$0], NAME=[$1])
-  UncollectRel
-    CollectRel(field=[EXPR$0])
-      ProjectRel(DEPTNO=[$0], NAME=[$1])
-        TableAccessRel(table=[[CATALOG, SALES, DEPT]])
+LogicalProject(DEPTNO=[$0], NAME=[$1])
+  Uncollect
+    Collect(field=[EXPR$0])
+      LogicalProject(DEPTNO=[$0], NAME=[$1])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
         </Resource>
         <Resource name="sql">
@@ -237,12 +237,12 @@ ProjectRel(DEPTNO=[$0], NAME=[$1])
     <TestCase name="testMultisetSubquery">
         <Resource name="plan">
             <![CDATA[
-ProjectRel(EXPR$0=[$1])
-  JoinRel(condition=[true], joinType=[inner])
-    ValuesRel(tuples=[[{ true }]])
-    CollectRel(field=[EXPR$0])
-      ProjectRel(DEPTNO=[$0])
-        TableAccessRel(table=[[CATALOG, SALES, DEPT]])
+LogicalProject(EXPR$0=[$1])
+  LogicalJoin(condition=[true], joinType=[inner])
+    LogicalValues(tuples=[[{ true }]])
+    Collect(field=[EXPR$0])
+      LogicalProject(DEPTNO=[$0])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
         </Resource>
         <Resource name="sql">
@@ -264,11 +264,11 @@ ProjectRel(EXPR$0=[$1])
     <TestCase name="testMultiset">
         <Resource name="plan">
             <![CDATA[
-ProjectRel(EXPR$0=['a'], EXPR$1=[$SLICE($2)])
-  JoinRel(condition=[true], joinType=[inner])
-    TableAccessRel(table=[[CATALOG, SALES, DEPT]])
-    CollectRel(field=[EXPR$0])
-      ValuesRel(tuples=[[{ 10 }]])
+LogicalProject(EXPR$0=['a'], EXPR$1=[$SLICE($2)])
+  LogicalJoin(condition=[true], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    Collect(field=[EXPR$0])
+      LogicalValues(tuples=[[{ 10 }]])
 ]]>
         </Resource>
         <Resource name="sql">
@@ -289,15 +289,15 @@ ProjectRel(EXPR$0=[_ISO-8859-1'a'], EXPR$1=[$SLICE($2)])
     <TestCase name="testMultisetOfColumns">
         <Resource name="plan">
             <![CDATA[
-ProjectRel(EXPR$0=['abc'], EXPR$1=[$SLICE($9)])
-  CorrelatorRel(condition=[true], joinType=[inner], correlations=[[var0=offset7, var1=offset5]])
-    TableAccessRel(table=[[CATALOG, SALES, EMP]])
-    CollectRel(field=[EXPR$0])
-      UnionRel(all=[true])
-        ProjectRel(EXPR$0=[$cor0.DEPTNO])
-          OneRowRel
-        ProjectRel(EXPR$0=[$cor1.SAL])
-          OneRowRel
+LogicalProject(EXPR$0=['abc'], EXPR$1=[$SLICE($9)])
+  Correlator(condition=[true], joinType=[inner], correlations=[[var0=offset7, var1=offset5]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    Collect(field=[EXPR$0])
+      LogicalUnion(all=[true])
+        LogicalProject(EXPR$0=[$cor0.DEPTNO])
+          LogicalOneRow
+        LogicalProject(EXPR$0=[$cor1.SAL])
+          LogicalOneRow
 ]]>
         </Resource>
         <Resource name="sql">
@@ -320,13 +320,13 @@ ProjectRel(EXPR$0=[_ISO-8859-1'abc'], EXPR$1=[$SLICE($8)])
     <TestCase name="testCorrelationJoin">
         <Resource name="plan">
             <![CDATA[
-ProjectRel(DEPTNO=[$0], NAME=[$1], EMPSET=[$2])
-  CorrelatorRel(condition=[true], joinType=[inner], correlations=[[var0=offset0]])
-    TableAccessRel(table=[[CATALOG, SALES, DEPT]])
-    CollectRel(field=[EXPR$0])
-      ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
-        FilterRel(condition=[=($7, $cor0.DEPTNO)])
-          TableAccessRel(table=[[CATALOG, SALES, EMP]])
+LogicalProject(DEPTNO=[$0], NAME=[$1], EMPSET=[$2])
+  Correlator(condition=[true], joinType=[inner], correlations=[[var0=offset0]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    Collect(field=[EXPR$0])
+      LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+        LogicalFilter(condition=[=($7, $cor0.DEPTNO)])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
         <Resource name="sql">
@@ -347,15 +347,15 @@ ProjectRel(DEPTNO=[$0], NAME=[$1], EMPSET=[$2])
     <TestCase name="testExists">
         <Resource name="plan">
             <![CDATA[
-ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
-  FilterRel(condition=[IS NOT NULL($9)])
-    JoinRel(condition=[true], joinType=[left])
-      TableAccessRel(table=[[CATALOG, SALES, EMP]])
-      AggregateRel(group=[{}], agg#0=[MIN($0)])
-        ProjectRel($f0=[true])
-          ProjectRel(EXPR$0=[1])
-            FilterRel(condition=[=($0, 55)])
-              TableAccessRel(table=[[CATALOG, SALES, DEPT]])
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalFilter(condition=[IS NOT NULL($9)])
+    LogicalJoin(condition=[true], joinType=[left])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalAggregate(group=[{}], agg#0=[MIN($0)])
+        LogicalProject($f0=[true])
+          LogicalProject(EXPR$0=[1])
+            LogicalFilter(condition=[=($0, 55)])
+              LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
         </Resource>
         <Resource name="sql">
@@ -377,15 +377,15 @@ ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], 
     <TestCase name="testExistsCorrelated">
         <Resource name="plan">
             <![CDATA[
-ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
-  FilterRel(condition=[IS NOT NULL($9)])
-    CorrelatorRel(condition=[true], joinType=[left], correlations=[[var0=offset7]])
-      TableAccessRel(table=[[CATALOG, SALES, EMP]])
-      AggregateRel(group=[{}], agg#0=[MIN($0)])
-        ProjectRel($f0=[true])
-          ProjectRel(EXPR$0=[1])
-            FilterRel(condition=[=($cor0.DEPTNO, $0)])
-              TableAccessRel(table=[[CATALOG, SALES, DEPT]])
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalFilter(condition=[IS NOT NULL($9)])
+    Correlator(condition=[true], joinType=[left], correlations=[[var0=offset7]])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalAggregate(group=[{}], agg#0=[MIN($0)])
+        LogicalProject($f0=[true])
+          LogicalProject(EXPR$0=[1])
+            LogicalFilter(condition=[=($cor0.DEPTNO, $0)])
+              LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
         </Resource>
         <Resource name="sql">
@@ -407,15 +407,15 @@ ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], 
     <TestCase name="testUnnestSelect">
         <Resource name="plan">
             <![CDATA[
-ProjectRel(EXPR$0=[$0])
-  UncollectRel
-    ProjectRel(EXPR$0=[$SLICE($2)])
-      CorrelatorRel(condition=[true], joinType=[inner], correlations=[[var0=offset0]])
-        TableAccessRel(table=[[CATALOG, SALES, DEPT]])
-        CollectRel(field=[EXPR$0])
-          UnionRel(all=[true])
-            ProjectRel(EXPR$0=[$cor0.DEPTNO])
-              OneRowRel
+LogicalProject(EXPR$0=[$0])
+  Uncollect
+    LogicalProject(EXPR$0=[$SLICE($2)])
+      Correlator(condition=[true], joinType=[inner], correlations=[[var0=offset0]])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+        Collect(field=[EXPR$0])
+          LogicalUnion(all=[true])
+            LogicalProject(EXPR$0=[$cor0.DEPTNO])
+              LogicalOneRow
 ]]>
         </Resource>
         <Resource name="sql">
@@ -439,12 +439,12 @@ ProjectRel(EXPR$0=[$0])
     <TestCase name="testLateral">
         <Resource name="plan">
             <![CDATA[
-ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], NAME=[$10])
-  CorrelatorRel(condition=[true], joinType=[inner], correlations=[[var0=offset7]])
-    TableAccessRel(table=[[CATALOG, SALES, EMP]])
-    ProjectRel(DEPTNO=[$0], NAME=[$1])
-      FilterRel(condition=[=($cor0.DEPTNO, $0)])
-        TableAccessRel(table=[[CATALOG, SALES, DEPT]])
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], NAME=[$10])
+  Correlator(condition=[true], joinType=[inner], correlations=[[var0=offset7]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(DEPTNO=[$0], NAME=[$1])
+      LogicalFilter(condition=[=($cor0.DEPTNO, $0)])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
         </Resource>
         <Resource name="sql">
@@ -464,11 +464,11 @@ ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], 
     <TestCase name="testElement">
         <Resource name="plan">
             <![CDATA[
-ProjectRel(EXPR$0=[ELEMENT($SLICE($9))])
-  JoinRel(condition=[true], joinType=[inner])
-    TableAccessRel(table=[[CATALOG, SALES, EMP]])
-    CollectRel(field=[EXPR$0])
-      ValuesRel(tuples=[[{ 5 }]])
+LogicalProject(EXPR$0=[ELEMENT($SLICE($9))])
+  LogicalJoin(condition=[true], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    Collect(field=[EXPR$0])
+      LogicalValues(tuples=[[{ 5 }]])
 ]]>
         </Resource>
         <Resource name="sql">
@@ -489,9 +489,9 @@ ProjectRel(EXPR$0=[ELEMENT($SLICE($8))])
     <TestCase name="testElementInValues">
         <Resource name="plan">
             <![CDATA[
-ProjectRel(EXPR$0=[ELEMENT($SLICE($0))])
-  CollectRel(field=[EXPR$0])
-    ValuesRel(tuples=[[{ 5 }]])
+LogicalProject(EXPR$0=[ELEMENT($SLICE($0))])
+  Collect(field=[EXPR$0])
+    LogicalValues(tuples=[[{ 5 }]])
 ]]>
         </Resource>
         <Resource name="sql">
@@ -511,11 +511,11 @@ ProjectRel(EXPR$0=[$0])
     <TestCase name="testUnionAll">
         <Resource name="plan">
             <![CDATA[
-UnionRel(all=[true])
-  ProjectRel(EMPNO=[$0])
-    TableAccessRel(table=[[CATALOG, SALES, EMP]])
-  ProjectRel(DEPTNO=[$0])
-    TableAccessRel(table=[[CATALOG, SALES, DEPT]])
+LogicalUnion(all=[true])
+  LogicalProject(EMPNO=[$0])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalProject(DEPTNO=[$0])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
         </Resource>
         <Resource name="sql">
@@ -534,11 +534,11 @@ UnionRel(all=[true])
     <TestCase name="testUnion">
         <Resource name="plan">
             <![CDATA[
-UnionRel(all=[false])
-  ProjectRel(EMPNO=[$0])
-    TableAccessRel(table=[[CATALOG, SALES, EMP]])
-  ProjectRel(DEPTNO=[$0])
-    TableAccessRel(table=[[CATALOG, SALES, DEPT]])
+LogicalUnion(all=[false])
+  LogicalProject(EMPNO=[$0])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalProject(DEPTNO=[$0])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
         </Resource>
         <Resource name="sql">
@@ -557,16 +557,16 @@ UnionRel(all=[false])
     <TestCase name="testUnionValues">
         <Resource name="plan">
             <![CDATA[
-UnionRel(all=[true])
-  UnionRel(all=[true])
-    ValuesRel(tuples=[[{ 10 }, { 20 }]])
-    ProjectRel(EXPR$0=[34])
-      TableAccessRel(table=[[CATALOG, SALES, EMP]])
-  UnionRel(all=[true])
-    ProjectRel(EXPR$0=[30])
-      OneRowRel
-    ProjectRel(EXPR$0=[+(45, 10)])
-      OneRowRel
+LogicalUnion(all=[true])
+  LogicalUnion(all=[true])
+    LogicalValues(tuples=[[{ 10 }, { 20 }]])
+    LogicalProject(EXPR$0=[34])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalUnion(all=[true])
+    LogicalProject(EXPR$0=[30])
+      LogicalOneRow
+    LogicalProject(EXPR$0=[+(45, 10)])
+      LogicalOneRow
 ]]>
         </Resource>
         <Resource name="sql">
@@ -599,17 +599,17 @@ UnionRel(all=[true])
     <TestCase name="testUnionSubquery">
         <Resource name="plan">
             <![CDATA[
-ProjectRel(DEPTNO=[$7])
-  JoinRel(condition=[true], joinType=[inner])
-    TableAccessRel(table=[[CATALOG, SALES, EMP]])
-    UnionRel(all=[true])
-      UnionRel(all=[true])
-        ProjectRel(EMPNO=[$0])
-          TableAccessRel(table=[[CATALOG, SALES, EMP]])
-        ProjectRel(DEPTNO=[$0])
-          FilterRel(condition=[>($0, 20)])
-            TableAccessRel(table=[[CATALOG, SALES, DEPT]])
-      ValuesRel(tuples=[[{ 45 }, { 67 }]])
+LogicalProject(DEPTNO=[$7])
+  LogicalJoin(condition=[true], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalUnion(all=[true])
+      LogicalUnion(all=[true])
+        LogicalProject(EMPNO=[$0])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalProject(DEPTNO=[$0])
+          LogicalFilter(condition=[>($0, 20)])
+            LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+      LogicalValues(tuples=[[{ 45 }, { 67 }]])
 ]]>
         </Resource>
         <Resource name="sql">
@@ -642,8 +642,8 @@ ProjectRel(DEPTNO=[$7])
     <TestCase name="testIsDistinctFrom">
         <Resource name="plan">
             <![CDATA[
-ProjectRel(EXPR$0=[CAST(CASE(IS NULL(1), IS NOT NULL(2), IS NULL(2), IS NOT NULL(1), <>(1, 2))):BOOLEAN NOT NULL])
-  ValuesRel(tuples=[[{ true }]])
+LogicalProject(EXPR$0=[CAST(CASE(IS NULL(1), IS NOT NULL(2), IS NULL(2), IS NOT NULL(1), <>(1, 2))):BOOLEAN NOT NULL])
+  LogicalValues(tuples=[[{ true }]])
 ]]>
         </Resource>
         <Resource name="sql">
@@ -661,8 +661,8 @@ ProjectRel(EXPR$0=[CASE(IS NULL(1), IS NOT NULL(2), IS NULL(2), IS NOT NULL(1), 
     <TestCase name="testIsNotDistinctFrom">
         <Resource name="plan">
             <![CDATA[
-ProjectRel(EXPR$0=[CAST(CASE(IS NULL(1), IS NULL(2), IS NULL(2), IS NULL(1), =(1, 2))):BOOLEAN NOT NULL])
-  ValuesRel(tuples=[[{ true }]])
+LogicalProject(EXPR$0=[CAST(CASE(IS NULL(1), IS NULL(2), IS NULL(2), IS NULL(1), =(1, 2))):BOOLEAN NOT NULL])
+  LogicalValues(tuples=[[{ true }]])
 ]]>
         </Resource>
         <Resource name="sql">
@@ -680,8 +680,8 @@ ProjectRel(EXPR$0=[CASE(IS NULL(1), IS NULL(2), IS NULL(2), IS NULL(1), =(1, 2))
     <TestCase name="testNotLike">
         <Resource name="plan">
             <![CDATA[
-ProjectRel(EXPR$0=[NOT(LIKE('a', 'b', 'c'))])
-  OneRowRel
+LogicalProject(EXPR$0=[NOT(LIKE('a', 'b', 'c'))])
+  LogicalOneRow
 ]]>
         </Resource>
         <Resource name="sql">
@@ -698,9 +698,9 @@ ProjectRel(EXPR$0=[$0])
     <TestCase name="testOverMultiple">
         <Resource name="plan">
             <![CDATA[
-ProjectRel(EXPR$0=[CASE(>(COUNT($5) OVER (PARTITION BY $2 ORDER BY $4 ROWS BETWEEN 2 PRECEDING AND CURRENT ROW), 0), CAST($SUM0($5) OVER (PARTITION BY $2 ORDER BY $4 ROWS BETWEEN 2 PRECEDING AND CURRENT ROW)):INTEGER, null)], EXPR$1=[CASE(>(COUNT($7) OVER (PARTITION BY $2 ORDER BY $4 ROWS BETWEEN 2 PRECEDING AND CURRENT ROW), 0), CAST($SUM0($7) OVER (PARTITION BY $2 ORDER BY $4 ROWS BETWEEN 2 PRECEDING AND CURRENT ROW)):INTEGER, null)], EXPR$2=[CASE(>=(COUNT() OVER (PARTITION BY $2 ORDER BY $4 ROWS BETWEEN 3 PRECEDING AND CURRENT ROW), 2), CASE(>(COUNT($7) OVER (PARTITION BY $2 ORDER BY $4 ROWS BETWEEN 3 PRECEDING AND CURRENT ROW), 0), CAST($SUM0($7) OVER (PARTITION BY $2 ORDER BY $4 ROWS BETWEEN 3 PRECEDING AND CURRENT ROW)):INTEGER, null), null)])
-  FilterRel(condition=[>(-($7, $5), 999)])
-    TableAccessRel(table=[[CATALOG, SALES, EMP]])
+LogicalProject(EXPR$0=[CASE(>(COUNT($5) OVER (PARTITION BY $2 ORDER BY $4 ROWS BETWEEN 2 PRECEDING AND CURRENT ROW), 0), CAST($SUM0($5) OVER (PARTITION BY $2 ORDER BY $4 ROWS BETWEEN 2 PRECEDING AND CURRENT ROW)):INTEGER, null)], EXPR$1=[CASE(>(COUNT($7) OVER (PARTITION BY $2 ORDER BY $4 ROWS BETWEEN 2 PRECEDING AND CURRENT ROW), 0), CAST($SUM0($7) OVER (PARTITION BY $2 ORDER BY $4 ROWS BETWEEN 2 PRECEDING AND CURRENT ROW)):INTEGER, null)], EXPR$2=[CASE(>=(COUNT() OVER (PARTITION BY $2 ORDER BY $4 ROWS BETWEEN 3 PRECEDING AND CURRENT ROW), 2), CASE(>(COUNT($7) OVER (PARTITION BY $2 ORDER BY $4 ROWS BETWEEN 3 PRECEDING AND CURRENT ROW), 0), CAST($SUM0($7) OVER (PARTITION BY $2 ORDER BY $4 ROWS BETWEEN 3 PRECEDING AND CURRENT ROW)):INTEGER, null), null)])
+  LogicalFilter(condition=[>(-($7, $5), 999)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
         <Resource name="sql">
@@ -724,8 +724,8 @@ ProjectRel(EXPR$0=[SUM($5) OVER (PARTITION BY $2 ORDER BY $4 ROWS 2 PRECEDING)],
     <TestCase name="testCharLength">
         <Resource name="plan">
             <![CDATA[
-ProjectRel(EXPR$0=[CHAR_LENGTH('foo')])
-  OneRowRel
+LogicalProject(EXPR$0=[CHAR_LENGTH('foo')])
+  LogicalOneRow
 ]]>
         </Resource>
         <Resource name="sql">
@@ -742,8 +742,8 @@ ProjectRel(EXPR$0=[$0])
     <TestCase name="testOverAvg">
         <Resource name="plan">
             <![CDATA[
-ProjectRel(EXPR$0=[CASE(>(COUNT($5) OVER (PARTITION BY $2 ORDER BY $4 ROWS BETWEEN 2 PRECEDING AND CURRENT ROW), 0), CAST($SUM0($5) OVER (PARTITION BY $2 ORDER BY $4 ROWS BETWEEN 2 PRECEDING AND CURRENT ROW)):INTEGER, null)], EXPR$1=[CAST(/(CASE(>(COUNT($5) OVER (PARTITION BY $2 ORDER BY $4 ROWS BETWEEN 2 PRECEDING AND CURRENT ROW), 0), CAST($SUM0($5) OVER (PARTITION BY $2 ORDER BY $4 ROWS BETWEEN 2 PRECEDING AND CURRENT ROW)):INTEGER, null), COUNT($5) OVER (PARTITION BY $2 ORDER BY $4 ROWS BETWEEN 2 PRECEDING AND CURRENT ROW))):INTEGER])
-  TableAccessRel(table=[[CATALOG, SALES, EMP]])
+LogicalProject(EXPR$0=[CASE(>(COUNT($5) OVER (PARTITION BY $2 ORDER BY $4 ROWS BETWEEN 2 PRECEDING AND CURRENT ROW), 0), CAST($SUM0($5) OVER (PARTITION BY $2 ORDER BY $4 ROWS BETWEEN 2 PRECEDING AND CURRENT ROW)):INTEGER, null)], EXPR$1=[CAST(/(CASE(>(COUNT($5) OVER (PARTITION BY $2 ORDER BY $4 ROWS BETWEEN 2 PRECEDING AND CURRENT ROW), 0), CAST($SUM0($5) OVER (PARTITION BY $2 ORDER BY $4 ROWS BETWEEN 2 PRECEDING AND CURRENT ROW)):INTEGER, null), COUNT($5) OVER (PARTITION BY $2 ORDER BY $4 ROWS BETWEEN 2 PRECEDING AND CURRENT ROW))):INTEGER])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
         <Resource name="sql">
@@ -762,8 +762,8 @@ ProjectRel(EXPR$0=[SUM($5) OVER (PARTITION BY $2 ORDER BY $4 ROWS 2 PRECEDING)],
     <TestCase name="testOverCountStar">
         <Resource name="plan">
             <![CDATA[
-ProjectRel(EXPR$0=[COUNT($5) OVER (PARTITION BY $2 ORDER BY $4 ROWS BETWEEN 2 PRECEDING AND CURRENT ROW)], EXPR$1=[COUNT() OVER (PARTITION BY $2 ORDER BY $4 ROWS BETWEEN 2 PRECEDING AND CURRENT ROW)])
-  TableAccessRel(table=[[CATALOG, SALES, EMP]])
+LogicalProject(EXPR$0=[COUNT($5) OVER (PARTITION BY $2 ORDER BY $4 ROWS BETWEEN 2 PRECEDING AND CURRENT ROW)], EXPR$1=[COUNT() OVER (PARTITION BY $2 ORDER BY $4 ROWS BETWEEN 2 PRECEDING AND CURRENT ROW)])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
         <Resource name="sql">
@@ -785,8 +785,8 @@ ProjectRel(EXPR$0=[COUNT($5) OVER (PARTITION BY $2 ORDER BY $4 ROWS 2 PRECEDING)
         </Resource>
         <Resource name="plan">
             <![CDATA[
-ProjectRel(EXPR$0=[1])
-  TableAccessRel(table=[[CATALOG, SALES, EMP]])
+LogicalProject(EXPR$0=[1])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
     </TestCase>
@@ -796,9 +796,9 @@ ProjectRel(EXPR$0=[1])
         </Resource>
         <Resource name="plan">
             <![CDATA[
-AggregateRel(group=[{0}])
-  ProjectRel(EXPR$0=[+($5, 5)])
-    TableAccessRel(table=[[CATALOG, SALES, EMP]])
+LogicalAggregate(group=[{0}])
+  LogicalProject(EXPR$0=[+($5, 5)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
     </TestCase>
@@ -808,11 +808,11 @@ AggregateRel(group=[{0}])
         </Resource>
         <Resource name="plan">
             <![CDATA[
-AggregateRel(group=[{0}])
-  ProjectRel(EXPR$0=[$1])
-    AggregateRel(group=[{0}], EXPR$0=[SUM($1)])
-      ProjectRel(DEPTNO=[$7], SAL=[$5])
-        TableAccessRel(table=[[CATALOG, SALES, EMP]])
+LogicalAggregate(group=[{0}])
+  LogicalProject(EXPR$0=[$1])
+    LogicalAggregate(group=[{0}], EXPR$0=[SUM($1)])
+      LogicalProject(DEPTNO=[$7], SAL=[$5])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
     </TestCase>
@@ -822,8 +822,8 @@ AggregateRel(group=[{0}])
         </Resource>
         <Resource name="plan">
             <![CDATA[
-ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
-  TableAccessRel(table=[[CATALOG, SALES, EMP]])
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
     </TestCase>
@@ -833,8 +833,8 @@ ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], 
         </Resource>
         <Resource name="plan">
             <![CDATA[
-ProjectRel(I=[$0])
-  TableFunctionRel(invocation=[RAMP(3)], rowType=[RecordType(INTEGER I)])
+LogicalProject(I=[$0])
+  LogicalTableFunctionScan(invocation=[RAMP(3)], rowType=[RecordType(INTEGER I)])
 ]]>
         </Resource>
     </TestCase>
@@ -844,9 +844,9 @@ ProjectRel(I=[$0])
         </Resource>
         <Resource name="plan">
             <![CDATA[
-ProjectRel(EMPNO=[$0])
-  FilterRel(condition=[OR(=($7, 10), =($7, 20))])
-    TableAccessRel(table=[[CATALOG, SALES, EMP]])
+LogicalProject(EMPNO=[$0])
+  LogicalFilter(condition=[OR(=($7, 10), =($7, 20))])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
     </TestCase>
@@ -856,12 +856,12 @@ ProjectRel(EMPNO=[$0])
         </Resource>
         <Resource name="plan">
             <![CDATA[
-ProjectRel(EMPNO=[$0])
-  JoinRel(condition=[=($9, $10)], joinType=[inner])
-    ProjectRel($f0=[$0], $f1=[$1], $f2=[$2], $f3=[$3], $f4=[$4], $f5=[$5], $f6=[$6], $f7=[$7], $f8=[$8], $f9=[$7])
-      TableAccessRel(table=[[CATALOG, SALES, EMP]])
-    AggregateRel(group=[{0}])
-      ValuesRel(tuples=[[{ 10 }, { 20 }, { 30 }, { 40 }, { 50 }, { 60 }, { 70 }, { 80 }, { 90 }, { 100 }, { 110 }, { 120 }, { 130 }, { 140 }, { 150 }, { 160 }, { 170 }, { 180 }, { 190 }, { 200 }, { 210 }, { 220 }, { 230 }]])
+LogicalProject(EMPNO=[$0])
+  LogicalJoin(condition=[=($9, $10)], joinType=[inner])
+    LogicalProject($f0=[$0], $f1=[$1], $f2=[$2], $f3=[$3], $f4=[$4], $f5=[$5], $f6=[$6], $f7=[$7], $f8=[$8], $f9=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalAggregate(group=[{0}])
+      LogicalValues(tuples=[[{ 10 }, { 20 }, { 30 }, { 40 }, { 50 }, { 60 }, { 70 }, { 80 }, { 90 }, { 100 }, { 110 }, { 120 }, { 130 }, { 140 }, { 150 }, { 160 }, { 170 }, { 180 }, { 190 }, { 200 }, { 210 }, { 220 }, { 230 }]])
 ]]>
         </Resource>
     </TestCase>
@@ -871,13 +871,13 @@ ProjectRel(EMPNO=[$0])
         </Resource>
         <Resource name="plan">
             <![CDATA[
-ProjectRel(EMPNO=[$0])
-  JoinRel(condition=[=($9, $10)], joinType=[inner])
-    ProjectRel($f0=[$0], $f1=[$1], $f2=[$2], $f3=[$3], $f4=[$4], $f5=[$5], $f6=[$6], $f7=[$7], $f8=[$8], $f9=[$7])
-      TableAccessRel(table=[[CATALOG, SALES, EMP]])
-    AggregateRel(group=[{0}])
-      ProjectRel(DEPTNO=[$0])
-        TableAccessRel(table=[[CATALOG, SALES, DEPT]])
+LogicalProject(EMPNO=[$0])
+  LogicalJoin(condition=[=($9, $10)], joinType=[inner])
+    LogicalProject($f0=[$0], $f1=[$1], $f2=[$2], $f3=[$3], $f4=[$4], $f5=[$5], $f6=[$6], $f7=[$7], $f8=[$8], $f9=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalAggregate(group=[{0}])
+      LogicalProject(DEPTNO=[$0])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
         </Resource>
     </TestCase>
@@ -887,12 +887,12 @@ ProjectRel(EMPNO=[$0])
         </Resource>
         <Resource name="plan">
             <![CDATA[
-ProjectRel(NAME=[$0])
-  TableFunctionRel(invocation=[DEDUP($0, $1, 'NAME')], rowType=[RecordType(VARCHAR(1024) NAME)])
-    ProjectRel(ENAME=[$1])
-      TableAccessRel(table=[[CATALOG, SALES, EMP]])
-    ProjectRel(NAME=[$1])
-      TableAccessRel(table=[[CATALOG, SALES, DEPT]])
+LogicalProject(NAME=[$0])
+  LogicalTableFunctionScan(invocation=[DEDUP($0, $1, 'NAME')], rowType=[RecordType(VARCHAR(1024) NAME)])
+    LogicalProject(ENAME=[$1])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(NAME=[$1])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
         </Resource>
     </TestCase>
@@ -902,9 +902,9 @@ ProjectRel(NAME=[$0])
         </Resource>
         <Resource name="plan">
             <![CDATA[
-SortRel(sort0=[$0], dir0=[ASC])
-  ProjectRel(EMPNO=[$0])
-    TableAccessRel(table=[[CATALOG, SALES, EMP]])
+Sort(sort0=[$0], dir0=[ASC])
+  LogicalProject(EMPNO=[$0])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
     </TestCase>
@@ -914,9 +914,9 @@ SortRel(sort0=[$0], dir0=[ASC])
         </Resource>
         <Resource name="plan">
             <![CDATA[
-SortRel(sort0=[$0], dir0=[DESC-nulls-last])
-  ProjectRel(EMPNO=[$0])
-    TableAccessRel(table=[[CATALOG, SALES, EMP]])
+Sort(sort0=[$0], dir0=[DESC-nulls-last])
+  LogicalProject(EMPNO=[$0])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
     </TestCase>
@@ -926,21 +926,21 @@ SortRel(sort0=[$0], dir0=[DESC-nulls-last])
         </Resource>
         <Resource name="plan">
             <![CDATA[
-SortRel(sort0=[$1], dir0=[ASC])
-  ProjectRel(X=[+($0, 1)], Y=[-($0, 2)])
-    TableAccessRel(table=[[CATALOG, SALES, EMP]])
+Sort(sort0=[$1], dir0=[ASC])
+  LogicalProject(X=[+($0, 1)], Y=[-($0, 2)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
     </TestCase>
     <TestCase name="testOrderByOrdinalDesc">
         <Resource name="sql">
-            <![CDATA[select empno + 1, deptno, empno from emp order by 2.5 desc]]>
+            <![CDATA[select empno + 1, deptno, empno from emp order by 2 desc]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
-SortRel(sort0=[$1], dir0=[DESC])
-  ProjectRel(EXPR$0=[+($0, 1)], DEPTNO=[$7], EMPNO=[$0])
-    TableAccessRel(table=[[CATALOG, SALES, EMP]])
+Sort(sort0=[$1], dir0=[DESC])
+  LogicalProject(EXPR$0=[+($0, 1)], DEPTNO=[$7], EMPNO=[$0])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
     </TestCase>
@@ -950,10 +950,10 @@ SortRel(sort0=[$1], dir0=[DESC])
         </Resource>
         <Resource name="plan">
             <![CDATA[
-ProjectRel(EXPR$0=[$0])
-  SortRel(sort0=[$1], sort1=[$0], dir0=[ASC], dir1=[DESC])
-    ProjectRel(EXPR$0=[+($0, 1)], DEPTNO=[$7])
-      TableAccessRel(table=[[CATALOG, SALES, EMP]])
+LogicalProject(EXPR$0=[$0])
+  Sort(sort0=[$1], sort1=[$0], dir0=[ASC], dir1=[DESC])
+    LogicalProject(EXPR$0=[+($0, 1)], DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
     </TestCase>
@@ -963,10 +963,10 @@ ProjectRel(EXPR$0=[$0])
         </Resource>
         <Resource name="plan">
             <![CDATA[
-ProjectRel(EXPR$0=[$0], DEPTNO=[$1], EMPNO=[$2])
-  SortRel(sort0=[$3], dir0=[DESC])
-    ProjectRel(EXPR$0=[+($0, 1)], DEPTNO=[$7], EMPNO=[$0], EXPR$3=[-1])
-      TableAccessRel(table=[[CATALOG, SALES, EMP]])
+LogicalProject(EXPR$0=[$0], DEPTNO=[$1], EMPNO=[$2])
+  Sort(sort0=[$3], dir0=[DESC])
+    LogicalProject(EXPR$0=[+($0, 1)], DEPTNO=[$7], EMPNO=[$0], EXPR$3=[-1])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
     </TestCase>
@@ -976,10 +976,10 @@ ProjectRel(EXPR$0=[$0], DEPTNO=[$1], EMPNO=[$2])
         </Resource>
         <Resource name="plan">
             <![CDATA[
-ProjectRel(EXPR$0=[$0], DEPTNO=[$1], EMPNO=[$2])
-  SortRel(sort0=[$3], dir0=[DESC])
-    ProjectRel(EXPR$0=[+($0, 1)], DEPTNO=[$7], EMPNO=[$0], EXPR$3=[+(1, 2)])
-      TableAccessRel(table=[[CATALOG, SALES, EMP]])
+LogicalProject(EXPR$0=[$0], DEPTNO=[$1], EMPNO=[$2])
+  Sort(sort0=[$3], dir0=[DESC])
+    LogicalProject(EXPR$0=[+($0, 1)], DEPTNO=[$7], EMPNO=[$0], EXPR$3=[+(1, 2)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
     </TestCase>
@@ -1002,10 +1002,10 @@ ProjectRel(EMPNO=[$0], Y=[$1])
         </Resource>
         <Resource name="plan">
             <![CDATA[
-ProjectRel(X=[$0], Y=[$1])
-  SortRel(sort0=[$2], dir0=[ASC])
-    ProjectRel(X=[+($0, 1)], Y=[-($0, 2)], EXPR$2=[+(-($0, 2), 3)])
-      TableAccessRel(table=[[CATALOG, SALES, EMP]])
+LogicalProject(X=[$0], Y=[$1])
+  Sort(sort0=[$2], dir0=[ASC])
+    LogicalProject(X=[+($0, 1)], Y=[-($0, 2)], EXPR$2=[+(-($0, 2), 3)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
     </TestCase>
@@ -1015,10 +1015,10 @@ ProjectRel(X=[$0], Y=[$1])
         </Resource>
         <Resource name="plan">
             <![CDATA[
-ProjectRel(EMPNO=[$0], Y=[$1])
-  SortRel(sort0=[$2], dir0=[ASC])
-    ProjectRel(EMPNO=[+($0, 1)], Y=[-($0, 2)], EXPR$2=[+(+($0, 1), 3)])
-      TableAccessRel(table=[[CATALOG, SALES, EMP]])
+LogicalProject(EMPNO=[$0], Y=[$1])
+  Sort(sort0=[$2], dir0=[ASC])
+    LogicalProject(EMPNO=[+($0, 1)], Y=[-($0, 2)], EXPR$2=[+(+($0, 1), 3)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
     </TestCase>
@@ -1028,13 +1028,13 @@ ProjectRel(EMPNO=[$0], Y=[$1])
         </Resource>
         <Resource name="plan">
             <![CDATA[
-SortRel(sort0=[$1], sort1=[$0], dir0=[DESC], dir1=[ASC])
-  ProjectRel(EMPNO=[$0], SAL=[$1])
-    UnionRel(all=[true])
-      ProjectRel(EMPNO=[$0], SAL=[$5])
-        TableAccessRel(table=[[CATALOG, SALES, EMP]])
-      ProjectRel(DEPTNO=[$0], DEPTNO0=[$0])
-        TableAccessRel(table=[[CATALOG, SALES, DEPT]])
+Sort(sort0=[$1], sort1=[$0], dir0=[DESC], dir1=[ASC])
+  LogicalProject(EMPNO=[$0], SAL=[$1])
+    LogicalUnion(all=[true])
+      LogicalProject(EMPNO=[$0], SAL=[$5])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalProject(DEPTNO=[$0], DEPTNO0=[$0])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
         </Resource>
     </TestCase>
@@ -1044,14 +1044,14 @@ SortRel(sort0=[$1], sort1=[$0], dir0=[DESC], dir1=[ASC])
         </Resource>
         <Resource name="plan">
             <![CDATA[
-ProjectRel(EMPNO=[$0], SAL=[$1])
-  SortRel(sort0=[$2], dir0=[ASC])
-    ProjectRel(EMPNO=[$0], SAL=[$1], EXPR$2=[+(*($0, $1), 2)])
-      UnionRel(all=[true])
-        ProjectRel(EMPNO=[$0], SAL=[$5])
-          TableAccessRel(table=[[CATALOG, SALES, EMP]])
-        ProjectRel(DEPTNO=[$0], DEPTNO0=[$0])
-          TableAccessRel(table=[[CATALOG, SALES, DEPT]])
+LogicalProject(EMPNO=[$0], SAL=[$1])
+  Sort(sort0=[$2], dir0=[ASC])
+    LogicalProject(EMPNO=[$0], SAL=[$1], EXPR$2=[+(*($0, $1), 2)])
+      LogicalUnion(all=[true])
+        LogicalProject(EMPNO=[$0], SAL=[$5])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalProject(DEPTNO=[$0], DEPTNO0=[$0])
+          LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
         </Resource>
     </TestCase>
@@ -1061,12 +1061,12 @@ ProjectRel(EMPNO=[$0], SAL=[$1])
         </Resource>
         <Resource name="plan">
             <![CDATA[
-ProjectRel(DEPTNO=[$0], EXPR$1=[$1])
-  SortRel(sort0=[$2], sort1=[$3], dir0=[DESC], dir1=[ASC])
-    ProjectRel(DEPTNO=[$0], EXPR$1=[$1], EXPR$2=[*($0, $2)], EXPR$3=[$3])
-      AggregateRel(group=[{0}], EXPR$1=[COUNT()], agg#1=[SUM($1)], agg#2=[MIN($2)])
-        ProjectRel(DEPTNO=[$7], SAL=[$5], EMPNO=[$0])
-          TableAccessRel(table=[[CATALOG, SALES, EMP]])
+LogicalProject(DEPTNO=[$0], EXPR$1=[$1])
+  Sort(sort0=[$2], sort1=[$3], dir0=[DESC], dir1=[ASC])
+    LogicalProject(DEPTNO=[$0], EXPR$1=[$1], EXPR$2=[*($0, $2)], EXPR$3=[$3])
+      LogicalAggregate(group=[{0}], EXPR$1=[COUNT()], agg#1=[SUM($1)], agg#2=[MIN($2)])
+        LogicalProject(DEPTNO=[$7], SAL=[$5], EMPNO=[$0])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
     </TestCase>
@@ -1076,11 +1076,11 @@ ProjectRel(DEPTNO=[$0], EXPR$1=[$1])
         </Resource>
         <Resource name="plan">
             <![CDATA[
-ProjectRel(EMPNO=[$0], EXPR$1=[$1])
-  SortRel(sort0=[$2], dir0=[ASC])
-    AggregateRel(group=[{0, 1, 2}])
-      ProjectRel(EMPNO=[$0], EXPR$1=[+($7, 1)], EXPR$2=[+(+($7, 1), $0)])
-        TableAccessRel(table=[[CATALOG, SALES, EMP]])
+LogicalProject(EMPNO=[$0], EXPR$1=[$1])
+  Sort(sort0=[$2], dir0=[ASC])
+    LogicalAggregate(group=[{0, 1, 2}])
+      LogicalProject(EMPNO=[$0], EXPR$1=[+($7, 1)], EXPR$2=[+(+($7, 1), $0)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
     </TestCase>
@@ -1090,12 +1090,12 @@ ProjectRel(EMPNO=[$0], EXPR$1=[$1])
         </Resource>
         <Resource name="plan">
             <![CDATA[
-ProjectRel(EMPNO=[$0])
-  SortRel(sort0=[$1], sort1=[$2], sort2=[$1], dir0=[DESC], dir1=[ASC], dir2=[ASC])
-    ProjectRel(EMPNO=[$0], EXPR$1=[+($5, $0)], EXPR$2=[*($5, $0)])
-      JoinRel(condition=[true], joinType=[inner])
-        TableAccessRel(table=[[CATALOG, SALES, EMP]])
-        TableAccessRel(table=[[CATALOG, SALES, DEPT]])
+LogicalProject(EMPNO=[$0])
+  Sort(sort0=[$1], sort1=[$2], sort2=[$1], dir0=[DESC], dir1=[ASC], dir2=[ASC])
+    LogicalProject(EMPNO=[$0], EXPR$1=[+($5, $0)], EXPR$2=[*($5, $0)])
+      LogicalJoin(condition=[true], joinType=[inner])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
         </Resource>
     </TestCase>
@@ -1105,13 +1105,13 @@ ProjectRel(EMPNO=[$0])
         </Resource>
         <Resource name="plan">
             <![CDATA[
-SortRel(sort0=[$1], dir0=[ASC])
-  ProjectRel(EMPNO=[$0], SAL=[$1])
-    UnionRel(all=[true])
-      ProjectRel(EMPNO=[$0], SAL=[$5])
-        TableAccessRel(table=[[CATALOG, SALES, EMP]])
-      ProjectRel(DEPTNO=[$0], DEPTNO0=[$0])
-        TableAccessRel(table=[[CATALOG, SALES, DEPT]])
+Sort(sort0=[$1], dir0=[ASC])
+  LogicalProject(EMPNO=[$0], SAL=[$1])
+    LogicalUnion(all=[true])
+      LogicalProject(EMPNO=[$0], SAL=[$5])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalProject(DEPTNO=[$0], DEPTNO0=[$0])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
         </Resource>
     </TestCase>
@@ -1121,9 +1121,9 @@ SortRel(sort0=[$1], dir0=[ASC])
         </Resource>
         <Resource name="plan">
             <![CDATA[
-ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
-  FilterRel(condition=[>($0, 5)])
-    TableAccessRel(table=[[CATALOG, SALES, EMP]])
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalFilter(condition=[>($0, 5)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
     </TestCase>
@@ -1137,38 +1137,38 @@ where empno > 5]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
-ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], NAME=[$10])
-  FilterRel(condition=[>($0, 5)])
-    ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], NAME=[$10])
-      JoinRel(condition=[=($7, $9)], joinType=[inner])
-        TableAccessRel(table=[[CATALOG, SALES, EMP]])
-        TableAccessRel(table=[[CATALOG, SALES, DEPT]])
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], NAME=[$10])
+  LogicalFilter(condition=[>($0, 5)])
+    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], NAME=[$10])
+      LogicalJoin(condition=[=($7, $9)], joinType=[inner])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
         </Resource>
     </TestCase>
     <TestCase name="testOverOrderWindow">
         <Resource name="sql">
-            <![CDATA[select last_value(deptno) over (order by empno)
+            <![CDATA[select last_value(deptno) over w
 from emp
-]]>
+window w as (order by empno)]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
-ProjectRel(EXPR$0=[LAST_VALUE($7) OVER (ORDER BY $0 RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)])
-  TableAccessRel(table=[[CATALOG, SALES, EMP]])
+LogicalProject(EXPR$0=[LAST_VALUE($7) OVER (ORDER BY $0 RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
     </TestCase>
     <TestCase name="testOverOrderFollowingWindow">
         <Resource name="sql">
-            <![CDATA[select last_value(deptno) over (order by empno rows 2 following)
+            <![CDATA[select last_value(deptno) over w
 from emp
-]]>
+window w as (order by empno rows 2 following)]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
-ProjectRel(EXPR$0=[LAST_VALUE($7) OVER (ORDER BY $0 ROWS BETWEEN CURRENT ROW AND 2 FOLLOWING)])
-  TableAccessRel(table=[[CATALOG, SALES, EMP]])
+LogicalProject(EXPR$0=[LAST_VALUE($7) OVER (ORDER BY $0 ROWS BETWEEN CURRENT ROW AND 2 FOLLOWING)])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
     </TestCase>
@@ -1193,8 +1193,8 @@ window w1 as (partition by job order by hiredate rows 2 preceding)]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
-ProjectRel(EXPR$0=[CASE(>(COUNT($5) OVER (PARTITION BY $2 ORDER BY $4 ROWS BETWEEN 2 PRECEDING AND CURRENT ROW), 0), CAST($SUM0($5) OVER (PARTITION BY $2 ORDER BY $4 ROWS BETWEEN 2 PRECEDING AND CURRENT ROW)):INTEGER, null)], EXPR$1=[/(CASE(>(COUNT(CAST($5):REAL NOT NULL) OVER (PARTITION BY $2 ORDER BY $4 ROWS BETWEEN 2 PRECEDING AND CURRENT ROW), 0), CAST($SUM0(CAST($5):REAL NOT NULL) OVER (PARTITION BY $2 ORDER BY $4 ROWS BETWEEN 2 PRECEDING AND CURRENT ROW)):REAL, null), COUNT(CAST($5):REAL NOT NULL) OVER (PARTITION BY $2 ORDER BY $4 ROWS BETWEEN 2 PRECEDING AND CURRENT ROW))])
-  TableAccessRel(table=[[CATALOG, SALES, EMP]])
+LogicalProject(EXPR$0=[CASE(>(COUNT($5) OVER (PARTITION BY $2 ORDER BY $4 ROWS BETWEEN 2 PRECEDING AND CURRENT ROW), 0), CAST($SUM0($5) OVER (PARTITION BY $2 ORDER BY $4 ROWS BETWEEN 2 PRECEDING AND CURRENT ROW)):INTEGER, null)], EXPR$1=[/(CASE(>(COUNT(CAST($5):REAL NOT NULL) OVER (PARTITION BY $2 ORDER BY $4 ROWS BETWEEN 2 PRECEDING AND CURRENT ROW), 0), CAST($SUM0(CAST($5):REAL NOT NULL) OVER (PARTITION BY $2 ORDER BY $4 ROWS BETWEEN 2 PRECEDING AND CURRENT ROW)):REAL, null), COUNT(CAST($5):REAL NOT NULL) OVER (PARTITION BY $2 ORDER BY $4 ROWS BETWEEN 2 PRECEDING AND CURRENT ROW))])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
     </TestCase>
@@ -1204,10 +1204,10 @@ ProjectRel(EXPR$0=[CASE(>(COUNT($5) OVER (PARTITION BY $2 ORDER BY $4 ROWS BETWE
         </Resource>
         <Resource name="plan">
             <![CDATA[
-ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], NAME=[$10])
-  JoinRel(condition=[=($7, $9)], joinType=[inner])
-    TableAccessRel(table=[[CATALOG, SALES, EMP]])
-    TableAccessRel(table=[[CATALOG, SALES, DEPT]])
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], NAME=[$10])
+  LogicalJoin(condition=[=($7, $9)], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
         </Resource>
     </TestCase>
@@ -1217,11 +1217,11 @@ ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], 
         </Resource>
         <Resource name="plan">
             <![CDATA[
-ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], NAME=[$10], EMPNO0=[$11])
-  JoinRel(condition=[AND(=($7, $9), =($0, $11))], joinType=[left])
-    TableAccessRel(table=[[CATALOG, SALES, EMP]])
-    ProjectRel(DEPTNO=[$0], NAME=[$1], EMPNO=[*($0, 5)])
-      TableAccessRel(table=[[CATALOG, SALES, DEPT]])
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], NAME=[$10], EMPNO0=[$11])
+  LogicalJoin(condition=[AND(=($7, $9), =($0, $11))], joinType=[left])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(DEPTNO=[$0], NAME=[$1], EMPNO=[*($0, 5)])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
         </Resource>
     </TestCase>
@@ -1231,10 +1231,10 @@ ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], 
         </Resource>
         <Resource name="plan">
             <![CDATA[
-ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], NAME=[$10])
-  JoinRel(condition=[=($7, $9)], joinType=[inner])
-    TableAccessRel(table=[[CATALOG, SALES, EMP]])
-    TableAccessRel(table=[[CATALOG, SALES, DEPT]])
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], NAME=[$10])
+  LogicalJoin(condition=[=($7, $9)], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
         </Resource>
     </TestCase>
@@ -1245,10 +1245,10 @@ ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], 
         </Resource>
         <Resource name="plan">
             <![CDATA[
-ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], NAME=[$10])
-  JoinRel(condition=[AND(=($7, $9), OR(=($0, 1), =($0, 3)))], joinType=[inner])
-    TableAccessRel(table=[[CATALOG, SALES, EMP]])
-    TableAccessRel(table=[[CATALOG, SALES, DEPT]])
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], NAME=[$10])
+  LogicalJoin(condition=[AND(=($7, $9), OR(=($0, 1), =($0, 3)))], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
         </Resource>
     </TestCase>
@@ -1258,10 +1258,10 @@ ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], 
         </Resource>
         <Resource name="plan">
             <![CDATA[
-ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
-  FilterRel(condition=[>($0, 5)])
-    SamplingRel(mode=[bernoulli], rate=[0.5], repeatableSeed=[-])
-      TableAccessRel(table=[[CATALOG, SALES, EMP]])
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalFilter(condition=[>($0, 5)])
+    Sample(mode=[bernoulli], rate=[0.5], repeatableSeed=[-])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
     </TestCase>
@@ -1275,14 +1275,14 @@ where empno > 5]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
-ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], NAME=[$10])
-  FilterRel(condition=[>($0, 5)])
-    SamplingRel(mode=[bernoulli], rate=[0.5], repeatableSeed=[99])
-      ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], NAME=[$10])
-        JoinRel(condition=[=($7, $9)], joinType=[inner])
-          SamplingRel(mode=[bernoulli], rate=[0.1], repeatableSeed=[1])
-            TableAccessRel(table=[[CATALOG, SALES, EMP]])
-          TableAccessRel(table=[[CATALOG, SALES, DEPT]])
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], NAME=[$10])
+  LogicalFilter(condition=[>($0, 5)])
+    Sample(mode=[bernoulli], rate=[0.5], repeatableSeed=[99])
+      LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], NAME=[$10])
+        LogicalJoin(condition=[=($7, $9)], joinType=[inner])
+          Sample(mode=[bernoulli], rate=[0.1], repeatableSeed=[1])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+          LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
         </Resource>
     </TestCase>
@@ -1292,10 +1292,10 @@ ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], 
         </Resource>
         <Resource name="plan">
             <![CDATA[
-ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
-  FilterRel(condition=[>($0, 5)])
-    SamplingRel(mode=[system], rate=[0.5], repeatableSeed=[-])
-      TableAccessRel(table=[[CATALOG, SALES, EMP]])
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalFilter(condition=[>($0, 5)])
+    Sample(mode=[system], rate=[0.5], repeatableSeed=[-])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
     </TestCase>
@@ -1309,14 +1309,14 @@ where empno > 5]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
-ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], NAME=[$10])
-  FilterRel(condition=[>($0, 5)])
-    SamplingRel(mode=[system], rate=[0.5], repeatableSeed=[99])
-      ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], NAME=[$10])
-        JoinRel(condition=[=($7, $9)], joinType=[inner])
-          SamplingRel(mode=[system], rate=[0.1], repeatableSeed=[1])
-            TableAccessRel(table=[[CATALOG, SALES, EMP]])
-          TableAccessRel(table=[[CATALOG, SALES, DEPT]])
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], NAME=[$10])
+  LogicalFilter(condition=[>($0, 5)])
+    Sample(mode=[system], rate=[0.5], repeatableSeed=[99])
+      LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], NAME=[$10])
+        LogicalJoin(condition=[=($7, $9)], joinType=[inner])
+          Sample(mode=[system], rate=[0.1], repeatableSeed=[1])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+          LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
         </Resource>
     </TestCase>
@@ -1326,12 +1326,12 @@ ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], 
         </Resource>
         <Resource name="plan">
             <![CDATA[
-ProjectRel(EXPR$0=[$0], DEPTNO=[$1], EXPR$2=[$0])
-  AggregateRel(group=[{0, 1}])
-    ProjectRel(EXPR$0=[$0], DEPTNO=[$1])
-      ProjectRel(EXPR$0=[+($5, 5)], DEPTNO=[$7], EXPR$2=[+($5, 5)])
-        FilterRel(condition=[<($7, 10)])
-          TableAccessRel(table=[[CATALOG, SALES, EMP]])
+LogicalProject(EXPR$0=[$0], DEPTNO=[$1], EXPR$2=[$0])
+  LogicalAggregate(group=[{0, 1}])
+    LogicalProject(EXPR$0=[$0], DEPTNO=[$1])
+      LogicalProject(EXPR$0=[+($5, 5)], DEPTNO=[$7], EXPR$2=[+($5, 5)])
+        LogicalFilter(condition=[<($7, 10)])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
     </TestCase>
@@ -1343,10 +1343,10 @@ where empno > 10]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
-AggregateRel(group=[{}], EXPR$0=[COUNT()], EXPR$1=[SUM($0)])
-  ProjectRel(SAL=[$5])
-    FilterRel(condition=[>($0, 10)])
-      TableAccessRel(table=[[CATALOG, SALES, EMP]])
+LogicalAggregate(group=[{}], EXPR$0=[COUNT()], EXPR$1=[SUM($0)])
+  LogicalProject(SAL=[$5])
+    LogicalFilter(condition=[>($0, 10)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
     </TestCase>
@@ -1359,10 +1359,10 @@ where c like 'X%']]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
-ProjectRel(EXPR$0=[+($0, $1)])
-  FilterRel(condition=[LIKE($2, 'X%')])
-    ProjectRel(DEPTNO=[$0], ONE=[1], NAME=[$1])
-      TableAccessRel(table=[[CATALOG, SALES, DEPT]])
+LogicalProject(EXPR$0=[+($0, $1)])
+  LogicalFilter(condition=[LIKE($2, 'X%')])
+    LogicalProject(DEPTNO=[$0], ONE=[1], NAME=[$1])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
         </Resource>
     </TestCase>
@@ -1375,13 +1375,13 @@ order by c + a]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
-ProjectRel(A=[$0], B=[$1], C=[$2], DEPTNO=[$3], NAME=[$4])
-  SortRel(sort0=[$5], dir0=[ASC])
-    ProjectRel(A=[$0], B=[$1], C=[$2], DEPTNO=[$3], NAME=[$4], EXPR$5=[+($2, $0)])
-      JoinRel(condition=[=($3, $2)], joinType=[inner])
-        ProjectRel(A=[$2], B=[$1], C=[$0])
-          ValuesRel(tuples=[[{ 1, 2, 3 }]])
-        TableAccessRel(table=[[CATALOG, SALES, DEPT]])
+LogicalProject(A=[$0], B=[$1], C=[$2], DEPTNO=[$3], NAME=[$4])
+  Sort(sort0=[$5], dir0=[ASC])
+    LogicalProject(A=[$0], B=[$1], C=[$2], DEPTNO=[$3], NAME=[$4], EXPR$5=[+($2, $0)])
+      LogicalJoin(condition=[=($3, $2)], joinType=[inner])
+        LogicalProject(A=[$2], B=[$1], C=[$0])
+          LogicalValues(tuples=[[{ 1, 2, 3 }]])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
         </Resource>
     </TestCase>
@@ -1391,14 +1391,14 @@ ProjectRel(A=[$0], B=[$1], C=[$2], DEPTNO=[$3], NAME=[$4])
         </Resource>
         <Resource name="plan">
             <![CDATA[
-ProjectRel(GRADE=[$1])
-  JoinRel(condition=[true], joinType=[inner])
-    UnionRel(all=[false])
-      ProjectRel(EMPNO=[$0])
-        TableAccessRel(table=[[CATALOG, SALES, EMP]])
-      ProjectRel(DEPTNO=[$0])
-        TableAccessRel(table=[[CATALOG, SALES, DEPT]])
-    TableAccessRel(table=[[CATALOG, SALES, SALGRADE]])
+LogicalProject(GRADE=[$1])
+  LogicalJoin(condition=[true], joinType=[inner])
+    LogicalUnion(all=[false])
+      LogicalProject(EMPNO=[$0])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalProject(DEPTNO=[$0])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalTableScan(table=[[CATALOG, SALES, SALGRADE]])
 ]]>
         </Resource>
     </TestCase>
@@ -1408,10 +1408,10 @@ ProjectRel(GRADE=[$1])
         </Resource>
         <Resource name="plan">
             <![CDATA[
-ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], NAME=[$10])
-  JoinRel(condition=[=($7, $9)], joinType=[inner])
-    TableAccessRel(table=[[CATALOG, SALES, EMP]])
-    TableAccessRel(table=[[CATALOG, SALES, DEPT]])
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], NAME=[$10])
+  LogicalJoin(condition=[=($7, $9)], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
         </Resource>
     </TestCase>
@@ -1421,11 +1421,11 @@ ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], 
         </Resource>
         <Resource name="plan">
             <![CDATA[
-ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], FOO=[$9], NAME=[$10])
-  JoinRel(condition=[true], joinType=[inner])
-    TableAccessRel(table=[[CATALOG, SALES, EMP]])
-    ProjectRel(FOO=[$0], NAME=[$1])
-      TableAccessRel(table=[[CATALOG, SALES, DEPT]])
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], FOO=[$9], NAME=[$10])
+  LogicalJoin(condition=[true], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(FOO=[$0], NAME=[$1])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
         </Resource>
     </TestCase>
@@ -1435,11 +1435,11 @@ ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], 
         </Resource>
         <Resource name="plan">
             <![CDATA[
-ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], ENAME0=[$10])
-  JoinRel(condition=[AND(=($1, $10), =($7, $9))], joinType=[inner])
-    TableAccessRel(table=[[CATALOG, SALES, EMP]])
-    ProjectRel(DEPTNO=[$0], ENAME=[$1])
-      TableAccessRel(table=[[CATALOG, SALES, DEPT]])
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], ENAME0=[$10])
+  LogicalJoin(condition=[AND(=($1, $10), =($7, $9))], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(DEPTNO=[$0], ENAME=[$1])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
         </Resource>
     </TestCase>
@@ -1449,9 +1449,9 @@ ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], 
         </Resource>
         <Resource name="plan">
             <![CDATA[
-SortRel(sort0=[$0], dir0=[ASC], offset=[10], fetch=[5])
-  ProjectRel(EMPNO=[$0])
-    TableAccessRel(table=[[CATALOG, SALES, EMP]])
+Sort(sort0=[$0], dir0=[ASC], offset=[10], fetch=[5])
+  LogicalProject(EMPNO=[$0])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
     </TestCase>
@@ -1461,9 +1461,9 @@ SortRel(sort0=[$0], dir0=[ASC], offset=[10], fetch=[5])
         </Resource>
         <Resource name="plan">
             <![CDATA[
-SortRel(fetch=[5])
-  ProjectRel(EMPNO=[$0])
-    TableAccessRel(table=[[CATALOG, SALES, EMP]])
+Sort(fetch=[5])
+  LogicalProject(EMPNO=[$0])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
     </TestCase>
@@ -1473,9 +1473,9 @@ SortRel(fetch=[5])
         </Resource>
         <Resource name="plan">
             <![CDATA[
-SortRel(offset=[10], fetch=[5])
-  ProjectRel(EMPNO=[$0])
-    TableAccessRel(table=[[CATALOG, SALES, EMP]])
+Sort(offset=[10], fetch=[5])
+  LogicalProject(EMPNO=[$0])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
     </TestCase>
@@ -1485,9 +1485,9 @@ SortRel(offset=[10], fetch=[5])
         </Resource>
         <Resource name="plan">
             <![CDATA[
-SortRel(offset=[10])
-  ProjectRel(EMPNO=[$0])
-    TableAccessRel(table=[[CATALOG, SALES, EMP]])
+Sort(offset=[10])
+  LogicalProject(EMPNO=[$0])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
     </TestCase>
@@ -1500,9 +1500,9 @@ and (deptno = 8 or empno < 100)]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
-ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
-  FilterRel(condition=[AND(<($7, 10), >($7, 5), OR(=($7, 8), <($0, 100)))])
-    TableAccessRel(table=[[CATALOG, SALES, EMP]])
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalFilter(condition=[AND(<($7, 10), >($7, 5), OR(=($7, 8), <($0, 100)))])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
     </TestCase>
@@ -1515,12 +1515,12 @@ join emp as e2 using (empno)]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
-ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], NAME=[$10], EMPNO0=[$11], ENAME0=[$12], JOB0=[$13], MGR0=[$14], HIREDATE0=[$15], SAL0=[$16], COMM0=[$17], DEPTNO1=[$18], SLACKER0=[$19])
-  JoinRel(condition=[=($0, $11)], joinType=[inner])
-    JoinRel(condition=[=($7, $9)], joinType=[inner])
-      TableAccessRel(table=[[CATALOG, SALES, EMP]])
-      TableAccessRel(table=[[CATALOG, SALES, DEPT]])
-    TableAccessRel(table=[[CATALOG, SALES, EMP]])
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], NAME=[$10], EMPNO0=[$11], ENAME0=[$12], JOB0=[$13], MGR0=[$14], HIREDATE0=[$15], SAL0=[$16], COMM0=[$17], DEPTNO1=[$18], SLACKER0=[$19])
+  LogicalJoin(condition=[=($0, $11)], joinType=[inner])
+    LogicalJoin(condition=[=($7, $9)], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
     </TestCase>
@@ -1530,13 +1530,13 @@ ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], 
         </Resource>
         <Resource name="plan">
             <![CDATA[
-ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], NAME=[$10])
-  ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$10], NAME=[$11])
-    JoinRel(condition=[=($9, $12)], joinType=[inner])
-      ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], $f9=[+($7, 1)])
-        TableAccessRel(table=[[CATALOG, SALES, EMP]])
-      ProjectRel(DEPTNO=[$0], NAME=[$1], $f2=[-($0, 2)])
-        TableAccessRel(table=[[CATALOG, SALES, DEPT]])
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], NAME=[$10])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$10], NAME=[$11])
+    LogicalJoin(condition=[=($9, $12)], joinType=[inner])
+      LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], $f9=[+($7, 1)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalProject(DEPTNO=[$0], NAME=[$1], $f2=[-($0, 2)])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
         </Resource>
     </TestCase>
@@ -1547,9 +1547,9 @@ select empno as "e", deptno as d, 1 as "e" from EMP)]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
-ProjectRel(e=[$0])
-  ProjectRel(e=[$0], D=[$7], e0=[1])
-    TableAccessRel(table=[[CATALOG, SALES, EMP]])
+LogicalProject(e=[$0])
+  LogicalProject(e=[$0], D=[$7], e0=[1])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
     </TestCase>
@@ -1560,9 +1560,9 @@ select * from emp2]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
-ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
-  ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
-    TableAccessRel(table=[[CATALOG, SALES, EMP]])
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
     </TestCase>
@@ -1573,14 +1573,14 @@ select empno from emp2 where deptno < 30 union all select deptno from emp]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
-UnionRel(all=[true])
-  ProjectRel(EMPNO=[$0])
-    FilterRel(condition=[<($7, 30)])
-      ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
-        FilterRel(condition=[>($7, 10)])
-          TableAccessRel(table=[[CATALOG, SALES, EMP]])
-  ProjectRel(DEPTNO=[$7])
-    TableAccessRel(table=[[CATALOG, SALES, EMP]])
+LogicalUnion(all=[true])
+  LogicalProject(EMPNO=[$0])
+    LogicalFilter(condition=[<($7, 30)])
+      LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+        LogicalFilter(condition=[>($7, 10)])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalProject(DEPTNO=[$7])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
     </TestCase>
@@ -1593,17 +1593,17 @@ where exists (
         </Resource>
         <Resource name="plan">
             <![CDATA[
-ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
-  FilterRel(condition=[IS NOT NULL($9)])
-    CorrelatorRel(condition=[true], joinType=[left], correlations=[[var1=offset7, var0=offset7]])
-      TableAccessRel(table=[[CATALOG, SALES, EMP]])
-      AggregateRel(group=[{}], agg#0=[MIN($0)])
-        ProjectRel($f0=[true])
-          ProjectRel(EXPR$0=[1])
-            FilterRel(condition=[<=($0, $cor1.DEPTNO)])
-              ProjectRel(DEPTNO=[$0], NAME=[$1])
-                FilterRel(condition=[>=($0, $cor0.DEPTNO)])
-                  TableAccessRel(table=[[CATALOG, SALES, DEPT]])
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalFilter(condition=[IS NOT NULL($9)])
+    Correlator(condition=[true], joinType=[left], correlations=[[var1=offset7, var0=offset7]])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalAggregate(group=[{}], agg#0=[MIN($0)])
+        LogicalProject($f0=[true])
+          LogicalProject(EXPR$0=[1])
+            LogicalFilter(condition=[<=($0, $cor1.DEPTNO)])
+              LogicalProject(DEPTNO=[$0], NAME=[$1])
+                LogicalFilter(condition=[>=($0, $cor0.DEPTNO)])
+                  LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
         </Resource>
     </TestCase>
@@ -1615,15 +1615,15 @@ from emp]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
-ProjectRel(C=[$9])
-  JoinRel(condition=[true], joinType=[left])
-    TableAccessRel(table=[[CATALOG, SALES, EMP]])
-    AggregateRel(group=[{}], agg#0=[SINGLE_VALUE($0)])
-      AggregateRel(group=[{}], EXPR$0=[COUNT()])
-        ProjectRel($f0=[0])
-          ProjectRel(DEPTNO=[$0], NAME=[$1])
-            FilterRel(condition=[>($0, 10)])
-              TableAccessRel(table=[[CATALOG, SALES, DEPT]])
+LogicalProject(C=[$9])
+  LogicalJoin(condition=[true], joinType=[left])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalAggregate(group=[{}], agg#0=[SINGLE_VALUE($0)])
+      LogicalAggregate(group=[{}], EXPR$0=[COUNT()])
+        LogicalProject($f0=[0])
+          LogicalProject(DEPTNO=[$0], NAME=[$1])
+            LogicalFilter(condition=[>($0, 10)])
+              LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
         </Resource>
     </TestCase>
@@ -1633,9 +1633,9 @@ ProjectRel(C=[$9])
         </Resource>
         <Resource name="plan">
             <![CDATA[
-AggregateRel(group=[{}], EXPR$0=[SUM($0)])
-  ProjectRel(DEPTNO=[$7])
-    TableAccessRel(table=[[CATALOG, SALES, EMP]])
+LogicalAggregate(group=[{}], EXPR$0=[SUM($0)])
+  LogicalProject(DEPTNO=[$7])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
     </TestCase>
@@ -1645,12 +1645,12 @@ AggregateRel(group=[{}], EXPR$0=[SUM($0)])
         </Resource>
         <Resource name="plan">
             <![CDATA[
-ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], NAME=[$10])
-  ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$10], NAME=[$11])
-    JoinRel(condition=[=($10, $9)], joinType=[inner])
-      ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], $f9=[+($7, 0)])
-        TableAccessRel(table=[[CATALOG, SALES, EMP]])
-      TableAccessRel(table=[[CATALOG, SALES, DEPT]])
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], NAME=[$10])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$10], NAME=[$11])
+    LogicalJoin(condition=[=($10, $9)], joinType=[inner])
+      LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], $f9=[+($7, 0)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
         </Resource>
     </TestCase>
@@ -1660,12 +1660,12 @@ ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], 
         </Resource>
         <Resource name="plan">
             <![CDATA[
-ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], NAME=[$10])
-  ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$10], NAME=[$11])
-    JoinRel(condition=[=($9, $10)], joinType=[inner])
-      ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], $f9=[+($7, 0)])
-        TableAccessRel(table=[[CATALOG, SALES, EMP]])
-      TableAccessRel(table=[[CATALOG, SALES, DEPT]])
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], NAME=[$10])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$10], NAME=[$11])
+    LogicalJoin(condition=[=($9, $10)], joinType=[inner])
+      LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], $f9=[+($7, 0)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
         </Resource>
     </TestCase>
@@ -1675,16 +1675,16 @@ ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], 
         </Resource>
         <Resource name="plan">
             <![CDATA[
-ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], NAME=[$10])
-  JoinRel(condition=[=($7, $11)], joinType=[inner])
-    TableAccessRel(table=[[CATALOG, SALES, EMP]])
-    ProjectRel(DEPTNO=[$0], NAME=[$1], $f0=[$2])
-      FilterRel(condition=[=($2, $0)])
-        JoinRel(condition=[true], joinType=[inner])
-          TableAccessRel(table=[[CATALOG, SALES, DEPT]])
-          AggregateRel(group=[{0}])
-            ProjectRel($f0=[$7])
-              TableAccessRel(table=[[CATALOG, SALES, EMP]])
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], NAME=[$10])
+  LogicalJoin(condition=[=($7, $11)], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(DEPTNO=[$0], NAME=[$1], $f0=[$2])
+      LogicalFilter(condition=[=($2, $0)])
+        LogicalJoin(condition=[true], joinType=[inner])
+          LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+          LogicalAggregate(group=[{0}])
+            LogicalProject($f0=[$7])
+              LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
     </TestCase>
@@ -1697,27 +1697,27 @@ where exists (
         </Resource>
         <Resource name="plan">
             <![CDATA[
-ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
-  FilterRel(condition=[IS NOT NULL($9)])
-    ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], $f0=[$11])
-      JoinRel(condition=[AND(=($7, $10), =($7, $9))], joinType=[left])
-        TableAccessRel(table=[[CATALOG, SALES, EMP]])
-        AggregateRel(group=[{0, 1}], agg#0=[MIN($2)])
-          ProjectRel($f01=[$1], $f00=[$2], $f0=[$0])
-            ProjectRel($f0=[true], $f01=[$1], $f00=[$2])
-              ProjectRel(EXPR$0=[1], $f0=[$2], $f00=[$3])
-                FilterRel(condition=[<=($0, $3)])
-                  JoinRel(condition=[true], joinType=[inner])
-                    ProjectRel(DEPTNO=[$0], NAME=[$1], $f0=[$2])
-                      FilterRel(condition=[>=($0, $2)])
-                        JoinRel(condition=[true], joinType=[inner])
-                          TableAccessRel(table=[[CATALOG, SALES, DEPT]])
-                          AggregateRel(group=[{0}])
-                            ProjectRel($f0=[$7])
-                              TableAccessRel(table=[[CATALOG, SALES, EMP]])
-                    AggregateRel(group=[{0}])
-                      ProjectRel($f0=[$7])
-                        TableAccessRel(table=[[CATALOG, SALES, EMP]])
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalFilter(condition=[IS NOT NULL($9)])
+    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], $f0=[$11])
+      LogicalJoin(condition=[AND(=($7, $10), =($7, $9))], joinType=[left])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalAggregate(group=[{0, 1}], agg#0=[MIN($2)])
+          LogicalProject($f01=[$1], $f00=[$2], $f0=[$0])
+            LogicalProject($f0=[true], $f01=[$1], $f00=[$2])
+              LogicalProject(EXPR$0=[1], $f0=[$2], $f00=[$3])
+                LogicalFilter(condition=[<=($0, $3)])
+                  LogicalJoin(condition=[true], joinType=[inner])
+                    LogicalProject(DEPTNO=[$0], NAME=[$1], $f0=[$2])
+                      LogicalFilter(condition=[>=($0, $2)])
+                        LogicalJoin(condition=[true], joinType=[inner])
+                          LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+                          LogicalAggregate(group=[{0}])
+                            LogicalProject($f0=[$7])
+                              LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+                    LogicalAggregate(group=[{0}])
+                      LogicalProject($f0=[$7])
+                        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
     </TestCase>
@@ -1727,21 +1727,21 @@ ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], 
         </Resource>
         <Resource name="plan">
             <![CDATA[
-ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
-  FilterRel(condition=[IS NOT NULL($9)])
-    ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], $f0=[$10])
-      JoinRel(condition=[=($7, $9)], joinType=[left])
-        TableAccessRel(table=[[CATALOG, SALES, EMP]])
-        AggregateRel(group=[{0}], agg#0=[MIN($1)])
-          ProjectRel($f01=[$1], $f0=[$0])
-            ProjectRel($f0=[true], $f01=[$1])
-              ProjectRel(EXPR$0=[1], $f0=[$2])
-                FilterRel(condition=[=($2, $0)])
-                  JoinRel(condition=[true], joinType=[inner])
-                    TableAccessRel(table=[[CATALOG, SALES, DEPT]])
-                    AggregateRel(group=[{0}])
-                      ProjectRel($f0=[$7])
-                        TableAccessRel(table=[[CATALOG, SALES, EMP]])
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalFilter(condition=[IS NOT NULL($9)])
+    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], $f0=[$10])
+      LogicalJoin(condition=[=($7, $9)], joinType=[left])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalAggregate(group=[{0}], agg#0=[MIN($1)])
+          LogicalProject($f01=[$1], $f0=[$0])
+            LogicalProject($f0=[true], $f01=[$1])
+              LogicalProject(EXPR$0=[1], $f0=[$2])
+                LogicalFilter(condition=[=($2, $0)])
+                  LogicalJoin(condition=[true], joinType=[inner])
+                    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+                    LogicalAggregate(group=[{0}])
+                      LogicalProject($f0=[$7])
+                        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
     </TestCase>
@@ -1752,16 +1752,16 @@ ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], 
         </Resource>
         <Resource name="plan">
             <![CDATA[
-ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
-  FilterRel(condition=[IS NOT NULL($9)])
-    CorrelatorRel(condition=[true], joinType=[left], correlations=[[var0=offset7]])
-      TableAccessRel(table=[[CATALOG, SALES, EMP]])
-      AggregateRel(group=[{}], agg#0=[MIN($0)])
-        ProjectRel($f0=[true])
-          SortRel(fetch=[1])
-            ProjectRel(EXPR$0=[1])
-              FilterRel(condition=[=($cor0.DEPTNO, $0)])
-                TableAccessRel(table=[[CATALOG, SALES, DEPT]])
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalFilter(condition=[IS NOT NULL($9)])
+    Correlator(condition=[true], joinType=[left], correlations=[[var0=offset7]])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalAggregate(group=[{}], agg#0=[MIN($0)])
+        LogicalProject($f0=[true])
+          Sort(fetch=[1])
+            LogicalProject(EXPR$0=[1])
+              LogicalFilter(condition=[=($cor0.DEPTNO, $0)])
+                LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
         </Resource>
     </TestCase>
@@ -1772,17 +1772,17 @@ ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], 
         </Resource>
         <Resource name="plan">
             <![CDATA[
-ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
-  FilterRel(condition=[IS NOT NULL($9)])
-    ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], $f0=[$9])
-      CorrelatorRel(condition=[true], joinType=[left], correlations=[[var0=offset7]])
-        TableAccessRel(table=[[CATALOG, SALES, EMP]])
-        AggregateRel(group=[{}], agg#0=[MIN($0)])
-          ProjectRel($f0=[true])
-            SortRel(fetch=[1])
-              ProjectRel(EXPR$0=[1])
-                FilterRel(condition=[=($cor0.DEPTNO, $0)])
-                  TableAccessRel(table=[[CATALOG, SALES, DEPT]])
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalFilter(condition=[IS NOT NULL($9)])
+    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], $f0=[$9])
+      Correlator(condition=[true], joinType=[left], correlations=[[var0=offset7]])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalAggregate(group=[{}], agg#0=[MIN($0)])
+          LogicalProject($f0=[true])
+            Sort(fetch=[1])
+              LogicalProject(EXPR$0=[1])
+                LogicalFilter(condition=[=($cor0.DEPTNO, $0)])
+                  LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
         </Resource>
     </TestCase>
@@ -1792,15 +1792,15 @@ ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], 
         </Resource>
         <Resource name="plan">
             <![CDATA[
-ProjectRel(DEPTNO=[$0], NAME=[$1], EXPR$0=[$2])
-  CorrelatorRel(condition=[true], joinType=[inner], correlations=[[var0=offset0]])
-    TableAccessRel(table=[[CATALOG, SALES, DEPT]])
-    UncollectRel
-      ProjectRel(EXPR$0=[$SLICE($0)])
-        CollectRel(field=[EXPR$0])
-          UnionRel(all=[true])
-            ProjectRel(EXPR$0=[*($cor0.DEPTNO, 2)])
-              OneRowRel
+LogicalProject(DEPTNO=[$0], NAME=[$1], EXPR$0=[$2])
+  Correlator(condition=[true], joinType=[inner], correlations=[[var0=offset0]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    Uncollect
+      LogicalProject(EXPR$0=[$SLICE($0)])
+        Collect(field=[EXPR$0])
+          LogicalUnion(all=[true])
+            LogicalProject(EXPR$0=[*($cor0.DEPTNO, 2)])
+              LogicalOneRow
 ]]>
         </Resource>
     </TestCase>
@@ -1811,14 +1811,14 @@ select x from w where x < 30 union all select deptno from dept]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
-UnionRel(all=[true])
-  ProjectRel(X=[$0])
-    FilterRel(condition=[<($0, 30)])
-      ProjectRel(DEPTNO=[$0], NAME=[$1])
-        FilterRel(condition=[>($0, 10)])
-          TableAccessRel(table=[[CATALOG, SALES, DEPT]])
-  ProjectRel(DEPTNO=[$0])
-    TableAccessRel(table=[[CATALOG, SALES, DEPT]])
+LogicalUnion(all=[true])
+  LogicalProject(X=[$0])
+    LogicalFilter(condition=[<($0, 30)])
+      LogicalProject(DEPTNO=[$0], NAME=[$1])
+        LogicalFilter(condition=[>($0, 10)])
+          LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+  LogicalProject(DEPTNO=[$0])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
         </Resource>
     </TestCase>
@@ -1829,11 +1829,11 @@ select * from emp2 order by deptno]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
-SortRel(sort0=[$7], dir0=[ASC])
-  ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
-    ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
-      ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
-        TableAccessRel(table=[[CATALOG, SALES, EMP]])
+Sort(sort0=[$7], dir0=[ASC])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+      LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
     </TestCase>
@@ -1847,16 +1847,16 @@ order by empno + x]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
-ProjectRel(EMPNO=[$0], X=[$1])
-  SortRel(sort0=[$2], dir0=[ASC])
-    ProjectRel(EMPNO=[$0], X=[$1], EXPR$2=[+($0, $1)])
-      UnionRel(all=[true])
-        ProjectRel(EMPNO=[$0], X=[$1])
-          ProjectRel(EMPNO=[$0], X=[$7])
-            TableAccessRel(table=[[CATALOG, SALES, EMP]])
-        ProjectRel(EMPNO=[$0], X=[$1])
-          ProjectRel(EMPNO=[$0], X=[$7])
-            TableAccessRel(table=[[CATALOG, SALES, EMP]])
+LogicalProject(EMPNO=[$0], X=[$1])
+  Sort(sort0=[$2], dir0=[ASC])
+    LogicalProject(EMPNO=[$0], X=[$1], EXPR$2=[+($0, $1)])
+      LogicalUnion(all=[true])
+        LogicalProject(EMPNO=[$0], X=[$1])
+          LogicalProject(EMPNO=[$0], X=[$7])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalProject(EMPNO=[$0], X=[$1])
+          LogicalProject(EMPNO=[$0], X=[$7])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
     </TestCase>
@@ -1868,19 +1868,19 @@ from dept]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
-ProjectRel(NAME=[$1], EXPR$1=[CASE(=($2, 0), false, IS NOT NULL($6), true, IS NULL($4), null, <($3, $2), null, false)])
-  JoinRel(condition=[=($4, $5)], joinType=[left])
-    ProjectRel($f0=[$0], $f1=[$1], $f2=[$2], $f3=[$3], $f4=[$0])
-      JoinRel(condition=[true], joinType=[inner])
-        TableAccessRel(table=[[CATALOG, SALES, DEPT]])
-        AggregateRel(group=[{}], agg#0=[COUNT()], agg#1=[COUNT($0)])
-          ProjectRel($f0=[$0], $f1=[true])
-            ProjectRel(EXPR$0=[CASE(true, CAST($7):INTEGER, null)])
-              TableAccessRel(table=[[CATALOG, SALES, EMP]])
-    AggregateRel(group=[{0}], agg#0=[MIN($1)])
-      ProjectRel($f0=[$0], $f1=[true])
-        ProjectRel(EXPR$0=[CASE(true, CAST($7):INTEGER, null)])
-          TableAccessRel(table=[[CATALOG, SALES, EMP]])
+LogicalProject(NAME=[$1], EXPR$1=[CASE(=($2, 0), false, IS NOT NULL($6), true, IS NULL($4), null, <($3, $2), null, false)])
+  LogicalJoin(condition=[=($4, $5)], joinType=[left])
+    LogicalProject($f0=[$0], $f1=[$1], $f2=[$2], $f3=[$3], $f4=[$0])
+      LogicalJoin(condition=[true], joinType=[inner])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+        LogicalAggregate(group=[{}], agg#0=[COUNT()], agg#1=[COUNT($0)])
+          LogicalProject($f0=[$0], $f1=[true])
+            LogicalProject(EXPR$0=[CASE(true, CAST($7):INTEGER, null)])
+              LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalAggregate(group=[{0}], agg#0=[MIN($1)])
+      LogicalProject($f0=[$0], $f1=[true])
+        LogicalProject(EXPR$0=[CASE(true, CAST($7):INTEGER, null)])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
     </TestCase>
@@ -1892,19 +1892,19 @@ from emp]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
-ProjectRel(EMPNO=[$0], EXPR$1=[NOT(CASE(=($9, 0), false, IS NOT NULL($13), true, IS NULL($11), null, <($10, $9), null, false))])
-  JoinRel(condition=[=($11, $12)], joinType=[left])
-    ProjectRel($f0=[$0], $f1=[$1], $f2=[$2], $f3=[$3], $f4=[$4], $f5=[$5], $f6=[$6], $f7=[$7], $f8=[$8], $f9=[$9], $f10=[$10], $f11=[$7])
-      JoinRel(condition=[true], joinType=[inner])
-        TableAccessRel(table=[[CATALOG, SALES, EMP]])
-        AggregateRel(group=[{}], agg#0=[COUNT()], agg#1=[COUNT($0)])
-          ProjectRel($f0=[$0], $f1=[true])
-            ProjectRel(EXPR$0=[CASE(true, CAST($0):INTEGER, null)])
-              TableAccessRel(table=[[CATALOG, SALES, DEPT]])
-    AggregateRel(group=[{0}], agg#0=[MIN($1)])
-      ProjectRel($f0=[$0], $f1=[true])
-        ProjectRel(EXPR$0=[CASE(true, CAST($0):INTEGER, null)])
-          TableAccessRel(table=[[CATALOG, SALES, DEPT]])
+LogicalProject(EMPNO=[$0], EXPR$1=[NOT(CASE(=($9, 0), false, IS NOT NULL($13), true, IS NULL($11), null, <($10, $9), null, false))])
+  LogicalJoin(condition=[=($11, $12)], joinType=[left])
+    LogicalProject($f0=[$0], $f1=[$1], $f2=[$2], $f3=[$3], $f4=[$4], $f5=[$5], $f6=[$6], $f7=[$7], $f8=[$8], $f9=[$9], $f10=[$10], $f11=[$7])
+      LogicalJoin(condition=[true], joinType=[inner])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalAggregate(group=[{}], agg#0=[COUNT()], agg#1=[COUNT($0)])
+          LogicalProject($f0=[$0], $f1=[true])
+            LogicalProject(EXPR$0=[CASE(true, CAST($0):INTEGER, null)])
+              LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalAggregate(group=[{0}], agg#0=[MIN($1)])
+      LogicalProject($f0=[$0], $f1=[true])
+        LogicalProject(EXPR$0=[CASE(true, CAST($0):INTEGER, null)])
+          LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
         </Resource>
     </TestCase>
@@ -1914,20 +1914,20 @@ ProjectRel(EMPNO=[$0], EXPR$1=[NOT(CASE(=($9, 0), false, IS NOT NULL($13), true,
         </Resource>
         <Resource name="plan">
             <![CDATA[
-ProjectRel(EMPNO=[$0])
-  FilterRel(condition=[NOT(CASE(=($9, 0), false, IS NOT NULL($13), true, IS NULL($11), null, <($10, $9), null, false))])
-    JoinRel(condition=[=($11, $12)], joinType=[left])
-      ProjectRel($f0=[$0], $f1=[$1], $f2=[$2], $f3=[$3], $f4=[$4], $f5=[$5], $f6=[$6], $f7=[$7], $f8=[$8], $f9=[$9], $f10=[$10], $f11=[$7])
-        JoinRel(condition=[true], joinType=[inner])
-          TableAccessRel(table=[[CATALOG, SALES, EMP]])
-          AggregateRel(group=[{}], agg#0=[COUNT()], agg#1=[COUNT($0)])
-            ProjectRel($f0=[$0], $f1=[true])
-              ProjectRel(DEPTNO=[$0])
-                TableAccessRel(table=[[CATALOG, SALES, DEPT]])
-      AggregateRel(group=[{0}], agg#0=[MIN($1)])
-        ProjectRel($f0=[$0], $f1=[true])
-          ProjectRel(DEPTNO=[$0])
-            TableAccessRel(table=[[CATALOG, SALES, DEPT]])
+LogicalProject(EMPNO=[$0])
+  LogicalFilter(condition=[NOT(CASE(=($9, 0), false, IS NOT NULL($13), true, IS NULL($11), null, <($10, $9), null, false))])
+    LogicalJoin(condition=[=($11, $12)], joinType=[left])
+      LogicalProject($f0=[$0], $f1=[$1], $f2=[$2], $f3=[$3], $f4=[$4], $f5=[$5], $f6=[$6], $f7=[$7], $f8=[$8], $f9=[$9], $f10=[$10], $f11=[$7])
+        LogicalJoin(condition=[true], joinType=[inner])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+          LogicalAggregate(group=[{}], agg#0=[COUNT()], agg#1=[COUNT($0)])
+            LogicalProject($f0=[$0], $f1=[true])
+              LogicalProject(DEPTNO=[$0])
+                LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+      LogicalAggregate(group=[{0}], agg#0=[MIN($1)])
+        LogicalProject($f0=[$0], $f1=[true])
+          LogicalProject(DEPTNO=[$0])
+            LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
         </Resource>
     </TestCase>
@@ -1939,14 +1939,14 @@ from emp]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
-ProjectRel(EMPNO=[$0], EXPR$1=[NOT(true)])
-  JoinRel(condition=[=($9, $10)], joinType=[left])
-    ProjectRel($f0=[$0], $f1=[$1], $f2=[$2], $f3=[$3], $f4=[$4], $f5=[$5], $f6=[$6], $f7=[$7], $f8=[$8], $f9=[$7])
-      TableAccessRel(table=[[CATALOG, SALES, EMP]])
-    AggregateRel(group=[{0}], agg#0=[MIN($1)])
-      ProjectRel($f0=[$0], $f1=[true])
-        ProjectRel(DEPTNO=[$0])
-          TableAccessRel(table=[[CATALOG, SALES, DEPT]])
+LogicalProject(EMPNO=[$0], EXPR$1=[NOT(true)])
+  LogicalJoin(condition=[=($9, $10)], joinType=[left])
+    LogicalProject($f0=[$0], $f1=[$1], $f2=[$2], $f3=[$3], $f4=[$4], $f5=[$5], $f6=[$6], $f7=[$7], $f8=[$8], $f9=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalAggregate(group=[{0}], agg#0=[MIN($1)])
+      LogicalProject($f0=[$0], $f1=[true])
+        LogicalProject(DEPTNO=[$0])
+          LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
         </Resource>
     </TestCase>
@@ -1956,10 +1956,10 @@ ProjectRel(EMPNO=[$0], EXPR$1=[NOT(true)])
         </Resource>
         <Resource name="plan">
             <![CDATA[
-ProjectRel(ENAME=[$0])
-  SortRel(sort0=[$1], dir0=[ASC])
-    ProjectRel(ENAME=[$1], SAL=[$5])
-      TableAccessRel(table=[[CATALOG, SALES, EMP]])
+LogicalProject(ENAME=[$0])
+  Sort(sort0=[$1], dir0=[ASC])
+    LogicalProject(ENAME=[$1], SAL=[$5])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
     </TestCase>
@@ -1971,9 +1971,9 @@ group by "$f2"]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
-AggregateRel(group=[{0}], EXPR$1=[MAX($1)], EXPR$2=[MAX($2)])
-  ProjectRel($f2=[$0], EXPR$1=[$1], $f3=[+($1, 1)])
-    ValuesRel(tuples=[[{ 1, 2 }]])
+LogicalAggregate(group=[{0}], EXPR$1=[MAX($1)], EXPR$2=[MAX($2)])
+  LogicalProject($f2=[$0], EXPR$1=[$1], $f3=[+($1, 1)])
+    LogicalValues(tuples=[[{ 1, 2 }]])
 ]]>
         </Resource>
     </TestCase>

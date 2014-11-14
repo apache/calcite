@@ -14,16 +14,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql.fun;
+package org.apache.calcite.sql.fun;
 
-import java.util.List;
-
-import org.eigenbase.reltype.RelDataType;
-import org.eigenbase.reltype.RelDataTypeFactory;
-import org.eigenbase.sql.*;
-import org.eigenbase.sql.type.*;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.sql.SqlAggFunction;
+import org.apache.calcite.sql.SqlFunctionCategory;
+import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlOperatorBinding;
+import org.apache.calcite.sql.type.OperandTypes;
+import org.apache.calcite.sql.type.ReturnTypes;
+import org.apache.calcite.sql.type.SameOperandTypeChecker;
+import org.apache.calcite.sql.type.SqlReturnTypeInference;
+import org.apache.calcite.sql.type.SqlSingleOperandTypeChecker;
+import org.apache.calcite.sql.type.SqlTypeFamily;
+import org.apache.calcite.sql.type.SqlTypeTransform;
+import org.apache.calcite.sql.type.SqlTypeTransforms;
 
 import com.google.common.collect.ImmutableList;
+
+import java.util.List;
 
 /**
  * <code>LEAD</code> and <code>LAG</code> aggregate functions
@@ -35,12 +45,12 @@ public class SqlLeadLagAggFunction extends SqlAggFunction {
           OperandTypes.ANY,
           OperandTypes.family(SqlTypeFamily.ANY, SqlTypeFamily.NUMERIC),
           OperandTypes.and(
-              OperandTypes.family(
-                  SqlTypeFamily.ANY, SqlTypeFamily.NUMERIC, SqlTypeFamily.ANY)
+              OperandTypes.family(SqlTypeFamily.ANY, SqlTypeFamily.NUMERIC,
+                  SqlTypeFamily.ANY),
               // Arguments 1 and 3 must have same type
-              , new SameOperandTypeChecker(3) {
-                @Override
-                protected List<Integer> getOperandList(int operandCount) {
+              new SameOperandTypeChecker(3) {
+                @Override protected List<Integer>
+                getOperandList(int operandCount) {
                   return ImmutableList.of(0, 2);
                 }
               }));

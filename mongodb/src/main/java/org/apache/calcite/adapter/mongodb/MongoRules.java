@@ -14,25 +14,39 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.impl.mongodb;
+package org.apache.calcite.adapter.mongodb;
 
-import net.hydromatic.optiq.impl.java.JavaTypeFactory;
-import net.hydromatic.optiq.rules.java.RexImpTable;
-import net.hydromatic.optiq.rules.java.RexToLixTranslator;
+import org.apache.calcite.adapter.enumerable.RexImpTable;
+import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
+import org.apache.calcite.adapter.java.JavaTypeFactory;
+import org.apache.calcite.plan.Convention;
+import org.apache.calcite.plan.RelOptRule;
+import org.apache.calcite.plan.RelTrait;
+import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.InvalidRelException;
+import org.apache.calcite.rel.RelCollationImpl;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.convert.ConverterRule;
+import org.apache.calcite.rel.core.Sort;
+import org.apache.calcite.rel.logical.LogicalAggregate;
+import org.apache.calcite.rel.logical.LogicalFilter;
+import org.apache.calcite.rel.logical.LogicalProject;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexInputRef;
+import org.apache.calcite.rex.RexLiteral;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexVisitorImpl;
+import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.validate.SqlValidatorUtil;
+import org.apache.calcite.util.Bug;
+import org.apache.calcite.util.trace.CalciteTrace;
 
-import org.eigenbase.rel.*;
-import org.eigenbase.rel.convert.ConverterRule;
-import org.eigenbase.relopt.*;
-import org.eigenbase.reltype.RelDataType;
-import org.eigenbase.rex.*;
-import org.eigenbase.sql.SqlKind;
-import org.eigenbase.sql.fun.SqlStdOperatorTable;
-import org.eigenbase.sql.type.SqlTypeName;
-import org.eigenbase.sql.validate.SqlValidatorUtil;
-import org.eigenbase.trace.EigenbaseTrace;
-import org.eigenbase.util.Bug;
-
-import java.util.*;
+import java.util.AbstractList;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.logging.Logger;
 
 /**
@@ -43,7 +57,7 @@ import java.util.logging.Logger;
 public class MongoRules {
   private MongoRules() {}
 
-  protected static final Logger LOGGER = EigenbaseTrace.getPlannerTracer();
+  protected static final Logger LOGGER = CalciteTrace.getPlannerTracer();
 
   public static final RelOptRule[] RULES = {
     MongoSortRule.INSTANCE,
@@ -185,90 +199,90 @@ public class MongoRules {
   }
 
   /**
-   * Rule to convert a {@link org.eigenbase.rel.SortRel} to a
-   * {@link MongoSortRel}.
+   * Rule to convert a {@link org.apache.calcite.rel.core.Sort} to a
+   * {@link MongoSort}.
    */
   private static class MongoSortRule extends MongoConverterRule {
     public static final MongoSortRule INSTANCE = new MongoSortRule();
 
     private MongoSortRule() {
-      super(SortRel.class, Convention.NONE, MongoRel.CONVENTION,
+      super(Sort.class, Convention.NONE, MongoRel.CONVENTION,
           "MongoSortRule");
     }
 
     public RelNode convert(RelNode rel) {
-      final SortRel sort = (SortRel) rel;
+      final Sort sort = (Sort) rel;
       final RelTraitSet traitSet =
           sort.getTraitSet().replace(out)
               .replace(sort.getCollation());
-      return new MongoSortRel(rel.getCluster(), traitSet,
-          convert(sort.getChild(), traitSet.replace(RelCollationImpl.EMPTY)),
+      return new MongoSort(rel.getCluster(), traitSet,
+          convert(sort.getInput(), traitSet.replace(RelCollationImpl.EMPTY)),
           sort.getCollation(), sort.offset, sort.fetch);
     }
   }
 
   /**
-   * Rule to convert a {@link org.eigenbase.rel.FilterRel} to a
-   * {@link MongoFilterRel}.
+   * Rule to convert a {@link org.apache.calcite.rel.logical.LogicalFilter} to a
+   * {@link MongoFilter}.
    */
   private static class MongoFilterRule extends MongoConverterRule {
     private static final MongoFilterRule INSTANCE = new MongoFilterRule();
 
     private MongoFilterRule() {
-      super(FilterRel.class, Convention.NONE, MongoRel.CONVENTION,
+      super(LogicalFilter.class, Convention.NONE, MongoRel.CONVENTION,
           "MongoFilterRule");
     }
 
     public RelNode convert(RelNode rel) {
-      final FilterRel filter = (FilterRel) rel;
+      final LogicalFilter filter = (LogicalFilter) rel;
       final RelTraitSet traitSet = filter.getTraitSet().replace(out);
-      return new MongoFilterRel(
+      return new MongoFilter(
           rel.getCluster(),
           traitSet,
-          convert(filter.getChild(), traitSet),
+          convert(filter.getInput(), traitSet),
           filter.getCondition());
     }
   }
 
   /**
-   * Rule to convert a {@link org.eigenbase.rel.ProjectRel} to a
-   * {@link MongoProjectRel}.
+   * Rule to convert a {@link org.apache.calcite.rel.logical.LogicalProject}
+   * to a {@link MongoProject}.
    */
   private static class MongoProjectRule extends MongoConverterRule {
     private static final MongoProjectRule INSTANCE = new MongoProjectRule();
 
     private MongoProjectRule() {
-      super(ProjectRel.class, Convention.NONE, MongoRel.CONVENTION,
+      super(LogicalProject.class, Convention.NONE, MongoRel.CONVENTION,
           "MongoProjectRule");
     }
 
     public RelNode convert(RelNode rel) {
-      final ProjectRel project = (ProjectRel) rel;
+      final LogicalProject project = (LogicalProject) rel;
       final RelTraitSet traitSet = project.getTraitSet().replace(out);
-      return new MongoProjectRel(project.getCluster(), traitSet,
-          convert(project.getChild(), traitSet), project.getProjects(),
-          project.getRowType(), ProjectRel.Flags.BOXED);
+      return new MongoProject(project.getCluster(), traitSet,
+          convert(project.getInput(), traitSet), project.getProjects(),
+          project.getRowType(), LogicalProject.Flags.BOXED);
     }
   }
 
 /*
 
   /**
-   * Rule to convert a {@link CalcRel} to an
+   * Rule to convert a {@link LogicalCalc} to an
    * {@link MongoCalcRel}.
    o/
   private static class MongoCalcRule
       extends MongoConverterRule {
     private MongoCalcRule(MongoConvention out) {
       super(
-          CalcRel.class,
+          LogicalCalc.class,
           Convention.NONE,
           out,
           "MongoCalcRule");
     }
 
     public RelNode convert(RelNode rel) {
-      final CalcRel calc = (CalcRel) rel;
+      final LogicalCalc calc = (LogicalCalc) rel;
 
       // If there's a multiset, let FarragoMultisetSplitter work on it
       // first.
@@ -283,7 +297,7 @@ public class MongoRules {
               calc.getChild(),
               calc.getTraitSet().replace(out)),
           calc.getProgram(),
-          ProjectRelBase.Flags.Boxed);
+          Project.Flags.Boxed);
     }
   }
 
@@ -291,7 +305,7 @@ public class MongoRules {
     private final RexProgram program;
 
     /**
-     * Values defined in {@link org.eigenbase.rel.ProjectRelBase.Flags}.
+     * Values defined in {@link org.apache.calcite.rel.core.Project.Flags}.
      o/
     protected int flags;
 
@@ -313,7 +327,7 @@ public class MongoRules {
     }
 
     public double getRows() {
-      return FilterRel.estimateFilteredRows(
+      return LogicalFilter.estimateFilteredRows(
           getChild(), program);
     }
 
@@ -421,26 +435,26 @@ public class MongoRules {
 */
 
   /**
-   * Rule to convert an {@link org.eigenbase.rel.AggregateRel} to an
-   * {@link MongoAggregateRel}.
+   * Rule to convert an {@link org.apache.calcite.rel.logical.LogicalAggregate}
+   * to an {@link MongoAggregate}.
    */
   private static class MongoAggregateRule extends MongoConverterRule {
     public static final RelOptRule INSTANCE = new MongoAggregateRule();
 
     private MongoAggregateRule() {
-      super(AggregateRel.class, Convention.NONE, MongoRel.CONVENTION,
+      super(LogicalAggregate.class, Convention.NONE, MongoRel.CONVENTION,
           "MongoAggregateRule");
     }
 
     public RelNode convert(RelNode rel) {
-      final AggregateRel agg = (AggregateRel) rel;
+      final LogicalAggregate agg = (LogicalAggregate) rel;
       final RelTraitSet traitSet =
           agg.getTraitSet().replace(out);
       try {
-        return new MongoAggregateRel(
+        return new MongoAggregate(
             rel.getCluster(),
             traitSet,
-            convert(agg.getChild(), traitSet),
+            convert(agg.getInput(), traitSet),
             agg.getGroupSet(),
             agg.getAggCallList());
       } catch (InvalidRelException e) {
@@ -452,21 +466,21 @@ public class MongoRules {
 
 /*
   /**
-   * Rule to convert an {@link org.eigenbase.rel.UnionRel} to a
+   * Rule to convert an {@link org.apache.calcite.rel.logical.Union} to a
    * {@link MongoUnionRel}.
    o/
   private static class MongoUnionRule
       extends MongoConverterRule {
     private MongoUnionRule(MongoConvention out) {
       super(
-          UnionRel.class,
+          Union.class,
           Convention.NONE,
           out,
           "MongoUnionRule");
     }
 
     public RelNode convert(RelNode rel) {
-      final UnionRel union = (UnionRel) rel;
+      final Union union = (Union) rel;
       final RelTraitSet traitSet =
           union.getTraitSet().replace(out);
       return new MongoUnionRel(
@@ -478,7 +492,7 @@ public class MongoRules {
   }
 
   public static class MongoUnionRel
-      extends UnionRelBase
+      extends Union
       implements MongoRel {
     public MongoUnionRel(
         RelOptCluster cluster,
@@ -493,8 +507,7 @@ public class MongoRules {
       return new MongoUnionRel(getCluster(), traitSet, inputs, all);
     }
 
-    @Override
-    public RelOptCost computeSelfCost(RelOptPlanner planner) {
+    @Override public RelOptCost computeSelfCost(RelOptPlanner planner) {
       return super.computeSelfCost(planner).multiplyBy(.1);
     }
 
@@ -504,7 +517,7 @@ public class MongoRules {
   }
 
   private static SqlString setOpSql(
-      SetOpRel setOpRel, MongoImplementor implementor, String op) {
+      SetOp setOpRel, MongoImplementor implementor, String op) {
     final SqlBuilder buf = new SqlBuilder(implementor.dialect);
     for (Ord<RelNode> input : Ord.zip(setOpRel.getInputs())) {
       if (input.i > 0) {
@@ -518,21 +531,21 @@ public class MongoRules {
   }
 
   /**
-   * Rule to convert an {@link org.eigenbase.rel.IntersectRel} to an
-   * {@link MongoIntersectRel}.
+   * Rule to convert an {@link org.apache.calcite.rel.logical.LogicalIntersect}
+   * to an {@link MongoIntersectRel}.
    o/
   private static class MongoIntersectRule
       extends MongoConverterRule {
     private MongoIntersectRule(MongoConvention out) {
       super(
-          IntersectRel.class,
+          LogicalIntersect.class,
           Convention.NONE,
           out,
           "MongoIntersectRule");
     }
 
     public RelNode convert(RelNode rel) {
-      final IntersectRel intersect = (IntersectRel) rel;
+      final LogicalIntersect intersect = (LogicalIntersect) rel;
       if (intersect.all) {
         return null; // INTERSECT ALL not implemented
       }
@@ -547,7 +560,7 @@ public class MongoRules {
   }
 
   public static class MongoIntersectRel
-      extends IntersectRelBase
+      extends Intersect
       implements MongoRel {
     public MongoIntersectRel(
         RelOptCluster cluster,
@@ -569,21 +582,21 @@ public class MongoRules {
   }
 
   /**
-   * Rule to convert an {@link org.eigenbase.rel.MinusRel} to an
-   * {@link MongoMinusRel}.
+   * Rule to convert an {@link org.apache.calcite.rel.logical.LogicalMinus}
+   * to an {@link MongoMinusRel}.
    o/
   private static class MongoMinusRule
       extends MongoConverterRule {
     private MongoMinusRule(MongoConvention out) {
       super(
-          MinusRel.class,
+          LogicalMinus.class,
           Convention.NONE,
           out,
           "MongoMinusRule");
     }
 
     public RelNode convert(RelNode rel) {
-      final MinusRel minus = (MinusRel) rel;
+      final LogicalMinus minus = (LogicalMinus) rel;
       if (minus.all) {
         return null; // EXCEPT ALL not implemented
       }
@@ -598,7 +611,7 @@ public class MongoRules {
   }
 
   public static class MongoMinusRel
-      extends MinusRelBase
+      extends Minus
       implements MongoRel {
     public MongoMinusRel(
         RelOptCluster cluster,
@@ -622,15 +635,14 @@ public class MongoRules {
   public static class MongoValuesRule extends MongoConverterRule {
     private MongoValuesRule(MongoConvention out) {
       super(
-          ValuesRel.class,
+          LogicalValues.class,
           Convention.NONE,
           out,
           "MongoValuesRule");
     }
 
-    @Override
-    public RelNode convert(RelNode rel) {
-      ValuesRel valuesRel = (ValuesRel) rel;
+    @Override public RelNode convert(RelNode rel) {
+      LogicalValues valuesRel = (LogicalValues) rel;
       return new MongoValuesRel(
           valuesRel.getCluster(),
           valuesRel.getRowType(),
@@ -640,7 +652,7 @@ public class MongoRules {
   }
 
   public static class MongoValuesRel
-      extends ValuesRelBase
+      extends Values
       implements MongoRel {
     MongoValuesRel(
         RelOptCluster cluster,
@@ -650,8 +662,7 @@ public class MongoRules {
       super(cluster, rowType, tuples, traitSet);
     }
 
-    @Override
-    public RelNode copy(
+    @Override public RelNode copy(
         RelTraitSet traitSet, List<RelNode> inputs) {
       assert inputs.isEmpty();
       return new MongoValuesRel(

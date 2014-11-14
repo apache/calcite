@@ -14,18 +14,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql;
+package org.apache.calcite.sql;
 
-import java.util.*;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.util.SqlVisitor;
+import org.apache.calcite.sql.validate.SqlValidator;
+import org.apache.calcite.sql.validate.SqlValidatorScope;
 
-import org.eigenbase.sql.fun.*;
-import org.eigenbase.sql.parser.*;
-import org.eigenbase.sql.util.*;
-import org.eigenbase.sql.validate.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.List;
 
 /**
- * A <code>SqlNodeList</code> is a list of {@link SqlNode}s. It is also a {@link
- * SqlNode}, so may appear in a parse tree.
+ * A <code>SqlNodeList</code> is a list of {@link SqlNode}s. It is also a
+ * {@link SqlNode}, so may appear in a parse tree.
  */
 public class SqlNodeList extends SqlNode implements Iterable<SqlNode> {
   //~ Static fields/initializers ---------------------------------------------

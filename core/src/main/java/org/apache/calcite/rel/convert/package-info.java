@@ -19,6 +19,6 @@
  * Defines relational expressions and rules for converting between calling
  * conventions.
  */
-package org.eigenbase.rel.convert;
+package org.apache.calcite.rel.convert;
 
 // End package-info.java

@@ -14,59 +14,71 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel.rules;
+package org.apache.calcite.rel.rules;
 
-import java.util.*;
-
-import org.eigenbase.rel.*;
-import org.eigenbase.rel.metadata.*;
-import org.eigenbase.relopt.*;
-import org.eigenbase.reltype.*;
-import org.eigenbase.rex.*;
-import org.eigenbase.sql.SqlKind;
-import org.eigenbase.util.IntList;
-
-import net.hydromatic.optiq.util.BitSets;
+import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.JoinRelType;
+import org.apache.calcite.rel.core.SemiJoin;
+import org.apache.calcite.rel.metadata.RelColumnOrigin;
+import org.apache.calcite.rel.metadata.RelMetadataQuery;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.util.BitSets;
+import org.apache.calcite.util.IntList;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
+import java.util.ArrayList;
+import java.util.BitSet;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.ListIterator;
+import java.util.Map;
+import java.util.Set;
+
 /**
  * Utility class that keeps track of the join factors that
- * make up a {@link MultiJoinRel}.
+ * make up a {@link MultiJoin}.
  */
 public class LoptMultiJoin {
   //~ Instance fields --------------------------------------------------------
 
   /**
-   * The MultiJoinRel being optimized
+   * The MultiJoin being optimized
    */
-  MultiJoinRel multiJoin;
+  MultiJoin multiJoin;
 
   /**
-   * Join filters associated with the MultiJoinRel, decomposed into a list.
+   * Join filters associated with the MultiJoin, decomposed into a list.
    * Excludes left/right outer join filters.
    */
   private List<RexNode> joinFilters;
 
   /**
-   * All join filters associated with the MultiJoinRel, decomposed into a
+   * All join filters associated with the MultiJoin, decomposed into a
    * list. Includes left/right outer join filters.
    */
   private List<RexNode> allJoinFilters;
 
   /**
-   * Number of factors into the MultiJoinRel
+   * Number of factors into the MultiJoin
    */
   private final int nJoinFactors;
 
   /**
-   * Total number of fields in the MultiJoinRel
+   * Total number of fields in the MultiJoin
    */
   private int nTotalFields;
 
   /**
-   * Original inputs into the MultiJoinRel
+   * Original inputs into the MultiJoin
    */
   private final ImmutableList<RelNode> joinFactors;
 
@@ -150,7 +162,7 @@ public class LoptMultiJoin {
   /**
    * The semijoins that allow the join of a dimension table to be removed
    */
-  SemiJoinRel [] joinRemovalSemiJoins;
+  SemiJoin[] joinRemovalSemiJoins;
 
   /**
    * Set of null-generating factors whose corresponding outer join can be
@@ -168,7 +180,7 @@ public class LoptMultiJoin {
 
   //~ Constructors -----------------------------------------------------------
 
-  public LoptMultiJoin(MultiJoinRel multiJoin) {
+  public LoptMultiJoin(MultiJoin multiJoin) {
     this.multiJoin = multiJoin;
     joinFactors = ImmutableList.copyOf(multiJoin.getInputs());
     nJoinFactors = joinFactors.size();
@@ -219,7 +231,7 @@ public class LoptMultiJoin {
     factory = multiJoin.getCluster().getTypeFactory();
 
     joinRemovalFactors = new Integer[nJoinFactors];
-    joinRemovalSemiJoins = new SemiJoinRel[nJoinFactors];
+    joinRemovalSemiJoins = new SemiJoin[nJoinFactors];
 
     removableOuterJoinFactors = new HashSet<Integer>();
     removableSelfJoinPairs = new HashMap<Integer, RemovableSelfJoin>();
@@ -228,9 +240,9 @@ public class LoptMultiJoin {
   //~ Methods ----------------------------------------------------------------
 
   /**
-   * @return the MultiJoinRel corresponding to this multijoin
+   * @return the MultiJoin corresponding to this multijoin
    */
-  public MultiJoinRel getMultiJoinRel() {
+  public MultiJoin getMultiJoinRel() {
     return multiJoin;
   }
 
@@ -391,7 +403,7 @@ public class LoptMultiJoin {
    * @return the semijoin that allows the join of a dimension table to be
    * removed
    */
-  public SemiJoinRel getJoinRemovalSemiJoin(int dimIdx) {
+  public SemiJoin getJoinRemovalSemiJoin(int dimIdx) {
     return joinRemovalSemiJoins[dimIdx];
   }
 
@@ -413,7 +425,7 @@ public class LoptMultiJoin {
    * @param dimIdx id of the dimension factor
    * @param semiJoin the semijoin
    */
-  public void setJoinRemovalSemiJoin(int dimIdx, SemiJoinRel semiJoin) {
+  public void setJoinRemovalSemiJoin(int dimIdx, SemiJoin semiJoin) {
     joinRemovalSemiJoins[dimIdx] = semiJoin;
   }
 

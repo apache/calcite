@@ -14,42 +14,50 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel.rules;
+package org.apache.calcite.rel.rules;
 
-import org.eigenbase.rel.*;
-import org.eigenbase.relopt.*;
+import org.apache.calcite.plan.RelOptRule;
+import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.Join;
+import org.apache.calcite.rel.core.JoinRelType;
+import org.apache.calcite.rel.logical.LogicalJoin;
 
 /**
- * Rule to convert an {@link JoinRel inner join} to a {@link FilterRel filter}
- * on top of a {@link JoinRel cartesian inner join}.
+ * Rule to convert an
+ * {@link org.apache.calcite.rel.logical.LogicalJoin inner join} to a
+ * {@link org.apache.calcite.rel.logical.LogicalFilter filter} on top of a
+ * {@link org.apache.calcite.rel.logical.LogicalJoin cartesian inner join}.
  *
  * <p>One benefit of this transformation is that after it, the join condition
  * can be combined with conditions and expressions above the join. It also makes
  * the <code>FennelCartesianJoinRule</code> applicable.
  *
  * <p>The constructor is parameterized to allow any sub-class of
- * {@link JoinRelBase}, not just {@link JoinRel}.</p>
+ * {@link org.apache.calcite.rel.core.Join}, not just
+ * {@link org.apache.calcite.rel.logical.LogicalJoin}.</p>
  */
-public final class ExtractJoinFilterRule extends RelOptRule {
+public final class JoinExtractFilterRule extends RelOptRule {
   //~ Static fields/initializers ---------------------------------------------
 
   /** The singleton. */
-  public static final ExtractJoinFilterRule INSTANCE =
-      new ExtractJoinFilterRule(JoinRel.class);
+  public static final JoinExtractFilterRule INSTANCE =
+      new JoinExtractFilterRule(LogicalJoin.class);
 
   //~ Constructors -----------------------------------------------------------
 
   /**
-   * Creates an ExtractJoinFilterRule.
+   * Creates an JoinExtractFilterRule.
    */
-  public ExtractJoinFilterRule(Class<? extends JoinRelBase> clazz) {
+  public JoinExtractFilterRule(Class<? extends Join> clazz) {
     super(operand(clazz, any()));
   }
 
   //~ Methods ----------------------------------------------------------------
 
   public void onMatch(RelOptRuleCall call) {
-    final JoinRelBase join = call.rel(0);
+    final Join join = call.rel(0);
 
     if (join.getJoinType() != JoinRelType.INNER) {
       return;
@@ -64,7 +72,7 @@ public final class ExtractJoinFilterRule extends RelOptRule {
       return;
     }
 
-    // NOTE jvs 14-Mar-2006:  See SwapJoinRule for why we
+    // NOTE jvs 14-Mar-2006:  See JoinCommuteRule for why we
     // preserve attribute semiJoinDone here.
 
     RelNode cartesianJoinRel =
@@ -85,4 +93,4 @@ public final class ExtractJoinFilterRule extends RelOptRule {
   }
 }
 
-// End ExtractJoinFilterRule.java
+// End JoinExtractFilterRule.java

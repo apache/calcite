@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.linq4j;
+package org.apache.calcite.linq4j;
 
 /**
  * Exposes the enumerator, which supports a simple iteration over a collection,

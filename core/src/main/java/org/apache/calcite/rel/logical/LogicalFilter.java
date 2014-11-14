@@ -14,32 +14,33 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel;
+package org.apache.calcite.rel.logical;
 
-import org.eigenbase.relopt.*;
-import org.eigenbase.rex.*;
+import org.apache.calcite.plan.Convention;
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.RelInput;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelShuttle;
+import org.apache.calcite.rel.core.Filter;
+import org.apache.calcite.rex.RexNode;
 
 /**
- * Relational expression that iterates over its input
- * and returns elements for which <code>condition</code> evaluates to
- * <code>true</code>.
- *
- * <p>If the condition allows nulls, then a null value is treated the same as
- * false.</p>
+ * Sub-class of {@link org.apache.calcite.rel.core.Filter}
+ * not targeted at any particular engine or calling convention.
  */
-public final class FilterRel extends FilterRelBase {
+public final class LogicalFilter extends Filter {
   //~ Constructors -----------------------------------------------------------
 
   /**
-   * Creates a filter.
+   * Creates a LogicalFilter.
    *
-   * @param cluster   {@link RelOptCluster}  this relational expression belongs
-   *                  to
-   * @param child     input relational expression
-   * @param condition boolean expression which determines whether a row is
+   * @param cluster   Cluster that this relational expression belongs to
+   * @param child     Input relational expression
+   * @param condition Boolean expression which determines whether a row is
    *                  allowed to pass
    */
-  public FilterRel(
+  public LogicalFilter(
       RelOptCluster cluster,
       RelNode child,
       RexNode condition) {
@@ -51,24 +52,23 @@ public final class FilterRel extends FilterRelBase {
   }
 
   /**
-   * Creates a FilterRel by parsing serialized output.
+   * Creates a LogicalFilter by parsing serialized output.
    */
-  public FilterRel(RelInput input) {
+  public LogicalFilter(RelInput input) {
     super(input);
   }
 
   //~ Methods ----------------------------------------------------------------
 
-  public FilterRel copy(RelTraitSet traitSet, RelNode input,
+  public LogicalFilter copy(RelTraitSet traitSet, RelNode input,
       RexNode condition) {
     assert traitSet.containsIfApplicable(Convention.NONE);
-    return new FilterRel(getCluster(), input, condition);
+    return new LogicalFilter(getCluster(), input, condition);
   }
 
-  @Override
-  public RelNode accept(RelShuttle shuttle) {
+  @Override public RelNode accept(RelShuttle shuttle) {
     return shuttle.visit(this);
   }
 }
 
-// End FilterRel.java
+// End LogicalFilter.java

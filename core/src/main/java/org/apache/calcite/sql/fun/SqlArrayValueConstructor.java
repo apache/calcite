@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql.fun;
+package org.apache.calcite.sql.fun;
 
-import org.eigenbase.reltype.RelDataType;
-import org.eigenbase.sql.SqlKind;
-import org.eigenbase.sql.SqlOperatorBinding;
-import org.eigenbase.sql.type.SqlTypeUtil;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlOperatorBinding;
+import org.apache.calcite.sql.type.SqlTypeUtil;
 
 /**
  * Definition of the SQL:2003 standard ARRAY constructor, <code>MULTISET
@@ -30,8 +30,7 @@ public class SqlArrayValueConstructor extends SqlMultisetValueConstructor {
     super("ARRAY", SqlKind.ARRAY_VALUE_CONSTRUCTOR);
   }
 
-  @Override
-  public RelDataType inferReturnType(SqlOperatorBinding opBinding) {
+  @Override public RelDataType inferReturnType(SqlOperatorBinding opBinding) {
     RelDataType type =
         getComponentType(
             opBinding.getTypeFactory(),

@@ -14,20 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.impl;
+package org.apache.calcite.schema.impl;
 
-import net.hydromatic.optiq.*;
-import net.hydromatic.optiq.impl.java.JavaTypeFactory;
-import net.hydromatic.optiq.jdbc.OptiqConnection;
-import net.hydromatic.optiq.jdbc.OptiqPrepare;
-import net.hydromatic.optiq.jdbc.OptiqSchema;
-import net.hydromatic.optiq.materialize.MaterializationKey;
-import net.hydromatic.optiq.materialize.MaterializationService;
-
-import org.eigenbase.rel.RelNode;
-import org.eigenbase.relopt.RelOptTable;
-import org.eigenbase.reltype.RelDataTypeImpl;
-import org.eigenbase.reltype.RelProtoDataType;
+import org.apache.calcite.adapter.java.JavaTypeFactory;
+import org.apache.calcite.jdbc.CalciteConnection;
+import org.apache.calcite.jdbc.CalcitePrepare;
+import org.apache.calcite.jdbc.CalciteSchema;
+import org.apache.calcite.materialize.MaterializationKey;
+import org.apache.calcite.materialize.MaterializationService;
+import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.type.RelDataTypeImpl;
+import org.apache.calcite.rel.type.RelProtoDataType;
+import org.apache.calcite.schema.Schemas;
+import org.apache.calcite.schema.Table;
+import org.apache.calcite.schema.TranslatableTable;
 
 import com.google.common.base.Preconditions;
 
@@ -42,7 +43,7 @@ import java.util.List;
  * <p>It can exist in two states: materialized and not materialized. Over time,
  * a given materialized view may switch states. How it is expanded depends upon
  * its current state. State is managed by
- * {@link net.hydromatic.optiq.materialize.MaterializationService}.</p>
+ * {@link org.apache.calcite.materialize.MaterializationService}.</p>
  */
 public class MaterializedViewTable extends ViewTable {
 
@@ -52,12 +53,12 @@ public class MaterializedViewTable extends ViewTable {
    * Internal connection, used to execute queries to materialize views.
    * To be used only by Calcite internals. And sparingly.
    */
-  public static final OptiqConnection MATERIALIZATION_CONNECTION;
+  public static final CalciteConnection MATERIALIZATION_CONNECTION;
 
   static {
     try {
       MATERIALIZATION_CONNECTION = DriverManager.getConnection("jdbc:calcite:")
-          .unwrap(OptiqConnection.class);
+          .unwrap(CalciteConnection.class);
     } catch (SQLException e) {
       throw new RuntimeException(e);
     }
@@ -73,7 +74,7 @@ public class MaterializedViewTable extends ViewTable {
   }
 
   /** Table macro that returns a materialized view. */
-  public static MaterializedViewTableMacro create(final OptiqSchema schema,
+  public static MaterializedViewTableMacro create(final CalciteSchema schema,
       final String viewSql,
       final List<String> viewSchemaPath,
       final String tableName) {
@@ -81,10 +82,9 @@ public class MaterializedViewTable extends ViewTable {
         tableName);
   }
 
-  @Override
-  public RelNode toRel(RelOptTable.ToRelContext context,
+  @Override public RelNode toRel(RelOptTable.ToRelContext context,
       RelOptTable relOptTable) {
-    final OptiqSchema.TableEntry tableEntry =
+    final CalciteSchema.TableEntry tableEntry =
         MaterializationService.instance().checkValid(key);
     if (tableEntry != null) {
       Table materializeTable = tableEntry.getTable();
@@ -101,7 +101,7 @@ public class MaterializedViewTable extends ViewTable {
       extends ViewTableMacro {
     private final MaterializationKey key;
 
-    private MaterializedViewTableMacro(OptiqSchema schema, String viewSql,
+    private MaterializedViewTableMacro(CalciteSchema schema, String viewSql,
         List<String> viewSchemaPath, String suggestedTableName) {
       super(schema, viewSql, viewSchemaPath);
       this.key = Preconditions.checkNotNull(
@@ -109,10 +109,9 @@ public class MaterializedViewTable extends ViewTable {
               schema, null, viewSql, schemaPath, suggestedTableName, true));
     }
 
-    @Override
-    public TranslatableTable apply(List<Object> arguments) {
+    @Override public TranslatableTable apply(List<Object> arguments) {
       assert arguments.isEmpty();
-      OptiqPrepare.ParseResult parsed =
+      CalcitePrepare.ParseResult parsed =
           Schemas.parse(MATERIALIZATION_CONNECTION, schema, schemaPath,
               viewSql);
       final List<String> schemaPath1 =

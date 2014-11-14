@@ -14,41 +14,49 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel.rules;
+package org.apache.calcite.rel.rules;
 
-import java.util.*;
+import org.apache.calcite.plan.RelOptRule;
+import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.rel.RelCollation;
+import org.apache.calcite.rel.core.Filter;
+import org.apache.calcite.rel.logical.LogicalCalc;
+import org.apache.calcite.rel.logical.LogicalFilter;
+import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexProgram;
+import org.apache.calcite.rex.RexProgramBuilder;
 
-import org.eigenbase.rel.*;
-import org.eigenbase.relopt.*;
-import org.eigenbase.rex.*;
+import java.util.Collections;
 
 /**
- * Planner rule which merges a {@link FilterRel} and a {@link CalcRel}. The
- * result is a {@link CalcRel} whose filter condition is the logical AND of the
- * two.
+ * Planner rule that merges a
+ * {@link org.apache.calcite.rel.logical.LogicalFilter} and a
+ * {@link org.apache.calcite.rel.logical.LogicalCalc}. The
+ * result is a {@link org.apache.calcite.rel.logical.LogicalCalc}
+ * whose filter condition is the logical AND of the two.
  *
- * @see MergeFilterOntoCalcRule
+ * @see FilterMergeRule
  */
-public class MergeFilterOntoCalcRule extends RelOptRule {
+public class FilterCalcMergeRule extends RelOptRule {
   //~ Static fields/initializers ---------------------------------------------
 
-  public static final MergeFilterOntoCalcRule INSTANCE =
-      new MergeFilterOntoCalcRule();
+  public static final FilterCalcMergeRule INSTANCE =
+      new FilterCalcMergeRule();
 
   //~ Constructors -----------------------------------------------------------
 
-  private MergeFilterOntoCalcRule() {
+  private FilterCalcMergeRule() {
     super(
         operand(
-            FilterRelBase.class,
-            operand(CalcRel.class, any())));
+            Filter.class,
+            operand(LogicalCalc.class, any())));
   }
 
   //~ Methods ----------------------------------------------------------------
 
   public void onMatch(RelOptRuleCall call) {
-    final FilterRel filter = call.rel(0);
-    final CalcRel calc = call.rel(1);
+    final LogicalFilter filter = call.rel(0);
+    final LogicalCalc calc = call.rel(1);
 
     // Don't merge a filter onto a calc which contains windowed aggregates.
     // That would effectively be pushing a multiset down through a filter.
@@ -74,11 +82,11 @@ public class MergeFilterOntoCalcRule extends RelOptRule {
             topProgram,
             bottomProgram,
             rexBuilder);
-    final CalcRel newCalc =
-        new CalcRel(
+    final LogicalCalc newCalc =
+        new LogicalCalc(
             calc.getCluster(),
             calc.getTraitSet(),
-            calc.getChild(),
+            calc.getInput(),
             filter.getRowType(),
             mergedProgram,
             Collections.<RelCollation>emptyList());
@@ -86,4 +94,4 @@ public class MergeFilterOntoCalcRule extends RelOptRule {
   }
 }
 
-// End MergeFilterOntoCalcRule.java
+// End FilterCalcMergeRule.java

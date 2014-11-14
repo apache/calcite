@@ -14,18 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql.parser;
+package org.apache.calcite.sql.parser;
 
-import java.util.*;
+import org.apache.calcite.util.CalciteParserException;
 
-import org.eigenbase.util14.*;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Set;
+import java.util.TreeSet;
 
 /**
- * SqlParseException defines a checked exception corresponding to {@link
- * SqlParser}.
+ * SqlParseException defines a checked exception corresponding to
+ * {@link SqlParser}.
  */
 public class SqlParseException extends Exception
-    implements EigenbaseParserException {
+    implements CalciteParserException {
   //~ Instance fields --------------------------------------------------------
 
   private final SqlParserPos pos;
@@ -160,8 +163,8 @@ public class SqlParseException extends Exception
    * written during serialization.
    *
    * <p>SqlParseException is serializable but is not available on the client.
-   * This implementation converts this SqlParseException into a vanilla {@link
-   * RuntimeException} with the same message.
+   * This implementation converts this SqlParseException into a vanilla
+   * {@link RuntimeException} with the same message.
    */
   private Object writeReplace() {
     return new RuntimeException(

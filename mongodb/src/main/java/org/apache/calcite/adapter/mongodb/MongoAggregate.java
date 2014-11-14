@@ -14,27 +14,35 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.impl.mongodb;
+package org.apache.calcite.adapter.mongodb;
 
-import net.hydromatic.optiq.util.BitSets;
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.InvalidRelException;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.Aggregate;
+import org.apache.calcite.rel.core.AggregateCall;
+import org.apache.calcite.sql.SqlAggFunction;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.fun.SqlSumAggFunction;
+import org.apache.calcite.sql.fun.SqlSumEmptyIsZeroAggFunction;
+import org.apache.calcite.util.BitSets;
+import org.apache.calcite.util.Util;
 
-import org.eigenbase.rel.*;
-import org.eigenbase.relopt.RelOptCluster;
-import org.eigenbase.relopt.RelTraitSet;
-import org.eigenbase.sql.fun.SqlStdOperatorTable;
-import org.eigenbase.sql.fun.SqlSumAggFunction;
-import org.eigenbase.sql.fun.SqlSumEmptyIsZeroAggFunction;
-import org.eigenbase.util.Util;
-
-import java.util.*;
+import java.util.AbstractList;
+import java.util.ArrayList;
+import java.util.BitSet;
+import java.util.List;
 
 /**
- * Implementation of {@link AggregateRelBase} relational expression in MongoDB.
+ * Implementation of
+ * {@link org.apache.calcite.rel.core.Aggregate} relational expression
+ * in MongoDB.
  */
-public class MongoAggregateRel
-    extends AggregateRelBase
+public class MongoAggregate
+    extends Aggregate
     implements MongoRel {
-  public MongoAggregateRel(
+  public MongoAggregate(
       RelOptCluster cluster,
       RelTraitSet traitSet,
       RelNode child,
@@ -53,10 +61,10 @@ public class MongoAggregateRel
     }
   }
 
-  @Override public AggregateRelBase copy(RelTraitSet traitSet, RelNode input,
+  @Override public Aggregate copy(RelTraitSet traitSet, RelNode input,
       BitSet groupSet, List<AggregateCall> aggCalls) {
     try {
-      return new MongoAggregateRel(getCluster(), traitSet, input, groupSet,
+      return new MongoAggregate(getCluster(), traitSet, input, groupSet,
           aggCalls);
     } catch (InvalidRelException e) {
       // Semantic error not possible. Must be a bug. Convert to
@@ -66,10 +74,10 @@ public class MongoAggregateRel
   }
 
   public void implement(Implementor implementor) {
-    implementor.visitChild(0, getChild());
+    implementor.visitChild(0, getInput());
     List<String> list = new ArrayList<String>();
     final List<String> inNames =
-        MongoRules.mongoFieldNames(getChild().getRowType());
+        MongoRules.mongoFieldNames(getInput().getRowType());
     final List<String> outNames = MongoRules.mongoFieldNames(getRowType());
     int i = 0;
     if (groupSet.cardinality() == 1) {
@@ -97,8 +105,7 @@ public class MongoAggregateRel
       fixups = new AbstractList<String>() {
         @Override public String get(int index) {
           final String outName = outNames.get(index);
-          return MongoRules.maybeQuote(outName)
-              + ": "
+          return MongoRules.maybeQuote(outName) + ": "
               + MongoRules.maybeQuote("$" + (index == 0 ? "_id" : outName));
         }
 
@@ -130,7 +137,7 @@ public class MongoAggregateRel
     }
   }
 
-  private String toMongo(Aggregation aggregation, List<String> inNames,
+  private String toMongo(SqlAggFunction aggregation, List<String> inNames,
       List<Integer> args) {
     if (aggregation == SqlStdOperatorTable.COUNT) {
       if (args.size() == 0) {
@@ -161,4 +168,4 @@ public class MongoAggregateRel
   }
 }
 
-// End MongoAggregateRel.java
+// End MongoAggregate.java

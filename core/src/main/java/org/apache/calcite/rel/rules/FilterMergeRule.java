@@ -14,30 +14,37 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel.rules;
+package org.apache.calcite.rel.rules;
 
-import org.eigenbase.rel.*;
-import org.eigenbase.relopt.*;
-import org.eigenbase.rex.*;
+import org.apache.calcite.plan.RelOptRule;
+import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.rel.core.Filter;
+import org.apache.calcite.rel.core.RelFactories;
+import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexProgram;
+import org.apache.calcite.rex.RexProgramBuilder;
+import org.apache.calcite.rex.RexUtil;
 
 /**
- * MergeFilterRule implements the rule for combining two {@link FilterRel}s
+ * Planner rule that combines two
+ * {@link org.apache.calcite.rel.logical.LogicalFilter}s.
  */
-public class MergeFilterRule extends RelOptRule {
-  public static final MergeFilterRule INSTANCE =
-      new MergeFilterRule(RelFactories.DEFAULT_FILTER_FACTORY);
+public class FilterMergeRule extends RelOptRule {
+  public static final FilterMergeRule INSTANCE =
+      new FilterMergeRule(RelFactories.DEFAULT_FILTER_FACTORY);
 
   private final RelFactories.FilterFactory filterFactory;
 
   //~ Constructors -----------------------------------------------------------
 
   /**
-   * Creates a MergeFilterRule.
+   * Creates a FilterMergeRule.
    */
-  public MergeFilterRule(RelFactories.FilterFactory filterFactory) {
+  public FilterMergeRule(RelFactories.FilterFactory filterFactory) {
     super(
-        operand(FilterRelBase.class,
-            operand(FilterRelBase.class, any())));
+        operand(Filter.class,
+            operand(Filter.class, any())));
     this.filterFactory = filterFactory;
   }
 
@@ -45,12 +52,12 @@ public class MergeFilterRule extends RelOptRule {
 
   // implement RelOptRule
   public void onMatch(RelOptRuleCall call) {
-    final FilterRelBase topFilter = call.rel(0);
-    final FilterRelBase bottomFilter = call.rel(1);
+    final Filter topFilter = call.rel(0);
+    final Filter bottomFilter = call.rel(1);
 
     // use RexPrograms to merge the two FilterRels into a single program
-    // so we can convert the two FilterRel conditions to directly
-    // reference the bottom FilterRel's child
+    // so we can convert the two LogicalFilter conditions to directly
+    // reference the bottom LogicalFilter's child
     RexBuilder rexBuilder = topFilter.getCluster().getRexBuilder();
     RexProgram bottomProgram = createProgram(bottomFilter);
     RexProgram topProgram = createProgram(topFilter);
@@ -65,21 +72,21 @@ public class MergeFilterRule extends RelOptRule {
         mergedProgram.expandLocalRef(
             mergedProgram.getCondition());
 
-    FilterRelBase newFilterRel =
-        (FilterRelBase) filterFactory.createFilter(
-            bottomFilter.getChild(),
+    Filter newFilterRel =
+        (Filter) filterFactory.createFilter(
+            bottomFilter.getInput(),
             RexUtil.flatten(rexBuilder, newCondition));
 
     call.transformTo(newFilterRel);
   }
 
   /**
-   * Creates a RexProgram corresponding to a FilterRel
+   * Creates a RexProgram corresponding to a LogicalFilter
    *
-   * @param filterRel the FilterRel
+   * @param filterRel the LogicalFilter
    * @return created RexProgram
    */
-  private RexProgram createProgram(FilterRelBase filterRel) {
+  private RexProgram createProgram(Filter filterRel) {
     RexProgramBuilder programBuilder =
         new RexProgramBuilder(
             filterRel.getRowType(),
@@ -90,4 +97,4 @@ public class MergeFilterRule extends RelOptRule {
   }
 }
 
-// End MergeFilterRule.java
+// End FilterMergeRule.java

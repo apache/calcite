@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.rules.java;
+package org.apache.calcite.adapter.enumerable;
 
-import org.eigenbase.rel.Aggregation;
-import org.eigenbase.reltype.RelDataType;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.sql.SqlAggFunction;
 
 import java.lang.reflect.Type;
 import java.util.List;
@@ -32,12 +32,15 @@ public interface AggContext {
    * Returns the aggregation being implemented.
    * @return aggregation being implemented.
    */
-  Aggregation aggregation();
+  SqlAggFunction aggregation();
 
   /**
-   * Returns the return type of the aggregate as {@link org.eigenbase.reltype.RelDataType}.
-   * This can be helpful to test {@link org.eigenbase.reltype.RelDataType#isNullable()}.
-   * @return return type of the aggregate as {@link org.eigenbase.reltype.RelDataType}
+   * Returns the return type of the aggregate as
+   * {@link org.apache.calcite.rel.type.RelDataType}.
+   * This can be helpful to test
+   * {@link org.apache.calcite.rel.type.RelDataType#isNullable()}.
+   *
+   * @return return type of the aggregate
    */
   RelDataType returnRelType();
 
@@ -48,15 +51,18 @@ public interface AggContext {
   Type returnType();
 
   /**
-   * Returns the parameter types of the aggregate as {@link org.eigenbase.reltype.RelDataType}.
-   * This can be helpful to test {@link org.eigenbase.reltype.RelDataType#isNullable()}.
-   * @return parameter types of the aggregate as {@link org.eigenbase.reltype.RelDataType}
+   * Returns the parameter types of the aggregate as
+   * {@link org.apache.calcite.rel.type.RelDataType}.
+   * This can be helpful to test
+   * {@link org.apache.calcite.rel.type.RelDataType#isNullable()}.
    */
   List<? extends RelDataType> parameterRelTypes();
 
   /**
-   * Returns the parameter types of the aggregate as {@link java.lang.reflect.Type}.
-   * @return parameter types of the aggregate as {@link java.lang.reflect.Type}
+   * Returns the parameter types of the aggregate as
+   * {@link java.lang.reflect.Type}.
    */
   List<? extends Type> parameterTypes();
 }
+
+// End AggContext.java

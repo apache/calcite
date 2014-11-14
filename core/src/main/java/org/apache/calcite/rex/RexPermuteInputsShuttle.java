@@ -14,21 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rex;
+package org.apache.calcite.rex;
 
-import java.util.List;
-
-import org.eigenbase.rel.RelNode;
-import org.eigenbase.reltype.RelDataTypeField;
-import org.eigenbase.util.mapping.Mappings;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.util.mapping.Mappings;
 
 import com.google.common.collect.ImmutableList;
+
+import java.util.List;
 
 /**
  * Shuttle which applies a permutation to its input fields.
  *
  * @see RexPermutationShuttle
- * @see RexUtil#apply(org.eigenbase.util.mapping.Mappings.TargetMapping, RexNode)
+ * @see RexUtil#apply(org.apache.calcite.util.mapping.Mappings.TargetMapping, RexNode)
  */
 public class RexPermuteInputsShuttle extends RexShuttle {
   //~ Instance fields --------------------------------------------------------
@@ -43,7 +43,7 @@ public class RexPermuteInputsShuttle extends RexShuttle {
    *
    * <p>The mapping provides at most one target for every source. If a source
    * has no targets and is referenced in the expression,
-   * {@link org.eigenbase.util.mapping.Mappings.TargetMapping#getTarget(int)}
+   * {@link org.apache.calcite.util.mapping.Mappings.TargetMapping#getTarget(int)}
    * will give an error. Otherwise the mapping gives a unique target.
    *
    * @param mapping Mapping
@@ -80,8 +80,7 @@ public class RexPermuteInputsShuttle extends RexShuttle {
     return fields.build();
   }
 
-  @Override
-  public RexNode visitInputRef(RexInputRef local) {
+  @Override public RexNode visitInputRef(RexInputRef local) {
     final int index = local.getIndex();
     int target = mapping.getTarget(index);
     return new RexInputRef(
@@ -89,8 +88,7 @@ public class RexPermuteInputsShuttle extends RexShuttle {
         local.getType());
   }
 
-  @Override
-  public RexNode visitCall(RexCall call) {
+  @Override public RexNode visitCall(RexCall call) {
     if (call.getOperator() == RexBuilder.GET_OPERATOR) {
       final String name =
           (String) ((RexLiteral) call.getOperands().get(1)).getValue2();

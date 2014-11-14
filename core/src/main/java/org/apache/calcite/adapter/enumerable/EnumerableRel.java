@@ -14,24 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.rules.java;
+package org.apache.calcite.adapter.enumerable;
 
-import net.hydromatic.linq4j.expressions.BlockStatement;
-
-import org.eigenbase.rel.ProjectRelBase;
-import org.eigenbase.rel.RelFactories;
-import org.eigenbase.rel.RelNode;
-import org.eigenbase.relopt.RelOptCluster;
-import org.eigenbase.reltype.RelDataType;
-import org.eigenbase.rex.RexNode;
-import org.eigenbase.rex.RexUtil;
-import org.eigenbase.sql.validate.SqlValidatorUtil;
+import org.apache.calcite.linq4j.tree.BlockStatement;
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.core.RelFactories;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexUtil;
+import org.apache.calcite.sql.validate.SqlValidatorUtil;
 
 import java.util.List;
 
 /**
  * A relational expression of one of the
- * {@link net.hydromatic.optiq.rules.java.EnumerableConvention} calling
+ * {@link org.apache.calcite.adapter.enumerable.EnumerableConvention} calling
  * conventions.
  */
 public interface EnumerableRel
@@ -39,7 +38,7 @@ public interface EnumerableRel
   RelFactories.FilterFactory FILTER_FACTORY =
       new RelFactories.FilterFactory() {
         public RelNode createFilter(RelNode child, RexNode condition) {
-          return new JavaRules.EnumerableFilterRel(child.getCluster(),
+          return new EnumerableFilter(child.getCluster(),
               child.getTraitSet(), child, condition);
         }
       };
@@ -54,9 +53,9 @@ public interface EnumerableRel
                   fieldNames == null ? null
                       : SqlValidatorUtil.uniquify(fieldNames,
                           SqlValidatorUtil.F_SUGGESTER));
-          return new JavaRules.EnumerableProjectRel(cluster,
+          return new EnumerableProject(cluster,
               child.getTraitSet(), child, exprs, rowType,
-              ProjectRelBase.Flags.BOXED);
+              Project.Flags.BOXED);
         }
       };
 

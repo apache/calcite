@@ -14,15 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.rules.java;
+package org.apache.calcite.adapter.enumerable;
 
-import net.hydromatic.linq4j.expressions.ParameterExpression;
-
-import net.hydromatic.optiq.DataContext;
-import net.hydromatic.optiq.impl.java.JavaTypeFactory;
-
-import org.eigenbase.rel.RelImplementorImpl;
-import org.eigenbase.rex.RexBuilder;
+import org.apache.calcite.DataContext;
+import org.apache.calcite.adapter.java.JavaTypeFactory;
+import org.apache.calcite.linq4j.tree.ParameterExpression;
+import org.apache.calcite.rel.RelImplementorImpl;
+import org.apache.calcite.rex.RexBuilder;
 
 /**
  * Abstract base class for implementations of {@link RelImplementorImpl}
@@ -33,13 +31,12 @@ public abstract class JavaRelImplementor extends RelImplementorImpl {
     super(rexBuilder);
   }
 
-  @Override
-  public JavaTypeFactory getTypeFactory() {
+  @Override public JavaTypeFactory getTypeFactory() {
     return (JavaTypeFactory) super.getTypeFactory();
   }
 
   /** Returns the expression with which to access the
-   * {@link net.hydromatic.optiq.DataContext}. */
+   * {@link org.apache.calcite.DataContext}. */
   public ParameterExpression getRootExpression() {
     return DataContext.ROOT;
   }

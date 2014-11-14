@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rex;
+package org.apache.calcite.rex;
 
-import org.eigenbase.sql.*;
+import org.apache.calcite.sql.SqlNode;
 
 /**
  * Converts a {@link RexNode} expression into a {@link SqlNode} expression.

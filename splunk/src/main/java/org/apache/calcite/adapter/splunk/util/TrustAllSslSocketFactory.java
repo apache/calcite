@@ -14,13 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.impl.splunk.util;
+package org.apache.calcite.adapter.splunk.util;
 
-import java.io.*;
-import java.net.*;
+import java.io.IOException;
+import java.net.InetAddress;
+import java.net.Socket;
 import java.security.SecureRandom;
 import java.security.cert.X509Certificate;
-import javax.net.ssl.*;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSocketFactory;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
 
 /**
  * Socket factory that trusts all SSL connections.
@@ -44,32 +48,29 @@ public class TrustAllSslSocketFactory extends SocketFactoryImpl {
     this.sslSocketFactory = factory;
   }
 
-  @Override
-  public Socket createSocket() throws IOException {
+  @Override public Socket createSocket() throws IOException {
     return applySettings(sslSocketFactory.createSocket());
   }
 
-  @Override
-  public Socket createSocket(InetAddress host, int port) throws IOException {
+  @Override public Socket createSocket(InetAddress host, int port)
+      throws IOException {
     return applySettings(sslSocketFactory.createSocket(host, port));
   }
 
-  @Override
-  public Socket createSocket(InetAddress address, int port,
+  @Override public Socket createSocket(InetAddress address, int port,
       InetAddress localAddress, int localPort) throws IOException {
     return applySettings(
         sslSocketFactory.createSocket(
             address, port, localAddress, localPort));
   }
 
-  @Override
-  public Socket createSocket(String host, int port) throws IOException {
+  @Override public Socket createSocket(String host, int port)
+      throws IOException {
     return applySettings(sslSocketFactory.createSocket(host, port));
   }
 
-  @Override
-  public Socket createSocket(String host, int port, InetAddress localHost,
-      int localPort) throws IOException {
+  @Override public Socket createSocket(String host, int port,
+      InetAddress localHost, int localPort) throws IOException {
     return applySettings(
         sslSocketFactory.createSocket(host, port, localHost, localPort));
   }

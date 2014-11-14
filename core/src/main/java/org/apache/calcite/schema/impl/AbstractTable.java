@@ -14,9 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.impl;
+package org.apache.calcite.schema.impl;
 
-import net.hydromatic.optiq.*;
+import org.apache.calcite.schema.Schema;
+import org.apache.calcite.schema.Statistic;
+import org.apache.calcite.schema.Statistics;
+import org.apache.calcite.schema.Table;
 
 /**
  * Abstract base class for implementing {@link Table}.

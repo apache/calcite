@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq;
+package org.apache.calcite.schema;
 
-import net.hydromatic.linq4j.QueryProvider;
-import net.hydromatic.linq4j.Queryable;
-import net.hydromatic.linq4j.expressions.Expression;
+import org.apache.calcite.linq4j.QueryProvider;
+import org.apache.calcite.linq4j.Queryable;
+import org.apache.calcite.linq4j.tree.Expression;
 
 import java.lang.reflect.Type;
 

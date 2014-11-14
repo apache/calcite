@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.model;
+package org.apache.calcite.model;
 
 import java.util.List;
 
@@ -35,8 +35,7 @@ public class JsonView extends JsonTable {
     handler.visit(this);
   }
 
-  @Override
-  public String toString() {
+  @Override public String toString() {
     return "JsonView(name=" + name + ")";
   }
 

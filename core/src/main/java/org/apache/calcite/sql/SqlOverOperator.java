@@ -14,16 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql;
+package org.apache.calcite.sql;
 
-import org.eigenbase.reltype.*;
-import org.eigenbase.sql.type.*;
-import org.eigenbase.sql.util.*;
-import org.eigenbase.sql.validate.*;
+import org.apache.calcite.linq4j.Ord;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.sql.type.OperandTypes;
+import org.apache.calcite.sql.type.ReturnTypes;
+import org.apache.calcite.sql.util.SqlBasicVisitor;
+import org.apache.calcite.sql.util.SqlVisitor;
+import org.apache.calcite.sql.validate.SqlValidator;
+import org.apache.calcite.sql.validate.SqlValidatorScope;
 
-import net.hydromatic.linq4j.Ord;
-
-import static org.eigenbase.util.Static.RESOURCE;
+import static org.apache.calcite.util.Static.RESOURCE;
 
 /**
  * An operator describing a window function specification.
@@ -31,9 +33,11 @@ import static org.eigenbase.util.Static.RESOURCE;
  * <p>Operands are as follows:</p>
  *
  * <ul>
- * <li>0: name of window function ({@link org.eigenbase.sql.SqlCall})</li>
- * <li>1: window name ({@link org.eigenbase.sql.SqlLiteral}) or window in-line
- * specification ({@link SqlWindow})</li>
+ * <li>0: name of window function ({@link org.apache.calcite.sql.SqlCall})</li>
+ *
+ * <li>1: window name ({@link org.apache.calcite.sql.SqlLiteral}) or
+ * window in-line specification ({@link SqlWindow})</li>
+ *
  * </ul>
  */
 public class SqlOverOperator extends SqlBinaryOperator {
@@ -93,8 +97,7 @@ public class SqlOverOperator extends SqlBinaryOperator {
     final SqlCall aggCall = (SqlCall) agg;
 
     SqlCallBinding opBinding = new SqlCallBinding(validator, scope, aggCall) {
-      @Override
-      public int getGroupCount() {
+      @Override public int getGroupCount() {
         return groupCount;
       }
     };

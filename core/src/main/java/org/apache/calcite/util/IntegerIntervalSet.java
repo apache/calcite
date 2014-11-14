@@ -14,14 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.util;
+package org.apache.calcite.util;
+
+import org.apache.calcite.linq4j.Enumerator;
+import org.apache.calcite.linq4j.Linq4j;
 
 import java.util.AbstractSet;
 import java.util.Iterator;
 import java.util.Set;
-
-import net.hydromatic.linq4j.Enumerator;
-import net.hydromatic.linq4j.Linq4j;
 
 /**
  * A set of non-negative integers defined by a sequence of points, intervals,
@@ -75,13 +75,11 @@ public class IntegerIntervalSet extends AbstractSet<Integer> {
   }
 
   @SuppressWarnings("NullableProblems")
-  @Override
-  public Iterator<Integer> iterator() {
+  @Override public Iterator<Integer> iterator() {
     return Linq4j.enumeratorIterator(enumerator());
   }
 
-  @Override
-  public int size() {
+  @Override public int size() {
     int n = 0;
     Enumerator<Integer> e = enumerator();
     while (e.moveNext()) {
@@ -130,8 +128,7 @@ public class IntegerIntervalSet extends AbstractSet<Integer> {
     };
   }
 
-  @Override
-  public boolean contains(Object o) {
+  @Override public boolean contains(Object o) {
     return o instanceof Number
         && contains(((Number) o).intValue());
   }
@@ -150,6 +147,7 @@ public class IntegerIntervalSet extends AbstractSet<Integer> {
     return bs[0];
   }
 
+  /** A callback. */
   private interface Handler {
     void range(int start, int end, boolean exclude);
   }

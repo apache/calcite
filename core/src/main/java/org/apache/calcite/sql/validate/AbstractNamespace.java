@@ -14,15 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql.validate;
+package org.apache.calcite.sql.validate;
 
-import java.util.*;
-
-import org.eigenbase.reltype.*;
-import org.eigenbase.sql.*;
-import org.eigenbase.util.*;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.util.Pair;
+import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
+
+import java.util.List;
 
 /**
  * Abstract implementation of {@link SqlValidatorNamespace}.
@@ -110,8 +112,8 @@ abstract class AbstractNamespace implements SqlValidatorNamespace {
 
   /**
    * Validates this scope and returns the type of the records it returns.
-   * External users should call {@link #validate}, which uses the {@link
-   * #status} field to protect against cycles.
+   * External users should call {@link #validate}, which uses the
+   * {@link #status} field to protect against cycles.
    *
    * @return record data type, never null
    */

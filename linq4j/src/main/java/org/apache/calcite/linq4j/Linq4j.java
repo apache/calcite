@@ -14,13 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.linq4j;
+package org.apache.calcite.linq4j;
 
 import java.io.Closeable;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.sql.ResultSet;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.List;
+import java.util.NoSuchElementException;
 
 /**
  * Utility and factory methods for Linq4j.
@@ -82,8 +87,8 @@ public abstract class Linq4j {
    * Adapter that converts an enumerator into an iterator.
    *
    * <p><b>WARNING</b>: The iterator returned by this method does not call
-   * {@link net.hydromatic.linq4j.Enumerator#close()}, so it is not safe to use
-   * with an enumerator that allocates resources.</p>
+   * {@link org.apache.calcite.linq4j.Enumerator#close()}, so it is not safe to
+   * use with an enumerator that allocates resources.</p>
    *
    * @param enumerator Enumerator
    * @param <T> Element type
@@ -523,8 +528,7 @@ public abstract class Linq4j {
       return iterable.iterator();
     }
 
-    @Override
-    public boolean any() {
+    @Override public boolean any() {
       return iterable.iterator().hasNext();
     }
   }
@@ -539,23 +543,19 @@ public abstract class Linq4j {
       return (Collection<T>) iterable;
     }
 
-    @Override
-    public int count() {
+    @Override public int count() {
       return getCollection().size();
     }
 
-    @Override
-    public long longCount() {
+    @Override public long longCount() {
       return getCollection().size();
     }
 
-    @Override
-    public boolean contains(T element) {
+    @Override public boolean contains(T element) {
       return getCollection().contains(element);
     }
 
-    @Override
-    public boolean any() {
+    @Override public boolean any() {
       return !getCollection().isEmpty();
     }
   }
@@ -566,13 +566,11 @@ public abstract class Linq4j {
       super(iterable);
     }
 
-    @Override
-    public List<T> toList() {
+    @Override public List<T> toList() {
       return (List<T>) iterable;
     }
 
-    @Override
-    public Enumerable<T> skip(int count) {
+    @Override public Enumerable<T> skip(int count) {
       final List<T> list = toList();
       if (count >= list.size()) {
         return Linq4j.emptyEnumerable();
@@ -580,8 +578,7 @@ public abstract class Linq4j {
       return new ListEnumerable<T>(list.subList(count, list.size()));
     }
 
-    @Override
-    public Enumerable<T> take(int count) {
+    @Override public Enumerable<T> take(int count) {
       final List<T> list = toList();
       if (count >= list.size()) {
         return this;
@@ -589,8 +586,7 @@ public abstract class Linq4j {
       return new ListEnumerable<T>(list.subList(0, count));
     }
 
-    @Override
-    public T elementAt(int index) {
+    @Override public T elementAt(int index) {
       return toList().get(index);
     }
   }

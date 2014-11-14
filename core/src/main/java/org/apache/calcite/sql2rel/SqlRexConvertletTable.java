@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql2rel;
+package org.apache.calcite.sql2rel;
 
-import org.eigenbase.sql.*;
+import org.apache.calcite.sql.SqlCall;
 
 /**
  * Collection of {@link SqlRexConvertlet}s.

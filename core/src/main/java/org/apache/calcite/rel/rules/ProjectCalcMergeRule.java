@@ -14,42 +14,55 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel.rules;
+package org.apache.calcite.rel.rules;
 
-import java.util.*;
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptRule;
+import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.rel.RelCollation;
+import org.apache.calcite.rel.logical.LogicalCalc;
+import org.apache.calcite.rel.logical.LogicalProject;
+import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexOver;
+import org.apache.calcite.rex.RexProgram;
+import org.apache.calcite.rex.RexProgramBuilder;
+import org.apache.calcite.util.Pair;
 
-import org.eigenbase.rel.*;
-import org.eigenbase.relopt.*;
-import org.eigenbase.rex.*;
-import org.eigenbase.util.Pair;
+import java.util.Collections;
 
 /**
- * Planner rule which merges a {@link ProjectRel} and a {@link CalcRel}. The
- * resulting {@link CalcRel} has the same project list as the original {@link
- * ProjectRel}, but expressed in terms of the original {@link CalcRel}'s inputs.
+ * Planner rule which merges a
+ * {@link org.apache.calcite.rel.logical.LogicalProject} and a
+ * {@link org.apache.calcite.rel.logical.LogicalCalc}.
  *
- * @see MergeFilterOntoCalcRule
+ * <p>The resulting {@link org.apache.calcite.rel.logical.LogicalCalc} has the
+ * same project list as the original
+ * {@link org.apache.calcite.rel.logical.LogicalProject}, but expressed in terms
+ * of the original {@link org.apache.calcite.rel.logical.LogicalCalc}'s inputs.
+ *
+ * @see FilterCalcMergeRule
  */
-public class MergeProjectOntoCalcRule extends RelOptRule {
+public class ProjectCalcMergeRule extends RelOptRule {
   //~ Static fields/initializers ---------------------------------------------
 
-  public static final MergeProjectOntoCalcRule INSTANCE =
-      new MergeProjectOntoCalcRule();
+  public static final ProjectCalcMergeRule INSTANCE =
+      new ProjectCalcMergeRule();
 
   //~ Constructors -----------------------------------------------------------
 
-  private MergeProjectOntoCalcRule() {
+  private ProjectCalcMergeRule() {
     super(
         operand(
-            ProjectRel.class,
-            operand(CalcRel.class, any())));
+            LogicalProject.class,
+            operand(LogicalCalc.class, any())));
   }
 
   //~ Methods ----------------------------------------------------------------
 
   public void onMatch(RelOptRuleCall call) {
-    final ProjectRel project = call.rel(0);
-    final CalcRel calc = call.rel(1);
+    final LogicalProject project = call.rel(0);
+    final LogicalCalc calc = call.rel(1);
 
     // Don't merge a project which contains windowed aggregates onto a
     // calc. That would effectively be pushing a windowed aggregate down
@@ -65,8 +78,8 @@ public class MergeProjectOntoCalcRule extends RelOptRule {
             project.getRowType(),
             cluster.getRexBuilder());
     if (RexOver.containsOver(program)) {
-      CalcRel projectAsCalc =
-          new CalcRel(
+      LogicalCalc projectAsCalc =
+          new LogicalCalc(
               cluster,
               project.getTraitSet(),
               calc,
@@ -95,11 +108,11 @@ public class MergeProjectOntoCalcRule extends RelOptRule {
             topProgram,
             bottomProgram,
             rexBuilder);
-    final CalcRel newCalc =
-        new CalcRel(
+    final LogicalCalc newCalc =
+        new LogicalCalc(
             cluster,
             project.getTraitSet(),
-            calc.getChild(),
+            calc.getInput(),
             project.getRowType(),
             mergedProgram,
             Collections.<RelCollation>emptyList());
@@ -107,4 +120,4 @@ public class MergeProjectOntoCalcRule extends RelOptRule {
   }
 }
 
-// End MergeProjectOntoCalcRule.java
+// End ProjectCalcMergeRule.java

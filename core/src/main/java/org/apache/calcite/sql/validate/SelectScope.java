@@ -14,22 +14,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql.validate;
+package org.apache.calcite.sql.validate;
 
-import java.util.*;
+import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlIdentifier;
+import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlNodeList;
+import org.apache.calcite.sql.SqlSelect;
+import org.apache.calcite.sql.SqlWindow;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.util.Pair;
 
-import org.eigenbase.sql.*;
-import org.eigenbase.sql.fun.*;
-import org.eigenbase.sql.parser.*;
-import org.eigenbase.util.*;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * The name-resolution scope of a SELECT clause. The objects visible are those
  * in the FROM clause, and objects inherited from the parent scope.
  *
  *
- * <p>This object is both a {@link SqlValidatorScope} and a {@link
- * SqlValidatorNamespace}. In the query</p>
+ * <p>This object is both a {@link SqlValidatorScope} and a
+ * {@link SqlValidatorNamespace}. In the query</p>
  *
  * <blockquote>
  * <pre>SELECT name FROM (

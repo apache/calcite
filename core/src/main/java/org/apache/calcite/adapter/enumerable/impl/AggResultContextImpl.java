@@ -14,17 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.rules.java.impl;
+package org.apache.calcite.adapter.enumerable.impl;
 
-import net.hydromatic.linq4j.expressions.BlockBuilder;
-import net.hydromatic.linq4j.expressions.Expression;
-
-import net.hydromatic.optiq.rules.java.AggResultContext;
+import org.apache.calcite.adapter.enumerable.AggResultContext;
+import org.apache.calcite.linq4j.tree.BlockBuilder;
+import org.apache.calcite.linq4j.tree.Expression;
 
 import java.util.List;
 
 /**
- * Implementation of {@link net.hydromatic.optiq.rules.java.AggResultContext}
+ * Implementation of
+ * {@link org.apache.calcite.adapter.enumerable.AggResultContext}
  */
 public class AggResultContextImpl extends AggResetContextImpl
     implements AggResultContext {
@@ -40,4 +40,4 @@ public class AggResultContextImpl extends AggResetContextImpl
   }
 }
 
-// End AggResultContext.java
+// End AggResultContextImpl.java

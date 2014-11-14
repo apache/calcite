@@ -14,18 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql;
+package org.apache.calcite.sql;
 
-import java.util.*;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.runtime.CalciteException;
+import org.apache.calcite.runtime.Resources;
+import org.apache.calcite.sql.validate.SqlValidatorException;
 
-import org.eigenbase.reltype.*;
-import org.eigenbase.resource.Resources;
-import org.eigenbase.sql.validate.*;
-import org.eigenbase.util.*;
+import java.util.AbstractList;
+import java.util.List;
 
 /**
- * <code>SqlOperatorBinding</code> represents the binding of an {@link
- * SqlOperator} to actual operands, along with any additional information
+ * <code>SqlOperatorBinding</code> represents the binding of an
+ * {@link SqlOperator} to actual operands, along with any additional information
  * required to validate those operands if needed.
  */
 public abstract class SqlOperatorBinding {
@@ -179,7 +181,7 @@ public abstract class SqlOperatorBinding {
    * @param e Validation error, not null
    * @return Error wrapped, if possible, with positional information
    */
-  public abstract EigenbaseException newError(
+  public abstract CalciteException newError(
       Resources.ExInst<SqlValidatorException> e);
 }
 

@@ -14,25 +14,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql.validate;
+package org.apache.calcite.sql.validate;
+
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.schema.TableFunction;
+import org.apache.calcite.sql.SqlIdentifier;
+import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.type.SqlOperandTypeChecker;
+import org.apache.calcite.sql.type.SqlOperandTypeInference;
+import org.apache.calcite.sql.type.SqlReturnTypeInference;
 
 import java.lang.reflect.Type;
 import java.util.List;
 
-import org.eigenbase.reltype.RelDataType;
-import org.eigenbase.reltype.RelDataTypeFactory;
-import org.eigenbase.sql.SqlIdentifier;
-import org.eigenbase.sql.SqlNode;
-import org.eigenbase.sql.type.SqlOperandTypeChecker;
-import org.eigenbase.sql.type.SqlOperandTypeInference;
-import org.eigenbase.sql.type.SqlReturnTypeInference;
-
-import net.hydromatic.optiq.TableFunction;
-
 /**
  * User-defined table function.
- * <p>
- * Created by the validator, after resolving a function call to a function
+ *
+ * <p>Created by the validator, after resolving a function call to a function
  * defined in a Calcite schema.
 */
 public class SqlUserDefinedTableFunction extends SqlUserDefinedFunction {

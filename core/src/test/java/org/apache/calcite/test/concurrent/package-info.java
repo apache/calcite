@@ -37,8 +37,7 @@
  *
  * <h4>Syntax:</h4>
  *
- * <p>
- *     The syntactic structure of an <i>mtsql</i> script is:
+ * <p>The syntactic structure of an <i>mtsql</i> script is:
  *
  * <pre>
  *     &lt;directive&gt;*
@@ -58,8 +57,7 @@
  *       &lt;synchronization point&gt;
  * </pre>
  *
- * <p>
- *     Blank lines and comments are allowed anywhere.
+ * <p>Blank lines and comments are allowed anywhere.
  *     A comment starts with two hyphens and runs to the end of the line.
  *     Command names start with an '&#64;'.
  *     Some commands run to the end of the line; but a command that contains SQL
@@ -68,8 +66,7 @@
  *
  * <h4>Semantics:</h4>
  *
- * <p>
- *     Running a section means running its commands in sequence.
+ * <p>Running a section means running its commands in sequence.
  *     First the setup section (if any) is run.
  *     Next all the thread sections are run at once, each in its own thread.
  *     When all these threads complete, the cleanup section (if any) is run.
@@ -169,8 +166,7 @@
  *
  * <h4>Substituted Variables</h4>
  *
- * <p>
- *     Needed mainly to pass arguments to the command of &#64;shell, but also
+ * <p>Needed mainly to pass arguments to the command of &#64;shell, but also
  *     useful to
  *     parameterize SQL statements, timeout values etc.
  *
@@ -318,6 +314,6 @@
  *         </ul>
  *
  */
-package org.eigenbase.test.concurrent;
+package org.apache.calcite.test.concurrent;
 
 // End package-info.java

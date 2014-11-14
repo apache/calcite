@@ -14,13 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.jdbc;
+package org.apache.calcite.jdbc;
 
-import net.hydromatic.linq4j.QueryProvider;
-
-import net.hydromatic.optiq.SchemaPlus;
-import net.hydromatic.optiq.config.OptiqConnectionConfig;
-import net.hydromatic.optiq.impl.java.JavaTypeFactory;
+import org.apache.calcite.adapter.java.JavaTypeFactory;
+import org.apache.calcite.config.CalciteConnectionConfig;
+import org.apache.calcite.linq4j.QueryProvider;
+import org.apache.calcite.schema.SchemaPlus;
 
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -34,11 +33,11 @@ import java.util.Properties;
  * <p>You can start off with an empty connection (no schemas), define one
  * or two schemas, and start querying them.</p>
  *
- * <p>Since an {@code OptiqConnection} implements the linq4j
+ * <p>Since a {@code CalciteConnection} implements the linq4j
  * {@link QueryProvider} interface, you can use a connection to execute
  * expression trees as queries.</p>
  */
-public interface OptiqConnection extends Connection, QueryProvider {
+public interface CalciteConnection extends Connection, QueryProvider {
   /**
    * Returns the root schema.
    *
@@ -76,7 +75,7 @@ public interface OptiqConnection extends Connection, QueryProvider {
   // in java.sql.Connection from JDK 1.7, but declare here to allow other JDKs
   String getSchema() throws SQLException;
 
-  OptiqConnectionConfig config();
+  CalciteConnectionConfig config();
 }
 
-// End OptiqConnection.java
+// End CalciteConnection.java

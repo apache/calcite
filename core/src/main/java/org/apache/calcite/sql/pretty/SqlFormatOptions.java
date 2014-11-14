@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql.pretty;
+package org.apache.calcite.sql.pretty;
 
 /**
  * Data structure to hold options for

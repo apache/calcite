@@ -22,8 +22,8 @@
  * invalid. It is edited in a SQL editor user-interface.</p>
  *
  * <p>The advisor uses the validation and parser framework set up in
- * <code>org.eigenbase.sql.validate</code> package.
+ * <code>org.apache.calcite.sql.validate</code> package.
 */
-package org.eigenbase.sql.advise;
+package org.apache.calcite.sql.advise;
 
 // End package-info.java

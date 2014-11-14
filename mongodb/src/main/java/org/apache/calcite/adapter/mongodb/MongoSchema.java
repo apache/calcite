@@ -14,17 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.impl.mongodb;
+package org.apache.calcite.adapter.mongodb;
 
-import net.hydromatic.optiq.*;
-import net.hydromatic.optiq.impl.AbstractSchema;
+import org.apache.calcite.schema.Table;
+import org.apache.calcite.schema.impl.AbstractSchema;
 
 import com.google.common.collect.ImmutableMap;
-
 import com.mongodb.DB;
 import com.mongodb.MongoClient;
 
-import java.util.*;
+import java.util.Map;
 
 /**
  * Schema mapped onto a directory of MONGO files. Each table in the schema
@@ -49,8 +48,7 @@ public class MongoSchema extends AbstractSchema {
     }
   }
 
-  @Override
-  protected Map<String, Table> getTableMap() {
+  @Override protected Map<String, Table> getTableMap() {
     final ImmutableMap.Builder<String, Table> builder = ImmutableMap.builder();
     for (String collectionName : mongoDb.getCollectionNames()) {
       builder.put(collectionName, new MongoTable(collectionName));

@@ -14,12 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.util.graph;
+package org.apache.calcite.util.graph;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
-import java.util.*;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Set;
 
 /**
  * Iterates over the vertices in a directed graph in depth-first order.

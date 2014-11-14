@@ -14,12 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel.metadata;
+package org.apache.calcite.rel.metadata;
 
-import org.eigenbase.rel.*;
-import org.eigenbase.sql.SqlExplainLevel;
-
-import net.hydromatic.optiq.BuiltinMethod;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.sql.SqlExplainLevel;
+import org.apache.calcite.util.BuiltInMethod;
 
 /**
  * RelMdExplainVisibility supplies a default implementation of
@@ -28,7 +27,7 @@ import net.hydromatic.optiq.BuiltinMethod;
 public class RelMdExplainVisibility {
   public static final RelMetadataProvider SOURCE =
       ReflectiveRelMetadataProvider.reflectiveSource(
-          BuiltinMethod.EXPLAIN_VISIBILITY.method,
+          BuiltInMethod.EXPLAIN_VISIBILITY.method,
           new RelMdExplainVisibility());
 
   //~ Constructors -----------------------------------------------------------

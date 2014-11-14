@@ -14,16 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.impl.jdbc;
+package org.apache.calcite.adapter.jdbc;
 
-import net.hydromatic.linq4j.expressions.Expression;
-
-import org.eigenbase.rel.rules.PushFilterPastSetOpRule;
-import org.eigenbase.rel.rules.RemoveTrivialProjectRule;
-import org.eigenbase.relopt.Convention;
-import org.eigenbase.relopt.RelOptPlanner;
-import org.eigenbase.relopt.RelOptRule;
-import org.eigenbase.sql.SqlDialect;
+import org.apache.calcite.linq4j.tree.Expression;
+import org.apache.calcite.plan.Convention;
+import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.plan.RelOptRule;
+import org.apache.calcite.rel.rules.FilterSetOpTransposeRule;
+import org.apache.calcite.rel.rules.ProjectRemoveRule;
+import org.apache.calcite.sql.SqlDialect;
 
 /**
  * Calling convention for relational operations that occur in a JDBC
@@ -59,13 +58,12 @@ public class JdbcConvention extends Convention.Impl {
     return new JdbcConvention(dialect, expression, name);
   }
 
-  @Override
-  public void register(RelOptPlanner planner) {
+  @Override public void register(RelOptPlanner planner) {
     for (RelOptRule rule : JdbcRules.rules(this)) {
       planner.addRule(rule);
     }
-    planner.addRule(PushFilterPastSetOpRule.INSTANCE);
-    planner.addRule(RemoveTrivialProjectRule.INSTANCE);
+    planner.addRule(FilterSetOpTransposeRule.INSTANCE);
+    planner.addRule(ProjectRemoveRule.INSTANCE);
   }
 }
 

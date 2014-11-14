@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql.type;
+package org.apache.calcite.sql.type;
 
-import org.eigenbase.reltype.*;
-import org.eigenbase.sql.*;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.sql.SqlOperatorBinding;
 
 import com.google.common.collect.ImmutableList;
 
@@ -38,7 +38,7 @@ public class SqlReturnTypeInferenceChain implements SqlReturnTypeInference {
    * Creates a SqlReturnTypeInferenceChain from an array of rules.
    *
    * <p>Package-protected.
-   * Use {@link org.eigenbase.sql.type.ReturnTypes#chain}.</p>
+   * Use {@link org.apache.calcite.sql.type.ReturnTypes#chain}.</p>
    */
   SqlReturnTypeInferenceChain(SqlReturnTypeInference... rules) {
     assert rules != null;

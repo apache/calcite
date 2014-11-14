@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.linq4j.expressions;
+package org.apache.calcite.linq4j.tree;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
@@ -39,8 +39,7 @@ public class MemberExpression extends Expression {
     this.field = field;
   }
 
-  @Override
-  public Expression accept(Visitor visitor) {
+  @Override public Expression accept(Visitor visitor) {
     visitor = visitor.preVisit(this);
     Expression expression1 = expression == null
         ? null
@@ -59,8 +58,7 @@ public class MemberExpression extends Expression {
     }
   }
 
-  @Override
-  void accept(ExpressionWriter writer, int lprec, int rprec) {
+  @Override void accept(ExpressionWriter writer, int lprec, int rprec) {
     if (writer.requireParentheses(this, lprec, rprec)) {
       return;
     }
@@ -73,8 +71,7 @@ public class MemberExpression extends Expression {
     writer.append('.').append(field.getName());
   }
 
-  @Override
-  public boolean equals(Object o) {
+  @Override public boolean equals(Object o) {
     if (this == o) {
       return true;
     }
@@ -98,8 +95,7 @@ public class MemberExpression extends Expression {
     return true;
   }
 
-  @Override
-  public int hashCode() {
+  @Override public int hashCode() {
     int result = super.hashCode();
     result = 31 * result + (expression != null ? expression.hashCode() : 0);
     result = 31 * result + field.hashCode();

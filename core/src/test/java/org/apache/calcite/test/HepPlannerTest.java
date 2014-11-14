@@ -14,18 +14,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.test;
+package org.apache.calcite.test;
 
-import org.eigenbase.rel.*;
-import org.eigenbase.rel.rules.*;
-import org.eigenbase.relopt.hep.*;
+import org.apache.calcite.plan.hep.HepMatchOrder;
+import org.apache.calcite.plan.hep.HepPlanner;
+import org.apache.calcite.plan.hep.HepProgram;
+import org.apache.calcite.plan.hep.HepProgramBuilder;
+import org.apache.calcite.rel.logical.LogicalIntersect;
+import org.apache.calcite.rel.logical.LogicalUnion;
+import org.apache.calcite.rel.rules.CalcMergeRule;
+import org.apache.calcite.rel.rules.CoerceInputsRule;
+import org.apache.calcite.rel.rules.FilterToCalcRule;
+import org.apache.calcite.rel.rules.ProjectRemoveRule;
+import org.apache.calcite.rel.rules.ProjectToCalcRule;
+import org.apache.calcite.rel.rules.UnionToDistinctRule;
 
 import org.junit.Test;
 
 /**
- * HepPlannerTest is a unit test for {@link HepPlanner}. See {@link
- * RelOptRulesTest} for an explanation of how to add tests; the tests in this
- * class are targeted at exercising the planner, and use specific rules for
+ * HepPlannerTest is a unit test for {@link HepPlanner}. See
+ * {@link RelOptRulesTest} for an explanation of how to add tests; the tests in
+ * this class are targeted at exercising the planner, and use specific rules for
  * convenience only, whereas the tests in that class are targeted at exercising
  * specific rules, and use the planner for convenience only. Hence the split.
  */
@@ -52,13 +61,12 @@ public class HepPlannerTest extends RelOptTestBase {
         new HepPlanner(
             programBuilder.build());
 
-    planner.addRule(new CoerceInputsRule(UnionRel.class, false));
-    planner.addRule(new CoerceInputsRule(IntersectRel.class, false));
+    planner.addRule(new CoerceInputsRule(LogicalUnion.class, false));
+    planner.addRule(new CoerceInputsRule(LogicalIntersect.class, false));
 
-    checkPlanning(
-        planner,
+    checkPlanning(planner,
         "(select name from dept union select ename from emp)"
-        + " intersect (select fname from customer.contact)");
+            + " intersect (select fname from customer.contact)");
   }
 
   @Test public void testRuleDescription() throws Exception {
@@ -116,15 +124,15 @@ public class HepPlannerTest extends RelOptTestBase {
   @Test public void testReplaceCommonSubexpression() throws Exception {
     // Note that here it may look like the rule is firing
     // twice, but actually it's only firing once on the
-    // common subexpression.  The purpose of this test
+    // common sub-expression.  The purpose of this test
     // is to make sure the planner can deal with
-    // rewriting something used as a common subexpression
+    // rewriting something used as a common sub-expression
     // twice by the same parent (the join in this case).
 
     checkPlanning(
-        RemoveTrivialProjectRule.INSTANCE,
+        ProjectRemoveRule.INSTANCE,
         "select d1.deptno from (select * from dept) d1,"
-        + " (select * from dept) d2");
+            + " (select * from dept) d2");
   }
 
   @Test public void testSubprogram() throws Exception {
@@ -136,7 +144,7 @@ public class HepPlannerTest extends RelOptTestBase {
     subprogramBuilder.addMatchOrder(HepMatchOrder.TOP_DOWN);
     subprogramBuilder.addMatchLimit(1);
     subprogramBuilder.addRuleInstance(ProjectToCalcRule.INSTANCE);
-    subprogramBuilder.addRuleInstance(MergeCalcRule.INSTANCE);
+    subprogramBuilder.addRuleInstance(CalcMergeRule.INSTANCE);
 
     HepProgramBuilder programBuilder = HepProgram.builder();
     programBuilder.addSubprogram(subprogramBuilder.build());
@@ -152,7 +160,7 @@ public class HepPlannerTest extends RelOptTestBase {
     // that order doesn't matter within the group.
     HepProgramBuilder programBuilder = HepProgram.builder();
     programBuilder.addGroupBegin();
-    programBuilder.addRuleInstance(MergeCalcRule.INSTANCE);
+    programBuilder.addRuleInstance(CalcMergeRule.INSTANCE);
     programBuilder.addRuleInstance(ProjectToCalcRule.INSTANCE);
     programBuilder.addRuleInstance(FilterToCalcRule.INSTANCE);
     programBuilder.addGroupEnd();

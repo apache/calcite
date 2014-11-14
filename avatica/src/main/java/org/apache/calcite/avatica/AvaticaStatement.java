@@ -14,10 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.avatica;
+package org.apache.calcite.avatica;
 
-import java.sql.*;
-import java.util.*;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.SQLWarning;
+import java.sql.Statement;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * Implementation of {@link java.sql.Statement}
@@ -368,7 +372,7 @@ public abstract class AvaticaStatement
    * <p>The default implementation returns the empty list, because non-prepared
    * statements have no parameters.</p>
    *
-   * @see net.hydromatic.avatica.AvaticaConnection.Trojan#getParameterValues(AvaticaStatement)
+   * @see org.apache.calcite.avatica.AvaticaConnection.Trojan#getParameterValues(AvaticaStatement)
    */
   protected List<Object> getParameterValues() {
     return Collections.emptyList();

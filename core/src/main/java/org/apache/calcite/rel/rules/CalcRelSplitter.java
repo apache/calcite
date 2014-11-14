@@ -14,38 +14,63 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel.rules;
+package org.apache.calcite.rel.rules;
 
-import java.io.*;
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.RelCollation;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.Calc;
+import org.apache.calcite.rel.logical.LogicalCalc;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexDynamicParam;
+import org.apache.calcite.rex.RexFieldAccess;
+import org.apache.calcite.rex.RexInputRef;
+import org.apache.calcite.rex.RexLiteral;
+import org.apache.calcite.rex.RexLocalRef;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexProgram;
+import org.apache.calcite.rex.RexShuttle;
+import org.apache.calcite.rex.RexUtil;
+import org.apache.calcite.rex.RexVisitorImpl;
+import org.apache.calcite.util.IntList;
+import org.apache.calcite.util.Util;
+import org.apache.calcite.util.graph.DefaultDirectedGraph;
+import org.apache.calcite.util.graph.DefaultEdge;
+import org.apache.calcite.util.graph.DirectedGraph;
+import org.apache.calcite.util.graph.TopologicalOrderIterator;
 
-import java.util.*;
-import java.util.logging.*;
-
-import org.eigenbase.rel.*;
-import org.eigenbase.relopt.*;
-import org.eigenbase.reltype.*;
-import org.eigenbase.rex.*;
-import org.eigenbase.util.*;
-
-import net.hydromatic.optiq.util.graph.*;
+import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
- * CalcRelSplitter operates on a {@link CalcRel} with multiple {@link RexCall}
- * sub-expressions that cannot all be implemented by a single concrete {@link
- * RelNode}.
+ * CalcRelSplitter operates on a
+ * {@link org.apache.calcite.rel.core.Calc} with multiple {@link RexCall}
+ * sub-expressions that cannot all be implemented by a single concrete
+ * {@link RelNode}.
  *
  * <p>For example, the Java and Fennel calculator do not implement an identical
- * set of operators. The CalcRel can be used to split a single CalcRel with
- * mixed Java- and Fennel-only operators into a tree of CalcRel object that can
+ * set of operators. The Calc can be used to split a single Calc with
+ * mixed Java- and Fennel-only operators into a tree of Calc object that can
  * each be individually implemented by either Java or Fennel.and splits it into
- * several CalcRel instances.
+ * several Calc instances.
  *
  * <p>Currently the splitter is only capable of handling two "rel types". That
- * is, it can deal with Java vs. Fennel CalcRels, but not Java vs. Fennel vs.
- * some other type of CalcRel.
+ * is, it can deal with Java vs. Fennel Calcs, but not Java vs. Fennel vs.
+ * some other type of Calc.
  *
- * <p>See {@link org.eigenbase.rel.rules.WindowedAggSplitterRule} for an example
- * of how this class is used.
+ * <p>See {@link ProjectToWindowRule}
+ * for an example of how this class is used.
  */
 public abstract class CalcRelSplitter {
   //~ Static fields/initializers ---------------------------------------------
@@ -67,11 +92,11 @@ public abstract class CalcRelSplitter {
   /**
    * Constructs a CalcRelSplitter.
    *
-   * @param calc     CalcRel to split
+   * @param calc     Calc to split
    * @param relTypes Array of rel types, e.g. {Java, Fennel}. Must be
    *                 distinct.
    */
-  CalcRelSplitter(CalcRelBase calc, RelType[] relTypes) {
+  CalcRelSplitter(Calc calc, RelType[] relTypes) {
     for (int i = 0; i < relTypes.length; i++) {
       assert relTypes[i] != null;
       for (int j = 0; j < i; j++) {
@@ -83,7 +108,7 @@ public abstract class CalcRelSplitter {
     this.cluster = calc.getCluster();
     this.traits = calc.getTraitSet();
     this.typeFactory = calc.getCluster().getTypeFactory();
-    this.child = calc.getChild();
+    this.child = calc.getInput();
     this.relTypes = relTypes;
   }
 
@@ -102,7 +127,7 @@ public abstract class CalcRelSplitter {
     // Figure out what level each expression belongs to.
     int[] exprLevels = new int[exprs.length];
 
-    // The reltype of a level is given by
+    // The type of a level is given by
     // relTypes[levelTypeOrdinals[level]].
     int[] levelTypeOrdinals = new int[exprs.length];
 
@@ -205,8 +230,8 @@ public abstract class CalcRelSplitter {
 
       // Sometimes a level's program merely projects its inputs. We don't
       // want these. They cause an explosion in the search space.
-      if (rel instanceof CalcRel
-          && ((CalcRel) rel).getProgram().isTrivial()) {
+      if (rel instanceof LogicalCalc
+          && ((LogicalCalc) rel).getProgram().isTrivial()) {
         rel = rel.getInput(0);
       }
 
@@ -295,7 +320,7 @@ public abstract class CalcRelSplitter {
     levelLoop:
       for (;; ++level) {
         if (level >= levelCount) {
-          // This is a new level. We can use any reltype we like.
+          // This is a new level. We can use any type we like.
           for (int relTypeOrdinal = 0;
               relTypeOrdinal < relTypes.length;
               relTypeOrdinal++) {
@@ -305,7 +330,7 @@ public abstract class CalcRelSplitter {
             if (relTypes[relTypeOrdinal].canImplement(
                 expr,
                 condition)) {
-              // Success. We have found a reltype where we can
+              // Success. We have found a type where we can
               // implement this expression.
               exprLevels[i] = level;
               levelTypeOrdinals[level] = relTypeOrdinal;
@@ -346,7 +371,7 @@ public abstract class CalcRelSplitter {
           // implement expr. But maybe we could succeed with a new
           // level, with all options open?
           if (count(relTypesPossibleForTopLevel) >= relTypes.length) {
-            // Cannot implement for any reltype.
+            // Cannot implement for any type.
             throw Util.newInternal("cannot implement " + expr);
           }
           levelTypeOrdinals[levelCount] =
@@ -358,7 +383,7 @@ public abstract class CalcRelSplitter {
           if (!relTypes[levelTypeOrdinal].canImplement(
               expr,
               condition)) {
-            // Cannot implement this expression in this reltype;
+            // Cannot implement this expression in this type;
             // continue to next level.
             continue;
           }
@@ -603,7 +628,7 @@ public abstract class CalcRelSplitter {
    *
    * @param exprs             Array expressions
    * @param exprLevels        For each expression, the ordinal of its level
-   * @param levelTypeOrdinals For each level, the ordinal of its reltype in
+   * @param levelTypeOrdinals For each level, the ordinal of its type in
    *                          the {@link #relTypes} array
    * @param levelCount        The number of levels
    */
@@ -618,8 +643,7 @@ public abstract class CalcRelSplitter {
     traceWriter.println(program.toString());
 
     for (int level = 0; level < levelCount; level++) {
-      traceWriter.println(
-          "Rel Level " + level
+      traceWriter.println("Rel Level " + level
           + ", type " + relTypes[levelTypeOrdinals[level]]);
 
       for (int i = 0; i < exprs.length; i++) {
@@ -686,13 +710,13 @@ public abstract class CalcRelSplitter {
    * @param relTypeName Name of a {@link RelType}
    * @return Whether relational expression can be implemented
    */
-  protected boolean canImplement(CalcRel rel, String relTypeName) {
+  protected boolean canImplement(LogicalCalc rel, String relTypeName) {
     for (RelType relType : relTypes) {
       if (relType.name.equals(relTypeName)) {
         return relType.canImplement(rel.getProgram());
       }
     }
-    throw Util.newInternal("unknown reltype " + relTypeName);
+    throw Util.newInternal("unknown type " + relTypeName);
   }
 
   /**
@@ -752,7 +776,7 @@ public abstract class CalcRelSplitter {
         RelDataType rowType,
         RelNode child,
         RexProgram program) {
-      return new CalcRel(
+      return new LogicalCalc(
           cluster,
           traits,
           child,

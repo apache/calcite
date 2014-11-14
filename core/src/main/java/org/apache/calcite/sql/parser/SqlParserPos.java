@@ -14,14 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql.parser;
+package org.apache.calcite.sql.parser;
 
-import java.io.*;
-import java.util.*;
+import org.apache.calcite.sql.SqlNode;
 
-import org.eigenbase.sql.*;
+import java.io.Serializable;
+import java.util.Collection;
+import java.util.List;
 
-import static org.eigenbase.util.Static.RESOURCE;
+import static org.apache.calcite.util.Static.RESOURCE;
 
 /**
  * SqlParserPos represents the position of a parsed token within SQL statement

@@ -14,24 +14,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel;
+package org.apache.calcite.rel.core;
 
-import java.util.*;
-
-import org.eigenbase.reltype.*;
-import org.eigenbase.sql.*;
-import org.eigenbase.sql.type.SqlTypeUtil;
-import org.eigenbase.util.mapping.Mappings;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.sql.SqlAggFunction;
+import org.apache.calcite.sql.type.SqlTypeUtil;
+import org.apache.calcite.util.mapping.Mappings;
 
 import com.google.common.collect.ImmutableList;
 
+import java.util.List;
+
 /**
- * Call to an aggregation function within an {@link AggregateRel}.
+ * Call to an aggFunction function within an
+ * {@link org.apache.calcite.rel.logical.LogicalAggregate}.
  */
 public class AggregateCall {
   //~ Instance fields --------------------------------------------------------
 
-  private final Aggregation aggregation;
+  private final SqlAggFunction aggFunction;
 
   private final boolean distinct;
   public final RelDataType type;
@@ -46,24 +49,24 @@ public class AggregateCall {
   /**
    * Creates an AggregateCall.
    *
-   * @param aggregation Aggregation
+   * @param aggFunction Aggregate function
    * @param distinct    Whether distinct
    * @param argList     List of ordinals of arguments
    * @param type        Result type
    * @param name        Name (may be null)
    */
   public AggregateCall(
-      Aggregation aggregation,
+      SqlAggFunction aggFunction,
       boolean distinct,
       List<Integer> argList,
       RelDataType type,
       String name) {
     this.type = type;
     this.name = name;
-    assert aggregation != null;
+    assert aggFunction != null;
     assert argList != null;
     assert type != null;
-    this.aggregation = aggregation;
+    this.aggFunction = aggFunction;
 
     this.argList = ImmutableList.copyOf(argList);
     this.distinct = distinct;
@@ -80,8 +83,8 @@ public class AggregateCall {
           input.getCluster().getTypeFactory();
       final List<RelDataType> types =
           SqlTypeUtil.projectTypes(input.getRowType(), argList);
-      final AggregateRelBase.AggCallBinding callBinding =
-          new AggregateRelBase.AggCallBinding(typeFactory, aggFunction, types,
+      final Aggregate.AggCallBinding callBinding =
+          new Aggregate.AggCallBinding(typeFactory, aggFunction, types,
               groupCount);
       type = aggFunction.inferReturnType(callBinding);
     }
@@ -99,12 +102,12 @@ public class AggregateCall {
   }
 
   /**
-   * Returns the Aggregation.
+   * Returns the aggregate function.
    *
-   * @return aggregation
+   * @return aggregate function
    */
-  public final Aggregation getAggregation() {
-    return aggregation;
+  public final SqlAggFunction getAggregation() {
+    return aggFunction;
   }
 
   /**
@@ -143,11 +146,11 @@ public class AggregateCall {
    */
   public AggregateCall rename(String name) {
     // no need to copy argList - already immutable
-    return new AggregateCall(aggregation, distinct, argList, type, name);
+    return new AggregateCall(aggFunction, distinct, argList, type, name);
   }
 
   public String toString() {
-    StringBuilder buf = new StringBuilder(aggregation.getName());
+    StringBuilder buf = new StringBuilder(aggFunction.getName());
     buf.append("(");
     if (distinct) {
       buf.append((argList.size() == 0) ? "DISTINCT" : "DISTINCT ");
@@ -170,27 +173,28 @@ public class AggregateCall {
       return false;
     }
     AggregateCall other = (AggregateCall) o;
-    return aggregation.equals(other.aggregation)
+    return aggFunction.equals(other.aggFunction)
         && (distinct == other.distinct)
         && argList.equals(other.argList);
   }
 
   // override Object
   public int hashCode() {
-    return aggregation.hashCode() + argList.hashCode();
+    return aggFunction.hashCode() + argList.hashCode();
   }
 
   /**
-   * Creates a binding of this call in the context of an {@link AggregateRel},
+   * Creates a binding of this call in the context of an
+   * {@link org.apache.calcite.rel.logical.LogicalAggregate},
    * which can then be used to infer the return type.
    */
-  public AggregateRelBase.AggCallBinding createBinding(
-      AggregateRelBase aggregateRelBase) {
-    final RelDataType rowType = aggregateRelBase.getChild().getRowType();
+  public Aggregate.AggCallBinding createBinding(
+      Aggregate aggregateRelBase) {
+    final RelDataType rowType = aggregateRelBase.getInput().getRowType();
 
-    return new AggregateRelBase.AggCallBinding(
+    return new Aggregate.AggCallBinding(
         aggregateRelBase.getCluster().getTypeFactory(),
-        (SqlAggFunction) aggregation,
+        (SqlAggFunction) aggFunction,
         SqlTypeUtil.projectTypes(rowType, argList),
         aggregateRelBase.getGroupCount());
   }
@@ -202,22 +206,22 @@ public class AggregateCall {
    * @return AggregateCall that suits new inputs and GROUP BY columns
    */
   public AggregateCall copy(List<Integer> args) {
-    return new AggregateCall(aggregation, distinct, args, type, name);
+    return new AggregateCall(aggFunction, distinct, args, type, name);
   }
 
   /**
    * Creates equivalent AggregateCall that is adapted to a new input types
    * and/or number of columns in GROUP BY.
    *
-   * @param input relation that will be used as a child of AggregateRel
+   * @param input relation that will be used as a child of aggregate
    * @param aggArgs argument indices of the new call in the input
-   * @param oldGroupKeyCount number of columns in GROUP BY of old AggregateRel
-   * @param newGroupKeyCount number of columns in GROUP BY of new AggregateRel
+   * @param oldGroupKeyCount number of columns in GROUP BY of old aggregate
+   * @param newGroupKeyCount number of columns in GROUP BY of new aggregate
    * @return AggregateCall that suits new inputs and GROUP BY columns
    */
   public AggregateCall adaptTo(RelNode input, List<Integer> aggArgs,
       int oldGroupKeyCount, int newGroupKeyCount) {
-    final SqlAggFunction sqlAgg = (SqlAggFunction) aggregation;
+    final SqlAggFunction sqlAgg = (SqlAggFunction) aggFunction;
     // The return type of aggregate call need to be recomputed.
     // Since it might depend on the number of columns in GROUP BY.
     final RelDataType newType =

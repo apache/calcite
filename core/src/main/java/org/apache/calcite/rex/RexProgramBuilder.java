@@ -14,14 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rex;
+package org.apache.calcite.rex;
 
-import java.util.*;
+import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.util.Pair;
+import org.apache.calcite.util.Util;
 
-import org.eigenbase.relopt.*;
-import org.eigenbase.reltype.*;
-import org.eigenbase.sql.fun.*;
-import org.eigenbase.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Workspace for constructing a {@link RexProgram}.
@@ -142,22 +147,19 @@ public class RexProgramBuilder {
             if (index < fields.size()) {
               final RelDataTypeField inputField = fields.get(index);
               if (input.getType() != inputField.getType()) {
-                throw Util.newInternal(
-                    "in expression " + expr
+                throw Util.newInternal("in expression " + expr
                     + ", field reference " + input
                     + " has inconsistent type");
               }
             } else {
               if (index >= fieldOrdinal) {
-                throw Util.newInternal(
-                    "in expression " + expr
+                throw Util.newInternal("in expression " + expr
                     + ", field reference " + input
                     + " is out of bounds");
               }
               RexNode refExpr = exprList.get(index);
               if (refExpr.getType() != input.getType()) {
-                throw Util.newInternal(
-                    "in expression " + expr
+                throw Util.newInternal("in expression " + expr
                     + ", field reference " + input
                     + " has inconsistent type");
               }
@@ -838,6 +840,8 @@ public class RexProgramBuilder {
 
   //~ Inner Classes ----------------------------------------------------------
 
+  /** Shuttle that visits a tree of {@link RexNode} and registers them
+   * in a program. */
   private abstract class RegisterShuttle extends RexShuttle {
     public RexNode visitCall(RexCall call) {
       final RexNode expr = super.visitCall(call);
@@ -888,8 +892,8 @@ public class RexProgramBuilder {
         // The expression should already be valid. Check that its
         // index is within bounds.
         if ((index < 0) || (index >= inputRowType.getFieldCount())) {
-          assert false : "RexInputRef index " + index
-              + " out of range 0.."
+          assert false
+              : "RexInputRef index " + index + " out of range 0.."
               + (inputRowType.getFieldCount() - 1);
         }
 
@@ -913,8 +917,8 @@ public class RexProgramBuilder {
         // The expression should already be valid.
         final int index = local.getIndex();
         assert index >= 0 : index;
-        assert index < exprList.size() : "index=" + index
-            + ", exprList=" + exprList;
+        assert index < exprList.size()
+            : "index=" + index + ", exprList=" + exprList;
         assert RelOptUtil.eq(
             "expr type",
             exprList.get(index).getType(),
@@ -930,8 +934,7 @@ public class RexProgramBuilder {
         if (expr instanceof RexLocalRef) {
           local = (RexLocalRef) expr;
           if (local.index >= index) {
-            throw Util.newInternal(
-                "expr " + local
+            throw Util.newInternal("expr " + local
                 + " references later expr " + local.index);
           }
         } else {

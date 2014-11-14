@@ -14,16 +14,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.test;
+package org.apache.calcite.test;
 
-import java.util.*;
+import org.apache.calcite.plan.AbstractRelOptPlanner;
+import org.apache.calcite.plan.RelOptCostImpl;
+import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.plan.RelOptRule;
+import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.plan.RelOptRuleOperand;
+import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rex.RexExecutorImpl;
+import org.apache.calcite.schema.Schemas;
+import org.apache.calcite.util.Pair;
 
-import org.eigenbase.rel.*;
-import org.eigenbase.relopt.*;
-import org.eigenbase.rex.RexExecutorImpl;
-import org.eigenbase.util.Pair;
-
-import net.hydromatic.optiq.Schemas;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 
 /**
  * MockRelOptPlanner is a mock implementation of the {@link RelOptPlanner}
@@ -185,8 +193,7 @@ public class MockRelOptPlanner extends AbstractRelOptPlanner {
     return true;
   }
 
-  @Override
-  public long getRelMetadataTimestamp(RelNode rel) {
+  @Override public long getRelMetadataTimestamp(RelNode rel) {
     return metadataTimestamp;
   }
 
@@ -197,6 +204,7 @@ public class MockRelOptPlanner extends AbstractRelOptPlanner {
 
   //~ Inner Classes ----------------------------------------------------------
 
+  /** Mock call to a planner rule. */
   private class MockRuleCall extends RelOptRuleCall {
     /**
      * Creates a MockRuleCall.

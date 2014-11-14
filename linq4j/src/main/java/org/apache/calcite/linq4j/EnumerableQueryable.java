@@ -14,11 +14,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.linq4j;
+package org.apache.calcite.linq4j;
 
-import net.hydromatic.linq4j.expressions.Expression;
-import net.hydromatic.linq4j.expressions.FunctionExpression;
-import net.hydromatic.linq4j.function.*;
+import org.apache.calcite.linq4j.function.BigDecimalFunction1;
+import org.apache.calcite.linq4j.function.DoubleFunction1;
+import org.apache.calcite.linq4j.function.EqualityComparer;
+import org.apache.calcite.linq4j.function.FloatFunction1;
+import org.apache.calcite.linq4j.function.Function1;
+import org.apache.calcite.linq4j.function.Function2;
+import org.apache.calcite.linq4j.function.IntegerFunction1;
+import org.apache.calcite.linq4j.function.LongFunction1;
+import org.apache.calcite.linq4j.function.NullableBigDecimalFunction1;
+import org.apache.calcite.linq4j.function.NullableDoubleFunction1;
+import org.apache.calcite.linq4j.function.NullableFloatFunction1;
+import org.apache.calcite.linq4j.function.NullableIntegerFunction1;
+import org.apache.calcite.linq4j.function.NullableLongFunction1;
+import org.apache.calcite.linq4j.function.Predicate1;
+import org.apache.calcite.linq4j.function.Predicate2;
+import org.apache.calcite.linq4j.tree.Expression;
+import org.apache.calcite.linq4j.tree.FunctionExpression;
 
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
@@ -45,8 +59,7 @@ class EnumerableQueryable<T> extends DefaultEnumerable<T>
     this.expression = expression;
   }
 
-  @Override
-  protected Enumerable<T> getThis() {
+  @Override protected Enumerable<T> getThis() {
     return enumerable;
   }
 
@@ -78,27 +91,23 @@ class EnumerableQueryable<T> extends DefaultEnumerable<T>
     return EnumerableDefaults.union(getThis(), source1, comparer).asQueryable();
   }
 
-  @Override
-  public Queryable<T> intersect(Enumerable<T> source1) {
+  @Override public Queryable<T> intersect(Enumerable<T> source1) {
     return EnumerableDefaults.intersect(getThis(), source1).asQueryable();
   }
 
-  @Override
-  public Queryable<T> intersect(Enumerable<T> source1,
+  @Override public Queryable<T> intersect(Enumerable<T> source1,
       EqualityComparer<T> comparer) {
     return EnumerableDefaults.intersect(getThis(), source1, comparer)
         .asQueryable();
   }
 
-  @Override
-  public Queryable<T> except(Enumerable<T> enumerable1,
+  @Override public Queryable<T> except(Enumerable<T> enumerable1,
       EqualityComparer<T> comparer) {
     return EnumerableDefaults.except(getThis(), enumerable1, comparer)
         .asQueryable();
   }
 
-  @Override
-  public Queryable<T> except(Enumerable<T> enumerable1) {
+  @Override public Queryable<T> except(Enumerable<T> enumerable1) {
     return EnumerableDefaults.except(getThis(), enumerable1).asQueryable();
   }
 
@@ -114,23 +123,19 @@ class EnumerableQueryable<T> extends DefaultEnumerable<T>
     return EnumerableDefaults.reverse(getThis()).asQueryable();
   }
 
-  @Override
-  public Queryable<T> distinct() {
+  @Override public Queryable<T> distinct() {
     return EnumerableDefaults.distinct(getThis()).asQueryable();
   }
 
-  @Override
-  public Queryable<T> distinct(EqualityComparer<T> comparer) {
+  @Override public Queryable<T> distinct(EqualityComparer<T> comparer) {
     return EnumerableDefaults.distinct(getThis(), comparer).asQueryable();
   }
 
-  @Override
-  public <TResult> Queryable<TResult> ofType(Class<TResult> clazz) {
+  @Override public <TResult> Queryable<TResult> ofType(Class<TResult> clazz) {
     return EnumerableDefaults.ofType(getThis(), clazz).asQueryable();
   }
 
-  @Override
-  public Queryable<T> defaultIfEmpty() {
+  @Override public Queryable<T> defaultIfEmpty() {
     return EnumerableDefaults.defaultIfEmpty(getThis()).asQueryable();
   }
 

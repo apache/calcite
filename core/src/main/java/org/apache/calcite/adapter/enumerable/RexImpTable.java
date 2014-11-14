@@ -14,42 +14,158 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.rules.java;
+package org.apache.calcite.adapter.enumerable;
 
-import net.hydromatic.linq4j.Ord;
-import net.hydromatic.linq4j.expressions.*;
-
-import net.hydromatic.optiq.*;
-import net.hydromatic.optiq.Function;
-import net.hydromatic.optiq.impl.AggregateFunctionImpl;
-import net.hydromatic.optiq.runtime.SqlFunctions;
-
-import org.eigenbase.rel.Aggregation;
-import org.eigenbase.reltype.*;
-import org.eigenbase.rex.*;
-import org.eigenbase.sql.*;
-import org.eigenbase.sql.fun.SqlStdOperatorTable;
-import org.eigenbase.sql.fun.SqlTrimFunction;
-import org.eigenbase.sql.type.SqlTypeName;
-import org.eigenbase.sql.type.SqlTypeUtil;
-import org.eigenbase.sql.validate.SqlUserDefinedAggFunction;
-import org.eigenbase.sql.validate.SqlUserDefinedFunction;
-import org.eigenbase.util.Util;
-import org.eigenbase.util14.DateTimeUtil;
+import org.apache.calcite.linq4j.Ord;
+import org.apache.calcite.linq4j.tree.BlockBuilder;
+import org.apache.calcite.linq4j.tree.BlockStatement;
+import org.apache.calcite.linq4j.tree.ConstantExpression;
+import org.apache.calcite.linq4j.tree.Expression;
+import org.apache.calcite.linq4j.tree.ExpressionType;
+import org.apache.calcite.linq4j.tree.Expressions;
+import org.apache.calcite.linq4j.tree.MemberExpression;
+import org.apache.calcite.linq4j.tree.OptimizeVisitor;
+import org.apache.calcite.linq4j.tree.ParameterExpression;
+import org.apache.calcite.linq4j.tree.Primitive;
+import org.apache.calcite.linq4j.tree.Types;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rel.type.RelDataTypeFactoryImpl;
+import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexLiteral;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.runtime.SqlFunctions;
+import org.apache.calcite.schema.Function;
+import org.apache.calcite.schema.ImplementableAggFunction;
+import org.apache.calcite.schema.ImplementableFunction;
+import org.apache.calcite.schema.impl.AggregateFunctionImpl;
+import org.apache.calcite.sql.SqlAggFunction;
+import org.apache.calcite.sql.SqlBinaryOperator;
+import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.fun.SqlTrimFunction;
+import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.type.SqlTypeUtil;
+import org.apache.calcite.sql.validate.SqlUserDefinedAggFunction;
+import org.apache.calcite.sql.validate.SqlUserDefinedFunction;
+import org.apache.calcite.util.BuiltInMethod;
+import org.apache.calcite.util.DateTimeUtil;
+import org.apache.calcite.util.Util;
 
 import com.google.common.base.Supplier;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
-import java.lang.reflect.*;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
+import java.lang.reflect.Type;
 import java.math.BigDecimal;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
-import static net.hydromatic.linq4j.expressions.ExpressionType.*;
-
-import static net.hydromatic.optiq.DataContext.ROOT;
-
-import static org.eigenbase.sql.fun.SqlStdOperatorTable.*;
+import static org.apache.calcite.DataContext.ROOT;
+import static org.apache.calcite.linq4j.tree.ExpressionType.Add;
+import static org.apache.calcite.linq4j.tree.ExpressionType.AndAlso;
+import static org.apache.calcite.linq4j.tree.ExpressionType.Divide;
+import static org.apache.calcite.linq4j.tree.ExpressionType.Equal;
+import static org.apache.calcite.linq4j.tree.ExpressionType.GreaterThan;
+import static org.apache.calcite.linq4j.tree.ExpressionType.GreaterThanOrEqual;
+import static org.apache.calcite.linq4j.tree.ExpressionType.LessThan;
+import static org.apache.calcite.linq4j.tree.ExpressionType.LessThanOrEqual;
+import static org.apache.calcite.linq4j.tree.ExpressionType.Multiply;
+import static org.apache.calcite.linq4j.tree.ExpressionType.Negate;
+import static org.apache.calcite.linq4j.tree.ExpressionType.Not;
+import static org.apache.calcite.linq4j.tree.ExpressionType.NotEqual;
+import static org.apache.calcite.linq4j.tree.ExpressionType.OrElse;
+import static org.apache.calcite.linq4j.tree.ExpressionType.Subtract;
+import static org.apache.calcite.linq4j.tree.ExpressionType.UnaryPlus;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ABS;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.AND;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ARRAY_VALUE_CONSTRUCTOR;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CARDINALITY;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CASE;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CAST;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CEIL;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CHARACTER_LENGTH;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CHAR_LENGTH;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CONCAT;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.COUNT;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CURRENT_DATE;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CURRENT_PATH;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CURRENT_ROLE;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CURRENT_TIME;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CURRENT_TIMESTAMP;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CURRENT_USER;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.DATETIME_PLUS;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.DENSE_RANK;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.DIVIDE;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.DIVIDE_INTEGER;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ELEMENT;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.EQUALS;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.EXP;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.EXTRACT_DATE;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.FIRST_VALUE;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.FLOOR;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.GREATER_THAN;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.GREATER_THAN_OR_EQUAL;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.INITCAP;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_FALSE;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_NOT_FALSE;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_NOT_NULL;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_NOT_TRUE;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_NULL;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_TRUE;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ITEM;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.LAG;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.LAST_VALUE;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.LEAD;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.LESS_THAN;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.LESS_THAN_OR_EQUAL;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.LIKE;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.LN;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.LOCALTIME;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.LOCALTIMESTAMP;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.LOG10;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.LOWER;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MAP_VALUE_CONSTRUCTOR;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MAX;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MIN;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MINUS;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MOD;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MULTIPLY;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.NOT;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.NOT_EQUALS;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.NOT_LIKE;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.NOT_SIMILAR_TO;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.NTILE;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.OR;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.OVERLAY;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.PLUS;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.POSITION;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.POWER;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.RANK;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.REINTERPRET;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ROW_NUMBER;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.SESSION_USER;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.SIMILAR_TO;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.SINGLE_VALUE;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.SLICE;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.SUBSTRING;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.SUM;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.SUM0;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.SYSTEM_USER;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.TRIM;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.UNARY_MINUS;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.UNARY_PLUS;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.UPPER;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.USER;
 
 /**
  * Contains implementations of Rex operators as Java code.
@@ -68,25 +184,24 @@ public class RexImpTable {
 
   private final Map<SqlOperator, CallImplementor> map =
       new HashMap<SqlOperator, CallImplementor>();
-  private final Map<Aggregation, Supplier<? extends AggImplementor>> aggMap =
-      new HashMap<Aggregation, Supplier<? extends AggImplementor>>();
-  private final Map<Aggregation, Supplier<? extends WinAggImplementor>>
-  winAggMap =
-      new HashMap<Aggregation, Supplier<? extends WinAggImplementor>>();
+  private final Map<SqlAggFunction, Supplier<? extends AggImplementor>> aggMap =
+      Maps.newHashMap();
+  private final Map<SqlAggFunction, Supplier<? extends WinAggImplementor>>
+  winAggMap = Maps.newHashMap();
 
   RexImpTable() {
-    defineMethod(UPPER, BuiltinMethod.UPPER.method, NullPolicy.STRICT);
-    defineMethod(LOWER, BuiltinMethod.LOWER.method, NullPolicy.STRICT);
-    defineMethod(INITCAP,  BuiltinMethod.INITCAP.method, NullPolicy.STRICT);
-    defineMethod(SUBSTRING, BuiltinMethod.SUBSTRING.method, NullPolicy.STRICT);
-    defineMethod(CHARACTER_LENGTH, BuiltinMethod.CHAR_LENGTH.method,
+    defineMethod(UPPER, BuiltInMethod.UPPER.method, NullPolicy.STRICT);
+    defineMethod(LOWER, BuiltInMethod.LOWER.method, NullPolicy.STRICT);
+    defineMethod(INITCAP,  BuiltInMethod.INITCAP.method, NullPolicy.STRICT);
+    defineMethod(SUBSTRING, BuiltInMethod.SUBSTRING.method, NullPolicy.STRICT);
+    defineMethod(CHARACTER_LENGTH, BuiltInMethod.CHAR_LENGTH.method,
         NullPolicy.STRICT);
-    defineMethod(CHAR_LENGTH, BuiltinMethod.CHAR_LENGTH.method,
+    defineMethod(CHAR_LENGTH, BuiltInMethod.CHAR_LENGTH.method,
         NullPolicy.STRICT);
-    defineMethod(CONCAT, BuiltinMethod.STRING_CONCAT.method,
+    defineMethod(CONCAT, BuiltInMethod.STRING_CONCAT.method,
         NullPolicy.STRICT);
-    defineMethod(OVERLAY, BuiltinMethod.OVERLAY.method, NullPolicy.STRICT);
-    defineMethod(POSITION, BuiltinMethod.POSITION.method, NullPolicy.STRICT);
+    defineMethod(OVERLAY, BuiltInMethod.OVERLAY.method, NullPolicy.STRICT);
+    defineMethod(POSITION, BuiltInMethod.POSITION.method, NullPolicy.STRICT);
 
     final TrimImplementor trimImplementor = new TrimImplementor();
     defineImplementor(TRIM, NullPolicy.STRICT, trimImplementor, false);
@@ -126,7 +241,7 @@ public class RexImpTable {
     // datetime
     defineImplementor(DATETIME_PLUS, NullPolicy.STRICT,
         new DatetimeArithmeticImplementor(), false);
-    defineMethod(EXTRACT_DATE, BuiltinMethod.UNIX_DATE_EXTRACT.method,
+    defineMethod(EXTRACT_DATE, BuiltInMethod.UNIX_DATE_EXTRACT.method,
         NullPolicy.STRICT);
 
     map.put(IS_NULL, new IsXxxImplementor(null, false));
@@ -138,21 +253,21 @@ public class RexImpTable {
 
     // LIKE and SIMILAR
     final MethodImplementor likeImplementor =
-        new MethodImplementor(BuiltinMethod.LIKE.method);
+        new MethodImplementor(BuiltInMethod.LIKE.method);
     defineImplementor(LIKE, NullPolicy.STRICT, likeImplementor, false);
     defineImplementor(NOT_LIKE, NullPolicy.STRICT,
         NotImplementor.of(likeImplementor), false);
     final MethodImplementor similarImplementor =
-        new MethodImplementor(BuiltinMethod.SIMILAR.method);
+        new MethodImplementor(BuiltInMethod.SIMILAR.method);
     defineImplementor(SIMILAR_TO, NullPolicy.STRICT, similarImplementor, false);
     defineImplementor(NOT_SIMILAR_TO, NullPolicy.STRICT,
         NotImplementor.of(similarImplementor), false);
 
     // Multisets & arrays
-    defineMethod(CARDINALITY, BuiltinMethod.COLLECTION_SIZE.method,
+    defineMethod(CARDINALITY, BuiltInMethod.COLLECTION_SIZE.method,
         NullPolicy.STRICT);
-    defineMethod(SLICE, BuiltinMethod.SLICE.method, NullPolicy.NONE);
-    defineMethod(ELEMENT, BuiltinMethod.ELEMENT.method, NullPolicy.STRICT);
+    defineMethod(SLICE, BuiltInMethod.SLICE.method, NullPolicy.NONE);
+    defineMethod(ELEMENT, BuiltInMethod.ELEMENT.method, NullPolicy.STRICT);
 
     map.put(CASE, new CaseImplementor());
 
@@ -351,7 +466,7 @@ public class RexImpTable {
             NullAs nullAs) {
           switch (nullAs) {
           case NULL:
-            return Expressions.call(BuiltinMethod.NOT.method,
+            return Expressions.call(BuiltInMethod.NOT.method,
                 translator.translateList(call.getOperands(), nullAs));
           default:
             return Expressions.not(
@@ -428,24 +543,22 @@ public class RexImpTable {
       Function udf =
         ((SqlUserDefinedFunction) operator).getFunction();
       if (!(udf instanceof ImplementableFunction)) {
-        throw new IllegalStateException(
-            "User defined function " + operator + " must implement "
-            + "ImplementableFunction");
+        throw new IllegalStateException("User defined function " + operator
+            + " must implement ImplementableFunction");
       }
       return ((ImplementableFunction) udf).getImplementor();
     }
     return map.get(operator);
   }
 
-  public AggImplementor get(final Aggregation aggregation,
+  public AggImplementor get(final SqlAggFunction aggregation,
       boolean forWindowAggregate) {
     if (aggregation instanceof SqlUserDefinedAggFunction) {
       final SqlUserDefinedAggFunction udaf =
           (SqlUserDefinedAggFunction) aggregation;
       if (!(udaf.function instanceof ImplementableAggFunction)) {
-        throw new IllegalStateException(
-            "User defined aggregation " + aggregation + " must implement "
-                + "ImplementableAggFunction");
+        throw new IllegalStateException("User defined aggregation "
+            + aggregation + " must implement ImplementableAggFunction");
       }
       return ((ImplementableAggFunction) udaf.function)
           .getImplementor(forWindowAggregate);
@@ -755,11 +868,11 @@ public class RexImpTable {
         return x;
       case FALSE:
         return Expressions.call(
-            BuiltinMethod.IS_TRUE.method,
+            BuiltInMethod.IS_TRUE.method,
             x);
       case TRUE:
         return Expressions.call(
-            BuiltinMethod.IS_NOT_FALSE.method,
+            BuiltInMethod.IS_NOT_FALSE.method,
             x);
       case IS_NULL:
         return Expressions.equal(x, NULL_EXPR);
@@ -779,19 +892,20 @@ public class RexImpTable {
     return Expressions.constant(null, type);
   }
 
+  /** Implementor for the {@code COUNT} aggregate function. */
   static class CountImplementor extends StrictAggImplementor {
-    @Override
-    public void implementNotNullAdd(AggContext info, AggAddContext add) {
+    @Override public void implementNotNullAdd(AggContext info,
+        AggAddContext add) {
       add.currentBlock().add(Expressions.statement(
           Expressions.postIncrementAssign(add.accumulator().get(0))));
     }
   }
 
+  /** Implementor for the {@code COUNT} windowed aggregate function. */
   static class CountWinImplementor extends StrictWinAggImplementor {
     boolean justFrameRowCount;
 
-    @Override
-    public List<Type> getNotNullState(WinAggContext info) {
+    @Override public List<Type> getNotNullState(WinAggContext info) {
       boolean hasNullable = false;
       for (RelDataType type : info.parameterRelTypes()) {
         if (type.isNullable()) {
@@ -806,8 +920,8 @@ public class RexImpTable {
       return super.getNotNullState(info);
     }
 
-    @Override
-    public void implementNotNullAdd(WinAggContext info, WinAggAddContext add) {
+    @Override public void implementNotNullAdd(WinAggContext info,
+        WinAggAddContext add) {
       if (justFrameRowCount) {
         return;
       }
@@ -815,8 +929,7 @@ public class RexImpTable {
           Expressions.postIncrementAssign(add.accumulator().get(0))));
     }
 
-    @Override
-    protected Expression implementNotNullResult(WinAggContext info,
+    @Override protected Expression implementNotNullResult(WinAggContext info,
         WinAggResultContext result) {
       if (justFrameRowCount) {
         return result.getFrameRowCount();
@@ -825,9 +938,9 @@ public class RexImpTable {
     }
   }
 
+  /** Implementor for the {@code SUM} windowed aggregate function. */
   static class SumImplementor extends StrictAggImplementor {
-    @Override
-    protected void implementNotNullReset(AggContext info,
+    @Override protected void implementNotNullReset(AggContext info,
         AggResetContext reset) {
       Expression start = info.returnType() == BigDecimal.class
           ? Expressions.constant(BigDecimal.ZERO)
@@ -837,8 +950,8 @@ public class RexImpTable {
           reset.accumulator().get(0), start)));
     }
 
-    @Override
-    public void implementNotNullAdd(AggContext info, AggAddContext add) {
+    @Override public void implementNotNullAdd(AggContext info,
+        AggAddContext add) {
       Expression acc = add.accumulator().get(0);
       Expression next;
       if (info.returnType() == BigDecimal.class) {
@@ -850,16 +963,15 @@ public class RexImpTable {
       accAdvance(add, acc, next);
     }
 
-    @Override
-    public Expression implementNotNullResult(AggContext info,
+    @Override public Expression implementNotNullResult(AggContext info,
         AggResultContext result) {
       return super.implementNotNullResult(info, result);
     }
   }
 
+  /** Implementor for the {@code MIN} and {@code MAX} aggregate functions. */
   static class MinMaxImplementor extends StrictAggImplementor {
-    @Override
-    protected void implementNotNullReset(AggContext info,
+    @Override protected void implementNotNullReset(AggContext info,
         AggResetContext reset) {
       Expression acc = reset.accumulator().get(0);
       Primitive p = Primitive.of(acc.getType());
@@ -869,11 +981,11 @@ public class RexImpTable {
           acc, Expressions.constant(inf, acc.getType()))));
     }
 
-    @Override
-    public void implementNotNullAdd(AggContext info, AggAddContext add) {
+    @Override public void implementNotNullAdd(AggContext info,
+        AggAddContext add) {
       Expression acc = add.accumulator().get(0);
       Expression arg = add.arguments().get(0);
-      Aggregation aggregation = info.aggregation();
+      SqlAggFunction aggregation = info.aggregation();
       Expression next = Expressions.call(
           SqlFunctions.class,
           aggregation == MIN ? "lesser" : "greater",
@@ -883,6 +995,7 @@ public class RexImpTable {
     }
   }
 
+  /** Implementor for the {@code SINGLE_VALUE} aggregate function. */
   static class SingleValueImplementor implements AggImplementor {
     public List<Type> getStateType(AggContext info) {
       return Arrays.asList(boolean.class, info.returnType());
@@ -916,6 +1029,7 @@ public class RexImpTable {
     }
   }
 
+  /** Implementor for user-defined aggregate functions. */
   public static class UserDefinedAggReflectiveImplementor
       extends StrictAggImplementor {
     private final AggregateFunctionImpl afi;
@@ -924,16 +1038,14 @@ public class RexImpTable {
       this.afi = afi;
     }
 
-    @Override
-    public List<Type> getNotNullState(AggContext info) {
+    @Override public List<Type> getNotNullState(AggContext info) {
       if (afi.isStatic) {
         return Collections.<Type>singletonList(afi.accumulatorType);
       }
       return Arrays.<Type>asList(afi.accumulatorType, afi.declaringClass);
     }
 
-    @Override
-    protected void implementNotNullReset(AggContext info,
+    @Override protected void implementNotNullReset(AggContext info,
         AggResetContext reset) {
       List<Expression> acc = reset.accumulator();
       if (!afi.isStatic) {
@@ -946,8 +1058,8 @@ public class RexImpTable {
               afi.isStatic ? null : acc.get(1), afi.initMethod))));
     }
 
-    @Override
-    protected void implementNotNullAdd(AggContext info, AggAddContext add) {
+    @Override protected void implementNotNullAdd(AggContext info,
+        AggAddContext add) {
       List<Expression> acc = add.accumulator();
       List<Expression> aggArgs = add.arguments();
       List<Expression> args = new ArrayList<Expression>(aggArgs.size() + 1);
@@ -959,8 +1071,7 @@ public class RexImpTable {
               args))));
     }
 
-    @Override
-    protected Expression implementNotNullResult(AggContext info,
+    @Override protected Expression implementNotNullResult(AggContext info,
         AggResultContext result) {
       List<Expression> acc = result.accumulator();
       return Expressions.call(
@@ -968,9 +1079,9 @@ public class RexImpTable {
     }
   }
 
+  /** Implementor for the {@code RANK} windowed aggregate function. */
   static class RankImplementor extends StrictWinAggImplementor {
-    @Override
-    protected void implementNotNullAdd(WinAggContext info,
+    @Override protected void implementNotNullAdd(WinAggContext info,
         WinAggAddContext add) {
       Expression acc = add.accumulator().get(0);
       // This is an example of the generated code
@@ -1013,8 +1124,7 @@ public class RexImpTable {
       return pos;
     }
 
-    @Override
-    protected Expression implementNotNullResult(
+    @Override protected Expression implementNotNullResult(
         WinAggContext info, WinAggResultContext result) {
       // Rank is 1-based
       return Expressions.add(super.implementNotNullResult(info, result),
@@ -1022,13 +1132,16 @@ public class RexImpTable {
     }
   }
 
+  /** Implementor for the {@code DENSE_RANK} windowed aggregate function. */
   static class DenseRankImplementor extends RankImplementor {
-    @Override
-    protected Expression computeNewRank(Expression acc, WinAggAddContext add) {
+    @Override protected Expression computeNewRank(Expression acc,
+        WinAggAddContext add) {
       return Expressions.add(acc, Expressions.constant(1));
     }
   }
 
+  /** Implementor for the {@code FIRST_VALUE} and {@code LAST_VALUE}
+   * windowed aggregate functions. */
   static class FirstLastValueImplementor implements WinAggImplementor {
     private final SeekType seekType;
 
@@ -1064,18 +1177,22 @@ public class RexImpTable {
     }
   }
 
+  /** Implementor for the {@code FIRST_VALUE} windowed aggregate function. */
   static class FirstValueImplementor extends FirstLastValueImplementor {
     protected FirstValueImplementor() {
       super(SeekType.START);
     }
   }
 
+  /** Implementor for the {@code LAST_VALUE} windowed aggregate function. */
   static class LastValueImplementor extends FirstLastValueImplementor {
     protected LastValueImplementor() {
       super(SeekType.END);
     }
   }
 
+  /** Implementor for the {@code LEAD} and {@code LAG} windowed
+   * aggregate functions. */
   static class LeadLagImplementor implements WinAggImplementor {
     private final boolean isLead;
 
@@ -1144,18 +1261,21 @@ public class RexImpTable {
     }
   }
 
+  /** Implementor for the {@code LEAD} windowed aggregate function. */
   public static class LeadImplementor extends LeadLagImplementor {
     protected LeadImplementor() {
       super(true);
     }
   }
 
+  /** Implementor for the {@code LAG} windowed aggregate function. */
   public static class LagImplementor extends LeadLagImplementor {
     protected LagImplementor() {
       super(false);
     }
   }
 
+  /** Implementor for the {@code NTILE} windowed aggregate function. */
   static class NtileImplementor implements WinAggImplementor {
     public List<Type> getStateType(AggContext info) {
       return Collections.emptyList();
@@ -1196,20 +1316,18 @@ public class RexImpTable {
     }
   }
 
+  /** Implementor for the {@code ROW_NUMBER} windowed aggregate function. */
   static class RowNumberImplementor extends StrictWinAggImplementor {
-    @Override
-    public List<Type> getNotNullState(WinAggContext info) {
+    @Override public List<Type> getNotNullState(WinAggContext info) {
       return Collections.emptyList();
     }
 
-    @Override
-    protected void implementNotNullAdd(WinAggContext info,
+    @Override protected void implementNotNullAdd(WinAggContext info,
         WinAggAddContext add) {
       // no op
     }
 
-    @Override
-    protected Expression implementNotNullResult(
+    @Override protected Expression implementNotNullResult(
         WinAggContext info, WinAggResultContext result) {
       // Window cannot be empty since ROWS/RANGE is not possible for ROW_NUMBER
       return Expressions.add(Expressions.subtract(
@@ -1217,6 +1335,7 @@ public class RexImpTable {
     }
   }
 
+  /** Implementor for the {@code TRIM} function. */
   private static class TrimImplementor implements NotNullImplementor {
     public Expression implement(RexToLixTranslator translator, RexCall call,
         List<Expression> translatedOperands) {
@@ -1224,7 +1343,7 @@ public class RexImpTable {
           ((ConstantExpression) translatedOperands.get(0)).value;
       SqlTrimFunction.Flag flag = (SqlTrimFunction.Flag) value;
       return Expressions.call(
-          BuiltinMethod.TRIM.method,
+          BuiltInMethod.TRIM.method,
           Expressions.constant(
               flag == SqlTrimFunction.Flag.BOTH
               || flag == SqlTrimFunction.Flag.LEADING),
@@ -1236,6 +1355,7 @@ public class RexImpTable {
     }
   }
 
+  /** Implementor for a function that generates calls to a given method. */
   private static class MethodImplementor implements NotNullImplementor {
     private final Method method;
 
@@ -1256,6 +1376,10 @@ public class RexImpTable {
     }
   }
 
+  /** Implementor for SQL functions that generates calls to a given method name.
+   *
+   * <p>Use this, as opposed to {@link MethodImplementor}, if the SQL function
+   * is overloaded; then you can use one implementor for several overloads. */
   private static class MethodNameImplementor implements NotNullImplementor {
     private final String methodName;
 
@@ -1274,6 +1398,7 @@ public class RexImpTable {
     }
   }
 
+  /** Implementor for binary operators. */
   private static class BinaryImplementor implements NotNullImplementor {
     /** Types that can be arguments to comparison operators such as
      * {@code <}. */
@@ -1338,6 +1463,7 @@ public class RexImpTable {
     }
   }
 
+  /** Implementor for unary operators. */
   private static class UnaryImplementor implements NotNullImplementor {
     private final ExpressionType expressionType;
 
@@ -1355,6 +1481,7 @@ public class RexImpTable {
     }
   }
 
+  /** Implementor for the SQL {@code CASE} operator. */
   private static class CaseImplementor implements CallImplementor {
     public Expression implement(RexToLixTranslator translator, RexCall call,
         NullAs nullAs) {
@@ -1399,6 +1526,8 @@ public class RexImpTable {
     }
   }
 
+  /** Implementor for the SQL {@code CAST} function that optimizes if, say, the
+   * argument is already of the desired type. */
   private static class CastOptimizedImplementor implements CallImplementor {
     private final CallImplementor accurate;
 
@@ -1427,6 +1556,7 @@ public class RexImpTable {
     }
   }
 
+  /** Implementor for the SQL {@code CAST} operator. */
   private static class CastImplementor implements NotNullImplementor {
     public Expression implement(
         RexToLixTranslator translator,
@@ -1450,6 +1580,7 @@ public class RexImpTable {
     }
   }
 
+  /** Implementor for the {@code REINTERPRET} internal SQL operator. */
   private static class ReinterpretImplementor implements NotNullImplementor {
     public Expression implement(
         RexToLixTranslator translator,
@@ -1460,6 +1591,7 @@ public class RexImpTable {
     }
   }
 
+  /** Implementor for a value-constructor. */
   private static class ValueConstructorImplementor
       implements CallImplementor {
     public Expression implement(
@@ -1471,6 +1603,7 @@ public class RexImpTable {
     }
   }
 
+  /** Implementor for the {@code ITEM} SQL operator. */
   private static class ItemImplementor
       implements CallImplementor {
     public Expression implement(
@@ -1488,15 +1621,19 @@ public class RexImpTable {
     private MethodImplementor getImplementor(SqlTypeName sqlTypeName) {
       switch (sqlTypeName) {
       case ARRAY:
-        return new MethodImplementor(BuiltinMethod.ARRAY_ITEM.method);
+        return new MethodImplementor(BuiltInMethod.ARRAY_ITEM.method);
       case MAP:
-        return new MethodImplementor(BuiltinMethod.MAP_ITEM.method);
+        return new MethodImplementor(BuiltInMethod.MAP_ITEM.method);
       default:
-        return new MethodImplementor(BuiltinMethod.ANY_ITEM.method);
+        return new MethodImplementor(BuiltInMethod.ANY_ITEM.method);
       }
     }
   }
 
+    /** Implementor for SQL system functions.
+     *
+     * <p>Several of these are represented internally as constant values, set
+     * per execution. */
   private static class SystemFunctionImplementor
       implements CallImplementor {
     public Expression implement(
@@ -1522,15 +1659,15 @@ public class RexImpTable {
         // the empty string because a role has to be set explicitly.
         return Expressions.constant("");
       } else if (op == CURRENT_TIMESTAMP) {
-        return Expressions.call(BuiltinMethod.CURRENT_TIMESTAMP.method, ROOT);
+        return Expressions.call(BuiltInMethod.CURRENT_TIMESTAMP.method, ROOT);
       } else if (op == CURRENT_TIME) {
-        return Expressions.call(BuiltinMethod.CURRENT_TIME.method, ROOT);
+        return Expressions.call(BuiltInMethod.CURRENT_TIME.method, ROOT);
       } else if (op == CURRENT_DATE) {
-        return Expressions.call(BuiltinMethod.CURRENT_DATE.method, ROOT);
+        return Expressions.call(BuiltInMethod.CURRENT_DATE.method, ROOT);
       } else if (op == LOCALTIMESTAMP) {
-        return Expressions.call(BuiltinMethod.LOCAL_TIMESTAMP.method, ROOT);
+        return Expressions.call(BuiltInMethod.LOCAL_TIMESTAMP.method, ROOT);
       } else if (op == LOCALTIME) {
-        return Expressions.call(BuiltinMethod.LOCAL_TIME.method, ROOT);
+        return Expressions.call(BuiltInMethod.LOCAL_TIME.method, ROOT);
       } else {
         throw new AssertionError("unknown function " + op);
       }
@@ -1572,6 +1709,7 @@ public class RexImpTable {
     }
   }
 
+  /** Implementor for the {@code NOT} operator. */
   private static class NotImplementor implements NotNullImplementor {
     private final NotNullImplementor implementor;
 
@@ -1593,6 +1731,7 @@ public class RexImpTable {
     }
   }
 
+  /** Implementor for various datetime arithmetic. */
   private static class DatetimeArithmeticImplementor
       implements NotNullImplementor {
     public Expression implement(RexToLixTranslator translator, RexCall call,

@@ -14,25 +14,54 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.tools;
+package org.apache.calcite.tools;
 
-import net.hydromatic.optiq.prepare.OptiqPrepareImpl;
-import net.hydromatic.optiq.rules.java.JavaRules;
-
-import org.eigenbase.rel.RelNode;
-import org.eigenbase.rel.metadata.ChainedRelMetadataProvider;
-import org.eigenbase.rel.metadata.DefaultRelMetadataProvider;
-import org.eigenbase.rel.metadata.RelMetadataProvider;
-import org.eigenbase.rel.rules.*;
-import org.eigenbase.relopt.*;
-import org.eigenbase.relopt.hep.*;
+import org.apache.calcite.adapter.enumerable.EnumerableRules;
+import org.apache.calcite.plan.RelOptCostImpl;
+import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.plan.RelOptRule;
+import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.plan.hep.HepMatchOrder;
+import org.apache.calcite.plan.hep.HepPlanner;
+import org.apache.calcite.plan.hep.HepProgram;
+import org.apache.calcite.plan.hep.HepProgramBuilder;
+import org.apache.calcite.prepare.CalcitePrepareImpl;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.metadata.ChainedRelMetadataProvider;
+import org.apache.calcite.rel.metadata.DefaultRelMetadataProvider;
+import org.apache.calcite.rel.metadata.RelMetadataProvider;
+import org.apache.calcite.rel.rules.AggregateExpandDistinctAggregatesRule;
+import org.apache.calcite.rel.rules.AggregateReduceFunctionsRule;
+import org.apache.calcite.rel.rules.AggregateStarTableRule;
+import org.apache.calcite.rel.rules.CalcMergeRule;
+import org.apache.calcite.rel.rules.FilterAggregateTransposeRule;
+import org.apache.calcite.rel.rules.FilterCalcMergeRule;
+import org.apache.calcite.rel.rules.FilterJoinRule;
+import org.apache.calcite.rel.rules.FilterProjectTransposeRule;
+import org.apache.calcite.rel.rules.FilterTableRule;
+import org.apache.calcite.rel.rules.FilterToCalcRule;
+import org.apache.calcite.rel.rules.JoinAssociateRule;
+import org.apache.calcite.rel.rules.JoinCommuteRule;
+import org.apache.calcite.rel.rules.JoinPushThroughJoinRule;
+import org.apache.calcite.rel.rules.JoinToMultiJoinRule;
+import org.apache.calcite.rel.rules.LoptOptimizeJoinRule;
+import org.apache.calcite.rel.rules.MultiJoinOptimizeBushyRule;
+import org.apache.calcite.rel.rules.ProjectCalcMergeRule;
+import org.apache.calcite.rel.rules.ProjectMergeRule;
+import org.apache.calcite.rel.rules.ProjectToCalcRule;
+import org.apache.calcite.rel.rules.SemiJoinRule;
+import org.apache.calcite.rel.rules.SortProjectTransposeRule;
+import org.apache.calcite.rel.rules.TableScanRule;
 
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
 
 /**
  * Utilities for creating {@link Program}s.
@@ -47,21 +76,21 @@ public class Programs {
 
   public static final ImmutableList<RelOptRule> CALC_RULES =
       ImmutableList.of(
-          JavaRules.ENUMERABLE_CALC_RULE,
-          JavaRules.ENUMERABLE_FILTER_TO_CALC_RULE,
-          JavaRules.ENUMERABLE_PROJECT_TO_CALC_RULE,
-          MergeCalcRule.INSTANCE,
-          MergeFilterOntoCalcRule.INSTANCE,
-          MergeProjectOntoCalcRule.INSTANCE,
+          EnumerableRules.ENUMERABLE_CALC_RULE,
+          EnumerableRules.ENUMERABLE_FILTER_TO_CALC_RULE,
+          EnumerableRules.ENUMERABLE_PROJECT_TO_CALC_RULE,
+          CalcMergeRule.INSTANCE,
+          FilterCalcMergeRule.INSTANCE,
+          ProjectCalcMergeRule.INSTANCE,
           FilterToCalcRule.INSTANCE,
           ProjectToCalcRule.INSTANCE,
-          MergeCalcRule.INSTANCE,
+          CalcMergeRule.INSTANCE,
 
           // REVIEW jvs 9-Apr-2006: Do we still need these two?  Doesn't the
-          // combination of MergeCalcRule, FilterToCalcRule, and
+          // combination of CalcMergeRule, FilterToCalcRule, and
           // ProjectToCalcRule have the same effect?
-          MergeFilterOntoCalcRule.INSTANCE,
-          MergeProjectOntoCalcRule.INSTANCE);
+          FilterCalcMergeRule.INSTANCE,
+          ProjectCalcMergeRule.INSTANCE);
 
   /** Program that converts filters and projects to calcs. */
   public static final Program CALC_PROGRAM =
@@ -69,38 +98,38 @@ public class Programs {
 
   public static final ImmutableSet<RelOptRule> RULE_SET =
       ImmutableSet.of(
-          JavaRules.ENUMERABLE_JOIN_RULE,
-          JavaRules.ENUMERABLE_SEMI_JOIN_RULE,
-          JavaRules.ENUMERABLE_PROJECT_RULE,
-          JavaRules.ENUMERABLE_FILTER_RULE,
-          JavaRules.ENUMERABLE_AGGREGATE_RULE,
-          JavaRules.ENUMERABLE_SORT_RULE,
-          JavaRules.ENUMERABLE_LIMIT_RULE,
-          JavaRules.ENUMERABLE_UNION_RULE,
-          JavaRules.ENUMERABLE_INTERSECT_RULE,
-          JavaRules.ENUMERABLE_MINUS_RULE,
-          JavaRules.ENUMERABLE_TABLE_MODIFICATION_RULE,
-          JavaRules.ENUMERABLE_VALUES_RULE,
-          JavaRules.ENUMERABLE_WINDOW_RULE,
-          JavaRules.ENUMERABLE_ONE_ROW_RULE,
-          JavaRules.ENUMERABLE_EMPTY_RULE,
+          EnumerableRules.ENUMERABLE_JOIN_RULE,
+          EnumerableRules.ENUMERABLE_SEMI_JOIN_RULE,
+          EnumerableRules.ENUMERABLE_PROJECT_RULE,
+          EnumerableRules.ENUMERABLE_FILTER_RULE,
+          EnumerableRules.ENUMERABLE_AGGREGATE_RULE,
+          EnumerableRules.ENUMERABLE_SORT_RULE,
+          EnumerableRules.ENUMERABLE_LIMIT_RULE,
+          EnumerableRules.ENUMERABLE_UNION_RULE,
+          EnumerableRules.ENUMERABLE_INTERSECT_RULE,
+          EnumerableRules.ENUMERABLE_MINUS_RULE,
+          EnumerableRules.ENUMERABLE_TABLE_MODIFICATION_RULE,
+          EnumerableRules.ENUMERABLE_VALUES_RULE,
+          EnumerableRules.ENUMERABLE_WINDOW_RULE,
+          EnumerableRules.ENUMERABLE_ONE_ROW_RULE,
+          EnumerableRules.ENUMERABLE_EMPTY_RULE,
           SemiJoinRule.INSTANCE,
-          TableAccessRule.INSTANCE,
-          OptiqPrepareImpl.COMMUTE
-              ? CommutativeJoinRule.INSTANCE
-              : MergeProjectRule.INSTANCE,
+          TableScanRule.INSTANCE,
+          CalcitePrepareImpl.COMMUTE
+              ? JoinAssociateRule.INSTANCE
+              : ProjectMergeRule.INSTANCE,
           AggregateStarTableRule.INSTANCE,
           AggregateStarTableRule.INSTANCE2,
           FilterTableRule.INSTANCE,
-          PushFilterPastProjectRule.INSTANCE,
-          PushFilterPastJoinRule.FILTER_ON_JOIN,
-          RemoveDistinctAggregateRule.INSTANCE,
-          ReduceAggregatesRule.INSTANCE,
+          FilterProjectTransposeRule.INSTANCE,
+          FilterJoinRule.FILTER_ON_JOIN,
+          AggregateExpandDistinctAggregatesRule.INSTANCE,
+          AggregateReduceFunctionsRule.INSTANCE,
           FilterAggregateTransposeRule.INSTANCE,
-          SwapJoinRule.INSTANCE,
-          PushJoinThroughJoinRule.RIGHT,
-          PushJoinThroughJoinRule.LEFT,
-          PushSortPastProjectRule.INSTANCE);
+          JoinCommuteRule.INSTANCE,
+          JoinPushThroughJoinRule.RIGHT,
+          JoinPushThroughJoinRule.LEFT,
+          SortProjectTransposeRule.INSTANCE);
 
   // private constructor for utility class
   private Programs() {}
@@ -170,9 +199,9 @@ public class Programs {
   }
 
   /** Creates a program that invokes heuristic join-order optimization
-   * (via {@link org.eigenbase.rel.rules.ConvertMultiJoinRule},
-   * {@link org.eigenbase.rel.rules.MultiJoinRel} and
-   * {@link org.eigenbase.rel.rules.LoptOptimizeJoinRule})
+   * (via {@link org.apache.calcite.rel.rules.JoinToMultiJoinRule},
+   * {@link org.apache.calcite.rel.rules.MultiJoin} and
+   * {@link org.apache.calcite.rel.rules.LoptOptimizeJoinRule})
    * if there are 6 or more joins (7 or more relations). */
   public static Program heuristicJoinOrder(final Collection<RelOptRule> rules,
       final boolean bushy, final int minJoinCount) {
@@ -184,27 +213,27 @@ public class Programs {
         if (joinCount < minJoinCount) {
           program = ofRules(rules);
         } else {
-          // Create a program that gathers together joins as a MultiJoinRel.
+          // Create a program that gathers together joins as a MultiJoin.
           final HepProgram hep = new HepProgramBuilder()
-              .addRuleInstance(PushFilterPastJoinRule.FILTER_ON_JOIN)
+              .addRuleInstance(FilterJoinRule.FILTER_ON_JOIN)
               .addMatchOrder(HepMatchOrder.BOTTOM_UP)
-              .addRuleInstance(ConvertMultiJoinRule.INSTANCE)
+              .addRuleInstance(JoinToMultiJoinRule.INSTANCE)
               .build();
           final Program program1 =
               of(hep, false, new DefaultRelMetadataProvider());
 
-          // Create a program that contains a rule to expand a MultiJoinRel
+          // Create a program that contains a rule to expand a MultiJoin
           // into heuristically ordered joins.
-          // We use the rule set passed in, but remove SwapJoinRule and
-          // PushJoinThroughJoinRule, because they cause exhaustive search.
+          // We use the rule set passed in, but remove JoinCommuteRule and
+          // JoinPushThroughJoinRule, because they cause exhaustive search.
           final List<RelOptRule> list = Lists.newArrayList(rules);
           list.removeAll(
-              ImmutableList.of(SwapJoinRule.INSTANCE,
-                  CommutativeJoinRule.INSTANCE,
-                  PushJoinThroughJoinRule.LEFT,
-                  PushJoinThroughJoinRule.RIGHT));
+              ImmutableList.of(JoinCommuteRule.INSTANCE,
+                  JoinAssociateRule.INSTANCE,
+                  JoinPushThroughJoinRule.LEFT,
+                  JoinPushThroughJoinRule.RIGHT));
           list.add(bushy
-              ? OptimizeBushyJoinRule.INSTANCE
+              ? MultiJoinOptimizeBushyRule.INSTANCE
               : LoptOptimizeJoinRule.INSTANCE);
           final Program program2 = ofRules(list);
 

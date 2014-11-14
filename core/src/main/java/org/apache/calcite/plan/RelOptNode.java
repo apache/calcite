@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.relopt;
+package org.apache.calcite.plan;
+
+import org.apache.calcite.rel.type.RelDataType;
 
 import java.util.List;
-
-import org.eigenbase.reltype.RelDataType;
 
 /**
  * Node in a planner.

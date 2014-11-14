@@ -14,10 +14,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.avatica;
+package org.apache.calcite.avatica;
 
-import java.sql.*;
-import java.util.*;
+import java.sql.Array;
+import java.sql.Blob;
+import java.sql.CallableStatement;
+import java.sql.Clob;
+import java.sql.Connection;
+import java.sql.DatabaseMetaData;
+import java.sql.NClob;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLClientInfoException;
+import java.sql.SQLException;
+import java.sql.SQLWarning;
+import java.sql.SQLXML;
+import java.sql.Savepoint;
+import java.sql.Statement;
+import java.sql.Struct;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.TimeZone;
 import java.util.concurrent.Executor;
 
 /**
@@ -422,14 +441,14 @@ public abstract class AvaticaConnection implements Connection {
     }
 
     /** A means for anyone who has a trojan to call the protected method
-     * {@link net.hydromatic.avatica.AvaticaResultSet#execute()}.
+     * {@link org.apache.calcite.avatica.AvaticaResultSet#execute()}.
      * @throws SQLException if execute fails for some reason. */
     public ResultSet execute(AvaticaResultSet resultSet) throws SQLException {
       return resultSet.execute();
     }
 
     /** A means for anyone who has a trojan to call the protected method
-     * {@link net.hydromatic.avatica.AvaticaStatement#getParameterValues()}. */
+     * {@link org.apache.calcite.avatica.AvaticaStatement#getParameterValues()}. */
     public List<Object> getParameterValues(AvaticaStatement statement) {
       return statement.getParameterValues();
     }

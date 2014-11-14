@@ -14,26 +14,31 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel.rules;
+package org.apache.calcite.rel.rules;
 
-import java.util.BitSet;
-import java.util.List;
-
-import org.eigenbase.rel.*;
-import org.eigenbase.relopt.*;
-import org.eigenbase.reltype.RelDataTypeField;
-import org.eigenbase.rex.*;
-
-import net.hydromatic.optiq.util.BitSets;
+import org.apache.calcite.plan.RelOptRule;
+import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.Aggregate;
+import org.apache.calcite.rel.core.Filter;
+import org.apache.calcite.rel.core.RelFactories;
+import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.util.BitSets;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
+import java.util.BitSet;
+import java.util.List;
+
 /**
- * Planner rule that pushes a {@link FilterRelBase}
- * past a {@link AggregateRelBase}.
+ * Planner rule that pushes a {@link org.apache.calcite.rel.core.Filter}
+ * past a {@link org.apache.calcite.rel.core.Aggregate}.
  *
- * @see org.eigenbase.rel.rules.AggregateFilterTransposeRule
+ * @see org.apache.calcite.rel.rules.AggregateFilterTransposeRule
  */
 public class FilterAggregateTransposeRule extends RelOptRule {
 
@@ -42,9 +47,9 @@ public class FilterAggregateTransposeRule extends RelOptRule {
    *
    * <p>It matches any kind of agg. or filter */
   public static final FilterAggregateTransposeRule INSTANCE =
-      new FilterAggregateTransposeRule(FilterRelBase.class,
+      new FilterAggregateTransposeRule(Filter.class,
           RelFactories.DEFAULT_FILTER_FACTORY,
-          AggregateRelBase.class);
+          Aggregate.class);
 
   private final RelFactories.FilterFactory filterFactory;
 
@@ -57,9 +62,9 @@ public class FilterAggregateTransposeRule extends RelOptRule {
    * matched in the rule. Similarly {@code aggregateFactory}.</p>
    */
   public FilterAggregateTransposeRule(
-      Class<? extends FilterRelBase> filterClass,
+      Class<? extends Filter> filterClass,
       RelFactories.FilterFactory filterFactory,
-      Class<? extends AggregateRelBase> aggregateClass) {
+      Class<? extends Aggregate> aggregateClass) {
     super(
         operand(filterClass,
             operand(aggregateClass, any())));
@@ -70,8 +75,8 @@ public class FilterAggregateTransposeRule extends RelOptRule {
 
   // implement RelOptRule
   public void onMatch(RelOptRuleCall call) {
-    final FilterRelBase filterRel = call.rel(0);
-    final AggregateRelBase aggRel = call.rel(1);
+    final Filter filterRel = call.rel(0);
+    final Aggregate aggRel = call.rel(1);
 
     final List<RexNode> conditions =
         RelOptUtil.conjunctions(filterRel.getCondition());

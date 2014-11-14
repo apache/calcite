@@ -14,27 +14,39 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.impl.mongodb;
+package org.apache.calcite.adapter.mongodb;
 
-import net.hydromatic.linq4j.*;
-import net.hydromatic.linq4j.function.Function1;
+import org.apache.calcite.adapter.java.AbstractQueryableTable;
+import org.apache.calcite.linq4j.AbstractEnumerable;
+import org.apache.calcite.linq4j.Enumerable;
+import org.apache.calcite.linq4j.Enumerator;
+import org.apache.calcite.linq4j.QueryProvider;
+import org.apache.calcite.linq4j.Queryable;
+import org.apache.calcite.linq4j.function.Function1;
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.schema.TranslatableTable;
+import org.apache.calcite.schema.impl.AbstractTableQueryable;
+import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.util.Util;
 
-import net.hydromatic.optiq.*;
-import net.hydromatic.optiq.impl.AbstractTableQueryable;
-import net.hydromatic.optiq.impl.java.AbstractQueryableTable;
-
-import org.eigenbase.rel.RelNode;
-import org.eigenbase.relopt.RelOptCluster;
-import org.eigenbase.relopt.RelOptTable;
-import org.eigenbase.reltype.RelDataType;
-import org.eigenbase.reltype.RelDataTypeFactory;
-import org.eigenbase.sql.type.SqlTypeName;
-import org.eigenbase.util.Util;
-
-import com.mongodb.*;
+import com.mongodb.AggregationOptions;
+import com.mongodb.AggregationOutput;
+import com.mongodb.BasicDBList;
+import com.mongodb.DB;
+import com.mongodb.DBCollection;
+import com.mongodb.DBCursor;
+import com.mongodb.DBObject;
 import com.mongodb.util.JSON;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Table based on a MongoDB collection.
@@ -188,7 +200,7 @@ public class MongoTable extends AbstractQueryableTable
   /** Executes an "aggregate" operation for pre-2.6 mongo servers.
    * <p>Return document is limited to 4M or 16M in size depending on
    * version of mongo <p>Helper method for
-   * {@link net.hydromatic.optiq.impl.mongodb.MongoTable#aggregate}
+   * {@link org.apache.calcite.adapter.mongodb.MongoTable#aggregate}
    * </p>
    * @param dbCollection
    * @param first the first aggregate action
@@ -200,8 +212,8 @@ public class MongoTable extends AbstractQueryableTable
           .toArray(new DBObject[rest.size()]));
   }
 
-  /** Implementation of {@link net.hydromatic.linq4j.Queryable} based on
-   * a {@link net.hydromatic.optiq.impl.mongodb.MongoTable}. */
+  /** Implementation of {@link org.apache.calcite.linq4j.Queryable} based on
+   * a {@link org.apache.calcite.adapter.mongodb.MongoTable}. */
   public static class MongoQueryable<T> extends AbstractTableQueryable<T> {
     public MongoQueryable(QueryProvider queryProvider, SchemaPlus schema,
         MongoTable table, String tableName) {
@@ -225,7 +237,7 @@ public class MongoTable extends AbstractQueryableTable
 
     /** Called via code-generation.
      *
-     * @see net.hydromatic.optiq.impl.mongodb.MongoMethod#MONGO_QUERYABLE_AGGREGATE
+     * @see org.apache.calcite.adapter.mongodb.MongoMethod#MONGO_QUERYABLE_AGGREGATE
      */
     @SuppressWarnings("UnusedDeclaration")
     public Enumerable<Object> aggregate(List<Map.Entry<String, Class>> fields,
@@ -235,7 +247,7 @@ public class MongoTable extends AbstractQueryableTable
 
     /** Called via code-generation.
      *
-     * @see net.hydromatic.optiq.impl.mongodb.MongoMethod#MONGO_QUERYABLE_FIND
+     * @see org.apache.calcite.adapter.mongodb.MongoMethod#MONGO_QUERYABLE_FIND
      */
     @SuppressWarnings("UnusedDeclaration")
     public Enumerable<Object> find(String filterJson,

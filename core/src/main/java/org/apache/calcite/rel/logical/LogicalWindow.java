@@ -14,61 +14,70 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel;
+package org.apache.calcite.rel.logical;
 
-import java.util.*;
+import org.apache.calcite.linq4j.Ord;
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.RelCollation;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.Window;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rex.RexFieldCollation;
+import org.apache.calcite.rex.RexInputRef;
+import org.apache.calcite.rex.RexLiteral;
+import org.apache.calcite.rex.RexLocalRef;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexOver;
+import org.apache.calcite.rex.RexProgram;
+import org.apache.calcite.rex.RexShuttle;
+import org.apache.calcite.rex.RexWindow;
+import org.apache.calcite.rex.RexWindowBound;
+import org.apache.calcite.util.BitSets;
+import org.apache.calcite.util.Pair;
 
-import org.eigenbase.relopt.*;
-import org.eigenbase.reltype.*;
-import org.eigenbase.rex.*;
-import org.eigenbase.util.Pair;
-import org.eigenbase.util.Util;
-
-import net.hydromatic.linq4j.Ord;
-
-import net.hydromatic.optiq.util.BitSets;
-
+import com.google.common.base.Objects;
 import com.google.common.base.Predicate;
-import com.google.common.collect.*;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.LinkedListMultimap;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Multimap;
+
+import java.util.AbstractList;
+import java.util.ArrayList;
+import java.util.BitSet;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
- * A relational expression representing a set of window aggregates.
- *
- * <p>A window rel can handle several window aggregate functions, over several
- * partitions, with pre- and post-expressions, and an optional post-filter.
- * Each of the partitions is defined by a partition key (zero or more columns)
- * and a range (logical or physical). The partitions expect the data to be
- * sorted correctly on input to the relational expression.
- *
- * <p>Each {@link org.eigenbase.rel.WindowRelBase.Window} has a set of
- * {@link org.eigenbase.rex.RexOver} objects.
- *
- * <p>Created by {@link org.eigenbase.rel.rules.WindowedAggSplitterRule}.
  */
-public final class WindowRel extends WindowRelBase {
+public final class LogicalWindow extends Window {
   /**
-   * Creates a WindowRel.
+   * Creates a LogicalWindow.
    *
    * @param cluster Cluster
    * @param child   Input relational expression
    * @param constants List of constants that are additional inputs
    * @param rowType Output row type
-   * @param windows Windows
+   * @param groups Windows
    */
-  public WindowRel(
+  public LogicalWindow(
       RelOptCluster cluster, RelTraitSet traits, RelNode child,
-      List<RexLiteral> constants, RelDataType rowType, List<Window> windows) {
-    super(cluster, traits, child, constants, rowType, windows);
+      List<RexLiteral> constants, RelDataType rowType, List<Group> groups) {
+    super(cluster, traits, child, constants, rowType, groups);
   }
 
-  @Override
-  public WindowRel copy(RelTraitSet traitSet, List<RelNode> inputs) {
-    return new WindowRel(
-        getCluster(), traitSet, sole(inputs), constants, rowType, windows);
+  @Override public LogicalWindow copy(RelTraitSet traitSet,
+      List<RelNode> inputs) {
+    return new LogicalWindow(getCluster(), traitSet, sole(inputs), constants,
+      rowType, groups);
   }
 
   /**
-   * Creates a WindowRel.
+   * Creates a LogicalWindow.
    */
   public static RelNode create(
       RelOptCluster cluster,
@@ -76,7 +85,7 @@ public final class WindowRel extends WindowRelBase {
       RelNode child,
       final RexProgram program,
       RelDataType outRowType) {
-    // Build a list of distinct windows, partitions and aggregate
+    // Build a list of distinct groups, partitions and aggregate
     // functions.
     final Multimap<WindowKey, RexOver> windowMap =
         LinkedListMultimap.create();
@@ -90,8 +99,7 @@ public final class WindowRel extends WindowRelBase {
     // Identify constants in the expression tree and replace them with
     // references to newly generated constant pool.
     RexShuttle replaceConstants = new RexShuttle() {
-      @Override
-      public RexNode visitLiteral(RexLiteral literal) {
+      @Override public RexNode visitLiteral(RexLiteral literal) {
         RexInputRef ref = constantPool.get(literal);
         if (ref != null) {
           return ref;
@@ -104,7 +112,7 @@ public final class WindowRel extends WindowRelBase {
       }
     };
 
-    // Build a list of windows, partitions, and aggregate functions. Each
+    // Build a list of groups, partitions, and aggregate functions. Each
     // aggregate function will add its arguments as outputs of the input
     // program.
     for (RexNode agg : program.getExprList()) {
@@ -115,9 +123,9 @@ public final class WindowRel extends WindowRelBase {
       }
     }
 
-    final Map<RexOver, WindowRelBase.RexWinAggCall> aggMap =
-        new HashMap<RexOver, WindowRelBase.RexWinAggCall>();
-    List<Window> windowList = new ArrayList<Window>();
+    final Map<RexOver, Window.RexWinAggCall> aggMap =
+        new HashMap<RexOver, Window.RexWinAggCall>();
+    List<Group> groups = new ArrayList<Group>();
     for (Map.Entry<WindowKey, Collection<RexOver>> entry
         : windowMap.asMap().entrySet()) {
       final WindowKey windowKey = entry.getKey();
@@ -134,13 +142,12 @@ public final class WindowRel extends WindowRelBase {
         aggMap.put(over, aggCall);
       }
       RexShuttle toInputRefs = new RexShuttle() {
-        @Override
-        public RexNode visitLocalRef(RexLocalRef localRef) {
+        @Override public RexNode visitLocalRef(RexLocalRef localRef) {
           return new RexInputRef(localRef.getIndex(), localRef.getType());
         }
       };
-      windowList.add(
-          new Window(
+      groups.add(
+          new Group(
               windowKey.groupSet,
               windowKey.isRows,
               windowKey.lowerBound.accept(toInputRefs),
@@ -152,8 +159,8 @@ public final class WindowRel extends WindowRelBase {
     // Figure out the type of the inputs to the output program.
     // They are: the inputs to this rel, followed by the outputs of
     // each window.
-    final List<WindowRelBase.RexWinAggCall> flattenedAggCallList =
-        new ArrayList<WindowRelBase.RexWinAggCall>();
+    final List<Window.RexWinAggCall> flattenedAggCallList =
+        new ArrayList<Window.RexWinAggCall>();
     List<Map.Entry<String, RelDataType>> fieldList =
         new ArrayList<Map.Entry<String, RelDataType>>(
             child.getRowType().getFieldList());
@@ -169,7 +176,7 @@ public final class WindowRel extends WindowRelBase {
       }
     }
 
-    for (Ord<Window> window : Ord.zip(windowList)) {
+    for (Ord<Group> window : Ord.zip(groups)) {
       for (Ord<RexWinAggCall> over : Ord.zip(window.e.aggCalls)) {
         // Add the k-th over expression of
         // the i-th window to the output of the program.
@@ -190,7 +197,7 @@ public final class WindowRel extends WindowRelBase {
         new RexShuttle() {
           public RexNode visitOver(RexOver over) {
             // Look up the aggCall which this expr was translated to.
-            final WindowRelBase.RexWinAggCall aggCall =
+            final Window.RexWinAggCall aggCall =
                 aggMap.get(over);
             assert aggCall != null;
             assert RelOptUtil.eq(
@@ -201,7 +208,7 @@ public final class WindowRel extends WindowRelBase {
                 true);
 
             // Find the index of the aggCall among all partitions of all
-            // windows.
+            // groups.
             final int aggCallIndex =
                 flattenedAggCallList.indexOf(aggCall);
             assert aggCallIndex >= 0;
@@ -230,14 +237,14 @@ public final class WindowRel extends WindowRelBase {
                 localRef.getType());
           }
         };
-    // TODO: The order that the "over" calls occur in the windows and
+    // TODO: The order that the "over" calls occur in the groups and
     // partitions may not match the order in which they occurred in the
     // original expression. We should add a project to permute them.
 
-    WindowRel window =
-        new WindowRel(
+    LogicalWindow window =
+        new LogicalWindow(
             cluster, traitSet, child, constants, intermediateRowType,
-            windowList);
+            groups);
 
     return RelOptUtil.createProject(
         window,
@@ -264,7 +271,7 @@ public final class WindowRel extends WindowRelBase {
     };
   }
 
-  /** Window specification. All windowed aggregates over the same window
+  /** Group specification. All windowed aggregates over the same window
    * (regardless of how it is specified, in terms of a named window or specified
    * attribute by attribute) will end up with the same window key. */
   private static class WindowKey {
@@ -287,20 +294,21 @@ public final class WindowRel extends WindowRelBase {
       this.upperBound = upperBound;
     }
 
-    @Override
-    public int hashCode() {
-      return Util.hashV(
-          groupSet, orderKeys, isRows, lowerBound, upperBound);
+    @Override public int hashCode() {
+      return com.google.common.base.Objects.hashCode(groupSet,
+          orderKeys,
+          isRows,
+          lowerBound,
+          upperBound);
     }
 
-    @Override
-    public boolean equals(Object obj) {
+    @Override public boolean equals(Object obj) {
       return obj == this
           || obj instanceof WindowKey
           && groupSet.equals(((WindowKey) obj).groupSet)
           && orderKeys.equals(((WindowKey) obj).orderKeys)
-          && Util.equal(lowerBound, ((WindowKey) obj).lowerBound)
-          && Util.equal(upperBound, ((WindowKey) obj).upperBound)
+          && Objects.equal(lowerBound, ((WindowKey) obj).lowerBound)
+          && Objects.equal(upperBound, ((WindowKey) obj).upperBound)
           && isRows == ((WindowKey) obj).isRows;
     }
   }
@@ -338,4 +346,4 @@ public final class WindowRel extends WindowRelBase {
   }
 }
 
-// End WindowRel.java
+// End LogicalWindow.java

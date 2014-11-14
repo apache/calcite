@@ -14,55 +14,71 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq;
+package org.apache.calcite.schema;
 
-import net.hydromatic.linq4j.Enumerable;
-import net.hydromatic.linq4j.QueryProvider;
-import net.hydromatic.linq4j.Queryable;
-import net.hydromatic.linq4j.expressions.*;
-
-import net.hydromatic.optiq.config.OptiqConnectionConfig;
-import net.hydromatic.optiq.config.OptiqConnectionConfigImpl;
-import net.hydromatic.optiq.config.OptiqConnectionProperty;
-import net.hydromatic.optiq.impl.java.JavaTypeFactory;
-import net.hydromatic.optiq.jdbc.*;
-import net.hydromatic.optiq.materialize.Lattice;
-
-import org.eigenbase.reltype.RelDataType;
-import org.eigenbase.reltype.RelDataTypeFactory;
-import org.eigenbase.reltype.RelProtoDataType;
-import org.eigenbase.rex.RexNode;
-import org.eigenbase.sql.type.SqlTypeUtil;
+import org.apache.calcite.DataContext;
+import org.apache.calcite.adapter.java.JavaTypeFactory;
+import org.apache.calcite.config.CalciteConnectionConfig;
+import org.apache.calcite.config.CalciteConnectionConfigImpl;
+import org.apache.calcite.config.CalciteConnectionProperty;
+import org.apache.calcite.jdbc.CalciteConnection;
+import org.apache.calcite.jdbc.CalcitePrepare;
+import org.apache.calcite.jdbc.CalciteRootSchema;
+import org.apache.calcite.jdbc.CalciteSchema;
+import org.apache.calcite.linq4j.Enumerable;
+import org.apache.calcite.linq4j.QueryProvider;
+import org.apache.calcite.linq4j.Queryable;
+import org.apache.calcite.linq4j.tree.Expression;
+import org.apache.calcite.linq4j.tree.Expressions;
+import org.apache.calcite.linq4j.tree.MethodCallExpression;
+import org.apache.calcite.linq4j.tree.Types;
+import org.apache.calcite.materialize.Lattice;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rel.type.RelProtoDataType;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.sql.type.SqlTypeUtil;
+import org.apache.calcite.util.BuiltInMethod;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 
-import java.lang.reflect.*;
+import java.lang.reflect.Type;
 import java.sql.Connection;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.TimeZone;
 
 /**
  * Utility functions for schemas.
  */
 public final class Schemas {
-  private static final com.google.common.base.Function<OptiqSchema.LatticeEntry,
-      OptiqSchema.TableEntry> TO_TABLE_ENTRY =
-      new com.google.common.base.Function<OptiqSchema.LatticeEntry,
-          OptiqSchema.TableEntry>() {
-        public OptiqSchema.TableEntry apply(OptiqSchema.LatticeEntry entry) {
-          final OptiqSchema.TableEntry starTable = entry.getStarTable();
+  private static final com.google.common.base.Function<
+      CalciteSchema.LatticeEntry,
+      CalciteSchema.TableEntry> TO_TABLE_ENTRY =
+      new com.google.common.base.Function<CalciteSchema.LatticeEntry,
+          CalciteSchema.TableEntry>() {
+        public CalciteSchema.TableEntry apply(
+            CalciteSchema.LatticeEntry entry) {
+          final CalciteSchema.TableEntry starTable = entry.getStarTable();
           assert starTable.getTable().getJdbcTableType()
               == Schema.TableType.STAR;
           return entry.getStarTable();
         }
       };
 
-  private static final com.google.common.base.Function<OptiqSchema.LatticeEntry,
+  private static final com.google.common.base.Function<
+      CalciteSchema.LatticeEntry,
       Lattice> TO_LATTICE =
-      new com.google.common.base.Function<OptiqSchema.LatticeEntry, Lattice>() {
-        public Lattice apply(OptiqSchema.LatticeEntry entry) {
+      new com.google.common.base.Function<CalciteSchema.LatticeEntry,
+          Lattice>() {
+        public Lattice apply(CalciteSchema.LatticeEntry entry) {
           return entry.getLattice();
         }
       };
@@ -71,14 +87,14 @@ public final class Schemas {
     throw new AssertionError("no instances!");
   }
 
-  public static OptiqSchema.FunctionEntry resolve(
+  public static CalciteSchema.FunctionEntry resolve(
       RelDataTypeFactory typeFactory,
       String name,
-      Collection<OptiqSchema.FunctionEntry> functionEntries,
+      Collection<CalciteSchema.FunctionEntry> functionEntries,
       List<RelDataType> argumentTypes) {
-    final List<OptiqSchema.FunctionEntry> matches =
-        new ArrayList<OptiqSchema.FunctionEntry>();
-    for (OptiqSchema.FunctionEntry entry : functionEntries) {
+    final List<CalciteSchema.FunctionEntry> matches =
+        new ArrayList<CalciteSchema.FunctionEntry>();
+    for (CalciteSchema.FunctionEntry entry : functionEntries) {
       if (matches(typeFactory, entry.getFunction(), argumentTypes)) {
         matches.add(entry);
       }
@@ -89,8 +105,7 @@ public final class Schemas {
     case 1:
       return matches.get(0);
     default:
-      throw new RuntimeException(
-          "More than one match for " + name
+      throw new RuntimeException("More than one match for " + name
           + " with arguments " + argumentTypes);
     }
   }
@@ -128,7 +143,7 @@ public final class Schemas {
     Expression call =
         Expressions.call(
             schemaExpression,
-            BuiltinMethod.SCHEMA_GET_SUB_SCHEMA.method,
+            BuiltInMethod.SCHEMA_GET_SUB_SCHEMA.method,
             Expressions.constant(name));
     //CHECKSTYLE: IGNORE 2
     //noinspection unchecked
@@ -139,10 +154,10 @@ public final class Schemas {
   }
 
   /** Converts a schema expression to a given type by calling the
-   * {@link net.hydromatic.optiq.SchemaPlus#unwrap(Class)} method. */
+   * {@link SchemaPlus#unwrap(Class)} method. */
   public static Expression unwrap(Expression call, Class type) {
     return Expressions.convert_(
-        Expressions.call(call, BuiltinMethod.SCHEMA_PLUS_UNWRAP.method,
+        Expressions.call(call, BuiltInMethod.SCHEMA_PLUS_UNWRAP.method,
             Expressions.constant(type)),
         type);
   }
@@ -154,23 +169,23 @@ public final class Schemas {
     if (Table.class.isAssignableFrom(clazz)) {
       expression = Expressions.call(
           expression(schema),
-          BuiltinMethod.SCHEMA_GET_TABLE.method,
+          BuiltInMethod.SCHEMA_GET_TABLE.method,
           Expressions.constant(tableName));
       if (ScannableTable.class.isAssignableFrom(clazz)) {
         return Expressions.call(
-            BuiltinMethod.SCHEMAS_ENUMERABLE.method,
+            BuiltInMethod.SCHEMAS_ENUMERABLE.method,
             Expressions.convert_(expression, ScannableTable.class),
             DataContext.ROOT);
       }
       if (FilterableTable.class.isAssignableFrom(clazz)) {
         return Expressions.call(
-            BuiltinMethod.SCHEMAS_ENUMERABLE2.method,
+            BuiltInMethod.SCHEMAS_ENUMERABLE2.method,
             Expressions.convert_(expression, FilterableTable.class),
             DataContext.ROOT);
       }
     } else {
       expression = Expressions.call(
-          BuiltinMethod.SCHEMAS_QUERYABLE.method,
+          BuiltInMethod.SCHEMAS_QUERYABLE.method,
           DataContext.ROOT,
           expression(schema),
           Expressions.constant(elementType),
@@ -180,7 +195,7 @@ public final class Schemas {
   }
 
   public static DataContext createDataContext(Connection connection) {
-    return new DummyDataContext((OptiqConnection) connection);
+    return new DummyDataContext((CalciteConnection) connection);
   }
 
   /** Returns a {@link Queryable}, given a fully-qualified table name. */
@@ -211,14 +226,14 @@ public final class Schemas {
     return table.asQueryable(root.getQueryProvider(), schema, tableName);
   }
 
-  /** Returns an {@link net.hydromatic.linq4j.Enumerable} over the rows of
+  /** Returns an {@link org.apache.calcite.linq4j.Enumerable} over the rows of
    * a given table, representing each row as an object array. */
   public static Enumerable<Object[]> enumerable(final ScannableTable table,
       final DataContext root) {
     return table.scan(root);
   }
 
-  /** Returns an {@link net.hydromatic.linq4j.Enumerable} over the rows of
+  /** Returns an {@link org.apache.calcite.linq4j.Enumerable} over the rows of
    * a given table, not applying any filters, representing each row as an object
    * array. */
   public static Enumerable<Object[]> enumerable(final FilterableTable table,
@@ -226,8 +241,8 @@ public final class Schemas {
     return table.scan(root, ImmutableList.<RexNode>of());
   }
 
-  /** Returns an {@link net.hydromatic.linq4j.Enumerable} over object arrays,
-   * given a fully-qualified table name which leads to a
+  /** Returns an {@link org.apache.calcite.linq4j.Enumerable} over object
+   * arrays, given a fully-qualified table name which leads to a
    * {@link ScannableTable}. */
   public static Table table(DataContext root, String... names) {
     SchemaPlus schema = root.getRootSchema();
@@ -243,93 +258,94 @@ public final class Schemas {
   }
 
   /** Parses and validates a SQL query. For use within Calcite only. */
-  public static OptiqPrepare.ParseResult parse(
-      final OptiqConnection connection, final OptiqSchema schema,
+  public static CalcitePrepare.ParseResult parse(
+      final CalciteConnection connection, final CalciteSchema schema,
       final List<String> schemaPath, final String sql) {
-    final OptiqPrepare prepare = OptiqPrepare.DEFAULT_FACTORY.apply();
-    final OptiqPrepare.Context context =
+    final CalcitePrepare prepare = CalcitePrepare.DEFAULT_FACTORY.apply();
+    final CalcitePrepare.Context context =
         makeContext(connection, schema, schemaPath,
-            ImmutableMap.<OptiqConnectionProperty, String>of());
-    OptiqPrepare.Dummy.push(context);
+            ImmutableMap.<CalciteConnectionProperty, String>of());
+    CalcitePrepare.Dummy.push(context);
     try {
       return prepare.parse(context, sql);
     } finally {
-      OptiqPrepare.Dummy.pop(context);
+      CalcitePrepare.Dummy.pop(context);
     }
   }
 
   /** Parses and validates a SQL query and converts to relational algebra. For
    * use within Calcite only. */
-  public static OptiqPrepare.ConvertResult convert(
-      final OptiqConnection connection, final OptiqSchema schema,
+  public static CalcitePrepare.ConvertResult convert(
+      final CalciteConnection connection, final CalciteSchema schema,
       final List<String> schemaPath, final String sql) {
-    final OptiqPrepare prepare = OptiqPrepare.DEFAULT_FACTORY.apply();
-    final OptiqPrepare.Context context =
+    final CalcitePrepare prepare = CalcitePrepare.DEFAULT_FACTORY.apply();
+    final CalcitePrepare.Context context =
         makeContext(connection, schema, schemaPath,
-            ImmutableMap.<OptiqConnectionProperty, String>of());
-    OptiqPrepare.Dummy.push(context);
+            ImmutableMap.<CalciteConnectionProperty, String>of());
+    CalcitePrepare.Dummy.push(context);
     try {
       return prepare.convert(context, sql);
     } finally {
-      OptiqPrepare.Dummy.pop(context);
+      CalcitePrepare.Dummy.pop(context);
     }
   }
 
   /** Prepares a SQL query for execution. For use within Calcite only. */
-  public static OptiqPrepare.PrepareResult<Object> prepare(
-      final OptiqConnection connection, final OptiqSchema schema,
+  public static CalcitePrepare.PrepareResult<Object> prepare(
+      final CalciteConnection connection, final CalciteSchema schema,
       final List<String> schemaPath, final String sql,
-      final ImmutableMap<OptiqConnectionProperty, String> map) {
-    final OptiqPrepare prepare = OptiqPrepare.DEFAULT_FACTORY.apply();
-    final OptiqPrepare.Context context =
+      final ImmutableMap<CalciteConnectionProperty, String> map) {
+    final CalcitePrepare prepare = CalcitePrepare.DEFAULT_FACTORY.apply();
+    final CalcitePrepare.Context context =
         makeContext(connection, schema, schemaPath, map);
-    OptiqPrepare.Dummy.push(context);
+    CalcitePrepare.Dummy.push(context);
     try {
       return prepare.prepareSql(context, sql, null, Object[].class, -1);
     } finally {
-      OptiqPrepare.Dummy.pop(context);
+      CalcitePrepare.Dummy.pop(context);
     }
   }
 
-  public static OptiqPrepare.Context makeContext(
-      final OptiqConnection connection, final OptiqSchema schema,
+  public static CalcitePrepare.Context makeContext(
+      final CalciteConnection connection, final CalciteSchema schema,
       final List<String> schemaPath,
-      final ImmutableMap<OptiqConnectionProperty, String> propValues) {
+      final ImmutableMap<CalciteConnectionProperty, String> propValues) {
     if (connection == null) {
-      final OptiqPrepare.Context context0 = OptiqPrepare.Dummy.peek();
-      final OptiqConnectionConfig config =
+      final CalcitePrepare.Context context0 = CalcitePrepare.Dummy.peek();
+      final CalciteConnectionConfig config =
           mutate(context0.config(), propValues);
       return makeContext(config, context0.getTypeFactory(),
           context0.getDataContext(), schema, schemaPath);
     } else {
-      final OptiqConnectionConfig config =
+      final CalciteConnectionConfig config =
           mutate(connection.config(), propValues);
       return makeContext(config, connection.getTypeFactory(),
           createDataContext(connection), schema, schemaPath);
     }
   }
 
-  private static OptiqConnectionConfig mutate(OptiqConnectionConfig config,
-      ImmutableMap<OptiqConnectionProperty, String> propValues) {
-    for (Map.Entry<OptiqConnectionProperty, String> e : propValues.entrySet()) {
+  private static CalciteConnectionConfig mutate(CalciteConnectionConfig config,
+      ImmutableMap<CalciteConnectionProperty, String> propValues) {
+    for (Map.Entry<CalciteConnectionProperty, String> e
+        : propValues.entrySet()) {
       config =
-          ((OptiqConnectionConfigImpl) config).set(e.getKey(), e.getValue());
+          ((CalciteConnectionConfigImpl) config).set(e.getKey(), e.getValue());
     }
     return config;
   }
 
-  private static OptiqPrepare.Context makeContext(
-      final OptiqConnectionConfig connectionConfig,
+  private static CalcitePrepare.Context makeContext(
+      final CalciteConnectionConfig connectionConfig,
       final JavaTypeFactory typeFactory,
       final DataContext dataContext,
-      final OptiqSchema schema,
+      final CalciteSchema schema,
       final List<String> schemaPath) {
-    return new OptiqPrepare.Context() {
+    return new CalcitePrepare.Context() {
       public JavaTypeFactory getTypeFactory() {
         return typeFactory;
       }
 
-      public OptiqRootSchema getRootSchema() {
+      public CalciteRootSchema getRootSchema() {
         return schema.root();
       }
 
@@ -342,7 +358,7 @@ public final class Schemas {
         return schemaPath;
       }
 
-      public OptiqConnectionConfig config() {
+      public CalciteConnectionConfig config() {
         return connectionConfig;
       }
 
@@ -350,9 +366,9 @@ public final class Schemas {
         return dataContext;
       }
 
-      public OptiqPrepare.SparkHandler spark() {
+      public CalcitePrepare.SparkHandler spark() {
         final boolean enable = config().spark();
-        return OptiqPrepare.Dummy.getSparkHandler(enable);
+        return CalcitePrepare.Dummy.getSparkHandler(enable);
       }
     };
   }
@@ -382,38 +398,40 @@ public final class Schemas {
   /** Returns the star tables defined in a schema.
    *
    * @param schema Schema */
-  public static List<OptiqSchema.TableEntry> getStarTables(OptiqSchema schema) {
-    final List<OptiqSchema.LatticeEntry> list = getLatticeEntries(schema);
+  public static List<CalciteSchema.TableEntry>
+  getStarTables(CalciteSchema schema) {
+    final List<CalciteSchema.LatticeEntry> list = getLatticeEntries(schema);
     return Lists.transform(list, TO_TABLE_ENTRY);
   }
 
   /** Returns the lattices defined in a schema.
    *
    * @param schema Schema */
-  public static List<Lattice> getLattices(OptiqSchema schema) {
-    final List<OptiqSchema.LatticeEntry> list = getLatticeEntries(schema);
+  public static List<Lattice> getLattices(CalciteSchema schema) {
+    final List<CalciteSchema.LatticeEntry> list = getLatticeEntries(schema);
     return Lists.transform(list, TO_LATTICE);
   }
 
   /** Returns the lattices defined in a schema.
    *
    * @param schema Schema */
-  public static List<OptiqSchema.LatticeEntry> getLatticeEntries(
-      OptiqSchema schema) {
-    final List<OptiqSchema.LatticeEntry> list = Lists.newArrayList();
+  public static List<CalciteSchema.LatticeEntry> getLatticeEntries(
+      CalciteSchema schema) {
+    final List<CalciteSchema.LatticeEntry> list = Lists.newArrayList();
     gatherLattices(schema, list);
     return list;
   }
 
-  private static void gatherLattices(OptiqSchema schema,
-      List<OptiqSchema.LatticeEntry> list) {
+  private static void gatherLattices(CalciteSchema schema,
+      List<CalciteSchema.LatticeEntry> list) {
     list.addAll(schema.getLatticeMap().values());
-    for (OptiqSchema subSchema : schema.getSubSchemaMap().values()) {
+    for (CalciteSchema subSchema : schema.getSubSchemaMap().values()) {
       gatherLattices(subSchema, list);
     }
   }
 
-  public static OptiqSchema subSchema(OptiqSchema schema, List<String> names) {
+  public static CalciteSchema subSchema(CalciteSchema schema,
+        List<String> names) {
     for (String string : names) {
       schema = schema.getSubSchema(string, false);
     }
@@ -421,7 +439,7 @@ public final class Schemas {
   }
 
   /** Generates a table name that is unique within the given schema. */
-  public static String uniqueTableName(OptiqSchema schema, String base) {
+  public static String uniqueTableName(CalciteSchema schema, String base) {
     String t = Preconditions.checkNotNull(base);
     for (int x = 0; schema.getTable(t, true) != null; x++) {
       t = base + x;
@@ -431,10 +449,10 @@ public final class Schemas {
 
   /** Dummy data context that has no variables. */
   private static class DummyDataContext implements DataContext {
-    private final OptiqConnection connection;
+    private final CalciteConnection connection;
     private final ImmutableMap<String, Object> map;
 
-    public DummyDataContext(OptiqConnection connection) {
+    public DummyDataContext(CalciteConnection connection) {
       this.connection = connection;
       this.map =
           ImmutableMap.<String, Object>of("timeZone", TimeZone.getDefault());

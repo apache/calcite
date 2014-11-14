@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.linq4j.expressions;
+package org.apache.calcite.linq4j.tree;
 
 /**
  * Represents the default value of a type or an empty expression.
@@ -24,8 +24,7 @@ public class DefaultExpression extends Expression {
     super(ExpressionType.Default, type);
   }
 
-  @Override
-  public Expression accept(Visitor visitor) {
+  @Override public Expression accept(Visitor visitor) {
     return visitor.visit(this);
   }
 }

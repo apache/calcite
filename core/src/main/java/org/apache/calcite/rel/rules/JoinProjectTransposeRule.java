@@ -14,60 +14,77 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel.rules;
+package org.apache.calcite.rel.rules;
 
-import java.util.*;
+import org.apache.calcite.plan.RelOptRule;
+import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.plan.RelOptRuleOperand;
+import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.Join;
+import org.apache.calcite.rel.core.JoinRelType;
+import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.core.RelFactories;
+import org.apache.calcite.rel.core.RelFactories.ProjectFactory;
+import org.apache.calcite.rel.logical.LogicalJoin;
+import org.apache.calcite.rel.logical.LogicalProject;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexLocalRef;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexProgram;
+import org.apache.calcite.rex.RexProgramBuilder;
+import org.apache.calcite.util.Pair;
 
-import org.eigenbase.rel.*;
-import org.eigenbase.rel.RelFactories.ProjectFactory;
-import org.eigenbase.relopt.*;
-import org.eigenbase.reltype.*;
-import org.eigenbase.rex.*;
-import org.eigenbase.util.Pair;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 /**
- * PullUpProjectsAboveJoinRule implements the rule for pulling {@link
- * ProjectRel}s beneath a {@link JoinRelBase} above the {@link JoinRelBase}. Projections
- * are pulled up if the {@link ProjectRel} doesn't originate from a null
- * generating input in an outer join.
+ * Planner rule that matches a
+ * {@link org.apache.calcite.rel.core.Join} one of whose inputs is a
+ * {@link org.apache.calcite.rel.logical.LogicalProject}, and
+ * pulls the project up.
+ *
+ * <p>Projections are pulled up if the
+ * {@link org.apache.calcite.rel.logical.LogicalProject} doesn't originate from
+ * a null generating input in an outer join.
  */
-public class PullUpProjectsAboveJoinRule extends RelOptRule {
+public class JoinProjectTransposeRule extends RelOptRule {
   //~ Static fields/initializers ---------------------------------------------
 
-  public static final PullUpProjectsAboveJoinRule BOTH_PROJECT =
-      new PullUpProjectsAboveJoinRule(
-          operand(
-              JoinRel.class,
-              operand(ProjectRel.class, any()),
-              operand(ProjectRel.class, any())),
-          "PullUpProjectsAboveJoinRule: with two ProjectRel children");
+  public static final JoinProjectTransposeRule BOTH_PROJECT =
+      new JoinProjectTransposeRule(
+          operand(LogicalJoin.class,
+              operand(LogicalProject.class, any()),
+              operand(LogicalProject.class, any())),
+          "JoinProjectTransposeRule: with two LogicalProject children");
 
-  public static final PullUpProjectsAboveJoinRule LEFT_PROJECT =
-      new PullUpProjectsAboveJoinRule(
-          operand(
-              JoinRel.class,
-              some(
-                  operand(ProjectRel.class, any()))),
-          "PullUpProjectsAboveJoinRule: with ProjectRel on left");
+  public static final JoinProjectTransposeRule LEFT_PROJECT =
+      new JoinProjectTransposeRule(
+          operand(LogicalJoin.class,
+              some(operand(LogicalProject.class, any()))),
+          "JoinProjectTransposeRule: with LogicalProject on left");
 
-  public static final PullUpProjectsAboveJoinRule RIGHT_PROJECT =
-      new PullUpProjectsAboveJoinRule(
+  public static final JoinProjectTransposeRule RIGHT_PROJECT =
+      new JoinProjectTransposeRule(
           operand(
-              JoinRel.class,
+              LogicalJoin.class,
               operand(RelNode.class, any()),
-              operand(ProjectRel.class, any())),
-          "PullUpProjectsAboveJoinRule: with ProjectRel on right");
+              operand(LogicalProject.class, any())),
+          "JoinProjectTransposeRule: with LogicalProject on right");
 
   private final ProjectFactory projectFactory;
 
   //~ Constructors -----------------------------------------------------------
-  public PullUpProjectsAboveJoinRule(
+  public JoinProjectTransposeRule(
       RelOptRuleOperand operand,
       String description) {
     this(operand, description, RelFactories.DEFAULT_PROJECT_FACTORY);
   }
 
-  public PullUpProjectsAboveJoinRule(
+  public JoinProjectTransposeRule(
       RelOptRuleOperand operand,
       String description, ProjectFactory pFactory) {
     super(operand, description);
@@ -78,11 +95,11 @@ public class PullUpProjectsAboveJoinRule extends RelOptRule {
 
   // implement RelOptRule
   public void onMatch(RelOptRuleCall call) {
-    JoinRelBase joinRel = call.rel(0);
+    Join joinRel = call.rel(0);
     JoinRelType joinType = joinRel.getJoinType();
 
-    ProjectRelBase leftProj;
-    ProjectRelBase rightProj;
+    Project leftProj;
+    Project rightProj;
     RelNode leftJoinChild;
     RelNode rightJoinChild;
 
@@ -115,7 +132,7 @@ public class PullUpProjectsAboveJoinRule extends RelOptRule {
     // into the bottom RexProgram.  Note that the join type is an inner
     // join because the inputs haven't actually been joined yet.
     RelDataType joinChildrenRowType =
-        JoinRelBase.deriveJoinRowType(
+        Join.deriveJoinRowType(
             leftJoinChild.getRowType(),
             rightJoinChild.getRowType(),
             JoinRelType.INNER,
@@ -182,13 +199,13 @@ public class PullUpProjectsAboveJoinRule extends RelOptRule {
             bottomProgram,
             rexBuilder);
 
-    // expand out the join condition and construct a new JoinRel that
+    // expand out the join condition and construct a new LogicalJoin that
     // directly references the join children without the intervening
     // ProjectRels
     RexNode newCondition =
         mergedProgram.expandLocalRef(
             mergedProgram.getCondition());
-    JoinRelBase newJoinRel =
+    Join newJoinRel =
         joinRel.copy(joinRel.getTraitSet(), newCondition,
             leftJoinChild, rightJoinChild, joinRel.getJoinType(),
             joinRel.isSemiJoinDone());
@@ -227,7 +244,7 @@ public class PullUpProjectsAboveJoinRule extends RelOptRule {
    * @return true if the rule was invoked with a left project child
    */
   protected boolean hasLeftChild(RelOptRuleCall call) {
-    return call.rel(1) instanceof ProjectRelBase;
+    return call.rel(1) instanceof Project;
   }
 
   /**
@@ -240,27 +257,27 @@ public class PullUpProjectsAboveJoinRule extends RelOptRule {
 
   /**
    * @param call RelOptRuleCall
-   * @return ProjectRel corresponding to the right child
+   * @return LogicalProject corresponding to the right child
    */
-  protected ProjectRelBase getRightChild(RelOptRuleCall call) {
+  protected Project getRightChild(RelOptRuleCall call) {
     return call.rel(2);
   }
 
   /**
    * Returns the child of the project that will be used as input into the new
-   * JoinRel once the projects are pulled above the JoinRel.
+   * LogicalJoin once the projects are pulled above the LogicalJoin.
    *
    * @param call      RelOptRuleCall
    * @param project   project RelNode
    * @param leftChild true if the project corresponds to the left projection
    * @return child of the project that will be used as input into the new
-   * JoinRel once the projects are pulled above the JoinRel
+   * LogicalJoin once the projects are pulled above the LogicalJoin
    */
   protected RelNode getProjectChild(
       RelOptRuleCall call,
-      ProjectRelBase project,
+      Project project,
       boolean leftChild) {
-    return project.getChild();
+    return project.getInput();
   }
 
   /**
@@ -278,7 +295,7 @@ public class PullUpProjectsAboveJoinRule extends RelOptRule {
    * @param projects           Projection expressions &amp; names to be created
    */
   private void createProjectExprs(
-      ProjectRelBase projRel,
+      Project projRel,
       RelNode joinChild,
       int adjustmentAmount,
       RexBuilder rexBuilder,
@@ -322,4 +339,4 @@ public class PullUpProjectsAboveJoinRule extends RelOptRule {
   }
 }
 
-// End PullUpProjectsAboveJoinRule.java
+// End JoinProjectTransposeRule.java

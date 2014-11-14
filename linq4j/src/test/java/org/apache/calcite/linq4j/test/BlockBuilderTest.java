@@ -14,14 +14,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.linq4j.test;
+package org.apache.calcite.linq4j.test;
 
-import net.hydromatic.linq4j.expressions.*;
+import org.apache.calcite.linq4j.tree.BinaryExpression;
+import org.apache.calcite.linq4j.tree.BlockBuilder;
+import org.apache.calcite.linq4j.tree.Expression;
+import org.apache.calcite.linq4j.tree.ExpressionType;
+import org.apache.calcite.linq4j.tree.Expressions;
+import org.apache.calcite.linq4j.tree.OptimizeVisitor;
+import org.apache.calcite.linq4j.tree.Visitor;
 
 import org.junit.Before;
 import org.junit.Test;
 
-import static net.hydromatic.linq4j.test.BlockBuilderBase.*;
+import static org.apache.calcite.linq4j.test.BlockBuilderBase.FOUR;
+import static org.apache.calcite.linq4j.test.BlockBuilderBase.ONE;
+import static org.apache.calcite.linq4j.test.BlockBuilderBase.TWO;
 
 import static org.junit.Assert.assertEquals;
 
@@ -44,11 +52,11 @@ public class BlockBuilderTest {
     b.add(nested.toBlock());
     assertEquals(
         "{\n"
-        + "  final int x = 1 + 2;\n"
-        + "  {\n"
-        + "    return x + x;\n"
-        + "  }\n"
-        + "}\n",
+            + "  final int x = 1 + 2;\n"
+            + "  {\n"
+            + "    return x + x;\n"
+            + "  }\n"
+            + "}\n",
         b.toBlock().toString());
   }
 

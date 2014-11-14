@@ -14,26 +14,32 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel;
+package org.apache.calcite.rel.core;
 
-import java.util.*;
+import org.apache.calcite.linq4j.function.Function1;
+import org.apache.calcite.linq4j.function.Functions;
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptCost;
+import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.AbstractRelNode;
+import org.apache.calcite.rel.RelInput;
+import org.apache.calcite.rel.RelWriter;
+import org.apache.calcite.rel.metadata.RelMetadataQuery;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rex.RexLiteral;
+import org.apache.calcite.sql.SqlExplainLevel;
+import org.apache.calcite.sql.type.SqlTypeUtil;
+import org.apache.calcite.util.Pair;
 
-import org.eigenbase.rel.metadata.*;
-import org.eigenbase.relopt.*;
-import org.eigenbase.reltype.*;
-import org.eigenbase.rex.*;
-import org.eigenbase.sql.*;
-import org.eigenbase.sql.type.*;
-import org.eigenbase.util.Pair;
-
-import net.hydromatic.linq4j.function.Function1;
-import net.hydromatic.linq4j.function.Functions;
+import java.util.List;
 
 /**
- * <code>ValuesRelBase</code> is an abstract base class for implementations of
- * {@link ValuesRel}.
+ * Relational expression whose value is a sequence of zero or more literal row
+ * values.
  */
-public abstract class ValuesRelBase extends AbstractRelNode {
+public abstract class Values extends AbstractRelNode {
   /**
    * Lambda that helps render tuples as strings.
    */
@@ -54,17 +60,19 @@ public abstract class ValuesRelBase extends AbstractRelNode {
   //~ Constructors -----------------------------------------------------------
 
   /**
-   * Creates a new ValuesRelBase. Note that tuples passed in become owned by
+   * Creates a new Values.
+   *
+   * <p>Note that tuples passed in become owned by
    * this rel (without a deep copy), so caller must not modify them after this
    * call, otherwise bad things will happen.
    *
-   * @param cluster .
-   * @param rowType row type for tuples produced by this rel
+   * @param cluster Cluster that this relational expression belongs to
+   * @param rowType Row type for tuples produced by this rel
    * @param tuples  2-dimensional array of tuple values to be produced; outer
    *                list contains tuples; each inner list is one tuple; all
    *                tuples must be of same length, conforming to rowType
    */
-  protected ValuesRelBase(
+  protected Values(
       RelOptCluster cluster,
       RelDataType rowType,
       List<List<RexLiteral>> tuples,
@@ -76,11 +84,10 @@ public abstract class ValuesRelBase extends AbstractRelNode {
   }
 
   /**
-   * Creates a ValuesRelBase by parsing serialized output.
+   * Creates a Values by parsing serialized output.
    */
-  public ValuesRelBase(RelInput input) {
-    this(
-        input.getCluster(), input.getRowType("type"),
+  public Values(RelInput input) {
+    this(input.getCluster(), input.getRowType("type"),
         input.getTuples("tuples"), input.getTraitSet());
   }
 
@@ -159,4 +166,4 @@ public abstract class ValuesRelBase extends AbstractRelNode {
   }
 }
 
-// End ValuesRelBase.java
+// End Values.java

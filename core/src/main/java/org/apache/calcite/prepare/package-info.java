@@ -18,6 +18,6 @@
 /**
  * Preparation of queries (parsing, planning and implementation).
  */
-package net.hydromatic.optiq.prepare;
+package org.apache.calcite.prepare;
 
 // End package-info.java

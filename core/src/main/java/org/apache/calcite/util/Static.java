@@ -14,28 +14,38 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.util;
+package org.apache.calcite.util;
 
-import org.eigenbase.resource.EigenbaseNewResource;
-import org.eigenbase.resource.Resources;
+import org.apache.calcite.runtime.CalciteResource;
+
+import org.apache.calcite.runtime.Resources;
 
 /**
  * Definitions of objects to be statically imported.
  *
- * <p>Developers: Give careful consideration before including an object in this
- * class.
- * Pros: Code that uses these objects will be terser.
- * Cons: Namespace pollution,
- * code that is difficult to understand (a general problem with static imports),
- * potential cyclic initialization.</p>
+ * <h3>Note to developers</h3>
+ *
+ * <p>Please give careful consideration before including an object in this
+ * class. Pros:
+ * <ul>
+ * <li>Code that uses these objects will be terser.
+ * </ul>
+ *
+ * <p>Cons:</p>
+ * <ul>
+ * <li>Namespace pollution,
+ * <li>code that is difficult to understand (a general problem with static
+ * imports),
+ * <li>potential cyclic initialization.
+ * </ul>
  */
 public abstract class Static {
   private Static() {}
 
   /** Resources. */
-  public static final EigenbaseNewResource RESOURCE =
-      Resources.create("org.eigenbase.resource.EigenbaseResource",
-          EigenbaseNewResource.class);
+  public static final CalciteResource RESOURCE =
+      Resources.create("org.apache.calcite.runtime.CalciteResource",
+          CalciteResource.class);
 }
 
 // End Static.java

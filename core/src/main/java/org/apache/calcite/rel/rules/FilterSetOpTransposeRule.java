@@ -14,35 +14,41 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel.rules;
+package org.apache.calcite.rel.rules;
+
+import org.apache.calcite.plan.RelOptRule;
+import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.Filter;
+import org.apache.calcite.rel.core.RelFactories;
+import org.apache.calcite.rel.core.SetOp;
+import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexNode;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import org.eigenbase.rel.*;
-import org.eigenbase.relopt.*;
-import org.eigenbase.reltype.*;
-import org.eigenbase.rex.*;
-
 /**
- * PushFilterPastSetOpRule implements the rule for pushing a {@link FilterRel}
- * past a {@link SetOpRel}.
+ * Planner rule that pushes a {@link org.apache.calcite.rel.core.Filter}
+ * past a {@link org.apache.calcite.rel.core.SetOp}.
  */
-public class PushFilterPastSetOpRule extends RelOptRule {
-  public static final PushFilterPastSetOpRule INSTANCE =
-      new PushFilterPastSetOpRule(RelFactories.DEFAULT_FILTER_FACTORY);
+public class FilterSetOpTransposeRule extends RelOptRule {
+  public static final FilterSetOpTransposeRule INSTANCE =
+      new FilterSetOpTransposeRule(RelFactories.DEFAULT_FILTER_FACTORY);
 
   private final RelFactories.FilterFactory filterFactory;
 
   //~ Constructors -----------------------------------------------------------
 
   /**
-   * Creates a PushFilterPastSetOpRule.
+   * Creates a FilterSetOpTransposeRule.
    */
-  public PushFilterPastSetOpRule(RelFactories.FilterFactory filterFactory) {
+  public FilterSetOpTransposeRule(RelFactories.FilterFactory filterFactory) {
     super(
-        operand(FilterRelBase.class,
-            operand(SetOpRel.class, any())));
+        operand(Filter.class,
+            operand(SetOp.class, any())));
     this.filterFactory = filterFactory;
   }
 
@@ -50,8 +56,8 @@ public class PushFilterPastSetOpRule extends RelOptRule {
 
   // implement RelOptRule
   public void onMatch(RelOptRuleCall call) {
-    FilterRelBase filterRel = call.rel(0);
-    SetOpRel setOpRel = call.rel(1);
+    Filter filterRel = call.rel(0);
+    SetOp setOp = call.rel(1);
 
     RexNode condition = filterRel.getCondition();
 
@@ -59,10 +65,10 @@ public class PushFilterPastSetOpRule extends RelOptRule {
     // condition to reference each setop child
     RexBuilder rexBuilder = filterRel.getCluster().getRexBuilder();
     List<RelDataTypeField> origFields =
-        setOpRel.getRowType().getFieldList();
+        setOp.getRowType().getFieldList();
     int[] adjustments = new int[origFields.size()];
     List<RelNode> newSetOpInputs = new ArrayList<RelNode>();
-    for (RelNode input : setOpRel.getInputs()) {
+    for (RelNode input : setOp.getInputs()) {
       RexNode newCondition =
           condition.accept(
               new RelOptUtil.RexInputConverter(
@@ -74,11 +80,11 @@ public class PushFilterPastSetOpRule extends RelOptRule {
     }
 
     // create a new setop whose children are the filters created above
-    SetOpRel newSetOpRel =
-        setOpRel.copy(setOpRel.getTraitSet(), newSetOpInputs);
+    SetOp newSetOp =
+        setOp.copy(setOp.getTraitSet(), newSetOpInputs);
 
-    call.transformTo(newSetOpRel);
+    call.transformTo(newSetOp);
   }
 }
 
-// End PushFilterPastSetOpRule.java
+// End FilterSetOpTransposeRule.java

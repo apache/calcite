@@ -14,9 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.util;
+package org.apache.calcite.util;
 
-import java.util.*;
+import java.util.AbstractList;
+import java.util.AbstractSet;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.NoSuchElementException;
+import java.util.Set;
 
 /**
  * Partially-ordered set.
@@ -98,8 +109,7 @@ public class PartiallyOrderedSet<E> extends AbstractSet<E> {
   }
 
   @SuppressWarnings("NullableProblems")
-  @Override
-  public Iterator<E> iterator() {
+  @Override public Iterator<E> iterator() {
     final Iterator<E> iterator = map.keySet().iterator();
     return new Iterator<E>() {
       E previous;
@@ -124,19 +134,16 @@ public class PartiallyOrderedSet<E> extends AbstractSet<E> {
     };
   }
 
-  @Override
-  public int size() {
+  @Override public int size() {
     return map.size();
   }
 
-  @Override
-  public boolean contains(Object o) {
+  @Override public boolean contains(Object o) {
     //noinspection SuspiciousMethodCalls
     return map.containsKey(o);
   }
 
-  @Override
-  public boolean remove(Object o) {
+  @Override public boolean remove(Object o) {
     @SuppressWarnings("SuspiciousMethodCalls")
     final Node<E> node = map.remove(o);
     if (node == null) {
@@ -168,8 +175,7 @@ public class PartiallyOrderedSet<E> extends AbstractSet<E> {
   /**
    * Adds an element to this lattice.
    */
-  @Override
-  public boolean add(E e) {
+  @Override public boolean add(E e) {
     assert e != null;
     assert !DEBUG || isValid(true);
     Node<E> node = map.get(e);
@@ -588,8 +594,7 @@ public class PartiallyOrderedSet<E> extends AbstractSet<E> {
     return new StripList<E>(bottomNode.parentList);
   }
 
-  @Override
-  public void clear() {
+  @Override public void clear() {
     map.clear();
     assert topNode.parentList.isEmpty();
     topNode.childList.clear();
@@ -673,8 +678,7 @@ public class PartiallyOrderedSet<E> extends AbstractSet<E> {
       this.e = e;
     }
 
-    @Override
-    public String toString() {
+    @Override public String toString() {
       return e.toString();
     }
   }
@@ -693,8 +697,7 @@ public class PartiallyOrderedSet<E> extends AbstractSet<E> {
       this.description = top ? "top" : "bottom";
     }
 
-    @Override
-    public String toString() {
+    @Override public String toString() {
       return description;
     }
   }
@@ -739,13 +742,11 @@ public class PartiallyOrderedSet<E> extends AbstractSet<E> {
       this.list = list;
     }
 
-    @Override
-    public E get(int index) {
+    @Override public E get(int index) {
       return list.get(index).e;
     }
 
-    @Override
-    public int size() {
+    @Override public int size() {
       return list.size();
     }
   }

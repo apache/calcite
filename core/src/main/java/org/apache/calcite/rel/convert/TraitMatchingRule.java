@@ -14,15 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel.convert;
+package org.apache.calcite.rel.convert;
 
-import org.eigenbase.rel.*;
-import org.eigenbase.relopt.*;
+import org.apache.calcite.plan.Convention;
+import org.apache.calcite.plan.RelOptRule;
+import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.plan.RelOptRuleOperandChildPolicy;
+import org.apache.calcite.rel.RelNode;
 
 /**
  * TraitMatchingRule adapts a converter rule, restricting it to fire only when
  * its input already matches the expected output trait. This can be used with
- * {@link org.eigenbase.relopt.hep.HepPlanner} in cases where alternate
+ * {@link org.apache.calcite.plan.hep.HepPlanner} in cases where alternate
  * implementations are available and it is desirable to minimize converters.
  */
 public class TraitMatchingRule extends RelOptRule {

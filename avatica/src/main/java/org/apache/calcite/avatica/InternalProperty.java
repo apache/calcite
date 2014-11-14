@@ -14,15 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.avatica;
+package org.apache.calcite.avatica;
 
-import net.hydromatic.avatica.ConnectionProperty.Type;
+import org.apache.calcite.avatica.ConnectionProperty.Type;
 
-import java.util.*;
+import java.util.Map;
 
 /**
  * Definitions of properties that drive the behavior of
- * {@link net.hydromatic.avatica.AvaticaDatabaseMetaData}.
+ * {@link org.apache.calcite.avatica.AvaticaDatabaseMetaData}.
  */
 public enum InternalProperty {
   /** Whether identifiers are matched case-sensitively. */

@@ -14,22 +14,30 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel.rules;
+package org.apache.calcite.rel.rules;
 
-import java.util.*;
+import org.apache.calcite.plan.RelOptRule;
+import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.SetOp;
+import org.apache.calcite.rel.logical.LogicalProject;
+import org.apache.calcite.rex.RexInputRef;
 
-import org.eigenbase.rel.*;
-import org.eigenbase.relopt.*;
-import org.eigenbase.rex.*;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
- * PushProjectPastSetOpRule implements the rule for pushing a {@link ProjectRel}
- * past a {@link SetOpRel}. The children of the {@link SetOpRel} will project
- * only the {@link RexInputRef}s referenced in the original {@link ProjectRel}.
+ * Planner rule that pushes
+ * a {@link org.apache.calcite.rel.logical.LogicalProject}
+ * past a {@link org.apache.calcite.rel.core.SetOp}.
+ *
+ * <p>The children of the {@code SetOp} will project
+ * only the {@link RexInputRef}s referenced in the original
+ * {@code LogicalProject}.
  */
-public class PushProjectPastSetOpRule extends RelOptRule {
-  public static final PushProjectPastSetOpRule INSTANCE =
-      new PushProjectPastSetOpRule(PushProjector.ExprCondition.FALSE);
+public class ProjectSetOpTransposeRule extends RelOptRule {
+  public static final ProjectSetOpTransposeRule INSTANCE =
+      new ProjectSetOpTransposeRule(PushProjector.ExprCondition.FALSE);
 
   //~ Instance fields --------------------------------------------------------
 
@@ -41,17 +49,17 @@ public class PushProjectPastSetOpRule extends RelOptRule {
   //~ Constructors -----------------------------------------------------------
 
   /**
-   * Creates a PushProjectPastSetOpRule with an explicit condition whether
+   * Creates a ProjectSetOpTransposeRule with an explicit condition whether
    * to preserve expressions.
    *
    * @param preserveExprCondition Condition whether to preserve expressions
    */
-  public PushProjectPastSetOpRule(
+  public ProjectSetOpTransposeRule(
       PushProjector.ExprCondition preserveExprCondition) {
     super(
         operand(
-            ProjectRel.class,
-            operand(SetOpRel.class, any())));
+            LogicalProject.class,
+            operand(SetOp.class, any())));
     this.preserveExprCondition = preserveExprCondition;
   }
 
@@ -59,17 +67,17 @@ public class PushProjectPastSetOpRule extends RelOptRule {
 
   // implement RelOptRule
   public void onMatch(RelOptRuleCall call) {
-    ProjectRel origProj = call.rel(0);
-    SetOpRel setOpRel = call.rel(1);
+    LogicalProject origProj = call.rel(0);
+    SetOp setOp = call.rel(1);
 
     // cannot push project past a distinct
-    if (!setOpRel.all) {
+    if (!setOp.all) {
       return;
     }
 
     // locate all fields referenced in the projection
     PushProjector pushProject =
-        new PushProjector(origProj, null, setOpRel, preserveExprCondition);
+        new PushProjector(origProj, null, setOp, preserveExprCondition);
     pushProject.locateAllRefs();
 
     List<RelNode> newSetOpInputs = new ArrayList<RelNode>();
@@ -80,10 +88,10 @@ public class PushProjectPastSetOpRule extends RelOptRule {
     // to try to keep expensive expressions above the join,
     // because UNION ALL does not have any filtering effect,
     // and it is the only operator this rule currently acts on
-    for (RelNode input : setOpRel.getInputs()) {
+    for (RelNode input : setOp.getInputs()) {
       // be lazy:  produce two ProjectRels, and let another rule
       // merge them (could probably just clone origProj instead?)
-      ProjectRel p =
+      LogicalProject p =
           pushProject.createProjectRefsAndExprs(
               input, true, false);
       newSetOpInputs.add(
@@ -91,11 +99,11 @@ public class PushProjectPastSetOpRule extends RelOptRule {
     }
 
     // create a new setop whose children are the ProjectRels created above
-    SetOpRel newSetOpRel =
-        setOpRel.copy(setOpRel.getTraitSet(), newSetOpInputs);
+    SetOp newSetOp =
+        setOp.copy(setOp.getTraitSet(), newSetOpInputs);
 
-    call.transformTo(newSetOpRel);
+    call.transformTo(newSetOp);
   }
 }
 
-// End PushProjectPastSetOpRule.java
+// End ProjectSetOpTransposeRule.java

@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql;
+package org.apache.calcite.sql;
 
-import org.eigenbase.util.*;
+import org.apache.calcite.util.Util;
 
 /**
  * Enumeration of possible syntactic types of {@link SqlOperator operators}.
@@ -141,8 +141,7 @@ public enum SqlSyntax {
         SqlCall call,
         int leftPrec,
         int rightPrec) {
-      throw Util.newInternal(
-          "Internal operator '" + operator
+      throw Util.newInternal("Internal operator '" + operator
           + "' cannot be un-parsed");
     }
   };

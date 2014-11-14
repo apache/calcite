@@ -18,6 +18,6 @@
 /**
  * Support for algebraic maps.
  */
-package org.eigenbase.util.mapping;
+package org.apache.calcite.util.mapping;
 
 // End package-info.java

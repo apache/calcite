@@ -14,12 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql;
+package org.apache.calcite.sql;
 
-import org.eigenbase.reltype.*;
-import org.eigenbase.sql.type.*;
-import org.eigenbase.sql.validate.*;
-import org.eigenbase.util.*;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.sql.type.SqlOperandTypeChecker;
+import org.apache.calcite.sql.type.SqlOperandTypeInference;
+import org.apache.calcite.sql.type.SqlReturnTypeInference;
+import org.apache.calcite.sql.type.SqlTypeUtil;
+import org.apache.calcite.sql.validate.SqlValidator;
+import org.apache.calcite.util.Util;
 
 /**
  * A postfix unary operator.
@@ -85,8 +88,7 @@ public class SqlPostfixOperator extends SqlOperator {
     return type;
   }
 
-  @Override
-  public boolean validRexOperands(int count, boolean fail) {
+  @Override public boolean validRexOperands(int count, boolean fail) {
     if (count != 1) {
       assert !fail : "wrong operand count " + count + " for " + this;
       return false;

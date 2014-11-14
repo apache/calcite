@@ -14,9 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.linq4j.test;
+package org.apache.calcite.linq4j.test;
 
-import net.hydromatic.linq4j.expressions.*;
+import org.apache.calcite.linq4j.tree.BlockBuilder;
+import org.apache.calcite.linq4j.tree.DeclarationStatement;
+import org.apache.calcite.linq4j.tree.Expression;
+import org.apache.calcite.linq4j.tree.ExpressionType;
+import org.apache.calcite.linq4j.tree.Expressions;
+import org.apache.calcite.linq4j.tree.ParameterExpression;
 
 import org.hamcrest.CoreMatchers;
 import org.junit.Before;
@@ -24,7 +29,9 @@ import org.junit.Test;
 
 import java.lang.reflect.Modifier;
 
-import static net.hydromatic.linq4j.test.BlockBuilderBase.*;
+import static org.apache.calcite.linq4j.test.BlockBuilderBase.ONE;
+import static org.apache.calcite.linq4j.test.BlockBuilderBase.TRUE;
+import static org.apache.calcite.linq4j.test.BlockBuilderBase.TWO;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
@@ -78,9 +85,9 @@ public class InlinerTest {
             Expressions.add(decl.parameter, decl.parameter)));
     assertEquals(
         "{\n"
-        + "  final int x = p1 - p2;\n"
-        + "  return x + x;\n"
-        + "}\n",
+            + "  final int x = p1 - p2;\n"
+            + "  return x + x;\n"
+            + "}\n",
         b.toBlock().toString());
   }
 
@@ -102,25 +109,25 @@ public class InlinerTest {
     builder.add(Expressions.return_(null, v));
     assertEquals(
         "{\n"
-        + "  int t;\n"
-        + "  return (t = 1) != a ? t : c;\n"
-        + "}\n",
+            + "  int t;\n"
+            + "  return (t = 1) != a ? t : c;\n"
+            + "}\n",
         Expressions.toString(builder.toBlock()));
   }
 
   @Test public void testAssignInConditionOptimizedOut() {
     checkAssignInConditionOptimizedOut(Modifier.FINAL,
         "{\n"
-        + "  return 1 != a ? b : c;\n"
-        + "}\n");
+            + "  return 1 != a ? b : c;\n"
+            + "}\n");
   }
 
   @Test public void testAssignInConditionNotOptimizedWithoutFinal() {
     checkAssignInConditionOptimizedOut(0,
         "{\n"
-        + "  int t;\n"
-        + "  return (t = 1) != a ? b : c;\n"
-        + "}\n");
+            + "  int t;\n"
+            + "  return (t = 1) != a ? b : c;\n"
+            + "}\n");
   }
 
   void checkAssignInConditionOptimizedOut(int modifiers, String s) {
@@ -162,9 +169,9 @@ public class InlinerTest {
     builder.add(Expressions.return_(null, v));
     assertEquals(
         "{\n"
-        + "  int t = 2;\n"
-        + "  return (t = 1) != a ? t : c;\n"
-        + "}\n",
+            + "  int t = 2;\n"
+            + "  return (t = 1) != a ? t : c;\n"
+            + "}\n",
         Expressions.toString(builder.toBlock()));
   }
 
@@ -183,8 +190,8 @@ public class InlinerTest {
     builder.add(Expressions.return_(null, Expressions.condition(b, t, TWO)));
     assertEquals(
         "{\n"
-        + "  return u + v;\n"
-        + "}\n",
+            + "  return u + v;\n"
+            + "}\n",
         Expressions.toString(builder.toBlock()));
   }
 }

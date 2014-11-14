@@ -14,24 +14,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel;
+package org.apache.calcite.rel.logical;
 
-import java.util.*;
+import org.apache.calcite.plan.Convention;
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.prepare.Prepare;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.TableModify;
 
-import org.eigenbase.relopt.*;
-
-import net.hydromatic.optiq.prepare.Prepare;
+import java.util.List;
 
 /**
- * TableModificationRel is like TableAccessRel, but represents a request to
- * modify a table rather than read from it. It takes one child which produces
- * the modified rows. (For INSERT, the new values; for DELETE, the old values;
- * for UPDATE, all old values plus updated new values.)
+ * Sub-class of {@link org.apache.calcite.rel.core.TableModify}
+ * not targeted at any particular engine or calling convention.
  */
-public final class TableModificationRel extends TableModificationRelBase {
+public final class LogicalTableModify extends TableModify {
   //~ Constructors -----------------------------------------------------------
 
-  public TableModificationRel(
+  public LogicalTableModify(
       RelOptCluster cluster,
       RelOptTable table,
       Prepare.CatalogReader schema,
@@ -52,10 +54,10 @@ public final class TableModificationRel extends TableModificationRelBase {
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override
-  public TableModificationRel copy(RelTraitSet traitSet, List<RelNode> inputs) {
+  @Override public LogicalTableModify copy(RelTraitSet traitSet,
+      List<RelNode> inputs) {
     assert traitSet.containsIfApplicable(Convention.NONE);
-    return new TableModificationRel(
+    return new LogicalTableModify(
         getCluster(),
         table,
         catalogReader,
@@ -66,4 +68,4 @@ public final class TableModificationRel extends TableModificationRelBase {
   }
 }
 
-// End TableModificationRel.java
+// End LogicalTableModify.java

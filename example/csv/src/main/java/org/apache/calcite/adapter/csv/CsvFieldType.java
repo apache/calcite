@@ -14,13 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.impl.csv;
+package org.apache.calcite.adapter.csv;
 
-import net.hydromatic.linq4j.expressions.Primitive;
-
-import net.hydromatic.optiq.impl.java.JavaTypeFactory;
-
-import org.eigenbase.reltype.RelDataType;
+import org.apache.calcite.adapter.java.JavaTypeFactory;
+import org.apache.calcite.linq4j.tree.Primitive;
+import org.apache.calcite.rel.type.RelDataType;
 
 import java.util.HashMap;
 import java.util.Map;

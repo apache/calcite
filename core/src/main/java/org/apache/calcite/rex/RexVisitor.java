@@ -14,14 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rex;
+package org.apache.calcite.rex;
 
 /**
  * Visitor pattern for traversing a tree of {@link RexNode} objects.
  *
- * @see org.eigenbase.util.Glossary#VISITOR_PATTERN
+ * @see org.apache.calcite.util.Glossary#VISITOR_PATTERN
  * @see RexShuttle
  * @see RexVisitorImpl
+ *
+ * @param <R> Return type
  */
 public interface RexVisitor<R> {
   //~ Methods ----------------------------------------------------------------

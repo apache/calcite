@@ -14,12 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.impl.splunk.util;
+package org.apache.calcite.adapter.splunk.util;
 
-import java.io.*;
-import java.net.*;
-
-import javax.net.*;
+import java.io.IOException;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.Socket;
+import java.net.SocketException;
+import javax.net.SocketFactory;
 
 /**
  * Extends the SocketFactory object with the main functionality being that the
@@ -93,8 +95,7 @@ public class SocketFactoryImpl extends SocketFactory {
    */
   public static final int LINGER = 0;
 
-  @Override
-  public Socket createSocket() throws IOException {
+  @Override public Socket createSocket() throws IOException {
     Socket s = new Socket();
     return applySettings(s);
   }
@@ -123,22 +124,21 @@ public class SocketFactoryImpl extends SocketFactory {
     return s;
   }
 
-  @Override
-  public Socket createSocket(String host, int port) throws IOException {
+  @Override public Socket createSocket(String host, int port)
+      throws IOException {
     Socket s = createSocket();
     s.connect(new InetSocketAddress(host, port), SO_CONNECT_TIMEOUT);
     return s;
   }
 
-  @Override
-  public Socket createSocket(InetAddress host, int port) throws IOException {
+  @Override public Socket createSocket(InetAddress host, int port)
+      throws IOException {
     Socket s = createSocket();
     s.connect(new InetSocketAddress(host, port), SO_CONNECT_TIMEOUT);
     return s;
   }
 
-  @Override
-  public Socket createSocket(String host, int port, InetAddress local,
+  @Override public Socket createSocket(String host, int port, InetAddress local,
       int localPort) throws IOException {
     Socket s  = createSocket();
     s.bind(new InetSocketAddress(local, localPort));
@@ -146,9 +146,8 @@ public class SocketFactoryImpl extends SocketFactory {
     return s;
   }
 
-  @Override
-  public Socket createSocket(InetAddress host, int port, InetAddress local,
-      int localPort) throws IOException {
+  @Override public Socket createSocket(InetAddress host, int port,
+      InetAddress local, int localPort) throws IOException {
     Socket s  = createSocket();
     s.bind(new InetSocketAddress(local, localPort));
     s.connect(new InetSocketAddress(host, port), SO_CONNECT_TIMEOUT);

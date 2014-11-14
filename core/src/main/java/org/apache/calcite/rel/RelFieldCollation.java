@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel;
+package org.apache.calcite.rel;
 
 /**
  * Definition of the ordering of one field of a {@link RelNode} whose

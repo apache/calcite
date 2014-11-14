@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.linq4j.expressions;
+package org.apache.calcite.linq4j.tree;
 
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
@@ -65,8 +65,7 @@ public class ClassDeclaration extends MemberDeclaration {
     return visitor.visit(this, members1);
   }
 
-  @Override
-  public boolean equals(Object o) {
+  @Override public boolean equals(Object o) {
     if (this == o) {
       return true;
     }
@@ -101,8 +100,7 @@ public class ClassDeclaration extends MemberDeclaration {
     return true;
   }
 
-  @Override
-  public int hashCode() {
+  @Override public int hashCode() {
     int result = modifier;
     result = 31 * result + classClass.hashCode();
     result = 31 * result + name.hashCode();

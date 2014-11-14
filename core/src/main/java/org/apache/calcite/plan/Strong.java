@@ -14,15 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.relopt;
+package org.apache.calcite.plan;
+
+import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexInputRef;
+import org.apache.calcite.rex.RexLiteral;
+import org.apache.calcite.rex.RexNode;
 
 import java.util.BitSet;
 import java.util.List;
-
-import org.eigenbase.rex.RexCall;
-import org.eigenbase.rex.RexInputRef;
-import org.eigenbase.rex.RexLiteral;
-import org.eigenbase.rex.RexNode;
 
 /** Utilities for strong predicates.
  *

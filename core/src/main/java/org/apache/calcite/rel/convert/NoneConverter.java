@@ -14,22 +14,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel.convert;
+package org.apache.calcite.rel.convert;
+
+import org.apache.calcite.plan.Convention;
+import org.apache.calcite.plan.ConventionTraitDef;
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.util.Util;
 
 import java.util.List;
 
-import org.eigenbase.rel.*;
-import org.eigenbase.relopt.*;
-import org.eigenbase.util.*;
-
 /**
  * <code>NoneConverter</code> converts a plan from <code>inConvention</code> to
- * {@link org.eigenbase.relopt.Convention#NONE}.
+ * {@link org.apache.calcite.plan.Convention#NONE}.
  */
-public class NoneConverterRel extends ConverterRelImpl {
+public class NoneConverter extends ConverterImpl {
   //~ Constructors -----------------------------------------------------------
 
-  public NoneConverterRel(
+  public NoneConverter(
       RelOptCluster cluster,
       RelNode child) {
     super(
@@ -44,7 +48,7 @@ public class NoneConverterRel extends ConverterRelImpl {
 
   public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
     assert traitSet.comprises(Convention.NONE);
-    return new NoneConverterRel(
+    return new NoneConverter(
         getCluster(),
         sole(inputs));
   }
@@ -55,4 +59,4 @@ public class NoneConverterRel extends ConverterRelImpl {
   }
 }
 
-// End NoneConverterRel.java
+// End NoneConverter.java

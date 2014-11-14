@@ -14,18 +14,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.test;
+package org.apache.calcite.test;
 
-import java.util.List;
-
-import org.eigenbase.rel.*;
-import org.eigenbase.rel.metadata.*;
-import org.eigenbase.relopt.*;
-import org.eigenbase.relopt.hep.*;
+import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.plan.RelOptRule;
+import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.plan.hep.HepPlanner;
+import org.apache.calcite.plan.hep.HepProgram;
+import org.apache.calcite.plan.hep.HepProgramBuilder;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.metadata.ChainedRelMetadataProvider;
+import org.apache.calcite.rel.metadata.DefaultRelMetadataProvider;
+import org.apache.calcite.rel.metadata.RelMetadataProvider;
 
 import com.google.common.collect.Lists;
 
-import static org.junit.Assert.*;
+import java.util.List;
+
+import static org.junit.Assert.assertTrue;
 
 /**
  * RelOptTestBase is an abstract base for tests which exercise a planner and/or
@@ -62,12 +68,8 @@ abstract class RelOptTestBase extends SqlToRelTestBase {
    * @param program Planner program
    * @param sql     SQL query
    */
-  protected void checkPlanning(
-      HepProgram program,
-      String sql) {
-    checkPlanning(
-        new HepPlanner(program),
-        sql);
+  protected void checkPlanning(HepProgram program, String sql) {
+    checkPlanning(new HepPlanner(program), sql);
   }
 
   /**
@@ -77,9 +79,7 @@ abstract class RelOptTestBase extends SqlToRelTestBase {
    * @param planner Planner
    * @param sql     SQL query
    */
-  protected void checkPlanning(
-      RelOptPlanner planner,
-      String sql) {
+  protected void checkPlanning(RelOptPlanner planner, String sql) {
     checkPlanning(tester, null, planner, sql);
   }
 

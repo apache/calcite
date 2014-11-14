@@ -14,10 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql.fun;
+package org.apache.calcite.sql.fun;
 
-import org.eigenbase.sql.*;
-import org.eigenbase.sql.validate.*;
+import org.apache.calcite.sql.SqlKind;
 
 /**
  * Definition of the SQL:2003 standard ARRAY query constructor, <code>

@@ -14,16 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.relopt.hep;
+package org.apache.calcite.plan.hep;
+
+import org.apache.calcite.plan.RelOptCost;
+import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.AbstractRelNode;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelWriter;
+import org.apache.calcite.rel.metadata.RelMetadataQuery;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.util.Util;
 
 import java.util.BitSet;
 import java.util.List;
-
-import org.eigenbase.rel.*;
-import org.eigenbase.rel.metadata.*;
-import org.eigenbase.relopt.*;
-import org.eigenbase.reltype.*;
-import org.eigenbase.util.*;
 
 /**
  * HepRelVertex wraps a real {@link RelNode} as a vertex in a DAG representing
@@ -52,42 +56,35 @@ public class HepRelVertex extends AbstractRelNode {
     currentRel.explain(pw);
   }
 
-  @Override
-  public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
+  @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
     assert traitSet.equals(this.traitSet);
     assert inputs.equals(this.getInputs());
     return this;
   }
 
-  @Override
-  public RelOptCost computeSelfCost(RelOptPlanner planner) {
+  @Override public RelOptCost computeSelfCost(RelOptPlanner planner) {
     // HepRelMetadataProvider is supposed to intercept this
     // and redirect to the real rels.
     throw Util.newInternal("should never get here");
   }
 
-  @Override
-  public double getRows() {
+  @Override public double getRows() {
     return RelMetadataQuery.getRowCount(currentRel);
   }
 
-  @Override
-  protected RelDataType deriveRowType() {
+  @Override protected RelDataType deriveRowType() {
     return currentRel.getRowType();
   }
 
-  @Override
-  public boolean isDistinct() {
+  @Override public boolean isDistinct() {
     return currentRel.isDistinct();
   }
 
-  @Override
-  public boolean isKey(BitSet columns) {
+  @Override public boolean isKey(BitSet columns) {
     return currentRel.isKey(columns);
   }
 
-  @Override
-  protected String computeDigest() {
+  @Override protected String computeDigest() {
     return "HepRelVertex(" + currentRel + ")";
   }
 

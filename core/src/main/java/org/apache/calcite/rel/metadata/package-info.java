@@ -19,6 +19,6 @@
  * Defines metadata interfaces and utilities for relational
  * expressions.
  */
-package org.eigenbase.rel.metadata;
+package org.apache.calcite.rel.metadata;
 
 // End package-info.java

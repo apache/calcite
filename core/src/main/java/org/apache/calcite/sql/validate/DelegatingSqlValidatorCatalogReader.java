@@ -14,16 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql.validate;
+package org.apache.calcite.sql.validate;
+
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.sql.SqlIdentifier;
 
 import java.util.List;
 
-import org.eigenbase.reltype.*;
-import org.eigenbase.sql.*;
-
 /**
  * Implementation of
- * {@link org.eigenbase.sql.validate.SqlValidatorCatalogReader} that passes
+ * {@link org.apache.calcite.sql.validate.SqlValidatorCatalogReader} that passes
  * all calls to a parent catalog reader.
  */
 public abstract class DelegatingSqlValidatorCatalogReader

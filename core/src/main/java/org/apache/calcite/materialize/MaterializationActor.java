@@ -14,17 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.materialize;
+package org.apache.calcite.materialize;
 
-import net.hydromatic.optiq.jdbc.OptiqRootSchema;
-import net.hydromatic.optiq.jdbc.OptiqSchema;
+import org.apache.calcite.jdbc.CalciteRootSchema;
+import org.apache.calcite.jdbc.CalciteSchema;
+import org.apache.calcite.rel.type.RelDataType;
 
-import org.eigenbase.reltype.RelDataType;
-import org.eigenbase.util.Util;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Multimap;
 
-import com.google.common.collect.*;
-
-import java.util.*;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Actor that manages the state of materializations in the system.
@@ -49,8 +50,8 @@ class MaterializationActor {
    * same results as executing the query. */
   static class Materialization {
     final MaterializationKey key;
-    final OptiqRootSchema rootSchema;
-    OptiqSchema.TableEntry materializedTable;
+    final CalciteRootSchema rootSchema;
+    CalciteSchema.TableEntry materializedTable;
     final String sql;
     final RelDataType rowType;
 
@@ -66,8 +67,8 @@ class MaterializationActor {
      * @param rowType Row type
      */
     Materialization(MaterializationKey key,
-        OptiqRootSchema rootSchema,
-        OptiqSchema.TableEntry materializedTable,
+        CalciteRootSchema rootSchema,
+        CalciteSchema.TableEntry materializedTable,
         String sql,
         RelDataType rowType) {
       this.key = key;
@@ -82,10 +83,10 @@ class MaterializationActor {
    * schema, with the same path for resolving functions. */
   static class QueryKey {
     final String sql;
-    final OptiqSchema schema;
+    final CalciteSchema schema;
     final List<String> path;
 
-    QueryKey(String sql, OptiqSchema schema, List<String> path) {
+    QueryKey(String sql, CalciteSchema schema, List<String> path) {
       this.sql = sql;
       this.schema = schema;
       this.path = path;
@@ -100,7 +101,7 @@ class MaterializationActor {
     }
 
     @Override public int hashCode() {
-      return Util.hashV(sql, schema, path);
+      return com.google.common.base.Objects.hashCode(sql, schema, path);
     }
   }
 }

@@ -14,18 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.jdbc;
+package org.apache.calcite.jdbc;
 
-import net.hydromatic.optiq.Schema;
+import org.apache.calcite.schema.Schema;
 
 /**
  * Root schema.
  */
-public class OptiqRootSchema extends OptiqSchema {
+public class CalciteRootSchema extends CalciteSchema {
   /** Creates a root schema. */
-  OptiqRootSchema(Schema schema) {
+  CalciteRootSchema(Schema schema) {
     super(null, schema, "");
   }
 }
 
-// End OptiqRootSchema.java
+// End CalciteRootSchema.java

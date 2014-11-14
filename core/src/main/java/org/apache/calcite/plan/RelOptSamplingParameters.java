@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.relopt;
+package org.apache.calcite.plan;
 
 /**
  * RelOptSamplingParameters represents the parameters necessary to produce a
@@ -74,8 +74,8 @@ public class RelOptSamplingParameters {
    * Indicates whether the sample results should be repeatable. Sample results
    * are only required to repeat if no changes have been made to the
    * relation's content or structure. If the sample is configured to be
-   * repeatable, then a user-specified seed value can be obtained via {@link
-   * #getRepeatableSeed()}.
+   * repeatable, then a user-specified seed value can be obtained via
+   * {@link #getRepeatableSeed()}.
    *
    * @return true if the sample results should be repeatable
    */

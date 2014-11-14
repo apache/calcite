@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq;
+package org.apache.calcite.schema;
 
 import java.util.Map;
 
 /**
- * Factory for {@link net.hydromatic.optiq.Schema} objects.
+ * Factory for {@link Schema} objects.
  *
  * <p>A schema factory allows you to include a custom schema in a model file.
  * For example, here is a model that contains a custom schema whose tables
@@ -35,7 +35,7 @@ import java.util.Map;
  *     {
  *       name: 'SALES',
  *       type: 'custom',
- *       factory: 'net.hydromatic.optiq.impl.csv.CsvSchemaFactory',
+ *       factory: 'org.apache.calcite.adapter.csv.CsvSchemaFactory',
  *       mutable: true,
  *       operand: {
  *         directory: 'target/test-classes/sales'

@@ -14,29 +14,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql.validate;
+package org.apache.calcite.sql.validate;
 
-import java.util.logging.*;
+import org.apache.calcite.util.CalciteValidatorException;
+
+import java.util.logging.Logger;
 
 // NOTE:  This class gets compiled independently of everything else so that
 // resource generation can use reflection.  That means it must have no
-// dependencies on other Eigenbase/Farrago code.
-
-import org.eigenbase.util14.*;
+// dependencies on other Calcite code.
 
 /**
  * Exception thrown while validating a SQL statement.
  *
- * <p>Unlike {@link org.eigenbase.util.EigenbaseException}, this is a checked
- * exception, which reminds code authors to wrap it in another exception
+ * <p>Unlike {@link org.apache.calcite.runtime.CalciteException}, this is a
+ * checked exception, which reminds code authors to wrap it in another exception
  * containing the line/column context.
  */
 public class SqlValidatorException extends Exception
-    implements EigenbaseValidatorException {
+    implements CalciteValidatorException {
   //~ Static fields/initializers ---------------------------------------------
 
   private static final Logger LOGGER =
-      Logger.getLogger("org.eigenbase.util.EigenbaseException");
+      Logger.getLogger("org.apache.calcite.runtime.CalciteException");
 
   static final long serialVersionUID = -831683113957131387L;
 
@@ -53,7 +53,7 @@ public class SqlValidatorException extends Exception
       Throwable cause) {
     super(message, cause);
 
-    // TODO: see note in EigenbaseException constructor
+    // TODO: see note in CalciteException constructor
     LOGGER.throwing("SqlValidatorException", "constructor", this);
     LOGGER.severe(toString());
   }

@@ -14,9 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql.util;
+package org.apache.calcite.sql.util;
 
-import org.eigenbase.sql.*;
+import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlDataTypeSpec;
+import org.apache.calcite.sql.SqlDynamicParam;
+import org.apache.calcite.sql.SqlIdentifier;
+import org.apache.calcite.sql.SqlIntervalQualifier;
+import org.apache.calcite.sql.SqlLiteral;
+import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlNodeList;
 
 /**
  * Basic implementation of {@link SqlVisitor} which does nothing at each node.
@@ -24,6 +31,8 @@ import org.eigenbase.sql.*;
  * <p>This class is useful as a base class for classes which implement the
  * {@link SqlVisitor} interface. The derived class can override whichever
  * methods it chooses.
+ *
+ * @param <R> Return type
  */
 public class SqlBasicVisitor<R> implements SqlVisitor<R> {
   //~ Methods ----------------------------------------------------------------
@@ -63,13 +72,17 @@ public class SqlBasicVisitor<R> implements SqlVisitor<R> {
 
   //~ Inner Interfaces -------------------------------------------------------
 
-  // REVIEW jvs 16-June-2006:  Without javadoc, the interaction between
-  // ArgHandler and SqlBasicVisitor isn't obvious (nor why this interface
-  // belongs here instead of at top-level).  visitChild already returns
-  // R; why is a separate result() call needed?
+  /** Argument handler. */
   public interface ArgHandler<R> {
+    /** Returns the result of visiting all children of a call to an operator,
+     * then the call itself.
+     *
+     * <p>Typically the result will be the result of the last child visited, or
+     * (if R is {@link Boolean}) whether all children were visited
+     * successfully. */
     R result();
 
+    /** Visits a particular operand of a call, using a given visitor. */
     R visitChild(
         SqlVisitor<R> visitor,
         SqlNode expr,
@@ -80,8 +93,8 @@ public class SqlBasicVisitor<R> implements SqlVisitor<R> {
   //~ Inner Classes ----------------------------------------------------------
 
   /**
-   * Default implementation of {@link ArgHandler} which merely calls {@link
-   * SqlNode#accept} on each operand.
+   * Default implementation of {@link ArgHandler} which merely calls
+   * {@link SqlNode#accept} on each operand.
    */
   public static class ArgHandlerImpl<R> implements ArgHandler<R> {
     private static final ArgHandler INSTANCE = new ArgHandlerImpl();

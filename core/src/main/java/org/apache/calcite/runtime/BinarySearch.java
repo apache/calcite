@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.runtime;
+package org.apache.calcite.runtime;
 
-import net.hydromatic.linq4j.function.Function1;
-import net.hydromatic.linq4j.function.Functions;
+import org.apache.calcite.linq4j.function.Function1;
+import org.apache.calcite.linq4j.function.Functions;
 
 import java.util.Comparator;
 
@@ -230,7 +230,7 @@ public class BinarySearch {
       // code must guarantee the interval is reduced at each iteration
       assert imid > imin
           : "search interval should be reduced min=" + imin
-              + ", mid=" + imid + ", max=" + imax;
+          + ", mid=" + imid + ", max=" + imax;
       // note: 0 <= imin < imax implies imid will always be less than imax
 
       // reduce the search
@@ -271,3 +271,5 @@ public class BinarySearch {
     }
   }
 }
+
+// End BinarySearch.java

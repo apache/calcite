@@ -14,13 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel;
+package org.apache.calcite.rel.core;
+
+import org.apache.calcite.plan.Convention;
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.RelInput;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelWriter;
+import org.apache.calcite.rel.SingleRel;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.sql.type.SqlTypeUtil;
 
 import java.util.List;
-
-import org.eigenbase.relopt.*;
-import org.eigenbase.reltype.*;
-import org.eigenbase.sql.type.*;
 
 /**
  * A relational expression that collapses multiple rows into one.
@@ -29,12 +36,12 @@ import org.eigenbase.sql.type.*;
  *
  * <ul>
  * <li>{@code net.sf.farrago.fennel.rel.FarragoMultisetSplitterRule}
- * creates a CollectRel from a call to
- * {@link org.eigenbase.sql.fun.SqlMultisetValueConstructor} or to
- * {@link org.eigenbase.sql.fun.SqlMultisetQueryConstructor}.</li>
+ * creates a Collect from a call to
+ * {@link org.apache.calcite.sql.fun.SqlMultisetValueConstructor} or to
+ * {@link org.apache.calcite.sql.fun.SqlMultisetQueryConstructor}.</li>
  * </ul>
  */
-public class CollectRel extends SingleRel {
+public class Collect extends SingleRel {
   //~ Instance fields --------------------------------------------------------
 
   protected final String fieldName;
@@ -42,13 +49,13 @@ public class CollectRel extends SingleRel {
   //~ Constructors -----------------------------------------------------------
 
   /**
-   * Creates a CollectRel.
+   * Creates a Collect.
    *
    * @param cluster   Cluster
    * @param child     Child relational expression
    * @param fieldName Name of the sole output field
    */
-  public CollectRel(
+  public Collect(
       RelOptCluster cluster,
       RelTraitSet traitSet,
       RelNode child,
@@ -58,27 +65,26 @@ public class CollectRel extends SingleRel {
   }
 
   /**
-   * Creates a CollectRel by parsing serialized output.
+   * Creates a Collect by parsing serialized output.
    */
-  public CollectRel(RelInput input) {
+  public Collect(RelInput input) {
     this(input.getCluster(), input.getTraitSet(), input.getInput(),
         input.getString("field"));
   }
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override
-  public final RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
+  @Override public final RelNode copy(RelTraitSet traitSet,
+      List<RelNode> inputs) {
     return copy(traitSet, sole(inputs));
   }
 
   public RelNode copy(RelTraitSet traitSet, RelNode input) {
     assert traitSet.containsIfApplicable(Convention.NONE);
-    return new CollectRel(getCluster(), traitSet, input, fieldName);
+    return new Collect(getCluster(), traitSet, input, fieldName);
   }
 
-  @Override
-  public RelWriter explainTerms(RelWriter pw) {
+  @Override public RelWriter explainTerms(RelWriter pw) {
     return super.explainTerms(pw)
         .item("field", fieldName);
   }
@@ -92,8 +98,7 @@ public class CollectRel extends SingleRel {
     return fieldName;
   }
 
-  @Override
-  protected RelDataType deriveRowType() {
+  @Override protected RelDataType deriveRowType() {
     return deriveCollectRowType(this, fieldName);
   }
 
@@ -107,7 +112,7 @@ public class CollectRel extends SingleRel {
   public static RelDataType deriveCollectRowType(
       SingleRel rel,
       String fieldName) {
-    RelDataType childType = rel.getChild().getRowType();
+    RelDataType childType = rel.getInput().getRowType();
     assert childType.isStruct();
     final RelDataTypeFactory typeFactory = rel.getCluster().getTypeFactory();
     RelDataType ret =
@@ -120,4 +125,4 @@ public class CollectRel extends SingleRel {
   }
 }
 
-// End CollectRel.java
+// End Collect.java

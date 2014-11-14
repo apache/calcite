@@ -14,25 +14,35 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.impl.splunk;
+package org.apache.calcite.adapter.splunk;
 
-import net.hydromatic.linq4j.expressions.*;
-
-import net.hydromatic.optiq.prepare.OptiqPrepareImpl;
-import net.hydromatic.optiq.rules.java.*;
-import net.hydromatic.optiq.runtime.Hook;
-
-import org.eigenbase.rel.RelWriter;
-import org.eigenbase.rel.TableAccessRelBase;
-import org.eigenbase.relopt.*;
-import org.eigenbase.reltype.RelDataType;
-import org.eigenbase.reltype.RelDataTypeFactory;
-import org.eigenbase.util.Util;
+import org.apache.calcite.adapter.enumerable.EnumerableConvention;
+import org.apache.calcite.adapter.enumerable.EnumerableRel;
+import org.apache.calcite.adapter.enumerable.EnumerableRelImplementor;
+import org.apache.calcite.adapter.enumerable.PhysType;
+import org.apache.calcite.adapter.enumerable.PhysTypeImpl;
+import org.apache.calcite.linq4j.tree.BlockBuilder;
+import org.apache.calcite.linq4j.tree.Expression;
+import org.apache.calcite.linq4j.tree.Expressions;
+import org.apache.calcite.linq4j.tree.Types;
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.prepare.CalcitePrepareImpl;
+import org.apache.calcite.rel.RelWriter;
+import org.apache.calcite.rel.core.TableScan;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.runtime.Hook;
+import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableMap;
 
 import java.lang.reflect.Method;
-import java.util.*;
+import java.util.AbstractList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Relational expression representing a scan of Splunk.
@@ -43,8 +53,8 @@ import java.util.*;
  * it wants. It also specifies a search expression, and optionally earliest and
  * latest dates.</p>
  */
-public class SplunkTableAccessRel
-    extends TableAccessRelBase
+public class SplunkTableScan
+    extends TableScan
     implements EnumerableRel {
   final SplunkTable splunkTable;
   final String search;
@@ -52,7 +62,7 @@ public class SplunkTableAccessRel
   final String latest;
   final List<String> fieldList;
 
-  protected SplunkTableAccessRel(
+  protected SplunkTableScan(
       RelOptCluster cluster,
       RelOptTable table,
       SplunkTable splunkTable,
@@ -74,8 +84,7 @@ public class SplunkTableAccessRel
     assert search != null;
   }
 
-  @Override
-  public RelWriter explainTerms(RelWriter pw) {
+  @Override public RelWriter explainTerms(RelWriter pw) {
     return super.explainTerms(pw)
         .item("table", table.getQualifiedName())
         .item("earliest", earliest)
@@ -83,16 +92,14 @@ public class SplunkTableAccessRel
         .item("fieldList", fieldList);
   }
 
-  @Override
-  public void register(RelOptPlanner planner) {
+  @Override public void register(RelOptPlanner planner) {
     planner.addRule(SplunkPushDownRule.FILTER);
     planner.addRule(SplunkPushDownRule.FILTER_ON_PROJECT);
     planner.addRule(SplunkPushDownRule.PROJECT);
     planner.addRule(SplunkPushDownRule.PROJECT_ON_FILTER);
   }
 
-  @Override
-  public RelDataType deriveRowType() {
+  @Override public RelDataType deriveRowType() {
     final RelDataTypeFactory.FieldInfoBuilder builder =
         getCluster().getTypeFactory().builder();
     for (String field : fieldList) {
@@ -118,7 +125,7 @@ public class SplunkTableAccessRel
         .put("latest", Util.first(latest, ""))
         .put("fieldList", fieldList)
         .build();
-    if (OptiqPrepareImpl.DEBUG) {
+    if (CalcitePrepareImpl.DEBUG) {
       System.out.println("Splunk: " + map);
     }
     Hook.QUERY_PLAN.run(map);
@@ -150,17 +157,15 @@ public class SplunkTableAccessRel
         Expressions.newArrayInit(
             Object.class,
             new AbstractList<Expression>() {
-              @Override
-              public Expression get(int index) {
+              @Override public Expression get(int index) {
                 return Expressions.constant(strings.get(index));
               }
 
-              @Override
-              public int size() {
+              @Override public int size() {
                 return strings.size();
               }
             }));
   }
 }
 
-// End SplunkTableAccessRel.java
+// End SplunkTableScan.java

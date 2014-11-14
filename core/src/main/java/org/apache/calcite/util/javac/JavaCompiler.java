@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.javac;
+package org.apache.calcite.util.javac;
 
 /**
  * The interface <code>JavaCompiler</code> represents an interface to invoke a

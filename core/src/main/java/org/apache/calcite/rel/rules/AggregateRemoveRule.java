@@ -14,41 +14,45 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel.rules;
+package org.apache.calcite.rel.rules;
 
-import org.eigenbase.rel.*;
-import org.eigenbase.relopt.*;
+import org.apache.calcite.plan.RelOptRule;
+import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.logical.LogicalAggregate;
 
 /**
- * Rule to remove an {@link AggregateRel} implementing DISTINCT if the
- * underlying relational expression is already distinct.
+ * Planner rule that removes
+ * a {@link org.apache.calcite.rel.logical.LogicalAggregate}
+ * if it computes no aggregate functions
+ * (that is, it is implementing {@code SELECT DISTINCT})
+ * and the underlying relational expression is already distinct.
  */
-public class RemoveDistinctRule extends RelOptRule {
-  public static final RemoveDistinctRule INSTANCE =
-      new RemoveDistinctRule();
+public class AggregateRemoveRule extends RelOptRule {
+  public static final AggregateRemoveRule INSTANCE =
+      new AggregateRemoveRule();
 
   //~ Constructors -----------------------------------------------------------
 
   /**
-   * Creates a RemoveDistinctRule.
+   * Creates a AggregateRemoveRule.
    */
-  private RemoveDistinctRule() {
+  private AggregateRemoveRule() {
     // REVIEW jvs 14-Mar-2006: We have to explicitly mention the child here
     // to make sure the rule re-fires after the child changes (e.g. via
-    // RemoveTrivialProjectRule), since that may change our information
+    // ProjectRemoveRule), since that may change our information
     // about whether the child is distinct.  If we clean up the inference of
     // distinct to make it correct up-front, we can get rid of the reference
     // to the child here.
     super(
-        operand(
-            AggregateRel.class,
+        operand(LogicalAggregate.class,
             operand(RelNode.class, any())));
   }
 
   //~ Methods ----------------------------------------------------------------
 
   public void onMatch(RelOptRuleCall call) {
-    AggregateRel distinct = call.rel(0);
+    LogicalAggregate distinct = call.rel(0);
     RelNode child = call.rel(1);
     if (!distinct.getAggCallList().isEmpty()
         || !child.isKey(distinct.getGroupSet())) {
@@ -65,4 +69,4 @@ public class RemoveDistinctRule extends RelOptRule {
   }
 }
 
-// End RemoveDistinctRule.java
+// End AggregateRemoveRule.java

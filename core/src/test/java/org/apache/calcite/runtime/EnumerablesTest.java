@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.runtime;
+package org.apache.calcite.runtime;
 
-import net.hydromatic.linq4j.Linq4j;
-import net.hydromatic.linq4j.function.Function1;
-import net.hydromatic.linq4j.function.Functions;
+import org.apache.calcite.linq4j.Linq4j;
+import org.apache.calcite.linq4j.function.Function1;
+import org.apache.calcite.linq4j.function.Functions;
 
 import org.junit.Test;
 
@@ -28,7 +28,7 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
 
 /**
- * Unit tests for {@link net.hydromatic.optiq.runtime.Enumerables}.
+ * Unit tests for {@link org.apache.calcite.runtime.Enumerables}.
  */
 public class EnumerablesTest {
   @Test public void testSemiJoin() {

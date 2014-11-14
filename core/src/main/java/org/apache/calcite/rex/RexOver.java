@@ -14,13 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rex;
+package org.apache.calcite.rex;
+
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.sql.SqlAggFunction;
+import org.apache.calcite.sql.SqlWindow;
+import org.apache.calcite.util.ControlFlowException;
+import org.apache.calcite.util.Util;
 
 import java.util.List;
-
-import org.eigenbase.reltype.*;
-import org.eigenbase.sql.*;
-import org.eigenbase.util.*;
 
 /**
  * Call to an aggregate function over a window.
@@ -41,7 +43,7 @@ public class RexOver extends RexCall {
    *
    * <ul>
    * <li>type = Integer,
-   * <li>op = {@link org.eigenbase.sql.fun.SqlStdOperatorTable#SUM},
+   * <li>op = {@link org.apache.calcite.sql.fun.SqlStdOperatorTable#SUM},
    * <li>operands = { {@link RexFieldAccess}("x") }
    * <li>window = {@link SqlWindow}(ROWS 3 PRECEDING)
    * </ul>
@@ -126,13 +128,13 @@ public class RexOver extends RexCall {
     }
   }
 
-  @Override
-  public RexCall clone(RelDataType type, List<RexNode> operands) {
+  @Override public RexCall clone(RelDataType type, List<RexNode> operands) {
     throw new UnsupportedOperationException();
   }
 
   //~ Inner Classes ----------------------------------------------------------
 
+  /** Exception thrown when an OVER is found. */
   private static class OverFound extends ControlFlowException {
     public static final OverFound INSTANCE = new OverFound();
   }

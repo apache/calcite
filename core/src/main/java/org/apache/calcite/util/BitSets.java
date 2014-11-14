@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.util;
+package org.apache.calcite.util;
 
-import org.eigenbase.util.ImmutableIntList;
-import org.eigenbase.util.IntList;
-
-import java.util.*;
+import java.util.BitSet;
+import java.util.Iterator;
+import java.util.SortedMap;
+import java.util.TreeMap;
 
 /**
  * Utility functions for {@link BitSet}.
@@ -265,7 +265,7 @@ public final class BitSets {
   }
 
   /** Populates a {@link BitSet} from an
-   *  {@link org.eigenbase.util.ImmutableIntList}. */
+   *  {@link ImmutableIntList}. */
   public static void populate(BitSet bitSet, ImmutableIntList list) {
     for (int i = 0; i < list.size(); i++) {
       bitSet.set(list.getInt(i));

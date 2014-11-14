@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.linq4j.expressions;
+package org.apache.calcite.linq4j.tree;
 
 /**
  * Represents a {@code throw} statement.
@@ -27,20 +27,17 @@ public class ThrowStatement extends Statement {
     this.expression = expression;
   }
 
-  @Override
-  public Statement accept(Visitor visitor) {
+  @Override public Statement accept(Visitor visitor) {
     visitor = visitor.preVisit(this);
     Expression expression = this.expression.accept(visitor);
     return visitor.visit(this, expression);
   }
 
-  @Override
-  void accept0(ExpressionWriter writer) {
+  @Override void accept0(ExpressionWriter writer) {
     writer.append("throw ").append(expression).append(';').newlineAndIndent();
   }
 
-  @Override
-  public boolean equals(Object o) {
+  @Override public boolean equals(Object o) {
     if (this == o) {
       return true;
     }
@@ -61,8 +58,7 @@ public class ThrowStatement extends Statement {
     return true;
   }
 
-  @Override
-  public int hashCode() {
+  @Override public int hashCode() {
     int result = super.hashCode();
     result = 31 * result + (expression != null ? expression.hashCode() : 0);
     return result;

@@ -14,17 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.util;
+package org.apache.calcite.runtime;
 
 // NOTE:  This class gets compiled independently of everything else so that
 // resource generation can use reflection.  That means it must have no
-// dependencies on other Eigenbase code.
+// dependencies on other Calcite code.
 
 /**
  * Exception which contains information about the textual context of the causing
  * exception.
  */
-public class EigenbaseContextException extends EigenbaseException {
+public class CalciteContextException extends CalciteException {
   //~ Static fields/initializers ---------------------------------------------
 
   /**
@@ -49,18 +49,18 @@ public class EigenbaseContextException extends EigenbaseException {
   //~ Constructors -----------------------------------------------------------
 
   /**
-   * Creates a new EigenbaseContextException object. This constructor is for
+   * Creates a new CalciteContextException object. This constructor is for
    * use by the generated factory.
    *
    * @param message error message
    * @param cause   underlying cause, must not be null
    */
-  public EigenbaseContextException(String message, Throwable cause) {
+  public CalciteContextException(String message, Throwable cause) {
     this(message, cause, 0, 0, 0, 0);
   }
 
   /**
-   * Creates a new EigenbaseContextException object.
+   * Creates a new CalciteContextException object.
    *
    * @param message      error message
    * @param cause        underlying cause, must not be null
@@ -69,7 +69,7 @@ public class EigenbaseContextException extends EigenbaseException {
    * @param endPosLine   1-based end line number
    * @param endPosColumn 1-based end column number
    */
-  public EigenbaseContextException(
+  public CalciteContextException(
       String message,
       Throwable cause,
       int posLine,
@@ -82,14 +82,14 @@ public class EigenbaseContextException extends EigenbaseException {
   }
 
   /**
-   * Creates a new EigenbaseContextException object. This constructor is for
+   * Creates a new CalciteContextException object. This constructor is for
    * use by the generated factory.
    *
    * @param message   error message
    * @param cause     underlying cause, must not be null
    * @param inputText is the orginal SQL statement, may be null
    */
-  public EigenbaseContextException(
+  public CalciteContextException(
       String message,
       Throwable cause,
       String inputText) {
@@ -174,12 +174,11 @@ public class EigenbaseContextException extends EigenbaseException {
     this.originalStatement = originalStatement;
   }
 
-  @Override
-  public String getMessage() {
+  @Override public String getMessage() {
     // The superclass' message is the textual context information
     // for this exception, so we add in the underlying cause to the message
     return super.getMessage() + ": " + getCause().getMessage();
   }
 }
 
-// End EigenbaseContextException.java
+// End CalciteContextException.java

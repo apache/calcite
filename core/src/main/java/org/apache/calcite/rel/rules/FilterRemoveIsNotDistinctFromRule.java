@@ -14,35 +14,45 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel.rules;
+package org.apache.calcite.rel.rules;
 
-import org.eigenbase.rel.*;
-import org.eigenbase.relopt.*;
-import org.eigenbase.rex.*;
-import org.eigenbase.sql.fun.*;
+import org.apache.calcite.plan.RelOptRule;
+import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.logical.LogicalFilter;
+import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexShuttle;
+import org.apache.calcite.rex.RexUtil;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 
 /**
- * Rule to replace isNotDistinctFromOperator with logical equivalent conditions
- * in a {@link FilterRel}.
+ * Planner rule that replaces {@code IS NOT DISTINCT FROM}
+ * in a {@link org.apache.calcite.rel.logical.LogicalFilter}
+ * with logically equivalent operations.
+ *
+ * @see org.apache.calcite.sql.fun.SqlStdOperatorTable#IS_NOT_DISTINCT_FROM
  */
-public final class RemoveIsNotDistinctFromRule extends RelOptRule {
+public final class FilterRemoveIsNotDistinctFromRule extends RelOptRule {
   //~ Static fields/initializers ---------------------------------------------
 
   /** The singleton. */
-  public static final RemoveIsNotDistinctFromRule INSTANCE =
-      new RemoveIsNotDistinctFromRule();
+  public static final FilterRemoveIsNotDistinctFromRule INSTANCE =
+      new FilterRemoveIsNotDistinctFromRule();
 
   //~ Constructors -----------------------------------------------------------
 
-  private RemoveIsNotDistinctFromRule() {
-    super(operand(FilterRel.class, any()));
+  private FilterRemoveIsNotDistinctFromRule() {
+    super(operand(LogicalFilter.class, any()));
   }
 
   //~ Methods ----------------------------------------------------------------
 
   public void onMatch(RelOptRuleCall call) {
-    FilterRel oldFilterRel = call.rel(0);
-    RexNode oldFilterCond = oldFilterRel.getCondition();
+    LogicalFilter oldFilter = call.rel(0);
+    RexNode oldFilterCond = oldFilter.getCondition();
 
     if (RexUtil.findOperatorCall(
         SqlStdOperatorTable.IS_NOT_DISTINCT_FROM,
@@ -57,11 +67,11 @@ public final class RemoveIsNotDistinctFromRule extends RelOptRule {
 
     RemoveIsNotDistinctFromRexShuttle rewriteShuttle =
         new RemoveIsNotDistinctFromRexShuttle(
-            oldFilterRel.getCluster().getRexBuilder());
+            oldFilter.getCluster().getRexBuilder());
 
     RelNode newFilterRel =
         RelOptUtil.createFilter(
-            oldFilterRel.getChild(),
+            oldFilter.getInput(),
             oldFilterCond.accept(rewriteShuttle));
 
     call.transformTo(newFilterRel);
@@ -99,4 +109,4 @@ public final class RemoveIsNotDistinctFromRule extends RelOptRule {
   }
 }
 
-// End RemoveIsNotDistinctFromRule.java
+// End FilterRemoveIsNotDistinctFromRule.java

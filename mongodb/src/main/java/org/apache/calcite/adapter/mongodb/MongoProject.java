@@ -14,34 +14,38 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.impl.mongodb;
+package org.apache.calcite.adapter.mongodb;
 
-import net.hydromatic.optiq.impl.java.JavaTypeFactory;
+import org.apache.calcite.adapter.java.JavaTypeFactory;
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptCost;
+import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.util.Pair;
+import org.apache.calcite.util.Util;
 
-import org.eigenbase.rel.*;
-import org.eigenbase.relopt.*;
-import org.eigenbase.reltype.*;
-import org.eigenbase.rex.*;
-import org.eigenbase.util.Pair;
-import org.eigenbase.util.Util;
-
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
- * Implementation of {@link ProjectRel} relational expression in
- * MongoDB.
+ * Implementation of {@link org.apache.calcite.rel.core.Project}
+ * relational expression in MongoDB.
  */
-public class MongoProjectRel extends ProjectRelBase implements MongoRel {
-  public MongoProjectRel(RelOptCluster cluster, RelTraitSet traitSet,
+public class MongoProject extends Project implements MongoRel {
+  public MongoProject(RelOptCluster cluster, RelTraitSet traitSet,
       RelNode child, List<RexNode> exps, RelDataType rowType, int flags) {
     super(cluster, traitSet, child, exps, rowType, flags);
     assert getConvention() == MongoRel.CONVENTION;
     assert getConvention() == child.getConvention();
   }
 
-  @Override public ProjectRelBase copy(RelTraitSet traitSet, RelNode input,
+  @Override public Project copy(RelTraitSet traitSet, RelNode input,
       List<RexNode> exps, RelDataType rowType) {
-    return new MongoProjectRel(getCluster(), traitSet, input, exps,
+    return new MongoProject(getCluster(), traitSet, input, exps,
         rowType, flags);
   }
 
@@ -50,12 +54,12 @@ public class MongoProjectRel extends ProjectRelBase implements MongoRel {
   }
 
   public void implement(Implementor implementor) {
-    implementor.visitChild(0, getChild());
+    implementor.visitChild(0, getInput());
 
     final MongoRules.RexToMongoTranslator translator =
         new MongoRules.RexToMongoTranslator(
             (JavaTypeFactory) getCluster().getTypeFactory(),
-            MongoRules.mongoFieldNames(getChild().getRowType()));
+            MongoRules.mongoFieldNames(getInput().getRowType()));
     final List<String> items = new ArrayList<String>();
     for (Pair<RexNode, String> pair : getNamedProjects()) {
       final String name = pair.right;
@@ -71,4 +75,4 @@ public class MongoProjectRel extends ProjectRelBase implements MongoRel {
   }
 }
 
-// End MongoProjectRel.java
+// End MongoProject.java

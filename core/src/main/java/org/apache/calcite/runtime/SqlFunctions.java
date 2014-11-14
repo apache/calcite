@@ -14,26 +14,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.runtime;
+package org.apache.calcite.runtime;
 
-import net.hydromatic.avatica.ByteString;
+import org.apache.calcite.DataContext;
+import org.apache.calcite.avatica.ByteString;
+import org.apache.calcite.linq4j.Enumerable;
+import org.apache.calcite.linq4j.Linq4j;
+import org.apache.calcite.linq4j.function.Deterministic;
+import org.apache.calcite.linq4j.function.Function1;
+import org.apache.calcite.linq4j.function.NonDeterministic;
+import org.apache.calcite.linq4j.tree.Primitive;
+import org.apache.calcite.util.DateTimeUtil;
 
-import net.hydromatic.linq4j.Enumerable;
-import net.hydromatic.linq4j.Linq4j;
-import net.hydromatic.linq4j.expressions.Primitive;
-import net.hydromatic.linq4j.function.Deterministic;
-import net.hydromatic.linq4j.function.Function1;
-import net.hydromatic.linq4j.function.NonDeterministic;
-
-import net.hydromatic.optiq.DataContext;
-
-import org.eigenbase.util14.DateTimeUtil;
-
-import java.math.*;
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.math.MathContext;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.text.DecimalFormat;
-import java.util.*;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+import java.util.TimeZone;
 import java.util.regex.Pattern;
 
 /**

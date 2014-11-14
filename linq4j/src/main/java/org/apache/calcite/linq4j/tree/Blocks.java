@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.linq4j.expressions;
+package org.apache.calcite.linq4j.tree;
 
 /**
  * <p>Helper methods concerning {@link BlockStatement}s.</p>
@@ -40,10 +40,8 @@ public final class Blocks {
         statement = Expressions.return_(null, (Expression) body);
       }
     } else {
-      throw new AssertionError(
-          "block cannot contain node that is neither statement nor "
-          + "expression: "
-          + body);
+      throw new AssertionError("block cannot contain node that is neither "
+          + "statement nor expression: " + body);
     }
     return Expressions.block(statement);
   }

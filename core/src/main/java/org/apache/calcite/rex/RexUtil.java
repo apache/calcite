@@ -14,26 +14,37 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rex;
+package org.apache.calcite.rex;
 
-import java.util.*;
-
-import org.eigenbase.rel.*;
-import org.eigenbase.relopt.*;
-import org.eigenbase.reltype.*;
-import org.eigenbase.sql.*;
-import org.eigenbase.sql.fun.*;
-import org.eigenbase.sql.type.*;
-import org.eigenbase.util.*;
-import org.eigenbase.util.mapping.*;
-
-import net.hydromatic.linq4j.function.*;
+import org.apache.calcite.linq4j.function.Predicate1;
+import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.rel.RelCollation;
+import org.apache.calcite.rel.RelCollationImpl;
+import org.apache.calcite.rel.RelFieldCollation;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.sql.SqlAggFunction;
+import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.type.SqlTypeUtil;
+import org.apache.calcite.util.ControlFlowException;
+import org.apache.calcite.util.Pair;
+import org.apache.calcite.util.Util;
+import org.apache.calcite.util.mapping.Mappings;
 
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Utility methods concerning row-expressions.
@@ -140,7 +151,7 @@ public class RexUtil {
    * <p>Examples:
    *
    * <ul>
-   * <li>For {@link org.eigenbase.rex.RexLiteral} Unknown, returns false.
+   * <li>For {@link org.apache.calcite.rex.RexLiteral} Unknown, returns false.
    * <li>For <code>CAST(NULL AS <i>type</i>)</code>, returns true if <code>
    * allowCast</code> is true, false otherwise.
    * <li>For <code>CAST(CAST(NULL AS <i>type</i>) AS <i>type</i>))</code>,
@@ -240,8 +251,8 @@ public class RexUtil {
   }
 
   /**
-   * Returns whether a given tree contains any {@link
-   * org.eigenbase.rex.RexFieldAccess} nodes.
+   * Returns whether a given tree contains any
+   * {@link org.apache.calcite.rex.RexFieldAccess} nodes.
    *
    * @param node a RexNode tree
    */
@@ -998,8 +1009,7 @@ public class RexUtil {
   public static RexNode shift(RexNode node, final int offset) {
     return node.accept(
         new RexShuttle() {
-          @Override
-          public RexNode visitInputRef(RexInputRef input) {
+          @Override public RexNode visitInputRef(RexInputRef input) {
             return new RexInputRef(input.getIndex() + offset, input.getType());
           }
         });
@@ -1012,8 +1022,7 @@ public class RexUtil {
   public static RexNode shift(RexNode node, final int start, final int offset) {
     return node.accept(
         new RexShuttle() {
-          @Override
-          public RexNode visitInputRef(RexInputRef input) {
+          @Override public RexNode visitInputRef(RexInputRef input) {
             final int index = input.getIndex();
             if (index < start) {
               return input;
@@ -1141,10 +1150,10 @@ public class RexUtil {
   }
 
   /**
-   * Walks over an expression and throws an exception if it finds an {@link
-   * RexInputRef} with an ordinal beyond the number of fields in the input row
-   * type, or a {@link RexLocalRef} with ordinal greater than that set using
-   * {@link #setLimit(int)}.
+   * Walks over an expression and throws an exception if it finds an
+   * {@link RexInputRef} with an ordinal beyond the number of fields in the
+   * input row type, or a {@link RexLocalRef} with ordinal greater than that set
+   * using {@link #setLimit(int)}.
    */
   private static class ForwardRefFinder extends RexVisitorImpl<Void> {
     private int limit = -1;
@@ -1175,6 +1184,8 @@ public class RexUtil {
       this.limit = limit;
     }
 
+    /** Thrown to abort a visit when we find an illegal forward reference.
+     * It changes control flow but is not considered an error. */
     static class IllegalForwardRefException extends ControlFlowException {
     }
   }
@@ -1207,7 +1218,7 @@ public class RexUtil {
     }
   }
 
-  /** Helps {@link org.eigenbase.rex.RexUtil#toCnf}. */
+  /** Helps {@link org.apache.calcite.rex.RexUtil#toCnf}. */
   private static class CnfHelper {
     final RexBuilder rexBuilder;
 

@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.linq4j;
+package org.apache.calcite.linq4j;
 
 /**
  * Represents the result of applying a sorting operation to an
- * {@link net.hydromatic.linq4j.Enumerable}.
+ * {@link org.apache.calcite.linq4j.Enumerable}.
  *
  * @param <T> element type
  */

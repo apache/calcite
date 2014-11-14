@@ -14,49 +14,48 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel.rules;
+package org.apache.calcite.rel.rules;
+
+import org.apache.calcite.plan.Convention;
+import org.apache.calcite.plan.RelOptRule;
+import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.Aggregate;
+import org.apache.calcite.rel.core.Join;
+import org.apache.calcite.rel.core.JoinInfo;
+import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.core.SemiJoin;
+import org.apache.calcite.util.BitSets;
+import org.apache.calcite.util.ImmutableIntList;
+import org.apache.calcite.util.IntList;
+
+import com.google.common.collect.Lists;
 
 import java.util.BitSet;
 import java.util.List;
 
-import org.eigenbase.rel.AggregateRelBase;
-import org.eigenbase.rel.JoinInfo;
-import org.eigenbase.rel.JoinRelBase;
-import org.eigenbase.rel.ProjectRelBase;
-import org.eigenbase.rel.RelNode;
-import org.eigenbase.relopt.Convention;
-import org.eigenbase.relopt.RelOptRule;
-import org.eigenbase.relopt.RelOptRuleCall;
-import org.eigenbase.relopt.RelOptUtil;
-import org.eigenbase.util.ImmutableIntList;
-import org.eigenbase.util.IntList;
-
-import net.hydromatic.optiq.util.BitSets;
-
-import com.google.common.collect.Lists;
-
 /**
  * Planner rule that creates a {@code SemiJoinRule} from a
- * {@link org.eigenbase.rel.JoinRelBase} on top of a
- * {@link org.eigenbase.rel.AggregateRel}.
+ * {@link org.apache.calcite.rel.core.Join} on top of a
+ * {@link org.apache.calcite.rel.logical.LogicalAggregate}.
  */
 public class SemiJoinRule extends RelOptRule {
   public static final SemiJoinRule INSTANCE = new SemiJoinRule();
 
   private SemiJoinRule() {
     super(
-        operand(ProjectRelBase.class,
-            some(operand(JoinRelBase.class,
+        operand(Project.class,
+            some(operand(Join.class,
                 some(operand(RelNode.class, any()),
-                    operand(AggregateRelBase.class, any()))))));
+                    operand(Aggregate.class, any()))))));
   }
 
-  @Override
-  public void onMatch(RelOptRuleCall call) {
-    final ProjectRelBase project = call.rel(0);
-    final JoinRelBase join = call.rel(1);
+  @Override public void onMatch(RelOptRuleCall call) {
+    final Project project = call.rel(0);
+    final Join join = call.rel(1);
     final RelNode left = call.rel(2);
-    final AggregateRelBase aggregate = call.rel(3);
+    final Aggregate aggregate = call.rel(3);
     final BitSet bits = RelOptUtil.InputFinder.bits(project.getProjects(),
         null);
     final BitSet rightBits = BitSets.range(left.getRowType().getFieldCount(),
@@ -75,16 +74,16 @@ public class SemiJoinRule extends RelOptRule {
     for (int key : joinInfo.rightKeys) {
       newRightKeys.add(aggregateKeys.get(key));
     }
-    final SemiJoinRel semiJoin =
-        new SemiJoinRel(join.getCluster(),
+    final SemiJoin semiJoin =
+        new SemiJoin(join.getCluster(),
             join.getCluster().traitSetOf(Convention.NONE),
-            left, aggregate.getChild(),
+            left, aggregate.getInput(),
             join.getCondition(), joinInfo.leftKeys,
             ImmutableIntList.copyOf(newRightKeys));
-    final ProjectRelBase newProject =
+    final Project newProject =
         project.copy(project.getTraitSet(), semiJoin, project.getProjects(),
             project.getRowType());
-    call.transformTo(RemoveTrivialProjectRule.strip(newProject));
+    call.transformTo(ProjectRemoveRule.strip(newProject));
   }
 }
 

@@ -14,12 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql.validate;
+package org.apache.calcite.sql.validate;
 
-import java.util.*;
+import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.util.SqlShuttle;
+import org.apache.calcite.sql.util.SqlVisitor;
 
-import org.eigenbase.sql.*;
-import org.eigenbase.sql.util.*;
+import java.util.Stack;
 
 /**
  * Refinement to {@link SqlShuttle} which maintains a stack of scopes.

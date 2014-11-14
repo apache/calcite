@@ -14,29 +14,42 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel.rules;
+package org.apache.calcite.rel.rules;
 
-import java.util.*;
-
-import org.eigenbase.rel.*;
-import org.eigenbase.rel.metadata.*;
-import org.eigenbase.relopt.*;
-import org.eigenbase.reltype.*;
-import org.eigenbase.sql.SqlAggFunction;
-import org.eigenbase.sql.fun.*;
-
-import net.hydromatic.linq4j.Ord;
+import org.apache.calcite.linq4j.Ord;
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptRule;
+import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.AggregateCall;
+import org.apache.calcite.rel.logical.LogicalAggregate;
+import org.apache.calcite.rel.logical.LogicalUnion;
+import org.apache.calcite.rel.metadata.RelMdUtil;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.sql.SqlAggFunction;
+import org.apache.calcite.sql.fun.SqlCountAggFunction;
+import org.apache.calcite.sql.fun.SqlMinMaxAggFunction;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.fun.SqlSumAggFunction;
+import org.apache.calcite.sql.fun.SqlSumEmptyIsZeroAggFunction;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
+import java.util.ArrayList;
+import java.util.IdentityHashMap;
+import java.util.List;
+import java.util.Map;
+
 /**
- * PushAggregateThroughUnionRule implements the rule for pushing an
- * {@link AggregateRel} past a non-distinct {@link UnionRel}.
+ * Planner rule that pushes an
+ * {@link org.apache.calcite.rel.logical.LogicalAggregate}
+ * past a non-distinct {@link org.apache.calcite.rel.logical.LogicalUnion}.
  */
-public class PushAggregateThroughUnionRule extends RelOptRule {
-  public static final PushAggregateThroughUnionRule INSTANCE =
-      new PushAggregateThroughUnionRule();
+public class AggregateUnionTransposeRule extends RelOptRule {
+  public static final AggregateUnionTransposeRule INSTANCE =
+      new AggregateUnionTransposeRule();
 
   private static final Map<Class, Boolean> SUPPORTED_AGGREGATES =
       new IdentityHashMap<Class, Boolean>();
@@ -51,18 +64,17 @@ public class PushAggregateThroughUnionRule extends RelOptRule {
   /**
    * Private constructor.
    */
-  private PushAggregateThroughUnionRule() {
+  private AggregateUnionTransposeRule() {
     super(
-        operand(
-            AggregateRel.class,
-            operand(UnionRel.class, any())));
+        operand(LogicalAggregate.class,
+            operand(LogicalUnion.class, any())));
   }
 
   public void onMatch(RelOptRuleCall call) {
-    AggregateRel aggRel = call.rel(0);
-    UnionRel unionRel = call.rel(1);
+    LogicalAggregate aggRel = call.rel(0);
+    LogicalUnion union = call.rel(1);
 
-    if (!unionRel.all) {
+    if (!union.all) {
       // This transformation is only valid for UNION ALL.
       // Consider t1(i) with rows (5), (5) and t2(i) with
       // rows (5), (10), and the query
@@ -75,7 +87,7 @@ public class PushAggregateThroughUnionRule extends RelOptRule {
       return;
     }
 
-    RelOptCluster cluster = unionRel.getCluster();
+    RelOptCluster cluster = union.getCluster();
 
     List<AggregateCall> transformedAggCalls =
         transformAggCalls(aggRel,
@@ -91,7 +103,7 @@ public class PushAggregateThroughUnionRule extends RelOptRule {
 
     // create corresponding aggs on top of each union child
     List<RelNode> newUnionInputs = new ArrayList<RelNode>();
-    for (RelNode input : unionRel.getInputs()) {
+    for (RelNode input : union.getInputs()) {
       boolean alreadyUnique =
           RelMdUtil.areColumnsDefinitelyUnique(
               input,
@@ -102,7 +114,7 @@ public class PushAggregateThroughUnionRule extends RelOptRule {
       } else {
         anyTransformed = true;
         newUnionInputs.add(
-            new AggregateRel(
+            new LogicalAggregate(
                 cluster, input,
                 aggRel.getGroupSet(),
                 aggRel.getAggCallList()));
@@ -117,11 +129,11 @@ public class PushAggregateThroughUnionRule extends RelOptRule {
     }
 
     // create a new union whose children are the aggs created above
-    UnionRel newUnionRel = new UnionRel(cluster, newUnionInputs, true);
+    LogicalUnion newUnion = new LogicalUnion(cluster, newUnionInputs, true);
 
-    AggregateRel newTopAggRel = new AggregateRel(
+    LogicalAggregate newTopAggRel = new LogicalAggregate(
         cluster,
-        newUnionRel,
+        newUnion,
         aggRel.getGroupSet(),
         transformedAggCalls);
 
@@ -169,4 +181,4 @@ public class PushAggregateThroughUnionRule extends RelOptRule {
   }
 }
 
-// End PushAggregateThroughUnionRule.java
+// End AggregateUnionTransposeRule.java

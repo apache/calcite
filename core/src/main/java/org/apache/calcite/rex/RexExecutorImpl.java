@@ -14,27 +14,31 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rex;
+package org.apache.calcite.rex;
+
+import org.apache.calcite.DataContext;
+import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
+import org.apache.calcite.adapter.enumerable.RexToLixTranslator.InputGetter;
+import org.apache.calcite.adapter.java.JavaTypeFactory;
+import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
+import org.apache.calcite.linq4j.tree.BlockBuilder;
+import org.apache.calcite.linq4j.tree.Expression;
+import org.apache.calcite.linq4j.tree.Expressions;
+import org.apache.calcite.linq4j.tree.IndexExpression;
+import org.apache.calcite.linq4j.tree.MethodCallExpression;
+import org.apache.calcite.linq4j.tree.MethodDeclaration;
+import org.apache.calcite.linq4j.tree.ParameterExpression;
+import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.prepare.CalcitePrepareImpl;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.util.BuiltInMethod;
+
+import com.google.common.collect.ImmutableList;
 
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
-import java.util.*;
-
-import org.eigenbase.relopt.RelOptPlanner;
-import org.eigenbase.reltype.RelDataType;
-import org.eigenbase.reltype.RelDataTypeFactory;
-
-import net.hydromatic.linq4j.expressions.*;
-
-import net.hydromatic.optiq.BuiltinMethod;
-import net.hydromatic.optiq.DataContext;
-import net.hydromatic.optiq.impl.java.JavaTypeFactory;
-import net.hydromatic.optiq.jdbc.JavaTypeFactoryImpl;
-import net.hydromatic.optiq.prepare.OptiqPrepareImpl;
-import net.hydromatic.optiq.rules.java.RexToLixTranslator;
-import net.hydromatic.optiq.rules.java.RexToLixTranslator.InputGetter;
-
-import com.google.common.collect.ImmutableList;
+import java.util.List;
 
 /**
 * Evaluates a {@link RexNode} expression.
@@ -79,10 +83,10 @@ public class RexExecutorImpl implements RelOptPlanner.Executor {
             Expressions.newArrayInit(Object[].class, expressions)));
     final MethodDeclaration methodDecl =
         Expressions.methodDecl(Modifier.PUBLIC, Object[].class,
-            BuiltinMethod.FUNCTION1_APPLY.method.getName(),
+            BuiltInMethod.FUNCTION1_APPLY.method.getName(),
             ImmutableList.of(root0_), blockBuilder.toBlock());
     String code = Expressions.toString(methodDecl);
-    if (OptiqPrepareImpl.DEBUG) {
+    if (CalcitePrepareImpl.DEBUG) {
       System.out.println(code);
     }
     return code;
@@ -124,9 +128,9 @@ public class RexExecutorImpl implements RelOptPlanner.Executor {
 
   /**
    * Implementation of
-   * {@link net.hydromatic.optiq.rules.java.RexToLixTranslator.InputGetter}
+   * {@link org.apache.calcite.adapter.enumerable.RexToLixTranslator.InputGetter}
    * that reads the values of input fields by calling
-   * <code>{@link net.hydromatic.optiq.DataContext#get}("inputRecord")</code>.
+   * <code>{@link org.apache.calcite.DataContext#get}("inputRecord")</code>.
    */
   private static class DataContextInputGetter implements InputGetter {
     private final RelDataTypeFactory typeFactory;
@@ -141,7 +145,7 @@ public class RexExecutorImpl implements RelOptPlanner.Executor {
     public Expression field(BlockBuilder list, int index, Type storageType) {
       MethodCallExpression recFromCtx = Expressions.call(
           DataContext.ROOT,
-          BuiltinMethod.DATA_CONTEXT_GET.method,
+          BuiltInMethod.DATA_CONTEXT_GET.method,
           Expressions.constant("inputRecord"));
       Expression recFromCtxCasted =
           RexToLixTranslator.convert(recFromCtx, Object[].class);

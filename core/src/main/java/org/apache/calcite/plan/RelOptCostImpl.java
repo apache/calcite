@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.relopt;
+package org.apache.calcite.plan;
 
-import org.eigenbase.util.Util;
+import org.apache.calcite.util.Util;
 
 /**
  * RelOptCostImpl provides a default implementation for the {@link RelOptCost}
@@ -69,8 +69,7 @@ public class RelOptCostImpl implements RelOptCost {
     return getRows() < other.getRows();
   }
 
-  @Override
-  public int hashCode() {
+  @Override public int hashCode() {
     return Util.hashCode(getRows());
   }
 

@@ -14,20 +14,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql;
+package org.apache.calcite.sql;
 
-import java.nio.charset.*;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.type.SqlTypeUtil;
+import org.apache.calcite.sql.util.SqlVisitor;
+import org.apache.calcite.sql.validate.SqlMonotonicity;
+import org.apache.calcite.sql.validate.SqlValidator;
+import org.apache.calcite.sql.validate.SqlValidatorScope;
+import org.apache.calcite.util.Util;
 
-import java.util.*;
+import com.google.common.base.Objects;
 
-import org.eigenbase.reltype.*;
-import org.eigenbase.sql.parser.*;
-import org.eigenbase.sql.type.*;
-import org.eigenbase.sql.util.*;
-import org.eigenbase.sql.validate.*;
-import org.eigenbase.util.*;
+import java.nio.charset.Charset;
+import java.util.TimeZone;
 
-import static org.eigenbase.util.Static.RESOURCE;
+import static org.apache.calcite.util.Static.RESOURCE;
 
 /**
  * Represents a SQL data type specification in a parse tree.
@@ -222,11 +227,12 @@ public class SqlDataTypeSpec extends SqlNode {
       assert !fail : this + "!=" + node;
       return false;
     }
-    if (!Util.equal(this.timeZone, that.timeZone)) {
+    if (!Objects.equal(this.timeZone, that.timeZone)) {
       assert !fail : this + "!=" + node;
       return false;
     }
-    if (!Util.equal(this.charSetName, that.charSetName)) {
+    if (!com.google.common.base.Objects.equal(this.charSetName,
+        that.charSetName)) {
       assert !fail : this + "!=" + node;
       return false;
     }

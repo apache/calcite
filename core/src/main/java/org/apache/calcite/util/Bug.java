@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.util;
+package org.apache.calcite.util;
 
 /**
  * Holder for a list of constants describing which bugs which have not been
@@ -29,7 +29,7 @@ package org.eigenbase.util;
  * <pre>Statement stmt = connection.createStatement();
  * int rowCount = stmt.execute(
  *     "INSERT INTO FemaleEmps SELECT * FROM Emps WHERE gender = 'F'");
- * if (Bug.OPTIQ123_FIXED) {
+ * if (Bug.CALCITE_123_FIXED) {
  *    assertEquals(rowCount, 5);
  * }</pre>
  * </blockquote>

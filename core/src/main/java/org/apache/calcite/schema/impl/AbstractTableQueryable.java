@@ -14,23 +14,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.impl;
+package org.apache.calcite.schema.impl;
 
-import net.hydromatic.linq4j.*;
-import net.hydromatic.linq4j.expressions.Expression;
-
-import net.hydromatic.optiq.QueryableTable;
-import net.hydromatic.optiq.SchemaPlus;
+import org.apache.calcite.linq4j.AbstractQueryable;
+import org.apache.calcite.linq4j.Linq4j;
+import org.apache.calcite.linq4j.QueryProvider;
+import org.apache.calcite.linq4j.Queryable;
+import org.apache.calcite.linq4j.tree.Expression;
+import org.apache.calcite.schema.QueryableTable;
+import org.apache.calcite.schema.SchemaPlus;
 
 import java.lang.reflect.Type;
 import java.util.Iterator;
 
 /**
- * Abstract implementation of {@link net.hydromatic.linq4j.Queryable} for
+ * Abstract implementation of {@link org.apache.calcite.linq4j.Queryable} for
  * {@link QueryableTable}.
  *
  * <p>Not to be confused with
- * {@link net.hydromatic.optiq.impl.java.AbstractQueryableTable}.</p>
+ * {@link org.apache.calcite.adapter.java.AbstractQueryableTable}.</p>
  *
  * @param <T> element type
  */

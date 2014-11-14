@@ -14,24 +14,35 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel.metadata;
+package org.apache.calcite.rel.metadata;
 
-import java.util.*;
+import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.Aggregate;
+import org.apache.calcite.rel.core.AggregateCall;
+import org.apache.calcite.rel.core.Filter;
+import org.apache.calcite.rel.core.Join;
+import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.core.SetOp;
+import org.apache.calcite.rel.core.Sort;
+import org.apache.calcite.rel.core.TableFunctionScan;
+import org.apache.calcite.rex.RexInputRef;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexVisitor;
+import org.apache.calcite.rex.RexVisitorImpl;
+import org.apache.calcite.util.BuiltInMethod;
 
-import org.eigenbase.rel.*;
-import org.eigenbase.relopt.*;
-import org.eigenbase.rex.*;
-
-import net.hydromatic.optiq.BuiltinMethod;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
- * RelMdColumnOrigins supplies a default implementation of {@link
- * RelMetadataQuery#getColumnOrigins} for the standard logical algebra.
+ * RelMdColumnOrigins supplies a default implementation of
+ * {@link RelMetadataQuery#getColumnOrigins} for the standard logical algebra.
  */
 public class RelMdColumnOrigins {
   public static final RelMetadataProvider SOURCE =
       ReflectiveRelMetadataProvider.reflectiveSource(
-          BuiltinMethod.COLUMN_ORIGIN.method, new RelMdColumnOrigins());
+          BuiltInMethod.COLUMN_ORIGIN.method, new RelMdColumnOrigins());
 
   //~ Constructors -----------------------------------------------------------
 
@@ -40,12 +51,12 @@ public class RelMdColumnOrigins {
   //~ Methods ----------------------------------------------------------------
 
   public Set<RelColumnOrigin> getColumnOrigins(
-      AggregateRelBase rel,
+      Aggregate rel,
       int iOutputColumn) {
     if (iOutputColumn < rel.getGroupCount()) {
       // Group columns pass through directly.
       return invokeGetColumnOrigins(
-          rel.getChild(),
+          rel.getInput(),
           iOutputColumn);
     }
 
@@ -57,7 +68,7 @@ public class RelMdColumnOrigins {
     for (Integer iInput : call.getArgList()) {
       Set<RelColumnOrigin> inputSet =
           invokeGetColumnOrigins(
-              rel.getChild(), iInput);
+              rel.getInput(), iInput);
       inputSet = createDerivedColumnOrigins(inputSet);
       if (inputSet != null) {
         set.addAll(inputSet);
@@ -67,7 +78,7 @@ public class RelMdColumnOrigins {
   }
 
   public Set<RelColumnOrigin> getColumnOrigins(
-      JoinRelBase rel,
+      Join rel,
       int iOutputColumn) {
     int nLeftColumns = rel.getLeft().getRowType().getFieldList().size();
     Set<RelColumnOrigin> set;
@@ -98,7 +109,7 @@ public class RelMdColumnOrigins {
   }
 
   public Set<RelColumnOrigin> getColumnOrigins(
-      SetOpRel rel,
+      SetOp rel,
       int iOutputColumn) {
     Set<RelColumnOrigin> set = new HashSet<RelColumnOrigin>();
     for (RelNode input : rel.getInputs()) {
@@ -115,9 +126,9 @@ public class RelMdColumnOrigins {
   }
 
   public Set<RelColumnOrigin> getColumnOrigins(
-      ProjectRelBase rel,
+      Project rel,
       int iOutputColumn) {
-    final RelNode child = rel.getChild();
+    final RelNode child = rel.getInput();
     RexNode rexNode = rel.getProjects().get(iOutputColumn);
 
     if (rexNode instanceof RexInputRef) {
@@ -150,23 +161,23 @@ public class RelMdColumnOrigins {
   }
 
   public Set<RelColumnOrigin> getColumnOrigins(
-      FilterRelBase rel,
+      Filter rel,
       int iOutputColumn) {
     return invokeGetColumnOrigins(
-        rel.getChild(),
+        rel.getInput(),
         iOutputColumn);
   }
 
   public Set<RelColumnOrigin> getColumnOrigins(
-      SortRel rel,
+      Sort rel,
       int iOutputColumn) {
     return invokeGetColumnOrigins(
-        rel.getChild(),
+        rel.getInput(),
         iOutputColumn);
   }
 
   public Set<RelColumnOrigin> getColumnOrigins(
-      TableFunctionRelBase rel,
+      TableFunctionScan rel,
       int iOutputColumn) {
     Set<RelColumnOrigin> set = new HashSet<RelColumnOrigin>();
     Set<RelColumnMapping> mappings = rel.getColumnMappings();

@@ -14,18 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.rules.java;
+package org.apache.calcite.adapter.enumerable;
 
-import net.hydromatic.linq4j.expressions.BlockBuilder;
-
-import org.eigenbase.rex.RexNode;
+import org.apache.calcite.linq4j.tree.BlockBuilder;
+import org.apache.calcite.rex.RexNode;
 
 import java.util.Map;
 
 /**
- * Allows to build nested code blocks with tracking of current context and
- * the nullability of particular {@link org.eigenbase.rex.RexNode} expressions.
- * @see net.hydromatic.optiq.rules.java.StrictAggImplementor#implementAdd(AggContext, AggAddContext)
+ * Allows to build nested code blocks with tracking of current context and the
+ * nullability of particular {@link org.apache.calcite.rex.RexNode} expressions.
+ *
+ * @see org.apache.calcite.adapter.enumerable.StrictAggImplementor#implementAdd(AggContext, AggAddContext)
  */
 public interface NestedBlockBuilder {
   /**

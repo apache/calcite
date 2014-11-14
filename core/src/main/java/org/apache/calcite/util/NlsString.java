@@ -14,21 +14,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.util;
+package org.apache.calcite.util;
 
-import java.nio.*;
-import java.nio.charset.*;
+import org.apache.calcite.runtime.SqlFunctions;
+import org.apache.calcite.sql.SqlCollation;
+import org.apache.calcite.sql.SqlUtil;
+
+import com.google.common.base.Objects;
+
+import java.nio.CharBuffer;
+import java.nio.charset.CharacterCodingException;
+import java.nio.charset.Charset;
+import java.nio.charset.CharsetEncoder;
+import java.nio.charset.IllegalCharsetNameException;
+import java.nio.charset.UnsupportedCharsetException;
 import java.util.List;
 
-import org.eigenbase.sql.*;
-
-import net.hydromatic.optiq.runtime.SqlFunctions;
-
-import static org.eigenbase.util.Static.RESOURCE;
+import static org.apache.calcite.util.Static.RESOURCE;
 
 /**
- * A string, optionally with {@link Charset character set} and {@link
- * SqlCollation}. It is immutable.
+ * A string, optionally with {@link Charset character set} and
+ * {@link SqlCollation}. It is immutable.
  */
 public class NlsString implements Comparable<NlsString> {
   //~ Instance fields --------------------------------------------------------
@@ -100,9 +106,9 @@ public class NlsString implements Comparable<NlsString> {
       return false;
     }
     NlsString that = (NlsString) obj;
-    return Util.equal(value, that.value)
-        && Util.equal(charsetName, that.charsetName)
-        && Util.equal(collation, that.collation);
+    return Objects.equal(value, that.value)
+        && Objects.equal(charsetName, that.charsetName)
+        && Objects.equal(collation, that.collation);
   }
 
   // implement Comparable

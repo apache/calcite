@@ -14,15 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel.metadata;
+package org.apache.calcite.rel.metadata;
 
-import java.util.*;
+import org.apache.calcite.plan.RelOptCost;
+import org.apache.calcite.plan.RelOptPredicateList;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.sql.SqlExplainLevel;
 
-import org.eigenbase.rel.*;
-import org.eigenbase.relopt.RelOptCost;
-import org.eigenbase.relopt.RelOptPredicateList;
-import org.eigenbase.rex.RexNode;
-import org.eigenbase.sql.SqlExplainLevel;
+import java.util.BitSet;
+import java.util.Set;
 
 /**
  * Contains the interfaces for several common forms of metadata.
@@ -137,7 +138,7 @@ public abstract class BuiltInMetadata {
      * Estimates the distinct row count in the original source for the given
      * {@code groupKey}, ignoring any filtering being applied by the expression.
      * Typically, "original source" means base table, but for derived columns,
-     * the estimate may come from a non-leaf rel such as a ProjectRel.
+     * the estimate may come from a non-leaf rel such as a LogicalProject.
      *
      * @param groupKey column mask representing the subset of columns for which
      *                 the row count will be determined
@@ -152,8 +153,8 @@ public abstract class BuiltInMetadata {
     /**
      * For a given output column of an expression, determines all columns of
      * underlying tables which contribute to result values. An output column may
-     * have more than one origin due to expressions such as UnionRel and
-     * ProjectRel. The optimizer may use this information for catalog access
+     * have more than one origin due to expressions such as Union and
+     * LogicalProject. The optimizer may use this information for catalog access
      * (e.g. index availability).
      *
      * @param outputColumn 0-based ordinal for output column of interest

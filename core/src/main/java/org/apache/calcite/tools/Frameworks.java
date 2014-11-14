@@ -14,29 +14,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.tools;
+package org.apache.calcite.tools;
 
-import net.hydromatic.optiq.SchemaPlus;
-import net.hydromatic.optiq.config.Lex;
-import net.hydromatic.optiq.config.OptiqConnectionProperty;
-import net.hydromatic.optiq.jdbc.OptiqConnection;
-import net.hydromatic.optiq.jdbc.OptiqSchema;
-import net.hydromatic.optiq.prepare.OptiqPrepareImpl;
-import net.hydromatic.optiq.prepare.PlannerImpl;
-import net.hydromatic.optiq.server.OptiqServerStatement;
-
-import org.eigenbase.relopt.Context;
-import org.eigenbase.relopt.RelOptCluster;
-import org.eigenbase.relopt.RelOptCostFactory;
-import org.eigenbase.relopt.RelOptSchema;
-import org.eigenbase.relopt.RelTraitDef;
-import org.eigenbase.reltype.RelDataTypeSystem;
-import org.eigenbase.sql.SqlOperatorTable;
-import org.eigenbase.sql.fun.SqlStdOperatorTable;
-import org.eigenbase.sql.parser.SqlParserImplFactory;
-import org.eigenbase.sql.parser.impl.SqlParserImpl;
-import org.eigenbase.sql2rel.SqlRexConvertletTable;
-import org.eigenbase.sql2rel.StandardConvertletTable;
+import org.apache.calcite.config.CalciteConnectionProperty;
+import org.apache.calcite.config.Lex;
+import org.apache.calcite.jdbc.CalciteConnection;
+import org.apache.calcite.jdbc.CalciteSchema;
+import org.apache.calcite.plan.Context;
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptCostFactory;
+import org.apache.calcite.plan.RelOptSchema;
+import org.apache.calcite.plan.RelTraitDef;
+import org.apache.calcite.prepare.CalcitePrepareImpl;
+import org.apache.calcite.prepare.PlannerImpl;
+import org.apache.calcite.rel.type.RelDataTypeSystem;
+import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.server.CalciteServerStatement;
+import org.apache.calcite.sql.SqlOperatorTable;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.parser.SqlParserImplFactory;
+import org.apache.calcite.sql.parser.impl.SqlParserImpl;
+import org.apache.calcite.sql2rel.SqlRexConvertletTable;
+import org.apache.calcite.sql2rel.StandardConvertletTable;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
@@ -75,7 +74,7 @@ public class Frameworks {
   /** Piece of code to be run in a context where a planner and statement are
    * available. The planner is accessible from the {@code cluster} parameter, as
    * are several other useful objects. The connection and
-   * {@link net.hydromatic.optiq.DataContext} are accessible from the
+   * {@link org.apache.calcite.DataContext} are accessible from the
    * statement. */
   public abstract static class PrepareAction<R> {
     private final FrameworkConfig config;
@@ -94,7 +93,7 @@ public class Frameworks {
     }
 
     public abstract R apply(RelOptCluster cluster, RelOptSchema relOptSchema,
-        SchemaPlus rootSchema, OptiqServerStatement statement);
+        SchemaPlus rootSchema, CalciteServerStatement statement);
   }
 
   /**
@@ -109,7 +108,7 @@ public class Frameworks {
     return withPrepare(
         new Frameworks.PrepareAction<R>(config) {
           public R apply(RelOptCluster cluster, RelOptSchema relOptSchema,
-              SchemaPlus rootSchema, OptiqServerStatement statement) {
+              SchemaPlus rootSchema, CalciteServerStatement statement) {
             return action.apply(cluster, relOptSchema, rootSchema);
           }
         });
@@ -136,19 +135,19 @@ public class Frameworks {
    */
   public static <R> R withPrepare(PrepareAction<R> action) {
     try {
-      Class.forName("net.hydromatic.optiq.jdbc.Driver");
       final Properties info = new Properties();
       if (action.config.getTypeSystem() != RelDataTypeSystem.DEFAULT) {
-        info.setProperty(OptiqConnectionProperty.TYPE_SYSTEM.camelName(),
+        info.setProperty(CalciteConnectionProperty.TYPE_SYSTEM.camelName(),
             action.config.getTypeSystem().getClass().getName());
       }
       Connection connection =
           DriverManager.getConnection("jdbc:calcite:", info);
-      OptiqConnection optiqConnection =
-          connection.unwrap(OptiqConnection.class);
-      final OptiqServerStatement statement =
-          optiqConnection.createStatement().unwrap(OptiqServerStatement.class);
-      return new OptiqPrepareImpl().perform(statement, action);
+      CalciteConnection calciteConnection =
+          connection.unwrap(CalciteConnection.class);
+      final CalciteServerStatement statement =
+          calciteConnection.createStatement()
+              .unwrap(CalciteServerStatement.class);
+      return new CalcitePrepareImpl().perform(statement, action);
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
@@ -161,7 +160,7 @@ public class Frameworks {
    *    definitions of tables, columns etc.
    */
   public static SchemaPlus createRootSchema(boolean addMetadataSchema) {
-    return OptiqSchema.createRootSchema(addMetadataSchema).plus();
+    return CalciteSchema.createRootSchema(addMetadataSchema).plus();
   }
 
   public static ConfigBuilder newConfigBuilder() {

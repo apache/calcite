@@ -14,18 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.rules.java;
+package org.apache.calcite.adapter.enumerable;
 
-import net.hydromatic.linq4j.expressions.Expression;
+import org.apache.calcite.linq4j.tree.Expression;
 
 import java.lang.reflect.Type;
 import java.util.List;
 
 /**
  * The base implementation of strict window aggregate function.
- * @see net.hydromatic.optiq.rules.java.RexImpTable.FirstLastValueImplementor
- * @see net.hydromatic.optiq.rules.java.RexImpTable.RankImplementor
- * @see net.hydromatic.optiq.rules.java.RexImpTable.RowNumberImplementor
+ * @see org.apache.calcite.adapter.enumerable.RexImpTable.FirstLastValueImplementor
+ * @see org.apache.calcite.adapter.enumerable.RexImpTable.RankImplementor
+ * @see org.apache.calcite.adapter.enumerable.RexImpTable.RowNumberImplementor
  */
 public abstract class StrictWinAggImplementor extends StrictAggImplementor
     implements WinAggImplementor {
@@ -50,29 +50,25 @@ public abstract class StrictWinAggImplementor extends StrictAggImplementor
     return super.implementNotNullResult(info, result);
   }
 
-  @Override
-  protected final void implementNotNullAdd(AggContext info, AggAddContext add) {
+  @Override protected final void implementNotNullAdd(AggContext info,
+      AggAddContext add) {
     implementNotNullAdd((WinAggContext) info, (WinAggAddContext) add);
   }
 
-  @Override
-  protected boolean nonDefaultOnEmptySet(AggContext info) {
+  @Override protected boolean nonDefaultOnEmptySet(AggContext info) {
     return nonDefaultOnEmptySet((WinAggContext) info);
   }
 
-  @Override
-  public final List<Type> getNotNullState(AggContext info) {
+  @Override public final List<Type> getNotNullState(AggContext info) {
     return getNotNullState((WinAggContext) info);
   }
 
-  @Override
-  protected final void implementNotNullReset(AggContext info,
+  @Override protected final void implementNotNullReset(AggContext info,
       AggResetContext reset) {
     implementNotNullReset((WinAggContext) info, (WinAggResetContext) reset);
   }
 
-  @Override
-  protected final Expression implementNotNullResult(AggContext info,
+  @Override protected final Expression implementNotNullResult(AggContext info,
       AggResultContext result) {
     return implementNotNullResult((WinAggContext) info,
         (WinAggResultContext) result);
@@ -82,3 +78,5 @@ public abstract class StrictWinAggImplementor extends StrictAggImplementor
     return true;
   }
 }
+
+// End StrictWinAggImplementor.java

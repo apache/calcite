@@ -14,20 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.config;
+package org.apache.calcite.config;
 
-import net.hydromatic.avatica.ConnectionProperty;
+import org.apache.calcite.avatica.ConnectionProperty;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 
-import static net.hydromatic.avatica.ConnectionConfigImpl.*;
+import static org.apache.calcite.avatica.ConnectionConfigImpl.PropEnv;
+import static org.apache.calcite.avatica.ConnectionConfigImpl.parse;
 
 /**
  * Properties that may be specified on the JDBC connect string.
  */
-public enum OptiqConnectionProperty implements ConnectionProperty {
+public enum CalciteConnectionProperty implements ConnectionProperty {
   /** Whether to store query results in temporary tables. */
   AUTO_TEMP("autoTemp", Type.BOOLEAN, false),
 
@@ -71,25 +72,25 @@ public enum OptiqConnectionProperty implements ConnectionProperty {
   TIMEZONE("timezone", Type.STRING, null),
 
   /** Type system. The name of a class that implements
-   * {@code org.eigenbase.reltype.RelDataTypeSystem} and has a public default
-   * constructor or an {@code INSTANCE} constant. */
+   * {@link org.apache.calcite.rel.type.RelDataTypeSystem} and has a public
+   * default constructor or an {@code INSTANCE} constant. */
   TYPE_SYSTEM("typeSystem", Type.PLUGIN, null);
 
   private final String camelName;
   private final Type type;
   private final Object defaultValue;
 
-  private static final Map<String, OptiqConnectionProperty> NAME_TO_PROPS;
+  private static final Map<String, CalciteConnectionProperty> NAME_TO_PROPS;
 
   static {
-    NAME_TO_PROPS = new HashMap<String, OptiqConnectionProperty>();
-    for (OptiqConnectionProperty property : OptiqConnectionProperty.values()) {
-      NAME_TO_PROPS.put(property.camelName.toUpperCase(), property);
-      NAME_TO_PROPS.put(property.name(), property);
+    NAME_TO_PROPS = new HashMap<String, CalciteConnectionProperty>();
+    for (CalciteConnectionProperty p : CalciteConnectionProperty.values()) {
+      NAME_TO_PROPS.put(p.camelName.toUpperCase(), p);
+      NAME_TO_PROPS.put(p.name(), p);
     }
   }
 
-  OptiqConnectionProperty(String camelName, Type type, Object defaultValue) {
+  CalciteConnectionProperty(String camelName, Type type, Object defaultValue) {
     this.camelName = camelName;
     this.type = type;
     this.defaultValue = defaultValue;
@@ -114,4 +115,4 @@ public enum OptiqConnectionProperty implements ConnectionProperty {
   }
 }
 
-// End OptiqConnectionProperty.java
+// End CalciteConnectionProperty.java

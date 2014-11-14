@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.tools;
+package org.apache.calcite.tools;
 
 /**
  * An Exception thrown when attempting to validate a SQL parse tree.

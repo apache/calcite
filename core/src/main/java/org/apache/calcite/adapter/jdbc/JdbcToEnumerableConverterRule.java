@@ -14,13 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.impl.jdbc;
+package org.apache.calcite.adapter.jdbc;
 
-import net.hydromatic.optiq.rules.java.EnumerableConvention;
-
-import org.eigenbase.rel.RelNode;
-import org.eigenbase.rel.convert.ConverterRule;
-import org.eigenbase.relopt.RelTraitSet;
+import org.apache.calcite.adapter.enumerable.EnumerableConvention;
+import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.convert.ConverterRule;
 
 /**
  * Rule to convert a relational expression from

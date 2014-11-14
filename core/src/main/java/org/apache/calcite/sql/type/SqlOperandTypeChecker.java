@@ -14,15 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql.type;
+package org.apache.calcite.sql.type;
 
-import org.eigenbase.sql.*;
+import org.apache.calcite.sql.SqlCallBinding;
+import org.apache.calcite.sql.SqlOperandCountRange;
+import org.apache.calcite.sql.SqlOperator;
 
 /**
  * Strategy interface to check for allowed operand types of an operator call.
  *
- * <p>This interface is an example of the {@link
- * org.eigenbase.util.Glossary#STRATEGY_PATTERN strategy pattern}.</p>
+ * <p>This interface is an example of the
+ * {@link org.apache.calcite.util.Glossary#STRATEGY_PATTERN strategy pattern}.
  */
 public interface SqlOperandTypeChecker {
   //~ Methods ----------------------------------------------------------------

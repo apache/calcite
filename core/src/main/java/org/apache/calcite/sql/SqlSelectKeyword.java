@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql;
+package org.apache.calcite.sql;
 
-import org.eigenbase.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.parser.SqlParserPos;
 
 /**
  * Defines the keywords which can occur immediately after the "SELECT" keyword.

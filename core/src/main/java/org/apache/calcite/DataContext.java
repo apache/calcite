@@ -14,16 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq;
+package org.apache.calcite;
 
-import net.hydromatic.linq4j.QueryProvider;
-import net.hydromatic.linq4j.expressions.Expressions;
-import net.hydromatic.linq4j.expressions.ParameterExpression;
+import org.apache.calcite.adapter.java.JavaTypeFactory;
+import org.apache.calcite.linq4j.QueryProvider;
+import org.apache.calcite.linq4j.tree.Expressions;
+import org.apache.calcite.linq4j.tree.ParameterExpression;
+import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.sql.advise.SqlAdvisor;
 
-import net.hydromatic.optiq.impl.java.JavaTypeFactory;
-
-import org.eigenbase.sql.advise.SqlAdvisor;
-import org.eigenbase.util.Util;
+import com.google.common.base.CaseFormat;
 
 import java.lang.reflect.Modifier;
 import java.util.TimeZone;
@@ -90,7 +90,8 @@ public interface DataContext {
     Variable(String camelName, Class clazz) {
       this.camelName = camelName;
       this.clazz = clazz;
-      assert camelName.equals(Util.toCamelCase(name()));
+      assert camelName.equals(
+          CaseFormat.UPPER_UNDERSCORE.to(CaseFormat.LOWER_CAMEL, name()));
     }
 
     /** Returns the value of this variable in a given data context. */

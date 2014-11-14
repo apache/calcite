@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.linq4j.expressions;
+package org.apache.calcite.linq4j.tree;
 
 /**
  * Represents an unconditional jump. This includes return statements, break and
@@ -52,16 +52,14 @@ public class GotoStatement extends Statement {
     }
   }
 
-  @Override
-  public Statement accept(Visitor visitor) {
+  @Override public Statement accept(Visitor visitor) {
     visitor = visitor.preVisit(this);
     Expression expression1 =
         expression == null ? null : expression.accept(visitor);
     return visitor.visit(this, expression1);
   }
 
-  @Override
-  void accept0(ExpressionWriter writer) {
+  @Override void accept0(ExpressionWriter writer) {
     writer.append(kind.prefix);
     if (labelTarget != null) {
       writer.append(' ').append(labelTarget.name);
@@ -84,8 +82,7 @@ public class GotoStatement extends Statement {
     writer.append(';').newlineAndIndent();
   }
 
-  @Override
-  public Object evaluate(Evaluator evaluator) {
+  @Override public Object evaluate(Evaluator evaluator) {
     switch (kind) {
     case Return:
     case Sequence:
@@ -97,8 +94,7 @@ public class GotoStatement extends Statement {
     }
   }
 
-  @Override
-  public boolean equals(Object o) {
+  @Override public boolean equals(Object o) {
     if (this == o) {
       return true;
     }
@@ -126,8 +122,7 @@ public class GotoStatement extends Statement {
     return true;
   }
 
-  @Override
-  public int hashCode() {
+  @Override public int hashCode() {
     int result = super.hashCode();
     result = 31 * result + kind.hashCode();
     result = 31 * result + (labelTarget != null ? labelTarget.hashCode() : 0);

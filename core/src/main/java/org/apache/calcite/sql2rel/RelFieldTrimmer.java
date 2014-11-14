@@ -14,27 +14,60 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql2rel;
+package org.apache.calcite.sql2rel;
 
-import java.math.BigDecimal;
-import java.util.*;
-
-import org.eigenbase.rel.*;
-import org.eigenbase.rel.rules.RemoveTrivialProjectRule;
-import org.eigenbase.rel.rules.SemiJoinRel;
-import org.eigenbase.relopt.*;
-import org.eigenbase.reltype.*;
-import org.eigenbase.rex.*;
-import org.eigenbase.sql.validate.SqlValidator;
-import org.eigenbase.util.*;
-import org.eigenbase.util.mapping.*;
-
-import net.hydromatic.linq4j.Ord;
-
-import net.hydromatic.optiq.util.BitSets;
+import org.apache.calcite.linq4j.Ord;
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.RelCollation;
+import org.apache.calcite.rel.RelFieldCollation;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.Aggregate;
+import org.apache.calcite.rel.core.AggregateCall;
+import org.apache.calcite.rel.core.Filter;
+import org.apache.calcite.rel.core.Join;
+import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.core.RelFactories;
+import org.apache.calcite.rel.core.SemiJoin;
+import org.apache.calcite.rel.core.SetOp;
+import org.apache.calcite.rel.core.Sort;
+import org.apache.calcite.rel.core.TableScan;
+import org.apache.calcite.rel.logical.LogicalTableFunctionScan;
+import org.apache.calcite.rel.logical.LogicalTableModify;
+import org.apache.calcite.rel.logical.LogicalValues;
+import org.apache.calcite.rel.rules.ProjectRemoveRule;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rel.type.RelDataTypeImpl;
+import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexLiteral;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexPermuteInputsShuttle;
+import org.apache.calcite.rex.RexUtil;
+import org.apache.calcite.rex.RexVisitor;
+import org.apache.calcite.sql.validate.SqlValidator;
+import org.apache.calcite.util.BitSets;
+import org.apache.calcite.util.Bug;
+import org.apache.calcite.util.Pair;
+import org.apache.calcite.util.ReflectUtil;
+import org.apache.calcite.util.ReflectiveVisitor;
+import org.apache.calcite.util.Util;
+import org.apache.calcite.util.mapping.IntPair;
+import org.apache.calcite.util.mapping.Mapping;
+import org.apache.calcite.util.mapping.MappingType;
+import org.apache.calcite.util.mapping.Mappings;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.BitSet;
+import java.util.Collections;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
 
 /**
  * Transformer that walks over a tree of relational expressions, replacing each
@@ -247,7 +280,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
   }
 
   /**
-   * Visit method, per {@link org.eigenbase.util.ReflectiveVisitor}.
+   * Visit method, per {@link org.apache.calcite.util.ReflectiveVisitor}.
    *
    * <p>This method is invoked reflectively, so there may not be any apparent
    * calls to it. The class (or derived classes) may contain overloads of
@@ -276,15 +309,15 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
 
   /**
    * Variant of {@link #trimFields(RelNode, BitSet, Set)} for
-   * {@link ProjectRel}.
+   * {@link org.apache.calcite.rel.logical.LogicalProject}.
    */
   public TrimResult trimFields(
-      ProjectRelBase project,
+      Project project,
       BitSet fieldsUsed,
       Set<RelDataTypeField> extraFields) {
     final RelDataType rowType = project.getRowType();
     final int fieldCount = rowType.getFieldCount();
-    final RelNode input = project.getChild();
+    final RelNode input = project.getInput();
     final RelDataType inputRowType = input.getRowType();
 
     // Which fields are required from the input?
@@ -344,7 +377,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
             mapping);
 
     final RelNode newProject;
-    if (RemoveTrivialProjectRule.isIdentity(
+    if (ProjectRemoveRule.isIdentity(
         newProjectExprList,
         newRowType,
         newInput.getRowType())) {
@@ -384,16 +417,16 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
 
   /**
    * Variant of {@link #trimFields(RelNode, BitSet, Set)} for
-   * {@link FilterRel}.
+   * {@link org.apache.calcite.rel.logical.LogicalFilter}.
    */
   public TrimResult trimFields(
-      FilterRelBase filter,
+      Filter filter,
       BitSet fieldsUsed,
       Set<RelDataTypeField> extraFields) {
     final RelDataType rowType = filter.getRowType();
     final int fieldCount = rowType.getFieldCount();
     final RexNode conditionExpr = filter.getCondition();
-    final RelNode input = filter.getChild();
+    final RelNode input = filter.getInput();
 
     // We use the fields used by the consumer, plus any fields used in the
     // filter.
@@ -436,16 +469,16 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
 
   /**
    * Variant of {@link #trimFields(RelNode, BitSet, Set)} for
-   * {@link SortRel}.
+   * {@link org.apache.calcite.rel.core.Sort}.
    */
   public TrimResult trimFields(
-      SortRel sort,
+      Sort sort,
       BitSet fieldsUsed,
       Set<RelDataTypeField> extraFields) {
     final RelDataType rowType = sort.getRowType();
     final int fieldCount = rowType.getFieldCount();
     final RelCollation collation = sort.getCollation();
-    final RelNode input = sort.getChild();
+    final RelNode input = sort.getInput();
 
     // We use the fields used by the consumer, plus any fields used as sort
     // keys.
@@ -485,10 +518,10 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
 
   /**
    * Variant of {@link #trimFields(RelNode, BitSet, Set)} for
-   * {@link JoinRel}.
+   * {@link org.apache.calcite.rel.logical.LogicalJoin}.
    */
   public TrimResult trimFields(
-      JoinRelBase join,
+      Join join,
       BitSet fieldsUsed,
       Set<RelDataTypeField> extraFields) {
     final int fieldCount = join.getSystemFieldList().size()
@@ -603,7 +636,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
         conditionExpr.accept(shuttle);
 
     final RelNode newJoin;
-    if (join instanceof SemiJoinRel) {
+    if (join instanceof SemiJoin) {
       newJoin = semiJoinFactory.createSemiJoin(newInputs.get(0),
           newInputs.get(1), newConditionExpr);
       // For SemiJoins only map fields from the left-side
@@ -630,10 +663,10 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
 
   /**
    * Variant of {@link #trimFields(RelNode, BitSet, Set)} for
-   * {@link SetOpRel} (including UNION and UNION ALL).
+   * {@link org.apache.calcite.rel.core.SetOp} (including UNION and UNION ALL).
    */
   public TrimResult trimFields(
-      SetOpRel setOp,
+      SetOp setOp,
       BitSet fieldsUsed,
       Set<RelDataTypeField> extraFields) {
     final RelDataType rowType = setOp.getRowType();
@@ -698,10 +731,10 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
 
   /**
    * Variant of {@link #trimFields(RelNode, BitSet, Set)} for
-   * {@link AggregateRel}.
+   * {@link org.apache.calcite.rel.logical.LogicalAggregate}.
    */
   public TrimResult trimFields(
-      AggregateRelBase aggregate,
+      Aggregate aggregate,
       BitSet fieldsUsed,
       Set<RelDataTypeField> extraFields) {
     // Fields:
@@ -808,10 +841,10 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
 
   /**
    * Variant of {@link #trimFields(RelNode, BitSet, Set)} for
-   * {@link TableModificationRel}.
+   * {@link org.apache.calcite.rel.logical.LogicalTableModify}.
    */
   public TrimResult trimFields(
-      TableModificationRel modifier,
+      LogicalTableModify modifier,
       BitSet fieldsUsed,
       Set<RelDataTypeField> extraFields) {
     // Ignore what consumer wants. We always project all columns.
@@ -819,7 +852,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
 
     final RelDataType rowType = modifier.getRowType();
     final int fieldCount = rowType.getFieldCount();
-    RelNode input = modifier.getChild();
+    RelNode input = modifier.getInput();
 
     // We want all fields from the child.
     final int inputFieldCount = input.getRowType().getFieldCount();
@@ -838,7 +871,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
           "Expected identity mapping, got " + inputMapping);
     }
 
-    TableModificationRel newModifier = modifier;
+    LogicalTableModify newModifier = modifier;
     if (newInput != input) {
       newModifier =
           modifier.copy(
@@ -854,10 +887,10 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
 
   /**
    * Variant of {@link #trimFields(RelNode, BitSet, Set)} for
-   * {@link TableFunctionRel}.
+   * {@link org.apache.calcite.rel.logical.LogicalTableFunctionScan}.
    */
   public TrimResult trimFields(
-      TableFunctionRel tabFun,
+      LogicalTableFunctionScan tabFun,
       BitSet fieldsUsed,
       Set<RelDataTypeField> extraFields) {
     final RelDataType rowType = tabFun.getRowType();
@@ -878,7 +911,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
       newInputs.add(trimResult.left);
     }
 
-    TableFunctionRel newTabFun = tabFun;
+    LogicalTableFunctionScan newTabFun = tabFun;
     if (!tabFun.getInputs().equals(newInputs)) {
       newTabFun = tabFun.copy(tabFun.getTraitSet(), newInputs);
     }
@@ -891,10 +924,10 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
 
   /**
    * Variant of {@link #trimFields(RelNode, BitSet, Set)} for
-   * {@link org.eigenbase.rel.ValuesRel}.
+   * {@link org.apache.calcite.rel.logical.LogicalValues}.
    */
   public TrimResult trimFields(
-      ValuesRel values,
+      LogicalValues values,
       BitSet fieldsUsed,
       Set<RelDataTypeField> extraFields) {
     final RelDataType rowType = values.getRowType();
@@ -926,8 +959,8 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
     final RelDataType newRowType =
         RelOptUtil.permute(values.getCluster().getTypeFactory(), rowType,
             mapping);
-    final ValuesRel newValues =
-        new ValuesRel(values.getCluster(), newRowType, newTuples);
+    final LogicalValues newValues =
+        new LogicalValues(values.getCluster(), newRowType, newTuples);
     return new TrimResult(newValues, mapping);
   }
 
@@ -946,10 +979,10 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
 
   /**
    * Variant of {@link #trimFields(RelNode, BitSet, Set)} for
-   * {@link org.eigenbase.rel.TableAccessRel}.
+   * {@link org.apache.calcite.rel.logical.LogicalTableScan}.
    */
   public TrimResult trimFields(
-      final TableAccessRelBase tableAccessRel,
+      final TableScan tableAccessRel,
       BitSet fieldsUsed,
       Set<RelDataTypeField> extraFields) {
     final int fieldCount = tableAccessRel.getRowType().getFieldCount();
@@ -966,13 +999,13 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
     // pretend that one field is used.
     if (fieldsUsed.cardinality() == 0) {
       RelNode input = newTableAccessRel;
-      if (input instanceof ProjectRelBase) {
+      if (input instanceof Project) {
         // The table has implemented the project in the obvious way - by
         // creating project with 0 fields. Strip it away, and create our own
         // project with one field.
-        ProjectRelBase project = (ProjectRelBase) input;
+        Project project = (Project) input;
         if (project.getRowType().getFieldCount() == 0) {
-          input = project.getChild();
+          input = project.getInput();
         }
       }
       return dummyProject(fieldCount, input);
@@ -991,7 +1024,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
    * of the current relational expression.
    *
    * <p>The mapping is a
-   * {@link org.eigenbase.util.mapping.Mappings.SourceMapping}, which means
+   * {@link org.apache.calcite.util.mapping.Mappings.SourceMapping}, which means
    * that no column can be used more than once, and some columns are not used.
    * {@code columnsUsed.getSource(i)} returns the source of the i'th output
    * field.

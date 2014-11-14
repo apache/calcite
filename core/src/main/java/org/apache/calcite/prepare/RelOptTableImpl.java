@@ -14,23 +14,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.prepare;
+package org.apache.calcite.prepare;
 
-import net.hydromatic.linq4j.expressions.Expression;
-
-import net.hydromatic.optiq.*;
-import net.hydromatic.optiq.jdbc.OptiqSchema;
-import net.hydromatic.optiq.rules.java.EnumerableConvention;
-import net.hydromatic.optiq.rules.java.JavaRules;
-
-import org.eigenbase.rel.RelCollation;
-import org.eigenbase.rel.RelNode;
-import org.eigenbase.relopt.RelOptCluster;
-import org.eigenbase.relopt.RelOptSchema;
-import org.eigenbase.reltype.RelDataType;
-import org.eigenbase.sql.SqlAccessType;
-import org.eigenbase.sql.validate.SqlMonotonicity;
-import org.eigenbase.util.Util;
+import org.apache.calcite.adapter.enumerable.EnumerableConvention;
+import org.apache.calcite.adapter.enumerable.EnumerableInterpreter;
+import org.apache.calcite.adapter.enumerable.EnumerableTableScan;
+import org.apache.calcite.jdbc.CalciteSchema;
+import org.apache.calcite.linq4j.tree.Expression;
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptSchema;
+import org.apache.calcite.rel.RelCollation;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.schema.FilterableTable;
+import org.apache.calcite.schema.ProjectableFilterableTable;
+import org.apache.calcite.schema.QueryableTable;
+import org.apache.calcite.schema.ScannableTable;
+import org.apache.calcite.schema.Schemas;
+import org.apache.calcite.schema.Table;
+import org.apache.calcite.schema.TranslatableTable;
+import org.apache.calcite.sql.SqlAccessType;
+import org.apache.calcite.sql.validate.SqlMonotonicity;
+import org.apache.calcite.util.Util;
 
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
@@ -42,7 +47,7 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * Implementation of {@link org.eigenbase.relopt.RelOptTable}.
+ * Implementation of {@link org.apache.calcite.plan.RelOptTable}.
  */
 public class RelOptTableImpl implements Prepare.PreparingTable {
   private final RelOptSchema schema;
@@ -90,7 +95,7 @@ public class RelOptTableImpl implements Prepare.PreparingTable {
   }
 
   public static RelOptTableImpl create(RelOptSchema schema, RelDataType rowType,
-      final OptiqSchema.TableEntry tableEntry, Double rowCount) {
+      final CalciteSchema.TableEntry tableEntry, Double rowCount) {
     Function<Class, Expression> expressionFunction;
     final Table table = tableEntry.getTable();
     if (table instanceof QueryableTable) {
@@ -143,9 +148,9 @@ public class RelOptTableImpl implements Prepare.PreparingTable {
     if (clazz.isInstance(table)) {
       return clazz.cast(table);
     }
-    if (clazz == OptiqSchema.class) {
+    if (clazz == CalciteSchema.class) {
       return clazz.cast(
-          Schemas.subSchema(((OptiqCatalogReader) schema).rootSchema,
+          Schemas.subSchema(((CalciteCatalogReader) schema).rootSchema,
               Util.skipLast(getQualifiedName())));
     }
     return null;
@@ -178,11 +183,11 @@ public class RelOptTableImpl implements Prepare.PreparingTable {
     }
     RelOptCluster cluster = context.getCluster();
     Class elementType = deduceElementType();
-    final RelNode scan = new JavaRules.EnumerableTableAccessRel(cluster,
+    final RelNode scan = new EnumerableTableScan(cluster,
         cluster.traitSetOf(EnumerableConvention.INSTANCE), this, elementType);
     if (table instanceof FilterableTable
         || table instanceof ProjectableFilterableTable) {
-      return new JavaRules.EnumerableInterpreterRel(cluster, scan.getTraitSet(),
+      return new EnumerableInterpreter(cluster, scan.getTraitSet(),
           scan, 1d);
     }
     return scan;

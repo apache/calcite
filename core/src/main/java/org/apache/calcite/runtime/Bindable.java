@@ -14,11 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.runtime;
+package org.apache.calcite.runtime;
 
-import net.hydromatic.linq4j.Enumerable;
-
-import net.hydromatic.optiq.DataContext;
+import org.apache.calcite.DataContext;
+import org.apache.calcite.linq4j.Enumerable;
 
 /**
  * Statement that can be bound to a {@link DataContext} and then executed.

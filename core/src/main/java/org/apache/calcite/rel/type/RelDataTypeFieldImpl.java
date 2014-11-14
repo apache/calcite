@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.reltype;
+package org.apache.calcite.rel.type;
 
-import java.io.*;
+import java.io.Serializable;
 
 /**
  * Default implementation of {@link RelDataTypeField}.
@@ -46,15 +46,13 @@ public class RelDataTypeFieldImpl implements RelDataTypeField, Serializable {
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override
-  public int hashCode() {
+  @Override public int hashCode() {
     return index
         ^ name.hashCode()
         ^ type.hashCode();
   }
 
-  @Override
-  public boolean equals(Object obj) {
+  @Override public boolean equals(Object obj) {
     if (this == obj) {
       return true;
     }

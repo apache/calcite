@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql;
+package org.apache.calcite.sql;
 
-import org.eigenbase.util.*;
+import org.apache.calcite.util.Util;
 
 /**
  * Enumeration of the categories of

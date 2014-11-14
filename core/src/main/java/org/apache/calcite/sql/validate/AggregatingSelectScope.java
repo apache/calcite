@@ -14,14 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql.validate;
+package org.apache.calcite.sql.validate;
 
-import java.util.*;
+import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlNodeList;
+import org.apache.calcite.sql.SqlSelect;
 
-import org.eigenbase.sql.*;
-import org.eigenbase.sql.fun.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
-import static org.eigenbase.sql.SqlUtil.stripAs;
+import static org.apache.calcite.sql.SqlUtil.stripAs;
 
 /**
  * Scope for resolving identifiers within a SELECT statement that has a

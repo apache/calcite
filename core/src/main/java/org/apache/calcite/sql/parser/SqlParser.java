@@ -14,16 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql.parser;
+package org.apache.calcite.sql.parser;
 
-import java.io.*;
+import org.apache.calcite.avatica.Casing;
+import org.apache.calcite.avatica.Quoting;
+import org.apache.calcite.runtime.CalciteContextException;
+import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.parser.impl.SqlParserImpl;
 
-import org.eigenbase.sql.*;
-import org.eigenbase.sql.parser.impl.*;
-import org.eigenbase.util.*;
-
-import net.hydromatic.avatica.Casing;
-import net.hydromatic.avatica.Quoting;
+import java.io.StringReader;
 
 /**
  * A <code>SqlParser</code> parses a SQL statement.
@@ -101,9 +100,9 @@ public class SqlParser {
     try {
       return parser.parseSqlExpressionEof();
     } catch (Throwable ex) {
-      if ((ex instanceof EigenbaseContextException)
+      if ((ex instanceof CalciteContextException)
           && (originalInput != null)) {
-        ((EigenbaseContextException) ex).setOriginalStatement(
+        ((CalciteContextException) ex).setOriginalStatement(
             originalInput);
       }
       throw parser.normalizeException(ex);
@@ -113,8 +112,8 @@ public class SqlParser {
   /**
    * Parses a <code>SELECT</code> statement.
    *
-   * @return A {@link org.eigenbase.sql.SqlSelect} for a regular <code>
-   * SELECT</code> statement; a {@link org.eigenbase.sql.SqlBinaryOperator}
+   * @return A {@link org.apache.calcite.sql.SqlSelect} for a regular <code>
+   * SELECT</code> statement; a {@link org.apache.calcite.sql.SqlBinaryOperator}
    * for a <code>UNION</code>, <code>INTERSECT</code>, or <code>EXCEPT</code>.
    * @throws SqlParseException if there is a parse error
    */
@@ -122,9 +121,9 @@ public class SqlParser {
     try {
       return parser.parseSqlStmtEof();
     } catch (Throwable ex) {
-      if ((ex instanceof EigenbaseContextException)
+      if ((ex instanceof CalciteContextException)
           && (originalInput != null)) {
-        ((EigenbaseContextException) ex).setOriginalStatement(
+        ((CalciteContextException) ex).setOriginalStatement(
             originalInput);
       }
       throw parser.normalizeException(ex);
@@ -141,9 +140,9 @@ public class SqlParser {
     try {
       return parser.parseSqlStmtEof();
     } catch (Throwable ex) {
-      if ((ex instanceof EigenbaseContextException)
+      if ((ex instanceof CalciteContextException)
           && (originalInput != null)) {
-        ((EigenbaseContextException) ex).setOriginalStatement(
+        ((CalciteContextException) ex).setOriginalStatement(
             originalInput);
       }
       throw parser.normalizeException(ex);

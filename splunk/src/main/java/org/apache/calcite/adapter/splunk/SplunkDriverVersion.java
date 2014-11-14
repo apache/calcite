@@ -14,15 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.impl.splunk;
+package org.apache.calcite.adapter.splunk;
 
-import net.hydromatic.avatica.DriverVersion;
+import org.apache.calcite.avatica.DriverVersion;
 
 /**
  * Version information for Calcite JDBC Driver for Splunk.
  */
 class SplunkDriverVersion extends DriverVersion {
-  /** Creates an OptiqDriverVersion. */
+  /** Creates a SplunkDriverVersion. */
   SplunkDriverVersion() {
     super(
         "Calcite JDBC Driver for Splunk",

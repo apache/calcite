@@ -14,12 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.relopt.hep;
+package org.apache.calcite.plan.hep;
 
-import java.util.*;
+import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.plan.RelOptRuleOperand;
+import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.rel.RelNode;
 
-import org.eigenbase.rel.*;
-import org.eigenbase.relopt.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 
 /**
  * HepRuleCall implements {@link RelOptRuleCall} for a {@link HepPlanner}. It

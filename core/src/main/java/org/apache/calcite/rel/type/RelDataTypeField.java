@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.reltype;
+package org.apache.calcite.rel.type;
 
 import java.util.Map;
 
 /**
- * RelDataTypeField represents the definition of a field in a structured {@link
- * RelDataType}.
+ * RelDataTypeField represents the definition of a field in a structured
+ * {@link RelDataType}.
  *
  * <p>Extends the {@link java.util.Map.Entry} interface to allow convenient
  * inter-operation with Java collections classes. In any implementation of this

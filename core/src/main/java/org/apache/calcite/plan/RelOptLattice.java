@@ -14,19 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.relopt;
+package org.apache.calcite.plan;
+
+import org.apache.calcite.config.CalciteConnectionConfig;
+import org.apache.calcite.jdbc.CalciteSchema;
+import org.apache.calcite.materialize.Lattice;
+import org.apache.calcite.materialize.MaterializationService;
+import org.apache.calcite.materialize.TileKey;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.util.Pair;
 
 import java.util.BitSet;
 import java.util.List;
-
-import org.eigenbase.rel.RelNode;
-import org.eigenbase.util.Pair;
-
-import net.hydromatic.optiq.config.OptiqConnectionConfig;
-import net.hydromatic.optiq.jdbc.OptiqSchema;
-import net.hydromatic.optiq.materialize.Lattice;
-import net.hydromatic.optiq.materialize.MaterializationService;
-import net.hydromatic.optiq.materialize.TileKey;
 
 /**
  * Use of a lattice by the query optimizer.
@@ -70,17 +69,17 @@ public class RelOptLattice {
    * @param measureList Calls to aggregate functions
    * @return Materialized table
    */
-  public Pair<OptiqSchema.TableEntry, TileKey> getAggregate(
+  public Pair<CalciteSchema.TableEntry, TileKey> getAggregate(
       RelOptPlanner planner, BitSet groupSet,
       List<Lattice.Measure> measureList) {
-    final OptiqConnectionConfig config =
-        planner.getContext().unwrap(OptiqConnectionConfig.class);
+    final CalciteConnectionConfig config =
+        planner.getContext().unwrap(CalciteConnectionConfig.class);
     if (config == null) {
       return null;
     }
     final MaterializationService service = MaterializationService.instance();
     boolean create = lattice.auto && config.createMaterializations();
-    final OptiqSchema schema = starRelOptTable.unwrap(OptiqSchema.class);
+    final CalciteSchema schema = starRelOptTable.unwrap(CalciteSchema.class);
     return service.defineTile(lattice, groupSet, measureList, schema, create,
         false);
   }

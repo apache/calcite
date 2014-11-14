@@ -14,33 +14,39 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.impl.spark;
+package org.apache.calcite.adapter.spark;
 
-import net.hydromatic.linq4j.expressions.BlockBuilder;
-import net.hydromatic.linq4j.expressions.BlockStatement;
-import net.hydromatic.linq4j.expressions.Expression;
-import net.hydromatic.linq4j.expressions.Expressions;
-
-import net.hydromatic.optiq.impl.java.JavaTypeFactory;
-import net.hydromatic.optiq.rules.java.*;
-
-import org.eigenbase.rel.RelNode;
-import org.eigenbase.rel.convert.ConverterRelImpl;
-import org.eigenbase.relopt.*;
+import org.apache.calcite.adapter.enumerable.EnumerableRel;
+import org.apache.calcite.adapter.enumerable.EnumerableRelImplementor;
+import org.apache.calcite.adapter.enumerable.JavaRowFormat;
+import org.apache.calcite.adapter.enumerable.PhysType;
+import org.apache.calcite.adapter.enumerable.PhysTypeImpl;
+import org.apache.calcite.adapter.java.JavaTypeFactory;
+import org.apache.calcite.linq4j.tree.BlockBuilder;
+import org.apache.calcite.linq4j.tree.BlockStatement;
+import org.apache.calcite.linq4j.tree.Expression;
+import org.apache.calcite.linq4j.tree.Expressions;
+import org.apache.calcite.plan.ConventionTraitDef;
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptCost;
+import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.convert.ConverterImpl;
 
 import java.util.List;
 
 /**
  * Relational expression that converts input of
- * {@link net.hydromatic.optiq.impl.spark.SparkRel#CONVENTION Spark convention}
- * into {@link net.hydromatic.optiq.rules.java.EnumerableConvention}.
+ * {@link org.apache.calcite.adapter.spark.SparkRel#CONVENTION Spark convention}
+ * into {@link org.apache.calcite.adapter.enumerable.EnumerableConvention}.
  *
  * <p>Concretely, this means calling the
  * {@link org.apache.spark.api.java.JavaRDD#collect()} method of an RDD
  * and converting it to enumerable.</p>
  */
 public class SparkToEnumerableConverter
-    extends ConverterRelImpl
+    extends ConverterImpl
     implements EnumerableRel {
   protected SparkToEnumerableConverter(RelOptCluster cluster,
       RelTraitSet traits,
@@ -48,14 +54,12 @@ public class SparkToEnumerableConverter
     super(cluster, ConventionTraitDef.INSTANCE, traits, input);
   }
 
-  @Override
-  public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
+  @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
     return new SparkToEnumerableConverter(
         getCluster(), traitSet, sole(inputs));
   }
 
-  @Override
-  public RelOptCost computeSelfCost(RelOptPlanner planner) {
+  @Override public RelOptCost computeSelfCost(RelOptPlanner planner) {
     return super.computeSelfCost(planner).multiplyBy(.01);
   }
 
@@ -64,7 +68,7 @@ public class SparkToEnumerableConverter
     //   RDD rdd = ...;
     //   return SparkRuntime.asEnumerable(rdd);
     final BlockBuilder list = new BlockBuilder();
-    final SparkRel child = (SparkRel) getChild();
+    final SparkRel child = (SparkRel) getInput();
     final PhysType physType =
         PhysTypeImpl.of(implementor.getTypeFactory(),
             getRowType(),
@@ -85,7 +89,7 @@ public class SparkToEnumerableConverter
   }
 
   /** Implementation of
-   * {@link net.hydromatic.optiq.impl.spark.SparkRel.Implementor}. */
+   * {@link org.apache.calcite.adapter.spark.SparkRel.Implementor}. */
   private static class SparkImplementorImpl extends SparkRel.Implementor {
     private final EnumerableRelImplementor implementor;
 

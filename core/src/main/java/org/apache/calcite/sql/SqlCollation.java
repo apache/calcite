@@ -14,19 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql;
+package org.apache.calcite.sql;
 
-import java.io.*;
+import org.apache.calcite.sql.parser.SqlParserUtil;
+import org.apache.calcite.util.SaffronProperties;
+import org.apache.calcite.util.SerializableCharset;
+import org.apache.calcite.util.Util;
 
-import java.nio.charset.*;
+import java.io.Serializable;
+import java.nio.charset.Charset;
+import java.util.Locale;
 
-import java.util.*;
-
-import org.eigenbase.resource.*;
-import org.eigenbase.sql.parser.*;
-import org.eigenbase.util.*;
-
-import static org.eigenbase.util.Static.RESOURCE;
+import static org.apache.calcite.util.Static.RESOURCE;
 
 /**
  * A <code>SqlCollation</code> is an object representing a <code>Collate</code>
@@ -115,8 +114,7 @@ public class SqlCollation implements Serializable {
         && collationName.equals(((SqlCollation) o).collationName);
   }
 
-  @Override
-  public int hashCode() {
+  @Override public int hashCode() {
     return collationName.hashCode();
   }
 
@@ -144,9 +142,11 @@ public class SqlCollation implements Serializable {
    * @param col1 first operand for the dyadic operation
    * @param col2 second operand for the dyadic operation
    * @return the resulting collation sequence
-   * @throws EigenbaseException {@link EigenbaseNewResource#invalidCompare} or
-   *                            {@link EigenbaseNewResource#differentCollations}
-   *                            if no collating sequence can be deduced
+   *
+   * @throws org.apache.calcite.runtime.CalciteException
+   *   {@link org.apache.calcite.runtime.CalciteResource#invalidCompare} or
+   *   {@link org.apache.calcite.runtime.CalciteResource#differentCollations}
+   *   if no collating sequence can be deduced
    *
    * @sql.99 Part 2 Section 4.2.3 Table 2
    */
@@ -170,8 +170,10 @@ public class SqlCollation implements Serializable {
    *
    * @param col1 first operand for the dyadic operation
    * @param col2 second operand for the dyadic operation
-   * @return the resulting collation sequence. If no collating sequence could
-   * be deduced a {@link EigenbaseNewResource#invalidCompare} is thrown
+   *
+   * @return the resulting collation sequence. If no collating
+   * sequence could be deduced throws a
+   * {@link org.apache.calcite.runtime.CalciteResource#invalidCompare}
    *
    * @sql.99 Part 2 Section 4.2.3 Table 3
    */

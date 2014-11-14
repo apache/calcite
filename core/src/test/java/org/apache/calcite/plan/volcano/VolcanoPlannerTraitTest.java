@@ -14,17 +14,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.relopt.volcano;
+package org.apache.calcite.plan.volcano;
 
-import java.util.List;
-
-import org.eigenbase.rel.*;
-import org.eigenbase.rel.convert.*;
-import org.eigenbase.relopt.*;
-import org.eigenbase.reltype.*;
-import org.eigenbase.util.*;
-
-import net.hydromatic.optiq.rules.java.EnumerableConvention;
+import org.apache.calcite.adapter.enumerable.EnumerableConvention;
+import org.apache.calcite.plan.Convention;
+import org.apache.calcite.plan.ConventionTraitDef;
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptCost;
+import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.plan.RelOptRule;
+import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.plan.RelTrait;
+import org.apache.calcite.plan.RelTraitDef;
+import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.AbstractRelNode;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelWriter;
+import org.apache.calcite.rel.SingleRel;
+import org.apache.calcite.rel.convert.ConverterImpl;
+import org.apache.calcite.rel.convert.ConverterRule;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
@@ -32,7 +44,10 @@ import com.google.common.collect.Multimap;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import static org.junit.Assert.*;
+import java.util.List;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 /**
  * Unit test for handling of traits by {@link VolcanoPlanner}.
@@ -103,8 +118,7 @@ public class VolcanoPlannerTraitTest {
 
     NoneSingleRel noneRel =
         RelOptUtil.addTrait(
-            new NoneSingleRel(cluster, noneLeafRel),
-            ALT_TRAIT2);
+            new NoneSingleRel(cluster, noneLeafRel), ALT_TRAIT2);
 
     RelNode convertedRel =
         planner.changeTraits(
@@ -156,13 +170,11 @@ public class VolcanoPlannerTraitTest {
 
     NoneLeafRel noneLeafRel =
         RelOptUtil.addTrait(
-            new NoneLeafRel(cluster, "noneLeafRel"),
-            ALT_TRAIT);
+            new NoneLeafRel(cluster, "noneLeafRel"), ALT_TRAIT);
 
     NoneSingleRel noneRel =
         RelOptUtil.addTrait(
-            new NoneSingleRel(cluster, noneLeafRel),
-            ALT_TRAIT2);
+            new NoneSingleRel(cluster, noneLeafRel), ALT_TRAIT2);
 
     RelNode convertedRel =
         planner.changeTraits(
@@ -206,6 +218,7 @@ public class VolcanoPlannerTraitTest {
 
   //~ Inner Classes ----------------------------------------------------------
 
+  /** Implementation of {@link RelTrait} for testing. */
   private static class AltTrait implements RelTrait {
     private final AltTraitDef traitDef;
     private final int ordinal;
@@ -247,6 +260,7 @@ public class VolcanoPlannerTraitTest {
     }
   }
 
+  /** Definition of {@link AltTrait}. */
   private static class AltTraitDef extends RelTraitDef<AltTrait> {
     private Multimap<RelTrait, Pair<RelTrait, ConverterRule>> conversionMap =
         HashMultimap.create();
@@ -321,6 +335,7 @@ public class VolcanoPlannerTraitTest {
     }
   }
 
+  /** A relational expression with zero inputs. */
   private abstract static class TestLeafRel extends AbstractRelNode {
     private String label;
 
@@ -355,6 +370,7 @@ public class VolcanoPlannerTraitTest {
     }
   }
 
+  /** A relational expression with zero inputs, of NONE convention. */
   private static class NoneLeafRel extends TestLeafRel {
     protected NoneLeafRel(
         RelOptCluster cluster,
@@ -365,12 +381,12 @@ public class VolcanoPlannerTraitTest {
           label);
     }
 
-    @Override
-    public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
+    @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
       return new NoneLeafRel(getCluster(), getLabel());
     }
   }
 
+  /** Relational expression with zero inputs, of PHYS convention. */
   private static class PhysLeafRel extends TestLeafRel {
     PhysLeafRel(
         RelOptCluster cluster,
@@ -389,6 +405,7 @@ public class VolcanoPlannerTraitTest {
     // TODO: SWZ Implement clone?
   }
 
+  /** Relational expression with one input. */
   private abstract static class TestSingleRel extends SingleRel {
     protected TestSingleRel(
         RelOptCluster cluster,
@@ -404,12 +421,13 @@ public class VolcanoPlannerTraitTest {
 
     // implement RelNode
     protected RelDataType deriveRowType() {
-      return getChild().getRowType();
+      return getInput().getRowType();
     }
 
     // TODO: SWZ Implement clone?
   }
 
+  /** Relational expression with one input, of NONE convention. */
   private static class NoneSingleRel extends TestSingleRel {
     protected NoneSingleRel(
         RelOptCluster cluster,
@@ -436,13 +454,17 @@ public class VolcanoPlannerTraitTest {
   }
 
 
+  /** A mix-in interface to extend {@link RelNode}, for testing. */
   interface FooRel {
     String implement(FooRelImplementor implementor);
   }
 
+  /** An implementor for {@link FooRel}. */
   interface FooRelImplementor {
   }
 
+  /** Relational expression with one input, that implements the {@link FooRel}
+   * mix-in interface. */
   private static class IterSingleRel extends TestSingleRel implements FooRel {
     public IterSingleRel(RelOptCluster cluster, RelNode child) {
       super(
@@ -468,6 +490,7 @@ public class VolcanoPlannerTraitTest {
     }
   }
 
+  /** Relational expression with zero inputs, of the PHYS convention. */
   private static class PhysLeafRule extends RelOptRule {
     PhysLeafRule() {
       super(operand(NoneLeafRel.class, any()));
@@ -488,6 +511,8 @@ public class VolcanoPlannerTraitTest {
     }
   }
 
+  /** Planner rule to convert a {@link NoneSingleRel} to ENUMERABLE
+   * convention. */
   private static class IterSingleRule extends RelOptRule {
     IterSingleRule() {
       super(operand(NoneSingleRel.class, any()));
@@ -518,6 +543,8 @@ public class VolcanoPlannerTraitTest {
     }
   }
 
+  /** Another planner rule to convert a {@link NoneSingleRel} to ENUMERABLE
+   * convention. */
   private static class IterSingleRule2 extends RelOptRule {
     IterSingleRule2() {
       super(operand(NoneSingleRel.class, any()));
@@ -553,6 +580,7 @@ public class VolcanoPlannerTraitTest {
     }
   }
 
+  /** Planner rule that converts between {@link AltTrait}s. */
   private static class AltTraitConverterRule extends ConverterRule {
     private final RelTrait toTrait;
 
@@ -581,7 +609,8 @@ public class VolcanoPlannerTraitTest {
     }
   }
 
-  private static class AltTraitConverter extends ConverterRelImpl {
+  /** Relational expression that converts between {@link AltTrait} values. */
+  private static class AltTraitConverter extends ConverterImpl {
     private final RelTrait toTrait;
 
     private AltTraitConverter(
@@ -605,6 +634,7 @@ public class VolcanoPlannerTraitTest {
     }
   }
 
+  /** Planner rule that converts from PHYS to ENUMERABLE convention. */
   private static class PhysToIteratorConverterRule extends ConverterRule {
     public PhysToIteratorConverterRule() {
       super(
@@ -621,7 +651,8 @@ public class VolcanoPlannerTraitTest {
     }
   }
 
-  private static class PhysToIteratorConverter extends ConverterRelImpl {
+  /** Planner rule that converts PHYS to ENUMERABLE convention. */
+  private static class PhysToIteratorConverter extends ConverterImpl {
     public PhysToIteratorConverter(
         RelOptCluster cluster,
         RelNode child) {

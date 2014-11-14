@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql.validate;
+package org.apache.calcite.sql.validate;
+
+import org.apache.calcite.sql.SqlIdentifier;
+import org.apache.calcite.util.Util;
 
 import java.util.List;
-
-import org.eigenbase.sql.*;
-import org.eigenbase.util.*;
 
 /**
  * An implementation of {@link SqlMoniker} that encapsulates the normalized name

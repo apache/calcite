@@ -14,18 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.model;
+package org.apache.calcite.model;
 
 import java.util.Map;
 
 /**
  * JSON schema element that represents a custom schema.
  *
- * @see net.hydromatic.optiq.model.JsonRoot Description of schema elements
+ * @see org.apache.calcite.model.JsonRoot Description of schema elements
  */
 public class JsonCustomSchema extends JsonMapSchema {
   /** Name of the factory class for this schema. Must implement interface
-   * {@link net.hydromatic.optiq.SchemaFactory} and have a public default
+   * {@link org.apache.calcite.schema.SchemaFactory} and have a public default
    * constructor. */
   public String factory;
 
@@ -36,8 +36,7 @@ public class JsonCustomSchema extends JsonMapSchema {
     handler.visit(this);
   }
 
-  @Override
-  public String toString() {
+  @Override public String toString() {
     return "JsonCustomSchema(name=" + name + ")";
   }
 }

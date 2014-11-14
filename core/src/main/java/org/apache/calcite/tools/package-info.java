@@ -18,6 +18,6 @@
 /**
  * Provides utility classes.
  */
-package net.hydromatic.optiq.tools;
+package org.apache.calcite.tools;
 
 // End package-info.java

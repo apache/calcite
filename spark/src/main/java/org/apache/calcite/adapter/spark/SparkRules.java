@@ -14,38 +14,63 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.impl.spark;
+package org.apache.calcite.adapter.spark;
 
-import net.hydromatic.linq4j.expressions.*;
-
-import net.hydromatic.optiq.BuiltinMethod;
-import net.hydromatic.optiq.impl.java.JavaTypeFactory;
-import net.hydromatic.optiq.rules.java.*;
-
-import org.eigenbase.rel.*;
-import org.eigenbase.rel.convert.ConverterRule;
-import org.eigenbase.rel.metadata.RelMetadataQuery;
-import org.eigenbase.rel.rules.FilterToCalcRule;
-import org.eigenbase.rel.rules.ProjectToCalcRule;
-import org.eigenbase.relopt.*;
-import org.eigenbase.reltype.RelDataType;
-import org.eigenbase.reltype.RelDataTypeField;
-import org.eigenbase.rex.RexLiteral;
-import org.eigenbase.rex.RexMultisetUtil;
-import org.eigenbase.rex.RexProgram;
-import org.eigenbase.util.Pair;
-
-import com.google.common.collect.ImmutableList;
+import org.apache.calcite.adapter.enumerable.EnumerableConvention;
+import org.apache.calcite.adapter.enumerable.JavaRowFormat;
+import org.apache.calcite.adapter.enumerable.PhysType;
+import org.apache.calcite.adapter.enumerable.PhysTypeImpl;
+import org.apache.calcite.adapter.enumerable.RexImpTable;
+import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
+import org.apache.calcite.adapter.java.JavaTypeFactory;
+import org.apache.calcite.linq4j.tree.BlockBuilder;
+import org.apache.calcite.linq4j.tree.BlockStatement;
+import org.apache.calcite.linq4j.tree.Expression;
+import org.apache.calcite.linq4j.tree.Expressions;
+import org.apache.calcite.linq4j.tree.ParameterExpression;
+import org.apache.calcite.linq4j.tree.Primitive;
+import org.apache.calcite.linq4j.tree.Types;
+import org.apache.calcite.plan.Convention;
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptCost;
+import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.plan.RelOptRule;
+import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelWriter;
+import org.apache.calcite.rel.SingleRel;
+import org.apache.calcite.rel.convert.ConverterRule;
+import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.core.Values;
+import org.apache.calcite.rel.logical.LogicalCalc;
+import org.apache.calcite.rel.logical.LogicalFilter;
+import org.apache.calcite.rel.logical.LogicalValues;
+import org.apache.calcite.rel.metadata.RelMetadataQuery;
+import org.apache.calcite.rel.rules.FilterToCalcRule;
+import org.apache.calcite.rel.rules.ProjectToCalcRule;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rex.RexLiteral;
+import org.apache.calcite.rex.RexMultisetUtil;
+import org.apache.calcite.rex.RexProgram;
+import org.apache.calcite.util.BuiltInMethod;
+import org.apache.calcite.util.Pair;
 
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.api.java.function.FlatMapFunction;
 import org.apache.spark.api.java.function.Function;
 
-import java.lang.reflect.Type;
-import java.util.*;
+import com.google.common.collect.ImmutableList;
 
 import scala.Tuple2;
+
+import java.lang.reflect.Type;
+import java.util.AbstractList;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Random;
 
 /**
  * Rules for the {@link SparkRel#CONVENTION Spark calling convention}.
@@ -78,8 +103,7 @@ public abstract class SparkRules {
           "EnumerableToSparkConverterRule");
     }
 
-    @Override
-    public RelNode convert(RelNode rel) {
+    @Override public RelNode convert(RelNode rel) {
       return new EnumerableToSparkConverter(rel.getCluster(),
           rel.getTraitSet().replace(SparkRel.CONVENTION), rel);
     }
@@ -96,8 +120,7 @@ public abstract class SparkRules {
           "SparkToEnumerableConverterRule");
     }
 
-    @Override
-    public RelNode convert(RelNode rel) {
+    @Override public RelNode convert(RelNode rel) {
       return new SparkToEnumerableConverter(rel.getCluster(),
           rel.getTraitSet().replace(EnumerableConvention.INSTANCE), rel);
     }
@@ -109,26 +132,23 @@ public abstract class SparkRules {
   /** Planner rule that implements VALUES operator in Spark convention. */
   public static class SparkValuesRule extends ConverterRule {
     private SparkValuesRule() {
-      super(ValuesRel.class, Convention.NONE, SparkRel.CONVENTION,
+      super(LogicalValues.class, Convention.NONE, SparkRel.CONVENTION,
           "SparkValuesRule");
     }
 
-    @Override
-    public RelNode convert(RelNode rel) {
-      ValuesRel valuesRel = (ValuesRel) rel;
-      return new SparkValuesRel(
-          valuesRel.getCluster(),
-          valuesRel.getRowType(),
-          valuesRel.getTuples(),
-          valuesRel.getTraitSet().replace(getOutTrait()));
+    @Override public RelNode convert(RelNode rel) {
+      LogicalValues values = (LogicalValues) rel;
+      return new SparkValues(
+          values.getCluster(),
+          values.getRowType(),
+          values.getTuples(),
+          values.getTraitSet().replace(getOutTrait()));
     }
   }
 
   /** VALUES construct implemented in Spark. */
-  public static class SparkValuesRel
-      extends ValuesRelBase
-      implements SparkRel {
-    SparkValuesRel(
+  public static class SparkValues extends Values implements SparkRel {
+    SparkValues(
         RelOptCluster cluster,
         RelDataType rowType,
         List<List<RexLiteral>> tuples,
@@ -136,11 +156,10 @@ public abstract class SparkRules {
       super(cluster, rowType, tuples, traitSet);
     }
 
-    @Override
-    public RelNode copy(
+    @Override public RelNode copy(
         RelTraitSet traitSet, List<RelNode> inputs) {
       assert inputs.isEmpty();
-      return new SparkValuesRel(
+      return new SparkValues(
           getCluster(), rowType, tuples, traitSet);
     }
 
@@ -191,21 +210,21 @@ public abstract class SparkRules {
       new SparkCalcRule();
 
   /**
-   * Rule to convert a {@link CalcRel} to an
-   * {@link net.hydromatic.optiq.impl.spark.SparkRules.SparkCalcRel}.
+   * Rule to convert a {@link org.apache.calcite.rel.logical.LogicalCalc} to an
+   * {@link org.apache.calcite.adapter.spark.SparkRules.SparkCalc}.
    */
   private static class SparkCalcRule
       extends ConverterRule {
     private SparkCalcRule() {
       super(
-          CalcRel.class,
+          LogicalCalc.class,
           Convention.NONE,
           SparkRel.CONVENTION,
           "SparkCalcRule");
     }
 
     public RelNode convert(RelNode rel) {
-      final CalcRel calc = (CalcRel) rel;
+      final LogicalCalc calc = (LogicalCalc) rel;
 
       // If there's a multiset, let FarragoMultisetSplitter work on it
       // first.
@@ -215,28 +234,27 @@ public abstract class SparkRules {
         return null;
       }
 
-      return new SparkCalcRel(
+      return new SparkCalc(
           rel.getCluster(),
           rel.getTraitSet().replace(SparkRel.CONVENTION),
-          convert(calc.getChild(),
-              calc.getChild().getTraitSet().replace(SparkRel.CONVENTION)),
+          convert(calc.getInput(),
+              calc.getInput().getTraitSet().replace(SparkRel.CONVENTION)),
           program,
-          ProjectRelBase.Flags.BOXED);
+          Project.Flags.BOXED);
     }
   }
 
-  /** Implementation of {@link CalcRel} in Spark convention. */
-  public static class SparkCalcRel
-      extends SingleRel
-      implements SparkRel {
+  /** Implementation of {@link org.apache.calcite.rel.core.Calc}
+   * in Spark convention. */
+  public static class SparkCalc extends SingleRel implements SparkRel {
     private final RexProgram program;
 
     /**
-     * Values defined in {@link org.eigenbase.rel.ProjectRelBase.Flags}.
+     * Values defined in {@link org.apache.calcite.rel.core.Project.Flags}.
      */
     protected int flags;
 
-    public SparkCalcRel(RelOptCluster cluster,
+    public SparkCalc(RelOptCluster cluster,
         RelTraitSet traitSet,
         RelNode child,
         RexProgram program,
@@ -249,26 +267,25 @@ public abstract class SparkRules {
       this.rowType = program.getOutputRowType();
     }
 
-    @Override
-    public RelWriter explainTerms(RelWriter pw) {
+    @Override public RelWriter explainTerms(RelWriter pw) {
       return program.explainCalc(super.explainTerms(pw));
     }
 
     public double getRows() {
-      return FilterRel.estimateFilteredRows(getChild(), program);
+      return LogicalFilter.estimateFilteredRows(getInput(), program);
     }
 
     public RelOptCost computeSelfCost(RelOptPlanner planner) {
       double dRows = RelMetadataQuery.getRowCount(this);
       double dCpu =
-          RelMetadataQuery.getRowCount(getChild())
+          RelMetadataQuery.getRowCount(getInput())
               * program.getExprCount();
       double dIo = 0;
       return planner.getCostFactory().makeCost(dRows, dCpu, dIo);
     }
 
     public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
-      return new SparkCalcRel(
+      return new SparkCalc(
           getCluster(),
           traitSet,
           sole(inputs),
@@ -283,7 +300,7 @@ public abstract class SparkRules {
     public Result implementSpark(Implementor implementor) {
       final JavaTypeFactory typeFactory = implementor.getTypeFactory();
       final BlockBuilder builder = new BlockBuilder();
-      final SparkRel child = (SparkRel) getChild();
+      final SparkRel child = (SparkRel) getInput();
 
       final Result result = implementor.visitInput(this, 0, child);
 
@@ -291,7 +308,7 @@ public abstract class SparkRules {
           PhysTypeImpl.of(
               typeFactory, getRowType(), JavaRowFormat.CUSTOM);
 
-      // final RDD<Employee> inputRdd = <<child impl>>;
+      // final RDD<Employee> inputRdd = <<child adapter>>;
       // return inputRdd.flatMap(
       //   new FlatMapFunction<Employee, X>() {
       //          public List<X> call(Employee e) {
@@ -332,7 +349,7 @@ public abstract class SparkRules {
                 Expressions.not(condition),
                 Expressions.return_(null,
                     Expressions.call(
-                        BuiltinMethod.COLLECTIONS_EMPTY_LIST.method))));
+                        BuiltInMethod.COLLECTIONS_EMPTY_LIST.method))));
       }
 
       List<Expression> expressions =
@@ -348,7 +365,7 @@ public abstract class SparkRules {
           Expressions.return_(null,
               Expressions.convert_(
                   Expressions.call(
-                      BuiltinMethod.COLLECTIONS_SINGLETON_LIST.method,
+                      BuiltInMethod.COLLECTIONS_SINGLETON_LIST.method,
                       physType.record(expressions)),
                   List.class)));
 
@@ -360,7 +377,7 @@ public abstract class SparkRules {
                   inputRdd_,
                   SparkMethod.RDD_FLAT_MAP.method,
                   Expressions.lambda(
-                      SparkRuntime.OptiqFlatMapFunction.class,
+                      SparkRuntime.CalciteFlatMapFunction.class,
                       callBody,
                       e_))));
       return implementor.result(physType, builder.toBlock());
@@ -375,8 +392,7 @@ public abstract class SparkRules {
     System.out.println(
         file.map(
             new Function<String, Object>() {
-              @Override
-              public Object call(String s) throws Exception {
+              @Override public Object call(String s) throws Exception {
                 return s.substring(0, Math.min(s.length(), 1));
               }
             }).distinct().count());
@@ -384,16 +400,14 @@ public abstract class SparkRules {
     String s =
         file.groupBy(
             new Function<String, String>() {
-              @Override
-              public String call(String s) throws Exception {
+              @Override public String call(String s) throws Exception {
                 return s.substring(0, Math.min(s.length(), 1));
               }
             }
             //CHECKSTYLE: IGNORE 1
         ).map(
             new Function<Tuple2<String, List<String>>, Object>() {
-              @Override
-              public Object call(Tuple2<String, List<String>> pair) {
+              @Override public Object call(Tuple2<String, List<String>> pair) {
                 return pair._1() + ":" + pair._2().size();
               }
             }).collect().toString();
@@ -402,14 +416,12 @@ public abstract class SparkRules {
     final JavaRDD<Integer> rdd = sc.parallelize(
         new AbstractList<Integer>() {
           final Random random = new Random();
-          @Override
-          public Integer get(int index) {
+          @Override public Integer get(int index) {
             System.out.println("get(" + index + ")");
             return random.nextInt(100);
           }
 
-          @Override
-          public int size() {
+          @Override public int size() {
             System.out.println("size");
             return 10;
           }

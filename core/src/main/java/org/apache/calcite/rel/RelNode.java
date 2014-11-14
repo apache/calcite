@@ -14,27 +14,39 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel;
+package org.apache.calcite.rel;
 
-import java.util.*;
+import org.apache.calcite.plan.Convention;
+import org.apache.calcite.plan.RelOptCost;
+import org.apache.calcite.plan.RelOptNode;
+import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.plan.RelOptQuery;
+import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.metadata.Metadata;
+import org.apache.calcite.rel.metadata.RelMetadataQuery;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rex.RexNode;
 
-import org.eigenbase.rel.metadata.*;
-import org.eigenbase.relopt.*;
-import org.eigenbase.reltype.*;
-import org.eigenbase.rex.*;
+import java.util.BitSet;
+import java.util.List;
+import java.util.Set;
 
 /**
  * A <code>RelNode</code> is a relational expression.
  *
+ * <p>Relational expressions process data, so their names are typically verbs:
+ * Sort, Join, Project, Filter, Scan, Sample.
+ *
  * <p>A relational expression is not a scalar expression; see
- * {@link org.eigenbase.sql.SqlNode} and {@link RexNode}.</p>
+ * {@link org.apache.calcite.sql.SqlNode} and {@link RexNode}.</p>
  *
  * <p>If this type of relational expression has some particular planner rules,
  * it should implement the <em>public static</em> method
  * {@link AbstractRelNode#register}.</p>
  *
  * <p>When a relational expression comes to be implemented, the system allocates
- * a {@link org.eigenbase.relopt.RelImplementor} to manage the process. Every
+ * a {@link org.apache.calcite.plan.RelImplementor} to manage the process. Every
  * implementable relational expression has a {@link RelTraitSet} describing its
  * physical attributes. The RelTraitSet always contains a {@link Convention}
  * describing how the expression passes data to its consuming
@@ -44,9 +56,10 @@ import org.eigenbase.rex.*;
  * those traits configured by the RelNode itself).</p>
  *
  * <p>For each calling-convention, there is a corresponding sub-interface of
- * RelNode. For example, {@code net.hydromatic.optiq.rules.java.EnumerableRel}
+ * RelNode. For example,
+ * {@code org.apache.calcite.adapter.enumerable.EnumerableRel}
  * has operations to manage the conversion to a graph of
- * {@code net.hydromatic.optiq.rules.java.EnumerableConvention}
+ * {@code org.apache.calcite.adapter.enumerable.EnumerableConvention}
  * calling-convention, and it interacts with a
  * {@code EnumerableRelImplementor}.</p>
  *
@@ -75,8 +88,8 @@ public interface RelNode extends RelOptNode, Cloneable {
   List<RexNode> getChildExps();
 
   /**
-   * Return the CallingConvention trait from this RelNode's {@link
-   * #getTraitSet() trait set}.
+   * Return the CallingConvention trait from this RelNode's
+   * {@link #getTraitSet() trait set}.
    *
    * @return this RelNode's CallingConvention
    */
@@ -122,8 +135,8 @@ public interface RelNode extends RelOptNode, Cloneable {
 
   /**
    * Returns the sub-query this relational expression belongs to. A sub-query
-   * determines the scope for correlating variables (see {@link
-   * #setCorrelVariable(String)}).
+   * determines the scope for correlating variables (see
+   * {@link #setCorrelVariable(String)}).
    *
    * @return Sub-query
    */
@@ -135,8 +148,8 @@ public interface RelNode extends RelOptNode, Cloneable {
   RelDataType getRowType();
 
   /**
-   * Returns the type of the rows expected for an input. Defaults to {@link
-   * #getRowType}.
+   * Returns the type of the rows expected for an input. Defaults to
+   * {@link #getRowType}.
    *
    * @param ordinalInParent input's 0-based ordinal with respect to this
    *                        parent rel
@@ -188,9 +201,9 @@ public interface RelNode extends RelOptNode, Cloneable {
   void collectVariablesSet(Set<String> variableSet);
 
   /**
-   * Interacts with the {@link RelVisitor} in a {@link
-   * org.eigenbase.util.Glossary#VISITOR_PATTERN visitor pattern} to traverse
-   * the tree of relational expressions.
+   * Interacts with the {@link RelVisitor} in a
+   * {@link org.apache.calcite.util.Glossary#VISITOR_PATTERN visitor pattern} to
+   * traverse the tree of relational expressions.
    */
   void childrenAccept(RelVisitor visitor);
 
@@ -218,9 +231,10 @@ public interface RelNode extends RelOptNode, Cloneable {
   /**
    * Describes the inputs and attributes of this relational expression.
    * Each node should call {@code super.explain}, then call the
-   * {@link RelWriterImpl#input(String, RelNode)}
-   * and {@link RelWriterImpl#item(String, Object)} methods for each input
-   * and attribute.
+   * {@link org.apache.calcite.rel.externalize.RelWriterImpl#input(String, RelNode)}
+   * and
+   * {@link org.apache.calcite.rel.externalize.RelWriterImpl#item(String, Object)}
+   * methods for each input and attribute.
    *
    * @param pw Plan writer
    */
@@ -262,7 +276,7 @@ public interface RelNode extends RelOptNode, Cloneable {
   /**
    * Returns the name of this relational expression's class, sans package
    * name, for use in explain. For example, for a <code>
-   * org.eigenbase.rel.ArrayRel.ArrayReader</code>, this method returns
+   * org.apache.calcite.rel.ArrayRel.ArrayReader</code>, this method returns
    * "ArrayReader".
    */
   String getRelTypeName();
@@ -314,9 +328,9 @@ public interface RelNode extends RelOptNode, Cloneable {
    * expression.
    *
    * <p>The planner calls this method this first time that it sees a
-   * relational expression of this class. The derived class should call {@link
-   * org.eigenbase.relopt.RelOptPlanner#addRule} for each rule, and then call
-   * {@code super.register}.</p>
+   * relational expression of this class. The derived class should call
+   * {@link org.apache.calcite.plan.RelOptPlanner#addRule} for each rule, and
+   * then call {@code super.register}.</p>
    */
   void register(RelOptPlanner planner);
 
@@ -324,7 +338,7 @@ public interface RelNode extends RelOptNode, Cloneable {
    * Returns whether the result of this relational expression is uniquely
    * identified by this columns with the given ordinals.
    *
-   * <p>For example, if this relational expression is a TableAccessRel to
+   * <p>For example, if this relational expression is a LogicalTableScan to
    * T(A, B, C, D) whose key is (A, B), then isKey([0, 1]) yields true,
    * and isKey([0]) and isKey([0, 2]) yields false.</p>
    *

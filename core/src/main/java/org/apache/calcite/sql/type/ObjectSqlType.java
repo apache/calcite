@@ -14,12 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql.type;
+package org.apache.calcite.sql.type;
+
+import org.apache.calcite.rel.type.RelDataTypeComparability;
+import org.apache.calcite.rel.type.RelDataTypeFamily;
+import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.sql.SqlIdentifier;
 
 import java.util.List;
-
-import org.eigenbase.reltype.*;
-import org.eigenbase.sql.*;
 
 /**
  * ObjectSqlType represents an SQL structured user-defined type.

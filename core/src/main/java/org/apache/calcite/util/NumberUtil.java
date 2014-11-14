@@ -14,11 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.util14;
+package org.apache.calcite.util;
 
-import java.math.*;
-
-import java.text.*;
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.text.DecimalFormat;
+import java.text.NumberFormat;
 
 /**
  * Utility functions for working with numbers This class is JDK 1.4 compatible.

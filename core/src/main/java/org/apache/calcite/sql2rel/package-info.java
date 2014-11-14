@@ -18,6 +18,6 @@
 /**
  * Translates a SQL parse tree to relational expression.
  */
-package org.eigenbase.sql2rel;
+package org.apache.calcite.sql2rel;
 
 // End package-info.java

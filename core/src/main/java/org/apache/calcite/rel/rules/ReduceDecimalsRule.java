@@ -14,38 +14,55 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel.rules;
+package org.apache.calcite.rel.rules;
 
-import java.math.*;
-
-import java.util.*;
-
-import org.eigenbase.rel.*;
-import org.eigenbase.relopt.*;
-import org.eigenbase.reltype.*;
-import org.eigenbase.rex.*;
-import org.eigenbase.sql.*;
-import org.eigenbase.sql.fun.*;
-import org.eigenbase.sql.type.*;
-import org.eigenbase.util.*;
-
-import net.hydromatic.linq4j.Ord;
+import org.apache.calcite.linq4j.Ord;
+import org.apache.calcite.plan.Convention;
+import org.apache.calcite.plan.RelOptRule;
+import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.rel.RelCollation;
+import org.apache.calcite.rel.logical.LogicalCalc;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeSystem;
+import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexLiteral;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexProgram;
+import org.apache.calcite.rex.RexProgramBuilder;
+import org.apache.calcite.rex.RexShuttle;
+import org.apache.calcite.rex.RexUtil;
+import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.type.SqlTypeUtil;
+import org.apache.calcite.util.Pair;
+import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
-import static org.eigenbase.util.Static.RESOURCE;
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import static org.apache.calcite.util.Static.RESOURCE;
 
 /**
  * ReduceDecimalsRule is a rule which reduces decimal operations (such as casts
  * or arithmetic) into operations involving more primitive types (such as longs
- * and doubles). The rule allows eigenbase implementations to deal with decimals
+ * and doubles). The rule allows Calcite implementations to deal with decimals
  * in a consistent manner, while saving the effort of implementing them.
  *
- * <p>The rule can be applied to a {@link CalcRel} with a program for which
+ * <p>The rule can be applied to a
+ * {@link org.apache.calcite.rel.logical.LogicalCalc} with a program for which
  * {@link RexUtil#requiresDecimalExpansion} returns true. The rule relies on a
  * {@link RexShuttle} to walk over relational expressions and replace them.
  *
- * <p>While decimals are generally not implemented by the eigenbase runtime, the
+ * <p>While decimals are generally not implemented by the Calcite runtime, the
  * rule is optionally applied, in order to support the situation in which we
  * would like to push down decimal operations to an external database.
  */
@@ -58,7 +75,7 @@ public class ReduceDecimalsRule extends RelOptRule {
    * Creates a ReduceDecimalsRule.
    */
   private ReduceDecimalsRule() {
-    super(operand(CalcRel.class, any()));
+    super(operand(LogicalCalc.class, any()));
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -70,21 +87,21 @@ public class ReduceDecimalsRule extends RelOptRule {
 
   // implement RelOptRule
   public void onMatch(RelOptRuleCall call) {
-    CalcRel calcRel = call.rel(0);
+    LogicalCalc calc = call.rel(0);
 
     // Expand decimals in every expression in this program. If no
     // expression changes, don't apply the rule.
-    final RexProgram program = calcRel.getProgram();
+    final RexProgram program = calc.getProgram();
     if (!RexUtil.requiresDecimalExpansion(program, true)) {
       return;
     }
 
-    final RexBuilder rexBuilder = calcRel.getCluster().getRexBuilder();
+    final RexBuilder rexBuilder = calc.getCluster().getRexBuilder();
     final RexShuttle shuttle = new DecimalShuttle(rexBuilder);
     RexProgramBuilder programBuilder =
         RexProgramBuilder.create(
             rexBuilder,
-            calcRel.getChild().getRowType(),
+            calc.getInput().getRowType(),
             program.getExprList(),
             program.getProjectList(),
             program.getCondition(),
@@ -93,15 +110,15 @@ public class ReduceDecimalsRule extends RelOptRule {
             true);
 
     final RexProgram newProgram = programBuilder.getProgram();
-    CalcRel newCalcRel =
-        new CalcRel(
-            calcRel.getCluster(),
-            calcRel.getTraitSet(),
-            calcRel.getChild(),
+    LogicalCalc newCalc =
+        new LogicalCalc(
+            calc.getCluster(),
+            calc.getTraitSet(),
+            calc.getInput(),
             newProgram.getOutputRowType(),
             newProgram,
             Collections.<RelCollation>emptyList());
-    call.transformTo(newCalcRel);
+    call.transformTo(newCalc);
   }
 
   //~ Inner Classes ----------------------------------------------------------
@@ -267,10 +284,10 @@ public class ReduceDecimalsRule extends RelOptRule {
    * Rewrites a decimal expression for a specific set of SqlOperator's. In
    * general, most expressions are rewritten in such a way that SqlOperator's
    * do not have to deal with decimals. Decimals are represented by their
-   * unscaled integer representations, similar to {@link
-   * BigDecimal#unscaledValue()} (i.e. 10^scale). Once decimals are decoded,
-   * SqlOperators can then operate on the integer representations. The value
-   * can later be recoded as a decimal.
+   * unscaled integer representations, similar to
+   * {@link BigDecimal#unscaledValue()} (i.e. 10^scale). Once decimals are
+   * decoded, SqlOperators can then operate on the integer representations. The
+   * value can later be recoded as a decimal.
    *
    * <p>For example, suppose one casts 2.0 as a decima(10,4). The value is
    * decoded (20), multiplied by a scale factor (1000), for a result of
@@ -307,12 +324,11 @@ public class ReduceDecimalsRule extends RelOptRule {
     }
 
     /**
-     * This defaults to the utility method, {@link
-     * RexUtil#requiresDecimalExpansion(RexNode, boolean)} which checks
-     * general guidelines on whether a rewrite should be considered at all.
-     * In general, it is helpful to update the utility method since that
-     * method is often used to filter the somewhat expensive rewrite
-     * process.
+     * This defaults to the utility method,
+     * {@link RexUtil#requiresDecimalExpansion(RexNode, boolean)} which checks
+     * general guidelines on whether a rewrite should be considered at all.  In
+     * general, it is helpful to update the utility method since that method is
+     * often used to filter the somewhat expensive rewrite process.
      *
      * <p>However, this method provides another place for implementations of
      * RexExpander to make a more detailed analysis before deciding on
@@ -420,9 +436,9 @@ public class ReduceDecimalsRule extends RelOptRule {
 
     /**
      * Scales down a decimal value, and returns the scaled value as an exact
-     * numeric. with the rounding convention {@link BigDecimal#ROUND_HALF_UP
-     * BigDecimal.ROUND_HALF_UP}. (Values midway between two points are
-     * rounded away from zero.)
+     * numeric. with the rounding convention
+     * {@link BigDecimal#ROUND_HALF_UP BigDecimal.ROUND_HALF_UP}. (Values midway
+     * between two points are rounded away from zero.)
      *
      * @param value the integer representation of a decimal
      * @param scale a value from zero to max precision
@@ -522,8 +538,7 @@ public class ReduceDecimalsRule extends RelOptRule {
 
       // TODO: make a validator exception for this
       if (scaleDiff >= maxPrecision) {
-        throw Util.needToImplement(
-            "Source type with scale " + scale
+        throw Util.needToImplement("Source type with scale " + scale
             + " cannot be converted to target type with scale "
             + required + " because the smallest value of the "
             + "source type is too large to be encoded by the "
@@ -762,7 +777,7 @@ public class ReduceDecimalsRule extends RelOptRule {
           || !SqlTypeUtil.isExactNumeric(toType)) {
         throw Util.needToImplement(
             "Cast from '" + fromType.toString()
-            + "' to '" + toType.toString() + "'");
+                + "' to '" + toType.toString() + "'");
       }
       int fromScale = fromType.getScale();
       int toScale = toType.getScale();

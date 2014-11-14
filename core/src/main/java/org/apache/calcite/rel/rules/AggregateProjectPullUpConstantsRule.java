@@ -14,22 +14,36 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel.rules;
+package org.apache.calcite.rel.rules;
 
-import java.util.*;
+import org.apache.calcite.plan.RelOptRule;
+import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.AggregateCall;
+import org.apache.calcite.rel.logical.LogicalAggregate;
+import org.apache.calcite.rel.logical.LogicalProject;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexLocalRef;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexProgram;
+import org.apache.calcite.util.BitSets;
+import org.apache.calcite.util.IntList;
+import org.apache.calcite.util.Pair;
+import org.apache.calcite.util.Permutation;
+import org.apache.calcite.util.mapping.Mapping;
+import org.apache.calcite.util.mapping.MappingType;
 
-import org.eigenbase.rel.*;
-import org.eigenbase.relopt.*;
-import org.eigenbase.reltype.*;
-import org.eigenbase.rex.*;
-import org.eigenbase.util.*;
-import org.eigenbase.util.mapping.*;
-
-import net.hydromatic.optiq.util.BitSets;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
- * PullConstantsThroughAggregatesRule removes constant expressions from the
- * group list of an {@link AggregateRel}.
+ * Planner rule that removes constant expressions from the
+ * group list of an {@link org.apache.calcite.rel.logical.LogicalAggregate}.
  *
  * <p><b>Effect of the rule</b></p>
  *
@@ -38,37 +52,36 @@ import net.hydromatic.optiq.util.BitSets;
  * reduced aggregate. If those constants are not used, another rule will remove
  * them from the project.
  *
- * <p>AggregateRel needs its group columns to be on the prefix of its input
+ * <p>LogicalAggregate needs its group columns to be on the prefix of its input
  * relational expression. Therefore, if a constant is not on the trailing edge
  * of the group list, removing it will leave a hole. In this case, the rule adds
  * a project before the aggregate to reorder the columns, and permutes them back
  * afterwards.
  */
-public class PullConstantsThroughAggregatesRule extends RelOptRule {
+public class AggregateProjectPullUpConstantsRule extends RelOptRule {
   //~ Static fields/initializers ---------------------------------------------
 
   /** The singleton. */
-  public static final PullConstantsThroughAggregatesRule INSTANCE =
-      new PullConstantsThroughAggregatesRule();
+  public static final AggregateProjectPullUpConstantsRule INSTANCE =
+      new AggregateProjectPullUpConstantsRule();
 
   //~ Constructors -----------------------------------------------------------
 
   /**
    * Private: use singleton
    */
-  private PullConstantsThroughAggregatesRule() {
+  private AggregateProjectPullUpConstantsRule() {
     super(
-        operand(
-            AggregateRel.class,
-            operand(ProjectRel.class, any())));
+        operand(LogicalAggregate.class,
+            operand(LogicalProject.class, any())));
   }
 
   //~ Methods ----------------------------------------------------------------
 
   // implement RelOptRule
   public void onMatch(RelOptRuleCall call) {
-    AggregateRel aggregate = call.rel(0);
-    ProjectRel child = call.rel(1);
+    LogicalAggregate aggregate = call.rel(0);
+    LogicalProject child = call.rel(1);
 
     final int groupCount = aggregate.getGroupCount();
     if (groupCount == 1) {
@@ -78,7 +91,7 @@ public class PullConstantsThroughAggregatesRule extends RelOptRule {
     }
 
     final RexProgram program =
-      RexProgram.create(child.getChild().getRowType(),
+      RexProgram.create(child.getInput().getRowType(),
         child.getProjects(), null, child.getRowType(),
         child.getCluster().getRexBuilder());
 
@@ -124,7 +137,7 @@ public class PullConstantsThroughAggregatesRule extends RelOptRule {
                 newGroupCount));
       }
       newAggregate =
-          new AggregateRel(
+          new LogicalAggregate(
               aggregate.getCluster(),
               child,
               BitSets.range(newGroupCount),
@@ -169,7 +182,7 @@ public class PullConstantsThroughAggregatesRule extends RelOptRule {
 
       // Aggregate on projection.
       newAggregate =
-          new AggregateRel(
+          new LogicalAggregate(
               aggregate.getCluster(),
               project,
               BitSets.range(newGroupCount),
@@ -238,4 +251,4 @@ public class PullConstantsThroughAggregatesRule extends RelOptRule {
   }
 }
 
-// End PullConstantsThroughAggregatesRule.java
+// End AggregateProjectPullUpConstantsRule.java

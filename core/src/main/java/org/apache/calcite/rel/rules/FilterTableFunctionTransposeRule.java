@@ -14,45 +14,53 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel.rules;
+package org.apache.calcite.rel.rules;
 
-import java.util.*;
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptRule;
+import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.logical.LogicalFilter;
+import org.apache.calcite.rel.logical.LogicalTableFunctionScan;
+import org.apache.calcite.rel.metadata.RelColumnMapping;
+import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexNode;
 
-import org.eigenbase.rel.*;
-import org.eigenbase.rel.metadata.*;
-import org.eigenbase.relopt.*;
-import org.eigenbase.reltype.*;
-import org.eigenbase.rex.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
 
 /**
- * PushFilterPastTableFunctionRule implements the rule for pushing a
- * {@link FilterRel} past a {@link TableFunctionRel}.
+ * Planner rule that pushes
+ * a {@link org.apache.calcite.rel.logical.LogicalFilter}
+ * past a {@link org.apache.calcite.rel.logical.LogicalTableFunctionScan}.
  */
-public class PushFilterPastTableFunctionRule extends RelOptRule {
-  public static final PushFilterPastTableFunctionRule INSTANCE =
-      new PushFilterPastTableFunctionRule();
+public class FilterTableFunctionTransposeRule extends RelOptRule {
+  public static final FilterTableFunctionTransposeRule INSTANCE =
+      new FilterTableFunctionTransposeRule();
 
   //~ Constructors -----------------------------------------------------------
 
   /**
-   * Creates a PushFilterPastTableFunctionRule.
+   * Creates a FilterTableFunctionTransposeRule.
    */
-  private PushFilterPastTableFunctionRule() {
+  private FilterTableFunctionTransposeRule() {
     super(
-        operand(
-            FilterRel.class,
-            operand(TableFunctionRel.class, any())));
+        operand(LogicalFilter.class,
+            operand(LogicalTableFunctionScan.class, any())));
   }
 
   //~ Methods ----------------------------------------------------------------
 
   // implement RelOptRule
   public void onMatch(RelOptRuleCall call) {
-    FilterRel filterRel = call.rel(0);
-    TableFunctionRel funcRel = call.rel(1);
+    LogicalFilter filter = call.rel(0);
+    LogicalTableFunctionScan funcRel = call.rel(1);
     Set<RelColumnMapping> columnMappings = funcRel.getColumnMappings();
-    if ((columnMappings == null) || (columnMappings.isEmpty())) {
-      // No column mapping information, so no pushdown
+    if (columnMappings == null || columnMappings.isEmpty()) {
+      // No column mapping information, so no push-down
       // possible.
       return;
     }
@@ -78,11 +86,11 @@ public class PushFilterPastTableFunctionRule extends RelOptRule {
     }
     final List<RelNode> newFuncInputs = new ArrayList<RelNode>();
     final RelOptCluster cluster = funcRel.getCluster();
-    final RexNode condition = filterRel.getCondition();
+    final RexNode condition = filter.getCondition();
 
     // create filters on top of each func input, modifying the filter
     // condition to reference the child instead
-    RexBuilder rexBuilder = filterRel.getCluster().getRexBuilder();
+    RexBuilder rexBuilder = filter.getCluster().getRexBuilder();
     List<RelDataTypeField> origFields = funcRel.getRowType().getFieldList();
     // TODO:  these need to be non-zero once we
     // support arbitrary mappings
@@ -96,12 +104,12 @@ public class PushFilterPastTableFunctionRule extends RelOptRule {
                   funcInput.getRowType().getFieldList(),
                   adjustments));
       newFuncInputs.add(
-          new FilterRel(cluster, funcInput, newCondition));
+          new LogicalFilter(cluster, funcInput, newCondition));
     }
 
     // create a new UDX whose children are the filters created above
-    TableFunctionRel newFuncRel =
-        new TableFunctionRel(
+    LogicalTableFunctionScan newFuncRel =
+        new LogicalTableFunctionScan(
             cluster,
             newFuncInputs,
             funcRel.getCall(),
@@ -111,4 +119,4 @@ public class PushFilterPastTableFunctionRule extends RelOptRule {
   }
 }
 
-// End PushFilterPastTableFunctionRule.java
+// End FilterTableFunctionTransposeRule.java

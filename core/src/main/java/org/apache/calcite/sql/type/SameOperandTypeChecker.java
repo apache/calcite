@@ -14,17 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql.type;
+package org.apache.calcite.sql.type;
 
-import java.util.*;
-
-import org.eigenbase.reltype.*;
-import org.eigenbase.sql.*;
-import org.eigenbase.util.Util;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.sql.SqlCallBinding;
+import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlOperandCountRange;
+import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.SqlOperatorBinding;
+import org.apache.calcite.sql.SqlUtil;
+import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
-import static org.eigenbase.util.Static.RESOURCE;
+import java.util.Collections;
+import java.util.List;
+
+import static org.apache.calcite.util.Static.RESOURCE;
 
 /**
  * Parameter type-checking strategy where all operand types must be the same.
@@ -103,8 +109,9 @@ public class SameOperandTypeChecker implements SqlSingleOperandTypeChecker {
   }
 
   /**
-   * Similar functionality to {@link #checkOperandTypes(SqlCallBinding,
-   * boolean)}, but not part of the interface, and cannot throw an error.
+   * Similar functionality to
+   * {@link #checkOperandTypes(SqlCallBinding, boolean)}, but not part of the
+   * interface, and cannot throw an error.
    */
   public boolean checkOperandTypes(
       SqlOperatorBinding operatorBinding) {

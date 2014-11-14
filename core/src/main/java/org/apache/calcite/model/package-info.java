@@ -21,19 +21,19 @@
  * <p>Models are specified using a <code>model=&lt;uri&gt;</code> parameter on
  * the JDBC connect string. Calcite loads the model while initializing the
  * connection. It first parses the JSON, then uses a
- * {@link net.hydromatic.optiq.model.ModelHandler} as visitor over the parse
+ * {@link org.apache.calcite.model.ModelHandler} as visitor over the parse
  * tree.</p>
  *
  * <p>There are standard implementations of schema and table, but the user can
  * provide their own by implementing the
- * {@link net.hydromatic.optiq.SchemaFactory}
- * or {@link net.hydromatic.optiq.TableFactory}
+ * {@link org.apache.calcite.schema.SchemaFactory}
+ * or {@link org.apache.calcite.schema.TableFactory}
  * interfaces and including a custom schema in the model.</p>
  *
  * <p>There are several examples of schemas in the
  * <a href="https://github.com/julianhyde/blog/master/optiq-csv/TUTORIAL.md">optiq-csv
  * tutorial</a>.
  */
-package net.hydromatic.optiq.model;
+package org.apache.calcite.model;
 
 // End package-info.java

@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.util;
+package org.apache.calcite.util;
+
+import com.google.common.base.Preconditions;
 
 import java.util.AbstractList;
 import java.util.RandomAccess;
-
-import com.google.common.base.Preconditions;
 
 /**
  * A view onto an array that cannot be modified by the client.

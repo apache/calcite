@@ -14,43 +14,42 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel.rules;
+package org.apache.calcite.rel.rules;
 
-import java.util.BitSet;
-import java.util.List;
-
-import org.eigenbase.rel.AggregateCall;
-import org.eigenbase.rel.AggregateRelBase;
-import org.eigenbase.rel.ProjectRelBase;
-import org.eigenbase.rel.RelNode;
-import org.eigenbase.relopt.RelOptCluster;
-import org.eigenbase.relopt.RelOptLattice;
-import org.eigenbase.relopt.RelOptRule;
-import org.eigenbase.relopt.RelOptRuleCall;
-import org.eigenbase.relopt.RelOptRuleOperand;
-import org.eigenbase.relopt.RelOptTable;
-import org.eigenbase.relopt.RelOptUtil;
-import org.eigenbase.relopt.SubstitutionVisitor;
-import org.eigenbase.reltype.RelDataType;
-import org.eigenbase.sql.SqlAggFunction;
-import org.eigenbase.util.Pair;
-import org.eigenbase.util.mapping.AbstractSourceMapping;
-
-import net.hydromatic.optiq.Table;
-import net.hydromatic.optiq.impl.StarTable;
-import net.hydromatic.optiq.jdbc.OptiqSchema;
-import net.hydromatic.optiq.materialize.Lattice;
-import net.hydromatic.optiq.materialize.TileKey;
-import net.hydromatic.optiq.prepare.OptiqPrepareImpl;
-import net.hydromatic.optiq.prepare.RelOptTableImpl;
-import net.hydromatic.optiq.util.BitSets;
+import org.apache.calcite.jdbc.CalciteSchema;
+import org.apache.calcite.materialize.Lattice;
+import org.apache.calcite.materialize.TileKey;
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptLattice;
+import org.apache.calcite.plan.RelOptRule;
+import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.plan.RelOptRuleOperand;
+import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.plan.SubstitutionVisitor;
+import org.apache.calcite.prepare.CalcitePrepareImpl;
+import org.apache.calcite.prepare.RelOptTableImpl;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.Aggregate;
+import org.apache.calcite.rel.core.AggregateCall;
+import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.schema.Table;
+import org.apache.calcite.schema.impl.StarTable;
+import org.apache.calcite.sql.SqlAggFunction;
+import org.apache.calcite.util.BitSets;
+import org.apache.calcite.util.Pair;
+import org.apache.calcite.util.mapping.AbstractSourceMapping;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
+import java.util.BitSet;
+import java.util.List;
+
 /**
- * Planner rule that matches an {@link org.eigenbase.rel.AggregateRelBase} on
- * top of a {@link net.hydromatic.optiq.impl.StarTable.StarTableScan}.
+ * Planner rule that matches an {@link org.apache.calcite.rel.core.Aggregate} on
+ * top of a {@link org.apache.calcite.schema.impl.StarTable.StarTableScan}.
  *
  * <p>This pattern indicates that an aggregate table may exist. The rule asks
  * the star table for an aggregate table at the required level of aggregation.
@@ -58,31 +57,30 @@ import com.google.common.collect.Lists;
 public class AggregateStarTableRule extends RelOptRule {
   public static final AggregateStarTableRule INSTANCE =
       new AggregateStarTableRule(
-          operand(AggregateRelBase.class,
+          operand(Aggregate.class,
               some(operand(StarTable.StarTableScan.class, none()))),
           "AggregateStarTableRule");
 
   public static final AggregateStarTableRule INSTANCE2 =
       new AggregateStarTableRule(
-          operand(AggregateRelBase.class,
-              operand(ProjectRelBase.class,
+          operand(Aggregate.class,
+              operand(Project.class,
                   operand(StarTable.StarTableScan.class, none()))),
           "AggregateStarTableRule:project") {
-        @Override
-        public void onMatch(RelOptRuleCall call) {
-          final AggregateRelBase aggregate = call.rel(0);
-          final ProjectRelBase project = call.rel(1);
+        @Override public void onMatch(RelOptRuleCall call) {
+          final Aggregate aggregate = call.rel(0);
+          final Project project = call.rel(1);
           final StarTable.StarTableScan scan = call.rel(2);
           final RelNode rel =
               AggregateProjectMergeRule.apply(aggregate, project);
-          final AggregateRelBase aggregate2;
-          final ProjectRelBase project2;
-          if (rel instanceof AggregateRelBase) {
+          final Aggregate aggregate2;
+          final Project project2;
+          if (rel instanceof Aggregate) {
             project2 = null;
-            aggregate2 = (AggregateRelBase) rel;
-          } else if (rel instanceof ProjectRelBase) {
-            project2 = (ProjectRelBase) rel;
-            aggregate2 = (AggregateRelBase) project2.getChild();
+            aggregate2 = (Aggregate) rel;
+          } else if (rel instanceof Project) {
+            project2 = (Project) rel;
+            aggregate2 = (Aggregate) project2.getInput();
           } else {
             return;
           }
@@ -95,27 +93,26 @@ public class AggregateStarTableRule extends RelOptRule {
     super(operand, description);
   }
 
-  @Override
-  public void onMatch(RelOptRuleCall call) {
-    final AggregateRelBase aggregate = call.rel(0);
+  @Override public void onMatch(RelOptRuleCall call) {
+    final Aggregate aggregate = call.rel(0);
     final StarTable.StarTableScan scan = call.rel(1);
     apply(call, null, aggregate, scan);
   }
 
-  protected void apply(RelOptRuleCall call, ProjectRelBase postProject,
-      final AggregateRelBase aggregate, StarTable.StarTableScan scan) {
+  protected void apply(RelOptRuleCall call, Project postProject,
+      final Aggregate aggregate, StarTable.StarTableScan scan) {
     final RelOptCluster cluster = scan.getCluster();
     final RelOptTable table = scan.getTable();
     final RelOptLattice lattice = call.getPlanner().getLattice(table);
     final List<Lattice.Measure> measures =
         lattice.lattice.toMeasures(aggregate.getAggCallList());
-    final Pair<OptiqSchema.TableEntry, TileKey> pair =
+    final Pair<CalciteSchema.TableEntry, TileKey> pair =
         lattice.getAggregate(call.getPlanner(), aggregate.getGroupSet(),
             measures);
     if (pair == null) {
       return;
     }
-    final OptiqSchema.TableEntry tableEntry = pair.left;
+    final CalciteSchema.TableEntry tableEntry = pair.left;
     final TileKey tileKey = pair.right;
     final double rowCount = aggregate.getRows();
     final Table aggregateTable = tableEntry.getTable();
@@ -126,14 +123,14 @@ public class AggregateStarTableRule extends RelOptRule {
             tableEntry, rowCount);
     RelNode rel = aggregateRelOptTable.toRel(RelOptUtil.getContext(cluster));
     if (tileKey == null) {
-      if (OptiqPrepareImpl.DEBUG) {
+      if (CalcitePrepareImpl.DEBUG) {
         System.out.println("Using materialization "
             + aggregateRelOptTable.getQualifiedName()
             + " (exact match)");
       }
     } else if (!tileKey.dimensions.equals(aggregate.getGroupSet())) {
       // Aggregate has finer granularity than we need. Roll up.
-      if (OptiqPrepareImpl.DEBUG) {
+      if (CalcitePrepareImpl.DEBUG) {
         System.out.println("Using materialization "
             + aggregateRelOptTable.getQualifiedName()
             + ", rolling up " + tileKey.dimensions + " to "

@@ -14,16 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.relopt;
+package org.apache.calcite.plan;
+
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelVisitor;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexVisitor;
 
 import java.util.List;
 
-import org.eigenbase.rel.*;
-import org.eigenbase.rex.*;
-
 /**
- * Walks over a tree of {@link RelNode relational expressions}, walking a {@link
- * RexShuttle} over every expression in that tree.
+ * Walks over a tree of {@link RelNode relational expressions}, walking a
+ * {@link RexVisitor} over every expression in that tree.
  */
 public class VisitorRelVisitor extends RelVisitor {
   //~ Instance fields --------------------------------------------------------

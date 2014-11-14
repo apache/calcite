@@ -14,11 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq;
+package org.apache.calcite.schema;
 
-import net.hydromatic.optiq.util.BitSets;
+import org.apache.calcite.util.BitSets;
 
-import java.util.*;
+import java.util.BitSet;
+import java.util.List;
 
 /**
  * Utility functions regarding {@link Statistic}.

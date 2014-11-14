@@ -14,40 +14,66 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.jdbc;
+package org.apache.calcite.jdbc;
 
-import net.hydromatic.avatica.*;
-
-import net.hydromatic.linq4j.*;
-import net.hydromatic.linq4j.expressions.*;
-import net.hydromatic.linq4j.function.*;
-
-import net.hydromatic.optiq.*;
-import net.hydromatic.optiq.Table;
-import net.hydromatic.optiq.impl.AbstractTableQueryable;
-import net.hydromatic.optiq.impl.java.AbstractQueryableTable;
-import net.hydromatic.optiq.impl.java.JavaTypeFactory;
-import net.hydromatic.optiq.runtime.*;
-
-import org.eigenbase.reltype.*;
-import org.eigenbase.sql.SqlJdbcFunctionCall;
-import org.eigenbase.sql.parser.SqlParser;
-import org.eigenbase.util.Pair;
-import org.eigenbase.util.Util;
+import org.apache.calcite.DataContext;
+import org.apache.calcite.adapter.java.AbstractQueryableTable;
+import org.apache.calcite.adapter.java.JavaTypeFactory;
+import org.apache.calcite.avatica.AvaticaParameter;
+import org.apache.calcite.avatica.AvaticaPrepareResult;
+import org.apache.calcite.avatica.AvaticaResultSet;
+import org.apache.calcite.avatica.AvaticaStatement;
+import org.apache.calcite.avatica.ColumnMetaData;
+import org.apache.calcite.avatica.Cursor;
+import org.apache.calcite.avatica.Meta;
+import org.apache.calcite.linq4j.Enumerable;
+import org.apache.calcite.linq4j.Enumerator;
+import org.apache.calcite.linq4j.Linq4j;
+import org.apache.calcite.linq4j.Ord;
+import org.apache.calcite.linq4j.QueryProvider;
+import org.apache.calcite.linq4j.Queryable;
+import org.apache.calcite.linq4j.function.Function1;
+import org.apache.calcite.linq4j.function.Functions;
+import org.apache.calcite.linq4j.function.Predicate1;
+import org.apache.calcite.linq4j.tree.Primitive;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rel.type.RelDataTypeFactoryImpl;
+import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.runtime.EnumeratorCursor;
+import org.apache.calcite.runtime.FlatLists;
+import org.apache.calcite.runtime.RecordEnumeratorCursor;
+import org.apache.calcite.schema.Schema;
+import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.schema.Table;
+import org.apache.calcite.schema.impl.AbstractTableQueryable;
+import org.apache.calcite.sql.SqlJdbcFunctionCall;
+import org.apache.calcite.sql.parser.SqlParser;
+import org.apache.calcite.util.Pair;
+import org.apache.calcite.util.Util;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.*;
+import com.google.common.base.CaseFormat;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Maps;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
-import java.sql.*;
+import java.sql.DatabaseMetaData;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Time;
+import java.sql.Timestamp;
 import java.sql.Types;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 import java.util.regex.Pattern;
 
 /**
  * Helper for implementing the {@code getXxx} methods such as
- * {@link net.hydromatic.avatica.AvaticaDatabaseMetaData#getTables}.
+ * {@link org.apache.calcite.avatica.AvaticaDatabaseMetaData#getTables}.
  */
 public class MetaImpl implements Meta {
   private static final Map<Class, Pair<Integer, String>> MAP =
@@ -74,9 +100,9 @@ public class MetaImpl implements Meta {
 
   static final Driver DRIVER = new Driver();
 
-  final OptiqConnectionImpl connection;
+  final CalciteConnectionImpl connection;
 
-  public MetaImpl(OptiqConnectionImpl connection) {
+  public MetaImpl(CalciteConnectionImpl connection) {
     this.connection = connection;
   }
 
@@ -158,7 +184,9 @@ public class MetaImpl implements Meta {
       if (Modifier.isPublic(field.getModifiers())
           && !Modifier.isStatic(field.getModifiers())) {
         list.add(
-            columnMetaData(Util.camelToUpper(field.getName()),
+            columnMetaData(
+                CaseFormat.LOWER_CAMEL.to(CaseFormat.UPPER_UNDERSCORE,
+                    field.getName()),
                 list.size() + 1, field.getType()));
       }
     }
@@ -169,37 +197,36 @@ public class MetaImpl implements Meta {
    * not implemented or which query entities that are not supported (e.g.
    * triggers in Lingual). */
   public static <E> ResultSet createEmptyResultSet(
-      OptiqConnectionImpl connection,
+      CalciteConnectionImpl connection,
       final Class<E> clazz) {
     return createResultSet(connection, ImmutableMap.<String, Object>of(),
         fieldMetaData(clazz),
         new RecordEnumeratorCursor<E>(Linq4j.<E>emptyEnumerator(), clazz));
   }
 
-  private static <E> ResultSet createResultSet(OptiqConnectionImpl connection,
+  private static <E> ResultSet createResultSet(CalciteConnectionImpl connection,
       final Map<String, Object> internalParameters,
       final ColumnMetaData.StructType structType,
       final Cursor cursor) {
     try {
       final AvaticaResultSet resultSet = connection.getFactory().newResultSet(
           connection.createStatement(),
-          new OptiqPrepare.PrepareResult<E>("",
+          new CalcitePrepare.PrepareResult<E>("",
               ImmutableList.<AvaticaParameter>of(), internalParameters, null,
               structType, -1, null, Object.class) {
-            @Override
-            public Cursor createCursor(DataContext dataContext) {
+            @Override public Cursor createCursor(DataContext dataContext) {
               return cursor;
             }
           },
           connection.getTimeZone());
-      return OptiqConnectionImpl.TROJAN.execute(resultSet);
+      return CalciteConnectionImpl.TROJAN.execute(resultSet);
     } catch (SQLException e) {
       throw new RuntimeException(e);
     }
   }
 
   private static ResultSet createResultSet(
-      OptiqConnectionImpl connection,
+      CalciteConnectionImpl connection,
       final Enumerable<?> enumerable,
       final NamedFieldGetter columnGetter) {
     //noinspection unchecked
@@ -334,12 +361,12 @@ public class MetaImpl implements Meta {
     return Linq4j.asEnumerable(
         connection.rootSchema.getSubSchemaMap().values())
         .select(
-            new Function1<OptiqSchema, MetaSchema>() {
-              public MetaSchema apply(OptiqSchema optiqSchema) {
+            new Function1<CalciteSchema, MetaSchema>() {
+              public MetaSchema apply(CalciteSchema calciteSchema) {
                 return new MetaSchema(
-                    optiqSchema,
+                    calciteSchema,
                     connection.getCatalog(),
-                    optiqSchema.getName());
+                    calciteSchema.getName());
               }
             })
         .orderBy(
@@ -363,12 +390,12 @@ public class MetaImpl implements Meta {
   }
 
   Enumerable<MetaTable> tables(final MetaSchema schema) {
-    return Linq4j.asEnumerable(schema.optiqSchema.getTableNames())
+    return Linq4j.asEnumerable(schema.calciteSchema.getTableNames())
         .select(
             new Function1<String, MetaTable>() {
               public MetaTable apply(String name) {
                 final Table table =
-                    schema.optiqSchema.getTable(name, true).getValue();
+                    schema.calciteSchema.getTable(name, true).getValue();
                 return new MetaTable(table,
                     schema.tableCatalog,
                     schema.tableSchem,
@@ -377,7 +404,7 @@ public class MetaImpl implements Meta {
             })
         .concat(
             Linq4j.asEnumerable(
-                schema.optiqSchema.getTablesBasedOnNullaryFunctions()
+                schema.calciteSchema.getTablesBasedOnNullaryFunctions()
                     .entrySet())
                 .select(
                     new Function1<Map.Entry<String, Table>, MetaTable>() {
@@ -405,7 +432,7 @@ public class MetaImpl implements Meta {
 
   public Enumerable<MetaColumn> columns(final MetaTable table) {
     final RelDataType rowType =
-        table.optiqTable.getRowType(connection.typeFactory);
+        table.calciteTable.getRowType(connection.typeFactory);
     return Linq4j.asEnumerable(rowType.getFieldList())
         .select(
             new Function1<RelDataTypeField, MetaColumn>() {
@@ -603,21 +630,22 @@ public class MetaImpl implements Meta {
   }
 
   public Cursor createCursor(AvaticaResultSet resultSet_) {
-    OptiqResultSet resultSet = (OptiqResultSet) resultSet_;
+    CalciteResultSet resultSet = (CalciteResultSet) resultSet_;
     Map<String, Object> map = Maps.newLinkedHashMap();
     final List<Object> parameterValues =
-        OptiqConnectionImpl.TROJAN.getParameterValues(resultSet.getStatement());
+        CalciteConnectionImpl.TROJAN.getParameterValues(
+            resultSet.getStatement());
     for (Ord<Object> o : Ord.zip(parameterValues)) {
       map.put("?" + o.i, o.e);
     }
     map.putAll(resultSet.getPrepareResult().getInternalParameters());
     final DataContext dataContext = connection.createDataContext(map);
-    OptiqPrepare.PrepareResult prepareResult = resultSet.getPrepareResult();
+    CalcitePrepare.PrepareResult prepareResult = resultSet.getPrepareResult();
     return prepareResult.createCursor(dataContext);
   }
 
   public AvaticaPrepareResult prepare(AvaticaStatement statement_, String sql) {
-    OptiqStatement statement = (OptiqStatement) statement_;
+    CalciteStatement statement = (CalciteStatement) statement_;
     int maxRowCount = statement.getMaxRows();
     return connection.parseQuery(sql,
         statement.createPrepareContext(),
@@ -626,14 +654,14 @@ public class MetaImpl implements Meta {
 
   /** A trojan-horse method, subject to change without notice. */
   @VisibleForTesting
-  public static DataContext createDataContext(OptiqConnection connection) {
-    return ((OptiqConnectionImpl) connection)
+  public static DataContext createDataContext(CalciteConnection connection) {
+    return ((CalciteConnectionImpl) connection)
         .createDataContext(ImmutableMap.<String, Object>of());
   }
 
   /** A trojan-horse method, subject to change without notice. */
   @VisibleForTesting
-  public static OptiqConnection connect(OptiqRootSchema schema,
+  public static CalciteConnection connect(CalciteRootSchema schema,
       JavaTypeFactory typeFactory) {
     return DRIVER.connect(schema, typeFactory);
   }
@@ -705,7 +733,7 @@ public class MetaImpl implements Meta {
 
   /** Metadata describing a table. */
   public static class MetaTable implements Named {
-    private final Table optiqTable;
+    private final Table calciteTable;
     public final String tableCat;
     public final String tableSchem;
     public final String tableName;
@@ -717,14 +745,14 @@ public class MetaImpl implements Meta {
     public final String selfReferencingColName = null;
     public final String refGeneration = null;
 
-    public MetaTable(Table optiqTable, String tableCat, String tableSchem,
+    public MetaTable(Table calciteTable, String tableCat, String tableSchem,
         String tableName) {
-      this.optiqTable = optiqTable;
-      assert optiqTable != null;
+      this.calciteTable = calciteTable;
+      assert calciteTable != null;
       this.tableCat = tableCat;
       this.tableSchem = tableSchem;
       this.tableName = tableName;
-      this.tableType = optiqTable.getJdbcTableType().name();
+      this.tableType = calciteTable.getJdbcTableType().name();
     }
 
     public String getName() {
@@ -734,15 +762,15 @@ public class MetaImpl implements Meta {
 
   /** Metadata describing a schema. */
   public static class MetaSchema implements Named {
-    private final OptiqSchema optiqSchema;
+    private final CalciteSchema calciteSchema;
     public final String tableCatalog;
     public final String tableSchem;
 
     public MetaSchema(
-        OptiqSchema optiqSchema,
+        CalciteSchema calciteSchema,
         String tableCatalog,
         String tableSchem) {
-      this.optiqSchema = optiqSchema;
+      this.calciteSchema = calciteSchema;
       this.tableCatalog = tableCatalog;
       this.tableSchem = tableSchem;
     }
@@ -907,7 +935,8 @@ public class MetaImpl implements Meta {
         List<ColumnMetaData> columns, List<Field> fields) {
       for (String name : names) {
         final int index = fields.size();
-        final String fieldName = Util.toCamelCase(name);
+        final String fieldName =
+            CaseFormat.UPPER_UNDERSCORE.to(CaseFormat.LOWER_CAMEL, name);
         final Field field;
         try {
           field = clazz.getField(fieldName);
@@ -962,8 +991,7 @@ public class MetaImpl implements Meta {
     }
 
     @SuppressWarnings("unchecked")
-    @Override
-    public Class<E> getElementType() {
+    @Override public Class<E> getElementType() {
       return (Class<E>) elementType;
     }
 
@@ -976,7 +1004,7 @@ public class MetaImpl implements Meta {
         @SuppressWarnings("unchecked")
         public Enumerator<T> enumerator() {
           return (Enumerator<T>) MetadataTable.this.enumerator(
-              ((OptiqConnectionImpl) queryProvider).meta());
+              ((CalciteConnectionImpl) queryProvider).meta());
         }
       };
     }

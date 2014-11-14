@@ -14,33 +14,49 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.prepare;
+package org.apache.calcite.prepare;
 
-import net.hydromatic.optiq.*;
-import net.hydromatic.optiq.impl.StarTable;
-import net.hydromatic.optiq.jdbc.OptiqPrepare;
-import net.hydromatic.optiq.jdbc.OptiqSchema;
-import net.hydromatic.optiq.rules.java.EnumerableConvention;
-import net.hydromatic.optiq.rules.java.EnumerableRel;
-
-import org.eigenbase.rel.*;
-import org.eigenbase.relopt.*;
-import org.eigenbase.sql.SqlNode;
-import org.eigenbase.sql.parser.SqlParseException;
-import org.eigenbase.sql.parser.SqlParser;
-import org.eigenbase.sql2rel.SqlToRelConverter;
+import org.apache.calcite.adapter.enumerable.EnumerableConvention;
+import org.apache.calcite.adapter.enumerable.EnumerableRel;
+import org.apache.calcite.jdbc.CalcitePrepare;
+import org.apache.calcite.jdbc.CalciteSchema;
+import org.apache.calcite.plan.RelOptMaterialization;
+import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelShuttle;
+import org.apache.calcite.rel.core.Correlator;
+import org.apache.calcite.rel.core.Sort;
+import org.apache.calcite.rel.core.TableFunctionScan;
+import org.apache.calcite.rel.core.TableScan;
+import org.apache.calcite.rel.logical.LogicalAggregate;
+import org.apache.calcite.rel.logical.LogicalFilter;
+import org.apache.calcite.rel.logical.LogicalIntersect;
+import org.apache.calcite.rel.logical.LogicalJoin;
+import org.apache.calcite.rel.logical.LogicalMinus;
+import org.apache.calcite.rel.logical.LogicalProject;
+import org.apache.calcite.rel.logical.LogicalUnion;
+import org.apache.calcite.rel.logical.LogicalValues;
+import org.apache.calcite.schema.Schemas;
+import org.apache.calcite.schema.Table;
+import org.apache.calcite.schema.impl.StarTable;
+import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.parser.SqlParseException;
+import org.apache.calcite.sql.parser.SqlParser;
+import org.apache.calcite.sql2rel.SqlToRelConverter;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
-import java.util.*;
+import java.util.List;
 
 /**
  * Context for populating a {@link Materialization}.
  */
-class OptiqMaterializer extends OptiqPrepareImpl.OptiqPreparingStmt {
-  public OptiqMaterializer(OptiqPrepare.Context context,
-      CatalogReader catalogReader, OptiqSchema schema,
+class CalciteMaterializer extends CalcitePrepareImpl.CalcitePreparingStmt {
+  public CalciteMaterializer(CalcitePrepare.Context context,
+      CatalogReader catalogReader, CalciteSchema schema,
       RelOptPlanner planner) {
     super(context, catalogReader, catalogReader.getTypeFactory(), schema,
         EnumerableRel.Prefer.ANY, planner, EnumerableConvention.INSTANCE);
@@ -81,11 +97,11 @@ class OptiqMaterializer extends OptiqPrepareImpl.OptiqPreparingStmt {
   /** Converts a relational expression to use a
    * {@link StarTable} defined in {@code schema}.
    * Uses the first star table that fits. */
-  private void useStar(OptiqSchema schema, Materialization materialization) {
+  private void useStar(CalciteSchema schema, Materialization materialization) {
     for (Callback x : useStar(schema, materialization.queryRel)) {
       // Success -- we found a star table that matches.
       materialization.materialize(x.rel, x.starRelOptTable);
-      if (OptiqPrepareImpl.DEBUG) {
+      if (CalcitePrepareImpl.DEBUG) {
         System.out.println("Materialization "
             + materialization.materializedTable + " matched star table "
             + x.starTable + "; query after re-write: "
@@ -95,10 +111,10 @@ class OptiqMaterializer extends OptiqPrepareImpl.OptiqPreparingStmt {
   }
 
   /** Converts a relational expression to use a
-   * {@link net.hydromatic.optiq.impl.StarTable} defined in {@code schema}.
+   * {@link org.apache.calcite.schema.impl.StarTable} defined in {@code schema}.
    * Uses the first star table that fits. */
-  private Iterable<Callback> useStar(OptiqSchema schema, RelNode queryRel) {
-    List<OptiqSchema.TableEntry> starTables =
+  private Iterable<Callback> useStar(CalciteSchema schema, RelNode queryRel) {
+    List<CalciteSchema.TableEntry> starTables =
         Schemas.getStarTables(schema.root());
     if (starTables.isEmpty()) {
       // Don't waste effort converting to leaf-join form.
@@ -107,7 +123,7 @@ class OptiqMaterializer extends OptiqPrepareImpl.OptiqPreparingStmt {
     final List<Callback> list = Lists.newArrayList();
     final RelNode rel2 =
         RelOptMaterialization.toLeafJoinForm(queryRel);
-    for (OptiqSchema.TableEntry starTable : starTables) {
+    for (CalciteSchema.TableEntry starTable : starTables) {
       final Table table = starTable.getTable();
       assert table instanceof StarTable;
       RelOptTableImpl starRelOptTable =
@@ -125,40 +141,40 @@ class OptiqMaterializer extends OptiqPrepareImpl.OptiqPreparingStmt {
   /** Implementation of {@link RelShuttle} that returns each relational
    * expression unchanged. It does not visit children. */
   static class RelNullShuttle implements RelShuttle {
-    public RelNode visit(TableAccessRelBase scan) {
+    public RelNode visit(TableScan scan) {
       return scan;
     }
-    public RelNode visit(TableFunctionRelBase scan) {
+    public RelNode visit(TableFunctionScan scan) {
       return scan;
     }
-    public RelNode visit(ValuesRel values) {
+    public RelNode visit(LogicalValues values) {
       return values;
     }
-    public RelNode visit(FilterRel filter) {
+    public RelNode visit(LogicalFilter filter) {
       return filter;
     }
-    public RelNode visit(ProjectRel project) {
+    public RelNode visit(LogicalProject project) {
       return project;
     }
-    public RelNode visit(JoinRel join) {
+    public RelNode visit(LogicalJoin join) {
       return join;
     }
-    public RelNode visit(CorrelatorRel correlator) {
+    public RelNode visit(Correlator correlator) {
       return correlator;
     }
-    public RelNode visit(UnionRel union) {
+    public RelNode visit(LogicalUnion union) {
       return union;
     }
-    public RelNode visit(IntersectRel intersect) {
+    public RelNode visit(LogicalIntersect intersect) {
       return intersect;
     }
-    public RelNode visit(MinusRel minus) {
+    public RelNode visit(LogicalMinus minus) {
       return minus;
     }
-    public RelNode visit(AggregateRel aggregate) {
+    public RelNode visit(LogicalAggregate aggregate) {
       return aggregate;
     }
-    public RelNode visit(SortRel sort) {
+    public RelNode visit(Sort sort) {
       return sort;
     }
     public RelNode visit(RelNode other) {
@@ -169,11 +185,11 @@ class OptiqMaterializer extends OptiqPrepareImpl.OptiqPreparingStmt {
   /** Called when we discover a star table that matches. */
   static class Callback {
     public final RelNode rel;
-    public final OptiqSchema.TableEntry starTable;
+    public final CalciteSchema.TableEntry starTable;
     public final RelOptTableImpl starRelOptTable;
 
     Callback(RelNode rel,
-        OptiqSchema.TableEntry starTable,
+        CalciteSchema.TableEntry starTable,
         RelOptTableImpl starRelOptTable) {
       this.rel = rel;
       this.starTable = starTable;
@@ -182,4 +198,4 @@ class OptiqMaterializer extends OptiqPrepareImpl.OptiqPreparingStmt {
   }
 }
 
-// End OptiqMaterializer.java
+// End CalciteMaterializer.java

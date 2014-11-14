@@ -14,19 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql;
+package org.apache.calcite.sql;
 
-import java.sql.*;
-
+import java.sql.DatabaseMetaData;
+import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
-import java.util.*;
-import java.util.regex.*;
+import java.util.List;
+import java.util.TimeZone;
+import java.util.regex.Pattern;
 
 /**
  * <code>SqlDialect</code> encapsulates the differences between dialects of SQL.
  *
  * <p>It is used by classes such as {@link SqlWriter} and
- * {@link org.eigenbase.sql.util.SqlBuilder}.
+ * {@link org.apache.calcite.sql.util.SqlBuilder}.
  */
 public class SqlDialect {
   //~ Static fields/initializers ---------------------------------------------
@@ -41,12 +43,12 @@ public class SqlDialect {
 
   /**
    * A dialect useful for generating SQL which can be parsed by the
-   * Eigenbase parser, in particular quoting literals and identifiers. If you
+   * Calcite parser, in particular quoting literals and identifiers. If you
    * want a dialect that knows the full capabilities of the database, create
    * one from a connection.
    */
-  public static final SqlDialect EIGENBASE =
-      DatabaseProduct.LUCIDDB.getDialect();
+  public static final SqlDialect CALCITE =
+      DatabaseProduct.CALCITE.getDialect();
 
   //~ Instance fields --------------------------------------------------------
 
@@ -414,7 +416,7 @@ public class SqlDialect {
   }
 
   /**
-   * A few utility functions copied from org.eigenbase.util.Util. We have
+   * A few utility functions copied from org.apache.calcite.util.Util. We have
    * copied them because we wish to keep SqlDialect's dependencies to a
    * minimum.
    */
@@ -473,6 +475,7 @@ public class SqlDialect {
    */
   public enum DatabaseProduct {
     ACCESS("Access", "\""),
+    CALCITE("Apache Calcite", "\""),
     MSSQL("Microsoft SQL Server", "["),
     MYSQL("MySQL", "`"),
     ORACLE("Oracle", "\""),
@@ -483,7 +486,6 @@ public class SqlDialect {
     INFORMIX("Informix", null),
     INGRES("Ingres", null),
     LUCIDDB("LucidDB", "\""),
-    OPTIQ("Apache Calcite", "\""),
     INTERBASE("Interbase", null),
     PHOENIX("Phoenix", "\""),
     POSTGRESQL("PostgreSQL", "\""),

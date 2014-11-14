@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.impl.interpreter;
+package org.apache.calcite.interpreter;
 
 /**
  * Sink to which to send rows.

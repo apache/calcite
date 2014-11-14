@@ -18,6 +18,6 @@
 /**
  * Avatica tests.
  */
-package net.hydromatic.avatica.test;
+package org.apache.calcite.avatica.test;
 
 // End package-info.java

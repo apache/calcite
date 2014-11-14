@@ -14,43 +14,54 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel.rules;
+package org.apache.calcite.rel.rules;
 
-import java.util.Map;
-
-import org.eigenbase.rel.*;
-import org.eigenbase.relopt.*;
-import org.eigenbase.rex.RexUtil;
-import org.eigenbase.util.mapping.Mappings;
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptRule;
+import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.rel.RelCollation;
+import org.apache.calcite.rel.RelFieldCollation;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.Sort;
+import org.apache.calcite.rel.logical.LogicalProject;
+import org.apache.calcite.rex.RexUtil;
+import org.apache.calcite.util.mapping.Mappings;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
+import java.util.Map;
+
 /**
- * Planner rule that pushes a {@link SortRel} past a {@link ProjectRel}.
+ * Planner rule that pushes
+ * a {@link org.apache.calcite.rel.core.Sort}
+ * past a {@link org.apache.calcite.rel.logical.LogicalProject}.
+ *
+ * @see org.apache.calcite.rel.rules.ProjectSortTransposeRule
  */
-public class PushSortPastProjectRule extends RelOptRule {
-  public static final PushSortPastProjectRule INSTANCE =
-      new PushSortPastProjectRule();
+public class SortProjectTransposeRule extends RelOptRule {
+  public static final SortProjectTransposeRule INSTANCE =
+      new SortProjectTransposeRule();
 
   //~ Constructors -----------------------------------------------------------
 
   /**
-   * Creates a PushSortPastProjectRule.
+   * Creates a SortProjectTransposeRule.
    */
-  private PushSortPastProjectRule() {
+  private SortProjectTransposeRule() {
     super(
         operand(
-            SortRel.class,
-            operand(ProjectRel.class, any())));
+            Sort.class,
+            operand(LogicalProject.class, any())));
   }
 
   //~ Methods ----------------------------------------------------------------
 
   // implement RelOptRule
   public void onMatch(RelOptRuleCall call) {
-    final SortRel sort = call.rel(0);
-    final ProjectRel project = call.rel(1);
+    final Sort sort = call.rel(0);
+    final LogicalProject project = call.rel(1);
     final RelOptCluster cluster = project.getCluster();
 
     if (sort.getConvention() != project.getConvention()) {
@@ -61,7 +72,7 @@ public class PushSortPastProjectRule extends RelOptRule {
     // relies on non-trivial expressions, we can't push.
     final Mappings.TargetMapping map =
         RelOptUtil.permutation(
-            project.getProjects(), project.getChild().getRowType());
+            project.getProjects(), project.getInput().getRowType());
     for (RelFieldCollation fc : sort.getCollation().getFieldCollations()) {
       if (map.getTargetOpt(fc.getFieldIndex()) < 0) {
         return;
@@ -70,10 +81,10 @@ public class PushSortPastProjectRule extends RelOptRule {
     final RelCollation newCollation =
         cluster.traitSetOf().canonize(
             RexUtil.apply(map, sort.getCollation()));
-    final SortRel newSort =
+    final Sort newSort =
         sort.copy(
             sort.getTraitSet().replace(newCollation),
-            project.getChild(),
+            project.getInput(),
             newCollation,
             sort.offset,
             sort.fetch);
@@ -86,10 +97,10 @@ public class PushSortPastProjectRule extends RelOptRule {
     // (but only if the sort is not also applying an offset/limit).
     Map<RelNode, RelNode> equiv =
         sort.offset == null && sort.fetch == null
-            ? ImmutableMap.<RelNode, RelNode>of(newSort, project.getChild())
+            ? ImmutableMap.<RelNode, RelNode>of(newSort, project.getInput())
             : ImmutableMap.<RelNode, RelNode>of();
     call.transformTo(newProject, equiv);
   }
 }
 
-// End PushSortPastProjectRule.java
+// End SortProjectTransposeRule.java

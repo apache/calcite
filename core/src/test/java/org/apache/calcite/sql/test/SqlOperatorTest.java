@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql.test;
+package org.apache.calcite.sql.test;
 
-import org.eigenbase.sql.validate.*;
-import org.eigenbase.test.*;
+import org.apache.calcite.sql.validate.SqlValidator;
+import org.apache.calcite.test.SqlValidatorTestCase;
 
 /**
  * Concrete subclass of {@link SqlOperatorBaseTest} which checks against

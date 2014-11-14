@@ -14,15 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq;
+package org.apache.calcite.schema;
 
-import net.hydromatic.optiq.rules.java.CallImplementor;
+import org.apache.calcite.adapter.enumerable.CallImplementor;
 
 /**
  * Function that can be translated to java code.
- * <p>
- * @see net.hydromatic.optiq.ScalarFunction
- * @see net.hydromatic.optiq.TableFunction
+ *
+ * @see ScalarFunction
+ * @see TableFunction
  */
 public interface ImplementableFunction extends Function {
   /**

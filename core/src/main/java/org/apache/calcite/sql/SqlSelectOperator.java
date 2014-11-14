@@ -14,13 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql;
+package org.apache.calcite.sql;
 
-import java.util.*;
+import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.type.ReturnTypes;
+import org.apache.calcite.sql.util.SqlBasicVisitor;
+import org.apache.calcite.sql.util.SqlVisitor;
 
-import org.eigenbase.sql.parser.*;
-import org.eigenbase.sql.type.*;
-import org.eigenbase.sql.util.*;
+import java.util.ArrayList;
 
 /**
  * An operator describing a query. (Not a query itself.)
@@ -87,8 +88,8 @@ public class SqlSelectOperator extends SqlOperator {
    *                    returning first row
    * @param fetch       Expression for number of rows to fetch
    * @param pos         The parser position, or
-   *                    {@link org.eigenbase.sql.parser.SqlParserPos#ZERO} if not
-   *                    specified; must not be null.
+   *                    {@link org.apache.calcite.sql.parser.SqlParserPos#ZERO}
+   *                    if not specified; must not be null.
    * @return A {@link SqlSelect}, never null
    */
   public SqlSelect createCall(

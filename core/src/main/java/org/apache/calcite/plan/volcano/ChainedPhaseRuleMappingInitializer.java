@@ -14,15 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.relopt.volcano;
+package org.apache.calcite.plan.volcano;
 
-import java.util.*;
+import java.util.Map;
+import java.util.Set;
 
 /**
- * ChainedPhaseRuleMappingInitializer is an abstract implementation of {@link
- * VolcanoPlannerPhaseRuleMappingInitializer} that allows additional rules to be
- * layered ontop of those configured by a subordinate
- * VolcanoPlannerPhaseRuleMappingInitializer.
+ * ChainedPhaseRuleMappingInitializer is an abstract implementation of
+ * {@link VolcanoPlannerPhaseRuleMappingInitializer} that allows additional
+ * rules to be layered on top of those configured by a subordinate
+ * {@link VolcanoPlannerPhaseRuleMappingInitializer}.
  *
  * @see VolcanoPlannerPhaseRuleMappingInitializer
  */

@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.util;
-
-import java.util.regex.*;
+package org.apache.calcite.util;
 
 import org.junit.ComparisonFailure;
+
+import java.util.regex.Pattern;
 
 /**
  * Static utilities for JUnit tests.
@@ -43,9 +43,7 @@ public abstract class TestUtil {
       if (expected == null) {
         return;
       } else {
-        String message =
-            "Expected:\n"
-            + expected
+        String message = "Expected:\n" + expected
             + "\nActual: null";
         throw new ComparisonFailure(message, expected, null);
       }

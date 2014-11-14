@@ -14,18 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.impl.spark;
+package org.apache.calcite.adapter.spark;
 
-import net.hydromatic.optiq.impl.jdbc.JdbcConvention;
-
-import org.eigenbase.rel.RelNode;
-import org.eigenbase.rel.convert.ConverterRule;
-import org.eigenbase.relopt.RelTraitSet;
+import org.apache.calcite.adapter.jdbc.JdbcConvention;
+import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.convert.ConverterRule;
 
 /**
  * Rule to convert a relational expression from
- * {@link net.hydromatic.optiq.impl.jdbc.JdbcConvention} to
- * {@link net.hydromatic.optiq.impl.spark.SparkRel#CONVENTION Spark convention}.
+ * {@link org.apache.calcite.adapter.jdbc.JdbcConvention} to
+ * {@link org.apache.calcite.adapter.spark.SparkRel#CONVENTION Spark convention}.
  */
 public class JdbcToSparkConverterRule extends ConverterRule {
   JdbcToSparkConverterRule(JdbcConvention out) {
@@ -35,8 +34,7 @@ public class JdbcToSparkConverterRule extends ConverterRule {
         "JdbcToSparkConverterRule");
   }
 
-  @Override
-  public RelNode convert(RelNode rel) {
+  @Override public RelNode convert(RelNode rel) {
     RelTraitSet newTraitSet = rel.getTraitSet().replace(getOutTrait());
     return new JdbcToSparkConverter(rel.getCluster(), newTraitSet, rel);
   }

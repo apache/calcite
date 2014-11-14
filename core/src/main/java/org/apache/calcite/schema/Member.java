@@ -14,11 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq;
+package org.apache.calcite.schema;
 
-import net.hydromatic.linq4j.Queryable;
-
-import org.eigenbase.reltype.RelDataType;
+import org.apache.calcite.linq4j.Queryable;
+import org.apache.calcite.rel.type.RelDataType;
 
 import java.util.List;
 
@@ -69,10 +68,10 @@ public interface Member {
 
   /**
    * Evaluates this member to yield a result. The result is a
-   * {@link net.hydromatic.linq4j.Queryable}.
+   * {@link org.apache.calcite.linq4j.Queryable}.
    *
    * @param schemaInstance Object that is an instance of the containing
-   *                       {@link net.hydromatic.optiq.Schema}
+   *                       {@link Schema}
    * @param arguments List of arguments to the call; must match
    *                  {@link #getParameters() parameters} in number and type
    *

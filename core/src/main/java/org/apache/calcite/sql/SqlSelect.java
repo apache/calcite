@@ -14,13 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql;
+package org.apache.calcite.sql;
+
+import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.validate.SqlValidator;
+import org.apache.calcite.sql.validate.SqlValidatorScope;
+import org.apache.calcite.util.ImmutableNullableList;
 
 import java.util.List;
-
-import org.eigenbase.sql.parser.*;
-import org.eigenbase.sql.validate.*;
-import org.eigenbase.util.ImmutableNullableList;
 
 /**
  * A <code>SqlSelect</code> is a node of a parse tree which represents a select
@@ -87,8 +88,7 @@ public class SqlSelect extends SqlCall {
         groupBy, having, windowDecls, orderBy, offset, fetch);
   }
 
-  @Override
-  public void setOperand(int i, SqlNode operand) {
+  @Override public void setOperand(int i, SqlNode operand) {
     switch (i) {
     case 0:
       keywordList = (SqlNodeList) operand;

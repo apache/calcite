@@ -14,27 +14,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.test;
+package org.apache.calcite.test;
 
-import net.hydromatic.linq4j.expressions.Primitive;
-
-import org.eigenbase.util.IntegerIntervalSet;
+import org.apache.calcite.linq4j.tree.Primitive;
+import org.apache.calcite.util.IntegerIntervalSet;
 
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
 import com.google.common.collect.ImmutableList;
+
+import mondrian.test.data.FoodMartQuery;
 
 import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
-import java.io.*;
+import java.io.IOException;
+import java.io.InputStream;
 import java.lang.ref.SoftReference;
-import java.util.*;
-
-import mondrian.test.data.FoodMartQuery;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Test case that runs the FoodMart reference queries.
@@ -106,7 +108,7 @@ public class FoodmartTest {
   @Parameterized.Parameters(name = "{index}: foodmart({0})={1}")
   public static List<Object[]> getSqls() throws IOException {
     String idList = System.getProperty("calcite.ids");
-    if (!OptiqAssert.ENABLE_SLOW && idList == null) {
+    if (!CalciteAssert.ENABLE_SLOW && idList == null) {
       // Avoid loading the query set in a regular test suite run. It burns too
       // much memory.
       return ImmutableList.of();
@@ -130,7 +132,7 @@ public class FoodmartTest {
       }
     } else {
       for (FoodmartQuery query1 : set.queries.values()) {
-        if (!OptiqAssert.ENABLE_SLOW && query1.id != 2) {
+        if (!CalciteAssert.ENABLE_SLOW && query1.id != 2) {
           // If slow queries are not enabled, only run query #2.
           continue;
         }
@@ -151,8 +153,8 @@ public class FoodmartTest {
   @Test(timeout = 60000)
   public void test() {
     try {
-      OptiqAssert.that()
-          .with(OptiqAssert.Config.FOODMART_CLONE)
+      CalciteAssert.that()
+          .with(CalciteAssert.Config.FOODMART_CLONE)
           .pooled()
           .query(query.sql)
           .runs();
@@ -166,8 +168,8 @@ public class FoodmartTest {
   @Ignore
   public void testWithLattice() {
     try {
-      OptiqAssert.that()
-          .with(OptiqAssert.Config.JDBC_FOODMART_WITH_LATTICE)
+      CalciteAssert.that()
+          .with(CalciteAssert.Config.JDBC_FOODMART_WITH_LATTICE)
           .pooled()
           .withSchema("foodmart")
           .query(query.sql)
@@ -179,6 +181,7 @@ public class FoodmartTest {
     }
   }
 
+  /** Set of queries against the FoodMart database. */
   public static class FoodMartQuerySet {
     private static SoftReference<FoodMartQuerySet> ref;
 
@@ -214,12 +217,12 @@ public class FoodmartTest {
     }
   }
 
-  // JSON class
+  /** JSON root element. */
   public static class FoodmartRoot {
     public final List<FoodmartQuery> queries = new ArrayList<FoodmartQuery>();
   }
 
-  // JSON class
+  /** JSON query element. */
   public static class FoodmartQuery {
     public int id;
     public String sql;
@@ -227,7 +230,7 @@ public class FoodmartTest {
     public final List<List> rows = new ArrayList<List>();
   }
 
-  // JSON class
+  /** JSON column element. */
   public static class FoodmartColumn {
     public String name;
     public String type;

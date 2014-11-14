@@ -14,25 +14,35 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.impl.splunk.search;
+package org.apache.calcite.adapter.splunk.search;
 
-import net.hydromatic.linq4j.Enumerator;
-import net.hydromatic.linq4j.Linq4j;
-
-import net.hydromatic.optiq.impl.splunk.util.HttpUtils;
-import net.hydromatic.optiq.impl.splunk.util.StringUtils;
+import org.apache.calcite.adapter.splunk.util.HttpUtils;
+import org.apache.calcite.adapter.splunk.util.StringUtils;
+import org.apache.calcite.linq4j.Enumerator;
+import org.apache.calcite.linq4j.Linq4j;
 
 import au.com.bytecode.opencsv.CSVReader;
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.Closeable;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.*;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static net.hydromatic.optiq.impl.splunk.util.HttpUtils.*;
+import static org.apache.calcite.adapter.splunk.util.HttpUtils.appendURLEncodedArgs;
+import static org.apache.calcite.adapter.splunk.util.HttpUtils.post;
 
 /**
  * Implementation of {@link SplunkConnection} based on Splunk's REST API.
@@ -205,8 +215,7 @@ public class SplunkConnectionImpl implements SplunkConnection {
       String argValue = i < args.length ? args[i] : "";
 
       if (!argName.startsWith("-")) {
-        throw new IllegalArgumentException(
-            "invalid argument name: " + argName
+        throw new IllegalArgumentException("invalid argument name: " + argName
             + ". Argument names must start with -");
       }
       map.put(argName.substring(1), argValue);
@@ -319,7 +328,7 @@ public class SplunkConnectionImpl implements SplunkConnection {
     }
   }
 
-  /** Implementation of {@link net.hydromatic.linq4j.Enumerator} that parses
+  /** Implementation of {@link org.apache.calcite.linq4j.Enumerator} that parses
    * results from a Splunk REST call.
    *
    * <p>The element type is either {@code String} or {@code String[]}, depending

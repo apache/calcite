@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rex;
+package org.apache.calcite.rex;
 
 /**
  * A <code>RexAction</code> is called when a {@link RexPattern} finds a match.

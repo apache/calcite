@@ -14,14 +14,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql.fun;
+package org.apache.calcite.sql.fun;
 
-import java.util.*;
+import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlCallBinding;
+import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlOperandCountRange;
+import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.SqlSpecialOperator;
+import org.apache.calcite.sql.SqlWriter;
+import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.parser.SqlParserUtil;
+import org.apache.calcite.sql.type.InferTypes;
+import org.apache.calcite.sql.type.OperandTypes;
+import org.apache.calcite.sql.type.ReturnTypes;
+import org.apache.calcite.sql.type.SqlOperandCountRanges;
+import org.apache.calcite.sql.type.SqlTypeUtil;
+import org.apache.calcite.util.Util;
 
-import org.eigenbase.sql.*;
-import org.eigenbase.sql.parser.*;
-import org.eigenbase.sql.type.*;
-import org.eigenbase.util.*;
+import java.util.List;
 
 /**
  * An operator describing the <code>LIKE</code> and <code>SIMILAR</code>
@@ -36,9 +48,9 @@ import org.eigenbase.util.*;
  * escape-value]</code></li>
  * </ul>
  *
- * <p><b>NOTE</b> If the <code>NOT</code> clause is present the {@link
- * org.eigenbase.sql.parser.SqlParser parser} will generate a eqvivalent to
- * <code>NOT (src LIKE pattern ...)</code>
+ * <p><b>NOTE</b> If the <code>NOT</code> clause is present the
+ * {@link org.apache.calcite.sql.parser.SqlParser parser} will generate a
+ * eqvivalent to <code>NOT (src LIKE pattern ...)</code>
  */
 public class SqlLikeOperator extends SqlSpecialOperator {
   //~ Instance fields --------------------------------------------------------

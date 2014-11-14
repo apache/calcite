@@ -14,16 +14,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.relopt.volcano;
+package org.apache.calcite.plan.volcano;
 
-import java.util.*;
-import java.util.logging.*;
-
-import org.eigenbase.rel.*;
-import org.eigenbase.relopt.*;
-import org.eigenbase.util.*;
+import org.apache.calcite.plan.RelOptListener;
+import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.plan.RelOptRuleOperand;
+import org.apache.calcite.plan.RelTraitPropagationVisitor;
+import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.logging.Level;
 
 /**
  * <code>VolcanoRuleCall</code> implements the {@link RelOptRuleCall} interface
@@ -104,8 +113,7 @@ public class VolcanoRuleCall extends RelOptRuleCall {
         // been registered. For now, let's make up something similar.
         String relDesc =
             "rel#" + rel.getId() + ":" + rel.getRelTypeName();
-        LOGGER.finest(
-            "call#" + id
+        LOGGER.finest("call#" + id
             + ": Rule " + getRule() + " arguments "
             + Arrays.toString(rels) + " created " + relDesc);
       }
@@ -154,8 +162,7 @@ public class VolcanoRuleCall extends RelOptRuleCall {
     try {
       if (volcanoPlanner.isRuleExcluded(getRule())) {
         if (LOGGER.isLoggable(Level.FINE)) {
-          LOGGER.fine(
-              "Rule [" + getRule() + "] not fired"
+          LOGGER.fine("Rule [" + getRule() + "] not fired"
               + " due to exclusion filter");
         }
         return;
@@ -189,8 +196,7 @@ public class VolcanoRuleCall extends RelOptRuleCall {
             volcanoPlanner.relImportances.get(rel);
         if ((importance != null) && (importance == 0d)) {
           if (LOGGER.isLoggable(Level.FINE)) {
-            LOGGER.fine(
-                "Rule [" + getRule() + "] not fired because"
+            LOGGER.fine("Rule [" + getRule() + "] not fired because"
                 + " operand #" + i + " (" + rel
                 + ") has importance=0");
           }

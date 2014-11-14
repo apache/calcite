@@ -14,13 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql.util;
+package org.apache.calcite.sql.util;
 
-import org.eigenbase.sql.*;
+import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlDataTypeSpec;
+import org.apache.calcite.sql.SqlDynamicParam;
+import org.apache.calcite.sql.SqlIdentifier;
+import org.apache.calcite.sql.SqlIntervalQualifier;
+import org.apache.calcite.sql.SqlLiteral;
+import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlNodeList;
+import org.apache.calcite.sql.SqlOperator;
 
 /**
- * Visitor class, follows the {@link org.eigenbase.util.Glossary#VISITOR_PATTERN
- * visitor pattern}.
+ * Visitor class, follows the
+ * {@link org.apache.calcite.util.Glossary#VISITOR_PATTERN visitor pattern}.
  *
  * <p>The type parameter <code>R</code> is the return type of each <code>
  * visit()</code> method. If the methods do not need to return a value, use
@@ -29,6 +37,8 @@ import org.eigenbase.sql.*;
  * @see SqlBasicVisitor
  * @see SqlNode#accept(SqlVisitor)
  * @see SqlOperator#acceptCall
+ *
+ * @param <R> Return type
  */
 public interface SqlVisitor<R> {
   //~ Methods ----------------------------------------------------------------

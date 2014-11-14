@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.linq4j;
+package org.apache.calcite.linq4j;
 
-import net.hydromatic.linq4j.function.Function1;
+import org.apache.calcite.linq4j.function.Function1;
 
 import java.util.Comparator;
 
@@ -32,8 +32,9 @@ public interface ExtendedOrderedEnumerable<T> extends Enumerable<T> {
    * comparator.
    *
    * <p>The functionality provided by this method is like that provided by
-   * {@link #thenBy(net.hydromatic.linq4j.function.Function1, java.util.Comparator) thenBy}
-   * or {@link #thenByDescending(net.hydromatic.linq4j.function.Function1, java.util.Comparator) thenByDescending},
+   * {@link #thenBy(org.apache.calcite.linq4j.function.Function1, java.util.Comparator) thenBy}
+   * or
+   * {@link #thenByDescending(org.apache.calcite.linq4j.function.Function1, java.util.Comparator) thenByDescending},
    * depending on whether descending is true or false. They both perform a
    * subordinate ordering of an already sorted sequence of type
    * {@link OrderedEnumerable}.</p>

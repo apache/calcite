@@ -14,13 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rex;
+package org.apache.calcite.rex;
 
 import java.util.List;
 
 /**
  * Default implementation of {@link RexVisitor}, which visits each node but does
  * nothing while it's there.
+ *
+ * @param <R> Return type from each {@code visitXxx} method.
  */
 public class RexVisitorImpl<R> implements RexVisitor<R> {
   //~ Instance fields --------------------------------------------------------

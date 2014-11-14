@@ -14,23 +14,34 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.reltype;
+package org.apache.calcite.rel.type;
 
-import java.lang.reflect.*;
-import java.nio.charset.*;
-import java.sql.*;
-import java.util.*;
-
-import org.eigenbase.sql.*;
-import org.eigenbase.sql.type.*;
-import org.eigenbase.util.*;
-
-import net.hydromatic.linq4j.expressions.Primitive;
+import org.apache.calcite.linq4j.tree.Primitive;
+import org.apache.calcite.sql.SqlCollation;
+import org.apache.calcite.sql.type.JavaToSqlTypeConversionRules;
+import org.apache.calcite.sql.type.SqlTypeFamily;
+import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.type.SqlTypeUtil;
+import org.apache.calcite.util.Bug;
+import org.apache.calcite.util.Pair;
+import org.apache.calcite.util.Util;
 
 import com.google.common.base.Preconditions;
-import com.google.common.cache.*;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+
+import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
+import java.nio.charset.Charset;
+import java.sql.Time;
+import java.sql.Timestamp;
+import java.util.AbstractList;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Abstract base for implementations of {@link RelDataTypeFactory}.
@@ -46,8 +57,7 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
           .softValues()
           .build(
               new CacheLoader<Object, RelDataType>() {
-                @Override
-                public RelDataType load(Object key) {
+                @Override public RelDataType load(Object key) {
                   if (key instanceof RelDataType) {
                     return (RelDataType) key;
                   }
@@ -147,24 +157,20 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
       final RelDataTypeFactory.FieldInfo fieldInfo) {
     return canonize(
         new AbstractList<String>() {
-          @Override
-          public String get(int index) {
+          @Override public String get(int index) {
             return fieldInfo.getFieldName(index);
           }
 
-          @Override
-          public int size() {
+          @Override public int size() {
             return fieldInfo.getFieldCount();
           }
         },
         new AbstractList<RelDataType>() {
-          @Override
-          public RelDataType get(int index) {
+          @Override public RelDataType get(int index) {
             return fieldInfo.getFieldType(index);
           }
 
-          @Override
-          public int size() {
+          @Override public int size() {
             return fieldInfo.getFieldCount();
           }
         });
@@ -613,8 +619,7 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
       return nullable;
     }
 
-    @Override
-    public RelDataTypeFamily getFamily() {
+    @Override public RelDataTypeFamily getFamily() {
       RelDataTypeFamily family = CLASS_FAMILIES.get(clazz);
       return family != null ? family : this;
     }

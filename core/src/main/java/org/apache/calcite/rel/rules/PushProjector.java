@@ -14,23 +14,32 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel.rules;
+package org.apache.calcite.rel.rules;
 
-import java.util.*;
-
-import org.eigenbase.rel.*;
-import org.eigenbase.relopt.*;
-import org.eigenbase.reltype.*;
-import org.eigenbase.rex.*;
-import org.eigenbase.sql.*;
-import org.eigenbase.util.Pair;
-
-import net.hydromatic.linq4j.Ord;
-
-import net.hydromatic.optiq.util.BitSets;
+import org.apache.calcite.linq4j.Ord;
+import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.Join;
+import org.apache.calcite.rel.core.SetOp;
+import org.apache.calcite.rel.logical.LogicalProject;
+import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexInputRef;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexUtil;
+import org.apache.calcite.rex.RexVisitorImpl;
+import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.util.BitSets;
+import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
+
+import java.util.ArrayList;
+import java.util.BitSet;
+import java.util.List;
+import java.util.Set;
 
 /**
  * PushProjector is a utility class used to perform operations used in push
@@ -49,7 +58,7 @@ import com.google.common.collect.Lists;
 public class PushProjector {
   //~ Instance fields --------------------------------------------------------
 
-  private final ProjectRel origProj;
+  private final LogicalProject origProj;
   private final RexNode origFilter;
   private final RelNode childRel;
   private final ExprCondition preserveExprCondition;
@@ -177,7 +186,7 @@ public class PushProjector {
    *                              be preserved in the projection
    */
   public PushProjector(
-      ProjectRel origProj,
+      LogicalProject origProj,
       RexNode origFilter,
       RelNode childRel,
       ExprCondition preserveExprCondition) {
@@ -196,8 +205,8 @@ public class PushProjector {
     nChildFields = childFields.size();
 
     projRefs = new BitSet(nChildFields);
-    if (childRel instanceof JoinRelBase) {
-      JoinRelBase joinRel = (JoinRelBase) childRel;
+    if (childRel instanceof Join) {
+      Join joinRel = (Join) childRel;
       List<RelDataTypeField> leftFields =
           joinRel.getLeft().getRowType().getFieldList();
       List<RelDataTypeField> rightFields =
@@ -358,8 +367,8 @@ public class PushProjector {
     assert nSystemProject + nProject + nRightProject
         == projRefs.cardinality();
 
-    if ((childRel instanceof JoinRelBase)
-        || (childRel instanceof SetOpRel)) {
+    if ((childRel instanceof Join)
+        || (childRel instanceof SetOp)) {
       // if nothing is projected from the children, arbitrarily project
       // the first columns; this is necessary since Fennel doesn't
       // handle 0-column projections
@@ -367,7 +376,7 @@ public class PushProjector {
         projRefs.set(0);
         nProject = 1;
       }
-      if (childRel instanceof JoinRelBase) {
+      if (childRel instanceof Join) {
         if ((nRightProject == 0) && (rightPreserveExprs.size() == 0)) {
           projRefs.set(nFields);
           nRightProject = 1;
@@ -400,7 +409,7 @@ public class PushProjector {
    *                  of a join
    * @return created projection
    */
-  public ProjectRel createProjectRefsAndExprs(
+  public LogicalProject createProjectRefsAndExprs(
       RelNode projChild,
       boolean adjust,
       boolean rightSide) {
@@ -463,7 +472,7 @@ public class PushProjector {
               ((RexCall) projExpr).getOperator().getName()));
     }
 
-    return (ProjectRel) RelOptUtil.createProject(
+    return (LogicalProject) RelOptUtil.createProject(
         projChild,
         Pair.left(newProjects),
         Pair.right(newProjects));
@@ -737,7 +746,7 @@ public class PushProjector {
   /**
    * A functor that replies true or false for a given expression.
    *
-   * @see org.eigenbase.rel.rules.PushProjector.OperatorExprCondition
+   * @see org.apache.calcite.rel.rules.PushProjector.OperatorExprCondition
    */
   public interface ExprCondition {
     /**

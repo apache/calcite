@@ -14,30 +14,35 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel.rules;
+package org.apache.calcite.rel.rules;
 
-import org.eigenbase.rel.*;
-import org.eigenbase.relopt.*;
+import org.apache.calcite.plan.RelOptRule;
+import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.logical.LogicalTableScan;
 
 /**
- * Planner rule that converts a {@link TableAccessRel} to the result of calling
- * {@link RelOptTable#toRel}.
+ * Planner rule that converts a
+ * {@link org.apache.calcite.rel.logical.LogicalTableScan} to the result
+ * of calling {@link RelOptTable#toRel}.
  */
-public class TableAccessRule extends RelOptRule {
+public class TableScanRule extends RelOptRule {
   //~ Static fields/initializers ---------------------------------------------
 
-  public static final TableAccessRule INSTANCE = new TableAccessRule();
+  public static final TableScanRule INSTANCE = new TableScanRule();
 
   //~ Constructors -----------------------------------------------------------
 
-  private TableAccessRule() {
-    super(operand(TableAccessRel.class, any()));
+  private TableScanRule() {
+    super(operand(LogicalTableScan.class, any()));
   }
 
   //~ Methods ----------------------------------------------------------------
 
   public void onMatch(RelOptRuleCall call) {
-    final TableAccessRel oldRel = call.rel(0);
+    final LogicalTableScan oldRel = call.rel(0);
     RelNode newRel =
         oldRel.getTable().toRel(
             RelOptUtil.getContext(oldRel.getCluster()));
@@ -45,4 +50,4 @@ public class TableAccessRule extends RelOptRule {
   }
 }
 
-// End TableAccessRule.java
+// End TableScanRule.java

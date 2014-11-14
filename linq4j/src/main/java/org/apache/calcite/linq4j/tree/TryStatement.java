@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.linq4j.expressions;
+package org.apache.calcite.linq4j.tree;
 
 import java.util.List;
 
@@ -36,13 +36,11 @@ public class TryStatement extends Statement {
     this.fynally = fynally;
   }
 
-  @Override
-  public Statement accept(Visitor visitor) {
+  @Override public Statement accept(Visitor visitor) {
     return visitor.visit(this);
   }
 
-  @Override
-  void accept0(ExpressionWriter writer) {
+  @Override void accept0(ExpressionWriter writer) {
     writer.append("try ").append(Blocks.toBlock(body));
     for (CatchBlock catchBlock : catchBlocks) {
       writer.backUp();
@@ -55,8 +53,7 @@ public class TryStatement extends Statement {
     }
   }
 
-  @Override
-  public boolean equals(Object o) {
+  @Override public boolean equals(Object o) {
     if (this == o) {
       return true;
     }
@@ -83,8 +80,7 @@ public class TryStatement extends Statement {
     return true;
   }
 
-  @Override
-  public int hashCode() {
+  @Override public int hashCode() {
     int result = super.hashCode();
     result = 31 * result + body.hashCode();
     result = 31 * result + catchBlocks.hashCode();

@@ -14,23 +14,34 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel.rules;
+package org.apache.calcite.rel.rules;
 
-import org.eigenbase.rel.*;
-import org.eigenbase.relopt.*;
-import org.eigenbase.reltype.*;
-import org.eigenbase.rex.*;
+import org.apache.calcite.plan.RelOptRule;
+import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.rel.RelCollation;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.logical.LogicalCalc;
+import org.apache.calcite.rel.logical.LogicalFilter;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexProgram;
+import org.apache.calcite.rex.RexProgramBuilder;
 
 import com.google.common.collect.ImmutableList;
 
 /**
- * Planner rule which converts a {@link FilterRel} to a {@link CalcRel}.
+ * Planner rule which converts a
+ * {@link org.apache.calcite.rel.logical.LogicalFilter} to a
+ * {@link org.apache.calcite.rel.logical.LogicalCalc}.
  *
- * <p>The rule does <em>NOT</em> fire if the child is a {@link FilterRel} or a
- * {@link ProjectRel} (we assume they they will be converted using {@link
- * FilterToCalcRule} or {@link ProjectToCalcRule}) or a {@link CalcRel}. This
- * {@link FilterRel} will eventually be converted by {@link
- * MergeFilterOntoCalcRule}.
+ * <p>The rule does <em>NOT</em> fire if the child is a
+ * {@link org.apache.calcite.rel.logical.LogicalFilter} or a
+ * {@link org.apache.calcite.rel.logical.LogicalProject} (we assume they they
+ * will be converted using {@link FilterToCalcRule} or
+ * {@link ProjectToCalcRule}) or a
+ * {@link org.apache.calcite.rel.logical.LogicalCalc}. This
+ * {@link org.apache.calcite.rel.logical.LogicalFilter} will eventually be
+ * converted by {@link FilterCalcMergeRule}.
  */
 public class FilterToCalcRule extends RelOptRule {
   //~ Static fields/initializers ---------------------------------------------
@@ -40,14 +51,14 @@ public class FilterToCalcRule extends RelOptRule {
   //~ Constructors -----------------------------------------------------------
 
   private FilterToCalcRule() {
-    super(operand(FilterRel.class, any()));
+    super(operand(LogicalFilter.class, any()));
   }
 
   //~ Methods ----------------------------------------------------------------
 
   public void onMatch(RelOptRuleCall call) {
-    final FilterRel filter = call.rel(0);
-    final RelNode rel = filter.getChild();
+    final LogicalFilter filter = call.rel(0);
+    final RelNode rel = filter.getInput();
 
     // Create a program containing a filter.
     final RexBuilder rexBuilder = filter.getCluster().getRexBuilder();
@@ -58,8 +69,8 @@ public class FilterToCalcRule extends RelOptRule {
     programBuilder.addCondition(filter.getCondition());
     final RexProgram program = programBuilder.getProgram();
 
-    final CalcRel calc =
-        new CalcRel(
+    final LogicalCalc calc =
+        new LogicalCalc(
             filter.getCluster(),
             filter.getTraitSet(),
             rel,

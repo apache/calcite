@@ -14,19 +14,46 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel.rules;
+package org.apache.calcite.rel.rules;
 
-import java.util.*;
-import java.util.regex.*;
+import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.plan.RelOptRule;
+import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.Empty;
+import org.apache.calcite.rel.core.Join;
+import org.apache.calcite.rel.logical.LogicalCalc;
+import org.apache.calcite.rel.logical.LogicalFilter;
+import org.apache.calcite.rel.logical.LogicalProject;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexCorrelVariable;
+import org.apache.calcite.rex.RexDynamicParam;
+import org.apache.calcite.rex.RexFieldAccess;
+import org.apache.calcite.rex.RexInputRef;
+import org.apache.calcite.rex.RexLiteral;
+import org.apache.calcite.rex.RexLocalRef;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexOver;
+import org.apache.calcite.rex.RexProgram;
+import org.apache.calcite.rex.RexProgramBuilder;
+import org.apache.calcite.rex.RexRangeRef;
+import org.apache.calcite.rex.RexShuttle;
+import org.apache.calcite.rex.RexUtil;
+import org.apache.calcite.rex.RexVisitorImpl;
+import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.fun.SqlRowOperator;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.util.Stacks;
+import org.apache.calcite.util.Util;
 
-import org.eigenbase.rel.*;
-import org.eigenbase.relopt.*;
-import org.eigenbase.reltype.*;
-import org.eigenbase.rex.*;
-import org.eigenbase.sql.*;
-import org.eigenbase.sql.fun.*;
-import org.eigenbase.util.Stacks;
-import org.eigenbase.util.Util;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.regex.Pattern;
 
 /**
  * Collection of planner rules that apply various simplifying transformations on
@@ -44,22 +71,23 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
 
   /**
    * Regular expression that matches the description of all instances of this
-   * rule and {@link ReduceValuesRule} also. Use
+   * rule and {@link ValuesReduceRule} also. Use
    * it to prevent the planner from invoking these rules.
    */
   public static final Pattern EXCLUSION_PATTERN =
       Pattern.compile("Reduce(Expressions|Values)Rule.*");
 
   /**
-   * Singleton rule that reduces constants inside a {@link FilterRel}. If the
-   * condition is a constant, the filter is removed (if TRUE) or replaced with
-   * {@link EmptyRel} (if FALSE or NULL).
+   * Singleton rule that reduces constants inside a
+   * {@link org.apache.calcite.rel.logical.LogicalFilter}. If the condition is a
+   * constant, the filter is removed (if TRUE) or replaced with
+   * {@link org.apache.calcite.rel.core.Empty} (if FALSE or NULL).
    */
   public static final ReduceExpressionsRule FILTER_INSTANCE =
-      new ReduceExpressionsRule(FilterRel.class,
+      new ReduceExpressionsRule(LogicalFilter.class,
           "ReduceExpressionsRule[Filter]") {
         public void onMatch(RelOptRuleCall call) {
-          FilterRel filter = call.rel(0);
+          LogicalFilter filter = call.rel(0);
           List<RexNode> expList = new ArrayList<RexNode>(filter.getChildExps());
           RexNode newConditionExp;
           boolean reduced;
@@ -77,18 +105,18 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
           }
           if (newConditionExp.isAlwaysTrue()) {
             call.transformTo(
-                filter.getChild());
+                filter.getInput());
           } else if (
               (newConditionExp instanceof RexLiteral)
                   || RexUtil.isNullLiteral(newConditionExp, true)) {
             call.transformTo(
-                new EmptyRel(
+                new Empty(
                     filter.getCluster(),
                     filter.getRowType()));
           } else if (reduced) {
             call.transformTo(
                 RelOptUtil.createFilter(
-                    filter.getChild(),
+                    filter.getInput(),
                     expList.get(0)));
           } else {
             if (newConditionExp instanceof RexCall) {
@@ -110,12 +138,12 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
 
         private void reduceNotNullableFilter(
             RelOptRuleCall call,
-            FilterRel filter,
+            LogicalFilter filter,
             RexCall rexCall,
             boolean reverse) {
           // If the expression is a IS [NOT] NULL on a non-nullable
           // column, then we can either remove the filter or replace
-          // it with an EmptyRel.
+          // it with an Empty.
           SqlOperator op = rexCall.getOperator();
           boolean alwaysTrue;
           switch (rexCall.getKind()) {
@@ -137,10 +165,10 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
             RexInputRef inputRef = (RexInputRef) operand;
             if (!inputRef.getType().isNullable()) {
               if (alwaysTrue) {
-                call.transformTo(filter.getChild());
+                call.transformTo(filter.getInput());
               } else {
                 call.transformTo(
-                    new EmptyRel(
+                    new Empty(
                         filter.getCluster(),
                         filter.getRowType()));
               }
@@ -150,21 +178,21 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
       };
 
   public static final ReduceExpressionsRule PROJECT_INSTANCE =
-      new ReduceExpressionsRule(ProjectRel.class,
+      new ReduceExpressionsRule(LogicalProject.class,
           "ReduceExpressionsRule[Project]") {
         public void onMatch(RelOptRuleCall call) {
-          ProjectRel project = call.rel(0);
+          LogicalProject project = call.rel(0);
           List<RexNode> expList =
               new ArrayList<RexNode>(project.getChildExps());
           if (reduceExpressions(project, expList)) {
             call.transformTo(
-                new ProjectRel(
+                new LogicalProject(
                     project.getCluster(),
                     project.getTraitSet(),
-                    project.getChild(),
+                    project.getInput(),
                     expList,
                     project.getRowType(),
-                    ProjectRel.Flags.BOXED));
+                    LogicalProject.Flags.BOXED));
 
             // New plan is absolutely better than old plan.
             call.getPlanner().setImportance(project, 0.0);
@@ -173,10 +201,10 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
       };
 
   public static final ReduceExpressionsRule JOIN_INSTANCE =
-      new ReduceExpressionsRule(JoinRelBase.class,
+      new ReduceExpressionsRule(Join.class,
           "ReduceExpressionsRule[Join]") {
         public void onMatch(RelOptRuleCall call) {
-          final JoinRelBase join = call.rel(0);
+          final Join join = call.rel(0);
           List<RexNode> expList = new ArrayList<RexNode>(join.getChildExps());
           if (reduceExpressions(join, expList)) {
             call.transformTo(
@@ -195,9 +223,10 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
       };
 
   public static final ReduceExpressionsRule CALC_INSTANCE =
-      new ReduceExpressionsRule(CalcRel.class, "ReduceExpressionsRule[Calc]") {
+      new ReduceExpressionsRule(LogicalCalc.class,
+          "ReduceExpressionsRule[Calc]") {
         public void onMatch(RelOptRuleCall call) {
-          CalcRel calc = call.rel(0);
+          LogicalCalc calc = call.rel(0);
           RexProgram program = calc.getProgram();
           final List<RexNode> exprList = program.getExprList();
 
@@ -216,7 +245,7 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
           if (reduceExpressions(calc, expandedExprList)) {
             final RexProgramBuilder builder =
                 new RexProgramBuilder(
-                    calc.getChild().getRowType(),
+                    calc.getInput().getRowType(),
                     calc.getCluster().getRexBuilder());
             List<RexLocalRef> list = new ArrayList<RexLocalRef>();
             for (RexNode expr : expandedExprList) {
@@ -234,7 +263,7 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
                 // condition is always NULL or FALSE - replace calc
                 // with empty
                 call.transformTo(
-                    new EmptyRel(
+                    new Empty(
                         calc.getCluster(),
                         calc.getRowType()));
                 return;
@@ -250,10 +279,10 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
                   program.getOutputRowType().getFieldNames().get(k++));
             }
             call.transformTo(
-                new CalcRel(
+                new LogicalCalc(
                     calc.getCluster(),
                     calc.getTraitSet(),
-                    calc.getChild(),
+                    calc.getInput(),
                     calc.getRowType(),
                     builder.getProgram(),
                     calc.getCollationList()));
@@ -328,14 +357,14 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
     List<RexNode> reducedValues = new ArrayList<RexNode>();
     executor.reduce(rexBuilder, constExps, reducedValues);
 
-    // For ProjectRel, we have to be sure to preserve the result
+    // For Project, we have to be sure to preserve the result
     // types, so always cast regardless of the expression type.
-    // For other RelNodes like FilterRel, in general, this isn't necessary,
+    // For other RelNodes like Filter, in general, this isn't necessary,
     // and the presence of casts could hinder other rules such as sarg
     // analysis, which require bare literals.  But there are special cases,
     // like when the expression is a UDR argument, that need to be
     // handled as special cases.
-    if (rel instanceof ProjectRel) {
+    if (rel instanceof LogicalProject) {
       for (int i = 0; i < reducedValues.size(); i++) {
         addCasts.set(i, true);
       }
@@ -403,8 +432,7 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
       this.addCasts = addCasts;
     }
 
-    @Override
-    public RexNode visitCall(final RexCall call) {
+    @Override public RexNode visitCall(final RexCall call) {
       int i = reducibleExps.indexOf(call);
       if (i == -1) {
         return super.visitCall(call);
@@ -418,7 +446,7 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
         //
         // Also, we cannot reduce CAST('abc' AS VARCHAR(4)) to 'abc'.
         // If we make 'abc' of type VARCHAR(4), we may later encounter
-        // the same expression in a ProjectRel's digest where it has
+        // the same expression in a Project's digest where it has
         // type VARCHAR(3), and that's wrong.
         replacement =
             rexBuilder.makeCast(

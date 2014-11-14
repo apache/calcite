@@ -14,19 +14,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.impl;
+package org.apache.calcite.schema.impl;
 
-import net.hydromatic.optiq.Schema;
-import net.hydromatic.optiq.Table;
-import net.hydromatic.optiq.TranslatableTable;
-import net.hydromatic.optiq.materialize.Lattice;
-
-import org.eigenbase.rel.*;
-import org.eigenbase.relopt.*;
-import org.eigenbase.reltype.RelDataType;
-import org.eigenbase.reltype.RelDataTypeFactory;
-import org.eigenbase.util.ImmutableIntList;
-import org.eigenbase.util.Pair;
+import org.apache.calcite.materialize.Lattice;
+import org.apache.calcite.plan.Convention;
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptCost;
+import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.TableScan;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.schema.Schema;
+import org.apache.calcite.schema.Table;
+import org.apache.calcite.schema.TranslatableTable;
+import org.apache.calcite.util.ImmutableIntList;
+import org.apache.calcite.util.Pair;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
@@ -119,7 +124,7 @@ public class StarTable extends AbstractTable implements TranslatableTable {
    *
    * <p>It has infinite cost.
    */
-  public static class StarTableScan extends TableAccessRelBase {
+  public static class StarTableScan extends TableScan {
     public StarTableScan(RelOptCluster cluster, RelOptTable relOptTable) {
       super(cluster, cluster.traitSetOf(Convention.NONE), relOptTable);
     }

@@ -14,38 +14,42 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel;
+package org.apache.calcite.rel.core;
+
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.RelInput;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.metadata.RelMetadataQuery;
+import org.apache.calcite.sql.SqlKind;
 
 import java.util.BitSet;
 import java.util.List;
 
-import org.eigenbase.rel.metadata.RelMetadataQuery;
-import org.eigenbase.relopt.RelOptCluster;
-import org.eigenbase.relopt.RelTraitSet;
-import org.eigenbase.sql.SqlKind;
-
 /**
- * Abstract base class for implementations of
- * {@link MinusRel}.
+ * Relational expression that returns the rows of its first input minus any
+ * matching rows from its other inputs.
+ *
+ * <p>Corresponds to the SQL {@code EXCEPT} operator.
+ *
+ * <p>If "all" is true, then multiset subtraction is
+ * performed; otherwise, set subtraction is performed (implying no duplicates in
+ * the results).
  */
-public abstract class MinusRelBase extends SetOpRel {
-  public MinusRelBase(
-      RelOptCluster cluster,
-      RelTraitSet traits,
-      List<RelNode> inputs,
+public abstract class Minus extends SetOp {
+  public Minus(RelOptCluster cluster, RelTraitSet traits, List<RelNode> inputs,
       boolean all) {
     super(cluster, traits, inputs, SqlKind.EXCEPT, all);
   }
 
   /**
-   * Creates a MinusRelBase by parsing serialized output.
+   * Creates a Minus by parsing serialized output.
    */
-  protected MinusRelBase(RelInput input) {
+  protected Minus(RelInput input) {
     super(input);
   }
 
-  @Override
-  public double getRows() {
+  @Override public double getRows() {
     // REVIEW jvs 30-May-2005:  I just pulled this out of a hat.
     double dRows = RelMetadataQuery.getRowCount(inputs.get(0));
     for (int i = 1; i < inputs.size(); i++) {
@@ -57,11 +61,10 @@ public abstract class MinusRelBase extends SetOpRel {
     return dRows;
   }
 
-  @Override
-  public boolean isKey(BitSet columns) {
+  @Override public boolean isKey(BitSet columns) {
     return inputs.get(0).isKey(columns)
         || super.isKey(columns);
   }
 }
 
-// End MinusRelBase.java
+// End Minus.java

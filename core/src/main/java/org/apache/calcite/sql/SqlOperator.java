@@ -14,25 +14,32 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql;
+package org.apache.calcite.sql;
 
-import java.util.*;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.type.SqlOperandTypeChecker;
+import org.apache.calcite.sql.type.SqlOperandTypeInference;
+import org.apache.calcite.sql.type.SqlReturnTypeInference;
+import org.apache.calcite.sql.util.SqlBasicVisitor;
+import org.apache.calcite.sql.util.SqlVisitor;
+import org.apache.calcite.sql.validate.SqlMonotonicity;
+import org.apache.calcite.sql.validate.SqlValidator;
+import org.apache.calcite.sql.validate.SqlValidatorScope;
+import org.apache.calcite.sql.validate.SqlValidatorUtil;
+import org.apache.calcite.util.Util;
 
-import org.eigenbase.reltype.*;
-import org.eigenbase.sql.parser.*;
-import org.eigenbase.sql.type.*;
-import org.eigenbase.sql.util.*;
-import org.eigenbase.sql.validate.*;
-import org.eigenbase.util.*;
+import java.util.List;
 
-import static org.eigenbase.util.Static.RESOURCE;
+import static org.apache.calcite.util.Static.RESOURCE;
 
 /**
  * A <code>SqlOperator</code> is a type of node in a SQL parse tree (it is NOT a
  * node in a SQL parse tree). It includes functions, operators such as '=', and
  * syntactic constructs such as 'case' statements. Operators may represent
  * query-level expressions (e.g. {@link SqlSelectOperator} or row-level
- * expressions (e.g. {@link org.eigenbase.sql.fun.SqlBetweenOperator}.
+ * expressions (e.g. {@link org.apache.calcite.sql.fun.SqlBetweenOperator}.
  *
  * <p>Operators have <em>formal operands</em>, meaning ordered (and optionally
  * named) placeholders for the values they operate on. For example, the division
@@ -299,8 +306,8 @@ public abstract class SqlOperator {
    * including parentheses if the operators on either side are of greater
    * precedence.
    *
-   * <p>The default implementation of this method delegates to {@link
-   * SqlSyntax#unparse}.
+   * <p>The default implementation of this method delegates to
+   * {@link SqlSyntax#unparse}.
    */
   public void unparse(
       SqlWriter writer,
@@ -356,8 +363,8 @@ public abstract class SqlOperator {
    * Validates a call to this operator.
    *
    * <p>This method should not perform type-derivation or perform validation
-   * related related to types. That is done later, by {@link
-   * #deriveType(SqlValidator, SqlValidatorScope, SqlCall)}. This method
+   * related related to types. That is done later, by
+   * {@link #deriveType(SqlValidator, SqlValidatorScope, SqlCall)}. This method
    * should focus on structural validation.
    *
    * <p>A typical implementation of this method first validates the operands,
@@ -439,8 +446,8 @@ public abstract class SqlOperator {
    * Subclasses must either override this method or supply an instance of
    * {@link SqlReturnTypeInference} to the constructor.
    *
-   * @param opBinding description of invocation (not necessarily a {@link
-   *                  SqlCall})
+   * @param opBinding description of invocation (not necessarily a
+   * {@link SqlCall})
    * @return inferred return type
    */
   public RelDataType inferReturnType(
@@ -665,9 +672,11 @@ public abstract class SqlOperator {
   }
 
   /**
-   * Accepts a {@link SqlVisitor}, directing an {@link
-   * org.eigenbase.sql.util.SqlBasicVisitor.ArgHandler} to visit operand of a
-   * call. The argument handler allows fine control about how the operands are
+   * Accepts a {@link SqlVisitor}, directing an
+   * {@link org.apache.calcite.sql.util.SqlBasicVisitor.ArgHandler}
+   * to visit an operand of a call.
+   *
+   * <p>The argument handler allows fine control about how the operands are
    * visited, and how the results are combined.
    *
    * @param visitor         Visitor

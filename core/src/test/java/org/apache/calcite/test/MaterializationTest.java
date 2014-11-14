@@ -14,17 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.test;
+package org.apache.calcite.test;
 
-import net.hydromatic.optiq.jdbc.JavaTypeFactoryImpl;
-import net.hydromatic.optiq.materialize.MaterializationService;
-import net.hydromatic.optiq.prepare.Prepare;
-
-import org.eigenbase.relopt.SubstitutionVisitor;
-import org.eigenbase.reltype.RelDataType;
-import org.eigenbase.reltype.RelDataTypeSystem;
-import org.eigenbase.rex.*;
-import org.eigenbase.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
+import org.apache.calcite.materialize.MaterializationService;
+import org.apache.calcite.plan.SubstitutionVisitor;
+import org.apache.calcite.prepare.Prepare;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeSystem;
+import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexInputRef;
+import org.apache.calcite.rex.RexLiteral;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 
 import com.google.common.base.Function;
 
@@ -34,8 +36,11 @@ import org.junit.Test;
 import java.math.BigDecimal;
 import java.sql.ResultSet;
 
-import static org.hamcrest.CoreMatchers.*;
-import static org.junit.Assert.*;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 
 /**
  * Unit test for the materialized view rewrite mechanism. Each test has a
@@ -44,16 +49,16 @@ import static org.junit.Assert.*;
  */
 public class MaterializationTest {
   private static final Function<ResultSet, Void> CONTAINS_M0 =
-      OptiqAssert.checkResultContains(
-          "EnumerableTableAccessRel(table=[[hr, m0]])");
+      CalciteAssert.checkResultContains(
+          "EnumerableTableScan(table=[[hr, m0]])");
 
   final JavaTypeFactoryImpl typeFactory =
       new JavaTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
   final RexBuilder rexBuilder = new RexBuilder(typeFactory);
 
   @Test public void testFilter() {
-    OptiqAssert.that()
-        .with(OptiqAssert.Config.REGULAR)
+    CalciteAssert.that()
+        .with(CalciteAssert.Config.REGULAR)
         .withMaterializations(
             JdbcTest.HR_MODEL,
             "m0",
@@ -61,8 +66,7 @@ public class MaterializationTest {
         .query(
             "select \"empid\" + 1 from \"emps\" where \"deptno\" = 10")
         .enableMaterializations(true)
-        .explainContains(
-            "EnumerableTableAccessRel(table=[[hr, m0]])")
+        .explainContains("EnumerableTableScan(table=[[hr, m0]])")
         .sameResultWithMaterializationsDisabled();
   }
 
@@ -70,8 +74,8 @@ public class MaterializationTest {
     try {
       Prepare.THREAD_TRIM.set(true);
       MaterializationService.setThreadLocal();
-      OptiqAssert.that()
-          .with(OptiqAssert.Config.REGULAR)
+      CalciteAssert.that()
+          .with(CalciteAssert.Config.REGULAR)
           .withMaterializations(
               JdbcTest.HR_MODEL,
               "m0",
@@ -79,8 +83,7 @@ public class MaterializationTest {
           .query(
               "select \"empid\" + 1 as x from \"emps\" where \"deptno\" = 10")
           .enableMaterializations(true)
-          .explainContains(
-              "EnumerableTableAccessRel(table=[[hr, m0]])")
+          .explainContains("EnumerableTableScan(table=[[hr, m0]])")
           .sameResultWithMaterializationsDisabled();
     } finally {
       Prepare.THREAD_TRIM.set(false);
@@ -100,8 +103,8 @@ public class MaterializationTest {
     try {
       Prepare.THREAD_TRIM.set(true);
       MaterializationService.setThreadLocal();
-      OptiqAssert.that()
-          .with(OptiqAssert.Config.REGULAR)
+      CalciteAssert.that()
+          .with(CalciteAssert.Config.REGULAR)
           .withMaterializations(model, "m0", materialize)
           .query(query)
           .enableMaterializations(true)
@@ -119,13 +122,12 @@ public class MaterializationTest {
     try {
       Prepare.THREAD_TRIM.set(true);
       MaterializationService.setThreadLocal();
-      OptiqAssert.that()
-          .with(OptiqAssert.Config.REGULAR)
+      CalciteAssert.that()
+          .with(CalciteAssert.Config.REGULAR)
           .withMaterializations(model, "m0", materialize)
           .query(query)
           .enableMaterializations(true)
-          .explainContains(
-              "EnumerableTableAccessRel(table=[[hr, emps]])");
+          .explainContains("EnumerableTableScan(table=[[hr, emps]])");
     } finally {
       Prepare.THREAD_TRIM.set(false);
     }
@@ -179,9 +181,9 @@ public class MaterializationTest {
         "select \"name\", \"empid\" + 1 as e\n"
         + "from \"emps\" where \"deptno\" - 10 = 2",
         JdbcTest.HR_MODEL,
-        OptiqAssert.checkResultContains(
-            "EnumerableCalcRel(expr#0..2=[{inputs}], expr#3=[2], expr#4=[=($t0, $t3)], name=[$t2], E=[$t1], $condition=[$t4])\n"
-            + "  EnumerableTableAccessRel(table=[[hr, m0]]"));
+        CalciteAssert.checkResultContains(
+            "EnumerableCalc(expr#0..2=[{inputs}], expr#3=[2], expr#4=[=($t0, $t3)], name=[$t2], E=[$t1], $condition=[$t4])\n"
+                + "  EnumerableTableScan(table=[[hr, m0]]"));
   }
 
   /** Cannot materialize because "name" is not projected in the MV. */
@@ -224,9 +226,9 @@ public class MaterializationTest {
         "select \"deptno\", \"empid\", \"name\" from \"emps\" where \"deptno\" = 10 or \"deptno\" = 20 or \"empid\" < 160",
         "select \"empid\" + 1 as x, \"name\" from \"emps\" where \"deptno\" = 10",
         JdbcTest.HR_MODEL,
-        OptiqAssert.checkResultContains(
+        CalciteAssert.checkResultContains(
             "EnumerableCalcRel(expr#0..2=[{inputs}], expr#3=[1], expr#4=[+($t1, $t3)], X=[$t4], name=[$t2], condition=?)\n"
-            + "  EnumerableTableAccessRel(table=[[hr, m0]])"));
+                + "  EnumerableTableScan(table=[[hr, m0]])"));
   }
 
   /** Aggregation query at same level of aggregation as aggregation
@@ -238,17 +240,17 @@ public class MaterializationTest {
   }
 
   /** Aggregation query at coarser level of aggregation than aggregation
-   * materialization. Requires an additional AggregateRel to roll up. Note that
+   * materialization. Requires an additional aggregate to roll up. Note that
    * COUNT is rolled up using SUM. */
   @Test public void testAggregateRollUp() {
     checkMaterialize(
         "select \"empid\", \"deptno\", count(*) as c, sum(\"empid\") as s from \"emps\" group by \"empid\", \"deptno\"",
         "select count(*) + 1 as c, \"deptno\" from \"emps\" group by \"deptno\"",
         JdbcTest.HR_MODEL,
-        OptiqAssert.checkResultContains(
-            "EnumerableCalcRel(expr#0..1=[{inputs}], expr#2=[1], expr#3=[+($t1, $t2)], C=[$t3], deptno=[$t0])\n"
-            + "  EnumerableAggregateRel(group=[{1}], agg#0=[$SUM0($2)])\n"
-            + "    EnumerableTableAccessRel(table=[[hr, m0]])"));
+        CalciteAssert.checkResultContains(
+            "EnumerableCalc(expr#0..1=[{inputs}], expr#2=[1], expr#3=[+($t1, $t2)], C=[$t3], deptno=[$t0])\n"
+                + "  EnumerableAggregate(group=[{1}], agg#0=[$SUM0($2)])\n"
+                + "    EnumerableTableScan(table=[[hr, m0]])"));
   }
 
   /** Aggregation materialization with a project. */
@@ -260,7 +262,7 @@ public class MaterializationTest {
         "select \"deptno\", count(*) as c, \"empid\" + 2, sum(\"empid\") as s from \"emps\" group by \"empid\", \"deptno\"",
         "select count(*) + 1 as c, \"deptno\" from \"emps\" group by \"deptno\"",
         JdbcTest.HR_MODEL,
-        OptiqAssert.checkResultContains(
+        CalciteAssert.checkResultContains(
             "xxx"));
   }
 
@@ -288,8 +290,8 @@ public class MaterializationTest {
   @Test public void testMaterializationReferencesTableInOtherSchema() {}
 
   /** Unit test for logic functions
-   * {@link org.eigenbase.relopt.SubstitutionVisitor#mayBeSatisfiable} and
-   * {@link org.eigenbase.relopt.SubstitutionVisitor#simplify}. */
+   * {@link org.apache.calcite.plan.SubstitutionVisitor#mayBeSatisfiable} and
+   * {@link org.apache.calcite.plan.SubstitutionVisitor#simplify}. */
   @Test public void testSatisfiable() {
     // TRUE may be satisfiable
     checkSatisfiable(rexBuilder.makeLiteral(true), "true");
@@ -555,8 +557,8 @@ public class MaterializationTest {
    */
   @Ignore
   @Test public void testFilterGroupQueryOnStar() {
-    checkMaterialize(
-        "select p.\"product_name\", t.\"the_year\", sum(f.\"unit_sales\") as \"sum_unit_sales\", count(*) as \"c\"\n"
+    checkMaterialize("select p.\"product_name\", t.\"the_year\",\n"
+        + "  sum(f.\"unit_sales\") as \"sum_unit_sales\", count(*) as \"c\"\n"
         + "from \"foodmart\".\"sales_fact_1997\" as f\n"
         + "join (\n"
         + "    select \"time_id\", \"the_year\", \"the_month\"\n"
@@ -572,14 +574,14 @@ public class MaterializationTest {
         + " pc.\"product_category\",\n"
         + " p.\"product_name\"",
         "select t.\"the_month\", count(*) as x\n"
-        + "from (\n"
-        + "  select \"time_id\", \"the_year\", \"the_month\"\n"
-        + "  from \"foodmart\".\"time_by_day\") as t,\n"
-        + " \"foodmart\".\"sales_fact_1997\" as f\n"
-        + "where t.\"the_year\" = 1997\n"
-        + "and t.\"time_id\" = f.\"time_id\"\n"
-        + "group by t.\"the_year\",\n"
-        + " t.\"the_month\"\n",
+            + "from (\n"
+            + "  select \"time_id\", \"the_year\", \"the_month\"\n"
+            + "  from \"foodmart\".\"time_by_day\") as t,\n"
+            + " \"foodmart\".\"sales_fact_1997\" as f\n"
+            + "where t.\"the_year\" = 1997\n"
+            + "and t.\"time_id\" = f.\"time_id\"\n"
+            + "group by t.\"the_year\",\n"
+            + " t.\"the_month\"\n",
         JdbcTest.FOODMART_MODEL,
         CONTAINS_M0);
   }
@@ -588,8 +590,7 @@ public class MaterializationTest {
    * materialization that is just a join. */
   @Ignore
   @Test public void testQueryOnStar() {
-    String q =
-        "select *\n"
+    String q = "select *\n"
         + "from \"foodmart\".\"sales_fact_1997\" as f\n"
         + "join \"foodmart\".\"time_by_day\" as t on f.\"time_id\" = t.\"time_id\"\n"
         + "join \"foodmart\".\"product\" as p on f.\"product_id\" = p.\"product_id\"\n"
@@ -604,8 +605,7 @@ public class MaterializationTest {
    * nothing unpleasant happens. */
   @Ignore
   @Test public void testJoinOnUnionMaterialization() {
-    String q =
-        "select *\n"
+    String q = "select *\n"
         + "from (select * from \"emps\" union all select * from \"emps\")\n"
         + "join \"depts\" using (\"deptno\")";
     checkNoMaterialize(q, q, JdbcTest.HR_MODEL);

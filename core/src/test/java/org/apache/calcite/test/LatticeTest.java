@@ -14,15 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.test;
+package org.apache.calcite.test;
 
-import net.hydromatic.optiq.materialize.MaterializationService;
-import net.hydromatic.optiq.runtime.Hook;
-
-import org.eigenbase.rel.RelNode;
-import org.eigenbase.relopt.RelOptUtil;
-import org.eigenbase.util.TestUtil;
-import org.eigenbase.util.Util;
+import org.apache.calcite.materialize.MaterializationService;
+import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.runtime.Hook;
+import org.apache.calcite.util.TestUtil;
+import org.apache.calcite.util.Util;
 
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
@@ -49,7 +48,7 @@ import static org.junit.Assert.assertThat;
  * Unit test for lattices.
  */
 public class LatticeTest {
-  private OptiqAssert.AssertThat modelWithLattice(String name, String sql,
+  private CalciteAssert.AssertThat modelWithLattice(String name, String sql,
       String... extras) {
     final StringBuilder buf = new StringBuilder("{ name: '")
         .append(name)
@@ -62,10 +61,10 @@ public class LatticeTest {
     return modelWithLattices(buf.toString());
   }
 
-  private OptiqAssert.AssertThat modelWithLattices(String... lattices) {
+  private CalciteAssert.AssertThat modelWithLattices(String... lattices) {
     final Class<JdbcTest.EmpDeptTableFactory> clazz =
         JdbcTest.EmpDeptTableFactory.class;
-    return OptiqAssert.that().withModel(""
+    return CalciteAssert.that().withModel(""
         + "{\n"
         + "  version: '1.0',\n"
         + "   schemas: [\n"
@@ -118,14 +117,14 @@ public class LatticeTest {
   @Test public void testLatticeSqlWithGroupByFails() {
     modelWithLattice("star",
         "select 1 from \"foodmart\".\"sales_fact_1997\" as s group by \"product_id\"")
-        .connectThrows("Invalid node type AggregateRel in lattice query");
+        .connectThrows("Invalid node type LogicalAggregate in lattice query");
   }
 
   /** Tests a lattice whose SQL is invalid because it contains a ORDER BY. */
   @Test public void testLatticeSqlWithOrderByFails() {
     modelWithLattice("star",
         "select 1 from \"foodmart\".\"sales_fact_1997\" as s order by \"product_id\"")
-        .connectThrows("Invalid node type SortRel in lattice query");
+        .connectThrows("Invalid node type Sort in lattice query");
   }
 
   /** Tests a lattice whose SQL is invalid because it contains a UNION ALL. */
@@ -134,7 +133,7 @@ public class LatticeTest {
         "select 1 from \"foodmart\".\"sales_fact_1997\" as s\n"
         + "union all\n"
         + "select 1 from \"foodmart\".\"sales_fact_1997\" as s")
-        .connectThrows("Invalid node type UnionRel in lattice query");
+        .connectThrows("Invalid node type LogicalUnion in lattice query");
   }
 
   /** Tests a lattice with valid join SQL. */
@@ -170,10 +169,10 @@ public class LatticeTest {
       foodmartModel()
           .query("select count(*) from \"adhoc\".\"star\"")
           .convertMatches(
-              OptiqAssert.checkRel(
-                  "AggregateRel(group=[{}], EXPR$0=[COUNT()])\n"
-                  + "  ProjectRel(DUMMY=[0])\n"
-                  + "    StarTableScan(table=[[adhoc, star]])\n",
+              CalciteAssert.checkRel(
+                  "LogicalAggregate(group=[{}], EXPR$0=[COUNT()])\n"
+                      + "  LogicalProject(DUMMY=[0])\n"
+                      + "    StarTableScan(table=[[adhoc, star]])\n",
                   counter));
     } catch (RuntimeException e) {
       assertThat(Util.getStackTrace(e), containsString("CannotPlanException"));
@@ -185,16 +184,15 @@ public class LatticeTest {
   @Test public void testLatticeRecognizeJoin() {
     final AtomicInteger counter = new AtomicInteger();
     foodmartModel()
-        .query(
-            "select s.\"unit_sales\", p.\"brand_name\"\n"
+        .query("select s.\"unit_sales\", p.\"brand_name\"\n"
             + "from \"foodmart\".\"sales_fact_1997\" as s\n"
             + "join \"foodmart\".\"product\" as p using (\"product_id\")\n")
         .enableMaterializations(true)
         .substitutionMatches(
-            OptiqAssert.checkRel(
-                "ProjectRel(unit_sales=[$7], brand_name=[$10])\n"
-                + "  ProjectRel($f0=[$0], $f1=[$1], $f2=[$2], $f3=[$3], $f4=[$4], $f5=[$5], $f6=[$6], $f7=[$7], $f8=[$8], $f9=[$9], $f10=[$10], $f11=[$11], $f12=[$12], $f13=[$13], $f14=[$14], $f15=[$15], $f16=[$16], $f17=[$17], $f18=[$18], $f19=[$19], $f20=[$20], $f21=[$21], $f22=[$22])\n"
-                + "    TableAccessRel(table=[[adhoc, star]])\n",
+            CalciteAssert.checkRel(
+                "LogicalProject(unit_sales=[$7], brand_name=[$10])\n"
+                    + "  LogicalProject($f0=[$0], $f1=[$1], $f2=[$2], $f3=[$3], $f4=[$4], $f5=[$5], $f6=[$6], $f7=[$7], $f8=[$8], $f9=[$9], $f10=[$10], $f11=[$11], $f12=[$12], $f13=[$13], $f14=[$14], $f15=[$15], $f16=[$16], $f17=[$17], $f18=[$18], $f19=[$19], $f20=[$20], $f21=[$21], $f22=[$22])\n"
+                    + "    LogicalTableScan(table=[[adhoc, star]])\n",
                 counter));
     assertThat(counter.intValue(), equalTo(1));
   }
@@ -202,9 +200,8 @@ public class LatticeTest {
   /** Tests an aggregate on a 2-way join query can use an aggregate table. */
   @Test public void testLatticeRecognizeGroupJoin() {
     final AtomicInteger counter = new AtomicInteger();
-    OptiqAssert.AssertQuery that = foodmartModel()
-        .query(
-            "select distinct p.\"brand_name\", s.\"customer_id\"\n"
+    CalciteAssert.AssertQuery that = foodmartModel()
+        .query("select distinct p.\"brand_name\", s.\"customer_id\"\n"
             + "from \"foodmart\".\"sales_fact_1997\" as s\n"
             + "join \"foodmart\".\"product\" as p using (\"product_id\")\n")
         .enableMaterializations(true)
@@ -216,19 +213,19 @@ public class LatticeTest {
                 assertThat(s,
                     anyOf(
                         containsString(
-                            "ProjectRel($f0=[$1], $f1=[$0])\n"
-                            + "  AggregateRel(group=[{2, 10}])\n"
-                            + "    TableAccessRel(table=[[adhoc, star]])\n"),
+                            "LogicalProject($f0=[$1], $f1=[$0])\n"
+                            + "  LogicalAggregate(group=[{2, 10}])\n"
+                            + "    LogicalTableScan(table=[[adhoc, star]])\n"),
                         containsString(
-                            "AggregateRel(group=[{2, 10}])\n"
-                            + "  TableAccessRel(table=[[adhoc, star]])\n")));
+                            "LogicalAggregate(group=[{2, 10}])\n"
+                            + "  LogicalTableScan(table=[[adhoc, star]])\n")));
                 return null;
               }
             });
     assertThat(counter.intValue(), equalTo(2));
-    that.explainContains(
-        "EnumerableCalcRel(expr#0..1=[{inputs}], $f0=[$t1], $f1=[$t0])\n"
-        + "  EnumerableTableAccessRel(table=[[adhoc, m{2, 10}]])")
+    that.explainContains(""
+        + "EnumerableCalc(expr#0..1=[{inputs}], $f0=[$t1], $f1=[$t0])\n"
+        + "  EnumerableTableScan(table=[[adhoc, m{2, 10}]])")
         .returnsCount(69203);
 
     // Run the same query again and see whether it uses the same
@@ -244,7 +241,7 @@ public class LatticeTest {
         .returnsCount(69203);
 
     // Ideally the counter would stay at 2. It increments to 3 because
-    // OptiqAssert.AssertQuery creates a new schema for every request,
+    // CalciteAssert.AssertQuery creates a new schema for every request,
     // and therefore cannot re-use lattices or materializations from the
     // previous request.
     assertThat(counter.intValue(), equalTo(3));
@@ -264,8 +261,7 @@ public class LatticeTest {
             + "from \"foodmart\".\"sales_fact_1997\" as s\n"
             + "join \"foodmart\".\"time_by_day\" as t using (\"time_id\")\n")
       .enableMaterializations(true)
-      .explainContains(
-          "EnumerableTableAccessRel(table=[[adhoc, m{27, 31}")
+      .explainContains("EnumerableTableScan(table=[[adhoc, m{27, 31}")
       .returnsCount(4);
   }
 
@@ -278,9 +274,9 @@ public class LatticeTest {
             + "join \"foodmart\".\"time_by_day\" as t using (\"time_id\")\n"
             + "group by t.\"the_year\", t.\"quarter\"")
       .enableMaterializations(true)
-      .explainContains(
-          "EnumerableCalcRel(expr#0..4=[{inputs}], proj#0..2=[{exprs}])\n"
-          + "  EnumerableTableAccessRel(table=[[adhoc, m{27, 31}")
+      .explainContains(""
+          + "EnumerableCalc(expr#0..4=[{inputs}], proj#0..2=[{exprs}])\n"
+          + "  EnumerableTableScan(table=[[adhoc, m{27, 31}")
       .returnsUnordered("the_year=1997; quarter=Q1; C=21588",
           "the_year=1997; quarter=Q2; C=20368",
           "the_year=1997; quarter=Q3; C=21453",
@@ -301,10 +297,10 @@ public class LatticeTest {
             + "join \"foodmart\".\"time_by_day\" as t using (\"time_id\")\n"
             + "group by t.\"the_year\"")
       .enableMaterializations(true)
-      .explainContains(
-          "EnumerableCalcRel(expr#0..3=[{inputs}], expr#4=[10], expr#5=[*($t3, $t4)], proj#0..2=[{exprs}], US=[$t5])\n"
-          + "  EnumerableAggregateRel(group=[{0}], C=[$SUM0($2)], Q=[MIN($1)], agg#2=[$SUM0($4)])\n"
-          + "    EnumerableTableAccessRel(table=[[adhoc, m{27, 31}")
+      .explainContains(""
+          + "EnumerableCalc(expr#0..3=[{inputs}], expr#4=[10], expr#5=[*($t3, $t4)], proj#0..2=[{exprs}], US=[$t5])\n"
+          + "  EnumerableAggregate(group=[{0}], C=[$SUM0($2)], Q=[MIN($1)], agg#2=[$SUM0($4)])\n"
+          + "    EnumerableTableScan(table=[[adhoc, m{27, 31}")
       .returnsUnordered("the_year=1997; C=86837; Q=Q1; US=2667730.0000")
       .sameResultWithMaterializationsDisabled();
   }
@@ -337,13 +333,12 @@ public class LatticeTest {
         + "    dimensions: [ 'the_year', ['t', 'quarter'] ],\n"
         + "    measures: [ ]\n"
         + "  } ]\n")
-        .query(
-            "select distinct t.\"the_year\", t.\"quarter\"\n"
+        .query("select distinct t.\"the_year\", t.\"quarter\"\n"
             + "from \"foodmart\".\"sales_fact_1997\" as s\n"
             + "join \"foodmart\".\"time_by_day\" as t using (\"time_id\")\n")
         .enableMaterializations(true)
-        .explainContains("EnumerableAggregateRel(group=[{2, 3}])\n"
-            + "  EnumerableTableAccessRel(table=[[adhoc, m{16, 17, 27, 31}]])")
+        .explainContains("EnumerableAggregate(group=[{2, 3}])\n"
+            + "  EnumerableTableScan(table=[[adhoc, m{16, 17, 27, 31}]])")
         .returnsUnordered("the_year=1997; quarter=Q1",
             "the_year=1997; quarter=Q2",
             "the_year=1997; quarter=Q3",
@@ -386,12 +381,12 @@ public class LatticeTest {
             return null;
           }
         };
-    final OptiqAssert.AssertThat that = foodmartModel().pooled();
+    final CalciteAssert.AssertThat that = foodmartModel().pooled();
     that.query("select sum(\"unit_sales\") as s, count(*) as c\n"
             + "from \"foodmart\".\"sales_fact_1997\"")
         .withHook(Hook.CREATE_MATERIALIZATION, handler)
         .enableMaterializations(true)
-        .explainContains("EnumerableTableAccessRel(table=[[adhoc, m{}]])")
+        .explainContains("EnumerableTableScan(table=[[adhoc, m{}]])")
         .returnsUnordered("S=266773.0000; C=86837");
     assertThat(mats.toString(), mats.size(), equalTo(2));
 
@@ -426,10 +421,10 @@ public class LatticeTest {
             + "join \"foodmart\".\"time_by_day\" using (\"time_id\")\n"
             + "group by \"the_year\"")
         .enableMaterializations(true)
-        .explainContains("EnumerableCalcRel(expr#0..1=[{inputs}], C=[$t1])\n"
-            + "  EnumerableAggregateRel(group=[{0}], C=[COUNT($1)])\n"
-            + "    EnumerableCalcRel(expr#0..4=[{inputs}], proj#0..1=[{exprs}])\n"
-            + "      EnumerableTableAccessRel(table=[[adhoc, m{27, 31}]])")
+        .explainContains("EnumerableCalc(expr#0..1=[{inputs}], C=[$t1])\n"
+            + "  EnumerableAggregate(group=[{0}], C=[COUNT($1)])\n"
+            + "    EnumerableCalc(expr#0..4=[{inputs}], proj#0..1=[{exprs}])\n"
+            + "      EnumerableTableScan(table=[[adhoc, m{27, 31}]])")
         .returnsUnordered("C=4");
   }
 
@@ -440,10 +435,10 @@ public class LatticeTest {
             + "join \"foodmart\".\"time_by_day\" using (\"time_id\")\n"
             + "group by \"the_year\"")
         .enableMaterializations(true)
-        .explainContains("EnumerableCalcRel(expr#0..1=[{inputs}], C=[$t1])\n"
-            + "  EnumerableAggregateRel(group=[{0}], C=[COUNT($0)])\n"
-            + "    EnumerableAggregateRel(group=[{0}])\n"
-            + "      EnumerableTableAccessRel(table=[[adhoc, m{27, 31}]])")
+        .explainContains("EnumerableCalc(expr#0..1=[{inputs}], C=[$t1])\n"
+            + "  EnumerableAggregate(group=[{0}], C=[COUNT($0)])\n"
+            + "    EnumerableAggregate(group=[{0}])\n"
+            + "      EnumerableTableScan(table=[[adhoc, m{27, 31}]])")
         .returnsUnordered("C=1");
   }
 
@@ -512,18 +507,17 @@ public class LatticeTest {
     // TODO
   }
 
-  private OptiqAssert.AssertThat foodmartModel(String... extras) {
+  private CalciteAssert.AssertThat foodmartModel(String... extras) {
     return modelWithLattice("star",
         "select 1 from \"foodmart\".\"sales_fact_1997\" as \"s\"\n"
-        + "join \"foodmart\".\"product\" as \"p\" using (\"product_id\")\n"
-        + "join \"foodmart\".\"time_by_day\" as \"t\" using (\"time_id\")\n"
-        + "join \"foodmart\".\"product_class\" as \"pc\" on \"p\".\"product_class_id\" = \"pc\".\"product_class_id\"",
+            + "join \"foodmart\".\"product\" as \"p\" using (\"product_id\")\n"
+            + "join \"foodmart\".\"time_by_day\" as \"t\" using (\"time_id\")\n"
+            + "join \"foodmart\".\"product_class\" as \"pc\" on \"p\".\"product_class_id\" = \"pc\".\"product_class_id\"",
         extras);
   }
 
-  private OptiqAssert.AssertThat foodmartModelWithOneTile() {
-    return foodmartModel(
-        " auto: false,\n"
+  private CalciteAssert.AssertThat foodmartModelWithOneTile() {
+    return foodmartModel(" auto: false,\n"
         + "  defaultMeasures: [ {\n"
         + "    agg: 'count'\n"
         + "  } ],\n"
@@ -547,7 +541,7 @@ public class LatticeTest {
         "jdbc:calcite:model=core/src/test/resources/mysql-foodmart-lattice-model.json");
     final ResultSet resultSet = connection.createStatement()
         .executeQuery("select * from \"adhoc\".\"m{27, 31}\"");
-    System.out.println(OptiqAssert.toString(resultSet));
+    System.out.println(CalciteAssert.toString(resultSet));
     connection.close();
   }
 }

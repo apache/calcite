@@ -14,10 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.avatica;
+package org.apache.calcite.avatica;
 
-import java.sql.*;
-import java.util.*;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.DriverPropertyInfo;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -34,8 +42,8 @@ import java.util.logging.Logger;
  *
  * <p>The provider must implement:</p>
  * <ul>
- *   <li>{@link net.hydromatic.avatica.Meta#prepare(AvaticaStatement, String)}</li>
- *   <li>{@link net.hydromatic.avatica.Meta#createCursor(AvaticaResultSet)}</li>
+ *   <li>{@link org.apache.calcite.avatica.Meta#prepare(AvaticaStatement, String)}
+ *   <li>{@link org.apache.calcite.avatica.Meta#createCursor(AvaticaResultSet)}
  * </ul>
  */
 public abstract class UnregisteredDriver implements java.sql.Driver {
@@ -78,12 +86,12 @@ public abstract class UnregisteredDriver implements java.sql.Driver {
   protected String getFactoryClassName(JdbcVersion jdbcVersion) {
     switch (jdbcVersion) {
     case JDBC_30:
-      return "net.hydromatic.avatica.AvaticaFactoryJdbc3Impl";
+      return "org.apache.calcite.avatica.AvaticaFactoryJdbc3Impl";
     case JDBC_40:
-      return "net.hydromatic.avatica.AvaticaJdbc40Factory";
+      return "org.apache.calcite.avatica.AvaticaJdbc40Factory";
     case JDBC_41:
     default:
-      return "net.hydromatic.avatica.AvaticaJdbc41Factory";
+      return "org.apache.calcite.avatica.AvaticaJdbc41Factory";
     }
   }
 

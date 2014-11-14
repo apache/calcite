@@ -14,33 +14,65 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.util;
+package org.apache.calcite.util;
 
-import java.awt.Toolkit;
-import java.io.*;
-import java.lang.reflect.Array;
-import java.lang.reflect.Field;
-import java.math.*;
-import java.net.*;
-import java.nio.charset.*;
-import java.sql.*;
-import java.text.*;
-import java.util.*;
-import java.util.jar.*;
-import java.util.logging.*;
-import java.util.regex.*;
-
-import javax.annotation.Nullable;
-
-import net.hydromatic.linq4j.Ord;
+import org.apache.calcite.linq4j.Ord;
+import org.apache.calcite.runtime.CalciteException;
 
 import com.google.common.base.Function;
+import com.google.common.base.Objects;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.io.PrintWriter;
+import java.io.Reader;
+import java.io.StringWriter;
+import java.io.Writer;
+import java.lang.reflect.Array;
+import java.lang.reflect.Field;
+import java.math.BigDecimal;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.nio.charset.Charset;
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.text.SimpleDateFormat;
+import java.util.AbstractCollection;
+import java.util.AbstractList;
+import java.util.AbstractMap;
+import java.util.AbstractSet;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Hashtable;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Set;
+import java.util.TimeZone;
+import java.util.jar.JarFile;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import javax.annotation.Nullable;
 
 /**
  * Miscellaneous utility functions.
@@ -49,17 +81,6 @@ public class Util {
   private Util() {}
 
   //~ Static fields/initializers ---------------------------------------------
-
-  /**
-   * Name of the system property that controls whether the AWT work-around is
-   * enabled. This workaround allows Farrago to load its native libraries
-   * despite a conflict with AWT and allows applications that use AWT to
-   * function normally.
-   *
-   * @see #loadLibrary(String)
-   */
-  public static final String AWT_WORKAROUND_PROPERTY =
-      "org.eigenbase.util.AWT_WORKAROUND";
 
   /**
    * System-dependent newline character.
@@ -84,19 +105,12 @@ public class Util {
    */
   public static final String FILE_TIMESTAMP_FORMAT = "yyyy-MM-dd_HH_mm_ss";
 
-  private static boolean driversLoaded = false;
-
   /**
    * Regular expression for a valid java identifier which contains no
    * underscores and can therefore be returned intact by {@link #toJavaId}.
    */
   private static final Pattern JAVA_ID_PATTERN =
       Pattern.compile("[a-zA-Z_$][a-zA-Z0-9$]*");
-
-  /**
-   * @see #loadLibrary(String)
-   */
-  private static Toolkit awtToolkit;
 
   /**
    * Maps classes to the map of their enum values. Uses a weak map so that
@@ -107,8 +121,7 @@ public class Util {
           .weakKeys()
           .build(
               new CacheLoader<Class, Map<String, Enum>>() {
-                @Override
-                public Map<String, Enum> load(Class clazz) {
+                @Override public Map<String, Enum> load(Class clazz) {
                   //noinspection unchecked
                   return enumConstants(clazz);
                 }
@@ -174,21 +187,6 @@ public class Util {
   }
 
   /**
-   * Returns whether two objects are equal or are both null.
-   */
-  public static boolean equal(
-      Object s0,
-      Object s1) {
-    if (s0 == s1) {
-      return true;
-    } else if (s0 == null) {
-      return false;
-    } else {
-      return s0.equals(s1);
-    }
-  }
-
-  /**
    * Returns whether two lists are equal to each other using shallow
    * comparisons.
    *
@@ -247,17 +245,6 @@ public class Util {
     }
     for (int i = 0; i < a.length; i++) {
       h = hash(h, a[i]);
-    }
-    return h;
-  }
-
-  /**
-   * Computes a hash code over var args.
-   */
-  public static int hashV(Object... a) {
-    int h = 19690721;
-    for (Object o : a) {
-      h = hash(h, o);
     }
     return h;
   }
@@ -655,8 +642,8 @@ public class Util {
   }
 
   /**
-   * Materializes the results of a {@link java.util.Iterator} as a {@link
-   * java.util.List}.
+   * Materializes the results of a {@link java.util.Iterator} as a
+   * {@link java.util.List}.
    *
    * @param iter iterator to materialize
    * @return materialized list
@@ -715,8 +702,8 @@ public class Util {
   }
 
   /**
-   * Returns the {@link Charset} object representing the value of {@link
-   * SaffronProperties#defaultCharset}
+   * Returns the {@link Charset} object representing the value of
+   * {@link SaffronProperties#defaultCharset}
    *
    * @throws java.nio.charset.IllegalCharsetNameException If the given charset
    *                                                      name is illegal
@@ -765,7 +752,7 @@ public class Util {
     StringBuilder sb = new StringBuilder();
     for (Throwable curr = t; curr != null; curr = curr.getCause()) {
       String msg =
-          ((curr instanceof EigenbaseException)
+          ((curr instanceof CalciteException)
               || (curr instanceof SQLException)) ? curr.getMessage()
               : curr.toString();
       if (sb.length() > 0) {
@@ -941,46 +928,6 @@ public class Util {
       throw new UnsupportedOperationException();
     }
     return argument;
-  }
-
-  /**
-   * Uses {@link System#loadLibrary(String)} to load a native library
-   * correctly under mingw (Windows/Cygwin) and Linux environments.
-   *
-   * <p>This method also implements a work-around for applications that wish
-   * to load AWT. AWT conflicts with some native libraries in a way that
-   * requires AWT to be loaded first. This method checks the system property
-   * named {@link #AWT_WORKAROUND_PROPERTY} and if it is set to "on" (default;
-   * case-insensitive) it pre-loads AWT to avoid the conflict.
-   *
-   * @param libName the name of the library to load, as in {@link
-   *                System#loadLibrary(String)}.
-   */
-  public static void loadLibrary(String libName) {
-    String awtSetting = System.getProperty(AWT_WORKAROUND_PROPERTY, "on");
-    if ((awtToolkit == null) && awtSetting.equalsIgnoreCase("on")) {
-      // REVIEW jvs 8-Sept-2006:  workaround upon workaround.  This
-      // is required because in native code, we sometimes (see Farrago)
-      // have to use dlopen("libfoo.so", RTLD_GLOBAL) in order for native
-      // plugins to load correctly.  But the RTLD_GLOBAL causes trouble
-      // later if someone tries to use AWT from within the same JVM.
-      // So... preload AWT here unless someone configured explicitly
-      // not to do so.
-      try {
-        awtToolkit = Toolkit.getDefaultToolkit();
-      } catch (Throwable ex) {
-        // Suppress problems so that a headless server doesn't fail on
-        // startup.  If AWT is actually needed, the same exception will
-        // show up later, which is fine.
-
-        // NOTE jvs 27-Mar-2007: If this exception occurs, we'll
-        // retry the AWT load on each loadLibrary call.  That's okay,
-        // since there are only a few libraries and they're loaded
-        // via static initializers.
-      }
-    }
-
-    System.loadLibrary(libName);
   }
 
   /**
@@ -1282,8 +1229,7 @@ public class Util {
       // POSIX allows us to omit DST offset if it is 1:00:00
       appendPosixTime(buf, dstSavings);
     }
-    String patternString =
-        ".*,"
+    String patternString = ".*,"
         + "startMode=([0-9]*),"
         + "startMonth=([0-9]*),"
         + "startDay=([-0-9]*),"
@@ -1545,7 +1491,8 @@ public class Util {
   /**
    * Runs an external application process.
    *
-   * @param pb        {@link ProcessBuilder} for the application; might be returned by {@link #newAppProcess}.
+   * @param pb        ProcessBuilder for the application; might be
+   *                  returned by {@link #newAppProcess}.
    * @param logger    if not null, command and exit status will be logged here
    * @param appInput  if not null, data will be copied to application's stdin
    * @param appOutput if not null, data will be captured from application's
@@ -1611,8 +1558,8 @@ public class Util {
    * type.
    *
    * <p>If a member of the backing list is not an instanceof <code>E</code>,
-   * the accessing method (such as {@link List#get}) will throw a {@link
-   * ClassCastException}.
+   * the accessing method (such as {@link List#get}) will throw a
+   * {@link ClassCastException}.
    *
    * <p>All modifications are automatically written to the backing list. Not
    * synchronized.
@@ -1630,8 +1577,8 @@ public class Util {
    * type.
    *
    * <p>If a member of the backing iterator is not an instanceof <code>
-   * E</code>, {@link Iterator#next()}) will throw a {@link
-   * ClassCastException}.
+   * E</code>, {@link Iterator#next()}) will throw a
+   * {@link ClassCastException}.
    *
    * <p>All modifications are automatically written to the backing iterator.
    * Not synchronized.
@@ -1876,8 +1823,7 @@ public class Util {
    * @return an error, to be thrown
    */
   public static <E extends Enum<E>> Error unexpected(E value) {
-    return new AssertionError(
-        "Was not expecting value '" + value
+    return new AssertionError("Was not expecting value '" + value
         + "' for enumeration '" + value.getDeclaringClass().getName()
         + "' in this context");
   }
@@ -2015,48 +1961,6 @@ public class Util {
   }
 
   /**
-   * Converts an underscore-separated name into a camelCase name.
-   * For example, {@code uncamel("MY_JDBC_DRIVER")} returns "myJdbcDriver".
-   */
-  public static String toCamelCase(String name) {
-    StringBuilder buf = new StringBuilder();
-    int nextUpper = -1;
-    for (int i = 0; i < name.length(); i++) {
-      char c = name.charAt(i);
-      if (c == '_') {
-        nextUpper = i + 1;
-        continue;
-      }
-      if (nextUpper == i) {
-        c = Character.toUpperCase(c);
-      } else {
-        c = Character.toLowerCase(c);
-      }
-      buf.append(c);
-    }
-    return buf.toString();
-  }
-
-  /**
-   * Converts a camelCase name into an upper-case underscore-separated name.
-   * For example, {@code camelToUpper("myJdbcDriver")} returns
-   * "MY_JDBC_DRIVER".
-   */
-  public static String camelToUpper(String name) {
-    StringBuilder buf = new StringBuilder();
-    for (int i = 0; i < name.length(); i++) {
-      char c = name.charAt(i);
-      if (Character.isUpperCase(c)) {
-        buf.append('_');
-      } else {
-        c = Character.toUpperCase(c);
-      }
-      buf.append(c);
-    }
-    return buf.toString();
-  }
-
-  /**
    * Returns whether the elements of {@code list} are distinct.
    */
   public static <E> boolean isDistinct(List<E> list) {
@@ -2086,7 +1990,7 @@ public class Util {
         E e = list.get(i);
         for (int j = i - 1; j >= 0; j--) {
           E e1 = list.get(j);
-          if (equal(e, e1)) {
+          if (Objects.equal(e, e1)) {
             return i;
           }
         }

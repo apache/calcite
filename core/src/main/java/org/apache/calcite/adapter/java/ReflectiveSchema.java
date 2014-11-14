@@ -14,26 +14,48 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.impl.java;
+package org.apache.calcite.adapter.java;
 
-import net.hydromatic.linq4j.*;
-import net.hydromatic.linq4j.expressions.*;
+import org.apache.calcite.linq4j.Enumerable;
+import org.apache.calcite.linq4j.Enumerator;
+import org.apache.calcite.linq4j.Linq4j;
+import org.apache.calcite.linq4j.QueryProvider;
+import org.apache.calcite.linq4j.Queryable;
+import org.apache.calcite.linq4j.tree.Expression;
+import org.apache.calcite.linq4j.tree.Expressions;
+import org.apache.calcite.linq4j.tree.Primitive;
+import org.apache.calcite.linq4j.tree.Types;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.schema.Function;
+import org.apache.calcite.schema.Schema;
+import org.apache.calcite.schema.SchemaFactory;
+import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.schema.Schemas;
+import org.apache.calcite.schema.Statistic;
+import org.apache.calcite.schema.Statistics;
+import org.apache.calcite.schema.Table;
+import org.apache.calcite.schema.TableMacro;
+import org.apache.calcite.schema.TranslatableTable;
+import org.apache.calcite.schema.impl.AbstractSchema;
+import org.apache.calcite.schema.impl.AbstractTableQueryable;
+import org.apache.calcite.schema.impl.ReflectiveFunctionBase;
+import org.apache.calcite.util.BuiltInMethod;
 
-import net.hydromatic.optiq.*;
-import net.hydromatic.optiq.Table;
-import net.hydromatic.optiq.impl.*;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.Multimap;
 
-import org.eigenbase.reltype.RelDataType;
-import org.eigenbase.reltype.RelDataTypeFactory;
-
-import com.google.common.collect.*;
-
-import java.lang.reflect.*;
-import java.util.*;
+import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.lang.reflect.Type;
+import java.util.List;
+import java.util.Map;
 
 /**
- * Implementation of {@link net.hydromatic.optiq.Schema} that exposes the public
- * fields and methods in a Java object.
+ * Implementation of {@link org.apache.calcite.schema.Schema} that exposes the
+ * public fields and methods in a Java object.
  */
 public class ReflectiveSchema
     extends AbstractSchema {
@@ -51,19 +73,20 @@ public class ReflectiveSchema
     this.target = target;
   }
 
-  @Override
-  public String toString() {
+  @Override public String toString() {
     return "ReflectiveSchema(target=" + target + ")";
   }
 
-  /** Returns the wrapped object. (May not appear to be used, but is used in
-   * generated code via {@link BuiltinMethod#REFLECTIVE_SCHEMA_GET_TARGET}.) */
+  /** Returns the wrapped object.
+   *
+   * <p>May not appear to be used, but is used in generated code via
+   * {@link org.apache.calcite.util.BuiltInMethod#REFLECTIVE_SCHEMA_GET_TARGET}.
+   */
   public Object getTarget() {
     return target;
   }
 
-  @Override
-  protected Map<String, Table> getTableMap() {
+  @Override protected Map<String, Table> getTableMap() {
     final ImmutableMap.Builder<String, Table> builder = ImmutableMap.builder();
     for (Field field : clazz.getFields()) {
       final String fieldName = field.getName();
@@ -103,7 +126,7 @@ public class ReflectiveSchema
             Schemas.unwrap(
                 getExpression(parentSchema, name),
                 ReflectiveSchema.class),
-            BuiltinMethod.REFLECTIVE_SCHEMA_GET_TARGET.method));
+            BuiltInMethod.REFLECTIVE_SCHEMA_GET_TARGET.method));
   }
 
   /** Returns a table based on a particular field of this schema. If the
@@ -197,7 +220,7 @@ public class ReflectiveSchema
    *     {
    *       name: "foodmart",
    *       type: "custom",
-   *       factory: "net.hydromatic.optiq.impl.java.ReflectiveSchema$Factory",
+   *       factory: "org.apache.calcite.adapter.java.ReflectiveSchema$Factory",
    *       operand: {
    *         class: "com.acme.FoodMart",
    *         staticMethod: "instance"
@@ -261,7 +284,7 @@ public class ReflectiveSchema
       this.schema = schema;
       assert TranslatableTable.class.isAssignableFrom(method.getReturnType())
           : "Method should return TranslatableTable so the macro can be "
-            + "expanded";
+          + "expanded";
     }
 
     public String toString() {
@@ -293,9 +316,8 @@ public class ReflectiveSchema
       return "Relation {field=" + field.getName() + "}";
     }
 
-    @Override
-    public Expression getExpression(SchemaPlus schema, String tableName,
-        Class clazz) {
+    @Override public Expression getExpression(SchemaPlus schema,
+        String tableName, Class clazz) {
       return Expressions.field(
           schema.unwrap(ReflectiveSchema.class).getTargetExpression(
               schema.getParentSchema(), schema.getName()), field);

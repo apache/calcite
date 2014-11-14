@@ -18,6 +18,6 @@
 /**
  * Graph-theoretic algorithms and data structures.
  */
-package net.hydromatic.optiq.util.graph;
+package org.apache.calcite.util.graph;
 
 // End package-info.java

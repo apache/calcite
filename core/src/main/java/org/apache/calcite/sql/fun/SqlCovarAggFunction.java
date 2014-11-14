@@ -14,19 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql.fun;
+package org.apache.calcite.sql.fun;
 
-import java.util.List;
-
-import org.eigenbase.reltype.RelDataType;
-import org.eigenbase.reltype.RelDataTypeFactory;
-import org.eigenbase.sql.SqlAggFunction;
-import org.eigenbase.sql.SqlFunctionCategory;
-import org.eigenbase.sql.SqlKind;
-import org.eigenbase.sql.type.OperandTypes;
-import org.eigenbase.sql.type.ReturnTypes;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.sql.SqlAggFunction;
+import org.apache.calcite.sql.SqlFunctionCategory;
+import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.type.OperandTypes;
+import org.apache.calcite.sql.type.ReturnTypes;
 
 import com.google.common.collect.ImmutableList;
+
+import java.util.List;
 
 /**
  * <code>Covar</code> is an aggregator which returns the Covariance of the

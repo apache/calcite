@@ -14,28 +14,36 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel.rules;
+package org.apache.calcite.rel.rules;
 
-import java.util.*;
-
-import org.eigenbase.rel.*;
-import org.eigenbase.relopt.*;
-import org.eigenbase.reltype.*;
-import org.eigenbase.rex.*;
-import org.eigenbase.util.ImmutableIntList;
-import org.eigenbase.util.ImmutableNullableList;
-
-import net.hydromatic.linq4j.Ord;
+import org.apache.calcite.linq4j.Ord;
+import org.apache.calcite.plan.Convention;
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.AbstractRelNode;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelWriter;
+import org.apache.calcite.rel.core.JoinRelType;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.util.ImmutableIntList;
+import org.apache.calcite.util.ImmutableNullableList;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 
+import java.util.ArrayList;
+import java.util.BitSet;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 /**
- * A MultiJoinRel represents a join of N inputs, whereas other join relnodes
+ * A MultiJoin represents a join of N inputs, whereas regular Joins
  * represent strictly binary joins.
  */
-public final class MultiJoinRel extends AbstractRelNode {
+public final class MultiJoin extends AbstractRelNode {
   //~ Instance fields --------------------------------------------------------
 
   private final List<RelNode> inputs;
@@ -51,10 +59,10 @@ public final class MultiJoinRel extends AbstractRelNode {
   //~ Constructors -----------------------------------------------------------
 
   /**
-   * Constructs a MultiJoinRel.
+   * Constructs a MultiJoin.
    *
    * @param cluster               cluster that join belongs to
-   * @param inputs                inputs into this multirel join
+   * @param inputs                inputs into this multi-join
    * @param joinFilter            join filter applicable to this join node
    * @param rowType               row type of the join result of this node
    * @param isFullOuterJoin       true if the join is a full outer join
@@ -75,7 +83,7 @@ public final class MultiJoinRel extends AbstractRelNode {
    *                              the input #
    * @param postJoinFilter        filter to be applied after the joins are
    */
-  public MultiJoinRel(
+  public MultiJoin(
       RelOptCluster cluster,
       List<RelNode> inputs,
       RexNode joinFilter,
@@ -108,7 +116,7 @@ public final class MultiJoinRel extends AbstractRelNode {
 
   @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
     assert traitSet.containsIfApplicable(Convention.NONE);
-    return new MultiJoinRel(
+    return new MultiJoin(
         getCluster(),
         inputs,
         joinFilter,
@@ -170,20 +178,19 @@ public final class MultiJoinRel extends AbstractRelNode {
     return inputs;
   }
 
-  @Override
-  public List<RexNode> getChildExps() {
+  @Override public List<RexNode> getChildExps() {
     return ImmutableList.of(joinFilter);
   }
 
   /**
-   * @return join filters associated with this MultiJoinRel
+   * @return join filters associated with this MultiJoin
    */
   public RexNode getJoinFilter() {
     return joinFilter;
   }
 
   /**
-   * @return true if the MultiJoinRel corresponds to a full outer join.
+   * @return true if the MultiJoin corresponds to a full outer join.
    */
   public boolean isFullOuterJoin() {
     return isFullOuterJoin;
@@ -228,7 +235,7 @@ public final class MultiJoinRel extends AbstractRelNode {
   }
 
   /**
-   * @return post-join filter associated with this MultiJoinRel
+   * @return post-join filter associated with this MultiJoin
    */
   public RexNode getPostJoinFilter() {
     return postJoinFilter;
@@ -244,4 +251,4 @@ public final class MultiJoinRel extends AbstractRelNode {
   }
 }
 
-// End MultiJoinRel.java
+// End MultiJoin.java

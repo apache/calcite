@@ -14,12 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.util;
-
-import java.text.MessageFormat;
-import java.util.*;
+package org.apache.calcite.util;
 
 import com.google.common.collect.ImmutableList;
+
+import java.text.MessageFormat;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 
 /**
  * String template.

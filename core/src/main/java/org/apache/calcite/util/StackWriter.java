@@ -14,11 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.util;
+package org.apache.calcite.util;
 
-import java.io.*;
-
-import java.util.*;
+import java.io.FilterWriter;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.Writer;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * A helper class for generating formatted text. StackWriter keeps track of
@@ -112,8 +115,8 @@ public class StackWriter extends FilterWriter {
    * specified string to be used for each level of indentation.
    *
    * @param writer      underlying writer
-   * @param indentation indentation unit such as {@link #INDENT_TAB} or {@link
-   *                    #INDENT_SPACE4}
+   * @param indentation indentation unit such as {@link #INDENT_TAB} or
+   *                    {@link #INDENT_SPACE4}
    */
   public StackWriter(Writer writer, String indentation) {
     super(writer);

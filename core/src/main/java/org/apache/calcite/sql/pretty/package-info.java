@@ -18,6 +18,6 @@
 /**
  * Provides a pretty-printer for SQL statements.
  */
-package org.eigenbase.sql.pretty;
+package org.apache.calcite.sql.pretty;
 
 // End package-info.java

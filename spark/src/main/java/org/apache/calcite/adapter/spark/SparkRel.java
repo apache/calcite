@@ -14,16 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.impl.spark;
+package org.apache.calcite.adapter.spark;
 
-import net.hydromatic.linq4j.expressions.BlockStatement;
-
-import net.hydromatic.optiq.rules.java.JavaRelImplementor;
-import net.hydromatic.optiq.rules.java.PhysType;
-
-import org.eigenbase.rel.RelNode;
-import org.eigenbase.relopt.Convention;
-import org.eigenbase.rex.RexBuilder;
+import org.apache.calcite.adapter.enumerable.JavaRelImplementor;
+import org.apache.calcite.adapter.enumerable.PhysType;
+import org.apache.calcite.linq4j.tree.BlockStatement;
+import org.apache.calcite.plan.Convention;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rex.RexBuilder;
 
 /**
  * Relational expression that uses Spark calling convention.

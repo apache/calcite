@@ -14,40 +14,43 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel;
+package org.apache.calcite.rel.core;
+
+import org.apache.calcite.plan.Convention;
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptSamplingParameters;
+import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.RelInput;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelWriter;
+import org.apache.calcite.rel.SingleRel;
 
 import java.util.List;
 
-import org.eigenbase.relopt.*;
-
 /**
- * SamplingRel represents the TABLESAMPLE BERNOULLI or SYSTEM keyword applied to
- * a table, view or subquery.
+ * Relational expression that returns a sample of the rows from its input.
+ *
+ * <p>In SQL, a sample is expressed using the {@code TABLESAMPLE BERNOULLI} or
+ * {@code SYSTEM} keyword applied to a table, view or subquery.
  */
-public class SamplingRel extends SingleRel {
+public class Sample extends SingleRel {
   //~ Instance fields --------------------------------------------------------
 
   private final RelOptSamplingParameters params;
 
   //~ Constructors -----------------------------------------------------------
 
-  public SamplingRel(
-      RelOptCluster cluster,
-      RelNode child,
+  public Sample(RelOptCluster cluster, RelNode child,
       RelOptSamplingParameters params) {
-    super(
-        cluster,
-        cluster.traitSetOf(Convention.NONE),
-        child);
+    super(cluster, cluster.traitSetOf(Convention.NONE), child);
     this.params = params;
   }
 
   /**
-   * Creates a SamplingRel by parsing serialized output.
+   * Creates a Sample by parsing serialized output.
    */
-  public SamplingRel(RelInput input) {
-    this(
-        input.getCluster(), input.getInput(), getSamplingParameters(input));
+  public Sample(RelInput input) {
+    this(input.getCluster(), input.getInput(), getSamplingParameters(input));
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -65,28 +68,23 @@ public class SamplingRel extends SingleRel {
 
   public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
     assert traitSet.containsIfApplicable(Convention.NONE);
-    return new SamplingRel(
-        getCluster(),
-        sole(inputs),
-        params);
+    return new Sample(getCluster(), sole(inputs), params);
   }
 
   /**
-   * Retrieve the sampling parameters for this SamplingRel.
+   * Retrieve the sampling parameters for this Sample.
    */
   public RelOptSamplingParameters getSamplingParameters() {
     return params;
   }
 
-  // implement RelNode
-  public RelWriter explainTerms(RelWriter pw) {
+  @Override public RelWriter explainTerms(RelWriter pw) {
     return super.explainTerms(pw)
         .item("mode", params.isBernoulli() ? "bernoulli" : "system")
         .item("rate", params.getSamplingPercentage())
-        .item(
-            "repeatableSeed",
+        .item("repeatableSeed",
             params.isRepeatable() ? params.getRepeatableSeed() : "-");
   }
 }
 
-// End SamplingRel.java
+// End Sample.java

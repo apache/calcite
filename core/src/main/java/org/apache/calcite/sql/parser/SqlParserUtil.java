@@ -14,22 +14,36 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql.parser;
+package org.apache.calcite.sql.parser;
 
-import java.math.*;
-import java.nio.charset.*;
-import java.text.*;
-import java.util.*;
-import java.util.logging.*;
+import org.apache.calcite.avatica.Casing;
+import org.apache.calcite.rel.type.RelDataTypeSystem;
+import org.apache.calcite.runtime.CalciteContextException;
+import org.apache.calcite.sql.SqlBinaryOperator;
+import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlIntervalLiteral;
+import org.apache.calcite.sql.SqlIntervalQualifier;
+import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlNodeList;
+import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.SqlPostfixOperator;
+import org.apache.calcite.sql.SqlSpecialOperator;
+import org.apache.calcite.util.SaffronProperties;
+import org.apache.calcite.util.Util;
+import org.apache.calcite.util.trace.CalciteTrace;
 
-import org.eigenbase.reltype.RelDataTypeSystem;
-import org.eigenbase.sql.*;
-import org.eigenbase.trace.*;
-import org.eigenbase.util.*;
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.nio.charset.Charset;
+import java.text.SimpleDateFormat;
+import java.util.List;
+import java.util.Locale;
+import java.util.StringTokenizer;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
-import net.hydromatic.avatica.Casing;
-
-import static org.eigenbase.util.Static.RESOURCE;
+import static org.apache.calcite.util.Static.RESOURCE;
 
 /**
  * Utility methods relating to parsing SQL.
@@ -37,7 +51,7 @@ import static org.eigenbase.util.Static.RESOURCE;
 public final class SqlParserUtil {
   //~ Static fields/initializers ---------------------------------------------
 
-  static final Logger LOGGER = EigenbaseTrace.getParserTracer();
+  static final Logger LOGGER = CalciteTrace.getParserTracer();
 
   //~ Constructors -----------------------------------------------------------
 
@@ -138,7 +152,7 @@ public final class SqlParserUtil {
       ret = intervalQualifier.evaluateIntervalLiteral(literal,
           intervalQualifier.getParserPosition(), RelDataTypeSystem.DEFAULT);
       assert ret != null;
-    } catch (EigenbaseContextException e) {
+    } catch (CalciteContextException e) {
       throw Util.newInternal(
           e, "while parsing day-to-second interval " + literal);
     }
@@ -180,7 +194,7 @@ public final class SqlParserUtil {
       ret = intervalQualifier.evaluateIntervalLiteral(literal,
           intervalQualifier.getParserPosition(), RelDataTypeSystem.DEFAULT);
       assert ret != null;
-    } catch (EigenbaseContextException e) {
+    } catch (CalciteContextException e) {
       throw Util.newInternal(
           e, "error parsing year-to-month interval " + literal);
     }
@@ -762,6 +776,7 @@ public final class SqlParserUtil {
 
   //~ Inner Classes ----------------------------------------------------------
 
+  /** The components of a collation definition, per the SQL standard. */
   public static class ParsedCollation {
     private final Charset charset;
     private final Locale locale;

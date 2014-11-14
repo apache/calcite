@@ -14,17 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.test;
+package org.apache.calcite.test;
 
-import net.hydromatic.linq4j.expressions.Expressions;
-import net.hydromatic.linq4j.expressions.ParameterExpression;
-import net.hydromatic.linq4j.function.Predicate1;
-
-import net.hydromatic.optiq.SchemaPlus;
-import net.hydromatic.optiq.Schemas;
-import net.hydromatic.optiq.jdbc.OptiqConnection;
-
-import org.eigenbase.util.Util;
+import org.apache.calcite.jdbc.CalciteConnection;
+import org.apache.calcite.linq4j.function.Predicate1;
+import org.apache.calcite.linq4j.tree.Expressions;
+import org.apache.calcite.linq4j.tree.ParameterExpression;
+import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.schema.Schemas;
+import org.apache.calcite.util.Util;
 
 import org.junit.Test;
 
@@ -36,8 +34,8 @@ import java.sql.SQLException;
 public class LinqFrontJdbcBackTest {
   @Test public void testTableWhere() throws SQLException,
       ClassNotFoundException {
-    final OptiqConnection connection =
-        OptiqAssert.getConnection(OptiqAssert.SchemaSpec.JDBC_FOODMART);
+    final CalciteConnection connection =
+        CalciteAssert.getConnection(CalciteAssert.SchemaSpec.JDBC_FOODMART);
     final SchemaPlus schema =
         connection.getRootSchema().getSubSchema("foodmart");
     ParameterExpression c =

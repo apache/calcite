@@ -14,20 +14,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.util.graph;
+package org.apache.calcite.util.graph;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 
 import org.hamcrest.CoreMatchers;
-
 import org.junit.Test;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
 
 import static org.hamcrest.CoreMatchers.equalTo;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 /**
  * Unit test for {@link DirectedGraph}.
@@ -172,7 +181,7 @@ public class DirectedGraphTest {
   }
 
   /** Unit test for
-   * {@link net.hydromatic.optiq.util.graph.Graphs.FrozenGraph}. */
+   * {@link org.apache.calcite.util.graph.Graphs.FrozenGraph}. */
   @Test public void testPaths() {
     //       B -> C
     //      /      \
@@ -205,7 +214,7 @@ public class DirectedGraphTest {
     assertEquals("[D, E]", frozenGraph.getShortestPath("D", "E").toString());
   }
 
-  /** Unit test for {@link net.hydromatic.optiq.util.graph.CycleDetector}. */
+  /** Unit test for {@link org.apache.calcite.util.graph.CycleDetector}. */
   @Test public void testCycleDetection() {
     // A - B - C - D
     //  \     /
@@ -276,7 +285,7 @@ public class DirectedGraphTest {
   }
 
   /** Unit test for
-   * {@link net.hydromatic.optiq.util.graph.BreadthFirstIterator}. */
+   * {@link org.apache.calcite.util.graph.BreadthFirstIterator}. */
   @Test public void testBreadthFirstIterator() {
     DefaultDirectedGraph<String, DefaultEdge> graph = createDag();
     final List<String> expected =

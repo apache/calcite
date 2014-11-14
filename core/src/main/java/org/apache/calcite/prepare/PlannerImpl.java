@@ -14,35 +14,43 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.prepare;
+package org.apache.calcite.prepare;
 
-import net.hydromatic.optiq.SchemaPlus;
-import net.hydromatic.optiq.config.Lex;
-import net.hydromatic.optiq.impl.java.JavaTypeFactory;
-import net.hydromatic.optiq.jdbc.OptiqSchema;
-import net.hydromatic.optiq.tools.*;
-
-import org.eigenbase.rel.RelNode;
-import org.eigenbase.relopt.*;
-import org.eigenbase.relopt.RelOptTable.ViewExpander;
-import org.eigenbase.reltype.RelDataType;
-import org.eigenbase.rex.RexBuilder;
-import org.eigenbase.sql.SqlNode;
-import org.eigenbase.sql.SqlOperatorTable;
-import org.eigenbase.sql.parser.SqlParseException;
-import org.eigenbase.sql.parser.SqlParser;
-import org.eigenbase.sql.parser.SqlParserImplFactory;
-import org.eigenbase.sql.validate.SqlValidator;
-import org.eigenbase.sql2rel.RelDecorrelator;
-import org.eigenbase.sql2rel.SqlRexConvertletTable;
-import org.eigenbase.sql2rel.SqlToRelConverter;
-import org.eigenbase.util.Util;
+import org.apache.calcite.adapter.java.JavaTypeFactory;
+import org.apache.calcite.config.Lex;
+import org.apache.calcite.jdbc.CalciteSchema;
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.plan.RelOptSchema;
+import org.apache.calcite.plan.RelOptTable.ViewExpander;
+import org.apache.calcite.plan.RelTraitDef;
+import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlOperatorTable;
+import org.apache.calcite.sql.parser.SqlParseException;
+import org.apache.calcite.sql.parser.SqlParser;
+import org.apache.calcite.sql.parser.SqlParserImplFactory;
+import org.apache.calcite.sql.validate.SqlValidator;
+import org.apache.calcite.sql2rel.RelDecorrelator;
+import org.apache.calcite.sql2rel.SqlRexConvertletTable;
+import org.apache.calcite.sql2rel.SqlToRelConverter;
+import org.apache.calcite.tools.FrameworkConfig;
+import org.apache.calcite.tools.Frameworks;
+import org.apache.calcite.tools.Planner;
+import org.apache.calcite.tools.Program;
+import org.apache.calcite.tools.RelConversionException;
+import org.apache.calcite.tools.ValidationException;
+import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
 import java.util.List;
 
-/** Implementation of {@link net.hydromatic.optiq.tools.Planner}. */
+/** Implementation of {@link org.apache.calcite.tools.Planner}. */
 public class PlannerImpl implements Planner {
   private final SqlOperatorTable operatorTable;
   private final ImmutableList<Program> programs;
@@ -69,14 +77,14 @@ public class PlannerImpl implements Planner {
   private RelOptPlanner planner;
 
   // set in STATE_4_VALIDATE
-  private OptiqSqlValidator validator;
+  private CalciteSqlValidator validator;
   private SqlNode validatedSqlNode;
 
   // set in STATE_5_CONVERT
   private RelNode rel;
 
   /** Creates a planner. Not a public API; call
-   * {@link net.hydromatic.optiq.tools.Frameworks#getPlanner} instead. */
+   * {@link org.apache.calcite.tools.Frameworks#getPlanner} instead. */
   public PlannerImpl(FrameworkConfig config) {
     this.config = config;
     this.defaultSchema = config.getDefaultSchema();
@@ -166,7 +174,7 @@ public class PlannerImpl implements Planner {
   public SqlNode validate(SqlNode sqlNode) throws ValidationException {
     ensure(State.STATE_3_PARSED);
     this.validator =
-        new OptiqSqlValidator(
+        new CalciteSqlValidator(
             operatorTable, createCatalogReader(), typeFactory);
     try {
       validatedSqlNode = validator.validate(sqlNode);
@@ -193,8 +201,8 @@ public class PlannerImpl implements Planner {
     return rel;
   }
 
-  /** Implements {@link org.eigenbase.relopt.RelOptTable.ViewExpander}
-   * interface for {@link net.hydromatic.optiq.tools.Planner}. */
+  /** Implements {@link org.apache.calcite.plan.RelOptTable.ViewExpander}
+   * interface for {@link org.apache.calcite.tools.Planner}. */
   public class ViewExpanderImpl implements ViewExpander {
     public RelNode expandView(RelDataType rowType, String queryString,
         List<String> schemaPath) {
@@ -207,9 +215,9 @@ public class PlannerImpl implements Planner {
         throw new RuntimeException("parse failed", e);
       }
 
-      final OptiqCatalogReader catalogReader =
+      final CalciteCatalogReader catalogReader =
           createCatalogReader().withSchemaPath(schemaPath);
-      final SqlValidator validator = new OptiqSqlValidator(operatorTable,
+      final SqlValidator validator = new CalciteSqlValidator(operatorTable,
           catalogReader, typeFactory);
       final SqlNode validatedSqlNode = validator.validate(sqlNode);
 
@@ -222,13 +230,13 @@ public class PlannerImpl implements Planner {
     }
   }
 
-  // OptiqCatalogReader is stateless; no need to store one
-  private OptiqCatalogReader createCatalogReader() {
+  // CalciteCatalogReader is stateless; no need to store one
+  private CalciteCatalogReader createCatalogReader() {
     SchemaPlus rootSchema = rootSchema(defaultSchema);
-    return new OptiqCatalogReader(
-        OptiqSchema.from(rootSchema),
+    return new CalciteCatalogReader(
+        CalciteSchema.from(rootSchema),
         caseSensitive,
-        OptiqSchema.from(defaultSchema).path(null),
+        CalciteSchema.from(defaultSchema).path(null),
         typeFactory);
   }
 
@@ -260,21 +268,18 @@ public class PlannerImpl implements Planner {
   /** Stage of a statement in the query-preparation lifecycle. */
   private enum State {
     STATE_0_CLOSED {
-      @Override
-      void from(PlannerImpl planner) {
+      @Override void from(PlannerImpl planner) {
         planner.close();
       }
     },
     STATE_1_RESET {
-      @Override
-      void from(PlannerImpl planner) {
+      @Override void from(PlannerImpl planner) {
         planner.ensure(STATE_0_CLOSED);
         planner.reset();
       }
     },
     STATE_2_READY {
-      @Override
-      void from(PlannerImpl planner) {
+      @Override void from(PlannerImpl planner) {
         STATE_1_RESET.from(planner);
         planner.ready();
       }

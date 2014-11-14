@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.impl.splunk.util;
+package org.apache.calcite.adapter.splunk.util;
 
 import java.util.LinkedList;
 import java.util.List;

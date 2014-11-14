@@ -14,17 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.jdbc;
+package org.apache.calcite.jdbc;
 
 /**
- * Implementation of {@link net.hydromatic.avatica.AvaticaFactory}
+ * Implementation of {@link org.apache.calcite.avatica.AvaticaFactory}
  * for Calcite and JDBC 4.0 (corresponds to JDK 1.6).
  */
-public class OptiqJdbc40Factory extends OptiqJdbc41Factory {
+public class CalciteJdbc40Factory extends CalciteJdbc41Factory {
   /** Creates a factory for JDBC version 4.1. */
-  public OptiqJdbc40Factory() {
+  public CalciteJdbc40Factory() {
     super(4, 0);
   }
 }
 
-// End OptiqJdbc40Factory.java
+// End CalciteJdbc40Factory.java

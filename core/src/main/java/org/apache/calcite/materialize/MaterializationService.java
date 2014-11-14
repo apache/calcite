@@ -14,34 +14,47 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.materialize;
+package org.apache.calcite.materialize;
 
-import net.hydromatic.avatica.ColumnMetaData;
+import org.apache.calcite.DataContext;
+import org.apache.calcite.adapter.clone.CloneSchema;
+import org.apache.calcite.adapter.java.JavaTypeFactory;
+import org.apache.calcite.avatica.ColumnMetaData;
+import org.apache.calcite.config.CalciteConnectionProperty;
+import org.apache.calcite.jdbc.CalciteConnection;
+import org.apache.calcite.jdbc.CalcitePrepare;
+import org.apache.calcite.jdbc.CalciteSchema;
+import org.apache.calcite.jdbc.MetaImpl;
+import org.apache.calcite.linq4j.AbstractQueryable;
+import org.apache.calcite.linq4j.Enumerator;
+import org.apache.calcite.linq4j.QueryProvider;
+import org.apache.calcite.linq4j.function.Function1;
+import org.apache.calcite.linq4j.function.Functions;
+import org.apache.calcite.linq4j.tree.Expression;
+import org.apache.calcite.prepare.Prepare;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeImpl;
+import org.apache.calcite.runtime.Hook;
+import org.apache.calcite.schema.Schemas;
+import org.apache.calcite.schema.Table;
+import org.apache.calcite.util.BitSets;
+import org.apache.calcite.util.Pair;
+import org.apache.calcite.util.Util;
 
-import net.hydromatic.linq4j.*;
-import net.hydromatic.linq4j.expressions.Expression;
-import net.hydromatic.linq4j.function.Function1;
-import net.hydromatic.linq4j.function.Functions;
-
-import net.hydromatic.optiq.*;
-import net.hydromatic.optiq.Table;
-import net.hydromatic.optiq.config.OptiqConnectionProperty;
-import net.hydromatic.optiq.impl.clone.CloneSchema;
-import net.hydromatic.optiq.impl.java.JavaTypeFactory;
-import net.hydromatic.optiq.jdbc.*;
-import net.hydromatic.optiq.prepare.Prepare;
-import net.hydromatic.optiq.runtime.Hook;
-import net.hydromatic.optiq.util.BitSets;
-
-import org.eigenbase.reltype.RelDataType;
-import org.eigenbase.reltype.RelDataTypeImpl;
-import org.eigenbase.util.Pair;
-import org.eigenbase.util.Util;
-
-import com.google.common.collect.*;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 import java.lang.reflect.Type;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.BitSet;
+import java.util.Comparator;
+import java.util.Iterator;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.PriorityQueue;
 
 /**
  * Manages the collection of materialized tables known to the system,
@@ -54,16 +67,15 @@ public class MaterializationService {
   /** For testing. */
   private static final ThreadLocal<MaterializationService> THREAD_INSTANCE =
       new ThreadLocal<MaterializationService>() {
-        @Override
-        protected MaterializationService initialValue() {
+        @Override protected MaterializationService initialValue() {
           return new MaterializationService();
         }
       };
 
-  private static final Comparator<Pair<OptiqSchema.TableEntry, TileKey>> C =
-      new Comparator<Pair<OptiqSchema.TableEntry, TileKey>>() {
-        public int compare(Pair<OptiqSchema.TableEntry, TileKey> o0,
-            Pair<OptiqSchema.TableEntry, TileKey> o1) {
+  private static final Comparator<Pair<CalciteSchema.TableEntry, TileKey>> C =
+      new Comparator<Pair<CalciteSchema.TableEntry, TileKey>>() {
+        public int compare(Pair<CalciteSchema.TableEntry, TileKey> o0,
+            Pair<CalciteSchema.TableEntry, TileKey> o1) {
           // We prefer rolling up from the table with the fewest rows.
           final Table t0 = o0.left.getTable();
           final Table t1 = o1.left.getTable();
@@ -83,7 +95,7 @@ public class MaterializationService {
   }
 
   /** Defines a new materialization. Returns its key. */
-  public MaterializationKey defineMaterialization(final OptiqSchema schema,
+  public MaterializationKey defineMaterialization(final CalciteSchema schema,
       TileKey tileKey, String viewSql, List<String> viewSchemaPath,
       final String suggestedTableName, boolean create) {
     final MaterializationActor.QueryKey queryKey =
@@ -96,16 +108,16 @@ public class MaterializationService {
       return null;
     }
 
-    final OptiqConnection connection =
+    final CalciteConnection connection =
         MetaImpl.connect(schema.root(), null);
     final Pair<String, Table> pair = schema.getTableBySql(viewSql);
     Table materializedTable = pair == null ? null : pair.right;
     RelDataType rowType = null;
     if (materializedTable == null) {
-      final ImmutableMap<OptiqConnectionProperty, String> map =
-          ImmutableMap.of(OptiqConnectionProperty.CREATE_MATERIALIZATIONS,
+      final ImmutableMap<CalciteConnectionProperty, String> map =
+          ImmutableMap.of(CalciteConnectionProperty.CREATE_MATERIALIZATIONS,
               "false");
-      final OptiqPrepare.PrepareResult<Object> prepareResult =
+      final CalcitePrepare.PrepareResult<Object> prepareResult =
           Schemas.prepare(connection, schema, viewSchemaPath, viewSql, map);
       rowType = prepareResult.rowType;
       final JavaTypeFactory typeFactory = connection.getTypeFactory();
@@ -146,12 +158,12 @@ public class MaterializationService {
     }
     final String tableName =
         Schemas.uniqueTableName(schema, Util.first(suggestedTableName, "m"));
-    final OptiqSchema.TableEntry tableEntry =
+    final CalciteSchema.TableEntry tableEntry =
         schema.add(tableName, materializedTable, ImmutableList.of(viewSql));
     Hook.CREATE_MATERIALIZATION.run(tableName);
     if (rowType == null) {
       // If we didn't validate the SQL by populating a table, validate it now.
-      final OptiqPrepare.ParseResult parse =
+      final CalcitePrepare.ParseResult parse =
           Schemas.parse(connection, schema, viewSchemaPath, viewSql);
       rowType = parse.rowType;
     }
@@ -169,7 +181,7 @@ public class MaterializationService {
 
   /** Checks whether a materialization is valid, and if so, returns the table
    * where the data are stored. */
-  public OptiqSchema.TableEntry checkValid(MaterializationKey key) {
+  public CalciteSchema.TableEntry checkValid(MaterializationKey key) {
     final MaterializationActor.Materialization materialization =
         actor.keyMap.get(key);
     if (materialization != null) {
@@ -186,8 +198,8 @@ public class MaterializationService {
    * during the recursive SQL that populates a materialization. Otherwise a
    * materialization would try to create itself to populate itself!
    */
-  public Pair<OptiqSchema.TableEntry, TileKey> defineTile(Lattice lattice,
-      BitSet groupSet, List<Lattice.Measure> measureList, OptiqSchema schema,
+  public Pair<CalciteSchema.TableEntry, TileKey> defineTile(Lattice lattice,
+      BitSet groupSet, List<Lattice.Measure> measureList, CalciteSchema schema,
       boolean create, boolean exact) {
     MaterializationKey materializationKey;
     final TileKey tileKey =
@@ -196,7 +208,8 @@ public class MaterializationService {
     // Step 1. Look for an exact match for the tile.
     materializationKey = actor.keyByTile.get(tileKey);
     if (materializationKey != null) {
-      final OptiqSchema.TableEntry tableEntry = checkValid(materializationKey);
+      final CalciteSchema.TableEntry tableEntry =
+          checkValid(materializationKey);
       if (tableEntry != null) {
         return Pair.of(tableEntry, tileKey);
       }
@@ -211,7 +224,7 @@ public class MaterializationService {
       if (allSatisfiable(measureList, tileKey1)) {
         materializationKey = actor.keyByTile.get(tileKey1);
         if (materializationKey != null) {
-          final OptiqSchema.TableEntry tableEntry =
+          final CalciteSchema.TableEntry tableEntry =
               checkValid(materializationKey);
           if (tableEntry != null) {
             return Pair.of(tableEntry, tileKey1);
@@ -232,8 +245,8 @@ public class MaterializationService {
     // TODO: Use a partially-ordered set data structure, so we are not scanning
     // through all tiles.
     if (!exact) {
-      final PriorityQueue<Pair<OptiqSchema.TableEntry, TileKey>> queue =
-          new PriorityQueue<Pair<OptiqSchema.TableEntry, TileKey>>(1, C);
+      final PriorityQueue<Pair<CalciteSchema.TableEntry, TileKey>> queue =
+          new PriorityQueue<Pair<CalciteSchema.TableEntry, TileKey>>(1, C);
       for (Map.Entry<TileKey, MaterializationKey> entry
           : actor.keyByTile.entrySet()) {
         final TileKey tileKey2 = entry.getKey();
@@ -242,7 +255,7 @@ public class MaterializationService {
             && !tileKey2.dimensions.equals(groupSet)
             && allSatisfiable(measureList, tileKey2)) {
           materializationKey = entry.getValue();
-          final OptiqSchema.TableEntry tableEntry =
+          final CalciteSchema.TableEntry tableEntry =
               checkValid(materializationKey);
           if (tableEntry != null) {
             queue.add(Pair.of(tableEntry, tileKey2));
@@ -250,8 +263,8 @@ public class MaterializationService {
         }
       }
       if (!queue.isEmpty()) {
-        final Pair<OptiqSchema.TableEntry, TileKey> best = queue.peek();
-        for (Pair<OptiqSchema.TableEntry, TileKey> pair : queue) {
+        final Pair<CalciteSchema.TableEntry, TileKey> best = queue.peek();
+        for (Pair<CalciteSchema.TableEntry, TileKey> pair : queue) {
           System.out.println("table=" + pair.left.path() + " "
               + pair.left.getTable().getStatistic().getRowCount());
         }
@@ -285,7 +298,8 @@ public class MaterializationService {
         defineMaterialization(schema, newTileKey, sql, schema.path(null),
             "m" + groupSet, true);
     if (materializationKey != null) {
-      final OptiqSchema.TableEntry tableEntry = checkValid(materializationKey);
+      final CalciteSchema.TableEntry tableEntry =
+          checkValid(materializationKey);
       if (tableEntry != null) {
         // Obsolete all of the narrower tiles.
         for (TileKey tileKey1 : obsolete) {
@@ -318,7 +332,7 @@ public class MaterializationService {
    * schema. (Each root schema defines a disconnected namespace, with no overlap
    * with the current schema. Especially in a test run, the contents of two
    * root schemas may look similar.) */
-  public List<Prepare.Materialization> query(OptiqSchema rootSchema) {
+  public List<Prepare.Materialization> query(CalciteSchema rootSchema) {
     final List<Prepare.Materialization> list =
         new ArrayList<Prepare.Materialization>();
     for (MaterializationActor.Materialization materialization

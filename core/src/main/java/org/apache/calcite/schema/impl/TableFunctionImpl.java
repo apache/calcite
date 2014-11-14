@@ -14,17 +14,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.impl;
+package org.apache.calcite.schema.impl;
 
-import net.hydromatic.linq4j.expressions.Expression;
-import net.hydromatic.linq4j.expressions.Expressions;
-
-import net.hydromatic.optiq.*;
-import net.hydromatic.optiq.rules.java.*;
-
-import org.eigenbase.reltype.RelDataType;
-import org.eigenbase.reltype.RelDataTypeFactory;
-import org.eigenbase.rex.RexCall;
+import org.apache.calcite.DataContext;
+import org.apache.calcite.adapter.enumerable.CallImplementor;
+import org.apache.calcite.adapter.enumerable.NullPolicy;
+import org.apache.calcite.adapter.enumerable.ReflectiveCallNotNullImplementor;
+import org.apache.calcite.adapter.enumerable.RexImpTable;
+import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
+import org.apache.calcite.linq4j.tree.Expression;
+import org.apache.calcite.linq4j.tree.Expressions;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.schema.ImplementableFunction;
+import org.apache.calcite.schema.QueryableTable;
+import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.schema.TableFunction;
+import org.apache.calcite.util.BuiltInMethod;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -33,10 +40,10 @@ import java.lang.reflect.Type;
 import java.util.Arrays;
 import java.util.List;
 
-import static org.eigenbase.util.Static.RESOURCE;
+import static org.apache.calcite.util.Static.RESOURCE;
 
 /**
- * Implementation of {@link net.hydromatic.optiq.TableFunction} based on a
+ * Implementation of {@link org.apache.calcite.schema.TableFunction} based on a
  * method.
 */
 public class TableFunctionImpl extends ReflectiveFunctionBase implements
@@ -97,14 +104,14 @@ public class TableFunctionImpl extends ReflectiveFunctionBase implements
             translatedOperands);
         Expression queryable = Expressions.call(
           Expressions.convert_(expr, QueryableTable.class),
-          BuiltinMethod.QUERYABLE_TABLE_AS_QUERYABLE.method,
+          BuiltInMethod.QUERYABLE_TABLE_AS_QUERYABLE.method,
           Expressions.call(DataContext.ROOT,
-            BuiltinMethod.DATA_CONTEXT_GET_QUERY_PROVIDER.method),
+            BuiltInMethod.DATA_CONTEXT_GET_QUERY_PROVIDER.method),
           Expressions.constant(null, SchemaPlus.class),
           Expressions.constant(call.getOperator().getName(),
             String.class));
         expr = Expressions.call(queryable,
-            BuiltinMethod.QUERYABLE_AS_ENUMERABLE.method);
+            BuiltInMethod.QUERYABLE_AS_ENUMERABLE.method);
         return expr;
       }
     }, NullPolicy.ANY, false);

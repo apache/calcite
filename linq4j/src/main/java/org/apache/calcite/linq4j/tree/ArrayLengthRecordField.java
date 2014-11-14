@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.linq4j.expressions;
+package org.apache.calcite.linq4j.tree;
 
 import java.lang.reflect.Array;
 import java.lang.reflect.Type;
@@ -57,8 +57,7 @@ public class ArrayLengthRecordField implements Types.RecordField {
     return clazz;
   }
 
-  @Override
-  public boolean equals(Object o) {
+  @Override public boolean equals(Object o) {
     if (this == o) {
       return true;
     }
@@ -78,10 +77,11 @@ public class ArrayLengthRecordField implements Types.RecordField {
     return true;
   }
 
-  @Override
-  public int hashCode() {
+  @Override public int hashCode() {
     int result = fieldName.hashCode();
     result = 31 * result + clazz.hashCode();
     return result;
   }
 }
+
+// End ArrayLengthRecordField.java

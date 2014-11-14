@@ -14,32 +14,31 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rex;
+package org.apache.calcite.rex;
 
-import java.math.BigDecimal;
-import java.util.*;
-
-import org.eigenbase.relopt.RelOptCluster;
-import org.eigenbase.relopt.RelOptSchema;
-import org.eigenbase.reltype.RelDataType;
-import org.eigenbase.reltype.RelDataTypeFactory;
-import org.eigenbase.sql.fun.SqlStdOperatorTable;
-import org.eigenbase.sql.type.SqlTypeName;
-import org.eigenbase.util.NlsString;
-
-import net.hydromatic.linq4j.QueryProvider;
-
-import net.hydromatic.optiq.DataContext;
-import net.hydromatic.optiq.SchemaPlus;
-import net.hydromatic.optiq.Schemas;
-import net.hydromatic.optiq.impl.java.JavaTypeFactory;
-import net.hydromatic.optiq.server.OptiqServerStatement;
-import net.hydromatic.optiq.tools.Frameworks;
+import org.apache.calcite.DataContext;
+import org.apache.calcite.adapter.java.JavaTypeFactory;
+import org.apache.calcite.linq4j.QueryProvider;
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptSchema;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.schema.Schemas;
+import org.apache.calcite.server.CalciteServerStatement;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.tools.Frameworks;
+import org.apache.calcite.util.NlsString;
 
 import com.google.common.collect.ImmutableList;
 
 import org.junit.Assert;
 import org.junit.Test;
+
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
@@ -47,7 +46,7 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 /**
- * Unit test for {@link org.eigenbase.rex.RexExecutorImpl}.
+ * Unit test for {@link org.apache.calcite.rex.RexExecutorImpl}.
  */
 public class RexExecutorTest {
   public RexExecutorTest() {
@@ -57,7 +56,7 @@ public class RexExecutorTest {
     Frameworks.withPrepare(
         new Frameworks.PrepareAction<Void>() {
           public Void apply(RelOptCluster cluster, RelOptSchema relOptSchema,
-              SchemaPlus rootSchema, OptiqServerStatement statement) {
+              SchemaPlus rootSchema, CalciteServerStatement statement) {
             final RexBuilder rexBuilder = cluster.getRexBuilder();
             DataContext dataContext =
                 Schemas.createDataContext(statement.getConnection());
@@ -154,7 +153,7 @@ public class RexExecutorTest {
 
   /** Callback for {@link #check}. Test code will typically use {@code builder}
    * to create some expressions, call
-   * {@link org.eigenbase.rex.RexExecutorImpl#reduce} to evaluate them into
+   * {@link org.apache.calcite.rex.RexExecutorImpl#reduce} to evaluate them into
    * a list, then check that the results are as expected. */
   interface Action {
     void check(RexBuilder rexBuilder, RexExecutorImpl executor);

@@ -14,24 +14,35 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.impl.jdbc;
+package org.apache.calcite.adapter.jdbc;
 
-import net.hydromatic.linq4j.expressions.*;
-
-import net.hydromatic.optiq.BuiltinMethod;
-import net.hydromatic.optiq.Schemas;
-import net.hydromatic.optiq.impl.java.JavaTypeFactory;
-import net.hydromatic.optiq.prepare.OptiqPrepareImpl;
-import net.hydromatic.optiq.rules.java.*;
-import net.hydromatic.optiq.runtime.Hook;
-import net.hydromatic.optiq.runtime.SqlFunctions;
-
-import org.eigenbase.rel.RelNode;
-import org.eigenbase.rel.convert.ConverterRelImpl;
-import org.eigenbase.relopt.*;
-import org.eigenbase.reltype.RelDataType;
-import org.eigenbase.sql.SqlDialect;
-import org.eigenbase.sql.type.SqlTypeName;
+import org.apache.calcite.adapter.enumerable.EnumerableRel;
+import org.apache.calcite.adapter.enumerable.EnumerableRelImplementor;
+import org.apache.calcite.adapter.enumerable.JavaRowFormat;
+import org.apache.calcite.adapter.enumerable.PhysType;
+import org.apache.calcite.adapter.enumerable.PhysTypeImpl;
+import org.apache.calcite.adapter.java.JavaTypeFactory;
+import org.apache.calcite.linq4j.tree.BlockBuilder;
+import org.apache.calcite.linq4j.tree.Expression;
+import org.apache.calcite.linq4j.tree.Expressions;
+import org.apache.calcite.linq4j.tree.ParameterExpression;
+import org.apache.calcite.linq4j.tree.Primitive;
+import org.apache.calcite.linq4j.tree.UnaryExpression;
+import org.apache.calcite.plan.ConventionTraitDef;
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptCost;
+import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.prepare.CalcitePrepareImpl;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.convert.ConverterImpl;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.runtime.Hook;
+import org.apache.calcite.runtime.SqlFunctions;
+import org.apache.calcite.schema.Schemas;
+import org.apache.calcite.sql.SqlDialect;
+import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.util.BuiltInMethod;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -46,7 +57,7 @@ import java.util.TimeZone;
  * Relational expression representing a scan of a table in a JDBC data source.
  */
 public class JdbcToEnumerableConverter
-    extends ConverterRelImpl
+    extends ConverterImpl
     implements EnumerableRel {
   protected JdbcToEnumerableConverter(
       RelOptCluster cluster,
@@ -55,14 +66,12 @@ public class JdbcToEnumerableConverter
     super(cluster, ConventionTraitDef.INSTANCE, traits, input);
   }
 
-  @Override
-  public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
+  @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
     return new JdbcToEnumerableConverter(
         getCluster(), traitSet, sole(inputs));
   }
 
-  @Override
-  public RelOptCost computeSelfCost(RelOptPlanner planner) {
+  @Override public RelOptCost computeSelfCost(RelOptPlanner planner) {
     return super.computeSelfCost(planner).multiplyBy(.1);
   }
 
@@ -70,7 +79,7 @@ public class JdbcToEnumerableConverter
     // Generate:
     //   ResultSetEnumerable.of(schema.getDataSource(), "select ...")
     final BlockBuilder builder0 = new BlockBuilder(false);
-    final JdbcRel child = (JdbcRel) getChild();
+    final JdbcRel child = (JdbcRel) getInput();
     final PhysType physType =
         PhysTypeImpl.of(
             implementor.getTypeFactory(), getRowType(),
@@ -78,7 +87,7 @@ public class JdbcToEnumerableConverter
     final JdbcConvention jdbcConvention =
         (JdbcConvention) child.getConvention();
     String sql = generateSql(jdbcConvention.dialect);
-    if (OptiqPrepareImpl.DEBUG) {
+    if (CalcitePrepareImpl.DEBUG) {
       System.out.println("[" + sql + "]");
     }
     Hook.QUERY_PLAN.run(sql);
@@ -143,11 +152,11 @@ public class JdbcToEnumerableConverter
         builder0.append(
             "enumerable",
             Expressions.call(
-                BuiltinMethod.RESULT_SET_ENUMERABLE_OF.method,
+                BuiltInMethod.RESULT_SET_ENUMERABLE_OF.method,
                 Expressions.call(
                     Schemas.unwrap(jdbcConvention.expression,
                         JdbcSchema.class),
-                    BuiltinMethod.JDBC_SCHEMA_DATA_SOURCE.method),
+                    BuiltInMethod.JDBC_SCHEMA_DATA_SOURCE.method),
                 sql_,
                 rowBuilderFactory_));
     builder0.add(
@@ -213,7 +222,7 @@ public class JdbcToEnumerableConverter
           Expressions.call(resultSet_, jdbcGetMethod(primitive),
               Expressions.constant(i + 1)),
           java.sql.Array.class);
-      source = Expressions.call(BuiltinMethod.JDBC_ARRAY_TO_LIST.method, x);
+      source = Expressions.call(BuiltInMethod.JDBC_ARRAY_TO_LIST.method, x);
       break;
     default:
       source = Expressions.call(
@@ -230,20 +239,20 @@ public class JdbcToEnumerableConverter
     switch (sqlTypeName) {
     case DATE:
       return (nullable
-          ? BuiltinMethod.DATE_TO_INT_OPTIONAL
-          : BuiltinMethod.DATE_TO_INT).method;
+          ? BuiltInMethod.DATE_TO_INT_OPTIONAL
+          : BuiltInMethod.DATE_TO_INT).method;
     case TIME:
       return (nullable
-          ? BuiltinMethod.TIME_TO_INT_OPTIONAL
-          : BuiltinMethod.TIME_TO_INT).method;
+          ? BuiltInMethod.TIME_TO_INT_OPTIONAL
+          : BuiltInMethod.TIME_TO_INT).method;
     case TIMESTAMP:
       return (nullable
           ? (offset
-          ? BuiltinMethod.TIMESTAMP_TO_LONG_OPTIONAL_OFFSET
-          : BuiltinMethod.TIMESTAMP_TO_LONG_OPTIONAL)
+          ? BuiltInMethod.TIMESTAMP_TO_LONG_OPTIONAL_OFFSET
+          : BuiltInMethod.TIMESTAMP_TO_LONG_OPTIONAL)
           : (offset
-              ? BuiltinMethod.TIMESTAMP_TO_LONG_OFFSET
-              : BuiltinMethod.TIMESTAMP_TO_LONG)).method;
+              ? BuiltInMethod.TIMESTAMP_TO_LONG_OFFSET
+              : BuiltInMethod.TIMESTAMP_TO_LONG)).method;
     default:
       throw new AssertionError(sqlTypeName + ":" + nullable);
     }
@@ -252,11 +261,11 @@ public class JdbcToEnumerableConverter
   private Method getMethod2(SqlTypeName sqlTypeName) {
     switch (sqlTypeName) {
     case DATE:
-      return BuiltinMethod.RESULT_SET_GET_DATE2.method;
+      return BuiltInMethod.RESULT_SET_GET_DATE2.method;
     case TIME:
-      return BuiltinMethod.RESULT_SET_GET_TIME2.method;
+      return BuiltInMethod.RESULT_SET_GET_TIME2.method;
     case TIMESTAMP:
-      return BuiltinMethod.RESULT_SET_GET_TIMESTAMP2.method;
+      return BuiltInMethod.RESULT_SET_GET_TIMESTAMP2.method;
     default:
       throw new AssertionError(sqlTypeName);
     }
@@ -274,7 +283,7 @@ public class JdbcToEnumerableConverter
         new JdbcImplementor(dialect,
             (JavaTypeFactory) getCluster().getTypeFactory());
     final JdbcImplementor.Result result =
-        jdbcImplementor.visitChild(0, getChild());
+        jdbcImplementor.visitChild(0, getInput());
     return result.asQuery().toSqlString(dialect).getSql();
   }
 

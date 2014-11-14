@@ -14,35 +14,48 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel;
+package org.apache.calcite.rel;
+
+import org.apache.calcite.rel.core.Correlator;
+import org.apache.calcite.rel.core.Sort;
+import org.apache.calcite.rel.core.TableFunctionScan;
+import org.apache.calcite.rel.core.TableScan;
+import org.apache.calcite.rel.logical.LogicalAggregate;
+import org.apache.calcite.rel.logical.LogicalFilter;
+import org.apache.calcite.rel.logical.LogicalIntersect;
+import org.apache.calcite.rel.logical.LogicalJoin;
+import org.apache.calcite.rel.logical.LogicalMinus;
+import org.apache.calcite.rel.logical.LogicalProject;
+import org.apache.calcite.rel.logical.LogicalUnion;
+import org.apache.calcite.rel.logical.LogicalValues;
 
 /**
  * Visitor that has methods for the common logical relational expressions.
  */
 public interface RelShuttle {
-  RelNode visit(TableAccessRelBase scan);
+  RelNode visit(TableScan scan);
 
-  RelNode visit(TableFunctionRelBase scan);
+  RelNode visit(TableFunctionScan scan);
 
-  RelNode visit(ValuesRel values);
+  RelNode visit(LogicalValues values);
 
-  RelNode visit(FilterRel filter);
+  RelNode visit(LogicalFilter filter);
 
-  RelNode visit(ProjectRel project);
+  RelNode visit(LogicalProject project);
 
-  RelNode visit(JoinRel join);
+  RelNode visit(LogicalJoin join);
 
-  RelNode visit(CorrelatorRel correlator);
+  RelNode visit(Correlator correlator);
 
-  RelNode visit(UnionRel union);
+  RelNode visit(LogicalUnion union);
 
-  RelNode visit(IntersectRel intersect);
+  RelNode visit(LogicalIntersect intersect);
 
-  RelNode visit(MinusRel minus);
+  RelNode visit(LogicalMinus minus);
 
-  RelNode visit(AggregateRel aggregate);
+  RelNode visit(LogicalAggregate aggregate);
 
-  RelNode visit(SortRel sort);
+  RelNode visit(Sort sort);
 
   RelNode visit(RelNode other);
 }

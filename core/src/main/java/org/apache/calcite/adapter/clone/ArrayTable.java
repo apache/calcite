@@ -14,25 +14,35 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.impl.clone;
+package org.apache.calcite.adapter.clone;
 
-import net.hydromatic.linq4j.*;
-import net.hydromatic.linq4j.expressions.Primitive;
-
-import net.hydromatic.optiq.*;
-import net.hydromatic.optiq.impl.AbstractTableQueryable;
-import net.hydromatic.optiq.impl.java.AbstractQueryableTable;
-import net.hydromatic.optiq.util.BitSets;
-
-import org.eigenbase.reltype.*;
-import org.eigenbase.util.*;
+import org.apache.calcite.adapter.java.AbstractQueryableTable;
+import org.apache.calcite.linq4j.Enumerator;
+import org.apache.calcite.linq4j.Ord;
+import org.apache.calcite.linq4j.QueryProvider;
+import org.apache.calcite.linq4j.Queryable;
+import org.apache.calcite.linq4j.tree.Primitive;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rel.type.RelProtoDataType;
+import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.schema.Statistic;
+import org.apache.calcite.schema.Statistics;
+import org.apache.calcite.schema.impl.AbstractTableQueryable;
+import org.apache.calcite.util.BitSets;
+import org.apache.calcite.util.Pair;
 
 import com.google.common.base.Supplier;
 import com.google.common.collect.ImmutableList;
 
 import java.lang.reflect.Array;
 import java.lang.reflect.Type;
-import java.util.*;
+import java.util.AbstractList;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.BitSet;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * Implementation of table that reads rows from column stores, one per column.
@@ -185,8 +195,7 @@ class ArrayTable extends AbstractQueryableTable {
           cardinality);
     }
 
-    @Override
-    public String toString() {
+    @Override public String toString() {
       return "Column(representation=" + representation
           + ", value=" + representation.toString(dataSet) + ")";
     }
@@ -453,8 +462,7 @@ class ArrayTable extends AbstractQueryableTable {
     public StringDictionary() {
     }
 
-    @Override
-    public String toString() {
+    @Override public String toString() {
       return "StringDictionary()";
     }
 
@@ -591,8 +599,7 @@ class ArrayTable extends AbstractQueryableTable {
       this.signed = signed;
     }
 
-    @Override
-    public String toString() {
+    @Override public String toString() {
       return "BitSlicedPrimitiveArray(ordinal=" + ordinal
           + ", bitCount=" + bitCount
           + ", primitive=" + primitive

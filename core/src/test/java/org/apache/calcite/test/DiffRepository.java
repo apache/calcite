@@ -14,20 +14,33 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.test;
+package org.apache.calcite.test;
 
-import java.io.*;
+import org.apache.calcite.util.Util;
+import org.apache.calcite.util.XmlOutput;
+
+import org.junit.Assert;
+import org.junit.ComparisonFailure;
+import org.w3c.dom.CDATASection;
+import org.w3c.dom.Comment;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.NamedNodeMap;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
+import org.w3c.dom.Text;
+import org.xml.sax.SAXException;
+
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.Writer;
 import java.net.URL;
-import java.util.*;
-import javax.xml.parsers.*;
-
-import org.eigenbase.util.*;
-
-import org.junit.*;
-
-import org.w3c.dom.*;
-
-import org.xml.sax.*;
+import java.util.HashMap;
+import java.util.Map;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
 
 /**
  * A collection of resources used by tests.
@@ -195,8 +208,7 @@ public class DiffRepository {
       }
       this.root = doc.getDocumentElement();
       if (!root.getNodeName().equals(ROOT_TAG)) {
-        throw new RuntimeException(
-            "expected root element of type '" + ROOT_TAG
+        throw new RuntimeException("expected root element of type '" + ROOT_TAG
             + "', but found '" + root.getNodeName() + "'");
       }
     } catch (ParserConfigurationException e) {
@@ -401,10 +413,8 @@ public class DiffRepository {
     String expected2 = expand(tag, expected);
     if (expected2 == null) {
       update(testCaseName, expected, actual);
-      throw new AssertionError(
-          "reference file does not contain resource '" + expected
-          + "' for testcase '" + testCaseName
-          + "'");
+      throw new AssertionError("reference file does not contain resource '"
+          + expected + "' for testcase '" + testCaseName + "'");
     } else {
       try {
         // TODO jvs 25-Apr-2006:  reuse bulk of
@@ -600,8 +610,7 @@ public class DiffRepository {
       break;
 
     default:
-      throw new RuntimeException(
-          "unexpected node type: " + node.getNodeType()
+      throw new RuntimeException("unexpected node type: " + node.getNodeType()
           + " (" + node + ")");
     }
   }

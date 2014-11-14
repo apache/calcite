@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.relopt;
+package org.apache.calcite.plan;
+
+import org.apache.calcite.rel.type.RelDataTypeFactory;
 
 import java.util.List;
-
-import org.eigenbase.reltype.*;
 
 /**
  * A <code>RelOptSchema</code> is a set of {@link RelOptTable} objects.

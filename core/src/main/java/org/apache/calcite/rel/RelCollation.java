@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel;
+package org.apache.calcite.rel;
 
-import java.util.*;
+import org.apache.calcite.plan.RelTrait;
 
-import org.eigenbase.relopt.RelTrait;
+import java.util.List;
 
 /**
  * Description of the physical ordering of a relational expression.

@@ -14,22 +14,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql.test;
+package org.apache.calcite.sql.test;
+
+import org.apache.calcite.avatica.ColumnMetaData;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.sql.type.SqlTypeName;
 
 import java.sql.ResultSet;
 import java.sql.Types;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.regex.Pattern;
 
-import org.eigenbase.reltype.*;
-import org.eigenbase.sql.type.*;
+import static org.apache.calcite.sql.test.SqlTester.ResultChecker;
+import static org.apache.calcite.sql.test.SqlTester.TypeChecker;
 
-import net.hydromatic.avatica.ColumnMetaData;
-
-import static org.eigenbase.sql.test.SqlTester.*;
-
-import static org.hamcrest.CoreMatchers.*;
-import static org.junit.Assert.*;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 /**
  * Utility methods.
@@ -213,13 +220,11 @@ public abstract class SqlTests {
       fail("Query returned 2 or more rows, expected 1");
     }
     if (!pattern.matcher(actual).matches()) {
-      fail(
-          "Query returned '"
+      fail("Query returned '"
               + actual
               + "', expected '"
               + pattern.pattern()
-              + "'"
-      );
+              + "'");
     }
   }
 

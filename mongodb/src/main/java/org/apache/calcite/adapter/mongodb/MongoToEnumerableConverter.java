@@ -14,20 +14,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.impl.mongodb;
+package org.apache.calcite.adapter.mongodb;
 
-import net.hydromatic.linq4j.expressions.*;
-
-import net.hydromatic.optiq.BuiltinMethod;
-import net.hydromatic.optiq.prepare.OptiqPrepareImpl;
-import net.hydromatic.optiq.rules.java.*;
-import net.hydromatic.optiq.runtime.Hook;
-
-import org.eigenbase.rel.RelNode;
-import org.eigenbase.rel.convert.ConverterRelImpl;
-import org.eigenbase.relopt.*;
-import org.eigenbase.reltype.RelDataType;
-import org.eigenbase.util.Pair;
+import org.apache.calcite.adapter.enumerable.EnumerableRel;
+import org.apache.calcite.adapter.enumerable.EnumerableRelImplementor;
+import org.apache.calcite.adapter.enumerable.JavaRowFormat;
+import org.apache.calcite.adapter.enumerable.PhysType;
+import org.apache.calcite.adapter.enumerable.PhysTypeImpl;
+import org.apache.calcite.linq4j.tree.BlockBuilder;
+import org.apache.calcite.linq4j.tree.Expression;
+import org.apache.calcite.linq4j.tree.Expressions;
+import org.apache.calcite.linq4j.tree.MethodCallExpression;
+import org.apache.calcite.plan.ConventionTraitDef;
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptCost;
+import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.prepare.CalcitePrepareImpl;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.convert.ConverterImpl;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.runtime.Hook;
+import org.apache.calcite.util.BuiltInMethod;
+import org.apache.calcite.util.Pair;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
@@ -39,7 +48,7 @@ import java.util.List;
  * Relational expression representing a scan of a table in a Mongo data source.
  */
 public class MongoToEnumerableConverter
-    extends ConverterRelImpl
+    extends ConverterImpl
     implements EnumerableRel {
   protected MongoToEnumerableConverter(
       RelOptCluster cluster,
@@ -48,14 +57,12 @@ public class MongoToEnumerableConverter
     super(cluster, ConventionTraitDef.INSTANCE, traits, input);
   }
 
-  @Override
-  public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
+  @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
     return new MongoToEnumerableConverter(
         getCluster(), traitSet, sole(inputs));
   }
 
-  @Override
-  public RelOptCost computeSelfCost(RelOptPlanner planner) {
+  @Override public RelOptCost computeSelfCost(RelOptPlanner planner) {
     return super.computeSelfCost(planner).multiplyBy(.1);
   }
 
@@ -72,7 +79,7 @@ public class MongoToEnumerableConverter
     //     "{$group: {_id: '$city', c: {$sum: 1}, p: {$sum: "$pop"}}")
     final BlockBuilder list = new BlockBuilder();
     final MongoRel.Implementor mongoImplementor = new MongoRel.Implementor();
-    mongoImplementor.visitChild(0, getChild());
+    mongoImplementor.visitChild(0, getInput());
     int aggCount = 0;
     int findCount = 0;
     String project = null;
@@ -121,7 +128,7 @@ public class MongoToEnumerableConverter
         list.append("enumerable",
             Expressions.call(table,
                 MongoMethod.MONGO_QUERYABLE_AGGREGATE.method, fields, ops));
-    if (OptiqPrepareImpl.DEBUG) {
+    if (CalcitePrepareImpl.DEBUG) {
       System.out.println("Mongo: " + opList);
     }
     Hook.QUERY_PLAN.run(opList);
@@ -135,7 +142,7 @@ public class MongoToEnumerableConverter
   private static <T> MethodCallExpression constantArrayList(List<T> values,
       Class clazz) {
     return Expressions.call(
-        BuiltinMethod.ARRAYS_AS_LIST.method,
+        BuiltInMethod.ARRAYS_AS_LIST.method,
         Expressions.newArrayInit(clazz, constantList(values)));
   }
 

@@ -14,53 +14,56 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel.rules;
+package org.apache.calcite.rel.rules;
 
-import org.eigenbase.rel.*;
-import org.eigenbase.relopt.*;
+import org.apache.calcite.plan.RelOptRule;
+import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.rel.logical.LogicalFilter;
 
 /**
- * PushFilterIntoMultiJoinRule implements the rule for pushing a {@link
- * FilterRel} into a {@link MultiJoinRel}.
+ * Planner rule that merges a
+ * {@link org.apache.calcite.rel.logical.LogicalFilter}
+ * into a {@link MultiJoin},
+ * creating a richer {@code MultiJoin}.
+ *
+ * @see org.apache.calcite.rel.rules.ProjectMultiJoinMergeRule
  */
-public class PushFilterIntoMultiJoinRule extends RelOptRule {
-  public static final PushFilterIntoMultiJoinRule INSTANCE =
-      new PushFilterIntoMultiJoinRule();
+public class FilterMultiJoinMergeRule extends RelOptRule {
+  public static final FilterMultiJoinMergeRule INSTANCE =
+      new FilterMultiJoinMergeRule();
 
   //~ Constructors -----------------------------------------------------------
 
   /**
-   * Creates a PushFilterIntoMultiJoinRule.
+   * Creates a FilterMultiJoinMergeRule.
    */
-  private PushFilterIntoMultiJoinRule() {
+  private FilterMultiJoinMergeRule() {
     super(
-        operand(
-            FilterRel.class,
-            operand(MultiJoinRel.class, any())));
+        operand(LogicalFilter.class,
+            operand(MultiJoin.class, any())));
   }
 
   //~ Methods ----------------------------------------------------------------
 
-  // implement RelOptRule
   public void onMatch(RelOptRuleCall call) {
-    FilterRel filterRel = call.rel(0);
-    MultiJoinRel multiJoinRel = call.rel(1);
+    LogicalFilter filter = call.rel(0);
+    MultiJoin multiJoin = call.rel(1);
 
-    MultiJoinRel newMultiJoinRel =
-        new MultiJoinRel(
-            multiJoinRel.getCluster(),
-            multiJoinRel.getInputs(),
-            multiJoinRel.getJoinFilter(),
-            multiJoinRel.getRowType(),
-            multiJoinRel.isFullOuterJoin(),
-            multiJoinRel.getOuterJoinConditions(),
-            multiJoinRel.getJoinTypes(),
-            multiJoinRel.getProjFields(),
-            multiJoinRel.getJoinFieldRefCountsMap(),
-            filterRel.getCondition());
+    MultiJoin newMultiJoin =
+        new MultiJoin(
+            multiJoin.getCluster(),
+            multiJoin.getInputs(),
+            multiJoin.getJoinFilter(),
+            multiJoin.getRowType(),
+            multiJoin.isFullOuterJoin(),
+            multiJoin.getOuterJoinConditions(),
+            multiJoin.getJoinTypes(),
+            multiJoin.getProjFields(),
+            multiJoin.getJoinFieldRefCountsMap(),
+            filter.getCondition());
 
-    call.transformTo(newMultiJoinRel);
+    call.transformTo(newMultiJoin);
   }
 }
 
-// End PushFilterIntoMultiJoinRule.java
+// End FilterMultiJoinMergeRule.java

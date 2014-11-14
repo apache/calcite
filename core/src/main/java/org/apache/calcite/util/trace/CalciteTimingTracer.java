@@ -14,17 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.trace;
+package org.apache.calcite.util.trace;
 
-import java.text.*;
-
-import java.util.logging.*;
+import java.text.DecimalFormat;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
- * EigenbaseTimingTracer provides a mechanism for tracing the timing of a call
+ * CalciteTimingTracer provides a mechanism for tracing the timing of a call
  * sequence at nanosecond resolution.
  */
-public class EigenbaseTimingTracer {
+public class CalciteTimingTracer {
   //~ Static fields/initializers ---------------------------------------------
 
   private static final DecimalFormat DECIMAL_FORMAT =
@@ -46,7 +46,7 @@ public class EigenbaseTimingTracer {
    *                   used
    * @param startEvent event to trace as start of timing
    */
-  public EigenbaseTimingTracer(
+  public CalciteTimingTracer(
       Logger logger,
       String startEvent) {
     if (!logger.isLoggable(Level.FINE)) {
@@ -78,4 +78,4 @@ public class EigenbaseTimingTracer {
   }
 }
 
-// End EigenbaseTimingTracer.java
+// End CalciteTimingTracer.java

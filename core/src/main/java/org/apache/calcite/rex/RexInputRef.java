@@ -14,13 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rex;
+package org.apache.calcite.rex;
+
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.util.Pair;
 
 import java.util.List;
-
-import org.eigenbase.reltype.*;
-import org.eigenbase.sql.SqlKind;
-import org.eigenbase.util.Pair;
 
 /**
  * Variable which references a field of an input relational expression.
@@ -93,8 +94,7 @@ public class RexInputRef extends RexSlot {
         field.getName());
   }
 
-  @Override
-  public SqlKind getKind() {
+  @Override public SqlKind getKind() {
     return SqlKind.INPUT_REF;
   }
 

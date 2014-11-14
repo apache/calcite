@@ -14,22 +14,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql.advise;
+package org.apache.calcite.sql.advise;
+
+import org.apache.calcite.sql.validate.SqlMoniker;
 
 import java.util.List;
 
-import org.eigenbase.sql.validate.SqlMoniker;
-
 /**
- * This class is used to return values for {@link SqlAdvisor#getCompletionHints
- * (String, int, String[])}.
+ * This class is used to return values for
+ * {@link SqlAdvisor#getCompletionHints (String, int, String[])}.
  */
 public class SqlAdvisorHint {
   /** Fully qualified object name as string. */
   public final String id;
   /** Fully qualified object name as array of names. */
   public final String[] names;
-  /** One of {@link org.eigenbase.sql.validate.SqlMonikerType}. */
+  /** One of {@link org.apache.calcite.sql.validate.SqlMonikerType}. */
   public final String type;
 
   public SqlAdvisorHint(String id, String[] names, String type) {
@@ -47,3 +47,5 @@ public class SqlAdvisorHint {
     type = id.getType().name();
   }
 }
+
+// End SqlAdvisorHint.java

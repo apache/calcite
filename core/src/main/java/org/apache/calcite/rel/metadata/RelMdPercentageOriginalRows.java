@@ -14,17 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel.metadata;
+package org.apache.calcite.rel.metadata;
 
-import java.util.*;
-
-import org.eigenbase.rel.*;
-import org.eigenbase.relopt.*;
-
-import net.hydromatic.optiq.BuiltinMethod;
-import net.hydromatic.optiq.rules.java.JavaRules;
+import org.apache.calcite.adapter.enumerable.EnumerableInterpreter;
+import org.apache.calcite.plan.RelOptCost;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.Aggregate;
+import org.apache.calcite.rel.core.Join;
+import org.apache.calcite.rel.core.Union;
+import org.apache.calcite.util.BuiltInMethod;
 
 import com.google.common.collect.ImmutableList;
+
+import java.util.List;
 
 /**
  * RelMdPercentageOriginalRows supplies a default implementation of
@@ -39,28 +41,28 @@ public class RelMdPercentageOriginalRows {
       ChainedRelMetadataProvider.of(
           ImmutableList.of(
               ReflectiveRelMetadataProvider.reflectiveSource(
-                  BuiltinMethod.PERCENTAGE_ORIGINAL_ROWS.method, INSTANCE),
+                  BuiltInMethod.PERCENTAGE_ORIGINAL_ROWS.method, INSTANCE),
 
               ReflectiveRelMetadataProvider.reflectiveSource(
-                  BuiltinMethod.CUMULATIVE_COST.method, INSTANCE),
+                  BuiltInMethod.CUMULATIVE_COST.method, INSTANCE),
 
               ReflectiveRelMetadataProvider.reflectiveSource(
-                  BuiltinMethod.NON_CUMULATIVE_COST.method, INSTANCE)));
+                  BuiltInMethod.NON_CUMULATIVE_COST.method, INSTANCE)));
 
   //~ Methods ----------------------------------------------------------------
 
   private RelMdPercentageOriginalRows() {}
 
-  public Double getPercentageOriginalRows(AggregateRelBase rel) {
+  public Double getPercentageOriginalRows(Aggregate rel) {
     // REVIEW jvs 28-Mar-2006: The assumption here seems to be that
     // aggregation does not apply any filtering, so it does not modify the
     // percentage.  That's very much oversimplified.
 
     return RelMetadataQuery.getPercentageOriginalRows(
-        rel.getChild());
+        rel.getInput());
   }
 
-  public Double getPercentageOriginalRows(UnionRelBase rel) {
+  public Double getPercentageOriginalRows(Union rel) {
     double numerator = 0.0;
     double denominator = 0.0;
 
@@ -87,14 +89,14 @@ public class RelMdPercentageOriginalRows {
     return quotientForPercentage(numerator, denominator);
   }
 
-  public Double getPercentageOriginalRows(JoinRelBase rel) {
+  public Double getPercentageOriginalRows(Join rel) {
     // Assume any single-table filter conditions have already
     // been pushed down.
 
     // REVIEW jvs 28-Mar-2006: As with aggregation, this is
     // oversimplified.
 
-    // REVIEW jvs 28-Mar-2006:  need any special casing for SemiJoinRel?
+    // REVIEW jvs 28-Mar-2006:  need any special casing for SemiJoin?
 
     double left = RelMetadataQuery.getPercentageOriginalRows(rel.getLeft());
 
@@ -154,7 +156,7 @@ public class RelMdPercentageOriginalRows {
     return cost;
   }
 
-  public RelOptCost getCumulativeCost(JavaRules.EnumerableInterpreterRel rel) {
+  public RelOptCost getCumulativeCost(EnumerableInterpreter rel) {
     return RelMetadataQuery.getNonCumulativeCost(rel);
   }
 

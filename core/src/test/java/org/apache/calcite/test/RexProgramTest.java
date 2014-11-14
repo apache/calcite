@@ -14,22 +14,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.test;
+package org.apache.calcite.test;
 
-import java.math.BigDecimal;
-import java.util.*;
-
-import org.eigenbase.relopt.Strong;
-import org.eigenbase.reltype.*;
-import org.eigenbase.rex.*;
-import org.eigenbase.sql.fun.SqlStdOperatorTable;
-import org.eigenbase.sql.type.SqlTypeName;
-import org.eigenbase.util.*;
-
-import net.hydromatic.optiq.impl.java.JavaTypeFactory;
-import net.hydromatic.optiq.jdbc.JavaTypeFactoryImpl;
-import net.hydromatic.optiq.test.OptiqAssert;
-import net.hydromatic.optiq.util.BitSets;
+import org.apache.calcite.adapter.java.JavaTypeFactory;
+import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
+import org.apache.calcite.plan.Strong;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rel.type.RelDataTypeSystem;
+import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexDynamicParam;
+import org.apache.calcite.rex.RexInputRef;
+import org.apache.calcite.rex.RexLiteral;
+import org.apache.calcite.rex.RexLocalRef;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexProgram;
+import org.apache.calcite.rex.RexProgramBuilder;
+import org.apache.calcite.rex.RexUtil;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.util.BitSets;
+import org.apache.calcite.util.TestUtil;
+import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
@@ -37,13 +44,18 @@ import com.google.common.collect.Lists;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.math.BigDecimal;
+import java.util.Arrays;
+import java.util.BitSet;
+import java.util.List;
+
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 
 /**
  * Unit tests for {@link RexProgram} and
- * {@link org.eigenbase.rex.RexProgramBuilder}.
+ * {@link org.apache.calcite.rex.RexProgramBuilder}.
  */
 public class RexProgramTest {
   //~ Instance fields --------------------------------------------------------
@@ -126,8 +138,8 @@ public class RexProgramTest {
     final String programString = program.toString();
     TestUtil.assertEqualsVerbose(
         "(expr#0..1=[{inputs}], expr#2=[+($0, 1)], expr#3=[77], "
-        + "expr#4=[+($0, $1)], expr#5=[+($0, $0)], expr#6=[+($t4, $t2)], "
-        + "a=[$t6], b=[$t5])",
+            + "expr#4=[+($0, $1)], expr#5=[+($0, $0)], expr#6=[+($t4, $t2)], "
+            + "a=[$t6], b=[$t5])",
         programString);
 
     // Normalize the program using the RexProgramBuilder.normalize API.
@@ -140,8 +152,8 @@ public class RexProgramTest {
     final String normalizedProgramString = normalizedProgram.toString();
     TestUtil.assertEqualsVerbose(
         "(expr#0..1=[{inputs}], expr#2=[+($t0, $t1)], expr#3=[1], "
-        + "expr#4=[+($t0, $t3)], expr#5=[+($t2, $t4)], "
-        + "expr#6=[+($t0, $t0)], a=[$t5], b=[$t6])",
+            + "expr#4=[+($t0, $t3)], expr#5=[+($t2, $t4)], "
+            + "expr#6=[+($t0, $t0)], a=[$t5], b=[$t6])",
         normalizedProgramString);
   }
 
@@ -166,8 +178,8 @@ public class RexProgramTest {
     final String unnormalizedProgram = builder.getProgram(false).toString();
     TestUtil.assertEqualsVerbose(
         "(expr#0..1=[{inputs}], expr#2=[+($0, 1)], expr#3=[77], "
-        + "expr#4=[+($0, $1)], expr#5=[+($0, 1)], expr#6=[+($0, $t5)], "
-        + "expr#7=[+($t4, $t2)], a=[$t7], b=[$t6])",
+            + "expr#4=[+($0, $1)], expr#5=[+($0, 1)], expr#6=[+($0, $t5)], "
+            + "expr#7=[+($t4, $t2)], a=[$t7], b=[$t6])",
         unnormalizedProgram);
 
     // normalize eliminates duplicates (specifically "+($0, $1)")
@@ -175,8 +187,8 @@ public class RexProgramTest {
     final String program2 = builder2.getProgram(true).toString();
     TestUtil.assertEqualsVerbose(
         "(expr#0..1=[{inputs}], expr#2=[+($t0, $t1)], expr#3=[1], "
-        + "expr#4=[+($t0, $t3)], expr#5=[+($t2, $t4)], "
-        + "expr#6=[+($t0, $t4)], a=[$t5], b=[$t6])",
+            + "expr#4=[+($t0, $t3)], expr#5=[+($t2, $t4)], "
+            + "expr#6=[+($t0, $t4)], a=[$t5], b=[$t6])",
         program2);
   }
 
@@ -191,10 +203,10 @@ public class RexProgramTest {
     final String program = builder.getProgram(true).toString();
     TestUtil.assertEqualsVerbose(
         "(expr#0..1=[{inputs}], expr#2=[+($t0, $t1)], expr#3=[1], "
-        + "expr#4=[+($t0, $t3)], expr#5=[+($t2, $t4)], "
-        + "expr#6=[+($t0, $t0)], expr#7=[>($t2, $t0)], "
-        + "expr#8=[AND($t7, $t7)], expr#9=[AND($t8, $t7)], "
-        + "a=[$t5], b=[$t6], $condition=[$t9])",
+            + "expr#4=[+($t0, $t3)], expr#5=[+($t2, $t4)], "
+            + "expr#6=[+($t0, $t0)], expr#7=[>($t2, $t0)], "
+            + "expr#8=[AND($t7, $t7)], expr#9=[AND($t8, $t7)], "
+            + "a=[$t5], b=[$t6], $condition=[$t9])",
         program);
   }
 
@@ -314,7 +326,7 @@ public class RexProgramTest {
     return Strong.is(e, b);
   }
 
-  /** Unit test for {@link org.eigenbase.relopt.Strong}. */
+  /** Unit test for {@link org.apache.calcite.plan.Strong}. */
   @Test public void testStrong() {
     final RelDataType intType = typeFactory.createSqlType(SqlTypeName.INTEGER);
 
@@ -362,7 +374,7 @@ public class RexProgramTest {
     assertThat(strongIf(andFalseTrue, c), is(false));
   }
 
-  /** Unit test for {@link org.eigenbase.rex.RexUtil#toCnf}. */
+  /** Unit test for {@link org.apache.calcite.rex.RexUtil#toCnf}. */
   @Test public void testCnf() {
     final RelDataType booleanType =
         typeFactory.createSqlType(SqlTypeName.BOOLEAN);
@@ -478,40 +490,40 @@ public class RexProgramTest {
                 eq(aRef, literal3),
                 eq(bRef, literal3))),
         "AND("
-        + "OR(=(?0.x, 1), =(?0.x, 2), =(?0.x, 3)), "
-        + "OR(=(?0.x, 1), =(?0.x, 2), =(?0.a, 3)), "
-        + "OR(=(?0.x, 1), =(?0.x, 2), =(?0.b, 3)), "
-        + "OR(=(?0.x, 1), =(?0.y, 2), =(?0.x, 3)), "
-        + "OR(=(?0.x, 1), =(?0.y, 2), =(?0.a, 3)), "
-        + "OR(=(?0.x, 1), =(?0.y, 2), =(?0.b, 3)), "
-        + "OR(=(?0.x, 1), =(?0.a, 2), =(?0.x, 3)), "
-        + "OR(=(?0.x, 1), =(?0.a, 2), =(?0.a, 3)), "
-        + "OR(=(?0.x, 1), =(?0.a, 2), =(?0.b, 3)), "
-        + "OR(=(?0.y, 1), =(?0.x, 2), =(?0.x, 3)), "
-        + "OR(=(?0.y, 1), =(?0.x, 2), =(?0.a, 3)), "
-        + "OR(=(?0.y, 1), =(?0.x, 2), =(?0.b, 3)), "
-        + "OR(=(?0.y, 1), =(?0.y, 2), =(?0.x, 3)), "
-        + "OR(=(?0.y, 1), =(?0.y, 2), =(?0.a, 3)), "
-        + "OR(=(?0.y, 1), =(?0.y, 2), =(?0.b, 3)), "
-        + "OR(=(?0.y, 1), =(?0.a, 2), =(?0.x, 3)), "
-        + "OR(=(?0.y, 1), =(?0.a, 2), =(?0.a, 3)), "
-        + "OR(=(?0.y, 1), =(?0.a, 2), =(?0.b, 3)), "
-        + "OR(=(?0.z, 1), =(?0.x, 2), =(?0.x, 3)), "
-        + "OR(=(?0.z, 1), =(?0.x, 2), =(?0.a, 3)), "
-        + "OR(=(?0.z, 1), =(?0.x, 2), =(?0.b, 3)), "
-        + "OR(=(?0.z, 1), =(?0.y, 2), =(?0.x, 3)), "
-        + "OR(=(?0.z, 1), =(?0.y, 2), =(?0.a, 3)), "
-        + "OR(=(?0.z, 1), =(?0.y, 2), =(?0.b, 3)), "
-        + "OR(=(?0.z, 1), =(?0.a, 2), =(?0.x, 3)), "
-        + "OR(=(?0.z, 1), =(?0.a, 2), =(?0.a, 3)), "
-        + "OR(=(?0.z, 1), =(?0.a, 2), =(?0.b, 3)))");
+            + "OR(=(?0.x, 1), =(?0.x, 2), =(?0.x, 3)), "
+            + "OR(=(?0.x, 1), =(?0.x, 2), =(?0.a, 3)), "
+            + "OR(=(?0.x, 1), =(?0.x, 2), =(?0.b, 3)), "
+            + "OR(=(?0.x, 1), =(?0.y, 2), =(?0.x, 3)), "
+            + "OR(=(?0.x, 1), =(?0.y, 2), =(?0.a, 3)), "
+            + "OR(=(?0.x, 1), =(?0.y, 2), =(?0.b, 3)), "
+            + "OR(=(?0.x, 1), =(?0.a, 2), =(?0.x, 3)), "
+            + "OR(=(?0.x, 1), =(?0.a, 2), =(?0.a, 3)), "
+            + "OR(=(?0.x, 1), =(?0.a, 2), =(?0.b, 3)), "
+            + "OR(=(?0.y, 1), =(?0.x, 2), =(?0.x, 3)), "
+            + "OR(=(?0.y, 1), =(?0.x, 2), =(?0.a, 3)), "
+            + "OR(=(?0.y, 1), =(?0.x, 2), =(?0.b, 3)), "
+            + "OR(=(?0.y, 1), =(?0.y, 2), =(?0.x, 3)), "
+            + "OR(=(?0.y, 1), =(?0.y, 2), =(?0.a, 3)), "
+            + "OR(=(?0.y, 1), =(?0.y, 2), =(?0.b, 3)), "
+            + "OR(=(?0.y, 1), =(?0.a, 2), =(?0.x, 3)), "
+            + "OR(=(?0.y, 1), =(?0.a, 2), =(?0.a, 3)), "
+            + "OR(=(?0.y, 1), =(?0.a, 2), =(?0.b, 3)), "
+            + "OR(=(?0.z, 1), =(?0.x, 2), =(?0.x, 3)), "
+            + "OR(=(?0.z, 1), =(?0.x, 2), =(?0.a, 3)), "
+            + "OR(=(?0.z, 1), =(?0.x, 2), =(?0.b, 3)), "
+            + "OR(=(?0.z, 1), =(?0.y, 2), =(?0.x, 3)), "
+            + "OR(=(?0.z, 1), =(?0.y, 2), =(?0.a, 3)), "
+            + "OR(=(?0.z, 1), =(?0.y, 2), =(?0.b, 3)), "
+            + "OR(=(?0.z, 1), =(?0.a, 2), =(?0.x, 3)), "
+            + "OR(=(?0.z, 1), =(?0.a, 2), =(?0.a, 3)), "
+            + "OR(=(?0.z, 1), =(?0.a, 2), =(?0.b, 3)))");
   }
 
   /** Tests formulas of various sizes whose size is exponential when converted
    * to CNF. */
   @Test public void testCnfExponential() {
     // run out of memory if limit is higher than about 20
-    final int limit = OptiqAssert.ENABLE_SLOW ? 16 : 6;
+    final int limit = CalciteAssert.ENABLE_SLOW ? 16 : 6;
     for (int i = 2; i < limit; i++) {
       checkExponentialCnf(i);
     }
@@ -538,15 +550,14 @@ public class RexProgramTest {
     assertThat((n + 1) * (int) Math.pow(2, n) + 1, equalTo(nodeCount));
     if (n == 3) {
       assertThat(cnf.toString(),
-          equalTo(
-              "AND(OR(?0.x0, ?0.x1, ?0.x2), OR(?0.x0, ?0.x1, ?0.y2),"
+          equalTo("AND(OR(?0.x0, ?0.x1, ?0.x2), OR(?0.x0, ?0.x1, ?0.y2),"
               + " OR(?0.x0, ?0.y1, ?0.x2), OR(?0.x0, ?0.y1, ?0.y2),"
               + " OR(?0.y0, ?0.x1, ?0.x2), OR(?0.y0, ?0.x1, ?0.y2),"
               + " OR(?0.y0, ?0.y1, ?0.x2), OR(?0.y0, ?0.y1, ?0.y2))"));
     }
   }
 
-  /** Unit test for {@link org.eigenbase.rex.RexUtil#pullFactors}. */
+  /** Unit test for {@link org.apache.calcite.rex.RexUtil#pullFactors}. */
   @Test public void testPullFactors() {
     final RelDataType booleanType =
         typeFactory.createSqlType(SqlTypeName.BOOLEAN);

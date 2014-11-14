@@ -14,26 +14,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.resource;
+package org.apache.calcite.runtime;
 
-import org.eigenbase.sql.validate.SqlValidatorException;
-import org.eigenbase.util.EigenbaseContextException;
-import org.eigenbase.util.EigenbaseException;
+import org.apache.calcite.sql.validate.SqlValidatorException;
 
-import static org.eigenbase.resource.Resources.*;
+import static org.apache.calcite.runtime.Resources.BaseMessage;
+import static org.apache.calcite.runtime.Resources.ExInst;
+import static org.apache.calcite.runtime.Resources.ExInstWithCause;
+import static org.apache.calcite.runtime.Resources.Inst;
+import static org.apache.calcite.runtime.Resources.Property;
 
 /**
- * Compiler-checked resources for the Eigenbase project.
+ * Compiler-checked resources for the Calcite project.
  */
-public interface EigenbaseNewResource {
+public interface CalciteResource {
   @BaseMessage("line {0,number,#}, column {1,number,#}")
   Inst parserContext(int a0, int a1);
 
   @BaseMessage("Illegal {0} literal {1}: {2}")
-  ExInst<EigenbaseException> illegalLiteral(String a0, String a1, String a2);
+  ExInst<CalciteException> illegalLiteral(String a0, String a1, String a2);
 
   @BaseMessage("Length of identifier ''{0}'' must be less than or equal to {1,number,#} characters")
-  ExInst<EigenbaseException> identifierTooLong(String a0, int a1);
+  ExInst<CalciteException> identifierTooLong(String a0, int a1);
 
   @BaseMessage("not in format ''{0}''")
   Inst badFormat(String a0);
@@ -43,53 +45,53 @@ public interface EigenbaseNewResource {
 
   @BaseMessage("Illegal INTERVAL literal {0}; at {1}")
   @Property(name = "SQLSTATE", value = "42000")
-  ExInst<EigenbaseException> illegalIntervalLiteral(String a0, String a1);
+  ExInst<CalciteException> illegalIntervalLiteral(String a0, String a1);
 
   @BaseMessage("Illegal expression. Was expecting \"(DATETIME - DATETIME) INTERVALQUALIFIER\"")
-  ExInst<EigenbaseException> illegalMinusDate();
+  ExInst<CalciteException> illegalMinusDate();
 
   @BaseMessage("Illegal overlaps expression. Was expecting expression on the form \"(DATETIME, EXPRESSION) OVERLAPS (DATETIME, EXPRESSION)\"")
-  ExInst<EigenbaseException> illegalOverlaps();
+  ExInst<CalciteException> illegalOverlaps();
 
   @BaseMessage("Non-query expression encountered in illegal context")
-  ExInst<EigenbaseException> illegalNonQueryExpression();
+  ExInst<CalciteException> illegalNonQueryExpression();
 
   @BaseMessage("Query expression encountered in illegal context")
-  ExInst<EigenbaseException> illegalQueryExpression();
+  ExInst<CalciteException> illegalQueryExpression();
 
   @BaseMessage("CURSOR expression encountered in illegal context")
-  ExInst<EigenbaseException> illegalCursorExpression();
+  ExInst<CalciteException> illegalCursorExpression();
 
   @BaseMessage("ORDER BY unexpected")
-  ExInst<EigenbaseException> illegalOrderBy();
+  ExInst<CalciteException> illegalOrderBy();
 
   @BaseMessage("Illegal binary string {0}")
-  ExInst<EigenbaseException> illegalBinaryString(String a0);
+  ExInst<CalciteException> illegalBinaryString(String a0);
 
   @BaseMessage("''FROM'' without operands preceding it is illegal")
-  ExInst<EigenbaseException> illegalFromEmpty();
+  ExInst<CalciteException> illegalFromEmpty();
 
   @BaseMessage("ROW expression encountered in illegal context")
-  ExInst<EigenbaseException> illegalRowExpression();
+  ExInst<CalciteException> illegalRowExpression();
 
   @BaseMessage("TABLESAMPLE percentage must be between 0 and 100, inclusive")
   @Property(name = "SQLSTATE", value = "2202H")
-  ExInst<EigenbaseException> invalidSampleSize();
+  ExInst<CalciteException> invalidSampleSize();
 
   @BaseMessage("Unknown character set ''{0}''")
-  ExInst<EigenbaseException> unknownCharacterSet(String a0);
+  ExInst<CalciteException> unknownCharacterSet(String a0);
 
   @BaseMessage("Failed to encode ''{0}'' in character set ''{1}''")
-  ExInst<EigenbaseException> charsetEncoding(String a0, String a1);
+  ExInst<CalciteException> charsetEncoding(String a0, String a1);
 
   @BaseMessage("UESCAPE ''{0}'' must be exactly one character")
-  ExInst<EigenbaseException> unicodeEscapeCharLength(String a0);
+  ExInst<CalciteException> unicodeEscapeCharLength(String a0);
 
   @BaseMessage("UESCAPE ''{0}'' may not be hex digit, whitespace, plus sign, or double quote")
-  ExInst<EigenbaseException> unicodeEscapeCharIllegal(String a0);
+  ExInst<CalciteException> unicodeEscapeCharIllegal(String a0);
 
   @BaseMessage("UESCAPE cannot be specified without Unicode literal introducer")
-  ExInst<EigenbaseException> unicodeEscapeUnexpected();
+  ExInst<CalciteException> unicodeEscapeUnexpected();
 
   @BaseMessage("Unicode escape sequence starting at character {0,number,#} is not exactly four hex digits")
   ExInst<SqlValidatorException> unicodeEscapeMalformed(int a0);
@@ -101,11 +103,11 @@ public interface EigenbaseNewResource {
   ExInst<SqlValidatorException> invalidArgCount(String a0, int a1);
 
   @BaseMessage("At line {0,number,#}, column {1,number,#}")
-  ExInstWithCause<EigenbaseContextException> validatorContextPoint(int a0,
+  ExInstWithCause<CalciteContextException> validatorContextPoint(int a0,
       int a1);
 
   @BaseMessage("From line {0,number,#}, column {1,number,#} to line {2,number,#}, column {3,number,#}")
-  ExInstWithCause<EigenbaseContextException> validatorContext(int a0, int a1,
+  ExInstWithCause<CalciteContextException> validatorContext(int a0, int a1,
       int a2,
       int a3);
 
@@ -186,11 +188,11 @@ public interface EigenbaseNewResource {
   ExInst<SqlValidatorException> illegalMixingOfTypes();
 
   @BaseMessage("Invalid compare. Comparing (collation, coercibility): ({0}, {1} with ({2}, {3}) is illegal")
-  ExInst<EigenbaseException> invalidCompare(String a0, String a1, String a2,
+  ExInst<CalciteException> invalidCompare(String a0, String a1, String a2,
       String a3);
 
   @BaseMessage("Invalid syntax. Two explicit different collations ({0}, {1}) are illegal")
-  ExInst<EigenbaseException> differentCollations(String a0, String a1);
+  ExInst<CalciteException> differentCollations(String a0, String a1);
 
   @BaseMessage("{0} is not comparable to {1}")
   ExInst<SqlValidatorException> typeNotComparable(String a0, String a1);
@@ -402,7 +404,7 @@ public interface EigenbaseNewResource {
   ExInst<SqlValidatorException> duplicateNameInColumnList(String a0);
 
   @BaseMessage("Internal error: {0}")
-  ExInst<EigenbaseException> internal(String a0);
+  ExInst<CalciteException> internal(String a0);
 
   @BaseMessage("Argument to function ''{0}'' must be a literal")
   ExInst<SqlValidatorException> argumentMustBeLiteral(String a0);
@@ -411,10 +413,10 @@ public interface EigenbaseNewResource {
   ExInst<SqlValidatorException> argumentMustBePositiveInteger(String a0);
 
   @BaseMessage("Validation Error: {0}")
-  ExInst<EigenbaseException> validationError(String a0);
+  ExInst<CalciteException> validationError(String a0);
 
   @BaseMessage("Locale ''{0}'' in an illegal format")
-  ExInst<EigenbaseException> illegalLocaleFormat(String a0);
+  ExInst<CalciteException> illegalLocaleFormat(String a0);
 
   @BaseMessage("Argument to function ''{0}'' must not be NULL")
   ExInst<SqlValidatorException> argumentMustNotBeNull(String a0);
@@ -426,27 +428,27 @@ public interface EigenbaseNewResource {
   ExInst<SqlValidatorException> dynamicParamIllegal();
 
   @BaseMessage("''{0}'' is not a valid boolean value")
-  ExInst<EigenbaseException> invalidBoolean(String a0);
+  ExInst<CalciteException> invalidBoolean(String a0);
 
   @BaseMessage("Argument to function ''{0}'' must be a valid precision between ''{1,number,#}'' and ''{2,number,#}''")
   ExInst<SqlValidatorException> argumentMustBeValidPrecision(String a0, int a1,
       int a2);
 
   @BaseMessage("Wrong arguments for table function ''{0}'' call. Expected ''{1}'', actual ''{2}''")
-  ExInst<EigenbaseException> illegalArgumentForTableFunctionCall(String a0,
+  ExInst<CalciteException> illegalArgumentForTableFunctionCall(String a0,
       String a1, String a2);
 
   @BaseMessage("''{0}'' is not a valid datetime format")
-  ExInst<EigenbaseException> invalidDatetimeFormat(String a0);
+  ExInst<CalciteException> invalidDatetimeFormat(String a0);
 
   @BaseMessage("Cannot explicitly insert value into IDENTITY column ''{0}'' which is ALWAYS GENERATED")
-  ExInst<EigenbaseException> insertIntoAlwaysGenerated(String a0);
+  ExInst<CalciteException> insertIntoAlwaysGenerated(String a0);
 
   @BaseMessage("Argument to function ''{0}'' must have a scale of 0")
-  ExInst<EigenbaseException> argumentMustHaveScaleZero(String a0);
+  ExInst<CalciteException> argumentMustHaveScaleZero(String a0);
 
   @BaseMessage("Statement preparation aborted")
-  ExInst<EigenbaseException> preparationAborted();
+  ExInst<CalciteException> preparationAborted();
 
   @BaseMessage("SELECT DISTINCT not supported")
   @Property(name = "FeatureDefinition", value = "SQL:2003 Part 2 Annex F")
@@ -482,7 +484,7 @@ public interface EigenbaseNewResource {
 
   @BaseMessage("Execution of a new autocommit statement while a cursor is still open on same connection is not supported")
   @Property(name = "FeatureDefinition", value = "Eigenbase-defined")
-  ExInst<EigenbaseException>
+  ExInst<CalciteException>
   sQLConformance_MultipleActiveAutocommitStatements();
 
   @BaseMessage("Descending sort (ORDER BY DESC) not supported")
@@ -491,7 +493,7 @@ public interface EigenbaseNewResource {
 
   @BaseMessage("Sharing of cached statement plans not supported")
   @Property(name = "FeatureDefinition", value = "Eigenbase-defined")
-  ExInst<EigenbaseException> sharedStatementPlans();
+  ExInst<CalciteException> sharedStatementPlans();
 
   @BaseMessage("TABLESAMPLE SUBSTITUTE not supported")
   @Property(name = "FeatureDefinition", value = "Eigenbase-defined")
@@ -499,15 +501,15 @@ public interface EigenbaseNewResource {
 
   @BaseMessage("Personality does not maintain table''s row count in the catalog")
   @Property(name = "FeatureDefinition", value = "Eigenbase-defined")
-  ExInst<EigenbaseException> personalityManagesRowCount();
+  ExInst<CalciteException> personalityManagesRowCount();
 
   @BaseMessage("Personality does not support snapshot reads")
   @Property(name = "FeatureDefinition", value = "Eigenbase-defined")
-  ExInst<EigenbaseException> personalitySupportsSnapshots();
+  ExInst<CalciteException> personalitySupportsSnapshots();
 
   @BaseMessage("Personality does not support labels")
   @Property(name = "FeatureDefinition", value = "Eigenbase-defined")
-  ExInst<EigenbaseException> personalitySupportsLabels();
+  ExInst<CalciteException> personalitySupportsLabels();
 
   @BaseMessage("Require at least 1 argument")
   ExInst<SqlValidatorException> requireAtLeastOneArg();
@@ -534,10 +536,10 @@ public interface EigenbaseNewResource {
   ExInst<RuntimeException> firstParameterOfAdd(String className);
 
   @BaseMessage("FilterableTable.scan returned a filter that was not in the original list: {0}")
-  ExInst<EigenbaseException> filterableTableInventedFilter(String s);
+  ExInst<CalciteException> filterableTableInventedFilter(String s);
 
   @BaseMessage("FilterableTable.scan must not return null")
-  ExInst<EigenbaseException> filterableTableScanReturnedNull();
+  ExInst<CalciteException> filterableTableScanReturnedNull();
 }
 
-// End EigenbaseNewResource.java
+// End CalciteResource.java

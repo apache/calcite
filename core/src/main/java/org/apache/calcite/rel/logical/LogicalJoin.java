@@ -14,30 +14,43 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel;
+package org.apache.calcite.rel.logical;
 
-import java.util.*;
-
-import org.eigenbase.relopt.*;
-import org.eigenbase.reltype.RelDataTypeField;
-import org.eigenbase.rex.*;
+import org.apache.calcite.plan.Convention;
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.RelInput;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelShuttle;
+import org.apache.calcite.rel.RelWriter;
+import org.apache.calcite.rel.core.Join;
+import org.apache.calcite.rel.core.JoinRelType;
+import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rex.RexNode;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
+import java.util.List;
+import java.util.Set;
+
 /**
- * A JoinRel represents two relational expressions joined according to some
- * condition.
+ * Sub-class of {@link org.apache.calcite.rel.core.Join}
+ * not targeted at any particular engine or calling convention.
  *
  * <p>Some rules:
  *
- * <ul> <li>{@link org.eigenbase.rel.rules.ExtractJoinFilterRule} converts an
- * {@link JoinRel inner join} to a {@link FilterRel filter} on top of a {@link
- * JoinRel cartesian inner join}.  <li>{@code
- * net.sf.farrago.fennel.rel.FennelCartesianJoinRule} implements a JoinRel as a
- * cartesian product.  </ul>
+ * <ul>
+ * <li>{@link org.apache.calcite.rel.rules.JoinExtractFilterRule} converts an
+ * {@link LogicalJoin inner join} to a {@link LogicalFilter filter} on top of a
+ * {@link LogicalJoin cartesian inner join}.
+ *
+ * <li>{@code net.sf.farrago.fennel.rel.FennelCartesianJoinRule}
+ * implements a LogicalJoin as a cartesian product.
+ *
+ * </ul>
  */
-public final class JoinRel extends JoinRelBase {
+public final class LogicalJoin extends Join {
   //~ Instance fields --------------------------------------------------------
 
   // NOTE jvs 14-Mar-2006:  Normally we don't use state like this
@@ -50,7 +63,7 @@ public final class JoinRel extends JoinRelBase {
   //~ Constructors -----------------------------------------------------------
 
   /**
-   * Creates a JoinRel.
+   * Creates a LogicalJoin.
    *
    * @param cluster          Cluster
    * @param left             Left input
@@ -59,9 +72,9 @@ public final class JoinRel extends JoinRelBase {
    * @param joinType         Join type
    * @param variablesStopped Set of names of variables which are set by the
    *                         LHS and used by the RHS and are not available to
-   *                         nodes above this JoinRel in the tree
+   *                         nodes above this LogicalJoin in the tree
    */
-  public JoinRel(
+  public LogicalJoin(
       RelOptCluster cluster,
       RelNode left,
       RelNode right,
@@ -80,7 +93,7 @@ public final class JoinRel extends JoinRelBase {
   }
 
   /**
-   * Creates a JoinRel, flagged with whether it has been translated to a
+   * Creates a LogicalJoin, flagged with whether it has been translated to a
    * semi-join.
    *
    * @param cluster          Cluster
@@ -90,7 +103,7 @@ public final class JoinRel extends JoinRelBase {
    * @param joinType         Join type
    * @param variablesStopped Set of names of variables which are set by the
    *                         LHS and used by the RHS and are not available to
-   *                         nodes above this JoinRel in the tree
+   *                         nodes above this LogicalJoin in the tree
    * @param semiJoinDone     Whether this join has been translated to a
    *                         semi-join
    * @param systemFieldList  List of system fields that will be prefixed to
@@ -98,7 +111,7 @@ public final class JoinRel extends JoinRelBase {
    *                         null
    * @see #isSemiJoinDone()
    */
-  public JoinRel(
+  public LogicalJoin(
       RelOptCluster cluster,
       RelNode left,
       RelNode right,
@@ -121,9 +134,9 @@ public final class JoinRel extends JoinRelBase {
   }
 
   /**
-   * Creates a JoinRel by parsing serialized output.
+   * Creates a LogicalJoin by parsing serialized output.
    */
-  public JoinRel(RelInput input) {
+  public LogicalJoin(RelInput input) {
     this(
         input.getCluster(), input.getInputs().get(0),
         input.getInputs().get(1), input.getExpression("condition"),
@@ -134,11 +147,10 @@ public final class JoinRel extends JoinRelBase {
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override
-  public JoinRel copy(RelTraitSet traitSet, RexNode conditionExpr, RelNode left,
-      RelNode right, JoinRelType joinType, boolean semiJoinDone) {
+  @Override public LogicalJoin copy(RelTraitSet traitSet, RexNode conditionExpr,
+      RelNode left, RelNode right, JoinRelType joinType, boolean semiJoinDone) {
     assert traitSet.containsIfApplicable(Convention.NONE);
-    return new JoinRel(
+    return new LogicalJoin(
         getCluster(),
         left,
         right,
@@ -149,8 +161,7 @@ public final class JoinRel extends JoinRelBase {
         this.systemFieldList);
   }
 
-  @Override
-  public RelNode accept(RelShuttle shuttle) {
+  @Override public RelNode accept(RelShuttle shuttle) {
     return shuttle.visit(this);
   }
 
@@ -170,4 +181,4 @@ public final class JoinRel extends JoinRelBase {
   }
 }
 
-// End JoinRel.java
+// End LogicalJoin.java

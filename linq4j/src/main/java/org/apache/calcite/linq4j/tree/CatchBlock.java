@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.linq4j.expressions;
+package org.apache.calcite.linq4j.tree;
 
 /**
  * Represents a catch statement in a try block.
@@ -29,8 +29,7 @@ public class CatchBlock {
     this.body = body;
   }
 
-  @Override
-  public boolean equals(Object o) {
+  @Override public boolean equals(Object o) {
     if (this == o) {
       return true;
     }
@@ -51,8 +50,7 @@ public class CatchBlock {
     return true;
   }
 
-  @Override
-  public int hashCode() {
+  @Override public int hashCode() {
     int result = parameter != null ? parameter.hashCode() : 0;
     result = 31 * result + (body != null ? body.hashCode() : 0);
     return result;

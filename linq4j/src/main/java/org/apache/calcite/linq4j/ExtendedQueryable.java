@@ -14,10 +14,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.linq4j;
+package org.apache.calcite.linq4j;
 
-import net.hydromatic.linq4j.expressions.FunctionExpression;
-import net.hydromatic.linq4j.function.*;
+import org.apache.calcite.linq4j.function.BigDecimalFunction1;
+import org.apache.calcite.linq4j.function.DoubleFunction1;
+import org.apache.calcite.linq4j.function.EqualityComparer;
+import org.apache.calcite.linq4j.function.FloatFunction1;
+import org.apache.calcite.linq4j.function.Function1;
+import org.apache.calcite.linq4j.function.Function2;
+import org.apache.calcite.linq4j.function.IntegerFunction1;
+import org.apache.calcite.linq4j.function.LongFunction1;
+import org.apache.calcite.linq4j.function.NullableBigDecimalFunction1;
+import org.apache.calcite.linq4j.function.NullableDoubleFunction1;
+import org.apache.calcite.linq4j.function.NullableFloatFunction1;
+import org.apache.calcite.linq4j.function.NullableIntegerFunction1;
+import org.apache.calcite.linq4j.function.NullableLongFunction1;
+import org.apache.calcite.linq4j.function.Predicate1;
+import org.apache.calcite.linq4j.function.Predicate2;
+import org.apache.calcite.linq4j.tree.FunctionExpression;
 
 import java.math.BigDecimal;
 import java.util.Comparator;
@@ -231,7 +245,7 @@ interface ExtendedQueryable<TSource> extends ExtendedEnumerable<TSource> {
    * each group and its key.
    *
    * <p>NOTE: Renamed from {@code groupBy} to distinguish from
-   * {@link #groupBy(net.hydromatic.linq4j.expressions.FunctionExpression, net.hydromatic.linq4j.expressions.FunctionExpression)},
+   * {@link #groupBy(org.apache.calcite.linq4j.tree.FunctionExpression, org.apache.calcite.linq4j.tree.FunctionExpression)},
    * which has the same erasure.</p>
    */
   <TKey, TResult> Queryable<Grouping<TKey, TResult>> groupByK(
@@ -386,7 +400,7 @@ interface ExtendedQueryable<TSource> extends ExtendedEnumerable<TSource> {
    * specified type.
    *
    * <p>The OfType method generates a
-   * {@link net.hydromatic.linq4j.expressions.MethodCallExpression} that represents
+   * {@link org.apache.calcite.linq4j.tree.MethodCallExpression} that represents
    * calling OfType itself as a constructed generic method. It then passes the
    * MethodCallExpression to the CreateQuery(Expression) method of the
    * {@link QueryProvider} represented by the Provider property of the source
@@ -451,7 +465,7 @@ interface ExtendedQueryable<TSource> extends ExtendedEnumerable<TSource> {
    * form by incorporating the element's index.
    *
    * <p>NOTE: Renamed from {@code select} because had same erasure as
-   * {@link #select(net.hydromatic.linq4j.expressions.FunctionExpression)}.</p>
+   * {@link #select(org.apache.calcite.linq4j.tree.FunctionExpression)}.</p>
    */
   <TResult> Queryable<TResult> selectN(
       FunctionExpression<Function2<TSource, Integer, TResult>> selector);
@@ -472,7 +486,7 @@ interface ExtendedQueryable<TSource> extends ExtendedEnumerable<TSource> {
    * projected form of that element.
    *
    * <p>NOTE: Renamed from {@code selectMany} because had same erasure as
-   * {@link #selectMany(net.hydromatic.linq4j.expressions.FunctionExpression)}</p>
+   * {@link #selectMany(org.apache.calcite.linq4j.tree.FunctionExpression)}</p>
    */
   <TResult> Queryable<TResult> selectManyN(
       FunctionExpression<Function2<TSource, Integer, Enumerable<TResult>>>
@@ -500,7 +514,7 @@ interface ExtendedQueryable<TSource> extends ExtendedEnumerable<TSource> {
    * and returned.
    *
    * <p>NOTE: Renamed from {@code selectMany} because had same erasure as
-   * {@link #selectMany(net.hydromatic.linq4j.expressions.FunctionExpression, net.hydromatic.linq4j.expressions.FunctionExpression)}</p>
+   * {@link #selectMany(org.apache.calcite.linq4j.tree.FunctionExpression, org.apache.calcite.linq4j.tree.FunctionExpression)}
    */
   <TCollection, TResult> Queryable<TResult> selectManyN(
       FunctionExpression<Function1<TSource, Enumerable<TCollection>>>

@@ -14,29 +14,42 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.runtime;
+package org.apache.calcite.runtime;
 
-import net.hydromatic.avatica.*;
-
-import net.hydromatic.linq4j.expressions.Primitive;
-
-import org.eigenbase.util.Util;
-import org.eigenbase.util14.DateTimeUtil;
+import org.apache.calcite.avatica.ArrayImpl;
+import org.apache.calcite.avatica.ByteString;
+import org.apache.calcite.avatica.ColumnMetaData;
+import org.apache.calcite.avatica.Cursor;
+import org.apache.calcite.linq4j.tree.Primitive;
+import org.apache.calcite.util.DateTimeUtil;
+import org.apache.calcite.util.Util;
 
 import java.io.InputStream;
 import java.io.Reader;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.net.URL;
-import java.sql.*;
+import java.sql.Array;
+import java.sql.Blob;
+import java.sql.Clob;
 import java.sql.Date;
-import java.util.*;
+import java.sql.NClob;
+import java.sql.Ref;
+import java.sql.SQLXML;
+import java.sql.Time;
+import java.sql.Timestamp;
+import java.sql.Types;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Base class for implementing a cursor.
  *
  * <p>Derived class needs to provide {@link Getter} and can override
- * {@link net.hydromatic.avatica.Cursor.Accessor} implementations if it
+ * {@link org.apache.calcite.avatica.Cursor.Accessor} implementations if it
  * wishes.</p>
  */
 public abstract class AbstractCursor implements Cursor {
@@ -663,7 +676,7 @@ public abstract class AbstractCursor implements Cursor {
 
   /**
    * Accessor that assumes that the underlying value is an array of
-   * {@link net.hydromatic.avatica.ByteString} values;
+   * {@link org.apache.calcite.avatica.ByteString} values;
    * corresponds to {@link java.sql.Types#BINARY}
    * and {@link java.sql.Types#VARBINARY}.
    */
@@ -691,13 +704,11 @@ public abstract class AbstractCursor implements Cursor {
       this.localCalendar = localCalendar;
     }
 
-    @Override
-    public Object getObject() {
+    @Override public Object getObject() {
       return getDate(localCalendar);
     }
 
-    @Override
-    public Date getDate(Calendar calendar) {
+    @Override public Date getDate(Calendar calendar) {
       final int v = getInt();
       if (v == 0 && getter.wasNull()) {
         return null;
@@ -705,8 +716,7 @@ public abstract class AbstractCursor implements Cursor {
       return longToDate((long) v * DateTimeUtil.MILLIS_PER_DAY, calendar);
     }
 
-    @Override
-    public Timestamp getTimestamp(Calendar calendar) {
+    @Override public Timestamp getTimestamp(Calendar calendar) {
       final int v = getInt();
       if (v == 0 && getter.wasNull()) {
         return null;
@@ -714,8 +724,7 @@ public abstract class AbstractCursor implements Cursor {
       return longToTimestamp((long) v * DateTimeUtil.MILLIS_PER_DAY, calendar);
     }
 
-    @Override
-    public String getString() {
+    @Override public String getString() {
       final int v = getInt();
       if (v == 0 && wasNull()) {
         return null;
@@ -737,13 +746,11 @@ public abstract class AbstractCursor implements Cursor {
       this.localCalendar = localCalendar;
     }
 
-    @Override
-    public Object getObject() {
+    @Override public Object getObject() {
       return getTime(localCalendar);
     }
 
-    @Override
-    public Time getTime(Calendar calendar) {
+    @Override public Time getTime(Calendar calendar) {
       final int v = getInt();
       if (v == 0 && wasNull()) {
         return null;
@@ -751,8 +758,7 @@ public abstract class AbstractCursor implements Cursor {
       return intToTime(v, calendar);
     }
 
-    @Override
-    public Timestamp getTimestamp(Calendar calendar) {
+    @Override public Timestamp getTimestamp(Calendar calendar) {
       final long v = getLong();
       if (v == 0 && wasNull()) {
         return null;
@@ -760,8 +766,7 @@ public abstract class AbstractCursor implements Cursor {
       return longToTimestamp(v, calendar);
     }
 
-    @Override
-    public String getString() {
+    @Override public String getString() {
       final int v = getInt();
       if (v == 0 && wasNull()) {
         return null;
@@ -783,13 +788,11 @@ public abstract class AbstractCursor implements Cursor {
       this.localCalendar = localCalendar;
     }
 
-    @Override
-    public Object getObject() {
+    @Override public Object getObject() {
       return getTimestamp(localCalendar);
     }
 
-    @Override
-    public Timestamp getTimestamp(Calendar calendar) {
+    @Override public Timestamp getTimestamp(Calendar calendar) {
       final long v = getLong();
       if (v == 0 && wasNull()) {
         return null;
@@ -797,8 +800,7 @@ public abstract class AbstractCursor implements Cursor {
       return longToTimestamp(v, calendar);
     }
 
-    @Override
-    public String getString() {
+    @Override public String getString() {
       final long v = getLong();
       if (v == 0L && wasNull()) {
         return null;
@@ -820,8 +822,7 @@ public abstract class AbstractCursor implements Cursor {
       this.localCalendar = localCalendar;
     }
 
-    @Override
-    public Date getDate(Calendar calendar) {
+    @Override public Date getDate(Calendar calendar) {
       java.sql.Date date = (Date) getObject();
       if (date == null) {
         return null;
@@ -834,8 +835,7 @@ public abstract class AbstractCursor implements Cursor {
       return date;
     }
 
-    @Override
-    public String getString() {
+    @Override public String getString() {
       final int v = getInt();
       if (v == 0 && wasNull()) {
         return null;
@@ -843,8 +843,7 @@ public abstract class AbstractCursor implements Cursor {
       return dateAsString(v, null);
     }
 
-    @Override
-    public long getLong() {
+    @Override public long getLong() {
       Date date = getDate(null);
       return date == null
           ? 0L
@@ -865,8 +864,7 @@ public abstract class AbstractCursor implements Cursor {
       this.localCalendar = localCalendar;
     }
 
-    @Override
-    public Time getTime(Calendar calendar) {
+    @Override public Time getTime(Calendar calendar) {
       Time date  = (Time) getObject();
       if (date == null) {
         return null;
@@ -879,8 +877,7 @@ public abstract class AbstractCursor implements Cursor {
       return date;
     }
 
-    @Override
-    public String getString() {
+    @Override public String getString() {
       final int v = getInt();
       if (v == 0 && wasNull()) {
         return null;
@@ -888,8 +885,7 @@ public abstract class AbstractCursor implements Cursor {
       return timeAsString(v, null);
     }
 
-    @Override
-    public long getLong() {
+    @Override public long getLong() {
       Time time = getTime(null);
       return time == null ? 0L : (time.getTime() % DateTimeUtil.MILLIS_PER_DAY);
     }
@@ -908,8 +904,7 @@ public abstract class AbstractCursor implements Cursor {
       this.localCalendar = localCalendar;
     }
 
-    @Override
-    public Timestamp getTimestamp(Calendar calendar) {
+    @Override public Timestamp getTimestamp(Calendar calendar) {
       Timestamp date  = (Timestamp) getObject();
       if (date == null) {
         return null;
@@ -922,8 +917,7 @@ public abstract class AbstractCursor implements Cursor {
       return date;
     }
 
-    @Override
-    public String getString() {
+    @Override public String getString() {
       final long v = getLong();
       if (v == 0 && wasNull()) {
         return null;
@@ -931,8 +925,7 @@ public abstract class AbstractCursor implements Cursor {
       return timestampAsString(v, null);
     }
 
-    @Override
-    public long getLong() {
+    @Override public long getLong() {
       Timestamp timestamp = getTimestamp(null);
       return timestamp == null ? 0 : timestamp.getTime();
     }
@@ -952,8 +945,7 @@ public abstract class AbstractCursor implements Cursor {
       this.localCalendar = localCalendar;
     }
 
-    @Override
-    public Timestamp getTimestamp(Calendar calendar) {
+    @Override public Timestamp getTimestamp(Calendar calendar) {
       java.util.Date date  = (java.util.Date) getObject();
       if (date == null) {
         return null;
@@ -965,8 +957,7 @@ public abstract class AbstractCursor implements Cursor {
       return new Timestamp(v);
     }
 
-    @Override
-    public String getString() {
+    @Override public String getString() {
       java.util.Date date  = (java.util.Date) getObject();
       if (date == null) {
         return null;
@@ -974,8 +965,7 @@ public abstract class AbstractCursor implements Cursor {
       return timestampAsString(date.getTime(), null);
     }
 
-    @Override
-    public long getLong() {
+    @Override public long getLong() {
       Timestamp timestamp = getTimestamp(localCalendar);
       return timestamp == null ? 0 : timestamp.getTime();
     }
@@ -994,8 +984,7 @@ public abstract class AbstractCursor implements Cursor {
       this.range = range;
     }
 
-    @Override
-    public String getString() {
+    @Override public String getString() {
       final int v = getInt();
       if (v == 0 && wasNull()) {
         return null;
@@ -1019,8 +1008,7 @@ public abstract class AbstractCursor implements Cursor {
       this.scale = scale;
     }
 
-    @Override
-    public String getString() {
+    @Override public String getString() {
       final long v = getLong();
       if (v == 0 && wasNull()) {
         return null;
@@ -1044,8 +1032,7 @@ public abstract class AbstractCursor implements Cursor {
       this.factory = factory;
     }
 
-    @Override
-    public Object getObject() {
+    @Override public Object getObject() {
       final Object object = super.getObject();
       if (object == null || object instanceof List) {
         return object;
@@ -1055,8 +1042,7 @@ public abstract class AbstractCursor implements Cursor {
       return Primitive.asList(object);
     }
 
-    @Override
-    public Array getArray() {
+    @Override public Array getArray() {
       final List list = (List) getObject();
       if (list == null) {
         return null;
@@ -1064,8 +1050,7 @@ public abstract class AbstractCursor implements Cursor {
       return new ArrayImpl(list, componentType, factory);
     }
 
-    @Override
-    public String getString() {
+    @Override public String getString() {
       final List o = (List) getObject();
       if (o == null) {
         return null;

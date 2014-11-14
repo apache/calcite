@@ -14,16 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.util;
+package org.apache.calcite.util;
 
-import java.util.*;
+import java.util.Iterator;
+import java.util.NoSuchElementException;
 
 /**
  * Filtered iterator class: an iterator that includes only elements that are
- * instanceof a specified class. Apologies for the dorky name.
+ * instanceof a specified class.
  *
- * @see Util#cast(List, Class)
+ * <p>Apologies for the dorky name.
+ *
+ * @see Util#cast(java.util.List, Class)
  * @see Util#cast(Iterator, Class)
+ *
+ * @param <E> Element type
  */
 public class Filterator<E> implements Iterator<E> {
   //~ Instance fields --------------------------------------------------------

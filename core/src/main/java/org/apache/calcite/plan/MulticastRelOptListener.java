@@ -14,9 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.relopt;
+package org.apache.calcite.plan;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * MulticastRelOptListener implements the {@link RelOptListener} interface by

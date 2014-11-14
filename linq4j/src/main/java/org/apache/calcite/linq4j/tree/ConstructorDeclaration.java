@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.linq4j.expressions;
+package org.apache.calcite.linq4j.tree;
 
-import net.hydromatic.linq4j.function.Function1;
-import net.hydromatic.linq4j.function.Functions;
+import org.apache.calcite.linq4j.function.Function1;
+import org.apache.calcite.linq4j.function.Functions;
 
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
@@ -47,8 +47,7 @@ public class ConstructorDeclaration extends MemberDeclaration {
     this.body = body;
   }
 
-  @Override
-  public MemberDeclaration accept(Visitor visitor) {
+  @Override public MemberDeclaration accept(Visitor visitor) {
     visitor = visitor.preVisit(this);
     // do not visit parameters
     final BlockStatement body = this.body.accept(visitor);
@@ -78,8 +77,7 @@ public class ConstructorDeclaration extends MemberDeclaration {
     writer.newlineAndIndent();
   }
 
-  @Override
-  public boolean equals(Object o) {
+  @Override public boolean equals(Object o) {
     if (this == o) {
       return true;
     }
@@ -105,8 +103,7 @@ public class ConstructorDeclaration extends MemberDeclaration {
     return true;
   }
 
-  @Override
-  public int hashCode() {
+  @Override public int hashCode() {
     int result = hash;
     if (result == 0) {
       result = modifier;

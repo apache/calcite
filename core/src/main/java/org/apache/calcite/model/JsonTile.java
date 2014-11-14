@@ -14,14 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.model;
+package org.apache.calcite.model;
 
 import com.google.common.collect.Lists;
 
 import java.util.List;
 
 /**
- * Materialized view within a {@link net.hydromatic.optiq.model.JsonLattice}.
+ * Materialized view within a {@link org.apache.calcite.model.JsonLattice}.
  *
  * <p>A tile is defined in terms of its dimensionality (the grouping columns,
  * drawn from the lattice) and measures (aggregate functions applied to

@@ -14,11 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rex;
+package org.apache.calcite.rex;
 
-import java.util.*;
+import org.apache.calcite.sql.SqlOperator;
 
-import org.eigenbase.sql.*;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Implementation of {@link RexSqlConvertletTable}.
@@ -73,8 +74,8 @@ public class RexSqlReflectiveConvertletTable implements RexSqlConvertletTable {
   /**
    * Registers a convertlet for a given operator instance
    *
-   * @param op         Operator instance, say {@link
-   *                   org.eigenbase.sql.fun.SqlStdOperatorTable#MINUS}
+   * @param op         Operator instance, say
+   * {@link org.apache.calcite.sql.fun.SqlStdOperatorTable#MINUS}
    * @param convertlet Convertlet
    */
   protected void registerOp(SqlOperator op, RexSqlConvertlet convertlet) {

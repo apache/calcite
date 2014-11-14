@@ -14,19 +14,40 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.prepare;
+package org.apache.calcite.prepare;
 
-import net.hydromatic.linq4j.*;
-import net.hydromatic.linq4j.expressions.FunctionExpression;
-import net.hydromatic.linq4j.function.*;
-
-import net.hydromatic.optiq.QueryableTable;
-import net.hydromatic.optiq.TranslatableTable;
-import net.hydromatic.optiq.impl.AbstractTableQueryable;
-import net.hydromatic.optiq.jdbc.OptiqSchema;
-
-import org.eigenbase.rel.*;
-import org.eigenbase.rex.RexNode;
+import org.apache.calcite.jdbc.CalciteSchema;
+import org.apache.calcite.linq4j.Enumerable;
+import org.apache.calcite.linq4j.Grouping;
+import org.apache.calcite.linq4j.OrderedQueryable;
+import org.apache.calcite.linq4j.Queryable;
+import org.apache.calcite.linq4j.QueryableDefaults;
+import org.apache.calcite.linq4j.QueryableFactory;
+import org.apache.calcite.linq4j.function.BigDecimalFunction1;
+import org.apache.calcite.linq4j.function.DoubleFunction1;
+import org.apache.calcite.linq4j.function.EqualityComparer;
+import org.apache.calcite.linq4j.function.FloatFunction1;
+import org.apache.calcite.linq4j.function.Function1;
+import org.apache.calcite.linq4j.function.Function2;
+import org.apache.calcite.linq4j.function.IntegerFunction1;
+import org.apache.calcite.linq4j.function.LongFunction1;
+import org.apache.calcite.linq4j.function.NullableBigDecimalFunction1;
+import org.apache.calcite.linq4j.function.NullableDoubleFunction1;
+import org.apache.calcite.linq4j.function.NullableFloatFunction1;
+import org.apache.calcite.linq4j.function.NullableIntegerFunction1;
+import org.apache.calcite.linq4j.function.NullableLongFunction1;
+import org.apache.calcite.linq4j.function.Predicate1;
+import org.apache.calcite.linq4j.function.Predicate2;
+import org.apache.calcite.linq4j.tree.FunctionExpression;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.logical.LogicalFilter;
+import org.apache.calcite.rel.logical.LogicalProject;
+import org.apache.calcite.rel.logical.LogicalTableScan;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.schema.QueryableTable;
+import org.apache.calcite.schema.TranslatableTable;
+import org.apache.calcite.schema.impl.AbstractTableQueryable;
 
 import java.math.BigDecimal;
 import java.util.Comparator;
@@ -42,7 +63,7 @@ import java.util.List;
  * {@link #setRel} to assign the root of that tree to the {@link #rel} member
  * variable.</p>
  *
- * <p>To comply with the {@link net.hydromatic.linq4j.QueryableFactory}
+ * <p>To comply with the {@link org.apache.calcite.linq4j.QueryableFactory}
  * interface, which is after all a factory, each method returns a dummy result
  * such as {@code null} or {@code 0}.
  * The caller will not use the result.
@@ -72,8 +93,8 @@ class QueryableRelBuilder<T> implements QueryableFactory<T> {
       final AbstractTableQueryable tableQueryable =
           (AbstractTableQueryable) queryable;
       final QueryableTable table = tableQueryable.table;
-      final OptiqSchema.TableEntry tableEntry =
-          OptiqSchema.from(tableQueryable.schema)
+      final CalciteSchema.TableEntry tableEntry =
+          CalciteSchema.from(tableQueryable.schema)
               .add(tableQueryable.tableName, tableQueryable.table);
       final RelOptTableImpl relOptTable =
           RelOptTableImpl.create(null, table.getRowType(translator.typeFactory),
@@ -81,7 +102,7 @@ class QueryableRelBuilder<T> implements QueryableFactory<T> {
       if (table instanceof TranslatableTable) {
         return ((TranslatableTable) table).toRel(translator, relOptTable);
       } else {
-        return new TableAccessRel(translator.cluster, relOptTable);
+        return new LogicalTableScan(translator.cluster, relOptTable);
       }
     }
     return translator.translate(queryable.getExpression());
@@ -490,12 +511,12 @@ class QueryableRelBuilder<T> implements QueryableFactory<T> {
     RelNode child = toRel(source);
     List<RexNode> nodes = translator.toRexList(selector, child);
     setRel(
-        new ProjectRel(
+        new LogicalProject(
             translator.cluster,
             child,
             nodes,
             null,
-            ProjectRelBase.Flags.BOXED));
+            Project.Flags.BOXED));
     return null;
   }
 
@@ -702,7 +723,7 @@ class QueryableRelBuilder<T> implements QueryableFactory<T> {
       FunctionExpression<? extends Predicate1<T>> predicate) {
     RelNode child = toRel(source);
     RexNode node = translator.toRex(predicate, child);
-    setRel(new FilterRel(translator.cluster, child, node));
+    setRel(new LogicalFilter(translator.cluster, child, node));
     return source;
   }
 

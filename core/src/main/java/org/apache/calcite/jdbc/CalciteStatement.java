@@ -14,23 +14,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.jdbc;
+package org.apache.calcite.jdbc;
 
-import net.hydromatic.avatica.*;
-
-import net.hydromatic.linq4j.Queryable;
-
-import net.hydromatic.optiq.server.OptiqServerStatement;
+import org.apache.calcite.avatica.AvaticaResultSet;
+import org.apache.calcite.avatica.AvaticaStatement;
+import org.apache.calcite.linq4j.Queryable;
+import org.apache.calcite.server.CalciteServerStatement;
 
 /**
  * Implementation of {@link java.sql.Statement}
  * for the Calcite engine.
  */
-public abstract class OptiqStatement
+public abstract class CalciteStatement
     extends AvaticaStatement
-    implements OptiqServerStatement {
-  OptiqStatement(
-      OptiqConnectionImpl connection,
+    implements CalciteServerStatement {
+  CalciteStatement(
+      CalciteConnectionImpl connection,
       int resultSetType,
       int resultSetConcurrency,
       int resultSetHoldability) {
@@ -40,24 +39,25 @@ public abstract class OptiqStatement
 
   // implement Statement
 
-  @Override public OptiqConnectionImpl getConnection() {
-    return (OptiqConnectionImpl) connection;
+  @Override public CalciteConnectionImpl getConnection() {
+    return (CalciteConnectionImpl) connection;
   }
 
-  public OptiqConnectionImpl.ContextImpl createPrepareContext() {
-    return new OptiqConnectionImpl.ContextImpl(getConnection());
+  public CalciteConnectionImpl.ContextImpl createPrepareContext() {
+    return new CalciteConnectionImpl.ContextImpl(getConnection());
   }
 
-  protected <T> OptiqPrepare.PrepareResult<T> prepare(Queryable<T> queryable) {
-    final OptiqPrepare prepare = getConnection().prepareFactory.apply();
+  protected <T> CalcitePrepare.PrepareResult<T> prepare(
+      Queryable<T> queryable) {
+    final CalcitePrepare prepare = getConnection().prepareFactory.apply();
     return prepare.prepareQueryable(createPrepareContext(), queryable);
   }
 
-  @Override
-  protected void close_() {
+  @Override protected void close_() {
     if (!closed) {
       closed = true;
-      final OptiqConnectionImpl connection1 = (OptiqConnectionImpl) connection;
+      final CalciteConnectionImpl connection1 =
+          (CalciteConnectionImpl) connection;
       connection1.server.removeStatement(this);
       if (openResultSet != null) {
         AvaticaResultSet c = openResultSet;
@@ -71,4 +71,4 @@ public abstract class OptiqStatement
   }
 }
 
-// End OptiqStatement.java
+// End CalciteStatement.java

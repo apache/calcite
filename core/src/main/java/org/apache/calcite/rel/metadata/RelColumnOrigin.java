@@ -14,11 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel.metadata;
+package org.apache.calcite.rel.metadata;
 
-import java.util.*;
-
-import org.eigenbase.relopt.*;
+import org.apache.calcite.plan.RelOptTable;
 
 /**
  * RelColumnOrigin is a data structure describing one of the origins of an

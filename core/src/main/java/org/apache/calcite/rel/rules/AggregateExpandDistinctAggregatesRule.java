@@ -14,39 +14,69 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel.rules;
+package org.apache.calcite.rel.rules;
 
-import java.util.*;
-
-import org.eigenbase.rel.*;
-import org.eigenbase.relopt.*;
-import org.eigenbase.reltype.*;
-import org.eigenbase.rex.*;
-import org.eigenbase.sql.fun.*;
-import org.eigenbase.util.*;
-
-import net.hydromatic.optiq.util.BitSets;
+import org.apache.calcite.plan.RelOptRule;
+import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.Aggregate;
+import org.apache.calcite.rel.core.AggregateCall;
+import org.apache.calcite.rel.core.JoinRelType;
+import org.apache.calcite.rel.core.RelFactories;
+import org.apache.calcite.rel.logical.LogicalAggregate;
+import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexInputRef;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexUtil;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.util.BitSets;
+import org.apache.calcite.util.Pair;
+import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 
+import java.util.ArrayList;
+import java.util.BitSet;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 /**
- * Rule to remove distinct aggregates from a {@link AggregateRel}.
+ * Planner rule that expands distinct aggregates
+ * (such as {@code COUNT(DISTINCT x)}) from a
+ * {@link org.apache.calcite.rel.logical.LogicalAggregate}.
+ *
+ * <p>How this is done depends upon the arguments to the function. If all
+ * functions have the same argument
+ * (e.g. {@code COUNT(DISTINCT x), SUM(DISTINCT x)} both have the argument
+ * {@code x}) then one extra {@link org.apache.calcite.rel.core.Aggregate} is
+ * sufficient.
+ *
+ * <p>If there are multiple arguments
+ * (e.g. {@code COUNT(DISTINCT x), COUNT(DISTINCT y)})
+ * the rule creates separate {@code Aggregate}s and combines using a
+ * {@link org.apache.calcite.rel.core.Join}.
  */
-public final class RemoveDistinctAggregateRule extends RelOptRule {
+public final class AggregateExpandDistinctAggregatesRule extends RelOptRule {
   //~ Static fields/initializers ---------------------------------------------
 
   /** The default instance of the rule; operates only on logical expressions. */
-  public static final RemoveDistinctAggregateRule INSTANCE =
-      new RemoveDistinctAggregateRule(AggregateRel.class,
+  public static final AggregateExpandDistinctAggregatesRule INSTANCE =
+      new AggregateExpandDistinctAggregatesRule(LogicalAggregate.class,
           RelFactories.DEFAULT_JOIN_FACTORY);
 
   private final RelFactories.JoinFactory joinFactory;
 
   //~ Constructors -----------------------------------------------------------
 
-  public RemoveDistinctAggregateRule(Class<? extends AggregateRel> clazz,
+  public AggregateExpandDistinctAggregatesRule(
+      Class<? extends LogicalAggregate> clazz,
       RelFactories.JoinFactory joinFactory) {
     super(operand(clazz, any()));
     this.joinFactory = joinFactory;
@@ -55,7 +85,7 @@ public final class RemoveDistinctAggregateRule extends RelOptRule {
   //~ Methods ----------------------------------------------------------------
 
   public void onMatch(RelOptRuleCall call) {
-    final AggregateRelBase aggregate = call.rel(0);
+    final Aggregate aggregate = call.rel(0);
     if (!aggregate.containsDistinctCall()) {
       return;
     }
@@ -125,9 +155,9 @@ public final class RemoveDistinctAggregateRule extends RelOptRule {
       rel = null;
     } else {
       rel =
-          new AggregateRel(
+          new LogicalAggregate(
               aggregate.getCluster(),
-              aggregate.getChild(),
+              aggregate.getInput(),
               groupSet,
               newAggCallList);
     }
@@ -149,7 +179,7 @@ public final class RemoveDistinctAggregateRule extends RelOptRule {
    * and no non-distinct aggregate functions.
    */
   private RelNode convertMonopole(
-      AggregateRelBase aggregate,
+      Aggregate aggregate,
       List<Integer> argList) {
     // For example,
     //    SELECT deptno, COUNT(DISTINCT sal), SUM(DISTINCT sal)
@@ -167,7 +197,7 @@ public final class RemoveDistinctAggregateRule extends RelOptRule {
     // Project the columns of the GROUP BY plus the arguments
     // to the agg function.
     Map<Integer, Integer> sourceOf = new HashMap<Integer, Integer>();
-    final AggregateRelBase distinct =
+    final Aggregate distinct =
         createSelectDistinct(aggregate, argList, sourceOf);
 
     // Create an aggregate on top, with the new aggregate list.
@@ -201,7 +231,7 @@ public final class RemoveDistinctAggregateRule extends RelOptRule {
    * @return Relational expression
    */
   private RelNode doRewrite(
-      AggregateRelBase aggregate,
+      Aggregate aggregate,
       RelNode left,
       List<Integer> argList,
       List<RexInputRef> refs) {
@@ -213,16 +243,16 @@ public final class RemoveDistinctAggregateRule extends RelOptRule {
       leftFields = left.getRowType().getFieldList();
     }
 
-    // AggregateRel(
+    // LogicalAggregate(
     //     child,
     //     {COUNT(DISTINCT 1), SUM(DISTINCT 1), SUM(2)})
     //
     // becomes
     //
-    // AggregateRel(
-    //     JoinRel(
+    // LogicalAggregate(
+    //     LogicalJoin(
     //         child,
-    //         AggregateRel(child, < all columns > {}),
+    //         LogicalAggregate(child, < all columns > {}),
     //         INNER,
     //         <f2 = f5>))
     //
@@ -257,7 +287,7 @@ public final class RemoveDistinctAggregateRule extends RelOptRule {
     // Project the columns of the GROUP BY plus the arguments
     // to the agg function.
     Map<Integer, Integer> sourceOf = new HashMap<Integer, Integer>();
-    final AggregateRelBase distinct =
+    final Aggregate distinct =
         createSelectDistinct(aggregate, argList, sourceOf);
 
     // Now compute the aggregate functions on top of the distinct dataset.
@@ -312,7 +342,7 @@ public final class RemoveDistinctAggregateRule extends RelOptRule {
       aggCallList.add(newAggCall);
     }
 
-    AggregateRelBase distinctAgg =
+    Aggregate distinctAgg =
         aggregate.copy(
             aggregate.getTraitSet(),
             distinct,
@@ -390,7 +420,8 @@ public final class RemoveDistinctAggregateRule extends RelOptRule {
   }
 
   /**
-   * Given an {@link AggregateRel} and the ordinals of the arguments to a
+   * Given an {@link org.apache.calcite.rel.logical.LogicalAggregate}
+   * and the ordinals of the arguments to a
    * particular call to an aggregate function, creates a 'select distinct'
    * relational expression which projects the group columns and those
    * arguments but nothing else.
@@ -424,13 +455,13 @@ public final class RemoveDistinctAggregateRule extends RelOptRule {
    * @return Aggregate relational expression which projects the required
    * columns
    */
-  private static AggregateRelBase createSelectDistinct(
-      AggregateRelBase aggregate,
+  private static Aggregate createSelectDistinct(
+      Aggregate aggregate,
       List<Integer> argList,
       Map<Integer, Integer> sourceOf) {
     final List<Pair<RexNode, String>> projects =
         new ArrayList<Pair<RexNode, String>>();
-    final RelNode child = aggregate.getChild();
+    final RelNode child = aggregate.getInput();
     final List<RelDataTypeField> childFields =
         child.getRowType().getFieldList();
     for (int i : BitSets.toIter(aggregate.getGroupSet())) {
@@ -457,4 +488,4 @@ public final class RemoveDistinctAggregateRule extends RelOptRule {
   }
 }
 
-// End RemoveDistinctAggregateRule.java
+// End AggregateExpandDistinctAggregatesRule.java

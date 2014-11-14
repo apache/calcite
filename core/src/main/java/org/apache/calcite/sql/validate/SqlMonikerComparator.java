@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql.validate;
+package org.apache.calcite.sql.validate;
 
-import java.util.*;
+import java.util.Comparator;
 
 /**
- * A general-purpose implementation of {@link Comparator} to compare {@link
- * SqlMoniker} values.
+ * A general-purpose implementation of {@link Comparator} to compare
+ * {@link SqlMoniker} values.
  */
 public class SqlMonikerComparator implements Comparator<SqlMoniker> {
   //~ Methods ----------------------------------------------------------------

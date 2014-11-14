@@ -14,22 +14,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel;
+package org.apache.calcite.rel.logical;
+
+import org.apache.calcite.plan.Convention;
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.RelInput;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelShuttle;
+import org.apache.calcite.rel.core.Minus;
 
 import java.util.List;
 
-import org.eigenbase.relopt.*;
-
 /**
- * <code>MinusRel</code> returns the rows of its first input minus any matching
- * rows from its other inputs. If "all" is true, then multiset subtraction is
- * performed; otherwise, set subtraction is performed (implying no duplicates in
- * the results).
+ * Sub-class of {@link org.apache.calcite.rel.core.Minus}
+ * not targeted at any particular engine or calling convention.
  */
-public final class MinusRel extends MinusRelBase {
+public final class LogicalMinus extends Minus {
   //~ Constructors -----------------------------------------------------------
 
-  public MinusRel(
+  public LogicalMinus(
       RelOptCluster cluster,
       List<RelNode> inputs,
       boolean all) {
@@ -41,28 +45,26 @@ public final class MinusRel extends MinusRelBase {
   }
 
   /**
-   * Creates a MinusRel by parsing serialized output.
+   * Creates a LogicalMinus by parsing serialized output.
    */
-  public MinusRel(RelInput input) {
+  public LogicalMinus(RelInput input) {
     super(input);
   }
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override
-  public MinusRel copy(
+  @Override public LogicalMinus copy(
       RelTraitSet traitSet, List<RelNode> inputs, boolean all) {
     assert traitSet.containsIfApplicable(Convention.NONE);
-    return new MinusRel(
+    return new LogicalMinus(
         getCluster(),
         inputs,
         all);
   }
 
-  @Override
-  public RelNode accept(RelShuttle shuttle) {
+  @Override public RelNode accept(RelShuttle shuttle) {
     return shuttle.visit(this);
   }
 }
 
-// End MinusRel.java
+// End LogicalMinus.java

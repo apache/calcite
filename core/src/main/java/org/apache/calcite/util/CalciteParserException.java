@@ -14,14 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.util14;
+package org.apache.calcite.util;
 
 /**
- * This is a tagging interface to allow a {@link
- * org.eigenbase.sql.parser.SqlParseException} to be identified without adding a
+ * Tagging interface to allow a
+ * {@link org.apache.calcite.sql.parser.SqlParseException}
+ * to be identified without adding a
  * dependency on it from client-side code.
  */
-public interface EigenbaseParserException {
+public interface CalciteParserException {
 }
 
-// End EigenbaseParserException.java
+// End CalciteParserException.java

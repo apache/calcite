@@ -14,15 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.util;
+package org.apache.calcite.util;
 
-import java.io.*;
+import org.eigenbase.util.property.BooleanProperty;
+import org.eigenbase.util.property.StringProperty;
 
-import java.security.*;
-
-import java.util.*;
-
-import org.eigenbase.util.property.*;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.security.AccessControlException;
+import java.util.Enumeration;
+import java.util.Properties;
 
 /**
  * Provides an environment for debugging information, et cetera, used by
@@ -39,9 +41,9 @@ import org.eigenbase.util.property.*;
  * </p>
  *
  * <p>Every property used in saffron code must have a member in this class. The
- * member must be public and final, and be of type {@link
- * org.eigenbase.util.property.Property} or some subtype. The javadoc comment
- * must describe the name of the property (for example,
+ * member must be public and final, and be of type
+ * {@link org.eigenbase.util.property.Property} or some subtype. The javadoc
+ * comment must describe the name of the property (for example,
  * "net.sf.saffron.connection.PoolSize") and the default value, if any. <em>
  * Developers, please make sure that this remains so!</em></p>
  */
@@ -69,8 +71,8 @@ public class SaffronProperties extends Properties {
 
   /**
    * The string property "saffron.default.charset" is the name of the default
-   * character set. The default is "ISO-8859-1". It is used in {@link
-   * org.eigenbase.sql.validate.SqlValidator}.
+   * character set. The default is "ISO-8859-1". It is used in
+   * {@link org.apache.calcite.sql.validate.SqlValidator}.
    */
   public final StringProperty defaultCharset =
       new StringProperty(this, "saffron.default.charset", "ISO-8859-1");
@@ -79,8 +81,8 @@ public class SaffronProperties extends Properties {
    * The string property "saffron.default.nationalcharset" is the name of the
    * default national character set which is used with the N'string' construct
    * which may or may not be different from the {@link #defaultCharset}. The
-   * default is "ISO-8859-1". It is used in {@link
-   * org.eigenbase.sql.SqlLiteral#SqlLiteral}
+   * default is "ISO-8859-1". It is used in
+   * {@link org.apache.calcite.sql.SqlLiteral#SqlLiteral}
    */
   public final StringProperty defaultNationalCharset =
       new StringProperty(
@@ -90,9 +92,9 @@ public class SaffronProperties extends Properties {
 
   /**
    * The string property "saffron.default.collation.name" is the name of the
-   * default collation. The default is "ISO-8859-1$en_US". Used in {@link
-   * org.eigenbase.sql.SqlCollation} and {@link
-   * org.eigenbase.sql.SqlLiteral#SqlLiteral}
+   * default collation. The default is "ISO-8859-1$en_US". Used in
+   * {@link org.apache.calcite.sql.SqlCollation} and
+   * {@link org.apache.calcite.sql.SqlLiteral#SqlLiteral}
    */
   public final StringProperty defaultCollation =
       new StringProperty(
@@ -102,9 +104,9 @@ public class SaffronProperties extends Properties {
 
   /**
    * The string property "saffron.default.collation.strength" is the strength
-   * of the default collation. The default is "primary". Used in {@link
-   * org.eigenbase.sql.SqlCollation} and {@link
-   * org.eigenbase.sql.SqlLiteral#SqlLiteral}
+   * of the default collation. The default is "primary". Used in
+   * {@link org.apache.calcite.sql.SqlCollation} and
+   * {@link org.apache.calcite.sql.SqlLiteral#SqlLiteral}
    */
   public final StringProperty defaultCollationStrength =
       new StringProperty(

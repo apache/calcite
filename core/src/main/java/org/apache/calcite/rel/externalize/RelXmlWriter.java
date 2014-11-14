@@ -14,14 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel;
+package org.apache.calcite.rel.externalize;
 
-import java.io.*;
-import java.util.*;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.sql.SqlExplainLevel;
+import org.apache.calcite.util.Pair;
+import org.apache.calcite.util.XmlOutput;
 
-import org.eigenbase.sql.*;
-import org.eigenbase.util.Pair;
-import org.eigenbase.util.XmlOutput;
+import java.io.PrintWriter;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Callback for a relational expression to dump in XML format.

@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq;
+package org.apache.calcite.schema;
 
-import net.hydromatic.optiq.materialize.Lattice;
+import org.apache.calcite.materialize.Lattice;
 
 import com.google.common.collect.ImmutableList;
 

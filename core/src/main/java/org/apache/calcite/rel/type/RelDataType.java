@@ -14,13 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.reltype;
+package org.apache.calcite.rel.type;
 
-import java.nio.charset.*;
-import java.util.*;
+import org.apache.calcite.sql.SqlCollation;
+import org.apache.calcite.sql.SqlIdentifier;
+import org.apache.calcite.sql.SqlIntervalQualifier;
+import org.apache.calcite.sql.type.SqlTypeName;
 
-import org.eigenbase.sql.*;
-import org.eigenbase.sql.type.*;
+import java.nio.charset.Charset;
+import java.util.List;
 
 /**
  * RelDataType represents the type of a scalar expression or entire row returned
@@ -179,9 +181,9 @@ public interface RelDataType /*extends Type*/ {
 
   /**
    * Gets the {@link SqlIdentifier} associated with this type. For a
-   * predefined type, this is a simple identifier based on {@link
-   * #getSqlTypeName}. For a user-defined type, this is a compound identifier
-   * which uniquely names the type.
+   * predefined type, this is a simple identifier based on
+   * {@link #getSqlTypeName}. For a user-defined type, this is a compound
+   * identifier which uniquely names the type.
    *
    * @return SqlIdentifier, or null if this is not an SQL type
    */

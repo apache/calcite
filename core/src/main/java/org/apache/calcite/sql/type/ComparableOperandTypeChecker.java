@@ -14,12 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql.type;
+package org.apache.calcite.sql.type;
 
-import java.util.*;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeComparability;
+import org.apache.calcite.sql.SqlCallBinding;
+import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.SqlOperatorBinding;
+import org.apache.calcite.sql.SqlUtil;
 
-import org.eigenbase.reltype.*;
-import org.eigenbase.sql.*;
+import java.util.Collections;
 
 /**
  * Type checking strategy which verifies that types have the required attributes
@@ -77,8 +81,9 @@ public class ComparableOperandTypeChecker extends SameOperandTypeChecker {
   }
 
   /**
-   * Similar functionality to {@link #checkOperandTypes(SqlCallBinding,
-   * boolean)}, but not part of the interface, and cannot throw an error.
+   * Similar functionality to
+   * {@link #checkOperandTypes(SqlCallBinding, boolean)}, but not part of the
+   * interface, and cannot throw an error.
    */
   public boolean checkOperandTypes(
       SqlOperatorBinding callBinding) {

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.linq4j.expressions;
+package org.apache.calcite.linq4j.tree;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -52,8 +52,7 @@ public class MethodCallExpression extends Expression {
     this(method.getGenericReturnType(), method, targetExpression, expressions);
   }
 
-  @Override
-  public Expression accept(Visitor visitor) {
+  @Override public Expression accept(Visitor visitor) {
     visitor = visitor.preVisit(this);
     Expression targetExpression = Expressions.accept(this.targetExpression,
         visitor);
@@ -62,8 +61,7 @@ public class MethodCallExpression extends Expression {
     return visitor.visit(this, targetExpression, expressions);
   }
 
-  @Override
-  public Object evaluate(Evaluator evaluator) {
+  @Override public Object evaluate(Evaluator evaluator) {
     final Object target;
     if (targetExpression == null) {
       target = null;
@@ -84,8 +82,7 @@ public class MethodCallExpression extends Expression {
     }
   }
 
-  @Override
-  void accept(ExpressionWriter writer, int lprec, int rprec) {
+  @Override void accept(ExpressionWriter writer, int lprec, int rprec) {
     if (writer.requireParentheses(this, lprec, rprec)) {
       return;
     }
@@ -107,8 +104,7 @@ public class MethodCallExpression extends Expression {
     writer.append(')');
   }
 
-  @Override
-  public boolean equals(Object o) {
+  @Override public boolean equals(Object o) {
     if (this == o) {
       return true;
     }
@@ -135,8 +131,7 @@ public class MethodCallExpression extends Expression {
     return true;
   }
 
-  @Override
-  public int hashCode() {
+  @Override public int hashCode() {
     int result = hash;
     if (result == 0) {
       result = super.hashCode();

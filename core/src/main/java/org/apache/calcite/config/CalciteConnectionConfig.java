@@ -14,38 +14,38 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.config;
+package org.apache.calcite.config;
 
-import net.hydromatic.avatica.Casing;
-import net.hydromatic.avatica.ConnectionConfig;
-import net.hydromatic.avatica.Quoting;
+import org.apache.calcite.avatica.Casing;
+import org.apache.calcite.avatica.ConnectionConfig;
+import org.apache.calcite.avatica.Quoting;
 
 /** Interface for reading connection properties within Calcite code. There is
  * a method for every property. At some point there will be similar config
  * classes for system and statement properties. */
-public interface OptiqConnectionConfig extends ConnectionConfig {
-  /** @see net.hydromatic.optiq.config.OptiqConnectionProperty#AUTO_TEMP */
+public interface CalciteConnectionConfig extends ConnectionConfig {
+  /** @see CalciteConnectionProperty#AUTO_TEMP */
   boolean autoTemp();
-  /** @see net.hydromatic.optiq.config.OptiqConnectionProperty#MATERIALIZATIONS_ENABLED */
+  /** @see CalciteConnectionProperty#MATERIALIZATIONS_ENABLED */
   boolean materializationsEnabled();
-  /** @see net.hydromatic.optiq.config.OptiqConnectionProperty#CREATE_MATERIALIZATIONS */
+  /** @see CalciteConnectionProperty#CREATE_MATERIALIZATIONS */
   boolean createMaterializations();
-  /** @see net.hydromatic.optiq.config.OptiqConnectionProperty#MODEL */
+  /** @see CalciteConnectionProperty#MODEL */
   String model();
-  /** @see net.hydromatic.optiq.config.OptiqConnectionProperty#LEX */
+  /** @see CalciteConnectionProperty#LEX */
   Lex lex();
-  /** @see net.hydromatic.optiq.config.OptiqConnectionProperty#QUOTING */
+  /** @see CalciteConnectionProperty#QUOTING */
   Quoting quoting();
-  /** @see net.hydromatic.optiq.config.OptiqConnectionProperty#UNQUOTED_CASING */
+  /** @see CalciteConnectionProperty#UNQUOTED_CASING */
   Casing unquotedCasing();
-  /** @see net.hydromatic.optiq.config.OptiqConnectionProperty#QUOTED_CASING */
+  /** @see CalciteConnectionProperty#QUOTED_CASING */
   Casing quotedCasing();
-  /** @see net.hydromatic.optiq.config.OptiqConnectionProperty#CASE_SENSITIVE */
+  /** @see CalciteConnectionProperty#CASE_SENSITIVE */
   boolean caseSensitive();
-  /** @see net.hydromatic.optiq.config.OptiqConnectionProperty#SPARK */
+  /** @see CalciteConnectionProperty#SPARK */
   boolean spark();
-  /** @see net.hydromatic.optiq.config.OptiqConnectionProperty#TYPE_SYSTEM */
+  /** @see CalciteConnectionProperty#TYPE_SYSTEM */
   <T> T typeSystem(Class<T> typeSystemClass, T defaultTypeSystem);
 }
 
-// End OptiqConnectionConfig.java
+// End CalciteConnectionConfig.java

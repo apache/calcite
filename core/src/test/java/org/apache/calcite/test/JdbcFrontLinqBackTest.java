@@ -14,21 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.test;
+package org.apache.calcite.test;
 
-import net.hydromatic.linq4j.Enumerator;
-import net.hydromatic.linq4j.Linq4j;
-import net.hydromatic.linq4j.QueryProvider;
-import net.hydromatic.linq4j.Queryable;
-import net.hydromatic.linq4j.expressions.Expression;
-
-import net.hydromatic.optiq.*;
-import net.hydromatic.optiq.impl.*;
-import net.hydromatic.optiq.impl.java.JavaTypeFactory;
-import net.hydromatic.optiq.jdbc.OptiqConnection;
-
-import org.eigenbase.reltype.RelDataType;
-import org.eigenbase.reltype.RelDataTypeFactory;
+import org.apache.calcite.adapter.java.JavaTypeFactory;
+import org.apache.calcite.jdbc.CalciteConnection;
+import org.apache.calcite.linq4j.Enumerator;
+import org.apache.calcite.linq4j.Linq4j;
+import org.apache.calcite.linq4j.QueryProvider;
+import org.apache.calcite.linq4j.Queryable;
+import org.apache.calcite.linq4j.tree.Expression;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.schema.Schemas;
+import org.apache.calcite.schema.impl.AbstractSchema;
+import org.apache.calcite.schema.impl.AbstractTableQueryable;
 
 import org.junit.Ignore;
 import org.junit.Test;
@@ -39,7 +39,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
-import static net.hydromatic.optiq.test.OptiqAssert.that;
+import static org.apache.calcite.test.CalciteAssert.that;
 
 /**
  * Tests for a JDBC front-end (with some quite complex SQL) and Linq4j back-end
@@ -51,12 +51,10 @@ public class JdbcFrontLinqBackTest {
    */
   @Test public void testSelect() {
     that()
-        .query(
-            "select *\n"
+        .query("select *\n"
             + "from \"foodmart\".\"sales_fact_1997\" as s\n"
             + "where s.\"cust_id\" = 100")
-        .returns(
-            "cust_id=100; prod_id=10\n");
+        .returns("cust_id=100; prod_id=10\n");
   }
 
   /**
@@ -64,13 +62,12 @@ public class JdbcFrontLinqBackTest {
    */
   @Test public void testJoin() {
     that()
-        .query(
-            "select *\n"
+        .query("select *\n"
             + "from \"foodmart\".\"sales_fact_1997\" as s\n"
             + "join \"hr\".\"emps\" as e\n"
             + "on e.\"empid\" = s.\"cust_id\"")
-        .returns(
-            "cust_id=100; prod_id=10; empid=100; deptno=10; name=Bill; salary=10000.0; commission=1000\n"
+        .returns(""
+            + "cust_id=100; prod_id=10; empid=100; deptno=10; name=Bill; salary=10000.0; commission=1000\n"
             + "cust_id=150; prod_id=20; empid=150; deptno=10; name=Sebastian; salary=7000.0; commission=null\n");
   }
 
@@ -79,12 +76,10 @@ public class JdbcFrontLinqBackTest {
    */
   @Test public void testGroupBy() {
     that()
-        .query(
-            "select \"deptno\", sum(\"empid\") as s, count(*) as c\n"
+        .query("select \"deptno\", sum(\"empid\") as s, count(*) as c\n"
             + "from \"hr\".\"emps\" as e\n"
             + "group by \"deptno\"")
-        .returns(
-            "deptno=20; S=200; C=1\n"
+        .returns("deptno=20; S=200; C=1\n"
             + "deptno=10; S=360; C=3\n");
   }
 
@@ -93,12 +88,10 @@ public class JdbcFrontLinqBackTest {
    */
   @Test public void testOrderBy() {
     that()
-        .query(
-            "select upper(\"name\") as un, \"deptno\"\n"
+        .query("select upper(\"name\") as un, \"deptno\"\n"
             + "from \"hr\".\"emps\" as e\n"
             + "order by \"deptno\", \"name\" desc")
-        .returns(
-            "UN=THEODORE; deptno=10\n"
+        .returns("UN=THEODORE; deptno=10\n"
             + "UN=SEBASTIAN; deptno=10\n"
             + "UN=BILL; deptno=10\n"
             + "UN=ERIC; deptno=20\n");
@@ -112,15 +105,13 @@ public class JdbcFrontLinqBackTest {
    */
   @Test public void testUnionAllOrderBy() {
     that()
-        .query(
-            "select \"name\"\n"
+        .query("select \"name\"\n"
             + "from \"hr\".\"emps\" as e\n"
             + "union all\n"
             + "select \"name\"\n"
             + "from \"hr\".\"depts\"\n"
             + "order by 1 desc")
-        .returns(
-            "name=Theodore\n"
+        .returns("name=Theodore\n"
             + "name=Sebastian\n"
             + "name=Sales\n"
             + "name=Marketing\n"
@@ -134,8 +125,7 @@ public class JdbcFrontLinqBackTest {
    */
   @Test public void testUnion() {
     that()
-        .query(
-            "select substring(\"name\" from 1 for 1) as x\n"
+        .query("select substring(\"name\" from 1 for 1) as x\n"
             + "from \"hr\".\"emps\" as e\n"
             + "union\n"
             + "select substring(\"name\" from 1 for 1) as y\n"
@@ -155,14 +145,12 @@ public class JdbcFrontLinqBackTest {
   @Ignore
   @Test public void testIntersect() {
     that()
-        .query(
-            "select substring(\"name\" from 1 for 1) as x\n"
+        .query("select substring(\"name\" from 1 for 1) as x\n"
             + "from \"hr\".\"emps\" as e\n"
             + "intersect\n"
             + "select substring(\"name\" from 1 for 1) as y\n"
             + "from \"hr\".\"depts\"")
-        .returns(
-            "X=S\n");
+        .returns("X=S\n");
   }
 
   /**
@@ -171,8 +159,7 @@ public class JdbcFrontLinqBackTest {
   @Ignore
   @Test public void testExcept() {
     that()
-        .query(
-            "select substring(\"name\" from 1 for 1) as x\n"
+        .query("select substring(\"name\" from 1 for 1) as x\n"
             + "from \"hr\".\"emps\" as e\n"
             + "except\n"
             + "select substring(\"name\" from 1 for 1) as y\n"
@@ -185,8 +172,7 @@ public class JdbcFrontLinqBackTest {
 
   @Test public void testWhereBad() {
     that()
-        .query(
-            "select *\n"
+        .query("select *\n"
             + "from \"foodmart\".\"sales_fact_1997\" as s\n"
             + "where empid > 120")
         .throws_("Column 'EMPID' not found in any table");
@@ -197,8 +183,7 @@ public class JdbcFrontLinqBackTest {
    * "RexToLixTranslator not incrementing local variable name counter". */
   @Test public void testWhereOr() {
     that()
-        .query(
-            "select * from \"hr\".\"emps\"\n"
+        .query("select * from \"hr\".\"emps\"\n"
             + "where (\"empid\" = 100 or \"empid\" = 200)\n"
             + "and \"deptno\" = 10")
         .returns(
@@ -207,12 +192,11 @@ public class JdbcFrontLinqBackTest {
 
   @Test public void testWhereLike() {
     that()
-        .query(
-            "select *\n"
+        .query("select *\n"
             + "from \"hr\".\"emps\" as e\n"
             + "where e.\"empid\" < 120 or e.\"name\" like 'S%'")
-        .returns(
-            "empid=100; deptno=10; name=Bill; salary=10000.0; commission=1000\n"
+        .returns(""
+            + "empid=100; deptno=10; name=Bill; salary=10000.0; commission=1000\n"
             + "empid=150; deptno=10; name=Sebastian; salary=7000.0; commission=null\n"
             + "empid=110; deptno=10; name=Theodore; salary=11500.0; commission=250\n");
   }
@@ -220,7 +204,7 @@ public class JdbcFrontLinqBackTest {
   @Test public void testInsert() {
     final List<JdbcTest.Employee> employees =
         new ArrayList<JdbcTest.Employee>();
-    OptiqAssert.AssertThat with = mutable(employees);
+    CalciteAssert.AssertThat with = mutable(employees);
     with.query("select * from \"foo\".\"bar\"")
         .returns(
             "empid=0; deptno=0; name=first; salary=0.0; commission=null\n");
@@ -228,12 +212,10 @@ public class JdbcFrontLinqBackTest {
         .returns("ROWCOUNT=4\n");
     with.query("select count(*) as c from \"foo\".\"bar\"")
         .returns("C=5\n");
-    with.query(
-        "insert into \"foo\".\"bar\" "
+    with.query("insert into \"foo\".\"bar\" "
         + "select * from \"hr\".\"emps\" where \"deptno\" = 10")
         .returns("ROWCOUNT=3\n");
-    with.query(
-        "select \"name\", count(*) as c from \"foo\".\"bar\" "
+    with.query("select \"name\", count(*) as c from \"foo\".\"bar\" "
         + "group by \"name\"")
         .returnsUnordered(
             "name=Bill; C=2",
@@ -243,19 +225,19 @@ public class JdbcFrontLinqBackTest {
             "name=Sebastian; C=2");
   }
 
-  private OptiqAssert.AssertThat mutable(
+  private CalciteAssert.AssertThat mutable(
       final List<JdbcTest.Employee> employees) {
     employees.add(new JdbcTest.Employee(0, 0, "first", 0f, null));
     return that()
         .with(
-            new OptiqAssert.ConnectionFactory() {
-              public OptiqConnection createConnection() throws Exception {
+            new CalciteAssert.ConnectionFactory() {
+              public CalciteConnection createConnection() throws Exception {
                 final Connection connection =
-                    OptiqAssert.getConnection("hr", "foodmart");
-                OptiqConnection optiqConnection = connection.unwrap(
-                    OptiqConnection.class);
+                    CalciteAssert.getConnection("hr", "foodmart");
+                CalciteConnection calciteConnection = connection.unwrap(
+                    CalciteConnection.class);
                 SchemaPlus rootSchema =
-                    optiqConnection.getRootSchema();
+                    calciteConnection.getRootSchema();
                 SchemaPlus mapSchema =
                     rootSchema.add("foo", new AbstractSchema());
                 final String tableName = "bar";
@@ -294,7 +276,7 @@ public class JdbcFrontLinqBackTest {
                       }
                     };
                 mapSchema.add(tableName, table);
-                return optiqConnection;
+                return calciteConnection;
               }
             });
   }
@@ -302,11 +284,10 @@ public class JdbcFrontLinqBackTest {
   @Test public void testInsert2() {
     final List<JdbcTest.Employee> employees =
         new ArrayList<JdbcTest.Employee>();
-    OptiqAssert.AssertThat with = mutable(employees);
+    CalciteAssert.AssertThat with = mutable(employees);
     with.query("insert into \"foo\".\"bar\" values (1, 1, 'second', 2, 2)")
         .returns("ROWCOUNT=1\n");
-    with.query(
-        "insert into \"foo\".\"bar\"\n"
+    with.query("insert into \"foo\".\"bar\"\n"
         + "values (1, 3, 'third', 0, 3), (1, 4, 'fourth', 0, 4), (1, 5, 'fifth ', 0, 3)")
         .returns("ROWCOUNT=3\n");
     with.query("select count(*) as c from \"foo\".\"bar\"")
@@ -321,9 +302,8 @@ public class JdbcFrontLinqBackTest {
   @Test public void testInsertMultipleRowMismatch() {
     final List<JdbcTest.Employee> employees =
         new ArrayList<JdbcTest.Employee>();
-    OptiqAssert.AssertThat with = mutable(employees);
-    with.query(
-        "insert into \"foo\".\"bar\" values\n"
+    CalciteAssert.AssertThat with = mutable(employees);
+    with.query("insert into \"foo\".\"bar\" values\n"
         + " (1, 3, 'third'),\n"
         + " (1, 4, 'fourth'),\n"
         + " (1, 5, 'fifth ', 3)")

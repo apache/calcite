@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq;
+package org.apache.calcite.schema;
 
-import net.hydromatic.optiq.prepare.Prepare;
-
-import org.eigenbase.rel.RelNode;
-import org.eigenbase.rel.TableModificationRelBase;
-import org.eigenbase.relopt.*;
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.prepare.Prepare;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.TableModify;
 
 import java.util.Collection;
 import java.util.List;
@@ -37,12 +37,12 @@ public interface ModifiableTable extends QueryableTable {
   Collection getModifiableCollection();
 
   /** Creates a relational expression that modifies this table. */
-  TableModificationRelBase toModificationRel(
+  TableModify toModificationRel(
       RelOptCluster cluster,
       RelOptTable table,
       Prepare.CatalogReader catalogReader,
       RelNode child,
-      TableModificationRelBase.Operation operation,
+      TableModify.Operation operation,
       List<String> updateColumnList,
       boolean flattened);
 }

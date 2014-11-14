@@ -14,60 +14,61 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel.rules;
+package org.apache.calcite.rel.rules;
+
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptRule;
+import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.plan.volcano.RelSubset;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.Join;
+import org.apache.calcite.rel.core.JoinRelType;
+import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexPermuteInputsShuttle;
+import org.apache.calcite.rex.RexUtil;
+import org.apache.calcite.util.BitSets;
+import org.apache.calcite.util.mapping.Mappings;
+
+import com.google.common.collect.Lists;
 
 import java.util.BitSet;
 import java.util.List;
 
-import org.eigenbase.rel.JoinRelBase;
-import org.eigenbase.rel.JoinRelType;
-import org.eigenbase.rel.RelNode;
-import org.eigenbase.relopt.RelOptCluster;
-import org.eigenbase.relopt.RelOptRule;
-import org.eigenbase.relopt.RelOptRuleCall;
-import org.eigenbase.relopt.volcano.RelSubset;
-import org.eigenbase.rex.RexBuilder;
-import org.eigenbase.rex.RexNode;
-import org.eigenbase.rex.RexPermuteInputsShuttle;
-import org.eigenbase.rex.RexUtil;
-import org.eigenbase.util.mapping.Mappings;
-
-import net.hydromatic.optiq.util.BitSets;
-
-import com.google.common.collect.Lists;
-
 /**
- * Planner rule that changes a join based on the commutativity rule.
+ * Planner rule that changes a join based on the associativity rule.
  *
  * <p>((a JOIN b) JOIN c) &rarr; (a JOIN (b JOIN c))</p>
  *
  * <p>We do not need a rule to convert (a JOIN (b JOIN c)) &rarr;
  * ((a JOIN b) JOIN c) because we have
- * {@link org.eigenbase.rel.rules.SwapJoinRule}.
+ * {@link JoinCommuteRule}.
+ *
+ * @see JoinCommuteRule
  */
-public class CommutativeJoinRule extends RelOptRule {
+public class JoinAssociateRule extends RelOptRule {
   //~ Static fields/initializers ---------------------------------------------
 
   /** The singleton. */
-  public static final CommutativeJoinRule INSTANCE = new CommutativeJoinRule();
+  public static final JoinAssociateRule INSTANCE = new JoinAssociateRule();
 
   //~ Constructors -----------------------------------------------------------
 
   /**
-   * Creates an CommutativeJoinRule.
+   * Creates a JoinAssociateRule.
    */
-  private CommutativeJoinRule() {
+  private JoinAssociateRule() {
     super(
-        operand(JoinRelBase.class,
-            operand(JoinRelBase.class, any()),
+        operand(Join.class,
+            operand(Join.class, any()),
             operand(RelSubset.class, any())));
   }
 
   //~ Methods ----------------------------------------------------------------
 
   public void onMatch(final RelOptRuleCall call) {
-    final JoinRelBase topJoin = call.rel(0);
-    final JoinRelBase bottomJoin = call.rel(1);
+    final Join topJoin = call.rel(0);
+    final Join bottomJoin = call.rel(1);
     final RelNode relA = bottomJoin.getLeft();
     final RelNode relB = bottomJoin.getRight();
     final RelSubset relC = call.rel(2);
@@ -116,8 +117,8 @@ public class CommutativeJoinRule extends RelOptRule {
     // condition can be pushed down if it does not use columns from A.
     final List<RexNode> top = Lists.newArrayList();
     final List<RexNode> bottom = Lists.newArrayList();
-    PushJoinThroughJoinRule.split(topJoin.getCondition(), aBitSet, top, bottom);
-    PushJoinThroughJoinRule.split(bottomJoin.getCondition(), aBitSet, top,
+    JoinPushThroughJoinRule.split(topJoin.getCondition(), aBitSet, top, bottom);
+    JoinPushThroughJoinRule.split(bottomJoin.getCondition(), aBitSet, top,
         bottom);
 
     // Mapping for moving conditions from topJoin or bottomJoin to
@@ -135,7 +136,7 @@ public class CommutativeJoinRule extends RelOptRule {
     RexNode newBottomCondition =
         RexUtil.composeConjunction(rexBuilder, newBottomList, false);
 
-    final JoinRelBase newBottomJoin =
+    final Join newBottomJoin =
         bottomJoin.copy(bottomJoin.getTraitSet(), newBottomCondition, relB,
             relC, JoinRelType.INNER, false);
 
@@ -143,7 +144,7 @@ public class CommutativeJoinRule extends RelOptRule {
     // Field ordinals do not need to be changed.
     RexNode newTopCondition =
         RexUtil.composeConjunction(rexBuilder, top, false);
-    final JoinRelBase newTopJoin =
+    final Join newTopJoin =
         topJoin.copy(topJoin.getTraitSet(), newTopCondition, relA,
             newBottomJoin, JoinRelType.INNER, false);
 
@@ -151,4 +152,4 @@ public class CommutativeJoinRule extends RelOptRule {
   }
 }
 
-// End CommutativeJoinRule.java
+// End JoinAssociateRule.java

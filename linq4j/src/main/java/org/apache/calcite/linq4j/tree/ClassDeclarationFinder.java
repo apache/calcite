@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.linq4j.expressions;
+package org.apache.calcite.linq4j.tree;
 
-import net.hydromatic.linq4j.function.Function1;
+import org.apache.calcite.linq4j.function.Function1;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
@@ -144,8 +144,7 @@ public class ClassDeclarationFinder extends Visitor {
    * @param newExpression expression to optimize
    * @return nested visitor if anonymous class is given
    */
-  @Override
-  public Visitor preVisit(NewExpression newExpression) {
+  @Override public Visitor preVisit(NewExpression newExpression) {
     if (newExpression.memberDeclarations == null) {
       return this;
     }
@@ -160,15 +159,13 @@ public class ClassDeclarationFinder extends Visitor {
    * @param classDeclaration expression to optimize
    * @return nested visitor
    */
-  @Override
-  public Visitor preVisit(ClassDeclaration classDeclaration) {
+  @Override public Visitor preVisit(ClassDeclaration classDeclaration) {
     ClassDeclarationFinder visitor = goDeeper();
     visitor.learnFinalStaticDeclarations(classDeclaration.memberDeclarations);
     return visitor;
   }
 
-  @Override
-  public Expression visit(NewExpression newExpression,
+  @Override public Expression visit(NewExpression newExpression,
       List<Expression> arguments, List<MemberDeclaration> memberDeclarations) {
     if (parent == null) {
       // Unable to optimize since no wrapper class exists to put fields to.
@@ -212,8 +209,7 @@ public class ClassDeclarationFinder extends Visitor {
     return newExpression;
   }
 
-  @Override
-  public ClassDeclaration visit(ClassDeclaration classDeclaration,
+  @Override public ClassDeclaration visit(ClassDeclaration classDeclaration,
       List<MemberDeclaration> memberDeclarations) {
     memberDeclarations = optimizeDeclarations(memberDeclarations);
     return super.visit(classDeclaration, memberDeclarations);

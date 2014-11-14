@@ -14,20 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.impl.csv;
+package org.apache.calcite.adapter.csv;
 
-import net.hydromatic.linq4j.Enumerator;
-
-import net.hydromatic.optiq.impl.java.JavaTypeFactory;
-
-import org.eigenbase.reltype.RelDataType;
-import org.eigenbase.util.Pair;
-
-import au.com.bytecode.opencsv.CSVReader;
+import org.apache.calcite.adapter.java.JavaTypeFactory;
+import org.apache.calcite.linq4j.Enumerator;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.util.Pair;
 
 import org.apache.commons.lang3.time.FastDateFormat;
 
-import java.io.*;
+import au.com.bytecode.opencsv.CSVReader;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.Reader;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Date;

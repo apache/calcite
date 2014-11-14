@@ -14,11 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq;
+package org.apache.calcite.schema;
 
-import net.hydromatic.linq4j.expressions.Expression;
+import org.apache.calcite.linq4j.tree.Expression;
 
-import java.util.*;
+import java.util.Collection;
+import java.util.Set;
 
 /**
  * A namespace for tables and functions.
@@ -32,7 +33,7 @@ import java.util.*;
  * different numbers or types of parameters.
  * For this reason, {@link #getFunctions} returns a list of all
  * members with the same name. Calcite will call
- * {@link Schemas#resolve(org.eigenbase.reltype.RelDataTypeFactory, String, java.util.Collection, java.util.List)}
+ * {@link Schemas#resolve(org.apache.calcite.rel.type.RelDataTypeFactory, String, java.util.Collection, java.util.List)}
  * to choose the appropriate one.</p>
  *
  * <p>The most common and important type of member is the one with no
@@ -112,7 +113,7 @@ public interface Schema {
    * caching is enabled, Calcite will re-build caches.
    *
    * <p>The default implementation in
-   * {@link net.hydromatic.optiq.impl.AbstractSchema} always returns
+   * {@link org.apache.calcite.schema.impl.AbstractSchema} always returns
    * {@code false}.</p>
    *
    * <p>To control whether Calcite caches the contents of a schema, use the

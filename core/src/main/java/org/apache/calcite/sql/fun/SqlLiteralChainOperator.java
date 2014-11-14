@@ -14,20 +14,36 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql.fun;
+package org.apache.calcite.sql.fun;
 
-import java.util.*;
+import org.apache.calcite.linq4j.Ord;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlCallBinding;
+import org.apache.calcite.sql.SqlCharStringLiteral;
+import org.apache.calcite.sql.SqlCollation;
+import org.apache.calcite.sql.SqlInternalOperator;
+import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlLiteral;
+import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlOperatorBinding;
+import org.apache.calcite.sql.SqlUtil;
+import org.apache.calcite.sql.SqlWriter;
+import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.type.InferTypes;
+import org.apache.calcite.sql.type.OperandTypes;
+import org.apache.calcite.sql.type.ReturnTypes;
+import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.type.SqlTypeUtil;
+import org.apache.calcite.sql.validate.SqlValidator;
+import org.apache.calcite.sql.validate.SqlValidatorScope;
+import org.apache.calcite.util.BitString;
+import org.apache.calcite.util.NlsString;
+import org.apache.calcite.util.Util;
 
-import org.eigenbase.reltype.*;
-import org.eigenbase.sql.*;
-import org.eigenbase.sql.parser.*;
-import org.eigenbase.sql.type.*;
-import org.eigenbase.sql.validate.*;
-import org.eigenbase.util.*;
+import java.util.List;
 
-import net.hydromatic.linq4j.Ord;
-
-import static org.eigenbase.util.Static.RESOURCE;
+import static org.apache.calcite.util.Static.RESOURCE;
 
 /**
  * Internal operator, by which the parser represents a continued string literal.
@@ -36,8 +52,9 @@ import static org.eigenbase.util.Static.RESOURCE;
  * collected as the operands of an {@link SqlCall} using this operator. After
  * validation, the fragments will be concatenated into a single literal.
  *
- * <p>For a chain of {@link org.eigenbase.sql.SqlCharStringLiteral} objects, a
- * {@link SqlCollation} object is attached only to the head of the chain.
+ * <p>For a chain of {@link org.apache.calcite.sql.SqlCharStringLiteral}
+ * objects, a {@link SqlCollation} object is attached only to the head of the
+ * chain.
  */
 public class SqlLiteralChainOperator extends SqlInternalOperator {
   //~ Constructors -----------------------------------------------------------

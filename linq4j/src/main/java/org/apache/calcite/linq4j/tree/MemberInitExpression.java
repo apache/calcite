@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.linq4j.expressions;
+package org.apache.calcite.linq4j.tree;
 
 /**
  * Represents calling a constructor and initializing one or more members of the
@@ -25,8 +25,7 @@ public class MemberInitExpression extends Expression {
     super(ExpressionType.MemberInit, Void.TYPE);
   }
 
-  @Override
-  public Expression accept(Visitor visitor) {
+  @Override public Expression accept(Visitor visitor) {
     return visitor.visit(this);
   }
 }

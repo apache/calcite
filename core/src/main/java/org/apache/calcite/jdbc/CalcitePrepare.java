@@ -14,48 +14,56 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.jdbc;
+package org.apache.calcite.jdbc;
 
-import net.hydromatic.avatica.*;
-
-import net.hydromatic.linq4j.*;
-import net.hydromatic.linq4j.expressions.ClassDeclaration;
-import net.hydromatic.linq4j.function.Function0;
-
-import net.hydromatic.optiq.*;
-import net.hydromatic.optiq.config.OptiqConnectionConfig;
-import net.hydromatic.optiq.impl.java.JavaTypeFactory;
-import net.hydromatic.optiq.prepare.OptiqPrepareImpl;
-import net.hydromatic.optiq.runtime.*;
-
-import org.eigenbase.rel.RelNode;
-import org.eigenbase.relopt.RelOptPlanner;
-import org.eigenbase.relopt.RelOptRule;
-import org.eigenbase.reltype.RelDataType;
-import org.eigenbase.reltype.RelDataTypeFactory;
-import org.eigenbase.sql.SqlNode;
-import org.eigenbase.sql.validate.SqlValidator;
-import org.eigenbase.util.Stacks;
+import org.apache.calcite.DataContext;
+import org.apache.calcite.adapter.java.JavaTypeFactory;
+import org.apache.calcite.avatica.AvaticaParameter;
+import org.apache.calcite.avatica.AvaticaPrepareResult;
+import org.apache.calcite.avatica.ColumnMetaData;
+import org.apache.calcite.avatica.Cursor;
+import org.apache.calcite.config.CalciteConnectionConfig;
+import org.apache.calcite.linq4j.Enumerable;
+import org.apache.calcite.linq4j.EnumerableDefaults;
+import org.apache.calcite.linq4j.Enumerator;
+import org.apache.calcite.linq4j.Queryable;
+import org.apache.calcite.linq4j.function.Function0;
+import org.apache.calcite.linq4j.tree.ClassDeclaration;
+import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.plan.RelOptRule;
+import org.apache.calcite.prepare.CalcitePrepareImpl;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.runtime.ArrayEnumeratorCursor;
+import org.apache.calcite.runtime.Bindable;
+import org.apache.calcite.runtime.ObjectEnumeratorCursor;
+import org.apache.calcite.runtime.RecordEnumeratorCursor;
+import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.validate.SqlValidator;
+import org.apache.calcite.util.Stacks;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 
 /**
  * API for a service that prepares statements for execution.
  */
-public interface OptiqPrepare {
-  Function0<OptiqPrepare> DEFAULT_FACTORY =
-      new Function0<OptiqPrepare>() {
-        public OptiqPrepare apply() {
-          return new OptiqPrepareImpl();
+public interface CalcitePrepare {
+  Function0<CalcitePrepare> DEFAULT_FACTORY =
+      new Function0<CalcitePrepare>() {
+        public CalcitePrepare apply() {
+          return new CalcitePrepareImpl();
         }
       };
   ThreadLocal<ArrayList<Context>> THREAD_CONTEXT_STACK =
       new ThreadLocal<ArrayList<Context>>() {
-        @Override
-        protected ArrayList<Context> initialValue() {
+        @Override protected ArrayList<Context> initialValue() {
           return new ArrayList<Context>();
         }
       };
@@ -79,11 +87,11 @@ public interface OptiqPrepare {
   interface Context {
     JavaTypeFactory getTypeFactory();
 
-    OptiqRootSchema getRootSchema();
+    CalciteRootSchema getRootSchema();
 
     List<String> getDefaultSchemaPath();
 
-    OptiqConnectionConfig config();
+    CalciteConnectionConfig config();
 
     /** Returns the spark handler. Never null. */
     SparkHandler spark();
@@ -130,9 +138,9 @@ public interface OptiqPrepare {
     private static SparkHandler createHandler() {
       try {
         final Class<?> clazz =
-            Class.forName("net.hydromatic.optiq.impl.spark.SparkHandlerImpl");
+            Class.forName("org.apache.calcite.adapter.spark.SparkHandlerImpl");
         Method method = clazz.getMethod("instance");
-        return (OptiqPrepare.SparkHandler) method.invoke(null);
+        return (CalcitePrepare.SparkHandler) method.invoke(null);
       } catch (ClassNotFoundException e) {
         return new TrivialSparkHandler();
       } catch (IllegalAccessException e) {
@@ -185,13 +193,13 @@ public interface OptiqPrepare {
 
   /** The result of parsing and validating a SQL query. */
   public static class ParseResult {
-    public final OptiqPrepareImpl prepare;
+    public final CalcitePrepareImpl prepare;
     public final String sql; // for debug
     public final SqlNode sqlNode;
     public final RelDataType rowType;
     public final RelDataTypeFactory typeFactory;
 
-    public ParseResult(OptiqPrepareImpl prepare, SqlValidator validator,
+    public ParseResult(CalcitePrepareImpl prepare, SqlValidator validator,
         String sql,
         SqlNode sqlNode, RelDataType rowType) {
       super();
@@ -208,7 +216,7 @@ public interface OptiqPrepare {
   public static class ConvertResult extends ParseResult {
     public final RelNode relNode;
 
-    public ConvertResult(OptiqPrepareImpl prepare, SqlValidator validator,
+    public ConvertResult(CalcitePrepareImpl prepare, SqlValidator validator,
         String sql, SqlNode sqlNode, RelDataType rowType, RelNode relNode) {
       super(prepare, validator, sql, sqlNode, rowType);
       this.relNode = relNode;
@@ -293,4 +301,4 @@ public interface OptiqPrepare {
   }
 }
 
-// End OptiqPrepare.java
+// End CalcitePrepare.java

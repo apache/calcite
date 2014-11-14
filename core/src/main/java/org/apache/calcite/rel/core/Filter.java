@@ -14,21 +14,38 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel;
+package org.apache.calcite.rel.core;
 
-import java.util.List;
-
-import org.eigenbase.rel.metadata.*;
-import org.eigenbase.relopt.*;
-import org.eigenbase.rex.*;
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptCost;
+import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.RelInput;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelWriter;
+import org.apache.calcite.rel.SingleRel;
+import org.apache.calcite.rel.metadata.RelMetadataQuery;
+import org.apache.calcite.rex.RexChecker;
+import org.apache.calcite.rex.RexLocalRef;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexProgram;
+import org.apache.calcite.rex.RexUtil;
 
 import com.google.common.collect.ImmutableList;
 
+import java.util.List;
+
 /**
- * <code>FilterRelBase</code> is an abstract base class for implementations of
- * {@link FilterRel}.
+ * Relational expression that iterates over its input
+ * and returns elements for which <code>condition</code> evaluates to
+ * <code>true</code>.
+ *
+ * <p>If the condition allows nulls, then a null value is treated the same as
+ * false.</p>
+ *
+ * @see org.apache.calcite.rel.logical.LogicalFilter
  */
-public abstract class FilterRelBase extends SingleRel {
+public abstract class Filter extends SingleRel {
   //~ Instance fields --------------------------------------------------------
 
   protected final RexNode condition;
@@ -38,14 +55,13 @@ public abstract class FilterRelBase extends SingleRel {
   /**
    * Creates a filter.
    *
-   * @param cluster   {@link RelOptCluster}  this relational expression belongs
-   *                  to
+   * @param cluster   Cluster that this relational expression belongs to
    * @param traits    the traits of this rel
    * @param child     input relational expression
    * @param condition boolean expression which determines whether a row is
    *                  allowed to pass
    */
-  protected FilterRelBase(
+  protected Filter(
       RelOptCluster cluster,
       RelTraitSet traits,
       RelNode child,
@@ -59,25 +75,24 @@ public abstract class FilterRelBase extends SingleRel {
   }
 
   /**
-   * Creates a FilterRelBase by parsing serialized output.
+   * Creates a Filter by parsing serialized output.
    */
-  protected FilterRelBase(RelInput input) {
+  protected Filter(RelInput input) {
     this(input.getCluster(), input.getTraitSet(), input.getInput(),
         input.getExpression("condition"));
   }
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override
-  public final RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
+  @Override public final RelNode copy(RelTraitSet traitSet,
+      List<RelNode> inputs) {
     return copy(traitSet, sole(inputs), getCondition());
   }
 
-  public abstract FilterRelBase copy(RelTraitSet traitSet, RelNode input,
+  public abstract Filter copy(RelTraitSet traitSet, RelNode input,
       RexNode condition);
 
-  @Override
-  public List<RexNode> getChildExps() {
+  @Override public List<RexNode> getChildExps() {
     return ImmutableList.of(condition);
   }
 
@@ -86,7 +101,7 @@ public abstract class FilterRelBase extends SingleRel {
   }
 
   @Override public boolean isValid(boolean fail) {
-    final RexChecker checker = new RexChecker(getChild().getRowType(), fail);
+    final RexChecker checker = new RexChecker(getInput().getRowType(), fail);
     condition.accept(checker);
     if (checker.getFailureCount() > 0) {
       assert !fail;
@@ -97,7 +112,7 @@ public abstract class FilterRelBase extends SingleRel {
 
   public RelOptCost computeSelfCost(RelOptPlanner planner) {
     double dRows = RelMetadataQuery.getRowCount(this);
-    double dCpu = RelMetadataQuery.getRowCount(getChild());
+    double dCpu = RelMetadataQuery.getRowCount(getInput());
     double dIo = 0;
     return planner.getCostFactory().makeCost(dRows, dCpu, dIo);
   }
@@ -105,7 +120,7 @@ public abstract class FilterRelBase extends SingleRel {
   // override RelNode
   public double getRows() {
     return estimateFilteredRows(
-        getChild(),
+        getInput(),
         condition);
   }
 
@@ -134,4 +149,4 @@ public abstract class FilterRelBase extends SingleRel {
   }
 }
 
-// End FilterRelBase.java
+// End Filter.java

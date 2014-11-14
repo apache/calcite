@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rex;
+package org.apache.calcite.rex;
+
+import org.apache.calcite.rel.type.RelDataType;
 
 import java.util.AbstractList;
 import java.util.concurrent.CopyOnWriteArrayList;
-
-import org.eigenbase.reltype.*;
 
 /**
  * Abstract base class for {@link RexInputRef} and {@link RexLocalRef}.
@@ -81,8 +81,7 @@ public abstract class RexSlot extends RexVariable {
       };
     }
 
-    @Override
-    public String get(int index) {
+    @Override public String get(int index) {
       for (;;) {
         try {
           return super.get(index);

@@ -14,14 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql;
+package org.apache.calcite.sql;
 
-import java.util.*;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.util.SqlVisitor;
+import org.apache.calcite.sql.validate.SqlMoniker;
+import org.apache.calcite.sql.validate.SqlMonotonicity;
+import org.apache.calcite.sql.validate.SqlValidator;
+import org.apache.calcite.sql.validate.SqlValidatorImpl;
+import org.apache.calcite.sql.validate.SqlValidatorScope;
 
-import org.eigenbase.reltype.*;
-import org.eigenbase.sql.parser.*;
-import org.eigenbase.sql.util.*;
-import org.eigenbase.sql.validate.*;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * A <code>SqlCall</code> is a call to an {@link SqlOperator operator}.

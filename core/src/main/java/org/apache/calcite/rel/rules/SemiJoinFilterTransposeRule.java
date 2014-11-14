@@ -14,49 +14,55 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel.rules;
+package org.apache.calcite.rel.rules;
 
-import org.eigenbase.rel.*;
-import org.eigenbase.rel.RelFactories.FilterFactory;
-import org.eigenbase.relopt.*;
+import org.apache.calcite.plan.Convention;
+import org.apache.calcite.plan.RelOptRule;
+import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.SemiJoin;
+import org.apache.calcite.rel.logical.LogicalFilter;
 
 /**
- * PushSemiJoinPastFilterRule implements the rule for pushing semijoins down in
- * a tree past a filter in order to trigger other rules that will convert
- * semijoins. SemiJoinRel(FilterRel(X), Y) &rarr; FilterRel(SemiJoinRel(X, Y))
+ * Planner rule that pushes
+ * {@link org.apache.calcite.rel.core.SemiJoin}s down in a tree past
+ * a {@link org.apache.calcite.rel.core.Filter}.
+ *
+ * <p>The intention is to trigger other rules that will convert
+ * {@code SemiJoin}s.
+ *
+ * <p>SemiJoin(LogicalFilter(X), Y) &rarr; LogicalFilter(SemiJoin(X, Y))
+ *
+ * @see SemiJoinProjectTransposeRule
  */
-public class PushSemiJoinPastFilterRule extends RelOptRule {
-  public static final PushSemiJoinPastFilterRule INSTANCE =
-      new PushSemiJoinPastFilterRule(RelFactories.DEFAULT_FILTER_FACTORY);
-
-  private final FilterFactory filterFactory;
+public class SemiJoinFilterTransposeRule extends RelOptRule {
+  public static final SemiJoinFilterTransposeRule INSTANCE =
+      new SemiJoinFilterTransposeRule();
 
   //~ Constructors -----------------------------------------------------------
 
   /**
-   * Creates a PushSemiJoinPastFilterRule.
-   * @param filterFactory Factory to create Filter
+   * Creates a SemiJoinFilterTransposeRule.
    */
-  public PushSemiJoinPastFilterRule(FilterFactory filterFactory) {
+  private SemiJoinFilterTransposeRule() {
     super(
-        operand(
-            SemiJoinRel.class,
-            some(operand(FilterRelBase.class, any()))));
-    this.filterFactory = filterFactory;
+        operand(SemiJoin.class,
+            some(operand(LogicalFilter.class, any()))));
   }
 
   //~ Methods ----------------------------------------------------------------
 
   // implement RelOptRule
   public void onMatch(RelOptRuleCall call) {
-    SemiJoinRel semiJoin = call.rel(0);
-    FilterRelBase filter = call.rel(1);
+    SemiJoin semiJoin = call.rel(0);
+    LogicalFilter filter = call.rel(1);
 
     RelNode newSemiJoin =
-        new SemiJoinRel(
+        new SemiJoin(
             semiJoin.getCluster(),
             semiJoin.getCluster().traitSetOf(Convention.NONE),
-            filter.getChild(),
+            filter.getInput(),
             semiJoin.getRight(),
             semiJoin.getCondition(),
             semiJoin.getLeftKeys(),
@@ -65,10 +71,10 @@ public class PushSemiJoinPastFilterRule extends RelOptRule {
     RelNode newFilter =
         RelOptUtil.createFilter(
             newSemiJoin,
-            filter.getCondition(), filterFactory);
+            filter.getCondition());
 
     call.transformTo(newFilter);
   }
 }
 
-// End PushSemiJoinPastFilterRule.java
+// End SemiJoinFilterTransposeRule.java

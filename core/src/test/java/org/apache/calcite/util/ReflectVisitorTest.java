@@ -14,17 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.util;
-
-import java.math.*;
+package org.apache.calcite.util;
 
 import org.junit.Test;
 
-import static org.junit.Assert.*;
+import java.math.BigDecimal;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 /**
- * ReflectVisitorTest tests {@link ReflectUtil#invokeVisitor} and {@link
- * ReflectiveVisitor} and provides a contrived example of how to use them.
+ * ReflectVisitorTest tests {@link ReflectUtil#invokeVisitor} and
+ * {@link ReflectiveVisitor} and provides a contrived example of how to use
+ * them.
  */
 public class ReflectVisitorTest {
   //~ Constructors -----------------------------------------------------------
@@ -138,6 +141,7 @@ public class ReflectVisitorTest {
   public interface FudgeableNumber {
   }
 
+  /** Sub-interface of {@link FudgeableNumber}. */
   public interface DiceyNumber extends FudgeableNumber {
   }
 
@@ -176,8 +180,8 @@ public class ReflectVisitorTest {
 
     /**
      * Negates the given number without using a dispatcher object to cache
-     * applicable methods. The results should be the same as {@link
-     * #negate(Number)}.
+     * applicable methods. The results should be the same as
+     * {@link #negate(Number)}.
      *
      * @param n the number to be negated
      * @return the negated result; not guaranteed to be the same concrete

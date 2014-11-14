@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.tools;
+package org.apache.calcite.tools;
 
-import org.eigenbase.relopt.RelOptRule;
+import org.apache.calcite.plan.RelOptRule;
 
 import com.google.common.collect.ImmutableList;
 
@@ -26,7 +26,7 @@ import java.util.Iterator;
 /**
  * Utilities for creating and composing rule sets.
  *
- * @see net.hydromatic.optiq.tools.RuleSet
+ * @see org.apache.calcite.tools.RuleSet
  */
 public class RuleSets {
   private RuleSets() {
@@ -50,13 +50,11 @@ public class RuleSets {
       this.rules = rules;
     }
 
-    @Override
-    public int hashCode() {
+    @Override public int hashCode() {
       return rules.hashCode();
     }
 
-    @Override
-    public boolean equals(Object obj) {
+    @Override public boolean equals(Object obj) {
       return obj == this
           || obj instanceof ListRuleSet
           && rules.equals(((ListRuleSet) obj).rules);

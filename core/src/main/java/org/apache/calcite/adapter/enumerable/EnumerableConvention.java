@@ -14,19 +14,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.rules.java;
+package org.apache.calcite.adapter.enumerable;
 
-import org.eigenbase.relopt.*;
+import org.apache.calcite.plan.Convention;
+import org.apache.calcite.plan.ConventionTraitDef;
+import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.plan.RelTrait;
+import org.apache.calcite.plan.RelTraitDef;
 
 /**
  * Family of calling conventions that return results as an
- * {@link net.hydromatic.linq4j.Enumerable}.
+ * {@link org.apache.calcite.linq4j.Enumerable}.
  */
 public enum EnumerableConvention implements Convention {
   INSTANCE;
 
-  @Override
-  public String toString() {
+  @Override public String toString() {
     return getName();
   }
 

@@ -14,17 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.relopt;
+package org.apache.calcite.plan;
 
-import java.util.*;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rex.RexBuilder;
 
-import org.eigenbase.rel.*;
-import org.eigenbase.reltype.*;
-import org.eigenbase.rex.*;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
- * A <code>RelOptQuery</code> represents a set of {@link RelNode relational
- * expressions} which derive from the same <code>select</code> statement.
+ * A <code>RelOptQuery</code> represents a set of
+ * {@link RelNode relational expressions} which derive from the same
+ * <code>select</code> statement.
  */
 public class RelOptQuery {
   //~ Static fields/initializers ---------------------------------------------

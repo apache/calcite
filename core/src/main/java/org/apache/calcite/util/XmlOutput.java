@@ -14,12 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.util;
-
-import java.io.*;
-import java.util.*;
+package org.apache.calcite.util;
 
 import com.google.common.collect.Lists;
+
+import java.io.IOException;
+import java.io.LineNumberReader;
+import java.io.PrintWriter;
+import java.io.StringReader;
+import java.io.Writer;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * Streaming XML output.

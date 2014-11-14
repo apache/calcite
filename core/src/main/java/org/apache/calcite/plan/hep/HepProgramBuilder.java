@@ -14,12 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.relopt.hep;
+package org.apache.calcite.plan.hep;
 
-import java.util.*;
+import org.apache.calcite.plan.CommonRelSubExprRule;
+import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.plan.RelOptRule;
 
-import org.eigenbase.rel.convert.*;
-import org.eigenbase.relopt.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 
 /**
  * HepProgramBuilder creates instances of {@link HepProgram}.
@@ -36,9 +39,9 @@ public class HepProgramBuilder {
 
   /**
    * Creates a new HepProgramBuilder with an initially empty program. The
-   * program under construction has an initial match order of {@link
-   * HepMatchOrder#ARBITRARY}, and an initial match limit of {@link
-   * HepProgram#MATCH_UNTIL_FIXPOINT}.
+   * program under construction has an initial match order of
+   * {@link HepMatchOrder#ARBITRARY}, and an initial match limit of
+   * {@link HepProgram#MATCH_UNTIL_FIXPOINT}.
    */
   public HepProgramBuilder() {
   }
@@ -56,9 +59,9 @@ public class HepProgramBuilder {
    * so if more control is needed, use addRuleInstance instead.
    *
    * <p>Note that when this method is used, it is also necessary to add the
-   * actual rule objects of interest to the planner via {@link
-   * RelOptPlanner#addRule}. If the planner does not have any rules of the
-   * given class, this instruction is a nop.
+   * actual rule objects of interest to the planner via
+   * {@link RelOptPlanner#addRule}. If the planner does not have any
+   * rules of the given class, this instruction is a nop.
    *
    * <p>TODO: support classification via rule annotations.
    *
@@ -165,8 +168,9 @@ public class HepProgramBuilder {
   }
 
   /**
-   * Adds an instruction to attempt to match instances of {@link
-   * ConverterRule}, but only where a conversion is actually required.
+   * Adds an instruction to attempt to match instances of
+   * {@link org.apache.calcite.rel.convert.ConverterRule},
+   * but only where a conversion is actually required.
    *
    * @param guaranteed if true, use only guaranteed converters; if false, use
    *                   only non-guaranteed converters

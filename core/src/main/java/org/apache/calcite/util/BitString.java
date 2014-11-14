@@ -14,12 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.util;
+package org.apache.calcite.util;
 
-import java.math.*;
+import java.math.BigInteger;
 import java.util.List;
-
-import org.eigenbase.util14.*;
 
 /**
  * String of bits.
@@ -28,12 +26,13 @@ import org.eigenbase.util14.*;
  * specified length. The length is preserved even if this means that the bit
  * string has leading '0's.
  *
- * <p>You can create a bit string from a string of 0s and 1s ({@link
- * #BitString(String, int)} or {@link #createFromBitString}), or from a string of
- * hex digits ({@link #createFromHexString}). You can convert it to a byte array
- * ({@link #getAsByteArray}), to a bit string ({@link #toBitString}), or to a
- * hex string ({@link #toHexString}). A utility method {@link
- * #toByteArrayFromBitString} converts a bit string directly to a byte array.
+ * <p>You can create a bit string from a string of 0s and 1s
+ * ({@link #BitString(String, int)} or {@link #createFromBitString}), or from a
+ * string of hex digits ({@link #createFromHexString}). You can convert it to a
+ * byte array ({@link #getAsByteArray}), to a bit string ({@link #toBitString}),
+ * or to a hex string ({@link #toHexString}). A utility method
+ * {@link #toByteArrayFromBitString} converts a bit string directly to a byte
+ * array.
  *
  * <p>This class is immutable: once created, none of the methods modify the
  * value.

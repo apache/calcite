@@ -14,20 +14,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.test;
+package org.apache.calcite.test;
 
-import java.io.*;
+import org.apache.calcite.util.ReflectUtil;
 
-import java.util.*;
-import java.util.regex.*;
+import org.incava.util.diff.Diff;
+import org.incava.util.diff.Difference;
+import org.junit.After;
+import org.junit.Assert;
+import org.junit.Before;
 
-import org.eigenbase.util.*;
-
-import org.incava.util.diff.*;
-
-import org.junit.*;
-
-import static org.junit.Assert.*;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.LineNumberReader;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.io.StringWriter;
+import java.io.Writer;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * DiffTestCase is an abstract base for JUnit tests which produce multi-line

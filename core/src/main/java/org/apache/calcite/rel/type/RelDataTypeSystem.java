@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.reltype;
+package org.apache.calcite.rel.type;
 
-import org.eigenbase.sql.type.SqlTypeName;
+import org.apache.calcite.sql.type.SqlTypeName;
 
 /**
  * Type system.
@@ -57,4 +57,4 @@ public interface RelDataTypeSystem {
   int getMaxNumericPrecision();
 }
 
-// End RelDataTypeFactory.java
+// End RelDataTypeSystem.java

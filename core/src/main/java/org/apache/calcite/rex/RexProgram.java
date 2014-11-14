@@ -14,22 +14,33 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rex;
+package org.apache.calcite.rex;
 
-import java.io.PrintWriter;
-import java.io.StringWriter;
-import java.util.*;
-
-import org.eigenbase.rel.*;
-import org.eigenbase.relopt.*;
-import org.eigenbase.reltype.*;
-import org.eigenbase.sql.*;
-import org.eigenbase.sql.fun.SqlStdOperatorTable;
-import org.eigenbase.sql.type.*;
-import org.eigenbase.util.*;
+import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.rel.RelCollation;
+import org.apache.calcite.rel.RelCollationImpl;
+import org.apache.calcite.rel.RelFieldCollation;
+import org.apache.calcite.rel.RelWriter;
+import org.apache.calcite.rel.externalize.RelWriterImpl;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.sql.SqlExplainLevel;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.type.SqlTypeUtil;
+import org.apache.calcite.util.Pair;
+import org.apache.calcite.util.Permutation;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
+
+import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.util.AbstractList;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
 
 /**
  * A collection of expressions which read inputs, compute output expressions,
@@ -251,11 +262,10 @@ public class RexProgram {
       SqlExplainLevel level) {
     final List<RelDataTypeField> inFields = inputRowType.getFieldList();
     final List<RelDataTypeField> outFields = outputRowType.getFieldList();
-    assert outFields.size() == projects.size() : "outFields.length="
-        + outFields.size()
+    assert outFields.size() == projects.size()
+        : "outFields.length=" + outFields.size()
         + ", projects.length=" + projects.size();
-    pw.item(
-        prefix + "expr#0"
+    pw.item(prefix + "expr#0"
             + ((inFields.size() > 1) ? (".." + (inFields.size() - 1)) : ""),
         "{inputs}");
     for (int i = inFields.size(); i < exprs.size(); i++) {
@@ -448,8 +458,7 @@ public class RexProgram {
                 return exprs.get(index).getType();
               }
 
-              @Override
-              public int size() {
+              @Override public int size() {
                 return exprs.size();
               }
               // CHECKSTYLE: IGNORE 1
@@ -485,7 +494,7 @@ public class RexProgram {
   /**
    * Returns whether an expression always evaluates to null.
    *
-   * <p>Like {@link RexUtil#isNull(RexNode)}, null literals are null, and                                                         |
+   * <p>Like {@link RexUtil#isNull(RexNode)}, null literals are null, and
    * casts of null literals are null. But this method also regards references
    * to null expressions as null.</p>
    *
@@ -601,7 +610,8 @@ public class RexProgram {
   public boolean projectsIdentity(final boolean fail) {
     final int fieldCount = inputRowType.getFieldCount();
     if (projects.size() < fieldCount) {
-      assert !fail : "program '" + toString()
+      assert !fail
+          : "program '" + toString()
           + "' does not project identity for input row type '"
           + inputRowType + "'";
       return false;
@@ -609,7 +619,8 @@ public class RexProgram {
     for (int i = 0; i < fieldCount; i++) {
       RexLocalRef project = projects.get(i);
       if (project.index != i) {
-        assert !fail : "program " + toString()
+        assert !fail
+            : "program " + toString()
             + "' does not project identity for input row type '"
             + inputRowType + "', field #" + i;
         return false;
@@ -849,8 +860,8 @@ public class RexProgram {
   }
 
   /**
-   * A RexShuttle used in the implementation of {@link
-   * RexProgram#expandLocalRef}.
+   * A RexShuttle used in the implementation of
+   * {@link RexProgram#expandLocalRef}.
    */
   private class ExpansionShuttle extends RexShuttle {
     public RexNode visitLocalRef(RexLocalRef localRef) {

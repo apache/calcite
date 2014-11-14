@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql.validate;
+package org.apache.calcite.sql.validate;
+
+import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlWithItem;
 
 import java.util.List;
-
-import org.eigenbase.sql.*;
-import org.eigenbase.sql.SqlWithItem;
 
 /** Scope providing the objects that are available after evaluating an item
  * in a WITH clause.
@@ -46,16 +46,14 @@ class WithScope extends ListScope {
     return withItem;
   }
 
-  @Override
-  public SqlValidatorNamespace getTableNamespace(List<String> names) {
+  @Override public SqlValidatorNamespace getTableNamespace(List<String> names) {
     if (names.size() == 1 && names.get(0).equals(withItem.name.getSimple())) {
       return validator.getNamespace(withItem);
     }
     return super.getTableNamespace(names);
   }
 
-  @Override
-  public SqlValidatorNamespace resolve(String name,
+  @Override public SqlValidatorNamespace resolve(String name,
       SqlValidatorScope[] ancestorOut,
       int[] offsetOut) {
     if (name.equals(withItem.name.getSimple())) {

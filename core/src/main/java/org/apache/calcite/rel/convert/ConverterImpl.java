@@ -14,18 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel.convert;
+package org.apache.calcite.rel.convert;
 
-import org.eigenbase.rel.*;
-import org.eigenbase.rel.metadata.*;
-import org.eigenbase.relopt.*;
-import org.eigenbase.util.*;
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptCost;
+import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.plan.RelTraitDef;
+import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.SingleRel;
+import org.apache.calcite.rel.metadata.RelMetadataQuery;
+import org.apache.calcite.util.Util;
 
 /**
- * Abstract implementation of {@link org.eigenbase.rel.convert.ConverterRel}.
+ * Abstract implementation of {@link Converter}.
  */
-public abstract class ConverterRelImpl extends SingleRel
-    implements ConverterRel {
+public abstract class ConverterImpl extends SingleRel
+    implements Converter {
   //~ Instance fields --------------------------------------------------------
 
   protected RelTraitSet inTraits;
@@ -34,14 +39,14 @@ public abstract class ConverterRelImpl extends SingleRel
   //~ Constructors -----------------------------------------------------------
 
   /**
-   * Creates a ConverterRelImpl.
+   * Creates a ConverterImpl.
    *
    * @param cluster  planner's cluster
    * @param traitDef the RelTraitDef this converter converts
    * @param traits   the output traits of this converter
    * @param child    child rel (provides input traits)
    */
-  protected ConverterRelImpl(
+  protected ConverterImpl(
       RelOptCluster cluster,
       RelTraitDef traitDef,
       RelTraitSet traits,
@@ -55,7 +60,7 @@ public abstract class ConverterRelImpl extends SingleRel
 
   // implement RelNode
   public RelOptCost computeSelfCost(RelOptPlanner planner) {
-    double dRows = RelMetadataQuery.getRowCount(getChild());
+    double dRows = RelMetadataQuery.getRowCount(getInput());
     double dCpu = dRows;
     double dIo = 0;
     return planner.getCostFactory().makeCost(dRows, dCpu, dIo);
@@ -68,7 +73,7 @@ public abstract class ConverterRelImpl extends SingleRel
   }
 
   public boolean isDistinct() {
-    return getChild().isDistinct();
+    return getInput().isDistinct();
   }
 
   public RelTraitSet getInputTraits() {
@@ -81,4 +86,4 @@ public abstract class ConverterRelImpl extends SingleRel
 
 }
 
-// End ConverterRelImpl.java
+// End ConverterImpl.java

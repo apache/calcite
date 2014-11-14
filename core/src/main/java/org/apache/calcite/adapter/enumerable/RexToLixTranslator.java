@@ -14,32 +14,58 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.rules.java;
+package org.apache.calcite.adapter.enumerable;
 
-import net.hydromatic.avatica.ByteString;
+import org.apache.calcite.DataContext;
+import org.apache.calcite.adapter.java.JavaTypeFactory;
+import org.apache.calcite.avatica.ByteString;
+import org.apache.calcite.linq4j.tree.BlockBuilder;
+import org.apache.calcite.linq4j.tree.ConstantExpression;
+import org.apache.calcite.linq4j.tree.Expression;
+import org.apache.calcite.linq4j.tree.ExpressionType;
+import org.apache.calcite.linq4j.tree.Expressions;
+import org.apache.calcite.linq4j.tree.ParameterExpression;
+import org.apache.calcite.linq4j.tree.Primitive;
+import org.apache.calcite.linq4j.tree.UnaryExpression;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactoryImpl;
+import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexDynamicParam;
+import org.apache.calcite.rex.RexInputRef;
+import org.apache.calcite.rex.RexLiteral;
+import org.apache.calcite.rex.RexLocalRef;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexProgram;
+import org.apache.calcite.runtime.SqlFunctions;
+import org.apache.calcite.sql.SqlIntervalQualifier;
+import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.util.BuiltInMethod;
+import org.apache.calcite.util.ControlFlowException;
+import org.apache.calcite.util.DateTimeUtil;
+import org.apache.calcite.util.NlsString;
+import org.apache.calcite.util.Pair;
+import org.apache.calcite.util.Util;
 
-import net.hydromatic.linq4j.expressions.*;
-
-import net.hydromatic.optiq.BuiltinMethod;
-import net.hydromatic.optiq.DataContext;
-import net.hydromatic.optiq.impl.java.JavaTypeFactory;
-import net.hydromatic.optiq.runtime.SqlFunctions;
-
-import org.eigenbase.reltype.RelDataType;
-import org.eigenbase.reltype.RelDataTypeFactoryImpl;
-import org.eigenbase.rex.*;
-import org.eigenbase.sql.*;
-import org.eigenbase.util.*;
-import org.eigenbase.util14.DateTimeUtil;
-
-import java.lang.reflect.*;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
+import java.lang.reflect.Type;
 import java.math.BigDecimal;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
-import static org.eigenbase.sql.fun.SqlStdOperatorTable.*;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CHARACTER_LENGTH;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CHAR_LENGTH;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.SUBSTRING;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.UPPER;
 
 /**
- * Translates {@link org.eigenbase.rex.RexNode REX expressions} to
+ * Translates {@link org.apache.calcite.rex.RexNode REX expressions} to
  * {@link Expression linq4j expressions}.
  */
 public class RexToLixTranslator {
@@ -182,7 +208,7 @@ public class RexToLixTranslator {
       case CHAR:
       case VARCHAR:
         convert =
-            Expressions.call(BuiltinMethod.STRING_TO_DATE.method, operand);
+            Expressions.call(BuiltInMethod.STRING_TO_DATE.method, operand);
       }
       break;
     case TIME:
@@ -190,7 +216,7 @@ public class RexToLixTranslator {
       case CHAR:
       case VARCHAR:
         convert =
-            Expressions.call(BuiltinMethod.STRING_TO_TIME.method, operand);
+            Expressions.call(BuiltInMethod.STRING_TO_TIME.method, operand);
       }
       break;
     case TIMESTAMP:
@@ -198,7 +224,7 @@ public class RexToLixTranslator {
       case CHAR:
       case VARCHAR:
         convert =
-            Expressions.call(BuiltinMethod.STRING_TO_TIMESTAMP.method, operand);
+            Expressions.call(BuiltInMethod.STRING_TO_TIMESTAMP.method, operand);
       }
       break;
     case BOOLEAN:
@@ -206,7 +232,7 @@ public class RexToLixTranslator {
       case CHAR:
       case VARCHAR:
         convert = Expressions.call(
-            BuiltinMethod.STRING_TO_BOOLEAN.method,
+            BuiltInMethod.STRING_TO_BOOLEAN.method,
             operand);
       }
       break;
@@ -219,28 +245,28 @@ public class RexToLixTranslator {
         convert = RexImpTable.optimize2(
             operand,
             Expressions.call(
-                BuiltinMethod.UNIX_DATE_TO_STRING.method,
+                BuiltInMethod.UNIX_DATE_TO_STRING.method,
                 operand));
         break;
       case TIME:
         convert = RexImpTable.optimize2(
             operand,
             Expressions.call(
-                BuiltinMethod.UNIX_TIME_TO_STRING.method,
+                BuiltInMethod.UNIX_TIME_TO_STRING.method,
                 operand));
         break;
       case TIMESTAMP:
         convert = RexImpTable.optimize2(
             operand,
             Expressions.call(
-                BuiltinMethod.UNIX_TIMESTAMP_TO_STRING.method,
+                BuiltInMethod.UNIX_TIMESTAMP_TO_STRING.method,
                 operand));
         break;
       case INTERVAL_YEAR_MONTH:
         convert = RexImpTable.optimize2(
             operand,
             Expressions.call(
-                BuiltinMethod.INTERVAL_YEAR_MONTH_TO_STRING.method,
+                BuiltInMethod.INTERVAL_YEAR_MONTH_TO_STRING.method,
                 operand,
                 Expressions.constant(interval.foo())));
         break;
@@ -248,7 +274,7 @@ public class RexToLixTranslator {
         convert = RexImpTable.optimize2(
             operand,
             Expressions.call(
-                BuiltinMethod.INTERVAL_DAY_TIME_TO_STRING.method,
+                BuiltInMethod.INTERVAL_DAY_TIME_TO_STRING.method,
                 operand,
                 Expressions.constant(interval.foo()),
                 Expressions.constant(
@@ -259,7 +285,7 @@ public class RexToLixTranslator {
         convert = RexImpTable.optimize2(
             operand,
             Expressions.call(
-                BuiltinMethod.BOOLEAN_TO_STRING.method,
+                BuiltInMethod.BOOLEAN_TO_STRING.method,
                 operand));
         break;
       }
@@ -273,14 +299,14 @@ public class RexToLixTranslator {
       switch (targetType.getSqlTypeName()) {
       case VARCHAR:
         convert = Expressions.call(
-            BuiltinMethod.RTRIM.method, convert);
+            BuiltInMethod.RTRIM.method, convert);
       }
       break;
     case BINARY:
       switch (targetType.getSqlTypeName()) {
       case VARBINARY:
         convert = Expressions.call(
-            BuiltinMethod.RTRIM.method, convert);
+            BuiltInMethod.RTRIM.method, convert);
       }
       break;
     }
@@ -309,7 +335,7 @@ public class RexToLixTranslator {
         default:
           convert =
               Expressions.call(
-                  BuiltinMethod.TRUNCATE.method,
+                  BuiltInMethod.TRUNCATE.method,
                   convert,
                   Expressions.constant(targetPrecision));
         }
@@ -323,7 +349,7 @@ public class RexToLixTranslator {
       if (targetScale < sourceType.getScale()) {
         convert =
             Expressions.call(
-                BuiltinMethod.ROUND_LONG.method,
+                BuiltInMethod.ROUND_LONG.method,
                 convert,
                 Expressions.constant(
                     (long) Math.pow(10, 3 - targetScale)));
@@ -410,7 +436,7 @@ public class RexToLixTranslator {
   }
 
   /** Dereferences an expression if it is a
-   * {@link org.eigenbase.rex.RexLocalRef}. */
+   * {@link org.apache.calcite.rex.RexLocalRef}. */
   public RexNode deref(RexNode expr) {
     if (expr instanceof RexLocalRef) {
       RexLocalRef ref = (RexLocalRef) expr;
@@ -443,7 +469,7 @@ public class RexToLixTranslator {
         convert(
             Expressions.call(
                 DataContext.ROOT,
-                BuiltinMethod.DATA_CONTEXT_GET.method,
+                BuiltInMethod.DATA_CONTEXT_GET.method,
                 Expressions.constant("?" + expr.getIndex())),
             storageType));
   }
@@ -451,7 +477,7 @@ public class RexToLixTranslator {
   /** Translates a literal.
    *
    * @throws AlwaysNull if literal is null but {@code nullAs} is
-   * {@link net.hydromatic.optiq.rules.java.RexImpTable.NullAs#NOT_POSSIBLE}.
+   * {@link org.apache.calcite.adapter.enumerable.RexImpTable.NullAs#NOT_POSSIBLE}.
    */
   public static Expression translateLiteral(
       RexLiteral literal,
@@ -551,7 +577,7 @@ public class RexToLixTranslator {
    * This might be suboptimal in terms of additional box-unbox when you use
    * the translation later.
    * If you know the java class that will be used to store the results, use
-   * {@link net.hydromatic.optiq.rules.java.RexToLixTranslator#translateList(java.util.List, java.util.List)}
+   * {@link org.apache.calcite.adapter.enumerable.RexToLixTranslator#translateList(java.util.List, java.util.List)}
    * version.
    *
    * @param operandList list of RexNodes to translate
@@ -798,7 +824,7 @@ public class RexToLixTranslator {
             Expressions.statement(
                 Expressions.call(
                     map,
-                    BuiltinMethod.MAP_PUT.method,
+                    BuiltInMethod.MAP_PUT.method,
                     Expressions.box(translate(key)),
                     Expressions.box(translate(value)))));
       }
@@ -814,7 +840,7 @@ public class RexToLixTranslator {
             Expressions.statement(
                 Expressions.call(
                     lyst,
-                    BuiltinMethod.COLLECTION_ADD.method,
+                    BuiltInMethod.COLLECTION_ADD.method,
                     Expressions.box(translate(value)))));
       }
       return lyst;

@@ -14,29 +14,36 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql.advise;
+package org.apache.calcite.sql.advise;
+
+import org.apache.calcite.DataContext;
+import org.apache.calcite.adapter.enumerable.CallImplementor;
+import org.apache.calcite.adapter.enumerable.NotNullImplementor;
+import org.apache.calcite.adapter.enumerable.NullPolicy;
+import org.apache.calcite.adapter.enumerable.RexImpTable;
+import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
+import org.apache.calcite.linq4j.Enumerable;
+import org.apache.calcite.linq4j.Linq4j;
+import org.apache.calcite.linq4j.tree.Expression;
+import org.apache.calcite.linq4j.tree.Expressions;
+import org.apache.calcite.linq4j.tree.Types;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.schema.FunctionParameter;
+import org.apache.calcite.schema.ImplementableFunction;
+import org.apache.calcite.schema.TableFunction;
+import org.apache.calcite.schema.impl.ReflectiveFunctionBase;
+import org.apache.calcite.sql.validate.SqlMoniker;
+import org.apache.calcite.util.BuiltInMethod;
+
+import com.google.common.collect.Iterables;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-
-import org.eigenbase.reltype.RelDataType;
-import org.eigenbase.reltype.RelDataTypeFactory;
-import org.eigenbase.rex.RexCall;
-import org.eigenbase.sql.validate.SqlMoniker;
-
-import net.hydromatic.linq4j.*;
-import net.hydromatic.linq4j.expressions.Expression;
-import net.hydromatic.linq4j.expressions.Expressions;
-import net.hydromatic.linq4j.expressions.Types;
-
-import net.hydromatic.optiq.*;
-import net.hydromatic.optiq.impl.ReflectiveFunctionBase;
-import net.hydromatic.optiq.rules.java.*;
-
-import com.google.common.collect.Iterables;
 
 /**
  * Table function that returns completion hints for a given SQL statement.
@@ -46,7 +53,7 @@ public class SqlAdvisorGetHintsFunction
   private static final Expression ADVISOR =
       Expressions.convert_(
           Expressions.call(DataContext.ROOT,
-              BuiltinMethod.DATA_CONTEXT_GET.method,
+              BuiltInMethod.DATA_CONTEXT_GET.method,
               Expressions.constant(DataContext.Variable.SQL_ADVISOR.camelName)),
           SqlAdvisor.class);
 

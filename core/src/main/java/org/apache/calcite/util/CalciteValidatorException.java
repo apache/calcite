@@ -14,14 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.util14;
+package org.apache.calcite.util;
 
 /**
- * This is a tagging interface to allow {@link
- * org.eigenbase.sql.validate.SqlValidatorException} to be identified without
+ * Tagging interface to allow a
+ * {@link org.apache.calcite.sql.validate.SqlValidatorException}
+ * to be identified without
  * adding a dependency on it from client-side code.
  */
-public interface EigenbaseValidatorException {
+public interface CalciteValidatorException {
 }
 
-// End EigenbaseValidatorException.java
+// End CalciteValidatorException.java

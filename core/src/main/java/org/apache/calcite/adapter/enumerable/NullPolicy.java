@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.rules.java;
+package org.apache.calcite.adapter.enumerable;
 
 /**
  * Describes when a function/operator will return null.
@@ -40,3 +40,5 @@ public enum NullPolicy {
   NOT,
   NONE
 }
+
+// End NullPolicy.java

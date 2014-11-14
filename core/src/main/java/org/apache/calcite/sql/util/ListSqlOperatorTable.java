@@ -14,11 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql.util;
+package org.apache.calcite.sql.util;
 
-import java.util.*;
+import org.apache.calcite.sql.SqlFunction;
+import org.apache.calcite.sql.SqlFunctionCategory;
+import org.apache.calcite.sql.SqlIdentifier;
+import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.SqlOperatorTable;
+import org.apache.calcite.sql.SqlSyntax;
 
-import org.eigenbase.sql.*;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Implementation of the {@link SqlOperatorTable} interface by using a list of

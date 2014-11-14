@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.rules.java;
+package org.apache.calcite.adapter.enumerable;
 
 /**
  * Implements a windowed aggregate function by generating expressions to
@@ -25,10 +25,10 @@ package net.hydromatic.optiq.rules.java;
  * <p>This interface does not define new methods: window-specific
  * sub-interfaces are passed when implementing window aggregate.
  *
- * @see net.hydromatic.optiq.rules.java.StrictWinAggImplementor
- * @see net.hydromatic.optiq.rules.java.RexImpTable.FirstLastValueImplementor
- * @see net.hydromatic.optiq.rules.java.RexImpTable.RankImplementor
- * @see net.hydromatic.optiq.rules.java.RexImpTable.RowNumberImplementor
+ * @see org.apache.calcite.adapter.enumerable.StrictWinAggImplementor
+ * @see org.apache.calcite.adapter.enumerable.RexImpTable.FirstLastValueImplementor
+ * @see org.apache.calcite.adapter.enumerable.RexImpTable.RankImplementor
+ * @see org.apache.calcite.adapter.enumerable.RexImpTable.RowNumberImplementor
  */
 public interface WinAggImplementor extends AggImplementor {
   /**

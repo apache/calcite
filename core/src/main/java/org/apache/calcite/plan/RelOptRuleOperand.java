@@ -14,27 +14,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.relopt;
+package org.apache.calcite.plan;
 
-import java.util.*;
-
-import org.eigenbase.rel.RelNode;
-import org.eigenbase.util.*;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.util.Util;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
 
+import java.util.List;
+
 /**
- * A <code>RelOptRuleOperand</code> determines whether a {@link
- * org.eigenbase.relopt.RelOptRule} can be applied to a particular expression.
+ * Operand that determines whether a {@link RelOptRule}
+ * can be applied to a particular expression.
  *
  * <p>For example, the rule to pull a filter up from the left side of a join
- * takes operands: <code>(Join (Filter) (Any))</code>.</p>
+ * takes operands: <code>Join(Filter, Any)</code>.</p>
  *
  * <p>Note that <code>children</code> means different things if it is empty or
- * it is <code>null</code>: <code>(Join (Filter <b>()</b>) (Any))</code> means
+ * it is <code>null</code>: <code>Join(Filter <b>()</b>, Any)</code> means
  * that, to match the rule, <code>Filter</code> must have no operands.</p>
  */
 public class RelOptRuleOperand {
@@ -69,7 +69,7 @@ public class RelOptRuleOperand {
    * {@link RelOptRule#none()},
    * {@link RelOptRule#any},
    * {@link RelOptRule#unordered},
-   * See {@link org.eigenbase.relopt.RelOptRuleOperandChildren} for more
+   * See {@link org.apache.calcite.plan.RelOptRuleOperandChildren} for more
    * details.</p>
    *
    * @param clazz    Class of relational expression to match (must not be null)
@@ -78,7 +78,8 @@ public class RelOptRuleOperand {
    *
    * @deprecated Use
    * {@link #RelOptRuleOperand(Class, RelTrait, com.google.common.base.Predicate, RelOptRuleOperandChildren)};
-   * will be removed after {@link Bug#upgrade(String) 0.9.2}
+   * will be removed after
+   * {@link org.apache.calcite.util.Bug#upgrade(String) 0.9.2}
    */
   protected <R extends RelNode> RelOptRuleOperand(
       Class<? extends R> clazz,
@@ -96,7 +97,7 @@ public class RelOptRuleOperand {
    * {@link RelOptRule#none()},
    * {@link RelOptRule#any},
    * {@link RelOptRule#unordered},
-   * See {@link org.eigenbase.relopt.RelOptRuleOperandChildren} for more
+   * See {@link org.apache.calcite.plan.RelOptRuleOperandChildren} for more
    * details.</p>
    *
    * @param clazz    Class of relational expression to match (must not be null)
@@ -189,7 +190,7 @@ public class RelOptRuleOperand {
     RelOptRuleOperand that = (RelOptRuleOperand) obj;
 
     return (this.clazz == that.clazz)
-        && Util.equal(this.trait, that.trait)
+        && com.google.common.base.Objects.equal(this.trait, that.trait)
         && this.children.equals(that.children);
   }
 

@@ -14,27 +14,44 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel;
+package org.apache.calcite.rel.core;
 
-import java.util.*;
-
-import org.eigenbase.rel.metadata.*;
-import org.eigenbase.relopt.*;
-import org.eigenbase.reltype.*;
-import org.eigenbase.rex.*;
-import org.eigenbase.sql.type.SqlTypeName;
-import org.eigenbase.util.*;
-
-import net.hydromatic.optiq.runtime.FlatLists;
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptCost;
+import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.AbstractRelNode;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelVisitor;
+import org.apache.calcite.rel.RelWriter;
+import org.apache.calcite.rel.metadata.RelMetadataQuery;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rex.RexChecker;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.runtime.FlatLists;
+import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
 /**
- * <code>JoinRelBase</code> is an abstract base class for implementations of
- * {@link JoinRel}.
+ * Relational expression that combines two relational expressions according to
+ * some condition.
+ *
+ * <p>Each output row has columns from the left and right inputs.
+ * The set of output rows is a subset of the cartesian product of the two
+ * inputs; precisely which subset depends on the join condition.
  */
-public abstract class JoinRelBase extends AbstractRelNode {
+public abstract class Join extends AbstractRelNode {
   //~ Instance fields --------------------------------------------------------
 
   protected final RexNode condition;
@@ -43,15 +60,15 @@ public abstract class JoinRelBase extends AbstractRelNode {
   protected final ImmutableSet<String> variablesStopped;
 
   /**
-   * Values must be of enumeration {@link JoinRelType}, except that {@link
-   * JoinRelType#RIGHT} is disallowed.
+   * Values must be of enumeration {@link JoinRelType}, except that
+   * {@link JoinRelType#RIGHT} is disallowed.
    */
   protected JoinRelType joinType;
 
   //~ Constructors -----------------------------------------------------------
 
   /**
-   * Creates a JoinRelBase.
+   * Creates a Join.
    *
    * @param cluster          Cluster
    * @param traits           Traits
@@ -61,9 +78,9 @@ public abstract class JoinRelBase extends AbstractRelNode {
    * @param joinType         Join type
    * @param variablesStopped Set of names of variables which are set by the
    *                         LHS and used by the RHS and are not available to
-   *                         nodes above this JoinRel in the tree
+   *                         nodes above this LogicalJoin in the tree
    */
-  protected JoinRelBase(
+  protected Join(
       RelOptCluster cluster,
       RelTraitSet traits,
       RelNode left,
@@ -83,8 +100,7 @@ public abstract class JoinRelBase extends AbstractRelNode {
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override
-  public List<RexNode> getChildExps() {
+  @Override public List<RexNode> getChildExps() {
     return ImmutableList.of(condition);
   }
 
@@ -157,7 +173,7 @@ public abstract class JoinRelBase extends AbstractRelNode {
   }
 
   public static double estimateJoinedRows(
-      JoinRelBase joinRel,
+      Join joinRel,
       RexNode condition) {
     double product =
         RelMetadataQuery.getRowCount(joinRel.getLeft())
@@ -219,9 +235,9 @@ public abstract class JoinRelBase extends AbstractRelNode {
   }
 
   /**
-   * Returns whether this JoinRel has already spawned a
-   * {@link org.eigenbase.rel.rules.SemiJoinRel} via
-   * {@link org.eigenbase.rel.rules.AddRedundantSemiJoinRule}.
+   * Returns whether this LogicalJoin has already spawned a
+   * {@link SemiJoin} via
+   * {@link org.apache.calcite.rel.rules.JoinAddRedundantSemiJoinRule}.
    *
    * <p>The base implementation returns false.</p>
    *
@@ -356,8 +372,7 @@ public abstract class JoinRelBase extends AbstractRelNode {
     }
   }
 
-  @Override
-  public final JoinRelBase copy(RelTraitSet traitSet, List<RelNode> inputs) {
+  @Override public final Join copy(RelTraitSet traitSet, List<RelNode> inputs) {
     assert inputs.size() == 2;
     return copy(traitSet, getCondition(), inputs.get(0), inputs.get(1),
         joinType, isSemiJoinDone());
@@ -367,7 +382,7 @@ public abstract class JoinRelBase extends AbstractRelNode {
    * Creates a copy of this join, overriding condition, system fields and
    * inputs.
    *
-   * <p>General contract as {@link org.eigenbase.rel.RelNode#copy}.
+   * <p>General contract as {@link RelNode#copy}.
    *
    * @param conditionExpr Condition
    * @param left          Left input
@@ -377,7 +392,7 @@ public abstract class JoinRelBase extends AbstractRelNode {
    *                      semi-join
    * @return Copy of this join
    */
-  public abstract JoinRelBase copy(RelTraitSet traitSet, RexNode conditionExpr,
+  public abstract Join copy(RelTraitSet traitSet, RexNode conditionExpr,
       RelNode left, RelNode right, JoinRelType joinType, boolean semiJoinDone);
 
   /** Analyzes the join condition. */
@@ -386,4 +401,4 @@ public abstract class JoinRelBase extends AbstractRelNode {
   }
 }
 
-// End JoinRelBase.java
+// End Join.java

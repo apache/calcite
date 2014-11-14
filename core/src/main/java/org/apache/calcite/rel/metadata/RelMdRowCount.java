@@ -14,29 +14,33 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel.metadata;
+package org.apache.calcite.rel.metadata;
 
-import java.util.*;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.Aggregate;
+import org.apache.calcite.rel.core.Filter;
+import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.core.SemiJoin;
+import org.apache.calcite.rel.core.Sort;
+import org.apache.calcite.rel.core.Union;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.util.BuiltInMethod;
+import org.apache.calcite.util.NumberUtil;
 
-import org.eigenbase.rel.*;
-import org.eigenbase.rel.rules.*;
-import org.eigenbase.rex.*;
-import org.eigenbase.util14.*;
-
-import net.hydromatic.optiq.BuiltinMethod;
+import java.util.BitSet;
 
 /**
- * RelMdRowCount supplies a default implementation of {@link
- * RelMetadataQuery#getRowCount} for the standard logical algebra.
+ * RelMdRowCount supplies a default implementation of
+ * {@link RelMetadataQuery#getRowCount} for the standard logical algebra.
  */
 public class RelMdRowCount {
   public static final RelMetadataProvider SOURCE =
       ReflectiveRelMetadataProvider.reflectiveSource(
-          BuiltinMethod.ROW_COUNT.method, new RelMdRowCount());
+          BuiltInMethod.ROW_COUNT.method, new RelMdRowCount());
 
   //~ Methods ----------------------------------------------------------------
 
-  public Double getRowCount(UnionRelBase rel) {
+  public Double getRowCount(Union rel) {
     double nRows = 0.0;
 
     for (RelNode input : rel.getInputs()) {
@@ -49,23 +53,23 @@ public class RelMdRowCount {
     return nRows;
   }
 
-  public Double getRowCount(FilterRelBase rel) {
+  public Double getRowCount(Filter rel) {
     return NumberUtil.multiply(
         RelMetadataQuery.getSelectivity(
-            rel.getChild(),
+            rel.getInput(),
             rel.getCondition()),
-        RelMetadataQuery.getRowCount(rel.getChild()));
+        RelMetadataQuery.getRowCount(rel.getInput()));
   }
 
-  public Double getRowCount(ProjectRelBase rel) {
-    return RelMetadataQuery.getRowCount(rel.getChild());
+  public Double getRowCount(Project rel) {
+    return RelMetadataQuery.getRowCount(rel.getInput());
   }
 
-  public Double getRowCount(SortRel rel) {
-    return RelMetadataQuery.getRowCount(rel.getChild());
+  public Double getRowCount(Sort rel) {
+    return RelMetadataQuery.getRowCount(rel.getInput());
   }
 
-  public Double getRowCount(SemiJoinRel rel) {
+  public Double getRowCount(SemiJoin rel) {
     // create a RexNode representing the selectivity of the
     // semijoin filter and pass it to getSelectivity
     RexNode semiJoinSelectivity =
@@ -78,7 +82,7 @@ public class RelMdRowCount {
         RelMetadataQuery.getRowCount(rel.getLeft()));
   }
 
-  public Double getRowCount(AggregateRelBase rel) {
+  public Double getRowCount(Aggregate rel) {
     BitSet groupKey = new BitSet();
     for (int i = 0; i < rel.getGroupCount(); i++) {
       groupKey.set(i);
@@ -87,11 +91,11 @@ public class RelMdRowCount {
     // rowcount is the cardinality of the group by columns
     Double distinctRowCount =
         RelMetadataQuery.getDistinctRowCount(
-            rel.getChild(),
+            rel.getInput(),
             groupKey,
             null);
     if (distinctRowCount == null) {
-      return RelMetadataQuery.getRowCount(rel.getChild()) / 10;
+      return RelMetadataQuery.getRowCount(rel.getInput()) / 10;
     } else {
       return distinctRowCount;
     }

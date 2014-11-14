@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.linq4j.expressions;
+package org.apache.calcite.linq4j.tree;
 
 /**
  * Represents a label, which can be put in any {@link Expression} context. If it
@@ -31,13 +31,11 @@ public class LabelStatement extends Statement {
     this.defaultValue = defaultValue;
   }
 
-  @Override
-  public LabelStatement accept(Visitor visitor) {
+  @Override public LabelStatement accept(Visitor visitor) {
     return visitor.visit(this);
   }
 
-  @Override
-  public boolean equals(Object o) {
+  @Override public boolean equals(Object o) {
     if (this == o) {
       return true;
     }
@@ -58,8 +56,7 @@ public class LabelStatement extends Statement {
     return true;
   }
 
-  @Override
-  public int hashCode() {
+  @Override public int hashCode() {
     int result = super.hashCode();
     result = 31 * result + (defaultValue != null ? defaultValue.hashCode() : 0);
     return result;

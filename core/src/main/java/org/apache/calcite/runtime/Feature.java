@@ -14,17 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.resource;
+package org.apache.calcite.runtime;
 
 import java.lang.reflect.Method;
 import java.util.Locale;
 
-import org.eigenbase.util.EigenbaseContextException;
-
 /** SQL language feature. Expressed as the exception that would be thrown if it
  * were used while disabled. */
 public class Feature
-    extends Resources.ExInstWithCause<EigenbaseContextException> {
+    extends Resources.ExInstWithCause<CalciteContextException> {
   public Feature(String base, Locale locale, Method method, Object... args) {
     super(base, locale, method, args);
   }

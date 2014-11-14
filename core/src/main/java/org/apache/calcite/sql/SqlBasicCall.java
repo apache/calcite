@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql;
+package org.apache.calcite.sql;
+
+import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.util.UnmodifiableArrayList;
 
 import java.util.List;
-
-import org.eigenbase.sql.parser.SqlParserPos;
-import org.eigenbase.util.UnmodifiableArrayList;
 
 /**
  * Implementation of {@link SqlCall} that keeps its operands in an array.
@@ -83,8 +83,7 @@ public class SqlBasicCall extends SqlCall {
     return (S) operands[i];
   }
 
-  @Override
-  public int operandCount() {
+  @Override public int operandCount() {
     return operands.length;
   }
 

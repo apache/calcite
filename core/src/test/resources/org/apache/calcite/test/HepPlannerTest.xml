@@ -22,20 +22,20 @@ limitations under the License.
     </Resource>
     <Resource name="planBefore">
       <![CDATA[
-ProjectRel(DEPTNO=[$0])
-  JoinRel(condition=[true], joinType=[inner])
-    ProjectRel(DEPTNO=[$0], NAME=[$1])
-      TableAccessRel(table=[[CATALOG, SALES, DEPT]])
-    ProjectRel(DEPTNO=[$0], NAME=[$1])
-      TableAccessRel(table=[[CATALOG, SALES, DEPT]])
+LogicalProject(DEPTNO=[$0])
+  LogicalJoin(condition=[true], joinType=[inner])
+    LogicalProject(DEPTNO=[$0], NAME=[$1])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalProject(DEPTNO=[$0], NAME=[$1])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
     </Resource>
     <Resource name="planAfter">
       <![CDATA[
-ProjectRel(DEPTNO=[$0])
-  JoinRel(condition=[true], joinType=[inner])
-    TableAccessRel(table=[[CATALOG, SALES, DEPT]])
-    TableAccessRel(table=[[CATALOG, SALES, DEPT]])
+LogicalProject(DEPTNO=[$0])
+  LogicalJoin(condition=[true], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
     </Resource>
   </TestCase>
@@ -45,28 +45,28 @@ ProjectRel(DEPTNO=[$0])
     </Resource>
     <Resource name="planBefore">
       <![CDATA[
-UnionRel(all=[false])
-  UnionRel(all=[false])
-    ProjectRel(NAME=[$1])
-      TableAccessRel(table=[[CATALOG, SALES, DEPT]])
-    ProjectRel(ENAME=[$1])
-      TableAccessRel(table=[[CATALOG, SALES, EMP]])
-  ProjectRel(ENAME=[$0])
-    TableAccessRel(table=[[CATALOG, SALES, BONUS]])
+LogicalUnion(all=[false])
+  LogicalUnion(all=[false])
+    LogicalProject(NAME=[$1])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalProject(ENAME=[$1])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalProject(ENAME=[$0])
+    LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
 ]]>
     </Resource>
     <Resource name="planAfter">
       <![CDATA[
-AggregateRel(group=[{0}])
-  UnionRel(all=[true])
-    AggregateRel(group=[{0}])
-      UnionRel(all=[true])
-        ProjectRel(NAME=[$1])
-          TableAccessRel(table=[[CATALOG, SALES, DEPT]])
-        ProjectRel(ENAME=[$1])
-          TableAccessRel(table=[[CATALOG, SALES, EMP]])
-    ProjectRel(ENAME=[$0])
-      TableAccessRel(table=[[CATALOG, SALES, BONUS]])
+LogicalAggregate(group=[{0}])
+  LogicalUnion(all=[true])
+    LogicalAggregate(group=[{0}])
+      LogicalUnion(all=[true])
+        LogicalProject(NAME=[$1])
+          LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+        LogicalProject(ENAME=[$1])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(ENAME=[$0])
+      LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
 ]]>
     </Resource>
   </TestCase>
@@ -76,27 +76,27 @@ AggregateRel(group=[{0}])
     </Resource>
     <Resource name="planBefore">
       <![CDATA[
-UnionRel(all=[false])
-  UnionRel(all=[false])
-    ProjectRel(NAME=[$1])
-      TableAccessRel(table=[[CATALOG, SALES, DEPT]])
-    ProjectRel(ENAME=[$1])
-      TableAccessRel(table=[[CATALOG, SALES, EMP]])
-  ProjectRel(ENAME=[$0])
-    TableAccessRel(table=[[CATALOG, SALES, BONUS]])
+LogicalUnion(all=[false])
+  LogicalUnion(all=[false])
+    LogicalProject(NAME=[$1])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalProject(ENAME=[$1])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalProject(ENAME=[$0])
+    LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
 ]]>
     </Resource>
     <Resource name="planAfter">
       <![CDATA[
-AggregateRel(group=[{0}])
-  UnionRel(all=[true])
-    UnionRel(all=[false])
-      ProjectRel(NAME=[$1])
-        TableAccessRel(table=[[CATALOG, SALES, DEPT]])
-      ProjectRel(ENAME=[$1])
-        TableAccessRel(table=[[CATALOG, SALES, EMP]])
-    ProjectRel(ENAME=[$0])
-      TableAccessRel(table=[[CATALOG, SALES, BONUS]])
+LogicalAggregate(group=[{0}])
+  LogicalUnion(all=[true])
+    LogicalUnion(all=[false])
+      LogicalProject(NAME=[$1])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+      LogicalProject(ENAME=[$1])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(ENAME=[$0])
+      LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
 ]]>
     </Resource>
   </TestCase>
@@ -106,27 +106,27 @@ AggregateRel(group=[{0}])
     </Resource>
     <Resource name="planBefore">
       <![CDATA[
-UnionRel(all=[false])
-  UnionRel(all=[false])
-    ProjectRel(NAME=[$1])
-      TableAccessRel(table=[[CATALOG, SALES, DEPT]])
-    ProjectRel(ENAME=[$1])
-      TableAccessRel(table=[[CATALOG, SALES, EMP]])
-  ProjectRel(ENAME=[$0])
-    TableAccessRel(table=[[CATALOG, SALES, BONUS]])
+LogicalUnion(all=[false])
+  LogicalUnion(all=[false])
+    LogicalProject(NAME=[$1])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalProject(ENAME=[$1])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalProject(ENAME=[$0])
+    LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
 ]]>
     </Resource>
     <Resource name="planAfter">
       <![CDATA[
-UnionRel(all=[false])
-  AggregateRel(group=[{0}])
-    UnionRel(all=[true])
-      ProjectRel(NAME=[$1])
-        TableAccessRel(table=[[CATALOG, SALES, DEPT]])
-      ProjectRel(ENAME=[$1])
-        TableAccessRel(table=[[CATALOG, SALES, EMP]])
-  ProjectRel(ENAME=[$0])
-    TableAccessRel(table=[[CATALOG, SALES, BONUS]])
+LogicalUnion(all=[false])
+  LogicalAggregate(group=[{0}])
+    LogicalUnion(all=[true])
+      LogicalProject(NAME=[$1])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+      LogicalProject(ENAME=[$1])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalProject(ENAME=[$0])
+    LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
 ]]>
     </Resource>
   </TestCase>
@@ -136,28 +136,28 @@ UnionRel(all=[false])
     </Resource>
     <Resource name="planBefore">
       <![CDATA[
-IntersectRel(all=[false])
-  UnionRel(all=[false])
-    ProjectRel(NAME=[$1])
-      TableAccessRel(table=[[CATALOG, SALES, DEPT]])
-    ProjectRel(ENAME=[$1])
-      TableAccessRel(table=[[CATALOG, SALES, EMP]])
-  ProjectRel(FNAME=[$1])
-    TableAccessRel(table=[[CATALOG, CUSTOMER, CONTACT]])
+LogicalIntersect(all=[false])
+  LogicalUnion(all=[false])
+    LogicalProject(NAME=[$1])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalProject(ENAME=[$1])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalProject(FNAME=[$1])
+    LogicalTableScan(table=[[CATALOG, CUSTOMER, CONTACT]])
 ]]>
     </Resource>
     <Resource name="planAfter">
       <![CDATA[
-IntersectRel(all=[false])
-  UnionRel(all=[false])
-    ProjectRel(NAME=[CAST($0):VARCHAR(20) CHARACTER SET "ISO-8859-1" COLLATE "ISO-8859-1$en_US$primary" NOT NULL])
-      ProjectRel(NAME=[$1])
-        TableAccessRel(table=[[CATALOG, SALES, DEPT]])
-    ProjectRel(ENAME=[$1])
-      TableAccessRel(table=[[CATALOG, SALES, EMP]])
-  ProjectRel(FNAME=[CAST($0):VARCHAR(20) CHARACTER SET "ISO-8859-1" COLLATE "ISO-8859-1$en_US$primary" NOT NULL])
-    ProjectRel(FNAME=[$1])
-      TableAccessRel(table=[[CATALOG, CUSTOMER, CONTACT]])
+LogicalIntersect(all=[false])
+  LogicalUnion(all=[false])
+    LogicalProject(NAME=[CAST($0):VARCHAR(20) CHARACTER SET "ISO-8859-1" COLLATE "ISO-8859-1$en_US$primary" NOT NULL])
+      LogicalProject(NAME=[$1])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalProject(ENAME=[$1])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalProject(FNAME=[CAST($0):VARCHAR(20) CHARACTER SET "ISO-8859-1" COLLATE "ISO-8859-1$en_US$primary" NOT NULL])
+    LogicalProject(FNAME=[$1])
+      LogicalTableScan(table=[[CATALOG, CUSTOMER, CONTACT]])
 ]]>
     </Resource>
   </TestCase>
@@ -167,15 +167,15 @@ IntersectRel(all=[false])
     </Resource>
     <Resource name="planBefore">
       <![CDATA[
-ProjectRel(EXPR$0=[UPPER($0)])
-  ProjectRel(ENAME=[LOWER($1)])
-    TableAccessRel(table=[[CATALOG, SALES, EMP]])
+LogicalProject(EXPR$0=[UPPER($0)])
+  LogicalProject(ENAME=[LOWER($1)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
     <Resource name="planAfter">
       <![CDATA[
-CalcRel(expr#0..8=[{inputs}], expr#9=[LOWER($t1)], expr#10=[UPPER($t9)], EXPR$0=[$t10])
-  TableAccessRel(table=[[CATALOG, SALES, EMP]])
+LogicalCalc(expr#0..8=[{inputs}], expr#9=[LOWER($t1)], expr#10=[UPPER($t9)], EXPR$0=[$t10])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
   </TestCase>
@@ -185,16 +185,16 @@ CalcRel(expr#0..8=[{inputs}], expr#9=[LOWER($t1)], expr#10=[UPPER($t9)], EXPR$0=
     </Resource>
     <Resource name="planBefore">
       <![CDATA[
-ProjectRel(NAME=[$1])
-  FilterRel(condition=[=($0, 12)])
-    TableAccessRel(table=[[CATALOG, SALES, DEPT]])
+LogicalProject(NAME=[$1])
+  LogicalFilter(condition=[=($0, 12)])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
     </Resource>
     <Resource name="planAfter">
       <![CDATA[
-ProjectRel(NAME=[$1])
-  CalcRel(expr#0..1=[{inputs}], expr#2=[12], expr#3=[=($t0, $t2)], proj#0..1=[{exprs}], $condition=[$t3])
-    TableAccessRel(table=[[CATALOG, SALES, DEPT]])
+LogicalProject(NAME=[$1])
+  LogicalCalc(expr#0..1=[{inputs}], expr#2=[12], expr#3=[=($t0, $t2)], proj#0..1=[{exprs}], $condition=[$t3])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
     </Resource>
   </TestCase>
@@ -204,15 +204,15 @@ ProjectRel(NAME=[$1])
     </Resource>
     <Resource name="planBefore">
       <![CDATA[
-ProjectRel(EXPR$0=[UPPER($1)])
-  FilterRel(condition=[=($0, 20)])
-    TableAccessRel(table=[[CATALOG, SALES, DEPT]])
+LogicalProject(EXPR$0=[UPPER($1)])
+  LogicalFilter(condition=[=($0, 20)])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
     </Resource>
     <Resource name="planAfter">
       <![CDATA[
-CalcRel(expr#0..1=[{inputs}], expr#2=[UPPER($t1)], expr#3=[20], expr#4=[=($t0, $t3)], EXPR$0=[$t2], $condition=[$t4])
-  TableAccessRel(table=[[CATALOG, SALES, DEPT]])
+LogicalCalc(expr#0..1=[{inputs}], expr#2=[UPPER($t1)], expr#3=[20], expr#4=[=($t0, $t3)], EXPR$0=[$t2], $condition=[$t4])
+  LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
     </Resource>
   </TestCase>

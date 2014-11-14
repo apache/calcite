@@ -14,52 +14,63 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel.rules;
+package org.apache.calcite.rel.rules;
 
-import java.util.*;
+import org.apache.calcite.plan.Convention;
+import org.apache.calcite.plan.RelOptRule;
+import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.Join;
+import org.apache.calcite.rel.core.JoinRelType;
+import org.apache.calcite.rel.core.SemiJoin;
+import org.apache.calcite.rel.logical.LogicalProject;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexInputRef;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexProgram;
+import org.apache.calcite.rex.RexProgramBuilder;
+import org.apache.calcite.util.ImmutableIntList;
+import org.apache.calcite.util.Pair;
 
-import org.eigenbase.rel.*;
-import org.eigenbase.rel.RelFactories.ProjectFactory;
-import org.eigenbase.relopt.*;
-import org.eigenbase.reltype.*;
-import org.eigenbase.rex.*;
-import org.eigenbase.util.ImmutableIntList;
-import org.eigenbase.util.Pair;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
- * PushSemiJoinPastProjectRule implements the rule for pushing semijoins down in
- * a tree past a project in order to trigger other rules that will convert
- * semijoins.
+ * Planner rule that pushes
+ * a {@link org.apache.calcite.rel.core.SemiJoin} down in a tree past
+ * a {@link org.apache.calcite.rel.core.Project}.
  *
- * <p>SemiJoinRel(ProjectRel(X), Y) &rarr; ProjectRel(SemiJoinRel(X, Y))
+ * <p>The intention is to trigger other rules that will convert
+ * {@code SemiJoin}s.
+ *
+ * <p>SemiJoin(LogicalProject(X), Y) &rarr; LogicalProject(SemiJoin(X, Y))
+ *
+ * @see org.apache.calcite.rel.rules.SemiJoinFilterTransposeRule
  */
-public class PushSemiJoinPastProjectRule extends RelOptRule {
-  public static final PushSemiJoinPastProjectRule INSTANCE =
-      new PushSemiJoinPastProjectRule(RelFactories.DEFAULT_PROJECT_FACTORY);
-
-  private final RelFactories.ProjectFactory projectFactory;
+public class SemiJoinProjectTransposeRule extends RelOptRule {
+  public static final SemiJoinProjectTransposeRule INSTANCE =
+      new SemiJoinProjectTransposeRule();
 
   //~ Constructors -----------------------------------------------------------
 
   /**
-   * Creates a PushSemiJoinPastProjectRule.
-   *
-   * @param projectFactory factory to create Project
+   * Creates a SemiJoinProjectTransposeRule.
    */
-  public PushSemiJoinPastProjectRule(ProjectFactory projectFactory) {
+  private SemiJoinProjectTransposeRule() {
     super(
-        operand(
-            SemiJoinRel.class,
-            some(operand(ProjectRel.class, any()))));
-    this.projectFactory = projectFactory;
+        operand(SemiJoin.class,
+            some(operand(LogicalProject.class, any()))));
   }
 
   //~ Methods ----------------------------------------------------------------
 
-  // implement RelOptRule
   public void onMatch(RelOptRuleCall call) {
-    SemiJoinRel semiJoin = call.rel(0);
-    ProjectRel project = call.rel(1);
+    SemiJoin semiJoin = call.rel(0);
+    LogicalProject project = call.rel(1);
 
     // convert the LHS semijoin keys to reference the child projection
     // expression; all projection expressions must be RexInputRefs,
@@ -76,11 +87,11 @@ public class PushSemiJoinPastProjectRule extends RelOptRule {
     // pulled up
     RexNode newCondition = adjustCondition(project, semiJoin);
 
-    SemiJoinRel newSemiJoin =
-        new SemiJoinRel(
+    SemiJoin newSemiJoin =
+        new SemiJoin(
             semiJoin.getCluster(),
             semiJoin.getCluster().traitSetOf(Convention.NONE),
-            project.getChild(),
+            project.getInput(),
             semiJoin.getRight(),
             newCondition,
             ImmutableIntList.copyOf(newLeftKeys),
@@ -90,7 +101,7 @@ public class PushSemiJoinPastProjectRule extends RelOptRule {
     // are the same as the original because they only reference the LHS
     // of the semijoin and the semijoin only projects out the LHS
     RelNode newProject =
-        projectFactory.createProject(
+        RelOptUtil.createProject(
             newSemiJoin,
             projExprs,
             project.getRowType().getFieldNames());
@@ -104,11 +115,11 @@ public class PushSemiJoinPastProjectRule extends RelOptRule {
    * that references to the LHS of a semijoin should now reference the
    * children of the project that's on the LHS.
    *
-   * @param project  ProjectRel on the LHS of the semijoin
+   * @param project  LogicalProject on the LHS of the semijoin
    * @param semiJoin the semijoin
    * @return the modified semijoin condition
    */
-  private RexNode adjustCondition(ProjectRel project, SemiJoinRel semiJoin) {
+  private RexNode adjustCondition(LogicalProject project, SemiJoin semiJoin) {
     // create two RexPrograms -- the bottom one representing a
     // concatenation of the project and the RHS of the semijoin and the
     // top one representing the semijoin condition
@@ -120,8 +131,8 @@ public class PushSemiJoinPastProjectRule extends RelOptRule {
     // for the bottom RexProgram, the input is a concatenation of the
     // child of the project and the RHS of the semijoin
     RelDataType bottomInputRowType =
-        JoinRelBase.deriveJoinRowType(
-            project.getChild().getRowType(),
+        Join.deriveJoinRowType(
+            project.getInput().getRowType(),
             rightChild.getRowType(),
             JoinRelType.INNER,
             typeFactory,
@@ -135,7 +146,7 @@ public class PushSemiJoinPastProjectRule extends RelOptRule {
     for (Pair<RexNode, String> pair : project.getNamedProjects()) {
       bottomProgramBuilder.addProject(pair.left, pair.right);
     }
-    int nLeftFields = project.getChild().getRowType().getFieldCount();
+    int nLeftFields = project.getInput().getRowType().getFieldCount();
     List<RelDataTypeField> rightFields =
         rightChild.getRowType().getFieldList();
     int nRightFields = rightFields.size();
@@ -151,7 +162,7 @@ public class PushSemiJoinPastProjectRule extends RelOptRule {
     // input rowtype into the top program is the concatenation of the
     // project and the RHS of the semijoin
     RelDataType topInputRowType =
-        JoinRelBase.deriveJoinRowType(
+        Join.deriveJoinRowType(
             project.getRowType(),
             rightChild.getRowType(),
             JoinRelType.INNER,
@@ -180,4 +191,4 @@ public class PushSemiJoinPastProjectRule extends RelOptRule {
   }
 }
 
-// End PushSemiJoinPastProjectRule.java
+// End SemiJoinProjectTransposeRule.java

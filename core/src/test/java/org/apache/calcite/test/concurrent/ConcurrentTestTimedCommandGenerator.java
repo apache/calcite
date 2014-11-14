@@ -14,16 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.test.concurrent;
-
-import java.io.PrintStream;
-import java.util.*;
+package org.apache.calcite.test.concurrent;
 
 import com.google.common.collect.ImmutableList;
 
+import java.io.PrintStream;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.List;
+import java.util.NoSuchElementException;
+
 /**
- * ConcurrentTestTimedCommandGenerator extends {@link
- * ConcurrentTestCommandGenerator} and repeats the configured command
+ * ConcurrentTestTimedCommandGenerator extends
+ * {@link ConcurrentTestCommandGenerator} and repeats the configured command
  * sequence until a certain amount of time has elapsed.
  *
  * <p>The command sequence is always completed in full, even if the time limit
@@ -42,8 +45,8 @@ public class ConcurrentTestTimedCommandGenerator
 
   /**
    * Constructs a new ConcurrentTestTimedCommandGenerator that will run
-   * for at least the given amount of time. See {@link
-   * ConcurrentTestTimedCommandGenerator} for more information on the
+   * for at least the given amount of time. See
+   * {@link ConcurrentTestTimedCommandGenerator} for more information on the
    * semantics of run-time length.
    *
    * @param runTimeSeconds minimum run-time length, in seconds

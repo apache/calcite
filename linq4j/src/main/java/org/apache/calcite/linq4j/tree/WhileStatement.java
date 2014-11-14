@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.linq4j.expressions;
+package org.apache.calcite.linq4j.tree;
 
 /**
  * Represents a "while" statement.
@@ -31,22 +31,19 @@ public class WhileStatement extends Statement {
     this.body = body;
   }
 
-  @Override
-  public Statement accept(Visitor visitor) {
+  @Override public Statement accept(Visitor visitor) {
     visitor = visitor.preVisit(this);
     final Expression condition1 = condition.accept(visitor);
     final Statement body1 = body.accept(visitor);
     return visitor.visit(this, condition1, body1);
   }
 
-  @Override
-  void accept0(ExpressionWriter writer) {
+  @Override void accept0(ExpressionWriter writer) {
     writer.append("while (").append(condition).append(") ").append(
         Blocks.toBlock(body));
   }
 
-  @Override
-  public boolean equals(Object o) {
+  @Override public boolean equals(Object o) {
     if (this == o) {
       return true;
     }
@@ -69,8 +66,7 @@ public class WhileStatement extends Statement {
     return true;
   }
 
-  @Override
-  public int hashCode() {
+  @Override public int hashCode() {
     int result = super.hashCode();
     result = 31 * result + condition.hashCode();
     result = 31 * result + body.hashCode();

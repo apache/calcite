@@ -14,10 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.materialize;
+package org.apache.calcite.materialize;
 
-import org.eigenbase.util.Util;
-
+import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableList;
 
 import java.util.BitSet;
@@ -26,7 +25,7 @@ import java.util.BitSet;
  * lattice that is the basis of a materialization.
  *
  * <p>Holds similar information to a
- * {@link net.hydromatic.optiq.materialize.Lattice.Tile} but a lattice is
+ * {@link org.apache.calcite.materialize.Lattice.Tile} but a lattice is
  * immutable and tiles are not added after their creation. */
 public class TileKey {
   public final Lattice lattice;
@@ -42,7 +41,7 @@ public class TileKey {
   }
 
   @Override public int hashCode() {
-    return Util.hashV(lattice, dimensions);
+    return Objects.hashCode(lattice, dimensions);
   }
 
   @Override public boolean equals(Object obj) {

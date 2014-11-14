@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rex;
+package org.apache.calcite.rex;
+
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.util.Util;
 
 import java.util.List;
-
-import org.eigenbase.reltype.*;
-import org.eigenbase.sql.SqlKind;
-import org.eigenbase.util.*;
 
 /**
  * Local variable.
@@ -56,8 +56,7 @@ public class RexLocalRef extends RexSlot {
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override
-  public SqlKind getKind() {
+  @Override public SqlKind getKind() {
     return SqlKind.LOCAL_REF;
   }
 

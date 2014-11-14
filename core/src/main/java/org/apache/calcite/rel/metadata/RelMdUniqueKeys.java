@@ -14,25 +14,37 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel.metadata;
+package org.apache.calcite.rel.metadata;
 
-import java.util.*;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.Aggregate;
+import org.apache.calcite.rel.core.Correlator;
+import org.apache.calcite.rel.core.Filter;
+import org.apache.calcite.rel.core.Join;
+import org.apache.calcite.rel.core.JoinInfo;
+import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.core.SemiJoin;
+import org.apache.calcite.rel.core.Sort;
+import org.apache.calcite.rex.RexInputRef;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.util.BitSets;
+import org.apache.calcite.util.BuiltInMethod;
 
-import org.eigenbase.rel.*;
-import org.eigenbase.rel.rules.*;
-import org.eigenbase.rex.*;
-
-import net.hydromatic.optiq.BuiltinMethod;
-import net.hydromatic.optiq.util.BitSets;
+import java.util.BitSet;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
- * RelMdUniqueKeys supplies a default implementation of {@link
- * RelMetadataQuery#getUniqueKeys} for the standard logical algebra.
+ * RelMdUniqueKeys supplies a default implementation of
+ * {@link RelMetadataQuery#getUniqueKeys} for the standard logical algebra.
  */
 public class RelMdUniqueKeys {
   public static final RelMetadataProvider SOURCE =
       ReflectiveRelMetadataProvider.reflectiveSource(
-          BuiltinMethod.UNIQUE_KEYS.method, new RelMdUniqueKeys());
+          BuiltInMethod.UNIQUE_KEYS.method, new RelMdUniqueKeys());
 
   //~ Constructors -----------------------------------------------------------
 
@@ -40,20 +52,20 @@ public class RelMdUniqueKeys {
 
   //~ Methods ----------------------------------------------------------------
 
-  public Set<BitSet> getUniqueKeys(FilterRelBase rel, boolean ignoreNulls) {
-    return RelMetadataQuery.getUniqueKeys(rel.getChild(), ignoreNulls);
+  public Set<BitSet> getUniqueKeys(Filter rel, boolean ignoreNulls) {
+    return RelMetadataQuery.getUniqueKeys(rel.getInput(), ignoreNulls);
   }
 
-  public Set<BitSet> getUniqueKeys(SortRel rel, boolean ignoreNulls) {
-    return RelMetadataQuery.getUniqueKeys(rel.getChild(), ignoreNulls);
+  public Set<BitSet> getUniqueKeys(Sort rel, boolean ignoreNulls) {
+    return RelMetadataQuery.getUniqueKeys(rel.getInput(), ignoreNulls);
   }
 
-  public Set<BitSet> getUniqueKeys(CorrelatorRel rel, boolean ignoreNulls) {
+  public Set<BitSet> getUniqueKeys(Correlator rel, boolean ignoreNulls) {
     return RelMetadataQuery.getUniqueKeys(rel.getLeft(), ignoreNulls);
   }
 
-  public Set<BitSet> getUniqueKeys(ProjectRelBase rel, boolean ignoreNulls) {
-    // ProjectRel maps a set of rows to a different set;
+  public Set<BitSet> getUniqueKeys(Project rel, boolean ignoreNulls) {
+    // LogicalProject maps a set of rows to a different set;
     // Without knowledge of the mapping function(whether it
     // preserves uniqueness), it is only safe to derive uniqueness
     // info from the child of a project when the mapping is f(a) => a.
@@ -81,7 +93,7 @@ public class RelMdUniqueKeys {
     }
 
     Set<BitSet> childUniqueKeySet =
-        RelMetadataQuery.getUniqueKeys(rel.getChild(), ignoreNulls);
+        RelMetadataQuery.getUniqueKeys(rel.getInput(), ignoreNulls);
 
     if (childUniqueKeySet != null) {
       // Now add to the projUniqueKeySet the child keys that are fully
@@ -108,7 +120,7 @@ public class RelMdUniqueKeys {
     return projUniqueKeySet;
   }
 
-  public Set<BitSet> getUniqueKeys(JoinRelBase rel, boolean ignoreNulls) {
+  public Set<BitSet> getUniqueKeys(Join rel, boolean ignoreNulls) {
     final RelNode left = rel.getLeft();
     final RelNode right = rel.getRight();
 
@@ -184,13 +196,13 @@ public class RelMdUniqueKeys {
     return retSet;
   }
 
-  public Set<BitSet> getUniqueKeys(SemiJoinRel rel, boolean ignoreNulls) {
+  public Set<BitSet> getUniqueKeys(SemiJoin rel, boolean ignoreNulls) {
     // only return the unique keys from the LHS since a semijoin only
     // returns the LHS
     return RelMetadataQuery.getUniqueKeys(rel.getLeft(), ignoreNulls);
   }
 
-  public Set<BitSet> getUniqueKeys(AggregateRelBase rel, boolean ignoreNulls) {
+  public Set<BitSet> getUniqueKeys(Aggregate rel, boolean ignoreNulls) {
     Set<BitSet> retSet = new HashSet<BitSet>();
 
     // group by keys form a unique key

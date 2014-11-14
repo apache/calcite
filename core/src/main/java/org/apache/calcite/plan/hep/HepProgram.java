@@ -14,16 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.relopt.hep;
-
-import java.util.*;
+package org.apache.calcite.plan.hep;
 
 import com.google.common.collect.ImmutableList;
 
+import java.util.List;
+
 /**
- * HepProgram specifies the order in which rules should be attempted by {@link
- * HepPlanner}. Use {@link HepProgramBuilder} to create a new instance of
- * HepProgram.
+ * HepProgram specifies the order in which rules should be attempted by
+ * {@link HepPlanner}. Use {@link HepProgramBuilder} to create a new
+ * instance of HepProgram.
  *
  * <p>Note that the structure of a program is immutable, but the planner uses it
  * as read/write during planning, so a program can only be in use by a single
@@ -51,7 +51,7 @@ public class HepProgram {
 
   /**
    * Creates a new empty HepProgram. The program has an initial match order of
-   * {@link org.eigenbase.relopt.hep.HepMatchOrder#ARBITRARY}, and an initial
+   * {@link org.apache.calcite.plan.hep.HepMatchOrder#ARBITRARY}, and an initial
    * match limit of {@link #MATCH_UNTIL_FIXPOINT}.
    */
   HepProgram(List<HepInstruction> instructions) {

@@ -14,11 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.relopt;
+package org.apache.calcite.plan;
 
-import java.util.*;
-
-import org.eigenbase.rel.*;
+import org.apache.calcite.rel.RelNode;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
@@ -26,13 +24,16 @@ import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * A <code>RelOptRule</code> transforms an expression into another. It has a
  * list of {@link RelOptRuleOperand}s, which determine whether the rule can be
  * applied to a particular section of the tree.
  *
- * <p>The optimizer figures out which rules are applicable, then calls {@link
- * #onMatch} on each of them.</p>
+ * <p>The optimizer figures out which rules are applicable, then calls
+ * {@link #onMatch} on each of them.</p>
  */
 public abstract class RelOptRule {
   //~ Static fields/initializers ---------------------------------------------
@@ -182,11 +183,11 @@ public abstract class RelOptRule {
    * can have a variable number of children. For example, the rule to
    * eliminate empty children of a Union would have operands</p>
    *
-   * <blockquote>Operand(UnionRel, true, Operand(EmptyRel))</blockquote>
+   * <blockquote>Operand(Union, true, Operand(Empty))</blockquote>
    *
    * <p>and given the relational expressions</p>
    *
-   * <blockquote>UnionRel(FilterRel, EmptyRel, ProjectRel)</blockquote>
+   * <blockquote>Union(LogicalFilter, Empty, LogicalProject)</blockquote>
    *
    * <p>would fire the rule with arguments</p>
    *
@@ -347,9 +348,9 @@ public abstract class RelOptRule {
    * the rule, and before calling {@link #onMatch(RelOptRuleCall)}.
    *
    * <p>In implementations of {@link RelOptPlanner} which may queue up a
-   * matched {@link RelOptRuleCall} for a long time before calling {@link
-   * #onMatch(RelOptRuleCall)}, this method is beneficial because it allows
-   * the planner to discard rules earlier in the process.
+   * matched {@link RelOptRuleCall} for a long time before calling
+   * {@link #onMatch(RelOptRuleCall)}, this method is beneficial because it
+   * allows the planner to discard rules earlier in the process.
    *
    * <p>The default implementation of this method returns <code>true</code>.
    * It is acceptable for any implementation of this method to give a false
@@ -490,9 +491,8 @@ public abstract class RelOptRule {
       description = className.substring(punc + 1);
     }
     if (description.matches("[0-9]+")) {
-      throw new RuntimeException(
-          "Derived description of rule class " + className
-          + " is an integer, not valid. "
+      throw new RuntimeException("Derived description of rule class "
+          + className + " is an integer, not valid. "
           + "Supply a description manually.");
     }
     return description;

@@ -14,36 +14,41 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.tools;
+package org.apache.calcite.tools;
 
-import net.hydromatic.optiq.SchemaPlus;
-import net.hydromatic.optiq.Table;
-import net.hydromatic.optiq.impl.AbstractTable;
-import net.hydromatic.optiq.rules.java.EnumerableConvention;
-import net.hydromatic.optiq.rules.java.JavaRules;
-import net.hydromatic.optiq.server.OptiqServerStatement;
-
-import org.eigenbase.rel.FilterRel;
-import org.eigenbase.rel.RelNode;
-import org.eigenbase.relopt.*;
-import org.eigenbase.reltype.RelDataType;
-import org.eigenbase.reltype.RelDataTypeFactory;
-import org.eigenbase.reltype.RelDataTypeSystem;
-import org.eigenbase.reltype.RelDataTypeSystemImpl;
-import org.eigenbase.rex.RexBuilder;
-import org.eigenbase.rex.RexLiteral;
-import org.eigenbase.rex.RexNode;
-import org.eigenbase.sql.SqlExplainLevel;
-import org.eigenbase.sql.fun.SqlStdOperatorTable;
-import org.eigenbase.sql.type.SqlTypeName;
-import org.eigenbase.util.Util;
+import org.apache.calcite.adapter.enumerable.EnumerableConvention;
+import org.apache.calcite.adapter.enumerable.EnumerableTableScan;
+import org.apache.calcite.plan.RelOptAbstractTable;
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.plan.RelOptSchema;
+import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.logical.LogicalFilter;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rel.type.RelDataTypeSystem;
+import org.apache.calcite.rel.type.RelDataTypeSystemImpl;
+import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexLiteral;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.schema.Table;
+import org.apache.calcite.schema.impl.AbstractTable;
+import org.apache.calcite.server.CalciteServerStatement;
+import org.apache.calcite.sql.SqlExplainLevel;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.util.Util;
 
 import org.junit.Test;
 
 import java.math.BigDecimal;
 
-import static org.hamcrest.CoreMatchers.*;
-import static org.junit.Assert.*;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
 
 /**
  * Unit tests for methods in {@link Frameworks}.
@@ -75,8 +80,8 @@ public class FrameworksTest {
                 "myTable",
                 table.getRowType(typeFactory)) {
             };
-            final JavaRules.EnumerableTableAccessRel tableRel =
-                new JavaRules.EnumerableTableAccessRel(
+            final EnumerableTableScan tableRel =
+                new EnumerableTableScan(
                     cluster, cluster.traitSetOf(EnumerableConvention.INSTANCE),
                     relOptTable, Object[].class);
 
@@ -87,11 +92,11 @@ public class FrameworksTest {
                     rexBuilder.makeFieldAccess(
                         rexBuilder.makeRangeReference(tableRel), "i", true),
                     rexBuilder.makeExactLiteral(BigDecimal.ONE));
-            final FilterRel filterRel =
-                new FilterRel(cluster, tableRel, condition);
+            final LogicalFilter filter =
+                new LogicalFilter(cluster, tableRel, condition);
 
             // Specify that the result should be in Enumerable convention.
-            final RelNode rootRel = filterRel;
+            final RelNode rootRel = filter;
             final RelOptPlanner planner = cluster.getPlanner();
             RelTraitSet desiredTraits = rootRel.getTraitSet().replace(
                 EnumerableConvention.INSTANCE);
@@ -105,9 +110,9 @@ public class FrameworksTest {
         });
     String s =
         RelOptUtil.dumpPlan("", x, false, SqlExplainLevel.DIGEST_ATTRIBUTES);
-    assertThat(Util.toLinux(s), equalTo(
-        "EnumerableFilterRel(condition=[>($1, 1)])\n"
-        + "  EnumerableTableAccessRel(table=[[myTable]])\n"));
+    assertThat(Util.toLinux(s),
+        equalTo("EnumerableFilter(condition=[>($1, 1)])\n"
+            + "  EnumerableTableScan(table=[[myTable]])\n"));
   }
 
   /** Unit test to test create root schema which has no "metadata" schema. */
@@ -140,7 +145,7 @@ public class FrameworksTest {
         new Frameworks.PrepareAction<Void>(config) {
           @Override public Void apply(RelOptCluster cluster,
               RelOptSchema relOptSchema, SchemaPlus rootSchema,
-              OptiqServerStatement statement) {
+              CalciteServerStatement statement) {
             final RelDataType type =
                 cluster.getTypeFactory()
                     .createSqlType(SqlTypeName.DECIMAL, 30, 2);

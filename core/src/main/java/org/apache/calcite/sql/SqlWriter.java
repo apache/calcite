@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql;
+package org.apache.calcite.sql;
 
-import org.eigenbase.sql.util.SqlString;
+import org.apache.calcite.sql.util.SqlString;
 
 /**
  * A <code>SqlWriter</code> is the target to construct a SQL statement from a
@@ -451,14 +451,15 @@ public interface SqlWriter {
    * are empty strings, but it consists of a sequence of clauses. "SELECT",
    * "FROM", "WHERE" are separators.
    *
-   * <p>A frame is current between a call to one of the {@link
-   * SqlWriter#startList} methods and the call to {@link
-   * SqlWriter#endList(Frame)}. If other code starts a frame in the mean time,
-   * the sub-frame is put onto a stack.
+   * <p>A frame is current between a call to one of the
+   * {@link SqlWriter#startList} methods and the call to
+   * {@link SqlWriter#endList(Frame)}. If other code starts a frame in the mean
+   * time, the sub-frame is put onto a stack.
    */
   public interface Frame {
   }
 
+  /** Frame type. */
   interface FrameType {
     /**
      * Returns the name of this frame type.

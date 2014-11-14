@@ -14,34 +14,33 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel.rules;
+package org.apache.calcite.rel.rules;
 
-import java.util.BitSet;
-import java.util.List;
-
-import org.eigenbase.rel.AggregateCall;
-import org.eigenbase.rel.AggregateRelBase;
-import org.eigenbase.rel.Aggregation;
-import org.eigenbase.rel.FilterRelBase;
-import org.eigenbase.rel.RelNode;
-import org.eigenbase.rel.metadata.RelMetadataQuery;
-import org.eigenbase.relopt.RelOptRule;
-import org.eigenbase.relopt.RelOptRuleCall;
-import org.eigenbase.relopt.RelOptUtil;
-import org.eigenbase.relopt.SubstitutionVisitor;
-import org.eigenbase.rex.RexNode;
-import org.eigenbase.rex.RexUtil;
-import org.eigenbase.util.mapping.Mappings;
-
-import net.hydromatic.optiq.util.BitSets;
+import org.apache.calcite.plan.RelOptRule;
+import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.plan.SubstitutionVisitor;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.Aggregate;
+import org.apache.calcite.rel.core.AggregateCall;
+import org.apache.calcite.rel.core.Filter;
+import org.apache.calcite.rel.metadata.RelMetadataQuery;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexUtil;
+import org.apache.calcite.sql.SqlAggFunction;
+import org.apache.calcite.util.BitSets;
+import org.apache.calcite.util.mapping.Mappings;
 
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
+import java.util.BitSet;
+import java.util.List;
+
 /**
- * Planner rule that matches an {@link org.eigenbase.rel.AggregateRelBase}
- * on a {@link org.eigenbase.rel.FilterRelBase} and transposes them,
+ * Planner rule that matches an {@link org.apache.calcite.rel.core.Aggregate}
+ * on a {@link org.apache.calcite.rel.core.Filter} and transposes them,
  * pushing the aggregate below the filter.
  *
  * <p>In some cases, it is necessary to split the aggregate.
@@ -52,7 +51,7 @@ import com.google.common.collect.Lists;
  * evaluate. The main use of the rule is to match a query that has a filter
  * under an aggregate to an existing aggregate table.
  *
- * @see org.eigenbase.rel.rules.FilterAggregateTransposeRule
+ * @see org.apache.calcite.rel.rules.FilterAggregateTransposeRule
  */
 public class AggregateFilterTransposeRule extends RelOptRule {
   public static final AggregateFilterTransposeRule INSTANCE =
@@ -60,20 +59,20 @@ public class AggregateFilterTransposeRule extends RelOptRule {
 
   private AggregateFilterTransposeRule() {
     super(
-        operand(AggregateRelBase.class,
-            operand(FilterRelBase.class, any())));
+        operand(Aggregate.class,
+            operand(Filter.class, any())));
   }
 
   public void onMatch(RelOptRuleCall call) {
-    final AggregateRelBase aggregate = call.rel(0);
-    final FilterRelBase filter = call.rel(1);
+    final Aggregate aggregate = call.rel(0);
+    final Filter filter = call.rel(1);
 
     // Do the columns used by the filter appear in the output of the aggregate?
     final BitSet filterColumns =
         RelOptUtil.InputFinder.bits(filter.getCondition());
     final BitSet newGroupSet =
         BitSets.union(aggregate.getGroupSet(), filterColumns);
-    final RelNode input = filter.getChild();
+    final RelNode input = filter.getInput();
     final Boolean unique =
         RelMetadataQuery.areColumnsUnique(input, newGroupSet);
     if (unique != null && unique) {
@@ -82,7 +81,7 @@ public class AggregateFilterTransposeRule extends RelOptRule {
       // the rule fires forever: A-F => A-F-A => A-A-F-A => A-A-A-F-A => ...
       return;
     }
-    final AggregateRelBase newAggregate =
+    final Aggregate newAggregate =
         aggregate.copy(aggregate.getTraitSet(), input, newGroupSet,
             aggregate.getAggCallList());
     final Mappings.TargetMapping mapping = Mappings.target(
@@ -95,7 +94,7 @@ public class AggregateFilterTransposeRule extends RelOptRule {
         newGroupSet.cardinality());
     final RexNode newCondition =
         RexUtil.apply(mapping, filter.getCondition());
-    final FilterRelBase newFilter = filter.copy(filter.getTraitSet(),
+    final Filter newFilter = filter.copy(filter.getTraitSet(),
         newAggregate, newCondition);
     if (BitSets.contains(aggregate.getGroupSet(), filterColumns)) {
       // Everything needed by the filter is returned by the aggregate.
@@ -111,7 +110,7 @@ public class AggregateFilterTransposeRule extends RelOptRule {
       final List<AggregateCall> topAggCallList = Lists.newArrayList();
       int i = newGroupSet.cardinality();
       for (AggregateCall aggregateCall : aggregate.getAggCallList()) {
-        final Aggregation rollup =
+        final SqlAggFunction rollup =
             SubstitutionVisitor.getRollup(aggregateCall.getAggregation());
         if (rollup == null) {
           // This aggregate cannot be rolled up.
@@ -125,7 +124,7 @@ public class AggregateFilterTransposeRule extends RelOptRule {
             new AggregateCall(rollup, aggregateCall.isDistinct(),
                 ImmutableList.of(i++), aggregateCall.type, aggregateCall.name));
       }
-      final AggregateRelBase topAggregate =
+      final Aggregate topAggregate =
           aggregate.copy(aggregate.getTraitSet(), newFilter, topGroupSet,
               topAggCallList);
       call.transformTo(topAggregate);

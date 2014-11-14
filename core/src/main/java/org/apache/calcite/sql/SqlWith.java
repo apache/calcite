@@ -14,15 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql;
+package org.apache.calcite.sql;
 
-import java.util.List;
-
-import org.eigenbase.sql.parser.SqlParserPos;
-import org.eigenbase.sql.validate.SqlValidator;
-import org.eigenbase.sql.validate.SqlValidatorScope;
+import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.validate.SqlValidator;
+import org.apache.calcite.sql.validate.SqlValidatorScope;
 
 import com.google.common.collect.ImmutableList;
+
+import java.util.List;
 
 /**
  * The WITH clause of a query. It wraps a SELECT, UNION, or INTERSECT.
@@ -45,8 +45,7 @@ public class SqlWith extends SqlCall {
     return SqlKind.WITH;
   }
 
-  @Override
-  public SqlOperator getOperator() {
+  @Override public SqlOperator getOperator() {
     return SqlWithOperator.INSTANCE;
   }
 
@@ -54,8 +53,8 @@ public class SqlWith extends SqlCall {
     return ImmutableList.of(withList, body);
   }
 
-  @Override
-  public void validate(SqlValidator validator, SqlValidatorScope scope) {
+  @Override public void validate(SqlValidator validator,
+      SqlValidatorScope scope) {
     validator.validateWith(this, scope);
   }
 
@@ -92,9 +91,8 @@ public class SqlWith extends SqlCall {
     }
 
 
-    @Override
-    public SqlCall createCall(SqlLiteral functionQualifier, SqlParserPos pos,
-        SqlNode... operands) {
+    @Override public SqlCall createCall(SqlLiteral functionQualifier,
+        SqlParserPos pos, SqlNode... operands) {
       return new SqlWith(pos, (SqlNodeList) operands[0], operands[1]);
     }
 
@@ -107,4 +105,4 @@ public class SqlWith extends SqlCall {
   }
 }
 
-// End SqlWithOperator.java
+// End SqlWith.java

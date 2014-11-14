@@ -14,15 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.reltype;
+package org.apache.calcite.rel.type;
 
-import net.hydromatic.linq4j.function.Function1;
+import org.apache.calcite.linq4j.function.Function1;
 
 /**
  * Can be converted into a {@link RelDataType} given a
- * {@link org.eigenbase.reltype.RelDataTypeFactory}.
+ * {@link org.apache.calcite.rel.type.RelDataTypeFactory}.
  *
- * @see org.eigenbase.reltype.RelDataTypeImpl#proto
+ * @see org.apache.calcite.rel.type.RelDataTypeImpl#proto
  */
 public interface RelProtoDataType
     extends Function1<RelDataTypeFactory, RelDataType> {

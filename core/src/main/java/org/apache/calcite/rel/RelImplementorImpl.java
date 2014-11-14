@@ -14,7 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel;
+package org.apache.calcite.rel;
+
+import org.apache.calcite.plan.RelImplementor;
+import org.apache.calcite.rel.core.Join;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.util.trace.CalciteTrace;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -22,17 +28,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
 
-import org.eigenbase.relopt.RelImplementor;
-import org.eigenbase.reltype.RelDataTypeFactory;
-import org.eigenbase.rex.RexBuilder;
-import org.eigenbase.trace.EigenbaseTrace;
-
 /**
  * Implementation of {@link RelImplementor}.
  */
 public class RelImplementorImpl implements RelImplementor {
   protected static final Logger LOGGER =
-      EigenbaseTrace.getRelImplementorTracer();
+      CalciteTrace.getRelImplementorTracer();
 
   /**
    * Maps a {@link String} to the {@link RelImplementorImpl.Frame} whose
@@ -42,7 +43,7 @@ public class RelImplementorImpl implements RelImplementor {
       new HashMap<String, Frame>();
 
   /**
-   * Maps a {@link org.eigenbase.rel.RelNode} to the unique frame whose
+   * Maps a {@link RelNode} to the unique frame whose
    * {@link RelImplementorImpl.Frame#rel} is
    * that relational expression.
    */
@@ -105,7 +106,7 @@ public class RelImplementorImpl implements RelImplementor {
       RelNode rel,
       int offset,
       int[] offsets) {
-    if (rel instanceof JoinRelBase) {
+    if (rel instanceof Join) {
       // no variable here -- go deeper
       List<RelNode> inputs = rel.getInputs();
       for (RelNode input : inputs) {

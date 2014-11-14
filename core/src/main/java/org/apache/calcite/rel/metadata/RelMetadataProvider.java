@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel.metadata;
+package org.apache.calcite.rel.metadata;
 
-import org.eigenbase.rel.*;
+import org.apache.calcite.rel.RelNode;
 
 import com.google.common.base.Function;
 
@@ -43,10 +43,10 @@ public interface RelMetadataProvider {
    *
    * <blockquote><pre>
    * RelMetadataProvider provider;
-   * FilterRel filter;
+   * LogicalFilter filter;
    * RexNode predicate;
    * Function&lt;RelNode, Metadata&gt; function =
-   *   provider.apply(FilterRel.class, Selectivity.class};
+   *   provider.apply(LogicalFilter.class, Selectivity.class};
    * Selectivity selectivity = function.apply(filter);
    * Double d = selectivity.selectivity(predicate);
    * </pre></blockquote>

@@ -14,20 +14,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel;
+package org.apache.calcite.rel.logical;
+
+import org.apache.calcite.plan.Convention;
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.RelInput;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelShuttle;
+import org.apache.calcite.rel.core.Union;
 
 import java.util.List;
 
-import org.eigenbase.relopt.*;
-
 /**
- * <code>UnionRel</code> returns the union of the rows of its inputs, optionally
- * eliminating duplicates.
+ * Sub-class of {@link org.apache.calcite.rel.core.Union}
+ * not targeted at any particular engine or calling convention.
  */
-public final class UnionRel extends UnionRelBase {
+public final class LogicalUnion extends Union {
   //~ Constructors -----------------------------------------------------------
 
-  public UnionRel(
+  public LogicalUnion(
       RelOptCluster cluster,
       List<RelNode> inputs,
       boolean all) {
@@ -39,27 +45,26 @@ public final class UnionRel extends UnionRelBase {
   }
 
   /**
-   * Creates a UnionRel by parsing serialized output.
+   * Creates a LogicalUnion by parsing serialized output.
    */
-  public UnionRel(RelInput input) {
+  public LogicalUnion(RelInput input) {
     super(input);
   }
 
   //~ Methods ----------------------------------------------------------------
 
-  public UnionRel copy(
+  public LogicalUnion copy(
       RelTraitSet traitSet, List<RelNode> inputs, boolean all) {
     assert traitSet.containsIfApplicable(Convention.NONE);
-    return new UnionRel(
+    return new LogicalUnion(
         getCluster(),
         inputs,
         all);
   }
 
-  @Override
-  public RelNode accept(RelShuttle shuttle) {
+  @Override public RelNode accept(RelShuttle shuttle) {
     return shuttle.visit(this);
   }
 }
 
-// End UnionRel.java
+// End LogicalUnion.java

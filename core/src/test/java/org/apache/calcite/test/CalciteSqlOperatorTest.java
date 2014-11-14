@@ -14,23 +14,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.test;
+package org.apache.calcite.test;
 
-import net.hydromatic.optiq.jdbc.OptiqConnection;
-
-import org.eigenbase.sql.test.SqlOperatorBaseTest;
-import org.eigenbase.sql.test.SqlTester;
+import org.apache.calcite.jdbc.CalciteConnection;
+import org.apache.calcite.sql.test.SqlOperatorBaseTest;
+import org.apache.calcite.sql.test.SqlTester;
 
 /**
- * Embodiment of {@link org.eigenbase.sql.test.SqlOperatorBaseTest}
+ * Embodiment of {@link org.apache.calcite.sql.test.SqlOperatorBaseTest}
  * that generates SQL statements and executes them using Calcite.
  */
-public class OptiqSqlOperatorTest extends SqlOperatorBaseTest {
-  private static final ThreadLocal<OptiqConnection> LOCAL =
-      new ThreadLocal<OptiqConnection>() {
-        @Override protected OptiqConnection initialValue() {
+public class CalciteSqlOperatorTest extends SqlOperatorBaseTest {
+  private static final ThreadLocal<CalciteConnection> LOCAL =
+      new ThreadLocal<CalciteConnection>() {
+        @Override protected CalciteConnection initialValue() {
           try {
-            return OptiqAssert.getConnection("hr");
+            return CalciteAssert.getConnection("hr");
           } catch (Exception e) {
             throw new RuntimeException(e);
           }
@@ -41,9 +40,9 @@ public class OptiqSqlOperatorTest extends SqlOperatorBaseTest {
     return tester(LOCAL.get());
   }
 
-  public OptiqSqlOperatorTest() {
+  public CalciteSqlOperatorTest() {
     super(false, getHrTester());
   }
 }
 
-// End OptiqSqlOperatorTest.java
+// End CalciteSqlOperatorTest.java

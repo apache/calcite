@@ -14,16 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.test;
+package org.apache.calcite.test;
 
-import net.hydromatic.optiq.SchemaPlus;
-import net.hydromatic.optiq.runtime.Hook;
-import net.hydromatic.optiq.tools.Frameworks;
-
-import org.eigenbase.rel.*;
-import org.eigenbase.relopt.RelOptCluster;
-import org.eigenbase.relopt.RelOptSchema;
-import org.eigenbase.test.SqlToRelConverterTest;
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptSchema;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelShuttleImpl;
+import org.apache.calcite.rel.core.TableScan;
+import org.apache.calcite.rel.externalize.RelJsonReader;
+import org.apache.calcite.rel.externalize.RelJsonWriter;
+import org.apache.calcite.runtime.Hook;
+import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.tools.Frameworks;
 
 import com.google.common.base.Function;
 
@@ -33,7 +35,7 @@ import org.junit.Before;
 import java.io.IOException;
 
 /**
- * Runs {@link org.eigenbase.test.SqlToRelConverterTest} with extensions.
+ * Runs {@link org.apache.calcite.test.SqlToRelConverterTest} with extensions.
  */
 public class SqlToRelConverterExtendedTest extends SqlToRelConverterTest {
   Hook.Closeable closeable;
@@ -64,8 +66,7 @@ public class SqlToRelConverterExtendedTest extends SqlToRelConverterTest {
     // Find the schema. If there are no tables in the plan, we won't need one.
     final RelOptSchema[] schemas = {null};
     rel.accept(new RelShuttleImpl() {
-      @Override
-      public RelNode visit(TableAccessRelBase scan) {
+      @Override public RelNode visit(TableScan scan) {
         schemas[0] = scan.getTable().getRelOptSchema();
         return super.visit(scan);
       }

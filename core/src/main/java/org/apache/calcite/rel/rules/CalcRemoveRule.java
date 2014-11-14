@@ -14,37 +14,41 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel.rules;
+package org.apache.calcite.rel.rules;
 
-import org.eigenbase.rel.*;
-import org.eigenbase.relopt.*;
-import org.eigenbase.rex.*;
+import org.apache.calcite.plan.RelOptRule;
+import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.logical.LogicalCalc;
+import org.apache.calcite.rex.RexProgram;
 
 /**
- * Rule which removes a trivial {@link CalcRel}.
+ * Planner rule that removes a trivial
+ * {@link org.apache.calcite.rel.logical.LogicalCalc}.
  *
- * <p>A {@link CalcRel} is trivial if it projects its input fields in their
+ * <p>A {@link org.apache.calcite.rel.logical.LogicalCalc}
+ * is trivial if it projects its input fields in their
  * original order, and it does not filter.
  *
- * @see org.eigenbase.rel.rules.RemoveTrivialProjectRule
+ * @see ProjectRemoveRule
  */
-public class RemoveTrivialCalcRule extends RelOptRule {
+public class CalcRemoveRule extends RelOptRule {
   //~ Static fields/initializers ---------------------------------------------
 
-  public static final RemoveTrivialCalcRule INSTANCE =
-      new RemoveTrivialCalcRule();
+  public static final CalcRemoveRule INSTANCE =
+      new CalcRemoveRule();
 
   //~ Constructors -----------------------------------------------------------
 
-  private RemoveTrivialCalcRule() {
-    super(operand(CalcRel.class, any()));
+  private CalcRemoveRule() {
+    super(operand(LogicalCalc.class, any()));
   }
 
   //~ Methods ----------------------------------------------------------------
 
   // implement RelOptRule
   public void onMatch(RelOptRuleCall call) {
-    CalcRel calc = call.rel(0);
+    LogicalCalc calc = call.rel(0);
     RexProgram program = calc.getProgram();
     if (!program.isTrivial()) {
       return;
@@ -58,4 +62,4 @@ public class RemoveTrivialCalcRule extends RelOptRule {
   }
 }
 
-// End RemoveTrivialCalcRule.java
+// End CalcRemoveRule.java

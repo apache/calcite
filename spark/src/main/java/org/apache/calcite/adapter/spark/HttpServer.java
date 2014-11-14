@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.impl.spark;
+package org.apache.calcite.adapter.spark;
 
 import org.eclipse.jetty.server.Handler;
 import org.eclipse.jetty.server.Server;
@@ -26,7 +26,10 @@ import org.eclipse.jetty.util.thread.QueuedThreadPool;
 
 import java.io.File;
 import java.io.IOException;
-import java.net.*;
+import java.net.Inet4Address;
+import java.net.InetAddress;
+import java.net.InterfaceAddress;
+import java.net.NetworkInterface;
 import java.util.Enumeration;
 import java.util.Iterator;
 
@@ -119,7 +122,7 @@ class HttpServer {
   }
 
   private static String findLocalIpAddress() throws IOException {
-    String defaultIpOverride = System.getenv("OPTIQ_LOCAL_IP");
+    String defaultIpOverride = System.getenv("CALCITE_LOCAL_IP");
     if (defaultIpOverride != null) {
       return defaultIpOverride;
     } else {
@@ -136,13 +139,13 @@ class HttpServer {
                 && !addr.isLoopbackAddress() && addr instanceof Inet4Address) {
               // We've found an address that looks reasonable!
               logWarning("Your hostname, "
-                         + InetAddress.getLocalHost().getHostName()
-                         + " resolves to a loopback address: "
-                         + address.getHostAddress() + "; using "
-                         + addr.getHostAddress() + " instead (on interface "
-                         + ni.getName() + ")");
+                  + InetAddress.getLocalHost().getHostName()
+                  + " resolves to a loopback address: "
+                  + address.getHostAddress() + "; using "
+                  + addr.getHostAddress() + " instead (on interface "
+                  + ni.getName() + ")");
               logWarning(
-                  "Set OPTIQ_LOCAL_IP if you need to bind to another address");
+                  "Set CALCITE_LOCAL_IP if you need to bind to another address");
               return addr.getHostAddress();
             }
           }
@@ -151,7 +154,8 @@ class HttpServer {
             "Your hostname, " + InetAddress.getLocalHost().getHostName()
             + " resolves to a loopback address: " + address.getHostAddress()
             + ", but we couldn't find any external IP address!");
-        logWarning("Set OPTIQ_LOCAL_IP if you need to bind to another address");
+        logWarning(
+            "Set CALCITE_LOCAL_IP if you need to bind to another address");
       }
       return address.getHostAddress();
     }

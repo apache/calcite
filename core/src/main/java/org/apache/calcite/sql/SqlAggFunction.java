@@ -14,18 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql;
+package org.apache.calcite.sql;
 
-import org.eigenbase.rel.*;
-import org.eigenbase.sql.type.*;
-import org.eigenbase.sql.validate.*;
+import org.apache.calcite.sql.type.SqlOperandTypeChecker;
+import org.apache.calcite.sql.type.SqlOperandTypeInference;
+import org.apache.calcite.sql.type.SqlReturnTypeInference;
+import org.apache.calcite.sql.validate.SqlValidator;
+import org.apache.calcite.sql.validate.SqlValidatorScope;
 
 /**
  * Abstract base class for the definition of an aggregate function: an operator
  * which aggregates sets of values into a result.
  */
-public abstract class SqlAggFunction extends SqlFunction
-    implements Aggregation {
+public abstract class SqlAggFunction extends SqlFunction {
   //~ Constructors -----------------------------------------------------------
 
   /** Creates a built-in SqlAggFunction. */

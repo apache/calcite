@@ -14,18 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.rules.java;
+package org.apache.calcite.adapter.enumerable;
 
-import net.hydromatic.linq4j.expressions.Expression;
-
-import org.eigenbase.rex.RexCall;
+import org.apache.calcite.linq4j.tree.Expression;
+import org.apache.calcite.rex.RexCall;
 
 /**
  * Implements a call via given translator.
- * <p>
- * @see net.hydromatic.optiq.ScalarFunction
- * @see net.hydromatic.optiq.TableFunction
- * @see net.hydromatic.optiq.rules.java.RexImpTable
+ *
+ * @see org.apache.calcite.schema.ScalarFunction
+ * @see org.apache.calcite.schema.TableFunction
+ * @see org.apache.calcite.adapter.enumerable.RexImpTable
  */
 public interface CallImplementor {
   /** Implements a call. */
@@ -34,3 +33,5 @@ public interface CallImplementor {
       RexCall call,
       RexImpTable.NullAs nullAs);
 }
+
+// End CallImplementor.java

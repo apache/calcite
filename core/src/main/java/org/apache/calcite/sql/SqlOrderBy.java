@@ -14,25 +14,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql;
+package org.apache.calcite.sql;
+
+import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.util.ImmutableNullableList;
 
 import java.util.List;
-
-import org.eigenbase.sql.parser.SqlParserPos;
-import org.eigenbase.util.ImmutableNullableList;
 
 /**
  * Parse tree node that represents an {@code ORDER BY} on a query other than a
  * {@code SELECT} (e.g. {@code VALUES} or {@code UNION}).
  *
  * <p>It is a purely syntactic operator, and is eliminated by
- * {@link org.eigenbase.sql.validate.SqlValidatorImpl#performUnconditionalRewrites}
+ * {@link org.apache.calcite.sql.validate.SqlValidatorImpl#performUnconditionalRewrites}
  * and replaced with the ORDER_OPERAND of SqlSelect.</p>
  */
 public class SqlOrderBy extends SqlCall {
   public static final SqlSpecialOperator OPERATOR = new Operator() {
-    @Override
-    public SqlCall createCall(SqlLiteral functionQualifier,
+    @Override public SqlCall createCall(SqlLiteral functionQualifier,
         SqlParserPos pos, SqlNode... operands) {
       return new SqlOrderBy(pos, operands[0], (SqlNodeList) operands[1],
           operands[2], operands[3]);
@@ -121,4 +120,4 @@ public class SqlOrderBy extends SqlCall {
   }
 }
 
-// End SqlOrderByOperator.java
+// End SqlOrderBy.java

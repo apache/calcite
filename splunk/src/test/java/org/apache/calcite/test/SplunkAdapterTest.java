@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.test;
+package org.apache.calcite.test;
 
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableSet;
@@ -22,12 +22,19 @@ import com.google.common.collect.ImmutableSet;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import java.sql.*;
-import java.util.*;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Properties;
+import java.util.Set;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertThat;
 
 /**
  * Unit test of the Calcite adapter for Splunk.
@@ -51,7 +58,7 @@ public class SplunkAdapterTest {
 
   private void loadDriverClass() {
     try {
-      Class.forName("net.hydromatic.optiq.impl.splunk.SplunkDriver");
+      Class.forName("org.apache.calcite.adapter.splunk.SplunkDriver");
     } catch (ClassNotFoundException e) {
       throw new RuntimeException("driver not found", e);
     }
@@ -100,8 +107,7 @@ public class SplunkAdapterTest {
       return;
     }
     Connection connection =
-        DriverManager.getConnection(
-            "jdbc:splunk:"
+        DriverManager.getConnection("jdbc:splunk:"
             + "url='" + SPLUNK_URL + "'"
             + ";user='" + SPLUNK_USER + "'"
             + ";password='" + SPLUNK_PASSWORD + "'");
@@ -110,54 +116,54 @@ public class SplunkAdapterTest {
 
   static final String[] SQL_STRINGS = {
     "select \"source\", \"sourcetype\"\n"
-      + "from \"splunk\".\"splunk\"",
+        + "from \"splunk\".\"splunk\"",
 
     "select \"sourcetype\"\n"
-      + "from \"splunk\".\"splunk\"",
+        + "from \"splunk\".\"splunk\"",
 
     "select distinct \"sourcetype\"\n"
-      + "from \"splunk\".\"splunk\"",
+        + "from \"splunk\".\"splunk\"",
 
     "select count(\"sourcetype\")\n"
-      + "from \"splunk\".\"splunk\"",
+        + "from \"splunk\".\"splunk\"",
 
     // gives wrong answer, not error. currently returns same as count.
     "select count(distinct \"sourcetype\")\n"
-      + "from \"splunk\".\"splunk\"",
+        + "from \"splunk\".\"splunk\"",
 
     "select \"sourcetype\", count(\"source\")\n"
-      + "from \"splunk\".\"splunk\"\n"
-      + "group by \"sourcetype\"",
+        + "from \"splunk\".\"splunk\"\n"
+        + "group by \"sourcetype\"",
 
     "select \"sourcetype\", count(\"source\") as c\n"
-      + "from \"splunk\".\"splunk\"\n"
-      + "group by \"sourcetype\"\n"
-      + "order by c desc\n",
+        + "from \"splunk\".\"splunk\"\n"
+        + "group by \"sourcetype\"\n"
+        + "order by c desc\n",
 
     // group + order
     "select s.\"product_id\", count(\"source\") as c\n"
-      + "from \"splunk\".\"splunk\" as s\n"
-      + "where s.\"sourcetype\" = 'access_combined_wcookie'\n"
-      + "group by s.\"product_id\"\n"
-      + "order by c desc\n",
+        + "from \"splunk\".\"splunk\" as s\n"
+        + "where s.\"sourcetype\" = 'access_combined_wcookie'\n"
+        + "group by s.\"product_id\"\n"
+        + "order by c desc\n",
 
     // non-advertised field
     "select s.\"sourcetype\", s.\"action\" from \"splunk\".\"splunk\" as s",
 
     "select s.\"source\", s.\"product_id\", s.\"product_name\", s.\"method\"\n"
-      + "from \"splunk\".\"splunk\" as s\n"
-      + "where s.\"sourcetype\" = 'access_combined_wcookie'\n",
+        + "from \"splunk\".\"splunk\" as s\n"
+        + "where s.\"sourcetype\" = 'access_combined_wcookie'\n",
 
     "select p.\"product_name\", s.\"action\"\n"
-      + "from \"splunk\".\"splunk\" as s\n"
-      + "  join \"mysql\".\"products\" as p\n"
-      + "on s.\"product_id\" = p.\"product_id\"",
+        + "from \"splunk\".\"splunk\" as s\n"
+        + "  join \"mysql\".\"products\" as p\n"
+        + "on s.\"product_id\" = p.\"product_id\"",
 
     "select s.\"source\", s.\"product_id\", p.\"product_name\", p.\"price\"\n"
-      + "from \"splunk\".\"splunk\" as s\n"
-      + "    join \"mysql\".\"products\" as p\n"
-      + "    on s.\"product_id\" = p.\"product_id\"\n"
-      + "where s.\"sourcetype\" = 'access_combined_wcookie'\n",
+        + "from \"splunk\".\"splunk\" as s\n"
+        + "    join \"mysql\".\"products\" as p\n"
+        + "    on s.\"product_id\" = p.\"product_id\"\n"
+        + "where s.\"sourcetype\" = 'access_combined_wcookie'\n",
   };
 
   static final String[] ERROR_SQL_STRINGS = {
@@ -167,12 +173,12 @@ public class SplunkAdapterTest {
     // gives no rows; suspect off-by-one because no base fields are
     // referenced
     "select s.\"product_id\", s.\"product_name\", s.\"method\"\n"
-      + "from \"splunk\".\"splunk\" as s\n"
-      + "where s.\"sourcetype\" = 'access_combined_wcookie'\n",
+        + "from \"splunk\".\"splunk\" as s\n"
+        + "where s.\"sourcetype\" = 'access_combined_wcookie'\n",
 
     // horrible error if you access a field that doesn't exist
     "select s.\"sourcetype\", s.\"access\"\n"
-      + "from \"splunk\".\"splunk\" as s\n",
+        + "from \"splunk\".\"splunk\" as s\n",
   };
 
   // Fields:
@@ -186,7 +192,7 @@ public class SplunkAdapterTest {
   @Test public void testSelect() throws SQLException {
     checkSql(
         "select \"source\", \"sourcetype\"\n"
-        + "from \"splunk\".\"splunk\"",
+            + "from \"splunk\".\"splunk\"",
         new Function<ResultSet, Void>() {
           public Void apply(ResultSet a0) {
             try {
@@ -216,7 +222,7 @@ public class SplunkAdapterTest {
       public Void apply(ResultSet a0) {
         try {
           Collection<String> actual =
-              OptiqAssert.toStringList(a0, new HashSet<String>());
+              CalciteAssert.toStringList(a0, new HashSet<String>());
           assertThat(actual, equalTo(expected));
           return null;
         } catch (SQLException e) {
@@ -252,19 +258,19 @@ public class SplunkAdapterTest {
   @Test public void testJoinToJdbc() throws SQLException {
     checkSql(
         "select p.\"product_name\", /*s.\"product_id\",*/ s.\"action\"\n"
-        + "from \"splunk\".\"splunk\" as s\n"
-        + "join \"foodmart\".\"product\" as p\n"
-        + "on cast(s.\"product_id\" as integer) = p.\"product_id\"\n"
-        + "where s.\"action\" = 'PURCHASE'",
+            + "from \"splunk\".\"splunk\" as s\n"
+            + "join \"foodmart\".\"product\" as p\n"
+            + "on cast(s.\"product_id\" as integer) = p.\"product_id\"\n"
+            + "where s.\"action\" = 'PURCHASE'",
         null);
   }
 
   @Test public void testGroupBy() throws SQLException {
     checkSql(
         "select s.\"host\", count(\"source\") as c\n"
-        + "from \"splunk\".\"splunk\" as s\n"
-        + "group by s.\"host\"\n"
-        + "order by c desc\n",
+            + "from \"splunk\".\"splunk\" as s\n"
+            + "group by s.\"host\"\n"
+            + "order by c desc\n",
         expect("host=vendor_sales; C=30244",
             "host=www1; C=24221",
             "host=www3; C=22975",

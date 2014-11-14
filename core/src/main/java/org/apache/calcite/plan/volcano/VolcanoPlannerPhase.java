@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.relopt.volcano;
+package org.apache.calcite.plan.volcano;
 
 /**
- * VolcanoPlannerPhase represents the phases of operation that the {@link
- * VolcanoPlanner} passes through during optimization of a tree of {@link
- * org.eigenbase.rel.RelNode} objects.
+ * VolcanoPlannerPhase represents the phases of operation that the
+ * {@link VolcanoPlanner} passes through during optimization of a tree of
+ * {@link org.apache.calcite.rel.RelNode} objects.
  */
 public enum VolcanoPlannerPhase {
   PRE_PROCESS_MDR, PRE_PROCESS, OPTIMIZE, CLEANUP,

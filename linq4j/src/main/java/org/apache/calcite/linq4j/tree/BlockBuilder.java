@@ -14,11 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.linq4j.expressions;
+package org.apache.calcite.linq4j.tree;
 
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.IdentityHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * Builder for {@link BlockStatement}.
@@ -487,8 +493,7 @@ public class BlockBuilder {
       this.map = map;
     }
 
-    @Override
-    public Expression visit(ParameterExpression parameterExpression) {
+    @Override public Expression visit(ParameterExpression parameterExpression) {
       Expression e = map.get(parameterExpression);
       if (e != null) {
         try {
@@ -507,9 +512,8 @@ public class BlockBuilder {
       return super.visit(parameterExpression);
     }
 
-    @Override
-    public Expression visit(UnaryExpression unaryExpression, Expression
-        expression) {
+    @Override public Expression visit(UnaryExpression unaryExpression,
+        Expression expression) {
       if (unaryExpression.getNodeType().modifiesLvalue) {
         expression = unaryExpression.expression; // avoid substitution
         if (expression instanceof ParameterExpression) {
@@ -544,8 +548,7 @@ public class BlockBuilder {
     private final Map<ParameterExpression, Slot> map =
         new IdentityHashMap<ParameterExpression, Slot>();
 
-    @Override
-    public Expression visit(ParameterExpression parameter) {
+    @Override public Expression visit(ParameterExpression parameter) {
       final Slot slot = map.get(parameter);
       if (slot != null) {
         // Count use of parameter, if it's registered. It's OK if

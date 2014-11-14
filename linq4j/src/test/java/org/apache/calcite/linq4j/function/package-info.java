@@ -18,6 +18,6 @@
 /**
  * Tests for functions.
  */
-package net.hydromatic.linq4j.function;
+package org.apache.calcite.linq4j.function;
 
 // End package-info.java

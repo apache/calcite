@@ -14,27 +14,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.rules.java;
+package org.apache.calcite.adapter.enumerable;
 
-import net.hydromatic.linq4j.expressions.Expression;
-
-import org.eigenbase.rex.RexNode;
+import org.apache.calcite.linq4j.tree.Expression;
+import org.apache.calcite.rex.RexNode;
 
 import java.util.List;
 
 /**
- * Information for a call to {@link AggImplementor#implementResult(AggContext, AggResultContext)}
- * Typically, the aggregation implementation will convert {@link #accumulator()}
- * to the resulting value of the aggregation.
- * The implementation MUST NOT destroy the contents of {@link #accumulator()}.
+ * Information for a call to
+ * {@link AggImplementor#implementResult(AggContext, AggResultContext)}.
+ *
+ * <p>Typically, the aggregation implementation will convert
+ * {@link #accumulator()} to the resulting value of the aggregation.  The
+ * implementation MUST NOT destroy the contents of {@link #accumulator()}.
  */
 public interface WinAggResultContext extends AggResultContext,
     WinAggFrameResultContext {
   /**
-   * Returns {@link org.eigenbase.rex.RexNode} representation of arguments.
+   * Returns {@link org.apache.calcite.rex.RexNode} representation of arguments.
    * This can be useful for manual translation of required arguments with
    * different {@link NullPolicy}.
-   * @return {@link org.eigenbase.rex.RexNode} representation of arguments
+   * @return {@link org.apache.calcite.rex.RexNode} representation of arguments
    */
   List<RexNode> rexArguments();
 

@@ -14,16 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql.parser;
+package org.apache.calcite.sql.parser;
 
 import java.io.Reader;
 
 /**
- * Factory for {@link org.eigenbase.sql.parser.SqlAbstractParserImpl} objects.
+ * Factory for
+ * {@link org.apache.calcite.sql.parser.SqlAbstractParserImpl} objects.
  *
  * <p>A parser factory allows you to include a custom parser in
- * {@link net.hydromatic.optiq.tools.Planner} created through
- * {@link net.hydromatic.optiq.tools.Frameworks}.</p>
+ * {@link org.apache.calcite.tools.Planner} created through
+ * {@link org.apache.calcite.tools.Frameworks}.</p>
  */
 public interface SqlParserImplFactory {
 
@@ -34,3 +35,5 @@ public interface SqlParserImplFactory {
    */
   SqlAbstractParserImpl getParser(Reader stream);
 }
+
+// End SqlParserImplFactory.java

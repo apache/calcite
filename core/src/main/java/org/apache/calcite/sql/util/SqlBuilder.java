@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql.util;
+package org.apache.calcite.sql.util;
+
+import org.apache.calcite.sql.SqlDialect;
+import org.apache.calcite.util.UnmodifiableArrayList;
 
 import java.sql.Timestamp;
-import java.util.*;
-
-import org.eigenbase.sql.SqlDialect;
-import org.eigenbase.util.UnmodifiableArrayList;
+import java.util.List;
 
 /**
  * Extension to {@link StringBuilder} for the purposes of creating SQL queries
@@ -93,8 +93,7 @@ public class SqlBuilder {
    * @return SQL string
    * @see #getSql()
    */
-  @Override
-  public String toString() {
+  @Override public String toString() {
     return getSql();
   }
 

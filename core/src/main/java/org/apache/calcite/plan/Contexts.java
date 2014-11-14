@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.relopt;
+package org.apache.calcite.plan;
 
-import net.hydromatic.optiq.config.OptiqConnectionConfig;
+import org.apache.calcite.config.CalciteConnectionConfig;
 
 /**
  * Utilities for {@link Context}.
@@ -27,8 +27,8 @@ public class Contexts {
   private Contexts() {}
 
   /** Returns a context that contains a
-   * {@link net.hydromatic.optiq.config.OptiqConnectionConfig}. */
-  public static Context withConfig(OptiqConnectionConfig config) {
+   * {@link org.apache.calcite.config.CalciteConnectionConfig}. */
+  public static Context withConfig(CalciteConnectionConfig config) {
     return new ConfigContext(config);
   }
 
@@ -38,11 +38,11 @@ public class Contexts {
   }
 
   /** Context that contains a
-   * {@link net.hydromatic.optiq.config.OptiqConnectionConfig}. */
+   * {@link org.apache.calcite.config.CalciteConnectionConfig}. */
   private static class ConfigContext implements Context {
-    private OptiqConnectionConfig config;
+    private CalciteConnectionConfig config;
 
-    public ConfigContext(OptiqConnectionConfig config) {
+    public ConfigContext(CalciteConnectionConfig config) {
       this.config = config;
     }
 

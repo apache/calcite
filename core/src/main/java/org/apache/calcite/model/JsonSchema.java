@@ -14,11 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.model;
+package org.apache.calcite.model;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
-
 import com.google.common.collect.Lists;
 
 import java.util.List;
@@ -58,10 +57,10 @@ public abstract class JsonSchema {
    * <p>If {@code true}, Calcite will cache the metadata the first time it reads
    * it. This can lead to better performance, especially if name-matching is
    * case-insensitive
-   * (see {@link net.hydromatic.optiq.config.Lex#caseSensitive}).
+   * (see {@link org.apache.calcite.config.Lex#caseSensitive}).
    * However, it also leads to the problem of cache staleness.
    * A particular schema implementation can override the
-   * {@link net.hydromatic.optiq.Schema#contentsHaveChangedSince(long, long)}
+   * {@link org.apache.calcite.schema.Schema#contentsHaveChangedSince(long, long)}
    * method to tell Calcite when it should consider its cache to be out of
    * date.</p>
    *

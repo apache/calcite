@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.materialize;
+package org.apache.calcite.materialize;
 
 import java.io.Serializable;
 import java.util.UUID;
@@ -28,20 +28,17 @@ import java.util.UUID;
 public class MaterializationKey implements Serializable {
   private final UUID uuid = UUID.randomUUID();
 
-  @Override
-  public int hashCode() {
+  @Override public int hashCode() {
     return uuid.hashCode();
   }
 
-  @Override
-  public boolean equals(Object obj) {
+  @Override public boolean equals(Object obj) {
     return this == obj
         || obj instanceof MaterializationKey
         && uuid.equals(((MaterializationKey) obj).uuid);
   }
 
-  @Override
-  public String toString() {
+  @Override public String toString() {
     return uuid.toString();
   }
 }

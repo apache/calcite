@@ -14,22 +14,32 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel;
+package org.apache.calcite.rel.core;
 
-import java.util.*;
-
-import org.eigenbase.rel.metadata.*;
-import org.eigenbase.relopt.*;
-import org.eigenbase.reltype.*;
-import org.eigenbase.rex.*;
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptCost;
+import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.RelCollation;
+import org.apache.calcite.rel.RelCollationImpl;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelWriter;
+import org.apache.calcite.rel.SingleRel;
+import org.apache.calcite.rel.logical.LogicalFilter;
+import org.apache.calcite.rel.metadata.RelMetadataQuery;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rex.RexProgram;
 
 import com.google.common.collect.ImmutableList;
 
+import java.util.List;
+
 /**
- * <code>CalcRelBase</code> is an abstract base class for implementations of
- * {@link CalcRel}.
+ * <code>Calc</code> is an abstract base class for implementations of
+ * {@link org.apache.calcite.rel.logical.LogicalCalc}.
  */
-public abstract class CalcRelBase extends SingleRel {
+public abstract class Calc extends SingleRel {
   //~ Instance fields --------------------------------------------------------
 
   protected final RexProgram program;
@@ -37,7 +47,7 @@ public abstract class CalcRelBase extends SingleRel {
 
   //~ Constructors -----------------------------------------------------------
 
-  protected CalcRelBase(
+  protected Calc(
       RelOptCluster cluster,
       RelTraitSet traits,
       RelNode child,
@@ -53,15 +63,12 @@ public abstract class CalcRelBase extends SingleRel {
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override
-  public final CalcRelBase copy(RelTraitSet traitSet, List<RelNode> inputs) {
+  @Override public final Calc copy(RelTraitSet traitSet, List<RelNode> inputs) {
     return copy(traitSet, sole(inputs), program, collationList);
   }
 
-  /**
-   * Creates a copy of this {@code CalcRelBase}.
-   */
-  public abstract CalcRelBase copy(
+  /** Creates a copy of this {@code Calc}. */
+  public abstract Calc copy(
       RelTraitSet traitSet,
       RelNode child,
       RexProgram program,
@@ -72,7 +79,7 @@ public abstract class CalcRelBase extends SingleRel {
         "program's input type",
         program.getInputRowType(),
         "child's output type",
-        getChild().getRowType(),
+        getInput().getRowType(),
         fail)) {
       return false;
     }
@@ -104,8 +111,8 @@ public abstract class CalcRelBase extends SingleRel {
   }
 
   public double getRows() {
-    return FilterRel.estimateFilteredRows(
-        getChild(),
+    return LogicalFilter.estimateFilteredRows(
+        getInput(),
         program);
   }
 
@@ -116,7 +123,7 @@ public abstract class CalcRelBase extends SingleRel {
   public RelOptCost computeSelfCost(RelOptPlanner planner) {
     double dRows = RelMetadataQuery.getRowCount(this);
     double dCpu =
-        RelMetadataQuery.getRowCount(getChild())
+        RelMetadataQuery.getRowCount(getInput())
             * program.getExprCount();
     double dIo = 0;
     return planner.getCostFactory().makeCost(dRows, dCpu, dIo);
@@ -127,4 +134,4 @@ public abstract class CalcRelBase extends SingleRel {
   }
 }
 
-// End CalcRelBase.java
+// End Calc.java

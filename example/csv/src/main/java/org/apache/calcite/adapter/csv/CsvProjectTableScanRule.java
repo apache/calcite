@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.impl.csv;
+package org.apache.calcite.adapter.csv;
 
-import org.eigenbase.rel.ProjectRel;
-import org.eigenbase.relopt.RelOptRule;
-import org.eigenbase.relopt.RelOptRuleCall;
-import org.eigenbase.rex.RexInputRef;
-import org.eigenbase.rex.RexNode;
+import org.apache.calcite.plan.RelOptRule;
+import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.rel.logical.LogicalProject;
+import org.apache.calcite.rex.RexInputRef;
+import org.apache.calcite.rex.RexNode;
 
 import java.util.List;
 
@@ -29,20 +29,19 @@ import java.util.List;
  * needed to satisfy a projection. If the projection's expressions are trivial,
  * the projection is removed.
  */
-public class CsvPushProjectOntoTableRule extends RelOptRule {
-  public static final CsvPushProjectOntoTableRule INSTANCE =
-      new CsvPushProjectOntoTableRule();
+public class CsvProjectTableScanRule extends RelOptRule {
+  public static final CsvProjectTableScanRule INSTANCE =
+      new CsvProjectTableScanRule();
 
-  private CsvPushProjectOntoTableRule() {
+  private CsvProjectTableScanRule() {
     super(
-        operand(ProjectRel.class,
+        operand(LogicalProject.class,
             operand(CsvTableScan.class, none())),
-        "CsvPushProjectOntoTableRule");
+        "CsvProjectTableScanRule");
   }
 
-  @Override
-  public void onMatch(RelOptRuleCall call) {
-    final ProjectRel project = call.rel(0);
+  @Override public void onMatch(RelOptRuleCall call) {
+    final LogicalProject project = call.rel(0);
     final CsvTableScan scan = call.rel(1);
     int[] fields = getProjectFields(project.getProjects());
     if (fields == null) {
@@ -71,4 +70,4 @@ public class CsvPushProjectOntoTableRule extends RelOptRule {
   }
 }
 
-// End CsvPushProjectOntoTableRule.java
+// End CsvProjectTableScanRule.java

@@ -14,35 +14,43 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql.validate;
+package org.apache.calcite.sql.validate;
+
+import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
+import org.apache.calcite.linq4j.tree.BlockBuilder;
+import org.apache.calcite.linq4j.tree.Expression;
+import org.apache.calcite.linq4j.tree.Expressions;
+import org.apache.calcite.linq4j.tree.FunctionExpression;
+import org.apache.calcite.linq4j.tree.ParameterExpression;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rel.type.RelDataTypeFactoryImpl;
+import org.apache.calcite.schema.Function;
+import org.apache.calcite.schema.FunctionParameter;
+import org.apache.calcite.schema.TableMacro;
+import org.apache.calcite.schema.TranslatableTable;
+import org.apache.calcite.sql.SqlFunction;
+import org.apache.calcite.sql.SqlFunctionCategory;
+import org.apache.calcite.sql.SqlIdentifier;
+import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlLiteral;
+import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlUtil;
+import org.apache.calcite.sql.type.SqlOperandTypeChecker;
+import org.apache.calcite.sql.type.SqlOperandTypeInference;
+import org.apache.calcite.sql.type.SqlReturnTypeInference;
+import org.apache.calcite.util.NlsString;
+import org.apache.calcite.util.Pair;
+import org.apache.calcite.util.Util;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import org.eigenbase.reltype.RelDataType;
-import org.eigenbase.reltype.RelDataTypeFactory;
-import org.eigenbase.reltype.RelDataTypeFactoryImpl;
-import org.eigenbase.sql.*;
-import org.eigenbase.sql.type.SqlOperandTypeChecker;
-import org.eigenbase.sql.type.SqlOperandTypeInference;
-import org.eigenbase.sql.type.SqlReturnTypeInference;
-import org.eigenbase.util.NlsString;
-import org.eigenbase.util.Pair;
-import org.eigenbase.util.Util;
-
-import net.hydromatic.linq4j.expressions.*;
-
-import net.hydromatic.optiq.Function;
-import net.hydromatic.optiq.FunctionParameter;
-import net.hydromatic.optiq.TableMacro;
-import net.hydromatic.optiq.TranslatableTable;
-import net.hydromatic.optiq.rules.java.RexToLixTranslator;
-
 /**
  * User-defined table macro.
- * <p>
- * Created by the validator, after resolving a function call to a function
+ *
+ * <p>Created by the validator, after resolving a function call to a function
  * defined in a Calcite schema.
 */
 public class SqlUserDefinedTableMacro extends SqlFunction {
@@ -68,8 +76,9 @@ public class SqlUserDefinedTableMacro extends SqlFunction {
   }
 
   /**
-   * Converts arguments from {@link org.eigenbase.sql.SqlNode} to java object
-   * format.
+   * Converts arguments from {@link org.apache.calcite.sql.SqlNode} to
+   * java object format.
+   *
    * @param typeFactory type factory used to convert the arguments
    * @param operandList input arguments
    * @param function target function to get parameter types from
@@ -94,10 +103,10 @@ public class SqlUserDefinedTableMacro extends SqlFunction {
       } else {
         arguments.add(null);
         if (failOnNonLiteral) {
-          throw new IllegalArgumentException(
-            "All arguments of call to macro " + opName + " should be "
-            + "literal. Actual argument #" + pair.left.getOrdinal() + " ("
-            + pair.left.getName() + ") is not literal: " + pair.right);
+          throw new IllegalArgumentException("All arguments of call to macro "
+              + opName + " should be literal. Actual argument #"
+              + pair.left.getOrdinal() + " (" + pair.left.getName()
+              + ") is not literal: " + pair.right);
         }
       }
     }

@@ -14,23 +14,36 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql.test;
+package org.apache.calcite.sql.test;
 
-import java.util.*;
-
-import org.eigenbase.reltype.*;
-import org.eigenbase.sql.advise.*;
-import org.eigenbase.sql.fun.*;
-import org.eigenbase.sql.parser.*;
-import org.eigenbase.sql.type.*;
-import org.eigenbase.sql.validate.*;
-import org.eigenbase.test.*;
-import org.eigenbase.util.*;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rel.type.RelDataTypeSystem;
+import org.apache.calcite.sql.advise.SqlAdvisor;
+import org.apache.calcite.sql.advise.SqlAdvisorValidator;
+import org.apache.calcite.sql.advise.SqlSimpleParser;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.parser.SqlParserUtil;
+import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
+import org.apache.calcite.sql.validate.SqlConformance;
+import org.apache.calcite.sql.validate.SqlMoniker;
+import org.apache.calcite.sql.validate.SqlMonikerType;
+import org.apache.calcite.sql.validate.SqlValidator;
+import org.apache.calcite.sql.validate.SqlValidatorWithHints;
+import org.apache.calcite.test.MockCatalogReader;
+import org.apache.calcite.test.SqlValidatorTestCase;
 
 import org.junit.Assert;
 import org.junit.Test;
 
-import static org.junit.Assert.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.fail;
 
 /**
  * Concrete child class of {@link SqlValidatorTestCase}, containing unit tests
@@ -285,7 +298,7 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
 
   private static final String EMPNO_EMP =
       "COLUMN(EMPNO)\n"
-      + "TABLE(EMP)\n";
+          + "TABLE(EMP)\n";
 
   //~ Constructors -----------------------------------------------------------
 
@@ -434,8 +447,8 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
         && (expectedList.size() == uniqueResults.values().size()))) {
       fail(
           "SqlAdvisorTest: completion hints results not as salesTables:\n"
-          + uniqueResults.values() + "\nExpected:\n"
-          + expectedList);
+              + uniqueResults.values() + "\nExpected:\n"
+              + expectedList);
     }
   }
 
@@ -464,8 +477,7 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
     return buf.toString();
   }
 
-  @Override
-  public SqlTester getTester() {
+  @Override public SqlTester getTester() {
     return new SqlTesterImpl(new AdvisorTesterFactory());
   }
 
@@ -518,7 +530,7 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
     // from
     sql =
         "select a.empno, b.deptno from ^dummy a join sales.dummy b "
-        + "on a.deptno=b.deptno where empno=1";
+            + "on a.deptno=b.deptno where empno=1";
     assertHint(sql, getFromKeywords(), SCHEMAS, getSalesTables());
 
     // from
@@ -530,7 +542,7 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
     // join
     sql =
         "select a.empno, b.deptno from dummy a join ^sales.dummy b "
-        + "on a.deptno=b.deptno where empno=1";
+            + "on a.deptno=b.deptno where empno=1";
     assertHint(sql, getFromKeywords(), SCHEMAS, getSalesTables());
 
     sql = "select a.empno, b.deptno from dummy a join sales.^";
@@ -556,27 +568,27 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
 
     sql =
         "select a.empno, b.deptno from sales.emp a join sales.dept b "
-        + "on ^a.deptno=b.dummy where empno=1";
+            + "on ^a.deptno=b.dummy where empno=1";
     assertHint(sql, AB_TABLES, EXPR_KEYWORDS); // on left
 
     sql =
         "select a.empno, b.deptno from sales.emp a join sales.dept b "
-        + "on a.^";
+            + "on a.^";
     assertComplete(sql, EMP_COLUMNS); // on left
 
     sql =
         "select a.empno, b.deptno from sales.emp a join sales.dept b "
-        + "on a.deptno=^b.dummy where empno=1";
+            + "on a.deptno=^b.dummy where empno=1";
     assertHint(sql, EXPR_KEYWORDS, AB_TABLES); // on right
 
     sql =
         "select a.empno, b.deptno from sales.emp a join sales.dept b "
-        + "on a.deptno=b.^ where empno=1";
+            + "on a.deptno=b.^ where empno=1";
     assertComplete(sql, DEPT_COLUMNS); // on right
 
     sql =
         "select a.empno, b.deptno from sales.emp a join sales.dept b "
-        + "on a.deptno=b.^";
+            + "on a.deptno=b.^";
     assertComplete(sql, DEPT_COLUMNS); // on right
   }
 
@@ -585,31 +597,31 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
 
     sql =
         "select a.empno, b.deptno from sales.emp a, sales.dept b "
-        + "where b.deptno=^a.dummy";
+            + "where b.deptno=^a.dummy";
     assertHint(sql, AB_TABLES, EXPR_KEYWORDS); // where list
 
     sql =
         "select a.empno, b.deptno from sales.emp a, sales.dept b "
-        + "where b.deptno=a.^";
+            + "where b.deptno=a.^";
     assertComplete(sql, EMP_COLUMNS); // where list
 
     // hints contain no columns, only table aliases, because there are >1
     // aliases
     sql =
         "select a.empno, b.deptno from sales.emp a, sales.dept b "
-        + "where ^dummy=1";
+            + "where ^dummy=1";
     assertHint(sql, AB_TABLES, EXPR_KEYWORDS); // where list
 
     sql =
         "select a.empno, b.deptno from sales.emp a, sales.dept b "
-        + "where ^";
+            + "where ^";
     assertComplete(sql, AB_TABLES, EXPR_KEYWORDS); // where list
 
     // If there's only one table alias, we allow both the alias and the
     // unqualified columns
     assertComplete(
         "select a.empno, a.deptno from sales.emp a "
-        + "where ^",
+            + "where ^",
         A_TABLE,
         EMP_COLUMNS,
         EXPR_KEYWORDS);
@@ -620,27 +632,27 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
 
     sql =
         "select a.empno, b.deptno from sales.emp a join sales.dept b "
-        + "on a.deptno=b.deptno where ^dummy=1";
+            + "on a.deptno=b.deptno where ^dummy=1";
     assertHint(sql, EXPR_KEYWORDS, AB_TABLES); // where list
 
     sql =
         "select a.empno, b.deptno from sales.emp a join sales.dept b "
-        + "on a.deptno=b.deptno where ^";
+            + "on a.deptno=b.deptno where ^";
     assertComplete(sql, EXPR_KEYWORDS, AB_TABLES); // where list
 
     sql =
         "select a.empno, b.deptno from sales.emp a join sales.dept b "
-        + "on a.deptno=b.deptno where ^a.dummy=1";
+            + "on a.deptno=b.deptno where ^a.dummy=1";
     assertHint(sql, EXPR_KEYWORDS, AB_TABLES); // where list
 
     sql =
         "select a.empno, b.deptno from sales.emp a join sales.dept b "
-        + "on a.deptno=b.deptno where a.^";
+            + "on a.deptno=b.deptno where a.^";
     assertComplete(sql, EMP_COLUMNS);
 
     sql =
         "select a.empno, b.deptno from sales.emp a join sales.dept b "
-        + "on a.deptno=b.deptno where a.empno ^ ";
+            + "on a.deptno=b.deptno where a.empno ^ ";
     assertComplete(sql, PREDICATE_KEYWORDS, WHERE_KEYWORDS);
   }
 
@@ -649,7 +661,7 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
 
     sql =
         "select ^dummy, b.dummy from sales.emp a join sales.dept b "
-        + "on a.deptno=b.deptno where empno=1";
+            + "on a.deptno=b.deptno where empno=1";
     assertHint(
         sql, getSelectKeywords(), EXPR_KEYWORDS, AB_TABLES, SETOPS,
         FETCH_OFFSET);
@@ -679,7 +691,7 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
 
     sql =
         "select dummy, ^b.dummy from sales.emp a join sales.dept b "
-        + "on a.deptno=b.deptno where empno=1";
+            + "on a.deptno=b.deptno where empno=1";
     assertHint(sql, EXPR_KEYWORDS, STAR_KEYWORD, AB_TABLES);
 
     sql = "select dummy, b.^ from sales.emp a join sales.dept b on true";
@@ -716,9 +728,9 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
 
     sql =
         "select emp.empno\n"
-        + "from sales.emp as e(\n"
-        + "  mpno,name,ob,gr,iredate,al,omm,eptno,lacker)\n"
-        + "where e.mpno=1 order by ^";
+            + "from sales.emp as e(\n"
+            + "  mpno,name,ob,gr,iredate,al,omm,eptno,lacker)\n"
+            + "where e.mpno=1 order by ^";
     assertComplete(
         sql,
         EXPR_KEYWORDS,
@@ -801,10 +813,10 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
     // with A).
     sql =
         "select * from sales.emp a where deptno in ("
-        + "select * from sales.dept b where ^)";
+            + "select * from sales.dept b where ^)";
     String simplifiedSql =
         "SELECT * FROM sales.emp a WHERE deptno in ("
-        + " SELECT * FROM sales.dept b WHERE _suggest_ )";
+            + " SELECT * FROM sales.dept b WHERE _suggest_ )";
     assertSimplify(sql, simplifiedSql);
     assertComplete(
         sql,
@@ -816,68 +828,68 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
   @Test public void testSimpleParserTokenizer() {
     String sql =
         "select"
-        + " 12"
-        + " "
-        + "*"
-        + " 1.23e45"
-        + " "
-        + "("
-        + "\"an id\""
-        + ","
-        + " "
-        + "\"an id with \"\"quotes' inside\""
-        + ","
-        + " "
-        + "/* a comment, with 'quotes', over\nmultiple lines\nand select keyword */"
-        + "\n "
-        + "("
-        + " "
-        + "a"
-        + " "
-        + "different"
-        + " "
-        + "// comment\n\r"
-        + "//and a comment /* containing comment */ and then some more\r"
-        + ")"
-        + " "
-        + "from"
-        + " "
-        + "t"
-        + ")"
-        + ")"
-        + "/* a comment after close paren */"
-        + " "
-        + "("
-        + "'quoted'"
-        + " "
-        + "'string with ''single and \"double\"\" quote'"
-        + ")";
+            + " 12"
+            + " "
+            + "*"
+            + " 1.23e45"
+            + " "
+            + "("
+            + "\"an id\""
+            + ","
+            + " "
+            + "\"an id with \"\"quotes' inside\""
+            + ","
+            + " "
+            + "/* a comment, with 'quotes', over\nmultiple lines\nand select keyword */"
+            + "\n "
+            + "("
+            + " "
+            + "a"
+            + " "
+            + "different"
+            + " "
+            + "// comment\n\r"
+            + "//and a comment /* containing comment */ and then some more\r"
+            + ")"
+            + " "
+            + "from"
+            + " "
+            + "t"
+            + ")"
+            + ")"
+            + "/* a comment after close paren */"
+            + " "
+            + "("
+            + "'quoted'"
+            + " "
+            + "'string with ''single and \"double\"\" quote'"
+            + ")";
     String expected =
         "SELECT\n"
-        + "ID(12)\n"
-        + "ID(*)\n"
-        + "ID(1.23e45)\n"
-        + "LPAREN\n"
-        + "DQID(\"an id\")\n"
-        + "COMMA\n"
-        + "DQID(\"an id with \"\"quotes' inside\")\n"
-        + "COMMA\n"
-        + "COMMENT\n"
-        + "LPAREN\n"
-        + "ID(a)\n"
-        + "ID(different)\n"
-        + "COMMENT\n"
-        + "COMMENT\n"
-        + "RPAREN\n"
-        + "FROM\n"
-        + "ID(t)\n"
-        + "RPAREN\n"
-        + "RPAREN\n"
-        + "COMMENT\n"
-        + "LPAREN\n"
-        + "SQID('quoted')\n"
-        + "SQID('string with ''single and \"double\"\" quote')\n"
-        + "RPAREN\n";
+            + "ID(12)\n"
+            + "ID(*)\n"
+            + "ID(1.23e45)\n"
+            + "LPAREN\n"
+            + "DQID(\"an id\")\n"
+            + "COMMA\n"
+            + "DQID(\"an id with \"\"quotes' inside\")\n"
+            + "COMMA\n"
+            + "COMMENT\n"
+            + "LPAREN\n"
+            + "ID(a)\n"
+            + "ID(different)\n"
+            + "COMMENT\n"
+            + "COMMENT\n"
+            + "RPAREN\n"
+            + "FROM\n"
+            + "ID(t)\n"
+            + "RPAREN\n"
+            + "RPAREN\n"
+            + "COMMENT\n"
+            + "LPAREN\n"
+            + "SQID('quoted')\n"
+            + "SQID('string with ''single and \"double\"\" quote')\n"
+            + "RPAREN\n";
     assertTokenizesTo(sql, expected);
 
     // Tokenizer should be lenient if input ends mid-token
@@ -947,16 +959,16 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
     // on
     sql =
         "select a.empno, b.deptno from sales.emp a join sales.dept b "
-        + "on a.deptno=^";
+            + "on a.deptno=^";
     expected =
         "SELECT * FROM sales.emp a JOIN sales.dept b "
-        + "ON a.deptno= _suggest_";
+            + "ON a.deptno= _suggest_";
     assertSimplify(sql, expected);
 
     // where
     sql =
         "select a.empno, b.deptno from sales.emp a, sales.dept b "
-        + "where ^";
+            + "where ^";
     expected = "SELECT * FROM sales.emp a , sales.dept b WHERE _suggest_";
     assertSimplify(sql, expected);
 
@@ -968,27 +980,27 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
     // subquery in from
     sql =
         "select t.^ from (select 1 as x, 2 as y from sales.emp) as t "
-        + "where t.dummy=1";
+            + "where t.dummy=1";
     expected =
         "SELECT t. _suggest_ "
-        + "FROM ( SELECT 0 AS x , 0 AS y FROM sales.emp ) as t";
+            + "FROM ( SELECT 0 AS x , 0 AS y FROM sales.emp ) as t";
     assertSimplify(sql, expected);
 
     sql =
         "select t. from (select 1 as x, 2 as y from "
-        + "(select x from sales.emp)) as t where ^";
+            + "(select x from sales.emp)) as t where ^";
     expected =
         "SELECT * FROM ( SELECT 0 AS x , 0 AS y FROM "
-        + "( SELECT 0 AS x FROM sales.emp ) ) as t WHERE _suggest_";
+            + "( SELECT 0 AS x FROM sales.emp ) ) as t WHERE _suggest_";
     assertSimplify(sql, expected);
 
     sql =
         "select ^from (select 1 as x, 2 as y from sales.emp), "
-        + "(select 2 as y from (select m from n where)) as t "
-        + "where t.dummy=1";
+            + "(select 2 as y from (select m from n where)) as t "
+            + "where t.dummy=1";
     expected =
         "SELECT _suggest_ FROM ( SELECT 0 AS x , 0 AS y FROM sales.emp ) "
-        + ", ( SELECT 0 AS y FROM ( SELECT 0 AS m FROM n ) ) as t";
+            + ", ( SELECT 0 AS y FROM ( SELECT 0 AS m FROM n ) ) as t";
     assertSimplify(sql, expected);
 
     // Note: completes the missing close paren; wipes out select clause of
@@ -1009,11 +1021,11 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
     // 4. removes SELECT clause of outer query.
     sql =
         "select x + y + 32 from "
-        + "(select 1 as x, 2 as y from sales group by invalid stuff) as t "
-        + "where x in (select deptno from emp where foo + t.^ < 10)";
+            + "(select 1 as x, 2 as y from sales group by invalid stuff) as t "
+            + "where x in (select deptno from emp where foo + t.^ < 10)";
     expected =
         "SELECT * FROM ( SELECT 0 AS x , 0 AS y FROM sales ) as t "
-        + "WHERE x in ( SELECT * FROM emp WHERE foo + t. _suggest_ < 10 )";
+            + "WHERE x in ( SELECT * FROM emp WHERE foo + t. _suggest_ < 10 )";
     assertSimplify(sql, expected);
 
     // if hint is in FROM, can remove other members of FROM clause
@@ -1028,26 +1040,26 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
 
     sql =
         "select count(1) from sales.emp a "
-        + "where substring(a.^ FROM 3 for 6) = '1234'";
+            + "where substring(a.^ FROM 3 for 6) = '1234'";
     expected =
         "SELECT * FROM sales.emp a "
-        + "WHERE substring ( a. _suggest_ FROM 3 for 6 ) = '1234'";
+            + "WHERE substring ( a. _suggest_ FROM 3 for 6 ) = '1234'";
     assertSimplify(sql, expected);
 
     // missing ')' following subquery
     sql =
         "select * from sales.emp a where deptno in ("
-        + "select * from sales.dept b where ^";
+            + "select * from sales.dept b where ^";
     expected =
         "SELECT * FROM sales.emp a WHERE deptno in ("
-        + " SELECT * FROM sales.dept b WHERE _suggest_ )";
+            + " SELECT * FROM sales.dept b WHERE _suggest_ )";
     assertSimplify(sql, expected);
 
     // keyword embedded in single and double quoted string should be
     // ignored
     sql =
         "select 'a cat from a king' as foobar, 1 / 2 \"where\" from t "
-        + "group by t.^ order by 123";
+            + "group by t.^ order by 123";
     expected = "SELECT * FROM t GROUP BY t. _suggest_";
     assertSimplify(sql, expected);
 
@@ -1088,12 +1100,12 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
     String sql = "select * from emp where e^ and emp.deptno = 10";
     final String expected =
         "COLUMN(EMPNO)\n"
-        + "COLUMN(ENAME)\n"
-        + "KEYWORD(ELEMENT)\n"
-        + "KEYWORD(EXISTS)\n"
-        + "KEYWORD(EXP)\n"
-        + "KEYWORD(EXTRACT)\n"
-        + "TABLE(EMP)\n";
+            + "COLUMN(ENAME)\n"
+            + "KEYWORD(ELEMENT)\n"
+            + "KEYWORD(EXISTS)\n"
+            + "KEYWORD(EXP)\n"
+            + "KEYWORD(EXTRACT)\n"
+            + "TABLE(EMP)\n";
     assertComplete(sql, expected, "e");
 
     // cursor in middle of word and at end
@@ -1174,13 +1186,13 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
     assertSimplify(sql, simplified);
   }
 
+  /** Factory that creates testers. */
   private static class AdvisorTesterFactory extends DelegatingSqlTestFactory {
     public AdvisorTesterFactory() {
       super(DefaultSqlTestFactory.INSTANCE);
     }
 
-    @Override
-    public SqlValidator getValidator(SqlTestFactory factory) {
+    @Override public SqlValidator getValidator(SqlTestFactory factory) {
       final RelDataTypeFactory typeFactory =
           new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
       final SqlConformance conformance = (SqlConformance) get("conformance");
@@ -1192,8 +1204,7 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
           conformance);
     }
 
-    @Override
-    public SqlAdvisor createAdvisor(SqlValidatorWithHints validator) {
+    @Override public SqlAdvisor createAdvisor(SqlValidatorWithHints validator) {
       return new SqlAdvisor(validator);
     }
   }

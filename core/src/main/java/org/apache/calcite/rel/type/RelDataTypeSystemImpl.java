@@ -14,11 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.reltype;
+package org.apache.calcite.rel.type;
 
-import org.eigenbase.sql.type.SqlTypeName;
+import org.apache.calcite.sql.type.SqlTypeName;
 
-/** Default implementation of {@link org.eigenbase.reltype.RelDataTypeSystem},
+/** Default implementation of
+ * {@link org.apache.calcite.rel.type.RelDataTypeSystem},
  * providing parameters from the SQL standard.
  *
  * <p>To implement other type systems, create a derived class and override

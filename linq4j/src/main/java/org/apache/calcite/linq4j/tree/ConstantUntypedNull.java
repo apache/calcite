@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.linq4j.expressions;
+package org.apache.calcite.linq4j.tree;
 
 /**
  * Represents a constant null of unknown type
@@ -32,18 +32,17 @@ public class ConstantUntypedNull extends ConstantExpression {
     super(Object.class, null);
   }
 
-  @Override
-  void accept(ExpressionWriter writer, int lprec, int rprec) {
+  @Override void accept(ExpressionWriter writer, int lprec, int rprec) {
     writer.append("null");
   }
 
-  @Override
-  public boolean equals(Object o) {
+  @Override public boolean equals(Object o) {
     return o == INSTANCE;
   }
 
-  @Override
-  public int hashCode() {
+  @Override public int hashCode() {
     return ConstantUntypedNull.class.hashCode();
   }
 }
+
+// End ConstantUntypedNull.java

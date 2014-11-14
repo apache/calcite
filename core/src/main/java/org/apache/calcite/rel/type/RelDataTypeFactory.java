@@ -14,14 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.reltype;
+package org.apache.calcite.rel.type;
 
-import java.nio.charset.*;
+import org.apache.calcite.sql.SqlCollation;
+import org.apache.calcite.sql.SqlIntervalQualifier;
+import org.apache.calcite.sql.type.SqlTypeName;
 
-import java.util.*;
-
-import org.eigenbase.sql.*;
-import org.eigenbase.sql.type.*;
+import java.nio.charset.Charset;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 
 /**
  * RelDataTypeFactory is a factory for datatype descriptors. It defines methods
@@ -30,7 +32,7 @@ import org.eigenbase.sql.type.*;
  * SQL 2003 is implementation defined or impractical.
  *
  * <p>This interface is an example of the
- * {@link org.eigenbase.util.Glossary#ABSTRACT_FACTORY_PATTERN abstract factory pattern}.
+ * {@link org.apache.calcite.util.Glossary#ABSTRACT_FACTORY_PATTERN abstract factory pattern}.
  * Any implementation of <code>RelDataTypeFactory</code> must ensure that type
  * objects are canonical: two types are equal if and only if they are
  * represented by the same Java object. This reduces memory consumption and
@@ -276,7 +278,7 @@ public interface RelDataTypeFactory {
 
   /**
    * Creates a
-   * {@link org.eigenbase.reltype.RelDataTypeFactory.FieldInfoBuilder}.
+   * {@link org.apache.calcite.rel.type.RelDataTypeFactory.FieldInfoBuilder}.
    */
   FieldInfoBuilder builder();
 
@@ -351,7 +353,7 @@ public interface RelDataTypeFactory {
 
     /**
      * Adds a field with a type created using
-     * {@link org.eigenbase.reltype.RelDataTypeFactory#createSqlType(org.eigenbase.sql.type.SqlTypeName)}.
+     * {@link org.apache.calcite.rel.type.RelDataTypeFactory#createSqlType(org.apache.calcite.sql.type.SqlTypeName)}.
      */
     public FieldInfoBuilder add(String name, SqlTypeName typeName) {
       add(name, typeFactory.createSqlType(typeName));
@@ -360,7 +362,7 @@ public interface RelDataTypeFactory {
 
     /**
      * Adds a field with a type created using
-     * {@link org.eigenbase.reltype.RelDataTypeFactory#createSqlType(org.eigenbase.sql.type.SqlTypeName, int)}.
+     * {@link org.apache.calcite.rel.type.RelDataTypeFactory#createSqlType(org.apache.calcite.sql.type.SqlTypeName, int)}.
      */
     public FieldInfoBuilder add(
         String name, SqlTypeName typeName, int precision) {
@@ -370,7 +372,7 @@ public interface RelDataTypeFactory {
 
     /**
      * Adds a field with a type created using
-     * {@link org.eigenbase.reltype.RelDataTypeFactory#createSqlType(org.eigenbase.sql.type.SqlTypeName, int, int)}.
+     * {@link org.apache.calcite.rel.type.RelDataTypeFactory#createSqlType(org.apache.calcite.sql.type.SqlTypeName, int, int)}.
      */
     public FieldInfoBuilder add(
         String name, SqlTypeName typeName, int precision, int scale) {

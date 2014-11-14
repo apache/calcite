@@ -14,22 +14,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql.test;
+package org.apache.calcite.sql.test;
 
-import org.eigenbase.reltype.RelDataTypeFactory;
-import org.eigenbase.reltype.RelDataTypeSystem;
-import org.eigenbase.sql.SqlOperatorTable;
-import org.eigenbase.sql.advise.SqlAdvisor;
-import org.eigenbase.sql.fun.SqlStdOperatorTable;
-import org.eigenbase.sql.parser.SqlParser;
-import org.eigenbase.sql.parser.impl.SqlParserImpl;
-import org.eigenbase.sql.type.SqlTypeFactoryImpl;
-import org.eigenbase.sql.validate.*;
-import org.eigenbase.test.MockCatalogReader;
-import org.eigenbase.test.MockSqlOperatorTable;
-
-import net.hydromatic.avatica.Casing;
-import net.hydromatic.avatica.Quoting;
+import org.apache.calcite.avatica.Casing;
+import org.apache.calcite.avatica.Quoting;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rel.type.RelDataTypeSystem;
+import org.apache.calcite.sql.SqlOperatorTable;
+import org.apache.calcite.sql.advise.SqlAdvisor;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.parser.SqlParser;
+import org.apache.calcite.sql.parser.impl.SqlParserImpl;
+import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
+import org.apache.calcite.sql.validate.SqlConformance;
+import org.apache.calcite.sql.validate.SqlValidator;
+import org.apache.calcite.sql.validate.SqlValidatorUtil;
+import org.apache.calcite.sql.validate.SqlValidatorWithHints;
+import org.apache.calcite.test.MockCatalogReader;
+import org.apache.calcite.test.MockSqlOperatorTable;
 
 import com.google.common.collect.ImmutableMap;
 

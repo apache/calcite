@@ -14,23 +14,37 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.linq4j.test;
+package org.apache.calcite.linq4j.test;
 
-import net.hydromatic.linq4j.Linq4j;
-import net.hydromatic.linq4j.expressions.*;
+import org.apache.calcite.linq4j.Linq4j;
+import org.apache.calcite.linq4j.tree.ConstantExpression;
+import org.apache.calcite.linq4j.tree.Expression;
+import org.apache.calcite.linq4j.tree.Expressions;
+import org.apache.calcite.linq4j.tree.ParameterExpression;
 
 import org.junit.Test;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 
-import static net.hydromatic.linq4j.test.BlockBuilderBase.*;
+import static org.apache.calcite.linq4j.test.BlockBuilderBase.FALSE;
+import static org.apache.calcite.linq4j.test.BlockBuilderBase.FOUR;
+import static org.apache.calcite.linq4j.test.BlockBuilderBase.NULL;
+import static org.apache.calcite.linq4j.test.BlockBuilderBase.NULL_INTEGER;
+import static org.apache.calcite.linq4j.test.BlockBuilderBase.ONE;
+import static org.apache.calcite.linq4j.test.BlockBuilderBase.THREE;
+import static org.apache.calcite.linq4j.test.BlockBuilderBase.TRUE;
+import static org.apache.calcite.linq4j.test.BlockBuilderBase.TRUE_B;
+import static org.apache.calcite.linq4j.test.BlockBuilderBase.TWO;
+import static org.apache.calcite.linq4j.test.BlockBuilderBase.bool;
+import static org.apache.calcite.linq4j.test.BlockBuilderBase.optimize;
 
 import static org.hamcrest.CoreMatchers.equalTo;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
 
 /**
- * Unit test for {@link net.hydromatic.linq4j.expressions.BlockBuilder}
+ * Unit test for {@link org.apache.calcite.linq4j.tree.BlockBuilder}
  * optimization capabilities.
  */
 public class OptimizerTest {
@@ -110,7 +124,7 @@ public class OptimizerTest {
         optimize(Expressions.condition(
             Expressions.parameter(boolean.class, "a"),
             TRUE_B, Expressions.call(Boolean.class, "valueOf",
-            Expressions.parameter(boolean.class, "b")))));
+                Expressions.parameter(boolean.class, "b")))));
   }
 
   @Test public void testOptimizeTernaryABtrue() {
@@ -141,8 +155,8 @@ public class OptimizerTest {
     // (v ? (Integer) null : inp0_) == null
     assertEquals("{\n  return v || inp0_ == null;\n}\n",
         optimize(Expressions.equal(Expressions.condition(
-            Expressions.parameter(boolean.class, "v"),
-            NULL_INTEGER, Expressions.parameter(Integer.class, "inp0_")),
+                Expressions.parameter(boolean.class, "v"),
+                NULL_INTEGER, Expressions.parameter(Integer.class, "inp0_")),
             NULL)));
   }
 
@@ -150,8 +164,8 @@ public class OptimizerTest {
     // (v ? inp0_ : (Integer) null) == null
     assertEquals("{\n  return !v || inp0_ == null;\n}\n",
         optimize(Expressions.equal(Expressions.condition(
-            Expressions.parameter(boolean.class, "v"),
-            Expressions.parameter(Integer.class, "inp0_"), NULL_INTEGER),
+                Expressions.parameter(boolean.class, "v"),
+                Expressions.parameter(Integer.class, "inp0_"), NULL_INTEGER),
             NULL)));
   }
 
@@ -175,8 +189,8 @@ public class OptimizerTest {
     // (v ? (Integer) null : inp0_) != null
     assertEquals("{\n  return !(v || inp0_ == null);\n}\n",
         optimize(Expressions.notEqual(Expressions.condition(
-            Expressions.parameter(boolean.class, "v"),
-            NULL_INTEGER, Expressions.parameter(Integer.class, "inp0_")),
+                Expressions.parameter(boolean.class, "v"),
+                NULL_INTEGER, Expressions.parameter(Integer.class, "inp0_")),
             NULL)));
   }
 
@@ -184,8 +198,8 @@ public class OptimizerTest {
     // (v ? inp0_ : (Integer) null) != null
     assertEquals("{\n  return !(!v || inp0_ == null);\n}\n",
         optimize(Expressions.notEqual(Expressions.condition(
-            Expressions.parameter(boolean.class, "v"),
-            Expressions.parameter(Integer.class, "inp0_"), NULL_INTEGER),
+                Expressions.parameter(boolean.class, "v"),
+                Expressions.parameter(Integer.class, "inp0_"), NULL_INTEGER),
             NULL)));
   }
 
@@ -487,12 +501,12 @@ public class OptimizerTest {
     Expression bool = Expressions.parameter(boolean.class, "bool");
     assertEquals(
         "{\n"
-        + "  if (bool) {\n"
-        + "    return 1;\n"
-        + "  } else {\n"
-        + "    return 2;\n"
-        + "  }\n"
-        + "}\n",
+            + "  if (bool) {\n"
+            + "    return 1;\n"
+            + "  } else {\n"
+            + "    return 2;\n"
+            + "  }\n"
+            + "}\n",
         optimize(
             Expressions.ifThenElse(bool,
                 Expressions.return_(null, ONE),
@@ -505,12 +519,12 @@ public class OptimizerTest {
     Expression bool = Expressions.parameter(boolean.class, "bool");
     assertEquals(
         "{\n"
-        + "  if (bool) {\n"
-        + "    return 1;\n"
-        + "  } else {\n"
-        + "    return 2;\n"
-        + "  }\n"
-        + "}\n",
+            + "  if (bool) {\n"
+            + "    return 1;\n"
+            + "  } else {\n"
+            + "    return 2;\n"
+            + "  }\n"
+            + "}\n",
         optimize(
             Expressions.ifThenElse(bool,
                 Expressions.return_(null, ONE),
@@ -524,10 +538,10 @@ public class OptimizerTest {
     Expression bool = Expressions.parameter(boolean.class, "bool");
     assertEquals(
         "{\n"
-        + "  if (bool) {\n"
-        + "    return 1;\n"
-        + "  }\n"
-        + "}\n",
+            + "  if (bool) {\n"
+            + "    return 1;\n"
+            + "  }\n"
+            + "}\n",
         optimize(
             Expressions.ifThenElse(bool,
                 Expressions.return_(null, ONE),
@@ -540,12 +554,12 @@ public class OptimizerTest {
     Expression bool = Expressions.parameter(boolean.class, "bool");
     assertEquals(
         "{\n"
-        + "  if (bool) {\n"
-        + "    return 1;\n"
-        + "  } else {\n"
-        + "    return 3;\n"
-        + "  }\n"
-        + "}\n",
+            + "  if (bool) {\n"
+            + "    return 1;\n"
+            + "  } else {\n"
+            + "    return 3;\n"
+            + "  }\n"
+            + "}\n",
         optimize(
             Expressions.ifThenElse(bool,
                 Expressions.return_(null, ONE),
@@ -559,12 +573,12 @@ public class OptimizerTest {
     Expression bool = Expressions.parameter(boolean.class, "bool");
     assertEquals(
         "{\n"
-        + "  if (bool) {\n"
-        + "    return 1;\n"
-        + "  } else {\n"
-        + "    return 4;\n"
-        + "  }\n"
-        + "}\n",
+            + "  if (bool) {\n"
+            + "    return 1;\n"
+            + "  } else {\n"
+            + "    return 4;\n"
+            + "  }\n"
+            + "}\n",
         optimize(
             Expressions.ifThenElse(bool,
                 Expressions.return_(null, ONE),
@@ -697,8 +711,7 @@ public class OptimizerTest {
                         Expressions.field(null, System.class, "out"),
                         "println",
                         x_)))),
-        equalTo(
-            "{\n"
+        equalTo("{\n"
             + "  long x = 0L;\n"
             + "  if (System.nanoTime() > 0L) {\n"
             + "    x = System.currentTimeMillis();\n"
@@ -727,8 +740,7 @@ public class OptimizerTest {
                 Expressions.ifThen(
                     Expressions.greaterThan(Expressions.call(mT), zero),
                     Expressions.statement(Expressions.assign(x_, y_))))),
-        equalTo(
-            "{\n"
+        equalTo("{\n"
             + "  long x = 0L;\n"
             + "  if (System.currentTimeMillis() > 0L) {\n"
             + "    x = System.currentTimeMillis();\n"

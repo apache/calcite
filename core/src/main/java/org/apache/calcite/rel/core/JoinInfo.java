@@ -14,32 +14,33 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel;
+package org.apache.calcite.rel.core;
+
+import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.util.BitSets;
+import org.apache.calcite.util.ImmutableIntList;
+import org.apache.calcite.util.mapping.IntPair;
+
+import com.google.common.base.Preconditions;
 
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.List;
-
-import org.eigenbase.relopt.RelOptUtil;
-import org.eigenbase.rex.RexBuilder;
-import org.eigenbase.rex.RexNode;
-import org.eigenbase.util.ImmutableIntList;
-import org.eigenbase.util.mapping.IntPair;
-
-import net.hydromatic.optiq.util.BitSets;
-
-import com.google.common.base.Preconditions;
 
 /** An analyzed join condition.
  *
  * <p>It is useful for the many algorithms that care whether a join is an
  * equi-join.
  *
- * <p>You can create one using {@link #of}, or call {@link JoinRelBase#analyzeCondition()};
- * many kinds of join cache their join info, especially those that are
- * equi-joins and sub-class {@link org.eigenbase.rel.rules.EquiJoinRel}.</p>
+ * <p>You can create one using {@link #of}, or call
+ * {@link Join#analyzeCondition()}; many kinds of join cache their
+ * join info, especially those that are equi-joins and sub-class
+ * {@link org.apache.calcite.rel.rules.EquiJoin}.</p>
  *
- * @see JoinRelBase#analyzeCondition() */
+ * @see Join#analyzeCondition() */
 public abstract class JoinInfo {
   public final ImmutableIntList leftKeys;
   public final ImmutableIntList rightKeys;

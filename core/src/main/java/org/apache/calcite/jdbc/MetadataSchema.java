@@ -14,20 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.jdbc;
+package org.apache.calcite.jdbc;
 
-import net.hydromatic.linq4j.Enumerable;
-import net.hydromatic.linq4j.Enumerator;
-import net.hydromatic.linq4j.function.Function1;
-
-import net.hydromatic.optiq.*;
-import net.hydromatic.optiq.impl.AbstractSchema;
+import org.apache.calcite.linq4j.Enumerable;
+import org.apache.calcite.linq4j.Enumerator;
+import org.apache.calcite.linq4j.function.Function1;
+import org.apache.calcite.schema.Schema;
+import org.apache.calcite.schema.Table;
+import org.apache.calcite.schema.impl.AbstractSchema;
 
 import com.google.common.collect.ImmutableMap;
 
 import java.util.Map;
 
-import static net.hydromatic.optiq.jdbc.MetaImpl.*;
+import static org.apache.calcite.jdbc.MetaImpl.MetaColumn;
+import static org.apache.calcite.jdbc.MetaImpl.MetaTable;
 
 /** Schema that contains metadata tables such as "TABLES" and "COLUMNS". */
 class MetadataSchema extends AbstractSchema {
@@ -57,8 +58,7 @@ class MetadataSchema extends AbstractSchema {
    * schema called "metadata" that contains tables "TABLES", "COLUMNS" etc. */
   private MetadataSchema() {}
 
-  @Override
-  protected Map<String, Table> getTableMap() {
+  @Override protected Map<String, Table> getTableMap() {
     return TABLE_MAP;
   }
 }

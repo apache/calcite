@@ -14,10 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel.convert;
+package org.apache.calcite.rel.convert;
 
-import org.eigenbase.rel.*;
-import org.eigenbase.relopt.*;
+import org.apache.calcite.plan.Convention;
+import org.apache.calcite.plan.RelOptRule;
+import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.plan.RelOptRuleOperand;
+import org.apache.calcite.plan.RelTrait;
+import org.apache.calcite.plan.RelTraitDef;
+import org.apache.calcite.rel.RelNode;
 
 import com.google.common.base.Predicates;
 
@@ -117,9 +122,9 @@ public abstract class ConverterRule extends RelOptRule {
       // Don't apply converters to converters that operate
       // on the same RelTraitDef -- otherwise we get
       // an n^2 effect.
-      if (rel instanceof ConverterRel) {
+      if (rel instanceof Converter) {
         if (((ConverterRule) getRule()).getTraitDef()
-            == ((ConverterRel) rel).getTraitDef()) {
+            == ((Converter) rel).getTraitDef()) {
           return false;
         }
       }

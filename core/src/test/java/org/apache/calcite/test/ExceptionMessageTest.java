@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.test;
+package org.apache.calcite.test;
 
-import net.hydromatic.optiq.SchemaPlus;
-import net.hydromatic.optiq.impl.java.ReflectiveSchema;
-import net.hydromatic.optiq.jdbc.OptiqConnection;
+import org.apache.calcite.adapter.java.ReflectiveSchema;
+import org.apache.calcite.jdbc.CalciteConnection;
+import org.apache.calcite.schema.SchemaPlus;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -29,8 +29,10 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Iterator;
 
-import static org.hamcrest.CoreMatchers.*;
-import static org.junit.Assert.*;
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
 
 /**
  * Test cases to check that necessary information from underlying exceptions
@@ -72,11 +74,12 @@ public class ExceptionMessageTest {
   @Before
   public void setUp() throws SQLException {
     Connection connection = DriverManager.getConnection("jdbc:calcite:");
-    OptiqConnection optiqConnection = connection.unwrap(OptiqConnection.class);
-    SchemaPlus rootSchema = optiqConnection.getRootSchema();
+    CalciteConnection calciteConnection =
+        connection.unwrap(CalciteConnection.class);
+    SchemaPlus rootSchema = calciteConnection.getRootSchema();
     rootSchema.add("test", new ReflectiveSchema(new TestSchema()));
-    optiqConnection.setSchema("test");
-    this.conn = optiqConnection;
+    calciteConnection.setSchema("test");
+    this.conn = calciteConnection;
   }
 
   private void runQuery(String sql) throws SQLException {

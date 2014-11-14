@@ -14,22 +14,61 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql2rel;
+package org.apache.calcite.sql2rel;
 
-import java.math.*;
-import java.util.*;
-
-import org.eigenbase.relopt.*;
-import org.eigenbase.reltype.*;
-import org.eigenbase.rex.*;
-import org.eigenbase.sql.*;
-import org.eigenbase.sql.fun.*;
-import org.eigenbase.sql.parser.*;
-import org.eigenbase.sql.type.*;
-import org.eigenbase.util.*;
-import org.eigenbase.util14.DateTimeUtil;
+import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexCallBinding;
+import org.apache.calcite.rex.RexLiteral;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexRangeRef;
+import org.apache.calcite.rex.RexUtil;
+import org.apache.calcite.sql.SqlAggFunction;
+import org.apache.calcite.sql.SqlBasicCall;
+import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlDataTypeSpec;
+import org.apache.calcite.sql.SqlFunction;
+import org.apache.calcite.sql.SqlFunctionCategory;
+import org.apache.calcite.sql.SqlIdentifier;
+import org.apache.calcite.sql.SqlIntervalLiteral;
+import org.apache.calcite.sql.SqlIntervalQualifier;
+import org.apache.calcite.sql.SqlJdbcFunctionCall;
+import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlLiteral;
+import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlNodeList;
+import org.apache.calcite.sql.SqlNumericLiteral;
+import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.SqlUtil;
+import org.apache.calcite.sql.fun.SqlArrayValueConstructor;
+import org.apache.calcite.sql.fun.SqlAvgAggFunction;
+import org.apache.calcite.sql.fun.SqlBetweenOperator;
+import org.apache.calcite.sql.fun.SqlCase;
+import org.apache.calcite.sql.fun.SqlDatetimeSubtractionOperator;
+import org.apache.calcite.sql.fun.SqlExtractFunction;
+import org.apache.calcite.sql.fun.SqlLiteralChainOperator;
+import org.apache.calcite.sql.fun.SqlMapValueConstructor;
+import org.apache.calcite.sql.fun.SqlMultisetQueryConstructor;
+import org.apache.calcite.sql.fun.SqlMultisetValueConstructor;
+import org.apache.calcite.sql.fun.SqlOverlapsOperator;
+import org.apache.calcite.sql.fun.SqlRowOperator;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.type.OperandTypes;
+import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.util.DateTimeUtil;
+import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
+
+import java.math.BigDecimal;
+import java.math.MathContext;
+import java.util.AbstractList;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Standard implementation of {@link SqlRexConvertletTable}.
@@ -155,11 +194,11 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
 
     // REVIEW jvs 24-Apr-2006: This only seems to be working from within a
     // windowed agg.  I have added an optimizer rule
-    // org.eigenbase.rel.rules.ReduceAggregatesRule which handles other
-    // cases post-translation.  The reason I did that was to defer the
-    // implementation decision; e.g. we may want to push it down to a
-    // foreign server directly rather than decomposed; decomposition is
-    // easier than recognition.
+    // org.apache.calcite.rel.rules.AggregateReduceFunctionsRule which handles
+    // other cases post-translation.  The reason I did that was to defer the
+    // implementation decision; e.g. we may want to push it down to a foreign
+    // server directly rather than decomposed; decomposition is easier than
+    // recognition.
 
     // Convert "avg(<expr>)" to "cast(sum(<expr>) / count(<expr>) as
     // <type>)". We don't need to handle the empty set specially, because
@@ -623,8 +662,7 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
     if (returnType == null) {
       RexCallBinding binding =
           new RexCallBinding(cx.getTypeFactory(), fun, exprs) {
-            @Override
-            public int getGroupCount() {
+            @Override public int getGroupCount() {
               return groupCount;
             }
           };
@@ -956,6 +994,8 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
     return cx.getRexBuilder().makeCast(resType, value);
   }
 
+  /** Convertlet that handles {@code AVG} and {@code VARIANCE}
+   * windowed aggregate functions. */
   private static class AvgVarianceConvertlet implements SqlRexConvertlet {
     private final SqlAvgAggFunction.Subtype subtype;
 
@@ -1067,6 +1107,7 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
     }
   }
 
+  /** Convertlet that handles {@code FLOOR} and {@code CEIL} functions. */
   private class FloorCeilConvertlet implements SqlRexConvertlet {
     private final boolean floor;
 

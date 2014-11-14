@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.test.concurrent;
+package org.apache.calcite.test.concurrent;
 
 import java.io.IOException;
 import java.sql.PreparedStatement;
@@ -24,9 +24,11 @@ import java.sql.Statement;
 import java.util.Arrays;
 
 /**
- * Sample mtsql plugin. To use add at start of script
- * "@plugin org.eigenbase.test.concurrent.SamplePlugin".  After doing a prepare
- * you can then do "@describeResultSet" to show columns returned by query.
+ * Sample mtsql plugin.
+ *
+ * <p>To use add at start of script "@plugin
+ * org.apache.calcite.test.concurrent.SamplePlugin".  After doing a prepare you
+ * can then do "@describeResultSet" to show columns returned by query.
  */
 public class SamplePlugin extends ConcurrentTestPlugin {
   private static final String DESCRIBE_RESULT_SET_CMD = "@describeResultSet";
@@ -43,8 +45,8 @@ public class SamplePlugin extends ConcurrentTestPlugin {
     return Arrays.asList(new String[]{DESCRIBE_RESULT_SET_CMD});
   }
 
+  /** Command that describes a result set. */
   static class DescribeResultSet implements ConcurrentTestPluginCommand {
-
     public void execute(TestContext testContext) throws IOException {
       Statement stmt =
           (PreparedStatement) testContext.getCurrentStatement();

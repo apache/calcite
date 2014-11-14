@@ -14,15 +14,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql.fun;
+package org.apache.calcite.sql.fun;
+
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlCallBinding;
+import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlOperandCountRange;
+import org.apache.calcite.sql.SqlOperatorBinding;
+import org.apache.calcite.sql.SqlSpecialOperator;
+import org.apache.calcite.sql.SqlWriter;
+import org.apache.calcite.sql.parser.SqlParserUtil;
+import org.apache.calcite.sql.type.OperandTypes;
+import org.apache.calcite.sql.type.SqlOperandCountRanges;
+import org.apache.calcite.sql.type.SqlSingleOperandTypeChecker;
+import org.apache.calcite.sql.type.SqlTypeFamily;
+import org.apache.calcite.sql.type.SqlTypeName;
 
 import java.util.List;
-
-import org.eigenbase.reltype.RelDataType;
-import org.eigenbase.reltype.RelDataTypeFactory;
-import org.eigenbase.sql.*;
-import org.eigenbase.sql.parser.SqlParserUtil;
-import org.eigenbase.sql.type.*;
 
 /**
  * The item operator {@code [ ... ]}, used to access a given element of an
@@ -40,8 +51,7 @@ class SqlItemOperator extends SqlSpecialOperator {
     super("ITEM", SqlKind.OTHER_FUNCTION, 100, true, null, null, null);
   }
 
-  @Override
-  public int reduceExpr(int ordinal, List<Object> list) {
+  @Override public int reduceExpr(int ordinal, List<Object> list) {
     SqlNode left = (SqlNode) list.get(ordinal - 1);
     SqlNode right = (SqlNode) list.get(ordinal + 1);
     final SqlParserUtil.ToTreeListItem treeListItem =
@@ -59,8 +69,7 @@ class SqlItemOperator extends SqlSpecialOperator {
     return ordinal - 1;
   }
 
-  @Override
-  public void unparse(
+  @Override public void unparse(
       SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
     call.operand(0).unparse(writer, leftPrec, 0);
     final SqlWriter.Frame frame = writer.startList("[", "]");
@@ -68,13 +77,11 @@ class SqlItemOperator extends SqlSpecialOperator {
     writer.endList(frame);
   }
 
-  @Override
-  public SqlOperandCountRange getOperandCountRange() {
+  @Override public SqlOperandCountRange getOperandCountRange() {
     return SqlOperandCountRanges.of(2);
   }
 
-  @Override
-  public boolean checkOperandTypes(
+  @Override public boolean checkOperandTypes(
       SqlCallBinding callBinding,
       boolean throwOnFailure) {
     final SqlNode left = callBinding.getCall().operand(0);
@@ -105,14 +112,12 @@ class SqlItemOperator extends SqlSpecialOperator {
     }
   }
 
-  @Override
-  public String getAllowedSignatures(String name) {
+  @Override public String getAllowedSignatures(String name) {
     return "<ARRAY>[<INTEGER>]\n"
         + "<MAP>[<VALUE>]";
   }
 
-  @Override
-  public RelDataType inferReturnType(SqlOperatorBinding opBinding) {
+  @Override public RelDataType inferReturnType(SqlOperatorBinding opBinding) {
     final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
     final RelDataType operandType = opBinding.getOperandType(0);
     switch (operandType.getSqlTypeName()) {

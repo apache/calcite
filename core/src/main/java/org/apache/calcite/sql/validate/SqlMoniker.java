@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql.validate;
+package org.apache.calcite.sql.validate;
+
+import org.apache.calcite.sql.SqlIdentifier;
 
 import java.util.List;
-
-import org.eigenbase.sql.*;
 
 /**
  * An interface of an object identifier that represents a SqlIdentifier

@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql;
+package org.apache.calcite.sql;
+
+import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.util.ImmutableNullableList;
 
 import java.util.List;
-
-import org.eigenbase.sql.parser.SqlParserPos;
-import org.eigenbase.util.ImmutableNullableList;
 
 /**
  * An item in a WITH clause of a query.
@@ -48,8 +48,7 @@ public class SqlWithItem extends SqlCall {
     return ImmutableNullableList.of(name, columnList, query);
   }
 
-  @Override
-  public void setOperand(int i, SqlNode operand) {
+  @Override public void setOperand(int i, SqlNode operand) {
     switch (i) {
     case 0:
       name = (SqlIdentifier) operand;
@@ -97,9 +96,8 @@ public class SqlWithItem extends SqlCall {
       withItem.query.unparse(writer, getLeftPrec(), getRightPrec());
     }
 
-    @Override
-    public SqlCall createCall(SqlLiteral functionQualifier, SqlParserPos pos,
-        SqlNode... operands) {
+    @Override public SqlCall createCall(SqlLiteral functionQualifier,
+        SqlParserPos pos, SqlNode... operands) {
       assert functionQualifier == null;
       assert operands.length == 3;
       return new SqlWithItem(pos, (SqlIdentifier) operands[0],
@@ -108,4 +106,4 @@ public class SqlWithItem extends SqlCall {
   }
 }
 
-// End SqlWithItemOperator.java
+// End SqlWithItem.java

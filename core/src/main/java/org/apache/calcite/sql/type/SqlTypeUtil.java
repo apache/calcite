@@ -14,23 +14,37 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql.type;
+package org.apache.calcite.sql.type;
 
-import java.nio.charset.*;
-import java.util.*;
-
-import org.eigenbase.reltype.*;
-import org.eigenbase.sql.*;
-import org.eigenbase.sql.parser.*;
-import org.eigenbase.sql.validate.*;
-import org.eigenbase.util.*;
-import org.eigenbase.util14.*;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rel.type.RelDataTypeFamily;
+import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rel.type.RelDataTypeFieldImpl;
+import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlCallBinding;
+import org.apache.calcite.sql.SqlCollation;
+import org.apache.calcite.sql.SqlDataTypeSpec;
+import org.apache.calcite.sql.SqlIdentifier;
+import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.validate.SqlValidator;
+import org.apache.calcite.sql.validate.SqlValidatorScope;
+import org.apache.calcite.sql.validate.SqlValidatorUtil;
+import org.apache.calcite.util.NumberUtil;
+import org.apache.calcite.util.Pair;
+import org.apache.calcite.util.Util;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
-import static org.eigenbase.util.Static.RESOURCE;
+import java.nio.charset.Charset;
+import java.util.AbstractList;
+import java.util.ArrayList;
+import java.util.List;
+
+import static org.apache.calcite.util.Static.RESOURCE;
 
 /**
  * Contains utility methods used during SQL validation or type derivation.
@@ -65,16 +79,14 @@ public abstract class SqlTypeUtil {
       }
 
       if (t0.getCharset() == null) {
-        throw Util.newInternal(
-            "RelDataType object should have been assigned a "
+        throw Util.newInternal("RelDataType object should have been assigned a "
             + "(default) charset when calling deriveType");
       } else if (!t0.getCharset().equals(t1.getCharset())) {
         return false;
       }
 
       if (t0.getCollation() == null) {
-        throw Util.newInternal(
-            "RelDataType object should have been assigned a "
+        throw Util.newInternal("RelDataType object should have been assigned a "
             + "(default) collation when calling deriveType");
       } else if (!t0.getCollation().getCharset().equals(
           t1.getCollation().getCharset())) {
@@ -718,10 +730,10 @@ public abstract class SqlTypeUtil {
    * Compares two types and returns true if fromType can be cast to toType.
    *
    * <p>REVIEW jvs 17-Dec-2004: the coerce param below shouldn't really be
-   * necessary. We're using it as a hack because {@link
-   * SqlTypeFactoryImpl#leastRestrictiveSqlType} isn't complete enough yet.
-   * Once it is, this param (and the non-coerce rules of {@link
-   * SqlTypeAssignmentRules}) should go away.
+   * necessary. We're using it as a hack because
+   * {@link SqlTypeFactoryImpl#leastRestrictiveSqlType} isn't complete enough
+   * yet.  Once it is, this param (and the non-coerce rules of
+   * {@link SqlTypeAssignmentRules}) should go away.
    *
    * @param toType   target of assignment
    * @param fromType source of assignment
@@ -1116,13 +1128,11 @@ public abstract class SqlTypeUtil {
     final List<RelDataTypeField> fields = rowType.getFieldList();
 
     return new AbstractList<RelDataType>() {
-      @Override
-      public RelDataType get(int index) {
+      @Override public RelDataType get(int index) {
         return fields.get(requiredFields.get(index).intValue()).getType();
       }
 
-      @Override
-      public int size() {
+      @Override public int size() {
         return requiredFields.size();
       }
     };

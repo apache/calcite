@@ -14,16 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel.convert;
+package org.apache.calcite.rel.convert;
 
-import org.eigenbase.rel.*;
-import org.eigenbase.relopt.*;
+import org.apache.calcite.plan.RelTraitDef;
+import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.RelNode;
 
 /**
- * A relational expression implements the interface <code>ConverterRel</code> to
- * indicate that it converts a physical attribute, or {@link
- * org.eigenbase.relopt.RelTrait trait}, of a relational expression from one
- * value to another.
+ * A relational expression implements the interface <code>Converter</code> to
+ * indicate that it converts a physical attribute, or
+ * {@link org.apache.calcite.plan.RelTrait trait}, of a relational expression
+ * from one value to another.
  *
  * <p>Sometimes this conversion is expensive; for example, to convert a
  * non-distinct to a distinct object stream, we have to clone every object in
@@ -39,11 +40,11 @@ import org.eigenbase.relopt.*;
  * <p>In principle one could devise converters which change multiple traits
  * simultaneously (say change the sort-order and the physical location of a
  * relational expression). In which case, the method {@link #getInputTraits()}
- * would return a {@link org.eigenbase.relopt.RelTraitSet}. But for simplicity,
- * this class only allows one trait to be converted at a time; all other traits
- * are assumed to be preserved.</p>
+ * would return a {@link org.apache.calcite.plan.RelTraitSet}. But for
+ * simplicity, this class only allows one trait to be converted at a
+ * time; all other traits are assumed to be preserved.</p>
  */
-public interface ConverterRel extends RelNode {
+public interface Converter extends RelNode {
   //~ Methods ----------------------------------------------------------------
 
   /**
@@ -70,7 +71,7 @@ public interface ConverterRel extends RelNode {
    *
    * @return child relational expression
    */
-  RelNode getChild();
+  RelNode getInput();
 }
 
-// End ConverterRel.java
+// End Converter.java

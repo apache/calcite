@@ -14,39 +14,46 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel.rules;
+package org.apache.calcite.rel.core;
 
-import java.util.*;
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptCost;
+import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.metadata.RelMetadataQuery;
+import org.apache.calcite.rel.rules.EquiJoin;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexUtil;
+import org.apache.calcite.util.ImmutableIntList;
 
-import org.eigenbase.rel.*;
-import org.eigenbase.rel.metadata.*;
-import org.eigenbase.relopt.*;
-import org.eigenbase.reltype.*;
-import org.eigenbase.rex.*;
-import org.eigenbase.util.ImmutableIntList;
-
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
 /**
- * A SemiJoinRel represents two relational expressions joined according to some
- * condition, where the output only contains the columns from the left join
- * input.
+ * Relational expression that joins two relational expressions according to some
+ * condition, but outputs only columns from the left input, and eliminates
+ * duplicates.
+ *
+ * <p>The effect is something like the SQL {@code IN} operator.
  */
-public class SemiJoinRel extends EquiJoinRel {
+public class SemiJoin extends EquiJoin {
   //~ Constructors -----------------------------------------------------------
 
   /**
-   * Creates a SemiJoinRel.
+   * Creates a SemiJoin.
    *
    * @param cluster   cluster that join belongs to
-   * @param traitSet  Traits
+   * @param traitSet  Trait set
    * @param left      left join input
    * @param right     right join input
    * @param condition join condition
    * @param leftKeys  left keys of the semijoin
    * @param rightKeys right keys of the semijoin
    */
-  public SemiJoinRel(
+  public SemiJoin(
       RelOptCluster cluster,
       RelTraitSet traitSet,
       RelNode left,
@@ -68,41 +75,41 @@ public class SemiJoinRel extends EquiJoinRel {
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override
-  public SemiJoinRel copy(RelTraitSet traitSet, RexNode condition,
+  @Override public SemiJoin copy(RelTraitSet traitSet, RexNode condition,
       RelNode left, RelNode right, JoinRelType joinType, boolean semiJoinDone) {
     assert joinType == JoinRelType.INNER;
     final JoinInfo joinInfo = JoinInfo.of(left, right, condition);
     assert joinInfo.isEqui();
-    return new SemiJoinRel(getCluster(), traitSet, left, right, condition,
+    return new SemiJoin(getCluster(), traitSet, left, right, condition,
         joinInfo.leftKeys, joinInfo.rightKeys);
   }
 
-  // implement RelNode
-  public RelOptCost computeSelfCost(RelOptPlanner planner) {
+  @Override public RelOptCost computeSelfCost(RelOptPlanner planner) {
     // REVIEW jvs 9-Apr-2006:  Just for now...
     return planner.getCostFactory().makeTinyCost();
   }
 
-  // implement RelNode
-  public double getRows() {
+  @Override public double getRows() {
     // TODO:  correlation factor
     return RelMetadataQuery.getRowCount(left)
         * RexUtil.getSelectivity(condition);
   }
 
   /**
-   * @return returns rowtype representing only the left join input
+   * {@inheritDoc}
+   *
+   * <p>In the case of semi-join, the row type consists of columns from left
+   * input only.
    */
-  public RelDataType deriveRowType() {
+  @Override public RelDataType deriveRowType() {
     return deriveJoinRowType(
         left.getRowType(),
         null,
         JoinRelType.INNER,
         getCluster().getTypeFactory(),
         null,
-        Collections.<RelDataTypeField>emptyList());
+        ImmutableList.<RelDataTypeField>of());
   }
 }
 
-// End SemiJoinRel.java
+// End SemiJoin.java

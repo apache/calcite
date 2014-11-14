@@ -14,14 +14,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.test;
+package org.apache.calcite.test;
 
-import java.lang.reflect.Method;
-import java.util.*;
-
-import org.eigenbase.rel.*;
-import org.eigenbase.rel.metadata.*;
-import org.eigenbase.relopt.*;
+import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.Aggregate;
+import org.apache.calcite.rel.logical.LogicalAggregate;
+import org.apache.calcite.rel.logical.LogicalFilter;
+import org.apache.calcite.rel.metadata.CachingRelMetadataProvider;
+import org.apache.calcite.rel.metadata.ChainedRelMetadataProvider;
+import org.apache.calcite.rel.metadata.DefaultRelMetadataProvider;
+import org.apache.calcite.rel.metadata.Metadata;
+import org.apache.calcite.rel.metadata.ReflectiveRelMetadataProvider;
+import org.apache.calcite.rel.metadata.RelColumnOrigin;
+import org.apache.calcite.rel.metadata.RelMetadataProvider;
+import org.apache.calcite.rel.metadata.RelMetadataQuery;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
@@ -31,15 +39,24 @@ import org.hamcrest.Matcher;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import static org.hamcrest.CoreMatchers.*;
-import static org.junit.Assert.*;
+import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.BitSet;
+import java.util.List;
+import java.util.Set;
+
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 
 /**
- * Unit test for {@link DefaultRelMetadataProvider}. See {@link
- * SqlToRelTestBase} class comments for details on the schema used. Note that no
- * optimizer rules are fired on the translation of the SQL into relational
- * algebra (e.g. join conditions in the WHERE clause will look like filters), so
- * it's necessary to phrase the SQL carefully.
+ * Unit test for {@link DefaultRelMetadataProvider}. See
+ * {@link SqlToRelTestBase} class comments for details on the schema used. Note
+ * that no optimizer rules are fired on the translation of the SQL into
+ * relational algebra (e.g. join conditions in the WHERE clause will look like
+ * filters), so it's necessary to phrase the SQL carefully.
  */
 public class RelMetadataTest extends SqlToRelTestBase {
   //~ Static fields/initializers ---------------------------------------------
@@ -113,17 +130,17 @@ public class RelMetadataTest extends SqlToRelTestBase {
 
   @Ignore
   @Test public void testPercentageOriginalRowsTwoFilters() {
-    checkPercentageOriginalRows(
-        "select * from (select * from dept where name='X')"
-        + " where deptno = 20",
+    checkPercentageOriginalRows("select * from (\n"
+        + "  select * from dept where name='X')\n"
+        + "where deptno = 20",
         DEFAULT_EQUAL_SELECTIVITY_SQUARED);
   }
 
   @Ignore
   @Test public void testPercentageOriginalRowsRedundantFilter() {
-    checkPercentageOriginalRows(
-        "select * from (select * from dept where deptno=20)"
-        + " where deptno = 20",
+    checkPercentageOriginalRows("select * from (\n"
+        + "  select * from dept where deptno=20)\n"
+        + "where deptno = 20",
         DEFAULT_EQUAL_SELECTIVITY);
   }
 
@@ -135,10 +152,10 @@ public class RelMetadataTest extends SqlToRelTestBase {
 
   @Ignore
   @Test public void testPercentageOriginalRowsJoinTwoFilters() {
-    checkPercentageOriginalRows(
-        "select * from (select * from emp where deptno=10) e"
-        + " inner join (select * from dept where deptno=10) d"
-        + " on e.deptno=d.deptno",
+    checkPercentageOriginalRows("select * from (\n"
+        + "  select * from emp where deptno=10) e\n"
+        + "inner join (select * from dept where deptno=10) d\n"
+        + "on e.deptno=d.deptno",
         DEFAULT_EQUAL_SELECTIVITY_SQUARED);
   }
 
@@ -152,7 +169,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
   @Test public void testPercentageOriginalRowsUnionLittleFilter() {
     checkPercentageOriginalRows(
         "select name from dept where deptno=20"
-        + " union all select ename from emp",
+            + " union all select ename from emp",
         ((DEPT_SIZE * DEFAULT_EQUAL_SELECTIVITY) + EMP_SIZE)
             / (DEPT_SIZE + EMP_SIZE));
   }
@@ -161,7 +178,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
   @Test public void testPercentageOriginalRowsUnionBigFilter() {
     checkPercentageOriginalRows(
         "select name from dept"
-        + " union all select ename from emp where deptno=20",
+            + " union all select ename from emp where deptno=20",
         ((EMP_SIZE * DEFAULT_EQUAL_SELECTIVITY) + DEPT_SIZE)
             / (DEPT_SIZE + EMP_SIZE));
   }
@@ -306,7 +323,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
   @Test public void testColumnOriginsJoinOuter() {
     checkSingleColumnOrigin(
         "select name as dname from emp left outer join dept"
-        + " on emp.deptno = dept.deptno",
+            + " on emp.deptno = dept.deptno",
         "DEPT",
         "NAME",
         true);
@@ -315,7 +332,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
   @Test public void testColumnOriginsJoinFullOuter() {
     checkSingleColumnOrigin(
         "select name as dname from emp full outer join dept"
-        + " on emp.deptno = dept.deptno",
+            + " on emp.deptno = dept.deptno",
         "DEPT",
         "NAME",
         true);
@@ -482,24 +499,22 @@ public class RelMetadataTest extends SqlToRelTestBase {
 
   @Test public void testSelectivitySort() {
     RelNode rel =
-        convertSql(
-            "select * from emp where deptno = 10"
+        convertSql("select * from emp where deptno = 10"
             + "order by ename");
     checkRelSelectivity(rel, DEFAULT_EQUAL_SELECTIVITY);
   }
 
   @Test public void testSelectivityUnion() {
     RelNode rel =
-        convertSql(
-            "select * from (select * from emp union all select * from emp) "
-                + "where deptno = 10");
+        convertSql("select * from (\n"
+            + "  select * from emp union all select * from emp) "
+            + "where deptno = 10");
     checkRelSelectivity(rel, DEFAULT_EQUAL_SELECTIVITY);
   }
 
   @Test public void testSelectivityAgg() {
     RelNode rel =
-        convertSql(
-            "select deptno, count(*) from emp where deptno > 10 "
+        convertSql("select deptno, count(*) from emp where deptno > 10 "
             + "group by deptno having count(*) = 0");
     checkRelSelectivity(
         rel,
@@ -510,8 +525,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
    * argument. */
   @Test public void testSelectivityAggCached() {
     RelNode rel =
-        convertSql(
-            "select deptno, count(*) from emp where deptno > 10 "
+        convertSql("select deptno, count(*) from emp where deptno > 10 "
             + "group by deptno having count(*) = 0");
     rel.getCluster().setMetadataProvider(
         new CachingRelMetadataProvider(
@@ -537,25 +551,24 @@ public class RelMetadataTest extends SqlToRelTestBase {
     ColTypeImpl.THREAD_LIST.set(buf);
 
     RelNode rel =
-        convertSql(
-            "select deptno, count(*) from emp where deptno > 10 "
-                + "group by deptno having count(*) = 0");
+        convertSql("select deptno, count(*) from emp where deptno > 10 "
+            + "group by deptno having count(*) = 0");
     rel.getCluster().setMetadataProvider(
         ChainedRelMetadataProvider.of(
             ImmutableList.of(
                 ColTypeImpl.SOURCE, rel.getCluster().getMetadataProvider())));
 
     // Top node is a filter. Its metadata uses getColType(RelNode, int).
-    assertThat(rel, instanceOf(FilterRel.class));
+    assertThat(rel, instanceOf(LogicalFilter.class));
     assertThat(rel.metadata(ColType.class).getColType(0),
         equalTo("DEPTNO-rel"));
     assertThat(rel.metadata(ColType.class).getColType(1),
         equalTo("EXPR$1-rel"));
 
     // Next node is an aggregate. Its metadata uses
-    // getColType(AggregateRel, int).
+    // getColType(LogicalAggregate, int).
     final RelNode input = rel.getInput(0);
-    assertThat(input, instanceOf(AggregateRel.class));
+    assertThat(input, instanceOf(LogicalAggregate.class));
     assertThat(input.metadata(ColType.class).getColType(0),
         equalTo("DEPTNO-agg"));
 
@@ -605,7 +618,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
     String getColType(int column);
   }
 
-  /** A provider for {@link org.eigenbase.test.RelMetadataTest.ColType} via
+  /** A provider for {@link org.apache.calcite.test.RelMetadataTest.ColType} via
    * reflection. */
   public static class ColTypeImpl {
     static final ThreadLocal<List<String>> THREAD_LIST =
@@ -624,9 +637,10 @@ public class RelMetadataTest extends SqlToRelTestBase {
             METHOD, new ColTypeImpl());
 
     /** Implementation of {@link ColType#getColType(int)} for
-     * {@link AggregateRel}, called via reflection. */
+     * {@link org.apache.calcite.rel.logical.LogicalAggregate}, called via
+     * reflection. */
     @SuppressWarnings("UnusedDeclaration")
-    public String getColType(AggregateRelBase rel, int column) {
+    public String getColType(Aggregate rel, int column) {
       final String name =
           rel.getRowType().getFieldList().get(column).getName() + "-agg";
       THREAD_LIST.get().add(name);

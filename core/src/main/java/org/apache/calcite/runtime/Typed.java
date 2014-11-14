@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.runtime;
+package org.apache.calcite.runtime;
 
 import java.lang.reflect.Type;
 
 /**
- * Adds type information to a {@link net.hydromatic.linq4j.Enumerable}.
+ * Adds type information to a {@link org.apache.calcite.linq4j.Enumerable}.
  */
 public interface Typed {
   /**

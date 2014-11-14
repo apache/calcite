@@ -14,20 +14,35 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql.validate;
+package org.apache.calcite.sql.validate;
 
-import java.nio.charset.*;
-import java.util.*;
+import org.apache.calcite.plan.RelOptSchemaWithSampling;
+import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.prepare.Prepare;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlDataTypeSpec;
+import org.apache.calcite.sql.SqlDynamicParam;
+import org.apache.calcite.sql.SqlIdentifier;
+import org.apache.calcite.sql.SqlIntervalQualifier;
+import org.apache.calcite.sql.SqlLiteral;
+import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlNodeList;
+import org.apache.calcite.sql.SqlOperatorTable;
+import org.apache.calcite.sql.SqlUtil;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.type.SqlTypeUtil;
+import org.apache.calcite.util.Util;
 
-import org.eigenbase.relopt.*;
-import org.eigenbase.reltype.*;
-import org.eigenbase.sql.*;
-import org.eigenbase.sql.fun.*;
-import org.eigenbase.sql.parser.*;
-import org.eigenbase.sql.type.*;
-import org.eigenbase.util.*;
-
-import net.hydromatic.optiq.prepare.Prepare;
+import java.nio.charset.Charset;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
 
 /**
  * Utility methods related to validation.
@@ -101,11 +116,10 @@ public class SqlValidatorUtil {
         if (false) {
           // todo: enable this checking when we have a charset to
           //   collation mapping
-          throw new Error(
-              type.toString()
-                  + " was found to have charset '" + strCharset.name()
-                  + "' and a mismatched collation charset '"
-                  + colCharset.name() + "'");
+          throw new Error(type.toString()
+              + " was found to have charset '" + strCharset.name()
+              + "' and a mismatched collation charset '"
+              + colCharset.name() + "'");
         }
       }
     }
@@ -367,6 +381,8 @@ public class SqlValidatorUtil {
     }
   }
 
+  /** Suggests candidates for unique names, given the number of attempts so far
+   * and the number of expressions in the project list. */
   interface Suggester {
     String apply(String original, int attempt, int size);
   }

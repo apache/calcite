@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.model;
+package org.apache.calcite.model;
 
 import java.util.Map;
 
@@ -25,7 +25,7 @@ import java.util.Map;
  */
 public class JsonCustomTable extends JsonTable {
   /** Name of the factory class for this table. Must implement interface
-   * {@link net.hydromatic.optiq.TableFactory} and have a public default
+   * {@link org.apache.calcite.schema.TableFactory} and have a public default
    * constructor. */
   public String factory;
 

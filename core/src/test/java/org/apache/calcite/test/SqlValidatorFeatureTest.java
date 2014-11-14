@@ -14,20 +14,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.test;
+package org.apache.calcite.test;
 
-import org.eigenbase.reltype.*;
-import org.eigenbase.resource.*;
-import org.eigenbase.sql.*;
-import org.eigenbase.sql.parser.*;
-import org.eigenbase.sql.test.*;
-import org.eigenbase.sql.type.*;
-import org.eigenbase.sql.validate.*;
-import org.eigenbase.util.*;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rel.type.RelDataTypeSystem;
+import org.apache.calcite.runtime.CalciteContextException;
+import org.apache.calcite.runtime.CalciteException;
+import org.apache.calcite.runtime.Feature;
+import org.apache.calcite.sql.SqlOperatorTable;
+import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.test.DefaultSqlTestFactory;
+import org.apache.calcite.sql.test.DelegatingSqlTestFactory;
+import org.apache.calcite.sql.test.SqlTestFactory;
+import org.apache.calcite.sql.test.SqlTester;
+import org.apache.calcite.sql.test.SqlTesterImpl;
+import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
+import org.apache.calcite.sql.validate.SqlConformance;
+import org.apache.calcite.sql.validate.SqlValidator;
+import org.apache.calcite.sql.validate.SqlValidatorCatalogReader;
+import org.apache.calcite.sql.validate.SqlValidatorImpl;
 
 import org.junit.Test;
 
-import static org.eigenbase.util.Static.RESOURCE;
+import static org.apache.calcite.util.Static.RESOURCE;
 
 /**
  * SqlValidatorFeatureTest verifies that features can be independently enabled
@@ -50,8 +59,7 @@ public class SqlValidatorFeatureTest extends SqlValidatorTestCase {
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override
-  public SqlTester getTester() {
+  @Override public SqlTester getTester() {
     return new SqlTesterImpl(new FeatureTesterFactory());
   }
 
@@ -117,13 +125,13 @@ public class SqlValidatorFeatureTest extends SqlValidatorTestCase {
 
   //~ Inner Classes ----------------------------------------------------------
 
+  /** Factory for tester objects. */
   private class FeatureTesterFactory extends DelegatingSqlTestFactory {
     public FeatureTesterFactory() {
       super(DefaultSqlTestFactory.INSTANCE);
     }
 
-    @Override
-    public SqlValidator getValidator(SqlTestFactory factory) {
+    @Override public SqlValidator getValidator(SqlTestFactory factory) {
       final RelDataTypeFactory typeFactory =
           new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
       SqlConformance conformance = (SqlConformance) get("conformance");
@@ -136,6 +144,7 @@ public class SqlValidatorFeatureTest extends SqlValidatorTestCase {
     }
   }
 
+  /** Extension to {@link SqlValidatorImpl} that validates features. */
   private class FeatureValidator extends SqlValidatorImpl {
     protected FeatureValidator(
         SqlOperatorTable opTab,
@@ -149,14 +158,14 @@ public class SqlValidatorFeatureTest extends SqlValidatorTestCase {
         Feature feature,
         SqlParserPos context) {
       if (feature.equals(disabledFeature)) {
-        EigenbaseException ex =
-            new EigenbaseException(
+        CalciteException ex =
+            new CalciteException(
                 FEATURE_DISABLED,
                 null);
         if (context == null) {
           throw ex;
         }
-        throw new EigenbaseContextException(
+        throw new CalciteContextException(
             "location",
             ex,
             context.getLineNum(),

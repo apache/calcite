@@ -14,14 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.linq4j.function;
+package org.apache.calcite.linq4j.function;
 
-import net.hydromatic.linq4j.Linq4j;
+import org.apache.calcite.linq4j.Linq4j;
 
 import java.io.Serializable;
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
-import java.util.*;
+import java.util.AbstractList;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Utilities relating to functions.

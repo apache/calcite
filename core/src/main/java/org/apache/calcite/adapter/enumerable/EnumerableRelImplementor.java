@@ -14,19 +14,33 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.rules.java;
+package org.apache.calcite.adapter.enumerable;
 
-import net.hydromatic.linq4j.Enumerable;
-import net.hydromatic.linq4j.Queryable;
-import net.hydromatic.linq4j.expressions.*;
-
-import net.hydromatic.optiq.BuiltinMethod;
-import net.hydromatic.optiq.DataContext;
-import net.hydromatic.optiq.jdbc.JavaTypeFactoryImpl;
-import net.hydromatic.optiq.runtime.*;
-
-import org.eigenbase.rel.RelNode;
-import org.eigenbase.rex.RexBuilder;
+import org.apache.calcite.DataContext;
+import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
+import org.apache.calcite.linq4j.Enumerable;
+import org.apache.calcite.linq4j.Queryable;
+import org.apache.calcite.linq4j.tree.BlockBuilder;
+import org.apache.calcite.linq4j.tree.BlockStatement;
+import org.apache.calcite.linq4j.tree.Blocks;
+import org.apache.calcite.linq4j.tree.ClassDeclaration;
+import org.apache.calcite.linq4j.tree.ConditionalStatement;
+import org.apache.calcite.linq4j.tree.ConstantExpression;
+import org.apache.calcite.linq4j.tree.Expression;
+import org.apache.calcite.linq4j.tree.Expressions;
+import org.apache.calcite.linq4j.tree.MemberDeclaration;
+import org.apache.calcite.linq4j.tree.MethodCallExpression;
+import org.apache.calcite.linq4j.tree.NewArrayExpression;
+import org.apache.calcite.linq4j.tree.NewExpression;
+import org.apache.calcite.linq4j.tree.ParameterExpression;
+import org.apache.calcite.linq4j.tree.Primitive;
+import org.apache.calcite.linq4j.tree.Types;
+import org.apache.calcite.linq4j.tree.Visitor;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.runtime.Bindable;
+import org.apache.calcite.runtime.Utilities;
+import org.apache.calcite.util.BuiltInMethod;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
@@ -34,10 +48,14 @@ import com.google.common.collect.Iterables;
 import java.io.Serializable;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
 
 /**
- * Subclass of {@link org.eigenbase.relopt.RelImplementor} for relational
+ * Subclass of {@link org.apache.calcite.plan.RelImplementor} for relational
  * operators of {@link EnumerableConvention} calling convention.
  */
 public class EnumerableRelImplementor extends JavaRelImplementor {
@@ -87,12 +105,12 @@ public class EnumerableRelImplementor extends JavaRelImplementor {
         Expressions.methodDecl(
             Modifier.PUBLIC,
             Enumerable.class,
-            BuiltinMethod.BINDABLE_BIND.method.getName(),
+            BuiltInMethod.BINDABLE_BIND.method.getName(),
             Expressions.list(root0_),
             block));
     memberDeclarations.add(Expressions.methodDecl(Modifier.PUBLIC,
         Type.class,
-        BuiltinMethod.TYPED_GET_ELEMENT_TYPE.method.getName(),
+        BuiltInMethod.TYPED_GET_ELEMENT_TYPE.method.getName(),
         Collections.<ParameterExpression>emptyList(),
         Blocks.toFunctionBlock(Expressions.return_(null,
             Expressions.constant(result.physType.getJavaRowType())))));
@@ -363,7 +381,7 @@ public class EnumerableRelImplementor extends JavaRelImplementor {
   public Expression stash(RelNode child, Class clazz) {
     final ParameterExpression x = register(child, clazz);
     final Expression e = Expressions.call(getRootExpression(),
-        BuiltinMethod.DATA_CONTEXT_GET.method, Expressions.constant(x.name));
+        BuiltInMethod.DATA_CONTEXT_GET.method, Expressions.constant(x.name));
     return Expressions.convert_(e, clazz);
   }
 
@@ -380,8 +398,7 @@ public class EnumerableRelImplementor extends JavaRelImplementor {
       this.types = types;
     }
 
-    @Override
-    public Expression visit(
+    @Override public Expression visit(
         NewExpression newExpression,
         List<Expression> arguments,
         List<MemberDeclaration> memberDeclarations) {
@@ -392,8 +409,7 @@ public class EnumerableRelImplementor extends JavaRelImplementor {
           memberDeclarations);
     }
 
-    @Override
-    public Expression visit(NewArrayExpression newArrayExpression,
+    @Override public Expression visit(NewArrayExpression newArrayExpression,
         int dimension, Expression bound, List<Expression> expressions) {
       Type type = newArrayExpression.type;
       for (;;) {

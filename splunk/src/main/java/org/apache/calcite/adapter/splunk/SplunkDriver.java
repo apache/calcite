@@ -14,27 +14,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.impl.splunk;
+package org.apache.calcite.adapter.splunk;
 
-import net.hydromatic.avatica.DriverVersion;
-
-import net.hydromatic.linq4j.Enumerator;
-
-import net.hydromatic.optiq.SchemaPlus;
-import net.hydromatic.optiq.impl.splunk.search.*;
-import net.hydromatic.optiq.jdbc.*;
+import org.apache.calcite.adapter.splunk.search.SearchResultListener;
+import org.apache.calcite.adapter.splunk.search.SplunkConnection;
+import org.apache.calcite.adapter.splunk.search.SplunkConnectionImpl;
+import org.apache.calcite.avatica.DriverVersion;
+import org.apache.calcite.jdbc.CalciteConnection;
+import org.apache.calcite.linq4j.Enumerator;
+import org.apache.calcite.schema.SchemaPlus;
 
 import java.net.URL;
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.util.*;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
 
 /**
  * JDBC driver for Splunk.
  *
  * <p>It accepts connect strings that start with "jdbc:splunk:".</p>
  */
-public class SplunkDriver extends net.hydromatic.optiq.jdbc.Driver {
+public class SplunkDriver extends org.apache.calcite.jdbc.Driver {
   protected SplunkDriver() {
     super();
   }
@@ -51,10 +53,10 @@ public class SplunkDriver extends net.hydromatic.optiq.jdbc.Driver {
     return new SplunkDriverVersion();
   }
 
-  @Override
-  public Connection connect(String url, Properties info) throws SQLException {
+  @Override public Connection connect(String url, Properties info)
+      throws SQLException {
     Connection connection = super.connect(url, info);
-    OptiqConnection optiqConnection = (OptiqConnection) connection;
+    CalciteConnection calciteConnection = (CalciteConnection) connection;
     SplunkConnection splunkConnection;
     try {
       String url1 = info.getProperty("url");
@@ -81,7 +83,7 @@ public class SplunkDriver extends net.hydromatic.optiq.jdbc.Driver {
     } catch (Exception e) {
       throw new SQLException("Cannot connect", e);
     }
-    final SchemaPlus rootSchema = optiqConnection.getRootSchema();
+    final SchemaPlus rootSchema = calciteConnection.getRootSchema();
     rootSchema.add("splunk", new SplunkSchema(splunkConnection));
 
     return connection;

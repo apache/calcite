@@ -14,19 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql;
+package org.apache.calcite.sql;
 
-import java.math.*;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.type.SqlOperandTypeChecker;
+import org.apache.calcite.sql.type.SqlOperandTypeInference;
+import org.apache.calcite.sql.type.SqlReturnTypeInference;
+import org.apache.calcite.sql.type.SqlTypeUtil;
+import org.apache.calcite.sql.validate.SqlMonotonicity;
+import org.apache.calcite.sql.validate.SqlValidator;
+import org.apache.calcite.sql.validate.SqlValidatorScope;
+import org.apache.calcite.util.Util;
 
-import java.nio.charset.*;
+import java.math.BigDecimal;
+import java.nio.charset.Charset;
 
-import org.eigenbase.reltype.*;
-import org.eigenbase.sql.fun.SqlStdOperatorTable;
-import org.eigenbase.sql.type.*;
-import org.eigenbase.sql.validate.*;
-import org.eigenbase.util.*;
-
-import static org.eigenbase.util.Static.RESOURCE;
+import static org.apache.calcite.util.Static.RESOURCE;
 
 /**
  * <code>SqlBinaryOperator</code> is a binary operator.
@@ -213,8 +217,7 @@ public class SqlBinaryOperator extends SqlOperator {
     return super.getMonotonicity(call, scope);
   }
 
-  @Override
-  public boolean validRexOperands(int count, boolean fail) {
+  @Override public boolean validRexOperands(int count, boolean fail) {
     if (count != 2) {
       // Special exception for AND and OR.
       if ((this == SqlStdOperatorTable.AND

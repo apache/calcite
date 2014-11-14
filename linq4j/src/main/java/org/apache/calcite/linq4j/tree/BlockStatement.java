@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.linq4j.expressions;
+package org.apache.calcite.linq4j.tree;
 
 import java.lang.reflect.Type;
 import java.util.HashSet;
@@ -53,16 +53,14 @@ public class BlockStatement extends Statement {
     return true;
   }
 
-  @Override
-  public BlockStatement accept(Visitor visitor) {
+  @Override public BlockStatement accept(Visitor visitor) {
     visitor = visitor.preVisit(this);
     List<Statement> newStatements = Expressions.acceptStatements(statements,
         visitor);
     return visitor.visit(this, newStatements);
   }
 
-  @Override
-  void accept0(ExpressionWriter writer) {
+  @Override void accept0(ExpressionWriter writer) {
     if (statements.isEmpty()) {
       writer.append("{}");
       return;
@@ -74,8 +72,7 @@ public class BlockStatement extends Statement {
     writer.end("}\n");
   }
 
-  @Override
-  public Object evaluate(Evaluator evaluator) {
+  @Override public Object evaluate(Evaluator evaluator) {
     Object o = null;
     for (Statement statement : statements) {
       o = statement.evaluate(evaluator);
@@ -83,8 +80,7 @@ public class BlockStatement extends Statement {
     return o;
   }
 
-  @Override
-  public boolean equals(Object o) {
+  @Override public boolean equals(Object o) {
     if (this == o) {
       return true;
     }
@@ -104,8 +100,7 @@ public class BlockStatement extends Statement {
     return true;
   }
 
-  @Override
-  public int hashCode() {
+  @Override public int hashCode() {
     int result = hash;
     if (result == 0) {
       result = super.hashCode();

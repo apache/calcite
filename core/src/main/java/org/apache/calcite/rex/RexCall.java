@@ -14,14 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rex;
+package org.apache.calcite.rex;
 
-import java.util.*;
-
-import org.eigenbase.reltype.*;
-import org.eigenbase.sql.*;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.SqlSyntax;
 
 import com.google.common.collect.ImmutableList;
+
+import java.util.List;
 
 /**
  * An expression formed by a call to an operator with zero or more expressions
@@ -30,9 +32,9 @@ import com.google.common.collect.ImmutableList;
  * <p>Operators may be binary, unary, functions, special syntactic constructs
  * like <code>CASE ... WHEN ... END</code>, or even internally generated
  * constructs like implicit type conversions. The syntax of the operator is
- * really irrelevant, because row-expressions (unlike {@link
- * org.eigenbase.sql.SqlNode SQL expressions}) do not directly represent a piece
- * of source code.</p>
+ * really irrelevant, because row-expressions (unlike
+ * {@link org.apache.calcite.sql.SqlNode SQL expressions})
+ * do not directly represent a piece of source code.
  *
  * <p>It's not often necessary to sub-class this class. The smarts should be in
  * the operator, rather than the call. Any extra information about the call can
@@ -109,8 +111,7 @@ public class RexCall extends RexNode {
     return type;
   }
 
-  @Override
-  public boolean isAlwaysTrue() {
+  @Override public boolean isAlwaysTrue() {
     // "c IS NOT NULL" occurs when we expand EXISTS.
     // This reduction allows us to convert it to a semi-join.
     switch (getKind()) {

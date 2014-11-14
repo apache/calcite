@@ -19,6 +19,6 @@
  * Defines interfaces for constructing rule-based optimizers of
  * relational expressions.
  */
-package org.eigenbase.relopt;
+package org.apache.calcite.plan;
 
 // End package-info.java

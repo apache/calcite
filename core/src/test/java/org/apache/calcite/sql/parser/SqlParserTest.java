@@ -14,29 +14,35 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql.parser;
+package org.apache.calcite.sql.parser;
 
-import java.util.*;
-
-import org.eigenbase.sql.*;
-import org.eigenbase.sql.parser.impl.*;
-import org.eigenbase.sql.pretty.SqlPrettyWriter;
-import org.eigenbase.test.*;
-import org.eigenbase.util.*;
-import org.eigenbase.util14.*;
-
-import net.hydromatic.avatica.Casing;
-import net.hydromatic.avatica.Quoting;
+import org.apache.calcite.avatica.Casing;
+import org.apache.calcite.avatica.Quoting;
+import org.apache.calcite.sql.SqlDialect;
+import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlSetOption;
+import org.apache.calcite.sql.parser.impl.SqlParserImpl;
+import org.apache.calcite.sql.pretty.SqlPrettyWriter;
+import org.apache.calcite.test.SqlValidatorTestCase;
+import org.apache.calcite.util.Bug;
+import org.apache.calcite.util.ConversionUtil;
+import org.apache.calcite.util.TestUtil;
+import org.apache.calcite.util.Util;
 
 import org.junit.Ignore;
 import org.junit.Test;
 
-import static org.hamcrest.CoreMatchers.*;
-import static org.junit.Assert.*;
+import java.util.Locale;
+
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 
 /**
- * A <code>SqlParserTest</code> is a unit-test for {@link SqlParser the SQL
- * parser}.
+ * A <code>SqlParserTest</code> is a unit-test for
+ * {@link SqlParser the SQL parser}.
  */
 public class SqlParserTest {
   //~ Static fields/initializers ---------------------------------------------
@@ -126,13 +132,13 @@ public class SqlParserTest {
     checkFails(
         "select 0.5e1^.1^ from sales.emps",
         "(?s).*Encountered \".1\" at line 1, column 13.\n"
-        + "Was expecting one of:\n"
-        + "    \"FROM\" ...\n"
-        + "    \",\" ...\n"
-        + "    \"AS\" ...\n"
-        + "    <IDENTIFIER> ...\n"
-        + "    <QUOTED_IDENTIFIER> ...\n"
-        + ".*");
+            + "Was expecting one of:\n"
+            + "    \"FROM\" ...\n"
+            + "    \",\" ...\n"
+            + "    \"AS\" ...\n"
+            + "    <IDENTIFIER> ...\n"
+            + "    <QUOTED_IDENTIFIER> ...\n"
+            + ".*");
   }
 
   @Test public void testInvalidToken() {
@@ -147,16 +153,16 @@ public class SqlParserTest {
   @Test public void testDerivedColumnList() {
     check("select * from emp as e (empno, gender) where true",
         "SELECT *\n"
-        + "FROM `EMP` AS `E` (`EMPNO`, `GENDER`)\n"
-        + "WHERE TRUE");
+            + "FROM `EMP` AS `E` (`EMPNO`, `GENDER`)\n"
+            + "WHERE TRUE");
   }
 
   @Test public void testDerivedColumnListInJoin() {
     check(
         "select * from emp as e (empno, gender) join dept as d (deptno, dname) on emp.deptno = dept.deptno",
         "SELECT *\n"
-        + "FROM `EMP` AS `E` (`EMPNO`, `GENDER`)\n"
-        + "INNER JOIN `DEPT` AS `D` (`DEPTNO`, `DNAME`) ON (`EMP`.`DEPTNO` = `DEPT`.`DEPTNO`)");
+            + "FROM `EMP` AS `E` (`EMPNO`, `GENDER`)\n"
+            + "INNER JOIN `DEPT` AS `D` (`DEPTNO`, `DNAME`) ON (`EMP`.`DEPTNO` = `DEPT`.`DEPTNO`)");
   }
 
   @Ignore
@@ -179,14 +185,14 @@ public class SqlParserTest {
     check(
         "select 1 as foo from emp",
         "SELECT 1 AS `FOO`\n"
-        + "FROM `EMP`");
+            + "FROM `EMP`");
   }
 
   @Test public void testColumnAliasWithoutAs() {
     check(
         "select 1 foo from emp",
         "SELECT 1 AS `FOO`\n"
-        + "FROM `EMP`");
+            + "FROM `EMP`");
   }
 
   @Test public void testEmbeddedDate() {
@@ -207,33 +213,33 @@ public class SqlParserTest {
     check(
         "select not true, not false, not null, not unknown from t",
         "SELECT (NOT TRUE), (NOT FALSE), (NOT NULL), (NOT UNKNOWN)\n"
-        + "FROM `T`");
+            + "FROM `T`");
   }
 
   @Test public void testBooleanPrecedenceAndAssociativity() {
     check(
         "select * from t where true and false",
         "SELECT *\n"
-        + "FROM `T`\n"
-        + "WHERE (TRUE AND FALSE)");
+            + "FROM `T`\n"
+            + "WHERE (TRUE AND FALSE)");
 
     check(
         "select * from t where null or unknown and unknown",
         "SELECT *\n"
-        + "FROM `T`\n"
-        + "WHERE (NULL OR (UNKNOWN AND UNKNOWN))");
+            + "FROM `T`\n"
+            + "WHERE (NULL OR (UNKNOWN AND UNKNOWN))");
 
     check(
         "select * from t where true and (true or true) or false",
         "SELECT *\n"
-        + "FROM `T`\n"
-        + "WHERE ((TRUE AND (TRUE OR TRUE)) OR FALSE)");
+            + "FROM `T`\n"
+            + "WHERE ((TRUE AND (TRUE OR TRUE)) OR FALSE)");
 
     check(
         "select * from t where 1 and true",
         "SELECT *\n"
-        + "FROM `T`\n"
-        + "WHERE (1 AND TRUE)");
+            + "FROM `T`\n"
+            + "WHERE (1 AND TRUE)");
   }
 
   @Test public void testIsBooleans() {
@@ -243,14 +249,14 @@ public class SqlParserTest {
       check(
           "select * from t where nOt fAlSe Is " + inOut,
           "SELECT *\n"
-          + "FROM `T`\n"
-          + "WHERE ((NOT FALSE) IS " + inOut + ")");
+              + "FROM `T`\n"
+              + "WHERE ((NOT FALSE) IS " + inOut + ")");
 
       check(
           "select * from t where c1=1.1 IS NOT " + inOut,
           "SELECT *\n"
-          + "FROM `T`\n"
-          + "WHERE ((`C1` = 1.1) IS NOT " + inOut + ")");
+              + "FROM `T`\n"
+              + "WHERE ((`C1` = 1.1) IS NOT " + inOut + ")");
     }
   }
 
@@ -258,28 +264,28 @@ public class SqlParserTest {
     check(
         "select * from t where x is unknown is not unknown",
         "SELECT *\n"
-        + "FROM `T`\n"
-        + "WHERE ((`X` IS UNKNOWN) IS NOT UNKNOWN)");
+            + "FROM `T`\n"
+            + "WHERE ((`X` IS UNKNOWN) IS NOT UNKNOWN)");
 
     check(
         "select 1 from t where not true is unknown",
         "SELECT 1\n"
-        + "FROM `T`\n"
-        + "WHERE ((NOT TRUE) IS UNKNOWN)");
+            + "FROM `T`\n"
+            + "WHERE ((NOT TRUE) IS UNKNOWN)");
 
     check(
         "select * from t where x is unknown is not unknown is false is not false"
-        + " is true is not true is null is not null",
+            + " is true is not true is null is not null",
         "SELECT *\n"
-        + "FROM `T`\n"
-        + "WHERE ((((((((`X` IS UNKNOWN) IS NOT UNKNOWN) IS FALSE) IS NOT FALSE) IS TRUE) IS NOT TRUE) IS NULL) IS NOT NULL)");
+            + "FROM `T`\n"
+            + "WHERE ((((((((`X` IS UNKNOWN) IS NOT UNKNOWN) IS FALSE) IS NOT FALSE) IS TRUE) IS NOT TRUE) IS NULL) IS NOT NULL)");
 
     // combine IS postfix operators with infix (AND) and prefix (NOT) ops
     check(
         "select * from t where x is unknown is false and x is unknown is true or not y is unknown is not null",
         "SELECT *\n"
-        + "FROM `T`\n"
-        + "WHERE ((((`X` IS UNKNOWN) IS FALSE) AND ((`X` IS UNKNOWN) IS TRUE)) OR (((NOT `Y`) IS UNKNOWN) IS NOT NULL))");
+            + "FROM `T`\n"
+            + "WHERE ((((`X` IS UNKNOWN) IS FALSE) AND ((`X` IS UNKNOWN) IS TRUE)) OR (((NOT `Y`) IS UNKNOWN) IS NOT NULL))");
   }
 
   @Test public void testEqualNotEqual() {
@@ -307,44 +313,44 @@ public class SqlParserTest {
     check(
         "select * from t where price between 1 and 2",
         "SELECT *\n"
-        + "FROM `T`\n"
-        + "WHERE (`PRICE` BETWEEN ASYMMETRIC 1 AND 2)");
+            + "FROM `T`\n"
+            + "WHERE (`PRICE` BETWEEN ASYMMETRIC 1 AND 2)");
 
     check(
         "select * from t where price between symmetric 1 and 2",
         "SELECT *\n"
-        + "FROM `T`\n"
-        + "WHERE (`PRICE` BETWEEN SYMMETRIC 1 AND 2)");
+            + "FROM `T`\n"
+            + "WHERE (`PRICE` BETWEEN SYMMETRIC 1 AND 2)");
 
     check(
         "select * from t where price not between symmetric 1 and 2",
         "SELECT *\n"
-        + "FROM `T`\n"
-        + "WHERE (`PRICE` NOT BETWEEN SYMMETRIC 1 AND 2)");
+            + "FROM `T`\n"
+            + "WHERE (`PRICE` NOT BETWEEN SYMMETRIC 1 AND 2)");
 
     check(
         "select * from t where price between ASYMMETRIC 1 and 2+2*2",
         "SELECT *\n"
-        + "FROM `T`\n"
-        + "WHERE (`PRICE` BETWEEN ASYMMETRIC 1 AND (2 + (2 * 2)))");
+            + "FROM `T`\n"
+            + "WHERE (`PRICE` BETWEEN ASYMMETRIC 1 AND (2 + (2 * 2)))");
 
     check(
         "select * from t where price > 5 and price not between 1 + 2 and 3 * 4 AnD price is null",
         "SELECT *\n"
-        + "FROM `T`\n"
-        + "WHERE (((`PRICE` > 5) AND (`PRICE` NOT BETWEEN ASYMMETRIC (1 + 2) AND (3 * 4))) AND (`PRICE` IS NULL))");
+            + "FROM `T`\n"
+            + "WHERE (((`PRICE` > 5) AND (`PRICE` NOT BETWEEN ASYMMETRIC (1 + 2) AND (3 * 4))) AND (`PRICE` IS NULL))");
 
     check(
         "select * from t where price > 5 and price between 1 + 2 and 3 * 4 + price is null",
         "SELECT *\n"
-        + "FROM `T`\n"
-        + "WHERE ((`PRICE` > 5) AND ((`PRICE` BETWEEN ASYMMETRIC (1 + 2) AND ((3 * 4) + `PRICE`)) IS NULL))");
+            + "FROM `T`\n"
+            + "WHERE ((`PRICE` > 5) AND ((`PRICE` BETWEEN ASYMMETRIC (1 + 2) AND ((3 * 4) + `PRICE`)) IS NULL))");
 
     check(
         "select * from t where price > 5 and price between 1 + 2 and 3 * 4 or price is null",
         "SELECT *\n"
-        + "FROM `T`\n"
-        + "WHERE (((`PRICE` > 5) AND (`PRICE` BETWEEN ASYMMETRIC (1 + 2) AND (3 * 4))) OR (`PRICE` IS NULL))");
+            + "FROM `T`\n"
+            + "WHERE (((`PRICE` > 5) AND (`PRICE` BETWEEN ASYMMETRIC (1 + 2) AND (3 * 4))) OR (`PRICE` IS NULL))");
 
     check(
         "values a between c and d and e and f between g and h",
@@ -382,29 +388,29 @@ public class SqlParserTest {
     check(
         "select c1*1,c2  + 2,c3/3,c4-4,c5*c4  from t",
         "SELECT (`C1` * 1), (`C2` + 2), (`C3` / 3), (`C4` - 4), (`C5` * `C4`)\n"
-        + "FROM `T`");
+            + "FROM `T`");
   }
 
   @Test public void testRow() {
     check(
         "select t.r.\"EXPR$1\", t.r.\"EXPR$0\" from (select (1,2) r from sales.depts) t",
         "SELECT `T`.`R`.`EXPR$1`, `T`.`R`.`EXPR$0`\n"
-        + "FROM (SELECT (ROW(1, 2)) AS `R`\n"
-        + "FROM `SALES`.`DEPTS`) AS `T`");
+            + "FROM (SELECT (ROW(1, 2)) AS `R`\n"
+            + "FROM `SALES`.`DEPTS`) AS `T`");
 
     check(
         "select t.r.\"EXPR$1\".\"EXPR$2\" "
-        + "from (select ((1,2),(3,4,5)) r from sales.depts) t",
+            + "from (select ((1,2),(3,4,5)) r from sales.depts) t",
         "SELECT `T`.`R`.`EXPR$1`.`EXPR$2`\n"
-        + "FROM (SELECT (ROW((ROW(1, 2)), (ROW(3, 4, 5)))) AS `R`\n"
-        + "FROM `SALES`.`DEPTS`) AS `T`");
+            + "FROM (SELECT (ROW((ROW(1, 2)), (ROW(3, 4, 5)))) AS `R`\n"
+            + "FROM `SALES`.`DEPTS`) AS `T`");
 
     check(
         "select t.r.\"EXPR$1\".\"EXPR$2\" "
-        + "from (select ((1,2),(3,4,5,6)) r from sales.depts) t",
+            + "from (select ((1,2),(3,4,5,6)) r from sales.depts) t",
         "SELECT `T`.`R`.`EXPR$1`.`EXPR$2`\n"
-        + "FROM (SELECT (ROW((ROW(1, 2)), (ROW(3, 4, 5, 6)))) AS `R`\n"
-        + "FROM `SALES`.`DEPTS`) AS `T`");
+            + "FROM (SELECT (ROW((ROW(1, 2)), (ROW(3, 4, 5, 6)))) AS `R`\n"
+            + "FROM `SALES`.`DEPTS`) AS `T`");
   }
 
   @Test public void testOverlaps() {
@@ -437,44 +443,44 @@ public class SqlParserTest {
     check(
         "select x is distinct from y from t",
         "SELECT (`X` IS DISTINCT FROM `Y`)\n"
-        + "FROM `T`");
+            + "FROM `T`");
 
     check(
         "select * from t where x is distinct from y",
         "SELECT *\n"
-        + "FROM `T`\n"
-        + "WHERE (`X` IS DISTINCT FROM `Y`)");
+            + "FROM `T`\n"
+            + "WHERE (`X` IS DISTINCT FROM `Y`)");
 
     check(
         "select * from t where x is distinct from (4,5,6)",
         "SELECT *\n"
-        + "FROM `T`\n"
-        + "WHERE (`X` IS DISTINCT FROM (ROW(4, 5, 6)))");
+            + "FROM `T`\n"
+            + "WHERE (`X` IS DISTINCT FROM (ROW(4, 5, 6)))");
 
     check(
         "select * from t where true is distinct from true",
         "SELECT *\n"
-        + "FROM `T`\n"
-        + "WHERE (TRUE IS DISTINCT FROM TRUE)");
+            + "FROM `T`\n"
+            + "WHERE (TRUE IS DISTINCT FROM TRUE)");
 
     check(
         "select * from t where true is distinct from true is true",
         "SELECT *\n"
-        + "FROM `T`\n"
-        + "WHERE ((TRUE IS DISTINCT FROM TRUE) IS TRUE)");
+            + "FROM `T`\n"
+            + "WHERE ((TRUE IS DISTINCT FROM TRUE) IS TRUE)");
   }
 
   @Test public void testIsNotDistinct() {
     check(
         "select x is not distinct from y from t",
         "SELECT (`X` IS NOT DISTINCT FROM `Y`)\n"
-        + "FROM `T`");
+            + "FROM `T`");
 
     check(
         "select * from t where true is not distinct from true",
         "SELECT *\n"
-        + "FROM `T`\n"
-        + "WHERE (TRUE IS NOT DISTINCT FROM TRUE)");
+            + "FROM `T`\n"
+            + "WHERE (TRUE IS NOT DISTINCT FROM TRUE)");
   }
 
   @Test public void testCast() {
@@ -509,22 +515,22 @@ public class SqlParserTest {
     check(
         "select * from t where x like '%abc%'",
         "SELECT *\n"
-        + "FROM `T`\n"
-        + "WHERE (`X` LIKE '%abc%')");
+            + "FROM `T`\n"
+            + "WHERE (`X` LIKE '%abc%')");
 
     check(
         "select * from t where x+1 not siMilaR to '%abc%' ESCAPE 'e'",
         "SELECT *\n"
-        + "FROM `T`\n"
-        + "WHERE ((`X` + 1) NOT SIMILAR TO '%abc%' ESCAPE 'e')");
+            + "FROM `T`\n"
+            + "WHERE ((`X` + 1) NOT SIMILAR TO '%abc%' ESCAPE 'e')");
 
     // LIKE has higher precedence than AND
     check(
         "select * from t where price > 5 and x+2*2 like y*3+2 escape (select*from t)",
         "SELECT *\n"
-        + "FROM `T`\n"
-        + "WHERE ((`PRICE` > 5) AND ((`X` + (2 * 2)) LIKE ((`Y` * 3) + 2) ESCAPE (SELECT *\n"
-        + "FROM `T`)))");
+            + "FROM `T`\n"
+            + "WHERE ((`PRICE` > 5) AND ((`X` + (2 * 2)) LIKE ((`Y` * 3) + 2) ESCAPE (SELECT *\n"
+            + "FROM `T`)))");
 
     check(
         "values a and b like c",
@@ -586,22 +592,22 @@ public class SqlParserTest {
     check(
         "select * from t where x similar to '%abc%'",
         "SELECT *\n"
-        + "FROM `T`\n"
-        + "WHERE (`X` SIMILAR TO '%abc%')");
+            + "FROM `T`\n"
+            + "WHERE (`X` SIMILAR TO '%abc%')");
 
     check(
         "select * from t where x+1 not siMilaR to '%abc%' ESCAPE 'e'",
         "SELECT *\n"
-        + "FROM `T`\n"
-        + "WHERE ((`X` + 1) NOT SIMILAR TO '%abc%' ESCAPE 'e')");
+            + "FROM `T`\n"
+            + "WHERE ((`X` + 1) NOT SIMILAR TO '%abc%' ESCAPE 'e')");
 
     // SIMILAR TO has higher precedence than AND
     check(
         "select * from t where price > 5 and x+2*2 SIMILAR TO y*3+2 escape (select*from t)",
         "SELECT *\n"
-        + "FROM `T`\n"
-        + "WHERE ((`PRICE` > 5) AND ((`X` + (2 * 2)) SIMILAR TO ((`Y` * 3) + 2) ESCAPE (SELECT *\n"
-        + "FROM `T`)))");
+            + "FROM `T`\n"
+            + "WHERE ((`PRICE` > 5) AND ((`X` + (2 * 2)) SIMILAR TO ((`Y` * 3) + 2) ESCAPE (SELECT *\n"
+            + "FROM `T`)))");
 
     // Mixed LIKE and SIMILAR TO
     check(
@@ -612,8 +618,8 @@ public class SqlParserTest {
     check(
         "values a similar to (select * from t where a like b escape c) escape d",
         "(VALUES (ROW((`A` SIMILAR TO (SELECT *\n"
-        + "FROM `T`\n"
-        + "WHERE (`A` LIKE `B` ESCAPE `C`)) ESCAPE `D`))))");
+            + "FROM `T`\n"
+            + "WHERE (`A` LIKE `B` ESCAPE `C`)) ESCAPE `D`))))");
   }
 
   @Test public void testFoo() {
@@ -632,27 +638,27 @@ public class SqlParserTest {
     check(
         "select * from dept where exists (select 1 from emp where emp.deptno = dept.deptno)",
         "SELECT *\n"
-        + "FROM `DEPT`\n"
-        + "WHERE (EXISTS (SELECT 1\n"
-        + "FROM `EMP`\n"
-        + "WHERE (`EMP`.`DEPTNO` = `DEPT`.`DEPTNO`)))");
+            + "FROM `DEPT`\n"
+            + "WHERE (EXISTS (SELECT 1\n"
+            + "FROM `EMP`\n"
+            + "WHERE (`EMP`.`DEPTNO` = `DEPT`.`DEPTNO`)))");
   }
 
   @Test public void testExistsInWhere() {
     check(
         "select * from emp where 1 = 2 and exists (select 1 from dept) and 3 = 4",
         "SELECT *\n"
-        + "FROM `EMP`\n"
-        + "WHERE (((1 = 2) AND (EXISTS (SELECT 1\n"
-        + "FROM `DEPT`))) AND (3 = 4))");
+            + "FROM `EMP`\n"
+            + "WHERE (((1 = 2) AND (EXISTS (SELECT 1\n"
+            + "FROM `DEPT`))) AND (3 = 4))");
   }
 
   @Test public void testFromWithAs() {
     check(
         "select 1 from emp as e where 1",
         "SELECT 1\n"
-        + "FROM `EMP` AS `E`\n"
-        + "WHERE 1");
+            + "FROM `EMP` AS `E`\n"
+            + "WHERE 1");
   }
 
   @Test public void testConcat() {
@@ -681,7 +687,7 @@ public class SqlParserTest {
     check(
         "select substring('Eggs and ham', 1, 3 + 2) || ' benedict' from emp",
         "SELECT (SUBSTRING('Eggs and ham' FROM 1 FOR (3 + 2)) || ' benedict')\n"
-        + "FROM `EMP`");
+            + "FROM `EMP`");
     checkExp(
         "log10(1)\r\n+power(2, mod(\r\n3\n\t\t\f\n,ln(4))*log10(5)-6*log10(7/abs(8)+9))*power(10,11)",
         "(LOG10(1) + (POWER(2, ((MOD(3, LN(4)) * LOG10(5)) - (6 * LOG10(((7 / ABS(8)) + 9))))) * POWER(10, 11)))");
@@ -694,7 +700,7 @@ public class SqlParserTest {
     check(
         "select count(1), count(distinct 2) from emp",
         "SELECT COUNT(1), COUNT(DISTINCT 2)\n"
-        + "FROM `EMP`");
+            + "FROM `EMP`");
   }
 
   @Test public void testFunctionInFunction() {
@@ -705,24 +711,24 @@ public class SqlParserTest {
     check(
         "select deptno, min(foo) as x from emp group by deptno, gender",
         "SELECT `DEPTNO`, MIN(`FOO`) AS `X`\n"
-        + "FROM `EMP`\n"
-        + "GROUP BY `DEPTNO`, `GENDER`");
+            + "FROM `EMP`\n"
+            + "GROUP BY `DEPTNO`, `GENDER`");
   }
 
   @Test public void testGroupEmpty() {
     check(
         "select count(*) from emp group by ()",
         "SELECT COUNT(*)\n"
-        + "FROM `EMP`\n"
-        + "GROUP BY ()");
+            + "FROM `EMP`\n"
+            + "GROUP BY ()");
 
     check(
         "select count(*) from emp group by () having 1 = 2 order by 3",
         "SELECT COUNT(*)\n"
-        + "FROM `EMP`\n"
-        + "GROUP BY ()\n"
-        + "HAVING (1 = 2)\n"
-        + "ORDER BY 3");
+            + "FROM `EMP`\n"
+            + "GROUP BY ()\n"
+            + "HAVING (1 = 2)\n"
+            + "ORDER BY 3");
 
     checkFails(
         "select 1 from emp group by ()^,^ x",
@@ -736,18 +742,18 @@ public class SqlParserTest {
     check(
         "select 1 from emp group by (empno + deptno)",
         "SELECT 1\n"
-        + "FROM `EMP`\n"
-        + "GROUP BY (`EMPNO` + `DEPTNO`)");
+            + "FROM `EMP`\n"
+            + "GROUP BY (`EMPNO` + `DEPTNO`)");
   }
 
   @Test public void testHavingAfterGroup() {
     check(
         "select deptno from emp group by deptno, emp having count(*) > 5 and 1 = 2 order by 5, 2",
         "SELECT `DEPTNO`\n"
-        + "FROM `EMP`\n"
-        + "GROUP BY `DEPTNO`, `EMP`\n"
-        + "HAVING ((COUNT(*) > 5) AND (1 = 2))\n"
-        + "ORDER BY 5, 2");
+            + "FROM `EMP`\n"
+            + "GROUP BY `DEPTNO`, `EMP`\n"
+            + "HAVING ((COUNT(*) > 5) AND (1 = 2))\n"
+            + "ORDER BY 5, 2");
   }
 
   @Test public void testHavingBeforeGroupFails() {
@@ -760,79 +766,79 @@ public class SqlParserTest {
     check(
         "select deptno from emp having count(*) > 5",
         "SELECT `DEPTNO`\n"
-        + "FROM `EMP`\n"
-        + "HAVING (COUNT(*) > 5)");
+            + "FROM `EMP`\n"
+            + "HAVING (COUNT(*) > 5)");
   }
 
   @Test public void testWith() {
     check(
         "with femaleEmps as (select * from emps where gender = 'F')"
-        + "select deptno from femaleEmps",
+            + "select deptno from femaleEmps",
         "WITH `FEMALEEMPS` AS (SELECT *\n"
-        + "FROM `EMPS`\n"
-        + "WHERE (`GENDER` = 'F')) SELECT `DEPTNO`\n"
-        + "FROM `FEMALEEMPS`");
+            + "FROM `EMPS`\n"
+            + "WHERE (`GENDER` = 'F')) SELECT `DEPTNO`\n"
+            + "FROM `FEMALEEMPS`");
   }
 
   @Test public void testWith2() {
     check(
         "with femaleEmps as (select * from emps where gender = 'F'),\n"
-        + "marriedFemaleEmps(x, y) as (select * from femaleEmps where maritaStatus = 'M')\n"
-        + "select deptno from femaleEmps",
+            + "marriedFemaleEmps(x, y) as (select * from femaleEmps where maritaStatus = 'M')\n"
+            + "select deptno from femaleEmps",
         "WITH `FEMALEEMPS` AS (SELECT *\n"
-        + "FROM `EMPS`\n"
-        + "WHERE (`GENDER` = 'F')), `MARRIEDFEMALEEMPS` (`X`, `Y`) AS (SELECT *\n"
-        + "FROM `FEMALEEMPS`\n"
-        + "WHERE (`MARITASTATUS` = 'M')) SELECT `DEPTNO`\n"
-        + "FROM `FEMALEEMPS`");
+            + "FROM `EMPS`\n"
+            + "WHERE (`GENDER` = 'F')), `MARRIEDFEMALEEMPS` (`X`, `Y`) AS (SELECT *\n"
+            + "FROM `FEMALEEMPS`\n"
+            + "WHERE (`MARITASTATUS` = 'M')) SELECT `DEPTNO`\n"
+            + "FROM `FEMALEEMPS`");
   }
 
   @Test public void testWithFails() {
     checkFails("with femaleEmps as ^select^ * from emps where gender = 'F'\n"
-        + "select deptno from femaleEmps",
+            + "select deptno from femaleEmps",
         "(?s)Encountered \"select\" at .*");
   }
 
   @Test public void testWithValues() {
     check(
         "with v(i,c) as (values (1, 'a'), (2, 'bb'))\n"
-        + "select c, i from v",
+            + "select c, i from v",
         "WITH `V` (`I`, `C`) AS (VALUES (ROW(1, 'a')), (ROW(2, 'bb'))) SELECT `C`, `I`\n"
-        + "FROM `V`");
+            + "FROM `V`");
   }
 
   @Test public void testWithNestedFails() {
     // SQL standard does not allow WITH to contain WITH
     checkFails("with emp2 as (select * from emp)\n"
-        + "^with^ dept2 as (select * from dept)\n"
-        + "select 1 as one from emp, dept",
+            + "^with^ dept2 as (select * from dept)\n"
+            + "select 1 as one from emp, dept",
         "(?s)Encountered \"with\" at .*");
   }
 
   @Test public void testWithNestedInSubquery() {
     // SQL standard does not allow sub-query to contain WITH but we do
     check("with emp2 as (select * from emp)\n"
-        + "(\n"
-        + "  with dept2 as (select * from dept)\n"
-        + "  select 1 as one from empDept)",
+            + "(\n"
+            + "  with dept2 as (select * from dept)\n"
+            + "  select 1 as one from empDept)",
         "WITH `EMP2` AS (SELECT *\n"
-        + "FROM `EMP`) WITH `DEPT2` AS (SELECT *\n"
-        + "FROM `DEPT`) SELECT 1 AS `ONE`\n"
-        + "FROM `EMPDEPT`");
+            + "FROM `EMP`) WITH `DEPT2` AS (SELECT *\n"
+            + "FROM `DEPT`) SELECT 1 AS `ONE`\n"
+            + "FROM `EMPDEPT`");
   }
 
   @Test public void testWithUnion() {
     // Per the standard WITH ... SELECT ... UNION is valid even without parens.
     check("with emp2 as (select * from emp)\n"
-        + "select * from emp2\n"
-        + "union\n"
-        + "select * from emp2\n",
+            + "select * from emp2\n"
+            + "union\n"
+            + "select * from emp2\n",
         "WITH `EMP2` AS (SELECT *\n"
-        + "FROM `EMP`) (SELECT *\n"
-        + "FROM `EMP2`\n"
-        + "UNION\n"
-        + "SELECT *\n"
-        + "FROM `EMP2`)");
+            + "FROM `EMP`) (SELECT *\n"
+            + "FROM `EMP2`\n"
+            + "UNION\n"
+            + "SELECT *\n"
+            + "FROM `EMP2`)");
   }
 
   @Test public void testIdentifier() {
@@ -877,12 +883,12 @@ public class SqlParserTest {
     // is a table alias.
     check("select * from myMap[field], myArray[1 + 2]",
         "SELECT *\n"
-        + "FROM `MYMAP` AS `field`,\n"
-        + "`MYARRAY` AS `1 + 2`");
+            + "FROM `MYMAP` AS `field`,\n"
+            + "`MYARRAY` AS `1 + 2`");
     check("select * from myMap [field], myArray [1 + 2]",
         "SELECT *\n"
-        + "FROM `MYMAP` AS `field`,\n"
-        + "`MYARRAY` AS `1 + 2`");
+            + "FROM `MYMAP` AS `field`,\n"
+            + "`MYARRAY` AS `1 + 2`");
   }
 
   @Test public void testBackTickQuery() {
@@ -890,16 +896,16 @@ public class SqlParserTest {
     check(
         "select `x`.`b baz` from `emp` as `x` where `x`.deptno in (10, 20)",
         "SELECT `x`.`b baz`\n"
-        + "FROM `emp` AS `x`\n"
-        + "WHERE (`x`.`DEPTNO` IN (10, 20))");
+            + "FROM `emp` AS `x`\n"
+            + "WHERE (`x`.`DEPTNO` IN (10, 20))");
   }
 
   @Test public void testInList() {
     check(
         "select * from emp where deptno in (10, 20) and gender = 'F'",
         "SELECT *\n"
-        + "FROM `EMP`\n"
-        + "WHERE ((`DEPTNO` IN (10, 20)) AND (`GENDER` = 'F'))");
+            + "FROM `EMP`\n"
+            + "WHERE ((`DEPTNO` IN (10, 20)) AND (`GENDER` = 'F'))");
   }
 
   @Test public void testInListEmptyFails() {
@@ -912,9 +918,9 @@ public class SqlParserTest {
     check(
         "select * from emp where deptno in (select deptno from dept)",
         "SELECT *\n"
-        + "FROM `EMP`\n"
-        + "WHERE (`DEPTNO` IN (SELECT `DEPTNO`\n"
-        + "FROM `DEPT`))");
+            + "FROM `EMP`\n"
+            + "WHERE (`DEPTNO` IN (SELECT `DEPTNO`\n"
+            + "FROM `DEPT`))");
   }
 
   /**
@@ -924,64 +930,64 @@ public class SqlParserTest {
     check(
         "select * from emp where deptno in (select deptno from dept group by 1, 2)",
         "SELECT *\n"
-        + "FROM `EMP`\n"
-        + "WHERE (`DEPTNO` IN (SELECT `DEPTNO`\n"
-        + "FROM `DEPT`\n"
-        + "GROUP BY 1, 2))");
+            + "FROM `EMP`\n"
+            + "WHERE (`DEPTNO` IN (SELECT `DEPTNO`\n"
+            + "FROM `DEPT`\n"
+            + "GROUP BY 1, 2))");
   }
 
   @Test public void testInSetop() {
     check(
         "select * from emp where deptno in ((select deptno from dept union select * from dept)"
-        + "except select * from dept) and false",
+            + "except select * from dept) and false",
         "SELECT *\n"
-        + "FROM `EMP`\n"
-        + "WHERE ((`DEPTNO` IN ((SELECT `DEPTNO`\n"
-        + "FROM `DEPT`\n"
-        + "UNION\n"
-        + "SELECT *\n"
-        + "FROM `DEPT`)\n"
-        + "EXCEPT\n"
-        + "SELECT *\n"
-        + "FROM `DEPT`)) AND FALSE)");
+            + "FROM `EMP`\n"
+            + "WHERE ((`DEPTNO` IN ((SELECT `DEPTNO`\n"
+            + "FROM `DEPT`\n"
+            + "UNION\n"
+            + "SELECT *\n"
+            + "FROM `DEPT`)\n"
+            + "EXCEPT\n"
+            + "SELECT *\n"
+            + "FROM `DEPT`)) AND FALSE)");
   }
 
   @Test public void testUnion() {
     check(
         "select * from a union select * from a",
         "(SELECT *\n"
-        + "FROM `A`\n"
-        + "UNION\n"
-        + "SELECT *\n"
-        + "FROM `A`)");
+            + "FROM `A`\n"
+            + "UNION\n"
+            + "SELECT *\n"
+            + "FROM `A`)");
     check(
         "select * from a union all select * from a",
         "(SELECT *\n"
-        + "FROM `A`\n"
-        + "UNION ALL\n"
-        + "SELECT *\n"
-        + "FROM `A`)");
+            + "FROM `A`\n"
+            + "UNION ALL\n"
+            + "SELECT *\n"
+            + "FROM `A`)");
     check(
         "select * from a union distinct select * from a",
         "(SELECT *\n"
-        + "FROM `A`\n"
-        + "UNION\n"
-        + "SELECT *\n"
-        + "FROM `A`)");
+            + "FROM `A`\n"
+            + "UNION\n"
+            + "SELECT *\n"
+            + "FROM `A`)");
   }
 
   @Test public void testUnionOrder() {
     check(
         "select a, b from t "
-        + "union all "
-        + "select x, y from u "
-        + "order by 1 asc, 2 desc",
+            + "union all "
+            + "select x, y from u "
+            + "order by 1 asc, 2 desc",
         "(SELECT `A`, `B`\n"
-        + "FROM `T`\n"
-        + "UNION ALL\n"
-        + "SELECT `X`, `Y`\n"
-        + "FROM `U`)\n"
-        + "ORDER BY 1, 2 DESC");
+            + "FROM `T`\n"
+            + "UNION ALL\n"
+            + "SELECT `X`, `Y`\n"
+            + "FROM `U`)\n"
+            + "ORDER BY 1, 2 DESC");
   }
 
   @Test public void testUnionOfNonQueryFails() {
@@ -1007,65 +1013,65 @@ public class SqlParserTest {
     check(
         "select * from a except select * from a",
         "(SELECT *\n"
-        + "FROM `A`\n"
-        + "EXCEPT\n"
-        + "SELECT *\n"
-        + "FROM `A`)");
+            + "FROM `A`\n"
+            + "EXCEPT\n"
+            + "SELECT *\n"
+            + "FROM `A`)");
     check(
         "select * from a except all select * from a",
         "(SELECT *\n"
-        + "FROM `A`\n"
-        + "EXCEPT ALL\n"
-        + "SELECT *\n"
-        + "FROM `A`)");
+            + "FROM `A`\n"
+            + "EXCEPT ALL\n"
+            + "SELECT *\n"
+            + "FROM `A`)");
     check(
         "select * from a except distinct select * from a",
         "(SELECT *\n"
-        + "FROM `A`\n"
-        + "EXCEPT\n"
-        + "SELECT *\n"
-        + "FROM `A`)");
+            + "FROM `A`\n"
+            + "EXCEPT\n"
+            + "SELECT *\n"
+            + "FROM `A`)");
   }
 
   @Test public void testIntersect() {
     check(
         "select * from a intersect select * from a",
         "(SELECT *\n"
-        + "FROM `A`\n"
-        + "INTERSECT\n"
-        + "SELECT *\n"
-        + "FROM `A`)");
+            + "FROM `A`\n"
+            + "INTERSECT\n"
+            + "SELECT *\n"
+            + "FROM `A`)");
     check(
         "select * from a intersect all select * from a",
         "(SELECT *\n"
-        + "FROM `A`\n"
-        + "INTERSECT ALL\n"
-        + "SELECT *\n"
-        + "FROM `A`)");
+            + "FROM `A`\n"
+            + "INTERSECT ALL\n"
+            + "SELECT *\n"
+            + "FROM `A`)");
     check(
         "select * from a intersect distinct select * from a",
         "(SELECT *\n"
-        + "FROM `A`\n"
-        + "INTERSECT\n"
-        + "SELECT *\n"
-        + "FROM `A`)");
+            + "FROM `A`\n"
+            + "INTERSECT\n"
+            + "SELECT *\n"
+            + "FROM `A`)");
   }
 
   @Test public void testJoinCross() {
     check(
         "select * from a as a2 cross join b",
         "SELECT *\n"
-        + "FROM `A` AS `A2`\n"
-        + "CROSS JOIN `B`");
+            + "FROM `A` AS `A2`\n"
+            + "CROSS JOIN `B`");
   }
 
   @Test public void testJoinOn() {
     check(
         "select * from a left join b on 1 = 1 and 2 = 2 where 3 = 3",
         "SELECT *\n"
-        + "FROM `A`\n"
-        + "LEFT JOIN `B` ON ((1 = 1) AND (2 = 2))\n"
-        + "WHERE (3 = 3)");
+            + "FROM `A`\n"
+            + "LEFT JOIN `B` ON ((1 = 1) AND (2 = 2))\n"
+            + "WHERE (3 = 3)");
   }
 
   @Test public void testJoinOnParentheses() {
@@ -1074,12 +1080,12 @@ public class SqlParserTest {
     }
     check(
         "select * from a\n"
-        + " left join (b join c as c1 on 1 = 1) on 2 = 2\n"
-        + "where 3 = 3",
+            + " left join (b join c as c1 on 1 = 1) on 2 = 2\n"
+            + "where 3 = 3",
         "SELECT *\n"
-        + "FROM `A`\n"
-        + "LEFT JOIN (`B` INNER JOIN `C` AS `C1` ON (1 = 1)) ON (2 = 2)\n"
-        + "WHERE (3 = 3)");
+            + "FROM `A`\n"
+            + "LEFT JOIN (`B` INNER JOIN `C` AS `C1` ON (1 = 1)) ON (2 = 2)\n"
+            + "WHERE (3 = 3)");
   }
 
   /**
@@ -1091,22 +1097,22 @@ public class SqlParserTest {
     }
     check(
         "select * from a\n"
-        + " left join (b as b1 (x, y) join (select * from c) c1 on 1 = 1) on 2 = 2\n"
-        + "where 3 = 3",
+            + " left join (b as b1 (x, y) join (select * from c) c1 on 1 = 1) on 2 = 2\n"
+            + "where 3 = 3",
         "SELECT *\n"
-        + "FROM `A`\n"
-        + "LEFT JOIN (`B` AS `B1` (`X`, `Y`) INNER JOIN (SELECT *\n"
-        + "FROM `C`) AS `C1` ON (1 = 1)) ON (2 = 2)\n"
-        + "WHERE (3 = 3)");
+            + "FROM `A`\n"
+            + "LEFT JOIN (`B` AS `B1` (`X`, `Y`) INNER JOIN (SELECT *\n"
+            + "FROM `C`) AS `C1` ON (1 = 1)) ON (2 = 2)\n"
+            + "WHERE (3 = 3)");
   }
 
   @Test public void testExplicitTableInJoin() {
     check(
         "select * from a left join (table b) on 2 = 2 where 3 = 3",
         "SELECT *\n"
-        + "FROM `A`\n"
-        + "LEFT JOIN (TABLE `B`) ON (2 = 2)\n"
-        + "WHERE (3 = 3)");
+            + "FROM `A`\n"
+            + "LEFT JOIN (TABLE `B`) ON (2 = 2)\n"
+            + "WHERE (3 = 3)");
   }
 
   @Test public void testSubqueryInJoin() {
@@ -1115,32 +1121,32 @@ public class SqlParserTest {
     }
     check(
         "select * from (select * from a cross join b) as ab\n"
-        + " left join ((table c) join d on 2 = 2) on 3 = 3\n"
-        + " where 4 = 4",
+            + " left join ((table c) join d on 2 = 2) on 3 = 3\n"
+            + " where 4 = 4",
         "SELECT *\n"
-        + "FROM (SELECT *\n"
-        + "FROM `A`\n"
-        + "CROSS JOIN `B`) AS `AB`\n"
-        + "LEFT JOIN ((TABLE `C`) INNER JOIN `D` ON (2 = 2)) ON (3 = 3)\n"
-        + "WHERE (4 = 4)");
+            + "FROM (SELECT *\n"
+            + "FROM `A`\n"
+            + "CROSS JOIN `B`) AS `AB`\n"
+            + "LEFT JOIN ((TABLE `C`) INNER JOIN `D` ON (2 = 2)) ON (3 = 3)\n"
+            + "WHERE (4 = 4)");
   }
 
   @Test public void testOuterJoinNoiseWord() {
     check(
         "select * from a left outer join b on 1 = 1 and 2 = 2 where 3 = 3",
         "SELECT *\n"
-        + "FROM `A`\n"
-        + "LEFT JOIN `B` ON ((1 = 1) AND (2 = 2))\n"
-        + "WHERE (3 = 3)");
+            + "FROM `A`\n"
+            + "LEFT JOIN `B` ON ((1 = 1) AND (2 = 2))\n"
+            + "WHERE (3 = 3)");
   }
 
   @Test public void testJoinQuery() {
     check(
         "select * from a join (select * from b) as b2 on true",
         "SELECT *\n"
-        + "FROM `A`\n"
-        + "INNER JOIN (SELECT *\n"
-        + "FROM `B`) AS `B2` ON TRUE");
+            + "FROM `A`\n"
+            + "INNER JOIN (SELECT *\n"
+            + "FROM `B`) AS `B2` ON TRUE");
   }
 
   @Test public void testFullInnerJoinFails() {
@@ -1155,8 +1161,8 @@ public class SqlParserTest {
     check(
         "select * from a full outer join b",
         "SELECT *\n"
-        + "FROM `A`\n"
-        + "FULL JOIN `B`");
+            + "FROM `A`\n"
+            + "FULL JOIN `B`");
   }
 
   @Test public void testInnerOuterJoinFails() {
@@ -1172,19 +1178,19 @@ public class SqlParserTest {
     check(
         "select * from (a natural left join b) left join c on b.c1 = c.c1",
         "SELECT *\n"
-        + "FROM (`A` NATURAL LEFT JOIN `B`) LEFT JOIN `C` ON (`B`.`C1` = `C`.`C1`)\n");
+            + "FROM (`A` NATURAL LEFT JOIN `B`) LEFT JOIN `C` ON (`B`.`C1` = `C`.`C1`)\n");
 
     // 2. parens needed
     check(
         "select * from a natural left join (b left join c on b.c1 = c.c1)",
         "SELECT *\n"
-        + "FROM (`A` NATURAL LEFT JOIN `B`) LEFT JOIN `C` ON (`B`.`C1` = `C`.`C1`)\n");
+            + "FROM (`A` NATURAL LEFT JOIN `B`) LEFT JOIN `C` ON (`B`.`C1` = `C`.`C1`)\n");
 
     // 3. same as 1
     check(
         "select * from a natural left join b left join c on b.c1 = c.c1",
         "SELECT *\n"
-        + "FROM (`A` NATURAL LEFT JOIN `B`) LEFT JOIN `C` ON (`B`.`C1` = `C`.`C1`)\n");
+            + "FROM (`A` NATURAL LEFT JOIN `B`) LEFT JOIN `C` ON (`B`.`C1` = `C`.`C1`)\n");
   }
 
   // Note: "select * from a natural cross join b" is actually illegal SQL
@@ -1194,16 +1200,16 @@ public class SqlParserTest {
     check(
         "select * from a natural cross join b",
         "SELECT *\n"
-        + "FROM `A`\n"
-        + "NATURAL CROSS JOIN `B`");
+            + "FROM `A`\n"
+            + "NATURAL CROSS JOIN `B`");
   }
 
   @Test public void testJoinUsing() {
     check(
         "select * from a join b using (x)",
         "SELECT *\n"
-        + "FROM `A`\n"
-        + "INNER JOIN `B` USING (`X`)");
+            + "FROM `A`\n"
+            + "INNER JOIN `B` USING (`X`)");
     checkFails(
         "select * from a join b using (^)^ where c = d",
         "(?s).*Encountered \"[)]\" at line 1, column 31.*");
@@ -1212,31 +1218,31 @@ public class SqlParserTest {
   @Test public void testTableSample() {
     check(
         "select * from ("
-        + "  select * "
-        + "  from emp "
-        + "  join dept on emp.deptno = dept.deptno"
-        + "  where gender = 'F'"
-        + "  order by sal) tablesample substitute('medium')",
+            + "  select * "
+            + "  from emp "
+            + "  join dept on emp.deptno = dept.deptno"
+            + "  where gender = 'F'"
+            + "  order by sal) tablesample substitute('medium')",
         "SELECT *\n"
-        + "FROM (SELECT *\n"
-        + "FROM `EMP`\n"
-        + "INNER JOIN `DEPT` ON (`EMP`.`DEPTNO` = `DEPT`.`DEPTNO`)\n"
-        + "WHERE (`GENDER` = 'F')\n"
-        + "ORDER BY `SAL`) TABLESAMPLE SUBSTITUTE('MEDIUM')");
+            + "FROM (SELECT *\n"
+            + "FROM `EMP`\n"
+            + "INNER JOIN `DEPT` ON (`EMP`.`DEPTNO` = `DEPT`.`DEPTNO`)\n"
+            + "WHERE (`GENDER` = 'F')\n"
+            + "ORDER BY `SAL`) TABLESAMPLE SUBSTITUTE('MEDIUM')");
 
     check(
         "select * "
-        + "from emp as x tablesample substitute('medium') "
-        + "join dept tablesample substitute('lar' /* split */ 'ge') on x.deptno = dept.deptno",
+            + "from emp as x tablesample substitute('medium') "
+            + "join dept tablesample substitute('lar' /* split */ 'ge') on x.deptno = dept.deptno",
         "SELECT *\n"
-        + "FROM `EMP` AS `X` TABLESAMPLE SUBSTITUTE('MEDIUM')\n"
-        + "INNER JOIN `DEPT` TABLESAMPLE SUBSTITUTE('LARGE') ON (`X`.`DEPTNO` = `DEPT`.`DEPTNO`)");
+            + "FROM `EMP` AS `X` TABLESAMPLE SUBSTITUTE('MEDIUM')\n"
+            + "INNER JOIN `DEPT` TABLESAMPLE SUBSTITUTE('LARGE') ON (`X`.`DEPTNO` = `DEPT`.`DEPTNO`)");
 
     check(
         "select * "
-        + "from emp as x tablesample bernoulli(50)",
+            + "from emp as x tablesample bernoulli(50)",
         "SELECT *\n"
-        + "FROM `EMP` AS `X` TABLESAMPLE BERNOULLI(50.0)");
+            + "FROM `EMP` AS `X` TABLESAMPLE BERNOULLI(50.0)");
   }
 
   @Test public void testLiteral() {
@@ -1245,7 +1251,7 @@ public class SqlParserTest {
     check(
         "select 1 as one, 'x' as x, null as n from emp",
         "SELECT 1 AS `ONE`, 'x' AS `X`, NULL AS `N`\n"
-        + "FROM `EMP`");
+            + "FROM `EMP`");
 
     // Even though it looks like a date, it's just a string.
     checkExp("'2004-06-01'", "'2004-06-01'");
@@ -1293,72 +1299,72 @@ public class SqlParserTest {
     check(
         "select * from a join b using (x), c join d using (y)",
         "SELECT *\n"
-        + "FROM `A`\n"
-        + "INNER JOIN `B` USING (`X`),\n"
-        + "`C`\n"
-        + "INNER JOIN `D` USING (`Y`)");
+            + "FROM `A`\n"
+            + "INNER JOIN `B` USING (`X`),\n"
+            + "`C`\n"
+            + "INNER JOIN `D` USING (`Y`)");
   }
 
   @Test public void testMixedStar() {
     check(
         "select emp.*, 1 as foo from emp, dept",
         "SELECT `EMP`.*, 1 AS `FOO`\n"
-        + "FROM `EMP`,\n"
-        + "`DEPT`");
+            + "FROM `EMP`,\n"
+            + "`DEPT`");
   }
 
   @Test public void testNotExists() {
     check(
         "select * from dept where not not exists (select * from emp) and true",
         "SELECT *\n"
-        + "FROM `DEPT`\n"
-        + "WHERE ((NOT (NOT (EXISTS (SELECT *\n"
-        + "FROM `EMP`)))) AND TRUE)");
+            + "FROM `DEPT`\n"
+            + "WHERE ((NOT (NOT (EXISTS (SELECT *\n"
+            + "FROM `EMP`)))) AND TRUE)");
   }
 
   @Test public void testOrder() {
     check(
         "select * from emp order by empno, gender desc, deptno asc, empno asc, name desc",
         "SELECT *\n"
-        + "FROM `EMP`\n"
-        + "ORDER BY `EMPNO`, `GENDER` DESC, `DEPTNO`, `EMPNO`, `NAME` DESC");
+            + "FROM `EMP`\n"
+            + "ORDER BY `EMPNO`, `GENDER` DESC, `DEPTNO`, `EMPNO`, `NAME` DESC");
   }
 
   @Test public void testOrderNullsFirst() {
     check(
         "select * from emp order by gender desc nulls last, deptno asc nulls first, empno nulls last",
         "SELECT *\n"
-        + "FROM `EMP`\n"
-        + "ORDER BY `GENDER` DESC NULLS LAST, `DEPTNO` NULLS FIRST, `EMPNO` NULLS LAST");
+            + "FROM `EMP`\n"
+            + "ORDER BY `GENDER` DESC NULLS LAST, `DEPTNO` NULLS FIRST, `EMPNO` NULLS LAST");
   }
 
   @Test public void testOrderInternal() {
     check(
         "(select * from emp order by empno) union select * from emp",
         "((SELECT *\n"
-        + "FROM `EMP`\n"
-        + "ORDER BY `EMPNO`)\n"
-        + "UNION\n"
-        + "SELECT *\n"
-        + "FROM `EMP`)");
+            + "FROM `EMP`\n"
+            + "ORDER BY `EMPNO`)\n"
+            + "UNION\n"
+            + "SELECT *\n"
+            + "FROM `EMP`)");
 
     check(
         "select * from (select * from t order by x, y) where a = b",
         "SELECT *\n"
-        + "FROM (SELECT *\n"
-        + "FROM `T`\n"
-        + "ORDER BY `X`, `Y`)\n"
-        + "WHERE (`A` = `B`)");
+            + "FROM (SELECT *\n"
+            + "FROM `T`\n"
+            + "ORDER BY `X`, `Y`)\n"
+            + "WHERE (`A` = `B`)");
   }
 
   @Test public void testOrderIllegalInExpression() {
     check(
         "select (select 1 from foo order by x,y) from t where a = b",
         "SELECT (SELECT 1\n"
-        + "FROM `FOO`\n"
-        + "ORDER BY `X`, `Y`)\n"
-        + "FROM `T`\n"
-        + "WHERE (`A` = `B`)");
+            + "FROM `FOO`\n"
+            + "ORDER BY `X`, `Y`)\n"
+            + "FROM `T`\n"
+            + "WHERE (`A` = `B`)");
     checkFails(
         "select (1 ^order^ by x, y) from t where a = b",
         "ORDER BY unexpected");
@@ -1368,62 +1374,62 @@ public class SqlParserTest {
     check(
         "select a from foo order by b, c offset 1 row fetch first 2 row only",
         "SELECT `A`\n"
-        + "FROM `FOO`\n"
-        + "ORDER BY `B`, `C`\n"
-        + "OFFSET 1 ROWS\n"
-        + "FETCH NEXT 2 ROWS ONLY");
+            + "FROM `FOO`\n"
+            + "ORDER BY `B`, `C`\n"
+            + "OFFSET 1 ROWS\n"
+            + "FETCH NEXT 2 ROWS ONLY");
     // as above, but ROWS rather than ROW
     check(
         "select a from foo order by b, c offset 1 rows fetch first 2 rows only",
         "SELECT `A`\n"
-        + "FROM `FOO`\n"
-        + "ORDER BY `B`, `C`\n"
-        + "OFFSET 1 ROWS\n"
-        + "FETCH NEXT 2 ROWS ONLY");
+            + "FROM `FOO`\n"
+            + "ORDER BY `B`, `C`\n"
+            + "OFFSET 1 ROWS\n"
+            + "FETCH NEXT 2 ROWS ONLY");
     // as above, but NEXT (means same as FIRST)
     check(
         "select a from foo order by b, c offset 1 rows fetch next 3 rows only",
         "SELECT `A`\n"
-        + "FROM `FOO`\n"
-        + "ORDER BY `B`, `C`\n"
-        + "OFFSET 1 ROWS\n"
-        + "FETCH NEXT 3 ROWS ONLY");
+            + "FROM `FOO`\n"
+            + "ORDER BY `B`, `C`\n"
+            + "OFFSET 1 ROWS\n"
+            + "FETCH NEXT 3 ROWS ONLY");
     // as above, but omit the ROWS noise word after OFFSET. This is not
     // compatible with SQL:2008 but allows the Postgres syntax
     // "LIMIT ... OFFSET".
     check(
         "select a from foo order by b, c offset 1 fetch next 3 rows only",
         "SELECT `A`\n"
-        + "FROM `FOO`\n"
-        + "ORDER BY `B`, `C`\n"
-        + "OFFSET 1 ROWS\n"
-        + "FETCH NEXT 3 ROWS ONLY");
+            + "FROM `FOO`\n"
+            + "ORDER BY `B`, `C`\n"
+            + "OFFSET 1 ROWS\n"
+            + "FETCH NEXT 3 ROWS ONLY");
     // as above, omit OFFSET
     check(
         "select a from foo order by b, c fetch next 3 rows only",
         "SELECT `A`\n"
-        + "FROM `FOO`\n"
-        + "ORDER BY `B`, `C`\n"
-        + "FETCH NEXT 3 ROWS ONLY");
+            + "FROM `FOO`\n"
+            + "ORDER BY `B`, `C`\n"
+            + "FETCH NEXT 3 ROWS ONLY");
     // FETCH, no ORDER BY or OFFSET
     check(
         "select a from foo fetch next 4 rows only",
         "SELECT `A`\n"
-        + "FROM `FOO`\n"
-        + "FETCH NEXT 4 ROWS ONLY");
+            + "FROM `FOO`\n"
+            + "FETCH NEXT 4 ROWS ONLY");
     // OFFSET, no ORDER BY or FETCH
     check(
         "select a from foo offset 1 row",
         "SELECT `A`\n"
-        + "FROM `FOO`\n"
-        + "OFFSET 1 ROWS");
+            + "FROM `FOO`\n"
+            + "OFFSET 1 ROWS");
     // OFFSET and FETCH, no ORDER BY
     check(
         "select a from foo offset 1 row fetch next 3 rows only",
         "SELECT `A`\n"
-        + "FROM `FOO`\n"
-        + "OFFSET 1 ROWS\n"
-        + "FETCH NEXT 3 ROWS ONLY");
+            + "FROM `FOO`\n"
+            + "OFFSET 1 ROWS\n"
+            + "FETCH NEXT 3 ROWS ONLY");
     // missing ROWS after FETCH
     checkFails(
         "select a from foo offset 1 fetch next 3 ^only^",
@@ -1443,39 +1449,39 @@ public class SqlParserTest {
     check(
         "select a from foo order by b, c limit 2 offset 1",
         "SELECT `A`\n"
-        + "FROM `FOO`\n"
-        + "ORDER BY `B`, `C`\n"
-        + "OFFSET 1 ROWS\n"
-        + "FETCH NEXT 2 ROWS ONLY");
+            + "FROM `FOO`\n"
+            + "ORDER BY `B`, `C`\n"
+            + "OFFSET 1 ROWS\n"
+            + "FETCH NEXT 2 ROWS ONLY");
     check(
         "select a from foo order by b, c limit 2",
         "SELECT `A`\n"
-        + "FROM `FOO`\n"
-        + "ORDER BY `B`, `C`\n"
-        + "FETCH NEXT 2 ROWS ONLY");
+            + "FROM `FOO`\n"
+            + "ORDER BY `B`, `C`\n"
+            + "FETCH NEXT 2 ROWS ONLY");
     check(
         "select a from foo order by b, c offset 1",
         "SELECT `A`\n"
-        + "FROM `FOO`\n"
-        + "ORDER BY `B`, `C`\n"
-        + "OFFSET 1 ROWS");
+            + "FROM `FOO`\n"
+            + "ORDER BY `B`, `C`\n"
+            + "OFFSET 1 ROWS");
   }
 
   @Test public void testSqlInlineComment() {
     check(
         "select 1 from t --this is a comment\n",
         "SELECT 1\n"
-        + "FROM `T`");
+            + "FROM `T`");
     check(
         "select 1 from t--\n",
         "SELECT 1\n"
-        + "FROM `T`");
+            + "FROM `T`");
     check(
         "select 1 from t--this is a comment\n"
-        + "where a>b-- this is comment\n",
+            + "where a>b-- this is comment\n",
         "SELECT 1\n"
-        + "FROM `T`\n"
-        + "WHERE (`A` > `B`)");
+            + "FROM `T`\n"
+            + "WHERE (`A` > `B`)");
   }
 
   @Test public void testMultilineComment() {
@@ -1483,15 +1489,15 @@ public class SqlParserTest {
     check(
         "select 1 /* , 2 */, 3 from t",
         "SELECT 1, 3\n"
-        + "FROM `T`");
+            + "FROM `T`");
 
     // on several lines
     check(
         "select /* 1,\n"
-        + " 2, \n"
-        + " */ 3 from t",
+            + " 2, \n"
+            + " */ 3 from t",
         "SELECT 3\n"
-        + "FROM `T`");
+            + "FROM `T`");
 
     // stuff inside comment
     check(
@@ -1508,12 +1514,12 @@ public class SqlParserTest {
 
     check(
         "values (- -1\n"
-        + ")",
+            + ")",
         "(VALUES (ROW((- -1))))");
 
     check(
         "values (--1+\n"
-        + "2)",
+            + "2)",
         "(VALUES (ROW(2)))");
 
     // end of multiline commment without start
@@ -1544,7 +1550,7 @@ public class SqlParserTest {
     if (Bug.FRG73_FIXED) {
       checkFails(
           "values /* multiline contains -- singline */ \n"
-          + " (1)",
+              + " (1)",
           "xxx");
     }
 
@@ -1554,25 +1560,25 @@ public class SqlParserTest {
       // erroneous token.
       checkFails(
           "values ( -- rest of line /* a comment  \n"
-          + " 1, ^*/^ 2)",
+              + " 1, ^*/^ 2)",
           "Encountered \"/\\*\" at");
     }
 
     check(
         "values (1 + /* comment -- rest of line\n"
-        + " rest of comment */ 2)",
+            + " rest of comment */ 2)",
         "(VALUES (ROW((1 + 2))))");
 
     // multiline comment inside singleline comment
     check(
         "values -- rest of line /* a comment */ \n"
-        + "(1)",
+            + "(1)",
         "(VALUES (ROW(1)))");
 
     // non-terminated multiline comment inside singleline comment
     check(
         "values -- rest of line /* a comment  \n"
-        + "(1)",
+            + "(1)",
         "(VALUES (ROW(1)))");
 
     // even if comment abuts the tokens at either end, it becomes a space
@@ -1624,7 +1630,7 @@ public class SqlParserTest {
         "((((1 + 2.3E-4) + 5E-7) + 0.7) + 8)");
     checkExp(
         "1- -2.3e-4 - -.5e-6  -\n"
-        + "-.7++8",
+            + "-.7++8",
         "((((1 - -2.3E-4) - -5E-7) - -0.7) + 8)");
     checkExp("1+-2.*-3.e-1/-4", "(1 + ((-2 * -3E-1) / -4))");
   }
@@ -1668,32 +1674,32 @@ public class SqlParserTest {
   @Test public void testPrecedenceSetOps() {
     check(
         "select * from a union "
-        + "select * from b intersect "
-        + "select * from c intersect "
-        + "select * from d except "
-        + "select * from e except "
-        + "select * from f union "
-        + "select * from g",
+            + "select * from b intersect "
+            + "select * from c intersect "
+            + "select * from d except "
+            + "select * from e except "
+            + "select * from f union "
+            + "select * from g",
         "((((SELECT *\n"
-        + "FROM `A`\n"
-        + "UNION\n"
-        + "((SELECT *\n"
-        + "FROM `B`\n"
-        + "INTERSECT\n"
-        + "SELECT *\n"
-        + "FROM `C`)\n"
-        + "INTERSECT\n"
-        + "SELECT *\n"
-        + "FROM `D`))\n"
-        + "EXCEPT\n"
-        + "SELECT *\n"
-        + "FROM `E`)\n"
-        + "EXCEPT\n"
-        + "SELECT *\n"
-        + "FROM `F`)\n"
-        + "UNION\n"
-        + "SELECT *\n"
-        + "FROM `G`)");
+            + "FROM `A`\n"
+            + "UNION\n"
+            + "((SELECT *\n"
+            + "FROM `B`\n"
+            + "INTERSECT\n"
+            + "SELECT *\n"
+            + "FROM `C`)\n"
+            + "INTERSECT\n"
+            + "SELECT *\n"
+            + "FROM `D`))\n"
+            + "EXCEPT\n"
+            + "SELECT *\n"
+            + "FROM `E`)\n"
+            + "EXCEPT\n"
+            + "SELECT *\n"
+            + "FROM `F`)\n"
+            + "UNION\n"
+            + "SELECT *\n"
+            + "FROM `G`)");
   }
 
   @Test public void testQueryInFrom() {
@@ -1701,10 +1707,10 @@ public class SqlParserTest {
     check(
         "select * from (select * from emp) as e join (select * from dept) d",
         "SELECT *\n"
-        + "FROM (SELECT *\n"
-        + "FROM `EMP`) AS `E`\n"
-        + "INNER JOIN (SELECT *\n"
-        + "FROM `DEPT`) AS `D`");
+            + "FROM (SELECT *\n"
+            + "FROM `EMP`) AS `E`\n"
+            + "INNER JOIN (SELECT *\n"
+            + "FROM `DEPT`) AS `D`");
   }
 
   @Test public void testQuotesInString() {
@@ -1720,34 +1726,34 @@ public class SqlParserTest {
     check(
         "select * from emp where 3 = (select count(*) from dept where dept.deptno = emp.deptno)",
         "SELECT *\n"
-        + "FROM `EMP`\n"
-        + "WHERE (3 = (SELECT COUNT(*)\n"
-        + "FROM `DEPT`\n"
-        + "WHERE (`DEPT`.`DEPTNO` = `EMP`.`DEPTNO`)))");
+            + "FROM `EMP`\n"
+            + "WHERE (3 = (SELECT COUNT(*)\n"
+            + "FROM `DEPT`\n"
+            + "WHERE (`DEPT`.`DEPTNO` = `EMP`.`DEPTNO`)))");
   }
 
   @Test public void testScalarQueryInSelect() {
     check(
         "select x, (select count(*) from dept where dept.deptno = emp.deptno) from emp",
         "SELECT `X`, (SELECT COUNT(*)\n"
-        + "FROM `DEPT`\n"
-        + "WHERE (`DEPT`.`DEPTNO` = `EMP`.`DEPTNO`))\n"
-        + "FROM `EMP`");
+            + "FROM `DEPT`\n"
+            + "WHERE (`DEPT`.`DEPTNO` = `EMP`.`DEPTNO`))\n"
+            + "FROM `EMP`");
   }
 
   @Test public void testSelectList() {
     check(
         "select * from emp, dept",
         "SELECT *\n"
-        + "FROM `EMP`,\n"
-        + "`DEPT`");
+            + "FROM `EMP`,\n"
+            + "`DEPT`");
   }
 
   @Test public void testSelectList3() {
     check(
         "select 1, emp.*, 2 from emp",
         "SELECT 1, `EMP`.*, 2\n"
-        + "FROM `EMP`");
+            + "FROM `EMP`");
   }
 
   @Test public void testSelectList4() {
@@ -1760,14 +1766,14 @@ public class SqlParserTest {
     check(
         "select * from emp",
         "SELECT *\n"
-        + "FROM `EMP`");
+            + "FROM `EMP`");
   }
 
   @Test public void testSelectDistinct() {
     check(
         "select distinct foo from bar",
         "SELECT DISTINCT `FOO`\n"
-        + "FROM `BAR`");
+            + "FROM `BAR`");
   }
 
   @Test public void testSelectAll() {
@@ -1775,24 +1781,24 @@ public class SqlParserTest {
     check(
         "select * from (select all foo from bar) as xyz",
         "SELECT *\n"
-        + "FROM (SELECT ALL `FOO`\n"
-        + "FROM `BAR`) AS `XYZ`");
+            + "FROM (SELECT ALL `FOO`\n"
+            + "FROM `BAR`) AS `XYZ`");
   }
 
   @Test public void testWhere() {
     check(
         "select * from emp where empno > 5 and gender = 'F'",
         "SELECT *\n"
-        + "FROM `EMP`\n"
-        + "WHERE ((`EMPNO` > 5) AND (`GENDER` = 'F'))");
+            + "FROM `EMP`\n"
+            + "WHERE ((`EMPNO` > 5) AND (`GENDER` = 'F'))");
   }
 
   @Test public void testNestedSelect() {
     check(
         "select * from (select * from emp)",
         "SELECT *\n"
-        + "FROM (SELECT *\n"
-        + "FROM `EMP`)");
+            + "FROM (SELECT *\n"
+            + "FROM `EMP`)");
   }
 
   @Test public void testValues() {
@@ -1807,24 +1813,24 @@ public class SqlParserTest {
     check(
         "select * from (values(1,'two'), 3, (4, 'five'))",
         "SELECT *\n"
-        + "FROM (VALUES (ROW(1, 'two')), (ROW(3)), (ROW(4, 'five')))");
+            + "FROM (VALUES (ROW(1, 'two')), (ROW(3)), (ROW(4, 'five')))");
   }
 
   @Test public void testFromValuesWithoutParens() {
     checkFails(
         "select 1 from ^values^('x')",
         "Encountered \"values\" at line 1, column 15\\.\n"
-        + "Was expecting one of:\n"
-        + "    <IDENTIFIER> \\.\\.\\.\n"
-        + "    <QUOTED_IDENTIFIER> \\.\\.\\.\n"
-        + "    <BACK_QUOTED_IDENTIFIER> \\.\\.\\.\n"
-        + "    <BRACKET_QUOTED_IDENTIFIER> \\.\\.\\.\n"
-        + "    <UNICODE_QUOTED_IDENTIFIER> \\.\\.\\.\n"
-        + "    \"LATERAL\" \\.\\.\\.\n"
-        + "    \"\\(\" \\.\\.\\.\n"
-        + "    \"UNNEST\" \\.\\.\\.\n"
-        + "    \"TABLE\" \\.\\.\\.\n"
-        + "    ");
+            + "Was expecting one of:\n"
+            + "    <IDENTIFIER> \\.\\.\\.\n"
+            + "    <QUOTED_IDENTIFIER> \\.\\.\\.\n"
+            + "    <BACK_QUOTED_IDENTIFIER> \\.\\.\\.\n"
+            + "    <BRACKET_QUOTED_IDENTIFIER> \\.\\.\\.\n"
+            + "    <UNICODE_QUOTED_IDENTIFIER> \\.\\.\\.\n"
+            + "    \"LATERAL\" \\.\\.\\.\n"
+            + "    \"\\(\" \\.\\.\\.\n"
+            + "    \"UNNEST\" \\.\\.\\.\n"
+            + "    \"TABLE\" \\.\\.\\.\n"
+            + "    ");
   }
 
   @Test public void testEmptyValues() {
@@ -1846,14 +1852,14 @@ public class SqlParserTest {
     check(
         "table emp order by name",
         "(TABLE `EMP`)\n"
-        + "ORDER BY `NAME`");
+            + "ORDER BY `NAME`");
   }
 
   @Test public void testSelectFromExplicitTable() {
     check(
         "select * from (table emp)",
         "SELECT *\n"
-        + "FROM (TABLE `EMP`)");
+            + "FROM (TABLE `EMP`)");
   }
 
   @Test public void testSelectFromBareExplicitTableFails() {
@@ -1871,24 +1877,24 @@ public class SqlParserTest {
     check(
         "select * from table(ramp(3, 4))",
         "SELECT *\n"
-        + "FROM TABLE(`RAMP`(3, 4))");
+            + "FROM TABLE(`RAMP`(3, 4))");
   }
 
   @Test public void testCollectionTableWithCursorParam() {
     check(
         "select * from table(dedup(cursor(select * from emps),'name'))",
         "SELECT *\n"
-        + "FROM TABLE(`DEDUP`((CURSOR ((SELECT *\n"
-        + "FROM `EMPS`))), 'name'))");
+            + "FROM TABLE(`DEDUP`((CURSOR ((SELECT *\n"
+            + "FROM `EMPS`))), 'name'))");
   }
 
   @Test public void testCollectionTableWithColumnListParam() {
     check(
         "select * from table(dedup(cursor(select * from emps),"
-        + "row(empno, name)))",
+            + "row(empno, name)))",
         "SELECT *\n"
-        + "FROM TABLE(`DEDUP`((CURSOR ((SELECT *\n"
-        + "FROM `EMPS`))), (ROW(`EMPNO`, `NAME`))))");
+            + "FROM TABLE(`DEDUP`((CURSOR ((SELECT *\n"
+            + "FROM `EMPS`))), (ROW(`EMPNO`, `NAME`))))");
   }
 
   @Test public void testIllegalCursors() {
@@ -1907,74 +1913,74 @@ public class SqlParserTest {
     check(
         "explain plan for select * from emps",
         "EXPLAIN PLAN INCLUDING ATTRIBUTES WITH IMPLEMENTATION FOR\n"
-        + "SELECT *\n"
-        + "FROM `EMPS`");
+            + "SELECT *\n"
+            + "FROM `EMPS`");
   }
 
   @Test public void testExplainWithImpl() {
     check(
         "explain plan with implementation for select * from emps",
         "EXPLAIN PLAN INCLUDING ATTRIBUTES WITH IMPLEMENTATION FOR\n"
-        + "SELECT *\n"
-        + "FROM `EMPS`");
+            + "SELECT *\n"
+            + "FROM `EMPS`");
   }
 
   @Test public void testExplainWithoutImpl() {
     check(
         "explain plan without implementation for select * from emps",
         "EXPLAIN PLAN INCLUDING ATTRIBUTES WITHOUT IMPLEMENTATION FOR\n"
-        + "SELECT *\n"
-        + "FROM `EMPS`");
+            + "SELECT *\n"
+            + "FROM `EMPS`");
   }
 
   @Test public void testExplainWithType() {
     check(
         "explain plan with type for (values (true))",
         "EXPLAIN PLAN INCLUDING ATTRIBUTES WITH TYPE FOR\n"
-        + "(VALUES (ROW(TRUE)))");
+            + "(VALUES (ROW(TRUE)))");
   }
 
   @Test public void testInsertSelect() {
     check(
         "insert into emps select * from emps",
         "INSERT INTO `EMPS`\n"
-        + "(SELECT *\n"
-        + "FROM `EMPS`)");
+            + "(SELECT *\n"
+            + "FROM `EMPS`)");
   }
 
   @Test public void testInsertUnion() {
     check(
         "insert into emps select * from emps1 union select * from emps2",
         "INSERT INTO `EMPS`\n"
-        + "(SELECT *\n"
-        + "FROM `EMPS1`\n"
-        + "UNION\n"
-        + "SELECT *\n"
-        + "FROM `EMPS2`)");
+            + "(SELECT *\n"
+            + "FROM `EMPS1`\n"
+            + "UNION\n"
+            + "SELECT *\n"
+            + "FROM `EMPS2`)");
   }
 
   @Test public void testInsertValues() {
     check(
         "insert into emps values (1,'Fredkin')",
         "INSERT INTO `EMPS`\n"
-        + "(VALUES (ROW(1, 'Fredkin')))");
+            + "(VALUES (ROW(1, 'Fredkin')))");
   }
 
   @Test public void testInsertColumnList() {
     check(
         "insert into emps(x,y) select * from emps",
         "INSERT INTO `EMPS` (`X`, `Y`)\n"
-        + "(SELECT *\n"
-        + "FROM `EMPS`)");
+            + "(SELECT *\n"
+            + "FROM `EMPS`)");
   }
 
   @Test public void testExplainInsert() {
     check(
         "explain plan for insert into emps1 select * from emps2",
         "EXPLAIN PLAN INCLUDING ATTRIBUTES WITH IMPLEMENTATION FOR\n"
-        + "INSERT INTO `EMPS1`\n"
-        + "(SELECT *\n"
-        + "FROM `EMPS2`)");
+            + "INSERT INTO `EMPS1`\n"
+            + "(SELECT *\n"
+            + "FROM `EMPS2`)");
   }
 
   @Test public void testDelete() {
@@ -1985,49 +1991,49 @@ public class SqlParserTest {
     check(
         "delete from emps where empno=12",
         "DELETE FROM `EMPS`\n"
-        + "WHERE (`EMPNO` = 12)");
+            + "WHERE (`EMPNO` = 12)");
   }
 
   @Test public void testMergeSelectSource() {
     check(
         "merge into emps e "
-        + "using (select * from tempemps where deptno is null) t "
-        + "on e.empno = t.empno "
-        + "when matched then update "
-        + "set name = t.name, deptno = t.deptno, salary = t.salary * .1 "
-        + "when not matched then insert (name, dept, salary) "
-        + "values(t.name, 10, t.salary * .15)",
+            + "using (select * from tempemps where deptno is null) t "
+            + "on e.empno = t.empno "
+            + "when matched then update "
+            + "set name = t.name, deptno = t.deptno, salary = t.salary * .1 "
+            + "when not matched then insert (name, dept, salary) "
+            + "values(t.name, 10, t.salary * .15)",
 
         "MERGE INTO `EMPS` AS `E`\n"
-        + "USING (SELECT *\n"
-        + "FROM `TEMPEMPS`\n"
-        + "WHERE (`DEPTNO` IS NULL)) AS `T`\n"
-        + "ON (`E`.`EMPNO` = `T`.`EMPNO`)\n"
-        + "WHEN MATCHED THEN UPDATE SET `NAME` = `T`.`NAME`\n"
-        + ", `DEPTNO` = `T`.`DEPTNO`\n"
-        + ", `SALARY` = (`T`.`SALARY` * 0.1)\n"
-        + "WHEN NOT MATCHED THEN INSERT (`NAME`, `DEPT`, `SALARY`) "
-        + "(VALUES (ROW(`T`.`NAME`, 10, (`T`.`SALARY` * 0.15))))");
+            + "USING (SELECT *\n"
+            + "FROM `TEMPEMPS`\n"
+            + "WHERE (`DEPTNO` IS NULL)) AS `T`\n"
+            + "ON (`E`.`EMPNO` = `T`.`EMPNO`)\n"
+            + "WHEN MATCHED THEN UPDATE SET `NAME` = `T`.`NAME`\n"
+            + ", `DEPTNO` = `T`.`DEPTNO`\n"
+            + ", `SALARY` = (`T`.`SALARY` * 0.1)\n"
+            + "WHEN NOT MATCHED THEN INSERT (`NAME`, `DEPT`, `SALARY`) "
+            + "(VALUES (ROW(`T`.`NAME`, 10, (`T`.`SALARY` * 0.15))))");
   }
 
   @Test public void testMergeTableRefSource() {
     check(
         "merge into emps e "
-        + "using tempemps as t "
-        + "on e.empno = t.empno "
-        + "when matched then update "
-        + "set name = t.name, deptno = t.deptno, salary = t.salary * .1 "
-        + "when not matched then insert (name, dept, salary) "
-        + "values(t.name, 10, t.salary * .15)",
+            + "using tempemps as t "
+            + "on e.empno = t.empno "
+            + "when matched then update "
+            + "set name = t.name, deptno = t.deptno, salary = t.salary * .1 "
+            + "when not matched then insert (name, dept, salary) "
+            + "values(t.name, 10, t.salary * .15)",
 
         "MERGE INTO `EMPS` AS `E`\n"
-        + "USING `TEMPEMPS` AS `T`\n"
-        + "ON (`E`.`EMPNO` = `T`.`EMPNO`)\n"
-        + "WHEN MATCHED THEN UPDATE SET `NAME` = `T`.`NAME`\n"
-        + ", `DEPTNO` = `T`.`DEPTNO`\n"
-        + ", `SALARY` = (`T`.`SALARY` * 0.1)\n"
-        + "WHEN NOT MATCHED THEN INSERT (`NAME`, `DEPT`, `SALARY`) "
-        + "(VALUES (ROW(`T`.`NAME`, 10, (`T`.`SALARY` * 0.15))))");
+            + "USING `TEMPEMPS` AS `T`\n"
+            + "ON (`E`.`EMPNO` = `T`.`EMPNO`)\n"
+            + "WHEN MATCHED THEN UPDATE SET `NAME` = `T`.`NAME`\n"
+            + ", `DEPTNO` = `T`.`DEPTNO`\n"
+            + ", `SALARY` = (`T`.`SALARY` * 0.1)\n"
+            + "WHEN NOT MATCHED THEN INSERT (`NAME`, `DEPT`, `SALARY`) "
+            + "(VALUES (ROW(`T`.`NAME`, 10, (`T`.`SALARY` * 0.15))))");
   }
 
   @Test public void testBitStringNotImplemented() {
@@ -2042,13 +2048,13 @@ public class SqlParserTest {
     checkExp("x'fffff'=X''", "(X'FFFFF' = X'')");
     checkExp(
         "x'1' \t\t\f\r \n"
-        + "'2'--hi this is a comment'FF'\r\r\t\f \n"
-        + "'34'",
+            + "'2'--hi this is a comment'FF'\r\r\t\f \n"
+            + "'34'",
         "X'1'\n'2'\n'34'");
     checkExp(
         "x'1' \t\t\f\r \n"
-        + "'000'--\n"
-        + "'01'",
+            + "'000'--\n"
+            + "'01'",
         "X'1'\n'000'\n'01'");
     checkExp(
         "x'1234567890abcdef'=X'fFeEdDcCbBaA'",
@@ -2073,8 +2079,8 @@ public class SqlParserTest {
     check(
         "select x'1' '2' from t",
         "SELECT X'1'\n"
-        + "'2'\n"
-        + "FROM `T`");
+            + "'2'\n"
+            + "FROM `T`");
   }
 
   @Test public void testStringLiteral() {
@@ -2127,17 +2133,17 @@ public class SqlParserTest {
     check(
         "select N'1' '2' from t",
         "SELECT _ISO-8859-1'1'\n'2'\n"
-        + "FROM `T`");
+            + "FROM `T`");
   }
 
   @Test public void testStringLiteralChain() {
     final String fooBar =
         "'foo'\n"
-        + "'bar'";
+            + "'bar'";
     final String fooBarBaz =
         "'foo'\n"
-        + "'bar'\n"
-        + "'baz'";
+            + "'bar'\n"
+            + "'baz'";
     checkExp("   'foo'\r'bar'", fooBar);
     checkExp("   'foo'\r\n'bar'", fooBar);
     checkExp("   'foo'\r\n\r\n'bar'  \n   'baz'", fooBarBaz);
@@ -2169,19 +2175,19 @@ public class SqlParserTest {
     checkExp(
         "case (select * from emp) when 1 then 2 end",
         "(CASE WHEN ((SELECT *\n"
-        + "FROM `EMP`) = 1) THEN 2 ELSE NULL END)");
+            + "FROM `EMP`) = 1) THEN 2 ELSE NULL END)");
     checkExp(
         "case 1 when (select * from emp) then 2 end",
         "(CASE WHEN (1 = (SELECT *\n"
-        + "FROM `EMP`)) THEN 2 ELSE NULL END)");
+            + "FROM `EMP`)) THEN 2 ELSE NULL END)");
     checkExp(
         "case 1 when 2 then (select * from emp) end",
         "(CASE WHEN (1 = 2) THEN (SELECT *\n"
-        + "FROM `EMP`) ELSE NULL END)");
+            + "FROM `EMP`) ELSE NULL END)");
     checkExp(
         "case 1 when 2 then 3 else (select * from emp) end",
         "(CASE WHEN (1 = 2) THEN 3 ELSE (SELECT *\n"
-        + "FROM `EMP`) END)");
+            + "FROM `EMP`) END)");
     checkExp(
         "case x when 2, 4 then 3 else 4 end",
         "(CASE WHEN (`X` IN (2, 4)) THEN 3 ELSE 4 END)");
@@ -2373,9 +2379,9 @@ public class SqlParserTest {
         "TRIM(TRAILING 'mustache' FROM 'beard')");
     checkExp(
         "trim (coalesce(cast(null as varchar(2)))||"
-        + "' '||coalesce('junk ',''))",
+            + "' '||coalesce('junk ',''))",
         "TRIM(BOTH ' ' FROM ((COALESCE(CAST(NULL AS VARCHAR(2))) || "
-        + "' ') || COALESCE('junk ', '')))");
+            + "' ') || COALESCE('junk ', '')))");
 
     checkFails(
         "trim(^from^ 'beard')",
@@ -2421,9 +2427,9 @@ public class SqlParserTest {
     check(
         "select * from ( select sum(x) over w, sum(y) over w from s window w as (range interval '1' minute preceding))",
         "SELECT *\n"
-        + "FROM (SELECT (SUM(`X`) OVER `W`), (SUM(`Y`) OVER `W`)\n"
-        + "FROM `S`\n"
-        + "WINDOW `W` AS (RANGE INTERVAL '1' MINUTE PRECEDING))");
+            + "FROM (SELECT (SUM(`X`) OVER `W`), (SUM(`Y`) OVER `W`)\n"
+            + "FROM `S`\n"
+            + "WINDOW `W` AS (RANGE INTERVAL '1' MINUTE PRECEDING))");
   }
 
   @Test public void testWindowSpec() {
@@ -2431,14 +2437,14 @@ public class SqlParserTest {
     check(
         "select count(z) over w as foo from Bids window w as (partition by y + yy, yyy order by x rows between 2 preceding and 2 following)",
         "SELECT (COUNT(`Z`) OVER `W`) AS `FOO`\n"
-        + "FROM `BIDS`\n"
-        + "WINDOW `W` AS (PARTITION BY (`Y` + `YY`), `YYY` ORDER BY `X` ROWS BETWEEN 2 PRECEDING AND 2 FOLLOWING)");
+            + "FROM `BIDS`\n"
+            + "WINDOW `W` AS (PARTITION BY (`Y` + `YY`), `YYY` ORDER BY `X` ROWS BETWEEN 2 PRECEDING AND 2 FOLLOWING)");
 
     check(
         "select count(*) over w from emp window w as (rows 2 preceding)",
         "SELECT (COUNT(*) OVER `W`)\n"
-        + "FROM `EMP`\n"
-        + "WINDOW `W` AS (ROWS 2 PRECEDING)");
+            + "FROM `EMP`\n"
+            + "WINDOW `W` AS (ROWS 2 PRECEDING)");
 
     // Chained string literals are valid syntax. They are unlikely to be
     // semantically valid, because intervals are usually numeric or
@@ -2447,16 +2453,16 @@ public class SqlParserTest {
     // since we are just parsing, and not validating the sql.
     check(
         "select count(*) over w from emp window w as (\n"
-        + "  rows 'foo' 'bar'\n"
-        + "       'baz' preceding)",
+            + "  rows 'foo' 'bar'\n"
+            + "       'baz' preceding)",
         "SELECT (COUNT(*) OVER `W`)\n"
-        + "FROM `EMP`\n"
-        + "WINDOW `W` AS (ROWS 'foo'\n'bar'\n'baz' PRECEDING)");
+            + "FROM `EMP`\n"
+            + "WINDOW `W` AS (ROWS 'foo'\n'bar'\n'baz' PRECEDING)");
 
     // Partition clause out of place. Found after ORDER BY
     checkFails(
         "select count(z) over w as foo \n"
-        + "from Bids window w as (partition by y order by x ^partition^ by y)",
+            + "from Bids window w as (partition by y order by x ^partition^ by y)",
         "(?s).*Encountered \"partition\".*");
     checkFails(
         "select count(z) over w as foo from Bids window w as (order by x ^partition^ by y)",
@@ -2490,22 +2496,22 @@ public class SqlParserTest {
     check(
         "select sum(x) over (order by x allow partial) from bids",
         "SELECT (SUM(`X`) OVER (ORDER BY `X`))\n"
-        + "FROM `BIDS`");
+            + "FROM `BIDS`");
 
     check(
         "select sum(x) over (order by x) from bids",
         "SELECT (SUM(`X`) OVER (ORDER BY `X`))\n"
-        + "FROM `BIDS`");
+            + "FROM `BIDS`");
 
     check(
         "select sum(x) over (order by x disallow partial) from bids",
         "SELECT (SUM(`X`) OVER (ORDER BY `X` DISALLOW PARTIAL))\n"
-        + "FROM `BIDS`");
+            + "FROM `BIDS`");
 
     check(
         "select sum(x) over (order by x) from bids",
         "SELECT (SUM(`X`) OVER (ORDER BY `X`))\n"
-        + "FROM `BIDS`");
+            + "FROM `BIDS`");
   }
 
   @Test public void testAs() {
@@ -2513,29 +2519,29 @@ public class SqlParserTest {
     check(
         "select x y from t",
         "SELECT `X` AS `Y`\n"
-        + "FROM `T`");
+            + "FROM `T`");
 
     check(
         "select x AS y from t",
         "SELECT `X` AS `Y`\n"
-        + "FROM `T`");
+            + "FROM `T`");
     check(
         "select sum(x) y from t group by z",
         "SELECT SUM(`X`) AS `Y`\n"
-        + "FROM `T`\n"
-        + "GROUP BY `Z`");
+            + "FROM `T`\n"
+            + "GROUP BY `Z`");
 
     // Even after OVER
     check(
         "select count(z) over w foo from Bids window w as (order by x)",
         "SELECT (COUNT(`Z`) OVER `W`) AS `FOO`\n"
-        + "FROM `BIDS`\n"
-        + "WINDOW `W` AS (ORDER BY `X`)");
+            + "FROM `BIDS`\n"
+            + "WINDOW `W` AS (ORDER BY `X`)");
 
     // AS is optional for table correlation names
     final String expected =
         "SELECT `X`\n"
-        + "FROM `T` AS `T1`";
+            + "FROM `T` AS `T1`";
     check("select x from t as t1", expected);
     check("select x from t t1", expected);
 
@@ -2554,14 +2560,14 @@ public class SqlParserTest {
     check(
         "select x from t as t1 (a, b) where foo",
         "SELECT `X`\n"
-        + "FROM `T` AS `T1` (`A`, `B`)\n"
-        + "WHERE `FOO`");
+            + "FROM `T` AS `T1` (`A`, `B`)\n"
+            + "WHERE `FOO`");
 
     check(
         "select x from (values (1, 2), (3, 4)) as t1 (\"a\", b) where \"a\" > b",
         "SELECT `X`\n"
-        + "FROM (VALUES (ROW(1, 2)), (ROW(3, 4))) AS `T1` (`a`, `B`)\n"
-        + "WHERE (`a` > `B`)");
+            + "FROM (VALUES (ROW(1, 2)), (ROW(3, 4))) AS `T1` (`a`, `B`)\n"
+            + "WHERE (`a` > `B`)");
 
     // must have at least one column
     checkFails(
@@ -2572,15 +2578,15 @@ public class SqlParserTest {
     checkFails(
         "select x from t as t1 (x ^+^ y)",
         "(?s).*Was expecting one of:\n"
-        + "    \"\\)\" \\.\\.\\.\n"
-        + "    \",\" \\.\\.\\..*");
+            + "    \"\\)\" \\.\\.\\.\n"
+            + "    \",\" \\.\\.\\..*");
 
     // cannot have compound identifiers
     checkFails(
         "select x from t as t1 (x^.^y)",
         "(?s).*Was expecting one of:\n"
-        + "    \"\\)\" \\.\\.\\.\n"
-        + "    \",\" \\.\\.\\..*");
+            + "    \"\\)\" \\.\\.\\.\n"
+            + "    \",\" \\.\\.\\..*");
   }
 
   @Test public void testOver() {
@@ -2664,7 +2670,7 @@ public class SqlParserTest {
     checkExp(
         "multiset(select*from T)",
         "(MULTISET ((SELECT *\n"
-        + "FROM `T`)))");
+            + "FROM `T`)))");
   }
 
   @Test public void testMultisetUnion() {
@@ -4900,22 +4906,22 @@ public class SqlParserTest {
     checkExpFails(
         "interval '1^'^",
         "Encountered \"<EOF>\" at line 1, column 12\\.\n"
-        + "Was expecting one of:\n"
-        + "    \"YEAR\" \\.\\.\\.\n"
-        + "    \"MONTH\" \\.\\.\\.\n"
-        + "    \"DAY\" \\.\\.\\.\n"
-        + "    \"HOUR\" \\.\\.\\.\n"
-        + "    \"MINUTE\" \\.\\.\\.\n"
-        + "    \"SECOND\" \\.\\.\\.\n"
-        + "    ");
+            + "Was expecting one of:\n"
+            + "    \"YEAR\" \\.\\.\\.\n"
+            + "    \"MONTH\" \\.\\.\\.\n"
+            + "    \"DAY\" \\.\\.\\.\n"
+            + "    \"HOUR\" \\.\\.\\.\n"
+            + "    \"MINUTE\" \\.\\.\\.\n"
+            + "    \"SECOND\" \\.\\.\\.\n"
+            + "    ");
 
     // illegal qualifiers, no precision in either field
     checkExpFails(
         "interval '1' year ^to^ year",
         "(?s)Encountered \"to year\" at line 1, column 19.\n"
-        + "Was expecting one of:\n"
-        + "    <EOF> \n"
-        + "    \"NOT\" \\.\\.\\..*");
+            + "Was expecting one of:\n"
+            + "    <EOF> \n"
+            + "    \"NOT\" \\.\\.\\..*");
     checkExpFails("interval '1-2' year ^to^ day", ANY);
     checkExpFails("interval '1-2' year ^to^ hour", ANY);
     checkExpFails("interval '1-2' year ^to^ minute", ANY);
@@ -5255,11 +5261,11 @@ public class SqlParserTest {
     check(
         "select*from unnest(x)",
         "SELECT *\n"
-        + "FROM (UNNEST(`X`))");
+            + "FROM (UNNEST(`X`))");
     check(
         "select*from unnest(x) AS T",
         "SELECT *\n"
-        + "FROM (UNNEST(`X`)) AS `T`");
+            + "FROM (UNNEST(`X`)) AS `T`");
 
     // UNNEST cannot be first word in query
     checkFails(
@@ -5374,7 +5380,7 @@ public class SqlParserTest {
     check(
         "SELECT *\n\tFROM mytable",
         "SELECT *\n"
-        + "FROM `MYTABLE`");
+            + "FROM `MYTABLE`");
 
     // make sure that the tab stops do not affect the placement of the
     // error tokens
@@ -5396,26 +5402,26 @@ public class SqlParserTest {
     check(
         "select * from " + ident128,
         "SELECT *\n"
-        + "FROM `" + ident128Upper + "`");
+            + "FROM `" + ident128Upper + "`");
     checkFails(
         "select * from ^" + ident129 + "^",
         "Length of identifier '" + ident129Upper
-        + "' must be less than or equal to 128 characters");
+            + "' must be less than or equal to 128 characters");
 
     check(
         "select " + ident128 + " from mytable",
         "SELECT `" + ident128Upper + "`\n"
-        + "FROM `MYTABLE`");
+            + "FROM `MYTABLE`");
     checkFails(
         "select ^" + ident129 + "^ from mytable",
         "Length of identifier '" + ident129Upper
-        + "' must be less than or equal to 128 characters");
+            + "' must be less than or equal to 128 characters");
   }
 
   /**
    * Tests that you can't quote the names of builtin functions.
    *
-   * @see org.eigenbase.test.SqlValidatorTest#testQuotedFunction()
+   * @see org.apache.calcite.test.SqlValidatorTest#testQuotedFunction()
    */
   @Test public void testQuotedFunction() {
     checkExpFails(
@@ -5439,19 +5445,19 @@ public class SqlParserTest {
     // parser, the literal already contains Unicode characters.
     String in1 =
         "values _UTF16'"
-        + ConversionUtil.TEST_UNICODE_STRING + "'";
+            + ConversionUtil.TEST_UNICODE_STRING + "'";
     String out1 =
         "(VALUES (ROW(_UTF16'"
-        + ConversionUtil.TEST_UNICODE_STRING + "')))";
+            + ConversionUtil.TEST_UNICODE_STRING + "')))";
     check(in1, out1);
 
     // Without the U& prefix, escapes are left unprocessed
     String in2 =
         "values '"
-        + ConversionUtil.TEST_UNICODE_SQL_ESCAPED_LITERAL + "'";
+            + ConversionUtil.TEST_UNICODE_SQL_ESCAPED_LITERAL + "'";
     String out2 =
         "(VALUES (ROW('"
-        + ConversionUtil.TEST_UNICODE_SQL_ESCAPED_LITERAL + "')))";
+            + ConversionUtil.TEST_UNICODE_SQL_ESCAPED_LITERAL + "')))";
     check(in2, out2);
 
     // Likewise, even with the U& prefix, if some other escape
@@ -5459,11 +5465,11 @@ public class SqlParserTest {
     // sequences are not interpreted
     String in3 =
         "values U&'"
-        + ConversionUtil.TEST_UNICODE_SQL_ESCAPED_LITERAL
-        + "' UESCAPE '!'";
+            + ConversionUtil.TEST_UNICODE_SQL_ESCAPED_LITERAL
+            + "' UESCAPE '!'";
     String out3 =
         "(VALUES (ROW(_UTF16'"
-        + ConversionUtil.TEST_UNICODE_SQL_ESCAPED_LITERAL + "')))";
+            + ConversionUtil.TEST_UNICODE_SQL_ESCAPED_LITERAL + "')))";
     check(in3, out3);
   }
 
@@ -5473,10 +5479,10 @@ public class SqlParserTest {
     // by the SQL parser.
     String in =
         "values U&'"
-        + ConversionUtil.TEST_UNICODE_SQL_ESCAPED_LITERAL + "'";
+            + ConversionUtil.TEST_UNICODE_SQL_ESCAPED_LITERAL + "'";
     String out =
         "(VALUES (ROW(_UTF16'"
-        + ConversionUtil.TEST_UNICODE_STRING + "')))";
+            + ConversionUtil.TEST_UNICODE_STRING + "')))";
     check(in, out);
 
     // Verify that we can override with an explicit escape character
@@ -5525,9 +5531,9 @@ public class SqlParserTest {
     SqlSetOption opt = (SqlSetOption) node;
     assertThat(opt.getScope(), equalTo("SYSTEM"));
     assertThat(opt.getName(), equalTo("SCHEMA"));
-    SqlPrettyWriter writer = new SqlPrettyWriter(SqlDialect.EIGENBASE);
+    SqlPrettyWriter writer = new SqlPrettyWriter(SqlDialect.CALCITE);
     assertThat(writer.format(opt.getValue()), equalTo("TRUE"));
-    writer = new SqlPrettyWriter(SqlDialect.EIGENBASE);
+    writer = new SqlPrettyWriter(SqlDialect.CALCITE);
     assertThat(writer.format(opt),
         equalTo("ALTER SYSTEM SET \"SCHEMA\" = TRUE"));
 
@@ -5593,8 +5599,7 @@ public class SqlParserTest {
         sqlNode = parseStmt(sql);
       } catch (SqlParseException e) {
         e.printStackTrace();
-        String message =
-            "Received error while parsing SQL '" + sql
+        String message = "Received error while parsing SQL '" + sql
             + "'; error is:\n"
             + e.toString();
         throw new AssertionError(message);
@@ -5618,8 +5623,7 @@ public class SqlParserTest {
       try {
         sqlNode = parseExpression(sql);
       } catch (SqlParseException e) {
-        String message =
-            "Received error while parsing SQL '" + sql
+        String message = "Received error while parsing SQL '" + sql
             + "'; error is:\n"
             + e.toString();
         throw new RuntimeException(message, e);
@@ -5677,12 +5681,12 @@ public class SqlParserTest {
       // Unparse again in Eigenbase dialect (which we can parse), and
       // minimal parentheses.
       final String sql1 =
-          sqlNode.toSqlString(SqlDialect.EIGENBASE, false).getSql();
+          sqlNode.toSqlString(SqlDialect.CALCITE, false).getSql();
 
       // Parse and unparse again.
       SqlNode sqlNode2 = parseStmtAndHandleEx(sql1);
       final String sql2 =
-          sqlNode2.toSqlString(SqlDialect.EIGENBASE, false).getSql();
+          sqlNode2.toSqlString(SqlDialect.CALCITE, false).getSql();
 
       // Should be the same as we started with.
       assertEquals(sql1, sql2);
@@ -5704,12 +5708,12 @@ public class SqlParserTest {
       // Unparse again in Eigenbase dialect (which we can parse), and
       // minimal parentheses.
       final String sql1 =
-          sqlNode.toSqlString(SqlDialect.EIGENBASE, false).getSql();
+          sqlNode.toSqlString(SqlDialect.CALCITE, false).getSql();
 
       // Parse and unparse again.
       SqlNode sqlNode2 = parseExpressionAndHandleEx(sql1);
       final String sql2 =
-          sqlNode2.toSqlString(SqlDialect.EIGENBASE, false).getSql();
+          sqlNode2.toSqlString(SqlDialect.CALCITE, false).getSql();
 
       // Should be the same as we started with.
       assertEquals(sql1, sql2);

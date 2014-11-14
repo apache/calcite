@@ -14,21 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.test;
+package org.apache.calcite.test;
 
-import net.hydromatic.linq4j.QueryProvider;
-
-import net.hydromatic.optiq.DataContext;
-import net.hydromatic.optiq.SchemaPlus;
-import net.hydromatic.optiq.config.Lex;
-import net.hydromatic.optiq.impl.interpreter.Interpreter;
-import net.hydromatic.optiq.impl.java.JavaTypeFactory;
-import net.hydromatic.optiq.tools.FrameworkConfig;
-import net.hydromatic.optiq.tools.Frameworks;
-import net.hydromatic.optiq.tools.Planner;
-
-import org.eigenbase.rel.RelNode;
-import org.eigenbase.sql.SqlNode;
+import org.apache.calcite.DataContext;
+import org.apache.calcite.adapter.java.JavaTypeFactory;
+import org.apache.calcite.config.Lex;
+import org.apache.calcite.interpreter.Interpreter;
+import org.apache.calcite.linq4j.QueryProvider;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.tools.FrameworkConfig;
+import org.apache.calcite.tools.Frameworks;
+import org.apache.calcite.tools.Planner;
 
 import com.google.common.collect.Lists;
 
@@ -43,7 +41,7 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
 
 /**
- * Unit tests for {@link net.hydromatic.optiq.impl.interpreter.Interpreter}.
+ * Unit tests for {@link org.apache.calcite.interpreter.Interpreter}.
  */
 public class InterpreterTest {
   private SchemaPlus rootSchema;
@@ -80,7 +78,7 @@ public class InterpreterTest {
     final FrameworkConfig config = Frameworks.newConfigBuilder()
         .lex(Lex.ORACLE)
         .defaultSchema(
-            OptiqAssert.addSchema(rootSchema, OptiqAssert.SchemaSpec.HR))
+            CalciteAssert.addSchema(rootSchema, CalciteAssert.SchemaSpec.HR))
         .build();
     planner = Frameworks.getPlanner(config);
   }
@@ -131,8 +129,8 @@ public class InterpreterTest {
         "[200, 20, Eric, 8000.0, 500]");
   }
 
-  /** Tests executing a plan on a {@link net.hydromatic.optiq.ScannableTable}
-   * using an interpreter. */
+  /** Tests executing a plan on a
+   * {@link org.apache.calcite.schema.ScannableTable} using an interpreter. */
   @Test public void testInterpretScannableTable() throws Exception {
     rootSchema.add("beatles", new ScannableTableTest.BeatlesTable());
     SqlNode parse =
@@ -151,7 +149,7 @@ public class InterpreterTest {
   }
 
   /** Tests executing a plan on a single-column
-   * {@link net.hydromatic.optiq.ScannableTable} using an interpreter. */
+   * {@link org.apache.calcite.schema.ScannableTable} using an interpreter. */
   @Test public void testInterpretSimpleScannableTable() throws Exception {
     rootSchema.add("simple", new ScannableTableTest.SimpleTable());
     SqlNode parse =

@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel.metadata;
+package org.apache.calcite.rel.metadata;
 
 /**
- * Mapping from an input column of a {@link org.eigenbase.rel.RelNode} to one
- * of its output columns.
+ * Mapping from an input column of a {@link org.apache.calcite.rel.RelNode} to
+ * one of its output columns.
  */
 public class RelColumnMapping {
   public RelColumnMapping(

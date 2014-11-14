@@ -14,15 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql.validate;
+package org.apache.calcite.sql.validate;
 
-import org.eigenbase.reltype.RelDataType;
-import org.eigenbase.reltype.RelDataTypeFactory;
-import org.eigenbase.reltype.RelDataTypeField;
-import org.eigenbase.sql.SqlIdentifier;
-import org.eigenbase.sql.SqlNode;
-import org.eigenbase.sql.SqlWithItem;
-import org.eigenbase.util.Pair;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.sql.SqlIdentifier;
+import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlWithItem;
+import org.apache.calcite.util.Pair;
 
 /** Very similar to {@link AliasNamespace}. */
 class WithItemNamespace extends AbstractNamespace {
@@ -68,8 +68,7 @@ class WithItemNamespace extends AbstractNamespace {
       }
       ++i;
     }
-    throw new AssertionError(
-        "unknown field '" + name
+    throw new AssertionError("unknown field '" + name
         + "' in rowtype " + underlyingRowType);
   }
 }

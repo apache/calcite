@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.linq4j.expressions;
+package org.apache.calcite.linq4j.tree;
 
-import net.hydromatic.linq4j.Ord;
+import org.apache.calcite.linq4j.Ord;
 
 import java.util.List;
 
@@ -44,8 +44,7 @@ public class ForStatement extends Statement {
     this.body = body; // may be empty block, not null
   }
 
-  @Override
-  public ForStatement accept(Visitor visitor) {
+  @Override public ForStatement accept(Visitor visitor) {
     visitor = visitor.preVisit(this);
     List<DeclarationStatement> decls1 =
         Expressions.acceptDeclarations(declarations, visitor);
@@ -56,8 +55,7 @@ public class ForStatement extends Statement {
     return visitor.visit(this, decls1, condition1, post1, body1);
   }
 
-  @Override
-  void accept0(ExpressionWriter writer) {
+  @Override void accept0(ExpressionWriter writer) {
     writer.append("for (");
     for (Ord<DeclarationStatement> declaration : Ord.zip(declarations)) {
       declaration.e.accept2(writer, declaration.i == 0);
@@ -73,8 +71,7 @@ public class ForStatement extends Statement {
     writer.append(") ").append(Blocks.toBlock(body));
   }
 
-  @Override
-  public boolean equals(Object o) {
+  @Override public boolean equals(Object o) {
     if (this == o) {
       return true;
     }
@@ -104,8 +101,7 @@ public class ForStatement extends Statement {
     return true;
   }
 
-  @Override
-  public int hashCode() {
+  @Override public int hashCode() {
     int result = hash;
     if (result == 0) {
       result = super.hashCode();

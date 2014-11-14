@@ -14,41 +14,39 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel.rules;
+package org.apache.calcite.rel.rules;
 
-import java.util.List;
-
-import org.eigenbase.rel.FilterRelBase;
-import org.eigenbase.rel.RelNode;
-import org.eigenbase.rel.TableAccessRelBase;
-import org.eigenbase.relopt.RelOptRule;
-import org.eigenbase.relopt.RelOptRuleCall;
-import org.eigenbase.relopt.RelOptTable;
-import org.eigenbase.relopt.RelOptUtil;
-import org.eigenbase.rex.*;
-
-import net.hydromatic.linq4j.Enumerable;
-
-import net.hydromatic.optiq.DataContext;
-import net.hydromatic.optiq.FilterableTable;
-import net.hydromatic.optiq.ProjectableFilterableTable;
-import net.hydromatic.optiq.rules.java.EnumerableRel;
-import net.hydromatic.optiq.rules.java.JavaRules;
+import org.apache.calcite.DataContext;
+import org.apache.calcite.adapter.enumerable.EnumerableInterpreter;
+import org.apache.calcite.adapter.enumerable.EnumerableRel;
+import org.apache.calcite.linq4j.Enumerable;
+import org.apache.calcite.plan.RelOptRule;
+import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.Filter;
+import org.apache.calcite.rel.core.TableScan;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.schema.FilterableTable;
+import org.apache.calcite.schema.ProjectableFilterableTable;
 
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
-import static org.eigenbase.util.Static.RESOURCE;
+import java.util.List;
+
+import static org.apache.calcite.util.Static.RESOURCE;
 
 /**
  * Planner rule that pushes a filter into a scan of a {@link FilterableTable}
- * or {@link net.hydromatic.optiq.ProjectableFilterableTable}.
+ * or {@link org.apache.calcite.schema.ProjectableFilterableTable}.
  */
 public class FilterTableRule extends RelOptRule {
-  private static final Predicate<TableAccessRelBase> PREDICATE =
-      new Predicate<TableAccessRelBase>() {
-        public boolean apply(TableAccessRelBase scan) {
+  private static final Predicate<TableScan> PREDICATE =
+      new Predicate<TableScan>() {
+        public boolean apply(TableScan scan) {
           // We can only push filters into a FilterableTable or
           // ProjectableFilterableTable.
           final RelOptTable table = scan.getTable();
@@ -64,18 +62,18 @@ public class FilterTableRule extends RelOptRule {
   /** Creates a FilterTableRule. */
   private FilterTableRule() {
     super(
-        operand(FilterRelBase.class,
-            operand(JavaRules.EnumerableInterpreterRel.class,
-                operand(TableAccessRelBase.class, null, PREDICATE, none()))));
+        operand(Filter.class,
+            operand(EnumerableInterpreter.class,
+                operand(TableScan.class, null, PREDICATE, none()))));
   }
 
   //~ Methods ----------------------------------------------------------------
 
   // implement RelOptRule
   public void onMatch(RelOptRuleCall call) {
-    final FilterRelBase filter = call.rel(0);
-    final JavaRules.EnumerableInterpreterRel interpreter = call.rel(1);
-    final TableAccessRelBase scan = call.rel(2);
+    final Filter filter = call.rel(0);
+    final EnumerableInterpreter interpreter = call.rel(1);
+    final TableScan scan = call.rel(2);
     final FilterableTable filterableTable =
         scan.getTable().unwrap(FilterableTable.class);
     final ProjectableFilterableTable projectableFilterableTable =
@@ -95,10 +93,10 @@ public class FilterTableRule extends RelOptRule {
     // It's worth using the ProjectableFilterableTable interface even if it
     // refused all filters.
     final RelNode newFilter =
-        RelOptUtil.createFilter(interpreter.getChild(),
+        RelOptUtil.createFilter(interpreter.getInput(),
             filterSplit.acceptedFilters, EnumerableRel.FILTER_FACTORY);
     final RelNode newInterpreter =
-        new JavaRules.EnumerableInterpreterRel(interpreter.getCluster(),
+        new EnumerableInterpreter(interpreter.getCluster(),
             interpreter.getTraitSet(), newFilter, 0.15d);
     final RelNode residue =
         RelOptUtil.createFilter(newInterpreter, filterSplit.rejectedFilters);

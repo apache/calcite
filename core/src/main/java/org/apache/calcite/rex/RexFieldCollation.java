@@ -14,15 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rex;
+package org.apache.calcite.rex;
 
-import java.util.Set;
-
-import org.eigenbase.rel.RelFieldCollation;
-import org.eigenbase.sql.SqlKind;
-import org.eigenbase.util.Pair;
+import org.apache.calcite.rel.RelFieldCollation;
+import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableSet;
+
+import java.util.Set;
 
 /**
  * Expression combined with sort flags (DESCENDING, NULLS LAST).
@@ -32,8 +32,7 @@ public class RexFieldCollation extends Pair<RexNode, ImmutableSet<SqlKind>> {
     super(left, ImmutableSet.copyOf(right));
   }
 
-  @Override
-  public String toString() {
+  @Override public String toString() {
     String s = left.toString();
     for (SqlKind operator : right) {
       switch (operator) {

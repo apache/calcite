@@ -14,19 +14,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel;
+package org.apache.calcite.rel.externalize;
 
-import java.util.*;
-
-import org.eigenbase.sql.SqlExplainLevel;
-import org.eigenbase.util.*;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelWriter;
+import org.apache.calcite.sql.SqlExplainLevel;
+import org.apache.calcite.util.JsonBuilder;
+import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableList;
+
+import java.util.ArrayList;
+import java.util.IdentityHashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Callback for a relational expression to dump itself as JSON.
  *
- * @see org.eigenbase.rel.RelJsonReader
+ * @see RelJsonReader
  */
 public class RelJsonWriter implements RelWriter {
   //~ Instance fields ----------------------------------------------------------

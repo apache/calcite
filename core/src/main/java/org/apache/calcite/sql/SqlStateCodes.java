@@ -14,11 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql;
+package org.apache.calcite.sql;
 
 /**
- * Contains {@link org.eigenbase.util.Glossary#SQL2003} SQL state codes. Sql
- * Sate codes are defined in
+ * Contains {@link org.apache.calcite.util.Glossary#SQL2003} SQL state codes.
+ *
+ * <p>SQL State codes are defined in
  *
  * <pre><code> &#64;sql.2003 Part 2 Section 23.1</code></pre>
  */

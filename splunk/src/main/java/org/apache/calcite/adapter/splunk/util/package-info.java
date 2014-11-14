@@ -18,6 +18,6 @@
 /**
  * Utilities for RPC to Splunk.
  */
-package net.hydromatic.optiq.impl.splunk.util;
+package org.apache.calcite.adapter.splunk.util;
 
 // End package-info.java

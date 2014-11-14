@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel;
+package org.apache.calcite.rel;
+
+import org.apache.calcite.sql.SqlExplainLevel;
+import org.apache.calcite.util.Pair;
 
 import java.util.List;
-
-import org.eigenbase.sql.SqlExplainLevel;
-import org.eigenbase.util.Pair;
 
 /**
  * Callback for an expression to dump itself to.
@@ -32,8 +32,9 @@ public interface RelWriter {
    * Prints an explanation of a node, with a list of (term, value) pairs.
    *
    * <p>The term-value pairs are generally gathered by calling
-   * {@link RelNode#explain(RelWriter)}. Each sub-class of
-   * {@link RelNode} calls {@link #input(String, org.eigenbase.rel.RelNode)}
+   * {@link org.apache.calcite.rel.RelNode#explain(RelWriter)}.
+   * Each sub-class of {@link org.apache.calcite.rel.RelNode}
+   * calls {@link #input(String, org.apache.calcite.rel.RelNode)}
    * and {@link #item(String, Object)} to declare term-value pairs.</p>
    *
    * @param rel       Relational expression

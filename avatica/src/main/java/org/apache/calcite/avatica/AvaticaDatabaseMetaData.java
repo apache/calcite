@@ -14,12 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.avatica;
+package org.apache.calcite.avatica;
 
-import java.sql.*;
-import java.util.*;
+import java.sql.Connection;
+import java.sql.DatabaseMetaData;
+import java.sql.ResultSet;
+import java.sql.RowIdLifetime;
+import java.sql.SQLException;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
 
-import static net.hydromatic.avatica.InternalProperty.*;
+import static org.apache.calcite.avatica.InternalProperty.CASE_SENSITIVE;
+import static org.apache.calcite.avatica.InternalProperty.NULL_SORTING;
+import static org.apache.calcite.avatica.InternalProperty.NullSorting;
+import static org.apache.calcite.avatica.InternalProperty.QUOTED_CASING;
+import static org.apache.calcite.avatica.InternalProperty.QUOTING;
+import static org.apache.calcite.avatica.InternalProperty.UNQUOTED_CASING;
 
 /**
  * Implementation of {@link java.sql.DatabaseMetaData}

@@ -14,15 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.impl.spark;
+package org.apache.calcite.adapter.spark;
 
-import net.hydromatic.linq4j.expressions.*;
-
-import net.hydromatic.optiq.rules.java.*;
-
-import org.eigenbase.rel.RelNode;
-import org.eigenbase.rel.convert.ConverterRelImpl;
-import org.eigenbase.relopt.*;
+import org.apache.calcite.adapter.enumerable.EnumerableConvention;
+import org.apache.calcite.adapter.enumerable.EnumerableRel;
+import org.apache.calcite.adapter.enumerable.JavaRowFormat;
+import org.apache.calcite.adapter.enumerable.PhysType;
+import org.apache.calcite.adapter.enumerable.PhysTypeImpl;
+import org.apache.calcite.linq4j.tree.BlockBuilder;
+import org.apache.calcite.linq4j.tree.Expression;
+import org.apache.calcite.linq4j.tree.Expressions;
+import org.apache.calcite.plan.ConventionTraitDef;
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptCost;
+import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.convert.ConverterImpl;
 
 import java.util.List;
 
@@ -31,25 +39,23 @@ import java.util.List;
  * into {@link SparkRel#CONVENTION Spark convention}.
  *
  * <p>Concretely, this means iterating over the contents of an
- * {@link net.hydromatic.linq4j.Enumerable}, storing them in a list, and
+ * {@link org.apache.calcite.linq4j.Enumerable}, storing them in a list, and
  * building an {@link org.apache.spark.rdd.RDD} on top of it.</p>
  */
 public class EnumerableToSparkConverter
-    extends ConverterRelImpl
+    extends ConverterImpl
     implements SparkRel {
   protected EnumerableToSparkConverter(RelOptCluster cluster,
       RelTraitSet traits, RelNode input) {
     super(cluster, ConventionTraitDef.INSTANCE, traits, input);
   }
 
-  @Override
-  public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
+  @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
     return new EnumerableToSparkConverter(
         getCluster(), traitSet, sole(inputs));
   }
 
-  @Override
-  public RelOptCost computeSelfCost(RelOptPlanner planner) {
+  @Override public RelOptCost computeSelfCost(RelOptPlanner planner) {
     return super.computeSelfCost(planner).multiplyBy(.01);
   }
 
@@ -58,7 +64,7 @@ public class EnumerableToSparkConverter
     //   Enumerable source = ...;
     //   return SparkRuntime.createRdd(sparkContext, source);
     final BlockBuilder list = new BlockBuilder();
-    final EnumerableRel child = (EnumerableRel) getChild();
+    final EnumerableRel child = (EnumerableRel) getInput();
     final PhysType physType =
         PhysTypeImpl.of(
             implementor.getTypeFactory(), getRowType(),

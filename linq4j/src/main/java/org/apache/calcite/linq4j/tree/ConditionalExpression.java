@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.linq4j.expressions;
+package org.apache.calcite.linq4j.tree;
 
 import java.lang.reflect.Type;
 import java.util.List;
@@ -40,8 +40,7 @@ public class ConditionalExpression extends AbstractNode {
     this.expressionList = expressionList;
   }
 
-  @Override
-  void accept(ExpressionWriter writer, int lprec, int rprec) {
+  @Override void accept(ExpressionWriter writer, int lprec, int rprec) {
     for (int i = 0; i < expressionList.size(); i += 2) {
       writer.append(i > 0 ? " else if (" : "if (")
           .append(expressionList.get(i))
@@ -54,8 +53,7 @@ public class ConditionalExpression extends AbstractNode {
     }
   }
 
-  @Override
-  public boolean equals(Object o) {
+  @Override public boolean equals(Object o) {
     if (this == o) {
       return true;
     }
@@ -75,8 +73,7 @@ public class ConditionalExpression extends AbstractNode {
     return true;
   }
 
-  @Override
-  public int hashCode() {
+  @Override public int hashCode() {
     int result = super.hashCode();
     result = 31 * result + expressionList.hashCode();
     return result;

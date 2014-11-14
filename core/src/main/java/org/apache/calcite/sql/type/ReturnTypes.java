@@ -14,16 +14,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql.type;
+package org.apache.calcite.sql.type;
+
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rel.type.RelDataTypeImpl;
+import org.apache.calcite.rel.type.RelDataTypeSystem;
+import org.apache.calcite.rel.type.RelProtoDataType;
+import org.apache.calcite.sql.ExplicitOperatorBinding;
+import org.apache.calcite.sql.SqlCallBinding;
+import org.apache.calcite.sql.SqlCollation;
+import org.apache.calcite.sql.SqlOperatorBinding;
+import org.apache.calcite.sql.SqlUtil;
+import org.apache.calcite.util.Util;
 
 import java.util.AbstractList;
 import java.util.List;
 
-import org.eigenbase.reltype.*;
-import org.eigenbase.sql.*;
-import org.eigenbase.util.Util;
-
-import static org.eigenbase.util.Static.RESOURCE;
+import static org.apache.calcite.util.Static.RESOURCE;
 
 /**
  * A collection of return-type inference strategies.
@@ -118,8 +127,8 @@ public abstract class ReturnTypes {
    */
   public static final SqlReturnTypeInference ARG0_NULLABLE_IF_EMPTY =
       new OrdinalReturnTypeInference(0) {
-        @Override
-        public RelDataType inferReturnType(SqlOperatorBinding opBinding) {
+        @Override public RelDataType
+        inferReturnType(SqlOperatorBinding opBinding) {
           final RelDataType type = super.inferReturnType(opBinding);
           if (opBinding.getGroupCount() == 0) {
             return opBinding.getTypeFactory()
@@ -388,7 +397,7 @@ public abstract class ReturnTypes {
   /**
    * Same as {@link #DECIMAL_PRODUCT} but returns with nullability if any of
    * the operands is nullable by using
-   * {@link org.eigenbase.sql.type.SqlTypeTransforms#TO_NULLABLE}
+   * {@link org.apache.calcite.sql.type.SqlTypeTransforms#TO_NULLABLE}
    */
   public static final SqlReturnTypeInference DECIMAL_PRODUCT_NULLABLE =
       cascade(DECIMAL_PRODUCT, SqlTypeTransforms.TO_NULLABLE);
@@ -422,7 +431,7 @@ public abstract class ReturnTypes {
   /**
    * Same as {@link #DECIMAL_QUOTIENT} but returns with nullability if any of
    * the operands is nullable by using
-   * {@link org.eigenbase.sql.type.SqlTypeTransforms#TO_NULLABLE}
+   * {@link org.apache.calcite.sql.type.SqlTypeTransforms#TO_NULLABLE}
    */
   public static final SqlReturnTypeInference DECIMAL_QUOTIENT_NULLABLE =
       cascade(DECIMAL_QUOTIENT, SqlTypeTransforms.TO_NULLABLE);
@@ -492,14 +501,14 @@ public abstract class ReturnTypes {
   /**
    * Same as {@link #DECIMAL_SUM} but returns with nullability if any
    * of the operands is nullable by using
-   * {@link org.eigenbase.sql.type.SqlTypeTransforms#TO_NULLABLE}.
+   * {@link org.apache.calcite.sql.type.SqlTypeTransforms#TO_NULLABLE}.
    */
   public static final SqlReturnTypeInference DECIMAL_SUM_NULLABLE =
       cascade(DECIMAL_SUM, SqlTypeTransforms.TO_NULLABLE);
 
   /**
-   * Type-inference strategy whereby the result type of a call is {@link
-   * #DECIMAL_SUM_NULLABLE} with a fallback to {@link #LEAST_RESTRICTIVE}
+   * Type-inference strategy whereby the result type of a call is
+   * {@link #DECIMAL_SUM_NULLABLE} with a fallback to {@link #LEAST_RESTRICTIVE}
    * These rules are used for addition and subtraction.
    */
   public static final SqlReturnTypeInference NULLABLE_SUM =
@@ -589,8 +598,8 @@ public abstract class ReturnTypes {
       };
   /**
    * Same as {@link #DYADIC_STRING_SUM_PRECISION} and using
-   * {@link org.eigenbase.sql.type.SqlTypeTransforms#TO_NULLABLE},
-   * {@link org.eigenbase.sql.type.SqlTypeTransforms#TO_VARYING}.
+   * {@link org.apache.calcite.sql.type.SqlTypeTransforms#TO_NULLABLE},
+   * {@link org.apache.calcite.sql.type.SqlTypeTransforms#TO_VARYING}.
    */
   public static final SqlReturnTypeInference
   DYADIC_STRING_SUM_PRECISION_NULLABLE_VARYING =
@@ -598,8 +607,8 @@ public abstract class ReturnTypes {
           SqlTypeTransforms.TO_VARYING);
 
   /**
-   * Same as {@link #DYADIC_STRING_SUM_PRECISION} and using {@link
-   * org.eigenbase.sql.type.SqlTypeTransforms#TO_NULLABLE}
+   * Same as {@link #DYADIC_STRING_SUM_PRECISION} and using
+   * {@link org.apache.calcite.sql.type.SqlTypeTransforms#TO_NULLABLE}
    */
   public static final SqlReturnTypeInference
   DYADIC_STRING_SUM_PRECISION_NULLABLE =
@@ -607,7 +616,7 @@ public abstract class ReturnTypes {
 
   /**
    * Type-inference strategy where the expression is assumed to be registered
-   * as a {@link org.eigenbase.sql.validate.SqlValidatorNamespace}, and
+   * as a {@link org.apache.calcite.sql.validate.SqlValidatorNamespace}, and
    * therefore the result type of the call is the type of that namespace.
    */
   public static final SqlReturnTypeInference SCOPE =

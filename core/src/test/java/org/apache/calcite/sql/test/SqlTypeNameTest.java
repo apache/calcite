@@ -14,15 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql.test;
+package org.apache.calcite.sql.test;
 
-import java.sql.Types;
-
-import org.eigenbase.sql.type.*;
+import org.apache.calcite.sql.type.ExtraSqlTypes;
+import org.apache.calcite.sql.type.SqlTypeName;
 
 import org.junit.Test;
 
-import static org.junit.Assert.*;
+import java.sql.Types;
+
+import static org.junit.Assert.assertEquals;
 
 /**
  * Tests types supported by {@link SqlTypeName}.

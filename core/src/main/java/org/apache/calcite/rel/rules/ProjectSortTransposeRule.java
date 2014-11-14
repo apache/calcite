@@ -14,45 +14,50 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel.rules;
+package org.apache.calcite.rel.rules;
 
-import org.eigenbase.rel.*;
-import org.eigenbase.relopt.*;
+import org.apache.calcite.plan.RelOptRule;
+import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.Sort;
+import org.apache.calcite.rel.logical.LogicalProject;
 
 import com.google.common.collect.ImmutableList;
 
 /**
- * Planner rule that pushes a {@link ProjectRel} past a {@link SortRel}.
+ * Planner rule that pushes
+ * a {@link org.apache.calcite.rel.logical.LogicalProject}
+ * past a {@link org.apache.calcite.rel.core.Sort}.
+ *
+ * @see org.apache.calcite.rel.rules.SortProjectTransposeRule
  */
-public class PushProjectPastSortRule extends RelOptRule {
-  public static final PushProjectPastSortRule INSTANCE =
-      new PushProjectPastSortRule();
+public class ProjectSortTransposeRule extends RelOptRule {
+  public static final ProjectSortTransposeRule INSTANCE =
+      new ProjectSortTransposeRule();
 
   //~ Constructors -----------------------------------------------------------
 
   /**
-   * Creates a PushProjectPastSortRule.
+   * Creates a ProjectSortTransposeRule.
    */
-  private PushProjectPastSortRule() {
+  private ProjectSortTransposeRule() {
     super(
-        operand(
-            ProjectRel.class,
-            operand(SortRel.class, any())));
+        operand(LogicalProject.class,
+            operand(Sort.class, any())));
   }
 
   //~ Methods ----------------------------------------------------------------
 
-  // implement RelOptRule
   public void onMatch(RelOptRuleCall call) {
-    ProjectRel project = call.rel(0);
-    SortRel sort = call.rel(1);
-    if (sort.getClass() != SortRel.class) {
+    LogicalProject project = call.rel(0);
+    Sort sort = call.rel(1);
+    if (sort.getClass() != Sort.class) {
       return;
     }
     RelNode newProject =
         project.copy(
-            project.getTraitSet(), ImmutableList.of(sort.getChild()));
-    final SortRel newSort =
+            project.getTraitSet(), ImmutableList.of(sort.getInput()));
+    final Sort newSort =
         sort.copy(
             sort.getTraitSet(),
             newProject,
@@ -63,4 +68,4 @@ public class PushProjectPastSortRule extends RelOptRule {
   }
 }
 
-// End PushProjectPastSortRule.java
+// End ProjectSortTransposeRule.java

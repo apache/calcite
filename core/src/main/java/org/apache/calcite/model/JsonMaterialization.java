@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.model;
+package org.apache.calcite.model;
 
 /**
  * Element that describes how a table is a materialization of a query.
@@ -30,8 +30,7 @@ public class JsonMaterialization {
     handler.visit(this);
   }
 
-  @Override
-  public String toString() {
+  @Override public String toString() {
     return "JsonMaterialization(table=" + table + ", view=" + view + ")";
   }
 

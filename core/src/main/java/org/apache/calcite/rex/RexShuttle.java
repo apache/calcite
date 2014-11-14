@@ -14,19 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rex;
-
-import java.util.*;
+package org.apache.calcite.rex;
 
 import com.google.common.collect.ImmutableList;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Passes over a row-expression, calling a handler method for each node,
  * appropriate to the type of the node.
  *
- * <p>Like {@link RexVisitor}, this is an instance of the {@link
- * org.eigenbase.util.Glossary#VISITOR_PATTERN Visitor Pattern}. Use <code>
- * RexShuttle</code> if you would like your methods to return a value.</p>
+ * <p>Like {@link RexVisitor}, this is an instance of the
+ * {@link org.apache.calcite.util.Glossary#VISITOR_PATTERN Visitor Pattern}. Use
+ * <code> RexShuttle</code> if you would like your methods to return a
+ * value.</p>
  */
 public class RexShuttle implements RexVisitor<RexNode> {
   //~ Methods ----------------------------------------------------------------

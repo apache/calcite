@@ -14,41 +14,58 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.jdbc;
+package org.apache.calcite.jdbc;
 
-import net.hydromatic.avatica.*;
+import org.apache.calcite.DataContext;
+import org.apache.calcite.adapter.java.JavaTypeFactory;
+import org.apache.calcite.avatica.AvaticaConnection;
+import org.apache.calcite.avatica.AvaticaFactory;
+import org.apache.calcite.avatica.AvaticaParameter;
+import org.apache.calcite.avatica.AvaticaPrepareResult;
+import org.apache.calcite.avatica.AvaticaStatement;
+import org.apache.calcite.avatica.Helper;
+import org.apache.calcite.avatica.InternalProperty;
+import org.apache.calcite.avatica.Meta;
+import org.apache.calcite.avatica.UnregisteredDriver;
+import org.apache.calcite.config.CalciteConnectionConfig;
+import org.apache.calcite.config.CalciteConnectionConfigImpl;
+import org.apache.calcite.linq4j.BaseQueryable;
+import org.apache.calcite.linq4j.Enumerator;
+import org.apache.calcite.linq4j.QueryProvider;
+import org.apache.calcite.linq4j.Queryable;
+import org.apache.calcite.linq4j.function.Function0;
+import org.apache.calcite.linq4j.tree.Expression;
+import org.apache.calcite.linq4j.tree.Expressions;
+import org.apache.calcite.materialize.Lattice;
+import org.apache.calcite.materialize.MaterializationService;
+import org.apache.calcite.prepare.CalciteCatalogReader;
+import org.apache.calcite.rel.type.RelDataTypeSystem;
+import org.apache.calcite.runtime.Hook;
+import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.schema.Schemas;
+import org.apache.calcite.schema.impl.AbstractSchema;
+import org.apache.calcite.server.CalciteServer;
+import org.apache.calcite.server.CalciteServerStatement;
+import org.apache.calcite.sql.advise.SqlAdvisor;
+import org.apache.calcite.sql.advise.SqlAdvisorValidator;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.validate.SqlConformance;
+import org.apache.calcite.sql.validate.SqlValidatorWithHints;
+import org.apache.calcite.util.BuiltInMethod;
+import org.apache.calcite.util.Holder;
 
-import net.hydromatic.linq4j.*;
-import net.hydromatic.linq4j.expressions.Expression;
-import net.hydromatic.linq4j.expressions.Expressions;
-import net.hydromatic.linq4j.function.Function0;
-
-import net.hydromatic.optiq.*;
-import net.hydromatic.optiq.config.OptiqConnectionConfig;
-import net.hydromatic.optiq.config.OptiqConnectionConfigImpl;
-import net.hydromatic.optiq.impl.AbstractSchema;
-import net.hydromatic.optiq.impl.java.JavaTypeFactory;
-import net.hydromatic.optiq.materialize.Lattice;
-import net.hydromatic.optiq.materialize.MaterializationService;
-import net.hydromatic.optiq.prepare.OptiqCatalogReader;
-import net.hydromatic.optiq.runtime.Hook;
-import net.hydromatic.optiq.server.OptiqServer;
-import net.hydromatic.optiq.server.OptiqServerStatement;
-
-import org.eigenbase.reltype.RelDataTypeSystem;
-import org.eigenbase.sql.advise.SqlAdvisor;
-import org.eigenbase.sql.advise.SqlAdvisorValidator;
-import org.eigenbase.sql.fun.SqlStdOperatorTable;
-import org.eigenbase.sql.validate.SqlConformance;
-import org.eigenbase.sql.validate.SqlValidatorWithHints;
-import org.eigenbase.util.Holder;
-
-import com.google.common.collect.*;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 
 import java.io.Serializable;
-import java.lang.reflect.*;
-import java.sql.*;
-import java.util.*;
+import java.lang.reflect.Type;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.TimeZone;
 
 /**
  * Implementation of JDBC connection
@@ -56,20 +73,20 @@ import java.util.*;
  *
  * <p>Abstract to allow newer versions of JDBC to add methods.</p>
  */
-abstract class OptiqConnectionImpl
+abstract class CalciteConnectionImpl
     extends AvaticaConnection
-    implements OptiqConnection, QueryProvider {
+    implements CalciteConnection, QueryProvider {
   public final JavaTypeFactory typeFactory;
 
-  final OptiqRootSchema rootSchema;
-  final Function0<OptiqPrepare> prepareFactory;
-  final OptiqServer server = new OptiqServerImpl();
+  final CalciteRootSchema rootSchema;
+  final Function0<CalcitePrepare> prepareFactory;
+  final CalciteServer server = new CalciteServerImpl();
 
   // must be package-protected
   static final Trojan TROJAN = createTrojan();
 
   /**
-   * Creates an OptiqConnectionImpl.
+   * Creates a CalciteConnectionImpl.
    *
    * <p>Not public; method is called only from the driver.</p>
    *
@@ -80,11 +97,11 @@ abstract class OptiqConnectionImpl
    * @param rootSchema Root schema, or null
    * @param typeFactory Type factory, or null
    */
-  protected OptiqConnectionImpl(Driver driver, AvaticaFactory factory,
-      String url, Properties info, OptiqRootSchema rootSchema,
+  protected CalciteConnectionImpl(Driver driver, AvaticaFactory factory,
+      String url, Properties info, CalciteRootSchema rootSchema,
       JavaTypeFactory typeFactory) {
     super(driver, factory, url, info);
-    OptiqConnectionConfig cfg = new OptiqConnectionConfigImpl(info);
+    CalciteConnectionConfig cfg = new CalciteConnectionConfigImpl(info);
     this.prepareFactory = driver.prepareFactory;
     if (typeFactory != null) {
       this.typeFactory = typeFactory;
@@ -94,7 +111,7 @@ abstract class OptiqConnectionImpl
       this.typeFactory = new JavaTypeFactoryImpl(typeSystem);
     }
     this.rootSchema =
-        rootSchema != null ? rootSchema : OptiqSchema.createRootSchema(true);
+        rootSchema != null ? rootSchema : CalciteSchema.createRootSchema(true);
 
     this.properties.put(InternalProperty.CASE_SENSITIVE, cfg.caseSensitive());
     this.properties.put(InternalProperty.UNQUOTED_CASING, cfg.unquotedCasing());
@@ -110,15 +127,15 @@ abstract class OptiqConnectionImpl
     return (MetaImpl) meta;
   }
 
-  public OptiqConnectionConfig config() {
-    return new OptiqConnectionConfigImpl(info);
+  public CalciteConnectionConfig config() {
+    return new CalciteConnectionConfigImpl(info);
   }
 
   /** Called after the constructor has completed and the model has been
    * loaded. */
   void init() {
     final MaterializationService service = MaterializationService.instance();
-    for (OptiqSchema.LatticeEntry e : Schemas.getLatticeEntries(rootSchema)) {
+    for (CalciteSchema.LatticeEntry e : Schemas.getLatticeEntries(rootSchema)) {
       final Lattice lattice = e.getLattice();
       for (Lattice.Tile tile : lattice.computeTiles()) {
         service.defineTile(lattice, tile.bitSet(), tile.measures, e.schema,
@@ -129,8 +146,8 @@ abstract class OptiqConnectionImpl
 
   @Override public AvaticaStatement createStatement(int resultSetType,
       int resultSetConcurrency, int resultSetHoldability) throws SQLException {
-    OptiqStatement statement =
-        (OptiqStatement) super.createStatement(
+    CalciteStatement statement =
+        (CalciteStatement) super.createStatement(
             resultSetType, resultSetConcurrency, resultSetHoldability);
     server.addStatement(statement);
     return statement;
@@ -144,8 +161,8 @@ abstract class OptiqConnectionImpl
     try {
       AvaticaPrepareResult prepareResult =
           parseQuery(sql, new ContextImpl(this), -1);
-      OptiqPreparedStatement statement =
-          (OptiqPreparedStatement) factory.newPreparedStatement(
+      CalcitePreparedStatement statement =
+          (CalcitePreparedStatement) factory.newPreparedStatement(
               this,
               prepareResult,
               resultSetType,
@@ -162,19 +179,19 @@ abstract class OptiqConnectionImpl
     }
   }
 
-  <T> OptiqPrepare.PrepareResult<T> parseQuery(String sql,
-      OptiqPrepare.Context prepareContext, int maxRowCount) {
-    OptiqPrepare.Dummy.push(prepareContext);
+  <T> CalcitePrepare.PrepareResult<T> parseQuery(String sql,
+      CalcitePrepare.Context prepareContext, int maxRowCount) {
+    CalcitePrepare.Dummy.push(prepareContext);
     try {
-      final OptiqPrepare prepare = prepareFactory.apply();
+      final CalcitePrepare prepare = prepareFactory.apply();
       return prepare.prepareSql(prepareContext, sql, null, Object[].class,
           maxRowCount);
     } finally {
-      OptiqPrepare.Dummy.pop(prepareContext);
+      CalcitePrepare.Dummy.pop(prepareContext);
     }
   }
 
-  // OptiqConnection methods
+  // CalciteConnection methods
 
   public SchemaPlus getRootSchema() {
     return rootSchema.plus();
@@ -192,11 +209,11 @@ abstract class OptiqConnectionImpl
 
   public <T> Queryable<T> createQuery(
       Expression expression, Class<T> rowType) {
-    return new OptiqQueryable<T>(this, rowType, expression);
+    return new CalciteQueryable<T>(this, rowType, expression);
   }
 
   public <T> Queryable<T> createQuery(Expression expression, Type rowType) {
-    return new OptiqQueryable<T>(this, rowType, expression);
+    return new CalciteQueryable<T>(this, rowType, expression);
   }
 
   public <T> T execute(Expression expression, Type type) {
@@ -209,8 +226,8 @@ abstract class OptiqConnectionImpl
 
   public <T> Enumerator<T> executeQuery(Queryable<T> queryable) {
     try {
-      OptiqStatement statement = (OptiqStatement) createStatement();
-      OptiqPrepare.PrepareResult<T> enumerable =
+      CalciteStatement statement = (CalciteStatement) createStatement();
+      CalcitePrepare.PrepareResult<T> enumerable =
           statement.prepare(queryable);
       final DataContext dataContext =
           createDataContext(ImmutableMap.<String, Object>of());
@@ -238,28 +255,27 @@ abstract class OptiqConnectionImpl
   }
 
   /** Implementation of Queryable. */
-  static class OptiqQueryable<T>
-      extends BaseQueryable<T> {
-    public OptiqQueryable(
-        OptiqConnection connection, Type elementType, Expression expression) {
+  static class CalciteQueryable<T> extends BaseQueryable<T> {
+    public CalciteQueryable(CalciteConnection connection, Type elementType,
+        Expression expression) {
       super(connection, elementType, expression);
     }
 
-    public OptiqConnection getConnection() {
-      return (OptiqConnection) provider;
+    public CalciteConnection getConnection() {
+      return (CalciteConnection) provider;
     }
   }
 
   /** Implementation of Server. */
-  private static class OptiqServerImpl implements OptiqServer {
-    final List<OptiqServerStatement> statementList =
-        new ArrayList<OptiqServerStatement>();
+  private static class CalciteServerImpl implements CalciteServer {
+    final List<CalciteServerStatement> statementList =
+        new ArrayList<CalciteServerStatement>();
 
-    public void removeStatement(OptiqServerStatement optiqServerStatement) {
-      statementList.add(optiqServerStatement);
+    public void removeStatement(CalciteServerStatement calciteServerStatement) {
+      statementList.add(calciteServerStatement);
     }
 
-    public void addStatement(OptiqServerStatement statement) {
+    public void addStatement(CalciteServerStatement statement) {
       statementList.add(statement);
     }
   }
@@ -274,18 +290,18 @@ abstract class OptiqConnectionImpl
         String name) {
       return Expressions.call(
           DataContext.ROOT,
-          BuiltinMethod.DATA_CONTEXT_GET_ROOT_SCHEMA.method);
+          BuiltInMethod.DATA_CONTEXT_GET_ROOT_SCHEMA.method);
     }
   }
 
   /** Implementation of DataContext. */
   static class DataContextImpl implements DataContext {
     private final ImmutableMap<Object, Object> map;
-    private final OptiqSchema rootSchema;
+    private final CalciteSchema rootSchema;
     private final QueryProvider queryProvider;
     private final JavaTypeFactory typeFactory;
 
-    DataContextImpl(OptiqConnectionImpl connection,
+    DataContextImpl(CalciteConnectionImpl connection,
         Map<String, Object> parameters) {
       this.queryProvider = connection;
       this.typeFactory = connection.getTypeFactory();
@@ -330,7 +346,7 @@ abstract class OptiqConnectionImpl
     }
 
     private SqlAdvisor getSqlAdvisor() {
-      final OptiqConnectionImpl con = (OptiqConnectionImpl) queryProvider;
+      final CalciteConnectionImpl con = (CalciteConnectionImpl) queryProvider;
       final String schemaName = con.getSchema();
       final List<String> schemaPath =
           schemaName == null
@@ -338,7 +354,7 @@ abstract class OptiqConnectionImpl
               : ImmutableList.of(schemaName);
       final SqlValidatorWithHints validator =
           new SqlAdvisorValidator(SqlStdOperatorTable.instance(),
-          new OptiqCatalogReader(rootSchema, con.config().caseSensitive(),
+          new CalciteCatalogReader(rootSchema, con.config().caseSensitive(),
               schemaPath, typeFactory),
           typeFactory, SqlConformance.DEFAULT);
       return new SqlAdvisor(validator);
@@ -358,10 +374,10 @@ abstract class OptiqConnectionImpl
   }
 
   /** Implementation of Context. */
-  static class ContextImpl implements OptiqPrepare.Context {
-    private final OptiqConnectionImpl connection;
+  static class ContextImpl implements CalcitePrepare.Context {
+    private final CalciteConnectionImpl connection;
 
-    public ContextImpl(OptiqConnectionImpl connection) {
+    public ContextImpl(CalciteConnectionImpl connection) {
       this.connection = connection;
     }
 
@@ -369,7 +385,7 @@ abstract class OptiqConnectionImpl
       return connection.typeFactory;
     }
 
-    public OptiqRootSchema getRootSchema() {
+    public CalciteRootSchema getRootSchema() {
       return connection.rootSchema;
     }
 
@@ -380,7 +396,7 @@ abstract class OptiqConnectionImpl
           : ImmutableList.of(schemaName);
     }
 
-    public OptiqConnectionConfig config() {
+    public CalciteConnectionConfig config() {
       return connection.config();
     }
 
@@ -388,9 +404,9 @@ abstract class OptiqConnectionImpl
       return connection.createDataContext(ImmutableMap.<String, Object>of());
     }
 
-    public OptiqPrepare.SparkHandler spark() {
+    public CalcitePrepare.SparkHandler spark() {
       final boolean enable = config().spark();
-      return OptiqPrepare.Dummy.getSparkHandler(enable);
+      return CalcitePrepare.Dummy.getSparkHandler(enable);
     }
   }
 
@@ -416,4 +432,4 @@ abstract class OptiqConnectionImpl
 
 }
 
-// End OptiqConnectionImpl.java
+// End CalciteConnectionImpl.java

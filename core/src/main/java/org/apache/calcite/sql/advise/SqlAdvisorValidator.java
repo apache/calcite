@@ -14,16 +14,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql.advise;
+package org.apache.calcite.sql.advise;
 
-import java.util.*;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.runtime.CalciteException;
+import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlIdentifier;
+import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlOperatorTable;
+import org.apache.calcite.sql.SqlSelect;
+import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.type.SqlTypeUtil;
+import org.apache.calcite.sql.validate.OverScope;
+import org.apache.calcite.sql.validate.SqlConformance;
+import org.apache.calcite.sql.validate.SqlValidatorCatalogReader;
+import org.apache.calcite.sql.validate.SqlValidatorImpl;
+import org.apache.calcite.sql.validate.SqlValidatorNamespace;
+import org.apache.calcite.sql.validate.SqlValidatorScope;
+import org.apache.calcite.util.Util;
 
-import org.eigenbase.reltype.*;
-import org.eigenbase.sql.*;
-import org.eigenbase.sql.parser.*;
-import org.eigenbase.sql.type.*;
-import org.eigenbase.sql.validate.*;
-import org.eigenbase.util.*;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * <code>SqlAdvisorValidator</code> is used by {@link SqlAdvisor} to traverse
@@ -70,7 +82,7 @@ public class SqlAdvisorValidator extends SqlValidatorImpl {
     registerId(id, scope);
     try {
       super.validateIdentifier(id, scope);
-    } catch (EigenbaseException e) {
+    } catch (CalciteException e) {
       Util.swallow(e, TRACER);
     }
   }
@@ -111,7 +123,7 @@ public class SqlAdvisorValidator extends SqlValidatorImpl {
     // Util.permAssert that throws Error
     try {
       return super.deriveType(scope, operand);
-    } catch (EigenbaseException e) {
+    } catch (CalciteException e) {
       return unknownType;
     } catch (UnsupportedOperationException e) {
       return unknownType;
@@ -129,7 +141,7 @@ public class SqlAdvisorValidator extends SqlValidatorImpl {
       SqlValidatorScope scope) {
     try {
       super.validateFrom(node, targetRowType, scope);
-    } catch (EigenbaseException e) {
+    } catch (CalciteException e) {
       Util.swallow(e, TRACER);
     }
   }
@@ -140,7 +152,7 @@ public class SqlAdvisorValidator extends SqlValidatorImpl {
   protected void validateWhereClause(SqlSelect select) {
     try {
       super.validateWhereClause(select);
-    } catch (EigenbaseException e) {
+    } catch (CalciteException e) {
       Util.swallow(e, TRACER);
     }
   }
@@ -151,7 +163,7 @@ public class SqlAdvisorValidator extends SqlValidatorImpl {
   protected void validateHavingClause(SqlSelect select) {
     try {
       super.validateHavingClause(select);
-    } catch (EigenbaseException e) {
+    } catch (CalciteException e) {
       Util.swallow(e, TRACER);
     }
   }
@@ -167,7 +179,7 @@ public class SqlAdvisorValidator extends SqlValidatorImpl {
         opScope = overScope;
       }
       validateWindow(window, opScope, null);
-    } catch (EigenbaseException e) {
+    } catch (CalciteException e) {
       Util.swallow(e, TRACER);
     }
   }

@@ -14,25 +14,32 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel.metadata;
+package org.apache.calcite.rel.metadata;
 
-import java.util.*;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.Aggregate;
+import org.apache.calcite.rel.core.Filter;
+import org.apache.calcite.rel.core.Join;
+import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.core.SemiJoin;
+import org.apache.calcite.rel.core.Sort;
+import org.apache.calcite.rel.core.Union;
+import org.apache.calcite.rel.core.Values;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.util.BitSets;
+import org.apache.calcite.util.BuiltInMethod;
 
-import org.eigenbase.rel.*;
-import org.eigenbase.rel.rules.*;
-import org.eigenbase.rex.*;
-
-import net.hydromatic.optiq.BuiltinMethod;
-import net.hydromatic.optiq.util.BitSets;
+import java.util.BitSet;
+import java.util.List;
 
 /**
- * RelMdPopulationSize supplies a default implementation of {@link
- * RelMetadataQuery#getPopulationSize} for the standard logical algebra.
+ * RelMdPopulationSize supplies a default implementation of
+ * {@link RelMetadataQuery#getPopulationSize} for the standard logical algebra.
  */
 public class RelMdPopulationSize {
   public static final RelMetadataProvider SOURCE =
       ReflectiveRelMetadataProvider.reflectiveSource(
-          BuiltinMethod.POPULATION_SIZE.method, new RelMdPopulationSize());
+          BuiltInMethod.POPULATION_SIZE.method, new RelMdPopulationSize());
 
   //~ Constructors -----------------------------------------------------------
 
@@ -40,19 +47,19 @@ public class RelMdPopulationSize {
 
   //~ Methods ----------------------------------------------------------------
 
-  public Double getPopulationSize(FilterRelBase rel, BitSet groupKey) {
+  public Double getPopulationSize(Filter rel, BitSet groupKey) {
     return RelMetadataQuery.getPopulationSize(
-        rel.getChild(),
+        rel.getInput(),
         groupKey);
   }
 
-  public Double getPopulationSize(SortRel rel, BitSet groupKey) {
+  public Double getPopulationSize(Sort rel, BitSet groupKey) {
     return RelMetadataQuery.getPopulationSize(
-        rel.getChild(),
+        rel.getInput(),
         groupKey);
   }
 
-  public Double getPopulationSize(UnionRelBase rel, BitSet groupKey) {
+  public Double getPopulationSize(Union rel, BitSet groupKey) {
     Double population = 0.0;
     for (RelNode input : rel.getInputs()) {
       Double subPop = RelMetadataQuery.getPopulationSize(input, groupKey);
@@ -64,30 +71,30 @@ public class RelMdPopulationSize {
     return population;
   }
 
-  public Double getPopulationSize(JoinRelBase rel, BitSet groupKey) {
+  public Double getPopulationSize(Join rel, BitSet groupKey) {
     return RelMdUtil.getJoinPopulationSize(rel, groupKey);
   }
 
-  public Double getPopulationSize(SemiJoinRel rel, BitSet groupKey) {
+  public Double getPopulationSize(SemiJoin rel, BitSet groupKey) {
     return RelMetadataQuery.getPopulationSize(
         rel.getLeft(),
         groupKey);
   }
 
-  public Double getPopulationSize(AggregateRelBase rel, BitSet groupKey) {
+  public Double getPopulationSize(Aggregate rel, BitSet groupKey) {
     BitSet childKey = new BitSet();
     RelMdUtil.setAggChildKeys(groupKey, rel, childKey);
     return RelMetadataQuery.getPopulationSize(
-        rel.getChild(),
+        rel.getInput(),
         childKey);
   }
 
-  public Double getPopulationSize(ValuesRelBase rel, BitSet groupKey) {
+  public Double getPopulationSize(Values rel, BitSet groupKey) {
     // assume half the rows are duplicates
     return rel.getRows() / 2;
   }
 
-  public Double getPopulationSize(ProjectRelBase rel, BitSet groupKey) {
+  public Double getPopulationSize(Project rel, BitSet groupKey) {
     BitSet baseCols = new BitSet();
     BitSet projCols = new BitSet();
     List<RexNode> projExprs = rel.getProjects();
@@ -95,7 +102,7 @@ public class RelMdPopulationSize {
 
     Double population =
         RelMetadataQuery.getPopulationSize(
-            rel.getChild(),
+            rel.getInput(),
             baseCols);
     if (population == null) {
       return null;

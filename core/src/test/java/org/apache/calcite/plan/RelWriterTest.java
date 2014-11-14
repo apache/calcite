@@ -14,43 +14,47 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.relopt;
+package org.apache.calcite.plan;
 
-import java.io.IOException;
-import java.math.BigDecimal;
-import java.util.Arrays;
-
-import org.eigenbase.rel.*;
-import org.eigenbase.reltype.RelDataType;
-import org.eigenbase.rex.RexBuilder;
-import org.eigenbase.sql.SqlExplainLevel;
-import org.eigenbase.sql.fun.SqlStdOperatorTable;
-import org.eigenbase.sql.type.SqlTypeName;
-import org.eigenbase.util.Util;
-
-import net.hydromatic.optiq.SchemaPlus;
-import net.hydromatic.optiq.impl.java.ReflectiveSchema;
-import net.hydromatic.optiq.test.JdbcTest;
-import net.hydromatic.optiq.tools.Frameworks;
-import net.hydromatic.optiq.util.BitSets;
+import org.apache.calcite.adapter.java.ReflectiveSchema;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.AggregateCall;
+import org.apache.calcite.rel.externalize.RelJsonReader;
+import org.apache.calcite.rel.externalize.RelJsonWriter;
+import org.apache.calcite.rel.logical.LogicalAggregate;
+import org.apache.calcite.rel.logical.LogicalFilter;
+import org.apache.calcite.rel.logical.LogicalTableScan;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.sql.SqlExplainLevel;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.test.JdbcTest;
+import org.apache.calcite.tools.Frameworks;
+import org.apache.calcite.util.BitSets;
+import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
 import org.junit.Test;
 
-import static org.hamcrest.CoreMatchers.*;
+import java.io.IOException;
+import java.math.BigDecimal;
+import java.util.Arrays;
+
+import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 
 /**
- * Unit test for {@link org.eigenbase.rel.RelJson}.
+ * Unit test for {@link org.apache.calcite.rel.externalize.RelJson}.
  */
 public class RelWriterTest {
-  public static final String XX =
-      "{\n"
+  public static final String XX = "{\n"
       + "  rels: [\n"
       + "    {\n"
       + "      id: \"0\",\n"
-      + "      relOp: \"TableAccessRel\",\n"
+      + "      relOp: \"LogicalTableScan\",\n"
       + "      table: [\n"
       + "        \"hr\",\n"
       + "        \"emps\"\n"
@@ -59,7 +63,7 @@ public class RelWriterTest {
       + "    },\n"
       + "    {\n"
       + "      id: \"1\",\n"
-      + "      relOp: \"FilterRel\",\n"
+      + "      relOp: \"LogicalFilter\",\n"
       + "      condition: {\n"
       + "        op: \"=\",\n"
       + "        operands: [\n"
@@ -72,7 +76,7 @@ public class RelWriterTest {
       + "    },\n"
       + "    {\n"
       + "      id: \"2\",\n"
-      + "      relOp: \"AggregateRel\",\n"
+      + "      relOp: \"LogicalAggregate\",\n"
       + "      group: [\n"
       + "        0\n"
       + "      ],\n"
@@ -103,7 +107,7 @@ public class RelWriterTest {
       + "}";
 
   /**
-   * Unit test for {@link org.eigenbase.rel.RelJsonWriter} on
+   * Unit test for {@link org.apache.calcite.rel.externalize.RelJsonWriter} on
    * a simple tree of relational expressions, consisting of a table, a filter
    * and an aggregate node.
    */
@@ -115,13 +119,13 @@ public class RelWriterTest {
                   RelOptSchema relOptSchema, SchemaPlus rootSchema) {
                 rootSchema.add("hr",
                     new ReflectiveSchema(new JdbcTest.HrSchema()));
-                TableAccessRel table =
-                    new TableAccessRel(cluster,
+                LogicalTableScan table =
+                    new LogicalTableScan(cluster,
                         relOptSchema.getTableForMember(
                             Arrays.asList("hr", "emps")));
                 final RexBuilder rexBuilder = cluster.getRexBuilder();
-                FilterRel filter =
-                    new FilterRel(cluster, table,
+                LogicalFilter filter =
+                    new LogicalFilter(cluster, table,
                         rexBuilder.makeCall(
                             SqlStdOperatorTable.EQUALS,
                             rexBuilder.makeFieldAccess(
@@ -133,8 +137,8 @@ public class RelWriterTest {
                     cluster.getTypeFactory().createSqlType(SqlTypeName.INTEGER);
                 final RelDataType bigIntType =
                     cluster.getTypeFactory().createSqlType(SqlTypeName.BIGINT);
-                AggregateRel aggregate =
-                    new AggregateRel(cluster, filter, BitSets.of(0),
+                LogicalAggregate aggregate =
+                    new LogicalAggregate(cluster, filter, BitSets.of(0),
                         ImmutableList.of(
                             new AggregateCall(SqlStdOperatorTable.COUNT,
                                 true, ImmutableList.of(1), bigIntType, "c"),
@@ -149,7 +153,7 @@ public class RelWriterTest {
   }
 
   /**
-   * Unit test for {@link org.eigenbase.rel.RelJsonReader}.
+   * Unit test for {@link org.apache.calcite.rel.externalize.RelJsonReader}.
    */
   @Test public void testReader() {
     String s =
@@ -177,9 +181,9 @@ public class RelWriterTest {
             });
 
     assertThat(Util.toLinux(s), is(
-        "AggregateRel(group=[{0}], agg#0=[COUNT(DISTINCT $1)], agg#1=[COUNT()])\n"
-        + "  FilterRel(condition=[=($1, 10)])\n"
-        + "    TableAccessRel(table=[[hr, emps]])\n"));
+        "LogicalAggregate(group=[{0}], agg#0=[COUNT(DISTINCT $1)], agg#1=[COUNT()])\n"
+            + "  LogicalFilter(condition=[=($1, 10)])\n"
+            + "    LogicalTableScan(table=[[hr, emps]])\n"));
   }
 }
 

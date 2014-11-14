@@ -14,15 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel.rules;
+package org.apache.calcite.rel.rules;
 
-import org.eigenbase.rel.*;
-import org.eigenbase.relopt.*;
+import org.apache.calcite.plan.RelOptRule;
+import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.rel.logical.LogicalUnion;
 
 /**
- * <code>UnionToDistinctRule</code> translates a distinct {@link UnionRel}
- * (<code>all</code> = <code>false</code>) into an {@link AggregateRel} on top
- * of a non-distinct {@link UnionRel} (<code>all</code> = <code>true</code>).
+ * Planner rule that translates a distinct
+ * {@link org.apache.calcite.rel.logical.LogicalUnion}
+ * (<code>all</code> = <code>false</code>)
+ * into an {@link org.apache.calcite.rel.logical.LogicalAggregate}
+ * on top of a non-distinct {@link org.apache.calcite.rel.logical.LogicalUnion}
+ * (<code>all</code> = <code>true</code>).
  */
 public class UnionToDistinctRule extends RelOptRule {
   public static final UnionToDistinctRule INSTANCE =
@@ -34,18 +39,18 @@ public class UnionToDistinctRule extends RelOptRule {
    * Creates a UnionToDistinctRule.
    */
   private UnionToDistinctRule() {
-    super(operand(UnionRel.class, any()));
+    super(operand(LogicalUnion.class, any()));
   }
 
   //~ Methods ----------------------------------------------------------------
 
   public void onMatch(RelOptRuleCall call) {
-    UnionRel union = call.rel(0);
+    LogicalUnion union = call.rel(0);
     if (union.all) {
       return; // nothing to do
     }
-    UnionRel unionAll =
-        new UnionRel(
+    LogicalUnion unionAll =
+        new LogicalUnion(
             union.getCluster(),
             union.getInputs(),
             true);

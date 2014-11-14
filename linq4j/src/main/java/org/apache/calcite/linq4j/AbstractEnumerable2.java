@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.linq4j;
+package org.apache.calcite.linq4j;
 
 /**
- * Abstract implementation of the {@link net.hydromatic.linq4j.Enumerable} interface that
- * implements the extension methods.
+ * Abstract implementation of the {@link org.apache.calcite.linq4j.Enumerable}
+ * interface that implements the extension methods.
  *
  * <p>It is helpful to derive from this class if you are implementing
  * {@code Enumerable}, because {@code Enumerable} has so many extension methods,

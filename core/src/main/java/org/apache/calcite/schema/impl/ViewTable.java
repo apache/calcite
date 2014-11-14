@@ -14,29 +14,34 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.impl;
+package org.apache.calcite.schema.impl;
 
-import net.hydromatic.linq4j.QueryProvider;
-import net.hydromatic.linq4j.Queryable;
-
-import net.hydromatic.optiq.*;
-import net.hydromatic.optiq.impl.java.AbstractQueryableTable;
-import net.hydromatic.optiq.impl.java.JavaTypeFactory;
-import net.hydromatic.optiq.jdbc.*;
-
-import org.eigenbase.rel.RelNode;
-import org.eigenbase.relopt.RelOptTable;
-import org.eigenbase.relopt.RelOptUtil;
-import org.eigenbase.reltype.*;
-import org.eigenbase.util.Util;
+import org.apache.calcite.adapter.java.AbstractQueryableTable;
+import org.apache.calcite.adapter.java.JavaTypeFactory;
+import org.apache.calcite.jdbc.CalcitePrepare;
+import org.apache.calcite.jdbc.CalciteSchema;
+import org.apache.calcite.linq4j.QueryProvider;
+import org.apache.calcite.linq4j.Queryable;
+import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rel.type.RelDataTypeImpl;
+import org.apache.calcite.rel.type.RelProtoDataType;
+import org.apache.calcite.schema.FunctionParameter;
+import org.apache.calcite.schema.Schema;
+import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.schema.Schemas;
+import org.apache.calcite.schema.TableMacro;
+import org.apache.calcite.schema.TranslatableTable;
+import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
 import java.lang.reflect.Type;
 import java.util.Collections;
 import java.util.List;
-
-import static net.hydromatic.optiq.impl.MaterializedViewTable.MATERIALIZATION_CONNECTION;
 
 /**
  * Table whose contents are defined using an SQL statement.
@@ -61,7 +66,7 @@ public class ViewTable
   /** Table macro that returns a view. */
   public static ViewTableMacro viewMacro(SchemaPlus schema,
       final String viewSql, final List<String> schemaPath) {
-    return new ViewTableMacro(OptiqSchema.from(schema), viewSql, schemaPath);
+    return new ViewTableMacro(CalciteSchema.from(schema), viewSql, schemaPath);
   }
 
   @Override public Schema.TableType getJdbcTableType() {
@@ -105,12 +110,12 @@ public class ViewTable
    * tree of the view's SQL query. */
   static class ViewTableMacro implements TableMacro {
     protected final String viewSql;
-    protected final OptiqSchema schema;
+    protected final CalciteSchema schema;
     /** Typically null. If specified, overrides the path of the schema as the
      * context for validating {@code viewSql}. */
     protected final List<String> schemaPath;
 
-    ViewTableMacro(OptiqSchema schema, String viewSql,
+    ViewTableMacro(CalciteSchema schema, String viewSql,
         List<String> schemaPath) {
       this.viewSql = viewSql;
       this.schema = schema;
@@ -123,9 +128,9 @@ public class ViewTable
     }
 
     public TranslatableTable apply(List<Object> arguments) {
-      OptiqPrepare.ParseResult parsed =
-          Schemas.parse(MATERIALIZATION_CONNECTION, schema, schemaPath,
-              viewSql);
+      CalcitePrepare.ParseResult parsed =
+          Schemas.parse(MaterializedViewTable.MATERIALIZATION_CONNECTION,
+              schema, schemaPath, viewSql);
       final List<String> schemaPath1 =
           schemaPath != null ? schemaPath : schema.path(null);
       final JavaTypeFactory typeFactory = (JavaTypeFactory) parsed.typeFactory;

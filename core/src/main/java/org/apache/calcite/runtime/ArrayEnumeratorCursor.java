@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.runtime;
+package org.apache.calcite.runtime;
 
-import net.hydromatic.linq4j.Enumerator;
+import org.apache.calcite.linq4j.Enumerator;
 
 /**
- * Implementation of {@link net.hydromatic.avatica.Cursor} on top of an
- * {@link net.hydromatic.linq4j.Enumerator} that
+ * Implementation of {@link org.apache.calcite.avatica.Cursor} on top of an
+ * {@link org.apache.calcite.linq4j.Enumerator} that
  * returns an array of {@link Object} for each row.
  */
 public class ArrayEnumeratorCursor extends EnumeratorCursor<Object[]> {

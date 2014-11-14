@@ -18,6 +18,6 @@
 /**
  * Defines a type system for relational expressions.
  */
-package org.eigenbase.reltype;
+package org.apache.calcite.rel.type;
 
 // End package-info.java

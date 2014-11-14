@@ -14,54 +14,58 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel.rules;
+package org.apache.calcite.rel.rules;
 
-import java.util.List;
-
-import org.eigenbase.rel.*;
-import org.eigenbase.relopt.*;
-import org.eigenbase.reltype.*;
-import org.eigenbase.rex.*;
+import org.apache.calcite.plan.RelOptRule;
+import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rex.RexInputRef;
+import org.apache.calcite.rex.RexNode;
 
 import com.google.common.base.Predicate;
 
+import java.util.List;
+
 /**
- * Rule that, given a {@link ProjectRelBase} node that merely returns its input,
- * converts the node into its child.
+ * Planner rule that,
+ * given a {@link org.apache.calcite.rel.core.Project} node that
+ * merely returns its input, converts the node into its child.
  *
- * <p>For example, <code>ProjectRel(ArrayReader(a), {$input0})</code> becomes
+ * <p>For example, <code>Project(ArrayReader(a), {$input0})</code> becomes
  * <code>ArrayReader(a)</code>.</p>
  *
- * @see org.eigenbase.rel.rules.RemoveTrivialCalcRule
- * @see org.eigenbase.rel.rules.MergeProjectRule
+ * @see CalcRemoveRule
+ * @see ProjectMergeRule
  */
-public class RemoveTrivialProjectRule extends RelOptRule {
+public class ProjectRemoveRule extends RelOptRule {
   //~ Static fields/initializers ---------------------------------------------
 
-  private static final Predicate<ProjectRelBase> PREDICATE =
-      new Predicate<ProjectRelBase>() {
-        public boolean apply(ProjectRelBase input) {
+  private static final Predicate<Project> PREDICATE =
+      new Predicate<Project>() {
+        public boolean apply(Project input) {
           return isTrivial(input);
         }
       };
 
-  public static final RemoveTrivialProjectRule INSTANCE =
-      new RemoveTrivialProjectRule();
+  public static final ProjectRemoveRule INSTANCE = new ProjectRemoveRule();
 
   //~ Constructors -----------------------------------------------------------
 
-  private RemoveTrivialProjectRule() {
+  private ProjectRemoveRule() {
     // Create a specialized operand to detect non-matches early. This keeps
     // the rule queue short.
-    super(operand(ProjectRelBase.class, null, PREDICATE, any()));
+    super(operand(Project.class, null, PREDICATE, any()));
   }
 
   //~ Methods ----------------------------------------------------------------
 
   public void onMatch(RelOptRuleCall call) {
-    ProjectRelBase project = call.rel(0);
+    Project project = call.rel(0);
     assert isTrivial(project);
-    RelNode stripped = project.getChild();
+    RelNode stripped = project.getInput();
     RelNode child = call.getPlanner().register(stripped, project);
     call.transformTo(child);
   }
@@ -70,12 +74,12 @@ public class RemoveTrivialProjectRule extends RelOptRule {
    * Returns the child of a project if the project is trivial, otherwise
    * the project itself.
    */
-  public static RelNode strip(ProjectRelBase project) {
-    return isTrivial(project) ? project.getChild() : project;
+  public static RelNode strip(Project project) {
+    return isTrivial(project) ? project.getInput() : project;
   }
 
-  public static boolean isTrivial(ProjectRelBase project) {
-    RelNode child = project.getChild();
+  public static boolean isTrivial(Project project) {
+    RelNode child = project.getInput();
     final RelDataType childRowType = child.getRowType();
     if (!childRowType.isStruct()) {
       return false;
@@ -83,19 +87,15 @@ public class RemoveTrivialProjectRule extends RelOptRule {
     if (!project.isBoxed()) {
       return false;
     }
-    if (!isIdentity(
-        project.getProjects(),
-        project.getRowType(),
+    if (!isIdentity(project.getProjects(), project.getRowType(),
         childRowType)) {
       return false;
     }
     return true;
   }
 
-  public static boolean isIdentity(
-      List<? extends RexNode> exps,
-      RelDataType rowType,
-      RelDataType childRowType) {
+  public static boolean isIdentity(List<? extends RexNode> exps,
+      RelDataType rowType, RelDataType childRowType) {
     List<RelDataTypeField> fields = rowType.getFieldList();
     List<RelDataTypeField> childFields = childRowType.getFieldList();
     int fieldCount = childFields.size();
@@ -119,4 +119,4 @@ public class RemoveTrivialProjectRule extends RelOptRule {
   }
 }
 
-// End RemoveTrivialProjectRule.java
+// End ProjectRemoveRule.java

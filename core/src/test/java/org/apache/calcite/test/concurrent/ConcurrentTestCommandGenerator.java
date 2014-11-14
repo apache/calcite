@@ -14,25 +14,36 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.test.concurrent;
+package org.apache.calcite.test.concurrent;
 
-import java.io.PrintStream;
-import java.math.*;
-import java.sql.*;
-import java.util.*;
-import java.util.regex.Pattern;
-
-import org.eigenbase.util.Util;
-
-import net.hydromatic.optiq.jdbc.SqlTimeoutException;
+import org.apache.calcite.jdbc.SqlTimeoutException;
+import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
+import java.io.PrintStream;
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Set;
+import java.util.TreeMap;
+import java.util.regex.Pattern;
+
 /**
- * ConcurrentTestCommandGenerator creates instances of {@link
- * ConcurrentTestCommand} that perform specific actions in a specific
- * order and within the context of a test thread ({@link
- * ConcurrentTestCommandExecutor}).
+ * ConcurrentTestCommandGenerator creates instances of
+ * {@link ConcurrentTestCommand} that perform specific actions in a specific
+ * order and within the context of a test thread
+ * ({@link ConcurrentTestCommandExecutor}).
  *
  * <p>Typical actions include preparing a SQL statement for execution, executing
  * the statement and verifying its result set, and closing the statement.</p>
@@ -197,9 +208,9 @@ public class ConcurrentTestCommandGenerator {
   }
 
   /**
-   * Executes a previously {@link #addPrepareCommand(int, int, String)
-   * prepared} SQL statement and compares its {@link ResultSet} to the given
-   * data.
+   * Executes a previously
+   * {@link #addPrepareCommand(int, int, String) prepared} SQL statement and
+   * compares its {@link ResultSet} to the given data.
    *
    * <p><b>Expected data format:</b> <code>{ 'row1, col1 value', 'row1, col2
    * value', ... }, { 'row2, col1 value', 'row2, col2 value', ... },
@@ -381,8 +392,8 @@ public class ConcurrentTestCommandGenerator {
 
 
   /**
-   * Creates a {@link ConcurrentTestCommandExecutor} object for each define thread,
-   * and then runs them all.
+   * Creates a {@link ConcurrentTestCommandExecutor} object for each define
+   * thread, and then runs them all.
    *
    * @throws Exception if no connection found or if a thread operation is
    *                   interrupted
@@ -407,8 +418,7 @@ public class ConcurrentTestCommandGenerator {
       Iterable<ConcurrentTestCommand> commands = getCommandIterable(threadId);
 
       if (debug) {
-        debugStream.println(
-            "Thread ID: " + threadId + " ("
+        debugStream.println("Thread ID: " + threadId + " ("
             + getThreadName(threadId)
             + ")");
         printCommands(debugStream, threadId);
@@ -585,9 +595,9 @@ public class ConcurrentTestCommandGenerator {
   }
 
   /**
-   * Custom error handling occurs here if {@link
-   * #requiresCustomErrorHandling()} returns true. Default implementation does
-   * nothing.
+   * Custom error handling occurs here if
+   * {@link #requiresCustomErrorHandling()} returns true. Default implementation
+   * does nothing.
    */
   void customErrorHandler(
       ConcurrentTestCommandExecutor executor) {
@@ -743,8 +753,8 @@ public class ConcurrentTestCommandGenerator {
 
   /**
    * ExplainCommand executes explain plan commands. Automatically closes the
-   * {@link Statement} before returning from {@link
-   * #execute(ConcurrentTestCommandExecutor)}.
+   * {@link Statement} before returning from
+   * {@link #execute(ConcurrentTestCommandExecutor)}.
    */
   private static class ExplainCommand extends AbstractCommand {
     private String sql;
@@ -815,6 +825,7 @@ public class ConcurrentTestCommandGenerator {
     }
   }
 
+  /** Command that executes statements with a given timeout. */
   private abstract static class CommandWithTimeout extends AbstractCommand {
     private int timeout;
 
@@ -899,9 +910,9 @@ public class ConcurrentTestCommandGenerator {
     private static final int STATE_VALUE_END = 4;
 
     /**
-     * Parses expected values. See {@link
-     * ConcurrentTestCommandGenerator#addFetchAndCompareCommand(int,
-     * int, int, String)} for details on format of <code>expected</code>.
+     * Parses expected values. See
+     * {@link ConcurrentTestCommandGenerator#addFetchAndCompareCommand(int, int, int, String)}
+     * for details on format of <code>expected</code>.
      *
      * @throws IllegalStateException if there are formatting errors in
      *                               <code>expected</code>
@@ -1311,8 +1322,8 @@ public class ConcurrentTestCommandGenerator {
   }
 
   /**
-   * CommitCommand commits pending transactions via {@link
-   * Connection#commit()}.
+   * CommitCommand commits pending transactions via
+   * {@link Connection#commit()}.
    */
   private static class CommitCommand extends AbstractCommand {
     protected void doExecute(ConcurrentTestCommandExecutor executor)
@@ -1322,8 +1333,8 @@ public class ConcurrentTestCommandGenerator {
   }
 
   /**
-   * RollbackCommand rolls back pending transactions via {@link
-   * Connection#rollback()}.
+   * RollbackCommand rolls back pending transactions via
+   * {@link Connection#rollback()}.
    */
   private static class RollbackCommand extends AbstractCommand {
     protected void doExecute(ConcurrentTestCommandExecutor executor)
@@ -1333,9 +1344,9 @@ public class ConcurrentTestCommandGenerator {
   }
 
   /**
-   * DdlCommand executes DDL commands. Automatically closes the {@link
-   * Statement} before returning from {@link
-   * #doExecute(ConcurrentTestCommandExecutor)}.
+   * DdlCommand executes DDL commands. Automatically closes the
+   * {@link Statement} before returning from
+   * {@link #doExecute(ConcurrentTestCommandExecutor)}.
    */
   private static class DdlCommand extends AbstractCommand {
     private String sql;

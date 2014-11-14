@@ -14,36 +14,33 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.prepare;
+package org.apache.calcite.prepare;
 
-import net.hydromatic.optiq.impl.java.JavaTypeFactory;
-
-import org.eigenbase.reltype.RelDataType;
-import org.eigenbase.sql.SqlInsert;
-import org.eigenbase.sql.SqlOperatorTable;
-import org.eigenbase.sql.validate.SqlConformance;
-import org.eigenbase.sql.validate.SqlValidatorImpl;
+import org.apache.calcite.adapter.java.JavaTypeFactory;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.sql.SqlInsert;
+import org.apache.calcite.sql.SqlOperatorTable;
+import org.apache.calcite.sql.validate.SqlConformance;
+import org.apache.calcite.sql.validate.SqlValidatorImpl;
 
 /** Validator. */
-class OptiqSqlValidator extends SqlValidatorImpl {
-  public OptiqSqlValidator(
+class CalciteSqlValidator extends SqlValidatorImpl {
+  public CalciteSqlValidator(
       SqlOperatorTable opTab,
-      OptiqCatalogReader catalogReader,
+      CalciteCatalogReader catalogReader,
       JavaTypeFactory typeFactory) {
     super(opTab, catalogReader, typeFactory, SqlConformance.DEFAULT);
   }
 
-  @Override
-  protected RelDataType getLogicalSourceRowType(
+  @Override protected RelDataType getLogicalSourceRowType(
       RelDataType sourceRowType, SqlInsert insert) {
     return ((JavaTypeFactory) typeFactory).toSql(sourceRowType);
   }
 
-  @Override
-  protected RelDataType getLogicalTargetRowType(
+  @Override protected RelDataType getLogicalTargetRowType(
       RelDataType targetRowType, SqlInsert insert) {
     return ((JavaTypeFactory) typeFactory).toSql(targetRowType);
   }
 }
 
-// End OptiqSqlValidator.java
+// End CalciteSqlValidator.java

@@ -18,6 +18,6 @@
 /**
  * Configuration.
  */
-package net.hydromatic.optiq.config;
+package org.apache.calcite.config;
 
 // End package-info.java

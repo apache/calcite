@@ -14,15 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql;
+package org.apache.calcite.sql;
 
-import java.util.List;
-
-import org.eigenbase.sql.parser.SqlParserPos;
-import org.eigenbase.sql.validate.SqlValidator;
-import org.eigenbase.sql.validate.SqlValidatorScope;
+import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.validate.SqlValidator;
+import org.apache.calcite.sql.validate.SqlValidatorScope;
 
 import com.google.common.collect.ImmutableList;
+
+import java.util.List;
 
 /**
  * SQL parse tree node to represent <code>ALTER scope SET option = value</code>
@@ -41,9 +41,10 @@ public class SqlSetOption extends SqlCall {
 
   String name;
 
-  /** Value of the option. May be a {@link org.eigenbase.sql.SqlLiteral} or
-   * a {@link org.eigenbase.sql.SqlIdentifier} with one part. Reserved words
-   * (currently just 'ON') are converted to identifiers by the parser. */
+  /** Value of the option. May be a {@link org.apache.calcite.sql.SqlLiteral} or
+   * a {@link org.apache.calcite.sql.SqlIdentifier} with one
+   * part. Reserved words (currently just 'ON') are converted to
+   * identifiers by the parser. */
   SqlNode value;
 
   /**
@@ -65,8 +66,7 @@ public class SqlSetOption extends SqlCall {
     assert value != null;
   }
 
-  @Override
-  public SqlKind getKind() {
+  @Override public SqlKind getKind() {
     return SqlKind.SET_OPTION;
   }
 
@@ -74,8 +74,7 @@ public class SqlSetOption extends SqlCall {
     return OPERATOR;
   }
 
-  @Override
-  public List<SqlNode> getOperandList() {
+  @Override public List<SqlNode> getOperandList() {
     return ImmutableList.of(
         new SqlIdentifier(scope, SqlParserPos.ZERO),
         new SqlIdentifier(name, SqlParserPos.ZERO),

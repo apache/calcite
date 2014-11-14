@@ -14,21 +14,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.relopt;
+package org.apache.calcite.plan;
 
-import java.util.*;
-import java.util.logging.*;
-import java.util.regex.*;
-
-import org.eigenbase.rel.*;
-import org.eigenbase.rel.metadata.*;
-import org.eigenbase.relopt.volcano.RelSubset;
-import org.eigenbase.util.*;
-
-import static org.eigenbase.util.Static.RESOURCE;
+import org.apache.calcite.plan.volcano.RelSubset;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.metadata.RelMetadataProvider;
+import org.apache.calcite.rel.metadata.RelMetadataQuery;
+import org.apache.calcite.util.CancelFlag;
 
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
+
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.logging.Level;
+import java.util.regex.Pattern;
+
+import static org.apache.calcite.util.Static.RESOURCE;
 
 
 /**
@@ -146,8 +153,7 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
         // This rule has the same description as one previously
         // registered, yet it is not equal. You may need to fix the
         // rule's equals and hashCode methods.
-        throw new AssertionError(
-            "Rule's description should be unique; "
+        throw new AssertionError("Rule's description should be unique; "
             + "existing rule=" + existingRule + "; new rule=" + rule);
       }
     }
@@ -293,8 +299,7 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
     assert ruleCall.getRule().matches(ruleCall);
     if (isRuleExcluded(ruleCall.getRule())) {
       if (LOGGER.isLoggable(Level.FINE)) {
-        LOGGER.fine(
-            "call#" + ruleCall.id
+        LOGGER.fine("call#" + ruleCall.id
             + ": Rule [" + ruleCall.getRule() + "] not fired"
             + " due to exclusion filter");
       }
@@ -344,8 +349,7 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
       RelNode newRel,
       boolean before) {
     if (before && LOGGER.isLoggable(Level.FINE)) {
-      LOGGER.fine(
-          "call#" + ruleCall.id
+      LOGGER.fine("call#" + ruleCall.id
           + ": Rule " + ruleCall.getRule() + " arguments "
           + Arrays.toString(ruleCall.rels) + " produced "
           + newRel);

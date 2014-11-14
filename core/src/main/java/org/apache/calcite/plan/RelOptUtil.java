@@ -14,29 +14,84 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.relopt;
+package org.apache.calcite.plan;
 
-import java.io.*;
-import java.util.*;
-
-import org.eigenbase.rel.*;
-import org.eigenbase.rel.rules.*;
-import org.eigenbase.reltype.*;
-import org.eigenbase.rex.*;
-import org.eigenbase.sql.*;
-import org.eigenbase.sql.fun.*;
-import org.eigenbase.sql.type.*;
-import org.eigenbase.sql.validate.SqlValidatorUtil;
-import org.eigenbase.util.*;
-import org.eigenbase.util.mapping.*;
-
-import net.hydromatic.linq4j.Ord;
-
-import net.hydromatic.optiq.util.BitSets;
+import org.apache.calcite.linq4j.Ord;
+import org.apache.calcite.rel.RelCollation;
+import org.apache.calcite.rel.RelCollationImpl;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelVisitor;
+import org.apache.calcite.rel.RelWriter;
+import org.apache.calcite.rel.core.AggregateCall;
+import org.apache.calcite.rel.core.Join;
+import org.apache.calcite.rel.core.JoinRelType;
+import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.core.RelFactories;
+import org.apache.calcite.rel.core.SemiJoin;
+import org.apache.calcite.rel.externalize.RelWriterImpl;
+import org.apache.calcite.rel.externalize.RelXmlWriter;
+import org.apache.calcite.rel.logical.LogicalAggregate;
+import org.apache.calcite.rel.logical.LogicalCalc;
+import org.apache.calcite.rel.logical.LogicalFilter;
+import org.apache.calcite.rel.logical.LogicalJoin;
+import org.apache.calcite.rel.logical.LogicalProject;
+import org.apache.calcite.rel.rules.AggregateProjectPullUpConstantsRule;
+import org.apache.calcite.rel.rules.EmptyPruneRules;
+import org.apache.calcite.rel.rules.FilterMergeRule;
+import org.apache.calcite.rel.rules.MultiJoin;
+import org.apache.calcite.rel.rules.ProjectRemoveRule;
+import org.apache.calcite.rel.rules.ProjectToWindowRule;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rel.type.RelDataTypeFieldImpl;
+import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexCorrelVariable;
+import org.apache.calcite.rex.RexFieldAccess;
+import org.apache.calcite.rex.RexInputRef;
+import org.apache.calcite.rex.RexLiteral;
+import org.apache.calcite.rex.RexLocalRef;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexProgram;
+import org.apache.calcite.rex.RexProgramBuilder;
+import org.apache.calcite.rex.RexShuttle;
+import org.apache.calcite.rex.RexUtil;
+import org.apache.calcite.rex.RexVisitorImpl;
+import org.apache.calcite.sql.SqlAggFunction;
+import org.apache.calcite.sql.SqlExplainLevel;
+import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.fun.SqlMinMaxAggFunction;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.type.MultisetSqlType;
+import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.validate.SqlValidatorUtil;
+import org.apache.calcite.util.BitSets;
+import org.apache.calcite.util.Bug;
+import org.apache.calcite.util.Holder;
+import org.apache.calcite.util.Pair;
+import org.apache.calcite.util.Permutation;
+import org.apache.calcite.util.Util;
+import org.apache.calcite.util.mapping.Mapping;
+import org.apache.calcite.util.mapping.MappingType;
+import org.apache.calcite.util.mapping.Mappings;
 
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
+
+import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.util.AbstractList;
+import java.util.ArrayList;
+import java.util.BitSet;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeSet;
 
 /**
  * <code>RelOptUtil</code> defines static utility methods for use in optimizing
@@ -93,7 +148,7 @@ public abstract class RelOptUtil {
   /**
    * Returns a set of variables used by a relational expression or its
    * descendants. The set may contain duplicates. The item type is the same as
-   * {@link org.eigenbase.rex.RexVariable#getName}
+   * {@link org.apache.calcite.rex.RexVariable#getName}
    */
   public static Set<String> getVariablesUsed(RelNode rel) {
     final VariableUsedVisitor vuv = new VariableUsedVisitor();
@@ -136,7 +191,7 @@ public abstract class RelOptUtil {
    *
    * @param type Struct type
    * @return List of field types
-   * @see org.eigenbase.reltype.RelDataType#getFieldNames()
+   * @see org.apache.calcite.rel.type.RelDataType#getFieldNames()
    */
   public static List<RelDataType> getFieldTypeList(final RelDataType type) {
     return Lists.transform(type.getFieldList(), GET_TYPE);
@@ -194,12 +249,9 @@ public abstract class RelOptUtil {
       return;
     }
 
-    String s =
-        "Cannot add expression of different type to set:\n"
-        + "set type is "
-        + expectedRowType.getFullTypeString()
-        + "\nexpression type is "
-        + actualRowType.getFullTypeString()
+    String s = "Cannot add expression of different type to set:\n"
+        + "set type is " + expectedRowType.getFullTypeString()
+        + "\nexpression type is " + actualRowType.getFullTypeString()
         + "\nset is " + equivalenceClass.toString()
         + "\nexpression is " + newRel.toString();
     throw Util.newInternal(s);
@@ -238,11 +290,13 @@ public abstract class RelOptUtil {
 
   /**
    * Creates a plan suitable for use in <code>EXISTS</code> or <code>IN</code>
-   * statements. See {@link
-   * org.eigenbase.sql2rel.SqlToRelConverter#convertExists} Note: this
-   * implementation of createExistsPlan is only called from
-   * net.sf.farrago.fennel.rel. The last two arguments do not apply to
-   * those invocations and can be removed from the method.
+   * statements.
+   *
+   * <p>See {@link org.apache.calcite.sql2rel.SqlToRelConverter#convertExists}
+   *
+   * <p>Note: this implementation of createExistsPlan is only called from
+   * net.sf.farrago.fennel.rel. The last two arguments do not apply to those
+   * invocations and can be removed from the method.
    *
    * @param cluster    Cluster
    * @param seekRel    A query rel, for example the resulting rel from 'select *
@@ -303,7 +357,7 @@ public abstract class RelOptUtil {
               extraName);
 
       ret =
-          new AggregateRel(
+          new LogicalAggregate(
               ret.getCluster(),
               ret,
               BitSets.of(),
@@ -317,7 +371,7 @@ public abstract class RelOptUtil {
    * Creates a plan suitable for use in <code>EXISTS</code> or <code>IN</code>
    * statements.
    *
-   * @see org.eigenbase.sql2rel.SqlToRelConverter#convertExists
+   * @see org.apache.calcite.sql2rel.SqlToRelConverter#convertExists
    *
    * @param seekRel    A query rel, for example the resulting rel from 'select *
    *                   from emp' or 'values (1,2,3)' or '('Foo', 34)'.
@@ -347,7 +401,7 @@ public abstract class RelOptUtil {
       final int keyCount = ret.getRowType().getFieldCount();
       if (!needsOuterJoin) {
         return Pair.<RelNode, Boolean>of(
-            new AggregateRel(cluster, ret, BitSets.range(keyCount),
+            new LogicalAggregate(cluster, ret, BitSets.range(keyCount),
                 ImmutableList.<AggregateCall>of()),
             false);
       }
@@ -381,7 +435,7 @@ public abstract class RelOptUtil {
               null,
               null);
 
-      ret = new AggregateRel(
+      ret = new LogicalAggregate(
           cluster,
           ret,
           BitSets.range(projectedKeyCount),
@@ -398,10 +452,10 @@ public abstract class RelOptUtil {
   }
 
   /**
-   * Creates a ProjectRel which accomplishes a rename.
+   * Creates a LogicalProject which accomplishes a rename.
    *
    * @param outputType a row type descriptor whose field names the generated
-   *                   ProjectRel must match
+   *                   LogicalProject must match
    * @param rel        the rel whose output is to be renamed; rel.getRowType()
    *                   must be the same as outputType except for field names
    * @return generated relational expression
@@ -414,8 +468,8 @@ public abstract class RelOptUtil {
     int n = inputFields.size();
 
     List<RelDataTypeField> outputFields = outputType.getFieldList();
-    assert outputFields.size() == n : "rename: field count mismatch: in="
-        + inputType
+    assert outputFields.size() == n
+        : "rename: field count mismatch: in=" + inputType
         + ", out" + outputType;
 
     List<Pair<RexNode, String>> renames =
@@ -597,8 +651,8 @@ public abstract class RelOptUtil {
   }
 
   /**
-   * Creates an AggregateRel which removes all duplicates from the result of
-   * an underlying rel.
+   * Creates a LogicalAggregate that removes all duplicates from the result of
+   * an underlying relational expression.
    *
    * @param rel underlying rel
    * @return rel implementing SingleValueAgg
@@ -626,7 +680,7 @@ public abstract class RelOptUtil {
               null));
     }
 
-    return new AggregateRel(
+    return new LogicalAggregate(
         rel.getCluster(),
         rel,
         BitSets.of(),
@@ -634,15 +688,14 @@ public abstract class RelOptUtil {
   }
 
   /**
-   * Creates an AggregateRel which removes all duplicates from the result of
-   * an underlying rel.
+   * Creates a LogicalAggregate that removes all duplicates from the result of
+   * an underlying relational expression.
    *
    * @param rel underlying rel
    * @return rel implementing DISTINCT
    */
-  public static RelNode createDistinctRel(
-      RelNode rel) {
-    return new AggregateRel(
+  public static RelNode createDistinctRel(RelNode rel) {
+    return new LogicalAggregate(
         rel.getCluster(),
         rel,
         BitSets.range(rel.getRowType().getFieldCount()),
@@ -650,9 +703,9 @@ public abstract class RelOptUtil {
   }
 
   public static boolean analyzeSimpleEquiJoin(
-      JoinRel joinRel,
+      LogicalJoin join,
       int[] joinFieldOrdinals) {
-    RexNode joinExp = joinRel.getCondition();
+    RexNode joinExp = join.getCondition();
     if (joinExp.getKind() != SqlKind.EQUALS) {
       return false;
     }
@@ -667,7 +720,7 @@ public abstract class RelOptUtil {
     }
 
     final int leftFieldCount =
-        joinRel.getLeft().getRowType().getFieldCount();
+        join.getLeft().getRowType().getFieldCount();
     RexInputRef leftFieldAccess = (RexInputRef) leftComparand;
     if (!(leftFieldAccess.getIndex() < leftFieldCount)) {
       // left field must access left side of join
@@ -805,33 +858,33 @@ public abstract class RelOptUtil {
   }
 
   public static RexNode splitCorrelatedFilterCondition(
-      FilterRel filterRel,
+      LogicalFilter filter,
       List<RexInputRef> joinKeys,
       List<RexNode> correlatedJoinKeys) {
     List<RexNode> nonEquiList = new ArrayList<RexNode>();
 
     splitCorrelatedFilterCondition(
-        filterRel,
-        filterRel.getCondition(),
+        filter,
+        filter.getCondition(),
         joinKeys,
         correlatedJoinKeys,
         nonEquiList);
 
     // Convert the remainders into a list that are AND'ed together.
     return RexUtil.composeConjunction(
-        filterRel.getCluster().getRexBuilder(), nonEquiList, true);
+        filter.getCluster().getRexBuilder(), nonEquiList, true);
   }
 
   public static RexNode splitCorrelatedFilterCondition(
-      FilterRel filterRel,
+      LogicalFilter filter,
       List<RexNode> joinKeys,
       List<RexNode> correlatedJoinKeys,
       boolean extractCorrelatedFieldAccess) {
     List<RexNode> nonEquiList = new ArrayList<RexNode>();
 
     splitCorrelatedFilterCondition(
-        filterRel,
-        filterRel.getCondition(),
+        filter,
+        filter.getCondition(),
         joinKeys,
         correlatedJoinKeys,
         nonEquiList,
@@ -839,7 +892,7 @@ public abstract class RelOptUtil {
 
     // Convert the remainders into a list that are AND'ed together.
     return RexUtil.composeConjunction(
-        filterRel.getCluster().getRexBuilder(), nonEquiList, true);
+        filter.getCluster().getRexBuilder(), nonEquiList, true);
   }
 
   private static void splitJoinCondition(
@@ -1136,7 +1189,7 @@ public abstract class RelOptUtil {
   }
 
   private static void splitCorrelatedFilterCondition(
-      FilterRel filterRel,
+      LogicalFilter filter,
       RexNode condition,
       List<RexInputRef> joinKeys,
       List<RexNode> correlatedJoinKeys,
@@ -1146,7 +1199,7 @@ public abstract class RelOptUtil {
       if (call.getOperator() == SqlStdOperatorTable.AND) {
         for (RexNode operand : call.getOperands()) {
           splitCorrelatedFilterCondition(
-              filterRel,
+              filter,
               operand,
               joinKeys,
               correlatedJoinKeys,
@@ -1182,7 +1235,7 @@ public abstract class RelOptUtil {
   }
 
   private static void splitCorrelatedFilterCondition(
-      FilterRel filterRel,
+      LogicalFilter filter,
       RexNode condition,
       List<RexNode> joinKeys,
       List<RexNode> correlatedJoinKeys,
@@ -1193,7 +1246,7 @@ public abstract class RelOptUtil {
       if (call.getOperator() == SqlStdOperatorTable.AND) {
         for (RexNode operand : call.getOperands()) {
           splitCorrelatedFilterCondition(
-              filterRel,
+              filter,
               operand,
               joinKeys,
               correlatedJoinKeys,
@@ -1464,17 +1517,17 @@ public abstract class RelOptUtil {
   }
 
   public static void registerAbstractRels(RelOptPlanner planner) {
-    planner.addRule(PullConstantsThroughAggregatesRule.INSTANCE);
-    planner.addRule(RemoveEmptyRules.UNION_INSTANCE);
-    planner.addRule(RemoveEmptyRules.PROJECT_INSTANCE);
-    planner.addRule(RemoveEmptyRules.FILTER_INSTANCE);
-    planner.addRule(RemoveEmptyRules.SORT_INSTANCE);
-    planner.addRule(RemoveEmptyRules.AGGREGATE_INSTANCE);
-    planner.addRule(RemoveEmptyRules.JOIN_LEFT_INSTANCE);
-    planner.addRule(RemoveEmptyRules.JOIN_RIGHT_INSTANCE);
-    planner.addRule(RemoveEmptyRules.SORT_FETCH_ZERO_INSTANCE);
-    planner.addRule(WindowedAggSplitterRule.PROJECT);
-    planner.addRule(MergeFilterRule.INSTANCE);
+    planner.addRule(AggregateProjectPullUpConstantsRule.INSTANCE);
+    planner.addRule(EmptyPruneRules.UNION_INSTANCE);
+    planner.addRule(EmptyPruneRules.PROJECT_INSTANCE);
+    planner.addRule(EmptyPruneRules.FILTER_INSTANCE);
+    planner.addRule(EmptyPruneRules.SORT_INSTANCE);
+    planner.addRule(EmptyPruneRules.AGGREGATE_INSTANCE);
+    planner.addRule(EmptyPruneRules.JOIN_LEFT_INSTANCE);
+    planner.addRule(EmptyPruneRules.JOIN_RIGHT_INSTANCE);
+    planner.addRule(EmptyPruneRules.SORT_FETCH_ZERO_INSTANCE);
+    planner.addRule(ProjectToWindowRule.PROJECT);
+    planner.addRule(FilterMergeRule.INSTANCE);
   }
 
   /**
@@ -1574,9 +1627,9 @@ public abstract class RelOptUtil {
   }
 
   /**
-   * Returns whether two types are equal using {@link
-   * #areRowTypesEqual(RelDataType, RelDataType, boolean)}. Both types must
-   * not be null.
+   * Returns whether two types are equal using
+   * {@link #areRowTypesEqual(RelDataType, RelDataType, boolean)}. Both types
+   * must not be null.
    *
    * @param desc1 Description of role of first type
    * @param type1 First type
@@ -1891,7 +1944,7 @@ public abstract class RelOptUtil {
    * @param right      filter on the right
    * @return AND'd filter
    *
-   * @see org.eigenbase.rex.RexUtil#composeConjunction
+   * @see org.apache.calcite.rex.RexUtil#composeConjunction
    */
   public static RexNode andJoinFilters(
       RexBuilder rexBuilder,
@@ -1995,7 +2048,7 @@ public abstract class RelOptUtil {
    *
    * @deprecated Use the other {@link #classifyFilters};
    * very short-term; will be removed before
-   * {@link org.eigenbase.util.Bug#upgrade(String) calcite-0.9.2}.
+   * {@link org.apache.calcite.util.Bug#upgrade(String) calcite-0.9.2}.
    */
   public static boolean classifyFilters(
       RelNode joinRel,
@@ -2059,7 +2112,7 @@ public abstract class RelOptUtil {
     final List<RelDataTypeField> rightFields =
         joinRel.getInputs().get(1).getRowType().getFieldList();
     final int nFieldsRight = rightFields.size();
-    assert nTotalFields == (joinRel instanceof SemiJoinRel
+    assert nTotalFields == (joinRel instanceof SemiJoin
         ? nSysFields + nFieldsLeft
         : nSysFields + nFieldsLeft + nFieldsRight);
 
@@ -2266,14 +2319,14 @@ public abstract class RelOptUtil {
    * the input references are the same but the field names are different
    */
   public static boolean checkProjAndChildInputs(
-      ProjectRelBase project,
+      Project project,
       boolean checkNames) {
     if (!project.isBoxed()) {
       return false;
     }
 
     int n = project.getProjects().size();
-    RelDataType inputType = project.getChild().getRowType();
+    RelDataType inputType = project.getInput().getRowType();
     if (inputType.getFieldList().size() != n) {
       return false;
     }
@@ -2309,7 +2362,7 @@ public abstract class RelOptUtil {
    *
    * @param newJoin   the RelNode corresponding to the join with its inputs
    *                  swapped
-   * @param origJoin  original JoinRel
+   * @param origJoin  original LogicalJoin
    * @param origOrder if true, create the projection expressions to reflect
    *                  the original (pre-swapped) join projection; otherwise,
    *                  create the projection to reflect the order of the swapped
@@ -2318,7 +2371,7 @@ public abstract class RelOptUtil {
    */
   public static List<RexNode> createSwappedJoinExprs(
       RelNode newJoin,
-      JoinRelBase origJoin,
+      Join origJoin,
       boolean origOrder) {
     final List<RelDataTypeField> newJoinFields =
         newJoin.getRowType().getFieldList();
@@ -2338,7 +2391,7 @@ public abstract class RelOptUtil {
 
   /**
    * Converts a filter to the new filter that would result if the filter is
-   * pushed past a ProjectRel that it currently is referencing.
+   * pushed past a LogicalProject that it currently is referencing.
    *
    * @param filter  the filter to be converted
    * @param projRel project rel underneath the filter
@@ -2346,14 +2399,14 @@ public abstract class RelOptUtil {
    */
   public static RexNode pushFilterPastProject(
       RexNode filter,
-      ProjectRelBase projRel) {
-    // use RexPrograms to merge the filter and ProjectRel into a
-    // single program so we can convert the FilterRel condition to
-    // directly reference the ProjectRel's child
+      Project projRel) {
+    // use RexPrograms to merge the filter and LogicalProject into a
+    // single program so we can convert the LogicalFilter condition to
+    // directly reference the LogicalProject's child
     RexBuilder rexBuilder = projRel.getCluster().getRexBuilder();
     RexProgram bottomProgram =
         RexProgram.create(
-            projRel.getChild().getRowType(),
+            projRel.getInput().getRowType(),
             projRel.getProjects(),
             null,
             projRel.getRowType(),
@@ -2378,19 +2431,21 @@ public abstract class RelOptUtil {
   }
 
   /**
-   * Creates a new {@link MultiJoinRel} to reflect projection references from
-   * a {@link ProjectRel} that is on top of the {@link MultiJoinRel}.
+   * Creates a new {@link org.apache.calcite.rel.rules.MultiJoin} to reflect
+   * projection references from a
+   * {@link org.apache.calcite.rel.logical.LogicalProject} that is on top of the
+   * {@link org.apache.calcite.rel.rules.MultiJoin}.
    *
-   * @param multiJoin the original MultiJoinRel
-   * @param project   the ProjectRel on top of the MultiJoinRel
-   * @return the new MultiJoinRel
+   * @param multiJoin the original MultiJoin
+   * @param project   the LogicalProject on top of the MultiJoin
+   * @return the new MultiJoin
    */
-  public static MultiJoinRel projectMultiJoin(
-      MultiJoinRel multiJoin,
-      ProjectRel project) {
+  public static MultiJoin projectMultiJoin(
+      MultiJoin multiJoin,
+      LogicalProject project) {
     // Locate all input references in the projection expressions as well
     // the post-join filter.  Since the filter effectively sits in
-    // between the ProjectRel and the MultiJoinRel, the projection needs
+    // between the LogicalProject and the MultiJoin, the projection needs
     // to include those filter references.
     BitSet inputRefs = InputFinder.bits(
         project.getProjects(), multiJoin.getPostJoinFilter());
@@ -2418,9 +2473,9 @@ public abstract class RelOptUtil {
       newProjFields.get(currInput).set(bit - startField);
     }
 
-    // create a new MultiJoinRel containing the new field bitmaps
+    // create a new MultiJoin containing the new field bitmaps
     // for each input
-    return new MultiJoinRel(
+    return new MultiJoin(
         multiJoin.getCluster(),
         multiJoin.getInputs(),
         multiJoin.getJoinFilter(),
@@ -2456,10 +2511,10 @@ public abstract class RelOptUtil {
   }
 
   /**
-   * Creates a {@link org.eigenbase.rel.ProjectRel} that projects particular
-   * fields of its input, according to a mapping.
+   * Creates a {@link org.apache.calcite.rel.logical.LogicalProject} that
+   * projects particular fields of its input, according to a mapping.
    */
-  public static ProjectRel project(
+  public static LogicalProject project(
       RelNode child,
       Mappings.TargetMapping mapping) {
     List<RexNode> nodes = new ArrayList<RexNode>();
@@ -2471,8 +2526,8 @@ public abstract class RelOptUtil {
       nodes.add(new RexInputRef(source, field.getType()));
       names.add(field.getName());
     }
-    return new ProjectRel(
-        child.getCluster(), child, nodes, names, ProjectRel.Flags.BOXED);
+    return new LogicalProject(
+        child.getCluster(), child, nodes, names, LogicalProject.Flags.BOXED);
   }
 
   /** Returns whether relational expression {@code target} occurs within a
@@ -2532,7 +2587,8 @@ public abstract class RelOptUtil {
     return query;
   }
 
-  /** Returns a simple {@link org.eigenbase.relopt.RelOptTable.ToRelContext}. */
+  /** Returns a simple
+   * {@link org.apache.calcite.plan.RelOptTable.ToRelContext}. */
   public static RelOptTable.ToRelContext getContext(
       final RelOptCluster cluster) {
     return new RelOptTable.ToRelContext() {
@@ -2549,7 +2605,7 @@ public abstract class RelOptUtil {
     };
   }
 
-  /** Returns the number of {@link org.eigenbase.rel.JoinRelBase} nodes in a
+  /** Returns the number of {@link org.apache.calcite.rel.core.Join} nodes in a
    * tree. */
   public static int countJoins(RelNode rootRel) {
     /** Visitor that counts join nodes. */
@@ -2557,7 +2613,7 @@ public abstract class RelOptUtil {
       int joinCount;
 
       @Override public void visit(RelNode node, int ordinal, RelNode parent) {
-        if (node instanceof JoinRelBase) {
+        if (node instanceof Join) {
           ++joinCount;
         }
         super.visit(node, ordinal, parent);
@@ -2629,10 +2685,11 @@ public abstract class RelOptUtil {
    * Creates a relational expression which projects an array of expressions,
    * and optionally optimizes.
    *
-   * <p>The result may not be a {@link org.eigenbase.rel.ProjectRel}. If the
+   * <p>The result may not be a
+   * {@link org.apache.calcite.rel.logical.LogicalProject}. If the
    * projection is trivial, <code>child</code> is returned directly; and future
    * versions may return other formulations of expressions, such as
-   * {@link org.eigenbase.rel.CalcRel}.
+   * {@link org.apache.calcite.rel.logical.LogicalCalc}.
    *
    * @param child      input relational expression
    * @param exprs      list of expressions for the input columns
@@ -2661,18 +2718,17 @@ public abstract class RelOptUtil {
                 : SqlValidatorUtil.uniquify(
                     fieldNames, SqlValidatorUtil.F_SUGGESTER));
     if (optimize
-        && RemoveTrivialProjectRule.isIdentity(exprs, rowType,
-            child.getRowType())) {
+        && ProjectRemoveRule.isIdentity(exprs, rowType, child.getRowType())) {
       return child;
     }
-    return new ProjectRel(cluster,
+    return new LogicalProject(cluster,
         cluster.traitSetOf(collationList.isEmpty()
             ? RelCollationImpl.EMPTY
             : collationList.get(0)),
         child,
         exprs,
         rowType,
-        ProjectRelBase.Flags.BOXED);
+        Project.Flags.BOXED);
   }
 
   /**
@@ -2708,9 +2764,10 @@ public abstract class RelOptUtil {
    * <p>Optimizations:</p>
    *
    * <ul>
-   * <li>If the relational expression is a {@link org.eigenbase.rel.CalcRel} or
-   * {@link org.eigenbase.rel.ProjectRel} that is already acting as a
-   * permutation, combines the new permutation with the old;</li>
+   * <li>If the relational expression is a
+   * {@link org.apache.calcite.rel.logical.LogicalCalc} or
+   * {@link org.apache.calcite.rel.logical.LogicalProject} that is already
+   * acting as a permutation, combines the new permutation with the old;</li>
    *
    * <li>If the permutation is the identity, returns the original relational
    * expression.</li>
@@ -2732,16 +2789,16 @@ public abstract class RelOptUtil {
     if (permutation.isIdentity()) {
       return rel;
     }
-    if (rel instanceof CalcRel) {
-      CalcRel calcRel = (CalcRel) rel;
-      Permutation permutation1 = calcRel.getProgram().getPermutation();
+    if (rel instanceof LogicalCalc) {
+      LogicalCalc calc = (LogicalCalc) rel;
+      Permutation permutation1 = calc.getProgram().getPermutation();
       if (permutation1 != null) {
         Permutation permutation2 = permutation.product(permutation1);
         return permute(rel, permutation2, null);
       }
     }
-    if (rel instanceof ProjectRel) {
-      Permutation permutation1 = ((ProjectRel) rel).getPermutation();
+    if (rel instanceof LogicalProject) {
+      Permutation permutation1 = ((LogicalProject) rel).getPermutation();
       if (permutation1 != null) {
         Permutation permutation2 = permutation.product(permutation1);
         return permute(rel, permutation2, null);
@@ -2780,7 +2837,7 @@ public abstract class RelOptUtil {
             rel.getCluster().getTypeFactory().createStructType(
                 outputTypeList,
                 outputNameList));
-    return new CalcRel(
+    return new LogicalCalc(
         rel.getCluster(),
         rel.getTraitSet(),
         rel,
@@ -2836,13 +2893,13 @@ public abstract class RelOptUtil {
    * does not at present.
    *
    * @param rel        Relational expression
-   * @param mapping    Mapping from source fields to target fields. The mapping
-   *                   type must obey the constraints
-   *                   {@link org.eigenbase.util.mapping.MappingType#isMandatorySource()}
-   *                   and
-   *                   {@link org.eigenbase.util.mapping.MappingType#isSingleSource()},
-   *                   as does
-   *                   {@link org.eigenbase.util.mapping.MappingType#INVERSE_FUNCTION}.
+   * @param mapping Mapping from source fields to target fields. The mapping
+   * type must obey the constraints
+   * {@link org.apache.calcite.util.mapping.MappingType#isMandatorySource()}
+   * and
+   * {@link org.apache.calcite.util.mapping.MappingType#isSingleSource()},
+   * as does
+   * {@link org.apache.calcite.util.mapping.MappingType#INVERSE_FUNCTION}.
    * @param fieldNames Field names; if null, or if a particular entry is null,
    *                   the name of the permuted field is used
    * @return relational expression which projects a subset of the input fields
@@ -3056,8 +3113,7 @@ public abstract class RelOptUtil {
       return null;
     }
 
-    @Override
-    public Void visitCall(RexCall call) {
+    @Override public Void visitCall(RexCall call) {
       if (call.getOperator() == RexBuilder.GET_OPERATOR) {
         RexLiteral literal = (RexLiteral) call.getOperands().get(1);
         extraFields.add(

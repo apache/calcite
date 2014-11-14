@@ -5,7 +5,7 @@
     {
       name: 'BUG',
       type: 'custom',
-      factory: 'net.hydromatic.optiq.impl.csv.CsvSchemaFactory',
+      factory: 'org.apache.calcite.adapter.csv.CsvSchemaFactory',
       operand: {
         directory: 'bug'
       }

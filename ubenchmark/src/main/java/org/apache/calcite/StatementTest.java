@@ -14,15 +14,31 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq;
+package org.apache.calcite;
 
-import net.hydromatic.optiq.impl.java.ReflectiveSchema;
-import net.hydromatic.optiq.jdbc.OptiqConnection;
+import org.apache.calcite.adapter.java.ReflectiveSchema;
+import org.apache.calcite.jdbc.CalciteConnection;
+import org.apache.calcite.schema.SchemaPlus;
 
-import org.openjdk.jmh.annotations.*;
+import org.openjdk.jmh.annotations.BenchmarkMode;
+import org.openjdk.jmh.annotations.GenerateMicroBenchmark;
+import org.openjdk.jmh.annotations.Level;
+import org.openjdk.jmh.annotations.Mode;
+import org.openjdk.jmh.annotations.Scope;
+import org.openjdk.jmh.annotations.Setup;
+import org.openjdk.jmh.annotations.State;
 
-import java.sql.*;
-import java.util.*;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Properties;
+import java.util.Random;
 
 /**
  * Compares {@link java.sql.Statement} vs {@link java.sql.PreparedStatement}.
@@ -57,7 +73,7 @@ public class StatementTest {
     Random rnd = new Random();
     {
       try {
-        Class.forName("net.hydromatic.optiq.jdbc.Driver");
+        Class.forName("org.apache.calcite.jdbc.Driver");
       } catch (ClassNotFoundException e) {
         throw new IllegalStateException(e);
       }
@@ -71,16 +87,16 @@ public class StatementTest {
       } catch (SQLException e) {
         throw new IllegalStateException(e);
       }
-      OptiqConnection optiqConnection;
+      CalciteConnection calciteConnection;
       try {
-        optiqConnection = connection.unwrap(OptiqConnection.class);
+        calciteConnection = connection.unwrap(CalciteConnection.class);
       } catch (SQLException e) {
         throw new IllegalStateException(e);
       }
-      final SchemaPlus rootSchema = optiqConnection.getRootSchema();
+      final SchemaPlus rootSchema = calciteConnection.getRootSchema();
       rootSchema.add("hr", new ReflectiveSchema(new HrSchema()));
       try {
-        optiqConnection.setSchema("hr");
+        calciteConnection.setSchema("hr");
       } catch (SQLException e) {
         throw new IllegalStateException(e);
       }
@@ -185,8 +201,7 @@ public class StatementTest {
   //CHECKSTYLE: OFF
 
   public static class HrSchema {
-    @Override
-    public String toString() {
+    @Override public String toString() {
       return "HrSchema";
     }
 

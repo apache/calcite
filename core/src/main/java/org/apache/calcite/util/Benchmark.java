@@ -14,14 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.util;
+package org.apache.calcite.util;
+
+import org.apache.calcite.linq4j.function.Function1;
 
 import java.text.MessageFormat;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
-import net.hydromatic.linq4j.function.Function1;
 
 /**
  * Helps to run benchmarks by running the same task repeatedly and averaging

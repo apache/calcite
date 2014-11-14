@@ -14,10 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql.fun;
+package org.apache.calcite.sql.fun;
 
-import org.eigenbase.sql.*;
-import org.eigenbase.sql.validate.*;
+import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlPrefixOperator;
+import org.apache.calcite.sql.validate.SqlValidator;
 
 /**
  * SqlNewOperator represents an SQL <code>new specification</code> such as

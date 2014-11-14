@@ -14,33 +14,45 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql.test;
+package org.apache.calcite.sql.test;
 
-import java.math.*;
-
-import java.sql.*;
-import java.text.*;
-
-import java.util.*;
-import java.util.regex.*;
-
-import org.eigenbase.reltype.RelDataType;
-import org.eigenbase.sql.*;
-import org.eigenbase.sql.fun.*;
-import org.eigenbase.sql.parser.*;
-import org.eigenbase.sql.type.*;
-import org.eigenbase.sql.util.SqlString;
-import org.eigenbase.test.*;
-import org.eigenbase.util.*;
-
-import net.hydromatic.optiq.runtime.Hook;
-import net.hydromatic.optiq.test.OptiqAssert;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.runtime.Hook;
+import org.apache.calcite.sql.SqlDialect;
+import org.apache.calcite.sql.SqlJdbcFunctionCall;
+import org.apache.calcite.sql.SqlLiteral;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.type.BasicSqlType;
+import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.util.SqlString;
+import org.apache.calcite.test.CalciteAssert;
+import org.apache.calcite.test.SqlLimitsTest;
+import org.apache.calcite.util.Bug;
+import org.apache.calcite.util.Holder;
+import org.apache.calcite.util.Pair;
+import org.apache.calcite.util.Util;
 
 import com.google.common.base.Function;
 
-import org.junit.*;
+import org.junit.Before;
+import org.junit.Test;
 
-import static org.junit.Assert.*;
+import java.math.BigDecimal;
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Calendar;
+import java.util.List;
+import java.util.TimeZone;
+import java.util.regex.Pattern;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
 /**
  * Contains unit tests for all operators. Each of the methods is named after an
@@ -63,7 +75,7 @@ import static org.junit.Assert.*;
  *
  * <p>A typical method will be named after the operator it is testing (say
  * <code>testSubstringFunc</code>). It first calls
- * {@link SqlTester#setFor(org.eigenbase.sql.SqlOperator, org.eigenbase.sql.test.SqlTester.VmName...)}
+ * {@link SqlTester#setFor(org.apache.calcite.sql.SqlOperator, org.apache.calcite.sql.test.SqlTester.VmName...)}
  * to declare which operator it is testing.
  *
  * <blockquote>
@@ -142,7 +154,7 @@ public abstract class SqlOperatorBaseTest {
   public static final Pattern TIMESTAMP_PATTERN =
       Pattern.compile(
           "[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9] "
-          + "[0-9][0-9]:[0-9][0-9]:[0-9][0-9]");
+              + "[0-9][0-9]:[0-9][0-9]:[0-9][0-9]");
 
   /**
    * Regular expression for a SQL DATE value.
@@ -1315,7 +1327,7 @@ public abstract class SqlOperatorBaseTest {
         "CHAR(3)");
     tester.checkString(
         "case 1 when 1 then cast('a' as varchar(1)) "
-        + "when 2 then cast('bcd' as varchar(3)) end",
+            + "when 2 then cast('bcd' as varchar(3)) end",
         "a",
         "VARCHAR(3)");
     if (DECIMAL) {
@@ -1389,29 +1401,29 @@ public abstract class SqlOperatorBaseTest {
     // multiple values in some cases (introduced in SQL:2011)
     tester.checkString(
         "case 1 "
-        + "when 1, 2 then '1 or 2' "
-        + "when 2 then 'not possible' "
-        + "when 3, 2 then '3' "
-        + "else 'none of the above' "
-        + "end",
+            + "when 1, 2 then '1 or 2' "
+            + "when 2 then 'not possible' "
+            + "when 3, 2 then '3' "
+            + "else 'none of the above' "
+            + "end",
         "1 or 2           ",
         "CHAR(17) NOT NULL");
     tester.checkString(
         "case 2 "
-        + "when 1, 2 then '1 or 2' "
-        + "when 2 then 'not possible' "
-        + "when 3, 2 then '3' "
-        + "else 'none of the above' "
-        + "end",
+            + "when 1, 2 then '1 or 2' "
+            + "when 2 then 'not possible' "
+            + "when 3, 2 then '3' "
+            + "else 'none of the above' "
+            + "end",
         "1 or 2           ",
         "CHAR(17) NOT NULL");
     tester.checkString(
         "case 3 "
-        + "when 1, 2 then '1 or 2' "
-        + "when 2 then 'not possible' "
-        + "when 3, 2 then '3' "
-        + "else 'none of the above' "
-        + "end",
+            + "when 1, 2 then '1 or 2' "
+            + "when 2 then 'not possible' "
+            + "when 3, 2 then '3' "
+            + "else 'none of the above' "
+            + "end",
         "3                ",
         "CHAR(17) NOT NULL");
     tester.checkString(
@@ -1714,26 +1726,26 @@ public abstract class SqlOperatorBaseTest {
           "RecordType(INTEGER NOT NULL EXPR$0, INTEGER EXPR$1) NOT NULL");
       tester.checkType(
           "SELECT *,(SELECT * FROM (VALUES(CAST(10 as BIGINT)))) "
-          + "FROM (VALUES(CAST(10 as bigint)))",
+              + "FROM (VALUES(CAST(10 as bigint)))",
           "RecordType(BIGINT NOT NULL EXPR$0, BIGINT EXPR$1) NOT NULL");
       tester.checkType(
           " SELECT *,(SELECT * FROM (VALUES(10.5))) FROM (VALUES(10.5))",
           "RecordType(DECIMAL(3, 1) NOT NULL EXPR$0, DECIMAL(3, 1) EXPR$1) NOT NULL");
       tester.checkType(
           "SELECT *,(SELECT * FROM (VALUES('this is a char'))) "
-          + "FROM (VALUES('this is a char too'))",
+              + "FROM (VALUES('this is a char too'))",
           "RecordType(CHAR(18) NOT NULL EXPR$0, CHAR(14) EXPR$1) NOT NULL");
       tester.checkType(
           "SELECT *,(SELECT * FROM (VALUES(true))) FROM (values(false))",
           "RecordType(BOOLEAN NOT NULL EXPR$0, BOOLEAN EXPR$1) NOT NULL");
       tester.checkType(
           " SELECT *,(SELECT * FROM (VALUES(cast('abcd' as varchar(10))))) "
-          + "FROM (VALUES(CAST('abcd' as varchar(10))))",
+              + "FROM (VALUES(CAST('abcd' as varchar(10))))",
           "RecordType(VARCHAR(10) NOT NULL EXPR$0, VARCHAR(10) EXPR$1) NOT NULL");
       tester.checkType(
           "SELECT *,"
-          + "  (SELECT * FROM (VALUES(TIMESTAMP '2006-01-01 12:00:05'))) "
-          + "FROM (VALUES(TIMESTAMP '2006-01-01 12:00:05'))",
+              + "  (SELECT * FROM (VALUES(TIMESTAMP '2006-01-01 12:00:05'))) "
+              + "FROM (VALUES(TIMESTAMP '2006-01-01 12:00:05'))",
           "RecordType(TIMESTAMP(0) NOT NULL EXPR$0, TIMESTAMP(0) EXPR$1) NOT NULL");
     }
   }
@@ -2487,30 +2499,30 @@ public abstract class SqlOperatorBaseTest {
     // combine '<datetime> + <interval>' with '<datetime> - <datetime>'
     tester.checkScalar(
         "timestamp '1969-04-29 0:0:0' +"
-        + " (timestamp '2008-07-15 15:28:00' - "
-        + "  timestamp '1969-04-29 0:0:0') day to second / 2",
+            + " (timestamp '2008-07-15 15:28:00' - "
+            + "  timestamp '1969-04-29 0:0:0') day to second / 2",
         "1988-12-06 07:44:00",
         "TIMESTAMP(0) NOT NULL");
 
     tester.checkScalar(
         "date '1969-04-29' +"
-        + " (date '2008-07-15' - "
-        + "  date '1969-04-29') day / 2",
+            + " (date '2008-07-15' - "
+            + "  date '1969-04-29') day / 2",
         "1988-12-06",
         "DATE NOT NULL");
 
     tester.checkScalar(
         "time '01:23:44' +"
-        + " (time '15:28:00' - "
-        + "  time '01:23:44') hour to second / 2",
+            + " (time '15:28:00' - "
+            + "  time '01:23:44') hour to second / 2",
         "08:25:52",
         "TIME(0) NOT NULL");
 
     if (Bug.DT1684_FIXED) {
       tester.checkBoolean(
           "(date '1969-04-29' +"
-          + " (CURRENT_DATE - "
-          + "  date '1969-04-29') day / 2) is not null",
+              + " (CURRENT_DATE - "
+              + "  date '1969-04-29') day / 2) is not null",
           Boolean.TRUE);
     }
     // TODO: Add tests for year month intervals (currently not supported)
@@ -3195,15 +3207,15 @@ public abstract class SqlOperatorBaseTest {
     tester.checkFails(
         "'yd' similar to '[x-ze-a]d'",
         "Illegal character range near index 6\n"
-        + "\\[x-ze-a\\]d\n"
-        + "      \\^",
+            + "\\[x-ze-a\\]d\n"
+            + "      \\^",
         true);   // illegal range
 
     tester.checkFails(
         "'yd3223' similar to '[:LOWER:]{2}[:DIGIT:]{,5}'",
         "Illegal repetition near index 20\n"
-        + "\\[\\:LOWER\\:\\]\\{2\\}\\[\\:DIGIT\\:\\]\\{,5\\}\n"
-        + "                    \\^",
+            + "\\[\\:LOWER\\:\\]\\{2\\}\\[\\:DIGIT\\:\\]\\{,5\\}\n"
+            + "                    \\^",
         true);
 
     tester.checkFails(
@@ -3273,7 +3285,7 @@ public abstract class SqlOperatorBaseTest {
 
       tester.checkBoolean(
           "'YD  3223' similar to "
-          + "'[:UPPER:]{2}||[:WHITESPACE:]*[:DIGIT:]{4}'",
+              + "'[:UPPER:]{2}||[:WHITESPACE:]*[:DIGIT:]{4}'",
           Boolean.TRUE);
 
       tester.checkBoolean(
@@ -3282,12 +3294,12 @@ public abstract class SqlOperatorBaseTest {
 
       tester.checkBoolean(
           "'YD\t3223' similar to "
-          + "'[:UPPER:]{2}[:WHITESPACE:]*[:DIGIT:]{4}'",
+              + "'[:UPPER:]{2}[:WHITESPACE:]*[:DIGIT:]{4}'",
           Boolean.TRUE);
 
       tester.checkBoolean(
           "'YD\t\t3223' similar to "
-          + "'([:UPPER:]{2}[:WHITESPACE:]+)||[:DIGIT:]{4}'",
+              + "'([:UPPER:]{2}[:WHITESPACE:]+)||[:DIGIT:]{4}'",
           Boolean.TRUE);
     }
   }
@@ -3323,14 +3335,14 @@ public abstract class SqlOperatorBaseTest {
     if (enable) {
       tester.checkString(
           "overlay(cast('ABCdef' as varchar(10)) placing "
-          + "cast('abc' as char(5)) from 1 for 2)",
+              + "cast('abc' as char(5)) from 1 for 2)",
           "abc  Cdef",
           "VARCHAR(15) NOT NULL");
     }
     if (enable) {
       tester.checkString(
           "overlay(cast('ABCdef' as char(10)) placing "
-          + "cast('abc' as char(5)) from 1 for 2)",
+              + "cast('abc' as char(5)) from 1 for 2)",
           "abc  Cdef    ",
           "VARCHAR(15) NOT NULL");
     }
@@ -3350,14 +3362,14 @@ public abstract class SqlOperatorBaseTest {
     if (enable) {
       tester.checkString(
           "overlay(cast(x'ABCdef' as varbinary(5)) placing "
-          + "cast(x'abcd' as binary(3)) from 1 for 2)",
+              + "cast(x'abcd' as binary(3)) from 1 for 2)",
           "abc  Cdef",
           "VARBINARY(8) NOT NULL");
     }
     if (enable) {
       tester.checkString(
           "overlay(cast(x'ABCdef' as binary(5)) placing "
-          + "cast(x'abcd' as binary(3)) from 1 for 2)",
+              + "cast(x'abcd' as binary(3)) from 1 for 2)",
           "abc  Cdef    ",
           "VARBINARY(8) NOT NULL");
     }
@@ -3872,7 +3884,7 @@ public abstract class SqlOperatorBaseTest {
   protected static Pair<String, Hook.Closeable> currentTimeString(TimeZone tz) {
     final Calendar calendar;
     final Hook.Closeable closeable;
-    if (OptiqAssert.ENABLE_SLOW) {
+    if (CalciteAssert.ENABLE_SLOW) {
       calendar = getCalendarNotTooNear(Calendar.HOUR_OF_DAY);
       closeable = new Hook.Closeable() {
         public void close() {}
@@ -3980,16 +3992,16 @@ public abstract class SqlOperatorBaseTest {
       tester.checkFails(
           "trim('xy' from 'abcde')",
           "could not calculate results for the following row:\n"
-          + "\\[ 0 \\]\n"
-          + "Messages:\n"
-          + "\\[0\\]:PC=0 Code=22027 ",
+              + "\\[ 0 \\]\n"
+              + "Messages:\n"
+              + "\\[0\\]:PC=0 Code=22027 ",
           true);
       tester.checkFails(
           "trim('' from 'abcde')",
           "could not calculate results for the following row:\n"
-          + "\\[ 0 \\]\n"
-          + "Messages:\n"
-          + "\\[0\\]:PC=0 Code=22027 ",
+              + "\\[ 0 \\]\n"
+              + "Messages:\n"
+              + "\\[0\\]:PC=0 Code=22027 ",
           true);
     }
   }
@@ -4182,7 +4194,7 @@ public abstract class SqlOperatorBaseTest {
     tester.checkFails(
         "^ARRAY ['foo', 'bar']['baz']^",
         "Cannot apply 'ITEM' to arguments of type 'ITEM\\(<CHAR\\(3\\) ARRAY>, <CHAR\\(3\\)>\\)'\\. Supported form\\(s\\): <ARRAY>\\[<INTEGER>\\]\n"
-        + "<MAP>\\[<VALUE>\\]",
+            + "<MAP>\\[<VALUE>\\]",
         false);
 
     // Array of INTEGER NOT NULL is interesting because we might be tempted
@@ -4934,7 +4946,7 @@ public abstract class SqlOperatorBaseTest {
             literal.toSqlString(SqlDialect.DUMMY);
         final String expr =
             "CAST(" + literalString
-            + " AS " + type + ")";
+                + " AS " + type + ")";
         try {
           tester.checkType(
               expr,
@@ -5136,7 +5148,7 @@ public abstract class SqlOperatorBaseTest {
   }
 
   /**
-   * Creates a {@link org.eigenbase.sql.test.SqlTester} based on a JDBC
+   * Creates a {@link org.apache.calcite.sql.test.SqlTester} based on a JDBC
    * connection.
    */
   public static SqlTester tester(Connection connection) {
@@ -5144,7 +5156,7 @@ public abstract class SqlOperatorBaseTest {
   }
 
   /**
-   * Implementation of {@link org.eigenbase.sql.test.SqlTester} based on a
+   * Implementation of {@link org.apache.calcite.sql.test.SqlTester} based on a
    * JDBC connection.
    */
   protected static class TesterImpl extends SqlTesterImpl {
@@ -5155,8 +5167,7 @@ public abstract class SqlOperatorBaseTest {
       this.connection = connection;
     }
 
-    @Override
-    public void check(
+    @Override public void check(
         String query,
         TypeChecker typeChecker,
         ResultChecker resultChecker) {

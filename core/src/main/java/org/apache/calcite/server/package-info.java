@@ -18,6 +18,6 @@
 /**
  * Provides a server for hosting Calcite connections.
  */
-package net.hydromatic.optiq.server;
+package org.apache.calcite.server;
 
 // End package-info.java

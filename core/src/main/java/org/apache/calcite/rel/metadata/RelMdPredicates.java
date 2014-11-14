@@ -14,7 +14,42 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel.metadata;
+package org.apache.calcite.rel.metadata;
+
+import org.apache.calcite.linq4j.Linq4j;
+import org.apache.calcite.linq4j.Ord;
+import org.apache.calcite.linq4j.function.Predicate1;
+import org.apache.calcite.plan.RelOptPredicateList;
+import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.Aggregate;
+import org.apache.calcite.rel.core.Filter;
+import org.apache.calcite.rel.core.Join;
+import org.apache.calcite.rel.core.JoinRelType;
+import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.core.SemiJoin;
+import org.apache.calcite.rel.core.Sort;
+import org.apache.calcite.rel.core.TableScan;
+import org.apache.calcite.rel.core.Union;
+import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexInputRef;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexPermuteInputsShuttle;
+import org.apache.calcite.rex.RexUtil;
+import org.apache.calcite.rex.RexVisitorImpl;
+import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.util.BitSets;
+import org.apache.calcite.util.BuiltInMethod;
+import org.apache.calcite.util.mapping.Mapping;
+import org.apache.calcite.util.mapping.MappingType;
+import org.apache.calcite.util.mapping.Mappings;
+
+import com.google.common.base.Function;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Iterators;
+import com.google.common.collect.Lists;
 
 import java.util.ArrayList;
 import java.util.BitSet;
@@ -27,48 +62,11 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
-import org.eigenbase.rel.AggregateRelBase;
-import org.eigenbase.rel.FilterRelBase;
-import org.eigenbase.rel.JoinRelBase;
-import org.eigenbase.rel.JoinRelType;
-import org.eigenbase.rel.ProjectRelBase;
-import org.eigenbase.rel.RelNode;
-import org.eigenbase.rel.SortRel;
-import org.eigenbase.rel.TableAccessRelBase;
-import org.eigenbase.rel.UnionRelBase;
-import org.eigenbase.rel.rules.SemiJoinRel;
-import org.eigenbase.relopt.RelOptPredicateList;
-import org.eigenbase.relopt.RelOptUtil;
-import org.eigenbase.rex.RexBuilder;
-import org.eigenbase.rex.RexCall;
-import org.eigenbase.rex.RexInputRef;
-import org.eigenbase.rex.RexNode;
-import org.eigenbase.rex.RexPermuteInputsShuttle;
-import org.eigenbase.rex.RexUtil;
-import org.eigenbase.rex.RexVisitorImpl;
-import org.eigenbase.sql.SqlKind;
-import org.eigenbase.util.mapping.Mapping;
-import org.eigenbase.util.mapping.MappingType;
-import org.eigenbase.util.mapping.Mappings;
-
-import net.hydromatic.linq4j.Linq4j;
-import net.hydromatic.linq4j.Ord;
-import net.hydromatic.linq4j.function.Predicate1;
-
-import net.hydromatic.optiq.BuiltinMethod;
-import net.hydromatic.optiq.util.BitSets;
-
-import com.google.common.base.Function;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Iterators;
-import com.google.common.collect.Lists;
-
 /**
  * Utility to infer Predicates that are applicable above a RelNode.
  *
  * <p>This is currently used by
- * {@link org.eigenbase.rel.rules.TransitivePredicatesOnJoinRule} to
+ * {@link org.apache.calcite.rel.rules.JoinPushTransitivePredicatesRule} to
  * infer <em>Predicates</em> that can be inferred from one side of a Join
  * to the other.
  *
@@ -111,7 +109,7 @@ import com.google.common.collect.Lists;
  */
 public class RelMdPredicates {
   public static final RelMetadataProvider SOURCE = ReflectiveRelMetadataProvider
-      .reflectiveSource(BuiltinMethod.PREDICATES.method, new RelMdPredicates());
+      .reflectiveSource(BuiltInMethod.PREDICATES.method, new RelMdPredicates());
 
   private static final List<RexNode> EMPTY_LIST = ImmutableList.of();
 
@@ -123,7 +121,7 @@ public class RelMdPredicates {
   /**
    * Infers predicates for a table scan.
    */
-  public RelOptPredicateList getPredicates(TableAccessRelBase table) {
+  public RelOptPredicateList getPredicates(TableScan table) {
     return RelOptPredicateList.EMPTY;
   }
 
@@ -146,8 +144,8 @@ public class RelMdPredicates {
    *
    * </ol>
    */
-  public RelOptPredicateList getPredicates(ProjectRelBase project) {
-    RelNode child = project.getChild();
+  public RelOptPredicateList getPredicates(Project project) {
+    RelNode child = project.getInput();
     RelOptPredicateList childInfo =
         RelMetadataQuery.getPulledUpPredicates(child);
 
@@ -181,8 +179,8 @@ public class RelMdPredicates {
   /**
    * Add the Filter condition to the pulledPredicates list from the child.
    */
-  public RelOptPredicateList getPredicates(FilterRelBase filter) {
-    RelNode child = filter.getChild();
+  public RelOptPredicateList getPredicates(Filter filter) {
+    RelNode child = filter.getInput();
     RelOptPredicateList childInfo =
         RelMetadataQuery.getPulledUpPredicates(child);
 
@@ -191,15 +189,15 @@ public class RelMdPredicates {
             RelOptUtil.conjunctions(filter.getCondition())));
   }
 
-  /** Infers predicates for a {@link SemiJoinRel}. */
-  public RelOptPredicateList getPredicates(SemiJoinRel semiJoin) {
+  /** Infers predicates for a {@link org.apache.calcite.rel.core.SemiJoin}. */
+  public RelOptPredicateList getPredicates(SemiJoin semiJoin) {
     // Workaround, pending [CALCITE-390] "Transitive inference (RelMdPredicate)
     // doesn't handle semi-join"
     return RelOptPredicateList.EMPTY;
   }
 
-  /** Infers predicates for a {@link JoinRelBase}. */
-  public RelOptPredicateList getPredicates(JoinRelBase join) {
+  /** Infers predicates for a {@link org.apache.calcite.rel.core.Join}. */
+  public RelOptPredicateList getPredicates(Join join) {
     RexBuilder rB = join.getCluster().getRexBuilder();
     RelNode left = join.getInput(0);
     RelNode right = join.getInput(1);
@@ -219,7 +217,7 @@ public class RelMdPredicates {
   }
 
   /**
-   * Infers predicates for an AggregateRel.
+   * Infers predicates for an Aggregate.
    *
    * <p>Pulls up predicates that only contains references to columns in the
    * GroupSet. For e.g.
@@ -230,8 +228,8 @@ public class RelMdPredicates {
    * pulledUpExprs    : { a &gt; 7}
    * </pre>
    */
-  public RelOptPredicateList getPredicates(AggregateRelBase agg) {
-    RelNode child = agg.getChild();
+  public RelOptPredicateList getPredicates(Aggregate agg) {
+    RelNode child = agg.getInput();
     RelOptPredicateList childInfo =
         RelMetadataQuery.getPulledUpPredicates(child);
 
@@ -257,11 +255,11 @@ public class RelMdPredicates {
   }
 
   /**
-   * Infers predicates for a UnionRelBase.
+   * Infers predicates for a Union.
    *
    * <p>The pulled up expression is a disjunction of its children's predicates.
    */
-  public RelOptPredicateList getPredicates(UnionRelBase union) {
+  public RelOptPredicateList getPredicates(Union union) {
     RexBuilder rB = union.getCluster().getRexBuilder();
     List<RexNode> orList = Lists.newArrayList();
     for (RelNode input : union.getInputs()) {
@@ -282,20 +280,28 @@ public class RelMdPredicates {
   }
 
   /**
-   * Infers predicates for a SortRel.
+   * Infers predicates for a Sort.
    */
-  public RelOptPredicateList getPredicates(SortRel sort) {
+  public RelOptPredicateList getPredicates(Sort sort) {
     RelNode child = sort.getInput(0);
     return RelMetadataQuery.getPulledUpPredicates(child);
   }
 
   /**
    * Utility to infer predicates from one side of the join that apply on the
-   * other side. Contract is: - initialize with a {@link JoinRelBase} and
-   * optional predicates applicable on its left and right subtrees. - you can
+   * other side.
+   *
+   * <p>Contract is:<ul>
+   *
+   * <li>initialize with a {@link org.apache.calcite.rel.core.Join} and
+   * optional predicates applicable on its left and right subtrees.
+   *
+   * <li>you can
    * then ask it for equivalentPredicate(s) given a predicate.
-   * <p>
-   * So for:
+   *
+   * </ul>
+   *
+   * <p>So for:
    * <ol>
    * <li>'<code>R1(x) join R2(y) on x = y</code>' a call for
    * equivalentPredicates on '<code>x > 7</code>' will return '
@@ -306,7 +312,7 @@ public class RelMdPredicates {
    * </ol>
    */
   static class JoinConditionBasedPredicateInference {
-    final JoinRelBase joinRel;
+    final Join joinRel;
     final int nSysFields;
     final int nFieldsLeft;
     final int nFieldsRight;
@@ -320,7 +326,7 @@ public class RelMdPredicates {
     final RexNode leftChildPredicates;
     final RexNode rightChildPredicates;
 
-    public JoinConditionBasedPredicateInference(JoinRelBase joinRel,
+    public JoinConditionBasedPredicateInference(Join joinRel,
         RexNode lPreds, RexNode rPreds) {
       super();
       this.joinRel = joinRel;
@@ -535,8 +541,7 @@ public class RelMdPredicates {
         super(true);
       }
 
-      @Override
-      public Void visitCall(RexCall call) {
+      @Override public Void visitCall(RexCall call) {
         if (call.getOperator().getKind() == SqlKind.EQUALS) {
           int lPos = pos(call.getOperands().get(0));
           int rPos = pos(call.getOperands().get(1));

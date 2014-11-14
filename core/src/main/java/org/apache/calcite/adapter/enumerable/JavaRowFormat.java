@@ -14,16 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.rules.java;
+package org.apache.calcite.adapter.enumerable;
 
-import net.hydromatic.linq4j.expressions.*;
-
-import net.hydromatic.optiq.BuiltinMethod;
-import net.hydromatic.optiq.impl.java.JavaTypeFactory;
-import net.hydromatic.optiq.runtime.FlatLists;
-import net.hydromatic.optiq.runtime.Unit;
-
-import org.eigenbase.reltype.RelDataType;
+import org.apache.calcite.adapter.java.JavaTypeFactory;
+import org.apache.calcite.linq4j.tree.Expression;
+import org.apache.calcite.linq4j.tree.ExpressionType;
+import org.apache.calcite.linq4j.tree.Expressions;
+import org.apache.calcite.linq4j.tree.MemberExpression;
+import org.apache.calcite.linq4j.tree.Types;
+import org.apache.calcite.linq4j.tree.UnaryExpression;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.runtime.FlatLists;
+import org.apache.calcite.runtime.Unit;
+import org.apache.calcite.util.BuiltInMethod;
 
 import java.lang.reflect.Type;
 import java.util.AbstractList;
@@ -41,8 +44,7 @@ public enum JavaRowFormat {
       return typeFactory.getJavaClass(type);
     }
 
-    @Override
-    Type javaFieldClass(JavaTypeFactory typeFactory, RelDataType type,
+    @Override Type javaFieldClass(JavaTypeFactory typeFactory, RelDataType type,
         int index) {
       return typeFactory.getJavaClass(type.getFieldList().get(index).getType());
     }
@@ -58,8 +60,7 @@ public enum JavaRowFormat {
       }
     }
 
-    @Override
-    public MemberExpression field(Expression expression, int field,
+    @Override public MemberExpression field(Expression expression, int field,
         Type fieldType) {
       final Type type = expression.getType();
       if (type instanceof Types.RecordType) {
@@ -85,8 +86,7 @@ public enum JavaRowFormat {
           type.getFieldList().get(0).getType());
     }
 
-    @Override
-    Type javaFieldClass(JavaTypeFactory typeFactory, RelDataType type,
+    @Override Type javaFieldClass(JavaTypeFactory typeFactory, RelDataType type,
         int index) {
       return javaRowClass(typeFactory, type);
     }
@@ -97,8 +97,8 @@ public enum JavaRowFormat {
       return expressions.get(0);
     }
 
-    @Override
-    public Expression field(Expression expression, int field, Type fieldType) {
+    @Override public Expression field(Expression expression, int field,
+        Type fieldType) {
       assert field == 0;
       return expression;
     }
@@ -114,8 +114,7 @@ public enum JavaRowFormat {
       return FlatLists.ComparableList.class;
     }
 
-    @Override
-    Type javaFieldClass(JavaTypeFactory typeFactory, RelDataType type,
+    @Override Type javaFieldClass(JavaTypeFactory typeFactory, RelDataType type,
         int index) {
       return Object.class;
     }
@@ -133,7 +132,7 @@ public enum JavaRowFormat {
             Expressions.call(
                 List.class,
                 null,
-                BuiltinMethod.LIST2.method,
+                BuiltInMethod.LIST2.method,
                 expressions),
             List.class);
       case 3:
@@ -141,7 +140,7 @@ public enum JavaRowFormat {
             Expressions.call(
                 List.class,
                 null,
-                BuiltinMethod.LIST3.method,
+                BuiltInMethod.LIST3.method,
                 expressions),
             List.class);
       default:
@@ -149,7 +148,7 @@ public enum JavaRowFormat {
             Expressions.call(
                 List.class,
                 null,
-                BuiltinMethod.ARRAYS_AS_LIST.method,
+                BuiltInMethod.ARRAYS_AS_LIST.method,
                 Expressions.newArrayInit(
                     Object.class,
                     expressions)),
@@ -157,11 +156,11 @@ public enum JavaRowFormat {
       }
     }
 
-    @Override
-    public Expression field(Expression expression, int field, Type fieldType) {
+    @Override public Expression field(Expression expression, int field,
+        Type fieldType) {
       return RexToLixTranslator.convert(
           Expressions.call(expression,
-              BuiltinMethod.LIST_GET.method,
+              BuiltInMethod.LIST_GET.method,
               Expressions.constant(field)),
           fieldType);
     }
@@ -175,8 +174,7 @@ public enum JavaRowFormat {
       return Object[].class;
     }
 
-    @Override
-    Type javaFieldClass(JavaTypeFactory typeFactory, RelDataType type,
+    @Override Type javaFieldClass(JavaTypeFactory typeFactory, RelDataType type,
         int index) {
       return Object.class;
     }
@@ -188,11 +186,11 @@ public enum JavaRowFormat {
     }
 
     @Override public Expression comparer() {
-      return Expressions.call(BuiltinMethod.ARRAY_COMPARER.method);
+      return Expressions.call(BuiltInMethod.ARRAY_COMPARER.method);
     }
 
-    @Override
-    public Expression field(Expression expression, int field, Type fieldType) {
+    @Override public Expression field(Expression expression, int field,
+        Type fieldType) {
       return RexToLixTranslator.convert(
           Expressions.arrayIndex(expression, Expressions.constant(field)),
           fieldType);

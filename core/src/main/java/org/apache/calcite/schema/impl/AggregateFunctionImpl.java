@@ -14,14 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.impl;
+package org.apache.calcite.schema.impl;
 
-import net.hydromatic.optiq.*;
-import net.hydromatic.optiq.rules.java.*;
-
-import org.eigenbase.reltype.RelDataType;
-import org.eigenbase.reltype.RelDataTypeFactory;
-import org.eigenbase.util.Util;
+import org.apache.calcite.adapter.enumerable.AggImplementor;
+import org.apache.calcite.adapter.enumerable.RexImpTable;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.schema.AggregateFunction;
+import org.apache.calcite.schema.FunctionParameter;
+import org.apache.calcite.schema.ImplementableAggFunction;
+import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
@@ -29,7 +31,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.List;
 
-import static org.eigenbase.util.Static.*;
+import static org.apache.calcite.util.Static.RESOURCE;
 
 /**
  * Implementation of {@link AggregateFunction} via user-defined class.

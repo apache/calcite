@@ -14,14 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq;
+package org.apache.calcite.schema;
 
-import org.eigenbase.rel.RelNode;
-import org.eigenbase.relopt.RelOptTable;
+import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.rel.RelNode;
 
 /**
  * Extension to {@link Table} that specifies how it is to be translated to
- * a {@link org.eigenbase.rel.RelNode planner node}.
+ * a {@link org.apache.calcite.rel.RelNode planner node}.
  *
  * <p>It is optional for a Table to implement this interface. A Table that does
  * not implement this interface, a Table will be converted to an

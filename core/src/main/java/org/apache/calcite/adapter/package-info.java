@@ -16,8 +16,27 @@
  */
 
 /**
- * Utilities to help implement Calcite's SPIs.
+ * Calcite adapters.
+ *
+ * <p>An adapter allows Calcite to access data in a particular data source as
+ * if it were a collection of tables in a schema. Each adapter typically
+ * contains an implementation of {@link org.apache.calcite.schema.SchemaFactory}
+ * and some classes that implement other schema SPIs.
+ *
+ * <p>To use an adapter, include a custom schema in a JSON model file:
+ *
+ * <blockquote><pre>
+ *    schemas: [
+ *      {
+ *        type: 'custom',
+ *        name: 'My Custom Schema',
+ *        factory: 'com.acme.MySchemaFactory',
+ *        operand: {a: 'foo', b: [1, 3.5] }
+ *      }
+ *   ]
+ * </pre>
+ * </blockquote>
  */
-package net.hydromatic.optiq.impl;
+package org.apache.calcite.adapter;
 
 // End package-info.java

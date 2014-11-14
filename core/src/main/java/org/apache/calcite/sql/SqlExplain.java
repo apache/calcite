@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql;
+package org.apache.calcite.sql;
+
+import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.util.ImmutableNullableList;
 
 import java.util.List;
-
-import org.eigenbase.sql.parser.*;
-import org.eigenbase.util.ImmutableNullableList;
 
 /**
  * A <code>SqlExplain</code> is a node of a parse tree which represents an
@@ -28,8 +28,7 @@ import org.eigenbase.util.ImmutableNullableList;
 public class SqlExplain extends SqlCall {
   public static final SqlSpecialOperator OPERATOR =
       new SqlSpecialOperator("EXPLAIN", SqlKind.EXPLAIN) {
-        @Override
-        public SqlCall createCall(SqlLiteral functionQualifier,
+        @Override public SqlCall createCall(SqlLiteral functionQualifier,
             SqlParserPos pos, SqlNode... operands) {
           return new SqlExplain(pos, operands[0], (SqlLiteral) operands[1],
               (SqlLiteral) operands[2], (SqlLiteral) operands[3], 0);

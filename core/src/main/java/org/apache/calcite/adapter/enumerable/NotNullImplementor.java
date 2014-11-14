@@ -14,20 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.rules.java;
+package org.apache.calcite.adapter.enumerable;
 
-import net.hydromatic.linq4j.expressions.Expression;
-
-import org.eigenbase.rex.RexCall;
+import org.apache.calcite.linq4j.tree.Expression;
+import org.apache.calcite.rex.RexCall;
 
 import java.util.List;
 
 /**
- * Simplified version of {@link net.hydromatic.optiq.rules.java.CallImplementor}
+ * Simplified version of
+ * {@link org.apache.calcite.adapter.enumerable.CallImplementor}
  * that does not know about null semantics.
  *
- * @see net.hydromatic.optiq.rules.java.RexImpTable
- * @see net.hydromatic.optiq.rules.java.CallImplementor
+ * @see org.apache.calcite.adapter.enumerable.RexImpTable
+ * @see org.apache.calcite.adapter.enumerable.CallImplementor
  */
 public interface NotNullImplementor {
   /**

@@ -14,22 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.impl.interpreter;
+package org.apache.calcite.interpreter;
 
-import org.eigenbase.rel.ValuesRelBase;
-import org.eigenbase.rex.RexLiteral;
+import org.apache.calcite.rel.core.Values;
+import org.apache.calcite.rex.RexLiteral;
 
 import java.util.List;
 
 /**
- * Interpreter node that implements a {@link ValuesRelBase}.
+ * Interpreter node that implements a
+ * {@link org.apache.calcite.rel.core.Values}.
  */
 public class ValuesNode implements Node {
   private final Sink sink;
-  private final ValuesRelBase rel;
+  private final Values rel;
   private final int fieldCount;
 
-  public ValuesNode(Interpreter interpreter, ValuesRelBase rel) {
+  public ValuesNode(Interpreter interpreter, Values rel) {
     this.rel = rel;
     this.sink = interpreter.sink(rel);
     this.fieldCount = rel.getRowType().getFieldCount();

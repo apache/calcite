@@ -14,25 +14,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.test;
-
-import java.util.*;
+package org.apache.calcite.test;
 
 import org.hamcrest.CoreMatchers;
 import org.junit.Test;
 
-import static org.eigenbase.util.Static.RESOURCE;
+import java.util.Map;
 
-import static org.junit.Assert.*;
+import static org.apache.calcite.util.Static.RESOURCE;
+
+import static org.junit.Assert.assertThat;
 
 /**
- * Tests generated package org.eigenbase.resource (mostly a sanity check for
- * resgen infrastructure).
+ * Tests the generated implementation of
+ * {@link org.apache.calcite.runtime.CalciteResource} (mostly a sanity check for
+ * the resource-generation infrastructure).
  */
-public class EigenbaseResourceTest {
+public class CalciteResourceTest {
   //~ Constructors -----------------------------------------------------------
 
-  public EigenbaseResourceTest() {
+  public CalciteResourceTest() {
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -48,4 +49,4 @@ public class EigenbaseResourceTest {
   }
 }
 
-// End EigenbaseResourceTest.java
+// End CalciteResourceTest.java

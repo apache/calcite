@@ -14,25 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rex;
+package org.apache.calcite.rex;
+
+import org.apache.calcite.DataContext;
+import org.apache.calcite.linq4j.function.Function1;
+import org.apache.calcite.runtime.Hook;
+import org.apache.calcite.runtime.Utilities;
+import org.apache.calcite.util.Pair;
+
+import org.codehaus.commons.compiler.CompileException;
+import org.codehaus.janino.ClassBodyEvaluator;
+import org.codehaus.janino.Scanner;
 
 import java.io.IOException;
 import java.io.Serializable;
 import java.io.StringReader;
 import java.util.Arrays;
 import java.util.List;
-
-import org.eigenbase.util.Pair;
-
-import net.hydromatic.linq4j.function.Function1;
-
-import net.hydromatic.optiq.DataContext;
-import net.hydromatic.optiq.runtime.Hook;
-import net.hydromatic.optiq.runtime.Utilities;
-
-import org.codehaus.commons.compiler.CompileException;
-import org.codehaus.janino.ClassBodyEvaluator;
-import org.codehaus.janino.Scanner;
 
 /**
  * Result of compiling code generated from a {@link RexNode} expression.

@@ -14,32 +14,54 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel;
+package org.apache.calcite.rel.core;
 
-import java.util.*;
-
-import org.eigenbase.rel.metadata.*;
-import org.eigenbase.relopt.*;
-import org.eigenbase.reltype.*;
-import org.eigenbase.rex.*;
-import org.eigenbase.sql.*;
-import org.eigenbase.util.Pair;
-import org.eigenbase.util.Permutation;
-import org.eigenbase.util.Util;
-import org.eigenbase.util.mapping.MappingType;
-import org.eigenbase.util.mapping.Mappings;
-
-import net.hydromatic.linq4j.Ord;
-import net.hydromatic.linq4j.function.Function1;
-import net.hydromatic.linq4j.function.Functions;
+import org.apache.calcite.linq4j.Ord;
+import org.apache.calcite.linq4j.function.Function1;
+import org.apache.calcite.linq4j.function.Functions;
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptCost;
+import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.RelCollation;
+import org.apache.calcite.rel.RelCollationTraitDef;
+import org.apache.calcite.rel.RelInput;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelWriter;
+import org.apache.calcite.rel.SingleRel;
+import org.apache.calcite.rel.metadata.RelMetadataQuery;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rex.RexChecker;
+import org.apache.calcite.rex.RexFieldAccess;
+import org.apache.calcite.rex.RexInputRef;
+import org.apache.calcite.rex.RexLocalRef;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexUtil;
+import org.apache.calcite.rex.RexVisitorImpl;
+import org.apache.calcite.sql.SqlExplainLevel;
+import org.apache.calcite.util.Pair;
+import org.apache.calcite.util.Permutation;
+import org.apache.calcite.util.Util;
+import org.apache.calcite.util.mapping.MappingType;
+import org.apache.calcite.util.mapping.Mappings;
 
 import com.google.common.collect.ImmutableList;
 
+import java.util.List;
+
 /**
- * <code>ProjectRelBase</code> is an abstract base class for implementations of
- * {@link ProjectRel}.
+ * Relational expression that computes a set of
+ * 'select expressions' from its input relational expression.
+ *
+ * <p>The result is usually 'boxed' as a record with one named field for each
+ * column; if there is precisely one expression, the result may be 'unboxed',
+ * and consist of the raw value type.
+ *
+ * @see org.apache.calcite.rel.logical.LogicalProject
  */
-public abstract class ProjectRelBase extends SingleRel {
+public abstract class Project extends SingleRel {
   //~ Instance fields --------------------------------------------------------
 
   protected final ImmutableList<RexNode> exps;
@@ -56,21 +78,22 @@ public abstract class ProjectRelBase extends SingleRel {
   /**
    * Creates a Project.
    *
-   * @param cluster Cluster this relational expression belongs to
+   * @param cluster Cluster that this relational expression belongs to
    * @param traits  traits of this rel
-   * @param child   input relational expression
+   * @param input   input relational expression
    * @param exps    List of expressions for the input columns
    * @param rowType output row type
-   * @param flags   values as in {@link Flags}
+   * @param flags      Flags; values as in {@link Project.Flags},
+   *                   usually {@link Project.Flags#BOXED}
    */
-  protected ProjectRelBase(
+  protected Project(
       RelOptCluster cluster,
       RelTraitSet traits,
-      RelNode child,
+      RelNode input,
       List<? extends RexNode> exps,
       RelDataType rowType,
       int flags) {
-    super(cluster, traits, child);
+    super(cluster, traits, input);
     assert rowType != null;
     this.exps = ImmutableList.copyOf(exps);
     this.rowType = rowType;
@@ -85,11 +108,10 @@ public abstract class ProjectRelBase extends SingleRel {
   }
 
   /**
-   * Creates a ProjectRelBase by parsing serialized output.
+   * Creates a Project by parsing serialized output.
    */
-  protected ProjectRelBase(RelInput input) {
-    this(
-        input.getCluster(), input.getTraitSet(), input.getInput(),
+  protected Project(RelInput input) {
+    this(input.getCluster(), input.getTraitSet(), input.getInput(),
         input.getExpressionList("exprs"),
         input.getRowType("exprs", "fields"), Flags.BOXED);
   }
@@ -104,7 +126,7 @@ public abstract class ProjectRelBase extends SingleRel {
   /** Copies a project.
    *
    * @see #copy(RelTraitSet, List) */
-  public abstract ProjectRelBase copy(RelTraitSet traitSet, RelNode input,
+  public abstract Project copy(RelTraitSet traitSet, RelNode input,
       List<RexNode> exps, RelDataType rowType);
 
   public List<RelCollation> getCollationList() {
@@ -115,8 +137,7 @@ public abstract class ProjectRelBase extends SingleRel {
     return (flags & Flags.BOXED) == Flags.BOXED;
   }
 
-  @Override
-  public List<RexNode> getChildExps() {
+  @Override public List<RexNode> getChildExps() {
     return exps;
   }
 
@@ -153,7 +174,7 @@ public abstract class ProjectRelBase extends SingleRel {
     }
     RexChecker checker =
         new RexChecker(
-            getChild().getRowType(), fail);
+            getInput().getRowType(), fail);
     for (RexNode exp : exps) {
       exp.accept(checker);
     }
@@ -203,7 +224,7 @@ public abstract class ProjectRelBase extends SingleRel {
   }
 
   public RelOptCost computeSelfCost(RelOptPlanner planner) {
-    double dRows = RelMetadataQuery.getRowCount(getChild());
+    double dRows = RelMetadataQuery.getRowCount(getInput());
     double dCpu = dRows * exps.size();
     double dIo = 0;
     return planner.getCostFactory().makeCost(dRows, dCpu, dIo);
@@ -241,7 +262,7 @@ public abstract class ProjectRelBase extends SingleRel {
    * Returns a mapping, or null if this projection is not a mapping.
    */
   public Mappings.TargetMapping getMapping() {
-    return getMapping(getChild().getRowType().getFieldCount(), exps);
+    return getMapping(getInput().getRowType().getFieldCount(), exps);
   }
 
   /**
@@ -276,7 +297,7 @@ public abstract class ProjectRelBase extends SingleRel {
    */
   public Permutation getPermutation() {
     final int fieldCount = rowType.getFieldList().size();
-    if (fieldCount != getChild().getRowType().getFieldList().size()) {
+    if (fieldCount != getInput().getRowType().getFieldList().size()) {
       return null;
     }
     Permutation permutation = new Permutation(fieldCount);
@@ -398,4 +419,4 @@ public abstract class ProjectRelBase extends SingleRel {
   }
 }
 
-// End ProjectRelBase.java
+// End Project.java

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.linq4j.function;
+package org.apache.calcite.linq4j.function;
 
 /**
  * Function with two parameters returning a native {@code boolean} value.
@@ -26,7 +26,7 @@ public interface Predicate2<T0, T1> extends Function<Boolean> {
   /**
    * Predicate that always evaluates to {@code true}.
    *
-   * @see net.hydromatic.linq4j.function.Functions#truePredicate1()
+   * @see org.apache.calcite.linq4j.function.Functions#truePredicate1()
    */
   Predicate2<Object, Object> TRUE = new Predicate2<Object, Object>() {
     public boolean apply(Object v0, Object v1) {
@@ -37,7 +37,7 @@ public interface Predicate2<T0, T1> extends Function<Boolean> {
   /**
    * Predicate that always evaluates to {@code false}.
    *
-   * @see net.hydromatic.linq4j.function.Functions#falsePredicate1()
+   * @see org.apache.calcite.linq4j.function.Functions#falsePredicate1()
    */
   Predicate2<Object, Object> FALSE = new Predicate2<Object, Object>() {
     public boolean apply(Object v0, Object v1) {

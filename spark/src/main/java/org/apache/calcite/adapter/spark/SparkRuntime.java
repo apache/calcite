@@ -14,18 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.impl.spark;
+package org.apache.calcite.adapter.spark;
 
-import net.hydromatic.linq4j.Enumerable;
-import net.hydromatic.linq4j.Linq4j;
-
-import net.hydromatic.optiq.DataContext;
+import org.apache.calcite.DataContext;
+import org.apache.calcite.linq4j.Enumerable;
+import org.apache.calcite.linq4j.Linq4j;
 
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.api.java.function.FlatMapFunction;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.List;
 
 /**
  * Runtime utilities for Calcite's Spark adapter. Generated code calls these
@@ -60,11 +60,11 @@ public abstract class SparkRuntime {
     return (JavaSparkContext) SparkHandlerImpl.instance().sparkContext();
   }
 
-  /** Combines linq4j {@link net.hydromatic.linq4j.function.Function}
+  /** Combines linq4j {@link org.apache.calcite.linq4j.function.Function}
    * and Spark {@link org.apache.spark.api.java.function.FlatMapFunction}. */
-  public abstract static class OptiqFlatMapFunction<T, R>
+  public abstract static class CalciteFlatMapFunction<T, R>
       extends FlatMapFunction<T, R>
-      implements net.hydromatic.linq4j.function.Function {
+      implements org.apache.calcite.linq4j.function.Function {
   }
 }
 

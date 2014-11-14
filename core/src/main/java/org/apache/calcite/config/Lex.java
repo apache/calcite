@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.config;
+package org.apache.calcite.config;
 
-import net.hydromatic.avatica.Casing;
-import net.hydromatic.avatica.Quoting;
+import org.apache.calcite.avatica.Casing;
+import org.apache.calcite.avatica.Quoting;
 
 /** Named, built-in lexical policy. A lexical policy describes how
  * identifiers are quoted, whether they are converted to upper- or

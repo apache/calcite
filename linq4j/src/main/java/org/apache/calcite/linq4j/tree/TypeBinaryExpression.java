@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.linq4j.expressions;
+package org.apache.calcite.linq4j.tree;
 
 import java.lang.reflect.Type;
 
@@ -33,8 +33,7 @@ public class TypeBinaryExpression extends Expression {
     this.type = type;
   }
 
-  @Override
-  public Expression accept(Visitor visitor) {
+  @Override public Expression accept(Visitor visitor) {
     visitor = visitor.preVisit(this);
     Expression expression = this.expression.accept(visitor);
     return visitor.visit(this, expression);
@@ -49,8 +48,7 @@ public class TypeBinaryExpression extends Expression {
     writer.append(type);
   }
 
-  @Override
-  public boolean equals(Object o) {
+  @Override public boolean equals(Object o) {
     if (this == o) {
       return true;
     }
@@ -73,8 +71,7 @@ public class TypeBinaryExpression extends Expression {
     return true;
   }
 
-  @Override
-  public int hashCode() {
+  @Override public int hashCode() {
     int result = super.hashCode();
     result = 31 * result + expression.hashCode();
     result = 31 * result + (type != null ? type.hashCode() : 0);

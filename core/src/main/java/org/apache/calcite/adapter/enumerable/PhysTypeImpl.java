@@ -14,22 +14,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.rules.java;
+package org.apache.calcite.adapter.enumerable;
 
-import net.hydromatic.linq4j.expressions.*;
-import net.hydromatic.linq4j.function.Function1;
-
-import net.hydromatic.optiq.BuiltinMethod;
-import net.hydromatic.optiq.impl.java.JavaTypeFactory;
-import net.hydromatic.optiq.runtime.Utilities;
-
-import org.eigenbase.rel.RelCollation;
-import org.eigenbase.rel.RelFieldCollation;
-import org.eigenbase.reltype.RelDataType;
-import org.eigenbase.reltype.RelDataTypeFactory;
-import org.eigenbase.reltype.RelDataTypeField;
-import org.eigenbase.util.Pair;
-import org.eigenbase.util.Util;
+import org.apache.calcite.adapter.java.JavaTypeFactory;
+import org.apache.calcite.linq4j.function.Function1;
+import org.apache.calcite.linq4j.tree.BlockBuilder;
+import org.apache.calcite.linq4j.tree.Expression;
+import org.apache.calcite.linq4j.tree.Expressions;
+import org.apache.calcite.linq4j.tree.MemberDeclaration;
+import org.apache.calcite.linq4j.tree.ParameterExpression;
+import org.apache.calcite.linq4j.tree.Primitive;
+import org.apache.calcite.linq4j.tree.Types;
+import org.apache.calcite.rel.RelCollation;
+import org.apache.calcite.rel.RelFieldCollation;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.runtime.Utilities;
+import org.apache.calcite.util.BuiltInMethod;
+import org.apache.calcite.util.Pair;
+import org.apache.calcite.util.Util;
 
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
@@ -37,7 +41,14 @@ import com.google.common.collect.Lists;
 
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
-import java.util.*;
+import java.util.AbstractList;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
+
+import static org.apache.calcite.adapter.enumerable.EnumUtils.javaRowClass;
+import static org.apache.calcite.adapter.enumerable.EnumUtils.overridingMethodDecl;
 
 /** Implementation of {@link PhysType}. */
 public class PhysTypeImpl implements PhysType {
@@ -58,8 +69,7 @@ public class PhysTypeImpl implements PhysType {
     this.javaRowClass = javaRowClass;
     this.format = format;
     for (RelDataTypeField field : rowType.getFieldList()) {
-      fieldClasses.add(
-          JavaRules.EnumUtil.javaRowClass(typeFactory, field.getType()));
+      fieldClasses.add(javaRowClass(typeFactory, field.getType()));
     }
   }
 
@@ -85,8 +95,8 @@ public class PhysTypeImpl implements PhysType {
     }
     RelDataType rowType = builder.build();
     // Do not optimize if there are 0 or 1 fields.
-    return new PhysTypeImpl(
-        typeFactory, rowType, javaRowClass, JavaRowFormat.CUSTOM);
+    return new PhysTypeImpl(typeFactory, rowType, javaRowClass,
+        JavaRowFormat.CUSTOM);
   }
 
   public JavaRowFormat getFormat() {
@@ -128,7 +138,7 @@ public class PhysTypeImpl implements PhysType {
         project(fields, targetFormat);
     switch (format) {
     case SCALAR:
-      return Expressions.call(BuiltinMethod.IDENTITY_SELECTOR.method);
+      return Expressions.call(BuiltInMethod.IDENTITY_SELECTOR.method);
     default:
       return Expressions.lambda(Function1.class,
           targetPhysType.record(fieldReferences(parameter, fields)), parameter);
@@ -186,7 +196,7 @@ public class PhysTypeImpl implements PhysType {
     final ParameterExpression o_ =
         Expressions.parameter(javaRowClass, "o");
     final int fieldCount = rowType.getFieldCount();
-    return Expressions.call(exp, BuiltinMethod.SELECT.method,
+    return Expressions.call(exp, BuiltInMethod.SELECT.method,
         generateSelector(o_, Util.range(fieldCount), targetFormat));
   }
 
@@ -205,7 +215,7 @@ public class PhysTypeImpl implements PhysType {
       return Pair.<Expression, Expression>of(
           selector,
           Expressions.call(
-              BuiltinMethod.NULLS_COMPARATOR.method,
+              BuiltInMethod.NULLS_COMPARATOR.method,
               Expressions.constant(
                   collation.nullDirection
                       == RelFieldCollation.NullDirection.FIRST),
@@ -214,7 +224,7 @@ public class PhysTypeImpl implements PhysType {
                       == RelFieldCollation.Direction.DESCENDING)));
     }
     selector =
-        Expressions.call(BuiltinMethod.IDENTITY_SELECTOR.method);
+        Expressions.call(BuiltInMethod.IDENTITY_SELECTOR.method);
 
     // int c;
     // c = Utilities.compare(v0, v1);
@@ -281,7 +291,7 @@ public class PhysTypeImpl implements PhysType {
                     parameterV0, parameterV1),
                 body.toBlock()));
 
-    if (JavaRules.BRIDGE_METHODS) {
+    if (EnumerableRules.BRIDGE_METHODS) {
       final ParameterExpression parameterO0 =
           Expressions.parameter(Object.class, "o0");
       final ParameterExpression parameterO1 =
@@ -293,7 +303,7 @@ public class PhysTypeImpl implements PhysType {
               Expressions.call(
                   Expressions.parameter(
                       Comparable.class, "this"),
-                  BuiltinMethod.COMPARATOR_COMPARE.method,
+                  BuiltInMethod.COMPARATOR_COMPARE.method,
                   Expressions.convert_(
                       parameterO0,
                       javaRowClass),
@@ -301,8 +311,8 @@ public class PhysTypeImpl implements PhysType {
                       parameterO1,
                       javaRowClass))));
       memberDeclarations.add(
-          JavaRules.EnumUtil.overridingMethodDecl(
-              BuiltinMethod.COMPARATOR_COMPARE.method,
+          overridingMethodDecl(
+              BuiltInMethod.COMPARATOR_COMPARE.method,
               ImmutableList.of(parameterO0, parameterO1),
               bridgeBody.toBlock()));
     }
@@ -381,7 +391,7 @@ public class PhysTypeImpl implements PhysType {
                 ImmutableList.of(parameterV0, parameterV1),
                 body.toBlock()));
 
-    if (JavaRules.BRIDGE_METHODS) {
+    if (EnumerableRules.BRIDGE_METHODS) {
       final ParameterExpression parameterO0 =
           Expressions.parameter(Object.class, "o0");
       final ParameterExpression parameterO1 =
@@ -393,7 +403,7 @@ public class PhysTypeImpl implements PhysType {
               Expressions.call(
                   Expressions.parameter(
                       Comparable.class, "this"),
-                  BuiltinMethod.COMPARATOR_COMPARE.method,
+                  BuiltInMethod.COMPARATOR_COMPARE.method,
                   Expressions.convert_(
                       parameterO0,
                       javaRowClass),
@@ -401,8 +411,8 @@ public class PhysTypeImpl implements PhysType {
                       parameterO1,
                       javaRowClass))));
       memberDeclarations.add(
-          JavaRules.EnumUtil.overridingMethodDecl(
-              BuiltinMethod.COMPARATOR_COMPARE.method,
+          overridingMethodDecl(
+              BuiltInMethod.COMPARATOR_COMPARE.method,
               ImmutableList.of(parameterO0, parameterO1),
               bridgeBody.toBlock()));
     }
@@ -501,7 +511,7 @@ public class PhysTypeImpl implements PhysType {
             Expressions.call(
                 List.class,
                 null,
-                BuiltinMethod.LIST2.method,
+                BuiltInMethod.LIST2.method,
                 list),
             v1);
       case 3:
@@ -510,7 +520,7 @@ public class PhysTypeImpl implements PhysType {
             Expressions.call(
                 List.class,
                 null,
-                BuiltinMethod.LIST3.method,
+                BuiltInMethod.LIST3.method,
                 list),
             v1);
       default:
@@ -519,7 +529,7 @@ public class PhysTypeImpl implements PhysType {
             Expressions.call(
                 List.class,
                 null,
-                BuiltinMethod.ARRAYS_AS_LIST.method,
+                BuiltInMethod.ARRAYS_AS_LIST.method,
                 Expressions.newArrayInit(
                     Object.class,
                     list)),

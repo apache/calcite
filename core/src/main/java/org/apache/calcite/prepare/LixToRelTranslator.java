@@ -14,20 +14,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.prepare;
+package org.apache.calcite.prepare;
 
-import net.hydromatic.linq4j.Queryable;
-import net.hydromatic.linq4j.expressions.*;
-
-import net.hydromatic.optiq.*;
-import net.hydromatic.optiq.impl.java.JavaTypeFactory;
-
-import org.eigenbase.rel.*;
-import org.eigenbase.relopt.RelOptCluster;
-import org.eigenbase.relopt.RelOptTable;
-import org.eigenbase.reltype.RelDataType;
-import org.eigenbase.rex.RexBuilder;
-import org.eigenbase.rex.RexNode;
+import org.apache.calcite.adapter.java.JavaTypeFactory;
+import org.apache.calcite.linq4j.Queryable;
+import org.apache.calcite.linq4j.tree.Blocks;
+import org.apache.calcite.linq4j.tree.ConstantExpression;
+import org.apache.calcite.linq4j.tree.Expression;
+import org.apache.calcite.linq4j.tree.FunctionExpression;
+import org.apache.calcite.linq4j.tree.MethodCallExpression;
+import org.apache.calcite.linq4j.tree.NewExpression;
+import org.apache.calcite.linq4j.tree.Types;
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.logical.LogicalFilter;
+import org.apache.calcite.rel.logical.LogicalProject;
+import org.apache.calcite.rel.logical.LogicalTableScan;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.util.BuiltInMethod;
 
 import com.google.common.collect.ImmutableList;
 
@@ -70,7 +77,7 @@ class LixToRelTranslator implements RelOptTable.ToRelContext {
   public RelNode translate(Expression expression) {
     if (expression instanceof MethodCallExpression) {
       final MethodCallExpression call = (MethodCallExpression) expression;
-      BuiltinMethod method = BuiltinMethod.MAP.get(call.method);
+      BuiltInMethod method = BuiltInMethod.MAP.get(call.method);
       if (method == null) {
         throw new UnsupportedOperationException(
             "unknown method " + call.method);
@@ -79,18 +86,18 @@ class LixToRelTranslator implements RelOptTable.ToRelContext {
       switch (method) {
       case SELECT:
         child = translate(call.targetExpression);
-        return new ProjectRel(
+        return new LogicalProject(
             cluster,
             child,
             toRex(
                 child,
                 (FunctionExpression) call.expressions.get(0)),
             null,
-            ProjectRel.Flags.BOXED);
+            LogicalProject.Flags.BOXED);
 
       case WHERE:
         child = translate(call.targetExpression);
-        return new FilterRel(
+        return new LogicalFilter(
             cluster,
             child,
             toRex(
@@ -98,7 +105,7 @@ class LixToRelTranslator implements RelOptTable.ToRelContext {
                 child));
 
       case AS_QUERYABLE:
-        return new TableAccessRel(
+        return new LogicalTableScan(
             cluster,
             RelOptTableImpl.create(
                 null,
@@ -109,7 +116,7 @@ class LixToRelTranslator implements RelOptTable.ToRelContext {
                 call.targetExpression));
 
       case SCHEMA_GET_TABLE:
-        return new TableAccessRel(
+        return new LogicalTableScan(
             cluster,
             RelOptTableImpl.create(
                 null,
@@ -133,8 +140,8 @@ class LixToRelTranslator implements RelOptTable.ToRelContext {
     List<RexNode> list =
         Collections.singletonList(
             rexBuilder.makeRangeReference(child));
-    OptiqPrepareImpl.ScalarTranslator translator =
-        OptiqPrepareImpl.EmptyScalarTranslator
+    CalcitePrepareImpl.ScalarTranslator translator =
+        CalcitePrepareImpl.EmptyScalarTranslator
             .empty(rexBuilder)
             .bind(expression.parameterList, list);
     final List<RexNode> rexList = new ArrayList<RexNode>();
@@ -163,7 +170,7 @@ class LixToRelTranslator implements RelOptTable.ToRelContext {
     for (RelNode input : inputs) {
       list.add(rexBuilder.makeRangeReference(input));
     }
-    return OptiqPrepareImpl.EmptyScalarTranslator.empty(rexBuilder)
+    return CalcitePrepareImpl.EmptyScalarTranslator.empty(rexBuilder)
         .bind(expression.parameterList, list)
         .toRexList(expression.body);
   }
@@ -176,7 +183,7 @@ class LixToRelTranslator implements RelOptTable.ToRelContext {
     for (RelNode input : inputs) {
       list.add(rexBuilder.makeRangeReference(input));
     }
-    return OptiqPrepareImpl.EmptyScalarTranslator.empty(rexBuilder)
+    return CalcitePrepareImpl.EmptyScalarTranslator.empty(rexBuilder)
         .bind(expression.parameterList, list)
         .toRex(expression.body);
   }

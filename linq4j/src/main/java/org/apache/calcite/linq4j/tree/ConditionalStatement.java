@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.linq4j.expressions;
+package org.apache.calcite.linq4j.tree;
 
 import java.util.List;
 
@@ -39,15 +39,13 @@ public class ConditionalStatement extends Statement {
     this.expressionList = expressionList;
   }
 
-  @Override
-  public Statement accept(Visitor visitor) {
+  @Override public Statement accept(Visitor visitor) {
     visitor = visitor.preVisit(this);
     List<Node> list = Expressions.acceptNodes(expressionList, visitor);
     return visitor.visit(this, list);
   }
 
-  @Override
-  void accept0(ExpressionWriter writer) {
+  @Override void accept0(ExpressionWriter writer) {
     for (int i = 0; i < expressionList.size() - 1; i += 2) {
       if (i > 0) {
         writer.backUp();
@@ -69,8 +67,7 @@ public class ConditionalStatement extends Statement {
     return collection.get(collection.size() - 1);
   }
 
-  @Override
-  public boolean equals(Object o) {
+  @Override public boolean equals(Object o) {
     if (this == o) {
       return true;
     }
@@ -90,8 +87,7 @@ public class ConditionalStatement extends Statement {
     return true;
   }
 
-  @Override
-  public int hashCode() {
+  @Override public int hashCode() {
     int result = super.hashCode();
     result = 31 * result + expressionList.hashCode();
     return result;

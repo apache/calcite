@@ -14,47 +14,160 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql2rel;
+package org.apache.calcite.sql2rel;
 
-import java.lang.reflect.Type;
-import java.math.*;
-import java.util.*;
-import java.util.logging.*;
-
-import org.eigenbase.rel.*;
-import org.eigenbase.rel.metadata.*;
-import org.eigenbase.relopt.*;
-import org.eigenbase.reltype.*;
-import org.eigenbase.rex.*;
-import org.eigenbase.sql.*;
-import org.eigenbase.sql.fun.*;
-import org.eigenbase.sql.parser.*;
-import org.eigenbase.sql.type.*;
-import org.eigenbase.sql.util.*;
-import org.eigenbase.sql.validate.*;
-import org.eigenbase.trace.*;
-import org.eigenbase.util.*;
-import org.eigenbase.util.mapping.Mappings;
-import org.eigenbase.util14.*;
-
-import net.hydromatic.linq4j.Ord;
-
-import net.hydromatic.optiq.ModifiableTable;
-import net.hydromatic.optiq.TranslatableTable;
-import net.hydromatic.optiq.prepare.Prepare;
-import net.hydromatic.optiq.prepare.RelOptTableImpl;
-import net.hydromatic.optiq.util.BitSets;
+import org.apache.calcite.linq4j.Ord;
+import org.apache.calcite.plan.Convention;
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.plan.RelOptQuery;
+import org.apache.calcite.plan.RelOptSamplingParameters;
+import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.prepare.Prepare;
+import org.apache.calcite.prepare.RelOptTableImpl;
+import org.apache.calcite.rel.RelCollation;
+import org.apache.calcite.rel.RelCollationImpl;
+import org.apache.calcite.rel.RelFieldCollation;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.AggregateCall;
+import org.apache.calcite.rel.core.Collect;
+import org.apache.calcite.rel.core.Correlation;
+import org.apache.calcite.rel.core.Correlator;
+import org.apache.calcite.rel.core.Join;
+import org.apache.calcite.rel.core.JoinInfo;
+import org.apache.calcite.rel.core.JoinRelType;
+import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.core.Sample;
+import org.apache.calcite.rel.core.Sort;
+import org.apache.calcite.rel.core.Uncollect;
+import org.apache.calcite.rel.logical.LogicalAggregate;
+import org.apache.calcite.rel.logical.LogicalIntersect;
+import org.apache.calcite.rel.logical.LogicalJoin;
+import org.apache.calcite.rel.logical.LogicalMinus;
+import org.apache.calcite.rel.logical.LogicalOneRow;
+import org.apache.calcite.rel.logical.LogicalProject;
+import org.apache.calcite.rel.logical.LogicalTableFunctionScan;
+import org.apache.calcite.rel.logical.LogicalTableModify;
+import org.apache.calcite.rel.logical.LogicalTableScan;
+import org.apache.calcite.rel.logical.LogicalUnion;
+import org.apache.calcite.rel.logical.LogicalValues;
+import org.apache.calcite.rel.metadata.RelColumnMapping;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexCallBinding;
+import org.apache.calcite.rex.RexCorrelVariable;
+import org.apache.calcite.rex.RexDynamicParam;
+import org.apache.calcite.rex.RexFieldAccess;
+import org.apache.calcite.rex.RexFieldCollation;
+import org.apache.calcite.rex.RexInputRef;
+import org.apache.calcite.rex.RexLiteral;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexRangeRef;
+import org.apache.calcite.rex.RexShuttle;
+import org.apache.calcite.rex.RexUtil;
+import org.apache.calcite.rex.RexVisitorImpl;
+import org.apache.calcite.rex.RexWindowBound;
+import org.apache.calcite.schema.ModifiableTable;
+import org.apache.calcite.schema.TranslatableTable;
+import org.apache.calcite.sql.JoinConditionType;
+import org.apache.calcite.sql.JoinType;
+import org.apache.calcite.sql.SqlAggFunction;
+import org.apache.calcite.sql.SqlBasicCall;
+import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlDataTypeSpec;
+import org.apache.calcite.sql.SqlDelete;
+import org.apache.calcite.sql.SqlDynamicParam;
+import org.apache.calcite.sql.SqlExplainLevel;
+import org.apache.calcite.sql.SqlFunction;
+import org.apache.calcite.sql.SqlIdentifier;
+import org.apache.calcite.sql.SqlInsert;
+import org.apache.calcite.sql.SqlIntervalQualifier;
+import org.apache.calcite.sql.SqlJoin;
+import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlLiteral;
+import org.apache.calcite.sql.SqlMerge;
+import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlNodeList;
+import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.SqlOperatorTable;
+import org.apache.calcite.sql.SqlSampleSpec;
+import org.apache.calcite.sql.SqlSelect;
+import org.apache.calcite.sql.SqlSelectKeyword;
+import org.apache.calcite.sql.SqlSetOperator;
+import org.apache.calcite.sql.SqlUpdate;
+import org.apache.calcite.sql.SqlUtil;
+import org.apache.calcite.sql.SqlWindow;
+import org.apache.calcite.sql.SqlWith;
+import org.apache.calcite.sql.SqlWithItem;
+import org.apache.calcite.sql.fun.SqlCountAggFunction;
+import org.apache.calcite.sql.fun.SqlInOperator;
+import org.apache.calcite.sql.fun.SqlRowOperator;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.type.SqlReturnTypeInference;
+import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.type.SqlTypeUtil;
+import org.apache.calcite.sql.type.TableFunctionReturnTypeInference;
+import org.apache.calcite.sql.util.SqlBasicVisitor;
+import org.apache.calcite.sql.util.SqlVisitor;
+import org.apache.calcite.sql.validate.CollectNamespace;
+import org.apache.calcite.sql.validate.DelegatingScope;
+import org.apache.calcite.sql.validate.ListScope;
+import org.apache.calcite.sql.validate.ParameterScope;
+import org.apache.calcite.sql.validate.SelectScope;
+import org.apache.calcite.sql.validate.SqlMonotonicity;
+import org.apache.calcite.sql.validate.SqlUserDefinedTableFunction;
+import org.apache.calcite.sql.validate.SqlUserDefinedTableMacro;
+import org.apache.calcite.sql.validate.SqlValidator;
+import org.apache.calcite.sql.validate.SqlValidatorImpl;
+import org.apache.calcite.sql.validate.SqlValidatorNamespace;
+import org.apache.calcite.sql.validate.SqlValidatorScope;
+import org.apache.calcite.sql.validate.SqlValidatorUtil;
+import org.apache.calcite.util.BitSets;
+import org.apache.calcite.util.ImmutableIntList;
+import org.apache.calcite.util.NlsString;
+import org.apache.calcite.util.NumberUtil;
+import org.apache.calcite.util.Pair;
+import org.apache.calcite.util.Util;
+import org.apache.calcite.util.mapping.Mappings;
+import org.apache.calcite.util.trace.CalciteTrace;
 
 import com.google.common.base.Function;
-import com.google.common.collect.*;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
-import static org.eigenbase.sql.SqlUtil.stripAs;
-import static org.eigenbase.util.Static.RESOURCE;
+import java.lang.reflect.Type;
+import java.math.BigDecimal;
+import java.util.AbstractList;
+import java.util.ArrayList;
+import java.util.BitSet;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.EnumSet;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.Stack;
+import java.util.TreeSet;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+import static org.apache.calcite.sql.SqlUtil.stripAs;
+import static org.apache.calcite.util.Static.RESOURCE;
 
 /**
- * Converts a SQL parse tree (consisting of {@link org.eigenbase.sql.SqlNode}
- * objects) into a relational algebra expression (consisting of
- * {@link org.eigenbase.rel.RelNode} objects).
+ * Converts a SQL parse tree (consisting of
+ * {@link org.apache.calcite.sql.SqlNode} objects) into a relational algebra
+ * expression (consisting of {@link org.apache.calcite.rel.RelNode} objects).
  *
  * <p>The public entry points are: {@link #convertQuery},
  * {@link #convertExpression(SqlNode)}.
@@ -63,7 +176,7 @@ public class SqlToRelConverter {
   //~ Static fields/initializers ---------------------------------------------
 
   protected static final Logger SQL2REL_LOGGER =
-      EigenbaseTrace.getSqlToRelTracer();
+      CalciteTrace.getSqlToRelTracer();
 
   private static final Function<SubQuery, SqlNode> FN =
       new Function<SubQuery, SqlNode>() {
@@ -273,19 +386,20 @@ public class SqlToRelConverter {
    * convert method.
    *
    * @param enabled true for immediate conversion (the default); false to
-   *                generate logical TableAccessRel instances
+   *                generate logical LogicalTableScan instances
    */
   public void enableTableAccessConversion(boolean enabled) {
     shouldConvertTableAccess = enabled;
   }
 
   /**
-   * Controls whether instances of {@link ValuesRel} are generated. These may
-   * not be supported by all physical implementations. To have any effect,
+   * Controls whether instances of
+   * {@link org.apache.calcite.rel.logical.LogicalValues} are generated. These
+   * may not be supported by all physical implementations. To have any effect,
    * this must be called before any convert method.
    *
-   * @param enabled true to allow ValuesRel to be generated (the default);
-   *                false to force substitution of ProjectRel+OneRowRel instead
+   * @param enabled true to allow LogicalValues to be generated (the default);
+   *                false to force substitution of Project+OneRow instead
    */
   public void enableValuesRelCreation(boolean enabled) {
     shouldCreateValuesRel = enabled;
@@ -303,9 +417,8 @@ public class SqlToRelConverter {
         RelDataType validatedRowType =
             validator.getValidatedNodeType(query);
         validatedRowType = uniquifyFields(validatedRowType);
-        throw Util.newInternal(
-            "Conversion to relational algebra failed to preserve "
-            + "datatypes:\n"
+        throw Util.newInternal("Conversion to relational algebra failed to "
+            + "preserve datatypes:\n"
             + "validated type:\n"
             + validatedRowType.getFullTypeString()
             + "\nconverted type:\n"
@@ -512,10 +625,10 @@ public class SqlToRelConverter {
    * Having translated 'SELECT ... FROM ... [GROUP BY ...] [HAVING ...]', adds
    * a relational expression to make the results unique.
    *
-   * <p>If the SELECT clause contains duplicate expressions, adds {@link
-   * ProjectRel}s so that we are grouping on the minimal set of keys. The
-   * performance gain isn't huge, but it is difficult to detect these
-   * duplicate expressions later.
+   * <p>If the SELECT clause contains duplicate expressions, adds
+   * {@link org.apache.calcite.rel.logical.LogicalProject}s so that we are
+   * grouping on the minimal set of keys. The performance gain isn't huge, but
+   * it is difficult to detect these duplicate expressions later.
    *
    * @param bb               Blackboard
    * @param checkForDupExprs Check for duplicate expressions
@@ -528,8 +641,8 @@ public class SqlToRelConverter {
     // Then dups will be {[2, 0]}
     // and oldToNew will be {[0, 0], [1, 1], [2, 0], [3, 2]}
     RelNode rel = bb.root;
-    if (checkForDupExprs && (rel instanceof ProjectRel)) {
-      ProjectRel project = (ProjectRel) rel;
+    if (checkForDupExprs && (rel instanceof LogicalProject)) {
+      LogicalProject project = (LogicalProject) rel;
       final List<RexNode> projectExprs = project.getProjects();
       List<Integer> origins = new ArrayList<Integer>();
       int dupCount = 0;
@@ -557,12 +670,12 @@ public class SqlToRelConverter {
         }
       }
       rel =
-          new ProjectRel(
+          new LogicalProject(
               cluster,
               rel,
               Pair.left(newProjects),
               Pair.right(newProjects),
-              ProjectRel.Flags.BOXED);
+              LogicalProject.Flags.BOXED);
 
       bb.root = rel;
       distinctify(bb, false);
@@ -582,12 +695,12 @@ public class SqlToRelConverter {
       }
 
       rel =
-          new ProjectRel(
+          new LogicalProject(
               cluster,
               rel,
               Pair.left(undoProjects),
               Pair.right(undoProjects),
-              ProjectRel.Flags.BOXED);
+              LogicalProject.Flags.BOXED);
 
       bb.setRoot(
           rel,
@@ -647,7 +760,7 @@ public class SqlToRelConverter {
 
     // Create a sorter using the previously constructed collations.
     bb.setRoot(
-        new SortRel(
+        new Sort(
             cluster,
             cluster.traitSetOf(Convention.NONE, collation),
             bb.root,
@@ -667,14 +780,14 @@ public class SqlToRelConverter {
         exprs.add(rexBuilder.makeInputRef(bb.root, i));
       }
       bb.setRoot(
-          new ProjectRel(
+          new LogicalProject(
               cluster,
               cluster.traitSetOf(RelCollationImpl.PRESERVE),
               bb.root,
               exprs,
               cluster.getTypeFactory().createStructType(
                   rowType.getFieldList().subList(0, fieldCount)),
-              ProjectRelBase.Flags.BOXED),
+              Project.Flags.BOXED),
           false);
     }
   }
@@ -919,15 +1032,15 @@ public class SqlToRelConverter {
         final RelNode seek = converted.left.getInput(0); // fragile
         final int keyCount = leftKeys.size();
         final List<Integer> args = ImmutableIntList.range(0, keyCount);
-        AggregateRel aggregate =
-            new AggregateRel(cluster, seek, BitSets.of(),
+        LogicalAggregate aggregate =
+            new LogicalAggregate(cluster, seek, BitSets.of(),
                 ImmutableList.of(
                     new AggregateCall(SqlStdOperatorTable.COUNT, false,
                         ImmutableList.<Integer>of(), longType, null),
                     new AggregateCall(SqlStdOperatorTable.COUNT, false,
                         args, longType, null)));
-        JoinRel join =
-            new JoinRel(cluster, bb.root, aggregate,
+        LogicalJoin join =
+            new LogicalJoin(cluster, bb.root, aggregate,
                 rexBuilder.makeLiteral(true), JoinRelType.INNER,
                 ImmutableSet.<String>of());
         bb.setRoot(join, false);
@@ -1041,9 +1154,9 @@ public class SqlToRelConverter {
       // cross join (select count(*) as c, count(deptno) as ck from v) as ct
       // left join (select distinct deptno, true as i from v) as dt
       //   on e.deptno = dt.deptno
-      final JoinRelBase join = (JoinRelBase) root;
-      final ProjectRelBase left = (ProjectRelBase) join.getLeft();
-      final RelNode leftLeft = ((JoinRelBase) left.getInput(0)).getLeft();
+      final Join join = (Join) root;
+      final Project left = (Project) join.getLeft();
+      final RelNode leftLeft = ((Join) left.getInput(0)).getLeft();
       final int leftLeftCount = leftLeft.getRowType().getFieldCount();
       final RelDataType nullableBooleanType =
           typeFactory.createTypeWithNullability(
@@ -1234,9 +1347,10 @@ public class SqlToRelConverter {
   /**
    * Gets the list size threshold under which {@link #convertInToOr} is used.
    * Lists of this size or greater will instead be converted to use a join
-   * against an inline table ({@link ValuesRel}) rather than a predicate. A
-   * threshold of 0 forces usage of an inline table in all cases; a threshold
-   * of Integer.MAX_VALUE forces usage of OR in all cases
+   * against an inline table
+   * ({@link org.apache.calcite.rel.logical.LogicalValues}) rather than a
+   * predicate. A threshold of 0 forces usage of an inline table in all cases; a
+   * threshold of Integer.MAX_VALUE forces usage of OR in all cases
    *
    * @return threshold, default 20
    */
@@ -1305,10 +1419,10 @@ public class SqlToRelConverter {
       boolean allowLiteralsOnly,
       RelDataType targetRowType) {
     // NOTE jvs 30-Apr-2006: We combine all rows consisting entirely of
-    // literals into a single ValuesRel; this gives the optimizer a smaller
+    // literals into a single LogicalValues; this gives the optimizer a smaller
     // input tree.  For everything else (computed expressions, row
     // subqueries), we union each row in as a projection on top of a
-    // OneRowRel.
+    // LogicalOneRow.
 
     final List<List<RexLiteral>> tupleList =
         new ArrayList<List<RexLiteral>>();
@@ -1375,24 +1489,24 @@ public class SqlToRelConverter {
       }
       unionInputs.add(convertRowConstructor(bb, call));
     }
-    ValuesRel valuesRel =
-        new ValuesRel(
+    LogicalValues values =
+        new LogicalValues(
             cluster,
             rowType,
             tupleList);
     RelNode resultRel;
     if (unionInputs.isEmpty()) {
-      resultRel = valuesRel;
+      resultRel = values;
     } else {
       if (!tupleList.isEmpty()) {
-        unionInputs.add(valuesRel);
+        unionInputs.add(values);
       }
-      UnionRel unionRel =
-          new UnionRel(
+      LogicalUnion union =
+          new LogicalUnion(
               cluster,
               unionInputs,
               true);
-      resultRel = unionRel;
+      resultRel = union;
     }
     leaves.add(resultRel);
     return resultRel;
@@ -1411,7 +1525,7 @@ public class SqlToRelConverter {
     if (type.isStruct()) {
       // null literals for weird stuff like UDT's need
       // special handling during type flattening, so
-      // don't use ValuesRel for those
+      // don't use LogicalValues for those
       return null;
     }
 
@@ -1426,7 +1540,7 @@ public class SqlToRelConverter {
       assert RexLiteral.isNullLiteral(child);
 
       // NOTE jvs 22-Nov-2006:  we preserve type info
-      // in ValuesRel digest, so it's OK to lose it here
+      // in LogicalValues digest, so it's OK to lose it here
       return (RexLiteral) child;
     }
 
@@ -1724,7 +1838,7 @@ public class SqlToRelConverter {
                 tableSampleSpec.getSamplePercentage(),
                 tableSampleSpec.isRepeatable(),
                 tableSampleSpec.getRepeatableSeed());
-        bb.setRoot(new SamplingRel(cluster, bb.root, params), false);
+        bb.setRoot(new Sample(cluster, bb.root, params), false);
       } else {
         throw Util.newInternal(
             "unknown TABLESAMPLE type: " + sampleSpec);
@@ -1751,7 +1865,7 @@ public class SqlToRelConverter {
       if (shouldConvertTableAccess) {
         tableRel = toRel(table);
       } else {
-        tableRel = new TableAccessRel(cluster, table);
+        tableRel = new LogicalTableScan(cluster, table);
       }
       bb.setRoot(tableRel, true);
       if (usedDataset[0]) {
@@ -1824,15 +1938,15 @@ public class SqlToRelConverter {
       replaceSubqueries(bb, node, RelOptUtil.Logic.TRUE_FALSE_UNKNOWN);
       final RelNode childRel =
           RelOptUtil.createProject(
-              (null != bb.root) ? bb.root : new OneRowRel(cluster),
+              (null != bb.root) ? bb.root : new LogicalOneRow(cluster),
               Collections.singletonList(bb.convertExpression(node)),
               Collections.singletonList(validator.deriveAlias(node, 0)),
               true);
 
-      UncollectRel uncollectRel =
-          new UncollectRel(cluster, cluster.traitSetOf(Convention.NONE),
+      Uncollect uncollect =
+          new Uncollect(cluster, cluster.traitSetOf(Convention.NONE),
               childRel);
-      bb.setRoot(uncollectRel, true);
+      bb.setRoot(uncollect, true);
       return;
 
     case COLLECTION_TABLE:
@@ -1867,7 +1981,7 @@ public class SqlToRelConverter {
     replaceSubqueries(bb, call, RelOptUtil.Logic.TRUE_FALSE_UNKNOWN);
 
     // Expand table macro if possible. It's more efficient than
-    // TableFunctionRel.
+    // LogicalTableFunctionScan.
     if (operator instanceof SqlUserDefinedTableMacro) {
       final SqlUserDefinedTableMacro udf =
           (SqlUserDefinedTableMacro) operator;
@@ -1892,8 +2006,8 @@ public class SqlToRelConverter {
     final List<RelNode> inputs = bb.retrieveCursors();
     Set<RelColumnMapping> columnMappings =
         getColumnMappings(operator);
-    TableFunctionRel callRel =
-        new TableFunctionRel(
+    LogicalTableFunctionScan callRel =
+        new LogicalTableFunctionScan(
             cluster,
             inputs,
             rexCall,
@@ -1907,7 +2021,7 @@ public class SqlToRelConverter {
   protected void afterTableFunction(
       SqlToRelConverter.Blackboard bb,
       SqlCall call,
-      TableFunctionRel callRel) {
+      LogicalTableFunctionScan callRel) {
   }
 
   private Set<RelColumnMapping> getColumnMappings(SqlOperator op) {
@@ -2011,7 +2125,7 @@ public class SqlToRelConverter {
       }
 
       if (!correlations.isEmpty()) {
-        return new CorrelatorRel(
+        return new Correlator(
             rightRel.getCluster(),
             leftRel,
             rightRel,
@@ -2035,13 +2149,11 @@ public class SqlToRelConverter {
       leftRel = RelOptUtil.createProject(
           leftRel,
           new AbstractList<Pair<RexNode, String>>() {
-            @Override
-            public int size() {
+            @Override public int size() {
               return leftCount + extraLeftExprs.size();
             }
 
-            @Override
-            public Pair<RexNode, String> get(int index) {
+            @Override public Pair<RexNode, String> get(int index) {
               if (index < leftCount) {
                 RelDataTypeField field = fields.get(index);
                 return Pair.<RexNode, String>of(
@@ -2062,13 +2174,11 @@ public class SqlToRelConverter {
       rightRel = RelOptUtil.createProject(
           rightRel,
           new AbstractList<Pair<RexNode, String>>() {
-            @Override
-            public int size() {
+            @Override public int size() {
               return rightCount + extraRightExprs.size();
             }
 
-            @Override
-            public Pair<RexNode, String> get(int index) {
+            @Override public Pair<RexNode, String> get(int index) {
               if (index < rightCount) {
                 RelDataTypeField field = fields.get(index);
                 return Pair.<RexNode, String>of(
@@ -2616,7 +2726,7 @@ public class SqlToRelConverter {
   }
 
   /**
-   * Creates an AggregateRel.
+   * Creates an Aggregate.
    *
    * <p>In case the aggregate rel changes the order in which it projects
    * fields, the <code>groupExprProjection</code> parameter is provided, and
@@ -2630,13 +2740,13 @@ public class SqlToRelConverter {
    * @param bb       Blackboard
    * @param groupSet Bit set of ordinals of grouping columns
    * @param aggCalls Array of calls to aggregate functions
-   * @return AggregateRel
+   * @return LogicalAggregate
    */
   protected RelNode createAggregate(
       Blackboard bb,
       BitSet groupSet,
       List<AggregateCall> aggCalls) {
-    return new AggregateRel(
+    return new LogicalAggregate(
         cluster,
         bb.root,
         groupSet,
@@ -2838,7 +2948,7 @@ public class SqlToRelConverter {
     }
     switch (call.getKind()) {
     case UNION:
-      return new UnionRel(
+      return new LogicalUnion(
           cluster,
           ImmutableList.of(left, right),
           all);
@@ -2846,7 +2956,7 @@ public class SqlToRelConverter {
     case INTERSECT:
       // TODO:  all
       if (!all) {
-        return new IntersectRel(
+        return new LogicalIntersect(
             cluster,
             ImmutableList.of(left, right),
             all);
@@ -2858,7 +2968,7 @@ public class SqlToRelConverter {
     case EXCEPT:
       // TODO:  all
       if (!all) {
-        return new MinusRel(
+        return new LogicalMinus(
             cluster,
             ImmutableList.of(left, right),
             all);
@@ -2893,16 +3003,16 @@ public class SqlToRelConverter {
           targetTable,
           catalogReader,
           massagedRel,
-          TableModificationRel.Operation.INSERT,
+          LogicalTableModify.Operation.INSERT,
           null,
           false);
     }
-    return new TableModificationRel(
+    return new LogicalTableModify(
         cluster,
         targetTable,
         catalogReader,
         massagedRel,
-        TableModificationRel.Operation.INSERT,
+        LogicalTableModify.Operation.INSERT,
         null,
         false);
   }
@@ -3045,12 +3155,12 @@ public class SqlToRelConverter {
   private RelNode convertDelete(SqlDelete call) {
     RelOptTable targetTable = getTargetTable(call);
     RelNode sourceRel = convertSelect(call.getSourceSelect());
-    return new TableModificationRel(
+    return new LogicalTableModify(
         cluster,
         targetTable,
         catalogReader,
         sourceRel,
-        TableModificationRel.Operation.DELETE,
+        LogicalTableModify.Operation.DELETE,
         null,
         false);
   }
@@ -3068,12 +3178,12 @@ public class SqlToRelConverter {
 
     RelNode sourceRel = convertSelect(call.getSourceSelect());
 
-    return new TableModificationRel(
+    return new LogicalTableModify(
         cluster,
         targetTable,
         catalogReader,
         sourceRel,
-        TableModificationRel.Operation.UPDATE,
+        LogicalTableModify.Operation.UPDATE,
         targetColumnNameList,
         false);
   }
@@ -3120,17 +3230,17 @@ public class SqlToRelConverter {
       // the column; or if the expressions directly map to the source
       // table
       level1InsertExprs =
-          ((ProjectRel) insertRel.getInput(0)).getProjects();
-      if (insertRel.getInput(0).getInput(0) instanceof ProjectRel) {
+          ((LogicalProject) insertRel.getInput(0)).getProjects();
+      if (insertRel.getInput(0).getInput(0) instanceof LogicalProject) {
         level2InsertExprs =
-            ((ProjectRel) insertRel.getInput(0).getInput(0))
+            ((LogicalProject) insertRel.getInput(0).getInput(0))
                 .getProjects();
       }
       nLevel1Exprs = level1InsertExprs.size();
     }
 
-    JoinRel joinRel = (JoinRel) mergeSourceRel.getInput(0);
-    int nSourceFields = joinRel.getLeft().getRowType().getFieldCount();
+    LogicalJoin join = (LogicalJoin) mergeSourceRel.getInput(0);
+    int nSourceFields = join.getLeft().getRowType().getFieldCount();
     List<RexNode> projects = new ArrayList<RexNode>();
     for (int level1Idx = 0; level1Idx < nLevel1Exprs; level1Idx++) {
       if ((level2InsertExprs != null)
@@ -3143,20 +3253,20 @@ public class SqlToRelConverter {
       }
     }
     if (updateCall != null) {
-      final ProjectRel project = (ProjectRel) mergeSourceRel;
+      final LogicalProject project = (LogicalProject) mergeSourceRel;
       projects.addAll(
           Util.skip(project.getProjects(), nSourceFields));
     }
 
     RelNode massagedRel =
-        RelOptUtil.createProject(joinRel, projects, null, true);
+        RelOptUtil.createProject(join, projects, null, true);
 
-    return new TableModificationRel(
+    return new LogicalTableModify(
         cluster,
         targetTable,
         catalogReader,
         massagedRel,
-        TableModificationRel.Operation.MERGE,
+        LogicalTableModify.Operation.MERGE,
         targetColumnNameList,
         false);
   }
@@ -3319,13 +3429,13 @@ public class SqlToRelConverter {
         joinList.add(lastList);
       }
       lastList = new ArrayList<SqlNode>();
-      CollectRel collectRel =
-          new CollectRel(
+      Collect collect =
+          new Collect(
               cluster,
               cluster.traitSetOf(Convention.NONE),
               input,
               validator.deriveAlias(call, i));
-      joinList.add(collectRel);
+      joinList.add(collect);
     }
 
     if (joinList.size() == 0) {
@@ -3354,7 +3464,7 @@ public class SqlToRelConverter {
 
         RelNode projRel =
             RelOptUtil.createProject(
-                new OneRowRel(cluster),
+                new LogicalOneRow(cluster),
                 selectList,
                 fieldNameList);
 
@@ -3386,7 +3496,7 @@ public class SqlToRelConverter {
    * @param joinType         Join type
    * @param variablesStopped Set of names of variables which are set by the
    *                         LHS and used by the RHS and are not available to
-   *                         nodes above this JoinRel in the tree
+   *                         nodes above this LogicalJoin in the tree
    * @return A relational expression representing a join
    */
   protected RelNode createJoin(
@@ -3395,7 +3505,7 @@ public class SqlToRelConverter {
       RexNode condition,
       JoinRelType joinType,
       Set<String> variablesStopped) {
-    return new JoinRel(
+    return new LogicalJoin(
         cluster,
         left,
         right,
@@ -3532,7 +3642,7 @@ public class SqlToRelConverter {
       Blackboard bb,
       SqlCall values,
       RelDataType targetRowType) {
-    // Attempt direct conversion to ValuesRel; if that fails, deal with
+    // Attempt direct conversion to LogicalValues; if that fails, deal with
     // fancy stuff like subqueries below.
     RelNode valuesRel =
         convertRowValues(
@@ -3562,7 +3672,7 @@ public class SqlToRelConverter {
       }
       RelNode in =
           (null == tmpBb.root)
-              ? new OneRowRel(cluster)
+              ? new LogicalOneRow(cluster)
               : tmpBb.root;
       unionRels.add(
           RelOptUtil.createProject(
@@ -3580,7 +3690,7 @@ public class SqlToRelConverter {
           true);
     } else {
       bb.setRoot(
-          new UnionRel(
+          new LogicalUnion(
               cluster,
               unionRels,
               true),
@@ -3721,14 +3831,14 @@ public class SqlToRelConverter {
           leftJoinKeys.add(origLeftInputCount + leftJoinKeys.size());
         }
 
-        ProjectRel newLeftInput =
-            (ProjectRel) RelOptUtil.createProject(
+        LogicalProject newLeftInput =
+            (LogicalProject) RelOptUtil.createProject(
                 root,
                 newLeftInputExpr,
                 null,
                 true);
 
-        // maintain the group by mapping in the new ProjectRel
+        // maintain the group by mapping in the new LogicalProject
         if (mapRootRelToFieldProjection.containsKey(root)) {
           mapRootRelToFieldProjection.put(
               newLeftInput,
@@ -3808,7 +3918,7 @@ public class SqlToRelConverter {
      */
     public void setRoot(RelNode root, boolean leaf) {
       setRoot(
-          Collections.singletonList(root), root, root instanceof JoinRel);
+          Collections.singletonList(root), root, root instanceof LogicalJoin);
       if (leaf) {
         leaves.add(root);
       }
@@ -3828,8 +3938,9 @@ public class SqlToRelConverter {
     }
 
     /**
-     * Notifies this Blackboard that the root just set using {@link
-     * #setRoot(RelNode, boolean)} was derived using dataset substitution.
+     * Notifies this Blackboard that the root just set using
+     * {@link #setRoot(RelNode, boolean)} was derived using dataset
+     * substitution.
      *
      * <p>The default implementation is not interested in such
      * notifications, and does nothing.
@@ -3854,8 +3965,7 @@ public class SqlToRelConverter {
       if (nameToNodeMap != null) {
         RexNode node = nameToNodeMap.get(name);
         if (node == null) {
-          throw Util.newInternal(
-              "Unknown identifier '" + name
+          throw Util.newInternal("Unknown identifier '" + name
               + "' encountered while expanding expression" + node);
         }
         return node;
@@ -3934,8 +4044,8 @@ public class SqlToRelConverter {
               Pair.of(rel, start[0]));
           start[0] += rel.getRowType().getFieldCount();
         } else {
-          if (rel instanceof JoinRel
-              || rel instanceof AggregateRel) {
+          if (rel instanceof LogicalJoin
+              || rel instanceof LogicalAggregate) {
             start[0] += systemFieldCount;
           }
           flatten(
@@ -4192,6 +4302,7 @@ public class SqlToRelConverter {
     }
   }
 
+  /** Deferred lookup. */
   private static class DeferredLookup {
     Blackboard bb;
     String originalRelName;
@@ -4283,8 +4394,8 @@ public class SqlToRelConverter {
         new SqlNodeList(SqlParserPos.ZERO);
 
     /**
-     * Input expressions for the group columns and aggregates, in {@link
-     * RexNode} format. The first elements of the list correspond to the
+     * Input expressions for the group columns and aggregates, in
+     * {@link RexNode} format. The first elements of the list correspond to the
      * elements in {@link #groupExprs}; the remaining elements are for
      * aggregates.
      */
@@ -4440,8 +4551,8 @@ public class SqlToRelConverter {
           bb.agg = this;
         }
 
-        final Aggregation aggregation =
-            (Aggregation) call.getOperator();
+        final SqlAggFunction aggFunction =
+            (SqlAggFunction) call.getOperator();
         RelDataType type = validator.deriveType(bb.scope, call);
         boolean distinct = false;
         SqlLiteral quantifier = call.getFunctionQuantifier();
@@ -4451,7 +4562,7 @@ public class SqlToRelConverter {
         }
         final AggregateCall aggCall =
             new AggregateCall(
-                aggregation,
+                aggFunction,
                 distinct,
                 args,
                 type,
@@ -4719,9 +4830,9 @@ public class SqlToRelConverter {
      * Returns the histogram operator corresponding to a given aggregate
      * function.
      *
-     * <p>For example, <code>getHistogramOp({@link
-     * SqlStdOperatorTable#MIN}}</code> returns {@link
-     * SqlStdOperatorTable#HISTOGRAM_MIN}.
+     * <p>For example, <code>getHistogramOp
+     *({@link SqlStdOperatorTable#MIN}}</code> returns
+     * {@link SqlStdOperatorTable#HISTOGRAM_MIN}.
      *
      * @param aggFunction An aggregate function
      * @return Its histogram function, or null

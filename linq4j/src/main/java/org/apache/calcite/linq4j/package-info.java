@@ -18,6 +18,6 @@
 /**
  * Language-integrated query for Java (linq4j) main package.
  */
-package net.hydromatic.linq4j;
+package org.apache.calcite.linq4j;
 
 // End package-info.java

@@ -14,24 +14,35 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.impl.csv;
+package org.apache.calcite.adapter.csv;
 
-import net.hydromatic.linq4j.expressions.*;
+import org.apache.calcite.adapter.enumerable.EnumerableConvention;
+import org.apache.calcite.adapter.enumerable.EnumerableRel;
+import org.apache.calcite.adapter.enumerable.EnumerableRelImplementor;
+import org.apache.calcite.adapter.enumerable.PhysType;
+import org.apache.calcite.adapter.enumerable.PhysTypeImpl;
+import org.apache.calcite.linq4j.tree.Blocks;
+import org.apache.calcite.linq4j.tree.Expressions;
+import org.apache.calcite.linq4j.tree.Primitive;
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelWriter;
+import org.apache.calcite.rel.core.TableScan;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rel.type.RelDataTypeField;
 
-import net.hydromatic.optiq.rules.java.*;
-
-import org.eigenbase.rel.*;
-import org.eigenbase.relopt.*;
-import org.eigenbase.reltype.*;
-
-import java.util.*;
+import java.util.List;
 
 /**
  * Relational expression representing a scan of a CSV file.
  *
  * <p>Like any table scan, it serves as a leaf node of a query tree.</p>
  */
-public class CsvTableScan extends TableAccessRelBase implements EnumerableRel {
+public class CsvTableScan extends TableScan implements EnumerableRel {
   final CsvTranslatableTable csvTable;
   final int[] fields;
 
@@ -44,20 +55,17 @@ public class CsvTableScan extends TableAccessRelBase implements EnumerableRel {
     assert csvTable != null;
   }
 
-  @Override
-  public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
+  @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
     assert inputs.isEmpty();
     return new CsvTableScan(getCluster(), table, csvTable, fields);
   }
 
-  @Override
-  public RelWriter explainTerms(RelWriter pw) {
+  @Override public RelWriter explainTerms(RelWriter pw) {
     return super.explainTerms(pw)
         .item("fields", Primitive.asList(fields));
   }
 
-  @Override
-  public RelDataType deriveRowType() {
+  @Override public RelDataType deriveRowType() {
     final List<RelDataTypeField> fieldList = table.getRowType().getFieldList();
     final RelDataTypeFactory.FieldInfoBuilder builder =
         getCluster().getTypeFactory().builder();
@@ -67,9 +75,8 @@ public class CsvTableScan extends TableAccessRelBase implements EnumerableRel {
     return builder.build();
   }
 
-  @Override
-  public void register(RelOptPlanner planner) {
-    planner.addRule(CsvPushProjectOntoTableRule.INSTANCE);
+  @Override public void register(RelOptPlanner planner) {
+    planner.addRule(CsvProjectTableScanRule.INSTANCE);
   }
 
   public Result implement(EnumerableRelImplementor implementor, Prefer pref) {

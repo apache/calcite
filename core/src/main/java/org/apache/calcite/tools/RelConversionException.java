@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.tools;
+package org.apache.calcite.tools;
 
 /**
  * An Exception thrown when attempting conversion to a set of
- * {@link org.eigenbase.rel.RelNode}s.
+ * {@link org.apache.calcite.rel.RelNode}s.
  */
 public class RelConversionException extends Exception {
   /** Creates a RelConversionException with the specified detail message and

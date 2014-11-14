@@ -14,30 +14,36 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel.rules;
+package org.apache.calcite.rel.rules;
 
-import java.util.*;
+import org.apache.calcite.plan.RelOptRule;
+import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.core.RelFactories;
+import org.apache.calcite.rel.core.RelFactories.ProjectFactory;
+import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexLocalRef;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexProgram;
+import org.apache.calcite.rex.RexProgramBuilder;
+import org.apache.calcite.util.Permutation;
 
-import org.eigenbase.rel.*;
-import org.eigenbase.rel.RelFactories.ProjectFactory;
-import org.eigenbase.relopt.*;
-import org.eigenbase.rex.*;
-import org.eigenbase.util.Permutation;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
- * MergeProjectRule merges a {@link ProjectRelBase} into
- * another {@link ProjectRelBase},
+ * ProjectMergeRule merges a {@link org.apache.calcite.rel.core.Project} into
+ * another {@link org.apache.calcite.rel.core.Project},
  * provided the projects aren't projecting identical sets of input references.
  */
-public class MergeProjectRule extends RelOptRule {
-  public static final MergeProjectRule INSTANCE =
-      new MergeProjectRule();
+public class ProjectMergeRule extends RelOptRule {
+  public static final ProjectMergeRule INSTANCE = new ProjectMergeRule();
 
   //~ Instance fields --------------------------------------------------------
 
-  /**
-   * if true, always merge projects
-   */
+  /** Whether to always merge projects. */
   private final boolean force;
 
   private final ProjectFactory projectFactory;
@@ -45,22 +51,22 @@ public class MergeProjectRule extends RelOptRule {
   //~ Constructors -----------------------------------------------------------
 
   /**
-   * Creates a MergeProjectRule.
+   * Creates a ProjectMergeRule.
    */
-  private MergeProjectRule() {
+  private ProjectMergeRule() {
     this(false, RelFactories.DEFAULT_PROJECT_FACTORY);
   }
 
   /**
-   * Creates a MergeProjectRule, specifying whether to always merge projects.
+   * Creates a ProjectMergeRule, specifying whether to always merge projects.
    *
    * @param force Whether to always merge projects
    */
-  public MergeProjectRule(boolean force, ProjectFactory pFactory) {
+  public ProjectMergeRule(boolean force, ProjectFactory pFactory) {
     super(
-        operand(ProjectRelBase.class,
-            operand(ProjectRelBase.class, any())),
-        "MergeProjectRule" + (force ? ": force mode" : ""));
+        operand(Project.class,
+            operand(Project.class, any())),
+        "ProjectMergeRule" + (force ? ": force mode" : ""));
     this.force = force;
     projectFactory = pFactory;
   }
@@ -69,8 +75,8 @@ public class MergeProjectRule extends RelOptRule {
 
   // implement RelOptRule
   public void onMatch(RelOptRuleCall call) {
-    ProjectRelBase topProject = call.rel(0);
-    ProjectRelBase bottomProject = call.rel(1);
+    Project topProject = call.rel(0);
+    Project bottomProject = call.rel(1);
     RexBuilder rexBuilder = topProject.getCluster().getRexBuilder();
 
     // If one or both projects are permutations, short-circuit the complex logic
@@ -78,18 +84,18 @@ public class MergeProjectRule extends RelOptRule {
     final Permutation topPermutation = topProject.getPermutation();
     if (topPermutation != null) {
       if (topPermutation.isIdentity()) {
-        // Let RemoveTrivialProjectRule handle this.
+        // Let ProjectRemoveRule handle this.
         return;
       }
       final Permutation bottomPermutation = bottomProject.getPermutation();
       if (bottomPermutation != null) {
         if (bottomPermutation.isIdentity()) {
-          // Let RemoveTrivialProjectRule handle this.
+          // Let ProjectRemoveRule handle this.
           return;
         }
         final Permutation product = topPermutation.product(bottomPermutation);
         call.transformTo(
-            RelOptUtil.projectMapping(bottomProject.getChild(),
+            RelOptUtil.projectMapping(bottomProject.getInput(),
                 product.inverse(), topProject.getRowType().getFieldNames(),
                 projectFactory));
         return;
@@ -98,7 +104,7 @@ public class MergeProjectRule extends RelOptRule {
 
     // if we're not in force mode and the two projects reference identical
     // inputs, then return and either let FennelRenameRule or
-    // RemoveTrivialProjectRule replace the projects
+    // ProjectRemoveRule replace the projects
     if (!force) {
       if (RelOptUtil.checkProjAndChildInputs(topProject, false)) {
         return;
@@ -108,7 +114,7 @@ public class MergeProjectRule extends RelOptRule {
     // create a RexProgram for the bottom project
     RexProgram bottomProgram =
         RexProgram.create(
-            bottomProject.getChild().getRowType(),
+            bottomProject.getInput().getRowType(),
             bottomProject.getProjects(),
             null,
             bottomProject.getRowType(),
@@ -142,11 +148,11 @@ public class MergeProjectRule extends RelOptRule {
 
     // replace the two projects with a combined projection
     RelNode newProjectRel = projectFactory.createProject(
-        bottomProject.getChild(), newProjExprs,
+        bottomProject.getInput(), newProjExprs,
         topProject.getRowType().getFieldNames());
 
     call.transformTo(newProjectRel);
   }
 }
 
-// End MergeProjectRule.java
+// End ProjectMergeRule.java

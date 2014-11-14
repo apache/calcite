@@ -14,10 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql2rel;
+package org.apache.calcite.sql2rel;
 
-import org.eigenbase.rex.*;
-import org.eigenbase.sql.*;
+import org.apache.calcite.rex.RexLiteral;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlIntervalQualifier;
+import org.apache.calcite.sql.SqlLiteral;
+import org.apache.calcite.sql.SqlNode;
 
 /**
  * Converts expressions from {@link SqlNode} to {@link RexNode}.
@@ -33,8 +37,8 @@ public interface SqlNodeToRexConverter {
       SqlCall call);
 
   /**
-   * Converts a {@link SqlLiteral SQL literal} to a {@link RexLiteral REX
-   * literal}.
+   * Converts a {@link SqlLiteral SQL literal} to a
+   * {@link RexLiteral REX literal}.
    *
    * <p>The result is {@link RexNode}, not {@link RexLiteral} because if the
    * literal is NULL (or the boolean Unknown value), we make a <code>CAST(NULL

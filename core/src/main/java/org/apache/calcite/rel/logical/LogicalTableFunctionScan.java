@@ -14,27 +14,33 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel;
+package org.apache.calcite.rel.logical;
+
+import org.apache.calcite.plan.Convention;
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptCost;
+import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.RelInput;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.TableFunctionScan;
+import org.apache.calcite.rel.metadata.RelColumnMapping;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rex.RexNode;
 
 import java.lang.reflect.Type;
 import java.util.List;
 import java.util.Set;
 
-import org.eigenbase.rel.metadata.RelColumnMapping;
-import org.eigenbase.relopt.*;
-import org.eigenbase.reltype.*;
-import org.eigenbase.rex.*;
-
 /**
- * <code>TableFunctionRel</code> represents a call to a function which returns a
- * result set. Currently, it can only appear as a leaf in a query tree, but
- * eventually we will extend it to take relational inputs.
+ * Sub-class of {@link org.apache.calcite.rel.core.TableFunctionScan}
+ * not targeted at any particular engine or calling convention.
  */
-public class TableFunctionRel extends TableFunctionRelBase {
+public class LogicalTableFunctionScan extends TableFunctionScan {
   //~ Constructors -----------------------------------------------------------
 
   /**
-   * Creates a <code>TableFunctionRel</code>.
+   * Creates a <code>LogicalTableFunctionScan</code>.
    *
    * @param cluster        Cluster that this relational expression belongs to
    * @param inputs         0 or more relational inputs
@@ -44,7 +50,7 @@ public class TableFunctionRel extends TableFunctionRelBase {
    * @param rowType        row type produced by function
    * @param columnMappings column mappings associated with this function
    */
-  public TableFunctionRel(
+  public LogicalTableFunctionScan(
       RelOptCluster cluster,
       List<RelNode> inputs,
       RexNode rexCall,
@@ -61,18 +67,18 @@ public class TableFunctionRel extends TableFunctionRelBase {
   }
 
   /**
-   * Creates a TableFunctionRel by parsing serialized output.
+   * Creates a LogicalTableFunctionScan by parsing serialized output.
    */
-  public TableFunctionRel(RelInput input) {
+  public LogicalTableFunctionScan(RelInput input) {
     super(input);
   }
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override
-  public TableFunctionRel copy(RelTraitSet traitSet, List<RelNode> inputs) {
+  @Override public LogicalTableFunctionScan copy(RelTraitSet traitSet,
+      List<RelNode> inputs) {
     assert traitSet.containsIfApplicable(Convention.NONE);
-    return new TableFunctionRel(
+    return new LogicalTableFunctionScan(
         getCluster(),
         inputs,
         getCall(),
@@ -87,4 +93,4 @@ public class TableFunctionRel extends TableFunctionRelBase {
   }
 }
 
-// End TableFunctionRel.java
+// End LogicalTableFunctionScan.java

@@ -14,26 +14,38 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel;
+package org.apache.calcite.rel.core;
 
-import java.lang.reflect.Type;
-import java.util.*;
-
-import org.eigenbase.rel.metadata.*;
-import org.eigenbase.relopt.*;
-import org.eigenbase.reltype.*;
-import org.eigenbase.rex.*;
-
-import net.hydromatic.linq4j.Ord;
+import org.apache.calcite.linq4j.Ord;
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.AbstractRelNode;
+import org.apache.calcite.rel.RelInput;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelWriter;
+import org.apache.calcite.rel.metadata.RelColumnMapping;
+import org.apache.calcite.rel.metadata.RelMetadataQuery;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rex.RexNode;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
+import java.lang.reflect.Type;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+
 /**
- * <code>TableFunctionRelBase</code> is an abstract base class for
- * implementations of {@link TableFunctionRel}.
+ * Relational expression that calls a table-valued function.
+ *
+ * <p>The function returns a result set.
+ * It can appear as a leaf in a query tree,
+ * or can be applied to relational inputs.
+ *
+ * @see org.apache.calcite.rel.logical.LogicalTableFunctionScan
  */
-public abstract class TableFunctionRelBase extends AbstractRelNode {
+public abstract class TableFunctionScan extends AbstractRelNode {
   //~ Instance fields --------------------------------------------------------
 
   private final RexNode rexCall;
@@ -47,7 +59,7 @@ public abstract class TableFunctionRelBase extends AbstractRelNode {
   //~ Constructors -----------------------------------------------------------
 
   /**
-   * Creates a <code>TableFunctionRelBase</code>.
+   * Creates a <code>TableFunctionScan</code>.
    *
    * @param cluster        Cluster that this relational expression belongs to
    * @param inputs         0 or more relational inputs
@@ -57,7 +69,7 @@ public abstract class TableFunctionRelBase extends AbstractRelNode {
    * @param rowType        row type produced by function
    * @param columnMappings column mappings associated with this function
    */
-  protected TableFunctionRelBase(
+  protected TableFunctionScan(
       RelOptCluster cluster,
       RelTraitSet traits,
       List<RelNode> inputs,
@@ -74,9 +86,9 @@ public abstract class TableFunctionRelBase extends AbstractRelNode {
   }
 
   /**
-   * Creates a TableFunctionRelBase by parsing serialized output.
+   * Creates a TableFunctionScan by parsing serialized output.
    */
-  protected TableFunctionRelBase(RelInput input) {
+  protected TableFunctionScan(RelInput input) {
     this(
         input.getCluster(), input.getTraitSet(), input.getInputs(),
         input.getExpression("invocation"), (Type) input.get("elementType"),
@@ -86,26 +98,22 @@ public abstract class TableFunctionRelBase extends AbstractRelNode {
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override
-  public List<RelNode> getInputs() {
+  @Override public List<RelNode> getInputs() {
     return inputs;
   }
 
-  @Override
-  public List<RexNode> getChildExps() {
+  @Override public List<RexNode> getChildExps() {
     return ImmutableList.of(rexCall);
   }
 
-  @Override
-  public void replaceInput(int ordinalInParent, RelNode p) {
+  @Override public void replaceInput(int ordinalInParent, RelNode p) {
     final List<RelNode> newInputs = new ArrayList<RelNode>(inputs);
     newInputs.set(ordinalInParent, p);
     inputs = ImmutableList.copyOf(newInputs);
     recomputeDigest();
   }
 
-  @Override
-  public double getRows() {
+  @Override public double getRows() {
     // Calculate result as the sum of the input rowcount estimates,
     // assuming there are any, otherwise use the superclass default.  So
     // for a no-input UDX, behave like an AbstractRelNode; for a one-input
@@ -161,4 +169,4 @@ public abstract class TableFunctionRelBase extends AbstractRelNode {
   }
 }
 
-// End TableFunctionRelBase.java
+// End TableFunctionScan.java

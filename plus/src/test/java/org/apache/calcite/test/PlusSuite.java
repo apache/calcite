@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.test;
+package org.apache.calcite.test;
 
-import net.hydromatic.optiq.impl.tpcds.TpcdsTest;
-import net.hydromatic.optiq.impl.tpch.TpchTest;
+import org.apache.calcite.adapter.tpcds.TpcdsTest;
+import org.apache.calcite.adapter.tpch.TpchTest;
 
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;

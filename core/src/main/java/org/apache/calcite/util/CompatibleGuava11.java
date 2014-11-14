@@ -14,13 +14,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.util;
+package org.apache.calcite.util;
 
-import com.google.common.base.*;
+import com.google.common.base.Function;
 import com.google.common.base.Objects;
-import com.google.common.collect.*;
+import com.google.common.collect.Collections2;
+import com.google.common.collect.ForwardingSet;
+import com.google.common.collect.ImmutableSortedMap;
+import com.google.common.collect.ImmutableSortedSet;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Multiset;
+import com.google.common.collect.Sets;
 
-import java.util.*;
+import java.util.AbstractCollection;
+import java.util.AbstractMap;
+import java.util.AbstractSet;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.NavigableMap;
+import java.util.NavigableSet;
+import java.util.Set;
+import java.util.TreeMap;
+import java.util.TreeSet;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -41,13 +57,11 @@ class CompatibleGuava11 {
    * {@code removeAll} implementation.
    */
   abstract static class ImprovedAbstractSet<E> extends AbstractSet<E> {
-    @Override
-    public boolean removeAll(Collection<?> c) {
+    @Override public boolean removeAll(Collection<?> c) {
       return removeAllImpl(this, c);
     }
 
-    @Override
-    public boolean retainAll(Collection<?> c) {
+    @Override public boolean retainAll(Collection<?> c) {
       return super.retainAll(checkNotNull(c)); // GWT compatibility
     }
   }
@@ -140,8 +154,7 @@ class CompatibleGuava11 {
   static <K, V> Iterator<K> keyIterator(
       Iterator<Map.Entry<K, V>> entryIterator) {
     return new TransformedIterator<Map.Entry<K, V>, K>(entryIterator) {
-      @Override
-      K transform(Map.Entry<K, V> entry) {
+      @Override K transform(Map.Entry<K, V> entry) {
         return entry.getKey();
       }
     };
@@ -182,18 +195,15 @@ class CompatibleGuava11 {
 
   private static <E> Set<E> removeOnlySet(final Set<E> set) {
     return new ForwardingSet<E>() {
-      @Override
-      protected Set<E> delegate() {
+      @Override protected Set<E> delegate() {
         return set;
       }
 
-      @Override
-      public boolean add(E element) {
+      @Override public boolean add(E element) {
         throw new UnsupportedOperationException();
       }
 
-      @Override
-      public boolean addAll(Collection<? extends E> es) {
+      @Override public boolean addAll(Collection<? extends E> es) {
         throw new UnsupportedOperationException();
       }
     };
@@ -202,8 +212,7 @@ class CompatibleGuava11 {
   private static <K, V> Iterator<Map.Entry<K, V>> asSetEntryIterator(
       Set<K> set, final Function<? super K, V> function) {
     return new TransformedIterator<K, Map.Entry<K, V>>(set.iterator()) {
-      @Override
-      Map.Entry<K, V> transform(K key) {
+      @Override Map.Entry<K, V> transform(K key) {
         return Maps.immutableEntry(key, function.apply(key));
       }
     };
@@ -223,30 +232,25 @@ class CompatibleGuava11 {
       this.function = checkNotNull(function);
     }
 
-    @Override
-    public Set<K> keySet() {
+    @Override public Set<K> keySet() {
       // probably not worth caching
       return removeOnlySet(backingSet());
     }
 
-    @Override
-    public Collection<V> values() {
+    @Override public Collection<V> values() {
       // probably not worth caching
       return Collections2.transform(set, function);
     }
 
-    @Override
-    public int size() {
+    @Override public int size() {
       return backingSet().size();
     }
 
-    @Override
-    public boolean containsKey(Object key) {
+    @Override public boolean containsKey(Object key) {
       return backingSet().contains(key);
     }
 
-    @Override
-    public V get(Object key) {
+    @Override public V get(Object key) {
       if (backingSet().contains(key)) {
         @SuppressWarnings("unchecked") // unsafe, but Javadoc warns about it
             K k = (K) key;
@@ -256,8 +260,7 @@ class CompatibleGuava11 {
       }
     }
 
-    @Override
-    public V remove(Object key) {
+    @Override public V remove(Object key) {
       if (backingSet().remove(key)) {
         @SuppressWarnings("unchecked") // unsafe, but Javadoc warns about it
             K k = (K) key;
@@ -267,21 +270,17 @@ class CompatibleGuava11 {
       }
     }
 
-    @Override
-    public void clear() {
+    @Override public void clear() {
       backingSet().clear();
     }
 
-    @Override
-    protected Set<Map.Entry<K, V>> createEntrySet() {
+    @Override protected Set<Map.Entry<K, V>> createEntrySet() {
       return new EntrySet<K, V>() {
-        @Override
-        Map<K, V> map() {
+        @Override Map<K, V> map() {
           return AsMapView.this;
         }
 
-        @Override
-        public Iterator<Map.Entry<K, V>> iterator() {
+        @Override public Iterator<Map.Entry<K, V>> iterator() {
           return asSetEntryIterator(backingSet(), function);
         }
       };
@@ -357,8 +356,7 @@ class CompatibleGuava11 {
   static <K, V> Iterator<V> valueIterator(
       Iterator<Map.Entry<K, V>> entryIterator) {
     return new TransformedIterator<Map.Entry<K, V>, V>(entryIterator) {
-      @Override
-      V transform(Map.Entry<K, V> entry) {
+      @Override V transform(Map.Entry<K, V> entry) {
         return entry.getValue();
       }
     };

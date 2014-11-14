@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.util.graph;
+package org.apache.calcite.util.graph;
 
 /**
  * Default implementation of Edge.
@@ -28,13 +28,11 @@ public class DefaultEdge {
     this.target = target;
   }
 
-  @Override
-  public int hashCode() {
+  @Override public int hashCode() {
     return source.hashCode() * 31 + target.hashCode();
   }
 
-  @Override
-  public boolean equals(Object obj) {
+  @Override public boolean equals(Object obj) {
     return this == obj
         || obj instanceof DefaultEdge
         && ((DefaultEdge) obj).source.equals(source)

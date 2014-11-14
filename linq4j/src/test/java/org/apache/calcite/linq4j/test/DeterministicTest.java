@@ -14,12 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.linq4j.test;
+package org.apache.calcite.linq4j.test;
 
-import net.hydromatic.linq4j.expressions.*;
-
-import net.hydromatic.linq4j.function.Deterministic;
-import net.hydromatic.linq4j.function.NonDeterministic;
+import org.apache.calcite.linq4j.function.Deterministic;
+import org.apache.calcite.linq4j.function.NonDeterministic;
+import org.apache.calcite.linq4j.tree.Blocks;
+import org.apache.calcite.linq4j.tree.ClassDeclarationFinder;
+import org.apache.calcite.linq4j.tree.DeterministicCodeOptimizer;
+import org.apache.calcite.linq4j.tree.Expression;
+import org.apache.calcite.linq4j.tree.Expressions;
+import org.apache.calcite.linq4j.tree.ParameterExpression;
+import org.apache.calcite.linq4j.tree.Types;
 
 import org.junit.Test;
 
@@ -28,9 +33,15 @@ import java.math.BigInteger;
 import java.util.Collections;
 import java.util.concurrent.Callable;
 
-import static net.hydromatic.linq4j.test.BlockBuilderBase.*;
+import static org.apache.calcite.linq4j.test.BlockBuilderBase.FOUR;
+import static org.apache.calcite.linq4j.test.BlockBuilderBase.ONE;
+import static org.apache.calcite.linq4j.test.BlockBuilderBase.THREE;
+import static org.apache.calcite.linq4j.test.BlockBuilderBase.TWO;
+import static org.apache.calcite.linq4j.test.BlockBuilderBase.optimize;
+import static org.apache.calcite.linq4j.test.BlockBuilderBase.optimizeExpression;
 
-import static org.hamcrest.CoreMatchers.*;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 
 /**
@@ -130,8 +141,7 @@ public class DeterministicTest {
                     "test",
                     Collections.<ParameterExpression>emptyList(),
                     Blocks.toFunctionBlock(Expressions.add(ONE, TWO))))),
-        equalTo(
-            "{\n"
+        equalTo("{\n"
             + "  return new Runnable(){\n"
             + "      int test() {\n"
             + "        return $L4J$C$1_2;\n"
@@ -154,8 +164,7 @@ public class DeterministicTest {
                     "test",
                     Collections.<ParameterExpression>emptyList(),
                     Blocks.toFunctionBlock(Expressions.add(ONE, TWO)))))),
-        equalTo(
-            "{\n"
+        equalTo("{\n"
             + "  return new Runnable(){\n"
             + "      int test() {\n"
             + "        return $L4J$C$1_2;\n"
@@ -180,8 +189,7 @@ public class DeterministicTest {
                     Blocks.toFunctionBlock(Expressions.multiply(
                         Expressions.add(ONE, TWO),
                         Expressions.subtract(ONE, TWO)))))),
-        equalTo(
-            "{\n"
+        equalTo("{\n"
             + "  return new Runnable(){\n"
             + "      int test() {\n"
             + "        return $L4J$C$1_2_1_20;\n"
@@ -208,16 +216,16 @@ public class DeterministicTest {
                     Blocks.toFunctionBlock(
                         Expressions.multiply(Expressions.add(ONE, TWO),
                             THREE))))),
-      equalTo("{\n"
-          + "  return new Runnable(){\n"
-          + "      int test() {\n"
-          + "        return $L4J$C$1_2_3;\n"
-          + "      }\n"
-          + "\n"
-          + "      static final int $L4J$C$1_2 = 1 + 2;\n"
-          + "      static final int $L4J$C$1_2_3 = $L4J$C$1_2 * 3;\n"
-          + "    };\n"
-          + "}\n"));
+        equalTo("{\n"
+            + "  return new Runnable(){\n"
+            + "      int test() {\n"
+            + "        return $L4J$C$1_2_3;\n"
+            + "      }\n"
+            + "\n"
+            + "      static final int $L4J$C$1_2 = 1 + 2;\n"
+            + "      static final int $L4J$C$1_2_3 = $L4J$C$1_2 * 3;\n"
+            + "    };\n"
+            + "}\n"));
   }
 
   @Test public void testFactorOutNestedClasses() {
@@ -250,8 +258,7 @@ public class DeterministicTest {
                                                 THREE)))),
                                 "call",
                                 Collections.<Expression>emptyList())))))),
-        equalTo(
-            "{\n"
+        equalTo("{\n"
             + "  return new Runnable(){\n"
             + "      int test() {\n"
             + "        return $L4J$C$1_4 + new java.util.concurrent.Callable(){\n"
@@ -306,8 +313,7 @@ public class DeterministicTest {
                     Collections.<ParameterExpression>emptyList(),
                     Blocks.toFunctionBlock(
                         Expressions.typeIs(ONE, Boolean.class))))),
-        equalTo(
-            "{\n"
+        equalTo("{\n"
             + "  return new Runnable(){\n"
             + "      int test() {\n"
             + "        return 1 instanceof Boolean;\n"
@@ -381,8 +387,7 @@ public class DeterministicTest {
                                 Types.lookupMethod(BigInteger.class, "valueOf",
                                     long.class),
                                 Expressions.constant(42L))))))),
-        equalTo(
-            "{\n"
+        equalTo("{\n"
             + "  return new Runnable(){\n"
             + "      int test() {\n"
             + "        return "
@@ -447,14 +452,13 @@ public class DeterministicTest {
                     Blocks.toFunctionBlock(Expressions.call(null,
                         Types.lookupMethod(TestClass.class,
                             "deterministic", int.class), ONE))))),
-        equalTo(
-            "{\n"
+        equalTo("{\n"
             + "  return new Runnable(){\n"
             + "      int test() {\n"
-            + "        return $L4J$C$net_hydromatic_linq4j_test_DeterministicTest_TestClass_determin1da033bf;\n"
+            + "        return $L4J$C$org_apache_calcite_linq4j_test_DeterministicTest_TestClass_dete33e8af1c;\n"
             + "      }\n"
             + "\n"
-            + "      static final int $L4J$C$net_hydromatic_linq4j_test_DeterministicTest_TestClass_determin1da033bf = net.hydromatic.linq4j.test.DeterministicTest.TestClass.deterministic(1);\n"
+            + "      static final int $L4J$C$org_apache_calcite_linq4j_test_DeterministicTest_TestClass_dete33e8af1c = org.apache.calcite.linq4j.test.DeterministicTest.TestClass.deterministic(1);\n"
             + "    };\n"
             + "}\n"));
   }
@@ -473,11 +477,10 @@ public class DeterministicTest {
                     Blocks.toFunctionBlock(Expressions.call(null,
                         Types.lookupMethod(TestClass.class,
                             "nonDeterministic", int.class), ONE))))),
-        equalTo(
-            "{\n"
+        equalTo("{\n"
             + "  return new Runnable(){\n"
             + "      int test() {\n"
-            + "        return net.hydromatic.linq4j.test.DeterministicTest.TestClass.nonDeterministic(1);\n"
+            + "        return org.apache.calcite.linq4j.test.DeterministicTest.TestClass.nonDeterministic(1);\n"
             + "      }\n"
             + "\n"
             + "    };\n"
@@ -498,14 +501,13 @@ public class DeterministicTest {
                     Blocks.toFunctionBlock(Expressions.call(null,
                         Types.lookupMethod(TestDeterministicClass.class,
                             "deterministic", int.class), ONE))))),
-        equalTo(
-            "{\n"
+        equalTo("{\n"
             + "  return new Runnable(){\n"
             + "      int test() {\n"
-            + "        return $L4J$C$net_hydromatic_linq4j_test_DeterministicTest_TestDeterministicCa1bc6d17;\n"
+            + "        return $L4J$C$org_apache_calcite_linq4j_test_DeterministicTest_TestDeterminis9de610da;\n"
             + "      }\n"
             + "\n"
-            + "      static final int $L4J$C$net_hydromatic_linq4j_test_DeterministicTest_TestDeterministicCa1bc6d17 = net.hydromatic.linq4j.test.DeterministicTest.TestDeterministicClass.deterministic(1);\n"
+            + "      static final int $L4J$C$org_apache_calcite_linq4j_test_DeterministicTest_TestDeterminis9de610da = org.apache.calcite.linq4j.test.DeterministicTest.TestDeterministicClass.deterministic(1);\n"
             + "    };\n"
             + "}\n"));
   }
@@ -524,11 +526,10 @@ public class DeterministicTest {
                     Blocks.toFunctionBlock(Expressions.call(null,
                         Types.lookupMethod(TestDeterministicClass.class,
                             "nonDeterministic", int.class), ONE))))),
-        equalTo(
-            "{\n"
+        equalTo("{\n"
             + "  return new Runnable(){\n"
             + "      int test() {\n"
-            + "        return net.hydromatic.linq4j.test.DeterministicTest.TestDeterministicClass.nonDeterministic(1);\n"
+            + "        return org.apache.calcite.linq4j.test.DeterministicTest.TestDeterministicClass.nonDeterministic(1);\n"
             + "      }\n"
             + "\n"
             + "    };\n"

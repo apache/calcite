@@ -14,11 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.util;
-
-import java.util.*;
+package org.apache.calcite.util;
 
 import com.google.common.collect.ImmutableList;
+
+import java.util.AbstractList;
+import java.util.List;
 
 /**
  * Read-only list that is the concatenation of sub-lists.

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.linq4j.expressions;
+package org.apache.calcite.linq4j.tree;
 
 /**
  * Used to represent the target of a {@link GotoStatement}.
@@ -26,8 +26,7 @@ public class LabelTarget {
     this.name = name;
   }
 
-  @Override
-  public boolean equals(Object o) {
+  @Override public boolean equals(Object o) {
     if (this == o) {
       return true;
     }
@@ -44,8 +43,7 @@ public class LabelTarget {
     return true;
   }
 
-  @Override
-  public int hashCode() {
+  @Override public int hashCode() {
     return name != null ? name.hashCode() : 0;
   }
 }

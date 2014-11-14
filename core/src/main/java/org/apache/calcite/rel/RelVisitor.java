@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel;
+package org.apache.calcite.rel;
 
 /**
- * A <code>RelVisitor</code> is a Visitor role in the {@link
- * org.eigenbase.util.Glossary#VISITOR_PATTERN visitor pattern} and visits {@link
- * RelNode} objects as the role of Element. Other components in the pattern:
- * {@link RelNode#childrenAccept(RelVisitor)}.
+ * A <code>RelVisitor</code> is a Visitor role in the
+ * {@link org.apache.calcite.util.Glossary#VISITOR_PATTERN visitor pattern} and
+ * visits {@link RelNode} objects as the role of Element. Other components in
+ * the pattern: {@link RelNode#childrenAccept(RelVisitor)}.
  */
 public abstract class RelVisitor {
   //~ Instance fields --------------------------------------------------------

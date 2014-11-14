@@ -14,15 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.impl.csv;
+package org.apache.calcite.adapter.csv;
 
-import net.hydromatic.linq4j.*;
-
-import net.hydromatic.optiq.*;
-
-import org.eigenbase.reltype.RelProtoDataType;
-import org.eigenbase.rex.*;
-import org.eigenbase.sql.SqlKind;
+import org.apache.calcite.DataContext;
+import org.apache.calcite.linq4j.AbstractEnumerable;
+import org.apache.calcite.linq4j.Enumerable;
+import org.apache.calcite.linq4j.Enumerator;
+import org.apache.calcite.rel.type.RelProtoDataType;
+import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexInputRef;
+import org.apache.calcite.rex.RexLiteral;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.schema.FilterableTable;
+import org.apache.calcite.sql.SqlKind;
 
 import java.io.File;
 import java.util.Iterator;

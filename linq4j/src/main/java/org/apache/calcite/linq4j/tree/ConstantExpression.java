@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.linq4j.expressions;
+package org.apache.calcite.linq4j.tree;
 
-import net.hydromatic.linq4j.function.Function1;
-import net.hydromatic.linq4j.function.Functions;
+import org.apache.calcite.linq4j.function.Function1;
+import org.apache.calcite.linq4j.function.Functions;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
@@ -54,13 +54,11 @@ public class ConstantExpression extends Expression {
     return value;
   }
 
-  @Override
-  public Expression accept(Visitor visitor) {
+  @Override public Expression accept(Visitor visitor) {
     return visitor.visit(this);
   }
 
-  @Override
-  void accept(ExpressionWriter writer, int lprec, int rprec) {
+  @Override void accept(ExpressionWriter writer, int lprec, int rprec) {
     if (value == null) {
       if (!writer.requireParentheses(this, lprec, rprec)) {
         writer.append("(").append(type).append(") null");
@@ -236,8 +234,7 @@ public class ConstantExpression extends Expression {
     buf.append('"');
   }
 
-  @Override
-  public boolean equals(Object o) {
+  @Override public boolean equals(Object o) {
     // REVIEW: Should constants with the same value and different type
     // (e.g. 3L and 3) be considered equal.
     if (this == o) {
@@ -259,8 +256,7 @@ public class ConstantExpression extends Expression {
     return true;
   }
 
-  @Override
-  public int hashCode() {
+  @Override public int hashCode() {
     int result = super.hashCode();
     result = 31 * result + (value != null ? value.hashCode() : 0);
     return result;

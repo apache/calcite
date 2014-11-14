@@ -14,17 +14,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.util;
+package org.apache.calcite.util;
 
-import net.hydromatic.optiq.test.OptiqAssert;
-
-import org.eigenbase.util.TestUtil;
+import org.apache.calcite.test.CalciteAssert;
 
 import org.junit.Test;
 
-import java.util.*;
+import java.util.AbstractList;
+import java.util.Collection;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Random;
+import java.util.Set;
+import java.util.TreeSet;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 /**
  * Unit test for {@link PartiallyOrderedSet}.
@@ -33,7 +38,7 @@ public class PartiallyOrderedSetTest {
   private static final boolean DEBUG = false;
 
   // 100, 250, 1000, 3000 are reasonable
-  private static final int SCALE = OptiqAssert.ENABLE_SLOW ? 250 : 50;
+  private static final int SCALE = CalciteAssert.ENABLE_SLOW ? 250 : 50;
 
   final long seed = new Random().nextLong();
   final Random random = new Random(seed);
@@ -97,7 +102,7 @@ public class PartiallyOrderedSetTest {
     poset.out(buf);
     TestUtil.assertEqualsVerbose(
         "PartiallyOrderedSet size: 0 elements: {\n"
-        + "}",
+            + "}",
         buf.toString());
 
     poset.add("a");
@@ -139,11 +144,11 @@ public class PartiallyOrderedSetTest {
     poset.out(buf);
     TestUtil.assertEqualsVerbose(
         "PartiallyOrderedSet size: 4 elements: {\n"
-        + "  'abcd' parents: [] children: ['ab', 'bcd']\n"
-        + "  'ab' parents: ['abcd'] children: ['']\n"
-        + "  'bcd' parents: ['abcd'] children: ['']\n"
-        + "  '' parents: ['ab', 'bcd'] children: []\n"
-        + "}",
+            + "  'abcd' parents: [] children: ['ab', 'bcd']\n"
+            + "  'ab' parents: ['abcd'] children: ['']\n"
+            + "  'bcd' parents: ['abcd'] children: ['']\n"
+            + "  '' parents: ['ab', 'bcd'] children: []\n"
+            + "}",
         buf.toString());
 
     final String b = "'b'";
@@ -218,7 +223,7 @@ public class PartiallyOrderedSetTest {
   }
 
   @Test public void testDivisorPoset() {
-    if (!OptiqAssert.ENABLE_SLOW) {
+    if (!CalciteAssert.ENABLE_SLOW) {
       return;
     }
     PartiallyOrderedSet<Integer> integers =
@@ -376,13 +381,11 @@ public class PartiallyOrderedSetTest {
   private static Collection<Integer> range(
       final int start, final int end) {
     return new AbstractList<Integer>() {
-      @Override
-      public Integer get(int index) {
+      @Override public Integer get(int index) {
         return start + index;
       }
 
-      @Override
-      public int size() {
+      @Override public int size() {
         return end - start;
       }
     };

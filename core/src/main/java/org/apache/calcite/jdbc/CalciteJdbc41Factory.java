@@ -14,55 +14,66 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.jdbc;
+package org.apache.calcite.jdbc;
 
-import net.hydromatic.avatica.*;
-
-import net.hydromatic.optiq.impl.java.JavaTypeFactory;
+import org.apache.calcite.adapter.java.JavaTypeFactory;
+import org.apache.calcite.avatica.AvaticaConnection;
+import org.apache.calcite.avatica.AvaticaDatabaseMetaData;
+import org.apache.calcite.avatica.AvaticaFactory;
+import org.apache.calcite.avatica.AvaticaPrepareResult;
+import org.apache.calcite.avatica.AvaticaPreparedStatement;
+import org.apache.calcite.avatica.AvaticaResultSetMetaData;
+import org.apache.calcite.avatica.AvaticaStatement;
+import org.apache.calcite.avatica.ColumnMetaData;
+import org.apache.calcite.avatica.UnregisteredDriver;
 
 import java.io.InputStream;
 import java.io.Reader;
-import java.sql.*;
+import java.sql.NClob;
+import java.sql.ResultSetMetaData;
+import java.sql.RowId;
+import java.sql.SQLException;
+import java.sql.SQLXML;
 import java.util.List;
 import java.util.Properties;
 import java.util.TimeZone;
 
 /**
- * Implementation of {@link net.hydromatic.avatica.AvaticaFactory}
+ * Implementation of {@link org.apache.calcite.avatica.AvaticaFactory}
  * for Calcite and JDBC 4.1 (corresponds to JDK 1.7).
  */
 @SuppressWarnings("UnusedDeclaration")
-public class OptiqJdbc41Factory extends OptiqFactory {
+public class CalciteJdbc41Factory extends CalciteFactory {
   /** Creates a factory for JDBC version 4.1. */
-  public OptiqJdbc41Factory() {
+  public CalciteJdbc41Factory() {
     this(4, 1);
   }
 
   /** Creates a JDBC factory with given major/minor version number. */
-  protected OptiqJdbc41Factory(int major, int minor) {
+  protected CalciteJdbc41Factory(int major, int minor) {
     super(major, minor);
   }
 
-  public OptiqJdbc41Connection newConnection(UnregisteredDriver driver,
+  public CalciteJdbc41Connection newConnection(UnregisteredDriver driver,
       AvaticaFactory factory, String url, Properties info,
-      OptiqRootSchema rootSchema, JavaTypeFactory typeFactory) {
-    return new OptiqJdbc41Connection(
+      CalciteRootSchema rootSchema, JavaTypeFactory typeFactory) {
+    return new CalciteJdbc41Connection(
         (Driver) driver, factory, url, info, rootSchema, typeFactory);
   }
 
-  public OptiqJdbc41DatabaseMetaData newDatabaseMetaData(
+  public CalciteJdbc41DatabaseMetaData newDatabaseMetaData(
       AvaticaConnection connection) {
-    return new OptiqJdbc41DatabaseMetaData(
-        (OptiqConnectionImpl) connection);
+    return new CalciteJdbc41DatabaseMetaData(
+        (CalciteConnectionImpl) connection);
   }
 
-  public OptiqJdbc41Statement newStatement(
+  public CalciteJdbc41Statement newStatement(
       AvaticaConnection connection,
       int resultSetType,
       int resultSetConcurrency,
       int resultSetHoldability) {
-    return new OptiqJdbc41Statement(
-        (OptiqConnectionImpl) connection, resultSetType, resultSetConcurrency,
+    return new CalciteJdbc41Statement(
+        (CalciteConnectionImpl) connection, resultSetType, resultSetConcurrency,
         resultSetHoldability);
   }
 
@@ -72,20 +83,20 @@ public class OptiqJdbc41Factory extends OptiqFactory {
       int resultSetType,
       int resultSetConcurrency,
       int resultSetHoldability) throws SQLException {
-    return new OptiqJdbc41PreparedStatement(
-        (OptiqConnectionImpl) connection,
-        (OptiqPrepare.PrepareResult) prepareResult, resultSetType,
+    return new CalciteJdbc41PreparedStatement(
+        (CalciteConnectionImpl) connection,
+        (CalcitePrepare.PrepareResult) prepareResult, resultSetType,
         resultSetConcurrency, resultSetHoldability);
   }
 
-  public OptiqResultSet newResultSet(
+  public CalciteResultSet newResultSet(
       AvaticaStatement statement,
       AvaticaPrepareResult prepareResult,
       TimeZone timeZone) {
     final ResultSetMetaData metaData =
         newResultSetMetaData(statement, prepareResult.getColumnList());
-    return new OptiqResultSet(statement,
-        (OptiqPrepare.PrepareResult) prepareResult, metaData, timeZone);
+    return new CalciteResultSet(statement,
+        (CalcitePrepare.PrepareResult) prepareResult, metaData, timeZone);
   }
 
   public ResultSetMetaData newResultSetMetaData(
@@ -96,18 +107,18 @@ public class OptiqJdbc41Factory extends OptiqFactory {
   }
 
   /** Implementation of connection for JDBC 4.1. */
-  private static class OptiqJdbc41Connection extends OptiqConnectionImpl {
-    OptiqJdbc41Connection(Driver driver, AvaticaFactory factory, String url,
-        Properties info, OptiqRootSchema rootSchema,
+  private static class CalciteJdbc41Connection extends CalciteConnectionImpl {
+    CalciteJdbc41Connection(Driver driver, AvaticaFactory factory, String url,
+        Properties info, CalciteRootSchema rootSchema,
         JavaTypeFactory typeFactory) {
       super(driver, factory, url, info, rootSchema, typeFactory);
     }
   }
 
   /** Implementation of statement for JDBC 4.1. */
-  private static class OptiqJdbc41Statement extends OptiqStatement {
-    public OptiqJdbc41Statement(
-        OptiqConnectionImpl connection,
+  private static class CalciteJdbc41Statement extends CalciteStatement {
+    public CalciteJdbc41Statement(
+        CalciteConnectionImpl connection,
         int resultSetType,
         int resultSetConcurrency,
         int resultSetHoldability) {
@@ -117,11 +128,11 @@ public class OptiqJdbc41Factory extends OptiqFactory {
   }
 
   /** Implementation of prepared statement for JDBC 4.1. */
-  private static class OptiqJdbc41PreparedStatement
-      extends OptiqPreparedStatement {
-    OptiqJdbc41PreparedStatement(
-        OptiqConnectionImpl connection,
-        OptiqPrepare.PrepareResult prepareResult,
+  private static class CalciteJdbc41PreparedStatement
+      extends CalcitePreparedStatement {
+    CalciteJdbc41PreparedStatement(
+        CalciteConnectionImpl connection,
+        CalcitePrepare.PrepareResult prepareResult,
         int resultSetType,
         int resultSetConcurrency,
         int resultSetHoldability) throws SQLException {
@@ -239,12 +250,12 @@ public class OptiqJdbc41Factory extends OptiqFactory {
   }
 
   /** Implementation of database metadata for JDBC 4.1. */
-  private static class OptiqJdbc41DatabaseMetaData
+  private static class CalciteJdbc41DatabaseMetaData
       extends AvaticaDatabaseMetaData {
-    OptiqJdbc41DatabaseMetaData(OptiqConnectionImpl connection) {
+    CalciteJdbc41DatabaseMetaData(CalciteConnectionImpl connection) {
       super(connection);
     }
   }
 }
 
-// End OptiqJdbc41Factory.java
+// End CalciteJdbc41Factory.java

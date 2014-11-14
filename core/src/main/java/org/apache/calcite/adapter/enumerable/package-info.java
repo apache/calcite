@@ -18,6 +18,6 @@
 /**
  * Query optimizer rules for Java calling convention.
  */
-package net.hydromatic.optiq.rules.java;
+package org.apache.calcite.adapter.enumerable;
 
 // End package-info.java

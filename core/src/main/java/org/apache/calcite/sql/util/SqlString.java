@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql.util;
+package org.apache.calcite.sql.util;
 
-import org.eigenbase.sql.SqlDialect;
+import org.apache.calcite.sql.SqlDialect;
 
 /**
  * String that represents a kocher SQL statement, expression, or fragment.
@@ -43,13 +43,11 @@ public class SqlString {
     assert dialect != null;
   }
 
-  @Override
-  public int hashCode() {
+  @Override public int hashCode() {
     return s.hashCode();
   }
 
-  @Override
-  public boolean equals(Object obj) {
+  @Override public boolean equals(Object obj) {
     return obj instanceof SqlString
         && s.equals(((SqlString) obj).s);
   }
@@ -62,8 +60,7 @@ public class SqlString {
    * @return SQL string
    * @see #getSql()
    */
-  @Override
-  public String toString() {
+  @Override public String toString() {
     return s;
   }
 

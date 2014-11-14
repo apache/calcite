@@ -14,11 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.relopt.hep;
+package org.apache.calcite.plan.hep;
 
-import java.util.*;
+import org.apache.calcite.plan.RelOptRule;
 
-import org.eigenbase.relopt.*;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * HepInstruction represents one instruction in a HepProgram. The actual
@@ -36,6 +38,7 @@ abstract class HepInstruction {
 
   //~ Inner Classes ----------------------------------------------------------
 
+  /** Instruction that executes all rules of a given class. */
   static class RuleClass<R extends RelOptRule> extends HepInstruction {
     Class<R> ruleClass;
 
@@ -58,6 +61,7 @@ abstract class HepInstruction {
     }
   }
 
+  /** Instruction that executes all rules in a given collection. */
   static class RuleCollection extends HepInstruction {
     /**
      * Collection of rules to apply.
@@ -69,6 +73,7 @@ abstract class HepInstruction {
     }
   }
 
+  /** Instruction that executes converter rules. */
   static class ConverterRules extends HepInstruction {
     boolean guaranteed;
 
@@ -83,6 +88,7 @@ abstract class HepInstruction {
     }
   }
 
+  /** Instruction that finds common relational sub-expressions. */
   static class CommonRelSubExprRules extends HepInstruction {
     Set<RelOptRule> ruleSet;
 
@@ -91,6 +97,7 @@ abstract class HepInstruction {
     }
   }
 
+  /** Instruction that executes a given rule. */
   static class RuleInstance extends HepInstruction {
     /**
      * Description to look for, or null if rule specified explicitly.
@@ -119,6 +126,7 @@ abstract class HepInstruction {
     }
   }
 
+  /** Instruction that sets match order. */
   static class MatchOrder extends HepInstruction {
     HepMatchOrder order;
 
@@ -127,6 +135,7 @@ abstract class HepInstruction {
     }
   }
 
+  /** Instruction that sets match limit. */
   static class MatchLimit extends HepInstruction {
     int limit;
 
@@ -135,6 +144,7 @@ abstract class HepInstruction {
     }
   }
 
+  /** Instruction that executes a sub-program. */
   static class Subprogram extends HepInstruction {
     HepProgram subprogram;
 
@@ -147,6 +157,7 @@ abstract class HepInstruction {
     }
   }
 
+  /** Instruction that begins a group. */
   static class BeginGroup extends HepInstruction {
     EndGroup endGroup;
 
@@ -158,6 +169,7 @@ abstract class HepInstruction {
     }
   }
 
+  /** Instruction that ends a group. */
   static class EndGroup extends HepInstruction {
     /**
      * Actual rule set instantiated during planning by collecting grouped

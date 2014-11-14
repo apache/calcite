@@ -14,48 +14,106 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.prepare;
+package org.apache.calcite.prepare;
 
-import net.hydromatic.avatica.AvaticaParameter;
-import net.hydromatic.avatica.ColumnMetaData;
-import net.hydromatic.avatica.Helper;
+import org.apache.calcite.DataContext;
+import org.apache.calcite.adapter.enumerable.EnumerableConvention;
+import org.apache.calcite.adapter.enumerable.EnumerableRel;
+import org.apache.calcite.adapter.enumerable.EnumerableRelImplementor;
+import org.apache.calcite.adapter.enumerable.EnumerableRules;
+import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
+import org.apache.calcite.adapter.java.JavaTypeFactory;
+import org.apache.calcite.avatica.AvaticaParameter;
+import org.apache.calcite.avatica.ColumnMetaData;
+import org.apache.calcite.avatica.Helper;
+import org.apache.calcite.config.CalciteConnectionConfig;
+import org.apache.calcite.jdbc.CalcitePrepare;
+import org.apache.calcite.jdbc.CalciteSchema;
+import org.apache.calcite.linq4j.Enumerable;
+import org.apache.calcite.linq4j.Linq4j;
+import org.apache.calcite.linq4j.Ord;
+import org.apache.calcite.linq4j.Queryable;
+import org.apache.calcite.linq4j.function.Function1;
+import org.apache.calcite.linq4j.tree.BinaryExpression;
+import org.apache.calcite.linq4j.tree.BlockStatement;
+import org.apache.calcite.linq4j.tree.Blocks;
+import org.apache.calcite.linq4j.tree.ClassDeclaration;
+import org.apache.calcite.linq4j.tree.ConstantExpression;
+import org.apache.calcite.linq4j.tree.Expression;
+import org.apache.calcite.linq4j.tree.Expressions;
+import org.apache.calcite.linq4j.tree.MemberExpression;
+import org.apache.calcite.linq4j.tree.MethodCallExpression;
+import org.apache.calcite.linq4j.tree.NewExpression;
+import org.apache.calcite.linq4j.tree.ParameterExpression;
+import org.apache.calcite.materialize.MaterializationService;
+import org.apache.calcite.plan.Contexts;
+import org.apache.calcite.plan.Convention;
+import org.apache.calcite.plan.ConventionTraitDef;
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptCostFactory;
+import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.plan.RelOptQuery;
+import org.apache.calcite.plan.RelOptRule;
+import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.plan.hep.HepPlanner;
+import org.apache.calcite.plan.hep.HepProgramBuilder;
+import org.apache.calcite.plan.volcano.VolcanoPlanner;
+import org.apache.calcite.rel.RelCollationTraitDef;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.rules.AggregateExpandDistinctAggregatesRule;
+import org.apache.calcite.rel.rules.AggregateReduceFunctionsRule;
+import org.apache.calcite.rel.rules.AggregateStarTableRule;
+import org.apache.calcite.rel.rules.FilterAggregateTransposeRule;
+import org.apache.calcite.rel.rules.FilterJoinRule;
+import org.apache.calcite.rel.rules.FilterProjectTransposeRule;
+import org.apache.calcite.rel.rules.FilterTableRule;
+import org.apache.calcite.rel.rules.JoinAssociateRule;
+import org.apache.calcite.rel.rules.JoinCommuteRule;
+import org.apache.calcite.rel.rules.JoinPushThroughJoinRule;
+import org.apache.calcite.rel.rules.ProjectFilterTransposeRule;
+import org.apache.calcite.rel.rules.ProjectMergeRule;
+import org.apache.calcite.rel.rules.ProjectTableRule;
+import org.apache.calcite.rel.rules.ReduceExpressionsRule;
+import org.apache.calcite.rel.rules.SortProjectTransposeRule;
+import org.apache.calcite.rel.rules.TableScanRule;
+import org.apache.calcite.rel.rules.ValuesReduceRule;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rel.type.RelDataTypeFactoryImpl;
+import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.runtime.Bindable;
+import org.apache.calcite.runtime.Hook;
+import org.apache.calcite.runtime.Spaces;
+import org.apache.calcite.runtime.Typed;
+import org.apache.calcite.runtime.Utilities;
+import org.apache.calcite.schema.Schemas;
+import org.apache.calcite.server.CalciteServerStatement;
+import org.apache.calcite.sql.SqlBinaryOperator;
+import org.apache.calcite.sql.SqlExplainLevel;
+import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.parser.SqlParseException;
+import org.apache.calcite.sql.parser.SqlParser;
+import org.apache.calcite.sql.parser.impl.SqlParserImpl;
+import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.util.ChainedSqlOperatorTable;
+import org.apache.calcite.sql.validate.SqlConformance;
+import org.apache.calcite.sql.validate.SqlValidator;
+import org.apache.calcite.sql.validate.SqlValidatorImpl;
+import org.apache.calcite.sql2rel.SqlToRelConverter;
+import org.apache.calcite.sql2rel.StandardConvertletTable;
+import org.apache.calcite.tools.Frameworks;
+import org.apache.calcite.util.Util;
 
-import net.hydromatic.linq4j.*;
-import net.hydromatic.linq4j.expressions.*;
-import net.hydromatic.linq4j.function.Function1;
-
-import net.hydromatic.optiq.*;
-import net.hydromatic.optiq.config.OptiqConnectionConfig;
-import net.hydromatic.optiq.impl.java.JavaTypeFactory;
-import net.hydromatic.optiq.jdbc.OptiqPrepare;
-import net.hydromatic.optiq.jdbc.OptiqSchema;
-import net.hydromatic.optiq.materialize.MaterializationService;
-import net.hydromatic.optiq.rules.java.*;
-import net.hydromatic.optiq.runtime.*;
-import net.hydromatic.optiq.server.OptiqServerStatement;
-import net.hydromatic.optiq.tools.Frameworks;
-
-import org.eigenbase.rel.*;
-import org.eigenbase.rel.rules.*;
-import org.eigenbase.relopt.*;
-import org.eigenbase.relopt.hep.*;
-import org.eigenbase.relopt.volcano.VolcanoPlanner;
-import org.eigenbase.reltype.*;
-import org.eigenbase.rex.RexBuilder;
-import org.eigenbase.rex.RexNode;
-import org.eigenbase.sql.*;
-import org.eigenbase.sql.fun.SqlStdOperatorTable;
-import org.eigenbase.sql.parser.SqlParseException;
-import org.eigenbase.sql.parser.SqlParser;
-import org.eigenbase.sql.parser.impl.SqlParserImpl;
-import org.eigenbase.sql.type.*;
-import org.eigenbase.sql.util.ChainedSqlOperatorTable;
-import org.eigenbase.sql.validate.*;
-import org.eigenbase.sql2rel.SqlToRelConverter;
-import org.eigenbase.sql2rel.StandardConvertletTable;
-import org.eigenbase.util.Util;
-
-import com.google.common.collect.*;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Maps;
 
 import org.codehaus.commons.compiler.CompileException;
 import org.codehaus.commons.compiler.CompilerFactoryFactory;
@@ -69,7 +127,11 @@ import java.io.StringReader;
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
 import java.sql.DatabaseMetaData;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * Shit just got real.
@@ -78,7 +140,7 @@ import java.util.*;
  * and server can fine-tune preferences. However, this class and its methods are
  * subject to change without notice.</p>
  */
-public class OptiqPrepareImpl implements OptiqPrepare {
+public class CalcitePrepareImpl implements CalcitePrepare {
 
   public static final boolean DEBUG =
       "true".equals(System.getProperties().getProperty("calcite.debug"));
@@ -104,43 +166,43 @@ public class OptiqPrepareImpl implements OptiqPrepare {
 
   private static final List<RelOptRule> DEFAULT_RULES =
       ImmutableList.of(
-          JavaRules.ENUMERABLE_JOIN_RULE,
-          JavaRules.ENUMERABLE_SEMI_JOIN_RULE,
-          JavaRules.ENUMERABLE_PROJECT_RULE,
-          JavaRules.ENUMERABLE_FILTER_RULE,
-          JavaRules.ENUMERABLE_AGGREGATE_RULE,
-          JavaRules.ENUMERABLE_SORT_RULE,
-          JavaRules.ENUMERABLE_LIMIT_RULE,
-          JavaRules.ENUMERABLE_COLLECT_RULE,
-          JavaRules.ENUMERABLE_UNCOLLECT_RULE,
-          JavaRules.ENUMERABLE_UNION_RULE,
-          JavaRules.ENUMERABLE_INTERSECT_RULE,
-          JavaRules.ENUMERABLE_MINUS_RULE,
-          JavaRules.ENUMERABLE_TABLE_MODIFICATION_RULE,
-          JavaRules.ENUMERABLE_VALUES_RULE,
-          JavaRules.ENUMERABLE_WINDOW_RULE,
-          JavaRules.ENUMERABLE_ONE_ROW_RULE,
-          JavaRules.ENUMERABLE_EMPTY_RULE,
-          JavaRules.ENUMERABLE_TABLE_FUNCTION_RULE,
+          EnumerableRules.ENUMERABLE_JOIN_RULE,
+          EnumerableRules.ENUMERABLE_SEMI_JOIN_RULE,
+          EnumerableRules.ENUMERABLE_PROJECT_RULE,
+          EnumerableRules.ENUMERABLE_FILTER_RULE,
+          EnumerableRules.ENUMERABLE_AGGREGATE_RULE,
+          EnumerableRules.ENUMERABLE_SORT_RULE,
+          EnumerableRules.ENUMERABLE_LIMIT_RULE,
+          EnumerableRules.ENUMERABLE_COLLECT_RULE,
+          EnumerableRules.ENUMERABLE_UNCOLLECT_RULE,
+          EnumerableRules.ENUMERABLE_UNION_RULE,
+          EnumerableRules.ENUMERABLE_INTERSECT_RULE,
+          EnumerableRules.ENUMERABLE_MINUS_RULE,
+          EnumerableRules.ENUMERABLE_TABLE_MODIFICATION_RULE,
+          EnumerableRules.ENUMERABLE_VALUES_RULE,
+          EnumerableRules.ENUMERABLE_WINDOW_RULE,
+          EnumerableRules.ENUMERABLE_ONE_ROW_RULE,
+          EnumerableRules.ENUMERABLE_EMPTY_RULE,
+          EnumerableRules.ENUMERABLE_TABLE_FUNCTION_SCAN_RULE,
           AggregateStarTableRule.INSTANCE,
           AggregateStarTableRule.INSTANCE2,
-          TableAccessRule.INSTANCE,
+          TableScanRule.INSTANCE,
           COMMUTE
-              ? CommutativeJoinRule.INSTANCE
-              : MergeProjectRule.INSTANCE,
+              ? JoinAssociateRule.INSTANCE
+              : ProjectMergeRule.INSTANCE,
           FilterTableRule.INSTANCE,
           ProjectTableRule.INSTANCE,
           ProjectTableRule.INSTANCE2,
-          PushProjectPastFilterRule.INSTANCE,
-          PushFilterPastProjectRule.INSTANCE,
-          PushFilterPastJoinRule.FILTER_ON_JOIN,
-          RemoveDistinctAggregateRule.INSTANCE,
-          ReduceAggregatesRule.INSTANCE,
+          ProjectFilterTransposeRule.INSTANCE,
+          FilterProjectTransposeRule.INSTANCE,
+          FilterJoinRule.FILTER_ON_JOIN,
+          AggregateExpandDistinctAggregatesRule.INSTANCE,
+          AggregateReduceFunctionsRule.INSTANCE,
           FilterAggregateTransposeRule.INSTANCE,
-          SwapJoinRule.INSTANCE,
-          PushJoinThroughJoinRule.RIGHT,
-          PushJoinThroughJoinRule.LEFT,
-          PushSortPastProjectRule.INSTANCE);
+          JoinCommuteRule.INSTANCE,
+          JoinPushThroughJoinRule.RIGHT,
+          JoinPushThroughJoinRule.LEFT,
+          SortProjectTransposeRule.INSTANCE);
 
   private static final List<RelOptRule> CONSTANT_REDUCTION_RULES =
       ImmutableList.of(
@@ -148,11 +210,11 @@ public class OptiqPrepareImpl implements OptiqPrepare {
           ReduceExpressionsRule.FILTER_INSTANCE,
           ReduceExpressionsRule.CALC_INSTANCE,
           ReduceExpressionsRule.JOIN_INSTANCE,
-          ReduceValuesRule.FILTER_INSTANCE,
-          ReduceValuesRule.PROJECT_FILTER_INSTANCE,
-          ReduceValuesRule.PROJECT_INSTANCE);
+          ValuesReduceRule.FILTER_INSTANCE,
+          ValuesReduceRule.PROJECT_FILTER_INSTANCE,
+          ValuesReduceRule.PROJECT_INSTANCE);
 
-  public OptiqPrepareImpl() {
+  public CalcitePrepareImpl() {
   }
 
   public ParseResult parse(
@@ -167,8 +229,8 @@ public class OptiqPrepareImpl implements OptiqPrepare {
   /** Shared implementation for {@link #parse} and {@link #convert}. */
   private ParseResult parse_(Context context, String sql, boolean convert) {
     final JavaTypeFactory typeFactory = context.getTypeFactory();
-    OptiqCatalogReader catalogReader =
-        new OptiqCatalogReader(
+    CalciteCatalogReader catalogReader =
+        new CalciteCatalogReader(
             context.getRootSchema(),
             context.config().caseSensitive(),
             context.getDefaultSchemaPath(),
@@ -181,15 +243,15 @@ public class OptiqPrepareImpl implements OptiqPrepare {
       throw new RuntimeException("parse failed", e);
     }
     final SqlValidator validator =
-        new OptiqSqlValidator(
+        new CalciteSqlValidator(
             SqlStdOperatorTable.instance(), catalogReader, typeFactory);
     SqlNode sqlNode1 = validator.validate(sqlNode);
     if (!convert) {
       return new ParseResult(this, validator, sql, sqlNode1,
           validator.getValidatedNodeType(sqlNode1));
     }
-    final OptiqPreparingStmt preparingStmt =
-        new OptiqPreparingStmt(
+    final CalcitePreparingStmt preparingStmt =
+        new CalcitePreparingStmt(
             context,
             catalogReader,
             typeFactory,
@@ -215,7 +277,7 @@ public class OptiqPrepareImpl implements OptiqPrepare {
    * complex planner for complex and costly queries.</p>
    *
    * <p>The default implementation returns a factory that calls
-   * {@link #createPlanner(net.hydromatic.optiq.jdbc.OptiqPrepare.Context)}.</p>
+   * {@link #createPlanner(org.apache.calcite.jdbc.CalcitePrepare.Context)}.</p>
    */
   protected List<Function1<Context, RelOptPlanner>> createPlannerFactories() {
     return Collections.<Function1<Context, RelOptPlanner>>singletonList(
@@ -228,15 +290,15 @@ public class OptiqPrepareImpl implements OptiqPrepare {
 
   /** Creates a query planner and initializes it with a default set of
    * rules. */
-  protected RelOptPlanner createPlanner(OptiqPrepare.Context prepareContext) {
+  protected RelOptPlanner createPlanner(CalcitePrepare.Context prepareContext) {
     return createPlanner(prepareContext, null, null);
   }
 
   /** Creates a query planner and initializes it with a default set of
    * rules. */
   protected RelOptPlanner createPlanner(
-      final OptiqPrepare.Context prepareContext,
-      org.eigenbase.relopt.Context externalContext,
+      final CalcitePrepare.Context prepareContext,
+      org.apache.calcite.plan.Context externalContext,
       RelOptCostFactory costFactory) {
     if (externalContext == null) {
       externalContext = Contexts.withConfig(prepareContext.config());
@@ -301,8 +363,8 @@ public class OptiqPrepareImpl implements OptiqPrepare {
       return simplePrepare(context, sql);
     }
     final JavaTypeFactory typeFactory = context.getTypeFactory();
-    OptiqCatalogReader catalogReader =
-        new OptiqCatalogReader(
+    CalciteCatalogReader catalogReader =
+        new CalciteCatalogReader(
             context.getRootSchema(),
             context.config().caseSensitive(),
             context.getDefaultSchemaPath(),
@@ -319,8 +381,7 @@ public class OptiqPrepareImpl implements OptiqPrepare {
         throw new AssertionError("factory returned null planner");
       }
       try {
-        return prepare2_(
-            context, sql, queryable, elementType, maxRowCount,
+        return prepare2_(context, sql, queryable, elementType, maxRowCount,
             catalogReader, planner);
       } catch (RelOptPlanner.CannotPlanException e) {
         exception = e;
@@ -361,7 +422,7 @@ public class OptiqPrepareImpl implements OptiqPrepare {
       Queryable<T> queryable,
       Type elementType,
       int maxRowCount,
-      OptiqCatalogReader catalogReader,
+      CalciteCatalogReader catalogReader,
       RelOptPlanner planner) {
     final JavaTypeFactory typeFactory = context.getTypeFactory();
     final EnumerableRel.Prefer prefer;
@@ -370,8 +431,8 @@ public class OptiqPrepareImpl implements OptiqPrepare {
     } else {
       prefer = EnumerableRel.Prefer.CUSTOM;
     }
-    final OptiqPreparingStmt preparingStmt =
-        new OptiqPreparingStmt(
+    final CalcitePreparingStmt preparingStmt =
+        new CalcitePreparingStmt(
             context,
             catalogReader,
             typeFactory,
@@ -384,7 +445,7 @@ public class OptiqPrepareImpl implements OptiqPrepare {
     final Prepare.PreparedResult preparedResult;
     if (sql != null) {
       assert queryable == null;
-      final OptiqConnectionConfig config = context.config();
+      final CalciteConnectionConfig config = context.config();
       SqlParser parser = SqlParser.create(SqlParserImpl.FACTORY, sql,
           config.quoting(), config.unquotedCasing(), config.quotedCasing());
       SqlNode sqlNode;
@@ -397,12 +458,12 @@ public class OptiqPrepareImpl implements OptiqPrepare {
 
       Hook.PARSE_TREE.run(new Object[] {sql, sqlNode});
 
-      final OptiqSchema rootSchema = context.getRootSchema();
+      final CalciteSchema rootSchema = context.getRootSchema();
       final ChainedSqlOperatorTable opTab =
           new ChainedSqlOperatorTable(
               ImmutableList.of(SqlStdOperatorTable.instance(), catalogReader));
       final SqlValidator validator =
-          new OptiqSqlValidator(opTab, catalogReader, typeFactory);
+          new CalciteSqlValidator(opTab, catalogReader, typeFactory);
       validator.setIdentifierExpansion(true);
 
       final List<Prepare.Materialization> materializations =
@@ -412,7 +473,7 @@ public class OptiqPrepareImpl implements OptiqPrepare {
       for (Prepare.Materialization materialization : materializations) {
         populateMaterializations(context, planner, materialization);
       }
-      final List<OptiqSchema.LatticeEntry> lattices =
+      final List<CalciteSchema.LatticeEntry> lattices =
           Schemas.getLatticeEntries(rootSchema);
       preparedResult = preparingStmt.prepareSql(
           sqlNode, Object.class, validator, true, materializations, lattices);
@@ -573,15 +634,15 @@ public class OptiqPrepareImpl implements OptiqPrepare {
     // REVIEW: initialize queryRel and tableRel inside MaterializationService,
     // not here?
     try {
-      final OptiqSchema schema = materialization.materializedTable.schema;
-      OptiqCatalogReader catalogReader =
-          new OptiqCatalogReader(
+      final CalciteSchema schema = materialization.materializedTable.schema;
+      CalciteCatalogReader catalogReader =
+          new CalciteCatalogReader(
               schema.root(),
               context.config().caseSensitive(),
               Util.skipLast(materialization.materializedTable.path()),
               context.getTypeFactory());
-      final OptiqMaterializer materializer =
-          new OptiqMaterializer(context, catalogReader, schema, planner);
+      final CalciteMaterializer materializer =
+          new CalciteMaterializer(context, catalogReader, schema, planner);
       materializer.populate(materialization);
     } catch (Exception e) {
       throw new RuntimeException("While populating materialization "
@@ -599,13 +660,13 @@ public class OptiqPrepareImpl implements OptiqPrepare {
   }
 
   /** Executes a prepare action. */
-  public <R> R perform(OptiqServerStatement statement,
+  public <R> R perform(CalciteServerStatement statement,
       Frameworks.PrepareAction<R> action) {
-    final OptiqPrepare.Context prepareContext =
+    final CalcitePrepare.Context prepareContext =
         statement.createPrepareContext();
     final JavaTypeFactory typeFactory = prepareContext.getTypeFactory();
-    OptiqCatalogReader catalogReader =
-        new OptiqCatalogReader(prepareContext.getRootSchema(),
+    CalciteCatalogReader catalogReader =
+        new CalciteCatalogReader(prepareContext.getRootSchema(),
             prepareContext.config().caseSensitive(),
             prepareContext.getDefaultSchemaPath(),
             typeFactory);
@@ -621,11 +682,12 @@ public class OptiqPrepareImpl implements OptiqPrepare {
         prepareContext.getRootSchema().plus(), statement);
   }
 
-  static class OptiqPreparingStmt extends Prepare
+  /** Holds state for the process of preparing a SQL statement. */
+  static class CalcitePreparingStmt extends Prepare
       implements RelOptTable.ViewExpander {
     private final RelOptPlanner planner;
     private final RexBuilder rexBuilder;
-    protected final OptiqSchema schema;
+    protected final CalciteSchema schema;
     protected final RelDataTypeFactory typeFactory;
     private final EnumerableRel.Prefer prefer;
     private final Map<String, Object> internalParameters =
@@ -633,10 +695,10 @@ public class OptiqPrepareImpl implements OptiqPrepare {
     private int expansionDepth;
     private SqlValidator sqlValidator;
 
-    public OptiqPreparingStmt(Context context,
+    public CalcitePreparingStmt(Context context,
         CatalogReader catalogReader,
         RelDataTypeFactory typeFactory,
-        OptiqSchema schema,
+        CalciteSchema schema,
         EnumerableRel.Prefer prefer,
         RelOptPlanner planner,
         Convention resultConvention) {
@@ -648,8 +710,7 @@ public class OptiqPrepareImpl implements OptiqPrepare {
       this.rexBuilder = new RexBuilder(typeFactory);
     }
 
-    @Override
-    protected void init(Class runtimeContextClass) {
+    @Override protected void init(Class runtimeContextClass) {
     }
 
     public PreparedResult prepareQueryable(
@@ -665,7 +726,7 @@ public class OptiqPrepareImpl implements OptiqPrepare {
               rexBuilder.getTypeFactory(), rexBuilder);
 
       RelNode rootRel =
-          new LixToRelTranslator(cluster, OptiqPreparingStmt.this)
+          new LixToRelTranslator(cluster, CalcitePreparingStmt.this)
               .translate(queryable);
 
       if (timingTracer != null) {
@@ -685,7 +746,7 @@ public class OptiqPrepareImpl implements OptiqPrepare {
       rootRel = trimUnusedFields(rootRel);
 
       final List<Materialization> materializations = ImmutableList.of();
-      final List<OptiqSchema.LatticeEntry> lattices = ImmutableList.of();
+      final List<CalciteSchema.LatticeEntry> lattices = ImmutableList.of();
       rootRel = optimize(resultType, rootRel, materializations, lattices);
 
       if (timingTracer != null) {
@@ -698,8 +759,7 @@ public class OptiqPrepareImpl implements OptiqPrepare {
           SqlKind.SELECT);
     }
 
-    @Override
-    protected SqlToRelConverter getSqlToRelConverter(
+    @Override protected SqlToRelConverter getSqlToRelConverter(
         SqlValidator validator,
         CatalogReader catalogReader) {
       SqlToRelConverter sqlToRelConverter =
@@ -710,19 +770,16 @@ public class OptiqPrepareImpl implements OptiqPrepare {
       return sqlToRelConverter;
     }
 
-    @Override
-    protected EnumerableRelImplementor getRelImplementor(
+    @Override protected EnumerableRelImplementor getRelImplementor(
         RexBuilder rexBuilder) {
       return new EnumerableRelImplementor(rexBuilder, internalParameters);
     }
 
-    @Override
-    protected boolean shouldAlwaysWriteJavaFile() {
+    @Override protected boolean shouldAlwaysWriteJavaFile() {
       return false;
     }
 
-    @Override
-    public RelNode flattenTypes(
+    @Override public RelNode flattenTypes(
         RelNode rootRel,
         boolean restructure) {
       final SparkHandler spark = context.spark();
@@ -771,27 +828,24 @@ public class OptiqPrepareImpl implements OptiqPrepare {
           rexBuilder.getTypeFactory(), SqlConformance.DEFAULT) { };
     }
 
-    @Override
-    protected SqlValidator getSqlValidator() {
+    @Override protected SqlValidator getSqlValidator() {
       if (sqlValidator == null) {
         sqlValidator = createSqlValidator(catalogReader);
       }
       return sqlValidator;
     }
 
-    @Override
-    protected PreparedResult createPreparedExplanation(
+    @Override protected PreparedResult createPreparedExplanation(
         RelDataType resultType,
         RelDataType parameterRowType,
         RelNode rootRel,
         boolean explainAsXml,
         SqlExplainLevel detailLevel) {
-      return new OptiqPreparedExplain(
+      return new CalcitePreparedExplain(
           resultType, parameterRowType, rootRel, explainAsXml, detailLevel);
     }
 
-    @Override
-    protected PreparedResult implement(
+    @Override protected PreparedResult implement(
         RelDataType rowType,
         RelNode rootRel,
         SqlKind sqlKind) {
@@ -897,8 +951,9 @@ public class OptiqPrepareImpl implements OptiqPrepare {
     }
   }
 
-  private static class OptiqPreparedExplain extends Prepare.PreparedExplain {
-    public OptiqPreparedExplain(
+  /** An {@code EXPLAIN} statement, prepared and ready to execute. */
+  private static class CalcitePreparedExplain extends Prepare.PreparedExplain {
+    public CalcitePreparedExplain(
         RelDataType resultType,
         RelDataType parameterRowType,
         RelNode rootRel,
@@ -907,7 +962,6 @@ public class OptiqPrepareImpl implements OptiqPrepare {
       super(resultType, parameterRowType, rootRel, explainAsXml, detailLevel);
     }
 
-    @Override
     public Bindable getBindable() {
       final String explanation = getCode();
       return new Bindable() {
@@ -918,14 +972,16 @@ public class OptiqPrepareImpl implements OptiqPrepare {
     }
   }
 
+  /** Translator from Java AST to {@link RexNode}. */
   interface ScalarTranslator {
     RexNode toRex(BlockStatement statement);
     List<RexNode> toRexList(BlockStatement statement);
     RexNode toRex(Expression expression);
-    ScalarTranslator bind(
-        List<ParameterExpression> parameterList, List<RexNode> values);
+    ScalarTranslator bind(List<ParameterExpression> parameterList,
+        List<RexNode> values);
   }
 
+  /** Basic translator. */
   static class EmptyScalarTranslator implements ScalarTranslator {
     private final RexBuilder rexBuilder;
 
@@ -1047,6 +1103,7 @@ public class OptiqPrepareImpl implements OptiqPrepare {
     }
   }
 
+  /** Translator that looks for parameters. */
   private static class LambdaScalarTranslator extends EmptyScalarTranslator {
     private final List<ParameterExpression> parameterList;
     private final List<RexNode> values;
@@ -1070,4 +1127,4 @@ public class OptiqPrepareImpl implements OptiqPrepare {
   }
 }
 
-// End OptiqPrepareImpl.java
+// End CalcitePrepareImpl.java

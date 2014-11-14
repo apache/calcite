@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.linq4j;
+package org.apache.calcite.linq4j;
 
-import net.hydromatic.linq4j.expressions.Expression;
+import org.apache.calcite.linq4j.tree.Expression;
 
 import java.lang.reflect.Type;
 
@@ -31,7 +31,7 @@ public interface QueryProvider {
    * Constructs a {@link Queryable} object that can evaluate the query
    * represented by a specified expression tree.
    *
-   * <p>NOTE: The {@link net.hydromatic.linq4j.Queryable#getExpression()}
+   * <p>NOTE: The {@link org.apache.calcite.linq4j.Queryable#getExpression()}
    * property of the returned {@link Queryable} object is equal to
    * {@code expression}.</p>
    *
@@ -67,7 +67,7 @@ public interface QueryProvider {
    *
    * <p>The Queryable standard query operator methods that return singleton
    * results call {@code execute}. They pass it a
-   * {@link net.hydromatic.linq4j.expressions.MethodCallExpression}
+   * {@link org.apache.calcite.linq4j.tree.MethodCallExpression}
    * that represents a linq4j query.
    */
   <T> T execute(Expression expression, Class<T> type);

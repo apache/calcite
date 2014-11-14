@@ -14,14 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql.type;
+package org.apache.calcite.sql.type;
 
-import java.util.List;
-
-import org.eigenbase.reltype.*;
-import org.eigenbase.sql.*;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.sql.SqlOperatorBinding;
 
 import com.google.common.collect.ImmutableList;
+
+import java.util.List;
 
 /**
  * Returns the first type that matches a set of given {@link SqlTypeName}s. If

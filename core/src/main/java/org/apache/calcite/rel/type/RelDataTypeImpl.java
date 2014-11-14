@@ -14,20 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.reltype;
+package org.apache.calcite.rel.type;
 
-import java.io.*;
-import java.nio.charset.*;
-import java.util.*;
-
-import org.eigenbase.sql.*;
-import org.eigenbase.sql.parser.*;
-import org.eigenbase.sql.type.*;
-import org.eigenbase.util.Pair;
-import org.eigenbase.util.Util;
+import org.apache.calcite.sql.SqlCollation;
+import org.apache.calcite.sql.SqlIdentifier;
+import org.apache.calcite.sql.SqlIntervalQualifier;
+import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.type.BasicSqlType;
+import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.util.Pair;
+import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
+
+import java.io.Serializable;
+import java.nio.charset.Charset;
+import java.util.List;
 
 /**
  * RelDataTypeImpl is an abstract base for implementations of
@@ -60,8 +63,8 @@ public abstract class RelDataTypeImpl
   }
 
   /**
-   * Default constructor, to allow derived classes such as {@link
-   * BasicSqlType} to be {@link Serializable}.
+   * Default constructor, to allow derived classes such as
+   * {@link BasicSqlType} to be {@link Serializable}.
    *
    * <p>(The serialization specification says that a class can be serializable
    * even if its base class is not serializable, provided that the base class
@@ -269,8 +272,8 @@ public abstract class RelDataTypeImpl
     };
   }
 
-  /** Returns a {@link org.eigenbase.reltype.RelProtoDataType} that will create
-   * a type {@code typeName}.
+  /** Returns a {@link org.apache.calcite.rel.type.RelProtoDataType}
+   * that will create a type {@code typeName}.
    *
    * <p>For example, {@code proto(SqlTypeName.DATE), false}
    * will create {@code DATE NOT NULL}.</p>
@@ -290,8 +293,8 @@ public abstract class RelDataTypeImpl
     };
   }
 
-  /** Returns a {@link org.eigenbase.reltype.RelProtoDataType} that will create
-   * a type {@code typeName(precision)}.
+  /** Returns a {@link org.apache.calcite.rel.type.RelProtoDataType}
+   * that will create a type {@code typeName(precision)}.
    *
    * <p>For example, {@code proto(SqlTypeName.VARCHAR, 100, false)}
    * will create {@code VARCHAR(100) NOT NULL}.</p>
@@ -312,8 +315,8 @@ public abstract class RelDataTypeImpl
     };
   }
 
-  /** Returns a {@link org.eigenbase.reltype.RelProtoDataType} that will create
-   * a type {@code typeName(precision, scale)}.
+  /** Returns a {@link org.apache.calcite.rel.type.RelProtoDataType}
+   * that will create a type {@code typeName(precision, scale)}.
    *
    * <p>For example, {@code proto(SqlTypeName.DECIMAL, 7, 2, false)}
    * will create {@code DECIMAL(7, 2) NOT NULL}.</p>

@@ -14,23 +14,51 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.relopt.hep;
+package org.apache.calcite.plan.hep;
 
-import java.util.*;
-import java.util.logging.*;
-
-import org.eigenbase.rel.*;
-import org.eigenbase.rel.convert.*;
-import org.eigenbase.rel.metadata.*;
-import org.eigenbase.relopt.*;
-import org.eigenbase.util.*;
-
-import net.hydromatic.linq4j.function.Function2;
-import net.hydromatic.linq4j.function.Functions;
-
-import net.hydromatic.optiq.util.graph.*;
+import org.apache.calcite.linq4j.function.Function2;
+import org.apache.calcite.linq4j.function.Functions;
+import org.apache.calcite.plan.AbstractRelOptPlanner;
+import org.apache.calcite.plan.CommonRelSubExprRule;
+import org.apache.calcite.plan.Context;
+import org.apache.calcite.plan.RelOptCost;
+import org.apache.calcite.plan.RelOptCostFactory;
+import org.apache.calcite.plan.RelOptCostImpl;
+import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.plan.RelOptRule;
+import org.apache.calcite.plan.RelOptRuleOperand;
+import org.apache.calcite.plan.RelTrait;
+import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.convert.Converter;
+import org.apache.calcite.rel.convert.ConverterRule;
+import org.apache.calcite.rel.convert.TraitMatchingRule;
+import org.apache.calcite.rel.metadata.RelMetadataProvider;
+import org.apache.calcite.rel.metadata.RelMetadataQuery;
+import org.apache.calcite.util.Pair;
+import org.apache.calcite.util.Util;
+import org.apache.calcite.util.graph.BreadthFirstIterator;
+import org.apache.calcite.util.graph.CycleDetector;
+import org.apache.calcite.util.graph.DefaultDirectedGraph;
+import org.apache.calcite.util.graph.DefaultEdge;
+import org.apache.calcite.util.graph.DepthFirstIterator;
+import org.apache.calcite.util.graph.DirectedGraph;
+import org.apache.calcite.util.graph.Graphs;
+import org.apache.calcite.util.graph.TopologicalOrderIterator;
 
 import com.google.common.collect.ImmutableList;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.logging.Level;
 
 /**
  * HepPlanner is a heuristic implementation of the {@link RelOptPlanner}
@@ -218,8 +246,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
       instruction.rule =
           getRuleByDescription(instruction.ruleDescription);
       if (LOGGER.isLoggable(Level.FINEST)) {
-        LOGGER.finest(
-            "Looking up rule with description "
+        LOGGER.finest("Looking up rule with description "
             + instruction.ruleDescription
             + ", found " + instruction.rule);
       }
@@ -504,7 +531,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
     List<HepRelVertex> parents = Graphs.predecessorListOf(graph, vertex);
     for (HepRelVertex parent : parents) {
       RelNode parentRel = parent.getCurrentRel();
-      if (parentRel instanceof ConverterRel) {
+      if (parentRel instanceof Converter) {
         // We don't support converter chains.
         continue;
       }
@@ -653,7 +680,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
     for (HepRelVertex parent : allParents) {
       if (parentTrait != null) {
         RelNode parentRel = parent.getCurrentRel();
-        if (parentRel instanceof ConverterRel) {
+        if (parentRel instanceof Converter) {
           // We don't support automatically chaining conversions.
           // Treating a converter as a candidate parent here
           // can cause the "iParentMatch" check below to
@@ -673,7 +700,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
 
     // There's a chance that newVertex is the same as one
     // of the parents due to common subexpression recognition
-    // (e.g. the ProjectRel added by SwapJoinRule).  In that
+    // (e.g. the LogicalProject added by JoinCommuteRule).  In that
     // case, treat the transformation as a nop to avoid
     // creating a loop.
     int iParentMatch = parents.indexOf(newVertex);
@@ -911,7 +938,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
 
     throw Util.newInternal(
         "Query graph cycle detected in HepPlanner:  "
-        + cyclicVertices);
+            + cyclicVertices);
   }
 
   private void dumpGraph() {

@@ -14,22 +14,46 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.test.concurrent;
+package org.apache.calcite.test.concurrent;
 
-import java.io.*;
-import java.sql.*;
-import java.util.*;
-import java.util.regex.*;
+import org.apache.calcite.jdbc.SqlTimeoutException;
+import org.apache.calcite.util.Util;
 
-import org.eigenbase.util.Util;
-
-import net.hydromatic.optiq.jdbc.SqlTimeoutException;
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
+import java.io.StringReader;
+import java.io.StringWriter;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Stack;
+import java.util.StringTokenizer;
+import java.util.TreeMap;
+import java.util.TreeSet;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
- * ConcurrentTestCommandScript creates instances of {@link
- * ConcurrentTestCommand} that perform specific actions in a specific
- * order and within the context of a test thread ({@link
- * ConcurrentTestCommandExecutor}).
+ * ConcurrentTestCommandScript creates instances of
+ * {@link ConcurrentTestCommand} that perform specific actions in a specific
+ * order and within the context of a test thread
+ * ({@link ConcurrentTestCommandExecutor}).
  *
  * <p>Actions are loaded from a script (see package javadoc for script format).
  *
@@ -333,7 +357,7 @@ public class ConcurrentTestCommandScript
     executeCommands(CLEANUP_THREAD_ID, cleanupCommands);
   }
 
-  protected void executeCommands(int threadID, List<String> commands)
+  protected void executeCommands(int threadId, List<String> commands)
       throws Exception {
     if (commands == null || commands.size() == 0) {
       return;
@@ -348,7 +372,7 @@ public class ConcurrentTestCommandScript
     try {
       for (String command : commands) {
         String sql = command.trim();
-        storeSql(threadID, sql);
+        storeSql(threadId, sql);
 
         if (isComment(sql)) {
           continue;
@@ -375,7 +399,7 @@ public class ConcurrentTestCommandScript
           Statement stmt = connection.createStatement();
           try {
             ResultSet rset = stmt.executeQuery(sql);
-            storeResults(threadID, rset, -1);
+            storeResults(threadId, rset, -1);
           } finally {
             stmt.close();
           }
@@ -388,16 +412,14 @@ public class ConcurrentTestCommandScript
           try {
             int rows = stmt.executeUpdate(sql);
             if (rows != 1) {
-              storeMessage(
-                  threadID,
-                  String.valueOf(rows)
-                      + " rows affected.");
+              storeMessage(threadId,
+                  String.valueOf(rows) + " rows affected.");
             } else {
-              storeMessage(threadID, "1 row affected.");
+              storeMessage(threadId, "1 row affected.");
             }
           } catch (SQLException ex) {
             if (forced) {
-              storeMessage(threadID, ex.getMessage()); // swallow
+              storeMessage(threadId, ex.getMessage()); // swallow
             } else {
               throw ex;
             }
@@ -546,8 +568,8 @@ public class ConcurrentTestCommandScript
   }
 
   /**
-   * Causes errors to be send here for custom handling. See {@link
-   * #customErrorHandler(ConcurrentTestCommandExecutor)}.
+   * Causes errors to be send here for custom handling. See
+   * {@link #customErrorHandler(ConcurrentTestCommandExecutor)}.
    */
   boolean requiresCustomErrorHandling() {
     return true;
@@ -640,6 +662,7 @@ public class ConcurrentTestCommandScript
 
   //~ Inner Classes ----------------------------------------------------------
 
+  /** State action. */
   private static class StateAction {
     final String state;
     final StateDatum[] stateData;
@@ -650,6 +673,7 @@ public class ConcurrentTestCommandScript
     }
   }
 
+  /** State datum. */
   private static class StateDatum {
     final String x;
     final String y;
@@ -661,8 +685,7 @@ public class ConcurrentTestCommandScript
   }
 
 
-  // Inner Class: a symbol table of script variables
-
+  /** Symbol table of script variables. */
   private class VariableTable {
     private final Map<String, String> map;
 
@@ -674,6 +697,7 @@ public class ConcurrentTestCommandScript
       map = new HashMap<String, String>();
     }
 
+    /** Exception. */
     public class Excn extends IllegalArgumentException {
       public Excn(String msg) {
         super(msg);
@@ -751,8 +775,7 @@ public class ConcurrentTestCommandScript
   }
 
 
-  // Inner Class: the command parser
-
+  /** Command parser. */
   private class CommandParser {
     final Pattern splitWords = Pattern.compile("\\s+");
     final Pattern splitBinding = Pattern.compile("=");
@@ -769,6 +792,7 @@ public class ConcurrentTestCommandScript
     private boolean scriptHasVars;
     private Stack<File> currentDirectory = new Stack<File>();
 
+    /** Binding of a value to a variable. */
     private class Binding {
       public final String var;
       public final String val;
@@ -1335,13 +1359,14 @@ public class ConcurrentTestCommandScript
   }
 
 
-  // Inner Classes: the Commands
-
-  // When executed, a @print command defines how any following @fetch
-  // or @select commands will handle their resuult rows. MTSQL can print all
-  // rows, no rows, or every nth row. A printed row can be prefixed by a
-  // sequence nuber and/or the time it was received (a different notion than
-  // its rowtime, which often tells when it was inserted).
+  /** Print command.
+   *
+   * <p>When executed, a @print command defines how any following @fetch
+   * or @select commands will handle their resuult rows. MTSQL can print all
+   * rows, no rows, or every nth row. A printed row can be prefixed by a
+   * sequence nuber and/or the time it was received (a different notion than
+   * its rowtime, which often tells when it was inserted).
+   */
   private class PrintCommand extends AbstractCommand {
     // print every nth row: 1 means all rows, 0 means no rows.
     private final int nth;
@@ -1398,6 +1423,7 @@ public class ConcurrentTestCommandScript
     }
   }
 
+  /** Echo command. */
   private class EchoCommand extends AbstractCommand {
     private final String msg;
 
@@ -1411,6 +1437,7 @@ public class ConcurrentTestCommandScript
     }
   }
 
+  /** Plugin command. */
   private class PluginCommand extends AbstractCommand {
 
     private final ConcurrentTestPluginCommand pluginCommand;
@@ -1448,6 +1475,7 @@ public class ConcurrentTestCommandScript
   private final Pattern shellWildcardPattern = Pattern.compile("[*?$|<>&]");
 
   // REVIEW mb 2/24/09 (Mardi Gras) Should this have a timeout?
+  /** Shell command. */
   private class ShellCommand extends AbstractCommand {
     private final String command;
     private List<String> argv;      // the command, parsed and massaged
@@ -1492,19 +1520,17 @@ public class ConcurrentTestCommandScript
             Util.runAppProcess(
                 pb, null, null, getThreadWriter(threadId));
         if (status != 0) {
-          storeMessage(
-              threadId, "command " + command
-              + ": exited with status " + status);
+          storeMessage(threadId,
+              "command " + command + ": exited with status " + status);
         }
       } catch (Exception e) {
-        storeMessage(
-            threadId, "command " + command
-            + ": failed with exception " + e.getMessage());
+        storeMessage(threadId,
+            "command " + command + ": failed with exception " + e.getMessage());
       }
     }
   }
 
-
+  /** Command that has a timeout. */
   // TODO: replace by super.CommmandWithTimeout
   private abstract static class CommandWithTimeout extends AbstractCommand {
     private long timeout;
@@ -1527,6 +1553,7 @@ public class ConcurrentTestCommandScript
     }
   }
 
+  /** Command with timeout and row limit. */
   private abstract static class CommandWithTimeoutAndRowLimit
       extends CommandWithTimeout {
     private int rowLimit;
@@ -1749,6 +1776,7 @@ public class ConcurrentTestCommandScript
     }
   }
 
+  /** Result reader. */
   private class ResultsReader {
     private final PrintWriter out;
     // print every Nth row. 1 means all rows, 0 means none.
@@ -1972,7 +2000,7 @@ public class ConcurrentTestCommandScript
   }
 
 
-  // Inner class: stand-alone client test tool
+  /** Standalone client test tool. */
   private static class Tool {
     boolean quiet = false;          // -q
     boolean verbose = false;        // -v

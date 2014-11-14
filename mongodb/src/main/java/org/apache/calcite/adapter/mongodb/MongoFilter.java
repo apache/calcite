@@ -14,27 +14,37 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.impl.mongodb;
+package org.apache.calcite.adapter.mongodb;
 
-import org.eigenbase.rel.*;
-import org.eigenbase.relopt.*;
-import org.eigenbase.rex.*;
-import org.eigenbase.util.JsonBuilder;
-import org.eigenbase.util.Pair;
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptCost;
+import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.Filter;
+import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexInputRef;
+import org.apache.calcite.rex.RexLiteral;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.util.JsonBuilder;
+import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
- * Implementation of a {@link org.eigenbase.rel.FilterRel} relational expression
- * in MongoDB.
+ * Implementation of a {@link org.apache.calcite.rel.core.Filter}
+ * relational expression in MongoDB.
  */
-public class MongoFilterRel
-    extends FilterRelBase
-    implements MongoRel {
-  public MongoFilterRel(
+public class MongoFilter extends Filter implements MongoRel {
+  public MongoFilter(
       RelOptCluster cluster,
       RelTraitSet traitSet,
       RelNode child,
@@ -44,18 +54,17 @@ public class MongoFilterRel
     assert getConvention() == child.getConvention();
   }
 
-  @Override
-  public RelOptCost computeSelfCost(RelOptPlanner planner) {
+  @Override public RelOptCost computeSelfCost(RelOptPlanner planner) {
     return super.computeSelfCost(planner).multiplyBy(0.1);
   }
 
-  public MongoFilterRel copy(RelTraitSet traitSet, RelNode input,
+  public MongoFilter copy(RelTraitSet traitSet, RelNode input,
       RexNode condition) {
-    return new MongoFilterRel(getCluster(), traitSet, input, condition);
+    return new MongoFilter(getCluster(), traitSet, input, condition);
   }
 
   public void implement(Implementor implementor) {
-    implementor.visitChild(0, getChild());
+    implementor.visitChild(0, getInput());
     Translator translator =
         new Translator(MongoRules.mongoFieldNames(getRowType()));
     String match = translator.translateMatch(condition);
@@ -202,4 +211,4 @@ public class MongoFilterRel
   }
 }
 
-// End MongoFilterRel.java
+// End MongoFilter.java

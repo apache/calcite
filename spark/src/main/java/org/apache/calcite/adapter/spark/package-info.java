@@ -18,6 +18,6 @@
 /**
  * Adapter based on the Apache Spark data management system.
  */
-package net.hydromatic.optiq.impl.spark;
+package org.apache.calcite.adapter.spark;
 
 // End package-info.java

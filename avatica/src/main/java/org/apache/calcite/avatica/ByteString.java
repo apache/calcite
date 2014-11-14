@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.avatica;
+package org.apache.calcite.avatica;
 
 import java.io.Serializable;
 import java.util.Arrays;
@@ -52,13 +52,11 @@ public class ByteString implements Comparable<ByteString>, Serializable {
     this.bytes = bytes;
   }
 
-  @Override
-  public int hashCode() {
+  @Override public int hashCode() {
     return Arrays.hashCode(bytes);
   }
 
-  @Override
-  public boolean equals(Object obj) {
+  @Override public boolean equals(Object obj) {
     return this == obj
         || obj instanceof ByteString
         && Arrays.equals(bytes, ((ByteString) obj).bytes);
@@ -83,8 +81,7 @@ public class ByteString implements Comparable<ByteString>, Serializable {
    *
    * @return Hexadecimal string
    */
-  @Override
-  public String toString() {
+  @Override public String toString() {
     return toString(16);
   }
 
@@ -141,8 +138,7 @@ public class ByteString implements Comparable<ByteString>, Serializable {
       "CloneDoesntCallSuperClone",
       "CloneDoesntDeclareCloneNotSupportedException"
   })
-  @Override
-  public Object clone() {
+  @Override public Object clone() {
     return this;
   }
 

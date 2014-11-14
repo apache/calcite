@@ -14,19 +14,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql.pretty;
+package org.apache.calcite.sql.pretty;
 
-import java.io.*;
-import java.lang.reflect.*;
-import java.util.*;
-import java.util.logging.*;
+import org.apache.calcite.runtime.Spaces;
+import org.apache.calcite.sql.SqlDialect;
+import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlWriter;
+import org.apache.calcite.sql.util.SqlBuilder;
+import org.apache.calcite.sql.util.SqlString;
+import org.apache.calcite.util.Util;
+import org.apache.calcite.util.trace.CalciteLogger;
 
-import org.eigenbase.sql.*;
-import org.eigenbase.sql.util.*;
-import org.eigenbase.trace.*;
-import org.eigenbase.util.*;
-
-import net.hydromatic.optiq.runtime.Spaces;
+import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Set;
+import java.util.Stack;
+import java.util.logging.Logger;
 
 /**
  * Pretty printer for SQL statements.
@@ -90,10 +99,11 @@ import net.hydromatic.optiq.runtime.Spaces;
  * </tr>
  * <tr>
  * <td>{@link #setSubqueryStyle SubqueryStyle}</td>
- * <td>Style for formatting sub-queries. Values are: {@link
- * org.eigenbase.sql.SqlWriter.SubqueryStyle#HYDE Hyde}, {@link
- * org.eigenbase.sql.SqlWriter.SubqueryStyle#BLACK Black}.</td>
- * <td>{@link org.eigenbase.sql.SqlWriter.SubqueryStyle#HYDE Hyde}</td>
+ * <td>Style for formatting sub-queries. Values are:
+ * {@link org.apache.calcite.sql.SqlWriter.SubqueryStyle#HYDE Hyde},
+ * {@link org.apache.calcite.sql.SqlWriter.SubqueryStyle#BLACK Black}.</td>
+ *
+ * <td>{@link org.apache.calcite.sql.SqlWriter.SubqueryStyle#HYDE Hyde}</td>
  * </tr>
  * <tr>
  * <td>{@link #setLineLength LineLength}</td>
@@ -106,9 +116,9 @@ import net.hydromatic.optiq.runtime.Spaces;
 public class SqlPrettyWriter implements SqlWriter {
   //~ Static fields/initializers ---------------------------------------------
 
-  protected static final EigenbaseLogger LOGGER =
-      new EigenbaseLogger(
-          Logger.getLogger("org.eigenbase.sql.pretty.SqlPrettyWriter"));
+  protected static final CalciteLogger LOGGER =
+      new CalciteLogger(
+          Logger.getLogger("org.apache.calcite.sql.pretty.SqlPrettyWriter"));
 
   /**
    * Bean holding the default property values.
@@ -182,8 +192,8 @@ public class SqlPrettyWriter implements SqlWriter {
   }
 
   /**
-   * Sets the subquery style. Default is {@link
-   * org.eigenbase.sql.SqlWriter.SubqueryStyle#HYDE}.
+   * Sets the subquery style. Default is
+   * {@link org.apache.calcite.sql.SqlWriter.SubqueryStyle#HYDE}.
    */
   public void setSubqueryStyle(SubqueryStyle subqueryStyle) {
     this.subqueryStyle = subqueryStyle;
@@ -299,7 +309,7 @@ public class SqlPrettyWriter implements SqlWriter {
       String key = propertyNames[i];
       final Object value = bean.get(key);
       final Object defaultValue = DEFAULT_BEAN.get(key);
-      if (Util.equal(value, defaultValue)) {
+      if (com.google.common.base.Objects.equal(value, defaultValue)) {
         continue;
       }
       if (count++ > 0) {
@@ -751,7 +761,7 @@ public class SqlPrettyWriter implements SqlWriter {
     Util.pre(
         frame == this.frame,
         "Frame " + endedFrame.frameType
-        + " does not match current frame " + this.frame.frameType);
+            + " does not match current frame " + this.frame.frameType);
     if (this.frame == null) {
       throw new RuntimeException("No list started");
     }
@@ -959,7 +969,7 @@ public class SqlPrettyWriter implements SqlWriter {
   //~ Inner Classes ----------------------------------------------------------
 
   /**
-   * Implementation of {@link org.eigenbase.sql.SqlWriter.Frame}.
+   * Implementation of {@link org.apache.calcite.sql.SqlWriter.Frame}.
    */
   protected class FrameImpl implements Frame {
     final FrameType frameType;

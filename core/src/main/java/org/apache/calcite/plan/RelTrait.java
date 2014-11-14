@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.relopt;
+package org.apache.calcite.plan;
 
 /**
  * RelTrait represents the manifestation of a relational expression trait within
@@ -27,9 +27,9 @@ package org.eigenbase.relopt;
  * an {@code enum} and no new RelTraits can be introduced at runtime, you need
  * not override {@link #hashCode()} and {@link #equals(Object)}. If, however,
  * new RelTrait instances are generated at runtime (e.g. based on state external
- * to the planner), you must implement {@link #hashCode()} and {@link
- * #equals(Object)} for proper {@link RelTraitDef#canonize canonization} of your
- * RelTrait objects.</p>
+ * to the planner), you must implement {@link #hashCode()} and
+ * {@link #equals(Object)} for proper {@link RelTraitDef#canonize canonization}
+ * of your RelTrait objects.</p>
  */
 public interface RelTrait {
   //~ Methods ----------------------------------------------------------------

@@ -14,42 +14,45 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel.rules;
+package org.apache.calcite.rel.rules;
 
-import org.eigenbase.rel.JoinRelBase;
-import org.eigenbase.rel.RelFactories;
-import org.eigenbase.rel.RelNode;
-import org.eigenbase.rel.metadata.RelMetadataQuery;
-import org.eigenbase.relopt.RelOptPredicateList;
-import org.eigenbase.relopt.RelOptRule;
-import org.eigenbase.relopt.RelOptRuleCall;
-import org.eigenbase.rex.RexBuilder;
-import org.eigenbase.rex.RexUtil;
+import org.apache.calcite.plan.RelOptPredicateList;
+import org.apache.calcite.plan.RelOptRule;
+import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.Join;
+import org.apache.calcite.rel.core.RelFactories;
+import org.apache.calcite.rel.metadata.RelMetadataQuery;
+import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexUtil;
 
 /**
- * A Rule to apply inferred predicates from
- * {@link org.eigenbase.rel.metadata.RelMdPredicates}.
+ * Planner rule that infers predicates from on a
+ * {@link org.apache.calcite.rel.core.Join} and creates
+ * {@link org.apache.calcite.rel.core.Filter}s if those predicates can be pushed
+ * to its inputs.
  *
- * <p>Predicates returned in {@link org.eigenbase.relopt.RelOptPredicateList}
- * are applied appropriately.
+ * <p>Uses {@link org.apache.calcite.rel.metadata.RelMdPredicates} to infer
+ * the predicates,
+ * returns them in a {@link org.apache.calcite.plan.RelOptPredicateList}
+ * and applies them appropriately.
  */
-public class TransitivePredicatesOnJoinRule extends RelOptRule {
+public class JoinPushTransitivePredicatesRule extends RelOptRule {
   private final RelFactories.FilterFactory filterFactory;
 
   /** The singleton. */
-  public static final TransitivePredicatesOnJoinRule INSTANCE =
-      new TransitivePredicatesOnJoinRule(JoinRelBase.class,
+  public static final JoinPushTransitivePredicatesRule INSTANCE =
+      new JoinPushTransitivePredicatesRule(Join.class,
           RelFactories.DEFAULT_FILTER_FACTORY);
 
-  public TransitivePredicatesOnJoinRule(Class<? extends JoinRelBase> clazz,
+  public JoinPushTransitivePredicatesRule(Class<? extends Join> clazz,
       RelFactories.FilterFactory filterFactory) {
     super(operand(clazz, any()));
     this.filterFactory = filterFactory;
   }
 
-  @Override
-  public void onMatch(RelOptRuleCall call) {
-    JoinRelBase join = call.rel(0);
+  @Override public void onMatch(RelOptRuleCall call) {
+    Join join = call.rel(0);
     RelOptPredicateList preds = RelMetadataQuery.getPulledUpPredicates(join);
 
     if (preds.leftInferredPredicates.isEmpty()
@@ -83,4 +86,4 @@ public class TransitivePredicatesOnJoinRule extends RelOptRule {
   }
 }
 
-// End TransitivePredicatesOnJoinRule.java
+// End JoinPushTransitivePredicatesRule.java

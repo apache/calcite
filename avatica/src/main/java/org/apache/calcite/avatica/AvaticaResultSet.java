@@ -14,15 +14,30 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.avatica;
+package org.apache.calcite.avatica;
 
 import java.io.InputStream;
 import java.io.Reader;
 import java.math.BigDecimal;
 import java.net.URL;
-import java.sql.*;
+import java.sql.Array;
+import java.sql.Blob;
+import java.sql.Clob;
 import java.sql.Date;
-import java.util.*;
+import java.sql.NClob;
+import java.sql.Ref;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.RowId;
+import java.sql.SQLException;
+import java.sql.SQLWarning;
+import java.sql.SQLXML;
+import java.sql.Time;
+import java.sql.Timestamp;
+import java.util.Calendar;
+import java.util.List;
+import java.util.Map;
+import java.util.TimeZone;
 
 /**
  * Implementation of {@link java.sql.ResultSet}
@@ -153,7 +168,7 @@ public class AvaticaResultSet implements ResultSet, ArrayImpl.Factory {
    * constructor occurs while the statement is locked, to make sure that
    * execute/cancel don't happen at the same time.</p>
    *
-   * @see net.hydromatic.avatica.AvaticaConnection.Trojan#execute(AvaticaResultSet)
+   * @see org.apache.calcite.avatica.AvaticaConnection.Trojan#execute(AvaticaResultSet)
    *
    * @throws SQLException if execute fails for some reason.
    */

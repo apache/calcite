@@ -14,18 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql.type;
+package org.apache.calcite.sql.type;
 
-import java.util.*;
-
-import org.eigenbase.reltype.*;
-import org.eigenbase.util.ImmutableNullableList;
-import org.eigenbase.util.Util;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypePrecedenceList;
+import org.apache.calcite.util.ImmutableNullableList;
+import org.apache.calcite.util.Util;
 
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
+
+import java.util.List;
+import java.util.Map;
 
 /**
  * SqlTypeExplicitPrecedenceList implements the

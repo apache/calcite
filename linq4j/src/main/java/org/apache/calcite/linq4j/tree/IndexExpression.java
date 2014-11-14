@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.linq4j.expressions;
+package org.apache.calcite.linq4j.tree;
 
 import java.util.List;
 
@@ -34,8 +34,7 @@ public class IndexExpression extends Expression {
     this.indexExpressions = indexExpressions;
   }
 
-  @Override
-  public Expression accept(Visitor visitor) {
+  @Override public Expression accept(Visitor visitor) {
     visitor = visitor.preVisit(this);
     Expression array = this.array.accept(visitor);
     List<Expression> indexExpressions = Expressions.acceptExpressions(
@@ -44,14 +43,12 @@ public class IndexExpression extends Expression {
   }
 
 
-  @Override
-  void accept(ExpressionWriter writer, int lprec, int rprec) {
+  @Override void accept(ExpressionWriter writer, int lprec, int rprec) {
     array.accept(writer, lprec, nodeType.lprec);
     writer.list("[", ", ", "]", indexExpressions);
   }
 
-  @Override
-  public boolean equals(Object o) {
+  @Override public boolean equals(Object o) {
     if (this == o) {
       return true;
     }
@@ -74,8 +71,7 @@ public class IndexExpression extends Expression {
     return true;
   }
 
-  @Override
-  public int hashCode() {
+  @Override public int hashCode() {
     int result = super.hashCode();
     result = 31 * result + array.hashCode();
     result = 31 * result + indexExpressions.hashCode();

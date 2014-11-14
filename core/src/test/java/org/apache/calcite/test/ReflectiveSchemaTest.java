@@ -14,32 +14,48 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.test;
+package org.apache.calcite.test;
 
-import net.hydromatic.linq4j.*;
-import net.hydromatic.linq4j.expressions.*;
-import net.hydromatic.linq4j.expressions.Types;
-import net.hydromatic.linq4j.function.*;
-
-import net.hydromatic.optiq.SchemaPlus;
-import net.hydromatic.optiq.impl.*;
-import net.hydromatic.optiq.impl.java.*;
-import net.hydromatic.optiq.jdbc.OptiqConnection;
-
-import org.eigenbase.util14.DateTimeUtil;
+import org.apache.calcite.adapter.java.ReflectiveSchema;
+import org.apache.calcite.jdbc.CalciteConnection;
+import org.apache.calcite.linq4j.Enumerable;
+import org.apache.calcite.linq4j.Linq4j;
+import org.apache.calcite.linq4j.QueryProvider;
+import org.apache.calcite.linq4j.function.Function1;
+import org.apache.calcite.linq4j.function.Predicate1;
+import org.apache.calcite.linq4j.tree.Expression;
+import org.apache.calcite.linq4j.tree.Expressions;
+import org.apache.calcite.linq4j.tree.ParameterExpression;
+import org.apache.calcite.linq4j.tree.Primitive;
+import org.apache.calcite.linq4j.tree.Types;
+import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.schema.impl.AbstractSchema;
+import org.apache.calcite.schema.impl.TableMacroImpl;
+import org.apache.calcite.schema.impl.ViewTable;
+import org.apache.calcite.util.DateTimeUtil;
 
 import org.junit.Ignore;
 import org.junit.Test;
 
-import java.lang.reflect.*;
-import java.sql.*;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.*;
+import java.sql.Time;
+import java.sql.Timestamp;
+import java.util.Arrays;
+import java.util.BitSet;
+import java.util.Collections;
 import java.util.Date;
+import java.util.List;
 
-import static net.hydromatic.optiq.test.JdbcTest.Employee;
+import static org.apache.calcite.test.JdbcTest.Employee;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 /**
  * Unit tests for {@link ReflectiveSchema}.
@@ -50,12 +66,13 @@ public class ReflectiveSchemaTest {
           Linq4j.class, "asEnumerable", Object[].class);
 
   /**
-   * Test that uses a JDBC connection as a linq4j {@link net.hydromatic.linq4j.QueryProvider}.
+   * Test that uses a JDBC connection as a linq4j
+   * {@link org.apache.calcite.linq4j.QueryProvider}.
    *
    * @throws Exception on error
    */
   @Test public void testQueryProvider() throws Exception {
-    Connection connection = OptiqAssert.getConnection("hr", "foodmart");
+    Connection connection = CalciteAssert.getConnection("hr", "foodmart");
     QueryProvider queryProvider = connection.unwrap(QueryProvider.class);
     ParameterExpression e = Expressions.parameter(Employee.class, "e");
 
@@ -104,7 +121,7 @@ public class ReflectiveSchemaTest {
   }
 
   @Test public void testQueryProviderSingleColumn() throws Exception {
-    Connection connection = OptiqAssert.getConnection("hr", "foodmart");
+    Connection connection = CalciteAssert.getConnection("hr", "foodmart");
     QueryProvider queryProvider = connection.unwrap(QueryProvider.class);
     ParameterExpression e = Expressions.parameter(Employee.class, "e");
 
@@ -129,16 +146,15 @@ public class ReflectiveSchemaTest {
 
   /**
    * Tests a relation that is accessed via method syntax.
-   * The function returns a {@link net.hydromatic.linq4j.Queryable}.
+   * The function returns a {@link org.apache.calcite.linq4j.Queryable}.
    */
   @Ignore
   @Test public void testOperator() throws SQLException, ClassNotFoundException {
-    Class.forName("net.hydromatic.optiq.jdbc.Driver");
     Connection connection =
         DriverManager.getConnection("jdbc:calcite:");
-    OptiqConnection optiqConnection =
-        connection.unwrap(OptiqConnection.class);
-    SchemaPlus rootSchema = optiqConnection.getRootSchema();
+    CalciteConnection calciteConnection =
+        connection.unwrap(CalciteConnection.class);
+    SchemaPlus rootSchema = calciteConnection.getRootSchema();
     SchemaPlus schema = rootSchema.add("s", new AbstractSchema());
     schema.add("GenerateStrings",
         TableMacroImpl.create(JdbcTest.GENERATE_STRINGS_METHOD));
@@ -158,12 +174,11 @@ public class ReflectiveSchemaTest {
    * Tests a view.
    */
   @Test public void testView() throws SQLException, ClassNotFoundException {
-    Class.forName("net.hydromatic.optiq.jdbc.Driver");
     Connection connection =
         DriverManager.getConnection("jdbc:calcite:");
-    OptiqConnection optiqConnection =
-        connection.unwrap(OptiqConnection.class);
-    SchemaPlus rootSchema = optiqConnection.getRootSchema();
+    CalciteConnection calciteConnection =
+        connection.unwrap(CalciteConnection.class);
+    SchemaPlus rootSchema = calciteConnection.getRootSchema();
     SchemaPlus schema = rootSchema.add("s", new AbstractSchema());
     schema.add("emps_view",
         ViewTable.viewMacro(schema,
@@ -177,19 +192,18 @@ public class ReflectiveSchemaTest {
     assertEquals(
         "empid=100; deptno=10; name=Bill; salary=10000.0; commission=1000\n"
         + "empid=110; deptno=10; name=Theodore; salary=11500.0; commission=250\n",
-        OptiqAssert.toString(resultSet));
+        CalciteAssert.toString(resultSet));
   }
 
   /**
    * Tests a view with a path.
    */
   @Test public void testViewPath() throws SQLException, ClassNotFoundException {
-    Class.forName("net.hydromatic.optiq.jdbc.Driver");
     Connection connection =
         DriverManager.getConnection("jdbc:calcite:");
-    OptiqConnection optiqConnection =
-        connection.unwrap(OptiqConnection.class);
-    SchemaPlus rootSchema = optiqConnection.getRootSchema();
+    CalciteConnection calciteConnection =
+        connection.unwrap(CalciteConnection.class);
+    SchemaPlus rootSchema = calciteConnection.getRootSchema();
     SchemaPlus schema = rootSchema.add("s", new AbstractSchema());
     // create a view s.emps based on hr.emps. uses explicit schema path "hr".
     schema.add("emps",
@@ -232,18 +246,18 @@ public class ReflectiveSchemaTest {
 
   /** Tests column based on java.sql.Date field. */
   @Test public void testDateColumn() throws Exception {
-    OptiqAssert.that()
+    CalciteAssert.that()
         .with("s", new DateColumnSchema())
         .query("select * from \"s\".\"emps\"")
-        .returns(
-            "hireDate=1970-01-01; empid=10; deptno=20; name=fred; salary=0.0; commission=null\n"
+        .returns(""
+            + "hireDate=1970-01-01; empid=10; deptno=20; name=fred; salary=0.0; commission=null\n"
             + "hireDate=1970-04-11; empid=10; deptno=20; name=bill; salary=0.0; commission=null\n");
   }
 
   /** Tests querying an object that has no public fields. */
   @Test public void testNoPublicFields() throws Exception {
-    final OptiqAssert.AssertThat with =
-        OptiqAssert.that().with("s", new CatchallSchema());
+    final CalciteAssert.AssertThat with =
+        CalciteAssert.that().with("s", new CatchallSchema());
     with.query("select 1 from \"s\".\"allPrivates\"")
         .returns("EXPR$0=1\n");
     with.query("select \"x\" from \"s\".\"allPrivates\"")
@@ -254,15 +268,14 @@ public class ReflectiveSchemaTest {
    *
    * @see CatchallSchema#everyTypes */
   @Test public void testColumnTypes() throws Exception {
-    final OptiqAssert.AssertThat with =
-        OptiqAssert.that().with("s", new CatchallSchema());
+    final CalciteAssert.AssertThat with =
+        CalciteAssert.that().with("s", new CatchallSchema());
     with.query("select \"primitiveBoolean\" from \"s\".\"everyTypes\"")
-        .returns(
-            "primitiveBoolean=false\n"
+        .returns("primitiveBoolean=false\n"
             + "primitiveBoolean=true\n");
     with.query("select * from \"s\".\"everyTypes\"")
-        .returns(
-            "primitiveBoolean=false; primitiveByte=0; primitiveChar=\u0000; primitiveShort=0; primitiveInt=0; primitiveLong=0; primitiveFloat=0.0; primitiveDouble=0.0; wrapperBoolean=false; wrapperByte=0; wrapperCharacter=\u0000; wrapperShort=0; wrapperInteger=0; wrapperLong=0; wrapperFloat=0.0; wrapperDouble=0.0; sqlDate=1970-01-01; sqlTime=00:00:00; sqlTimestamp=1970-01-01 00:00:00; utilDate=1970-01-01 00:00:00; string=1\n"
+        .returns(""
+            + "primitiveBoolean=false; primitiveByte=0; primitiveChar=\u0000; primitiveShort=0; primitiveInt=0; primitiveLong=0; primitiveFloat=0.0; primitiveDouble=0.0; wrapperBoolean=false; wrapperByte=0; wrapperCharacter=\u0000; wrapperShort=0; wrapperInteger=0; wrapperLong=0; wrapperFloat=0.0; wrapperDouble=0.0; sqlDate=1970-01-01; sqlTime=00:00:00; sqlTimestamp=1970-01-01 00:00:00; utilDate=1970-01-01 00:00:00; string=1\n"
             + "primitiveBoolean=true; primitiveByte=127; primitiveChar=\uffff; primitiveShort=32767; primitiveInt=2147483647; primitiveLong=9223372036854775807; primitiveFloat=3.4028235E38; primitiveDouble=1.7976931348623157E308; wrapperBoolean=null; wrapperByte=null; wrapperCharacter=null; wrapperShort=null; wrapperInteger=null; wrapperLong=null; wrapperFloat=null; wrapperDouble=null; sqlDate=null; sqlTime=null; sqlTimestamp=null; utilDate=null; string=null\n");
   }
 
@@ -270,8 +283,8 @@ public class ReflectiveSchemaTest {
    *
    * @see CatchallSchema#everyTypes */
   @Test public void testAggregateFunctions() throws Exception {
-    final OptiqAssert.AssertThat with =
-        OptiqAssert.that()
+    final CalciteAssert.AssertThat with =
+        CalciteAssert.that()
             .with("s", new CatchallSchema());
     checkAgg(with, "min");
     checkAgg(with, "max");
@@ -279,33 +292,28 @@ public class ReflectiveSchemaTest {
     checkAgg(with, "count");
   }
 
-  private void checkAgg(OptiqAssert.AssertThat with, String fn) {
+  private void checkAgg(CalciteAssert.AssertThat with, String fn) {
     for (Field field
         : fn.equals("avg") ? EveryType.numericFields() : EveryType.fields()) {
-      with.query(
-          "select " + fn + "(\"" + field.getName() + "\") as c\n"
+      with.query("select " + fn + "(\"" + field.getName() + "\") as c\n"
           + "from \"s\".\"everyTypes\"")
-          .returns(OptiqAssert.<ResultSet, Void>constantNull());
+          .returns(CalciteAssert.<ResultSet, Void>constantNull());
     }
   }
 
   @Test public void testJavaBoolean() throws Exception {
-    final OptiqAssert.AssertThat with =
-        OptiqAssert.that().with("s", new CatchallSchema());
-    with.query(
-        "select count(*) as c from \"s\".\"everyTypes\"\n"
+    final CalciteAssert.AssertThat with =
+        CalciteAssert.that().with("s", new CatchallSchema());
+    with.query("select count(*) as c from \"s\".\"everyTypes\"\n"
         + "where \"primitiveBoolean\"")
         .returns("C=1\n");
-    with.query(
-        "select count(*) as c from \"s\".\"everyTypes\"\n"
+    with.query("select count(*) as c from \"s\".\"everyTypes\"\n"
         + "where \"wrapperBoolean\"")
         .returns("C=0\n");
-    with.query(
-        "select count(*) as c from \"s\".\"everyTypes\"\n"
+    with.query("select count(*) as c from \"s\".\"everyTypes\"\n"
         + "where \"wrapperBoolean\" is not true")
         .returns("C=2\n");
-    with.query(
-        "select count(*) as c from \"s\".\"everyTypes\"\n"
+    with.query("select count(*) as c from \"s\".\"everyTypes\"\n"
         + "where \"primitiveInt\" > 0")
         .returns("C=1\n");
   }
@@ -314,19 +322,17 @@ public class ReflectiveSchemaTest {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-119">CALCITE-119</a>,
    * "Comparing a Java type long with a SQL type INTEGER gives wrong answer". */
   @Test public void testCompareJavaAndSqlTypes() throws Exception {
-    final OptiqAssert.AssertThat with =
-        OptiqAssert.that().with("s", new CatchallSchema());
+    final CalciteAssert.AssertThat with =
+        CalciteAssert.that().with("s", new CatchallSchema());
     // With CALCITE-119, returned 0 rows. The problem was that when comparing
     // a Java type (long) and a SQL type (INTEGER), the SQL type was deemed
     // "less restrictive". So, the long value got truncated to an int value.
-    with.query(
-        "select \"primitiveLong\" as c from \"s\".\"everyTypes\"\n"
+    with.query("select \"primitiveLong\" as c from \"s\".\"everyTypes\"\n"
         + "where \"primitiveLong\" > 0")
         .returns("C=9223372036854775807\n");
 
     // count(nullif(b, false)) counts how many times b is true
-    with.query(
-        "select count(\"primitiveBoolean\") as p,\n"
+    with.query("select count(\"primitiveBoolean\") as p,\n"
         + "  count(\"wrapperBoolean\") as w,\n"
         + "  count(nullif(\"primitiveShort\" >= 0, false)) as sp,\n"
         + "  count(nullif(\"wrapperShort\" >= 0, false)) as sw,\n"
@@ -339,10 +345,9 @@ public class ReflectiveSchemaTest {
   }
 
   @Test public void testDivideWraperPrimitive() throws Exception {
-    final OptiqAssert.AssertThat with =
-        OptiqAssert.that().with("s", new CatchallSchema());
-    with.query(
-        "select \"wrapperLong\" / \"primitiveLong\" as c\n"
+    final CalciteAssert.AssertThat with =
+        CalciteAssert.that().with("s", new CatchallSchema());
+    with.query("select \"wrapperLong\" / \"primitiveLong\" as c\n"
         + " from \"s\".\"everyTypes\" where \"primitiveLong\" <> 0")
         .planContains(
             "final Long inp13_ = current.wrapperLong;")
@@ -352,35 +357,33 @@ public class ReflectiveSchemaTest {
   }
 
   @Test public void testDivideWraperWrapper() throws Exception {
-    final OptiqAssert.AssertThat with =
-        OptiqAssert.that().with("s", new CatchallSchema());
-    with.query(
-        "select \"wrapperLong\" / \"wrapperLong\" as c\n"
+    final CalciteAssert.AssertThat with =
+        CalciteAssert.that().with("s", new CatchallSchema());
+    with.query("select \"wrapperLong\" / \"wrapperLong\" as c\n"
         + " from \"s\".\"everyTypes\" where \"primitiveLong\" <> 0")
         .planContains(
-            "final Long inp13_ = ((net.hydromatic.optiq.test.ReflectiveSchemaTest.EveryType) inputEnumerator.current()).wrapperLong;")
+            "final Long inp13_ = ((org.apache.calcite.test.ReflectiveSchemaTest.EveryType) inputEnumerator.current()).wrapperLong;")
         .planContains(
             "return inp13_ == null ? (Long) null : Long.valueOf(inp13_.longValue() / inp13_.longValue());")
         .returns("C=null\n");
   }
 
   @Test public void testDivideWraperWrapperMultipleTimes() throws Exception {
-    final OptiqAssert.AssertThat with =
-        OptiqAssert.that().with("s", new CatchallSchema());
-    with.query(
-        "select \"wrapperLong\" / \"wrapperLong\"\n"
+    final CalciteAssert.AssertThat with =
+        CalciteAssert.that().with("s", new CatchallSchema());
+    with.query("select \"wrapperLong\" / \"wrapperLong\"\n"
         + "+ \"wrapperLong\" / \"wrapperLong\" as c\n"
         + " from \"s\".\"everyTypes\" where \"primitiveLong\" <> 0")
         .planContains(
-            "final Long inp13_ = ((net.hydromatic.optiq.test.ReflectiveSchemaTest.EveryType) inputEnumerator.current()).wrapperLong;")
+            "final Long inp13_ = ((org.apache.calcite.test.ReflectiveSchemaTest.EveryType) inputEnumerator.current()).wrapperLong;")
         .planContains(
             "return inp13_ == null ? (Long) null : Long.valueOf(inp13_.longValue() / inp13_.longValue() + inp13_.longValue() / inp13_.longValue());")
         .returns("C=null\n");
   }
 
   @Test public void testOp() throws Exception {
-    final OptiqAssert.AssertThat with =
-        OptiqAssert.that()
+    final CalciteAssert.AssertThat with =
+        CalciteAssert.that()
             .with("s", new CatchallSchema());
     checkOp(with, "+");
     checkOp(with, "-");
@@ -388,28 +391,25 @@ public class ReflectiveSchemaTest {
     checkOp(with, "/");
   }
 
-  private void checkOp(OptiqAssert.AssertThat with, String fn) {
+  private void checkOp(CalciteAssert.AssertThat with, String fn) {
     for (Field field : EveryType.numericFields()) {
       for (Field field2 : EveryType.numericFields()) {
         final String name = "\"" + field.getName() + "\"";
         final String name2 = "\"" + field2.getName() + "\"";
-        with.query(
-            "select " + name + "\n"
+        with.query("select " + name + "\n"
             + " " + fn + " " + name2 + " as c\n"
             + "from \"s\".\"everyTypes\"\n"
             + "where " + name + " <> 0")
-            .returns(OptiqAssert.<ResultSet, Void>constantNull());
+            .returns(CalciteAssert.<ResultSet, Void>constantNull());
       }
     }
   }
 
   @Test public void testCastFromString() {
-    OptiqAssert.that()
+    CalciteAssert.that()
         .with("s", new CatchallSchema())
-        .query(
-            "select cast(\"string\" as int) as c from \"s\".\"everyTypes\"")
-        .returns(
-            "C=1\n"
+        .query("select cast(\"string\" as int) as c from \"s\".\"everyTypes\"")
+        .returns("C=1\n"
             + "C=null\n");
   }
 
@@ -429,7 +429,7 @@ public class ReflectiveSchemaTest {
    *
    * @see CatchallSchema#badTypes */
   @Test public void testTableFieldHasBadType() throws Exception {
-    OptiqAssert.that()
+    CalciteAssert.that()
         .with("s", new CatchallSchema())
         .query("select * from \"s\".\"badTypes\"")
         .returns("integer=0; bitSet={}\n");
@@ -441,8 +441,8 @@ public class ReflectiveSchemaTest {
    * @see CatchallSchema#enumerable
    * @see CatchallSchema#list */
   @Test public void testSchemaFieldHasBadType() throws Exception {
-    final OptiqAssert.AssertThat with =
-        OptiqAssert.that()
+    final CalciteAssert.AssertThat with =
+        CalciteAssert.that()
             .with("s", new CatchallSchema());
     // BitSet is not a valid relation type. It's as if "bitSet" field does
     // not exist.
@@ -450,15 +450,13 @@ public class ReflectiveSchemaTest {
         .throws_("Table 's.bitSet' not found");
     // Enumerable field returns 3 records with 0 fields
     with.query("select * from \"s\".\"enumerable\"")
-        .returns(
-            "\n"
+        .returns("\n"
             + "\n"
             + "\n"
             + "\n");
     // List is implicitly converted to Enumerable
     with.query("select * from \"s\".\"list\"")
-        .returns(
-            "\n"
+        .returns("\n"
             + "\n"
             + "\n"
             + "\n");
@@ -467,12 +465,11 @@ public class ReflectiveSchemaTest {
   /** Test case for a bug where a Java string 'Abc' compared to a char 'Ab'
    * would be truncated to the char precision and falsely match. */
   @Test public void testPrefix() throws Exception {
-    OptiqAssert.that()
+    CalciteAssert.that()
         .with("s", new CatchallSchema())
         .query(
             "select * from \"s\".\"prefixEmps\" where \"name\" in ('Ab', 'Abd')")
-        .returns(
-            "empid=2; deptno=10; name=Ab; salary=0.0; commission=null\n"
+        .returns("empid=2; deptno=10; name=Ab; salary=0.0; commission=null\n"
             + "empid=4; deptno=10; name=Abd; salary=0.0; commission=null\n");
   }
 
@@ -481,27 +478,24 @@ public class ReflectiveSchemaTest {
    * should be expanded. */
   @Ignore
   @Test public void testTableMacroIsView() throws Exception {
-    OptiqAssert.that()
+    CalciteAssert.that()
         .with("s", new JdbcTest.HrSchema())
-        .query(
-            "select * from table(\"s\".\"view\"('abc'))")
-        .returns(
-            "empid=2; deptno=10; name=Ab; salary=0.0; commission=null\n"
+        .query("select * from table(\"s\".\"view\"('abc'))")
+        .returns("empid=2; deptno=10; name=Ab; salary=0.0; commission=null\n"
             + "empid=4; deptno=10; name=Abd; salary=0.0; commission=null\n");
   }
 
   /** Finds a table-macro using reflection. */
   @Ignore
   @Test public void testTableMacro() throws Exception {
-    OptiqAssert.that()
+    CalciteAssert.that()
         .with("s", new JdbcTest.HrSchema())
-        .query(
-            "select * from table(\"s\".\"foo\"(3))")
-        .returns(
-            "empid=2; deptno=10; name=Ab; salary=0.0; commission=null\n"
+        .query("select * from table(\"s\".\"foo\"(3))")
+        .returns("empid=2; deptno=10; name=Ab; salary=0.0; commission=null\n"
             + "empid=4; deptno=10; name=Abd; salary=0.0; commission=null\n");
   }
 
+  /** Extension to {@link Employee} with a {@code hireDate} column. */
   public static class EmployeeWithHireDate extends Employee {
     public final java.sql.Date hireDate;
 
@@ -513,6 +507,7 @@ public class ReflectiveSchemaTest {
     }
   }
 
+  /** Record that has a field of every interesting type. */
   public static class EveryType {
     public final boolean primitiveBoolean;
     public final byte primitiveByte;
@@ -645,6 +640,7 @@ public class ReflectiveSchemaTest {
     };
   }
 
+  /** Schema that contains a table with a date column. */
   public static class DateColumnSchema {
     public final EmployeeWithHireDate[] emps = {
       new EmployeeWithHireDate(

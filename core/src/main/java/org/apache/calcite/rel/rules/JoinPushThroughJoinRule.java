@@ -14,17 +14,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel.rules;
+package org.apache.calcite.rel.rules;
 
-import java.util.*;
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptRule;
+import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.Join;
+import org.apache.calcite.rel.core.JoinRelType;
+import org.apache.calcite.rel.core.RelFactories;
+import org.apache.calcite.rel.core.RelFactories.ProjectFactory;
+import org.apache.calcite.rel.logical.LogicalJoin;
+import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexPermuteInputsShuttle;
+import org.apache.calcite.rex.RexUtil;
+import org.apache.calcite.util.BitSets;
+import org.apache.calcite.util.mapping.Mappings;
 
-import org.eigenbase.rel.*;
-import org.eigenbase.rel.RelFactories.ProjectFactory;
-import org.eigenbase.relopt.*;
-import org.eigenbase.rex.*;
-import org.eigenbase.util.mapping.Mappings;
-
-import net.hydromatic.optiq.util.BitSets;
+import java.util.ArrayList;
+import java.util.BitSet;
+import java.util.List;
 
 /**
  * Rule that pushes the right input of a join into through the left input of
@@ -49,19 +60,19 @@ import net.hydromatic.optiq.util.BitSets;
  * <p>Before the rule, one join has two conditions and the other has none
  * ({@code ON TRUE}). After the rule, each join has one condition.</p>
  */
-public class PushJoinThroughJoinRule extends RelOptRule {
+public class JoinPushThroughJoinRule extends RelOptRule {
   /** Instance of the rule that works on logical joins only, and pushes to the
    * right. */
   public static final RelOptRule RIGHT =
-      new PushJoinThroughJoinRule(
-          "PushJoinThroughJoinRule:right", true, JoinRel.class,
+      new JoinPushThroughJoinRule(
+          "JoinPushThroughJoinRule:right", true, LogicalJoin.class,
           RelFactories.DEFAULT_PROJECT_FACTORY);
 
   /** Instance of the rule that works on logical joins only, and pushes to the
    * left. */
   public static final RelOptRule LEFT =
-      new PushJoinThroughJoinRule(
-          "PushJoinThroughJoinRule:left", false, JoinRel.class,
+      new JoinPushThroughJoinRule(
+          "JoinPushThroughJoinRule:left", false, LogicalJoin.class,
           RelFactories.DEFAULT_PROJECT_FACTORY);
 
   private final boolean right;
@@ -69,13 +80,12 @@ public class PushJoinThroughJoinRule extends RelOptRule {
   private final ProjectFactory projectFactory;
 
   /**
-   * Creates a PushJoinThroughJoinRule.
+   * Creates a JoinPushThroughJoinRule.
    */
-  public PushJoinThroughJoinRule(String description, boolean right,
-      Class<? extends JoinRelBase> clazz, ProjectFactory projectFactory) {
+  public JoinPushThroughJoinRule(String description, boolean right,
+      Class<? extends Join> clazz, ProjectFactory projectFactory) {
     super(
-        operand(
-            clazz,
+        operand(clazz,
             operand(clazz, any()),
             operand(RelNode.class, any())),
         description);
@@ -83,8 +93,7 @@ public class PushJoinThroughJoinRule extends RelOptRule {
     this.projectFactory = projectFactory;
   }
 
-  @Override
-  public void onMatch(RelOptRuleCall call) {
+  @Override public void onMatch(RelOptRuleCall call) {
     if (right) {
       onMatchRight(call);
     } else {
@@ -93,8 +102,8 @@ public class PushJoinThroughJoinRule extends RelOptRule {
   }
 
   private void onMatchRight(RelOptRuleCall call) {
-    final JoinRelBase topJoin = call.rel(0);
-    final JoinRelBase bottomJoin = call.rel(1);
+    final Join topJoin = call.rel(0);
+    final Join bottomJoin = call.rel(1);
     final RelNode relC = call.rel(2);
     final RelNode relA = bottomJoin.getLeft();
     final RelNode relB = bottomJoin.getRight();
@@ -164,7 +173,7 @@ public class PushJoinThroughJoinRule extends RelOptRule {
     final RexBuilder rexBuilder = cluster.getRexBuilder();
     RexNode newBottomCondition =
         RexUtil.composeConjunction(rexBuilder, newBottomList, false);
-    final JoinRelBase newBottomJoin =
+    final Join newBottomJoin =
         bottomJoin.copy(bottomJoin.getTraitSet(), newBottomCondition, relA,
             relC, bottomJoin.getJoinType(), bottomJoin.isSemiJoinDone());
 
@@ -184,7 +193,7 @@ public class PushJoinThroughJoinRule extends RelOptRule {
     RexNode newTopCondition =
         RexUtil.composeConjunction(rexBuilder, newTopList, false);
     @SuppressWarnings("SuspiciousNameCombination")
-    final JoinRelBase newTopJoin =
+    final Join newTopJoin =
         topJoin.copy(topJoin.getTraitSet(), newTopCondition, newBottomJoin,
             relB, topJoin.getJoinType(), topJoin.isSemiJoinDone());
 
@@ -200,8 +209,8 @@ public class PushJoinThroughJoinRule extends RelOptRule {
    * of the two lower siblings, rather than the right.
    */
   private void onMatchLeft(RelOptRuleCall call) {
-    final JoinRelBase topJoin = call.rel(0);
-    final JoinRelBase bottomJoin = call.rel(1);
+    final Join topJoin = call.rel(0);
+    final Join bottomJoin = call.rel(1);
     final RelNode relC = call.rel(2);
     final RelNode relA = bottomJoin.getLeft();
     final RelNode relB = bottomJoin.getRight();
@@ -272,7 +281,7 @@ public class PushJoinThroughJoinRule extends RelOptRule {
     final RexBuilder rexBuilder = cluster.getRexBuilder();
     RexNode newBottomCondition =
         RexUtil.composeConjunction(rexBuilder, newBottomList, false);
-    final JoinRelBase newBottomJoin =
+    final Join newBottomJoin =
         bottomJoin.copy(bottomJoin.getTraitSet(), newBottomCondition, relC,
             relB, bottomJoin.getJoinType(), bottomJoin.isSemiJoinDone());
 
@@ -292,7 +301,7 @@ public class PushJoinThroughJoinRule extends RelOptRule {
     RexNode newTopCondition =
         RexUtil.composeConjunction(rexBuilder, newTopList, false);
     @SuppressWarnings("SuspiciousNameCombination")
-    final JoinRelBase newTopJoin =
+    final Join newTopJoin =
         topJoin.copy(topJoin.getTraitSet(), newTopCondition, newBottomJoin,
             relA, topJoin.getJoinType(), topJoin.isSemiJoinDone());
 
@@ -322,4 +331,4 @@ public class PushJoinThroughJoinRule extends RelOptRule {
   }
 }
 
-// End PushJoinThroughJoinRule.java
+// End JoinPushThroughJoinRule.java

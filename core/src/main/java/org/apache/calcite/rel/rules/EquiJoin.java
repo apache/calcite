@@ -14,30 +14,30 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel.rules;
+package org.apache.calcite.rel.rules;
 
-import java.util.Set;
-
-import org.eigenbase.rel.JoinInfo;
-import org.eigenbase.rel.JoinRelBase;
-import org.eigenbase.rel.JoinRelType;
-import org.eigenbase.rel.RelNode;
-import org.eigenbase.relopt.RelOptCluster;
-import org.eigenbase.relopt.RelTraitSet;
-import org.eigenbase.rex.RexNode;
-import org.eigenbase.util.ImmutableIntList;
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.Join;
+import org.apache.calcite.rel.core.JoinInfo;
+import org.apache.calcite.rel.core.JoinRelType;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.util.ImmutableIntList;
 
 import com.google.common.base.Preconditions;
+
+import java.util.Set;
 
 /**
  * Base class for any join whose condition is based on column equality.
  */
-public abstract class EquiJoinRel extends JoinRelBase {
+public abstract class EquiJoin extends Join {
   public final ImmutableIntList leftKeys;
   public final ImmutableIntList rightKeys;
 
-  /** Creates an EquiJoinRel. */
-  public EquiJoinRel(RelOptCluster cluster, RelTraitSet traits, RelNode left,
+  /** Creates an EquiJoin. */
+  public EquiJoin(RelOptCluster cluster, RelTraitSet traits, RelNode left,
       RelNode right, RexNode condition, ImmutableIntList leftKeys,
       ImmutableIntList rightKeys, JoinRelType joinType,
       Set<String> variablesStopped) {
@@ -54,10 +54,9 @@ public abstract class EquiJoinRel extends JoinRelBase {
     return rightKeys;
   }
 
-  @Override
-  public JoinInfo analyzeCondition() {
+  @Override public JoinInfo analyzeCondition() {
     return JoinInfo.of(leftKeys, rightKeys);
   }
 }
 
-// End EquiJoinRel.java
+// End EquiJoin.java

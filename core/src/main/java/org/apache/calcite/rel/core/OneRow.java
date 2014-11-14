@@ -14,34 +14,42 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel;
+package org.apache.calcite.rel.core;
 
-import org.eigenbase.relopt.*;
-import org.eigenbase.reltype.*;
-import org.eigenbase.sql.type.*;
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptCost;
+import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.AbstractRelNode;
+import org.apache.calcite.rel.RelInput;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.sql.type.SqlTypeName;
 
 /**
- * <code>OneRowRelBase</code> is an abstract base class for implementations of
- * {@link OneRowRel}.
+ * Relational expression that always returns one row.
+ *
+ * <p>It has one column, called "ZERO", containing the value 0.
+ *
+ * @see Values
  */
-public abstract class OneRowRelBase extends AbstractRelNode {
+public abstract class OneRow extends AbstractRelNode {
   //~ Constructors -----------------------------------------------------------
 
   /**
-   * Creates a <code>OneRowRelBase</code> with specific traits.
+   * Creates a <code>OneRow</code>.
    *
-   * @param cluster {@link RelOptCluster}  this relational expression belongs
-   *                to
-   * @param traits  for this rel
+   * @param cluster   Cluster that this relational expression belongs to
+   * @param traits    Traits
    */
-  protected OneRowRelBase(RelOptCluster cluster, RelTraitSet traits) {
+  protected OneRow(RelOptCluster cluster, RelTraitSet traits) {
     super(cluster, traits);
   }
 
   /**
-   * Creates a OneRowRelBase by parsing serialized output.
+   * Creates a OneRow by parsing serialized output.
    */
-  protected OneRowRelBase(RelInput input) {
+  protected OneRow(RelInput input) {
     this(input.getCluster(), input.getTraitSet());
   }
 
@@ -60,4 +68,4 @@ public abstract class OneRowRelBase extends AbstractRelNode {
   }
 }
 
-// End OneRowRelBase.java
+// End OneRow.java

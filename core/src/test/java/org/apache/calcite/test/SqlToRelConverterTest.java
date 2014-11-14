@@ -14,18 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.test;
+package org.apache.calcite.test;
 
-import java.io.*;
-
-import org.eigenbase.rel.*;
-import org.eigenbase.sql.*;
-import org.eigenbase.util.*;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelVisitor;
+import org.apache.calcite.rel.externalize.RelXmlWriter;
+import org.apache.calcite.sql.SqlExplainLevel;
+import org.apache.calcite.util.Bug;
+import org.apache.calcite.util.TestUtil;
+import org.apache.calcite.util.Util;
 
 import org.junit.Test;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
+
 /**
- * Unit test for {@link org.eigenbase.sql2rel.SqlToRelConverter}.
+ * Unit test for {@link org.apache.calcite.sql2rel.SqlToRelConverter}.
  */
 public class SqlToRelConverterTest extends SqlToRelTestBase {
   //~ Methods ----------------------------------------------------------------
@@ -52,18 +57,18 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
   @Test public void testAliasList() {
     check(
         "select a + b from (\n"
-        + "  select deptno, 1 as one, name from dept\n"
-        + ") as d(a, b, c)\n"
-        + "where c like 'X%'",
+            + "  select deptno, 1 as one, name from dept\n"
+            + ") as d(a, b, c)\n"
+            + "where c like 'X%'",
         "${plan}");
   }
 
   @Test public void testAliasList2() {
     check(
         "select * from (\n"
-        + "  select a, b, c from (values (1, 2, 3)) as t (c, b, a)\n"
-        + ") join dept on dept.deptno = c\n"
-        + "order by c + a",
+            + "  select a, b, c from (values (1, 2, 3)) as t (c, b, a)\n"
+            + ") join dept on dept.deptno = c\n"
+            + "order by c + a",
         "${plan}");
   }
 
@@ -73,9 +78,9 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
   @Test public void testMultiAnd() {
     check(
         "select * from emp\n"
-        + "where deptno < 10\n"
-        + "and deptno > 5\n"
-        + "and (deptno = 8 or empno < 100)",
+            + "where deptno < 10\n"
+            + "and deptno > 5\n"
+            + "and (deptno = 8 or empno < 100)",
         "${plan}");
   }
 
@@ -92,7 +97,7 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
    */
   @Test public void testConditionOffByOne() {
     // Bug causes the plan to contain
-    //   JoinRel(condition=[=($9, $9)], joinType=[inner])
+    //   LogicalJoin(condition=[=($9, $9)], joinType=[inner])
     check(
         "SELECT * FROM emp JOIN dept on emp.deptno + 0 = dept.deptno",
         "${plan}");
@@ -113,7 +118,7 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
   @Test public void testJoinOnIn() {
     check(
         "select * from emp join dept\n"
-        + " on emp.deptno = dept.deptno and emp.empno in (1, 3)",
+            + " on emp.deptno = dept.deptno and emp.empno in (1, 3)",
         "${plan}");
   }
 
@@ -127,16 +132,16 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
   @Test public void testJoinUsingThreeWay() {
     check(
         "select *\n"
-        + "from emp as e\n"
-        + "join dept as d using (deptno)\n"
-        + "join emp as e2 using (empno)", "${plan}");
+            + "from emp as e\n"
+            + "join dept as d using (deptno)\n"
+            + "join emp as e2 using (empno)", "${plan}");
   }
 
   @Test public void testJoinUsingCompound() {
     check(
         "SELECT * FROM emp LEFT JOIN ("
-        + "SELECT *, deptno * 5 as empno FROM dept) "
-        + "USING (deptno,empno)",
+            + "SELECT *, deptno * 5 as empno FROM dept) "
+            + "USING (deptno,empno)",
         "${plan}");
   }
 
@@ -161,8 +166,8 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
   @Test public void testJoinWithUnion() {
     check(
         "select grade from "
-        + "(select empno from emp union select deptno from dept), "
-        + "salgrade",
+            + "(select empno from emp union select deptno from dept), "
+            + "salgrade",
         "${plan}");
   }
 
@@ -213,17 +218,17 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     // Try to confuse it with spurious columns.
     check(
         "select name, foo from ("
-        + "select deptno, name, count(deptno) as foo "
-        + "from dept "
-        + "group by name, deptno, name)",
+            + "select deptno, name, count(deptno) as foo "
+            + "from dept "
+            + "group by name, deptno, name)",
         "${plan}");
   }
 
   @Test public void testAggDistinct() {
     check(
         "select deptno, sum(sal), sum(distinct sal), count(*) "
-        + "from emp "
-        + "group by deptno",
+            + "from emp "
+            + "group by deptno",
         "${plan}");
   }
 
@@ -360,9 +365,9 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
   @Test public void testOrderUnion() {
     check(
         "select empno, sal from emp "
-        + "union all "
-        + "select deptno, deptno from dept "
-        + "order by sal desc, empno asc",
+            + "union all "
+            + "select deptno, deptno from dept "
+            + "order by sal desc, empno asc",
         "${plan}");
   }
 
@@ -372,18 +377,18 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     }
     check(
         "select empno, sal from emp "
-        + "union all "
-        + "select deptno, deptno from dept "
-        + "order by 2",
+            + "union all "
+            + "select deptno, deptno from dept "
+            + "order by 2",
         "${plan}");
   }
 
   @Test public void testOrderUnionExprs() {
     check(
         "select empno, sal from emp "
-        + "union all "
-        + "select deptno, deptno from dept "
-        + "order by empno * sal + 2",
+            + "union all "
+            + "select deptno, deptno from dept "
+            + "order by empno * sal + 2",
         "${plan}");
   }
 
@@ -417,31 +422,31 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
    * conditions</a>. */
   @Test public void testGroupAlias() {
     check("select \"$f2\", max(x), max(x + 1)\n"
-        + "from (values (1, 2)) as t(\"$f2\", x)\n"
-        + "group by \"$f2\"",
+            + "from (values (1, 2)) as t(\"$f2\", x)\n"
+            + "group by \"$f2\"",
         "${plan}");
   }
 
   @Test public void testOrderGroup() {
     check(
         "select deptno, count(*) "
-        + "from emp "
-        + "group by deptno "
-        + "order by deptno * sum(sal) desc, min(empno)",
+            + "from emp "
+            + "group by deptno "
+            + "order by deptno * sum(sal) desc, min(empno)",
         "${plan}");
   }
 
   @Test public void testCountNoGroup() {
     check(
         "select count(*), sum(sal)\n"
-        + "from emp\n"
-        + "where empno > 10",
+            + "from emp\n"
+            + "where empno > 10",
         "${plan}");
   }
 
   @Test public void testWith() {
     check("with emp2 as (select * from emp)\n"
-        + "select * from emp2",
+            + "select * from emp2",
         "${plan}");
   }
 
@@ -450,28 +455,28 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
    * WITH ... ORDER BY query gives AssertionError</a>. */
   @Test public void testWithOrder() {
     check("with emp2 as (select * from emp)\n"
-        + "select * from emp2 order by deptno",
+            + "select * from emp2 order by deptno",
         "${plan}");
   }
 
   @Test public void testWithUnionOrder() {
     check("with emp2 as (select empno, deptno as x from emp)\n"
-        + "select * from emp2\n"
-        + "union all\n"
-        + "select * from emp2\n"
-        + "order by empno + x",
+            + "select * from emp2\n"
+            + "union all\n"
+            + "select * from emp2\n"
+            + "order by empno + x",
         "${plan}");
   }
 
   @Test public void testWithUnion() {
     check("with emp2 as (select * from emp where deptno > 10)\n"
-      + "select empno from emp2 where deptno < 30 union all select deptno from emp",
+            + "select empno from emp2 where deptno < 30 union all select deptno from emp",
         "${plan}");
   }
 
   @Test public void testWithAlias() {
     check("with w(x, y) as (select * from dept where deptno > 10)\n"
-        + "select x from w where x < 30 union all select deptno from dept",
+            + "select x from w where x < 30 union all select deptno from dept",
         "${plan}");
   }
 
@@ -485,10 +490,10 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
 
   @Test public void testWithInsideWhereExistsDecorrelate() {
     tester.withDecorrelation(true).assertConvertsTo("select * from emp\n"
-        + "where exists (\n"
-        + "  with dept2 as (select * from dept where dept.deptno >= emp.deptno)\n"
-        + "  select 1 from dept2 where deptno <= emp.deptno)",
-      "${plan}");
+            + "where exists (\n"
+            + "  with dept2 as (select * from dept where dept.deptno >= emp.deptno)\n"
+            + "  select 1 from dept2 where deptno <= emp.deptno)",
+        "${plan}");
   }
 
   @Test public void testWithInsideScalarSubquery() {
@@ -520,10 +525,10 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
   @Test public void testSampleQuery() {
     check(
         "select * from (\n"
-        + " select * from emp as e tablesample substitute('DATASET1')\n"
-        + " join dept on e.deptno = dept.deptno\n"
-        + ") tablesample substitute('DATASET2')\n"
-        + "where empno > 5",
+            + " select * from emp as e tablesample substitute('DATASET1')\n"
+            + " join dept on e.deptno = dept.deptno\n"
+            + ") tablesample substitute('DATASET2')\n"
+            + "where empno > 5",
         "${plan}");
   }
 
@@ -536,10 +541,10 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
   @Test public void testSampleBernoulliQuery() {
     check(
         "select * from (\n"
-        + " select * from emp as e tablesample bernoulli(10) repeatable(1)\n"
-        + " join dept on e.deptno = dept.deptno\n"
-        + ") tablesample bernoulli(50) repeatable(99)\n"
-        + "where empno > 5",
+            + " select * from emp as e tablesample bernoulli(10) repeatable(1)\n"
+            + " join dept on e.deptno = dept.deptno\n"
+            + ") tablesample bernoulli(50) repeatable(99)\n"
+            + "where empno > 5",
         "${plan}");
   }
 
@@ -552,10 +557,10 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
   @Test public void testSampleSystemQuery() {
     check(
         "select * from (\n"
-        + " select * from emp as e tablesample system(10) repeatable(1)\n"
-        + " join dept on e.deptno = dept.deptno\n"
-        + ") tablesample system(50) repeatable(99)\n"
-        + "where empno > 5",
+            + " select * from emp as e tablesample system(10) repeatable(1)\n"
+            + " join dept on e.deptno = dept.deptno\n"
+            + ") tablesample system(50) repeatable(99)\n"
+            + "where empno > 5",
         "${plan}");
   }
 
@@ -600,9 +605,9 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
   @Test public void testCorrelationJoin() {
     check(
         "select *,"
-        + "         multiset(select * from emp where deptno=dept.deptno) "
-        + "               as empset"
-        + "      from dept",
+            + "         multiset(select * from emp where deptno=dept.deptno) "
+            + "               as empset"
+            + "      from dept",
         "${plan}");
   }
 
@@ -627,14 +632,14 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
   @Test public void testExistsCorrelatedLimit() {
     tester.withDecorrelation(false).assertConvertsTo(
         "select*from emp where exists (\n"
-        + "  select 1 from dept where emp.deptno=dept.deptno limit 1)",
+            + "  select 1 from dept where emp.deptno=dept.deptno limit 1)",
         "${plan}");
   }
 
   @Test public void testExistsCorrelatedLimitDecorrelate() {
     tester.withDecorrelation(true).assertConvertsTo(
         "select*from emp where exists (\n"
-        + "  select 1 from dept where emp.deptno=dept.deptno limit 1)",
+            + "  select 1 from dept where emp.deptno=dept.deptno limit 1)",
         "${plan}");
   }
 
@@ -646,23 +651,23 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     // Go over the default threshold of 20 to force a subquery.
     check(
         "select empno from emp where deptno in"
-        + " (10, 20, 30, 40, 50, 60, 70, 80, 90, 100"
-        + ", 110, 120, 130, 140, 150, 160, 170, 180, 190"
-        + ", 200, 210, 220, 230)",
+            + " (10, 20, 30, 40, 50, 60, 70, 80, 90, 100"
+            + ", 110, 120, 130, 140, 150, 160, 170, 180, 190"
+            + ", 200, 210, 220, 230)",
         "${plan}");
   }
 
   @Test public void testInUncorrelatedSubquery() {
     check(
         "select empno from emp where deptno in"
-        + " (select deptno from dept)",
+            + " (select deptno from dept)",
         "${plan}");
   }
 
   @Test public void testNotInUncorrelatedSubquery() {
     check(
         "select empno from emp where deptno not in"
-        + " (select deptno from dept)",
+            + " (select deptno from dept)",
         "${plan}");
   }
 
@@ -672,8 +677,8 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     // WHERE clause -- so the translation is more complicated.
     check(
         "select name, deptno in (\n"
-        + "  select case when true then deptno else null end from emp)\n"
-        + "from dept",
+            + "  select case when true then deptno else null end from emp)\n"
+            + "from dept",
         "${plan}");
   }
 
@@ -682,8 +687,8 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
   @Test public void testNotInUncorrelatedSubqueryInSelect() {
     check(
         "select empno, deptno not in (\n"
-        + "  select case when true then deptno else null end from dept)\n"
-        + "from emp",
+            + "  select case when true then deptno else null end from dept)\n"
+            + "from emp",
         "${plan}");
   }
 
@@ -692,8 +697,8 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
   @Test public void testNotInUncorrelatedSubqueryInSelectNotNull() {
     check(
         "select empno, deptno not in (\n"
-        + "  select deptno from dept)\n"
-        + "from emp",
+            + "  select deptno from dept)\n"
+            + "from emp",
         "${plan}");
   }
 
@@ -751,9 +756,9 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     // union with values
     check(
         "values (10), (20)\n"
-        + "union all\n"
-        + "select 34 from emp\n"
-        + "union all values (30), (45 + 10)",
+            + "union all\n"
+            + "select 34 from emp\n"
+            + "union all values (30), (45 + 10)",
         "${plan}");
   }
 
@@ -761,9 +766,9 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     // union of subquery, inside from list, also values
     check(
         "select deptno from emp as emp0 cross join\n"
-        + " (select empno from emp union all\n"
-        + "  select deptno from dept where deptno > 20 union all\n"
-        + "  values (45), (67))",
+            + " (select empno from emp union all\n"
+            + "  select deptno from dept where deptno > 20 union all\n"
+            + "  values (45), (67))",
         "${plan}");
   }
 
@@ -789,19 +794,20 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
   @Test public void testOverMultiple() {
     check(
         "select sum(sal) over w1,\n"
-        + "  sum(deptno) over w1,\n"
-        + "  sum(deptno) over w2\n"
-        + "from emp\n"
-        + "where deptno - sal > 999\n"
-        + "window w1 as (partition by job order by hiredate rows 2 preceding),\n"
-        + "  w2 as (partition by job order by hiredate rows 3 preceding disallow partial),\n"
-        + "  w3 as (partition by job order by hiredate range interval '1' second preceding)",
+            + "  sum(deptno) over w1,\n"
+            + "  sum(deptno) over w2\n"
+            + "from emp\n"
+            + "where deptno - sal > 999\n"
+            + "window w1 as (partition by job order by hiredate rows 2 preceding),\n"
+            + "  w2 as (partition by job order by hiredate rows 3 preceding disallow partial),\n"
+            + "  w3 as (partition by job order by hiredate range interval '1' second preceding)",
         "${plan}");
   }
 
   /**
-   * Test one of the custom conversions which is recognized by the class of
-   * the operator (in this case, {@link org.eigenbase.sql.fun.SqlCaseOperator}).
+   * Test one of the custom conversions which is recognized by the class of the
+   * operator (in this case,
+   * {@link org.apache.calcite.sql.fun.SqlCaseOperator}).
    */
   @Test public void testCase() {
     check(
@@ -811,8 +817,8 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
 
   /**
    * Tests one of the custom conversions which is recognized by the identity
-   * of the operator (in this case, {@link
-   * org.eigenbase.sql.fun.SqlStdOperatorTable#CHARACTER_LENGTH}).
+   * of the operator (in this case,
+   * {@link org.apache.calcite.sql.fun.SqlStdOperatorTable#CHARACTER_LENGTH}).
    */
   @Test public void testCharLength() {
     // Note that CHARACTER_LENGTH becomes CHAR_LENGTH.
@@ -827,9 +833,9 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     // result back to match the type of x.
     check(
         "select sum(sal) over w1,\n"
-        + "  avg(sal) over w1\n"
-        + "from emp\n"
-        + "window w1 as (partition by job order by hiredate rows 2 preceding)",
+            + "  avg(sal) over w1\n"
+            + "from emp\n"
+            + "window w1 as (partition by job order by hiredate rows 2 preceding)",
         "${plan}");
   }
 
@@ -839,18 +845,18 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     // isn't needed.
     check(
         "select sum(sal) over w1,\n"
-        + "  avg(CAST(sal as real)) over w1\n"
-        + "from emp\n"
-        + "window w1 as (partition by job order by hiredate rows 2 preceding)",
+            + "  avg(CAST(sal as real)) over w1\n"
+            + "from emp\n"
+            + "window w1 as (partition by job order by hiredate rows 2 preceding)",
         "${plan}");
   }
 
   @Test public void testOverCountStar() {
     check(
         "select count(sal) over w1,\n"
-        + "  count(*) over w1\n"
-        + "from emp\n"
-        + "window w1 as (partition by job order by hiredate rows 2 preceding)",
+            + "  count(*) over w1\n"
+            + "from emp\n"
+            + "window w1 as (partition by job order by hiredate rows 2 preceding)",
 
         "${plan}");
   }
@@ -861,14 +867,14 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
   @Test public void testOverOrderWindow() {
     check(
         "select last_value(deptno) over w\n"
-        + "from emp\n"
-        + "window w as (order by empno)",
+            + "from emp\n"
+            + "window w as (order by empno)",
         "${plan}");
 
     // Same query using inline window
     check(
         "select last_value(deptno) over (order by empno)\n"
-        + "from emp\n",
+            + "from emp\n",
         "${plan}");
   }
 
@@ -880,14 +886,14 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     // Window contains only ORDER BY (implicitly CURRENT ROW).
     check(
         "select last_value(deptno) over w\n"
-        + "from emp\n"
-        + "window w as (order by empno rows 2 following)",
+            + "from emp\n"
+            + "window w as (order by empno rows 2 following)",
         "${plan}");
 
     // Same query using inline window
     check(
         "select last_value(deptno) over (order by empno rows 2 following)\n"
-        + "from emp\n",
+            + "from emp\n",
         "${plan}");
   }
 
@@ -910,25 +916,25 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     rel.explain(planWriter);
     pw.flush();
     TestUtil.assertEqualsVerbose(
-        "<RelNode type=\"ProjectRel\">\n"
-        + "\t<Property name=\"EXPR$0\">\n"
-        + "\t\t+(1, 2)\t</Property>\n"
-        + "\t<Property name=\"EXPR$1\">\n"
-        + "\t\t3\t</Property>\n"
-        + "\t<Inputs>\n"
-        + "\t\t<RelNode type=\"ValuesRel\">\n"
-        + "\t\t\t<Property name=\"tuples\">\n"
-        + "\t\t\t\t[{ true }]\t\t\t</Property>\n"
-        + "\t\t\t<Inputs/>\n"
-        + "\t\t</RelNode>\n"
-        + "\t</Inputs>\n"
-        + "</RelNode>\n",
+        "<RelNode type=\"LogicalProject\">\n"
+            + "\t<Property name=\"EXPR$0\">\n"
+            + "\t\t+(1, 2)\t</Property>\n"
+            + "\t<Property name=\"EXPR$1\">\n"
+            + "\t\t3\t</Property>\n"
+            + "\t<Inputs>\n"
+            + "\t\t<RelNode type=\"LogicalValues\">\n"
+            + "\t\t\t<Property name=\"tuples\">\n"
+            + "\t\t\t\t[{ true }]\t\t\t</Property>\n"
+            + "\t\t\t<Inputs/>\n"
+            + "\t\t</RelNode>\n"
+            + "\t</Inputs>\n"
+            + "</RelNode>\n",
         Util.toLinux(sw.toString()));
   }
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-412">CALCITE-412</a>,
-   * "RelFieldTrimmer: when trimming SortRel, the collation and trait set don't
+   * "RelFieldTrimmer: when trimming Sort, the collation and trait set don't
    * match". */
   @Test public void testSortWithTrim() {
     tester.assertConvertsTo(

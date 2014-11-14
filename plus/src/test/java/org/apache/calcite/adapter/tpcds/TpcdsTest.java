@@ -14,19 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.impl.tpcds;
+package org.apache.calcite.adapter.tpcds;
 
-import net.hydromatic.optiq.prepare.Prepare;
-import net.hydromatic.optiq.runtime.Hook;
-import net.hydromatic.optiq.test.OptiqAssert;
-import net.hydromatic.optiq.tools.Program;
-import net.hydromatic.optiq.tools.Programs;
-
-import org.eigenbase.util.Bug;
-import org.eigenbase.util.Holder;
-import org.eigenbase.util.Pair;
+import org.apache.calcite.prepare.Prepare;
+import org.apache.calcite.runtime.Hook;
+import org.apache.calcite.test.CalciteAssert;
+import org.apache.calcite.tools.Program;
+import org.apache.calcite.tools.Programs;
+import org.apache.calcite.util.Bug;
+import org.apache.calcite.util.Holder;
+import org.apache.calcite.util.Pair;
 
 import com.google.common.base.Function;
+
+import net.hydromatic.tpcds.query.Query;
 
 import org.junit.Ignore;
 import org.junit.Test;
@@ -34,13 +35,11 @@ import org.junit.Test;
 import java.util.List;
 import java.util.Random;
 
-import net.hydromatic.tpcds.query.Query;
-
-/** Unit test for {@link net.hydromatic.optiq.impl.tpcds.TpcdsSchema}.
+/** Unit test for {@link org.apache.calcite.adapter.tpcds.TpcdsSchema}.
  *
  * <p>Only runs if {@code -Dcalcite.test.slow=true} is specified on the
  * command-line.
- * (See {@link net.hydromatic.optiq.test.OptiqAssert#ENABLE_SLOW}.)</p> */
+ * (See {@link org.apache.calcite.test.CalciteAssert#ENABLE_SLOW}.)</p> */
 public class TpcdsTest {
   private static
   Function<Pair<List<Prepare.Materialization>, Holder<Program>>, Void>
@@ -63,7 +62,7 @@ public class TpcdsTest {
     return "     {\n"
         + "       type: 'custom',\n"
         + "       name: '" + name + "',\n"
-        + "       factory: 'net.hydromatic.optiq.impl.tpcds.TpcdsSchemaFactory',\n"
+        + "       factory: 'org.apache.calcite.adapter.tpcds.TpcdsSchemaFactory',\n"
         + "       operand: {\n"
         + "         columnPrefix: true,\n"
         + "         scale: " + scaleFactor + "\n"
@@ -71,8 +70,7 @@ public class TpcdsTest {
         + "     }";
   }
 
-  public static final String TPCDS_MODEL =
-      "{\n"
+  public static final String TPCDS_MODEL = "{\n"
       + "  version: '1.0',\n"
       + "  defaultSchema: 'TPCDS',\n"
       + "   schemas: [\n"
@@ -82,10 +80,10 @@ public class TpcdsTest {
       + "   ]\n"
       + "}";
 
-  private OptiqAssert.AssertThat with() {
-    return OptiqAssert.that()
+  private CalciteAssert.AssertThat with() {
+    return CalciteAssert.that()
         .withModel(TPCDS_MODEL)
-        .enable(OptiqAssert.ENABLE_SLOW);
+        .enable(CalciteAssert.ENABLE_SLOW);
   }
 
   @Test public void testCallCenter() {
@@ -118,7 +116,7 @@ public class TpcdsTest {
     checkQuery(17)
         .withHook(Hook.PROGRAM, handler(true, 2))
         .explainMatches("including all attributes ",
-            OptiqAssert.checkMaskedResultContains(""
+            CalciteAssert.checkMaskedResultContains(""
                 + "EnumerableCalcRel(expr#0..11=[{inputs}], expr#12=[/($t5, $t4)], expr#13=[/($t8, $t7)], expr#14=[/($t11, $t10)], proj#0..5=[{exprs}], STORE_SALES_QUANTITYCOV=[$t12], AS_STORE_RETURNS_QUANTITYCOUNT=[$t6], AS_STORE_RETURNS_QUANTITYAVE=[$t7], AS_STORE_RETURNS_QUANTITYSTDEV=[$t8], STORE_RETURNS_QUANTITYCOV=[$t13], CATALOG_SALES_QUANTITYCOUNT=[$t9], CATALOG_SALES_QUANTITYAVE=[$t10], CATALOG_SALES_QUANTITYSTDEV=[$t14], CATALOG_SALES_QUANTITYCOV=[$t14]): rowcount = 5.434029018852197E26, cumulative cost = {1.618185849567114E30 rows, 1.2672155671963324E30 cpu, 0.0 io}\n"
                 + "  EnumerableSortRel(sort0=[$0], sort1=[$1], sort2=[$2], dir0=[ASC], dir1=[ASC], dir2=[ASC]): rowcount = 5.434029018852197E26, cumulative cost = {1.6176424466652288E30 rows, 1.2509134801397759E30 cpu, 0.0 io}\n"
                 + "    EnumerableCalcRel(expr#0..12=[{inputs}], expr#13=[/($t4, $t5)], expr#14=[CAST($t13):JavaType(class java.lang.Integer)], expr#15=[*($t4, $t4)], expr#16=[/($t15, $t5)], expr#17=[-($t6, $t16)], expr#18=[1], expr#19=[=($t5, $t18)], expr#20=[null], expr#21=[-($t5, $t18)], expr#22=[CASE($t19, $t20, $t21)], expr#23=[/($t17, $t22)], expr#24=[0.5], expr#25=[POWER($t23, $t24)], expr#26=[CAST($t25):JavaType(class java.lang.Integer)], expr#27=[/($t8, $t7)], expr#28=[CAST($t27):JavaType(class java.lang.Integer)], expr#29=[*($t8, $t8)], expr#30=[/($t29, $t7)], expr#31=[-($t9, $t30)], expr#32=[=($t7, $t18)], expr#33=[-($t7, $t18)], expr#34=[CASE($t32, $t20, $t33)], expr#35=[/($t31, $t34)], expr#36=[POWER($t35, $t24)], expr#37=[CAST($t36):JavaType(class java.lang.Integer)], expr#38=[/($t11, $t10)], expr#39=[CAST($t38):JavaType(class java.lang.Integer)], expr#40=[*($t11, $t11)], expr#41=[/($t40, $t10)], expr#42=[-($t12, $t41)], expr#43=[=($t10, $t18)], expr#44=[-($t10, $t18)], expr#45=[CASE($t43, $t20, $t44)], expr#46=[/($t42, $t45)], expr#47=[POWER($t46, $t24)], expr#48=[CAST($t47):JavaType(class java.lang.Integer)], proj#0..3=[{exprs}], STORE_SALES_QUANTITYAVE=[$t14], STORE_SALES_QUANTITYSTDEV=[$t26], AS_STORE_RETURNS_QUANTITYCOUNT=[$t7], AS_STORE_RETURNS_QUANTITYAVE=[$t28], AS_STORE_RETURNS_QUANTITYSTDEV=[$t37], CATALOG_SALES_QUANTITYCOUNT=[$t10], CATALOG_SALES_QUANTITYAVE=[$t39], $f11=[$t48]): rowcount = 5.434029018852197E26, cumulative cost = {1.1954863841615548E28 rows, 1.2503700772378907E30 cpu, 0.0 io}\n"
@@ -166,7 +164,7 @@ public class TpcdsTest {
         .runs();
   }
 
-  private OptiqAssert.AssertQuery checkQuery(int i) {
+  private CalciteAssert.AssertQuery checkQuery(int i) {
     final Query query = Query.of(i);
     String sql = query.sql(-1, new Random(0));
     switch (i) {

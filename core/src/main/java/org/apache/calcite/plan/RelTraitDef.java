@@ -14,12 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.relopt;
+package org.apache.calcite.plan;
 
-import org.eigenbase.rel.*;
-import org.eigenbase.rel.convert.*;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.convert.ConverterRule;
 
-import com.google.common.cache.*;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
 
 /**
  * RelTraitDef represents a class of {@link RelTrait}s. Implementations of
@@ -33,9 +35,10 @@ import com.google.common.cache.*;
  * <li>Either
  *
  * <ul>
- * <li> {@link #canConvert(RelOptPlanner, RelTrait, RelTrait)} and {@link
- * #convert(RelOptPlanner, RelNode, RelTrait, boolean)} do not require
+ * <li> {@link #canConvert(RelOptPlanner, RelTrait, RelTrait)} and
+ * {@link #convert(RelOptPlanner, RelNode, RelTrait, boolean)} do not require
  * planner-instance-specific information, <b>or</b></li>
+ *
  * <li>the RelTraitDef manages separate sets of conversion data internally. See
  * {@link ConventionTraitDef} for an example of this.</li>
  * </ul>
@@ -55,8 +58,7 @@ public abstract class RelTraitDef<T extends RelTrait> {
           .softValues()
           .build(
               new CacheLoader<T, T>() {
-                @Override
-                public T load(T key) throws Exception {
+                @Override public T load(T key) throws Exception {
                   return key;
                 }
               });
@@ -85,7 +87,7 @@ public abstract class RelTraitDef<T extends RelTrait> {
 
   /**
    * @return a simple name for this RelTraitDef (for use in
-   * {@link org.eigenbase.rel.RelNode#explain(RelWriter)}).
+   * {@link org.apache.calcite.rel.RelNode#explain}).
    */
   public abstract String getSimpleName();
 
@@ -140,9 +142,9 @@ public abstract class RelTraitDef<T extends RelTrait> {
       T toTrait);
 
   /**
-   * Provides notification of the registration of a particular {@link
-   * ConverterRule} with a {@link RelOptPlanner}. The default implementation
-   * does nothing.
+   * Provides notification of the registration of a particular
+   * {@link ConverterRule} with a {@link RelOptPlanner}. The default
+   * implementation does nothing.
    *
    * @param planner       the planner registering the rule
    * @param converterRule the registered converter rule

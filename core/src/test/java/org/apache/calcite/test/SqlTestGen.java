@@ -14,17 +14,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.test;
+package org.apache.calcite.test;
 
-import java.io.*;
-import java.lang.reflect.*;
-import java.nio.charset.*;
-import java.util.*;
+import org.apache.calcite.sql.SqlCollation;
+import org.apache.calcite.sql.test.DefaultSqlTestFactory;
+import org.apache.calcite.sql.test.DelegatingSqlTestFactory;
+import org.apache.calcite.sql.test.SqlTestFactory;
+import org.apache.calcite.sql.test.SqlTester;
+import org.apache.calcite.sql.test.SqlTesterImpl;
+import org.apache.calcite.sql.validate.SqlValidator;
+import org.apache.calcite.util.BarfingInvocationHandler;
+import org.apache.calcite.util.Util;
 
-import org.eigenbase.sql.*;
-import org.eigenbase.sql.test.*;
-import org.eigenbase.sql.validate.*;
-import org.eigenbase.util.*;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
+import java.lang.reflect.Proxy;
+import java.nio.charset.Charset;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Utility to generate a SQL script from validator test.
@@ -107,8 +119,7 @@ public class SqlTestGen {
     public SqlTester getTester() {
       final SqlTestFactory factory =
           new DelegatingSqlTestFactory(DefaultSqlTestFactory.INSTANCE) {
-            @Override
-            public SqlValidator getValidator(SqlTestFactory factory) {
+            @Override public SqlValidator getValidator(SqlTestFactory factory) {
               return (SqlValidator) Proxy.newProxyInstance(
                   SqlValidatorSpooler.class.getClassLoader(),
                   new Class[]{SqlValidator.class},
@@ -133,12 +144,10 @@ public class SqlTestGen {
           }
         }
 
-        @Override
-        public void checkColumnType(String sql, String expected) {
+        @Override public void checkColumnType(String sql, String expected) {
         }
 
-        @Override
-        public void checkResultType(String sql, String expected) {
+        @Override public void checkResultType(String sql, String expected) {
         }
 
         public void checkType(
@@ -163,19 +172,16 @@ public class SqlTestGen {
           // ignore it for now.
         }
 
-        @Override
-        public void checkIntervalConv(String sql, String expected) {
+        @Override public void checkIntervalConv(String sql, String expected) {
         }
 
-        @Override
-        public void checkRewrite(
+        @Override public void checkRewrite(
             SqlValidator validator,
             String query,
             String expectedRewrite) {
         }
 
-        @Override
-        public void checkFieldOrigin(
+        @Override public void checkFieldOrigin(
             String sql,
             String fieldOriginList) {
         }
@@ -184,7 +190,7 @@ public class SqlTestGen {
 
     /**
      * Handles the methods in
-     * {@link org.eigenbase.sql.validate.SqlValidator} that are called
+     * {@link org.apache.calcite.sql.validate.SqlValidator} that are called
      * from validator tests.
      */
     public static class MyInvocationHandler extends BarfingInvocationHandler {

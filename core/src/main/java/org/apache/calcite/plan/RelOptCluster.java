@@ -14,19 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.relopt;
+package org.apache.calcite.plan;
 
-import org.eigenbase.rel.*;
-import org.eigenbase.rel.metadata.*;
-import org.eigenbase.reltype.*;
-import org.eigenbase.rex.*;
+import org.apache.calcite.rel.metadata.DefaultRelMetadataProvider;
+import org.apache.calcite.rel.metadata.MetadataFactory;
+import org.apache.calcite.rel.metadata.MetadataFactoryImpl;
+import org.apache.calcite.rel.metadata.RelMetadataProvider;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexNode;
 
 /**
- * A <code>RelOptCluster</code> is a collection of {@link RelNode relational
- * expressions} which have the same environment.
- *
- * <p>See the comment against <code>net.sf.saffron.oj.xlat.QueryInfo</code> on
- * why you should put fields in that class, not this one.</p>
+ * An environment for related relational expressions during the
+ * optimization of a query.
  */
 public class RelOptCluster {
   //~ Instance fields --------------------------------------------------------

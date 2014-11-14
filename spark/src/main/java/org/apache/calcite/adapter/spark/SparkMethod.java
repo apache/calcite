@@ -14,12 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.impl.spark;
+package org.apache.calcite.adapter.spark;
 
-import net.hydromatic.linq4j.Enumerable;
-import net.hydromatic.linq4j.expressions.Types;
-
-import net.hydromatic.optiq.DataContext;
+import org.apache.calcite.DataContext;
+import org.apache.calcite.linq4j.Enumerable;
+import org.apache.calcite.linq4j.tree.Types;
 
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
@@ -31,7 +30,7 @@ import java.util.HashMap;
 /**
  * Built-in methods in the Spark adapter.
  *
- * @see net.hydromatic.optiq.BuiltinMethod
+ * @see org.apache.calcite.util.BuiltInMethod
  */
 public enum SparkMethod {
   AS_ENUMERABLE(SparkRuntime.class, "asEnumerable", JavaRDD.class),

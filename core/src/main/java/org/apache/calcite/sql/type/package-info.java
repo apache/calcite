@@ -18,6 +18,6 @@
 /**
  * SQL type system.
  */
-package org.eigenbase.sql.type;
+package org.apache.calcite.sql.type;
 
 // End package-info.java

@@ -14,13 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql.type;
+package org.apache.calcite.sql.type;
 
-import org.eigenbase.reltype.*;
-import org.eigenbase.sql.*;
-import org.eigenbase.sql.parser.*;
-import org.eigenbase.sql.pretty.SqlPrettyWriter;
-import org.eigenbase.sql.util.SqlString;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactoryImpl;
+import org.apache.calcite.rel.type.RelDataTypeSystem;
+import org.apache.calcite.sql.SqlDialect;
+import org.apache.calcite.sql.SqlIntervalQualifier;
+import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.pretty.SqlPrettyWriter;
+import org.apache.calcite.sql.util.SqlString;
 
 /**
  * IntervalSqlType represents a standard SQL datetime interval type.
@@ -145,8 +148,7 @@ public class IntervalSqlType extends AbstractSqlType {
     return intervalQualifier.getStartPrecision(typeSystem);
   }
 
-  @Override
-  public int getScale() {
+  @Override public int getScale() {
     return intervalQualifier.getFractionalSecondPrecision(typeSystem);
   }
 }

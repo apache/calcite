@@ -14,13 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.util14;
+package org.apache.calcite.util;
 
-import java.io.*;
-
-import java.text.*;
-
-import java.util.*;
+import java.io.Serializable;
+import java.text.DateFormat;
+import java.util.Calendar;
+import java.util.TimeZone;
 
 /**
  * ZonelessDatetime is an abstract class for dates, times, or timestamps that
@@ -101,8 +100,8 @@ public abstract class ZonelessDatetime implements BasicDatetime, Serializable {
   }
 
   /**
-   * Gets the value of this datetime as a milliseconds value for {@link
-   * java.sql.Time}.
+   * Gets the value of this datetime as a milliseconds value for
+   * {@link java.sql.Time}.
    *
    * @param zone time zone in which to generate a time value for
    */
@@ -112,8 +111,8 @@ public abstract class ZonelessDatetime implements BasicDatetime, Serializable {
   }
 
   /**
-   * Gets the value of this datetime as a milliseconds value for {@link
-   * java.sql.Date}.
+   * Gets the value of this datetime as a milliseconds value for
+   * {@link java.sql.Date}.
    *
    * @param zone time zone in which to generate a time value for
    */
@@ -132,8 +131,8 @@ public abstract class ZonelessDatetime implements BasicDatetime, Serializable {
   }
 
   /**
-   * Gets the value of this datetime as a milliseconds value for {@link
-   * java.sql.Timestamp}.
+   * Gets the value of this datetime as a milliseconds value for
+   * {@link java.sql.Timestamp}.
    *
    * @param zone time zone in which to generate a time value for
    */

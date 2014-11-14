@@ -14,18 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel.rules;
+package org.apache.calcite.rel.rules;
 
-import java.util.*;
-
-import org.eigenbase.rel.*;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.Join;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
+import java.util.List;
+
 /**
- * Utility class used to store a {@link JoinRelBase} tree and the factors that
- * make up the tree.
+ * Utility class used to store a {@link org.apache.calcite.rel.core.Join} tree
+ * and the factors that make up the tree.
  *
  * <p>Because {@link RelNode}s can be duplicated in a query
  * when you have a self-join, factor ids are needed to distinguish between the
@@ -115,7 +116,7 @@ public class LoptJoinTree {
   public LoptJoinTree getLeft() {
     final Node node = (Node) factorTree;
     return new LoptJoinTree(
-        ((JoinRelBase) joinTree).getLeft(),
+        ((Join) joinTree).getLeft(),
         node.getLeft(),
         node.getLeft().getParent().isRemovableSelfJoin());
   }
@@ -123,7 +124,7 @@ public class LoptJoinTree {
   public LoptJoinTree getRight() {
     final Node node = (Node) factorTree;
     return new LoptJoinTree(
-        ((JoinRelBase) joinTree).getRight(),
+        ((Join) joinTree).getRight(),
         node.getRight(),
         node.getRight().getParent().isRemovableSelfJoin());
   }

@@ -14,13 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.examples.foodmart.java;
+package org.apache.calcite.examples.foodmart.java;
 
-import net.hydromatic.optiq.SchemaPlus;
-import net.hydromatic.optiq.impl.java.ReflectiveSchema;
-import net.hydromatic.optiq.jdbc.OptiqConnection;
+import org.apache.calcite.adapter.java.ReflectiveSchema;
+import org.apache.calcite.jdbc.CalciteConnection;
+import org.apache.calcite.schema.SchemaPlus;
 
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 
 /**
  * Example of using Calcite via JDBC.
@@ -33,18 +37,17 @@ public class JdbcExample {
   }
 
   public void run() throws ClassNotFoundException, SQLException {
-    Class.forName("net.hydromatic.optiq.jdbc.Driver");
+    Class.forName("org.apache.calcite.jdbc.Driver");
     Connection connection =
         DriverManager.getConnection("jdbc:calcite:");
-    OptiqConnection optiqConnection =
-        connection.unwrap(OptiqConnection.class);
-    SchemaPlus rootSchema = optiqConnection.getRootSchema();
+    CalciteConnection calciteConnection =
+        connection.unwrap(CalciteConnection.class);
+    SchemaPlus rootSchema = calciteConnection.getRootSchema();
     rootSchema.add("hr", new ReflectiveSchema(new Hr()));
     rootSchema.add("foodmart", new ReflectiveSchema(new Foodmart()));
     Statement statement = connection.createStatement();
     ResultSet resultSet =
-        statement.executeQuery(
-            "select *\n"
+        statement.executeQuery("select *\n"
             + "from \"foodmart\".\"sales_fact_1997\" as s\n"
             + "join \"hr\".\"emps\" as e\n"
             + "on e.\"empid\" = s.\"cust_id\"");
@@ -65,6 +68,7 @@ public class JdbcExample {
     connection.close();
   }
 
+  /** Object that will be used via reflection to create the "hr" schema. */
   public static class Hr {
     public final Employee[] emps = {
       new Employee(100, "Bill"),
@@ -73,6 +77,7 @@ public class JdbcExample {
     };
   }
 
+  /** Object that will be used via reflection to create the "emps" table. */
   public static class Employee {
     public final int empid;
     public final String name;
@@ -83,6 +88,8 @@ public class JdbcExample {
     }
   }
 
+  /** Object that will be used via reflection to create the "foodmart"
+   * schema. */
   public static class Foodmart {
     public final SalesFact[] sales_fact_1997 = {
       new SalesFact(100, 10),
@@ -90,6 +97,9 @@ public class JdbcExample {
     };
   }
 
+
+  /** Object that will be used via reflection to create the
+   * "sales_fact_1997" fact table. */
   public static class SalesFact {
     public final int cust_id;
     public final int prod_id;

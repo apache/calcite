@@ -14,26 +14,44 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rex;
+package org.apache.calcite.rex;
 
-import java.math.*;
-import java.util.*;
-
-import org.eigenbase.rel.*;
-import org.eigenbase.reltype.*;
-import org.eigenbase.sql.*;
-import org.eigenbase.sql.SqlIntervalQualifier.TimeUnit;
-import org.eigenbase.sql.fun.*;
-import org.eigenbase.sql.type.*;
-import org.eigenbase.util.*;
-import org.eigenbase.util14.DateTimeUtil;
-
-import net.hydromatic.avatica.ByteString;
-
-import net.hydromatic.optiq.runtime.Spaces;
-import net.hydromatic.optiq.runtime.SqlFunctions;
+import org.apache.calcite.avatica.ByteString;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.AggregateCall;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.runtime.Spaces;
+import org.apache.calcite.runtime.SqlFunctions;
+import org.apache.calcite.sql.SqlAggFunction;
+import org.apache.calcite.sql.SqlIntervalQualifier;
+import org.apache.calcite.sql.SqlIntervalQualifier.TimeUnit;
+import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.SqlSpecialOperator;
+import org.apache.calcite.sql.SqlUtil;
+import org.apache.calcite.sql.fun.SqlCountAggFunction;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.type.ArraySqlType;
+import org.apache.calcite.sql.type.IntervalSqlType;
+import org.apache.calcite.sql.type.MapSqlType;
+import org.apache.calcite.sql.type.SqlTypeFamily;
+import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.type.SqlTypeUtil;
+import org.apache.calcite.util.DateTimeUtil;
+import org.apache.calcite.util.NlsString;
+import org.apache.calcite.util.Pair;
+import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
+
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Calendar;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Factory for row expressions.
@@ -151,8 +169,7 @@ public class RexBuilder {
     final RelDataType type = expr.getType();
     final List<RelDataTypeField> fields = type.getFieldList();
     if ((i < 0) || (i >= fields.size())) {
-      throw Util.newInternal(
-          "Field ordinal " + i + " is invalid for "
+      throw Util.newInternal("Field ordinal " + i + " is invalid for "
           + " type '" + type + "'");
     }
     return makeFieldAccessInternal(expr, fields.get(i));
@@ -199,7 +216,7 @@ public class RexBuilder {
    * Creates a call with an array of arguments.
    *
    * <p>If you already know the return type of the call, then
-   * {@link #makeCall(org.eigenbase.reltype.RelDataType, org.eigenbase.sql.SqlOperator, java.util.List)}
+   * {@link #makeCall(org.apache.calcite.rel.type.RelDataType, org.apache.calcite.sql.SqlOperator, java.util.List)}
    * is preferred.</p>
    */
   public RexNode makeCall(
@@ -752,9 +769,9 @@ public class RexBuilder {
 
   /**
    * Internal method to create a call to a literal. Code outside this package
-   * should call one of the type-specific methods such as {@link
-   * #makeDateLiteral(Calendar)}, {@link #makeLiteral(boolean)}, {@link
-   * #makeLiteral(String)}.
+   * should call one of the type-specific methods such as
+   * {@link #makeDateLiteral(Calendar)}, {@link #makeLiteral(boolean)},
+   * {@link #makeLiteral(String)}.
    *
    * @param o        Value of literal, must be appropriate for the type
    * @param type     Type of literal
@@ -1217,7 +1234,7 @@ public class RexBuilder {
   }
 
   /** Converts the type of a value to comply with
-   * {@link org.eigenbase.rex.RexLiteral#valueMatchesType}. */
+   * {@link org.apache.calcite.rex.RexLiteral#valueMatchesType}. */
   private static Object clean(Object o, RelDataType type) {
     if (o == null) {
       return null;

@@ -14,21 +14,35 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.linq4j;
+package org.apache.calcite.linq4j;
 
-import net.hydromatic.linq4j.expressions.FunctionExpression;
-import net.hydromatic.linq4j.function.*;
+import org.apache.calcite.linq4j.function.BigDecimalFunction1;
+import org.apache.calcite.linq4j.function.DoubleFunction1;
+import org.apache.calcite.linq4j.function.EqualityComparer;
+import org.apache.calcite.linq4j.function.FloatFunction1;
+import org.apache.calcite.linq4j.function.Function1;
+import org.apache.calcite.linq4j.function.Function2;
+import org.apache.calcite.linq4j.function.IntegerFunction1;
+import org.apache.calcite.linq4j.function.LongFunction1;
+import org.apache.calcite.linq4j.function.NullableBigDecimalFunction1;
+import org.apache.calcite.linq4j.function.NullableDoubleFunction1;
+import org.apache.calcite.linq4j.function.NullableFloatFunction1;
+import org.apache.calcite.linq4j.function.NullableIntegerFunction1;
+import org.apache.calcite.linq4j.function.NullableLongFunction1;
+import org.apache.calcite.linq4j.function.Predicate1;
+import org.apache.calcite.linq4j.function.Predicate2;
+import org.apache.calcite.linq4j.tree.FunctionExpression;
 
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
 import java.util.Comparator;
 
-import static net.hydromatic.linq4j.QueryableDefaults.NonLeafReplayableQueryable;
+import static org.apache.calcite.linq4j.QueryableDefaults.NonLeafReplayableQueryable;
 
 /**
  * Implementation of {@link QueryableFactory} that records each event
  * and returns an object that can replay the event when you call its
- * {@link net.hydromatic.linq4j.QueryableDefaults.ReplayableQueryable#replay(QueryableFactory)}
+ * {@link org.apache.calcite.linq4j.QueryableDefaults.ReplayableQueryable#replay(QueryableFactory)}
  * method.
  *
  * @param <T> Element type
@@ -659,8 +673,7 @@ public class QueryableRecorder<T> implements QueryableFactory<T> {
         factory.select(source, selector);
       }
 
-      @Override
-      public Type getElementType() {
+      @Override public Type getElementType() {
         return selector.body.type;
       }
     }.castQueryable(); // CHECKSTYLE: IGNORE 0

@@ -8,7 +8,7 @@
         {
           name: 'EMPS',
           type: 'custom',
-          factory: 'net.hydromatic.optiq.impl.csv.CsvTableFactory',
+          factory: 'org.apache.calcite.adapter.csv.CsvTableFactory',
           operand: {
             file: 'sales/EMPS.csv.gz',
             flavor: "scannable"

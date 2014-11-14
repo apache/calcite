@@ -14,21 +14,30 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel.rules;
+package org.apache.calcite.rel.rules;
 
-import org.eigenbase.rel.*;
-import org.eigenbase.relopt.*;
-import org.eigenbase.reltype.*;
-import org.eigenbase.rex.*;
+import org.apache.calcite.plan.RelOptRule;
+import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.rel.RelCollation;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.logical.LogicalCalc;
+import org.apache.calcite.rel.logical.LogicalProject;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rex.RexProgram;
 
 import com.google.common.collect.ImmutableList;
 
 /**
- * Rule to convert a {@link ProjectRel} to a {@link CalcRel}
+ * Rule to convert a
+ * {@link org.apache.calcite.rel.logical.LogicalProject} to a
+ * {@link org.apache.calcite.rel.logical.LogicalCalc}
  *
- * <p>The rule does not fire if the child is a {@link ProjectRel}, {@link
- * FilterRel} or {@link CalcRel}. If it did, then the same {@link CalcRel} would
- * be formed via several transformation paths, which is a waste of effort.</p>
+ * <p>The rule does not fire if the child is a
+ * {@link org.apache.calcite.rel.logical.LogicalProject},
+ * {@link org.apache.calcite.rel.logical.LogicalFilter} or
+ * {@link org.apache.calcite.rel.logical.LogicalCalc}. If it did, then the same
+ * {@link org.apache.calcite.rel.logical.LogicalCalc} would be formed via
+ * several transformation paths, which is a waste of effort.</p>
  *
  * @see FilterToCalcRule
  */
@@ -40,14 +49,14 @@ public class ProjectToCalcRule extends RelOptRule {
   //~ Constructors -----------------------------------------------------------
 
   private ProjectToCalcRule() {
-    super(operand(ProjectRel.class, any()));
+    super(operand(LogicalProject.class, any()));
   }
 
   //~ Methods ----------------------------------------------------------------
 
   public void onMatch(RelOptRuleCall call) {
-    final ProjectRel project = call.rel(0);
-    final RelNode child = project.getChild();
+    final LogicalProject project = call.rel(0);
+    final RelNode child = project.getInput();
     final RelDataType rowType = project.getRowType();
     final RexProgram program =
         RexProgram.create(
@@ -56,8 +65,8 @@ public class ProjectToCalcRule extends RelOptRule {
             null,
             project.getRowType(),
             project.getCluster().getRexBuilder());
-    final CalcRel calc =
-        new CalcRel(
+    final LogicalCalc calc =
+        new LogicalCalc(
             project.getCluster(),
             project.getTraitSet(),
             child,

@@ -14,14 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.util.mapping;
+package org.apache.calcite.util.mapping;
 
 import java.util.Iterator;
 
 /**
  * Simple implementation of
- * {@link org.eigenbase.util.mapping.Mappings.TargetMapping} where the number
- * of sources and targets are specified as constructor parameters and you
+ * {@link org.apache.calcite.util.mapping.Mappings.TargetMapping} where the
+ * number of sources and targets are specified as constructor parameters and you
  * just need to implement one method,
  */
 public abstract class AbstractSourceMapping
@@ -96,4 +96,4 @@ public abstract class AbstractSourceMapping
   public abstract int getSourceOpt(int source);
 }
 
-// End AbstractTargetMapping.java
+// End AbstractSourceMapping.java

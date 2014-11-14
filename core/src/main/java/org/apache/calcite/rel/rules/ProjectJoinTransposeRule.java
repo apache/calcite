@@ -14,23 +14,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel.rules;
+package org.apache.calcite.rel.rules;
 
-import java.util.*;
+import org.apache.calcite.plan.RelOptRule;
+import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.Join;
+import org.apache.calcite.rel.logical.LogicalProject;
+import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rex.RexNode;
 
-import org.eigenbase.rel.*;
-import org.eigenbase.relopt.*;
-import org.eigenbase.reltype.*;
-import org.eigenbase.rex.*;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
- * PushProjectPastJoinRule implements the rule for pushing a projection past a
- * join by splitting the projection into a projection on top of each child of
+ * Planner rule that pushes a {@link org.apache.calcite.rel.core.Project}
+ * past a {@link org.apache.calcite.rel.core.Join}
+ * by splitting the projection into a projection on top of each child of
  * the join.
  */
-public class PushProjectPastJoinRule extends RelOptRule {
-  public static final PushProjectPastJoinRule INSTANCE =
-      new PushProjectPastJoinRule(PushProjector.ExprCondition.FALSE);
+public class ProjectJoinTransposeRule extends RelOptRule {
+  public static final ProjectJoinTransposeRule INSTANCE =
+      new ProjectJoinTransposeRule(PushProjector.ExprCondition.FALSE);
 
   //~ Instance fields --------------------------------------------------------
 
@@ -42,16 +47,16 @@ public class PushProjectPastJoinRule extends RelOptRule {
   //~ Constructors -----------------------------------------------------------
 
   /**
-   * Creates a PushProjectPastJoinRule with an explicit condition.
+   * Creates a ProjectJoinTransposeRule with an explicit condition.
    *
    * @param preserveExprCondition Condition for expressions that should be
    *                              preserved in the projection
    */
-  private PushProjectPastJoinRule(
+  private ProjectJoinTransposeRule(
       PushProjector.ExprCondition preserveExprCondition) {
     super(
-        operand(ProjectRel.class,
-            operand(JoinRelBase.class, any())));
+        operand(LogicalProject.class,
+            operand(Join.class, any())));
     this.preserveExprCondition = preserveExprCondition;
   }
 
@@ -59,8 +64,8 @@ public class PushProjectPastJoinRule extends RelOptRule {
 
   // implement RelOptRule
   public void onMatch(RelOptRuleCall call) {
-    ProjectRel origProj = call.rel(0);
-    final JoinRelBase join = call.rel(1);
+    LogicalProject origProj = call.rel(0);
+    final Join join = call.rel(1);
 
     // locate all fields referenced in the projection and join condition;
     // determine which inputs are referenced in the projection and
@@ -109,7 +114,7 @@ public class PushProjectPastJoinRule extends RelOptRule {
     }
 
     // create a new join with the projected children
-    JoinRelBase newJoinRel =
+    Join newJoinRel =
         join.copy(
             join.getTraitSet(),
             newJoinFilter,
@@ -127,4 +132,4 @@ public class PushProjectPastJoinRule extends RelOptRule {
   }
 }
 
-// End PushProjectPastJoinRule.java
+// End ProjectJoinTransposeRule.java

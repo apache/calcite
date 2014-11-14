@@ -14,39 +14,42 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel.rules;
+package org.apache.calcite.rel.rules;
 
-import java.util.List;
-
-import org.eigenbase.rel.*;
-import org.eigenbase.relopt.*;
+import org.apache.calcite.plan.RelOptRule;
+import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.logical.LogicalAggregate;
+import org.apache.calcite.rel.logical.LogicalUnion;
 
 import com.google.common.collect.ImmutableList;
 
+import java.util.List;
+
 /**
- * PullUpAggregateAboveUnionRule implements the rule for pulling {@link
- * AggregateRel}s beneath a {@link UnionRel} so two {@link AggregateRel}s that
- * are used to remove duplicates can be combined into a single {@link
- * AggregateRel}.
+ * Planner rule that matches
+ * {@link org.apache.calcite.rel.logical.LogicalAggregate}s beneath a
+ * {@link org.apache.calcite.rel.logical.LogicalUnion} and pulls them up, so
+ * that a single
+ * {@link org.apache.calcite.rel.logical.LogicalAggregate} removes duplicates.
  *
- * <p>This rule only handles cases where the {@link UnionRel}s still have only
- * two inputs.
+ * <p>This rule only handles cases where the
+ * {@link org.apache.calcite.rel.logical.LogicalUnion}s
+ * still have only two inputs.
  */
-public class PullUpAggregateAboveUnionRule extends RelOptRule {
-  public static final PullUpAggregateAboveUnionRule INSTANCE =
-      new PullUpAggregateAboveUnionRule();
+public class AggregateUnionAggregateRule extends RelOptRule {
+  public static final AggregateUnionAggregateRule INSTANCE =
+      new AggregateUnionAggregateRule();
 
   //~ Constructors -----------------------------------------------------------
 
   /**
-   * Creates a PullUpAggregateAboveUnionRule.
+   * Creates a AggregateUnionAggregateRule.
    */
-  private PullUpAggregateAboveUnionRule() {
+  private AggregateUnionAggregateRule() {
     super(
-        operand(
-            AggregateRel.class,
-            operand(
-                UnionRel.class,
+        operand(LogicalAggregate.class,
+            operand(LogicalUnion.class,
                 operand(RelNode.class, any()),
                 operand(RelNode.class, any()))));
   }
@@ -55,28 +58,28 @@ public class PullUpAggregateAboveUnionRule extends RelOptRule {
 
   // implement RelOptRule
   public void onMatch(RelOptRuleCall call) {
-    UnionRel unionRel = call.rel(1);
+    LogicalUnion union = call.rel(1);
 
     // If distincts haven't been removed yet, defer invoking this rule
-    if (!unionRel.all) {
+    if (!union.all) {
       return;
     }
 
-    AggregateRel topAggRel = call.rel(0);
-    AggregateRel bottomAggRel;
+    LogicalAggregate topAggRel = call.rel(0);
+    LogicalAggregate bottomAggRel;
 
-    // We want to apply this rule on the pattern where the AggregateRel
-    // is the second input into the UnionRel first.  Hence, that's why the
+    // We want to apply this rule on the pattern where the LogicalAggregate
+    // is the second input into the Union first.  Hence, that's why the
     // rule pattern matches on generic RelNodes rather than explicit
     // UnionRels.  By doing so, and firing this rule in a bottom-up order,
     // it allows us to only specify a single pattern for this rule.
     List<RelNode> unionInputs;
-    if (call.rel(3) instanceof AggregateRel) {
+    if (call.rel(3) instanceof LogicalAggregate) {
       bottomAggRel = call.rel(3);
       unionInputs = ImmutableList.of(
           call.rel(2),
           call.rel(3).getInput(0));
-    } else if (call.rel(2) instanceof AggregateRel) {
+    } else if (call.rel(2) instanceof LogicalAggregate) {
       bottomAggRel = call.rel(2);
       unionInputs = ImmutableList.of(
           call.rel(2).getInput(0),
@@ -91,16 +94,16 @@ public class PullUpAggregateAboveUnionRule extends RelOptRule {
       return;
     }
 
-    UnionRel newUnionRel =
-        new UnionRel(
-            unionRel.getCluster(),
+    LogicalUnion newUnion =
+        new LogicalUnion(
+            union.getCluster(),
             unionInputs,
             true);
 
-    AggregateRel newAggRel =
-        new AggregateRel(
+    LogicalAggregate newAggRel =
+        new LogicalAggregate(
             topAggRel.getCluster(),
-            newUnionRel,
+            newUnion,
             topAggRel.getGroupSet(),
             topAggRel.getAggCallList());
 
@@ -108,4 +111,4 @@ public class PullUpAggregateAboveUnionRule extends RelOptRule {
   }
 }
 
-// End PullUpAggregateAboveUnionRule.java
+// End AggregateUnionAggregateRule.java

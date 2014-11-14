@@ -14,12 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.linq4j;
+package org.apache.calcite.linq4j;
 
-import net.hydromatic.linq4j.function.*;
+import org.apache.calcite.linq4j.function.Function2;
 
 import java.math.BigDecimal;
-import java.util.*;
+import java.util.Comparator;
+import java.util.Map;
 
 /**
  * Contains what, in LINQ.NET, would be extension methods.
@@ -35,7 +36,7 @@ import java.util.*;
  *
  * <li>A few methods became keywords when their first letter was converted
  * to lower case; hence
- * {@link net.hydromatic.linq4j.expressions.Expressions#break_}</li>
+ * {@link org.apache.calcite.linq4j.tree.Expressions#break_}</li>
  *
  * <li>We created a Java interface {@link Enumerable}, similar to LINQ.NET's
  * IEnumerable. IEnumerable is built into C#, and that gives it
@@ -55,7 +56,8 @@ import java.util.*;
  *
  * <li>There is no Nullable in Java. Therefore we distinguish between methods
  * that return, say, Long (which may be null) and long. See for example
- * {@link NullableLongFunction1} and {@link LongFunction1}, and the
+ * {@link org.apache.calcite.linq4j.function.NullableLongFunction1} and
+ * {@link org.apache.calcite.linq4j.function.LongFunction1}, and the
  * variants of {@link Enumerable#sum} that call them.
  *
  * <li>Java erases type parameters from argument types before resolving
@@ -84,9 +86,9 @@ import java.util.*;
  * in the interface. Hence {@link AbstractEnumerable} and
  * {@link AbstractQueryable} call methods in {@link Extensions}.</li>
  *
- * <li>.NET Func becomes {@link net.hydromatic.linq4j.function.Function0},
- * {@link net.hydromatic.linq4j.function.Function1},
- * {@link net.hydromatic.linq4j.function.Function2}, depending
+ * <li>.NET Func becomes {@link org.apache.calcite.linq4j.function.Function0},
+ * {@link org.apache.calcite.linq4j.function.Function1},
+ * {@link org.apache.calcite.linq4j.function.Function2}, depending
  * on the number of arguments to the function, because Java types cannot be
  * overloaded based on the number of type parameters.</li>
  *

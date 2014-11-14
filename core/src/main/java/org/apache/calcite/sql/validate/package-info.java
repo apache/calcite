@@ -18,6 +18,6 @@
 /**
  * SQL validation.
  */
-package org.eigenbase.sql.validate;
+package org.apache.calcite.sql.validate;
 
 // End package-info.java

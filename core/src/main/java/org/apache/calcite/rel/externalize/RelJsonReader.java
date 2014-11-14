@@ -14,32 +14,45 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel;
+package org.apache.calcite.rel.externalize;
 
-import java.io.IOException;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
-import java.util.*;
-
-import org.eigenbase.relopt.*;
-import org.eigenbase.reltype.*;
-import org.eigenbase.rex.*;
-import org.eigenbase.util.Pair;
-import org.eigenbase.util.Util;
-
-import net.hydromatic.optiq.Schema;
-import net.hydromatic.optiq.util.BitSets;
+import org.apache.calcite.plan.Convention;
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptSchema;
+import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.RelCollation;
+import org.apache.calcite.rel.RelInput;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.AggregateCall;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rex.RexLiteral;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.schema.Schema;
+import org.apache.calcite.sql.SqlAggFunction;
+import org.apache.calcite.util.BitSets;
+import org.apache.calcite.util.Pair;
+import org.apache.calcite.util.Util;
 
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
 import com.google.common.collect.ImmutableList;
+
+import java.io.IOException;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
+import java.util.AbstractList;
+import java.util.ArrayList;
+import java.util.BitSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Reads a JSON plan and converts it back to a tree of relational expressions.
  *
- * @see org.eigenbase.rel.RelInput
+ * @see org.apache.calcite.rel.RelInput
  */
 public class RelJsonReader {
   private static final TypeReference<LinkedHashMap<String, Object>> TYPE_REF =
@@ -175,14 +188,12 @@ public class RelJsonReader {
             (List<String>) get(fieldsTag);
         return cluster.getTypeFactory().createStructType(
             new AbstractList<Map.Entry<String, RelDataType>>() {
-              @Override
-              public Map.Entry<String, RelDataType> get(int index) {
+              @Override public Map.Entry<String, RelDataType> get(int index) {
                 return Pair.of(names.get(index),
                     expressionList.get(index).getType());
               }
 
-              @Override
-              public int size() {
+              @Override public int size() {
                 return names.size();
               }
             });
@@ -228,7 +239,8 @@ public class RelJsonReader {
 
   private AggregateCall toAggCall(Map<String, Object> jsonAggCall) {
     final String aggName = (String) jsonAggCall.get("agg");
-    final Aggregation aggregation = relJson.toAggregation(aggName, jsonAggCall);
+    final SqlAggFunction aggregation =
+        relJson.toAggregation(aggName, jsonAggCall);
     final Boolean distinct = (Boolean) jsonAggCall.get("distinct");
     final List<Integer> operands = (List<Integer>) jsonAggCall.get("operands");
     final RelDataType type =

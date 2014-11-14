@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.test;
+package org.apache.calcite.test;
 
-import net.hydromatic.linq4j.function.Function1;
+import org.apache.calcite.linq4j.function.Function1;
 
 import org.junit.Assert;
 import org.junit.Ignore;
@@ -24,14 +24,19 @@ import org.junit.Test;
 
 import java.io.PrintStream;
 import java.net.URL;
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
 
 /**
- * Unit test of the Optiq adapter for CSV.
+ * Unit test of the Calcite adapter for CSV.
  */
 public class CsvTest {
   private void close(Connection connection, Statement statement) {
@@ -72,8 +77,7 @@ public class CsvTest {
   @Ignore
   @Test public void testVanityDriverArgsInUrl() throws SQLException {
     Connection connection =
-        DriverManager.getConnection(
-            "jdbc:csv:"
+        DriverManager.getConnection("jdbc:csv:"
             + "directory='foo'");
     connection.close();
   }
@@ -83,19 +87,19 @@ public class CsvTest {
     Properties info = new Properties();
     info.put("model",
         "inline:"
-        + "{\n"
-        + "  version: '1.0',\n"
-        + "   schemas: [\n"
-        + "     {\n"
-        + "       type: 'custom',\n"
-        + "       name: 'bad',\n"
-        + "       factory: 'net.hydromatic.optiq.impl.csv.CsvSchemaFactory',\n"
-        + "       operand: {\n"
-        + "         directory: '/does/not/exist'\n"
-        + "       }\n"
-        + "     }\n"
-        + "   ]\n"
-        + "}");
+            + "{\n"
+            + "  version: '1.0',\n"
+            + "   schemas: [\n"
+            + "     {\n"
+            + "       type: 'custom',\n"
+            + "       name: 'bad',\n"
+            + "       factory: 'org.apache.calcite.adapter.csv.CsvSchemaFactory',\n"
+            + "       operand: {\n"
+            + "         directory: '/does/not/exist'\n"
+            + "       }\n"
+            + "     }\n"
+            + "   ]\n"
+            + "}");
 
     Connection connection =
         DriverManager.getConnection("jdbc:calcite:", info);
@@ -129,7 +133,7 @@ public class CsvTest {
   @Test public void testPushDownProjectDumb() throws SQLException {
     // rule does not fire, because we're using 'dumb' tables in simple model
     checkSql("model", "explain plan for select * from EMPS",
-        "PLAN=EnumerableTableAccessRel(table=[[SALES, EMPS]])\n");
+        "PLAN=EnumerableTableScan(table=[[SALES, EMPS]])\n");
   }
 
   @Test public void testPushDownProject() throws SQLException {
@@ -173,9 +177,9 @@ public class CsvTest {
 
   @Test public void testJson() throws SQLException {
     checkSql("bug", "select _MAP['id'] as id,\n"
-        + " _MAP['title'] as title,\n"
-        + " CHAR_LENGTH(CAST(_MAP['title'] AS VARCHAR(30))) as len\n"
-        + " from \"archers\"",
+            + " _MAP['title'] as title,\n"
+            + " CHAR_LENGTH(CAST(_MAP['title'] AS VARCHAR(30))) as len\n"
+            + " from \"archers\"",
         "ID=19990101; TITLE=Washday blues.; LEN=14",
         "ID=19990103; TITLE=Daniel creates a drama.; LEN=23");
   }

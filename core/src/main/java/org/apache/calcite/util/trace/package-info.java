@@ -18,6 +18,6 @@
 /**
  * Tracing services.
  */
-package org.eigenbase.trace;
+package org.apache.calcite.util.trace;
 
 // End package-info.java

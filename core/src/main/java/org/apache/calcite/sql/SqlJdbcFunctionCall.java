@@ -14,18 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql;
+package org.apache.calcite.sql;
 
-import java.util.*;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.fun.SqlTrimFunction;
+import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.type.OperandTypes;
+import org.apache.calcite.sql.validate.SqlValidator;
+import org.apache.calcite.sql.validate.SqlValidatorScope;
+import org.apache.calcite.util.Util;
 
-import org.eigenbase.reltype.*;
-import org.eigenbase.sql.fun.*;
-import org.eigenbase.sql.parser.*;
-import org.eigenbase.sql.type.*;
-import org.eigenbase.sql.validate.*;
-import org.eigenbase.util.*;
+import java.util.HashMap;
+import java.util.Map;
 
-import static org.eigenbase.util.Static.RESOURCE;
+import static org.apache.calcite.util.Static.RESOURCE;
 
 /**
  * A <code>SqlJdbcFunctionCall</code> is a node of a parse tree which represents
@@ -655,7 +658,7 @@ public class SqlJdbcFunctionCall extends SqlFunction {
    */
   private static class JdbcToInternalLookupTable {
     /**
-     * The {@link org.eigenbase.util.Glossary#SINGLETON_PATTERN singleton}
+     * The {@link org.apache.calcite.util.Glossary#SINGLETON_PATTERN singleton}
      * instance.
      */
     static final JdbcToInternalLookupTable INSTANCE =
@@ -707,8 +710,7 @@ public class SqlJdbcFunctionCall extends SqlFunction {
       map.put(
           "LTRIM",
           new MakeCall(SqlStdOperatorTable.TRIM, 1) {
-            @Override
-            SqlCall createCall(
+            @Override SqlCall createCall(
                 SqlNode[] operands, SqlParserPos pos) {
               assert 1 == operands.length;
               return super.createCall(
@@ -723,8 +725,7 @@ public class SqlJdbcFunctionCall extends SqlFunction {
       map.put(
           "RTRIM",
           new MakeCall(SqlStdOperatorTable.TRIM, 1) {
-            @Override
-            SqlCall createCall(
+            @Override SqlCall createCall(
                 SqlNode[] operands, SqlParserPos pos) {
               assert 1 == operands.length;
               return super.createCall(

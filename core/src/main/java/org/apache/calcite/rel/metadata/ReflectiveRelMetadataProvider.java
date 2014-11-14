@@ -14,18 +14,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel.metadata;
+package org.apache.calcite.rel.metadata;
 
-import java.lang.reflect.*;
-import java.util.*;
-
-import org.eigenbase.rel.*;
-import org.eigenbase.util.*;
-
-import net.hydromatic.optiq.BuiltinMethod;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.util.BuiltInMethod;
+import org.apache.calcite.util.ReflectiveVisitor;
+import org.apache.calcite.util.Util;
 
 import com.google.common.base.Function;
-import com.google.common.collect.*;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Maps;
+
+import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
+import java.lang.reflect.Proxy;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.Map;
 
 /**
  * Implementation of the {@link RelMetadataProvider} interface that dispatches
@@ -74,17 +80,18 @@ public class ReflectiveRelMetadataProvider
    * methods with a preceding argument.
    *
    * <p>For example, {@link BuiltInMetadata.Selectivity} has a method
-   * {@link BuiltInMetadata.Selectivity#getSelectivity(org.eigenbase.rex.RexNode)}.
+   * {@link BuiltInMetadata.Selectivity#getSelectivity(org.apache.calcite.rex.RexNode)}.
    * A class</p>
    *
    * <blockquote><pre><code>
    * class RelMdSelectivity {
-   *   public Double getSelectivity(UnionRel rel, RexNode predicate) { ... }
-   *   public Double getSelectivity(FilterRel rel, RexNode predicate) { ... }
+   *   public Double getSelectivity(Union rel, RexNode predicate) { }
+   *   public Double getSelectivity(LogicalFilter rel, RexNode predicate) { }
    * </code></pre></blockquote>
    *
    * <p>provides implementations of selectivity for relational expressions
-   * that extend {@link UnionRel} or {@link FilterRel}.</p>
+   * that extend {@link org.apache.calcite.rel.logical.LogicalUnion}
+   * or {@link org.apache.calcite.rel.logical.LogicalFilter}.</p>
    */
   public static RelMetadataProvider reflectiveSource(Method method,
       final Object target) {
@@ -115,16 +122,17 @@ public class ReflectiveRelMetadataProvider
                         public Object invoke(Object proxy, Method method,
                             Object[] args) throws Throwable {
                           // Suppose we are an implementation of Selectivity
-                          // that wraps "filter", a FilterRel, Then we implement
+                          // that wraps "filter", a LogicalFilter. Then we
+                          // implement
                           //   Selectivity.selectivity(rex)
                           // by calling method
                           //   new SelectivityImpl().selectivity(filter, rex)
                           if (method.equals(
-                              BuiltinMethod.METADATA_REL.method)) {
+                              BuiltInMethod.METADATA_REL.method)) {
                             return rel;
                           }
                           if (method.equals(
-                              BuiltinMethod.OBJECT_TO_STRING.method)) {
+                              BuiltInMethod.OBJECT_TO_STRING.method)) {
                             return metadataClass0.getSimpleName() + "(" + rel
                                 + ")";
                           }

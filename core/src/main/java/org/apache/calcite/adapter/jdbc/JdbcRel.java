@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.impl.jdbc;
+package org.apache.calcite.adapter.jdbc;
 
-import org.eigenbase.rel.RelNode;
+import org.apache.calcite.rel.RelNode;
 
 /**
  * Relational expression that uses JDBC calling convention.

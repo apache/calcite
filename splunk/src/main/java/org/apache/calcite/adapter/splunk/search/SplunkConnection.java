@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.impl.splunk.search;
+package org.apache.calcite.adapter.splunk.search;
 
-import net.hydromatic.linq4j.Enumerator;
+import org.apache.calcite.linq4j.Enumerator;
 
 import java.util.List;
 import java.util.Map;

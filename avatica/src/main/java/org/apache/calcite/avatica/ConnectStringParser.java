@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.avatica;
+package org.apache.calcite.avatica;
 
 import java.sql.SQLException;
 import java.util.Map;
@@ -33,11 +33,15 @@ import java.util.Properties;
  * <li>use of regular {@link Properties} for compatibility with the JDBC API
  * (replaces Mondrian's use of its own order-preserving and case-insensitive
  * PropertyList, found in Util.java at link above)</li>
+ *
  * <li>ability to pass to {@link #parse} a pre-existing Properties object into
  * which properties are to be parsed, possibly overriding prior values</li>
- * <li>use of {@link SQLException}s rather than unchecked {@link
- * RuntimeException}s</li>
+ *
+ * <li>use of {@link SQLException}s rather than unchecked
+ * {@link RuntimeException}s</li>
+ *
  * <li>static members for parsing and creating connect strings</li>
+ *
  * </ul>
  *
  * <p>ConnectStringParser has a private constructor. Callers use the static
@@ -224,7 +228,7 @@ public class ConnectStringParser {
       } else {
         throw new SQLException(
             "quoted value ended too soon, at position " + i
-            + " in '" + s + "'");
+                + " in '" + s + "'");
       }
     } else {
       String value;
@@ -275,8 +279,8 @@ public class ConnectStringParser {
     }
     throw new SQLException(
         "Connect string '" + s
-        + "' contains unterminated quoted value '"
-        + valueBuf.toString() + "'");
+            + "' contains unterminated quoted value '"
+            + valueBuf.toString() + "'");
   }
 
   /**

@@ -14,11 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.util;
+package org.apache.calcite.util;
 
-import java.lang.reflect.*;
-
-import java.util.*;
+import java.lang.reflect.Method;
+import java.util.List;
 
 /**
  * Interface for looking up methods relating to reflective visitation. One
@@ -29,6 +28,9 @@ import java.util.*;
  *
  * <p>TODO: obsolete {@link ReflectUtil#lookupVisitMethod}, and use caching in
  * implementing that method.
+ *
+ * @param <E> Argument type
+ * @param <R> Return type
  */
 public interface ReflectiveVisitDispatcher<R extends ReflectiveVisitor, E> {
   //~ Methods ----------------------------------------------------------------
@@ -66,8 +68,8 @@ public interface ReflectiveVisitDispatcher<R extends ReflectiveVisitor, E> {
       String visitMethodName);
 
   /**
-   * Implements the {@link Glossary#VISITOR_PATTERN} via reflection. The basic
-   * technique is taken from <a
+   * Implements the {@link org.apache.calcite.util.Glossary#VISITOR_PATTERN} via
+   * reflection. The basic technique is taken from <a
    * href="http://www.javaworld.com/javaworld/javatips/jw-javatip98.html">a
    * Javaworld article</a>. For an example of how to use it, see
    * {@code ReflectVisitorTest}.

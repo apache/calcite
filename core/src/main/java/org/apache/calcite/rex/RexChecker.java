@@ -14,12 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rex;
+package org.apache.calcite.rex;
 
-import java.util.*;
+import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeField;
 
-import org.eigenbase.relopt.*;
-import org.eigenbase.reltype.*;
+import java.util.List;
 
 /**
  * Visitor which checks the validity of a {@link RexNode} expression.
@@ -63,14 +64,15 @@ public class RexChecker extends RexVisitorImpl<Boolean> {
   /**
    * Creates a RexChecker with a given input row type.
    *
-   * <p>If <code>fail</code> is true, the checker will throw an {@link
-   * AssertionError} if an invalid node is found and assertions are enabled.
+   * <p>If <code>fail</code> is true, the checker will throw an
+   * {@link AssertionError} if an invalid node is found and assertions are
+   * enabled.
    *
    * <p>Otherwise, each method returns whether its part of the tree is valid.
    *
    * @param inputRowType Input row type
-   * @param fail         Whether to throw an {@link AssertionError} if an invalid node
-   *                     is detected
+   * @param fail Whether to throw an {@link AssertionError} if an
+   *                     invalid node is detected
    */
   public RexChecker(final RelDataType inputRowType, boolean fail) {
     this(RelOptUtil.getFieldTypeList(inputRowType), fail);
@@ -79,14 +81,15 @@ public class RexChecker extends RexVisitorImpl<Boolean> {
   /**
    * Creates a RexChecker with a given set of input fields.
    *
-   * <p>If <code>fail</code> is true, the checker will throw an {@link
-   * AssertionError} if an invalid node is found and assertions are enabled.
+   * <p>If <code>fail</code> is true, the checker will throw an
+   * {@link AssertionError} if an invalid node is found and assertions are
+   * enabled.
    *
    * <p>Otherwise, each method returns whether its part of the tree is valid.
    *
    * @param inputTypeList Input row type
-   * @param fail          Whether to throw an {@link AssertionError} if an invalid node
-   *                      is detected
+   * @param fail Whether to throw an {@link AssertionError} if an
+   *                      invalid node is detected
    */
   public RexChecker(List<RelDataType> inputTypeList, boolean fail) {
     super(true);

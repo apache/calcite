@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.test;
+package org.apache.calcite.test;
 
-import net.hydromatic.optiq.jdbc.OptiqConnection;
+import org.apache.calcite.jdbc.CalciteConnection;
 
 import com.google.common.base.Function;
 
@@ -26,9 +26,10 @@ import org.junit.Test;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
-import static net.hydromatic.optiq.test.OptiqAssert.that;
+import static org.apache.calcite.test.CalciteAssert.that;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 
 /**
  * Tests for a JDBC front-end and JDBC back-end.
@@ -42,20 +43,19 @@ import static org.junit.Assert.*;
 public class JdbcFrontJdbcBackTest {
   @Test public void testWhere2() {
     that()
-        .with(OptiqAssert.Config.JDBC_FOODMART)
+        .with(CalciteAssert.Config.JDBC_FOODMART)
         .query("select * from \"foodmart\".\"days\" where \"day\" < 3")
-        .returns(
-            "day=1; week_day=Sunday\n"
+        .returns("day=1; week_day=Sunday\n"
             + "day=2; week_day=Monday\n");
   }
 
   @Ignore
   @Test public void testTables() throws Exception {
     that()
-        .with(OptiqAssert.Config.JDBC_FOODMART)
+        .with(CalciteAssert.Config.JDBC_FOODMART)
         .doWithConnection(
-            new Function<OptiqConnection, Object>() {
-              public Object apply(OptiqConnection a0) {
+            new Function<CalciteConnection, Object>() {
+              public Object apply(CalciteConnection a0) {
                 try {
                   ResultSet rset =
                       a0.getMetaData().getTables(
@@ -77,10 +77,10 @@ public class JdbcFrontJdbcBackTest {
 
   @Test public void testTablesByType() throws Exception {
     that()
-        .with(OptiqAssert.Config.REGULAR_PLUS_METADATA)
+        .with(CalciteAssert.Config.REGULAR_PLUS_METADATA)
         .doWithConnection(
-            new Function<OptiqConnection, Object>() {
-              public Object apply(OptiqConnection a0) {
+            new Function<CalciteConnection, Object>() {
+              public Object apply(CalciteConnection a0) {
                 try {
                   ResultSet rset =
                       a0.getMetaData().getTables(
@@ -103,10 +103,10 @@ public class JdbcFrontJdbcBackTest {
 
   @Test public void testColumns() throws Exception {
     that()
-        .with(OptiqAssert.Config.JDBC_FOODMART)
+        .with(CalciteAssert.Config.JDBC_FOODMART)
         .doWithConnection(
-            new Function<OptiqConnection, Object>() {
-              public Object apply(OptiqConnection a0) {
+            new Function<CalciteConnection, Object>() {
+              public Object apply(CalciteConnection a0) {
                 try {
                   ResultSet rset =
                       a0.getMetaData().getColumns(
@@ -131,10 +131,10 @@ public class JdbcFrontJdbcBackTest {
    * empty result set. */
   @Test public void testEmpty() throws Exception {
     that()
-        .with(OptiqAssert.Config.JDBC_FOODMART)
+        .with(CalciteAssert.Config.JDBC_FOODMART)
         .doWithConnection(
-            new Function<OptiqConnection, Object>() {
-              public Object apply(OptiqConnection a0) {
+            new Function<CalciteConnection, Object>() {
+              public Object apply(CalciteConnection a0) {
                 try {
                   ResultSet rset =
                       a0.getMetaData().getPrimaryKeys(
@@ -150,16 +150,15 @@ public class JdbcFrontJdbcBackTest {
 
   @Test public void testCase() {
     that()
-        .with(OptiqAssert.Config.JDBC_FOODMART)
+        .with(CalciteAssert.Config.JDBC_FOODMART)
         .withSchema("foodmart")
-        .query(
-            "select case when \"sales_fact_1997\".\"promotion_id\" = 1 then 0\n"
-            + "                        else \"sales_fact_1997\".\"store_sales\" end as \"c0\"\n"
+        .query("select\n"
+            + "  case when \"sales_fact_1997\".\"promotion_id\" = 1 then 0\n"
+            + "  else \"sales_fact_1997\".\"store_sales\" end as \"c0\"\n"
             + "from \"sales_fact_1997\" as \"sales_fact_1997\""
             + "where \"product_id\" = 1\n"
             + "and \"time_id\" < 400")
-        .returns(
-            "c0=11.4000\n"
+        .returns("c0=11.4000\n"
             + "c0=8.5500\n");
   }
 }

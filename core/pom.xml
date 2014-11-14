@@ -58,7 +58,7 @@ limitations under the License.
         <artifactId>maven-surefire-plugin</artifactId>
         <configuration>
           <includes>
-            <include>net/hydromatic/optiq/test/OptiqSuite.java</include>
+            <include>org/apache/calcite/test/CalciteSuite.java</include>
           </includes>
           <threadCount>1</threadCount>
           <perCoreThreadCount>true</perCoreThreadCount>
@@ -78,7 +78,7 @@ limitations under the License.
             <configuration>
               <sourceDirectory>${project.build.directory}/generated-sources/fmpp</sourceDirectory>
               <includes>
-                <include>**/CombinedParser.jj</include>
+                <include>**/Parser.jj</include>
               </includes>
               <lookAhead>2</lookAhead>
               <isStatic>false</isStatic>
@@ -95,7 +95,7 @@ limitations under the License.
               <goal>generate-sources</goal>
             </goals>
             <configuration>
-              <packageName>org.eigenbase.resource</packageName>
+              <packageName>org.apache.calcite.runtime</packageName>
             </configuration>
           </execution>
         </executions>

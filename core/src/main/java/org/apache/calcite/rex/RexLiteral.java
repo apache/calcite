@@ -14,23 +14,33 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rex;
+package org.apache.calcite.rex;
 
-import java.io.*;
-import java.math.*;
-import java.nio.*;
-import java.nio.charset.*;
-import java.util.*;
+import org.apache.calcite.avatica.ByteString;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.sql.SqlCollation;
+import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.parser.SqlParserUtil;
+import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.util.ConversionUtil;
+import org.apache.calcite.util.DateTimeUtil;
+import org.apache.calcite.util.NlsString;
+import org.apache.calcite.util.SaffronProperties;
+import org.apache.calcite.util.Util;
+import org.apache.calcite.util.ZonelessDate;
+import org.apache.calcite.util.ZonelessDatetime;
+import org.apache.calcite.util.ZonelessTime;
+import org.apache.calcite.util.ZonelessTimestamp;
 
-import org.eigenbase.reltype.*;
-import org.eigenbase.sql.*;
-import org.eigenbase.sql.fun.*;
-import org.eigenbase.sql.parser.*;
-import org.eigenbase.sql.type.*;
-import org.eigenbase.util.*;
-import org.eigenbase.util14.*;
-
-import net.hydromatic.avatica.ByteString;
+import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.math.BigDecimal;
+import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
+import java.util.Calendar;
+import java.util.TimeZone;
 
 /**
  * Constant value in a row-expression.
@@ -121,8 +131,8 @@ public class RexLiteral extends RexNode {
 
   /**
    * The value of this literal. Must be consistent with its type, as per
-   * {@link #valueMatchesType}. For example, you can't store an {@link
-   * Integer} value here just because you feel like it -- all numbers are
+   * {@link #valueMatchesType}. For example, you can't store an
+   * {@link Integer} value here just because you feel like it -- all numbers are
    * represented by a {@link BigDecimal}. But since this field is private, it
    * doesn't really matter how the values are stored.
    */
@@ -139,9 +149,9 @@ public class RexLiteral extends RexNode {
   /**
    * An indication of the broad type of this literal -- even if its type isn't
    * a SQL type. Sometimes this will be different than the SQL type; for
-   * example, all exact numbers, including integers have typeName {@link
-   * SqlTypeName#DECIMAL}. See {@link #valueMatchesType} for the definitive
-   * story.
+   * example, all exact numbers, including integers have typeName
+   * {@link SqlTypeName#DECIMAL}. See {@link #valueMatchesType} for the
+   * definitive story.
    */
   private final SqlTypeName typeName;
 
@@ -440,7 +450,7 @@ public class RexLiteral extends RexNode {
       if (cal == null) {
         throw Util.newInternal(
             "fromJdbcString: invalid date/time value '"
-            + literal + "'");
+                + literal + "'");
       }
       return new RexLiteral(cal, type, typeName);
     case SYMBOL:
@@ -472,8 +482,7 @@ public class RexLiteral extends RexNode {
     return type;
   }
 
-  @Override
-  public SqlKind getKind() {
+  @Override public SqlKind getKind() {
     return SqlKind.LITERAL;
   }
 
@@ -552,7 +561,7 @@ public class RexLiteral extends RexNode {
   }
 
   public int hashCode() {
-    return Util.hashV(value, type);
+    return com.google.common.base.Objects.hashCode(value, type);
   }
 
   public static int intValue(RexNode node) {

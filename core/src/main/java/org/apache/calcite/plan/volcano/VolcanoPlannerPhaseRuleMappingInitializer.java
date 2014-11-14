@@ -14,21 +14,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.relopt.volcano;
+package org.apache.calcite.plan.volcano;
 
-import java.util.*;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * VolcanoPlannerPhaseRuleMappingInitializer describes an inteface for
  * initializing the mapping of {@link VolcanoPlannerPhase}s to sets of rule
  * descriptions.
  *
- * <p><b>Note:</b> Rule descriptions are obtained via {@link
- * org.eigenbase.relopt.RelOptRule#toString()}. By default they are the class's
- * simple name (e.g. class name sans package), unless the class is an inner
- * class, in which case the default is the inner class's simple name. Some rules
- * explicitly provide alternate descriptions by calling the
- * {@link org.eigenbase.relopt.RelOptRule#RelOptRule(org.eigenbase.relopt.RelOptRuleOperand, String)}
+ * <p><b>Note:</b> Rule descriptions are obtained via
+ * {@link org.apache.calcite.plan.RelOptRule#toString()}. By default they are
+ * the class's simple name (e.g. class name sans package), unless the class is
+ * an inner class, in which case the default is the inner class's simple
+ * name. Some rules explicitly provide alternate descriptions by calling the
+ * {@link org.apache.calcite.plan.RelOptRule#RelOptRule(org.apache.calcite.plan.RelOptRuleOperand, String)}
  * constructor.
  */
 public interface VolcanoPlannerPhaseRuleMappingInitializer {

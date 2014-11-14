@@ -14,16 +14,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.util;
+package org.apache.calcite.util;
 
-import java.util.*;
-
-import net.hydromatic.linq4j.function.Function0;
-import net.hydromatic.linq4j.function.Function1;
+import org.apache.calcite.linq4j.function.Function0;
+import org.apache.calcite.linq4j.function.Function1;
 
 import org.junit.Test;
 
-import static org.junit.Assert.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.ListIterator;
+import java.util.Random;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 /**
  * Unit and performance test for {@link ChunkList}.
@@ -312,9 +323,8 @@ public class ChunkListTest {
         if (size.left > 1000000) {
           continue;
         }
-        new Benchmark(
-            "get from " + size.right + " values, " + (size.left / 1000)
-            + " times, " + pair.right,
+        new Benchmark("get from " + size.right + " values, "
+            + (size.left / 1000) + " times, " + pair.right,
             new Function1<Benchmark.Statistician, Void>() {
               public Void apply(Benchmark.Statistician statistician) {
                 final List<Integer> list = pair.left.apply();

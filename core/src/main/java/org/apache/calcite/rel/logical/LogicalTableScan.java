@@ -14,14 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel;
+package org.apache.calcite.rel.logical;
+
+import org.apache.calcite.plan.Convention;
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.RelInput;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.TableScan;
 
 import java.util.List;
 
-import org.eigenbase.relopt.*;
-
 /**
- * A <code>TableAccessRel</code> reads all the rows from a {@link RelOptTable}.
+ * A <code>LogicalTableScan</code> reads all the rows from a
+ * {@link RelOptTable}.
  *
  * <p>If the table is a <code>net.sf.saffron.ext.JdbcTable</code>, then this is
  * literally possible. But for other kinds of tables, there may be many ways to
@@ -45,16 +52,16 @@ import org.eigenbase.relopt.*;
  * <p>can. It is the optimizer's responsibility to find these ways, by applying
  * transformation rules.</p>
  */
-public final class TableAccessRel extends TableAccessRelBase {
+public final class LogicalTableScan extends TableScan {
   //~ Constructors -----------------------------------------------------------
 
   /**
-   * Creates a TableAccessRel.
+   * Creates a LogicalTableScan.
    *
    * @param cluster Cluster
    * @param table   Table
    */
-  public TableAccessRel(
+  public LogicalTableScan(
       RelOptCluster cluster,
       RelOptTable table) {
     super(
@@ -64,18 +71,17 @@ public final class TableAccessRel extends TableAccessRelBase {
   }
 
   /**
-   * Creates a TableAccessRel by parsing serialized output.
+   * Creates a LogicalTableScan by parsing serialized output.
    */
-  public TableAccessRel(RelInput input) {
+  public LogicalTableScan(RelInput input) {
     super(input);
   }
 
-  @Override
-  public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
+  @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
     assert traitSet.containsIfApplicable(Convention.NONE);
     assert inputs.isEmpty();
     return this;
   }
 }
 
-// End TableAccessRel.java
+// End LogicalTableScan.java

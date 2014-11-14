@@ -14,31 +14,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.impl.tpch;
+package org.apache.calcite.adapter.tpch;
 
-import net.hydromatic.linq4j.Enumerator;
-import net.hydromatic.linq4j.Linq4j;
-import net.hydromatic.linq4j.QueryProvider;
-import net.hydromatic.linq4j.Queryable;
-
-import net.hydromatic.optiq.SchemaPlus;
-import net.hydromatic.optiq.Table;
-import net.hydromatic.optiq.impl.AbstractSchema;
-import net.hydromatic.optiq.impl.AbstractTableQueryable;
-import net.hydromatic.optiq.impl.java.AbstractQueryableTable;
-
-import org.eigenbase.reltype.RelDataType;
-import org.eigenbase.reltype.RelDataTypeFactory;
+import org.apache.calcite.adapter.java.AbstractQueryableTable;
+import org.apache.calcite.linq4j.Enumerator;
+import org.apache.calcite.linq4j.Linq4j;
+import org.apache.calcite.linq4j.QueryProvider;
+import org.apache.calcite.linq4j.Queryable;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.schema.Table;
+import org.apache.calcite.schema.impl.AbstractSchema;
+import org.apache.calcite.schema.impl.AbstractTableQueryable;
 
 import com.google.common.collect.ImmutableMap;
-
-import java.sql.Date;
-import java.util.List;
-import java.util.Map;
 
 import io.airlift.tpch.TpchColumn;
 import io.airlift.tpch.TpchEntity;
 import io.airlift.tpch.TpchTable;
+
+import java.sql.Date;
+import java.util.List;
+import java.util.Map;
 
 /** Schema that provides TPC-H tables, populated according to a
  * particular scale factor. */
@@ -76,8 +74,7 @@ public class TpchSchema extends AbstractSchema {
         .build();
   }
 
-  @Override
-  protected Map<String, Table> getTableMap() {
+  @Override protected Map<String, Table> getTableMap() {
     return tableMap;
   }
 
@@ -163,4 +160,3 @@ public class TpchSchema extends AbstractSchema {
 }
 
 // End TpchSchema.java
-

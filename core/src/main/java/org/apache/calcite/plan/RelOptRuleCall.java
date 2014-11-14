@@ -14,16 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.relopt;
+package org.apache.calcite.plan;
 
-import java.util.*;
-import java.util.logging.*;
-
-import org.eigenbase.rel.*;
-import org.eigenbase.trace.*;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.util.trace.CalciteTrace;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+
+import java.util.List;
+import java.util.Map;
+import java.util.logging.Logger;
 
 /**
  * A <code>RelOptRuleCall</code> is an invocation of a {@link RelOptRule} with a
@@ -32,7 +33,7 @@ import com.google.common.collect.ImmutableMap;
 public abstract class RelOptRuleCall {
   //~ Static fields/initializers ---------------------------------------------
 
-  protected static final Logger LOGGER = EigenbaseTrace.getPlannerTracer();
+  protected static final Logger LOGGER = CalciteTrace.getPlannerTracer();
 
   /**
    * Generator for {@link #id} values.
@@ -43,7 +44,7 @@ public abstract class RelOptRuleCall {
 
   public final int id;
   private final RelOptRuleOperand operand0;
-  private final Map<RelNode, List<RelNode>> nodeChildren;
+  private final Map<RelNode, List<RelNode>> nodeInputs;
   public final RelOptRule rule;
   public final RelNode[] rels;
   private final RelOptPlanner planner;
@@ -58,9 +59,9 @@ public abstract class RelOptRuleCall {
    * @param operand      Root operand
    * @param rels         Array of relational expressions which matched each
    *                     operand
-   * @param nodeChildren For each node which matched with <code>
-   *                     matchAnyChildren</code>=true, a list of the node's
-   *                     children
+   * @param nodeInputs   For each node which matched with
+   *                     {@code matchAnyChildren}=true, a list of the node's
+   *                     inputs
    * @param parents      list of parent RelNodes corresponding to the first
    *                     relational expression in the array argument, if known;
    *                     otherwise, null
@@ -69,12 +70,12 @@ public abstract class RelOptRuleCall {
       RelOptPlanner planner,
       RelOptRuleOperand operand,
       RelNode[] rels,
-      Map<RelNode, List<RelNode>> nodeChildren,
+      Map<RelNode, List<RelNode>> nodeInputs,
       List<RelNode> parents) {
     this.id = nextId++;
     this.planner = planner;
     this.operand0 = operand;
-    this.nodeChildren = nodeChildren;
+    this.nodeInputs = nodeInputs;
     this.rule = operand.getRule();
     this.rels = rels;
     this.parents = parents;
@@ -85,8 +86,8 @@ public abstract class RelOptRuleCall {
       RelOptPlanner planner,
       RelOptRuleOperand operand,
       RelNode[] rels,
-      Map<RelNode, List<RelNode>> nodeChildren) {
-    this(planner, operand, rels, nodeChildren, null);
+      Map<RelNode, List<RelNode>> nodeInputs) {
+    this(planner, operand, rels, nodeInputs, null);
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -147,13 +148,13 @@ public abstract class RelOptRuleCall {
    * rule.
    *
    * <p>If the policy of the operand which caused the match is not
-   * {@link org.eigenbase.relopt.RelOptRuleOperandChildPolicy#ANY},
+   * {@link org.apache.calcite.plan.RelOptRuleOperandChildPolicy#ANY},
    * the children will have their
    * own operands and therefore be easily available in the array returned by
    * the {@link #getRels} method, so this method returns null.
    *
    * <p>This method is for
-   * {@link org.eigenbase.relopt.RelOptRuleOperandChildPolicy#ANY},
+   * {@link org.apache.calcite.plan.RelOptRuleOperandChildPolicy#ANY},
    * which is generally used when a node can have a variable number of
    * children, and hence where the matched children are not retrievable by any
    * other means.
@@ -162,7 +163,7 @@ public abstract class RelOptRuleCall {
    * @return Children of relational expression
    */
   public List<RelNode> getChildRels(RelNode rel) {
-    return nodeChildren.get(rel);
+    return nodeInputs.get(rel);
   }
 
   /**

@@ -14,75 +14,78 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel;
+package org.apache.calcite.rel;
 
-import java.util.Collections;
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.metadata.RelMetadataQuery;
+import org.apache.calcite.rel.type.RelDataType;
+
+import com.google.common.collect.ImmutableList;
+
 import java.util.List;
 
-import org.eigenbase.rel.metadata.*;
-import org.eigenbase.relopt.*;
-import org.eigenbase.reltype.*;
-
 /**
- * A <code>SingleRel</code> is a base class single-input relational expressions.
+ * Abstract base class for relational expressions with a single input.
+ *
+ * <p>It is not required that single-input relational expressions use this
+ * class as a base class. However, default implementations of methods make life
+ * easier.
  */
 public abstract class SingleRel extends AbstractRelNode {
   //~ Instance fields --------------------------------------------------------
 
-  private RelNode child;
+  private RelNode input;
 
   //~ Constructors -----------------------------------------------------------
 
   /**
    * Creates a <code>SingleRel</code>.
    *
-   * @param cluster {@link RelOptCluster}  this relational expression belongs
-   *                to
-   * @param child   input relational expression
+   * @param cluster Cluster this relational expression belongs to
+   * @param input   Input relational expression
    */
   protected SingleRel(
       RelOptCluster cluster,
       RelTraitSet traits,
-      RelNode child) {
+      RelNode input) {
     super(cluster, traits);
-    this.child = child;
+    this.input = input;
   }
 
   //~ Methods ----------------------------------------------------------------
 
-  public RelNode getChild() {
-    return child;
+  public RelNode getInput() {
+    return input;
   }
 
-  // implement RelNode
-  public List<RelNode> getInputs() {
-    return Collections.singletonList(child);
+  @Override public List<RelNode> getInputs() {
+    return ImmutableList.of(input);
   }
 
-  public double getRows() {
-    // Not necessarily correct, but a better default than Rel's 1.0
-    return RelMetadataQuery.getRowCount(child);
+  @Override public double getRows() {
+    // Not necessarily correct, but a better default than AbstractRelNode's 1.0
+    return RelMetadataQuery.getRowCount(input);
   }
 
-  public void childrenAccept(RelVisitor visitor) {
-    visitor.visit(child, 0, this);
+  @Override public void childrenAccept(RelVisitor visitor) {
+    visitor.visit(input, 0, this);
   }
 
   public RelWriter explainTerms(RelWriter pw) {
     return super.explainTerms(pw)
-        .input("child", getChild());
+        .input("input", getInput());
   }
 
-  // override Rel
-  public void replaceInput(
+  @Override public void replaceInput(
       int ordinalInParent,
       RelNode rel) {
     assert ordinalInParent == 0;
-    this.child = rel;
+    this.input = rel;
   }
 
   protected RelDataType deriveRowType() {
-    return child.getRowType();
+    return input.getRowType();
   }
 }
 

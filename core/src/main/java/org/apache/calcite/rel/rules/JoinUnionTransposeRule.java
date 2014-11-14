@@ -14,42 +14,50 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel.rules;
+package org.apache.calcite.rel.rules;
 
-import java.util.*;
+import org.apache.calcite.plan.RelOptRule;
+import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.plan.RelOptRuleOperand;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.Join;
+import org.apache.calcite.rel.core.SetOp;
+import org.apache.calcite.rel.core.Union;
+import org.apache.calcite.rel.logical.LogicalUnion;
 
-import org.eigenbase.rel.*;
-import org.eigenbase.relopt.*;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
- * PushJoinThroughUnionRule implements the rule for pushing a
- * {@link JoinRel} past a non-distinct {@link UnionRel}.
+ * Planner rule that pushes a
+ * {@link org.apache.calcite.rel.logical.LogicalJoin}
+ * past a non-distinct {@link org.apache.calcite.rel.logical.LogicalUnion}.
  */
-public class PushJoinThroughUnionRule extends RelOptRule {
-  public static final PushJoinThroughUnionRule LEFT_UNION =
-      new PushJoinThroughUnionRule(
-          operand(JoinRelBase.class,
-              operand(UnionRelBase.class, any()),
+public class JoinUnionTransposeRule extends RelOptRule {
+  public static final JoinUnionTransposeRule LEFT_UNION =
+      new JoinUnionTransposeRule(
+          operand(Join.class,
+              operand(Union.class, any()),
               operand(RelNode.class, any())),
           "union on left");
 
-  public static final PushJoinThroughUnionRule RIGHT_UNION =
-      new PushJoinThroughUnionRule(
-          operand(JoinRelBase.class,
+  public static final JoinUnionTransposeRule RIGHT_UNION =
+      new JoinUnionTransposeRule(
+          operand(Join.class,
               operand(RelNode.class, any()),
-              operand(UnionRelBase.class, any())),
+              operand(Union.class, any())),
           "union on right");
 
-  private PushJoinThroughUnionRule(RelOptRuleOperand operand, String id) {
-    super(operand, "PushJoinThroughUnionRule: " + id);
+  private JoinUnionTransposeRule(RelOptRuleOperand operand, String id) {
+    super(operand, "JoinUnionTransposeRule: " + id);
   }
 
   public void onMatch(RelOptRuleCall call) {
-    final JoinRelBase join = call.rel(0);
-    final UnionRelBase unionRel;
+    final Join join = call.rel(0);
+    final Union unionRel;
     RelNode otherInput;
     boolean unionOnLeft;
-    if (call.rel(1) instanceof UnionRel) {
+    if (call.rel(1) instanceof LogicalUnion) {
       unionRel = call.rel(1);
       otherInput = call.rel(2);
       unionOnLeft = true;
@@ -97,10 +105,10 @@ public class PushJoinThroughUnionRule extends RelOptRule {
               join.getJoinType(),
               join.isSemiJoinDone()));
     }
-    final SetOpRel newUnionRel =
+    final SetOp newUnionRel =
         unionRel.copy(unionRel.getTraitSet(), newUnionInputs, true);
     call.transformTo(newUnionRel);
   }
 }
 
-// End PushJoinThroughUnionRule.java
+// End JoinUnionTransposeRule.java

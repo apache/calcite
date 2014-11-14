@@ -14,15 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql;
+package org.apache.calcite.sql;
+
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.sql.type.SqlOperandTypeChecker;
+import org.apache.calcite.sql.type.SqlOperandTypeInference;
+import org.apache.calcite.sql.type.SqlReturnTypeInference;
+import org.apache.calcite.sql.type.SqlTypeName;
 
 import java.util.List;
-
-import org.eigenbase.reltype.RelDataType;
-import org.eigenbase.sql.type.SqlOperandTypeChecker;
-import org.eigenbase.sql.type.SqlOperandTypeInference;
-import org.eigenbase.sql.type.SqlReturnTypeInference;
-import org.eigenbase.sql.type.SqlTypeName;
 
 /**
  * Placeholder for an unresolved function.
@@ -62,8 +62,7 @@ public class SqlUnresolvedFunction extends SqlFunction {
    * functions. Return the return type to be 'ANY', so we don't
    * fail.
    */
-  @Override
-  public RelDataType inferReturnType(SqlOperatorBinding opBinding) {
+  @Override public RelDataType inferReturnType(SqlOperatorBinding opBinding) {
     return opBinding.getTypeFactory().createSqlType(SqlTypeName.ANY);
   }
 }

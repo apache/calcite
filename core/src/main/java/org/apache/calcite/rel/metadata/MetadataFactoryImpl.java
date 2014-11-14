@@ -14,18 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel.metadata;
+package org.apache.calcite.rel.metadata;
 
-import java.util.concurrent.ExecutionException;
-
-import org.eigenbase.rel.RelNode;
-import org.eigenbase.util.Pair;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.util.Pair;
 
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
+
+import java.util.concurrent.ExecutionException;
 
 /** Implementation of {@link MetadataFactory} that gets providers from a
  * {@link RelMetadataProvider} and stores them in a cache.
@@ -51,8 +51,7 @@ public class MetadataFactoryImpl implements MetadataFactory {
       Function<RelNode, Metadata>> loader(final RelMetadataProvider provider) {
     return new CacheLoader<Pair<Class<RelNode>, Class<Metadata>>,
         Function<RelNode, Metadata>>() {
-      @Override
-      public Function<RelNode, Metadata> load(
+      @Override public Function<RelNode, Metadata> load(
           Pair<Class<RelNode>, Class<Metadata>> key) throws Exception {
         final Function<RelNode, Metadata> function =
             provider.apply(key.left, key.right);

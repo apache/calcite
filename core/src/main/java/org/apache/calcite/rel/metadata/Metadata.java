@@ -14,20 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel.metadata;
+package org.apache.calcite.rel.metadata;
 
-import org.eigenbase.rel.RelNode;
+import org.apache.calcite.rel.RelNode;
 
 /**
  * Metadata about a relational expression.
  *
  * <p>For particular types of metadata, a sub-class defines one of more methods
  * to query that metadata. Then a {@link RelMetadataProvider} can offer those
- * kinds of metadata for particular sub-classes of {@link RelNode}.</p>
+ * kinds of metadata for particular sub-classes of {@link RelNode}.
  *
  * <p>User code (typically in a planner rule or an implementation of
- * {@link RelNode#computeSelfCost(org.eigenbase.relopt.RelOptPlanner)}) acquires
- * a {@code Metadata} instance by calling {@link RelNode#metadata}.</p>
+ * {@link RelNode#computeSelfCost(org.apache.calcite.plan.RelOptPlanner)})
+ * acquires a {@code Metadata} instance by calling {@link RelNode#metadata}.
  *
  * <p>A {@code Metadata} instance already knows which particular {@code RelNode}
  * it is describing, so the methods do not pass in the {@code RelNode}. In fact,

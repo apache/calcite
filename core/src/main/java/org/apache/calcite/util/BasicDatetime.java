@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.util14;
+package org.apache.calcite.util;
 
-import java.util.*;
+import java.util.TimeZone;
 
 /**
  * BasicDatetime is an interface for dates, times, or timestamps that can be
@@ -35,9 +35,9 @@ import java.util.*;
  *
  * <p>A zoned time represents a time that was created in a particular time zone.
  * It may contain date and/or time components that are valid when interpreted
- * relative to a specified time zone, according to a {@link java.util.Calendar
- * Calendar}. Jdbc types, such as {@link java.sql.Date} typically contain zoned
- * times.
+ * relative to a specified time zone, according to a
+ * {@link java.util.Calendar Calendar}. Jdbc types, such as
+ * {@link java.sql.Date} typically contain zoned times.
  */
 public interface BasicDatetime {
   //~ Methods ----------------------------------------------------------------

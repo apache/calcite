@@ -14,15 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.relopt;
+package org.apache.calcite.plan;
 
-import java.util.*;
-
-import org.eigenbase.util.Pair;
-
-import net.hydromatic.optiq.runtime.FlatLists;
+import org.apache.calcite.runtime.FlatLists;
+import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableList;
+
+import java.util.AbstractList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * RelTraitSet represents an ordered set of {@link RelTrait}s.
@@ -173,15 +176,13 @@ public final class RelTraitSet extends AbstractList<RelTrait> {
    * @param obj another RelTraitSet
    * @return true if traits are equal and in the same order, false otherwise
    */
-  @Override
-  public boolean equals(Object obj) {
+  @Override public boolean equals(Object obj) {
     return this == obj
         || obj instanceof RelTraitSet
         && Arrays.equals(traits, ((RelTraitSet) obj).traits);
   }
 
-  @Override
-  public int hashCode() {
+  @Override public int hashCode() {
     return Arrays.hashCode(traits);
   }
 
@@ -284,8 +285,7 @@ public final class RelTraitSet extends AbstractList<RelTrait> {
     return Arrays.equals(traits, relTraits);
   }
 
-  @Override
-  public String toString() {
+  @Override public String toString() {
     return string;
   }
 

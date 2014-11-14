@@ -14,17 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql.fun;
+package org.apache.calcite.sql.fun;
 
-import org.eigenbase.sql.*;
-import org.eigenbase.sql.type.*;
+import org.apache.calcite.sql.SqlBinaryOperator;
+import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.type.InferTypes;
+import org.apache.calcite.sql.type.OperandTypes;
+import org.apache.calcite.sql.type.ReturnTypes;
 
 /**
  * An operator which performs set operations on multisets, such as "MULTISET
  * UNION ALL".
  *
- * <p>Not to be confused with {@link SqlMultisetValueConstructor} or {@link
- * SqlMultisetQueryConstructor}.
+ * <p>Not to be confused with {@link SqlMultisetValueConstructor} or
+ * {@link SqlMultisetQueryConstructor}.
  *
  * <p>todo: Represent the ALL keyword to MULTISET UNION ALL etc. as a hidden
  * operand. Then we can obsolete this class.

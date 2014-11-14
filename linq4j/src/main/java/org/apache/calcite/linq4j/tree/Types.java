@@ -14,12 +14,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.linq4j.expressions;
+package org.apache.calcite.linq4j.tree;
 
-import net.hydromatic.linq4j.Enumerator;
+import org.apache.calcite.linq4j.Enumerator;
 
-import java.lang.reflect.*;
-import java.util.*;
+import java.lang.reflect.Array;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
+import java.lang.reflect.GenericArrayType;
+import java.lang.reflect.Method;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
+import java.lang.reflect.TypeVariable;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
 
 /**
  * Utilities for converting between {@link Expression}, {@link Type} and
@@ -42,8 +54,8 @@ public abstract class Types {
 
   /**
    * Returns the element type of a {@link Collection}, {@link Iterable}
-   * (including {@link net.hydromatic.linq4j.Queryable Queryable} and
-   * {@link net.hydromatic.linq4j.Enumerable Enumerable}), {@link Iterator},
+   * (including {@link org.apache.calcite.linq4j.Queryable Queryable} and
+   * {@link org.apache.calcite.linq4j.Enumerable Enumerable}), {@link Iterator},
    * {@link Enumerator}, or an array.
    *
    * <p>Returns null if the type is not one of these.</p>
@@ -330,10 +342,8 @@ public abstract class Types {
           return method;
         }
       }
-      throw new RuntimeException(
-          "while resolving method '" + methodName
-          + Arrays.toString(argumentTypes)
-          + "' in class " + clazz, e);
+      throw new RuntimeException("while resolving method '" + methodName
+          + Arrays.toString(argumentTypes) + "' in class " + clazz, e);
     }
   }
 
@@ -522,8 +532,7 @@ public abstract class Types {
       }
     }
 
-    @Override
-    public String toString() {
+    @Override public String toString() {
       final StringBuilder buf = new StringBuilder();
       buf.append(className(rawType));
       buf.append("<");

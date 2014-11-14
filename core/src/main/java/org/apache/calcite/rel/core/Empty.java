@@ -14,46 +14,50 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel;
+package org.apache.calcite.rel.core;
+
+import org.apache.calcite.plan.Convention;
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptCost;
+import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.AbstractRelNode;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelWriter;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.sql.SqlExplainLevel;
 
 import java.util.List;
 
-import org.eigenbase.relopt.*;
-import org.eigenbase.reltype.*;
-import org.eigenbase.sql.*;
-
 /**
- * <code>EmptyRel</code> represents a relational expression with zero rows.
+ * Relational expression with zero rows.
  *
- * <p>EmptyRel can not be implemented, but serves as a token for rules to match
+ * <p>Empty can not be implemented, but serves as a token for rules to match
  * so that empty sections of queries can be eliminated.
  *
  * <p>Rules:
  *
  * <ul>
  * <li>Created by {@code net.sf.farrago.query.FarragoReduceValuesRule}</li>
- * <li>Triggers {@link org.eigenbase.rel.rules.RemoveEmptyRules}</li>
+ * <li>Triggers {@link org.apache.calcite.rel.rules.EmptyPruneRules}</li>
  * </ul>
  *
- * @see org.eigenbase.rel.ValuesRel
+ * @see org.apache.calcite.rel.logical.LogicalValues
+ * @see OneRow
  */
-public class EmptyRel extends AbstractRelNode {
+public class Empty extends AbstractRelNode {
   //~ Constructors -----------------------------------------------------------
 
   /**
-   * Creates a new EmptyRel.
+   * Creates a new Empty.
    *
    * @param cluster Cluster
    * @param rowType row type for tuples which would be produced by this rel if
    *                it actually produced any, but it doesn't (see, philosophy is
    *                good for something after all!)
    */
-  public EmptyRel(
-      RelOptCluster cluster,
-      RelDataType rowType) {
-    super(
-        cluster,
-        cluster.traitSetOf(Convention.NONE));
+  public Empty(RelOptCluster cluster, RelDataType rowType) {
+    super(cluster, cluster.traitSetOf(Convention.NONE));
     this.rowType = rowType;
   }
 
@@ -66,23 +70,19 @@ public class EmptyRel extends AbstractRelNode {
     return this;
   }
 
-  // implement RelNode
-  protected RelDataType deriveRowType() {
+  @Override protected RelDataType deriveRowType() {
     return rowType;
   }
 
-  // implement RelNode
-  public RelOptCost computeSelfCost(RelOptPlanner planner) {
+  @Override public RelOptCost computeSelfCost(RelOptPlanner planner) {
     return planner.getCostFactory().makeZeroCost();
   }
 
-  // implement RelNode
-  public double getRows() {
+  @Override public double getRows() {
     return 0.0;
   }
 
-  // implement RelNode
-  public RelWriter explainTerms(RelWriter pw) {
+  @Override public RelWriter explainTerms(RelWriter pw) {
     return super.explainTerms(pw)
         // For rel digest, include the row type to discriminate
         // this from other empties with different row types.
@@ -94,4 +94,4 @@ public class EmptyRel extends AbstractRelNode {
   }
 }
 
-// End EmptyRel.java
+// End Empty.java

@@ -14,11 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.impl.jdbc;
+package org.apache.calcite.adapter.jdbc;
 
-import org.eigenbase.rel.RelNode;
-import org.eigenbase.rel.TableAccessRelBase;
-import org.eigenbase.relopt.*;
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.TableScan;
 
 import java.util.Collections;
 import java.util.List;
@@ -26,7 +28,7 @@ import java.util.List;
 /**
  * Relational expression representing a scan of a table in a JDBC data source.
  */
-public class JdbcTableScan extends TableAccessRelBase implements JdbcRel {
+public class JdbcTableScan extends TableScan implements JdbcRel {
   final JdbcTable jdbcTable;
 
   protected JdbcTableScan(
@@ -39,8 +41,7 @@ public class JdbcTableScan extends TableAccessRelBase implements JdbcRel {
     assert jdbcTable != null;
   }
 
-  @Override
-  public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
+  @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
     assert inputs.isEmpty();
     return new JdbcTableScan(
         getCluster(), table, jdbcTable, (JdbcConvention) getConvention());

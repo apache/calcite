@@ -18,6 +18,6 @@
 /**
  * Provides compilers for Java code.
  */
-package org.eigenbase.javac;
+package org.apache.calcite.util.javac;
 
 // End package-info.java

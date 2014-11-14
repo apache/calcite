@@ -14,27 +14,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.impl.interpreter;
+package org.apache.calcite.interpreter;
 
-import net.hydromatic.linq4j.Enumerable;
-import net.hydromatic.linq4j.Enumerator;
-import net.hydromatic.linq4j.Queryable;
-import net.hydromatic.linq4j.function.Function1;
-
-import net.hydromatic.optiq.DataContext;
-import net.hydromatic.optiq.FilterableTable;
-import net.hydromatic.optiq.ProjectableFilterableTable;
-import net.hydromatic.optiq.QueryableTable;
-import net.hydromatic.optiq.ScannableTable;
-import net.hydromatic.optiq.SchemaPlus;
-import net.hydromatic.optiq.Schemas;
-import net.hydromatic.optiq.runtime.Enumerables;
-
-import org.eigenbase.rel.TableAccessRelBase;
-import org.eigenbase.relopt.RelOptTable;
-import org.eigenbase.rex.RexNode;
-import org.eigenbase.util.ImmutableIntList;
-import org.eigenbase.util.Util;
+import org.apache.calcite.DataContext;
+import org.apache.calcite.linq4j.Enumerable;
+import org.apache.calcite.linq4j.Enumerator;
+import org.apache.calcite.linq4j.Queryable;
+import org.apache.calcite.linq4j.function.Function1;
+import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.rel.core.TableScan;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.runtime.Enumerables;
+import org.apache.calcite.schema.FilterableTable;
+import org.apache.calcite.schema.ProjectableFilterableTable;
+import org.apache.calcite.schema.QueryableTable;
+import org.apache.calcite.schema.ScannableTable;
+import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.schema.Schemas;
+import org.apache.calcite.util.ImmutableIntList;
+import org.apache.calcite.util.Util;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
@@ -47,16 +45,16 @@ import java.util.List;
 
 /**
  * Interpreter node that implements a
- * {@link org.eigenbase.rel.TableAccessRelBase}.
+ * {@link org.apache.calcite.rel.core.TableScan}.
  */
 public class ScanNode implements Node {
   private final Sink sink;
-  private final TableAccessRelBase rel;
+  private final TableScan rel;
   private final ImmutableList<RexNode> filters;
   private final DataContext root;
   private final int[] projects;
 
-  public ScanNode(Interpreter interpreter, TableAccessRelBase rel,
+  public ScanNode(Interpreter interpreter, TableScan rel,
       ImmutableList<RexNode> filters, ImmutableIntList projects) {
     this.rel = rel;
     this.filters = Preconditions.checkNotNull(filters);
@@ -153,8 +151,7 @@ public class ScanNode implements Node {
     if (scannableTable != null) {
       return Enumerables.toRow(scannableTable.scan(root));
     }
-    throw new AssertionError("cannot convert table " + table
-        + " to iterable");
+    throw new AssertionError("cannot convert table " + table + " to iterable");
   }
 }
 

@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql.validate;
+package org.apache.calcite.sql.validate;
 
-import org.eigenbase.reltype.RelDataType;
-import org.eigenbase.sql.SqlNode;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.sql.SqlNode;
 
 /** Namespace based on a table from the catalog. */
 class TableNamespace extends AbstractNamespace {
@@ -39,8 +39,7 @@ class TableNamespace extends AbstractNamespace {
     return null;
   }
 
-  @Override
-  public SqlValidatorTable getTable() {
+  @Override public SqlValidatorTable getTable() {
     return table;
   }
 }

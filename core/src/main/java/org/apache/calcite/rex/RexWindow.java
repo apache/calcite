@@ -14,12 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rex;
-
-import java.io.*;
-import java.util.List;
+package org.apache.calcite.rex;
 
 import com.google.common.collect.ImmutableList;
+
+import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.util.List;
 
 /**
  * Specification of the window of rows over which a {@link RexOver} windowed
@@ -42,8 +43,8 @@ public class RexWindow {
   /**
    * Creates a window.
    *
-   * <p>If you need to create a window from outside this package, use {@link
-   * RexBuilder#makeOver}.
+   * <p>If you need to create a window from outside this package, use
+   * {@link RexBuilder#makeOver}.
    */
   RexWindow(
       List<RexNode> partitionKeys,

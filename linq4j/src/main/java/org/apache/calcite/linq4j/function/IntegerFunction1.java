@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.linq4j.function;
+package org.apache.calcite.linq4j.function;
 
 /**
  * Function that takes one parameter and returns a native {@code int} value.

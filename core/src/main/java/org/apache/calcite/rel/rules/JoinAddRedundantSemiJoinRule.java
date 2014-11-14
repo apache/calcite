@@ -14,36 +14,44 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel.rules;
+package org.apache.calcite.rel.rules;
 
-import org.eigenbase.rel.*;
-import org.eigenbase.relopt.*;
+import org.apache.calcite.plan.Convention;
+import org.apache.calcite.plan.RelOptRule;
+import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.Join;
+import org.apache.calcite.rel.core.JoinInfo;
+import org.apache.calcite.rel.core.JoinRelType;
+import org.apache.calcite.rel.core.SemiJoin;
+import org.apache.calcite.rel.logical.LogicalJoin;
 
 /**
  * Rule to add a semi-join into a join. Transformation is as follows:
  *
- * <p>JoinRel(X, Y) &rarr; JoinRel(SemiJoinRel(X, Y), Y)
+ * <p>LogicalJoin(X, Y) &rarr; LogicalJoin(SemiJoin(X, Y), Y)
  *
  * <p>The constructor is parameterized to allow any sub-class of
- * {@link JoinRelBase}, not just {@link JoinRel}.</p>
+ * {@link org.apache.calcite.rel.core.Join}, not just
+ * {@link org.apache.calcite.rel.logical.LogicalJoin}.
  */
-public class AddRedundantSemiJoinRule extends RelOptRule {
-  public static final AddRedundantSemiJoinRule INSTANCE =
-      new AddRedundantSemiJoinRule(JoinRel.class);
+public class JoinAddRedundantSemiJoinRule extends RelOptRule {
+  public static final JoinAddRedundantSemiJoinRule INSTANCE =
+      new JoinAddRedundantSemiJoinRule(LogicalJoin.class);
 
   //~ Constructors -----------------------------------------------------------
 
   /**
-   * Creates an AddRedundantSemiJoinRule.
+   * Creates an JoinAddRedundantSemiJoinRule.
    */
-  private AddRedundantSemiJoinRule(Class<? extends JoinRelBase> clazz) {
+  private JoinAddRedundantSemiJoinRule(Class<? extends Join> clazz) {
     super(operand(clazz, any()));
   }
 
   //~ Methods ----------------------------------------------------------------
 
   public void onMatch(RelOptRuleCall call) {
-    JoinRelBase origJoinRel = call.rel(0);
+    Join origJoinRel = call.rel(0);
     if (origJoinRel.isSemiJoinDone()) {
       return;
     }
@@ -60,7 +68,7 @@ public class AddRedundantSemiJoinRule extends RelOptRule {
     }
 
     RelNode semiJoin =
-        new SemiJoinRel(
+        new SemiJoin(
             origJoinRel.getCluster(),
             origJoinRel.getCluster().traitSetOf(Convention.NONE),
             origJoinRel.getLeft(),
@@ -82,4 +90,4 @@ public class AddRedundantSemiJoinRule extends RelOptRule {
   }
 }
 
-// End AddRedundantSemiJoinRule.java
+// End JoinAddRedundantSemiJoinRule.java

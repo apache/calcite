@@ -14,14 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.rules.java;
+package org.apache.calcite.adapter.enumerable;
 
-import net.hydromatic.linq4j.expressions.Expression;
+import org.apache.calcite.linq4j.tree.Expression;
 
 import java.util.List;
 
 /**
- * Information for a call to {@link AggImplementor#implementReset(AggContext, AggResetContext)}.
+ * Information for a call to
+ * {@link AggImplementor#implementReset(AggContext, AggResetContext)}.
+ *
  * {@link AggResetContext} provides access to the accumulator variables
  * that should be reset.
  */
@@ -29,9 +31,11 @@ public interface AggResetContext extends NestedBlockBuilder {
   /**
    * Returns accumulator variables that should be reset.
    * There MUST be an assignment even if you just assign the default value.
+   *
    * @return accumulator variables that should be reset or empty list when no
    *   accumulator variables are used by the aggregate implementation.
-   * @see AggImplementor#getStateType(net.hydromatic.optiq.rules.java.AggContext)
+   *
+   * @see AggImplementor#getStateType(org.apache.calcite.adapter.enumerable.AggContext)
    */
   List<Expression> accumulator();
 }

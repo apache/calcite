@@ -14,22 +14,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel;
+package org.apache.calcite.rel.core;
+
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.RelInput;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.metadata.RelMetadataQuery;
+import org.apache.calcite.sql.SqlKind;
 
 import java.util.List;
 
-import org.eigenbase.rel.metadata.*;
-import org.eigenbase.relopt.*;
-import org.eigenbase.sql.SqlKind;
-
 /**
- * <code>UnionRelBase</code> is an abstract base class for implementations of
- * {@link UnionRel}.
+ * Relational expression that returns the union of the rows of its inputs,
+ * optionally eliminating duplicates.
+ *
+ * <p>Corresponds to SQL {@code UNION} and {@code UNION ALL}.
  */
-public abstract class UnionRelBase extends SetOpRel {
+public abstract class Union extends SetOp {
   //~ Constructors -----------------------------------------------------------
 
-  protected UnionRelBase(
+  protected Union(
       RelOptCluster cluster,
       RelTraitSet traits,
       List<RelNode> inputs,
@@ -38,9 +43,9 @@ public abstract class UnionRelBase extends SetOpRel {
   }
 
   /**
-   * Creates a UnionRelBase by parsing serialized output.
+   * Creates a Union by parsing serialized output.
    */
-  protected UnionRelBase(RelInput input) {
+  protected Union(RelInput input) {
     super(input);
   }
 
@@ -70,4 +75,4 @@ public abstract class UnionRelBase extends SetOpRel {
   }
 }
 
-// End UnionRelBase.java
+// End Union.java

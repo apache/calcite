@@ -14,12 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.util14;
+package org.apache.calcite.util;
 
 import java.sql.Date;
-
-import java.text.*;
-
+import java.text.DateFormat;
 import java.util.Calendar;
 import java.util.TimeZone;
 
@@ -77,9 +75,10 @@ public class ZonelessDate extends ZonelessDatetime {
   }
 
   /**
-   * Formats this ZonelessDate via a SimpleDateFormat
+   * Formats this ZonelessDate via a SimpleDateFormat.
    *
-   * @param format format string, as required by {@link SimpleDateFormat}
+   * @param format Format string, as required by
+   *     {@link java.text.SimpleDateFormat}
    * @return the formatted date string
    */
   public String toString(String format) {
@@ -104,7 +103,7 @@ public class ZonelessDate extends ZonelessDatetime {
    *
    * @param s      a string representing a date in ISO format, i.e. according to
    *               the SimpleDateFormat string "yyyy-MM-dd"
-   * @param format format string as per {@link SimpleDateFormat}
+   * @param format Format string as per {@link java.text.SimpleDateFormat}
    * @return the parsed date, or null if parsing failed
    */
   public static ZonelessDate parse(String s, String format) {

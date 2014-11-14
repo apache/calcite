@@ -14,28 +14,39 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel.metadata;
+package org.apache.calcite.rel.metadata;
 
-import java.util.*;
+import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.Aggregate;
+import org.apache.calcite.rel.core.Filter;
+import org.apache.calcite.rel.core.Join;
+import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.core.SemiJoin;
+import org.apache.calcite.rel.core.Sort;
+import org.apache.calcite.rel.core.Union;
+import org.apache.calcite.rel.core.Values;
+import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexUtil;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.util.BitSets;
+import org.apache.calcite.util.BuiltInMethod;
+import org.apache.calcite.util.NumberUtil;
 
-import org.eigenbase.rel.*;
-import org.eigenbase.rel.rules.*;
-import org.eigenbase.relopt.*;
-import org.eigenbase.rex.*;
-import org.eigenbase.sql.fun.*;
-import org.eigenbase.util14.*;
-
-import net.hydromatic.optiq.BuiltinMethod;
-import net.hydromatic.optiq.util.BitSets;
+import java.util.ArrayList;
+import java.util.BitSet;
+import java.util.List;
 
 /**
- * RelMdDistinctRowCount supplies a default implementation of {@link
- * RelMetadataQuery#getDistinctRowCount} for the standard logical algebra.
+ * RelMdDistinctRowCount supplies a default implementation of
+ * {@link RelMetadataQuery#getDistinctRowCount} for the standard logical
+ * algebra.
  */
 public class RelMdDistinctRowCount {
   public static final RelMetadataProvider SOURCE =
       ReflectiveRelMetadataProvider.reflectiveSource(
-          BuiltinMethod.DISTINCT_ROW_COUNT.method, new RelMdDistinctRowCount());
+          BuiltInMethod.DISTINCT_ROW_COUNT.method, new RelMdDistinctRowCount());
 
   //~ Constructors -----------------------------------------------------------
 
@@ -44,7 +55,7 @@ public class RelMdDistinctRowCount {
   //~ Methods ----------------------------------------------------------------
 
   public Double getDistinctRowCount(
-      UnionRelBase rel,
+      Union rel,
       BitSet groupKey,
       RexNode predicate) {
     Double rowCount = 0.0;
@@ -78,17 +89,17 @@ public class RelMdDistinctRowCount {
   }
 
   public Double getDistinctRowCount(
-      SortRel rel,
+      Sort rel,
       BitSet groupKey,
       RexNode predicate) {
     return RelMetadataQuery.getDistinctRowCount(
-        rel.getChild(),
+        rel.getInput(),
         groupKey,
         predicate);
   }
 
   public Double getDistinctRowCount(
-      FilterRelBase rel,
+      Filter rel,
       BitSet groupKey,
       RexNode predicate) {
     // REVIEW zfong 4/18/06 - In the Broadbase code, duplicates are not
@@ -101,13 +112,13 @@ public class RelMdDistinctRowCount {
             rel.getCondition());
 
     return RelMetadataQuery.getDistinctRowCount(
-        rel.getChild(),
+        rel.getInput(),
         groupKey,
         unionPreds);
   }
 
   public Double getDistinctRowCount(
-      JoinRelBase rel,
+      Join rel,
       BitSet groupKey,
       RexNode predicate) {
     return RelMdUtil.getJoinDistinctRowCount(
@@ -119,7 +130,7 @@ public class RelMdDistinctRowCount {
   }
 
   public Double getDistinctRowCount(
-      SemiJoinRel rel,
+      SemiJoin rel,
       BitSet groupKey,
       RexNode predicate) {
     // create a RexNode representing the selectivity of the
@@ -141,7 +152,7 @@ public class RelMdDistinctRowCount {
   }
 
   public Double getDistinctRowCount(
-      AggregateRelBase rel,
+      Aggregate rel,
       BitSet groupKey,
       RexNode predicate) {
     // determine which predicates can be applied on the child of the
@@ -163,7 +174,7 @@ public class RelMdDistinctRowCount {
 
     Double distinctRowCount =
         RelMetadataQuery.getDistinctRowCount(
-            rel.getChild(),
+            rel.getInput(),
             childKey,
             childPreds);
     if (distinctRowCount == null) {
@@ -178,7 +189,7 @@ public class RelMdDistinctRowCount {
   }
 
   public Double getDistinctRowCount(
-      ValuesRelBase rel,
+      Values rel,
       BitSet groupKey,
       RexNode predicate) {
     Double selectivity = RelMdUtil.guessSelectivity(predicate);
@@ -189,7 +200,7 @@ public class RelMdDistinctRowCount {
   }
 
   public Double getDistinctRowCount(
-      ProjectRelBase rel,
+      Project rel,
       BitSet groupKey,
       RexNode predicate) {
     BitSet baseCols = new BitSet();
@@ -219,7 +230,7 @@ public class RelMdDistinctRowCount {
     }
     Double distinctRowCount =
         RelMetadataQuery.getDistinctRowCount(
-            rel.getChild(),
+            rel.getInput(),
             baseCols,
             modifiedPred);
 

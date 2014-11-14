@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rex;
+package org.apache.calcite.rex;
 
-import org.eigenbase.reltype.*;
-import org.eigenbase.sql.SqlKind;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.sql.SqlKind;
 
 /**
  * Reference to the current row of a correlating relational expression.
@@ -41,8 +41,7 @@ public class RexCorrelVariable extends RexVariable {
     return visitor.visitCorrelVariable(this);
   }
 
-  @Override
-  public SqlKind getKind() {
+  @Override public SqlKind getKind() {
     return SqlKind.CORREL_VARIABLE;
   }
 }

@@ -14,17 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql.type;
+package org.apache.calcite.sql.type;
 
-import org.eigenbase.reltype.*;
-import org.eigenbase.sql.*;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.sql.SqlOperatorBinding;
 
 import com.google.common.collect.ImmutableList;
 
 /**
  * Strategy to infer the type of an operator call from the type of the operands
- * by using one {@link SqlReturnTypeInference} rule and a combination of {@link
- * SqlTypeTransform}s
+ * by using one {@link SqlReturnTypeInference} rule and a combination of
+ * {@link SqlTypeTransform}s
  */
 public class SqlTypeTransformCascade implements SqlReturnTypeInference {
   //~ Instance fields --------------------------------------------------------

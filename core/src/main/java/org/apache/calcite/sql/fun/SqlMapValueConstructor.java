@@ -14,18 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql.fun;
+package org.apache.calcite.sql.fun;
+
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.sql.SqlCallBinding;
+import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlOperatorBinding;
+import org.apache.calcite.sql.type.SqlTypeUtil;
+import org.apache.calcite.util.Pair;
+import org.apache.calcite.util.Util;
 
 import java.util.List;
 
-import org.eigenbase.reltype.RelDataType;
-import org.eigenbase.reltype.RelDataTypeFactory;
-import org.eigenbase.sql.*;
-import org.eigenbase.sql.type.SqlTypeUtil;
-import org.eigenbase.util.Pair;
-import org.eigenbase.util.Util;
-
-import static org.eigenbase.util.Static.RESOURCE;
+import static org.apache.calcite.util.Static.RESOURCE;
 
 /**
  * Definition of the MAP constructor,
@@ -38,8 +40,7 @@ public class SqlMapValueConstructor extends SqlMultisetValueConstructor {
     super("MAP", SqlKind.MAP_VALUE_CONSTRUCTOR);
   }
 
-  @Override
-  public RelDataType inferReturnType(SqlOperatorBinding opBinding) {
+  @Override public RelDataType inferReturnType(SqlOperatorBinding opBinding) {
     Pair<RelDataType, RelDataType> type =
         getComponentTypes(
             opBinding.getTypeFactory(), opBinding.collectOperandTypes());

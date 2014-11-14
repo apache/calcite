@@ -14,11 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.util14;
+package org.apache.calcite.util;
 
-import java.sql.*;
-
-import java.text.*;
+import java.sql.Timestamp;
+import java.text.DateFormat;
 
 /**
  * ZonelessTimestamp is a timestamp value without a time zone.
@@ -122,7 +121,7 @@ public class ZonelessTimestamp extends ZonelessDatetime {
    *
    * @param s      a string representing a time in ISO format, i.e. according to
    *               the SimpleDateFormat string "yyyy-MM-dd HH:mm:ss"
-   * @param format format string as per {@link SimpleDateFormat}
+   * @param format Format string as per {@link java.text.SimpleDateFormat}
    * @return the parsed timestamp, or null if parsing failed
    */
   public static ZonelessTimestamp parse(String s, String format) {

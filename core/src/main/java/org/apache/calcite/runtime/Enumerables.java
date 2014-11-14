@@ -14,21 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.runtime;
+package org.apache.calcite.runtime;
 
-import net.hydromatic.linq4j.AbstractEnumerable;
-import net.hydromatic.linq4j.Enumerable;
-import net.hydromatic.linq4j.Enumerator;
-import net.hydromatic.linq4j.function.EqualityComparer;
-import net.hydromatic.linq4j.function.Function1;
-import net.hydromatic.linq4j.function.Predicate1;
-
-import net.hydromatic.optiq.impl.interpreter.Row;
-
-import org.eigenbase.util.Bug;
+import org.apache.calcite.interpreter.Row;
+import org.apache.calcite.linq4j.AbstractEnumerable;
+import org.apache.calcite.linq4j.Enumerable;
+import org.apache.calcite.linq4j.Enumerator;
+import org.apache.calcite.linq4j.function.EqualityComparer;
+import org.apache.calcite.linq4j.function.Function1;
+import org.apache.calcite.linq4j.function.Predicate1;
+import org.apache.calcite.util.Bug;
 
 /**
- * Utilities for processing {@link net.hydromatic.linq4j.Enumerable}
+ * Utilities for processing {@link org.apache.calcite.linq4j.Enumerable}
  * collections.
  *
  * <p>This class is a place to put things not yet added to linq4j.

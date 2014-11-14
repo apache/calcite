@@ -14,27 +14,47 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.test;
+package org.apache.calcite.test;
 
-import java.util.*;
-
-import org.eigenbase.rel.*;
-import org.eigenbase.relopt.RelOptPlanner;
-import org.eigenbase.relopt.RelOptSchema;
-import org.eigenbase.reltype.*;
-import org.eigenbase.sql.*;
-import org.eigenbase.sql.parser.*;
-import org.eigenbase.sql.type.*;
-import org.eigenbase.sql.validate.*;
-import org.eigenbase.util.Pair;
-import org.eigenbase.util.Util;
-
-import net.hydromatic.linq4j.expressions.Expression;
-
-import net.hydromatic.optiq.prepare.Prepare;
+import org.apache.calcite.linq4j.tree.Expression;
+import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.plan.RelOptSchema;
+import org.apache.calcite.prepare.Prepare;
+import org.apache.calcite.rel.RelCollation;
+import org.apache.calcite.rel.RelCollationImpl;
+import org.apache.calcite.rel.RelFieldCollation;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.logical.LogicalTableScan;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeComparability;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rel.type.RelDataTypeFieldImpl;
+import org.apache.calcite.sql.SqlAccessType;
+import org.apache.calcite.sql.SqlIdentifier;
+import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.type.ObjectSqlType;
+import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.validate.SqlMoniker;
+import org.apache.calcite.sql.validate.SqlMonikerImpl;
+import org.apache.calcite.sql.validate.SqlMonikerType;
+import org.apache.calcite.sql.validate.SqlMonotonicity;
+import org.apache.calcite.sql.validate.SqlValidatorCatalogReader;
+import org.apache.calcite.sql.validate.SqlValidatorUtil;
+import org.apache.calcite.util.Pair;
+import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Ordering;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.BitSet;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 
 /**
  * Mock implementation of {@link SqlValidatorCatalogReader} which returns tables
@@ -318,6 +338,7 @@ public class MockCatalogReader implements Prepare.CatalogReader {
 
   //~ Inner Classes ----------------------------------------------------------
 
+  /** Mock schema. */
   public static class MockSchema {
     private final List<String> tableNames = new ArrayList<String>();
     private String name;
@@ -337,7 +358,7 @@ public class MockCatalogReader implements Prepare.CatalogReader {
 
   /**
    * Mock implementation of
-   * {@link net.hydromatic.optiq.prepare.Prepare.PreparingTable}.
+   * {@link org.apache.calcite.prepare.Prepare.PreparingTable}.
    */
   public static class MockTable implements Prepare.PreparingTable {
     private final MockCatalogReader catalogReader;
@@ -373,7 +394,7 @@ public class MockCatalogReader implements Prepare.CatalogReader {
     }
 
     public RelNode toRel(ToRelContext context) {
-      return new TableAccessRel(context.getCluster(), this);
+      return new LogicalTableScan(context.getCluster(), this);
     }
 
     public List<RelCollation> getCollationList() {

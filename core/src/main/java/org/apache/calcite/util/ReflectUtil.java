@@ -14,15 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.util;
-
-import java.lang.reflect.*;
-
-import java.nio.*;
-
-import java.util.*;
+package org.apache.calcite.util;
 
 import com.google.common.collect.ImmutableList;
+
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Static utilities for Java reflection.
@@ -181,11 +184,13 @@ public abstract class ReflectUtil {
   }
 
   /**
-   * Implements the {@link Glossary#VISITOR_PATTERN} via reflection. The basic
-   * technique is taken from <a
+   * Implements the {@link org.apache.calcite.util.Glossary#VISITOR_PATTERN} via
+   * reflection. The basic technique is taken from <a
    * href="http://www.javaworld.com/javaworld/javatips/jw-javatip98.html">a
-   * Javaworld article</a>. For an example of how to use it, see {@code
-   * ReflectVisitorTest}. Visit method lookup follows the same rules as if
+   * Javaworld article</a>. For an example of how to use it, see
+   * {@code ReflectVisitorTest}.
+   *
+   * <p>Visit method lookup follows the same rules as if
    * compile-time resolution for VisitorClass.visit(VisiteeClass) were
    * performed. An ambiguous match due to multiple interface inheritance
    * results in an IllegalArgumentException. A non-match is indicated by
@@ -393,9 +398,8 @@ public abstract class ReflectUtil {
               // to set candidateMethod = method
             } else {
               // c1 and c2 are not directly related
-              throw new IllegalArgumentException(
-                  "dispatch ambiguity between " + candidateMethod
-                  + " and " + method);
+              throw new IllegalArgumentException("dispatch ambiguity between "
+                  + candidateMethod + " and " + method);
             }
           }
         }
@@ -557,9 +561,8 @@ public abstract class ReflectUtil {
               new ArrayList<Class>();
           classList.add(arg0Clazz);
           classList.addAll(otherArgClassList);
-          throw new IllegalArgumentException(
-              "Method not found: " + methodName + "(" + classList
-              + ")");
+          throw new IllegalArgumentException("Method not found: " + methodName
+              + "(" + classList + ")");
         }
         return method;
       }

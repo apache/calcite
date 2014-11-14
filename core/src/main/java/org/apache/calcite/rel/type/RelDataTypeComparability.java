@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.reltype;
+package org.apache.calcite.rel.type;
 
-import org.eigenbase.util.*;
+import org.apache.calcite.util.Util;
 
 /**
  * RelDataTypeComparability is an enumeration of the categories of comparison

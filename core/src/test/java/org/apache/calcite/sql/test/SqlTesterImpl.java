@@ -14,38 +14,58 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql.test;
+package org.apache.calcite.sql.test;
 
-import java.nio.charset.Charset;
-import java.util.*;
-
-import org.eigenbase.reltype.RelDataType;
-import org.eigenbase.reltype.RelDataTypeField;
-import org.eigenbase.sql.*;
-import org.eigenbase.sql.fun.SqlStdOperatorTable;
-import org.eigenbase.sql.parser.*;
-import org.eigenbase.sql.type.SqlTypeName;
-import org.eigenbase.sql.util.SqlShuttle;
-import org.eigenbase.sql.validate.*;
-import org.eigenbase.test.SqlValidatorTestCase;
-import org.eigenbase.util.*;
-
-import net.hydromatic.avatica.Casing;
-import net.hydromatic.avatica.Quoting;
-
-import net.hydromatic.optiq.config.Lex;
-import net.hydromatic.optiq.runtime.Utilities;
+import org.apache.calcite.avatica.Casing;
+import org.apache.calcite.avatica.Quoting;
+import org.apache.calcite.config.Lex;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.runtime.Utilities;
+import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlCollation;
+import org.apache.calcite.sql.SqlDialect;
+import org.apache.calcite.sql.SqlIntervalLiteral;
+import org.apache.calcite.sql.SqlLiteral;
+import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.SqlSelect;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.parser.SqlParseException;
+import org.apache.calcite.sql.parser.SqlParser;
+import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.parser.SqlParserUtil;
+import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.util.SqlShuttle;
+import org.apache.calcite.sql.validate.SqlConformance;
+import org.apache.calcite.sql.validate.SqlMonotonicity;
+import org.apache.calcite.sql.validate.SqlValidator;
+import org.apache.calcite.sql.validate.SqlValidatorScope;
+import org.apache.calcite.test.SqlValidatorTestCase;
+import org.apache.calcite.util.Pair;
+import org.apache.calcite.util.TestUtil;
+import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
-import static org.eigenbase.sql.SqlUtil.stripAs;
+import java.nio.charset.Charset;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Iterator;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.NoSuchElementException;
+
+import static org.apache.calcite.sql.SqlUtil.stripAs;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.fail;
 
 /**
- * Implementation of {@link org.eigenbase.test.SqlValidatorTestCase.Tester}
+ * Implementation of {@link org.apache.calcite.test.SqlValidatorTestCase.Tester}
  * that talks to a mock catalog.
  */
 public class SqlTesterImpl implements SqlTester {
@@ -97,8 +117,8 @@ public class SqlTesterImpl implements SqlTester {
         e.printStackTrace();
         throw new AssertionError(
             "Error did not match expected ["
-            + expectedMsgPattern + "] while parsing query ["
-            + sap.sql + "]");
+                + expectedMsgPattern + "] while parsing query ["
+                + sap.sql + "]");
       }
       return;
     } catch (Throwable e) {
@@ -283,8 +303,7 @@ public class SqlTesterImpl implements SqlTester {
   private SqlTesterImpl with(final String name2, final Object value) {
     return new SqlTesterImpl(
         new DelegatingSqlTestFactory(factory) {
-          @Override
-          public Object get(String name) {
+          @Override public Object get(String name) {
             if (name.equals(name2)) {
               return value;
             }
@@ -521,8 +540,7 @@ public class SqlTesterImpl implements SqlTester {
                   SqlStdOperatorTable.CURRENT_TIME,
                   SqlStdOperatorTable.CURRENT_TIMESTAMP);
 
-          @Override
-          public SqlNode visit(SqlLiteral literal) {
+          @Override public SqlNode visit(SqlLiteral literal) {
             if (!isNull(literal)
                 && literal.getTypeName() != SqlTypeName.SYMBOL) {
               literalSet.add(literal);
@@ -530,8 +548,7 @@ public class SqlTesterImpl implements SqlTester {
             return literal;
           }
 
-          @Override
-          public SqlNode visit(SqlCall call) {
+          @Override public SqlNode visit(SqlCall call) {
             final SqlOperator operator = call.getOperator();
             if (operator == SqlStdOperatorTable.CAST
                 && isNull(call.operand(0))) {

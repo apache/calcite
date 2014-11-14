@@ -14,35 +14,40 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel;
+package org.apache.calcite.rel.logical;
 
-import java.util.*;
+import org.apache.calcite.plan.Convention;
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.RelCollationImpl;
+import org.apache.calcite.rel.RelInput;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelShuttle;
+import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexUtil;
 
-import org.eigenbase.relopt.*;
-import org.eigenbase.reltype.*;
-import org.eigenbase.rex.*;
+import java.util.List;
 
 /**
- * <code>ProjectRel</code> is a relational expression which computes a set of
- * 'select expressions' from its input relational expression.
- *
- * <p>The result is usually 'boxed' as a record with one named field for each
- * column; if there is precisely one expression, the result may be 'unboxed',
- * and consist of the raw value type.</p>
+ * Sub-class of {@link org.apache.calcite.rel.core.Project} not
+ * targeted at any particular engine or calling convention.
  */
-public final class ProjectRel extends ProjectRelBase {
+public final class LogicalProject extends Project {
   //~ Constructors -----------------------------------------------------------
 
   /**
-   * Creates a ProjectRel with no sort keys.
+   * Creates a LogicalProject with no sort keys.
    *
    * @param cluster    Cluster this relational expression belongs to
    * @param child      input relational expression
    * @param exps       set of expressions for the input columns
    * @param fieldNames aliases of the expressions
-   * @param flags      values as in {@link ProjectRelBase.Flags}
+   * @param flags      Flags; values as in {@link Project.Flags},
+   *                   usually {@link Project.Flags#BOXED}
    */
-  public ProjectRel(
+  public LogicalProject(
       RelOptCluster cluster,
       RelNode child,
       List<RexNode> exps,
@@ -61,16 +66,17 @@ public final class ProjectRel extends ProjectRelBase {
   }
 
   /**
-   * Creates a ProjectRel.
+   * Creates a LogicalProject.
    *
    * @param cluster  Cluster this relational expression belongs to
    * @param traitSet traits of this rel
    * @param child    input relational expression
    * @param exps     List of expressions for the input columns
    * @param rowType  output row type
-   * @param flags    values as in {@link ProjectRelBase.Flags}
+   * @param flags      Flags; values as in {@link Project.Flags},
+   *                   usually {@link Project.Flags#BOXED}
    */
-  public ProjectRel(
+  public LogicalProject(
       RelOptCluster cluster,
       RelTraitSet traitSet,
       RelNode child,
@@ -82,23 +88,23 @@ public final class ProjectRel extends ProjectRelBase {
   }
 
   /**
-   * Creates a ProjectRel by parsing serialized output.
+   * Creates a LogicalProject by parsing serialized output.
    */
-  public ProjectRel(RelInput input) {
+  public LogicalProject(RelInput input) {
     super(input);
   }
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override public ProjectRel copy(RelTraitSet traitSet, RelNode input,
+  @Override public LogicalProject copy(RelTraitSet traitSet, RelNode input,
       List<RexNode> exps, RelDataType rowType) {
-    return new ProjectRel(getCluster(), traitSet, input, exps, rowType, flags);
+    return new LogicalProject(getCluster(), traitSet, input, exps, rowType,
+        flags);
   }
 
-  @Override
-  public RelNode accept(RelShuttle shuttle) {
+  @Override public RelNode accept(RelShuttle shuttle) {
     return shuttle.visit(this);
   }
 }
 
-// End ProjectRel.java
+// End LogicalProject.java

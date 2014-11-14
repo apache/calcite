@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.linq4j.test;
+package org.apache.calcite.linq4j.test;
 
-import net.hydromatic.linq4j.expressions.TypeTest;
-import net.hydromatic.linq4j.function.FunctionTest;
+import org.apache.calcite.linq4j.function.FunctionTest;
+import org.apache.calcite.linq4j.tree.TypeTest;
 
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;

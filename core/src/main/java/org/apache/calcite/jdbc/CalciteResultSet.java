@@ -14,36 +14,40 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.jdbc;
+package org.apache.calcite.jdbc;
 
-import net.hydromatic.avatica.*;
-
-import net.hydromatic.linq4j.Enumerator;
-import net.hydromatic.linq4j.Linq4j;
-
-import net.hydromatic.optiq.runtime.*;
+import org.apache.calcite.avatica.AvaticaResultSet;
+import org.apache.calcite.avatica.AvaticaStatement;
+import org.apache.calcite.avatica.ColumnMetaData;
+import org.apache.calcite.avatica.Cursor;
+import org.apache.calcite.avatica.Handler;
+import org.apache.calcite.linq4j.Enumerator;
+import org.apache.calcite.linq4j.Linq4j;
+import org.apache.calcite.runtime.ArrayEnumeratorCursor;
+import org.apache.calcite.runtime.ObjectEnumeratorCursor;
 
 import com.google.common.collect.ImmutableList;
 
-import java.sql.*;
-import java.util.*;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
+import java.util.List;
+import java.util.TimeZone;
 
 /**
  * Implementation of {@link ResultSet}
  * for the Calcite engine.
  */
-public class OptiqResultSet extends AvaticaResultSet {
-  OptiqResultSet(
-      AvaticaStatement statement,
-      OptiqPrepare.PrepareResult prepareResult,
-      ResultSetMetaData resultSetMetaData,
-      TimeZone timeZone) {
+public class CalciteResultSet extends AvaticaResultSet {
+  CalciteResultSet(AvaticaStatement statement,
+      CalcitePrepare.PrepareResult prepareResult,
+      ResultSetMetaData resultSetMetaData, TimeZone timeZone) {
     super(statement, prepareResult, resultSetMetaData, timeZone);
   }
 
-  @Override protected OptiqResultSet execute() throws SQLException {
+  @Override protected CalciteResultSet execute() throws SQLException {
     // Call driver's callback. It is permitted to throw a RuntimeException.
-    OptiqConnectionImpl connection = getOptiqConnection();
+    CalciteConnectionImpl connection = getCalciteConnection();
     final boolean autoTemp = connection.config().autoTemp();
     Handler.ResultSink resultSink = null;
     if (autoTemp) {
@@ -52,8 +56,7 @@ public class OptiqResultSet extends AvaticaResultSet {
         }
       };
     }
-    connection.getDriver().handler.onStatementExecute(
-        statement, resultSink);
+    connection.getDriver().handler.onStatementExecute(statement, resultSink);
 
     super.execute();
     return this;
@@ -61,9 +64,9 @@ public class OptiqResultSet extends AvaticaResultSet {
 
   @Override public ResultSet create(ColumnMetaData.AvaticaType elementType,
       Iterable iterable) {
-    final OptiqResultSet resultSet =
-        new OptiqResultSet(statement,
-            (OptiqPrepare.PrepareResult) prepareResult, resultSetMetaData,
+    final CalciteResultSet resultSet =
+        new CalciteResultSet(statement,
+            (CalcitePrepare.PrepareResult) prepareResult, resultSetMetaData,
             localCalendar.getTimeZone());
     final Cursor cursor = resultSet.createCursor(elementType, iterable);
     final List<ColumnMetaData> columnMetaDataList;
@@ -87,14 +90,14 @@ public class OptiqResultSet extends AvaticaResultSet {
   }
 
   // do not make public
-  OptiqPrepare.PrepareResult getPrepareResult() {
-    return (OptiqPrepare.PrepareResult) prepareResult;
+  CalcitePrepare.PrepareResult getPrepareResult() {
+    return (CalcitePrepare.PrepareResult) prepareResult;
   }
 
   // do not make public
-  OptiqConnectionImpl getOptiqConnection() {
-    return (OptiqConnectionImpl) statement.getConnection();
+  CalciteConnectionImpl getCalciteConnection() {
+    return (CalciteConnectionImpl) statement.getConnection();
   }
 }
 
-// End OptiqResultSet.java
+// End CalciteResultSet.java

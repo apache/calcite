@@ -14,16 +14,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.linq4j.test;
+package org.apache.calcite.linq4j.test;
 
-import net.hydromatic.linq4j.expressions.Primitive;
+import org.apache.calcite.linq4j.tree.Primitive;
 
 import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.junit.Assert.*;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 /**
  * Unit test for {@link Primitive}.
@@ -118,7 +124,8 @@ public class PrimitiveTest {
     }
   }
 
-  /** Test for {@link Primitive#send(net.hydromatic.linq4j.expressions.Primitive.Source, net.hydromatic.linq4j.expressions.Primitive.Sink)}. */
+  /** Test for
+   * {@link Primitive#send(org.apache.calcite.linq4j.tree.Primitive.Source, org.apache.calcite.linq4j.tree.Primitive.Sink)}. */
   @Test public void testSendSource() {
     final List<Object> list = new ArrayList<Object>();
     for (Primitive primitive : Primitive.values()) {
@@ -216,18 +223,17 @@ public class PrimitiveTest {
             }
           });
     }
-    assertEquals(
-        "[boolean, boolean, true, "
-        + "byte, byte, 0, "
-        + "char, char, \u0000, "
-        + "short, short, 0, "
-        + "int, int, 0, "
-        + "long, long, 0, "
-        + "float, float, 0.0, "
-        + "double, double, 0.0, "
-        + "class java.lang.Object, class java.lang.Object, 0, "
-        + "class java.lang.Object, class java.lang.Object, 0]",
-        list.toString());
+    assertThat(list.toString(),
+        equalTo("[boolean, boolean, true, "
+            + "byte, byte, 0, "
+            + "char, char, \u0000, "
+            + "short, short, 0, "
+            + "int, int, 0, "
+            + "long, long, 0, "
+            + "float, float, 0.0, "
+            + "double, double, 0.0, "
+            + "class java.lang.Object, class java.lang.Object, 0, "
+            + "class java.lang.Object, class java.lang.Object, 0]"));
   }
 
   /** Test for {@link Primitive#permute(Object, int[])}. */

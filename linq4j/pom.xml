@@ -43,7 +43,7 @@
         <version>2.15</version>
         <configuration>
           <includes>
-            <include>net/hydromatic/linq4j/test/Linq4jSuite.java</include>
+            <include>org/apache/calcite/linq4j/test/Linq4jSuite.java</include>
           </includes>
         </configuration>
       </plugin>

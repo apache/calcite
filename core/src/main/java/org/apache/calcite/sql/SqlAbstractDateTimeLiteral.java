@@ -14,14 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql;
+package org.apache.calcite.sql;
 
-import java.util.*;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.util.ZonelessDate;
+import org.apache.calcite.util.ZonelessTime;
+import org.apache.calcite.util.ZonelessTimestamp;
 
-import org.eigenbase.reltype.*;
-import org.eigenbase.sql.parser.*;
-import org.eigenbase.sql.type.*;
-import org.eigenbase.util14.*;
+import java.util.Calendar;
+import java.util.TimeZone;
 
 /**
  * A SQL literal representing a DATE, TIME or TIMESTAMP value.
@@ -47,7 +51,8 @@ abstract class SqlAbstractDateTimeLiteral extends SqlLiteral {
    * Constructs a datetime literal based on a Calendar. If the literal is to
    * represent a Timestamp, the Calendar is expected to follow java.sql
    * semantics. If the Calendar is to represent a Time or Date, the Calendar
-   * is expected to follow {@link ZonelessTime} and {@link ZonelessDate}
+   * is expected to follow {@link org.apache.calcite.util.ZonelessTime}
+   * and {@link org.apache.calcite.util.ZonelessDate}
    * semantics.
    */
   protected SqlAbstractDateTimeLiteral(
@@ -114,7 +119,8 @@ abstract class SqlAbstractDateTimeLiteral extends SqlLiteral {
   }
 
   /**
-   * Converts this literal to a {@link ZonelessDate} object.
+   * Converts this literal to a
+   * {@link org.apache.calcite.util.ZonelessDate} object.
    */
   protected ZonelessDate getDate() {
     ZonelessDate zd = new ZonelessDate();
@@ -123,7 +129,8 @@ abstract class SqlAbstractDateTimeLiteral extends SqlLiteral {
   }
 
   /**
-   * Converts this literal to a {@link ZonelessTime} object.
+   * Converts this literal to a
+   * {@link org.apache.calcite.util.ZonelessTime} object.
    */
   protected ZonelessTime getTime() {
     ZonelessTime zt = new ZonelessTime();
@@ -132,7 +139,8 @@ abstract class SqlAbstractDateTimeLiteral extends SqlLiteral {
   }
 
   /**
-   * Converts this literal to a {@link ZonelessTimestamp} object.
+   * Converts this literal to a
+   * {@link org.apache.calcite.util.ZonelessTimestamp} object.
    */
   protected ZonelessTimestamp getTimestamp() {
     ZonelessTimestamp zt = new ZonelessTimestamp();

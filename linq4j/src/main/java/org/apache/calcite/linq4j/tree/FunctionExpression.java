@@ -14,12 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.linq4j.expressions;
+package org.apache.calcite.linq4j.tree;
 
-import net.hydromatic.linq4j.function.*;
+import org.apache.calcite.linq4j.function.Function;
+import org.apache.calcite.linq4j.function.Functions;
 
-import java.lang.reflect.*;
-import java.util.*;
+import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.Method;
+import java.lang.reflect.Proxy;
+import java.lang.reflect.Type;
+import java.lang.reflect.TypeVariable;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * Represents a strongly typed lambda expression as a data structure in the form
@@ -42,8 +49,8 @@ public final class FunctionExpression<F extends Function<?>>
       List<ParameterExpression> parameterList) {
     super(ExpressionType.Lambda, type);
     assert type != null : "type should not be null";
-    assert function != null || body != null : "both function and body should "
-        + "not be null";
+    assert function != null || body != null
+        : "both function and body should not be null";
     assert parameterList != null : "parameterList should not be null";
     this.function = function;
     this.body = body;
@@ -60,8 +67,7 @@ public final class FunctionExpression<F extends Function<?>>
     this(type, null, body, parameters);
   }
 
-  @Override
-  public Expression accept(Visitor visitor) {
+  @Override public Expression accept(Visitor visitor) {
     visitor = visitor.preVisit(this);
     BlockStatement body = this.body.accept(visitor);
     return visitor.visit(this, body);
@@ -99,8 +105,7 @@ public final class FunctionExpression<F extends Function<?>>
     return dynamicFunction;
   }
 
-  @Override
-  void accept(ExpressionWriter writer, int lprec, int rprec) {
+  @Override void accept(ExpressionWriter writer, int lprec, int rprec) {
     // "new Function1() {
     //    public Result apply(T1 p1, ...) {
     //        <body>
@@ -196,14 +201,13 @@ public final class FunctionExpression<F extends Function<?>>
   }
 
   private String getAbstractMethodName() {
-    if (type.toString().contains("OptiqFlatMapFunction")) {
+    if (type.toString().contains("CalciteFlatMapFunction")) {
       return "call"; // FIXME
     }
     return "apply";
   }
 
-  @Override
-  public boolean equals(Object o) {
+  @Override public boolean equals(Object o) {
     if (this == o) {
       return true;
     }
@@ -230,8 +234,7 @@ public final class FunctionExpression<F extends Function<?>>
     return true;
   }
 
-  @Override
-  public int hashCode() {
+  @Override public int hashCode() {
     int result = hash;
     if (result == 0) {
       result = super.hashCode();

@@ -14,9 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.util.graph;
+package org.apache.calcite.util.graph;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * Default implementation of {@link DirectedGraph}.
@@ -45,8 +53,7 @@ public class DefaultDirectedGraph<V, E extends DefaultEdge>
     return new DefaultDirectedGraph<V, E>(edgeFactory);
   }
 
-  @Override
-  public String toString() {
+  @Override public String toString() {
     StringBuilder buf = new StringBuilder();
     buf.append("graph(")
         .append("vertices: ")

@@ -14,19 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel;
+package org.apache.calcite.rel;
 
-import java.util.*;
-
-import org.eigenbase.relopt.RelOptPlanner;
-import org.eigenbase.relopt.RelTrait;
-import org.eigenbase.relopt.RelTraitDef;
-import org.eigenbase.reltype.*;
-import org.eigenbase.util.Util;
+import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.plan.RelTrait;
+import org.apache.calcite.plan.RelTraitDef;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.util.Util;
 
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
+
+import java.util.Iterator;
+import java.util.List;
 
 /**
  * Simple implementation of {@link RelCollation}.

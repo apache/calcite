@@ -14,18 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.tools;
+package org.apache.calcite.tools;
 
-import net.hydromatic.optiq.SchemaPlus;
-import net.hydromatic.optiq.config.Lex;
-
-import org.eigenbase.relopt.Context;
-import org.eigenbase.relopt.RelOptCostFactory;
-import org.eigenbase.relopt.RelTraitDef;
-import org.eigenbase.reltype.RelDataTypeSystem;
-import org.eigenbase.sql.SqlOperatorTable;
-import org.eigenbase.sql.parser.SqlParserImplFactory;
-import org.eigenbase.sql2rel.SqlRexConvertletTable;
+import org.apache.calcite.config.Lex;
+import org.apache.calcite.plan.Context;
+import org.apache.calcite.plan.RelOptCostFactory;
+import org.apache.calcite.plan.RelTraitDef;
+import org.apache.calcite.rel.type.RelDataTypeSystem;
+import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.sql.SqlOperatorTable;
+import org.apache.calcite.sql.parser.SqlParserImplFactory;
+import org.apache.calcite.sql2rel.SqlRexConvertletTable;
 
 import com.google.common.collect.ImmutableList;
 
@@ -60,7 +59,7 @@ public interface FrameworkConfig {
    *
    * <p>The common use case is when there is a single program
    * created using {@link Programs#of(RuleSet)}
-   * and {@link net.hydromatic.optiq.tools.Planner#transform}
+   * and {@link org.apache.calcite.tools.Planner#transform}
    * will only be called once.
    *
    * <p>However, consumers may also create programs
@@ -107,7 +106,7 @@ public interface FrameworkConfig {
 
   /**
    * Returns the PlannerContext that should be made available during planning by
-   * calling {@link org.eigenbase.relopt.RelOptPlanner#getContext()}.
+   * calling {@link org.apache.calcite.plan.RelOptPlanner#getContext()}.
    */
   Context getContext();
 

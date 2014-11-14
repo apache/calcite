@@ -14,10 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.linq4j.expressions;
+package org.apache.calcite.linq4j.tree;
 
 import java.lang.reflect.Type;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Iterator;
 
 /**
  * Converts an expression to Java code.
@@ -48,8 +50,7 @@ class ExpressionWriter {
     }
   }
 
-  @Override
-  public String toString() {
+  @Override public String toString() {
     return buf.toString();
   }
 

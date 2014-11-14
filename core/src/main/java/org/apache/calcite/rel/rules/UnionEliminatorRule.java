@@ -14,10 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel.rules;
+package org.apache.calcite.rel.rules;
 
-import org.eigenbase.rel.*;
-import org.eigenbase.relopt.*;
+import org.apache.calcite.plan.RelOptRule;
+import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.rel.logical.LogicalUnion;
 
 /**
  * <code>UnionEliminatorRule</code> checks to see if its possible to optimize a
@@ -34,13 +35,13 @@ public class UnionEliminatorRule extends RelOptRule {
    * Creates a UnionEliminatorRule.
    */
   private UnionEliminatorRule() {
-    super(operand(UnionRel.class, any()));
+    super(operand(LogicalUnion.class, any()));
   }
 
   //~ Methods ----------------------------------------------------------------
 
   public void onMatch(RelOptRuleCall call) {
-    UnionRel union = call.rel(0);
+    LogicalUnion union = call.rel(0);
     if (union.getInputs().size() != 1) {
       return;
     }
@@ -49,7 +50,7 @@ public class UnionEliminatorRule extends RelOptRule {
     }
 
     // REVIEW jvs 14-Mar-2006:  why don't we need to register
-    // the equivalence here like we do in RemoveDistinctRule?
+    // the equivalence here like we do in AggregateRemoveRule?
 
     call.transformTo(union.getInputs().get(0));
   }

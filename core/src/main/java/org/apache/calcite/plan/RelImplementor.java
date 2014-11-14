@@ -14,15 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.relopt;
+package org.apache.calcite.plan;
 
-import org.eigenbase.rel.*;
+import org.apache.calcite.rel.RelNode;
 
 /**
- * Callback used to hold state while converting a tree of {@link RelNode
- * relational expressions} into a plan. Calling conventions typically have their
- * own protocol for walking over a tree, and correspondingly have their own
- * implementors, which are subclasses of <code>RelImplementor</code>.
+ * Callback used to hold state while converting a tree of
+ * {@link RelNode relational expressions} into a plan. Calling
+ * conventions typically have their own protocol for walking over a
+ * tree, and correspondingly have their own implementors, which are
+ * subclasses of <code>RelImplementor</code>.
  */
 public interface RelImplementor {
   //~ Methods ----------------------------------------------------------------

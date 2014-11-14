@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql;
+package org.apache.calcite.sql;
 
-import java.util.*;
+import java.util.EnumSet;
 
 /**
  * SqlAccessType is represented by a set of allowed access types

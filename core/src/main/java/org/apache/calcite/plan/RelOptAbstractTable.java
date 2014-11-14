@@ -14,16 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.relopt;
+package org.apache.calcite.plan;
 
-import java.util.*;
-
-import org.eigenbase.rel.*;
-import org.eigenbase.reltype.*;
-
-import net.hydromatic.linq4j.expressions.Expression;
+import org.apache.calcite.linq4j.tree.Expression;
+import org.apache.calcite.rel.RelCollation;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.logical.LogicalTableScan;
+import org.apache.calcite.rel.type.RelDataType;
 
 import com.google.common.collect.ImmutableList;
+
+import java.util.BitSet;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * Partial implementation of {@link RelOptTable}.
@@ -85,7 +88,7 @@ public abstract class RelOptAbstractTable implements RelOptTable {
   }
 
   public RelNode toRel(ToRelContext context) {
-    return new TableAccessRel(context.getCluster(), this);
+    return new LogicalTableScan(context.getCluster(), this);
   }
 
   public Expression getExpression(Class clazz) {

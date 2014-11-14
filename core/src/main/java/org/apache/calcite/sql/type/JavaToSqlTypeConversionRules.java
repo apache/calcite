@@ -14,14 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql.type;
-
-import java.math.*;
-import java.sql.*;
-import java.sql.Date;
-import java.util.*;
+package org.apache.calcite.sql.type;
 
 import com.google.common.collect.ImmutableMap;
+
+import java.math.BigDecimal;
+import java.sql.Date;
+import java.sql.ResultSet;
+import java.sql.Time;
+import java.sql.Timestamp;
+import java.util.List;
+import java.util.Map;
 
 /**
  * JavaToSqlTypeConversionRules defines mappings from common Java types to
@@ -72,8 +75,9 @@ public class JavaToSqlTypeConversionRules {
   //~ Methods ----------------------------------------------------------------
 
   /**
-   * Returns the {@link org.eigenbase.util.Glossary#SINGLETON_PATTERN
-   * singleton} instance.
+   * Returns the
+   * {@link org.apache.calcite.util.Glossary#SINGLETON_PATTERN singleton}
+   * instance.
    */
   public static JavaToSqlTypeConversionRules instance() {
     return INSTANCE;

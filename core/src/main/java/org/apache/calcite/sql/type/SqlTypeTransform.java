@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql.type;
+package org.apache.calcite.sql.type;
 
-import org.eigenbase.reltype.*;
-import org.eigenbase.sql.*;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.sql.SqlOperatorBinding;
 
 /**
  * Strategy to transform one type to another. The transformation is dependent on
@@ -25,8 +25,8 @@ import org.eigenbase.sql.*;
  * type and the other operands. Can not be used by itself. Must be used in an
  * object of type {@link SqlTypeTransformCascade}.
  *
- * <p>This class is an example of the {@link
- * org.eigenbase.util.Glossary#STRATEGY_PATTERN strategy pattern}.</p>
+ * <p>This class is an example of the
+ * {@link org.apache.calcite.util.Glossary#STRATEGY_PATTERN strategy pattern}.
  */
 public interface SqlTypeTransform {
   //~ Methods ----------------------------------------------------------------

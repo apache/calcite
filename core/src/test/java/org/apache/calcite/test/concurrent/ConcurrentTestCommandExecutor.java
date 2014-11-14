@@ -14,11 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.test.concurrent;
+package org.apache.calcite.test.concurrent;
 
 import java.io.PrintStream;
-import java.sql.*;
-import java.util.*;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.Statement;
+import java.util.Properties;
 
 /**
  * ConcurrentTestCommandExecutor is a thread that executes a sequence of
@@ -88,7 +90,8 @@ class ConcurrentTestCommandExecutor extends Thread {
    * Constructs a ConcurrentTestCommandExecutor with the given thread
    * ID, JDBC URL, commands and synchronization object.
    *
-   * @param threadId         the thread ID (see {@link ConcurrentTestCommandGenerator})
+   * @param threadId         the thread ID
+   *                         (see {@link ConcurrentTestCommandGenerator})
    * @param threadName       the thread's name
    * @param jdbcURL          the JDBC URL to connect to
    * @param jdbcProps        JDBC Connection properties (user, password, etc.)
@@ -249,8 +252,8 @@ class ConcurrentTestCommandExecutor extends Thread {
   }
 
   /**
-   * Returns location (e.g., command number) for exception returned by {@link
-   * #getFailureCause()}.
+   * Returns location (e.g., command number) for exception returned by
+   * {@link #getFailureCause()}.
    */
   public String getFailureLocation() {
     return when;

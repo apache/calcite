@@ -19,6 +19,6 @@
  * Contains query transformation rules relating to generating SQL for
  * foreign JDBC databases.
  */
-package org.eigenbase.rel.jdbc;
+package org.apache.calcite.rel.jdbc;
 
 // End package-info.java

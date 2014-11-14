@@ -14,7 +14,31 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel.rules;
+package org.apache.calcite.rel.rules;
+
+import org.apache.calcite.plan.RelOptRule;
+import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.prepare.CalcitePrepareImpl;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.JoinRelType;
+import org.apache.calcite.rel.core.RelFactories;
+import org.apache.calcite.rel.metadata.RelMdUtil;
+import org.apache.calcite.rel.metadata.RelMetadataQuery;
+import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexPermuteInputsShuttle;
+import org.apache.calcite.rex.RexUtil;
+import org.apache.calcite.rex.RexVisitor;
+import org.apache.calcite.util.BitSets;
+import org.apache.calcite.util.Pair;
+import org.apache.calcite.util.Util;
+import org.apache.calcite.util.mapping.Mappings;
+
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Lists;
 
 import java.io.PrintWriter;
 import java.util.BitSet;
@@ -22,30 +46,15 @@ import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 
-import org.eigenbase.rel.*;
-import org.eigenbase.rel.metadata.RelMdUtil;
-import org.eigenbase.rel.metadata.RelMetadataQuery;
-import org.eigenbase.relopt.*;
-import org.eigenbase.rex.*;
-import org.eigenbase.util.Pair;
-import org.eigenbase.util.Util;
-import org.eigenbase.util.mapping.Mappings;
-
-import net.hydromatic.optiq.prepare.OptiqPrepareImpl;
-import net.hydromatic.optiq.util.BitSets;
-
-import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Lists;
-
 /**
  * Planner rule that finds an approximately optimal ordering for join operators
  * using a heuristic algorithm.
  *
- * <p>It is triggered by the pattern {@link ProjectRel} ({@link MultiJoinRel}).
+ * <p>It is triggered by the pattern
+ * {@link org.apache.calcite.rel.logical.LogicalProject} ({@link MultiJoin}).
  *
- * <p>It is similar to {@link org.eigenbase.rel.rules.LoptOptimizeJoinRule}.
+ * <p>It is similar to
+ * {@link org.apache.calcite.rel.rules.LoptOptimizeJoinRule}.
  * {@code LoptOptimizeJoinRule} is only capable of producing left-deep joins;
  * this rule is capable of producing bushy joins.
  *
@@ -57,26 +66,26 @@ import com.google.common.collect.Lists;
  *       e.g. {@code t0.c1 = t1.c1 and t1.c2 = t0.c3}
  * </ol>
  */
-public class OptimizeBushyJoinRule extends RelOptRule {
-  public static final OptimizeBushyJoinRule INSTANCE =
-      new OptimizeBushyJoinRule(RelFactories.DEFAULT_JOIN_FACTORY,
+public class MultiJoinOptimizeBushyRule extends RelOptRule {
+  public static final MultiJoinOptimizeBushyRule INSTANCE =
+      new MultiJoinOptimizeBushyRule(RelFactories.DEFAULT_JOIN_FACTORY,
           RelFactories.DEFAULT_PROJECT_FACTORY);
 
   private final RelFactories.JoinFactory joinFactory;
   private final RelFactories.ProjectFactory projectFactory;
   private final PrintWriter pw =
-      OptiqPrepareImpl.DEBUG ? new PrintWriter(System.out, true) : null;
+      CalcitePrepareImpl.DEBUG ? new PrintWriter(System.out, true) : null;
 
-  /** Creates an OptimizeBushyJoinRule. */
-  public OptimizeBushyJoinRule(RelFactories.JoinFactory joinFactory,
+  /** Creates an MultiJoinOptimizeBushyRule. */
+  public MultiJoinOptimizeBushyRule(RelFactories.JoinFactory joinFactory,
       RelFactories.ProjectFactory projectFactory) {
-    super(operand(MultiJoinRel.class, any()));
+    super(operand(MultiJoin.class, any()));
     this.joinFactory = joinFactory;
     this.projectFactory = projectFactory;
   }
 
   @Override public void onMatch(RelOptRuleCall call) {
-    final MultiJoinRel multiJoinRel = call.rel(0);
+    final MultiJoin multiJoinRel = call.rel(0);
     final RexBuilder rexBuilder = multiJoinRel.getCluster().getRexBuilder();
 
     final LoptMultiJoin multiJoin = new LoptMultiJoin(multiJoinRel);
@@ -369,4 +378,4 @@ public class OptimizeBushyJoinRule extends RelOptRule {
   }
 }
 
-// End OptimizeBushyJoinRule.java
+// End MultiJoinOptimizeBushyRule.java

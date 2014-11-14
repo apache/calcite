@@ -14,14 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.model;
+package org.apache.calcite.model;
 
 /**
  * An aggregate function applied to a column (or columns) of a lattice.
  *
- * <p>Occurs in a {@link net.hydromatic.optiq.model.JsonTile},
+ * <p>Occurs in a {@link org.apache.calcite.model.JsonTile},
  * and there is a default list in
- * {@link net.hydromatic.optiq.model.JsonLattice}.
+ * {@link org.apache.calcite.model.JsonLattice}.
  *
  * @see JsonRoot Description of schema elements
  */

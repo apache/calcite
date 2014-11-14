@@ -18,10 +18,10 @@
 /**
  * Management of materialized query results.
  *
- * <p>An actor ({@link net.hydromatic.optiq.materialize.MaterializationActor})
+ * <p>An actor ({@link org.apache.calcite.materialize.MaterializationActor})
  * maintains the state of all
  * materializations in the system and is wrapped in a service
- * ({@link net.hydromatic.optiq.materialize.MaterializationService})
+ * ({@link org.apache.calcite.materialize.MaterializationService})
  * for access from other parts of the system.</p>
  *
  * <p>Optimizer rules allow Calcite to rewrite queries using materializations,
@@ -32,6 +32,6 @@
  * instantiating materializations from the intermediate results of queries, and
  * recognize what materializations would be useful based on actual query load.
  */
-package net.hydromatic.optiq.materialize;
+package org.apache.calcite.materialize;
 
 // End package-info.java

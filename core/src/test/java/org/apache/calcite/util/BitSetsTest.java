@@ -14,9 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.util;
-
-import org.eigenbase.util.ImmutableIntList;
+package org.apache.calcite.util;
 
 import com.google.common.collect.Maps;
 
@@ -35,12 +33,12 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 /**
- * Unit test for {@link net.hydromatic.optiq.util.BitSets}.
+ * Unit test for {@link org.apache.calcite.util.BitSets}.
  */
 public class BitSetsTest {
   /**
    * Tests the method
-   * {@link net.hydromatic.optiq.util.BitSets#toIter(java.util.BitSet)}.
+   * {@link org.apache.calcite.util.BitSets#toIter(java.util.BitSet)}.
    */
   @Test public void testToIterBitSet() {
     BitSet bitSet = new BitSet();
@@ -74,7 +72,7 @@ public class BitSetsTest {
 
   /**
    * Tests the method
-   * {@link net.hydromatic.optiq.util.BitSets#toList(java.util.BitSet)}.
+   * {@link org.apache.calcite.util.BitSets#toList(java.util.BitSet)}.
    */
   @Test public void testToListBitSet() {
     BitSet bitSet = new BitSet(10);
@@ -86,7 +84,7 @@ public class BitSetsTest {
   }
 
   /**
-   * Tests the method {@link net.hydromatic.optiq.util.BitSets#of(int...)}.
+   * Tests the method {@link org.apache.calcite.util.BitSets#of(int...)}.
    */
   @Test public void testBitSetOf() {
     assertEquals(
@@ -98,7 +96,7 @@ public class BitSetsTest {
   }
 
   /**
-   * Tests the method {@link net.hydromatic.optiq.util.BitSets#range(int, int)}.
+   * Tests the method {@link org.apache.calcite.util.BitSets#range(int, int)}.
    */
   @Test public void testBitSetsRange() {
     assertEquals(
@@ -114,7 +112,7 @@ public class BitSetsTest {
 
   /**
    * Tests the method
-   * {@link net.hydromatic.optiq.util.BitSets#toArray(java.util.BitSet)}.
+   * {@link org.apache.calcite.util.BitSets#toArray(java.util.BitSet)}.
    */
   @Test public void testBitSetsToArray() {
     int[][] arrays = {{}, {0}, {0, 2}, {1, 65}, {100}};
@@ -125,7 +123,7 @@ public class BitSetsTest {
 
   /**
    * Tests the method
-   * {@link net.hydromatic.optiq.util.BitSets#union(java.util.BitSet, java.util.BitSet...)}.
+   * {@link org.apache.calcite.util.BitSets#union(java.util.BitSet, java.util.BitSet...)}.
    */
   @Test public void testBitSetsUnion() {
     assertThat(BitSets.union(BitSets.of(1), BitSets.of(3)).toString(),
@@ -140,7 +138,7 @@ public class BitSetsTest {
 
   /**
    * Tests the method
-   * {@link net.hydromatic.optiq.util.BitSets#contains(java.util.BitSet, java.util.BitSet)}.
+   * {@link org.apache.calcite.util.BitSets#contains(java.util.BitSet, java.util.BitSet)}.
    */
   @Test public void testBitSetsContains() {
     assertTrue(BitSets.contains(BitSets.range(0, 5), BitSets.range(2, 4)));
@@ -158,7 +156,7 @@ public class BitSetsTest {
 
   /**
    * Tests the method
-   * {@link net.hydromatic.optiq.util.BitSets#of(org.eigenbase.util.ImmutableIntList)}.
+   * {@link org.apache.calcite.util.BitSets#of(ImmutableIntList)}.
    */
   @Test public void testBitSetOfImmutableIntList() {
     ImmutableIntList list = ImmutableIntList.of();
@@ -170,7 +168,7 @@ public class BitSetsTest {
 
   /**
    * Tests the method
-   * {@link net.hydromatic.optiq.util.BitSets#previousClearBit(java.util.BitSet, int)}.
+   * {@link org.apache.calcite.util.BitSets#previousClearBit(java.util.BitSet, int)}.
    */
   @Test public void testPreviousClearBit() {
     assertThat(BitSets.previousClearBit(BitSets.of(), 10), equalTo(10));

@@ -14,16 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql.type;
+package org.apache.calcite.sql.type;
 
-import java.util.*;
-
-import org.eigenbase.sql.*;
-import org.eigenbase.util.*;
-
-import net.hydromatic.linq4j.Ord;
+import org.apache.calcite.linq4j.Ord;
+import org.apache.calcite.sql.SqlCallBinding;
+import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlOperandCountRange;
+import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
+
+import java.util.AbstractList;
+import java.util.List;
 
 /**
  * This class allows multiple existing {@link SqlOperandTypeChecker} rules to be
@@ -76,6 +79,7 @@ public class CompositeOperandTypeChecker
     implements SqlSingleOperandTypeChecker {
   //~ Enums ------------------------------------------------------------------
 
+  /** How operands are composed. */
   public enum Composition {
     AND, OR, SEQUENCE
   }

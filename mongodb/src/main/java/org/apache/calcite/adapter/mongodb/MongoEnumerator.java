@@ -14,16 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.impl.mongodb;
+package org.apache.calcite.adapter.mongodb;
 
-import net.hydromatic.linq4j.Enumerator;
-import net.hydromatic.linq4j.function.Function1;
+import org.apache.calcite.linq4j.Enumerator;
+import org.apache.calcite.linq4j.function.Function1;
+import org.apache.calcite.util.DateTimeUtil;
 
-import org.eigenbase.util14.DateTimeUtil;
+import com.mongodb.DBCursor;
+import com.mongodb.DBObject;
 
-import com.mongodb.*;
-
-import java.util.*;
+import java.util.Date;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 
 /** Enumerator that reads from a MongoDB collection. */
 class MongoEnumerator implements Enumerator<Object> {

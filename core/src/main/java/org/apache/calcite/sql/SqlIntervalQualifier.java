@@ -14,27 +14,30 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql;
+package org.apache.calcite.sql;
 
-import java.math.BigDecimal;
-import java.util.*;
-import java.util.regex.*;
-
-import org.eigenbase.reltype.RelDataType;
-import org.eigenbase.reltype.RelDataTypeSystem;
-import org.eigenbase.sql.parser.*;
-import org.eigenbase.sql.type.*;
-import org.eigenbase.sql.util.*;
-import org.eigenbase.sql.validate.*;
-import org.eigenbase.util.*;
-import org.eigenbase.util14.DateTimeUtil;
-
-import net.hydromatic.optiq.runtime.SqlFunctions;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeSystem;
+import org.apache.calcite.runtime.CalciteContextException;
+import org.apache.calcite.runtime.SqlFunctions;
+import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.util.SqlVisitor;
+import org.apache.calcite.sql.validate.SqlValidator;
+import org.apache.calcite.sql.validate.SqlValidatorScope;
+import org.apache.calcite.util.DateTimeUtil;
+import org.apache.calcite.util.Pair;
+import org.apache.calcite.util.Util;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 
-import static org.eigenbase.util.Static.RESOURCE;
+import java.math.BigDecimal;
+import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import static org.apache.calcite.util.Static.RESOURCE;
 
 /**
  * Represents an INTERVAL qualifier.
@@ -147,6 +150,7 @@ public class SqlIntervalQualifier extends SqlNode {
     }
   }
 
+  /** Range of time units. */
   private enum TimeUnitRange {
     YEAR(TimeUnit.YEAR, null),
     YEAR_TO_MONTH(TimeUnit.YEAR, TimeUnit.MONTH),
@@ -566,7 +570,8 @@ public class SqlIntervalQualifier extends SqlNode {
   /**
    * Validates an INTERVAL literal against a YEAR interval qualifier.
    *
-   * @throws EigenbaseContextException if the interval value is illegal.
+   * @throws org.apache.calcite.runtime.CalciteContextException
+   * if the interval value is illegal
    */
   private int[] evaluateIntervalLiteralAsYear(
       RelDataTypeSystem typeSystem, int sign,
@@ -600,7 +605,8 @@ public class SqlIntervalQualifier extends SqlNode {
   /**
    * Validates an INTERVAL literal against a YEAR TO MONTH interval qualifier.
    *
-   * @throws EigenbaseContextException if the interval value is illegal.
+   * @throws org.apache.calcite.runtime.CalciteContextException
+   * if the interval value is illegal
    */
   private int[] evaluateIntervalLiteralAsYearToMonth(
       RelDataTypeSystem typeSystem, int sign,
@@ -639,7 +645,8 @@ public class SqlIntervalQualifier extends SqlNode {
   /**
    * Validates an INTERVAL literal against a MONTH interval qualifier.
    *
-   * @throws EigenbaseContextException if the interval value is illegal.
+   * @throws org.apache.calcite.runtime.CalciteContextException
+   * if the interval value is illegal
    */
   private int[] evaluateIntervalLiteralAsMonth(
       RelDataTypeSystem typeSystem, int sign,
@@ -673,7 +680,8 @@ public class SqlIntervalQualifier extends SqlNode {
   /**
    * Validates an INTERVAL literal against a DAY interval qualifier.
    *
-   * @throws EigenbaseContextException if the interval value is illegal.
+   * @throws org.apache.calcite.runtime.CalciteContextException
+   * if the interval value is illegal
    */
   private int[] evaluateIntervalLiteralAsDay(
       RelDataTypeSystem typeSystem, int sign,
@@ -707,7 +715,8 @@ public class SqlIntervalQualifier extends SqlNode {
   /**
    * Validates an INTERVAL literal against a DAY TO HOUR interval qualifier.
    *
-   * @throws EigenbaseContextException if the interval value is illegal.
+   * @throws org.apache.calcite.runtime.CalciteContextException
+   * if the interval value is illegal
    */
   private int[] evaluateIntervalLiteralAsDayToHour(
       RelDataTypeSystem typeSystem, int sign,
@@ -746,7 +755,8 @@ public class SqlIntervalQualifier extends SqlNode {
   /**
    * Validates an INTERVAL literal against a DAY TO MINUTE interval qualifier.
    *
-   * @throws EigenbaseContextException if the interval value is illegal.
+   * @throws org.apache.calcite.runtime.CalciteContextException
+   * if the interval value is illegal
    */
   private int[] evaluateIntervalLiteralAsDayToMinute(
       RelDataTypeSystem typeSystem, int sign,
@@ -788,7 +798,8 @@ public class SqlIntervalQualifier extends SqlNode {
   /**
    * Validates an INTERVAL literal against a DAY TO SECOND interval qualifier.
    *
-   * @throws EigenbaseContextException if the interval value is illegal.
+   * @throws org.apache.calcite.runtime.CalciteContextException
+   * if the interval value is illegal
    */
   private int[] evaluateIntervalLiteralAsDayToSecond(
       RelDataTypeSystem typeSystem, int sign,
@@ -863,7 +874,8 @@ public class SqlIntervalQualifier extends SqlNode {
   /**
    * Validates an INTERVAL literal against an HOUR interval qualifier.
    *
-   * @throws EigenbaseContextException if the interval value is illegal.
+   * @throws org.apache.calcite.runtime.CalciteContextException
+   * if the interval value is illegal
    */
   private int[] evaluateIntervalLiteralAsHour(
       RelDataTypeSystem typeSystem, int sign,
@@ -898,7 +910,8 @@ public class SqlIntervalQualifier extends SqlNode {
    * Validates an INTERVAL literal against an HOUR TO MINUTE interval
    * qualifier.
    *
-   * @throws EigenbaseContextException if the interval value is illegal.
+   * @throws org.apache.calcite.runtime.CalciteContextException
+   * if the interval value is illegal
    */
   private int[] evaluateIntervalLiteralAsHourToMinute(
       RelDataTypeSystem typeSystem, int sign,
@@ -938,7 +951,8 @@ public class SqlIntervalQualifier extends SqlNode {
    * Validates an INTERVAL literal against an HOUR TO SECOND interval
    * qualifier.
    *
-   * @throws EigenbaseContextException if the interval value is illegal.
+   * @throws org.apache.calcite.runtime.CalciteContextException
+   * if the interval value is illegal
    */
   private int[] evaluateIntervalLiteralAsHourToSecond(
       RelDataTypeSystem typeSystem, int sign,
@@ -1010,7 +1024,8 @@ public class SqlIntervalQualifier extends SqlNode {
   /**
    * Validates an INTERVAL literal against an MINUTE interval qualifier.
    *
-   * @throws EigenbaseContextException if the interval value is illegal.
+   * @throws org.apache.calcite.runtime.CalciteContextException
+   * if the interval value is illegal
    */
   private int[] evaluateIntervalLiteralAsMinute(
       RelDataTypeSystem typeSystem, int sign,
@@ -1045,7 +1060,8 @@ public class SqlIntervalQualifier extends SqlNode {
    * Validates an INTERVAL literal against an MINUTE TO SECOND interval
    * qualifier.
    *
-   * @throws EigenbaseContextException if the interval value is illegal.
+   * @throws org.apache.calcite.runtime.CalciteContextException
+   * if the interval value is illegal
    */
   private int[] evaluateIntervalLiteralAsMinuteToSecond(
       RelDataTypeSystem typeSystem, int sign,
@@ -1113,7 +1129,8 @@ public class SqlIntervalQualifier extends SqlNode {
   /**
    * Validates an INTERVAL literal against an SECOND interval qualifier.
    *
-   * @throws EigenbaseContextException if the interval value is illegal.
+   * @throws org.apache.calcite.runtime.CalciteContextException
+   * if the interval value is illegal
    */
   private int[] evaluateIntervalLiteralAsSecond(
       RelDataTypeSystem typeSystem,
@@ -1178,7 +1195,9 @@ public class SqlIntervalQualifier extends SqlNode {
    * invalid qualifier could lead to strange results.
    *
    * @return field values, never null
-   * @throws EigenbaseContextException if the interval value is illegal
+   *
+   * @throws org.apache.calcite.runtime.CalciteContextException
+   * if the interval value is illegal
    */
   public int[] evaluateIntervalLiteral(String value, SqlParserPos pos,
       RelDataTypeSystem typeSystem) {
@@ -1251,14 +1270,14 @@ public class SqlIntervalQualifier extends SqlNode {
     return new BigDecimal(m.group(i));
   }
 
-  private EigenbaseContextException invalidValueException(SqlParserPos pos,
+  private CalciteContextException invalidValueException(SqlParserPos pos,
       String value) {
     return SqlUtil.newContextException(pos,
         RESOURCE.unsupportedIntervalLiteral(
             "'" + value + "'", "INTERVAL " + toString()));
   }
 
-  private EigenbaseContextException fieldExceedsPrecisionException(
+  private CalciteContextException fieldExceedsPrecisionException(
       SqlParserPos pos, int sign, BigDecimal value, TimeUnit type,
       int precision) {
     if (sign == -1) {

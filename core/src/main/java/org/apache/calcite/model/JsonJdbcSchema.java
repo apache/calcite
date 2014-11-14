@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.model;
+package org.apache.calcite.model;
 
 /**
  * JSON object representing a schema that maps to a JDBC database.
@@ -29,8 +29,7 @@ public class JsonJdbcSchema extends JsonSchema {
   public String jdbcCatalog;
   public String jdbcSchema;
 
-  @Override
-  public void accept(ModelHandler handler) {
+  @Override public void accept(ModelHandler handler) {
     handler.visit(this);
   }
 }

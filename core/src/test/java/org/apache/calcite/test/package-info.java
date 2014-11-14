@@ -16,8 +16,8 @@
  */
 
 /**
- * Eigenbase regression tests.
+ * Tests for Calcite.
  */
-package org.eigenbase.test;
+package org.apache.calcite.test;
 
 // End package-info.java

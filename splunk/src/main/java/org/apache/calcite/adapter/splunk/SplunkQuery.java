@@ -14,14 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.impl.splunk;
+package org.apache.calcite.adapter.splunk;
 
-import net.hydromatic.linq4j.*;
+import org.apache.calcite.adapter.splunk.search.SplunkConnection;
+import org.apache.calcite.adapter.splunk.util.StringUtils;
+import org.apache.calcite.linq4j.AbstractEnumerable;
+import org.apache.calcite.linq4j.Enumerator;
+import org.apache.calcite.linq4j.Linq4j;
 
-import net.hydromatic.optiq.impl.splunk.search.*;
-import net.hydromatic.optiq.impl.splunk.util.StringUtils;
-
-import java.util.*;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Query against Splunk.

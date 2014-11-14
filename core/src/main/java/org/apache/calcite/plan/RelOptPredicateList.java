@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.relopt;
+package org.apache.calcite.plan;
 
-import org.eigenbase.rex.RexNode;
+import org.apache.calcite.rex.RexNode;
 
 import com.google.common.collect.ImmutableList;
 
@@ -71,4 +71,4 @@ public class RelOptPredicateList {
   }
 }
 
-// End RelOptPulledUpPredicates.java
+// End RelOptPredicateList.java

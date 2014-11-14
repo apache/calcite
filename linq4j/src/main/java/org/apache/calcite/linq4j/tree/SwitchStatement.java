@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.linq4j.expressions;
+package org.apache.calcite.linq4j.tree;
 
 /**
  * Represents a control expression that handles multiple selections by passing
@@ -25,8 +25,7 @@ public class SwitchStatement extends Statement {
     super(nodeType, Void.TYPE);
   }
 
-  @Override
-  public Statement accept(Visitor visitor) {
+  @Override public Statement accept(Visitor visitor) {
     return visitor.visit(this);
   }
 }

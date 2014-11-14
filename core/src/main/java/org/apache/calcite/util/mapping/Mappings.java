@@ -14,22 +14,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.util.mapping;
+package org.apache.calcite.util.mapping;
 
-import java.util.*;
-
-import org.eigenbase.util.*;
-
-import net.hydromatic.optiq.util.BitSets;
+import org.apache.calcite.util.BitSets;
+import org.apache.calcite.util.IntList;
+import org.apache.calcite.util.Permutation;
+import org.apache.calcite.util.Util;
 
 import com.google.common.base.Function;
+
+import java.util.AbstractList;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.BitSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Utility functions related to mappings.
  *
  * @see MappingType
  * @see Mapping
- * @see Permutation
+ * @see org.apache.calcite.util.Permutation
  */
 public abstract class Mappings {
   //~ Constructors -----------------------------------------------------------
@@ -191,8 +198,8 @@ public abstract class Mappings {
   public static <T> List<T> apply(final Mapping mapping, final List<T> list) {
     if (mapping.getSourceCount() != list.size()) {
       // REVIEW: too strict?
-      throw new IllegalArgumentException(
-          "mapping source count " + mapping.getSourceCount()
+      throw new IllegalArgumentException("mapping source count "
+          + mapping.getSourceCount()
           + " does not match list size " + list.size());
     }
     final int targetCount = mapping.getTargetCount();
@@ -231,13 +238,11 @@ public abstract class Mappings {
       final Mapping mapping,
       final List<T> list) {
     return new AbstractList<T>() {
-      @Override
-      public T get(int index) {
+      @Override public T get(int index) {
         return list.get(mapping.getSource(index));
       }
 
-      @Override
-      public int size() {
+      @Override public int size() {
         return mapping.getTargetCount();
       }
     };
@@ -660,7 +665,7 @@ public abstract class Mappings {
   }
 
   /** Inverts an {@link java.lang.Iterable} over
-   * {@link org.eigenbase.util.mapping.IntPair}s. */
+   * {@link org.apache.calcite.util.mapping.IntPair}s. */
   public static Iterable<IntPair> invert(final Iterable<IntPair> pairs) {
     return new Iterable<IntPair>() {
       public Iterator<IntPair> iterator() {
@@ -670,7 +675,7 @@ public abstract class Mappings {
   }
 
   /** Inverts an {@link java.util.Iterator} over
-   * {@link org.eigenbase.util.mapping.IntPair}s. */
+   * {@link org.apache.calcite.util.mapping.IntPair}s. */
   public static Iterator<IntPair> invert(final Iterator<IntPair> pairs) {
     return new Iterator<IntPair>() {
       public boolean hasNext() {
@@ -797,6 +802,7 @@ public abstract class Mappings {
 
   //~ Inner Classes ----------------------------------------------------------
 
+  /** Abstract implementation of {@link Mapping}. */
   public abstract static class AbstractMapping implements Mapping {
     public void set(int source, int target) {
       throw new UnsupportedOperationException();
@@ -911,6 +917,8 @@ public abstract class Mappings {
     }
   }
 
+  /** Abstract implementation of mapping where both source and target
+   * domains are finite. */
   public abstract static class FiniteAbstractMapping extends AbstractMapping {
     public Iterator<IntPair> iterator() {
       return new FunctionMappingIter(this);
@@ -928,6 +936,8 @@ public abstract class Mappings {
     }
   }
 
+  /** Iterator that yields the (source, target) values in a
+   * {@link FunctionMapping}. */
   static class FunctionMappingIter implements Iterator<IntPair> {
     private int i = 0;
     private final FunctionMapping mapping;
@@ -1070,8 +1080,8 @@ public abstract class Mappings {
      * @param sourceList  List whose i'th element is the source of target #i
      * @param sourceCount Number of elements in the source domain
      * @param mappingType Mapping type, must be
-     *                    {@link org.eigenbase.util.mapping.MappingType#PARTIAL_SURJECTION}
-     *                    or stronger.
+     *   {@link org.apache.calcite.util.mapping.MappingType#PARTIAL_SURJECTION}
+     *   or stronger.
      */
     public PartialMapping(
         List<Integer> sourceList,
@@ -1194,6 +1204,7 @@ public abstract class Mappings {
       return true;
     }
 
+    /** Mapping iterator. */
     private class MappingItr implements Iterator<IntPair> {
       int i = -1;
 
@@ -1252,8 +1263,7 @@ public abstract class Mappings {
       assert isValid();
       final int prevTarget = targets[source];
       if (prevTarget != -1) {
-        throw new IllegalArgumentException(
-            "source #" + source
+        throw new IllegalArgumentException("source #" + source
             + " is already mapped to target #" + target);
       }
       targets[source] = target;
@@ -1265,6 +1275,7 @@ public abstract class Mappings {
     }
   }
 
+  /** The identity mapping, of a given size, or infinite. */
   public static class IdentityMapping extends AbstractMapping
       implements FunctionMapping, TargetMapping, SourceMapping {
     private final int size;
@@ -1346,6 +1357,8 @@ public abstract class Mappings {
     }
   }
 
+  /** Source mapping that returns the same result as a parent
+   * {@link SourceMapping} except for specific overriding elements. */
   public static class OverridingSourceMapping extends AbstractMapping
       implements SourceMapping {
     private final SourceMapping parent;
@@ -1403,6 +1416,8 @@ public abstract class Mappings {
     }
   }
 
+  /** Target mapping that returns the same result as a parent
+   * {@link TargetMapping} except for specific overriding elements. */
   public static class OverridingTargetMapping extends AbstractMapping
       implements TargetMapping {
     private final TargetMapping parent;

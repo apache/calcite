@@ -14,15 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.test;
+package org.apache.calcite.test;
 
 import org.junit.Test;
 
-import java.sql.*;
+import java.sql.SQLException;
 
 /**
  * Tests for using Calcite with Spark as an internal engine, as implemented by
- * the {@link net.hydromatic.optiq.impl.spark} package.
+ * the {@link org.apache.calcite.adapter.spark} package.
  */
 public class SparkAdapterTest {
   /**
@@ -30,32 +30,27 @@ public class SparkAdapterTest {
    * There are no data sources.
    */
   @Test public void testValues() throws SQLException {
-    OptiqAssert.that()
-        .with(OptiqAssert.Config.SPARK)
-        .query(
-            "select *\n"
+    CalciteAssert.that()
+        .with(CalciteAssert.Config.SPARK)
+        .query("select *\n"
             + "from (values (1, 'a'), (2, 'b'))")
-        .returns(
-            "EXPR$0=1; EXPR$1=a\n"
+        .returns("EXPR$0=1; EXPR$1=a\n"
             + "EXPR$0=2; EXPR$1=b\n")
-        .explainContains(
-            "SparkToEnumerableConverter\n"
-            + "  SparkValuesRel(tuples=[[{ 1, 'a' }, { 2, 'b' }]])");
+        .explainContains("SparkToEnumerableConverter\n"
+            + "  SparkValues(tuples=[[{ 1, 'a' }, { 2, 'b' }]])");
   }
 
   /** Tests values followed by filter, evaluated by Spark. */
   @Test public void testValuesFilter() throws SQLException {
-    OptiqAssert.that()
-        .with(OptiqAssert.Config.SPARK)
-        .query(
-            "select *\n"
+    CalciteAssert.that()
+        .with(CalciteAssert.Config.SPARK)
+        .query("select *\n"
             + "from (values (1, 'a'), (2, 'b')) as t(x, y)\n"
             + "where x < 2")
         .returns("X=1; Y=a\n")
-        .explainContains(
-            "PLAN=SparkToEnumerableConverter\n"
-            + "  SparkCalcRel(expr#0..1=[{inputs}], expr#2=[2], expr#3=[<($t0, $t2)], proj#0..1=[{exprs}], $condition=[$t3])\n"
-            + "    SparkValuesRel(tuples=[[{ 1, 'a' }, { 2, 'b' }]])\n");
+        .explainContains("PLAN=SparkToEnumerableConverter\n"
+            + "  SparkCalc(expr#0..1=[{inputs}], expr#2=[2], expr#3=[<($t0, $t2)], proj#0..1=[{exprs}], $condition=[$t3])\n"
+            + "    SparkValues(tuples=[[{ 1, 'a' }, { 2, 'b' }]])\n");
   }
 }
 

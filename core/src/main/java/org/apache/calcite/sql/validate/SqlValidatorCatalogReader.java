@@ -14,12 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql.validate;
+package org.apache.calcite.sql.validate;
 
-import java.util.*;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.sql.SqlIdentifier;
 
-import org.eigenbase.reltype.*;
-import org.eigenbase.sql.*;
+import java.util.List;
 
 /**
  * Supplies catalog information for {@link SqlValidator}.

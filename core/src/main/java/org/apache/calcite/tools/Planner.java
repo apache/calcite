@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.tools;
+package org.apache.calcite.tools;
 
-import org.eigenbase.rel.RelNode;
-import org.eigenbase.relopt.RelTraitSet;
-import org.eigenbase.reltype.RelDataTypeFactory;
-import org.eigenbase.sql.SqlNode;
-import org.eigenbase.sql.parser.SqlParseException;
+import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.parser.SqlParseException;
 
 /**
  * A fa&ccedil;ade that covers Calcite's query planning process: parse SQL,
@@ -38,7 +38,7 @@ public interface Planner {
    *
    * @param sql The SQL statement to parse.
    * @return The root node of the SQL parse tree.
-   * @throws org.eigenbase.sql.parser.SqlParseException on parse error
+   * @throws org.apache.calcite.sql.parser.SqlParseException on parse error
    */
   SqlNode parse(String sql) throws SqlParseException;
 
@@ -54,11 +54,11 @@ public interface Planner {
   /**
    * Converts a SQL parse tree into a tree of relational expressions.
    *
-   * <p>You must call {@link #validate(org.eigenbase.sql.SqlNode)} first.</p>
+   * <p>You must call {@link #validate(org.apache.calcite.sql.SqlNode)} first.
    *
    * @param sql The root node of the SQL parse tree.
    * @return The root node of the newly generated RelNode tree.
-   * @throws net.hydromatic.optiq.tools.RelConversionException if the node
+   * @throws org.apache.calcite.tools.RelConversionException if the node
    * cannot be converted or has not been validated
    */
   RelNode convert(SqlNode sql) throws RelConversionException;
@@ -78,7 +78,7 @@ public interface Planner {
    *                             at the termination of the planning cycle.
    * @param rel The root of the RelNode tree to convert.
    * @return The root of the new RelNode tree.
-   * @throws net.hydromatic.optiq.tools.RelConversionException on conversion
+   * @throws org.apache.calcite.tools.RelConversionException on conversion
    *     error
    */
   RelNode transform(int ruleSetIndex,

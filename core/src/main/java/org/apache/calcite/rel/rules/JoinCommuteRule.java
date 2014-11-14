@@ -14,41 +14,56 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel.rules;
+package org.apache.calcite.rel.rules;
 
-import java.util.*;
-
-import org.eigenbase.rel.*;
-import org.eigenbase.rel.RelFactories.ProjectFactory;
-import org.eigenbase.relopt.*;
-import org.eigenbase.reltype.*;
-import org.eigenbase.rex.*;
-import org.eigenbase.util.*;
+import org.apache.calcite.plan.RelOptRule;
+import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.Join;
+import org.apache.calcite.rel.core.JoinRelType;
+import org.apache.calcite.rel.core.RelFactories;
+import org.apache.calcite.rel.core.RelFactories.ProjectFactory;
+import org.apache.calcite.rel.logical.LogicalJoin;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexInputRef;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
+import java.util.List;
+
 /**
- * <code>SwapJoinRule</code> permutes the inputs to a join. Outer joins cannot
- * be permuted.
+ * Planner rule that permutes the inputs to a
+ * {@link org.apache.calcite.rel.core.Join}.
+ *
+ * <p>Outer joins cannot be permuted.
+ *
+ * <p>To preserve the order of columns in the output row, the rule adds a
+ * {@link org.apache.calcite.rel.core.Project}.
  */
-public class SwapJoinRule extends RelOptRule {
+public class JoinCommuteRule extends RelOptRule {
   //~ Static fields/initializers ---------------------------------------------
 
   /** The singleton. */
-  public static final SwapJoinRule INSTANCE = new SwapJoinRule();
+  public static final JoinCommuteRule INSTANCE = new JoinCommuteRule();
 
   private final ProjectFactory projectFactory;
 
   //~ Constructors -----------------------------------------------------------
 
   /**
-   * Creates a SwapJoinRule.
+   * Creates a JoinCommuteRule.
    */
-  private SwapJoinRule() {
-    this(JoinRel.class, RelFactories.DEFAULT_PROJECT_FACTORY);
+  private JoinCommuteRule() {
+    this(LogicalJoin.class, RelFactories.DEFAULT_PROJECT_FACTORY);
   }
 
-  public SwapJoinRule(Class<? extends JoinRelBase> clazz,
+  public JoinCommuteRule(Class<? extends Join> clazz,
       ProjectFactory projectFactory) {
     super(operand(clazz, any()));
     this.projectFactory = projectFactory;
@@ -61,7 +76,7 @@ public class SwapJoinRule extends RelOptRule {
    * modify <code>join</code>. Returns null if the join cannot be swapped (for
    * example, because it is an outer join).
    */
-  public static RelNode swap(JoinRelBase join) {
+  public static RelNode swap(Join join) {
     return swap(join, false);
   }
 
@@ -70,7 +85,7 @@ public class SwapJoinRule extends RelOptRule {
    * @param swapOuterJoins whether outer joins should be swapped
    * @return swapped join if swapping possible; else null
    */
-  public static RelNode swap(JoinRelBase join, boolean swapOuterJoins) {
+  public static RelNode swap(Join join, boolean swapOuterJoins) {
     final JoinRelType joinType = join.getJoinType();
     if (!swapOuterJoins && joinType != JoinRelType.INNER) {
       return null;
@@ -88,7 +103,7 @@ public class SwapJoinRule extends RelOptRule {
     // join, and one for the swapped join, and no more.  This
     // doesn't prevent us from seeing any new combinations assuming
     // that the planner tries the desired order (semijoins after swaps).
-    JoinRelBase newJoin =
+    Join newJoin =
         join.copy(join.getTraitSet(), condition, join.getRight(),
             join.getLeft(), joinType.swap(), join.isSemiJoinDone());
     final List<RexNode> exps =
@@ -101,7 +116,7 @@ public class SwapJoinRule extends RelOptRule {
   }
 
   public void onMatch(final RelOptRuleCall call) {
-    JoinRelBase join = call.rel(0);
+    Join join = call.rel(0);
 
     if (!join.getSystemFieldList().isEmpty()) {
       // FIXME Enable this rule for joins with system fields
@@ -115,10 +130,10 @@ public class SwapJoinRule extends RelOptRule {
 
     // The result is either a Project or, if the project is trivial, a
     // raw Join.
-    final JoinRelBase newJoin =
-        swapped instanceof JoinRelBase
-            ? (JoinRelBase) swapped
-            : (JoinRelBase) swapped.getInput(0);
+    final Join newJoin =
+        swapped instanceof Join
+            ? (Join) swapped
+            : (Join) swapped.getInput(0);
 
     call.transformTo(swapped);
 
@@ -187,8 +202,7 @@ public class SwapJoinRule extends RelOptRule {
               rightFields.get(index).getType(),
               index);
         }
-        throw Util.newInternal(
-            "Bad field offset: index="
+        throw Util.newInternal("Bad field offset: index="
             + var.getIndex()
             + ", leftFieldCount=" + leftFields.size()
             + ", rightFieldCount=" + rightFields.size());
@@ -199,4 +213,4 @@ public class SwapJoinRule extends RelOptRule {
   }
 }
 
-// End SwapJoinRule.java
+// End JoinCommuteRule.java

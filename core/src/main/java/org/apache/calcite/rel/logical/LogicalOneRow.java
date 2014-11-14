@@ -14,44 +14,47 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel;
+package org.apache.calcite.rel.logical;
+
+import org.apache.calcite.plan.Convention;
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.RelInput;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.OneRow;
 
 import java.util.List;
 
-import org.eigenbase.relopt.*;
-
 /**
- * <code>OneRowRel</code> always returns one row, one column (containing the
- * value 0).
+ * Sub-class of {@link org.apache.calcite.rel.core.OneRow}
+ * not targeted at any particular engine or calling convention.
  */
-public final class OneRowRel extends OneRowRelBase {
+public final class LogicalOneRow extends OneRow {
   //~ Constructors -----------------------------------------------------------
 
   /**
-   * Creates a <code>OneRowRel</code>.
+   * Creates a <code>LogicalOneRow</code>.
    *
-   * @param cluster {@link RelOptCluster}  this relational expression belongs
-   *                to
+   * @param cluster   Cluster that this relational expression belongs to
    */
-  public OneRowRel(RelOptCluster cluster) {
+  public LogicalOneRow(RelOptCluster cluster) {
     super(
         cluster,
         cluster.traitSetOf(Convention.NONE));
   }
 
   /**
-   * Creates a OneRowRel by parsing serialized output.
+   * Creates a LogicalOneRow by parsing serialized output.
    */
-  public OneRowRel(RelInput input) {
+  public LogicalOneRow(RelInput input) {
     super(input.getCluster(), input.getTraitSet());
   }
 
-  @Override
-  public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
+  @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
     assert traitSet.containsIfApplicable(Convention.NONE);
     assert inputs.isEmpty();
     return this;
   }
 }
 
-// End OneRowRel.java
+// End LogicalOneRow.java

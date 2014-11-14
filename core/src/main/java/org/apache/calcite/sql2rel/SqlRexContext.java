@@ -14,12 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql2rel;
+package org.apache.calcite.sql2rel;
 
-import org.eigenbase.reltype.*;
-import org.eigenbase.rex.*;
-import org.eigenbase.sql.*;
-import org.eigenbase.sql.validate.*;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexRangeRef;
+import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlLiteral;
+import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlSelect;
+import org.apache.calcite.sql.validate.SqlValidator;
 
 /**
  * Contains the context necessary for a {@link SqlRexConvertlet} to convert a
@@ -50,7 +55,7 @@ public interface SqlRexContext {
    * <p>Returns -1 if the query is not an aggregate query.</p>
    * @return 0 if the query is implicitly GROUP BY (), -1 if the query is not
    * and aggregate query
-   * @see org.eigenbase.sql.SqlOperatorBinding#getGroupCount()
+   * @see org.apache.calcite.sql.SqlOperatorBinding#getGroupCount()
    */
   int getGroupCount();
 
@@ -60,8 +65,8 @@ public interface SqlRexContext {
   RexBuilder getRexBuilder();
 
   /**
-   * Returns the expression used to access a given IN or EXISTS {@link
-   * SqlSelect sub-query}.
+   * Returns the expression used to access a given IN or EXISTS
+   * {@link SqlSelect sub-query}.
    *
    * @param call IN or EXISTS expression
    * @return Expression used to access current row of sub-query

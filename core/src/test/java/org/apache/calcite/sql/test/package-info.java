@@ -18,6 +18,6 @@
 /**
  * Regression tests for the SQL model.
  */
-package org.eigenbase.sql.test;
+package org.apache.calcite.sql.test;
 
 // End package-info.java

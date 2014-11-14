@@ -14,16 +14,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql.advise;
+package org.apache.calcite.sql.advise;
 
-import java.util.*;
-import java.util.logging.*;
+import org.apache.calcite.runtime.CalciteContextException;
+import org.apache.calcite.runtime.CalciteException;
+import org.apache.calcite.sql.SqlIdentifier;
+import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.parser.SqlAbstractParserImpl;
+import org.apache.calcite.sql.parser.SqlParseException;
+import org.apache.calcite.sql.parser.SqlParser;
+import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.validate.SqlMoniker;
+import org.apache.calcite.sql.validate.SqlMonikerImpl;
+import org.apache.calcite.sql.validate.SqlMonikerType;
+import org.apache.calcite.sql.validate.SqlValidatorWithHints;
+import org.apache.calcite.util.Util;
+import org.apache.calcite.util.trace.CalciteTrace;
 
-import org.eigenbase.sql.*;
-import org.eigenbase.sql.parser.*;
-import org.eigenbase.sql.validate.*;
-import org.eigenbase.trace.*;
-import org.eigenbase.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.logging.Logger;
 
 /**
  * An assistant which offers hints and corrections to a partially-formed SQL
@@ -32,7 +45,7 @@ import org.eigenbase.util.*;
 public class SqlAdvisor {
   //~ Static fields/initializers ---------------------------------------------
 
-  public static final Logger LOGGER = EigenbaseTrace.PARSER_LOGGER;
+  public static final Logger LOGGER = CalciteTrace.PARSER_LOGGER;
 
   //~ Instance fields --------------------------------------------------------
 
@@ -235,7 +248,7 @@ public class SqlAdvisor {
         }
       }
       return null;
-    } catch (EigenbaseException e) {
+    } catch (CalciteException e) {
       Util.swallow(e, null);
       return null;
     }
@@ -265,7 +278,7 @@ public class SqlAdvisor {
     SqlParserPos pos = new SqlParserPos(1, cursor + 1);
     try {
       return validator.lookupQualifiedName(sqlNode, pos);
-    } catch (EigenbaseContextException e) {
+    } catch (CalciteContextException e) {
       return null;
     } catch (java.lang.AssertionError e) {
       return null;
@@ -315,7 +328,7 @@ public class SqlAdvisor {
     }
     try {
       validator.validate(sqlNode);
-    } catch (EigenbaseContextException e) {
+    } catch (CalciteContextException e) {
       ValidateErrorInfo errInfo = new ValidateErrorInfo(e);
 
       // validator only returns 1 exception now
@@ -458,12 +471,12 @@ public class SqlAdvisor {
     }
 
     /**
-     * Creates a new ValidateErrorInfo with an EigenbaseContextException.
+     * Creates a new ValidateErrorInfo with an CalciteContextException.
      *
      * @param e Exception
      */
     public ValidateErrorInfo(
-        EigenbaseContextException e) {
+        CalciteContextException e) {
       this.startLineNum = e.getPosLine();
       this.startColumnNum = e.getPosColumn();
       this.endLineNum = e.getEndPosLine();

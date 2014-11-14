@@ -18,6 +18,6 @@
 /**
  * Provides a SQL parser.
  */
-package org.eigenbase.sql.parser;
+package org.apache.calcite.sql.parser;
 
 // End package-info.java

@@ -14,18 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql.test;
+package org.apache.calcite.sql.test;
 
-import java.io.*;
-
-import org.eigenbase.sql.*;
-import org.eigenbase.sql.parser.*;
-import org.eigenbase.sql.pretty.*;
-import org.eigenbase.test.*;
+import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlDialect;
+import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlWriter;
+import org.apache.calcite.sql.parser.SqlParseException;
+import org.apache.calcite.sql.parser.SqlParser;
+import org.apache.calcite.sql.pretty.SqlPrettyWriter;
+import org.apache.calcite.test.DiffRepository;
 
 import org.junit.Test;
 
-import static org.junit.Assert.*;
+import java.io.PrintWriter;
+import java.io.StringWriter;
+
+import static org.junit.Assert.assertTrue;
 
 /**
  * Unit test for {@link SqlPrettyWriter}.
@@ -58,8 +63,7 @@ public class SqlPrettyWriterTest {
     try {
       node = SqlParser.create(sql).parseQuery();
     } catch (SqlParseException e) {
-      String message =
-          "Received error while parsing SQL '" + sql
+      String message = "Received error while parsing SQL '" + sql
           + "'; error is:" + NL + e.toString();
       throw new AssertionError(message);
     }
@@ -117,8 +121,7 @@ public class SqlPrettyWriterTest {
       String expectedDesc,
       String expected) throws Exception {
     final SqlNode node =
-        parseQuery(
-            "select x as a, b as b, c as c, d,"
+        parseQuery("select x as a, b as b, c as c, d,"
             + " 'mixed-Case string',"
             + " unquotedCamelCaseId,"
             + " \"quoted id\" "
@@ -223,16 +226,16 @@ public class SqlPrettyWriterTest {
         true,
         "case 1 when 2 + 3 then 4 when case a when b then c else d end then 6 else 7 end",
         "CASE" + NL
-        + "WHEN 1 = 2 + 3" + NL
-        + "THEN 4" + NL
-        + "WHEN 1 = CASE" + NL
-        + "        WHEN `A` = `B`" + NL // todo: indent should be 4 not 8
-        + "        THEN `C`" + NL
-        + "        ELSE `D`" + NL
-        + "        END" + NL
-        + "THEN 6" + NL
-        + "ELSE 7" + NL
-        + "END");
+            + "WHEN 1 = 2 + 3" + NL
+            + "THEN 4" + NL
+            + "WHEN 1 = CASE" + NL
+            + "        WHEN `A` = `B`" + NL // todo: indent should be 4 not 8
+            + "        THEN `C`" + NL
+            + "        ELSE `D`" + NL
+            + "        END" + NL
+            + "THEN 6" + NL
+            + "ELSE 7" + NL
+            + "END");
   }
 
   @Test public void testCase2() {
@@ -262,7 +265,7 @@ public class SqlPrettyWriterTest {
     assertExprPrintsTo(
         true,
         "'x' /* comment */ 'y'" + NL
-        + "  'z' ",
+            + "  'z' ",
         "'x'" + NL + "'y'" + NL + "'z'");
   }
 
@@ -277,11 +280,11 @@ public class SqlPrettyWriterTest {
     assertPrintsTo(
         true,
         "select * from t "
-        + "union select * from ("
-        + "  select * from u "
-        + "  union select * from v) "
-        + "union select * from w "
-        + "order by a, b",
+            + "union select * from ("
+            + "  select * from u "
+            + "  union select * from v) "
+            + "union select * from w "
+            + "order by a, b",
 
         // todo: SELECT should not be indended from UNION, like this:
         // UNION
@@ -308,19 +311,19 @@ public class SqlPrettyWriterTest {
   @Test public void testWhereListItemsOnSeparateLinesOr() throws Exception {
     checkPrettySeparateLines(
         "select x"
-        + " from y"
-        + " where h is not null and i < j"
-        + " or ((a or b) is true) and d not in (f,g)"
-        + " or x <> z");
+            + " from y"
+            + " where h is not null and i < j"
+            + " or ((a or b) is true) and d not in (f,g)"
+            + " or x <> z");
   }
 
   @Test public void testWhereListItemsOnSeparateLinesAnd() throws Exception {
     checkPrettySeparateLines(
         "select x"
-        + " from y"
-        + " where h is not null and (i < j"
-        + " or ((a or b) is true)) and (d not in (f,g)"
-        + " or v <> ((w * x) + y) * z)");
+            + " from y"
+            + " where h is not null and (i < j"
+            + " or ((a or b) is true)) and (d not in (f,g)"
+            + " or v <> ((w * x) + y) * z)");
   }
 
   private void checkPrettySeparateLines(String sql) {

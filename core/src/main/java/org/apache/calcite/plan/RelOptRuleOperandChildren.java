@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.relopt;
+package org.apache.calcite.plan;
 
 import com.google.common.collect.ImmutableList;
 
 /**
- * Children of a {@link org.eigenbase.relopt.RelOptRuleOperand} and the policy
- * for matching them.
+ * Children of a {@link org.apache.calcite.plan.RelOptRuleOperand} and the
+ * policy for matching them.
  *
  * <p>Often created by calling one of the following methods:
  * {@link RelOptRule#some},

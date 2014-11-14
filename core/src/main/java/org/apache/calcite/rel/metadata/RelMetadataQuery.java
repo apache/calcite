@@ -14,30 +14,32 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel.metadata;
+package org.apache.calcite.rel.metadata;
 
-import java.util.*;
-
-import org.eigenbase.rel.*;
-import org.eigenbase.relopt.*;
-import org.eigenbase.rex.*;
-import org.eigenbase.sql.*;
-import org.eigenbase.stat.*;
+import org.apache.calcite.plan.RelOptCost;
+import org.apache.calcite.plan.RelOptPredicateList;
+import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.sql.SqlExplainLevel;
 
 import com.google.common.collect.Iterables;
 
+import java.util.BitSet;
+import java.util.Set;
+
 /**
- * RelMetadataQuery provides a strongly-typed facade on top of {@link
- * RelMetadataProvider} for the set of relational expression metadata queries
- * defined as standard within Eigenbase. The Javadoc on these methods serves as
- * their primary specification.
+ * RelMetadataQuery provides a strongly-typed facade on top of
+ * {@link RelMetadataProvider} for the set of relational expression metadata
+ * queries defined as standard within Calcite. The Javadoc on these methods
+ * serves as their primary specification.
  *
  * <p>To add a new standard query <code>Xyz</code> to this interface, follow
  * these steps:
  *
  * <ol>
  * <li>Add a static method <code>getXyz</code> specification to this class.
- * <li>Add unit tests to {@code org.eigenbase.test.RelMetadataTest}.
+ * <li>Add unit tests to {@code org.apache.calcite.test.RelMetadataTest}.
  * <li>Write a new provider class <code>RelMdXyz</code> in this package. Follow
  * the pattern from an existing class such as {@link RelMdColumnOrigins},
  * overloading on all of the logical relational expressions to which the query
@@ -63,22 +65,6 @@ import com.google.common.collect.Iterables;
  */
 public abstract class RelMetadataQuery {
   //~ Methods ----------------------------------------------------------------
-
-  /**
-   * Returns statistics for a relational expression. These statistics include
-   * features such as row counts, or column distributions. Stats are typically
-   * collected by sampling a table. They might also be inferred from a rel's
-   * history. Certain rels, such as filters, might generate stats from their
-   * inputs.
-   *
-   * @param rel the relational expression.
-   * @return a statistics object, if statistics are available, or null
-   * otherwise
-   */
-  @Deprecated
-  public static RelStatSource getStatistics(RelNode rel) {
-    throw new UnsupportedOperationException();
-  }
 
   /**
    * Returns the
@@ -162,7 +148,7 @@ public abstract class RelMetadataQuery {
    * Determines the origin of a column, provided the column maps to a single
    * column that isn't derived.
    *
-   * @see #getColumnOrigins(org.eigenbase.rel.RelNode, int)
+   * @see #getColumnOrigins(org.apache.calcite.rel.RelNode, int)
    *
    * @param rel the RelNode of the column
    * @param column the offset of the column whose origin we are trying to
@@ -329,7 +315,7 @@ public abstract class RelMetadataQuery {
 
   /**
    * Returns the
-   * {@link org.eigenbase.rel.metadata.BuiltInMetadata.Predicates#getPredicates()}
+   * {@link org.apache.calcite.rel.metadata.BuiltInMetadata.Predicates#getPredicates()}
    * statistic.
    *
    * @param rel the relational expression

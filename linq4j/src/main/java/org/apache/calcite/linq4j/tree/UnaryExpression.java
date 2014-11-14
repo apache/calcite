@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.linq4j.expressions;
+package org.apache.calcite.linq4j.tree;
 
 import java.lang.reflect.Type;
 
@@ -30,8 +30,7 @@ public class UnaryExpression extends Expression {
     this.expression = expression;
   }
 
-  @Override
-  public Expression accept(Visitor visitor) {
+  @Override public Expression accept(Visitor visitor) {
     visitor = visitor.preVisit(this);
     Expression expression = this.expression.accept(visitor);
     return visitor.visit(this, expression);
@@ -55,8 +54,7 @@ public class UnaryExpression extends Expression {
     }
   }
 
-  @Override
-  public boolean equals(Object o) {
+  @Override public boolean equals(Object o) {
     if (this == o) {
       return true;
     }
@@ -76,8 +74,7 @@ public class UnaryExpression extends Expression {
     return true;
   }
 
-  @Override
-  public int hashCode() {
+  @Override public int hashCode() {
     int result = super.hashCode();
     result = 31 * result + expression.hashCode();
     return result;

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.linq4j.expressions;
+package org.apache.calcite.linq4j.tree;
 
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
@@ -43,8 +43,7 @@ public class ParameterExpression extends Expression {
     this.name = name;
   }
 
-  @Override
-  public Expression accept(Visitor visitor) {
+  @Override public Expression accept(Visitor visitor) {
     return visitor.visit(this);
   }
 
@@ -52,8 +51,7 @@ public class ParameterExpression extends Expression {
     return evaluator.peek(this);
   }
 
-  @Override
-  void accept(ExpressionWriter writer, int lprec, int rprec) {
+  @Override void accept(ExpressionWriter writer, int lprec, int rprec) {
     writer.append(name);
   }
 
@@ -63,20 +61,15 @@ public class ParameterExpression extends Expression {
 
   String declString(Type type) {
     final String modifiers = Modifier.toString(modifier);
-    return modifiers
-        + (modifiers.isEmpty() ? "" : " ")
-        + Types.className(type)
-        + " "
-        + name;
+    return modifiers + (modifiers.isEmpty() ? "" : " ") + Types.className(type)
+        + " " + name;
   }
 
-  @Override
-  public boolean equals(Object o) {
+  @Override public boolean equals(Object o) {
     return this == o;
   }
 
-  @Override
-  public int hashCode() {
+  @Override public int hashCode() {
     return System.identityHashCode(this);
   }
 }

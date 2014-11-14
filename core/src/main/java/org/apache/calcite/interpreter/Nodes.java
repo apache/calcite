@@ -14,21 +14,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.impl.interpreter;
+package org.apache.calcite.interpreter;
 
-import net.hydromatic.optiq.FilterableTable;
-import net.hydromatic.optiq.ProjectableFilterableTable;
-
-import org.eigenbase.rel.*;
-import org.eigenbase.rel.rules.FilterTableRule;
-import org.eigenbase.relopt.RelOptCluster;
-import org.eigenbase.relopt.RelOptTable;
-import org.eigenbase.relopt.RelOptUtil;
-import org.eigenbase.relopt.RelTraitSet;
-import org.eigenbase.rex.RexNode;
-import org.eigenbase.util.ImmutableIntList;
-import org.eigenbase.util.Pair;
-import org.eigenbase.util.mapping.Mappings;
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.Calc;
+import org.apache.calcite.rel.core.Filter;
+import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.core.Sort;
+import org.apache.calcite.rel.core.TableScan;
+import org.apache.calcite.rel.core.Values;
+import org.apache.calcite.rel.rules.FilterTableRule;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.schema.FilterableTable;
+import org.apache.calcite.schema.ProjectableFilterableTable;
+import org.apache.calcite.util.ImmutableIntList;
+import org.apache.calcite.util.Pair;
+import org.apache.calcite.util.mapping.Mappings;
 
 import com.google.common.collect.ImmutableList;
 
@@ -38,30 +43,30 @@ import com.google.common.collect.ImmutableList;
  */
 public class Nodes {
   /** Extension to
-   * {@link net.hydromatic.optiq.impl.interpreter.Interpreter.Compiler}
+   * {@link org.apache.calcite.interpreter.Interpreter.Compiler}
    * that knows how to handle the core logical
-   * {@link org.eigenbase.rel.RelNode}s. */
+   * {@link org.apache.calcite.rel.RelNode}s. */
   public static class CoreCompiler extends Interpreter.Compiler {
     CoreCompiler(Interpreter interpreter) {
       super(interpreter);
     }
 
-    public void rewrite(ProjectRelBase project) {
-      RelNode input = project.getChild();
+    public void rewrite(Project project) {
+      RelNode input = project.getInput();
       final Mappings.TargetMapping mapping = project.getMapping();
       if (mapping == null) {
         return;
       }
       RexNode condition;
-      if (input instanceof FilterRelBase) {
-        final FilterRelBase filter = (FilterRelBase) input;
+      if (input instanceof Filter) {
+        final Filter filter = (Filter) input;
         condition = filter.getCondition();
-        input = filter.getChild();
+        input = filter.getInput();
       } else {
         condition = project.getCluster().getRexBuilder().makeLiteral(true);
       }
-      if (input instanceof TableAccessRelBase) {
-        final TableAccessRelBase scan = (TableAccessRelBase) input;
+      if (input instanceof TableScan) {
+        final TableScan scan = (TableScan) input;
         final RelOptTable table = scan.getTable();
         final ProjectableFilterableTable projectableFilterableTable =
             table.unwrap(ProjectableFilterableTable.class);
@@ -69,7 +74,7 @@ public class Nodes {
           final FilterTableRule.FilterSplit filterSplit =
               FilterTableRule.FilterSplit.of(projectableFilterableTable,
                   condition, interpreter.getDataContext());
-          rel = new FilterScanRel(project.getCluster(), project.getTraitSet(),
+          rel = new FilterScan(project.getCluster(), project.getTraitSet(),
               table, filterSplit.acceptedFilters,
               ImmutableIntList.copyOf(Mappings.asList(mapping.inverse())));
           rel = RelOptUtil.createFilter(rel, filterSplit.rejectedFilters);
@@ -77,9 +82,9 @@ public class Nodes {
       }
     }
 
-    public void rewrite(FilterRelBase filter) {
-      if (filter.getChild() instanceof TableAccessRelBase) {
-        final TableAccessRelBase scan = (TableAccessRelBase) filter.getChild();
+    public void rewrite(Filter filter) {
+      if (filter.getInput() instanceof TableScan) {
+        final TableScan scan = (TableScan) filter.getInput();
         final RelOptTable table = scan.getTable();
         final ProjectableFilterableTable projectableFilterableTable =
             table.unwrap(ProjectableFilterableTable.class);
@@ -89,7 +94,7 @@ public class Nodes {
                   filter.getCondition(),
                   interpreter.getDataContext());
           if (!filterSplit.acceptedFilters.isEmpty()) {
-            rel = new FilterScanRel(scan.getCluster(), scan.getTraitSet(),
+            rel = new FilterScan(scan.getCluster(), scan.getTraitSet(),
                 table, filterSplit.acceptedFilters, null);
             rel = RelOptUtil.createFilter(rel, filterSplit.rejectedFilters);
             return;
@@ -103,7 +108,7 @@ public class Nodes {
                   filter.getCondition(),
                   interpreter.getDataContext());
           if (!filterSplit.acceptedFilters.isEmpty()) {
-            rel = new FilterScanRel(scan.getCluster(), scan.getTraitSet(),
+            rel = new FilterScan(scan.getCluster(), scan.getTraitSet(),
                 table, filterSplit.acceptedFilters, null);
             rel = RelOptUtil.createFilter(rel, filterSplit.rejectedFilters);
           }
@@ -111,52 +116,53 @@ public class Nodes {
       }
     }
 
-    public void visit(FilterRelBase filter) {
+    public void visit(Filter filter) {
       node = new FilterNode(interpreter, filter);
     }
 
-    public void visit(ProjectRelBase project) {
+    public void visit(Project project) {
       node = new ProjectNode(interpreter, project);
     }
 
     /** Per {@link #rewrite(RelNode)}, writes to {@link #rel}.
      *
-     * <p>We don't handle {@link CalcRelBase} directly. Expand to a
-     * {@link ProjectRelBase} on {@link FilterRelBase} (or just a
-     * {@link ProjectRelBase}). */
-    public void rewrite(CalcRelBase calc) {
+     * <p>We don't handle {@link org.apache.calcite.rel.core.Calc} directly.
+     * Expand to a {@link org.apache.calcite.rel.core.Project}
+     * on {@link org.apache.calcite.rel.core.Filter} (or just a
+     * {@link org.apache.calcite.rel.core.Project}). */
+    public void rewrite(Calc calc) {
       final Pair<ImmutableList<RexNode>, ImmutableList<RexNode>> projectFilter =
           calc.getProgram().split();
-      rel = calc.getChild();
+      rel = calc.getInput();
       rel = RelOptUtil.createFilter(rel, projectFilter.right);
       rel = RelOptUtil.createProject(rel, projectFilter.left,
           calc.getRowType().getFieldNames());
     }
 
-    public void visit(ValuesRelBase value) {
+    public void visit(Values value) {
       node = new ValuesNode(interpreter, value);
     }
 
-    public void visit(TableAccessRelBase scan) {
+    public void visit(TableScan scan) {
       node = new ScanNode(interpreter, scan, ImmutableList.<RexNode>of(), null);
     }
 
-    public void visit(FilterScanRel scan) {
+    public void visit(FilterScan scan) {
       node = new ScanNode(interpreter, scan, scan.filters, scan.projects);
     }
 
-    public void visit(SortRel sort) {
+    public void visit(Sort sort) {
       node = new SortNode(interpreter, sort);
     }
   }
 
   /** Table scan that applies filters and optionally projects. Only used in an
    * interpreter. */
-  public static class FilterScanRel extends TableAccessRelBase {
+  public static class FilterScan extends TableScan {
     private final ImmutableList<RexNode> filters;
     private final ImmutableIntList projects;
 
-    protected FilterScanRel(RelOptCluster cluster, RelTraitSet traits,
+    protected FilterScan(RelOptCluster cluster, RelTraitSet traits,
         RelOptTable table, ImmutableList<RexNode> filters,
         ImmutableIntList projects) {
       super(cluster, traits, table);

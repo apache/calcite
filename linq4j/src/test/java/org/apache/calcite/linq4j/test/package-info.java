@@ -18,6 +18,6 @@
 /**
  * Core linq4j tests.
  */
-package net.hydromatic.linq4j.test;
+package org.apache.calcite.linq4j.test;
 
 // End package-info.java

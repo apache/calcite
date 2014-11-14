@@ -14,36 +14,44 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel.rules;
+package org.apache.calcite.rel.rules;
 
-import org.eigenbase.rel.*;
-import org.eigenbase.relopt.*;
-import org.eigenbase.rex.*;
+import org.apache.calcite.plan.RelOptRule;
+import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.rel.core.Calc;
+import org.apache.calcite.rex.RexOver;
+import org.apache.calcite.rex.RexProgram;
+import org.apache.calcite.rex.RexProgramBuilder;
 
 /**
- * Planner rule which merges a {@link CalcRel} onto a {@link CalcRel}. The
- * resulting {@link CalcRel} has the same project list as the upper {@link
- * CalcRel}, but expressed in terms of the lower {@link CalcRel}'s inputs.
+ * Planner rule that merges a
+ * {@link org.apache.calcite.rel.logical.LogicalCalc} onto a
+ * {@link org.apache.calcite.rel.logical.LogicalCalc}.
+ *
+ * <p>The resulting {@link org.apache.calcite.rel.logical.LogicalCalc} has the
+ * same project list as the upper
+ * {@link org.apache.calcite.rel.logical.LogicalCalc}, but expressed in terms of
+ * the lower {@link org.apache.calcite.rel.logical.LogicalCalc}'s inputs.
  */
-public class MergeCalcRule extends RelOptRule {
+public class CalcMergeRule extends RelOptRule {
   //~ Static fields/initializers ---------------------------------------------
 
-  public static final MergeCalcRule INSTANCE = new MergeCalcRule();
+  public static final CalcMergeRule INSTANCE = new CalcMergeRule();
 
   //~ Constructors -----------------------------------------------------------
 
-  private MergeCalcRule() {
+  private CalcMergeRule() {
     super(
         operand(
-            CalcRelBase.class,
-            operand(CalcRelBase.class, any())));
+            Calc.class,
+            operand(Calc.class, any())));
   }
 
   //~ Methods ----------------------------------------------------------------
 
   public void onMatch(RelOptRuleCall call) {
-    final CalcRelBase topCalc = call.rel(0);
-    final CalcRelBase bottomCalc = call.rel(1);
+    final Calc topCalc = call.rel(0);
+    final Calc bottomCalc = call.rel(1);
 
     // Don't merge a calc which contains windowed aggregates onto a
     // calc. That would effectively be pushing a windowed aggregate down
@@ -62,10 +70,10 @@ public class MergeCalcRule extends RelOptRule {
             topCalc.getCluster().getRexBuilder());
     assert mergedProgram.getOutputRowType()
         == topProgram.getOutputRowType();
-    final CalcRelBase newCalc =
+    final Calc newCalc =
         topCalc.copy(
             topCalc.getTraitSet(),
-            bottomCalc.getChild(),
+            bottomCalc.getInput(),
             mergedProgram,
             topCalc.getCollationList());
 
@@ -79,4 +87,4 @@ public class MergeCalcRule extends RelOptRule {
   }
 }
 
-// End MergeCalcRule.java
+// End CalcMergeRule.java

@@ -14,22 +14,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql.type;
+package org.apache.calcite.sql.type;
 
-import java.util.List;
-
-import org.eigenbase.reltype.RelDataType;
-import org.eigenbase.reltype.RelDataTypeFactory;
-import org.eigenbase.sql.SqlCallBinding;
-import org.eigenbase.sql.SqlNode;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.sql.SqlCallBinding;
+import org.apache.calcite.sql.SqlNode;
 
 import com.google.common.collect.ImmutableList;
+
+import java.util.List;
 
 /**
  * Strategies for inferring operand types.
  *
- * @see org.eigenbase.sql.type.SqlOperandTypeInference
- * @see org.eigenbase.sql.type.ReturnTypes
+ * @see org.apache.calcite.sql.type.SqlOperandTypeInference
+ * @see org.apache.calcite.sql.type.ReturnTypes
  */
 public abstract class InferTypes {
   private InferTypes() {}

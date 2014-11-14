@@ -14,9 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.util;
+package org.apache.calcite.util;
 
-import java.io.*;
+import java.io.BufferedInputStream;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.FilterInputStream;
+import java.io.FilterOutputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.io.Serializable;
+import java.io.UnsupportedEncodingException;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
@@ -704,9 +716,8 @@ public class RhBase64 {
           }
         }
       } else {
-        System.err.println(
-            "Bad Base64 input character at " + i + ": " + source[i]
-            + "(decimal)");
+        System.err.println("Bad Base64 input character at " + i + ": "
+            + source[i] + "(decimal)");
         return null;
       }
     }

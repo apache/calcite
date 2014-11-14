@@ -14,19 +14,30 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.avatica;
+package org.apache.calcite.avatica;
 
-import java.io.*;
+import java.io.Closeable;
+import java.io.InputStream;
+import java.io.Reader;
 import java.math.BigDecimal;
 import java.net.URL;
-import java.sql.*;
+import java.sql.Array;
+import java.sql.Blob;
+import java.sql.Clob;
+import java.sql.Date;
+import java.sql.NClob;
+import java.sql.Ref;
+import java.sql.SQLException;
+import java.sql.SQLXML;
+import java.sql.Time;
+import java.sql.Timestamp;
 import java.util.Calendar;
 import java.util.List;
 import java.util.Map;
 
 /**
  * Interface to an iteration that is similar to, and can easily support,
- * a JDBC {@link ResultSet}, but is simpler to implement.
+ * a JDBC {@link java.sql.ResultSet}, but is simpler to implement.
  */
 public interface Cursor extends Closeable {
   /**

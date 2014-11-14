@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql.validate;
+package org.apache.calcite.sql.validate;
 
-import java.util.*;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.util.Pair;
 
-import org.eigenbase.reltype.*;
-import org.eigenbase.sql.*;
-import org.eigenbase.util.*;
+import java.util.List;
 
 /**
  * A namespace describes the relation returned by a section of a SQL query.
@@ -33,17 +33,17 @@ import org.eigenbase.util.*;
  * namespace contains the constituent columns) and a subquery (the namespace
  * contains the columns in the SELECT clause of the subquery).
  *
- * <p>These various kinds of namespace are implemented by classes {@link
- * IdentifierNamespace} for table names, {@link SelectNamespace} for SELECT
- * queries, {@link SetopNamespace} for UNION, EXCEPT and INTERSECT, and so
- * forth. But if you are looking at a SELECT query and call {@link
- * SqlValidator#getNamespace(org.eigenbase.sql.SqlNode)}, you may not get a
- * SelectNamespace. Why? Because the validator is allowed to wrap namespaces in
- * other objects which implement {@link SqlValidatorNamespace}. Your
- * SelectNamespace will be there somewhere, but might be one or two levels deep.
- * Don't try to cast the namespace or use <code>instanceof</code>; use {@link
- * SqlValidatorNamespace#unwrap(Class)} and {@link
- * SqlValidatorNamespace#isWrapperFor(Class)} instead.</p>
+ * <p>These various kinds of namespace are implemented by classes
+ * {@link IdentifierNamespace} for table names, {@link SelectNamespace} for
+ * SELECT queries, {@link SetopNamespace} for UNION, EXCEPT and INTERSECT, and
+ * so forth. But if you are looking at a SELECT query and call
+ * {@link SqlValidator#getNamespace(org.apache.calcite.sql.SqlNode)}, you may
+ * not get a SelectNamespace. Why? Because the validator is allowed to wrap
+ * namespaces in other objects which implement
+ * {@link SqlValidatorNamespace}. Your SelectNamespace will be there somewhere,
+ * but might be one or two levels deep.  Don't try to cast the namespace or use
+ * <code>instanceof</code>; use {@link SqlValidatorNamespace#unwrap(Class)} and
+ * {@link SqlValidatorNamespace#isWrapperFor(Class)} instead.</p>
  *
  * @see SqlValidator
  * @see SqlValidatorScope
@@ -145,8 +145,8 @@ public interface SqlValidatorNamespace {
   /**
    * Returns a list of expressions which are monotonic in this namespace. For
    * example, if the namespace represents a relation ordered by a column
-   * called "TIMESTAMP", then the list would contain a {@link
-   * org.eigenbase.sql.SqlIdentifier} called "TIMESTAMP".
+   * called "TIMESTAMP", then the list would contain a
+   * {@link org.apache.calcite.sql.SqlIdentifier} called "TIMESTAMP".
    */
   List<Pair<SqlNode, SqlMonotonicity>> getMonotonicExprs();
 

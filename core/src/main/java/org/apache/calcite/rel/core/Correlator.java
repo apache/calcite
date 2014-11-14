@@ -14,25 +14,37 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel;
+package org.apache.calcite.rel.core;
 
-import java.util.*;
-
-import org.eigenbase.relopt.*;
-import org.eigenbase.rex.*;
+import org.apache.calcite.plan.Convention;
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.RelInput;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelShuttle;
+import org.apache.calcite.rel.RelWriter;
+import org.apache.calcite.rex.RexNode;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
 /**
- * A <code>CorrelatorRel</code> behaves like a kind of {@link JoinRel}, but
- * works by setting variables in its environment and restarting its right-hand
- * input.
+ * A relational operator that performs nested-loop joins.
  *
- * <p>A CorrelatorRel is used to represent a correlated query. One
+ * <p>It behaves like a kind of {@link Join},
+ * but works by setting variables in its environment and restarting its
+ * right-hand input.
+ *
+ * <p>A Correlator is used to represent a correlated query. One
  * implementation strategy is to de-correlate the expression.
+ *
+ * @see Correlation
  */
-public final class CorrelatorRel extends JoinRelBase {
+public final class Correlator extends Join {
   //~ Instance fields --------------------------------------------------------
 
   protected final ImmutableList<Correlation> correlations;
@@ -40,7 +52,7 @@ public final class CorrelatorRel extends JoinRelBase {
   //~ Constructors -----------------------------------------------------------
 
   /**
-   * Creates a CorrelatorRel.
+   * Creates a Correlator.
    *
    * @param cluster      cluster this relational expression belongs to
    * @param left         left input relational expression
@@ -50,7 +62,7 @@ public final class CorrelatorRel extends JoinRelBase {
    *                     row arrives from the left input
    * @param joinType     join type
    */
-  public CorrelatorRel(
+  public Correlator(
       RelOptCluster cluster,
       RelNode left,
       RelNode right,
@@ -71,16 +83,16 @@ public final class CorrelatorRel extends JoinRelBase {
   }
 
   /**
-   * Creates a CorrelatorRel with no join condition.
+   * Creates a Correlator with no join condition.
    *
-   * @param cluster      cluster this relational expression belongs to
+   * @param cluster      Cluster that this relational expression belongs to
    * @param left         left input relational expression
    * @param right        right input relational expression
    * @param correlations set of expressions to set as variables each time a
    *                     row arrives from the left input
    * @param joinType     join type
    */
-  public CorrelatorRel(
+  public Correlator(
       RelOptCluster cluster,
       RelNode left,
       RelNode right,
@@ -96,9 +108,9 @@ public final class CorrelatorRel extends JoinRelBase {
   }
 
   /**
-   * Creates a CorrelatorRel by parsing serialized output.
+   * Creates a Correlator by parsing serialized output.
    */
-  public CorrelatorRel(RelInput input) {
+  public Correlator(RelInput input) {
     this(
         input.getCluster(), input.getInputs().get(0),
         input.getInputs().get(1), getCorrelations(input),
@@ -121,11 +133,10 @@ public final class CorrelatorRel extends JoinRelBase {
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override
-  public CorrelatorRel copy(RelTraitSet traitSet, RexNode conditionExpr,
+  @Override public Correlator copy(RelTraitSet traitSet, RexNode conditionExpr,
       RelNode left, RelNode right, JoinRelType joinType, boolean semiJoinDone) {
     assert traitSet.containsIfApplicable(Convention.NONE);
-    return new CorrelatorRel(
+    return new Correlator(
         getCluster(),
         left,
         right,
@@ -152,4 +163,4 @@ public final class CorrelatorRel extends JoinRelBase {
   }
 }
 
-// End CorrelatorRel.java
+// End Correlator.java

@@ -14,13 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.rules.java;
+package org.apache.calcite.adapter.enumerable;
 
 /**
- * Information for a call to {@link AggImplementor#implementResult(AggContext, AggResultContext)}
- * Typically, the aggregation implementation will convert {@link #accumulator()}
- * to the resulting value of the aggregation.
- * The implementation MUST NOT destroy the contents of {@link #accumulator()}.
+ * Information for a call to
+ * {@link AggImplementor#implementResult(AggContext, AggResultContext)}
+ *
+ * <p>Typically, the aggregation implementation will convert
+ * {@link #accumulator()} to the resulting value of the aggregation.  The
+ * implementation MUST NOT destroy the contents of {@link #accumulator()}.
  */
 public interface AggResultContext extends NestedBlockBuilder, AggResetContext {
 }

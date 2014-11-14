@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.rules.java;
+package org.apache.calcite.adapter.enumerable;
 
-import net.hydromatic.linq4j.expressions.Expression;
+import org.apache.calcite.linq4j.tree.Expression;
 
 import java.lang.reflect.Type;
 import java.util.List;
@@ -25,17 +25,20 @@ import java.util.List;
  * Implements an aggregate function by generating expressions to
  * initialize, add to, and get a result from, an accumulator.
  *
- * @see net.hydromatic.optiq.rules.java.StrictAggImplementor
- * @see net.hydromatic.optiq.rules.java.StrictWinAggImplementor
- * @see net.hydromatic.optiq.rules.java.RexImpTable.CountImplementor
- * @see net.hydromatic.optiq.rules.java.RexImpTable.SumImplementor
+ * @see org.apache.calcite.adapter.enumerable.StrictAggImplementor
+ * @see org.apache.calcite.adapter.enumerable.StrictWinAggImplementor
+ * @see org.apache.calcite.adapter.enumerable.RexImpTable.CountImplementor
+ * @see org.apache.calcite.adapter.enumerable.RexImpTable.SumImplementor
  */
 public interface AggImplementor {
   /**
    * Returns the types of the intermediate variables used by the aggregate
    * implementation.
-   * For instance, for "concatenate to string" this can be {@link java.lang.StringBuilder}.
+   *
+   * <p>For instance, for "concatenate to string" this can be
+   * {@link java.lang.StringBuilder}.
    * Calcite calls this method before all other {@code implement*} methods.
+   *
    * @param info aggregate context
    * @return types of the intermediate variables used by the aggregate
    *   implementation

@@ -14,19 +14,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.jdbc;
+package org.apache.calcite.jdbc;
 
-import net.hydromatic.avatica.*;
-
-import net.hydromatic.linq4j.function.Function0;
-
-import net.hydromatic.optiq.config.OptiqConnectionProperty;
-import net.hydromatic.optiq.impl.java.JavaTypeFactory;
-import net.hydromatic.optiq.model.ModelHandler;
+import org.apache.calcite.adapter.java.JavaTypeFactory;
+import org.apache.calcite.avatica.AvaticaConnection;
+import org.apache.calcite.avatica.BuiltInConnectionProperty;
+import org.apache.calcite.avatica.ConnectionProperty;
+import org.apache.calcite.avatica.DriverVersion;
+import org.apache.calcite.avatica.Handler;
+import org.apache.calcite.avatica.HandlerImpl;
+import org.apache.calcite.avatica.UnregisteredDriver;
+import org.apache.calcite.config.CalciteConnectionProperty;
+import org.apache.calcite.linq4j.function.Function0;
+import org.apache.calcite.model.ModelHandler;
 
 import java.io.IOException;
 import java.sql.SQLException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Properties;
 
 /**
  * Calcite JDBC driver.
@@ -34,7 +42,7 @@ import java.util.*;
 public class Driver extends UnregisteredDriver {
   public static final String CONNECT_STRING_PREFIX = "jdbc:calcite:";
 
-  final Function0<OptiqPrepare> prepareFactory;
+  final Function0<CalcitePrepare> prepareFactory;
 
   static {
     new Driver().register();
@@ -45,46 +53,42 @@ public class Driver extends UnregisteredDriver {
     this.prepareFactory = createPrepareFactory();
   }
 
-  protected Function0<OptiqPrepare> createPrepareFactory() {
-    return OptiqPrepare.DEFAULT_FACTORY;
+  protected Function0<CalcitePrepare> createPrepareFactory() {
+    return CalcitePrepare.DEFAULT_FACTORY;
   }
 
-  @Override
-  protected String getConnectStringPrefix() {
+  @Override protected String getConnectStringPrefix() {
     return CONNECT_STRING_PREFIX;
   }
 
-  @Override
-  protected String getFactoryClassName(JdbcVersion jdbcVersion) {
+  @Override protected String getFactoryClassName(JdbcVersion jdbcVersion) {
     switch (jdbcVersion) {
     case JDBC_30:
-      return "net.hydromatic.optiq.jdbc.OptiqJdbc3Factory";
+      return "org.apache.calcite.jdbc.CalciteJdbc3Factory";
     case JDBC_40:
-      return "net.hydromatic.optiq.jdbc.OptiqJdbc40Factory";
+      return "org.apache.calcite.jdbc.CalciteJdbc40Factory";
     case JDBC_41:
     default:
-      return "net.hydromatic.optiq.jdbc.OptiqJdbc41Factory";
+      return "org.apache.calcite.jdbc.CalciteJdbc41Factory";
     }
   }
 
   protected DriverVersion createDriverVersion() {
     return DriverVersion.load(
         Driver.class,
-        "net-hydromatic-optiq-jdbc.properties",
+        "org-apache-calcite-jdbc.properties",
         "Calcite JDBC Driver",
         "unknown version",
         "Calcite",
         "unknown version");
   }
 
-  @Override
-  protected Handler createHandler() {
+  @Override protected Handler createHandler() {
     return new HandlerImpl() {
-      @Override
-      public void onConnectionInit(AvaticaConnection connection_)
+      @Override public void onConnectionInit(AvaticaConnection connection_)
           throws SQLException {
-        final OptiqConnectionImpl connection =
-            (OptiqConnectionImpl) connection_;
+        final CalciteConnectionImpl connection =
+            (CalciteConnectionImpl) connection_;
         super.onConnectionInit(connection);
         final String model = connection.config().model();
         if (model != null) {
@@ -99,18 +103,17 @@ public class Driver extends UnregisteredDriver {
     };
   }
 
-  @Override
-  protected Collection<ConnectionProperty> getConnectionProperties() {
+  @Override protected Collection<ConnectionProperty> getConnectionProperties() {
     final List<ConnectionProperty> list = new ArrayList<ConnectionProperty>();
     Collections.addAll(list, BuiltInConnectionProperty.values());
-    Collections.addAll(list, OptiqConnectionProperty.values());
+    Collections.addAll(list, CalciteConnectionProperty.values());
     return list;
   }
 
   /** Creates an internal connection. */
-  OptiqConnection connect(OptiqRootSchema rootSchema,
+  CalciteConnection connect(CalciteRootSchema rootSchema,
       JavaTypeFactory typeFactory) {
-    return (OptiqConnection) ((OptiqFactory) factory)
+    return (CalciteConnection) ((CalciteFactory) factory)
         .newConnection(this, factory, CONNECT_STRING_PREFIX, new Properties(),
             rootSchema, typeFactory);
   }

@@ -15,21 +15,28 @@
  * limitations under the License.
  */
 
-package org.eigenbase.rel;
+package org.apache.calcite.rel.core;
+
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.RelCollation;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.logical.LogicalAggregate;
+import org.apache.calcite.rel.logical.LogicalFilter;
+import org.apache.calcite.rel.logical.LogicalIntersect;
+import org.apache.calcite.rel.logical.LogicalJoin;
+import org.apache.calcite.rel.logical.LogicalMinus;
+import org.apache.calcite.rel.logical.LogicalUnion;
+import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.sql.SqlKind;
+
+import com.google.common.collect.ImmutableList;
 
 import java.util.BitSet;
 import java.util.List;
 import java.util.Set;
-
-import org.eigenbase.rel.rules.SemiJoinRel;
-import org.eigenbase.relopt.RelOptCluster;
-import org.eigenbase.relopt.RelOptUtil;
-import org.eigenbase.relopt.RelTraitSet;
-import org.eigenbase.reltype.RelDataTypeField;
-import org.eigenbase.rex.RexNode;
-import org.eigenbase.sql.SqlKind;
-
-import com.google.common.collect.ImmutableList;
 
 /**
  * Contains factory interface and default implementation for creating various
@@ -60,8 +67,9 @@ public class RelFactories {
   }
 
   /**
-   * Can create a {@link org.eigenbase.rel.ProjectRel} of the appropriate type
-   * for this rule's calling convention.
+   * Can create a
+   * {@link org.apache.calcite.rel.logical.LogicalProject} of the
+   * appropriate type for this rule's calling convention.
    */
   public interface ProjectFactory {
     /** Creates a project. */
@@ -71,7 +79,7 @@ public class RelFactories {
 
   /**
    * Implementation of {@link ProjectFactory} that returns a vanilla
-   * {@link ProjectRel}.
+   * {@link org.apache.calcite.rel.logical.LogicalProject}.
    */
   private static class ProjectFactoryImpl implements ProjectFactory {
     public RelNode createProject(RelNode child,
@@ -81,7 +89,7 @@ public class RelFactories {
   }
 
   /**
-   * Can create a {@link org.eigenbase.rel.SortRel} of the appropriate type
+   * Can create a {@link Sort} of the appropriate type
    * for this rule's calling convention.
    */
   public interface SortFactory {
@@ -91,19 +99,19 @@ public class RelFactories {
   }
 
   /**
-   * Implementation of {@link org.eigenbase.rel.RelFactories.SortFactory} that
-   * returns a vanilla {@link SortRel}.
+   * Implementation of {@link RelFactories.SortFactory} that
+   * returns a vanilla {@link Sort}.
    */
   private static class SortFactoryImpl implements SortFactory {
     public RelNode createSort(RelTraitSet traits, RelNode child,
         RelCollation collation, RexNode offset, RexNode fetch) {
-      return new SortRel(child.getCluster(), traits, child, collation,
+      return new Sort(child.getCluster(), traits, child, collation,
           offset, fetch);
     }
   }
 
   /**
-   * Can create a {@link org.eigenbase.rel.SetOpRel} for a particular kind of
+   * Can create a {@link SetOp} for a particular kind of
    * set operation (UNION, EXCEPT, INTERSECT) and of the appropriate type
    * for this rule's calling convention.
    */
@@ -113,8 +121,8 @@ public class RelFactories {
   }
 
   /**
-   * Implementation of {@link org.eigenbase.rel.RelFactories.SetOpFactory} that
-   * returns a vanilla {@link SetOpRel} for the particular kind of set
+   * Implementation of {@link RelFactories.SetOpFactory} that
+   * returns a vanilla {@link SetOp} for the particular kind of set
    * operation (UNION, EXCEPT, INTERSECT).
    */
   private static class SetOpFactoryImpl implements SetOpFactory {
@@ -123,11 +131,11 @@ public class RelFactories {
       final RelOptCluster cluster = inputs.get(0).getCluster();
       switch (kind) {
       case UNION:
-        return new UnionRel(cluster, inputs, all);
+        return new LogicalUnion(cluster, inputs, all);
       case EXCEPT:
-        return new MinusRel(cluster, inputs, all);
+        return new LogicalMinus(cluster, inputs, all);
       case INTERSECT:
-        return new IntersectRel(cluster, inputs, all);
+        return new LogicalIntersect(cluster, inputs, all);
       default:
         throw new AssertionError("not a set op: " + kind);
       }
@@ -135,7 +143,7 @@ public class RelFactories {
   }
 
   /**
-   * Can create a {@link org.eigenbase.rel.AggregateRel} of the appropriate type
+   * Can create a {@link LogicalAggregate} of the appropriate type
    * for this rule's calling convention.
    */
   public interface AggregateFactory {
@@ -145,18 +153,19 @@ public class RelFactories {
   }
 
   /**
-   * Implementation of {@link org.eigenbase.rel.RelFactories.AggregateFactory}
-   * that returns a vanilla {@link AggregateRel}.
+   * Implementation of {@link RelFactories.AggregateFactory}
+   * that returns a vanilla {@link LogicalAggregate}.
    */
   private static class AggregateFactoryImpl implements AggregateFactory {
     public RelNode createAggregate(RelNode child, BitSet groupSet,
         List<AggregateCall> aggCalls) {
-      return new AggregateRel(child.getCluster(), child, groupSet, aggCalls);
+      return new LogicalAggregate(child.getCluster(), child, groupSet,
+          aggCalls);
     }
   }
 
   /**
-   * Can create a {@link org.eigenbase.rel.FilterRel} of the appropriate type
+   * Can create a {@link LogicalFilter} of the appropriate type
    * for this rule's calling convention.
    */
   public interface FilterFactory {
@@ -165,19 +174,19 @@ public class RelFactories {
   }
 
   /**
-   * Implementation of {@link org.eigenbase.rel.RelFactories.FilterFactory} that
-   * returns a vanilla {@link FilterRel}.
+   * Implementation of {@link RelFactories.FilterFactory} that
+   * returns a vanilla {@link LogicalFilter}.
    */
   private static class FilterFactoryImpl implements FilterFactory {
     public RelNode createFilter(RelNode child, RexNode condition) {
-      return new FilterRel(child.getCluster(), child, condition);
+      return new LogicalFilter(child.getCluster(), child, condition);
     }
   }
 
   /**
    * Can create a join of the appropriate type for a rule's calling convention.
    *
-   * <p>The result is typically a {@link org.eigenbase.rel.JoinRelBase}.
+   * <p>The result is typically a {@link Join}.
    */
   public interface JoinFactory {
     /**
@@ -189,7 +198,7 @@ public class RelFactories {
      * @param joinType         Join type
      * @param variablesStopped Set of names of variables which are set by the
      *                         LHS and used by the RHS and are not available to
-     *                         nodes above this JoinRel in the tree
+     *                         nodes above this LogicalJoin in the tree
      * @param semiJoinDone     Whether this join has been translated to a
      *                         semi-join
      */
@@ -200,14 +209,14 @@ public class RelFactories {
 
   /**
    * Implementation of {@link JoinFactory} that returns a vanilla
-   * {@link JoinRel}.
+   * {@link org.apache.calcite.rel.logical.LogicalJoin}.
    */
   private static class JoinFactoryImpl implements JoinFactory {
     public RelNode createJoin(RelNode left, RelNode right,
         RexNode condition, JoinRelType joinType,
         Set<String> variablesStopped, boolean semiJoinDone) {
       final RelOptCluster cluster = left.getCluster();
-      return new JoinRel(cluster, left, right, condition, joinType,
+      return new LogicalJoin(cluster, left, right, condition, joinType,
           variablesStopped, semiJoinDone, ImmutableList.<RelDataTypeField>of());
     }
   }
@@ -229,13 +238,13 @@ public class RelFactories {
 
   /**
    * Implementation of {@link SemiJoinFactory} that returns a vanilla
-   * {@link SemiJoinRel}.
+   * {@link SemiJoin}.
    */
   private static class SemiJoinFactoryImpl implements SemiJoinFactory {
     public RelNode createSemiJoin(RelNode left, RelNode right,
         RexNode condition) {
       final JoinInfo joinInfo = JoinInfo.of(left, right, condition);
-      return new SemiJoinRel(left.getCluster(), left.getTraitSet(), left, right,
+      return new SemiJoin(left.getCluster(), left.getTraitSet(), left, right,
         condition, joinInfo.leftKeys, joinInfo.rightKeys);
     }
   }

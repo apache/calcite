@@ -14,25 +14,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql;
+package org.apache.calcite.sql;
 
-import java.util.*;
-
-import org.eigenbase.reltype.RelDataType;
-import org.eigenbase.rex.RexWindowBound;
-import org.eigenbase.sql.parser.*;
-import org.eigenbase.sql.type.ReturnTypes;
-import org.eigenbase.sql.type.SqlTypeFamily;
-import org.eigenbase.sql.util.SqlBasicVisitor;
-import org.eigenbase.sql.util.SqlVisitor;
-import org.eigenbase.sql.validate.*;
-import org.eigenbase.util.*;
-
-import net.hydromatic.linq4j.Ord;
+import org.apache.calcite.linq4j.Ord;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rex.RexWindowBound;
+import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.type.ReturnTypes;
+import org.apache.calcite.sql.type.SqlTypeFamily;
+import org.apache.calcite.sql.util.SqlBasicVisitor;
+import org.apache.calcite.sql.util.SqlVisitor;
+import org.apache.calcite.sql.validate.SqlMoniker;
+import org.apache.calcite.sql.validate.SqlMonotonicity;
+import org.apache.calcite.sql.validate.SqlValidator;
+import org.apache.calcite.sql.validate.SqlValidatorScope;
+import org.apache.calcite.util.ImmutableNullableList;
+import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
-import static org.eigenbase.util.Static.RESOURCE;
+import java.util.ArrayList;
+import java.util.List;
+
+import static org.apache.calcite.util.Static.RESOURCE;
 
 /**
  * SQL window specification.
@@ -218,10 +222,12 @@ public class SqlWindow extends SqlCall {
    * Returns if the window is guaranteed to have rows.
    * This is useful to refine data type of window aggregates.
    * For instance sum(non-nullable) over (empty window) is NULL.
+   *
    * @return true when the window is non-empty
-   * @see org.eigenbase.rel.WindowRelBase.Window#isAlwaysNonEmpty()
+   *
+   * @see org.apache.calcite.rel.core.Window.Group#isAlwaysNonEmpty()
    * @see SqlOperatorBinding#getGroupCount()
-   * @see org.eigenbase.sql.validate.SqlValidatorImpl#resolveWindow(SqlNode, org.eigenbase.sql.validate.SqlValidatorScope, boolean)
+   * @see org.apache.calcite.sql.validate.SqlValidatorImpl#resolveWindow(SqlNode, org.apache.calcite.sql.validate.SqlValidatorScope, boolean)
    */
   public boolean isAlwaysNonEmpty() {
     final SqlWindow tmp;
@@ -517,8 +523,8 @@ public class SqlWindow extends SqlCall {
         || allowPartial.booleanValue();
   }
 
-  @Override
-  public void validate(SqlValidator validator, SqlValidatorScope scope) {
+  @Override public void validate(SqlValidator validator,
+      SqlValidatorScope scope) {
     SqlValidatorScope operandScope = scope; // REVIEW
 
     SqlIdentifier declName = this.declName;

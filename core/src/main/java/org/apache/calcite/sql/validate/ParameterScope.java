@@ -14,16 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql.validate;
+package org.apache.calcite.sql.validate;
 
-import java.util.*;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlIdentifier;
 
-import org.eigenbase.reltype.*;
-import org.eigenbase.sql.*;
+import java.util.Map;
 
 /**
- * A scope which contains nothing besides a few parameters. Like {@link
- * EmptyScope} (which is its base class), it has no parent scope.
+ * A scope which contains nothing besides a few parameters. Like
+ * {@link EmptyScope} (which is its base class), it has no parent scope.
  *
  * @see ParameterNamespace
  */

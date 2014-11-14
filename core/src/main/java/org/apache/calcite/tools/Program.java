@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.tools;
+package org.apache.calcite.tools;
 
-import org.eigenbase.rel.RelNode;
-import org.eigenbase.relopt.RelOptPlanner;
-import org.eigenbase.relopt.RelTraitSet;
+import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.RelNode;
 
 /**
  * Program that transforms a relational expression into another relational
@@ -27,7 +27,7 @@ import org.eigenbase.relopt.RelTraitSet;
  * <p>A planner is a sequence of programs, each of which is sometimes called
  * a "phase".
  * The most typical program is an invocation of the volcano planner with a
- * particular {@link net.hydromatic.optiq.tools.RuleSet}.</p>
+ * particular {@link org.apache.calcite.tools.RuleSet}.</p>
  */
 public interface Program {
   RelNode run(RelOptPlanner planner, RelNode rel,

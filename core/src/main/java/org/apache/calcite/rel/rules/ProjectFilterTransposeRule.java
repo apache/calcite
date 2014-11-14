@@ -14,19 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel.rules;
+package org.apache.calcite.rel.rules;
 
-import org.eigenbase.rel.*;
-import org.eigenbase.relopt.*;
-import org.eigenbase.rex.*;
+import org.apache.calcite.plan.RelOptRule;
+import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.logical.LogicalFilter;
+import org.apache.calcite.rel.logical.LogicalProject;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexOver;
 
 /**
- * PushProjectPastFilterRule implements the rule for pushing a projection past a
- * filter.
+ * Planner rule that pushes a {@link org.apache.calcite.rel.core.Project}
+ * past a {@link org.apache.calcite.rel.core.Filter}.
  */
-public class PushProjectPastFilterRule extends RelOptRule {
-  public static final PushProjectPastFilterRule INSTANCE =
-      new PushProjectPastFilterRule(PushProjector.ExprCondition.FALSE);
+public class ProjectFilterTransposeRule extends RelOptRule {
+  public static final ProjectFilterTransposeRule INSTANCE =
+      new ProjectFilterTransposeRule(PushProjector.ExprCondition.FALSE);
 
   //~ Instance fields --------------------------------------------------------
 
@@ -38,17 +42,17 @@ public class PushProjectPastFilterRule extends RelOptRule {
   //~ Constructors -----------------------------------------------------------
 
   /**
-   * Creates a PushProjectPastFilterRule.
+   * Creates a ProjectFilterTransposeRule.
    *
    * @param preserveExprCondition Condition for expressions that should be
    *                              preserved in the projection
    */
-  private PushProjectPastFilterRule(
+  private ProjectFilterTransposeRule(
       PushProjector.ExprCondition preserveExprCondition) {
     super(
         operand(
-            ProjectRel.class,
-            operand(FilterRel.class, any())));
+            LogicalProject.class,
+            operand(LogicalFilter.class, any())));
     this.preserveExprCondition = preserveExprCondition;
   }
 
@@ -56,18 +60,18 @@ public class PushProjectPastFilterRule extends RelOptRule {
 
   // implement RelOptRule
   public void onMatch(RelOptRuleCall call) {
-    ProjectRel origProj;
-    FilterRel filterRel;
+    LogicalProject origProj;
+    LogicalFilter filter;
 
     if (call.rels.length == 2) {
       origProj = call.rel(0);
-      filterRel = call.rel(1);
+      filter = call.rel(1);
     } else {
       origProj = null;
-      filterRel = call.rel(0);
+      filter = call.rel(0);
     }
-    RelNode rel = filterRel.getChild();
-    RexNode origFilter = filterRel.getCondition();
+    RelNode rel = filter.getInput();
+    RexNode origFilter = filter.getCondition();
 
     if ((origProj != null)
         && RexOver.containsOver(origProj.getProjects(), null)) {
@@ -90,4 +94,4 @@ public class PushProjectPastFilterRule extends RelOptRule {
   }
 }
 
-// End PushProjectPastFilterRule.java
+// End ProjectFilterTransposeRule.java

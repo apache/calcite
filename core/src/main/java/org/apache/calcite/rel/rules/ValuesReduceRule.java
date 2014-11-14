@@ -14,22 +14,37 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel.rules;
+package org.apache.calcite.rel.rules;
+
+import org.apache.calcite.plan.RelOptRule;
+import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.plan.RelOptRuleOperand;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.Empty;
+import org.apache.calcite.rel.logical.LogicalFilter;
+import org.apache.calcite.rel.logical.LogicalProject;
+import org.apache.calcite.rel.logical.LogicalValues;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexInputRef;
+import org.apache.calcite.rex.RexLiteral;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexShuttle;
+import org.apache.calcite.rex.RexUtil;
+import org.apache.calcite.util.Util;
+import org.apache.calcite.util.trace.CalciteTrace;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Logger;
 
-import org.eigenbase.rel.*;
-import org.eigenbase.relopt.*;
-import org.eigenbase.reltype.RelDataType;
-import org.eigenbase.rex.*;
-import org.eigenbase.trace.EigenbaseTrace;
-import org.eigenbase.util.Util;
-
 /**
  * Planner rule that folds projections and filters into an underlying
- * {@link ValuesRel}. Returns an {@link EmptyRel} if all rows are filtered away.
+ * {@link org.apache.calcite.rel.logical.LogicalValues}.
+ *
+ * <p>Returns a simplified {@code Values},
+ * or an {@link org.apache.calcite.rel.core.Empty} if all rows are
+ * filtered away.
  *
  * <p>For example,</p>
  *
@@ -40,23 +55,23 @@ import org.eigenbase.util.Util;
  *
  * <blockquote><code>select x from (values (-2), (-4))</code></blockquote>
  */
-public abstract class ReduceValuesRule extends RelOptRule {
+public abstract class ValuesReduceRule extends RelOptRule {
   //~ Static fields/initializers ---------------------------------------------
 
-  private static final Logger LOGGER = EigenbaseTrace.getPlannerTracer();
+  private static final Logger LOGGER = CalciteTrace.getPlannerTracer();
 
   /**
    * Instance of this rule that applies to the pattern
    * Filter(Values).
    */
-  public static final ReduceValuesRule FILTER_INSTANCE =
-      new ReduceValuesRule(
-          operand(FilterRel.class,
-              operand(ValuesRel.class, none())),
-          "ReduceValuesRule[Filter") {
+  public static final ValuesReduceRule FILTER_INSTANCE =
+      new ValuesReduceRule(
+          operand(LogicalFilter.class,
+              operand(LogicalValues.class, none())),
+          "ValuesReduceRule[Filter") {
         public void onMatch(RelOptRuleCall call) {
-          FilterRel filter = call.rel(0);
-          ValuesRel values = call.rel(1);
+          LogicalFilter filter = call.rel(0);
+          LogicalValues values = call.rel(1);
           apply(call, null, filter, values);
         }
       };
@@ -65,14 +80,14 @@ public abstract class ReduceValuesRule extends RelOptRule {
    * Instance of this rule that applies to the pattern
    * Project(Values).
    */
-  public static final ReduceValuesRule PROJECT_INSTANCE =
-      new ReduceValuesRule(
-          operand(ProjectRel.class,
-              operand(ValuesRel.class, none())),
-          "ReduceValuesRule[Project]") {
+  public static final ValuesReduceRule PROJECT_INSTANCE =
+      new ValuesReduceRule(
+          operand(LogicalProject.class,
+              operand(LogicalValues.class, none())),
+          "ValuesReduceRule[Project]") {
         public void onMatch(RelOptRuleCall call) {
-          ProjectRel project = call.rel(0);
-          ValuesRel values = call.rel(1);
+          LogicalProject project = call.rel(0);
+          LogicalValues values = call.rel(1);
           apply(call, project, null, values);
         }
       };
@@ -81,16 +96,16 @@ public abstract class ReduceValuesRule extends RelOptRule {
    * Singleton instance of this rule that applies to the pattern
    * Project(Filter(Values)).
    */
-  public static final ReduceValuesRule PROJECT_FILTER_INSTANCE =
-      new ReduceValuesRule(
-          operand(ProjectRel.class,
-              operand(FilterRel.class,
-                  operand(ValuesRel.class, none()))),
-          "ReduceValuesRule[Project+Filter]") {
+  public static final ValuesReduceRule PROJECT_FILTER_INSTANCE =
+      new ValuesReduceRule(
+          operand(LogicalProject.class,
+              operand(LogicalFilter.class,
+                  operand(LogicalValues.class, none()))),
+          "ValuesReduceRule[Project+Filter]") {
         public void onMatch(RelOptRuleCall call) {
-          ProjectRel project = call.rel(0);
-          FilterRel filter = call.rel(1);
-          ValuesRel values = call.rel(2);
+          LogicalProject project = call.rel(0);
+          LogicalFilter filter = call.rel(1);
+          LogicalValues values = call.rel(2);
           apply(call, project, filter, values);
         }
       };
@@ -98,11 +113,11 @@ public abstract class ReduceValuesRule extends RelOptRule {
   //~ Constructors -----------------------------------------------------------
 
   /**
-   * Creates a ReduceValuesRule.
+   * Creates a ValuesReduceRule.
    *
    * @param operand class of rels to which this rule should apply
    */
-  private ReduceValuesRule(RelOptRuleOperand operand, String desc) {
+  private ValuesReduceRule(RelOptRuleOperand operand, String desc) {
     super(operand, desc);
     Util.discard(LOGGER);
   }
@@ -117,8 +132,8 @@ public abstract class ReduceValuesRule extends RelOptRule {
    * @param filter  Filter, may be null
    * @param values  Values rel to be reduced
    */
-  protected void apply(RelOptRuleCall call, ProjectRel project,
-      FilterRel filter, ValuesRel values) {
+  protected void apply(RelOptRuleCall call, LogicalProject project,
+      LogicalFilter filter, LogicalValues values) {
     assert values != null;
     assert filter != null || project != null;
     final RexNode conditionExpr =
@@ -203,12 +218,12 @@ public abstract class ReduceValuesRule extends RelOptRule {
       final RelNode newRel;
       if (tupleList.isEmpty()) {
         newRel =
-            new EmptyRel(
+            new Empty(
                 values.getCluster(),
                 rowType);
       } else {
         newRel =
-            new ValuesRel(
+            new LogicalValues(
                 values.getCluster(),
                 rowType,
                 tupleList);
@@ -241,4 +256,4 @@ public abstract class ReduceValuesRule extends RelOptRule {
   }
 }
 
-// End ReduceValuesRule.java
+// End ValuesReduceRule.java

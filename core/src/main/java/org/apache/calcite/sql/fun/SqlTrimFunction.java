@@ -14,16 +14,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql.fun;
+package org.apache.calcite.sql.fun;
+
+import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlCallBinding;
+import org.apache.calcite.sql.SqlFunction;
+import org.apache.calcite.sql.SqlFunctionCategory;
+import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlLiteral;
+import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlWriter;
+import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.type.OperandTypes;
+import org.apache.calcite.sql.type.ReturnTypes;
+import org.apache.calcite.sql.type.SameOperandTypeChecker;
+import org.apache.calcite.sql.type.SqlTypeFamily;
+import org.apache.calcite.sql.type.SqlTypeTransforms;
+import org.apache.calcite.sql.type.SqlTypeUtil;
+
+import com.google.common.collect.ImmutableList;
 
 import java.util.Arrays;
 import java.util.List;
-
-import org.eigenbase.sql.*;
-import org.eigenbase.sql.parser.*;
-import org.eigenbase.sql.type.*;
-
-import com.google.common.collect.ImmutableList;
 
 /**
  * Definition of the "TRIM" builtin SQL function.
@@ -78,8 +90,8 @@ public class SqlTrimFunction extends SqlFunction {
                 SqlTypeFamily.ANY, SqlTypeFamily.STRING, SqlTypeFamily.STRING),
             // Arguments 1 and 2 must have same type
             new SameOperandTypeChecker(3) {
-              @Override
-              protected List<Integer> getOperandList(int operandCount) {
+              @Override protected List<Integer>
+              getOperandList(int operandCount) {
                 return ImmutableList.of(1, 2);
               }
             }),

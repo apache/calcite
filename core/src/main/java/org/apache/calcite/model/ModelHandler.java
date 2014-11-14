@@ -14,44 +14,61 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.model;
+package org.apache.calcite.model;
 
-import net.hydromatic.optiq.*;
-import net.hydromatic.optiq.impl.*;
-import net.hydromatic.optiq.impl.jdbc.JdbcSchema;
-import net.hydromatic.optiq.jdbc.OptiqConnection;
-import net.hydromatic.optiq.jdbc.OptiqSchema;
-import net.hydromatic.optiq.materialize.Lattice;
-
-import org.eigenbase.util.Pair;
-import org.eigenbase.util.Util;
+import org.apache.calcite.adapter.jdbc.JdbcSchema;
+import org.apache.calcite.jdbc.CalciteConnection;
+import org.apache.calcite.jdbc.CalciteSchema;
+import org.apache.calcite.materialize.Lattice;
+import org.apache.calcite.schema.AggregateFunction;
+import org.apache.calcite.schema.ScalarFunction;
+import org.apache.calcite.schema.Schema;
+import org.apache.calcite.schema.SchemaFactory;
+import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.schema.Table;
+import org.apache.calcite.schema.TableFactory;
+import org.apache.calcite.schema.TableFunction;
+import org.apache.calcite.schema.TableMacro;
+import org.apache.calcite.schema.impl.AbstractSchema;
+import org.apache.calcite.schema.impl.AggregateFunctionImpl;
+import org.apache.calcite.schema.impl.MaterializedViewTable;
+import org.apache.calcite.schema.impl.ScalarFunctionImpl;
+import org.apache.calcite.schema.impl.TableFunctionImpl;
+import org.apache.calcite.schema.impl.TableMacroImpl;
+import org.apache.calcite.schema.impl.ViewTable;
+import org.apache.calcite.util.Pair;
+import org.apache.calcite.util.Util;
 
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
 import java.io.File;
 import java.io.IOException;
 import java.sql.SQLException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 import javax.sql.DataSource;
 
-import static org.eigenbase.util.Stacks.*;
+import static org.apache.calcite.util.Stacks.peek;
+import static org.apache.calcite.util.Stacks.pop;
+import static org.apache.calcite.util.Stacks.push;
 
 /**
  * Reads a model and creates schema objects accordingly.
  */
 public class ModelHandler {
-  private final OptiqConnection connection;
+  private final CalciteConnection connection;
   private final List<Pair<String, SchemaPlus>> schemaStack =
       new ArrayList<Pair<String, SchemaPlus>>();
   private final String modelUri;
   Lattice.Builder latticeBuilder;
   Lattice.TileBuilder tileBuilder;
 
-  public ModelHandler(OptiqConnection connection, String uri)
+  public ModelHandler(CalciteConnection connection, String uri)
       throws IOException {
     super();
     this.connection = connection;
@@ -194,8 +211,8 @@ public class ModelHandler {
       final Schema schema =
           schemaFactory.create(
               parentSchema, jsonSchema.name, operandMap(jsonSchema.operand));
-      final SchemaPlus optiqSchema = parentSchema.add(jsonSchema.name, schema);
-      populateSchema(jsonSchema, optiqSchema);
+      final SchemaPlus schemaPlus = parentSchema.add(jsonSchema.name, schema);
+      populateSchema(jsonSchema, schemaPlus);
     } catch (Exception e) {
       throw new RuntimeException("Error instantiating " + jsonSchema, e);
     }
@@ -232,8 +249,8 @@ public class ModelHandler {
     JdbcSchema schema =
         JdbcSchema.create(parentSchema, jsonSchema.name, dataSource,
             jsonSchema.jdbcCatalog, jsonSchema.jdbcSchema);
-    final SchemaPlus optiqSchema = parentSchema.add(jsonSchema.name, schema);
-    populateSchema(jsonSchema, optiqSchema);
+    final SchemaPlus schemaPlus = parentSchema.add(jsonSchema.name, schema);
+    populateSchema(jsonSchema, schemaPlus);
   }
 
   public void visit(JsonMaterialization jsonMaterialization) {
@@ -242,12 +259,12 @@ public class ModelHandler {
       if (!schema.isMutable()) {
         throw new RuntimeException(
             "Cannot define materialization; parent schema '"
-            + currentSchemaName()
-            + "' is not a SemiMutableSchema");
+                + currentSchemaName()
+                + "' is not a SemiMutableSchema");
       }
-      OptiqSchema optiqSchema = OptiqSchema.from(schema);
+      CalciteSchema calciteSchema = CalciteSchema.from(schema);
       schema.add(jsonMaterialization.view,
-          MaterializedViewTable.create(optiqSchema,
+          MaterializedViewTable.create(calciteSchema,
               jsonMaterialization.getSql(), null, jsonMaterialization.table));
     } catch (Exception e) {
       throw new RuntimeException("Error instantiating " + jsonMaterialization,
@@ -259,14 +276,13 @@ public class ModelHandler {
     try {
       final SchemaPlus schema = currentSchema();
       if (!schema.isMutable()) {
-        throw new RuntimeException(
-            "Cannot define lattice; parent schema '"
+        throw new RuntimeException("Cannot define lattice; parent schema '"
             + currentSchemaName()
             + "' is not a SemiMutableSchema");
       }
-      OptiqSchema optiqSchema = OptiqSchema.from(schema);
+      CalciteSchema calciteSchema = CalciteSchema.from(schema);
       Lattice.Builder latticeBuilder =
-          Lattice.builder(optiqSchema, jsonLattice.getSql())
+          Lattice.builder(calciteSchema, jsonLattice.getSql())
               .auto(jsonLattice.auto)
               .algorithm(jsonLattice.algorithm);
       if (jsonLattice.rowCountEstimate != null) {
@@ -333,9 +349,8 @@ public class ModelHandler {
   private SchemaPlus currentMutableSchema(String elementType) {
     final SchemaPlus schema = currentSchema();
     if (!schema.isMutable()) {
-      throw new RuntimeException(
-          "Cannot define " + elementType + "; parent schema '"
-          + schema.getName() + "' is not mutable");
+      throw new RuntimeException("Cannot define " + elementType
+          + "; parent schema '" + schema.getName() + "' is not mutable");
     }
     return schema;
   }

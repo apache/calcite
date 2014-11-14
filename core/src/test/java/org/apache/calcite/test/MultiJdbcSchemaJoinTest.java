@@ -14,25 +14,30 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.test;
+package org.apache.calcite.test;
 
-import net.hydromatic.optiq.SchemaPlus;
-import net.hydromatic.optiq.impl.java.ReflectiveSchema;
-import net.hydromatic.optiq.impl.jdbc.JdbcSchema;
-import net.hydromatic.optiq.jdbc.OptiqConnection;
-import net.hydromatic.optiq.prepare.OptiqPrepareImpl;
+import org.apache.calcite.adapter.java.ReflectiveSchema;
+import org.apache.calcite.adapter.jdbc.JdbcSchema;
+import org.apache.calcite.jdbc.CalciteConnection;
+import org.apache.calcite.prepare.CalcitePrepareImpl;
+import org.apache.calcite.schema.SchemaPlus;
 
 import com.google.common.collect.Sets;
 
 import org.junit.Test;
 
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import javax.sql.DataSource;
 
-import static org.hamcrest.CoreMatchers.*;
-import static org.junit.Assert.*;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
 
 /** Test case for joining tables from two different JDBC databases. */
 public class MultiJdbcSchemaJoinTest {
@@ -42,25 +47,24 @@ public class MultiJdbcSchemaJoinTest {
     final String db1 = TempDb.INSTANCE.getUrl();
     Connection c1 = DriverManager.getConnection(db1, "", "");
     Statement stmt1 = c1.createStatement();
-    stmt1.execute(
-        "create table table1(id varchar(10) not null primary key, "
-            + "field1 varchar(10))");
+    stmt1.execute("create table table1(id varchar(10) not null primary key, "
+        + "field1 varchar(10))");
     stmt1.execute("insert into table1 values('a', 'aaaa')");
     c1.close();
 
     final String db2 = TempDb.INSTANCE.getUrl();
     Connection c2 = DriverManager.getConnection(db2, "", "");
     Statement stmt2 = c2.createStatement();
-    stmt2.execute(
-        "create table table2(id varchar(10) not null primary key, "
-            + "field1 varchar(10))");
+    stmt2.execute("create table table2(id varchar(10) not null primary key, "
+        + "field1 varchar(10))");
     stmt2.execute("insert into table2 values('a', 'aaaa')");
     c2.close();
 
     // Connect via calcite to these databases
     Connection connection = DriverManager.getConnection("jdbc:calcite:");
-    OptiqConnection optiqConnection = connection.unwrap(OptiqConnection.class);
-    SchemaPlus rootSchema = optiqConnection.getRootSchema();
+    CalciteConnection calciteConnection =
+        connection.unwrap(CalciteConnection.class);
+    SchemaPlus rootSchema = calciteConnection.getRootSchema();
     final DataSource ds1 =
         JdbcSchema.dataSource(db1, "org.hsqldb.jdbcDriver", "", "");
     rootSchema.add("DB1",
@@ -71,10 +75,9 @@ public class MultiJdbcSchemaJoinTest {
         JdbcSchema.create(rootSchema, "DB2", ds2, null, null));
 
     Statement stmt3 = connection.createStatement();
-    ResultSet rs = stmt3.executeQuery(
-        "select table1.id, table1.field1 "
-            + "from db1.table1 join db2.table2 on table1.id = table2.id");
-    assertThat(OptiqAssert.toString(rs), equalTo("ID=a; FIELD1=aaaa\n"));
+    ResultSet rs = stmt3.executeQuery("select table1.id, table1.field1 "
+        + "from db1.table1 join db2.table2 on table1.id = table2.id");
+    assertThat(CalciteAssert.toString(rs), equalTo("ID=a; FIELD1=aaaa\n"));
   }
 
   /** Makes sure that {@link #test} is re-entrant.
@@ -90,22 +93,22 @@ public class MultiJdbcSchemaJoinTest {
     Statement stmt1 = c1.createStatement();
     // This is a table we can join with the emps from the hr schema
     stmt1.execute("create table table1(id integer not null primary key, "
-            + "field1 varchar(10))");
+        + "field1 varchar(10))");
     stmt1.execute("insert into table1 values(100, 'foo')");
     stmt1.execute("insert into table1 values(200, 'bar')");
     c1.close();
 
     // Make a Calcite schema with both a jdbc schema and a non-jdbc schema
-    Connection optiqConn = DriverManager.getConnection("jdbc:calcite:");
-    OptiqConnection optiqConnection =
-        optiqConn.unwrap(OptiqConnection.class);
-    SchemaPlus rootSchema = optiqConnection.getRootSchema();
+    Connection connection = DriverManager.getConnection("jdbc:calcite:");
+    CalciteConnection calciteConnection =
+        connection.unwrap(CalciteConnection.class);
+    SchemaPlus rootSchema = calciteConnection.getRootSchema();
     rootSchema.add("DB",
         JdbcSchema.create(rootSchema, "DB",
             JdbcSchema.dataSource(db, "org.hsqldb.jdbcDriver", "", ""),
             null, null));
     rootSchema.add("hr", new ReflectiveSchema(new JdbcTest.HrSchema()));
-    return optiqConn;
+    return connection;
   }
 
   @Test public void testJdbcWithEnumerableJoin() throws SQLException {
@@ -141,13 +144,13 @@ public class MultiJdbcSchemaJoinTest {
     assertThat(runQuery(setup(), query), equalTo(expected));
   }
 
-  private Set<Integer> runQuery(Connection optiqConn, String query)
+  private Set<Integer> runQuery(Connection calciteConnection, String query)
       throws SQLException {
     // Print out the plan
-    Statement stmt = optiqConn.createStatement();
+    Statement stmt = calciteConnection.createStatement();
     try {
       ResultSet rs;
-      if (OptiqPrepareImpl.DEBUG) {
+      if (CalcitePrepareImpl.DEBUG) {
         rs = stmt.executeQuery("explain plan for " + query);
         rs.next();
         System.out.println(rs.getString(1));
@@ -170,14 +173,14 @@ public class MultiJdbcSchemaJoinTest {
     final String db = TempDb.INSTANCE.getUrl();
     Connection c1 = DriverManager.getConnection(db, "", "");
     Statement stmt1 = c1.createStatement();
-    stmt1.execute(
-        "create table table1(id varchar(10) not null primary key, "
-            + "field1 varchar(10))");
+    stmt1.execute("create table table1(id varchar(10) not null primary key, "
+        + "field1 varchar(10))");
 
     // Connect via calcite to these databases
     Connection connection = DriverManager.getConnection("jdbc:calcite:");
-    OptiqConnection optiqConnection = connection.unwrap(OptiqConnection.class);
-    SchemaPlus rootSchema = optiqConnection.getRootSchema();
+    CalciteConnection calciteConnection =
+        connection.unwrap(CalciteConnection.class);
+    SchemaPlus rootSchema = calciteConnection.getRootSchema();
     final DataSource ds =
         JdbcSchema.dataSource(db, "org.hsqldb.jdbcDriver", "", "");
     final SchemaPlus s =
@@ -196,9 +199,8 @@ public class MultiJdbcSchemaJoinTest {
           equalTo("Table 'DB.TABLE2' not found"));
     }
 
-    stmt1.execute(
-        "create table table2(id varchar(10) not null primary key, "
-            + "field1 varchar(10))");
+    stmt1.execute("create table table2(id varchar(10) not null primary key, "
+        + "field1 varchar(10))");
     stmt1.execute("insert into table2 values('a', 'aaaa')");
 
     // fails, table not visible due to caching
@@ -213,7 +215,7 @@ public class MultiJdbcSchemaJoinTest {
     // disable caching and table becomes visible
     s.setCacheEnabled(false);
     rs = stmt3.executeQuery("select * from db.table2");
-    assertThat(OptiqAssert.toString(rs), equalTo("ID=a; FIELD1=aaaa\n"));
+    assertThat(CalciteAssert.toString(rs), equalTo("ID=a; FIELD1=aaaa\n"));
     c1.close();
   }
 

@@ -14,13 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.rules.java;
+package org.apache.calcite.adapter.enumerable;
 
-import net.hydromatic.linq4j.expressions.Expression;
+import org.apache.calcite.linq4j.tree.Expression;
 
 /**
- * Information for a call to {@link AggImplementor#implementAdd(AggContext, AggAddContext)}.
- * {@link WinAggAddContext} is used when implementing windowed aggregate.
+ * Information for a call to
+ * {@link AggImplementor#implementAdd(AggContext, AggAddContext)}.
+ *
+ * <p>{@link WinAggAddContext} is used when implementing windowed aggregate.
  * Typically, the aggregation implementation will use {@link #arguments()}
  * or {@link #rexArguments()} to update aggregate value.
  * @see AggAddContext

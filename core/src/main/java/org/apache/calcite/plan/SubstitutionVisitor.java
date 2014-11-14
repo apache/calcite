@@ -14,30 +14,48 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.relopt;
+package org.apache.calcite.plan;
 
-import java.util.*;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
-import org.eigenbase.rel.*;
-import org.eigenbase.rel.rules.RemoveTrivialProjectRule;
-import org.eigenbase.reltype.*;
-import org.eigenbase.rex.*;
-import org.eigenbase.sql.SqlAggFunction;
-import org.eigenbase.sql.SqlKind;
-import org.eigenbase.sql.fun.SqlStdOperatorTable;
-import org.eigenbase.sql.validate.SqlValidatorUtil;
-import org.eigenbase.trace.EigenbaseTrace;
-import org.eigenbase.util.*;
-import org.eigenbase.util.mapping.Mapping;
-import org.eigenbase.util.mapping.Mappings;
-
-import net.hydromatic.linq4j.Ord;
-
-import net.hydromatic.optiq.prepare.OptiqPrepareImpl;
-import net.hydromatic.optiq.runtime.Spaces;
-import net.hydromatic.optiq.util.BitSets;
+import org.apache.calcite.linq4j.Ord;
+import org.apache.calcite.prepare.CalcitePrepareImpl;
+import org.apache.calcite.rel.RelCollation;
+import org.apache.calcite.rel.RelCollationImpl;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.SingleRel;
+import org.apache.calcite.rel.core.Aggregate;
+import org.apache.calcite.rel.core.AggregateCall;
+import org.apache.calcite.rel.core.Filter;
+import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.core.Sort;
+import org.apache.calcite.rel.core.TableScan;
+import org.apache.calcite.rel.core.Values;
+import org.apache.calcite.rel.logical.LogicalAggregate;
+import org.apache.calcite.rel.logical.LogicalFilter;
+import org.apache.calcite.rel.logical.LogicalProject;
+import org.apache.calcite.rel.logical.LogicalUnion;
+import org.apache.calcite.rel.rules.ProjectRemoveRule;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexInputRef;
+import org.apache.calcite.rex.RexLiteral;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexShuttle;
+import org.apache.calcite.rex.RexUtil;
+import org.apache.calcite.runtime.Spaces;
+import org.apache.calcite.sql.SqlAggFunction;
+import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.validate.SqlValidatorUtil;
+import org.apache.calcite.util.BitSets;
+import org.apache.calcite.util.ControlFlowException;
+import org.apache.calcite.util.IntList;
+import org.apache.calcite.util.Pair;
+import org.apache.calcite.util.Util;
+import org.apache.calcite.util.mapping.Mapping;
+import org.apache.calcite.util.mapping.Mappings;
+import org.apache.calcite.util.trace.CalciteTrace;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Equivalence;
@@ -45,7 +63,23 @@ import com.google.common.base.Function;
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
-import com.google.common.collect.*;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.LinkedHashMultimap;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Multimap;
+import com.google.common.collect.Sets;
+
+import java.util.AbstractList;
+import java.util.ArrayList;
+import java.util.BitSet;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Substitutes part of a tree of relational expressions with another tree.
@@ -71,17 +105,17 @@ import com.google.common.collect.*;
  * At each level, returns the residue.</p>
  *
  * <p>The inputs must only include the core relational operators:
- * {@link TableAccessRel},
- * {@link FilterRel},
- * {@link ProjectRel},
- * {@link JoinRel},
- * {@link UnionRel},
- * {@link AggregateRel}.</p>
+ * {@link org.apache.calcite.rel.logical.LogicalTableScan},
+ * {@link org.apache.calcite.rel.logical.LogicalFilter},
+ * {@link org.apache.calcite.rel.logical.LogicalProject},
+ * {@link org.apache.calcite.rel.logical.LogicalJoin},
+ * {@link org.apache.calcite.rel.logical.LogicalUnion},
+ * {@link org.apache.calcite.rel.logical.LogicalAggregate}.</p>
  */
 public class SubstitutionVisitor {
-  private static final boolean DEBUG = OptiqPrepareImpl.DEBUG;
+  private static final boolean DEBUG = CalcitePrepareImpl.DEBUG;
 
-  private static final Logger LOGGER = EigenbaseTrace.getPlannerTracer();
+  private static final Logger LOGGER = CalciteTrace.getPlannerTracer();
 
   /** Equivalence that compares objects by their {@link Object#toString()}
    * method. */
@@ -170,26 +204,26 @@ public class SubstitutionVisitor {
   }
 
   private static MutableRel toMutable(RelNode rel) {
-    if (rel instanceof TableAccessRelBase) {
-      return MutableScan.of((TableAccessRelBase) rel);
+    if (rel instanceof TableScan) {
+      return MutableScan.of((TableScan) rel);
     }
-    if (rel instanceof ValuesRelBase) {
-      return MutableValues.of((ValuesRelBase) rel);
+    if (rel instanceof Values) {
+      return MutableValues.of((Values) rel);
     }
-    if (rel instanceof ProjectRelBase) {
-      final ProjectRelBase project = (ProjectRelBase) rel;
-      final MutableRel input = toMutable(project.getChild());
+    if (rel instanceof Project) {
+      final Project project = (Project) rel;
+      final MutableRel input = toMutable(project.getInput());
       return MutableProject.of(input, project.getProjects(),
           project.getRowType().getFieldNames());
     }
-    if (rel instanceof FilterRelBase) {
-      final FilterRelBase filter = (FilterRelBase) rel;
-      final MutableRel input = toMutable(filter.getChild());
+    if (rel instanceof Filter) {
+      final Filter filter = (Filter) rel;
+      final MutableRel input = toMutable(filter.getInput());
       return MutableFilter.of(input, filter.getCondition());
     }
-    if (rel instanceof AggregateRelBase) {
-      final AggregateRelBase aggregate = (AggregateRelBase) rel;
-      final MutableRel input = toMutable(aggregate.getChild());
+    if (rel instanceof Aggregate) {
+      final Aggregate aggregate = (Aggregate) rel;
+      final MutableRel input = toMutable(aggregate.getInput());
       return MutableAggregate.of(input, aggregate.getGroupSet(),
           aggregate.getAggCallList());
     }
@@ -462,19 +496,18 @@ public class SubstitutionVisitor {
     final MutableRel node0 = unifyResult.result;
     MutableRel node = node0; // replaceAncestors(node0);
     if (DEBUG) {
-      System.out.println(
-          "Convert: query:\n"
-              + query.deep()
-              + "\nunify.query:\n"
-              + unifyResult.call.query.deep()
-              + "\nunify.result:\n"
-              + unifyResult.result.deep()
-              + "\nunify.target:\n"
-              + unifyResult.call.target.deep()
-              + "\nnode0:\n"
-              + node0.deep()
-              + "\nnode:\n"
-              + node.deep());
+      System.out.println("Convert: query:\n"
+          + query.deep()
+          + "\nunify.query:\n"
+          + unifyResult.call.query.deep()
+          + "\nunify.result:\n"
+          + unifyResult.result.deep()
+          + "\nunify.target:\n"
+          + unifyResult.call.target.deep()
+          + "\nnode0:\n"
+          + node0.deep()
+          + "\nnode:\n"
+          + node.deep());
     }
     return fromMutable(node);
   }
@@ -555,25 +588,26 @@ public class SubstitutionVisitor {
       return ((MutableLeafRel) node).rel;
     case PROJECT:
       final MutableProject project = (MutableProject) node;
-      return new ProjectRel(node.cluster,
+      return new LogicalProject(node.cluster,
           node.cluster.traitSetOf(RelCollationImpl.EMPTY),
           fromMutable(project.input),
-          project.projects, project.rowType, ProjectRelBase.Flags.BOXED);
+          project.projects, project.rowType, Project.Flags.BOXED);
     case FILTER:
       final MutableFilter filter = (MutableFilter) node;
-      return new FilterRel(node.cluster, fromMutable(filter.input),
+      return new LogicalFilter(node.cluster, fromMutable(filter.input),
           filter.condition);
     case AGGREGATE:
       final MutableAggregate aggregate = (MutableAggregate) node;
-      return new AggregateRel(node.cluster, fromMutable(aggregate.input),
+      return new LogicalAggregate(node.cluster, fromMutable(aggregate.input),
           aggregate.groupSet, aggregate.aggCalls);
     case SORT:
       final MutableSort sort = (MutableSort) node;
-      return new SortRel(node.cluster, node.cluster.traitSetOf(sort.collation),
+      return new Sort(node.cluster, node.cluster.traitSetOf(sort.collation),
           fromMutable(sort.input), sort.collation, sort.offset, sort.fetch);
     case UNION:
       final MutableUnion union = (MutableUnion) node;
-      return new UnionRel(union.cluster, fromMutables(union.inputs), union.all);
+      return new LogicalUnion(union.cluster, fromMutables(union.inputs),
+          union.all);
     default:
       throw new AssertionError(node.deep());
     }
@@ -598,8 +632,7 @@ public class SubstitutionVisitor {
           final UnifyResult x = apply(rule, queryLeaf, target);
           if (x != null) {
             if (DEBUG) {
-              System.out.println(
-                  "Rule: " + rule
+              System.out.println("Rule: " + rule
                   + "\nQuery:\n"
                   + queryParent
                   + (x.call.query != queryParent
@@ -869,7 +902,7 @@ public class SubstitutionVisitor {
    *
    * <p>Matches scans to the same table, because these will be
    * {@link MutableScan}s with the same
-   * {@link org.eigenbase.rel.TableAccessRel} instance.</p>
+   * {@link org.apache.calcite.rel.logical.LogicalTableScan} instance.</p>
    */
   private static class TrivialRule extends AbstractUnifyRule {
     private static final TrivialRule INSTANCE = new TrivialRule();
@@ -886,7 +919,8 @@ public class SubstitutionVisitor {
     }
   }
 
-  /** Implementation of {@link UnifyRule} that matches {@link ProjectRel}. */
+  /** Implementation of {@link UnifyRule} that matches
+   * {@link org.apache.calcite.rel.logical.LogicalProject}. */
   private static class ProjectToProjectUnifyRule extends AbstractUnifyRule {
     public static final ProjectToProjectUnifyRule INSTANCE =
         new ProjectToProjectUnifyRule();
@@ -1077,8 +1111,10 @@ public class SubstitutionVisitor {
     }
   }
 
-  /** Implementation of {@link UnifyRule} that matches a {@link AggregateRel} to
-   * a {@link AggregateRel}, provided that they have the same child. */
+  /** Implementation of {@link UnifyRule} that matches a
+   * {@link org.apache.calcite.rel.logical.LogicalAggregate} to a
+   * {@link org.apache.calcite.rel.logical.LogicalAggregate}, provided
+   * that they have the same child. */
   private static class AggregateToAggregateUnifyRule extends AbstractUnifyRule {
     public static final AggregateToAggregateUnifyRule INSTANCE =
         new AggregateToAggregateUnifyRule();
@@ -1198,11 +1234,11 @@ public class SubstitutionVisitor {
     public UnifyResult apply(UnifyRuleCall call) {
       final MutableAggregate query = (MutableAggregate) call.query;
       final MutableAggregate target = (MutableAggregate) call.target;
-      if (!(query.getChild() instanceof MutableProject)) {
+      if (!(query.getInput() instanceof MutableProject)) {
         return null;
       }
-      final MutableProject project = (MutableProject) query.getChild();
-      if (project.getChild() != target.getChild()) {
+      final MutableProject project = (MutableProject) query.getInput();
+      if (project.getInput() != target.getInput()) {
         return null;
       }
       final Mappings.TargetMapping mapping = project.getMapping();
@@ -1210,18 +1246,18 @@ public class SubstitutionVisitor {
         return null;
       }
       final MutableAggregate aggregate2 =
-          permute(query, project.getChild(), mapping.inverse());
+          permute(query, project.getInput(), mapping.inverse());
       final MutableRel result = unifyAggregates(aggregate2, target);
       return result == null ? null : call.result(result);
     }
   }
 
-  public static SqlAggFunction getRollup(Aggregation aggregation) {
+  public static SqlAggFunction getRollup(SqlAggFunction aggregation) {
     if (aggregation == SqlStdOperatorTable.SUM
         || aggregation == SqlStdOperatorTable.MIN
         || aggregation == SqlStdOperatorTable.MAX
         || aggregation == SqlStdOperatorTable.SUM0) {
-      return (SqlAggFunction) aggregation;
+      return aggregation;
     } else if (aggregation == SqlStdOperatorTable.COUNT) {
       return SqlStdOperatorTable.SUM0;
     } else {
@@ -1426,18 +1462,19 @@ public class SubstitutionVisitor {
       visitor.visit(input);
     }
 
-    public MutableRel getChild() {
+    public MutableRel getInput() {
       return input;
     }
   }
 
-  /** Mutable equivalent of {@link TableAccessRel}. */
+  /** Mutable equivalent of
+   * {@link org.apache.calcite.rel.logical.LogicalTableScan}. */
   private static class MutableScan extends MutableLeafRel {
-    private MutableScan(TableAccessRelBase rel) {
+    private MutableScan(TableScan rel) {
       super(MutableRelType.SCAN, rel);
     }
 
-    static MutableScan of(TableAccessRelBase rel) {
+    static MutableScan of(TableScan rel) {
       return new MutableScan(rel);
     }
 
@@ -1457,13 +1494,13 @@ public class SubstitutionVisitor {
     }
   }
 
-  /** Mutable equivalent of {@link ValuesRelBase}. */
+  /** Mutable equivalent of {@link org.apache.calcite.rel.core.Values}. */
   private static class MutableValues extends MutableLeafRel {
-    private MutableValues(ValuesRelBase rel) {
+    private MutableValues(Values rel) {
       super(MutableRelType.VALUES, rel);
     }
 
-    static MutableValues of(ValuesRelBase rel) {
+    static MutableValues of(Values rel) {
       return new MutableValues(rel);
     }
 
@@ -1479,11 +1516,12 @@ public class SubstitutionVisitor {
 
     @Override public StringBuilder digest(StringBuilder buf) {
       return buf.append("Values(tuples: ")
-          .append(((ValuesRelBase) rel).getTuples()).append(")");
+          .append(((Values) rel).getTuples()).append(")");
     }
   }
 
-  /** Mutable equivalent of {@link ProjectRel}. */
+  /** Mutable equivalent of
+   * {@link org.apache.calcite.rel.logical.LogicalProject}. */
   private static class MutableProject extends MutableSingleRel {
     private final List<RexNode> projects;
 
@@ -1500,7 +1538,7 @@ public class SubstitutionVisitor {
     }
 
     /** Equivalent to
-     * {@link RelOptUtil#createProject(org.eigenbase.rel.RelNode, java.util.List, java.util.List)}
+     * {@link RelOptUtil#createProject(org.apache.calcite.rel.RelNode, java.util.List, java.util.List)}
      * for {@link MutableRel}. */
     static MutableRel of(MutableRel child, List<RexNode> exprList,
         List<String> fieldNameList) {
@@ -1540,12 +1578,13 @@ public class SubstitutionVisitor {
     }
 
     public Mappings.TargetMapping getMapping() {
-      return ProjectRelBase.getMapping(
+      return Project.getMapping(
           input.getRowType().getFieldCount(), projects);
     }
   }
 
-  /** Mutable equivalent of {@link FilterRel}. */
+  /** Mutable equivalent of
+   * {@link org.apache.calcite.rel.logical.LogicalFilter}. */
   private static class MutableFilter extends MutableSingleRel {
     private final RexNode condition;
 
@@ -1567,7 +1606,7 @@ public class SubstitutionVisitor {
     }
 
     @Override public int hashCode() {
-      return Util.hashV(input, condition.toString());
+      return Objects.hashCode(input, condition.toString());
     }
 
     @Override public StringBuilder digest(StringBuilder buf) {
@@ -1579,7 +1618,8 @@ public class SubstitutionVisitor {
     }
   }
 
-  /** Mutable equivalent of {@link AggregateRel}. */
+  /** Mutable equivalent of
+   * {@link org.apache.calcite.rel.logical.LogicalAggregate}. */
   private static class MutableAggregate extends MutableSingleRel {
     private final BitSet groupSet;
     private final List<AggregateCall> aggCalls;
@@ -1594,7 +1634,7 @@ public class SubstitutionVisitor {
     static MutableAggregate of(MutableRel input, BitSet groupSet,
         List<AggregateCall> aggCalls) {
       RelDataType rowType =
-          AggregateRelBase.deriveRowType(input.cluster.getTypeFactory(),
+          Aggregate.deriveRowType(input.cluster.getTypeFactory(),
               input.getRowType(), groupSet, aggCalls);
       return new MutableAggregate(input, rowType, groupSet, aggCalls);
     }
@@ -1608,7 +1648,7 @@ public class SubstitutionVisitor {
     }
 
     @Override public int hashCode() {
-      return Util.hashV(input, groupSet, aggCalls);
+      return Objects.hashCode(input, groupSet, aggCalls);
     }
 
     @Override public StringBuilder digest(StringBuilder buf) {
@@ -1625,7 +1665,7 @@ public class SubstitutionVisitor {
     }
   }
 
-  /** Mutable equivalent of {@link SortRel}. */
+  /** Mutable equivalent of {@link org.apache.calcite.rel.core.Sort}. */
   private static class MutableSort extends MutableSingleRel {
     private final RelCollation collation;
     private final RexNode offset;
@@ -1654,7 +1694,7 @@ public class SubstitutionVisitor {
     }
 
     @Override public int hashCode() {
-      return Util.hashV(input, collation, offset, fetch);
+      return Objects.hashCode(input, collation, offset, fetch);
     }
 
     @Override public StringBuilder digest(StringBuilder buf) {
@@ -1694,7 +1734,8 @@ public class SubstitutionVisitor {
     }
   }
 
-  /** Mutable equivalent of {@link UnionRel}. */
+  /** Mutable equivalent of
+   * {@link org.apache.calcite.rel.logical.LogicalUnion}. */
   private static class MutableUnion extends MutableSetOp {
     public boolean all;
 
@@ -1717,7 +1758,7 @@ public class SubstitutionVisitor {
     }
 
     @Override public int hashCode() {
-      return Util.hashV(type, inputs);
+      return Objects.hashCode(type, inputs);
     }
 
     @Override public StringBuilder digest(StringBuilder buf) {
@@ -1799,19 +1840,21 @@ public class SubstitutionVisitor {
       }
     }
 
-    /** Based on {@link RemoveTrivialProjectRule#strip}. */
+    /** Based on
+     * {@link org.apache.calcite.rel.rules.ProjectRemoveRule#strip}. */
     public static MutableRel strip(MutableProject project) {
-      return isTrivial(project) ? project.getChild() : project;
+      return isTrivial(project) ? project.getInput() : project;
     }
 
-    /** Based on {@link RemoveTrivialProjectRule#isTrivial(ProjectRelBase)}. */
+    /** Based on
+     * {@link org.apache.calcite.rel.rules.ProjectRemoveRule#isTrivial(org.apache.calcite.rel.core.Project)}. */
     public static boolean isTrivial(MutableProject project) {
-      MutableRel child = project.getChild();
+      MutableRel child = project.getInput();
       final RelDataType childRowType = child.getRowType();
       if (!childRowType.isStruct()) {
         return false;
       }
-      if (!RemoveTrivialProjectRule.isIdentity(
+      if (!ProjectRemoveRule.isIdentity(
           project.getProjects(),
           project.getRowType(),
           childRowType)) {
@@ -1820,7 +1863,8 @@ public class SubstitutionVisitor {
       return true;
     }
 
-    /** Equivalent to {@link RelOptUtil#createProject(org.eigenbase.rel.RelNode, java.util.List)}
+    /** Equivalent to
+     * {@link RelOptUtil#createProject(org.apache.calcite.rel.RelNode, java.util.List)}
      * for {@link MutableRel}. */
     public static MutableRel createProject(final MutableRel child,
         final List<Integer> posList) {
@@ -1844,7 +1888,7 @@ public class SubstitutionVisitor {
           });
     }
 
-    /** Equivalence to {@link org.eigenbase.relopt.RelOptUtil#createCastRel}
+    /** Equivalence to {@link org.apache.calcite.plan.RelOptUtil#createCastRel}
      * for {@link MutableRel}. */
     public static MutableRel createCastRel(MutableRel rel,
         RelDataType castRowType, boolean rename) {
@@ -1999,13 +2043,14 @@ public class SubstitutionVisitor {
   }
 
   /**
-   * Rule that converts a {@link FilterRel} on top of a {@link ProjectRel} into
-   * a trivial filter (on a boolean column).
+   * Rule that converts a {@link org.apache.calcite.rel.logical.LogicalFilter}
+   * on top of a {@link org.apache.calcite.rel.logical.LogicalProject} into a
+   * trivial filter (on a boolean column).
    */
   public static class FilterOnProjectRule extends RelOptRule {
-    private static final Predicate<FilterRel> PREDICATE =
-        new Predicate<FilterRel>() {
-          public boolean apply(FilterRel input) {
+    private static final Predicate<LogicalFilter> PREDICATE =
+        new Predicate<LogicalFilter>() {
+          public boolean apply(LogicalFilter input) {
             return input.getCondition() instanceof RexInputRef;
           }
         };
@@ -2015,13 +2060,13 @@ public class SubstitutionVisitor {
 
     private FilterOnProjectRule() {
       super(
-          operand(FilterRel.class, null, PREDICATE,
-              some(operand(ProjectRel.class, any()))));
+          operand(LogicalFilter.class, null, PREDICATE,
+              some(operand(LogicalProject.class, any()))));
     }
 
     public void onMatch(RelOptRuleCall call) {
-      final FilterRel filter = call.rel(0);
-      final ProjectRel project = call.rel(1);
+      final LogicalFilter filter = call.rel(0);
+      final LogicalProject project = call.rel(1);
 
       final List<RexNode> newProjects =
           new ArrayList<RexNode>(project.getProjects());
@@ -2035,7 +2080,7 @@ public class SubstitutionVisitor {
               .build();
       final RelNode newProject =
           project.copy(project.getTraitSet(),
-              project.getChild(),
+              project.getInput(),
               newProjects,
               newRowType);
 
@@ -2043,7 +2088,7 @@ public class SubstitutionVisitor {
           cluster.getRexBuilder().makeInputRef(newProject,
               newProjects.size() - 1);
 
-      call.transformTo(new FilterRel(cluster, newProject, newCondition));
+      call.transformTo(new LogicalFilter(cluster, newProject, newCondition));
     }
   }
 }

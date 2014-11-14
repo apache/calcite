@@ -14,13 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.rules.java;
+package org.apache.calcite.adapter.enumerable;
 
-import net.hydromatic.linq4j.expressions.Expression;
-import net.hydromatic.linq4j.expressions.Expressions;
-import net.hydromatic.linq4j.expressions.NewExpression;
-
-import org.eigenbase.rex.RexCall;
+import org.apache.calcite.linq4j.tree.Expression;
+import org.apache.calcite.linq4j.tree.Expressions;
+import org.apache.calcite.linq4j.tree.NewExpression;
+import org.apache.calcite.rex.RexCall;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -28,7 +27,7 @@ import java.util.List;
 
 /**
  * Implementation of
- * {@link net.hydromatic.optiq.rules.java.NotNullImplementor}
+ * {@link org.apache.calcite.adapter.enumerable.NotNullImplementor}
  * that calls a given {@link java.lang.reflect.Method}.
  *
  * <p>When method is not static, a new instance of the required class is

@@ -14,14 +14,47 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.linq4j;
+package org.apache.calcite.linq4j;
 
-import net.hydromatic.linq4j.function.*;
+import org.apache.calcite.linq4j.function.BigDecimalFunction1;
+import org.apache.calcite.linq4j.function.DoubleFunction1;
+import org.apache.calcite.linq4j.function.EqualityComparer;
+import org.apache.calcite.linq4j.function.FloatFunction1;
+import org.apache.calcite.linq4j.function.Function0;
+import org.apache.calcite.linq4j.function.Function1;
+import org.apache.calcite.linq4j.function.Function2;
+import org.apache.calcite.linq4j.function.Functions;
+import org.apache.calcite.linq4j.function.IntegerFunction1;
+import org.apache.calcite.linq4j.function.LongFunction1;
+import org.apache.calcite.linq4j.function.NullableBigDecimalFunction1;
+import org.apache.calcite.linq4j.function.NullableDoubleFunction1;
+import org.apache.calcite.linq4j.function.NullableFloatFunction1;
+import org.apache.calcite.linq4j.function.NullableIntegerFunction1;
+import org.apache.calcite.linq4j.function.NullableLongFunction1;
+import org.apache.calcite.linq4j.function.Predicate1;
+import org.apache.calcite.linq4j.function.Predicate2;
 
 import java.math.BigDecimal;
-import java.util.*;
+import java.util.AbstractList;
+import java.util.AbstractMap;
+import java.util.AbstractSet;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.NoSuchElementException;
+import java.util.RandomAccess;
+import java.util.Set;
+import java.util.TreeMap;
 
-import static net.hydromatic.linq4j.function.Functions.adapt;
+import static org.apache.calcite.linq4j.function.Functions.adapt;
 
 /**
  * Default implementations of methods in the {@link Enumerable} interface.
@@ -2250,13 +2283,11 @@ public abstract class EnumerableDefaults {
       return new Wrapped<T>(comparer, element);
     }
 
-    @Override
-    public int hashCode() {
+    @Override public int hashCode() {
       return comparer.hashCode(element);
     }
 
-    @Override
-    public boolean equals(Object obj) {
+    @Override public boolean equals(Object obj) {
       //noinspection unchecked
       return obj == this || obj instanceof Wrapped && comparer.equal(element,
           ((Wrapped<T>) obj).element);
@@ -2276,11 +2307,9 @@ public abstract class EnumerableDefaults {
       this.comparer = comparer;
     }
 
-    @Override
-    public Set<Entry<K, V>> entrySet() {
+    @Override public Set<Entry<K, V>> entrySet() {
       return new AbstractSet<Entry<K, V>>() {
-        @Override
-        public Iterator<Entry<K, V>> iterator() {
+        @Override public Iterator<Entry<K, V>> iterator() {
           final Iterator<Entry<Wrapped<K>, V>> iterator =
               map.entrySet().iterator();
 
@@ -2301,15 +2330,13 @@ public abstract class EnumerableDefaults {
           };
         }
 
-        @Override
-        public int size() {
+        @Override public int size() {
           return map.size();
         }
       };
     }
 
-    @Override
-    public boolean containsKey(Object key) {
+    @Override public boolean containsKey(Object key) {
       return map.containsKey(wrap((K) key));
     }
 
@@ -2317,28 +2344,23 @@ public abstract class EnumerableDefaults {
       return Wrapped.upAs(comparer, key);
     }
 
-    @Override
-    public V get(Object key) {
+    @Override public V get(Object key) {
       return map.get(wrap((K) key));
     }
 
-    @Override
-    public V put(K key, V value) {
+    @Override public V put(K key, V value) {
       return map.put(wrap(key), value);
     }
 
-    @Override
-    public V remove(Object key) {
+    @Override public V remove(Object key) {
       return map.remove(wrap((K) key));
     }
 
-    @Override
-    public void clear() {
+    @Override public void clear() {
       map.clear();
     }
 
-    @Override
-    public Collection<V> values() {
+    @Override public Collection<V> values() {
       return map.values();
     }
   }

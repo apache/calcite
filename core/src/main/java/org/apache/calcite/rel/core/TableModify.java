@@ -14,23 +14,40 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel;
+package org.apache.calcite.rel.core;
 
-import java.util.*;
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptCost;
+import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.prepare.Prepare;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelWriter;
+import org.apache.calcite.rel.SingleRel;
+import org.apache.calcite.rel.metadata.RelMetadataQuery;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.type.SqlTypeUtil;
 
-import org.eigenbase.rel.metadata.*;
-import org.eigenbase.relopt.*;
-import org.eigenbase.reltype.*;
-import org.eigenbase.sql.SqlKind;
-import org.eigenbase.sql.type.*;
-
-import net.hydromatic.optiq.prepare.Prepare;
+import java.util.Collections;
+import java.util.List;
 
 /**
- * <code>TableModificationRelBase</code> is an abstract base class for
- * implementations of {@link TableModificationRel}.
+ * Relational expression that modifies a table.
+ *
+ * It is similar to {@link org.apache.calcite.rel.core.TableScan},
+ * but represents a request to modify a table rather than read from it.
+ * It takes one child which produces the modified rows. Those rows are:
+ *
+ * <ul>
+ * <li>For {@code INSERT}, those rows are the new values;
+ * <li>for {@code DELETE}, the old values;
+ * <li>for {@code UPDATE}, all old values plus updated new values.
+ * </ul>
  */
-public abstract class TableModificationRelBase extends SingleRel {
+public abstract class TableModify extends SingleRel {
   //~ Enums ------------------------------------------------------------------
 
   /**
@@ -58,7 +75,7 @@ public abstract class TableModificationRelBase extends SingleRel {
 
   //~ Constructors -----------------------------------------------------------
 
-  protected TableModificationRelBase(
+  protected TableModify(
       RelOptCluster cluster,
       RelTraitSet traits,
       RelOptTable table,
@@ -181,4 +198,4 @@ public abstract class TableModificationRelBase extends SingleRel {
   }
 }
 
-// End TableModificationRelBase.java
+// End TableModify.java

@@ -14,21 +14,31 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel.rules;
+package org.apache.calcite.rel.rules;
 
-import java.util.*;
-
-import org.eigenbase.rel.*;
-import org.eigenbase.relopt.*;
-import org.eigenbase.rex.*;
-import org.eigenbase.sql.fun.*;
-import org.eigenbase.util.*;
-import org.eigenbase.util.mapping.IntPair;
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptQuery;
+import org.apache.calcite.plan.RelOptRule;
+import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.Correlation;
+import org.apache.calcite.rel.core.Correlator;
+import org.apache.calcite.rel.core.JoinInfo;
+import org.apache.calcite.rel.logical.LogicalJoin;
+import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.util.Util;
+import org.apache.calcite.util.mapping.IntPair;
 
 import com.google.common.collect.Lists;
 
+import java.util.List;
+
 /**
- * Rule which converts a {@link JoinRel} into a {@link CorrelatorRel}, which can
+ * Rule that converts a {@link org.apache.calcite.rel.logical.LogicalJoin}
+ * into a {@link org.apache.calcite.rel.core.Correlator}, which can
  * then be implemented using nested loops.
  *
  * <p>For example,</p>
@@ -36,8 +46,8 @@ import com.google.common.collect.Lists;
  * <blockquote><code>select * from emp join dept on emp.deptno =
  * dept.deptno</code></blockquote>
  *
- * <p>becomes a CorrelatorRel which restarts TableAccessRel("DEPT") for each row
- * read from TableAccessRel("EMP").</p>
+ * <p>becomes a Correlator which restarts LogicalTableScan("DEPT") for each
+ * row read from LogicalTableScan("EMP").</p>
  *
  * <p>This rule is not applicable if for certain types of outer join. For
  * example,</p>
@@ -46,27 +56,27 @@ import com.google.common.collect.Lists;
  * dept.deptno</code></blockquote>
  *
  * <p>would require emitting a NULL emp row if a certain department contained no
- * employees, and CorrelatorRel cannot do that.</p>
+ * employees, and Correlator cannot do that.</p>
  */
-public class NestedLoopsJoinRule extends RelOptRule {
+public class JoinToCorrelatorRule extends RelOptRule {
   //~ Static fields/initializers ---------------------------------------------
 
-  public static final NestedLoopsJoinRule INSTANCE =
-      new NestedLoopsJoinRule();
+  public static final JoinToCorrelatorRule INSTANCE =
+      new JoinToCorrelatorRule();
 
   //~ Constructors -----------------------------------------------------------
 
   /**
    * Private constructor; use singleton {@link #INSTANCE}.
    */
-  private NestedLoopsJoinRule() {
-    super(operand(JoinRel.class, any()));
+  private JoinToCorrelatorRule() {
+    super(operand(LogicalJoin.class, any()));
   }
 
   //~ Methods ----------------------------------------------------------------
 
   public boolean matches(RelOptRuleCall call) {
-    JoinRel join = call.rel(0);
+    LogicalJoin join = call.rel(0);
     switch (join.getJoinType()) {
     case INNER:
     case LEFT:
@@ -81,7 +91,7 @@ public class NestedLoopsJoinRule extends RelOptRule {
 
   public void onMatch(RelOptRuleCall call) {
     assert matches(call);
-    final JoinRel join = call.rel(0);
+    final LogicalJoin join = call.rel(0);
     RelNode right = join.getRight();
     final RelNode left = join.getLeft();
     final JoinInfo joinInfo = join.analyzeCondition();
@@ -105,7 +115,7 @@ public class NestedLoopsJoinRule extends RelOptRule {
     }
     final RelNode filteredRight = RelOptUtil.createFilter(right, conditions);
     RelNode newRel =
-        new CorrelatorRel(
+        new Correlator(
             join.getCluster(),
             left,
             filteredRight,
@@ -116,4 +126,4 @@ public class NestedLoopsJoinRule extends RelOptRule {
   }
 }
 
-// End NestedLoopsJoinRule.java
+// End JoinToCorrelatorRule.java

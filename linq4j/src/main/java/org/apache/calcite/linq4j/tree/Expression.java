@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.linq4j.expressions;
+package org.apache.calcite.linq4j.tree;
 
 import java.lang.reflect.Type;
 
@@ -40,8 +40,7 @@ public abstract class Expression extends AbstractNode {
     assert type != null;
   }
 
-  @Override
-  // More specific return type.
+  @Override // More specific return type.
   public abstract Expression accept(Visitor visitor);
 
   /**

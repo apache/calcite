@@ -14,27 +14,37 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel.metadata;
+package org.apache.calcite.rel.metadata;
 
-import java.util.*;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.Aggregate;
+import org.apache.calcite.rel.core.Correlator;
+import org.apache.calcite.rel.core.Filter;
+import org.apache.calcite.rel.core.Join;
+import org.apache.calcite.rel.core.JoinInfo;
+import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.core.SemiJoin;
+import org.apache.calcite.rel.core.Sort;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexInputRef;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.util.BitSets;
+import org.apache.calcite.util.BuiltInMethod;
 
-import org.eigenbase.rel.*;
-import org.eigenbase.rel.rules.*;
-import org.eigenbase.reltype.*;
-import org.eigenbase.rex.*;
-import org.eigenbase.sql.fun.*;
-
-import net.hydromatic.optiq.BuiltinMethod;
-import net.hydromatic.optiq.util.BitSets;
+import java.util.BitSet;
+import java.util.List;
 
 /**
- * RelMdColumnUniqueness supplies a default implementation of {@link
- * RelMetadataQuery#areColumnsUnique} for the standard logical algebra.
+ * RelMdColumnUniqueness supplies a default implementation of
+ * {@link RelMetadataQuery#areColumnsUnique} for the standard logical algebra.
  */
 public class RelMdColumnUniqueness {
   public static final RelMetadataProvider SOURCE =
       ReflectiveRelMetadataProvider.reflectiveSource(
-          BuiltinMethod.COLUMN_UNIQUENESS.method, new RelMdColumnUniqueness());
+          BuiltInMethod.COLUMN_UNIQUENESS.method, new RelMdColumnUniqueness());
 
   //~ Constructors -----------------------------------------------------------
 
@@ -43,27 +53,27 @@ public class RelMdColumnUniqueness {
   //~ Methods ----------------------------------------------------------------
 
   public Boolean areColumnsUnique(
-      FilterRelBase rel,
+      Filter rel,
       BitSet columns,
       boolean ignoreNulls) {
     return RelMetadataQuery.areColumnsUnique(
-        rel.getChild(),
+        rel.getInput(),
         columns,
         ignoreNulls);
   }
 
   public Boolean areColumnsUnique(
-      SortRel rel,
+      Sort rel,
       BitSet columns,
       boolean ignoreNulls) {
     return RelMetadataQuery.areColumnsUnique(
-        rel.getChild(),
+        rel.getInput(),
         columns,
         ignoreNulls);
   }
 
   public Boolean areColumnsUnique(
-      CorrelatorRel rel,
+      Correlator rel,
       BitSet columns,
       boolean ignoreNulls) {
     return RelMetadataQuery.areColumnsUnique(
@@ -73,10 +83,10 @@ public class RelMdColumnUniqueness {
   }
 
   public Boolean areColumnsUnique(
-      ProjectRelBase rel,
+      Project rel,
       BitSet columns,
       boolean ignoreNulls) {
-    // ProjectRel maps a set of rows to a different set;
+    // LogicalProject maps a set of rows to a different set;
     // Without knowledge of the mapping function(whether it
     // preserves uniqueness), it is only safe to derive uniqueness
     // info from the child of a project when the mapping is f(a) => a.
@@ -128,13 +138,13 @@ public class RelMdColumnUniqueness {
     }
 
     return RelMetadataQuery.areColumnsUnique(
-        rel.getChild(),
+        rel.getInput(),
         childColumns,
         ignoreNulls);
   }
 
   public Boolean areColumnsUnique(
-      JoinRelBase rel,
+      Join rel,
       BitSet columns, boolean
       ignoreNulls) {
     if (columns.cardinality() == 0) {
@@ -208,7 +218,7 @@ public class RelMdColumnUniqueness {
   }
 
   public Boolean areColumnsUnique(
-      SemiJoinRel rel,
+      SemiJoin rel,
       BitSet columns,
       boolean ignoreNulls) {
     // only return the unique keys from the LHS since a semijoin only
@@ -220,7 +230,7 @@ public class RelMdColumnUniqueness {
   }
 
   public Boolean areColumnsUnique(
-      AggregateRelBase rel,
+      Aggregate rel,
       BitSet columns,
       boolean ignoreNulls) {
     // group by keys form a unique key

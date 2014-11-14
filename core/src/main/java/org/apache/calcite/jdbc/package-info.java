@@ -18,6 +18,6 @@
 /**
  * JDBC driver for Calcite.
  */
-package net.hydromatic.optiq.jdbc;
+package org.apache.calcite.jdbc;
 
 // End package-info.java

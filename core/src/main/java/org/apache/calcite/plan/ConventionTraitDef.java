@@ -14,19 +14,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.relopt;
+package org.apache.calcite.plan;
 
-import java.util.*;
-
-import org.eigenbase.rel.*;
-import org.eigenbase.rel.convert.*;
-import org.eigenbase.util.Pair;
-import org.eigenbase.util.Util;
-
-import net.hydromatic.optiq.util.graph.*;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.convert.ConverterRule;
+import org.apache.calcite.util.Pair;
+import org.apache.calcite.util.Util;
+import org.apache.calcite.util.graph.DefaultDirectedGraph;
+import org.apache.calcite.util.graph.DefaultEdge;
+import org.apache.calcite.util.graph.DirectedGraph;
+import org.apache.calcite.util.graph.Graphs;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
+
+import java.util.List;
+import java.util.WeakHashMap;
 
 /**
  * Definition of the the convention trait.
@@ -146,8 +149,7 @@ public class ConventionTraitDef extends RelTraitDef<Convention> {
                   converted, previous, arc,
                   conversionData.mapArcToConverterRule);
           if (converted == null) {
-            throw Util.newInternal(
-                "Converter from " + previous
+            throw Util.newInternal("Converter from " + previous
                 + " to " + arc
                 + " guaranteed that it could convert any relexp");
           }

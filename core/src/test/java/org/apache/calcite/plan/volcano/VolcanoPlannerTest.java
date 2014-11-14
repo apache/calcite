@@ -14,28 +14,51 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.relopt.volcano;
+package org.apache.calcite.plan.volcano;
 
-import java.util.*;
-
-import org.eigenbase.rel.*;
-import org.eigenbase.rel.convert.*;
-import org.eigenbase.rel.rules.*;
-import org.eigenbase.relopt.*;
-import org.eigenbase.reltype.*;
-import org.eigenbase.rex.*;
-import org.eigenbase.sql.type.*;
-import org.eigenbase.util.*;
-
-import net.hydromatic.optiq.rules.java.EnumerableConvention;
+import org.apache.calcite.adapter.enumerable.EnumerableConvention;
+import org.apache.calcite.plan.Convention;
+import org.apache.calcite.plan.ConventionTraitDef;
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptCost;
+import org.apache.calcite.plan.RelOptListener;
+import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.plan.RelOptQuery;
+import org.apache.calcite.plan.RelOptRule;
+import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.AbstractRelNode;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelWriter;
+import org.apache.calcite.rel.SingleRel;
+import org.apache.calcite.rel.convert.ConverterImpl;
+import org.apache.calcite.rel.convert.ConverterRule;
+import org.apache.calcite.rel.logical.LogicalProject;
+import org.apache.calcite.rel.rules.ProjectRemoveRule;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rel.type.RelDataTypeSystem;
+import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexInputRef;
+import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
+import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
 import org.junit.Ignore;
 import org.junit.Test;
 
-import static org.hamcrest.CoreMatchers.*;
-import static org.junit.Assert.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 
 /**
  * Unit test for {@link VolcanoPlanner the optimizer}.
@@ -203,7 +226,7 @@ public class VolcanoPlannerTest {
     planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
 
     if (useRule) {
-      planner.addRule(RemoveTrivialProjectRule.INSTANCE);
+      planner.addRule(ProjectRemoveRule.INSTANCE);
     }
 
     planner.addRule(new PhysLeafRule());
@@ -458,6 +481,7 @@ public class VolcanoPlannerTest {
 
   //~ Inner Classes ----------------------------------------------------------
 
+  /** Leaf relational expression. */
   private abstract static class TestLeafRel extends AbstractRelNode {
     private String label;
 
@@ -492,6 +516,7 @@ public class VolcanoPlannerTest {
     }
   }
 
+  /** Relational expression with one input. */
   private abstract static class TestSingleRel extends SingleRel {
     protected TestSingleRel(
         RelOptCluster cluster,
@@ -507,10 +532,11 @@ public class VolcanoPlannerTest {
 
     // implement RelNode
     protected RelDataType deriveRowType() {
-      return getChild().getRowType();
+      return getInput().getRowType();
     }
   }
 
+  /** Relational expression with one input and convention NONE. */
   private static class NoneSingleRel extends TestSingleRel {
     protected NoneSingleRel(
         RelOptCluster cluster,
@@ -529,6 +555,7 @@ public class VolcanoPlannerTest {
     }
   }
 
+  /** Relational expression with zero inputs and convention NONE. */
   private static class NoneLeafRel extends TestLeafRel {
     protected NoneLeafRel(
         RelOptCluster cluster,
@@ -546,6 +573,7 @@ public class VolcanoPlannerTest {
     }
   }
 
+  /** Relational expression with zero inputs and convention PHYS. */
   private static class PhysLeafRel extends TestLeafRel {
     PhysLeafRel(
         RelOptCluster cluster,
@@ -568,6 +596,7 @@ public class VolcanoPlannerTest {
     }
   }
 
+  /** Relational expression with one input and convention PHYS. */
   private static class PhysSingleRel extends TestSingleRel {
     PhysSingleRel(
         RelOptCluster cluster,
@@ -591,7 +620,8 @@ public class VolcanoPlannerTest {
     }
   }
 
-  class PhysToIteratorConverter extends ConverterRelImpl {
+  /** Converter from PHYS to ENUMERABLE convention. */
+  class PhysToIteratorConverter extends ConverterImpl {
     public PhysToIteratorConverter(
         RelOptCluster cluster,
         RelNode child) {
@@ -610,6 +640,8 @@ public class VolcanoPlannerTest {
     }
   }
 
+  /** Planner rule that converts {@link NoneLeafRel} to PHYS
+   * convention. */
   private static class PhysLeafRule extends RelOptRule {
     PhysLeafRule() {
       super(operand(NoneLeafRel.class, any()));
@@ -630,6 +662,7 @@ public class VolcanoPlannerTest {
     }
   }
 
+  /** Planner rule that matches a {@link NoneSingleRel} and succeeds. */
   private static class GoodSingleRule extends RelOptRule {
     GoodSingleRule() {
       super(operand(NoneSingleRel.class, any()));
@@ -643,7 +676,7 @@ public class VolcanoPlannerTest {
     // implement RelOptRule
     public void onMatch(RelOptRuleCall call) {
       NoneSingleRel singleRel = call.rel(0);
-      RelNode childRel = singleRel.getChild();
+      RelNode childRel = singleRel.getInput();
       RelNode physInput =
           convert(
               childRel,
@@ -655,6 +688,7 @@ public class VolcanoPlannerTest {
     }
   }
 
+  /** Rule that matches a {@link RelSubset}. */
   private static class SubsetRule extends RelOptRule {
     private final List<String> buf;
 
@@ -683,6 +717,9 @@ public class VolcanoPlannerTest {
   // ReformedSingleRule never saw it.  (GoodSingleRule saw the NoneLeafRel
   // instead and fires off of that; later the NoneLeafRel gets converted into
   // a PhysLeafRel).  Now Volcano supports rules which match across subsets.
+
+  /** Planner rule that matches a {@link NoneSingleRel} whose input is
+   * a {@link PhysLeafRel} in a different subset. */
   private static class ReformedSingleRule extends RelOptRule {
     ReformedSingleRule() {
       super(
@@ -711,9 +748,10 @@ public class VolcanoPlannerTest {
     }
   }
 
+  /** Planner rule that converts a {@link LogicalProject} to PHYS convention. */
   private static class PhysProjectRule extends RelOptRule {
     PhysProjectRule() {
-      super(operand(ProjectRel.class, any()));
+      super(operand(LogicalProject.class, any()));
     }
 
     // implement RelOptRule
@@ -723,8 +761,8 @@ public class VolcanoPlannerTest {
 
     // implement RelOptRule
     public void onMatch(RelOptRuleCall call) {
-      final ProjectRel project = call.rel(0);
-      RelNode childRel = project.getChild();
+      final LogicalProject project = call.rel(0);
+      RelNode childRel = project.getInput();
       call.transformTo(
           new PhysLeafRel(
               childRel.getCluster(),
@@ -732,6 +770,7 @@ public class VolcanoPlannerTest {
     }
   }
 
+  /** Planner rule that successfully removes a {@link PhysSingleRel}. */
   private static class GoodRemoveSingleRule extends RelOptRule {
     GoodRemoveSingleRule() {
       super(
@@ -756,6 +795,7 @@ public class VolcanoPlannerTest {
     }
   }
 
+  /** Planner rule that removes a {@link NoneSingleRel}. */
   private static class ReformedRemoveSingleRule extends RelOptRule {
     ReformedRemoveSingleRule() {
       super(
@@ -780,6 +820,7 @@ public class VolcanoPlannerTest {
     }
   }
 
+  /** Implementation of {@link RelOptListener}. */
   private static class TestListener implements RelOptListener {
     private List<RelEvent> eventList;
 

@@ -14,25 +14,36 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel;
+package org.apache.calcite.rel.core;
+
+import org.apache.calcite.linq4j.Ord;
+import org.apache.calcite.plan.Convention;
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptCost;
+import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.RelCollation;
+import org.apache.calcite.rel.RelCollationTraitDef;
+import org.apache.calcite.rel.RelFieldCollation;
+import org.apache.calcite.rel.RelInput;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelShuttle;
+import org.apache.calcite.rel.RelWriter;
+import org.apache.calcite.rel.SingleRel;
+import org.apache.calcite.rel.metadata.RelMetadataQuery;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.util.Util;
+
+import com.google.common.collect.ImmutableList;
 
 import java.util.Collections;
 import java.util.List;
 
-import org.eigenbase.rel.metadata.RelMetadataQuery;
-import org.eigenbase.relopt.*;
-import org.eigenbase.rex.*;
-import org.eigenbase.util.Util;
-
-import net.hydromatic.linq4j.Ord;
-
-import com.google.common.collect.ImmutableList;
-
 /**
- * Relational expression which imposes a particular sort order on its input
+ * Relational expression that imposes a particular sort order on its input
  * without otherwise changing its content.
  */
-public class SortRel extends SingleRel {
+public class Sort extends SingleRel {
   //~ Instance fields --------------------------------------------------------
 
   protected final RelCollation collation;
@@ -43,14 +54,14 @@ public class SortRel extends SingleRel {
   //~ Constructors -----------------------------------------------------------
 
   /**
-   * Creates a sorter.
+   * Creates a Sort.
    *
    * @param cluster   Cluster this relational expression belongs to
    * @param traits    Traits
    * @param child     input relational expression
    * @param collation array of sort specifications
    */
-  public SortRel(
+  public Sort(
       RelOptCluster cluster,
       RelTraitSet traits,
       RelNode child,
@@ -59,7 +70,7 @@ public class SortRel extends SingleRel {
   }
 
   /**
-   * Creates a sorter.
+   * Creates a Sort.
    *
    * @param cluster   Cluster this relational expression belongs to
    * @param traits    Traits
@@ -69,7 +80,7 @@ public class SortRel extends SingleRel {
    *                  first row
    * @param fetch     Expression for number of rows to fetch
    */
-  public SortRel(
+  public Sort(
       RelOptCluster cluster,
       RelTraitSet traits,
       RelNode child,
@@ -96,11 +107,10 @@ public class SortRel extends SingleRel {
   }
 
   /**
-   * Creates a SortRel by parsing serialized output.
+   * Creates a Sort by parsing serialized output.
    */
-  public SortRel(RelInput input) {
-    this(
-        input.getCluster(), input.getTraitSet().plus(input.getCollation()),
+  public Sort(RelInput input) {
+    this(input.getCluster(), input.getTraitSet().plus(input.getCollation()),
         input.getInput(),
         RelCollationTraitDef.INSTANCE.canonize(input.getCollation()),
         input.getExpression("offset"), input.getExpression("fetch"));
@@ -108,26 +118,25 @@ public class SortRel extends SingleRel {
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override
-  public SortRel copy(RelTraitSet traitSet, List<RelNode> inputs) {
+  @Override public Sort copy(RelTraitSet traitSet, List<RelNode> inputs) {
     return copy(traitSet, sole(inputs), collation);
   }
 
-  public SortRel copy(
+  public Sort copy(
       RelTraitSet traitSet,
       RelNode newInput,
       RelCollation newCollation) {
     return copy(traitSet, newInput, newCollation, offset, fetch);
   }
 
-  public SortRel copy(
+  public Sort copy(
       RelTraitSet traitSet,
       RelNode newInput,
       RelCollation newCollation,
       RexNode offset,
       RexNode fetch) {
     assert traitSet.containsIfApplicable(Convention.NONE);
-    return new SortRel(
+    return new Sort(
         getCluster(),
         traitSet,
         newInput,
@@ -136,8 +145,7 @@ public class SortRel extends SingleRel {
         fetch);
   }
 
-  @Override
-  public RelOptCost computeSelfCost(RelOptPlanner planner) {
+  @Override public RelOptCost computeSelfCost(RelOptPlanner planner) {
     // Higher cost if rows are wider discourages pushing a project through a
     // sort.
     double rowCount = RelMetadataQuery.getRowCount(this);
@@ -146,13 +154,11 @@ public class SortRel extends SingleRel {
         Util.nLogN(rowCount) * bytesPerRow, rowCount, 0);
   }
 
-  @Override
-  public RelNode accept(RelShuttle shuttle) {
+  @Override public RelNode accept(RelShuttle shuttle) {
     return shuttle.visit(this);
   }
 
-  @Override
-  public List<RexNode> getChildExps() {
+  @Override public List<RexNode> getChildExps() {
     return fieldExps;
   }
 
@@ -172,8 +178,7 @@ public class SortRel extends SingleRel {
     return collation;
   }
 
-  @Override
-  public List<RelCollation> getCollationList() {
+  @Override public List<RelCollation> getCollationList() {
     // TODO: include each prefix of the collation, e.g [[x, y], [x], []]
     return Collections.singletonList(getCollation());
   }
@@ -198,4 +203,4 @@ public class SortRel extends SingleRel {
   }
 }
 
-// End SortRel.java
+// End Sort.java

@@ -14,18 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.relopt;
+package org.apache.calcite.plan;
+
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.metadata.CachingRelMetadataProvider;
+import org.apache.calcite.rel.metadata.RelMetadataProvider;
+import org.apache.calcite.rel.metadata.RelMetadataQuery;
+import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.util.CancelFlag;
+import org.apache.calcite.util.trace.CalciteTrace;
 
 import java.util.List;
-import java.util.logging.*;
-import java.util.regex.*;
-
-import org.eigenbase.rel.*;
-import org.eigenbase.rel.metadata.*;
-import org.eigenbase.rex.RexBuilder;
-import org.eigenbase.rex.RexNode;
-import org.eigenbase.trace.*;
-import org.eigenbase.util.*;
+import java.util.logging.Logger;
+import java.util.regex.Pattern;
 
 /**
  * A <code>RelOptPlanner</code> is a query optimizer: it transforms a relational
@@ -35,7 +37,7 @@ import org.eigenbase.util.*;
 public interface RelOptPlanner {
   //~ Static fields/initializers ---------------------------------------------
 
-  Logger LOGGER = EigenbaseTrace.getPlannerTracer();
+  Logger LOGGER = CalciteTrace.getPlannerTracer();
 
   //~ Methods ----------------------------------------------------------------
 
@@ -57,8 +59,8 @@ public interface RelOptPlanner {
    * Registers a rel trait definition. If the {@link RelTraitDef} has already
    * been registered, does nothing.
    *
-   * @return whether the RelTraitDef was added, as per {@link
-   * java.util.Collection#add}
+   * @return whether the RelTraitDef was added, as per
+   * {@link java.util.Collection#add}
    */
   boolean addRelTraitDef(RelTraitDef relTraitDef);
 
@@ -78,22 +80,25 @@ public interface RelOptPlanner {
   void clear();
 
   /**
-   * Registers a rule. If the rule has already been registered, does nothing.
-   * This method should determine if the given rule is a {@link
-   * org.eigenbase.rel.convert.ConverterRule} and pass the ConverterRule to
-   * all {@link #addRelTraitDef(RelTraitDef) registered} RelTraitDef
+   * Registers a rule.
+   *
+   * <p>If the rule has already been registered, does nothing.
+   * This method determines if the given rule is a
+   * {@link org.apache.calcite.rel.convert.ConverterRule} and pass the
+   * ConverterRule to all
+   * {@link #addRelTraitDef(RelTraitDef) registered} RelTraitDef
    * instances.
    *
-   * @return whether the rule was added, as per {@link
-   * java.util.Collection#add}
+   * @return whether the rule was added, as per
+   * {@link java.util.Collection#add}
    */
   boolean addRule(RelOptRule rule);
 
   /**
    * Removes a rule.
    *
-   * @return true if the rule was present, as per {@link
-   * java.util.Collection#remove(Object)}
+   * @return true if the rule was present, as per
+   * {@link java.util.Collection#remove(Object)}
    */
   boolean removeRule(RelOptRule rule);
 
@@ -146,7 +151,8 @@ public interface RelOptPlanner {
   /**
    * Defines a pair of relational expressions that are equivalent.
    *
-   * <p>Typically {@code tableRel} is a {@link TableAccessRel} representing a
+   * <p>Typically {@code tableRel} is a
+   * {@link org.apache.calcite.rel.logical.LogicalTableScan} representing a
    * table that is a materialized view and {@code queryRel} is the SQL
    * expression that populates that view. The intention is that
    * {@code tableRel} is cheaper to evaluate and therefore if the query being
@@ -177,7 +183,8 @@ public interface RelOptPlanner {
   RelNode findBestExp();
 
   /**
-   * Returns the factory that creates {@link org.eigenbase.relopt.RelOptCost}s.
+   * Returns the factory that creates
+   * {@link org.apache.calcite.plan.RelOptCost}s.
    */
   RelOptCostFactory getCostFactory();
 
@@ -312,7 +319,7 @@ public interface RelOptPlanner {
   }
 
   /**
-   * Thrown by {@link org.eigenbase.relopt.RelOptPlanner#findBestExp()}.
+   * Thrown by {@link org.apache.calcite.plan.RelOptPlanner#findBestExp()}.
    */
   class CannotPlanException extends RuntimeException {
     public CannotPlanException(String message) {

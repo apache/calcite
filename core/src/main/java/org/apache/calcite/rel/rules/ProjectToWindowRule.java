@@ -14,57 +14,85 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel.rules;
+package org.apache.calcite.rel.rules;
 
-import java.util.*;
-
-import org.eigenbase.rel.*;
-import org.eigenbase.relopt.*;
-import org.eigenbase.reltype.*;
-import org.eigenbase.rex.*;
-import org.eigenbase.util.*;
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptRule;
+import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.plan.RelOptRuleOperand;
+import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.RelCollation;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.Calc;
+import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.logical.LogicalCalc;
+import org.apache.calcite.rel.logical.LogicalFilter;
+import org.apache.calcite.rel.logical.LogicalWindow;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexDynamicParam;
+import org.apache.calcite.rex.RexFieldAccess;
+import org.apache.calcite.rex.RexLiteral;
+import org.apache.calcite.rex.RexLocalRef;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexOver;
+import org.apache.calcite.rex.RexProgram;
+import org.apache.calcite.rex.RexProgramBuilder;
+import org.apache.calcite.util.Util;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
+
 /**
- * Rule that slices the {@link CalcRel} into sections which contain windowed
- * agg functions and sections which do not.
+ * Planner rule that slices a
+ * {@link org.apache.calcite.rel.core.Project}
+ * into sections which contain windowed
+ * aggregate functions and sections which do not.
  *
  * <p>The sections which contain windowed agg functions become instances of
- * {@link org.eigenbase.rel.WindowRel}. If the {@link CalcRel} does not contain any
- * windowed agg functions, does nothing.
+ * {@link org.apache.calcite.rel.logical.LogicalWindow}.
+ * If the {@link org.apache.calcite.rel.logical.LogicalCalc} does not contain
+ * any windowed agg functions, does nothing.
+ *
+ * <p>There is also a variant that matches
+ * {@link org.apache.calcite.rel.core.Calc} rather than {@code Project}.
  */
-public abstract class WindowedAggSplitterRule extends RelOptRule {
+public abstract class ProjectToWindowRule extends RelOptRule {
   //~ Static fields/initializers ---------------------------------------------
 
-  private static final Predicate<CalcRelBase> PREDICATE =
-      new Predicate<CalcRelBase>() {
-        public boolean apply(CalcRelBase calc) {
+  private static final Predicate<Calc> PREDICATE =
+      new Predicate<Calc>() {
+        public boolean apply(Calc calc) {
           return RexOver.containsOver(calc.getProgram());
         }
       };
 
-  private static final Predicate<ProjectRelBase> PREDICATE2 =
-      new Predicate<ProjectRelBase>() {
-        public boolean apply(ProjectRelBase project) {
+  private static final Predicate<Project> PREDICATE2 =
+      new Predicate<Project>() {
+        public boolean apply(Project project) {
           return RexOver.containsOver(project.getProjects(), null);
         }
       };
 
   /**
-   * Instance of the rule that applies to a {@link CalcRelBase} that contains
+   * Instance of the rule that applies to a
+   * {@link org.apache.calcite.rel.core.Calc} that contains
    * windowed aggregates and converts it into a mixture of
-   * {@link org.eigenbase.rel.WindowRel} and {@code CalcRelBase}.
+   * {@link org.apache.calcite.rel.logical.LogicalWindow} and {@code Calc}.
    */
-  public static final WindowedAggSplitterRule INSTANCE =
-      new WindowedAggSplitterRule(
-        operand(CalcRelBase.class, null, PREDICATE, any()),
-        "WindowedAggSplitterRule") {
+  public static final ProjectToWindowRule INSTANCE =
+      new ProjectToWindowRule(
+        operand(Calc.class, null, PREDICATE, any()),
+        "ProjectToWindowRule") {
         public void onMatch(RelOptRuleCall call) {
-          CalcRelBase calc = call.rel(0);
+          Calc calc = call.rel(0);
           assert RexOver.containsOver(calc.getProgram());
           CalcRelSplitter transform = new WindowedAggRelSplitter(calc);
           RelNode newRel = transform.execute();
@@ -74,18 +102,18 @@ public abstract class WindowedAggSplitterRule extends RelOptRule {
 
   /**
    * Instance of the rule that can be applied to a
-   * {@link org.eigenbase.rel.ProjectRelBase} and that produces, in turn,
-   * a mixture of {@code ProjectRel} and {@link org.eigenbase.rel.WindowRel}.
+   * {@link org.apache.calcite.rel.core.Project} and that produces, in turn,
+   * a mixture of {@code LogicalProject}
+   * and {@link org.apache.calcite.rel.logical.LogicalWindow}.
    */
-  public static final WindowedAggSplitterRule PROJECT =
-      new WindowedAggSplitterRule(
-        operand(ProjectRelBase.class, null, PREDICATE2, any()),
-        "WindowedAggSplitterRule:project") {
-        @Override
-        public void onMatch(RelOptRuleCall call) {
-          ProjectRelBase project = call.rel(0);
+  public static final ProjectToWindowRule PROJECT =
+      new ProjectToWindowRule(
+        operand(Project.class, null, PREDICATE2, any()),
+        "ProjectToWindowRule:project") {
+        @Override public void onMatch(RelOptRuleCall call) {
+          Project project = call.rel(0);
           assert RexOver.containsOver(project.getProjects(), null);
-          final RelNode child = project.getChild();
+          final RelNode child = project.getInput();
           final RelDataType rowType = project.getRowType();
           final RexProgram program =
               RexProgram.create(
@@ -94,9 +122,9 @@ public abstract class WindowedAggSplitterRule extends RelOptRule {
                   null,
                   project.getRowType(),
                   project.getCluster().getRexBuilder());
-          // temporary CalcRel, never registered
-          final CalcRel calc =
-              new CalcRel(
+          // temporary LogicalCalc, never registered
+          final LogicalCalc calc =
+              new LogicalCalc(
                   project.getCluster(),
                   project.getTraitSet(),
                   child,
@@ -104,14 +132,13 @@ public abstract class WindowedAggSplitterRule extends RelOptRule {
                   program,
                   ImmutableList.<RelCollation>of());
           CalcRelSplitter transform = new WindowedAggRelSplitter(calc) {
-            @Override
-            protected RelNode handle(RelNode rel) {
-              if (rel instanceof CalcRel) {
-                CalcRel calc = (CalcRel) rel;
+            @Override protected RelNode handle(RelNode rel) {
+              if (rel instanceof LogicalCalc) {
+                LogicalCalc calc = (LogicalCalc) rel;
                 final RexProgram program = calc.getProgram();
-                rel = calc.getChild();
+                rel = calc.getInput();
                 if (program.getCondition() != null) {
-                  rel = new FilterRel(
+                  rel = new LogicalFilter(
                       calc.getCluster(),
                       rel,
                       program.expandLocalRef(
@@ -140,11 +167,8 @@ public abstract class WindowedAggSplitterRule extends RelOptRule {
 
   //~ Constructors -----------------------------------------------------------
 
-  /**
-   * Creates a rule.
-   */
-  private WindowedAggSplitterRule(
-      RelOptRuleOperand operand, String description) {
+  /** Creates a ProjectToWindowRule. */
+  private ProjectToWindowRule(RelOptRuleOperand operand, String description) {
     super(operand, description);
   }
 
@@ -155,7 +179,7 @@ public abstract class WindowedAggSplitterRule extends RelOptRule {
    * (calls to {@link RexOver}) and ordinary expressions.
    */
   static class WindowedAggRelSplitter extends CalcRelSplitter {
-    WindowedAggRelSplitter(CalcRelBase calc) {
+    WindowedAggRelSplitter(Calc calc) {
       super(
           calc,
           new RelType[]{
@@ -223,15 +247,14 @@ public abstract class WindowedAggSplitterRule extends RelOptRule {
                 Util.permAssert(
                     program.getCondition() == null,
                     "WindowedAggregateRel cannot accept a condition");
-                return WindowRel.create(
+                return LogicalWindow.create(
                     cluster, traits, child, program, rowType);
               }
             }
           });
     }
 
-    @Override
-    protected List<Set<Integer>> getCohorts() {
+    @Override protected List<Set<Integer>> getCohorts() {
       // Here used to be the implementation that treats all the RexOvers
       // as a single Cohort. This is flawed if the RexOvers
       // depend on each other (i.e. the second one uses the result
@@ -241,4 +264,4 @@ public abstract class WindowedAggSplitterRule extends RelOptRule {
   }
 }
 
-// End WindowedAggSplitterRule.java
+// End ProjectToWindowRule.java

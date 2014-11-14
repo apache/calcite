@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rex;
+package org.apache.calcite.rex;
 
-import org.eigenbase.util.*;
+import org.apache.calcite.util.Permutation;
 
 /**
  * Visitor which replaces {@link RexLocalRef} objects after the expressions in a

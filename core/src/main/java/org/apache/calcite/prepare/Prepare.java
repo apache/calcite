@@ -14,36 +14,50 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.prepare;
+package org.apache.calcite.prepare;
 
-import net.hydromatic.optiq.DataContext;
-import net.hydromatic.optiq.impl.StarTable;
-import net.hydromatic.optiq.impl.java.JavaTypeFactory;
-import net.hydromatic.optiq.jdbc.OptiqPrepare;
-import net.hydromatic.optiq.jdbc.OptiqSchema;
-import net.hydromatic.optiq.runtime.Bindable;
-import net.hydromatic.optiq.runtime.Hook;
-import net.hydromatic.optiq.runtime.Typed;
-import net.hydromatic.optiq.tools.Program;
-import net.hydromatic.optiq.tools.Programs;
-
-import org.eigenbase.rel.*;
-import org.eigenbase.relopt.*;
-import org.eigenbase.reltype.RelDataType;
-import org.eigenbase.rex.RexBuilder;
-import org.eigenbase.rex.RexExecutorImpl;
-import org.eigenbase.sql.*;
-import org.eigenbase.sql.validate.*;
-import org.eigenbase.sql2rel.SqlToRelConverter;
-import org.eigenbase.trace.EigenbaseTimingTracer;
-import org.eigenbase.trace.EigenbaseTrace;
-import org.eigenbase.util.Holder;
-import org.eigenbase.util.Pair;
+import org.apache.calcite.DataContext;
+import org.apache.calcite.adapter.java.JavaTypeFactory;
+import org.apache.calcite.jdbc.CalcitePrepare;
+import org.apache.calcite.jdbc.CalciteSchema;
+import org.apache.calcite.plan.Convention;
+import org.apache.calcite.plan.RelImplementor;
+import org.apache.calcite.plan.RelOptLattice;
+import org.apache.calcite.plan.RelOptMaterialization;
+import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.plan.RelOptSchema;
+import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.logical.LogicalTableModify;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexExecutorImpl;
+import org.apache.calcite.runtime.Bindable;
+import org.apache.calcite.runtime.Hook;
+import org.apache.calcite.runtime.Typed;
+import org.apache.calcite.schema.impl.StarTable;
+import org.apache.calcite.sql.SqlExplain;
+import org.apache.calcite.sql.SqlExplainLevel;
+import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.validate.SqlValidator;
+import org.apache.calcite.sql.validate.SqlValidatorCatalogReader;
+import org.apache.calcite.sql.validate.SqlValidatorTable;
+import org.apache.calcite.sql2rel.SqlToRelConverter;
+import org.apache.calcite.tools.Program;
+import org.apache.calcite.tools.Programs;
+import org.apache.calcite.util.Holder;
+import org.apache.calcite.util.Pair;
+import org.apache.calcite.util.trace.CalciteTimingTracer;
+import org.apache.calcite.util.trace.CalciteTrace;
 
 import com.google.common.collect.ImmutableList;
 
 import java.lang.reflect.Type;
-import java.util.*;
+import java.util.Collections;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -52,16 +66,16 @@ import java.util.logging.Logger;
  * the process of preparing and executing SQL expressions.
  */
 public abstract class Prepare {
-  protected static final Logger LOGGER = EigenbaseTrace.getStatementTracer();
+  protected static final Logger LOGGER = CalciteTrace.getStatementTracer();
 
-  protected final OptiqPrepare.Context context;
+  protected final CalcitePrepare.Context context;
   protected final CatalogReader catalogReader;
   protected String queryString = null;
   /**
    * Convention via which results should be returned by execution.
    */
   protected final Convention resultConvention;
-  protected EigenbaseTimingTracer timingTracer;
+  protected CalciteTimingTracer timingTracer;
   protected List<List<String>> fieldOrigins;
   protected RelDataType parameterRowType;
 
@@ -73,7 +87,7 @@ public abstract class Prepare {
         }
       };
 
-  public Prepare(OptiqPrepare.Context context, CatalogReader catalogReader,
+  public Prepare(CalcitePrepare.Context context, CatalogReader catalogReader,
       Convention resultConvention) {
     assert context != null;
     this.context = context;
@@ -101,7 +115,7 @@ public abstract class Prepare {
    */
   protected RelNode optimize(RelDataType logicalRowType, final RelNode rootRel,
       final List<Materialization> materializations,
-      final List<OptiqSchema.LatticeEntry> lattices) {
+      final List<CalciteSchema.LatticeEntry> lattices) {
     final RelOptPlanner planner = rootRel.getCluster().getPlanner();
 
     planner.setRoot(rootRel);
@@ -119,8 +133,8 @@ public abstract class Prepare {
               materialization.starRelOptTable));
     }
 
-    for (OptiqSchema.LatticeEntry lattice : lattices) {
-      final OptiqSchema.TableEntry starTable = lattice.getStarTable();
+    for (CalciteSchema.LatticeEntry lattice : lattices) {
+      final CalciteSchema.TableEntry starTable = lattice.getStarTable();
       final JavaTypeFactory typeFactory = context.getTypeFactory();
       final RelOptTableImpl starRelOptTable =
           RelOptTableImpl.create(catalogReader,
@@ -174,7 +188,7 @@ public abstract class Prepare {
       SqlValidator validator,
       boolean needsValidation,
       List<Materialization> materializations,
-      List<OptiqSchema.LatticeEntry> lattices) {
+      List<CalciteSchema.LatticeEntry> lattices) {
     return prepareSql(
         sqlQuery,
         sqlQuery,
@@ -192,7 +206,7 @@ public abstract class Prepare {
       SqlValidator validator,
       boolean needsValidation,
       List<Materialization> materializations,
-      List<OptiqSchema.LatticeEntry> lattices) {
+      List<CalciteSchema.LatticeEntry> lattices) {
     queryString = sqlQuery.toString();
 
     init(runtimeContextClass);
@@ -285,20 +299,20 @@ public abstract class Prepare {
         kind);
   }
 
-  protected TableModificationRel.Operation mapTableModOp(
+  protected LogicalTableModify.Operation mapTableModOp(
       boolean isDml, SqlKind sqlKind) {
     if (!isDml) {
       return null;
     }
     switch (sqlKind) {
     case INSERT:
-      return TableModificationRel.Operation.INSERT;
+      return LogicalTableModify.Operation.INSERT;
     case DELETE:
-      return TableModificationRel.Operation.DELETE;
+      return LogicalTableModify.Operation.DELETE;
     case MERGE:
-      return TableModificationRel.Operation.MERGE;
+      return LogicalTableModify.Operation.MERGE;
     case UPDATE:
-      return TableModificationRel.Operation.UPDATE;
+      return LogicalTableModify.Operation.UPDATE;
     default:
       return null;
     }
@@ -329,7 +343,7 @@ public abstract class Prepare {
 
   /**
    * Walks over a tree of relational expressions, replacing each
-   * {@link org.eigenbase.rel.RelNode} with a 'slimmed down' relational
+   * {@link org.apache.calcite.rel.RelNode} with a 'slimmed down' relational
    * expression that projects
    * only the columns required by its consumer.
    *
@@ -429,7 +443,7 @@ public abstract class Prepare {
       return false;
     }
 
-    public TableModificationRel.Operation getTableModOp() {
+    public LogicalTableModify.Operation getTableModOp() {
       return null;
     }
 
@@ -465,7 +479,7 @@ public abstract class Prepare {
      * Returns the table modification operation corresponding to this
      * statement if it is a table modification statement; otherwise null.
      */
-    TableModificationRel.Operation getTableModOp();
+    LogicalTableModify.Operation getTableModOp();
 
     /**
      * Returns a list describing, for each result field, the origin of the
@@ -495,7 +509,7 @@ public abstract class Prepare {
     protected final RelDataType parameterRowType;
     protected final RelDataType rowType;
     protected final boolean isDml;
-    protected final TableModificationRel.Operation tableModOp;
+    protected final LogicalTableModify.Operation tableModOp;
     protected final List<List<String>> fieldOrigins;
 
     public PreparedResultImpl(
@@ -503,7 +517,7 @@ public abstract class Prepare {
         RelDataType parameterRowType,
         List<List<String>> fieldOrigins,
         RelNode rootRel,
-        TableModificationRel.Operation tableModOp,
+        LogicalTableModify.Operation tableModOp,
         boolean isDml) {
       assert rowType != null;
       assert parameterRowType != null;
@@ -521,7 +535,7 @@ public abstract class Prepare {
       return isDml;
     }
 
-    public TableModificationRel.Operation getTableModOp() {
+    public LogicalTableModify.Operation getTableModOp() {
       return tableModOp;
     }
 
@@ -556,18 +570,18 @@ public abstract class Prepare {
    * process. */
   public static class Materialization {
     /** The table that holds the materialized data. */
-    final OptiqSchema.TableEntry materializedTable;
+    final CalciteSchema.TableEntry materializedTable;
     /** The query that derives the data. */
     final String sql;
     /** Relational expression for the table. Usually a
-     * {@link TableAccessRel}. */
+     * {@link org.apache.calcite.rel.logical.LogicalTableScan}. */
     RelNode tableRel;
     /** Relational expression for the query to populate the table. */
     RelNode queryRel;
     /** Star table identified. */
     private RelOptTable starRelOptTable;
 
-    public Materialization(OptiqSchema.TableEntry materializedTable,
+    public Materialization(CalciteSchema.TableEntry materializedTable,
         String sql) {
       assert materializedTable != null;
       assert sql != null;

@@ -14,41 +14,61 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.test;
+package org.apache.calcite.test;
 
-import java.util.*;
-
-import org.eigenbase.rel.*;
-import org.eigenbase.relopt.*;
-import org.eigenbase.reltype.*;
-import org.eigenbase.rex.RexBuilder;
-import org.eigenbase.sql.*;
-import org.eigenbase.sql.fun.*;
-import org.eigenbase.sql.parser.*;
-import org.eigenbase.sql.type.*;
-import org.eigenbase.sql.validate.*;
-import org.eigenbase.sql2rel.*;
-import org.eigenbase.util.*;
-
-import net.hydromatic.linq4j.expressions.Expression;
-
-import net.hydromatic.optiq.prepare.Prepare;
+import org.apache.calcite.linq4j.tree.Expression;
+import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.plan.RelOptSchema;
+import org.apache.calcite.plan.RelOptSchemaWithSampling;
+import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.prepare.Prepare;
+import org.apache.calcite.rel.RelCollation;
+import org.apache.calcite.rel.RelCollationImpl;
+import org.apache.calcite.rel.RelFieldCollation;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.logical.LogicalTableScan;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rel.type.RelDataTypeSystem;
+import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlOperatorTable;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.parser.SqlParser;
+import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
+import org.apache.calcite.sql.validate.SqlConformance;
+import org.apache.calcite.sql.validate.SqlMonotonicity;
+import org.apache.calcite.sql.validate.SqlValidator;
+import org.apache.calcite.sql.validate.SqlValidatorCatalogReader;
+import org.apache.calcite.sql.validate.SqlValidatorImpl;
+import org.apache.calcite.sql.validate.SqlValidatorTable;
+import org.apache.calcite.sql2rel.RelFieldTrimmer;
+import org.apache.calcite.sql2rel.SqlToRelConverter;
+import org.apache.calcite.sql2rel.StandardConvertletTable;
+import org.apache.calcite.util.Util;
 
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 
-import static org.junit.Assert.*;
+import java.util.ArrayList;
+import java.util.BitSet;
+import java.util.List;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 /**
  * SqlToRelTestBase is an abstract base for tests which involve conversion from
  * SQL to relational algebra.
  *
- * <p>SQL statements to be translated can use the schema defined in {@link
- * MockCatalogReader}; note that this is slightly different from Farrago's SALES
- * schema. If you get a parser or validator error from your test SQL, look down
- * in the stack until you see "Caused by", which will usually tell you the real
- * error.
+ * <p>SQL statements to be translated can use the schema defined in
+ * {@link MockCatalogReader}; note that this is slightly different from
+ * Farrago's SALES schema. If you get a parser or validator error from your test
+ * SQL, look down in the stack until you see "Caused by", which will usually
+ * tell you the real error.
  */
 public abstract class SqlToRelTestBase {
   //~ Static fields/initializers ---------------------------------------------
@@ -114,7 +134,7 @@ public abstract class SqlToRelTestBase {
 
     /**
      * Factory method for a
-     * {@link net.hydromatic.optiq.prepare.Prepare.CatalogReader}.
+     * {@link org.apache.calcite.prepare.Prepare.CatalogReader}.
      */
     Prepare.CatalogReader createCatalogReader(
         RelDataTypeFactory typeFactory);
@@ -279,6 +299,7 @@ public abstract class SqlToRelTestBase {
     public void registerRules(RelOptPlanner planner) throws Exception {
     }
 
+      /** Mock column set. */
     protected class MockColumnSet implements RelOptTable {
       private final List<String> names;
       private final RelDataType rowType;
@@ -325,7 +346,7 @@ public abstract class SqlToRelTestBase {
 
       public RelNode toRel(
           ToRelContext context) {
-        return new TableAccessRel(context.getCluster(), this);
+        return new LogicalTableScan(context.getCluster(), this);
       }
 
       public List<RelCollation> getCollationList() {
@@ -342,6 +363,7 @@ public abstract class SqlToRelTestBase {
     }
   }
 
+  /** Table that delegates to a given table. */
   private static class DelegatingRelOptTable implements RelOptTable {
     private final RelOptTable parent;
 
@@ -377,7 +399,7 @@ public abstract class SqlToRelTestBase {
     }
 
     public RelNode toRel(ToRelContext context) {
-      return new TableAccessRel(context.getCluster(), this);
+      return new LogicalTableScan(context.getCluster(), this);
     }
 
     public List<RelCollation> getCollationList() {
@@ -390,8 +412,8 @@ public abstract class SqlToRelTestBase {
   }
 
   /**
-   * Default implementation of {@link Tester}, using mock classes {@link
-   * MockRelOptSchema} and {@link MockRelOptPlanner}.
+   * Default implementation of {@link Tester}, using mock classes
+   * {@link MockRelOptSchema} and {@link MockRelOptPlanner}.
    */
   public static class TesterImpl implements Tester {
     private RelOptPlanner planner;
@@ -620,6 +642,7 @@ public abstract class SqlToRelTestBase {
     }
   }
 
+    /** Validator for testing. */
   private static class FarragoTestValidator extends SqlValidatorImpl {
     public FarragoTestValidator(
         SqlOperatorTable opTab,

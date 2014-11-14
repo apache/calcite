@@ -14,28 +14,31 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.impl.clone;
+package org.apache.calcite.adapter.clone;
 
-import net.hydromatic.avatica.ColumnMetaData;
-
-import net.hydromatic.linq4j.Enumerable;
-import net.hydromatic.linq4j.Ord;
-import net.hydromatic.linq4j.expressions.Primitive;
-import net.hydromatic.linq4j.function.Function1;
-import net.hydromatic.linq4j.function.Functions;
-
-import net.hydromatic.optiq.impl.java.JavaTypeFactory;
-
-import org.eigenbase.reltype.RelDataType;
-import org.eigenbase.reltype.RelDataTypeField;
-import org.eigenbase.reltype.RelProtoDataType;
-import org.eigenbase.util14.DateTimeUtil;
+import org.apache.calcite.adapter.java.JavaTypeFactory;
+import org.apache.calcite.avatica.ColumnMetaData;
+import org.apache.calcite.linq4j.Enumerable;
+import org.apache.calcite.linq4j.Ord;
+import org.apache.calcite.linq4j.function.Function1;
+import org.apache.calcite.linq4j.function.Functions;
+import org.apache.calcite.linq4j.tree.Primitive;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rel.type.RelProtoDataType;
+import org.apache.calcite.util.DateTimeUtil;
 
 import java.lang.reflect.Type;
 import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
-import java.util.*;
+import java.util.AbstractList;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Column loader.

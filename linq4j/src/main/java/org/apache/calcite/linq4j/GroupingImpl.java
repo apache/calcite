@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.linq4j;
+package org.apache.calcite.linq4j;
 
 import java.util.Collection;
 import java.util.Map;
@@ -35,18 +35,15 @@ class GroupingImpl<K, V> extends AbstractEnumerable<V>
     this.values = values;
   }
 
-  @Override
-  public String toString() {
+  @Override public String toString() {
     return key + ": " + values;
   }
 
-  @Override
-  public int hashCode() {
+  @Override public int hashCode() {
     return (11 + key.hashCode()) * 37 + values.hashCode();
   }
 
-  @Override
-  public boolean equals(Object obj) {
+  @Override public boolean equals(Object obj) {
     return obj instanceof GroupingImpl
            && key.equals(((GroupingImpl) obj).key)
            && values.equals(((GroupingImpl) obj).values);

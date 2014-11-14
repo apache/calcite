@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.model;
+package org.apache.calcite.model;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -33,7 +33,7 @@ import java.util.List;
  *     {@link JsonTable} (in collection {@link JsonMapSchema#tables tables})
  *       {@link JsonColumn} (in collection {@link JsonTable#columns columns}
  *     {@link JsonView}
- *     {@link JsonFunction}  (in collection {@link JsonMapSchema#functions functions})
+ *     {@link JsonFunction} (in collection {@link JsonMapSchema#functions functions})
  *     {@link JsonLattice} (in collection {@link JsonSchema#lattices lattices})
  *       {@link JsonMeasure} (in collection {@link JsonLattice#defaultMeasures defaultMeasures})
  *       {@link JsonTile} (in collection {@link JsonLattice#tiles tiles})

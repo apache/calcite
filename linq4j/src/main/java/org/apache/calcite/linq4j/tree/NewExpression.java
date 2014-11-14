@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.linq4j.expressions;
+package org.apache.calcite.linq4j.tree;
 
 import java.lang.reflect.Type;
 import java.util.List;
@@ -42,8 +42,7 @@ public class NewExpression extends Expression {
     this.memberDeclarations = memberDeclarations;
   }
 
-  @Override
-  public Expression accept(Visitor visitor) {
+  @Override public Expression accept(Visitor visitor) {
     visitor = visitor.preVisit(this);
     final List<Expression> arguments = Expressions.acceptExpressions(
         this.arguments, visitor);
@@ -52,16 +51,14 @@ public class NewExpression extends Expression {
     return visitor.visit(this, arguments, memberDeclarations);
   }
 
-  @Override
-  void accept(ExpressionWriter writer, int lprec, int rprec) {
+  @Override void accept(ExpressionWriter writer, int lprec, int rprec) {
     writer.append("new ").append(type).list("(\n", ",\n", ")", arguments);
     if (memberDeclarations != null) {
       writer.list("{\n", "", "}", memberDeclarations);
     }
   }
 
-  @Override
-  public boolean equals(Object o) {
+  @Override public boolean equals(Object o) {
     if (this == o) {
       return true;
     }
@@ -90,8 +87,7 @@ public class NewExpression extends Expression {
     return true;
   }
 
-  @Override
-  public int hashCode() {
+  @Override public int hashCode() {
     int result = hash;
     if (result == 0) {
       result = super.hashCode();

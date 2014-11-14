@@ -14,17 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rex;
+package org.apache.calcite.rex;
 
-import org.eigenbase.reltype.*;
+import org.apache.calcite.rel.type.RelDataType;
 
 /**
  * Reference to a range of columns.
  *
- * <p>This construct is used only during the process of translating a {@link
- * org.eigenbase.sql.SqlNode SQL} tree to a {@link org.eigenbase.rel.RelNode
- * rel}/{@link RexNode rex} tree. <em>Regular {@link RexNode rex} trees do not
- * contain this construct.</em></p>
+ * <p>This construct is used only during the process of translating a
+ * {@link org.apache.calcite.sql.SqlNode SQL} tree to a
+ * {@link org.apache.calcite.rel.RelNode rel}/{@link RexNode rex}
+ * tree. <em>Regular {@link RexNode rex} trees do not contain this
+ * construct.</em></p>
  *
  * <p>While translating a join of EMP(EMPNO, ENAME, DEPTNO) to DEPT(DEPTNO2,
  * DNAME) we create <code>RexRangeRef(DeptType,3)</code> to represent the pair
@@ -33,7 +34,7 @@ import org.eigenbase.reltype.*;
  *
  * <p>Suppose we later create a reference to the DNAME field of this
  * RexRangeRef; it will return a <code>{@link RexInputRef}(5,Integer)</code>,
- * and the {@link org.eigenbase.rex.RexRangeRef} will disappear.</p>
+ * and the {@link org.apache.calcite.rex.RexRangeRef} will disappear.</p>
  */
 public class RexRangeRef extends RexNode {
   //~ Instance fields --------------------------------------------------------

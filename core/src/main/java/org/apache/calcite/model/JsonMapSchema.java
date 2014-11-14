@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.model;
+package org.apache.calcite.model;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -28,13 +28,11 @@ public class JsonMapSchema extends JsonSchema {
   public final List<JsonTable> tables = new ArrayList<JsonTable>();
   public final List<JsonFunction> functions = new ArrayList<JsonFunction>();
 
-  @Override
-  public void accept(ModelHandler handler) {
+  @Override public void accept(ModelHandler handler) {
     handler.visit(this);
   }
 
-  @Override
-  public void visitChildren(ModelHandler modelHandler) {
+  @Override public void visitChildren(ModelHandler modelHandler) {
     super.visitChildren(modelHandler);
     for (JsonTable jsonTable : tables) {
       jsonTable.accept(modelHandler);

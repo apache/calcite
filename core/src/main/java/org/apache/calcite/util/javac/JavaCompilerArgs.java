@@ -14,13 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.javac;
+package org.apache.calcite.util.javac;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.StringTokenizer;
 
 /**
- * A <code>JavaCompilerArgs</code> holds the arguments for a {@link
- * JavaCompiler}.
+ * A <code>JavaCompilerArgs</code> holds the arguments for a
+ * {@link JavaCompiler}.
  *
  * <p>Specific implementations of {@link JavaCompiler} may override <code>
  * set<i>Argument</i></code> methods to store arguments in a different fashion,
@@ -128,8 +130,8 @@ public class JavaCompilerArgs {
    * <p>This method is optional. It only works if the compiler supports
    * in-memory compilation. If this compiler does not return in-memory
    * compilation (which the base class does not), {@link #supportsSetSource}
-   * returns false, and this method throws {@link
-   * UnsupportedOperationException}.
+   * returns false, and this method throws
+   * {@link UnsupportedOperationException}.
    */
   public void setSource(String source, String fileName) {
     throw new UnsupportedOperationException();

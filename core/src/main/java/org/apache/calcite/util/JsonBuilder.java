@@ -14,14 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.util;
+package org.apache.calcite.util;
+
+import org.apache.calcite.runtime.Spaces;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-
-import net.hydromatic.optiq.runtime.Spaces;
 
 /**
  * Builder for JSON documents (represented as {@link List}, {@link Map},

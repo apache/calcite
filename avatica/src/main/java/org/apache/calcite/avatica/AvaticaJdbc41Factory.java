@@ -14,11 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.avatica;
+package org.apache.calcite.avatica;
 
 import java.io.InputStream;
 import java.io.Reader;
-import java.sql.*;
+import java.sql.NClob;
+import java.sql.ResultSetMetaData;
+import java.sql.RowId;
+import java.sql.SQLException;
+import java.sql.SQLXML;
 import java.util.List;
 import java.util.Properties;
 import java.util.TimeZone;

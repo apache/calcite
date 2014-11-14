@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.test;
+package org.apache.calcite.test;
 
-import org.eigenbase.relopt.*;
+import org.apache.calcite.plan.RelOptCost;
 
 /**
  * MockRelOptCost is a mock implementation of the {@link RelOptCost} interface.
@@ -25,15 +25,13 @@ import org.eigenbase.relopt.*;
 public class MockRelOptCost implements RelOptCost {
   //~ Methods ----------------------------------------------------------------
 
-  @Override
-  public boolean equals(Object obj) {
+  @Override public boolean equals(Object obj) {
     return this == obj
         || obj instanceof MockRelOptCost
         && equals((MockRelOptCost) obj);
   }
 
-  @Override
-  public int hashCode() {
+  @Override public int hashCode() {
     return 1;
   }
 

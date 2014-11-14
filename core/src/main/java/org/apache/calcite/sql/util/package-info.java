@@ -18,6 +18,6 @@
 /**
  * Utility classes for the SQL object model, parsing, and validation.
  */
-package org.eigenbase.sql.util;
+package org.apache.calcite.sql.util;
 
 // End package-info.java

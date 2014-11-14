@@ -14,13 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.impl.mongodb;
+package org.apache.calcite.adapter.mongodb;
 
-import org.eigenbase.rel.*;
-import org.eigenbase.relopt.*;
-import org.eigenbase.reltype.RelDataType;
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptCost;
+import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.plan.RelOptRule;
+import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.TableScan;
+import org.apache.calcite.rel.type.RelDataType;
 
-import java.util.*;
+import java.util.List;
 
 /**
  * Relational expression representing a scan of a MongoDB collection.
@@ -28,7 +34,7 @@ import java.util.*;
  * <p> Additional operations might be applied,
  * using the "find" or "aggregate" methods.</p>
  */
-public class MongoTableScan extends TableAccessRelBase implements MongoRel {
+public class MongoTableScan extends TableScan implements MongoRel {
   final MongoTable mongoTable;
   final RelDataType projectRowType;
 
@@ -51,27 +57,23 @@ public class MongoTableScan extends TableAccessRelBase implements MongoRel {
     assert getConvention() == MongoRel.CONVENTION;
   }
 
-  @Override
-  public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
+  @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
     assert inputs.isEmpty();
     return this;
   }
 
-  @Override
-  public RelDataType deriveRowType() {
+  @Override public RelDataType deriveRowType() {
     return projectRowType != null ? projectRowType : super.deriveRowType();
   }
 
-  @Override
-  public RelOptCost computeSelfCost(RelOptPlanner planner) {
+  @Override public RelOptCost computeSelfCost(RelOptPlanner planner) {
     // scans with a small project list are cheaper
     final float f = projectRowType == null ? 1f
         : (float) projectRowType.getFieldCount() / 100f;
     return super.computeSelfCost(planner).multiplyBy(.1 * f);
   }
 
-  @Override
-  public void register(RelOptPlanner planner) {
+  @Override public void register(RelOptPlanner planner) {
     planner.addRule(MongoToEnumerableConverterRule.INSTANCE);
     for (RelOptRule rule : MongoRules.RULES) {
       planner.addRule(rule);

@@ -14,30 +14,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.rel.rules;
+package org.apache.calcite.rel.rules;
 
-import java.util.BitSet;
-import java.util.List;
-
-import org.eigenbase.rel.AggregateCall;
-import org.eigenbase.rel.AggregateRelBase;
-import org.eigenbase.rel.ProjectRelBase;
-import org.eigenbase.rel.RelFactories;
-import org.eigenbase.rel.RelNode;
-import org.eigenbase.relopt.RelOptRule;
-import org.eigenbase.relopt.RelOptRuleCall;
-import org.eigenbase.relopt.RelOptUtil;
-import org.eigenbase.rex.RexInputRef;
-import org.eigenbase.rex.RexNode;
-
-import net.hydromatic.optiq.util.BitSets;
+import org.apache.calcite.plan.RelOptRule;
+import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.Aggregate;
+import org.apache.calcite.rel.core.AggregateCall;
+import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.core.RelFactories;
+import org.apache.calcite.rex.RexInputRef;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.util.BitSets;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
+import java.util.BitSet;
+import java.util.List;
+
 /**
- * Planner rule that recognizes a {@link org.eigenbase.rel.AggregateRelBase}
- * on top of a {@link org.eigenbase.rel.ProjectRelBase} and if possible
+ * Planner rule that recognizes a {@link org.apache.calcite.rel.core.Aggregate}
+ * on top of a {@link org.apache.calcite.rel.core.Project} and if possible
  * aggregate through the project or removes the project.
  *
  * <p>This is only possible when the grouping expressions and arguments to
@@ -53,21 +52,21 @@ public class AggregateProjectMergeRule extends RelOptRule {
   /** Private constructor. */
   private AggregateProjectMergeRule() {
     super(
-        operand(AggregateRelBase.class,
-            operand(ProjectRelBase.class, any())));
+        operand(Aggregate.class,
+            operand(Project.class, any())));
   }
 
   public void onMatch(RelOptRuleCall call) {
-    final AggregateRelBase aggregate = call.rel(0);
-    final ProjectRelBase project = call.rel(1);
+    final Aggregate aggregate = call.rel(0);
+    final Project project = call.rel(1);
     RelNode x = apply(aggregate, project);
     if (x != null) {
       call.transformTo(x);
     }
   }
 
-  public static RelNode apply(AggregateRelBase aggregate,
-      ProjectRelBase project) {
+  public static RelNode apply(Aggregate aggregate,
+      Project project) {
     final List<Integer> newKeys = Lists.newArrayList();
     for (int key : BitSets.toIter(aggregate.getGroupSet())) {
       final RexNode rex = project.getProjects().get(key);
@@ -96,8 +95,8 @@ public class AggregateProjectMergeRule extends RelOptRule {
     }
 
     final BitSet newGroupSet = BitSets.of(newKeys);
-    final AggregateRelBase newAggregate =
-        aggregate.copy(aggregate.getTraitSet(), project.getChild(), newGroupSet,
+    final Aggregate newAggregate =
+        aggregate.copy(aggregate.getTraitSet(), project.getInput(), newGroupSet,
             aggCalls.build());
 
     // Add a project if the group set is not in the same order or

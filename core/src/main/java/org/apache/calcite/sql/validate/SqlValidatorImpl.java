@@ -14,32 +14,97 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql.validate;
+package org.apache.calcite.sql.validate;
 
-import java.math.*;
-
-import java.util.*;
-import java.util.logging.*;
-
-import org.eigenbase.reltype.*;
-import org.eigenbase.resource.*;
-import org.eigenbase.sql.*;
-import org.eigenbase.sql.fun.*;
-import org.eigenbase.sql.parser.*;
-import org.eigenbase.sql.type.*;
-import org.eigenbase.sql.util.*;
-import org.eigenbase.trace.*;
-import org.eigenbase.util.*;
-
-import net.hydromatic.linq4j.Linq4j;
-import net.hydromatic.linq4j.Ord;
+import org.apache.calcite.linq4j.Linq4j;
+import org.apache.calcite.linq4j.Ord;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rel.type.RelDataTypeSystem;
+import org.apache.calcite.rel.type.RelRecordType;
+import org.apache.calcite.runtime.CalciteContextException;
+import org.apache.calcite.runtime.CalciteException;
+import org.apache.calcite.runtime.Feature;
+import org.apache.calcite.runtime.Resources;
+import org.apache.calcite.sql.JoinConditionType;
+import org.apache.calcite.sql.JoinType;
+import org.apache.calcite.sql.SqlAccessEnum;
+import org.apache.calcite.sql.SqlAccessType;
+import org.apache.calcite.sql.SqlBasicCall;
+import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlCallBinding;
+import org.apache.calcite.sql.SqlDataTypeSpec;
+import org.apache.calcite.sql.SqlDelete;
+import org.apache.calcite.sql.SqlDynamicParam;
+import org.apache.calcite.sql.SqlExplain;
+import org.apache.calcite.sql.SqlFunction;
+import org.apache.calcite.sql.SqlFunctionCategory;
+import org.apache.calcite.sql.SqlIdentifier;
+import org.apache.calcite.sql.SqlInsert;
+import org.apache.calcite.sql.SqlIntervalLiteral;
+import org.apache.calcite.sql.SqlIntervalQualifier;
+import org.apache.calcite.sql.SqlJoin;
+import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlLiteral;
+import org.apache.calcite.sql.SqlMerge;
+import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlNodeList;
+import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.SqlOperatorTable;
+import org.apache.calcite.sql.SqlOrderBy;
+import org.apache.calcite.sql.SqlSampleSpec;
+import org.apache.calcite.sql.SqlSelect;
+import org.apache.calcite.sql.SqlSelectKeyword;
+import org.apache.calcite.sql.SqlSyntax;
+import org.apache.calcite.sql.SqlUnresolvedFunction;
+import org.apache.calcite.sql.SqlUpdate;
+import org.apache.calcite.sql.SqlUtil;
+import org.apache.calcite.sql.SqlWindow;
+import org.apache.calcite.sql.SqlWith;
+import org.apache.calcite.sql.SqlWithItem;
+import org.apache.calcite.sql.fun.SqlCase;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.type.AssignableOperandTypeChecker;
+import org.apache.calcite.sql.type.ReturnTypes;
+import org.apache.calcite.sql.type.SqlOperandTypeInference;
+import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.type.SqlTypeUtil;
+import org.apache.calcite.sql.util.SqlShuttle;
+import org.apache.calcite.sql.util.SqlVisitor;
+import org.apache.calcite.util.BitString;
+import org.apache.calcite.util.Bug;
+import org.apache.calcite.util.Pair;
+import org.apache.calcite.util.Util;
+import org.apache.calcite.util.trace.CalciteTrace;
 
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
-import static org.eigenbase.sql.SqlUtil.stripAs;
-import static org.eigenbase.util.Static.RESOURCE;
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.util.AbstractList;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Calendar;
+import java.util.Collections;
+import java.util.GregorianCalendar;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.IdentityHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.Stack;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+import static org.apache.calcite.sql.SqlUtil.stripAs;
+import static org.apache.calcite.util.Static.RESOURCE;
 
 /**
  * Default implementation of {@link SqlValidator}.
@@ -47,7 +112,7 @@ import static org.eigenbase.util.Static.RESOURCE;
 public class SqlValidatorImpl implements SqlValidatorWithHints {
   //~ Static fields/initializers ---------------------------------------------
 
-  public static final Logger TRACER = EigenbaseTrace.PARSER_LOGGER;
+  public static final Logger TRACER = CalciteTrace.PARSER_LOGGER;
 
   /**
    * Alias generated for the source table when rewriting UPDATE to MERGE.
@@ -134,18 +199,19 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       new IdentityHashMap<SqlSelect, SqlValidatorScope>();
 
   /**
-   * Maps a {@link SqlNode node} to the {@link SqlValidatorNamespace
-   * namespace} which describes what columns they contain.
+   * Maps a {@link SqlNode node} to the
+   * {@link SqlValidatorNamespace namespace} which describes what columns they
+   * contain.
    */
   protected final Map<SqlNode, SqlValidatorNamespace> namespaces =
       new IdentityHashMap<SqlNode, SqlValidatorNamespace>();
 
   /**
    * Set of select expressions used as cursor definitions. In standard SQL,
-   * only the top-level SELECT is a cursor; Eigenbase extends this with
+   * only the top-level SELECT is a cursor; Calcite extends this with
    * cursors as inputs to table functions.
    */
-  private final Set<SqlNode> cursorSet = new IdentityHashSet<SqlNode>();
+  private final Set<SqlNode> cursorSet = Sets.newIdentityHashSet();
 
   /**
    * Stack of objects that maintain information about function calls. A stack
@@ -1403,7 +1469,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     return type;
   }
 
-  public EigenbaseException handleUnresolvedFunction(
+  public CalciteException handleUnresolvedFunction(
       SqlCall call,
       SqlFunction unresolvedFunction,
       List<RelDataType> argTypes) {
@@ -2498,7 +2564,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         // ensure qualifier is good before attempting to validate literal
         validateIntervalQualifier(intervalQualifier);
         String intervalStr = interval.getIntervalLiteral();
-        // throws EigenbaseContextException if string is invalid
+        // throws CalciteContextException if string is invalid
         int[] values = intervalQualifier.evaluateIntervalLiteral(intervalStr,
             literal.getParserPosition(), typeFactory.getTypeSystem());
         Util.discard(values);
@@ -3544,7 +3610,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   public void validateDynamicParam(SqlDynamicParam dynamicParam) {
   }
 
-  public EigenbaseContextException newValidationError(SqlNode node,
+  public CalciteContextException newValidationError(SqlNode node,
       Resources.ExInst<SqlValidatorException> e) {
     assert node != null;
     final SqlParserPos pos = node.getParserPosition();
@@ -3763,8 +3829,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     final List<RelDataType> types = new ArrayList<RelDataType>();
     sqlQuery.accept(
         new SqlShuttle() {
-          @Override
-          public SqlNode visit(SqlDynamicParam param) {
+          @Override public SqlNode visit(SqlDynamicParam param) {
             RelDataType type = getValidatedNodeType(param);
             types.add(type);
             return param;
@@ -3773,13 +3838,11 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     return typeFactory.createStructType(
         types,
         new AbstractList<String>() {
-          @Override
-          public String get(int index) {
+          @Override public String get(int index) {
             return "?" + index;
           }
 
-          @Override
-          public int size() {
+          @Override public int size() {
             return types.size();
           }
         });
@@ -4075,7 +4138,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
                   literal, RESOURCE.orderByOrdinalOutOfRange());
             }
 
-            // SQL ordinals are 1-based, but SortRel's are 0-based
+            // SQL ordinals are 1-based, but Sort's are 0-based
             int ordinal = intValue - 1;
             return nthSelectItem(ordinal, literal.getParserPosition());
           }
@@ -4141,6 +4204,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     }
   }
 
+  /** Information about an identifier in a particular scope. */
   protected static class IdInfo {
     public final SqlValidatorScope scope;
     public final SqlIdentifier id;

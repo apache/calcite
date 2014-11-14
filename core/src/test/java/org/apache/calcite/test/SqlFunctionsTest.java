@@ -14,20 +14,49 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq.test;
+package org.apache.calcite.test;
 
-import net.hydromatic.avatica.ByteString;
-
-import net.hydromatic.optiq.runtime.*;
+import org.apache.calcite.avatica.ByteString;
+import org.apache.calcite.runtime.SqlFunctions;
+import org.apache.calcite.runtime.Utilities;
 
 import org.junit.Test;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 
-import static net.hydromatic.optiq.runtime.SqlFunctions.*;
+import static org.apache.calcite.runtime.SqlFunctions.EPOCH_JULIAN;
+import static org.apache.calcite.runtime.SqlFunctions.TimeUnitRange;
+import static org.apache.calcite.runtime.SqlFunctions.charLength;
+import static org.apache.calcite.runtime.SqlFunctions.concat;
+import static org.apache.calcite.runtime.SqlFunctions.dateStringToUnixDate;
+import static org.apache.calcite.runtime.SqlFunctions.greater;
+import static org.apache.calcite.runtime.SqlFunctions.initcap;
+import static org.apache.calcite.runtime.SqlFunctions.intervalDayTimeToString;
+import static org.apache.calcite.runtime.SqlFunctions.intervalYearMonthToString;
+import static org.apache.calcite.runtime.SqlFunctions.lesser;
+import static org.apache.calcite.runtime.SqlFunctions.lower;
+import static org.apache.calcite.runtime.SqlFunctions.ltrim;
+import static org.apache.calcite.runtime.SqlFunctions.rtrim;
+import static org.apache.calcite.runtime.SqlFunctions.timeStringToUnixDate;
+import static org.apache.calcite.runtime.SqlFunctions.timestampStringToUnixDate;
+import static org.apache.calcite.runtime.SqlFunctions.trim;
+import static org.apache.calcite.runtime.SqlFunctions.unixDateExtract;
+import static org.apache.calcite.runtime.SqlFunctions.unixDateToString;
+import static org.apache.calcite.runtime.SqlFunctions.unixTimeToString;
+import static org.apache.calcite.runtime.SqlFunctions.unixTimestampToString;
+import static org.apache.calcite.runtime.SqlFunctions.upper;
+import static org.apache.calcite.runtime.SqlFunctions.ymdToJulian;
+import static org.apache.calcite.runtime.SqlFunctions.ymdToUnixDate;
 
-import static org.hamcrest.CoreMatchers.*;
-import static org.junit.Assert.*;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
 
 /**
  * Unit test for the methods in {@link SqlFunctions} that implement SQL

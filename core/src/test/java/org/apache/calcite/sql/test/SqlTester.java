@@ -14,20 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.sql.test;
+package org.apache.calcite.sql.test;
+
+import org.apache.calcite.avatica.Casing;
+import org.apache.calcite.avatica.Quoting;
+import org.apache.calcite.config.Lex;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.validate.SqlConformance;
+import org.apache.calcite.test.SqlValidatorTestCase;
 
 import java.io.Closeable;
 import java.sql.ResultSet;
-
-import org.eigenbase.reltype.*;
-import org.eigenbase.sql.*;
-import org.eigenbase.sql.validate.SqlConformance;
-import org.eigenbase.test.SqlValidatorTestCase;
-
-import net.hydromatic.avatica.Casing;
-import net.hydromatic.avatica.Quoting;
-
-import net.hydromatic.optiq.config.Lex;
 
 /**
  * SqlTester defines a callback for testing SQL queries and expressions.
@@ -363,10 +361,12 @@ public interface SqlTester extends Closeable, SqlValidatorTestCase.Tester {
 
   //~ Inner Interfaces -------------------------------------------------------
 
+  /** Type checker. */
   interface TypeChecker {
     void checkType(RelDataType type);
   }
 
+  /** Result checker. */
   interface ResultChecker {
     void checkResult(ResultSet result) throws Exception;
   }

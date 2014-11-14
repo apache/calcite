@@ -14,18 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.hydromatic.optiq;
+package org.apache.calcite.schema;
 
-import org.eigenbase.reltype.RelDataType;
-import org.eigenbase.reltype.RelDataTypeFactory;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
 
 /**
  * Table.
  *
- * <p>The typical way for a table to be created is when Calcite interrogates
- * a user-defined schema in order to validate names appearing in a SQL query.
- * Calcite finds the schema by calling {@link Schema#getSubSchema(String)} on the
- * connection's root schema, then gets a table by calling
+ * <p>The typical way for a table to be created is when Calcite interrogates a
+ * user-defined schema in order to validate names appearing in a SQL query.
+ * Calcite finds the schema by calling {@link Schema#getSubSchema(String)} on
+ * the connection's root schema, then gets a table by calling
  * {@link Schema#getTable(String)}.</p>
  *
  * <p>Note that a table does not know its name. It is in fact possible for

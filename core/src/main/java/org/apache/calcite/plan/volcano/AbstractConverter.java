@@ -14,28 +14,36 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eigenbase.relopt.volcano;
+package org.apache.calcite.plan.volcano;
+
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptCost;
+import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.plan.RelOptRule;
+import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.plan.RelTrait;
+import org.apache.calcite.plan.RelTraitDef;
+import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelWriter;
+import org.apache.calcite.rel.convert.ConverterImpl;
 
 import java.util.List;
-
-import org.eigenbase.rel.*;
-import org.eigenbase.rel.convert.*;
-import org.eigenbase.relopt.*;
 
 /**
  * Converts a relational expression to any given output convention.
  *
- * <p>Unlike most {@link ConverterRel}s, an abstract converter is always
- * abstract. You would typically create an <code>AbstractConverter</code> when
- * it is necessary to transform a relational expression immediately; later,
- * rules will transform it into relational expressions which can be implemented.
- * </p>
+ * <p>Unlike most {@link org.apache.calcite.rel.convert.Converter}s, an abstract
+ * converter is always abstract. You would typically create an
+ * <code>AbstractConverter</code> when it is necessary to transform a relational
+ * expression immediately; later, rules will transform it into relational
+ * expressions which can be implemented.
  *
  * <p>If an abstract converter cannot be satisfied immediately (because the
  * source subset is abstract), the set is flagged, so this converter will be
  * expanded as soon as a non-abstract relexp is added to the set.</p>
  */
-public class AbstractConverter extends ConverterRelImpl {
+public class AbstractConverter extends ConverterImpl {
   //~ Constructors -----------------------------------------------------------
 
   public AbstractConverter(
@@ -102,7 +110,7 @@ public class AbstractConverter extends ConverterRelImpl {
     public void onMatch(RelOptRuleCall call) {
       final VolcanoPlanner planner = (VolcanoPlanner) call.getPlanner();
       AbstractConverter converter = call.rel(0);
-      final RelNode child = converter.getChild();
+      final RelNode child = converter.getInput();
       RelNode converted =
           planner.changeTraitsUsingConverters(
               child,
