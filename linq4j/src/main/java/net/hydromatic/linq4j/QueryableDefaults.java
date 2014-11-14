@@ -1125,10 +1125,12 @@ public abstract class QueryableDefaults {
     throw Extensions.todo();
   }
 
+  /** Replayable. */
   public interface Replayable<T> extends Queryable<T> {
     void replay(QueryableFactory<T> factory);
   }
 
+  /** Replayable queryable. */
   public abstract static class ReplayableQueryable<T>
       extends DefaultQueryable<T> implements Replayable<T> {
     public void replay(QueryableFactory<T> factory) {
@@ -1162,6 +1164,7 @@ public abstract class QueryableDefaults {
     }
   }
 
+  /** Non-leaf replayable queryable. */
   public abstract static class NonLeafReplayableQueryable<T>
       extends ReplayableQueryable<T> {
     private final Queryable<T> original;

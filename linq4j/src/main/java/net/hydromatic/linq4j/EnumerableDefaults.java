@@ -2124,6 +2124,7 @@ public abstract class EnumerableDefaults {
     return sink;
   }
 
+  /** Enumerable that implements take-while. */
   static class TakeWhileEnumerator<TSource> implements Enumerator<TSource> {
     private final Enumerator<TSource> enumerator;
     private final Predicate2<TSource, Integer> predicate;
@@ -2164,6 +2165,7 @@ public abstract class EnumerableDefaults {
     }
   }
 
+  /** Enumerator that implements skip-while. */
   static class SkipWhileEnumerator<TSource> implements Enumerator<TSource> {
     private final Enumerator<TSource> enumerator;
     private final Predicate2<TSource, Integer> predicate;
@@ -2207,6 +2209,7 @@ public abstract class EnumerableDefaults {
     }
   }
 
+  /** Enumerator that casts each value. */
   static class CastingEnumerator<T> implements Enumerator<T> {
     private final Enumerator<?> enumerator;
     private final Class<T> clazz;
@@ -2233,6 +2236,7 @@ public abstract class EnumerableDefaults {
     }
   }
 
+  /** Value wrapped with a comparer. */
   private static class Wrapped<T> {
     private final EqualityComparer<T> comparer;
     private final T element;
@@ -2263,6 +2267,7 @@ public abstract class EnumerableDefaults {
     }
   }
 
+  /** Map that wraps each value. */
   private static class WrapMap<K, V> extends AbstractMap<K, V> {
     private final Map<Wrapped<K>, V> map = new HashMap<Wrapped<K>, V>();
     private final EqualityComparer<K> comparer;

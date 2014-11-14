@@ -392,6 +392,7 @@ public abstract class Linq4j {
     return o;
   }
 
+  /** Iterable enumerator. */
   @SuppressWarnings("unchecked")
   private static class IterableEnumerator<T> implements Enumerator<T> {
     private final Iterable<T> iterable;
@@ -466,6 +467,7 @@ public abstract class Linq4j {
     }
   }
 
+  /** Composite enumerable. */
   static class CompositeEnumerable<E> extends AbstractEnumerable<E> {
     private final Enumerator<Enumerable<E>> enumerableEnumerator;
 
@@ -509,6 +511,7 @@ public abstract class Linq4j {
     }
   }
 
+  /** Iterable enumerable. */
   static class IterableEnumerable<T> extends AbstractEnumerable2<T> {
     protected final Iterable<T> iterable;
 
@@ -526,6 +529,7 @@ public abstract class Linq4j {
     }
   }
 
+  /** Collection enumerable. */
   static class CollectionEnumerable<T> extends IterableEnumerable<T> {
     CollectionEnumerable(Collection<T> iterable) {
       super(iterable);
@@ -556,6 +560,7 @@ public abstract class Linq4j {
     }
   }
 
+  /** List enumerable. */
   static class ListEnumerable<T> extends CollectionEnumerable<T> {
     ListEnumerable(Collection<T> iterable) {
       super(iterable);

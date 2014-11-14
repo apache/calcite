@@ -91,7 +91,7 @@ public final class FunctionExpression<F extends Function<?>>
           new Class[]{Types.toClass(type)},
           new InvocationHandler() {
             public Object invoke(Object proxy, Method method, Object[] args)
-              throws Throwable {
+                throws Throwable {
               return x.dynamicInvoke(args);
             }
           });

@@ -175,7 +175,7 @@ public class CsvTest {
   }
 
   private void checkSql(String model, String sql, final String... expected)
-    throws SQLException {
+      throws SQLException {
     checkSql(sql, model, expect(expected));
   }
 
@@ -197,7 +197,7 @@ public class CsvTest {
   }
 
   private void checkSql(String sql, String model, Function1<ResultSet, Void> fn)
-    throws SQLException {
+      throws SQLException {
     Connection connection = null;
     Statement statement = null;
     try {
@@ -215,7 +215,7 @@ public class CsvTest {
   }
 
   private static void collect(List<String> result, ResultSet resultSet)
-    throws SQLException {
+      throws SQLException {
     final StringBuilder buf = new StringBuilder();
     while (resultSet.next()) {
       buf.setLength(0);
@@ -233,7 +233,7 @@ public class CsvTest {
   }
 
   private void output(ResultSet resultSet, PrintStream out)
-    throws SQLException {
+      throws SQLException {
     final ResultSetMetaData metaData = resultSet.getMetaData();
     final int columnCount = metaData.getColumnCount();
     while (resultSet.next()) {

@@ -635,7 +635,7 @@ public enum Primitive {
    * Sends a field value to a sink.
    */
   public void send(Field field, Object o, Sink sink)
-    throws IllegalAccessException {
+      throws IllegalAccessException {
     switch (this) {
     case BOOLEAN:
       sink.set(field.getBoolean(o));

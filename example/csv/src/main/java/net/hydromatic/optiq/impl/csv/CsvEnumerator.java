@@ -102,6 +102,7 @@ class CsvEnumerator implements Enumerator<Object> {
     return integers;
   }
 
+  /** Row converter. */
   private abstract static class RowConverter {
     abstract Object convertRow(String[] rows);
 
@@ -182,6 +183,7 @@ class CsvEnumerator implements Enumerator<Object> {
     }
   }
 
+  /** Array row converter. */
   private static class ArrayRowConverter extends RowConverter {
     private final CsvFieldType[] fieldTypes;
     private final int[] fields;
@@ -201,6 +203,7 @@ class CsvEnumerator implements Enumerator<Object> {
     }
   }
 
+  /** Single column row converter. */
   private static class SingleColumnRowConverter extends RowConverter {
     private final CsvFieldType fieldType;
     private final int fieldIndex;

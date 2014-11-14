@@ -19,6 +19,8 @@ package net.hydromatic.linq4j;
 /**
  * Represents the result of applying a sorting operation to an
  * {@link net.hydromatic.linq4j.Enumerable}.
+ *
+ * @param <T> element type
  */
 public interface OrderedEnumerable<T>
     extends Enumerable<T>, ExtendedOrderedEnumerable<T> {

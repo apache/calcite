@@ -1177,6 +1177,7 @@ public class ExpressionTest {
         Expressions.toString(builder.toBlock()));
   }
 
+  /** An enum. */
   enum MyEnum {
     X,
     Y {
@@ -1194,6 +1195,7 @@ public class ExpressionTest {
     return 0;
   }
 
+  /** A class with a field for each type of interest. */
   public static class AllType {
     public final boolean b;
     public final byte y;

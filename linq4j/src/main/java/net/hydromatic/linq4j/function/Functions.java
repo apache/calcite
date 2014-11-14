@@ -487,6 +487,7 @@ public abstract class Functions {
     return new SelectorEqualityComparer<T, T2>(selector);
   }
 
+  /** Array equality comparer. */
   private static class ArrayEqualityComparer
       implements EqualityComparer<Object[]> {
     public boolean equal(Object[] v1, Object[] v2) {
@@ -498,6 +499,7 @@ public abstract class Functions {
     }
   }
 
+  /** Identity equality comparer. */
   private static class IdentityEqualityComparer
       implements EqualityComparer<Object> {
     public boolean equal(Object v1, Object v2) {
@@ -509,6 +511,7 @@ public abstract class Functions {
     }
   }
 
+  /** Selector equality comparer. */
   private static final class SelectorEqualityComparer<T, T2>
       implements EqualityComparer<T> {
     private final Function1<T, T2> selector;
@@ -529,6 +532,7 @@ public abstract class Functions {
     }
   }
 
+  /** Nulls first comparator. */
   private static class NullsFirstComparator
       implements Comparator<Comparable>, Serializable {
     public int compare(Comparable o1, Comparable o2) {
@@ -546,6 +550,7 @@ public abstract class Functions {
     }
   }
 
+  /** Nulls last comparator. */
   private static class NullsLastComparator
       implements Comparator<Comparable>, Serializable {
     public int compare(Comparable o1, Comparable o2) {
@@ -563,6 +568,7 @@ public abstract class Functions {
     }
   }
 
+  /** Nulls first reverse comparator. */
   private static class NullsFirstReverseComparator
       implements Comparator<Comparable>, Serializable  {
     public int compare(Comparable o1, Comparable o2) {
@@ -580,6 +586,7 @@ public abstract class Functions {
     }
   }
 
+  /** Nulls last reverse comparator. */
   private static class NullsLastReverseComparator
       implements Comparator<Comparable>, Serializable  {
     public int compare(Comparable o1, Comparable o2) {
@@ -597,6 +604,7 @@ public abstract class Functions {
     }
   }
 
+  /** Ignore. */
   private static final class Ignore<R, T0, T1>
       implements Function0<R>, Function1<T0, R>, Function2<T0, T1, R> {
     public R apply() {

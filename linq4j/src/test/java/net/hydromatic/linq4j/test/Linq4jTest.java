@@ -1072,7 +1072,7 @@ public class Linq4jTest {
     assertEquals(3, enumerableDeptsResult5.size());
   }
 
-  @Test public void testTake_enumerable() {
+  @Test public void testTakeEnumerable() {
     final Enumerable<Department> enumerableDepts =
         Linq4j.asEnumerable(depts);
     final List<Department> enumerableDeptsResult =
@@ -1086,7 +1086,7 @@ public class Linq4jTest {
     assertEquals(3, enumerableDeptsResult5.size());
   }
 
-  @Test public void testTake_queryable() {
+  @Test public void testTakeQueryable() {
     final Queryable<Department> querableDepts =
         Linq4j.asEnumerable(depts).asQueryable();
     final List<Department> queryableResult =
@@ -1097,7 +1097,7 @@ public class Linq4jTest {
     assertEquals(depts[1], queryableResult.get(1));
   }
 
-  @Test public void testTake_enumerable_zero_or_negative_size() {
+  @Test public void testTakeEnumerableZeroOrNegativeSize() {
     assertEquals(
         0,
         EnumerableDefaults.take(Linq4j.asEnumerable(depts), 0)
@@ -1108,7 +1108,7 @@ public class Linq4jTest {
             .toList().size());
   }
 
-  @Test public void testTake_queryable_zero_or_negative_size() {
+  @Test public void testTakeQueryableZeroOrNegativeSize() {
     assertEquals(
         0,
         QueryableDefaults.take(Linq4j.asEnumerable(depts).asQueryable(), 0)
@@ -1119,7 +1119,7 @@ public class Linq4jTest {
             .toList().size());
   }
 
-  @Test public void testTake_enumerable_greater_than_length() {
+  @Test public void testTakeEnumerableGreaterThanLength() {
     final Enumerable<Department> enumerableDepts =
         Linq4j.asEnumerable(depts);
     final List<Department> depList =
@@ -1130,7 +1130,7 @@ public class Linq4jTest {
     assertEquals(depts[2], depList.get(2));
   }
 
-  @Test public void testTake_queryable_greater_than_length() {
+  @Test public void testTakeQueryableGreaterThanLength() {
     final Enumerable<Department> enumerableDepts =
         Linq4j.asEnumerable(depts);
     final List<Department> depList =
@@ -1141,7 +1141,7 @@ public class Linq4jTest {
     assertEquals(depts[2], depList.get(2));
   }
 
-  @Test public void testTakeWhile_enumerable_predicate() {
+  @Test public void testTakeWhileEnumerablePredicate() {
     final Enumerable<Department> enumerableDepts =
         Linq4j.asEnumerable(depts);
     final List<Department> deptList =
@@ -1161,7 +1161,7 @@ public class Linq4jTest {
     assertEquals(depts[0], deptList.get(0));
   }
 
-  @Test public void testTakeWhile_enumerable_function() {
+  @Test public void testTakeWhileEnumerableFunction() {
     final Enumerable<Department> enumerableDepts =
         Linq4j.asEnumerable(depts);
     final List<Department> deptList =
@@ -1182,7 +1182,7 @@ public class Linq4jTest {
     assertEquals(depts[0], deptList.get(0));
   }
 
-  @Test public void testTakeWhile_queryable_functionexpression_predicate() {
+  @Test public void testTakeWhileQueryableFunctionExpressionPredicate() {
     final Queryable<Department> queryableDepts =
         Linq4j.asEnumerable(depts).asQueryable();
     Predicate1<Department> predicate = new Predicate1<Department>() {
@@ -1235,7 +1235,7 @@ public class Linq4jTest {
     assertEquals(depts[1], deptList.get(1));
   }
 
-  @Test public void testTakeWhileN_no_match() {
+  @Test public void testTakeWhileNNoMatch() {
     final Queryable<Department> queryableDepts =
         Linq4j.asEnumerable(depts).asQueryable();
     Predicate2<Department, Integer> function2 = Functions.falsePredicate2();
@@ -1414,6 +1414,7 @@ public class Linq4jTest {
     Linq4jExample.main(new String[0]);
   }
 
+  /** Employee. */
   public static class Employee {
     public final int empno;
     public final String name;
@@ -1468,6 +1469,7 @@ public class Linq4jTest {
     }
   }
 
+  /** Department. */
   public static class Department {
     public final String name;
     public final int deptno;

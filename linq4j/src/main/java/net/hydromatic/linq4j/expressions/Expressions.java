@@ -3173,15 +3173,19 @@ public abstract class Expressions {
   // Some interfaces we'd rather not implement yet. They don't seem relevant
   // in the Java world.
 
+  /** Property info. */
   interface PropertyInfo {
   }
 
+  /** Runtime variables expression. */
   interface RuntimeVariablesExpression {
   }
 
+  /** Symbol document info. */
   interface SymbolDocumentInfo {
   }
 
+  /** Fluent list. */
   public interface FluentList<T> extends List<T> {
     FluentList<T> append(T t);
 
@@ -3194,6 +3198,7 @@ public abstract class Expressions {
     FluentList<T> appendAll(T... ts);
   }
 
+  /** Fluent array list. */
   private static class FluentArrayList<T> extends ArrayList<T>
       implements FluentList<T> {
     public FluentArrayList() {

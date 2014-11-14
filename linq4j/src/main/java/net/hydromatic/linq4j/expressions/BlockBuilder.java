@@ -477,6 +477,7 @@ public class BlockBuilder {
     return this;
   }
 
+  /** Substitute Variable Visitor. */
   private static class SubstituteVariableVisitor extends Visitor {
     private final Map<ParameterExpression, Expression> map;
     private final Map<ParameterExpression, Boolean> actives =
@@ -538,6 +539,7 @@ public class BlockBuilder {
     }
   }
 
+  /** Use counter. */
   private static class UseCounter extends Visitor {
     private final Map<ParameterExpression, Slot> map =
         new IdentityHashMap<ParameterExpression, Slot>();

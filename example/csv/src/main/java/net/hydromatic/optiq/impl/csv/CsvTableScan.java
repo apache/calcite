@@ -16,9 +16,9 @@
  */
 package net.hydromatic.optiq.impl.csv;
 
-import net.hydromatic.optiq.rules.java.*;
-
 import net.hydromatic.linq4j.expressions.*;
+
+import net.hydromatic.optiq.rules.java.*;
 
 import org.eigenbase.rel.*;
 import org.eigenbase.relopt.*;
