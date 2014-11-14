@@ -16,7 +16,7 @@
  */
 package org.apache.calcite.schema;
 
-import java.util.BitSet;
+import org.apache.calcite.util.ImmutableBitSet;
 
 /**
  * Statistics about a {@link Table}.
@@ -32,7 +32,7 @@ public interface Statistic {
   /** Returns whether the given set of columns is a unique key, or a superset
    * of a unique key, of the table.
    */
-  boolean isKey(BitSet columns);
+  boolean isKey(ImmutableBitSet columns);
 }
 
 // End Statistic.java

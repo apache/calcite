@@ -33,6 +33,7 @@ import org.apache.calcite.tools.FrameworksTest;
 import org.apache.calcite.tools.PlannerTest;
 import org.apache.calcite.util.BitSetsTest;
 import org.apache.calcite.util.ChunkListTest;
+import org.apache.calcite.util.ImmutableBitSetTest;
 import org.apache.calcite.util.PartiallyOrderedSetTest;
 import org.apache.calcite.util.PermutationTestCase;
 import org.apache.calcite.util.ReflectVisitorTest;
@@ -57,6 +58,7 @@ import org.junit.runners.Suite;
     // very fast tests (under 0.1s)
     ArrayTableTest.class,
     BitSetsTest.class,
+    ImmutableBitSetTest.class,
     DirectedGraphTest.class,
     ReflectVisitorTest.class,
     RelOptUtilTest.class,

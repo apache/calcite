@@ -47,6 +47,7 @@ import org.apache.calcite.sql.validate.SqlValidatorTable;
 import org.apache.calcite.sql2rel.RelFieldTrimmer;
 import org.apache.calcite.sql2rel.SqlToRelConverter;
 import org.apache.calcite.sql2rel.StandardConvertletTable;
+import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Util;
 
 import com.google.common.base.Function;
@@ -54,7 +55,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 
 import java.util.ArrayList;
-import java.util.BitSet;
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
@@ -353,7 +353,7 @@ public abstract class SqlToRelTestBase {
         return collationList;
       }
 
-      public boolean isKey(BitSet columns) {
+      public boolean isKey(ImmutableBitSet columns) {
         return false;
       }
 
@@ -406,7 +406,7 @@ public abstract class SqlToRelTestBase {
       return parent.getCollationList();
     }
 
-    public boolean isKey(BitSet columns) {
+    public boolean isKey(ImmutableBitSet columns) {
       return parent.isKey(columns);
     }
   }

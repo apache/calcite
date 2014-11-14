@@ -20,8 +20,8 @@ import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.util.ImmutableBitSet;
 
-import java.util.BitSet;
 import java.util.List;
 
 /** Utilities for strong predicates.
@@ -42,19 +42,19 @@ import java.util.List;
  * </ul>
  */
 public class Strong {
-  private final BitSet nullColumns;
+  private final ImmutableBitSet nullColumns;
 
-  private Strong(BitSet nullColumns) {
+  private Strong(ImmutableBitSet nullColumns) {
     this.nullColumns = nullColumns;
   }
 
-  public static Strong of(BitSet nullColumns) {
+  public static Strong of(ImmutableBitSet nullColumns) {
     return new Strong(nullColumns);
   }
 
   /** Returns whether the analyzed expression will return null if a given set
    * of input columns are null. */
-  public static boolean is(RexNode node, BitSet nullColumns) {
+  public static boolean is(RexNode node, ImmutableBitSet nullColumns) {
     return of(nullColumns).strong(node);
   }
 

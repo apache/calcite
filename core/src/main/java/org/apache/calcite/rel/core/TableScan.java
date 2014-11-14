@@ -31,10 +31,9 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.util.BitSets;
+import org.apache.calcite.util.ImmutableBitSet;
 
 import java.util.ArrayList;
-import java.util.BitSet;
 import java.util.List;
 import java.util.Set;
 
@@ -83,7 +82,7 @@ public abstract class TableScan extends AbstractRelNode {
     return table.getCollationList();
   }
 
-  @Override public boolean isKey(BitSet columns) {
+  @Override public boolean isKey(ImmutableBitSet columns) {
     return table.isKey(columns);
   }
 
@@ -120,10 +119,11 @@ public abstract class TableScan extends AbstractRelNode {
    *                    wanted by the consumer
    * @return Relational expression that projects the desired fields
    */
-  public RelNode project(BitSet fieldsUsed, Set<RelDataTypeField> extraFields,
-    RelFactories.ProjectFactory projectFactory) {
+  public RelNode project(ImmutableBitSet fieldsUsed,
+      Set<RelDataTypeField> extraFields,
+      RelFactories.ProjectFactory projectFactory) {
     final int fieldCount = getRowType().getFieldCount();
-    if (fieldsUsed.equals(BitSets.range(fieldCount))
+    if (fieldsUsed.equals(ImmutableBitSet.range(fieldCount))
         && extraFields.isEmpty()) {
       return this;
     }
@@ -133,7 +133,7 @@ public abstract class TableScan extends AbstractRelNode {
     final List<RelDataTypeField> fields = getRowType().getFieldList();
 
     // Project the subset of fields.
-    for (int i : BitSets.toIter(fieldsUsed)) {
+    for (int i : fieldsUsed) {
       RelDataTypeField field = fields.get(i);
       exprList.add(rexBuilder.makeInputRef(this, i));
       nameList.add(field.getName());

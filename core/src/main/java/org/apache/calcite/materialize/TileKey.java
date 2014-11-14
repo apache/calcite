@@ -16,10 +16,10 @@
  */
 package org.apache.calcite.materialize;
 
+import org.apache.calcite.util.ImmutableBitSet;
+
 import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableList;
-
-import java.util.BitSet;
 
 /** Definition of a particular combination of dimensions and measures of a
  * lattice that is the basis of a materialization.
@@ -29,11 +29,11 @@ import java.util.BitSet;
  * immutable and tiles are not added after their creation. */
 public class TileKey {
   public final Lattice lattice;
-  public final BitSet dimensions;
+  public final ImmutableBitSet dimensions;
   public final ImmutableList<Lattice.Measure> measures;
 
   /** Creates a TileKey. */
-  public TileKey(Lattice lattice, BitSet dimensions,
+  public TileKey(Lattice lattice, ImmutableBitSet dimensions,
       ImmutableList<Lattice.Measure> measures) {
     this.lattice = lattice;
     this.dimensions = dimensions;

@@ -33,14 +33,13 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
-import org.apache.calcite.util.BitSets;
+import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.ImmutableIntList;
 
 import com.google.common.collect.Lists;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.BitSet;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
@@ -209,7 +208,7 @@ public class LoptSemiJoinOptimizer {
     // a join filter and we've already verified that the operands are
     // RexInputRefs, verify that the factors belong to the fact and
     // dimension table
-    BitSet joinRefs = multiJoin.getFactorsRefByJoinFilter(joinFilter);
+    ImmutableBitSet joinRefs = multiJoin.getFactorsRefByJoinFilter(joinFilter);
     assert joinRefs.cardinality() == 2;
     int factor1 = joinRefs.nextSetBit(0);
     int factor2 = joinRefs.nextSetBit(factor1 + 1);
@@ -647,11 +646,8 @@ public class LoptSemiJoinOptimizer {
     // selectivity value is required because of the overhead of
     // index lookups on a very large fact table.  Half was chosen as
     // a middle ground based on testing that was done with a large
-    // dataset.
-    BitSet dimCols = new BitSet();
-    for (int dimCol : semiJoin.getRightKeys()) {
-      dimCols.set(dimCol);
-    }
+    // data set.
+    final ImmutableBitSet dimCols = ImmutableBitSet.of(semiJoin.getRightKeys());
     double selectivity =
         RelMdUtil.computeSemiJoinSelectivity(factRel, dimRel, semiJoin);
     if (selectivity > .5) {
@@ -724,10 +720,7 @@ public class LoptSemiJoinOptimizer {
 
     // Check if the semijoin keys corresponding to the dimension table
     // are unique.  The semijoin will filter out the nulls.
-    BitSet dimKeys = new BitSet();
-    for (Integer key : semiJoin.getRightKeys()) {
-      dimKeys.set(key);
-    }
+    final ImmutableBitSet dimKeys = ImmutableBitSet.of(semiJoin.getRightKeys());
     RelNode dimRel = multiJoin.getJoinFactor(dimIdx);
     if (!RelMdUtil.areColumnsDefinitelyUniqueWhenNullsFiltered(
         dimRel,
@@ -738,12 +731,12 @@ public class LoptSemiJoinOptimizer {
     // check that the only fields referenced from the dimension table
     // in either its projection or join conditions are the dimension
     // keys
-    BitSet dimProjRefs = multiJoin.getProjFields(dimIdx);
+    ImmutableBitSet dimProjRefs = multiJoin.getProjFields(dimIdx);
     if (dimProjRefs == null) {
       int nDimFields = multiJoin.getNumFieldsInJoinFactor(dimIdx);
-      dimProjRefs = BitSets.range(0, nDimFields);
+      dimProjRefs = ImmutableBitSet.range(0, nDimFields);
     }
-    if (!BitSets.contains(dimKeys, dimProjRefs)) {
+    if (!dimKeys.contains(dimProjRefs)) {
       return;
     }
     int [] dimJoinRefCounts = multiJoin.getJoinFieldRefCounts(dimIdx);

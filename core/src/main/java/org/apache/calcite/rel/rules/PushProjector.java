@@ -31,6 +31,7 @@ import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.util.BitSets;
+import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableList;
@@ -88,14 +89,14 @@ public class PushProjector {
    * pushed past, if the RelNode is not a join. If the RelNode is a join, then
    * the fields correspond to the left hand side of the join.
    */
-  final BitSet childBitmap;
+  final ImmutableBitSet childBitmap;
 
   /**
    * Bitmap containing the fields in the right hand side of a join, in the
    * case where the projection is being pushed past a join. Not used
    * otherwise.
    */
-  final BitSet rightBitmap;
+  final ImmutableBitSet rightBitmap;
 
   /**
    * Number of fields in the RelNode that the projection is being pushed past,
@@ -215,13 +216,13 @@ public class PushProjector {
       nFieldsRight = rightFields.size();
       nSysFields = joinRel.getSystemFieldList().size();
       childBitmap =
-          BitSets.range(nSysFields, nFields + nSysFields);
+          ImmutableBitSet.range(nSysFields, nFields + nSysFields);
       rightBitmap =
-          BitSets.range(nFields + nSysFields, nChildFields);
+          ImmutableBitSet.range(nFields + nSysFields, nChildFields);
     } else {
       nFields = nChildFields;
       nFieldsRight = 0;
-      childBitmap = BitSets.range(nChildFields);
+      childBitmap = ImmutableBitSet.range(nChildFields);
       rightBitmap = null;
       nSysFields = 0;
     }
@@ -574,16 +575,16 @@ public class PushProjector {
    */
   private class InputSpecialOpFinder extends RexVisitorImpl<Void> {
     private final BitSet rexRefs;
-    private final BitSet leftFields;
-    private final BitSet rightFields;
+    private final ImmutableBitSet leftFields;
+    private final ImmutableBitSet rightFields;
     private final ExprCondition preserveExprCondition;
     private final List<RexNode> preserveLeft;
     private final List<RexNode> preserveRight;
 
     public InputSpecialOpFinder(
         BitSet rexRefs,
-        BitSet leftFields,
-        BitSet rightFields,
+        ImmutableBitSet leftFields,
+        ImmutableBitSet rightFields,
         ExprCondition preserveExprCondition,
         List<RexNode> preserveLeft,
         List<RexNode> preserveRight) {
@@ -609,12 +610,12 @@ public class PushProjector {
         // if the arguments of the expression only reference the
         // left hand side, preserve it on the left; similarly, if
         // it only references expressions on the right
-        final BitSet exprArgs = RelOptUtil.InputFinder.bits(call);
+        final ImmutableBitSet exprArgs = RelOptUtil.InputFinder.bits(call);
         if (exprArgs.cardinality() > 0) {
-          if (BitSets.contains(leftFields, exprArgs)) {
+          if (leftFields.contains(exprArgs)) {
             addExpr(preserveLeft, call);
             return true;
-          } else if (BitSets.contains(rightFields, exprArgs)) {
+          } else if (rightFields.contains(exprArgs)) {
             assert preserveRight != null;
             addExpr(preserveRight, call);
             return true;

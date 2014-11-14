@@ -63,7 +63,6 @@ import java.lang.reflect.Method;
 import java.sql.ResultSet;
 import java.sql.Time;
 import java.sql.Timestamp;
-import java.util.BitSet;
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.Collections;
@@ -265,14 +264,15 @@ public enum BuiltInMethod {
   ELEMENT(SqlFunctions.class, "element", List.class),
   SELECTIVITY(Selectivity.class, "getSelectivity", RexNode.class),
   UNIQUE_KEYS(UniqueKeys.class, "getUniqueKeys", boolean.class),
-  COLUMN_UNIQUENESS(ColumnUniqueness.class, "areColumnsUnique", BitSet.class,
-      boolean.class),
+  COLUMN_UNIQUENESS(ColumnUniqueness.class, "areColumnsUnique",
+      ImmutableBitSet.class, boolean.class),
   ROW_COUNT(RowCount.class, "getRowCount"),
   DISTINCT_ROW_COUNT(DistinctRowCount.class, "getDistinctRowCount",
-      BitSet.class, RexNode.class),
+      ImmutableBitSet.class, RexNode.class),
   PERCENTAGE_ORIGINAL_ROWS(PercentageOriginalRows.class,
       "getPercentageOriginalRows"),
-  POPULATION_SIZE(PopulationSize.class, "getPopulationSize", BitSet.class),
+  POPULATION_SIZE(PopulationSize.class, "getPopulationSize",
+      ImmutableBitSet.class),
   COLUMN_ORIGIN(ColumnOrigin.class, "getColumnOrigins", int.class),
   CUMULATIVE_COST(CumulativeCost.class, "getCumulativeCost"),
   NON_CUMULATIVE_COST(NonCumulativeCost.class, "getNonCumulativeCost"),

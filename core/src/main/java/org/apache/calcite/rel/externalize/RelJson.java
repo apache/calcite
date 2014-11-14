@@ -39,7 +39,7 @@ import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
-import org.apache.calcite.util.BitSets;
+import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.JsonBuilder;
 import org.apache.calcite.util.Util;
 
@@ -49,7 +49,6 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.math.BigDecimal;
 import java.util.ArrayList;
-import java.util.BitSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -211,7 +210,7 @@ public class RelJson {
 
   public Object toJson(AggregateCall node) {
     final Map<String, Object> map = jsonBuilder.map();
-    map.put("agg", toJson((SqlOperator) node.getAggregation()));
+    map.put("agg", toJson(node.getAggregation()));
     map.put("type", toJson(node.getType()));
     map.put("distinct", node.isDistinct());
     map.put("operands", node.getArgList());
@@ -234,9 +233,9 @@ public class RelJson {
         list.add(toJson(o));
       }
       return list;
-    } else if (value instanceof BitSet) {
+    } else if (value instanceof ImmutableBitSet) {
       final List<Object> list = jsonBuilder.list();
-      for (Integer integer : BitSets.toIter((BitSet) value)) {
+      for (Integer integer : (ImmutableBitSet) value) {
         list.add(toJson(integer));
       }
       return list;

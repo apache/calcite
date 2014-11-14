@@ -27,12 +27,11 @@ import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexPermuteInputsShuttle;
 import org.apache.calcite.rex.RexUtil;
-import org.apache.calcite.util.BitSets;
+import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.mapping.Mappings;
 
 import com.google.common.collect.Lists;
 
-import java.util.BitSet;
 import java.util.List;
 
 /**
@@ -90,8 +89,9 @@ public class JoinAssociateRule extends RelOptRule {
     final int aCount = relA.getRowType().getFieldCount();
     final int bCount = relB.getRowType().getFieldCount();
     final int cCount = relC.getRowType().getFieldCount();
-    final BitSet aBitSet = BitSets.range(0, aCount);
-    final BitSet bBitSet = BitSets.range(aCount, aCount + bCount);
+    final ImmutableBitSet aBitSet = ImmutableBitSet.range(0, aCount);
+    final ImmutableBitSet bBitSet =
+        ImmutableBitSet.range(aCount, aCount + bCount);
 
     if (!topJoin.getSystemFieldList().isEmpty()) {
       // FIXME Enable this rule for joins with system fields

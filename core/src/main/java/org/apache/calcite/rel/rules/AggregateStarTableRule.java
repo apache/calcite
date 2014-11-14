@@ -37,14 +37,13 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.impl.StarTable;
 import org.apache.calcite.sql.SqlAggFunction;
-import org.apache.calcite.util.BitSets;
+import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.mapping.AbstractSourceMapping;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
-import java.util.BitSet;
 import java.util.List;
 
 /**
@@ -136,11 +135,11 @@ public class AggregateStarTableRule extends RelOptRule {
             + ", rolling up " + tileKey.dimensions + " to "
             + aggregate.getGroupSet());
       }
-      assert BitSets.contains(tileKey.dimensions, aggregate.getGroupSet());
+      assert tileKey.dimensions.contains(aggregate.getGroupSet());
       final List<AggregateCall> aggCalls = Lists.newArrayList();
-      BitSet groupSet = new BitSet();
-      for (int key : BitSets.toIter(aggregate.getGroupSet())) {
-        groupSet.set(BitSets.toList(tileKey.dimensions).indexOf(key));
+      ImmutableBitSet.Builder groupSet = ImmutableBitSet.builder();
+      for (int key : aggregate.getGroupSet()) {
+        groupSet.set(tileKey.dimensions.indexOf(key));
       }
       for (AggregateCall aggCall : aggregate.getAggCallList()) {
         final AggregateCall copy =
@@ -150,7 +149,8 @@ public class AggregateStarTableRule extends RelOptRule {
         }
         aggCalls.add(copy);
       }
-      rel = aggregate.copy(aggregate.getTraitSet(), rel, groupSet, aggCalls);
+      rel = aggregate.copy(aggregate.getTraitSet(), rel, groupSet.build(),
+          aggCalls);
     } else if (!tileKey.measures.equals(measures)) {
       System.out.println("Using materialization "
           + aggregateRelOptTable.getQualifiedName()
@@ -162,8 +162,8 @@ public class AggregateStarTableRule extends RelOptRule {
               aggregate.getRowType().getFieldCount()) {
             public int getSourceOpt(int source) {
               if (source < aggregate.getGroupCount()) {
-                int in = BitSets.toList(tileKey.dimensions).get(source);
-                return BitSets.toList(aggregate.getGroupSet()).indexOf(in);
+                int in = tileKey.dimensions.nth(source);
+                return aggregate.getGroupSet().indexOf(in);
               }
               Lattice.Measure measure =
                   measures.get(source - aggregate.getGroupCount());
@@ -184,8 +184,7 @@ public class AggregateStarTableRule extends RelOptRule {
     if (aggregateCall.isDistinct()) {
       return null;
     }
-    final SqlAggFunction aggregation =
-        (SqlAggFunction) aggregateCall.getAggregation();
+    final SqlAggFunction aggregation = aggregateCall.getAggregation();
     final Pair<SqlAggFunction, List<Integer>> seek =
         Pair.of(aggregation, aggregateCall.getArgList());
     final int offset = tileKey.dimensions.cardinality();
@@ -209,13 +208,13 @@ public class AggregateStarTableRule extends RelOptRule {
     {
       List<Integer> newArgs = Lists.newArrayList();
       for (Integer arg : aggregateCall.getArgList()) {
-        int z = BitSets.toList(tileKey.dimensions).indexOf(arg);
+        int z = tileKey.dimensions.indexOf(arg);
         if (z < 0) {
           break tryGroup;
         }
         newArgs.add(z);
       }
-      return AggregateCall.create((SqlAggFunction) aggregation, false, newArgs,
+      return AggregateCall.create(aggregation, false, newArgs,
           groupCount, input, null, aggregateCall.name);
     }
 

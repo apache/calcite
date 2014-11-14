@@ -24,8 +24,8 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelShuttle;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
+import org.apache.calcite.util.ImmutableBitSet;
 
-import java.util.BitSet;
 import java.util.List;
 
 /**
@@ -54,7 +54,7 @@ public final class LogicalAggregate extends Aggregate {
   public LogicalAggregate(
       RelOptCluster cluster,
       RelNode child,
-      BitSet groupSet,
+      ImmutableBitSet groupSet,
       List<AggregateCall> aggCalls) {
     super(
         cluster,
@@ -74,7 +74,7 @@ public final class LogicalAggregate extends Aggregate {
   //~ Methods ----------------------------------------------------------------
 
   @Override public LogicalAggregate copy(RelTraitSet traitSet, RelNode input,
-      BitSet groupSet, List<AggregateCall> aggCalls) {
+      ImmutableBitSet groupSet, List<AggregateCall> aggCalls) {
     assert traitSet.containsIfApplicable(Convention.NONE);
     return new LogicalAggregate(getCluster(), input, groupSet, aggCalls);
   }

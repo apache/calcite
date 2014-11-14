@@ -88,7 +88,7 @@ import org.apache.calcite.sql.type.InferTypes;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
-import org.apache.calcite.util.BitSets;
+import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.trace.CalciteTrace;
@@ -96,7 +96,6 @@ import org.apache.calcite.util.trace.CalciteTrace;
 import com.google.common.collect.ImmutableList;
 
 import java.util.ArrayList;
-import java.util.BitSet;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
@@ -271,8 +270,8 @@ public class JdbcRules {
     }
 
     @Override public double getRows() {
-      final boolean leftKey = left.isKey(BitSets.of(leftKeys));
-      final boolean rightKey = right.isKey(BitSets.of(rightKeys));
+      final boolean leftKey = left.isKey(ImmutableBitSet.of(leftKeys));
+      final boolean rightKey = right.isKey(ImmutableBitSet.of(rightKeys));
       final double leftRowCount = left.getRows();
       final double rightRowCount = right.getRows();
       if (leftKey && rightKey) {
@@ -566,7 +565,7 @@ public class JdbcRules {
         RelOptCluster cluster,
         RelTraitSet traitSet,
         RelNode child,
-        BitSet groupSet,
+        ImmutableBitSet groupSet,
         List<AggregateCall> aggCalls)
         throws InvalidRelException {
       super(cluster, traitSet, child, groupSet, aggCalls);
@@ -574,7 +573,7 @@ public class JdbcRules {
     }
 
     @Override public JdbcAggregate copy(RelTraitSet traitSet, RelNode input,
-        BitSet groupSet, List<AggregateCall> aggCalls) {
+        ImmutableBitSet groupSet, List<AggregateCall> aggCalls) {
       try {
         return new JdbcAggregate(getCluster(), traitSet, input, groupSet,
             aggCalls);
@@ -592,7 +591,7 @@ public class JdbcRules {
           x.builder(this, JdbcImplementor.Clause.GROUP_BY);
       List<SqlNode> groupByList = Expressions.list();
       final List<SqlNode> selectList = new ArrayList<SqlNode>();
-      for (int group : BitSets.toIter(groupSet)) {
+      for (int group : groupSet) {
         final SqlNode field = builder.context.field(group);
         addSelect(selectList, field, getRowType());
         groupByList.add(field);

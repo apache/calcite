@@ -28,14 +28,13 @@ import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.SqlAggFunction;
-import org.apache.calcite.util.BitSets;
+import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.mapping.Mappings;
 
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
-import java.util.BitSet;
 import java.util.List;
 
 /**
@@ -68,10 +67,10 @@ public class AggregateFilterTransposeRule extends RelOptRule {
     final Filter filter = call.rel(1);
 
     // Do the columns used by the filter appear in the output of the aggregate?
-    final BitSet filterColumns =
+    final ImmutableBitSet filterColumns =
         RelOptUtil.InputFinder.bits(filter.getCondition());
-    final BitSet newGroupSet =
-        BitSets.union(aggregate.getGroupSet(), filterColumns);
+    final ImmutableBitSet newGroupSet =
+        aggregate.getGroupSet().union(filterColumns);
     final RelNode input = filter.getInput();
     final Boolean unique =
         RelMetadataQuery.areColumnsUnique(input, newGroupSet);
@@ -87,7 +86,7 @@ public class AggregateFilterTransposeRule extends RelOptRule {
     final Mappings.TargetMapping mapping = Mappings.target(
         new Function<Integer, Integer>() {
           public Integer apply(Integer a0) {
-            return BitSets.toList(newGroupSet).indexOf(a0);
+            return newGroupSet.indexOf(a0);
           }
         },
         input.getRowType().getFieldCount(),
@@ -96,16 +95,16 @@ public class AggregateFilterTransposeRule extends RelOptRule {
         RexUtil.apply(mapping, filter.getCondition());
     final Filter newFilter = filter.copy(filter.getTraitSet(),
         newAggregate, newCondition);
-    if (BitSets.contains(aggregate.getGroupSet(), filterColumns)) {
+    if (aggregate.getGroupSet().contains(filterColumns)) {
       // Everything needed by the filter is returned by the aggregate.
       assert newGroupSet.equals(aggregate.getGroupSet());
       call.transformTo(newFilter);
     } else {
       // The filter needs at least one extra column.
       // Now aggregate it away.
-      final BitSet topGroupSet = new BitSet();
-      for (int c : BitSets.toIter(aggregate.getGroupSet())) {
-        topGroupSet.set(BitSets.toList(newGroupSet).indexOf(c));
+      final ImmutableBitSet.Builder topGroupSet = ImmutableBitSet.builder();
+      for (int c : aggregate.getGroupSet()) {
+        topGroupSet.set(newGroupSet.indexOf(c));
       }
       final List<AggregateCall> topAggCallList = Lists.newArrayList();
       int i = newGroupSet.cardinality();
@@ -125,8 +124,8 @@ public class AggregateFilterTransposeRule extends RelOptRule {
                 ImmutableList.of(i++), aggregateCall.type, aggregateCall.name));
       }
       final Aggregate topAggregate =
-          aggregate.copy(aggregate.getTraitSet(), newFilter, topGroupSet,
-              topAggCallList);
+          aggregate.copy(aggregate.getTraitSet(), newFilter,
+              topGroupSet.build(), topAggCallList);
       call.transformTo(topAggregate);
     }
   }

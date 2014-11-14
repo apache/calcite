@@ -20,14 +20,13 @@ import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.util.BitSets;
+import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.mapping.IntPair;
 
 import com.google.common.base.Preconditions;
 
 import java.util.ArrayList;
-import java.util.BitSet;
 import java.util.List;
 
 /** An analyzed join condition.
@@ -82,12 +81,12 @@ public abstract class JoinInfo {
     return IntPair.zip(leftKeys, rightKeys);
   }
 
-  public BitSet leftSet() {
-    return BitSets.of(leftKeys);
+  public ImmutableBitSet leftSet() {
+    return ImmutableBitSet.of(leftKeys);
   }
 
-  public BitSet rightSet() {
-    return BitSets.of(rightKeys);
+  public ImmutableBitSet rightSet() {
+    return ImmutableBitSet.of(rightKeys);
   }
 
   public abstract RexNode getRemaining(RexBuilder rexBuilder);

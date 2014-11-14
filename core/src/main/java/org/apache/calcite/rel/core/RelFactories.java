@@ -31,10 +31,10 @@ import org.apache.calcite.rel.logical.LogicalUnion;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.util.ImmutableBitSet;
 
 import com.google.common.collect.ImmutableList;
 
-import java.util.BitSet;
 import java.util.List;
 import java.util.Set;
 
@@ -148,7 +148,7 @@ public class RelFactories {
    */
   public interface AggregateFactory {
     /** Creates an aggregate. */
-    RelNode createAggregate(RelNode child, BitSet groupSet,
+    RelNode createAggregate(RelNode child, ImmutableBitSet groupSet,
         List<AggregateCall> aggCalls);
   }
 
@@ -157,7 +157,7 @@ public class RelFactories {
    * that returns a vanilla {@link LogicalAggregate}.
    */
   private static class AggregateFactoryImpl implements AggregateFactory {
-    public RelNode createAggregate(RelNode child, BitSet groupSet,
+    public RelNode createAggregate(RelNode child, ImmutableBitSet groupSet,
         List<AggregateCall> aggCalls) {
       return new LogicalAggregate(child.getCluster(), child, groupSet,
           aggCalls);

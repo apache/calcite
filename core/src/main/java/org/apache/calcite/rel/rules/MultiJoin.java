@@ -26,6 +26,7 @@ import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.ImmutableNullableList;
 
@@ -34,7 +35,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 
 import java.util.ArrayList;
-import java.util.BitSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -52,7 +52,7 @@ public final class MultiJoin extends AbstractRelNode {
   private final boolean isFullOuterJoin;
   private final List<RexNode> outerJoinConditions;
   private final ImmutableList<JoinRelType> joinTypes;
-  private final List<BitSet> projFields;
+  private final List<ImmutableBitSet> projFields;
   public final ImmutableMap<Integer, ImmutableIntList> joinFieldRefCountsMap;
   private final RexNode postJoinFilter;
 
@@ -91,7 +91,7 @@ public final class MultiJoin extends AbstractRelNode {
       boolean isFullOuterJoin,
       List<RexNode> outerJoinConditions,
       List<JoinRelType> joinTypes,
-      List<BitSet> projFields,
+      List<ImmutableBitSet> projFields,
       ImmutableMap<Integer, ImmutableIntList> joinFieldRefCountsMap,
       RexNode postJoinFilter) {
     super(cluster, cluster.traitSetOf(Convention.NONE));
@@ -214,7 +214,7 @@ public final class MultiJoin extends AbstractRelNode {
    * @return bitmaps representing the fields projected from each input; if an
    * entry is null, all fields are projected
    */
-  public List<BitSet> getProjFields() {
+  public List<ImmutableBitSet> getProjFields() {
     return projFields;
   }
 

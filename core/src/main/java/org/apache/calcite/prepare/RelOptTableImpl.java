@@ -35,6 +35,7 @@ import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.TranslatableTable;
 import org.apache.calcite.sql.SqlAccessType;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
+import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Util;
 
 import com.google.common.base.Function;
@@ -42,7 +43,6 @@ import com.google.common.base.Functions;
 import com.google.common.collect.ImmutableList;
 
 import java.lang.reflect.Type;
-import java.util.BitSet;
 import java.util.Collections;
 import java.util.List;
 
@@ -215,7 +215,7 @@ public class RelOptTableImpl implements Prepare.PreparingTable {
     return Collections.emptyList();
   }
 
-  public boolean isKey(BitSet columns) {
+  public boolean isKey(ImmutableBitSet columns) {
     return table.getStatistic().isKey(columns);
   }
 

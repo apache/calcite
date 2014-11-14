@@ -26,13 +26,12 @@ import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinInfo;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.SemiJoin;
-import org.apache.calcite.util.BitSets;
+import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.IntList;
 
 import com.google.common.collect.Lists;
 
-import java.util.BitSet;
 import java.util.List;
 
 /**
@@ -56,21 +55,23 @@ public class SemiJoinRule extends RelOptRule {
     final Join join = call.rel(1);
     final RelNode left = call.rel(2);
     final Aggregate aggregate = call.rel(3);
-    final BitSet bits = RelOptUtil.InputFinder.bits(project.getProjects(),
-        null);
-    final BitSet rightBits = BitSets.range(left.getRowType().getFieldCount(),
-        join.getRowType().getFieldCount());
+    final ImmutableBitSet bits =
+        RelOptUtil.InputFinder.bits(project.getProjects(), null);
+    final ImmutableBitSet rightBits =
+        ImmutableBitSet.range(left.getRowType().getFieldCount(),
+            join.getRowType().getFieldCount());
     if (bits.intersects(rightBits)) {
       return;
     }
     final JoinInfo joinInfo = join.analyzeCondition();
-    if (!joinInfo.rightSet().equals(BitSets.range(aggregate.getGroupCount()))) {
+    if (!joinInfo.rightSet().equals(
+        ImmutableBitSet.range(aggregate.getGroupCount()))) {
       // Rule requires that aggregate key to be the same as the join key.
       // By the way, neither a super-set nor a sub-set would work.
       return;
     }
     final List<Integer> newRightKeys = Lists.newArrayList();
-    final IntList aggregateKeys = BitSets.toList(aggregate.getGroupSet());
+    final IntList aggregateKeys = aggregate.getGroupSet().toList();
     for (int key : joinInfo.rightKeys) {
       newRightKeys.add(aggregateKeys.get(key));
     }

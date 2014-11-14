@@ -38,15 +38,14 @@ import org.apache.calcite.sql.SqlOperatorBinding;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.validate.SqlValidatorException;
-import org.apache.calcite.util.BitSets;
 import org.apache.calcite.util.CompositeList;
+import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.IntList;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
 import java.util.AbstractList;
-import java.util.BitSet;
 import java.util.List;
 
 /**
@@ -69,7 +68,7 @@ public abstract class Aggregate extends SingleRel {
   //~ Instance fields --------------------------------------------------------
 
   protected final List<AggregateCall> aggCalls;
-  protected final BitSet groupSet;
+  protected final ImmutableBitSet groupSet;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -86,16 +85,13 @@ public abstract class Aggregate extends SingleRel {
       RelOptCluster cluster,
       RelTraitSet traits,
       RelNode child,
-      BitSet groupSet,
+      ImmutableBitSet groupSet,
       List<AggregateCall> aggCalls) {
     super(cluster, traits, child);
     assert aggCalls != null;
     this.aggCalls = ImmutableList.copyOf(aggCalls);
     this.groupSet = groupSet;
     assert groupSet != null;
-    assert groupSet.isEmpty() == (groupSet.cardinality() == 0)
-        : "See https://bugs.openjdk.java.net/browse/JDK-6222207, "
-        + "BitSet internal invariants may be violated";
     assert groupSet.length() <= child.getRowType().getFieldCount();
     for (AggregateCall aggCall : aggCalls) {
       assert typeMatchesInferred(aggCall, true);
@@ -122,7 +118,7 @@ public abstract class Aggregate extends SingleRel {
    * @see #copy(org.apache.calcite.plan.RelTraitSet, java.util.List)
    */
   public abstract Aggregate copy(RelTraitSet traitSet, RelNode input,
-      BitSet groupSet, List<AggregateCall> aggCalls);
+      ImmutableBitSet groupSet, List<AggregateCall> aggCalls);
 
   // implement RelNode
   public boolean isDistinct() {
@@ -156,11 +152,11 @@ public abstract class Aggregate extends SingleRel {
   }
 
   /**
-   * Returns a bitmap of the grouping fields.
+   * Returns a bit set of the grouping fields.
    *
-   * @return bitset of ordinals of grouping fields
+   * @return bit set of ordinals of grouping fields
    */
-  public BitSet getGroupSet() {
+  public ImmutableBitSet getGroupSet() {
     return groupSet;
   }
 
@@ -209,9 +205,9 @@ public abstract class Aggregate extends SingleRel {
 
   /** Computes the row type of an {@code Aggregate} before it exists. */
   public static RelDataType deriveRowType(RelDataTypeFactory typeFactory,
-      final RelDataType inputRowType, BitSet groupSet,
+      final RelDataType inputRowType, ImmutableBitSet groupSet,
       final List<AggregateCall> aggCalls) {
-    final IntList groupList = BitSets.toList(groupSet);
+    final IntList groupList = groupSet.toList();
     assert groupList.size() == groupSet.cardinality();
     return typeFactory.createStructType(
         CompositeList.of(
@@ -257,7 +253,7 @@ public abstract class Aggregate extends SingleRel {
   private boolean typeMatchesInferred(
       final AggregateCall aggCall,
       final boolean fail) {
-    SqlAggFunction aggFunction = (SqlAggFunction) aggCall.getAggregation();
+    SqlAggFunction aggFunction = aggCall.getAggregation();
     AggCallBinding callBinding = aggCall.createBinding(this);
     RelDataType type = aggFunction.inferReturnType(callBinding);
     RelDataType expectedType = aggCall.type;

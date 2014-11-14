@@ -29,18 +29,17 @@ import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.Statistic;
 import org.apache.calcite.schema.Statistics;
 import org.apache.calcite.schema.impl.AbstractTableQueryable;
-import org.apache.calcite.util.BitSets;
+import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Pair;
 
 import com.google.common.base.Supplier;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 
 import java.lang.reflect.Array;
 import java.lang.reflect.Type;
 import java.util.AbstractList;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.BitSet;
 import java.util.Collections;
 import java.util.List;
 
@@ -67,11 +66,11 @@ class ArrayTable extends AbstractQueryableTable {
   }
 
   public Statistic getStatistic() {
-    final List<BitSet> keys = new ArrayList<BitSet>();
+    final List<ImmutableBitSet> keys = Lists.newArrayList();
     final Content content = supplier.get();
     for (Ord<Column> ord : Ord.zip(content.columns)) {
       if (ord.e.cardinality == content.size) {
-        keys.add(BitSets.of(ord.i));
+        keys.add(ImmutableBitSet.of(ord.i));
       }
     }
     return Statistics.of(content.size, keys);

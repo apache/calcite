@@ -29,7 +29,7 @@ import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexLocalRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexProgram;
-import org.apache.calcite.util.BitSets;
+import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.IntList;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Permutation;
@@ -98,7 +98,7 @@ public class AggregateProjectPullUpConstantsRule extends RelOptRule {
     final RelDataType childRowType = child.getRowType();
     IntList constantList = new IntList();
     Map<Integer, RexNode> constants = new HashMap<Integer, RexNode>();
-    for (int i : BitSets.toIter(aggregate.getGroupSet())) {
+    for (int i : aggregate.getGroupSet()) {
       final RexLocalRef ref = program.getProjectList().get(i);
       if (program.isConstant(ref)) {
         constantList.add(i);
@@ -140,7 +140,7 @@ public class AggregateProjectPullUpConstantsRule extends RelOptRule {
           new LogicalAggregate(
               aggregate.getCluster(),
               child,
-              BitSets.range(newGroupCount),
+              ImmutableBitSet.range(newGroupCount),
               newAggCalls);
     } else {
       // Create the mapping from old field positions to new field
@@ -185,7 +185,7 @@ public class AggregateProjectPullUpConstantsRule extends RelOptRule {
           new LogicalAggregate(
               aggregate.getCluster(),
               project,
-              BitSets.range(newGroupCount),
+              ImmutableBitSet.range(newGroupCount),
               newAggCalls);
     }
 

@@ -39,8 +39,8 @@ import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
-import org.apache.calcite.util.BitSets;
 import org.apache.calcite.util.BuiltInMethod;
+import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
@@ -48,7 +48,6 @@ import com.google.common.collect.ImmutableList;
 
 import java.lang.reflect.Type;
 import java.util.ArrayList;
-import java.util.BitSet;
 import java.util.Collections;
 import java.util.List;
 
@@ -67,7 +66,7 @@ public class EnumerableAggregate extends Aggregate
       RelOptCluster cluster,
       RelTraitSet traitSet,
       RelNode child,
-      BitSet groupSet,
+      ImmutableBitSet groupSet,
       List<AggregateCall> aggCalls)
       throws InvalidRelException {
     super(cluster, traitSet, child, groupSet, aggCalls);
@@ -88,7 +87,7 @@ public class EnumerableAggregate extends Aggregate
   }
 
   @Override public EnumerableAggregate copy(RelTraitSet traitSet,
-      RelNode input, BitSet groupSet, List<AggregateCall> aggCalls) {
+      RelNode input, ImmutableBitSet groupSet, List<AggregateCall> aggCalls) {
     try {
       return new EnumerableAggregate(getCluster(), traitSet, input,
           groupSet, aggCalls);
@@ -179,15 +178,14 @@ public class EnumerableAggregate extends Aggregate
         Expressions.parameter(inputPhysType.getJavaRowType(), "a0");
 
     final PhysType keyPhysType =
-        inputPhysType.project(
-            BitSets.toList(groupSet), JavaRowFormat.LIST);
+        inputPhysType.project(groupSet.toList(), JavaRowFormat.LIST);
     final int keyArity = groupSet.cardinality();
     final Expression keySelector =
         builder.append(
             "keySelector",
             inputPhysType.generateSelector(
                 parameter,
-                BitSets.toList(groupSet),
+                groupSet.toList(),
                 keyPhysType.getFormat()));
 
     final List<AggImpState> aggs =
@@ -385,7 +383,7 @@ public class EnumerableAggregate extends Aggregate
                       resultSelector))));
     } else if (aggCalls.isEmpty()
         && groupSet.equals(
-            BitSets.range(child.getRowType().getFieldCount()))) {
+            ImmutableBitSet.range(child.getRowType().getFieldCount()))) {
       builder.add(
           Expressions.return_(
               null,

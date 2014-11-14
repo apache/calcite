@@ -29,8 +29,10 @@ import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.util.BitSets;
 import org.apache.calcite.util.BuiltInMethod;
+import org.apache.calcite.util.ImmutableBitSet;
 
-import java.util.BitSet;
+import com.google.common.collect.ImmutableSet;
+
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -52,19 +54,20 @@ public class RelMdUniqueKeys {
 
   //~ Methods ----------------------------------------------------------------
 
-  public Set<BitSet> getUniqueKeys(Filter rel, boolean ignoreNulls) {
+  public Set<ImmutableBitSet> getUniqueKeys(Filter rel, boolean ignoreNulls) {
     return RelMetadataQuery.getUniqueKeys(rel.getInput(), ignoreNulls);
   }
 
-  public Set<BitSet> getUniqueKeys(Sort rel, boolean ignoreNulls) {
+  public Set<ImmutableBitSet> getUniqueKeys(Sort rel, boolean ignoreNulls) {
     return RelMetadataQuery.getUniqueKeys(rel.getInput(), ignoreNulls);
   }
 
-  public Set<BitSet> getUniqueKeys(Correlator rel, boolean ignoreNulls) {
+  public Set<ImmutableBitSet> getUniqueKeys(Correlator rel,
+      boolean ignoreNulls) {
     return RelMetadataQuery.getUniqueKeys(rel.getLeft(), ignoreNulls);
   }
 
-  public Set<BitSet> getUniqueKeys(Project rel, boolean ignoreNulls) {
+  public Set<ImmutableBitSet> getUniqueKeys(Project rel, boolean ignoreNulls) {
     // LogicalProject maps a set of rows to a different set;
     // Without knowledge of the mapping function(whether it
     // preserves uniqueness), it is only safe to derive uniqueness
@@ -76,7 +79,7 @@ public class RelMdUniqueKeys {
 
     List<RexNode> projExprs = rel.getProjects();
 
-    Set<BitSet> projUniqueKeySet = new HashSet<BitSet>();
+    Set<ImmutableBitSet> projUniqueKeySet = new HashSet<ImmutableBitSet>();
 
     // Build an input to output position map.
     for (int i = 0; i < projExprs.size(); i++) {
@@ -92,14 +95,14 @@ public class RelMdUniqueKeys {
       return projUniqueKeySet;
     }
 
-    Set<BitSet> childUniqueKeySet =
+    Set<ImmutableBitSet> childUniqueKeySet =
         RelMetadataQuery.getUniqueKeys(rel.getInput(), ignoreNulls);
 
     if (childUniqueKeySet != null) {
       // Now add to the projUniqueKeySet the child keys that are fully
       // projected.
-      for (BitSet colMask : childUniqueKeySet) {
-        BitSet tmpMask = new BitSet();
+      for (ImmutableBitSet colMask : childUniqueKeySet) {
+        ImmutableBitSet.Builder tmpMask = ImmutableBitSet.builder();
         boolean completeKeyProjected = true;
         for (int bit : BitSets.toIter(colMask)) {
           if (mapInToOutPos.containsKey(bit)) {
@@ -112,7 +115,7 @@ public class RelMdUniqueKeys {
           }
         }
         if (completeKeyProjected) {
-          projUniqueKeySet.add(tmpMask);
+          projUniqueKeySet.add(tmpMask.build());
         }
       }
     }
@@ -120,7 +123,7 @@ public class RelMdUniqueKeys {
     return projUniqueKeySet;
   }
 
-  public Set<BitSet> getUniqueKeys(Join rel, boolean ignoreNulls) {
+  public Set<ImmutableBitSet> getUniqueKeys(Join rel, boolean ignoreNulls) {
     final RelNode left = rel.getLeft();
     final RelNode right = rel.getRight();
 
@@ -133,31 +136,29 @@ public class RelMdUniqueKeys {
     // that is undesirable, use RelMetadataQuery.areColumnsUnique() as
     // an alternative way of getting unique key information.
 
-    Set<BitSet> retSet = new HashSet<BitSet>();
-    Set<BitSet> leftSet = RelMetadataQuery.getUniqueKeys(left, ignoreNulls);
-    Set<BitSet> rightSet = null;
+    Set<ImmutableBitSet> retSet = new HashSet<ImmutableBitSet>();
+    Set<ImmutableBitSet> leftSet =
+        RelMetadataQuery.getUniqueKeys(left, ignoreNulls);
+    Set<ImmutableBitSet> rightSet = null;
 
-    Set<BitSet> tmpRightSet =
+    Set<ImmutableBitSet> tmpRightSet =
         RelMetadataQuery.getUniqueKeys(right, ignoreNulls);
     int nFieldsOnLeft = left.getRowType().getFieldCount();
 
     if (tmpRightSet != null) {
-      rightSet = new HashSet<BitSet>();
-      for (BitSet colMask : tmpRightSet) {
-        BitSet tmpMask = new BitSet();
-        for (int bit : BitSets.toIter(colMask)) {
+      rightSet = new HashSet<ImmutableBitSet>();
+      for (ImmutableBitSet colMask : tmpRightSet) {
+        ImmutableBitSet.Builder tmpMask = ImmutableBitSet.builder();
+        for (int bit : colMask) {
           tmpMask.set(bit + nFieldsOnLeft);
         }
-        rightSet.add(tmpMask);
+        rightSet.add(tmpMask.build());
       }
 
       if (leftSet != null) {
-        for (BitSet colMaskRight : rightSet) {
-          for (BitSet colMaskLeft : leftSet) {
-            BitSet colMaskConcat = new BitSet();
-            colMaskConcat.or(colMaskLeft);
-            colMaskConcat.or(colMaskRight);
-            retSet.add(colMaskConcat);
+        for (ImmutableBitSet colMaskRight : rightSet) {
+          for (ImmutableBitSet colMaskLeft : leftSet) {
+            retSet.add(colMaskLeft.union(colMaskRight));
           }
         }
       }
@@ -196,28 +197,20 @@ public class RelMdUniqueKeys {
     return retSet;
   }
 
-  public Set<BitSet> getUniqueKeys(SemiJoin rel, boolean ignoreNulls) {
+  public Set<ImmutableBitSet> getUniqueKeys(SemiJoin rel, boolean ignoreNulls) {
     // only return the unique keys from the LHS since a semijoin only
     // returns the LHS
     return RelMetadataQuery.getUniqueKeys(rel.getLeft(), ignoreNulls);
   }
 
-  public Set<BitSet> getUniqueKeys(Aggregate rel, boolean ignoreNulls) {
-    Set<BitSet> retSet = new HashSet<BitSet>();
-
+  public Set<ImmutableBitSet> getUniqueKeys(Aggregate rel,
+      boolean ignoreNulls) {
     // group by keys form a unique key
-    if (rel.getGroupCount() > 0) {
-      BitSet groupKey = new BitSet();
-      for (int i = 0; i < rel.getGroupCount(); i++) {
-        groupKey.set(i);
-      }
-      retSet.add(groupKey);
-    }
-    return retSet;
+    return ImmutableSet.of(rel.getGroupSet());
   }
 
   // Catch-all rule when none of the others apply.
-  public Set<BitSet> getUniqueKeys(RelNode rel, boolean ignoreNulls) {
+  public Set<ImmutableBitSet> getUniqueKeys(RelNode rel, boolean ignoreNulls) {
     // no information available
     return null;
   }

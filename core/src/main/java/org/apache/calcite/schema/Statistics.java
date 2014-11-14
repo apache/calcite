@@ -16,9 +16,8 @@
  */
 package org.apache.calcite.schema;
 
-import org.apache.calcite.util.BitSets;
+import org.apache.calcite.util.ImmutableBitSet;
 
-import java.util.BitSet;
 import java.util.List;
 
 /**
@@ -35,21 +34,22 @@ public class Statistics {
           return null;
         }
 
-        public boolean isKey(BitSet columns) {
+        public boolean isKey(ImmutableBitSet columns) {
           return false;
         }
       };
 
   /** Returns a statistic with a given row count and set of unique keys. */
-  public static Statistic of(final double rowCount, final List<BitSet> keys) {
+  public static Statistic of(final double rowCount,
+      final List<ImmutableBitSet> keys) {
     return new Statistic() {
       public Double getRowCount() {
         return rowCount;
       }
 
-      public boolean isKey(BitSet columns) {
-        for (BitSet key : keys) {
-          if (BitSets.contains(columns, key)) {
+      public boolean isKey(ImmutableBitSet columns) {
+        for (ImmutableBitSet key : keys) {
+          if (columns.contains(key)) {
             return true;
           }
         }

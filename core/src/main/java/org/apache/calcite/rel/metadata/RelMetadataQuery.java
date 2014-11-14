@@ -22,10 +22,10 @@ import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlExplainLevel;
+import org.apache.calcite.util.ImmutableBitSet;
 
 import com.google.common.collect.Iterables;
 
-import java.util.BitSet;
 import java.util.Set;
 
 /**
@@ -214,7 +214,7 @@ public abstract class RelMetadataQuery {
    * @return set of keys, or null if this information cannot be determined
    * (whereas empty set indicates definitely no keys at all)
    */
-  public static Set<BitSet> getUniqueKeys(RelNode rel) {
+  public static Set<ImmutableBitSet> getUniqueKeys(RelNode rel) {
     final BuiltInMetadata.UniqueKeys metadata =
         rel.metadata(BuiltInMetadata.UniqueKeys.class);
     return metadata.getUniqueKeys(false);
@@ -231,7 +231,8 @@ public abstract class RelMetadataQuery {
    * @return set of keys, or null if this information cannot be determined
    * (whereas empty set indicates definitely no keys at all)
    */
-  public static Set<BitSet> getUniqueKeys(RelNode rel, boolean ignoreNulls) {
+  public static Set<ImmutableBitSet> getUniqueKeys(RelNode rel,
+      boolean ignoreNulls) {
     final BuiltInMetadata.UniqueKeys metadata =
         rel.metadata(BuiltInMetadata.UniqueKeys.class);
     return metadata.getUniqueKeys(ignoreNulls);
@@ -239,7 +240,7 @@ public abstract class RelMetadataQuery {
 
   /**
    * Returns the
-   * {@link BuiltInMetadata.ColumnUniqueness#areColumnsUnique(BitSet, boolean)}
+   * {@link BuiltInMetadata.ColumnUniqueness#areColumnsUnique(org.apache.calcite.util.ImmutableBitSet, boolean)}
    * statistic.
    *
    * @param rel     the relational expression
@@ -248,7 +249,7 @@ public abstract class RelMetadataQuery {
    * @return true or false depending on whether the columns are unique, or
    * null if not enough information is available to make that determination
    */
-  public static Boolean areColumnsUnique(RelNode rel, BitSet columns) {
+  public static Boolean areColumnsUnique(RelNode rel, ImmutableBitSet columns) {
     final BuiltInMetadata.ColumnUniqueness metadata =
         rel.metadata(BuiltInMetadata.ColumnUniqueness.class);
     return metadata.areColumnsUnique(columns, false);
@@ -256,7 +257,7 @@ public abstract class RelMetadataQuery {
 
   /**
    * Returns the
-   * {@link BuiltInMetadata.ColumnUniqueness#areColumnsUnique(BitSet, boolean)}
+   * {@link BuiltInMetadata.ColumnUniqueness#areColumnsUnique(org.apache.calcite.util.ImmutableBitSet, boolean)}
    * statistic.
    *
    * @param rel         the relational expression
@@ -267,7 +268,7 @@ public abstract class RelMetadataQuery {
    * @return true or false depending on whether the columns are unique, or
    * null if not enough information is available to make that determination
    */
-  public static Boolean areColumnsUnique(RelNode rel, BitSet columns,
+  public static Boolean areColumnsUnique(RelNode rel, ImmutableBitSet columns,
       boolean ignoreNulls) {
     final BuiltInMetadata.ColumnUniqueness metadata =
         rel.metadata(BuiltInMetadata.ColumnUniqueness.class);
@@ -276,7 +277,7 @@ public abstract class RelMetadataQuery {
 
   /**
    * Returns the
-   * {@link BuiltInMetadata.PopulationSize#getPopulationSize(BitSet)}
+   * {@link BuiltInMetadata.PopulationSize#getPopulationSize(org.apache.calcite.util.ImmutableBitSet)}
    * statistic.
    *
    * @param rel      the relational expression
@@ -285,7 +286,8 @@ public abstract class RelMetadataQuery {
    * @return distinct row count for the given groupKey, or null if no reliable
    * estimate can be determined
    */
-  public static Double getPopulationSize(RelNode rel, BitSet groupKey) {
+  public static Double getPopulationSize(RelNode rel,
+      ImmutableBitSet groupKey) {
     final BuiltInMetadata.PopulationSize metadata =
         rel.metadata(BuiltInMetadata.PopulationSize.class);
     Double result = metadata.getPopulationSize(groupKey);
@@ -294,7 +296,7 @@ public abstract class RelMetadataQuery {
 
   /**
    * Returns the
-   * {@link BuiltInMetadata.DistinctRowCount#getDistinctRowCount(BitSet, RexNode)}
+   * {@link BuiltInMetadata.DistinctRowCount#getDistinctRowCount(org.apache.calcite.util.ImmutableBitSet, org.apache.calcite.rex.RexNode)}
    * statistic.
    *
    * @param rel       the relational expression
@@ -305,7 +307,7 @@ public abstract class RelMetadataQuery {
    */
   public static Double getDistinctRowCount(
       RelNode rel,
-      BitSet groupKey,
+      ImmutableBitSet groupKey,
       RexNode predicate) {
     final BuiltInMetadata.DistinctRowCount metadata =
         rel.metadata(BuiltInMetadata.DistinctRowCount.class);

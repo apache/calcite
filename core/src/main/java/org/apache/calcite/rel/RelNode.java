@@ -27,8 +27,8 @@ import org.apache.calcite.rel.metadata.Metadata;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.util.ImmutableBitSet;
 
-import java.util.BitSet;
 import java.util.List;
 import java.util.Set;
 
@@ -345,7 +345,7 @@ public interface RelNode extends RelOptNode, Cloneable {
    * @param columns Ordinals of key columns
    * @return Whether the given columns are a key or a superset of a key
    */
-  boolean isKey(BitSet columns);
+  boolean isKey(ImmutableBitSet columns);
 
   /**
    * Accepts a visit from a shuttle.

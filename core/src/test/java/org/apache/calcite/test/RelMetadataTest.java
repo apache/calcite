@@ -30,6 +30,7 @@ import org.apache.calcite.rel.metadata.ReflectiveRelMetadataProvider;
 import org.apache.calcite.rel.metadata.RelColumnOrigin;
 import org.apache.calcite.rel.metadata.RelMetadataProvider;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
+import org.apache.calcite.util.ImmutableBitSet;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
@@ -41,7 +42,6 @@ import org.junit.Test;
 
 import java.lang.reflect.Method;
 import java.util.ArrayList;
-import java.util.BitSet;
 import java.util.List;
 import java.util.Set;
 
@@ -539,7 +539,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
   @Test public void testDistinctRowCountTable() {
     // no unique key information is available so return null
     RelNode rel = convertSql("select * from emp where deptno = 10");
-    BitSet groupKey = new BitSet();
+    ImmutableBitSet groupKey = ImmutableBitSet.of();
     Double result =
         RelMetadataQuery.getDistinctRowCount(
             rel, groupKey, null);

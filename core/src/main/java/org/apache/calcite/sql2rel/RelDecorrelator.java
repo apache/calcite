@@ -64,9 +64,9 @@ import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlCountAggFunction;
 import org.apache.calcite.sql.fun.SqlSingleValueAggFunction;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
-import org.apache.calcite.util.BitSets;
 import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.Holder;
+import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.ReflectUtil;
 import org.apache.calcite.util.ReflectiveVisitDispatcher;
@@ -87,7 +87,6 @@ import com.google.common.collect.SortedSetMultimap;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
-import java.util.BitSet;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -582,7 +581,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
         new LogicalAggregate(
             rel.getCluster(),
             newProjectRel,
-            BitSets.range(newGroupKeyCount),
+            ImmutableBitSet.range(newGroupKeyCount),
             newAggCalls);
 
     mapOldToNewRel.put(rel, newAggregate);
@@ -2202,7 +2201,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
         }
 
         int nFields = leftInputRel.getRowType().getFieldCount();
-        BitSet allCols = BitSets.range(nFields);
+        ImmutableBitSet allCols = ImmutableBitSet.range(nFields);
 
         // leftInputRel contains unique keys
         // i.e. each row is distinct and can group by on all the left
@@ -2345,8 +2344,8 @@ public class RelDecorrelator implements ReflectiveVisitor {
                 aggRel.getGroupCount(), groupCount));
       }
 
-      BitSet groupSet =
-          BitSets.range(groupCount);
+      ImmutableBitSet groupSet =
+          ImmutableBitSet.range(groupCount);
       LogicalAggregate newAggRel =
           new LogicalAggregate(
               cluster,
@@ -2355,7 +2354,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
               newAggCalls);
 
       List<RexNode> newAggOutputProjExprList = Lists.newArrayList();
-      for (int i : BitSets.toIter(groupSet)) {
+      for (int i : groupSet) {
         newAggOutputProjExprList.add(
             rexBuilder.makeInputRef(newAggRel, i));
       }

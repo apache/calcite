@@ -29,6 +29,7 @@ import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.rex.RexVisitorImpl;
+import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.Pair;
 
@@ -36,7 +37,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
-import java.util.BitSet;
 import java.util.List;
 import java.util.Map;
 
@@ -125,7 +125,7 @@ public class JoinToMultiJoinRule extends RelOptRule {
 
     // combine the children MultiJoin inputs into an array of inputs
     // for the new MultiJoin
-    final List<BitSet> projFieldsList = Lists.newArrayList();
+    final List<ImmutableBitSet> projFieldsList = Lists.newArrayList();
     final List<int[]> joinFieldRefCountsList = Lists.newArrayList();
     final List<RelNode> newInputs =
         combineInputs(
@@ -195,7 +195,7 @@ public class JoinToMultiJoinRule extends RelOptRule {
       Join join,
       RelNode left,
       RelNode right,
-      List<BitSet> projFieldsList,
+      List<ImmutableBitSet> projFieldsList,
       List<int[]> joinFieldRefCountsList) {
     final List<RelNode> newInputs = Lists.newArrayList();
 

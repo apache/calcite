@@ -47,8 +47,8 @@ import org.apache.calcite.rex.RexPermuteInputsShuttle;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.rex.RexVisitor;
 import org.apache.calcite.sql.validate.SqlValidator;
-import org.apache.calcite.util.BitSets;
 import org.apache.calcite.util.Bug;
+import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.ReflectUtil;
 import org.apache.calcite.util.ReflectiveVisitor;
@@ -63,7 +63,6 @@ import com.google.common.collect.ImmutableList;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
-import java.util.BitSet;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -144,7 +143,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
             this,
             "trimFields",
             RelNode.class,
-            BitSet.class,
+            ImmutableBitSet.class,
             Set.class);
     this.projectFactory = Preconditions.checkNotNull(projectFactory);
     this.filterFactory = Preconditions.checkNotNull(filterFactory);
@@ -168,7 +167,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
    */
   public RelNode trim(RelNode root) {
     final int fieldCount = root.getRowType().getFieldCount();
-    final BitSet fieldsUsed = BitSets.range(fieldCount);
+    final ImmutableBitSet fieldsUsed = ImmutableBitSet.range(fieldCount);
     final Set<RelDataTypeField> extraFields = Collections.emptySet();
     final TrimResult trimResult =
         dispatchTrimFields(root, fieldsUsed, extraFields);
@@ -189,14 +188,14 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
   protected TrimResult trimChild(
       RelNode rel,
       RelNode input,
-      BitSet fieldsUsed,
+      ImmutableBitSet fieldsUsed,
       Set<RelDataTypeField> extraFields) {
     Util.discard(rel);
     if (input.getClass().getName().endsWith("MedMdrClassExtentRel")) {
       // MedMdrJoinRule cannot handle Join of Project of
       // MedMdrClassExtentRel, only naked MedMdrClassExtentRel.
       // So, disable trimming.
-      fieldsUsed = BitSets.range(input.getRowType().getFieldCount());
+      fieldsUsed = ImmutableBitSet.range(input.getRowType().getFieldCount());
     }
     return dispatchTrimFields(input, fieldsUsed, extraFields);
   }
@@ -217,7 +216,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
   protected TrimResult trimChildRestore(
       RelNode rel,
       RelNode input,
-      BitSet fieldsUsed,
+      ImmutableBitSet fieldsUsed,
       Set<RelDataTypeField> extraFields) {
     TrimResult trimResult = trimChild(rel, input, fieldsUsed, extraFields);
     if (trimResult.right.isIdentity()) {
@@ -255,7 +254,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
    */
   protected final TrimResult dispatchTrimFields(
       RelNode rel,
-      BitSet fieldsUsed,
+      ImmutableBitSet fieldsUsed,
       Set<RelDataTypeField> extraFields) {
     final TrimResult trimResult =
         trimFieldsDispatcher.invoke(rel, fieldsUsed, extraFields);
@@ -296,7 +295,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
    */
   public TrimResult trimFields(
       RelNode rel,
-      BitSet fieldsUsed,
+      ImmutableBitSet fieldsUsed,
       Set<RelDataTypeField> extraFields) {
     // We don't know how to trim this kind of relational expression, so give
     // it back intact.
@@ -308,12 +307,12 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
   }
 
   /**
-   * Variant of {@link #trimFields(RelNode, BitSet, Set)} for
+   * Variant of {@link #trimFields(RelNode, ImmutableBitSet, Set)} for
    * {@link org.apache.calcite.rel.logical.LogicalProject}.
    */
   public TrimResult trimFields(
       Project project,
-      BitSet fieldsUsed,
+      ImmutableBitSet fieldsUsed,
       Set<RelDataTypeField> extraFields) {
     final RelDataType rowType = project.getRowType();
     final int fieldCount = rowType.getFieldCount();
@@ -321,16 +320,16 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
     final RelDataType inputRowType = input.getRowType();
 
     // Which fields are required from the input?
-    BitSet inputFieldsUsed = new BitSet(inputRowType.getFieldCount());
     final Set<RelDataTypeField> inputExtraFields =
         new LinkedHashSet<RelDataTypeField>(extraFields);
     RelOptUtil.InputFinder inputFinder =
-        new RelOptUtil.InputFinder(inputFieldsUsed, inputExtraFields);
+        new RelOptUtil.InputFinder(inputExtraFields);
     for (Ord<RexNode> ord : Ord.zip(project.getProjects())) {
       if (fieldsUsed.get(ord.i)) {
         ord.e.accept(inputFinder);
       }
     }
+    ImmutableBitSet inputFieldsUsed = inputFinder.inputBitSet.build();
 
     // Create input with trimmed columns.
     TrimResult trimResult =
@@ -416,12 +415,12 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
   }
 
   /**
-   * Variant of {@link #trimFields(RelNode, BitSet, Set)} for
+   * Variant of {@link #trimFields(RelNode, ImmutableBitSet, Set)} for
    * {@link org.apache.calcite.rel.logical.LogicalFilter}.
    */
   public TrimResult trimFields(
       Filter filter,
-      BitSet fieldsUsed,
+      ImmutableBitSet fieldsUsed,
       Set<RelDataTypeField> extraFields) {
     final RelDataType rowType = filter.getRowType();
     final int fieldCount = rowType.getFieldCount();
@@ -430,12 +429,13 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
 
     // We use the fields used by the consumer, plus any fields used in the
     // filter.
-    BitSet inputFieldsUsed = (BitSet) fieldsUsed.clone();
     final Set<RelDataTypeField> inputExtraFields =
         new LinkedHashSet<RelDataTypeField>(extraFields);
     RelOptUtil.InputFinder inputFinder =
-        new RelOptUtil.InputFinder(inputFieldsUsed, inputExtraFields);
+        new RelOptUtil.InputFinder(inputExtraFields);
+    inputFinder.inputBitSet.addAll(fieldsUsed);
     conditionExpr.accept(inputFinder);
+    final ImmutableBitSet inputFieldsUsed = inputFinder.inputBitSet.build();
 
     // Create input with trimmed columns.
     TrimResult trimResult =
@@ -468,12 +468,12 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
   }
 
   /**
-   * Variant of {@link #trimFields(RelNode, BitSet, Set)} for
+   * Variant of {@link #trimFields(RelNode, ImmutableBitSet, Set)} for
    * {@link org.apache.calcite.rel.core.Sort}.
    */
   public TrimResult trimFields(
       Sort sort,
-      BitSet fieldsUsed,
+      ImmutableBitSet fieldsUsed,
       Set<RelDataTypeField> extraFields) {
     final RelDataType rowType = sort.getRowType();
     final int fieldCount = rowType.getFieldCount();
@@ -482,7 +482,8 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
 
     // We use the fields used by the consumer, plus any fields used as sort
     // keys.
-    BitSet inputFieldsUsed = (BitSet) fieldsUsed.clone();
+    final ImmutableBitSet.Builder inputFieldsUsed =
+        ImmutableBitSet.builder(fieldsUsed);
     for (RelFieldCollation field : collation.getFieldCollations()) {
       inputFieldsUsed.set(field.getFieldIndex());
     }
@@ -490,7 +491,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
     // Create input with trimmed columns.
     final Set<RelDataTypeField> inputExtraFields = Collections.emptySet();
     TrimResult trimResult =
-        trimChild(sort, input, inputFieldsUsed, inputExtraFields);
+        trimChild(sort, input, inputFieldsUsed.build(), inputExtraFields);
     RelNode newInput = trimResult.left;
     final Mapping inputMapping = trimResult.right;
 
@@ -517,12 +518,12 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
   }
 
   /**
-   * Variant of {@link #trimFields(RelNode, BitSet, Set)} for
+   * Variant of {@link #trimFields(RelNode, ImmutableBitSet, Set)} for
    * {@link org.apache.calcite.rel.logical.LogicalJoin}.
    */
   public TrimResult trimFields(
       Join join,
-      BitSet fieldsUsed,
+      ImmutableBitSet fieldsUsed,
       Set<RelDataTypeField> extraFields) {
     final int fieldCount = join.getSystemFieldList().size()
         + join.getLeft().getRowType().getFieldCount()
@@ -531,13 +532,13 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
     final int systemFieldCount = join.getSystemFieldList().size();
 
     // Add in fields used in the condition.
-    BitSet fieldsUsedPlus = (BitSet) fieldsUsed.clone();
     final Set<RelDataTypeField> combinedInputExtraFields =
         new LinkedHashSet<RelDataTypeField>(extraFields);
     RelOptUtil.InputFinder inputFinder =
-        new RelOptUtil.InputFinder(
-            fieldsUsedPlus, combinedInputExtraFields);
+        new RelOptUtil.InputFinder(combinedInputExtraFields);
+    inputFinder.inputBitSet.addAll(fieldsUsed);
     conditionExpr.accept(inputFinder);
+    final ImmutableBitSet fieldsUsedPlus = inputFinder.inputBitSet.build();
 
     // If no system fields are used, we can remove them.
     int systemFieldUsedCount = 0;
@@ -564,8 +565,8 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
       final int inputFieldCount = inputRowType.getFieldCount();
 
       // Compute required mapping.
-      BitSet inputFieldsUsed = new BitSet(inputFieldCount);
-      for (int bit : BitSets.toIter(fieldsUsedPlus)) {
+      ImmutableBitSet.Builder inputFieldsUsed = ImmutableBitSet.builder();
+      for (int bit : fieldsUsedPlus) {
         if (bit >= offset && bit < offset + inputFieldCount) {
           inputFieldsUsed.set(bit - offset);
         }
@@ -573,11 +574,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
 
       // If there are system fields, we automatically use the
       // corresponding field in each input.
-      if (newSystemFieldCount > 0) {
-        // calling with newSystemFieldCount == 0 should be safe but hits
-        // http://bugs.sun.com/bugdatabase/view_bug.do?bug_id=6222207
-        inputFieldsUsed.set(0, newSystemFieldCount);
-      }
+      inputFieldsUsed.set(0, newSystemFieldCount);
 
       // FIXME: We ought to collect extra fields for each input
       // individually. For now, we assume that just one input has
@@ -588,7 +585,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
               : combinedInputExtraFields;
       inputExtraFieldCounts.add(inputExtraFields.size());
       TrimResult trimResult =
-          trimChild(join, input, inputFieldsUsed, inputExtraFields);
+          trimChild(join, input, inputFieldsUsed.build(), inputExtraFields);
       newInputs.add(trimResult.left);
       if (trimResult.left != input) {
         ++changeCount;
@@ -662,12 +659,12 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
   }
 
   /**
-   * Variant of {@link #trimFields(RelNode, BitSet, Set)} for
+   * Variant of {@link #trimFields(RelNode, ImmutableBitSet, Set)} for
    * {@link org.apache.calcite.rel.core.SetOp} (including UNION and UNION ALL).
    */
   public TrimResult trimFields(
       SetOp setOp,
-      BitSet fieldsUsed,
+      ImmutableBitSet fieldsUsed,
       Set<RelDataTypeField> extraFields) {
     final RelDataType rowType = setOp.getRowType();
     final int fieldCount = rowType.getFieldCount();
@@ -677,7 +674,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
     // wants the last field. (The last field is the least likely to be a
     // system field.)
     if (fieldsUsed.isEmpty()) {
-      fieldsUsed.set(rowType.getFieldCount() - 1);
+      fieldsUsed = ImmutableBitSet.of(rowType.getFieldCount() - 1);
     }
 
     // Compute the desired field mapping. Give the consumer the fields they
@@ -730,12 +727,12 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
   }
 
   /**
-   * Variant of {@link #trimFields(RelNode, BitSet, Set)} for
+   * Variant of {@link #trimFields(RelNode, ImmutableBitSet, Set)} for
    * {@link org.apache.calcite.rel.logical.LogicalAggregate}.
    */
   public TrimResult trimFields(
       Aggregate aggregate,
-      BitSet fieldsUsed,
+      ImmutableBitSet fieldsUsed,
       Set<RelDataTypeField> extraFields) {
     // Fields:
     //
@@ -753,11 +750,9 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
     final RelDataType rowType = aggregate.getRowType();
 
     // Compute which input fields are used.
-    BitSet inputFieldsUsed = new BitSet();
     // 1. group fields are always used
-    for (int i : BitSets.toIter(aggregate.getGroupSet())) {
-      inputFieldsUsed.set(i);
-    }
+    final ImmutableBitSet.Builder inputFieldsUsed =
+        ImmutableBitSet.builder(aggregate.getGroupSet());
     // 2. agg functions
     for (AggregateCall aggCall : aggregate.getAggCallList()) {
       for (int i : aggCall.getArgList()) {
@@ -769,14 +764,14 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
     final RelNode input = aggregate.getInput(0);
     final Set<RelDataTypeField> inputExtraFields = Collections.emptySet();
     final TrimResult trimResult =
-        trimChild(aggregate, input, inputFieldsUsed, inputExtraFields);
+        trimChild(aggregate, input, inputFieldsUsed.build(), inputExtraFields);
     final RelNode newInput = trimResult.left;
     final Mapping inputMapping = trimResult.right;
 
     // If the input is unchanged, and we need to project all columns,
     // there's nothing to do.
     if (input == newInput
-        && fieldsUsed.equals(BitSets.range(rowType.getFieldCount()))) {
+        && fieldsUsed.equals(ImmutableBitSet.range(rowType.getFieldCount()))) {
       return new TrimResult(
           aggregate,
           Mappings.createIdentity(rowType.getFieldCount()));
@@ -800,7 +795,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
             groupCount
                 + usedAggCallCount);
 
-    final BitSet newGroupSet =
+    final ImmutableBitSet newGroupSet =
         Mappings.apply(inputMapping, aggregate.getGroupSet());
 
     // Populate mapping of where to find the fields. System and grouping
@@ -840,12 +835,12 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
   }
 
   /**
-   * Variant of {@link #trimFields(RelNode, BitSet, Set)} for
+   * Variant of {@link #trimFields(RelNode, ImmutableBitSet, Set)} for
    * {@link org.apache.calcite.rel.logical.LogicalTableModify}.
    */
   public TrimResult trimFields(
       LogicalTableModify modifier,
-      BitSet fieldsUsed,
+      ImmutableBitSet fieldsUsed,
       Set<RelDataTypeField> extraFields) {
     // Ignore what consumer wants. We always project all columns.
     Util.discard(fieldsUsed);
@@ -856,7 +851,8 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
 
     // We want all fields from the child.
     final int inputFieldCount = input.getRowType().getFieldCount();
-    BitSet inputFieldsUsed = BitSets.range(inputFieldCount);
+    final ImmutableBitSet inputFieldsUsed =
+        ImmutableBitSet.range(inputFieldCount);
 
     // Create input with trimmed columns.
     final Set<RelDataTypeField> inputExtraFields = Collections.emptySet();
@@ -886,12 +882,12 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
   }
 
   /**
-   * Variant of {@link #trimFields(RelNode, BitSet, Set)} for
+   * Variant of {@link #trimFields(RelNode, ImmutableBitSet, Set)} for
    * {@link org.apache.calcite.rel.logical.LogicalTableFunctionScan}.
    */
   public TrimResult trimFields(
       LogicalTableFunctionScan tabFun,
-      BitSet fieldsUsed,
+      ImmutableBitSet fieldsUsed,
       Set<RelDataTypeField> extraFields) {
     final RelDataType rowType = tabFun.getRowType();
     final int fieldCount = rowType.getFieldCount();
@@ -899,7 +895,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
 
     for (RelNode input : tabFun.getInputs()) {
       final int inputFieldCount = input.getRowType().getFieldCount();
-      BitSet inputFieldsUsed = BitSets.range(inputFieldCount);
+      ImmutableBitSet inputFieldsUsed = ImmutableBitSet.range(inputFieldCount);
 
       // Create input with trimmed columns.
       final Set<RelDataTypeField> inputExtraFields =
@@ -923,12 +919,12 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
   }
 
   /**
-   * Variant of {@link #trimFields(RelNode, BitSet, Set)} for
+   * Variant of {@link #trimFields(RelNode, ImmutableBitSet, Set)} for
    * {@link org.apache.calcite.rel.logical.LogicalValues}.
    */
   public TrimResult trimFields(
       LogicalValues values,
-      BitSet fieldsUsed,
+      ImmutableBitSet fieldsUsed,
       Set<RelDataTypeField> extraFields) {
     final RelDataType rowType = values.getRowType();
     final int fieldCount = rowType.getFieldCount();
@@ -937,11 +933,11 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
     // because zero-column records are illegal. Give them the last field,
     // which is unlikely to be a system field.
     if (fieldsUsed.isEmpty()) {
-      fieldsUsed = BitSets.range(fieldCount - 1, fieldCount);
+      fieldsUsed = ImmutableBitSet.range(fieldCount - 1, fieldCount);
     }
 
     // If all fields are used, return unchanged.
-    if (fieldsUsed.equals(BitSets.range(fieldCount))) {
+    if (fieldsUsed.equals(ImmutableBitSet.range(fieldCount))) {
       Mapping mapping = Mappings.createIdentity(fieldCount);
       return new TrimResult(values, mapping);
     }
@@ -949,7 +945,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
     List<List<RexLiteral>> newTuples = new ArrayList<List<RexLiteral>>();
     for (List<RexLiteral> tuple : values.getTuples()) {
       List<RexLiteral> newTuple = new ArrayList<RexLiteral>();
-      for (int field : BitSets.toIter(fieldsUsed)) {
+      for (int field : fieldsUsed) {
         newTuple.add(tuple.get(field));
       }
       newTuples.add(newTuple);
@@ -964,29 +960,30 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
     return new TrimResult(newValues, mapping);
   }
 
-  private Mapping createMapping(BitSet fieldsUsed, int fieldCount) {
+  private Mapping createMapping(ImmutableBitSet fieldsUsed, int fieldCount) {
     final Mapping mapping =
         Mappings.create(
             MappingType.INVERSE_SURJECTION,
             fieldCount,
             fieldsUsed.cardinality());
     int i = 0;
-    for (int field : BitSets.toIter(fieldsUsed)) {
+    for (int field : fieldsUsed) {
       mapping.set(field, i++);
     }
     return mapping;
   }
 
   /**
-   * Variant of {@link #trimFields(RelNode, BitSet, Set)} for
+   * Variant of {@link #trimFields(RelNode, ImmutableBitSet, Set)} for
    * {@link org.apache.calcite.rel.logical.LogicalTableScan}.
    */
   public TrimResult trimFields(
       final TableScan tableAccessRel,
-      BitSet fieldsUsed,
+      ImmutableBitSet fieldsUsed,
       Set<RelDataTypeField> extraFields) {
     final int fieldCount = tableAccessRel.getRowType().getFieldCount();
-    if (fieldsUsed.equals(BitSets.range(fieldCount)) && extraFields.isEmpty()) {
+    if (fieldsUsed.equals(ImmutableBitSet.range(fieldCount))
+        && extraFields.isEmpty()) {
       // if there is nothing to project or if we are projecting everything
       // then no need to introduce another RelNode
       return trimFields(

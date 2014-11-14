@@ -48,6 +48,24 @@ public final class BitSets {
   }
 
   /**
+   * Returns true if all bits set in the second parameter are also set in the
+   * first. In other words, whether x is a super-set of y.
+   *
+   * @param set0 Containing bitmap
+   * @param set1 Bitmap to be checked
+   *
+   * @return Whether all bits in set1 are set in set0
+   */
+  public static boolean contains(BitSet set0, ImmutableBitSet set1) {
+    for (int i = set1.nextSetBit(0); i >= 0; i = set1.nextSetBit(i + 1)) {
+      if (!set0.get(i)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  /**
    * Returns an iterable over the bits in a bitmap that are set to '1'.
    *
    * <p>This allows you to iterate over a bit set using a 'foreach' construct.
@@ -84,6 +102,10 @@ public final class BitSets {
         };
       }
     };
+  }
+
+  public static Iterable<Integer> toIter(final ImmutableBitSet bitSet) {
+    return bitSet;
   }
 
   /**

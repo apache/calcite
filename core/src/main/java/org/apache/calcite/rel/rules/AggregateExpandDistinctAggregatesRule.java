@@ -31,7 +31,7 @@ import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
-import org.apache.calcite.util.BitSets;
+import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
@@ -40,7 +40,6 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 
 import java.util.ArrayList;
-import java.util.BitSet;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -124,12 +123,12 @@ public final class AggregateExpandDistinctAggregatesRule extends RelOptRule {
         aggregate.getRowType().getFieldList();
     final List<RexInputRef> refs = new ArrayList<RexInputRef>();
     final List<String> fieldNames = aggregate.getRowType().getFieldNames();
-    final BitSet groupSet = aggregate.getGroupSet();
+    final ImmutableBitSet groupSet = aggregate.getGroupSet();
     for (int i : Util.range(groupSet.cardinality())) {
       refs.add(RexInputRef.of(i, aggFields));
     }
 
-    // Aggregate the original relation, including any non-distinct aggs.
+    // Aggregate the original relation, including any non-distinct aggregates.
 
     List<AggregateCall> newAggCallList = new ArrayList<AggregateCall>();
     final int groupCount = groupSet.cardinality();
@@ -147,7 +146,7 @@ public final class AggregateExpandDistinctAggregatesRule extends RelOptRule {
       newAggCallList.add(aggCall);
     }
 
-    // In the case where there are no non-distinct aggs (regardless of
+    // In the case where there are no non-distinct aggregates (regardless of
     // whether there are group bys), there's no need to generate the
     // extra aggregate and join.
     RelNode rel;
@@ -207,7 +206,7 @@ public final class AggregateExpandDistinctAggregatesRule extends RelOptRule {
     return aggregate.copy(
         aggregate.getTraitSet(),
         distinct,
-        BitSets.range(aggregate.getGroupSet().cardinality()),
+        ImmutableBitSet.range(aggregate.getGroupSet().cardinality()),
         newAggCalls);
   }
 
@@ -346,7 +345,7 @@ public final class AggregateExpandDistinctAggregatesRule extends RelOptRule {
         aggregate.copy(
             aggregate.getTraitSet(),
             distinct,
-            BitSets.range(aggregate.getGroupSet().cardinality()),
+            ImmutableBitSet.range(aggregate.getGroupSet().cardinality()),
             aggCallList);
 
     // If there's no left child yet, no need to create the join
@@ -464,7 +463,7 @@ public final class AggregateExpandDistinctAggregatesRule extends RelOptRule {
     final RelNode child = aggregate.getInput();
     final List<RelDataTypeField> childFields =
         child.getRowType().getFieldList();
-    for (int i : BitSets.toIter(aggregate.getGroupSet())) {
+    for (int i : aggregate.getGroupSet()) {
       sourceOf.put(i, projects.size());
       projects.add(RexInputRef.of2(i, childFields));
     }
@@ -483,7 +482,7 @@ public final class AggregateExpandDistinctAggregatesRule extends RelOptRule {
     return aggregate.copy(
         aggregate.getTraitSet(),
         project,
-        BitSets.range(projects.size()),
+        ImmutableBitSet.range(projects.size()),
         ImmutableList.<AggregateCall>of());
   }
 }

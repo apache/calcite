@@ -32,7 +32,7 @@ import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlExplainLevel;
-import org.apache.calcite.util.BitSets;
+import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.trace.CalciteTrace;
@@ -42,7 +42,6 @@ import com.google.common.collect.ImmutableList;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.ArrayList;
-import java.util.BitSet;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
@@ -169,10 +168,10 @@ public abstract class AbstractRelNode implements RelNode {
   }
 
   public boolean isDistinct() {
-    return isKey(BitSets.range(getRowType().getFieldCount()));
+    return isKey(ImmutableBitSet.range(getRowType().getFieldCount()));
   }
 
-  public boolean isKey(BitSet columns) {
+  public boolean isKey(ImmutableBitSet columns) {
     return false;
   }
 

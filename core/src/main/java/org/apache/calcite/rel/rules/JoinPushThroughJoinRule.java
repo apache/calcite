@@ -30,11 +30,10 @@ import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexPermuteInputsShuttle;
 import org.apache.calcite.rex.RexUtil;
-import org.apache.calcite.util.BitSets;
+import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.mapping.Mappings;
 
 import java.util.ArrayList;
-import java.util.BitSet;
 import java.util.List;
 
 /**
@@ -118,7 +117,8 @@ public class JoinPushThroughJoinRule extends RelOptRule {
     final int aCount = relA.getRowType().getFieldCount();
     final int bCount = relB.getRowType().getFieldCount();
     final int cCount = relC.getRowType().getFieldCount();
-    final BitSet bBitSet = BitSets.range(aCount, aCount + bCount);
+    final ImmutableBitSet bBitSet =
+        ImmutableBitSet.range(aCount, aCount + bCount);
 
     // becomes
     //
@@ -225,7 +225,7 @@ public class JoinPushThroughJoinRule extends RelOptRule {
     final int aCount = relA.getRowType().getFieldCount();
     final int bCount = relB.getRowType().getFieldCount();
     final int cCount = relC.getRowType().getFieldCount();
-    final BitSet aBitSet = BitSets.range(aCount);
+    final ImmutableBitSet aBitSet = ImmutableBitSet.range(aCount);
 
     // becomes
     //
@@ -317,11 +317,11 @@ public class JoinPushThroughJoinRule extends RelOptRule {
    */
   static void split(
       RexNode condition,
-      BitSet bitSet,
+      ImmutableBitSet bitSet,
       List<RexNode> intersecting,
       List<RexNode> nonIntersecting) {
     for (RexNode node : RelOptUtil.conjunctions(condition)) {
-      BitSet inputBitSet = RelOptUtil.InputFinder.bits(node);
+      ImmutableBitSet inputBitSet = RelOptUtil.InputFinder.bits(node);
       if (bitSet.intersects(inputBitSet)) {
         intersecting.add(node);
       } else {

@@ -20,8 +20,8 @@ import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.util.ImmutableBitSet;
 
-import java.util.BitSet;
 import java.util.List;
 
 /**
@@ -82,7 +82,7 @@ public interface RelOptTable {
    * @param columns Ordinals of key columns
    * @return Whether the given columns are a key or a superset of a key
    */
-  boolean isKey(BitSet columns);
+  boolean isKey(ImmutableBitSet columns);
 
   /**
    * Finds an interface implemented by this table.

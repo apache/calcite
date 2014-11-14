@@ -21,10 +21,10 @@ import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.logical.LogicalTableScan;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.util.ImmutableBitSet;
 
 import com.google.common.collect.ImmutableList;
 
-import java.util.BitSet;
 import java.util.Collections;
 import java.util.List;
 
@@ -83,7 +83,7 @@ public abstract class RelOptAbstractTable implements RelOptTable {
   }
 
   // Override to define keys
-  public boolean isKey(BitSet columns) {
+  public boolean isKey(ImmutableBitSet columns) {
     return false;
   }
 

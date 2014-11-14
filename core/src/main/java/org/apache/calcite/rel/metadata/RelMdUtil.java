@@ -20,7 +20,6 @@ import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
-import org.apache.calcite.rel.core.JoinInfo;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.SemiJoin;
@@ -36,15 +35,13 @@ import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
-import org.apache.calcite.util.BitSets;
-import org.apache.calcite.util.Bug;
+import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.NumberUtil;
 
 import com.google.common.collect.ImmutableList;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
-import java.util.BitSet;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -160,16 +157,18 @@ public class RelMdUtil {
       RelNode dimRel,
       List<Integer> factKeyList,
       List<Integer> dimKeyList) {
-    BitSet factKeys = new BitSet();
+    ImmutableBitSet.Builder factKeys = ImmutableBitSet.builder();
     for (int factCol : factKeyList) {
       factKeys.set(factCol);
     }
-    BitSet dimKeys = new BitSet();
+    ImmutableBitSet.Builder dimKeyBuilder = ImmutableBitSet.builder();
     for (int dimCol : dimKeyList) {
-      dimKeys.set(dimCol);
+      dimKeyBuilder.set(dimCol);
     }
+    final ImmutableBitSet dimKeys = dimKeyBuilder.build();
 
-    Double factPop = RelMetadataQuery.getPopulationSize(factRel, factKeys);
+    Double factPop =
+        RelMetadataQuery.getPopulationSize(factRel, factKeys.build());
     if (factPop == null) {
       // use the dimension population if the fact population is
       // unavailable; since we're filtering the fact table, that's
@@ -200,7 +199,7 @@ public class RelMdUtil {
       selectivity =
           Math.pow(
               0.1,
-              dimKeys.cardinality());
+              dimKeyBuilder.cardinality());
     } else if (selectivity > 1.0) {
       selectivity = 1.0;
     }
@@ -220,7 +219,7 @@ public class RelMdUtil {
    */
   public static boolean areColumnsDefinitelyUnique(
       RelNode rel,
-      BitSet colMask) {
+      ImmutableBitSet colMask) {
     Boolean b = RelMetadataQuery.areColumnsUnique(rel, colMask, false);
     return b != null && b;
   }
@@ -228,13 +227,11 @@ public class RelMdUtil {
   public static Boolean areColumnsUnique(
       RelNode rel,
       List<RexInputRef> columnRefs) {
-    BitSet colMask = new BitSet();
-
+    ImmutableBitSet.Builder colMask = ImmutableBitSet.builder();
     for (RexInputRef columnRef : columnRefs) {
       colMask.set(columnRef.getIndex());
     }
-
-    return RelMetadataQuery.areColumnsUnique(rel, colMask);
+    return RelMetadataQuery.areColumnsUnique(rel, colMask.build());
   }
 
   public static boolean areColumnsDefinitelyUnique(RelNode rel,
@@ -256,7 +253,7 @@ public class RelMdUtil {
    * if no metadata is available)
    */
   public static boolean areColumnsDefinitelyUniqueWhenNullsFiltered(RelNode rel,
-      BitSet colMask) {
+      ImmutableBitSet colMask) {
     Boolean b = RelMetadataQuery.areColumnsUnique(rel, colMask, true);
     if (b == null) {
       return false;
@@ -267,13 +264,13 @@ public class RelMdUtil {
   public static Boolean areColumnsUniqueWhenNullsFiltered(
       RelNode rel,
       List<RexInputRef> columnRefs) {
-    BitSet colMask = new BitSet();
+    ImmutableBitSet.Builder colMask = ImmutableBitSet.builder();
 
     for (RexInputRef columnRef : columnRefs) {
       colMask.set(columnRef.getIndex());
     }
 
-    return RelMetadataQuery.areColumnsUnique(rel, colMask, true);
+    return RelMetadataQuery.areColumnsUnique(rel, colMask.build(), true);
   }
 
   public static boolean areColumnsDefinitelyUniqueWhenNullsFiltered(
@@ -288,7 +285,7 @@ public class RelMdUtil {
 
   /**
    * Separates a bit-mask representing a join into masks representing the left
-   * and right inputs into the join
+   * and right inputs into the join.
    *
    * @param groupKey      original bit-mask
    * @param leftMask      left bit-mask to be set
@@ -296,11 +293,11 @@ public class RelMdUtil {
    * @param nFieldsOnLeft number of fields in the left input
    */
   public static void setLeftRightBitmaps(
-      BitSet groupKey,
-      BitSet leftMask,
-      BitSet rightMask,
+      ImmutableBitSet groupKey,
+      ImmutableBitSet.Builder leftMask,
+      ImmutableBitSet.Builder rightMask,
       int nFieldsOnLeft) {
-    for (int bit : BitSets.toIter(groupKey)) {
+    for (int bit : groupKey) {
       if (bit < nFieldsOnLeft) {
         leftMask.set(bit);
       } else {
@@ -434,35 +431,6 @@ public class RelMdUtil {
   }
 
   /**
-   * Locates the columns corresponding to equijoins within a joinrel.
-   *
-   * @param leftChild     left input into the join
-   * @param rightChild    right input into the join
-   * @param predicate     join predicate
-   * @param leftJoinCols  bitmap that will be set with the columns on the LHS
-   *                      of the join that participate in equijoins
-   * @param rightJoinCols bitmap that will be set with the columns on the RHS
-   *                      of the join that participate in equijoins
-   * @return remaining join filters that are not equijoins; may return a
-   * {@link RexLiteral} true, but never null
-   *
-   * @deprecated Will be removed after 0.9.1
-   */
-  public static RexNode findEquiJoinCols(
-      RelNode leftChild,
-      RelNode rightChild,
-      RexNode predicate,
-      BitSet leftJoinCols,
-      BitSet rightJoinCols) {
-    Bug.upgrade("remove after 0.9.1");
-    // locate the equijoin conditions
-    final JoinInfo joinInfo = JoinInfo.of(leftChild, rightChild, predicate);
-    BitSets.populate(leftJoinCols, joinInfo.leftKeys);
-    BitSets.populate(rightJoinCols, joinInfo.rightKeys);
-    return joinInfo.getRemaining(leftChild.getCluster().getRexBuilder());
-  }
-
-  /**
    * AND's two predicates together, either of which may be null, removing
    * redundant filters.
    *
@@ -527,18 +495,18 @@ public class RelMdUtil {
 
   /**
    * Takes a bitmap representing a set of input references and extracts the
-   * ones that reference the group by columns in an aggregate
+   * ones that reference the group by columns in an aggregate.
    *
    * @param groupKey the original bitmap
    * @param aggRel   the aggregate
    * @param childKey sets bits from groupKey corresponding to group by columns
    */
   public static void setAggChildKeys(
-      BitSet groupKey,
+      ImmutableBitSet groupKey,
       Aggregate aggRel,
-      BitSet childKey) {
+      ImmutableBitSet.Builder childKey) {
     List<AggregateCall> aggCalls = aggRel.getAggCallList();
-    for (int bit : BitSets.toIter(groupKey)) {
+    for (int bit : groupKey) {
       if (bit < aggRel.getGroupCount()) {
         // group by column
         childKey.set(bit);
@@ -556,7 +524,6 @@ public class RelMdUtil {
   /**
    * Forms two bitmaps by splitting the columns in a bitmap according to
    * whether or not the column references the child input or is an expression
-   *
    * @param projExprs Project expressions
    * @param groupKey  Bitmap whose columns will be split
    * @param baseCols  Bitmap representing columns from the child input
@@ -564,10 +531,10 @@ public class RelMdUtil {
    */
   public static void splitCols(
       List<RexNode> projExprs,
-      BitSet groupKey,
-      BitSet baseCols,
-      BitSet projCols) {
-    for (int bit : BitSets.toIter(groupKey)) {
+      ImmutableBitSet groupKey,
+      ImmutableBitSet.Builder baseCols,
+      ImmutableBitSet.Builder projCols) {
+    for (int bit : groupKey) {
       final RexNode e = projExprs.get(bit);
       if (e instanceof RexInputRef) {
         baseCols.set(((RexInputRef) e).getIndex());
@@ -598,9 +565,9 @@ public class RelMdUtil {
    */
   public static Double getJoinPopulationSize(
       RelNode joinRel,
-      BitSet groupKey) {
-    BitSet leftMask = new BitSet();
-    BitSet rightMask = new BitSet();
+      ImmutableBitSet groupKey) {
+    ImmutableBitSet.Builder leftMask = ImmutableBitSet.builder();
+    ImmutableBitSet.Builder rightMask = ImmutableBitSet.builder();
     RelNode left = joinRel.getInputs().get(0);
     RelNode right = joinRel.getInputs().get(1);
 
@@ -615,10 +582,10 @@ public class RelMdUtil {
         NumberUtil.multiply(
             RelMetadataQuery.getPopulationSize(
                 left,
-                leftMask),
+                leftMask.build()),
             RelMetadataQuery.getPopulationSize(
                 right,
-                rightMask));
+                rightMask.build()));
 
     return RelMdUtil.numDistinctVals(
         population,
@@ -640,12 +607,12 @@ public class RelMdUtil {
   public static Double getJoinDistinctRowCount(
       RelNode joinRel,
       JoinRelType joinType,
-      BitSet groupKey,
+      ImmutableBitSet groupKey,
       RexNode predicate,
       boolean useMaxNdv) {
     Double distRowCount;
-    BitSet leftMask = new BitSet();
-    BitSet rightMask = new BitSet();
+    ImmutableBitSet.Builder leftMask = ImmutableBitSet.builder();
+    ImmutableBitSet.Builder rightMask = ImmutableBitSet.builder();
     RelNode left = joinRel.getInputs().get(0);
     RelNode right = joinRel.getInputs().get(1);
 
@@ -685,22 +652,22 @@ public class RelMdUtil {
     if (useMaxNdv) {
       distRowCount = Math.max(RelMetadataQuery.getDistinctRowCount(
                 left,
-                leftMask,
+                leftMask.build(),
                 leftPred),
             RelMetadataQuery.getDistinctRowCount(
                 right,
-                rightMask,
+                rightMask.build(),
                 rightPred));
     } else {
       distRowCount =
         NumberUtil.multiply(
             RelMetadataQuery.getDistinctRowCount(
                 left,
-                leftMask,
+                leftMask.build(),
                 leftPred),
             RelMetadataQuery.getDistinctRowCount(
                 right,
-                rightMask,
+                rightMask.build(),
                 rightPred));
     }
 
@@ -723,8 +690,7 @@ public class RelMdUtil {
 
     public Double visitInputRef(RexInputRef var) {
       int index = var.getIndex();
-      BitSet col = new BitSet(index);
-      col.set(index);
+      ImmutableBitSet col = ImmutableBitSet.of(index);
       Double distinctRowCount =
           RelMetadataQuery.getDistinctRowCount(
               rel.getInput(),

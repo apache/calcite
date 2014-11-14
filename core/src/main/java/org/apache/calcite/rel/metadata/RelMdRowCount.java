@@ -25,9 +25,8 @@ import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.util.BuiltInMethod;
+import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.NumberUtil;
-
-import java.util.BitSet;
 
 /**
  * RelMdRowCount supplies a default implementation of
@@ -83,10 +82,7 @@ public class RelMdRowCount {
   }
 
   public Double getRowCount(Aggregate rel) {
-    BitSet groupKey = new BitSet();
-    for (int i = 0; i < rel.getGroupCount(); i++) {
-      groupKey.set(i);
-    }
+    ImmutableBitSet groupKey = ImmutableBitSet.range(rel.getGroupCount());
 
     // rowcount is the cardinality of the group by columns
     Double distinctRowCount =

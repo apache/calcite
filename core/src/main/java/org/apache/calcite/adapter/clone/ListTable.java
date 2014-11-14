@@ -29,10 +29,11 @@ import org.apache.calcite.rel.type.RelProtoDataType;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.Statistic;
 import org.apache.calcite.schema.Statistics;
+import org.apache.calcite.util.ImmutableBitSet;
+
+import com.google.common.collect.ImmutableList;
 
 import java.lang.reflect.Type;
-import java.util.BitSet;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
@@ -63,7 +64,7 @@ class ListTable extends AbstractQueryableTable {
   }
 
   public Statistic getStatistic() {
-    return Statistics.of(list.size(), Collections.<BitSet>emptyList());
+    return Statistics.of(list.size(), ImmutableList.<ImmutableBitSet>of());
   }
 
   public <T> Queryable<T> asQueryable(final QueryProvider queryProvider,

@@ -67,9 +67,9 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.MultisetSqlType;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
-import org.apache.calcite.util.BitSets;
 import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.Holder;
+import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Permutation;
 import org.apache.calcite.util.Util;
@@ -360,7 +360,7 @@ public abstract class RelOptUtil {
           new LogicalAggregate(
               ret.getCluster(),
               ret,
-              BitSets.of(),
+              ImmutableBitSet.of(),
               ImmutableList.of(aggCall));
     }
 
@@ -401,7 +401,7 @@ public abstract class RelOptUtil {
       final int keyCount = ret.getRowType().getFieldCount();
       if (!needsOuterJoin) {
         return Pair.<RelNode, Boolean>of(
-            new LogicalAggregate(cluster, ret, BitSets.range(keyCount),
+            new LogicalAggregate(cluster, ret, ImmutableBitSet.range(keyCount),
                 ImmutableList.<AggregateCall>of()),
             false);
       }
@@ -438,7 +438,7 @@ public abstract class RelOptUtil {
       ret = new LogicalAggregate(
           cluster,
           ret,
-          BitSets.range(projectedKeyCount),
+          ImmutableBitSet.range(projectedKeyCount),
           ImmutableList.of(aggCall));
 
       switch (logic) {
@@ -683,7 +683,7 @@ public abstract class RelOptUtil {
     return new LogicalAggregate(
         rel.getCluster(),
         rel,
-        BitSets.of(),
+        ImmutableBitSet.of(),
         aggCalls);
   }
 
@@ -698,7 +698,7 @@ public abstract class RelOptUtil {
     return new LogicalAggregate(
         rel.getCluster(),
         rel,
-        BitSets.range(rel.getRowType().getFieldCount()),
+        ImmutableBitSet.range(rel.getRowType().getFieldCount()),
         ImmutableList.<AggregateCall>of());
   }
 
@@ -967,8 +967,8 @@ public abstract class RelOptUtil {
         RexNode op0 = operands.get(0);
         RexNode op1 = operands.get(1);
 
-        final BitSet projRefs0 = RelOptUtil.InputFinder.bits(op0);
-        final BitSet projRefs1 = RelOptUtil.InputFinder.bits(op1);
+        final ImmutableBitSet projRefs0 = InputFinder.bits(op0);
+        final ImmutableBitSet projRefs1 = InputFinder.bits(op1);
 
         if ((projRefs0.nextSetBit(firstRightField) < 0)
             && (projRefs1.nextSetBit(firstLeftField)
@@ -1041,7 +1041,7 @@ public abstract class RelOptUtil {
         //     f(LHS) > 0 ===> ( f(LHS) > 0 ) = TRUE,
         // and make the RHS produce TRUE, but only if we're strictly
         // looking for equi-joins
-        final BitSet projRefs = RelOptUtil.InputFinder.bits(condition);
+        final ImmutableBitSet projRefs = InputFinder.bits(condition);
         leftKey = null;
         rightKey = null;
 
@@ -2008,8 +2008,10 @@ public abstract class RelOptUtil {
     assert nTotalFields == nSysFields + nFieldsLeft + nFieldsRight;
 
     // set the reference bitmaps for the left and right children
-    BitSet leftBitmap = BitSets.range(nSysFields, nSysFields + nFieldsLeft);
-    BitSet rightBitmap = BitSets.range(nSysFields + nFieldsLeft, nTotalFields);
+    ImmutableBitSet leftBitmap =
+        ImmutableBitSet.range(nSysFields, nSysFields + nFieldsLeft);
+    ImmutableBitSet rightBitmap =
+        ImmutableBitSet.range(nSysFields + nFieldsLeft, nTotalFields);
 
     for (RexNode filter : aboveFilters) {
       if (joinType.generatesNullsOnLeft()
@@ -2117,14 +2119,15 @@ public abstract class RelOptUtil {
         : nSysFields + nFieldsLeft + nFieldsRight);
 
     // set the reference bitmaps for the left and right children
-    BitSet leftBitmap =
-        BitSets.range(nSysFields, nSysFields + nFieldsLeft);
-    BitSet rightBitmap =
-        BitSets.range(nSysFields + nFieldsLeft, nTotalFields);
+    ImmutableBitSet leftBitmap =
+        ImmutableBitSet.range(nSysFields, nSysFields + nFieldsLeft);
+    ImmutableBitSet rightBitmap =
+        ImmutableBitSet.range(nSysFields + nFieldsLeft, nTotalFields);
 
     final List<RexNode> filtersToRemove = Lists.newArrayList();
     for (RexNode filter : filters) {
       final InputFinder inputFinder = InputFinder.analyze(filter);
+      final ImmutableBitSet inputBits = inputFinder.inputBitSet.build();
 
       // REVIEW - are there any expressions that need special handling
       // and therefore cannot be pushed?
@@ -2132,7 +2135,7 @@ public abstract class RelOptUtil {
       // filters can be pushed to the left child if the left child
       // does not generate NULLs and the only columns referenced in
       // the filter originate from the left child
-      if (pushLeft && BitSets.contains(leftBitmap, inputFinder.inputBitSet)) {
+      if (pushLeft && leftBitmap.contains(inputBits)) {
         // ignore filters that always evaluate to true
         if (!filter.isAlwaysTrue()) {
           // adjust the field references in the filter to reflect
@@ -2156,8 +2159,7 @@ public abstract class RelOptUtil {
         // filters can be pushed to the right child if the right child
         // does not generate NULLs and the only columns referenced in
         // the filter originate from the right child
-      } else if (pushRight
-          && BitSets.contains(rightBitmap, inputFinder.inputBitSet)) {
+      } else if (pushRight && rightBitmap.contains(inputBits)) {
         if (!filter.isAlwaysTrue()) {
           // adjust the field references in the filter to reflect
           // that fields in the right now shift over to the left;
@@ -2234,15 +2236,15 @@ public abstract class RelOptUtil {
    *                    the child input
    */
   public static void splitFilters(
-      BitSet childBitmap,
+      ImmutableBitSet childBitmap,
       RexNode predicate,
       List<RexNode> pushable,
       List<RexNode> notPushable) {
     // for each filter, if the filter only references the child inputs,
     // then it can be pushed
     for (RexNode filter : conjunctions(predicate)) {
-      BitSet filterRefs = RelOptUtil.InputFinder.bits(filter);
-      if (BitSets.contains(childBitmap, filterRefs)) {
+      ImmutableBitSet filterRefs = InputFinder.bits(filter);
+      if (childBitmap.contains(filterRefs)) {
         pushable.add(filter);
       } else {
         notPushable.add(filter);
@@ -2447,12 +2449,12 @@ public abstract class RelOptUtil {
     // the post-join filter.  Since the filter effectively sits in
     // between the LogicalProject and the MultiJoin, the projection needs
     // to include those filter references.
-    BitSet inputRefs = InputFinder.bits(
-        project.getProjects(), multiJoin.getPostJoinFilter());
+    ImmutableBitSet inputRefs =
+        InputFinder.bits(project.getProjects(), multiJoin.getPostJoinFilter());
 
     // create new copies of the bitmaps
     List<RelNode> multiJoinInputs = multiJoin.getInputs();
-    List<BitSet> newProjFields = new ArrayList<BitSet>();
+    List<BitSet> newProjFields = Lists.newArrayList();
     for (RelNode multiJoinInput : multiJoinInputs) {
       newProjFields.add(
           new BitSet(multiJoinInput.getRowType().getFieldCount()));
@@ -2462,7 +2464,7 @@ public abstract class RelOptUtil {
     int currInput = -1;
     int startField = 0;
     int nFields = 0;
-    for (int bit : BitSets.toIter(inputRefs)) {
+    for (int bit : inputRefs) {
       while (bit >= (startField + nFields)) {
         startField += nFields;
         currInput++;
@@ -2483,7 +2485,7 @@ public abstract class RelOptUtil {
         multiJoin.isFullOuterJoin(),
         multiJoin.getOuterJoinConditions(),
         multiJoin.getJoinTypes(),
-        newProjFields,
+        Lists.transform(newProjFields, ImmutableBitSet.FROM_BIT_SET),
         multiJoin.getJoinFieldRefCountsMap(),
         multiJoin.getPostJoinFilter());
   }
@@ -3071,22 +3073,22 @@ public abstract class RelOptUtil {
    * Visitor which builds a bitmap of the inputs used by an expression.
    */
   public static class InputFinder extends RexVisitorImpl<Void> {
-    final BitSet inputBitSet;
+    public final ImmutableBitSet.Builder inputBitSet;
     private final Set<RelDataTypeField> extraFields;
 
-    public InputFinder(BitSet inputBitSet) {
-      this(inputBitSet, null);
+    public InputFinder() {
+      this(null);
     }
 
-    public InputFinder(BitSet inputBitSet, Set<RelDataTypeField> extraFields) {
+    public InputFinder(Set<RelDataTypeField> extraFields) {
       super(true);
-      this.inputBitSet = inputBitSet;
+      this.inputBitSet = ImmutableBitSet.builder();
       this.extraFields = extraFields;
     }
 
     /** Returns an input finder that has analyzed a given expression. */
     public static InputFinder analyze(RexNode node) {
-      final InputFinder inputFinder = new InputFinder(new BitSet());
+      final InputFinder inputFinder = new InputFinder();
       node.accept(inputFinder);
       return inputFinder;
     }
@@ -3094,18 +3096,18 @@ public abstract class RelOptUtil {
     /**
      * Returns a bit set describing the inputs used by an expression.
      */
-    public static BitSet bits(RexNode node) {
-      return analyze(node).inputBitSet;
+    public static ImmutableBitSet bits(RexNode node) {
+      return analyze(node).inputBitSet.build();
     }
 
     /**
      * Returns a bit set describing the inputs used by a collection of
      * project expressions and an optional condition.
      */
-    public static BitSet bits(List<RexNode> exprs, RexNode expr) {
-      final BitSet inputBitSet = new BitSet();
-      RexProgram.apply(new InputFinder(inputBitSet), exprs, expr);
-      return inputBitSet;
+    public static ImmutableBitSet bits(List<RexNode> exprs, RexNode expr) {
+      final InputFinder inputFinder = new InputFinder();
+      RexProgram.apply(inputFinder, exprs, expr);
+      return inputFinder.inputBitSet.build();
     }
 
     public Void visitInputRef(RexInputRef inputRef) {

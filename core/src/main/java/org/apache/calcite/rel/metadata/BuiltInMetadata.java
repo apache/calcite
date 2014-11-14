@@ -21,8 +21,8 @@ import org.apache.calcite.plan.RelOptPredicateList;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlExplainLevel;
+import org.apache.calcite.util.ImmutableBitSet;
 
-import java.util.BitSet;
 import java.util.Set;
 
 /**
@@ -49,8 +49,8 @@ public abstract class BuiltInMetadata {
   public interface UniqueKeys extends Metadata {
     /**
      * Determines the set of unique minimal keys for this expression. A key is
-     * represented as a {@link BitSet}, where each bit position represents a
-     * 0-based output column ordinal.
+     * represented as an {@link org.apache.calcite.util.ImmutableBitSet}, where
+     * each bit position represents a 0-based output column ordinal.
      *
      * <p>Note that {@link RelNode#isDistinct} should return {@code true} if and
      * only if at least one key is known.</p>
@@ -63,7 +63,7 @@ public abstract class BuiltInMetadata {
      * @return set of keys, or null if this information cannot be determined
      * (whereas empty set indicates definitely no keys at all)
      */
-    Set<BitSet> getUniqueKeys(boolean ignoreNulls);
+    Set<ImmutableBitSet> getUniqueKeys(boolean ignoreNulls);
   }
 
   /** Metadata about whether a set of columns uniquely identifies a row. */
@@ -82,7 +82,7 @@ public abstract class BuiltInMetadata {
      * @return whether the columns are unique, or
      * null if not enough information is available to make that determination
      */
-    Boolean areColumnsUnique(BitSet columns, boolean ignoreNulls);
+    Boolean areColumnsUnique(ImmutableBitSet columns, boolean ignoreNulls);
   }
 
   /** Metadata about the number of rows returned by a relational expression. */
@@ -114,7 +114,7 @@ public abstract class BuiltInMetadata {
      * @return distinct row count for groupKey, filtered by predicate, or null
      * if no reliable estimate can be determined
      */
-    Double getDistinctRowCount(BitSet groupKey, RexNode predicate);
+    Double getDistinctRowCount(ImmutableBitSet groupKey, RexNode predicate);
   }
 
   /** Metadata about the proportion of original rows that remain in a relational
@@ -145,7 +145,7 @@ public abstract class BuiltInMetadata {
      * @return distinct row count for the given groupKey, or null if no reliable
      * estimate can be determined
      */
-    Double getPopulationSize(BitSet groupKey);
+    Double getPopulationSize(ImmutableBitSet groupKey);
   }
 
   /** Metadata about the origins of columns. */

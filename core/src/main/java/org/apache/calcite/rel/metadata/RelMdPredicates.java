@@ -41,6 +41,7 @@ import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.util.BitSets;
 import org.apache.calcite.util.BuiltInMethod;
+import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.mapping.Mapping;
 import org.apache.calcite.util.mapping.MappingType;
 import org.apache.calcite.util.mapping.Mappings;
@@ -50,17 +51,16 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
 import java.util.ArrayList;
 import java.util.BitSet;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
-import java.util.TreeMap;
 
 /**
  * Utility to infer Predicates that are applicable above a RelNode.
@@ -151,7 +151,7 @@ public class RelMdPredicates {
 
     List<RexNode> projectPullUpPredicates = new ArrayList<RexNode>();
 
-    BitSet columnsMapped = new BitSet(child.getRowType().getFieldCount());
+    ImmutableBitSet.Builder columnsMappedBuilder = ImmutableBitSet.builder();
     Mapping m = Mappings.create(MappingType.PARTIAL_FUNCTION,
         child.getRowType().getFieldCount(),
         project.getRowType().getFieldCount());
@@ -160,15 +160,16 @@ public class RelMdPredicates {
       if (o.e instanceof RexInputRef) {
         int sIdx = ((RexInputRef) o.e).getIndex();
         m.set(sIdx, o.i);
-        columnsMapped.set(sIdx);
+        columnsMappedBuilder.set(sIdx);
       }
     }
 
     // Go over childPullUpPredicates. If a predicate only contains columns in
     // 'columnsMapped' construct a new predicate based on mapping.
+    final ImmutableBitSet columnsMapped = columnsMappedBuilder.build();
     for (RexNode r : childInfo.pulledUpPredicates) {
-      BitSet rCols = RelOptUtil.InputFinder.bits(r);
-      if (BitSets.contains(columnsMapped, rCols)) {
+      ImmutableBitSet rCols = RelOptUtil.InputFinder.bits(r);
+      if (columnsMapped.contains(rCols)) {
         r = r.accept(new RexPermuteInputsShuttle(m, child));
         projectPullUpPredicates.add(r);
       }
@@ -235,18 +236,18 @@ public class RelMdPredicates {
 
     List<RexNode> aggPullUpPredicates = new ArrayList<RexNode>();
 
-    BitSet groupKeys = agg.getGroupSet();
+    ImmutableBitSet groupKeys = agg.getGroupSet();
     Mapping m = Mappings.create(MappingType.PARTIAL_FUNCTION,
         child.getRowType().getFieldCount(), agg.getRowType().getFieldCount());
 
     int i = 0;
-    for (int j : BitSets.toIter(groupKeys)) {
+    for (int j : groupKeys) {
       m.set(j, i++);
     }
 
     for (RexNode r : childInfo.pulledUpPredicates) {
-      BitSet rCols = RelOptUtil.InputFinder.bits(r);
-      if (BitSets.contains(groupKeys, rCols)) {
+      ImmutableBitSet rCols = RelOptUtil.InputFinder.bits(r);
+      if (groupKeys.contains(rCols)) {
         r = r.accept(new RexPermuteInputsShuttle(m, child));
         aggPullUpPredicates.add(r);
       }
@@ -316,11 +317,11 @@ public class RelMdPredicates {
     final int nSysFields;
     final int nFieldsLeft;
     final int nFieldsRight;
-    final BitSet leftFieldsBitSet;
-    final BitSet rightFieldsBitSet;
-    final BitSet allFieldsBitSet;
+    final ImmutableBitSet leftFieldsBitSet;
+    final ImmutableBitSet rightFieldsBitSet;
+    final ImmutableBitSet allFieldsBitSet;
     SortedMap<Integer, BitSet> equivalence;
-    final Map<String, BitSet> exprFields;
+    final Map<String, ImmutableBitSet> exprFields;
     final Set<String> allExprsDigests;
     final Set<String> equalityPredicates;
     final RexNode leftChildPredicates;
@@ -333,13 +334,14 @@ public class RelMdPredicates {
       nFieldsLeft = joinRel.getLeft().getRowType().getFieldList().size();
       nFieldsRight = joinRel.getRight().getRowType().getFieldList().size();
       nSysFields = joinRel.getSystemFieldList().size();
-      leftFieldsBitSet = BitSets.range(nSysFields, nSysFields + nFieldsLeft);
-      rightFieldsBitSet = BitSets.range(nSysFields + nFieldsLeft,
+      leftFieldsBitSet = ImmutableBitSet.range(nSysFields,
+          nSysFields + nFieldsLeft);
+      rightFieldsBitSet = ImmutableBitSet.range(nSysFields + nFieldsLeft,
           nSysFields + nFieldsLeft + nFieldsRight);
-      allFieldsBitSet = BitSets.range(0,
+      allFieldsBitSet = ImmutableBitSet.range(0,
           nSysFields + nFieldsLeft + nFieldsRight);
 
-      exprFields = new HashMap<String, BitSet>();
+      exprFields = Maps.newHashMap();
       allExprsDigests = new HashSet<String>();
 
       if (lPreds == null) {
@@ -370,7 +372,7 @@ public class RelMdPredicates {
         }
       }
 
-      equivalence = new TreeMap<Integer, BitSet>();
+      equivalence = Maps.newTreeMap();
       equalityPredicates = new HashSet<String>();
       for (int i = 0; i < nSysFields + nFieldsLeft + nFieldsRight; i++) {
         equivalence.put(i, BitSets.of(i));
@@ -444,10 +446,10 @@ public class RelMdPredicates {
       List<RexNode> rightInferredPredicates = new ArrayList<RexNode>();
 
       for (RexNode iP : inferredPredicates) {
-        BitSet iPBitSet = RelOptUtil.InputFinder.bits(iP);
-        if (BitSets.contains(leftFieldsBitSet, iPBitSet)) {
+        ImmutableBitSet iPBitSet = RelOptUtil.InputFinder.bits(iP);
+        if (leftFieldsBitSet.contains(iPBitSet)) {
           leftInferredPredicates.add(iP.accept(leftPermute));
-        } else if (BitSets.contains(rightFieldsBitSet, iPBitSet)) {
+        } else if (rightFieldsBitSet.contains(iPBitSet)) {
           rightInferredPredicates.add(iP.accept(rightPermute));
         }
       }
@@ -484,7 +486,7 @@ public class RelMdPredicates {
 
     private void infer(RexNode predicates, Set<String> allExprsDigests,
         List<RexNode> inferedPredicates, boolean includeEqualityInference,
-        BitSet inferringFields) {
+        ImmutableBitSet inferringFields) {
       for (RexNode r : RelOptUtil.conjunctions(predicates)) {
         if (!includeEqualityInference
             && equalityPredicates.contains(r.toString())) {
@@ -494,7 +496,7 @@ public class RelMdPredicates {
           RexNode tr = r.accept(
               new RexPermuteInputsShuttle(m, joinRel.getInput(0),
                   joinRel.getInput(1)));
-          if (BitSets.contains(inferringFields, RelOptUtil.InputFinder.bits(tr))
+          if (inferringFields.contains(RelOptUtil.InputFinder.bits(tr))
               && !allExprsDigests.contains(tr.toString())
               && !isAlwaysTrue(tr)) {
             inferedPredicates.add(tr);
@@ -507,7 +509,7 @@ public class RelMdPredicates {
     Iterable<Mapping> mappings(final RexNode predicate) {
       return new Iterable<Mapping>() {
         public Iterator<Mapping> iterator() {
-          BitSet fields = exprFields.get(predicate.toString());
+          ImmutableBitSet fields = exprFields.get(predicate.toString());
           if (fields.cardinality() == 0) {
             return Iterators.emptyIterator();
           }
@@ -596,7 +598,7 @@ public class RelMdPredicates {
       Mapping nextMapping;
       boolean firstCall;
 
-      ExprsItr(BitSet fields) {
+      ExprsItr(ImmutableBitSet fields) {
         nextMapping = null;
         columns = new int[fields.cardinality()];
         columnSets = new BitSet[fields.cardinality()];

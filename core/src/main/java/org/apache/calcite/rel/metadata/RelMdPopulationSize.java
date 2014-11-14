@@ -26,10 +26,9 @@ import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rel.core.Values;
 import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.util.BitSets;
 import org.apache.calcite.util.BuiltInMethod;
+import org.apache.calcite.util.ImmutableBitSet;
 
-import java.util.BitSet;
 import java.util.List;
 
 /**
@@ -47,19 +46,19 @@ public class RelMdPopulationSize {
 
   //~ Methods ----------------------------------------------------------------
 
-  public Double getPopulationSize(Filter rel, BitSet groupKey) {
+  public Double getPopulationSize(Filter rel, ImmutableBitSet groupKey) {
     return RelMetadataQuery.getPopulationSize(
         rel.getInput(),
         groupKey);
   }
 
-  public Double getPopulationSize(Sort rel, BitSet groupKey) {
+  public Double getPopulationSize(Sort rel, ImmutableBitSet groupKey) {
     return RelMetadataQuery.getPopulationSize(
         rel.getInput(),
         groupKey);
   }
 
-  public Double getPopulationSize(Union rel, BitSet groupKey) {
+  public Double getPopulationSize(Union rel, ImmutableBitSet groupKey) {
     Double population = 0.0;
     for (RelNode input : rel.getInputs()) {
       Double subPop = RelMetadataQuery.getPopulationSize(input, groupKey);
@@ -71,39 +70,35 @@ public class RelMdPopulationSize {
     return population;
   }
 
-  public Double getPopulationSize(Join rel, BitSet groupKey) {
+  public Double getPopulationSize(Join rel, ImmutableBitSet groupKey) {
     return RelMdUtil.getJoinPopulationSize(rel, groupKey);
   }
 
-  public Double getPopulationSize(SemiJoin rel, BitSet groupKey) {
-    return RelMetadataQuery.getPopulationSize(
-        rel.getLeft(),
-        groupKey);
+  public Double getPopulationSize(SemiJoin rel, ImmutableBitSet groupKey) {
+    return RelMetadataQuery.getPopulationSize(rel.getLeft(), groupKey);
   }
 
-  public Double getPopulationSize(Aggregate rel, BitSet groupKey) {
-    BitSet childKey = new BitSet();
+  public Double getPopulationSize(Aggregate rel, ImmutableBitSet groupKey) {
+    ImmutableBitSet.Builder childKey = ImmutableBitSet.builder();
     RelMdUtil.setAggChildKeys(groupKey, rel, childKey);
-    return RelMetadataQuery.getPopulationSize(
-        rel.getInput(),
-        childKey);
+    return RelMetadataQuery.getPopulationSize(rel.getInput(), childKey.build());
   }
 
-  public Double getPopulationSize(Values rel, BitSet groupKey) {
+  public Double getPopulationSize(Values rel, ImmutableBitSet groupKey) {
     // assume half the rows are duplicates
     return rel.getRows() / 2;
   }
 
-  public Double getPopulationSize(Project rel, BitSet groupKey) {
-    BitSet baseCols = new BitSet();
-    BitSet projCols = new BitSet();
+  public Double getPopulationSize(Project rel, ImmutableBitSet groupKey) {
+    ImmutableBitSet.Builder baseCols = ImmutableBitSet.builder();
+    ImmutableBitSet.Builder projCols = ImmutableBitSet.builder();
     List<RexNode> projExprs = rel.getProjects();
     RelMdUtil.splitCols(projExprs, groupKey, baseCols, projCols);
 
     Double population =
         RelMetadataQuery.getPopulationSize(
             rel.getInput(),
-            baseCols);
+            baseCols.build());
     if (population == null) {
       return null;
     }
@@ -114,7 +109,7 @@ public class RelMdPopulationSize {
       return population;
     }
 
-    for (int bit : BitSets.toIter(projCols)) {
+    for (int bit : projCols.build()) {
       Double subRowCount =
           RelMdUtil.cardOfProjExpr(rel, projExprs.get(bit));
       if (subRowCount == null) {
@@ -132,7 +127,7 @@ public class RelMdPopulationSize {
   }
 
   // Catch-all rule when none of the others apply.
-  public Double getPopulationSize(RelNode rel, BitSet groupKey) {
+  public Double getPopulationSize(RelNode rel, ImmutableBitSet groupKey) {
     // if the keys are unique, return the row count; otherwise, we have
     // no further information on which to return any legitimate value
 

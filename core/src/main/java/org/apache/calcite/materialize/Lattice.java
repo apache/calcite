@@ -44,6 +44,7 @@ import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.util.BitSets;
+import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.graph.DefaultDirectedGraph;
 import org.apache.calcite.util.graph.DefaultEdge;
@@ -61,7 +62,6 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import java.math.BigInteger;
-import java.util.BitSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -228,18 +228,22 @@ public class Lattice {
     throw new AssertionError("input not found");
   }
 
-  public String sql(BitSet groupSet, List<Measure> aggCallList) {
-    final BitSet columnSet = (BitSet) groupSet.clone();
+  public String sql(ImmutableBitSet groupSet, List<Measure> aggCallList) {
+    final ImmutableBitSet.Builder columnSetBuilder =
+        ImmutableBitSet.builder(groupSet);
     for (Measure call : aggCallList) {
       for (Column arg : call.args) {
-        columnSet.set(arg.ordinal);
+        columnSetBuilder.set(arg.ordinal);
       }
     }
+    final ImmutableBitSet columnSet = columnSetBuilder.build();
+
     // Figure out which nodes are needed. Use a node if its columns are used
     // or if has a child whose columns are used.
     List<Node> usedNodes = Lists.newArrayList();
     for (Node node : nodes) {
-      if (BitSets.range(node.startCol, node.endCol).intersects(columnSet)) {
+      if (ImmutableBitSet.range(node.startCol, node.endCol)
+          .intersects(columnSet)) {
         use(usedNodes, node);
       }
     }
@@ -522,12 +526,12 @@ public class Lattice {
     }
 
     /** Returns the set of distinct argument ordinals. */
-    public BitSet argBitSet() {
-      final BitSet bitSet = new BitSet();
+    public ImmutableBitSet argBitSet() {
+      final ImmutableBitSet.Builder bitSet = ImmutableBitSet.builder();
       for (Column arg : args) {
         bitSet.set(arg.ordinal);
       }
-      return bitSet;
+      return bitSet.build();
     }
 
     /** Returns a list of argument ordinals. */
@@ -819,7 +823,7 @@ public class Lattice {
   public static class Tile {
     public final ImmutableList<Measure> measures;
     public final ImmutableList<Column> dimensions;
-    public final BitSet bitSet = new BitSet();
+    public final ImmutableBitSet bitSet;
 
     public Tile(ImmutableList<Measure> measures,
         ImmutableList<Column> dimensions) {
@@ -827,16 +831,18 @@ public class Lattice {
       this.dimensions = dimensions;
       assert Util.isStrictlySorted(dimensions);
       assert Util.isStrictlySorted(measures);
+      final ImmutableBitSet.Builder bitSetBuilder = ImmutableBitSet.builder();
       for (Column dimension : dimensions) {
-        bitSet.set(dimension.ordinal);
+        bitSetBuilder.set(dimension.ordinal);
       }
+      bitSet = bitSetBuilder.build();
     }
 
     public static TileBuilder builder() {
       return new TileBuilder();
     }
 
-    public BitSet bitSet() {
+    public ImmutableBitSet bitSet() {
       return bitSet;
     }
   }

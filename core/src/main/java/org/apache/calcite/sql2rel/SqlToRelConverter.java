@@ -127,7 +127,7 @@ import org.apache.calcite.sql.validate.SqlValidatorImpl;
 import org.apache.calcite.sql.validate.SqlValidatorNamespace;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
-import org.apache.calcite.util.BitSets;
+import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.NumberUtil;
@@ -148,7 +148,6 @@ import java.lang.reflect.Type;
 import java.math.BigDecimal;
 import java.util.AbstractList;
 import java.util.ArrayList;
-import java.util.BitSet;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumSet;
@@ -714,7 +713,7 @@ public class SqlToRelConverter {
     rel =
         createAggregate(
             bb,
-            BitSets.range(rel.getRowType().getFieldCount()),
+            ImmutableBitSet.range(rel.getRowType().getFieldCount()),
             ImmutableList.<AggregateCall>of());
 
     bb.setRoot(
@@ -1033,7 +1032,7 @@ public class SqlToRelConverter {
         final int keyCount = leftKeys.size();
         final List<Integer> args = ImmutableIntList.range(0, keyCount);
         LogicalAggregate aggregate =
-            new LogicalAggregate(cluster, seek, BitSets.of(),
+            new LogicalAggregate(cluster, seek, ImmutableBitSet.of(),
                 ImmutableList.of(
                     new AggregateCall(SqlStdOperatorTable.COUNT, false,
                         ImmutableList.<Integer>of(), longType, null),
@@ -2276,7 +2275,7 @@ public class SqlToRelConverter {
     case LITERAL:
       return node;
     default:
-      BitSet bits = RelOptUtil.InputFinder.bits(node);
+      ImmutableBitSet bits = RelOptUtil.InputFinder.bits(node);
       final int mid = leftCount + extraLeftExprs.size();
       switch (Side.of(bits, mid)) {
       case LEFT:
@@ -2312,7 +2311,7 @@ public class SqlToRelConverter {
   enum Side {
     LEFT, RIGHT, BOTH, EMPTY;
 
-    static Side of(BitSet bitSet, int middle) {
+    static Side of(ImmutableBitSet bitSet, int middle) {
       final int firstBit = bitSet.nextSetBit(0);
       if (firstBit < 0) {
         return EMPTY;
@@ -2646,7 +2645,7 @@ public class SqlToRelConverter {
       bb.setRoot(
           createAggregate(
               bb,
-              BitSets.range(aggConverter.groupExprs.size()),
+              ImmutableBitSet.range(aggConverter.groupExprs.size()),
               aggConverter.getAggCalls()),
           false);
 
@@ -2744,7 +2743,7 @@ public class SqlToRelConverter {
    */
   protected RelNode createAggregate(
       Blackboard bb,
-      BitSet groupSet,
+      ImmutableBitSet groupSet,
       List<AggregateCall> aggCalls) {
     return new LogicalAggregate(
         cluster,

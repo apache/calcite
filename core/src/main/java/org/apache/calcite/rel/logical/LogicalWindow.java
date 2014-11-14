@@ -34,7 +34,7 @@ import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.rex.RexWindow;
 import org.apache.calcite.rex.RexWindowBound;
-import org.apache.calcite.util.BitSets;
+import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Pair;
 
 import com.google.common.base.Objects;
@@ -46,7 +46,6 @@ import com.google.common.collect.Multimap;
 
 import java.util.AbstractList;
 import java.util.ArrayList;
-import java.util.BitSet;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -275,14 +274,14 @@ public final class LogicalWindow extends Window {
    * (regardless of how it is specified, in terms of a named window or specified
    * attribute by attribute) will end up with the same window key. */
   private static class WindowKey {
-    private final BitSet groupSet;
+    private final ImmutableBitSet groupSet;
     private final RelCollation orderKeys;
     private final boolean isRows;
     private final RexWindowBound lowerBound;
     private final RexWindowBound upperBound;
 
     public WindowKey(
-        BitSet groupSet,
+        ImmutableBitSet groupSet,
         RelCollation orderKeys,
         boolean isRows,
         RexWindowBound lowerBound,
@@ -329,13 +328,14 @@ public final class LogicalWindow extends Window {
               return rexFieldCollation.left instanceof RexLocalRef;
             }
           })));
-    BitSet groupSet =
-        BitSets.of(getProjectOrdinals(aggWindow.partitionKeys));
+    ImmutableBitSet groupSet =
+        ImmutableBitSet.of(getProjectOrdinals(aggWindow.partitionKeys));
     final int groupLength = groupSet.length();
     if (inputFieldCount < groupLength) {
       // If PARTITION BY references constant, we can ignore such partition key.
       // All the inputs after inputFieldCount are literals, thus we can clear.
-      groupSet.clear(inputFieldCount, groupLength);
+      groupSet =
+          groupSet.except(ImmutableBitSet.range(inputFieldCount, groupLength));
     }
 
     WindowKey windowKey =

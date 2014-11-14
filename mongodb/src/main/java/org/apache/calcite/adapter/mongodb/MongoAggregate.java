@@ -26,12 +26,11 @@ import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.fun.SqlSumAggFunction;
 import org.apache.calcite.sql.fun.SqlSumEmptyIsZeroAggFunction;
-import org.apache.calcite.util.BitSets;
+import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Util;
 
 import java.util.AbstractList;
 import java.util.ArrayList;
-import java.util.BitSet;
 import java.util.List;
 
 /**
@@ -46,7 +45,7 @@ public class MongoAggregate
       RelOptCluster cluster,
       RelTraitSet traitSet,
       RelNode child,
-      BitSet groupSet,
+      ImmutableBitSet groupSet,
       List<AggregateCall> aggCalls)
       throws InvalidRelException {
     super(cluster, traitSet, child, groupSet, aggCalls);
@@ -62,7 +61,7 @@ public class MongoAggregate
   }
 
   @Override public Aggregate copy(RelTraitSet traitSet, RelNode input,
-      BitSet groupSet, List<AggregateCall> aggCalls) {
+      ImmutableBitSet groupSet, List<AggregateCall> aggCalls) {
     try {
       return new MongoAggregate(getCluster(), traitSet, input, groupSet,
           aggCalls);
@@ -81,12 +80,12 @@ public class MongoAggregate
     final List<String> outNames = MongoRules.mongoFieldNames(getRowType());
     int i = 0;
     if (groupSet.cardinality() == 1) {
-      final String inName = inNames.get(BitSets.toList(groupSet).get(0));
+      final String inName = inNames.get(groupSet.nth(0));
       list.add("_id: " + MongoRules.maybeQuote("$" + inName));
       ++i;
     } else {
       List<String> keys = new ArrayList<String>();
-      for (int group : BitSets.toIter(groupSet)) {
+      for (int group : groupSet) {
         final String inName = inNames.get(group);
         keys.add(inName + ": " + MongoRules.quote("$" + inName));
         ++i;
@@ -117,7 +116,7 @@ public class MongoAggregate
       fixups = new ArrayList<String>();
       fixups.add("_id: 0");
       i = 0;
-      for (int group : BitSets.toIter(groupSet)) {
+      for (int group : groupSet) {
         fixups.add(
             MongoRules.maybeQuote(outNames.get(group))
             + ": "

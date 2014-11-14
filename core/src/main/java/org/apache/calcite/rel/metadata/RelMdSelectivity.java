@@ -28,8 +28,8 @@ import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
-import org.apache.calcite.util.BitSets;
 import org.apache.calcite.util.BuiltInMethod;
+import org.apache.calcite.util.ImmutableBitSet;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -157,7 +157,7 @@ public class RelMdSelectivity {
     List<RexNode> notPushable = new ArrayList<RexNode>();
     List<RexNode> pushable = new ArrayList<RexNode>();
     RelOptUtil.splitFilters(
-        BitSets.range(rel.getRowType().getFieldCount()),
+        ImmutableBitSet.range(rel.getRowType().getFieldCount()),
         predicate,
         pushable,
         notPushable);

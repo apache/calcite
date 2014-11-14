@@ -30,12 +30,11 @@ import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
-import org.apache.calcite.util.BitSets;
 import org.apache.calcite.util.BuiltInMethod;
+import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.NumberUtil;
 
 import java.util.ArrayList;
-import java.util.BitSet;
 import java.util.List;
 
 /**
@@ -56,7 +55,7 @@ public class RelMdDistinctRowCount {
 
   public Double getDistinctRowCount(
       Union rel,
-      BitSet groupKey,
+      ImmutableBitSet groupKey,
       RexNode predicate) {
     Double rowCount = 0.0;
     int[] adjustments = new int[rel.getRowType().getFieldCount()];
@@ -90,7 +89,7 @@ public class RelMdDistinctRowCount {
 
   public Double getDistinctRowCount(
       Sort rel,
-      BitSet groupKey,
+      ImmutableBitSet groupKey,
       RexNode predicate) {
     return RelMetadataQuery.getDistinctRowCount(
         rel.getInput(),
@@ -100,7 +99,7 @@ public class RelMdDistinctRowCount {
 
   public Double getDistinctRowCount(
       Filter rel,
-      BitSet groupKey,
+      ImmutableBitSet groupKey,
       RexNode predicate) {
     // REVIEW zfong 4/18/06 - In the Broadbase code, duplicates are not
     // removed from the two filter lists.  However, the code below is
@@ -119,7 +118,7 @@ public class RelMdDistinctRowCount {
 
   public Double getDistinctRowCount(
       Join rel,
-      BitSet groupKey,
+      ImmutableBitSet groupKey,
       RexNode predicate) {
     return RelMdUtil.getJoinDistinctRowCount(
         rel,
@@ -131,7 +130,7 @@ public class RelMdDistinctRowCount {
 
   public Double getDistinctRowCount(
       SemiJoin rel,
-      BitSet groupKey,
+      ImmutableBitSet groupKey,
       RexNode predicate) {
     // create a RexNode representing the selectivity of the
     // semijoin filter and pass it to getDistinctRowCount
@@ -153,7 +152,7 @@ public class RelMdDistinctRowCount {
 
   public Double getDistinctRowCount(
       Aggregate rel,
-      BitSet groupKey,
+      ImmutableBitSet groupKey,
       RexNode predicate) {
     // determine which predicates can be applied on the child of the
     // aggregate
@@ -169,13 +168,13 @@ public class RelMdDistinctRowCount {
         RexUtil.composeConjunction(rexBuilder, pushable, true);
 
     // set the bits as they correspond to the child input
-    BitSet childKey = new BitSet();
+    ImmutableBitSet.Builder childKey = ImmutableBitSet.builder();
     RelMdUtil.setAggChildKeys(groupKey, rel, childKey);
 
     Double distinctRowCount =
         RelMetadataQuery.getDistinctRowCount(
             rel.getInput(),
-            childKey,
+            childKey.build(),
             childPreds);
     if (distinctRowCount == null) {
       return null;
@@ -190,7 +189,7 @@ public class RelMdDistinctRowCount {
 
   public Double getDistinctRowCount(
       Values rel,
-      BitSet groupKey,
+      ImmutableBitSet groupKey,
       RexNode predicate) {
     Double selectivity = RelMdUtil.guessSelectivity(predicate);
 
@@ -201,17 +200,17 @@ public class RelMdDistinctRowCount {
 
   public Double getDistinctRowCount(
       Project rel,
-      BitSet groupKey,
+      ImmutableBitSet groupKey,
       RexNode predicate) {
-    BitSet baseCols = new BitSet();
-    BitSet projCols = new BitSet();
+    ImmutableBitSet.Builder baseCols = ImmutableBitSet.builder();
+    ImmutableBitSet.Builder projCols = ImmutableBitSet.builder();
     List<RexNode> projExprs = rel.getProjects();
     RelMdUtil.splitCols(projExprs, groupKey, baseCols, projCols);
 
     List<RexNode> notPushable = new ArrayList<RexNode>();
     List<RexNode> pushable = new ArrayList<RexNode>();
     RelOptUtil.splitFilters(
-        BitSets.range(rel.getRowType().getFieldCount()),
+        ImmutableBitSet.range(rel.getRowType().getFieldCount()),
         predicate,
         pushable,
         notPushable);
@@ -231,7 +230,7 @@ public class RelMdDistinctRowCount {
     Double distinctRowCount =
         RelMetadataQuery.getDistinctRowCount(
             rel.getInput(),
-            baseCols,
+            baseCols.build(),
             modifiedPred);
 
     if (distinctRowCount == null) {
@@ -249,7 +248,7 @@ public class RelMdDistinctRowCount {
     }
 
     // multiply by the cardinality of the non-child projection expressions
-    for (int bit : BitSets.toIter(projCols)) {
+    for (int bit : projCols.build()) {
       Double subRowCount =
           RelMdUtil.cardOfProjExpr(rel, projExprs.get(bit));
       if (subRowCount == null) {
@@ -266,7 +265,7 @@ public class RelMdDistinctRowCount {
   // Catch-all rule when none of the others apply.
   public Double getDistinctRowCount(
       RelNode rel,
-      BitSet groupKey,
+      ImmutableBitSet groupKey,
       RexNode predicate) {
     // REVIEW zfong 4/19/06 - Broadbase code does not take into
     // consideration selectivity of predicates passed in.  Also, they

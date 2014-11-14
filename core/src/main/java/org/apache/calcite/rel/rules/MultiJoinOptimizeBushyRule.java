@@ -30,7 +30,7 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexPermuteInputsShuttle;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.rex.RexVisitor;
-import org.apache.calcite.util.BitSets;
+import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.mapping.Mappings;
@@ -41,7 +41,6 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 
 import java.io.PrintWriter;
-import java.util.BitSet;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
@@ -132,8 +131,7 @@ public class MultiJoinOptimizeBushyRule extends RelOptRule {
       if (edgeOrdinal == -1) {
         // No more edges. Are there any un-joined vertexes?
         final Vertex lastVertex = Util.last(vertexes);
-        final int z =
-            BitSets.previousClearBit(lastVertex.factors, lastVertex.id - 1);
+        final int z = lastVertex.factors.previousClearBit(lastVertex.id - 1);
         if (z < 0) {
           break;
         }
@@ -147,7 +145,7 @@ public class MultiJoinOptimizeBushyRule extends RelOptRule {
         // Therefore, for now, the factors that are merged are exactly the
         // factors on this edge.
         assert bestEdge.factors.cardinality() == 2;
-        factors = BitSets.toArray(bestEdge.factors);
+        factors = bestEdge.factors.toArray();
       }
 
       // Determine which factor is to be on the LHS of the join.
@@ -165,26 +163,29 @@ public class MultiJoinOptimizeBushyRule extends RelOptRule {
 
       // Find the join conditions. All conditions whose factors are now all in
       // the join can now be used.
-      final BitSet newFactors =
-          BitSets.union(majorVertex.factors, minorVertex.factors);
+      final int v = vertexes.size();
+      final ImmutableBitSet newFactors =
+          ImmutableBitSet.builder(majorVertex.factors)
+              .addAll(minorVertex.factors)
+              .set(v)
+              .build();
+
       final List<RexNode> conditions = Lists.newArrayList();
       final Iterator<LoptMultiJoin.Edge> edgeIterator = unusedEdges.iterator();
       while (edgeIterator.hasNext()) {
         LoptMultiJoin.Edge edge = edgeIterator.next();
-        if (BitSets.contains(newFactors, edge.factors)) {
+        if (newFactors.contains(edge.factors)) {
           conditions.add(edge.condition);
           edgeIterator.remove();
           usedEdges.add(edge);
         }
       }
 
-      final int v = vertexes.size();
       double cost =
           majorVertex.cost
           * minorVertex.cost
           * RelMdUtil.guessSelectivity(
               RexUtil.composeConjunction(rexBuilder, conditions, false));
-      newFactors.set(v);
       final Vertex newVertex =
           new JoinVertex(v, majorFactor, minorFactor, newFactors,
               cost, ImmutableList.copyOf(conditions));
@@ -197,13 +198,16 @@ public class MultiJoinOptimizeBushyRule extends RelOptRule {
       // This vertex has fewer rows (1k rows) -- a fact that is critical to
       // decisions made later. (Hence "greedy" algorithm not "simple".)
       // The adjacent edges are modified.
-      final BitSet merged = BitSets.of(minorFactor, majorFactor);
+      final ImmutableBitSet merged =
+          ImmutableBitSet.of(minorFactor, majorFactor);
       for (int i = 0; i < unusedEdges.size(); i++) {
         final LoptMultiJoin.Edge edge = unusedEdges.get(i);
         if (edge.factors.intersects(merged)) {
-          BitSet newEdgeFactors = (BitSet) edge.factors.clone();
-          newEdgeFactors.andNot(newFactors);
-          newEdgeFactors.set(v);
+          ImmutableBitSet newEdgeFactors =
+              ImmutableBitSet.builder(edge.factors)
+              .removeAll(newFactors)
+              .set(v)
+              .build();
           assert newEdgeFactors.cardinality() == 2;
           final LoptMultiJoin.Edge newEdge =
               new LoptMultiJoin.Edge(edge.condition, newEdgeFactors,
@@ -251,7 +255,7 @@ public class MultiJoinOptimizeBushyRule extends RelOptRule {
             RexUtil.composeConjunction(rexBuilder, joinVertex.conditions,
                 false);
         relNodes.add(
-            Pair.of((RelNode)
+            Pair.of(
                 joinFactory.createJoin(left, right, condition.accept(shuttle),
                     JoinRelType.INNER, ImmutableSet.<String>of(), false),
                 mapping));
@@ -321,10 +325,10 @@ public class MultiJoinOptimizeBushyRule extends RelOptRule {
   abstract static class Vertex {
     final int id;
 
-    protected final BitSet factors;
+    protected final ImmutableBitSet factors;
     final double cost;
 
-    Vertex(int id, BitSet factors, double cost) {
+    Vertex(int id, ImmutableBitSet factors, double cost) {
       this.id = id;
       this.factors = factors;
       this.cost = cost;
@@ -337,7 +341,7 @@ public class MultiJoinOptimizeBushyRule extends RelOptRule {
     final int fieldOffset;
 
     LeafVertex(int id, RelNode rel, double cost, int fieldOffset) {
-      super(id, BitSets.of(id), cost);
+      super(id, ImmutableBitSet.of(id), cost);
       this.rel = rel;
       this.fieldOffset = fieldOffset;
     }
@@ -359,8 +363,8 @@ public class MultiJoinOptimizeBushyRule extends RelOptRule {
      * columns (not in terms of the outputs of left and right input factors). */
     final ImmutableList<RexNode> conditions;
 
-    JoinVertex(int id, int leftFactor, int rightFactor,
-        BitSet factors, double cost, ImmutableList<RexNode> conditions) {
+    JoinVertex(int id, int leftFactor, int rightFactor, ImmutableBitSet factors,
+        double cost, ImmutableList<RexNode> conditions) {
       super(id, factors, cost);
       this.leftFactor = leftFactor;
       this.rightFactor = rightFactor;

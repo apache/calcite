@@ -32,7 +32,7 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.test.JdbcTest;
 import org.apache.calcite.tools.Frameworks;
-import org.apache.calcite.util.BitSets;
+import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
@@ -138,7 +138,7 @@ public class RelWriterTest {
                 final RelDataType bigIntType =
                     cluster.getTypeFactory().createSqlType(SqlTypeName.BIGINT);
                 LogicalAggregate aggregate =
-                    new LogicalAggregate(cluster, filter, BitSets.of(0),
+                    new LogicalAggregate(cluster, filter, ImmutableBitSet.of(0),
                         ImmutableList.of(
                             new AggregateCall(SqlStdOperatorTable.COUNT,
                                 true, ImmutableList.of(1), bigIntType, "c"),

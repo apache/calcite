@@ -41,6 +41,7 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.util.BitSets;
+import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.mapping.IntPair;
@@ -150,7 +151,7 @@ public class LoptOptimizeJoinRule extends RelOptRule {
     outerForLoop:
       for (int factIdx : removalCandidates) {
         // reject the factor if it is referenced in the projection list
-        BitSet projFields = multiJoin.getProjFields(factIdx);
+        ImmutableBitSet projFields = multiJoin.getProjFields(factIdx);
         if ((projFields == null) || (projFields.cardinality() > 0)) {
           continue;
         }
@@ -163,9 +164,10 @@ public class LoptOptimizeJoinRule extends RelOptRule {
         List<RexNode> ojFilters = new ArrayList<RexNode>();
         RelOptUtil.decomposeConjunction(outerJoinCond, ojFilters);
         int numFields = multiJoin.getNumFieldsInJoinFactor(factIdx);
-        BitSet joinKeys = new BitSet(numFields);
-        BitSet otherJoinKeys =
-            new BitSet(multiJoin.getNumTotalFields());
+        final ImmutableBitSet.Builder joinKeyBuilder =
+            ImmutableBitSet.builder();
+        final ImmutableBitSet.Builder otherJoinKeyBuilder =
+            ImmutableBitSet.builder();
         int firstFieldNum = multiJoin.getJoinStart(factIdx);
         int lastFieldNum = firstFieldNum + numFields;
         for (RexNode filter : ojFilters) {
@@ -185,8 +187,8 @@ public class LoptOptimizeJoinRule extends RelOptRule {
           int rightRef =
               ((RexInputRef) filterCall.getOperands().get(1)).getIndex();
           setJoinKey(
-              joinKeys,
-              otherJoinKeys,
+              joinKeyBuilder,
+              otherJoinKeyBuilder,
               leftRef,
               rightRef,
               firstFieldNum,
@@ -194,12 +196,13 @@ public class LoptOptimizeJoinRule extends RelOptRule {
               true);
         }
 
-        if (joinKeys.cardinality() == 0) {
+        if (joinKeyBuilder.cardinality() == 0) {
           continue;
         }
 
         // make sure the only join fields referenced are the ones in
         // the current outer join
+        final ImmutableBitSet joinKeys = joinKeyBuilder.build();
         int [] joinFieldRefCounts =
             multiJoin.getJoinFieldRefCounts(factIdx);
         for (int i = 0; i < joinFieldRefCounts.length; i++) {
@@ -223,7 +226,8 @@ public class LoptOptimizeJoinRule extends RelOptRule {
           // the join keys from the other factors that join with
           // this one.  Later, in the outermost loop, we'll have
           // the opportunity to retry removing those factors.
-          for (int otherKey : BitSets.toIter(otherJoinKeys)) {
+          final ImmutableBitSet otherJoinKeys = otherJoinKeyBuilder.build();
+          for (int otherKey : otherJoinKeys) {
             int otherFactor = multiJoin.findRef(otherKey);
             if (multiJoin.isNullGenerating(otherFactor)) {
               retryCandidates.add(otherFactor);
@@ -256,8 +260,8 @@ public class LoptOptimizeJoinRule extends RelOptRule {
    * one
    */
   private void setJoinKey(
-      BitSet joinKeys,
-      BitSet otherJoinKeys,
+      ImmutableBitSet.Builder joinKeys,
+      ImmutableBitSet.Builder otherJoinKeys,
       int ref1,
       int ref2,
       int firstFieldNum,
@@ -325,7 +329,7 @@ public class LoptOptimizeJoinRule extends RelOptRule {
       int factor2 = selfJoinPairs.get(factor1);
       List<RexNode> selfJoinFilters = new ArrayList<RexNode>();
       for (RexNode filter : multiJoin.getJoinFilters()) {
-        BitSet joinFactors =
+        ImmutableBitSet joinFactors =
             multiJoin.getFactorsRefByJoinFilter(filter);
         if ((joinFactors.cardinality() == 2)
             && joinFactors.get(factor1)
@@ -571,12 +575,15 @@ public class LoptOptimizeJoinRule extends RelOptRule {
       LoptJoinTree joinTree,
       List<RexNode> filters,
       int factor) {
-    BitSet childFactors = BitSets.of(joinTree.getTreeOrder());
-    childFactors.set(factor);
+    final ImmutableBitSet childFactors =
+        ImmutableBitSet.builder()
+            .addAll(joinTree.getTreeOrder())
+            .set(factor)
+            .build();
 
     int factorStart = multiJoin.getJoinStart(factor);
     int nFields = multiJoin.getNumFieldsInJoinFactor(factor);
-    BitSet joinKeys = new BitSet(nFields);
+    final ImmutableBitSet.Builder joinKeys = ImmutableBitSet.builder();
 
     // first loop through the inner join filters, picking out the ones
     // that reference only the factors in either the join tree or the
@@ -607,7 +614,7 @@ public class LoptOptimizeJoinRule extends RelOptRule {
     } else {
       return RelMetadataQuery.getDistinctRowCount(
           semiJoinOpt.getChosenSemiJoin(factor),
-          joinKeys,
+          joinKeys.build(),
           null);
     }
   }
@@ -630,12 +637,12 @@ public class LoptOptimizeJoinRule extends RelOptRule {
   private void setFactorJoinKeys(
       LoptMultiJoin multiJoin,
       List<RexNode> filters,
-      BitSet joinFactors,
+      ImmutableBitSet joinFactors,
       int factorStart,
       int nFields,
-      BitSet joinKeys) {
+      ImmutableBitSet.Builder joinKeys) {
     for (RexNode joinFilter : filters) {
-      BitSet filterFactors =
+      ImmutableBitSet filterFactors =
           multiJoin.getFactorsRefByJoinFilter(joinFilter);
 
       // if all factors in the join filter are in the bitmap containing
@@ -643,8 +650,8 @@ public class LoptOptimizeJoinRule extends RelOptRule {
       // fields corresponding to the specified factor to the join key
       // bitmap; in doing so, adjust the join keys so they start at
       // offset 0
-      if (BitSets.contains(joinFactors, filterFactors)) {
-        BitSet joinFields =
+      if (joinFactors.contains(filterFactors)) {
+        ImmutableBitSet joinFields =
             multiJoin.getFieldsRefByJoinFilter(joinFilter);
         for (int field = joinFields.nextSetBit(factorStart);
              (field >= 0)
@@ -711,9 +718,9 @@ public class LoptOptimizeJoinRule extends RelOptRule {
       // this factor joins with that have already been added to
       // the tree
       BitSet factorsNeeded =
-          (BitSet) multiJoin.getFactorsRefByFactor(nextFactor).clone();
+          multiJoin.getFactorsRefByFactor(nextFactor).toBitSet();
       if (multiJoin.isNullGenerating(nextFactor)) {
-        factorsNeeded.or(multiJoin.getOuterJoinFactors(nextFactor));
+        factorsNeeded.or(multiJoin.getOuterJoinFactors(nextFactor).toBitSet());
       }
       factorsNeeded.and(factorsAdded);
       joinTree =
@@ -1243,24 +1250,27 @@ public class LoptOptimizeJoinRule extends RelOptRule {
     // ones that reference only the factors in the new join tree
     final RexBuilder rexBuilder =
         multiJoin.getMultiJoinRel().getCluster().getRexBuilder();
-    final BitSet childFactors = BitSets.of(rightTree.getTreeOrder());
+    final ImmutableBitSet.Builder childFactorBuilder =
+        ImmutableBitSet.builder();
+    childFactorBuilder.addAll(rightTree.getTreeOrder());
     if (leftIdx >= 0) {
-      childFactors.set(leftIdx);
+      childFactorBuilder.set(leftIdx);
     } else {
-      BitSets.setAll(childFactors, leftTree.getTreeOrder());
+      childFactorBuilder.addAll(leftTree.getTreeOrder());
     }
-    multiJoin.getChildFactors(rightTree, childFactors);
+    multiJoin.getChildFactors(rightTree, childFactorBuilder);
 
+    final ImmutableBitSet childFactor = childFactorBuilder.build();
     RexNode condition = null;
     final ListIterator<RexNode> filterIter = filtersToAdd.listIterator();
     while (filterIter.hasNext()) {
       RexNode joinFilter = filterIter.next();
-      BitSet filterBitmap =
+      ImmutableBitSet filterBitmap =
           multiJoin.getFactorsRefByJoinFilter(joinFilter);
 
       // if all factors in the join filter are in the join tree,
       // AND the filter to the current join condition
-      if (BitSets.contains(childFactors, filterBitmap)) {
+      if (childFactor.contains(filterBitmap)) {
         if (condition == null) {
           condition = joinFilter;
         } else {
@@ -1836,14 +1846,6 @@ public class LoptOptimizeJoinRule extends RelOptRule {
    * Swaps the operands to a join, so the smaller input is on the right. Or,
    * if this is a removable self-join, swap so the factor that should be
    * preserved when the self-join is removed is put on the left.
-   *
-   * <p>Note that unlike Broadbase, we do not swap if in the join condition,
-   * the RHS references more columns than the LHS. This can help for queries
-   * like (select * from A,B where A.A between B.X and B.Y). By putting B on
-   * the left, that would result in a sargable predicate with two endpoints.
-   * However, since {@link org.eigenbase.sarg.SargRexAnalyzer} currently
-   * doesn't handle these type of sargable predicates, there's no point in
-   * doing the swap for this reason.
    *
    * @param multiJoin join factors being optimized
    * @param left left side of join tree

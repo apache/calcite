@@ -37,7 +37,7 @@ import org.apache.calcite.rel.type.RelDataTypeImpl;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.schema.Schemas;
 import org.apache.calcite.schema.Table;
-import org.apache.calcite.util.BitSets;
+import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
@@ -48,7 +48,6 @@ import com.google.common.collect.Sets;
 
 import java.lang.reflect.Type;
 import java.util.ArrayList;
-import java.util.BitSet;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
@@ -199,8 +198,8 @@ public class MaterializationService {
    * materialization would try to create itself to populate itself!
    */
   public Pair<CalciteSchema.TableEntry, TileKey> defineTile(Lattice lattice,
-      BitSet groupSet, List<Lattice.Measure> measureList, CalciteSchema schema,
-      boolean create, boolean exact) {
+      ImmutableBitSet groupSet, List<Lattice.Measure> measureList,
+      CalciteSchema schema, boolean create, boolean exact) {
     MaterializationKey materializationKey;
     final TileKey tileKey =
         new TileKey(lattice, groupSet, ImmutableList.copyOf(measureList));
@@ -251,7 +250,7 @@ public class MaterializationService {
           : actor.keyByTile.entrySet()) {
         final TileKey tileKey2 = entry.getKey();
         if (tileKey2.lattice == lattice
-            && BitSets.contains(tileKey2.dimensions, groupSet)
+            && tileKey2.dimensions.contains(groupSet)
             && !tileKey2.dimensions.equals(groupSet)
             && allSatisfiable(measureList, tileKey2)) {
           materializationKey = entry.getValue();
@@ -321,7 +320,7 @@ public class MaterializationService {
     // less obviously, if it is composed of grouping columns.
     for (Lattice.Measure measure : measureList) {
       if (!(tileKey.measures.contains(measure)
-          || BitSets.contains(tileKey.dimensions, measure.argBitSet()))) {
+          || tileKey.dimensions.contains(measure.argBitSet()))) {
         return false;
       }
     }

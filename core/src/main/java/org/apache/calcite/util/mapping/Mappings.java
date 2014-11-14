@@ -17,6 +17,7 @@
 package org.apache.calcite.util.mapping;
 
 import org.apache.calcite.util.BitSets;
+import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.IntList;
 import org.apache.calcite.util.Permutation;
 import org.apache.calcite.util.Util;
@@ -185,6 +186,28 @@ public abstract class Mappings {
       return bitSet;
     }
     return newBitSet;
+  }
+
+  /**
+   * Applies a mapping to an {@code ImmutableBitSet}.
+   *
+   * <p>If the mapping does not affect the bit set, returns the original.
+   * Never changes the original.
+   *
+   * @param mapping Mapping
+   * @param bitSet  Bit set
+   * @return Bit set with mapping applied
+   */
+  public static ImmutableBitSet apply(Mapping mapping, ImmutableBitSet bitSet) {
+    final ImmutableBitSet.Builder builder = ImmutableBitSet.builder();
+    for (int source : bitSet) {
+      final int target = mapping.getTarget(source);
+      builder.set(target);
+    }
+    if (builder.wouldEqual(bitSet)) {
+      return bitSet;
+    }
+    return builder.build();
   }
 
   /**

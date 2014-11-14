@@ -23,8 +23,8 @@ import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.util.ImmutableBitSet;
 
-import java.util.BitSet;
 import java.util.List;
 
 /**
@@ -51,7 +51,7 @@ public interface RelInput {
    */
   RexNode getExpression(String tag);
 
-  BitSet getBitSet(String tag);
+  ImmutableBitSet getBitSet(String tag);
 
   List<AggregateCall> getAggregateCalls(String tag);
 

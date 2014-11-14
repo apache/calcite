@@ -34,7 +34,7 @@ import org.apache.calcite.rex.RexProgramBuilder;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
-import org.apache.calcite.util.BitSets;
+import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.TestUtil;
 import org.apache.calcite.util.Util;
 
@@ -46,7 +46,6 @@ import org.junit.Test;
 
 import java.math.BigDecimal;
 import java.util.Arrays;
-import java.util.BitSet;
 import java.util.List;
 
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -322,7 +321,7 @@ public class RexProgramTest {
     return builder;
   }
 
-  static boolean strongIf(RexNode e, BitSet b) {
+  static boolean strongIf(RexNode e, ImmutableBitSet b) {
     return Strong.is(e, b);
   }
 
@@ -330,11 +329,11 @@ public class RexProgramTest {
   @Test public void testStrong() {
     final RelDataType intType = typeFactory.createSqlType(SqlTypeName.INTEGER);
 
-    final BitSet c = BitSets.of();
-    final BitSet c0 = BitSets.of(0);
-    final BitSet c1 = BitSets.of(1);
-    final BitSet c01 = BitSets.of(0, 1);
-    final BitSet c13 = BitSets.of(1, 3);
+    final ImmutableBitSet c = ImmutableBitSet.of();
+    final ImmutableBitSet c0 = ImmutableBitSet.of(0);
+    final ImmutableBitSet c1 = ImmutableBitSet.of(1);
+    final ImmutableBitSet c01 = ImmutableBitSet.of(0, 1);
+    final ImmutableBitSet c13 = ImmutableBitSet.of(1, 3);
 
     // input ref
     final RexInputRef aRef = rexBuilder.makeInputRef(intType, 0);

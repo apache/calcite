@@ -30,7 +30,7 @@ import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.schema.Schema;
 import org.apache.calcite.sql.SqlAggFunction;
-import org.apache.calcite.util.BitSets;
+import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
@@ -44,7 +44,6 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.AbstractList;
 import java.util.ArrayList;
-import java.util.BitSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -131,8 +130,8 @@ public class RelJsonReader {
         return relJson.toRex(this, jsonRel.get(tag));
       }
 
-      public BitSet getBitSet(String tag) {
-        return BitSets.of(getIntegerList(tag));
+      public ImmutableBitSet getBitSet(String tag) {
+        return ImmutableBitSet.of(getIntegerList(tag));
       }
 
       public List<Integer> getIntegerList(String tag) {

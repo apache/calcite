@@ -26,12 +26,11 @@ import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.util.BitSets;
+import org.apache.calcite.util.ImmutableBitSet;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
-import java.util.BitSet;
 import java.util.List;
 
 /**
@@ -68,7 +67,7 @@ public class AggregateProjectMergeRule extends RelOptRule {
   public static RelNode apply(Aggregate aggregate,
       Project project) {
     final List<Integer> newKeys = Lists.newArrayList();
-    for (int key : BitSets.toIter(aggregate.getGroupSet())) {
+    for (int key : aggregate.getGroupSet()) {
       final RexNode rex = project.getProjects().get(key);
       if (rex instanceof RexInputRef) {
         newKeys.add(((RexInputRef) rex).getIndex());
@@ -94,7 +93,7 @@ public class AggregateProjectMergeRule extends RelOptRule {
       aggCalls.add(aggregateCall.copy(newArgs.build()));
     }
 
-    final BitSet newGroupSet = BitSets.of(newKeys);
+    final ImmutableBitSet newGroupSet = ImmutableBitSet.of(newKeys);
     final Aggregate newAggregate =
         aggregate.copy(aggregate.getTraitSet(), project.getInput(), newGroupSet,
             aggCalls.build());
@@ -102,10 +101,10 @@ public class AggregateProjectMergeRule extends RelOptRule {
     // Add a project if the group set is not in the same order or
     // contains duplicates.
     RelNode rel = newAggregate;
-    if (!BitSets.toList(newGroupSet).equals(newKeys)) {
+    if (!newGroupSet.toList().equals(newKeys)) {
       final List<Integer> posList = Lists.newArrayList();
       for (int newKey : newKeys) {
-        posList.add(BitSets.toList(newGroupSet).indexOf(newKey));
+        posList.add(newGroupSet.indexOf(newKey));
       }
       for (int i = newAggregate.getGroupSet().cardinality();
            i < newAggregate.getRowType().getFieldCount(); i++) {

@@ -35,13 +35,13 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexSlot;
 import org.apache.calcite.rex.RexWindowBound;
 import org.apache.calcite.sql.SqlAggFunction;
+import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
 import java.util.AbstractList;
-import java.util.BitSet;
 import java.util.List;
 
 /**
@@ -190,7 +190,7 @@ public abstract class Window extends SingleRel {
    * </ul>
    */
   public static class Group {
-    public final BitSet keys;
+    public final ImmutableBitSet keys;
     public final boolean isRows;
     public final RexWindowBound lowerBound;
     public final RexWindowBound upperBound;
@@ -205,7 +205,7 @@ public abstract class Window extends SingleRel {
     public final ImmutableList<RexWinAggCall> aggCalls;
 
     public Group(
-        BitSet keys,
+        ImmutableBitSet keys,
         boolean isRows,
         RexWindowBound lowerBound,
         RexWindowBound upperBound,

@@ -48,8 +48,8 @@ import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
-import org.apache.calcite.util.BitSets;
 import org.apache.calcite.util.ControlFlowException;
+import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.IntList;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
@@ -72,7 +72,6 @@ import com.google.common.collect.Sets;
 
 import java.util.AbstractList;
 import java.util.ArrayList;
-import java.util.BitSet;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -1134,7 +1133,7 @@ public class SubstitutionVisitor {
       //   target: SELECT x, y, SUM(a) AS s, COUNT(b) AS cb FROM t GROUP BY x, y
       // transforms to
       //   result: SELECT x, SUM(cb) FROM (target) GROUP BY x
-      if (!BitSets.contains(target.getGroupSet(), query.getGroupSet())) {
+      if (!target.getGroupSet().contains(query.getGroupSet())) {
         return null;
       }
       MutableRel result = unifyAggregates(query, target);
@@ -1147,7 +1146,7 @@ public class SubstitutionVisitor {
 
   public static MutableAggregate permute(MutableAggregate aggregate,
       MutableRel input, Mapping mapping) {
-    BitSet groupSet = Mappings.apply(mapping, aggregate.getGroupSet());
+    ImmutableBitSet groupSet = Mappings.apply(mapping, aggregate.getGroupSet());
     List<AggregateCall> aggregateCalls =
         apply(mapping, aggregate.getAggCallList());
     return MutableAggregate.of(input, groupSet, aggregateCalls);
@@ -1183,9 +1182,9 @@ public class SubstitutionVisitor {
       result = MutableRels.createProject(target, projects);
     } else {
       // Target is coarser level of aggregation. Generate an aggregate.
-      final BitSet groupSet = new BitSet();
-      final IntList targetGroupList = BitSets.toList(target.getGroupSet());
-      for (int c : BitSets.toIter(query.getGroupSet())) {
+      final ImmutableBitSet.Builder groupSet = ImmutableBitSet.builder();
+      final IntList targetGroupList = target.getGroupSet().toList();
+      for (int c : query.getGroupSet()) {
         int c2 = targetGroupList.indexOf(c);
         if (c2 < 0) {
           return null;
@@ -1207,7 +1206,7 @@ public class SubstitutionVisitor {
                 ImmutableList.of(target.groupSet.cardinality() + i),
                 aggregateCall.type, aggregateCall.name));
       }
-      result = MutableAggregate.of(target, groupSet, aggregateCalls);
+      result = MutableAggregate.of(target, groupSet.build(), aggregateCalls);
     }
     return MutableRels.createCastRel(result, query.getRowType(), true);
   }
@@ -1621,17 +1620,17 @@ public class SubstitutionVisitor {
   /** Mutable equivalent of
    * {@link org.apache.calcite.rel.logical.LogicalAggregate}. */
   private static class MutableAggregate extends MutableSingleRel {
-    private final BitSet groupSet;
+    private final ImmutableBitSet groupSet;
     private final List<AggregateCall> aggCalls;
 
     private MutableAggregate(MutableRel input, RelDataType rowType,
-        BitSet groupSet, List<AggregateCall> aggCalls) {
+        ImmutableBitSet groupSet, List<AggregateCall> aggCalls) {
       super(MutableRelType.AGGREGATE, rowType, input);
       this.groupSet = groupSet;
       this.aggCalls = aggCalls;
     }
 
-    static MutableAggregate of(MutableRel input, BitSet groupSet,
+    static MutableAggregate of(MutableRel input, ImmutableBitSet groupSet,
         List<AggregateCall> aggCalls) {
       RelDataType rowType =
           Aggregate.deriveRowType(input.cluster.getTypeFactory(),
@@ -1656,7 +1655,7 @@ public class SubstitutionVisitor {
           .append(", calls: ").append(aggCalls).append(")");
     }
 
-    public BitSet getGroupSet() {
+    public ImmutableBitSet getGroupSet() {
       return groupSet;
     }
 

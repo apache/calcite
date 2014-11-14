@@ -46,7 +46,6 @@ import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexWindowBound;
 import org.apache.calcite.runtime.SortedMultiMap;
-import org.apache.calcite.util.BitSets;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
@@ -697,7 +696,7 @@ public class EnumerableWindow extends Window implements EnumerableRel {
             0, "key",
             inputPhysType.selector(
                 v_,
-                BitSets.toList(group.keys),
+                group.keys.toList(),
                 JavaRowFormat.CUSTOM));
     builder2.add(declare);
     final ParameterExpression key_ = declare.parameter;

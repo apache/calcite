@@ -26,12 +26,11 @@ import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.util.BitSets;
+import org.apache.calcite.util.ImmutableBitSet;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
-import java.util.BitSet;
 import java.util.List;
 
 /**
@@ -80,7 +79,7 @@ public class FilterAggregateTransposeRule extends RelOptRule {
 
     final List<RexNode> conditions =
         RelOptUtil.conjunctions(filterRel.getCondition());
-    final BitSet groupKeys = aggRel.getGroupSet();
+    final ImmutableBitSet groupKeys = aggRel.getGroupSet();
     final RexBuilder rexBuilder = filterRel.getCluster().getRexBuilder();
     final List<RelDataTypeField> origFields =
         aggRel.getRowType().getFieldList();
@@ -89,8 +88,8 @@ public class FilterAggregateTransposeRule extends RelOptRule {
     final List<RexNode> remainingConditions = Lists.newArrayList();
 
     for (RexNode condition : conditions) {
-      BitSet rCols = RelOptUtil.InputFinder.bits(condition);
-      if (BitSets.contains(groupKeys, rCols)) {
+      ImmutableBitSet rCols = RelOptUtil.InputFinder.bits(condition);
+      if (groupKeys.contains(rCols)) {
         pushedConditions.add(
             condition.accept(
                 new RelOptUtil.RexInputConverter(rexBuilder, origFields,

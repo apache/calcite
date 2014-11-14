@@ -31,10 +31,9 @@ import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
-import org.apache.calcite.util.BitSets;
 import org.apache.calcite.util.BuiltInMethod;
+import org.apache.calcite.util.ImmutableBitSet;
 
-import java.util.BitSet;
 import java.util.List;
 
 /**
@@ -54,7 +53,7 @@ public class RelMdColumnUniqueness {
 
   public Boolean areColumnsUnique(
       Filter rel,
-      BitSet columns,
+      ImmutableBitSet columns,
       boolean ignoreNulls) {
     return RelMetadataQuery.areColumnsUnique(
         rel.getInput(),
@@ -64,7 +63,7 @@ public class RelMdColumnUniqueness {
 
   public Boolean areColumnsUnique(
       Sort rel,
-      BitSet columns,
+      ImmutableBitSet columns,
       boolean ignoreNulls) {
     return RelMetadataQuery.areColumnsUnique(
         rel.getInput(),
@@ -74,7 +73,7 @@ public class RelMdColumnUniqueness {
 
   public Boolean areColumnsUnique(
       Correlator rel,
-      BitSet columns,
+      ImmutableBitSet columns,
       boolean ignoreNulls) {
     return RelMetadataQuery.areColumnsUnique(
         rel.getLeft(),
@@ -84,7 +83,7 @@ public class RelMdColumnUniqueness {
 
   public Boolean areColumnsUnique(
       Project rel,
-      BitSet columns,
+      ImmutableBitSet columns,
       boolean ignoreNulls) {
     // LogicalProject maps a set of rows to a different set;
     // Without knowledge of the mapping function(whether it
@@ -95,8 +94,8 @@ public class RelMdColumnUniqueness {
     // references
 
     List<RexNode> projExprs = rel.getProjects();
-    BitSet childColumns = new BitSet();
-    for (int bit : BitSets.toIter(columns)) {
+    ImmutableBitSet.Builder childColumns = ImmutableBitSet.builder();
+    for (int bit : columns) {
       RexNode projExpr = projExprs.get(bit);
       if (projExpr instanceof RexInputRef) {
         childColumns.set(((RexInputRef) projExpr).getIndex());
@@ -139,14 +138,14 @@ public class RelMdColumnUniqueness {
 
     return RelMetadataQuery.areColumnsUnique(
         rel.getInput(),
-        childColumns,
+        childColumns.build(),
         ignoreNulls);
   }
 
   public Boolean areColumnsUnique(
       Join rel,
-      BitSet columns, boolean
-      ignoreNulls) {
+      ImmutableBitSet columns,
+      boolean ignoreNulls) {
     if (columns.cardinality() == 0) {
       return false;
     }
@@ -156,10 +155,10 @@ public class RelMdColumnUniqueness {
 
     // Divide up the input column mask into column masks for the left and
     // right sides of the join
-    BitSet leftColumns = new BitSet();
-    BitSet rightColumns = new BitSet();
+    ImmutableBitSet.Builder leftColumns = ImmutableBitSet.builder();
+    ImmutableBitSet.Builder rightColumns = ImmutableBitSet.builder();
     int nLeftColumns = left.getRowType().getFieldCount();
-    for (int bit : BitSets.toIter(columns)) {
+    for (int bit : columns) {
       if (bit < nLeftColumns) {
         leftColumns.set(bit);
       } else {
@@ -171,9 +170,11 @@ public class RelMdColumnUniqueness {
     // right hand side, then the columns are unique if and only if they're
     // unique for their respective join inputs
     Boolean leftUnique =
-        RelMetadataQuery.areColumnsUnique(left, leftColumns, ignoreNulls);
+        RelMetadataQuery.areColumnsUnique(left, leftColumns.build(),
+            ignoreNulls);
     Boolean rightUnique =
-        RelMetadataQuery.areColumnsUnique(right, rightColumns, ignoreNulls);
+        RelMetadataQuery.areColumnsUnique(right, rightColumns.build(),
+            ignoreNulls);
     if ((leftColumns.cardinality() > 0)
         && (rightColumns.cardinality() > 0)) {
       if ((leftUnique == null) || (rightUnique == null)) {
@@ -219,7 +220,7 @@ public class RelMdColumnUniqueness {
 
   public Boolean areColumnsUnique(
       SemiJoin rel,
-      BitSet columns,
+      ImmutableBitSet columns,
       boolean ignoreNulls) {
     // only return the unique keys from the LHS since a semijoin only
     // returns the LHS
@@ -231,15 +232,12 @@ public class RelMdColumnUniqueness {
 
   public Boolean areColumnsUnique(
       Aggregate rel,
-      BitSet columns,
+      ImmutableBitSet columns,
       boolean ignoreNulls) {
     // group by keys form a unique key
     if (rel.getGroupCount() > 0) {
-      BitSet groupKey = new BitSet();
-      for (int i = 0; i < rel.getGroupCount(); i++) {
-        groupKey.set(i);
-      }
-      return BitSets.contains(columns, groupKey);
+      ImmutableBitSet groupKey = ImmutableBitSet.range(rel.getGroupCount());
+      return columns.contains(groupKey);
     } else {
       // interpret an empty set as asking whether the aggregation is full
       // table (in which case it returns at most one row);
@@ -253,7 +251,7 @@ public class RelMdColumnUniqueness {
   // Catch-all rule when none of the others apply.
   public Boolean areColumnsUnique(
       RelNode rel,
-      BitSet columns,
+      ImmutableBitSet columns,
       boolean ignoreNulls) {
     // no information available
     return null;

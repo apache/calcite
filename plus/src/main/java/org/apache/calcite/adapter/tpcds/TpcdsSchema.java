@@ -30,6 +30,7 @@ import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.impl.AbstractSchema;
 import org.apache.calcite.schema.impl.AbstractTableQueryable;
 import org.apache.calcite.util.Bug;
+import org.apache.calcite.util.ImmutableBitSet;
 
 import com.google.common.collect.ImmutableMap;
 
@@ -38,7 +39,6 @@ import net.hydromatic.tpcds.TpcdsEntity;
 import net.hydromatic.tpcds.TpcdsTable;
 
 import java.sql.Date;
-import java.util.BitSet;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -112,7 +112,7 @@ public class TpcdsSchema extends AbstractSchema {
       Bug.upgrade("add row count estimate to TpcdsTable, and use it");
       Integer rowCount = TABLE_ROW_COUNTS.get(tpcdsTable.name);
       assert rowCount != null : tpcdsTable.name;
-      return Statistics.of(rowCount, Collections.<BitSet>emptyList());
+      return Statistics.of(rowCount, Collections.<ImmutableBitSet>emptyList());
     }
 
     public <T> Queryable<T> asQueryable(final QueryProvider queryProvider,

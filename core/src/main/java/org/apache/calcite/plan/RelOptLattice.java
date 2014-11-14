@@ -22,9 +22,9 @@ import org.apache.calcite.materialize.Lattice;
 import org.apache.calcite.materialize.MaterializationService;
 import org.apache.calcite.materialize.TileKey;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Pair;
 
-import java.util.BitSet;
 import java.util.List;
 
 /**
@@ -70,7 +70,7 @@ public class RelOptLattice {
    * @return Materialized table
    */
   public Pair<CalciteSchema.TableEntry, TileKey> getAggregate(
-      RelOptPlanner planner, BitSet groupSet,
+      RelOptPlanner planner, ImmutableBitSet groupSet,
       List<Lattice.Measure> measureList) {
     final CalciteConnectionConfig config =
         planner.getContext().unwrap(CalciteConnectionConfig.class);

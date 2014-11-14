@@ -41,6 +41,7 @@ import org.apache.calcite.sql.validate.SqlMonikerType;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
 import org.apache.calcite.sql.validate.SqlValidatorCatalogReader;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
+import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
@@ -49,7 +50,6 @@ import com.google.common.collect.Ordering;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.BitSet;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -401,7 +401,7 @@ public class MockCatalogReader implements Prepare.CatalogReader {
       return collationList;
     }
 
-    public boolean isKey(BitSet columns) {
+    public boolean isKey(ImmutableBitSet columns) {
       return false;
     }
 
