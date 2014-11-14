@@ -20,4 +20,4 @@
  */
 package net.hydromatic.optiq.test;
 
-// End CsvTest.java
+// End package-info.java

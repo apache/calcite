@@ -32,11 +32,11 @@ import java.util.*;
  * <p>Like any table scan, it serves as a leaf node of a query tree.</p>
  */
 public class CsvTableScan extends TableAccessRelBase implements EnumerableRel {
-  final CsvTable csvTable;
+  final CsvTranslatableTable csvTable;
   final int[] fields;
 
   protected CsvTableScan(RelOptCluster cluster, RelOptTable table,
-      CsvTable csvTable, int[] fields) {
+      CsvTranslatableTable csvTable, int[] fields) {
     super(cluster, cluster.traitSetOf(EnumerableConvention.INSTANCE), table);
     this.csvTable = csvTable;
     this.fields = fields;
@@ -89,8 +89,8 @@ public class CsvTableScan extends TableAccessRelBase implements EnumerableRel {
     return implementor.result(
         physType,
         Blocks.toBlock(
-            Expressions.call(table.getExpression(CsvTable.class), "project",
-                Expressions.constant(fields))));
+            Expressions.call(table.getExpression(CsvTranslatableTable.class),
+                "project", Expressions.constant(fields))));
   }
 }
 

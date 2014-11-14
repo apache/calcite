@@ -113,12 +113,12 @@ public class CsvTest {
     checkSql("model", "select * from EMPS");
   }
 
-  @Test public void testSelectSingleProject() throws SQLException {
+  @Test public void testSelectSingleProjectGz() throws SQLException {
     checkSql("smart", "select name from EMPS");
   }
 
-  @Test public void testSelectSingleProject2() throws SQLException {
-    checkSql("smart", "select name from COMPRESSED_EMPS");
+  @Test public void testSelectSingleProject() throws SQLException {
+    checkSql("smart", "select name from DEPTS");
   }
 
   @Test public void testCustomTable() throws SQLException {
@@ -148,8 +148,30 @@ public class CsvTest {
         "NAME=Alice; EMPNO=130");
   }
 
+  @Test public void testFilterableSelect() throws SQLException {
+    checkSql("filterable-model", "select name from EMPS");
+  }
+
+  @Test public void testFilterableSelectStar() throws SQLException {
+    checkSql("filterable-model", "select * from EMPS");
+  }
+
+  /** Filter that can be fully handled by CsvFilterableTable. */
+  @Test public void testFilterableWhere() throws SQLException {
+    checkSql("filterable-model",
+        "select empno, gender, name from EMPS where name = 'John'",
+        "EMPNO=110; GENDER=M; NAME=John");
+  }
+
+  /** Filter that can be partly handled by CsvFilterableTable. */
+  @Test public void testFilterableWhere2() throws SQLException {
+    checkSql("filterable-model",
+        "select empno, gender, name from EMPS where gender = 'F' and empno > 125",
+        "EMPNO=130; GENDER=F; NAME=Alice");
+  }
+
   @Test public void testJson() throws SQLException {
-    checkSql("model", "select _MAP['id'] as id,\n"
+    checkSql("bug", "select _MAP['id'] as id,\n"
         + " _MAP['title'] as title,\n"
         + " CHAR_LENGTH(CAST(_MAP['title'] AS VARCHAR(30))) as len\n"
         + " from \"archers\"",
@@ -202,7 +224,7 @@ public class CsvTest {
     Statement statement = null;
     try {
       Properties info = new Properties();
-      info.put("model", "target/test-classes/" + model + ".json");
+      info.put("model", "example/csv/target/test-classes/" + model + ".json");
       connection = DriverManager.getConnection("jdbc:calcite:", info);
       statement = connection.createStatement();
       final ResultSet resultSet =
@@ -273,7 +295,7 @@ public class CsvTest {
 
   @Test public void testDateType() throws SQLException {
     Properties info = new Properties();
-    info.put("model", "target/test-classes/bug.json");
+    info.put("model", "example/csv/target/test-classes/bug.json");
 
     Connection connection = DriverManager.getConnection("jdbc:calcite:", info);
 

@@ -36,10 +36,16 @@ public class CsvSchemaFactory implements SchemaFactory {
   public Schema create(SchemaPlus parentSchema, String name,
       Map<String, Object> operand) {
     String directory = (String) operand.get("directory");
-    Boolean smart = (Boolean) operand.get("smart");
+    String flavorName = (String) operand.get("flavor");
+    CsvTable.Flavor flavor;
+    if (flavorName == null) {
+      flavor = CsvTable.Flavor.SCANNABLE;
+    } else {
+      flavor = CsvTable.Flavor.valueOf(flavorName.toUpperCase());
+    }
     return new CsvSchema(
         new File(directory),
-        smart != null && smart);
+        flavor);
   }
 }
 

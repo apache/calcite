@@ -16,9 +16,9 @@
  */
 
 /**
- * Optiq query provider that reads from CSV (comma-separated value) files.
+ * Calcite query provider that reads from CSV (comma-separated value) files.
  *
- * <p>An optiq schema maps onto a directory, and each CSV file in that
+ * <p>A Calcite schema maps onto a directory, and each CSV file in that
  * directory appears as a table.  Full SQL operations are available on
  * those tables.</p>
  */

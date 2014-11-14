@@ -18,21 +18,33 @@ package net.hydromatic.optiq.impl.csv;
 
 import net.hydromatic.linq4j.Enumerator;
 
+import net.hydromatic.optiq.impl.java.JavaTypeFactory;
+
+import org.eigenbase.reltype.RelDataType;
+import org.eigenbase.util.Pair;
+
 import au.com.bytecode.opencsv.CSVReader;
 
 import org.apache.commons.lang3.time.FastDateFormat;
 
 import java.io.*;
 import java.text.ParseException;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 import java.util.TimeZone;
+import java.util.zip.GZIPInputStream;
 
 
-/** Enumerator that reads from a CSV file. */
-class CsvEnumerator implements Enumerator<Object> {
+/** Enumerator that reads from a CSV file.
+ *
+ * @param <E> Row type
+ */
+class CsvEnumerator<E> implements Enumerator<E> {
   private final CSVReader reader;
-  private final RowConverter rowConverter;
-  private Object current;
+  private final String[] filterValues;
+  private final RowConverter<E> rowConverter;
+  private E current;
 
   private static final FastDateFormat TIME_FORMAT_DATE;
   private static final FastDateFormat TIME_FORMAT_TIME;
@@ -46,36 +58,128 @@ class CsvEnumerator implements Enumerator<Object> {
         "yyyy-MM-dd hh:mm:ss", gmt);
   }
 
-  public CsvEnumerator(File file, CsvFieldType[] fieldTypes) {
-    this(file, fieldTypes, identityList(fieldTypes.length));
+  public CsvEnumerator(File file, List<CsvFieldType> fieldTypes) {
+    this(file, fieldTypes, identityList(fieldTypes.size()));
   }
 
-  public CsvEnumerator(File file, CsvFieldType[] fieldTypes, int[] fields) {
-    this.rowConverter = fields.length == 1
-        ? new SingleColumnRowConverter(fieldTypes[fields[0]], fields[0])
-        : new ArrayRowConverter(fieldTypes, fields);
+  public CsvEnumerator(File file, List<CsvFieldType> fieldTypes, int[] fields) {
+    //noinspection unchecked
+    this(file, null, (RowConverter<E>) converter(fieldTypes, fields));
+  }
+
+  public CsvEnumerator(File file, String[] filterValues,
+      RowConverter<E> rowConverter) {
+    this.rowConverter = rowConverter;
+    this.filterValues = filterValues;
     try {
-      this.reader = new CSVReader(new FileReader(file));
+      this.reader = openCsv(file);
       this.reader.readNext(); // skip header row
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
   }
 
-  public Object current() {
+  private static RowConverter<?> converter(List<CsvFieldType> fieldTypes,
+      int[] fields) {
+    if (fields.length == 1) {
+      final int field = fields[0];
+      return new SingleColumnRowConverter(fieldTypes.get(field), field);
+    } else {
+      return new ArrayRowConverter(fieldTypes, fields);
+    }
+  }
+
+  /** Deduces the names and types of a table's columns by reading the first line
+   * of a CSV file. */
+  static RelDataType deduceRowType(JavaTypeFactory typeFactory, File file,
+      List<CsvFieldType> fieldTypes) {
+    final List<RelDataType> types = new ArrayList<RelDataType>();
+    final List<String> names = new ArrayList<String>();
+    CSVReader reader = null;
+    try {
+      reader = openCsv(file);
+      final String[] strings = reader.readNext();
+      for (String string : strings) {
+        final String name;
+        final CsvFieldType fieldType;
+        final int colon = string.indexOf(':');
+        if (colon >= 0) {
+          name = string.substring(0, colon);
+          String typeString = string.substring(colon + 1);
+          fieldType = CsvFieldType.of(typeString);
+        } else {
+          name = string;
+          fieldType = null;
+        }
+        final RelDataType type;
+        if (fieldType == null) {
+          type = typeFactory.createJavaType(String.class);
+        } else {
+          type = fieldType.toType(typeFactory);
+        }
+        names.add(name);
+        types.add(type);
+        if (fieldTypes != null) {
+          fieldTypes.add(fieldType);
+        }
+      }
+    } catch (IOException e) {
+      // ignore
+    } finally {
+      if (reader != null) {
+        try {
+          reader.close();
+        } catch (IOException e) {
+          // ignore
+        }
+      }
+    }
+    if (names.isEmpty()) {
+      names.add("line");
+      types.add(typeFactory.createJavaType(String.class));
+    }
+    return typeFactory.createStructType(Pair.zip(names, types));
+  }
+
+  private static CSVReader openCsv(File file) throws IOException {
+    final Reader fileReader;
+    if (file.getName().endsWith(".gz")) {
+      final GZIPInputStream inputStream =
+          new GZIPInputStream(new FileInputStream(file));
+      fileReader = new InputStreamReader(inputStream);
+    } else {
+      fileReader = new FileReader(file);
+    }
+    return new CSVReader(fileReader);
+  }
+
+  public E current() {
     return current;
   }
 
   public boolean moveNext() {
     try {
-      final String[] strings = reader.readNext();
-      if (strings == null) {
-        current = null;
-        reader.close();
-        return false;
+    outer:
+      for (;;) {
+        final String[] strings = reader.readNext();
+        if (strings == null) {
+          current = null;
+          reader.close();
+          return false;
+        }
+        if (filterValues != null) {
+          for (int i = 0; i < strings.length; i++) {
+            String filterValue = filterValues[i];
+            if (filterValue != null) {
+              if (!filterValue.equals(strings[i])) {
+                continue outer;
+              }
+            }
+          }
+        }
+        current = rowConverter.convertRow(strings);
+        return true;
       }
-      current = rowConverter.convertRow(strings);
-      return true;
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
@@ -103,8 +207,8 @@ class CsvEnumerator implements Enumerator<Object> {
   }
 
   /** Row converter. */
-  private abstract static class RowConverter {
-    abstract Object convertRow(String[] rows);
+  abstract static class RowConverter<E> {
+    abstract E convertRow(String[] rows);
 
     protected Object convert(CsvFieldType fieldType, String string) {
       if (fieldType == null) {
@@ -184,16 +288,16 @@ class CsvEnumerator implements Enumerator<Object> {
   }
 
   /** Array row converter. */
-  private static class ArrayRowConverter extends RowConverter {
+  static class ArrayRowConverter extends RowConverter<Object[]> {
     private final CsvFieldType[] fieldTypes;
     private final int[] fields;
 
-    private ArrayRowConverter(CsvFieldType[] fieldTypes, int[] fields) {
-      this.fieldTypes = fieldTypes;
+    ArrayRowConverter(List<CsvFieldType> fieldTypes, int[] fields) {
+      this.fieldTypes = fieldTypes.toArray(new CsvFieldType[fieldTypes.size()]);
       this.fields = fields;
     }
 
-    public Object convertRow(String[] strings) {
+    public Object[] convertRow(String[] strings) {
       final Object[] objects = new Object[fields.length];
       for (int i = 0; i < fields.length; i++) {
         int field = fields[i];

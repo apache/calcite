@@ -24,7 +24,7 @@ import java.io.File;
 import java.util.Map;
 
 /**
- * Factory that creates a {@link CsvTable}.
+ * Factory that creates a {@link CsvTranslatableTable}.
  *
  * <p>Allows a CSV table to be included in a model.json file, even in a
  * schema that is not based upon {@link CsvSchema}.</p>
@@ -38,15 +38,10 @@ public class CsvTableFactory implements TableFactory<CsvTable> {
   public CsvTable create(SchemaPlus schema, String name,
       Map<String, Object> map, RelDataType rowType) {
     String fileName = (String) map.get("file");
-    Boolean smart = (Boolean) map.get("smart");
     final File file = new File(fileName);
     final RelProtoDataType protoRowType =
         rowType != null ? RelDataTypeImpl.proto(rowType) : null;
-    if (smart != null && smart) {
-      return new CsvSmartTable(file, protoRowType);
-    } else {
-      return new CsvTable(file, protoRowType);
-    }
+    return new CsvScannableTable(file, protoRowType);
   }
 }
 

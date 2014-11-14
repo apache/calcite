@@ -18,43 +18,39 @@ package net.hydromatic.optiq.impl.csv;
 
 import net.hydromatic.linq4j.*;
 
-import net.hydromatic.optiq.*;
-import net.hydromatic.optiq.impl.AbstractTable;
+import net.hydromatic.optiq.DataContext;
+import net.hydromatic.optiq.ScannableTable;
 
 import org.eigenbase.reltype.*;
-import org.eigenbase.sql.type.SqlTypeName;
 
-import java.io.*;
+import java.io.File;
 
 /**
- * Table based on a JSON file.
+ * Table based on a CSV file.
+ *
+ * <p>It implements the {@link ScannableTable} interface, so Calcite gets
+ * data by calling the {@link #scan(DataContext)} method.
  */
-public class JsonTable extends AbstractTable implements ScannableTable {
-  private final File file;
-
-  /** Creates a JsonTable. */
-  JsonTable(File file) {
-    this.file = file;
+public class CsvScannableTable extends CsvTable
+    implements ScannableTable {
+  /** Creates a CsvScannableTable. */
+  CsvScannableTable(File file, RelProtoDataType protoRowType) {
+    super(file, protoRowType);
   }
 
   public String toString() {
-    return "JsonTable";
-  }
-
-  public RelDataType getRowType(RelDataTypeFactory typeFactory) {
-    return typeFactory.builder().add("_MAP",
-        typeFactory.createMapType(
-            typeFactory.createSqlType(SqlTypeName.VARCHAR),
-            typeFactory.createSqlType(SqlTypeName.ANY))).build();
+    return "CsvScannableTable";
   }
 
   public Enumerable<Object[]> scan(DataContext root) {
+    final int[] fields = CsvEnumerator.identityList(fieldTypes.size());
     return new AbstractEnumerable<Object[]>() {
       public Enumerator<Object[]> enumerator() {
-        return new JsonEnumerator(file);
+        return new CsvEnumerator<Object[]>(file,
+            null, new CsvEnumerator.ArrayRowConverter(fieldTypes, fields));
       }
     };
   }
 }
 
-// End JsonTable.java
+// End CsvScannableTable.java

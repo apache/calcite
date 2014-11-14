@@ -30,19 +30,19 @@ import java.util.*;
  */
 public class CsvSchema extends AbstractSchema {
   final File directoryFile;
-  private final boolean smart;
+  private final CsvTable.Flavor flavor;
 
   /**
    * Creates a CSV schema.
    *
    * @param directoryFile Directory that holds {@code .csv} files
-   * @param smart      Whether to instantiate smart tables that undergo
+   * @param flavor     Whether to instantiate flavor tables that undergo
    *                   query optimization
    */
-  public CsvSchema(File directoryFile, boolean smart) {
+  public CsvSchema(File directoryFile, CsvTable.Flavor flavor) {
     super();
     this.directoryFile = directoryFile;
-    this.smart = smart;
+    this.flavor = flavor;
   }
 
   /** Looks for a suffix on a string and returns
@@ -64,7 +64,8 @@ public class CsvSchema extends AbstractSchema {
 
   @Override
   protected Map<String, Table> getTableMap() {
-    final ImmutableMap.Builder<String, Table> builder = ImmutableMap.builder();
+    // Look for files in the directory ending in ".csv", ".csv.gz", ".json",
+    // ".json.gz".
     File[] files = directoryFile.listFiles(
         new FilenameFilter() {
           public boolean accept(File dir, String name) {
@@ -77,6 +78,8 @@ public class CsvSchema extends AbstractSchema {
       System.out.println("directory " + directoryFile + " not found");
       files = new File[0];
     }
+    // Build a map from table name to table; each file becomes a table.
+    final ImmutableMap.Builder<String, Table> builder = ImmutableMap.builder();
     for (File file : files) {
       String tableName = trim(file.getName(), ".gz");
       final String tableNameSansJson = trimOrNull(tableName, ".json");
@@ -86,11 +89,21 @@ public class CsvSchema extends AbstractSchema {
         continue;
       }
       tableName = trim(tableName, ".csv");
-      final CsvTable table;
-      if (smart) {
-        table = new CsvSmartTable(file, null);
-      } else {
-        table = new CsvTable(file, null);
+
+      // Create different sub-types of table based on the "flavor" attribute.
+      final Table table;
+      switch (flavor) {
+      case TRANSLATABLE:
+        table = new CsvTranslatableTable(file, null);
+        break;
+      case SCANNABLE:
+        table = new CsvScannableTable(file, null);
+        break;
+      case FILTERABLE:
+        table = new CsvFilterableTable(file, null);
+        break;
+      default:
+        throw new AssertionError("Unknown flavor " + flavor);
       }
       builder.put(tableName, table);
     }

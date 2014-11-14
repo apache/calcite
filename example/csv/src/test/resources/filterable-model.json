@@ -1,7 +1,6 @@
 /* A JSON model of a Calcite schema that is similar to model.json,
-   except that it produces tables that implement
-   TranslatableTable. These tables are translated to a CsvTableScan
-   relational expression which participates in query planning. */
+   except that it produces tables that implement FilterableTable.
+   These tables can implement their own simple filtering. */
 {
   version: '1.0',
   defaultSchema: 'SALES',
@@ -11,8 +10,8 @@
       type: 'custom',
       factory: 'net.hydromatic.optiq.impl.csv.CsvSchemaFactory',
       operand: {
-        directory: 'example/csv/target/test-classes/sales',
-        flavor: "TRANSLATABLE"
+        directory: 'sales',
+        flavor: "FILTERABLE"
       }
     }
   ]

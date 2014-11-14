@@ -26,7 +26,7 @@ import java.io.*;
 import java.util.List;
 
 /** Enumerator that reads from a JSON file. */
-class JsonEnumerator implements Enumerator<Object> {
+class JsonEnumerator implements Enumerator<Object[]> {
   private final Enumerator<Object> enumerator;
 
   public JsonEnumerator(File file) {
@@ -43,8 +43,8 @@ class JsonEnumerator implements Enumerator<Object> {
     }
   }
 
-  public Object current() {
-    return enumerator.current();
+  public Object[] current() {
+    return new Object[] {enumerator.current()};
   }
 
   public boolean moveNext() {

@@ -10,8 +10,8 @@
           type: 'custom',
           factory: 'net.hydromatic.optiq.impl.csv.CsvTableFactory',
           operand: {
-            file: 'target/test-classes/sales/EMPS.csv',
-            smart: false
+            file: 'example/csv/target/test-classes/sales/EMPS.csv.gz',
+            flavor: "scannable"
           }
         }
       ]
