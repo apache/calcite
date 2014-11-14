@@ -32,7 +32,7 @@ limitations under the License.
   <properties>
     <top.dir>${project.basedir}/..</top.dir>
     <build.timestamp>${maven.build.timestamp}</build.timestamp>
-   </properties>
+  </properties>
 
   <dependencies>
     <!-- Sorted by groupId, artifactId; calcite dependencies first. Put versions
@@ -40,6 +40,10 @@ limitations under the License.
     <dependency>
       <groupId>org.apache.calcite</groupId>
       <artifactId>calcite-avatica</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.calcite</groupId>
+      <artifactId>calcite-linq4j</artifactId>
     </dependency>
     <dependency>
       <groupId>org.pentaho</groupId>

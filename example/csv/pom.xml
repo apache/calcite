@@ -1,116 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+Licensed to the Apache Software Foundation (ASF) under one or more
+contributor license agreements.  See the NOTICE file distributed with
+this work for additional information regarding copyright ownership.
+The ASF licenses this file to you under the Apache License, Version 2.0
+(the "License"); you may not use this file except in compliance with
+the License.  You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>org.apache.calcite</groupId>
+    <artifactId>calcite-example</artifactId>
+    <version>1.0.0-incubating-SNAPSHOT</version>
+  </parent>
 
-  <!-- The basics. -->
-  <groupId>net.hydromatic</groupId>
-  <artifactId>optiq-csv</artifactId>
-  <version>0.4-SNAPSHOT</version>
+  <artifactId>calcite-example-csv</artifactId>
   <packaging>jar</packaging>
-
-  <!-- More project information. -->
-  <name>optiq-csv</name>
-  <description>Calcite provider that reads CSV files.</description>
-  <url>http://github.com/julianhyde/optiq-csv</url>
-  <inceptionYear>2013</inceptionYear>
-  <organization>
-    <name>Julian Hyde</name>
-    <url>http://www.hydromatic.net</url>
-  </organization>
-  <licenses>
-    <license>
-      <name>The Apache Software License, Version 2.0</name>
-      <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
-      <distribution>repo</distribution>
-    </license>
-  </licenses>
-
-  <developers>
-    <developer>
-      <id>julianhyde</id>
-      <name>Julian Hyde</name>
-      <email>julianhyde@gmail.com</email>
-      <url>https://github.com/julianhyde</url>
-      <roles>
-        <role>architect</role>
-        <role>developer</role>
-      </roles>
-      <timezone>-8</timezone>
-      <properties />
-    </developer>
-  </developers>
-
-  <mailingLists>
-    <mailingList>
-      <name>Apache Calcite developers list</name>
-      <subscribe>dev-subscribe@calcite.incubator.apache.org</subscribe>
-      <unsubscribe>dev-unsubscribe@calcite.incubator.apache.org</unsubscribe>
-      <post>dev@calcite.incubator.apache.org</post>
-      <archive>http://mail-archives.apache.org/mod_mbox/incubator-calcite-dev</archive>
-    </mailingList>
-  </mailingLists>
+  <version>1.0.0-incubating-SNAPSHOT</version>
+  <name>Calcite Example CSV</name>
+  <description>An example Calcite provider that reads CSV files</description>
 
   <properties>
-    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <top.dir>${project.basedir}</top.dir>
+    <top.dir>${project.basedir}/../..</top.dir>
+    <build.timestamp>${maven.build.timestamp}</build.timestamp>
   </properties>
 
-  <!-- Environment settings. -->
-  <distributionManagement>
-    <repository>
-      <id>conjars</id>
-      <name>Concurrent Conjars repository</name>
-      <url>http://conjars.org/repo</url>
-      <layout>default</layout>
-    </repository>
-  </distributionManagement>
-
-  <issueManagement />
-
-  <scm>
-    <connection>scm:git:git://github.com/julianhyde/optiq-csv.git</connection>
-    <developerConnection>scm:git:git@github.com:julianhyde/optiq-csv.git</developerConnection>
-    <url>http://github.com/julianhyde/optiq-csv/tree/master</url>
-    <tag>HEAD</tag>
-  </scm>
-
-  <!-- Dependencies. -->
   <dependencies>
-    <dependency>
-      <groupId>junit</groupId>
-      <artifactId>junit</artifactId>
-      <version>4.11</version>
-      <scope>test</scope>
-    </dependency>
     <dependency>
       <groupId>org.apache.calcite</groupId>
       <artifactId>calcite-core</artifactId>
-      <version>0.9.1-incubating</version>
     </dependency>
     <dependency>
       <groupId>org.apache.calcite</groupId>
       <artifactId>calcite-avatica</artifactId>
-      <version>0.9.1-incubating</version>
     </dependency>
-    <dependency>
-      <groupId>net.hydromatic</groupId>
-      <artifactId>linq4j</artifactId>
-      <version>0.4</version>
-    </dependency>
+    <!--<dependency>-->
+      <!--<groupId>org.apache.calcite</groupId>-->
+      <!--<artifactId>calcite-linq4j</artifactId>-->
+    <!--</dependency>-->
     <dependency>
       <groupId>net.sf.opencsv</groupId>
       <artifactId>opencsv</artifactId>
       <version>2.3</version>
-    </dependency>
-    <dependency>
-      <groupId>com.fasterxml.jackson.core</groupId>
-      <artifactId>jackson-databind</artifactId>
-      <version>2.1.1</version>
-    </dependency>
-    <dependency>
-      <groupId>sqlline</groupId>
-      <artifactId>sqlline</artifactId>
-      <version>1.1.7</version>
-      <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.apache.commons</groupId>
@@ -118,108 +58,4 @@
       <version>3.2</version>
     </dependency>
   </dependencies>
-
-  <reporting>
-    <plugins>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-javadoc-plugin</artifactId>
-        <version>2.8.1</version>
-        <configuration>
-          <links>
-            <link>http://docs.oracle.com/javase/8/docs/api/</link>
-          </links>
-        </configuration>
-      </plugin>
-    </plugins>
-  </reporting>
-
-  <repositories>
-    <repository>
-      <releases>
-        <enabled>true</enabled>
-        <updatePolicy>always</updatePolicy>
-        <checksumPolicy>warn</checksumPolicy>
-      </releases>
-      <id>conjars</id>
-      <name>Conjars</name>
-      <url>http://conjars.org/repo</url>
-      <layout>default</layout>
-    </repository>
-  </repositories>
-
-  <build>
-    <plugins>
-      <plugin>
-        <artifactId>maven-compiler-plugin</artifactId>
-          <version>2.3.2</version>
-          <configuration>
-          <source>1.5</source>
-          <target>1.5</target>
-        </configuration>
-      </plugin>
-
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-checkstyle-plugin</artifactId>
-        <version>2.10</version>
-        <executions>
-          <execution>
-            <id>validate</id>
-            <phase>validate</phase>
-            <configuration>
-              <configLocation>${top.dir}/src/main/config/checkstyle/checker.xml</configLocation>
-              <suppressionsLocation>${top.dir}/src/main/config/checkstyle/suppressions.xml</suppressionsLocation>
-              <consoleOutput>true</consoleOutput>
-              <headerLocation>${top.dir}/src/main/config/checkstyle/header.txt</headerLocation>
-              <failOnViolation>true</failOnViolation>
-              <includeTestSourceDirectory>true</includeTestSourceDirectory>
-            </configuration>
-            <goals>
-              <goal>check</goal>
-            </goals>
-          </execution>
-        </executions>
-      </plugin>
-
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-surefire-plugin</artifactId>
-        <version>2.16</version>
-      </plugin>
-
-      <!-- Not part of the standard build. sqlline.bat invokes copy-dependencies
-	   because windows doesn't like long paths. -->
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-dependency-plugin</artifactId>
-        <version>2.8</version>
-      </plugin>
-
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-release-plugin</artifactId>
-        <version>2.4.2</version>
-        <dependencies>
-          <dependency>
-            <groupId>org.apache.maven.scm</groupId>
-            <artifactId>maven-scm-provider-gitexe</artifactId>
-            <version>1.8.1</version>
-          </dependency>
-        </dependencies>
-      </plugin>
-    </plugins>
-
-    <resources>
-      <resource>
-        <directory>${top.dir}</directory>
-        <targetPath>META-INF</targetPath>
-        <includes>
-          <include>LICENSE</include>
-          <include>NOTICE</include>
-        </includes>
-      </resource>
-    </resources>
-  </build>
-
 </project>
