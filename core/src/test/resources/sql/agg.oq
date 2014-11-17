@@ -148,15 +148,30 @@ select count(mod(deptno, 20), gender) as c from emps;
 
 !ok
 
+# Nulls in GROUP BY
+select x = 1 as x1, count(*) as c
+from (values 0, 1, 2, cast(null as integer)) as t(x)
+group by x = 1;
++-------+---+
+| X1    | C |
++-------+---+
+| false | 2 |
+| true  | 1 |
+|       | 1 |
++-------+---+
+(3 rows)
+
+!ok
+
 # Basic GROUPING SETS
 select deptno, count(*) as c from emps group by grouping sets ((), (deptno));
 +--------+---+
 | DEPTNO | C |
 +--------+---+
-|      0 | 5 |
 |     10 | 1 |
 |     20 | 2 |
 |     40 | 2 |
+|        | 5 |
 +--------+---+
 (4 rows)
 
@@ -167,105 +182,244 @@ select deptno + 1, count(*) as c from emps group by grouping sets ((), (deptno +
 +--------+---+
 | EXPR$0 | C |
 +--------+---+
-|      0 | 5 |
 |     11 | 1 |
 |     21 | 2 |
 |     41 | 2 |
+|        | 5 |
 +--------+---+
 (4 rows)
 
 !ok
 
 # CUBE
-!if (false) {
-select deptno + 1, count(*) as c from emps group by cube(deptno, gender);
-!ok
-!}
-
-# ROLLUP on 1 column
-select deptno + 1, count(*) as c from emps group by rollup(deptno);
+select deptno + 1, count(*) as c from emp group by cube(deptno, gender);
 +--------+---+
 | EXPR$0 | C |
 +--------+---+
-|      1 | 5 |
 |     11 | 1 |
-|     21 | 2 |
-|     41 | 2 |
+|     11 | 1 |
+|     11 | 2 |
+|     21 | 1 |
+|     21 | 1 |
+|     31 | 2 |
+|     31 | 2 |
+|     51 | 1 |
+|     51 | 1 |
+|     51 | 2 |
+|     61 | 1 |
+|     61 | 1 |
+|        | 1 |
+|        | 1 |
+|        | 3 |
+|        | 6 |
+|        | 9 |
 +--------+---+
-(4 rows)
+(17 rows)
+
+!ok
+
+# ROLLUP on 1 column
+select deptno + 1, count(*) as c
+from emp
+group by rollup(deptno);
++--------+---+
+| EXPR$0 | C |
++--------+---+
+|     11 | 2 |
+|     21 | 1 |
+|     31 | 2 |
+|     51 | 2 |
+|     61 | 1 |
+|        | 1 |
+|        | 9 |
++--------+---+
+(7 rows)
 
 !ok
 
 # ROLLUP on 2 columns; project columns in different order
 select gender, deptno + 1, count(*) as c
-from emps
+from emp
 group by rollup(deptno, gender);
 +--------+--------+---+
 | GENDER | EXPR$1 | C |
 +--------+--------+---+
-| F      |     21 | 1 |
-| F      |     41 | 1 |
 | M      |     21 | 1 |
-| M      |     41 | 1 |
-|        |      1 | 5 |
-|        |     11 | 1 |
-|        |     11 | 1 |
-|        |     21 | 2 |
-|        |     41 | 2 |
+| F      |     11 | 1 |
+| F      |     31 | 2 |
+| F      |     51 | 1 |
+| F      |     61 | 1 |
+| F      |        | 1 |
+| M      |     11 | 1 |
+| M      |     51 | 1 |
+|        |     11 | 2 |
+|        |     21 | 1 |
+|        |     31 | 2 |
+|        |     51 | 2 |
+|        |     61 | 1 |
+|        |        | 1 |
+|        |        | 9 |
 +--------+--------+---+
-(9 rows)
+(15 rows)
 
 !ok
 
 # ROLLUP on column with nulls
 # Note the two rows with NULL key (one represents ALL)
 select gender, count(*) as c
-from emps
+from emp
 group by rollup(gender);
 +--------+---+
 | GENDER | C |
 +--------+---+
-| F      | 2 |
-| M      | 2 |
-|        | 1 |
-|        | 5 |
+| F      | 6 |
+| M      | 3 |
+|        | 9 |
 +--------+---+
-(4 rows)
+(3 rows)
 
 !ok
 
 # ROLLUP plus ORDER BY
 select gender, count(*) as c
-from emps
+from emp
 group by rollup(gender)
 order by c desc;
 +--------+---+
 | GENDER | C |
 +--------+---+
-|        | 5 |
-| F      | 2 |
-| M      | 2 |
-|        | 1 |
+|        | 9 |
+| F      | 6 |
+| M      | 3 |
 +--------+---+
-(4 rows)
+(3 rows)
 
 !ok
 
 # ROLLUP cartesian product
-!if (false) {
-select deptno + 1, count(*) as c from emps group by rollup(deptno, gender), rollup(city);
+select deptno, count(*) as c
+from emp
+group by rollup(deptno), rollup(gender);
++--------+---+
+| DEPTNO | C |
++--------+---+
+|     10 | 1 |
+|     10 | 1 |
+|     20 | 1 |
+|     20 | 1 |
+|        | 1 |
+|     10 | 2 |
+|     30 | 2 |
+|     30 | 2 |
+|     50 | 1 |
+|     50 | 1 |
+|     50 | 2 |
+|     60 | 1 |
+|     60 | 1 |
+|        | 1 |
+|        | 3 |
+|        | 6 |
+|        | 9 |
++--------+---+
+(17 rows)
+
 !ok
-!}
+
+# ROLLUP cartesian product of with tuple with expression
+select deptno / 2 + 1 as half1, count(*) as c
+from emp
+group by rollup(deptno / 2, gender), rollup(substring(ename FROM 1 FOR 1));
++-------+---+
+| HALF1 | C |
++-------+---+
+|    11 | 1 |
+|    11 | 1 |
+|    11 | 1 |
+|    11 | 1 |
+|    16 | 1 |
+|    16 | 1 |
+|    16 | 1 |
+|    16 | 1 |
+|    16 | 2 |
+|    16 | 2 |
+|    26 | 1 |
+|    26 | 1 |
+|    26 | 1 |
+|    26 | 1 |
+|    26 | 1 |
+|    26 | 1 |
+|    26 | 2 |
+|    31 | 1 |
+|    31 | 1 |
+|    31 | 1 |
+|    31 | 1 |
+|     6 | 1 |
+|     6 | 1 |
+|     6 | 1 |
+|     6 | 1 |
+|     6 | 1 |
+|     6 | 1 |
+|     6 | 2 |
+|       | 1 |
+|       | 1 |
+|       | 1 |
+|       | 1 |
+|       | 1 |
+|       | 1 |
+|       | 1 |
+|       | 1 |
+|       | 1 |
+|       | 2 |
+|       | 2 |
+|       | 9 |
++-------+---+
+(40 rows)
+
+!ok
 
 # ROLLUP with HAVING
-select deptno + 1, count(*) as c from emps group by rollup(deptno)
+select deptno + 1 as d1, count(*) as c
+from emp
+group by rollup(deptno)
 having count(*) > 3;
-+--------+---+
-| EXPR$0 | C |
-+--------+---+
-|      1 | 5 |
-+--------+---+
++----+---+
+| D1 | C |
++----+---+
+|    | 9 |
++----+---+
 (1 row)
+
+!ok
+
+# CUBE and DISTINCT
+select distinct count(*) from emp group by cube(deptno, gender);
++--------+
+| EXPR$0 |
++--------+
+| 1      |
+| 2      |
+| 3      |
+| 6      |
+| 9      |
++--------+
+(5 rows)
+
+!ok
+
+# CUBE and JOIN
+select e.deptno, e.gender, min(e.ename) as min_name
+from emp as e join dept as d using (deptno)
+group by cube(e.deptno, d.deptno, e.gender)
+having count(*) > 2 or gender = 'M' and e.deptno = 10;
++--------+--------+----------+
+| DEPTNO | GENDER | MIN_NAME |
++--------+--------+----------+
+|     10 | M      | Bob      |
+|     10 | M      | Bob      |
+|        | F      | Alice    |
+|        |        | Alice    |
++--------+--------+----------+
+(4 rows)
 
 !ok
 

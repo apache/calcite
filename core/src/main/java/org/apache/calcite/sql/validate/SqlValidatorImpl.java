@@ -463,6 +463,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
             aliases.size());
 
     // If expansion has altered the natural alias, supply an explicit 'AS'.
+    final SqlValidatorScope selectScope = getSelectScope(select);
     if (expanded != selectItem) {
       String newAlias =
           deriveAlias(
@@ -474,14 +475,14 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
                 selectItem.getParserPosition(),
                 expanded,
                 new SqlIdentifier(alias, SqlParserPos.ZERO));
-        deriveTypeImpl(scope, expanded);
+        deriveTypeImpl(selectScope, expanded);
       }
     }
 
     selectItems.add(expanded);
     aliases.add(alias);
 
-    final RelDataType type = deriveType(scope, expanded);
+    final RelDataType type = deriveType(selectScope, expanded);
     setValidatedNodeTypeImpl(expanded, type);
     types.add(Pair.of(alias, type));
     return false;
@@ -1355,7 +1356,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       return ns.getType();
     }
     final SqlNode original = originalExprs.get(node);
-    if (original != null) {
+    if (original != null && original != node) {
       return getValidatedNodeType(original);
     }
     return null;
@@ -1414,7 +1415,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       SqlValidatorScope scope,
       SqlNode operand) {
     DeriveTypeVisitor v = new DeriveTypeVisitor(scope);
-    return operand.accept(v);
+    final RelDataType type = operand.accept(v);
+    return scope.nullifyType(operand, type);
   }
 
   public RelDataType deriveConstructorType(
@@ -3053,6 +3055,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       SqlNode groupItem) {
     switch (groupItem.getKind()) {
     case GROUPING_SETS:
+    case ROLLUP:
+    case CUBE:
       validateGroupingSets(groupScope, aggregatingScope, (SqlCall) groupItem);
       break;
     default:
@@ -3061,9 +3065,6 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       }
       final RelDataType type = deriveType(groupScope, groupItem);
       setValidatedNodeTypeImpl(groupItem, type);
-      if (aggregatingScope != null) {
-        aggregatingScope.addGroupExpr(groupItem);
-      }
     }
   }
 

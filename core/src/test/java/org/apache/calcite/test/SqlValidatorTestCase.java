@@ -542,20 +542,28 @@ public class SqlValidatorTestCase {
       this.sql = sql;
     }
 
-    void ok() {
+    Sql ok() {
       tester.assertExceptionIsThrown(sql, null);
+      return this;
     }
 
-    void fails(String expected) {
+    Sql fails(String expected) {
       tester.assertExceptionIsThrown(sql, expected);
+      return this;
     }
 
-    void failsIf(boolean b, String expected) {
+    Sql failsIf(boolean b, String expected) {
       if (b) {
         fails(expected);
       } else {
         ok();
       }
+      return this;
+    }
+
+    public Sql type(String expectedType) {
+      tester.checkResultType(sql, expectedType);
+      return this;
     }
   }
 }

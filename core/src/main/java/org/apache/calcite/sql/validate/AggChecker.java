@@ -24,7 +24,6 @@ import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.util.SqlBasicVisitor;
 import org.apache.calcite.util.Stacks;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
 import java.util.List;
@@ -39,7 +38,7 @@ class AggChecker extends SqlBasicVisitor<Void> {
   //~ Instance fields --------------------------------------------------------
 
   private final List<SqlValidatorScope> scopes = Lists.newArrayList();
-  private final ImmutableList<SqlNode> groupExprs;
+  private final List<SqlNode> groupExprs;
   private boolean distinct;
   private SqlValidatorImpl validator;
 
@@ -61,7 +60,7 @@ class AggChecker extends SqlBasicVisitor<Void> {
       List<SqlNode> groupExprs,
       boolean distinct) {
     this.validator = validator;
-    this.groupExprs = ImmutableList.copyOf(groupExprs);
+    this.groupExprs = groupExprs;
     this.distinct = distinct;
     Stacks.push(this.scopes, scope);
   }

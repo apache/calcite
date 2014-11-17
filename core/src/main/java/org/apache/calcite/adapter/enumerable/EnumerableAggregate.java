@@ -185,6 +185,7 @@ public class EnumerableAggregate extends Aggregate
         inputPhysType.project(groupSet.asList(), getGroupType() != Group.SIMPLE,
             JavaRowFormat.LIST);
     final int keyArity = groupSet.cardinality();
+    final int indicatorArity = indicator ? keyArity : 0;
 
     final List<AggImpState> aggs =
         new ArrayList<AggImpState>(aggCalls.size());
@@ -349,7 +350,7 @@ public class EnumerableAggregate extends Aggregate
     } else {
       final Type keyType = keyPhysType.getJavaRowType();
       key_ = Expressions.parameter(keyType, "key");
-      for (int j = 0; j < keyArity; j++) {
+      for (int j = 0; j < keyArity + indicatorArity; j++) {
         results.add(
             keyPhysType.fieldReference(key_, j));
       }

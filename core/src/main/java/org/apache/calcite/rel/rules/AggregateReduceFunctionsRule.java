@@ -40,11 +40,12 @@ import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -132,16 +133,16 @@ public class AggregateReduceFunctionsRule extends RelOptRule {
     RexBuilder rexBuilder = oldAggRel.getCluster().getRexBuilder();
 
     List<AggregateCall> oldCalls = oldAggRel.getAggCallList();
-    final int nGroups = oldAggRel.getGroupCount();
+    final int groupCount = oldAggRel.getGroupCount();
+    final int indicatorCount = oldAggRel.indicator ? groupCount : 0;
 
-    List<AggregateCall> newCalls = new ArrayList<AggregateCall>();
-    Map<AggregateCall, RexNode> aggCallMapping =
-        new HashMap<AggregateCall, RexNode>();
+    final List<AggregateCall> newCalls = Lists.newArrayList();
+    final Map<AggregateCall, RexNode> aggCallMapping = Maps.newHashMap();
 
-    List<RexNode> projList = new ArrayList<RexNode>();
+    final List<RexNode> projList = Lists.newArrayList();
 
-    // pass through group key
-    for (int i = 0; i < nGroups; ++i) {
+    // pass through group key (+ indicators if present)
+    for (int i = 0; i < groupCount + indicatorCount; ++i) {
       projList.add(
           rexBuilder.makeInputRef(
               getFieldType(oldAggRel, i),
@@ -255,9 +256,9 @@ public class AggregateReduceFunctionsRule extends RelOptRule {
       final int nGroups = oldAggRel.getGroupCount();
       List<RelDataType> oldArgTypes = SqlTypeUtil
           .projectTypes(oldAggRel.getRowType(), oldCall.getArgList());
-      return rexBuilder.addAggCall(
-          oldCall,
+      return rexBuilder.addAggCall(oldCall,
           nGroups,
+          oldAggRel.indicator,
           newCalls,
           aggCallMapping,
           oldArgTypes);
@@ -303,26 +304,24 @@ public class AggregateReduceFunctionsRule extends RelOptRule {
     // NOTE:  these references are with respect to the output
     // of newAggRel
     RexNode numeratorRef =
-        rexBuilder.addAggCall(
-            sumCall,
+        rexBuilder.addAggCall(sumCall,
             nGroups,
+            oldAggRel.indicator,
             newCalls,
             aggCallMapping,
             ImmutableList.of(avgInputType));
     RexNode denominatorRef =
-        rexBuilder.addAggCall(
-            countCall,
+        rexBuilder.addAggCall(countCall,
             nGroups,
+            oldAggRel.indicator,
             newCalls,
             aggCallMapping,
             ImmutableList.of(avgInputType));
     final RexNode divideRef =
-        rexBuilder.makeCall(
-            SqlStdOperatorTable.DIVIDE,
+        rexBuilder.makeCall(SqlStdOperatorTable.DIVIDE,
             numeratorRef,
             denominatorRef);
-    return rexBuilder.makeCast(
-        oldCall.getType(), divideRef);
+    return rexBuilder.makeCast(oldCall.getType(), divideRef);
   }
 
   private RexNode reduceSum(
@@ -362,9 +361,9 @@ public class AggregateReduceFunctionsRule extends RelOptRule {
     // NOTE:  these references are with respect to the output
     // of newAggRel
     RexNode sumZeroRef =
-        rexBuilder.addAggCall(
-            sumZeroCall,
+        rexBuilder.addAggCall(sumZeroCall,
             nGroups,
+            oldAggRel.indicator,
             newCalls,
             aggCallMapping,
             ImmutableList.of(argType));
@@ -375,9 +374,9 @@ public class AggregateReduceFunctionsRule extends RelOptRule {
       return sumZeroRef;
     }
     RexNode countRef =
-        rexBuilder.addAggCall(
-            countCall,
+        rexBuilder.addAggCall(countCall,
             nGroups,
+            oldAggRel.indicator,
             newCalls,
             aggCallMapping,
             ImmutableList.of(argType));
@@ -437,9 +436,9 @@ public class AggregateReduceFunctionsRule extends RelOptRule {
             sumType,
             null);
     final RexNode sumArgSquared =
-        rexBuilder.addAggCall(
-            sumArgSquaredAggCall,
+        rexBuilder.addAggCall(sumArgSquaredAggCall,
             nGroups,
+            oldAggRel.indicator,
             newCalls,
             aggCallMapping,
             ImmutableList.of(argType));
@@ -452,9 +451,9 @@ public class AggregateReduceFunctionsRule extends RelOptRule {
             sumType,
             null);
     final RexNode sumArg =
-        rexBuilder.addAggCall(
-            sumArgAggCall,
+        rexBuilder.addAggCall(sumArgAggCall,
             nGroups,
+            oldAggRel.indicator,
             newCalls,
             aggCallMapping,
             ImmutableList.of(argType));
@@ -473,9 +472,9 @@ public class AggregateReduceFunctionsRule extends RelOptRule {
             null,
             null);
     final RexNode countArg =
-        rexBuilder.addAggCall(
-            countArgAggCall,
+        rexBuilder.addAggCall(countArgAggCall,
             nGroups,
+            oldAggRel.indicator,
             newCalls,
             aggCallMapping,
             ImmutableList.of(argType));

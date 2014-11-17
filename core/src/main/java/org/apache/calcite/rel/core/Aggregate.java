@@ -216,9 +216,9 @@ public abstract class Aggregate extends SingleRel {
   public RelWriter explainTerms(RelWriter pw) {
     // We skip the "groups" element if it is a singleton of "group".
     super.explainTerms(pw)
-        .itemIf("indicator", indicator, indicator)
         .item("group", groupSet)
         .itemIf("groups", groupSets, getGroupType() != Group.SIMPLE)
+        .itemIf("indicator", indicator, indicator)
         .itemIf("aggs", aggCalls, pw.nest());
     if (!pw.nest()) {
       for (Ord<AggregateCall> ord : Ord.zip(aggCalls)) {
@@ -263,20 +263,16 @@ public abstract class Aggregate extends SingleRel {
     final IntList groupList = groupSet.toList();
     assert groupList.size() == groupSet.cardinality();
     final RelDataTypeFactory.FieldInfoBuilder builder = typeFactory.builder();
+    final List<RelDataTypeField> fieldList = inputRowType.getFieldList();
     for (int groupKey : groupList) {
-      final RelDataTypeField field = inputRowType.getFieldList().get(groupKey);
-      boolean nullable = field.getType().isNullable()
-          || indicator
-          && !allContain(groupSets, groupKey);
-      builder.add(field).nullable(nullable);
+      builder.add(fieldList.get(groupKey));
     }
     if (indicator) {
       for (int groupKey : groupList) {
         final RelDataType booleanType =
             typeFactory.createTypeWithNullability(
                 typeFactory.createSqlType(SqlTypeName.BOOLEAN), false);
-        builder.add("i$" + inputRowType.getFieldList().get(groupKey),
-            booleanType);
+        builder.add("i$" + fieldList.get(groupKey), booleanType);
       }
     }
     for (Ord<AggregateCall> aggCall : Ord.zip(aggCalls)) {
@@ -289,15 +285,6 @@ public abstract class Aggregate extends SingleRel {
       builder.add(name, aggCall.e.type);
     }
     return builder.build();
-  }
-
-  private static boolean allContain(List<ImmutableBitSet> bitSets, int bit) {
-    for (ImmutableBitSet bitSet : bitSets) {
-      if (!bitSet.get(bit)) {
-        return false;
-      }
-    }
-    return true;
   }
 
   /**
@@ -315,8 +302,7 @@ public abstract class Aggregate extends SingleRel {
     AggCallBinding callBinding = aggCall.createBinding(this);
     RelDataType type = aggFunction.inferReturnType(callBinding);
     RelDataType expectedType = aggCall.type;
-    return RelOptUtil.eq(
-        "aggCall type",
+    return RelOptUtil.eq("aggCall type",
         expectedType,
         "inferred type",
         type,

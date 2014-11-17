@@ -2873,7 +2873,7 @@ public class JdbcTest {
             + "from \"hr\".\"emps\"\n"
             + "group by grouping sets((\"deptno\"), ())")
         .returnsUnordered(
-            "deptno=0; C=4; S=36500.0",
+            "deptno=null; C=4; S=36500.0",
             "deptno=10; C=3; S=28500.0",
             "deptno=20; C=1; S=8000.0");
   }
@@ -2885,7 +2885,7 @@ public class JdbcTest {
             + "from \"hr\".\"emps\"\n"
             + "group by rollup(\"deptno\")")
         .returnsUnordered(
-            "deptno=0; C=4; S=36500.0",
+            "deptno=null; C=4; S=36500.0",
             "deptno=10; C=3; S=28500.0",
             "deptno=20; C=1; S=8000.0");
   }
@@ -4264,6 +4264,12 @@ public class JdbcTest {
             + "    (40, 'Empty'))\n"
             + sql)
         .returnsUnordered(lines);
+  }
+
+  /** Runs the dummy script, which is checked in empty but which you may
+   * use as scratch space during development. */
+  @Test public void testRunDummy() throws Exception {
+    checkRun("sql/dummy.oq");
   }
 
   @Test public void testRunAgg() throws Exception {

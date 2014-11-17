@@ -16,16 +16,24 @@
  */
 package org.apache.calcite.sql.validate;
 
+import org.apache.calcite.linq4j.Linq4j;
+import org.apache.calcite.linq4j.Ord;
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlSelect;
+import org.apache.calcite.util.ImmutableBitSet;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import static org.apache.calcite.sql.SqlUtil.stripAs;
 
@@ -42,7 +50,17 @@ public class AggregatingSelectScope
 
   private final SqlSelect select;
   private final boolean distinct;
-  private final List<SqlNode> groupExprList;
+
+  /** Use while under construction. */
+  private final List<SqlNode> temporaryGroupExprList = Lists.newArrayList();
+
+  /** Use after construction is complete. Assigned from
+   * {@link #temporaryGroupExprList} towards the end of the constructor. */
+  public final ImmutableList<SqlNode> groupExprList;
+  public final ImmutableBitSet groupSet;
+  public final ImmutableList<ImmutableBitSet> groupSets;
+  public final boolean indicator;
+  public final Map<Integer, Integer> groupExprProjection;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -63,22 +81,37 @@ public class AggregatingSelectScope
     super(selectScope);
     this.select = select;
     this.distinct = distinct;
-    if (distinct) {
-      groupExprList = null;
-    } else if (select.getGroup() != null) {
+    final Map<Integer, Integer> groupExprProjection = Maps.newHashMap();
+    final ImmutableList.Builder<ImmutableList<ImmutableBitSet>> builder =
+        ImmutableList.builder();
+    if (select.getGroup() != null) {
       // We deep-copy the group-list in case subsequent validation
       // modifies it and makes it no longer equivalent. While copying,
       // we fully qualify all identifiers.
-      SqlNodeList sqlNodeList =
-          (SqlNodeList) this.select.getGroup().accept(
-              new SqlValidatorUtil.DeepCopier(parent));
-      groupExprList = Lists.newArrayList();
-      for (SqlNode node : sqlNodeList) {
-        addGroupExpr(node);
+      final SqlNodeList groupList =
+          SqlValidatorUtil.DeepCopier.copy(parent, select.getGroup());
+      for (SqlNode groupExpr : groupList) {
+        SqlValidatorUtil.analyzeGroupItem(this, temporaryGroupExprList,
+            groupExprProjection, builder, groupExpr);
       }
-    } else {
-      groupExprList = null;
     }
+    this.groupExprList = ImmutableList.copyOf(temporaryGroupExprList);
+    this.groupExprProjection = ImmutableMap.copyOf(groupExprProjection);
+
+    final Set<ImmutableBitSet> flatGroupSets =
+        Sets.newTreeSet(ImmutableBitSet.COMPARATOR);
+    for (List<ImmutableBitSet> groupSet : Linq4j.product(builder.build())) {
+      flatGroupSets.add(ImmutableBitSet.union(groupSet));
+    }
+
+    // For GROUP BY (), we need a singleton grouping set.
+    if (flatGroupSets.isEmpty()) {
+      flatGroupSets.add(ImmutableBitSet.of());
+    }
+
+    this.groupSet = ImmutableBitSet.range(groupExprList.size());
+    this.groupSets = ImmutableList.copyOf(flatGroupSets);
+    this.indicator = !groupSets.equals(ImmutableList.of(groupSet));
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -93,7 +126,7 @@ public class AggregatingSelectScope
    *
    * @return list of grouping expressions
    */
-  private List<SqlNode> getGroupExprs() {
+  private ImmutableList<SqlNode> getGroupExprs() {
     if (distinct) {
       // Cannot compute this in the constructor: select list has not been
       // expanded yet.
@@ -101,21 +134,51 @@ public class AggregatingSelectScope
 
       // Remove the AS operator so the expressions are consistent with
       // OrderExpressionExpander.
-      List<SqlNode> groupExprs = new ArrayList<SqlNode>();
-      for (SqlNode selectItem
-          : ((SelectScope) parent).getExpandedSelectList()) {
+      ImmutableList.Builder<SqlNode> groupExprs = ImmutableList.builder();
+      final SelectScope selectScope = (SelectScope) parent;
+      for (SqlNode selectItem : selectScope.getExpandedSelectList()) {
         groupExprs.add(stripAs(selectItem));
       }
-      return groupExprs;
+      return groupExprs.build();
     } else if (select.getGroup() != null) {
-      return groupExprList;
+      if (groupExprList != null) {
+        return groupExprList;
+      } else {
+        return ImmutableList.copyOf(temporaryGroupExprList);
+      }
     } else {
-      return Collections.emptyList();
+      return ImmutableList.of();
     }
   }
 
   public SqlNode getNode() {
     return select;
+  }
+
+  /** Returns whether a field should be nullable due to grouping sets. */
+  public boolean isNullable(int i) {
+    return i < groupExprList.size() && !allContain(groupSets, i);
+  }
+
+  private static boolean allContain(List<ImmutableBitSet> bitSets, int bit) {
+    for (ImmutableBitSet bitSet : bitSets) {
+      if (!bitSet.get(bit)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  @Override public RelDataType nullifyType(SqlNode node, RelDataType type) {
+    for (Ord<SqlNode> groupExpr : Ord.zip(groupExprList)) {
+      if (groupExpr.e.equalsDeep(node, false)) {
+        if (isNullable(groupExpr.i)) {
+          return validator.getTypeFactory().createTypeWithNullability(type,
+              true);
+        }
+      }
+    }
+    return type;
   }
 
   public SqlValidatorScope getOperandScope(SqlCall call) {
@@ -170,37 +233,6 @@ public class AggregatingSelectScope
 
   public void validateExpr(SqlNode expr) {
     checkAggregateExpr(expr, true);
-  }
-
-  /**
-   * Adds a GROUP BY expression.
-   *
-   * <p>This method is used when the GROUP BY list is validated, and
-   * expressions are expanded, in which case they are not structurally
-   * identical to the unexpanded form.  We leave the previous expression in
-   * the list (in case there are occurrences of the expression's unexpanded
-   * form in the parse tree.
-   *
-   * @param expr Expression
-   */
-  public void addGroupExpr(SqlNode expr) {
-    switch (expr.getKind()) {
-    case CUBE:
-    case GROUPING_SETS:
-    case ROLLUP:
-    case ROW:
-      for (SqlNode child : ((SqlCall) expr).getOperandList()) {
-        addGroupExpr(child);
-      }
-      break;
-    default:
-      for (SqlNode existingNode : groupExprList) {
-        if (existingNode.equalsDeep(expr, false)) {
-          return;
-        }
-      }
-      groupExprList.add(expr);
-    }
   }
 }
 

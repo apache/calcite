@@ -165,6 +165,10 @@ public interface SqlValidatorScope {
    * @return Namespace of table
    */
   SqlValidatorNamespace getTableNamespace(List<String> names);
+
+  /** Converts the type of an expression to nullable, if the context
+   * warrants it. */
+  RelDataType nullifyType(SqlNode node, RelDataType type);
 }
 
 // End SqlValidatorScope.java

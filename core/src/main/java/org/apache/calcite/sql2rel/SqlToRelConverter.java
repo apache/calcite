@@ -16,7 +16,6 @@
  */
 package org.apache.calcite.sql2rel;
 
-import org.apache.calcite.linq4j.Linq4j;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptCluster;
@@ -31,6 +30,7 @@ import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollationImpl;
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.Collect;
 import org.apache.calcite.rel.core.Correlation;
@@ -114,6 +114,7 @@ import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.type.TableFunctionReturnTypeInference;
 import org.apache.calcite.sql.util.SqlBasicVisitor;
 import org.apache.calcite.sql.util.SqlVisitor;
+import org.apache.calcite.sql.validate.AggregatingSelectScope;
 import org.apache.calcite.sql.validate.CollectNamespace;
 import org.apache.calcite.sql.validate.DelegatingScope;
 import org.apache.calcite.sql.validate.ListScope;
@@ -148,7 +149,6 @@ import java.lang.reflect.Type;
 import java.math.BigDecimal;
 import java.util.AbstractList;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumSet;
@@ -2502,7 +2502,7 @@ public class SqlToRelConverter {
 
   protected final void createAggImpl(
       Blackboard bb,
-      AggConverter aggConverter,
+      final AggConverter aggConverter,
       SqlNodeList selectList,
       SqlNodeList groupList,
       SqlNode having,
@@ -2532,24 +2532,9 @@ public class SqlToRelConverter {
     // Currently farrago allows expressions, not just column references in
     // group by list. This is not SQL 2003 compliant.
 
-    final Map<Integer, Integer> groupExprProjection = Maps.newHashMap();
-
-    final ImmutableList.Builder<ImmutableList<ImmutableBitSet>> builder =
-        ImmutableList.builder();
-    for (SqlNode groupExpr : groupList) {
-      convertGroupItem(bb, aggConverter, groupExprProjection, builder,
-          groupExpr);
-    }
-
-    final Set<ImmutableBitSet> flatGroupSets =
-        Sets.newTreeSet(ImmutableBitSet.COMPARATOR);
-    for (List<ImmutableBitSet> groupSet : Linq4j.product(builder.build())) {
-      flatGroupSets.add(ImmutableBitSet.union(groupSet));
-    }
-
-    // For GROUP BY (), we need a singleton grouping set.
-    if (flatGroupSets.isEmpty()) {
-      flatGroupSets.add(ImmutableBitSet.of());
+    final AggregatingSelectScope scope = aggConverter.aggregatingSelectScope;
+    for (SqlNode groupExpr : scope.groupExprList) {
+      aggConverter.addGroupExpr(groupExpr);
     }
 
     RexNode havingExpr = null;
@@ -2594,7 +2579,7 @@ public class SqlToRelConverter {
               preNames,
               true),
           false);
-      bb.mapRootRelToFieldProjection.put(bb.root, groupExprProjection);
+      bb.mapRootRelToFieldProjection.put(bb.root, scope.groupExprProjection);
 
       // REVIEW jvs 31-Oct-2007:  doesn't the declaration of
       // monotonicity here assume sort-based aggregation at
@@ -2609,12 +2594,43 @@ public class SqlToRelConverter {
 
       // Add the aggregator
       bb.setRoot(
-          createAggregate(bb, false,
-              ImmutableBitSet.range(aggConverter.groupExprs.size()),
-              ImmutableList.copyOf(flatGroupSets), aggConverter.getAggCalls()),
+          createAggregate(bb, aggConverter.aggregatingSelectScope.indicator,
+              scope.groupSet, scope.groupSets, aggConverter.getAggCalls()),
           false);
 
-      bb.mapRootRelToFieldProjection.put(bb.root, groupExprProjection);
+      // Generate NULL values for rolled-up not-null fields.
+      final Aggregate aggregate = (Aggregate) bb.root;
+      if (aggregate.getGroupType() != Aggregate.Group.SIMPLE) {
+        assert aggregate.indicator;
+        List<Pair<RexNode, String>> projects2 = Lists.newArrayList();
+        int converted = 0;
+        final int groupCount = aggregate.getGroupSet().cardinality();
+        for (RelDataTypeField field : aggregate.getRowType().getFieldList()) {
+          final int i = field.getIndex();
+          final RexNode rex;
+          if (i < groupCount && scope.isNullable(i)) {
+            ++converted;
+
+            rex = rexBuilder.makeCall(SqlStdOperatorTable.CASE,
+                rexBuilder.makeInputRef(aggregate, groupCount + i),
+                rexBuilder.makeCast(
+                    typeFactory.createTypeWithNullability(
+                        field.getType(), true),
+                    rexBuilder.constantNull()),
+                rexBuilder.makeInputRef(aggregate, i));
+          } else {
+            rex = rexBuilder.makeInputRef(aggregate, i);
+          }
+          projects2.add(Pair.of(rex, field.getName()));
+        }
+        if (converted > 0) {
+          bb.setRoot(
+              RelOptUtil.createProject(bb.root, projects2, true),
+              false);
+        }
+      }
+
+      bb.mapRootRelToFieldProjection.put(bb.root, scope.groupExprProjection);
 
       // Replace subqueries in having here and modify having to use
       // the replaced expressions
@@ -2687,175 +2703,6 @@ public class SqlToRelConverter {
       bb.columnMonotonicities.add(
           bb.scope.getMonotonicity(selectItem));
     }
-  }
-
-  private void convertGroupItem(Blackboard bb, AggConverter aggConverter,
-      Map<Integer, Integer> groupExprProjection,
-      ImmutableList.Builder<ImmutableList<ImmutableBitSet>> topBuilder,
-      SqlNode groupExpr) {
-    final ImmutableList.Builder<ImmutableBitSet> builder =
-        ImmutableList.builder();
-    switch (groupExpr.getKind()) {
-    case GROUPING_SETS:
-      convertGroupSet(bb, aggConverter, groupExprProjection, builder,
-            groupExpr);
-      topBuilder.add(builder.build());
-      return;
-    case CUBE:
-    case ROLLUP:
-      // E.g. ROLLUP(a, (b, c)) becomes [{0}, {1, 2}]
-      // then we roll up to [(0, 1, 2), (0), ()]  -- note no (0, 1)
-      List<ImmutableBitSet> bitSets =
-          convertGroupTuple(bb, aggConverter,
-              groupExprProjection, ((SqlCall) groupExpr).getOperandList());
-      switch (groupExpr.getKind()) {
-      case ROLLUP:
-        rollup(builder, bitSets);
-        break;
-      default:
-        cube(builder, bitSets);
-        break;
-      }
-      topBuilder.add(builder.build());
-      return;
-    case OTHER:
-      if (groupExpr instanceof SqlNodeList) {
-        SqlNodeList list = (SqlNodeList) groupExpr;
-        for (SqlNode node : list) {
-          convertGroupItem(bb, aggConverter, groupExprProjection, topBuilder,
-              node);
-        }
-        return;
-      }
-      // fall through
-    default:
-      convertGroupSet(bb, aggConverter, groupExprProjection, builder,
-          groupExpr);
-      topBuilder.add(builder.build());
-    }
-  }
-
-  private void rollup(ImmutableList.Builder<ImmutableBitSet> builder,
-      List<ImmutableBitSet> bitSets) {
-    for (;;) {
-      builder.add(ImmutableBitSet.union(bitSets));
-      if (bitSets.isEmpty()) {
-        break;
-      }
-      bitSets = bitSets.subList(0, bitSets.size() - 1);
-    }
-  }
-
-  private void cube(ImmutableList.Builder<ImmutableBitSet> builder,
-      List<ImmutableBitSet> bitSets) {
-    // Given the bit sets [{1}, {2, 3}, {5}],
-    // form the lists [[{1}, {}], [{2, 3}, {}], [{5}, {}]].
-    final List<List<ImmutableBitSet>> bits = Lists.newArrayList();
-    for (ImmutableBitSet bitSet : bitSets) {
-      bits.add(Arrays.asList(bitSet, ImmutableBitSet.of()));
-    }
-    for (List<ImmutableBitSet> o : Linq4j.product(bits)) {
-      builder.add(ImmutableBitSet.union(o));
-    }
-  }
-
-  private void convertGroupSet(Blackboard bb, AggConverter aggConverter,
-      Map<Integer, Integer> groupExprProjection,
-      ImmutableList.Builder<ImmutableBitSet> builder, SqlNode groupExpr) {
-    switch (groupExpr.getKind()) {
-    case GROUPING_SETS:
-      final SqlCall call = (SqlCall) groupExpr;
-      for (SqlNode node : call.getOperandList()) {
-        convertGroupSet(bb, aggConverter, groupExprProjection, builder, node);
-      }
-      return;
-    case ROW:
-      final List<ImmutableBitSet> bitSets =
-          convertGroupTuple(bb, aggConverter, groupExprProjection,
-              ((SqlCall) groupExpr).getOperandList());
-      builder.add(ImmutableBitSet.union(bitSets));
-      return;
-    default:
-      builder.add(
-          convertGroupExpr(bb, aggConverter, groupExprProjection, groupExpr));
-      return;
-    }
-  }
-
-  private List<ImmutableBitSet> convertGroupTuple(Blackboard bb,
-      AggConverter aggConverter, Map<Integer, Integer> groupExprProjection,
-      List<SqlNode> operandList) {
-    List<ImmutableBitSet> list = Lists.newArrayList();
-    for (SqlNode operand : operandList) {
-      list.add(
-          convertGroupExpr(bb, aggConverter, groupExprProjection, operand));
-    }
-    return list;
-  }
-
-  private ImmutableBitSet convertGroupExpr(Blackboard bb,
-      AggConverter aggConverter, Map<Integer, Integer> groupExprProjection,
-      SqlNode groupExpr) {
-    final SqlNode expandedGroupExpr =
-        validator.expand(groupExpr, bb.scope);
-
-    switch (expandedGroupExpr.getKind()) {
-    case ROW:
-      return ImmutableBitSet.union(
-          convertGroupTuple(bb, aggConverter, groupExprProjection,
-              ((SqlCall) expandedGroupExpr).getOperandList()));
-    case OTHER:
-      if (expandedGroupExpr instanceof SqlNodeList
-          && ((SqlNodeList) expandedGroupExpr).size() == 0) {
-        return ImmutableBitSet.of();
-      }
-    }
-
-    final int ref = aggConverter.addGroupExpr(expandedGroupExpr);
-    if (expandedGroupExpr instanceof SqlIdentifier) {
-      // SQL 2003 does not allow expressions of column references
-      SqlIdentifier expr = (SqlIdentifier) expandedGroupExpr;
-
-      // column references should be fully qualified.
-      assert expr.names.size() == 2;
-      String originalRelName = expr.names.get(0);
-      String originalFieldName = expr.names.get(1);
-
-      int[] nsIndexes = {-1};
-      final SqlValidatorScope[] ancestorScopes = {null};
-      SqlValidatorNamespace foundNs =
-          bb.scope.resolve(
-              originalRelName,
-              ancestorScopes,
-              nsIndexes);
-
-      assert foundNs != null;
-      assert nsIndexes.length == 1;
-      int childNamespaceIndex = nsIndexes[0];
-
-      int namespaceOffset = 0;
-
-      if (childNamespaceIndex > 0) {
-        // If not the first child, need to figure out the width of
-        // output types from all the preceding namespaces
-        assert ancestorScopes[0] instanceof ListScope;
-        List<SqlValidatorNamespace> children =
-            ((ListScope) ancestorScopes[0]).getChildren();
-
-        for (int j = 0; j < childNamespaceIndex; j++) {
-          namespaceOffset +=
-              children.get(j).getRowType().getFieldCount();
-        }
-      }
-
-      RelDataTypeField field =
-          catalogReader.field(foundNs.getRowType(), originalFieldName);
-      int origPos = namespaceOffset + field.getIndex();
-
-      groupExprProjection.put(origPos, ref);
-    }
-
-    return ImmutableBitSet.of(ref);
   }
 
   /**
@@ -4210,9 +4057,9 @@ public class SqlToRelConverter {
       // GROUP BY clause, return a reference to the field.
       if (agg != null) {
         final SqlNode expandedGroupExpr = validator.expand(expr, scope);
-        final RexInputRef ref = agg.lookupGroupExpr(expandedGroupExpr);
-        if (ref != null) {
-          return ref;
+        final int ref = agg.lookupGroupExpr(expandedGroupExpr);
+        if (ref >= 0) {
+          return rexBuilder.makeInputRef(root, ref);
         }
         if (expr instanceof SqlCall) {
           final RexNode rex = agg.lookupAggregates((SqlCall) expr);
@@ -4505,8 +4352,13 @@ public class SqlToRelConverter {
   /**
    * Converts expressions to aggregates.
    *
-   * <p>Consider the expression SELECT deptno, SUM(2 * sal) FROM emp GROUP BY
-   * deptno Then
+   * <p>Consider the expression
+   *
+   * <blockquote>
+   * {@code SELECT deptno, SUM(2 * sal) FROM emp GROUP BY deptno}
+   * </blockquote>
+   *
+   * <p>Then:
    *
    * <ul>
    * <li>groupExprs = {SqlIdentifier(deptno)}</li>
@@ -4518,9 +4370,9 @@ public class SqlToRelConverter {
    */
   protected class AggConverter implements SqlVisitor<Void> {
     private final Blackboard bb;
+    public final AggregatingSelectScope aggregatingSelectScope;
 
-    private final Map<String, String> nameMap =
-        new HashMap<String, String>();
+    private final Map<String, String> nameMap = Maps.newHashMap();
 
     /**
      * The group-by expressions, in {@link SqlNode} format.
@@ -4534,24 +4386,18 @@ public class SqlToRelConverter {
      * elements in {@link #groupExprs}; the remaining elements are for
      * aggregates.
      */
-    private final List<RexNode> convertedInputExprs =
-        new ArrayList<RexNode>();
+    private final List<RexNode> convertedInputExprs = Lists.newArrayList();
 
     /**
      * Names of {@link #convertedInputExprs}, where the expressions are
      * simple mappings to input fields.
      */
-    private final List<String> convertedInputExprNames =
-        new ArrayList<String>();
+    private final List<String> convertedInputExprNames = Lists.newArrayList();
 
-    private final List<RexInputRef> inputRefs =
-        new ArrayList<RexInputRef>();
-    private final List<AggregateCall> aggCalls =
-        new ArrayList<AggregateCall>();
-    private final Map<SqlNode, RexNode> aggMapping =
-        new HashMap<SqlNode, RexNode>();
+    private final List<AggregateCall> aggCalls = Lists.newArrayList();
+    private final Map<SqlNode, RexNode> aggMapping = Maps.newHashMap();
     private final Map<AggregateCall, RexNode> aggCallMapping =
-        new HashMap<AggregateCall, RexNode>();
+        Maps.newHashMap();
 
     /**
      * Creates an AggConverter.
@@ -4564,6 +4410,8 @@ public class SqlToRelConverter {
      */
     public AggConverter(Blackboard bb, SqlSelect select) {
       this.bb = bb;
+      this.aggregatingSelectScope =
+          (AggregatingSelectScope) bb.getValidator().getSelectScope(select);
 
       // Collect all expressions used in the select list so that aggregate
       // calls can be named correctly.
@@ -4587,17 +4435,15 @@ public class SqlToRelConverter {
 
     public int addGroupExpr(SqlNode expr) {
       RexNode convExpr = bb.convertExpression(expr);
-      RexInputRef ref = lookupGroupExpr(expr);
-      if (ref == null) {
-        // Don't add duplicates, in e.g. "GROUP BY x, y, x"
-        groupExprs.add(expr);
-        String name = nameMap.get(expr.toString());
-        addExpr(convExpr, name);
-        final RelDataType type = convExpr.getType();
-        ref = rexBuilder.makeInputRef(type, inputRefs.size());
-        inputRefs.add(ref);
+      int ref = lookupGroupExpr(expr);
+      if (ref >= 0) {
+        return ref;
       }
-      return ref.getIndex();
+      final int index = groupExprs.size();
+      groupExprs.add(expr);
+      String name = nameMap.get(expr.toString());
+      addExpr(convExpr, name);
+      return index;
     }
 
     /**
@@ -4708,6 +4554,7 @@ public class SqlToRelConverter {
             rexBuilder.addAggCall(
                 aggCall,
                 groupExprs.size(),
+                aggregatingSelectScope.indicator,
                 aggCalls,
                 aggCallMapping,
                 argTypes);
@@ -4746,14 +4593,14 @@ public class SqlToRelConverter {
      * expressions, returns a reference to the expression, otherwise returns
      * null.
      */
-    public RexInputRef lookupGroupExpr(SqlNode expr) {
+    public int lookupGroupExpr(SqlNode expr) {
       for (int i = 0; i < groupExprs.size(); i++) {
         SqlNode groupExpr = groupExprs.get(i);
         if (expr.equalsDeep(groupExpr, false)) {
-          return inputRefs.get(i);
+          return i;
         }
       }
-      return null;
+      return -1;
     }
 
     public RexNode lookupAggregates(SqlCall call) {

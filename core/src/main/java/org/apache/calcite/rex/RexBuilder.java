@@ -259,15 +259,15 @@ public class RexBuilder {
    *
    * @param aggCall aggregate call to be added
    * @param groupCount number of groups in the aggregate relation
+   * @param indicator Whether the Aggregate has indicator (GROUPING) columns
    * @param aggCalls destination list of aggregate calls
    * @param aggCallMapping the dictionary of already added calls
    * @param aggArgTypes Argument types, not null
+   *
    * @return Rex expression for the given aggregate call
    */
-  public RexNode addAggCall(
-      AggregateCall aggCall,
-      int groupCount,
-      List<AggregateCall> aggCalls,
+  public RexNode addAggCall(AggregateCall aggCall, int groupCount,
+      boolean indicator, List<AggregateCall> aggCalls,
       Map<AggregateCall, RexNode> aggCallMapping,
       final List<RelDataType> aggArgTypes) {
     if (aggCall.getAggregation() instanceof SqlCountAggFunction
@@ -280,7 +280,7 @@ public class RexBuilder {
     }
     RexNode rex = aggCallMapping.get(aggCall);
     if (rex == null) {
-      int index = aggCalls.size() + groupCount;
+      int index = aggCalls.size() + groupCount * (indicator ? 2 : 1);
       aggCalls.add(aggCall);
       rex = makeInputRef(aggCall.getType(), index);
       aggCallMapping.put(aggCall, rex);

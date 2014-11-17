@@ -2023,9 +2023,11 @@ order by 2]]>
         <Resource name="plan">
             <![CDATA[
 Sort(sort0=[$1], dir0=[ASC])
-  LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}]], EXPR$2=[SUM($2)])
-    LogicalProject(DEPTNO=[$7], ENAME=[$1], SAL=[$5])
-      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalProject(DEPTNO=[$0], ENAME=[$1], EXPR$2=[$4])
+    LogicalProject(DEPTNO=[$0], ENAME=[CASE($3, null, $1)], i$#0: DEPTNO INTEGER=[$2], i$#1: ENAME VARCHAR(20)=[$3], EXPR$2=[$4])
+      LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}]], indicator=[true], EXPR$2=[SUM($2)])
+        LogicalProject(DEPTNO=[$7], ENAME=[$1], SAL=[$5])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
     </TestCase>
@@ -2040,10 +2042,11 @@ group by sal,
         </Resource>
         <Resource name="plan">
             <![CDATA[
-LogicalProject(EXPR$0=[$3])
-  LogicalAggregate(group=[{0, 1, 2}], groups=[[{0, 1, 2}, {0, 1}, {0, 2}]], EXPR$0=[SUM($0)])
-    LogicalProject(SAL=[$5], DEPTNO=[$7], ENAME=[$1])
-      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+LogicalProject(EXPR$0=[$6])
+  LogicalProject(SAL=[$0], DEPTNO=[CASE($4, null, $1)], ENAME=[CASE($5, null, $2)], i$#0: SAL INTEGER=[$3], i$#1: DEPTNO INTEGER=[$4], i$#2: ENAME VARCHAR(20)=[$5], EXPR$0=[$6])
+    LogicalAggregate(group=[{0, 1, 2}], groups=[[{0, 1, 2}, {0, 1}, {0, 2}]], indicator=[true], EXPR$0=[SUM($0)])
+      LogicalProject(SAL=[$5], DEPTNO=[$7], ENAME=[$1])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
     </TestCase>
@@ -2055,8 +2058,9 @@ group by grouping sets (a, b), grouping sets (c, d)]]>
         <Resource name="plan">
             <![CDATA[
 LogicalProject(EXPR$0=[1])
-  LogicalAggregate(group=[{0, 1, 2, 3}], groups=[[{0, 2}, {0, 3}, {1, 2}, {1, 3}]])
-    LogicalValues(tuples=[[{ 1, 2, 3, 4 }]])
+  LogicalProject(EXPR$0=[CASE($4, null, $0)], EXPR$1=[CASE($5, null, $1)], EXPR$2=[CASE($6, null, $2)], EXPR$3=[CASE($7, null, $3)], i$#0: EXPR$0 INTEGER=[$4], i$#1: EXPR$1 INTEGER=[$5], i$#2: EXPR$2 INTEGER=[$6], i$#3: EXPR$3 INTEGER=[$7])
+    LogicalAggregate(group=[{0, 1, 2, 3}], groups=[[{0, 2}, {0, 3}, {1, 2}, {1, 3}]], indicator=[true])
+      LogicalValues(tuples=[[{ 1, 2, 3, 4 }]])
 ]]>
         </Resource>
     </TestCase>
@@ -2068,8 +2072,9 @@ group by grouping sets (a, (a, b)), grouping sets (c), d]]>
         <Resource name="plan">
             <![CDATA[
 LogicalProject(EXPR$0=[1])
-  LogicalAggregate(group=[{0, 1, 2, 3}], groups=[[{0, 1, 2, 3}, {0, 2, 3}]])
-    LogicalValues(tuples=[[{ 1, 2, 3, 4 }]])
+  LogicalProject(EXPR$0=[$0], EXPR$1=[CASE($5, null, $1)], EXPR$2=[$2], EXPR$3=[$3], i$#0: EXPR$0 INTEGER=[$4], i$#1: EXPR$1 INTEGER=[$5], i$#2: EXPR$2 INTEGER=[$6], i$#3: EXPR$3 INTEGER=[$7])
+    LogicalAggregate(group=[{0, 1, 2, 3}], groups=[[{0, 1, 2, 3}, {0, 2, 3}]], indicator=[true])
+      LogicalValues(tuples=[[{ 1, 2, 3, 4 }]])
 ]]>
         </Resource>
     </TestCase>
@@ -2081,8 +2086,9 @@ group by rollup(a, b), rollup(c, d)]]>
         <Resource name="plan">
             <![CDATA[
 LogicalProject(EXPR$0=[1])
-  LogicalAggregate(group=[{0, 1, 2, 3}], groups=[[{0, 1, 2, 3}, {0, 1, 2}, {0, 1}, {0, 2, 3}, {0, 2}, {0}, {2, 3}, {2}, {}]])
-    LogicalValues(tuples=[[{ 1, 2, 3, 4 }]])
+  LogicalProject(EXPR$0=[CASE($4, null, $0)], EXPR$1=[CASE($5, null, $1)], EXPR$2=[CASE($6, null, $2)], EXPR$3=[CASE($7, null, $3)], i$#0: EXPR$0 INTEGER=[$4], i$#1: EXPR$1 INTEGER=[$5], i$#2: EXPR$2 INTEGER=[$6], i$#3: EXPR$3 INTEGER=[$7])
+    LogicalAggregate(group=[{0, 1, 2, 3}], groups=[[{0, 1, 2, 3}, {0, 1, 2}, {0, 1}, {0, 2, 3}, {0, 2}, {0}, {2, 3}, {2}, {}]], indicator=[true])
+      LogicalValues(tuples=[[{ 1, 2, 3, 4 }]])
 ]]>
         </Resource>
     </TestCase>
@@ -2094,9 +2100,10 @@ group by cube(a, b)]]>
         <Resource name="plan">
             <![CDATA[
 LogicalProject(EXPR$0=[1])
-  LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {1}, {}]])
-    LogicalProject(EXPR$0=[$0], EXPR$1=[$1])
-      LogicalValues(tuples=[[{ 1, 2, 3, 4 }]])
+  LogicalProject(EXPR$0=[CASE($2, null, $0)], EXPR$1=[CASE($3, null, $1)], i$#0: EXPR$0 INTEGER=[$2], i$#1: EXPR$1 INTEGER=[$3])
+    LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {1}, {}]], indicator=[true])
+      LogicalProject(EXPR$0=[$0], EXPR$1=[$1])
+        LogicalValues(tuples=[[{ 1, 2, 3, 4 }]])
 ]]>
         </Resource>
     </TestCase>
@@ -2108,9 +2115,10 @@ group by rollup(b, (a, d))]]>
         <Resource name="plan">
             <![CDATA[
 LogicalProject(EXPR$0=[1])
-  LogicalAggregate(group=[{0, 1, 2}], groups=[[{0, 1, 2}, {0}, {}]])
-    LogicalProject(EXPR$1=[$1], EXPR$0=[$0], EXPR$3=[$3])
-      LogicalValues(tuples=[[{ 1, 2, 3, 4 }]])
+  LogicalProject(EXPR$1=[CASE($3, null, $0)], EXPR$0=[CASE($4, null, $1)], EXPR$3=[CASE($5, null, $2)], i$#0: EXPR$1 INTEGER=[$3], i$#1: EXPR$0 INTEGER=[$4], i$#2: EXPR$3 INTEGER=[$5])
+    LogicalAggregate(group=[{0, 1, 2}], groups=[[{0, 1, 2}, {0}, {}]], indicator=[true])
+      LogicalProject(EXPR$1=[$1], EXPR$0=[$0], EXPR$3=[$3])
+        LogicalValues(tuples=[[{ 1, 2, 3, 4 }]])
 ]]>
         </Resource>
     </TestCase>
@@ -2123,8 +2131,39 @@ group by rollup(a, b), rollup(c, d)]]>
         <Resource name="plan">
             <![CDATA[
 LogicalProject(EXPR$0=[1])
-  LogicalAggregate(group=[{0, 1, 2, 3}], groups=[[{0, 1, 2, 3}, {0, 1, 2}, {0, 1}, {0, 2, 3}, {0, 2}, {0}, {2, 3}, {2}, {}]])
-    LogicalValues(tuples=[[{ 1, 2, 3, 4 }]])
+  LogicalProject(EXPR$0=[CASE($4, null, $0)], EXPR$1=[CASE($5, null, $1)], EXPR$2=[CASE($6, null, $2)], EXPR$3=[CASE($7, null, $3)], i$#0: EXPR$0 INTEGER=[$4], i$#1: EXPR$1 INTEGER=[$5], i$#2: EXPR$2 INTEGER=[$6], i$#3: EXPR$3 INTEGER=[$7])
+    LogicalAggregate(group=[{0, 1, 2, 3}], groups=[[{0, 1, 2, 3}, {0, 1, 2}, {0, 1}, {0, 2, 3}, {0, 2}, {0}, {2, 3}, {2}, {}]], indicator=[true])
+      LogicalValues(tuples=[[{ 1, 2, 3, 4 }]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testRollupSimple">
+        <Resource name="sql">
+            <![CDATA[select a, b, count(*) as c
+from (values (cast(null as integer), 2)) as t(a, b)
+group by rollup(a, b)]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(A=[$0], B=[$1], C=[$4])
+  LogicalProject(A=[CASE($2, null, $0)], B=[CASE($3, null, $1)], i$#0: A INTEGER=[$2], i$#1: B INTEGER=[$3], C=[$4])
+    LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {}]], indicator=[true], C=[COUNT()])
+      LogicalProject(A=[$0], B=[$1])
+        LogicalProject(EXPR$0=[null], EXPR$1=[2])
+          LogicalValues(tuples=[[{ 0 }]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testGroupByExpression">
+        <Resource name="sql">
+            <![CDATA[select count(*) from emp group by substring(ename FROM 1 FOR 1)]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(EXPR$0=[$1])
+  LogicalAggregate(group=[{0}], EXPR$0=[COUNT()])
+    LogicalProject($f0=[SUBSTRING($1, 1, 1)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
     </TestCase>

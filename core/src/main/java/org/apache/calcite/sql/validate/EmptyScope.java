@@ -76,6 +76,10 @@ class EmptyScope implements SqlValidatorScope {
         : null;
   }
 
+  public RelDataType nullifyType(SqlNode node, RelDataType type) {
+    return type;
+  }
+
   public void findAllColumnNames(List<SqlMoniker> result) {
   }
 

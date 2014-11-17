@@ -113,6 +113,10 @@ public abstract class DelegatingScope implements SqlValidatorScope {
     return parent.resolveColumn(name, ctx);
   }
 
+  public RelDataType nullifyType(SqlNode node, RelDataType type) {
+    return parent.nullifyType(node, type);
+  }
+
   public SqlValidatorNamespace getTableNamespace(List<String> names) {
     return parent.getTableNamespace(names);
   }

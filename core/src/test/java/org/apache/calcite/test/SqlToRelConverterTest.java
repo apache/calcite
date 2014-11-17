@@ -251,6 +251,15 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
       + "group by grouping sets (a, (a, b)), grouping sets (c), d").ok();
   }
 
+  @Test public void testRollupSimple() {
+    // a is nullable so is translated as just "a"
+    // b is not null, so is represented as 0 inside Aggregate, then
+    // using "CASE WHEN i$b THEN NULL ELSE b END"
+    sql("select a, b, count(*) as c\n"
+        + "from (values (cast(null as integer), 2)) as t(a, b)\n"
+        + "group by rollup(a, b)").ok();
+  }
+
   @Test public void testRollup() {
     // Equivalent to {(a, b), (a), ()}  * {(c, d), (c), ()}
     sql("select 1 from (values (1, 2, 3, 4)) as t(a, b, c, d)\n"
@@ -297,6 +306,14 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
         + "select deptno, name, count(deptno) as foo "
         + "from dept "
         + "group by name, deptno, name)").ok();
+  }
+
+  @Test public void testGroupByExpression() {
+    // This used to cause an infinite loop,
+    // SqlValidatorImpl.getValidatedNodeType
+    // calling getValidatedNodeTypeIfKnown
+    // calling getValidatedNodeType.
+    sql("select count(*) from emp group by substring(ename FROM 1 FOR 1)").ok();
   }
 
   @Test public void testAggDistinct() {

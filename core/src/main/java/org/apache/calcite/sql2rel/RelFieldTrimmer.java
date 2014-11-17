@@ -736,12 +736,9 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
       Aggregate aggregate,
       ImmutableBitSet fieldsUsed,
       Set<RelDataTypeField> extraFields) {
-    if (aggregate.indicator) {
-      throw new AssertionError(Bug.CALCITE_461_FIXED);
-    }
     // Fields:
     //
-    // | sys fields | group fields | agg functions |
+    // | sys fields | group fields | indicator fields | agg functions |
     //
     // Two kinds of trimming:
     //
@@ -750,7 +747,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
     //
     // 2. If aggregate functions are not used, remove them.
     //
-    // But grouping fields stay, even if they are not used.
+    // But group and indicator fields stay, even if they are not used.
 
     final RelDataType rowType = aggregate.getRowType();
 
@@ -773,6 +770,13 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
     final RelNode newInput = trimResult.left;
     final Mapping inputMapping = trimResult.right;
 
+    // We have to return group keys and (if present) indicators.
+    // So, pretend that the consumer asked for them.
+    final int groupCount = aggregate.getGroupSet().cardinality();
+    final int indicatorCount = aggregate.indicator ? groupCount : 0;
+    fieldsUsed =
+        fieldsUsed.union(ImmutableBitSet.range(groupCount + indicatorCount));
+
     // If the input is unchanged, and we need to project all columns,
     // there's nothing to do.
     if (input == newInput
@@ -783,8 +787,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
     }
 
     // Which agg calls are used by our consumer?
-    final int groupCount = aggregate.getGroupSet().cardinality();
-    int j = groupCount;
+    int j = groupCount + indicatorCount;
     int usedAggCallCount = 0;
     for (int i = 0; i < aggregate.getAggCallList().size(); i++) {
       if (fieldsUsed.get(j++)) {
@@ -797,16 +800,14 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
         Mappings.create(
             MappingType.INVERSE_SURJECTION,
             rowType.getFieldCount(),
-            groupCount
-                + usedAggCallCount);
+            groupCount + indicatorCount + usedAggCallCount);
 
     final ImmutableBitSet newGroupSet =
         Mappings.apply(inputMapping, aggregate.getGroupSet());
 
     final ImmutableList<ImmutableBitSet> newGroupSets =
         ImmutableList.copyOf(
-            Iterables.transform(
-                aggregate.getGroupSets(),
+            Iterables.transform(aggregate.getGroupSets(),
                 new Function<ImmutableBitSet, ImmutableBitSet>() {
                   public ImmutableBitSet apply(ImmutableBitSet input) {
                     return Mappings.apply(inputMapping, input);
@@ -818,13 +819,16 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
     for (IntPair pair : inputMapping) {
       if (pair.source < groupCount) {
         mapping.set(pair.source, pair.target);
+        if (aggregate.indicator) {
+          mapping.set(pair.source + groupCount, pair.target + groupCount);
+        }
       }
     }
 
     // Now create new agg calls, and populate mapping for them.
     final List<AggregateCall> newAggCallList =
         new ArrayList<AggregateCall>();
-    j = groupCount;
+    j = groupCount + indicatorCount;
     for (AggregateCall aggCall : aggregate.getAggCallList()) {
       if (fieldsUsed.get(j)) {
         AggregateCall newAggCall =
@@ -832,17 +836,14 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
         if (newAggCall.equals(aggCall)) {
           newAggCall = aggCall; // immutable -> canonize to save space
         }
-        mapping.set(
-            j,
-            groupCount
-                + newAggCallList.size());
+        mapping.set(j, groupCount + indicatorCount + newAggCallList.size());
         newAggCallList.add(newAggCall);
       }
       ++j;
     }
 
     RelNode newAggregate = aggregateFactory.createAggregate(newInput,
-        false, newGroupSet, newGroupSets, newAggCallList);
+        aggregate.indicator, newGroupSet, newGroupSets, newAggCallList);
 
     assert newAggregate.getClass() == aggregate.getClass();
 

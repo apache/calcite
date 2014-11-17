@@ -148,7 +148,7 @@ public enum JavaRowFormat {
             Expressions.call(
                 List.class,
                 null,
-                BuiltInMethod.ARRAYS_AS_LIST.method,
+                BuiltInMethod.LIST_N.method,
                 Expressions.newArrayInit(
                     Object.class,
                     expressions)),

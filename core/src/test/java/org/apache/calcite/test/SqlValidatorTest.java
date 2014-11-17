@@ -28,9 +28,12 @@ import org.apache.calcite.sql.test.SqlTester;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlValidator;
+import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.util.Bug;
+import org.apache.calcite.util.ImmutableBitSet;
 
-import org.hamcrest.CoreMatchers;
+import com.google.common.collect.ImmutableList;
+
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -41,6 +44,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.logging.Logger;
 
+import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
@@ -4579,9 +4583,92 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   @Test public void testInvalidGroupBy() {
-    checkFails(
-        "select ^empno^, deptno from emp group by deptno",
-        "Expression 'EMPNO' is not being grouped");
+    sql("select ^empno^, deptno from emp group by deptno")
+        .fails("Expression 'EMPNO' is not being grouped");
+  }
+
+  @Test public void testInvalidGroupBy2() {
+    sql("select count(*) from emp group by ^deptno + 'a'^")
+        .fails("(?s)Cannot apply '\\+' to arguments of type.*");
+  }
+
+  @Test public void testInvalidGroupBy3() {
+    sql("select deptno / 2 + 1, count(*) as c\n"
+        + "from emp\n"
+        + "group by rollup(deptno / 2, sal), rollup(empno, ^deptno + 'a'^)")
+        .fails("(?s)Cannot apply '\\+' to arguments of type.*");
+  }
+
+  /** Unit test for
+   * {@link org.apache.calcite.sql.validate.SqlValidatorUtil#rollup}. */
+  @Test public void testRollupBitSets() {
+    assertThat(rollup(ImmutableBitSet.of(1), ImmutableBitSet.of(3)).toString(),
+        equalTo("[{1, 3}, {1}, {}]"));
+    assertThat(rollup(ImmutableBitSet.of(1), ImmutableBitSet.of(3, 4))
+            .toString(),
+        equalTo("[{1, 3, 4}, {1}, {}]"));
+    assertThat(rollup(ImmutableBitSet.of(1, 3), ImmutableBitSet.of(4))
+            .toString(),
+        equalTo("[{1, 3, 4}, {1, 3}, {}]"));
+    assertThat(rollup(ImmutableBitSet.of(1, 4), ImmutableBitSet.of(3))
+            .toString(),
+        equalTo("[{1, 3, 4}, {1, 4}, {}]"));
+    // non-disjoint bit sets
+    assertThat(rollup(ImmutableBitSet.of(1, 4), ImmutableBitSet.of(3, 4))
+            .toString(),
+        equalTo("[{1, 3, 4}, {1, 4}, {}]"));
+    // some bit sets are empty
+    assertThat(
+        rollup(ImmutableBitSet.of(1, 4), ImmutableBitSet.of(),
+            ImmutableBitSet.of(3, 4), ImmutableBitSet.of()).toString(),
+        equalTo("[{1, 3, 4}, {1, 4}, {}]"));
+    assertThat(rollup(ImmutableBitSet.of(1)).toString(),
+        equalTo("[{1}, {}]"));
+    // one empty bit set
+    assertThat(rollup(ImmutableBitSet.of()).toString(),
+        equalTo("[{}]"));
+    // no bit sets
+    assertThat(rollup().toString(),
+        equalTo("[{}]"));
+  }
+
+  private ImmutableList<ImmutableBitSet> rollup(ImmutableBitSet... sets) {
+    return SqlValidatorUtil.rollup(ImmutableList.copyOf(sets));
+  }
+
+  /** Unit test for
+   * {@link org.apache.calcite.sql.validate.SqlValidatorUtil#cube}. */
+  @Test public void testCubeBitSets() {
+    assertThat(cube(ImmutableBitSet.of(1), ImmutableBitSet.of(3)).toString(),
+        equalTo("[{1, 3}, {1}, {3}, {}]"));
+    assertThat(cube(ImmutableBitSet.of(1), ImmutableBitSet.of(3, 4)).toString(),
+        equalTo("[{1, 3, 4}, {1}, {3, 4}, {}]"));
+    assertThat(cube(ImmutableBitSet.of(1, 3), ImmutableBitSet.of(4)).toString(),
+        equalTo("[{1, 3, 4}, {1, 3}, {4}, {}]"));
+    assertThat(cube(ImmutableBitSet.of(1, 4), ImmutableBitSet.of(3)).toString(),
+        equalTo("[{1, 3, 4}, {1, 4}, {3}, {}]"));
+    // non-disjoint bit sets
+    assertThat(
+        cube(ImmutableBitSet.of(1, 4), ImmutableBitSet.of(3, 4)).toString(),
+        equalTo("[{1, 3, 4}, {1, 4}, {3, 4}, {}]"));
+    // some bit sets are empty, and there are duplicates
+    assertThat(
+        cube(ImmutableBitSet.of(1, 4),
+            ImmutableBitSet.of(),
+            ImmutableBitSet.of(1, 4),
+            ImmutableBitSet.of(3, 4),
+            ImmutableBitSet.of()).toString(),
+        equalTo("[{1, 3, 4}, {1, 4}, {3, 4}, {}]"));
+    assertThat(cube(ImmutableBitSet.of(1)).toString(),
+        equalTo("[{1}, {}]"));
+    assertThat(cube(ImmutableBitSet.of()).toString(),
+        equalTo("[{}]"));
+    assertThat(cube().toString(),
+        equalTo("[{}]"));
+  }
+
+  private ImmutableList<ImmutableBitSet> cube(ImmutableBitSet... sets) {
+    return SqlValidatorUtil.cube(ImmutableList.copyOf(sets));
   }
 
   @Test public void testSumInvalidArgs() {
@@ -5483,9 +5570,27 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   @Test public void testRollup() {
+    // DEPTNO is not null in database, but rollup introduces nulls
     sql("select deptno, count(*) as c, sum(sal) as s\n"
         + "from emp\n"
-        + "group by rollup(deptno)").ok();
+        + "group by rollup(deptno)")
+        .ok()
+        .type(
+            "RecordType(INTEGER DEPTNO, BIGINT NOT NULL C, INTEGER NOT NULL S) NOT NULL");
+
+    // EMPNO stays NOT NULL because it is not rolled up
+    sql("select deptno, empno\n"
+        + "from emp\n"
+        + "group by empno, rollup(deptno)")
+        .ok()
+        .type("RecordType(INTEGER DEPTNO, INTEGER NOT NULL EMPNO) NOT NULL");
+
+    // DEPTNO stays NOT NULL because it is not rolled up
+    sql("select deptno, empno\n"
+        + "from emp\n"
+        + "group by rollup(empno), deptno")
+        .ok()
+        .type("RecordType(INTEGER NOT NULL DEPTNO, INTEGER EMPNO) NOT NULL");
   }
 
   @Test public void testGroupByCorrelatedColumnFails() {
@@ -6512,7 +6617,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
       case INTERNAL:
         break;
       default:
-        assertThat(name.toUpperCase(), CoreMatchers.equalTo(name));
+        assertThat(name.toUpperCase(), equalTo(name));
         break;
       }
     }

@@ -64,6 +64,7 @@ import java.lang.reflect.Method;
 import java.sql.ResultSet;
 import java.sql.Time;
 import java.sql.Timestamp;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.Collections;
@@ -148,7 +149,8 @@ public enum BuiltInMethod {
   ARRAY_COMPARER(Functions.class, "arrayComparer"),
   FUNCTION0_APPLY(Function0.class, "apply"),
   FUNCTION1_APPLY(Function1.class, "apply", Object.class),
-  ARRAYS_AS_LIST(FlatLists.class, "of", Object[].class),
+  ARRAYS_AS_LIST(Arrays.class, "asList", Object[].class),
+  LIST_N(FlatLists.class, "of", Object[].class),
   LIST2(FlatLists.class, "of", Object.class, Object.class),
   LIST3(FlatLists.class, "of", Object.class, Object.class, Object.class),
   IDENTITY_COMPARER(Functions.class, "identityComparer"),
