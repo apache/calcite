@@ -993,6 +993,12 @@ public class Linq4jTest {
     final Enumerable<String> xy =
         Linq4j.asEnumerable(Arrays.asList("x", "y"));
 
+    final Enumerator<List<String>> productEmpty =
+        Linq4j.product(Arrays.<Enumerator<String>>asList());
+    assertTrue(productEmpty.moveNext());
+    assertEquals(Arrays.<String>asList(), productEmpty.current());
+    assertFalse(productEmpty.moveNext());
+
     final Enumerator<List<String>> product0 =
         Linq4j.product(
             Arrays.asList(Linq4j.<String>emptyEnumerator()));

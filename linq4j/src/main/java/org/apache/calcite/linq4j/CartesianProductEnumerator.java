@@ -41,9 +41,6 @@ class CartesianProductEnumerator<T> implements Enumerator<List<T>> {
 
   public boolean moveNext() {
     if (first) {
-      if (enumerators.isEmpty()) {
-        return false;
-      }
       int i = 0;
       for (Enumerator<T> enumerator : enumerators) {
         if (!enumerator.moveNext()) {
@@ -54,8 +51,7 @@ class CartesianProductEnumerator<T> implements Enumerator<List<T>> {
       first = false;
       return true;
     }
-    int ordinal = enumerators.size() - 1;
-    for (;;) {
+    for (int ordinal = enumerators.size() - 1; ordinal >= 0; --ordinal) {
       final Enumerator<T> enumerator = enumerators.get(ordinal);
       if (enumerator.moveNext()) {
         elements[ordinal] = enumerator.current();
@@ -69,13 +65,8 @@ class CartesianProductEnumerator<T> implements Enumerator<List<T>> {
         return false;
       }
       elements[ordinal] = enumerator.current();
-
-      // Advance higher rank enumerator.
-      if (ordinal == 0) {
-        return false;
-      }
-      --ordinal;
     }
+    return false;
   }
 
   public void reset() {
