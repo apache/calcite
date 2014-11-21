@@ -304,6 +304,17 @@ public class SqlValidatorUtil {
     return null;
   }
 
+  public static AggregatingSelectScope
+  getEnclosingAggregateSelectScope(SqlValidatorScope scope) {
+    while (scope instanceof DelegatingScope) {
+      if (scope instanceof AggregatingSelectScope) {
+        return (AggregatingSelectScope) scope;
+      }
+      scope = ((DelegatingScope) scope).getParent();
+    }
+    return null;
+  }
+
   /**
    * Derives the list of column names suitable for NATURAL JOIN. These are the
    * columns that occur exactly once on each side of the join.

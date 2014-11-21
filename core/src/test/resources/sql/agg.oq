@@ -423,4 +423,60 @@ having count(*) > 2 or gender = 'M' and e.deptno = 10;
 
 !ok
 
+# GROUPING in SELECT clause of GROUP BY query
+select count(*) as c, grouping(deptno) as g
+from emp
+group by deptno;
++---+---+
+| C | G |
++---+---+
+| 1 | 1 |
+| 1 | 1 |
+| 1 | 1 |
+| 2 | 1 |
+| 2 | 1 |
+| 2 | 1 |
++---+---+
+(6 rows)
+
+!ok
+
+# GROUPING in ORDER BY clause
+select count(*) as c
+from emp
+group by deptno
+order by grouping(deptno);
++---+
+| C |
++---+
+| 1 |
+| 2 |
+| 1 |
+| 2 |
+| 1 |
+| 2 |
++---+
+(6 rows)
+
+!ok
+
+# GROUPING in SELECT clause of ROLLUP query
+select count(*) as c, deptno, grouping(deptno) as g
+from emp
+group by rollup(deptno);
++---+--------+---+
+| C | DEPTNO | G |
++---+--------+---+
+| 1 |     20 | 0 |
+| 1 |     60 | 0 |
+| 1 |        | 0 |
+| 2 |     10 | 0 |
+| 2 |     30 | 0 |
+| 2 |     50 | 0 |
+| 9 |        | 1 |
++---+--------+---+
+(7 rows)
+
+!ok
+
 # End agg.oq

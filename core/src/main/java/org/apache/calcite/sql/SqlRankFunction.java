@@ -18,17 +18,12 @@ package org.apache.calcite.sql;
 
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
-import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
-import org.apache.calcite.sql.validate.SqlValidator;
-import org.apache.calcite.sql.validate.SqlValidatorScope;
 
 import com.google.common.collect.ImmutableList;
 
 import java.util.List;
-
-import static org.apache.calcite.util.Static.RESOURCE;
 
 /**
  * Operator which aggregates sets of values into a result.
@@ -66,16 +61,6 @@ public class SqlRankFunction extends SqlAggFunction {
 
   public List<RelDataType> getParameterTypes(RelDataTypeFactory typeFactory) {
     return ImmutableList.of(type);
-  }
-
-  public void validateCall(
-      SqlCall call,
-      SqlValidator validator,
-      SqlValidatorScope scope,
-      SqlValidatorScope operandScope) {
-    final SqlParserPos pos = call.getParserPosition();
-    throw SqlUtil.newContextException(pos,
-        RESOURCE.functionUndefined(call.toString()));
   }
 }
 

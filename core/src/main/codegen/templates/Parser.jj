@@ -4197,6 +4197,7 @@ SqlIdentifier ReservedFunctionName() :
         | <EXP>
         | <FIRST_VALUE>
         | <FUSION>
+        | <GROUPING>
         | <LAST_VALUE>
         | <LN>
         | <LOCALTIME>

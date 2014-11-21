@@ -4607,6 +4607,21 @@ public class SqlToRelConverter {
       // assert call.getOperator().isAggregator();
       assert bb.agg == this;
 
+      switch (call.getKind()) {
+      case GROUPING:
+        if (aggregatingSelectScope.indicator) {
+          final int x = lookupGroupExpr(call.getOperandList().get(0));
+          if (x >= 0) {
+            return rexBuilder.makeCall(SqlStdOperatorTable.CASE,
+                rexBuilder.makeInputRef(bb.root,
+                    aggregatingSelectScope.groupExprList.size() + x),
+                rexBuilder.makeExactLiteral(BigDecimal.ONE),
+                rexBuilder.makeExactLiteral(BigDecimal.ZERO));
+          }
+        } else {
+          return rexBuilder.makeExactLiteral(BigDecimal.ONE);
+        }
+      }
       return aggMapping.get(call);
     }
 

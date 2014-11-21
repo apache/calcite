@@ -272,7 +272,7 @@ public abstract class Aggregate extends SingleRel {
         final RelDataType booleanType =
             typeFactory.createTypeWithNullability(
                 typeFactory.createSqlType(SqlTypeName.BOOLEAN), false);
-        builder.add("i$" + fieldList.get(groupKey), booleanType);
+        builder.add("i$" + fieldList.get(groupKey).getName(), booleanType);
       }
     }
     for (Ord<AggregateCall> aggCall : Ord.zip(aggCalls)) {

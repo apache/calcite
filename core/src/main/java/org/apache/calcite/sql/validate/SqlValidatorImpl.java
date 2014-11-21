@@ -3729,6 +3729,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     targetWindow.setWindowCall(call);
     targetWindow.validate(this, scope);
     targetWindow.setWindowCall(null);
+    call.validate(this, scope);
   }
 
   public void validateAggregateParams(

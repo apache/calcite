@@ -215,6 +215,32 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
         + "order by 2").ok();
   }
 
+  @Test public void testGroupingSetsProduct() {
+    // Example in SQL:2011:
+    //   GROUP BY GROUPING SETS ((A, B), (C)), GROUPING SETS ((X, Y), ())
+    // is transformed to
+    //   GROUP BY GROUPING SETS ((A, B, X, Y), (A, B), (C, X, Y), (C))
+    sql("select 1\n"
+        + "from (values (0, 1, 2, 3, 4)) as t(a, b, c, x, y)\n"
+        + "group by grouping sets ((a, b), c), grouping sets ((x, y), ())")
+        .ok();
+  }
+
+  /** When the GROUPING function occurs with GROUP BY (effectively just one
+   * grouping set), we can translate it directly to 1. */
+  @Test public void testGroupingFunctionWithGroupBy() {
+    sql("select deptno, grouping(deptno), count(*), grouping(empno)\n"
+        + "from emp\n"
+        + "group by empno, deptno\n"
+        + "order by 2").ok();
+  }
+
+  @Test public void testGroupingFunction() {
+    sql("select deptno, grouping(deptno), count(*), grouping(empno)\n"
+        + "from emp\n"
+        + "group by rollup(empno, deptno)").ok();
+  }
+
   /**
    * GROUP BY with duplicates
    *

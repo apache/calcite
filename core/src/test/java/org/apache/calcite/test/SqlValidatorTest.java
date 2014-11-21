@@ -3836,7 +3836,9 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   @Test public void testWindowFunctions2() {
-    List<String> defined = Arrays.asList("RANK", "ROW_NUMBER");
+    List<String> defined =
+        Arrays.asList("CUME_DIST", "DENSE_RANK", "PERCENT_RANK", "RANK",
+            "ROW_NUMBER");
     if (Bug.TODO_FIXED) {
       checkColumnType(
           "select rank() over (order by deptno) from emp",
@@ -3889,9 +3891,18 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         "select dense_rank() over w from emp window w as (order by empno ^rows^ 2 preceding)")
         .fails("ROW/RANGE not allowed with RANK or DENSE_RANK functions");
     if (defined.contains("PERCENT_RANK")) {
-      winSql(
-          "select percent_rank() over w from emp window w as (rows 2 preceding )")
+      winSql("select percent_rank() over w from emp\n"
+          + "window w as (order by empno)")
           .ok();
+      winSql(
+          "select percent_rank() over w from emp\n"
+          + "window w as (order by empno ^rows^ 2 preceding)")
+          .fails("ROW/RANGE not allowed with RANK or DENSE_RANK functions");
+      winSql(
+          "select percent_rank() over w from emp\n"
+          + "window w as ^(partition by empno)^")
+          .fails(
+              "RANK or DENSE_RANK functions require ORDER BY clause in window specification");
     } else {
       checkWinFuncExpWithWinClause(
           "^percent_rank()^",
@@ -3899,9 +3910,16 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     }
     if (defined.contains("CUME_DIST")) {
       winSql(
-          "select cume_dist() over w from emp window w as (rows 2 preceding)")
+          "select cume_dist() over w from emp window w as ^(rows 2 preceding)^")
+          .fails(
+              "RANK or DENSE_RANK functions require ORDER BY clause in window specification");
+      winSql(
+          "select cume_dist() over w from emp window w as (order by empno ^rows^ 2 preceding)")
+          .fails("ROW/RANGE not allowed with RANK or DENSE_RANK functions");
+      winSql(
+          "select cume_dist() over w from emp window w as (order by empno)")
           .ok();
-      winSql("select cume_dist() over (rows 2 preceding ) from emp ").ok();
+      winSql("select cume_dist() over (order by empno) from emp ").ok();
     } else {
       checkWinFuncExpWithWinClause(
           "^cume_dist()^",
@@ -3914,7 +3932,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         "select dense_rank() over (order by empno ^rows^ 2 preceding ) from emp ")
         .fails("ROW/RANGE not allowed with RANK or DENSE_RANK functions");
     if (defined.contains("PERCENT_RANK")) {
-      winSql("select percent_rank() over (rows 2 preceding ) from emp").ok();
+      winSql("select percent_rank() over (order by empno) from emp").ok();
     }
 
     // invalid column reference
@@ -4669,6 +4687,70 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
   private ImmutableList<ImmutableBitSet> cube(ImmutableBitSet... sets) {
     return SqlValidatorUtil.cube(ImmutableList.copyOf(sets));
+  }
+
+  @Test public void testGrouping() {
+    sql("select deptno, grouping(deptno) from emp group by deptno").ok();
+    sql("select deptno / 2, grouping(deptno / 2),\n"
+        + " ^grouping(deptno / 2, empno)^\n"
+        + "from emp group by deptno / 2, empno")
+        .fails(
+            "Invalid number of arguments to function 'GROUPING'. Was expecting 1 arguments");
+    sql("select deptno, grouping(^empno^) from emp group by deptno")
+        .fails("Expression 'EMPNO' is not being grouped");
+    sql("select deptno, grouping(^deptno + 1^) from emp group by deptno")
+        .fails("Argument to GROUPING operator must be a grouped expression");
+    sql("select deptno, grouping(emp.^xxx^) from emp")
+        .fails("Column 'XXX' not found in table 'EMP'");
+    sql("select deptno, ^grouping(deptno)^ from emp")
+        .fails("GROUPING operator may only occur in an aggregate query");
+    sql("select deptno, sum(^grouping(deptno)^) over () from emp")
+        .fails("GROUPING operator may only occur in an aggregate query");
+    sql("select deptno from emp group by deptno having grouping(deptno) < 5")
+        .ok();
+    sql("select deptno from emp group by deptno order by grouping(deptno)")
+        .ok();
+    sql("select deptno as xx from emp group by deptno order by grouping(xx)")
+        .ok();
+    sql("select deptno as empno from emp\n"
+        + "group by deptno order by grouping(empno)")
+        .ok();
+    sql("select 1 as deptno from emp\n"
+        + "group by deptno order by grouping(^deptno^)")
+        .fails("Argument to GROUPING operator must be a grouped expression");
+    sql("select deptno from emp group by deptno order by grouping(emp.deptno)")
+        .ok();
+    sql("select ^deptno^ from emp group by empno order by grouping(deptno)")
+        .fails("Expression 'DEPTNO' is not being grouped");
+    sql("select deptno from emp order by ^grouping(deptno)^")
+        .fails("GROUPING operator may only occur in an aggregate query");
+    sql("select deptno from emp where ^grouping(deptno)^ = 1")
+        .fails("GROUPING operator may only occur in an aggregate query");
+    sql("select deptno from emp where ^grouping(deptno)^ = 1 group by deptno")
+        .fails(
+             "GROUPING operator may only occur in SELECT, HAVING or ORDER BY clause");
+    sql("select deptno from emp group by deptno, ^grouping(deptno)^")
+        .fails(
+               "GROUPING operator may only occur in SELECT, HAVING or ORDER BY clause");
+    sql("select deptno from emp\n"
+        + "group by grouping sets(deptno, ^grouping(deptno)^)")
+        .fails(
+               "GROUPING operator may only occur in SELECT, HAVING or ORDER BY clause");
+    sql("select deptno from emp\n"
+        + "group by cube(empno, ^grouping(deptno)^)")
+        .fails(
+               "GROUPING operator may only occur in SELECT, HAVING or ORDER BY clause");
+    sql("select deptno from emp\n"
+        + "group by rollup(empno, ^grouping(deptno)^)")
+        .fails(
+               "GROUPING operator may only occur in SELECT, HAVING or ORDER BY clause");
+  }
+
+  @Test public void testCubeGrouping() {
+    sql("select deptno, grouping(deptno) from emp group by cube(deptno)").ok();
+    sql("select deptno, grouping(^deptno + 1^) from emp\n"
+        + "group by cube(deptno, empno)")
+        .fails("Argument to GROUPING operator must be a grouped expression");
   }
 
   @Test public void testSumInvalidArgs() {

@@ -831,6 +831,14 @@ public class SqlParserTest {
         .fails("(?s)Encountered \", rollup\" at .*");
   }
 
+  @Test public void testGrouping() {
+    sql("select deptno, grouping(deptno) from emp\n"
+        + "group by grouping sets (deptno, (deptno, gender), ())")
+        .ok("SELECT `DEPTNO`, (GROUPING(`DEPTNO`))\n"
+            + "FROM `EMP`\n"
+            + "GROUP BY (GROUPING_SETS(`DEPTNO`, (ROW(`DEPTNO`, `GENDER`)),))");
+  }
+
   @Test public void testWith() {
     check(
         "with femaleEmps as (select * from emps where gender = 'F')"

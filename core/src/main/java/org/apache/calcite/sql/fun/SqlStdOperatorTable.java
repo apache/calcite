@@ -163,6 +163,12 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   public static final SqlInternalOperator GROUPING_SETS =
       new SqlInternalOperator("GROUPING_SETS", SqlKind.GROUPING_SETS);
 
+  /** {@code GROUPING} function. Occurs in similar places to an aggregate
+   * function ({@code SELECT}, {@code HAVING} clause, etc. of an aggregate
+   * query), but not technically an aggregate function. */
+  public static final SqlGroupingFunction GROUPING =
+      new SqlGroupingFunction();
+
   /**
    * String concatenation operator, '<code>||</code>'.
    */
@@ -1570,6 +1576,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
     }
     return instance;
   }
+
 }
 
 // End SqlStdOperatorTable.java

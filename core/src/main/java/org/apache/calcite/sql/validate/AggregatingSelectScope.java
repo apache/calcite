@@ -234,6 +234,21 @@ public class AggregatingSelectScope
   public void validateExpr(SqlNode expr) {
     checkAggregateExpr(expr, true);
   }
+
+  /** Returns whether a given expression is equal to one of the grouping
+   * expressions. Determines whether it is valid as an operand to GROUPING. */
+  public boolean isGroupingExpr(SqlNode operand) {
+    return lookupGroupingExpr(operand) >= 0;
+  }
+
+  public int lookupGroupingExpr(SqlNode operand) {
+    for (Ord<SqlNode> groupExpr : Ord.zip(groupExprList)) {
+      if (operand.equalsDeep(groupExpr.e, false)) {
+        return groupExpr.i;
+      }
+    }
+    return -1;
+  }
 }
 
 // End AggregatingSelectScope.java

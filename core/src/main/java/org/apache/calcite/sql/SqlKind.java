@@ -575,7 +575,10 @@ public enum SqlKind {
 
   /** The internal {@code GROUPING SETS} operator that occurs within a
    * {@code GROUP BY} clause. */
-  GROUPING_SETS;
+  GROUPING_SETS,
+
+  /** The internal {@code GROUPING} function. */
+  GROUPING;
 
   //~ Static fields/initializers ---------------------------------------------
 
