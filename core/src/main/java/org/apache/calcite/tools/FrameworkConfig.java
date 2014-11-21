@@ -23,6 +23,7 @@ import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.sql.SqlOperatorTable;
+import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.parser.SqlParserImplFactory;
 import org.apache.calcite.sql2rel.SqlRexConvertletTable;
 
@@ -40,6 +41,11 @@ public interface FrameworkConfig {
    * and quoted identifier syntax.
    */
   Lex getLex();
+
+  /**
+   * The configuration of SQL parser
+   */
+  SqlParser.ParserConfig getParserConfig();
 
   /**
    * Provides the parser factory that creates the SqlParser used in parsing
