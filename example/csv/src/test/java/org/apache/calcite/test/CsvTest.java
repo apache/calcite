@@ -307,6 +307,15 @@ public class CsvTest {
         "EMPNO=100; SLACKER=true");
   }
 
+  @Test public void testReadme() throws SQLException {
+    checkSql("SELECT d.name, COUNT(*) cnt"
+            + " FROM emps AS e"
+            + " JOIN depts AS d ON e.deptno = d.deptno"
+            + " GROUP BY d.name",
+        "smart",
+        expect("NAME=Sales; CNT=1", "NAME=Marketing; CNT=2"));
+  }
+
   @Test public void testDateType() throws SQLException {
     Properties info = new Properties();
     info.put("model", jsonPath("bug"));

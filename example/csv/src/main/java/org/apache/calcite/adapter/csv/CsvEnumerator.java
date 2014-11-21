@@ -110,6 +110,12 @@ class CsvEnumerator<E> implements Enumerator<E> {
           name = string.substring(0, colon);
           String typeString = string.substring(colon + 1);
           fieldType = CsvFieldType.of(typeString);
+          if (fieldType == null) {
+            System.out.println("WARNING: Found unknown type: "
+              + typeString + " in file: " + file.getAbsolutePath()
+              + " for column: " + name
+              + ". Will assume the type of column is string");
+          }
         } else {
           name = string;
           fieldType = null;
