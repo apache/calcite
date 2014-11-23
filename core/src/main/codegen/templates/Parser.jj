@@ -1898,12 +1898,6 @@ SqlNodeList GroupByOpt() :
 {
     <GROUP> { pos = getPos(); }
     <BY> list = GroupingElementList() {
-        if (list.size() == 1
-            && list.get(0) instanceof SqlNodeList) {
-            // Preserve the old behavior that "GROUP BY ()" returns a list
-            // of length 0, not a of length 1 containing an empty list.
-            return (SqlNodeList) list.get(0);
-        }
         return new SqlNodeList(list, pos);
     }
 |
