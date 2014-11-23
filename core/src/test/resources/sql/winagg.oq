@@ -204,4 +204,23 @@ window w1 as (),
 
 !ok
 
+# Composite COUNT.
+select deptno, gender, count(gender, deptno) over w1 as a
+from emp
+window w1 as ();
+ DEPTNO | GENDER | A
+--------+--------+---
+     10 | F      | 8
+     10 | M      | 8
+     20 | M      | 8
+     30 | F      | 8
+     30 | F      | 8
+     50 | F      | 8
+     50 | M      | 8
+     60 | F      | 8
+        | F      | 8
+(9 rows)
+
+!ok
+
 # End winagg.oq
