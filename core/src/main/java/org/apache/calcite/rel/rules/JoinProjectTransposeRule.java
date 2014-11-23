@@ -59,13 +59,13 @@ public class JoinProjectTransposeRule extends RelOptRule {
           operand(LogicalJoin.class,
               operand(LogicalProject.class, any()),
               operand(LogicalProject.class, any())),
-          "JoinProjectTransposeRule: with two LogicalProject children");
+          "JoinProjectTransposeRule(Project-Project)");
 
   public static final JoinProjectTransposeRule LEFT_PROJECT =
       new JoinProjectTransposeRule(
           operand(LogicalJoin.class,
               some(operand(LogicalProject.class, any()))),
-          "JoinProjectTransposeRule: with LogicalProject on left");
+          "JoinProjectTransposeRule(Project-Other)");
 
   public static final JoinProjectTransposeRule RIGHT_PROJECT =
       new JoinProjectTransposeRule(
@@ -73,7 +73,7 @@ public class JoinProjectTransposeRule extends RelOptRule {
               LogicalJoin.class,
               operand(RelNode.class, any()),
               operand(LogicalProject.class, any())),
-          "JoinProjectTransposeRule: with LogicalProject on right");
+          "JoinProjectTransposeRule(Other-Project)");
 
   private final ProjectFactory projectFactory;
 

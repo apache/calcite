@@ -76,10 +76,12 @@ import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.LinkedListMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
 
 import java.io.PrintWriter;
@@ -265,6 +267,11 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
   /** Zero cost, according to {@link #costFactory}. Not necessarily a
    * {@link org.apache.calcite.plan.volcano.VolcanoCost}. */
   private final RelOptCost zeroCost;
+
+  /** Maps rule classes to their name, to ensure that the names are unique and
+   * conform to rules. */
+  private final SetMultimap<String, Class> ruleNames =
+      LinkedHashMultimap.create();
 
   //~ Constructors -----------------------------------------------------------
 
@@ -571,6 +578,15 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     }
     final boolean added = ruleSet.add(rule);
     assert added;
+
+    final String ruleName = rule.toString();
+    if (ruleNames.put(ruleName, rule.getClass())) {
+      Set<Class> x = ruleNames.get(ruleName);
+      if (x.size() > 1) {
+        throw new RuntimeException("Rule description '" + ruleName
+            + "' is not unique; classes: " + x);
+      }
+    }
 
     mapRuleDescription(rule);
 

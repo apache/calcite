@@ -80,6 +80,10 @@ public abstract class RelOptRule {
     if (description == null) {
       description = guessDescription(getClass().getName());
     }
+    if (!description.matches("[A-Za-z][-A-Za-z0-9_.():]*")) {
+      throw new RuntimeException("Rule description '" + description
+          + "' is not valid");
+    }
     this.description = description;
     this.operands = flattenOperands(operand);
     assignSolveOrder();
@@ -429,7 +433,12 @@ public abstract class RelOptRule {
     return null;
   }
 
-  public String toString() {
+  /** Returns the description of this rule.
+   *
+   * <p>It must be unique (for rules that are not equal) and must consist of
+   * only the characters A-Z, a-z, 0-9, '_', '.', '(', ')'. It must start with
+   * a letter. */
+  public final String toString() {
     return description;
   }
 

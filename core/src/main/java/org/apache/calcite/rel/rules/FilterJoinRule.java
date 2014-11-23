@@ -71,7 +71,7 @@ public abstract class FilterJoinRule extends RelOptRule {
   protected FilterJoinRule(RelOptRuleOperand operand, String id,
       boolean smart, RelFactories.FilterFactory filterFactory,
       RelFactories.ProjectFactory projectFactory) {
-    super(operand, "PushFilterRule: " + id);
+    super(operand, "PushFilterRule:" + id);
     this.smart = smart;
     this.filterFactory = filterFactory;
     this.projectFactory = projectFactory;

@@ -39,17 +39,18 @@ public class JoinUnionTransposeRule extends RelOptRule {
           operand(Join.class,
               operand(Union.class, any()),
               operand(RelNode.class, any())),
-          "union on left");
+          "JoinUnionTransposeRule(Union-Other)");
 
   public static final JoinUnionTransposeRule RIGHT_UNION =
       new JoinUnionTransposeRule(
           operand(Join.class,
               operand(RelNode.class, any()),
               operand(Union.class, any())),
-          "union on right");
+          "JoinUnionTransposeRule(Other-Union)");
 
-  private JoinUnionTransposeRule(RelOptRuleOperand operand, String id) {
-    super(operand, "JoinUnionTransposeRule: " + id);
+  private JoinUnionTransposeRule(RelOptRuleOperand operand,
+      String description) {
+    super(operand, description);
   }
 
   public void onMatch(RelOptRuleCall call) {

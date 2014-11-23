@@ -85,7 +85,7 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
    */
   public static final ReduceExpressionsRule FILTER_INSTANCE =
       new ReduceExpressionsRule(LogicalFilter.class,
-          "ReduceExpressionsRule[Filter]") {
+          "ReduceExpressionsRule(Filter)") {
         public void onMatch(RelOptRuleCall call) {
           LogicalFilter filter = call.rel(0);
           List<RexNode> expList = new ArrayList<RexNode>(filter.getChildExps());
@@ -174,7 +174,7 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
 
   public static final ReduceExpressionsRule PROJECT_INSTANCE =
       new ReduceExpressionsRule(LogicalProject.class,
-          "ReduceExpressionsRule[Project]") {
+          "ReduceExpressionsRule(Project)") {
         public void onMatch(RelOptRuleCall call) {
           LogicalProject project = call.rel(0);
           List<RexNode> expList =
@@ -197,7 +197,7 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
 
   public static final ReduceExpressionsRule JOIN_INSTANCE =
       new ReduceExpressionsRule(Join.class,
-          "ReduceExpressionsRule[Join]") {
+          "ReduceExpressionsRule(Join)") {
         public void onMatch(RelOptRuleCall call) {
           final Join join = call.rel(0);
           List<RexNode> expList = new ArrayList<RexNode>(join.getChildExps());
@@ -219,7 +219,7 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
 
   public static final ReduceExpressionsRule CALC_INSTANCE =
       new ReduceExpressionsRule(LogicalCalc.class,
-          "ReduceExpressionsRule[Calc]") {
+          "ReduceExpressionsRule(Calc)") {
         public void onMatch(RelOptRuleCall call) {
           LogicalCalc calc = call.rel(0);
           RexProgram program = calc.getProgram();

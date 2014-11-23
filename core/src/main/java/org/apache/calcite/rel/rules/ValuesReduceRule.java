@@ -68,7 +68,7 @@ public abstract class ValuesReduceRule extends RelOptRule {
       new ValuesReduceRule(
           operand(LogicalFilter.class,
               operand(LogicalValues.class, none())),
-          "ValuesReduceRule[Filter") {
+          "ValuesReduceRule(Filter)") {
         public void onMatch(RelOptRuleCall call) {
           LogicalFilter filter = call.rel(0);
           LogicalValues values = call.rel(1);
@@ -84,7 +84,7 @@ public abstract class ValuesReduceRule extends RelOptRule {
       new ValuesReduceRule(
           operand(LogicalProject.class,
               operand(LogicalValues.class, none())),
-          "ValuesReduceRule[Project]") {
+          "ValuesReduceRule(Project)") {
         public void onMatch(RelOptRuleCall call) {
           LogicalProject project = call.rel(0);
           LogicalValues values = call.rel(1);
@@ -101,7 +101,7 @@ public abstract class ValuesReduceRule extends RelOptRule {
           operand(LogicalProject.class,
               operand(LogicalFilter.class,
                   operand(LogicalValues.class, none()))),
-          "ValuesReduceRule[Project+Filter]") {
+          "ValuesReduceRule(Project-Filter)") {
         public void onMatch(RelOptRuleCall call) {
           LogicalProject project = call.rel(0);
           LogicalFilter filter = call.rel(1);
