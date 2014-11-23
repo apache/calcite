@@ -3,6 +3,48 @@
 For a full list of releases, see
 <a href="https://github.com/apache/incubator-calcite/releases">github</a>.
 
+## Work in progress for 1.0.0-incubating
+
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-474">CALCITE-474</a>]
+  Clean up rule naming in order to support enabling/disabling rules
+* Document `WITH`, `LATERAL`, `GROUPING SETS`, `CUBE`, `ROLLUP`;
+  add descriptions for all built-in functions and operators.
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-464">CALCITE-464</a>]
+  Make parser accept configurable max length for SQL identifier
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-470">CALCITE-470</a>]
+  Print warning when column type hint is not understood;
+  Update EMPS.deptno column Integer &rarr; int
+* Add `GROUPING` function
+* Better handling of null values due to `GROUPING SETS`
+* Fix `Linq4j.product`; the cartesian product of 0 attributes is one row of 0 attributes.
+* Update link optiq-mat-plugin &rarr; mat-calcite-plugin
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-467">CALCITE-467</a>]
+  Incorrect namespace in `package-info.java`
+* Add headers, to appease the RAT.
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-465">CALCITE-465</a>]
+  Remove `OneRow` and `Empty` relational expressions; `Values` will suffice
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-370">CALCITE-370</a>]
+  Support `GROUPING SETS`, `CUBE`, `ROLLUP` in SQL and algebra
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-460">CALCITE-460</a>]
+  Add `ImmutableBitSet` and replace uses of `BitSet`
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-306">CALCITE-306</a>]
+  Standardize code style for "import package.*;"
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-296">CALCITE-296</a>]
+  Re-organize package structure
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-419">CALCITE-419</a>]
+  Naming convention for planner rules
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-446">CALCITE-446</a>]
+  CSV adapter should read from directory relative to the model file
+* Add examples of scannable and filterable tables, matching
+  [<a href="https://issues.apache.org/jira/browse/CALCITE-436">CALCITE-436</a>]
+  Simpler SPI to query Table.
+* Remove unused packages in linq4j, and fix checkstyle issues in linq4j and csv.
+* Add calcite-linq4j and calcite-example-csv as POM sub-modules.
+* Import 'optiq-csv' project as 'example/csv/', and add Apache headers
+* Import 'linq4j' project, and add Apache headers
+* Fix `JdbcTest.testVersion` now that version is 1.0.
+* Update release HOWTO.
+
 ## <a href="https://github.com/apache/incubator-calcite/releases/tag/calcite-0.9.2-incubating">0.9.2-incubating</a> / 2014-11-05
 
 A fairly minor release, and last release before we rename all of the
@@ -422,7 +464,7 @@ Bug-fixes and internal changes
 * Use `fromTrait` of the just previously converted `RelNode` instead
   of the original `RelNode`.
 * Disable a MongoDB test, pending
-  [<a href="https://issues.apache.org/jira/browse/CALCITE-270">CALCITE-270</a>.
+  [<a href="https://issues.apache.org/jira/browse/CALCITE-270">CALCITE-270</a>].
 * Hush warnings from `SplunkAdapterTest` if Splunk is not available.
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-252">CALCITE-252</a>]
   Scalar sub-query that returns 0 rows should become NULL value
@@ -441,8 +483,8 @@ New features
   Obsoletes `name` field of `ReflectiveSchema`.
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-237">CALCITE-237</a>]
   Allow user-defined aggregate functions (UDAs) to be defined in a model
-* Fix <a href="https://github.com/julianhyde/optiq/pull/227">CALCITE-227</a>,
-  "Extend `EXTRACT` function to support `DATE`, `TIME` and `TIMESTAMP` values".
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-227">CALCITE-227</a>]
+  Extend `EXTRACT` function to support `DATE`, `TIME` and `TIMESTAMP` values
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-222">CALCITE-222</a>]
   User-defined table macros
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-179">CALCITE-179</a>]
@@ -464,8 +506,8 @@ API changes
 * Extend `Planner` to pass a custom `ConvertletTable` and custom SQL parser.
 * In `Frameworks`, add a way to specify list of `TraitDef`s that will be used
   by planner. (Jinfeng Ni)
-* Fix <a href="https://github.com/julianhyde/optiq/pull/198">CALCITE-198</a>,
-  "Use `RexExecutor` to evaluate projections and filters".
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-198">CALCITE-198</a>]
+  Use `RexExecutor` to evaluate projections and filters
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-219">CALCITE-219</a>]
   Parse `ALTER scope SET option = value` statement
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-215">CALCITE-215</a>]
@@ -487,11 +529,11 @@ Bug fixes and internal changes
   (Venki Korukanti)
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-245">CALCITE-245</a>]
   Off-by-one translation of ON clause of JOIN
-* Fix <a href="https://github.com/julianhyde/optiq/pull/191">CALCITE-191</a>,
-  "Rotate time/date/timestamp vals to local timezone".
-* Fix <a href="https://github.com/julianhyde/optiq/pull/244">CALCITE-244</a>,
-  "`RelOptTableImpl.create` always expects `QueryableTable` type in
-  `OptiqSchema.TableEntry`".
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-191">CALCITE-191</a>]
+  Rotate time/date/timestamp vals to local timezone
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-244">CALCITE-244</a>]
+  `RelOptTableImpl.create` always expects `QueryableTable` type in
+  `OptiqSchema.TableEntry`
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-225">CALCITE-225</a>]
   Optiq doesn't correctly decorrelate queries
 * Clean up package-info.  Remove duplicates in test packages so they
@@ -514,7 +556,7 @@ Bug fixes and internal changes
   User-defined functions should work without explicit schema prefix
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-229">CALCITE-229</a>]
   Join between different JDBC schemas not implementable
-* [<a href="https://github.com/julianhyde/optiq/pull/230">CALCITE-230</a>]
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-230">CALCITE-230</a>]
   RemoveSortRule derives trait set from sort, should derive it from sort's child
 * Test view and sub-query with `ORDER BY` and `LIMIT`.
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-223">CALCITE-223</a>]
@@ -852,8 +894,8 @@ Other
 * Allow join rules to match any subclass of JoinRelBase.
 * Push projects, filters and sorts down to MongoDB. (Fixes
   [<a href="https://issues.apache.org/jira/browse/CALCITE-57">CALCITE-57</a>],
-  <a href="https://github.com/julianhyde/optiq/pull/60">pull #60</a> and
-  [<a href="https://issues.apache.org/jira/browse/CALCITE-72">CALCITE-72</a>.)
+  [<a href="https://issues.apache.org/jira/browse/CALCITE-60">CALCITE-60</a>] and
+  [<a href="https://issues.apache.org/jira/browse/CALCITE-72">CALCITE-72</a>].)
 * Add instructions for loading FoodMart data set into MongoDB, and how to enable
   tracing.
 * Now runs on JDK 1.8 (still runs on JDK 1.6 and JDK 1.7).
