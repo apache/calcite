@@ -489,7 +489,7 @@ public interface Glossary {
   Glossary TEMPLATE_METHOD_PATTERN = null;
 
   /**
-   * Represent an operation to be performed on the elments of an object
+   * Represent an operation to be performed on the elements of an object
    * structure. Lets you define a new operation without changing the classes
    * of the elements on which it operates. (See <a
    * href="http://c2.com/cgi/wiki?VisitorPattern">GoF</a>.)
