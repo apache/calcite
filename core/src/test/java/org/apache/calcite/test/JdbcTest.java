@@ -2977,23 +2977,31 @@ public class JdbcTest {
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-403">CALCITE-403</a>,
-   * "Enumerable gives NullPointerException with HAVING on nullable
+   * "Enumerable gives NullPointerException with NOT on nullable
    * expression". */
-  @Ignore("CALCITE-403")
   @Test public void testHavingNot() throws IOException {
     withFoodMartQuery(6597).runs();
   }
 
   /** Minimal case of {@link #testHavingNot()}. */
-  @Ignore("CALCITE-403")
   @Test public void testHavingNot2() throws IOException {
     CalciteAssert.that()
         .with(CalciteAssert.Config.FOODMART_CLONE)
         .query("select 1\n"
             + "from \"store\"\n"
             + "group by \"store\".\"store_street_address\"\n"
-            + "having NOT (sum(\"store\".\"grocery_sqft\") < 10000)")
-        .returnsCount(0);
+            + "having NOT (sum(\"store\".\"grocery_sqft\") < 20000)")
+        .returnsCount(10);
+  }
+
+  @Test public void testWhereNot() throws IOException {
+    CalciteAssert.that()
+        .with(CalciteAssert.Config.FOODMART_CLONE)
+        .query("select 1\n"
+            + "from \"store\"\n"
+            + "where NOT (\"store\".\"grocery_sqft\" < 22000)\n"
+            + "group by \"store\".\"store_street_address\"\n")
+        .returnsCount(8);
   }
 
   /** Query that reads no columns from either underlying table. */

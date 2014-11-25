@@ -756,6 +756,18 @@ public class RexImpTable {
       }
       list.add(implementCall(translator, call, implementor, nullAs));
       return Expressions.foldAnd(list);
+    case TRUE:
+      // v0 == null || v1 == null || f(v0, v1)
+      for (Ord<RexNode> operand : Ord.zip(call.getOperands())) {
+        if (translator.isNullable(operand.e)) {
+          list.add(
+              translator.translate(
+                  operand.e, NullAs.IS_NULL));
+          translator = translator.setNullable(operand.e, false);
+        }
+      }
+      list.add(implementCall(translator, call, implementor, nullAs));
+      return Expressions.foldOr(list);
     case NOT_POSSIBLE:
       // Need to transmit to the implementor the fact that call cannot
       // return null. In particular, it should return a primitive (e.g.
