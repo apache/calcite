@@ -1,5 +1,5 @@
-Tutorial
-========
+CSV Adapter Tutorial
+=====================
 
 Calcite-example-CSV is a fully functional adapter for
 <a href="https://github.com/apache/incubator-calcite">Calcite</a> that reads
@@ -24,12 +24,18 @@ several important concepts:
 * advanced implementation of Table, using TranslatableTable, that translates
   to relational operators using planner rules.
 
+## Download and build
+
+You need Java (1.6 or higher; 1.7 preferred), git and maven (3.0.4 or later).
+
+```bash
+$ git clone https://github.com/apache/incubator-calcite.git
+$ cd incubator-calcite
+$ mvn install -DskipTests -Dcheckstyle.skip=true
+$ cd example/csv
+```
+
 ## First queries
-
-Without further ado, let's get started.
-
-If you haven't already installed, follow the instructions in the <a href="README.md">README</a>.
-It's just two commands: <code>git clone</code> followed <code>mvn install</code>.
 
 Now let's connect to Calcite using
 <a href="https://github.com/julianhyde/sqlline">sqlline</a>, a SQL shell
@@ -156,7 +162,7 @@ format. Here is the model:
 The model defines a single schema called 'SALES'. The schema is
 powered by a plugin class,
 <a href="src/main/java/net/hydromatic/optiq/impl/csv/CsvSchemaFactory.java">net.hydromatic.optiq.impl.csv.CsvSchemaFactory</a>, which is part of the
-optiq-csv project and implements the Calcite interface
+calcite-example-csv project and implements the Calcite interface
 <a href="http://www.hydromatic.net/calcite/apidocs/net/hydromatic/optiq/SchemaFactory.html">SchemaFactory</a>. Its <code>create</code> method instantiates a
 schema, passing in the <code>directory</code> argument from the model file:
 
