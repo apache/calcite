@@ -198,6 +198,9 @@ public class AvaticaResultSet implements ResultSet, ArrayImpl.Factory {
 
   public boolean next() throws SQLException {
     // TODO: for timeout, see IteratorResultSet.next
+    if (isClosed()) {
+      throw new SQLException("next() called on closed cursor");
+    }
     if (cursor.next()) {
       ++row;
       return true;
