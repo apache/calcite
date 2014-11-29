@@ -673,6 +673,12 @@ public class JdbcTest {
     assertEquals(0, closeCount[0]);
     assertEquals(0, statementCloseCount[0]);
     resultSet.close();
+    try {
+      resultSet.next();
+      fail("expecting error");
+    } catch (SQLException e) {
+      // ok
+    }
     assertEquals(0, closeCount[0]);
     assertEquals(0, statementCloseCount[0]);
 
