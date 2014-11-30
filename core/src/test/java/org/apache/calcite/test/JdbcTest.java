@@ -677,7 +677,8 @@ public class JdbcTest {
       resultSet.next();
       fail("resultSet.next() should throw SQLException when closed");
     } catch (SQLException e) {
-      assertThat(e.getMessage(), containsString("next() called on closed cursor"));
+      assertThat(e.getMessage(),
+          containsString("next() called on closed cursor"));
     }
     assertEquals(0, closeCount[0]);
     assertEquals(0, statementCloseCount[0]);
