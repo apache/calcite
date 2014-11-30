@@ -17,7 +17,6 @@
 package org.apache.calcite.adapter.enumerable;
 
 import org.apache.calcite.interpreter.Row;
-import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Queryable;
 import org.apache.calcite.linq4j.function.Function1;
@@ -25,6 +24,7 @@ import org.apache.calcite.linq4j.tree.Blocks;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.linq4j.tree.ParameterExpression;
+import org.apache.calcite.linq4j.tree.Primitive;
 import org.apache.calcite.linq4j.tree.Types;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptTable;
@@ -82,38 +82,17 @@ public class EnumerableTableScan
   }
 
   private Expression toRows(PhysType physType, Expression expression) {
+    JavaRowFormat oldFormat = format();
+    if (physType.getFormat() == oldFormat) {
+      return expression;
+    }
     final ParameterExpression row_ =
         Expressions.parameter(elementType, "row");
-    List<Expression> expressionList = new ArrayList<Expression>();
     final int fieldCount = table.getRowType().getFieldCount();
-    if (elementType == Row.class) {
-      // Convert Enumerable<Row> to Enumerable<SyntheticRecord>
-      for (int i = 0; i < fieldCount; i++) {
-        expressionList.add(
-            RexToLixTranslator.convert(
-                Expressions.call(row_,
-                    BuiltInMethod.ROW_VALUE.method,
-                    Expressions.constant(i)),
-                physType.getJavaFieldType(i)));
-      }
-    } else if (elementType == Object[].class
-        && rowType.getFieldCount() == 1) {
-      // Convert Enumerable<Object[]> to Enumerable<SyntheticRecord>
-      for (int i = 0; i < fieldCount; i++) {
-        expressionList.add(
-            RexToLixTranslator.convert(
-                Expressions.arrayIndex(row_, Expressions.constant(i)),
-                physType.getJavaFieldType(i)));
-      }
-    } else if (elementType == Object.class) {
-      if (!(physType.getJavaRowType()
-          instanceof JavaTypeFactoryImpl.SyntheticRecordType)) {
-        return expression;
-      }
+    List<Expression> expressionList = new ArrayList<Expression>(fieldCount);
+    for (int i = 0; i < fieldCount; i++) {
       expressionList.add(
-          RexToLixTranslator.convert(row_, physType.getJavaFieldType(0)));
-    } else {
-      return expression;
+          oldFormat.field(row_, i, physType.getJavaFieldType(i)));
     }
     return Expressions.call(expression,
         BuiltInMethod.SELECT.method,
@@ -124,9 +103,20 @@ public class EnumerableTableScan
   private JavaRowFormat format() {
     if (Object[].class.isAssignableFrom(elementType)) {
       return JavaRowFormat.ARRAY;
-    } else {
-      return JavaRowFormat.CUSTOM;
     }
+    if (Row.class.isAssignableFrom(elementType)) {
+      return JavaRowFormat.ROW;
+    }
+    int fieldCount = getRowType().getFieldCount();
+    if (fieldCount == 0) {
+      return JavaRowFormat.LIST;
+    }
+    if (fieldCount == 1 && (Object.class == elementType
+          || Primitive.is(elementType)
+          || Number.class.isAssignableFrom(elementType))) {
+      return JavaRowFormat.SCALAR;
+    }
+    return JavaRowFormat.CUSTOM;
   }
 
   @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {

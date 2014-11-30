@@ -113,6 +113,7 @@ public enum BuiltInMethod {
   DATA_CONTEXT_GET_ROOT_SCHEMA(DataContext.class, "getRootSchema"),
   JDBC_SCHEMA_DATA_SOURCE(JdbcSchema.class, "getDataSource"),
   ROW_VALUE(Row.class, "getObject", int.class),
+  ROW_AS_COPY(Row.class, "asCopy", Object[].class),
   RESULT_SET_ENUMERABLE_OF(ResultSetEnumerable.class, "of", DataSource.class,
       String.class, Function1.class),
   JOIN(ExtendedEnumerable.class, "join", Enumerable.class, Function1.class,

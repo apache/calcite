@@ -17,6 +17,7 @@
 package org.apache.calcite.adapter.enumerable;
 
 import org.apache.calcite.adapter.java.JavaTypeFactory;
+import org.apache.calcite.interpreter.Row;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.ExpressionType;
 import org.apache.calcite.linq4j.tree.Expressions;
@@ -161,6 +162,36 @@ public enum JavaRowFormat {
       return RexToLixTranslator.convert(
           Expressions.call(expression,
               BuiltInMethod.LIST_GET.method,
+              Expressions.constant(field)),
+          fieldType);
+    }
+  },
+
+  /**
+   * See {@link org.apache.calcite.interpreter.Row}
+   */
+  ROW {
+    @Override
+    Type javaRowClass(JavaTypeFactory typeFactory, RelDataType type) {
+      return Row.class;
+    }
+
+    @Override
+    Type javaFieldClass(JavaTypeFactory typeFactory, RelDataType type,
+        int index) {
+      return Object.class;
+    }
+
+    @Override
+    public Expression record(Type javaRowClass, List<Expression> expressions) {
+      return Expressions.call(BuiltInMethod.ROW_AS_COPY.method, expressions);
+    }
+
+    @Override
+    public Expression field(Expression expression, int field, Type fieldType) {
+      return RexToLixTranslator.convert(
+          Expressions.call(expression,
+              BuiltInMethod.ROW_VALUE.method,
               Expressions.constant(field)),
           fieldType);
     }

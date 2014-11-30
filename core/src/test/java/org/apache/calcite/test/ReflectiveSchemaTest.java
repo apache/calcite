@@ -495,6 +495,40 @@ public class ReflectiveSchemaTest {
             + "empid=4; deptno=10; name=Abd; salary=0.0; commission=null\n");
   }
 
+  /** Table with single field as Integer[] */
+  @Ignore(
+      "java.lang.AssertionError RelDataTypeImpl.getFieldList(RelDataTypeImpl.java:99)")
+  @Test public void testArrayOfBoxedPrimitives() {
+    CalciteAssert.that()
+        .with("s", new CatchallSchema())
+        .query("select * from \"s\".\"primesBoxed\"")
+        .returnsUnordered("value=1", "value=3", "value=7");
+  }
+
+  /** Table with single field as int[] */
+  @Ignore(
+      "java.lang.AssertionError RelDataTypeImpl.getFieldList(RelDataTypeImpl.java:99)")
+  @Test public void testArrayOfPrimitives() {
+    CalciteAssert.that()
+        .with("s", new CatchallSchema())
+        .query("select * from \"s\".\"primes\"")
+        .returnsUnordered("value=1", "value=3", "value=7");
+  }
+
+  @Test public void testCustomBoxedScalar() {
+    CalciteAssert.that()
+        .with("s", new ReflectiveSchemaTest.CatchallSchema())
+        .query("select \"value\" from \"s\".\"primesCustomBoxed\"")
+        .returnsUnordered("value=1", "value=3", "value=5");
+  }
+
+  @Test public void testCustomBoxedSalarCalc() {
+    CalciteAssert.that()
+        .with("s", new ReflectiveSchemaTest.CatchallSchema())
+        .query("select \"value\"*2 \"value\" from \"s\".\"primesCustomBoxed\"")
+        .returnsUnordered("value=2", "value=6", "value=10");
+  }
+
   /** Extension to {@link Employee} with a {@code hireDate} column. */
   public static class EmployeeWithHireDate extends Employee {
     public final java.sql.Date hireDate;
@@ -638,6 +672,24 @@ public class ReflectiveSchemaTest {
       new Employee(3, 10, "Abc", 0f, null),
       new Employee(4, 10, "Abd", 0f, null),
     };
+
+    public final Integer[] primesBoxed = new Integer[]{1, 3, 5};
+
+    public final int[] primes = new int[]{1, 3, 5};
+
+    public final IntHolder[] primesCustomBoxed =
+        new IntHolder[]{new IntHolder(1), new IntHolder(3), new IntHolder(5)};
+  }
+
+  /**
+   * Custom java class that holds just a single field.
+   */
+  public static class IntHolder {
+    public final int value;
+
+    public IntHolder(int value) {
+      this.value = value;
+    }
   }
 
   /** Schema that contains a table with a date column. */
