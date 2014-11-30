@@ -279,6 +279,30 @@ public class ReflectiveSchemaTest {
             + "primitiveBoolean=true; primitiveByte=127; primitiveChar=\uffff; primitiveShort=32767; primitiveInt=2147483647; primitiveLong=9223372036854775807; primitiveFloat=3.4028235E38; primitiveDouble=1.7976931348623157E308; wrapperBoolean=null; wrapperByte=null; wrapperCharacter=null; wrapperShort=null; wrapperInteger=null; wrapperLong=null; wrapperFloat=null; wrapperDouble=null; sqlDate=null; sqlTime=null; sqlTimestamp=null; utilDate=null; string=null\n");
   }
 
+  /**
+   * Tests NOT for nullable columns
+   * @see CatchallSchema#everyTypes */
+  @Test public void testWhereNOT() throws Exception {
+    final CalciteAssert.AssertThat with =
+        CalciteAssert.that().with("s", new CatchallSchema());
+    with.query(
+        "select \"wrapperByte\" from \"s\".\"everyTypes\" where NOT (\"wrapperByte\" is null)")
+        .returnsUnordered("wrapperByte=0");
+  }
+
+  /**
+   * Tests NOT for nullable columns
+   * @see CatchallSchema#everyTypes */
+  @Test public void testSelectNOT() throws Exception {
+    final CalciteAssert.AssertThat with =
+        CalciteAssert.that().with("s", new CatchallSchema());
+    with.query(
+        "select NOT \"wrapperBoolean\" \"value\" from \"s\".\"everyTypes\"")
+        .returnsUnordered(
+            "value=null",
+            "value=true");
+  }
+
   /** Tests columns based on types such as java.sql.Date and java.util.Date.
    *
    * @see CatchallSchema#everyTypes */
