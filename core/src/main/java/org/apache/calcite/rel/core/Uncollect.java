@@ -33,7 +33,7 @@ import java.util.List;
  * relation.
  *
  * <p>Like its inverse operation {@link Collect}, Uncollect is generally
- * invoked in a nested loop, driven by {@link Correlator} or similar.
+ * invoked in a nested loop, driven by {@link org.apache.calcite.rel.logical.LogicalCorrelate} or similar.
  */
 public class Uncollect extends SingleRel {
   //~ Constructors -----------------------------------------------------------

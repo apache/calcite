@@ -222,12 +222,6 @@ class RelSet {
     if (this.rel == null) {
       this.rel = rel;
     } else {
-      assert rel.getCorrelVariable() == null;
-      String correl = this.rel.getCorrelVariable();
-      if (correl != null) {
-        rel.setCorrelVariable(correl);
-      }
-
       // Row types must be the same, except for field names.
       RelOptUtil.verifyTypeEquivalence(
           this.rel,

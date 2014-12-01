@@ -17,11 +17,11 @@
 package org.apache.calcite.rel;
 
 import org.apache.calcite.linq4j.Ord;
-import org.apache.calcite.rel.core.Correlator;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.TableFunctionScan;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.logical.LogicalAggregate;
+import org.apache.calcite.rel.logical.LogicalCorrelate;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalIntersect;
 import org.apache.calcite.rel.logical.LogicalJoin;
@@ -97,8 +97,8 @@ public class RelShuttleImpl implements RelShuttle {
     return visitChildren(join);
   }
 
-  public RelNode visit(Correlator correlator) {
-    return visitChildren(correlator);
+  public RelNode visit(LogicalCorrelate correlate) {
+    return visitChildren(correlate);
   }
 
   public RelNode visit(LogicalUnion union) {

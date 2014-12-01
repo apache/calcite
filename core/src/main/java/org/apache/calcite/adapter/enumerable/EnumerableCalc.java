@@ -120,7 +120,8 @@ public class EnumerableCalc extends Calc implements EnumerableRel {
               builder2,
               new RexToLixTranslator.InputGetterImpl(
                   Collections.singletonList(
-                      Pair.of(input, result.physType))));
+                      Pair.of(input, result.physType))),
+              implementor.allCorrelateVariables);
       builder2.add(
           Expressions.ifThen(
               condition,
@@ -147,7 +148,8 @@ public class EnumerableCalc extends Calc implements EnumerableRel {
             physType,
             new RexToLixTranslator.InputGetterImpl(
                 Collections.singletonList(
-                    Pair.of(input, result.physType))));
+                    Pair.of(input, result.physType))),
+            implementor.allCorrelateVariables);
     builder3.add(
         Expressions.return_(
             null, physType.record(expressions)));

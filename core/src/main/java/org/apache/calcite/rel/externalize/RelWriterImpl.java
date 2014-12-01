@@ -103,6 +103,8 @@ public class RelWriterImpl implements RelWriter {
     case ALL_ATTRIBUTES:
       s.append(": rowcount = ")
           .append(RelMetadataQuery.getRowCount(rel))
+//          .append(", cost = ")
+//          .append(RelMetadataQuery.getNonCumulativeCost(rel))
           .append(", cumulative cost = ")
           .append(RelMetadataQuery.getCumulativeCost(rel));
     }

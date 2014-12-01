@@ -838,6 +838,24 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
         "${plan}");
   }
 
+  @Test public void testNestedCorrelations() {
+    tester.withDecorrelation(false).assertConvertsTo(
+        "select * from (select 2+deptno d2, 3+deptno d3 from emp) e\n"
+            + " where exists (select 1 from (select deptno+1 d1 from dept) d\n"
+            + " where d1=e.d2 and exists (select 2 from (select deptno+4 d4, deptno+5 d5, deptno+6 d6 from dept)\n"
+            + " where d4=d.d1 and d5=d.d1 and d6=e.d3))",
+        "${plan}");
+  }
+
+  @Test public void testNestedCorrelationsDecorrelated() {
+    tester.withDecorrelation(true).assertConvertsTo(
+        "select * from (select 2+deptno d2, 3+deptno d3 from emp) e\n"
+            + " where exists (select 1 from (select deptno+1 d1 from dept) d\n"
+            + " where d1=e.d2 and exists (select 2 from (select deptno+4 d4, deptno+5 d5, deptno+6 d6 from dept)\n"
+            + " where d4=d.d1 and d5=d.d1 and d6=e.d3))",
+        "${plan}");
+  }
+
   @Test public void testElement() {
     check(
         "select element(multiset[5]) from emp",

@@ -19,20 +19,28 @@ package org.apache.calcite.adapter.enumerable;
 import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.linq4j.tree.ParameterExpression;
-import org.apache.calcite.rel.RelImplementorImpl;
+import org.apache.calcite.plan.RelImplementor;
 import org.apache.calcite.rex.RexBuilder;
 
 /**
- * Abstract base class for implementations of {@link RelImplementorImpl}
+ * Abstract base class for implementations of {@link RelImplementor}
  * that generate java code.
  */
-public abstract class JavaRelImplementor extends RelImplementorImpl {
+public abstract class JavaRelImplementor implements RelImplementor {
+  private final RexBuilder rexBuilder;
+
   public JavaRelImplementor(RexBuilder rexBuilder) {
-    super(rexBuilder);
+    this.rexBuilder = rexBuilder;
+    assert rexBuilder.getTypeFactory() instanceof JavaTypeFactory
+        : "Type factory of rexBuilder should be a JavaTypeFactory";
   }
 
-  @Override public JavaTypeFactory getTypeFactory() {
-    return (JavaTypeFactory) super.getTypeFactory();
+  public RexBuilder getRexBuilder() {
+    return rexBuilder;
+  }
+
+  public JavaTypeFactory getTypeFactory() {
+    return (JavaTypeFactory) rexBuilder.getTypeFactory();
   }
 
   /** Returns the expression with which to access the

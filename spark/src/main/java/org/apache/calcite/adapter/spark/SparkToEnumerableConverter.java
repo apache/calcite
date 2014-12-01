@@ -107,7 +107,6 @@ public class SparkToEnumerableConverter
       if (parent != null) {
         assert input == parent.getInputs().get(ordinal);
       }
-      createFrame(parent, ordinal, input);
       return input.implementSpark(this);
     }
 

@@ -16,12 +16,9 @@
  */
 package org.apache.calcite.adapter.enumerable;
 
-import org.apache.calcite.linq4j.Ord;
-import org.apache.calcite.linq4j.function.Function2;
 import org.apache.calcite.linq4j.tree.BlockBuilder;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
-import org.apache.calcite.linq4j.tree.ParameterExpression;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;
@@ -39,8 +36,6 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Set;
 
 /** Implementation of {@link org.apache.calcite.rel.core.Join} in
@@ -167,7 +162,7 @@ public class EnumerableJoin extends EquiJoin implements EnumerableRel {
                     rightExpression,
                     leftResult.physType.generateAccessor(leftKeys),
                     rightResult.physType.generateAccessor(rightKeys),
-                    generateSelector(
+                    EnumUtils.joinSelector(joinType,
                         physType,
                         ImmutableList.of(
                             leftResult.physType, rightResult.physType)))
@@ -180,42 +175,6 @@ public class EnumerableJoin extends EquiJoin implements EnumerableRel {
                         joinType.generatesNullsOnRight())))).toBlock());
   }
 
-  Expression generateSelector(PhysType physType,
-      List<PhysType> inputPhysTypes) {
-    // A parameter for each input.
-    final List<ParameterExpression> parameters =
-        new ArrayList<ParameterExpression>();
-
-    // Generate all fields.
-    final List<Expression> expressions =
-        new ArrayList<Expression>();
-    for (Ord<PhysType> ord : Ord.zip(inputPhysTypes)) {
-      final PhysType inputPhysType =
-          ord.e.makeNullable(joinType.generatesNullsOn(ord.i));
-      final ParameterExpression parameter =
-          Expressions.parameter(inputPhysType.getJavaRowType(),
-              EnumUtils.LEFT_RIGHT[ord.i]);
-      parameters.add(parameter);
-      final int fieldCount = inputPhysType.getRowType().getFieldCount();
-      for (int i = 0; i < fieldCount; i++) {
-        Expression expression =
-            inputPhysType.fieldReference(parameter, i,
-                physType.getJavaFieldType(i));
-        if (joinType.generatesNullsOn(ord.i)) {
-          expression =
-              Expressions.condition(
-                  Expressions.equal(parameter, Expressions.constant(null)),
-                  Expressions.constant(null),
-                  expression);
-        }
-        expressions.add(expression);
-      }
-    }
-    return Expressions.lambda(
-        Function2.class,
-        physType.record(expressions),
-        parameters);
-  }
 }
 
 // End EnumerableJoin.java

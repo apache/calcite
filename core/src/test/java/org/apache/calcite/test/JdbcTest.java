@@ -4161,7 +4161,7 @@ public class JdbcTest {
             new Function<RelNode, Void>() {
               public Void apply(RelNode relNode) {
                 String s = RelOptUtil.toString(relNode);
-                assertThat(s, not(containsString("Correlator")));
+                assertThat(s, not(containsString("Correlate")));
                 return null;
               }
             });
