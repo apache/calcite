@@ -20,9 +20,7 @@ import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
-import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
-import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.logical.LogicalUnion;
@@ -67,7 +65,7 @@ public class AggregateUnionTransposeRule extends RelOptRule {
    */
   private AggregateUnionTransposeRule() {
     super(
-        operand(LogicalAggregate.class, null, Aggregate.IS_SIMPLE,
+        operand(LogicalAggregate.class,
             operand(LogicalUnion.class, any())));
   }
 
@@ -90,10 +88,13 @@ public class AggregateUnionTransposeRule extends RelOptRule {
 
     RelOptCluster cluster = union.getCluster();
 
+    int groupCount = aggRel.getGroupSet().cardinality();
+
     List<AggregateCall> transformedAggCalls =
-        transformAggCalls(aggRel,
-            aggRel.getGroupSet().cardinality(),
-            aggRel.getAggCallList());
+        transformAggCalls(
+            aggRel.copy(aggRel.getTraitSet(), aggRel.getInput(), false,
+                aggRel.getGroupSet(), null, aggRel.getAggCallList()),
+            groupCount, aggRel.getAggCallList());
     if (transformedAggCalls == null) {
       // we've detected the presence of something like AVG,
       // which we can't handle
@@ -102,7 +103,7 @@ public class AggregateUnionTransposeRule extends RelOptRule {
 
     boolean anyTransformed = false;
 
-    // create corresponding aggs on top of each union child
+    // create corresponding aggregates on top of each union child
     List<RelNode> newUnionInputs = new ArrayList<RelNode>();
     for (RelNode input : union.getInputs()) {
       boolean alreadyUnique =
@@ -131,18 +132,10 @@ public class AggregateUnionTransposeRule extends RelOptRule {
     LogicalUnion newUnion = new LogicalUnion(cluster, newUnionInputs, true);
 
     LogicalAggregate newTopAggRel =
-        new LogicalAggregate(cluster, newUnion, false, aggRel.getGroupSet(),
-            null, transformedAggCalls);
+        new LogicalAggregate(cluster, newUnion, aggRel.indicator,
+            aggRel.getGroupSet(), aggRel.getGroupSets(), transformedAggCalls);
 
-    // In case we transformed any COUNT (which is always NOT NULL)
-    // to SUM (which is always NULLABLE), cast back to keep the
-    // planner happy.
-    RelNode castRel = RelOptUtil.createCastRel(
-        newTopAggRel,
-        aggRel.getRowType(),
-        false);
-
-    call.transformTo(castRel);
+    call.transformTo(newTopAggRel);
   }
 
   private List<AggregateCall> transformAggCalls(RelNode input, int groupCount,
