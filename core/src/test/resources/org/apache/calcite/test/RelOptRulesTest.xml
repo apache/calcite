@@ -283,6 +283,58 @@ LogicalProject(DNAME=[$0], C=[$1])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testPushFilterPastAggWithGroupingSets1">
+        <Resource name="sql">
+            <![CDATA[select dname, c from
+             (select name dname, count(*) as c from dept group by rollup(name)) t
+              where dname = 'Charlie']]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(DNAME=[$0], C=[$1])
+  LogicalProject(DNAME=[CASE($1, null, $0)], C=[$2])
+    LogicalFilter(condition=[=(CASE($1, null, $0), 'Charlie')])
+      LogicalAggregate(group=[{0}], groups=[[{0}, {}]], indicator=[true], C=[COUNT()])
+        LogicalProject(DNAME=[$1])
+          LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(DNAME=[$0], C=[$1])
+  LogicalProject(DNAME=[CASE($1, null, $0)], C=[$2])
+    LogicalFilter(condition=[=(CASE($1, null, $0), 'Charlie')])
+      LogicalAggregate(group=[{0}], groups=[[{0}, {}]], indicator=[true], C=[COUNT()])
+        LogicalProject(DNAME=[$1])
+          LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testPushFilterPastAggWithGroupingSets2">
+        <Resource name="sql">
+            <![CDATA[select dname, c from
+             (select name dname, count(*) as c from dept group by grouping sets(name)) t
+              where dname = 'Charlie']]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(DNAME=[$0], C=[$1])
+  LogicalFilter(condition=[=($0, 'Charlie')])
+    LogicalAggregate(group=[{0}], C=[COUNT()])
+      LogicalProject(DNAME=[$1])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(DNAME=[$0], C=[$1])
+  LogicalAggregate(group=[{0}], C=[COUNT()])
+    LogicalFilter(condition=[=($0, 'Charlie')])
+      LogicalProject(DNAME=[$1])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testReduceAverage">
         <Resource name="sql">
             <![CDATA[select name, max(name), avg(deptno), min(name) from sales.dept group by name]]>

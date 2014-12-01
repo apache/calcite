@@ -205,6 +205,32 @@ public class RelOptRulesTest extends RelOptTestBase {
             + " where dname = 'Charlie'");
   }
 
+  @Test public void testPushFilterPastAggWithGroupingSets1() {
+    final HepProgram preProgram =
+            HepProgram.builder()
+                .addRuleInstance(ProjectMergeRule.INSTANCE)
+                .addRuleInstance(FilterProjectTransposeRule.INSTANCE)
+                .build();
+    final HepProgram program =
+            HepProgram.builder()
+                .addRuleInstance(FilterAggregateTransposeRule.INSTANCE)
+                .build();
+    checkPlanning(tester, preProgram, new HepPlanner(program), "${sql}");
+  }
+
+  @Test public void testPushFilterPastAggWithGroupingSets2() {
+    final HepProgram preProgram =
+            HepProgram.builder()
+                .addRuleInstance(ProjectMergeRule.INSTANCE)
+                .addRuleInstance(FilterProjectTransposeRule.INSTANCE)
+                .build();
+    final HepProgram program =
+            HepProgram.builder()
+                .addRuleInstance(FilterAggregateTransposeRule.INSTANCE)
+                .build();
+    checkPlanning(tester, preProgram, new HepPlanner(program), "${sql}");
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-434">[CALCITE-434],
    * FilterAggregateTransposeRule loses conditions that cannot be pushed</a>. */
