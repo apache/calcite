@@ -16,7 +16,7 @@
  */
 package org.apache.calcite.util;
 
-import org.apache.calcite.runtime.Spaces;
+import org.apache.calcite.avatica.util.Spaces;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;

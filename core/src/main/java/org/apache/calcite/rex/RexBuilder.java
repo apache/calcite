@@ -16,17 +16,18 @@
  */
 package org.apache.calcite.rex;
 
-import org.apache.calcite.avatica.ByteString;
+import org.apache.calcite.avatica.util.ByteString;
+import org.apache.calcite.avatica.util.DateTimeUtils;
+import org.apache.calcite.avatica.util.Spaces;
+import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
-import org.apache.calcite.runtime.Spaces;
 import org.apache.calcite.runtime.SqlFunctions;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlIntervalQualifier;
-import org.apache.calcite.sql.SqlIntervalQualifier.TimeUnit;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSpecialOperator;
@@ -39,7 +40,6 @@ import org.apache.calcite.sql.type.MapSqlType;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
-import org.apache.calcite.util.DateTimeUtil;
 import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
@@ -474,7 +474,7 @@ public class RexBuilder {
           calendar.setTimeInMillis(
               SqlFunctions.round(
                   calendar.getTimeInMillis(),
-                  SqlFunctions.powerX(10, 3 - scale)));
+                  DateTimeUtils.powerX(10, 3 - scale)));
           break;
         case INTERVAL_DAY_TIME:
           BigDecimal value2 = (BigDecimal) value;
@@ -1011,7 +1011,7 @@ public class RexBuilder {
   public RexLiteral makeIntervalLiteral(
       SqlIntervalQualifier intervalQualifier) {
     assert intervalQualifier != null;
-    return makeFlag(intervalQualifier.foo());
+    return makeFlag(intervalQualifier.timeUnitRange);
   }
 
   /**
@@ -1132,7 +1132,7 @@ public class RexBuilder {
     case TIME:
     case DATE:
     case TIMESTAMP:
-      return DateTimeUtil.ZERO_CALENDAR;
+      return DateTimeUtils.ZERO_CALENDAR;
     default:
       throw Util.unexpected(type.getSqlTypeName());
     }
@@ -1270,14 +1270,14 @@ public class RexBuilder {
       if (o instanceof Calendar) {
         return o;
       }
-      calendar = Calendar.getInstance(DateTimeUtil.GMT_ZONE);
+      calendar = Calendar.getInstance(DateTimeUtils.GMT_ZONE);
       calendar.setTimeInMillis((Integer) o);
       return calendar;
     case DATE:
       if (o instanceof Calendar) {
         return o;
       }
-      calendar = Calendar.getInstance(DateTimeUtil.GMT_ZONE);
+      calendar = Calendar.getInstance(DateTimeUtils.GMT_ZONE);
       calendar.setTimeInMillis(0);
       calendar.add(Calendar.DAY_OF_YEAR, (Integer) o);
       return calendar;
@@ -1285,7 +1285,7 @@ public class RexBuilder {
       if (o instanceof Calendar) {
         return o;
       }
-      calendar = Calendar.getInstance(DateTimeUtil.GMT_ZONE);
+      calendar = Calendar.getInstance(DateTimeUtils.GMT_ZONE);
       calendar.setTimeInMillis((Long) o);
       return calendar;
     default:

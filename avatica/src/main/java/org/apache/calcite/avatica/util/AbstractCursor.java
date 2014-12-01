@@ -14,15 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.runtime;
+package org.apache.calcite.avatica.util;
 
-import org.apache.calcite.avatica.ArrayImpl;
-import org.apache.calcite.avatica.ByteString;
+import org.apache.calcite.avatica.AvaticaUtils;
 import org.apache.calcite.avatica.ColumnMetaData;
-import org.apache.calcite.avatica.Cursor;
-import org.apache.calcite.linq4j.tree.Primitive;
-import org.apache.calcite.util.DateTimeUtil;
-import org.apache.calcite.util.Util;
 
 import java.io.InputStream;
 import java.io.Reader;
@@ -49,7 +44,7 @@ import java.util.Map;
  * Base class for implementing a cursor.
  *
  * <p>Derived class needs to provide {@link Getter} and can override
- * {@link org.apache.calcite.avatica.Cursor.Accessor} implementations if it
+ * {@link org.apache.calcite.avatica.util.Cursor.Accessor} implementations if it
  * wishes.</p>
  */
 public abstract class AbstractCursor implements Cursor {
@@ -155,8 +150,8 @@ public abstract class AbstractCursor implements Cursor {
         if (end < 0) {
           end = type.type.typeName.length();
         }
-        SqlFunctions.TimeUnitRange range =
-            SqlFunctions.TimeUnitRange.valueOf(
+        TimeUnitRange range =
+            TimeUnitRange.valueOf(
                 type.type.typeName.substring("INTERVAL_".length(), end));
         if (range.monthly()) {
           return new IntervalYearMonthAccessor(getter, range);
@@ -181,13 +176,13 @@ public abstract class AbstractCursor implements Cursor {
     if (calendar != null) {
       v -= calendar.getTimeZone().getOffset(v);
     }
-    return SqlFunctions.unixTimestampToString(v);
+    return DateTimeUtils.unixTimestampToString(v);
   }
 
   /** Accesses a date value as a string, e.g. "2013-09-22". */
   private static String dateAsString(int v, Calendar calendar) {
-    Util.discard(calendar); // timezone shift doesn't make sense
-    return SqlFunctions.unixDateToString(v);
+    AvaticaUtils.discard(calendar); // timezone shift doesn't make sense
+    return DateTimeUtils.unixDateToString(v);
   }
 
   /** Accesses a time value as a string, e.g. "22:30:32". */
@@ -195,7 +190,7 @@ public abstract class AbstractCursor implements Cursor {
     if (calendar != null) {
       v -= calendar.getTimeZone().getOffset(v);
     }
-    return SqlFunctions.unixTimeToString(v);
+    return DateTimeUtils.unixTimeToString(v);
   }
 
   private static Date longToDate(long v, Calendar calendar) {
@@ -224,6 +219,7 @@ public abstract class AbstractCursor implements Cursor {
     protected final Getter getter;
 
     public AccessorImpl(Getter getter) {
+      assert getter != null;
       this.getter = getter;
     }
 
@@ -676,7 +672,7 @@ public abstract class AbstractCursor implements Cursor {
 
   /**
    * Accessor that assumes that the underlying value is an array of
-   * {@link org.apache.calcite.avatica.ByteString} values;
+   * {@link org.apache.calcite.avatica.util.ByteString} values;
    * corresponds to {@link java.sql.Types#BINARY}
    * and {@link java.sql.Types#VARBINARY}.
    */
@@ -713,7 +709,7 @@ public abstract class AbstractCursor implements Cursor {
       if (v == 0 && getter.wasNull()) {
         return null;
       }
-      return longToDate((long) v * DateTimeUtil.MILLIS_PER_DAY, calendar);
+      return longToDate((long) v * DateTimeUtils.MILLIS_PER_DAY, calendar);
     }
 
     @Override public Timestamp getTimestamp(Calendar calendar) {
@@ -721,7 +717,7 @@ public abstract class AbstractCursor implements Cursor {
       if (v == 0 && getter.wasNull()) {
         return null;
       }
-      return longToTimestamp((long) v * DateTimeUtil.MILLIS_PER_DAY, calendar);
+      return longToTimestamp((long) v * DateTimeUtils.MILLIS_PER_DAY, calendar);
     }
 
     @Override public String getString() {
@@ -847,7 +843,7 @@ public abstract class AbstractCursor implements Cursor {
       Date date = getDate(null);
       return date == null
           ? 0L
-          : (date.getTime() / DateTimeUtil.MILLIS_PER_DAY);
+          : (date.getTime() / DateTimeUtils.MILLIS_PER_DAY);
     }
   }
 
@@ -887,7 +883,8 @@ public abstract class AbstractCursor implements Cursor {
 
     @Override public long getLong() {
       Time time = getTime(null);
-      return time == null ? 0L : (time.getTime() % DateTimeUtil.MILLIS_PER_DAY);
+      return time == null ? 0L
+          : (time.getTime() % DateTimeUtils.MILLIS_PER_DAY);
     }
   }
 
@@ -976,10 +973,9 @@ public abstract class AbstractCursor implements Cursor {
    * corresponds to {@link java.sql.Types#OTHER}.
    */
   private static class IntervalYearMonthAccessor extends IntAccessor {
-    private final SqlFunctions.TimeUnitRange range;
+    private final TimeUnitRange range;
 
-    public IntervalYearMonthAccessor(Getter getter,
-        SqlFunctions.TimeUnitRange range) {
+    public IntervalYearMonthAccessor(Getter getter, TimeUnitRange range) {
       super(getter);
       this.range = range;
     }
@@ -989,7 +985,7 @@ public abstract class AbstractCursor implements Cursor {
       if (v == 0 && wasNull()) {
         return null;
       }
-      return SqlFunctions.intervalYearMonthToString(v, range);
+      return DateTimeUtils.intervalYearMonthToString(v, range);
     }
   }
 
@@ -998,11 +994,11 @@ public abstract class AbstractCursor implements Cursor {
    * corresponds to {@link java.sql.Types#OTHER}.
    */
   private static class IntervalDayTimeAccessor extends LongAccessor {
-    private final SqlFunctions.TimeUnitRange range;
+    private final TimeUnitRange range;
     private final int scale;
 
-    public IntervalDayTimeAccessor(Getter getter,
-        SqlFunctions.TimeUnitRange range, int scale) {
+    public IntervalDayTimeAccessor(Getter getter, TimeUnitRange range,
+        int scale) {
       super(getter);
       this.range = range;
       this.scale = scale;
@@ -1013,7 +1009,7 @@ public abstract class AbstractCursor implements Cursor {
       if (v == 0 && wasNull()) {
         return null;
       }
-      return SqlFunctions.intervalDayTimeToString(v, range, scale);
+      return DateTimeUtils.intervalDayTimeToString(v, range, scale);
     }
   }
 
@@ -1039,7 +1035,7 @@ public abstract class AbstractCursor implements Cursor {
       }
       // The object can be java array in case of user-provided class for row
       // storage.
-      return Primitive.asList(object);
+      return AvaticaUtils.primitiveList(object);
     }
 
     @Override public Array getArray() {
@@ -1073,7 +1069,7 @@ public abstract class AbstractCursor implements Cursor {
       if (o == null) {
         buf.append("null");
       } else if (o.getClass().isArray()) {
-        append(buf, Primitive.asList(o));
+        append(buf, AvaticaUtils.primitiveList(o));
       } else {
         buf.append(o);
       }
@@ -1104,7 +1100,6 @@ public abstract class AbstractCursor implements Cursor {
       return wasNull[0];
     }
   }
-
 }
 
 // End AbstractCursor.java

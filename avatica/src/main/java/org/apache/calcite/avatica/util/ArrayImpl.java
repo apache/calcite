@@ -14,7 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.avatica;
+package org.apache.calcite.avatica.util;
+
+import org.apache.calcite.avatica.ColumnMetaData;
 
 import java.sql.Array;
 import java.sql.ResultSet;
@@ -165,7 +167,8 @@ public class ArrayImpl implements Array {
 
   /** Factory that can create a result set based on a list of values. */
   public interface Factory {
-    ResultSet create(ColumnMetaData.AvaticaType elementType, Iterable iterable);
+    ResultSet create(ColumnMetaData.AvaticaType elementType,
+        Iterable<Object> iterable);
   }
 }
 

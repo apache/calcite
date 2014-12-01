@@ -19,6 +19,7 @@ package org.apache.calcite.linq4j;
 import com.google.common.collect.Lists;
 
 import java.io.Closeable;
+import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.sql.ResultSet;
@@ -97,25 +98,8 @@ public abstract class Linq4j {
    *
    * @return Iterator
    */
-  public static <T> Iterator<T> enumeratorIterator(
-      final Enumerator<T> enumerator) {
-    return new Iterator<T>() {
-      boolean hasNext = enumerator.moveNext();
-
-      public boolean hasNext() {
-        return hasNext;
-      }
-
-      public T next() {
-        T t = enumerator.current();
-        hasNext = enumerator.moveNext();
-        return t;
-      }
-
-      public void remove() {
-        throw new UnsupportedOperationException();
-      }
-    };
+  public static <T> Iterator<T> enumeratorIterator(Enumerator<T> enumerator) {
+    return new EnumeratorIterator<T>(enumerator);
   }
 
   /**
@@ -128,6 +112,11 @@ public abstract class Linq4j {
    */
   public static <T> Enumerator<T> iterableEnumerator(
       final Iterable<T> iterable) {
+    if (iterable instanceof Enumerable) {
+      @SuppressWarnings("unchecked") final Enumerable<T> enumerable =
+          (Enumerable) iterable;
+      return enumerable.enumerator();
+    }
     return new IterableEnumerator<T>(iterable);
   }
 
@@ -414,9 +403,48 @@ public abstract class Linq4j {
     return o;
   }
 
+  /** Closes an iterator, if it can be closed. */
+  private static <T> void closeIterator(Iterator<T> iterator) {
+    if (AUTO_CLOSEABLE_CLOSE_METHOD != null) {
+      // JDK 1.7 or later
+      if (AUTO_CLOSEABLE_CLOSE_METHOD.getDeclaringClass()
+          .isInstance(iterator)) {
+        try {
+          AUTO_CLOSEABLE_CLOSE_METHOD.invoke(iterator);
+        } catch (IllegalAccessException e) {
+          throw new RuntimeException(e);
+        } catch (InvocationTargetException e) {
+          throw new RuntimeException(e.getCause());
+        }
+      }
+    } else {
+      // JDK 1.5 or 1.6. No AutoCloseable. Cover the two most common cases
+      // with a close().
+      if (iterator instanceof Closeable) {
+        try {
+          ((Closeable) iterator).close();
+          return;
+        } catch (RuntimeException e) {
+          throw e;
+        } catch (Exception e) {
+          throw new RuntimeException(e);
+        }
+      }
+      if (iterator instanceof ResultSet) {
+        try {
+          ((ResultSet) iterator).close();
+        } catch (RuntimeException e) {
+          throw e;
+        } catch (Exception e) {
+          throw new RuntimeException(e);
+        }
+      }
+    }
+  }
+
   /** Iterable enumerator. */
   @SuppressWarnings("unchecked")
-  private static class IterableEnumerator<T> implements Enumerator<T> {
+  static class IterableEnumerator<T> implements Enumerator<T> {
     private final Iterable<T> iterable;
     Iterator<T> iterator;
     T current;
@@ -449,43 +477,9 @@ public abstract class Linq4j {
     }
 
     public void close() {
-      final Iterator<T> iterator = this.iterator;
+      final Iterator<T> iterator1 = this.iterator;
       this.iterator = null;
-      if (AUTO_CLOSEABLE_CLOSE_METHOD != null) {
-        // JDK 1.7 or later
-        if (AUTO_CLOSEABLE_CLOSE_METHOD.getDeclaringClass()
-            .isInstance(iterator)) {
-          try {
-            AUTO_CLOSEABLE_CLOSE_METHOD.invoke(iterator);
-          } catch (IllegalAccessException e) {
-            throw new RuntimeException(e);
-          } catch (InvocationTargetException e) {
-            throw new RuntimeException(e.getCause());
-          }
-        }
-      } else {
-        // JDK 1.5 or 1.6. No AutoCloseable. Cover the two most common cases
-        // with a close().
-        if (iterator instanceof Closeable) {
-          try {
-            ((Closeable) iterator).close();
-            return;
-          } catch (RuntimeException e) {
-            throw e;
-          } catch (Exception e) {
-            throw new RuntimeException(e);
-          }
-        }
-        if (iterator instanceof ResultSet) {
-          try {
-            ((ResultSet) iterator).close();
-          } catch (RuntimeException e) {
-            throw e;
-          } catch (Exception e) {
-            throw new RuntimeException(e);
-          }
-        }
-      }
+      closeIterator(iterator1);
     }
   }
 
@@ -650,6 +644,35 @@ public abstract class Linq4j {
     }
 
     public void close() {
+    }
+  }
+
+  /** Iterator that reads from an underlying {@link Enumerator}. */
+  private static class EnumeratorIterator<T> implements Iterator<T>, Closeable {
+    private final Enumerator<T> enumerator;
+    boolean hasNext;
+
+    public EnumeratorIterator(Enumerator<T> enumerator) {
+      this.enumerator = enumerator;
+      hasNext = enumerator.moveNext();
+    }
+
+    public boolean hasNext() {
+      return hasNext;
+    }
+
+    public T next() {
+      T t = enumerator.current();
+      hasNext = enumerator.moveNext();
+      return t;
+    }
+
+    public void remove() {
+      throw new UnsupportedOperationException();
+    }
+
+    public void close() throws IOException {
+      enumerator.close();
     }
   }
 }

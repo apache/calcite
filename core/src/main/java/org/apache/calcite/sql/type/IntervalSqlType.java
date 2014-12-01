@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.sql.type;
 
+import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactoryImpl;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
@@ -88,13 +89,13 @@ public class IntervalSqlType extends AbstractSqlType {
     assert this.intervalQualifier.isYearMonth()
         == that.intervalQualifier.isYearMonth();
     boolean nullable = isNullable || that.isNullable;
-    SqlIntervalQualifier.TimeUnit thisStart =
+    TimeUnit thisStart =
         this.intervalQualifier.getStartUnit();
-    SqlIntervalQualifier.TimeUnit thisEnd =
+    TimeUnit thisEnd =
         this.intervalQualifier.getEndUnit();
-    SqlIntervalQualifier.TimeUnit thatStart =
+    TimeUnit thatStart =
         that.intervalQualifier.getStartUnit();
-    SqlIntervalQualifier.TimeUnit thatEnd =
+    TimeUnit thatEnd =
         that.intervalQualifier.getEndUnit();
 
     assert null != thisStart;

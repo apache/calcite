@@ -46,6 +46,11 @@ limitations under the License.
       <artifactId>calcite-linq4j</artifactId>
     </dependency>
     <dependency>
+      <groupId>org.apache.calcite</groupId>
+      <artifactId>calcite-avatica-server</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
       <groupId>org.pentaho</groupId>
       <artifactId>pentaho-aggdesigner-algorithm</artifactId>
     </dependency>

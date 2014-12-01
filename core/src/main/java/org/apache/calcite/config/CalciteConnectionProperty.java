@@ -30,55 +30,57 @@ import static org.apache.calcite.avatica.ConnectionConfigImpl.parse;
  */
 public enum CalciteConnectionProperty implements ConnectionProperty {
   /** Whether to store query results in temporary tables. */
-  AUTO_TEMP("autoTemp", Type.BOOLEAN, false),
+  AUTO_TEMP("autoTemp", Type.BOOLEAN, false, false),
 
   /** Whether Calcite should use materializations. */
-  MATERIALIZATIONS_ENABLED("materializationsEnabled", Type.BOOLEAN, true),
+  MATERIALIZATIONS_ENABLED("materializationsEnabled", Type.BOOLEAN, true,
+      false),
 
   /** Whether Calcite should create materializations. */
-  CREATE_MATERIALIZATIONS("createMaterializations", Type.BOOLEAN, true),
+  CREATE_MATERIALIZATIONS("createMaterializations", Type.BOOLEAN, true, false),
 
   /** URI of the model. */
-  MODEL("model", Type.STRING, null),
+  MODEL("model", Type.STRING, null, false),
 
   /** Lexical policy. */
-  LEX("lex", Type.ENUM, Lex.ORACLE),
+  LEX("lex", Type.ENUM, Lex.ORACLE, false),
 
   /** How identifiers are quoted.
    *  If not specified, value from {@link #LEX} is used. */
-  QUOTING("quoting", Type.ENUM, null),
+  QUOTING("quoting", Type.ENUM, null, false),
 
   /** How identifiers are stored if they are quoted.
    *  If not specified, value from {@link #LEX} is used. */
-  QUOTED_CASING("quotedCasing", Type.ENUM, null),
+  QUOTED_CASING("quotedCasing", Type.ENUM, null, false),
 
   /** How identifiers are stored if they are not quoted.
    *  If not specified, value from {@link #LEX} is used. */
-  UNQUOTED_CASING("unquotedCasing", Type.ENUM, null),
+  UNQUOTED_CASING("unquotedCasing", Type.ENUM, null, false),
 
   /** Whether identifiers are matched case-sensitively.
    *  If not specified, value from {@link #LEX} is used. */
-  CASE_SENSITIVE("caseSensitive", Type.BOOLEAN, null),
+  CASE_SENSITIVE("caseSensitive", Type.BOOLEAN, null, false),
 
   /** Name of initial schema. */
-  SCHEMA("schema", Type.STRING, null),
+  SCHEMA("schema", Type.STRING, null, false),
 
   /** Specifies whether Spark should be used as the engine for processing that
    * cannot be pushed to the source system. If false (the default), Calcite
    * generates code that implements the Enumerable interface. */
-  SPARK("spark", Type.BOOLEAN, false),
+  SPARK("spark", Type.BOOLEAN, false, false),
 
   /** Timezone, for example 'gmt-3'. Default is the JVM's time zone. */
-  TIMEZONE("timezone", Type.STRING, null),
+  TIMEZONE("timezone", Type.STRING, null, false),
 
   /** Type system. The name of a class that implements
    * {@link org.apache.calcite.rel.type.RelDataTypeSystem} and has a public
    * default constructor or an {@code INSTANCE} constant. */
-  TYPE_SYSTEM("typeSystem", Type.PLUGIN, null);
+  TYPE_SYSTEM("typeSystem", Type.PLUGIN, null, false);
 
   private final String camelName;
   private final Type type;
   private final Object defaultValue;
+  private final boolean required;
 
   private static final Map<String, CalciteConnectionProperty> NAME_TO_PROPS;
 
@@ -90,10 +92,12 @@ public enum CalciteConnectionProperty implements ConnectionProperty {
     }
   }
 
-  CalciteConnectionProperty(String camelName, Type type, Object defaultValue) {
+  CalciteConnectionProperty(String camelName, Type type, Object defaultValue,
+      boolean required) {
     this.camelName = camelName;
     this.type = type;
     this.defaultValue = defaultValue;
+    this.required = required;
     assert defaultValue == null || type.valid(defaultValue);
   }
 
@@ -109,6 +113,9 @@ public enum CalciteConnectionProperty implements ConnectionProperty {
     return type;
   }
 
+  public boolean required() {
+    return required;
+  }
 
   public PropEnv wrap(Properties properties) {
     return new PropEnv(parse(properties, NAME_TO_PROPS), this);

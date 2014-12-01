@@ -17,7 +17,6 @@
 package org.apache.calcite.tools;
 
 import org.apache.calcite.config.CalciteConnectionProperty;
-import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.plan.Context;
 import org.apache.calcite.plan.RelOptCluster;
@@ -140,10 +139,8 @@ public class Frameworks {
       }
       Connection connection =
           DriverManager.getConnection("jdbc:calcite:", info);
-      CalciteConnection calciteConnection =
-          connection.unwrap(CalciteConnection.class);
       final CalciteServerStatement statement =
-          calciteConnection.createStatement()
+          connection.createStatement()
               .unwrap(CalciteServerStatement.class);
       return new CalcitePrepareImpl().perform(statement, action);
     } catch (Exception e) {

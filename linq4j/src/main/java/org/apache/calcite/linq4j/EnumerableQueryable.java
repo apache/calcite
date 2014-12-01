@@ -73,7 +73,7 @@ class EnumerableQueryable<T> extends DefaultEnumerable<T>
   }
 
   public Iterator<T> iterator() {
-    return Linq4j.enumeratorIterator(enumerator());
+    return enumerable.iterator();
   }
 
   public Enumerator<T> enumerator() {

@@ -26,6 +26,8 @@ import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.avatica.AvaticaParameter;
 import org.apache.calcite.avatica.ColumnMetaData;
 import org.apache.calcite.avatica.Helper;
+import org.apache.calcite.avatica.Meta;
+import org.apache.calcite.avatica.util.Spaces;
 import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.jdbc.CalcitePrepare;
 import org.apache.calcite.jdbc.CalciteSchema;
@@ -86,7 +88,6 @@ import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.runtime.Bindable;
 import org.apache.calcite.runtime.Hook;
-import org.apache.calcite.runtime.Spaces;
 import org.apache.calcite.runtime.Typed;
 import org.apache.calcite.runtime.Utilities;
 import org.apache.calcite.schema.Schemas;
@@ -335,13 +336,13 @@ public class CalcitePrepareImpl implements CalcitePrepare {
     return planner;
   }
 
-  public <T> PrepareResult<T> prepareQueryable(
+  public <T> CalciteSignature<T> prepareQueryable(
       Context context,
       Queryable<T> queryable) {
     return prepare_(context, null, queryable, queryable.getElementType(), -1);
   }
 
-  public <T> PrepareResult<T> prepareSql(
+  public <T> CalciteSignature<T> prepareSql(
       Context context,
       String sql,
       Queryable<T> expression,
@@ -350,7 +351,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
     return prepare_(context, sql, expression, elementType, maxRowCount);
   }
 
-  <T> PrepareResult<T> prepare_(
+  <T> CalciteSignature<T> prepare_(
       Context context,
       String sql,
       Queryable<T> queryable,
@@ -389,7 +390,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
 
   /** Quickly prepares a simple SQL statement, circumventing the usual
    * preparation process. */
-  private <T> PrepareResult<T> simplePrepare(Context context, String sql) {
+  private <T> CalciteSignature<T> simplePrepare(Context context, String sql) {
     final JavaTypeFactory typeFactory = context.getTypeFactory();
     final RelDataType x =
         typeFactory.builder().add("EXPR$0", SqlTypeName.INTEGER).build();
@@ -398,22 +399,27 @@ public class CalcitePrepareImpl implements CalcitePrepare {
     final List<String> origin = null;
     final List<List<String>> origins =
         Collections.nCopies(x.getFieldCount(), origin);
-    return new PrepareResult<T>(
+    final List<ColumnMetaData> columns =
+        getColumnMetaDataList(typeFactory, x, x, origins);
+    final Meta.CursorFactory cursorFactory =
+        Meta.CursorFactory.deduce(columns, null);
+    return new CalciteSignature<T>(
         sql,
         ImmutableList.<AvaticaParameter>of(),
         ImmutableMap.<String, Object>of(),
         x,
-        getColumnMetaDataList(typeFactory, x, x, origins),
+        columns,
+        cursorFactory,
         -1,
         new Bindable<T>() {
           public Enumerable<T> bind(DataContext dataContext) {
             return Linq4j.asEnumerable(list);
           }
-        },
-        Integer.class);
+        }
+    );
   }
 
-  <T> PrepareResult<T> prepare2_(
+  <T> CalciteSignature<T> prepare2_(
       Context context,
       String sql,
       Queryable<T> queryable,
@@ -511,24 +517,24 @@ public class CalcitePrepareImpl implements CalcitePrepare {
 
     RelDataType jdbcType = makeStruct(typeFactory, x);
     final List<List<String>> originList = preparedResult.getFieldOrigins();
-    final ColumnMetaData.StructType structType =
+    final List<ColumnMetaData> columns =
         getColumnMetaDataList(typeFactory, x, jdbcType, originList);
     Class resultClazz = null;
     if (preparedResult instanceof Typed) {
       resultClazz = (Class) ((Typed) preparedResult).getElementType();
     }
-    return new PrepareResult<T>(
+    return new CalciteSignature<T>(
         sql,
         parameters,
         preparingStmt.internalParameters,
         jdbcType,
-        structType,
+        columns,
+        Meta.CursorFactory.deduce(columns, resultClazz),
         maxRowCount,
-        preparedResult.getBindable(),
-        resultClazz);
+        preparedResult.getBindable());
   }
 
-  private ColumnMetaData.StructType getColumnMetaDataList(
+  private List<ColumnMetaData> getColumnMetaDataList(
       JavaTypeFactory typeFactory, RelDataType x, RelDataType jdbcType,
       List<List<String>> originList) {
     final List<ColumnMetaData> columns = new ArrayList<ColumnMetaData>();
@@ -541,7 +547,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
           metaData(typeFactory, columns.size(), field.getName(), type,
               fieldType, originList.get(pair.i)));
     }
-    return ColumnMetaData.struct(columns);
+    return columns;
   }
 
   private ColumnMetaData metaData(JavaTypeFactory typeFactory, int ordinal,

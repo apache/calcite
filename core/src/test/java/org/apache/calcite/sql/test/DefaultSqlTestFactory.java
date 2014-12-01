@@ -16,8 +16,8 @@
  */
 package org.apache.calcite.sql.test;
 
-import org.apache.calcite.avatica.Casing;
-import org.apache.calcite.avatica.Quoting;
+import org.apache.calcite.avatica.util.Casing;
+import org.apache.calcite.avatica.util.Quoting;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.sql.SqlOperatorTable;

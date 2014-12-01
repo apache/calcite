@@ -19,6 +19,8 @@ package org.apache.calcite.util;
 import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.java.ReflectiveSchema;
 import org.apache.calcite.adapter.jdbc.JdbcSchema;
+import org.apache.calcite.avatica.util.DateTimeUtils;
+import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.interpreter.Row;
 import org.apache.calcite.linq4j.AbstractEnumerable;
 import org.apache.calcite.linq4j.Enumerable;
@@ -229,20 +231,20 @@ public enum BuiltInMethod {
   MODIFIABLE_TABLE_GET_MODIFIABLE_COLLECTION(ModifiableTable.class,
       "getModifiableCollection"),
   STRING_TO_BOOLEAN(SqlFunctions.class, "toBoolean", String.class),
-  STRING_TO_DATE(SqlFunctions.class, "dateStringToUnixDate", String.class),
-  STRING_TO_TIME(SqlFunctions.class, "timeStringToUnixDate", String.class),
-  STRING_TO_TIMESTAMP(SqlFunctions.class, "timestampStringToUnixDate",
+  STRING_TO_DATE(DateTimeUtils.class, "dateStringToUnixDate", String.class),
+  STRING_TO_TIME(DateTimeUtils.class, "timeStringToUnixDate", String.class),
+  STRING_TO_TIMESTAMP(DateTimeUtils.class, "timestampStringToUnixDate",
       String.class),
-  UNIX_DATE_TO_STRING(SqlFunctions.class, "unixDateToString", int.class),
-  UNIX_TIME_TO_STRING(SqlFunctions.class, "unixTimeToString", int.class),
-  UNIX_TIMESTAMP_TO_STRING(SqlFunctions.class, "unixTimestampToString",
+  UNIX_DATE_TO_STRING(DateTimeUtils.class, "unixDateToString", int.class),
+  UNIX_TIME_TO_STRING(DateTimeUtils.class, "unixTimeToString", int.class),
+  UNIX_TIMESTAMP_TO_STRING(DateTimeUtils.class, "unixTimestampToString",
       long.class),
-  INTERVAL_YEAR_MONTH_TO_STRING(SqlFunctions.class, "intervalYearMonthToString",
-      int.class, SqlFunctions.TimeUnitRange.class),
-  INTERVAL_DAY_TIME_TO_STRING(SqlFunctions.class, "intervalDayTimeToString",
-      long.class, SqlFunctions.TimeUnitRange.class, int.class),
-  UNIX_DATE_EXTRACT(SqlFunctions.class, "unixDateExtract",
-      SqlFunctions.TimeUnitRange.class, long.class),
+  INTERVAL_YEAR_MONTH_TO_STRING(DateTimeUtils.class,
+      "intervalYearMonthToString", int.class, TimeUnitRange.class),
+  INTERVAL_DAY_TIME_TO_STRING(DateTimeUtils.class, "intervalDayTimeToString",
+      long.class, TimeUnitRange.class, int.class),
+  UNIX_DATE_EXTRACT(DateTimeUtils.class, "unixDateExtract",
+      TimeUnitRange.class, long.class),
   CURRENT_TIMESTAMP(SqlFunctions.class, "currentTimestamp", DataContext.class),
   CURRENT_TIME(SqlFunctions.class, "currentTime", DataContext.class),
   CURRENT_DATE(SqlFunctions.class, "currentDate", DataContext.class),

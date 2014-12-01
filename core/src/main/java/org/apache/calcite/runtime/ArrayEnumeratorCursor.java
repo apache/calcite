@@ -19,7 +19,7 @@ package org.apache.calcite.runtime;
 import org.apache.calcite.linq4j.Enumerator;
 
 /**
- * Implementation of {@link org.apache.calcite.avatica.Cursor} on top of an
+ * Implementation of {@link org.apache.calcite.avatica.util.Cursor} on top of an
  * {@link org.apache.calcite.linq4j.Enumerator} that
  * returns an array of {@link Object} for each row.
  */
@@ -34,23 +34,7 @@ public class ArrayEnumeratorCursor extends EnumeratorCursor<Object[]> {
   }
 
   protected Getter createGetter(int ordinal) {
-    return new ArrayEnumeratorGetter(ordinal);
-  }
-
-  /** Implementation of {@link Getter} that reads from records that are
-   * arrays. */
-  class ArrayEnumeratorGetter extends AbstractGetter {
-    protected final int field;
-
-    public ArrayEnumeratorGetter(int field) {
-      this.field = field;
-    }
-
-    public Object getObject() {
-      Object o = current()[field];
-      wasNull[0] = o == null;
-      return o;
-    }
+    return new ArrayGetter(ordinal);
   }
 }
 

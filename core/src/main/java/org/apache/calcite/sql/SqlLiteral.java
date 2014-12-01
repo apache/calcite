@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.sql;
 
+import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.fun.SqlLiteralChainOperator;
@@ -200,11 +201,10 @@ public class SqlLiteral extends SqlNode {
       return value instanceof BitString;
     case CHAR:
       return value instanceof NlsString;
-
     case SYMBOL:
-
       return (value instanceof SqlSymbol)
-          || (value instanceof SqlSampleSpec);
+          || (value instanceof SqlSampleSpec)
+          || (value instanceof TimeUnitRange);
     case MULTISET:
       return true;
     case INTEGER: // not allowed -- use Decimal

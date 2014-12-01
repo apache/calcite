@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.plan.volcano;
 
+import org.apache.calcite.avatica.util.Spaces;
 import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.plan.AbstractRelOptPlanner;
@@ -61,7 +62,6 @@ import org.apache.calcite.rel.rules.SortRemoveRule;
 import org.apache.calcite.rel.rules.UnionToDistinctRule;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.runtime.Hook;
-import org.apache.calcite.runtime.Spaces;
 import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.SaffronProperties;

@@ -21,7 +21,6 @@ import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.avatica.AvaticaConnection;
 import org.apache.calcite.avatica.AvaticaFactory;
 import org.apache.calcite.avatica.AvaticaParameter;
-import org.apache.calcite.avatica.AvaticaPrepareResult;
 import org.apache.calcite.avatica.AvaticaStatement;
 import org.apache.calcite.avatica.Helper;
 import org.apache.calcite.avatica.InternalProperty;
@@ -30,7 +29,9 @@ import org.apache.calcite.avatica.UnregisteredDriver;
 import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.config.CalciteConnectionConfigImpl;
 import org.apache.calcite.linq4j.BaseQueryable;
+import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Enumerator;
+import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.linq4j.QueryProvider;
 import org.apache.calcite.linq4j.Queryable;
 import org.apache.calcite.linq4j.function.Function0;
@@ -54,14 +55,14 @@ import org.apache.calcite.sql.validate.SqlValidatorWithHints;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.Holder;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Maps;
 
 import java.io.Serializable;
 import java.lang.reflect.Type;
-import java.sql.PreparedStatement;
 import java.sql.SQLException;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -119,12 +120,8 @@ abstract class CalciteConnectionImpl
     this.properties.put(InternalProperty.QUOTING, cfg.quoting());
   }
 
-  @Override protected Meta createMeta() {
-    return new MetaImpl(this);
-  }
-
-  MetaImpl meta() {
-    return (MetaImpl) meta;
+  CalciteMetaImpl meta() {
+    return (CalciteMetaImpl) meta;
   }
 
   public CalciteConnectionConfig config() {
@@ -144,32 +141,22 @@ abstract class CalciteConnectionImpl
     }
   }
 
-  @Override public AvaticaStatement createStatement(int resultSetType,
+  @Override public CalciteStatement createStatement(int resultSetType,
       int resultSetConcurrency, int resultSetHoldability) throws SQLException {
-    CalciteStatement statement =
-        (CalciteStatement) super.createStatement(
-            resultSetType, resultSetConcurrency, resultSetHoldability);
-    server.addStatement(statement);
-    return statement;
+    return (CalciteStatement) super.createStatement(resultSetType,
+        resultSetConcurrency, resultSetHoldability);
   }
 
-  @Override public PreparedStatement prepareStatement(
+  @Override public CalcitePreparedStatement prepareStatement(
       String sql,
       int resultSetType,
       int resultSetConcurrency,
       int resultSetHoldability) throws SQLException {
     try {
-      AvaticaPrepareResult prepareResult =
+      Meta.Signature signature =
           parseQuery(sql, new ContextImpl(this), -1);
-      CalcitePreparedStatement statement =
-          (CalcitePreparedStatement) factory.newPreparedStatement(
-              this,
-              prepareResult,
-              resultSetType,
-              resultSetConcurrency,
-              resultSetHoldability);
-      server.addStatement(statement);
-      return statement;
+      return (CalcitePreparedStatement) factory.newPreparedStatement(this, null,
+          signature, resultSetType, resultSetConcurrency, resultSetHoldability);
     } catch (RuntimeException e) {
       throw Helper.INSTANCE.createException(
           "Error while preparing statement [" + sql + "]", e);
@@ -179,7 +166,7 @@ abstract class CalciteConnectionImpl
     }
   }
 
-  <T> CalcitePrepare.PrepareResult<T> parseQuery(String sql,
+  <T> CalcitePrepare.CalciteSignature<T> parseQuery(String sql,
       CalcitePrepare.Context prepareContext, int maxRowCount) {
     CalcitePrepare.Dummy.push(prepareContext);
     try {
@@ -227,14 +214,26 @@ abstract class CalciteConnectionImpl
   public <T> Enumerator<T> executeQuery(Queryable<T> queryable) {
     try {
       CalciteStatement statement = (CalciteStatement) createStatement();
-      CalcitePrepare.PrepareResult<T> enumerable =
+      CalcitePrepare.CalciteSignature<T> signature =
           statement.prepare(queryable);
-      final DataContext dataContext =
-          createDataContext(ImmutableMap.<String, Object>of());
-      return enumerable.enumerator(dataContext);
+      return enumerable(statement.handle, signature).enumerator();
     } catch (SQLException e) {
       throw new RuntimeException(e);
     }
+  }
+
+  public <T> Enumerable<T> enumerable(Meta.StatementHandle handle,
+      CalcitePrepare.CalciteSignature<T> signature) throws SQLException {
+    Map<String, Object> map = Maps.newLinkedHashMap();
+    AvaticaStatement statement = lookupStatement(handle);
+    final List<Object> parameterValues =
+        TROJAN.getParameterValues(statement);
+    for (Ord<Object> o : Ord.zip(parameterValues)) {
+      map.put("?" + o.i, o.e);
+    }
+    map.putAll(signature.internalParameters);
+    final DataContext dataContext = createDataContext(map);
+    return signature.enumerable(dataContext);
   }
 
   public DataContext createDataContext(Map<String, Object> parameterValues) {
@@ -268,15 +267,20 @@ abstract class CalciteConnectionImpl
 
   /** Implementation of Server. */
   private static class CalciteServerImpl implements CalciteServer {
-    final List<CalciteServerStatement> statementList =
-        new ArrayList<CalciteServerStatement>();
+    final Map<Integer, CalciteServerStatement> statementMap = Maps.newHashMap();
 
-    public void removeStatement(CalciteServerStatement calciteServerStatement) {
-      statementList.add(calciteServerStatement);
+    public void removeStatement(Meta.StatementHandle h) {
+      statementMap.remove(h.id);
     }
 
-    public void addStatement(CalciteServerStatement statement) {
-      statementList.add(statement);
+    public void addStatement(CalciteConnection connection,
+        Meta.StatementHandle h) {
+      final CalciteConnectionImpl c = (CalciteConnectionImpl) connection;
+      statementMap.put(h.id, new CalciteServerStatementImpl(c));
+    }
+
+    public CalciteServerStatement getStatement(Meta.StatementHandle h) {
+      return statementMap.get(h.id);
     }
   }
 
@@ -378,7 +382,7 @@ abstract class CalciteConnectionImpl
     private final CalciteConnectionImpl connection;
 
     public ContextImpl(CalciteConnectionImpl connection) {
-      this.connection = connection;
+      this.connection = Preconditions.checkNotNull(connection);
     }
 
     public JavaTypeFactory getTypeFactory() {
@@ -430,6 +434,23 @@ abstract class CalciteConnectionImpl
     }
   }
 
+  /** Implementation of {@link CalciteServerStatement}. */
+  static class CalciteServerStatementImpl
+      implements CalciteServerStatement {
+    private final CalciteConnectionImpl connection;
+
+    public CalciteServerStatementImpl(CalciteConnectionImpl connection) {
+      this.connection = Preconditions.checkNotNull(connection);
+    }
+
+    public ContextImpl createPrepareContext() {
+      return new ContextImpl(connection);
+    }
+
+    public CalciteConnection getConnection() {
+      return connection;
+    }
+  }
 }
 
 // End CalciteConnectionImpl.java

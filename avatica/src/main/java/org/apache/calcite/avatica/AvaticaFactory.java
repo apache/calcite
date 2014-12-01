@@ -18,9 +18,9 @@ package org.apache.calcite.avatica;
 
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
-import java.util.List;
 import java.util.Properties;
 import java.util.TimeZone;
+import javax.annotation.Nullable;
 
 /**
  * Factory for JDBC objects.
@@ -38,39 +38,51 @@ public interface AvaticaFactory {
       String url,
       Properties info) throws SQLException;
 
-  AvaticaStatement newStatement(
-      AvaticaConnection connection,
-      int resultSetType,
-      int resultSetConcurrency,
-      int resultSetHoldability) throws SQLException;
+  AvaticaStatement newStatement(AvaticaConnection connection,
+      @Nullable Meta.StatementHandle h, int resultSetType,
+      int resultSetConcurrency, int resultSetHoldability) throws SQLException;
 
-  AvaticaPreparedStatement newPreparedStatement(
-      AvaticaConnection connection,
-      AvaticaPrepareResult prepareResult,
-      int resultSetType,
-      int resultSetConcurrency,
-      int resultSetHoldability) throws SQLException;
+  AvaticaPreparedStatement newPreparedStatement(AvaticaConnection connection,
+      @Nullable Meta.StatementHandle h, Meta.Signature signature,
+      int resultSetType, int resultSetConcurrency, int resultSetHoldability)
+      throws SQLException;
 
   /**
    * Creates a result set. You will then need to call
    * {@link AvaticaResultSet#execute()} on it.
    *
+   * <p>If {@code signature} implements
+   * {@link org.apache.calcite.avatica.MetaImpl.WithIterable} we do not need
+   * to execute; we can use pre-canned data. This mechanism is used for
+   * metadata requests such as {@code getTables}.
+   *
    * @param statement Statement
-   * @param prepareResult Prepared statement
+   * @param signature Prepared statement
    * @param timeZone Time zone
+   * @param iterable Iterable over rows in result, or null if an execute/fetch
+   *                 is required
    * @return Result set
    */
-  AvaticaResultSet newResultSet(
-      AvaticaStatement statement,
-      AvaticaPrepareResult prepareResult,
-      TimeZone timeZone) throws SQLException;
+  AvaticaResultSet newResultSet(AvaticaStatement statement,
+      Meta.Signature signature, TimeZone timeZone, Iterable<Object> iterable)
+      throws SQLException;
 
-  AvaticaDatabaseMetaData newDatabaseMetaData(
-      AvaticaConnection connection);
+  /**
+   * Creates meta data for the database.
+   *
+   * @return Database meta data
+   */
+  AvaticaDatabaseMetaData newDatabaseMetaData(AvaticaConnection connection);
 
-  ResultSetMetaData newResultSetMetaData(
-      AvaticaStatement statement,
-      List<ColumnMetaData> columnMetaDataList) throws SQLException;
+  /**
+   * Creates meta data for a result set.
+   *
+   * @param statement Statement
+   * @param signature Prepared statement
+   * @return Result set meta data
+   */
+  ResultSetMetaData newResultSetMetaData(AvaticaStatement statement,
+      Meta.Signature signature) throws SQLException;
 }
 
 // End AvaticaFactory.java

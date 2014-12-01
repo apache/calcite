@@ -14,19 +14,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.avatica;
+package org.apache.calcite.avatica.util;
 
-import java.util.List;
-import java.util.Map;
+import java.util.Iterator;
 
 /**
- * Result of preparing a statement.
+ * Implementation of {@link Cursor} on top of an
+ * {@link java.util.Iterator} that
+ * returns an array of {@link Object} for each row.
  */
-public interface AvaticaPrepareResult {
-  List<ColumnMetaData> getColumnList();
-  String getSql();
-  List<AvaticaParameter> getParameterList();
-  Map<String, Object> getInternalParameters();
+public class ArrayIteratorCursor extends IteratorCursor<Object[]> {
+  /**
+   * Creates an ArrayEnumeratorCursor.
+   *
+   * @param iterator Iterator
+   */
+  public ArrayIteratorCursor(Iterator<Object[]> iterator) {
+    super(iterator);
+  }
+
+  protected Getter createGetter(int ordinal) {
+    return new ArrayGetter(ordinal);
+  }
 }
 
-// End AvaticaPrepareResult.java
+// End ArrayIteratorCursor.java

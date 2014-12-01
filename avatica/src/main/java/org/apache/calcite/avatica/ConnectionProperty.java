@@ -42,6 +42,9 @@ public interface ConnectionProperty {
    * obtained when needed. */
   ConnectionConfigImpl.PropEnv wrap(Properties properties);
 
+  /** Whether the property is mandatory. */
+  boolean required();
+
   /** Data type of property. */
   enum Type {
     BOOLEAN,

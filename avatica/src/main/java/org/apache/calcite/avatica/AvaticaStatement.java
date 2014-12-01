@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.avatica;
 
+import com.google.common.base.Preconditions;
+
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLWarning;
@@ -29,7 +31,9 @@ import java.util.List;
  */
 public abstract class AvaticaStatement
     implements Statement {
-  protected final AvaticaConnection connection;
+  public final AvaticaConnection connection;
+  /** Statement id; unique within connection. */
+  public final Meta.StatementHandle handle;
   protected boolean closed;
 
   /**
@@ -52,33 +56,65 @@ public abstract class AvaticaStatement
   private int fetchDirection;
   protected int maxRowCount;
 
+  /**
+   * Creates an AvaticaStatement.
+   *
+   * @param connection Connection
+   * @param h Statement handle
+   * @param resultSetType Result set type
+   * @param resultSetConcurrency Result set concurrency
+   * @param resultSetHoldability Result set holdability
+   */
   protected AvaticaStatement(AvaticaConnection connection,
-      int resultSetType,
-      int resultSetConcurrency,
+      Meta.StatementHandle h, int resultSetType, int resultSetConcurrency,
       int resultSetHoldability) {
-    assert connection != null;
+    this.connection = Preconditions.checkNotNull(connection);
     this.resultSetType = resultSetType;
     this.resultSetConcurrency = resultSetConcurrency;
     this.resultSetHoldability = resultSetHoldability;
-    this.connection = connection;
     this.closed = false;
+    if (h == null) {
+      final Meta.ConnectionHandle ch = new Meta.ConnectionHandle(connection.id);
+      h = connection.meta.createStatement(ch);
+    }
+    connection.statementMap.put(h.id, this);
+    this.handle = h;
+  }
+
+  /** Returns the identifier of the statement, unique within its connection. */
+  public int getId() {
+    return handle.id;
   }
 
   // implement Statement
 
   public boolean execute(String sql) throws SQLException {
     try {
-      AvaticaPrepareResult x = connection.meta.prepare(this, sql);
+      // In JDBC, maxRowCount = 0 means no limit; in prepare it means LIMIT 0
+      final int maxRowCount1 = maxRowCount <= 0 ? -1 : maxRowCount;
+      Meta.Signature x = connection.meta.prepare(handle, sql, maxRowCount1);
       return executeInternal(x);
     } catch (RuntimeException e) {
       throw connection.helper.createException("while executing SQL: " + sql, e);
     }
   }
 
+  public ResultSet executeQueryOld(String sql) throws SQLException {
+    try {
+      final int maxRowCount1 = maxRowCount <= 0 ? -1 : maxRowCount;
+      Meta.Signature x = connection.meta.prepare(handle, sql, maxRowCount1);
+      return executeQueryInternal(x);
+    } catch (RuntimeException e) {
+      throw connection.helper.createException(
+        "error while executing SQL \"" + sql + "\": " + e.getMessage(), e);
+    }
+  }
+
   public ResultSet executeQuery(String sql) throws SQLException {
     try {
-      AvaticaPrepareResult x = connection.meta.prepare(this, sql);
-      return executeQueryInternal(x);
+      // In JDBC, maxRowCount = 0 means no limit; in prepare it means LIMIT 0
+      final int maxRowCount1 = maxRowCount <= 0 ? -1 : maxRowCount;
+      return connection.prepareAndExecuteInternal(this, sql, maxRowCount1);
     } catch (RuntimeException e) {
       throw connection.helper.createException(
         "error while executing SQL \"" + sql + "\": " + e.getMessage(), e);
@@ -330,28 +366,29 @@ public abstract class AvaticaStatement
   }
 
   /**
-   * Executes a parsed statement.
+   * Executes a prepared statement.
    *
-   * @param prepareResult Parsed statement
+   * @param signature Parsed statement
+   *
    * @return as specified by {@link java.sql.Statement#execute(String)}
    * @throws java.sql.SQLException if a database error occurs
    */
-  protected boolean executeInternal(
-      AvaticaPrepareResult prepareResult) throws SQLException {
-    ResultSet resultSet = executeQueryInternal(prepareResult);
+  protected boolean executeInternal(Meta.Signature signature)
+      throws SQLException {
+    ResultSet resultSet = executeQueryInternal(signature);
     return true;
   }
 
   /**
-   * Executes a parsed query, closing any previously open result set.
+   * Executes a prepared query, closing any previously open result set.
    *
-   * @param prepareResult Parsed query
+   * @param signature Parsed query
    * @return Result set
    * @throws java.sql.SQLException if a database error occurs
    */
-  protected ResultSet executeQueryInternal(
-      AvaticaPrepareResult prepareResult) throws SQLException {
-    return connection.executeQueryInternal(this, prepareResult);
+  protected ResultSet executeQueryInternal(Meta.Signature signature)
+      throws SQLException {
+    return connection.executeQueryInternal(this, signature, null);
   }
 
   /**

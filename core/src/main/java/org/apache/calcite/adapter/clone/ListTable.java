@@ -83,7 +83,8 @@ class ListTable extends AbstractQueryableTable {
       }
 
       public Iterator<T> iterator() {
-        return Linq4j.enumeratorIterator(enumerator());
+        //noinspection unchecked
+        return list.iterator();
       }
 
       public Enumerator<T> enumerator() {

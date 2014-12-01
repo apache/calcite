@@ -16,7 +16,7 @@
  */
 package org.apache.calcite.sql.parser;
 
-import org.apache.calcite.avatica.Casing;
+import org.apache.calcite.avatica.util.Casing;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.runtime.CalciteContextException;
 import org.apache.calcite.sql.SqlBinaryOperator;

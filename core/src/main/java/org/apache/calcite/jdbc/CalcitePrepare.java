@@ -19,13 +19,11 @@ package org.apache.calcite.jdbc;
 import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.avatica.AvaticaParameter;
-import org.apache.calcite.avatica.AvaticaPrepareResult;
 import org.apache.calcite.avatica.ColumnMetaData;
-import org.apache.calcite.avatica.Cursor;
+import org.apache.calcite.avatica.Meta;
 import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.EnumerableDefaults;
-import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.linq4j.Queryable;
 import org.apache.calcite.linq4j.function.Function0;
 import org.apache.calcite.linq4j.tree.ClassDeclaration;
@@ -35,19 +33,17 @@ import org.apache.calcite.prepare.CalcitePrepareImpl;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
-import org.apache.calcite.runtime.ArrayEnumeratorCursor;
 import org.apache.calcite.runtime.Bindable;
-import org.apache.calcite.runtime.ObjectEnumeratorCursor;
-import org.apache.calcite.runtime.RecordEnumeratorCursor;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.util.Stacks;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -72,14 +68,14 @@ public interface CalcitePrepare {
 
   ConvertResult convert(Context context, String sql);
 
-  <T> PrepareResult<T> prepareSql(
+  <T> CalciteSignature<T> prepareSql(
       Context context,
       String sql,
       Queryable<T> expression,
       Type elementType,
       int maxRowCount);
 
-  <T> PrepareResult<T> prepareQueryable(
+  <T> CalciteSignature<T> prepareQueryable(
       Context context,
       Queryable<T> queryable);
 
@@ -226,62 +222,26 @@ public interface CalcitePrepare {
   /** The result of preparing a query. It gives the Avatica driver framework
    * the information it needs to create a prepared statement, or to execute a
    * statement directly, without an explicit prepare step. */
-  public static class PrepareResult<T> implements AvaticaPrepareResult {
-    public final String sql; // for debug
-    public final List<AvaticaParameter> parameterList;
-    private final Map<String, Object> internalParameters;
-    public final RelDataType rowType;
-    public final ColumnMetaData.StructType structType;
+  public static class CalciteSignature<T> extends Meta.Signature {
+    @JsonIgnore public final RelDataType rowType;
     private final int maxRowCount;
     private final Bindable<T> bindable;
-    public final Class resultClazz;
 
-    public PrepareResult(String sql,
+    public CalciteSignature(String sql,
         List<AvaticaParameter> parameterList,
         Map<String, Object> internalParameters,
         RelDataType rowType,
-        ColumnMetaData.StructType structType,
+        List<ColumnMetaData> columns,
+        Meta.CursorFactory cursorFactory,
         int maxRowCount,
-        Bindable<T> bindable,
-        Class resultClazz) {
-      super();
-      this.sql = sql;
-      this.parameterList = parameterList;
-      this.internalParameters = internalParameters;
+        Bindable<T> bindable) {
+      super(columns, sql, parameterList, internalParameters, cursorFactory);
       this.rowType = rowType;
-      this.structType = structType;
       this.maxRowCount = maxRowCount;
       this.bindable = bindable;
-      this.resultClazz = resultClazz;
     }
 
-    public Cursor createCursor(DataContext dataContext) {
-      Enumerator<?> enumerator = enumerator(dataContext);
-      //noinspection unchecked
-      return structType.columns.size() == 1
-          ? new ObjectEnumeratorCursor((Enumerator) enumerator)
-          : resultClazz != null && !resultClazz.isArray()
-          ? new RecordEnumeratorCursor((Enumerator) enumerator, resultClazz)
-          : new ArrayEnumeratorCursor((Enumerator) enumerator);
-    }
-
-    public List<ColumnMetaData> getColumnList() {
-      return structType.columns;
-    }
-
-    public List<AvaticaParameter> getParameterList() {
-      return parameterList;
-    }
-
-    public Map<String, Object> getInternalParameters() {
-      return internalParameters;
-    }
-
-    public String getSql() {
-      return sql;
-    }
-
-    private Enumerable<T> getEnumerable(DataContext dataContext) {
+    public Enumerable<T> enumerable(DataContext dataContext) {
       Enumerable<T> enumerable = bindable.bind(dataContext);
       if (maxRowCount >= 0) {
         // Apply limit. In JDBC 0 means "no limit". But for us, -1 means
@@ -289,14 +249,6 @@ public interface CalcitePrepare {
         enumerable = EnumerableDefaults.take(enumerable, maxRowCount);
       }
       return enumerable;
-    }
-
-    public Enumerator<T> enumerator(DataContext dataContext) {
-      return getEnumerable(dataContext).enumerator();
-    }
-
-    public Iterator<T> iterator(DataContext dataContext) {
-      return getEnumerable(dataContext).iterator();
     }
   }
 }

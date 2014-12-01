@@ -16,6 +16,9 @@
  */
 package org.apache.calcite.server;
 
+import org.apache.calcite.avatica.Meta;
+import org.apache.calcite.jdbc.CalciteConnection;
+
 /**
  * Server.
  *
@@ -23,9 +26,11 @@ package org.apache.calcite.server;
  * management facilities.
  */
 public interface CalciteServer {
-  void removeStatement(CalciteServerStatement calciteServerStatement);
+  void removeStatement(Meta.StatementHandle h);
 
-  void addStatement(CalciteServerStatement calciteServerStatement);
+  void addStatement(CalciteConnection connection, Meta.StatementHandle h);
+
+  CalciteServerStatement getStatement(Meta.StatementHandle h);
 }
 
 // End CalciteServer.java

@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.adapter.enumerable;
 
+import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.linq4j.tree.BlockBuilder;
 import org.apache.calcite.linq4j.tree.BlockStatement;
@@ -49,7 +50,6 @@ import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlUserDefinedAggFunction;
 import org.apache.calcite.sql.validate.SqlUserDefinedFunction;
 import org.apache.calcite.util.BuiltInMethod;
-import org.apache.calcite.util.DateTimeUtil;
 import org.apache.calcite.util.Util;
 
 import com.google.common.base.Supplier;
@@ -1756,7 +1756,7 @@ public class RexImpTable {
         trop1 =
             Expressions.convert_(
                 Expressions.divide(trop1,
-                    Expressions.constant(DateTimeUtil.MILLIS_PER_DAY)),
+                    Expressions.constant(DateTimeUtils.MILLIS_PER_DAY)),
                 int.class);
         break;
       case TIME:

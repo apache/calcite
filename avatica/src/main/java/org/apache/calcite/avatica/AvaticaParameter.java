@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.avatica;
 
+import org.apache.calcite.avatica.util.ByteString;
+
 import java.io.InputStream;
 import java.io.Reader;
 import java.math.BigDecimal;
@@ -44,10 +46,8 @@ public class AvaticaParameter {
   public final String className;
   public final String name;
 
-  Object value;
-
   /** Value that means the parameter has been set to null.
-   * If {@link #value} is null, parameter has not been set. */
+   * If value is null, parameter has not been set. */
   public static final Object DUMMY_VALUE = new Object();
 
   public AvaticaParameter(
@@ -67,36 +67,28 @@ public class AvaticaParameter {
     this.name = name;
   }
 
-  public void setByte(byte o) {
-    this.value = o;
+  public void setByte(Object[] slots, int index, byte o) {
+    slots[index] = o;
   }
 
-  public void setValue(char o) {
-    this.value = o;
+  public void setChar(Object[] slots, int index, char o) {
+    slots[index] = o;
   }
 
-  public void setShort(short o) {
-    this.value = o;
+  public void setShort(Object[] slots, int index, short o) {
+    slots[index] = o;
   }
 
-  public void setInt(int o) {
-    this.value = o;
+  public void setInt(Object[] slots, int index, int o) {
+    slots[index] = o;
   }
 
-  public void setValue(long o) {
-    this.value = o;
+  public void setLong(Object[] slots, int index, long o) {
+    slots[index] = o;
   }
 
-  public void setValue(byte[] o) {
-    this.value = o == null ? DUMMY_VALUE : new ByteString(o);
-  }
-
-  public void setBoolean(boolean o) {
-    this.value = o;
-  }
-
-  public void setValue(Object o) {
-    this.value = wrap(o);
+  public void setBoolean(Object[] slots, int index, boolean o) {
+    slots[index] = o;
   }
 
   private static Object wrap(Object o) {
@@ -106,142 +98,151 @@ public class AvaticaParameter {
     return o;
   }
 
-  public boolean isSet() {
-    return value != null;
+  public boolean isSet(Object[] slots, int index) {
+    return slots[index] != null;
   }
 
-  public void setRowId(RowId x) {
-    this.value = wrap(x);
+  public void setRowId(Object[] slots, int index, RowId x) {
+    slots[index] = wrap(x);
   }
 
-  public void setNString(String o) {
-    this.value = wrap(o);
+  public void setNString(Object[] slots, int index, String o) {
+    slots[index] = wrap(o);
   }
 
-  public void setNCharacterStream(Reader value, long length) {
+  public void setNCharacterStream(Object[] slots, int index, Reader value,
+      long length) {
   }
 
-  public void setNClob(NClob value) {
-    this.value = wrap(value);
+  public void setNClob(Object[] slots, int index, NClob value) {
+    slots[index] = wrap(value);
   }
 
-  public void setClob(Reader reader, long length) {
+  public void setClob(Object[] slots, int index, Reader reader, long length) {
   }
 
-  public void setBlob(InputStream inputStream, long length) {
+  public void setBlob(Object[] slots, int index, InputStream inputStream,
+      long length) {
   }
 
-  public void setNClob(Reader reader, long length) {
+  public void setNClob(Object[] slots, int index, Reader reader, long length) {
   }
 
-  public void setSQLXML(SQLXML xmlObject) {
-    this.value = wrap(xmlObject);
+  public void setSQLXML(Object[] slots, int index, SQLXML xmlObject) {
+    slots[index] = wrap(xmlObject);
   }
 
-  public void setAsciiStream(InputStream x, long length) {
+  public void setAsciiStream(Object[] slots, int index, InputStream x,
+      long length) {
   }
 
-  public void setBinaryStream(InputStream x, long length) {
+  public void setBinaryStream(Object[] slots, int index, InputStream x,
+      long length) {
   }
 
-  public void setCharacterStream(Reader reader, long length) {
+  public void setCharacterStream(Object[] slots, int index, Reader reader,
+      long length) {
   }
 
-  public void setAsciiStream(InputStream x) {
+  public void setAsciiStream(Object[] slots, int index, InputStream x) {
   }
 
-  public void setBinaryStream(InputStream x) {
+  public void setBinaryStream(Object[] slots, int index, InputStream x) {
   }
 
-  public void setCharacterStream(Reader reader) {
+  public void setCharacterStream(Object[] slots, int index, Reader reader) {
   }
 
-  public void setNCharacterStream(Reader value) {
+  public void setNCharacterStream(Object[] slots, int index, Reader value) {
   }
 
-  public void setClob(Reader reader) {
+  public void setClob(Object[] slots, int index, Reader reader) {
   }
 
-  public void setBlob(InputStream inputStream) {
+  public void setBlob(Object[] slots, int index, InputStream inputStream) {
   }
 
-  public void setNClob(Reader reader) {
+  public void setNClob(Object[] slots, int index, Reader reader) {
   }
 
-  public void setUnicodeStream(InputStream x, int length) {
+  public void setUnicodeStream(Object[] slots, int index, InputStream x,
+      int length) {
   }
 
-  public void setTimestamp(Timestamp x) {
-    this.value = wrap(x);
+  public void setTimestamp(Object[] slots, int index, Timestamp x) {
+    slots[index] = wrap(x);
   }
 
-  public void setTime(Time x) {
-    this.value = wrap(x);
+  public void setTime(Object[] slots, int index, Time x) {
+    slots[index] = wrap(x);
   }
 
-  public void setFloat(float x) {
-    this.value = wrap(x);
+  public void setFloat(Object[] slots, int index, float x) {
+    slots[index] = wrap(x);
   }
 
-  public void setDouble(double x) {
-    this.value = wrap(x);
+  public void setDouble(Object[] slots, int index, double x) {
+    slots[index] = wrap(x);
   }
 
-  public void setBigDecimal(BigDecimal x) {
-    this.value = wrap(x);
+  public void setBigDecimal(Object[] slots, int index, BigDecimal x) {
+    slots[index] = wrap(x);
   }
 
-  public void setString(String x) {
-    this.value = wrap(x);
+  public void setString(Object[] slots, int index, String x) {
+    slots[index] = wrap(x);
   }
 
-  public void setBytes(byte[] x) {
-    this.value = x == null ? DUMMY_VALUE : wrap(x);
+  public void setBytes(Object[] slots, int index, byte[] x) {
+    slots[index] = x == null ? DUMMY_VALUE : new ByteString(x);
   }
 
-  public void setDate(Date x, Calendar cal) {
+  public void setDate(Object[] slots, int index, Date x, Calendar cal) {
   }
 
-  public void setDate(Date x) {
-    this.value = wrap(x);
+  public void setDate(Object[] slots, int index, Date x) {
+    slots[index] = wrap(x);
   }
 
-  public void setObject(Object x, int targetSqlType) {
+  public void setObject(Object[] slots, int index, Object x,
+      int targetSqlType) {
   }
 
-  public void setObject(Object x) {
-    this.value = wrap(x);
+  public void setObject(Object[] slots, int index, Object x) {
+    slots[index] = wrap(x);
   }
 
-  public void setNull(int sqlType) {
-    this.value = DUMMY_VALUE;
+  public void setNull(Object[] slots, int index, int sqlType) {
+    slots[index] = DUMMY_VALUE;
   }
 
-  public void setTime(Time x, Calendar cal) {
+  public void setTime(Object[] slots, int index, Time x, Calendar cal) {
   }
 
-  public void setRef(Ref x) {
+  public void setRef(Object[] slots, int index, Ref x) {
   }
 
-  public void setBlob(Blob x) {
+  public void setBlob(Object[] slots, int index, Blob x) {
   }
 
-  public void setClob(Clob x) {
+  public void setClob(Object[] slots, int index, Clob x) {
   }
 
-  public void setArray(Array x) {
+  public void setArray(Object[] slots, int index, Array x) {
   }
 
-  public void setTimestamp(Timestamp x, Calendar cal) {
+  public void setTimestamp(Object[] slots, int index, Timestamp x,
+      Calendar cal) {
   }
 
-  public void setNull(int sqlType, String typeName) {
+  public void setNull(Object[] slots, int index, int sqlType, String typeName) {
   }
 
-  public void setURL(URL x) {
+  public void setURL(Object[] slots, int index, URL x) {
   }
 
-  public void setObject(Object x, int targetSqlType, int scaleOrLength) {
+  public void setObject(Object[] slots, int index, Object x, int targetSqlType,
+      int scaleOrLength) {
   }
 }
 

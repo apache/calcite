@@ -17,6 +17,8 @@
 package org.apache.calcite.avatica;
 
 import org.apache.calcite.avatica.ConnectionProperty.Type;
+import org.apache.calcite.avatica.util.Casing;
+import org.apache.calcite.avatica.util.Quoting;
 
 import java.util.Map;
 

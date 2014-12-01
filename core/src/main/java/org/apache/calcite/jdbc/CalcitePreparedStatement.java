@@ -16,9 +16,8 @@
  */
 package org.apache.calcite.jdbc;
 
-import org.apache.calcite.avatica.AvaticaPrepareResult;
 import org.apache.calcite.avatica.AvaticaPreparedStatement;
-import org.apache.calcite.server.CalciteServerStatement;
+import org.apache.calcite.avatica.Meta;
 
 import java.sql.SQLException;
 
@@ -30,35 +29,27 @@ import java.sql.SQLException;
  * it is instantiated using
  * {@link org.apache.calcite.avatica.AvaticaFactory#newPreparedStatement}.
  */
-abstract class CalcitePreparedStatement
-    extends AvaticaPreparedStatement
-    implements CalciteServerStatement {
+abstract class CalcitePreparedStatement extends AvaticaPreparedStatement {
   /**
    * Creates a CalcitePreparedStatement.
    *
    * @param connection Connection
-   * @param prepareResult Result of preparing statement
-   *
+   * @param h Statement handle
+   * @param signature Result of preparing statement
+   * @param resultSetType Result set type
+   * @param resultSetConcurrency Result set concurrency
+   * @param resultSetHoldability Result set holdability
    * @throws SQLException if database error occurs
    */
-  protected CalcitePreparedStatement(
-      CalciteConnectionImpl connection,
-      AvaticaPrepareResult prepareResult,
-      int resultSetType,
-      int resultSetConcurrency,
-      int resultSetHoldability)
-      throws SQLException {
-    super(
-        connection, prepareResult, resultSetType, resultSetConcurrency,
+  protected CalcitePreparedStatement(CalciteConnectionImpl connection,
+      Meta.StatementHandle h, Meta.Signature signature, int resultSetType,
+      int resultSetConcurrency, int resultSetHoldability) throws SQLException {
+    super(connection, h, signature, resultSetType, resultSetConcurrency,
         resultSetHoldability);
   }
 
   @Override public CalciteConnectionImpl getConnection() {
     return (CalciteConnectionImpl) super.getConnection();
-  }
-
-  public CalciteConnectionImpl.ContextImpl createPrepareContext() {
-    return new CalciteConnectionImpl.ContextImpl(getConnection());
   }
 }
 

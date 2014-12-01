@@ -16,7 +16,7 @@
  */
 package org.apache.calcite.sql.parser;
 
-import org.apache.calcite.avatica.Casing;
+import org.apache.calcite.avatica.util.Casing;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlIdentifier;

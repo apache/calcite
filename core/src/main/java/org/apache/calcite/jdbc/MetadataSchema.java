@@ -27,17 +27,19 @@ import com.google.common.collect.ImmutableMap;
 
 import java.util.Map;
 
-import static org.apache.calcite.jdbc.MetaImpl.MetaColumn;
-import static org.apache.calcite.jdbc.MetaImpl.MetaTable;
+import static org.apache.calcite.jdbc.CalciteMetaImpl.MetaColumn;
+import static org.apache.calcite.jdbc.CalciteMetaImpl.MetaTable;
 
 /** Schema that contains metadata tables such as "TABLES" and "COLUMNS". */
 class MetadataSchema extends AbstractSchema {
   private static final Map<String, Table> TABLE_MAP =
       ImmutableMap.<String, Table>of(
           "COLUMNS",
-          new MetaImpl.MetadataTable<MetaColumn>(MetaColumn.class) {
-            public Enumerator<MetaColumn> enumerator(final MetaImpl meta) {
-              return meta.tables(meta.connection.getCatalog()).selectMany(
+          new CalciteMetaImpl.MetadataTable<MetaColumn>(MetaColumn.class) {
+            public Enumerator<MetaColumn> enumerator(
+                final CalciteMetaImpl meta) {
+              final String catalog = meta.getConnection().getCatalog();
+              return meta.tables(catalog).selectMany(
                   new Function1<MetaTable, Enumerable<MetaColumn>>() {
                     public Enumerable<MetaColumn> apply(MetaTable table) {
                       return meta.columns(table);
@@ -46,9 +48,10 @@ class MetadataSchema extends AbstractSchema {
             }
           },
           "TABLES",
-          new MetaImpl.MetadataTable<MetaTable>(MetaTable.class) {
-            public Enumerator<MetaTable> enumerator(final MetaImpl meta) {
-              return meta.tables(meta.connection.getCatalog()).enumerator();
+          new CalciteMetaImpl.MetadataTable<MetaTable>(MetaTable.class) {
+            public Enumerator<MetaTable> enumerator(CalciteMetaImpl meta) {
+              final String catalog = meta.getConnection().getCatalog();
+              return meta.tables(catalog).enumerator();
             }
           });
 

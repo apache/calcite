@@ -18,10 +18,8 @@ package org.apache.calcite.runtime;
 
 import org.apache.calcite.linq4j.Enumerator;
 
-import java.lang.reflect.Field;
-
 /**
- * Implementation of {@link org.apache.calcite.avatica.Cursor} on top of an
+ * Implementation of {@link org.apache.calcite.avatica.util.Cursor} on top of an
  * {@link org.apache.calcite.linq4j.Enumerator} that
  * returns a record for each row. The record is a synthetic class whose fields
  * are all public.
@@ -45,27 +43,7 @@ public class RecordEnumeratorCursor<E> extends EnumeratorCursor<E> {
   }
 
   protected Getter createGetter(int ordinal) {
-    return new RecordEnumeratorGetter(clazz.getFields()[ordinal]);
-  }
-
-  /** Implementation of {@link Getter} that reads fields via reflection. */
-  class RecordEnumeratorGetter extends AbstractGetter {
-    protected final Field field;
-
-    public RecordEnumeratorGetter(Field field) {
-      this.field = field;
-    }
-
-    public Object getObject() {
-      Object o;
-      try {
-        o = field.get(current());
-      } catch (IllegalAccessException e) {
-        throw new RuntimeException(e);
-      }
-      wasNull[0] = o == null;
-      return o;
-    }
+    return new FieldGetter(clazz.getFields()[ordinal]);
   }
 }
 

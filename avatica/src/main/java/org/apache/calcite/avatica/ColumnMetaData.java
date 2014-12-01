@@ -16,6 +16,11 @@
  */
 package org.apache.calcite.avatica;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonSubTypes;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
+
 import java.lang.reflect.Type;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSetMetaData;
@@ -53,27 +58,28 @@ public class ColumnMetaData {
   public final String columnClassName;
   public final AvaticaType type;
 
+  @JsonCreator
   public ColumnMetaData(
-      int ordinal,
-      boolean autoIncrement,
-      boolean caseSensitive,
-      boolean searchable,
-      boolean currency,
-      int nullable,
-      boolean signed,
-      int displaySize,
-      String label,
-      String columnName,
-      String schemaName,
-      int precision,
-      int scale,
-      String tableName,
-      String catalogName,
-      AvaticaType type,
-      boolean readOnly,
-      boolean writable,
-      boolean definitelyWritable,
-      String columnClassName) {
+      @JsonProperty("ordinal") int ordinal,
+      @JsonProperty("autoIncrement") boolean autoIncrement,
+      @JsonProperty("caseSensitive") boolean caseSensitive,
+      @JsonProperty("searchable") boolean searchable,
+      @JsonProperty("currency") boolean currency,
+      @JsonProperty("nullable") int nullable,
+      @JsonProperty("signed") boolean signed,
+      @JsonProperty("displaySize") int displaySize,
+      @JsonProperty("label") String label,
+      @JsonProperty("columnName") String columnName,
+      @JsonProperty("schemaName") String schemaName,
+      @JsonProperty("precision") int precision,
+      @JsonProperty("scale") int scale,
+      @JsonProperty("tableName") String tableName,
+      @JsonProperty("catalogName") String catalogName,
+      @JsonProperty("type") AvaticaType type,
+      @JsonProperty("readOnly") boolean readOnly,
+      @JsonProperty("writable") boolean writable,
+      @JsonProperty("definitelyWritable") boolean definitelyWritable,
+      @JsonProperty("columnClassName") String columnClassName) {
     this.ordinal = ordinal;
     this.autoIncrement = autoIncrement;
     this.caseSensitive = caseSensitive;
@@ -114,8 +120,7 @@ public class ColumnMetaData {
 
   /** Creates a {@link StructType}. */
   public static StructType struct(List<ColumnMetaData> columns) {
-    return new StructType(columns, "STRUCT", Types.STRUCT,
-        ColumnMetaData.Rep.OBJECT);
+    return new StructType(columns);
   }
 
   /** Creates an {@link ArrayType}. */
@@ -203,6 +208,14 @@ public class ColumnMetaData {
   }
 
   /** Base class for a column type. */
+  @JsonTypeInfo(
+      use = JsonTypeInfo.Id.NAME,
+      property = "type",
+      defaultImpl = ScalarType.class)
+  @JsonSubTypes({
+      @JsonSubTypes.Type(value = ScalarType.class, name = "scalar"),
+      @JsonSubTypes.Type(value = StructType.class, name = "struct"),
+      @JsonSubTypes.Type(value = ArrayType.class, name = "array") })
   public static class AvaticaType {
     public final int type;
     public final String typeName;
@@ -220,7 +233,10 @@ public class ColumnMetaData {
 
   /** Scalar type. */
   public static class ScalarType extends AvaticaType {
-    public ScalarType(int type, String typeName, Rep representation) {
+    @JsonCreator
+    public ScalarType(@JsonProperty("type") int type,
+        @JsonProperty("typeName") String typeName,
+        @JsonProperty("representation") Rep representation) {
       super(type, typeName, representation);
     }
   }
@@ -229,9 +245,9 @@ public class ColumnMetaData {
   public static class StructType extends AvaticaType {
     public final List<ColumnMetaData> columns;
 
-    private StructType(List<ColumnMetaData> columns, String typeName, int type,
-        Rep representation) {
-      super(type, typeName, representation);
+    @JsonCreator
+    public StructType(List<ColumnMetaData> columns) {
+      super(Types.STRUCT, "STRUCT", ColumnMetaData.Rep.OBJECT);
       this.columns = columns;
     }
   }

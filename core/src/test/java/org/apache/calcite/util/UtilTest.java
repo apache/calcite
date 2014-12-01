@@ -16,10 +16,11 @@
  */
 package org.apache.calcite.util;
 
+import org.apache.calcite.avatica.AvaticaUtils;
+import org.apache.calcite.avatica.util.Spaces;
 import org.apache.calcite.linq4j.function.Function1;
 import org.apache.calcite.runtime.FlatLists;
 import org.apache.calcite.runtime.Resources;
-import org.apache.calcite.runtime.Spaces;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.util.SqlBuilder;
 import org.apache.calcite.sql.util.SqlString;
@@ -941,6 +942,30 @@ public class UtilTest {
     final List<String> anb0 = Arrays.asList("A", null, "B");
     assertEquals(anb, anb0);
     assertEquals(anb.hashCode(), anb0.hashCode());
+  }
+
+
+  /**
+   * Unit test for {@link AvaticaUtils#toCamelCase(String)}.
+   */
+  @Test public void testToCamelCase() {
+    assertEquals("myJdbcDriver", AvaticaUtils.toCamelCase("MY_JDBC_DRIVER"));
+    assertEquals("myJdbcDriver", AvaticaUtils.toCamelCase("MY_JDBC__DRIVER"));
+    assertEquals("myJdbcDriver", AvaticaUtils.toCamelCase("my_jdbc_driver"));
+    assertEquals("abCdefGHij", AvaticaUtils.toCamelCase("ab_cdEf_g_Hij"));
+    assertEquals("JdbcDriver", AvaticaUtils.toCamelCase("_JDBC_DRIVER"));
+    assertEquals("", AvaticaUtils.toCamelCase("_"));
+    assertEquals("", AvaticaUtils.toCamelCase(""));
+  }
+
+  /** Unit test for {@link AvaticaUtils#camelToUpper(String)}. */
+  @Test public void testCamelToUpper() {
+    assertEquals("MY_JDBC_DRIVER", AvaticaUtils.camelToUpper("myJdbcDriver"));
+    assertEquals("MY_J_D_B_C_DRIVER",
+        AvaticaUtils.camelToUpper("myJDBCDriver"));
+    assertEquals("AB_CDEF_G_HIJ", AvaticaUtils.camelToUpper("abCdefGHij"));
+    assertEquals("_JDBC_DRIVER", AvaticaUtils.camelToUpper("JdbcDriver"));
+    assertEquals("", AvaticaUtils.camelToUpper(""));
   }
 
   /**

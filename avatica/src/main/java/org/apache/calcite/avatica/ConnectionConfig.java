@@ -16,12 +16,16 @@
  */
 package org.apache.calcite.avatica;
 
+import org.apache.calcite.avatica.remote.Service;
+
 /**
  * Connection configuration.
  */
 public interface ConnectionConfig {
   String schema();
   String timeZone();
+  Service.Factory factory();
+  String url();
 }
 
 // End ConnectionConfig.java

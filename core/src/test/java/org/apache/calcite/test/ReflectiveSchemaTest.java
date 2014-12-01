@@ -17,6 +17,7 @@
 package org.apache.calcite.test;
 
 import org.apache.calcite.adapter.java.ReflectiveSchema;
+import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Linq4j;
@@ -32,7 +33,6 @@ import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.impl.AbstractSchema;
 import org.apache.calcite.schema.impl.TableMacroImpl;
 import org.apache.calcite.schema.impl.ViewTable;
-import org.apache.calcite.util.DateTimeUtil;
 
 import org.junit.Ignore;
 import org.junit.Test;
@@ -723,7 +723,7 @@ public class ReflectiveSchemaTest {
           10, 20, "fred", 0f, null, new java.sql.Date(0)), // 1970-1-1
       new EmployeeWithHireDate(
             10, 20, "bill", 0f, null,
-            new java.sql.Date(100 * DateTimeUtil.MILLIS_PER_DAY)) // 1970-04-11
+            new java.sql.Date(100 * DateTimeUtils.MILLIS_PER_DAY)) // 1970-04-11
     };
   }
 }

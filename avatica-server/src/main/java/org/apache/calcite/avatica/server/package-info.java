@@ -14,24 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.avatica;
 
-/** Syntax for quoting identifiers in SQL statements. */
-public enum Quoting {
-  /** Quote identifiers in double-quotes. For example, {@code "my id"}. */
-  DOUBLE_QUOTE("\""),
+/**
+ * Avatica server that listens for HTTP requests.
+ */
+package org.apache.calcite.avatica.server;
 
-  /** Quote identifiers in back-quotes. For example, {@code `my id`}. */
-  BACK_TICK("`"),
-
-  /** Quote identifiers in brackets. For example, {@code [my id]}. */
-  BRACKET("[");
-
-  public String string;
-
-  Quoting(String string) {
-    this.string = string;
-  }
-}
-
-// End Quoting.java
+// End package-info.java

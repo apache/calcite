@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.util;
 
+import org.apache.calcite.avatica.util.DateTimeUtils;
+
 import java.sql.Date;
 import java.text.DateFormat;
 import java.util.Calendar;
@@ -60,7 +62,7 @@ public class ZonelessDate extends ZonelessDatetime {
 
   // implement ZonelessDatetime
   public Object toJdbcObject() {
-    return new Date(getJdbcDate(DateTimeUtil.DEFAULT_ZONE));
+    return new Date(getJdbcDate(DateTimeUtils.DEFAULT_ZONE));
   }
 
   /**
@@ -70,7 +72,7 @@ public class ZonelessDate extends ZonelessDatetime {
    * @return the formatted date string
    */
   public String toString() {
-    Date jdbcDate = getTempDate(getJdbcDate(DateTimeUtil.DEFAULT_ZONE));
+    Date jdbcDate = getTempDate(getJdbcDate(DateTimeUtils.DEFAULT_ZONE));
     return jdbcDate.toString();
   }
 
@@ -95,7 +97,7 @@ public class ZonelessDate extends ZonelessDatetime {
    * @return the parsed date, or null if parsing failed
    */
   public static ZonelessDate parse(String s) {
-    return parse(s, DateTimeUtil.DATE_FORMAT_STRING);
+    return parse(s, DateTimeUtils.DATE_FORMAT_STRING);
   }
 
   /**
@@ -108,10 +110,7 @@ public class ZonelessDate extends ZonelessDatetime {
    */
   public static ZonelessDate parse(String s, String format) {
     Calendar cal =
-        DateTimeUtil.parseDateFormat(
-            s,
-            format,
-            DateTimeUtil.GMT_ZONE);
+        DateTimeUtils.parseDateFormat(s, format, DateTimeUtils.GMT_ZONE);
     if (cal == null) {
       return null;
     }

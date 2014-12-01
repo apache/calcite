@@ -22,9 +22,9 @@ import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.avatica.ColumnMetaData;
 import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.jdbc.CalciteConnection;
+import org.apache.calcite.jdbc.CalciteMetaImpl;
 import org.apache.calcite.jdbc.CalcitePrepare;
 import org.apache.calcite.jdbc.CalciteSchema;
-import org.apache.calcite.jdbc.MetaImpl;
 import org.apache.calcite.linq4j.AbstractQueryable;
 import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.linq4j.QueryProvider;
@@ -108,7 +108,7 @@ public class MaterializationService {
     }
 
     final CalciteConnection connection =
-        MetaImpl.connect(schema.root(), null);
+        CalciteMetaImpl.connect(schema.root(), null);
     final Pair<String, Table> pair = schema.getTableBySql(viewSql);
     Table materializedTable = pair == null ? null : pair.right;
     RelDataType rowType = null;
@@ -116,14 +116,14 @@ public class MaterializationService {
       final ImmutableMap<CalciteConnectionProperty, String> map =
           ImmutableMap.of(CalciteConnectionProperty.CREATE_MATERIALIZATIONS,
               "false");
-      final CalcitePrepare.PrepareResult<Object> prepareResult =
+      final CalcitePrepare.CalciteSignature<Object> calciteSignature =
           Schemas.prepare(connection, schema, viewSchemaPath, viewSql, map);
-      rowType = prepareResult.rowType;
+      rowType = calciteSignature.rowType;
       final JavaTypeFactory typeFactory = connection.getTypeFactory();
       materializedTable =
           CloneSchema.createCloneTable(typeFactory,
-              RelDataTypeImpl.proto(prepareResult.rowType),
-              Functions.adapt(prepareResult.structType.columns,
+              RelDataTypeImpl.proto(calciteSignature.rowType),
+              Functions.adapt(calciteSignature.columns,
                   new Function1<ColumnMetaData, ColumnMetaData.Rep>() {
                     public ColumnMetaData.Rep apply(ColumnMetaData column) {
                       return column.type.representation;
@@ -133,7 +133,7 @@ public class MaterializationService {
                 public Enumerator<Object> enumerator() {
                   final DataContext dataContext =
                       Schemas.createDataContext(connection);
-                  return prepareResult.enumerator(dataContext);
+                  return calciteSignature.enumerable(dataContext).enumerator();
                 }
 
                 public Type getElementType() {
@@ -151,7 +151,7 @@ public class MaterializationService {
                 public Iterator<Object> iterator() {
                   final DataContext dataContext =
                       Schemas.createDataContext(connection);
-                  return prepareResult.iterator(dataContext);
+                  return calciteSignature.enumerable(dataContext).iterator();
                 }
               });
     }

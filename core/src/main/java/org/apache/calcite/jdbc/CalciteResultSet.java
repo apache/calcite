@@ -19,8 +19,8 @@ package org.apache.calcite.jdbc;
 import org.apache.calcite.avatica.AvaticaResultSet;
 import org.apache.calcite.avatica.AvaticaStatement;
 import org.apache.calcite.avatica.ColumnMetaData;
-import org.apache.calcite.avatica.Cursor;
 import org.apache.calcite.avatica.Handler;
+import org.apache.calcite.avatica.util.Cursor;
 import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.linq4j.Linq4j;
 import org.apache.calcite.runtime.ArrayEnumeratorCursor;
@@ -40,9 +40,10 @@ import java.util.TimeZone;
  */
 public class CalciteResultSet extends AvaticaResultSet {
   CalciteResultSet(AvaticaStatement statement,
-      CalcitePrepare.PrepareResult prepareResult,
-      ResultSetMetaData resultSetMetaData, TimeZone timeZone) {
-    super(statement, prepareResult, resultSetMetaData, timeZone);
+      CalcitePrepare.CalciteSignature calciteSignature,
+      ResultSetMetaData resultSetMetaData, TimeZone timeZone,
+      Iterable<Object> iterable) {
+    super(statement, calciteSignature, resultSetMetaData, timeZone, iterable);
   }
 
   @Override protected CalciteResultSet execute() throws SQLException {
@@ -63,11 +64,11 @@ public class CalciteResultSet extends AvaticaResultSet {
   }
 
   @Override public ResultSet create(ColumnMetaData.AvaticaType elementType,
-      Iterable iterable) {
+      Iterable<Object> iterable) {
     final CalciteResultSet resultSet =
         new CalciteResultSet(statement,
-            (CalcitePrepare.PrepareResult) prepareResult, resultSetMetaData,
-            localCalendar.getTimeZone());
+            (CalcitePrepare.CalciteSignature) signature, resultSetMetaData,
+            localCalendar.getTimeZone(), iterable);
     final Cursor cursor = resultSet.createCursor(elementType, iterable);
     final List<ColumnMetaData> columnMetaDataList;
     if (elementType instanceof ColumnMetaData.StructType) {
@@ -90,8 +91,9 @@ public class CalciteResultSet extends AvaticaResultSet {
   }
 
   // do not make public
-  CalcitePrepare.PrepareResult getPrepareResult() {
-    return (CalcitePrepare.PrepareResult) prepareResult;
+  <T> CalcitePrepare.CalciteSignature<T> getSignature() {
+    //noinspection unchecked
+    return (CalcitePrepare.CalciteSignature) signature;
   }
 
   // do not make public

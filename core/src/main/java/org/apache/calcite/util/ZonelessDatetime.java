@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.util;
 
+import org.apache.calcite.avatica.util.DateTimeUtils;
+
 import java.io.Serializable;
 import java.text.DateFormat;
 import java.util.Calendar;
@@ -71,9 +73,9 @@ public abstract class ZonelessDatetime implements BasicDatetime, Serializable {
     // Value must be non-negative, even for negative timestamps, and
     // unfortunately the '%' operator returns a negative value if its LHS
     // is negative.
-    long timePart = internalTime % DateTimeUtil.MILLIS_PER_DAY;
+    long timePart = internalTime % DateTimeUtils.MILLIS_PER_DAY;
     if (timePart < 0) {
-      timePart += DateTimeUtil.MILLIS_PER_DAY;
+      timePart += DateTimeUtils.MILLIS_PER_DAY;
     }
     return timePart;
   }
@@ -117,7 +119,7 @@ public abstract class ZonelessDatetime implements BasicDatetime, Serializable {
    * @param zone time zone in which to generate a time value for
    */
   public long getJdbcDate(TimeZone zone) {
-    Calendar cal = getCalendar(DateTimeUtil.GMT_ZONE);
+    Calendar cal = getCalendar(DateTimeUtils.GMT_ZONE);
     cal.setTimeInMillis(getDateValue());
 
     int year = cal.get(Calendar.YEAR);
@@ -137,7 +139,7 @@ public abstract class ZonelessDatetime implements BasicDatetime, Serializable {
    * @param zone time zone in which to generate a time value for
    */
   public long getJdbcTimestamp(TimeZone zone) {
-    Calendar cal = getCalendar(DateTimeUtil.GMT_ZONE);
+    Calendar cal = getCalendar(DateTimeUtils.GMT_ZONE);
     cal.setTimeInMillis(internalTime);
 
     int year = cal.get(Calendar.YEAR);
@@ -186,8 +188,8 @@ public abstract class ZonelessDatetime implements BasicDatetime, Serializable {
     if ((tempFormatter != null) && lastFormat.equals(format)) {
       return tempFormatter;
     }
-    tempFormatter = DateTimeUtil.newDateFormat(format);
-    tempFormatter.setTimeZone(DateTimeUtil.GMT_ZONE);
+    tempFormatter = DateTimeUtils.newDateFormat(format);
+    tempFormatter.setTimeZone(DateTimeUtils.GMT_ZONE);
     lastFormat = format;
     return tempFormatter;
   }

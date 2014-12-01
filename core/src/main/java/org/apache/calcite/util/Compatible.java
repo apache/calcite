@@ -24,6 +24,7 @@ import com.google.common.collect.Maps;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
+import java.sql.Connection;
 import java.util.Map;
 import java.util.NavigableMap;
 import java.util.NavigableSet;
@@ -51,6 +52,12 @@ public interface Compatible {
   /** Converts a {@link Map} to a {@link java.util.NavigableMap} that is
    * immutable. */
   <K, V> NavigableMap<K, V> immutableNavigableMap(NavigableMap<K, V> map);
+
+  /** Calls {@link java.sql.Connection}{@code .setSchema(String)}.
+   *
+   * <p>This method is available in JDK 1.7 and above, and in
+   * {@link org.apache.calcite.jdbc.CalciteConnection} in all JDK versions. */
+  void setSchema(Connection connection, String schema);
 
   /** Creates the implementation of Compatible suitable for the
    * current environment. */
@@ -86,6 +93,13 @@ public interface Compatible {
                 Map map = (Map) args[0];
                 ImmutableSortedMap sortedMap = ImmutableSortedMap.copyOf(map);
                 return CompatibleGuava11.navigableMap(sortedMap);
+              }
+              if (method.getName().equals("setSchema")) {
+                Connection connection = (Connection) args[0];
+                String schema = (String) args[1];
+                final Method method1 =
+                    connection.getClass().getMethod("setSchema", String.class);
+                return method1.invoke(connection, schema);
               }
               return null;
             }

@@ -18,7 +18,8 @@ package org.apache.calcite.adapter.enumerable;
 
 import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
-import org.apache.calcite.avatica.ByteString;
+import org.apache.calcite.avatica.util.ByteString;
+import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.linq4j.tree.BlockBuilder;
 import org.apache.calcite.linq4j.tree.ConstantExpression;
 import org.apache.calcite.linq4j.tree.Expression;
@@ -43,7 +44,6 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.ControlFlowException;
-import org.apache.calcite.util.DateTimeUtil;
 import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
@@ -268,7 +268,7 @@ public class RexToLixTranslator {
             Expressions.call(
                 BuiltInMethod.INTERVAL_YEAR_MONTH_TO_STRING.method,
                 operand,
-                Expressions.constant(interval.foo())));
+                Expressions.constant(interval.timeUnitRange)));
         break;
       case INTERVAL_DAY_TIME:
         convert = RexImpTable.optimize2(
@@ -276,7 +276,7 @@ public class RexToLixTranslator {
             Expressions.call(
                 BuiltInMethod.INTERVAL_DAY_TIME_TO_STRING.method,
                 operand,
-                Expressions.constant(interval.foo()),
+                Expressions.constant(interval.timeUnitRange),
                 Expressions.constant(
                     interval.getFractionalSecondPrecision(
                         typeFactory.getTypeSystem()))));
@@ -516,12 +516,12 @@ public class RexToLixTranslator {
           Expressions.constant(value.toString()));
     case DATE:
       value2 = (int)
-          (((Calendar) value).getTimeInMillis() / DateTimeUtil.MILLIS_PER_DAY);
+          (((Calendar) value).getTimeInMillis() / DateTimeUtils.MILLIS_PER_DAY);
       javaClass = int.class;
       break;
     case TIME:
       value2 = (int)
-          (((Calendar) value).getTimeInMillis() % DateTimeUtil.MILLIS_PER_DAY);
+          (((Calendar) value).getTimeInMillis() % DateTimeUtils.MILLIS_PER_DAY);
       javaClass = int.class;
       break;
     case TIMESTAMP:

@@ -18,6 +18,7 @@ package org.apache.calcite.adapter.clone;
 
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.avatica.ColumnMetaData;
+import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.linq4j.function.Function1;
@@ -26,7 +27,6 @@ import org.apache.calcite.linq4j.tree.Primitive;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rel.type.RelProtoDataType;
-import org.apache.calcite.util.DateTimeUtil;
 
 import java.lang.reflect.Type;
 import java.sql.Date;
@@ -64,7 +64,7 @@ class ColumnLoader<T> {
         public Integer apply(Time a0) {
           return a0 == null
               ? null
-              : (int) (a0.getTime() % DateTimeUtil.MILLIS_PER_DAY);
+              : (int) (a0.getTime() % DateTimeUtils.MILLIS_PER_DAY);
         }
       };
 
@@ -73,7 +73,7 @@ class ColumnLoader<T> {
         public Integer apply(Date a0) {
           return a0 == null
               ? null
-              : (int) (a0.getTime() / DateTimeUtil.MILLIS_PER_DAY);
+              : (int) (a0.getTime() / DateTimeUtils.MILLIS_PER_DAY);
         }
       };
 

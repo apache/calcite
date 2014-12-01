@@ -14,22 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.avatica;
 
-/** Policy for converting case of identifiers before storing them.
- *
- * <p>A database often has policies for quoted versus unquoted identifiers.
- * For example, Oracle converts unquoted identifiers to upper-case, but
- * quoted identifiers are unchanged.</p> */
-public enum Casing {
-  /** The case of identifiers is not changed. */
-  UNCHANGED,
+/**
+ * JDBC driver that uses remote procedure calls.
+ */
+package org.apache.calcite.avatica.remote;
 
-  /** Identifiers are converted to upper-case. */
-  TO_UPPER,
-
-  /** Identifiers are converted to lower-case. */
-  TO_LOWER
-}
-
-// End Casing.java
+// End package-info.java

@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.util;
 
+import org.apache.calcite.avatica.util.DateTimeUtils;
+
 import java.sql.Time;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
@@ -76,7 +78,7 @@ public class ZonelessTime extends ZonelessDatetime {
 
   // implement ZonelessDatetime
   public Object toJdbcObject() {
-    return new Time(getJdbcTime(DateTimeUtil.DEFAULT_ZONE));
+    return new Time(getJdbcTime(DateTimeUtils.DEFAULT_ZONE));
   }
 
   /**
@@ -87,7 +89,7 @@ public class ZonelessTime extends ZonelessDatetime {
    * as specified by the SQL standard.
    */
   public long getJdbcTimestamp(TimeZone zone) {
-    Calendar cal = getCalendar(DateTimeUtil.GMT_ZONE);
+    Calendar cal = getCalendar(DateTimeUtils.GMT_ZONE);
     cal.setTimeInMillis(getTime());
     int hour = cal.get(Calendar.HOUR_OF_DAY);
     int minute = cal.get(Calendar.MINUTE);
@@ -110,7 +112,7 @@ public class ZonelessTime extends ZonelessDatetime {
    * @return the formatted time string
    */
   public String toString() {
-    Time jdbcTime = getTempTime(getJdbcTime(DateTimeUtil.DEFAULT_ZONE));
+    Time jdbcTime = getTempTime(getJdbcTime(DateTimeUtils.DEFAULT_ZONE));
     return jdbcTime.toString();
   }
 
@@ -134,7 +136,7 @@ public class ZonelessTime extends ZonelessDatetime {
    * @return the parsed time, or null if parsing failed
    */
   public static ZonelessTime parse(String s) {
-    return parse(s, DateTimeUtil.TIME_FORMAT_STRING);
+    return parse(s, DateTimeUtils.TIME_FORMAT_STRING);
   }
 
   /**
@@ -145,11 +147,10 @@ public class ZonelessTime extends ZonelessDatetime {
    * @return the parsed time, or null if parsing failed
    */
   public static ZonelessTime parse(String s, String format) {
-    DateTimeUtil.PrecisionTime pt =
-        DateTimeUtil.parsePrecisionDateTimeLiteral(
-            s,
+    DateTimeUtils.PrecisionTime pt =
+        DateTimeUtils.parsePrecisionDateTimeLiteral(s,
             format,
-            DateTimeUtil.GMT_ZONE);
+            DateTimeUtils.GMT_ZONE);
     if (pt == null) {
       return null;
     }

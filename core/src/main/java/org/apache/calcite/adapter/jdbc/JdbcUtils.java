@@ -16,11 +16,11 @@
  */
 package org.apache.calcite.adapter.jdbc;
 
+import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.linq4j.function.Function0;
 import org.apache.calcite.linq4j.function.Function1;
 import org.apache.calcite.linq4j.tree.Primitive;
 import org.apache.calcite.sql.SqlDialect;
-import org.apache.calcite.util.DateTimeUtil;
 import org.apache.calcite.util.ImmutableNullableList;
 import org.apache.calcite.util.IntList;
 import org.apache.calcite.util.Pair;
@@ -185,7 +185,7 @@ final class JdbcUtils {
       }
       long time = v.getTime();
       int offset = TimeZone.getDefault().getOffset(time);
-      return new Time((time + offset) % DateTimeUtil.MILLIS_PER_DAY);
+      return new Time((time + offset) % DateTimeUtils.MILLIS_PER_DAY);
     }
 
     private static Date shift(Date v) {

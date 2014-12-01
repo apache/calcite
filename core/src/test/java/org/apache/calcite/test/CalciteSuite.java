@@ -17,6 +17,7 @@
 package org.apache.calcite.test;
 
 import org.apache.calcite.adapter.clone.ArrayTableTest;
+import org.apache.calcite.jdbc.CalciteRemoteDriverTest;
 import org.apache.calcite.plan.RelOptUtilTest;
 import org.apache.calcite.plan.RelWriterTest;
 import org.apache.calcite.plan.volcano.VolcanoPlannerTest;
@@ -109,6 +110,7 @@ import org.junit.runners.Suite;
     LatticeTest.class,
     ReflectiveSchemaTest.class,
     JdbcTest.class,
+    CalciteRemoteDriverTest.class,
 
     // test cases
     TableInRootSchemaTest.class,

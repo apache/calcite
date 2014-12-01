@@ -16,9 +16,9 @@
  */
 package org.apache.calcite.sql;
 
+import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeName;
-import org.apache.calcite.util.DateTimeUtil;
 
 import java.util.Calendar;
 
@@ -40,7 +40,7 @@ public class SqlTimeLiteral extends SqlAbstractDateTimeLiteral {
         t,
         hasTZ,
         SqlTypeName.TIME,
-        precision, DateTimeUtil.TIME_FORMAT_STRING,
+        precision, DateTimeUtils.TIME_FORMAT_STRING,
         pos);
   }
 

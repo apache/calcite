@@ -17,7 +17,7 @@
 package org.apache.calcite.jdbc;
 
 import org.apache.calcite.adapter.java.JavaTypeFactory;
-import org.apache.calcite.avatica.ByteString;
+import org.apache.calcite.avatica.util.ByteString;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.linq4j.tree.Primitive;
 import org.apache.calcite.linq4j.tree.Types;

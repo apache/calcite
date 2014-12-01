@@ -291,7 +291,7 @@ public final class Schemas {
   }
 
   /** Prepares a SQL query for execution. For use within Calcite only. */
-  public static CalcitePrepare.PrepareResult<Object> prepare(
+  public static CalcitePrepare.CalciteSignature<Object> prepare(
       final CalciteConnection connection, final CalciteSchema schema,
       final List<String> schemaPath, final String sql,
       final ImmutableMap<CalciteConnectionProperty, String> map) {

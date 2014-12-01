@@ -29,9 +29,9 @@ import org.apache.calcite.avatica.Handler;
 import org.apache.calcite.avatica.HandlerImpl;
 import org.apache.calcite.avatica.Meta;
 import org.apache.calcite.jdbc.CalciteConnection;
+import org.apache.calcite.jdbc.CalciteMetaImpl;
 import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.jdbc.Driver;
-import org.apache.calcite.jdbc.MetaImpl;
 import org.apache.calcite.linq4j.BaseQueryable;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Enumerator;
@@ -121,8 +121,10 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.Properties;
 import java.util.TimeZone;
+import java.util.regex.Pattern;
 import javax.sql.DataSource;
 
 import static org.hamcrest.CoreMatchers.containsString;
@@ -870,7 +872,7 @@ public class JdbcTest {
   }
 
   /** Unit test for
-   * {@link org.apache.calcite.jdbc.MetaImpl#likeToRegex(org.apache.calcite.avatica.Meta.Pat)}. */
+   * {@link org.apache.calcite.jdbc.CalciteMetaImpl#likeToRegex(org.apache.calcite.avatica.Meta.Pat)}. */
   @Test public void testLikeToRegex() {
     checkLikeToRegex(true, "%", "abc");
     checkLikeToRegex(true, "abc", "abc");
@@ -895,8 +897,8 @@ public class JdbcTest {
   }
 
   private void checkLikeToRegex(boolean b, String pattern, String abc) {
-    assertTrue(
-        b == MetaImpl.likeToRegex(Meta.Pat.of(pattern)).matcher(abc).matches());
+    final Pattern regex = CalciteMetaImpl.likeToRegex(Meta.Pat.of(pattern));
+    assertTrue(b == regex.matcher(abc).matches());
   }
 
   /** Tests driver's implementation of {@link DatabaseMetaData#getColumns}. */
@@ -1474,7 +1476,20 @@ public class JdbcTest {
         .returns(
             new Function<ResultSet, Void>() {
               public Void apply(ResultSet a0) {
+                // The following behavior is not quite correct. See
+                //   [CALCITE-508] Reading from ResultSet before calling next()
+                //   should throw SQLException not NoSuchElementException
+                // for details.
                 try {
+                  final BigDecimal bigDecimal = a0.getBigDecimal(1);
+                  fail("expected error, got " + bigDecimal);
+                } catch (SQLException e) {
+                  throw new RuntimeException(e);
+                } catch (NoSuchElementException e) {
+                  // ok
+                }
+                try {
+                  assertTrue(a0.next());
                   final BigDecimal bigDecimal = a0.getBigDecimal(1);
                   assertThat(bigDecimal, equalTo(BigDecimal.valueOf(2008)));
                 } catch (SQLException e) {

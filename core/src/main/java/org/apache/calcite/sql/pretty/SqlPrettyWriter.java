@@ -16,7 +16,7 @@
  */
 package org.apache.calcite.sql.pretty;
 
-import org.apache.calcite.runtime.Spaces;
+import org.apache.calcite.avatica.util.Spaces;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlWriter;

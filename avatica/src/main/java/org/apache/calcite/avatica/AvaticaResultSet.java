@@ -16,6 +16,9 @@
  */
 package org.apache.calcite.avatica;
 
+import org.apache.calcite.avatica.util.ArrayImpl;
+import org.apache.calcite.avatica.util.Cursor;
+
 import java.io.InputStream;
 import java.io.Reader;
 import java.math.BigDecimal;
@@ -45,7 +48,8 @@ import java.util.TimeZone;
  */
 public class AvaticaResultSet implements ResultSet, ArrayImpl.Factory {
   protected final AvaticaStatement statement;
-  protected final AvaticaPrepareResult prepareResult;
+  protected final Meta.Signature signature;
+  protected final Iterable<Object> iterable;
   protected final List<ColumnMetaData> columnMetaDataList;
   protected final ResultSetMetaData resultSetMetaData;
   protected final Calendar localCalendar;
@@ -64,12 +68,14 @@ public class AvaticaResultSet implements ResultSet, ArrayImpl.Factory {
   private Cursor timeoutCursor;
 
   public AvaticaResultSet(AvaticaStatement statement,
-      AvaticaPrepareResult prepareResult,
+      Meta.Signature signature,
       ResultSetMetaData resultSetMetaData,
-      TimeZone timeZone) {
+      TimeZone timeZone,
+      Iterable<Object> iterable) {
     this.statement = statement;
-    this.prepareResult = prepareResult;
-    this.columnMetaDataList = prepareResult.getColumnList();
+    this.signature = signature;
+    this.iterable = iterable;
+    this.columnMetaDataList = signature.columns;
     this.type = statement.resultSetType;
     this.concurrency = statement.resultSetConcurrency;
     this.holdability = statement.resultSetHoldability;
@@ -173,7 +179,9 @@ public class AvaticaResultSet implements ResultSet, ArrayImpl.Factory {
    * @throws SQLException if execute fails for some reason.
    */
   protected AvaticaResultSet execute() throws SQLException {
-    this.cursor = statement.connection.meta.createCursor(this);
+    this.cursor = MetaImpl.createCursor(signature.cursorFactory,
+        statement.connection.meta.createIterable(statement.handle, signature,
+            iterable));
     this.accessorList =
         cursor.createAccessors(columnMetaDataList, localCalendar, this);
     this.row = -1;
@@ -192,7 +200,7 @@ public class AvaticaResultSet implements ResultSet, ArrayImpl.Factory {
   }
 
   public ResultSet create(ColumnMetaData.AvaticaType elementType,
-      Iterable iterable) {
+      Iterable<Object> iterable) {
     throw new UnsupportedOperationException();
   }
 

@@ -20,10 +20,8 @@ import org.apache.calcite.adapter.splunk.search.SplunkConnection;
 import org.apache.calcite.adapter.splunk.util.StringUtils;
 import org.apache.calcite.linq4j.AbstractEnumerable;
 import org.apache.calcite.linq4j.Enumerator;
-import org.apache.calcite.linq4j.Linq4j;
 
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -57,10 +55,6 @@ public class SplunkQuery<T> extends AbstractEnumerable<T> {
 
   public String toString() {
     return "SplunkQuery {" + search + "}";
-  }
-
-  public Iterator<T> iterator() {
-    return Linq4j.enumeratorIterator(enumerator());
   }
 
   public Enumerator<T> enumerator() {

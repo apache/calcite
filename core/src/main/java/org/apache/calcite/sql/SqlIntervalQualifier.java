@@ -16,24 +16,21 @@
  */
 package org.apache.calcite.sql;
 
+import org.apache.calcite.avatica.util.TimeUnit;
+import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.runtime.CalciteContextException;
-import org.apache.calcite.runtime.SqlFunctions;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.util.SqlVisitor;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
-import org.apache.calcite.util.DateTimeUtil;
-import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableMap;
 
 import java.math.BigDecimal;
-import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -94,120 +91,10 @@ public class SqlIntervalQualifier extends SqlNode {
   private static final BigDecimal INT_MAX_VALUE_PLUS_ONE =
       BigDecimal.valueOf(Integer.MAX_VALUE).add(BigDecimal.ONE);
 
-  //~ Enums ------------------------------------------------------------------
-
-  /**
-   * Enumeration of time units used to construct an interval.
-   */
-  public enum TimeUnit implements SqlLiteral.SqlSymbol {
-    YEAR(true, ' ', 12 /* months */, null),
-    MONTH(true, '-', 1 /* months */, BigDecimal.valueOf(12)),
-    DAY(false, '-', DateTimeUtil.MILLIS_PER_DAY, null),
-    HOUR(false, ' ', DateTimeUtil.MILLIS_PER_HOUR, BigDecimal.valueOf(24)),
-    MINUTE(false, ':', DateTimeUtil.MILLIS_PER_MINUTE, BigDecimal.valueOf(60)),
-    SECOND(false, ':', DateTimeUtil.MILLIS_PER_SECOND, BigDecimal.valueOf(60));
-
-    public final boolean yearMonth;
-    public final char separator;
-    public final long multiplier;
-    private final BigDecimal limit;
-
-    private static final TimeUnit[] CACHED_VALUES = values();
-
-    private TimeUnit(
-        boolean yearMonth,
-        char separator,
-        long multiplier,
-        BigDecimal limit) {
-      this.yearMonth = yearMonth;
-      this.separator = separator;
-      this.multiplier = multiplier;
-      this.limit = limit;
-    }
-
-    /**
-     * Returns the TimeUnit associated with an ordinal. The value returned
-     * is null if the ordinal is not a member of the TimeUnit enumeration.
-     */
-    public static TimeUnit getValue(int ordinal) {
-      return ordinal < 0 || ordinal >= CACHED_VALUES.length
-          ? null
-          : CACHED_VALUES[ordinal];
-    }
-
-    public static final String GET_VALUE_METHOD_NAME = "getValue";
-
-    /**
-     * Returns whether a given value is valid for a field of this time unit.
-     *
-     * @param field Field value
-     * @return Whether value
-     */
-    public boolean isValidValue(BigDecimal field) {
-      return field.compareTo(ZERO) >= 0
-          && (limit == null
-          || field.compareTo(limit) < 0);
-    }
-  }
-
-  /** Range of time units. */
-  private enum TimeUnitRange {
-    YEAR(TimeUnit.YEAR, null),
-    YEAR_TO_MONTH(TimeUnit.YEAR, TimeUnit.MONTH),
-    MONTH(TimeUnit.MONTH, null),
-    DAY(TimeUnit.DAY, null),
-    DAY_TO_HOUR(TimeUnit.DAY, TimeUnit.HOUR),
-    DAY_TO_MINUTE(TimeUnit.DAY, TimeUnit.MINUTE),
-    DAY_TO_SECOND(TimeUnit.DAY, TimeUnit.SECOND),
-    HOUR(TimeUnit.HOUR, null),
-    HOUR_TO_MINUTE(TimeUnit.HOUR, TimeUnit.MINUTE),
-    HOUR_TO_SECOND(TimeUnit.HOUR, TimeUnit.SECOND),
-    MINUTE(TimeUnit.MINUTE, null),
-    MINUTE_TO_SECOND(TimeUnit.MINUTE, TimeUnit.SECOND),
-    SECOND(TimeUnit.SECOND, null);
-
-    private final TimeUnit startUnit;
-    private final TimeUnit endUnit;
-    private static final Map<Pair<TimeUnit, TimeUnit>, TimeUnitRange> MAP;
-
-    static {
-      ImmutableMap.Builder<Pair<TimeUnit, TimeUnit>, TimeUnitRange> builder =
-          ImmutableMap.builder();
-      for (TimeUnitRange value : values()) {
-        builder.put(Pair.of(value.startUnit, value.endUnit), value);
-      }
-      MAP = builder.build();
-    }
-
-    /**
-     * Creates a TimeUnitRange.
-     *
-     * @param startUnit Start time unit
-     * @param endUnit   End time unit
-     */
-    TimeUnitRange(TimeUnit startUnit, TimeUnit endUnit) {
-      assert startUnit != null;
-      this.startUnit = startUnit;
-      this.endUnit = endUnit;
-    }
-
-    /**
-     * Returns a TimeUnitRange with a given start and end unit.
-     *
-     * @param startUnit Start unit
-     * @param endUnit   End unit
-     * @return Time unit range, or null if not valid
-     */
-    public static TimeUnitRange of(
-        TimeUnit startUnit, TimeUnit endUnit) {
-      return MAP.get(new Pair<TimeUnit, TimeUnit>(startUnit, endUnit));
-    }
-  }
-
   //~ Instance fields --------------------------------------------------------
 
   private final int startPrecision;
-  private final TimeUnitRange timeUnitRange;
+  public final TimeUnitRange timeUnitRange;
   private final int fractionalSecondPrecision;
 
   //~ Constructors -----------------------------------------------------------
@@ -243,10 +130,6 @@ public class SqlIntervalQualifier extends SqlNode {
     return isYearMonth()
         ? SqlTypeName.INTERVAL_YEAR_MONTH
         : SqlTypeName.INTERVAL_DAY_TIME;
-  }
-
-  public SqlFunctions.TimeUnitRange foo() {
-    return SqlFunctions.TimeUnitRange.valueOf(timeUnitRange.name());
   }
 
   public void validate(

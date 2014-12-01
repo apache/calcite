@@ -16,8 +16,8 @@
  */
 package org.apache.calcite.sql.parser;
 
-import org.apache.calcite.avatica.Casing;
-import org.apache.calcite.avatica.Quoting;
+import org.apache.calcite.avatica.util.Casing;
+import org.apache.calcite.avatica.util.Quoting;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlSetOption;
@@ -5327,6 +5327,9 @@ public class SqlParserTest {
     checkExp(
         "cast(x as interval minute to second)",
         "CAST(`X` AS INTERVAL MINUTE TO SECOND)");
+    checkExp(
+        "cast(interval '3-2' year to month as CHAR(5))",
+        "CAST(INTERVAL '3-2' YEAR TO MONTH AS CHAR(5))");
   }
 
   @Test public void testUnnest() {

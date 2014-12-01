@@ -20,11 +20,10 @@ import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.avatica.AvaticaConnection;
 import org.apache.calcite.avatica.AvaticaDatabaseMetaData;
 import org.apache.calcite.avatica.AvaticaFactory;
-import org.apache.calcite.avatica.AvaticaPrepareResult;
 import org.apache.calcite.avatica.AvaticaPreparedStatement;
 import org.apache.calcite.avatica.AvaticaResultSetMetaData;
 import org.apache.calcite.avatica.AvaticaStatement;
-import org.apache.calcite.avatica.ColumnMetaData;
+import org.apache.calcite.avatica.Meta;
 import org.apache.calcite.avatica.UnregisteredDriver;
 
 import java.io.InputStream;
@@ -34,7 +33,6 @@ import java.sql.ResultSetMetaData;
 import java.sql.RowId;
 import java.sql.SQLException;
 import java.sql.SQLXML;
-import java.util.List;
 import java.util.Properties;
 import java.util.TimeZone;
 
@@ -67,43 +65,44 @@ public class CalciteJdbc41Factory extends CalciteFactory {
         (CalciteConnectionImpl) connection);
   }
 
-  public CalciteJdbc41Statement newStatement(
-      AvaticaConnection connection,
+  public CalciteJdbc41Statement newStatement(AvaticaConnection connection,
+      Meta.StatementHandle h,
       int resultSetType,
       int resultSetConcurrency,
       int resultSetHoldability) {
     return new CalciteJdbc41Statement(
-        (CalciteConnectionImpl) connection, resultSetType, resultSetConcurrency,
+        (CalciteConnectionImpl) connection,
+        h,
+        resultSetType, resultSetConcurrency,
         resultSetHoldability);
   }
 
   public AvaticaPreparedStatement newPreparedStatement(
       AvaticaConnection connection,
-      AvaticaPrepareResult prepareResult,
+      Meta.StatementHandle h,
+      Meta.Signature signature,
       int resultSetType,
       int resultSetConcurrency,
       int resultSetHoldability) throws SQLException {
     return new CalciteJdbc41PreparedStatement(
-        (CalciteConnectionImpl) connection,
-        (CalcitePrepare.PrepareResult) prepareResult, resultSetType,
+        (CalciteConnectionImpl) connection, h,
+        (CalcitePrepare.CalciteSignature) signature, resultSetType,
         resultSetConcurrency, resultSetHoldability);
   }
 
-  public CalciteResultSet newResultSet(
-      AvaticaStatement statement,
-      AvaticaPrepareResult prepareResult,
-      TimeZone timeZone) {
+  public CalciteResultSet newResultSet(AvaticaStatement statement,
+      Meta.Signature signature, TimeZone timeZone, Iterable<Object> iterable) {
     final ResultSetMetaData metaData =
-        newResultSetMetaData(statement, prepareResult.getColumnList());
-    return new CalciteResultSet(statement,
-        (CalcitePrepare.PrepareResult) prepareResult, metaData, timeZone);
+        newResultSetMetaData(statement, signature);
+    final CalcitePrepare.CalciteSignature calciteSignature =
+        (CalcitePrepare.CalciteSignature) signature;
+    return new CalciteResultSet(statement, calciteSignature, metaData, timeZone,
+        iterable);
   }
 
-  public ResultSetMetaData newResultSetMetaData(
-      AvaticaStatement statement,
-      List<ColumnMetaData> columnMetaDataList) {
-    return new AvaticaResultSetMetaData(
-        statement, null, columnMetaDataList);
+  public ResultSetMetaData newResultSetMetaData(AvaticaStatement statement,
+      Meta.Signature signature) {
+    return new AvaticaResultSetMetaData(statement, null, signature);
   }
 
   /** Implementation of connection for JDBC 4.1. */
@@ -117,12 +116,10 @@ public class CalciteJdbc41Factory extends CalciteFactory {
 
   /** Implementation of statement for JDBC 4.1. */
   private static class CalciteJdbc41Statement extends CalciteStatement {
-    public CalciteJdbc41Statement(
-        CalciteConnectionImpl connection,
-        int resultSetType,
-        int resultSetConcurrency,
+    public CalciteJdbc41Statement(CalciteConnectionImpl connection,
+        Meta.StatementHandle h, int resultSetType, int resultSetConcurrency,
         int resultSetHoldability) {
-      super(connection, resultSetType, resultSetConcurrency,
+      super(connection, h, resultSetType, resultSetConcurrency,
           resultSetHoldability);
     }
   }
@@ -130,122 +127,132 @@ public class CalciteJdbc41Factory extends CalciteFactory {
   /** Implementation of prepared statement for JDBC 4.1. */
   private static class CalciteJdbc41PreparedStatement
       extends CalcitePreparedStatement {
-    CalciteJdbc41PreparedStatement(
-        CalciteConnectionImpl connection,
-        CalcitePrepare.PrepareResult prepareResult,
-        int resultSetType,
-        int resultSetConcurrency,
-        int resultSetHoldability) throws SQLException {
-      super(
-          connection, prepareResult, resultSetType, resultSetConcurrency,
+    CalciteJdbc41PreparedStatement(CalciteConnectionImpl connection,
+        Meta.StatementHandle h, CalcitePrepare.CalciteSignature signature,
+        int resultSetType, int resultSetConcurrency, int resultSetHoldability)
+        throws SQLException {
+      super(connection, h, signature, resultSetType, resultSetConcurrency,
           resultSetHoldability);
     }
 
     public void setRowId(
         int parameterIndex,
         RowId x) throws SQLException {
-      getParameter(parameterIndex).setRowId(x);
+      getParameter(parameterIndex).setRowId(slots, parameterIndex, x);
     }
 
     public void setNString(
         int parameterIndex, String value) throws SQLException {
-      getParameter(parameterIndex).setNString(value);
+      getParameter(parameterIndex).setNString(slots, parameterIndex, value);
     }
 
     public void setNCharacterStream(
         int parameterIndex,
         Reader value,
         long length) throws SQLException {
-      getParameter(parameterIndex).setNCharacterStream(value, length);
+      getParameter(parameterIndex)
+          .setNCharacterStream(slots, parameterIndex, value, length);
     }
 
     public void setNClob(
         int parameterIndex,
         NClob value) throws SQLException {
-      getParameter(parameterIndex).setNClob(value);
+      getParameter(parameterIndex).setNClob(slots, parameterIndex, value);
     }
 
     public void setClob(
         int parameterIndex,
         Reader reader,
         long length) throws SQLException {
-      getParameter(parameterIndex).setClob(reader, length);
+      getParameter(parameterIndex)
+          .setClob(slots, parameterIndex, reader, length);
     }
 
     public void setBlob(
         int parameterIndex,
         InputStream inputStream,
         long length) throws SQLException {
-      getParameter(parameterIndex).setBlob(inputStream, length);
+      getParameter(parameterIndex)
+          .setBlob(slots, parameterIndex, inputStream, length);
     }
 
     public void setNClob(
         int parameterIndex,
         Reader reader,
         long length) throws SQLException {
-      getParameter(parameterIndex).setNClob(reader, length);
+      getParameter(parameterIndex).setNClob(slots,
+          parameterIndex,
+          reader,
+          length);
     }
 
     public void setSQLXML(
         int parameterIndex, SQLXML xmlObject) throws SQLException {
-      getParameter(parameterIndex).setSQLXML(xmlObject);
+      getParameter(parameterIndex).setSQLXML(slots, parameterIndex, xmlObject);
     }
 
     public void setAsciiStream(
         int parameterIndex,
         InputStream x,
         long length) throws SQLException {
-      getParameter(parameterIndex).setAsciiStream(x, length);
+      getParameter(parameterIndex)
+          .setAsciiStream(slots, parameterIndex, x, length);
     }
 
     public void setBinaryStream(
         int parameterIndex,
         InputStream x,
         long length) throws SQLException {
-      getParameter(parameterIndex).setBinaryStream(x, length);
+      getParameter(parameterIndex)
+          .setBinaryStream(slots, parameterIndex, x, length);
     }
 
     public void setCharacterStream(
         int parameterIndex,
         Reader reader,
         long length) throws SQLException {
-      getParameter(parameterIndex).setCharacterStream(reader, length);
+      getParameter(parameterIndex)
+          .setCharacterStream(slots, parameterIndex, reader, length);
     }
 
     public void setAsciiStream(
         int parameterIndex, InputStream x) throws SQLException {
-      getParameter(parameterIndex).setAsciiStream(x);
+      getParameter(parameterIndex).setAsciiStream(slots, parameterIndex, x);
     }
 
     public void setBinaryStream(
         int parameterIndex, InputStream x) throws SQLException {
-      getParameter(parameterIndex).setBinaryStream(x);
+      getParameter(parameterIndex).setBinaryStream(slots, parameterIndex, x);
     }
 
     public void setCharacterStream(
         int parameterIndex, Reader reader) throws SQLException {
-      getParameter(parameterIndex).setCharacterStream(reader);
+      getParameter(parameterIndex)
+          .setCharacterStream(slots, parameterIndex, reader);
     }
 
     public void setNCharacterStream(
         int parameterIndex, Reader value) throws SQLException {
-      getParameter(parameterIndex).setNCharacterStream(value);
+      getParameter(parameterIndex)
+          .setNCharacterStream(slots, parameterIndex, value);
     }
 
     public void setClob(
         int parameterIndex,
         Reader reader) throws SQLException {
-      getParameter(parameterIndex).setClob(reader);
+      getParameter(parameterIndex).setClob(slots, parameterIndex, reader);
     }
 
     public void setBlob(
         int parameterIndex, InputStream inputStream) throws SQLException {
-      getParameter(parameterIndex).setBlob(inputStream);
+      getParameter(parameterIndex)
+          .setBlob(slots, parameterIndex, inputStream);
     }
 
     public void setNClob(
         int parameterIndex, Reader reader) throws SQLException {
-      getParameter(parameterIndex).setNClob(reader);
+      getParameter(parameterIndex)
+          .setNClob(slots, parameterIndex, reader);
     }
   }
 

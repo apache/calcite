@@ -16,11 +16,11 @@
  */
 package org.apache.calcite.sql;
 
+import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeName;
-import org.apache.calcite.util.DateTimeUtil;
 
 import java.util.Calendar;
 
@@ -34,7 +34,7 @@ public class SqlDateLiteral extends SqlAbstractDateTimeLiteral {
   //~ Constructors -----------------------------------------------------------
 
   SqlDateLiteral(Calendar d, SqlParserPos pos) {
-    super(d, false, SqlTypeName.DATE, 0, DateTimeUtil.DATE_FORMAT_STRING, pos);
+    super(d, false, SqlTypeName.DATE, 0, DateTimeUtils.DATE_FORMAT_STRING, pos);
   }
 
   SqlDateLiteral(Calendar d, String format, SqlParserPos pos) {

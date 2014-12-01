@@ -23,7 +23,6 @@ import java.sql.ResultSetMetaData;
 import java.sql.RowId;
 import java.sql.SQLException;
 import java.sql.SQLXML;
-import java.util.List;
 import java.util.Properties;
 import java.util.TimeZone;
 
@@ -68,42 +67,33 @@ class AvaticaJdbc41Factory implements AvaticaFactory {
     return new AvaticaJdbc41DatabaseMetaData(connection);
   }
 
-  public AvaticaStatement newStatement(
-      AvaticaConnection connection,
-      int resultSetType,
-      int resultSetConcurrency,
+  public AvaticaStatement newStatement(AvaticaConnection connection,
+      Meta.StatementHandle h, int resultSetType, int resultSetConcurrency,
       int resultSetHoldability) {
-    return new AvaticaJdbc41Statement(
-        connection, resultSetType, resultSetConcurrency,
-        resultSetHoldability);
+    return new AvaticaJdbc41Statement(connection, h, resultSetType,
+        resultSetConcurrency, resultSetHoldability);
   }
 
   public AvaticaPreparedStatement newPreparedStatement(
-      AvaticaConnection connection,
-      AvaticaPrepareResult prepareResult,
-      int resultSetType,
-      int resultSetConcurrency,
-      int resultSetHoldability) throws SQLException {
-    return new AvaticaJdbc41PreparedStatement(
-        connection, prepareResult, resultSetType, resultSetConcurrency,
-        resultSetHoldability);
+      AvaticaConnection connection, Meta.StatementHandle h,
+      Meta.Signature signature, int resultSetType, int resultSetConcurrency,
+      int resultSetHoldability)
+      throws SQLException {
+    return new AvaticaJdbc41PreparedStatement(connection, h, signature,
+        resultSetType, resultSetConcurrency, resultSetHoldability);
   }
 
-  public AvaticaResultSet newResultSet(
-      AvaticaStatement statement,
-      AvaticaPrepareResult prepareResult,
-      TimeZone timeZone) {
+  public AvaticaResultSet newResultSet(AvaticaStatement statement,
+      Meta.Signature signature, TimeZone timeZone, Iterable<Object> iterable) {
     final ResultSetMetaData metaData =
-        newResultSetMetaData(statement, prepareResult.getColumnList());
-    return new AvaticaResultSet(
-        statement, prepareResult, metaData, timeZone);
+        newResultSetMetaData(statement, signature);
+    return new AvaticaResultSet(statement, signature, metaData, timeZone,
+        iterable);
   }
 
   public AvaticaResultSetMetaData newResultSetMetaData(
-      AvaticaStatement statement,
-      List<ColumnMetaData> columnMetaDataList) {
-    return new AvaticaResultSetMetaData(
-        statement, null, columnMetaDataList);
+      AvaticaStatement statement, Meta.Signature signature) {
+    return new AvaticaResultSetMetaData(statement, null, signature);
   }
 
   /** Implementation of Connection for JDBC 4.1. */
@@ -119,11 +109,9 @@ class AvaticaJdbc41Factory implements AvaticaFactory {
   /** Implementation of Statement for JDBC 4.1. */
   private static class AvaticaJdbc41Statement extends AvaticaStatement {
     public AvaticaJdbc41Statement(AvaticaConnection connection,
-        int resultSetType,
-        int resultSetConcurrency,
+        Meta.StatementHandle h, int resultSetType, int resultSetConcurrency,
         int resultSetHoldability) {
-      super(
-          connection, resultSetType, resultSetConcurrency,
+      super(connection, h, resultSetType, resultSetConcurrency,
           resultSetHoldability);
     }
   }
@@ -131,122 +119,128 @@ class AvaticaJdbc41Factory implements AvaticaFactory {
   /** Implementation of PreparedStatement for JDBC 4.1. */
   private static class AvaticaJdbc41PreparedStatement
       extends AvaticaPreparedStatement {
-    AvaticaJdbc41PreparedStatement(
-        AvaticaConnection connection,
-        AvaticaPrepareResult sql,
-        int resultSetType,
-        int resultSetConcurrency,
-        int resultSetHoldability) throws SQLException {
-      super(
-          connection, sql, resultSetType, resultSetConcurrency,
+    AvaticaJdbc41PreparedStatement(AvaticaConnection connection,
+        Meta.StatementHandle h, Meta.Signature signature, int resultSetType,
+        int resultSetConcurrency, int resultSetHoldability)
+        throws SQLException {
+      super(connection, h, signature, resultSetType, resultSetConcurrency,
           resultSetHoldability);
     }
 
     public void setRowId(
         int parameterIndex,
         RowId x) throws SQLException {
-      getParameter(parameterIndex).setRowId(x);
+      getParameter(parameterIndex).setRowId(slots, parameterIndex, x);
     }
 
     public void setNString(
         int parameterIndex, String value) throws SQLException {
-      getParameter(parameterIndex).setNString(value);
+      getParameter(parameterIndex).setNString(slots, parameterIndex, value);
     }
 
     public void setNCharacterStream(
         int parameterIndex,
         Reader value,
         long length) throws SQLException {
-      getParameter(parameterIndex).setNCharacterStream(value, length);
+      getParameter(parameterIndex)
+          .setNCharacterStream(slots, parameterIndex, value, length);
     }
 
     public void setNClob(
         int parameterIndex,
         NClob value) throws SQLException {
-      getParameter(parameterIndex).setNClob(value);
+      getParameter(parameterIndex).setNClob(slots, parameterIndex, value);
     }
 
     public void setClob(
         int parameterIndex,
         Reader reader,
         long length) throws SQLException {
-      getParameter(parameterIndex).setClob(reader, length);
+      getParameter(parameterIndex)
+          .setClob(slots, parameterIndex, reader, length);
     }
 
     public void setBlob(
         int parameterIndex,
         InputStream inputStream,
         long length) throws SQLException {
-      getParameter(parameterIndex).setBlob(inputStream, length);
+      getParameter(parameterIndex)
+          .setBlob(slots, parameterIndex, inputStream, length);
     }
 
     public void setNClob(
         int parameterIndex,
         Reader reader,
         long length) throws SQLException {
-      getParameter(parameterIndex).setNClob(reader, length);
+      getParameter(parameterIndex)
+          .setNClob(slots, parameterIndex, reader, length);
     }
 
     public void setSQLXML(
         int parameterIndex, SQLXML xmlObject) throws SQLException {
-      getParameter(parameterIndex).setSQLXML(xmlObject);
+      getParameter(parameterIndex).setSQLXML(slots, parameterIndex, xmlObject);
     }
 
     public void setAsciiStream(
         int parameterIndex,
         InputStream x,
         long length) throws SQLException {
-      getParameter(parameterIndex).setAsciiStream(x, length);
+      getParameter(parameterIndex)
+          .setAsciiStream(slots, parameterIndex, x, length);
     }
 
     public void setBinaryStream(
         int parameterIndex,
         InputStream x,
         long length) throws SQLException {
-      getParameter(parameterIndex).setBinaryStream(x, length);
+      getParameter(parameterIndex)
+          .setBinaryStream(slots, parameterIndex, x, length);
     }
 
     public void setCharacterStream(
         int parameterIndex,
         Reader reader,
         long length) throws SQLException {
-      getParameter(parameterIndex).setCharacterStream(reader, length);
+      getParameter(parameterIndex)
+          .setCharacterStream(slots, parameterIndex, reader, length);
     }
 
     public void setAsciiStream(
         int parameterIndex, InputStream x) throws SQLException {
-      getParameter(parameterIndex).setAsciiStream(x);
+      getParameter(parameterIndex).setAsciiStream(slots, parameterIndex, x);
     }
 
     public void setBinaryStream(
         int parameterIndex, InputStream x) throws SQLException {
-      getParameter(parameterIndex).setBinaryStream(x);
+      getParameter(parameterIndex).setBinaryStream(slots, parameterIndex, x);
     }
 
     public void setCharacterStream(
         int parameterIndex, Reader reader) throws SQLException {
-      getParameter(parameterIndex).setCharacterStream(reader);
+      getParameter(parameterIndex)
+          .setCharacterStream(slots, parameterIndex, reader);
     }
 
     public void setNCharacterStream(
         int parameterIndex, Reader value) throws SQLException {
-      getParameter(parameterIndex).setNCharacterStream(value);
+      getParameter(parameterIndex)
+          .setNCharacterStream(slots, parameterIndex, value);
     }
 
     public void setClob(
         int parameterIndex,
         Reader reader) throws SQLException {
-      getParameter(parameterIndex).setClob(reader);
+      getParameter(parameterIndex).setClob(slots, parameterIndex, reader);
     }
 
     public void setBlob(
         int parameterIndex, InputStream inputStream) throws SQLException {
-      getParameter(parameterIndex).setBlob(inputStream);
+      getParameter(parameterIndex).setBlob(slots, parameterIndex, inputStream);
     }
 
     public void setNClob(
         int parameterIndex, Reader reader) throws SQLException {
-      getParameter(parameterIndex).setNClob(reader);
+      getParameter(parameterIndex).setNClob(slots, parameterIndex, reader);
     }
   }
 

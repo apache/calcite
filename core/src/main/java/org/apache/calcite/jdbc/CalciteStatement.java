@@ -18,26 +18,41 @@ package org.apache.calcite.jdbc;
 
 import org.apache.calcite.avatica.AvaticaResultSet;
 import org.apache.calcite.avatica.AvaticaStatement;
+import org.apache.calcite.avatica.Meta;
 import org.apache.calcite.linq4j.Queryable;
 import org.apache.calcite.server.CalciteServerStatement;
+
+import java.sql.SQLException;
 
 /**
  * Implementation of {@link java.sql.Statement}
  * for the Calcite engine.
  */
-public abstract class CalciteStatement
-    extends AvaticaStatement
-    implements CalciteServerStatement {
-  CalciteStatement(
-      CalciteConnectionImpl connection,
-      int resultSetType,
-      int resultSetConcurrency,
-      int resultSetHoldability) {
-    super(connection, resultSetType, resultSetConcurrency,
+public abstract class CalciteStatement extends AvaticaStatement {
+  /**
+   * Creates a CalciteStatement.
+   *
+   * @param connection Connection
+   * @param h Statement handle
+   * @param resultSetType Result set type
+   * @param resultSetConcurrency Result set concurrency
+   * @param resultSetHoldability Result set holdability
+   */
+  CalciteStatement(CalciteConnectionImpl connection, Meta.StatementHandle h,
+      int resultSetType, int resultSetConcurrency, int resultSetHoldability) {
+    super(connection, h, resultSetType, resultSetConcurrency,
         resultSetHoldability);
   }
 
   // implement Statement
+
+  @Override public <T> T unwrap(Class<T> iface) throws SQLException {
+    if (iface == CalciteServerStatement.class) {
+      //noinspection unchecked
+      return (T) getConnection().server.getStatement(handle);
+    }
+    return super.unwrap(iface);
+  }
 
   @Override public CalciteConnectionImpl getConnection() {
     return (CalciteConnectionImpl) connection;
@@ -47,10 +62,15 @@ public abstract class CalciteStatement
     return new CalciteConnectionImpl.ContextImpl(getConnection());
   }
 
-  protected <T> CalcitePrepare.PrepareResult<T> prepare(
+  protected <T> CalcitePrepare.CalciteSignature<T> prepare(
       Queryable<T> queryable) {
-    final CalcitePrepare prepare = getConnection().prepareFactory.apply();
-    return prepare.prepareQueryable(createPrepareContext(), queryable);
+    final CalciteConnectionImpl calciteConnection = getConnection();
+    final CalcitePrepare prepare = calciteConnection.prepareFactory.apply();
+    final CalciteServerStatement serverStatement =
+        calciteConnection.server.getStatement(handle);
+    final CalcitePrepare.Context prepareContext =
+        serverStatement.createPrepareContext();
+    return prepare.prepareQueryable(prepareContext, queryable);
   }
 
   @Override protected void close_() {
@@ -58,7 +78,7 @@ public abstract class CalciteStatement
       closed = true;
       final CalciteConnectionImpl connection1 =
           (CalciteConnectionImpl) connection;
-      connection1.server.removeStatement(this);
+      connection1.server.removeStatement(handle);
       if (openResultSet != null) {
         AvaticaResultSet c = openResultSet;
         openResultSet = null;

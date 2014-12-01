@@ -64,6 +64,7 @@ limitations under the License.
 
   <modules>
     <module>avatica</module>
+    <module>avatica-server</module>
     <module>core</module>
     <module>example</module>
     <module>linq4j</module>
@@ -164,6 +165,11 @@ limitations under the License.
       <dependency>
         <groupId>org.apache.calcite</groupId>
         <artifactId>calcite-avatica</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.calcite</groupId>
+        <artifactId>calcite-avatica-server</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>

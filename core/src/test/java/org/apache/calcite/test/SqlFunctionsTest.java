@@ -16,7 +16,8 @@
  */
 package org.apache.calcite.test;
 
-import org.apache.calcite.avatica.ByteString;
+import org.apache.calcite.avatica.util.ByteString;
+import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.runtime.SqlFunctions;
 import org.apache.calcite.runtime.Utilities;
 
@@ -27,29 +28,29 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-import static org.apache.calcite.runtime.SqlFunctions.EPOCH_JULIAN;
-import static org.apache.calcite.runtime.SqlFunctions.TimeUnitRange;
+import static org.apache.calcite.avatica.util.DateTimeUtils.EPOCH_JULIAN;
+import static org.apache.calcite.avatica.util.DateTimeUtils.dateStringToUnixDate;
+import static org.apache.calcite.avatica.util.DateTimeUtils.digitCount;
+import static org.apache.calcite.avatica.util.DateTimeUtils.intervalDayTimeToString;
+import static org.apache.calcite.avatica.util.DateTimeUtils.intervalYearMonthToString;
+import static org.apache.calcite.avatica.util.DateTimeUtils.timeStringToUnixDate;
+import static org.apache.calcite.avatica.util.DateTimeUtils.timestampStringToUnixDate;
+import static org.apache.calcite.avatica.util.DateTimeUtils.unixDateExtract;
+import static org.apache.calcite.avatica.util.DateTimeUtils.unixDateToString;
+import static org.apache.calcite.avatica.util.DateTimeUtils.unixTimeToString;
+import static org.apache.calcite.avatica.util.DateTimeUtils.unixTimestampToString;
+import static org.apache.calcite.avatica.util.DateTimeUtils.ymdToJulian;
+import static org.apache.calcite.avatica.util.DateTimeUtils.ymdToUnixDate;
 import static org.apache.calcite.runtime.SqlFunctions.charLength;
 import static org.apache.calcite.runtime.SqlFunctions.concat;
-import static org.apache.calcite.runtime.SqlFunctions.dateStringToUnixDate;
 import static org.apache.calcite.runtime.SqlFunctions.greater;
 import static org.apache.calcite.runtime.SqlFunctions.initcap;
-import static org.apache.calcite.runtime.SqlFunctions.intervalDayTimeToString;
-import static org.apache.calcite.runtime.SqlFunctions.intervalYearMonthToString;
 import static org.apache.calcite.runtime.SqlFunctions.lesser;
 import static org.apache.calcite.runtime.SqlFunctions.lower;
 import static org.apache.calcite.runtime.SqlFunctions.ltrim;
 import static org.apache.calcite.runtime.SqlFunctions.rtrim;
-import static org.apache.calcite.runtime.SqlFunctions.timeStringToUnixDate;
-import static org.apache.calcite.runtime.SqlFunctions.timestampStringToUnixDate;
 import static org.apache.calcite.runtime.SqlFunctions.trim;
-import static org.apache.calcite.runtime.SqlFunctions.unixDateExtract;
-import static org.apache.calcite.runtime.SqlFunctions.unixDateToString;
-import static org.apache.calcite.runtime.SqlFunctions.unixTimeToString;
-import static org.apache.calcite.runtime.SqlFunctions.unixTimestampToString;
 import static org.apache.calcite.runtime.SqlFunctions.upper;
-import static org.apache.calcite.runtime.SqlFunctions.ymdToJulian;
-import static org.apache.calcite.runtime.SqlFunctions.ymdToUnixDate;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertEquals;
@@ -390,13 +391,13 @@ public class SqlFunctionsTest {
   }
 
   @Test public void testEasyLog10() {
-    assertEquals(1, SqlFunctions.digitCount(0));
-    assertEquals(1, SqlFunctions.digitCount(1));
-    assertEquals(1, SqlFunctions.digitCount(9));
-    assertEquals(2, SqlFunctions.digitCount(10));
-    assertEquals(2, SqlFunctions.digitCount(11));
-    assertEquals(2, SqlFunctions.digitCount(99));
-    assertEquals(3, SqlFunctions.digitCount(100));
+    assertEquals(1, digitCount(0));
+    assertEquals(1, digitCount(1));
+    assertEquals(1, digitCount(9));
+    assertEquals(2, digitCount(10));
+    assertEquals(2, digitCount(11));
+    assertEquals(2, digitCount(99));
+    assertEquals(3, digitCount(100));
   }
 }
 

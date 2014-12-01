@@ -16,10 +16,10 @@
  */
 package org.apache.calcite.sql.type;
 
+import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.parser.SqlParserPos;
-import org.apache.calcite.util.DateTimeUtil;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
@@ -543,7 +543,7 @@ public enum SqlTypeName {
       return bytes;
 
     case DATE:
-      calendar = Calendar.getInstance(DateTimeUtil.GMT_ZONE);
+      calendar = Calendar.getInstance(DateTimeUtils.GMT_ZONE);
       switch (limit) {
       case ZERO:
 
@@ -591,7 +591,7 @@ public enum SqlTypeName {
       if (beyond) {
         return null; // invalid values are impossible to represent
       }
-      calendar = Calendar.getInstance(DateTimeUtil.GMT_ZONE);
+      calendar = Calendar.getInstance(DateTimeUtils.GMT_ZONE);
       switch (limit) {
       case ZERO:
 
@@ -616,7 +616,7 @@ public enum SqlTypeName {
       return calendar;
 
     case TIMESTAMP:
-      calendar = Calendar.getInstance(DateTimeUtil.GMT_ZONE);
+      calendar = Calendar.getInstance(DateTimeUtils.GMT_ZONE);
       switch (limit) {
       case ZERO:
 

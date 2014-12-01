@@ -18,7 +18,6 @@ package org.apache.calcite.avatica;
 
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
-import java.util.List;
 
 /**
  * Implementation of {@link ResultSetMetaData}
@@ -26,26 +25,26 @@ import java.util.List;
  */
 public class AvaticaResultSetMetaData implements ResultSetMetaData {
   final AvaticaStatement statement;
-  final Object query;
-  final List<ColumnMetaData> columnMetaDataList;
+  final Object query; // reserved for future use
+  final Meta.Signature signature;
 
   public AvaticaResultSetMetaData(
       AvaticaStatement statement,
       Object query,
-      List<ColumnMetaData> columnMetaDataList) {
+      Meta.Signature signature) {
     this.statement = statement;
     this.query = query;
-    this.columnMetaDataList = columnMetaDataList;
+    this.signature = signature;
   }
 
   private ColumnMetaData getColumnMetaData(int column) {
-    return columnMetaDataList.get(column - 1);
+    return signature.columns.get(column - 1);
   }
 
   // implement ResultSetMetaData
 
   public int getColumnCount() throws SQLException {
-    return columnMetaDataList.size();
+    return signature.columns.size();
   }
 
   public boolean isAutoIncrement(int column) throws SQLException {

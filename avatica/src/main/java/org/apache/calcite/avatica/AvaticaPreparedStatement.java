@@ -46,40 +46,39 @@ import java.util.List;
 public abstract class AvaticaPreparedStatement
     extends AvaticaStatement
     implements PreparedStatement, ParameterMetaData {
-  private final AvaticaPrepareResult prepareResult;
+  private final Meta.Signature signature;
   private final ResultSetMetaData resultSetMetaData;
+  protected final Object[] slots;
 
   /**
    * Creates an AvaticaPreparedStatement.
    *
    * @param connection Connection
-   * @param prepareResult Result of preparing statement
+   * @param h Statement handle
+   * @param signature Result of preparing statement
    * @param resultSetType Result set type
    * @param resultSetConcurrency Result set concurrency
    * @param resultSetHoldability Result set holdability
    * @throws SQLException If fails due to underlying implementation reasons.
    */
-  protected AvaticaPreparedStatement(
-      AvaticaConnection connection,
-      AvaticaPrepareResult prepareResult,
+  protected AvaticaPreparedStatement(AvaticaConnection connection,
+      Meta.StatementHandle h,
+      Meta.Signature signature,
       int resultSetType,
       int resultSetConcurrency,
       int resultSetHoldability) throws SQLException {
-    super(
-        connection, resultSetType, resultSetConcurrency,
+    super(connection, h, resultSetType, resultSetConcurrency,
         resultSetHoldability);
-    this.prepareResult = prepareResult;
+    this.signature = signature;
+    this.slots = new Object[signature.parameters.size()];
     this.resultSetMetaData =
-        connection.factory.newResultSetMetaData(
-            this, prepareResult.getColumnList());
+        connection.factory.newResultSetMetaData(this, signature);
   }
 
   @Override protected List<Object> getParameterValues() {
     final List<Object> list = new ArrayList<Object>();
-    for (AvaticaParameter parameter : prepareResult.getParameterList()) {
-      list.add(parameter.value == AvaticaParameter.DUMMY_VALUE
-          ? null
-          : parameter.value);
+    for (Object o : slots) {
+      list.add(o == AvaticaParameter.DUMMY_VALUE ? null : o);
     }
     return list;
   }
@@ -87,7 +86,7 @@ public abstract class AvaticaPreparedStatement
   // implement PreparedStatement
 
   public ResultSet executeQuery() throws SQLException {
-    return getConnection().executeQueryInternal(this, prepareResult);
+    return getConnection().executeQueryInternal(this, signature, null);
   }
 
   public ParameterMetaData getParameterMetaData() throws SQLException {
@@ -99,89 +98,93 @@ public abstract class AvaticaPreparedStatement
   }
 
   public void setNull(int parameterIndex, int sqlType) throws SQLException {
-    getParameter(parameterIndex).setNull(sqlType);
+    getParameter(parameterIndex).setNull(slots, parameterIndex - 1, sqlType);
   }
 
   public void setBoolean(int parameterIndex, boolean x) throws SQLException {
-    getParameter(parameterIndex).setBoolean(x);
+    getParameter(parameterIndex).setBoolean(slots, parameterIndex - 1, x);
   }
 
   public void setByte(int parameterIndex, byte x) throws SQLException {
-    getParameter(parameterIndex).setByte(x);
+    getParameter(parameterIndex).setByte(slots, parameterIndex - 1, x);
   }
 
   public void setShort(int parameterIndex, short x) throws SQLException {
-    getParameter(parameterIndex).setShort(x);
+    getParameter(parameterIndex).setShort(slots, parameterIndex - 1, x);
   }
 
   public void setInt(int parameterIndex, int x) throws SQLException {
-    getParameter(parameterIndex).setInt(x);
+    getParameter(parameterIndex).setInt(slots, parameterIndex - 1, x);
   }
 
   public void setLong(int parameterIndex, long x) throws SQLException {
-    getParameter(parameterIndex).setValue(x);
+    getParameter(parameterIndex).setLong(slots, parameterIndex - 1, x);
   }
 
   public void setFloat(int parameterIndex, float x) throws SQLException {
-    getParameter(parameterIndex).setFloat(x);
+    getParameter(parameterIndex).setFloat(slots, parameterIndex - 1, x);
   }
 
   public void setDouble(int parameterIndex, double x) throws SQLException {
-    getParameter(parameterIndex).setDouble(x);
+    getParameter(parameterIndex).setDouble(slots, parameterIndex - 1, x);
   }
 
-  public void setBigDecimal(
-      int parameterIndex, BigDecimal x) throws SQLException {
-    getParameter(parameterIndex).setBigDecimal(x);
+  public void setBigDecimal(int parameterIndex, BigDecimal x)
+      throws SQLException {
+    getParameter(parameterIndex).setBigDecimal(slots, parameterIndex - 1, x);
   }
 
   public void setString(int parameterIndex, String x) throws SQLException {
-    getParameter(parameterIndex).setString(x);
+    getParameter(parameterIndex).setString(slots, parameterIndex - 1, x);
   }
 
   public void setBytes(int parameterIndex, byte[] x) throws SQLException {
-    getParameter(parameterIndex).setBytes(x);
+    getParameter(parameterIndex).setBytes(slots, parameterIndex - 1, x);
   }
 
   public void setDate(int parameterIndex, Date x) throws SQLException {
-    getParameter(parameterIndex).setDate(x);
+    getParameter(parameterIndex).setDate(slots, parameterIndex - 1, x);
   }
 
   public void setTime(int parameterIndex, Time x) throws SQLException {
-    getParameter(parameterIndex).setTime(x);
+    getParameter(parameterIndex).setTime(slots, parameterIndex - 1, x);
   }
 
-  public void setTimestamp(
-      int parameterIndex, Timestamp x) throws SQLException {
-    getParameter(parameterIndex).setTimestamp(x);
+  public void setTimestamp(int parameterIndex, Timestamp x)
+      throws SQLException {
+    getParameter(parameterIndex).setTimestamp(slots, parameterIndex - 1, x);
   }
 
-  public void setAsciiStream(
-      int parameterIndex, InputStream x, int length) throws SQLException {
-    getParameter(parameterIndex).setAsciiStream(x, length);
+  public void setAsciiStream(int parameterIndex, InputStream x, int length)
+      throws SQLException {
+    getParameter(parameterIndex)
+        .setAsciiStream(slots, parameterIndex - 1, x, length);
   }
 
-  public void setUnicodeStream(
-      int parameterIndex, InputStream x, int length) throws SQLException {
-    getParameter(parameterIndex).setUnicodeStream(x, length);
+  public void setUnicodeStream(int parameterIndex, InputStream x, int length)
+      throws SQLException {
+    getParameter(parameterIndex)
+        .setUnicodeStream(slots, parameterIndex - 1, x, length);
   }
 
-  public void setBinaryStream(
-      int parameterIndex, InputStream x, int length) throws SQLException {
-    getParameter(parameterIndex).setBinaryStream(x, length);
+  public void setBinaryStream(int parameterIndex, InputStream x, int length)
+      throws SQLException {
+    getParameter(parameterIndex)
+        .setBinaryStream(slots, parameterIndex - 1, x, length);
   }
 
   public void clearParameters() throws SQLException {
     throw new UnsupportedOperationException();
   }
 
-  public void setObject(
-      int parameterIndex, Object x, int targetSqlType) throws SQLException {
-    getParameter(parameterIndex).setObject(x, targetSqlType);
+  public void setObject(int parameterIndex, Object x, int targetSqlType)
+      throws SQLException {
+    getParameter(parameterIndex)
+        .setObject(slots, parameterIndex - 1, x, targetSqlType);
   }
 
   public void setObject(int parameterIndex, Object x) throws SQLException {
-    getParameter(parameterIndex).setObject(x);
+    getParameter(parameterIndex).setObject(slots, parameterIndex - 1, x);
   }
 
   public boolean execute() throws SQLException {
@@ -192,68 +195,69 @@ public abstract class AvaticaPreparedStatement
     throw new UnsupportedOperationException();
   }
 
-  public void setCharacterStream(
-      int parameterIndex, Reader reader, int length) throws SQLException {
-    getParameter(parameterIndex).setCharacterStream(reader, length);
+  public void setCharacterStream(int parameterIndex, Reader reader, int length)
+      throws SQLException {
+    getParameter(parameterIndex)
+        .setCharacterStream(slots, parameterIndex - 1, reader, length);
   }
 
   public void setRef(int parameterIndex, Ref x) throws SQLException {
-    getParameter(parameterIndex).setRef(x);
+    getParameter(parameterIndex).setRef(slots, parameterIndex - 1, x);
   }
 
   public void setBlob(int parameterIndex, Blob x) throws SQLException {
-    getParameter(parameterIndex).setBlob(x);
+    getParameter(parameterIndex).setBlob(slots, parameterIndex - 1, x);
   }
 
   public void setClob(int parameterIndex, Clob x) throws SQLException {
-    getParameter(parameterIndex).setClob(x);
+    getParameter(parameterIndex).setClob(slots, parameterIndex - 1, x);
   }
 
   public void setArray(int parameterIndex, Array x) throws SQLException {
-    getParameter(parameterIndex).setArray(x);
+    getParameter(parameterIndex).setArray(slots, parameterIndex - 1, x);
   }
 
   public ResultSetMetaData getMetaData() {
     return resultSetMetaData;
   }
 
-  public void setDate(
-      int parameterIndex, Date x, Calendar cal) throws SQLException {
-    getParameter(parameterIndex).setDate(x, cal);
+  public void setDate(int parameterIndex, Date x, Calendar cal)
+      throws SQLException {
+    getParameter(parameterIndex).setDate(slots, parameterIndex - 1, x, cal);
   }
 
-  public void setTime(
-      int parameterIndex, Time x, Calendar cal) throws SQLException {
-    getParameter(parameterIndex).setTime(x, cal);
+  public void setTime(int parameterIndex, Time x, Calendar cal)
+      throws SQLException {
+    getParameter(parameterIndex).setTime(slots, parameterIndex - 1, x, cal);
   }
 
-  public void setTimestamp(
-      int parameterIndex, Timestamp x, Calendar cal) throws SQLException {
-    getParameter(parameterIndex).setTimestamp(x, cal);
+  public void setTimestamp(int parameterIndex, Timestamp x, Calendar cal)
+      throws SQLException {
+    getParameter(parameterIndex)
+        .setTimestamp(slots, parameterIndex - 1, x, cal);
   }
 
-  public void setNull(
-      int parameterIndex, int sqlType, String typeName) throws SQLException {
-    getParameter(parameterIndex).setNull(sqlType, typeName);
+  public void setNull(int parameterIndex, int sqlType, String typeName)
+      throws SQLException {
+    getParameter(parameterIndex)
+        .setNull(slots, parameterIndex - 1, sqlType, typeName);
   }
 
   public void setURL(int parameterIndex, URL x) throws SQLException {
-    getParameter(parameterIndex).setURL(x);
+    getParameter(parameterIndex).setURL(slots, parameterIndex - 1, x);
   }
 
-  public void setObject(
-      int parameterIndex,
-      Object x,
-      int targetSqlType,
+  public void setObject(int parameterIndex, Object x, int targetSqlType,
       int scaleOrLength) throws SQLException {
-    getParameter(parameterIndex).setObject(x, targetSqlType, scaleOrLength);
+    getParameter(parameterIndex)
+        .setObject(slots, parameterIndex - 1, x, targetSqlType, scaleOrLength);
   }
 
   // implement ParameterMetaData
 
   protected AvaticaParameter getParameter(int param) throws SQLException {
     try {
-      return prepareResult.getParameterList().get(param - 1);
+      return signature.parameters.get(param - 1);
     } catch (IndexOutOfBoundsException e) {
       //noinspection ThrowableResultOfMethodCallIgnored
       throw connection.helper.toSQLException(
@@ -263,7 +267,7 @@ public abstract class AvaticaPreparedStatement
   }
 
   public int getParameterCount() {
-    return prepareResult.getParameterList().size();
+    return signature.parameters.size();
   }
 
   public int isNullable(int param) throws SQLException {

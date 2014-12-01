@@ -23,6 +23,7 @@ import org.apache.calcite.avatica.ConnectionProperty;
 import org.apache.calcite.avatica.DriverVersion;
 import org.apache.calcite.avatica.Handler;
 import org.apache.calcite.avatica.HandlerImpl;
+import org.apache.calcite.avatica.Meta;
 import org.apache.calcite.avatica.UnregisteredDriver;
 import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.linq4j.function.Function0;
@@ -108,6 +109,10 @@ public class Driver extends UnregisteredDriver {
     Collections.addAll(list, BuiltInConnectionProperty.values());
     Collections.addAll(list, CalciteConnectionProperty.values());
     return list;
+  }
+
+  @Override public Meta createMeta(AvaticaConnection connection) {
+    return new CalciteMetaImpl((CalciteConnectionImpl) connection);
   }
 
   /** Creates an internal connection. */

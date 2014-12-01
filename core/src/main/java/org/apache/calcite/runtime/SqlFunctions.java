@@ -17,14 +17,14 @@
 package org.apache.calcite.runtime;
 
 import org.apache.calcite.DataContext;
-import org.apache.calcite.avatica.ByteString;
+import org.apache.calcite.avatica.util.ByteString;
+import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Linq4j;
 import org.apache.calcite.linq4j.function.Deterministic;
 import org.apache.calcite.linq4j.function.Function1;
 import org.apache.calcite.linq4j.function.NonDeterministic;
 import org.apache.calcite.linq4j.tree.Primitive;
-import org.apache.calcite.util.DateTimeUtil;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -54,9 +54,6 @@ import java.util.regex.Pattern;
 public class SqlFunctions {
   private static final DecimalFormat DOUBLE_FORMAT =
       new DecimalFormat("0.0E0");
-
-  /** The julian date of the epoch, 1970-01-01. */
-  public static final int EPOCH_JULIAN = 2440588;
 
   private static final TimeZone LOCAL_TZ = TimeZone.getDefault();
 
@@ -913,7 +910,7 @@ public class SqlFunctions {
   }
 
   public static int toInt(java.util.Date v, TimeZone timeZone) {
-    return (int) (toLong(v, timeZone)  / DateTimeUtil.MILLIS_PER_DAY);
+    return (int) (toLong(v, timeZone)  / DateTimeUtils.MILLIS_PER_DAY);
   }
 
   public static Integer toIntOptional(java.util.Date v) {
@@ -931,7 +928,7 @@ public class SqlFunctions {
   }
 
   public static int toInt(java.sql.Time v) {
-    return (int) (toLong(v) % DateTimeUtil.MILLIS_PER_DAY);
+    return (int) (toLong(v) % DateTimeUtils.MILLIS_PER_DAY);
   }
 
   public static Integer toIntOptional(java.sql.Time v) {
@@ -1067,16 +1064,6 @@ public class SqlFunctions {
     return s.indexOf(seek) + 1;
   }
 
-  /** Cheap, unsafe, long power. power(2, 3) returns 8. */
-  public static long powerX(long a, long b) {
-    long x = 1;
-    while (b > 0) {
-      x *= a;
-      --b;
-    }
-    return x;
-  }
-
   /** Helper for rounding. Truncate(12345, 1000) returns 12000. */
   public static long round(long v, long x) {
     return truncate(v + x / 2, x);
@@ -1105,42 +1092,6 @@ public class SqlFunctions {
     return v - remainder;
   }
 
-  /** Helper for CAST({timestamp} AS VARCHAR(n)). */
-  public static String unixTimestampToString(long timestamp) {
-    final StringBuilder buf = new StringBuilder(17);
-    int date = (int) (timestamp / DateTimeUtil.MILLIS_PER_DAY);
-    int time = (int) (timestamp % DateTimeUtil.MILLIS_PER_DAY);
-    if (time < 0) {
-      --date;
-      time += DateTimeUtil.MILLIS_PER_DAY;
-    }
-    unixDateToString(buf, date);
-    buf.append(' ');
-    unixTimeToString(buf, time);
-    return buf.toString();
-  }
-
-  /** Helper for CAST({timestamp} AS VARCHAR(n)). */
-  public static String unixTimeToString(int time) {
-    final StringBuilder buf = new StringBuilder(8);
-    unixTimeToString(buf, time);
-    return buf.toString();
-  }
-
-  private static void unixTimeToString(StringBuilder buf, int time) {
-    int h = time / 3600000;
-    int time2 = time % 3600000;
-    int m = time2 / 60000;
-    int time3 = time2 % 60000;
-    int s = time3 / 1000;
-    int ms = time3 % 1000;
-    int2(buf, h);
-    buf.append(':');
-    int2(buf, m);
-    buf.append(':');
-    int2(buf, s);
-  }
-
   /** SQL {@code CURRENT_TIMESTAMP} function. */
   @NonDeterministic
   public static long currentTimestamp(DataContext root) {
@@ -1151,9 +1102,9 @@ public class SqlFunctions {
   /** SQL {@code CURRENT_TIME} function. */
   @NonDeterministic
   public static int currentTime(DataContext root) {
-    int time = (int) (currentTimestamp(root) % DateTimeUtil.MILLIS_PER_DAY);
+    int time = (int) (currentTimestamp(root) % DateTimeUtils.MILLIS_PER_DAY);
     if (time < 0) {
-      time += DateTimeUtil.MILLIS_PER_DAY;
+      time += DateTimeUtils.MILLIS_PER_DAY;
     }
     return time;
   }
@@ -1162,8 +1113,8 @@ public class SqlFunctions {
   @NonDeterministic
   public static int currentDate(DataContext root) {
     final long timestamp = currentTimestamp(root);
-    int date = (int) (timestamp / DateTimeUtil.MILLIS_PER_DAY);
-    final int time = (int) (timestamp % DateTimeUtil.MILLIS_PER_DAY);
+    int date = (int) (timestamp / DateTimeUtils.MILLIS_PER_DAY);
+    final int time = (int) (timestamp % DateTimeUtils.MILLIS_PER_DAY);
     if (time < 0) {
       --date;
     }
@@ -1180,418 +1131,7 @@ public class SqlFunctions {
   /** SQL {@code LOCAL_TIME} function. */
   @NonDeterministic
   public static int localTime(DataContext root) {
-    return (int) (localTimestamp(root) % DateTimeUtil.MILLIS_PER_DAY);
-  }
-
-  private static void int2(StringBuilder buf, int i) {
-    buf.append((char) ('0' + (i / 10) % 10));
-    buf.append((char) ('0' + i % 10));
-  }
-
-  private static void int4(StringBuilder buf, int i) {
-    buf.append((char) ('0' + (i / 1000) % 10));
-    buf.append((char) ('0' + (i / 100) % 10));
-    buf.append((char) ('0' + (i / 10) % 10));
-    buf.append((char) ('0' + i % 10));
-  }
-
-  public static int dateStringToUnixDate(String s) {
-    int hyphen1 = s.indexOf('-');
-    int y;
-    int m;
-    int d;
-    if (hyphen1 < 0) {
-      y = Integer.parseInt(s.trim());
-      m = 1;
-      d = 1;
-    } else {
-      y = Integer.parseInt(s.substring(0, hyphen1).trim());
-      final int hyphen2 = s.indexOf('-', hyphen1 + 1);
-      if (hyphen2 < 0) {
-        m = Integer.parseInt(s.substring(hyphen1 + 1).trim());
-        d = 1;
-      } else {
-        m = Integer.parseInt(s.substring(hyphen1 + 1, hyphen2).trim());
-        d = Integer.parseInt(s.substring(hyphen2 + 1).trim());
-      }
-    }
-    return ymdToUnixDate(y, m, d);
-  }
-
-  public static int timeStringToUnixDate(String v) {
-    return timeStringToUnixDate(v, 0);
-  }
-
-  public static int timeStringToUnixDate(String v, int start) {
-    final int colon1 = v.indexOf(':', start);
-    int hour;
-    int minute;
-    int second;
-    int milli;
-    if (colon1 < 0) {
-      hour = Integer.parseInt(v.trim());
-      minute = 1;
-      second = 1;
-      milli = 0;
-    } else {
-      hour = Integer.parseInt(v.substring(start, colon1).trim());
-      final int colon2 = v.indexOf(':', colon1 + 1);
-      if (colon2 < 0) {
-        minute = Integer.parseInt(v.substring(colon1 + 1).trim());
-        second = 1;
-        milli = 0;
-      } else {
-        minute = Integer.parseInt(v.substring(colon1 + 1, colon2).trim());
-        int dot = v.indexOf('.', colon2);
-        if (dot < 0) {
-          second = Integer.parseInt(v.substring(colon2 + 1).trim());
-          milli = 0;
-        } else {
-          second = Integer.parseInt(v.substring(colon2 + 1, dot).trim());
-          milli = Integer.parseInt(v.substring(dot + 1).trim());
-        }
-      }
-    }
-    return hour * (int) DateTimeUtil.MILLIS_PER_HOUR
-        + minute * (int) DateTimeUtil.MILLIS_PER_MINUTE
-        + second * (int) DateTimeUtil.MILLIS_PER_SECOND
-        + milli;
-  }
-
-  public static long timestampStringToUnixDate(String s) {
-    final long d;
-    final long t;
-    s = s.trim();
-    int space = s.indexOf(' ');
-    if (space >= 0) {
-      d = dateStringToUnixDate(s.substring(0, space));
-      t = timeStringToUnixDate(s, space + 1);
-    } else {
-      d = dateStringToUnixDate(s);
-      t = 0;
-    }
-    return d * DateTimeUtil.MILLIS_PER_DAY + t;
-  }
-
-  /** Helper for CAST({date} AS VARCHAR(n)). */
-  public static String unixDateToString(int date) {
-    final StringBuilder buf = new StringBuilder(10);
-    unixDateToString(buf, date);
-    return buf.toString();
-  }
-
-  private static void unixDateToString(StringBuilder buf, int date) {
-    julianToString(buf, date + EPOCH_JULIAN);
-  }
-
-  private static void julianToString(StringBuilder buf, int julian) {
-    // this shifts the epoch back to astronomical year -4800 instead of the
-    // start of the Christian era in year AD 1 of the proleptic Gregorian
-    // calendar.
-    int j = julian + 32044;
-    int g = j / 146097;
-    int dg = j % 146097;
-    int c = (dg / 36524 + 1) * 3 / 4;
-    int dc = dg - c * 36524;
-    int b = dc / 1461;
-    int db = dc % 1461;
-    int a = (db / 365 + 1) * 3 / 4;
-    int da = db - a * 365;
-
-    // integer number of full years elapsed since March 1, 4801 BC
-    int y = g * 400 + c * 100 + b * 4 + a;
-    // integer number of full months elapsed since the last March 1
-    int m = (da * 5 + 308) / 153 - 2;
-    // number of days elapsed since day 1 of the month
-    int d = da - (m + 4) * 153 / 5 + 122;
-    int year = y - 4800 + (m + 2) / 12;
-    int month = (m + 2) % 12 + 1;
-    int day = d + 1;
-    int4(buf, year);
-    buf.append('-');
-    int2(buf, month);
-    buf.append('-');
-    int2(buf, day);
-  }
-
-  public static long unixDateExtract(TimeUnitRange range, long date) {
-    return julianExtract(range, (int) date + EPOCH_JULIAN);
-  }
-
-  private static int julianExtract(TimeUnitRange range, int julian) {
-    // this shifts the epoch back to astronomical year -4800 instead of the
-    // start of the Christian era in year AD 1 of the proleptic Gregorian
-    // calendar.
-    int j = julian + 32044;
-    int g = j / 146097;
-    int dg = j % 146097;
-    int c = (dg / 36524 + 1) * 3 / 4;
-    int dc = dg - c * 36524;
-    int b = dc / 1461;
-    int db = dc % 1461;
-    int a = (db / 365 + 1) * 3 / 4;
-    int da = db - a * 365;
-
-    // integer number of full years elapsed since March 1, 4801 BC
-    int y = g * 400 + c * 100 + b * 4 + a;
-    // integer number of full months elapsed since the last March 1
-    int m = (da * 5 + 308) / 153 - 2;
-    // number of days elapsed since day 1 of the month
-    int d = da - (m + 4) * 153 / 5 + 122;
-    int year = y - 4800 + (m + 2) / 12;
-    int month = (m + 2) % 12 + 1;
-    int day = d + 1;
-    switch (range) {
-    case YEAR:
-      return year;
-    case MONTH:
-      return month;
-    case DAY:
-      return day;
-    default:
-      throw new AssertionError(range);
-    }
-  }
-
-  public static int ymdToUnixDate(int year, int month, int day) {
-    final int julian = ymdToJulian(year, month, day);
-    return julian - EPOCH_JULIAN;
-  }
-
-  public static int ymdToJulian(int year, int month, int day) {
-    int a = (14 - month) / 12;
-    int y = year + 4800 - a;
-    int m = month + 12 * a - 3;
-    int j = day + (153 * m + 2) / 5
-        + 365 * y
-        + y / 4
-        - y / 100
-        + y / 400
-        - 32045;
-    if (j < 2299161) {
-      j = day + (153 * m + 2) / 5 + 365 * y + y / 4 - 32083;
-    }
-    return j;
-  }
-
-  public static String intervalYearMonthToString(int v, TimeUnitRange range) {
-    final StringBuilder buf = new StringBuilder();
-    if (v >= 0) {
-      buf.append('+');
-    } else {
-      buf.append('-');
-      v = -v;
-    }
-    final int y;
-    final int m;
-    switch (range) {
-    case YEAR:
-      v = roundUp(v, 12);
-      y = v / 12;
-      buf.append(y);
-      break;
-    case YEAR_TO_MONTH:
-      y = v / 12;
-      buf.append(y);
-      buf.append('-');
-      m = v % 12;
-      number(buf, m, 2);
-      break;
-    case MONTH:
-      m = v;
-      buf.append(m);
-      break;
-    default:
-      throw new AssertionError(range);
-    }
-    return buf.toString();
-  }
-
-  private static StringBuilder number(StringBuilder buf, int v, int n) {
-    for (int k = digitCount(v); k < n; k++) {
-      buf.append('0');
-    }
-    return buf.append(v);
-  }
-
-  public static int digitCount(int v) {
-    for (int n = 1;; n++) {
-      v /= 10;
-      if (v == 0) {
-        return n;
-      }
-    }
-  }
-
-  public static String intervalDayTimeToString(long v, TimeUnitRange range,
-      int scale) {
-    final StringBuilder buf = new StringBuilder();
-    if (v >= 0) {
-      buf.append('+');
-    } else {
-      buf.append('-');
-      v = -v;
-    }
-    final long ms;
-    final long s;
-    final long m;
-    final long h;
-    final long d;
-    switch (range) {
-    case DAY_TO_SECOND:
-      v = roundUp(v, powerX(10, 3 - scale));
-      ms = v % 1000;
-      v /= 1000;
-      s = v % 60;
-      v /= 60;
-      m = v % 60;
-      v /= 60;
-      h = v % 24;
-      v /= 24;
-      d = v;
-      buf.append((int) d);
-      buf.append(' ');
-      number(buf, (int) h, 2);
-      buf.append(':');
-      number(buf, (int) m, 2);
-      buf.append(':');
-      number(buf, (int) s, 2);
-      fraction(buf, scale, ms);
-      break;
-    case DAY_TO_MINUTE:
-      v = roundUp(v, 1000 * 60);
-      v /= 1000;
-      v /= 60;
-      m = v % 60;
-      v /= 60;
-      h = v % 24;
-      v /= 24;
-      d = v;
-      buf.append((int) d);
-      buf.append(' ');
-      number(buf, (int) h, 2);
-      buf.append(':');
-      number(buf, (int) m, 2);
-      break;
-    case DAY_TO_HOUR:
-      v = roundUp(v, 1000 * 60 * 60);
-      v /= 1000;
-      v /= 60;
-      v /= 60;
-      h = v % 24;
-      v /= 24;
-      d = v;
-      buf.append((int) d);
-      buf.append(' ');
-      number(buf, (int) h, 2);
-      break;
-    case DAY:
-      v = roundUp(v, 1000 * 60 * 60 * 24);
-      d = v / (1000 * 60 * 60 * 24);
-      buf.append((int) d);
-      break;
-    case HOUR:
-      v = roundUp(v, 1000 * 60 * 60);
-      v /= 1000;
-      v /= 60;
-      v /= 60;
-      h = v;
-      buf.append((int) h);
-      break;
-    case HOUR_TO_MINUTE:
-      v = roundUp(v, 1000 * 60);
-      v /= 1000;
-      v /= 60;
-      m = v % 60;
-      v /= 60;
-      h = v;
-      buf.append((int) h);
-      buf.append(':');
-      number(buf, (int) m, 2);
-      break;
-    case HOUR_TO_SECOND:
-      v = roundUp(v, powerX(10, 3 - scale));
-      ms = v % 1000;
-      v /= 1000;
-      s = v % 60;
-      v /= 60;
-      m = v % 60;
-      v /= 60;
-      h = v;
-      buf.append((int) h);
-      buf.append(':');
-      number(buf, (int) m, 2);
-      buf.append(':');
-      number(buf, (int) s, 2);
-      fraction(buf, scale, ms);
-      break;
-    case MINUTE_TO_SECOND:
-      v = roundUp(v, powerX(10, 3 - scale));
-      ms = v % 1000;
-      v /= 1000;
-      s = v % 60;
-      v /= 60;
-      m = v;
-      buf.append((int) m);
-      buf.append(':');
-      number(buf, (int) s, 2);
-      fraction(buf, scale, ms);
-      break;
-    case MINUTE:
-      v = roundUp(v, 1000 * 60);
-      v /= 1000;
-      v /= 60;
-      m = v;
-      buf.append((int) m);
-      break;
-    case SECOND:
-      v = roundUp(v, powerX(10, 3 - scale));
-      ms = v % 1000;
-      v /= 1000;
-      s = v;
-      buf.append((int) s);
-      fraction(buf, scale, ms);
-      break;
-    default:
-      throw new AssertionError(range);
-    }
-    return buf.toString();
-  }
-
-  /**
-   * Rounds a dividend to the nearest divisor.
-   * For example roundUp(31, 10) yields 30; roundUp(37, 10) yields 40.
-   * @param dividend Number to be divided
-   * @param divisor Number to divide by
-   * @return Rounded dividend
-   */
-  private static long roundUp(long dividend, long divisor) {
-    long remainder = dividend % divisor;
-    dividend -= remainder;
-    if (remainder * 2 > divisor) {
-      dividend += divisor;
-    }
-    return dividend;
-  }
-
-  private static int roundUp(int dividend, int divisor) {
-    int remainder = dividend % divisor;
-    dividend -= remainder;
-    if (remainder * 2 > divisor) {
-      dividend += divisor;
-    }
-    return dividend;
-  }
-
-  private static void fraction(StringBuilder buf, int scale, long ms) {
-    if (scale > 0) {
-      buf.append('.');
-      long v1 = scale == 3 ? ms
-          : scale == 2 ? ms / 10
-          : scale == 1 ? ms / 100
-            : 0;
-      number(buf, (int) v1, scale);
-    }
+    return (int) (localTimestamp(root) % DateTimeUtils.MILLIS_PER_DAY);
   }
 
   /** Helper for "array element reference". Caller has already ensured that
@@ -1673,29 +1213,6 @@ public class SqlFunctions {
     return (Function1<List<E>, Enumerable<E>>) (Function1) LIST_AS_ENUMERABLE;
   }
 
-  /** A range of time units. The first is more significant than the
-   * other (e.g. year-to-day) or the same as the other
-   * (e.g. month). */
-  public enum TimeUnitRange {
-    YEAR,
-    YEAR_TO_MONTH,
-    MONTH,
-    DAY,
-    DAY_TO_HOUR,
-    DAY_TO_MINUTE,
-    DAY_TO_SECOND,
-    HOUR,
-    HOUR_TO_MINUTE,
-    HOUR_TO_SECOND,
-    MINUTE,
-    MINUTE_TO_SECOND,
-    SECOND;
-
-    /** Whether this is in the YEAR-TO-MONTH family of intervals. */
-    public boolean monthly() {
-      return ordinal() <= MONTH.ordinal();
-    }
-  }
 }
 
 // End SqlFunctions.java

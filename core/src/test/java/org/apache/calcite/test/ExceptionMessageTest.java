@@ -109,8 +109,8 @@ public class ExceptionMessageTest {
       fail("Query badEntries should result in an exception");
     } catch (SQLException e) {
       assertThat(e.getMessage(),
-          equalTo(
-              "exception while executing query: Can't iterate over badEntries"));
+          equalTo("error while executing SQL \"select * from \"badEntries\"\": "
+              + "Can't iterate over badEntries"));
     }
   }
 

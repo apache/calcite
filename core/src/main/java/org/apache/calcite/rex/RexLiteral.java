@@ -16,7 +16,8 @@
  */
 package org.apache.calcite.rex;
 
-import org.apache.calcite.avatica.ByteString;
+import org.apache.calcite.avatica.util.ByteString;
+import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.SqlKind;
@@ -25,7 +26,6 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserUtil;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.ConversionUtil;
-import org.apache.calcite.util.DateTimeUtil;
 import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.SaffronProperties;
 import org.apache.calcite.util.Util;
@@ -428,21 +428,15 @@ public class RexLiteral extends RexNode {
     case TIME:
     case TIMESTAMP:
       String format = getCalendarFormat(typeName);
-      TimeZone tz = DateTimeUtil.GMT_ZONE;
+      TimeZone tz = DateTimeUtils.GMT_ZONE;
       Calendar cal = null;
       if (typeName == SqlTypeName.DATE) {
         cal =
-            DateTimeUtil.parseDateFormat(
-                literal,
-                format,
-                tz);
+            DateTimeUtils.parseDateFormat(literal, format, tz);
       } else {
         // Allow fractional seconds for times and timestamps
-        DateTimeUtil.PrecisionTime ts =
-            DateTimeUtil.parsePrecisionDateTimeLiteral(
-                literal,
-                format,
-                tz);
+        DateTimeUtils.PrecisionTime ts =
+            DateTimeUtils.parsePrecisionDateTimeLiteral(literal, format, tz);
         if (ts != null) {
           cal = ts.getCalendar();
         }
@@ -464,11 +458,11 @@ public class RexLiteral extends RexNode {
   private static String getCalendarFormat(SqlTypeName typeName) {
     switch (typeName) {
     case DATE:
-      return DateTimeUtil.DATE_FORMAT_STRING;
+      return DateTimeUtils.DATE_FORMAT_STRING;
     case TIME:
-      return DateTimeUtil.TIME_FORMAT_STRING;
+      return DateTimeUtils.TIME_FORMAT_STRING;
     case TIMESTAMP:
-      return DateTimeUtil.TIMESTAMP_FORMAT_STRING;
+      return DateTimeUtils.TIMESTAMP_FORMAT_STRING;
     default:
       throw Util.newInternal("getCalendarFormat: unknown type");
     }
@@ -511,10 +505,10 @@ public class RexLiteral extends RexNode {
       return ((BigDecimal) value).unscaledValue().longValue();
     case DATE:
       return (int) (((Calendar) value).getTimeInMillis()
-          / DateTimeUtil.MILLIS_PER_DAY);
+          / DateTimeUtils.MILLIS_PER_DAY);
     case TIME:
       return (int) (((Calendar) value).getTimeInMillis()
-          % DateTimeUtil.MILLIS_PER_DAY);
+          % DateTimeUtils.MILLIS_PER_DAY);
     case TIMESTAMP:
       return ((Calendar) value).getTimeInMillis();
     default:

@@ -34,7 +34,9 @@ import ${importStr};
 </#list>
 
 
-import org.apache.calcite.avatica.Casing;
+import org.apache.calcite.avatica.util.Casing;
+import org.apache.calcite.avatica.util.DateTimeUtils;
+import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.runtime.CalciteContextException;
 import org.apache.calcite.sql.JoinConditionType;
@@ -88,7 +90,6 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.parser.SqlParserUtil;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.trace.CalciteTrace;
-import org.apache.calcite.util.DateTimeUtil;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
@@ -400,38 +401,38 @@ JAVACODE void checkNonQueryExpression(ExprContext exprContext)
 
 JAVACODE SqlDateLiteral parseDateLiteral(String s, SqlParserPos pos) {
     String dateStr = SqlParserUtil.parseString(s);
-    Calendar cal = DateTimeUtil.parseDateFormat(
-        dateStr, DateTimeUtil.DATE_FORMAT_STRING, DateTimeUtil.GMT_ZONE);
+    Calendar cal = DateTimeUtils.parseDateFormat(
+        dateStr, DateTimeUtils.DATE_FORMAT_STRING, DateTimeUtils.GMT_ZONE);
     if (null == cal) {
         throw SqlUtil.newContextException(pos,
             RESOURCE.illegalLiteral("DATE", s,
-                RESOURCE.badFormat(DateTimeUtil.DATE_FORMAT_STRING).str()));
+                RESOURCE.badFormat(DateTimeUtils.DATE_FORMAT_STRING).str()));
     }
     return SqlLiteral.createDate(cal, pos);
 }
 
 JAVACODE SqlTimeLiteral parseTimeLiteral(String s, SqlParserPos pos) {
     String dateStr = SqlParserUtil.parseString(s);
-    DateTimeUtil.PrecisionTime pt =
-    DateTimeUtil.parsePrecisionDateTimeLiteral(
-        dateStr, DateTimeUtil.TIME_FORMAT_STRING, DateTimeUtil.GMT_ZONE);
+    DateTimeUtils.PrecisionTime pt =
+    DateTimeUtils.parsePrecisionDateTimeLiteral(
+        dateStr, DateTimeUtils.TIME_FORMAT_STRING, DateTimeUtils.GMT_ZONE);
     if (null == pt) {
         throw SqlUtil.newContextException(pos,
             RESOURCE.illegalLiteral("TIME", s,
-                RESOURCE.badFormat(DateTimeUtil.TIME_FORMAT_STRING).str()));
+                RESOURCE.badFormat(DateTimeUtils.TIME_FORMAT_STRING).str()));
     }
     return SqlLiteral.createTime(pt.getCalendar(), pt.getPrecision(), pos);
 }
 
 JAVACODE SqlTimestampLiteral parseTimestampLiteral(String s, SqlParserPos pos) {
     String dateStr = SqlParserUtil.parseString(s);
-    DateTimeUtil.PrecisionTime pt =
-    DateTimeUtil.parsePrecisionDateTimeLiteral(
-        dateStr, DateTimeUtil.TIMESTAMP_FORMAT_STRING, DateTimeUtil.GMT_ZONE);
+    DateTimeUtils.PrecisionTime pt =
+    DateTimeUtils.parsePrecisionDateTimeLiteral(
+        dateStr, DateTimeUtils.TIMESTAMP_FORMAT_STRING, DateTimeUtils.GMT_ZONE);
     if (null == pt) {
         throw SqlUtil.newContextException(pos,
             RESOURCE.illegalLiteral("TIMESTAMP", s,
-                RESOURCE.badFormat(DateTimeUtil.TIMESTAMP_FORMAT_STRING).str()));
+                RESOURCE.badFormat(DateTimeUtils.TIMESTAMP_FORMAT_STRING).str()));
     }
     return SqlLiteral.createTimestamp(pt.getCalendar(), pt.getPrecision(), pos);
 }
@@ -3203,8 +3204,8 @@ SqlLiteral IntervalLiteral() :
 
 SqlIntervalQualifier IntervalQualifier() :
 {
-    SqlIntervalQualifier.TimeUnit start;
-    SqlIntervalQualifier.TimeUnit end = null;
+    TimeUnit start;
+    TimeUnit end = null;
     int startPrec = RelDataType.PRECISION_NOT_SPECIFIED;
     int secondFracPrec = RelDataType.PRECISION_NOT_SPECIFIED;
 }
@@ -3214,50 +3215,50 @@ SqlIntervalQualifier IntervalQualifier() :
         [
             LOOKAHEAD(2) <TO> <MONTH>
             {
-                end = SqlIntervalQualifier.TimeUnit.MONTH;
+                end = TimeUnit.MONTH;
             }
         ]
-        { start = SqlIntervalQualifier.TimeUnit.YEAR; }
+        { start = TimeUnit.YEAR; }
         |
         <MONTH> [ <LPAREN> startPrec = UnsignedIntLiteral() <RPAREN> ]
-        { start = SqlIntervalQualifier.TimeUnit.MONTH; }
+        { start = TimeUnit.MONTH; }
         |
         <DAY> [ <LPAREN> startPrec = UnsignedIntLiteral() <RPAREN> ]
         [ LOOKAHEAD(2) <TO>
             (
-                <HOUR> { end = SqlIntervalQualifier.TimeUnit.HOUR; }
-                | <MINUTE> { end = SqlIntervalQualifier.TimeUnit.MINUTE; }
-                | <SECOND> { end = SqlIntervalQualifier.TimeUnit.SECOND; }
+                <HOUR> { end = TimeUnit.HOUR; }
+                | <MINUTE> { end = TimeUnit.MINUTE; }
+                | <SECOND> { end = TimeUnit.SECOND; }
                 [ <LPAREN> secondFracPrec = UnsignedIntLiteral() <RPAREN> ]
             )
         ]
-        { start = SqlIntervalQualifier.TimeUnit.DAY; }
+        { start = TimeUnit.DAY; }
         |
         <HOUR> [ <LPAREN> startPrec = UnsignedIntLiteral() <RPAREN> ]
         [ LOOKAHEAD(2) <TO>
             (
-                <MINUTE> { end = SqlIntervalQualifier.TimeUnit.MINUTE; }
-                | <SECOND> { end = SqlIntervalQualifier.TimeUnit.SECOND; }
+                <MINUTE> { end = TimeUnit.MINUTE; }
+                | <SECOND> { end = TimeUnit.SECOND; }
                 [ <LPAREN> secondFracPrec = UnsignedIntLiteral() <RPAREN> ]
             )
         ]
-        { start = SqlIntervalQualifier.TimeUnit.HOUR; }
+        { start = TimeUnit.HOUR; }
         |
         <MINUTE> [ <LPAREN> startPrec = UnsignedIntLiteral() <RPAREN> ]
         [ LOOKAHEAD(2) <TO>
             (
-                <SECOND> { end = SqlIntervalQualifier.TimeUnit.SECOND; }
+                <SECOND> { end = TimeUnit.SECOND; }
                 [ <LPAREN> secondFracPrec = UnsignedIntLiteral() <RPAREN> ]
             )
         ]
-        { start = SqlIntervalQualifier.TimeUnit.MINUTE; }
+        { start = TimeUnit.MINUTE; }
         |
         <SECOND>
         [   <LPAREN> startPrec = UnsignedIntLiteral()
             [ <COMMA> secondFracPrec = UnsignedIntLiteral() ]
             <RPAREN>
         ]
-        { start = SqlIntervalQualifier.TimeUnit.SECOND; }
+        { start = TimeUnit.SECOND; }
     )
     {
         return new SqlIntervalQualifier(start,
@@ -3268,32 +3269,32 @@ SqlIntervalQualifier IntervalQualifier() :
     }
 }
 
-SqlIntervalQualifier.TimeUnit TimeUnit() :
+TimeUnit TimeUnit() :
 {}
 {
     <YEAR>
     {
-        return SqlIntervalQualifier.TimeUnit.YEAR;
+        return TimeUnit.YEAR;
     }
     | <MONTH>
     {
-        return SqlIntervalQualifier.TimeUnit.MONTH;
+        return TimeUnit.MONTH;
     }
     | <DAY>
     {
-        return SqlIntervalQualifier.TimeUnit.DAY;
+        return TimeUnit.DAY;
     }
     | <HOUR>
     {
-        return SqlIntervalQualifier.TimeUnit.HOUR;
+        return TimeUnit.HOUR;
     }
     | <MINUTE>
     {
-        return SqlIntervalQualifier.TimeUnit.MINUTE;
+        return TimeUnit.MINUTE;
     }
     |   <SECOND>
     {
-        return SqlIntervalQualifier.TimeUnit.SECOND;
+        return TimeUnit.SECOND;
     }
 }
 
@@ -3777,7 +3778,7 @@ SqlNode BuiltinFunctionCall() :
         <EXTRACT>
         {
             pos = getPos();
-            SqlIntervalQualifier.TimeUnit unit;
+            TimeUnit unit;
         }
         <LPAREN>
         unit = TimeUnit()

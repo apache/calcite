@@ -16,9 +16,9 @@
  */
 package org.apache.calcite.adapter.mongodb;
 
+import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.linq4j.function.Function1;
-import org.apache.calcite.util.DateTimeUtil;
 
 import com.mongodb.DBCursor;
 import com.mongodb.DBObject;
@@ -127,7 +127,7 @@ class MongoEnumerator implements Enumerator<Object> {
     }
     if (clazz == int.class || clazz == Integer.class) {
       if (o instanceof Date) {
-        return (int) (((Date) o).getTime() / DateTimeUtil.MILLIS_PER_DAY);
+        return (int) (((Date) o).getTime() / DateTimeUtils.MILLIS_PER_DAY);
       }
     }
     return o;

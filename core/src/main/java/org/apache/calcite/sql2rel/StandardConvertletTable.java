@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.sql2rel;
 
+import org.apache.calcite.avatica.util.DateTimeUtils;
+import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
@@ -59,7 +61,6 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.SqlTypeName;
-import org.apache.calcite.util.DateTimeUtil;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
@@ -521,7 +522,7 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
     RexNode res = rexBuilder.makeReinterpretCast(
         resType, exprs.get(1), rexBuilder.makeLiteral(false));
 
-    final SqlIntervalQualifier.TimeUnit unit =
+    final TimeUnit unit =
         ((SqlIntervalQualifier) operands.get(0)).getStartUnit();
     final SqlTypeName sqlTypeName = exprs.get(1).getType().getSqlTypeName();
     switch (unit) {
@@ -533,7 +534,7 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
       case INTERVAL_DAY_TIME:
         break;
       case TIMESTAMP:
-        res = divide(rexBuilder, res, DateTimeUtil.MILLIS_PER_DAY);
+        res = divide(rexBuilder, res, DateTimeUtils.MILLIS_PER_DAY);
         // fall through
       case DATE:
         return rexBuilder.makeCall(resType, SqlStdOperatorTable.EXTRACT_DATE,
@@ -548,20 +549,20 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
     return res;
   }
 
-  private static long getFactor(SqlIntervalQualifier.TimeUnit unit) {
+  private static long getFactor(TimeUnit unit) {
     switch (unit) {
     case DAY:
       return 1;
     case HOUR:
-      return SqlIntervalQualifier.TimeUnit.DAY.multiplier;
+      return TimeUnit.DAY.multiplier;
     case MINUTE:
-      return SqlIntervalQualifier.TimeUnit.HOUR.multiplier;
+      return TimeUnit.HOUR.multiplier;
     case SECOND:
-      return SqlIntervalQualifier.TimeUnit.MINUTE.multiplier;
+      return TimeUnit.MINUTE.multiplier;
     case YEAR:
       return 1;
     case MONTH:
-      return SqlIntervalQualifier.TimeUnit.YEAR.multiplier;
+      return TimeUnit.YEAR.multiplier;
     default:
       throw Util.unexpected(unit);
     }

@@ -16,9 +16,9 @@
  */
 package org.apache.calcite.config;
 
-import org.apache.calcite.avatica.Casing;
 import org.apache.calcite.avatica.ConnectionConfigImpl;
-import org.apache.calcite.avatica.Quoting;
+import org.apache.calcite.avatica.util.Casing;
+import org.apache.calcite.avatica.util.Quoting;
 
 import java.util.Properties;
 
