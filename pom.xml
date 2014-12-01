@@ -65,6 +65,8 @@ limitations under the License.
   <modules>
     <module>avatica</module>
     <module>core</module>
+    <module>example</module>
+    <module>linq4j</module>
     <module>mongodb</module>
     <module>plus</module>
     <module>spark</module>
@@ -108,11 +110,6 @@ limitations under the License.
       <artifactId>mysql-connector-java</artifactId>
       <version>5.1.20</version>
       <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>net.hydromatic</groupId>
-      <artifactId>linq4j</artifactId>
-      <version>0.4</version>
     </dependency>
     <dependency>
       <groupId>net.hydromatic</groupId>
@@ -178,6 +175,11 @@ limitations under the License.
         <groupId>org.apache.calcite</groupId>
         <artifactId>calcite-core</artifactId>
         <type>test-jar</type>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.calcite</groupId>
+        <artifactId>calcite-linq4j</artifactId>
         <version>${project.version}</version>
       </dependency>
 
@@ -427,7 +429,7 @@ limitations under the License.
           <links>
             <link>http://docs.oracle.com/javase/8/docs/api/</link>
           </links>
-          <excludePackageNames>org.eigenbase.sql.parser.impl</excludePackageNames>
+          <excludePackageNames>org.apache.calcite.sql.parser.impl</excludePackageNames>
           <tags>
             <tag>
               <name>sql.92</name>
@@ -498,6 +500,8 @@ limitations under the License.
                 <exclude>*.md</exclude>
                 <exclude>doc/*.md</exclude>
                 <exclude>src/main/resources/META-INF/services/java.sql.Driver</exclude>
+                <exclude>**/src/test/resources/**/*.csv</exclude>
+                <exclude>**/src/test/resources/bug/archers.json</exclude>
               </excludes>
             </configuration>
             <executions>

@@ -194,7 +194,7 @@ sqlline> select count(*) from zips;
 +---------+
 1 row selected (0.746 seconds)
 sqlline> !quit
-Closing: net.hydromatic.optiq.jdbc.FactoryJdbc41$OptiqConnectionJdbc41
+Closing: org.apache.calcite.jdbc.FactoryJdbc41$CalciteConnectionJdbc41
 $
 ```
 
@@ -362,6 +362,8 @@ Check the artifacts:
   `mongodb/target/calcite-mongodb-X.Y.Z-incubating-sources.jar`), check
   that the `META-INF` directory contains `DEPENDENCIES`, `LICENSE`,
   `NOTICE` and `git.properties`
+* In each .jar, check that `net-hydromatic-optiq-jdbc.properties` is
+  present and does not contain un-substituted `${...}` variables
 * Check PGP, per https://httpd.apache.org/dev/verification.html
 
 Now, remove the `-DdryRun` flag and run the release for real.
@@ -376,12 +378,13 @@ mvn -DskipTests -Papache-release -Darguments="-Dgpg.passphrase=${GPG_PASSPHRASE}
 
 Verify the staged artifacts in the Nexus repository:
 * Go to https://repository.apache.org/
-* Enterprise &rarr; Staging
-* Staging tab &rarr; Name column &rarr; org.apache.calcite
+* Under `Build Promotion`, click `Staging Repositories`
+* In the `Staging Repositories` tab there should be a with with profile `org.apache.calcite`
 * Navigate through the artifact tree and make sure the .jar, .pom, .asc files are present
-* Press the 'Close' button to publish the repository at
- https://repository.apache.org/content/repositories/orgapachecalcite-1000
- (or a similar URL)
+* Check the box on in the first column of the row,
+  and press the 'Close' button to publish the repository at
+  https://repository.apache.org/content/repositories/orgapachecalcite-1000
+  (or a similar URL)
 
 Upload the artifacts to a staging area (in this case, your
 people.apache.org home directory):
@@ -471,12 +474,22 @@ Hi all,
 I have created a build for Apache Calcite X.Y.Z-incubating, release candidate N.
 
 Thanks to everyone who has contributed to this release.
+<Further details about release.> You can read the release notes here:
+https://github.com/apache/incubator-calcite/blob/XXXX/doc/HISTORY.md
 
 The commit to be voted upon:
 http://git-wip-us.apache.org/repos/asf/incubator-calcite/commit/NNNNNN
 
+Its hash is XXXX.
+
 The artifacts to be voted on are located here:
 http://people.apache.org/~jhyde/apache-calcite-X.Y.Z-incubating-rcN/
+
+The hashes of the artifacts are as follows:
+src.tar.gz.md5 XXXX
+src.tar.gz.sha1 XXXX
+src.zip.md5 XXXX
+src.zip.sha1 XXXX
 
 A staged Maven repository is available for review at:
 https://repository.apache.org/content/repositories/orgapachecalcite-NNNN
@@ -505,11 +518,7 @@ After vote finishes, send out the result:
 
 ```
 Subject: [RESULT] [VOTE] Release apache-calcite-X.Y.Z-incubating (release candidate N)
-<<<<<<< HEAD
 To: dev@calcite.incubator.apache.org
-=======
-To: dev@optiq.incubator.apache.org
->>>>>>> 9f95c4f... HOWTO: Modify release instructions.
 
 Thanks to everyone who has tested the release candidate and given
 their comments and votes.
@@ -544,18 +553,6 @@ Hi all,
 The Calcite community has voted on and approved a proposal to release
 Apache Calcite X.Y.Z (incubating).
 
-Pursuant to the Releases section of the Incubation Policy and with
-the endorsement of NNN of our mentors we would now like to request
-the permission of the Incubator PMC to publish the release. The vote
-is open for 72 hours, or until the necessary number of votes (3 +1)
-is reached.
-
-[ ] +1 Release this package as Apache Calcite X.Y.Z incubating
-[ ] -1 Do not release this package because...
-
-Apache Calcite PPMC
-
-
 Proposal:
 http://mail-archives.apache.org/mod_mbox/incubator-calcite-dev/201408.mbox/MESSAGE-URI
 
@@ -565,9 +562,36 @@ N non-binding +1 votes
 No -1 votes
 http://mail-archives.apache.org/mod_mbox/incubator-calcite-dev/201408.mbox/MESSAGE-URI
 
-Artifacts:
+The commit to be voted upon:
+http://git-wip-us.apache.org/repos/asf/incubator-calcite/commit/NNNNNN
+
+Its hash is XXXX.
+
+The artifacts to be voted on are located here:
 http://people.apache.org/~jhyde/apache-calcite-X.Y.Z-incubating-rcN/
 
+The hashes of the artifacts are as follows:
+src.tar.gz.md5 XXXX
+src.tar.gz.sha1 XXXX
+src.zip.md5 XXXX
+src.zip.sha1 XXXX
+
+A staged Maven repository is available for review at:
+https://repository.apache.org/content/repositories/orgapachecalcite-NNNN
+
+Release artifacts are signed with the following key:
+https://people.apache.org/keys/committer/jhyde.asc
+
+Pursuant to the Releases section of the Incubation Policy and with
+the endorsement of NNN of our mentors we would now like to request
+the permission of the Incubator PMC to publish the release. The vote
+is open for 72 hours, or until the necessary number of votes (3 +1)
+is reached.
+
+[ ] +1 Release this package as Apache Calcite X.Y.Z incubating
+[ ] -1 Do not release this package because...
+
+Julian Hyde, on behalf of Apache Calcite PPMC
 ```
 
 After vote finishes, send out the result:

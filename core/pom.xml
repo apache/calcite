@@ -32,7 +32,7 @@ limitations under the License.
   <properties>
     <top.dir>${project.basedir}/..</top.dir>
     <build.timestamp>${maven.build.timestamp}</build.timestamp>
-   </properties>
+  </properties>
 
   <dependencies>
     <!-- Sorted by groupId, artifactId; calcite dependencies first. Put versions
@@ -40,6 +40,10 @@ limitations under the License.
     <dependency>
       <groupId>org.apache.calcite</groupId>
       <artifactId>calcite-avatica</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.calcite</groupId>
+      <artifactId>calcite-linq4j</artifactId>
     </dependency>
     <dependency>
       <groupId>org.pentaho</groupId>
@@ -54,7 +58,7 @@ limitations under the License.
         <artifactId>maven-surefire-plugin</artifactId>
         <configuration>
           <includes>
-            <include>net/hydromatic/optiq/test/OptiqSuite.java</include>
+            <include>org/apache/calcite/test/CalciteSuite.java</include>
           </includes>
           <threadCount>1</threadCount>
           <perCoreThreadCount>true</perCoreThreadCount>
@@ -74,7 +78,7 @@ limitations under the License.
             <configuration>
               <sourceDirectory>${project.build.directory}/generated-sources/fmpp</sourceDirectory>
               <includes>
-                <include>**/CombinedParser.jj</include>
+                <include>**/Parser.jj</include>
               </includes>
               <lookAhead>2</lookAhead>
               <isStatic>false</isStatic>
@@ -91,7 +95,7 @@ limitations under the License.
               <goal>generate-sources</goal>
             </goals>
             <configuration>
-              <packageName>org.eigenbase.resource</packageName>
+              <packageName>org.apache.calcite.runtime</packageName>
             </configuration>
           </execution>
         </executions>

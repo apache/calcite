@@ -104,31 +104,12 @@ limitations under the License.
         <artifactId>maven-surefire-plugin</artifactId>
         <configuration>
           <includes>
-            <include>net/hydromatic/optiq/test/MongoAdapterTest.java</include>
+            <include>org/apache/calcite/test/MongoAdapterTest.java</include>
           </includes>
           <threadCount>6</threadCount>
           <parallel>both</parallel>
           <argLine>-Xmx1024m</argLine>
         </configuration>
-      </plugin>
-      <plugin>
-        <groupId>org.codehaus.mojo</groupId>
-        <artifactId>javacc-maven-plugin</artifactId>
-        <executions>
-          <execution>
-            <id>javacc</id>
-            <goals>
-              <goal>javacc</goal>
-            </goals>
-            <configuration>
-              <includes>
-                <include>**/CombinedParser.jj</include>
-              </includes>
-              <lookAhead>2</lookAhead>
-              <isStatic>false</isStatic>
-            </configuration>
-          </execution>
-        </executions>
       </plugin>
     </plugins>
   </build>

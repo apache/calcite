@@ -118,22 +118,15 @@ limitations under the License.
     <!-- Checks for imports                              -->
     <!-- See http://checkstyle.sf.net/config_import.html -->
     <module name="RedundantImport"/>
-      <!-- Import should be explicit, really needed and only from pure
-	   java packages -->
-    <module name="UnusedImports" />
-    <module name="IllegalImport" />
-
-    <module name="ImportOrder">
-      <property name="id" value="eigenbaseImportOrder"/>
-      <property name="groups" value="/^javax?\./,org.eigenbase,net.hydromatic.avatica,net.hydromatic.linq4j,net.hydromatic.optiq,au.com.,com.,org."/>
-      <property name="ordered" value="true"/>
-      <property name="separated" value="true"/>
-      <property name="option" value="bottom"/>
+      <!-- Import should be explicit, and only from pure java packages.
+           But we allow imports that are only used in javadoc. -->
+    <module name="UnusedImports">
+      <property name="processJavadoc" value="true"/>
     </module>
-
+    <module name="IllegalImport" />
+    <module name="AvoidStarImport" />
     <module name="ImportOrder">
-      <property name="id" value="hydromaticImportOrder"/>
-      <property name="groups" value="net.hydromatic.avatica,net.hydromatic.linq4j,net.hydromatic.optiq,org.eigenbase,au.com.,com.,org.,/^javax?\./"/>
+      <property name="groups" value="org.apache.calcite,org.apache,au.com.,com.,io.,mondrian.,net.,org.,scala.,/^javax?\./"/>
       <property name="ordered" value="true"/>
       <property name="separated" value="true"/>
       <property name="option" value="bottom"/>

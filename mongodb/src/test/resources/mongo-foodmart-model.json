@@ -21,7 +21,7 @@
     {
       type: 'custom',
       name: 'foodmart_raw',
-      factory: 'net.hydromatic.optiq.impl.mongodb.MongoSchemaFactory',
+      factory: 'org.apache.calcite.adapter.mongodb.MongoSchemaFactory',
       operand: {
         host: 'localhost',
         database: 'foodmart'

@@ -78,7 +78,7 @@ limitations under the License.
         <artifactId>maven-surefire-plugin</artifactId>
         <configuration>
           <includes>
-            <include>net/hydromatic/optiq/test/SplunkAdapterTest.java</include>
+            <include>org/apache/calcite/test/SplunkAdapterTest.java</include>
           </includes>
         </configuration>
       </plugin>

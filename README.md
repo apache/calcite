@@ -179,7 +179,7 @@ For more details, see the <a href="doc/REFERENCE.md">Reference guide</a>.
 * MongoDB adapter (<a href="http://www.hydromatic.net/calcite/apidocs/net/hydromatic/optiq/impl/mongodb/package-summary.html">calcite-mongodb</a>)
 * Spark adapter (<a href="http://www.hydromatic.net/calcite/apidocs/net/hydromatic/optiq/impl/spark/package-summary.html">calcite-spark</a>)
 * Splunk adapter (<a href="http://www.hydromatic.net/calcite/apidocs/net/hydromatic/optiq/impl/splunk/package-summary.html">calcite-splunk</a>)
-* Eclipse Memory Analyzer (MAT) adapter (<a href="https://github.com/vlsi/optiq-mat-plugin">optiq-mat-plugin</a>)
+* Eclipse Memory Analyzer (MAT) adapter (<a href="https://github.com/vlsi/mat-calcite-plugin">mat-calcite-plugin</a>)
 
 ## More information
 
