@@ -16,9 +16,13 @@
  */
 package org.apache.calcite.util;
 
+import org.apache.calcite.linq4j.Linq4j;
 import org.apache.calcite.runtime.Utilities;
 
 import com.google.common.base.Function;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 import java.io.Serializable;
@@ -188,6 +192,21 @@ public class ImmutableBitSet
    */
   private static int wordIndex(int bitIndex) {
     return bitIndex >> ADDRESS_BITS_PER_WORD;
+  }
+
+  /** Computes the power set (set of all sets) of this bit set. */
+  public Iterable<ImmutableBitSet> powerSet() {
+    List<List<ImmutableBitSet>> singletons = Lists.newArrayList();
+    for (Integer bit : this) {
+      singletons.add(
+          ImmutableList.of(ImmutableBitSet.of(), ImmutableBitSet.of(bit)));
+    }
+    return Iterables.transform(Linq4j.product(singletons),
+        new Function<List<ImmutableBitSet>, ImmutableBitSet>() {
+          public ImmutableBitSet apply(List<ImmutableBitSet> input) {
+            return ImmutableBitSet.union(input);
+          }
+        });
   }
 
   /**
@@ -796,6 +815,9 @@ public class ImmutableBitSet
 
     /** Returns the number of set bits. */
     public int cardinality() {
+      if (words == null) {
+        throw new IllegalArgumentException("can only use builder once");
+      }
       return countBits(words);
     }
 

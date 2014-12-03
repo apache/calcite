@@ -171,24 +171,22 @@ public enum JavaRowFormat {
    * See {@link org.apache.calcite.interpreter.Row}
    */
   ROW {
-    @Override
-    Type javaRowClass(JavaTypeFactory typeFactory, RelDataType type) {
+    @Override Type javaRowClass(JavaTypeFactory typeFactory, RelDataType type) {
       return Row.class;
     }
 
-    @Override
-    Type javaFieldClass(JavaTypeFactory typeFactory, RelDataType type,
+    @Override Type javaFieldClass(JavaTypeFactory typeFactory, RelDataType type,
         int index) {
       return Object.class;
     }
 
-    @Override
-    public Expression record(Type javaRowClass, List<Expression> expressions) {
+    @Override public Expression record(Type javaRowClass,
+        List<Expression> expressions) {
       return Expressions.call(BuiltInMethod.ROW_AS_COPY.method, expressions);
     }
 
-    @Override
-    public Expression field(Expression expression, int field, Type fieldType) {
+    @Override public Expression field(Expression expression, int field,
+        Type fieldType) {
       return RexToLixTranslator.convert(
           Expressions.call(expression,
               BuiltInMethod.ROW_VALUE.method,

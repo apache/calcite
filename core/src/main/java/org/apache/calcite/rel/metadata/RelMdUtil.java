@@ -199,7 +199,7 @@ public class RelMdUtil {
       selectivity =
           Math.pow(
               0.1,
-              dimKeyBuilder.cardinality());
+              dimKeys.cardinality());
     } else if (selectivity > 1.0) {
       selectivity = 1.0;
     }

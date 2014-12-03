@@ -155,26 +155,26 @@ public class RelMdColumnUniqueness {
 
     // Divide up the input column mask into column masks for the left and
     // right sides of the join
-    ImmutableBitSet.Builder leftColumns = ImmutableBitSet.builder();
-    ImmutableBitSet.Builder rightColumns = ImmutableBitSet.builder();
+    ImmutableBitSet.Builder leftBuilder = ImmutableBitSet.builder();
+    ImmutableBitSet.Builder rightBuilder = ImmutableBitSet.builder();
     int nLeftColumns = left.getRowType().getFieldCount();
     for (int bit : columns) {
       if (bit < nLeftColumns) {
-        leftColumns.set(bit);
+        leftBuilder.set(bit);
       } else {
-        rightColumns.set(bit - nLeftColumns);
+        rightBuilder.set(bit - nLeftColumns);
       }
     }
 
     // If the original column mask contains columns from both the left and
     // right hand side, then the columns are unique if and only if they're
     // unique for their respective join inputs
+    final ImmutableBitSet leftColumns = leftBuilder.build();
     Boolean leftUnique =
-        RelMetadataQuery.areColumnsUnique(left, leftColumns.build(),
-            ignoreNulls);
+        RelMetadataQuery.areColumnsUnique(left, leftColumns, ignoreNulls);
+    final ImmutableBitSet rightColumns = rightBuilder.build();
     Boolean rightUnique =
-        RelMetadataQuery.areColumnsUnique(right, rightColumns.build(),
-            ignoreNulls);
+        RelMetadataQuery.areColumnsUnique(right, rightColumns, ignoreNulls);
     if ((leftColumns.cardinality() > 0)
         && (rightColumns.cardinality() > 0)) {
       if ((leftUnique == null) || (rightUnique == null)) {

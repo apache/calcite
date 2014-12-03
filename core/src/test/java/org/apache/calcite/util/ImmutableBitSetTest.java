@@ -18,6 +18,7 @@ package org.apache.calcite.util;
 
 import org.apache.calcite.runtime.Utilities;
 
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 
 import org.junit.Test;
@@ -377,6 +378,23 @@ public class ImmutableBitSetTest {
         equalTo(
             "{0={3, 4, 12}, 1={}, 2={7}, 3={3, 4, 12}, 4={4, 12}, 5={}, 6={}, 7={7}, 8={}, 9={}, 10={}, 11={}, 12={4, 12}}"));
     assertThat("argument modified", map.toString(), equalTo(original));
+  }
+
+  @Test public void testPowerSet() {
+    final ImmutableBitSet empty = ImmutableBitSet.of();
+    assertThat(Iterables.size(empty.powerSet()), equalTo(1));
+    assertThat(empty.powerSet().toString(), equalTo("[{}]"));
+
+    final ImmutableBitSet single = ImmutableBitSet.of(2);
+    assertThat(Iterables.size(single.powerSet()), equalTo(2));
+    assertThat(single.powerSet().toString(), equalTo("[{}, {2}]"));
+
+    final ImmutableBitSet two = ImmutableBitSet.of(2, 10);
+    assertThat(Iterables.size(two.powerSet()), equalTo(4));
+    assertThat(two.powerSet().toString(), equalTo("[{}, {10}, {2}, {2, 10}]"));
+
+    final ImmutableBitSet seventeen = ImmutableBitSet.range(3, 20);
+    assertThat(Iterables.size(seventeen.powerSet()), equalTo(131072));
   }
 }
 

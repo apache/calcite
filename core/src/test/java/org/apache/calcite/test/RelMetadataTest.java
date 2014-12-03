@@ -484,6 +484,12 @@ public class RelMetadataTest extends SqlToRelTestBase {
         DEFAULT_SELECTIVITY);
   }
 
+  @Test public void testSelectivityJoin() {
+    checkFilterSelectivity(
+        "select * from emp join dept using (deptno) where ename = 'foo'",
+        DEFAULT_EQUAL_SELECTIVITY);
+  }
+
   private void checkRelSelectivity(
       RelNode rel,
       double expected) {
@@ -544,6 +550,22 @@ public class RelMetadataTest extends SqlToRelTestBase {
         RelMetadataQuery.getDistinctRowCount(
             rel, groupKey, null);
     assertTrue(result == null);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-509">[CALCITE-509]
+   * "RelMdColumnUniqueness uses ImmutableBitSet.Builder twice, gets
+   * NullPointerException"</a>. */
+  @Test public void testJoinUniqueKeys() {
+    RelNode rel = convertSql("select * from emp join dept using (deptno)");
+    Set<ImmutableBitSet> result = RelMetadataQuery.getUniqueKeys(rel);
+    assertThat(result.toString(), equalTo("[]"));
+    final ImmutableBitSet allCols =
+        ImmutableBitSet.range(0, rel.getRowType().getFieldCount());
+    for (ImmutableBitSet integers : allCols.powerSet()) {
+      Boolean result2 = RelMetadataQuery.areColumnsUnique(rel, integers);
+      assertTrue(result2 == null || !result2);
+    }
   }
 
   @Test public void testCustomProvider() {
