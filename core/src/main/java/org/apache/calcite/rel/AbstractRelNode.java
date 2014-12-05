@@ -93,12 +93,6 @@ public abstract class AbstractRelNode implements RelNode {
   protected int id;
 
   /**
-   * The variable by which to refer to rows from this relational expression,
-   * as correlating expressions; null if this expression is not correlated on.
-   */
-  private String correlVariable;
-
-  /**
    * The RelTraitSet that describes the traits of this RelNode.
    */
   protected RelTraitSet traitSet;
@@ -159,12 +153,8 @@ public abstract class AbstractRelNode implements RelNode {
     return traitSet;
   }
 
-  public void setCorrelVariable(String correlVariable) {
-    this.correlVariable = correlVariable;
-  }
-
   public String getCorrelVariable() {
-    return correlVariable;
+    return null;
   }
 
   public boolean isDistinct() {
@@ -182,14 +172,6 @@ public abstract class AbstractRelNode implements RelNode {
   public RelNode getInput(int i) {
     List<RelNode> inputs = getInputs();
     return inputs.get(i);
-  }
-
-  public String getOrCreateCorrelVariable() {
-    if (correlVariable == null) {
-      correlVariable = getQuery().createCorrel();
-      getQuery().mapCorrel(correlVariable, this);
-    }
-    return correlVariable;
   }
 
   public final RelOptQuery getQuery() {
@@ -256,9 +238,6 @@ public abstract class AbstractRelNode implements RelNode {
   }
 
   public void collectVariablesSet(Set<String> variableSet) {
-    if (correlVariable != null) {
-      variableSet.add(correlVariable);
-    }
   }
 
   public void childrenAccept(RelVisitor visitor) {
@@ -346,12 +325,6 @@ public abstract class AbstractRelNode implements RelNode {
     this.desc = prefix + tempDigest;
     this.digest = this.desc.substring(prefix.length());
     return this.digest;
-  }
-
-  public void registerCorrelVariable(String correlVariable) {
-    assert this.correlVariable == null;
-    this.correlVariable = correlVariable;
-    getQuery().mapCorrel(correlVariable, this);
   }
 
   public void replaceInput(

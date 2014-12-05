@@ -17,11 +17,15 @@
 package org.apache.calcite.adapter.enumerable;
 
 import org.apache.calcite.adapter.java.JavaTypeFactory;
+import org.apache.calcite.linq4j.Ord;
+import org.apache.calcite.linq4j.function.Function2;
 import org.apache.calcite.linq4j.tree.BlockStatement;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.linq4j.tree.MethodDeclaration;
 import org.apache.calcite.linq4j.tree.ParameterExpression;
+import org.apache.calcite.linq4j.tree.Primitive;
+import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexNode;
@@ -32,6 +36,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
 import java.util.AbstractList;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -109,6 +114,51 @@ public class EnumUtils {
         return argList.size();
       }
     };
+  }
+
+  static Expression joinSelector(JoinRelType joinType, PhysType physType,
+      List<PhysType> inputPhysTypes) {
+    // A parameter for each input.
+    final List<ParameterExpression> parameters =
+        new ArrayList<ParameterExpression>();
+
+    // Generate all fields.
+    final List<Expression> expressions =
+        new ArrayList<Expression>();
+    final int outputFieldCount = physType.getRowType().getFieldCount();
+    for (Ord<PhysType> ord : Ord.zip(inputPhysTypes)) {
+      final PhysType inputPhysType =
+          ord.e.makeNullable(joinType.generatesNullsOn(ord.i));
+      // If input item is just a primitive, we do not generate specialized
+      // primitive apply override since it won't be called anyway
+      // Function<T> always operates on boxed arguments
+      final ParameterExpression parameter =
+          Expressions.parameter(Primitive.box(inputPhysType.getJavaRowType()),
+              EnumUtils.LEFT_RIGHT[ord.i]);
+      parameters.add(parameter);
+      if (expressions.size() == outputFieldCount) {
+        // For instance, if semi-join needs to return just the left inputs
+        break;
+      }
+      final int fieldCount = inputPhysType.getRowType().getFieldCount();
+      for (int i = 0; i < fieldCount; i++) {
+        Expression expression =
+            inputPhysType.fieldReference(parameter, i,
+                physType.getJavaFieldType(expressions.size()));
+        if (joinType.generatesNullsOn(ord.i)) {
+          expression =
+              Expressions.condition(
+                  Expressions.equal(parameter, Expressions.constant(null)),
+                  Expressions.constant(null),
+                  expression);
+        }
+        expressions.add(expression);
+      }
+    }
+    return Expressions.lambda(
+        Function2.class,
+        physType.record(expressions),
+        parameters);
   }
 }
 

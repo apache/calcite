@@ -14,17 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.plan;
-
-import org.apache.calcite.rel.RelNode;
 
 /**
- * This is a marker interface for a callback used to convert a tree of
- * {@link RelNode relational expressions} into a plan. Calling
- * conventions typically have their own protocol for walking over a
- * tree, and correspondingly have their own implementors
+ * Tests for Enumerable convention runtime.
  */
-public interface RelImplementor {
-}
+package org.apache.calcite.test.enumerable;
 
-// End RelImplementor.java
+// End package-info.java

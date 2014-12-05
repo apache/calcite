@@ -20,6 +20,7 @@ import org.apache.calcite.DataContext;
 import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Queryable;
+import org.apache.calcite.linq4j.function.Function1;
 import org.apache.calcite.linq4j.tree.BlockBuilder;
 import org.apache.calcite.linq4j.tree.BlockStatement;
 import org.apache.calcite.linq4j.tree.Blocks;
@@ -44,6 +45,7 @@ import org.apache.calcite.util.BuiltInMethod;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Maps;
 
 import java.io.Serializable;
 import java.lang.reflect.Modifier;
@@ -60,6 +62,16 @@ import java.util.Map;
  */
 public class EnumerableRelImplementor extends JavaRelImplementor {
   public final Map<String, Object> map;
+  private final Map<String, RexToLixTranslator.InputGetter> corrVars =
+      Maps.newHashMap();
+
+  protected final Function1<String, RexToLixTranslator.InputGetter>
+  allCorrelateVariables =
+    new Function1<String, RexToLixTranslator.InputGetter>() {
+      public RexToLixTranslator.InputGetter apply(String name) {
+        return getCorrelVariableGetter(name);
+      }
+    };
 
   public EnumerableRelImplementor(RexBuilder rexBuilder,
       Map<String, Object> internalParameters) {
@@ -75,7 +87,6 @@ public class EnumerableRelImplementor extends JavaRelImplementor {
     if (parent != null) {
       assert child == parent.getInputs().get(ordinal);
     }
-    createFrame(parent, ordinal, child);
     return child.implement(this, prefer);
   }
 
@@ -383,6 +394,30 @@ public class EnumerableRelImplementor extends JavaRelImplementor {
     final Expression e = Expressions.call(getRootExpression(),
         BuiltInMethod.DATA_CONTEXT_GET.method, Expressions.constant(x.name));
     return Expressions.convert_(e, clazz);
+  }
+
+  public void registerCorrelVariable(final String name,
+      final ParameterExpression pe,
+      final BlockBuilder corrBlock, final PhysType physType) {
+    corrVars.put(name, new RexToLixTranslator.InputGetter() {
+      public Expression field(BlockBuilder list, int index, Type storageType) {
+        Expression fieldReference =
+            physType.fieldReference(pe, index, storageType);
+        return corrBlock.append(name + "_" + index, fieldReference);
+      }
+    });
+  }
+
+  public void clearCorrelVariable(String name) {
+    assert corrVars.containsKey(name) : "Correlation variable " + name
+        + " should be defined";
+    corrVars.remove(name);
+  }
+
+  public RexToLixTranslator.InputGetter getCorrelVariableGetter(String name) {
+    assert corrVars.containsKey(name) : "Correlation variable " + name
+        + " should be defined";
+    return corrVars.get(name);
   }
 
   public EnumerableRel.Result result(PhysType physType, BlockStatement block) {

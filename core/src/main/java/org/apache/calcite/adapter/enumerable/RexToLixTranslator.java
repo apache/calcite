@@ -19,6 +19,7 @@ package org.apache.calcite.adapter.enumerable;
 import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.avatica.ByteString;
+import org.apache.calcite.linq4j.function.Function1;
 import org.apache.calcite.linq4j.tree.BlockBuilder;
 import org.apache.calcite.linq4j.tree.ConstantExpression;
 import org.apache.calcite.linq4j.tree.Expression;
@@ -31,7 +32,9 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactoryImpl;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexCorrelVariable;
 import org.apache.calcite.rex.RexDynamicParam;
+import org.apache.calcite.rex.RexFieldAccess;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexLocalRef;
@@ -87,6 +90,7 @@ public class RexToLixTranslator {
   private final BlockBuilder list;
   private final Map<? extends RexNode, Boolean> exprNullableMap;
   private final RexToLixTranslator parent;
+  private final Function1<String, InputGetter> correlates;
 
   private static Method findMethod(
       Class<?> clazz, String name, Class... parameterTypes) {
@@ -127,6 +131,19 @@ public class RexToLixTranslator {
       Map<? extends RexNode, Boolean> exprNullableMap,
       RexBuilder builder,
       RexToLixTranslator parent) {
+    this(program, typeFactory, inputGetter, list, exprNullableMap, builder,
+        parent, null);
+  }
+
+  private RexToLixTranslator(
+      RexProgram program,
+      JavaTypeFactory typeFactory,
+      InputGetter inputGetter,
+      BlockBuilder list,
+      Map<? extends RexNode, Boolean> exprNullableMap,
+      RexBuilder builder,
+      RexToLixTranslator parent,
+      Function1<String, InputGetter> correlates) {
     this.program = program;
     this.typeFactory = typeFactory;
     this.inputGetter = inputGetter;
@@ -134,6 +151,7 @@ public class RexToLixTranslator {
     this.exprNullableMap = exprNullableMap;
     this.builder = builder;
     this.parent = parent;
+    this.correlates = correlates;
   }
 
   /**
@@ -145,6 +163,8 @@ public class RexToLixTranslator {
    * @param list List of statements, populated with declarations
    * @param outputPhysType Output type, or null
    * @param inputGetter Generates expressions for inputs
+   * @param correlates Provider of references to the values of correlated
+   *                   variables
    * @return Sequence of expressions, optional condition
    */
   public static List<Expression> translateProjects(
@@ -152,7 +172,8 @@ public class RexToLixTranslator {
       JavaTypeFactory typeFactory,
       BlockBuilder list,
       PhysType outputPhysType,
-      InputGetter inputGetter) {
+      InputGetter inputGetter,
+      Function1<String, InputGetter> correlates) {
     List<Type> storageTypes = null;
     if (outputPhysType != null) {
       final RelDataType rowType = outputPhysType.getRowType();
@@ -162,6 +183,7 @@ public class RexToLixTranslator {
       }
     }
     return new RexToLixTranslator(program, typeFactory, inputGetter, list)
+        .setCorrelates(correlates)
         .translateList(program.getProjectList(), storageTypes);
   }
 
@@ -426,6 +448,26 @@ public class RexToLixTranslator {
           nullAs);
     case DYNAMIC_PARAM:
       return translateParameter((RexDynamicParam) expr, nullAs, storageType);
+    case CORREL_VARIABLE:
+      throw new RuntimeException("Cannot translate " + expr + ". Correlated"
+          + " variables should always be referenced by field access");
+    case FIELD_ACCESS:
+      RexFieldAccess fieldAccess = (RexFieldAccess) expr;
+      RexNode target = deref(fieldAccess.getReferenceExpr());
+      // only $cor.field access is supported
+      if (!(target instanceof RexCorrelVariable)) {
+        throw new RuntimeException(
+            "cannot translate expression " + expr);
+      }
+      if (correlates == null) {
+        throw new RuntimeException("Cannot translate " + expr + " since "
+            + "correlate variables resolver is not defined");
+      }
+      InputGetter getter =
+          correlates.apply(((RexCorrelVariable) target).getName());
+      Expression res =
+          getter.field(list, fieldAccess.getField().getIndex(), storageType);
+      return res;
     default:
       if (expr instanceof RexCall) {
         return translateCall((RexCall) expr, nullAs);
@@ -630,12 +672,14 @@ public class RexToLixTranslator {
       RexProgram program,
       JavaTypeFactory typeFactory,
       BlockBuilder list,
-      InputGetter inputGetter) {
+      InputGetter inputGetter,
+      Function1<String, InputGetter> correlates) {
     if (program.getCondition() == null) {
       return RexImpTable.TRUE_EXPR;
     }
-    final RexToLixTranslator translator =
+    RexToLixTranslator translator =
         new RexToLixTranslator(program, typeFactory, inputGetter, list);
+    translator = translator.setCorrelates(correlates);
     return translator.translate(
         program.getCondition(),
         RexImpTable.NullAs.FALSE);
@@ -898,7 +942,8 @@ public class RexToLixTranslator {
       return this;
     }
     return new RexToLixTranslator(
-        program, typeFactory, inputGetter, list, nullable, builder, this);
+        program, typeFactory, inputGetter, list, nullable, builder, this,
+        correlates);
   }
 
   public RexToLixTranslator setBlock(BlockBuilder block) {
@@ -907,7 +952,17 @@ public class RexToLixTranslator {
     }
     return new RexToLixTranslator(
         program, typeFactory, inputGetter, block,
-        Collections.<RexNode, Boolean>emptyMap(), builder, this);
+        Collections.<RexNode, Boolean>emptyMap(), builder, this, correlates);
+  }
+
+  public RexToLixTranslator setCorrelates(
+      Function1<String, InputGetter> correlates) {
+    if (this.correlates == correlates) {
+      return this;
+    }
+    return new RexToLixTranslator(
+        program, typeFactory, inputGetter, list,
+        Collections.<RexNode, Boolean>emptyMap(), builder, this, correlates);
   }
 
   public RelDataType nullifyType(RelDataType type, boolean nullable) {

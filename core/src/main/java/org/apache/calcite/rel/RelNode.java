@@ -96,17 +96,9 @@ public interface RelNode extends RelOptNode, Cloneable {
   Convention getConvention();
 
   /**
-   * Sets the name of the variable which is to be implicitly set at runtime
-   * each time a row is returned from this relational expression
-   *
-   * @param correlVariable Name of correlating variable
-   */
-  void setCorrelVariable(String correlVariable);
-
-  /**
    * Returns the name of the variable which is to be implicitly set at runtime
-   * each time a row is returned from this relational expression; or null if
-   * there is no variable.
+   * each time a row is returned from the first input of this relational
+   * expression; or null if there is no variable.
    *
    * @return Name of correlating variable, or null
    */
@@ -125,13 +117,6 @@ public interface RelNode extends RelOptNode, Cloneable {
    * @return <code>i</code><sup>th</sup> input
    */
   RelNode getInput(int i);
-
-  /**
-   * Returns a variable with which to reference the current row of this
-   * relational expression as a correlating variable. Creates a variable if
-   * none exists.
-   */
-  String getOrCreateCorrelVariable();
 
   /**
    * Returns the sub-query this relational expression belongs to. A sub-query
@@ -177,9 +162,6 @@ public interface RelNode extends RelOptNode, Cloneable {
    * Returns the names of variables which are set in this relational
    * expression but also used and therefore not available to parents of this
    * relational expression.
-   *
-   * <p>By default, returns the empty set. Derived classes may override this
-   * method.</p>
    */
   Set<String> getVariablesStopped();
 
@@ -195,6 +177,7 @@ public interface RelNode extends RelOptNode, Cloneable {
 
   /**
    * Collects variables set by this expression.
+   * TODO: is this required?
    *
    * @param variableSet receives variables known to be set by
    */
@@ -251,13 +234,6 @@ public interface RelNode extends RelOptNode, Cloneable {
    * Computes the digest, assigns it, and returns it. For planner use only.
    */
   String recomputeDigest();
-
-  /**
-   * Registers a correlation variable.
-   *
-   * @see #getVariablesStopped
-   */
-  void registerCorrelVariable(String correlVariable);
 
   /**
    * Replaces the <code>ordinalInParent</code><sup>th</sup> input. You must

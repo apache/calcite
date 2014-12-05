@@ -18,9 +18,9 @@ package org.apache.calcite.util.trace;
 
 import org.apache.calcite.linq4j.function.Function2;
 import org.apache.calcite.linq4j.function.Functions;
+import org.apache.calcite.plan.RelImplementor;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.prepare.Prepare;
-import org.apache.calcite.rel.RelImplementorImpl;
 
 import java.io.File;
 import java.util.logging.Level;
@@ -96,7 +96,7 @@ public abstract class CalciteTrace {
    * expressions are bound to variables ({@link Level#FINE})
    */
   public static Logger getRelImplementorTracer() {
-    return Logger.getLogger(RelImplementorImpl.class.getName());
+    return Logger.getLogger(RelImplementor.class.getName());
   }
 
   /**

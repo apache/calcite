@@ -20,19 +20,35 @@ package org.apache.calcite.rel.core;
  * Describes the necessary parameters for an implementation in order to
  * identify and set dynamic variables
  */
-public class Correlation implements Cloneable, Comparable<Correlation> {
+public class CorrelationId implements Cloneable, Comparable<CorrelationId> {
+  private static final String CORREL_PREFIX = "$cor";
+
   private final int id;
-  private final int offset;
+  private final String name;
 
   /**
-   * Creates a correlation.
+   * Creates a correlation identifier.
+   * This is a type-safe wrapper over int.
    *
    * @param id     Identifier
-   * @param offset Offset
    */
-  public Correlation(int id, int offset) {
+  public CorrelationId(int id) {
     this.id = id;
-    this.offset = offset;
+    this.name = CORREL_PREFIX + id;
+  }
+
+  /**
+   * Creates a correlation identifier.
+   * This is a type-safe wrapper over int.
+   *
+   * @param name     variable name
+   */
+  public CorrelationId(String name) {
+    assert name != null && name.startsWith(CORREL_PREFIX)
+        : "Correlation name should start with " + CORREL_PREFIX
+        + " actual name is " + name;
+    this.id = Integer.parseInt(name.substring(CORREL_PREFIX.length()));
+    this.name = name;
   }
 
   /**
@@ -45,19 +61,19 @@ public class Correlation implements Cloneable, Comparable<Correlation> {
   }
 
   /**
-   * Returns this correlation's offset.
+   * Returns the preffered name of the variable.
    *
-   * @return offset
+   * @return name
    */
-  public int getOffset() {
-    return offset;
+  public String getName() {
+    return name;
   }
 
   public String toString() {
-    return "var" + id + "=offset" + offset;
+    return name;
   }
 
-  public int compareTo(Correlation other) {
+  public int compareTo(CorrelationId other) {
     return id - other.id;
   }
 
@@ -67,9 +83,8 @@ public class Correlation implements Cloneable, Comparable<Correlation> {
 
   @Override public boolean equals(Object obj) {
     return this == obj
-        || obj instanceof Correlation
-        && this.id == ((Correlation) obj).id
-        && this.offset == ((Correlation) obj).offset;
+        || obj instanceof CorrelationId
+        && this.id == ((CorrelationId) obj).id;
   }
 }
 

@@ -14,17 +14,34 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.plan;
-
-import org.apache.calcite.rel.RelNode;
+package org.apache.calcite.linq4j;
 
 /**
- * This is a marker interface for a callback used to convert a tree of
- * {@link RelNode relational expressions} into a plan. Calling
- * conventions typically have their own protocol for walking over a
- * tree, and correspondingly have their own implementors
+ * Specifies the type of correlation operation: inner, left, semi, or anti.
  */
-public interface RelImplementor {
+public enum CorrelateJoinType {
+  /**
+   * Inner join
+   */
+  INNER,
+
+  /**
+   * Left-outer join
+   */
+  LEFT,
+
+  /**
+   * semi-join
+   * Similar to from A ... where a in (select b from B ...)
+   */
+  SEMI,
+
+  /**
+   * Anti-join
+   * Similar to from A ... where a NOT in (select b from B ...)
+   * Note: if B.b is nullable and B has nulls, no rows must be returned
+   */
+  ANTI;
 }
 
-// End RelImplementor.java
+// End SemiJoinType.java

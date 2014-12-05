@@ -257,8 +257,10 @@ public abstract class Prepare {
     // storage.
     rootRel = flattenTypes(rootRel, true);
 
-    // Subquery decorrelation.
-    rootRel = decorrelate(sqlToRelConverter, sqlQuery, rootRel);
+    if (this.context.config().forceDecorrelate()) {
+      // Subquery decorrelation.
+      rootRel = decorrelate(sqlToRelConverter, sqlQuery, rootRel);
+    }
 
     // Trim unused fields.
     rootRel = trimUnusedFields(rootRel);

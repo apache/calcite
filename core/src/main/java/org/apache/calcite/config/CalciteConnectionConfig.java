@@ -44,6 +44,8 @@ public interface CalciteConnectionConfig extends ConnectionConfig {
   boolean caseSensitive();
   /** @see CalciteConnectionProperty#SPARK */
   boolean spark();
+  /** @see CalciteConnectionProperty#FORCE_DECORRELATE */
+  boolean forceDecorrelate();
   /** @see CalciteConnectionProperty#TYPE_SYSTEM */
   <T> T typeSystem(Class<T> typeSystemClass, T defaultTypeSystem);
 }
