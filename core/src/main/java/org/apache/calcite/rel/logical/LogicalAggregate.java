@@ -82,7 +82,7 @@ public final class LogicalAggregate extends Aggregate {
       boolean indicator, ImmutableBitSet groupSet,
       List<ImmutableBitSet> groupSets, List<AggregateCall> aggCalls) {
     assert traitSet.containsIfApplicable(Convention.NONE);
-    return new LogicalAggregate(getCluster(), input, this.indicator, groupSet,
+    return new LogicalAggregate(getCluster(), input, indicator, groupSet,
         groupSets, aggCalls);
   }
 
