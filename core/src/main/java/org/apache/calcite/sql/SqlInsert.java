@@ -32,7 +32,7 @@ public class SqlInsert extends SqlCall {
       new SqlSpecialOperator("INSERT", SqlKind.INSERT);
 
   SqlNodeList keywords;
-  SqlIdentifier targetTable;
+  SqlNode targetTable;
   SqlNode source;
   SqlNodeList columnList;
 
@@ -40,7 +40,7 @@ public class SqlInsert extends SqlCall {
 
   public SqlInsert(SqlParserPos pos,
       SqlNodeList keywords,
-      SqlIdentifier targetTable,
+      SqlNode targetTable,
       SqlNode source,
       SqlNodeList columnList) {
     super(pos);
@@ -87,7 +87,7 @@ public class SqlInsert extends SqlCall {
   /**
    * @return the identifier for the target table of the insertion
    */
-  public SqlIdentifier getTargetTable() {
+  public SqlNode getTargetTable() {
     return targetTable;
   }
 

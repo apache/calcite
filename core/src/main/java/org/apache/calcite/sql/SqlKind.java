@@ -565,6 +565,10 @@ public enum SqlKind {
    */
   REINTERPRET,
 
+  /** The internal {@code EXTEND} operator that qualifies a table name in the
+   * {@code FROM} clause. */
+  EXTEND,
+
   /** The internal {@code CUBE} operator that occurs within a {@code GROUP BY}
    * clause. */
   CUBE,
@@ -624,7 +628,8 @@ public enum SqlKind {
   public static final Set<SqlKind> EXPRESSION =
       EnumSet.complementOf(
           EnumSet.of(
-              AS, DESCENDING, SELECT, JOIN, OTHER_FUNCTION, CAST, TRIM,
+              AS, DESCENDING, CUBE, ROLLUP, GROUPING_SETS, EXTEND,
+              SELECT, JOIN, OTHER_FUNCTION, CAST, TRIM,
               LITERAL_CHAIN, JDBC_FN, PRECEDING, FOLLOWING, ORDER_BY,
               NULLS_FIRST, NULLS_LAST, COLLECTION_TABLE, TABLESAMPLE,
               WITH, WITH_ITEM));

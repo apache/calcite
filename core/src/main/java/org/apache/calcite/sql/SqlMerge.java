@@ -34,7 +34,7 @@ public class SqlMerge extends SqlCall {
   public static final SqlSpecialOperator OPERATOR =
       new SqlSpecialOperator("MERGE", SqlKind.MERGE);
 
-  SqlIdentifier targetTable;
+  SqlNode targetTable;
   SqlNode condition;
   SqlNode source;
   SqlUpdate updateCall;
@@ -45,7 +45,7 @@ public class SqlMerge extends SqlCall {
   //~ Constructors -----------------------------------------------------------
 
   public SqlMerge(SqlParserPos pos,
-      SqlIdentifier targetTable,
+      SqlNode targetTable,
       SqlNode condition,
       SqlNode source,
       SqlUpdate updateCall,
@@ -108,7 +108,7 @@ public class SqlMerge extends SqlCall {
   /**
    * @return the identifier for the target table of the merge
    */
-  public SqlIdentifier getTargetTable() {
+  public SqlNode getTargetTable() {
     return targetTable;
   }
 

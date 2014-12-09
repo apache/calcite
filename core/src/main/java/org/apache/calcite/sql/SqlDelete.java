@@ -32,7 +32,7 @@ public class SqlDelete extends SqlCall {
   public static final SqlSpecialOperator OPERATOR =
       new SqlSpecialOperator("DELETE", SqlKind.DELETE);
 
-  SqlIdentifier targetTable;
+  SqlNode targetTable;
   SqlNode condition;
   SqlSelect sourceSelect;
   SqlIdentifier alias;
@@ -41,7 +41,7 @@ public class SqlDelete extends SqlCall {
 
   public SqlDelete(
       SqlParserPos pos,
-      SqlIdentifier targetTable,
+      SqlNode targetTable,
       SqlNode condition,
       SqlSelect sourceSelect,
       SqlIdentifier alias) {
@@ -69,7 +69,7 @@ public class SqlDelete extends SqlCall {
   @Override public void setOperand(int i, SqlNode operand) {
     switch (i) {
     case 0:
-      targetTable = (SqlIdentifier) operand;
+      targetTable = operand;
       break;
     case 1:
       condition = operand;
@@ -88,7 +88,7 @@ public class SqlDelete extends SqlCall {
   /**
    * @return the identifier for the target table of the deletion
    */
-  public SqlIdentifier getTargetTable() {
+  public SqlNode getTargetTable() {
     return targetTable;
   }
 

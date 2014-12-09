@@ -299,7 +299,7 @@ public abstract class SqlToRelTestBase {
     public void registerRules(RelOptPlanner planner) throws Exception {
     }
 
-      /** Mock column set. */
+    /** Mock column set. */
     protected class MockColumnSet implements RelOptTable {
       private final List<String> names;
       private final RelDataType rowType;
@@ -360,6 +360,14 @@ public abstract class SqlToRelTestBase {
       public Expression getExpression(Class clazz) {
         return null;
       }
+
+      public RelOptTable extend(List<RelDataTypeField> extendedFields) {
+        final RelDataType extendedRowType = typeFactory.builder()
+            .addAll(rowType.getFieldList())
+            .addAll(extendedFields)
+            .build();
+        return new MockColumnSet(names, extendedRowType, collationList);
+      }
     }
   }
 
@@ -380,6 +388,10 @@ public abstract class SqlToRelTestBase {
 
     public Expression getExpression(Class clazz) {
       return parent.getExpression(clazz);
+    }
+
+    public RelOptTable extend(List<RelDataTypeField> extendedFields) {
+      return parent.extend(extendedFields);
     }
 
     public List<String> getQualifiedName() {

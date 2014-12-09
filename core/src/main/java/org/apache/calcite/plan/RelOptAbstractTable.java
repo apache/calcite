@@ -21,6 +21,7 @@ import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.logical.LogicalTableScan;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.util.ImmutableBitSet;
 
 import com.google.common.collect.ImmutableList;
@@ -92,6 +93,10 @@ public abstract class RelOptAbstractTable implements RelOptTable {
   }
 
   public Expression getExpression(Class clazz) {
+    throw new UnsupportedOperationException();
+  }
+
+  public RelOptTable extend(List<RelDataTypeField> extendedFields) {
     throw new UnsupportedOperationException();
   }
 }

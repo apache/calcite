@@ -79,25 +79,26 @@ public class SqlValidatorUtil {
       Prepare.CatalogReader catalogReader,
       String datasetName,
       boolean[] usedDataset) {
-    if (namespace.isWrapperFor(TableNamespace.class)) {
-      TableNamespace tableNamespace =
-          namespace.unwrap(TableNamespace.class);
-      final List<String> names = tableNamespace.getTable().getQualifiedName();
-      if ((datasetName != null)
-          && (catalogReader instanceof RelOptSchemaWithSampling)) {
-        return ((RelOptSchemaWithSampling) catalogReader)
-            .getTableForMember(
-                names,
-                datasetName,
-                usedDataset);
-      } else {
-        // Schema does not support substitution. Ignore the dataset,
-        // if any.
-        return catalogReader.getTableForMember(names);
-      }
-    } else {
+    if (!namespace.isWrapperFor(TableNamespace.class)) {
       return null;
     }
+    final TableNamespace tableNamespace =
+        namespace.unwrap(TableNamespace.class);
+    final List<String> names = tableNamespace.getTable().getQualifiedName();
+    RelOptTable table;
+    if (datasetName != null
+        && catalogReader instanceof RelOptSchemaWithSampling) {
+      final RelOptSchemaWithSampling reader =
+          (RelOptSchemaWithSampling) catalogReader;
+      table = reader.getTableForMember(names, datasetName, usedDataset);
+    } else {
+      // Schema does not support substitution. Ignore the data set, if any.
+      table = catalogReader.getTableForMember(names);
+    }
+    if (!tableNamespace.extendedFields.isEmpty()) {
+      table = table.extend(tableNamespace.extendedFields);
+    }
+    return table;
   }
 
   /**

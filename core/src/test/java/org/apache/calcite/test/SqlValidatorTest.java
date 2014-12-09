@@ -6302,6 +6302,15 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     check("SELECT DISTINCT 5, 10+5, 'string' from emp");
   }
 
+  @Test public void testTableExtend() {
+    checkResultType("select * from dept extend (x int not null)",
+        "RecordType(INTEGER NOT NULL DEPTNO, VARCHAR(10) NOT NULL NAME, INTEGER NOT NULL X) NOT NULL");
+    checkResultType("select deptno + x as z\n"
+        + "from dept extend (x int not null) as x\n"
+        + "where x > 10",
+        "RecordType(INTEGER NOT NULL Z) NOT NULL");
+  }
+
   @Test public void testExplicitTable() {
     final String empRecordType =
         "RecordType(INTEGER NOT NULL EMPNO,"

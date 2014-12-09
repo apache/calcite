@@ -23,9 +23,12 @@ import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptSchema;
+import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.schema.ExtensibleTable;
 import org.apache.calcite.schema.FilterableTable;
 import org.apache.calcite.schema.ProjectableFilterableTable;
 import org.apache.calcite.schema.QueryableTable;
@@ -158,6 +161,18 @@ public class RelOptTableImpl implements Prepare.PreparingTable {
 
   public Expression getExpression(Class clazz) {
     return expressionFunction.apply(clazz);
+  }
+
+  public RelOptTable extend(List<RelDataTypeField> extendedFields) {
+    if (table instanceof ExtensibleTable) {
+      final Table extendedTable =
+          ((ExtensibleTable) table).extend(extendedFields);
+      final RelDataType extendedRowType =
+          extendedTable.getRowType(schema.getTypeFactory());
+      return new RelOptTableImpl(schema, extendedRowType, names, extendedTable,
+          expressionFunction, rowCount);
+    }
+    throw new RuntimeException("Cannot extend " + table); // TODO: user error
   }
 
   public double getRowCount() {

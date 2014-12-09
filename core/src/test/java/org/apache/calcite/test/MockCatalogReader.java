@@ -19,6 +19,7 @@ package org.apache.calcite.test;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptSchema;
+import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.prepare.Prepare;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollationImpl;
@@ -46,6 +47,7 @@ import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
 
 import java.util.ArrayList;
@@ -68,7 +70,7 @@ public class MockCatalogReader implements Prepare.CatalogReader {
 
   public static final Ordering<Iterable<String>>
   CASE_INSENSITIVE_LIST_COMPARATOR =
-      Ordering.<String>from(String.CASE_INSENSITIVE_ORDER).lexicographical();
+      Ordering.from(String.CASE_INSENSITIVE_ORDER).lexicographical();
 
   //~ Instance fields --------------------------------------------------------
 
@@ -139,7 +141,7 @@ public class MockCatalogReader implements Prepare.CatalogReader {
     registerSchema(salesSchema);
 
     // Register "EMP" table.
-    MockTable empTable = new MockTable(this, salesSchema, "EMP");
+    MockTable empTable = MockTable.create(this, salesSchema, "EMP");
     empTable.addColumn("EMPNO", intType);
     empTable.addColumn("ENAME", varchar20Type);
     empTable.addColumn("JOB", varchar10Type);
@@ -152,13 +154,13 @@ public class MockCatalogReader implements Prepare.CatalogReader {
     registerTable(empTable);
 
     // Register "DEPT" table.
-    MockTable deptTable = new MockTable(this, salesSchema, "DEPT");
+    MockTable deptTable = MockTable.create(this, salesSchema, "DEPT");
     deptTable.addColumn("DEPTNO", intType);
     deptTable.addColumn("NAME", varchar10Type);
     registerTable(deptTable);
 
     // Register "BONUS" table.
-    MockTable bonusTable = new MockTable(this, salesSchema, "BONUS");
+    MockTable bonusTable = MockTable.create(this, salesSchema, "BONUS");
     bonusTable.addColumn("ENAME", varchar20Type);
     bonusTable.addColumn("JOB", varchar10Type);
     bonusTable.addColumn("SAL", intType);
@@ -166,7 +168,7 @@ public class MockCatalogReader implements Prepare.CatalogReader {
     registerTable(bonusTable);
 
     // Register "SALGRADE" table.
-    MockTable salgradeTable = new MockTable(this, salesSchema, "SALGRADE");
+    MockTable salgradeTable = MockTable.create(this, salesSchema, "SALGRADE");
     salgradeTable.addColumn("GRADE", intType);
     salgradeTable.addColumn("LOSAL", intType);
     salgradeTable.addColumn("HISAL", intType);
@@ -174,7 +176,7 @@ public class MockCatalogReader implements Prepare.CatalogReader {
 
     // Register "EMP_ADDRESS" table
     MockTable contactAddressTable =
-        new MockTable(this, salesSchema, "EMP_ADDRESS");
+        MockTable.create(this, salesSchema, "EMP_ADDRESS");
     contactAddressTable.addColumn("EMPNO", intType);
     contactAddressTable.addColumn("HOME_ADDRESS", addressType);
     contactAddressTable.addColumn("MAILING_ADDRESS", addressType);
@@ -185,7 +187,7 @@ public class MockCatalogReader implements Prepare.CatalogReader {
     registerSchema(customerSchema);
 
     // Register "CONTACT" table.
-    MockTable contactTable = new MockTable(this, customerSchema, "CONTACT");
+    MockTable contactTable = MockTable.create(this, customerSchema, "CONTACT");
     contactTable.addColumn("CONTACTNO", intType);
     contactTable.addColumn("FNAME", varchar10Type);
     contactTable.addColumn("LNAME", varchar10Type);
@@ -194,7 +196,7 @@ public class MockCatalogReader implements Prepare.CatalogReader {
     registerTable(contactTable);
 
     // Register "ACCOUNT" table.
-    MockTable accountTable = new MockTable(this, customerSchema, "ACCOUNT");
+    MockTable accountTable = MockTable.create(this, customerSchema, "ACCOUNT");
     accountTable.addColumn("ACCTNO", intType);
     accountTable.addColumn("TYPE", varchar20Type);
     accountTable.addColumn("BALANCE", intType);
@@ -362,20 +364,25 @@ public class MockCatalogReader implements Prepare.CatalogReader {
    */
   public static class MockTable implements Prepare.PreparingTable {
     private final MockCatalogReader catalogReader;
-    private final List<Pair<String, RelDataType>> columnList =
-        new ArrayList<Pair<String, RelDataType>>();
+    private final List<Map.Entry<String, RelDataType>> columnList =
+        Lists.newArrayList();
     private RelDataType rowType;
     private List<RelCollation> collationList;
     private final List<String> names;
 
-    public MockTable(
-        MockCatalogReader catalogReader,
-        MockSchema schema,
-        String name) {
+    public MockTable(MockCatalogReader catalogReader, String catalogName,
+        String schemaName, String name) {
       this.catalogReader = catalogReader;
-      this.names =
-          ImmutableList.of(schema.getCatalogName(), schema.name, name);
+      this.names = ImmutableList.of(catalogName, schemaName, name);
+    }
+
+    public static MockTable create(MockCatalogReader catalogReader,
+        MockSchema schema, String name) {
+      MockTable table =
+          new MockTable(catalogReader, schema.getCatalogName(), schema.name,
+              name);
       schema.addTable(name);
+      return table;
     }
 
     public <T> T unwrap(Class<T> clazz) {
@@ -436,6 +443,15 @@ public class MockCatalogReader implements Prepare.CatalogReader {
 
     public void addColumn(String name, RelDataType type) {
       columnList.add(Pair.of(name, type));
+    }
+
+    public RelOptTable extend(List<RelDataTypeField> extendedFields) {
+      final MockTable table = new MockTable(catalogReader, names.get(0),
+          names.get(1), names.get(2));
+      table.columnList.addAll(columnList);
+      table.columnList.addAll(extendedFields);
+      table.onRegister(catalogReader.typeFactory);
+      return table;
     }
   }
 }

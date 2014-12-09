@@ -616,6 +616,11 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
         "${plan}");
   }
 
+  @Test public void testTableExtend() {
+    sql("select * from dept extend (x varchar(5) not null)")
+        .convertsTo("${plan}");
+  }
+
   @Test public void testExplicitTable() {
     check(
         "table emp",
@@ -678,8 +683,7 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
 
   @Test public void testCollectionTableWithCursorParam() {
     tester.withDecorrelation(false).assertConvertsTo(
-        "select * from table(dedup("
-            + "cursor(select ename from emp),"
+        "select * from table(dedup(" + "cursor(select ename from emp),"
             + " cursor(select name from dept), 'NAME'))",
         "${plan}");
   }
@@ -691,9 +695,7 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
   }
 
   @Test public void testUnnestSubquery() {
-    check(
-        "select*from unnest(multiset(select*from dept))",
-        "${plan}");
+    check("select*from unnest(multiset(select*from dept))", "${plan}");
   }
 
   @Test public void testMultisetSubquery() {
@@ -761,12 +763,10 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
 
   @Test public void testInValueListLong() {
     // Go over the default threshold of 20 to force a subquery.
-    check(
-        "select empno from emp where deptno in"
+    check("select empno from emp where deptno in"
             + " (10, 20, 30, 40, 50, 60, 70, 80, 90, 100"
             + ", 110, 120, 130, 140, 150, 160, 170, 180, 190"
-            + ", 200, 210, 220, 230)",
-        "${plan}");
+            + ", 200, 210, 220, 230)", "${plan}");
   }
 
   @Test public void testInUncorrelatedSubquery() {
@@ -839,15 +839,11 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
   }
 
   @Test public void testElement() {
-    check(
-        "select element(multiset[5]) from emp",
-        "${plan}");
+    check("select element(multiset[5]) from emp", "${plan}");
   }
 
   @Test public void testElementInValues() {
-    check(
-        "values element(multiset[5])",
-        "${plan}");
+    check("values element(multiset[5])", "${plan}");
   }
 
   @Test public void testUnionAll() {
@@ -1028,19 +1024,13 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     rel.explain(planWriter);
     pw.flush();
     TestUtil.assertEqualsVerbose(
-        "<RelNode type=\"LogicalProject\">\n"
-            + "\t<Property name=\"EXPR$0\">\n"
-            + "\t\t+(1, 2)\t</Property>\n"
-            + "\t<Property name=\"EXPR$1\">\n"
-            + "\t\t3\t</Property>\n"
-            + "\t<Inputs>\n"
+        "<RelNode type=\"LogicalProject\">\n" + "\t<Property name=\"EXPR$0\">\n"
+            + "\t\t+(1, 2)\t</Property>\n" + "\t<Property name=\"EXPR$1\">\n"
+            + "\t\t3\t</Property>\n" + "\t<Inputs>\n"
             + "\t\t<RelNode type=\"LogicalValues\">\n"
             + "\t\t\t<Property name=\"tuples\">\n"
-            + "\t\t\t\t[{ true }]\t\t\t</Property>\n"
-            + "\t\t\t<Inputs/>\n"
-            + "\t\t</RelNode>\n"
-            + "\t</Inputs>\n"
-            + "</RelNode>\n",
+            + "\t\t\t\t[{ true }]\t\t\t</Property>\n" + "\t\t\t<Inputs/>\n"
+            + "\t\t</RelNode>\n" + "\t</Inputs>\n" + "</RelNode>\n",
         Util.toLinux(sw.toString()));
   }
 

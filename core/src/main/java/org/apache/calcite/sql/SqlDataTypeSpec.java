@@ -18,6 +18,7 @@ package org.apache.calcite.sql;
 
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.runtime.SqlFunctions;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
@@ -61,10 +62,17 @@ public class SqlDataTypeSpec extends SqlNode {
   private final String charSetName;
   private final TimeZone timeZone;
 
+  /** Whether data type is allows nulls.
+   *
+   * <p>Nullable is nullable! Null means "not specified". E.g.
+   * {@code CAST(x AS INTEGER)} preserves has the same nullability as {@code x}.
+   */
+  private Boolean nullable;
+
   //~ Constructors -----------------------------------------------------------
 
   /**
-   * Creates a type specification.
+   * Creates a type specification representing a regular, non-collection type.
    */
   public SqlDataTypeSpec(
       final SqlIdentifier typeName,
@@ -73,13 +81,7 @@ public class SqlDataTypeSpec extends SqlNode {
       String charSetName,
       TimeZone timeZone,
       SqlParserPos pos) {
-    super(pos);
-    this.collectionsTypeName = null;
-    this.typeName = typeName;
-    this.scale = scale;
-    this.precision = precision;
-    this.charSetName = charSetName;
-    this.timeZone = timeZone;
+    this(null, typeName, precision, scale, charSetName, timeZone, null, pos);
   }
 
   /**
@@ -92,13 +94,30 @@ public class SqlDataTypeSpec extends SqlNode {
       int scale,
       String charSetName,
       SqlParserPos pos) {
+    this(collectionsTypeName, typeName, precision, scale, charSetName, null,
+        null, pos);
+  }
+
+  /**
+   * Creates a type specification.
+   */
+  public SqlDataTypeSpec(
+      SqlIdentifier collectionsTypeName,
+      SqlIdentifier typeName,
+      int precision,
+      int scale,
+      String charSetName,
+      TimeZone timeZone,
+      Boolean nullable,
+      SqlParserPos pos) {
     super(pos);
     this.collectionsTypeName = collectionsTypeName;
     this.typeName = typeName;
-    this.scale = scale;
     this.precision = precision;
+    this.scale = scale;
     this.charSetName = charSetName;
-    this.timeZone = null;
+    this.timeZone = timeZone;
+    this.nullable = nullable;
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -137,6 +156,16 @@ public class SqlDataTypeSpec extends SqlNode {
 
   public TimeZone getTimeZone() {
     return timeZone;
+  }
+
+  /** Returns a copy of this data type specification with a given
+   * nullability. */
+  public SqlDataTypeSpec withNullable(Boolean nullable) {
+    if (SqlFunctions.eq(nullable, this.nullable)) {
+      return this;
+    }
+    return new SqlDataTypeSpec(collectionsTypeName, typeName, precision, scale,
+        charSetName, timeZone, nullable, getParserPosition());
   }
 
   /**
@@ -324,6 +353,10 @@ public class SqlDataTypeSpec extends SqlNode {
       default:
         throw Util.unexpected(collectionsSqlTypeName);
       }
+    }
+
+    if (nullable != null) {
+      type = typeFactory.createTypeWithNullability(type, nullable);
     }
 
     return type;

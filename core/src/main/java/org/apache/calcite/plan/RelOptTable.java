@@ -20,6 +20,7 @@ import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.util.ImmutableBitSet;
 
 import java.util.List;
@@ -95,6 +96,9 @@ public interface RelOptTable {
    * @param clazz The desired collection class; for example {@code Queryable}.
    */
   Expression getExpression(Class clazz);
+
+  /** Returns a table with the given extra fields. */
+  RelOptTable extend(List<RelDataTypeField> extendedFields);
 
   /** Can expand a view into relational expressions. */
   interface ViewExpander {

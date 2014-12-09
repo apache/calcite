@@ -271,6 +271,8 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
           "KEYWORD(UNION)",
           "KEYWORD(FULL)",
           "KEYWORD(ORDER)",
+          "KEYWORD(()",
+          "KEYWORD(EXTEND)",
           "KEYWORD(AS)",
           "KEYWORD(USING)",
           "KEYWORD(RIGHT)",

@@ -2215,4 +2215,15 @@ LogicalProject(DEPTNO=[$1], EXPR$1=[CASE($3, 1, 0)], EXPR$2=[$4], EXPR$3=[CASE($
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testTableExtend">
+        <Resource name="sql">
+            <![CDATA[select * from dept extend (x varchar(5) not null)]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(DEPTNO=[$0], NAME=[$1], X=[$2])
+  LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+    </TestCase>
 </Root>

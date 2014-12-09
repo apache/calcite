@@ -33,7 +33,7 @@ public class SqlUpdate extends SqlCall {
   public static final SqlSpecialOperator OPERATOR =
       new SqlSpecialOperator("UPDATE", SqlKind.UPDATE);
 
-  SqlIdentifier targetTable;
+  SqlNode targetTable;
   SqlNodeList targetColumnList;
   SqlNodeList sourceExpressionList;
   SqlNode condition;
@@ -43,7 +43,7 @@ public class SqlUpdate extends SqlCall {
   //~ Constructors -----------------------------------------------------------
 
   public SqlUpdate(SqlParserPos pos,
-      SqlIdentifier targetTable,
+      SqlNode targetTable,
       SqlNodeList targetColumnList,
       SqlNodeList sourceExpressionList,
       SqlNode condition,
@@ -102,7 +102,7 @@ public class SqlUpdate extends SqlCall {
   /**
    * @return the identifier for the target table of the update
    */
-  public SqlIdentifier getTargetTable() {
+  public SqlNode getTargetTable() {
     return targetTable;
   }
 

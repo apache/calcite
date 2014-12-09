@@ -205,6 +205,12 @@ public class ${parser.class} extends SqlAbstractParserImpl
     {
         return SqlStmtEof();
     }
+
+    private SqlNode extend(SqlNode table, SqlNodeList extendList) {
+        return SqlStdOperatorTable.EXTEND.createCall(
+            table.getParserPosition().plus(extendList.getParserPosition()),
+            table, extendList);
+    }
 }
 
 PARSER_END(${parser.class})
@@ -1158,7 +1164,8 @@ SqlNode SqlInsert() :
  */
 SqlNode SqlDelete() :
 {
-    SqlIdentifier table;
+    SqlNode table;
+    SqlNodeList extendList = null;
     SqlIdentifier alias = null;
     SqlNode condition;
     SqlParserPos pos;
@@ -1172,6 +1179,12 @@ SqlNode SqlDelete() :
     {
 
     }
+    [
+        [ <EXTEND> ]
+        extendList = ExtendList() {
+            table = extend(table, extendList);
+        }
+    ]
     [ [ <AS> ] alias = SimpleIdentifier() ]
     condition = WhereOpt()
     {
@@ -1184,7 +1197,8 @@ SqlNode SqlDelete() :
  */
 SqlNode SqlUpdate() :
 {
-    SqlIdentifier table;
+    SqlNode table;
+    SqlNodeList extendList = null;
     SqlIdentifier alias = null;
     SqlNode condition;
     SqlNodeList sourceExpressionList;
@@ -1200,6 +1214,12 @@ SqlNode SqlUpdate() :
         targetColumnList = new SqlNodeList(pos);
         sourceExpressionList = new SqlNodeList(pos);
     }
+    [
+        [ <EXTEND> ]
+        extendList = ExtendList() {
+            table = extend(table, extendList);
+        }
+    ]
     [ [ <AS> ] alias = SimpleIdentifier() ]
     <SET> id = SimpleIdentifier()
     {
@@ -1233,7 +1253,8 @@ SqlNode SqlUpdate() :
  */
 SqlNode SqlMerge() :
 {
-    SqlIdentifier table;
+    SqlNode table;
+    SqlNodeList extendList = null;
     SqlIdentifier alias = null;
     SqlNode sourceTableRef;
     SqlNode condition;
@@ -1246,6 +1267,12 @@ SqlNode SqlMerge() :
     {
         mergePos = getPos();
     }
+    [
+        [ <EXTEND> ]
+        extendList = ExtendList() {
+            table = extend(table, extendList);
+        }
+    ]
     [ [ <AS> ] alias = SimpleIdentifier() ]
 
     <USING> sourceTableRef = TableRef()
@@ -1265,7 +1292,7 @@ SqlNode SqlMerge() :
     }
 }
 
-SqlUpdate WhenMatchedClause(SqlIdentifier table, SqlIdentifier alias) :
+SqlUpdate WhenMatchedClause(SqlNode table, SqlIdentifier alias) :
 {
     SqlIdentifier id;
     SqlParserPos pos;
@@ -1303,7 +1330,7 @@ SqlUpdate WhenMatchedClause(SqlIdentifier table, SqlIdentifier alias) :
     }
 }
 
-SqlInsert WhenNotMatchedClause(SqlIdentifier table) :
+SqlInsert WhenNotMatchedClause(SqlNode table) :
 {
     SqlParserPos pos, insertPos;
     List keywords = new ArrayList();
@@ -1592,6 +1619,7 @@ SqlNode TableRef() :
 {
     SqlNode tableRef;
     SqlNode over;
+    SqlNodeList extendList = null;
     String alias;
     SqlParserPos pos;
     SqlNodeList args;
@@ -1606,6 +1634,12 @@ SqlNode TableRef() :
     (
         LOOKAHEAD(2)
         tableRef = CompoundIdentifier()
+        [
+            [ <EXTEND> ]
+            extendList = ExtendList() {
+                tableRef = extend(tableRef, extendList);
+            }
+        ]
         over = TableOverOpt()
         {
             if (over != null) {
@@ -1727,6 +1761,37 @@ SqlNode TableRef() :
     ]
     {
         return tableRef;
+    }
+}
+
+SqlNodeList ExtendList() :
+{
+    SqlParserPos pos;
+    List<SqlNode> list = Lists.newArrayList();
+}
+{
+    <LPAREN> { pos = getPos(); }
+    ColumnType(list)
+    (
+        <COMMA> ColumnType(list)
+    )*
+    <RPAREN> {
+        return new SqlNodeList(list, pos.plus(getPos()));
+    }
+}
+
+void ColumnType(List<SqlNode> list) :
+{
+    SqlIdentifier name;
+    SqlDataTypeSpec type;
+}
+{
+    name = SimpleIdentifier()
+    type = DataType()
+    [ <NOT> <NULL> { type = type.withNullable(false); } ]
+    {
+        list.add(name);
+        list.add(type);
     }
 }
 
@@ -4631,6 +4696,7 @@ SqlPostfixOperator PostfixRowOperator() :
     | < EXP: "EXP" >
     | < EXPLAIN: "EXPLAIN" >
     | < EXTERNAL: "EXTERNAL" >
+    | < EXTEND: "EXTEND" >
     | < EXTRACT: "EXTRACT" >
     | < FALSE: "FALSE" >
     | < FETCH: "FETCH" >

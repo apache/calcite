@@ -177,6 +177,11 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   public static final SqlGroupingIdFunction GROUPING_ID =
       new SqlGroupingIdFunction();
 
+  /** {@code EXTEND} operator to add columns to a table's schema, as in
+   * {@code SELECT ... FROM emp EXTEND (horoscope VARCHAR(100))}. */
+  public static final SqlInternalOperator EXTEND =
+      new SqlInternalOperator("EXTEND", SqlKind.EXTEND);
+
   /**
    * String concatenation operator, '<code>||</code>'.
    */

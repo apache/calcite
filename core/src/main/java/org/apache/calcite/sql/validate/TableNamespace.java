@@ -17,21 +17,42 @@
 package org.apache.calcite.sql.validate;
 
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.sql.SqlNode;
+
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
+
+import java.util.List;
 
 /** Namespace based on a table from the catalog. */
 class TableNamespace extends AbstractNamespace {
   private final SqlValidatorTable table;
+  public final ImmutableList<RelDataTypeField> extendedFields;
 
   /** Creates a TableNamespace. */
-  TableNamespace(SqlValidatorImpl validator, SqlValidatorTable table) {
+  TableNamespace(SqlValidatorImpl validator, SqlValidatorTable table,
+      ImmutableList<RelDataTypeField> fields) {
     super(validator, null);
-    this.table = table;
-    assert table != null;
+    this.table = Preconditions.checkNotNull(table);
+    this.extendedFields = fields;
+  }
+
+  public TableNamespace(SqlValidatorImpl validator, SqlValidatorTable table) {
+    this(validator, table, ImmutableList.<RelDataTypeField>of());
   }
 
   protected RelDataType validateImpl() {
-    return table.getRowType();
+    if (extendedFields.isEmpty()) {
+      return table.getRowType();
+    }
+    final RelDataTypeFactory.FieldInfoBuilder builder =
+        validator.getTypeFactory().builder();
+    builder.addAll(table.getRowType().getFieldList());
+    builder.addAll(extendedFields);
+    return builder.build();
   }
 
   public SqlNode getNode() {
@@ -41,6 +62,18 @@ class TableNamespace extends AbstractNamespace {
 
   @Override public SqlValidatorTable getTable() {
     return table;
+  }
+
+  /** Creates a TableNamespace based on the same table as this one, but with
+   * extended fields.
+   *
+   * <p>Extended fields are "hidden" or undeclared fields that may nevertheless
+   * be present if you ask for them. Phoenix uses them, for instance, to access
+   * rarely used fields in the underlying HBase table. */
+  public TableNamespace extend(List<RelDataTypeField> extendedFields) {
+    return new TableNamespace(validator, table,
+        ImmutableList.copyOf(
+            Iterables.concat(this.extendedFields, extendedFields)));
   }
 }
 
