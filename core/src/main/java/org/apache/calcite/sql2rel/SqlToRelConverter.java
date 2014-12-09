@@ -184,6 +184,7 @@ public class SqlToRelConverter {
           return input.node;
         }
       };
+  private static final BigDecimal TWO = BigDecimal.valueOf(2L);
 
   //~ Instance fields --------------------------------------------------------
 
@@ -4609,20 +4610,65 @@ public class SqlToRelConverter {
 
       switch (call.getKind()) {
       case GROUPING:
-        if (aggregatingSelectScope.indicator) {
-          final int x = lookupGroupExpr(call.getOperandList().get(0));
-          if (x >= 0) {
-            return rexBuilder.makeCall(SqlStdOperatorTable.CASE,
-                rexBuilder.makeInputRef(bb.root,
-                    aggregatingSelectScope.groupExprList.size() + x),
-                rexBuilder.makeExactLiteral(BigDecimal.ONE),
-                rexBuilder.makeExactLiteral(BigDecimal.ZERO));
-          }
+      case GROUPING_ID:
+      case GROUP_ID:
+        final RelDataType type = validator.getValidatedNodeType(call);
+        if (!aggregatingSelectScope.indicator) {
+          return rexBuilder.makeExactLiteral(
+              TWO.pow(effectiveArgCount(call)).subtract(BigDecimal.ONE), type);
         } else {
-          return rexBuilder.makeExactLiteral(BigDecimal.ONE);
+          final List<Integer> operands;
+          switch (call.getKind()) {
+          case GROUP_ID:
+            operands = ImmutableIntList.range(0, groupExprs.size());
+            break;
+          default:
+            operands = Lists.newArrayList();
+            for (SqlNode operand : call.getOperandList()) {
+              final int x = lookupGroupExpr(operand);
+              assert x >= 0;
+              operands.add(x);
+            }
+          }
+          RexNode node = null;
+          int shift = operands.size();
+          for (int operand : operands) {
+            node = bitValue(node, type, operand, --shift);
+          }
+          return node;
         }
       }
       return aggMapping.get(call);
+    }
+
+    private int effectiveArgCount(SqlCall call) {
+      switch (call.getKind()) {
+      case GROUPING:
+        return 1;
+      case GROUPING_ID:
+        return call.operandCount();
+      case GROUP_ID:
+        return groupExprs.size();
+      default:
+        throw new AssertionError(call.getKind());
+      }
+    }
+
+    private RexNode bitValue(RexNode previous, RelDataType type, int x,
+        int shift) {
+      RexNode node = rexBuilder.makeCall(SqlStdOperatorTable.CASE,
+          rexBuilder.makeInputRef(bb.root,
+              aggregatingSelectScope.groupExprList.size() + x),
+          rexBuilder.makeExactLiteral(BigDecimal.ONE, type),
+          rexBuilder.makeExactLiteral(BigDecimal.ZERO, type));
+      if (shift > 0) {
+        node = rexBuilder.makeCall(SqlStdOperatorTable.MULTIPLY, node,
+            rexBuilder.makeExactLiteral(TWO.pow(shift), type));
+      }
+      if (previous != null) {
+        node = rexBuilder.makeCall(SqlStdOperatorTable.PLUS, previous, node);
+      }
+      return node;
     }
 
     public List<RexNode> getPreExprs() {

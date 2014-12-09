@@ -22,17 +22,18 @@ import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 
 /**
- * The {@code GROUPING} function.
+ * The {@code GROUPING_ID} function.
  *
- * <p>This function is defined in the SQL standard.
+ * <p>This function is not defined in the SQL standard; our implementation is
+ * consistent with Oracle.
  *
  * <p>Some examples are in {@code agg.oq}.
  */
-class SqlGroupingFunction extends SqlAbstractGroupFunction {
-  public SqlGroupingFunction() {
-    super("GROUPING", SqlKind.GROUPING, ReturnTypes.INTEGER, null,
-        OperandTypes.ANY, SqlFunctionCategory.SYSTEM);
+class SqlGroupingIdFunction extends SqlAbstractGroupFunction {
+  public SqlGroupingIdFunction() {
+    super("GROUPING_ID", SqlKind.GROUPING_ID, ReturnTypes.BIGINT, null,
+        OperandTypes.ONE_OR_MORE, SqlFunctionCategory.SYSTEM);
   }
 }
 
-// End SqlGroupingFunction.java
+// End SqlGroupingIdFunction.java

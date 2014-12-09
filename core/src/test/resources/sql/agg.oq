@@ -396,11 +396,11 @@ select distinct count(*) from emp group by cube(deptno, gender);
 +--------+
 | EXPR$0 |
 +--------+
-| 1      |
-| 2      |
-| 3      |
-| 6      |
-| 9      |
+|      1 |
+|      2 |
+|      3 |
+|      6 |
+|      9 |
 +--------+
 (5 rows)
 
@@ -441,6 +441,32 @@ group by deptno;
 
 !ok
 
+# GROUPING, GROUP_ID, GROUPING_ID in SELECT clause of GROUP BY query
+select count(*) as c,
+  grouping(deptno) as g,
+  group_id() as gid,
+  grouping_id(deptno) as gd,
+  grouping_id(gender) as gg,
+  grouping_id(gender, deptno) as ggd,
+  grouping_id(gender, deptno) as gdg
+from emp
+group by deptno, gender;
++---+---+-----+----+----+-----+-----+
+| C | G | GID | GD | GG | GGD | GDG |
++---+---+-----+----+----+-----+-----+
+| 1 | 1 |   3 |  1 |  1 |   3 |   3 |
+| 1 | 1 |   3 |  1 |  1 |   3 |   3 |
+| 1 | 1 |   3 |  1 |  1 |   3 |   3 |
+| 1 | 1 |   3 |  1 |  1 |   3 |   3 |
+| 1 | 1 |   3 |  1 |  1 |   3 |   3 |
+| 1 | 1 |   3 |  1 |  1 |   3 |   3 |
+| 1 | 1 |   3 |  1 |  1 |   3 |   3 |
+| 2 | 1 |   3 |  1 |  1 |   3 |   3 |
++---+---+-----+----+----+-----+-----+
+(8 rows)
+
+!ok
+
 # GROUPING in ORDER BY clause
 select count(*) as c
 from emp
@@ -460,6 +486,24 @@ order by grouping(deptno);
 
 !ok
 
+# Duplicate argument to GROUPING_ID.
+select deptno, gender, grouping_id(deptno, gender, deptno), count(*) as c
+from emp
+where deptno = 10
+group by rollup(gender, deptno);
++--------+--------+--------+---+
+| DEPTNO | GENDER | EXPR$2 | C |
++--------+--------+--------+---+
+|     10 | F      |      0 | 1 |
+|     10 | M      |      0 | 1 |
+|        | F      |      5 | 1 |
+|        | M      |      5 | 1 |
+|        |        |      7 | 2 |
++--------+--------+--------+---+
+(5 rows)
+
+!ok
+
 # GROUPING in SELECT clause of ROLLUP query
 select count(*) as c, deptno, grouping(deptno) as g
 from emp
@@ -476,6 +520,36 @@ group by rollup(deptno);
 | 9 |        | 1 |
 +---+--------+---+
 (7 rows)
+
+!ok
+
+# GROUPING, GROUPING_ID and GROUP_ID
+select deptno, gender, grouping(deptno) gd, grouping(gender) gg,
+  grouping_id(deptno, gender) dg, grouping_id(gender, deptno) gd,
+  group_id() gid, count(*) c
+from emp group by cube(deptno, gender);
++--------+--------+----+----+----+----+-----+---+
+| DEPTNO | GENDER | GD | GG | DG | GD | GID | C |
++--------+--------+----+----+----+----+-----+---+
+|     10 | F      |  0 |  0 |  0 |  0 |   0 | 1 |
+|     10 | M      |  0 |  0 |  0 |  0 |   0 | 1 |
+|     10 |        |  0 |  1 |  1 |  2 |   1 | 2 |
+|     20 | M      |  0 |  0 |  0 |  0 |   0 | 1 |
+|     20 |        |  0 |  1 |  1 |  2 |   1 | 1 |
+|     30 | F      |  0 |  0 |  0 |  0 |   0 | 2 |
+|     30 |        |  0 |  1 |  1 |  2 |   1 | 2 |
+|     50 | F      |  0 |  0 |  0 |  0 |   0 | 1 |
+|     50 | M      |  0 |  0 |  0 |  0 |   0 | 1 |
+|     50 |        |  0 |  1 |  1 |  2 |   1 | 2 |
+|     60 | F      |  0 |  0 |  0 |  0 |   0 | 1 |
+|     60 |        |  0 |  1 |  1 |  2 |   1 | 1 |
+|        | F      |  0 |  0 |  0 |  0 |   0 | 1 |
+|        | F      |  1 |  0 |  2 |  1 |   2 | 6 |
+|        | M      |  1 |  0 |  2 |  1 |   2 | 3 |
+|        |        |  0 |  1 |  1 |  2 |   1 | 1 |
+|        |        |  1 |  1 |  3 |  3 |   3 | 9 |
++--------+--------+----+----+----+----+-----+---+
+(17 rows)
 
 !ok
 

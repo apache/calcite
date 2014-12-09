@@ -577,8 +577,14 @@ public enum SqlKind {
    * {@code GROUP BY} clause. */
   GROUPING_SETS,
 
-  /** The internal {@code GROUPING} function. */
-  GROUPING;
+  /** The internal {@code GROUPING(e)} function. */
+  GROUPING,
+
+  /** The internal {@code GROUPING_ID(e, ...)} function. */
+  GROUPING_ID,
+
+  /** The internal {@code GROUP_ID()} function. */
+  GROUP_ID;
 
   //~ Static fields/initializers ---------------------------------------------
 

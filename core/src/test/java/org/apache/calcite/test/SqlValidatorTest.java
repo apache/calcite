@@ -4746,6 +4746,99 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
                "GROUPING operator may only occur in SELECT, HAVING or ORDER BY clause");
   }
 
+  @Test public void testGroupingId() {
+    sql("select deptno, grouping_id(deptno) from emp group by deptno").ok();
+    sql("select deptno / 2, grouping_id(deptno / 2),\n"
+        + " ^grouping_id(deptno / 2, empno)^\n"
+        + "from emp group by deptno / 2, empno")
+        .ok();
+    sql("select deptno / 2, ^grouping_id()^\n"
+        + "from emp group by deptno / 2, empno")
+        .fails(
+            "Invalid number of arguments to function 'GROUPING_ID'. Was expecting 1 arguments");
+    sql("select deptno, grouping_id(^empno^) from emp group by deptno")
+        .fails("Expression 'EMPNO' is not being grouped");
+    sql("select deptno, grouping_id(^deptno + 1^) from emp group by deptno")
+        .fails("Argument to GROUPING_ID operator must be a grouped expression");
+    sql("select deptno, grouping_id(emp.^xxx^) from emp")
+        .fails("Column 'XXX' not found in table 'EMP'");
+    sql("select deptno, ^grouping_id(deptno)^ from emp")
+        .fails("GROUPING_ID operator may only occur in an aggregate query");
+    sql("select deptno, sum(^grouping_id(deptno)^) over () from emp")
+        .fails("GROUPING_ID operator may only occur in an aggregate query");
+    sql("select deptno from emp group by deptno having grouping_id(deptno) < 5")
+        .ok();
+    sql("select deptno from emp group by deptno order by grouping_id(deptno)")
+        .ok();
+    sql("select deptno as xx from emp group by deptno order by grouping_id(xx)")
+        .ok();
+    sql("select deptno as empno from emp\n"
+        + "group by deptno order by grouping_id(empno)")
+        .ok();
+    sql("select 1 as deptno from emp\n"
+        + "group by deptno order by grouping_id(^deptno^)")
+        .fails("Argument to GROUPING_ID operator must be a grouped expression");
+    sql("select deptno from emp group by deptno\n"
+        + "order by grouping_id(emp.deptno)")
+        .ok();
+    sql("select ^deptno^ from emp group by empno order by grouping_id(deptno)")
+        .fails("Expression 'DEPTNO' is not being grouped");
+    sql("select deptno from emp order by ^grouping_id(deptno)^")
+        .fails("GROUPING_ID operator may only occur in an aggregate query");
+    sql("select deptno from emp where ^grouping_id(deptno)^ = 1")
+        .fails("GROUPING_ID operator may only occur in an aggregate query");
+    sql("select deptno from emp where ^grouping_id(deptno)^ = 1\n"
+        + "group by deptno")
+        .fails(
+             "GROUPING_ID operator may only occur in SELECT, HAVING or ORDER BY clause");
+    sql("select deptno from emp group by deptno, ^grouping_id(deptno)^")
+        .fails(
+               "GROUPING_ID operator may only occur in SELECT, HAVING or ORDER BY clause");
+    sql("select deptno from emp\n"
+        + "group by grouping sets(deptno, ^grouping_id(deptno)^)")
+        .fails(
+               "GROUPING_ID operator may only occur in SELECT, HAVING or ORDER BY clause");
+    sql("select deptno from emp\n"
+        + "group by cube(empno, ^grouping_id(deptno)^)")
+        .fails(
+               "GROUPING_ID operator may only occur in SELECT, HAVING or ORDER BY clause");
+    sql("select deptno from emp\n"
+        + "group by rollup(empno, ^grouping_id(deptno)^)")
+        .fails(
+               "GROUPING_ID operator may only occur in SELECT, HAVING or ORDER BY clause");
+  }
+
+  @Test public void testGroupId() {
+    sql("select deptno, group_id() from emp group by deptno").ok();
+    sql("select deptno, ^group_id^ as x from emp group by deptno")
+        .fails("Column 'GROUP_ID' not found in any table");
+    sql("select deptno, ^group_id(deptno)^ from emp group by deptno")
+        .fails("Invalid number of arguments to function 'GROUP_ID'\\. "
+            + "Was expecting 0 arguments");
+    sql("select deptno from emp order by ^group_id(deptno)^")
+        .fails("GROUP_ID operator may only occur in an aggregate query");
+    sql("select deptno from emp where ^group_id()^ = 1")
+        .fails("GROUP_ID operator may only occur in an aggregate query");
+    sql("select deptno from emp where ^group_id()^ = 1 group by deptno")
+        .fails(
+            "GROUP_ID operator may only occur in SELECT, HAVING or ORDER BY clause");
+    sql("select deptno from emp group by deptno, ^group_id()^")
+        .fails(
+            "GROUP_ID operator may only occur in SELECT, HAVING or ORDER BY clause");
+    sql("select deptno from emp\n"
+        + "group by grouping sets(deptno, ^group_id()^)")
+        .fails(
+            "GROUP_ID operator may only occur in SELECT, HAVING or ORDER BY clause");
+    sql("select deptno from emp\n"
+        + "group by cube(empno, ^group_id()^)")
+        .fails(
+            "GROUP_ID operator may only occur in SELECT, HAVING or ORDER BY clause");
+    sql("select deptno from emp\n"
+        + "group by rollup(empno, ^group_id()^)")
+        .fails(
+            "GROUP_ID operator may only occur in SELECT, HAVING or ORDER BY clause");
+  }
+
   @Test public void testCubeGrouping() {
     sql("select deptno, grouping(deptno) from emp group by cube(deptno)").ok();
     sql("select deptno, grouping(^deptno + 1^) from emp\n"

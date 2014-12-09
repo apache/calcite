@@ -249,14 +249,14 @@ public interface CalciteResource {
   @BaseMessage("Expression ''{0}'' is not being grouped")
   ExInst<SqlValidatorException> notGroupExpr(String a0);
 
-  @BaseMessage("Argument to GROUPING operator must be a grouped expression")
-  ExInst<SqlValidatorException> groupingArgument();
+  @BaseMessage("Argument to {0} operator must be a grouped expression")
+  ExInst<SqlValidatorException> groupingArgument(String a0);
 
-  @BaseMessage("GROUPING operator may only occur in an aggregate query")
-  ExInst<SqlValidatorException> groupingInAggregate();
+  @BaseMessage("{0} operator may only occur in an aggregate query")
+  ExInst<SqlValidatorException> groupingInAggregate(String a0);
 
-  @BaseMessage("GROUPING operator may only occur in SELECT, HAVING or ORDER BY clause")
-  ExInst<SqlValidatorException> groupingInWrongClause();
+  @BaseMessage("{0} operator may only occur in SELECT, HAVING or ORDER BY clause")
+  ExInst<SqlValidatorException> groupingInWrongClause(String a0);
 
   @BaseMessage("Expression ''{0}'' is not in the select clause")
   ExInst<SqlValidatorException> notSelectDistinctExpr(String a0);
