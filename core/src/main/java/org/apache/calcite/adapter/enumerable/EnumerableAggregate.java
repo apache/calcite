@@ -184,8 +184,8 @@ public class EnumerableAggregate extends Aggregate
     final PhysType keyPhysType =
         inputPhysType.project(groupSet.asList(), getGroupType() != Group.SIMPLE,
             JavaRowFormat.LIST);
-    final int keyArity = groupSet.cardinality();
-    final int indicatorArity = indicator ? keyArity : 0;
+    final int groupCount = getGroupCount();
+    final int indicatorCount = getIndicatorCount();
 
     final List<AggImpState> aggs =
         new ArrayList<AggImpState>(aggCalls.size());
@@ -345,12 +345,12 @@ public class EnumerableAggregate extends Aggregate
     final BlockBuilder resultBlock = new BlockBuilder();
     final List<Expression> results = Expressions.list();
     final ParameterExpression key_;
-    if (keyArity == 0) {
+    if (groupCount == 0) {
       key_ = null;
     } else {
       final Type keyType = keyPhysType.getJavaRowType();
       key_ = Expressions.parameter(keyType, "key");
-      for (int j = 0; j < keyArity + indicatorArity; j++) {
+      for (int j = 0; j < groupCount + indicatorCount; j++) {
         results.add(
             keyPhysType.fieldReference(key_, j));
       }
@@ -388,7 +388,7 @@ public class EnumerableAggregate extends Aggregate
                       accumulatorAdder,
                       resultSelector)
                       .appendIfNotNull(keyPhysType.comparer()))));
-    } else if (keyArity == 0) {
+    } else if (groupCount == 0) {
       final Expression resultSelector =
           builder.append(
               "resultSelector",

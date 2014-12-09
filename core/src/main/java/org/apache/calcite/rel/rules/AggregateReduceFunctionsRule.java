@@ -134,7 +134,7 @@ public class AggregateReduceFunctionsRule extends RelOptRule {
 
     List<AggregateCall> oldCalls = oldAggRel.getAggCallList();
     final int groupCount = oldAggRel.getGroupCount();
-    final int indicatorCount = oldAggRel.indicator ? groupCount : 0;
+    final int indicatorCount = oldAggRel.getIndicatorCount();
 
     final List<AggregateCall> newCalls = Lists.newArrayList();
     final Map<AggregateCall, RexNode> aggCallMapping = Maps.newHashMap();

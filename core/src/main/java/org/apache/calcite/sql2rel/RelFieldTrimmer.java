@@ -773,7 +773,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
     // We have to return group keys and (if present) indicators.
     // So, pretend that the consumer asked for them.
     final int groupCount = aggregate.getGroupSet().cardinality();
-    final int indicatorCount = aggregate.indicator ? groupCount : 0;
+    final int indicatorCount = aggregate.getIndicatorCount();
     fieldsUsed =
         fieldsUsed.union(ImmutableBitSet.range(groupCount + indicatorCount));
 
@@ -814,8 +814,8 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
                   }
                 }));
 
-    // Populate mapping of where to find the fields. System and grouping
-    // fields first.
+    // Populate mapping of where to find the fields. System, group key and
+    // indicator fields first.
     for (IntPair pair : inputMapping) {
       if (pair.source < groupCount) {
         mapping.set(pair.source, pair.target);

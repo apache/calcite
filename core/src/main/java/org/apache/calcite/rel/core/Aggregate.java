@@ -198,6 +198,21 @@ public abstract class Aggregate extends SingleRel {
   }
 
   /**
+   * Returns the number of indicator fields.
+   *
+   * <p>This is the same as {@link #getGroupCount()} if {@link #indicator} is
+   * true, zero if {@code indicator} is false.
+   *
+   * <p>The offset of the first aggregate call in the output record is always
+   * <i>groupCount + indicatorCount</i>.
+   *
+   * @return number of indicator fields
+   */
+  public int getIndicatorCount() {
+    return indicator ? getGroupCount() : 0;
+  }
+
+  /**
    * Returns a bit set of the grouping fields.
    *
    * @return bit set of ordinals of grouping fields
