@@ -198,6 +198,18 @@ public abstract class Aggregate extends SingleRel {
   }
 
   /**
+   * If {@link #indicator} is true, it returns the number of grouping fields
+   * plus the number of indicator fields used by grouping sets.
+   * Otherwise, it returns the number of grouping fields.
+   */
+  public int getGroupAndIndicatorCount() {
+    if (this.indicator) {
+      return groupSet.cardinality() * 2;
+    }
+    return groupSet.cardinality();
+  }
+
+  /**
    * Returns a bit set of the grouping fields.
    *
    * @return bit set of ordinals of grouping fields
