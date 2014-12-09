@@ -22,7 +22,6 @@ import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
-import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.logical.LogicalUnion;
@@ -34,11 +33,13 @@ import org.apache.calcite.sql.fun.SqlMinMaxAggFunction;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.fun.SqlSumAggFunction;
 import org.apache.calcite.sql.fun.SqlSumEmptyIsZeroAggFunction;
+import org.apache.calcite.util.ImmutableBitSet;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
 import java.util.ArrayList;
+import java.util.BitSet;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
@@ -67,7 +68,7 @@ public class AggregateUnionTransposeRule extends RelOptRule {
    */
   private AggregateUnionTransposeRule() {
     super(
-        operand(LogicalAggregate.class, null, Aggregate.IS_SIMPLE,
+        operand(LogicalAggregate.class,
             operand(LogicalUnion.class, any())));
   }
 
@@ -90,9 +91,18 @@ public class AggregateUnionTransposeRule extends RelOptRule {
 
     RelOptCluster cluster = union.getCluster();
 
+    //If we have grouping sets, we have added one column
+    //per grouping column in order to know if it was
+    //originally null, so we need to shift accordingly
+    int groupCount;
+    if(aggRel.indicator) {
+      groupCount = aggRel.getGroupSet().cardinality()*2;
+    }
+    else {
+      groupCount = aggRel.getGroupSet().cardinality();
+    }
     List<AggregateCall> transformedAggCalls =
-        transformAggCalls(aggRel,
-            aggRel.getGroupSet().cardinality(),
+        transformAggCalls(aggRel, groupCount,
             aggRel.getAggCallList());
     if (transformedAggCalls == null) {
       // we've detected the presence of something like AVG,
@@ -115,8 +125,8 @@ public class AggregateUnionTransposeRule extends RelOptRule {
       } else {
         anyTransformed = true;
         newUnionInputs.add(
-            new LogicalAggregate(cluster, input, false, aggRel.getGroupSet(),
-                null, aggRel.getAggCallList()));
+            new LogicalAggregate(cluster, input, aggRel.indicator, aggRel.getGroupSet(),
+                aggRel.getGroupSets(), aggRel.getAggCallList()));
       }
     }
 
@@ -130,9 +140,25 @@ public class AggregateUnionTransposeRule extends RelOptRule {
     // create a new union whose children are the aggs created above
     LogicalUnion newUnion = new LogicalUnion(cluster, newUnionInputs, true);
 
-    LogicalAggregate newTopAggRel =
-        new LogicalAggregate(cluster, newUnion, false, aggRel.getGroupSet(),
-            null, transformedAggCalls);
+    LogicalAggregate newTopAggRel;
+    if(aggRel.indicator) {
+      //Grouping sets
+      int pos = aggRel.getGroupSet().nextClearBit(0);
+      int finalPos = pos * 2;
+      BitSet newGroupSet = aggRel.getGroupSet().toBitSet();
+      while(pos < finalPos) {
+        newGroupSet.set(pos++);
+      }
+      newTopAggRel =
+              new LogicalAggregate(cluster, newUnion, false, 
+                  ImmutableBitSet.FROM_BIT_SET.apply(newGroupSet),
+                  null, transformedAggCalls);
+    }
+    else {
+      newTopAggRel =
+          new LogicalAggregate(cluster, newUnion, false, aggRel.getGroupSet(),
+              null, transformedAggCalls);
+    }
 
     // In case we transformed any COUNT (which is always NOT NULL)
     // to SUM (which is always NULLABLE), cast back to keep the
