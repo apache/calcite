@@ -51,7 +51,7 @@ public class AggregateProjectMergeRule extends RelOptRule {
   /** Private constructor. */
   private AggregateProjectMergeRule() {
     super(
-        operand(Aggregate.class, null, Aggregate.IS_SIMPLE,
+        operand(Aggregate.class,
             operand(Project.class, any())));
   }
 
@@ -77,6 +77,23 @@ public class AggregateProjectMergeRule extends RelOptRule {
       }
     }
 
+    final ImmutableBitSet newGroupSet = ImmutableBitSet.of(newKeys);
+
+    ImmutableList<ImmutableBitSet> newGroupingSets = null;
+    if (aggregate.indicator) {
+      ImmutableList.Builder<ImmutableBitSet> newGroupingSetsBuilder =
+              ImmutableList.builder();
+      for (ImmutableBitSet groupingSet: aggregate.getGroupSets()) {
+        final ImmutableBitSet.Builder newGroupingSet =
+                ImmutableBitSet.builder();
+        for (int c : groupingSet) {
+          newGroupingSet.set(newKeys.get(c));
+        }
+        newGroupingSetsBuilder.add(newGroupingSet.build());
+      }
+      newGroupingSets = newGroupingSetsBuilder.build();
+    }
+
     final ImmutableList.Builder<AggregateCall> aggCalls =
         ImmutableList.builder();
     for (AggregateCall aggregateCall : aggregate.getAggCallList()) {
@@ -93,10 +110,10 @@ public class AggregateProjectMergeRule extends RelOptRule {
       aggCalls.add(aggregateCall.copy(newArgs.build()));
     }
 
-    final ImmutableBitSet newGroupSet = ImmutableBitSet.of(newKeys);
     final Aggregate newAggregate =
-        aggregate.copy(aggregate.getTraitSet(), project.getInput(), false,
-            newGroupSet, null, aggCalls.build());
+        aggregate.copy(aggregate.getTraitSet(), project.getInput(),
+            aggregate.indicator, newGroupSet, newGroupingSets,
+            aggCalls.build());
 
     // Add a project if the group set is not in the same order or
     // contains duplicates.
@@ -106,7 +123,13 @@ public class AggregateProjectMergeRule extends RelOptRule {
       for (int newKey : newKeys) {
         posList.add(newGroupSet.indexOf(newKey));
       }
-      for (int i = newAggregate.getGroupSet().cardinality();
+      if (aggregate.indicator) {
+        for (int newKey : newKeys) {
+          posList.add(aggregate.getGroupCount() + newGroupSet.indexOf(newKey));
+        }
+      }
+      for (int i = newAggregate.getGroupCount()
+                   + newAggregate.getIndicatorCount();
            i < newAggregate.getRowType().getFieldCount(); i++) {
         posList.add(i);
       }

@@ -2685,6 +2685,33 @@ LogicalProject(X=[$0], EXPR$1=[$2], Y=[$1])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testAggregateGroupingSetsProjectMerge">
+        <Resource name="sql">
+            <![CDATA[select x, sum(z), y from (
+  select deptno as x, empno as y, sal as z, sal * 2 as zz
+  from emp)
+group by rollup(x, y)]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(X=[$0], EXPR$1=[$4], Y=[$1])
+  LogicalProject(X=[CASE($2, null, $0)], Y=[CASE($3, null, $1)], i$X=[$2], i$Y=[$3], EXPR$1=[$4])
+    LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {}]], indicator=[true], EXPR$1=[SUM($2)])
+      LogicalProject(X=[$0], Y=[$1], Z=[$2])
+        LogicalProject(X=[$7], Y=[$0], Z=[$5], ZZ=[*($5, 2)])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(X=[$0], EXPR$1=[$4], Y=[$1])
+  LogicalProject(X=[CASE($2, null, $0)], Y=[CASE($3, null, $1)], i$X=[$2], i$Y=[$3], EXPR$1=[$4])
+    LogicalProject($f0=[$1], $f1=[$0], $f2=[$3], $f3=[$2], $f4=[$4])
+      LogicalAggregate(group=[{0, 7}], groups=[[{0, 7}, {7}, {}]], indicator=[true], EXPR$1=[SUM($5)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testPushFilterWithRank">
         <Resource name="sql">
             <![CDATA[select e1.ename, r

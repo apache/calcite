@@ -126,6 +126,7 @@ public class RelOptRulesTest extends RelOptTestBase {
     return DiffRepository.lookup(RelOptRulesTest.class);
   }
 
+
   @Test public void testUnionToDistinctRule() {
     checkPlanning(UnionToDistinctRule.INSTANCE,
         "select * from dept union select * from dept");
@@ -1052,6 +1053,17 @@ public class RelOptRulesTest extends RelOptTestBase {
             + "  select deptno as x, empno as y, sal as z, sal * 2 as zz\n"
             + "  from emp)\n"
             + "group by x, y");
+  }
+
+  @Test public void testAggregateGroupingSetsProjectMerge() throws Exception {
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(AggregateProjectMergeRule.INSTANCE)
+        .build();
+    checkPlanning(program,
+        "select x, sum(z), y from (\n"
+            + "  select deptno as x, empno as y, sal as z, sal * 2 as zz\n"
+            + "  from emp)\n"
+            + "group by rollup(x, y)");
   }
 
   public void transitiveInference() throws Exception {
