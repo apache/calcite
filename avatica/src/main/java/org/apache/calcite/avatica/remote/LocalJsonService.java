@@ -17,6 +17,7 @@
 package org.apache.calcite.avatica.remote;
 
 import java.io.IOException;
+import java.io.StringWriter;
 
 /**
  * Implementation of {@link org.apache.calcite.avatica.remote.Service}
@@ -31,13 +32,11 @@ public class LocalJsonService extends JsonService {
 
   @Override public String apply(String request) {
     try {
-      Request request2 = mapper.readValue(request, Request.class);
+      Request request2 = MAPPER.readValue(request, Request.class);
       Response response2 = request2.accept(service);
-      assert w.getBuffer().length() == 0;
-      mapper.writeValue(w, response2);
-      final String response = w.toString();
-      w.getBuffer().setLength(0);
-      return response;
+      final StringWriter w = new StringWriter();
+      MAPPER.writeValue(w, response2);
+      return w.toString();
     } catch (IOException e) {
       throw handle(e);
     }

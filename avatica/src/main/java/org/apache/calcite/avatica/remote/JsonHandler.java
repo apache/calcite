@@ -16,7 +16,6 @@
  */
 package org.apache.calcite.avatica.remote;
 
-import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
@@ -31,15 +30,11 @@ import java.io.StringWriter;
  */
 public class JsonHandler implements Handler {
   private final Service service;
-  protected final ObjectMapper mapper;
-  protected final StringWriter w = new StringWriter();
+
+  protected static final ObjectMapper MAPPER = JsonService.MAPPER;
 
   public JsonHandler(Service service) {
-    super();
     this.service = service;
-    mapper = new ObjectMapper();
-    mapper.configure(JsonParser.Feature.ALLOW_UNQUOTED_FIELD_NAMES, true);
-    mapper.configure(JsonParser.Feature.ALLOW_SINGLE_QUOTES, true);
   }
 
   public String apply(String jsonRequest) {
@@ -53,15 +48,13 @@ public class JsonHandler implements Handler {
   }
 
   private <T> T decode(String request, Class<T> valueType) throws IOException {
-    return mapper.readValue(request, valueType);
+    return MAPPER.readValue(request, valueType);
   }
 
   private <T> String encode(T response) throws IOException {
-    assert w.getBuffer().length() == 0;
-    mapper.writeValue(w, response);
-    final String s = w.toString();
-    w.getBuffer().setLength(0);
-    return s;
+    final StringWriter w = new StringWriter();
+    MAPPER.writeValue(w, response);
+    return w.toString();
   }
 
   protected RuntimeException handle(IOException e) {

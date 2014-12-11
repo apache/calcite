@@ -27,13 +27,14 @@ import java.io.StringWriter;
  * that encodes requests and responses as JSON.
  */
 public abstract class JsonService implements Service {
-  protected final ObjectMapper mapper;
-  protected final StringWriter w = new StringWriter();
+  protected static final ObjectMapper MAPPER;
+  static {
+    MAPPER = new ObjectMapper();
+    MAPPER.configure(JsonParser.Feature.ALLOW_UNQUOTED_FIELD_NAMES, true);
+    MAPPER.configure(JsonParser.Feature.ALLOW_SINGLE_QUOTES, true);
+  }
 
   public JsonService() {
-    mapper = new ObjectMapper();
-    mapper.configure(JsonParser.Feature.ALLOW_UNQUOTED_FIELD_NAMES, true);
-    mapper.configure(JsonParser.Feature.ALLOW_SINGLE_QUOTES, true);
   }
 
   /** Derived class should implement this method to transport requests and
@@ -41,15 +42,13 @@ public abstract class JsonService implements Service {
   public abstract String apply(String request);
 
   private <T> T decode(String response, Class<T> valueType) throws IOException {
-    return mapper.readValue(response, valueType);
+    return MAPPER.readValue(response, valueType);
   }
 
   private <T> String encode(T request) throws IOException {
-    assert w.getBuffer().length() == 0;
-    mapper.writeValue(w, request);
-    final String s = w.toString();
-    w.getBuffer().setLength(0);
-    return s;
+    final StringWriter w = new StringWriter();
+    MAPPER.writeValue(w, request);
+    return w.toString();
   }
 
   protected RuntimeException handle(IOException e) {
