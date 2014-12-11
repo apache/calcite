@@ -1163,6 +1163,311 @@ LogicalAggregate(group=[{0}], EXPR$1=[SUM($1)], EXPR$2=[$SUM0($2)], EXPR$3=[MIN(
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testPushSumConstantGroupingSetsThroughUnion">
+        <Resource name="sql">
+            <![CDATA[select deptno, job, sum(u) from
+(select *, 2 u from emp as e1 union all
+ select *, 3 u from emp as e2)
+group by rollup(deptno,job)]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(DEPTNO=[$0], JOB=[$1], EXPR$2=[$4])
+  LogicalProject(DEPTNO=[CASE($2, null, $0)], JOB=[CASE($3, null, $1)], i$DEPTNO=[$2], i$JOB=[$3], EXPR$2=[$4])
+    LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {}]], indicator=[true], EXPR$2=[SUM($2)])
+      LogicalProject(DEPTNO=[$7], JOB=[$2], U=[$9])
+        LogicalUnion(all=[true])
+          LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], U=[2])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+          LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], U=[3])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(DEPTNO=[CASE($2, null, $0)], JOB=[CASE($3, null, $1)], EXPR$2=[$4])
+  LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {}]], indicator=[true], EXPR$2=[SUM($2)])
+    LogicalUnion(all=[true])
+      LogicalAggregate(group=[{0, 1}], EXPR$2=[SUM($2)])
+        LogicalProject(DEPTNO=[$7], JOB=[$2], U=[2])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalAggregate(group=[{0, 1}], EXPR$2=[SUM($2)])
+        LogicalProject(DEPTNO=[$7], JOB=[$2], U=[3])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testPushSumNullConstantGroupingSetsThroughUnion">
+        <Resource name="sql">
+            <![CDATA[select deptno, job, sum(u) from
+(select *, cast(null as integer) u from emp as e1 union all
+ select *, cast(null as integer) u from emp as e2)
+group by rollup(deptno,job)]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(DEPTNO=[$0], JOB=[$1], EXPR$2=[$4])
+  LogicalProject(DEPTNO=[CASE($2, null, $0)], JOB=[CASE($3, null, $1)], i$DEPTNO=[$2], i$JOB=[$3], EXPR$2=[$4])
+    LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {}]], indicator=[true], EXPR$2=[SUM($2)])
+      LogicalProject(DEPTNO=[$7], JOB=[$2], U=[$9])
+        LogicalUnion(all=[true])
+          LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], U=[null])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+          LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], U=[null])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(DEPTNO=[CASE($2, null, $0)], JOB=[CASE($3, null, $1)], EXPR$2=[$4])
+  LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {}]], indicator=[true], EXPR$2=[SUM($2)])
+    LogicalUnion(all=[true])
+      LogicalAggregate(group=[{0, 1}], EXPR$2=[SUM($2)])
+        LogicalProject(DEPTNO=[$7], JOB=[$2], U=[null])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalAggregate(group=[{0, 1}], EXPR$2=[SUM($2)])
+        LogicalProject(DEPTNO=[$7], JOB=[$2], U=[null])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testPushSumNullableGroupingSetsThroughUnion">
+        <Resource name="sql">
+            <![CDATA[select deptno, job, sum(mgr) from
+(select * from emp as e1 union all
+ select * from emp as e2)
+group by rollup(deptno, job)
+]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(DEPTNO=[$0], JOB=[$1], EXPR$2=[$4])
+  LogicalProject(DEPTNO=[CASE($2, null, $0)], JOB=[CASE($3, null, $1)], i$DEPTNO=[$2], i$JOB=[$3], EXPR$2=[$4])
+    LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {}]], indicator=[true], EXPR$2=[SUM($2)])
+      LogicalProject(DEPTNO=[$7], JOB=[$2], MGR=[$3])
+        LogicalUnion(all=[true])
+          LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+          LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(DEPTNO=[CASE($2, null, $0)], JOB=[CASE($3, null, $1)], EXPR$2=[$4])
+  LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {}]], indicator=[true], EXPR$2=[SUM($2)])
+    LogicalUnion(all=[true])
+      LogicalAggregate(group=[{0, 1}], EXPR$2=[SUM($2)])
+        LogicalProject(DEPTNO=[$7], JOB=[$2], MGR=[$3])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalAggregate(group=[{0, 1}], EXPR$2=[SUM($2)])
+        LogicalProject(DEPTNO=[$7], JOB=[$2], MGR=[$3])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testPushCountStarGroupingSetsThroughUnion">
+        <Resource name="sql">
+            <![CDATA[select deptno, job, count(*) from
+(select * from emp as e1 union all
+ select * from emp as e2)
+group by rollup(deptno, job)]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(DEPTNO=[$0], JOB=[$1], EXPR$2=[$4])
+  LogicalProject(DEPTNO=[CASE($2, null, $0)], JOB=[CASE($3, null, $1)], i$DEPTNO=[$2], i$JOB=[$3], EXPR$2=[$4])
+    LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {}]], indicator=[true], EXPR$2=[COUNT()])
+      LogicalProject(DEPTNO=[$7], JOB=[$2])
+        LogicalUnion(all=[true])
+          LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+          LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(DEPTNO=[CASE($2, null, $0)], JOB=[CASE($3, null, $1)], EXPR$2=[$4])
+  LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {}]], indicator=[true], EXPR$2=[$SUM0($2)])
+    LogicalUnion(all=[true])
+      LogicalAggregate(group=[{0, 1}], EXPR$2=[COUNT()])
+        LogicalProject(DEPTNO=[$7], JOB=[$2])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalAggregate(group=[{0, 1}], EXPR$2=[COUNT()])
+        LogicalProject(DEPTNO=[$7], JOB=[$2])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testPushCountNullableGroupingSetsThroughUnion">
+        <Resource name="sql">
+            <![CDATA[select deptno, job, count(mgr) from
+(select * from emp as e1 union all
+ select * from emp as e2)
+group by rollup(deptno, job)]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(DEPTNO=[$0], JOB=[$1], EXPR$2=[$4])
+  LogicalProject(DEPTNO=[CASE($2, null, $0)], JOB=[CASE($3, null, $1)], i$DEPTNO=[$2], i$JOB=[$3], EXPR$2=[$4])
+    LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {}]], indicator=[true], EXPR$2=[COUNT($2)])
+      LogicalProject(DEPTNO=[$7], JOB=[$2], MGR=[$3])
+        LogicalUnion(all=[true])
+          LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+          LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(DEPTNO=[CASE($2, null, $0)], JOB=[CASE($3, null, $1)], EXPR$2=[$4])
+  LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {}]], indicator=[true], EXPR$2=[$SUM0($2)])
+    LogicalUnion(all=[true])
+      LogicalAggregate(group=[{0, 1}], EXPR$2=[COUNT($2)])
+        LogicalProject(DEPTNO=[$7], JOB=[$2], MGR=[$3])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalAggregate(group=[{0, 1}], EXPR$2=[COUNT($2)])
+        LogicalProject(DEPTNO=[$7], JOB=[$2], MGR=[$3])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testPushMaxNullableGroupingSetsThroughUnion">
+        <Resource name="sql">
+            <![CDATA[select deptno, job, max(mgr) from
+(select * from emp as e1 union all
+ select * from emp as e2)
+group by rollup(deptno, job)]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(DEPTNO=[$0], JOB=[$1], EXPR$2=[$4])
+  LogicalProject(DEPTNO=[CASE($2, null, $0)], JOB=[CASE($3, null, $1)], i$DEPTNO=[$2], i$JOB=[$3], EXPR$2=[$4])
+    LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {}]], indicator=[true], EXPR$2=[MAX($2)])
+      LogicalProject(DEPTNO=[$7], JOB=[$2], MGR=[$3])
+        LogicalUnion(all=[true])
+          LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+          LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(DEPTNO=[CASE($2, null, $0)], JOB=[CASE($3, null, $1)], EXPR$2=[$4])
+  LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {}]], indicator=[true], EXPR$2=[MAX($2)])
+    LogicalUnion(all=[true])
+      LogicalAggregate(group=[{0, 1}], EXPR$2=[MAX($2)])
+        LogicalProject(DEPTNO=[$7], JOB=[$2], MGR=[$3])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalAggregate(group=[{0, 1}], EXPR$2=[MAX($2)])
+        LogicalProject(DEPTNO=[$7], JOB=[$2], MGR=[$3])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testPushMinGroupingSetsThroughUnion">
+        <Resource name="sql">
+            <![CDATA[select deptno, job, min(empno) from
+            (select * from emp as e1 union all
+            select * from emp as e2)
+            group by rollup(deptno, job)]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(DEPTNO=[$0], JOB=[$1], EXPR$2=[$4])
+  LogicalProject(DEPTNO=[CASE($2, null, $0)], JOB=[CASE($3, null, $1)], i$DEPTNO=[$2], i$JOB=[$3], EXPR$2=[$4])
+    LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {}]], indicator=[true], EXPR$2=[MIN($2)])
+      LogicalProject(DEPTNO=[$7], JOB=[$2], EMPNO=[$0])
+        LogicalUnion(all=[true])
+          LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+          LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(DEPTNO=[CASE($2, null, $0)], JOB=[CASE($3, null, $1)], EXPR$2=[$4])
+  LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {}]], indicator=[true], EXPR$2=[MIN($2)])
+    LogicalUnion(all=[true])
+      LogicalAggregate(group=[{0, 1}], EXPR$2=[MIN($2)])
+        LogicalProject(DEPTNO=[$7], JOB=[$2], EMPNO=[$0])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalAggregate(group=[{0, 1}], EXPR$2=[MIN($2)])
+        LogicalProject(DEPTNO=[$7], JOB=[$2], EMPNO=[$0])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testPushAvgGroupingSetsThroughUnion">
+        <Resource name="sql">
+            <![CDATA[select deptno, job, avg(empno) from
+(select * from emp as e1 union all
+ select * from emp as e2)
+group by rollup(deptno, job)]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(DEPTNO=[$0], JOB=[$1], EXPR$2=[$4])
+  LogicalProject(DEPTNO=[CASE($2, null, $0)], JOB=[CASE($3, null, $1)], i$DEPTNO=[$2], i$JOB=[$3], EXPR$2=[$4])
+    LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {}]], indicator=[true], EXPR$2=[AVG($2)])
+      LogicalProject(DEPTNO=[$7], JOB=[$2], EMPNO=[$0])
+        LogicalUnion(all=[true])
+          LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+          LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(DEPTNO=[CASE($2, null, $0)], JOB=[CASE($3, null, $1)], EXPR$2=[$4])
+  LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {}]], indicator=[true], EXPR$2=[AVG($2)])
+    LogicalUnion(all=[true])
+      LogicalProject(DEPTNO=[$7], JOB=[$2], EMPNO=[$0])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalProject(DEPTNO=[$7], JOB=[$2], EMPNO=[$0])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testPushSumCountStarGroupingSetsThroughUnion">
+        <Resource name="sql">
+            <![CDATA[select deptno,job,sum(empno),count(*),min(deptno),max(empno) from
+(select * from emp as e1 union all
+ select * from emp as e2)
+group by rollup(deptno,job)]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(DEPTNO=[$0], JOB=[$1], EXPR$2=[$4], EXPR$3=[$5], EXPR$4=[$6], EXPR$5=[$7])
+  LogicalProject(DEPTNO=[CASE($2, null, $0)], JOB=[CASE($3, null, $1)], i$DEPTNO=[$2], i$JOB=[$3], EXPR$2=[$4], EXPR$3=[$5], EXPR$4=[$6], EXPR$5=[$7])
+    LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {}]], indicator=[true], EXPR$2=[SUM($2)], EXPR$3=[COUNT()], EXPR$4=[MIN($0)], EXPR$5=[MAX($2)])
+      LogicalProject(DEPTNO=[$7], JOB=[$2], EMPNO=[$0])
+        LogicalUnion(all=[true])
+          LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+          LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(DEPTNO=[CASE($2, null, $0)], JOB=[CASE($3, null, $1)], EXPR$2=[$4], EXPR$3=[$5], EXPR$4=[$6], EXPR$5=[$7])
+  LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {}]], indicator=[true], EXPR$2=[SUM($2)], EXPR$3=[$SUM0($3)], EXPR$4=[MIN($4)], EXPR$5=[MAX($5)])
+    LogicalUnion(all=[true])
+      LogicalAggregate(group=[{0, 1}], EXPR$2=[SUM($2)], EXPR$3=[COUNT()], EXPR$4=[MIN($0)], EXPR$5=[MAX($2)])
+        LogicalProject(DEPTNO=[$7], JOB=[$2], EMPNO=[$0])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalAggregate(group=[{0, 1}], EXPR$2=[SUM($2)], EXPR$3=[COUNT()], EXPR$4=[MIN($0)], EXPR$5=[MAX($2)])
+        LogicalProject(DEPTNO=[$7], JOB=[$2], EMPNO=[$0])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testPullConstantThroughConstLast">
         <Resource name="sql">
             <![CDATA[select deptno, max(mgr) from (

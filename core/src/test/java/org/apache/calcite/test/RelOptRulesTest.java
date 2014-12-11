@@ -921,6 +921,49 @@ public class RelOptRulesTest extends RelOptTestBase {
     basePushAggThroughUnion();
   }
 
+  @Test public void testPushSumConstantGroupingSetsThroughUnion() throws
+      Exception {
+    basePushAggThroughUnion();
+  }
+
+  @Test public void testPushSumNullConstantGroupingSetsThroughUnion() throws
+      Exception {
+    basePushAggThroughUnion();
+  }
+
+  @Test public void testPushSumNullableGroupingSetsThroughUnion() throws
+      Exception {
+    basePushAggThroughUnion();
+  }
+
+  @Test public void testPushCountStarGroupingSetsThroughUnion() throws
+      Exception {
+    basePushAggThroughUnion();
+  }
+
+  @Test public void testPushCountNullableGroupingSetsThroughUnion() throws
+      Exception {
+    basePushAggThroughUnion();
+  }
+
+  @Test public void testPushMaxNullableGroupingSetsThroughUnion() throws
+      Exception {
+    basePushAggThroughUnion();
+  }
+
+  @Test public void testPushMinGroupingSetsThroughUnion() throws Exception {
+    basePushAggThroughUnion();
+  }
+
+  @Test public void testPushAvgGroupingSetsThroughUnion() throws Exception {
+    basePushAggThroughUnion();
+  }
+
+  @Test public void testPushSumCountStarGroupingSetsThroughUnion() throws
+      Exception {
+    basePushAggThroughUnion();
+  }
+
   private void basePullConstantTroughAggregate() throws Exception {
     HepProgram program = new HepProgramBuilder()
         .addRuleInstance(ProjectMergeRule.INSTANCE)
