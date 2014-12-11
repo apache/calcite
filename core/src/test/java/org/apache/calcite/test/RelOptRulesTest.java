@@ -316,7 +316,7 @@ public class RelOptRulesTest extends RelOptTestBase {
             + " from sales.dept group by name");
   }
 
-  @Test public void testDistinctCount() {
+  @Test public void testDistinctCount1() {
     final HepProgram program = HepProgram.builder()
         .addRuleInstance(AggregateExpandDistinctAggregatesRule.INSTANCE)
         .addRuleInstance(AggregateProjectMergeRule.INSTANCE)
@@ -324,6 +324,36 @@ public class RelOptRulesTest extends RelOptTestBase {
     checkPlanning(program,
         "select deptno, count(distinct ename)"
             + " from sales.emp group by deptno");
+  }
+
+  @Test public void testDistinctCount2() {
+    final HepProgram program = HepProgram.builder()
+        .addRuleInstance(AggregateExpandDistinctAggregatesRule.INSTANCE)
+        .addRuleInstance(AggregateProjectMergeRule.INSTANCE)
+        .build();
+    checkPlanning(program,
+        "select deptno, count(distinct ename), sum(sal)"
+            + " from sales.emp group by deptno");
+  }
+
+  @Test public void testDistinctCountGroupingSets1() {
+    final HepProgram program = HepProgram.builder()
+        .addRuleInstance(AggregateExpandDistinctAggregatesRule.INSTANCE)
+        .addRuleInstance(ProjectMergeRule.INSTANCE)
+        .build();
+    checkPlanning(program,
+        "select deptno, job, count(distinct ename)"
+            + " from sales.emp group by rollup(deptno,job)");
+  }
+
+  @Test public void testDistinctCountGroupingSets2() {
+    final HepProgram program = HepProgram.builder()
+        .addRuleInstance(AggregateExpandDistinctAggregatesRule.INSTANCE)
+        .addRuleInstance(ProjectMergeRule.INSTANCE)
+        .build();
+    checkPlanning(program,
+        "select deptno, job, count(distinct ename), sum(sal)"
+            + " from sales.emp group by rollup(deptno,job)");
   }
 
   @Test public void testPushProjectPastFilter() {
