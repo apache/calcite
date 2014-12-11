@@ -564,8 +564,11 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
     assert operands.size() == 1;
     RexNode x = cx.convertExpression(operands.get(0));
     final RexBuilder rexBuilder = cx.getRexBuilder();
-    RelDataType resType =
-        cx.getTypeFactory().createSqlType(SqlTypeName.BIGINT);
+    final RelDataTypeFactory typeFactory = cx.getTypeFactory();
+    final RelDataType resType =
+        typeFactory.createTypeWithNullability(
+            typeFactory.createSqlType(SqlTypeName.BIGINT),
+            x.getType().isNullable());
     RexNode res =
         rexBuilder.makeCall(
             resType,

@@ -723,6 +723,9 @@ public class SqlJdbcFunctionCall extends SqlFunction {
             }
           });
       map.put(
+          "QUARTER",
+          new MakeCall(SqlStdOperatorTable.QUARTER, 1));
+      map.put(
           "RTRIM",
           new MakeCall(SqlStdOperatorTable.TRIM, 1) {
             @Override SqlCall createCall(

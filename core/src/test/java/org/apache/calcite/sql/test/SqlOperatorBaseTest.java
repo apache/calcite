@@ -1478,7 +1478,7 @@ public abstract class SqlOperatorBaseTest {
 
     // Numeric Functions
     if (!enable) {
-      return;
+//      return;
     }
     tester.checkScalar("{fn ABS(-3)}", 3, "INTEGER NOT NULL");
     if (false) {
@@ -1666,9 +1666,8 @@ public abstract class SqlOperatorBaseTest {
       tester.checkScalar("{fn MONTHNAME(date)}", null, "");
     }
     tester.checkType("{fn NOW()}", "TIMESTAMP(0) NOT NULL");
-    if (false) {
-      tester.checkScalar("{fn QUARTER(date)}", null, "");
-    }
+    tester.checkScalar("{fn QUARTER(DATE '2014-12-10')}", "4",
+        "BIGINT NOT NULL");
     if (false) {
       tester.checkScalar("{fn SECOND(time)}", null, "");
     }
@@ -4140,6 +4139,7 @@ public abstract class SqlOperatorBaseTest {
         "quarter(date '2008-12-23')",
         "4",
         "BIGINT NOT NULL");
+    tester.checkNull("quarter(cast(null as date))");
   }
 
   @Test public void testExtractFunc() {
