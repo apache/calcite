@@ -4086,6 +4086,62 @@ public abstract class SqlOperatorBaseTest {
     tester.setFor(SqlStdOperatorTable.FUSION, VM_FENNEL, VM_JAVA);
   }
 
+  @Test public void testQuarter() {
+    tester.setFor(
+        SqlStdOperatorTable.QUARTER,
+        VM_FENNEL,
+        VM_JAVA);
+
+    tester.checkScalar(
+        "quarter(date '2008-1-23')",
+        "1",
+        "BIGINT NOT NULL");
+    tester.checkScalar(
+        "quarter(date '2008-2-23')",
+        "1",
+        "BIGINT NOT NULL");
+    tester.checkScalar(
+        "quarter(date '2008-3-23')",
+        "1",
+        "BIGINT NOT NULL");
+    tester.checkScalar(
+        "quarter(date '2008-4-23')",
+        "2",
+        "BIGINT NOT NULL");
+    tester.checkScalar(
+        "quarter(date '2008-5-23')",
+        "2",
+        "BIGINT NOT NULL");
+    tester.checkScalar(
+        "quarter(date '2008-6-23')",
+        "2",
+        "BIGINT NOT NULL");
+    tester.checkScalar(
+        "quarter(date '2008-7-23')",
+        "3",
+        "BIGINT NOT NULL");
+    tester.checkScalar(
+        "quarter(date '2008-8-23')",
+        "3",
+        "BIGINT NOT NULL");
+    tester.checkScalar(
+        "quarter(date '2008-9-23')",
+        "3",
+        "BIGINT NOT NULL");
+    tester.checkScalar(
+        "quarter(date '2008-10-23')",
+        "4",
+        "BIGINT NOT NULL");
+    tester.checkScalar(
+        "quarter(date '2008-11-23')",
+        "4",
+        "BIGINT NOT NULL");
+    tester.checkScalar(
+        "quarter(date '2008-12-23')",
+        "4",
+        "BIGINT NOT NULL");
+  }
+
   @Test public void testExtractFunc() {
     tester.setFor(
         SqlStdOperatorTable.EXTRACT,

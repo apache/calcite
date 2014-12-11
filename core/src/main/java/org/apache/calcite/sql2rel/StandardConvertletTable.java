@@ -18,6 +18,7 @@ package org.apache.calcite.sql2rel;
 
 import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.avatica.util.TimeUnit;
+import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
@@ -56,6 +57,7 @@ import org.apache.calcite.sql.fun.SqlMapValueConstructor;
 import org.apache.calcite.sql.fun.SqlMultisetQueryConstructor;
 import org.apache.calcite.sql.fun.SqlMultisetValueConstructor;
 import org.apache.calcite.sql.fun.SqlOverlapsOperator;
+import org.apache.calcite.sql.fun.SqlQuarterFunction;
 import org.apache.calcite.sql.fun.SqlRowOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
@@ -549,6 +551,34 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
     return res;
   }
 
+  /**
+   * Converts a call to the {@code QUARTER} function.
+   *
+   * <p>Called automatically via reflection.
+   */
+  public RexNode convertQuarter(
+      SqlRexContext cx,
+      SqlQuarterFunction op,
+      SqlCall call) {
+    final List<SqlNode> operands = call.getOperandList();
+    assert operands.size() == 1;
+    RexNode x = cx.convertExpression(operands.get(0));
+    final RexBuilder rexBuilder = cx.getRexBuilder();
+    RelDataType resType =
+        cx.getTypeFactory().createSqlType(SqlTypeName.BIGINT);
+    RexNode res =
+        rexBuilder.makeCall(
+            resType,
+            SqlStdOperatorTable.EXTRACT_DATE,
+            ImmutableList.of(rexBuilder.makeFlag(TimeUnitRange.MONTH), x));
+    res = rexBuilder.makeCall(SqlStdOperatorTable.MINUS, res,
+        rexBuilder.makeExactLiteral(BigDecimal.ONE));
+    res = divide(rexBuilder, res, 3);
+    res = rexBuilder.makeCall(SqlStdOperatorTable.PLUS, res,
+        rexBuilder.makeExactLiteral(BigDecimal.ONE));
+    return res;
+  }
+
   private static long getFactor(TimeUnit unit) {
     switch (unit) {
     case DAY:
@@ -598,7 +628,7 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
     for (RexNode expr : exprs) {
       if (SqlTypeName.INTERVAL_YEAR_MONTH
           == expr.getType().getSqlTypeName()) {
-        Util.needToImplement(
+        throw Util.needToImplement(
             "Datetime subtraction of year month interval");
       }
     }

@@ -1354,6 +1354,14 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   public static final SqlFunction EXTRACT = new SqlExtractFunction();
 
   /**
+   * The SQL <code>QUARTER</code> operator. Returns the Quarter
+   * from a DATETIME  E.g.<br>
+   * <code>QUARTER(date '2008-9-23')</code> returns <code>
+   * 3</code>
+   */
+  public static final SqlQuarterFunction QUARTER = new SqlQuarterFunction();
+
+  /**
    * The ELEMENT operator, used to convert a multiset with only one item to a
    * "regular" type. Example ... log(ELEMENT(MULTISET[1])) ...
    */
