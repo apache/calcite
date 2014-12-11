@@ -959,7 +959,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         "LOCALTIME(-1)",
         "Argument to function 'LOCALTIME' must be a positive integer literal");
     checkExpFails(
-        "LOCALTIME(^100000000000000^)",
+        "^LOCALTIME(100000000000000)^",
         "(?s).*Numeric literal '100000000000000' out of range.*");
     checkWholeExpFails(
         "LOCALTIME(4)",
@@ -982,7 +982,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         "LOCALTIMESTAMP(-1)",
         "Argument to function 'LOCALTIMESTAMP' must be a positive integer literal");
     checkExpFails(
-        "LOCALTIMESTAMP(^100000000000000^)",
+        "^LOCALTIMESTAMP(100000000000000)^",
         "(?s).*Numeric literal '100000000000000' out of range.*");
     checkWholeExpFails(
         "LOCALTIMESTAMP(4)",
@@ -1023,7 +1023,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         "current_time(-1)",
         "Argument to function 'CURRENT_TIME' must be a positive integer literal");
     checkExpFails(
-        "CURRENT_TIME(^100000000000000^)",
+        "^CURRENT_TIME(100000000000000)^",
         "(?s).*Numeric literal '100000000000000' out of range.*");
     checkWholeExpFails(
         "CURRENT_TIME(4)",
@@ -1050,7 +1050,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         "CURRENT_TIMESTAMP(-1)",
         "Argument to function 'CURRENT_TIMESTAMP' must be a positive integer literal");
     checkExpFails(
-        "CURRENT_TIMESTAMP(^100000000000000^)",
+        "^CURRENT_TIMESTAMP(100000000000000)^",
         "(?s).*Numeric literal '100000000000000' out of range.*");
     checkWholeExpFails(
         "CURRENT_TIMESTAMP(4)",

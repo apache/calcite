@@ -79,6 +79,7 @@ import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.trace.CalciteTrace;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
@@ -130,6 +131,11 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
    * Alias prefix generated for source columns when rewriting UPDATE to MERGE.
    */
   public static final String UPDATE_ANON_PREFIX = "SYS$ANON";
+
+  @VisibleForTesting
+  public SqlValidatorScope getEmptyScope() {
+    return new EmptyScope(this);
+  }
 
   //~ Enums ------------------------------------------------------------------
 

@@ -16,16 +16,32 @@
  */
 package org.apache.calcite.sql.test;
 
+import org.apache.calcite.avatica.util.DateTimeUtils;
+import org.apache.calcite.linq4j.Linq4j;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.runtime.Hook;
+import org.apache.calcite.sql.SqlAggFunction;
+import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlCallBinding;
+import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlDialect;
+import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlJdbcFunctionCall;
 import org.apache.calcite.sql.SqlLiteral;
+import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlNodeList;
+import org.apache.calcite.sql.SqlOperandCountRange;
+import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.pretty.SqlPrettyWriter;
 import org.apache.calcite.sql.type.BasicSqlType;
+import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.util.SqlString;
+import org.apache.calcite.sql.validate.SqlValidatorImpl;
+import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.test.CalciteAssert;
 import org.apache.calcite.test.SqlLimitsTest;
 import org.apache.calcite.util.Bug;
@@ -34,8 +50,10 @@ import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
 import com.google.common.base.Function;
+import com.google.common.collect.Lists;
 
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.math.BigDecimal;
@@ -47,6 +65,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
+import java.util.Collections;
 import java.util.List;
 import java.util.TimeZone;
 import java.util.regex.Pattern;
@@ -3003,6 +3022,12 @@ public abstract class SqlOperatorBaseTest {
     tester.checkBoolean("'abbc' like 'a\\%c' escape '\\'", Boolean.FALSE);
   }
 
+  @Ignore("[CALCITE-525] Exception-handling in built-in functions")
+  @Test public void testLikeEscape2() {
+    tester.checkBoolean("'x' not like 'x' escape 'x'", Boolean.TRUE);
+    tester.checkBoolean("'xyz' not like 'xyz' escape 'xyz'", Boolean.TRUE);
+  }
+
   @Test public void testLikeOperator() {
     tester.setFor(SqlStdOperatorTable.LIKE);
     tester.checkBoolean("''  like ''", Boolean.TRUE);
@@ -3798,7 +3823,10 @@ public abstract class SqlOperatorBaseTest {
         "No match found for function signature LOCALTIMESTAMP\\(\\)",
         false);
     tester.checkFails(
-        "LOCALTIMESTAMP(^4000000000^)", LITERAL_OUT_OF_RANGE_MESSAGE, false);
+        "^LOCALTIMESTAMP(4000000000)^", LITERAL_OUT_OF_RANGE_MESSAGE, false);
+    tester.checkFails(
+        "^LOCALTIMESTAMP(9223372036854775807)^", LITERAL_OUT_OF_RANGE_MESSAGE,
+        false);
     tester.checkScalar(
         "LOCALTIMESTAMP(1)", TIMESTAMP_PATTERN,
         "TIMESTAMP(1) NOT NULL");
@@ -3852,7 +3880,7 @@ public abstract class SqlOperatorBaseTest {
         "No match found for function signature CURRENT_TIMESTAMP\\(\\)",
         false);
     tester.checkFails(
-        "CURRENT_TIMESTAMP(^4000000000^)", LITERAL_OUT_OF_RANGE_MESSAGE, false);
+        "^CURRENT_TIMESTAMP(4000000000)^", LITERAL_OUT_OF_RANGE_MESSAGE, false);
     tester.checkScalar(
         "CURRENT_TIMESTAMP(1)", TIMESTAMP_PATTERN,
         "TIMESTAMP(1) NOT NULL");
@@ -5112,6 +5140,122 @@ public abstract class SqlOperatorBaseTest {
         false);
   }
 
+  /** Test that calls all operators with all possible argument types, and for
+   * each type, with a set of tricky values. */
+  @Test public void testArgumentBounds() {
+    if (!CalciteAssert.ENABLE_SLOW) {
+      return;
+    }
+    final SqlValidatorImpl validator = (SqlValidatorImpl) tester.getValidator();
+    final SqlValidatorScope scope = validator.getEmptyScope();
+    final RelDataTypeFactory typeFactory = validator.getTypeFactory();
+    final Builder builder = new Builder(typeFactory);
+    builder.add0(SqlTypeName.BOOLEAN, true, false);
+    builder.add0(SqlTypeName.TINYINT, 0, 1, -3, Byte.MAX_VALUE, Byte.MIN_VALUE);
+    builder.add0(SqlTypeName.SMALLINT, 0, 1, -4, Short.MAX_VALUE,
+        Short.MIN_VALUE);
+    builder.add0(SqlTypeName.INTEGER, 0, 1, -2, Integer.MIN_VALUE,
+        Integer.MAX_VALUE);
+    builder.add0(SqlTypeName.BIGINT, 0, 1, -5, Integer.MAX_VALUE,
+        Long.MAX_VALUE, Long.MIN_VALUE);
+    builder.add1(SqlTypeName.VARCHAR, 11, "", " ", "hello world");
+    builder.add1(SqlTypeName.CHAR, 5, "", "e", "hello");
+    builder.add0(SqlTypeName.TIMESTAMP, 0L, DateTimeUtils.MILLIS_PER_DAY);
+    for (SqlOperator op : SqlStdOperatorTable.instance().getOperatorList()) {
+      switch (op.getKind()) {
+      case TRIM: // can't handle the flag argument
+      case EXISTS:
+        continue;
+      }
+      switch (op.getSyntax()) {
+      case SPECIAL:
+        continue;
+      }
+      final SqlOperandTypeChecker typeChecker =
+          op.getOperandTypeChecker();
+      if (typeChecker == null) {
+        continue;
+      }
+      final SqlOperandCountRange range =
+          typeChecker.getOperandCountRange();
+      for (int n = range.getMin(), max = range.getMax(); n <= max; n++) {
+        final List<List<ValueType>> argValues =
+            Collections.nCopies(n, builder.values);
+        for (final List<ValueType> args : Linq4j.product(argValues)) {
+          SqlNodeList nodeList = new SqlNodeList(SqlParserPos.ZERO);
+          int nullCount = 0;
+          for (ValueType arg : args) {
+            if (arg.value == null) {
+              ++nullCount;
+            }
+            nodeList.add(arg.node);
+          }
+          final SqlCall call = op.createCall(nodeList);
+          final SqlCallBinding binding =
+              new SqlCallBinding(validator, scope, call);
+          if (!typeChecker.checkOperandTypes(binding, false)) {
+            continue;
+          }
+          final SqlPrettyWriter writer =
+              new SqlPrettyWriter(SqlDialect.CALCITE);
+          op.unparse(writer, call, 0, 0);
+          final String s = writer.toSqlString().toString();
+          if (s.startsWith("OVERLAY(")
+              || s.contains(" / 0")
+              || s.matches("MOD\\(.*, 0\\)")) {
+            continue;
+          }
+          boolean strict = isStrict(op);
+          try {
+            if (nullCount > 0 && strict) {
+              tester.checkNull(s);
+            } else {
+              final String query;
+              if (op instanceof SqlAggFunction) {
+                if (op.requiresOrder()) {
+                  query = "SELECT " + s + " OVER () FROM (VALUES (1))";
+                } else {
+                  query = "SELECT " + s + " FROM (VALUES (1))";
+                }
+              } else {
+                query = SqlTesterImpl.buildQuery(s);
+              }
+              tester.check(query, SqlTests.ANY_TYPE_CHECKER,
+                  SqlTests.ANY_RESULT_CHECKER);
+            }
+          } catch (Error e) {
+            System.out.println(s + ": " + e.getMessage());
+            throw e;
+          } catch (Exception e) {
+            System.out.println("Failed: " + s + ": " + e.getMessage());
+          }
+        }
+      }
+    }
+  }
+
+  /** Returns whether an operator always returns null if any of its arguments is
+   * null. */
+  private static boolean isStrict(SqlOperator op) {
+    if (op == SqlStdOperatorTable.NULLIF) {
+      return false;
+    }
+    switch (op.kind) {
+    case IS_DISTINCT_FROM:
+    case IS_NOT_DISTINCT_FROM:
+    case IS_NULL:
+    case IS_NOT_NULL:
+    case IS_TRUE:
+    case IS_NOT_TRUE:
+    case IS_FALSE:
+    case IS_NOT_FALSE:
+    case AND: // not strict: FALSE OR NULL yields FALSE
+    case OR: // not strict: TRUE OR NULL yields TRUE
+      return false;
+    }
+    return true;
+  }
+
   private List<Object> getValues(BasicSqlType type, boolean inBound) {
     List<Object> values = new ArrayList<Object>();
     for (boolean sign : FALSE_TRUE) {
@@ -5256,6 +5400,86 @@ public abstract class SqlOperatorBaseTest {
       } catch (SQLException e) {
         throw new RuntimeException(e);
       }
+    }
+  }
+
+  /** A type, a value, and its {@link SqlNode} representation. */
+  static class ValueType {
+    final RelDataType type;
+    final Object value;
+    final SqlNode node;
+
+    ValueType(RelDataType type, Object value) {
+      this.type = type;
+      this.value = value;
+      this.node = literal(type, value);
+    }
+
+    private SqlNode literal(RelDataType type, Object value) {
+      if (value == null) {
+        int precision = type.getPrecision();
+        int scale = type.getScale();
+        if (!type.getSqlTypeName().allowsPrec()) {
+          precision = -1;
+        }
+        if (!type.getSqlTypeName().allowsScale()) {
+          scale = -1;
+        }
+        return SqlStdOperatorTable.CAST.createCall(
+            SqlParserPos.ZERO,
+            SqlLiteral.createNull(SqlParserPos.ZERO),
+            new SqlDataTypeSpec(
+                new SqlIdentifier(type.getSqlTypeName().getName(),
+                    SqlParserPos.ZERO), precision, scale, null, null,
+                SqlParserPos.ZERO));
+      }
+      switch (type.getSqlTypeName()) {
+      case BOOLEAN:
+        return SqlLiteral.createBoolean((Boolean) value, SqlParserPos.ZERO);
+      case TINYINT:
+      case SMALLINT:
+      case INTEGER:
+      case BIGINT:
+        return SqlLiteral.createExactNumeric(
+            value.toString(), SqlParserPos.ZERO);
+      case CHAR:
+      case VARCHAR:
+        return SqlLiteral.createCharString(value.toString(), SqlParserPos.ZERO);
+      case TIMESTAMP:
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTimeInMillis((Long) value);
+        return SqlLiteral.createTimestamp(calendar, type.getPrecision(),
+            SqlParserPos.ZERO);
+      default:
+        throw new AssertionError(type);
+      }
+    }
+  }
+
+  /** Builds lists of types and sample values. */
+  static class Builder {
+    final RelDataTypeFactory typeFactory;
+    final List<RelDataType> types = Lists.newArrayList();
+    final List<ValueType> values = Lists.newArrayList();
+
+    Builder(RelDataTypeFactory typeFactory) {
+      this.typeFactory = typeFactory;
+    }
+
+    public void add0(SqlTypeName typeName, Object... values) {
+      add(typeFactory.createSqlType(typeName), values);
+    }
+
+    public void add1(SqlTypeName typeName, int precision, Object... values) {
+      add(typeFactory.createSqlType(typeName, precision), values);
+    }
+
+    private void add(RelDataType type, Object[] values) {
+      types.add(type);
+      for (Object value : values) {
+        this.values.add(new ValueType(type, value));
+      }
+      this.values.add(new ValueType(type, null));
     }
   }
 }

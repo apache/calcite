@@ -27,6 +27,7 @@ import org.apache.calcite.sql.SqlUtil;
 
 import com.google.common.collect.ImmutableList;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 import static org.apache.calcite.util.Static.RESOURCE;
@@ -228,8 +229,9 @@ public abstract class OperandTypes {
           }
 
           final SqlLiteral arg = (SqlLiteral) node;
-          final int value = arg.intValue(true);
-          if (value < 0) {
+          final BigDecimal value = (BigDecimal) arg.getValue();
+          if (value.compareTo(BigDecimal.ZERO) < 0
+              || hasFractionalPart(value)) {
             if (throwOnFailure) {
               throw callBinding.newError(
                   RESOURCE.argumentMustBePositiveInteger(
@@ -237,7 +239,21 @@ public abstract class OperandTypes {
             }
             return false;
           }
+          if (value.compareTo(BigDecimal.valueOf(Integer.MAX_VALUE)) > 0) {
+            if (throwOnFailure) {
+              throw callBinding.newError(
+                  RESOURCE.numberLiteralOutOfRange(value.toString()));
+            }
+            return false;
+          }
           return true;
+        }
+
+        /** Returns whether a number has any fractional part.
+         *
+         * @see BigDecimal#longValueExact() */
+        private boolean hasFractionalPart(BigDecimal bd) {
+          return bd.precision() - bd.scale() <= 0;
         }
       };
 

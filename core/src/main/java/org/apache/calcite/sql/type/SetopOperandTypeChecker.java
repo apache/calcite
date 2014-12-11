@@ -25,7 +25,6 @@ import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.validate.SqlValidator;
-import org.apache.calcite.util.Util;
 
 import java.util.AbstractList;
 import java.util.List;
@@ -54,9 +53,13 @@ public class SetopOperandTypeChecker implements SqlOperandTypeChecker {
     for (int i = 0; i < argTypes.length; i++) {
       final RelDataType argType =
           argTypes[i] = callBinding.getOperandType(i);
-      Util.permAssert(
-          argType.isStruct(),
-          "setop arg must be a struct");
+      if (!argType.isStruct()) {
+        if (throwOnFailure) {
+          throw new AssertionError("setop arg must be a struct");
+        } else {
+          return false;
+        }
+      }
 
       // Each operand must have the same number of columns.
       final List<RelDataTypeField> fields = argType.getFieldList();

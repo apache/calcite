@@ -444,6 +444,13 @@ public abstract class SqlTests {
       compareResultSet(resultSet, expected);
     }
   }
+
+  /** Result checker that accepts any result. */
+  public static final ResultChecker ANY_RESULT_CHECKER =
+      new ResultChecker() {
+        public void checkResult(ResultSet result) {
+        }
+      };
 }
 
 // End SqlTests.java

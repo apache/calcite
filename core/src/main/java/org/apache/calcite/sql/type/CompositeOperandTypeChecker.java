@@ -185,7 +185,9 @@ public class CompositeOperandTypeChecker
           }
         }
       }
-      return SqlOperandCountRanges.between(min, max);
+      return min == max
+          ? SqlOperandCountRanges.of(min)
+          : SqlOperandCountRanges.between(min, max);
     }
   }
 
@@ -198,7 +200,7 @@ public class CompositeOperandTypeChecker
   }
 
   private int maxMax(List<SqlOperandCountRange> ranges) {
-    int max = Integer.MAX_VALUE;
+    int max = Integer.MIN_VALUE;
     for (SqlOperandCountRange range : ranges) {
       if (range.getMax() < 0) {
         if (composition == Composition.OR) {

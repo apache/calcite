@@ -50,7 +50,7 @@ import java.util.List;
  *
  * <p><b>NOTE</b> If the <code>NOT</code> clause is present the
  * {@link org.apache.calcite.sql.parser.SqlParser parser} will generate a
- * eqvivalent to <code>NOT (src LIKE pattern ...)</code>
+ * equivalent to <code>NOT (src LIKE pattern ...)</code>
  */
 public class SqlLikeOperator extends SqlSpecialOperator {
   //~ Instance fields --------------------------------------------------------
