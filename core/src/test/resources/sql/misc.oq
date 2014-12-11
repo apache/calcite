@@ -103,6 +103,20 @@ select * from (select * from "hr"."emps" order by "empid") where (0=1);
 
 !ok
 
+# [DRILL-1842] Tableau, again
+select count(distinct "salary") as c
+from "hr"."emps"
+join "hr"."depts" on "emps"."deptno" = "depts"."deptno"
+having count(1) > 0;
++---+
+| C |
++---+
+| 3 |
++---+
+(1 row)
+
+!ok
+
 # [CALCITE-340] SqlToRelConverter fails with complex join condition
 select e."deptno", d."deptno"
 from "hr"."emps" as e
