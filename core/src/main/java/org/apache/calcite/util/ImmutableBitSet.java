@@ -26,6 +26,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 import java.io.Serializable;
+import java.nio.LongBuffer;
 import java.util.AbstractList;
 import java.util.Arrays;
 import java.util.BitSet;
@@ -139,6 +140,55 @@ public class ImmutableBitSet
    */
   public static ImmutableBitSet of(ImmutableIntList bits) {
     return builder().addAll(bits).build();
+  }
+
+  /**
+   * Returns a new immutable bit set containing all the bits in the given long
+   * array.
+   *
+   * <p>More precisely,
+   *
+   * <blockquote>{@code ImmutableBitSet.valueOf(longs).get(n)
+   *   == ((longs[n/64] & (1L<<(n%64))) != 0)}</blockquote>
+   *
+   * <p>for all {@code n < 64 * longs.length}.
+   *
+   * <p>This method is equivalent to
+   * {@code ImmutableBitSet.valueOf(LongBuffer.wrap(longs))}.
+   *
+   * @param longs a long array containing a little-endian representation
+   *        of a sequence of bits to be used as the initial bits of the
+   *        new bit set
+   * @return a {@code ImmutableBitSet} containing all the bits in the long
+   *         array
+   */
+  public static ImmutableBitSet valueOf(long... longs) {
+    int n = longs.length;
+    while (n > 0 && longs[n - 1] == 0) {
+      --n;
+    }
+    if (n == 0) {
+      return EMPTY;
+    }
+    return new ImmutableBitSet(Arrays.copyOf(longs, n));
+  }
+
+  /**
+   * Returns a new immutable bit set containing all the bits in the given long
+   * buffer.
+   */
+  public static ImmutableBitSet valueOf(LongBuffer longs) {
+    longs = longs.slice();
+    int n = longs.remaining();
+    while (n > 0 && longs.get(n - 1) == 0) {
+      --n;
+    }
+    if (n == 0) {
+      return EMPTY;
+    }
+    long[] words = new long[n];
+    longs.get(words);
+    return new ImmutableBitSet(words);
   }
 
   /**
@@ -524,6 +574,9 @@ public class ImmutableBitSet
   /**
    * Converts this bit set to an array.
    *
+   * <p>Each entry of the array is the ordinal of a set bit. The array is
+   * sorted.
+   *
    * @return Array of set bits
    */
   public int[] toArray() {
@@ -533,6 +586,13 @@ public class ImmutableBitSet
       integers[j++] = i;
     }
     return integers;
+  }
+
+  /**
+   * Converts this bit set to an array of little-endian words.
+   */
+  public long[] toLongArray() {
+    return words.length == 0 ? words : words.clone();
   }
 
   /** Returns the union of this bit set with another. */

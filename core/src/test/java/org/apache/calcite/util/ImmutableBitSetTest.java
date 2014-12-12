@@ -23,6 +23,7 @@ import com.google.common.collect.Maps;
 
 import org.junit.Test;
 
+import java.nio.LongBuffer;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -395,6 +396,34 @@ public class ImmutableBitSetTest {
 
     final ImmutableBitSet seventeen = ImmutableBitSet.range(3, 20);
     assertThat(Iterables.size(seventeen.powerSet()), equalTo(131072));
+  }
+
+  @Test public void testCreateLongs() {
+    assertThat(ImmutableBitSet.valueOf(0L), equalTo(ImmutableBitSet.of()));
+    assertThat(ImmutableBitSet.valueOf(0xAL),
+        equalTo(ImmutableBitSet.of(1, 3)));
+    assertThat(ImmutableBitSet.valueOf(0xAL, 0, 0),
+        equalTo(ImmutableBitSet.of(1, 3)));
+    assertThat(ImmutableBitSet.valueOf(0, 0, 0xAL, 0),
+        equalTo(ImmutableBitSet.of(129, 131)));
+  }
+
+  @Test public void testCreateLongBuffer() {
+    assertThat(ImmutableBitSet.valueOf(LongBuffer.wrap(new long[] {})),
+        equalTo(ImmutableBitSet.of()));
+    assertThat(ImmutableBitSet.valueOf(LongBuffer.wrap(new long[] {0xAL})),
+        equalTo(ImmutableBitSet.of(1, 3)));
+    assertThat(
+        ImmutableBitSet.valueOf(LongBuffer.wrap(new long[] {0, 0, 0xAL, 0})),
+        equalTo(ImmutableBitSet.of(129, 131)));
+  }
+
+  @Test public void testToLongArray() {
+    final ImmutableBitSet bitSet = ImmutableBitSet.of(29, 4, 1969);
+    assertThat(ImmutableBitSet.valueOf(bitSet.toLongArray()),
+        equalTo(bitSet));
+    assertThat(ImmutableBitSet.valueOf(LongBuffer.wrap(bitSet.toLongArray())),
+        equalTo(bitSet));
   }
 }
 
