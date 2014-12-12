@@ -533,6 +533,19 @@ public interface ExtendedEnumerable<TSource> {
       boolean generateNullsOnLeft, boolean generateNullsOnRight);
 
   /**
+   * For each row of the current enumerable returns the correlated rows
+   * from the {@code inner} enumerable (nested loops join).
+   *
+   * @param joinType inner, left, semi or anti join type
+   * @param inner generator of inner enumerable
+   * @param resultSelector selector of the result. For semi/anti join
+   *                       inner argument is always null.
+   */
+  <TInner, TResult> Enumerable<TResult> correlateJoin(
+      CorrelateJoinType joinType, Function1<TSource, Enumerable<TInner>> inner,
+      Function2<TSource, TInner, TResult> resultSelector);
+
+  /**
    * Returns the last element of a sequence. (Defined
    * by Enumerable.)
    */

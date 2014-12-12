@@ -83,6 +83,11 @@ public class CalciteConnectionConfigImpl extends ConnectionConfigImpl
     return CalciteConnectionProperty.SPARK.wrap(properties).getBoolean();
   }
 
+  public boolean forceDecorrelate() {
+    return CalciteConnectionProperty.FORCE_DECORRELATE.wrap(properties)
+        .getBoolean();
+  }
+
   public <T> T typeSystem(Class<T> typeSystemClass, T defaultTypeSystem) {
     return CalciteConnectionProperty.TYPE_SYSTEM.wrap(properties)
         .getPlugin(typeSystemClass, defaultTypeSystem);

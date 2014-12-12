@@ -16,11 +16,11 @@
  */
 package org.apache.calcite.rel;
 
-import org.apache.calcite.rel.core.Correlator;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.TableFunctionScan;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.logical.LogicalAggregate;
+import org.apache.calcite.rel.logical.LogicalCorrelate;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalIntersect;
 import org.apache.calcite.rel.logical.LogicalJoin;
@@ -45,7 +45,7 @@ public interface RelShuttle {
 
   RelNode visit(LogicalJoin join);
 
-  RelNode visit(Correlator correlator);
+  RelNode visit(LogicalCorrelate correlate);
 
   RelNode visit(LogicalUnion union);
 

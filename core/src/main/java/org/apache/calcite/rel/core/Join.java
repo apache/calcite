@@ -20,9 +20,8 @@ import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelTraitSet;
-import org.apache.calcite.rel.AbstractRelNode;
+import org.apache.calcite.rel.BiRel;
 import org.apache.calcite.rel.RelNode;
-import org.apache.calcite.rel.RelVisitor;
 import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
@@ -30,9 +29,7 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexChecker;
 import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.runtime.FlatLists;
 import org.apache.calcite.sql.type.SqlTypeName;
-import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -51,12 +48,10 @@ import java.util.Set;
  * The set of output rows is a subset of the cartesian product of the two
  * inputs; precisely which subset depends on the join condition.
  */
-public abstract class Join extends AbstractRelNode {
+public abstract class Join extends BiRel {
   //~ Instance fields --------------------------------------------------------
 
   protected final RexNode condition;
-  protected RelNode left;
-  protected RelNode right;
   protected final ImmutableSet<String> variablesStopped;
 
   /**
@@ -88,9 +83,7 @@ public abstract class Join extends AbstractRelNode {
       RexNode condition,
       JoinRelType joinType,
       Set<String> variablesStopped) {
-    super(cluster, traits);
-    this.left = left;
-    this.right = right;
+    super(cluster, traits, left, right);
     this.condition = condition;
     this.variablesStopped = ImmutableSet.copyOf(variablesStopped);
     assert joinType != null;
@@ -108,20 +101,8 @@ public abstract class Join extends AbstractRelNode {
     return condition;
   }
 
-  public List<RelNode> getInputs() {
-    return FlatLists.of(left, right);
-  }
-
   public JoinRelType getJoinType() {
     return joinType;
-  }
-
-  public RelNode getLeft() {
-    return left;
-  }
-
-  public RelNode getRight() {
-    return right;
   }
 
   // TODO: enable
@@ -192,36 +173,14 @@ public abstract class Join extends AbstractRelNode {
     return variablesStopped;
   }
 
-  public void childrenAccept(RelVisitor visitor) {
-    visitor.visit(left, 0, this);
-    visitor.visit(right, 1, this);
-  }
-
   public RelWriter explainTerms(RelWriter pw) {
     return super.explainTerms(pw)
-        .input("left", left)
-        .input("right", right)
         .item("condition", condition)
         .item("joinType", joinType.name().toLowerCase())
         .itemIf(
             "systemFields",
             getSystemFieldList(),
             !getSystemFieldList().isEmpty());
-  }
-
-  public void replaceInput(
-      int ordinalInParent,
-      RelNode p) {
-    switch (ordinalInParent) {
-    case 0:
-      this.left = p;
-      break;
-    case 1:
-      this.right = p;
-      break;
-    default:
-      throw Util.newInternal();
-    }
   }
 
   protected RelDataType deriveRowType() {

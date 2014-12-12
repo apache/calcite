@@ -370,6 +370,13 @@ public abstract class DefaultEnumerable<T> implements OrderedEnumerable<T> {
         generateNullsOnRight);
   }
 
+  public <TInner, TResult> Enumerable<TResult> correlateJoin(
+      CorrelateJoinType joinType, Function1<T, Enumerable<TInner>> inner,
+      Function2<T, TInner, TResult> resultSelector) {
+    return EnumerableDefaults.correlateJoin(joinType, getThis(), inner,
+        resultSelector);
+  }
+
   public T last() {
     return EnumerableDefaults.last(getThis());
   }

@@ -1033,6 +1033,105 @@ public abstract class EnumerableDefaults {
   }
 
   /**
+   * Returns elements of {@code outer} for which there is a member of
+   * {@code inner} with a matching key. A specified
+   * {@code EqualityComparer<TSource>} is used to compare keys.
+   */
+  public static <TSource, TInner, TResult> Enumerable<TResult> correlateJoin(
+      final CorrelateJoinType joinType, final Enumerable<TSource> outer,
+      final Function1<TSource, Enumerable<TInner>> inner,
+      final Function2<TSource, TInner, TResult> resultSelector) {
+    return new AbstractEnumerable<TResult>() {
+      public Enumerator<TResult> enumerator() {
+        return new Enumerator<TResult>() {
+          private Enumerator<TSource> outerEnumerator = outer.enumerator();
+          private Enumerator<TInner> innerEnumerator;
+          TSource outerValue;
+          TInner innerValue;
+          int state = 0; // 0 -- moving outer, 1 moving inner;
+
+          public TResult current() {
+            return resultSelector.apply(outerValue, innerValue);
+          }
+
+          public boolean moveNext() {
+            while (true) {
+              switch (state) {
+              case 0:
+                // move outer
+                if (!outerEnumerator.moveNext()) {
+                  return false;
+                }
+                outerValue = outerEnumerator.current();
+                // initial move inner
+                Enumerable<TInner> innerEnumerable = inner.apply(outerValue);
+                if (innerEnumerable == null) {
+                  innerEnumerable = Linq4j.emptyEnumerable();
+                }
+                if (innerEnumerator != null) {
+                  innerEnumerator.close();
+                }
+                innerEnumerator = innerEnumerable.enumerator();
+                if (innerEnumerator.moveNext()) {
+                  switch (joinType) {
+                  case ANTI:
+                    // For anti-join need to try next outer row
+                    // Current does not match
+                    continue;
+                  case SEMI:
+                    return true; // current row matches
+                  }
+                  // INNER and LEFT just return result
+                  innerValue = innerEnumerator.current();
+                  state = 1; // iterate over inner results
+                  return true;
+                }
+                // No match detected
+                innerValue = null;
+                switch (joinType) {
+                case LEFT:
+                case ANTI:
+                  return true;
+                }
+                // For INNER and LEFT need to find another outer row
+                continue;
+              case 1:
+                // subsequent move inner
+                if (innerEnumerator.moveNext()) {
+                  innerValue = innerEnumerator.current();
+                  return true;
+                }
+                state = 0;
+                // continue loop, move outer
+              }
+            }
+          }
+
+          public void reset() {
+            state = 0;
+            outerEnumerator.reset();
+            closeInner();
+          }
+
+          public void close() {
+            outerEnumerator.close();
+            closeInner();
+            outerValue = null;
+          }
+
+          private void closeInner() {
+            innerValue = null;
+            if (innerEnumerator != null) {
+              innerEnumerator.close();
+              innerEnumerator = null;
+            }
+          }
+        };
+      }
+    };
+  }
+
+  /**
    * Returns the last element of a sequence. (Defined
    * by Enumerable.)
    */

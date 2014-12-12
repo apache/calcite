@@ -343,7 +343,7 @@ public abstract class SparkRules {
                 builder2,
                 new RexToLixTranslator.InputGetterImpl(
                     Collections.singletonList(
-                        Pair.of((Expression) e_, result.physType))));
+                        Pair.of((Expression) e_, result.physType))), null);
         builder2.add(
             Expressions.ifThen(
                 Expressions.not(condition),
@@ -360,7 +360,7 @@ public abstract class SparkRules {
               null,
               new RexToLixTranslator.InputGetterImpl(
                   Collections.singletonList(
-                      Pair.of((Expression) e_, result.physType))));
+                      Pair.of((Expression) e_, result.physType))), null);
       builder2.add(
           Expressions.return_(null,
               Expressions.convert_(

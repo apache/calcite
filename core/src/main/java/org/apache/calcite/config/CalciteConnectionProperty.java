@@ -72,6 +72,10 @@ public enum CalciteConnectionProperty implements ConnectionProperty {
   /** Timezone, for example 'gmt-3'. Default is the JVM's time zone. */
   TIMEZONE("timezone", Type.STRING, null, false),
 
+  /** If the planner should try de-correlating as much as it is possible.
+   * If true (the default), Calcite de-correlates the plan. */
+  FORCE_DECORRELATE("forceDecorrelate", Type.BOOLEAN, true, false),
+
   /** Type system. The name of a class that implements
    * {@link org.apache.calcite.rel.type.RelDataTypeSystem} and has a public
    * default constructor or an {@code INSTANCE} constant. */

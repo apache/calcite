@@ -77,7 +77,7 @@ public class RexExecutorImpl implements RelOptPlanner.Executor {
             Expressions.convert_(root0_, DataContext.class)));
     final List<Expression> expressions =
         RexToLixTranslator.translateProjects(programBuilder.getProgram(),
-        javaTypeFactory, blockBuilder, null, getter);
+        javaTypeFactory, blockBuilder, null, getter, null);
     blockBuilder.add(
         Expressions.return_(null,
             Expressions.newArrayInit(Object[].class, expressions)));

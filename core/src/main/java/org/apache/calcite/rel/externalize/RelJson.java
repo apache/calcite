@@ -23,7 +23,7 @@ import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelInput;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.AggregateCall;
-import org.apache.calcite.rel.core.Correlation;
+import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
@@ -225,8 +225,8 @@ public class RelJson {
       return value;
     } else if (value instanceof RexNode) {
       return toJson((RexNode) value);
-    } else if (value instanceof Correlation) {
-      return toJson((Correlation) value);
+    } else if (value instanceof CorrelationId) {
+      return toJson((CorrelationId) value);
     } else if (value instanceof List) {
       final List<Object> list = jsonBuilder.list();
       for (Object o : (List) value) {
@@ -281,11 +281,8 @@ public class RelJson {
     return map;
   }
 
-  private Object toJson(Correlation node) {
-    final Map<String, Object> map = jsonBuilder.map();
-    map.put("correlation", node.getId());
-    map.put("offset", node.getOffset());
-    return map;
+  private Object toJson(CorrelationId node) {
+    return node.getId();
   }
 
   private Object toJson(RexNode node) {

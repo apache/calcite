@@ -36,6 +36,9 @@ public class EnumerableRules {
   public static final RelOptRule ENUMERABLE_SEMI_JOIN_RULE =
       new EnumerableSemiJoinRule();
 
+  public static final RelOptRule ENUMERABLE_CORRELATE_RULE =
+      new EnumerableCorrelateRule();
+
   private EnumerableRules() {
   }
 

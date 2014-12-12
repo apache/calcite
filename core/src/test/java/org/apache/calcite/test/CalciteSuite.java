@@ -30,6 +30,7 @@ import org.apache.calcite.sql.test.SqlAdvisorTest;
 import org.apache.calcite.sql.test.SqlOperatorTest;
 import org.apache.calcite.sql.test.SqlPrettyWriterTest;
 import org.apache.calcite.sql.test.SqlTypeNameTest;
+import org.apache.calcite.test.enumerable.EnumerableCorrelateTest;
 import org.apache.calcite.tools.FrameworksTest;
 import org.apache.calcite.tools.PlannerTest;
 import org.apache.calcite.util.BitSetsTest;
@@ -99,6 +100,7 @@ import org.junit.runners.Suite;
     SqlOperatorTest.class,
     ChunkListTest.class,
     FrameworksTest.class,
+    EnumerableCorrelateTest.class,
 
     // slow tests (above 1s)
     PlannerTest.class,

@@ -25,13 +25,13 @@ import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelVisitor;
 import org.apache.calcite.rel.core.Collect;
-import org.apache.calcite.rel.core.Correlation;
-import org.apache.calcite.rel.core.Correlator;
+import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.Sample;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.Uncollect;
 import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.logical.LogicalCalc;
+import org.apache.calcite.rel.logical.LogicalCorrelate;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalIntersect;
 import org.apache.calcite.rel.logical.LogicalJoin;
@@ -61,6 +61,7 @@ import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
+import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.ReflectUtil;
 import org.apache.calcite.util.ReflectiveVisitDispatcher;
 import org.apache.calcite.util.ReflectiveVisitor;
@@ -143,10 +144,10 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
   //~ Methods ----------------------------------------------------------------
 
   public void updateRelInMap(
-      SortedSetMultimap<RelNode, Correlation> mapRefRelToCorVar) {
+      SortedSetMultimap<RelNode, CorrelationId> mapRefRelToCorVar) {
     for (RelNode rel : Lists.newArrayList(mapRefRelToCorVar.keySet())) {
       if (oldToNewRelMap.containsKey(rel)) {
-        SortedSet<Correlation> corVarSet =
+        SortedSet<CorrelationId> corVarSet =
             mapRefRelToCorVar.removeAll(rel);
         mapRefRelToCorVar.putAll(oldToNewRelMap.get(rel), corVarSet);
       }
@@ -154,13 +155,13 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
   }
 
   public void updateRelInMap(
-      SortedMap<Correlation, Correlator> mapCorVarToCorRel) {
-    for (Correlation corVar : mapCorVarToCorRel.keySet()) {
-      Correlator oldRel = mapCorVarToCorRel.get(corVar);
+      SortedMap<CorrelationId, LogicalCorrelate> mapCorVarToCorRel) {
+    for (CorrelationId corVar : mapCorVarToCorRel.keySet()) {
+      LogicalCorrelate oldRel = mapCorVarToCorRel.get(corVar);
       if (oldToNewRelMap.containsKey(oldRel)) {
         RelNode newRel = oldToNewRelMap.get(oldRel);
-        assert newRel instanceof Correlator;
-        mapCorVarToCorRel.put(corVar, (Correlator) newRel);
+        assert newRel instanceof LogicalCorrelate;
+        mapCorVarToCorRel.put(corVar, (LogicalCorrelate) newRel);
       }
     }
   }
@@ -417,28 +418,24 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
     setNewForOldRel(rel, newRel);
   }
 
-  public void rewriteRel(Correlator rel) {
-    final List<Correlation> newCorrelations =
-        new ArrayList<Correlation>();
-    for (Correlation c : rel.getCorrelations()) {
+  public void rewriteRel(LogicalCorrelate rel) {
+    ImmutableBitSet.Builder newPos = ImmutableBitSet.builder();
+    for (Integer pos : rel.getRequiredColumns()) {
       RelDataType corrFieldType =
-          rel.getLeft().getRowType().getFieldList().get(c.getOffset())
+          rel.getLeft().getRowType().getFieldList().get(pos)
               .getType();
       if (corrFieldType.isStruct()) {
         throw Util.needToImplement("correlation on structured type");
       }
-      newCorrelations.add(
-          new Correlation(
-              c.getId(),
-              getNewForOldInput(c.getOffset())));
+      newPos.set(getNewForOldInput(pos));
     }
-    Correlator newRel =
-        new Correlator(
+    LogicalCorrelate newRel =
+        new LogicalCorrelate(
             rel.getCluster(),
             getNewForOldRel(rel.getLeft()),
             getNewForOldRel(rel.getRight()),
-            rel.getCondition(),
-            newCorrelations,
+            rel.getCorrelationId(),
+            newPos.build(),
             rel.getJoinType());
     setNewForOldRel(rel, newRel);
   }
@@ -700,7 +697,6 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
   public void rewriteRel(LogicalTableScan rel) {
     RelNode newRel =
         rel.getTable().toRel(toRelContext);
-
     setNewForOldRel(rel, newRel);
   }
 

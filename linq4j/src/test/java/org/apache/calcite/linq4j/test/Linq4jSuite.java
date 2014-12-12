@@ -36,7 +36,8 @@ import org.junit.runners.Suite;
     DeterministicTest.class,
     BlockBuilderTest.class,
     FunctionTest.class,
-    TypeTest.class
+    TypeTest.class,
+    CorrelateJoinTest.class
 })
 public class Linq4jSuite {
 }

@@ -20,6 +20,7 @@ import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Join;
+import org.apache.calcite.rel.core.SemiJoin;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexNode;
@@ -67,6 +68,9 @@ public class ProjectJoinTransposeRule extends RelOptRule {
     LogicalProject origProj = call.rel(0);
     final Join join = call.rel(1);
 
+    if (join instanceof SemiJoin) {
+      return; // TODO: support SemiJoin
+    }
     // locate all fields referenced in the projection and join condition;
     // determine which inputs are referenced in the projection and
     // join condition; if all fields are being referenced and there are no

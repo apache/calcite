@@ -18,7 +18,7 @@ package org.apache.calcite.rel.metadata;
 
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
-import org.apache.calcite.rel.core.Correlator;
+import org.apache.calcite.rel.core.Correlate;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinInfo;
@@ -72,7 +72,7 @@ public class RelMdColumnUniqueness {
   }
 
   public Boolean areColumnsUnique(
-      Correlator rel,
+      Correlate rel,
       ImmutableBitSet columns,
       boolean ignoreNulls) {
     return RelMetadataQuery.areColumnsUnique(
