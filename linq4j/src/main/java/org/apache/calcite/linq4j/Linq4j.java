@@ -29,6 +29,7 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.RandomAccess;
 
 /**
  * Utility and factory methods for Linq4j.
@@ -111,7 +112,7 @@ public abstract class Linq4j {
    * @return enumerator
    */
   public static <T> Enumerator<T> iterableEnumerator(
-      final Iterable<T> iterable) {
+      final Iterable<? extends T> iterable) {
     if (iterable instanceof Enumerable) {
       @SuppressWarnings("unchecked") final Enumerable<T> enumerable =
           (Enumerable) iterable;
@@ -190,8 +191,16 @@ public abstract class Linq4j {
    *
    * @return Enumerator over the collection
    */
-  public static <V> Enumerator<V> enumerator(Collection<V> values) {
+  public static <V> Enumerator<V> enumerator(Collection<? extends V> values) {
+    if (values instanceof List && values instanceof RandomAccess) {
+      //noinspection unchecked
+      return listEnumerator((List) values);
+    }
     return iterableEnumerator(values);
+  }
+
+  private static <V> Enumerator<V> listEnumerator(List<? extends V> list) {
+    return new ListEnumerator<V>(list);
   }
 
   /**
@@ -445,11 +454,11 @@ public abstract class Linq4j {
   /** Iterable enumerator. */
   @SuppressWarnings("unchecked")
   static class IterableEnumerator<T> implements Enumerator<T> {
-    private final Iterable<T> iterable;
-    Iterator<T> iterator;
+    private final Iterable<? extends T> iterable;
+    Iterator<? extends T> iterator;
     T current;
 
-    public IterableEnumerator(Iterable<T> iterable) {
+    public IterableEnumerator(Iterable<? extends T> iterable) {
       this.iterable = iterable;
       iterator = iterable.iterator();
       current = (T) DUMMY;
@@ -477,7 +486,7 @@ public abstract class Linq4j {
     }
 
     public void close() {
-      final Iterator<T> iterator1 = this.iterator;
+      final Iterator<? extends T> iterator1 = this.iterator;
       this.iterator = null;
       closeIterator(iterator1);
     }
@@ -573,8 +582,16 @@ public abstract class Linq4j {
 
   /** List enumerable. */
   static class ListEnumerable<T> extends CollectionEnumerable<T> {
-    ListEnumerable(Collection<T> iterable) {
-      super(iterable);
+    ListEnumerable(List<T> list) {
+      super(list);
+    }
+
+    @Override public Enumerator<T> enumerator() {
+      if (iterable instanceof RandomAccess) {
+        //noinspection unchecked
+        return new ListEnumerator<T>((List) iterable);
+      }
+      return super.enumerator();
     }
 
     @Override public List<T> toList() {
@@ -673,6 +690,31 @@ public abstract class Linq4j {
 
     public void close() throws IOException {
       enumerator.close();
+    }
+  }
+
+  /** Enumerator optimized for random-access list. */
+  private static class ListEnumerator<V> implements Enumerator<V> {
+    private final List<? extends V> list;
+    int i = -1;
+
+    public ListEnumerator(List<? extends V> list) {
+      this.list = list;
+    }
+
+    public V current() {
+      return list.get(i);
+    }
+
+    public boolean moveNext() {
+      return ++i < list.size();
+    }
+
+    public void reset() {
+      i = -1;
+    }
+
+    public void close() {
     }
   }
 }

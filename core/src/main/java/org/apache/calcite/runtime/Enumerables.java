@@ -20,10 +20,17 @@ import org.apache.calcite.interpreter.Row;
 import org.apache.calcite.linq4j.AbstractEnumerable;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Enumerator;
+import org.apache.calcite.linq4j.Linq4j;
 import org.apache.calcite.linq4j.function.EqualityComparer;
 import org.apache.calcite.linq4j.function.Function1;
+import org.apache.calcite.linq4j.function.Function2;
 import org.apache.calcite.linq4j.function.Predicate1;
 import org.apache.calcite.util.Bug;
+
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
+
+import java.util.List;
 
 /**
  * Utilities for processing {@link org.apache.calcite.linq4j.Enumerable}
@@ -143,6 +150,142 @@ public class Enumerables {
   public static Enumerable<Row> toRow(final Enumerable<Object[]> enumerator) {
     return enumerator.select(ARRAY_TO_ROW);
   }
+
+  /** Joins two inputs that are sorted on the key. */
+  public static <TSource, TInner, TKey extends Comparable<TKey>, TResult>
+  Enumerable<TResult> mergeJoin(final Enumerable<TSource> outer,
+      final Enumerable<TInner> inner,
+      final Function1<TSource, TKey> outerKeySelector,
+      final Function1<TInner, TKey> innerKeySelector,
+      final Function2<TSource, TInner, TResult> resultSelector,
+      boolean generateNullsOnLeft,
+      boolean generateNullsOnRight) {
+    assert !generateNullsOnLeft : "not implemented";
+    assert !generateNullsOnRight : "not implemented";
+    return new AbstractEnumerable<TResult>() {
+      public Enumerator<TResult> enumerator() {
+        return new Enumerator<TResult>() {
+          final Enumerator<TSource> leftEnumerator = outer.enumerator();
+          final Enumerator<TInner> rightEnumerator = inner.enumerator();
+          final List<TSource> lefts = Lists.newArrayList();
+          final List<TInner> rights = Lists.newArrayList();
+          boolean done;
+          Enumerator<List<Object>> cartesians;
+
+          {
+            start();
+          }
+
+          private void start() {
+            if (!leftEnumerator.moveNext()
+                || !rightEnumerator.moveNext()
+                || !advance()) {
+              done = true;
+              cartesians = Linq4j.emptyEnumerator();
+            }
+          }
+
+          /** Moves to the next key that is present in both sides. Populates
+           * lefts and rights with the rows. Restarts the cross-join
+           * enumerator. */
+          private boolean advance() {
+            TSource left = leftEnumerator.current();
+            TKey leftKey = outerKeySelector.apply(left);
+            TInner right = rightEnumerator.current();
+            TKey rightKey = innerKeySelector.apply(right);
+            for (;;) {
+              int c = leftKey.compareTo(rightKey);
+              if (c == 0) {
+                break;
+              }
+              if (c < 0) {
+                if (!leftEnumerator.moveNext()) {
+                  done = true;
+                  return false;
+                }
+                left = leftEnumerator.current();
+                leftKey = outerKeySelector.apply(left);
+              } else {
+                if (!rightEnumerator.moveNext()) {
+                  done = true;
+                  return false;
+                }
+                right = rightEnumerator.current();
+                rightKey = innerKeySelector.apply(right);
+              }
+            }
+            lefts.clear();
+            lefts.add(left);
+            for (;;) {
+              if (!leftEnumerator.moveNext()) {
+                done = true;
+                break;
+              }
+              left = leftEnumerator.current();
+              TKey leftKey2 = outerKeySelector.apply(left);
+              int c = leftKey.compareTo(leftKey2);
+              if (c != 0) {
+                assert c < 0 : "not sorted";
+                break;
+              }
+              lefts.add(left);
+            }
+            rights.clear();
+            rights.add(right);
+            for (;;) {
+              if (!rightEnumerator.moveNext()) {
+                done = true;
+                break;
+              }
+              right = rightEnumerator.current();
+              TKey rightKey2 = innerKeySelector.apply(right);
+              int c = rightKey.compareTo(rightKey2);
+              if (c != 0) {
+                assert c < 0 : "not sorted";
+                break;
+              }
+              rights.add(right);
+            }
+            cartesians = Linq4j.product(
+                ImmutableList.of(Linq4j.<Object>enumerator(lefts),
+                    Linq4j.<Object>enumerator(rights)));
+            return true;
+          }
+
+          public TResult current() {
+            final List<Object> list = cartesians.current();
+            return resultSelector.apply((TSource) list.get(0),
+                (TInner) list.get(1));
+          }
+
+          public boolean moveNext() {
+            for (;;) {
+              if (cartesians.moveNext()) {
+                return true;
+              }
+              if (done) {
+                return false;
+              }
+              if (!advance()) {
+                return false;
+              }
+            }
+          }
+
+          public void reset() {
+            done = false;
+            leftEnumerator.reset();
+            rightEnumerator.reset();
+            start();
+          }
+
+          public void close() {
+          }
+        };
+      }
+    };
+  }
+
 }
 
 // End Enumerables.java

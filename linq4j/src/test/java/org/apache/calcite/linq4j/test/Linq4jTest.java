@@ -39,6 +39,8 @@ import org.apache.calcite.linq4j.tree.ParameterExpression;
 
 import com.example.Linq4jExample;
 
+import com.google.common.collect.Lists;
+
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -50,6 +52,7 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.TreeSet;
 
+import static org.hamcrest.CoreMatchers.endsWith;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
@@ -1447,6 +1450,37 @@ public class Linq4jTest {
             })
         .into(result);
     assertNotNull(result.toString());
+  }
+
+  @Test public void testList2() {
+    final List<String> experience = Arrays.asList("jimi", "mitch", "noel");
+    final Enumerator<String> enumerator = Linq4j.enumerator(experience);
+    assertThat(enumerator.getClass().getName(), endsWith("ListEnumerator"));
+    assertThat(count(enumerator), equalTo(3));
+
+    final Enumerable<String> listEnumerable = Linq4j.asEnumerable(experience);
+    final Enumerator<String> listEnumerator = listEnumerable.enumerator();
+    assertThat(listEnumerator.getClass().getName(),
+        endsWith("ListEnumerator"));
+    assertThat(count(listEnumerator), equalTo(3));
+
+    final Enumerable<String> linkedListEnumerable =
+        Linq4j.asEnumerable(Lists.newLinkedList(experience));
+    final Enumerator<String> iterableEnumerator =
+        linkedListEnumerable.enumerator();
+    assertThat(iterableEnumerator.getClass().getName(),
+        endsWith("IterableEnumerator"));
+    assertThat(count(iterableEnumerator), equalTo(3));
+  }
+
+  private static int count(Enumerator<String> enumerator) {
+    int n = 0;
+    while (enumerator.moveNext()) {
+      if (enumerator.current() != null) {
+        ++n;
+      }
+    }
+    return n;
   }
 
   @Test public void testExample() {
