@@ -19,7 +19,6 @@ package org.apache.calcite.adapter.enumerable;
 import org.apache.calcite.DataContext;
 import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
 import org.apache.calcite.linq4j.Enumerable;
-import org.apache.calcite.linq4j.Queryable;
 import org.apache.calcite.linq4j.function.Function1;
 import org.apache.calcite.linq4j.tree.BlockBuilder;
 import org.apache.calcite.linq4j.tree.BlockStatement;
@@ -35,14 +34,16 @@ import org.apache.calcite.linq4j.tree.NewArrayExpression;
 import org.apache.calcite.linq4j.tree.NewExpression;
 import org.apache.calcite.linq4j.tree.ParameterExpression;
 import org.apache.calcite.linq4j.tree.Primitive;
+import org.apache.calcite.linq4j.tree.Statement;
 import org.apache.calcite.linq4j.tree.Types;
 import org.apache.calcite.linq4j.tree.Visitor;
-import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.runtime.Bindable;
 import org.apache.calcite.runtime.Utilities;
 import org.apache.calcite.util.BuiltInMethod;
 
+import com.google.common.base.Function;
+import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
@@ -51,6 +52,7 @@ import java.io.Serializable;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -64,6 +66,8 @@ public class EnumerableRelImplementor extends JavaRelImplementor {
   public final Map<String, Object> map;
   private final Map<String, RexToLixTranslator.InputGetter> corrVars =
       Maps.newHashMap();
+  private final Map<Object, ParameterExpression> stashedParameters =
+      Maps.newIdentityHashMap();
 
   protected final Function1<String, RexToLixTranslator.InputGetter>
   allCorrelateVariables =
@@ -103,11 +107,27 @@ public class EnumerableRelImplementor extends JavaRelImplementor {
     // directly from inner classes.
     final ParameterExpression root0_ =
         Expressions.parameter(Modifier.FINAL, DataContext.class, "root0");
+
+    // This creates the following code
+    // final Integer v1stashed = (Integer) root.get("v1stashed")
+    // It is convenient for passing non-literal "compile-time" constants
+    final Collection<Statement> stashed =
+        Collections2.transform(stashedParameters.values(),
+            new Function<ParameterExpression, Statement>() {
+              public Statement apply(ParameterExpression input) {
+                return Expressions.declare(Modifier.FINAL, input,
+                    Expressions.convert_(Expressions.call(DataContext.ROOT,
+                        BuiltInMethod.DATA_CONTEXT_GET.method,
+                        Expressions.constant(input.name)), input.type));
+              }
+            });
+
     final BlockStatement block = Expressions.block(
         Iterables.concat(
             ImmutableList.of(
                 Expressions.statement(
                     Expressions.assign(DataContext.ROOT, root0_))),
+            stashed,
             result.block.statements));
     memberDeclarations.add(
         Expressions.fieldDecl(0, DataContext.ROOT, null));
@@ -379,21 +399,50 @@ public class EnumerableRelImplementor extends JavaRelImplementor {
     return classDeclaration;
   }
 
-  public Expression register(Queryable queryable) {
-    return register(queryable, queryable.getClass());
-  }
-
-  public ParameterExpression register(Object o, Class clazz) {
-    final String name = "v" + map.size();
-    map.put(name, o);
-    return Expressions.variable(clazz, name);
-  }
-
-  public Expression stash(RelNode child, Class clazz) {
-    final ParameterExpression x = register(child, clazz);
-    final Expression e = Expressions.call(getRootExpression(),
-        BuiltInMethod.DATA_CONTEXT_GET.method, Expressions.constant(x.name));
-    return Expressions.convert_(e, clazz);
+  /**
+   * Stashes a value for the executor. Given values are de-duplicated if
+   * identical (see {@link java.util.IdentityHashMap}).
+   *
+   * <p>For instance, to pass {@code ArrayList} to your method, you can use
+   * {@code Expressions.call(method, implementor.stash(arrayList))}.
+   *
+   * <p>For simple literals (strings, numbers) the result is equivalent to
+   * {@link org.apache.calcite.linq4j.tree.Expressions#constant(Object, java.lang.reflect.Type)}.
+   *
+   * <p>Note: the input value is held in memory as long as the statement
+   * is alive. If you are using just a subset of its content, consider creating
+   * a slimmer holder.
+   *
+   * @param input Value to be stashed
+   * @param clazz Java class type of the value when it is used
+   * @param <T> Java class type of the value when it is used
+   * @return Expression that will represent {@code input} in runtime
+   */
+  public <T> Expression stash(T input, Class<? super T> clazz) {
+    // Well-known final classes that can be used as literals
+    if (input == null
+        || input instanceof String
+        || input instanceof Boolean
+        || input instanceof Byte
+        || input instanceof Short
+        || input instanceof Integer
+        || input instanceof Long
+        || input instanceof Float
+        || input instanceof Double
+        ) {
+      return Expressions.constant(input, clazz);
+    }
+    ParameterExpression cached = stashedParameters.get(input);
+    if (cached != null) {
+      return cached;
+    }
+    // "stashed" avoids name clash since this name will be used as the variable
+    // name at the very start of the method.
+    final String name = "v" + map.size() + "stashed";
+    final ParameterExpression x = Expressions.variable(clazz, name);
+    map.put(name, input);
+    stashedParameters.put(input, x);
+    return x;
   }
 
   public void registerCorrelVariable(final String name,
