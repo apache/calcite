@@ -44,6 +44,8 @@ public interface RelOptNode {
    *
    * <p>If you want a descriptive string which contains the identity, call
    * {@link Object#toString()}, which always returns "rel#{id}:{digest}".
+   *
+   * @return Digest of this {@code RelNode}
    */
   String getDigest();
 
@@ -67,9 +69,18 @@ public interface RelOptNode {
    * Returns a string which describes the relational expression and, unlike
    * {@link #getDigest()}, also includes the identity. Typically returns
    * "rel#{id}:{digest}".
+   *
+   * @return String which describes the relational expression and, unlike
+   *   {@link #getDigest()}, also includes the identity
    */
   String getDescription();
 
+  /**
+   * Returns an array of this relational expression's inputs. If there are no
+   * inputs, returns an empty list, not {@code null}.
+   *
+   * @return Array of this relational expression's inputs
+   */
   List<? extends RelOptNode> getInputs();
 
   /**

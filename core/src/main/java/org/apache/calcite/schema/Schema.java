@@ -63,6 +63,8 @@ public interface Schema {
 
   /**
    * Returns the names of the tables in this schema.
+   *
+   * @return Names of the tables in this schema
    */
   Set<String> getTableNames();
 
@@ -77,16 +79,23 @@ public interface Schema {
 
   /**
    * Returns the names of the functions in this schema.
+   *
+   * @return Names of the functions in this schema
    */
   Set<String> getFunctionNames();
 
   /**
    * Returns a sub-schema with a given name, or null.
+   *
+   * @param name Sub-schema name
+   * @return Sub-schema with a given name, or null
    */
   Schema getSubSchema(String name);
 
   /**
    * Returns the names of this schema's child schemas.
+   *
+   * @return Names of this schema's child schemas
    */
   Set<String> getSubSchemaNames();
 
@@ -96,6 +105,7 @@ public interface Schema {
    *
    * @param parentSchema Parent schema
    * @param name Name of this schema
+   * @return Expression by which this schema can be referenced in generated code
    */
   Expression getExpression(SchemaPlus parentSchema, String name);
 
@@ -104,7 +114,11 @@ public interface Schema {
    * by methods such as {@link #getTable(String)}.
    *
    * <p>Even if this method returns true, the maps are not modified. Calcite
-   * stores the defined objects in a wrapper object. */
+   * stores the defined objects in a wrapper object.
+   *
+   * @return Whether the user is allowed to create new tables, functions
+   *   and sub-schemas in this schema
+   */
   boolean isMutable();
 
   /** Returns whether the contents of this schema have changed since a given

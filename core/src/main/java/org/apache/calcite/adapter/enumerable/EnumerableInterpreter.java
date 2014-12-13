@@ -42,7 +42,14 @@ public class EnumerableInterpreter extends SingleRel
     implements EnumerableRel {
   private final double factor;
 
-  /** Creates an EnumerableInterpreterRel. */
+  /**
+   * Creates an EnumerableInterpreter.
+   *
+   * @param cluster Cluster
+   * @param traitSet Traits
+   * @param input Input relation
+   * @param factor Cost multiply factor
+   */
   public EnumerableInterpreter(RelOptCluster cluster,
       RelTraitSet traitSet, RelNode input, double factor) {
     super(cluster, traitSet, input);

@@ -37,24 +37,28 @@ import java.util.Set;
 
 /**
  * A relational operator that performs nested-loop joins.
- * <p/>
+ *
  * <p>It behaves like a kind of {@link org.apache.calcite.rel.core.Join},
  * but works by setting variables in its environment and restarting its
  * right-hand input.
- * <p/>
+ *
  * <p>Correlate is not a join since: typical rules should not match Correlate.
- * <p/>
+ *
  * <p>A Correlate is used to represent a correlated query. One
  * implementation strategy is to de-correlate the expression.
  *
- * NestedLoops     -> Correlate(A, B, regular)
- * NestedLoopsOuter-> Correlate(A, B, outer)
- * NestedLoopsSemi -> Correlate(A, B, semi)
- * NestedLoopsAnti -> Correlate(A, B, anti)
- * HashJoin        -> EquiJoin(A, B)
- * HashJoinOuter   -> EquiJoin(A, B)
- * HashJoinSemi    -> SemiJoin(A, B, semi)
- * HashJoinAnti    -> SemiJoin(A, B, anti)
+ * <table>
+ *   <caption>Mapping of physical operations to logical ones</caption>
+ *   <tr><th>Physical operation</th><th>Logical operation</th></tr>
+ *   <tr><td>NestedLoops</td><td>Correlate(A, B, regular)</td></tr>
+ *   <tr><td>NestedLoopsOuter</td><td>Correlate(A, B, outer)</td></tr>
+ *   <tr><td>NestedLoopsSemi</td><td>Correlate(A, B, semi)</td></tr>
+ *   <tr><td>NestedLoopsAnti</td><td>Correlate(A, B, anti)</td></tr>
+ *   <tr><td>HashJoin</td><td>EquiJoin(A, B)</td></tr>
+ *   <tr><td>HashJoinOuter</td><td>EquiJoin(A, B, outer)</td></tr>
+ *   <tr><td>HashJoinSemi</td><td>SemiJoin(A, B, semi)</td></tr>
+ *   <tr><td>HashJoinAnti</td><td>SemiJoin(A, B, anti)</td></tr>
+ * </table>
  *
  * @see CorrelationId
  */
@@ -69,12 +73,12 @@ public abstract class Correlate extends BiRel {
 
   /**
    * Creates a Correlate.
-   * @param cluster      cluster this relational expression belongs to
-   * @param left         left input relational expression
-   * @param right        right input relational expression
-   * @param correlationId variable name for the row of left input
-   * @param requiredColumns
-   * @param joinType join type
+   * @param cluster      Cluster this relational expression belongs to
+   * @param left         Left input relational expression
+   * @param right        Right input relational expression
+   * @param correlationId Variable name for the row of left input
+   * @param requiredColumns Set of columns that are used by correlation
+   * @param joinType Join type
    */
   protected Correlate(
       RelOptCluster cluster,
@@ -91,6 +95,8 @@ public abstract class Correlate extends BiRel {
 
   /**
    * Creates a Correlate by parsing serialized output.
+   *
+   * @param input Input representation
    */
   public Correlate(RelInput input) {
     this(

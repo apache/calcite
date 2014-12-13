@@ -47,6 +47,17 @@ public abstract class Calc extends SingleRel {
 
   //~ Constructors -----------------------------------------------------------
 
+  /**
+   * Creates calc node.
+   *
+   * @param cluster Cluster
+   * @param traits Traits
+   * @param child Input relation
+   * @param rowType Output row type
+   * @param program Calc program
+   * @param collationList Description of the physical ordering (or orderings)
+   *                      of this relational expression. Never null
+   */
   protected Calc(
       RelOptCluster cluster,
       RelTraitSet traits,
@@ -67,7 +78,19 @@ public abstract class Calc extends SingleRel {
     return copy(traitSet, sole(inputs), program, collationList);
   }
 
-  /** Creates a copy of this {@code Calc}. */
+  /**
+   * Creates a copy of this {@code Calc}.
+   *
+   * @param traitSet Traits
+   * @param child Input relation
+   * @param program Calc program
+   * @param collationList Description of the physical ordering (or orderings)
+   *                      of this relational expression. Never null
+   * @return New {@code Calc} if any parameter differs from the value of this
+   *   {@code Calc}, or just {@code this} if all the parameters are the same
+
+   * @see #copy(org.apache.calcite.plan.RelTraitSet, java.util.List)
+   */
   public abstract Calc copy(
       RelTraitSet traitSet,
       RelNode child,

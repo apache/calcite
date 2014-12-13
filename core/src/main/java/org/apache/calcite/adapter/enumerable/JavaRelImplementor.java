@@ -43,8 +43,12 @@ public abstract class JavaRelImplementor implements RelImplementor {
     return (JavaTypeFactory) rexBuilder.getTypeFactory();
   }
 
-  /** Returns the expression with which to access the
-   * {@link org.apache.calcite.DataContext}. */
+  /**
+   * Returns the expression used to access
+   * {@link org.apache.calcite.DataContext}.
+   *
+   * @return expression used to access {@link org.apache.calcite.DataContext}.
+   */
   public ParameterExpression getRootExpression() {
     return DataContext.ROOT;
   }

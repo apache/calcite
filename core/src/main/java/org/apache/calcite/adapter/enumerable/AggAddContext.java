@@ -50,6 +50,8 @@ public interface AggAddContext extends AggResultContext {
    * Returns a
    * {@link org.apache.calcite.adapter.enumerable.RexToLixTranslator}
    * suitable to transform the arguments.
+   *
+   * @return {@link RexToLixTranslator} suitable to transform the arguments
    */
   RexToLixTranslator rowTranslator();
 }

@@ -55,12 +55,16 @@ public interface AggContext {
    * {@link org.apache.calcite.rel.type.RelDataType}.
    * This can be helpful to test
    * {@link org.apache.calcite.rel.type.RelDataType#isNullable()}.
+   *
+   * @return Parameter types of the aggregate
    */
   List<? extends RelDataType> parameterRelTypes();
 
   /**
    * Returns the parameter types of the aggregate as
    * {@link java.lang.reflect.Type}.
+   *
+   * @return Parameter types of the aggregate
    */
   List<? extends Type> parameterTypes();
 }

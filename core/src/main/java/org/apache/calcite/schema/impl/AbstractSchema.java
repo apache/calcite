@@ -75,6 +75,8 @@ public class AbstractSchema implements Schema {
    * and {@link #getTable(String)} depend on this map.
    * The default implementation of this method returns the empty map.
    * Override this method to change their behavior.</p>
+   *
+   * @return Map of tables in this schema by name
    */
   protected Map<String, Table> getTableMap() {
     return ImmutableMap.of();
@@ -98,6 +100,8 @@ public class AbstractSchema implements Schema {
    * and {@link Schema#getFunctions(String)} depend on this map.
    * The default implementation of this method returns the empty multi-map.
    * Override this method to change their behavior.</p>
+   *
+   * @return Multi-map of functions in this schema by name
    */
   protected Multimap<String, Function> getFunctionMultimap() {
     return ImmutableMultimap.of();
@@ -112,12 +116,14 @@ public class AbstractSchema implements Schema {
   }
 
   /**
-   * Returns a map of tables in this schema by name.
+   * Returns a map of sub-schemas in this schema by name.
    *
-   * <p>The implementations of {@link #getTableNames()}
-   * and {@link #getTable(String)} depend on this map.
+   * <p>The implementations of {@link #getSubSchemaNames()}
+   * and {@link #getSubSchema(String)} depend on this map.
    * The default implementation of this method returns the empty map.
    * Override this method to change their behavior.</p>
+   *
+   * @return Map of sub-schemas in this schema by name
    */
   protected Map<String, Schema> getSubSchemaMap() {
     return ImmutableMap.of();

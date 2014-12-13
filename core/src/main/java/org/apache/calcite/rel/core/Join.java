@@ -343,6 +343,7 @@ public abstract class Join extends BiRel {
    *
    * <p>General contract as {@link RelNode#copy}.
    *
+   * @param traitSet      Traits
    * @param conditionExpr Condition
    * @param left          Left input
    * @param right         Right input
@@ -354,7 +355,11 @@ public abstract class Join extends BiRel {
   public abstract Join copy(RelTraitSet traitSet, RexNode conditionExpr,
       RelNode left, RelNode right, JoinRelType joinType, boolean semiJoinDone);
 
-  /** Analyzes the join condition. */
+  /**
+   * Analyzes the join condition.
+   *
+   * @return Analyzed join condition
+   */
   public JoinInfo analyzeCondition() {
     return JoinInfo.of(left, right, condition);
   }

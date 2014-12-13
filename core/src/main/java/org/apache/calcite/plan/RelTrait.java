@@ -62,6 +62,9 @@ public interface RelTrait {
    *
    * <p>Many traits cannot be substituted, in which case, this method should
    * return {@code equals(trait)}.</p>
+   *
+   * @param trait Given trait
+   * @return Whether this trait subsumes a given trait
    */
   boolean subsumes(RelTrait trait);
 

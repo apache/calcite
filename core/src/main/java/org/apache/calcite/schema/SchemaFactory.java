@@ -66,6 +66,7 @@ public interface SchemaFactory {
    * @param parentSchema Parent schema
    * @param name Name of this schema
    * @param operand The "operand" JSON property
+   * @return Created schema
    */
   Schema create(
       SchemaPlus parentSchema,

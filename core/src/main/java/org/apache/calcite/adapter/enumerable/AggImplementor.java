@@ -39,8 +39,8 @@ public interface AggImplementor {
    * {@link java.lang.StringBuilder}.
    * Calcite calls this method before all other {@code implement*} methods.
    *
-   * @param info aggregate context
-   * @return types of the intermediate variables used by the aggregate
+   * @param info Aggregate context
+   * @return Types of the intermediate variables used by the aggregate
    *   implementation
    */
   List<Type> getStateType(AggContext info);
@@ -52,8 +52,9 @@ public interface AggImplementor {
    * For instance, to zero the count use the following code:
    * {@code reset.currentBlock().add(Expressions.statement(
    * Expressions.assign(reset.accumulator().get(0), Expressions.constant(0)));}
-   * @param info aggregate context
-   * @param reset reset context
+   *
+   * @param info Aggregate context
+   * @param reset Reset context
    */
   void implementReset(AggContext info, AggResetContext reset);
 
@@ -61,8 +62,9 @@ public interface AggImplementor {
    * Updates intermediate values to account for the newly added value.
    * {@link AggResetContext#accumulator()} should be used to reference
    * the state variables.
-   * @param info aggregate context
-   * @param add add context
+   *
+   * @param info Aggregate context
+   * @param add Add context
    */
   void implementAdd(AggContext info, AggAddContext add);
 
@@ -72,8 +74,11 @@ public interface AggImplementor {
    * calcite might reuse the state when calculating sliding aggregates.
    * {@link AggResetContext#accumulator()} should be used to reference
    * the state variables.
-   * @param info aggregate context
-   * @param result result context
+   *
+   * @param info Aggregate context
+   * @param result Result context
+   * @return Expression that is a result of calculating final value of
+   *   the aggregate being implemented
    */
   Expression implementResult(AggContext info, AggResultContext result);
 }

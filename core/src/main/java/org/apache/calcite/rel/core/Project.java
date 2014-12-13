@@ -123,9 +123,19 @@ public abstract class Project extends SingleRel {
     return copy(traitSet, sole(inputs), exps, rowType);
   }
 
-  /** Copies a project.
+  /**
+   * Copies a project.
    *
-   * @see #copy(RelTraitSet, List) */
+   * @param traitSet Traits
+   * @param input Input
+   * @param exps Project expressions
+   * @param rowType Output row type
+   * @return New {@code Project} if any parameter differs from the value of this
+   *   {@code Project}, or just {@code this} if all the parameters are
+   *   the same
+   *
+   * @see #copy(RelTraitSet, List)
+   */
   public abstract Project copy(RelTraitSet traitSet, RelNode input,
       List<RexNode> exps, RelDataType rowType);
 
@@ -143,6 +153,8 @@ public abstract class Project extends SingleRel {
 
   /**
    * Returns the project expressions.
+   *
+   * @return Project expressions
    */
   public List<RexNode> getProjects() {
     return exps;
@@ -151,6 +163,8 @@ public abstract class Project extends SingleRel {
   /**
    * Returns a list of (expression, name) pairs. Convenient for various
    * transformations.
+   *
+   * @return List of (expression, name) pairs
    */
   public final List<Pair<RexNode, String>> getNamedProjects() {
     return Pair.zip(getProjects(), getRowType().getFieldNames());
@@ -260,6 +274,8 @@ public abstract class Project extends SingleRel {
 
   /**
    * Returns a mapping, or null if this projection is not a mapping.
+   *
+   * @return Mapping, or null if this projection is not a mapping
    */
   public Mappings.TargetMapping getMapping() {
     return getMapping(getInput().getRowType().getFieldCount(), exps);
@@ -276,6 +292,7 @@ public abstract class Project extends SingleRel {
    *
    * @param inputFieldCount Number of input fields
    * @param projects Project expressions
+   * @return Mapping of a set of project expressions
    */
   public static Mappings.TargetMapping getMapping(int inputFieldCount,
       List<RexNode> projects) {
@@ -294,6 +311,9 @@ public abstract class Project extends SingleRel {
   /**
    * Returns a permutation, if this projection is merely a permutation of its
    * input fields, otherwise null.
+   *
+   * @return Permutation, if this projection is merely a permutation of its
+   *   input fields, otherwise null
    */
   public Permutation getPermutation() {
     final int fieldCount = rowType.getFieldList().size();

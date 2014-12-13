@@ -160,6 +160,18 @@ public abstract class Aggregate extends SingleRel {
 
   /** Creates a copy of this aggregate.
    *
+   * @param traitSet Traits
+   * @param input Input
+   * @param indicator Whether row type should include indicator fields to
+   *                 indicate which grouping set is active; must be true if
+   *                 aggregate is not simple
+   * @param groupSet Bit set of grouping fields
+   * @param groupSets List of all grouping sets; null for just {@code groupSet}
+   * @param aggCalls Collection of calls to aggregate functions
+   * @return New {@code Aggregate} if any parameter differs from the value of
+   *   this {@code Aggregate}, or just {@code this} if all the parameters are
+   *   the same
+   *
    * @see #copy(org.apache.calcite.plan.RelTraitSet, java.util.List)
    */
   public abstract Aggregate copy(RelTraitSet traitSet, RelNode input,
@@ -223,6 +235,8 @@ public abstract class Aggregate extends SingleRel {
 
   /**
    * Returns the list of grouping sets computed by this Aggregate.
+   *
+   * @return List of all grouping sets; null for just {@code groupSet}
    */
   public ImmutableList<ImmutableBitSet> getGroupSets() {
     return groupSets;
@@ -270,7 +284,19 @@ public abstract class Aggregate extends SingleRel {
         indicator, groupSet, groupSets, aggCalls);
   }
 
-  /** Computes the row type of an {@code Aggregate} before it exists. */
+  /**
+   * Computes the row type of an {@code Aggregate} before it exists.
+   *
+   * @param typeFactory Type factory
+   * @param inputRowType Input row type
+   * @param indicator Whether row type should include indicator fields to
+   *                 indicate which grouping set is active; must be true if
+   *                 aggregate is not simple
+   * @param groupSet Bit set of grouping fields
+   * @param groupSets List of all grouping sets; null for just {@code groupSet}
+   * @param aggCalls Collection of calls to aggregate functions
+   * @return Row type of the aggregate
+   */
   public static RelDataType deriveRowType(RelDataTypeFactory typeFactory,
       final RelDataType inputRowType, boolean indicator,
       ImmutableBitSet groupSet, List<ImmutableBitSet> groupSets,
@@ -326,6 +352,8 @@ public abstract class Aggregate extends SingleRel {
 
   /**
    * Returns whether any of the aggregates are DISTINCT.
+   *
+   * @return Whether any of the aggregates are DISTINCT
    */
   public boolean containsDistinctCall() {
     for (AggregateCall call : aggCalls) {
@@ -336,7 +364,11 @@ public abstract class Aggregate extends SingleRel {
     return false;
   }
 
-  /** Returns the type of roll-up. */
+  /**
+   * Returns the type of roll-up.
+   *
+   * @return Type of roll-up
+   */
   public Group getGroupType() {
     return Group.induce(groupSet, groupSets);
   }

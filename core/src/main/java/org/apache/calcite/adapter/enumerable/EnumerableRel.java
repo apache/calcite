@@ -66,6 +66,7 @@ public interface EnumerableRel
    *
    * @param implementor Implementor
    * @param pref Preferred representation for rows in result expression
+   * @return Plan for this expression according to a calling convention
    */
   Result implement(EnumerableRelImplementor implementor, Prefer pref);
 

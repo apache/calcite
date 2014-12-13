@@ -96,7 +96,10 @@ public abstract class RelOptRule {
    * children.
    *
    * @param clazz Class of relational expression to match (must not be null)
-   * @return Operand
+   * @param operandList Child operands
+   * @param <R> Class of relational expression to match
+   * @return Operand that matches a relational expression that has no
+   *   children
    */
   public static <R extends RelNode> RelOptRuleOperand operand(
       Class<R> clazz,
@@ -111,7 +114,10 @@ public abstract class RelOptRule {
    *
    * @param clazz Class of relational expression to match (must not be null)
    * @param trait Trait to match, or null to match any trait
-   * @return Operand
+   * @param operandList Child operands
+   * @param <R> Class of relational expression to match
+   * @return Operand that matches a relational expression that has no
+   *   children
    */
   public static <R extends RelNode> RelOptRuleOperand operand(
       Class<R> clazz,
@@ -127,7 +133,11 @@ public abstract class RelOptRule {
    *
    * @param clazz Class of relational expression to match (must not be null)
    * @param trait Trait to match, or null to match any trait
-   * @return Operand
+   * @param predicate Additional match predicate
+   * @param operandList Child operands
+   * @param <R> Class of relational expression to match
+   * @return Operand that matches a relational expression that has a
+   *   particular trait and predicate
    */
   public static <R extends RelNode> RelOptRuleOperand operand(
       Class<R> clazz,
@@ -143,6 +153,10 @@ public abstract class RelOptRule {
    *
    * @param clazz Class of relational expression to match (must not be null)
    * @param trait Trait to match, or null to match any trait
+   * @param predicate Additional match predicate
+   * @param first First operand
+   * @param rest Rest operands
+   * @param <R> Class of relational expression to match
    * @return Operand
    */
   public static <R extends RelNode> RelOptRuleOperand operand(
@@ -167,7 +181,11 @@ public abstract class RelOptRule {
    * children, write <code>operand(clazz, any())</code></p>.
    *
    * @param clazz Class of relational expression to match (must not be null)
-   * @return Operand
+   * @param first First operand
+   * @param rest Rest operands
+   * @param <R> Class of relational expression to match
+   * @return Operand that matches a relational expression with a given
+   *   list of children
    */
   public static <R extends RelNode> RelOptRuleOperand operand(
       Class<R> clazz,
@@ -185,6 +203,8 @@ public abstract class RelOptRule {
    *
    * @param first First child operand
    * @param rest  Remaining child operands (may be empty)
+   * @return List of child operands that matches child relational
+   *   expressions in the order
    */
   public static RelOptRuleOperandChildren some(
       RelOptRuleOperand first,
@@ -219,6 +239,8 @@ public abstract class RelOptRule {
    *
    * @param first First child operand
    * @param rest  Remaining child operands (may be empty)
+   * @return List of child operands that matches child relational
+   *   expressions in any order
    */
   public static RelOptRuleOperandChildren unordered(
       RelOptRuleOperand first,
@@ -231,6 +253,8 @@ public abstract class RelOptRule {
 
   /**
    * Creates an empty list of child operands.
+   *
+   * @return Empty list of child operands
    */
   public static RelOptRuleOperandChildren none() {
     return RelOptRuleOperandChildren.LEAF_CHILDREN;
@@ -239,6 +263,9 @@ public abstract class RelOptRule {
   /**
    * Creates a list of child operands that signifies that the operand matches
    * any number of child relational expressions.
+   *
+   * @return List of child operands that signifies that the operand matches
+   *   any number of child relational expressions
    */
   public static RelOptRuleOperandChildren any() {
     return RelOptRuleOperandChildren.ANY_CHILDREN;
@@ -352,6 +379,9 @@ public abstract class RelOptRule {
    *
    * <p>The base implementation checks that the rules have the same class and
    * that the operands are equal; derived classes can override.
+   *
+   * @param that Another rule
+   * @return Whether this rule is equal to another rule
    */
   protected boolean equals(RelOptRule that) {
     // Include operands and class in the equality criteria just in case
@@ -420,6 +450,9 @@ public abstract class RelOptRule {
   /**
    * Returns the convention of the result of firing this rule, null if
    * not known.
+   *
+   * @return Convention of the result of firing this rule, null if
+   *   not known
    */
   public Convention getOutConvention() {
     return null;
@@ -428,12 +461,16 @@ public abstract class RelOptRule {
   /**
    * Returns the trait which will be modified as a result of firing this rule,
    * or null if the rule is not a converter rule.
+   *
+   * @return Trait which will be modified as a result of firing this rule,
+   *   or null if the rule is not a converter rule
    */
   public RelTrait getOutTrait() {
     return null;
   }
 
-  /** Returns the description of this rule.
+  /**
+   * Returns the description of this rule.
    *
    * <p>It must be unique (for rules that are not equal) and must consist of
    * only the characters A-Z, a-z, 0-9, '_', '.', '(', ')'. It must start with

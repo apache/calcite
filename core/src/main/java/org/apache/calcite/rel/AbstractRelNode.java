@@ -285,6 +285,7 @@ public abstract class AbstractRelNode implements RelNode {
    * methods for each input and attribute.
    *
    * @param pw Plan writer
+   * @return Plan writer for fluent-explain pattern
    */
   public RelWriter explainTerms(RelWriter pw) {
     return pw;
@@ -351,6 +352,8 @@ public abstract class AbstractRelNode implements RelNode {
 
   /**
    * Computes the digest. Does not modify this object.
+   *
+   * @return Digest
    */
   protected String computeDigest() {
     StringWriter sw = new StringWriter();

@@ -84,6 +84,8 @@ public interface RelNode extends RelOptNode, Cloneable {
    * <p>The caller should treat the list as unmodifiable; typical
    * implementations will return an immutable list. If there are no
    * child expressions, returns an empty list, not <code>null</code>.
+   *
+   * @return List of this relational expression's child expressions
    */
   List<RexNode> getChildExps();
 
@@ -107,6 +109,8 @@ public interface RelNode extends RelOptNode, Cloneable {
   /**
    * Returns whether the same value will not come out twice. Default value is
    * <code>false</code>, derived classes should override.
+   *
+   * @return Whether the same value will not come out twice
    */
   boolean isDistinct();
 
@@ -119,9 +123,7 @@ public interface RelNode extends RelOptNode, Cloneable {
   RelNode getInput(int i);
 
   /**
-   * Returns the sub-query this relational expression belongs to. A sub-query
-   * determines the scope for correlating variables (see
-   * {@link #setCorrelVariable(String)}).
+   * Returns the sub-query this relational expression belongs to.
    *
    * @return Sub-query
    */
@@ -144,7 +146,9 @@ public interface RelNode extends RelOptNode, Cloneable {
 
   /**
    * Returns an array of this relational expression's inputs. If there are no
-   * inputs, returns an empty array, not <code>null</code>.
+   * inputs, returns an empty list, not {@code null}.
+   *
+   * @return Array of this relational expression's inputs
    */
   List<RelNode> getInputs();
 
@@ -155,6 +159,9 @@ public interface RelNode extends RelOptNode, Cloneable {
    * <p>NOTE jvs 29-Mar-2006: Don't call this method directly. Instead, use
    * {@link RelMetadataQuery#getRowCount}, which gives plugins a chance to
    * override the rel's default ideas about row count.
+   *
+   * @return Estimate of the number of rows this relational expression will
+   *   return
    */
   double getRows();
 
@@ -162,6 +169,11 @@ public interface RelNode extends RelOptNode, Cloneable {
    * Returns the names of variables which are set in this relational
    * expression but also used and therefore not available to parents of this
    * relational expression.
+   * <p>Note: only {@link org.apache.calcite.rel.core.Correlate} should set
+   * variables</p>
+   *
+   * @return Names of variables which are set in this relational
+   *   expression
    */
   Set<String> getVariablesStopped();
 
@@ -187,6 +199,9 @@ public interface RelNode extends RelOptNode, Cloneable {
    * Interacts with the {@link RelVisitor} in a
    * {@link org.apache.calcite.util.Glossary#VISITOR_PATTERN visitor pattern} to
    * traverse the tree of relational expressions.
+   *
+   * @param visitor Visitor that will traverse the tree of relational
+   *                expressions
    */
   void childrenAccept(RelVisitor visitor);
 
@@ -197,6 +212,9 @@ public interface RelNode extends RelOptNode, Cloneable {
    * <p>NOTE jvs 29-Mar-2006: Don't call this method directly. Instead, use
    * {@link RelMetadataQuery#getNonCumulativeCost}, which gives plugins a
    * chance to override the rel's default ideas about cost.
+   *
+   * @param planner Planner for cost calculation
+   * @return Cost of this plan (not including children)
    */
   RelOptCost computeSelfCost(RelOptPlanner planner);
 
@@ -227,17 +245,25 @@ public interface RelNode extends RelOptNode, Cloneable {
    * Receives notification that this expression is about to be registered. The
    * implementation of this method must at least register all child
    * expressions.
+   *
+   * @param planner Planner that plans this relational node
+   * @return Relational expression that should be used by the planner
    */
   RelNode onRegister(RelOptPlanner planner);
 
   /**
    * Computes the digest, assigns it, and returns it. For planner use only.
+   *
+   * @return Digest of this relational expression
    */
   String recomputeDigest();
 
   /**
    * Replaces the <code>ordinalInParent</code><sup>th</sup> input. You must
    * override this method if you override {@link #getInputs}.
+   *
+   * @param ordinalInParent Position of the child input, 0 is the first
+   * @param p New node that should be put at position {@code ordinalInParent}
    */
   void replaceInput(
       int ordinalInParent,
@@ -246,6 +272,9 @@ public interface RelNode extends RelOptNode, Cloneable {
   /**
    * If this relational expression represents an access to a table, returns
    * that table, otherwise returns null.
+   *
+   * @return If this relational expression represents an access to a table,
+   *   returns that table, otherwise returns null
    */
   RelOptTable getTable();
 
@@ -254,6 +283,9 @@ public interface RelNode extends RelOptNode, Cloneable {
    * name, for use in explain. For example, for a <code>
    * org.apache.calcite.rel.ArrayRel.ArrayReader</code>, this method returns
    * "ArrayReader".
+   *
+   * @return Name of this relational expression's class, sans package name,
+   *   for use in explain
    */
   String getRelTypeName();
 
@@ -280,6 +312,9 @@ public interface RelNode extends RelOptNode, Cloneable {
   /**
    * Returns a description of the physical ordering (or orderings) of this
    * relational expression. Never null.
+   *
+   * @return Description of the physical ordering (or orderings) of this
+   *   relational expression. Never null
    */
   List<RelCollation> getCollationList();
 
@@ -307,6 +342,9 @@ public interface RelNode extends RelOptNode, Cloneable {
    * relational expression of this class. The derived class should call
    * {@link org.apache.calcite.plan.RelOptPlanner#addRule} for each rule, and
    * then call {@code super.register}.</p>
+   *
+   * @param planner Planner to be used to register additional relational
+   *                expressions
    */
   void register(RelOptPlanner planner);
 

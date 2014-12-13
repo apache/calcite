@@ -43,6 +43,8 @@ public interface RelDataTypeFactory {
 
   /**
    * Returns the type system.
+   *
+   * @return Type system
    */
   RelDataTypeSystem getTypeSystem();
 

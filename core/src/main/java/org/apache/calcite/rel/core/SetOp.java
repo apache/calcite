@@ -125,6 +125,8 @@ public abstract class SetOp extends AbstractRelNode {
    *
    * @param compareNames Whether column names are important in the
    *                     homogeneity comparison
+   * @return Whether all the inputs of this set operator have the same row
+   *   type as its output row
    */
   public boolean isHomogeneous(boolean compareNames) {
     RelDataType unionType = getRowType();

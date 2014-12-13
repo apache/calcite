@@ -92,6 +92,9 @@ public abstract class ConverterRule extends RelOptRule {
    *
    * <p>The union-to-java converter, for example, is not guaranteed, because
    * it only works on unions.</p>
+   *
+   * @return {@code true} if this rule can convert <em>any</em> relational
+   *   expression
    */
   public boolean isGuaranteed() {
     return false;
