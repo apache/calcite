@@ -45,9 +45,15 @@ public class EnumerableTableFunctionScan extends TableFunctionScan
       columnMappings);
   }
 
-  @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
+  @Override public EnumerableTableFunctionScan copy(
+      RelTraitSet traitSet,
+      List<RelNode> inputs,
+      RexNode rexCall,
+      Type elementType,
+      RelDataType rowType,
+      Set<RelColumnMapping> columnMappings) {
     return new EnumerableTableFunctionScan(getCluster(), traitSet, inputs,
-        getElementType(), getRowType(), getCall(), getColumnMappings());
+        elementType, rowType, rexCall, columnMappings);
   }
 
   public Result implement(EnumerableRelImplementor implementor, Prefer pref) {

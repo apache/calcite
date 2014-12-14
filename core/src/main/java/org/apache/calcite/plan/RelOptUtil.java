@@ -19,7 +19,9 @@ package org.apache.calcite.plan;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollationImpl;
+import org.apache.calcite.rel.RelHomogeneousShuttle;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelShuttle;
 import org.apache.calcite.rel.RelVisitor;
 import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.core.AggregateCall;
@@ -152,22 +154,18 @@ public abstract class RelOptUtil {
    */
   public static Set<String> getVariablesUsed(RelNode rel) {
     final VariableUsedVisitor vuv = new VariableUsedVisitor();
-    final VisitorRelVisitor visitor =
-        new VisitorRelVisitor(vuv) {
-          // implement RelVisitor
-          public void visit(
-              RelNode p,
-              int ordinal,
-              RelNode parent) {
-            p.collectVariablesUsed(vuv.variables);
-            super.visit(p, ordinal, parent);
-
-            // Important! Remove stopped variables AFTER we visit
-            // children. (which what super.visit() does)
-            vuv.variables.removeAll(p.getVariablesStopped());
-          }
-        };
-    visitor.go(rel);
+    RelShuttle visitor = new RelHomogeneousShuttle() {
+      @Override public RelNode visit(RelNode other) {
+        other.collectVariablesUsed(vuv.variables);
+        other.accept(vuv);
+        RelNode result = super.visit(other);
+        // Important! Remove stopped variables AFTER we visit
+        // children. (which what super.visit() does)
+        vuv.variables.removeAll(other.getVariablesStopped());
+        return result;
+      }
+    };
+    rel.accept(visitor);
     return vuv.variables;
   }
 

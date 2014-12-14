@@ -32,6 +32,7 @@ import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.SingleRel;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
@@ -160,6 +161,20 @@ public class Sort extends SingleRel {
 
   @Override public List<RexNode> getChildExps() {
     return fieldExps;
+  }
+
+  public RelNode accept(RexShuttle shuttle) {
+    RexNode offset = shuttle.apply(this.offset);
+    RexNode fetch = shuttle.apply(this.fetch);
+    List<RexNode> fieldExps = shuttle.apply(this.fieldExps);
+    assert fieldExps == this.fieldExps
+        : "Sort node does not support modification of input field expressions."
+          + " Old expressions: " + this.fieldExps + ", new ones: " + fieldExps;
+    if (offset == this.offset
+        && fetch == this.fetch) {
+      return this;
+    }
+    return copy(traitSet, getInput(), collation, offset, fetch);
   }
 
   /**
