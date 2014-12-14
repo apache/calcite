@@ -1050,28 +1050,29 @@ public class JdbcTest {
             + "the_year=1998; C=365; M=April\n");
   }
 
-  @Ignore
+  @Ignore("The test returns expected results. Not sure why it is disabled")
   @Test public void testCloneGroupBy2() {
     CalciteAssert.that()
         .with(CalciteAssert.Config.FOODMART_CLONE)
         .query(
             "select \"time_by_day\".\"the_year\" as \"c0\", \"time_by_day\".\"quarter\" as \"c1\", \"product_class\".\"product_family\" as \"c2\", sum(\"sales_fact_1997\".\"unit_sales\") as \"m0\" from \"time_by_day\" as \"time_by_day\", \"sales_fact_1997\" as \"sales_fact_1997\", \"product_class\" as \"product_class\", \"product\" as \"product\" where \"sales_fact_1997\".\"time_id\" = \"time_by_day\".\"time_id\" and \"time_by_day\".\"the_year\" = 1997 and \"sales_fact_1997\".\"product_id\" = \"product\".\"product_id\" and \"product\".\"product_class_id\" = \"product_class\".\"product_class_id\" group by \"time_by_day\".\"the_year\", \"time_by_day\".\"quarter\", \"product_class\".\"product_family\"")
-        .returns("c0=1997; c1=Q2; c2=Drink; m0=5895.0000\n"
-            + "c0=1997; c1=Q1; c2=Food; m0=47809.0000\n"
-            + "c0=1997; c1=Q3; c2=Drink; m0=6065.0000\n"
-            + "c0=1997; c1=Q4; c2=Drink; m0=6661.0000\n"
-            + "c0=1997; c1=Q4; c2=Food; m0=51866.0000\n"
-            + "c0=1997; c1=Q1; c2=Drink; m0=5976.0000\n"
-            + "c0=1997; c1=Q3; c2=Non-Consumable; m0=12343.0000\n"
-            + "c0=1997; c1=Q4; c2=Non-Consumable; m0=13497.0000\n"
-            + "c0=1997; c1=Q2; c2=Non-Consumable; m0=11890.0000\n"
-            + "c0=1997; c1=Q2; c2=Food; m0=44825.0000\n"
-            + "c0=1997; c1=Q3; c2=Food; m0=47440.0000\n"
-            + "c0=1997; c1=Q1; c2=Non-Consumable; m0=12506.0000\n");
+        .returnsUnordered(
+            "c0=1997; c1=Q2; c2=Drink; m0=5895.0000",
+            "c0=1997; c1=Q1; c2=Food; m0=47809.0000",
+            "c0=1997; c1=Q3; c2=Drink; m0=6065.0000",
+            "c0=1997; c1=Q4; c2=Drink; m0=6661.0000",
+            "c0=1997; c1=Q4; c2=Food; m0=51866.0000",
+            "c0=1997; c1=Q1; c2=Drink; m0=5976.0000",
+            "c0=1997; c1=Q3; c2=Non-Consumable; m0=12343.0000",
+            "c0=1997; c1=Q4; c2=Non-Consumable; m0=13497.0000",
+            "c0=1997; c1=Q2; c2=Non-Consumable; m0=11890.0000",
+            "c0=1997; c1=Q2; c2=Food; m0=44825.0000",
+            "c0=1997; c1=Q3; c2=Food; m0=47440.0000",
+            "c0=1997; c1=Q1; c2=Non-Consumable; m0=12506.0000");
   }
 
   /** Tests plan for a query with 4 tables, 3 joins. */
-  @Ignore
+  @Ignore("The actual and expected plan differ")
   @Test public void testCloneGroupBy2Plan() {
     CalciteAssert.that()
         .with(CalciteAssert.Config.FOODMART_CLONE)
