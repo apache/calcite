@@ -64,6 +64,7 @@ public class EnumerableTableFunctionScan extends TableFunctionScan
             : JavaRowFormat.CUSTOM);
     RexToLixTranslator t = RexToLixTranslator.forAggregation(
         (JavaTypeFactory) getCluster().getTypeFactory(), bb, null);
+    t = t.setCorrelates(implementor.allCorrelateVariables);
     final Expression translated = t.translate(getCall());
     bb.add(Expressions.return_(null, translated));
     return implementor.result(physType, bb.toBlock());

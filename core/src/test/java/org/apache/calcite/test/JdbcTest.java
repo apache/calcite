@@ -469,17 +469,17 @@ public class JdbcTest {
   /** Tests a JDBC connection that provides a model that contains a table
    *  function. */
   @Test public void testTableFunctionInModel() throws Exception {
-    checkTableMacroInModel(TestTableFunction.class);
+    checkTableFunctionInModel(TestTableFunction.class);
   }
 
   /** Tests a JDBC connection that provides a model that contains a table
    *  function defined as a static method. */
   @Test public void testStaticTableFunctionInModel() throws Exception {
-    checkTableMacroInModel(TestStaticTableFunction.class);
+    checkTableFunctionInModel(TestStaticTableFunction.class);
   }
 
-  private void checkTableMacroInModel(Class clazz) {
-    CalciteAssert.that()
+  private CalciteAssert.AssertThat assertWithMacro(Class clazz) {
+    return CalciteAssert.that()
         .withModel("{\n"
             + "  version: '1.0',\n"
             + "   schemas: [\n"
@@ -493,12 +493,37 @@ public class JdbcTest {
             + "       ]\n"
             + "     }\n"
             + "   ]\n"
-            + "}")
+            + "}");
+  }
+
+  private void checkTableMacroInModel(Class clazz) {
+    assertWithMacro(clazz)
         .query("select * from table(\"adhoc\".\"View\"('(30)'))")
         .returns(""
             + "c=1\n"
             + "c=3\n"
             + "c=30\n");
+  }
+
+  private void checkTableFunctionInModel(Class clazz) {
+    checkTableMacroInModel(clazz);
+
+    assertWithMacro(clazz)
+        .query("select \"a\".\"c\" a, \"b\".\"c\" b\n"
+            + "  from table(\"adhoc\".\"View\"('(30)')) \"a\",\n"
+            + " lateral(select *\n"
+            + "   from table(\"adhoc\".\"View\"('('||\n"
+            + "          cast(\"a\".\"c\" as varchar(10))||')'))) \"b\"")
+        .returnsUnordered(
+            "A=1; B=1",
+            "A=1; B=3",
+            "A=1; B=1",
+            "A=3; B=1",
+            "A=3; B=3",
+            "A=3; B=3",
+            "A=30; B=1",
+            "A=30; B=3",
+            "A=30; B=30");
   }
 
   public static <T> Queryable<T> stringUnion(
@@ -6334,11 +6359,18 @@ public class JdbcTest {
   }
 
   private static QueryableTable oneThreePlus(String s) {
-    Integer latest = Integer.parseInt(s.substring(1, s.length() - 1));
-    List<Object> items = Arrays.<Object>asList(1, 3, latest);
-    final Enumerable<Object> enumerable = Linq4j.asEnumerable(items);
+    List<Integer> items;
+    // Argument is null in case SQL contains function call with expression.
+    // Then the engine calls a function with null argumets to get getRowType.
+    if (s == null) {
+      items = ImmutableList.of();
+    } else {
+      Integer latest = Integer.parseInt(s.substring(1, s.length() - 1));
+      items = ImmutableList.of(1, 3, latest);
+    }
+    final Enumerable<Integer> enumerable = Linq4j.asEnumerable(items);
     return new AbstractQueryableTable(Object[].class) {
-      public Queryable<Object> asQueryable(
+      public Queryable<Integer> asQueryable(
           QueryProvider queryProvider, SchemaPlus schema, String tableName) {
         return enumerable.asQueryable();
       }
