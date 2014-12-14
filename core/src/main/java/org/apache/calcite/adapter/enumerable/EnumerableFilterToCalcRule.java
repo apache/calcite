@@ -52,7 +52,6 @@ public class EnumerableFilterToCalcRule extends RelOptRule {
             filter.getCluster(),
             filter.getTraitSet(),
             rel,
-            inputRowType,
             program,
             ImmutableList.<RelCollation>of());
     call.transformTo(calc);

@@ -24,7 +24,6 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Calc;
 import org.apache.calcite.rel.rules.FilterToCalcRule;
 import org.apache.calcite.rel.rules.ProjectToCalcRule;
-import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexProgram;
 
@@ -63,10 +62,9 @@ public final class LogicalCalc extends Calc {
       RelOptCluster cluster,
       RelTraitSet traits,
       RelNode child,
-      RelDataType rowType,
       RexProgram program,
       List<RelCollation> collationList) {
-    super(cluster, traits, child, rowType, program, collationList);
+    super(cluster, traits, child, program, collationList);
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -74,7 +72,7 @@ public final class LogicalCalc extends Calc {
   @Override public LogicalCalc copy(RelTraitSet traitSet, RelNode child,
       RexProgram program, List<RelCollation> collationList) {
     return new LogicalCalc(getCluster(), traitSet, child,
-        program.getOutputRowType(), program, collationList);
+        program, collationList);
   }
 
   @Override public void collectVariablesUsed(Set<String> variableSet) {

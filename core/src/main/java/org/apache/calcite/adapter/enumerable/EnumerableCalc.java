@@ -31,7 +31,6 @@ import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Calc;
-import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.Pair;
@@ -54,10 +53,9 @@ public class EnumerableCalc extends Calc implements EnumerableRel {
       RelOptCluster cluster,
       RelTraitSet traitSet,
       RelNode child,
-      RelDataType rowType,
       RexProgram program,
       List<RelCollation> collationList) {
-    super(cluster, traitSet, child, rowType, program, collationList);
+    super(cluster, traitSet, child, program, collationList);
     assert getConvention() instanceof EnumerableConvention;
     assert !program.containsAggs();
   }
@@ -66,7 +64,7 @@ public class EnumerableCalc extends Calc implements EnumerableRel {
       RexProgram program, List<RelCollation> collationList) {
     // we do not need to copy program; it is immutable
     return new EnumerableCalc(getCluster(), traitSet, child,
-        program.getOutputRowType(), program, collationList);
+        program, collationList);
   }
 
   public Result implement(EnumerableRelImplementor implementor, Prefer pref) {

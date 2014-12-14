@@ -2834,7 +2834,6 @@ public abstract class RelOptUtil {
         rel.getCluster(),
         rel.getTraitSet(),
         rel,
-        program.getOutputRowType(),
         program,
         ImmutableList.<RelCollation>of());
   }

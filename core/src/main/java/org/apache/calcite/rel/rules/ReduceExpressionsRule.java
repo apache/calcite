@@ -277,7 +277,6 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
                     calc.getCluster(),
                     calc.getTraitSet(),
                     calc.getInput(),
-                    calc.getRowType(),
                     builder.getProgram(),
                     calc.getCollationList()));
 

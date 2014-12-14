@@ -224,7 +224,6 @@ public abstract class CalcRelSplitter {
           relType.makeRel(
               cluster,
               traits,
-              program1.getOutputRowType(),
               rel,
               program1);
 
@@ -773,14 +772,12 @@ public abstract class CalcRelSplitter {
     protected RelNode makeRel(
         RelOptCluster cluster,
         RelTraitSet traits,
-        RelDataType rowType,
         RelNode child,
         RexProgram program) {
       return new LogicalCalc(
           cluster,
           traits,
           child,
-          rowType,
           program,
           Collections.<RelCollation>emptyList());
     }

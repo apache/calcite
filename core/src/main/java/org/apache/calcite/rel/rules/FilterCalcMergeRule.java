@@ -87,7 +87,6 @@ public class FilterCalcMergeRule extends RelOptRule {
             calc.getCluster(),
             calc.getTraitSet(),
             calc.getInput(),
-            filter.getRowType(),
             mergedProgram,
             Collections.<RelCollation>emptyList());
     call.transformTo(newCalc);

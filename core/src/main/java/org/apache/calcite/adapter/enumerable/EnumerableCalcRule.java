@@ -52,7 +52,6 @@ class EnumerableCalcRule extends ConverterRule {
             calc.getInput(),
             calc.getInput().getTraitSet()
                 .replace(EnumerableConvention.INSTANCE)),
-        calc.getRowType(),
         program,
         calc.getCollationList());
   }

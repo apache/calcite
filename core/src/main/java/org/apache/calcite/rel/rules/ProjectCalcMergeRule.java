@@ -83,7 +83,6 @@ public class ProjectCalcMergeRule extends RelOptRule {
               cluster,
               project.getTraitSet(),
               calc,
-              project.getRowType(),
               program,
               Collections.<RelCollation>emptyList());
       call.transformTo(projectAsCalc);
@@ -113,7 +112,6 @@ public class ProjectCalcMergeRule extends RelOptRule {
             cluster,
             project.getTraitSet(),
             calc.getInput(),
-            project.getRowType(),
             mergedProgram,
             Collections.<RelCollation>emptyList());
     call.transformTo(newCalc);

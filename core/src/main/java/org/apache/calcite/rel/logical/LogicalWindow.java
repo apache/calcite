@@ -82,8 +82,8 @@ public final class LogicalWindow extends Window {
       RelOptCluster cluster,
       RelTraitSet traitSet,
       RelNode child,
-      final RexProgram program,
-      RelDataType outRowType) {
+      final RexProgram program) {
+    final RelDataType outRowType = program.getOutputRowType();
     // Build a list of distinct groups, partitions and aggregate
     // functions.
     final Multimap<WindowKey, RexOver> windowMap =

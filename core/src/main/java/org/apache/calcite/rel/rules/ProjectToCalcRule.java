@@ -22,7 +22,6 @@ import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.logical.LogicalCalc;
 import org.apache.calcite.rel.logical.LogicalProject;
-import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexProgram;
 
 import com.google.common.collect.ImmutableList;
@@ -57,7 +56,6 @@ public class ProjectToCalcRule extends RelOptRule {
   public void onMatch(RelOptRuleCall call) {
     final LogicalProject project = call.rel(0);
     final RelNode child = project.getInput();
-    final RelDataType rowType = project.getRowType();
     final RexProgram program =
         RexProgram.create(
             child.getRowType(),
@@ -70,7 +68,6 @@ public class ProjectToCalcRule extends RelOptRule {
             project.getCluster(),
             project.getTraitSet(),
             child,
-            rowType,
             program,
             ImmutableList.<RelCollation>of());
     call.transformTo(calc);

@@ -548,7 +548,6 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
             cluster,
             rel.getTraitSet(),
             newChild,
-            newProgram.getOutputRowType(),
             newProgram,
             Collections.<RelCollation>emptyList());
     setNewForOldRel(rel, newRel);

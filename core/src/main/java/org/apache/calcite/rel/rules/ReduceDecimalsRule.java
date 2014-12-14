@@ -115,7 +115,6 @@ public class ReduceDecimalsRule extends RelOptRule {
             calc.getCluster(),
             calc.getTraitSet(),
             calc.getInput(),
-            newProgram.getOutputRowType(),
             newProgram,
             Collections.<RelCollation>emptyList());
     call.transformTo(newCalc);

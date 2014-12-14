@@ -29,7 +29,6 @@ import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.logical.LogicalCalc;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalWindow;
-import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexDynamicParam;
 import org.apache.calcite.rex.RexFieldAccess;
@@ -114,7 +113,6 @@ public abstract class ProjectToWindowRule extends RelOptRule {
           Project project = call.rel(0);
           assert RexOver.containsOver(project.getProjects(), null);
           final RelNode child = project.getInput();
-          final RelDataType rowType = project.getRowType();
           final RexProgram program =
               RexProgram.create(
                   child.getRowType(),
@@ -128,7 +126,6 @@ public abstract class ProjectToWindowRule extends RelOptRule {
                   project.getCluster(),
                   project.getTraitSet(),
                   child,
-                  rowType,
                   program,
                   ImmutableList.<RelCollation>of());
           CalcRelSplitter transform = new WindowedAggRelSplitter(calc) {
@@ -203,7 +200,6 @@ public abstract class ProjectToWindowRule extends RelOptRule {
               protected RelNode makeRel(
                   RelOptCluster cluster,
                   RelTraitSet traits,
-                  RelDataType rowType,
                   RelNode child,
                   RexProgram program) {
                 assert !program.containsAggs();
@@ -212,7 +208,6 @@ public abstract class ProjectToWindowRule extends RelOptRule {
                 return super.makeRel(
                     cluster,
                     traits,
-                    rowType,
                     child,
                     program);
               }
@@ -241,14 +236,13 @@ public abstract class ProjectToWindowRule extends RelOptRule {
               protected RelNode makeRel(
                   RelOptCluster cluster,
                   RelTraitSet traits,
-                  RelDataType rowType,
                   RelNode child,
                   RexProgram program) {
                 Util.permAssert(
                     program.getCondition() == null,
                     "WindowedAggregateRel cannot accept a condition");
                 return LogicalWindow.create(
-                    cluster, traits, child, program, rowType);
+                    cluster, traits, child, program);
               }
             }
           });

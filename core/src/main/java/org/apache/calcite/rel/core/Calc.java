@@ -28,7 +28,6 @@ import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.SingleRel;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
-import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexProgram;
 
 import com.google.common.collect.ImmutableList;
@@ -53,7 +52,6 @@ public abstract class Calc extends SingleRel {
    * @param cluster Cluster
    * @param traits Traits
    * @param child Input relation
-   * @param rowType Output row type
    * @param program Calc program
    * @param collationList Description of the physical ordering (or orderings)
    *                      of this relational expression. Never null
@@ -62,11 +60,10 @@ public abstract class Calc extends SingleRel {
       RelOptCluster cluster,
       RelTraitSet traits,
       RelNode child,
-      RelDataType rowType,
       RexProgram program,
       List<RelCollation> collationList) {
     super(cluster, traits, child);
-    this.rowType = rowType;
+    this.rowType = program.getOutputRowType();
     this.program = program;
     this.collationList = ImmutableList.copyOf(collationList);
     assert isValid(true);
@@ -103,14 +100,6 @@ public abstract class Calc extends SingleRel {
         program.getInputRowType(),
         "child's output type",
         getInput().getRowType(),
-        fail)) {
-      return false;
-    }
-    if (!RelOptUtil.equal(
-        "rowtype of program",
-        program.getOutputRowType(),
-        "declared rowtype of rel",
-        rowType,
         fail)) {
       return false;
     }
