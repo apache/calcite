@@ -380,7 +380,6 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
     final RelNode newProject;
     if (ProjectRemoveRule.isIdentity(
         newProjectExprList,
-        newRowType,
         newInput.getRowType())) {
       // The new project would be the identity. It is equivalent to return
       // its child.

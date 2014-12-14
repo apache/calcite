@@ -1886,16 +1886,7 @@ public class SubstitutionVisitor {
     public static boolean isTrivial(MutableProject project) {
       MutableRel child = project.getInput();
       final RelDataType childRowType = child.getRowType();
-      if (!childRowType.isStruct()) {
-        return false;
-      }
-      if (!ProjectRemoveRule.isIdentity(
-          project.getProjects(),
-          project.getRowType(),
-          childRowType)) {
-        return false;
-      }
-      return true;
+      return ProjectRemoveRule.isIdentity(project.getProjects(), childRowType);
     }
 
     /** Equivalent to

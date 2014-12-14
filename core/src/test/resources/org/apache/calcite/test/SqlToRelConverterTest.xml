@@ -2226,9 +2226,8 @@ group by rollup(a, b)]]>
 LogicalProject(A=[$0], B=[$1], C=[$4])
   LogicalProject(A=[CASE($2, null, $0)], B=[CASE($3, null, $1)], i$A=[$2], i$B=[$3], C=[$4])
     LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {}]], indicator=[true], C=[COUNT()])
-      LogicalProject(A=[$0], B=[$1])
-        LogicalProject(EXPR$0=[null], EXPR$1=[2])
-          LogicalValues(tuples=[[{ 0 }]])
+      LogicalProject(A=[null], B=[2])
+        LogicalValues(tuples=[[{ 0 }]])
 ]]>
         </Resource>
     </TestCase>
