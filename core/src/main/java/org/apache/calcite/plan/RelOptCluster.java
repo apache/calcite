@@ -108,13 +108,13 @@ public class RelOptCluster {
     return metadataFactory;
   }
 
-  public RelTraitSet traitSetOf(RelTrait... traits) {
-    RelTraitSet traitSet = emptyTraitSet;
-    assert traitSet.size() == planner.getRelTraitDefs().size();
-    for (RelTrait trait : traits) {
-      traitSet = traitSet.replace(trait);
-    }
-    return traitSet;
+  /** Returns the default trait set for this cluster. */
+  public RelTraitSet traitSet() {
+    return emptyTraitSet;
+  }
+
+  public RelTraitSet traitSetOf(RelTrait trait) {
+    return emptyTraitSet.replace(trait);
   }
 }
 

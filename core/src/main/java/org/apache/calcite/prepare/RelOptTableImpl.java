@@ -24,6 +24,7 @@ import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptSchema;
 import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.logical.LogicalTableScan;
@@ -47,7 +48,6 @@ import com.google.common.base.Functions;
 import com.google.common.collect.ImmutableList;
 
 import java.lang.reflect.Type;
-import java.util.Collections;
 import java.util.List;
 
 /**
@@ -198,13 +198,21 @@ public class RelOptTableImpl implements Prepare.PreparingTable {
       return ((TranslatableTable) table).toRel(context, this);
     }
     if (CalcitePrepareImpl.ENABLE_BINDABLE) {
-      return new LogicalTableScan(context.getCluster(), this);
+      return LogicalTableScan.create(context.getCluster(), this);
     }
     if (CalcitePrepareImpl.ENABLE_ENUMERABLE) {
       RelOptCluster cluster = context.getCluster();
       Class elementType = deduceElementType();
-      final RelNode scan = new EnumerableTableScan(cluster,
-          cluster.traitSetOf(EnumerableConvention.INSTANCE), this, elementType);
+      RelTraitSet traits = cluster.traitSetOf(EnumerableConvention.INSTANCE);
+      if (table != null) {
+        final List<RelCollation> collations =
+            table.getStatistic().getCollations();
+        if (!collations.isEmpty()) {
+          traits = traits.replace(collations);
+        }
+      }
+      final RelNode scan =
+          new EnumerableTableScan(cluster, traits, this, elementType);
       if (table instanceof FilterableTable
           || table instanceof ProjectableFilterableTable) {
         return new EnumerableInterpreter(cluster, scan.getTraitSet(),
@@ -234,11 +242,17 @@ public class RelOptTableImpl implements Prepare.PreparingTable {
   }
 
   public List<RelCollation> getCollationList() {
-    return Collections.emptyList();
+    if (table != null) {
+      return table.getStatistic().getCollations();
+    }
+    return ImmutableList.of();
   }
 
   public boolean isKey(ImmutableBitSet columns) {
-    return table.getStatistic().isKey(columns);
+    if (table != null) {
+      return table.getStatistic().isKey(columns);
+    }
+    return false;
   }
 
   public RelDataType getRowType() {

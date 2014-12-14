@@ -65,38 +65,10 @@ public final class LogicalJoin extends Join {
   /**
    * Creates a LogicalJoin.
    *
-   * @param cluster          Cluster
-   * @param left             Left input
-   * @param right            Right input
-   * @param condition        Join condition
-   * @param joinType         Join type
-   * @param variablesStopped Set of names of variables which are set by the
-   *                         LHS and used by the RHS and are not available to
-   *                         nodes above this LogicalJoin in the tree
-   */
-  public LogicalJoin(
-      RelOptCluster cluster,
-      RelNode left,
-      RelNode right,
-      RexNode condition,
-      JoinRelType joinType,
-      Set<String> variablesStopped) {
-    this(
-        cluster,
-        left,
-        right,
-        condition,
-        joinType,
-        variablesStopped,
-        false,
-        ImmutableList.<RelDataTypeField>of());
-  }
-
-  /**
-   * Creates a LogicalJoin, flagged with whether it has been translated to a
-   * semi-join.
+   * <p>Use {@link #create} unless you know what you're doing.
    *
    * @param cluster          Cluster
+   * @param traitSet         Trait set
    * @param left             Left input
    * @param right            Right input
    * @param condition        Join condition
@@ -113,6 +85,7 @@ public final class LogicalJoin extends Join {
    */
   public LogicalJoin(
       RelOptCluster cluster,
+      RelTraitSet traitSet,
       RelNode left,
       RelNode right,
       RexNode condition,
@@ -120,17 +93,27 @@ public final class LogicalJoin extends Join {
       Set<String> variablesStopped,
       boolean semiJoinDone,
       ImmutableList<RelDataTypeField> systemFieldList) {
-    super(
-        cluster,
-        cluster.traitSetOf(Convention.NONE),
-        left,
-        right,
-        condition,
-        joinType,
+    super(cluster, traitSet, left, right, condition, joinType,
         variablesStopped);
     assert systemFieldList != null;
     this.semiJoinDone = semiJoinDone;
     this.systemFieldList = systemFieldList;
+  }
+
+  @Deprecated // to be removed before 2.0
+  public LogicalJoin(RelOptCluster cluster, RelNode left, RelNode right,
+      RexNode condition, JoinRelType joinType, Set<String> variablesStopped) {
+    this(cluster, cluster.traitSetOf(Convention.NONE), left, right, condition,
+        joinType, variablesStopped, false,
+        ImmutableList.<RelDataTypeField>of());
+  }
+
+  @Deprecated // to be removed before 2.0
+  public LogicalJoin(RelOptCluster cluster, RelNode left, RelNode right,
+      RexNode condition, JoinRelType joinType, Set<String> variablesStopped,
+      boolean semiJoinDone, ImmutableList<RelDataTypeField> systemFieldList) {
+    this(cluster, cluster.traitSetOf(Convention.NONE), left, right, condition,
+        joinType, variablesStopped, semiJoinDone, systemFieldList);
   }
 
   /**
@@ -142,6 +125,24 @@ public final class LogicalJoin extends Join {
         input.getInputs().get(1), input.getExpression("condition"),
         input.getEnum("joinType", JoinRelType.class),
         ImmutableSet.<String>of(), false,
+        ImmutableList.<RelDataTypeField>of());
+  }
+
+  /** Creates a LogicalJoin, flagged with whether it has been translated to a
+   * semi-join. */
+  public static LogicalJoin create(RelNode left, RelNode right,
+      RexNode condition, JoinRelType joinType, Set<String> variablesStopped,
+      boolean semiJoinDone, ImmutableList<RelDataTypeField> systemFieldList) {
+    final RelOptCluster cluster = left.getCluster();
+    final RelTraitSet traitSet = cluster.traitSetOf(Convention.NONE);
+    return new LogicalJoin(cluster, traitSet, left, right, condition, joinType,
+        variablesStopped, semiJoinDone, systemFieldList);
+  }
+
+  /** Creates a LogicalJoin. */
+  public static LogicalJoin create(RelNode left, RelNode right,
+      RexNode condition, JoinRelType joinType, Set<String> variablesStopped) {
+    return create(left, right, condition, joinType, variablesStopped, false,
         ImmutableList.<RelDataTypeField>of());
   }
 

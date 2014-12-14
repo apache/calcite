@@ -543,17 +543,17 @@ public class AggregateReduceFunctionsRule extends RelOptRule {
    * into Aggregate and subclasses - but it's only needed for some
    * subclasses.
    *
-   * @param oldAggRel LogicalAggregate to clone.
-   * @param inputRel  Input relational expression
+   * @param oldAggregate LogicalAggregate to clone.
+   * @param input  Input relational expression
    * @param newCalls  New list of AggregateCalls
    * @return shallow clone with new list of AggregateCalls.
    */
   protected Aggregate newAggregateRel(
-      Aggregate oldAggRel,
-      RelNode inputRel,
+      Aggregate oldAggregate,
+      RelNode input,
       List<AggregateCall> newCalls) {
-    return new LogicalAggregate(oldAggRel.getCluster(), inputRel,
-        oldAggRel.indicator, oldAggRel.getGroupSet(), oldAggRel.getGroupSets(),
+    return LogicalAggregate.create(input, oldAggregate.indicator,
+        oldAggregate.getGroupSet(), oldAggregate.getGroupSets(),
         newCalls);
   }
 

@@ -119,24 +119,24 @@ public class RelWriterTest {
                   RelOptSchema relOptSchema, SchemaPlus rootSchema) {
                 rootSchema.add("hr",
                     new ReflectiveSchema(new JdbcTest.HrSchema()));
-                LogicalTableScan table =
-                    new LogicalTableScan(cluster,
+                LogicalTableScan scan =
+                    LogicalTableScan.create(cluster,
                         relOptSchema.getTableForMember(
                             Arrays.asList("hr", "emps")));
                 final RexBuilder rexBuilder = cluster.getRexBuilder();
                 LogicalFilter filter =
-                    new LogicalFilter(cluster, table,
+                    LogicalFilter.create(scan,
                         rexBuilder.makeCall(
                             SqlStdOperatorTable.EQUALS,
                             rexBuilder.makeFieldAccess(
-                                rexBuilder.makeRangeReference(table),
+                                rexBuilder.makeRangeReference(scan),
                                 "deptno", true),
                             rexBuilder.makeExactLiteral(BigDecimal.TEN)));
                 final RelJsonWriter writer = new RelJsonWriter();
                 final RelDataType bigIntType =
                     cluster.getTypeFactory().createSqlType(SqlTypeName.BIGINT);
                 LogicalAggregate aggregate =
-                    new LogicalAggregate(cluster, filter, false,
+                    LogicalAggregate.create(filter, false,
                         ImmutableBitSet.of(0), null,
                         ImmutableList.of(
                             new AggregateCall(SqlStdOperatorTable.COUNT,

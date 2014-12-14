@@ -50,18 +50,20 @@ public final class LogicalCorrelate extends Correlate {
    * @param left         left input relational expression
    * @param right        right input relational expression
    * @param correlationId variable name for the row of left input
-   * @param requiredColumns
+   * @param requiredColumns Required columns
    * @param joinType     join type
    */
   public LogicalCorrelate(
       RelOptCluster cluster,
+      RelTraitSet traitSet,
       RelNode left,
       RelNode right,
       CorrelationId correlationId,
-      ImmutableBitSet requiredColumns, SemiJoinType joinType) {
+      ImmutableBitSet requiredColumns,
+      SemiJoinType joinType) {
     super(
         cluster,
-        cluster.traitSetOf(Convention.NONE),
+        traitSet,
         left,
         right,
         correlationId,
@@ -69,16 +71,33 @@ public final class LogicalCorrelate extends Correlate {
         joinType);
   }
 
+  @Deprecated // to be removed before 2.0
+  public LogicalCorrelate(RelOptCluster cluster, RelNode left, RelNode right,
+      CorrelationId correlationId,
+      ImmutableBitSet requiredColumns, SemiJoinType joinType) {
+    this(cluster, cluster.traitSetOf(Convention.NONE), left, right,
+        correlationId, requiredColumns, joinType);
+  }
+
   /**
    * Creates a LogicalCorrelate by parsing serialized output.
    */
   public LogicalCorrelate(RelInput input) {
-    this(
-        input.getCluster(), input.getInputs().get(0),
+    this(input.getCluster(), input.getTraitSet(), input.getInputs().get(0),
         input.getInputs().get(1),
         new CorrelationId((Integer) input.get("correlationId")),
         input.getBitSet("requiredColumns"),
         input.getEnum("joinType", SemiJoinType.class));
+  }
+
+  /** Creates a LogicalCorrelate. */
+  public static LogicalCorrelate create(RelNode left, RelNode right,
+      CorrelationId correlationId, ImmutableBitSet requiredColumns,
+      SemiJoinType joinType) {
+    final RelOptCluster cluster = left.getCluster();
+    final RelTraitSet traitSet = cluster.traitSetOf(Convention.NONE);
+    return new LogicalCorrelate(cluster, traitSet, left, right, correlationId,
+        requiredColumns, joinType);
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -87,13 +106,8 @@ public final class LogicalCorrelate extends Correlate {
       RelNode left, RelNode right, CorrelationId correlationId,
       ImmutableBitSet requiredColumns, SemiJoinType joinType) {
     assert traitSet.containsIfApplicable(Convention.NONE);
-    return new LogicalCorrelate(
-        getCluster(),
-        left,
-        right,
-        correlationId,
-        requiredColumns,
-        joinType);
+    return new LogicalCorrelate(getCluster(), traitSet, left, right,
+        correlationId, requiredColumns, joinType);
   }
 
   @Override public RelNode accept(RelShuttle shuttle) {

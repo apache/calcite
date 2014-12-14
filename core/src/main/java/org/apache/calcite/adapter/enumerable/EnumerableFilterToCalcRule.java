@@ -18,14 +18,11 @@ package org.apache.calcite.adapter.enumerable;
 
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
-import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.rex.RexProgramBuilder;
-
-import com.google.common.collect.ImmutableList;
 
 /** Variant of {@link org.apache.calcite.rel.rules.FilterToCalcRule} for
  * {@link org.apache.calcite.adapter.enumerable.EnumerableConvention enumerable calling convention}. */
@@ -36,24 +33,18 @@ public class EnumerableFilterToCalcRule extends RelOptRule {
 
   public void onMatch(RelOptRuleCall call) {
     final EnumerableFilter filter = call.rel(0);
-    final RelNode rel = filter.getInput();
+    final RelNode input = filter.getInput();
 
     // Create a program containing a filter.
     final RexBuilder rexBuilder = filter.getCluster().getRexBuilder();
-    final RelDataType inputRowType = rel.getRowType();
+    final RelDataType inputRowType = input.getRowType();
     final RexProgramBuilder programBuilder =
         new RexProgramBuilder(inputRowType, rexBuilder);
     programBuilder.addIdentity();
     programBuilder.addCondition(filter.getCondition());
     final RexProgram program = programBuilder.getProgram();
 
-    final EnumerableCalc calc =
-        new EnumerableCalc(
-            filter.getCluster(),
-            filter.getTraitSet(),
-            rel,
-            program,
-            ImmutableList.<RelCollation>of());
+    final EnumerableCalc calc = EnumerableCalc.create(input, program);
     call.transformTo(calc);
   }
 }

@@ -46,6 +46,8 @@ public final class LogicalAggregate extends Aggregate {
   /**
    * Creates a LogicalAggregate.
    *
+   * <p>Use {@link #create} unless you know what you're doing.
+   *
    * @param cluster  Cluster that this relational expression belongs to
    * @param child    input relational expression
    * @param groupSet Bit set of grouping fields
@@ -54,19 +56,25 @@ public final class LogicalAggregate extends Aggregate {
    */
   public LogicalAggregate(
       RelOptCluster cluster,
+      RelTraitSet traitSet,
       RelNode child,
       boolean indicator,
       ImmutableBitSet groupSet,
       List<ImmutableBitSet> groupSets,
       List<AggregateCall> aggCalls) {
-    super(
-        cluster,
-        cluster.traitSetOf(Convention.NONE),
-        child,
-        indicator,
-        groupSet,
-        groupSets,
-        aggCalls);
+    super(cluster, traitSet, child, indicator, groupSet, groupSets, aggCalls);
+  }
+
+  @Deprecated // to be removed before 2.0
+  public LogicalAggregate(
+      RelOptCluster cluster,
+      RelNode child,
+      boolean indicator,
+      ImmutableBitSet groupSet,
+      List<ImmutableBitSet> groupSets,
+      List<AggregateCall> aggCalls) {
+    this(cluster, cluster.traitSetOf(Convention.NONE), child, indicator,
+        groupSet, groupSets, aggCalls);
   }
 
   /**
@@ -76,14 +84,26 @@ public final class LogicalAggregate extends Aggregate {
     super(input);
   }
 
+  /** Creates a LogicalAggregate. */
+  public static LogicalAggregate create(RelNode input,
+      boolean indicator,
+      ImmutableBitSet groupSet,
+      List<ImmutableBitSet> groupSets,
+      List<AggregateCall> aggCalls) {
+    final RelOptCluster cluster = input.getCluster();
+    final RelTraitSet traitSet = cluster.traitSetOf(Convention.NONE);
+    return new LogicalAggregate(cluster, traitSet, input, indicator, groupSet,
+        groupSets, aggCalls);
+  }
+
   //~ Methods ----------------------------------------------------------------
 
   @Override public LogicalAggregate copy(RelTraitSet traitSet, RelNode input,
       boolean indicator, ImmutableBitSet groupSet,
       List<ImmutableBitSet> groupSets, List<AggregateCall> aggCalls) {
     assert traitSet.containsIfApplicable(Convention.NONE);
-    return new LogicalAggregate(getCluster(), input, indicator, groupSet,
-        groupSets, aggCalls);
+    return new LogicalAggregate(getCluster(), traitSet, input, indicator,
+        groupSet, groupSets, aggCalls);
   }
 
   @Override public RelNode accept(RelShuttle shuttle) {

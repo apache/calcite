@@ -123,9 +123,7 @@ public class JoinToCorrelateRule extends RelOptRule {
     final RelNode filteredRight =
         RelOptUtil.createFilter(right, joinCondition, filterFactory);
     RelNode newRel =
-        new LogicalCorrelate(
-            join.getCluster(),
-            left,
+        LogicalCorrelate.create(left,
             filteredRight,
             correlationId,
             requiredColumns.build(),

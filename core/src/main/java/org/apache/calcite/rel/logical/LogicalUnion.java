@@ -33,15 +33,22 @@ import java.util.List;
 public final class LogicalUnion extends Union {
   //~ Constructors -----------------------------------------------------------
 
-  public LogicalUnion(
-      RelOptCluster cluster,
+  /**
+   * Creates a LogicalUnion.
+   *
+   * <p>Use {@link #create} unless you know what you're doing.
+   */
+  public LogicalUnion(RelOptCluster cluster,
+      RelTraitSet traitSet,
       List<RelNode> inputs,
       boolean all) {
-    super(
-        cluster,
-        cluster.traitSetOf(Convention.NONE),
-        inputs,
-        all);
+    super(cluster, traitSet, inputs, all);
+  }
+
+  @Deprecated // to be removed before 2.0
+  public LogicalUnion(RelOptCluster cluster, List<RelNode> inputs,
+      boolean all) {
+    this(cluster, cluster.traitSetOf(Convention.NONE), inputs, all);
   }
 
   /**
@@ -51,15 +58,19 @@ public final class LogicalUnion extends Union {
     super(input);
   }
 
+  /** Creates a LogicalUnion. */
+  public static LogicalUnion create(List<RelNode> inputs, boolean all) {
+    final RelOptCluster cluster = inputs.get(0).getCluster();
+    final RelTraitSet traitSet = cluster.traitSetOf(Convention.NONE);
+    return new LogicalUnion(cluster, traitSet, inputs, all);
+  }
+
   //~ Methods ----------------------------------------------------------------
 
   public LogicalUnion copy(
       RelTraitSet traitSet, List<RelNode> inputs, boolean all) {
     assert traitSet.containsIfApplicable(Convention.NONE);
-    return new LogicalUnion(
-        getCluster(),
-        inputs,
-        all);
+    return new LogicalUnion(getCluster(), traitSet, inputs, all);
   }
 
   @Override public RelNode accept(RelShuttle shuttle) {

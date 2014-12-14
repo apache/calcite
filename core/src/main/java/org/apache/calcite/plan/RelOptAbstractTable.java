@@ -89,7 +89,7 @@ public abstract class RelOptAbstractTable implements RelOptTable {
   }
 
   public RelNode toRel(ToRelContext context) {
-    return new LogicalTableScan(context.getCluster(), this);
+    return LogicalTableScan.create(context.getCluster(), this);
   }
 
   public Expression getExpression(Class clazz) {

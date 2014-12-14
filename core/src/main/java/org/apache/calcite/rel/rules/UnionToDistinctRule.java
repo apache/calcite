@@ -49,11 +49,7 @@ public class UnionToDistinctRule extends RelOptRule {
     if (union.all) {
       return; // nothing to do
     }
-    LogicalUnion unionAll =
-        new LogicalUnion(
-            union.getCluster(),
-            union.getInputs(),
-            true);
+    LogicalUnion unionAll = LogicalUnion.create(union.getInputs(), true);
     call.transformTo(RelOptUtil.createDistinctRel(unionAll));
   }
 }

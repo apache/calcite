@@ -52,21 +52,23 @@ public interface RelTrait {
   boolean equals(Object o);
 
   /**
-   * Returns whether this trait subsumes a given trait.
+   * Returns whether this trait satisfies a given trait.
    *
-   * <p>Must form a partial order: must be reflective (t subsumes t),
-   * anti-symmetric (if t1 subsumes t2 and t1 != t2 then t2 does not subsume
-   * t1),
-   * and transitive (if t1 subsumes t2 and t2 subsumes t3, then t1 subsumes
-   * t3)</p>
+   * <p>A trait satisfies another if it is the same or stricter. For example,
+   * {@code ORDER BY x, y} satisfies {@code ORDER BY x}.
    *
-   * <p>Many traits cannot be substituted, in which case, this method should
-   * return {@code equals(trait)}.</p>
+   * <p>A trait's {@code satisfies} relation must be a partial order (reflexive,
+   * anti-symmetric, transitive). Many traits cannot be "loosened"; their
+   * {@code satisfies} is an equivalence relation, where only X satisfies X.
+   *
+   * <p>If a trait has multiple values
+   * (see {@link org.apache.calcite.plan.RelCompositeTrait})
+   * a collection (T0, T1, ...) satisfies T if any Ti satisfies T.
    *
    * @param trait Given trait
    * @return Whether this trait subsumes a given trait
    */
-  boolean subsumes(RelTrait trait);
+  boolean satisfies(RelTrait trait);
 
   /**
    * Returns a succinct name for this trait. The planner may use this String

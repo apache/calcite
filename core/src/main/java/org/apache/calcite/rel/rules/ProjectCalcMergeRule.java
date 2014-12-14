@@ -19,7 +19,6 @@ package org.apache.calcite.rel.rules;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
-import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.logical.LogicalCalc;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rex.RexBuilder;
@@ -28,8 +27,6 @@ import org.apache.calcite.rex.RexOver;
 import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.rex.RexProgramBuilder;
 import org.apache.calcite.util.Pair;
-
-import java.util.Collections;
 
 /**
  * Planner rule which merges a
@@ -78,13 +75,7 @@ public class ProjectCalcMergeRule extends RelOptRule {
             project.getRowType(),
             cluster.getRexBuilder());
     if (RexOver.containsOver(program)) {
-      LogicalCalc projectAsCalc =
-          new LogicalCalc(
-              cluster,
-              project.getTraitSet(),
-              calc,
-              program,
-              Collections.<RelCollation>emptyList());
+      LogicalCalc projectAsCalc = LogicalCalc.create(calc, program);
       call.transformTo(projectAsCalc);
       return;
     }
@@ -108,12 +99,7 @@ public class ProjectCalcMergeRule extends RelOptRule {
             bottomProgram,
             rexBuilder);
     final LogicalCalc newCalc =
-        new LogicalCalc(
-            cluster,
-            project.getTraitSet(),
-            calc.getInput(),
-            mergedProgram,
-            Collections.<RelCollation>emptyList());
+        LogicalCalc.create(calc.getInput(), mergedProgram);
     call.transformTo(newCalc);
   }
 }

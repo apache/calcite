@@ -517,8 +517,7 @@ public class PhysTypeImpl implements PhysType {
           Function1.class,
           Expressions.field(
               null,
-              Collections.class,
-              "EMPTY_LIST"),
+              BuiltInMethod.COMPARABLE_EMPTY_LIST.field),
           v1);
     case 1:
       int field0 = fields.get(0);

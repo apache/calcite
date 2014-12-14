@@ -22,7 +22,6 @@ import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptRuleOperand;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTraitSet;
-import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Calc;
 import org.apache.calcite.rel.core.Project;
@@ -42,7 +41,6 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
 import java.util.Collections;
@@ -112,22 +110,16 @@ public abstract class ProjectToWindowRule extends RelOptRule {
         @Override public void onMatch(RelOptRuleCall call) {
           Project project = call.rel(0);
           assert RexOver.containsOver(project.getProjects(), null);
-          final RelNode child = project.getInput();
+          final RelNode input = project.getInput();
           final RexProgram program =
               RexProgram.create(
-                  child.getRowType(),
+                  input.getRowType(),
                   project.getProjects(),
                   null,
                   project.getRowType(),
                   project.getCluster().getRexBuilder());
           // temporary LogicalCalc, never registered
-          final LogicalCalc calc =
-              new LogicalCalc(
-                  project.getCluster(),
-                  project.getTraitSet(),
-                  child,
-                  program,
-                  ImmutableList.<RelCollation>of());
+          final LogicalCalc calc = LogicalCalc.create(input, program);
           CalcRelSplitter transform = new WindowedAggRelSplitter(calc) {
             @Override protected RelNode handle(RelNode rel) {
               if (rel instanceof LogicalCalc) {
@@ -135,9 +127,7 @@ public abstract class ProjectToWindowRule extends RelOptRule {
                 final RexProgram program = calc.getProgram();
                 rel = calc.getInput();
                 if (program.getCondition() != null) {
-                  rel = new LogicalFilter(
-                      calc.getCluster(),
-                      rel,
+                  rel = LogicalFilter.create(rel,
                       program.expandLocalRef(
                           program.getCondition()));
                 }

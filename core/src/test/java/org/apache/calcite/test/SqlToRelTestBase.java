@@ -24,7 +24,7 @@ import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.prepare.Prepare;
 import org.apache.calcite.rel.RelCollation;
-import org.apache.calcite.rel.RelCollationImpl;
+import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.logical.LogicalTableScan;
@@ -248,10 +248,8 @@ public abstract class SqlToRelTestBase {
                   ? RelFieldCollation.Direction.DESCENDING
                   : RelFieldCollation.Direction.ASCENDING;
           collationList.add(
-              RelCollationImpl.of(
-                  new RelFieldCollation(
-                      i,
-                      direction,
+              RelCollations.of(
+                  new RelFieldCollation(i, direction,
                       RelFieldCollation.NullDirection.UNSPECIFIED)));
         }
       }
@@ -344,9 +342,8 @@ public abstract class SqlToRelTestBase {
         return MockRelOptSchema.this;
       }
 
-      public RelNode toRel(
-          ToRelContext context) {
-        return new LogicalTableScan(context.getCluster(), this);
+      public RelNode toRel(ToRelContext context) {
+        return LogicalTableScan.create(context.getCluster(), this);
       }
 
       public List<RelCollation> getCollationList() {
@@ -411,7 +408,7 @@ public abstract class SqlToRelTestBase {
     }
 
     public RelNode toRel(ToRelContext context) {
-      return new LogicalTableScan(context.getCluster(), this);
+      return LogicalTableScan.create(context.getCluster(), this);
     }
 
     public List<RelCollation> getCollationList() {

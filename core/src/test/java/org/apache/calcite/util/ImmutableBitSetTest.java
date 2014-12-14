@@ -425,6 +425,22 @@ public class ImmutableBitSetTest {
     assertThat(ImmutableBitSet.valueOf(LongBuffer.wrap(bitSet.toLongArray())),
         equalTo(bitSet));
   }
+
+  @Test public void testSet() {
+    final ImmutableBitSet bitSet = ImmutableBitSet.of(29, 4, 1969);
+    assertThat(bitSet.set(30),
+        equalTo(ImmutableBitSet.of(29, 4, 1969, 30)));
+    assertThat(bitSet.set(29),
+        equalTo(bitSet));
+  }
+
+  @Test public void testClear() {
+    final ImmutableBitSet bitSet = ImmutableBitSet.of(29, 4, 1969);
+    assertThat(bitSet.clear(29),
+        equalTo(ImmutableBitSet.of(4, 1969)));
+    assertThat(bitSet.clear(29).clear(4).clear(29).clear(1969),
+        equalTo(ImmutableBitSet.of()));
+  }
 }
 
 // End ImmutableBitSetTest.java

@@ -48,9 +48,20 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * A <code>RelSubset</code> is set of expressions in a set which have the same
- * calling convention. An expression may be in more than one sub-set of a set;
- * the same expression is used.
+ * Subset of an equivalence class where all relational expressions have the
+ * same physical properties.
+ *
+ * <p>Physical properties are instances of the {@link RelTraitSet}, and consist
+ * of traits such as calling convention and collation (sort-order).
+ *
+ * <p>For some traits, a relational expression can have more than one instance.
+ * For example, R can be sorted on both [X] and [Y, Z]. In which case, R would
+ * belong to the sub-sets for [X] and [Y, Z]; and also the leading edges [Y] and
+ * [].
+ *
+ * @see RelNode
+ * @see RelSet
+ * @see RelTrait
  */
 public class RelSubset extends AbstractRelNode {
   //~ Static fields/initializers ---------------------------------------------
@@ -94,6 +105,7 @@ public class RelSubset extends AbstractRelNode {
     super(cluster, traits);
     this.set = set;
     this.boosted = false;
+    assert traits.allSimple();
     computeBestCost(cluster.getPlanner());
     recomputeDigest();
   }
@@ -328,7 +340,7 @@ public class RelSubset extends AbstractRelNode {
       RelNode rel,
       Set<RelSubset> activeSet) {
     for (RelSubset subset : set.subsets) {
-      if (rel.getTraitSet().subsumes(subset.traitSet)) {
+      if (rel.getTraitSet().satisfies(subset.traitSet)) {
         subset.propagateCostImprovements0(planner, rel, activeSet);
       }
     }
@@ -406,7 +418,7 @@ public class RelSubset extends AbstractRelNode {
             .where(
                 new Predicate1<RelNode>() {
                   public boolean apply(RelNode v1) {
-                    return v1.getTraitSet().subsumes(traitSet);
+                    return v1.getTraitSet().satisfies(traitSet);
                   }
                 })
             .iterator();
@@ -420,7 +432,7 @@ public class RelSubset extends AbstractRelNode {
   public List<RelNode> getRelList() {
     final List<RelNode> list = new ArrayList<RelNode>();
     for (RelNode rel : set.rels) {
-      if (rel.getTraitSet().subsumes(traitSet)) {
+      if (rel.getTraitSet().satisfies(traitSet)) {
         list.add(rel);
       }
     }

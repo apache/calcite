@@ -19,14 +19,18 @@ package org.apache.calcite.rel.logical;
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.RelCollation;
+import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelInput;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelShuttle;
 import org.apache.calcite.rel.core.Values;
+import org.apache.calcite.rel.metadata.RelMdCollation;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.sql.type.SqlTypeName;
 
+import com.google.common.base.Supplier;
 import com.google.common.collect.ImmutableList;
 
 import java.math.BigDecimal;
@@ -40,11 +44,9 @@ public class LogicalValues extends Values {
   //~ Constructors -----------------------------------------------------------
 
   /**
-   * Creates a new LogicalValues.
+   * Creates a LogicalValues.
    *
-   * <p>Note that tuples passed in become owned by this
-   * rel (without a deep copy), so caller must not modify them after this
-   * call, otherwise bad things will happen.
+   * <p>Use {@link #create} unless you know what you're doing.
    *
    * @param cluster Cluster that this relational expression belongs to
    * @param rowType Row type for tuples produced by this rel
@@ -54,9 +56,18 @@ public class LogicalValues extends Values {
    */
   public LogicalValues(
       RelOptCluster cluster,
+      RelTraitSet traitSet,
       RelDataType rowType,
       ImmutableList<ImmutableList<RexLiteral>> tuples) {
-    super(cluster, rowType, tuples, cluster.traitSetOf(Convention.NONE));
+    super(cluster, rowType, tuples, traitSet);
+  }
+
+  @Deprecated // to be removed before 2.0
+  public LogicalValues(
+      RelOptCluster cluster,
+      RelDataType rowType,
+      ImmutableList<ImmutableList<RexLiteral>> tuples) {
+    this(cluster, cluster.traitSetOf(Convention.NONE), rowType, tuples);
   }
 
   /**
@@ -66,19 +77,30 @@ public class LogicalValues extends Values {
     super(input);
   }
 
+  /** Creates a LogicalValues. */
+  public static LogicalValues create(RelOptCluster cluster,
+      final RelDataType rowType,
+      final ImmutableList<ImmutableList<RexLiteral>> tuples) {
+    final RelTraitSet traitSet = cluster.traitSetOf(Convention.NONE)
+        .replaceIf(RelCollationTraitDef.INSTANCE,
+            new Supplier<List<RelCollation>>() {
+              public List<RelCollation> get() {
+                return RelMdCollation.values(rowType, tuples);
+              }
+            });
+    return new LogicalValues(cluster, traitSet, rowType, tuples);
+  }
+
   @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
     assert traitSet.containsIfApplicable(Convention.NONE);
     assert inputs.isEmpty();
-    return new LogicalValues(
-        getCluster(),
-        rowType,
-        tuples);
+    return new LogicalValues(getCluster(), traitSet, rowType, tuples);
   }
 
   /** Creates a LogicalValues that outputs no rows of a given row type. */
   public static LogicalValues createEmpty(RelOptCluster cluster,
       RelDataType rowType) {
-    return new LogicalValues(cluster, rowType,
+    return create(cluster, rowType,
         ImmutableList.<ImmutableList<RexLiteral>>of());
   }
 
@@ -93,7 +115,7 @@ public class LogicalValues extends Values {
             ImmutableList.of(
                 cluster.getRexBuilder().makeExactLiteral(BigDecimal.ZERO,
                     rowType.getFieldList().get(0).getType())));
-    return new LogicalValues(cluster, rowType, tuples);
+    return create(cluster, rowType, tuples);
   }
 
   @Override public RelNode accept(RelShuttle shuttle) {

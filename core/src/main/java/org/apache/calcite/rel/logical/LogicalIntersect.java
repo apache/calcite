@@ -33,28 +33,43 @@ import java.util.List;
 public final class LogicalIntersect extends Intersect {
   //~ Constructors -----------------------------------------------------------
 
+  /**
+   * Creates a LogicalIntersect.
+   *
+   * <p>Use {@link #create} unless you know what you're doing.
+   */
   public LogicalIntersect(
       RelOptCluster cluster,
+      RelTraitSet traitSet,
       List<RelNode> inputs,
       boolean all) {
-    super(
-        cluster,
-        cluster.traitSetOf(Convention.NONE),
-        inputs,
-        all);
+    super(cluster, traitSet, inputs, all);
   }
+
+  @Deprecated // to be removed before 2.0
+  public LogicalIntersect(RelOptCluster cluster, List<RelNode> inputs,
+      boolean all) {
+    this(cluster, cluster.traitSetOf(Convention.NONE), inputs, all);
+  }
+
 
   /** Creates a LogicalIntersect by parsing serialized output. */
   public LogicalIntersect(RelInput input) {
     super(input);
   }
 
+  /** Creates a LogicalIntersect. */
+  public static LogicalIntersect create(List<RelNode> inputs, boolean all) {
+    final RelOptCluster cluster = inputs.get(0).getCluster();
+    final RelTraitSet traitSet = cluster.traitSetOf(Convention.NONE);
+    return new LogicalIntersect(cluster, traitSet, inputs, all);
+  }
+
   //~ Methods ----------------------------------------------------------------
 
   @Override public LogicalIntersect copy(RelTraitSet traitSet,
       List<RelNode> inputs, boolean all) {
-    assert traitSet.containsIfApplicable(Convention.NONE);
-    return new LogicalIntersect(getCluster(), inputs, all);
+    return new LogicalIntersect(getCluster(), traitSet, inputs, all);
   }
 
   @Override public RelNode accept(RelShuttle shuttle) {

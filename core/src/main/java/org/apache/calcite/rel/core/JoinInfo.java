@@ -20,6 +20,7 @@ import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.runtime.FlatLists;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.mapping.IntPair;
@@ -95,6 +96,10 @@ public abstract class JoinInfo {
       RexBuilder rexBuilder) {
     return RelOptUtil.createEquiJoinCondition(left, leftKeys, right, rightKeys,
         rexBuilder);
+  }
+
+  public List<ImmutableIntList> keys() {
+    return FlatLists.of(leftKeys, rightKeys);
   }
 
   /** JoinInfo that represents an equi-join. */

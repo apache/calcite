@@ -16,7 +16,7 @@
  */
 package org.apache.calcite.rel;
 
-import org.apache.calcite.plan.RelTrait;
+import org.apache.calcite.plan.RelMultipleTrait;
 
 import java.util.List;
 
@@ -26,7 +26,7 @@ import java.util.List;
  * <p>An ordering consists of a list of one or more column ordinals and the
  * direction of the ordering.
  */
-public interface RelCollation extends RelTrait {
+public interface RelCollation extends RelMultipleTrait {
   //~ Methods ----------------------------------------------------------------
 
   /**

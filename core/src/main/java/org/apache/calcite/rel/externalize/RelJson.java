@@ -19,6 +19,7 @@ package org.apache.calcite.rel.externalize;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollationImpl;
+import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelInput;
 import org.apache.calcite.rel.RelNode;
@@ -166,7 +167,7 @@ public class RelJson {
     for (Map<String, Object> map : jsonFieldCollations) {
       fieldCollations.add(toFieldCollation(map));
     }
-    return RelCollationImpl.of(fieldCollations);
+    return RelCollations.of(fieldCollations);
   }
 
   public RelFieldCollation toFieldCollation(Map<String, Object> map) {

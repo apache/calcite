@@ -1062,6 +1062,22 @@ public class SqlParserTest {
             + "ORDER BY 1, 2 DESC");
   }
 
+  @Test public void testOrderUnion() {
+    // ORDER BY inside UNION not allowed
+    sql("select a from t order by a\n"
+        + "^union^ all\n"
+        + "select b from t order by b")
+        .fails("(?s).*Encountered \"union\" at .*");
+  }
+
+  @Test public void testLimitUnion() {
+    // LIMIT inside UNION not allowed
+    sql("select a from t limit 10\n"
+        + "^union^ all\n"
+        + "select b from t order by b")
+        .fails("(?s).*Encountered \"union\" at .*");
+  }
+
   @Test public void testUnionOfNonQueryFails() {
     checkFails(
         "select 1 from emp union ^2^ + 5",

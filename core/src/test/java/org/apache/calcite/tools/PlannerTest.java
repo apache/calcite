@@ -352,7 +352,7 @@ public class PlannerTest {
 
   /** Unit test that parses, validates, converts and
    * plans for query using two duplicate order by.
-   * The duplicate order by should be removed by SortRemoveRule*/
+   * The duplicate order by should be removed by SortRemoveRule. */
   @Test public void testDuplicateSortPlan() throws Exception {
     RuleSet ruleSet =
         RuleSets.ofList(
@@ -370,6 +370,10 @@ public class PlannerTest {
     RelNode convert = planner.convert(validate);
     RelTraitSet traitSet = planner.getEmptyTraitSet()
         .replace(EnumerableConvention.INSTANCE);
+    if (traitSet.getTrait(RelCollationTraitDef.INSTANCE) == null) {
+      // SortRemoveRule can only work if collation trait is enabled.
+      return;
+    }
     RelNode transform = planner.transform(0, traitSet, convert);
     assertThat(toString(transform),
         equalTo("EnumerableProject(empid=[$0])\n"
@@ -721,6 +725,7 @@ public class PlannerTest {
             + "cross join \"department\"",
         "EnumerableProject(product_id=[$0], time_id=[$1], customer_id=[$2], promotion_id=[$3], store_id=[$4], store_sales=[$5], store_cost=[$6], unit_sales=[$7], customer_id0=[$8], account_num=[$9], lname=[$10], fname=[$11], mi=[$12], address1=[$13], address2=[$14], address3=[$15], address4=[$16], city=[$17], state_province=[$18], postal_code=[$19], country=[$20], customer_region_id=[$21], phone1=[$22], phone2=[$23], birthdate=[$24], marital_status=[$25], yearly_income=[$26], gender=[$27], total_children=[$28], num_children_at_home=[$29], education=[$30], date_accnt_opened=[$31], member_card=[$32], occupation=[$33], houseowner=[$34], num_cars_owned=[$35], fullname=[$36], department_id=[$37], department_description=[$38])\n"
             + "  EnumerableProject($f0=[$31], $f1=[$32], $f2=[$33], $f3=[$34], $f4=[$35], $f5=[$36], $f6=[$37], $f7=[$38], $f8=[$2], $f9=[$3], $f10=[$4], $f11=[$5], $f12=[$6], $f13=[$7], $f14=[$8], $f15=[$9], $f16=[$10], $f17=[$11], $f18=[$12], $f19=[$13], $f20=[$14], $f21=[$15], $f22=[$16], $f23=[$17], $f24=[$18], $f25=[$19], $f26=[$20], $f27=[$21], $f28=[$22], $f29=[$23], $f30=[$24], $f31=[$25], $f32=[$26], $f33=[$27], $f34=[$28], $f35=[$29], $f36=[$30], $f37=[$0], $f38=[$1])\n"
+            //+ "    EnumerableMergeJoin(condition=[true], joinType=[inner])\n"
             + "    EnumerableJoin(condition=[true], joinType=[inner])\n"
             + "      EnumerableTableScan(table=[[foodmart2, department]])\n"
             + "      EnumerableJoin(condition=[=($0, $31)], joinType=[inner])\n"
@@ -737,6 +742,7 @@ public class PlannerTest {
             + "join \"employee\" using (\"department_id\")",
         "EnumerableProject(product_id=[$0], time_id=[$1], customer_id=[$2], promotion_id=[$3], store_id=[$4], store_sales=[$5], store_cost=[$6], unit_sales=[$7], customer_id0=[$8], account_num=[$9], lname=[$10], fname=[$11], mi=[$12], address1=[$13], address2=[$14], address3=[$15], address4=[$16], city=[$17], state_province=[$18], postal_code=[$19], country=[$20], customer_region_id=[$21], phone1=[$22], phone2=[$23], birthdate=[$24], marital_status=[$25], yearly_income=[$26], gender=[$27], total_children=[$28], num_children_at_home=[$29], education=[$30], date_accnt_opened=[$31], member_card=[$32], occupation=[$33], houseowner=[$34], num_cars_owned=[$35], fullname=[$36], department_id=[$37], department_description=[$38], employee_id=[$39], full_name=[$40], first_name=[$41], last_name=[$42], position_id=[$43], position_title=[$44], store_id0=[$45], department_id0=[$46], birth_date=[$47], hire_date=[$48], end_date=[$49], salary=[$50], supervisor_id=[$51], education_level=[$52], marital_status0=[$53], gender0=[$54], management_role=[$55])\n"
             + "  EnumerableProject($f0=[$48], $f1=[$49], $f2=[$50], $f3=[$51], $f4=[$52], $f5=[$53], $f6=[$54], $f7=[$55], $f8=[$19], $f9=[$20], $f10=[$21], $f11=[$22], $f12=[$23], $f13=[$24], $f14=[$25], $f15=[$26], $f16=[$27], $f17=[$28], $f18=[$29], $f19=[$30], $f20=[$31], $f21=[$32], $f22=[$33], $f23=[$34], $f24=[$35], $f25=[$36], $f26=[$37], $f27=[$38], $f28=[$39], $f29=[$40], $f30=[$41], $f31=[$42], $f32=[$43], $f33=[$44], $f34=[$45], $f35=[$46], $f36=[$47], $f37=[$0], $f38=[$1], $f39=[$2], $f40=[$3], $f41=[$4], $f42=[$5], $f43=[$6], $f44=[$7], $f45=[$8], $f46=[$9], $f47=[$10], $f48=[$11], $f49=[$12], $f50=[$13], $f51=[$14], $f52=[$15], $f53=[$16], $f54=[$17], $f55=[$18])\n"
+            // + "    EnumerableMergeJoin(condition=[true], joinType=[inner])\n"
             + "    EnumerableJoin(condition=[true], joinType=[inner])\n"
             + "      EnumerableJoin(condition=[=($0, $9)], joinType=[inner])\n"
             + "        EnumerableTableScan(table=[[foodmart2, department]])\n"

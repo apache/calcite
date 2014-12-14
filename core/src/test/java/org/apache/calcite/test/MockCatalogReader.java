@@ -22,7 +22,7 @@ import org.apache.calcite.plan.RelOptSchema;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.prepare.Prepare;
 import org.apache.calcite.rel.RelCollation;
-import org.apache.calcite.rel.RelCollationImpl;
+import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.logical.LogicalTableScan;
@@ -369,10 +369,8 @@ public class MockCatalogReader implements Prepare.CatalogReader {
                 ? RelFieldCollation.Direction.DESCENDING
                 : RelFieldCollation.Direction.ASCENDING;
         collationList.add(
-            RelCollationImpl.of(
-                new RelFieldCollation(
-                    i,
-                    direction,
+            RelCollations.of(
+                new RelFieldCollation(i, direction,
                     RelFieldCollation.NullDirection.UNSPECIFIED)));
       }
     }
@@ -442,7 +440,7 @@ public class MockCatalogReader implements Prepare.CatalogReader {
     }
 
     public RelNode toRel(ToRelContext context) {
-      return new LogicalTableScan(context.getCluster(), this);
+      return LogicalTableScan.create(context.getCluster(), this);
     }
 
     public List<RelCollation> getCollationList() {

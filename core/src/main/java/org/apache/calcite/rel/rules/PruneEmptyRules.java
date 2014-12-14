@@ -93,11 +93,7 @@ public abstract class PruneEmptyRules {
                     true);
             break;
           default:
-            newRel =
-                new LogicalUnion(
-                    union.getCluster(),
-                    newChildRels,
-                    union.all);
+            newRel = LogicalUnion.create(newChildRels, union.all);
             break;
           }
           call.transformTo(newRel);

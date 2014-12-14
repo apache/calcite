@@ -836,8 +836,7 @@ public class SqlWindow extends SqlCall {
         boolean onlyExpressions,
         SqlBasicVisitor.ArgHandler<R> argHandler) {
       if (onlyExpressions) {
-        final List<SqlNode> operandList = call.getOperandList();
-        for (Ord<SqlNode> operand : Ord.zip(operandList)) {
+        for (Ord<SqlNode> operand : Ord.zip(call.getOperandList())) {
           // if the second param is an Identifier then it's supposed to
           // be a name from a window clause and isn't part of the
           // group by check

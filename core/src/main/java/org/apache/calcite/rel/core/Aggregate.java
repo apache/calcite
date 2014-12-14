@@ -276,7 +276,9 @@ public abstract class Aggregate extends SingleRel {
     // REVIEW jvs 24-Aug-2008:  This is bogus, but no more bogus
     // than what's currently in Join.
     double rowCount = RelMetadataQuery.getRowCount(this);
-    return planner.getCostFactory().makeCost(rowCount, 0, 0);
+    // Aggregates with more aggregate functions cost a bit more
+    final float multiplier = 1f + (float) aggCalls.size() * 0.125f;
+    return planner.getCostFactory().makeCost(rowCount * multiplier, 0, 0);
   }
 
   protected RelDataType deriveRowType() {

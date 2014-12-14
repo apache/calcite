@@ -19,11 +19,13 @@ package org.apache.calcite.rel.metadata;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPredicateList;
 import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.util.ImmutableBitSet;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 
 import java.util.Set;
@@ -277,6 +279,21 @@ public abstract class RelMetadataQuery {
 
   /**
    * Returns the
+   * {@link org.apache.calcite.rel.metadata.BuiltInMetadata.Collation#collations()}
+   * statistic.
+   *
+   * @param rel         the relational expression
+   * @return List of sorted column combinations, or
+   * null if not enough information is available to make that determination
+   */
+  public static ImmutableList<RelCollation> collations(RelNode rel) {
+    final BuiltInMetadata.Collation metadata =
+        rel.metadata(BuiltInMetadata.Collation.class);
+    return metadata.collations();
+  }
+
+  /**
+   * Returns the
    * {@link BuiltInMetadata.PopulationSize#getPopulationSize(org.apache.calcite.util.ImmutableBitSet)}
    * statistic.
    *
@@ -285,6 +302,7 @@ public abstract class RelMetadataQuery {
    *                 the row count will be determined
    * @return distinct row count for the given groupKey, or null if no reliable
    * estimate can be determined
+   *
    */
   public static Double getPopulationSize(RelNode rel,
       ImmutableBitSet groupKey) {

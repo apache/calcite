@@ -33,6 +33,9 @@ public class EnumerableRules {
   public static final RelOptRule ENUMERABLE_JOIN_RULE =
       new EnumerableJoinRule();
 
+  public static final RelOptRule ENUMERABLE_MERGE_JOIN_RULE =
+      new EnumerableMergeJoinRule();
+
   public static final RelOptRule ENUMERABLE_SEMI_JOIN_RULE =
       new EnumerableSemiJoinRule();
 

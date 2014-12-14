@@ -346,6 +346,32 @@ public class LatticeTest {
         .returnsCount(4);
   }
 
+  /** Tests a query that is created within {@link #testTileAlgorithm()}. */
+  @Test public void testJG() {
+    CalciteAssert.that().with(CalciteAssert.Config.JDBC_FOODMART)
+        .query(
+            "SELECT \"s\".\"unit_sales\", \"p\".\"recyclable_package\", \"t\".\"the_day\", \"t\".\"the_year\", \"t\".\"quarter\", \"pc\".\"product_family\", COUNT(*) AS \"m0\", SUM(\"s\".\"store_sales\") AS \"m1\", SUM(\"s\".\"unit_sales\") AS \"m2\"\n"
+                + "FROM \"foodmart\".\"sales_fact_1997\" AS \"s\"\n"
+                + "JOIN \"foodmart\".\"product\" AS \"p\" ON \"s\".\"product_id\" = \"p\".\"product_id\"\n"
+                + "JOIN \"foodmart\".\"time_by_day\" AS \"t\" ON \"s\".\"time_id\" = \"t\".\"time_id\"\n"
+                + "JOIN \"foodmart\".\"product_class\" AS \"pc\" ON \"p\".\"product_class_id\" = \"pc\".\"product_class_id\"\n"
+                + "GROUP BY \"s\".\"unit_sales\", \"p\".\"recyclable_package\", \"t\".\"the_day\", \"t\".\"the_year\", \"t\".\"quarter\", \"pc\".\"product_family\"")
+        .explainContains(
+            "EnumerableAggregate(group=[{0, 1, 2, 3, 4, 5}], m0=[COUNT()], m1=[SUM($6)], m2=[SUM($0)])\n"
+                + "  EnumerableCalc(expr#0..37=[{inputs}], unit_sales=[$t17], recyclable_package=[$t26], the_day=[$t2], the_year=[$t4], quarter=[$t8], product_family=[$t37], store_sales=[$t15])\n"
+                + "    EnumerableJoin(condition=[=($0, $11)], joinType=[inner])\n"
+                + "      JdbcToEnumerableConverter\n"
+                + "        JdbcTableScan(table=[[foodmart, time_by_day]])\n"
+                + "      EnumerableJoin(condition=[=($8, $23)], joinType=[inner])\n"
+                + "        EnumerableJoin(condition=[=($0, $9)], joinType=[inner])\n"
+                + "          JdbcToEnumerableConverter\n"
+                + "            JdbcTableScan(table=[[foodmart, sales_fact_1997]])\n"
+                + "          JdbcToEnumerableConverter\n"
+                + "            JdbcTableScan(table=[[foodmart, product]])\n"
+                + "        JdbcToEnumerableConverter\n"
+                + "          JdbcTableScan(table=[[foodmart, product_class]])");
+  }
+
   /** Tests a query that uses no columns from the fact table. */
   @Test public void testGroupByEmpty() {
     foodmartModel()

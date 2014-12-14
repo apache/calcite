@@ -93,13 +93,13 @@ public class FrameworksTest {
                         rexBuilder.makeRangeReference(tableRel), "i", true),
                     rexBuilder.makeExactLiteral(BigDecimal.ONE));
             final LogicalFilter filter =
-                new LogicalFilter(cluster, tableRel, condition);
+                LogicalFilter.create(tableRel, condition);
 
             // Specify that the result should be in Enumerable convention.
             final RelNode rootRel = filter;
             final RelOptPlanner planner = cluster.getPlanner();
-            RelTraitSet desiredTraits = rootRel.getTraitSet().replace(
-                EnumerableConvention.INSTANCE);
+            RelTraitSet desiredTraits =
+                cluster.traitSet().replace(EnumerableConvention.INSTANCE);
             final RelNode rootRel2 = planner.changeTraits(rootRel,
                 desiredTraits);
             planner.setRoot(rootRel2);

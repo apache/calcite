@@ -422,7 +422,7 @@ public class SqlAdvisor {
    * <p>To use a different parser (recognizing a different dialect of SQL),
    * derived class should override.
    *
-   * @return a {@link SqlAbstractParserImpl.Metadata} instance.
+   * @return metadata
    */
   protected SqlAbstractParserImpl.Metadata getParserMetadata() {
     SqlParser parser = SqlParser.create("");

@@ -101,7 +101,7 @@ class QueryableRelBuilder<T> implements QueryableFactory<T> {
       if (table instanceof TranslatableTable) {
         return ((TranslatableTable) table).toRel(translator, relOptTable);
       } else {
-        return new LogicalTableScan(translator.cluster, relOptTable);
+        return LogicalTableScan.create(translator.cluster, relOptTable);
       }
     }
     return translator.translate(queryable.getExpression());
@@ -510,11 +510,7 @@ class QueryableRelBuilder<T> implements QueryableFactory<T> {
     RelNode child = toRel(source);
     List<RexNode> nodes = translator.toRexList(selector, child);
     setRel(
-        new LogicalProject(
-            translator.cluster,
-            child,
-            nodes,
-            null));
+        LogicalProject.create(child, nodes, (List<String>)  null));
     return null;
   }
 
@@ -721,7 +717,7 @@ class QueryableRelBuilder<T> implements QueryableFactory<T> {
       FunctionExpression<? extends Predicate1<T>> predicate) {
     RelNode child = toRel(source);
     RexNode node = translator.toRex(predicate, child);
-    setRel(new LogicalFilter(translator.cluster, child, node));
+    setRel(LogicalFilter.create(child, node));
     return source;
   }
 

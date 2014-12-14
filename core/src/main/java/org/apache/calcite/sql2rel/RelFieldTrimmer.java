@@ -36,6 +36,7 @@ import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.logical.LogicalTableFunctionScan;
 import org.apache.calcite.rel.logical.LogicalTableModify;
 import org.apache.calcite.rel.logical.LogicalValues;
+import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.rules.ProjectRemoveRule;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
@@ -157,9 +158,8 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
    * @param setOpFactory SetOp factory
    * @param useNamesInIdentityProjCalc
    *            Include field names in identity project determination
-   *
-   * @deprecated Remove before
-   * {@link org.apache.calcite.util.Bug#upgrade Calcite-1.1}. */
+   */
+  @Deprecated // to be removed before 1.1
   public RelFieldTrimmer(SqlValidator validator,
       RelFactories.ProjectFactory projectFactory,
       RelFactories.FilterFactory filterFactory,
@@ -230,6 +230,13 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
       // MedMdrClassExtentRel, only naked MedMdrClassExtentRel.
       // So, disable trimming.
       fieldsUsed = ImmutableBitSet.range(input.getRowType().getFieldCount());
+    }
+    final ImmutableList<RelCollation> collations =
+        RelMetadataQuery.collations(rel);
+    for (RelCollation collation : collations) {
+      for (RelFieldCollation fieldCollation : collation.getFieldCollations()) {
+        fieldsUsed = fieldsUsed.set(fieldCollation.getFieldIndex());
+      }
     }
     return dispatchTrimFields(input, fieldsUsed, extraFields);
   }
@@ -1014,7 +1021,8 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
         RelOptUtil.permute(values.getCluster().getTypeFactory(), rowType,
             mapping);
     final LogicalValues newValues =
-        new LogicalValues(values.getCluster(), newRowType, newTuples.build());
+        LogicalValues.create(values.getCluster(), newRowType,
+            newTuples.build());
     return new TrimResult(newValues, mapping);
   }
 

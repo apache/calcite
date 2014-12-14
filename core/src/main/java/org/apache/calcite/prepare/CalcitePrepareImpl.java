@@ -165,6 +165,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
   private static final List<RelOptRule> ENUMERABLE_RULES =
       ImmutableList.of(
           EnumerableRules.ENUMERABLE_JOIN_RULE,
+          EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE,
           EnumerableRules.ENUMERABLE_SEMI_JOIN_RULE,
           EnumerableRules.ENUMERABLE_CORRELATE_RULE,
           EnumerableRules.ENUMERABLE_PROJECT_RULE,
@@ -781,7 +782,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
 
       final List<Materialization> materializations = ImmutableList.of();
       final List<CalciteSchema.LatticeEntry> lattices = ImmutableList.of();
-      rootRel = optimize(resultType, rootRel, materializations, lattices);
+      rootRel = optimize(rootRel, materializations, lattices);
 
       if (timingTracer != null) {
         timingTracer.traceTime("end optimization");

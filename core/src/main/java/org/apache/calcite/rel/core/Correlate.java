@@ -132,10 +132,10 @@ public abstract class Correlate extends BiRel {
     case LEFT:
     case INNER:
       // LogicalJoin is used to share the code of column names deduplication
-      return new LogicalJoin(getCluster(), left, right,
-          getCluster().getRexBuilder().makeLiteral(true),
-          joinType.toJoinType(), ImmutableSet.<String>of())
-          .deriveRowType();
+      final LogicalJoin join = LogicalJoin.create(left, right,
+          getCluster().getRexBuilder().makeLiteral(true), joinType.toJoinType(),
+          ImmutableSet.<String>of());
+      return join.deriveRowType();
     case ANTI:
     case SEMI:
       return left.getRowType();

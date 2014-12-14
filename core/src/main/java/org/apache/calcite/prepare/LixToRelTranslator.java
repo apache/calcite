@@ -82,32 +82,22 @@ class LixToRelTranslator implements RelOptTable.ToRelContext {
         throw new UnsupportedOperationException(
             "unknown method " + call.method);
       }
-      RelNode child;
+      RelNode input;
       switch (method) {
       case SELECT:
-        child = translate(call.targetExpression);
-        return new LogicalProject(
-            cluster,
-            child,
-            toRex(
-                child,
-                (FunctionExpression) call.expressions.get(0)),
-            null);
+        input = translate(call.targetExpression);
+        return LogicalProject.create(input,
+            toRex(input, (FunctionExpression) call.expressions.get(0)),
+            (List<String>) null);
 
       case WHERE:
-        child = translate(call.targetExpression);
-        return new LogicalFilter(
-            cluster,
-            child,
-            toRex(
-                (FunctionExpression) call.expressions.get(0),
-                child));
+        input = translate(call.targetExpression);
+        return LogicalFilter.create(input,
+            toRex((FunctionExpression) call.expressions.get(0), input));
 
       case AS_QUERYABLE:
-        return new LogicalTableScan(
-            cluster,
-            RelOptTableImpl.create(
-                null,
+        return LogicalTableScan.create(cluster,
+            RelOptTableImpl.create(null,
                 typeFactory.createJavaType(
                     Types.toClass(
                         Types.getElementType(call.targetExpression.getType()))),
@@ -115,10 +105,8 @@ class LixToRelTranslator implements RelOptTable.ToRelContext {
                 call.targetExpression));
 
       case SCHEMA_GET_TABLE:
-        return new LogicalTableScan(
-            cluster,
-            RelOptTableImpl.create(
-                null,
+        return LogicalTableScan.create(cluster,
+            RelOptTableImpl.create(null,
                 typeFactory.createJavaType((Class)
                     ((ConstantExpression) call.expressions.get(1)).value),
                 ImmutableList.<String>of(),

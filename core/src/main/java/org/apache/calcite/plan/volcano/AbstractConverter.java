@@ -52,6 +52,7 @@ public class AbstractConverter extends ConverterImpl {
       RelTraitDef traitDef,
       RelTraitSet traits) {
     super(cluster, traitDef, traits, rel);
+    assert traits.allSimple();
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -83,7 +84,7 @@ public class AbstractConverter extends ConverterImpl {
    * Rule which converts an {@link AbstractConverter} into a chain of
    * converters from the source relation to the target traits.
    *
-   * <p>The chain produced is mimimal: we have previously built the transitive
+   * <p>The chain produced is minimal: we have previously built the transitive
    * closure of the graph of conversions, so we choose the shortest chain.</p>
    *
    * <p>Unlike the {@link AbstractConverter} they are replacing, these

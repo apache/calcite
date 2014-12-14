@@ -81,6 +81,7 @@ import java.util.Map;
 import java.util.TimeZone;
 import javax.sql.DataSource;
 
+import static org.apache.calcite.rel.metadata.BuiltInMetadata.Collation;
 import static org.apache.calcite.rel.metadata.BuiltInMetadata.ColumnOrigin;
 import static org.apache.calcite.rel.metadata.BuiltInMetadata.ColumnUniqueness;
 import static org.apache.calcite.rel.metadata.BuiltInMetadata.CumulativeCost;
@@ -124,6 +125,9 @@ public enum BuiltInMethod {
       String.class, Function1.class),
   JOIN(ExtendedEnumerable.class, "join", Enumerable.class, Function1.class,
       Function1.class, Function2.class),
+  MERGE_JOIN(Enumerables.class, "mergeJoin", Enumerable.class, Enumerable.class,
+      Function1.class, Function1.class, Function2.class, boolean.class,
+      boolean.class),
   SLICE0(Enumerables.class, "slice0", Enumerable.class),
   SEMI_JOIN(Enumerables.class, "semiJoin", Enumerable.class, Enumerable.class,
       Function1.class, Function1.class),
@@ -164,6 +168,7 @@ public enum BuiltInMethod {
   LIST_N(FlatLists.class, "of", Object[].class),
   LIST2(FlatLists.class, "of", Object.class, Object.class),
   LIST3(FlatLists.class, "of", Object.class, Object.class, Object.class),
+  COMPARABLE_EMPTY_LIST(FlatLists.class, "COMPARABLE_EMPTY_LIST", true),
   IDENTITY_COMPARER(Functions.class, "identityComparer"),
   IDENTITY_SELECTOR(Functions.class, "identitySelector"),
   AS_ENUMERABLE(Linq4j.class, "asEnumerable", Object[].class),
@@ -286,6 +291,7 @@ public enum BuiltInMethod {
   UNIQUE_KEYS(UniqueKeys.class, "getUniqueKeys", boolean.class),
   COLUMN_UNIQUENESS(ColumnUniqueness.class, "areColumnsUnique",
       ImmutableBitSet.class, boolean.class),
+  COLLATIONS(Collation.class, "collations"),
   ROW_COUNT(RowCount.class, "getRowCount"),
   DISTINCT_ROW_COUNT(DistinctRowCount.class, "getDistinctRowCount",
       ImmutableBitSet.class, RexNode.class),
@@ -323,22 +329,26 @@ public enum BuiltInMethod {
     MAP = builder.build();
   }
 
+  private BuiltInMethod(Method method, Constructor constructor, Field field) {
+    this.method = method;
+    this.constructor = constructor;
+    this.field = field;
+  }
+
+  /** Defines a method. */
   BuiltInMethod(Class clazz, String methodName, Class... argumentTypes) {
-    this.method = Types.lookupMethod(clazz, methodName, argumentTypes);
-    this.constructor = null;
-    this.field = null;
+    this(Types.lookupMethod(clazz, methodName, argumentTypes), null, null);
   }
 
+  /** Defines a constructor. */
   BuiltInMethod(Class clazz, Class... argumentTypes) {
-    this.method = null;
-    this.constructor = Types.lookupConstructor(clazz, argumentTypes);
-    this.field = null;
+    this(null, Types.lookupConstructor(clazz, argumentTypes), null);
   }
 
+  /** Defines a field. */
   BuiltInMethod(Class clazz, String fieldName, boolean dummy) {
-    this.method = null;
-    this.constructor = null;
-    this.field = Types.lookupField(clazz, fieldName);
+    this(null, null, Types.lookupField(clazz, fieldName));
+    assert dummy : "dummy value for method overloading must be true";
   }
 }
 

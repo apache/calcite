@@ -575,8 +575,11 @@ public class RelDecorrelator implements ReflectiveVisitor {
     }
 
     LogicalAggregate newAggregate =
-        new LogicalAggregate(rel.getCluster(), newProjectRel, false,
-            ImmutableBitSet.range(newGroupKeyCount), null, newAggCalls);
+        LogicalAggregate.create(newProjectRel,
+            false,
+            ImmutableBitSet.range(newGroupKeyCount),
+            null,
+            newAggCalls);
 
     mapOldToNewRel.put(rel, newAggregate);
 
@@ -767,13 +770,9 @@ public class RelDecorrelator implements ReflectiveVisitor {
           resultRel = distinctRel;
         } else {
           resultRel =
-              new LogicalJoin(
-                  cluster,
-                  resultRel,
-                  distinctRel,
+              LogicalJoin.create(resultRel, distinctRel,
                   cluster.getRexBuilder().makeLiteral(true),
-                  JoinRelType.INNER,
-                  Collections.<String>emptySet());
+                  JoinRelType.INNER, ImmutableSet.<String>of());
         }
       }
     }
@@ -848,13 +847,8 @@ public class RelDecorrelator implements ReflectiveVisitor {
 
     final Set<String> variablesStopped = Collections.emptySet();
     RelNode joinRel =
-        new LogicalJoin(
-            rel.getCluster(),
-            newLeftChildRel,
-            valueGenRel,
-            rexBuilder.makeLiteral(true),
-            JoinRelType.INNER,
-            variablesStopped);
+        LogicalJoin.create(newLeftChildRel, valueGenRel,
+            rexBuilder.makeLiteral(true), JoinRelType.INNER, variablesStopped);
 
     mapOldToNewRel.put(oldChildRel, joinRel);
     mapNewRelToMapCorVarToOutputPos.put(joinRel, mapCorVarToOutputPos);
@@ -1063,13 +1057,8 @@ public class RelDecorrelator implements ReflectiveVisitor {
 
     final Set<String> variablesStopped = Collections.emptySet();
     RelNode newRel =
-        new LogicalJoin(
-            rel.getCluster(),
-            newLeftRel,
-            newRightRel,
-            condition,
-            rel.getJoinType().toJoinType(),
-            variablesStopped);
+        LogicalJoin.create(newLeftRel, newRightRel, condition,
+            rel.getJoinType().toJoinType(), variablesStopped);
 
     mapOldToNewRel.put(rel, newRel);
     mapNewRelToMapOldToNewOutputPos.put(newRel, mapOldToNewOutputPos);
@@ -1115,12 +1104,8 @@ public class RelDecorrelator implements ReflectiveVisitor {
 
     final Set<String> variablesStopped = Collections.emptySet();
     RelNode newRel =
-        new LogicalJoin(
-            rel.getCluster(),
-            newLeftRel,
-            newRightRel,
-            decorrelateExpr(rel.getCondition()),
-            rel.getJoinType(),
+        LogicalJoin.create(newLeftRel, newRightRel,
+            decorrelateExpr(rel.getCondition()), rel.getJoinType(),
             variablesStopped);
 
     // Create the mapping between the output of the old correlation rel
@@ -1981,12 +1966,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
 
       // make the new join rel
       LogicalJoin join =
-          new LogicalJoin(
-              corRel.getCluster(),
-              leftInputRel,
-              rightInputRel,
-              joinCond,
-              joinType,
+          LogicalJoin.create(leftInputRel, rightInputRel, joinCond, joinType,
               ImmutableSet.<String>of());
 
       RelNode newProjRel =
@@ -2266,12 +2246,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
                       "nullIndicator")));
 
       LogicalJoin join =
-          new LogicalJoin(
-              cluster,
-              leftInputRel,
-              rightInputRel,
-              joinCond,
-              joinType,
+          LogicalJoin.create(leftInputRel, rightInputRel, joinCond, joinType,
               ImmutableSet.<String>of());
 
       // To the consumer of joinOutputProjRel, nullIndicator is located
@@ -2345,8 +2320,11 @@ public class RelDecorrelator implements ReflectiveVisitor {
       ImmutableBitSet groupSet =
           ImmutableBitSet.range(groupCount);
       LogicalAggregate newAggRel =
-          new LogicalAggregate(cluster, joinOutputProjRel, false, groupSet,
-              null, newAggCalls);
+          LogicalAggregate.create(joinOutputProjRel,
+              false,
+              groupSet,
+              null,
+              newAggCalls);
 
       List<RexNode> newAggOutputProjExprList = Lists.newArrayList();
       for (int i : groupSet) {
@@ -2493,12 +2471,8 @@ public class RelDecorrelator implements ReflectiveVisitor {
       //     LogicalAggregate (groupby (0), agg0(), agg1()...)
       //
       LogicalCorrelate newCorRel =
-          new LogicalCorrelate(
-              cluster,
-              leftInputRel,
-              aggRel,
-              corRel.getCorrelationId(),
-              corRel.getRequiredColumns(),
+          LogicalCorrelate.create(leftInputRel, aggRel,
+              corRel.getCorrelationId(), corRel.getRequiredColumns(),
               corRel.getJoinType());
 
       // remember this rel so we don't fire rule on it again

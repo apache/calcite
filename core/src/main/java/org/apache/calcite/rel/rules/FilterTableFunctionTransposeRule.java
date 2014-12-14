@@ -104,16 +104,13 @@ public class FilterTableFunctionTransposeRule extends RelOptRule {
                   funcInput.getRowType().getFieldList(),
                   adjustments));
       newFuncInputs.add(
-          new LogicalFilter(cluster, funcInput, newCondition));
+          LogicalFilter.create(funcInput, newCondition));
     }
 
     // create a new UDX whose children are the filters created above
     LogicalTableFunctionScan newFuncRel =
-        new LogicalTableFunctionScan(
-            cluster,
-            newFuncInputs,
-            funcRel.getCall(),
-            funcRel.getElementType(), funcRel.getRowType(),
+        LogicalTableFunctionScan.create(cluster, newFuncInputs,
+            funcRel.getCall(), funcRel.getElementType(), funcRel.getRowType(),
             columnMappings);
     call.transformTo(newFuncRel);
   }

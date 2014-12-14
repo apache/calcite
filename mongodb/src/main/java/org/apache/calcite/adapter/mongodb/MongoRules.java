@@ -24,7 +24,7 @@ import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelTrait;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.InvalidRelException;
-import org.apache.calcite.rel.RelCollationImpl;
+import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterRule;
 import org.apache.calcite.rel.core.Sort;
@@ -216,7 +216,7 @@ public class MongoRules {
           sort.getTraitSet().replace(out)
               .replace(sort.getCollation());
       return new MongoSort(rel.getCluster(), traitSet,
-          convert(sort.getInput(), traitSet.replace(RelCollationImpl.EMPTY)),
+          convert(sort.getInput(), traitSet.replace(RelCollations.EMPTY)),
           sort.getCollation(), sort.offset, sort.fetch);
     }
   }

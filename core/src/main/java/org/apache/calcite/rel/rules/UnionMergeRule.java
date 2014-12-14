@@ -87,12 +87,7 @@ public class UnionMergeRule extends RelOptRule {
         == bottomUnion.getInputs().size()
         + topUnion.getInputs().size()
         - 1;
-    LogicalUnion newUnion =
-        new LogicalUnion(
-            topUnion.getCluster(),
-            unionInputs,
-            true);
-
+    LogicalUnion newUnion = LogicalUnion.create(unionInputs, true);
     call.transformTo(newUnion);
   }
 }

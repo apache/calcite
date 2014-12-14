@@ -20,7 +20,6 @@ import org.apache.calcite.avatica.util.Spaces;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.prepare.CalcitePrepareImpl;
 import org.apache.calcite.rel.RelCollation;
-import org.apache.calcite.rel.RelCollationImpl;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.SingleRel;
 import org.apache.calcite.rel.core.Aggregate;
@@ -590,17 +589,15 @@ public class SubstitutionVisitor {
       return ((MutableLeafRel) node).rel;
     case PROJECT:
       final MutableProject project = (MutableProject) node;
-      return new LogicalProject(node.cluster,
-          node.cluster.traitSetOf(RelCollationImpl.EMPTY),
-          fromMutable(project.input),
+      return LogicalProject.create(fromMutable(project.input),
           project.projects, project.rowType);
     case FILTER:
       final MutableFilter filter = (MutableFilter) node;
-      return new LogicalFilter(node.cluster, fromMutable(filter.input),
+      return LogicalFilter.create(fromMutable(filter.input),
           filter.condition);
     case AGGREGATE:
       final MutableAggregate aggregate = (MutableAggregate) node;
-      return new LogicalAggregate(node.cluster, fromMutable(aggregate.input),
+      return LogicalAggregate.create(fromMutable(aggregate.input),
           aggregate.indicator, aggregate.groupSet, aggregate.groupSets,
           aggregate.aggCalls);
     case SORT:
@@ -609,8 +606,7 @@ public class SubstitutionVisitor {
           sort.offset, sort.fetch);
     case UNION:
       final MutableUnion union = (MutableUnion) node;
-      return new LogicalUnion(union.cluster, fromMutables(union.inputs),
-          union.all);
+      return LogicalUnion.create(fromMutables(union.inputs), union.all);
     default:
       throw new AssertionError(node.deep());
     }
@@ -2114,7 +2110,7 @@ public class SubstitutionVisitor {
           cluster.getRexBuilder().makeInputRef(newProject,
               newProjects.size() - 1);
 
-      call.transformTo(new LogicalFilter(cluster, newProject, newCondition));
+      call.transformTo(LogicalFilter.create(newProject, newCondition));
     }
   }
 }

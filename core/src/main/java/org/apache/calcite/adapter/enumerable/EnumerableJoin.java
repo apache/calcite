@@ -42,6 +42,9 @@ import java.util.Set;
 /** Implementation of {@link org.apache.calcite.rel.core.Join} in
  * {@link org.apache.calcite.adapter.enumerable.EnumerableConvention enumerable calling convention}. */
 public class EnumerableJoin extends EquiJoin implements EnumerableRel {
+  /** Creates an EnumerableJoin.
+   *
+   * <p>Use {@link #create} unless you know what you're doing. */
   EnumerableJoin(
       RelOptCluster cluster,
       RelTraitSet traits,
@@ -63,6 +66,23 @@ public class EnumerableJoin extends EquiJoin implements EnumerableRel {
         rightKeys,
         joinType,
         variablesStopped);
+  }
+
+  /** Creates an EnumerableJoin. */
+  public static EnumerableJoin create(
+      RelNode left,
+      RelNode right,
+      RexNode condition,
+      ImmutableIntList leftKeys,
+      ImmutableIntList rightKeys,
+      JoinRelType joinType,
+      Set<String> variablesStopped)
+      throws InvalidRelException {
+    final RelOptCluster cluster = left.getCluster();
+    final RelTraitSet traitSet =
+        cluster.traitSetOf(EnumerableConvention.INSTANCE);
+    return new EnumerableJoin(cluster, traitSet, left, right, condition,
+        leftKeys, rightKeys, joinType, variablesStopped);
   }
 
   @Override public EnumerableJoin copy(RelTraitSet traitSet, RexNode condition,

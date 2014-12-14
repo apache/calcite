@@ -49,7 +49,7 @@ public enum EnumerableConvention implements Convention {
     return ConventionTraitDef.INSTANCE;
   }
 
-  public boolean subsumes(RelTrait trait) {
+  public boolean satisfies(RelTrait trait) {
     return this == trait;
   }
 

@@ -116,23 +116,23 @@ public class AggregateUnionTransposeRule extends RelOptRule {
       } else {
         anyTransformed = true;
         newUnionInputs.add(
-            new LogicalAggregate(cluster, input, false, aggRel.getGroupSet(),
+            LogicalAggregate.create(input, false, aggRel.getGroupSet(),
                 null, aggRel.getAggCallList()));
       }
     }
 
     if (!anyTransformed) {
-      // none of the children could benefit from the pushdown,
+      // none of the children could benefit from the push-down,
       // so bail out (preventing the infinite loop to which most
       // planners would succumb)
       return;
     }
 
-    // create a new union whose children are the aggs created above
-    LogicalUnion newUnion = new LogicalUnion(cluster, newUnionInputs, true);
+    // create a new union whose children are the aggregates created above
+    LogicalUnion newUnion = LogicalUnion.create(newUnionInputs, true);
 
     LogicalAggregate newTopAggRel =
-        new LogicalAggregate(cluster, newUnion, aggRel.indicator,
+        LogicalAggregate.create(newUnion, aggRel.indicator,
             aggRel.getGroupSet(), aggRel.getGroupSets(), transformedAggCalls);
 
     call.transformTo(newTopAggRel);

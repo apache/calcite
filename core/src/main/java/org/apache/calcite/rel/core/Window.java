@@ -22,7 +22,7 @@ import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelCollation;
-import org.apache.calcite.rel.RelCollationImpl;
+import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelWriter;
@@ -146,7 +146,7 @@ public abstract class Window extends SingleRel {
 
   public static RelCollation getCollation(
       final List<RexFieldCollation> collations) {
-    return RelCollationImpl.of(
+    return RelCollations.of(
         new AbstractList<RelFieldCollation>() {
           public RelFieldCollation get(int index) {
             final RexFieldCollation collation = collations.get(index);

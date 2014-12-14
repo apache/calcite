@@ -30,12 +30,16 @@ import org.apache.calcite.linq4j.tree.Types;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelCollation;
+import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Calc;
+import org.apache.calcite.rel.metadata.RelMdCollation;
 import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.Pair;
+import org.apache.calcite.util.Util;
 
+import com.google.common.base.Supplier;
 import com.google.common.collect.ImmutableList;
 
 import java.lang.reflect.Modifier;
@@ -50,22 +54,50 @@ import static org.apache.calcite.adapter.enumerable.EnumUtils.NO_PARAMS;
 /** Implementation of {@link org.apache.calcite.rel.core.Calc} in
  * {@link org.apache.calcite.adapter.enumerable.EnumerableConvention enumerable calling convention}. */
 public class EnumerableCalc extends Calc implements EnumerableRel {
-  public EnumerableCalc(
-      RelOptCluster cluster,
+  /**
+   * Creates an EnumerableCalc.
+   *
+   * <p>Use {@link #create} unless you know what you're doing.
+   */
+  public EnumerableCalc(RelOptCluster cluster,
       RelTraitSet traitSet,
-      RelNode child,
-      RexProgram program,
-      List<RelCollation> collationList) {
-    super(cluster, traitSet, child, program, collationList);
+      RelNode input,
+      RexProgram program) {
+    super(cluster, traitSet, input, program);
     assert getConvention() instanceof EnumerableConvention;
     assert !program.containsAggs();
   }
 
+  @Deprecated // to be removed before 2.0
+  public EnumerableCalc(
+      RelOptCluster cluster,
+      RelTraitSet traitSet,
+      RelNode input,
+      RexProgram program,
+      List<RelCollation> collationList) {
+    this(cluster, traitSet, input, program);
+    Util.discard(collationList);
+  }
+
+  /** Creates an EnumerableCalc. */
+  public static EnumerableCalc create(final RelNode input,
+      final RexProgram program) {
+    final RelOptCluster cluster = input.getCluster();
+    final RelTraitSet traitSet = cluster.traitSet()
+        .replace(EnumerableConvention.INSTANCE)
+        .replaceIf(RelCollationTraitDef.INSTANCE,
+            new Supplier<List<RelCollation>>() {
+              public List<RelCollation> get() {
+                return RelMdCollation.calc(input, program);
+              }
+            });
+    return new EnumerableCalc(cluster, traitSet, input, program);
+  }
+
   @Override public EnumerableCalc copy(RelTraitSet traitSet, RelNode child,
-      RexProgram program, List<RelCollation> collationList) {
+      RexProgram program) {
     // we do not need to copy program; it is immutable
-    return new EnumerableCalc(getCluster(), traitSet, child,
-        program, collationList);
+    return new EnumerableCalc(getCluster(), traitSet, child, program);
   }
 
   public Result implement(EnumerableRelImplementor implementor, Prefer pref) {

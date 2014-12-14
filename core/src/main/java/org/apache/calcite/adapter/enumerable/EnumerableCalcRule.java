@@ -36,15 +36,11 @@ class EnumerableCalcRule extends ConverterRule {
 
   public RelNode convert(RelNode rel) {
     final LogicalCalc calc = (LogicalCalc) rel;
-    return new EnumerableCalc(
-        rel.getCluster(),
-        rel.getTraitSet().replace(EnumerableConvention.INSTANCE),
-        convert(
-            calc.getInput(),
-            calc.getInput().getTraitSet()
-                .replace(EnumerableConvention.INSTANCE)),
-        calc.getProgram(),
-        calc.getCollationList());
+    final RelNode input = calc.getInput();
+    return EnumerableCalc.create(
+        convert(input,
+            input.getTraitSet().replace(EnumerableConvention.INSTANCE)),
+        calc.getProgram());
   }
 }
 

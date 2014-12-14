@@ -101,6 +101,7 @@ public class Programs {
   public static final ImmutableSet<RelOptRule> RULE_SET =
       ImmutableSet.of(
           EnumerableRules.ENUMERABLE_JOIN_RULE,
+          EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE,
           EnumerableRules.ENUMERABLE_SEMI_JOIN_RULE,
           EnumerableRules.ENUMERABLE_CORRELATE_RULE,
           EnumerableRules.ENUMERABLE_PROJECT_RULE,
@@ -261,7 +262,9 @@ public class Programs {
           public RelNode run(RelOptPlanner planner, RelNode rel,
               RelTraitSet requiredOutputTraits) {
             final RelNode rootRel2 =
-                planner.changeTraits(rel, requiredOutputTraits);
+                rel.getTraitSet().equals(requiredOutputTraits)
+                ? rel
+                : planner.changeTraits(rel, requiredOutputTraits);
             assert rootRel2 != null;
 
             planner.setRoot(rootRel2);

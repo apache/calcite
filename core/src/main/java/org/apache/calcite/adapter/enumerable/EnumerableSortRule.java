@@ -17,7 +17,6 @@
 package org.apache.calcite.adapter.enumerable;
 
 import org.apache.calcite.plan.Convention;
-import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterRule;
 import org.apache.calcite.rel.core.Sort;
@@ -37,12 +36,8 @@ class EnumerableSortRule extends ConverterRule {
     if (sort.offset != null || sort.fetch != null) {
       return null;
     }
-    final RelTraitSet traitSet =
-        sort.getTraitSet().replace(EnumerableConvention.INSTANCE);
     final RelNode input = sort.getInput();
-    return new EnumerableSort(
-        rel.getCluster(),
-        traitSet,
+    return EnumerableSort.create(
         convert(
             input,
             input.getTraitSet().replace(EnumerableConvention.INSTANCE)),

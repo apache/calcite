@@ -23,6 +23,21 @@ package org.apache.calcite.rel;
  * @see RelCollation
  */
 public class RelFieldCollation {
+  /** Utility method that compares values taking into account null
+   * direction. */
+  public static int compare(Comparable c1, Comparable c2, int nullComparison) {
+    if (c1 == c2) {
+      return 0;
+    } else if (c1 == null) {
+      return nullComparison;
+    } else if (c2 == null) {
+      return -nullComparison;
+    } else {
+      //noinspection unchecked
+      return c1.compareTo(c2);
+    }
+  }
+
   //~ Enums ------------------------------------------------------------------
 
   /**
@@ -72,9 +87,15 @@ public class RelFieldCollation {
    * Ordering of nulls.
    */
   public enum NullDirection {
-    FIRST,
-    LAST,
-    UNSPECIFIED
+    FIRST(-1),
+    LAST(1),
+    UNSPECIFIED(1);
+
+    public final int nullComparison;
+
+    NullDirection(int nullComparison) {
+      this.nullComparison = nullComparison;
+    }
   }
 
   //~ Instance fields --------------------------------------------------------
@@ -134,6 +155,14 @@ public class RelFieldCollation {
       return this;
     }
     return new RelFieldCollation(target, direction, nullDirection);
+  }
+
+  /**
+   * Returns a copy of this RelFieldCollation with the field index shifted
+   * {@code offset} to the right.
+   */
+  public RelFieldCollation shift(int offset) {
+    return copy(fieldIndex + offset);
   }
 
   // implement Object

@@ -195,11 +195,7 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
               Lists.newArrayList(project.getProjects());
           if (reduceExpressions(project, expList, predicates)) {
             call.transformTo(
-                new LogicalProject(
-                    project.getCluster(),
-                    project.getTraitSet(),
-                    project.getInput(),
-                    expList,
+                LogicalProject.create(project.getInput(), expList,
                     project.getRowType()));
 
             // New plan is absolutely better than old plan.
@@ -303,12 +299,7 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
                   program.getOutputRowType().getFieldNames().get(k++));
             }
             call.transformTo(
-                new LogicalCalc(
-                    calc.getCluster(),
-                    calc.getTraitSet(),
-                    calc.getInput(),
-                    builder.getProgram(),
-                    calc.getCollationList()));
+                LogicalCalc.create(calc.getInput(), builder.getProgram()));
 
             // New plan is absolutely better than old plan.
             call.getPlanner().setImportance(calc, 0.0);

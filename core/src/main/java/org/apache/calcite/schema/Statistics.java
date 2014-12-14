@@ -16,7 +16,10 @@
  */
 package org.apache.calcite.schema;
 
+import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.util.ImmutableBitSet;
+
+import com.google.common.collect.ImmutableList;
 
 import java.util.List;
 
@@ -37,11 +40,21 @@ public class Statistics {
         public boolean isKey(ImmutableBitSet columns) {
           return false;
         }
+
+        public List<RelCollation> getCollations() {
+          return ImmutableList.of();
+        }
       };
 
   /** Returns a statistic with a given row count and set of unique keys. */
   public static Statistic of(final double rowCount,
       final List<ImmutableBitSet> keys) {
+    return of(rowCount, keys, ImmutableList.<RelCollation>of());
+  }
+
+  /** Returns a statistic with a given row count and set of unique keys. */
+  public static Statistic of(final double rowCount,
+      final List<ImmutableBitSet> keys, final List<RelCollation> collations) {
     return new Statistic() {
       public Double getRowCount() {
         return rowCount;
@@ -54,6 +67,10 @@ public class Statistics {
           }
         }
         return false;
+      }
+
+      public List<RelCollation> getCollations() {
+        return collations;
       }
     };
   }

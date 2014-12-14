@@ -22,6 +22,7 @@ import org.apache.calcite.plan.RelOptUtilTest;
 import org.apache.calcite.plan.RelWriterTest;
 import org.apache.calcite.plan.volcano.VolcanoPlannerTest;
 import org.apache.calcite.plan.volcano.VolcanoPlannerTraitTest;
+import org.apache.calcite.rel.RelCollationTest;
 import org.apache.calcite.rex.RexExecutorTest;
 import org.apache.calcite.runtime.BinarySearchTest;
 import org.apache.calcite.runtime.EnumerablesTest;
@@ -64,6 +65,7 @@ import org.junit.runners.Suite;
     DirectedGraphTest.class,
     ReflectVisitorTest.class,
     RelOptUtilTest.class,
+    RelCollationTest.class,
     UtilTest.class,
     MappingTest.class,
     CalciteResourceTest.class,

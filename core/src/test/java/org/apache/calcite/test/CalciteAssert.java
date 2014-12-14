@@ -78,7 +78,6 @@ import javax.sql.DataSource;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
-import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
@@ -342,8 +341,10 @@ public class CalciteAssert {
           CalciteAssert.toStringList(resultSet, actualList);
           Collections.sort(actualList);
 
-          // Use assertArrayEquals since it implements fine-grained comparison.
-          assertArrayEquals(expectedList.toArray(), actualList.toArray());
+          if (!actualList.equals(expectedList)) {
+            assertThat(Util.lines(actualList),
+                equalTo(Util.lines(expectedList)));
+          }
           return null;
         } catch (SQLException e) {
           throw new RuntimeException(e);
@@ -358,9 +359,7 @@ public class CalciteAssert {
       public Void apply(ResultSet s) {
         try {
           final String actual = Util.toLinux(CalciteAssert.toString(s));
-          if (!actual.contains(expected)) {
-            assertEquals("contains", expected, actual);
-          }
+          assertThat(actual, containsString(expected));
           return null;
         } catch (SQLException e) {
           throw new RuntimeException(e);
@@ -377,9 +376,7 @@ public class CalciteAssert {
           final String actual = Util.toLinux(CalciteAssert.toString(s));
           final String maskedActual =
               actual.replaceAll(", id = [0-9]+", "");
-          if (!maskedActual.contains(expected)) {
-            assertEquals("contains", expected, maskedActual);
-          }
+          assertThat(maskedActual, containsString(expected));
           return null;
         } catch (SQLException e) {
           throw new RuntimeException(e);

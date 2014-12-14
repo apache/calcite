@@ -52,18 +52,24 @@ public class LogicalTableFunctionScan extends TableFunctionScan {
    */
   public LogicalTableFunctionScan(
       RelOptCluster cluster,
+      RelTraitSet traitSet,
       List<RelNode> inputs,
       RexNode rexCall,
       Type elementType, RelDataType rowType,
       Set<RelColumnMapping> columnMappings) {
-    super(
-        cluster,
-        cluster.traitSetOf(Convention.NONE),
-        inputs,
-        rexCall,
-        elementType,
-        rowType,
+    super(cluster, traitSet, inputs, rexCall, elementType, rowType,
         columnMappings);
+  }
+
+  @Deprecated // to be removed before 2.0
+  public LogicalTableFunctionScan(
+      RelOptCluster cluster,
+      List<RelNode> inputs,
+      RexNode rexCall,
+      Type elementType, RelDataType rowType,
+      Set<RelColumnMapping> columnMappings) {
+    this(cluster, cluster.traitSetOf(Convention.NONE), inputs, rexCall,
+        elementType, rowType, columnMappings);
   }
 
   /**
@@ -71,6 +77,18 @@ public class LogicalTableFunctionScan extends TableFunctionScan {
    */
   public LogicalTableFunctionScan(RelInput input) {
     super(input);
+  }
+
+  /** Creates a LogicalTableFunctionScan. */
+  public static LogicalTableFunctionScan create(
+      RelOptCluster cluster,
+      List<RelNode> inputs,
+      RexNode rexCall,
+      Type elementType, RelDataType rowType,
+      Set<RelColumnMapping> columnMappings) {
+    final RelTraitSet traitSet = cluster.traitSetOf(Convention.NONE);
+    return new LogicalTableFunctionScan(cluster, traitSet, inputs, rexCall,
+        elementType, rowType, columnMappings);
   }
 
   //~ Methods ----------------------------------------------------------------

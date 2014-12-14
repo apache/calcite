@@ -56,7 +56,7 @@ public class RelCollationTraitDef extends RelTraitDef<RelCollation> {
   }
 
   public RelCollation getDefault() {
-    return RelCollationImpl.EMPTY;
+    return RelCollations.EMPTY;
   }
 
   public RelNode convert(
@@ -64,7 +64,7 @@ public class RelCollationTraitDef extends RelTraitDef<RelCollation> {
       RelNode rel,
       RelCollation toCollation,
       boolean allowInfiniteCostConverters) {
-    if (toCollation == RelCollationImpl.PRESERVE) {
+    if (toCollation == RelCollations.PRESERVE) {
       return null;
     }
 
@@ -77,17 +77,17 @@ public class RelCollationTraitDef extends RelTraitDef<RelCollation> {
     // traits (e.g. convert it to an EnumerableSortRel if rel is enumerable
     // convention)
     final Sort sort = LogicalSort.create(rel, toCollation, null, null);
-    RelNode newRel = sort;
+    RelNode newRel = planner.register(sort, rel);
     final RelTraitSet newTraitSet = rel.getTraitSet().replace(toCollation);
     if (!newRel.getTraitSet().equals(newTraitSet)) {
-      newRel = planner.changeTraits(sort, newTraitSet);
+      newRel = planner.changeTraits(newRel, newTraitSet);
     }
     return newRel;
   }
 
   public boolean canConvert(
       RelOptPlanner planner, RelCollation fromTrait, RelCollation toTrait) {
-    return toTrait != RelCollationImpl.PRESERVE;
+    return toTrait != RelCollations.PRESERVE;
   }
 }
 

@@ -1153,6 +1153,11 @@ public class Util {
     return buf.toString();
   }
 
+  /** Converts a list of strings to a string separated by newlines. */
+  public static String lines(Iterable<String> strings) {
+    return toString(strings, "", "\n", "");
+  }
+
   /**
    * Converts a Java timezone to POSIX format, so that the boost C++ library
    * can instantiate timezone objects.
@@ -1978,9 +1983,19 @@ public class Util {
 
   /** Returns whether one list is a prefix of another. */
   public static <E> boolean startsWith(List<E> list0, List<E> list1) {
-    return list0.equals(list1)
-        || list0.size() > list1.size()
-        && list0.subList(0, list1.size()).equals(list1);
+    if (list0 == list1) {
+      return true;
+    }
+    final int size = list1.size();
+    if (list0.size() < size) {
+      return false;
+    }
+    for (int i = 0; i < size; i++) {
+      if (!Objects.equal(list0.get(i), list1.get(i))) {
+        return false;
+      }
+    }
+    return true;
   }
 
   /** Converts a number into human-readable form, with 3 digits and a "K", "M"

@@ -18,10 +18,13 @@ package org.apache.calcite.rel.metadata;
 
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPredicateList;
+import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.util.ImmutableBitSet;
+
+import com.google.common.collect.ImmutableList;
 
 import java.util.Set;
 
@@ -83,6 +86,12 @@ public abstract class BuiltInMetadata {
      * null if not enough information is available to make that determination
      */
     Boolean areColumnsUnique(ImmutableBitSet columns, boolean ignoreNulls);
+  }
+
+  /** Metadata about which columns are sorted. */
+  public interface Collation extends Metadata {
+    /** Determines which columns are sorted. */
+    ImmutableList<RelCollation> collations();
   }
 
   /** Metadata about the number of rows returned by a relational expression. */

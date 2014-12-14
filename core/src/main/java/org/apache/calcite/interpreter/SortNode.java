@@ -97,53 +97,26 @@ public class SortNode extends AbstractSingleNode<Sort> {
             }));
   }
 
-  private static int compare(Comparable c1, Comparable c2,
-      int nullComparison) {
-    if (c1 == c2) {
-      return 0;
-    } else if (c1 == null) {
-      return nullComparison;
-    } else if (c2 == null) {
-      return -nullComparison;
-    } else {
-      //noinspection unchecked
-      return c1.compareTo(c2);
-    }
-  }
-
-  private Comparator<Row> comparator(final RelFieldCollation fieldCollation) {
-    final int nullComparison = getNullComparison(fieldCollation.nullDirection);
+  private Comparator<Row> comparator(RelFieldCollation fieldCollation) {
+    final int nullComparison = fieldCollation.nullDirection.nullComparison;
+    final int x = fieldCollation.getFieldIndex();
     switch (fieldCollation.direction) {
     case ASCENDING:
       return new Comparator<Row>() {
         public int compare(Row o1, Row o2) {
-          final int x = fieldCollation.getFieldIndex();
           final Comparable c1 = (Comparable) o1.getValues()[x];
           final Comparable c2 = (Comparable) o2.getValues()[x];
-          return SortNode.compare(c1, c2, nullComparison);
+          return RelFieldCollation.compare(c1, c2, nullComparison);
         }
       };
     default:
       return new Comparator<Row>() {
         public int compare(Row o1, Row o2) {
-          final int x = fieldCollation.getFieldIndex();
           final Comparable c1 = (Comparable) o1.getValues()[x];
           final Comparable c2 = (Comparable) o2.getValues()[x];
-          return SortNode.compare(c2, c1, -nullComparison);
+          return RelFieldCollation.compare(c2, c1, -nullComparison);
         }
       };
-    }
-  }
-
-  private int getNullComparison(RelFieldCollation.NullDirection nullDirection) {
-    switch (nullDirection) {
-    case FIRST:
-      return -1;
-    case UNSPECIFIED:
-    case LAST:
-      return 1;
-    default:
-      throw new AssertionError(nullDirection);
     }
   }
 }

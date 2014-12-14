@@ -107,7 +107,7 @@ public class RexOver extends RexCall {
    */
   public static boolean containsOver(RexProgram program) {
     try {
-      RexProgram.apply(FINDER, program.getExprList(), null);
+      RexUtil.apply(FINDER, program.getExprList(), null);
       return false;
     } catch (OverFound e) {
       Util.swallow(e, null);
@@ -120,7 +120,7 @@ public class RexOver extends RexCall {
    */
   public static boolean containsOver(List<RexNode> exprs, RexNode condition) {
     try {
-      RexProgram.apply(FINDER, exprs, condition);
+      RexUtil.apply(FINDER, exprs, condition);
       return false;
     } catch (OverFound e) {
       Util.swallow(e, null);

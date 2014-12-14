@@ -16,7 +16,10 @@
  */
 package org.apache.calcite.schema;
 
+import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.util.ImmutableBitSet;
+
+import java.util.List;
 
 /**
  * Statistics about a {@link Table}.
@@ -33,6 +36,9 @@ public interface Statistic {
    * of a unique key, of the table.
    */
   boolean isKey(ImmutableBitSet columns);
+
+  /** Returns the collections of columns on which this table is sorted. */
+  List<RelCollation> getCollations();
 }
 
 // End Statistic.java

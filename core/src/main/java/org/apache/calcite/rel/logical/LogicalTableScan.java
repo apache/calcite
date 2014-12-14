@@ -58,16 +58,16 @@ public final class LogicalTableScan extends TableScan {
   /**
    * Creates a LogicalTableScan.
    *
-   * @param cluster Cluster
-   * @param table   Table
+   * <p>Use {@link #create} unless you know what you're doing.
    */
-  public LogicalTableScan(
-      RelOptCluster cluster,
+  public LogicalTableScan(RelOptCluster cluster, RelTraitSet traitSet,
       RelOptTable table) {
-    super(
-        cluster,
-        cluster.traitSetOf(Convention.NONE),
-        table);
+    super(cluster, traitSet, table);
+  }
+
+  @Deprecated // to be removed before 2.0
+  public LogicalTableScan(RelOptCluster cluster, RelOptTable table) {
+    this(cluster, cluster.traitSetOf(Convention.NONE), table);
   }
 
   /**
@@ -81,6 +81,13 @@ public final class LogicalTableScan extends TableScan {
     assert traitSet.containsIfApplicable(Convention.NONE);
     assert inputs.isEmpty();
     return this;
+  }
+
+  /** Creates a LogicalTableScan. */
+  public static LogicalTableScan create(RelOptCluster cluster,
+      RelOptTable table) {
+    final RelTraitSet traitSet = cluster.traitSetOf(Convention.NONE);
+    return new LogicalTableScan(cluster, traitSet, table);
   }
 }
 

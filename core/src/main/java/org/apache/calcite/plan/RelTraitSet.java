@@ -19,6 +19,7 @@ package org.apache.calcite.plan;
 import org.apache.calcite.runtime.FlatLists;
 import org.apache.calcite.util.Pair;
 
+import com.google.common.base.Supplier;
 import com.google.common.collect.ImmutableList;
 
 import java.util.AbstractList;
@@ -81,8 +82,34 @@ public final class RelTraitSet extends AbstractList<RelTrait> {
     return traits[index];
   }
 
+  /**
+   * Retrieves a list of traits from the set.
+   *
+   * @param index 0-based index into ordered RelTraitSet
+   * @return the RelTrait
+   * @throws ArrayIndexOutOfBoundsException if index greater than or equal to
+   *                                        {@link #size()} or less than 0.
+   */
+  public <E extends RelMultipleTrait> List<E> getTraits(int index) {
+    final RelTrait trait = traits[index];
+    if (trait instanceof RelCompositeTrait) {
+      //noinspection unchecked
+      return ((RelCompositeTrait<E>) trait).traitList();
+    } else {
+      //noinspection unchecked
+      return ImmutableList.of((E) trait);
+    }
+  }
+
   public RelTrait get(int index) {
     return getTrait(index);
+  }
+
+  /**
+   * Returns whether a given kind of trait is enabled.
+   */
+  public <T extends RelTrait> boolean isEnabled(RelTraitDef<T> traitDef) {
+    return getTrait(traitDef) != null;
   }
 
   /**
@@ -96,6 +123,25 @@ public final class RelTraitSet extends AbstractList<RelTrait> {
     if (index >= 0) {
       //noinspection unchecked
       return (T) getTrait(index);
+    }
+
+    return null;
+  }
+
+  /**
+   * Retrieves a list of traits of the given type from the set.
+   *
+   * <p>Only valid for traits that support multiple entries. (E.g. collation.)
+   *
+   * @param traitDef the type of RelTrait to retrieve
+   * @return the RelTrait, or null if not found
+   */
+  public <T extends RelMultipleTrait> List<T> getTraits(
+      RelTraitDef<T> traitDef) {
+    int index = findIndex(traitDef);
+    if (index >= 0) {
+      //noinspection unchecked
+      return (List<T>) getTraits(index);
     }
 
     return null;
@@ -144,6 +190,38 @@ public final class RelTraitSet extends AbstractList<RelTrait> {
     return replace(index, trait);
   }
 
+  /** Replaces the trait(s) of a given type with a list of traits of the same
+   * type.
+   *
+   * <p>The list must not be empty, and all traits must be of the same type.
+   */
+  public <T extends RelMultipleTrait> RelTraitSet replace(List<T> traits) {
+    assert !traits.isEmpty();
+    final RelTraitDef def = traits.get(0).getTraitDef();
+    return replace(RelCompositeTrait.of(def, traits));
+  }
+
+  /** Replaces the trait(s) of a given type with a list of traits of the same
+   * type.
+   *
+   * <p>The list must not be empty, and all traits must be of the same type.
+   */
+  public <T extends RelMultipleTrait> RelTraitSet replace(RelTraitDef<T> def,
+      List<T> traits) {
+    return replace(RelCompositeTrait.of(def, traits));
+  }
+
+  /** If a given trait is enabled, replaces it by calling the given function. */
+  public <T extends RelMultipleTrait> RelTraitSet replaceIf(RelTraitDef<T> def,
+      Supplier<List<T>> traitSupplier) {
+    int index = findIndex(def);
+    if (index < 0) {
+      return this; // trait is not enabled; ignore it
+    }
+    final List<T> traitList = traitSupplier.get();
+    return replace(index, RelCompositeTrait.of(def, traitList));
+  }
+
   /**
    * Returns the size of the RelTraitSet.
    *
@@ -164,6 +242,12 @@ public final class RelTraitSet extends AbstractList<RelTrait> {
   public <T extends RelTrait> T canonize(T trait) {
     if (trait == null) {
       return null;
+    }
+
+    if (trait instanceof RelCompositeTrait) {
+      // Composite traits are canonized on creation
+      //noinspection unchecked
+      return (T) trait;
     }
 
     //noinspection unchecked
@@ -187,24 +271,29 @@ public final class RelTraitSet extends AbstractList<RelTrait> {
   }
 
   /**
-   * Returns whether this trait set subsumes another trait set.
+   * Returns whether this trait set satisfies another trait set.
    *
-   * <p>For that to happen, each trait subsumes the corresponding trait in the
-   * other set. In particular, each trait set subsumes itself, because each
-   * trait subsumes itself.</p>
+   * <p>For that to happen, each trait satisfies the corresponding trait in the
+   * other set. In particular, each trait set satisfies itself, because each
+   * trait subsumes itself.
    *
    * <p>Intuitively, if a relational expression is needed that has trait set
-   * S, and trait set S1 subsumes S, then a relational expression R in S1
-   * meets that need. For example, if we need a relational expression that has
+   * S (A, B), and trait set S1 (A1, B1) subsumes S, then any relational
+   * expression R in S1 meets that need.
+   *
+   * <p>For example, if we need a relational expression that has
    * trait set S = {enumerable convention, sorted on [C1 asc]}, and R
-   * has {enumerable convention, sorted on [C1 asc, C2]}</p>
+   * has {enumerable convention, sorted on [C3], [C1, C2]}. R has two
+   * sort keys, but one them [C1, C2] satisfies S [C1], and that is enough.
    *
    * @param that another RelTraitSet
-   * @return whether this trait set subsumes other trait set
+   * @return whether this trait set satisfies other trait set
+   *
+   * @see org.apache.calcite.plan.RelTrait#satisfies(RelTrait)
    */
-  public boolean subsumes(RelTraitSet that) {
+  public boolean satisfies(RelTraitSet that) {
     for (Pair<RelTrait, RelTrait> pair : Pair.zip(traits, that.traits)) {
-      if (!pair.left.subsumes(pair.right)) {
+      if (!pair.left.satisfies(pair.right)) {
         return false;
       }
     }
@@ -391,6 +480,35 @@ public final class RelTraitSet extends AbstractList<RelTrait> {
       }
     }
     return builder.build();
+  }
+
+  /** Returns whether there are any composite traits in this set. */
+  public boolean allSimple() {
+    for (RelTrait trait : traits) {
+      if (trait instanceof RelCompositeTrait) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  /** Returns a trait set similar to this one but with all composite traits
+   * flattened. */
+  public RelTraitSet simplify() {
+    RelTraitSet x = this;
+    for (int i = 0; i < traits.length; i++) {
+      final RelTrait trait = traits[i];
+      if (trait instanceof RelCompositeTrait) {
+        //noinspection unchecked
+        final RelCompositeTrait<RelMultipleTrait> compositeTrait =
+            (RelCompositeTrait<RelMultipleTrait>) trait;
+        x = x.replace(i,
+            compositeTrait.size() == 0
+                ?  trait.getTraitDef().getDefault()
+                : compositeTrait.trait(0));
+      }
+    }
+    return x;
   }
 
   /** Cache of trait sets. */

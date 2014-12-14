@@ -17,7 +17,6 @@
 
 package org.apache.calcite.rel.core;
 
-import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelCollation;
@@ -128,14 +127,13 @@ public class RelFactories {
   private static class SetOpFactoryImpl implements SetOpFactory {
     public RelNode createSetOp(SqlKind kind, List<RelNode> inputs,
         boolean all) {
-      final RelOptCluster cluster = inputs.get(0).getCluster();
       switch (kind) {
       case UNION:
-        return new LogicalUnion(cluster, inputs, all);
+        return LogicalUnion.create(inputs, all);
       case EXCEPT:
-        return new LogicalMinus(cluster, inputs, all);
+        return LogicalMinus.create(inputs, all);
       case INTERSECT:
-        return new LogicalIntersect(cluster, inputs, all);
+        return LogicalIntersect.create(inputs, all);
       default:
         throw new AssertionError("not a set op: " + kind);
       }
@@ -161,7 +159,7 @@ public class RelFactories {
     public RelNode createAggregate(RelNode child, boolean indicator,
         ImmutableBitSet groupSet, ImmutableList<ImmutableBitSet> groupSets,
         List<AggregateCall> aggCalls) {
-      return new LogicalAggregate(child.getCluster(), child, indicator,
+      return LogicalAggregate.create(child, indicator,
           groupSet, groupSets, aggCalls);
     }
   }
@@ -181,7 +179,7 @@ public class RelFactories {
    */
   private static class FilterFactoryImpl implements FilterFactory {
     public RelNode createFilter(RelNode child, RexNode condition) {
-      return new LogicalFilter(child.getCluster(), child, condition);
+      return LogicalFilter.create(child, condition);
     }
   }
 
@@ -217,8 +215,7 @@ public class RelFactories {
     public RelNode createJoin(RelNode left, RelNode right,
         RexNode condition, JoinRelType joinType,
         Set<String> variablesStopped, boolean semiJoinDone) {
-      final RelOptCluster cluster = left.getCluster();
-      return new LogicalJoin(cluster, left, right, condition, joinType,
+      return LogicalJoin.create(left, right, condition, joinType,
           variablesStopped, semiJoinDone, ImmutableList.<RelDataTypeField>of());
     }
   }

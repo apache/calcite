@@ -82,7 +82,7 @@ public class AggregateProjectPullUpConstantsRule extends RelOptRule {
   // implement RelOptRule
   public void onMatch(RelOptRuleCall call) {
     LogicalAggregate aggregate = call.rel(0);
-    LogicalProject child = call.rel(1);
+    LogicalProject input = call.rel(1);
 
     final int groupCount = aggregate.getGroupCount();
     if (groupCount == 1) {
@@ -92,11 +92,13 @@ public class AggregateProjectPullUpConstantsRule extends RelOptRule {
     }
 
     final RexProgram program =
-      RexProgram.create(child.getInput().getRowType(),
-        child.getProjects(), null, child.getRowType(),
-        child.getCluster().getRexBuilder());
+      RexProgram.create(input.getInput().getRowType(),
+          input.getProjects(),
+          null,
+          input.getRowType(),
+          input.getCluster().getRexBuilder());
 
-    final RelDataType childRowType = child.getRowType();
+    final RelDataType childRowType = input.getRowType();
     IntList constantList = new IntList();
     Map<Integer, RexNode> constants = new HashMap<Integer, RexNode>();
     for (int i : aggregate.getGroupSet()) {
@@ -134,11 +136,11 @@ public class AggregateProjectPullUpConstantsRule extends RelOptRule {
           new ArrayList<AggregateCall>();
       for (AggregateCall aggCall : aggregate.getAggCallList()) {
         newAggCalls.add(
-            aggCall.adaptTo(child, aggCall.getArgList(), groupCount,
+            aggCall.adaptTo(input, aggCall.getArgList(), groupCount,
                 newGroupCount));
       }
       newAggregate =
-          new LogicalAggregate(aggregate.getCluster(), child, false,
+          LogicalAggregate.create(input, false,
               ImmutableBitSet.range(newGroupCount), null, newAggCalls);
     } else {
       // Create the mapping from old field positions to new field
@@ -162,7 +164,7 @@ public class AggregateProjectPullUpConstantsRule extends RelOptRule {
       }
 
       // Create a projection to permute fields into these positions.
-      final RelNode project = createProjection(mapping, child);
+      final RelNode project = createProjection(mapping, input);
 
       // Adjust aggregate calls for new field positions.
       final List<AggregateCall> newAggCalls =
@@ -180,7 +182,7 @@ public class AggregateProjectPullUpConstantsRule extends RelOptRule {
 
       // Aggregate on projection.
       newAggregate =
-          new LogicalAggregate(aggregate.getCluster(), project, false,
+          LogicalAggregate.create(project, false,
               ImmutableBitSet.range(newGroupCount), null, newAggCalls);
     }
 

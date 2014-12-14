@@ -121,9 +121,9 @@ public class VolcanoPlannerTraitTest {
             new NoneSingleRel(cluster, noneLeafRel), ALT_TRAIT2);
 
     RelNode convertedRel =
-        planner.changeTraits(
-            noneRel,
-            cluster.traitSetOf(EnumerableConvention.INSTANCE, ALT_TRAIT2));
+        planner.changeTraits(noneRel,
+            cluster.traitSetOf(EnumerableConvention.INSTANCE)
+                .replace(ALT_TRAIT2));
 
     planner.setRoot(convertedRel);
     RelNode result = planner.chooseDelegate().findBestExp();
@@ -177,10 +177,9 @@ public class VolcanoPlannerTraitTest {
             new NoneSingleRel(cluster, noneLeafRel), ALT_TRAIT2);
 
     RelNode convertedRel =
-        planner.changeTraits(
-            noneRel,
-            cluster.traitSetOf(
-                EnumerableConvention.INSTANCE, ALT_TRAIT2));
+        planner.changeTraits(noneRel,
+            cluster.traitSetOf(EnumerableConvention.INSTANCE)
+                .replace(ALT_TRAIT2));
 
     planner.setRoot(convertedRel);
     RelNode result = planner.chooseDelegate().findBestExp();
@@ -251,7 +250,7 @@ public class VolcanoPlannerTraitTest {
       return ordinal;
     }
 
-    public boolean subsumes(RelTrait trait) {
+    public boolean satisfies(RelTrait trait) {
       return equals(trait);
     }
 

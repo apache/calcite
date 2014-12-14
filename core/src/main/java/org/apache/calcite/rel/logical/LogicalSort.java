@@ -20,6 +20,7 @@ import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelCollation;
+import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelInput;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelShuttle;
@@ -56,6 +57,7 @@ public final class LogicalSort extends Sort {
   public static LogicalSort create(RelNode input, RelCollation collation,
       RexNode offset, RexNode fetch) {
     RelOptCluster cluster = input.getCluster();
+    collation = RelCollationTraitDef.INSTANCE.canonize(collation);
     RelTraitSet traitSet =
         input.getTraitSet().replace(Convention.NONE).replace(collation);
     return new LogicalSort(cluster, traitSet, input, collation, offset, fetch);

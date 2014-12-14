@@ -735,6 +735,11 @@ public class ImmutableBitSet
     throw new IndexOutOfBoundsException("index out of range: " + n);
   }
 
+  /** Returns a bit set the same as this but with a given bit set. */
+  public ImmutableBitSet set(int i) {
+    return union(ImmutableBitSet.of(i));
+  }
+
   /** Returns a bit set the same as this but with a given bit cleared. */
   public ImmutableBitSet clear(int i) {
     return except(ImmutableBitSet.of(i));

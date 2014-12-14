@@ -149,7 +149,7 @@ public class RelOptMaterialization {
                           Mappings.offsetSource(rightMapping, offset),
                           leftMapping.getTargetCount()));
               final RelNode project = RelOptUtil.createProject(
-                  new LogicalTableScan(cluster, leftRelOptTable),
+                  LogicalTableScan.create(cluster, leftRelOptTable),
                   Mappings.asList(mapping.inverse()));
               final List<RexNode> conditions = Lists.newArrayList();
               if (left.condition != null) {
@@ -173,7 +173,7 @@ public class RelOptMaterialization {
                       Mappings.offsetSource(leftMapping, offset),
                       Mappings.offsetTarget(rightMapping, leftCount));
               final RelNode project = RelOptUtil.createProject(
-                  new LogicalTableScan(cluster, rightRelOptTable),
+                  LogicalTableScan.create(cluster, rightRelOptTable),
                   Mappings.asList(mapping.inverse()));
               final List<RexNode> conditions = Lists.newArrayList();
               if (left.condition != null) {

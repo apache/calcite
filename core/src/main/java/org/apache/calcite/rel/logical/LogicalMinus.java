@@ -33,16 +33,22 @@ import java.util.List;
 public final class LogicalMinus extends Minus {
   //~ Constructors -----------------------------------------------------------
 
-  public LogicalMinus(
-      RelOptCluster cluster,
-      List<RelNode> inputs,
-      boolean all) {
-    super(
-        cluster,
-        cluster.traitSetOf(Convention.NONE),
-        inputs,
-        all);
+  /**
+   * Creates a LogicalMinus.
+   *
+   * <p>Use {@link #create} unless you know what you're doing.
+   */
+  public LogicalMinus(RelOptCluster cluster, RelTraitSet traitSet,
+      List<RelNode> inputs, boolean all) {
+    super(cluster, traitSet, inputs, all);
   }
+
+  @Deprecated // to be removed before 2.0
+  public LogicalMinus(RelOptCluster cluster, List<RelNode> inputs,
+      boolean all) {
+    this(cluster, cluster.traitSetOf(Convention.NONE), inputs, all);
+  }
+
 
   /**
    * Creates a LogicalMinus by parsing serialized output.
@@ -51,15 +57,19 @@ public final class LogicalMinus extends Minus {
     super(input);
   }
 
+  /** Creates a LogicalMinus. */
+  public static LogicalMinus create(List<RelNode> inputs, boolean all) {
+    final RelOptCluster cluster = inputs.get(0).getCluster();
+    final RelTraitSet traitSet = cluster.traitSetOf(Convention.NONE);
+    return new LogicalMinus(cluster, traitSet, inputs, all);
+  }
+
   //~ Methods ----------------------------------------------------------------
 
-  @Override public LogicalMinus copy(
-      RelTraitSet traitSet, List<RelNode> inputs, boolean all) {
+  @Override public LogicalMinus copy(RelTraitSet traitSet, List<RelNode> inputs,
+      boolean all) {
     assert traitSet.containsIfApplicable(Convention.NONE);
-    return new LogicalMinus(
-        getCluster(),
-        inputs,
-        all);
+    return new LogicalMinus(getCluster(), traitSet, inputs, all);
   }
 
   @Override public RelNode accept(RelShuttle shuttle) {

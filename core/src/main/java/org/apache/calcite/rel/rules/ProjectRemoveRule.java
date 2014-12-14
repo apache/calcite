@@ -59,8 +59,7 @@ public class ProjectRemoveRule extends RelOptRule {
 
   public static final ProjectRemoveRule INSTANCE = new ProjectRemoveRule(false);
 
-  /** @deprecated Remove before
-   * {@link org.apache.calcite.util.Bug#upgrade Calcite-1.1}. */
+  @Deprecated // to be removed before 1.1
   public static final ProjectRemoveRule NAME_CALC_INSTANCE =
       new ProjectRemoveRule(true);
 
@@ -110,10 +109,8 @@ public class ProjectRemoveRule extends RelOptRule {
   /**
    * Returns the child of a project if the project is trivial
    * otherwise the project itself. If useNamesInIdentityProjCalc is true
-   * then trivial comparison uses both names and types.
-   *
-   * @deprecated Remove before
-   * {@link org.apache.calcite.util.Bug#upgrade Calcite-1.1}. */
+   * then trivial comparison uses both names and types. */
+  @Deprecated // to be removed before 1.1
   public static RelNode strip(Project project,
       boolean useNamesInIdentityProjCalc) {
     return isTrivial(project, useNamesInIdentityProjCalc)
@@ -124,8 +121,7 @@ public class ProjectRemoveRule extends RelOptRule {
     return isTrivial(project, false);
   }
 
-  /** @deprecated Remove before
-   * {@link org.apache.calcite.util.Bug#upgrade Calcite-1.1}. */
+  @Deprecated // to be removed before 1.1
   public static boolean isTrivial(Project project,
     boolean useNamesInIdentityProjCalc) {
     RelNode child = project.getInput();
@@ -144,8 +140,7 @@ public class ProjectRemoveRule extends RelOptRule {
         && RexUtil.containIdentity(exps, childRowType, false);
   }
 
-  /** @deprecated Remove before
-   * {@link org.apache.calcite.util.Bug#upgrade Calcite-1.1}. */
+  @Deprecated // to be removed before 1.1
   public static boolean isIdentity(List<? extends RexNode> exps,
       RelDataType rowType, RelDataType childRowType) {
     return childRowType.getFieldCount() == exps.size()

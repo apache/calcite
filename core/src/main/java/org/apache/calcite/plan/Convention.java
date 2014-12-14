@@ -55,7 +55,7 @@ public interface Convention extends RelTrait {
 
     public void register(RelOptPlanner planner) {}
 
-    public boolean subsumes(RelTrait trait) {
+    public boolean satisfies(RelTrait trait) {
       return this == trait;
     }
 

@@ -154,9 +154,8 @@ public final class AggregateExpandDistinctAggregatesRule extends RelOptRule {
       rel = null;
     } else {
       rel =
-          new LogicalAggregate(aggregate.getCluster(), aggregate.getInput(),
-              aggregate.indicator, groupSet, aggregate.getGroupSets(),
-              newAggCallList);
+          LogicalAggregate.create(aggregate.getInput(), aggregate.indicator,
+              groupSet, aggregate.getGroupSets(), newAggCallList);
     }
 
     // For each set of operands, find and rewrite all calls which have that

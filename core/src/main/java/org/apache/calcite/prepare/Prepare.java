@@ -104,15 +104,12 @@ public abstract class Prepare {
   /**
    * Optimizes a query plan.
    *
-   * @param logicalRowType logical row type of relational expression (before
-   * struct fields are flattened, or field names are renamed for uniqueness)
    * @param rootRel root of a relational expression
-   *
    * @param materializations Tables known to be populated with a given query
    * @param lattices Lattices
    * @return an equivalent optimized relational expression
    */
-  protected RelNode optimize(RelDataType logicalRowType, final RelNode rootRel,
+  protected RelNode optimize(final RelNode rootRel,
       final List<Materialization> materializations,
       final List<CalciteSchema.LatticeEntry> lattices) {
     final RelOptPlanner planner = rootRel.getCluster().getPlanner();
@@ -167,7 +164,7 @@ public abstract class Prepare {
   protected RelTraitSet getDesiredRootTraitSet(RelNode rootRel) {
     // Make sure non-CallingConvention traits, if any, are preserved
     return rootRel.getTraitSet()
-        .replace(resultConvention);
+        .replace(resultConvention).simplify();
   }
 
   /**
@@ -274,14 +271,13 @@ public abstract class Prepare {
       switch (explainDepth) {
       case PHYSICAL:
       default:
-        rootRel = optimize(rootRel.getRowType(), rootRel, materializations,
-            lattices);
+        rootRel = optimize(rootRel, materializations, lattices);
         return createPreparedExplanation(
             null, parameterRowType, rootRel, explainAsXml, detailLevel);
       }
     }
 
-    rootRel = optimize(resultType, rootRel, materializations, lattices);
+    rootRel = optimize(rootRel, materializations, lattices);
 
     if (timingTracer != null) {
       timingTracer.traceTime("end optimization");

@@ -25,6 +25,9 @@ import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.linq4j.QueryProvider;
 import org.apache.calcite.linq4j.Queryable;
 import org.apache.calcite.linq4j.tree.Primitive;
+import org.apache.calcite.rel.RelCollation;
+import org.apache.calcite.rel.RelCollations;
+import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelProtoDataType;
@@ -77,7 +80,14 @@ class ArrayTable extends AbstractQueryableTable implements ScannableTable {
         keys.add(ImmutableBitSet.of(ord.i));
       }
     }
-    return Statistics.of(content.size, keys);
+    final List<RelCollation> collations;
+    if (content.sortField >= 0) {
+      collations = ImmutableList.of(
+          RelCollations.of(new RelFieldCollation(content.sortField)));
+    } else {
+      collations = ImmutableList.of();
+    }
+    return Statistics.of(content.size, keys, collations);
   }
 
   public Enumerable<Object[]> scan(DataContext root) {

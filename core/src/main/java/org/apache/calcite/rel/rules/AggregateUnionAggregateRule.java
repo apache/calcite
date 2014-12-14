@@ -95,14 +95,10 @@ public class AggregateUnionAggregateRule extends RelOptRule {
       return;
     }
 
-    LogicalUnion newUnion =
-        new LogicalUnion(
-            union.getCluster(),
-            unionInputs,
-            true);
+    LogicalUnion newUnion = LogicalUnion.create(unionInputs, true);
 
     LogicalAggregate newAggRel =
-        new LogicalAggregate(topAggRel.getCluster(), newUnion, false,
+        LogicalAggregate.create(newUnion, false,
             topAggRel.getGroupSet(), null, topAggRel.getAggCallList());
 
     call.transformTo(newAggRel);

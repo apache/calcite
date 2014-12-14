@@ -31,11 +31,27 @@ import org.apache.calcite.util.Pair;
 /** Implementation of {@link org.apache.calcite.rel.core.Sort} in
  * {@link org.apache.calcite.adapter.enumerable.EnumerableConvention enumerable calling convention}. */
 public class EnumerableSort extends Sort implements EnumerableRel {
+  /**
+   * Creates an EnumerableSort.
+   *
+   * <p>Use {@link #create} unless you know what you're doing.
+   */
   public EnumerableSort(RelOptCluster cluster, RelTraitSet traitSet,
-      RelNode child, RelCollation collation, RexNode offset, RexNode fetch) {
-    super(cluster, traitSet, child, collation, offset, fetch);
+      RelNode input, RelCollation collation, RexNode offset, RexNode fetch) {
+    super(cluster, traitSet, input, collation, offset, fetch);
     assert getConvention() instanceof EnumerableConvention;
-    assert getConvention() == child.getConvention();
+    assert getConvention() == input.getConvention();
+  }
+
+  /** Creates an EnumerableSort. */
+  public static EnumerableSort create(RelNode child, RelCollation collation,
+      RexNode offset, RexNode fetch) {
+    final RelOptCluster cluster = child.getCluster();
+    final RelTraitSet traitSet =
+        cluster.traitSetOf(EnumerableConvention.INSTANCE)
+            .replace(collation);
+    return new EnumerableSort(cluster, traitSet, child, collation, offset,
+        fetch);
   }
 
   @Override public EnumerableSort copy(

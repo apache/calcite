@@ -19,6 +19,7 @@ package org.apache.calcite.plan.volcano;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptListener;
 import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.plan.RelTrait;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.util.trace.CalciteTrace;
@@ -139,10 +140,8 @@ class RelSet {
    */
   public RelSubset add(RelNode rel) {
     assert equivalentSet == null : "adding to a dead set";
-    RelSubset subset =
-        getOrCreateSubset(
-            rel.getCluster(),
-            rel.getTraitSet());
+    final RelTraitSet traitSet = rel.getTraitSet().simplify();
+    final RelSubset subset = getOrCreateSubset(rel.getCluster(), traitSet);
     subset.add(rel);
     return subset;
   }
@@ -191,6 +190,9 @@ class RelSet {
   void addInternal(RelNode rel) {
     if (!rels.contains(rel)) {
       rels.add(rel);
+      for (RelTrait trait : rel.getTraitSet()) {
+        assert trait == trait.getTraitDef().canonize(trait);
+      }
 
       VolcanoPlanner planner =
           (VolcanoPlanner) rel.getCluster().getPlanner();

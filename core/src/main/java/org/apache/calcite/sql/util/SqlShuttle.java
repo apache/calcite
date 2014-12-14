@@ -94,8 +94,9 @@ public class SqlShuttle extends SqlBasicVisitor<SqlNode> {
   //~ Inner Classes ----------------------------------------------------------
 
   /**
-   * Implementation of {@link ArgHandler} which deep-copies {@link SqlCall}s
-   * and their operands.
+   * Implementation of
+   * {@link org.apache.calcite.sql.util.SqlBasicVisitor.ArgHandler}
+   * that deep-copies {@link SqlCall}s and their operands.
    */
   protected class CallCopyingArgHandler implements ArgHandler<SqlNode> {
     boolean update;

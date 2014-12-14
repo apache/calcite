@@ -182,6 +182,10 @@ public abstract class Bug {
   /**
    * Use this method to flag code that should be re-visited after upgrading
    * a component.
+   *
+   * <p>If the intended change is that a class or member be removed, flag
+   * instead using a {@link Deprecated} annotation followed by a comment such as
+   * "to be removed before 2.0".
    */
   public static boolean upgrade(String remark) {
     Util.discard(remark);

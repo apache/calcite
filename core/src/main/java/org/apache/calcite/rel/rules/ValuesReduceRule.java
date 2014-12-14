@@ -221,7 +221,7 @@ public abstract class ValuesReduceRule extends RelOptRule {
         rowType = values.getRowType();
       }
       final RelNode newRel =
-          new LogicalValues(values.getCluster(), rowType,
+          LogicalValues.create(values.getCluster(), rowType,
               tuplesBuilder.build());
       call.transformTo(newRel);
     } else {

@@ -127,7 +127,7 @@ public class ScannableTableTest {
     resultSet.close();
     // Only 2 rows came out of the table. If the value is 4, it means that the
     // planner did not pass the filter down.
-    assertThat(buf.toString(), equalTo("returnCount=2"));
+    assertThat(buf.toString(), equalTo("returnCount=2, filter=4"));
     buf.setLength(0);
 
     // Now with an "uncooperative" filterable table that refuses to accept
@@ -161,7 +161,7 @@ public class ScannableTableTest {
     resultSet.close();
     // Only 2 rows came out of the table. If the value is 4, it means that the
     // planner did not pass the filter down.
-    assertThat(buf.toString(), equalTo("returnCount=2"));
+    assertThat(buf.toString(), equalTo("returnCount=2, filter=4"));
     buf.setLength(0);
 
     // Now with an "uncooperative" filterable table that refuses to accept
@@ -195,7 +195,8 @@ public class ScannableTableTest {
     assertThat(CalciteAssert.toString(resultSet),
         equalTo("k=1940; j=John\nk=1942; j=Paul\n"));
     resultSet.close();
-    assertThat(buf.toString(), equalTo("returnCount=2, projects=[2, 1]"));
+    assertThat(buf.toString(),
+        equalTo("returnCount=2, filter=4, projects=[2, 1]"));
     buf.setLength(0);
 
     // Filter on one of the projected columns.
@@ -467,6 +468,9 @@ public class ScannableTableTest {
       public void close() {
         current = null;
         buf.append("returnCount=").append(returnCount);
+        if (filter != null) {
+          buf.append(", filter=").append(filter);
+        }
         if (projects != null) {
           buf.append(", projects=").append(Arrays.toString(projects));
         }

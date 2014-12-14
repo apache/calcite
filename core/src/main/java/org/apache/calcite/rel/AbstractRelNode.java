@@ -200,6 +200,8 @@ public abstract class AbstractRelNode implements RelNode {
     return true;
   }
 
+  /** @deprecated Use {@link RelMetadataQuery#collations(RelNode)} */
+  @Deprecated // to be removed before 2.0
   public List<RelCollation> getCollationList() {
     return ImmutableList.of();
   }

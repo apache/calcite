@@ -159,8 +159,7 @@ public class SqlLiteralChainOperator extends SqlSpecialOperator {
       int rightPrec) {
     final SqlWriter.Frame frame = writer.startList("", "");
     SqlCollation collation = null;
-    final List<SqlNode> rands = call.getOperandList();
-    for (Ord<SqlNode> operand : Ord.zip(rands)) {
+    for (Ord<SqlNode> operand : Ord.zip(call.getOperandList())) {
       SqlLiteral rand = (SqlLiteral) operand.e;
       if (operand.i > 0) {
         // SQL:2003 says there must be a newline between string

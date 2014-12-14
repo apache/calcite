@@ -21,6 +21,7 @@ import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelCollation;
+import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Sort;
@@ -79,7 +80,7 @@ public class SortProjectTransposeRule extends RelOptRule {
       }
     }
     final RelCollation newCollation =
-        cluster.traitSetOf().canonize(
+        cluster.traitSet().canonize(
             RexUtil.apply(map, sort.getCollation()));
     final Sort newSort =
         sort.copy(
@@ -95,10 +96,15 @@ public class SortProjectTransposeRule extends RelOptRule {
     // Not only is newProject equivalent to sort;
     // newSort is equivalent to project's input
     // (but only if the sort is not also applying an offset/limit).
-    Map<RelNode, RelNode> equiv =
-        sort.offset == null && sort.fetch == null
-            ? ImmutableMap.<RelNode, RelNode>of(newSort, project.getInput())
-            : ImmutableMap.<RelNode, RelNode>of();
+    Map<RelNode, RelNode> equiv;
+    if (sort.offset == null
+        && sort.fetch == null
+        && cluster.getPlanner().getRelTraitDefs()
+            .contains(RelCollationTraitDef.INSTANCE)) {
+      equiv = ImmutableMap.of((RelNode) newSort, project.getInput());
+    } else {
+      equiv = ImmutableMap.of();
+    }
     call.transformTo(newProject, equiv);
   }
 }

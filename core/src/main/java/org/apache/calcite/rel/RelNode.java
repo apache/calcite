@@ -90,7 +90,7 @@ public interface RelNode extends RelOptNode, Cloneable {
    * @return List of this relational expression's child expressions
    * @see #accept(org.apache.calcite.rex.RexShuttle)
    */
-  @Deprecated
+  @Deprecated // to be removed before 2.0
   List<RexNode> getChildExps();
 
   /**

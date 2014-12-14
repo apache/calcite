@@ -64,7 +64,7 @@ public class JdbcFrontJdbcBackLinqMiddleTest {
 
   @Test public void testCase() {
     that()
-        .with(CalciteAssert.Config.JDBC_FOODMART)
+        .with(CalciteAssert.Config.FOODMART_CLONE)
         .query("select \"day\",\n"
             + " \"week_day\",\n"
             + " case when \"day\" < 3 then upper(\"week_day\")\n"

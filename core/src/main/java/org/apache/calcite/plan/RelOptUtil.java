@@ -17,8 +17,6 @@
 package org.apache.calcite.plan;
 
 import org.apache.calcite.linq4j.Ord;
-import org.apache.calcite.rel.RelCollation;
-import org.apache.calcite.rel.RelCollationImpl;
 import org.apache.calcite.rel.RelHomogeneousShuttle;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelShuttle;
@@ -73,7 +71,6 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.MultisetSqlType;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
-import org.apache.calcite.util.Holder;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Permutation;
@@ -394,7 +391,7 @@ public abstract class RelOptUtil {
               extraName);
 
       ret =
-          new LogicalAggregate(ret.getCluster(), ret, false,
+          LogicalAggregate.create(ret, false,
               ImmutableBitSet.of(), null, ImmutableList.of(aggCall));
     }
 
@@ -435,7 +432,7 @@ public abstract class RelOptUtil {
       final int keyCount = ret.getRowType().getFieldCount();
       if (!needsOuterJoin) {
         return Pair.<RelNode, Boolean>of(
-            new LogicalAggregate(cluster, ret, false,
+            LogicalAggregate.create(ret, false,
                 ImmutableBitSet.range(keyCount), null,
                 ImmutableList.<AggregateCall>of()),
             false);
@@ -470,7 +467,7 @@ public abstract class RelOptUtil {
               null,
               null);
 
-      ret = new LogicalAggregate(cluster, ret, false,
+      ret = LogicalAggregate.create(ret, false,
           ImmutableBitSet.range(projectedKeyCount), null,
           ImmutableList.of(aggCall));
 
@@ -713,7 +710,7 @@ public abstract class RelOptUtil {
               null));
     }
 
-    return new LogicalAggregate(rel.getCluster(), rel, false,
+    return LogicalAggregate.create(rel, false,
         ImmutableBitSet.of(), null, aggCalls);
   }
 
@@ -725,7 +722,7 @@ public abstract class RelOptUtil {
    * @return rel implementing DISTINCT
    */
   public static RelNode createDistinctRel(RelNode rel) {
-    return new LogicalAggregate(rel.getCluster(), rel, false,
+    return LogicalAggregate.create(rel, false,
         ImmutableBitSet.range(rel.getRowType().getFieldCount()), null,
         ImmutableList.<AggregateCall>of());
   }
@@ -2072,54 +2069,6 @@ public abstract class RelOptUtil {
    * @param joinFilters  list of filters to push to the join
    * @param leftFilters  list of filters to push to the left child
    * @param rightFilters list of filters to push to the right child
-   * @param smart        Whether to try to strengthen the join type
-   * @return whether at least one filter was pushed, or join type was
-   * strengthened
-   *
-   * @deprecated Use the other {@link #classifyFilters};
-   * very short-term; will be removed before
-   * {@link org.apache.calcite.util.Bug#upgrade(String) calcite-0.9.2}.
-   */
-  public static boolean classifyFilters(
-      RelNode joinRel,
-      List<RexNode> filters,
-      JoinRelType joinType,
-      boolean pushInto,
-      boolean pushLeft,
-      boolean pushRight,
-      List<RexNode> joinFilters,
-      List<RexNode> leftFilters,
-      List<RexNode> rightFilters,
-      Holder<JoinRelType> joinTypeHolder,
-      boolean smart) {
-    final JoinRelType oldJoinType = joinType;
-    final int filterCount = filters.size();
-    if (smart) {
-      joinType = simplifyJoin(joinRel, ImmutableList.copyOf(joinFilters),
-          joinType);
-      joinTypeHolder.set(joinType);
-    }
-    classifyFilters(joinRel, filters, joinType, pushInto, pushLeft, pushRight,
-        joinFilters, leftFilters, rightFilters);
-
-    return filters.size() < filterCount || joinType != oldJoinType;
-  }
-
-  /**
-   * Classifies filters according to where they should be processed. They
-   * either stay where they are, are pushed to the join (if they originated
-   * from above the join), or are pushed to one of the children. Filters that
-   * are pushed are added to list passed in as input parameters.
-   *
-   * @param joinRel      join node
-   * @param filters      filters to be classified
-   * @param joinType     join type
-   * @param pushInto     whether filters can be pushed into the ON clause
-   * @param pushLeft     true if filters can be pushed to the left
-   * @param pushRight    true if filters can be pushed to the right
-   * @param joinFilters  list of filters to push to the join
-   * @param leftFilters  list of filters to push to the left child
-   * @param rightFilters list of filters to push to the right child
    * @return whether at least one filter was pushed
    */
   public static boolean classifyFilters(
@@ -2496,8 +2445,7 @@ public abstract class RelOptUtil {
       nodes.add(new RexInputRef(source, field.getType()));
       names.add(field.getName());
     }
-    return new LogicalProject(
-        child.getCluster(), child, nodes, names);
+    return LogicalProject.create(child, nodes, names);
   }
 
   /** Returns whether relational expression {@code target} occurs within a
@@ -2673,38 +2621,27 @@ public abstract class RelOptUtil {
       List<String> fieldNames,
       boolean optimize) {
     final RelOptCluster cluster = child.getCluster();
-    final RexProgram program =
-        RexProgram.create(
-            child.getRowType(), exprs, null, fieldNames,
-            cluster.getRexBuilder());
-    final List<RelCollation> collationList =
-        program.getCollations(child.getCollationList());
-    final RelDataType rowType =
-        RexUtil.createStructType(
-            cluster.getTypeFactory(),
-            exprs,
-            fieldNames == null
-                ? null
-                : SqlValidatorUtil.uniquify(
-                    fieldNames, SqlValidatorUtil.F_SUGGESTER));
+    final List<String> fieldNames2 =
+        fieldNames == null
+            ? null
+            : SqlValidatorUtil.uniquify(fieldNames,
+                SqlValidatorUtil.F_SUGGESTER);
     if (optimize
         && ProjectRemoveRule.isIdentity(exprs, child.getRowType())) {
       if (child instanceof Project && fieldNames != null) {
+        final RelDataType rowType =
+            RexUtil.createStructType(
+                cluster.getTypeFactory(),
+                exprs,
+                fieldNames2);
         // Rename columns of child projection if desired field names are given.
         Project childProject = (Project) child;
         child = childProject.copy(childProject.getTraitSet(),
-            childProject.getInput(), childProject.getProjects(),
-            rowType);
+            childProject.getInput(), childProject.getProjects(), rowType);
       }
       return child;
     }
-    return new LogicalProject(cluster,
-        cluster.traitSetOf(collationList.isEmpty()
-            ? RelCollationImpl.EMPTY
-            : collationList.get(0)),
-        child,
-        exprs,
-        rowType);
+    return LogicalProject.create(child, exprs, fieldNames2);
   }
 
   /**
@@ -2813,12 +2750,7 @@ public abstract class RelOptUtil {
             rel.getCluster().getTypeFactory().createStructType(
                 outputTypeList,
                 outputNameList));
-    return new LogicalCalc(
-        rel.getCluster(),
-        rel.getTraitSet(),
-        rel,
-        program,
-        ImmutableList.<RelCollation>of());
+    return LogicalCalc.create(rel, program);
   }
 
   /**
@@ -3079,7 +3011,7 @@ public abstract class RelOptUtil {
      */
     public static ImmutableBitSet bits(List<RexNode> exprs, RexNode expr) {
       final InputFinder inputFinder = new InputFinder();
-      RexProgram.apply(inputFinder, exprs, expr);
+      RexUtil.apply(inputFinder, exprs, expr);
       return inputFinder.inputBitSet.build();
     }
 

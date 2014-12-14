@@ -18,11 +18,8 @@ package org.apache.calcite.adapter.enumerable;
 
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
-import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rex.RexProgram;
-
-import com.google.common.collect.ImmutableList;
 
 /** Variant of {@link org.apache.calcite.rel.rules.ProjectToCalcRule} for
  * {@link org.apache.calcite.adapter.enumerable.EnumerableConvention enumerable calling convention}. */
@@ -33,20 +30,14 @@ public class EnumerableProjectToCalcRule extends RelOptRule {
 
   public void onMatch(RelOptRuleCall call) {
     final EnumerableProject project = call.rel(0);
-    final RelNode child = project.getInput();
+    final RelNode input = project.getInput();
     final RexProgram program =
-        RexProgram.create(child.getRowType(),
+        RexProgram.create(input.getRowType(),
             project.getProjects(),
             null,
             project.getRowType(),
             project.getCluster().getRexBuilder());
-    final EnumerableCalc calc =
-        new EnumerableCalc(
-            project.getCluster(),
-            project.getTraitSet(),
-            child,
-            program,
-            ImmutableList.<RelCollation>of());
+    final EnumerableCalc calc = EnumerableCalc.create(input, program);
     call.transformTo(calc);
   }
 }
