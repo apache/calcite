@@ -88,7 +88,8 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
           "ReduceExpressionsRule(Filter)") {
         public void onMatch(RelOptRuleCall call) {
           LogicalFilter filter = call.rel(0);
-          List<RexNode> expList = new ArrayList<RexNode>(filter.getChildExps());
+          List<RexNode> expList = new ArrayList<RexNode>(1);
+          expList.add(filter.getCondition());
           RexNode newConditionExp;
           boolean reduced;
           if (reduceExpressions(filter, expList)) {
@@ -100,7 +101,7 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
             // predicate to see if it was already a constant,
             // in which case we don't need any runtime decision
             // about filtering.
-            newConditionExp = filter.getChildExps().get(0);
+            newConditionExp = filter.getCondition();
             reduced = false;
           }
           if (newConditionExp.isAlwaysTrue()) {
@@ -178,7 +179,7 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
         public void onMatch(RelOptRuleCall call) {
           LogicalProject project = call.rel(0);
           List<RexNode> expList =
-              new ArrayList<RexNode>(project.getChildExps());
+              new ArrayList<RexNode>(project.getProjects());
           if (reduceExpressions(project, expList)) {
             call.transformTo(
                 new LogicalProject(
@@ -200,7 +201,8 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
           "ReduceExpressionsRule(Join)") {
         public void onMatch(RelOptRuleCall call) {
           final Join join = call.rel(0);
-          List<RexNode> expList = new ArrayList<RexNode>(join.getChildExps());
+          List<RexNode> expList = new ArrayList<RexNode>(1);
+          expList.add(join.getCondition());
           if (reduceExpressions(join, expList)) {
             call.transformTo(
                 join.copy(

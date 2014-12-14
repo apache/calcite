@@ -27,6 +27,7 @@ import org.apache.calcite.rel.metadata.Metadata;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.util.ImmutableBitSet;
 
 import java.util.List;
@@ -85,8 +86,11 @@ public interface RelNode extends RelOptNode, Cloneable {
    * implementations will return an immutable list. If there are no
    * child expressions, returns an empty list, not <code>null</code>.
    *
+   * @deprecated use #accept(org.apache.calcite.rex.RexShuttle)
    * @return List of this relational expression's child expressions
+   * @see #accept(org.apache.calcite.rex.RexShuttle)
    */
+  @Deprecated
   List<RexNode> getChildExps();
 
   /**
@@ -369,6 +373,16 @@ public interface RelNode extends RelOptNode, Cloneable {
    * this node's children
    */
   RelNode accept(RelShuttle shuttle);
+
+  /**
+   * Accepts a visit from a shuttle. If the shuttle updates expression, then
+   * a copy of the relation should be created.
+   *
+   * @param shuttle Shuttle
+   * @return A copy of this node incorporating changes made by the shuttle to
+   * this node's children
+   */
+  RelNode accept(RexShuttle shuttle);
 }
 
 // End RelNode.java

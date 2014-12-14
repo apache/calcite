@@ -26,6 +26,7 @@ import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.ImmutableNullableList;
@@ -180,6 +181,30 @@ public final class MultiJoin extends AbstractRelNode {
 
   @Override public List<RexNode> getChildExps() {
     return ImmutableList.of(joinFilter);
+  }
+
+  public RelNode accept(RexShuttle shuttle) {
+    RexNode joinFilter = shuttle.apply(this.joinFilter);
+    List<RexNode> outerJoinConditions = shuttle.apply(this.outerJoinConditions);
+    RexNode postJoinFilter = shuttle.apply(this.postJoinFilter);
+
+    if (joinFilter == this.joinFilter
+        && outerJoinConditions == this.outerJoinConditions
+        && postJoinFilter == this.postJoinFilter) {
+      return this;
+    }
+
+    return new MultiJoin(
+        getCluster(),
+        inputs,
+        joinFilter,
+        rowType,
+        isFullOuterJoin,
+        outerJoinConditions,
+        joinTypes,
+        projFields,
+        joinFieldRefCountsMap,
+        postJoinFilter);
   }
 
   /**

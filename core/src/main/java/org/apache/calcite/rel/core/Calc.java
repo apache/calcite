@@ -28,7 +28,10 @@ import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.SingleRel;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
+import org.apache.calcite.rex.RexLocalRef;
+import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexProgram;
+import org.apache.calcite.rex.RexShuttle;
 
 import com.google.common.collect.ImmutableList;
 
@@ -143,6 +146,31 @@ public abstract class Calc extends SingleRel {
 
   public RelWriter explainTerms(RelWriter pw) {
     return program.explainCalc(super.explainTerms(pw));
+  }
+
+  public RelNode accept(RexShuttle shuttle) {
+    List<RexNode> oldExprs = program.getExprList();
+    List<RexNode> exprs = shuttle.apply(oldExprs);
+    List<RexLocalRef> oldProjects = program.getProjectList();
+    List<RexLocalRef> projects = shuttle.apply(oldProjects);
+    RexLocalRef oldCondition = program.getCondition();
+    RexNode condition = shuttle.apply(oldCondition);
+    assert condition instanceof RexLocalRef
+        : "Invalid condition after rewrite. Expected RexLocalRef, got "
+          + condition;
+    if (exprs == oldExprs
+        && projects == oldProjects
+        && condition == oldCondition) {
+      return this;
+    }
+    return copy(traitSet, getInput(),
+        new RexProgram(
+            program.getInputRowType(),
+            exprs,
+            projects,
+            (RexLocalRef) condition,
+            program.getOutputRowType()),
+        collationList);
   }
 }
 

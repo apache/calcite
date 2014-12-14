@@ -925,7 +925,9 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
 
     LogicalTableFunctionScan newTabFun = tabFun;
     if (!tabFun.getInputs().equals(newInputs)) {
-      newTabFun = tabFun.copy(tabFun.getTraitSet(), newInputs);
+      newTabFun = tabFun.copy(tabFun.getTraitSet(), newInputs,
+          tabFun.getCall(), tabFun.getElementType(), tabFun.getRowType(),
+          tabFun.getColumnMappings());
     }
     assert newTabFun.getClass() == tabFun.getClass();
 

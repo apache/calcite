@@ -29,6 +29,7 @@ import org.apache.calcite.rex.RexChecker;
 import org.apache.calcite.rex.RexLocalRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexProgram;
+import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.rex.RexUtil;
 
 import com.google.common.collect.ImmutableList;
@@ -94,6 +95,14 @@ public abstract class Filter extends SingleRel {
 
   @Override public List<RexNode> getChildExps() {
     return ImmutableList.of(condition);
+  }
+
+  public RelNode accept(RexShuttle shuttle) {
+    RexNode condition = shuttle.apply(this.condition);
+    if (this.condition == condition) {
+      return this;
+    }
+    return copy(traitSet, getInput(), condition);
   }
 
   public RexNode getCondition() {

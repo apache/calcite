@@ -31,6 +31,7 @@ import org.apache.calcite.rel.metadata.Metadata;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Pair;
@@ -251,6 +252,10 @@ public abstract class AbstractRelNode implements RelNode {
     // Call fall-back method. Specific logical types (such as LogicalProject
     // and LogicalJoin) have their own RelShuttle.visit methods.
     return shuttle.visit(this);
+  }
+
+  public RelNode accept(RexShuttle shuttle) {
+    return this;
   }
 
   public RelOptCost computeSelfCost(RelOptPlanner planner) {

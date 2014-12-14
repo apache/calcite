@@ -75,14 +75,20 @@ public class LogicalTableFunctionScan extends TableFunctionScan {
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override public LogicalTableFunctionScan copy(RelTraitSet traitSet,
-      List<RelNode> inputs) {
+  @Override public LogicalTableFunctionScan copy(
+      RelTraitSet traitSet,
+      List<RelNode> inputs,
+      RexNode rexCall,
+      Type elementType,
+      RelDataType rowType,
+      Set<RelColumnMapping> columnMappings) {
     assert traitSet.containsIfApplicable(Convention.NONE);
     return new LogicalTableFunctionScan(
         getCluster(),
         inputs,
-        getCall(),
-        getElementType(), getRowType(),
+        rexCall,
+        elementType,
+        rowType,
         columnMappings);
   }
 

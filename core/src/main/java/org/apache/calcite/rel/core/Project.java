@@ -38,6 +38,7 @@ import org.apache.calcite.rex.RexFieldAccess;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLocalRef;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.sql.SqlExplainLevel;
@@ -149,6 +150,14 @@ public abstract class Project extends SingleRel {
 
   @Override public List<RexNode> getChildExps() {
     return exps;
+  }
+
+  public RelNode accept(RexShuttle shuttle) {
+    List<RexNode> exps = shuttle.apply(this.exps);
+    if (this.exps == exps) {
+      return this;
+    }
+    return copy(traitSet, getInput(), exps, rowType);
   }
 
   /**

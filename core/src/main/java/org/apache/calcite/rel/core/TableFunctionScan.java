@@ -27,6 +27,7 @@ import org.apache.calcite.rel.metadata.RelColumnMapping;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexShuttle;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -63,18 +64,19 @@ public abstract class TableFunctionScan extends AbstractRelNode {
    *
    * @param cluster        Cluster that this relational expression belongs to
    * @param inputs         0 or more relational inputs
-   * @param rexCall        function invocation expression
-   * @param elementType    element type of the collection that will implement
+   * @param rexCall        Function invocation expression
+   * @param elementType    Element type of the collection that will implement
    *                       this table
-   * @param rowType        row type produced by function
-   * @param columnMappings column mappings associated with this function
+   * @param rowType        Row type produced by function
+   * @param columnMappings Column mappings associated with this function
    */
   protected TableFunctionScan(
       RelOptCluster cluster,
       RelTraitSet traits,
       List<RelNode> inputs,
       RexNode rexCall,
-      Type elementType, RelDataType rowType,
+      Type elementType,
+      RelDataType rowType,
       Set<RelColumnMapping> columnMappings) {
     super(cluster, traits);
     this.rexCall = rexCall;
@@ -98,12 +100,49 @@ public abstract class TableFunctionScan extends AbstractRelNode {
 
   //~ Methods ----------------------------------------------------------------
 
+  @Override public final TableFunctionScan copy(RelTraitSet traitSet,
+      List<RelNode> inputs) {
+    return copy(traitSet, inputs, rexCall, elementType, rowType,
+        columnMappings);
+  }
+
+  /**
+   * Copies this relational expression, substituting traits and
+   * inputs.
+   *
+   * @param traitSet       Traits
+   * @param inputs         0 or more relational inputs
+   * @param rexCall        Function invocation expression
+   * @param elementType    Element type of the collection that will implement
+   *                       this table
+   * @param rowType        Row type produced by function
+   * @param columnMappings Column mappings associated with this function
+   * @return Copy of this relational expression, substituting traits and
+   * inputs
+   */
+  public abstract TableFunctionScan copy(
+      RelTraitSet traitSet,
+      List<RelNode> inputs,
+      RexNode rexCall,
+      Type elementType,
+      RelDataType rowType,
+      Set<RelColumnMapping> columnMappings);
+
   @Override public List<RelNode> getInputs() {
     return inputs;
   }
 
   @Override public List<RexNode> getChildExps() {
     return ImmutableList.of(rexCall);
+  }
+
+  public RelNode accept(RexShuttle shuttle) {
+    RexNode rexCall = shuttle.apply(this.rexCall);
+    if (rexCall == this.rexCall) {
+      return this;
+    }
+    return copy(traitSet, inputs, rexCall, elementType, rowType,
+        columnMappings);
   }
 
   @Override public void replaceInput(int ordinalInParent, RelNode p) {
@@ -132,10 +171,16 @@ public abstract class TableFunctionScan extends AbstractRelNode {
     return nRows;
   }
 
+  /**
+   * Returns function invocation expression.
+   *
+   * <p>Within this rexCall, instances of
+   * {@link org.apache.calcite.rex.RexInputRef} refer to entire input
+   * {@link org.apache.calcite.rel.RelNode}s rather than their fields.
+   *
+   * @return function invocation expression
+   */
   public RexNode getCall() {
-    // NOTE jvs 7-May-2006:  Within this rexCall, instances
-    // of RexInputRef refer to entire input RelNodes rather
-    // than their fields.
     return rexCall;
   }
 
@@ -153,6 +198,9 @@ public abstract class TableFunctionScan extends AbstractRelNode {
   }
 
   /**
+   * Returns set of mappings known for this table function, or null if unknown
+   * (not the same as empty!).
+   *
    * @return set of mappings known for this table function, or null if unknown
    * (not the same as empty!)
    */
@@ -162,6 +210,7 @@ public abstract class TableFunctionScan extends AbstractRelNode {
 
   /**
    * Returns element type of the collection that will implement this table.
+   *
    * @return element type of the collection that will implement this table
    */
   public Type getElementType() {

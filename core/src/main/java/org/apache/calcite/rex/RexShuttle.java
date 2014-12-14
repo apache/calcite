@@ -218,7 +218,7 @@ public class RexShuttle implements RexVisitor<RexNode> {
     int changeCount = 0;
     for (int i = 0; i < exprList.size(); i++) {
       T expr = exprList.get(i);
-      T expr2 = (T) expr.accept(this);
+      T expr2 = (T) apply(expr); // Avoid NPE if expr is null
       if (expr != expr2) {
         ++changeCount;
         exprList.set(i, expr2);
@@ -232,6 +232,9 @@ public class RexShuttle implements RexVisitor<RexNode> {
    * resulting list. Does not modify the initial list.
    */
   public final <T extends RexNode> List<T> apply(List<T> exprList) {
+    if (exprList == null) {
+      return null;
+    }
     final List<T> list2 = new ArrayList<T>(exprList);
     if (mutate(list2)) {
       return list2;

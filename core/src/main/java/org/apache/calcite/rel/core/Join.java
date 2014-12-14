@@ -29,6 +29,7 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexChecker;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.sql.type.SqlTypeName;
 
 import com.google.common.collect.ImmutableList;
@@ -95,6 +96,14 @@ public abstract class Join extends BiRel {
 
   @Override public List<RexNode> getChildExps() {
     return ImmutableList.of(condition);
+  }
+
+  public RelNode accept(RexShuttle shuttle) {
+    RexNode condition = shuttle.apply(this.condition);
+    if (this.condition == condition) {
+      return this;
+    }
+    return copy(traitSet, condition, left, right, joinType, isSemiJoinDone());
   }
 
   public RexNode getCondition() {
