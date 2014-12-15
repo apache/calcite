@@ -1468,6 +1468,59 @@ LogicalProject(DEPTNO=[CASE($2, null, $0)], JOB=[CASE($3, null, $1)], EXPR$2=[$4
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testPullFilterThroughAggregate">
+        <Resource name="sql">
+            <![CDATA[select empno, sal, deptno from (
+  select empno, sal, deptno
+   from emp
+   where sal > 5000)
+  group by empno, sal, deptno]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalAggregate(group=[{0, 1, 2}])
+  LogicalFilter(condition=[>($1, 5000)])
+    LogicalProject(EMPNO=[$0], SAL=[$5], DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalFilter(condition=[>($1, 5000)])
+  LogicalAggregate(group=[{0, 1, 2}])
+    LogicalProject(EMPNO=[$0], SAL=[$5], DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testPullFilterThroughAggregateGroupingSets">
+        <Resource name="sql">
+            <![CDATA[select empno, sal, deptno from (
+  select empno, sal, deptno
+   from emp
+   where sal > 5000)
+  group by rollup(empno, sal, deptno)]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(EMPNO=[CASE($3, null, $0)], SAL=[CASE($4, null, $1)], DEPTNO=[CASE($5, null, $2)])
+  LogicalAggregate(group=[{0, 1, 2}], groups=[[{0, 1, 2}, {0, 1}, {0}, {}]], indicator=[true])
+    LogicalFilter(condition=[>($1, 5000)])
+      LogicalProject(EMPNO=[$0], SAL=[$5], DEPTNO=[$7])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(EMPNO=[CASE($3, null, $0)], SAL=[CASE($4, null, $1)], DEPTNO=[CASE($5, null, $2)])
+  LogicalAggregate(group=[{0, 1, 2}], groups=[[{0, 1, 2}, {0, 1}, {0}, {}]], indicator=[true])
+    LogicalFilter(condition=[>($1, 5000)])
+      LogicalAggregate(group=[{0, 1, 2}])
+        LogicalProject(EMPNO=[$0], SAL=[$5], DEPTNO=[$7])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testPullConstantThroughConstLast">
         <Resource name="sql">
             <![CDATA[select deptno, max(mgr) from (
