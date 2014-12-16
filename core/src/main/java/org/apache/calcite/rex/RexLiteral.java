@@ -25,6 +25,7 @@ import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserUtil;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.ConversionUtil;
 import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.SaffronProperties;
@@ -528,6 +529,12 @@ public class RexLiteral extends RexNode {
     default:
       return getValue2();
     }
+  }
+
+  /** @deprecated Temporary shim while {@link ByteString} moves to a new
+   * package; will be removed before {@link Bug#upgrade(String) 1.0}. */
+  public byte byteValue() {
+    return ((ByteString) value).byteAt(0);
   }
 
   public static boolean booleanValue(RexNode node) {
