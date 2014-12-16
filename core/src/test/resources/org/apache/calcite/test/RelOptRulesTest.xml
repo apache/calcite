@@ -283,6 +283,62 @@ LogicalProject(DNAME=[$0], C=[$1])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testPushFilterPastAggWithGroupingSets1">
+        <Resource name="sql">
+            <![CDATA[select ddeptno, dname, c from
+             (select deptno ddeptno, name dname, count(*) as c
+             from dept group by rollup(deptno,name)) t
+              where dname = 'Charlie']]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(DDEPTNO=[$0], DNAME=[$1], C=[$2])
+  LogicalProject(DDEPTNO=[CASE($2, null, $0)], DNAME=[CASE($3, null, $1)], C=[$4])
+    LogicalFilter(condition=[=(CASE($3, null, $1), 'Charlie')])
+      LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {}]], indicator=[true], C=[COUNT()])
+        LogicalProject(DDEPTNO=[$0], DNAME=[$1])
+          LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(DDEPTNO=[$0], DNAME=[$1], C=[$2])
+  LogicalProject(DDEPTNO=[CASE($2, null, $0)], DNAME=[CASE($3, null, $1)], C=[$4])
+    LogicalFilter(condition=[=(CASE($3, null, $1), 'Charlie')])
+      LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {}]], indicator=[true], C=[COUNT()])
+        LogicalProject(DDEPTNO=[$0], DNAME=[$1])
+          LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testPushFilterPastAggWithGroupingSets2">
+        <Resource name="sql">
+            <![CDATA[select dname, ddeptno, c from
+             (select name dname, deptno ddeptno, count(*) as c
+             from dept group by grouping sets ((name,deptno),(name))) t
+              where dname = 'Charlie']]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(DNAME=[$0], DDEPTNO=[$1], C=[$2])
+  LogicalProject(DNAME=[$0], DDEPTNO=[CASE($3, null, $1)], C=[$4])
+    LogicalFilter(condition=[=($0, 'Charlie')])
+      LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}]], indicator=[true], C=[COUNT()])
+        LogicalProject(DNAME=[$1], DDEPTNO=[$0])
+          LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(DNAME=[$0], DDEPTNO=[$1], C=[$2])
+  LogicalProject(DNAME=[$0], DDEPTNO=[CASE($3, null, $1)], C=[$4])
+    LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}]], indicator=[true], C=[COUNT()])
+      LogicalFilter(condition=[=($0, 'Charlie')])
+        LogicalProject(DNAME=[$1], DDEPTNO=[$0])
+          LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testReduceAverage">
         <Resource name="sql">
             <![CDATA[select name, max(name), avg(deptno), min(name) from sales.dept group by name]]>

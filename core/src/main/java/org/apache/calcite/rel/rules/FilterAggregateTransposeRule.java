@@ -89,7 +89,19 @@ public class FilterAggregateTransposeRule extends RelOptRule {
 
     for (RexNode condition : conditions) {
       ImmutableBitSet rCols = RelOptUtil.InputFinder.bits(condition);
-      if (groupKeys.contains(rCols)) {
+      boolean push = groupKeys.contains(rCols);
+      if (push && aggRel.indicator) {
+        // If grouping sets are used, the filter can be pushed if
+        // the columns referenced in the predicate are present in
+        // all the grouping sets.
+        for (ImmutableBitSet groupingSet: aggRel.getGroupSets()) {
+          if (!groupingSet.contains(rCols)) {
+            push = false;
+            break;
+          }
+        }
+      }
+      if (push) {
         pushedConditions.add(
             condition.accept(
                 new RelOptUtil.RexInputConverter(rexBuilder, origFields,
