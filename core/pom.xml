@@ -162,10 +162,6 @@ limitations under the License.
         </excludes>
       </resource>
       <resource>
-        <directory>src/main/resources/version</directory>
-        <filtering>true</filtering>
-      </resource>
-      <resource>
         <!-- Copy freemarker template and fmpp configuration files of
              Calcite's SQL parser to allow clients to extend parser. -->
         <directory>${basedir}/src/main/codegen</directory>
@@ -173,5 +169,26 @@ limitations under the License.
       </resource>
     </resources>
   </build>
+
+  <profiles>
+    <profile>
+      <!-- CALCITE-539: workaround for MSHARED-394: Avoid rewrite of
+      destination in DefaultMavenFileFilter#filterFile when producing
+      the same contents -->
+      <id>generate-version-properties</id>
+      <activation>
+        <activeByDefault>false</activeByDefault>
+        <file><missing>target/classes/org-apache-calcite-jdbc.properties</missing></file>
+      </activation>
+      <build>
+        <resources>
+          <resource>
+            <directory>src/main/resources/version</directory>
+            <filtering>true</filtering>
+          </resource>
+        </resources>
+      </build>
+    </profile>
+  </profiles>
 
 </project>
