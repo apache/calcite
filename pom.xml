@@ -535,6 +535,29 @@ limitations under the License.
       </build>
     </profile>
     <profile>
+      <!-- CALCITE-537: workaround for MRRESOURCES-91
+        Avoid overwrite of the destination file if the produced
+        contents is the same.
+        Apache pom overwrites NOTICE, DEPENDENCIES, and LICENSE files, however
+        we do not want recompile the module every time. -->
+      <id>skip-apache-licenses</id>
+      <activation>
+        <activeByDefault>true</activeByDefault>
+        <file><exists>target/maven-shared-archive-resources/META-INF/LICENSE</exists></file>
+      </activation>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-remote-resources-plugin</artifactId>
+            <configuration>
+              <skip>true</skip>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+    <profile>
       <!-- Generate git.properties on first build -->
       <id>generate-git-id</id>
       <activation>
