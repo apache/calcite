@@ -343,33 +343,6 @@ limitations under the License.
           </execution>
         </executions>
       </plugin>
-      <plugin>
-        <groupId>pl.project13.maven</groupId>
-        <artifactId>git-commit-id-plugin</artifactId>
-        <inherited>false</inherited>
-        <executions>
-          <execution>
-            <goals>
-              <goal>revision</goal>
-            </goals>
-          </execution>
-        </executions>
-        <configuration>
-          <dateFormat>yyyy-MM-dd'T'HH:mm:ssZ</dateFormat>
-          <verbose>false</verbose>
-          <skipPoms>false</skipPoms>
-          <generateGitPropertiesFile>true</generateGitPropertiesFile>
-          <generateGitPropertiesFilename>target/git.properties</generateGitPropertiesFilename>
-          <failOnNoGitDirectory>false</failOnNoGitDirectory>
-          <gitDescribe>
-            <skip>false</skip>
-            <always>false</always>
-            <abbrev>7</abbrev>
-            <dirty>-dirty</dirty>
-            <forceLongFormat>true</forceLongFormat>
-          </gitDescribe>
-        </configuration>
-      </plugin>
     </plugins>
 
     <pluginManagement>
@@ -557,6 +530,53 @@ limitations under the License.
                 </configuration>
               </execution>
             </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+    <profile>
+      <!-- Generate git.properties on first build -->
+      <id>generate-git-id</id>
+      <activation>
+        <activeByDefault>false</activeByDefault>
+        <!-- Note: <missing> here does NOT support interpolation,
+        so technically, this profile is active for sub-modules.
+        It would be nice to use ${top.dir}/target/... here, but
+        it is not possible.
+        However sub-modules lack .git folder, so no git.properties
+        is generated. -->
+        <file>
+          <missing>target/git.properties</missing>
+        </file>
+      </activation>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>pl.project13.maven</groupId>
+            <artifactId>git-commit-id-plugin</artifactId>
+            <inherited>false</inherited>
+            <executions>
+              <execution>
+                <goals>
+                  <goal>revision</goal>
+                </goals>
+              </execution>
+            </executions>
+            <configuration>
+              <dateFormat>yyyy-MM-dd'T'HH:mm:ssZ</dateFormat>
+              <verbose>false</verbose>
+              <skipPoms>false</skipPoms>
+              <generateGitPropertiesFile>true</generateGitPropertiesFile>
+              <generateGitPropertiesFilename>target/git.properties</generateGitPropertiesFilename>
+              <failOnNoGitDirectory>false</failOnNoGitDirectory>
+              <gitDescribe>
+                <skip>false</skip>
+                <always>false</always>
+                <abbrev>7</abbrev>
+                <dirty>-dirty</dirty>
+                <forceLongFormat>true</forceLongFormat>
+              </gitDescribe>
+            </configuration>
           </plugin>
         </plugins>
       </build>
