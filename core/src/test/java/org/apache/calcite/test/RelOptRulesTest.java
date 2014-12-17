@@ -29,6 +29,7 @@ import org.apache.calcite.rel.metadata.ChainedRelMetadataProvider;
 import org.apache.calcite.rel.metadata.DefaultRelMetadataProvider;
 import org.apache.calcite.rel.metadata.RelMetadataProvider;
 import org.apache.calcite.rel.rules.AggregateExpandDistinctAggregatesRule;
+import org.apache.calcite.rel.rules.AggregateFilterTransposeRule;
 import org.apache.calcite.rel.rules.AggregateProjectMergeRule;
 import org.apache.calcite.rel.rules.AggregateProjectPullUpConstantsRule;
 import org.apache.calcite.rel.rules.AggregateReduceFunctionsRule;
@@ -993,6 +994,40 @@ public class RelOptRulesTest extends RelOptTestBase {
   @Test public void testPushSumCountStarGroupingSetsThroughUnion() throws
       Exception {
     basePushAggThroughUnion();
+  }
+
+  @Test public void testPullFilterThroughAggregate() throws Exception {
+    HepProgram preProgram = HepProgram.builder()
+        .addRuleInstance(ProjectMergeRule.INSTANCE)
+        .addRuleInstance(ProjectFilterTransposeRule.INSTANCE)
+        .build();
+    HepProgram program = HepProgram.builder()
+        .addRuleInstance(AggregateFilterTransposeRule.INSTANCE)
+        .build();
+    checkPlanning(tester, preProgram,
+        new HepPlanner(program),
+        "select empno, sal, deptno from ("
+            + "  select empno, sal, deptno"
+            + "  from emp"
+            + "  where sal > 5000)"
+            + "group by empno, sal, deptno");
+  }
+
+  @Test public void testPullFilterThroughAggregateGroupingSets() throws Exception {
+    HepProgram preProgram = HepProgram.builder()
+        .addRuleInstance(ProjectMergeRule.INSTANCE)
+        .addRuleInstance(ProjectFilterTransposeRule.INSTANCE)
+        .build();
+    HepProgram program = HepProgram.builder()
+        .addRuleInstance(AggregateFilterTransposeRule.INSTANCE)
+        .build();
+    checkPlanning(tester, preProgram,
+        new HepPlanner(program),
+        "select empno, sal, deptno from ("
+            + "  select empno, sal, deptno"
+            + "  from emp"
+            + "  where sal > 5000)"
+            + "group by rollup(empno, sal, deptno)");
   }
 
   private void basePullConstantTroughAggregate() throws Exception {

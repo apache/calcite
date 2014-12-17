@@ -58,7 +58,7 @@ public class AggregateFilterTransposeRule extends RelOptRule {
 
   private AggregateFilterTransposeRule() {
     super(
-        operand(Aggregate.class, null, Aggregate.IS_SIMPLE,
+        operand(Aggregate.class,
             operand(Filter.class, any())));
   }
 
@@ -80,9 +80,11 @@ public class AggregateFilterTransposeRule extends RelOptRule {
       // the rule fires forever: A-F => A-F-A => A-A-F-A => A-A-A-F-A => ...
       return;
     }
+    boolean allColumnsInAggregate = aggregate.getGroupSet().
+        contains(filterColumns);
     final Aggregate newAggregate =
-        aggregate.copy(aggregate.getTraitSet(), input, false, newGroupSet, null,
-            aggregate.getAggCallList());
+        aggregate.copy(aggregate.getTraitSet(), input,
+                false, newGroupSet, null, aggregate.getAggCallList());
     final Mappings.TargetMapping mapping = Mappings.target(
         new Function<Integer, Integer>() {
           public Integer apply(Integer a0) {
@@ -95,16 +97,31 @@ public class AggregateFilterTransposeRule extends RelOptRule {
         RexUtil.apply(mapping, filter.getCondition());
     final Filter newFilter = filter.copy(filter.getTraitSet(),
         newAggregate, newCondition);
-    if (aggregate.getGroupSet().contains(filterColumns)) {
+    if (allColumnsInAggregate && !aggregate.indicator) {
       // Everything needed by the filter is returned by the aggregate.
       assert newGroupSet.equals(aggregate.getGroupSet());
       call.transformTo(newFilter);
     } else {
-      // The filter needs at least one extra column.
-      // Now aggregate it away.
+      // If aggregate uses grouping sets, we always need to split it.
+      // Otherwise, it means that grouping sets are not used, but the
+      // filter needs at least one extra column, and now aggregate it away.
       final ImmutableBitSet.Builder topGroupSet = ImmutableBitSet.builder();
       for (int c : aggregate.getGroupSet()) {
         topGroupSet.set(newGroupSet.indexOf(c));
+      }
+      ImmutableList<ImmutableBitSet> newGroupingSets = null;
+      if (aggregate.indicator) {
+        ImmutableList.Builder<ImmutableBitSet> newGroupingSetsBuilder =
+                ImmutableList.builder();
+        for (ImmutableBitSet groupingSet: aggregate.getGroupSets()) {
+          final ImmutableBitSet.Builder newGroupingSet =
+                  ImmutableBitSet.builder();
+          for (int c : groupingSet) {
+            newGroupingSet.set(newGroupSet.indexOf(c));
+          }
+          newGroupingSetsBuilder.add(newGroupingSet.build());
+        }
+        newGroupingSets = newGroupingSetsBuilder.build();
       }
       final List<AggregateCall> topAggCallList = Lists.newArrayList();
       int i = newGroupSet.cardinality();
@@ -124,8 +141,9 @@ public class AggregateFilterTransposeRule extends RelOptRule {
                 ImmutableList.of(i++), aggregateCall.type, aggregateCall.name));
       }
       final Aggregate topAggregate =
-          aggregate.copy(aggregate.getTraitSet(), newFilter, false,
-              topGroupSet.build(), null, topAggCallList);
+          aggregate.copy(aggregate.getTraitSet(), newFilter,
+              aggregate.indicator, topGroupSet.build(),
+              newGroupingSets, topAggCallList);
       call.transformTo(topAggregate);
     }
   }
