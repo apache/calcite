@@ -18,6 +18,9 @@
 /**
  * Calcite-specific classes for implementation of regular and window aggregates.
  */
+@PackageMarker
 package org.apache.calcite.adapter.enumerable.impl;
+
+import org.apache.calcite.avatica.util.PackageMarker;
 
 // End package-info.java

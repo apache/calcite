@@ -19,6 +19,9 @@
  * Contains query transformation rules relating to generating SQL for
  * foreign JDBC databases.
  */
+@PackageMarker
 package org.apache.calcite.rel.jdbc;
+
+import org.apache.calcite.avatica.util.PackageMarker;
 
 // End package-info.java

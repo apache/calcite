@@ -18,6 +18,9 @@
 /**
  * JDBC driver that uses remote procedure calls.
  */
+@PackageMarker
 package org.apache.calcite.avatica.remote;
+
+import org.apache.calcite.avatica.util.PackageMarker;
 
 // End package-info.java

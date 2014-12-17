@@ -18,6 +18,9 @@
 /**
  * Avatica JDBC framework.
  */
+@PackageMarker
 package org.apache.calcite.avatica;
+
+import org.apache.calcite.avatica.util.PackageMarker;
 
 // End package-info.java

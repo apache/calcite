@@ -19,6 +19,9 @@
  * Facilities to externalize {@link org.apache.calcite.rel.RelNode}s to and from
  * XML and JSON format.
  */
+@PackageMarker
 package org.apache.calcite.rel.externalize;
+
+import org.apache.calcite.avatica.util.PackageMarker;
 
 // End package-info.java

@@ -22,6 +22,9 @@
  * SQL validator to validate SQL abstract syntax trees and resolve
  * identifiers to objects.
  */
+@PackageMarker
 package org.apache.calcite.schema;
+
+import org.apache.calcite.avatica.util.PackageMarker;
 
 // End package-info.java

@@ -18,6 +18,9 @@
 /**
  * Avatica tests.
  */
+@PackageMarker
 package org.apache.calcite.avatica.test;
+
+import org.apache.calcite.avatica.util.PackageMarker;
 
 // End package-info.java

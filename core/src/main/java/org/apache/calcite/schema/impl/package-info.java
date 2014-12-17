@@ -18,6 +18,9 @@
 /**
  * Utilities to help implement Calcite's SPIs.
  */
+@PackageMarker
 package org.apache.calcite.schema.impl;
+
+import org.apache.calcite.avatica.util.PackageMarker;
 
 // End package-info.java

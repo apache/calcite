@@ -18,6 +18,7 @@
 /**
  * Avatica utilities.
  */
+@PackageMarker
 package org.apache.calcite.avatica.util;
 
 // End package-info.java

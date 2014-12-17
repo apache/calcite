@@ -14,13 +14,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.calcite.avatica.util;
+
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
 
 /**
- * Provides a SQL parser.
+ * This is a dummy annotation that forces javac to produce output for
+ * otherwise empty package-info.java.
+ *
+ * <p>The result is maven-compiler-plugin can properly identify the scope of
+ * changed files
+ *
+ * <p>See more details in
+ * <a href="https://jira.codehaus.org/browse/MCOMPILER-205">
+ *   maven-compiler-plugin: incremental compilation broken</a>
  */
-@PackageMarker
-package org.apache.calcite.sql.parser;
+@Retention(RetentionPolicy.SOURCE)
+public @interface PackageMarker {
+}
 
-import org.apache.calcite.avatica.util.PackageMarker;
-
-// End package-info.java
+// End PackageMarker.java

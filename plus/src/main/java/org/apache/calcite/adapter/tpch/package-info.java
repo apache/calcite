@@ -18,6 +18,9 @@
 /**
  * TPC-H schema.
  */
+@PackageMarker
 package org.apache.calcite.adapter.tpch;
+
+import org.apache.calcite.avatica.util.PackageMarker;
 
 // End package-info.java

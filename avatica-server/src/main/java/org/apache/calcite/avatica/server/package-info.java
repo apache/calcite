@@ -18,6 +18,9 @@
 /**
  * Avatica server that listens for HTTP requests.
  */
+@PackageMarker
 package org.apache.calcite.avatica.server;
+
+import org.apache.calcite.avatica.util.PackageMarker;
 
 // End package-info.java

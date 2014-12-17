@@ -19,6 +19,9 @@
  * Defines relational expressions and rules for converting between calling
  * conventions.
  */
+@PackageMarker
 package org.apache.calcite.rel.convert;
+
+import org.apache.calcite.avatica.util.PackageMarker;
 
 // End package-info.java

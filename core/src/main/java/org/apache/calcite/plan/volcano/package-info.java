@@ -268,6 +268,9 @@
  *     McKenna
  *     (1993)</a>.</p>
  */
+@PackageMarker
 package org.apache.calcite.plan.volcano;
+
+import org.apache.calcite.avatica.util.PackageMarker;
 
 // End package-info.java

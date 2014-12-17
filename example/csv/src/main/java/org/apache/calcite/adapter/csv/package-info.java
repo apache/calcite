@@ -22,6 +22,9 @@
  * directory appears as a table.  Full SQL operations are available on
  * those tables.</p>
  */
+@PackageMarker
 package org.apache.calcite.adapter.csv;
+
+import org.apache.calcite.avatica.util.PackageMarker;
 
 // End package-info.java

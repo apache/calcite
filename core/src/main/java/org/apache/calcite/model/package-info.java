@@ -34,6 +34,9 @@
  * <a href="https://github.com/julianhyde/blog/master/optiq-csv/TUTORIAL.md">optiq-csv
  * tutorial</a>.
  */
+@PackageMarker
 package org.apache.calcite.model;
+
+import org.apache.calcite.avatica.util.PackageMarker;
 
 // End package-info.java
