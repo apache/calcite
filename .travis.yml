@@ -29,4 +29,8 @@ script:
   mvn test site
 git:
   depth: 10000
+sudo: false
+cache:
+  directories:
+    - $HOME/.m2
 # End .travis.yml
