@@ -209,7 +209,7 @@ public class SelectScope extends ListScope {
         final SelectScope parentScope = (SelectScope) walker;
         return parentScope.existingWindowName(winName);
       }
-      walker = parent;
+      walker = ((DelegatingScope) walker).parent;
     }
 
     return false;

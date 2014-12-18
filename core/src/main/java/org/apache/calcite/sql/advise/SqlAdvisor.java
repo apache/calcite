@@ -20,6 +20,8 @@ import org.apache.calcite.runtime.CalciteContextException;
 import org.apache.calcite.runtime.CalciteException;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlSelect;
+import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.parser.SqlAbstractParserImpl;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParser;
@@ -30,6 +32,10 @@ import org.apache.calcite.sql.validate.SqlMonikerType;
 import org.apache.calcite.sql.validate.SqlValidatorWithHints;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.trace.CalciteTrace;
+
+import com.google.common.base.Predicate;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -46,12 +52,13 @@ public class SqlAdvisor {
   //~ Static fields/initializers ---------------------------------------------
 
   public static final Logger LOGGER = CalciteTrace.PARSER_LOGGER;
+  private static final String HINT_TOKEN = "_suggest_";
+  private static final String UPPER_HINT_TOKEN = HINT_TOKEN.toUpperCase();
 
   //~ Instance fields --------------------------------------------------------
 
   // Flags indicating precision/scale combinations
   private final SqlValidatorWithHints validator;
-  private final String hintToken = "_suggest_";
 
   //~ Constructors -----------------------------------------------------------
 
@@ -68,7 +75,7 @@ public class SqlAdvisor {
   //~ Methods ----------------------------------------------------------------
 
   /**
-   * Gets completion hints for a partially completed or syntatically incorrect
+   * Gets completion hints for a partially completed or syntactically incorrect
    * sql statement with cursor pointing to the position where completion hints
    * are requested.
    *
@@ -79,8 +86,8 @@ public class SqlAdvisor {
    * whitespace, the replaced string is empty. The replaced string is never
    * null.
    *
-   * @param sql      A partial or syntatically incorrect sql statement for which
-   *                 to retrieve completion hints
+   * @param sql      A partial or syntactically incorrect sql statement for
+   *                 which to retrieve completion hints
    * @param cursor   to indicate the 0-based cursor position in the query at
    * @param replaced String which is being replaced (output)
    * @return completion hints
@@ -164,7 +171,7 @@ public class SqlAdvisor {
 
   public List<SqlMoniker> getCompletionHints0(String sql, int cursor) {
     String simpleSql = simplifySql(sql, cursor);
-    int idx = simpleSql.indexOf(hintToken);
+    int idx = simpleSql.indexOf(HINT_TOKEN);
     if (idx < 0) {
       return Collections.emptyList();
     }
@@ -173,10 +180,10 @@ public class SqlAdvisor {
   }
 
   /**
-   * Gets completion hints for a syntatically correct sql statement with dummy
+   * Gets completion hints for a syntactically correct sql statement with dummy
    * SqlIdentifier
    *
-   * @param sql A syntatically correct sql statement for which to retrieve
+   * @param sql A syntactically correct sql statement for which to retrieve
    *            completion hints
    * @param pos to indicate the line and column position in the query at which
    *            completion hints need to be retrieved. For example, "select
@@ -205,6 +212,12 @@ public class SqlAdvisor {
         + sql.substring(x);
     tryParse(sql, hintList);
 
+    final SqlMoniker star =
+        new SqlMonikerImpl(ImmutableList.of("*"), SqlMonikerType.KEYWORD);
+    if (hintList.contains(star) && !isSelectListItem(sqlNode, pos)) {
+      hintList.remove(star);
+    }
+
     // Add the identifiers which are expected at the point of interest.
     try {
       validator.validate(sqlNode);
@@ -219,6 +232,29 @@ public class SqlAdvisor {
         validator.lookupHints(sqlNode, pos);
     hintList.addAll(validatorHints);
     return hintList;
+  }
+
+  private static boolean isSelectListItem(SqlNode root,
+      final SqlParserPos pos) {
+    List<SqlNode> nodes = SqlUtil.getAncestry(root,
+        new Predicate<SqlNode>() {
+
+          public boolean apply(SqlNode input) {
+            return input instanceof SqlIdentifier
+                && Util.last(((SqlIdentifier) input).names)
+                    .equals(UPPER_HINT_TOKEN);
+          }
+        },
+        new Predicate<SqlNode>() {
+          public boolean apply(SqlNode input) {
+            return input.getParserPosition().startsAt(pos);
+          }
+        });
+    assert nodes.get(0) == root;
+    nodes = Lists.reverse(nodes);
+    return nodes.size() > 2
+        && nodes.get(2) instanceof SqlSelect
+        && nodes.get(1) == ((SqlSelect) nodes.get(2)).getSelectList();
   }
 
   /**
@@ -289,11 +325,11 @@ public class SqlAdvisor {
    * Attempts to complete and validate a given partially completed sql
    * statement, and returns whether it is valid.
    *
-   * @param sql A partial or syntatically incorrect sql statement to validate
+   * @param sql A partial or syntactically incorrect sql statement to validate
    * @return whether SQL statement is valid
    */
   public boolean isValid(String sql) {
-    SqlSimpleParser simpleParser = new SqlSimpleParser(hintToken);
+    SqlSimpleParser simpleParser = new SqlSimpleParser(HINT_TOKEN);
     String simpleSql = simpleParser.simplifySql(sql);
     SqlNode sqlNode;
     try {
@@ -351,16 +387,16 @@ public class SqlAdvisor {
   }
 
   /**
-   * Turns a partially completed or syntatically incorrect sql statement into
+   * Turns a partially completed or syntactically incorrect sql statement into
    * a simplified, valid one that can be passed into getCompletionHints()
    *
-   * @param sql    A partial or syntatically incorrect sql statement
+   * @param sql    A partial or syntactically incorrect sql statement
    * @param cursor to indicate column position in the query at which
    *               completion hints need to be retrieved.
    * @return a completed, valid (and possibly simplified SQL statement
    */
   public String simplifySql(String sql, int cursor) {
-    SqlSimpleParser parser = new SqlSimpleParser(hintToken);
+    SqlSimpleParser parser = new SqlSimpleParser(HINT_TOKEN);
     return parser.simplifySql(sql, cursor);
   }
 

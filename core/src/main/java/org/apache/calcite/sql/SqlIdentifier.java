@@ -19,10 +19,9 @@ package org.apache.calcite.sql;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.util.SqlVisitor;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
+import org.apache.calcite.sql.validate.SqlQualified;
 import org.apache.calcite.sql.validate.SqlValidator;
-import org.apache.calcite.sql.validate.SqlValidatorNamespace;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
-import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
@@ -168,8 +167,41 @@ public class SqlIdentifier extends SqlNode {
    * available.
    */
   public SqlIdentifier getComponent(int ordinal) {
-    return new SqlIdentifier(names.get(ordinal),
-        getComponentParserPosition(ordinal));
+    return getComponent(ordinal, ordinal + 1);
+  }
+
+  public SqlIdentifier getComponent(int from, int to) {
+    final SqlParserPos pos;
+    final ImmutableList<SqlParserPos> pos2;
+    if (componentPositions == null) {
+      pos2 = null;
+      pos = this.pos;
+    } else {
+      pos2 = componentPositions.subList(from, to);
+      pos = SqlParserPos.sum(pos2);
+    }
+    return new SqlIdentifier(names.subList(from, to), collation, pos, pos2);
+  }
+
+  /**
+   * Creates an identifier that consists of this identifier plus a name segment.
+   * Does not modify this identifier.
+   */
+  public SqlIdentifier plus(String name, SqlParserPos pos) {
+    final ImmutableList<String> names =
+        ImmutableList.<String>builder().addAll(this.names).add(name).build();
+    final ImmutableList.Builder<SqlParserPos> builder = ImmutableList.builder();
+    final ImmutableList<SqlParserPos> componentPositions =
+        builder.addAll(this.componentPositions).add(pos).build();
+    final SqlParserPos pos2 =
+        SqlParserPos.sum(builder.add(this.pos).build());
+    return new SqlIdentifier(names, collation, pos2, componentPositions);
+  }
+
+  /** Creates an identifier that consists of all but the last {@code n}
+   * name segments of this one. */
+  public SqlIdentifier skipLast(int n) {
+    return getComponent(0, names.size() - n);
   }
 
   public void unparse(
@@ -270,10 +302,9 @@ public class SqlIdentifier extends SqlNode {
     if (call != null) {
       return call.getMonotonicity(scope);
     }
-    final SqlIdentifier fqId = scope.fullyQualify(this);
-    final SqlValidatorNamespace ns =
-        SqlValidatorUtil.lookup(scope, Util.skipLast(fqId.names));
-    return ns.resolve().getMonotonicity(Util.last(fqId.names));
+    final SqlQualified qualified = scope.fullyQualify(this);
+    final SqlIdentifier fqId = qualified.identifier;
+    return qualified.namespace.resolve().getMonotonicity(Util.last(fqId.names));
   }
 }
 

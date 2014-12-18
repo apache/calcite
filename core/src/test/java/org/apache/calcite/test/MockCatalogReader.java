@@ -262,16 +262,26 @@ public class MockCatalogReader implements Prepare.CatalogReader {
     List<SqlMoniker> result;
     switch (names.size()) {
     case 0:
+      // looking for catalog and schema names
+      return ImmutableList.<SqlMoniker>builder()
+          .add(new SqlMonikerImpl(DEFAULT_CATALOG, SqlMonikerType.CATALOG))
+          .addAll(getAllSchemaObjectNames(ImmutableList.of(DEFAULT_CATALOG)))
+          .build();
+    case 1:
       // looking for schema names
       result = new ArrayList<SqlMoniker>();
       for (MockSchema schema : schemas.values()) {
-        result.add(
-            new SqlMonikerImpl(schema.name, SqlMonikerType.SCHEMA));
+        final String catalogName = names.get(0);
+        if (schema.getCatalogName().equals(catalogName)) {
+          final ImmutableList<String> names1 =
+              ImmutableList.of(catalogName, schema.name);
+          result.add(new SqlMonikerImpl(names1, SqlMonikerType.SCHEMA));
+        }
       }
       return result;
-    case 1:
+    case 2:
       // looking for table names in the given schema
-      MockSchema schema = schemas.get(names.get(0));
+      MockSchema schema = schemas.get(names.get(1));
       if (schema == null) {
         return Collections.emptyList();
       }
@@ -279,7 +289,8 @@ public class MockCatalogReader implements Prepare.CatalogReader {
       for (String tableName : schema.tableNames) {
         result.add(
             new SqlMonikerImpl(
-                tableName,
+                ImmutableList.of(schema.getCatalogName(), schema.name,
+                    tableName),
                 SqlMonikerType.TABLE));
       }
       return result;
@@ -289,7 +300,31 @@ public class MockCatalogReader implements Prepare.CatalogReader {
   }
 
   public List<String> getSchemaName() {
-    return Collections.singletonList(DEFAULT_SCHEMA);
+    return ImmutableList.of(DEFAULT_CATALOG, DEFAULT_SCHEMA);
+  }
+
+  private MockSchema getMockSchema(List<String> names) {
+    return schemas.get(names.get(0));
+  }
+
+  public List<SqlMoniker> getAllSchemaObjectNames2(List<String> names) {
+    List<SqlMoniker> result = new ArrayList<SqlMoniker>();
+    if (names.isEmpty()) {
+      for (MockSchema schema : schemas.values()) {
+        result.add(
+            new SqlMonikerImpl(schema.name, SqlMonikerType.SCHEMA));
+      }
+    }
+    // looking for table names in the given schema
+    MockSchema schema = getMockSchema(names);
+    if (schema != null) {
+      for (String tableName : schema.tableNames) {
+        result.add(
+            new SqlMonikerImpl(
+                tableName, SqlMonikerType.TABLE));
+      }
+    }
+    return result;
   }
 
   public RelDataTypeField field(RelDataType rowType, String alias) {
@@ -301,8 +336,12 @@ public class MockCatalogReader implements Prepare.CatalogReader {
     return field != null ? field.getIndex() : -1;
   }
 
+  public boolean matches(String string, String name) {
+    return Util.matches(caseSensitive, string, name);
+  }
+
   public int match(List<String> strings, String name) {
-    return Util.match2(strings, name, caseSensitive);
+    return Util.findMatch(strings, name, caseSensitive);
   }
 
   public RelDataType createTypeFromProjection(final RelDataType type,

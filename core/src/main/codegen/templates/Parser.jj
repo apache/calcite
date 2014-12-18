@@ -1411,21 +1411,9 @@ SqlNode SelectItem() :
 SqlNode SelectExpression() :
 {
     SqlNode e;
-    String id;
-    SqlParserPos pos, starPos;
+    SqlParserPos pos;
 }
 {
-    LOOKAHEAD(3)
-    id = Identifier() { pos = getPos(); } <DOT> <STAR>
-    {
-        starPos = getPos();
-        return new SqlIdentifier(
-            ImmutableList.of(id, "*"),
-            null,
-            pos.plus(starPos),
-            ImmutableList.of(pos, starPos));
-    }
-    |
     <STAR>
     {
         pos = getPos();
@@ -3504,17 +3492,21 @@ SqlIdentifier CompoundIdentifier() :
         list.add(p);
     }
     (
-        <DOT> p = Identifier()
-        {
-            list.add(p);
-            posList.add(getPos());
-        }
+        <DOT>
+        (
+            p = Identifier() {
+                list.add(p);
+                posList.add(getPos());
+            }
+        |
+            <STAR> {
+                list.add("*");
+                posList.add(getPos());
+            }
+        )
     ) *
     {
-        SqlParserPos[] componentPositions =
-            (SqlParserPos []) posList.toArray(
-                new SqlParserPos[posList.size()]);
-        SqlParserPos pos = SqlParserPos.sum(componentPositions);
+        SqlParserPos pos = SqlParserPos.sum(posList);
         return new SqlIdentifier(list, null, pos, posList);
     }
 }

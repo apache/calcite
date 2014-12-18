@@ -65,7 +65,7 @@ public class OrderByScope extends DelegatingScope {
     addColumnNames(ns, result);
   }
 
-  public SqlIdentifier fullyQualify(SqlIdentifier identifier) {
+  public SqlQualified fullyQualify(SqlIdentifier identifier) {
     // If it's a simple identifier, look for an alias.
     if (identifier.isSimple()
         && validator.getConformance().isSortByAlias()) {
@@ -74,7 +74,7 @@ public class OrderByScope extends DelegatingScope {
           validator.getNamespace(select);
       final RelDataType rowType = selectNs.getRowType();
       if (validator.catalogReader.field(rowType, name) != null) {
-        return identifier;
+        return SqlQualified.create(this, 1, selectNs, identifier);
       }
     }
     return super.fullyQualify(identifier);

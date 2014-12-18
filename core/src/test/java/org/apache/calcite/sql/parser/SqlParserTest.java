@@ -1385,6 +1385,27 @@ public class SqlParserTest {
             + "`DEPT`");
   }
 
+  @Test public void testSchemaTableStar() {
+    sql("select schem.emp.*, emp.empno * dept.deptno\n"
+            + "from schem.emp, dept")
+        .ok("SELECT `SCHEM`.`EMP`.*, (`EMP`.`EMPNO` * `DEPT`.`DEPTNO`)\n"
+                + "FROM `SCHEM`.`EMP`,\n"
+                + "`DEPT`");
+  }
+
+  @Test public void testCatalogSchemaTableStar() {
+    sql("select cat.schem.emp.* from cat.schem.emp")
+        .ok("SELECT `CAT`.`SCHEM`.`EMP`.*\n"
+                + "FROM `CAT`.`SCHEM`.`EMP`");
+  }
+
+  @Test public void testAliasedStar() {
+    // OK in parser; validator will give error
+    sql("select emp.* as foo from emp")
+        .ok("SELECT `EMP`.* AS `FOO`\n"
+                + "FROM `EMP`");
+  }
+
   @Test public void testNotExists() {
     check(
         "select * from dept where not not exists (select * from emp) and true",

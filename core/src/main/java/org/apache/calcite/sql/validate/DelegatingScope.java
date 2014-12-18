@@ -25,9 +25,11 @@ import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlWindow;
 import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableList;
 
+import java.util.Collection;
 import java.util.List;
 
 import static org.apache.calcite.util.Static.RESOURCE;
@@ -72,10 +74,10 @@ public abstract class DelegatingScope implements SqlValidatorScope {
   }
 
   public SqlValidatorNamespace resolve(
-      String name,
+      List<String> names,
       SqlValidatorScope[] ancestorOut,
       int[] offsetOut) {
-    return parent.resolve(name, ancestorOut, offsetOut);
+    return parent.resolve(names, ancestorOut, offsetOut);
   }
 
   protected void addColumnNames(
@@ -101,11 +103,12 @@ public abstract class DelegatingScope implements SqlValidatorScope {
     parent.findAllColumnNames(result);
   }
 
-  public void findAliases(List<SqlMoniker> result) {
+  public void findAliases(Collection<SqlMoniker> result) {
     parent.findAliases(result);
   }
 
-  public String findQualifyingTableName(String columnName, SqlNode ctx) {
+  public Pair<String, SqlValidatorNamespace>
+  findQualifyingTableName(String columnName, SqlNode ctx) {
     return parent.findQualifyingTableName(columnName, ctx);
   }
 
@@ -139,19 +142,19 @@ public abstract class DelegatingScope implements SqlValidatorScope {
    *
    * <p>If the identifier cannot be resolved, throws. Never returns null.
    */
-  public SqlIdentifier fullyQualify(SqlIdentifier identifier) {
+  public SqlQualified fullyQualify(SqlIdentifier identifier) {
     if (identifier.isStar()) {
-      return identifier;
+      return SqlQualified.create(this, 1, null, identifier);
     }
 
-    String tableName;
     String columnName;
-
     switch (identifier.names.size()) {
     case 1:
       columnName = identifier.names.get(0);
-      tableName =
+      final Pair<String, SqlValidatorNamespace> pair =
           findQualifyingTableName(columnName, identifier);
+      final String tableName = pair.left;
+      final SqlValidatorNamespace namespace = pair.right;
 
       // todo: do implicit collation here
       final SqlParserPos pos = identifier.getParserPosition();
@@ -162,32 +165,39 @@ public abstract class DelegatingScope implements SqlValidatorScope {
               pos,
               ImmutableList.of(SqlParserPos.ZERO, pos));
       validator.setOriginal(expanded, identifier);
-      return expanded;
-
-    case 2:
-      tableName = identifier.names.get(0);
-      final SqlValidatorNamespace fromNs = resolve(tableName, null, null);
-      if (fromNs == null) {
-        throw validator.newValidationError(identifier.getComponent(0),
-            RESOURCE.tableNameNotFound(tableName));
-      }
-      columnName = identifier.names.get(1);
-      final RelDataType fromRowType = fromNs.getRowType();
-      final RelDataTypeField field =
-          validator.catalogReader.field(fromRowType, columnName);
-      if (field != null) {
-        identifier.setName(1, field.getName()); // normalize case to match defn
-        return identifier; // it was fine already
-      } else {
-        throw validator.newValidationError(identifier.getComponent(1),
-            RESOURCE.columnNotFoundInTable(columnName, tableName));
-      }
+      return SqlQualified.create(this, 1, namespace, expanded);
 
     default:
-      // NOTE jvs 26-May-2004:  lengths greater than 2 are possible
-      // for row and structured types
-      assert identifier.names.size() > 0;
-      return identifier;
+      SqlValidatorNamespace fromNs = null;
+      final int size = identifier.names.size();
+      int i = size - 1;
+      for (; i > 0; i--) {
+        final SqlIdentifier prefix = identifier.getComponent(0, i);
+        fromNs = resolve(prefix.names, null, null);
+        if (fromNs != null) {
+          break;
+        }
+      }
+      if (fromNs == null || fromNs instanceof SchemaNamespace) {
+        final SqlIdentifier prefix1 = identifier.skipLast(1);
+        throw validator.newValidationError(prefix1,
+            RESOURCE.tableNameNotFound(prefix1.toString()));
+      }
+      RelDataType fromRowType = fromNs.getRowType();
+      for (int j = i; j < size; j++) {
+        final SqlIdentifier last = identifier.getComponent(j);
+        columnName = last.getSimple();
+        final RelDataTypeField field =
+            validator.catalogReader.field(fromRowType, columnName);
+        if (field == null) {
+          throw validator.newValidationError(last,
+              RESOURCE.columnNotFoundInTable(columnName,
+                  identifier.getComponent(0, j).toString()));
+        }
+        identifier.setName(j, field.getName()); // normalize case to match defn
+        fromRowType = field.getType();
+      }
+      return SqlQualified.create(this, i, fromNs, identifier);
     }
   }
 

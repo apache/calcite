@@ -4451,6 +4451,43 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         "Unknown identifier 'EMPNO'");
   }
 
+  @Test public void testStarAliasFails() {
+    sql("select emp.^*^ AS x from emp")
+        .fails("Unknown field '\\*'");
+  }
+
+  @Test public void testNonLocalStar() {
+    // MySQL allows this but we can't, currently
+    sql("select * from emp e where exists (\n"
+        + "  select ^e^.* from dept where dept.deptno = e.deptno)")
+        .fails("Unknown identifier 'E'");
+  }
+
+  /**
+   * Parser allows "*" in FROM clause because "*" can occur in any identifier.
+   * But validator must not.
+   *
+   * <p>See also
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-546">[CALCITE-546]
+   * "Allow table, column and field called '*'"</a> (not yet fixed).
+   */
+  @Test public void testStarInFromFails() {
+    sql("select emp.empno AS x from ^sales.*^")
+        .fails("Table 'SALES.\\*' not found");
+    sql("select emp.empno from emp where emp.^*^ is not null")
+        .fails("Unknown field '\\*'");
+  }
+
+  @Test public void testStarDotIdFails() {
+    // Parser allows a star inside (not at end of) compound identifier, but
+    // validator does not
+    sql("select emp.^*^.foo from emp")
+        .fails("Column '\\*' not found in table 'EMP'");
+    // Parser does not allow star dot identifier.
+    sql("select ^*^.foo from emp")
+        .fails("(?s).*Encountered \".\" at .*");
+  }
+
   @Test public void testAsColumnList() {
     check("select d.a, b from dept as d(a, b)");
     checkFails(
@@ -4598,6 +4635,55 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     // alias does not clash with alias inherited from enclosing context
     check("select 1 from emp, dept where exists (\n"
         + "  select 1 from emp where emp.empno = emp.deptno)");
+  }
+
+  @Test public void testSchemaTableStar() {
+    sql("select ^sales.e^.* from sales.emp as e")
+        .fails("Unknown identifier 'SALES\\.E'");
+    sql("select sales.dept.* from sales.dept")
+        .type("RecordType(INTEGER NOT NULL DEPTNO,"
+            + " VARCHAR(10) NOT NULL NAME) NOT NULL");
+    sql("select sales.emp.* from emp").ok();
+    sql("select sales.emp.* from emp as emp").ok();
+    // MySQL gives: "Unknown table 'emp'"
+    // (consistent with MySQL)
+    sql("select ^sales.emp^.* from emp as e")
+        .fails("Unknown identifier 'SALES.EMP'");
+  }
+
+  @Test public void testSchemaTableColumn() {
+    sql("select emp.empno from sales.emp").ok();
+    sql("select sales.emp.empno from sales.emp").ok();
+    sql("select sales.emp.empno from sales.emp\n"
+        + "where sales.emp.deptno > 0").ok();
+    sql("select 1 from sales.emp where sales.emp.^bad^ < 0")
+        .fails("Column 'BAD' not found in table 'SALES.EMP'");
+    sql("select ^sales.bad^.empno from sales.emp\n"
+        + "where sales.emp.deptno > 0")
+        .fails("Table 'SALES\\.BAD' not found");
+    sql("select sales.emp.deptno from sales.emp").ok();
+    sql("select 1 from sales.emp where sales.emp.deptno = 10").ok();
+    sql("select 1 from sales.emp order by sales.emp.deptno").ok();
+    // alias does not hide the fully-qualified name if same
+    // (consistent with MySQL)
+    sql("select sales.emp.deptno from sales.emp as emp").ok();
+    // alias hides the fully-qualified name
+    // (consistent with MySQL)
+    sql("select ^sales.emp^.deptno from sales.emp as e")
+        .fails("Table 'SALES\\.EMP' not found");
+    sql("select sales.emp.deptno from sales.emp, ^sales.emp^")
+        .fails("Duplicate relation name 'EMP' in FROM clause");
+    // Table exists but not used in FROM clause
+    sql("select ^sales.emp^.deptno from sales.dept as d1, sales.dept")
+        .fails("Table 'SALES.EMP' not found");
+    // Table does not exist
+    sql("select ^sales.bad^.deptno from sales.dept as d1, sales.dept")
+        .fails("Table 'SALES.BAD' not found");
+  }
+
+  @Ignore("does not work yet")
+  @Test public void testSchemaTableColumnInGroupBy() {
+    sql("select 1 from sales.emp group by sales.emp.deptno").ok(); // TODO:
   }
 
   @Test public void testInvalidGroupBy() {
@@ -6397,11 +6483,9 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         "RecordType(INTEGER NOT NULL X, INTEGER NOT NULL Y) NOT NULL");
 
     // Qualifying with schema is OK.
-    if (Bug.FRG140_FIXED) {
-      checkResultType(
-          "SELECT customer.contact.coord.x, customer.contact.email, contact.coord.y FROM customer.contact",
-          "RecordType(INTEGER NOT NULL X, INTEGER NOT NULL Y) NOT NULL");
-    }
+    checkResultType(
+        "SELECT customer.contact.coord.x, customer.contact.email, contact.coord.y FROM customer.contact",
+        "RecordType(INTEGER NOT NULL X, VARCHAR(20) NOT NULL EMAIL, INTEGER NOT NULL Y) NOT NULL");
   }
 
   @Test public void testSample() {

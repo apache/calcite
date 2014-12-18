@@ -63,28 +63,19 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
           "KEYWORD(TABLE)",
           "KEYWORD(UNNEST)");
 
-  protected static final List<String> AGG_KEYWORDS =
-      Arrays.asList(
-          "KEYWORD(SELECT)",
-          "KEYWORD(TABLE)",
-          "KEYWORD(VALUES)",
-          "KEYWORD())",
-          "KEYWORD(*)",
-          "KEYWORD(ALL)",
-          "KEYWORD(DISTINCT)");
-
   protected static final List<String> SALES_TABLES =
       Arrays.asList(
-          "TABLE(EMP)",
-          "TABLE(EMP_ADDRESS)",
-          "TABLE(DEPT)",
-          "TABLE(BONUS)",
-          "TABLE(SALGRADE)");
+          "TABLE(CATALOG.SALES.EMP)",
+          "TABLE(CATALOG.SALES.EMP_ADDRESS)",
+          "TABLE(CATALOG.SALES.DEPT)",
+          "TABLE(CATALOG.SALES.BONUS)",
+          "TABLE(CATALOG.SALES.SALGRADE)");
 
   private static final List<String> SCHEMAS =
       Arrays.asList(
-          "SCHEMA(SALES)",
-          "SCHEMA(CUSTOMER)");
+          "CATALOG(CATALOG)",
+          "SCHEMA(CATALOG.SALES)",
+          "SCHEMA(CATALOG.CUSTOMER)");
 
   private static final List<String> AB_TABLES =
       Arrays.asList(

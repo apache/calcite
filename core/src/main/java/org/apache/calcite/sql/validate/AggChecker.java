@@ -99,8 +99,8 @@ class AggChecker extends SqlBasicVisitor<Void> {
     // it fully-qualified.
     // TODO: It would be better if we always compared fully-qualified
     // to fully-qualified.
-    final SqlIdentifier fqId = Stacks.peek(scopes).fullyQualify(id);
-    if (isGroupExpr(fqId)) {
+    final SqlQualified fqId = Stacks.peek(scopes).fullyQualify(id);
+    if (isGroupExpr(fqId.identifier)) {
       return null;
     }
     SqlNode originalExpr = validator.getOriginal(id);

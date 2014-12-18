@@ -377,34 +377,35 @@ public class JdbcTest {
    */
   @Test public void testSqlAdvisorGetHintsFunction()
       throws SQLException, ClassNotFoundException {
-    String res = adviseSql("select e.e^ from \"emps\" e");
-    assertThat(res,
-        equalTo("id=e; names=null; type=MATCH\n"
-            + "id=empid; names=[empid]; type=COLUMN\n"));
+    adviseSql("select e.e^ from \"emps\" e",
+        CalciteAssert.checkResultUnordered(
+            "id=e; names=null; type=MATCH",
+            "id=empid; names=[empid]; type=COLUMN"));
   }
+
   /**
    * Tests {@link org.apache.calcite.sql.advise.SqlAdvisorGetHintsFunction}.
    */
   @Test public void testSqlAdvisorSchemaNames()
       throws SQLException, ClassNotFoundException {
-    String res = adviseSql("select empid from \"emps\" e, ^");
-    assertThat(res,
-        equalTo("id=; names=null; type=MATCH\n"
-            + "id=(; names=[(]; type=KEYWORD\n"
-            + "id=LATERAL; names=[LATERAL]; type=KEYWORD\n"
-            + "id=TABLE; names=[TABLE]; type=KEYWORD\n"
-            + "id=UNNEST; names=[UNNEST]; type=KEYWORD\n"
-            + "id=hr; names=[hr]; type=SCHEMA\n"
-            + "id=metadata; names=[metadata]; type=SCHEMA\n"
-            + "id=s; names=[s]; type=SCHEMA\n"
-            + "id=hr.dependents; names=[hr, dependents]; type=TABLE\n"
-            + "id=hr.depts; names=[hr, depts]; type=TABLE\n"
-            + "id=hr.emps; names=[hr, emps]; type=TABLE\n"
-            + "id=hr.locations; names=[hr, locations]; type=TABLE\n"));
+    adviseSql("select empid from \"emps\" e, ^",
+        CalciteAssert.checkResultUnordered(
+            "id=; names=null; type=MATCH",
+            "id=(; names=[(]; type=KEYWORD",
+            "id=LATERAL; names=[LATERAL]; type=KEYWORD",
+            "id=TABLE; names=[TABLE]; type=KEYWORD",
+            "id=UNNEST; names=[UNNEST]; type=KEYWORD",
+            "id=hr; names=[hr]; type=SCHEMA",
+            "id=metadata; names=[metadata]; type=SCHEMA",
+            "id=s; names=[s]; type=SCHEMA",
+            "id=hr.dependents; names=[hr, dependents]; type=TABLE",
+            "id=hr.depts; names=[hr, depts]; type=TABLE",
+            "id=hr.emps; names=[hr, emps]; type=TABLE",
+            "id=hr.locations; names=[hr, locations]; type=TABLE"));
   }
 
-  private String adviseSql(String sql) throws ClassNotFoundException,
-      SQLException {
+  private void adviseSql(String sql, Function<ResultSet, Void> checker)
+      throws ClassNotFoundException, SQLException {
     Properties info = new Properties();
     info.put("lex", "JAVA");
     info.put("quoting", "DOUBLE_QUOTE");
@@ -424,7 +425,10 @@ public class JdbcTest {
     SqlParserUtil.StringAndPos sap = SqlParserUtil.findPos(sql);
     ps.setString(1, sap.sql);
     ps.setInt(2, sap.cursor);
-    return CalciteAssert.toString(ps.executeQuery());
+    final ResultSet resultSet = ps.executeQuery();
+    checker.apply(resultSet);
+    resultSet.close();
+    connection.close();
   }
 
   /**

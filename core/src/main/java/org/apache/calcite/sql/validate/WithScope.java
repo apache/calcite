@@ -53,13 +53,13 @@ class WithScope extends ListScope {
     return super.getTableNamespace(names);
   }
 
-  @Override public SqlValidatorNamespace resolve(String name,
+  @Override public SqlValidatorNamespace resolve(List<String> names,
       SqlValidatorScope[] ancestorOut,
       int[] offsetOut) {
-    if (name.equals(withItem.name.getSimple())) {
+    if (names.equals(withItem.name.getSimple())) {
       return validator.getNamespace(withItem);
     }
-    return super.resolve(name, ancestorOut, offsetOut);
+    return super.resolve(names, ancestorOut, offsetOut);
   }
 }
 

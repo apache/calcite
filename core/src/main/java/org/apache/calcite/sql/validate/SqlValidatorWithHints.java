@@ -31,7 +31,7 @@ public interface SqlValidatorWithHints extends SqlValidator {
   //~ Methods ----------------------------------------------------------------
 
   /**
-   * Looks up completion hints for a syntatically correct SQL statement that
+   * Looks up completion hints for a syntactically correct SQL statement that
    * has been parsed into an expression tree. (Note this should be called
    * after {@link #validate(org.apache.calcite.sql.SqlNode)}.
    *
@@ -53,7 +53,7 @@ public interface SqlValidatorWithHints extends SqlValidator {
    * Parser Position in a parsed expression tree Note: call this only after
    * {@link #validate} has been called.
    *
-   * @param topNode top of expression tree in which to lookup the qualfied
+   * @param topNode top of expression tree in which to lookup the qualified
    *                name for the SqlIdentifier
    * @param pos indicates the position of the {@link SqlIdentifier} in
    *                the SQL statement we want to get the qualified

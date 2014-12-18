@@ -26,6 +26,7 @@ import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.util.Util;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 
@@ -43,7 +44,7 @@ public abstract class SqlNode implements Cloneable {
 
   //~ Instance fields --------------------------------------------------------
 
-  private final SqlParserPos pos;
+  protected final SqlParserPos pos;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -212,7 +213,7 @@ public abstract class SqlNode implements Cloneable {
       SqlValidator validator,
       SqlValidatorScope scope,
       SqlParserPos pos,
-      List<SqlMoniker> hintList) {
+      Collection<SqlMoniker> hintList) {
     // no valid options
   }
 

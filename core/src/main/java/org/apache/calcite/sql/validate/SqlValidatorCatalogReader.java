@@ -86,6 +86,8 @@ public interface SqlValidatorCatalogReader {
    */
   int fieldOrdinal(RelDataType rowType, String alias);
 
+  boolean matches(String string, String name);
+
   int match(List<String> strings, String name);
 
   RelDataType createTypeFromProjection(RelDataType type,

@@ -26,6 +26,7 @@ import org.apache.calcite.sql.validate.SqlValidatorImpl;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 /**
@@ -110,7 +111,7 @@ public abstract class SqlCall extends SqlNode {
       SqlValidator validator,
       SqlValidatorScope scope,
       SqlParserPos pos,
-      List<SqlMoniker> hintList) {
+      Collection<SqlMoniker> hintList) {
     for (SqlNode operand : getOperandList()) {
       if (operand instanceof SqlIdentifier) {
         SqlIdentifier id = (SqlIdentifier) operand;

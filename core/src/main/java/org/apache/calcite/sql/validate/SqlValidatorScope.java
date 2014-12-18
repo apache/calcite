@@ -22,7 +22,9 @@ import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlWindow;
+import org.apache.calcite.util.Pair;
 
+import java.util.Collection;
 import java.util.List;
 
 /**
@@ -51,12 +53,12 @@ public interface SqlValidatorScope {
   /**
    * Looks up a node with a given name. Returns null if none is found.
    *
-   * @param name        Name of node to find
+   * @param names       Name of node to find
    * @param ancestorOut If not null, writes the ancestor scope here
    * @param offsetOut   If not null, writes the offset within the ancestor here
    */
   SqlValidatorNamespace resolve(
-      String name,
+      List<String> names,
       SqlValidatorScope[] ancestorOut,
       int[] offsetOut);
 
@@ -72,10 +74,9 @@ public interface SqlValidatorScope {
    *
    * @param columnName Column name
    * @param ctx        Validation context, to appear in any error thrown
-   * @return Table alias
+   * @return Table alias and namespace
    */
-  String findQualifyingTableName(
-      String columnName,
+  Pair<String, SqlValidatorNamespace> findQualifyingTableName(String columnName,
       SqlNode ctx);
 
   /**
@@ -91,14 +92,16 @@ public interface SqlValidatorScope {
    *
    * @param result a list of monikers to add the result to
    */
-  void findAliases(List<SqlMoniker> result);
+  void findAliases(Collection<SqlMoniker> result);
 
   /**
    * Converts an identifier into a fully-qualified identifier. For example,
    * the "empno" in "select empno from emp natural join dept" becomes
    * "emp.empno".
+   *
+   * @return A qualified identifier, never null
    */
-  SqlIdentifier fullyQualify(SqlIdentifier identifier);
+  SqlQualified fullyQualify(SqlIdentifier identifier);
 
   /**
    * Registers a relation in this scope.

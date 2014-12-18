@@ -105,7 +105,7 @@ public class SqlSimpleParser {
    * Turns a partially completed or syntactically incorrect sql statement into
    * a simplified, valid one that can be passed into getCompletionHints().
    *
-   * @param sql    A partial or syntatically incorrect sql statement
+   * @param sql    A partial or syntactically incorrect sql statement
    * @param cursor to indicate column position in the query at which
    *               completion hints need to be retrieved.
    * @return a completed, valid (and possibly simplified SQL statement
@@ -123,10 +123,10 @@ public class SqlSimpleParser {
   }
 
   /**
-   * Turns a partially completed or syntatically incorrect sql statement into
+   * Turns a partially completed or syntactically incorrect sql statement into
    * a simplified, valid one that can be validated
    *
-   * @param sql A partial or syntatically incorrect sql statement
+   * @param sql A partial or syntactically incorrect sql statement
    * @return a completed, valid (and possibly simplified) SQL statement
    */
   public String simplifySql(String sql) {
@@ -140,7 +140,7 @@ public class SqlSimpleParser {
       list.add(token);
     }
 
-    // Gather consecutive subsequences of tokens into subqueries.
+    // Gather consecutive sub-sequences of tokens into subqueries.
     List<Token> outList = new ArrayList<Token>();
     consumeQuery(list.listIterator(), outList);
 

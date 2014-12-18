@@ -123,6 +123,7 @@ import org.apache.calcite.sql.validate.ListScope;
 import org.apache.calcite.sql.validate.ParameterScope;
 import org.apache.calcite.sql.validate.SelectScope;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
+import org.apache.calcite.sql.validate.SqlQualified;
 import org.apache.calcite.sql.validate.SqlUserDefinedTableFunction;
 import org.apache.calcite.sql.validate.SqlUserDefinedTableMacro;
 import org.apache.calcite.sql.validate.SqlValidator;
@@ -1233,7 +1234,7 @@ public class SqlToRelConverter {
       boolean isExists) {
     SqlCall call = (SqlBasicCall) subQuery.node;
     if (subqueryConverter.canConvertSubquery()
-        && isSubqNonCorrelated(converted, bb)) {
+        && isSubQueryNonCorrelated(converted, bb)) {
       // First check if the subquery has already been converted
       // because it's a nested subquery.  If so, don't re-evaluate
       // it again.
@@ -2070,7 +2071,7 @@ public class SqlToRelConverter {
         final SqlValidatorScope[] ancestorScopes = {null};
         SqlValidatorNamespace foundNs =
             lookup.bb.scope.resolve(
-                originalRelName,
+                ImmutableList.of(originalRelName),
                 ancestorScopes,
                 nsIndexes);
 
@@ -2368,7 +2369,7 @@ public class SqlToRelConverter {
    *             blackboard of the parent query of this subquery
    * @return true if the subquery is non-correlated.
    */
-  private boolean isSubqNonCorrelated(RelNode subq, Blackboard bb) {
+  private boolean isSubQueryNonCorrelated(RelNode subq, Blackboard bb) {
     Set<String> correlatedVariables = RelOptUtil.getVariablesUsed(subq);
     for (String correlName : correlatedVariables) {
       DeferredLookup lookup = mapCorrelToDeferred.get(correlName);
@@ -2378,7 +2379,7 @@ public class SqlToRelConverter {
       final SqlValidatorScope[] ancestorScopes = {null};
       SqlValidatorNamespace foundNs =
           lookup.bb.scope.resolve(
-              originalRelName,
+              ImmutableList.of(originalRelName),
               ancestorScopes,
               nsIndexes);
 
@@ -3302,12 +3303,14 @@ public class SqlToRelConverter {
           + "' is not a group expr");
     }
 
-    SqlValidatorNamespace namespace = null;
+    final SqlQualified qualified;
     if (bb.scope != null) {
-      identifier = bb.scope.fullyQualify(identifier);
-      namespace = bb.scope.resolve(identifier.names.get(0), null, null);
+      qualified = bb.scope.fullyQualify(identifier);
+      identifier = qualified.identifier;
+    } else {
+      qualified = SqlQualified.create(null, 1, null, identifier);
     }
-    RexNode e = bb.lookupExp(identifier.names.get(0));
+    RexNode e = bb.lookupExp(qualified);
     final String correlationName;
     if (e instanceof RexCorrelVariable) {
       correlationName = ((RexCorrelVariable) e).getName();
@@ -3315,11 +3318,7 @@ public class SqlToRelConverter {
       correlationName = null;
     }
 
-    for (String name : Util.skip(identifier.names)) {
-      if (namespace != null) {
-        name = namespace.translate(name);
-        namespace = null;
-      }
+    for (String name : qualified.suffixTranslated()) {
       final boolean caseSensitive = true; // name already fully-qualified
       e = rexBuilder.makeFieldAccess(e, name, caseSensitive);
     }
@@ -3970,23 +3969,23 @@ public class SqlToRelConverter {
     /**
      * Returns an expression with which to reference a from-list item.
      *
-     * @param name the alias of the from item
+     * @param qualified the alias of the from item
      * @return a {@link RexFieldAccess} or {@link RexRangeRef}, or null if
      * not found
      */
-    RexNode lookupExp(String name) {
-      if (nameToNodeMap != null) {
-        RexNode node = nameToNodeMap.get(name);
+    RexNode lookupExp(SqlQualified qualified) {
+      if (nameToNodeMap != null && qualified.prefixLength == 1) {
+        RexNode node = nameToNodeMap.get(qualified.identifier.names.get(0));
         if (node == null) {
-          throw Util.newInternal("Unknown identifier '" + name
-              + "' encountered while expanding expression" + node);
+          throw Util.newInternal("Unknown identifier '" + qualified.identifier
+              + "' encountered while expanding expression");
         }
         return node;
       }
       int[] offsets = {-1};
       final SqlValidatorScope[] ancestorScopes = {null};
       SqlValidatorNamespace foundNs =
-          scope.resolve(name, ancestorScopes, offsets);
+          scope.resolve(qualified.prefix(), ancestorScopes, offsets);
       if (foundNs == null) {
         return null;
       }
@@ -4007,7 +4006,8 @@ public class SqlToRelConverter {
         // e.g. "select from emp as emp join emp.getDepts() as dept".
         // Create a temporary expression.
         assert isParent;
-        DeferredLookup lookup = new DeferredLookup(this, name);
+        DeferredLookup lookup =
+            new DeferredLookup(this, qualified.identifier.names.get(0));
         String correlName = createCorrel();
         mapCorrelToDeferred.put(correlName, lookup);
         final RelDataType rowType = foundNs.getRowType();

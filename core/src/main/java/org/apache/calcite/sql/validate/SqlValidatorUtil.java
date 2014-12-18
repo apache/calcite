@@ -268,7 +268,7 @@ public class SqlValidatorUtil {
     for (int i = 0; i < names.size(); i++) {
       String name = names.get(i);
       if (i == 0) {
-        namespace = scope.resolve(name, null, null);
+        namespace = scope.resolve(ImmutableList.of(name), null, null);
       } else {
         namespace = namespace.lookupChild(name);
       }
@@ -283,15 +283,17 @@ public class SqlValidatorUtil {
       List<SqlMoniker> hints) {
     // Assume that the last name is 'dummy' or similar.
     List<String> subNames = Util.skipLast(names);
-    hints.addAll(catalogReader.getAllSchemaObjectNames(subNames));
 
-    // If the name has length 0, try prepending the name of the default
-    // schema. So, the empty name would yield a list of tables in the
-    // default schema, as well as a list of schemas from the above code.
-    if (subNames.size() == 0) {
-      hints.addAll(
-          catalogReader.getAllSchemaObjectNames(
-              catalogReader.getSchemaName()));
+    // Try successively with catalog.schema, catalog and no prefix
+    List<String> x = catalogReader.getSchemaName();
+    for (;;) {
+      final List<String> names2 =
+          ImmutableList.<String>builder().addAll(x).addAll(subNames).build();
+      hints.addAll(catalogReader.getAllSchemaObjectNames(names2));
+      if (x.isEmpty()) {
+        break;
+      }
+      x = Util.skipLast(x);
     }
   }
 
@@ -478,7 +480,7 @@ public class SqlValidatorUtil {
       final SqlValidatorScope[] ancestorScopes = {null};
       SqlValidatorNamespace foundNs =
           scope.resolve(
-              originalRelName,
+              ImmutableList.of(originalRelName),
               ancestorScopes,
               nsIndexes);
 
@@ -607,7 +609,7 @@ public class SqlValidatorUtil {
     }
 
     public SqlNode visit(SqlIdentifier id) {
-      return getScope().fullyQualify(id);
+      return getScope().fullyQualify(id).identifier;
     }
 
     public SqlNode visit(SqlDataTypeSpec type) {

@@ -2019,23 +2019,27 @@ public class Util {
     return -1;
   }
 
-  public static int match2(List<String> strings, String name,
-      boolean caseSensitive1) {
-    if (caseSensitive1) {
-      return strings.indexOf(name);
+  /** Looks for a string within a list of strings, using a given
+   * case-sensitivity policy, and returns the position at which the first match
+   * is found, or -1 if there are no matches. */
+  public static int findMatch(List<String> strings, String seek,
+      boolean caseSensitive) {
+    if (caseSensitive) {
+      return strings.indexOf(seek);
     }
     for (int i = 0; i < strings.size(); i++) {
       String s = strings.get(i);
-      if (s.equalsIgnoreCase(name)) {
+      if (s.equalsIgnoreCase(seek)) {
         return i;
       }
     }
     return -1;
   }
 
-  public static boolean match(boolean caseSensitive, String name1,
-      String name0) {
-    return caseSensitive ? name0.equals(name1) : name0.equalsIgnoreCase(name1);
+  /** Returns whether a name matches another according to a given
+   * case-sensitivity policy. */
+  public static boolean matches(boolean caseSensitive, String s0, String s1) {
+    return caseSensitive ? s1.equals(s0) : s1.equalsIgnoreCase(s0);
   }
 
   /** Returns whether one list is a prefix of another. */

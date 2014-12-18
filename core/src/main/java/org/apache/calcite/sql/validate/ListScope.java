@@ -23,6 +23,7 @@ import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 import static org.apache.calcite.util.Static.RESOURCE;
@@ -78,6 +79,47 @@ public abstract class ListScope extends DelegatingScope {
     }
   }
 
+  /** Returns a child namespace that matches a fully-qualified list of names.
+   * This will be a schema-qualified table, for example
+   *
+   * <blockquote><pre>SELECT sales.emp.empno FROM sales.emp</pre></blockquote>
+   */
+  protected SqlValidatorNamespace getChild(List<String> names) {
+    int i = findChild(names);
+    return i < 0 ? null : children.get(i).right;
+  }
+
+  protected int findChild(List<String> names) {
+    for (int i = 0; i < children.size(); i++) {
+      Pair<String, SqlValidatorNamespace> child = children.get(i);
+      if (child.left != null) {
+        if (validator.catalogReader.matches(child.left, Util.last(names))) {
+          if (names.size() == 1) {
+            return i;
+          }
+        } else {
+          // Alias does not match last segment. Don't consider the
+          // fully-qualified name. E.g.
+          //    SELECT sales.emp.name FROM sales.emp AS otherAlias
+          continue;
+        }
+      }
+
+      // Look up the 2 tables independently, in case one is qualified with
+      // catalog & schema and the other is not.
+      final SqlValidatorTable table = child.right.getTable();
+      if (table != null) {
+        final SqlValidatorTable table2 =
+            validator.catalogReader.getTable(names);
+        if (table2 != null
+            && table.getQualifiedName().equals(table2.getQualifiedName())) {
+          return i;
+        }
+      }
+    }
+    return -1;
+  }
+
   public void findAllColumnNames(List<SqlMoniker> result) {
     for (Pair<String, SqlValidatorNamespace> pair : children) {
       addColumnNames(pair.right, result);
@@ -85,22 +127,21 @@ public abstract class ListScope extends DelegatingScope {
     parent.findAllColumnNames(result);
   }
 
-  public void findAliases(List<SqlMoniker> result) {
+  public void findAliases(Collection<SqlMoniker> result) {
     for (Pair<String, SqlValidatorNamespace> pair : children) {
       result.add(new SqlMonikerImpl(pair.left, SqlMonikerType.TABLE));
     }
     parent.findAliases(result);
   }
 
-  public String findQualifyingTableName(
-      final String columnName,
-      SqlNode ctx) {
+  public Pair<String, SqlValidatorNamespace>
+  findQualifyingTableName(final String columnName, SqlNode ctx) {
     int count = 0;
-    String tableName = null;
+    Pair<String, SqlValidatorNamespace> tableName = null;
     for (Pair<String, SqlValidatorNamespace> child : children) {
       final RelDataType rowType = child.right.getRowType();
       if (validator.catalogReader.field(rowType, columnName) != null) {
-        tableName = child.left;
+        tableName = child;
         count++;
       }
     }
@@ -116,11 +157,11 @@ public abstract class ListScope extends DelegatingScope {
   }
 
   public SqlValidatorNamespace resolve(
-      String name,
+      List<String> names,
       SqlValidatorScope[] ancestorOut,
       int[] offsetOut) {
     // First resolve by looking through the child namespaces.
-    final int i = validator.catalogReader.match(Pair.left(children), name);
+    final int i = findChild(names);
     if (i >= 0) {
       if (ancestorOut != null) {
         ancestorOut[0] = this;
@@ -133,7 +174,7 @@ public abstract class ListScope extends DelegatingScope {
 
     // Then call the base class method, which will delegate to the
     // parent scope.
-    return parent.resolve(name, ancestorOut, offsetOut);
+    return parent.resolve(names, ancestorOut, offsetOut);
   }
 
   public RelDataType resolveColumn(String columnName, SqlNode ctx) {

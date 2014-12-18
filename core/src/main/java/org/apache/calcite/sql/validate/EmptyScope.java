@@ -25,7 +25,9 @@ import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlWindow;
+import org.apache.calcite.util.Pair;
 
+import java.util.Collection;
 import java.util.List;
 
 import static org.apache.calcite.util.Static.RESOURCE;
@@ -54,8 +56,8 @@ class EmptyScope implements SqlValidatorScope {
     return validator;
   }
 
-  public SqlIdentifier fullyQualify(SqlIdentifier identifier) {
-    return identifier;
+  public SqlQualified fullyQualify(SqlIdentifier identifier) {
+    return SqlQualified.create(this, 1, null, identifier);
   }
 
   public SqlNode getNode() {
@@ -63,7 +65,7 @@ class EmptyScope implements SqlValidatorScope {
   }
 
   public SqlValidatorNamespace resolve(
-      String name,
+      List<String> names,
       SqlValidatorScope[] ancestorOut,
       int[] offsetOut) {
     return null;
@@ -86,7 +88,7 @@ class EmptyScope implements SqlValidatorScope {
   public void findAllTableNames(List<SqlMoniker> result) {
   }
 
-  public void findAliases(List<SqlMoniker> result) {
+  public void findAliases(Collection<SqlMoniker> result) {
   }
 
   public RelDataType resolveColumn(String name, SqlNode ctx) {
@@ -101,7 +103,8 @@ class EmptyScope implements SqlValidatorScope {
     // valid
   }
 
-  public String findQualifyingTableName(String columnName, SqlNode ctx) {
+  public Pair<String, SqlValidatorNamespace>
+  findQualifyingTableName(String columnName, SqlNode ctx) {
     throw validator.newValidationError(ctx,
         RESOURCE.columnNotFound(columnName));
   }

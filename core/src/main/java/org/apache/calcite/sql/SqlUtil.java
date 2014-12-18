@@ -27,12 +27,15 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
+import org.apache.calcite.sql.util.SqlBasicVisitor;
 import org.apache.calcite.util.BarfingInvocationHandler;
 import org.apache.calcite.util.ConversionUtil;
 import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
+import com.google.common.base.Predicate;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
 import java.nio.charset.Charset;
@@ -764,6 +767,23 @@ public abstract class SqlUtil {
     }
   }
 
+  /** Returns a list of ancestors of {@code predicate} within a given
+   * {@code SqlNode} tree.
+   *
+   * <p>The first element of the list is {@code root}, and the last is
+   * the node that matched {@code predicate}. Throws if no node matches.
+   */
+  public static ImmutableList<SqlNode> getAncestry(SqlNode root,
+      Predicate<SqlNode> predicate, Predicate<SqlNode> postPredicate) {
+    try {
+      new Genealogist(predicate, postPredicate).visitChild(root);
+      throw new AssertionError("not found: " + predicate + " in " + root);
+    } catch (Util.FoundOne e) {
+      //noinspection unchecked
+      return (ImmutableList<SqlNode>) e.getNode();
+    }
+  }
+
   //~ Inner Classes ----------------------------------------------------------
 
   /**
@@ -790,6 +810,85 @@ public abstract class SqlUtil {
 
     public String getIdentifierQuoteString() throws SQLException {
       return identifierQuoteString;
+    }
+  }
+
+  /** Walks over a {@link org.apache.calcite.sql.SqlNode} tree and returns the
+   * ancestry stack when it finds a given node. */
+  private static class Genealogist extends SqlBasicVisitor<Void> {
+    private final List<SqlNode> ancestors = Lists.newArrayList();
+    private final Predicate<SqlNode> predicate;
+    private final Predicate<SqlNode> postPredicate;
+
+    Genealogist(Predicate<SqlNode> predicate,
+        Predicate<SqlNode> postPredicate) {
+      this.predicate = predicate;
+      this.postPredicate = postPredicate;
+    }
+
+    private Void check(SqlNode node) {
+      preCheck(node);
+      postCheck(node);
+      return null;
+    }
+
+    private Void preCheck(SqlNode node) {
+      if (predicate.apply(node)) {
+        throw new Util.FoundOne(ImmutableList.copyOf(ancestors));
+      }
+      return null;
+    }
+
+    private Void postCheck(SqlNode node) {
+      if (postPredicate.apply(node)) {
+        throw new Util.FoundOne(ImmutableList.copyOf(ancestors));
+      }
+      return null;
+    }
+
+    private void visitChild(SqlNode node) {
+      if (node == null) {
+        return;
+      }
+      ancestors.add(node);
+      node.accept(this);
+      ancestors.remove(ancestors.size() - 1);
+    }
+
+    @Override public Void visit(SqlIdentifier id) {
+      return check(id);
+    }
+
+    @Override public Void visit(SqlCall call) {
+      preCheck(call);
+      for (SqlNode node : call.getOperandList()) {
+        visitChild(node);
+      }
+      return postCheck(call);
+    }
+
+    @Override public Void visit(SqlIntervalQualifier intervalQualifier) {
+      return check(intervalQualifier);
+    }
+
+    @Override public Void visit(SqlLiteral literal) {
+      return check(literal);
+    }
+
+    @Override public Void visit(SqlNodeList nodeList) {
+      preCheck(nodeList);
+      for (SqlNode node : nodeList) {
+        visitChild(node);
+      }
+      return postCheck(nodeList);
+    }
+
+    @Override public Void visit(SqlDynamicParam param) {
+      return check(param);
+    }
+
+    @Override public Void visit(SqlDataTypeSpec type) {
+      return check(type);
     }
   }
 }

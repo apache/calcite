@@ -18,6 +18,21 @@
 !use post
 !set outputformat mysql
 
+# [CALCITE-356] Allow column references of the form schema.table.column
+select "hr"."emps"."empid"
+from "hr"."emps";
++-------+
+| empid |
++-------+
+|   100 |
+|   110 |
+|   150 |
+|   200 |
++-------+
+(4 rows)
+
+!ok
+
 # CALCITE-307 CAST(timestamp AS DATE) gives ClassCastException
 # Based on DRILL-1051
 !if (false) {

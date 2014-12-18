@@ -18,12 +18,30 @@ package org.apache.calcite.sql.validate;
 
 import org.apache.calcite.sql.SqlIdentifier;
 
+import com.google.common.collect.Ordering;
+
+import java.util.Comparator;
 import java.util.List;
 
 /**
  * An interface of an object identifier that represents a SqlIdentifier
  */
 public interface SqlMoniker {
+  Comparator<SqlMoniker> COMPARATOR =
+      new Comparator<SqlMoniker>() {
+        final Ordering<Iterable<String>> listOrdering =
+            Ordering.<String>natural().lexicographical();
+
+        public int compare(SqlMoniker o1, SqlMoniker o2) {
+          int c = o1.getType().compareTo(o2.getType());
+          if (c == 0) {
+            c = listOrdering.compare(o1.getFullyQualifiedNames(),
+                o2.getFullyQualifiedNames());
+          }
+          return c;
+        }
+      };
+
   //~ Methods ----------------------------------------------------------------
 
   /**

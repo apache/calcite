@@ -209,8 +209,12 @@ public class CalciteCatalogReader implements Prepare.CatalogReader,
     return field != null ? field.getIndex() : -1;
   }
 
+  public boolean matches(String string, String name) {
+    return Util.matches(caseSensitive, string, name);
+  }
+
   public int match(List<String> strings, String name) {
-    return Util.match2(strings, name, caseSensitive);
+    return Util.findMatch(strings, name, caseSensitive);
   }
 
   public RelDataType createTypeFromProjection(final RelDataType type,

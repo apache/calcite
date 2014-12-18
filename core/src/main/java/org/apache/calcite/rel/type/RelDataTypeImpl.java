@@ -79,7 +79,7 @@ public abstract class RelDataTypeImpl
   // implement RelDataType
   public RelDataTypeField getField(String fieldName, boolean caseSensitive) {
     for (RelDataTypeField field : fieldList) {
-      if (Util.match(caseSensitive, field.getName(), fieldName)) {
+      if (Util.matches(caseSensitive, field.getName(), fieldName)) {
         return field;
       }
     }

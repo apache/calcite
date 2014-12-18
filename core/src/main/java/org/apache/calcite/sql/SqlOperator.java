@@ -30,6 +30,7 @@ import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.util.Util;
 
+import java.util.Arrays;
 import java.util.List;
 
 import static org.apache.calcite.util.Static.RESOURCE;
@@ -232,7 +233,7 @@ public abstract class SqlOperator {
       SqlLiteral functionQualifier,
       SqlParserPos pos,
       SqlNode... operands) {
-    pos = pos.plusAll(operands);
+    pos = pos.plusAll(Arrays.asList(operands));
     return new SqlBasicCall(this, operands, pos, false, functionQualifier);
   }
 
