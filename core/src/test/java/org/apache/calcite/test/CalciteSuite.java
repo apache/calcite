@@ -116,6 +116,7 @@ import org.junit.runners.Suite;
 
     // test cases
     TableInRootSchemaTest.class,
+    RelMdColumnOriginsTest.class,
     MultiJdbcSchemaJoinTest.class,
 
     // slow tests that don't break often
