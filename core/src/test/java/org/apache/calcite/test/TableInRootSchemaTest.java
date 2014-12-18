@@ -77,11 +77,15 @@ public class TableInRootSchemaTest {
     assertThat(resultSetMetaData.getColumnName(1), equalTo("A"));
     assertThat(resultSetMetaData.getTableName(1), equalTo("SAMPLE"));
     assertThat(resultSetMetaData.getSchemaName(1), nullValue());
+    assertThat(resultSetMetaData.getColumnClassName(1),
+        equalTo("java.lang.String"));
     // Per JDBC, column name should be null. But DBUnit requires every column
     // to have a name, so the driver uses the label.
     assertThat(resultSetMetaData.getColumnName(2), equalTo("EXPR$1"));
     assertThat(resultSetMetaData.getTableName(2), nullValue());
     assertThat(resultSetMetaData.getSchemaName(2), nullValue());
+    assertThat(resultSetMetaData.getColumnClassName(2),
+        equalTo("java.lang.Integer"));
     resultSet.close();
     statement.close();
     connection.close();

@@ -554,6 +554,8 @@ public class CalcitePrepareImpl implements CalcitePrepare {
   private ColumnMetaData metaData(JavaTypeFactory typeFactory, int ordinal,
       String fieldName, RelDataType type, RelDataType fieldType,
       List<String> origins) {
+    final ColumnMetaData.AvaticaType avaticaType =
+        avaticaType(typeFactory, type, fieldType);
     return new ColumnMetaData(
         ordinal,
         false,
@@ -572,11 +574,11 @@ public class CalcitePrepareImpl implements CalcitePrepare {
         getScale(type),
         origin(origins, 1),
         null,
-        avaticaType(typeFactory, type, fieldType),
+        avaticaType,
         true,
         false,
         false,
-        getClassName(type));
+        avaticaType.columnClassName());
   }
 
   private ColumnMetaData.AvaticaType avaticaType(JavaTypeFactory typeFactory,

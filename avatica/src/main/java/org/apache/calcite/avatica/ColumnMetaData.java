@@ -22,6 +22,8 @@ import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 
 import java.lang.reflect.Type;
+import java.math.BigDecimal;
+import java.sql.Array;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSetMetaData;
 import java.sql.Time;
@@ -150,11 +152,12 @@ public class ColumnMetaData {
         -1,
         -1,
         null,
-        null, type,
+        null,
+        type,
         true,
         false,
         false,
-        null);
+        type.columnClassName());
   }
 
   /** Description of the type used to internally represent a value. For example,
@@ -229,6 +232,10 @@ public class ColumnMetaData {
       this.representation = representation;
       assert representation != null;
     }
+
+    public String columnClassName() {
+      return SqlType.valueOf(type).clazz.getName();
+    }
   }
 
   /** Scalar type. */
@@ -260,6 +267,60 @@ public class ColumnMetaData {
         AvaticaType component) {
       super(type, typeName, representation);
       this.component = component;
+    }
+  }
+
+  /** Extends the information in {@link java.sql.Types}. */
+  private enum SqlType {
+    BOOLEAN(Types.BOOLEAN, Boolean.class),
+    TINYINT(Types.TINYINT, Byte.class),
+    SMALLINT(Types.SMALLINT, Short.class),
+    INTEGER(Types.INTEGER, Integer.class),
+    BIGINT(Types.BIGINT, Long.class),
+    DECIMAL(Types.DECIMAL, BigDecimal.class),
+    FLOAT(Types.FLOAT, Float.class),
+    REAL(Types.REAL, Float.class),
+    DOUBLE(Types.DOUBLE, Double.class),
+    DATE(Types.DATE, java.sql.Date.class),
+    TIME(Types.TIME, Time.class),
+    TIMESTAMP(Types.TIMESTAMP, Timestamp.class),
+    INTERVAL_YEAR_MONTH(Types.OTHER, Boolean.class),
+    INTERVAL_DAY_TIME(Types.OTHER, Boolean.class),
+    CHAR(Types.CHAR, String.class),
+    VARCHAR(Types.VARCHAR, String.class),
+    BINARY(Types.BINARY, byte[].class),
+    VARBINARY(Types.VARBINARY, byte[].class),
+    NULL(Types.NULL, Void.class),
+    ANY(Types.JAVA_OBJECT, Object.class),
+    SYMBOL(Types.OTHER, Object.class),
+    MULTISET(Types.ARRAY, List.class),
+    ARRAY(Types.ARRAY, Array.class),
+    MAP(Types.OTHER, Map.class),
+    DISTINCT(Types.DISTINCT, Object.class),
+    STRUCTURED(Types.STRUCT, Object.class),
+    ROW(Types.STRUCT, Object.class),
+    OTHER(Types.OTHER, Object.class),
+    CURSOR(2012, Object.class),
+    COLUMN_LIST(Types.OTHER + 2, Object.class);
+
+    private final int type;
+    private final Class clazz;
+
+    private static final Map<Integer, SqlType> BY_ID =
+        new HashMap<Integer, SqlType>();
+    static {
+      for (SqlType sqlType : values()) {
+        BY_ID.put(sqlType.type, sqlType);
+      }
+    }
+
+    SqlType(int type, Class clazz) {
+      this.type = type;
+      this.clazz = clazz;
+    }
+
+    public static SqlType valueOf(int type) {
+      return BY_ID.get(type);
     }
   }
 }

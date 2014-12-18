@@ -34,6 +34,9 @@ import org.apache.calcite.schema.impl.AbstractSchema;
 import org.apache.calcite.schema.impl.TableMacroImpl;
 import org.apache.calcite.schema.impl.ViewTable;
 
+import com.google.common.base.Function;
+
+import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -42,6 +45,7 @@ import java.lang.reflect.Method;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Time;
@@ -54,7 +58,9 @@ import java.util.List;
 
 import static org.apache.calcite.test.JdbcTest.Employee;
 
+import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -323,6 +329,56 @@ public class ReflectiveSchemaTest {
           + "from \"s\".\"everyTypes\"")
           .returns(CalciteAssert.<ResultSet, Void>constantNull());
     }
+  }
+
+  @Test public void testClassNames() throws Exception {
+    CalciteAssert.that()
+        .with("s", new CatchallSchema())
+        .query("select * from \"s\".\"everyTypes\"")
+        .returns(
+            new Function<ResultSet, Void>() {
+              public Void apply(ResultSet input) {
+                try {
+                  final ResultSetMetaData metaData = input.getMetaData();
+                  check(metaData, "primitiveBoolean", Boolean.class);
+                  check(metaData, "primitiveByte", Byte.class);
+                  check(metaData, "primitiveChar", String.class);
+                  check(metaData, "primitiveShort", Short.class);
+                  check(metaData, "primitiveInt", Integer.class);
+                  check(metaData, "primitiveLong", Long.class);
+                  check(metaData, "primitiveFloat", Float.class);
+                  check(metaData, "primitiveDouble", Double.class);
+                  check(metaData, "wrapperBoolean", Boolean.class);
+                  check(metaData, "wrapperByte", Byte.class);
+                  check(metaData, "wrapperCharacter", String.class);
+                  check(metaData, "wrapperShort", Short.class);
+                  check(metaData, "wrapperInteger", Integer.class);
+                  check(metaData, "wrapperLong", Long.class);
+                  check(metaData, "wrapperFloat", Float.class);
+                  check(metaData, "wrapperDouble", Double.class);
+                  check(metaData, "sqlDate", java.sql.Date.class);
+                  check(metaData, "sqlTime", Time.class);
+                  check(metaData, "sqlTimestamp", Timestamp.class);
+                  check(metaData, "utilDate", Timestamp.class);
+                  check(metaData, "string", String.class);
+                  return null;
+                } catch (SQLException e) {
+                  throw new RuntimeException(e);
+                }
+              }
+
+              private void check(ResultSetMetaData metaData, String columnName,
+                  Class expectedType) throws SQLException {
+                for (int i = 1; i <= metaData.getColumnCount(); i++) {
+                  if (metaData.getColumnName(i).equals(columnName)) {
+                    assertThat(metaData.getColumnClassName(i),
+                        equalTo(expectedType.getName()));
+                    return;
+                  }
+                }
+                Assert.fail("column not found: " + columnName);
+              }
+            });
   }
 
   @Test public void testJavaBoolean() throws Exception {

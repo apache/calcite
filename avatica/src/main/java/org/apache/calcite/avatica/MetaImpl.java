@@ -187,7 +187,8 @@ public abstract class MetaImpl implements Meta {
             ? DatabaseMetaData.columnNullable
             : DatabaseMetaData.columnNoNulls,
         true, -1, name, name, null,
-        0, 0, null, null, scalarType, true, false, false, null);
+        0, 0, null, null, scalarType, true, false, false,
+        scalarType.columnClassName());
   }
 
   protected static ColumnMetaData.StructType fieldMetaData(Class clazz) {
