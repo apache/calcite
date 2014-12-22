@@ -128,7 +128,8 @@ class SqlItemOperator extends SqlSpecialOperator {
       return typeFactory.createTypeWithNullability(operandType.getValueType(),
           true);
     case ANY:
-      return typeFactory.createSqlType(SqlTypeName.ANY);
+      return typeFactory.createTypeWithNullability(
+          typeFactory.createSqlType(SqlTypeName.ANY), true);
     default:
       throw new AssertionError();
     }
