@@ -4296,6 +4296,9 @@ public abstract class SqlOperatorBaseTest {
         "map['foo', CAST(NULL AS INTEGER), 'bar', 7]['baz']",
         "INTEGER",
         null);
+    tester.checkColumnType(
+        "select cast(null as any)['x'] from (values(1))",
+        "ANY");
   }
 
   @Test public void testMapValueConstructor() {
