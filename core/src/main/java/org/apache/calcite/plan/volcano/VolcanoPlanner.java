@@ -982,15 +982,12 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
   }
 
   public RelSubset ensureRegistered(RelNode rel, RelNode equivRel) {
-    final RelSubset subset = mapRel2Subset.get(rel);
+    final RelSubset subset = getSubset(rel);
     if (subset != null) {
       if (equivRel != null) {
         final RelSubset equivSubset = getSubset(equivRel);
-        if (equivSubset != subset) {
-          assert subset.set != equivSubset.set
-              : "Same set, different subsets means rel and equivRel"
-              + " have different traits, and that's an error";
-          merge(subset.set, equivSubset.set);
+        if (subset.set != equivSubset.set) {
+          merge(equivSubset.set, subset.set);
         }
       }
       return subset;
@@ -1456,8 +1453,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
       set = set.equivalentSet;
     } while (set.equivalentSet != null);
     return set.getOrCreateSubset(
-        subset.getCluster(),
-        subset.getTraitSet());
+        subset.getCluster(), subset.getTraitSet());
   }
 
   /**
@@ -1506,9 +1502,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     return changeCount > 0;
   }
 
-  private void merge(
-      RelSet set,
-      RelSet set2) {
+  private RelSet merge(RelSet set, RelSet set2) {
     assert set != set2 : "pre: set != set2";
     assert set.equivalentSet == null;
 
@@ -1529,7 +1523,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
       // Looks like set2 was already marked as equivalent to set. Nothing
       // to do.
       if (set2 == set) {
-        return;
+        return set;
       }
     }
 
@@ -1552,6 +1546,8 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
               root.getCluster(),
               root.getTraitSet());
     }
+
+    return set;
   }
 
   /**
@@ -1564,18 +1560,15 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
    *         {@link RelSubset}, or an unregistered {@link RelNode}
    * @param set set that rel belongs to, or <code>null</code>
    * @return the equivalence-set
-   * @pre rel instanceof RelSubset || !isRegistered(rel)
    */
   private RelSubset registerImpl(
       RelNode rel,
       RelSet set) {
-    assert (rel instanceof RelSubset) || !isRegistered(rel)
-        : "pre: rel instanceof RelSubset || !isRegistered(rel)"
-        + " : {rel=" + rel + "}";
     if (rel instanceof RelSubset) {
       return registerSubset(set, (RelSubset) rel);
     }
 
+    assert !isRegistered(rel) : "already been registered: " + rel;
     if (rel.getCluster().getPlanner() != this) {
       throw Util.newInternal("Relational expression " + rel
           + " belongs to a different planner than is currently being"
@@ -1784,7 +1777,6 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
       RelSubset subset) {
     if ((set != subset.set)
         && (set != null)
-        && (set.equivalentSet == null)
         && (subset.set.equivalentSet == null)) {
       LOGGER.finer("Register #" + subset.getId() + " " + subset
           + ", and merge sets");

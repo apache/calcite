@@ -218,6 +218,12 @@ public interface RelOptPlanner {
   /**
    * Registers a relational expression if it is not already registered.
    *
+   * <p>If {@code equivRel} is specified, {@code rel} is placed in the same
+   * equivalence set. It is OK if {@code equivRel} has different traits;
+   * {@code rel} will end up in a different subset of the same set.
+   *
+   * <p>It is OK if {@code rel} is a subset.
+   *
    * @param rel      Relational expression to register
    * @param equivRel Relational expression it is equivalent to (may be null)
    * @return Registered relational expression
