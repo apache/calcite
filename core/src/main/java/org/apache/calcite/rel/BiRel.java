@@ -75,8 +75,7 @@ public abstract class BiRel extends AbstractRelNode {
     recomputeDigest();
   }
 
-  @Override
-  public RelWriter explainTerms(RelWriter pw) {
+  @Override public RelWriter explainTerms(RelWriter pw) {
     return super.explainTerms(pw)
         .input("left", left)
         .input("right", right);

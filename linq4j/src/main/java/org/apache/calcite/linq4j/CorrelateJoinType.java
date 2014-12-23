@@ -31,17 +31,20 @@ public enum CorrelateJoinType {
   LEFT,
 
   /**
-   * Semi-join
-   * <p>Similar to from A ... where a in (select b from B ...)</p>
+   * Semi-join.
+   *
+   * <p>Similar to {@code from A ... where a in (select b from B ...)}</p>
    */
   SEMI,
 
   /**
-   * Anti-join
-   * <p>Similar to from A ... where a NOT in (select b from B ...)</p>
-   * <p>Note: if B.b is nullable and B has nulls, no rows must be returned</p>
+   * Anti-join.
+   *
+   * <p>Similar to {@code from A ... where a NOT in (select b from B ...)}
+   *
+   * <p>Note: if B.b is nullable and B has nulls, no rows must be returned.
    */
   ANTI;
 }
 
-// End SemiJoinType.java
+// End CorrelateJoinType.java

@@ -47,8 +47,7 @@ public class DeduplicateCorrelateVariables extends RelHomogeneousShuttle {
       this.altNames = altNames;
     }
 
-    @Override
-    public RexNode visitCorrelVariable(RexCorrelVariable variable) {
+    @Override public RexNode visitCorrelVariable(RexCorrelVariable variable) {
       if (!altNames.contains(variable.getName())) {
         return variable;
       }

@@ -108,8 +108,7 @@ public class JoinToCorrelateRule extends RelOptRule {
 
     // Replace all references of left input with FieldAccess(corrVar, field)
     joinCondition = joinCondition.accept(new RexShuttle() {
-      @Override
-      public RexNode visitInputRef(RexInputRef input) {
+      @Override public RexNode visitInputRef(RexInputRef input) {
         int field = input.getIndex();
         if (field >= leftFieldCount) {
           return rexBuilder.makeInputRef(input.getType(),
