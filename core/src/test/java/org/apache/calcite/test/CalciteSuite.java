@@ -83,6 +83,7 @@ import org.junit.runners.Suite;
     BinarySearchTest.class,
     EnumerablesTest.class,
     ExceptionMessageTest.class,
+    InduceGroupingTypeTest.class,
 
     // medium tests (above 0.1s)
     SqlParserTest.class,
