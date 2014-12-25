@@ -2379,7 +2379,7 @@ LogicalProject(EXPR$0=[1])
 ]]>
         </Resource>
     </TestCase>
-    <TestCase name="testTransitiveInferencePreventProjectPullup">
+    <TestCase name="testTransitiveInferencePreventProjectPullUp">
         <Resource name="sql">
             <![CDATA[select 1 from (select comm as deptno from sales.emp where deptno > 7) d inner join sales.emp e on d.deptno = e.deptno ]]>
         </Resource>
@@ -2404,7 +2404,7 @@ LogicalProject(EXPR$0=[1])
 ]]>
         </Resource>
     </TestCase>
-    <TestCase name="testTransitiveInferencePullupThruAlias">
+    <TestCase name="testTransitiveInferencePullUpThruAlias">
         <Resource name="sql">
             <![CDATA[select 1 from (select comm as deptno from sales.emp where comm > 7) d inner join sales.emp e on d.deptno = e.deptno ]]>
         </Resource>
@@ -2636,6 +2636,110 @@ LogicalProject(EXPR$0=[1])
     LogicalFilter(condition=[>($7, 7)])
       LogicalFilter(condition=[=($5, $7)])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testPullConstantIntoProject">
+        <Resource name="sql">
+            <![CDATA[select deptno, deptno + 1, empno + deptno from sales.emp where deptno = 10]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(DEPTNO=[$7], EXPR$1=[+($7, 1)], EXPR$2=[+($0, $7)])
+  LogicalFilter(condition=[=($7, 10)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(DEPTNO=[10], EXPR$1=[11], EXPR$2=[+($0, 10)])
+  LogicalFilter(condition=[=($7, 10)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testPullConstantIntoFilter">
+        <Resource name="sql">
+            <![CDATA[select * from (select * from sales.emp where deptno = 10) where deptno + 5 > empno]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+    LogicalFilter(condition=[>(+($7, 5), $0)])
+      LogicalFilter(condition=[=($7, 10)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+    LogicalFilter(condition=[>(15, $0)])
+      LogicalFilter(condition=[=($7, 10)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testPullConstantIntoJoin">
+        <Resource name="sql">
+            <![CDATA[select *
+    from (select * from sales.emp where empno = 10) as e
+    left join sales.dept as d on e.empno = d.deptno]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], NAME=[$10])
+  LogicalJoin(condition=[=($0, $9)], joinType=[left])
+    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+      LogicalFilter(condition=[=($0, 10)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], NAME=[$10])
+  LogicalJoin(condition=[true], joinType=[left])
+    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+      LogicalFilter(condition=[=($0, 10)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalFilter(condition=[=($0, 10)])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testPullConstantIntoJoin2">
+        <Resource name="sql">
+            <![CDATA[select *
+    from (select * from sales.emp where empno = 10) as e
+    join sales.dept as d on e.empno = d.deptno and e.deptno + e.empno = d.deptno + 5]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], NAME=[$10])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$10], NAME=[$11])
+    LogicalJoin(condition=[AND(=($0, $10), =($9, $12))], joinType=[inner])
+      LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], $f9=[+($7, $0)])
+        LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+          LogicalFilter(condition=[=($0, 10)])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalProject(DEPTNO=[$0], NAME=[$1], $f2=[+($0, 5)])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], NAME=[$10])
+  LogicalProject(EMPNO=[10], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$10], NAME=[$11])
+    LogicalJoin(condition=[AND(=(10, $10), =($9, $12))], joinType=[inner])
+      LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], $f9=[+($7, $0)])
+        LogicalProject(EMPNO=[10], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+          LogicalFilter(condition=[=($0, 10)])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalProject(DEPTNO=[10], NAME=[$1], $f2=[15])
+        LogicalFilter(condition=[=($0, 10)])
+          LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
         </Resource>
     </TestCase>

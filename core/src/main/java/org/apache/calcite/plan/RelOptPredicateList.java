@@ -17,8 +17,10 @@
 package org.apache.calcite.plan;
 
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexUtil;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 
 /**
  * Predicates that are known to hold in the output of a particular relational
@@ -68,6 +70,20 @@ public class RelOptPredicateList {
     }
     return new RelOptPredicateList(pulledUpPredicatesList,
         leftInferredPredicateList, rightInferredPredicatesList);
+  }
+
+  public RelOptPredicateList union(RelOptPredicateList list) {
+    return RelOptPredicateList.of(
+        Iterables.concat(pulledUpPredicates, list.pulledUpPredicates),
+        Iterables.concat(leftInferredPredicates, list.leftInferredPredicates),
+        Iterables.concat(rightInferredPredicates,
+            list.rightInferredPredicates));
+  }
+
+  public RelOptPredicateList shift(int offset) {
+    return RelOptPredicateList.of(RexUtil.shift(pulledUpPredicates, offset),
+        RexUtil.shift(leftInferredPredicates, offset),
+        RexUtil.shift(rightInferredPredicates, offset));
   }
 }
 

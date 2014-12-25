@@ -743,7 +743,7 @@ public class RexToLixTranslator {
         return Expressions.convert_(
             operand, toPrimitive.primitiveClass);
       }
-      if (fromNumber) {
+      if (fromNumber || fromBox == Primitive.CHAR) {
         // Generate "x.shortValue()".
         return Expressions.unbox(operand, toPrimitive);
       } else {

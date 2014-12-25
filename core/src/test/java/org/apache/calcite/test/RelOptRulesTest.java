@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.test;
 
+import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.hep.HepMatchOrder;
 import org.apache.calcite.plan.hep.HepPlanner;
@@ -76,6 +77,7 @@ import com.google.common.collect.Lists;
 import org.junit.Ignore;
 import org.junit.Test;
 
+import java.util.Arrays;
 import java.util.List;
 
 import static org.junit.Assert.assertTrue;
@@ -1123,7 +1125,7 @@ public class RelOptRulesTest extends RelOptTestBase {
             + "group by rollup(x, y)");
   }
 
-  public void transitiveInference() throws Exception {
+  public void transitiveInference(RelOptRule... extraRules) throws Exception {
     final DiffRepository diffRepos = getDiffRepos();
     String sql = diffRepos.expand(null, "${sql}");
 
@@ -1161,6 +1163,7 @@ public class RelOptRulesTest extends RelOptTestBase {
         .addRuleInstance(FilterProjectTransposeRule.INSTANCE)
         .addRuleInstance(FilterSetOpTransposeRule.INSTANCE)
         .addRuleInstance(JoinPushTransitivePredicatesRule.INSTANCE)
+        .addRuleCollection(Arrays.asList(extraRules))
         .build();
     HepPlanner planner2 = new HepPlanner(program2);
     planner.registerMetadataProviders(list);
@@ -1207,12 +1210,12 @@ public class RelOptRulesTest extends RelOptTestBase {
     transitiveInference();
   }
 
-  @Test public void testTransitiveInferencePreventProjectPullup()
+  @Test public void testTransitiveInferencePreventProjectPullUp()
       throws Exception {
     transitiveInference();
   }
 
-  @Test public void testTransitiveInferencePullupThruAlias() throws Exception {
+  @Test public void testTransitiveInferencePullUpThruAlias() throws Exception {
     transitiveInference();
   }
 
@@ -1247,6 +1250,24 @@ public class RelOptRulesTest extends RelOptTestBase {
 
   @Test public void testTransitiveInferenceComplexPredicate() throws Exception {
     transitiveInference();
+  }
+
+  @Test public void testPullConstantIntoProject() throws Exception {
+    transitiveInference(ReduceExpressionsRule.PROJECT_INSTANCE);
+  }
+
+  @Test public void testPullConstantIntoFilter() throws Exception {
+    transitiveInference(ReduceExpressionsRule.FILTER_INSTANCE);
+  }
+
+  @Test public void testPullConstantIntoJoin() throws Exception {
+    transitiveInference(ReduceExpressionsRule.JOIN_INSTANCE);
+  }
+
+  @Test public void testPullConstantIntoJoin2() throws Exception {
+    transitiveInference(ReduceExpressionsRule.JOIN_INSTANCE,
+        ReduceExpressionsRule.PROJECT_INSTANCE,
+        FilterProjectTransposeRule.INSTANCE);
   }
 
   @Test public void testPushFilterWithRank() throws Exception {

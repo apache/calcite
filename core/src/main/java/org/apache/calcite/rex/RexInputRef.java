@@ -68,6 +68,16 @@ public class RexInputRef extends RexSlot {
 
   //~ Methods ----------------------------------------------------------------
 
+  @Override public boolean equals(Object obj) {
+    return this == obj
+        || obj instanceof RexInputRef
+        && index == ((RexInputRef) obj).index;
+  }
+
+  @Override public int hashCode() {
+    return index;
+  }
+
   /**
    * Creates a reference to a given field in a row type.
    */

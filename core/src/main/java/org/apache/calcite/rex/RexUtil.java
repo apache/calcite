@@ -1007,12 +1007,14 @@ public class RexUtil {
    * Shifts every {@link RexInputRef} in an expression by {@code offset}.
    */
   public static RexNode shift(RexNode node, final int offset) {
-    return node.accept(
-        new RexShuttle() {
-          @Override public RexNode visitInputRef(RexInputRef input) {
-            return new RexInputRef(input.getIndex() + offset, input.getType());
-          }
-        });
+    return node.accept(new RexShiftShuttle(offset));
+  }
+
+  /**
+   * Shifts every {@link RexInputRef} in an expression by {@code offset}.
+   */
+  public static Iterable<RexNode> shift(Iterable<RexNode> nodes, int offset) {
+    return new RexShiftShuttle(offset).apply(nodes);
   }
 
   /**
@@ -1352,6 +1354,20 @@ public class RexUtil {
 
     private RexNode or(Iterable<? extends RexNode> nodes) {
       return composeDisjunction(rexBuilder, nodes, false);
+    }
+  }
+
+  /** Shuttle that adds {@code offset} to each {@link RexInputRef} in an
+   * expression. */
+  private static class RexShiftShuttle extends RexShuttle {
+    private final int offset;
+
+    public RexShiftShuttle(int offset) {
+      this.offset = offset;
+    }
+
+    @Override public RexNode visitInputRef(RexInputRef input) {
+      return new RexInputRef(input.getIndex() + offset, input.getType());
     }
   }
 }

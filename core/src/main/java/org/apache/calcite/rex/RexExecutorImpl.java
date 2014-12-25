@@ -57,6 +57,7 @@ public class RexExecutorImpl implements RelOptPlanner.Executor {
     final RelDataType emptyRowType = typeFactory.builder().build();
     return compile(rexBuilder, constExps, getter, emptyRowType);
   }
+
   private String compile(RexBuilder rexBuilder, List<RexNode> constExps,
       RexToLixTranslator.InputGetter getter, RelDataType rowType) {
     final RexProgramBuilder programBuilder =

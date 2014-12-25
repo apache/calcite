@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.rel.rules;
 
+import org.apache.calcite.plan.RelOptPredicateList;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptRuleOperand;
@@ -172,7 +173,8 @@ public abstract class ValuesReduceRule extends RelOptRule {
     assert reducibleExps.size() == (values.getTuples().size() * fieldsPerRow);
 
     // Compute the values they reduce to.
-    ReduceExpressionsRule.reduceExpressions(values, reducibleExps);
+    final RelOptPredicateList predicates = RelOptPredicateList.EMPTY;
+    ReduceExpressionsRule.reduceExpressions(values, reducibleExps, predicates);
 
     int changeCount = 0;
     final ImmutableList.Builder<ImmutableList<RexLiteral>> tuplesBuilder =
