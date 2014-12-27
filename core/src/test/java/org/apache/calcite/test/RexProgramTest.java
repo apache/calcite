@@ -204,8 +204,7 @@ public class RexProgramTest {
         "(expr#0..1=[{inputs}], expr#2=[+($t0, $t1)], expr#3=[1], "
             + "expr#4=[+($t0, $t3)], expr#5=[+($t2, $t4)], "
             + "expr#6=[+($t0, $t0)], expr#7=[>($t2, $t0)], "
-            + "expr#8=[AND($t7, $t7)], expr#9=[AND($t8, $t7)], "
-            + "a=[$t5], b=[$t6], $condition=[$t9])",
+            + "a=[$t5], b=[$t6], $condition=[$t7])",
         program);
   }
 

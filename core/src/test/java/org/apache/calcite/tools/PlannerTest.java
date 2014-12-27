@@ -304,7 +304,7 @@ public class PlannerTest {
         "select * from \"emps\" where \"deptno\" < 10\n"
             + "union all\n"
             + "select * from \"emps\" where \"deptno\" < 10 or \"empid\" > 1",
-        "[OR(<($1, 10), <($1, 10), >($0, 1))]");
+        "[OR(<($1, 10), >($0, 1))]");
   }
 
   /** Unit test that parses, validates, converts and plans. */
