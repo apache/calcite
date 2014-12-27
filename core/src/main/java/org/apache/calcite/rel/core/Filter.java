@@ -20,6 +20,7 @@ import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.prepare.CalcitePrepareImpl;
 import org.apache.calcite.rel.RelInput;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelWriter;
@@ -72,7 +73,7 @@ public abstract class Filter extends SingleRel {
     assert RexUtil.isFlat(condition) : condition;
     this.condition = condition;
     // Too expensive for everyday use:
-    // assert isValid(true);
+    assert !CalcitePrepareImpl.DEBUG || isValid(true);
   }
 
   /**
@@ -110,6 +111,10 @@ public abstract class Filter extends SingleRel {
   }
 
   @Override public boolean isValid(boolean fail) {
+    if (RexUtil.isNullabilityCast(getCluster().getTypeFactory(), condition)) {
+      assert !fail : "Cast for just nullability not allowed";
+      return false;
+    }
     final RexChecker checker = new RexChecker(getInput().getRowType(), fail);
     condition.accept(checker);
     if (checker.getFailureCount() > 0) {

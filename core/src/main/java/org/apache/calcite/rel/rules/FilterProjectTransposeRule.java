@@ -23,8 +23,11 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.RelFactories;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexOver;
+import org.apache.calcite.rex.RexUtil;
 
 /**
  * Planner rule that pushes
@@ -70,10 +73,10 @@ public class FilterProjectTransposeRule extends RelOptRule {
 
   // implement RelOptRule
   public void onMatch(RelOptRuleCall call) {
-    final Filter filterRel = call.rel(0);
-    final Project projRel = call.rel(1);
+    final Filter filter = call.rel(0);
+    final Project project = call.rel(1);
 
-    if (RexOver.containsOver(projRel.getProjects(), null)) {
+    if (RexOver.containsOver(project.getProjects(), null)) {
       // In general a filter cannot be pushed below a windowing calculation.
       // Applying the filter before the aggregation function changes
       // the results of the windowing invocation.
@@ -85,20 +88,28 @@ public class FilterProjectTransposeRule extends RelOptRule {
 
     // convert the filter to one that references the child of the project
     RexNode newCondition =
-        RelOptUtil.pushFilterPastProject(filterRel.getCondition(), projRel);
+        RelOptUtil.pushFilterPastProject(filter.getCondition(), project);
+
+    // Remove cast of BOOLEAN NOT NULL to BOOLEAN or vice versa. Filter accepts
+    // nullable and not-nullable conditions, but a CAST might get in the way of
+    // other rewrites.
+    final RelDataTypeFactory typeFactory = filter.getCluster().getTypeFactory();
+    if (RexUtil.isNullabilityCast(typeFactory, newCondition)) {
+      newCondition = ((RexCall) newCondition).getOperands().get(0);
+    }
 
     RelNode newFilterRel =
         filterFactory == null
-            ? filterRel.copy(filterRel.getTraitSet(), projRel.getInput(),
+            ? filter.copy(filter.getTraitSet(), project.getInput(),
                 newCondition)
-            : filterFactory.createFilter(projRel.getInput(), newCondition);
+            : filterFactory.createFilter(project.getInput(), newCondition);
 
     RelNode newProjRel =
         projectFactory == null
-            ? projRel.copy(projRel.getTraitSet(), newFilterRel,
-                projRel.getProjects(), projRel.getRowType())
-            : projectFactory.createProject(newFilterRel, projRel.getProjects(),
-                projRel.getRowType().getFieldNames());
+            ? project.copy(project.getTraitSet(), newFilterRel,
+                project.getProjects(), project.getRowType())
+            : projectFactory.createProject(newFilterRel, project.getProjects(),
+                project.getRowType().getFieldNames());
 
     call.transformTo(newProjRel);
   }

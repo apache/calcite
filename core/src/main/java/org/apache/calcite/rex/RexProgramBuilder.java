@@ -36,7 +36,7 @@ import java.util.Map;
  *
  * <p>RexProgramBuilder is necessary because a {@link RexProgram} is immutable.
  * (The {@link String} class has the same problem: it is immutable, so they
- * introduced {@link StringBuffer}.)
+ * introduced {@link StringBuilder}.)
  */
 public class RexProgramBuilder {
   //~ Instance fields --------------------------------------------------------

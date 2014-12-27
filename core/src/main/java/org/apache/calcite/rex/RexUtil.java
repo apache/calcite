@@ -204,7 +204,21 @@ public class RexUtil {
     }
   }
 
-  /**
+  /** Returns whether an expression is a cast just for the purposes of
+   * nullability, not changing any other aspect of the type. */
+  public static boolean isNullabilityCast(RelDataTypeFactory typeFactory,
+      RexNode node) {
+    switch (node.getKind()) {
+    case CAST:
+      final RexCall call = (RexCall) node;
+      final RexNode arg0 = call.getOperands().get(0);
+      return SqlTypeUtil.equalSansNullability(typeFactory, arg0.getType(),
+          call.getType());
+    }
+    return false;
+  }
+
+   /**
    * Returns whether a given node contains a RexCall with a specified operator
    *
    * @param operator to look for
@@ -1073,6 +1087,35 @@ public class RexUtil {
    */
   public static RexNode pullFactors(RexBuilder rexBuilder, RexNode node) {
     return new CnfHelper(rexBuilder).pull(node);
+  }
+
+  /** Fixes up the type of all {@link RexInputRef}s in an
+   * expression to match differences in nullability.
+   *
+   * <p>Such differences in nullability occur when expressions are moved
+   * through outer joins.
+   *
+   * <p>Throws if there any greater inconsistencies of type. */
+  public static List<RexNode> fixUp(final RexBuilder rexBuilder,
+      List<RexNode> nodes, final RelDataType rowType) {
+    final List<RelDataType> typeList = RelOptUtil.getFieldTypeList(rowType);
+    return new RexShuttle() {
+      @Override public RexNode visitInputRef(RexInputRef ref) {
+        final RelDataType rightType = typeList.get(ref.getIndex());
+        final RelDataType refType = ref.getType();
+        if (refType == rightType) {
+          return ref;
+        }
+        final RelDataType refType2 =
+            rexBuilder.getTypeFactory().createTypeWithNullability(refType,
+                rightType.isNullable());
+        if (refType2 == rightType) {
+          return new RexInputRef(ref.getIndex(), refType2);
+        }
+        throw new AssertionError("mismatched type " + ref + " " + rightType);
+      }
+      // CHECKSTYLE: IGNORE 1
+    }.apply(nodes);
   }
 
   //~ Inner Classes ----------------------------------------------------------

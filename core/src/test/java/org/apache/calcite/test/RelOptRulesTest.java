@@ -24,6 +24,9 @@ import org.apache.calcite.plan.hep.HepProgram;
 import org.apache.calcite.plan.hep.HepProgramBuilder;
 import org.apache.calcite.prepare.Prepare;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.Join;
+import org.apache.calcite.rel.core.JoinRelType;
+import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.logical.LogicalTableModify;
 import org.apache.calcite.rel.metadata.CachingRelMetadataProvider;
 import org.apache.calcite.rel.metadata.ChainedRelMetadataProvider;
@@ -66,6 +69,7 @@ import org.apache.calcite.rel.rules.UnionToDistinctRule;
 import org.apache.calcite.rel.rules.ValuesReduceRule;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlValidator;
@@ -240,6 +244,45 @@ public class RelOptRulesTest extends RelOptTestBase {
             + "  select dept.name as c1, count(*) as c2\n"
             + "  from dept where dept.name > 'b' group by dept.name) dept1\n"
             + "where dept1.c1 > 'c' and (dept1.c2 > 30 or dept1.c1 < 'z')");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-448">[CALCITE-448],
+   * FilterIntoJoinRule creates filters containing invalid RexInputRef</a>. */
+  @Test public void testPushFilterPastProject() {
+    final HepProgram preProgram =
+        HepProgram.builder()
+            .addRuleInstance(ProjectMergeRule.INSTANCE)
+            .build();
+    final FilterJoinRule.Predicate predicate =
+        new FilterJoinRule.Predicate() {
+          public boolean apply(Join join, JoinRelType joinType, RexNode exp) {
+            return joinType != JoinRelType.INNER;
+          }
+        };
+    final FilterJoinRule join =
+        new FilterJoinRule.JoinConditionPushRule(
+            RelFactories.DEFAULT_FILTER_FACTORY,
+            RelFactories.DEFAULT_PROJECT_FACTORY, predicate);
+    final FilterJoinRule filterOnJoin =
+        new FilterJoinRule.FilterIntoJoinRule(true,
+            RelFactories.DEFAULT_FILTER_FACTORY,
+            RelFactories.DEFAULT_PROJECT_FACTORY, predicate);
+    final HepProgram program =
+        HepProgram.builder()
+            .addGroupBegin()
+            .addRuleInstance(FilterProjectTransposeRule.INSTANCE)
+            .addRuleInstance(join)
+            .addRuleInstance(filterOnJoin)
+            .addGroupEnd()
+            .build();
+    checkPlanning(tester,
+        preProgram,
+        new HepPlanner(program),
+        "select a.name\n"
+            + "from dept a\n"
+            + "left join dept b on b.deptno > 10\n"
+            + "right join dept c on b.deptno > 10\n");
   }
 
   @Test public void testSemiJoinRule() {
