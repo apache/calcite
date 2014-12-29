@@ -5952,6 +5952,93 @@ public class JdbcTest {
     connection.close();
   }
 
+  @Test public void testCaseSensitiveSubQueryOracle() {
+    final CalciteAssert.AssertThat with =
+        CalciteAssert.that()
+            .with(CalciteAssert.Config.REGULAR)
+            .with(ImmutableMap.of("lex", "ORACLE"));
+
+    with.query("select DID from (select DEPTID as did FROM \n "
+        + "     ( values (1), (2) ) as T1(deptid) ) ")
+        .returnsUnordered("DID=1", "DID=2");
+
+    with.query("select x.DID from (select DEPTID as did FROM \n "
+        + "     ( values (1), (2) ) as T1(deptid) ) X")
+        .returnsUnordered("DID=1", "DID=2");
+  }
+
+  @Test public void testUnquotedCaseSensitiveSubQueryMySql() {
+    final CalciteAssert.AssertThat with =
+        CalciteAssert.that()
+            .with(CalciteAssert.Config.REGULAR)
+            .with(ImmutableMap.of("lex", "MYSQL"));
+
+    with.query("select DID from (select deptid as did FROM \n "
+        + "     ( values (1), (2) ) as T1(deptid) ) ")
+        .returnsUnordered("DID=1", "DID=2");
+
+    with.query("select x.DID from (select deptid as did FROM \n "
+        + "     ( values (1), (2) ) as T1(deptid) ) X ")
+        .returnsUnordered("DID=1", "DID=2");
+
+    with.query("select X.DID from (select deptid as did FROM \n "
+        + "     ( values (1), (2) ) as T1(deptid) ) X ")
+        .returnsUnordered("DID=1", "DID=2");
+
+    with.query("select X.DID2 from (select deptid as did FROM \n "
+        + "     ( values (1), (2) ) as T1(deptid) ) X (DID2)")
+        .returnsUnordered("DID2=1", "DID2=2");
+
+    with.query("select X.DID2 from (select deptid as did FROM \n "
+        + "     ( values (1), (2) ) as T1(deptid) ) X (DID2)")
+        .returnsUnordered("DID2=1", "DID2=2");
+  }
+
+  @Test public void testQuotedCaseSensitiveSubQueryMySql() {
+    final CalciteAssert.AssertThat with =
+        CalciteAssert.that()
+            .with(CalciteAssert.Config.REGULAR)
+            .with(ImmutableMap.of("lex", "MYSQL"));
+
+    with.query("select `DID` from (select deptid as did FROM \n "
+        + "     ( values (1), (2) ) as T1(deptid) ) ")
+        .returnsUnordered("DID=1", "DID=2");
+
+    with.query("select `x`.`DID` from (select deptid as did FROM \n "
+        + "     ( values (1), (2) ) as T1(deptid) ) X ")
+        .returnsUnordered("DID=1", "DID=2");
+
+    with.query("select `X`.`DID` from (select deptid as did FROM \n "
+        + "     ( values (1), (2) ) as T1(deptid) ) X ")
+        .returnsUnordered("DID=1", "DID=2");
+
+    with.query("select `X`.`DID2` from (select deptid as did FROM \n "
+        + "     ( values (1), (2) ) as T1(deptid) ) X (DID2)")
+        .returnsUnordered("DID2=1", "DID2=2");
+
+    with.query("select `X`.`DID2` from (select deptid as did FROM \n "
+        + "     ( values (1), (2) ) as T1(deptid) ) X (DID2)")
+        .returnsUnordered("DID2=1", "DID2=2");
+  }
+
+  @Test public void testUnquotedCaseSensitiveSubQuerySqlServer() {
+    CalciteAssert.that()
+        .with(CalciteAssert.Config.REGULAR)
+        .with(ImmutableMap.of("lex", "SQL_SERVER"))
+        .query("select DID from (select deptid as did FROM \n "
+            + "     ( values (1), (2) ) as T1(deptid) ) ")
+        .returnsUnordered("DID=1", "DID=2");
+  }
+
+  @Test public void testQuotedCaseSensitiveSubQuerySqlServer() {
+    CalciteAssert.that()
+        .with(CalciteAssert.Config.REGULAR)
+        .with(ImmutableMap.of("lex", "SQL_SERVER"))
+        .query("select [DID] from (select deptid as did FROM \n "
+            + "     ( values (1), (2) ) as T1([deptid]) ) ")
+        .returnsUnordered("DID=1", "DID=2");
+  }
+
   // Disable checkstyle, so it doesn't complain about fields like "customer_id".
   //CHECKSTYLE: OFF
 
